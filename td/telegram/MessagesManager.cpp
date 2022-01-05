@@ -1360,6 +1360,48 @@ class EditDialogTitleQuery final : public Td::ResultHandler {
   }
 };
 
+class SetChatAvailableReactionsQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  DialogId dialog_id_;
+
+ public:
+  explicit SetChatAvailableReactionsQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(DialogId dialog_id, vector<string> available_reactions) {
+    dialog_id_ = dialog_id;
+    auto input_peer = td_->messages_manager_->get_input_peer(dialog_id, AccessRights::Write);
+    if (input_peer == nullptr) {
+      return on_error(Status::Error(400, "Can't access the chat"));
+    }
+    send_query(G()->net_query_creator().create(
+        telegram_api::messages_setChatAvailableReactions(std::move(input_peer), std::move(available_reactions))));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_setChatAvailableReactions>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for SetChatAvailableReactionsQuery: " << to_string(ptr);
+    td_->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
+  }
+
+  void on_error(Status status) final {
+    if (status.message() == "CHAT_NOT_MODIFIED") {
+      if (!td_->auth_manager_->is_bot()) {
+        promise_.set_value(Unit());
+        return;
+      }
+    } else {
+      td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "SetChatAvailableReactionsQuery");
+    }
+    promise_.set_error(std::move(status));
+  }
+};
+
 class SetChatThemeQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   DialogId dialog_id_;
@@ -32121,8 +32163,6 @@ void MessagesManager::on_updated_dialog_folder_id(DialogId dialog_id, uint64 gen
 
 void MessagesManager::set_dialog_photo(DialogId dialog_id, const tl_object_ptr<td_api::InputChatPhoto> &input_photo,
                                        Promise<Unit> &&promise) {
-  LOG(INFO) << "Receive setChatPhoto request to change photo of " << dialog_id;
-
   if (!have_dialog_force(dialog_id, "set_dialog_photo")) {
     return promise.set_error(Status::Error(400, "Chat not found"));
   }
@@ -32236,8 +32276,6 @@ void MessagesManager::upload_dialog_photo(DialogId dialog_id, FileId file_id, bo
 }
 
 void MessagesManager::set_dialog_title(DialogId dialog_id, const string &title, Promise<Unit> &&promise) {
-  LOG(INFO) << "Receive setChatTitle request to change title of " << dialog_id << " to \"" << title << '"';
-
   if (!have_dialog_force(dialog_id, "set_dialog_title")) {
     return promise.set_error(Status::Error(400, "Chat not found"));
   }
@@ -32280,6 +32318,57 @@ void MessagesManager::set_dialog_title(DialogId dialog_id, const string &title, 
 
   // TODO invoke after
   td_->create_handler<EditDialogTitleQuery>(std::move(promise))->send(dialog_id, new_title);
+}
+
+void MessagesManager::set_dialog_available_reactions(DialogId dialog_id, vector<string> available_reactions,
+                                                     Promise<Unit> &&promise) {
+  const Dialog *d = get_dialog_force(dialog_id, "set_dialog_available_reactions");
+  if (d == nullptr) {
+    return promise.set_error(Status::Error(400, "Chat not found"));
+  }
+
+  if (get_active_reactions(td_, available_reactions) != available_reactions) {
+    return promise.set_error(Status::Error(400, "Invalid reactions specified"));
+  }
+  std::unordered_set<string> unique_reactions{available_reactions.begin(), available_reactions.end()};
+  if (unique_reactions.size() != available_reactions.size()) {
+    return promise.set_error(Status::Error(400, "Duplicate reactions specified"));
+  }
+
+  switch (dialog_id.get_type()) {
+    case DialogType::User:
+      return promise.set_error(Status::Error(400, "Can't change private chat available reactions"));
+    case DialogType::Chat: {
+      auto chat_id = dialog_id.get_chat_id();
+      auto status = td_->contacts_manager_->get_chat_permissions(chat_id);
+      if (!status.can_change_info_and_settings() ||
+          (td_->auth_manager_->is_bot() && !td_->contacts_manager_->is_appointed_chat_administrator(chat_id))) {
+        return promise.set_error(Status::Error(400, "Not enough rights to change chat available reactions"));
+      }
+      break;
+    }
+    case DialogType::Channel: {
+      auto status = td_->contacts_manager_->get_channel_permissions(dialog_id.get_channel_id());
+      if (!status.can_change_info_and_settings()) {
+        return promise.set_error(Status::Error(400, "Not enough rights to change chat available reactions"));
+      }
+      break;
+    }
+    case DialogType::SecretChat:
+      return promise.set_error(Status::Error(400, "Can't change secret chat available reactions"));
+    case DialogType::None:
+    default:
+      UNREACHABLE();
+  }
+
+  // TODO this can be wrong if there were previous requests to change available reactions
+  if (d->available_reactions == available_reactions) {
+    return promise.set_value(Unit());
+  }
+
+  // TODO invoke after
+  td_->create_handler<SetChatAvailableReactionsQuery>(std::move(promise))
+      ->send(dialog_id, std::move(available_reactions));
 }
 
 void MessagesManager::set_dialog_message_ttl(DialogId dialog_id, int32 ttl, Promise<Unit> &&promise) {
@@ -32472,7 +32561,7 @@ void MessagesManager::set_dialog_theme(DialogId dialog_id, const string &theme_n
   }
 
   // TODO this can be wrong if there were previous change theme requests
-  if (d->theme_name == theme_name) {
+  if (get_dialog_theme_name(d) == theme_name) {
     return promise.set_value(Unit());
   }
 
@@ -32481,9 +32570,6 @@ void MessagesManager::set_dialog_theme(DialogId dialog_id, const string &theme_n
 }
 
 void MessagesManager::set_dialog_description(DialogId dialog_id, const string &description, Promise<Unit> &&promise) {
-  LOG(INFO) << "Receive setChatDescription request to set description of " << dialog_id << " to \"" << description
-            << '"';
-
   if (!have_dialog_force(dialog_id, "set_dialog_description")) {
     return promise.set_error(Status::Error(400, "Chat not found"));
   }

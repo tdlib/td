@@ -4164,6 +4164,12 @@ class CliClient final : public Actor {
       get_args(args, supergroup_id, sign_messages);
       send_request(
           td_api::make_object<td_api::toggleSupergroupSignMessages>(as_supergroup_id(supergroup_id), sign_messages));
+    } else if (op == "scar") {
+      ChatId chat_id;
+      string available_reactions;
+      get_args(args, chat_id, available_reactions);
+      send_request(
+          td_api::make_object<td_api::setChatAvailableReactions>(chat_id, full_split(available_reactions, ' ')));
     } else if (op == "scd") {
       ChatId chat_id;
       string description;

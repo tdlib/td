@@ -672,7 +672,7 @@ supergroup id:int53 username:string date:int32 status:ChatMemberStatus member_co
 //@is_all_history_available True, if new chat members will have access to old messages. In public or discussion groups and both public and private channels, old messages are always available, so this option affects only private supergroups without a linked chat. The value of this field is only available for chat administrators
 //@sticker_set_id Identifier of the supergroup sticker set; 0 if none
 //@location Location to which the supergroup is connected; may be null
-//@invite_link Primary invite link for this chat; may be null. For chat administrators with can_invite_users right only
+//@invite_link Primary invite link for the chat; may be null. For chat administrators with can_invite_users right only
 //@bot_commands List of commands of bots in the group
 //@upgraded_from_basic_group_id Identifier of the basic group from which supergroup was upgraded; 0 if none
 //@upgraded_from_max_message_id Identifier of the last message in the basic group from which supergroup was upgraded; 0 if none
@@ -979,8 +979,8 @@ videoChat group_call_id:int32 has_participants:Bool default_participant_id:Messa
 //@last_read_inbox_message_id Identifier of the last read incoming message
 //@last_read_outbox_message_id Identifier of the last read outgoing message
 //@unread_mention_count Number of unread messages with a mention/reply in the chat
-//@notification_settings Notification settings for this chat
-//@available_reactions List of reactions available for this chat
+//@notification_settings Notification settings for the chat
+//@available_reactions List of reactions, available in the chat
 //@message_ttl Current message Time To Live setting (self-destruct timer) for the chat; 0 if not defined. TTL is counted from the time message or its content is viewed in secret chats and from the send date in other chats
 //@theme_name If non-empty, name of a theme, set for the chat
 //@action_bar Information about actions which must be possible to do through the chat action bar; may be null
@@ -3740,7 +3740,7 @@ updateChatReadOutbox chat_id:int53 last_read_outbox_message_id:int53 = Update;
 //@description The chat action bar was changed @chat_id Chat identifier @action_bar The new value of the action bar; may be null
 updateChatActionBar chat_id:int53 action_bar:ChatActionBar = Update;
 
-//@description The chat available reactions were changed @chat_id Chat identifier @available_reactions The new list of reactions available in the chat
+//@description The chat available reactions were changed @chat_id Chat identifier @available_reactions The new list of reactions, available in the chat
 updateChatAvailableReactions chat_id:int53 available_reactions:vector<string> = Update;
 
 //@description A chat draft has changed. Be aware that the update may come in the currently opened chat but with old content of the draft. If the user has changed the content of the draft, this update mustn't be applied @chat_id Chat identifier @draft_message The new draft message; may be null @positions The new chat positions in the chat lists
@@ -4801,6 +4801,9 @@ toggleChatIsMarkedAsUnread chat_id:int53 is_marked_as_unread:Bool = Ok;
 
 //@description Changes the value of the default disable_notification parameter, used when a message is sent to a chat @chat_id Chat identifier @default_disable_notification New value of default_disable_notification
 toggleChatDefaultDisableNotification chat_id:int53 default_disable_notification:Bool = Ok;
+
+//@description Changes reactions, available in a chat. Available for basic groups, supergroups, and channels. Requires can_change_info administrator right @chat_id Identifier of the chat @available_reactions New list of reactions, available in the chat
+setChatAvailableReactions chat_id:int53 available_reactions:vector<string> = Ok;
 
 //@description Changes application-specific data associated with a chat @chat_id Chat identifier @client_data New value of client_data
 setChatClientData chat_id:int53 client_data:string = Ok;
