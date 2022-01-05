@@ -3281,6 +3281,7 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updatePendingJoinRequ
 // unsupported updates
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateMessageReactions> update, Promise<Unit> &&promise) {
+  promise.set_value(Unit());
 }
 
 }  // namespace td

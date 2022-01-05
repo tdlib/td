@@ -1823,7 +1823,9 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
   } else {
     shared_config.set_option_integer("chat_read_mark_size_threshold", chat_read_mark_size_threshold);
   }
-  shared_config.set_option_string("default_reaction", default_reaction);
+  if (!shared_config.have_option("default_reaction_need_sync")) {
+    shared_config.set_option_string("default_reaction", default_reaction);
+  }
 
   shared_config.set_option_empty("default_ton_blockchain_config");
   shared_config.set_option_empty("default_ton_blockchain_name");

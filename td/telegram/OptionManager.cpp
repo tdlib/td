@@ -26,6 +26,7 @@
 #include "td/telegram/TdDb.h"
 #include "td/telegram/TopDialogManager.h"
 
+#include "td/utils/buffer.h"
 #include "td/utils/misc.h"
 #include "td/utils/SliceBuilder.h"
 #include "td/utils/Status.h"
@@ -34,6 +35,36 @@
 #include <limits>
 
 namespace td {
+
+class SetDefaultReactionQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit SetDefaultReactionQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(const string &reaction) {
+    send_query(G()->net_query_creator().create(telegram_api::messages_setDefaultReaction(reaction)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_setDefaultReaction>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    if (result_ptr.ok()) {
+      promise_.set_value(Unit());
+    } else {
+      on_error(Status::Error(400, "Receive false"));
+    }
+  }
+
+  void on_error(Status status) final {
+    LOG(INFO) << "Failed to set default reaction: " << status;
+    promise_.set_error(std::move(status));
+  }
+};
 
 OptionManager::OptionManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
   send_unix_time_update();
@@ -84,7 +115,8 @@ bool OptionManager::is_internal_option(Slice name) {
              name == "channels_read_media_period" || name == "chat_read_mark_expire_period" ||
              name == "chat_read_mark_size_threshold";
     case 'd':
-      return name == "dc_txt_domain_name" || name == "dice_emojis" || name == "dice_success_values";
+      return name == "dc_txt_domain_name" || name == "default_reaction_needs_sync" || name == "dice_emojis" ||
+             name == "dice_success_values";
     case 'e':
       return name == "edit_time_limit" || name == "emoji_sounds";
     case 'i':
@@ -144,6 +176,9 @@ void OptionManager::on_option_updated(const string &name) {
       }
       break;
     case 'd':
+      if (name == "default_reaction_needs_sync" && G()->shared_config().get_option_boolean(name)) {
+        set_default_reaction();
+      }
       if (name == "dice_emojis") {
         send_closure(td_->stickers_manager_actor_, &StickersManager::on_update_dice_emojis);
       }
@@ -439,6 +474,12 @@ void OptionManager::set_option(const string &name, td_api::object_ptr<td_api::Op
       }
       break;
     case 'd':
+      if (!is_bot && set_string_option("default_reaction", [td = td_](Slice value) {
+            return td->stickers_manager_->get_active_reactions({value.str()}).size() == 1;
+          })) {
+        G()->shared_config().set_option_boolean("default_reaction_needs_sync", true);
+        return;
+      }
       if (!is_bot && set_boolean_option("disable_animated_emoji")) {
         return;
       }
@@ -661,6 +702,24 @@ void OptionManager::get_current_state(vector<td_api::object_ptr<td_api::Update>>
       updates.push_back(
           td_api::make_object<td_api::updateOption>(option.first, get_option_value_object(option.second)));
     }
+  }
+}
+
+void OptionManager::set_default_reaction() {
+  auto promise = PromiseCreator::lambda([actor_id = actor_id(this)](Result<Unit> &&result) {
+    send_closure(actor_id, &OptionManager::on_set_default_reaction, result.is_ok());
+  });
+  td_->create_handler<SetDefaultReactionQuery>(std::move(promise))->send(G()->shared_config().get_option_string("default_reaction"));
+}
+
+void OptionManager::on_set_default_reaction(bool success) {
+  if (G()->close_flag() && !success) {
+    return;
+  }
+
+  G()->shared_config().set_option_empty("default_reaction_needs_sync");
+  if (!success) {
+    send_closure(G()->config_manager(), &ConfigManager::reget_app_config, Promise<Unit>());
   }
 }
 
