@@ -39,11 +39,15 @@ class AuthKey {
   }
 
   bool need_header() const {
-    return need_header_;
+    return have_header_ || Time::now() < header_expires_at_;
   }
-  void set_need_header(bool need_header) {
-    need_header_ = need_header;
+  void remove_header() {
+    if (have_header_) {
+      have_header_ = false;
+      header_expires_at_ = Time::now() + 3;
+    }
   }
+
   double expires_at() const {
     return expires_at_;
   }
@@ -86,14 +90,15 @@ class AuthKey {
       created_at_ = parser.fetch_double();
     }
     // just in case
-    need_header_ = true;
+    have_header_ = true;
   }
 
  private:
   uint64 auth_key_id_{0};
   string auth_key_;
   bool auth_flag_{false};
-  bool need_header_{true};
+  bool have_header_{true};
+  double header_expires_at_{0};
   double expires_at_{0};
   double created_at_{0};
 };

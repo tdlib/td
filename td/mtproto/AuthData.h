@@ -162,17 +162,19 @@ class AuthData {
       return main_auth_key_.need_header() ? Slice(header_) : Slice();
     }
   }
+
   void set_header(std::string header) {
     header_ = std::move(header);
   }
+
   void on_api_response() {
     if (use_pfs()) {
       if (tmp_auth_key_.auth_flag()) {
-        tmp_auth_key_.set_need_header(false);
+        tmp_auth_key_.remove_header();
       }
     } else {
       if (main_auth_key_.auth_flag()) {
-        main_auth_key_.set_need_header(false);
+        main_auth_key_.remove_header();
       }
     }
   }
