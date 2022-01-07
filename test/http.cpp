@@ -41,18 +41,15 @@
 #include "td/utils/UInt.h"
 
 #include <algorithm>
-#include <limits>
-
 #include <condition_variable>
+#include <limits>
 #include <mutex>
 
-using namespace td;
-
-static string make_chunked(const string &str) {
-  auto v = rand_split(str);
-  string res;
+static td::string make_chunked(const td::string &str) {
+  auto v = td::rand_split(str);
+  td::string res;
   for (auto &s : v) {
-    res += PSTRING() << format::as_hex_dump(static_cast<int32>(s.size()));
+    res += PSTRING() << td::format::as_hex_dump(static_cast<td::int32>(s.size()));
     res += "\r\n";
     res += s;
     res += "\r\n";
@@ -61,33 +58,33 @@ static string make_chunked(const string &str) {
   return res;
 }
 
-static string gen_http_content() {
-  int t = Random::fast(0, 2);
+static td::string gen_http_content() {
+  int t = td::Random::fast(0, 2);
   int len;
   if (t == 0) {
-    len = Random::fast(1, 10);
+    len = td::Random::fast(1, 10);
   } else if (t == 1) {
-    len = Random::fast(100, 200);
+    len = td::Random::fast(100, 200);
   } else {
-    len = Random::fast(1000, 20000);
+    len = td::Random::fast(1000, 20000);
   }
-  return rand_string(std::numeric_limits<char>::min(), std::numeric_limits<char>::max(), len);
+  return td::rand_string(std::numeric_limits<char>::min(), std::numeric_limits<char>::max(), len);
 }
 
-static string make_http_query(string content, bool is_json, bool is_chunked, bool is_gzip, double gzip_k = 5,
-                              string zip_override = string()) {
-  HttpHeaderCreator hc;
+static td::string make_http_query(td::string content, bool is_json, bool is_chunked, bool is_gzip, double gzip_k = 5,
+                                  td::string zip_override = td::string()) {
+  td::HttpHeaderCreator hc;
   hc.init_post("/");
-  hc.add_header("jfkdlsahhjk", rand_string('a', 'z', Random::fast(1, 2000)));
+  hc.add_header("jfkdlsahhjk", td::rand_string('a', 'z', td::Random::fast(1, 2000)));
   if (is_json) {
     hc.add_header("content-type", "application/json");
   }
   if (is_gzip) {
-    BufferSlice zip;
+    td::BufferSlice zip;
     if (zip_override.empty()) {
-      zip = gzencode(content, gzip_k);
+      zip = td::gzencode(content, gzip_k);
     } else {
-      zip = BufferSlice(zip_override);
+      zip = td::BufferSlice(zip_override);
     }
     if (!zip.empty()) {
       hc.add_header("content-encoding", "gzip");
@@ -100,22 +97,19 @@ static string make_http_query(string content, bool is_json, bool is_chunked, boo
   } else {
     hc.set_content_size(content.size());
   }
-  string res;
   auto r_header = hc.finish();
   CHECK(r_header.is_ok());
-  res += r_header.ok().str();
-  res += content;
-  return res;
+  return PSTRING() << r_header.ok() << content;
 }
 
-static string rand_http_query(string content) {
-  bool is_chunked = Random::fast_bool();
-  bool is_gzip = Random::fast_bool();
+static td::string rand_http_query(td::string content) {
+  bool is_chunked = td::Random::fast_bool();
+  bool is_gzip = td::Random::fast_bool();
   return make_http_query(std::move(content), false, is_chunked, is_gzip);
 }
 
-static string join(const std::vector<string> &v) {
-  string res;
+static td::string join(const td::vector<td::string> &v) {
+  td::string res;
   for (auto &s : v) {
     res += s;
   }
@@ -123,10 +117,10 @@ static string join(const std::vector<string> &v) {
 }
 
 TEST(Http, stack_overflow) {
-  ChainBufferWriter writer;
-  BufferSlice slice(string(256, 'A'));
+  td::ChainBufferWriter writer;
+  td::BufferSlice slice(td::string(256, 'A'));
   for (int i = 0; i < 1000000; i++) {
-    ChainBufferWriter tmp_writer;
+    td::ChainBufferWriter tmp_writer;
     writer.append(slice.clone());
   }
   {
@@ -139,12 +133,12 @@ TEST(Http, reader) {
 #if TD_ANDROID || TD_TIZEN
   return;
 #endif
-  clear_thread_locals();
-  auto start_mem = BufferAllocator::get_buffer_mem();
-  auto start_size = BufferAllocator::get_buffer_slice_size();
+  td::clear_thread_locals();
+  auto start_mem = td::BufferAllocator::get_buffer_mem();
+  auto start_size = td::BufferAllocator::get_buffer_slice_size();
   {
-    BufferSlice a("test test");
-    BufferSlice b = std::move(a);
+    td::BufferSlice a("test test");
+    td::BufferSlice b = std::move(a);
 #if TD_CLANG
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wunknown-pragmas"
@@ -157,32 +151,32 @@ TEST(Http, reader) {
 #pragma clang diagnostic pop
 #endif
     a = std::move(b);
-    BufferSlice c = a.from_slice(a);
+    td::BufferSlice c = a.from_slice(a);
     CHECK(c.size() == a.size());
   }
-  clear_thread_locals();
-  ASSERT_EQ(start_mem, BufferAllocator::get_buffer_mem());
-  ASSERT_EQ(start_size, BufferAllocator::get_buffer_slice_size());
+  td::clear_thread_locals();
+  ASSERT_EQ(start_mem, td::BufferAllocator::get_buffer_mem());
+  ASSERT_EQ(start_size, td::BufferAllocator::get_buffer_slice_size());
   for (int i = 0; i < 20; i++) {
     td::ChainBufferWriter input_writer;
     auto input = input_writer.extract_reader();
-    HttpReader reader;
+    td::HttpReader reader;
     int max_post_size = 10000;
     reader.init(&input, max_post_size, 0);
 
-    std::vector<string> contents(100);
+    td::vector<td::string> contents(100);
     std::generate(contents.begin(), contents.end(), gen_http_content);
     auto v = td::transform(contents, rand_http_query);
-    auto vec_str = rand_split(join(v));
+    auto vec_str = td::rand_split(join(v));
 
-    HttpQuery q;
-    std::vector<string> res;
+    td::HttpQuery q;
+    td::vector<td::string> res;
     for (auto &str : vec_str) {
       input_writer.append(str);
       input.sync_with_writer();
       while (true) {
         auto r_state = reader.read_next(&q);
-        LOG_IF(ERROR, r_state.is_error()) << r_state.error() << tag("ok", res.size());
+        LOG_IF(ERROR, r_state.is_error()) << r_state.error() << td::tag("ok", res.size());
         ASSERT_TRUE(r_state.is_ok());
         auto state = r_state.ok();
         if (state == 0) {
@@ -192,11 +186,11 @@ TEST(Http, reader) {
             ASSERT_EQ(expected, q.content_.str());
             res.push_back(q.content_.str());
           } else {
-            auto r_fd = FileFd::open(q.files_[0].temp_file_name, FileFd::Read);
+            auto r_fd = td::FileFd::open(q.files_[0].temp_file_name, td::FileFd::Read);
             ASSERT_TRUE(r_fd.is_ok());
             auto fd = r_fd.move_as_ok();
-            string content(td::narrow_cast<size_t>(q.files_[0].size), '\0');
-            auto r_size = fd.read(MutableSlice(content));
+            td::string content(td::narrow_cast<std::size_t>(q.files_[0].size), '\0');
+            auto r_size = fd.read(td::MutableSlice(content));
             ASSERT_TRUE(r_size.is_ok());
             ASSERT_TRUE(r_size.ok() == content.size());
             ASSERT_TRUE(td::narrow_cast<int>(content.size()) > max_post_size);
@@ -212,24 +206,26 @@ TEST(Http, reader) {
     ASSERT_EQ(contents.size(), res.size());
     ASSERT_EQ(contents, res);
   }
-  clear_thread_locals();
-  ASSERT_EQ(start_mem, BufferAllocator::get_buffer_mem());
-  ASSERT_EQ(start_size, BufferAllocator::get_buffer_slice_size());
+  td::clear_thread_locals();
+  ASSERT_EQ(start_mem, td::BufferAllocator::get_buffer_mem());
+  ASSERT_EQ(start_size, td::BufferAllocator::get_buffer_slice_size());
 }
 
 TEST(Http, gzip_bomb) {
-#if TD_ANDROID || TD_TIZEN || TD_EMSCRIPTEN  // the test should be disabled on low-memory systems
+#if TD_ANDROID || TD_TIZEN || TD_EMSCRIPTEN  // the test must be disabled on low-memory systems
   return;
 #endif
   auto gzip_bomb_str =
-      gzdecode(gzdecode(base64url_decode(Slice(gzip_bomb, gzip_bomb_size)).ok()).as_slice()).as_slice().str();
+      td::gzdecode(td::gzdecode(td::base64url_decode(td::Slice(gzip_bomb, gzip_bomb_size)).ok()).as_slice())
+          .as_slice()
+          .str();
 
   auto query = make_http_query("", false, false, true, 0.01, gzip_bomb_str);
-  auto parts = rand_split(query);
+  auto parts = td::rand_split(query);
   td::ChainBufferWriter input_writer;
   auto input = input_writer.extract_reader();
-  HttpReader reader;
-  HttpQuery q;
+  td::HttpReader reader;
+  td::HttpQuery q;
   reader.init(&input, 100000000, 0);
   for (auto &part : parts) {
     input_writer.append(part);
@@ -244,39 +240,39 @@ TEST(Http, gzip_bomb) {
 }
 
 TEST(Http, gzip) {
-  auto gzip_str = gzdecode(base64url_decode(Slice(gzip, gzip_size)).ok()).as_slice().str();
+  auto gzip_str = td::gzdecode(td::base64url_decode(td::Slice(gzip, gzip_size)).ok()).as_slice().str();
 
   td::ChainBufferWriter input_writer;
   auto input = input_writer.extract_reader();
 
-  HttpReader reader;
+  td::HttpReader reader;
   reader.init(&input, 0, 0);
 
   auto query = make_http_query("", true, false, true, 0.01, gzip_str);
   input_writer.append(query);
   input.sync_with_writer();
 
-  HttpQuery q;
+  td::HttpQuery q;
   auto r_state = reader.read_next(&q);
   ASSERT_TRUE(r_state.is_error());
   ASSERT_EQ(413, r_state.error().code());
 }
 
 TEST(Http, aes_ctr_encode_decode_flow) {
-  auto str = rand_string('a', 'z', 1000000);
-  auto parts = rand_split(str);
+  auto str = td::rand_string('a', 'z', 1000000);
+  auto parts = td::rand_split(str);
   td::ChainBufferWriter input_writer;
   auto input = input_writer.extract_reader();
-  ByteFlowSource source(&input);
-  UInt256 key;
-  UInt128 iv;
-  Random::secure_bytes(key.raw, sizeof(key));
-  Random::secure_bytes(iv.raw, sizeof(iv));
-  AesCtrByteFlow aes_encode;
+  td::ByteFlowSource source(&input);
+  td::UInt256 key;
+  td::UInt128 iv;
+  td::Random::secure_bytes(key.raw, sizeof(key));
+  td::Random::secure_bytes(iv.raw, sizeof(iv));
+  td::AesCtrByteFlow aes_encode;
   aes_encode.init(key, iv);
-  AesCtrByteFlow aes_decode;
+  td::AesCtrByteFlow aes_decode;
   aes_decode.init(key, iv);
-  ByteFlowSink sink;
+  td::ByteFlowSink sink;
   source >> aes_encode >> aes_decode >> sink;
 
   ASSERT_TRUE(!sink.is_ready());
@@ -285,7 +281,7 @@ TEST(Http, aes_ctr_encode_decode_flow) {
     source.wakeup();
   }
   ASSERT_TRUE(!sink.is_ready());
-  source.close_input(Status::OK());
+  source.close_input(td::Status::OK());
   ASSERT_TRUE(sink.is_ready());
   LOG_IF(ERROR, sink.status().is_error()) << sink.status();
   ASSERT_TRUE(sink.status().is_ok());
@@ -293,25 +289,25 @@ TEST(Http, aes_ctr_encode_decode_flow) {
 }
 
 TEST(Http, aes_file_encryption) {
-  auto str = rand_string('a', 'z', 1000000);
-  CSlice name = "test_encryption";
-  unlink(name).ignore();
-  UInt256 key;
-  UInt128 iv;
-  Random::secure_bytes(key.raw, sizeof(key));
-  Random::secure_bytes(iv.raw, sizeof(iv));
+  auto str = td::rand_string('a', 'z', 1000000);
+  td::CSlice name = "test_encryption";
+  td::unlink(name).ignore();
+  td::UInt256 key;
+  td::UInt128 iv;
+  td::Random::secure_bytes(key.raw, sizeof(key));
+  td::Random::secure_bytes(iv.raw, sizeof(iv));
 
   {
-    BufferedFdBase<FileFd> fd(FileFd::open(name, FileFd::Write | FileFd::Create).move_as_ok());
+    td::BufferedFdBase<td::FileFd> fd(td::FileFd::open(name, td::FileFd::Write | td::FileFd::Create).move_as_ok());
 
-    auto parts = rand_split(str);
+    auto parts = td::rand_split(str);
 
-    ChainBufferWriter output_writer;
+    td::ChainBufferWriter output_writer;
     auto output_reader = output_writer.extract_reader();
-    ByteFlowSource source(&output_reader);
-    AesCtrByteFlow aes_encode;
+    td::ByteFlowSource source(&output_reader);
+    td::AesCtrByteFlow aes_encode;
     aes_encode.init(key, iv);
-    ByteFlowSink sink;
+    td::ByteFlowSink sink;
 
     source >> aes_encode >> sink;
     fd.set_output_reader(sink.get_output());
@@ -325,18 +321,18 @@ TEST(Http, aes_file_encryption) {
   }
 
   {
-    BufferedFdBase<FileFd> fd(FileFd::open(name, FileFd::Read).move_as_ok());
+    td::BufferedFdBase<td::FileFd> fd(td::FileFd::open(name, td::FileFd::Read).move_as_ok());
 
-    ChainBufferWriter input_writer;
+    td::ChainBufferWriter input_writer;
     auto input_reader = input_writer.extract_reader();
-    ByteFlowSource source(&input_reader);
-    AesCtrByteFlow aes_encode;
+    td::ByteFlowSource source(&input_reader);
+    td::AesCtrByteFlow aes_encode;
     aes_encode.init(key, iv);
-    ByteFlowSink sink;
+    td::ByteFlowSink sink;
     source >> aes_encode >> sink;
     fd.set_input_writer(&input_writer);
 
-    fd.get_poll_info().add_flags(PollFlags::Read());
+    fd.get_poll_info().add_flags(td::PollFlags::Read());
     while (can_read_local(fd)) {
       fd.flush_read(4096).ensure();
       source.wakeup();
@@ -344,7 +340,7 @@ TEST(Http, aes_file_encryption) {
 
     fd.close();
 
-    source.close_input(Status::OK());
+    source.close_input(td::Status::OK());
     ASSERT_TRUE(sink.is_ready());
     LOG_IF(ERROR, sink.status().is_error()) << sink.status();
     ASSERT_TRUE(sink.status().is_ok());
@@ -354,20 +350,20 @@ TEST(Http, aes_file_encryption) {
 }
 
 TEST(Http, chunked_flow) {
-  auto str = rand_string('a', 'z', 100);
-  auto parts = rand_split(make_chunked(str));
+  auto str = td::rand_string('a', 'z', 100);
+  auto parts = td::rand_split(make_chunked(str));
   td::ChainBufferWriter input_writer;
   auto input = input_writer.extract_reader();
-  ByteFlowSource source(&input);
-  HttpChunkedByteFlow chunked_flow;
-  ByteFlowSink sink;
+  td::ByteFlowSource source(&input);
+  td::HttpChunkedByteFlow chunked_flow;
+  td::ByteFlowSink sink;
   source >> chunked_flow >> sink;
 
   for (auto &part : parts) {
     input_writer.append(part);
     source.wakeup();
   }
-  source.close_input(Status::OK());
+  source.close_input(td::Status::OK());
   ASSERT_TRUE(sink.is_ready());
   LOG_IF(ERROR, sink.status().is_error()) << sink.status();
   ASSERT_TRUE(sink.status().is_ok());
@@ -377,16 +373,16 @@ TEST(Http, chunked_flow) {
 }
 
 TEST(Http, chunked_flow_error) {
-  auto str = rand_string('a', 'z', 100000);
+  auto str = td::rand_string('a', 'z', 100000);
   for (int d = 1; d < 100; d += 10) {
     auto new_str = make_chunked(str);
     new_str.resize(str.size() - d);
-    auto parts = rand_split(new_str);
+    auto parts = td::rand_split(new_str);
     td::ChainBufferWriter input_writer;
     auto input = input_writer.extract_reader();
-    ByteFlowSource source(&input);
-    HttpChunkedByteFlow chunked_flow;
-    ByteFlowSink sink;
+    td::ByteFlowSource source(&input);
+    td::HttpChunkedByteFlow chunked_flow;
+    td::ByteFlowSink sink;
     source >> chunked_flow >> sink;
 
     for (auto &part : parts) {
@@ -394,29 +390,29 @@ TEST(Http, chunked_flow_error) {
       source.wakeup();
     }
     ASSERT_TRUE(!sink.is_ready());
-    source.close_input(Status::OK());
+    source.close_input(td::Status::OK());
     ASSERT_TRUE(sink.is_ready());
     ASSERT_TRUE(!sink.status().is_ok());
   }
 }
 
 TEST(Http, gzip_chunked_flow) {
-  auto str = rand_string('a', 'z', 1000000);
-  auto parts = rand_split(make_chunked(gzencode(str, 2.0).as_slice().str()));
+  auto str = td::rand_string('a', 'z', 1000000);
+  auto parts = td::rand_split(make_chunked(td::gzencode(str, 2.0).as_slice().str()));
 
-  ChainBufferWriter input_writer;
+  td::ChainBufferWriter input_writer;
   auto input = input_writer.extract_reader();
-  ByteFlowSource source(&input);
-  HttpChunkedByteFlow chunked_flow;
-  GzipByteFlow gzip_flow(Gzip::Mode::Decode);
-  ByteFlowSink sink;
+  td::ByteFlowSource source(&input);
+  td::HttpChunkedByteFlow chunked_flow;
+  td::GzipByteFlow gzip_flow(td::Gzip::Mode::Decode);
+  td::ByteFlowSink sink;
   source >> chunked_flow >> gzip_flow >> sink;
 
   for (auto &part : parts) {
     input_writer.append(part);
     source.wakeup();
   }
-  source.close_input(Status::OK());
+  source.close_input(td::Status::OK());
   ASSERT_TRUE(sink.is_ready());
   LOG_IF(ERROR, sink.status().is_error()) << sink.status();
   ASSERT_TRUE(sink.status().is_ok());
@@ -424,21 +420,21 @@ TEST(Http, gzip_chunked_flow) {
 }
 
 TEST(Http, gzip_bomb_with_limit) {
-  std::string gzip_bomb_str;
+  td::string gzip_bomb_str;
   {
-    ChainBufferWriter input_writer;
+    td::ChainBufferWriter input_writer;
     auto input = input_writer.extract_reader();
-    GzipByteFlow gzip_flow(Gzip::Mode::Encode);
-    ByteFlowSource source(&input);
-    ByteFlowSink sink;
+    td::GzipByteFlow gzip_flow(td::Gzip::Mode::Encode);
+    td::ByteFlowSource source(&input);
+    td::ByteFlowSink sink;
     source >> gzip_flow >> sink;
 
-    std::string s(1 << 16, 'a');
+    td::string s(1 << 16, 'a');
     for (int i = 0; i < 1000; i++) {
       input_writer.append(s);
       source.wakeup();
     }
-    source.close_input(Status::OK());
+    source.close_input(td::Status::OK());
     ASSERT_TRUE(sink.is_ready());
     LOG_IF(ERROR, sink.status().is_error()) << sink.status();
     ASSERT_TRUE(sink.status().is_ok());
@@ -446,11 +442,11 @@ TEST(Http, gzip_bomb_with_limit) {
   }
 
   auto query = make_http_query("", false, false, true, 0.01, gzip_bomb_str);
-  auto parts = rand_split(query);
+  auto parts = td::rand_split(query);
   td::ChainBufferWriter input_writer;
   auto input = input_writer.extract_reader();
-  HttpReader reader;
-  HttpQuery q;
+  td::HttpReader reader;
+  td::HttpQuery q;
   reader.init(&input, 1000000);
   bool ok = false;
   for (auto &part : parts) {
@@ -493,12 +489,7 @@ struct Baton {
 
 TEST(Http, Darwin) {
   Baton baton;
-  //LOG(ERROR) << "???";
-  td::DarwinHttp::get("http://example.com", [&](td::BufferSlice data) {
-    //LOG(ERROR) << data.as_slice();
-    baton.post();
-  });
-  //LOG(ERROR) << "!!!";
+  td::DarwinHttp::get("http://example.com", [&](td::BufferSlice data) { baton.post(); });
   baton.wait();
 }
 #endif
