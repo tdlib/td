@@ -36,221 +36,221 @@
 #include <memory>
 #include <unordered_map>
 
-using namespace td;
-
 template <class ContainerT>
 static typename ContainerT::value_type &rand_elem(ContainerT &cont) {
-  CHECK(0 < cont.size() && cont.size() <= static_cast<size_t>(std::numeric_limits<int>::max()));
-  return cont[Random::fast(0, static_cast<int>(cont.size()) - 1)];
+  CHECK(0 < cont.size() && cont.size() <= static_cast<std::size_t>(std::numeric_limits<int>::max()));
+  return cont[td::Random::fast(0, static_cast<int>(cont.size()) - 1)];
 }
 
 TEST(DB, binlog_encryption_bug) {
-  CSlice binlog_name = "test_binlog";
-  Binlog::destroy(binlog_name).ignore();
+  td::CSlice binlog_name = "test_binlog";
+  td::Binlog::destroy(binlog_name).ignore();
 
-  auto cucumber = DbKey::password("cucu'\"mb er");
-  auto empty = DbKey::empty();
+  auto cucumber = td::DbKey::password("cucu'\"mb er");
+  auto empty = td::DbKey::empty();
   {
-    Binlog binlog;
+    td::Binlog binlog;
     binlog
         .init(
-            binlog_name.str(), [&](const BinlogEvent &x) {}, cucumber)
+            binlog_name.str(), [&](const td::BinlogEvent &x) {}, cucumber)
         .ensure();
   }
   {
-    Binlog binlog;
+    td::Binlog binlog;
     binlog
         .init(
-            binlog_name.str(), [&](const BinlogEvent &x) {}, cucumber)
+            binlog_name.str(), [&](const td::BinlogEvent &x) {}, cucumber)
         .ensure();
   }
 }
 
 TEST(DB, binlog_encryption) {
-  CSlice binlog_name = "test_binlog";
-  Binlog::destroy(binlog_name).ignore();
+  td::CSlice binlog_name = "test_binlog";
+  td::Binlog::destroy(binlog_name).ignore();
 
-  auto hello = DbKey::raw_key(std::string(32, 'A'));
-  auto cucumber = DbKey::password("cucu'\"mb er");
-  auto empty = DbKey::empty();
-  auto long_data = string(10000, 'Z');
+  auto hello = td::DbKey::raw_key(td::string(32, 'A'));
+  auto cucumber = td::DbKey::password("cucu'\"mb er");
+  auto empty = td::DbKey::empty();
+  auto long_data = td::string(10000, 'Z');
   {
-    Binlog binlog;
-    binlog.init(binlog_name.str(), [](const BinlogEvent &x) {}).ensure();
-    binlog.add_raw_event(BinlogEvent::create_raw(binlog.next_id(), 1, 0, create_storer("AAAA")),
-                         BinlogDebugInfo{__FILE__, __LINE__});
-    binlog.add_raw_event(BinlogEvent::create_raw(binlog.next_id(), 1, 0, create_storer("BBBB")),
-                         BinlogDebugInfo{__FILE__, __LINE__});
-    binlog.add_raw_event(BinlogEvent::create_raw(binlog.next_id(), 1, 0, create_storer(long_data)),
-                         BinlogDebugInfo{__FILE__, __LINE__});
+    td::Binlog binlog;
+    binlog.init(binlog_name.str(), [](const td::BinlogEvent &x) {}).ensure();
+    binlog.add_raw_event(td::BinlogEvent::create_raw(binlog.next_id(), 1, 0, td::create_storer("AAAA")),
+                         td::BinlogDebugInfo{__FILE__, __LINE__});
+    binlog.add_raw_event(td::BinlogEvent::create_raw(binlog.next_id(), 1, 0, td::create_storer("BBBB")),
+                         td::BinlogDebugInfo{__FILE__, __LINE__});
+    binlog.add_raw_event(td::BinlogEvent::create_raw(binlog.next_id(), 1, 0, td::create_storer(long_data)),
+                         td::BinlogDebugInfo{__FILE__, __LINE__});
     LOG(INFO) << "SET PASSWORD";
     binlog.change_key(cucumber);
     binlog.change_key(hello);
     LOG(INFO) << "OK";
-    binlog.add_raw_event(BinlogEvent::create_raw(binlog.next_id(), 1, 0, create_storer("CCCC")),
-                         BinlogDebugInfo{__FILE__, __LINE__});
+    binlog.add_raw_event(td::BinlogEvent::create_raw(binlog.next_id(), 1, 0, td::create_storer("CCCC")),
+                         td::BinlogDebugInfo{__FILE__, __LINE__});
     binlog.close().ensure();
   }
 
   return;
 
   auto add_suffix = [&] {
-    auto fd = FileFd::open(binlog_name, FileFd::Flags::Write | FileFd::Flags::Append).move_as_ok();
+    auto fd = td::FileFd::open(binlog_name, td::FileFd::Flags::Write | td::FileFd::Flags::Append).move_as_ok();
     fd.write("abacabadaba").ensure();
   };
 
   add_suffix();
 
   {
-    std::vector<string> v;
+    td::vector<td::string> v;
     LOG(INFO) << "RESTART";
-    Binlog binlog;
+    td::Binlog binlog;
     binlog
         .init(
-            binlog_name.str(), [&](const BinlogEvent &x) { v.push_back(x.data_.str()); }, hello)
+            binlog_name.str(), [&](const td::BinlogEvent &x) { v.push_back(x.data_.str()); }, hello)
         .ensure();
-    CHECK(v == std::vector<string>({"AAAA", "BBBB", long_data, "CCCC"}));
+    CHECK(v == td::vector<td::string>({"AAAA", "BBBB", long_data, "CCCC"}));
   }
 
   add_suffix();
 
   {
-    std::vector<string> v;
+    td::vector<td::string> v;
     LOG(INFO) << "RESTART";
-    Binlog binlog;
+    td::Binlog binlog;
     auto status = binlog.init(
-        binlog_name.str(), [&](const BinlogEvent &x) { v.push_back(x.data_.str()); }, cucumber);
+        binlog_name.str(), [&](const td::BinlogEvent &x) { v.push_back(x.data_.str()); }, cucumber);
     CHECK(status.is_error());
   }
 
   add_suffix();
 
   {
-    std::vector<string> v;
+    td::vector<td::string> v;
     LOG(INFO) << "RESTART";
-    Binlog binlog;
+    td::Binlog binlog;
     auto status = binlog.init(
-        binlog_name.str(), [&](const BinlogEvent &x) { v.push_back(x.data_.str()); }, cucumber, hello);
-    CHECK(v == std::vector<string>({"AAAA", "BBBB", long_data, "CCCC"}));
+        binlog_name.str(), [&](const td::BinlogEvent &x) { v.push_back(x.data_.str()); }, cucumber, hello);
+    CHECK(v == td::vector<td::string>({"AAAA", "BBBB", long_data, "CCCC"}));
   }
 }
 
 TEST(DB, sqlite_lfs) {
-  string path = "test_sqlite_db";
-  SqliteDb::destroy(path).ignore();
-  auto db = SqliteDb::open_with_key(path, true, DbKey::empty()).move_as_ok();
+  td::string path = "test_sqlite_db";
+  td::SqliteDb::destroy(path).ignore();
+  auto db = td::SqliteDb::open_with_key(path, true, td::DbKey::empty()).move_as_ok();
   db.exec("PRAGMA journal_mode=WAL").ensure();
   db.exec("PRAGMA user_version").ensure();
-  SqliteDb::destroy(path).ignore();
+  td::SqliteDb::destroy(path).ignore();
 }
 
 TEST(DB, sqlite_encryption) {
-  string path = "test_sqlite_db";
-  SqliteDb::destroy(path).ignore();
+  td::string path = "test_sqlite_db";
+  td::SqliteDb::destroy(path).ignore();
 
-  auto empty = DbKey::empty();
-  auto cucumber = DbKey::password("cucu'\"mb er");
-  auto tomato = DbKey::raw_key(string(32, 'a'));
+  auto empty = td::DbKey::empty();
+  auto cucumber = td::DbKey::password("cucu'\"mb er");
+  auto tomato = td::DbKey::raw_key(td::string(32, 'a'));
 
   {
-    auto db = SqliteDb::open_with_key(path, true, empty).move_as_ok();
+    auto db = td::SqliteDb::open_with_key(path, true, empty).move_as_ok();
     db.set_user_version(123).ensure();
-    auto kv = SqliteKeyValue();
+    auto kv = td::SqliteKeyValue();
     kv.init_with_connection(db.clone(), "kv").ensure();
     kv.set("a", "b");
   }
-  SqliteDb::open_with_key(path, false, cucumber).ensure_error();
+  td::SqliteDb::open_with_key(path, false, cucumber).ensure_error();
 
-  SqliteDb::change_key(path, false, cucumber, empty).ensure();
-  SqliteDb::change_key(path, false, cucumber, empty).ensure();
+  td::SqliteDb::change_key(path, false, cucumber, empty).ensure();
+  td::SqliteDb::change_key(path, false, cucumber, empty).ensure();
 
-  SqliteDb::open_with_key(path, false, tomato).ensure_error();
+  td::SqliteDb::open_with_key(path, false, tomato).ensure_error();
   {
-    auto db = SqliteDb::open_with_key(path, false, cucumber).move_as_ok();
-    auto kv = SqliteKeyValue();
+    auto db = td::SqliteDb::open_with_key(path, false, cucumber).move_as_ok();
+    auto kv = td::SqliteKeyValue();
     kv.init_with_connection(db.clone(), "kv").ensure();
     CHECK(kv.get("a") == "b");
     CHECK(db.user_version().ok() == 123);
   }
 
-  SqliteDb::change_key(path, false, tomato, cucumber).ensure();
-  SqliteDb::change_key(path, false, tomato, cucumber).ensure();
+  td::SqliteDb::change_key(path, false, tomato, cucumber).ensure();
+  td::SqliteDb::change_key(path, false, tomato, cucumber).ensure();
 
-  SqliteDb::open_with_key(path, false, cucumber).ensure_error();
+  td::SqliteDb::open_with_key(path, false, cucumber).ensure_error();
   {
-    auto db = SqliteDb::open_with_key(path, false, tomato).move_as_ok();
-    auto kv = SqliteKeyValue();
+    auto db = td::SqliteDb::open_with_key(path, false, tomato).move_as_ok();
+    auto kv = td::SqliteKeyValue();
     kv.init_with_connection(db.clone(), "kv").ensure();
     CHECK(kv.get("a") == "b");
     CHECK(db.user_version().ok() == 123);
   }
 
-  SqliteDb::change_key(path, false, empty, tomato).ensure();
-  SqliteDb::change_key(path, false, empty, tomato).ensure();
+  td::SqliteDb::change_key(path, false, empty, tomato).ensure();
+  td::SqliteDb::change_key(path, false, empty, tomato).ensure();
 
   {
-    auto db = SqliteDb::open_with_key(path, false, empty).move_as_ok();
-    auto kv = SqliteKeyValue();
+    auto db = td::SqliteDb::open_with_key(path, false, empty).move_as_ok();
+    auto kv = td::SqliteKeyValue();
     kv.init_with_connection(db.clone(), "kv").ensure();
     CHECK(kv.get("a") == "b");
     CHECK(db.user_version().ok() == 123);
   }
-  SqliteDb::open_with_key(path, false, cucumber).ensure_error();
-  SqliteDb::destroy(path).ignore();
+  td::SqliteDb::open_with_key(path, false, cucumber).ensure_error();
+  td::SqliteDb::destroy(path).ignore();
 }
 
 TEST(DB, sqlite_encryption_migrate_v3) {
-  string path = "test_sqlite_db";
-  SqliteDb::destroy(path).ignore();
-  auto cucumber = DbKey::password("cucumber");
-  auto empty = DbKey::empty();
+  td::string path = "test_sqlite_db";
+  td::SqliteDb::destroy(path).ignore();
+  auto cucumber = td::DbKey::password("cucumber");
+  auto empty = td::DbKey::empty();
   if (false) {
     // sqlite_sample_db was generated by the following code using SQLCipher based on SQLite 3.15.2
     {
-      auto db = SqliteDb::change_key(path, true, cucumber, empty).move_as_ok();
+      auto db = td::SqliteDb::change_key(path, true, cucumber, empty).move_as_ok();
       db.set_user_version(123).ensure();
-      auto kv = SqliteKeyValue();
+      auto kv = td::SqliteKeyValue();
       kv.init_with_connection(db.clone(), "kv").ensure();
       kv.set("hello", "world");
     }
-    LOG(ERROR) << base64_encode(read_file(path).move_as_ok());
+    LOG(ERROR) << td::base64_encode(td::read_file(path).move_as_ok());
   }
-  write_file(path, base64_decode(Slice(sqlite_sample_db_v3, sqlite_sample_db_v3_size)).move_as_ok()).ensure();
+  td::write_file(path, td::base64_decode(td::Slice(sqlite_sample_db_v3, sqlite_sample_db_v3_size)).move_as_ok())
+      .ensure();
   {
-    auto db = SqliteDb::open_with_key(path, true, cucumber).move_as_ok();
-    auto kv = SqliteKeyValue();
+    auto db = td::SqliteDb::open_with_key(path, true, cucumber).move_as_ok();
+    auto kv = td::SqliteKeyValue();
     kv.init_with_connection(db.clone(), "kv").ensure();
     CHECK(kv.get("hello") == "world");
     CHECK(db.user_version().ok() == 123);
   }
-  SqliteDb::destroy(path).ignore();
+  td::SqliteDb::destroy(path).ignore();
 }
 
 TEST(DB, sqlite_encryption_migrate_v4) {
-  string path = "test_sqlite_db";
-  SqliteDb::destroy(path).ignore();
-  auto cucumber = DbKey::password("cucu'\"mb er");
-  auto empty = DbKey::empty();
+  td::string path = "test_sqlite_db";
+  td::SqliteDb::destroy(path).ignore();
+  auto cucumber = td::DbKey::password("cucu'\"mb er");
+  auto empty = td::DbKey::empty();
   if (false) {
     // sqlite_sample_db was generated by the following code using SQLCipher 4.4.0
     {
-      auto db = SqliteDb::change_key(path, true, cucumber, empty).move_as_ok();
+      auto db = td::SqliteDb::change_key(path, true, cucumber, empty).move_as_ok();
       db.set_user_version(123).ensure();
-      auto kv = SqliteKeyValue();
+      auto kv = td::SqliteKeyValue();
       kv.init_with_connection(db.clone(), "kv").ensure();
       kv.set("hello", "world");
     }
-    LOG(ERROR) << base64_encode(read_file(path).move_as_ok());
+    LOG(ERROR) << td::base64_encode(td::read_file(path).move_as_ok());
   }
-  write_file(path, base64_decode(Slice(sqlite_sample_db_v4, sqlite_sample_db_v4_size)).move_as_ok()).ensure();
+  td::write_file(path, td::base64_decode(td::Slice(sqlite_sample_db_v4, sqlite_sample_db_v4_size)).move_as_ok())
+      .ensure();
   {
-    auto r_db = SqliteDb::open_with_key(path, true, cucumber);
+    auto r_db = td::SqliteDb::open_with_key(path, true, cucumber);
     if (r_db.is_error()) {
       LOG(ERROR) << r_db.error();
       return;
     }
     auto db = r_db.move_as_ok();
-    auto kv = SqliteKeyValue();
+    auto kv = td::SqliteKeyValue();
     auto status = kv.init_with_connection(db.clone(), "kv");
     if (status.is_error()) {
       LOG(ERROR) << status;
@@ -259,16 +259,16 @@ TEST(DB, sqlite_encryption_migrate_v4) {
       CHECK(db.user_version().ok() == 123);
     }
   }
-  SqliteDb::destroy(path).ignore();
+  td::SqliteDb::destroy(path).ignore();
 }
 
-using SeqNo = uint64;
+using SeqNo = td::uint64;
 struct DbQuery {
   enum class Type { Get, Set, Erase } type = Type::Get;
   SeqNo tid = 0;
-  int32 id = 0;
-  string key;
-  string value;
+  td::int32 id = 0;
+  td::string key;
+  td::string value;
 };
 
 template <class ImplT>
@@ -323,64 +323,64 @@ class SeqQueryHandler {
 
 class SqliteKV {
  public:
-  string get(const string &key) {
+  td::string get(const td::string &key) {
     return kv_->get().get(key);
   }
-  SeqNo set(const string &key, const string &value) {
+  SeqNo set(const td::string &key, const td::string &value) {
     kv_->get().set(key, value);
     return 0;
   }
-  SeqNo erase(const string &key) {
+  SeqNo erase(const td::string &key) {
     kv_->get().erase(key);
     return 0;
   }
-  Status init(const string &name) {
-    auto sql_connection = std::make_shared<SqliteConnectionSafe>(name, DbKey::empty());
-    kv_ = std::make_shared<SqliteKeyValueSafe>("kv", sql_connection);
-    return Status::OK();
+  td::Status init(const td::string &name) {
+    auto sql_connection = std::make_shared<td::SqliteConnectionSafe>(name, td::DbKey::empty());
+    kv_ = std::make_shared<td::SqliteKeyValueSafe>("kv", sql_connection);
+    return td::Status::OK();
   }
   void close() {
     kv_.reset();
   }
 
  private:
-  std::shared_ptr<SqliteKeyValueSafe> kv_;
+  std::shared_ptr<td::SqliteKeyValueSafe> kv_;
 };
 
 class BaselineKV {
  public:
-  string get(const string &key) {
+  td::string get(const td::string &key) {
     return map_[key];
   }
-  SeqNo set(const string &key, string value) {
+  SeqNo set(const td::string &key, td::string value) {
     map_[key] = std::move(value);
     return ++current_tid_;
   }
-  SeqNo erase(const string &key) {
+  SeqNo erase(const td::string &key) {
     map_.erase(key);
     return ++current_tid_;
   }
 
  private:
-  std::map<string, string> map_;
+  std::map<td::string, td::string> map_;
   SeqNo current_tid_ = 0;
 };
 
 TEST(DB, key_value) {
-  std::vector<std::string> keys;
-  std::vector<std::string> values;
+  td::vector<td::string> keys;
+  td::vector<td::string> values;
 
   for (int i = 0; i < 100; i++) {
-    keys.push_back(rand_string('a', 'b', Random::fast(1, 10)));
+    keys.push_back(td::rand_string('a', 'b', td::Random::fast(1, 10)));
   }
   for (int i = 0; i < 10; i++) {
-    values.push_back(rand_string('a', 'b', Random::fast(1, 10)));
+    values.push_back(td::rand_string('a', 'b', td::Random::fast(1, 10)));
   }
 
   int queries_n = 3000;
-  std::vector<DbQuery> queries(queries_n);
+  td::vector<DbQuery> queries(queries_n);
   for (auto &q : queries) {
-    int op = Random::fast(0, 2);
+    int op = td::Random::fast(0, 2);
     const auto &key = rand_elem(keys);
     const auto &value = rand_elem(values);
     if (op == 0) {
@@ -397,18 +397,18 @@ TEST(DB, key_value) {
   }
 
   QueryHandler<BaselineKV> baseline;
-  QueryHandler<SeqKeyValue> kv;
-  QueryHandler<TsSeqKeyValue> ts_kv;
-  QueryHandler<BinlogKeyValue<Binlog>> new_kv;
+  QueryHandler<td::SeqKeyValue> kv;
+  QueryHandler<td::TsSeqKeyValue> ts_kv;
+  QueryHandler<td::BinlogKeyValue<td::Binlog>> new_kv;
 
-  CSlice new_kv_name = "test_new_kv";
-  Binlog::destroy(new_kv_name).ignore();
+  td::CSlice new_kv_name = "test_new_kv";
+  td::Binlog::destroy(new_kv_name).ignore();
   new_kv.impl().init(new_kv_name.str()).ensure();
 
-  QueryHandler<SqliteKeyValue> sqlite_kv;
-  CSlice path = "test_sqlite_kv";
-  SqliteDb::destroy(path).ignore();
-  auto db = SqliteDb::open_with_key(path, true, DbKey::empty()).move_as_ok();
+  QueryHandler<td::SqliteKeyValue> sqlite_kv;
+  td::CSlice path = "test_sqlite_kv";
+  td::SqliteDb::destroy(path).ignore();
+  auto db = td::SqliteDb::open_with_key(path, true, td::DbKey::empty()).move_as_ok();
   sqlite_kv.impl().init_with_connection(std::move(db), "KV").ensure();
 
   int cnt = 0;
@@ -431,33 +431,33 @@ TEST(DB, key_value) {
       new_kv.impl().init(new_kv_name.str()).ensure();
     }
   }
-  SqliteDb::destroy(path).ignore();
-  Binlog::destroy(new_kv_name).ignore();
+  td::SqliteDb::destroy(path).ignore();
+  td::Binlog::destroy(new_kv_name).ignore();
 }
 
 TEST(DB, key_value_set_all) {
-  std::vector<std::string> keys;
-  std::vector<std::string> values;
+  td::vector<td::string> keys;
+  td::vector<td::string> values;
 
   for (int i = 0; i < 100; i++) {
-    keys.push_back(rand_string('a', 'b', Random::fast(1, 10)));
+    keys.push_back(td::rand_string('a', 'b', td::Random::fast(1, 10)));
   }
   for (int i = 0; i < 10; i++) {
-    values.push_back(rand_string('a', 'b', Random::fast(1, 10)));
+    values.push_back(td::rand_string('a', 'b', td::Random::fast(1, 10)));
   }
 
-  SqliteKeyValue sqlite_kv;
-  CSlice sqlite_kv_name = "test_sqlite_kv";
-  SqliteDb::destroy(sqlite_kv_name).ignore();
-  auto db = SqliteDb::open_with_key(sqlite_kv_name, true, DbKey::empty()).move_as_ok();
+  td::SqliteKeyValue sqlite_kv;
+  td::CSlice sqlite_kv_name = "test_sqlite_kv";
+  td::SqliteDb::destroy(sqlite_kv_name).ignore();
+  auto db = td::SqliteDb::open_with_key(sqlite_kv_name, true, td::DbKey::empty()).move_as_ok();
   sqlite_kv.init_with_connection(std::move(db), "KV").ensure();
 
   BaselineKV kv;
 
   int queries_n = 100;
   while (queries_n-- > 0) {
-    int cnt = Random::fast(0, 10);
-    std::unordered_map<string, string> key_values;
+    int cnt = td::Random::fast(0, 10);
+    std::unordered_map<td::string, td::string> key_values;
     for (int i = 0; i < cnt; i++) {
       auto key = rand_elem(keys);
       auto value = rand_elem(values);
@@ -471,28 +471,28 @@ TEST(DB, key_value_set_all) {
       CHECK(kv.get(key) == sqlite_kv.get(key));
     }
   }
-  SqliteDb::destroy(sqlite_kv_name).ignore();
+  td::SqliteDb::destroy(sqlite_kv_name).ignore();
 }
 
 #if !TD_THREAD_UNSUPPORTED
 TEST(DB, thread_key_value) {
-  std::vector<std::string> keys;
-  std::vector<std::string> values;
+  td::vector<td::string> keys;
+  td::vector<td::string> values;
 
   for (int i = 0; i < 100; i++) {
-    keys.push_back(rand_string('a', 'b', Random::fast(1, 10)));
+    keys.push_back(td::rand_string('a', 'b', td::Random::fast(1, 10)));
   }
   for (int i = 0; i < 1000; i++) {
-    values.push_back(rand_string('a', 'b', Random::fast(1, 10)));
+    values.push_back(td::rand_string('a', 'b', td::Random::fast(1, 10)));
   }
 
   int threads_n = 4;
   int queries_n = 10000;
 
-  std::vector<std::vector<DbQuery>> queries(threads_n, std::vector<DbQuery>(queries_n));
+  td::vector<td::vector<DbQuery>> queries(threads_n, td::vector<DbQuery>(queries_n));
   for (auto &qs : queries) {
     for (auto &q : qs) {
-      int op = Random::fast(0, 10);
+      int op = td::Random::fast(0, 10);
       const auto &key = rand_elem(keys);
       const auto &value = rand_elem(values);
       if (op > 1) {
@@ -510,10 +510,10 @@ TEST(DB, thread_key_value) {
   }
 
   QueryHandler<BaselineKV> baseline;
-  SeqQueryHandler<TsSeqKeyValue> ts_kv;
+  SeqQueryHandler<td::TsSeqKeyValue> ts_kv;
 
-  std::vector<td::thread> threads(threads_n);
-  std::vector<std::vector<DbQuery>> res(threads_n);
+  td::vector<td::thread> threads(threads_n);
+  td::vector<td::vector<DbQuery>> res(threads_n);
   for (int i = 0; i < threads_n; i++) {
     threads[i] = td::thread([&ts_kv, &queries, &res, i] {
       for (auto q : queries[i]) {
@@ -526,7 +526,7 @@ TEST(DB, thread_key_value) {
     thread.join();
   }
 
-  std::vector<std::size_t> pos(threads_n);
+  td::vector<std::size_t> pos(threads_n);
   while (true) {
     bool was = false;
     for (int i = 0; i < threads_n; i++) {
@@ -580,20 +580,19 @@ TEST(DB, thread_key_value) {
 #endif
 
 TEST(DB, persistent_key_value) {
-  using KeyValue = BinlogKeyValue<ConcurrentBinlog>;
-  // using KeyValue = PersistentKeyValue;
-  // using KeyValue = SqliteKV;
-  std::vector<std::string> keys;
-  std::vector<std::string> values;
-  CSlice path = "test_pmc";
-  Binlog::destroy(path).ignore();
-  SqliteDb::destroy(path).ignore();
+  using KeyValue = td::BinlogKeyValue<td::ConcurrentBinlog>;
+  // using KeyValue = td::SqliteKeyValue;
+  td::vector<td::string> keys;
+  td::vector<td::string> values;
+  td::CSlice path = "test_pmc";
+  td::Binlog::destroy(path).ignore();
+  td::SqliteDb::destroy(path).ignore();
 
   for (int i = 0; i < 100; i++) {
-    keys.push_back(rand_string('a', 'b', Random::fast(1, 10)));
+    keys.push_back(td::rand_string('a', 'b', td::Random::fast(1, 10)));
   }
   for (int i = 0; i < 1000; i++) {
-    values.push_back(rand_string('a', 'b', Random::fast(1, 10)));
+    values.push_back(td::rand_string('a', 'b', td::Random::fast(1, 10)));
   }
 
   QueryHandler<BaselineKV> baseline;
@@ -602,10 +601,10 @@ TEST(DB, persistent_key_value) {
     int threads_n = 4;
     int queries_n = 3000 / threads_n;
 
-    std::vector<std::vector<DbQuery>> queries(threads_n, std::vector<DbQuery>(queries_n));
+    td::vector<td::vector<DbQuery>> queries(threads_n, td::vector<DbQuery>(queries_n));
     for (auto &qs : queries) {
       for (auto &q : qs) {
-        int op = Random::fast(0, 10);
+        int op = td::Random::fast(0, 10);
         const auto &key = rand_elem(keys);
         const auto &value = rand_elem(values);
         if (op > 1) {
@@ -622,11 +621,11 @@ TEST(DB, persistent_key_value) {
       }
     }
 
-    std::vector<std::vector<DbQuery>> res(threads_n);
-    class Worker final : public Actor {
+    td::vector<td::vector<DbQuery>> res(threads_n);
+    class Worker final : public td::Actor {
      public:
-      Worker(ActorShared<> parent, std::shared_ptr<SeqQueryHandler<KeyValue>> kv, const std::vector<DbQuery> *queries,
-             std::vector<DbQuery> *res)
+      Worker(td::ActorShared<> parent, std::shared_ptr<SeqQueryHandler<KeyValue>> kv,
+             const td::vector<DbQuery> *queries, td::vector<DbQuery> *res)
           : parent_(std::move(parent)), kv_(std::move(kv)), queries_(queries), res_(res) {
       }
       void loop() final {
@@ -638,14 +637,14 @@ TEST(DB, persistent_key_value) {
       }
 
      private:
-      ActorShared<> parent_;
+      td::ActorShared<> parent_;
       std::shared_ptr<SeqQueryHandler<KeyValue>> kv_;
-      const std::vector<DbQuery> *queries_;
-      std::vector<DbQuery> *res_;
+      const td::vector<DbQuery> *queries_;
+      td::vector<DbQuery> *res_;
     };
-    class Main final : public Actor {
+    class Main final : public td::Actor {
      public:
-      Main(int threads_n, const std::vector<std::vector<DbQuery>> *queries, std::vector<std::vector<DbQuery>> *res)
+      Main(int threads_n, const td::vector<td::vector<DbQuery>> *queries, td::vector<td::vector<DbQuery>> *res)
           : threads_n_(threads_n), queries_(queries), res_(res), ref_cnt_(threads_n) {
       }
 
@@ -653,7 +652,8 @@ TEST(DB, persistent_key_value) {
         LOG(INFO) << "Start up";
         kv_->impl().init("test_pmc").ensure();
         for (int i = 0; i < threads_n_; i++) {
-          create_actor_on_scheduler<Worker>("Worker", i + 1, actor_shared(this, 2), kv_, &queries_->at(i), &res_->at(i))
+          td::create_actor_on_scheduler<Worker>("Worker", i + 1, actor_shared(this, 2), kv_, &queries_->at(i),
+                                                &res_->at(i))
               .release();
         }
       }
@@ -667,7 +667,7 @@ TEST(DB, persistent_key_value) {
         ref_cnt_--;
         if (ref_cnt_ == 0) {
           kv_->impl().close();
-          Scheduler::instance()->finish();
+          td::Scheduler::instance()->finish();
           stop();
         }
       }
@@ -677,14 +677,14 @@ TEST(DB, persistent_key_value) {
 
      private:
       int threads_n_;
-      const std::vector<std::vector<DbQuery>> *queries_;
-      std::vector<std::vector<DbQuery>> *res_;
+      const td::vector<td::vector<DbQuery>> *queries_;
+      td::vector<td::vector<DbQuery>> *res_;
 
       std::shared_ptr<SeqQueryHandler<KeyValue>> kv_{new SeqQueryHandler<KeyValue>()};
       int ref_cnt_;
     };
 
-    ConcurrentScheduler sched;
+    td::ConcurrentScheduler sched;
     sched.init(threads_n);
     sched.create_actor_unsafe<Main>(0, "Main", threads_n, &queries, &res).release();
     sched.start();
@@ -693,7 +693,7 @@ TEST(DB, persistent_key_value) {
     }
     sched.finish();
 
-    std::vector<std::size_t> pos(threads_n);
+    td::vector<std::size_t> pos(threads_n);
     while (true) {
       bool was = false;
       for (int i = 0; i < threads_n; i++) {
@@ -744,5 +744,5 @@ TEST(DB, persistent_key_value) {
       pos[best]++;
     }
   }
-  SqliteDb::destroy(path).ignore();
+  td::SqliteDb::destroy(path).ignore();
 }
