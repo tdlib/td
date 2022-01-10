@@ -24918,7 +24918,7 @@ void MessagesManager::on_upload_message_media_success(DialogId dialog_id, Messag
     // message has already been deleted by the user or sent to inaccessible channel
     // don't need to send error to the user, because the message has already been deleted
     // and there is nothing to be deleted from the server
-    LOG(INFO) << "Fail to send already deleted by the user or sent to inaccessible chat "
+    LOG(INFO) << "Don't need to send already deleted by the user or sent to an inaccessible chat "
               << FullMessageId{dialog_id, message_id};
     return;
   }
@@ -24956,7 +24956,7 @@ void MessagesManager::on_upload_message_media_file_part_missing(DialogId dialog_
     // message has already been deleted by the user or sent to inaccessible channel
     // don't need to send error to the user, because the message has already been deleted
     // and there is nothing to be deleted from the server
-    LOG(INFO) << "Fail to send already deleted by the user or sent to inaccessible chat "
+    LOG(INFO) << "Don't need to send already deleted by the user or sent to an inaccessible chat "
               << FullMessageId{dialog_id, message_id};
     return;
   }
@@ -24981,7 +24981,7 @@ void MessagesManager::on_upload_message_media_fail(DialogId dialog_id, MessageId
     // message has already been deleted by the user or sent to inaccessible channel
     // don't need to send error to the user, because the message has already been deleted
     // and there is nothing to be deleted from the server
-    LOG(INFO) << "Fail to send already deleted by the user or sent to inaccessible chat "
+    LOG(INFO) << "Don't need to send already deleted by the user or sent to an inaccessible chat "
               << FullMessageId{dialog_id, message_id};
     return;
   }
@@ -29971,7 +29971,7 @@ void MessagesManager::on_send_message_file_part_missing(int64 random_id, int bad
     // message has already been deleted by the user or sent to inaccessible channel
     // don't need to send error to the user, because the message has already been deleted
     // and there is nothing to be deleted from the server
-    LOG(INFO) << "Fail to send already deleted by the user or sent to inaccessible chat " << full_message_id;
+    LOG(INFO) << "Don't need to send already deleted by the user or sent to an inaccessible chat " << full_message_id;
     return;
   }
 
@@ -30020,7 +30020,7 @@ void MessagesManager::on_send_message_file_reference_error(int64 random_id) {
     // message has already been deleted by the user or sent to inaccessible channel
     // don't need to send error to the user, because the message has already been deleted
     // and there is nothing to be deleted from the server
-    LOG(INFO) << "Fail to send already deleted by the user or sent to inaccessible chat " << full_message_id;
+    LOG(INFO) << "Don't need to send already deleted by the user or sent to an inaccessible chat " << full_message_id;
     return;
   }
 
@@ -30073,7 +30073,7 @@ void MessagesManager::on_send_media_group_file_reference_error(DialogId dialog_i
       // message has already been deleted by the user or sent to inaccessible channel
       // don't need to send error to the user, because the message has already been deleted
       // and there is nothing to be deleted from the server
-      LOG(INFO) << "Fail to send already deleted by the user or sent to inaccessible chat " << full_message_id;
+      LOG(INFO) << "Don't need to send already deleted by the user or sent to an inaccessible chat " << full_message_id;
       continue;
     }
 
@@ -30131,7 +30131,7 @@ void MessagesManager::on_send_message_fail(int64 random_id, Status error) {
     // message has already been deleted by the user or sent to inaccessible channel
     // don't need to send error to the user, because the message has already been deleted
     // and there is nothing to be deleted from the server
-    LOG(INFO) << "Fail to send already deleted by the user or sent to inaccessible chat " << full_message_id;
+    LOG(INFO) << "Don't need to send already deleted by the user or sent to an inaccessible chat " << full_message_id;
     return;
   }
   LOG_IF(ERROR, error.code() == NetQuery::Canceled)
@@ -30257,7 +30257,7 @@ void MessagesManager::on_send_message_fail(int64 random_id, Status error) {
     }
   }
   if (error_code != 403 && !(error_code == 500 && G()->close_flag())) {
-    LOG(WARNING) << "Fail to send " << full_message_id << " with the error " << error;
+    LOG(WARNING) << "Failed to send " << full_message_id << " with the error " << error;
   }
   if (error_code <= 0) {
     error_code = 500;
