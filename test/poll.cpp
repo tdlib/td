@@ -23,6 +23,7 @@ TEST(Poll, get_vote_percentage) {
   check_vote_percentage({999}, 999, {100});
   check_vote_percentage({0}, 0, {0});
   check_vote_percentage({2, 1}, 3, {67, 33});
+  check_vote_percentage({4, 1, 1}, 6, {66, 17, 17});
   check_vote_percentage({100, 100}, 200, {50, 50});
   check_vote_percentage({101, 99}, 200, {50, 50});
   check_vote_percentage({102, 98}, 200, {51, 49});
@@ -50,7 +51,6 @@ TEST(Poll, get_vote_percentage) {
                         {12 /* 12.49 */, 24 /* 23.74 */, 35 /* 34.99 */, 29 /* 28.76 */});
   check_vote_percentage({1234, 2301, 3500, 2841}, 9876,
                         {12 /* 12.49 */, 23 /* 23.29 */, 35 /* 35.43 */, 29 /* 28.76 */});
-  check_vote_percentage({200, 200, 200, 270, 270, 60}, 1200, {17, 17, 17, 22, 22, 5});
   check_vote_percentage({200, 200, 200, 270, 270, 60}, 1200, {17, 17, 17, 22, 22, 5});
   check_vote_percentage({200, 200, 200, 300, 240, 60}, 1200, {16, 16, 16, 25, 20, 5});
   check_vote_percentage({200, 200, 200, 250, 250, 20}, 1120, {18, 18, 18, 22, 22, 2});

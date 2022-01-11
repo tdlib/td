@@ -451,7 +451,9 @@ vector<int32> PollManager::get_vote_percentage(const vector<int32> &voter_counts
   std::unordered_map<int32, Option> options;
   for (size_t i = 0; i < result.size(); i++) {
     auto &option = options[voter_counts[i]];
-    option.pos = narrow_cast<int32>(i);
+    if (option.pos == -1) {
+      option.pos = narrow_cast<int32>(i);
+    }
     option.count++;
   }
   vector<Option> sorted_options;
@@ -473,7 +475,11 @@ vector<int32> PollManager::get_vote_percentage(const vector<int32> &voter_counts
       // prefer options with smallest gap
       return gap[lhs.pos] < gap[rhs.pos];
     }
-    return lhs.count > rhs.count;  // prefer more popular options
+    if (lhs.count != rhs.count) {
+      // prefer more popular options
+      return lhs.count > rhs.count;
+    }
+    return lhs.pos < rhs.pos;  // prefer the first encountered option
   });
 
   // dynamic programming or brute force can give perfect result, but for now we use simple gready approach
