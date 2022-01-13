@@ -4095,6 +4095,9 @@ void NotificationManager::try_send_update_active_notifications() {
 }
 
 void NotificationManager::on_binlog_events(vector<BinlogEvent> &&events) {
+  if (G()->close_flag()) {
+    return;
+  }
   VLOG(notifications) << "Begin to process " << events.size() << " binlog events";
   for (auto &event : events) {
     if (!G()->parameters().use_message_db || is_disabled() || max_notification_group_count_ == 0) {

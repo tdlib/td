@@ -11829,6 +11829,9 @@ void MessagesManager::repair_server_dialog_total_count(DialogListId dialog_list_
     // can repair total count only in folders
     return;
   }
+  if (G()->close_flag()) {
+    return;
+  }
 
   LOG(INFO) << "Repair total chat count in " << dialog_list_id;
   send_closure(td_->create_net_actor<GetDialogListActor>(Promise<Unit>()), &GetDialogListActor::send,
@@ -24779,6 +24782,9 @@ void MessagesManager::on_message_media_uploaded(DialogId dialog_id, const Messag
                                                 FileId thumbnail_file_id) {
   CHECK(m != nullptr);
   CHECK(input_media != nullptr);
+  if (G()->close_flag()) {
+    return;
+  }
 
   auto message_id = m->message_id;
   if (message_id.is_any_server()) {
@@ -24862,6 +24868,9 @@ void MessagesManager::on_secret_message_media_uploaded(DialogId dialog_id, const
   CHECK(m != nullptr);
   CHECK(m->message_id.is_valid());
   CHECK(!secret_input_media.empty());
+  if (G()->close_flag()) {
+    return;
+  }
   /*
   if (m->media_album_id != 0) {
     switch (secret_input_media->input_file_->get_id()) {
@@ -25065,6 +25074,10 @@ void MessagesManager::do_send_message_group(int64 media_album_id) {
     // the group may be already sent or failed to be sent
     return;
   }
+  if (G()->close_flag()) {
+    return;
+  }
+
   auto &request = it->second;
 
   auto dialog_id = request.dialog_id;
@@ -25166,6 +25179,9 @@ void MessagesManager::on_text_message_ready_to_send(DialogId dialog_id, MessageI
 
   auto m = get_message({dialog_id, message_id});
   if (m == nullptr) {
+    return;
+  }
+  if (G()->close_flag()) {
     return;
   }
 
@@ -26971,6 +26987,9 @@ void MessagesManager::do_forward_messages(DialogId to_dialog_id, DialogId from_d
                                           uint64 log_event_id) {
   CHECK(messages.size() == message_ids.size());
   if (messages.empty()) {
+    return;
+  }
+  if (G()->close_flag()) {
     return;
   }
 
@@ -37661,6 +37680,9 @@ MessagesManager::Message *MessagesManager::continue_send_message(DialogId dialog
 }
 
 void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
+  if (G()->close_flag()) {
+    return;
+  }
   for (auto &event : events) {
     CHECK(event.id_ != 0);
     switch (event.type_) {

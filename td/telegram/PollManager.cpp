@@ -1676,6 +1676,9 @@ void PollManager::on_get_poll_vote(PollId poll_id, UserId user_id, vector<Buffer
 }
 
 void PollManager::on_binlog_events(vector<BinlogEvent> &&events) {
+  if (G()->close_flag()) {
+    return;
+  }
   for (auto &event : events) {
     switch (event.type_) {
       case LogEvent::HandlerType::SetPollAnswer: {
