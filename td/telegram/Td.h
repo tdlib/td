@@ -533,6 +533,8 @@ class Td final : public Actor {
 
   void on_request(uint64 id, td_api::getMessageLinkInfo &request);
 
+  void on_request(uint64 id, td_api::translateMessage &request);
+
   void on_request(uint64 id, const td_api::getFile &request);
 
   void on_request(uint64 id, td_api::getRemoteFile &request);

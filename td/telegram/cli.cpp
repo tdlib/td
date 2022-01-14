@@ -2742,6 +2742,14 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::getMessageEmbeddingCode>(chat_id, message_id, for_album));
     } else if (op == "gmli") {
       send_request(td_api::make_object<td_api::getMessageLinkInfo>(args));
+    } else if (op == "tm") {
+      ChatId chat_id;
+      MessageId message_id;
+      string from_language_code;
+      string to_language_code;
+      get_args(args, chat_id, message_id, from_language_code, to_language_code);
+      send_request(
+          td_api::make_object<td_api::translateMessage>(chat_id, message_id, from_language_code, to_language_code));
     } else if (op == "gf" || op == "GetFile") {
       send_request(td_api::make_object<td_api::getFile>(as_file_id(args)));
     } else if (op == "gfdps") {

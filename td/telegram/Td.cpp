@@ -4742,6 +4742,15 @@ void Td::on_request(uint64 id, td_api::getMessageLinkInfo &request) {
   CREATE_REQUEST(GetMessageLinkInfoRequest, std::move(request.url_));
 }
 
+void Td::on_request(uint64 id, td_api::translateMessage &request) {
+  CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.from_language_code_);
+  CLEAN_INPUT_STRING(request.to_language_code_);
+  CREATE_REQUEST_PROMISE();
+  messages_manager_->translate_message({DialogId(request.chat_id_), MessageId(request.message_id_)},
+                                       request.from_language_code_, request.to_language_code_, std::move(promise));
+}
+
 void Td::on_request(uint64 id, const td_api::getFile &request) {
   send_closure(actor_id(this), &Td::send_result, id, file_manager_->get_file_object(FileId(request.file_id_, 0)));
 }
