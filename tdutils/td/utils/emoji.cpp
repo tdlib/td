@@ -15,7 +15,8 @@
 namespace td {
 
 bool is_emoji(Slice str) {
-  static const std::unordered_set<Slice, SliceHash> emojis = [] {
+  constexpr size_t MAX_EMOJI_LENGTH = 35;
+  static const std::unordered_set<Slice, SliceHash> emojis = [MAX_EMOJI_LENGTH] {
     Slice packed_emojis(
         "eJyNnety27i2rV8lVfvf-XXul7frVmfZ6cS6kKJskrLj7tUUaUmOI1uObcUEWLUfJecBdledFzgaJIfJiUkyqyqAJ4wxJzE_QABF2fGPs_"
         "jdj7Plux_T9bFsjmV7LLfHsjuW_bsfF-ZY7LsfYXAsi3c_og_H8vuxfDyWT8dydizjY5kcy_RYZsfiHYt_LPNjKd79iI9f4z-P5Rg_"
@@ -196,6 +197,8 @@ bool is_emoji(Slice str) {
         "k_7Ka1zcVL3hXdn00Rt-q2z8H2PhUzUUYdd7bf2_db5_9_8BRjaqUQ");
     static string all_emojis_str = gzdecode(base64url_decode(packed_emojis).ok()).as_slice().str();
     std::unordered_set<Slice, SliceHash> all_emojis;
+    constexpr size_t EMOJI_COUNT = 4682;
+    all_emojis.reserve(EMOJI_COUNT);
     for (size_t i = 0; i < all_emojis_str.size(); i++) {
       CHECK(all_emojis_str[i] != ' ');
       CHECK(all_emojis_str[i + 1] != ' ');
@@ -205,12 +208,13 @@ bool is_emoji(Slice str) {
       }
       CHECK(j < all_emojis_str.size());
       all_emojis.insert(Slice(&all_emojis_str[i], &all_emojis_str[j]));
-      CHECK(j - i < 40);
+      CHECK(j - i <= MAX_EMOJI_LENGTH);
       i = j;
     }
+    CHECK(all_emojis.size() == EMOJI_COUNT);
     return all_emojis;
   }();
-  if (str.size() >= 40) {
+  if (str.size() > MAX_EMOJI_LENGTH) {
     return false;
   }
   return emojis.count(str) != 0;
