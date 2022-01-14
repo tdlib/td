@@ -5371,18 +5371,18 @@ checkChangePhoneNumberCode code:string = Ok;
 
 //@description Sets the list of commands supported by the bot for the given user scope and language; for bots only
 //@scope The scope to which the commands are relevant; pass null to change commands in the default bot command scope
-//@language_code A two-letter ISO 639-1 country code. If empty, the commands will be applied to all users from the given scope, for which language there are no dedicated commands
+//@language_code A two-letter ISO 639-1 language code. If empty, the commands will be applied to all users from the given scope, for which language there are no dedicated commands
 //@commands List of the bot's commands
 setCommands scope:BotCommandScope language_code:string commands:vector<botCommand> = Ok;
 
 //@description Deletes commands supported by the bot for the given user scope and language; for bots only
 //@scope The scope to which the commands are relevant; pass null to delete commands in the default bot command scope
-//@language_code A two-letter ISO 639-1 country code or an empty string
+//@language_code A two-letter ISO 639-1 language code or an empty string
 deleteCommands scope:BotCommandScope language_code:string = Ok;
 
 //@description Returns the list of commands supported by the bot for the given user scope and language; for bots only
 //@scope The scope to which the commands are relevant; pass null to get commands in the default bot command scope
-//@language_code A two-letter ISO 639-1 country code or an empty string
+//@language_code A two-letter ISO 639-1 language code or an empty string
 getCommands scope:BotCommandScope language_code:string = BotCommands;
 
 
@@ -5771,7 +5771,7 @@ getCountryCode = Text;
 getPhoneNumberInfo phone_number_prefix:string = PhoneNumberInfo;
 
 //@description Returns information about a phone number by its prefix synchronously. getCountries must be called at least once after changing localization to the specified language if properly localized country information is expected. Can be called synchronously
-//@language_code A two-letter ISO 639-1 country code for country information localization @phone_number_prefix The phone number prefix
+//@language_code A two-letter ISO 639-1 language code for country information localization @phone_number_prefix The phone number prefix
 getPhoneNumberInfoSync language_code:string phone_number_prefix:string = PhoneNumberInfo;
 
 //@description Returns the link for downloading official Telegram application to be used when the current user invites friends to Telegram
