@@ -17,8 +17,6 @@
 #include <set>
 #include <utility>
 
-using namespace td;
-
 template <class T>
 class OldSetWithPosition {
  public:
@@ -33,7 +31,7 @@ class OldSetWithPosition {
     if (it == values_.end()) {
       return;
     }
-    size_t i = it - values_.begin();
+    std::size_t i = it - values_.begin();
     values_.erase(it);
     if (pos_ > i) {
       pos_--;
@@ -51,25 +49,25 @@ class OldSetWithPosition {
   }
   void merge(OldSetWithPosition &&other) {
     OldSetWithPosition res;
-    for (size_t i = 0; i < pos_; i++) {
+    for (std::size_t i = 0; i < pos_; i++) {
       res.add(values_[i]);
     }
-    for (size_t i = 0; i < other.pos_; i++) {
+    for (std::size_t i = 0; i < other.pos_; i++) {
       res.add(other.values_[i]);
     }
     res.pos_ = res.values_.size();
-    for (size_t i = pos_; i < values_.size(); i++) {
+    for (std::size_t i = pos_; i < values_.size(); i++) {
       res.add(values_[i]);
     }
-    for (size_t i = other.pos_; i < other.values_.size(); i++) {
+    for (std::size_t i = other.pos_; i < other.values_.size(); i++) {
       res.add(other.values_[i]);
     }
     *this = std::move(res);
   }
 
  private:
-  std::vector<T> values_;
-  size_t pos_{0};
+  td::vector<T> values_;
+  std::size_t pos_{0};
 };
 
 template <class T, template <class> class SetWithPosition>
@@ -126,25 +124,24 @@ class CheckedSetWithPosition {
     }
     s_.merge(std::move(other.s_));
   }
-  size_t size() const {
+  std::size_t size() const {
     return checked_.size() + not_checked_.size();
   }
 
  private:
   std::set<T> checked_;
   std::set<T> not_checked_;
-  SetWithPosition<T> s_;
+  td::SetWithPosition<T> s_;
 };
 
 template <template <class> class RawSet>
 static void test_hands() {
-  using Set = CheckedSetWithPosition<int, RawSet>;
-
-  Set a;
+  CheckedSetWithPosition<int, RawSet> a;
   a.add(1);
   a.add(2);
   a.next();
-  Set b;
+
+  CheckedSetWithPosition<int, RawSet> b;
   b.add(1);
   b.add(3);
 
@@ -157,12 +154,12 @@ static void test_hands() {
 #if !TD_CLANG
 template <template <class> class RawSet>
 static void test_stress() {
-  Random::Xorshift128plus rnd(123);
+  td::Random::Xorshift128plus rnd(123);
   using Set = CheckedSetWithPosition<int, RawSet>;
   for (int t = 0; t < 10; t++) {
-    std::vector<unique_ptr<Set>> sets(100);
+    td::vector<td::unique_ptr<Set>> sets(100);
     for (auto &s : sets) {
-      s = make_unique<Set>();
+      s = td::make_unique<Set>();
     }
     int n;
     auto merge = [&] {
@@ -202,7 +199,7 @@ static void test_stress() {
       std::function<void()> func;
       td::uint32 weight;
     };
-    std::vector<Step> steps{{merge, 1}, {next, 10}, {add, 10}, {remove, 10}, {reset_position, 5}};
+    td::vector<Step> steps{{merge, 1}, {next, 10}, {add, 10}, {remove, 10}, {reset_position, 5}};
     td::uint32 steps_sum = 0;
     for (auto &step : steps) {
       steps_sum += step.weight;
@@ -228,13 +225,13 @@ static void test_stress() {
 
 template <template <class> class RawSet>
 static void test_speed() {
-  Random::Xorshift128plus rnd(123);
+  td::Random::Xorshift128plus rnd(123);
   using Set = CheckedSetWithPosition<int, RawSet>;
   const size_t total_size = 1 << 13;
-  std::vector<unique_ptr<Set>> sets(total_size);
+  td::vector<td::unique_ptr<Set>> sets(total_size);
   for (size_t i = 0; i < sets.size(); i++) {
-    sets[i] = make_unique<Set>();
-    sets[i]->add(narrow_cast<int>(i));
+    sets[i] = td::make_unique<Set>();
+    sets[i]->add(td::narrow_cast<int>(i));
   }
   for (size_t d = 1; d < sets.size(); d *= 2) {
     for (size_t i = 0; i < sets.size(); i += 2 * d) {
@@ -247,20 +244,20 @@ static void test_speed() {
 }
 
 TEST(SetWithPosition, hands) {
-  test_hands<FastSetWithPosition>();
+  test_hands<td::FastSetWithPosition>();
   test_hands<OldSetWithPosition>();
-  test_hands<SetWithPosition>();
+  test_hands<td::SetWithPosition>();
 }
 
 #if !TD_CLANG
 TEST(SetWithPosition, stress) {
-  test_stress<FastSetWithPosition>();
+  test_stress<td::FastSetWithPosition>();
   test_stress<OldSetWithPosition>();
-  test_stress<SetWithPosition>();
+  test_stress<td::SetWithPosition>();
 }
 #endif
 
 TEST(SetWithPosition, speed) {
-  test_speed<FastSetWithPosition>();
-  test_speed<SetWithPosition>();
+  test_speed<td::FastSetWithPosition>();
+  test_speed<td::SetWithPosition>();
 }
