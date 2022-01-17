@@ -27465,10 +27465,11 @@ Result<td_api::object_ptr<td_api::messages>> MessagesManager::forward_messages(
   for (auto &copied_message : copied_messages) {
     unique_ptr<Message> message;
     Message *m;
+    bool is_copy = to_dialog_id.get_type() != DialogType::SecretChat;
     if (only_preview) {
       message = create_message_to_send(to_dialog, copied_message.top_thread_message_id,
                                        copied_message.reply_to_message_id, message_send_options,
-                                       std::move(copied_message.content), false, nullptr, true, DialogId());
+                                       std::move(copied_message.content), false, nullptr, is_copy, DialogId());
       MessageId new_message_id =
           message_send_options.schedule_date != 0
               ? get_next_yet_unsent_scheduled_message_id(to_dialog, message_send_options.schedule_date)
@@ -27478,7 +27479,7 @@ Result<td_api::object_ptr<td_api::messages>> MessagesManager::forward_messages(
     } else {
       m = get_message_to_send(to_dialog, copied_message.top_thread_message_id, copied_message.reply_to_message_id,
                               message_send_options, std::move(copied_message.content), &need_update_dialog_pos, false,
-                              nullptr, true);
+                              nullptr, is_copy);
     }
     m->disable_web_page_preview = copied_message.disable_web_page_preview;
     m->media_album_id = copied_message.media_album_id;
