@@ -53,6 +53,7 @@
 #include "td/telegram/secret_api.hpp"
 #include "td/telegram/SecureValue.h"
 #include "td/telegram/SecureValue.hpp"
+#include "td/telegram/StickerFormat.h"
 #include "td/telegram/StickersManager.h"
 #include "td/telegram/StickersManager.hpp"
 #include "td/telegram/Td.h"
@@ -1762,8 +1763,8 @@ static Result<InputMessageContent> create_input_message_content(
 
       td->stickers_manager_->create_sticker(
           file_id, string(), thumbnail,
-          get_dimensions(input_sticker->width_, input_sticker->height_, "inputMessageSticker"), nullptr, false,
-          nullptr);
+          get_dimensions(input_sticker->width_, input_sticker->height_, "inputMessageSticker"), nullptr,
+          StickerFormat::Unknown, nullptr);
 
       content = make_unique<MessageSticker>(file_id);
       break;

@@ -13,6 +13,7 @@
 #include "td/telegram/Photo.h"
 #include "td/telegram/SecretInputMedia.h"
 #include "td/telegram/SpecialStickerSetType.h"
+#include "td/telegram/StickerFormat.h"
 #include "td/telegram/StickerSetId.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
@@ -91,7 +92,7 @@ class StickersManager final : public Actor {
   vector<string> get_active_reactions(const vector<string> &available_reactions);
 
   void create_sticker(FileId file_id, string minithumbnail, PhotoSize thumbnail, Dimensions dimensions,
-                      tl_object_ptr<telegram_api::documentAttributeSticker> sticker, bool is_animated,
+                      tl_object_ptr<telegram_api::documentAttributeSticker> sticker, StickerFormat sticker_format,
                       MultiPromiseActor *load_data_multipromise_ptr);
 
   bool has_input_media(FileId sticker_file_id, bool is_secret) const;
@@ -328,13 +329,9 @@ class StickersManager final : public Actor {
   static constexpr int32 MAX_FEATURED_STICKER_SET_VIEW_DELAY = 5;
   static constexpr int32 OLD_FEATURED_STICKER_SET_SLICE_SIZE = 20;
 
-  static constexpr int32 MAX_FOUND_STICKERS = 100;                    // server side limit
-  static constexpr int64 MAX_STICKER_FILE_SIZE = 1 << 19;             // server side limit
-  static constexpr int64 MAX_THUMBNAIL_FILE_SIZE = 1 << 17;           // server side limit
-  static constexpr int64 MAX_ANIMATED_STICKER_FILE_SIZE = 1 << 16;    // server side limit
-  static constexpr int64 MAX_ANIMATED_THUMBNAIL_FILE_SIZE = 1 << 15;  // server side limit
-  static constexpr size_t MAX_STICKER_SET_TITLE_LENGTH = 64;          // server side limit
-  static constexpr size_t MAX_STICKER_SET_SHORT_NAME_LENGTH = 64;     // server side limit
+  static constexpr int32 MAX_FOUND_STICKERS = 100;                 // server side limit
+  static constexpr size_t MAX_STICKER_SET_TITLE_LENGTH = 64;       // server side limit
+  static constexpr size_t MAX_STICKER_SET_SHORT_NAME_LENGTH = 64;  // server side limit
 
   static constexpr int32 EMOJI_KEYWORDS_UPDATE_DELAY = 3600;
   static constexpr double MIN_ANIMATED_EMOJI_CLICK_DELAY = 0.2;
@@ -348,7 +345,7 @@ class StickersManager final : public Actor {
     PhotoSize s_thumbnail;
     PhotoSize m_thumbnail;
     FileId file_id;
-    bool is_animated = false;
+    StickerFormat format = StickerFormat::Unknown;
     bool is_mask = false;
     int32 point = -1;
     double x_shift = 0;
@@ -366,6 +363,7 @@ class StickersManager final : public Actor {
     int64 access_hash = 0;
     string title;
     string short_name;
+    StickerFormat sticker_format = StickerFormat::Unknown;
     int32 sticker_count = 0;
     int32 hash = 0;
     int32 expires_at = 0;
@@ -380,7 +378,6 @@ class StickersManager final : public Actor {
     bool is_installed = false;
     bool is_archived = false;
     bool is_official = false;
-    bool is_animated = false;
     bool is_masks = false;
     bool is_viewed = true;
     bool is_thumbnail_reloaded = false;
@@ -398,8 +395,8 @@ class StickersManager final : public Actor {
     UserId user_id;
     string title;
     string short_name;
+    StickerFormat sticker_format = StickerFormat::Unknown;
     bool is_masks = false;
-    bool is_animated = false;
     vector<FileId> file_ids;
     vector<tl_object_ptr<td_api::InputSticker>> stickers;
     string software;
@@ -464,6 +461,8 @@ class StickersManager final : public Actor {
   const StickerSet *get_sticker_set(StickerSetId sticker_set_id) const;
 
   StickerSet *add_sticker_set(StickerSetId sticker_set_id, int64 access_hash);
+
+  static PhotoFormat get_sticker_set_thumbnail_format(StickerFormat sticker_format);
 
   std::pair<int64, FileId> on_get_sticker_document(tl_object_ptr<telegram_api::Document> &&document_ptr);
 
@@ -588,10 +587,10 @@ class StickersManager final : public Actor {
 
   static string &get_input_sticker_emojis(td_api::InputSticker *sticker);
 
-  Result<std::tuple<FileId, bool, bool, bool>> prepare_input_file(const tl_object_ptr<td_api::InputFile> &input_file,
-                                                                  bool is_animated, bool for_thumbnail);
+  Result<std::tuple<FileId, bool, bool, StickerFormat>> prepare_input_file(
+      const tl_object_ptr<td_api::InputFile> &input_file, StickerFormat format, bool for_thumbnail);
 
-  Result<std::tuple<FileId, bool, bool, bool>> prepare_input_sticker(td_api::InputSticker *sticker);
+  Result<std::tuple<FileId, bool, bool, StickerFormat>> prepare_input_sticker(td_api::InputSticker *sticker);
 
   tl_object_ptr<telegram_api::inputStickerSetItem> get_input_sticker(td_api::InputSticker *sticker,
                                                                      FileId file_id) const;
@@ -673,8 +672,6 @@ class StickersManager final : public Actor {
   void reload_special_sticker_set(SpecialStickerSet &sticker_set, int32 hash);
 
   static void add_sticker_thumbnail(Sticker *s, PhotoSize thumbnail);
-
-  static string get_sticker_mime_type(const Sticker *s);
 
   static string get_emoji_language_code_version_database_key(const string &language_code);
 

@@ -409,6 +409,7 @@ set(TDLIB_SOURCE
   td/telegram/SpecialStickerSetType.cpp
   td/telegram/SponsoredMessageManager.cpp
   td/telegram/StateManager.cpp
+  td/telegram/StickerFormat.cpp
   td/telegram/StickersManager.cpp
   td/telegram/StorageManager.cpp
   td/telegram/SuggestedAction.cpp
@@ -635,6 +636,7 @@ set(TDLIB_SOURCE
   td/telegram/SpecialStickerSetType.h
   td/telegram/SponsoredMessageManager.h
   td/telegram/StateManager.h
+  td/telegram/StickerFormat.h
   td/telegram/StickerSetId.h
   td/telegram/StickersManager.h
   td/telegram/StorageManager.h

@@ -19,6 +19,7 @@
 #include "td/telegram/Photo.h"
 #include "td/telegram/PhotoSizeSource.h"
 #include "td/telegram/secret_api.h"
+#include "td/telegram/StickerFormat.h"
 #include "td/telegram/StickersManager.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/td_api.h"
@@ -145,6 +146,7 @@ Document DocumentsManager::on_get_document(RemoteDocument remote_document, Dialo
   FileType file_type = FileType::Document;
   Slice default_extension;
   bool supports_streaming = false;
+  StickerFormat sticker_format = StickerFormat::Unknown;
   PhotoFormat thumbnail_format = PhotoFormat::Jpeg;
   if (type_attributes == 1 || default_document_type != Document::Type::General) {  // not a general document
     if (animated != nullptr || default_document_type == Document::Type::Animation) {
@@ -170,6 +172,7 @@ Document DocumentsManager::on_get_document(RemoteDocument remote_document, Dialo
     } else if (sticker != nullptr || default_document_type == Document::Type::Sticker) {
       document_type = Document::Type::Sticker;
       file_type = FileType::Sticker;
+      sticker_format = StickerFormat::Webp;
       default_extension = Slice("webp");
       owner_dialog_id = DialogId();
       file_name.clear();
@@ -223,7 +226,6 @@ Document DocumentsManager::on_get_document(RemoteDocument remote_document, Dialo
   PhotoSize thumbnail;
   AnimationSize animated_thumbnail;
   FileEncryptionKey encryption_key;
-  bool is_animated_sticker = false;
   bool is_web = false;
   bool is_web_no_proxy = false;
   string url;
@@ -234,7 +236,7 @@ Document DocumentsManager::on_get_document(RemoteDocument remote_document, Dialo
       return;
     }
 
-    is_animated_sticker = true;
+    sticker_format = StickerFormat::Tgs;
     if (document_type == Document::Type::General) {
       document_type = Document::Type::Sticker;
       file_type = FileType::Sticker;
@@ -446,7 +448,7 @@ Document DocumentsManager::on_get_document(RemoteDocument remote_document, Dialo
         minithumbnail = string();
       }
       td_->stickers_manager_->create_sticker(file_id, std::move(minithumbnail), std::move(thumbnail), dimensions,
-                                             std::move(sticker), is_animated_sticker, load_data_multipromise_ptr);
+                                             std::move(sticker), sticker_format, load_data_multipromise_ptr);
       break;
     case Document::Type::Video:
       td_->videos_manager_->create_video(file_id, std::move(minithumbnail), std::move(thumbnail),
