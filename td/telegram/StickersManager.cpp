@@ -2157,8 +2157,8 @@ bool StickersManager::has_webp_thumbnail(const vector<tl_object_ptr<telegram_api
   return true;
 }
 
-std::pair<int64, FileId> StickersManager::on_get_sticker_document(
-    tl_object_ptr<telegram_api::Document> &&document_ptr) {
+std::pair<int64, FileId> StickersManager::on_get_sticker_document(tl_object_ptr<telegram_api::Document> &&document_ptr,
+                                                                  StickerFormat expected_format) {
   int32 document_constructor_id = document_ptr->get_id();
   if (document_constructor_id == telegram_api::documentEmpty::ID) {
     LOG(ERROR) << "Empty sticker document received";
@@ -2197,6 +2197,10 @@ std::pair<int64, FileId> StickersManager::on_get_sticker_document(
   }
 
   auto format = get_sticker_format(document->mime_type_);
+  if (expected_format != StickerFormat::Unknown && format != expected_format) {
+    LOG(ERROR) << "Expected sticker of the type " << expected_format << ", but received of the type " << format;
+    return {};
+  }
   int64 document_id = document->id_;
   FileId sticker_id =
       td_->file_manager_->register_remote(FullRemoteFileLocation(FileType::Sticker, document_id, document->access_hash_,
@@ -2875,7 +2879,7 @@ StickerSetId StickersManager::on_get_sticker_set_covered(tl_object_ptr<telegram_
 
       auto &sticker_ids = sticker_set->sticker_ids;
 
-      auto sticker_id = on_get_sticker_document(std::move(covered_set->cover_)).second;
+      auto sticker_id = on_get_sticker_document(std::move(covered_set->cover_), sticker_set->sticker_format).second;
       if (sticker_id.is_valid() && !td::contains(sticker_ids, sticker_id)) {
         sticker_ids.push_back(sticker_id);
         sticker_set->is_changed = true;
@@ -2899,7 +2903,7 @@ StickerSetId StickersManager::on_get_sticker_set_covered(tl_object_ptr<telegram_
       auto &sticker_ids = sticker_set->sticker_ids;
 
       for (auto &cover : multicovered_set->covers_) {
-        auto sticker_id = on_get_sticker_document(std::move(cover)).second;
+        auto sticker_id = on_get_sticker_document(std::move(cover), sticker_set->sticker_format).second;
         if (sticker_id.is_valid() && !td::contains(sticker_ids, sticker_id)) {
           sticker_ids.push_back(sticker_id);
           sticker_set->is_changed = true;
@@ -2968,7 +2972,7 @@ StickerSetId StickersManager::on_get_messages_sticker_set(StickerSetId sticker_s
   s->sticker_ids.clear();
   bool is_bot = td_->auth_manager_->is_bot();
   for (auto &document_ptr : documents) {
-    auto sticker_id = on_get_sticker_document(std::move(document_ptr));
+    auto sticker_id = on_get_sticker_document(std::move(document_ptr), s->sticker_format);
     if (!sticker_id.second.is_valid()) {
       continue;
     }
@@ -3448,7 +3452,7 @@ void StickersManager::on_find_stickers_success(const string &emoji,
       found_stickers.sticker_ids_.clear();
 
       for (auto &sticker : received_stickers->stickers_) {
-        FileId sticker_id = on_get_sticker_document(std::move(sticker)).second;
+        FileId sticker_id = on_get_sticker_document(std::move(sticker), StickerFormat::Unknown).second;
         if (sticker_id.is_valid()) {
           found_stickers.sticker_ids_.push_back(sticker_id);
         }
@@ -6276,7 +6280,7 @@ void StickersManager::on_get_recent_stickers(bool is_repair, bool is_attached,
   vector<FileId> recent_sticker_ids;
   recent_sticker_ids.reserve(stickers->stickers_.size());
   for (auto &document_ptr : stickers->stickers_) {
-    auto sticker_id = on_get_sticker_document(std::move(document_ptr)).second;
+    auto sticker_id = on_get_sticker_document(std::move(document_ptr), StickerFormat::Unknown).second;
     if (!sticker_id.is_valid()) {
       continue;
     }
@@ -6681,7 +6685,7 @@ void StickersManager::on_get_favorite_stickers(
   vector<FileId> favorite_sticker_ids;
   favorite_sticker_ids.reserve(favorite_stickers->stickers_.size());
   for (auto &document_ptr : favorite_stickers->stickers_) {
-    auto sticker_id = on_get_sticker_document(std::move(document_ptr)).second;
+    auto sticker_id = on_get_sticker_document(std::move(document_ptr), StickerFormat::Unknown).second;
     if (!sticker_id.is_valid()) {
       continue;
     }

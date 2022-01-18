@@ -464,7 +464,8 @@ class StickersManager final : public Actor {
 
   static PhotoFormat get_sticker_set_thumbnail_format(StickerFormat sticker_format);
 
-  std::pair<int64, FileId> on_get_sticker_document(tl_object_ptr<telegram_api::Document> &&document_ptr);
+  std::pair<int64, FileId> on_get_sticker_document(tl_object_ptr<telegram_api::Document> &&document_ptr,
+                                                   StickerFormat expected_format);
 
   static tl_object_ptr<telegram_api::InputStickerSet> get_input_sticker_set(const StickerSet *set);
 
