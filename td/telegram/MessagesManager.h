@@ -504,6 +504,8 @@ class MessagesManager final : public Actor {
 
   void set_dialog_description(DialogId dialog_id, const string &description, Promise<Unit> &&promise);
 
+  void set_active_reactions(vector<string> active_reactions);
+
   void set_dialog_available_reactions(DialogId dialog_id, vector<string> available_reactions, Promise<Unit> &&promise);
 
   void set_dialog_permissions(DialogId dialog_id, const td_api::object_ptr<td_api::chatPermissions> &permissions,
@@ -2580,6 +2582,8 @@ class MessagesManager final : public Actor {
 
   void set_dialog_available_reactions(Dialog *d, vector<string> &&available_reactions);
 
+  vector<string> get_active_reactions(const vector<string> &available_reactions) const;
+
   vector<string> get_dialog_active_reactions(const Dialog *d) const;
 
   bool is_dialog_action_unneeded(DialogId dialog_id) const;
@@ -3580,6 +3584,8 @@ class MessagesManager final : public Actor {
   std::unordered_map<string, int32> auth_notification_id_date_;
 
   std::unordered_map<DialogId, MessageId, DialogIdHash> previous_repaired_read_inbox_max_message_id_;
+
+  vector<string> active_reactions_;
 
   uint32 scheduled_messages_sync_generation_ = 1;
 

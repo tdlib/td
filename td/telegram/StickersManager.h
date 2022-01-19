@@ -89,9 +89,7 @@ class StickersManager final : public Actor {
 
   Status on_animated_emoji_message_clicked(Slice emoji, FullMessageId full_message_id, string data);
 
-  vector<string> get_all_active_reactions() const;
-
-  vector<string> get_active_reactions(const vector<string> &available_reactions) const;
+  bool is_active_reaction(const string &reaction) const;
 
   void create_sticker(FileId file_id, string minithumbnail, PhotoSize thumbnail, Dimensions dimensions,
                       tl_object_ptr<telegram_api::documentAttributeSticker> sticker, StickerFormat sticker_format,
@@ -459,7 +457,6 @@ class StickersManager final : public Actor {
     int32 hash_ = 0;
     bool are_being_reloaded_ = false;
     vector<Reaction> reactions_;
-    vector<string> active_reactions_;
   };
 
   class StickerListLogEvent;

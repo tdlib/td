@@ -8194,8 +8194,7 @@ void MessagesManager::set_dialog_available_reactions(Dialog *d, vector<string> &
 
   VLOG(notifications) << "Update available reactions in " << d->dialog_id << " to " << available_reactions;
 
-  bool need_update =
-      get_active_reactions(td_, d->available_reactions) != get_active_reactions(td_, available_reactions);
+  bool need_update = get_active_reactions(d->available_reactions) != get_active_reactions(available_reactions);
 
   d->available_reactions = std::move(available_reactions);
   d->is_available_reactions_inited = true;
@@ -8206,14 +8205,26 @@ void MessagesManager::set_dialog_available_reactions(Dialog *d, vector<string> &
   }
 }
 
+void MessagesManager::set_active_reactions(vector<string> active_reactions) {
+  if (active_reactions == active_reactions_) {
+    return;
+  }
+
+  active_reactions_ = std::move(active_reactions);
+}
+
+vector<string> MessagesManager::get_active_reactions(const vector<string> &available_reactions) const {
+  return available_reactions;
+}
+
 vector<string> MessagesManager::get_dialog_active_reactions(const Dialog *d) const {
   CHECK(d != nullptr);
   switch (d->dialog_id.get_type()) {
     case DialogType::User:
-      return get_all_active_reactions(td_);
+      return active_reactions_;
     case DialogType::Chat:
     case DialogType::Channel:
-      return get_active_reactions(td_, d->available_reactions);
+      return get_active_reactions(d->available_reactions);
     case DialogType::SecretChat:
       return {};
     default:
@@ -32439,7 +32450,7 @@ void MessagesManager::set_dialog_available_reactions(DialogId dialog_id, vector<
     return promise.set_error(Status::Error(400, "Chat not found"));
   }
 
-  if (get_active_reactions(td_, available_reactions) != available_reactions) {
+  if (get_active_reactions(available_reactions) != available_reactions) {
     return promise.set_error(Status::Error(400, "Invalid reactions specified"));
   }
   std::unordered_set<string> unique_reactions{available_reactions.begin(), available_reactions.end()};

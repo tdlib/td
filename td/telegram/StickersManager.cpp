@@ -3201,9 +3201,10 @@ void StickersManager::on_get_available_reactions(
     new_reactions.push_back(std::move(reaction));
   }
   reactions_.reactions_ = std::move(new_reactions);
-  reactions_.active_reactions_ = std::move(new_active_reactions);
   reactions_.hash_ = available_reactions->hash_;
   send_closure(G()->td(), &Td::send_update, get_update_reactions_object());
+
+  td_->messages_manager_->set_active_reactions(std::move(new_active_reactions));
 }
 
 void StickersManager::on_get_installed_sticker_sets(bool is_masks,
@@ -4848,12 +4849,13 @@ void StickersManager::send_update_animated_emoji_clicked(FullMessageId full_mess
           dialog_id.get(), full_message_id.get_message_id().get(), get_sticker_object(sticker_id, false, true)));
 }
 
-vector<string> StickersManager::get_all_active_reactions() const {
-  return reactions_.active_reactions_;
-}
-
-vector<string> StickersManager::get_active_reactions(const vector<string> &available_reactions) const {
-  return available_reactions;
+bool StickersManager::is_active_reaction(const string &reaction) const {
+  for (auto &supported_reaction : reactions_.reactions_) {
+    if (supported_reaction.reaction_ == reaction) {
+      return supported_reaction.is_active_;
+    }
+  }
+  return false;
 }
 
 void StickersManager::view_featured_sticker_sets(const vector<StickerSetId> &sticker_set_ids) {

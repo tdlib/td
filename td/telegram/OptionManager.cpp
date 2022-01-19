@@ -475,7 +475,7 @@ void OptionManager::set_option(const string &name, td_api::object_ptr<td_api::Op
       break;
     case 'd':
       if (!is_bot && set_string_option("default_reaction", [td = td_](Slice value) {
-            return td->stickers_manager_->get_active_reactions({value.str()}).size() == 1;
+            return td->stickers_manager_->is_active_reaction(value.str());
           })) {
         G()->shared_config().set_option_boolean("default_reaction_needs_sync", true);
         return;
@@ -709,7 +709,8 @@ void OptionManager::set_default_reaction() {
   auto promise = PromiseCreator::lambda([actor_id = actor_id(this)](Result<Unit> &&result) {
     send_closure(actor_id, &OptionManager::on_set_default_reaction, result.is_ok());
   });
-  td_->create_handler<SetDefaultReactionQuery>(std::move(promise))->send(G()->shared_config().get_option_string("default_reaction"));
+  td_->create_handler<SetDefaultReactionQuery>(std::move(promise))
+      ->send(G()->shared_config().get_option_string("default_reaction"));
 }
 
 void OptionManager::on_set_default_reaction(bool success) {
