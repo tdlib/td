@@ -69,6 +69,29 @@
 
 namespace td {
 
+class GetAvailableReactionsQuery final : public Td::ResultHandler {
+ public:
+  void send(int32 hash) {
+    send_query(G()->net_query_creator().create(telegram_api::messages_getAvailableReactions(hash)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_getAvailableReactions>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for GetAvailableReactionsQuery: " << to_string(ptr);
+    td_->stickers_manager_->on_get_available_reactions(std::move(ptr));
+  }
+
+  void on_error(Status status) final {
+    LOG(INFO) << "Receive error for GetAvailableReactionsQuery: " << status;
+    td_->stickers_manager_->on_get_available_reactions(nullptr);
+  }
+};
+
 class GetAllStickersQuery final : public Td::ResultHandler {
   bool is_masks_;
 
@@ -1313,6 +1336,15 @@ void StickersManager::init() {
   G()->shared_config().set_option_empty("animated_emoji_sticker_set_name");  // legacy
 }
 
+void StickersManager::reload_reactions() {
+  CHECK(!td_->auth_manager_->is_bot());
+  if (reactions_.are_being_reloaded_ || G()->close_flag()) {
+    return;
+  }
+  reactions_.are_being_reloaded_ = true;
+  td_->create_handler<GetAvailableReactionsQuery>()->send(reactions_.hash_);
+}
+
 StickersManager::SpecialStickerSet &StickersManager::add_special_sticker_set(const SpecialStickerSetType &type) {
   auto &result = special_sticker_sets_[type];
   if (result.type_.is_empty()) {
@@ -2159,6 +2191,9 @@ bool StickersManager::has_webp_thumbnail(const vector<tl_object_ptr<telegram_api
 
 std::pair<int64, FileId> StickersManager::on_get_sticker_document(tl_object_ptr<telegram_api::Document> &&document_ptr,
                                                                   StickerFormat expected_format) {
+  if (document_ptr == nullptr) {
+    return {};
+  }
   int32 document_constructor_id = document_ptr->get_id();
   if (document_constructor_id == telegram_api::documentEmpty::ID) {
     LOG(ERROR) << "Empty sticker document received";
@@ -3101,6 +3136,68 @@ void StickersManager::on_get_special_sticker_set(const SpecialStickerSetType &ty
     sticker_set.is_being_loaded_ = true;
   }
   on_load_special_sticker_set(type, Status::OK());
+}
+
+td_api::object_ptr<td_api::updateReactions> StickersManager::get_update_reactions_object() const {
+  auto reactions = transform(reactions_.reactions_, [this](const Reaction &reaction) {
+    return td_api::make_object<td_api::reaction>(
+        reaction.reaction_, reaction.title_, reaction.is_active_, get_sticker_object(reaction.static_icon_),
+        get_sticker_object(reaction.appear_animation_), get_sticker_object(reaction.select_animation_),
+        get_sticker_object(reaction.activate_animation_), get_sticker_object(reaction.effect_animation_),
+        get_sticker_object(reaction.around_animation_), get_sticker_object(reaction.center_animation_));
+  });
+  return td_api::make_object<td_api::updateReactions>(std::move(reactions));
+}
+
+void StickersManager::on_get_available_reactions(
+    tl_object_ptr<telegram_api::messages_AvailableReactions> &&available_reactions_ptr) {
+  CHECK(reactions_.are_being_reloaded_);
+  reactions_.are_being_reloaded_ = false;
+
+  if (available_reactions_ptr == nullptr) {
+    // failed to get available reactions
+    return;
+  }
+
+  int32 constructor_id = available_reactions_ptr->get_id();
+  if (constructor_id == telegram_api::messages_availableReactionsNotModified::ID) {
+    LOG(INFO) << "Available reactions are not modified";
+    return;
+  }
+
+  CHECK(constructor_id == telegram_api::messages_availableReactions::ID);
+  auto available_reactions = move_tl_object_as<telegram_api::messages_availableReactions>(available_reactions_ptr);
+  vector<Reaction> new_reactions;
+  for (auto &available_reaction : available_reactions->reactions_) {
+    Reaction reaction;
+    reaction.is_active_ = !available_reaction->inactive_;
+    reaction.reaction_ = std::move(available_reaction->reaction_);
+    reaction.title_ = std::move(available_reaction->title_);
+    reaction.static_icon_ =
+        on_get_sticker_document(std::move(available_reaction->static_icon_), StickerFormat::Webp).second;
+    reaction.appear_animation_ =
+        on_get_sticker_document(std::move(available_reaction->appear_animation_), StickerFormat::Tgs).second;
+    reaction.select_animation_ =
+        on_get_sticker_document(std::move(available_reaction->select_animation_), StickerFormat::Tgs).second;
+    reaction.activate_animation_ =
+        on_get_sticker_document(std::move(available_reaction->activate_animation_), StickerFormat::Tgs).second;
+    reaction.effect_animation_ =
+        on_get_sticker_document(std::move(available_reaction->effect_animation_), StickerFormat::Tgs).second;
+    reaction.around_animation_ =
+        on_get_sticker_document(std::move(available_reaction->around_animation_), StickerFormat::Tgs).second;
+    reaction.center_animation_ =
+        on_get_sticker_document(std::move(available_reaction->center_icon_), StickerFormat::Tgs).second;
+    if (!reaction.static_icon_.is_valid() || !reaction.appear_animation_.is_valid() ||
+        !reaction.select_animation_.is_valid() || !reaction.activate_animation_.is_valid() ||
+        !reaction.effect_animation_.is_valid()) {
+      LOG(ERROR) << "Receive invalid reaction " << reaction.reaction_;
+      continue;
+    }
+    new_reactions.push_back(std::move(reaction));
+  }
+  reactions_.reactions_ = std::move(new_reactions);
+  reactions_.hash_ = available_reactions->hash_;
+  send_closure(G()->td(), &Td::send_update, get_update_reactions_object());
 }
 
 void StickersManager::on_get_installed_sticker_sets(bool is_masks,
@@ -7436,6 +7533,8 @@ void StickersManager::after_get_difference() {
     return;
   }
   if (td_->is_online()) {
+    reload_reactions();
+
     get_installed_sticker_sets(false, Auto());
     get_installed_sticker_sets(true, Auto());
     get_featured_sticker_sets(0, 1000, Auto());
@@ -7455,6 +7554,9 @@ void StickersManager::get_current_state(vector<td_api::object_ptr<td_api::Update
     return;
   }
 
+  if (!reactions_.reactions_.empty()) {
+    updates.push_back(get_update_reactions_object());
+  }
   for (int is_masks = 0; is_masks < 2; is_masks++) {
     if (are_installed_sticker_sets_loaded_[is_masks]) {
       updates.push_back(get_update_installed_sticker_sets_object(is_masks));

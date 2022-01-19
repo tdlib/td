@@ -131,6 +131,8 @@ class StickersManager final : public Actor {
 
   void view_featured_sticker_sets(const vector<StickerSetId> &sticker_set_ids);
 
+  void on_get_available_reactions(tl_object_ptr<telegram_api::messages_AvailableReactions> &&available_reactions_ptr);
+
   void on_get_installed_sticker_sets(bool is_masks, tl_object_ptr<telegram_api::messages_AllStickers> &&stickers_ptr);
 
   void on_get_installed_sticker_sets_failed(bool is_masks, Status error);
@@ -438,6 +440,25 @@ class StickersManager final : public Actor {
     bool is_being_reloaded_ = false;
   };
 
+  struct Reaction {
+    string reaction_;
+    string title_;
+    bool is_active_ = false;
+    FileId static_icon_;
+    FileId appear_animation_;
+    FileId select_animation_;
+    FileId activate_animation_;
+    FileId effect_animation_;
+    FileId around_animation_;
+    FileId center_animation_;
+  };
+
+  struct Reactions {
+    int32 hash_ = 0;
+    bool are_being_reloaded_ = false;
+    vector<Reaction> reactions_;
+  };
+
   class StickerListLogEvent;
   class StickerSetListLogEvent;
 
@@ -657,6 +678,10 @@ class StickersManager final : public Actor {
 
   void tear_down() final;
 
+  void reload_reactions();
+
+  td_api::object_ptr<td_api::updateReactions> get_update_reactions_object() const;
+
   SpecialStickerSet &add_special_sticker_set(const SpecialStickerSetType &type);
 
   static void init_special_sticker_set(SpecialStickerSet &sticker_set, int64 sticker_set_id, int64 access_hash,
@@ -825,6 +850,8 @@ class StickersManager final : public Actor {
   std::shared_ptr<UploadStickerFileCallback> upload_sticker_file_callback_;
 
   std::unordered_map<FileId, std::pair<UserId, Promise<Unit>>, FileIdHash> being_uploaded_files_;
+
+  Reactions reactions_;
 
   std::unordered_map<string, vector<string>> emoji_language_codes_;
   std::unordered_map<string, int32> emoji_language_code_versions_;

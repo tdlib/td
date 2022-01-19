@@ -2365,6 +2365,20 @@ phoneNumberAuthenticationSettings allow_flash_call:Bool allow_missed_call:Bool i
 animations animations:vector<animation> = Animations;
 
 
+//@description Contains stickers which must be used for reaction animation rendering
+//@reaction Text representation of the reaction
+//@title Reaction title
+//@is_active True, if the reaction can be added to new messages and enabled in chats
+//@static_icon Static icon for the reaction
+//@appear_animation Appear animation for the reaction
+//@select_animation Select animation for the reaction
+//@activate_animation Activate animation for the reaction
+//@effect_animation Effect animation for the reaction
+//@around_animation Around animation for the reaction; may be null
+//@center_animation Center animation for the reaction; may be null
+reaction reaction:string title:string is_active:Bool static_icon:sticker appear_animation:sticker select_animation:sticker activate_animation:sticker effect_animation:sticker around_animation:sticker center_animation:sticker = Reaction;
+
+
 //@class DiceStickers @description Contains animated stickers which must be used for dice animation rendering
 
 //@description A regular animated sticker @sticker The animated sticker with the dice animation
@@ -3931,6 +3945,9 @@ updateTermsOfService terms_of_service_id:string terms_of_service:termsOfService 
 
 //@description The list of users nearby has changed. The update is guaranteed to be sent only 60 seconds after a successful searchChatsNearby request @users_nearby The new list of users nearby
 updateUsersNearby users_nearby:vector<chatNearby> = Update;
+
+//@description The list of supported reactions has changed @reactions The new list of supported reactions
+updateReactions reactions:vector<reaction> = Update;
 
 //@description The list of supported dice emojis has changed @emojis The new list of supported dice emojis
 updateDiceEmojis emojis:vector<string> = Update;
