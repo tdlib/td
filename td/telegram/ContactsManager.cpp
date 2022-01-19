@@ -4511,7 +4511,7 @@ tl_object_ptr<telegram_api::InputPeer> ContactsManager::get_input_peer_channel(C
 bool ContactsManager::have_input_peer_channel(const Channel *c, ChannelId channel_id, AccessRights access_rights,
                                               bool from_linked) const {
   if (c == nullptr) {
-    LOG(DEBUG) << "Have no supergroup";
+    LOG(DEBUG) << "Have no " << channel_id;
     return false;
   }
   if (access_rights == AccessRights::Know) {
@@ -4521,7 +4521,7 @@ bool ContactsManager::have_input_peer_channel(const Channel *c, ChannelId channe
     return true;
   }
   if (c->status.is_banned()) {
-    LOG(DEBUG) << "Was banned in a supergroup";
+    LOG(DEBUG) << "Was banned in " << channel_id;
     return false;
   }
   if (c->status.is_member()) {
@@ -4557,7 +4557,7 @@ bool ContactsManager::have_input_peer_channel(const Channel *c, ChannelId channe
       }
     }
   }
-  LOG(DEBUG) << "Have no access to a private supergroup";
+  LOG(DEBUG) << "Have no access to " << channel_id;
   return false;
 }
 
