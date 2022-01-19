@@ -8241,7 +8241,17 @@ vector<string> MessagesManager::get_active_reactions(const vector<string> &avail
 
 vector<string> MessagesManager::get_active_reactions(const vector<string> &available_reactions,
                                                      const vector<string> &active_reactions) {
-  return available_reactions;
+  if (available_reactions.empty() || available_reactions == active_reactions) {
+    // fast path
+    return available_reactions;
+  }
+  vector<string> result;
+  for (const auto &active_reaction : active_reactions) {
+    if (td::contains(available_reactions, active_reaction)) {
+      result.push_back(active_reaction);
+    }
+  }
+  return result;
 }
 
 vector<string> MessagesManager::get_dialog_active_reactions(const Dialog *d) const {
