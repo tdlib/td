@@ -3910,7 +3910,7 @@ class ForwardMessagesActor final : public NetActorOnce {
       td_->contacts_manager_->reload_dialog_info(from_dialog_id_, Promise<Unit>());
     }
     if (status.code() == 400 && status.message() == CSlice("SEND_AS_PEER_INVALID")) {
-      td_->messages_manager_->reload_dialog_info_full(to_dialog_id_);
+      td_->messages_manager_->reload_dialog_info_full(to_dialog_id_, "SEND_AS_PEER_INVALID");
     }
     for (auto &random_id : random_ids_) {
       td_->messages_manager_->on_send_message_fail(random_id, status.clone());
@@ -8360,7 +8360,7 @@ void MessagesManager::do_repair_dialog_active_group_call_id(DialogId dialog_id) 
     return;
   }
 
-  reload_dialog_info_full(dialog_id);
+  reload_dialog_info_full(dialog_id, "do_repair_dialog_active_group_call_id");
 }
 
 class MessagesManager::ToggleDialogReportSpamStateOnServerLogEvent {
@@ -14902,21 +14902,21 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
     if (!d->is_is_blocked_inited && !td_->auth_manager_->is_bot()) {
       // asynchronously get is_blocked from the server
       // TODO add is_blocked to telegram_api::dialog
-      get_dialog_info_full(dialog_id, Auto(), "on_get_dialogs init is_blocked");
+      reload_dialog_info_full(dialog_id, "on_get_dialogs init is_blocked");
     } else if (!d->is_has_bots_inited && !td_->auth_manager_->is_bot()) {
       // asynchronously get has_bots from the server
       // TODO add has_bots to telegram_api::dialog
-      get_dialog_info_full(dialog_id, Auto(), "on_get_dialogs init has_bots");
+      reload_dialog_info_full(dialog_id, "on_get_dialogs init has_bots");
     } else if (!d->is_theme_name_inited && !td_->auth_manager_->is_bot()) {
       // asynchronously get theme_name from the server
       // TODO add theme_name to telegram_api::dialog
-      get_dialog_info_full(dialog_id, Auto(), "on_get_dialogs init theme_name");
+      reload_dialog_info_full(dialog_id, "on_get_dialogs init theme_name");
     } else if (!d->is_last_pinned_message_id_inited && !td_->auth_manager_->is_bot()) {
       // asynchronously get dialog pinned message from the server
       get_dialog_pinned_message(dialog_id, Auto());
     } else if (!d->is_available_reactions_inited && !td_->auth_manager_->is_bot()) {
       // asynchronously get dialog available reactions from the server
-      get_dialog_info_full(dialog_id, Auto(), "on_get_dialogs init available_reactions");
+      reload_dialog_info_full(dialog_id, "on_get_dialogs init available_reactions");
     }
 
     need_update_dialog_pos |= update_dialog_draft_message(
@@ -17761,11 +17761,12 @@ void MessagesManager::get_dialog_info_full(DialogId dialog_id, Promise<Unit> &&p
   }
 }
 
-void MessagesManager::reload_dialog_info_full(DialogId dialog_id) {
+void MessagesManager::reload_dialog_info_full(DialogId dialog_id, const char *source) {
   if (G()->close_flag()) {
     return;
   }
 
+  LOG(INFO) << "Reload full info about " << dialog_id << " from " << source;
   switch (dialog_id.get_type()) {
     case DialogType::User:
       send_closure_later(td_->contacts_manager_actor_, &ContactsManager::reload_user_full, dialog_id.get_user_id());
@@ -17776,7 +17777,7 @@ void MessagesManager::reload_dialog_info_full(DialogId dialog_id) {
       return;
     case DialogType::Channel:
       send_closure_later(td_->contacts_manager_actor_, &ContactsManager::reload_channel_full,
-                         dialog_id.get_channel_id(), Promise<Unit>(), "reload_dialog_info_full");
+                         dialog_id.get_channel_id(), Promise<Unit>(), source);
       return;
     case DialogType::SecretChat:
       return;
@@ -17790,7 +17791,7 @@ void MessagesManager::reload_dialog_info_full(DialogId dialog_id) {
 void MessagesManager::on_dialog_info_full_invalidated(DialogId dialog_id) {
   Dialog *d = get_dialog(dialog_id);
   if (d != nullptr && d->is_opened) {
-    reload_dialog_info_full(dialog_id);
+    reload_dialog_info_full(dialog_id, "on_dialog_info_full_invalidated");
   }
 }
 
@@ -28079,7 +28080,7 @@ bool MessagesManager::on_get_dialog_error(DialogId dialog_id, const Status &stat
     return true;
   }
   if (status.message() == CSlice("SEND_AS_PEER_INVALID")) {
-    reload_dialog_info_full(dialog_id);
+    reload_dialog_info_full(dialog_id, "SEND_AS_PEER_INVALID");
     return true;
   }
 
@@ -30794,7 +30795,8 @@ void MessagesManager::drop_dialog_last_pinned_message_id(Dialog *d) {
   create_actor<SleepActor>(
       "ReloadDialogFullInfoActor", 1.0,
       PromiseCreator::lambda([actor_id = actor_id(this), dialog_id = d->dialog_id](Result<Unit> result) {
-        send_closure(actor_id, &MessagesManager::reload_dialog_info_full, dialog_id);
+        send_closure(actor_id, &MessagesManager::reload_dialog_info_full, dialog_id,
+                     "drop_dialog_last_pinned_message_id");
       }))
       .release();
 }
@@ -35255,13 +35257,13 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
 
   if (being_added_dialog_id_ != dialog_id && !d->is_is_blocked_inited && !td_->auth_manager_->is_bot()) {
     // asynchronously get is_blocked from the server
-    get_dialog_info_full(dialog_id, Auto(), "fix_new_dialog init is_blocked");
+    reload_dialog_info_full(dialog_id, "fix_new_dialog init is_blocked");
   } else if (being_added_dialog_id_ != dialog_id && !d->is_has_bots_inited && !td_->auth_manager_->is_bot()) {
     // asynchronously get has_bots from the server
-    get_dialog_info_full(dialog_id, Auto(), "fix_new_dialog init has_bots");
+    reload_dialog_info_full(dialog_id, "fix_new_dialog init has_bots");
   } else if (being_added_dialog_id_ != dialog_id && !d->is_theme_name_inited && !td_->auth_manager_->is_bot()) {
     // asynchronously get dialog theme identifier from the server
-    get_dialog_info_full(dialog_id, Auto(), "fix_new_dialog init theme_name");
+    reload_dialog_info_full(dialog_id, "fix_new_dialog init theme_name");
   } else if (being_added_dialog_id_ != dialog_id && !d->is_last_pinned_message_id_inited &&
              !td_->auth_manager_->is_bot()) {
     // asynchronously get dialog pinned message from the server
@@ -35269,15 +35271,15 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
   } else if (being_added_dialog_id_ != dialog_id && !d->is_folder_id_inited && !td_->auth_manager_->is_bot() &&
              order != DEFAULT_ORDER) {
     // asynchronously get dialog folder identifier from the server
-    get_dialog_info_full(dialog_id, Auto(), "fix_new_dialog init folder_id");
+    reload_dialog_info_full(dialog_id, "fix_new_dialog init folder_id");
   } else if (!d->is_message_ttl_inited && !td_->auth_manager_->is_bot() &&
              have_input_peer(dialog_id, AccessRights::Write)) {
     // asynchronously get dialog message TTL from the server
-    get_dialog_info_full(dialog_id, Auto(), "fix_new_dialog init message_ttl");
+    reload_dialog_info_full(dialog_id, "fix_new_dialog init message_ttl");
   } else if (being_added_dialog_id_ != dialog_id && !d->is_available_reactions_inited &&
              !td_->auth_manager_->is_bot()) {
     // asynchronously get dialog available reactions from the server
-    get_dialog_info_full(dialog_id, Auto(), "fix_new_dialog init available_reactions");
+    reload_dialog_info_full(dialog_id, "fix_new_dialog init available_reactions");
   }
   if ((!d->know_action_bar || d->need_repair_action_bar) && !td_->auth_manager_->is_bot() &&
       dialog_type != DialogType::SecretChat && dialog_id != get_my_dialog_id() &&

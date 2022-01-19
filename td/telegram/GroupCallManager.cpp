@@ -2758,7 +2758,7 @@ void GroupCallManager::finish_join_group_call(InputGroupCallId input_group_call_
 
   if (group_call != nullptr && group_call->dialog_id.is_valid()) {
     update_group_call_dialog(group_call, "finish_join_group_call", false);
-    td_->messages_manager_->reload_dialog_info_full(group_call->dialog_id);
+    td_->messages_manager_->reload_dialog_info_full(group_call->dialog_id, "finish_join_group_call");
   }
 }
 
