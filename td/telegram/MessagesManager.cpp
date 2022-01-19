@@ -8210,10 +8210,37 @@ void MessagesManager::set_active_reactions(vector<string> active_reactions) {
     return;
   }
 
+  auto old_active_reactions = std::move(active_reactions_);
   active_reactions_ = std::move(active_reactions);
+
+  for (const auto &dialog : dialogs_) {
+    const Dialog *d = dialog.second.get();
+    switch (d->dialog_id.get_type()) {
+      case DialogType::User:
+        send_update_chat_available_reactions(d);
+        break;
+      case DialogType::Chat:
+      case DialogType::Channel:
+        if (get_active_reactions(d->available_reactions, old_active_reactions) !=
+            get_active_reactions(d->available_reactions, active_reactions_)) {
+          send_update_chat_available_reactions(d);
+        }
+        break;
+      case DialogType::SecretChat:
+        break;
+      default:
+        UNREACHABLE();
+        break;
+    }
+  }
 }
 
 vector<string> MessagesManager::get_active_reactions(const vector<string> &available_reactions) const {
+  return get_active_reactions(available_reactions, active_reactions_);
+}
+
+vector<string> MessagesManager::get_active_reactions(const vector<string> &available_reactions,
+                                                     const vector<string> &active_reactions) {
   return available_reactions;
 }
 

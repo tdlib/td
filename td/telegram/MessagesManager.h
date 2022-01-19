@@ -2584,6 +2584,9 @@ class MessagesManager final : public Actor {
 
   vector<string> get_active_reactions(const vector<string> &available_reactions) const;
 
+  static vector<string> get_active_reactions(const vector<string> &available_reactions,
+                                             const vector<string> &active_reactions);
+
   vector<string> get_dialog_active_reactions(const Dialog *d) const;
 
   bool is_dialog_action_unneeded(DialogId dialog_id) const;
