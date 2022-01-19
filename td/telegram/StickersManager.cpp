@@ -3168,6 +3168,7 @@ void StickersManager::on_get_available_reactions(
   CHECK(constructor_id == telegram_api::messages_availableReactions::ID);
   auto available_reactions = move_tl_object_as<telegram_api::messages_availableReactions>(available_reactions_ptr);
   vector<Reaction> new_reactions;
+  vector<string> new_active_reactions;
   for (auto &available_reaction : available_reactions->reactions_) {
     Reaction reaction;
     reaction.is_active_ = !available_reaction->inactive_;
@@ -3193,9 +3194,14 @@ void StickersManager::on_get_available_reactions(
       LOG(ERROR) << "Receive invalid reaction " << reaction.reaction_;
       continue;
     }
+
+    if (reaction.is_active_) {
+      new_active_reactions.push_back(reaction.reaction_);
+    }
     new_reactions.push_back(std::move(reaction));
   }
   reactions_.reactions_ = std::move(new_reactions);
+  reactions_.active_reactions_ = std::move(new_active_reactions);
   reactions_.hash_ = available_reactions->hash_;
   send_closure(G()->td(), &Td::send_update, get_update_reactions_object());
 }
@@ -4842,7 +4848,11 @@ void StickersManager::send_update_animated_emoji_clicked(FullMessageId full_mess
           dialog_id.get(), full_message_id.get_message_id().get(), get_sticker_object(sticker_id, false, true)));
 }
 
-vector<string> StickersManager::get_active_reactions(const vector<string> &available_reactions) {
+vector<string> StickersManager::get_all_active_reactions() const {
+  return reactions_.active_reactions_;
+}
+
+vector<string> StickersManager::get_active_reactions(const vector<string> &available_reactions) const {
   return available_reactions;
 }
 

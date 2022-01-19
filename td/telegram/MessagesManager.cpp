@@ -8172,6 +8172,18 @@ void MessagesManager::on_update_dialog_available_reactions(DialogId dialog_id, v
 
 void MessagesManager::set_dialog_available_reactions(Dialog *d, vector<string> &&available_reactions) {
   CHECK(!td_->auth_manager_->is_bot());
+  CHECK(d != nullptr);
+  switch (d->dialog_id.get_type()) {
+    case DialogType::Chat:
+    case DialogType::Channel:
+      // ok
+      break;
+    case DialogType::User:
+    case DialogType::SecretChat:
+    default:
+      UNREACHABLE();
+      break;
+  }
   if (d->available_reactions == available_reactions) {
     if (!d->is_available_reactions_inited) {
       d->is_available_reactions_inited = true;
@@ -8191,6 +8203,22 @@ void MessagesManager::set_dialog_available_reactions(Dialog *d, vector<string> &
 
   if (need_update) {
     send_update_chat_available_reactions(d);
+  }
+}
+
+vector<string> MessagesManager::get_dialog_active_reactions(const Dialog *d) const {
+  CHECK(d != nullptr);
+  switch (d->dialog_id.get_type()) {
+    case DialogType::User:
+      return get_all_active_reactions(td_);
+    case DialogType::Chat:
+    case DialogType::Channel:
+      return get_active_reactions(td_, d->available_reactions);
+    case DialogType::SecretChat:
+      return {};
+    default:
+      UNREACHABLE();
+      return {};
   }
 }
 
@@ -20580,11 +20608,10 @@ td_api::object_ptr<td_api::chat> MessagesManager::get_chat_object(const Dialog *
       can_report_dialog(d->dialog_id), d->notification_settings.silent_send_message,
       d->server_unread_count + d->local_unread_count, d->last_read_inbox_message_id.get(),
       d->last_read_outbox_message_id.get(), d->unread_mention_count,
-      get_chat_notification_settings_object(&d->notification_settings),
-      get_active_reactions(td_, d->available_reactions), d->message_ttl.get_message_ttl_object(),
-      get_dialog_theme_name(d), get_chat_action_bar_object(d), get_video_chat_object(d),
-      get_chat_join_requests_info_object(d), d->reply_markup_message_id.get(), std::move(draft_message),
-      d->client_data);
+      get_chat_notification_settings_object(&d->notification_settings), get_dialog_active_reactions(d),
+      d->message_ttl.get_message_ttl_object(), get_dialog_theme_name(d), get_chat_action_bar_object(d),
+      get_video_chat_object(d), get_chat_join_requests_info_object(d), d->reply_markup_message_id.get(),
+      std::move(draft_message), d->client_data);
 }
 
 tl_object_ptr<td_api::chat> MessagesManager::get_chat_object(DialogId dialog_id) const {
@@ -29751,9 +29778,9 @@ void MessagesManager::send_update_chat_available_reactions(const Dialog *d) {
 
   CHECK(d != nullptr);
   LOG_CHECK(d->is_update_new_chat_sent) << "Wrong " << d->dialog_id << " in send_update_chat_available_reactions";
-  send_closure(G()->td(), &Td::send_update,
-               td_api::make_object<td_api::updateChatAvailableReactions>(
-                   d->dialog_id.get(), get_active_reactions(td_, d->available_reactions)));
+  send_closure(
+      G()->td(), &Td::send_update,
+      td_api::make_object<td_api::updateChatAvailableReactions>(d->dialog_id.get(), get_dialog_active_reactions(d)));
 }
 
 void MessagesManager::send_update_secret_chats_with_user_theme(const Dialog *d) const {
@@ -35088,6 +35115,7 @@ MessagesManager::Dialog *MessagesManager::add_new_dialog(unique_ptr<Dialog> &&d,
       d->has_bots = dialog_id.get_user_id() != ContactsManager::get_replies_bot_user_id() &&
                     td_->contacts_manager_->is_user_bot(dialog_id.get_user_id());
       d->is_has_bots_inited = true;
+      d->is_available_reactions_inited = true;
       break;
     case DialogType::Chat:
       d->is_is_blocked_inited = true;
