@@ -91,6 +91,7 @@ class DialogFilter;
 class DraftMessage;
 struct InputMessageContent;
 class MessageContent;
+struct MessageReactions;
 class MultiSequenceDispatcher;
 class Td;
 
@@ -115,6 +116,7 @@ class MessagesManager final : public Actor {
   static constexpr int32 MESSAGE_FLAG_HAS_MEDIA_ALBUM_ID = 1 << 17;
   static constexpr int32 MESSAGE_FLAG_IS_FROM_SCHEDULED = 1 << 18;
   static constexpr int32 MESSAGE_FLAG_IS_LEGACY = 1 << 19;
+  static constexpr int32 MESSAGE_FLAG_HAS_REACTIONS = 1 << 20;
   static constexpr int32 MESSAGE_FLAG_HIDE_EDIT_DATE = 1 << 21;
   static constexpr int32 MESSAGE_FLAG_IS_RESTRICTED = 1 << 22;
   static constexpr int32 MESSAGE_FLAG_HAS_REPLY_INFO = 1 << 23;
@@ -335,8 +337,9 @@ class MessagesManager final : public Actor {
   void on_update_message_forward_count(FullMessageId full_message_id, int32 forward_count);
 
   void on_update_message_interaction_info(FullMessageId full_message_id, int32 view_count, int32 forward_count,
-                                          bool has_reply_info,
-                                          tl_object_ptr<telegram_api::messageReplies> &&reply_info);
+                                          bool has_reply_info, tl_object_ptr<telegram_api::messageReplies> &&reply_info,
+                                          bool has_reactions,
+                                          tl_object_ptr<telegram_api::messageReactions> &&reactions);
 
   void on_update_live_location_viewed(FullMessageId full_message_id);
 
@@ -996,6 +999,7 @@ class MessagesManager final : public Actor {
     int32 view_count = 0;
     int32 forward_count = 0;
     tl_object_ptr<telegram_api::messageReplies> reply_info;
+    tl_object_ptr<telegram_api::messageReactions> reactions;
     int32 flags = 0;
     int32 edit_date = 0;
     vector<RestrictionReason> restriction_reasons;
@@ -1128,6 +1132,7 @@ class MessagesManager final : public Actor {
     int32 view_count = 0;
     int32 forward_count = 0;
     MessageReplyInfo reply_info;
+    unique_ptr<MessageReactions> reactions;
     unique_ptr<DraftMessage> thread_draft_message;
     int32 interaction_info_update_date = 0;
 
@@ -2083,11 +2088,14 @@ class MessagesManager final : public Actor {
   void on_pending_message_views_timeout(DialogId dialog_id);
 
   void update_message_interaction_info(FullMessageId full_message_id, int32 view_count, int32 forward_count,
-                                       bool has_reply_info, tl_object_ptr<telegram_api::messageReplies> &&reply_info);
+                                       bool has_reply_info, tl_object_ptr<telegram_api::messageReplies> &&reply_info,
+                                       bool has_reactions, tl_object_ptr<telegram_api::messageReactions> &&reactions);
 
   bool is_active_message_reply_info(DialogId dialog_id, const MessageReplyInfo &info) const;
 
   bool is_visible_message_reply_info(DialogId dialog_id, const Message *m) const;
+
+  bool is_visible_message_reactions(DialogId dialog_id, const Message *m) const;
 
   void on_message_reply_info_changed(DialogId dialog_id, const Message *m) const;
 
@@ -2097,7 +2105,8 @@ class MessagesManager final : public Actor {
                                                                                          const Message *m) const;
 
   bool update_message_interaction_info(DialogId dialog_id, Message *m, int32 view_count, int32 forward_count,
-                                       bool has_reply_info, MessageReplyInfo &&reply_info, const char *source);
+                                       bool has_reply_info, MessageReplyInfo &&reply_info, bool has_reactions,
+                                       unique_ptr<MessageReactions> &&reactions, const char *source);
 
   bool update_message_contains_unread_mention(Dialog *d, Message *m, bool contains_unread_mention, const char *source);
 

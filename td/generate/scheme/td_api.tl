@@ -754,11 +754,19 @@ messageForwardInfo origin:MessageForwardOrigin date:int32 public_service_announc
 //@last_message_id Identifier of the last reply to the message
 messageReplyInfo reply_count:int32 recent_replier_ids:vector<MessageSender> last_read_inbox_message_id:int53 last_read_outbox_message_id:int53 last_message_id:int53 = MessageReplyInfo;
 
+//@description Contains information about a reaction to a message
+//@reaction Text representation of the reaction
+//@choose_count Number of times the reaction was chosen
+//@is_chosen True, if the reaction is chosen by the user
+//@recent_chooser_user_ids Identifiers of at most 3 recent users, chosen the reaction
+messageReaction reaction:string choose_count:int32 is_chosen:Bool recent_chooser_user_ids:vector<int53> = MessageReaction;
+
 //@description Contains information about interactions with a message
 //@view_count Number of times the message was viewed
 //@forward_count Number of times the message was forwarded
 //@reply_info Information about direct or indirect replies to the message; may be null. Currently, available only in channels with a discussion supergroup and discussion supergroups for messages, which are not replies itself
-messageInteractionInfo view_count:int32 forward_count:int32 reply_info:messageReplyInfo = MessageInteractionInfo;
+//@reactions The list of reactions chosen for the message
+messageInteractionInfo view_count:int32 forward_count:int32 reply_info:messageReplyInfo reactions:vector<messageReaction> = MessageInteractionInfo;
 
 
 //@class MessageSendingState @description Contains information about the sending state of the message

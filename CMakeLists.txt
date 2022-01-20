@@ -356,6 +356,7 @@ set(TDLIB_SOURCE
   td/telegram/MessageContentType.cpp
   td/telegram/MessageEntity.cpp
   td/telegram/MessageId.cpp
+  td/telegram/MessageReaction.cpp
   td/telegram/MessageReplyInfo.cpp
   td/telegram/MessagesDb.cpp
   td/telegram/MessageSearchFilter.cpp
@@ -561,6 +562,7 @@ set(TDLIB_SOURCE
   td/telegram/MessageEntity.h
   td/telegram/MessageId.h
   td/telegram/MessageLinkInfo.h
+  td/telegram/MessageReaction.h
   td/telegram/MessageReplyInfo.h
   td/telegram/MessageThreadInfo.h
   td/telegram/MessagesDb.h
@@ -677,6 +679,7 @@ set(TDLIB_SOURCE
   td/telegram/Game.hpp
   td/telegram/InputMessageText.hpp
   td/telegram/MessageEntity.hpp
+  td/telegram/MessageReaction.hpp
   td/telegram/MessageReplyInfo.hpp
   td/telegram/MinChannel.hpp
   td/telegram/NotificationSettings.hpp
