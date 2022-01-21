@@ -384,6 +384,8 @@ class UpdatesManager final : public Actor {
   void on_update(tl_object_ptr<telegram_api::updateWebPage> update, Promise<Unit> &&promise);
   void on_update(tl_object_ptr<telegram_api::updateChannelWebPage> update, Promise<Unit> &&promise);
 
+  void on_update(tl_object_ptr<telegram_api::updateMessageReactions> update, Promise<Unit> &&promise);
+
   void on_update(tl_object_ptr<telegram_api::updateFolderPeers> update, Promise<Unit> &&promise);
 
   void on_update(tl_object_ptr<telegram_api::updateUserTyping> update, Promise<Unit> &&promise);
@@ -504,8 +506,6 @@ class UpdatesManager final : public Actor {
   void on_update(tl_object_ptr<telegram_api::updatePendingJoinRequests> update, Promise<Unit> &&promise);
 
   // unsupported updates
-
-  void on_update(tl_object_ptr<telegram_api::updateMessageReactions> update, Promise<Unit> &&promise);
 };
 
 }  // namespace td

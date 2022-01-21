@@ -2701,6 +2701,12 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateChannelWebPage>
   promise.set_value(Unit());
 }
 
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateMessageReactions> update, Promise<Unit> &&promise) {
+  td_->messages_manager_->on_update_message_reactions(
+      {DialogId(update->peer_), MessageId(ServerMessageId(update->msg_id_))}, std::move(update->reactions_));
+  promise.set_value(Unit());
+}
+
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateFolderPeers> update, Promise<Unit> &&promise) {
   for (auto &folder_peer : update->folder_peers_) {
     DialogId dialog_id(folder_peer->peer_);
@@ -3279,9 +3285,5 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updatePendingJoinRequ
 }
 
 // unsupported updates
-
-void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateMessageReactions> update, Promise<Unit> &&promise) {
-  promise.set_value(Unit());
-}
 
 }  // namespace td
