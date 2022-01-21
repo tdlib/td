@@ -758,8 +758,8 @@ messageReplyInfo reply_count:int32 recent_replier_ids:vector<MessageSender> last
 //@reaction Text representation of the reaction
 //@choose_count Number of times the reaction was chosen
 //@is_chosen True, if the reaction is chosen by the user
-//@recent_chooser_user_ids Identifiers of at most 3 recent users, chosen the reaction
-messageReaction reaction:string choose_count:int32 is_chosen:Bool recent_chooser_user_ids:vector<int53> = MessageReaction;
+//@recent_chooser_ids Identifiers of at most 3 recent message senders, chosen the reaction; available in basic groups and supergroups
+messageReaction reaction:string choose_count:int32 is_chosen:Bool recent_chooser_ids:vector<MessageSender> = MessageReaction;
 
 //@description Contains information about interactions with a message
 //@view_count Number of times the message was viewed

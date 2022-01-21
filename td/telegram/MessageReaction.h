@@ -6,12 +6,16 @@
 //
 #pragma once
 
+#include "td/telegram/ChannelId.h"
+#include "td/telegram/DialogId.h"
+#include "td/telegram/MinChannel.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
-#include "td/telegram/UserId.h"
 
 #include "td/utils/common.h"
 #include "td/utils/StringBuilder.h"
+
+#include <utility>
 
 namespace td {
 
@@ -21,7 +25,8 @@ class MessageReaction {
   string reaction_;
   int32 choose_count_ = 0;
   bool is_chosen_ = false;
-  vector<UserId> recent_chooser_user_ids_;
+  vector<DialogId> recent_chooser_dialog_ids_;
+  vector<std::pair<ChannelId, MinChannel>> recent_chooser_min_channels_;
 
   friend bool operator==(const MessageReaction &lhs, const MessageReaction &rhs);
 
@@ -33,11 +38,13 @@ class MessageReaction {
 
   MessageReaction() = default;
 
-  MessageReaction(string &&reaction, int32 choose_count, bool is_chosen, vector<UserId> &&recent_chooser_user_ids)
+  MessageReaction(string &&reaction, int32 choose_count, bool is_chosen, vector<DialogId> &&recent_chooser_dialog_ids,
+                  vector<std::pair<ChannelId, MinChannel>> &&recent_chooser_min_channels)
       : reaction_(std::move(reaction))
       , choose_count_(choose_count)
       , is_chosen_(is_chosen)
-      , recent_chooser_user_ids_(std::move(recent_chooser_user_ids)) {
+      , recent_chooser_dialog_ids_(std::move(recent_chooser_dialog_ids))
+      , recent_chooser_min_channels_(std::move(recent_chooser_min_channels)) {
   }
 
   bool is_empty() const {
@@ -56,8 +63,12 @@ class MessageReaction {
     is_chosen_ = is_chosen;
   }
 
-  const vector<UserId> &get_recent_chooser_user_ids() const {
-    return recent_chooser_user_ids_;
+  const vector<DialogId> &get_recent_chooser_dialog_ids() const {
+    return recent_chooser_dialog_ids_;
+  }
+
+  const vector<std::pair<ChannelId, MinChannel>> &get_recent_chooser_min_channels() const {
+    return recent_chooser_min_channels_;
   }
 
   td_api::object_ptr<td_api::messageReaction> get_message_reaction_object(Td *td) const;

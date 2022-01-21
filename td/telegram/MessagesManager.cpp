@@ -24421,7 +24421,7 @@ void MessagesManager::add_message_dependencies(Dependencies &dependencies, const
     add_dialog_and_dependencies(dependencies, m->forward_info->from_dialog_id);
   }
   for (const auto &replier_min_channel : m->reply_info.replier_min_channels) {
-    LOG(INFO) << "Add min " << replier_min_channel.first;
+    LOG(INFO) << "Add min replied " << replier_min_channel.first;
     td_->contacts_manager_->add_min_channel(replier_min_channel.first, replier_min_channel.second);
   }
   for (auto recent_replier_dialog_id : m->reply_info.recent_replier_dialog_ids) {
@@ -24431,8 +24431,16 @@ void MessagesManager::add_message_dependencies(Dependencies &dependencies, const
   }
   if (m->reactions != nullptr) {
     for (const auto &reaction : m->reactions->reactions_) {
-      const auto &user_ids = reaction.get_recent_chooser_user_ids();
-      dependencies.user_ids.insert(user_ids.begin(), user_ids.end());
+      for (const auto &recent_chooser_min_channel : reaction.get_recent_chooser_min_channels()) {
+        LOG(INFO) << "Add min reacted " << recent_chooser_min_channel.first;
+        td_->contacts_manager_->add_min_channel(recent_chooser_min_channel.first, recent_chooser_min_channel.second);
+      }
+      const auto &dialog_ids = reaction.get_recent_chooser_dialog_ids();
+      for (auto dialog_id : dialog_ids) {
+        // don't load the dialog itself
+        // it will be created in get_message_reaction_object if needed
+        add_dialog_dependencies(dependencies, dialog_id);
+      }
     }
   }
   add_message_content_dependencies(dependencies, m->content.get());
