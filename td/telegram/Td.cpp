@@ -59,6 +59,7 @@
 #include "td/telegram/MessageEntity.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/MessageLinkInfo.h"
+#include "td/telegram/MessageReaction.h"
 #include "td/telegram/MessageSearchFilter.h"
 #include "td/telegram/MessageSender.h"
 #include "td/telegram/MessagesManager.h"
@@ -5241,6 +5242,16 @@ void Td::on_request(uint64 id, const td_api::getChatMessageCount &request) {
 void Td::on_request(uint64 id, const td_api::getChatScheduledMessages &request) {
   CHECK_IS_USER();
   CREATE_REQUEST(GetChatScheduledMessagesRequest, request.chat_id_);
+}
+
+void Td::on_request(uint64 id, td_api::getMessageChosenReactions &request) {
+  CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.offset_);
+  CLEAN_INPUT_STRING(request.reaction_);
+  CREATE_REQUEST_PROMISE();
+  get_message_chosen_reactions(this, {DialogId(request.chat_id_), MessageId(request.message_id_)},
+                               std::move(request.reaction_), std::move(request.offset_), request.limit_,
+                               std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::getMessagePublicForwards &request) {

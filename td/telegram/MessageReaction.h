@@ -8,9 +8,12 @@
 
 #include "td/telegram/ChannelId.h"
 #include "td/telegram/DialogId.h"
+#include "td/telegram/FullMessageId.h"
 #include "td/telegram/MinChannel.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
+
+#include "td/actor/PromiseFuture.h"
 
 #include "td/utils/common.h"
 #include "td/utils/StringBuilder.h"
@@ -113,5 +116,8 @@ struct MessageReactions {
   template <class ParserT>
   void parse(ParserT &parser);
 };
+
+void get_message_chosen_reactions(Td *td, FullMessageId full_message_id, string reaction, string offset, int32 limit,
+                                  Promise<td_api::object_ptr<td_api::chosenReactions>> &&promise);
 
 }  // namespace td

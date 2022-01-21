@@ -2369,8 +2369,11 @@ call id:int32 user_id:int53 is_outgoing:Bool is_video:Bool state:CallState = Cal
 phoneNumberAuthenticationSettings allow_flash_call:Bool allow_missed_call:Bool is_current_phone_number:Bool allow_sms_retriever_api:Bool authentication_tokens:vector<string> = PhoneNumberAuthenticationSettings;
 
 
-//@description Represents a list of animations @animations List of animations
-animations animations:vector<animation> = Animations;
+//@description Represents a chosen reaction for a message @reaction Text representation of the reaction @chooser_id Identifier of the chat member, chosen the reaction
+chosenReaction reaction:string chooser_id:MessageSender = ChosenReaction;
+
+//@description Represents a list of chosen reactions for a message @total_count The total count of found reactions @reactions The list of chosen reactions @next_offset The offset for the next request. If empty, there are no more results
+chosenReactions total_count:int32 reactions:vector<chosenReaction> next_offset:string = ChosenReactions;
 
 
 //@description Contains stickers which must be used for reaction animation rendering
@@ -2385,6 +2388,10 @@ animations animations:vector<animation> = Animations;
 //@around_animation Around animation for the reaction; may be null
 //@center_animation Center animation for the reaction; may be null
 reaction reaction:string title:string is_active:Bool static_icon:sticker appear_animation:sticker select_animation:sticker activate_animation:sticker effect_animation:sticker around_animation:sticker center_animation:sticker = Reaction;
+
+
+//@description Represents a list of animations @animations List of animations
+animations animations:vector<animation> = Animations;
 
 
 //@class DiceStickers @description Contains animated stickers which must be used for dice animation rendering
@@ -4345,7 +4352,7 @@ searchMessages chat_list:ChatList query:string offset_date:int32 offset_chat_id:
 //@description Searches for messages in secret chats. Returns the results in reverse chronological order. For optimal performance, the number of returned messages is chosen by TDLib
 //@chat_id Identifier of the chat in which to search. Specify 0 to search in all secret chats
 //@query Query to search for. If empty, searchChatMessages must be used instead
-//@offset Offset of the first entry to return as received from the previous request; use empty string to get first chunk of results
+//@offset Offset of the first entry to return as received from the previous request; use empty string to get the first chunk of results
 //@limit The maximum number of messages to be returned; up to 100. For optimal performance, the number of returned messages is chosen by TDLib and can be smaller than the specified limit
 //@filter Additional filter for messages to search; pass null to search for all messages
 searchSecretMessages chat_id:int53 query:string offset:string limit:int32 filter:SearchMessagesFilter = FoundMessages;
@@ -4390,7 +4397,7 @@ getChatScheduledMessages chat_id:int53 = Messages;
 //@description Returns forwarded copies of a channel message to different public channels. For optimal performance, the number of returned messages is chosen by TDLib
 //@chat_id Chat identifier of the message
 //@message_id Message identifier
-//@offset Offset of the first entry to return as received from the previous request; use empty string to get first chunk of results
+//@offset Offset of the first entry to return as received from the previous request; use empty string to get the first chunk of results
 //@limit The maximum number of messages to be returned; must be positive and can't be greater than 100. For optimal performance, the number of returned messages is chosen by TDLib and can be smaller than the specified limit
 getMessagePublicForwards chat_id:int53 message_id:int53 offset:string limit:int32 = FoundMessages;
 
@@ -4580,6 +4587,15 @@ editInlineMessageReplyMarkup inline_message_id:string reply_markup:ReplyMarkup =
 editMessageSchedulingState chat_id:int53 message_id:int53 scheduling_state:MessageSchedulingState = Ok;
 
 
+//@description Returns reactions chosen for a message, along with their source
+//@chat_id Identifier of the chat to which the message belongs
+//@message_id Identifier of the message
+//@reaction If non-empty, only reactions with the specified text representation will be returned
+//@offset Offset of the first entry to return as received from the previous request; use empty string to get the first chunk of results
+//@limit The maximum number of chosen reactions to be returned; must be positive and can't be greater than 100
+getMessageChosenReactions chat_id:int53 message_id:int53 reaction:string offset:string limit:int32 = ChosenReactions;
+
+
 //@description Returns all entities (mentions, hashtags, cashtags, bot commands, bank card numbers, URLs, and email addresses) contained in the text. Can be called synchronously @text The text in which to look for entites
 getTextEntities text:string = TextEntities;
 
@@ -4614,12 +4630,14 @@ getJsonString json_value:JsonValue = Text;
 
 
 //@description Changes the user answer to a poll. A poll in quiz mode can be answered only once
-//@chat_id Identifier of the chat to which the poll belongs @message_id Identifier of the message containing the poll
+//@chat_id Identifier of the chat to which the poll belongs
+//@message_id Identifier of the message containing the poll
 //@option_ids 0-based identifiers of answer options, chosen by the user. User can choose more than 1 answer option only is the poll allows multiple answers
 setPollAnswer chat_id:int53 message_id:int53 option_ids:vector<int32> = Ok;
 
 //@description Returns users voted for the specified option in a non-anonymous polls. For optimal performance, the number of returned users is chosen by TDLib
-//@chat_id Identifier of the chat to which the poll belongs @message_id Identifier of the message containing the poll
+//@chat_id Identifier of the chat to which the poll belongs
+//@message_id Identifier of the message containing the poll
 //@option_id 0-based identifier of the answer option
 //@offset Number of users to skip in the result; must be non-negative
 //@limit The maximum number of users to be returned; must be positive and can't be greater than 50. For optimal performance, the number of returned users is chosen by TDLib and can be smaller than the specified limit, even if the end of the voter list has not been reached

@@ -11,11 +11,89 @@
 #include "td/telegram/Td.h"
 
 #include "td/utils/algorithm.h"
+#include "td/utils/buffer.h"
 #include "td/utils/logging.h"
 
 #include <unordered_set>
 
 namespace td {
+
+class GetMessageReactionsListQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::chosenReactions>> promise_;
+  DialogId dialog_id_;
+  MessageId message_id_;
+  string reaction_;
+  string offset_;
+
+ public:
+  explicit GetMessageReactionsListQuery(Promise<td_api::object_ptr<td_api::chosenReactions>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(FullMessageId full_message_id, string reaction, string offset, int32 limit) {
+    dialog_id_ = full_message_id.get_dialog_id();
+    message_id_ = full_message_id.get_message_id();
+    reaction_ = std::move(reaction);
+    offset_ = std::move(offset);
+
+    auto input_peer = td_->messages_manager_->get_input_peer(dialog_id_, AccessRights::Read);
+    if (input_peer == nullptr) {
+      return on_error(Status::Error(400, "Can't access the chat"));
+    }
+
+    int32 flags = 0;
+    if (!reaction_.empty()) {
+      flags |= telegram_api::messages_getMessageReactionsList::REACTION_MASK;
+    }
+    if (!offset_.empty()) {
+      flags |= telegram_api::messages_getMessageReactionsList::OFFSET_MASK;
+    }
+
+    send_query(G()->net_query_creator().create(telegram_api::messages_getMessageReactionsList(
+        flags, std::move(input_peer), message_id_.get_server_message_id().get(), reaction_, offset_, limit)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_getMessageReactionsList>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for GetMessageReactionsListQuery: " << to_string(ptr);
+
+    td_->contacts_manager_->on_get_users(std::move(ptr->users_), "GetMessageReactionsListQuery");
+    // td_->contacts_manager_->on_get_chats(std::move(ptr->chats_), "GetMessageReactionsListQuery");
+
+    int32 total_count = ptr->count_;
+    if (total_count < static_cast<int32>(ptr->reactions_.size())) {
+      LOG(ERROR) << "Receive invalid total_count in " << to_string(ptr);
+      total_count = static_cast<int32>(ptr->reactions_.size());
+    }
+
+    vector<td_api::object_ptr<td_api::chosenReaction>> reactions;
+    for (auto &reaction : ptr->reactions_) {
+      UserId user_id(reaction->user_id_);
+      if (!user_id.is_valid() || (!reaction_.empty() && reaction_ != reaction->reaction_)) {
+        LOG(ERROR) << "Receive unexpected " << to_string(reaction);
+        continue;
+      }
+
+      reactions.push_back(td_api::make_object<td_api::chosenReaction>(
+          reaction->reaction_,
+          td_api::make_object<td_api::messageSenderUser>(
+              td_->contacts_manager_->get_user_id_object(user_id, "GetMessageReactionsListQuery"))));
+    }
+
+    promise_.set_value(
+        td_api::make_object<td_api::chosenReactions>(total_count, std::move(reactions), ptr->next_offset_));
+  }
+
+  void on_error(Status status) final {
+    td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "GetMessageReactionsListQuery");
+    promise_.set_error(std::move(status));
+  }
+};
 
 td_api::object_ptr<td_api::messageReaction> MessageReaction::get_message_reaction_object(Td *td) const {
   CHECK(!is_empty());
@@ -177,6 +255,29 @@ bool MessageReactions::need_update_message_reactions(const MessageReactions *old
   return old_reactions->reactions_ != new_reactions->reactions_ || old_reactions->is_min_ != new_reactions->is_min_ ||
          old_reactions->can_see_all_choosers_ != new_reactions->can_see_all_choosers_ ||
          old_reactions->need_polling_ != new_reactions->need_polling_;
+}
+
+void get_message_chosen_reactions(Td *td, FullMessageId full_message_id, string reaction, string offset, int32 limit,
+                                  Promise<td_api::object_ptr<td_api::chosenReactions>> &&promise) {
+  if (!td->messages_manager_->have_message_force(full_message_id, "get_message_chosen_reactions")) {
+    return promise.set_error(Status::Error(400, "Message not found"));
+  }
+
+  auto message_id = full_message_id.get_message_id();
+  if (!message_id.is_valid() || !message_id.is_server()) {
+    return promise.set_value(td_api::make_object<td_api::chosenReactions>(0, Auto(), string()));
+  }
+
+  if (limit <= 0) {
+    return promise.set_error(Status::Error(400, "Parameter limit must be positive"));
+  }
+  static constexpr int32 MAX_GET_CHOSEN_REACTIONS = 100;  // server side limit
+  if (limit > MAX_GET_CHOSEN_REACTIONS) {
+    limit = MAX_GET_CHOSEN_REACTIONS;
+  }
+
+  td->create_handler<GetMessageReactionsListQuery>(std::move(promise))
+      ->send(full_message_id, std::move(reaction), std::move(offset), limit);
 }
 
 }  // namespace td

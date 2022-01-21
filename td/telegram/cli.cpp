@@ -2058,6 +2058,15 @@ class CliClient final : public Actor {
       ChatId chat_id;
       get_args(args, chat_id);
       send_request(td_api::make_object<td_api::getChatScheduledMessages>(chat_id));
+    } else if (op == "gmcr") {
+      ChatId chat_id;
+      MessageId message_id;
+      string reaction;
+      string offset;
+      string limit;
+      get_args(args, chat_id, message_id, reaction, offset, limit);
+      send_request(td_api::make_object<td_api::getMessageChosenReactions>(chat_id, message_id, reaction, offset,
+                                                                          as_limit(limit)));
     } else if (op == "gmpf") {
       ChatId chat_id;
       MessageId message_id;
