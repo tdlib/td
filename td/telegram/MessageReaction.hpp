@@ -56,40 +56,30 @@ void MessageReaction::parse(ParserT &parser) {
 template <class StorerT>
 void MessageReactions::store(StorerT &storer) const {
   bool has_reactions = !reactions_.empty();
-  bool has_old_chosen_reaction = !old_chosen_reaction_.empty();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(is_min_);
   STORE_FLAG(need_polling_);
   STORE_FLAG(can_see_all_choosers_);
   STORE_FLAG(has_pending_reaction_);
   STORE_FLAG(has_reactions);
-  STORE_FLAG(has_old_chosen_reaction);
   END_STORE_FLAGS();
   if (has_reactions) {
     td::store(reactions_, storer);
-  }
-  if (has_old_chosen_reaction) {
-    td::store(old_chosen_reaction_, storer);
   }
 }
 
 template <class ParserT>
 void MessageReactions::parse(ParserT &parser) {
   bool has_reactions;
-  bool has_old_chosen_reaction;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(is_min_);
   PARSE_FLAG(need_polling_);
   PARSE_FLAG(can_see_all_choosers_);
   PARSE_FLAG(has_pending_reaction_);
   PARSE_FLAG(has_reactions);
-  PARSE_FLAG(has_old_chosen_reaction);
   END_PARSE_FLAGS();
   if (has_reactions) {
     td::parse(reactions_, parser);
-  }
-  if (has_old_chosen_reaction) {
-    td::parse(old_chosen_reaction_, parser);
   }
 }
 

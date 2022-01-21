@@ -780,6 +780,8 @@ class MessagesManager final : public Actor {
   vector<MessageId> get_dialog_scheduled_messages(DialogId dialog_id, bool force, bool ignore_result,
                                                   Promise<Unit> &&promise);
 
+  void set_message_reaction(FullMessageId full_message_id, string reaction, Promise<Unit> &&promise);
+
   void get_message_public_forwards(FullMessageId full_message_id, string offset, int32 limit,
                                    Promise<td_api::object_ptr<td_api::foundMessages>> &&promise);
 

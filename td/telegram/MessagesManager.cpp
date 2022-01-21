@@ -23720,6 +23720,72 @@ void MessagesManager::on_get_scheduled_messages_from_database(DialogId dialog_id
   }
 }
 
+void MessagesManager::set_message_reaction(FullMessageId full_message_id, string reaction, Promise<Unit> &&promise) {
+  auto dialog_id = full_message_id.get_dialog_id();
+  Dialog *d = get_dialog_force(dialog_id, "set_message_reaction");
+  if (d == nullptr) {
+    return promise.set_error(Status::Error(400, "Chat not found"));
+  }
+
+  Message *m = get_message_force(d, full_message_id.get_message_id(), "set_message_reaction");
+  if (m == nullptr) {
+    return promise.set_error(Status::Error(400, "Message not found"));
+  }
+
+  if (full_message_id.get_dialog_id().get_type() == DialogType::SecretChat || !m->message_id.is_valid() ||
+      !m->message_id.is_server()) {
+    return promise.set_error(Status::Error(400, "Message can't have reactions"));
+  }
+
+  if (!reaction.empty() && !is_active_reaction(td_, reaction)) {
+    return promise.set_error(Status::Error(400, "Invalid reaction specified"));
+  }
+
+  if (m->reactions == nullptr) {
+    if (reaction.empty()) {
+      return promise.set_value(Unit());
+    }
+
+    m->reactions = make_unique<MessageReactions>();
+  }
+
+  bool is_found = false;
+  for (auto it = m->reactions->reactions_.begin(); it != m->reactions->reactions_.end();) {
+    auto &message_reaction = *it;
+    if (message_reaction.is_chosen()) {
+      if (message_reaction.get_reaction() == reaction) {
+        return promise.set_value(Unit());
+      }
+      message_reaction.set_is_chosen(false);
+      if (message_reaction.is_empty()) {
+        it = m->reactions->reactions_.erase(it);
+        continue;
+      }
+    } else {
+      if (message_reaction.get_reaction() == reaction) {
+        message_reaction.set_is_chosen(true);
+        is_found = true;
+      }
+    }
+
+    ++it;
+  }
+  // m->reactions->has_pending_reaction_ = true;
+  if (!is_found && !reaction.empty()) {
+    // TODO place to the correct position
+    vector<DialogId> recent_chooser_dialog_ids;
+    if (!is_broadcast_channel(dialog_id)) {
+      recent_chooser_dialog_ids.push_back(get_my_dialog_id());
+    }
+    m->reactions->reactions_.emplace_back(reaction, 1, true, std::move(recent_chooser_dialog_ids), Auto());
+  }
+
+  send_update_message_interaction_info(dialog_id, m);
+  on_message_changed(d, m, true, "set_message_reaction");
+
+  ::td::set_message_reaction(td_, full_message_id, std::move(reaction), std::move(promise));
+}
+
 void MessagesManager::get_message_public_forwards(FullMessageId full_message_id, string offset, int32 limit,
                                                   Promise<td_api::object_ptr<td_api::foundMessages>> &&promise) {
   auto dc_id_promise = PromiseCreator::lambda([actor_id = actor_id(this), full_message_id, offset = std::move(offset),

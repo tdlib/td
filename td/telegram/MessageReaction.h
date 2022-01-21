@@ -41,7 +41,7 @@ class MessageReaction {
 
   MessageReaction() = default;
 
-  MessageReaction(string &&reaction, int32 choose_count, bool is_chosen, vector<DialogId> &&recent_chooser_dialog_ids,
+  MessageReaction(string reaction, int32 choose_count, bool is_chosen, vector<DialogId> &&recent_chooser_dialog_ids,
                   vector<std::pair<ChannelId, MinChannel>> &&recent_chooser_min_channels)
       : reaction_(std::move(reaction))
       , choose_count_(choose_count)
@@ -62,9 +62,7 @@ class MessageReaction {
     return is_chosen_;
   }
 
-  void set_is_chosen(bool is_chosen) {
-    is_chosen_ = is_chosen;
-  }
+  void set_is_chosen(bool is_chosen, DialogId chooser_dialog_id = DialogId());
 
   const vector<DialogId> &get_recent_chooser_dialog_ids() const {
     return recent_chooser_dialog_ids_;
@@ -97,7 +95,6 @@ struct MessageReactions {
   bool need_polling_ = true;
   bool can_see_all_choosers_ = false;
   bool has_pending_reaction_ = false;
-  string old_chosen_reaction_;
 
   MessageReactions() = default;
 
@@ -116,6 +113,8 @@ struct MessageReactions {
   template <class ParserT>
   void parse(ParserT &parser);
 };
+
+void set_message_reaction(Td *td, FullMessageId full_message_id, string reaction, Promise<Unit> &&promise);
 
 void get_message_chosen_reactions(Td *td, FullMessageId full_message_id, string reaction, string offset, int32 limit,
                                   Promise<td_api::object_ptr<td_api::chosenReactions>> &&promise);

@@ -5244,10 +5244,18 @@ void Td::on_request(uint64 id, const td_api::getChatScheduledMessages &request) 
   CREATE_REQUEST(GetChatScheduledMessagesRequest, request.chat_id_);
 }
 
+void Td::on_request(uint64 id, td_api::setMessageReaction &request) {
+  CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.reaction_);
+  CREATE_OK_REQUEST_PROMISE();
+  messages_manager_->set_message_reaction({DialogId(request.chat_id_), MessageId(request.message_id_)},
+                                          std::move(request.reaction_), std::move(promise));
+}
+
 void Td::on_request(uint64 id, td_api::getMessageChosenReactions &request) {
   CHECK_IS_USER();
-  CLEAN_INPUT_STRING(request.offset_);
   CLEAN_INPUT_STRING(request.reaction_);
+  CLEAN_INPUT_STRING(request.offset_);
   CREATE_REQUEST_PROMISE();
   get_message_chosen_reactions(this, {DialogId(request.chat_id_), MessageId(request.message_id_)},
                                std::move(request.reaction_), std::move(request.offset_), request.limit_,
