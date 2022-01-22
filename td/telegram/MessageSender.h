@@ -29,6 +29,8 @@ td_api::object_ptr<td_api::MessageSender> get_message_sender_object(Td *td, User
 
 td_api::object_ptr<td_api::MessageSender> get_message_sender_object(Td *td, DialogId dialog_id, const char *source);
 
+td_api::object_ptr<td_api::MessageSender> get_min_message_sender_object(Td *td, DialogId dialog_id, const char *source);
+
 vector<DialogId> get_message_sender_dialog_ids(Td *td,
                                                const vector<telegram_api::object_ptr<telegram_api::Peer>> &peers);
 

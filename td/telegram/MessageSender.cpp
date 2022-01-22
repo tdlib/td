@@ -59,6 +59,29 @@ td_api::object_ptr<td_api::MessageSender> get_message_sender_object(Td *td, Dial
   return get_message_sender_object(td, UserId(), dialog_id, source);
 }
 
+td_api::object_ptr<td_api::MessageSender> get_min_message_sender_object(Td *td, DialogId dialog_id,
+                                                                        const char *source) {
+  auto dialog_type = dialog_id.get_type();
+  if (dialog_type == DialogType::User) {
+    auto user_id = dialog_id.get_user_id();
+    if (td->contacts_manager_->have_min_user(user_id)) {
+      return td_api::make_object<td_api::messageSenderUser>(td->contacts_manager_->get_user_id_object(user_id, source));
+    }
+  } else {
+    if (!td->messages_manager_->have_dialog(dialog_id) &&
+        (td->messages_manager_->have_dialog_info(dialog_id) ||
+         (dialog_type == DialogType::Channel && td->contacts_manager_->have_min_channel(dialog_id.get_channel_id())))) {
+      LOG(INFO) << "Force creation of " << dialog_id;
+      td->messages_manager_->force_create_dialog(dialog_id, source, true);
+    }
+    if (td->messages_manager_->have_dialog(dialog_id)) {
+      return td_api::make_object<td_api::messageSenderChat>(dialog_id.get());
+    }
+  }
+  LOG(ERROR) << "Can't return unknown " << dialog_id << " from " << source;
+  return nullptr;
+}
+
 vector<DialogId> get_message_sender_dialog_ids(Td *td,
                                                const vector<telegram_api::object_ptr<telegram_api::Peer>> &peers) {
   vector<DialogId> message_sender_dialog_ids;

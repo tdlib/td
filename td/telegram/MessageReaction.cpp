@@ -7,6 +7,7 @@
 #include "td/telegram/MessageReaction.h"
 
 #include "td/telegram/ContactsManager.h"
+#include "td/telegram/MessageSender.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/UpdatesManager.h"
@@ -124,10 +125,11 @@ class GetMessageReactionsListQuery final : public Td::ResultHandler {
         continue;
       }
 
-      reactions.push_back(td_api::make_object<td_api::chosenReaction>(
-          reaction->reaction_,
-          td_api::make_object<td_api::messageSenderUser>(
-              td_->contacts_manager_->get_user_id_object(user_id, "GetMessageReactionsListQuery"))));
+      auto message_sender = get_min_message_sender_object(td_, DialogId(user_id), "GetMessageReactionsListQuery");
+      if (message_sender != nullptr) {
+        reactions.push_back(
+            td_api::make_object<td_api::chosenReaction>(reaction->reaction_, std::move(message_sender)));
+      }
     }
 
     promise_.set_value(
@@ -158,28 +160,9 @@ td_api::object_ptr<td_api::messageReaction> MessageReaction::get_message_reactio
 
   vector<td_api::object_ptr<td_api::MessageSender>> recent_choosers;
   for (auto dialog_id : recent_chooser_dialog_ids_) {
-    auto dialog_type = dialog_id.get_type();
-    if (dialog_type == DialogType::User) {
-      auto user_id = dialog_id.get_user_id();
-      if (td->contacts_manager_->have_min_user(user_id)) {
-        recent_choosers.push_back(td_api::make_object<td_api::messageSenderUser>(
-            td->contacts_manager_->get_user_id_object(user_id, "get_message_reaction_object")));
-      } else {
-        LOG(ERROR) << "Skip unknown reacted " << user_id;
-      }
-    } else {
-      if (!td->messages_manager_->have_dialog(dialog_id) &&
-          (td->messages_manager_->have_dialog_info(dialog_id) ||
-           (dialog_type == DialogType::Channel &&
-            td->contacts_manager_->have_min_channel(dialog_id.get_channel_id())))) {
-        LOG(INFO) << "Force creation of " << dialog_id;
-        td->messages_manager_->force_create_dialog(dialog_id, "get_message_reaction_object", true);
-      }
-      if (td->messages_manager_->have_dialog(dialog_id)) {
-        recent_choosers.push_back(td_api::make_object<td_api::messageSenderChat>(dialog_id.get()));
-      } else {
-        LOG(ERROR) << "Skip unknown reacted " << dialog_id;
-      }
+    auto recent_chooser = get_min_message_sender_object(td, dialog_id, "get_message_reaction_object");
+    if (recent_chooser != nullptr) {
+      recent_choosers.push_back(std::move(recent_chooser));
     }
   }
   return td_api::make_object<td_api::messageReaction>(reaction_, choose_count_, is_chosen_, std::move(recent_choosers));

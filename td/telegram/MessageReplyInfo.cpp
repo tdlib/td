@@ -7,6 +7,7 @@
 #include "td/telegram/MessageReplyInfo.h"
 
 #include "td/telegram/ContactsManager.h"
+#include "td/telegram/MessageSender.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/ServerMessageId.h"
 #include "td/telegram/Td.h"
@@ -197,28 +198,9 @@ td_api::object_ptr<td_api::messageReplyInfo> MessageReplyInfo::get_message_reply
 
   vector<td_api::object_ptr<td_api::MessageSender>> recent_repliers;
   for (auto dialog_id : recent_replier_dialog_ids) {
-    auto dialog_type = dialog_id.get_type();
-    if (dialog_type == DialogType::User) {
-      auto user_id = dialog_id.get_user_id();
-      if (td->contacts_manager_->have_min_user(user_id)) {
-        recent_repliers.push_back(td_api::make_object<td_api::messageSenderUser>(
-            td->contacts_manager_->get_user_id_object(user_id, "get_message_reply_info_object")));
-      } else {
-        LOG(ERROR) << "Skip unknown replied " << user_id;
-      }
-    } else {
-      if (!td->messages_manager_->have_dialog(dialog_id) &&
-          (td->messages_manager_->have_dialog_info(dialog_id) ||
-           (dialog_type == DialogType::Channel &&
-            td->contacts_manager_->have_min_channel(dialog_id.get_channel_id())))) {
-        LOG(INFO) << "Force creation of " << dialog_id;
-        td->messages_manager_->force_create_dialog(dialog_id, "get_message_reply_info_object", true);
-      }
-      if (td->messages_manager_->have_dialog(dialog_id)) {
-        recent_repliers.push_back(td_api::make_object<td_api::messageSenderChat>(dialog_id.get()));
-      } else {
-        LOG(ERROR) << "Skip unknown replied " << dialog_id;
-      }
+    auto recent_replier = get_min_message_sender_object(td, dialog_id, "get_message_reply_info_object");
+    if (recent_replier != nullptr) {
+      recent_repliers.push_back(std::move(recent_replier));
     }
   }
   return td_api::make_object<td_api::messageReplyInfo>(reply_count, std::move(recent_repliers),
