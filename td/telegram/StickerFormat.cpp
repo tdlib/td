@@ -73,7 +73,7 @@ bool is_sticker_format_vector(StickerFormat sticker_format) {
   }
 }
 
-size_t get_max_sticker_file_size(StickerFormat sticker_format, bool for_thumbnail) {
+int64 get_max_sticker_file_size(StickerFormat sticker_format, bool for_thumbnail) {
   switch (sticker_format) {
     case StickerFormat::Unknown:
     case StickerFormat::Webp:
