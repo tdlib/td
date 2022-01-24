@@ -1309,6 +1309,8 @@ void StickersManager::init() {
   }
   send_closure(G()->td(), &Td::send_update, get_update_dice_emojis_object());
 
+  load_reactions();
+
   on_update_dice_success_values();
 
   on_update_emoji_sounds();
@@ -3149,6 +3151,39 @@ td_api::object_ptr<td_api::updateReactions> StickersManager::get_update_reaction
   return td_api::make_object<td_api::updateReactions>(std::move(reactions));
 }
 
+void StickersManager::save_reactions() {
+  LOG(INFO) << "Save available reactions";
+  G()->td_db()->get_binlog_pmc()->set("reactions", log_event_store(reactions_).as_slice().str());
+}
+
+void StickersManager::load_reactions() {
+  string reactions = G()->td_db()->get_binlog_pmc()->get("reactions");
+  if (reactions.empty()) {
+    return reload_reactions();
+  }
+
+  auto status = log_event_parse(reactions_, reactions);
+  if (status.is_error()) {
+    LOG(ERROR) << "Can't load available reactions: " << status;
+    return reload_reactions();
+  }
+
+  LOG(INFO) << "Successfully loaded " << reactions_.reactions_.size() << " available reactions";
+  send_closure(G()->td(), &Td::send_update, get_update_reactions_object());
+
+  update_active_reactions();
+}
+
+void StickersManager::update_active_reactions() {
+  vector<string> active_reactions;
+  for (auto &reaction : reactions_.reactions_) {
+    if (reaction.is_active_) {
+      active_reactions.push_back(reaction.reaction_);
+    }
+  }
+  td_->messages_manager_->set_active_reactions(std::move(active_reactions));
+}
+
 void StickersManager::on_get_available_reactions(
     tl_object_ptr<telegram_api::messages_AvailableReactions> &&available_reactions_ptr) {
   CHECK(reactions_.are_being_reloaded_);
@@ -3168,7 +3203,6 @@ void StickersManager::on_get_available_reactions(
   CHECK(constructor_id == telegram_api::messages_availableReactions::ID);
   auto available_reactions = move_tl_object_as<telegram_api::messages_availableReactions>(available_reactions_ptr);
   vector<Reaction> new_reactions;
-  vector<string> new_active_reactions;
   for (auto &available_reaction : available_reactions->reactions_) {
     Reaction reaction;
     reaction.is_active_ = !available_reaction->inactive_;
@@ -3195,16 +3229,15 @@ void StickersManager::on_get_available_reactions(
       continue;
     }
 
-    if (reaction.is_active_) {
-      new_active_reactions.push_back(reaction.reaction_);
-    }
     new_reactions.push_back(std::move(reaction));
   }
   reactions_.reactions_ = std::move(new_reactions);
   reactions_.hash_ = available_reactions->hash_;
   send_closure(G()->td(), &Td::send_update, get_update_reactions_object());
 
-  td_->messages_manager_->set_active_reactions(std::move(new_active_reactions));
+  save_reactions();
+
+  update_active_reactions();
 }
 
 void StickersManager::on_get_installed_sticker_sets(bool is_masks,
@@ -7544,9 +7577,8 @@ void StickersManager::after_get_difference() {
   if (td_->auth_manager_->is_bot()) {
     return;
   }
+  reload_reactions();
   if (td_->is_online()) {
-    reload_reactions();
-
     get_installed_sticker_sets(false, Auto());
     get_installed_sticker_sets(true, Auto());
     get_featured_sticker_sets(0, 1000, Auto());

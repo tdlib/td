@@ -451,12 +451,24 @@ class StickersManager final : public Actor {
     FileId effect_animation_;
     FileId around_animation_;
     FileId center_animation_;
+
+    template <class StorerT>
+    void store(StorerT &storer) const;
+
+    template <class ParserT>
+    void parse(ParserT &parser);
   };
 
   struct Reactions {
     int32 hash_ = 0;
     bool are_being_reloaded_ = false;
     vector<Reaction> reactions_;
+
+    template <class StorerT>
+    void store(StorerT &storer) const;
+
+    template <class ParserT>
+    void parse(ParserT &parser);
   };
 
   class StickerListLogEvent;
@@ -678,7 +690,13 @@ class StickersManager final : public Actor {
 
   void tear_down() final;
 
+  void save_reactions();
+
+  void load_reactions();
+
   void reload_reactions();
+
+  void update_active_reactions();
 
   td_api::object_ptr<td_api::updateReactions> get_update_reactions_object() const;
 
