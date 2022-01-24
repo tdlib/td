@@ -427,7 +427,7 @@ class CliClient final : public Actor {
   static char get_delimiter(Slice str) {
     std::unordered_set<char> chars;
     for (auto c : trim(str)) {
-      if (!is_alnum(c) && c != '-' && c != '.' && c != '/') {
+      if (!is_alnum(c) && c != '-' && c != '.' && c != '/' && static_cast<uint8_t>(c) <= 127) {
         chars.insert(c);
       }
     }
