@@ -1542,7 +1542,7 @@ PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll
       }
       auto max_voter_count = std::numeric_limits<int32>::max() / narrow_cast<int32>(poll->options.size()) - 2;
       if (poll_result->voters_ > max_voter_count) {
-        LOG(ERROR) << "Have too much " << poll_result->voters_ << " poll voters for an option in " << poll_id;
+        LOG(ERROR) << "Have too many " << poll_result->voters_ << " poll voters for an option in " << poll_id;
         poll_result->voters_ = max_voter_count;
       }
       if (poll_result->voters_ != option.voter_count) {

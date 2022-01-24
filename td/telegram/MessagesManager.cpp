@@ -24527,7 +24527,7 @@ Result<vector<MessageId>> MessagesManager::send_message_group(
     tl_object_ptr<td_api::messageSendOptions> &&options,
     vector<tl_object_ptr<td_api::InputMessageContent>> &&input_message_contents) {
   if (input_message_contents.size() > MAX_GROUPED_MESSAGES) {
-    return Status::Error(400, "Too much messages to send as an album");
+    return Status::Error(400, "Too many messages to send as an album");
   }
   if (input_message_contents.empty()) {
     return Status::Error(400, "There are no messages to send");
@@ -27039,7 +27039,7 @@ Result<MessagesManager::ForwardedMessages> MessagesManager::get_forwarded_messag
     vector<MessageCopyOptions> &&copy_options) {
   CHECK(copy_options.size() == message_ids.size());
   if (message_ids.size() > 100) {  // TODO replace with const from config or implement mass-forward
-    return Status::Error(400, "Too much messages to forward");
+    return Status::Error(400, "Too many messages to forward");
   }
   if (message_ids.empty()) {
     return Status::Error(400, "There are no messages to forward");

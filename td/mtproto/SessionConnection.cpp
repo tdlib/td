@@ -935,7 +935,7 @@ void SessionConnection::flush_packet() {
       v.clear();
       return result;
     }
-    LOG(WARNING) << "Too much message identifiers in container " << name << ": " << v.size() << " instead of " << size;
+    LOG(WARNING) << "Too many message identifiers in container " << name << ": " << v.size() << " instead of " << size;
     vector<int64> result(v.end() - size, v.end());
     v.resize(v.size() - size);
     return result;

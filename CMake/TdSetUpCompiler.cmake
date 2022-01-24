@@ -134,7 +134,7 @@ function(td_set_up_compiler)
   endif()
 
   if (GCC AND NOT (CMAKE_CXX_COMPILER_VERSION VERSION_LESS 7.0))
-    add_cxx_compiler_flag("-Wno-maybe-uninitialized")  # too much false positives
+    add_cxx_compiler_flag("-Wno-maybe-uninitialized")  # too many false positives
   endif()
   if (WIN32 AND GCC AND NOT (CMAKE_CXX_COMPILER_VERSION VERSION_LESS 8.0))
     # warns about casts of function pointers returned by GetProcAddress

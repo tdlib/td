@@ -200,7 +200,7 @@ Result<size_t> HttpReader::read_next(HttpQuery *query, bool can_be_slow) {
       case State::ReadArgs: {
         auto size = content_->size();
         if (size > MAX_TOTAL_PARAMETERS_LENGTH - total_parameters_length_) {
-          return Status::Error(413, "Request Entity Too Large: too much parameters");
+          return Status::Error(413, "Request Entity Too Large: too many parameters");
         }
 
         if (flow_sink_.is_ready()) {
@@ -406,7 +406,7 @@ Result<bool> HttpReader::parse_multipart_form_data(bool can_be_slow) {
           if (has_file_name_) {
             // file
             if (query_->files_.size() == max_files_) {
-              return Status::Error(413, "Request Entity Too Large: too much files attached");
+              return Status::Error(413, "Request Entity Too Large: too many files attached");
             }
             auto file = open_temp_file(file_name_);
             if (file.is_error()) {
@@ -432,7 +432,7 @@ Result<bool> HttpReader::parse_multipart_form_data(bool can_be_slow) {
       case FormDataParseState::ReadPartValue:
         if (find_boundary(content_->clone(), boundary_, form_data_read_length_)) {
           if (total_parameters_length_ + form_data_read_length_ > MAX_TOTAL_PARAMETERS_LENGTH) {
-            return Status::Error(413, "Request Entity Too Large: too much parameters in form data");
+            return Status::Error(413, "Request Entity Too Large: too many parameters in form data");
           }
 
           query_->container_.emplace_back(content_->cut_head(form_data_read_length_).move_as_buffer_slice());
@@ -460,7 +460,7 @@ Result<bool> HttpReader::parse_multipart_form_data(bool can_be_slow) {
         CHECK(content_->size() < form_data_read_length_ + boundary_.size());
 
         if (total_parameters_length_ + form_data_read_length_ > MAX_TOTAL_PARAMETERS_LENGTH) {
-          return Status::Error(413, "Request Entity Too Large: too much parameters in form data");
+          return Status::Error(413, "Request Entity Too Large: too many parameters in form data");
         }
         return false;
       case FormDataParseState::ReadFile: {
@@ -594,7 +594,7 @@ Status HttpReader::parse_url(MutableSlice url) {
 Status HttpReader::parse_parameters(MutableSlice parameters) {
   total_parameters_length_ += parameters.size();
   if (total_parameters_length_ > MAX_TOTAL_PARAMETERS_LENGTH) {
-    return Status::Error(413, "Request Entity Too Large: too much parameters");
+    return Status::Error(413, "Request Entity Too Large: too many parameters");
   }
   LOG(DEBUG) << "Parse parameters: \"" << parameters << "\"";
 
@@ -620,7 +620,7 @@ Status HttpReader::parse_json_parameters(MutableSlice parameters) {
 
   total_parameters_length_ += parameters.size();
   if (total_parameters_length_ > MAX_TOTAL_PARAMETERS_LENGTH) {
-    return Status::Error(413, "Request Entity Too Large: too much parameters");
+    return Status::Error(413, "Request Entity Too Large: too many parameters");
   }
   LOG(DEBUG) << "Parse JSON parameters: \"" << parameters << "\"";
 
