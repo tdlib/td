@@ -125,6 +125,11 @@ Document DocumentsManager::on_get_document(RemoteDocument remote_document, Dialo
       if ((video->flags_ & telegram_api::documentAttributeVideo::ROUND_MESSAGE_MASK) != 0) {
         // video note without sound
         animated = nullptr;
+      } else if (sticker != nullptr) {
+        // sticker
+        type_attributes--;
+        animated = nullptr;
+        video = nullptr;
       } else {
         // video animation
         video = nullptr;
