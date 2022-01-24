@@ -196,7 +196,7 @@ Result<vector<char *>> OptionParser::run_impl(int argc, char *argv[], int expect
       return Status::Error("Unexpected non-option parameters specified");
     }
     if (non_options.size() > static_cast<size_t>(expected_non_option_count)) {
-      return Status::Error("Too much non-option parameters specified");
+      return Status::Error("Too many non-option parameters specified");
     } else {
       return Status::Error("Too few non-option parameters specified");
     }

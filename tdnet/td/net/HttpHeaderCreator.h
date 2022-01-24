@@ -57,7 +57,7 @@ class HttpHeaderCreator {
       sb_ << content;
     }
     if (sb_.is_error()) {
-      return Status::Error("Too much headers");
+      return Status::Error("Too many headers");
     }
     return sb_.as_cslice();
   }

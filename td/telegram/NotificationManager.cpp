@@ -3255,7 +3255,7 @@ Status NotificationManager::process_push_notification_payload(string payload, bo
     loc_args.clear();
   }
   if (loc_args.size() > 1) {
-    return Status::Error("Receive too much arguments");
+    return Status::Error("Receive too many arguments");
   }
 
   if (loc_args.size() == 1) {
