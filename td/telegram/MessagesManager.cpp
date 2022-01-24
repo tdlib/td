@@ -1440,6 +1440,7 @@ class SetChatAvailableReactionsQuery final : public Td::ResultHandler {
       }
     } else {
       td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "SetChatAvailableReactionsQuery");
+      td_->messages_manager_->reload_dialog_info_full(dialog_id_, "SetChatAvailableReactionsQuery");
     }
     promise_.set_error(std::move(status));
   }
@@ -32618,17 +32619,13 @@ void MessagesManager::set_dialog_title(DialogId dialog_id, const string &title, 
 
 void MessagesManager::set_dialog_available_reactions(DialogId dialog_id, vector<string> available_reactions,
                                                      Promise<Unit> &&promise) {
-  const Dialog *d = get_dialog_force(dialog_id, "set_dialog_available_reactions");
+  Dialog *d = get_dialog_force(dialog_id, "set_dialog_available_reactions");
   if (d == nullptr) {
     return promise.set_error(Status::Error(400, "Chat not found"));
   }
 
   if (get_active_reactions(available_reactions) != available_reactions) {
     return promise.set_error(Status::Error(400, "Invalid reactions specified"));
-  }
-  std::unordered_set<string> unique_reactions{available_reactions.begin(), available_reactions.end()};
-  if (unique_reactions.size() != available_reactions.size()) {
-    return promise.set_error(Status::Error(400, "Duplicate reactions specified"));
   }
 
   switch (dialog_id.get_type()) {
@@ -32657,7 +32654,8 @@ void MessagesManager::set_dialog_available_reactions(DialogId dialog_id, vector<
       UNREACHABLE();
   }
 
-  // TODO this can be wrong if there were previous requests to change available reactions
+  set_dialog_available_reactions(d, vector<string>(available_reactions));
+
   if (d->available_reactions == available_reactions) {
     return promise.set_value(Unit());
   }
