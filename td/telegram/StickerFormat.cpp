@@ -23,12 +23,16 @@ StickerFormat get_sticker_format(Slice mime_type) {
   return StickerFormat::Unknown;
 }
 
-td_api::object_ptr<td_api::StickerFormat> get_sticker_format_object(StickerFormat sticker_format) {
+td_api::object_ptr<td_api::StickerFormat> get_sticker_format_object(
+    StickerFormat sticker_format, bool is_masks, td_api::object_ptr<td_api::maskPosition> mask_position) {
   switch (sticker_format) {
     case StickerFormat::Unknown:
       LOG(ERROR) << "Have a sticker of unknown format";
       return td_api::make_object<td_api::stickerFormatWebp>();
     case StickerFormat::Webp:
+      if (is_masks) {
+        return td_api::make_object<td_api::stickerFormatWebpMask>(std::move(mask_position));
+      }
       return td_api::make_object<td_api::stickerFormatWebp>();
     case StickerFormat::Tgs:
       return td_api::make_object<td_api::stickerFormatTgs>();

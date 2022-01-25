@@ -976,21 +976,6 @@ tl_object_ptr<td_api::thumbnail> copy(const td_api::thumbnail &obj) {
 }
 
 template <>
-tl_object_ptr<td_api::StickerFormat> copy(const td_api::StickerFormat &obj) {
-  switch (obj.get_id()) {
-    case td_api::stickerFormatWebp::ID:
-      return td_api::make_object<td_api::stickerFormatWebp>();
-    case td_api::stickerFormatTgs::ID:
-      return td_api::make_object<td_api::stickerFormatTgs>();
-    case td_api::stickerFormatWebm::ID:
-      return td_api::make_object<td_api::stickerFormatWebm>();
-    default:
-      UNREACHABLE();
-  }
-  return nullptr;
-}
-
-template <>
 tl_object_ptr<td_api::MaskPoint> copy(const td_api::MaskPoint &obj) {
   switch (obj.get_id()) {
     case td_api::maskPointForehead::ID:
@@ -1010,6 +995,25 @@ tl_object_ptr<td_api::MaskPoint> copy(const td_api::MaskPoint &obj) {
 template <>
 tl_object_ptr<td_api::maskPosition> copy(const td_api::maskPosition &obj) {
   return td_api::make_object<td_api::maskPosition>(copy(obj.point_), obj.x_shift_, obj.y_shift_, obj.scale_);
+}
+
+template <>
+tl_object_ptr<td_api::StickerFormat> copy(const td_api::StickerFormat &obj) {
+  switch (obj.get_id()) {
+    case td_api::stickerFormatWebp::ID:
+      return td_api::make_object<td_api::stickerFormatWebp>();
+    case td_api::stickerFormatTgs::ID:
+      return td_api::make_object<td_api::stickerFormatTgs>();
+    case td_api::stickerFormatWebm::ID:
+      return td_api::make_object<td_api::stickerFormatWebm>();
+    case td_api::stickerFormatWebpMask::ID: {
+      auto &mask_position = static_cast<const td_api::stickerFormatWebpMask &>(obj).mask_position_;
+      return td_api::make_object<td_api::stickerFormatWebpMask>(copy(mask_position));
+    }
+    default:
+      UNREACHABLE();
+  }
+  return nullptr;
 }
 
 template <>
@@ -1078,9 +1082,9 @@ tl_object_ptr<td_api::photo> copy(const td_api::photo &obj) {
 
 template <>
 tl_object_ptr<td_api::sticker> copy(const td_api::sticker &obj) {
-  return td_api::make_object<td_api::sticker>(
-      obj.set_id_, obj.width_, obj.height_, obj.emoji_, copy(obj.format_), obj.is_mask_, copy(obj.mask_position_),
-      transform(obj.outline_, copy_closed_vector_path), copy(obj.thumbnail_), copy(obj.sticker_));
+  return td_api::make_object<td_api::sticker>(obj.set_id_, obj.width_, obj.height_, obj.emoji_, copy(obj.format_),
+                                              transform(obj.outline_, copy_closed_vector_path), copy(obj.thumbnail_),
+                                              copy(obj.sticker_));
 }
 
 template <>

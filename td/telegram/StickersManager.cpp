@@ -1851,8 +1851,9 @@ tl_object_ptr<td_api::sticker> StickersManager::get_sticker_object(FileId file_i
     height = static_cast<int32>(height * zoom + 0.5);
   }
   return make_tl_object<td_api::sticker>(
-      sticker->set_id.get(), width, height, sticker->alt, get_sticker_format_object(sticker->format), sticker->is_mask,
-      std::move(mask_position), get_sticker_minithumbnail(sticker->minithumbnail, sticker->set_id, document_id, zoom),
+      sticker->set_id.get(), width, height, sticker->alt,
+      get_sticker_format_object(sticker->format, sticker->is_mask, std::move(mask_position)),
+      get_sticker_minithumbnail(sticker->minithumbnail, sticker->set_id, document_id, zoom),
       std::move(thumbnail_object), td_->file_manager_->get_file_object(file_id));
 }
 
@@ -1975,7 +1976,7 @@ tl_object_ptr<td_api::stickerSet> StickersManager::get_sticker_set_object(Sticke
       sticker_set->id.get(), sticker_set->title, sticker_set->short_name, std::move(thumbnail),
       get_sticker_minithumbnail(sticker_set->minithumbnail, sticker_set->id, -2, 1.0),
       sticker_set->is_installed && !sticker_set->is_archived, sticker_set->is_archived, sticker_set->is_official,
-      get_sticker_format_object(sticker_set->sticker_format), sticker_set->is_masks, sticker_set->is_viewed,
+      get_sticker_format_object(sticker_set->sticker_format, sticker_set->is_masks, nullptr), sticker_set->is_viewed,
       std::move(stickers), std::move(emojis));
 }
 
@@ -2022,7 +2023,7 @@ tl_object_ptr<td_api::stickerSetInfo> StickersManager::get_sticker_set_info_obje
       sticker_set->id.get(), sticker_set->title, sticker_set->short_name, std::move(thumbnail),
       get_sticker_minithumbnail(sticker_set->minithumbnail, sticker_set->id, -3, 1.0),
       sticker_set->is_installed && !sticker_set->is_archived, sticker_set->is_archived, sticker_set->is_official,
-      get_sticker_format_object(sticker_set->sticker_format), sticker_set->is_masks, sticker_set->is_viewed,
+      get_sticker_format_object(sticker_set->sticker_format, sticker_set->is_masks, nullptr), sticker_set->is_viewed,
       sticker_set->was_loaded ? narrow_cast<int32>(sticker_set->sticker_ids.size()) : sticker_set->sticker_count,
       std::move(stickers));
 }

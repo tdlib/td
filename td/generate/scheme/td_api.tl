@@ -219,18 +219,6 @@ thumbnailFormatWebp = ThumbnailFormat;
 thumbnail format:ThumbnailFormat width:int32 height:int32 file:file = Thumbnail;
 
 
-//@class StickerFormat @description Describes format of a sticker
-
-//@description The sticker is in TGS format
-stickerFormatTgs = StickerFormat;
-
-//@description The sticker is in WEBM format
-stickerFormatWebm = StickerFormat;
-
-//@description The sticker is in WEBP format
-stickerFormatWebp = StickerFormat;
-
-
 //@class MaskPoint @description Part of the face, relative to which a mask is placed
 
 //@description The mask is placed relatively to the forehead
@@ -250,6 +238,21 @@ maskPointChin = MaskPoint;
 //@y_shift Shift by Y-axis measured in heights of the mask scaled to the face size, from top to bottom. (For example, 1.0 will place the mask just below the default mask position)
 //@scale Mask scaling coefficient. (For example, 2.0 means a doubled size)
 maskPosition point:MaskPoint x_shift:double y_shift:double scale:double = MaskPosition;
+
+
+//@class StickerFormat @description Describes format of a sticker
+
+//@description The sticker is in TGS format
+stickerFormatTgs = StickerFormat;
+
+//@description The sticker is in WEBM format
+stickerFormatWebm = StickerFormat;
+
+//@description The sticker is in WEBP format
+stickerFormatWebp = StickerFormat;
+
+//@description The sticker is a mask in WEBP format to be placed on photos or videos @mask_position Position where the mask is placed; may be null
+stickerFormatWebpMask mask_position:maskPosition = StickerFormat;
 
 
 //@description Represents a closed vector path. The path begins at the end point of the last command @commands List of vector path commands
@@ -292,9 +295,9 @@ document file_name:string mime_type:string minithumbnail:minithumbnail thumbnail
 photo has_stickers:Bool minithumbnail:minithumbnail sizes:vector<photoSize> = Photo;
 
 //@description Describes a sticker @set_id The identifier of the sticker set to which the sticker belongs; 0 if none @width Sticker width; as defined by the sender @height Sticker height; as defined by the sender
-//@emoji Emoji corresponding to the sticker @format Sticker format @is_mask True, if the sticker is a mask @mask_position Position where the mask is placed; may be null
-//@outline Sticker's outline represented as a list of closed vector paths; may be empty. The coordinate system origin is in the upper-left corner @thumbnail Sticker thumbnail in WEBP or JPEG format; may be null @sticker File containing the sticker
-sticker set_id:int64 width:int32 height:int32 emoji:string format:StickerFormat is_mask:Bool mask_position:maskPosition outline:vector<closedVectorPath> thumbnail:thumbnail sticker:file = Sticker;
+//@emoji Emoji corresponding to the sticker @format Sticker format @outline Sticker's outline represented as a list of closed vector paths; may be empty. The coordinate system origin is in the upper-left corner
+//@thumbnail Sticker thumbnail in WEBP or JPEG format; may be null @sticker File containing the sticker
+sticker set_id:int64 width:int32 height:int32 emoji:string format:StickerFormat outline:vector<closedVectorPath> thumbnail:thumbnail sticker:file = Sticker;
 
 //@description Describes a video file @duration Duration of the video, in seconds; as defined by the sender @width Video width; as defined by the sender @height Video height; as defined by the sender
 //@file_name Original name of the file; as defined by the sender @mime_type MIME type of the file; as defined by the sender
@@ -2191,17 +2194,17 @@ emojis emojis:vector<string> = Emojis;
 //@id Identifier of the sticker set @title Title of the sticker set @name Name of the sticker set @thumbnail Sticker set thumbnail in WEBP or TGS format with width and height 100; may be null. The file can be downloaded only before the thumbnail is changed
 //@thumbnail_outline Sticker set thumbnail's outline represented as a list of closed vector paths; may be empty. The coordinate system origin is in the upper-left corner
 //@is_installed True, if the sticker set has been installed by the current user @is_archived True, if the sticker set has been archived. A sticker set can't be installed and archived simultaneously
-//@is_official True, if the sticker set is official @sticker_format Format of the stickers in the set @is_masks True, if the stickers in the set are masks @is_viewed True for already viewed trending sticker sets
+//@is_official True, if the sticker set is official @sticker_format Format of the stickers in the set @is_viewed True for already viewed trending sticker sets
 //@stickers List of stickers in this set @emojis A list of emoji corresponding to the stickers in the same order. The list is only for informational purposes, because a sticker is always sent with a fixed emoji from the corresponding Sticker object
-stickerSet id:int64 title:string name:string thumbnail:thumbnail thumbnail_outline:vector<closedVectorPath> is_installed:Bool is_archived:Bool is_official:Bool sticker_format:StickerFormat is_masks:Bool is_viewed:Bool stickers:vector<sticker> emojis:vector<emojis> = StickerSet;
+stickerSet id:int64 title:string name:string thumbnail:thumbnail thumbnail_outline:vector<closedVectorPath> is_installed:Bool is_archived:Bool is_official:Bool sticker_format:StickerFormat is_viewed:Bool stickers:vector<sticker> emojis:vector<emojis> = StickerSet;
 
 //@description Represents short information about a sticker set
 //@id Identifier of the sticker set @title Title of the sticker set @name Name of the sticker set @thumbnail Sticker set thumbnail in WEBP or TGS format with width and height 100; may be null
 //@thumbnail_outline Sticker set thumbnail's outline represented as a list of closed vector paths; may be empty. The coordinate system origin is in the upper-left corner
 //@is_installed True, if the sticker set has been installed by the current user @is_archived True, if the sticker set has been archived. A sticker set can't be installed and archived simultaneously
-//@is_official True, if the sticker set is official @sticker_format Format of the stickers in the set @is_masks True, if the stickers in the set are masks @is_viewed True for already viewed trending sticker sets
+//@is_official True, if the sticker set is official @sticker_format Format of the stickers in the set @is_viewed True for already viewed trending sticker sets
 //@size Total number of stickers in the set @covers Up to the first 5 stickers from the set, depending on the context. If the application needs more stickers the full sticker set needs to be requested
-stickerSetInfo id:int64 title:string name:string thumbnail:thumbnail thumbnail_outline:vector<closedVectorPath> is_installed:Bool is_archived:Bool is_official:Bool sticker_format:StickerFormat is_masks:Bool is_viewed:Bool size:int32 covers:vector<sticker> = StickerSetInfo;
+stickerSetInfo id:int64 title:string name:string thumbnail:thumbnail thumbnail_outline:vector<closedVectorPath> is_installed:Bool is_archived:Bool is_official:Bool sticker_format:StickerFormat is_viewed:Bool size:int32 covers:vector<sticker> = StickerSetInfo;
 
 //@description Represents a list of sticker sets @total_count Approximate total number of sticker sets found @sets List of sticker sets
 stickerSets total_count:int32 sets:vector<stickerSetInfo> = StickerSets;
