@@ -381,6 +381,10 @@ Document DocumentsManager::on_get_document(RemoteDocument remote_document, Dialo
     sticker_format = StickerFormat::Webm;
     default_extension = Slice("webm");
   }
+  if (file_type == FileType::Encrypted && document_type == Document::Type::Sticker &&
+      size > get_max_sticker_file_size(sticker_format, false)) {
+    document_type = Document::Type::General;
+  }
 
   LOG(DEBUG) << "Receive document with ID = " << id << " of type " << document_type;
   if (!is_web && !DcId::is_valid(dc_id)) {
