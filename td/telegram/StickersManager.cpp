@@ -5553,33 +5553,29 @@ void StickersManager::reorder_installed_sticker_sets(bool is_masks, const vector
   promise.set_value(Unit());
 }
 
-string &StickersManager::get_input_sticker_emojis(td_api::InputSticker *sticker) {
-  CHECK(sticker != nullptr);
-  auto constructor_id = sticker->get_id();
-  if (constructor_id == td_api::inputStickerStatic::ID) {
-    return static_cast<td_api::inputStickerStatic *>(sticker)->emojis_;
-  }
-  CHECK(constructor_id == td_api::inputStickerAnimated::ID);
-  return static_cast<td_api::inputStickerAnimated *>(sticker)->emojis_;
-}
-
 Result<std::tuple<FileId, bool, bool, StickerFormat>> StickersManager::prepare_input_sticker(
-    td_api::InputSticker *sticker) {
+    td_api::inputSticker *sticker) {
   if (sticker == nullptr) {
     return Status::Error(400, "Input sticker must be non-empty");
   }
 
-  if (!clean_input_string(get_input_sticker_emojis(sticker))) {
+  if (!clean_input_string(sticker->emojis_)) {
     return Status::Error(400, "Emojis must be encoded in UTF-8");
   }
 
-  switch (sticker->get_id()) {
-    case td_api::inputStickerStatic::ID:
-      return prepare_input_file(static_cast<td_api::inputStickerStatic *>(sticker)->sticker_, StickerFormat::Webp,
-                                false);
-    case td_api::inputStickerAnimated::ID:
-      return prepare_input_file(static_cast<td_api::inputStickerAnimated *>(sticker)->sticker_, StickerFormat::Tgs,
-                                false);
+  if (sticker->format_ == nullptr) {
+    return Status::Error(400, "Sticker format must be non-empty");
+  }
+
+  switch (sticker->format_->get_id()) {
+    case td_api::stickerFormatWebp::ID:
+      return prepare_input_file(sticker->sticker_, StickerFormat::Webp, false);
+    case td_api::stickerFormatTgs::ID:
+      return prepare_input_file(sticker->sticker_, StickerFormat::Tgs, false);
+    case td_api::stickerFormatWebm::ID:
+      return prepare_input_file(sticker->sticker_, StickerFormat::Webm, false);
+    case td_api::stickerFormatWebpMask::ID:
+      return prepare_input_file(sticker->sticker_, StickerFormat::Webp, false);
     default:
       UNREACHABLE();
       return {};
@@ -5588,7 +5584,8 @@ Result<std::tuple<FileId, bool, bool, StickerFormat>> StickersManager::prepare_i
 
 Result<std::tuple<FileId, bool, bool, StickerFormat>> StickersManager::prepare_input_file(
     const tl_object_ptr<td_api::InputFile> &input_file, StickerFormat format, bool for_thumbnail) {
-  auto file_type = format == StickerFormat::Tgs ? FileType::Sticker : FileType::Document;
+  auto file_type =
+      format == StickerFormat::Tgs || format == StickerFormat::Tgs ? FileType::Sticker : FileType::Document;
   auto r_file_id = td_->file_manager_->get_input_file_id(file_type, input_file, DialogId(), for_thumbnail, false);
   if (r_file_id.is_error()) {
     return Status::Error(400, r_file_id.error().message());
@@ -5632,7 +5629,7 @@ Result<std::tuple<FileId, bool, bool, StickerFormat>> StickersManager::prepare_i
   return std::make_tuple(file_id, is_url, is_local, format);
 }
 
-FileId StickersManager::upload_sticker_file(UserId user_id, tl_object_ptr<td_api::InputSticker> &&sticker,
+FileId StickersManager::upload_sticker_file(UserId user_id, tl_object_ptr<td_api::inputSticker> &&sticker,
                                             Promise<Unit> &&promise) {
   bool is_bot = td_->auth_manager_->is_bot();
   if (!is_bot) {
@@ -5665,7 +5662,7 @@ FileId StickersManager::upload_sticker_file(UserId user_id, tl_object_ptr<td_api
   return file_id;
 }
 
-tl_object_ptr<telegram_api::inputStickerSetItem> StickersManager::get_input_sticker(td_api::InputSticker *sticker,
+tl_object_ptr<telegram_api::inputStickerSetItem> StickersManager::get_input_sticker(const td_api::inputSticker *sticker,
                                                                                     FileId file_id) const {
   CHECK(sticker != nullptr);
   FileView file_view = td_->file_manager_->get_file_view(file_id);
@@ -5673,11 +5670,12 @@ tl_object_ptr<telegram_api::inputStickerSetItem> StickersManager::get_input_stic
   auto input_document = file_view.main_remote_location().as_input_document();
 
   tl_object_ptr<telegram_api::maskCoords> mask_coords;
-  if (sticker->get_id() == td_api::inputStickerStatic::ID) {
-    auto mask_position = static_cast<td_api::inputStickerStatic *>(sticker)->mask_position_.get();
+  if (sticker->format_->get_id() == td_api::stickerFormatWebpMask::ID) {
+    auto sticker_format = static_cast<const td_api::stickerFormatWebpMask *>(sticker->format_.get());
+    auto mask_position = sticker_format->mask_position_.get();
     if (mask_position != nullptr && mask_position->point_ != nullptr) {
-      auto point = [mask_point = std::move(mask_position->point_)] {
-        switch (mask_point->get_id()) {
+      auto point = [mask_point_id = mask_position->point_->get_id()] {
+        switch (mask_point_id) {
           case td_api::maskPointForehead::ID:
             return 0;
           case td_api::maskPointEyes::ID:
@@ -5701,8 +5699,8 @@ tl_object_ptr<telegram_api::inputStickerSetItem> StickersManager::get_input_stic
     flags |= telegram_api::inputStickerSetItem::MASK_COORDS_MASK;
   }
 
-  return make_tl_object<telegram_api::inputStickerSetItem>(flags, std::move(input_document),
-                                                           get_input_sticker_emojis(sticker), std::move(mask_coords));
+  return make_tl_object<telegram_api::inputStickerSetItem>(flags, std::move(input_document), sticker->emojis_,
+                                                           std::move(mask_coords));
 }
 
 void StickersManager::get_suggested_sticker_set_name(string title, Promise<string> &&promise) {
@@ -5752,8 +5750,8 @@ td_api::object_ptr<td_api::CheckStickerSetNameResult> StickersManager::get_check
   }
 }
 
-void StickersManager::create_new_sticker_set(UserId user_id, string &title, string &short_name, bool is_masks,
-                                             vector<tl_object_ptr<td_api::InputSticker>> &&stickers, string software,
+void StickersManager::create_new_sticker_set(UserId user_id, string &title, string &short_name,
+                                             vector<tl_object_ptr<td_api::inputSticker>> &&stickers, string software,
                                              Promise<Unit> &&promise) {
   bool is_bot = td_->auth_manager_->is_bot();
   if (!is_bot) {
@@ -5794,7 +5792,7 @@ void StickersManager::create_new_sticker_set(UserId user_id, string &title, stri
     if (is_sticker_format_animated(sticker_format) && is_url) {
       return promise.set_error(Status::Error(400, "Animated stickers can't be uploaded by URL"));
     }
-    sticker_formats.insert(static_cast<int32>(sticker_format));
+    sticker_formats.insert(sticker->format_->get_id());
 
     file_ids.push_back(file_id);
     if (is_url) {
@@ -5811,7 +5809,6 @@ void StickersManager::create_new_sticker_set(UserId user_id, string &title, stri
   pending_new_sticker_set->user_id = user_id;
   pending_new_sticker_set->title = std::move(title);
   pending_new_sticker_set->short_name = short_name;
-  pending_new_sticker_set->is_masks = is_masks;
   pending_new_sticker_set->sticker_format = sticker_format;
   pending_new_sticker_set->file_ids = std::move(file_ids);
   pending_new_sticker_set->stickers = std::move(stickers);
@@ -5979,7 +5976,7 @@ void StickersManager::on_new_stickers_uploaded(int64 random_id, Result<Unit> res
   auto &promise = pending_new_sticker_set->promise;
   TRY_RESULT_PROMISE(promise, input_user, td_->contacts_manager_->get_input_user(pending_new_sticker_set->user_id));
 
-  bool is_masks = pending_new_sticker_set->is_masks;
+  bool is_masks = pending_new_sticker_set->stickers[0]->format_->get_id() == td_api::stickerFormatWebpMask::ID;
   StickerFormat sticker_format = pending_new_sticker_set->sticker_format;
 
   auto sticker_count = pending_new_sticker_set->stickers.size();
@@ -5996,7 +5993,7 @@ void StickersManager::on_new_stickers_uploaded(int64 random_id, Result<Unit> res
 }
 
 void StickersManager::add_sticker_to_set(UserId user_id, string &short_name,
-                                         tl_object_ptr<td_api::InputSticker> &&sticker, Promise<Unit> &&promise) {
+                                         tl_object_ptr<td_api::inputSticker> &&sticker, Promise<Unit> &&promise) {
   TRY_RESULT_PROMISE(promise, input_user, td_->contacts_manager_->get_input_user(user_id));
 
   short_name = strip_empty_characters(short_name, MAX_STICKER_SET_SHORT_NAME_LENGTH);

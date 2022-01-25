@@ -527,6 +527,21 @@ class CliClient final : public Actor {
     return to_integer<int32>(trim(str));
   }
 
+  static td_api::object_ptr<td_api::StickerFormat> as_sticker_format(string sticker_format) {
+    if (!sticker_format.empty() && sticker_format.back() == 't') {
+      return td_api::make_object<td_api::stickerFormatTgs>();
+    }
+    if (!sticker_format.empty() && sticker_format.back() == 'w') {
+      return td_api::make_object<td_api::stickerFormatWebm>();
+    }
+    if (!sticker_format.empty() && sticker_format.back() == 'm') {
+      auto position = td_api::make_object<td_api::maskPosition>(td_api::make_object<td_api::maskPointEyes>(),
+                                                                Random::fast(-5, 5), Random::fast(-5, 5), 1.0);
+      return td_api::make_object<td_api::stickerFormatWebpMask>(Random::fast_bool() ? nullptr : std::move(position));
+    }
+    return td_api::make_object<td_api::stickerFormatWebp>();
+  }
+
   static int32 as_limit(Slice str, int32 default_limit = 10) {
     if (str.empty()) {
       return default_limit;
@@ -2558,29 +2573,20 @@ class CliClient final : public Actor {
     } else if (op == "cssn") {
       const string &name = args;
       send_request(td_api::make_object<td_api::checkStickerSetName>(name));
-    } else if (op == "usf" || op == "usfa") {
-      td_api::object_ptr<td_api::InputSticker> input_sticker;
-      if (op == "usfa") {
-        input_sticker = td_api::make_object<td_api::inputStickerAnimated>(as_input_file(args), "😀");
-      } else {
-        input_sticker = td_api::make_object<td_api::inputStickerStatic>(as_input_file(args), "😀", nullptr);
-      }
-      send_request(td_api::make_object<td_api::uploadStickerFile>(-1, std::move(input_sticker)));
-    } else if (op == "cnss" || op == "cnssa") {
+    } else if (op == "usf" || op == "usft" || op == "usfw" || op == "usfm") {
+      send_request(td_api::make_object<td_api::uploadStickerFile>(
+          -1, td_api::make_object<td_api::inputSticker>(as_input_file(args), "😀", as_sticker_format(op))));
+    } else if (op == "cnss" || op == "cnsst" || op == "cnssw" || op == "cnssm") {
       string title;
       string name;
       string stickers;
       get_args(args, title, name, stickers);
       auto input_stickers =
-          transform(autosplit(stickers), [op](Slice sticker) -> td_api::object_ptr<td_api::InputSticker> {
-            if (op == "cnssa") {
-              return td_api::make_object<td_api::inputStickerAnimated>(as_input_file(sticker), "😀");
-            } else {
-              return td_api::make_object<td_api::inputStickerStatic>(as_input_file(sticker), "😀", nullptr);
-            }
+          transform(autosplit(stickers), [op](Slice sticker) -> td_api::object_ptr<td_api::inputSticker> {
+            return td_api::make_object<td_api::inputSticker>(as_input_file(sticker), "😀", as_sticker_format(op));
           });
-      send_request(td_api::make_object<td_api::createNewStickerSet>(my_id_, title, name, false,
-                                                                    std::move(input_stickers), "tg_cli"));
+      send_request(
+          td_api::make_object<td_api::createNewStickerSet>(my_id_, title, name, std::move(input_stickers), "tg_cli"));
     } else if (op == "sss") {
       send_request(td_api::make_object<td_api::searchStickerSet>(args));
     } else if (op == "siss") {
