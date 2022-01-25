@@ -262,14 +262,8 @@ Document DocumentsManager::on_get_document(RemoteDocument remote_document, Dialo
     mime_type = std::move(document->mime_type_);
     file_reference = document->file_reference_.as_slice().str();
 
-    if (document_type == Document::Type::Sticker) {
-      if (StickersManager::has_webp_thumbnail(document->thumbs_)) {
-        thumbnail_format = PhotoFormat::Webp;
-      }
-      if (mime_type == "video/webm") {
-        sticker_format = StickerFormat::Webm;
-        default_extension = Slice("webm");
-      }
+    if (document_type == Document::Type::Sticker && StickersManager::has_webp_thumbnail(document->thumbs_)) {
+      thumbnail_format = PhotoFormat::Webp;
     }
     fix_tgs_sticker_type();
 
@@ -382,6 +376,10 @@ Document DocumentsManager::on_get_document(RemoteDocument remote_document, Dialo
 
     // do not allow web TGS stickers
     // fix_tgs_sticker_type();
+  }
+  if (document_type == Document::Type::Sticker && mime_type == "video/webm") {
+    sticker_format = StickerFormat::Webm;
+    default_extension = Slice("webm");
   }
 
   LOG(DEBUG) << "Receive document with ID = " << id << " of type " << document_type;
