@@ -111,7 +111,7 @@ bool OptionManager::is_internal_option(Slice name) {
     case 'b':
       return name == "base_language_pack_version";
     case 'c':
-      return name == "call_ring_timeout_ms" || name == "call_receive_timeout_ms" ||
+      return name == "call_receive_timeout_ms" || name == "call_ring_timeout_ms" ||
              name == "channels_read_media_period" || name == "chat_read_mark_expire_period" ||
              name == "chat_read_mark_size_threshold";
     case 'd':
@@ -128,10 +128,10 @@ bool OptionManager::is_internal_option(Slice name) {
     case 'n':
       return name == "notification_cloud_delay_ms" || name == "notification_default_delay_ms";
     case 'o':
-      return name == "online_update_period_ms" || name == "online_cloud_timeout_ms" || name == "otherwise_relogin_days";
+      return name == "online_cloud_timeout_ms" || name == "online_update_period_ms" || name == "otherwise_relogin_days";
     case 'r':
-      return name == "revoke_pm_inbox" || name == "revoke_time_limit" || name == "revoke_pm_time_limit" ||
-             name == "rating_e_decay" || name == "recent_stickers_limit";
+      return name == "rating_e_decay" || name == "reactions_uniq_max" || name == "recent_stickers_limit" ||
+             name == "revoke_pm_inbox" || name == "revoke_time_limit" || name == "revoke_pm_time_limit";
     case 's':
       return name == "saved_animations_limit" || name == "session_count";
     case 'v':
