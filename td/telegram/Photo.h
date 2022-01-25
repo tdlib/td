@@ -107,7 +107,7 @@ bool operator!=(const DialogPhoto &lhs, const DialogPhoto &rhs);
 
 StringBuilder &operator<<(StringBuilder &string_builder, const DialogPhoto &dialog_photo);
 
-enum class PhotoFormat : int32 { Jpeg, Png, Webp, Gif, Tgs, Mpeg4 };
+enum class PhotoFormat : int32 { Jpeg, Png, Webp, Gif, Tgs, Mpeg4, Webm };
 
 PhotoSize get_secret_thumbnail_photo_size(FileManager *file_manager, BufferSlice bytes, DialogId owner_dialog_id,
                                           int32 width, int32 height);

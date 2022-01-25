@@ -592,7 +592,8 @@ void InlineQueriesManager::answer_inline_query(int64 inline_query_id, bool is_pe
         id = std::move(sticker->id_);
         thumbnail_url = std::move(sticker->thumbnail_url_);
         content_url = std::move(sticker->sticker_url_);
-        content_type = "image/webp";  // or "application/x-tgsticker"; not used for previously uploaded files
+        content_type =
+            "image/webp";  // or "application/x-tgsticker"/"video/webm"; not used for previously uploaded files
         width = sticker->sticker_width_;
         height = sticker->sticker_height_;
         is_gallery = true;
@@ -936,13 +937,13 @@ td_api::object_ptr<td_api::file> copy(const td_api::file &obj) {
 
 template <>
 tl_object_ptr<td_api::minithumbnail> copy(const td_api::minithumbnail &obj) {
-  return make_tl_object<td_api::minithumbnail>(obj.width_, obj.height_, obj.data_);
+  return td_api::make_object<td_api::minithumbnail>(obj.width_, obj.height_, obj.data_);
 }
 
 template <>
 tl_object_ptr<td_api::photoSize> copy(const td_api::photoSize &obj) {
-  return make_tl_object<td_api::photoSize>(obj.type_, copy(obj.photo_), obj.width_, obj.height_,
-                                           vector<int32>(obj.progressive_sizes_));
+  return td_api::make_object<td_api::photoSize>(obj.type_, copy(obj.photo_), obj.width_, obj.height_,
+                                                vector<int32>(obj.progressive_sizes_));
 }
 
 static tl_object_ptr<td_api::photoSize> copy_photo_size(const tl_object_ptr<td_api::photoSize> &obj) {
@@ -971,20 +972,35 @@ tl_object_ptr<td_api::thumbnail> copy(const td_api::thumbnail &obj) {
     }
   }();
 
-  return make_tl_object<td_api::thumbnail>(std::move(format), obj.width_, obj.height_, copy(obj.file_));
+  return td_api::make_object<td_api::thumbnail>(std::move(format), obj.width_, obj.height_, copy(obj.file_));
+}
+
+template <>
+tl_object_ptr<td_api::StickerFormat> copy(const td_api::StickerFormat &obj) {
+  switch (obj.get_id()) {
+    case td_api::stickerFormatWebp::ID:
+      return td_api::make_object<td_api::stickerFormatWebp>();
+    case td_api::stickerFormatTgs::ID:
+      return td_api::make_object<td_api::stickerFormatTgs>();
+    case td_api::stickerFormatWebm::ID:
+      return td_api::make_object<td_api::stickerFormatWebm>();
+    default:
+      UNREACHABLE();
+  }
+  return nullptr;
 }
 
 template <>
 tl_object_ptr<td_api::MaskPoint> copy(const td_api::MaskPoint &obj) {
   switch (obj.get_id()) {
     case td_api::maskPointForehead::ID:
-      return make_tl_object<td_api::maskPointForehead>();
+      return td_api::make_object<td_api::maskPointForehead>();
     case td_api::maskPointEyes::ID:
-      return make_tl_object<td_api::maskPointEyes>();
+      return td_api::make_object<td_api::maskPointEyes>();
     case td_api::maskPointMouth::ID:
-      return make_tl_object<td_api::maskPointMouth>();
+      return td_api::make_object<td_api::maskPointMouth>();
     case td_api::maskPointChin::ID:
-      return make_tl_object<td_api::maskPointChin>();
+      return td_api::make_object<td_api::maskPointChin>();
     default:
       UNREACHABLE();
   }
@@ -993,12 +1009,12 @@ tl_object_ptr<td_api::MaskPoint> copy(const td_api::MaskPoint &obj) {
 
 template <>
 tl_object_ptr<td_api::maskPosition> copy(const td_api::maskPosition &obj) {
-  return make_tl_object<td_api::maskPosition>(copy(obj.point_), obj.x_shift_, obj.y_shift_, obj.scale_);
+  return td_api::make_object<td_api::maskPosition>(copy(obj.point_), obj.x_shift_, obj.y_shift_, obj.scale_);
 }
 
 template <>
 tl_object_ptr<td_api::point> copy(const td_api::point &obj) {
-  return make_tl_object<td_api::point>(obj.x_, obj.y_);
+  return td_api::make_object<td_api::point>(obj.x_, obj.y_);
 }
 
 template <>
@@ -1006,11 +1022,11 @@ tl_object_ptr<td_api::VectorPathCommand> copy(const td_api::VectorPathCommand &o
   switch (obj.get_id()) {
     case td_api::vectorPathCommandLine::ID: {
       auto &command = static_cast<const td_api::vectorPathCommandLine &>(obj);
-      return make_tl_object<td_api::vectorPathCommandLine>(copy(command.end_point_));
+      return td_api::make_object<td_api::vectorPathCommandLine>(copy(command.end_point_));
     }
     case td_api::vectorPathCommandCubicBezierCurve::ID: {
       auto &command = static_cast<const td_api::vectorPathCommandCubicBezierCurve &>(obj);
-      return make_tl_object<td_api::vectorPathCommandCubicBezierCurve>(
+      return td_api::make_object<td_api::vectorPathCommandCubicBezierCurve>(
           copy(command.start_control_point_), copy(command.end_control_point_), copy(command.end_point_));
     }
     default:
@@ -1026,7 +1042,7 @@ static tl_object_ptr<td_api::VectorPathCommand> copy_vector_path_command(
 
 template <>
 tl_object_ptr<td_api::closedVectorPath> copy(const td_api::closedVectorPath &obj) {
-  return make_tl_object<td_api::closedVectorPath>(transform(obj.commands_, copy_vector_path_command));
+  return td_api::make_object<td_api::closedVectorPath>(transform(obj.commands_, copy_vector_path_command));
 }
 
 static tl_object_ptr<td_api::closedVectorPath> copy_closed_vector_path(
@@ -1036,137 +1052,139 @@ static tl_object_ptr<td_api::closedVectorPath> copy_closed_vector_path(
 
 template <>
 tl_object_ptr<td_api::animation> copy(const td_api::animation &obj) {
-  return make_tl_object<td_api::animation>(obj.duration_, obj.width_, obj.height_, obj.file_name_, obj.mime_type_,
-                                           obj.has_stickers_, copy(obj.minithumbnail_), copy(obj.thumbnail_),
-                                           copy(obj.animation_));
+  return td_api::make_object<td_api::animation>(obj.duration_, obj.width_, obj.height_, obj.file_name_, obj.mime_type_,
+                                                obj.has_stickers_, copy(obj.minithumbnail_), copy(obj.thumbnail_),
+                                                copy(obj.animation_));
 }
 
 template <>
 tl_object_ptr<td_api::audio> copy(const td_api::audio &obj) {
-  return make_tl_object<td_api::audio>(obj.duration_, obj.title_, obj.performer_, obj.file_name_, obj.mime_type_,
-                                       copy(obj.album_cover_minithumbnail_), copy(obj.album_cover_thumbnail_),
-                                       copy(obj.audio_));
+  return td_api::make_object<td_api::audio>(obj.duration_, obj.title_, obj.performer_, obj.file_name_, obj.mime_type_,
+                                            copy(obj.album_cover_minithumbnail_), copy(obj.album_cover_thumbnail_),
+                                            copy(obj.audio_));
 }
 
 template <>
 tl_object_ptr<td_api::document> copy(const td_api::document &obj) {
-  return make_tl_object<td_api::document>(obj.file_name_, obj.mime_type_, copy(obj.minithumbnail_),
-                                          copy(obj.thumbnail_), copy(obj.document_));
+  return td_api::make_object<td_api::document>(obj.file_name_, obj.mime_type_, copy(obj.minithumbnail_),
+                                               copy(obj.thumbnail_), copy(obj.document_));
 }
 
 template <>
 tl_object_ptr<td_api::photo> copy(const td_api::photo &obj) {
-  return make_tl_object<td_api::photo>(obj.has_stickers_, copy(obj.minithumbnail_),
-                                       transform(obj.sizes_, copy_photo_size));
+  return td_api::make_object<td_api::photo>(obj.has_stickers_, copy(obj.minithumbnail_),
+                                            transform(obj.sizes_, copy_photo_size));
 }
 
 template <>
 tl_object_ptr<td_api::sticker> copy(const td_api::sticker &obj) {
-  return make_tl_object<td_api::sticker>(
-      obj.set_id_, obj.width_, obj.height_, obj.emoji_, obj.is_animated_, obj.is_mask_, copy(obj.mask_position_),
+  return td_api::make_object<td_api::sticker>(
+      obj.set_id_, obj.width_, obj.height_, obj.emoji_, copy(obj.format_), obj.is_mask_, copy(obj.mask_position_),
       transform(obj.outline_, copy_closed_vector_path), copy(obj.thumbnail_), copy(obj.sticker_));
 }
 
 template <>
 tl_object_ptr<td_api::video> copy(const td_api::video &obj) {
-  return make_tl_object<td_api::video>(obj.duration_, obj.width_, obj.height_, obj.file_name_, obj.mime_type_,
-                                       obj.has_stickers_, obj.supports_streaming_, copy(obj.minithumbnail_),
-                                       copy(obj.thumbnail_), copy(obj.video_));
+  return td_api::make_object<td_api::video>(obj.duration_, obj.width_, obj.height_, obj.file_name_, obj.mime_type_,
+                                            obj.has_stickers_, obj.supports_streaming_, copy(obj.minithumbnail_),
+                                            copy(obj.thumbnail_), copy(obj.video_));
 }
 
 template <>
 tl_object_ptr<td_api::voiceNote> copy(const td_api::voiceNote &obj) {
-  return make_tl_object<td_api::voiceNote>(obj.duration_, obj.waveform_, obj.mime_type_, copy(obj.voice_));
+  return td_api::make_object<td_api::voiceNote>(obj.duration_, obj.waveform_, obj.mime_type_, copy(obj.voice_));
 }
 
 template <>
 tl_object_ptr<td_api::contact> copy(const td_api::contact &obj) {
-  return make_tl_object<td_api::contact>(obj.phone_number_, obj.first_name_, obj.last_name_, obj.vcard_, obj.user_id_);
+  return td_api::make_object<td_api::contact>(obj.phone_number_, obj.first_name_, obj.last_name_, obj.vcard_,
+                                              obj.user_id_);
 }
 
 template <>
 tl_object_ptr<td_api::location> copy(const td_api::location &obj) {
-  return make_tl_object<td_api::location>(obj.latitude_, obj.longitude_, obj.horizontal_accuracy_);
+  return td_api::make_object<td_api::location>(obj.latitude_, obj.longitude_, obj.horizontal_accuracy_);
 }
 
 template <>
 tl_object_ptr<td_api::venue> copy(const td_api::venue &obj) {
-  return make_tl_object<td_api::venue>(copy(obj.location_), obj.title_, obj.address_, obj.provider_, obj.id_,
-                                       obj.type_);
+  return td_api::make_object<td_api::venue>(copy(obj.location_), obj.title_, obj.address_, obj.provider_, obj.id_,
+                                            obj.type_);
 }
 
 template <>
 tl_object_ptr<td_api::formattedText> copy(const td_api::formattedText &obj) {
   // there are no entities in the game text
-  return make_tl_object<td_api::formattedText>(obj.text_, vector<tl_object_ptr<td_api::textEntity>>());
+  return td_api::make_object<td_api::formattedText>(obj.text_, vector<tl_object_ptr<td_api::textEntity>>());
 }
 
 template <>
 tl_object_ptr<td_api::game> copy(const td_api::game &obj) {
-  return make_tl_object<td_api::game>(obj.id_, obj.short_name_, obj.title_, copy(obj.text_), obj.description_,
-                                      copy(obj.photo_), copy(obj.animation_));
+  return td_api::make_object<td_api::game>(obj.id_, obj.short_name_, obj.title_, copy(obj.text_), obj.description_,
+                                           copy(obj.photo_), copy(obj.animation_));
 }
 
 template <>
 tl_object_ptr<td_api::inlineQueryResultArticle> copy(const td_api::inlineQueryResultArticle &obj) {
-  return make_tl_object<td_api::inlineQueryResultArticle>(obj.id_, obj.url_, obj.hide_url_, obj.title_,
-                                                          obj.description_, copy(obj.thumbnail_));
+  return td_api::make_object<td_api::inlineQueryResultArticle>(obj.id_, obj.url_, obj.hide_url_, obj.title_,
+                                                               obj.description_, copy(obj.thumbnail_));
 }
 
 template <>
 tl_object_ptr<td_api::inlineQueryResultContact> copy(const td_api::inlineQueryResultContact &obj) {
-  return make_tl_object<td_api::inlineQueryResultContact>(obj.id_, copy(obj.contact_), copy(obj.thumbnail_));
+  return td_api::make_object<td_api::inlineQueryResultContact>(obj.id_, copy(obj.contact_), copy(obj.thumbnail_));
 }
 
 template <>
 tl_object_ptr<td_api::inlineQueryResultLocation> copy(const td_api::inlineQueryResultLocation &obj) {
-  return make_tl_object<td_api::inlineQueryResultLocation>(obj.id_, copy(obj.location_), obj.title_,
-                                                           copy(obj.thumbnail_));
+  return td_api::make_object<td_api::inlineQueryResultLocation>(obj.id_, copy(obj.location_), obj.title_,
+                                                                copy(obj.thumbnail_));
 }
 
 template <>
 tl_object_ptr<td_api::inlineQueryResultVenue> copy(const td_api::inlineQueryResultVenue &obj) {
-  return make_tl_object<td_api::inlineQueryResultVenue>(obj.id_, copy(obj.venue_), copy(obj.thumbnail_));
+  return td_api::make_object<td_api::inlineQueryResultVenue>(obj.id_, copy(obj.venue_), copy(obj.thumbnail_));
 }
 
 template <>
 tl_object_ptr<td_api::inlineQueryResultGame> copy(const td_api::inlineQueryResultGame &obj) {
-  return make_tl_object<td_api::inlineQueryResultGame>(obj.id_, copy(obj.game_));
+  return td_api::make_object<td_api::inlineQueryResultGame>(obj.id_, copy(obj.game_));
 }
 
 template <>
 tl_object_ptr<td_api::inlineQueryResultAnimation> copy(const td_api::inlineQueryResultAnimation &obj) {
-  return make_tl_object<td_api::inlineQueryResultAnimation>(obj.id_, copy(obj.animation_), obj.title_);
+  return td_api::make_object<td_api::inlineQueryResultAnimation>(obj.id_, copy(obj.animation_), obj.title_);
 }
 
 template <>
 tl_object_ptr<td_api::inlineQueryResultAudio> copy(const td_api::inlineQueryResultAudio &obj) {
-  return make_tl_object<td_api::inlineQueryResultAudio>(obj.id_, copy(obj.audio_));
+  return td_api::make_object<td_api::inlineQueryResultAudio>(obj.id_, copy(obj.audio_));
 }
 
 template <>
 tl_object_ptr<td_api::inlineQueryResultDocument> copy(const td_api::inlineQueryResultDocument &obj) {
-  return make_tl_object<td_api::inlineQueryResultDocument>(obj.id_, copy(obj.document_), obj.title_, obj.description_);
+  return td_api::make_object<td_api::inlineQueryResultDocument>(obj.id_, copy(obj.document_), obj.title_,
+                                                                obj.description_);
 }
 
 template <>
 tl_object_ptr<td_api::inlineQueryResultPhoto> copy(const td_api::inlineQueryResultPhoto &obj) {
-  return make_tl_object<td_api::inlineQueryResultPhoto>(obj.id_, copy(obj.photo_), obj.title_, obj.description_);
+  return td_api::make_object<td_api::inlineQueryResultPhoto>(obj.id_, copy(obj.photo_), obj.title_, obj.description_);
 }
 
 template <>
 tl_object_ptr<td_api::inlineQueryResultSticker> copy(const td_api::inlineQueryResultSticker &obj) {
-  return make_tl_object<td_api::inlineQueryResultSticker>(obj.id_, copy(obj.sticker_));
+  return td_api::make_object<td_api::inlineQueryResultSticker>(obj.id_, copy(obj.sticker_));
 }
 
 template <>
 tl_object_ptr<td_api::inlineQueryResultVideo> copy(const td_api::inlineQueryResultVideo &obj) {
-  return make_tl_object<td_api::inlineQueryResultVideo>(obj.id_, copy(obj.video_), obj.title_, obj.description_);
+  return td_api::make_object<td_api::inlineQueryResultVideo>(obj.id_, copy(obj.video_), obj.title_, obj.description_);
 }
 
 template <>
 tl_object_ptr<td_api::inlineQueryResultVoiceNote> copy(const td_api::inlineQueryResultVoiceNote &obj) {
-  return make_tl_object<td_api::inlineQueryResultVoiceNote>(obj.id_, copy(obj.voice_note_), obj.title_);
+  return td_api::make_object<td_api::inlineQueryResultVoiceNote>(obj.id_, copy(obj.voice_note_), obj.title_);
 }
 
 static tl_object_ptr<td_api::InlineQueryResult> copy_result(const tl_object_ptr<td_api::InlineQueryResult> &obj_ptr) {
@@ -1177,9 +1195,9 @@ static tl_object_ptr<td_api::InlineQueryResult> copy_result(const tl_object_ptr<
 
 template <>
 tl_object_ptr<td_api::inlineQueryResults> copy(const td_api::inlineQueryResults &obj) {
-  return make_tl_object<td_api::inlineQueryResults>(obj.inline_query_id_, obj.next_offset_,
-                                                    transform(obj.results_, copy_result), obj.switch_pm_text_,
-                                                    obj.switch_pm_parameter_);
+  return td_api::make_object<td_api::inlineQueryResults>(obj.inline_query_id_, obj.next_offset_,
+                                                         transform(obj.results_, copy_result), obj.switch_pm_text_,
+                                                         obj.switch_pm_parameter_);
 }
 
 tl_object_ptr<td_api::inlineQueryResults> InlineQueriesManager::decrease_pending_request_count(uint64 query_hash) {

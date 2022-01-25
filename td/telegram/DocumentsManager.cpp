@@ -236,16 +236,16 @@ Document DocumentsManager::on_get_document(RemoteDocument remote_document, Dialo
   string url;
   FileLocationSource source = FileLocationSource::FromServer;
 
-  auto fix_animated_sticker_type = [&] {
+  auto fix_tgs_sticker_type = [&] {
     if (mime_type != "application/x-tgsticker") {
       return;
     }
 
     sticker_format = StickerFormat::Tgs;
+    default_extension = Slice("tgs");
     if (document_type == Document::Type::General) {
       document_type = Document::Type::Sticker;
       file_type = FileType::Sticker;
-      default_extension = Slice("tgs");
       owner_dialog_id = DialogId();
       file_name.clear();
       thumbnail_format = PhotoFormat::Webp;
@@ -262,10 +262,16 @@ Document DocumentsManager::on_get_document(RemoteDocument remote_document, Dialo
     mime_type = std::move(document->mime_type_);
     file_reference = document->file_reference_.as_slice().str();
 
-    if (document_type == Document::Type::Sticker && StickersManager::has_webp_thumbnail(document->thumbs_)) {
-      thumbnail_format = PhotoFormat::Webp;
+    if (document_type == Document::Type::Sticker) {
+      if (StickersManager::has_webp_thumbnail(document->thumbs_)) {
+        thumbnail_format = PhotoFormat::Webp;
+      }
+      if (mime_type == "video/webm") {
+        sticker_format = StickerFormat::Webm;
+        default_extension = Slice("webm");
+      }
     }
-    fix_animated_sticker_type();
+    fix_tgs_sticker_type();
 
     if (owner_dialog_id.get_type() == DialogType::SecretChat) {
       // secret_api::decryptedMessageMediaExternalDocument
@@ -316,8 +322,8 @@ Document DocumentsManager::on_get_document(RemoteDocument remote_document, Dialo
       return {};
     }
 
-    // do not allow encrypted animated stickers
-    // fix_animated_sticker_type();
+    // do not allow encrypted TGS stickers
+    // fix_tgs_sticker_type();
 
     if (document_type != Document::Type::VoiceNote) {
       thumbnail = get_secret_thumbnail_photo_size(td_->file_manager_.get(), std::move(document->thumb_),
@@ -374,8 +380,8 @@ Document DocumentsManager::on_get_document(RemoteDocument remote_document, Dialo
         UNREACHABLE();
     }
 
-    // do not allow web animated stickers
-    // fix_animated_sticker_type();
+    // do not allow web TGS stickers
+    // fix_tgs_sticker_type();
   }
 
   LOG(DEBUG) << "Receive document with ID = " << id << " of type " << document_type;

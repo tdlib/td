@@ -109,6 +109,8 @@ static td_api::object_ptr<td_api::ThumbnailFormat> get_thumbnail_format_object(P
       return td_api::make_object<td_api::thumbnailFormatTgs>();
     case PhotoFormat::Mpeg4:
       return td_api::make_object<td_api::thumbnailFormatMpeg4>();
+    case PhotoFormat::Webm:
+      return td_api::make_object<td_api::thumbnailFormatWebm>();
     default:
       UNREACHABLE();
       return nullptr;
@@ -129,6 +131,8 @@ static StringBuilder &operator<<(StringBuilder &string_builder, PhotoFormat form
       return string_builder << "tgs";
     case PhotoFormat::Mpeg4:
       return string_builder << "mp4";
+    case PhotoFormat::Webm:
+      return string_builder << "webm";
     default:
       UNREACHABLE();
       return string_builder;
@@ -408,7 +412,7 @@ Variant<PhotoSize, string> get_photo_size(FileManager *file_manager, PhotoSizeSo
     }
     case telegram_api::photoPathSize::ID: {
       auto size = move_tl_object_as<telegram_api::photoPathSize>(size_ptr);
-      if (format != PhotoFormat::Tgs && format != PhotoFormat::Webp) {
+      if (format != PhotoFormat::Tgs && format != PhotoFormat::Webp && format != PhotoFormat::Webm) {
         LOG(ERROR) << "Receive unexpected SVG minithumbnail in photo " << id << " from " << source << " of format "
                    << format;
         return std::move(res);

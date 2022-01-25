@@ -1008,13 +1008,16 @@ class CreateNewStickerSetQuery final : public Td::ResultHandler {
     if (sticker_format == StickerFormat::Tgs) {
       flags |= telegram_api::stickers_createStickerSet::ANIMATED_MASK;
     }
+    if (sticker_format == StickerFormat::Webm) {
+      flags |= telegram_api::stickers_createStickerSet::GIFS_MASK;
+    }
     if (!software.empty()) {
       flags |= telegram_api::stickers_createStickerSet::SOFTWARE_MASK;
     }
 
-    send_query(G()->net_query_creator().create(
-        telegram_api::stickers_createStickerSet(flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, std::move(input_user),
-                                                title, short_name, nullptr, std::move(input_stickers), software)));
+    send_query(G()->net_query_creator().create(telegram_api::stickers_createStickerSet(
+        flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, std::move(input_user), title, short_name,
+        nullptr, std::move(input_stickers), software)));
   }
 
   void on_result(BufferSlice packet) final {
@@ -1848,7 +1851,7 @@ tl_object_ptr<td_api::sticker> StickersManager::get_sticker_object(FileId file_i
     height = static_cast<int32>(height * zoom + 0.5);
   }
   return make_tl_object<td_api::sticker>(
-      sticker->set_id.get(), width, height, sticker->alt, sticker->format == StickerFormat::Tgs, sticker->is_mask,
+      sticker->set_id.get(), width, height, sticker->alt, get_sticker_format_object(sticker->format), sticker->is_mask,
       std::move(mask_position), get_sticker_minithumbnail(sticker->minithumbnail, sticker->set_id, document_id, zoom),
       std::move(thumbnail_object), td_->file_manager_->get_file_object(file_id));
 }
@@ -1940,6 +1943,8 @@ PhotoFormat StickersManager::get_sticker_set_thumbnail_format(StickerFormat stic
       return PhotoFormat::Webp;
     case StickerFormat::Tgs:
       return PhotoFormat::Tgs;
+    case StickerFormat::Webm:
+      return PhotoFormat::Webm;
     default:
       UNREACHABLE();
       return PhotoFormat::Webp;
@@ -1970,7 +1975,7 @@ tl_object_ptr<td_api::stickerSet> StickersManager::get_sticker_set_object(Sticke
       sticker_set->id.get(), sticker_set->title, sticker_set->short_name, std::move(thumbnail),
       get_sticker_minithumbnail(sticker_set->minithumbnail, sticker_set->id, -2, 1.0),
       sticker_set->is_installed && !sticker_set->is_archived, sticker_set->is_archived, sticker_set->is_official,
-      sticker_set->sticker_format == StickerFormat::Tgs, sticker_set->is_masks, sticker_set->is_viewed,
+      get_sticker_format_object(sticker_set->sticker_format), sticker_set->is_masks, sticker_set->is_viewed,
       std::move(stickers), std::move(emojis));
 }
 
@@ -2017,7 +2022,7 @@ tl_object_ptr<td_api::stickerSetInfo> StickersManager::get_sticker_set_info_obje
       sticker_set->id.get(), sticker_set->title, sticker_set->short_name, std::move(thumbnail),
       get_sticker_minithumbnail(sticker_set->minithumbnail, sticker_set->id, -3, 1.0),
       sticker_set->is_installed && !sticker_set->is_archived, sticker_set->is_archived, sticker_set->is_official,
-      sticker_set->sticker_format == StickerFormat::Tgs, sticker_set->is_masks, sticker_set->is_viewed,
+      get_sticker_format_object(sticker_set->sticker_format), sticker_set->is_masks, sticker_set->is_viewed,
       sticker_set->was_loaded ? narrow_cast<int32>(sticker_set->sticker_ids.size()) : sticker_set->sticker_count,
       std::move(stickers));
 }
@@ -2214,6 +2219,11 @@ std::pair<int64, FileId> StickersManager::on_get_sticker_document(tl_object_ptr<
   tl_object_ptr<telegram_api::documentAttributeSticker> sticker;
   for (auto &attribute : document->attributes_) {
     switch (attribute->get_id()) {
+      case telegram_api::documentAttributeVideo::ID: {
+        auto video = move_tl_object_as<telegram_api::documentAttributeVideo>(attribute);
+        dimensions = get_dimensions(video->w_, video->h_, "sticker documentAttributeVideo");
+        break;
+      }
       case telegram_api::documentAttributeImageSize::ID: {
         auto image_size = move_tl_object_as<telegram_api::documentAttributeImageSize>(attribute);
         dimensions = get_dimensions(image_size->w_, image_size->h_, "sticker documentAttributeImageSize");
@@ -2758,6 +2768,8 @@ tl_object_ptr<telegram_api::InputMedia> StickersManager::get_input_media(
       const PathView path_view(suggested_path);
       if (path_view.extension() == "tgs") {
         mime_type = "application/x-tgsticker";
+      } else if (path_view.extension() == "webm") {
+        mime_type = "video/webm";
       }
     }
     return make_tl_object<telegram_api::inputMediaUploadedDocument>(
@@ -2779,7 +2791,8 @@ StickerSetId StickersManager::on_get_sticker_set(tl_object_ptr<telegram_api::sti
   bool is_installed = (set->flags_ & telegram_api::stickerSet::INSTALLED_DATE_MASK) != 0;
   bool is_archived = set->archived_;
   bool is_official = set->official_;
-  StickerFormat sticker_format = set->animated_ ? StickerFormat::Tgs : StickerFormat::Webp;
+  StickerFormat sticker_format =
+      set->gifs_ ? StickerFormat::Webm : (set->animated_ ? StickerFormat::Tgs : StickerFormat::Webp);
   bool is_masks = set->masks_;
 
   PhotoSize thumbnail;
@@ -3305,13 +3318,11 @@ void StickersManager::on_get_installed_sticker_sets(bool is_masks,
   on_load_installed_sticker_sets_finished(is_masks, std::move(installed_sticker_set_ids));
 
   if (installed_sticker_sets_hash_[is_masks] != stickers->hash_) {
-    LOG(ERROR) << "Sticker sets hash mismatch: server hash list = " << format::as_array(debug_hashes)
-               << ", client hash list = "
-               << format::as_array(
-                      transform(installed_sticker_set_ids_[is_masks],
-                                [this](StickerSetId sticker_set_id) { return get_sticker_set(sticker_set_id)->hash; }))
-               << ", server sticker set list = " << format::as_array(debug_sticker_set_ids)
-               << ", client sticker set list = " << format::as_array(installed_sticker_set_ids_[is_masks])
+    LOG(ERROR) << "Sticker sets hash mismatch: server hash list = " << debug_hashes << ", client hash list = "
+               << transform(installed_sticker_set_ids_[is_masks],
+                            [this](StickerSetId sticker_set_id) { return get_sticker_set(sticker_set_id)->hash; })
+               << ", server sticker set list = " << debug_sticker_set_ids
+               << ", client sticker set list = " << installed_sticker_set_ids_[is_masks]
                << ", server hash = " << stickers->hash_ << ", client hash = " << installed_sticker_sets_hash_[is_masks];
   }
 }

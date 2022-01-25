@@ -6,6 +6,8 @@
 //
 #include "td/telegram/StickerFormat.h"
 
+#include "td/utils/logging.h"
+
 namespace td {
 
 StickerFormat get_sticker_format(Slice mime_type) {
@@ -15,7 +17,27 @@ StickerFormat get_sticker_format(Slice mime_type) {
   if (mime_type == "image/webp") {
     return StickerFormat::Webp;
   }
+  if (mime_type == "video/webm") {
+    return StickerFormat::Webm;
+  }
   return StickerFormat::Unknown;
+}
+
+td_api::object_ptr<td_api::StickerFormat> get_sticker_format_object(StickerFormat sticker_format) {
+  switch (sticker_format) {
+    case StickerFormat::Unknown:
+      LOG(ERROR) << "Have a sticker of unknown format";
+      return td_api::make_object<td_api::stickerFormatWebp>();
+    case StickerFormat::Webp:
+      return td_api::make_object<td_api::stickerFormatWebp>();
+    case StickerFormat::Tgs:
+      return td_api::make_object<td_api::stickerFormatTgs>();
+    case StickerFormat::Webm:
+      return td_api::make_object<td_api::stickerFormatWebm>();
+    default:
+      UNREACHABLE();
+      return nullptr;
+  }
 }
 
 string get_sticker_format_mime_type(StickerFormat sticker_format) {
@@ -25,6 +47,8 @@ string get_sticker_format_mime_type(StickerFormat sticker_format) {
       return "image/webp";
     case StickerFormat::Tgs:
       return "application/x-tgsticker";
+    case StickerFormat::Webm:
+      return "video/webm";
     default:
       UNREACHABLE();
       return string();
@@ -39,6 +63,8 @@ Slice get_sticker_format_extension(StickerFormat sticker_format) {
       return Slice(".webp");
     case StickerFormat::Tgs:
       return Slice(".tgs");
+    case StickerFormat::Webm:
+      return Slice(".webm");
     default:
       UNREACHABLE();
       return Slice();
@@ -52,6 +78,8 @@ bool is_sticker_format_animated(StickerFormat sticker_format) {
     case StickerFormat::Webp:
       return false;
     case StickerFormat::Tgs:
+      return true;
+    case StickerFormat::Webm:
       return true;
     default:
       UNREACHABLE();
@@ -67,6 +95,8 @@ bool is_sticker_format_vector(StickerFormat sticker_format) {
       return false;
     case StickerFormat::Tgs:
       return true;
+    case StickerFormat::Webm:
+      return false;
     default:
       UNREACHABLE();
       return false;
@@ -80,6 +110,8 @@ int64 get_max_sticker_file_size(StickerFormat sticker_format, bool for_thumbnail
       return for_thumbnail ? (1 << 17) : (1 << 19);
     case StickerFormat::Tgs:
       return for_thumbnail ? (1 << 15) : (1 << 16);
+    case StickerFormat::Webm:
+      return for_thumbnail ? (1 << 17) : (1 << 18);
     default:
       UNREACHABLE();
       return 0;
@@ -94,6 +126,8 @@ StringBuilder &operator<<(StringBuilder &string_builder, StickerFormat sticker_f
       return string_builder << "WEBP";
     case StickerFormat::Tgs:
       return string_builder << "TGS";
+    case StickerFormat::Webm:
+      return string_builder << "WEBM";
     default:
       UNREACHABLE();
       return string_builder;

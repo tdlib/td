@@ -33,12 +33,14 @@ void StickersManager::store_sticker(FileId file_id, bool in_sticker_set, StorerT
   bool has_sticker_set_access_hash = sticker->set_id.is_valid() && !in_sticker_set;
   bool has_minithumbnail = !sticker->minithumbnail.empty();
   bool is_tgs = sticker->format == StickerFormat::Tgs;
+  bool is_webm = sticker->format == StickerFormat::Webm;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(sticker->is_mask);
   STORE_FLAG(has_sticker_set_access_hash);
   STORE_FLAG(in_sticker_set);
   STORE_FLAG(is_tgs);
   STORE_FLAG(has_minithumbnail);
+  STORE_FLAG(is_webm);
   END_STORE_FLAGS();
   if (!in_sticker_set) {
     store(sticker->set_id.get(), storer);
@@ -75,14 +77,18 @@ FileId StickersManager::parse_sticker(bool in_sticker_set, ParserT &parser) {
   bool in_sticker_set_stored;
   bool has_minithumbnail;
   bool is_tgs;
+  bool is_webm;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(sticker->is_mask);
   PARSE_FLAG(has_sticker_set_access_hash);
   PARSE_FLAG(in_sticker_set_stored);
   PARSE_FLAG(is_tgs);
   PARSE_FLAG(has_minithumbnail);
+  PARSE_FLAG(is_webm);
   END_PARSE_FLAGS();
-  if (is_tgs) {
+  if (is_webm) {
+    sticker->format = StickerFormat::Webm;
+  } else if (is_tgs) {
     sticker->format = StickerFormat::Tgs;
   } else {
     sticker->format = StickerFormat::Webp;
@@ -145,6 +151,7 @@ void StickersManager::store_sticker_set(const StickerSet *sticker_set, bool with
   bool has_thumbnail = sticker_set->thumbnail.file_id.is_valid();
   bool has_minithumbnail = !sticker_set->minithumbnail.empty();
   bool is_tgs = sticker_set->sticker_format == StickerFormat::Tgs;
+  bool is_webm = sticker_set->sticker_format == StickerFormat::Webm;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(sticker_set->is_inited);
   STORE_FLAG(was_loaded);
@@ -160,6 +167,7 @@ void StickersManager::store_sticker_set(const StickerSet *sticker_set, bool with
   STORE_FLAG(is_tgs);
   STORE_FLAG(sticker_set->are_legacy_sticker_thumbnails_reloaded);
   STORE_FLAG(has_minithumbnail);
+  STORE_FLAG(is_webm);
   END_STORE_FLAGS();
   store(sticker_set->id.get(), storer);
   store(sticker_set->access_hash, storer);
@@ -209,6 +217,7 @@ void StickersManager::parse_sticker_set(StickerSet *sticker_set, ParserT &parser
   bool has_thumbnail;
   bool is_tgs;
   bool has_minithumbnail;
+  bool is_webm;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(sticker_set->is_inited);
   PARSE_FLAG(sticker_set->was_loaded);
@@ -224,6 +233,7 @@ void StickersManager::parse_sticker_set(StickerSet *sticker_set, ParserT &parser
   PARSE_FLAG(is_tgs);
   PARSE_FLAG(sticker_set->are_legacy_sticker_thumbnails_reloaded);
   PARSE_FLAG(has_minithumbnail);
+  PARSE_FLAG(is_webm);
   END_PARSE_FLAGS();
   int64 sticker_set_id;
   int64 access_hash;
@@ -236,7 +246,9 @@ void StickersManager::parse_sticker_set(StickerSet *sticker_set, ParserT &parser
   }
 
   StickerFormat sticker_format = StickerFormat::Unknown;
-  if (is_tgs) {
+  if (is_webm) {
+    sticker_format = StickerFormat::Webm;
+  } else if (is_tgs) {
     sticker_format = StickerFormat::Tgs;
   } else {
     sticker_format = StickerFormat::Webp;

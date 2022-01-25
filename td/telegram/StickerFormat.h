@@ -6,6 +6,8 @@
 //
 #pragma once
 
+#include "td/telegram/td_api.h"
+
 #include "td/utils/common.h"
 #include "td/utils/Slice.h"
 #include "td/utils/StringBuilder.h"
@@ -13,9 +15,11 @@
 namespace td {
 
 // update store_sticker/store_sticker_set when this type changes
-enum class StickerFormat : int32 { Unknown, Webp, Tgs };
+enum class StickerFormat : int32 { Unknown, Webp, Tgs, Webm };
 
 StickerFormat get_sticker_format(Slice mime_type);
+
+td_api::object_ptr<td_api::StickerFormat> get_sticker_format_object(StickerFormat sticker_format);
 
 string get_sticker_format_mime_type(StickerFormat sticker_format);
 
