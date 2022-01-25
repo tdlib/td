@@ -73,6 +73,7 @@ async function loadTdlibWasm(onFS, wasmUrl) {
   let module = createTdwebModule({
     onRuntimeInitialized: () => {
       log.info('runtime intialized');
+      onFS(module.FS);
     },
     instantiateWasm: (imports, successCallback) => {
       log.info('start instantiateWasm', td_wasm, imports);
@@ -85,7 +86,6 @@ async function loadTdlibWasm(onFS, wasmUrl) {
     },
     ENVIROMENT: 'WORKER'
   });
-  onFS(module.FS); // hack
   log.info('Wait module');
   module = await module;
   log.info('Got module', module);
@@ -103,6 +103,7 @@ async function loadTdlibAsmjs(onFS) {
   let module = createTdwebModule({
     onRuntimeInitialized: () => {
       console.log('runtime intialized');
+      onFS(module.FS);
     },
     locateFile: name => {
       if (name === fromFile) {
@@ -112,7 +113,6 @@ async function loadTdlibAsmjs(onFS) {
     },
     ENVIROMENT: 'WORKER'
   });
-  onFS(module.FS); // hack
   log.info('Wait module');
   module = await module;
   log.info('Got module', module);
@@ -614,7 +614,11 @@ class TdClient {
     this.TdModule = await loadTdlib(mode, this.onFS, options.wasmUrl);
     log.info('got TdModule');
     this.td_functions = {
-      td_create: this.TdModule.cwrap('td_emscripten_create_client_id', 'number', []),
+      td_create: this.TdModule.cwrap(
+        'td_emscripten_create_client_id',
+        'number',
+        []
+      ),
       td_send: this.TdModule.cwrap('td_emscripten_send', null, [
         'number',
         'string'
