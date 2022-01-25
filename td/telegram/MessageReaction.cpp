@@ -44,7 +44,7 @@ class SendReactionQuery final : public Td::ResultHandler {
     }
 
     send_query(G()->net_query_creator().create(telegram_api::messages_sendReaction(
-        flags, std::move(input_peer), message_id_.get_server_message_id().get(), reaction)));
+        flags, false /*ignored*/, std::move(input_peer), message_id_.get_server_message_id().get(), reaction)));
   }
 
   void on_result(BufferSlice packet) final {
@@ -109,7 +109,7 @@ class GetMessageReactionsListQuery final : public Td::ResultHandler {
     LOG(INFO) << "Receive result for GetMessageReactionsListQuery: " << to_string(ptr);
 
     td_->contacts_manager_->on_get_users(std::move(ptr->users_), "GetMessageReactionsListQuery");
-    // td_->contacts_manager_->on_get_chats(std::move(ptr->chats_), "GetMessageReactionsListQuery");
+    td_->contacts_manager_->on_get_chats(std::move(ptr->chats_), "GetMessageReactionsListQuery");
 
     int32 total_count = ptr->count_;
     if (total_count < static_cast<int32>(ptr->reactions_.size())) {
@@ -119,13 +119,13 @@ class GetMessageReactionsListQuery final : public Td::ResultHandler {
 
     vector<td_api::object_ptr<td_api::chosenReaction>> reactions;
     for (auto &reaction : ptr->reactions_) {
-      UserId user_id(reaction->user_id_);
-      if (!user_id.is_valid() || (!reaction_.empty() && reaction_ != reaction->reaction_)) {
+      DialogId dialog_id(reaction->peer_id_);
+      if (!dialog_id.is_valid() || (!reaction_.empty() && reaction_ != reaction->reaction_)) {
         LOG(ERROR) << "Receive unexpected " << to_string(reaction);
         continue;
       }
 
-      auto message_sender = get_min_message_sender_object(td_, DialogId(user_id), "GetMessageReactionsListQuery");
+      auto message_sender = get_min_message_sender_object(td_, dialog_id, "GetMessageReactionsListQuery");
       if (message_sender != nullptr) {
         reactions.push_back(
             td_api::make_object<td_api::chosenReaction>(reaction->reaction_, std::move(message_sender)));
@@ -207,9 +207,9 @@ unique_ptr<MessageReactions> MessageReactions::get_message_reactions(
 
     vector<DialogId> recent_chooser_dialog_ids;
     vector<std::pair<ChannelId, MinChannel>> recent_chooser_min_channels;
-    for (auto &user_reaction : reactions->recent_reactons_) {
-      if (user_reaction->reaction_ == reaction_count->reaction_) {
-        DialogId dialog_id(UserId(user_reaction->user_id_));
+    for (auto &peer_reaction : reactions->recent_reactions_) {
+      if (peer_reaction->reaction_ == reaction_count->reaction_) {
+        DialogId dialog_id(peer_reaction->peer_id_);
         if (!dialog_id.is_valid()) {
           LOG(ERROR) << "Receive invalid " << dialog_id << " as a recent chooser";
           continue;

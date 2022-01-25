@@ -1013,7 +1013,7 @@ class CreateNewStickerSetQuery final : public Td::ResultHandler {
     }
 
     send_query(G()->net_query_creator().create(
-        telegram_api::stickers_createStickerSet(flags, false /*ignored*/, false /*ignored*/, std::move(input_user),
+        telegram_api::stickers_createStickerSet(flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, std::move(input_user),
                                                 title, short_name, nullptr, std::move(input_stickers), software)));
   }
 
