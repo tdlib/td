@@ -6942,7 +6942,15 @@ bool MessagesManager::is_visible_message_reply_info(DialogId dialog_id, const Me
 }
 
 bool MessagesManager::is_visible_message_reactions(DialogId dialog_id, const Message *m) const {
-  // TODO hide message reactions if reactions are disabled in the chat
+  if (m == nullptr || !m->message_id.is_valid()) {
+    return false;
+  }
+
+  const Dialog *d = get_dialog(dialog_id);
+  CHECK(d != nullptr);
+  if (get_active_reactions(d->available_reactions).empty()) {
+    return false;
+  }
   return true;
 }
 
@@ -8248,14 +8256,32 @@ void MessagesManager::set_dialog_available_reactions(Dialog *d, vector<string> &
 
   VLOG(notifications) << "Update available reactions in " << d->dialog_id << " to " << available_reactions;
 
-  bool need_update = get_active_reactions(d->available_reactions) != get_active_reactions(available_reactions);
+  auto old_active_reactions = get_active_reactions(d->available_reactions);
+  auto new_active_reactions = get_active_reactions(available_reactions);
+  bool need_update = old_active_reactions != new_active_reactions;
+  bool need_update_message_reactions_visibility = old_active_reactions.empty() != new_active_reactions.empty();
 
   d->available_reactions = std::move(available_reactions);
   d->is_available_reactions_inited = true;
   on_dialog_updated(d->dialog_id, "set_dialog_available_reactions");
 
+  if (need_update_message_reactions_visibility) {
+    update_dialog_message_reactions_visibility(d);
+  }
+
   if (need_update) {
     send_update_chat_available_reactions(d);
+  }
+}
+
+void MessagesManager::update_dialog_message_reactions_visibility(const Dialog *d) {
+  vector<MessageId> message_ids;
+  find_messages(d->messages.get(), message_ids,
+                [](const Message *m) { return m->reactions != nullptr && !m->reactions->reactions_.empty(); });
+  for (auto message_id : message_ids) {
+    const auto *m = get_message(d, message_id);
+    CHECK(m != nullptr);
+    send_update_message_interaction_info(d->dialog_id, m);
   }
 }
 
@@ -8277,12 +8303,17 @@ void MessagesManager::set_active_reactions(vector<string> active_reactions) {
         send_update_chat_available_reactions(d);
         break;
       case DialogType::Chat:
-      case DialogType::Channel:
-        if (get_active_reactions(d->available_reactions, old_active_reactions) !=
-            get_active_reactions(d->available_reactions, active_reactions_)) {
+      case DialogType::Channel: {
+        auto old_reactions = get_active_reactions(d->available_reactions, old_active_reactions);
+        auto new_reactions = get_active_reactions(d->available_reactions, active_reactions_);
+        if (old_reactions != new_reactions) {
+          if (old_reactions.empty() != new_reactions.empty()) {
+            update_dialog_message_reactions_visibility(d);
+          }
           send_update_chat_available_reactions(d);
         }
         break;
+      }
       case DialogType::SecretChat:
         break;
       default:
@@ -23741,6 +23772,10 @@ void MessagesManager::set_message_reaction(FullMessageId full_message_id, string
 
   if (dialog_id.get_type() == DialogType::SecretChat || !m->message_id.is_valid() || !m->message_id.is_server()) {
     return promise.set_error(Status::Error(400, "Message can't have reactions"));
+  }
+
+  if (!is_visible_message_reactions(dialog_id, m)) {
+    return promise.set_error(Status::Error(400, "Can't set reactions for the message"));
   }
 
   if (!reaction.empty() && !is_active_reaction(td_, reaction)) {

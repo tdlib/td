@@ -2596,6 +2596,8 @@ class MessagesManager final : public Actor {
 
   void set_dialog_available_reactions(Dialog *d, vector<string> &&available_reactions);
 
+  void update_dialog_message_reactions_visibility(const Dialog *d);
+
   vector<string> get_active_reactions(const vector<string> &available_reactions) const;
 
   static vector<string> get_active_reactions(const vector<string> &available_reactions,
