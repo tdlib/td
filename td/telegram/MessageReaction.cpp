@@ -22,16 +22,18 @@ namespace td {
 
 class GetMessagesReactionsQuery final : public Td::ResultHandler {
   DialogId dialog_id_;
+  vector<MessageId> message_ids_;
 
  public:
   void send(DialogId dialog_id, vector<MessageId> &&message_ids) {
     dialog_id_ = dialog_id;
+    message_ids_ = std::move(message_ids);
 
     auto input_peer = td_->messages_manager_->get_input_peer(dialog_id_, AccessRights::Read);
     CHECK(input_peer != nullptr);
 
     send_query(G()->net_query_creator().create(telegram_api::messages_getMessagesReactions(
-        std::move(input_peer), MessagesManager::get_server_message_ids(message_ids))));
+        std::move(input_peer), MessagesManager::get_server_message_ids(message_ids_))));
   }
 
   void on_result(BufferSlice packet) final {
@@ -42,6 +44,21 @@ class GetMessagesReactionsQuery final : public Td::ResultHandler {
 
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for GetMessagesReactionsQuery: " << to_string(ptr);
+    if (ptr->get_id() == telegram_api::updates::ID) {
+      auto &updates = static_cast<telegram_api::updates *>(ptr.get())->updates_;
+      std::unordered_set<MessageId, MessageIdHash> skipped_message_ids(message_ids_.begin(), message_ids_.end());
+      for (const auto &update : updates) {
+        if (update->get_id() == telegram_api::updateMessageReactions::ID) {
+          auto update_message_reactions = static_cast<const telegram_api::updateMessageReactions *>(update.get());
+          if (DialogId(update_message_reactions->peer_) == dialog_id_) {
+            skipped_message_ids.erase(MessageId(ServerMessageId(update_message_reactions->msg_id_)));
+          }
+        }
+      }
+      for (auto message_id : skipped_message_ids) {
+        td_->messages_manager_->on_update_message_reactions({dialog_id_, message_id}, nullptr);
+      }
+    }
     td_->updates_manager_->on_get_updates(std::move(ptr), Promise<Unit>());
   }
 
@@ -376,7 +393,7 @@ bool MessageReactions::need_update_message_reactions(const MessageReactions *old
 }
 
 void reload_message_reactions(Td *td, DialogId dialog_id, vector<MessageId> &&message_ids) {
-  if (!td->messages_manager_->have_input_peer(dialog_id, AccessRights::Read)) {
+  if (!td->messages_manager_->have_input_peer(dialog_id, AccessRights::Read) || message_ids.empty()) {
     return;
   }
 
