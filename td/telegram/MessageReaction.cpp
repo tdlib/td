@@ -142,7 +142,7 @@ class GetMessageReactionsListQuery final : public Td::ResultHandler {
   }
 };
 
-void MessageReaction::set_is_chosen(bool is_chosen, DialogId chooser_dialog_id) {
+void MessageReaction::set_is_chosen(bool is_chosen, DialogId chooser_dialog_id, bool can_see_all_choosers) {
   if (is_chosen_ == is_chosen) {
     return;
   }
@@ -151,7 +151,15 @@ void MessageReaction::set_is_chosen(bool is_chosen, DialogId chooser_dialog_id) 
 
   if (chooser_dialog_id.is_valid()) {
     choose_count_ += is_chosen_ ? 1 : -1;
-    // TODO update recent_chooser_dialog_ids_, but only if not broadcast
+    if (can_see_all_choosers) {
+      td::remove(recent_chooser_dialog_ids_, chooser_dialog_id);
+      if (is_chosen_) {
+        recent_chooser_dialog_ids_.insert(recent_chooser_dialog_ids_.begin(), chooser_dialog_id);
+        if (recent_chooser_dialog_ids_.size() > MAX_RECENT_CHOOSERS) {
+          recent_chooser_dialog_ids_.resize(MAX_RECENT_CHOOSERS);
+        }
+      }
+    }
   }
 }
 
@@ -268,7 +276,7 @@ void MessageReactions::update_from(const MessageReactions &old_reactions) {
       if (old_reaction.is_chosen()) {
         for (auto &reaction : reactions_) {
           if (reaction.get_reaction() == old_reaction.get_reaction()) {
-            reaction.set_is_chosen(true);
+            reaction.set_is_chosen(true, DialogId(), false);
           }
         }
       }
@@ -277,20 +285,21 @@ void MessageReactions::update_from(const MessageReactions &old_reactions) {
 }
 
 void MessageReactions::sort(const std::unordered_map<string, size_t> &active_reaction_pos) {
-  std::sort(reactions_.begin(), reactions_.end(), [&active_reaction_pos](const MessageReaction &lhs, const MessageReaction &rhs) {
-    if (lhs.get_choose_count() != rhs.get_choose_count()) {
-      return lhs.get_choose_count() > rhs.get_choose_count();
-    }
-    auto lhs_it = active_reaction_pos.find(lhs.get_reaction());
-    auto lhs_pos = lhs_it != active_reaction_pos.end() ? lhs_it->second : active_reaction_pos.size();
-    auto rhs_it = active_reaction_pos.find(rhs.get_reaction());
-    auto rhs_pos = rhs_it != active_reaction_pos.end() ? rhs_it->second : active_reaction_pos.size();
-    if (lhs_pos != rhs_pos) {
-      return lhs_pos < rhs_pos;
-    }
+  std::sort(reactions_.begin(), reactions_.end(),
+            [&active_reaction_pos](const MessageReaction &lhs, const MessageReaction &rhs) {
+              if (lhs.get_choose_count() != rhs.get_choose_count()) {
+                return lhs.get_choose_count() > rhs.get_choose_count();
+              }
+              auto lhs_it = active_reaction_pos.find(lhs.get_reaction());
+              auto lhs_pos = lhs_it != active_reaction_pos.end() ? lhs_it->second : active_reaction_pos.size();
+              auto rhs_it = active_reaction_pos.find(rhs.get_reaction());
+              auto rhs_pos = rhs_it != active_reaction_pos.end() ? rhs_it->second : active_reaction_pos.size();
+              if (lhs_pos != rhs_pos) {
+                return lhs_pos < rhs_pos;
+              }
 
-    return lhs.get_reaction() < rhs.get_reaction();
-  });
+              return lhs.get_reaction() < rhs.get_reaction();
+            });
 }
 
 bool MessageReactions::need_update_message_reactions(const MessageReactions *old_reactions,

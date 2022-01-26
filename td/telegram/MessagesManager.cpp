@@ -23739,8 +23739,7 @@ void MessagesManager::set_message_reaction(FullMessageId full_message_id, string
     return promise.set_error(Status::Error(400, "Message not found"));
   }
 
-  if (full_message_id.get_dialog_id().get_type() == DialogType::SecretChat || !m->message_id.is_valid() ||
-      !m->message_id.is_server()) {
+  if (dialog_id.get_type() == DialogType::SecretChat || !m->message_id.is_valid() || !m->message_id.is_server()) {
     return promise.set_error(Status::Error(400, "Message can't have reactions"));
   }
 
@@ -23748,12 +23747,14 @@ void MessagesManager::set_message_reaction(FullMessageId full_message_id, string
     return promise.set_error(Status::Error(400, "Invalid reaction specified"));
   }
 
+  bool can_see_all_choosers = !is_broadcast_channel(dialog_id);
   if (m->reactions == nullptr) {
     if (reaction.empty()) {
       return promise.set_value(Unit());
     }
 
     m->reactions = make_unique<MessageReactions>();
+    m->reactions->can_see_all_choosers_ = can_see_all_choosers;
   }
 
   bool is_found = false;
@@ -23764,14 +23765,14 @@ void MessagesManager::set_message_reaction(FullMessageId full_message_id, string
         // double set removes reaction
         reaction = string();
       }
-      message_reaction.set_is_chosen(false);
+      message_reaction.set_is_chosen(false, get_my_dialog_id(), can_see_all_choosers);
       if (message_reaction.is_empty()) {
         it = m->reactions->reactions_.erase(it);
         continue;
       }
     } else {
       if (message_reaction.get_reaction() == reaction) {
-        message_reaction.set_is_chosen(true);
+        message_reaction.set_is_chosen(true, get_my_dialog_id(), can_see_all_choosers);
         is_found = true;
       }
     }

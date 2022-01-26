@@ -63,7 +63,7 @@ class MessageReaction {
     return is_chosen_;
   }
 
-  void set_is_chosen(bool is_chosen, DialogId chooser_dialog_id = DialogId());
+  void set_is_chosen(bool is_chosen, DialogId chooser_dialog_id, bool can_see_all_choosers);
 
   int32 get_choose_count() const {
     return choose_count_;
