@@ -109,6 +109,8 @@ struct MessageReactions {
 
   MessageReaction *get_reaction(const string &reaction);
 
+  const MessageReaction *get_reaction(const string &reaction) const;
+
   void update_from(const MessageReactions &old_reactions);
 
   void sort(const std::unordered_map<string, size_t> &active_reaction_pos);

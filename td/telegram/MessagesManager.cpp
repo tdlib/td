@@ -23765,11 +23765,16 @@ Result<vector<string>> MessagesManager::get_message_available_reactions(FullMess
     return Status::Error(400, "Chat not found");
   }
 
-  Message *m = get_message_force(d, full_message_id.get_message_id(), "get_message_available_reactions");
+  const Message *m = get_message_force(d, full_message_id.get_message_id(), "get_message_available_reactions");
   if (m == nullptr) {
     return Status::Error(400, "Message not found");
   }
+  return get_message_available_reactions(d, m);
+}
 
+vector<string> MessagesManager::get_message_available_reactions(const Dialog *d, const Message *m) {
+  CHECK(d != nullptr);
+  CHECK(m != nullptr);
   if (!m->message_id.is_valid() || !m->message_id.is_server() || get_active_reactions(d->available_reactions).empty()) {
     return vector<string>();
   }
@@ -23810,16 +23815,8 @@ void MessagesManager::set_message_reaction(FullMessageId full_message_id, string
     return promise.set_error(Status::Error(400, "Message not found"));
   }
 
-  if (dialog_id.get_type() == DialogType::SecretChat || !m->message_id.is_valid() || !m->message_id.is_server()) {
-    return promise.set_error(Status::Error(400, "Message can't have reactions"));
-  }
-
-  if (!is_visible_message_reactions(dialog_id, m)) {
-    return promise.set_error(Status::Error(400, "Can't set reactions for the message"));
-  }
-
-  if (!reaction.empty() && !is_active_reaction(td_, reaction)) {
-    return promise.set_error(Status::Error(400, "Invalid reaction specified"));
+  if (!td::contains(get_message_available_reactions(d, m), reaction)) {
+    return promise.set_error(Status::Error(400, "The reaction isn't available for the message"));
   }
 
   bool can_see_all_choosers = !is_broadcast_channel(dialog_id);

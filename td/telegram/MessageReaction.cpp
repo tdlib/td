@@ -275,6 +275,15 @@ MessageReaction *MessageReactions::get_reaction(const string &reaction) {
   return nullptr;
 }
 
+const MessageReaction *MessageReactions::get_reaction(const string &reaction) const {
+  for (auto &chosen_reaction : reactions_) {
+    if (chosen_reaction.get_reaction() == reaction) {
+      return &chosen_reaction;
+    }
+  }
+  return nullptr;
+}
+
 void MessageReactions::update_from(const MessageReactions &old_reactions) {
   if (old_reactions.has_pending_reaction_) {
     // we will ignore all updates, received while there is a pending reaction, so there are no reasons to update

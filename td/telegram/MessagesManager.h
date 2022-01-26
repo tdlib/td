@@ -2596,6 +2596,8 @@ class MessagesManager final : public Actor {
 
   bool update_dialog_silent_send_message(Dialog *d, bool silent_send_message);
 
+  vector<string> get_message_available_reactions(const Dialog *d, const Message *m);
+
   void set_dialog_available_reactions(Dialog *d, vector<string> &&available_reactions);
 
   void update_dialog_message_reactions_visibility(const Dialog *d);
