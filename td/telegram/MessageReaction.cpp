@@ -276,6 +276,23 @@ void MessageReactions::update_from(const MessageReactions &old_reactions) {
   }
 }
 
+void MessageReactions::sort(const std::unordered_map<string, size_t> &active_reaction_pos) {
+  std::sort(reactions_.begin(), reactions_.end(), [&active_reaction_pos](const MessageReaction &lhs, const MessageReaction &rhs) {
+    if (lhs.get_choose_count() != rhs.get_choose_count()) {
+      return lhs.get_choose_count() > rhs.get_choose_count();
+    }
+    auto lhs_it = active_reaction_pos.find(lhs.get_reaction());
+    auto lhs_pos = lhs_it != active_reaction_pos.end() ? lhs_it->second : active_reaction_pos.size();
+    auto rhs_it = active_reaction_pos.find(rhs.get_reaction());
+    auto rhs_pos = rhs_it != active_reaction_pos.end() ? rhs_it->second : active_reaction_pos.size();
+    if (lhs_pos != rhs_pos) {
+      return lhs_pos < rhs_pos;
+    }
+
+    return lhs.get_reaction() < rhs.get_reaction();
+  });
+}
+
 bool MessageReactions::need_update_message_reactions(const MessageReactions *old_reactions,
                                                      const MessageReactions *new_reactions) {
   if (old_reactions == nullptr) {

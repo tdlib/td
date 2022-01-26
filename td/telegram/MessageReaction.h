@@ -18,6 +18,7 @@
 #include "td/utils/common.h"
 #include "td/utils/StringBuilder.h"
 
+#include <unordered_map>
 #include <utility>
 
 namespace td {
@@ -64,6 +65,10 @@ class MessageReaction {
 
   void set_is_chosen(bool is_chosen, DialogId chooser_dialog_id = DialogId());
 
+  int32 get_choose_count() const {
+    return choose_count_;
+  }
+
   const vector<DialogId> &get_recent_chooser_dialog_ids() const {
     return recent_chooser_dialog_ids_;
   }
@@ -103,6 +108,8 @@ struct MessageReactions {
                                                             bool is_bot);
 
   void update_from(const MessageReactions &old_reactions);
+
+  void sort(const std::unordered_map<string, size_t> &active_reaction_pos);
 
   static bool need_update_message_reactions(const MessageReactions *old_reactions,
                                             const MessageReactions *new_reactions);

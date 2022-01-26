@@ -7012,6 +7012,9 @@ bool MessagesManager::update_message_interaction_info(DialogId dialog_id, Messag
   if (has_reactions && reactions != nullptr && m->reactions != nullptr) {
     reactions->update_from(*m->reactions);
   }
+  if (has_reactions && reactions != nullptr) {
+    reactions->sort(active_reaction_pos_);
+  }
   bool need_update_reactions =
       has_reactions && MessageReactions::need_update_message_reactions(m->reactions.get(), reactions.get());
   if (view_count > m->view_count || forward_count > m->forward_count || need_update_reply_info ||
@@ -8263,6 +8266,9 @@ void MessagesManager::set_active_reactions(vector<string> active_reactions) {
 
   auto old_active_reactions = std::move(active_reactions_);
   active_reactions_ = std::move(active_reactions);
+  for (size_t i = 0; i < active_reactions_.size(); i++) {
+    active_reaction_pos_[active_reactions_[i]] = i;
+  }
 
   for (const auto &dialog : dialogs_) {
     const Dialog *d = dialog.second.get();
@@ -23774,13 +23780,13 @@ void MessagesManager::set_message_reaction(FullMessageId full_message_id, string
   }
   // m->reactions->has_pending_reaction_ = true;
   if (!is_found && !reaction.empty()) {
-    // TODO place to the correct position
     vector<DialogId> recent_chooser_dialog_ids;
     if (!is_broadcast_channel(dialog_id)) {
       recent_chooser_dialog_ids.push_back(get_my_dialog_id());
     }
     m->reactions->reactions_.emplace_back(reaction, 1, true, std::move(recent_chooser_dialog_ids), Auto());
   }
+  m->reactions->sort(active_reaction_pos_);
 
   send_update_message_interaction_info(dialog_id, m);
   on_message_changed(d, m, true, "set_message_reaction");

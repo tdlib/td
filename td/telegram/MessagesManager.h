@@ -3603,6 +3603,7 @@ class MessagesManager final : public Actor {
   std::unordered_map<DialogId, MessageId, DialogIdHash> previous_repaired_read_inbox_max_message_id_;
 
   vector<string> active_reactions_;
+  std::unordered_map<string, size_t> active_reaction_pos_;
 
   uint32 scheduled_messages_sync_generation_ = 1;
 
