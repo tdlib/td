@@ -23797,7 +23797,8 @@ Result<vector<string>> MessagesManager::get_message_available_reactions(FullMess
   return result;
 }
 
-void MessagesManager::set_message_reaction(FullMessageId full_message_id, string reaction, Promise<Unit> &&promise) {
+void MessagesManager::set_message_reaction(FullMessageId full_message_id, string reaction, bool is_big,
+                                           Promise<Unit> &&promise) {
   auto dialog_id = full_message_id.get_dialog_id();
   Dialog *d = get_dialog_force(dialog_id, "set_message_reaction");
   if (d == nullptr) {
@@ -23866,7 +23867,7 @@ void MessagesManager::set_message_reaction(FullMessageId full_message_id, string
   send_update_message_interaction_info(dialog_id, m);
   on_message_changed(d, m, true, "set_message_reaction");
 
-  ::td::set_message_reaction(td_, full_message_id, std::move(reaction), std::move(promise));
+  ::td::set_message_reaction(td_, full_message_id, std::move(reaction), is_big, std::move(promise));
 }
 
 void MessagesManager::get_message_public_forwards(FullMessageId full_message_id, string offset, int32 limit,

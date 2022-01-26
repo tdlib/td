@@ -5259,7 +5259,7 @@ void Td::on_request(uint64 id, td_api::setMessageReaction &request) {
   CLEAN_INPUT_STRING(request.reaction_);
   CREATE_OK_REQUEST_PROMISE();
   messages_manager_->set_message_reaction({DialogId(request.chat_id_), MessageId(request.message_id_)},
-                                          std::move(request.reaction_), std::move(promise));
+                                          std::move(request.reaction_), request.is_big_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::getMessageChosenReactions &request) {

@@ -29,7 +29,7 @@ class SendReactionQuery final : public Td::ResultHandler {
   explicit SendReactionQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(FullMessageId full_message_id, string reaction) {
+  void send(FullMessageId full_message_id, string reaction, bool is_big) {
     dialog_id_ = full_message_id.get_dialog_id();
     message_id_ = full_message_id.get_message_id();
 
@@ -41,6 +41,10 @@ class SendReactionQuery final : public Td::ResultHandler {
     int32 flags = 0;
     if (!reaction.empty()) {
       flags |= telegram_api::messages_sendReaction::REACTION_MASK;
+
+      if (is_big) {
+        flags |= telegram_api::messages_sendReaction::BIG_MASK;
+      }
     }
 
     send_query(G()->net_query_creator().create(telegram_api::messages_sendReaction(
@@ -332,8 +336,9 @@ bool MessageReactions::need_update_message_reactions(const MessageReactions *old
          old_reactions->need_polling_ != new_reactions->need_polling_;
 }
 
-void set_message_reaction(Td *td, FullMessageId full_message_id, string reaction, Promise<Unit> &&promise) {
-  td->create_handler<SendReactionQuery>(std::move(promise))->send(full_message_id, std::move(reaction));
+void set_message_reaction(Td *td, FullMessageId full_message_id, string reaction, bool is_big,
+                          Promise<Unit> &&promise) {
+  td->create_handler<SendReactionQuery>(std::move(promise))->send(full_message_id, std::move(reaction), is_big);
 }
 
 void get_message_chosen_reactions(Td *td, FullMessageId full_message_id, string reaction, string offset, int32 limit,
