@@ -4601,7 +4601,7 @@ editMessageSchedulingState chat_id:int53 message_id:int53 scheduling_state:Messa
 //@description Changes chosen reaction for a message
 //@chat_id Identifier of the chat to which the message belongs
 //@message_id Identifier of the message
-//@reaction Text representation of the chosen reaction, or an empty string to remove reaction
+//@reaction Text representation of the chosen reaction. Can be an empty string or the currently chosen reaction to remove the reaction
 setMessageReaction chat_id:int53 message_id:int53 reaction:string = Ok;
 
 //@description Returns reactions chosen for a message, along with their source

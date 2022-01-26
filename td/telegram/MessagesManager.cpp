@@ -23755,7 +23755,8 @@ void MessagesManager::set_message_reaction(FullMessageId full_message_id, string
     auto &message_reaction = *it;
     if (message_reaction.is_chosen()) {
       if (message_reaction.get_reaction() == reaction) {
-        return promise.set_value(Unit());
+        // double set removes reaction
+        reaction = string();
       }
       message_reaction.set_is_chosen(false);
       if (message_reaction.is_empty()) {
