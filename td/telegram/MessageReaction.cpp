@@ -116,14 +116,14 @@ class SendReactionQuery final : public Td::ResultHandler {
 };
 
 class GetMessageReactionsListQuery final : public Td::ResultHandler {
-  Promise<td_api::object_ptr<td_api::chosenReactions>> promise_;
+  Promise<td_api::object_ptr<td_api::addedReactions>> promise_;
   DialogId dialog_id_;
   MessageId message_id_;
   string reaction_;
   string offset_;
 
  public:
-  explicit GetMessageReactionsListQuery(Promise<td_api::object_ptr<td_api::chosenReactions>> &&promise)
+  explicit GetMessageReactionsListQuery(Promise<td_api::object_ptr<td_api::addedReactions>> &&promise)
       : promise_(std::move(promise)) {
   }
 
@@ -168,7 +168,7 @@ class GetMessageReactionsListQuery final : public Td::ResultHandler {
       total_count = static_cast<int32>(ptr->reactions_.size());
     }
 
-    vector<td_api::object_ptr<td_api::chosenReaction>> reactions;
+    vector<td_api::object_ptr<td_api::addedReaction>> reactions;
     for (auto &reaction : ptr->reactions_) {
       DialogId dialog_id(reaction->peer_id_);
       if (!dialog_id.is_valid() || (!reaction_.empty() && reaction_ != reaction->reaction_)) {
@@ -178,13 +178,12 @@ class GetMessageReactionsListQuery final : public Td::ResultHandler {
 
       auto message_sender = get_min_message_sender_object(td_, dialog_id, "GetMessageReactionsListQuery");
       if (message_sender != nullptr) {
-        reactions.push_back(
-            td_api::make_object<td_api::chosenReaction>(reaction->reaction_, std::move(message_sender)));
+        reactions.push_back(td_api::make_object<td_api::addedReaction>(reaction->reaction_, std::move(message_sender)));
       }
     }
 
     promise_.set_value(
-        td_api::make_object<td_api::chosenReactions>(total_count, std::move(reactions), ptr->next_offset_));
+        td_api::make_object<td_api::addedReactions>(total_count, std::move(reactions), ptr->next_offset_));
   }
 
   void on_error(Status status) final {
@@ -314,18 +313,18 @@ unique_ptr<MessageReactions> MessageReactions::get_message_reactions(
 }
 
 MessageReaction *MessageReactions::get_reaction(const string &reaction) {
-  for (auto &chosen_reaction : reactions_) {
-    if (chosen_reaction.get_reaction() == reaction) {
-      return &chosen_reaction;
+  for (auto &added_reaction : reactions_) {
+    if (added_reaction.get_reaction() == reaction) {
+      return &added_reaction;
     }
   }
   return nullptr;
 }
 
 const MessageReaction *MessageReactions::get_reaction(const string &reaction) const {
-  for (auto &chosen_reaction : reactions_) {
-    if (chosen_reaction.get_reaction() == reaction) {
-      return &chosen_reaction;
+  for (auto &added_reaction : reactions_) {
+    if (added_reaction.get_reaction() == reaction) {
+      return &added_reaction;
     }
   }
   return nullptr;
@@ -410,24 +409,24 @@ void set_message_reaction(Td *td, FullMessageId full_message_id, string reaction
   td->create_handler<SendReactionQuery>(std::move(promise))->send(full_message_id, std::move(reaction), is_big);
 }
 
-void get_message_chosen_reactions(Td *td, FullMessageId full_message_id, string reaction, string offset, int32 limit,
-                                  Promise<td_api::object_ptr<td_api::chosenReactions>> &&promise) {
-  if (!td->messages_manager_->have_message_force(full_message_id, "get_message_chosen_reactions")) {
+void get_message_added_reactions(Td *td, FullMessageId full_message_id, string reaction, string offset, int32 limit,
+                                 Promise<td_api::object_ptr<td_api::addedReactions>> &&promise) {
+  if (!td->messages_manager_->have_message_force(full_message_id, "get_message_added_reactions")) {
     return promise.set_error(Status::Error(400, "Message not found"));
   }
 
   auto message_id = full_message_id.get_message_id();
   if (full_message_id.get_dialog_id().get_type() == DialogType::SecretChat || !message_id.is_valid() ||
       !message_id.is_server()) {
-    return promise.set_value(td_api::make_object<td_api::chosenReactions>(0, Auto(), string()));
+    return promise.set_value(td_api::make_object<td_api::addedReactions>(0, Auto(), string()));
   }
 
   if (limit <= 0) {
     return promise.set_error(Status::Error(400, "Parameter limit must be positive"));
   }
-  static constexpr int32 MAX_GET_CHOSEN_REACTIONS = 100;  // server side limit
-  if (limit > MAX_GET_CHOSEN_REACTIONS) {
-    limit = MAX_GET_CHOSEN_REACTIONS;
+  static constexpr int32 MAX_GET_ADDED_REACTIONS = 100;  // server side limit
+  if (limit > MAX_GET_ADDED_REACTIONS) {
+    limit = MAX_GET_ADDED_REACTIONS;
   }
 
   td->create_handler<GetMessageReactionsListQuery>(std::move(promise))

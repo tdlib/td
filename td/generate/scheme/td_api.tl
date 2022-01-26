@@ -774,16 +774,16 @@ messageReplyInfo reply_count:int32 recent_replier_ids:vector<MessageSender> last
 
 //@description Contains information about a reaction to a message
 //@reaction Text representation of the reaction
-//@choose_count Number of times the reaction was chosen
-//@is_chosen True, if the reaction is chosen by the user
-//@recent_chooser_ids Identifiers of at most 3 recent message senders, chosen the reaction; available in basic groups and supergroups
-messageReaction reaction:string choose_count:int32 is_chosen:Bool recent_chooser_ids:vector<MessageSender> = MessageReaction;
+//@total_count Number of times the reaction was added
+//@is_chosen True, if the reaction is chosen by the current user
+//@recent_sender_ids Identifiers of at most 3 recent message senders, added the reaction; available in private chats, basic groups and supergroups
+messageReaction reaction:string total_count:int32 is_chosen:Bool recent_sender_ids:vector<MessageSender> = MessageReaction;
 
 //@description Contains information about interactions with a message
 //@view_count Number of times the message was viewed
 //@forward_count Number of times the message was forwarded
 //@reply_info Information about direct or indirect replies to the message; may be null. Currently, available only in channels with a discussion supergroup and discussion supergroups for messages, which are not replies itself
-//@reactions The list of reactions chosen for the message
+//@reactions The list of reactions added to the message
 messageInteractionInfo view_count:int32 forward_count:int32 reply_info:messageReplyInfo reactions:vector<messageReaction> = MessageInteractionInfo;
 
 
@@ -2387,13 +2387,13 @@ call id:int32 user_id:int53 is_outgoing:Bool is_video:Bool state:CallState = Cal
 phoneNumberAuthenticationSettings allow_flash_call:Bool allow_missed_call:Bool is_current_phone_number:Bool allow_sms_retriever_api:Bool authentication_tokens:vector<string> = PhoneNumberAuthenticationSettings;
 
 
-//@description Represents a chosen reaction for a message @reaction Text representation of the reaction @chooser_id Identifier of the chat member, chosen the reaction
-chosenReaction reaction:string chooser_id:MessageSender = ChosenReaction;
+//@description Represents a reaction applied to a message @reaction Text representation of the reaction @sender_id Identifier of the chat member, applied the reaction
+addedReaction reaction:string sender_id:MessageSender = AddedReaction;
 
-//@description Represents a list of chosen reactions for a message @total_count The total count of found reactions @reactions The list of chosen reactions @next_offset The offset for the next request. If empty, there are no more results
-chosenReactions total_count:int32 reactions:vector<chosenReaction> next_offset:string = ChosenReactions;
+//@description Represents a list of reactions added to a message @total_count The total count of found reactions @reactions The list of added reactions @next_offset The offset for the next request. If empty, there are no more results
+addedReactions total_count:int32 reactions:vector<addedReaction> next_offset:string = AddedReactions;
 
-//@description Represents a list of reactions @reactions List of reactions
+//@description Represents a list of available reactions @reactions List of reactions
 availableReactions reactions:vector<string> = AvailableReactions;
 
 
@@ -4601,7 +4601,7 @@ editInlineMessageReplyMarkup inline_message_id:string reply_markup:ReplyMarkup =
 editMessageSchedulingState chat_id:int53 message_id:int53 scheduling_state:MessageSchedulingState = Ok;
 
 
-//@description Returns reactions, which can be set for a message. The list can change after updateReactions, updateChatAvailableReactions for the chat, or updateMessageInteractionInfo for the message
+//@description Returns reactions, which can be added to a message. The list can change after updateReactions, updateChatAvailableReactions for the chat, or updateMessageInteractionInfo for the message
 //@chat_id Identifier of the chat to which the message belongs
 //@message_id Identifier of the message
 getMessageAvailableReactions chat_id:int53 message_id:int53 = AvailableReactions;
@@ -4609,17 +4609,17 @@ getMessageAvailableReactions chat_id:int53 message_id:int53 = AvailableReactions
 //@description Changes chosen reaction for a message
 //@chat_id Identifier of the chat to which the message belongs
 //@message_id Identifier of the message
-//@reaction Text representation of the chosen reaction. Can be an empty string or the currently chosen reaction to remove the reaction
-//@is_big True, if the reaction is set with a big animation
+//@reaction Text representation of the new chosen reaction. Can be an empty string or the currently chosen reaction to remove the reaction
+//@is_big True, if the reaction is added with a big animation
 setMessageReaction chat_id:int53 message_id:int53 reaction:string is_big:Bool = Ok;
 
-//@description Returns reactions chosen for a message, along with their source
+//@description Returns reactions added for a message, along with their sender
 //@chat_id Identifier of the chat to which the message belongs
 //@message_id Identifier of the message
-//@reaction If non-empty, only reactions with the specified text representation will be returned
+//@reaction If non-empty, only added reactions with the specified text representation will be returned
 //@offset Offset of the first entry to return as received from the previous request; use empty string to get the first chunk of results
-//@limit The maximum number of chosen reactions to be returned; must be positive and can't be greater than 100
-getMessageChosenReactions chat_id:int53 message_id:int53 reaction:string offset:string limit:int32 = ChosenReactions;
+//@limit The maximum number of reactions to be returned; must be positive and can't be greater than 100
+getMessageAddedReactions chat_id:int53 message_id:int53 reaction:string offset:string limit:int32 = AddedReactions;
 
 
 //@description Returns all entities (mentions, hashtags, cashtags, bot commands, bank card numbers, URLs, and email addresses) contained in the text. Can be called synchronously @text The text in which to look for entites

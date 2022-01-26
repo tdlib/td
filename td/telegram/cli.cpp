@@ -2091,15 +2091,15 @@ class CliClient final : public Actor {
       bool is_big;
       get_args(args, chat_id, message_id, reaction, is_big);
       send_request(td_api::make_object<td_api::setMessageReaction>(chat_id, message_id, reaction, is_big));
-    } else if (op == "gmcr") {
+    } else if (op == "gmars") {
       ChatId chat_id;
       MessageId message_id;
       string reaction;
       string offset;
       string limit;
       get_args(args, chat_id, message_id, reaction, offset, limit);
-      send_request(td_api::make_object<td_api::getMessageChosenReactions>(chat_id, message_id, reaction, offset,
-                                                                          as_limit(limit)));
+      send_request(td_api::make_object<td_api::getMessageAddedReactions>(chat_id, message_id, reaction, offset,
+                                                                         as_limit(limit)));
     } else if (op == "gmpf") {
       ChatId chat_id;
       MessageId message_id;
