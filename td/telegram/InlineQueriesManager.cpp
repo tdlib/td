@@ -998,17 +998,17 @@ tl_object_ptr<td_api::maskPosition> copy(const td_api::maskPosition &obj) {
 }
 
 template <>
-tl_object_ptr<td_api::StickerFormat> copy(const td_api::StickerFormat &obj) {
+tl_object_ptr<td_api::StickerType> copy(const td_api::StickerType &obj) {
   switch (obj.get_id()) {
-    case td_api::stickerFormatWebp::ID:
-      return td_api::make_object<td_api::stickerFormatWebp>();
-    case td_api::stickerFormatTgs::ID:
-      return td_api::make_object<td_api::stickerFormatTgs>();
-    case td_api::stickerFormatWebm::ID:
-      return td_api::make_object<td_api::stickerFormatWebm>();
-    case td_api::stickerFormatWebpMask::ID: {
-      auto &mask_position = static_cast<const td_api::stickerFormatWebpMask &>(obj).mask_position_;
-      return td_api::make_object<td_api::stickerFormatWebpMask>(copy(mask_position));
+    case td_api::stickerTypeStatic::ID:
+      return td_api::make_object<td_api::stickerTypeStatic>();
+    case td_api::stickerTypeAnimated::ID:
+      return td_api::make_object<td_api::stickerTypeAnimated>();
+    case td_api::stickerTypeVideo::ID:
+      return td_api::make_object<td_api::stickerTypeVideo>();
+    case td_api::stickerTypeMask::ID: {
+      auto &mask_position = static_cast<const td_api::stickerTypeMask &>(obj).mask_position_;
+      return td_api::make_object<td_api::stickerTypeMask>(copy(mask_position));
     }
     default:
       UNREACHABLE();
@@ -1082,7 +1082,7 @@ tl_object_ptr<td_api::photo> copy(const td_api::photo &obj) {
 
 template <>
 tl_object_ptr<td_api::sticker> copy(const td_api::sticker &obj) {
-  return td_api::make_object<td_api::sticker>(obj.set_id_, obj.width_, obj.height_, obj.emoji_, copy(obj.format_),
+  return td_api::make_object<td_api::sticker>(obj.set_id_, obj.width_, obj.height_, obj.emoji_, copy(obj.type_),
                                               transform(obj.outline_, copy_closed_vector_path), copy(obj.thumbnail_),
                                               copy(obj.sticker_));
 }

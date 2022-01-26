@@ -19,8 +19,8 @@ enum class StickerFormat : int32 { Unknown, Webp, Tgs, Webm };
 
 StickerFormat get_sticker_format(Slice mime_type);
 
-td_api::object_ptr<td_api::StickerFormat> get_sticker_format_object(
-    StickerFormat sticker_format, bool is_masks, td_api::object_ptr<td_api::maskPosition> mask_position);
+td_api::object_ptr<td_api::StickerType> get_sticker_type_object(StickerFormat sticker_format, bool is_masks,
+                                                                td_api::object_ptr<td_api::maskPosition> mask_position);
 
 string get_sticker_format_mime_type(StickerFormat sticker_format);
 
