@@ -2245,7 +2245,7 @@ std::pair<int64, FileId> StickersManager::on_get_sticker_document(tl_object_ptr<
   }
 
   auto format = get_sticker_format(document->mime_type_);
-  if (expected_format != StickerFormat::Unknown && format != expected_format) {
+  if (format == StickerFormat::Unknown || (expected_format != StickerFormat::Unknown && format != expected_format)) {
     LOG(ERROR) << "Expected sticker of the type " << expected_format << ", but received of the type " << format;
     return {};
   }
