@@ -23865,7 +23865,24 @@ void MessagesManager::set_message_reaction(FullMessageId full_message_id, string
   on_message_changed(d, m, true, "set_message_reaction");
 
   // TODO invoke_after, cancel previous queries, log event
-  ::td::set_message_reaction(td_, full_message_id, std::move(reaction), is_big, std::move(promise));
+  auto query_promise = PromiseCreator::lambda(
+      [actor_id = actor_id(this), full_message_id, promise = std::move(promise)](Result<Unit> &&result) mutable {
+        send_closure(actor_id, &MessagesManager::on_set_message_reaction, full_message_id, std::move(result),
+                     std::move(promise));
+      });
+  ::td::set_message_reaction(td_, full_message_id, std::move(reaction), is_big, std::move(query_promise));
+}
+
+void MessagesManager::on_set_message_reaction(FullMessageId full_message_id, Result<Unit> result,
+                                              Promise<Unit> promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+
+  if (result.is_error() && have_message_force(full_message_id, "on_set_message_reaction")) {
+    reload_message_reactions(td_, full_message_id.get_dialog_id(), {full_message_id.get_message_id()});
+    promise.set_error(result.move_as_error());
+  } else {
+    promise.set_value(Unit());
+  }
 }
 
 void MessagesManager::get_message_public_forwards(FullMessageId full_message_id, string offset, int32 limit,

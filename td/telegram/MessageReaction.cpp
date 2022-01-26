@@ -20,6 +20,36 @@
 
 namespace td {
 
+class GetMessagesReactionsQuery final : public Td::ResultHandler {
+  DialogId dialog_id_;
+
+ public:
+  void send(DialogId dialog_id, vector<MessageId> &&message_ids) {
+    dialog_id_ = dialog_id;
+
+    auto input_peer = td_->messages_manager_->get_input_peer(dialog_id_, AccessRights::Read);
+    CHECK(input_peer != nullptr);
+
+    send_query(G()->net_query_creator().create(telegram_api::messages_getMessagesReactions(
+        std::move(input_peer), MessagesManager::get_server_message_ids(message_ids))));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_getMessagesReactions>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for GetMessagesReactionsQuery: " << to_string(ptr);
+    td_->updates_manager_->on_get_updates(std::move(ptr), Promise<Unit>());
+  }
+
+  void on_error(Status status) final {
+    td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "GetMessagesReactionsQuery");
+  }
+};
+
 class SendReactionQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   DialogId dialog_id_;
@@ -343,6 +373,19 @@ bool MessageReactions::need_update_message_reactions(const MessageReactions *old
   return old_reactions->reactions_ != new_reactions->reactions_ || old_reactions->is_min_ != new_reactions->is_min_ ||
          old_reactions->can_see_all_choosers_ != new_reactions->can_see_all_choosers_ ||
          old_reactions->need_polling_ != new_reactions->need_polling_;
+}
+
+void reload_message_reactions(Td *td, DialogId dialog_id, vector<MessageId> &&message_ids) {
+  if (!td->messages_manager_->have_input_peer(dialog_id, AccessRights::Read)) {
+    return;
+  }
+
+  for (const auto &message_id : message_ids) {
+    CHECK(message_id.is_valid());
+    CHECK(message_id.is_server());
+  }
+
+  td->create_handler<GetMessagesReactionsQuery>()->send(dialog_id, std::move(message_ids));
 }
 
 void set_message_reaction(Td *td, FullMessageId full_message_id, string reaction, bool is_big,

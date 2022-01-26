@@ -2598,6 +2598,8 @@ class MessagesManager final : public Actor {
 
   vector<string> get_message_available_reactions(const Dialog *d, const Message *m);
 
+  void on_set_message_reaction(FullMessageId full_message_id, Result<Unit> result, Promise<Unit> promise);
+
   void set_dialog_available_reactions(Dialog *d, vector<string> &&available_reactions);
 
   void update_dialog_message_reactions_visibility(const Dialog *d);
