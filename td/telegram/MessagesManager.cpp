@@ -23864,6 +23864,7 @@ void MessagesManager::set_message_reaction(FullMessageId full_message_id, string
   send_update_message_interaction_info(dialog_id, m);
   on_message_changed(d, m, true, "set_message_reaction");
 
+  // TODO invoke_after, cancel previous queries, log event
   ::td::set_message_reaction(td_, full_message_id, std::move(reaction), is_big, std::move(promise));
 }
 
