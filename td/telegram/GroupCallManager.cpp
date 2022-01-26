@@ -43,6 +43,9 @@ class GetGroupCallStreamQuery final : public Td::ResultHandler {
   void send(InputGroupCallId input_group_call_id, DcId stream_dc_id, int64 time_offset, int32 scale, int32 channel_id,
             int32 video_quality) {
     int32 stream_flags = 0;
+    if (channel_id != 0) {
+      stream_flags |= telegram_api::inputGroupCallStream::VIDEO_CHANNEL_MASK;
+    }
     auto input_stream = make_tl_object<telegram_api::inputGroupCallStream>(
         stream_flags, input_group_call_id.get_input_group_call(), time_offset, scale, channel_id, video_quality);
     int32 flags = 0;
