@@ -799,24 +799,29 @@ void Session::on_message_result_error(uint64 id, int error_code, string message)
 
   // UNAUTHORIZED
   if (error_code == 401 && message != "SESSION_PASSWORD_NEEDED") {
-    if (auth_data_.use_pfs() && (message == CSlice("AUTH_KEY_PERM_EMPTY") || !is_main_)) {
-      LOG(INFO) << "Receive 401, " << message << " in session " << auth_data_.get_session_id() << " for auth key "
+    if (auth_data_.use_pfs() && message == CSlice("AUTH_KEY_PERM_EMPTY")) {
+      LOG(INFO) << "Receive AUTH_KEY_PERM_EMPTY in session " << auth_data_.get_session_id() << " for auth key "
                 << auth_data_.get_tmp_auth_key().id();
       // temporary key can be dropped any time
       auth_data_.drop_tmp_auth_key();
       on_tmp_auth_key_updated();
       error_code = 500;
     } else {
-      bool can_drop_main_auth_key_without_logging_out = is_cdn_;
-      if (!is_main_) {
-        CHECK(!auth_data_.use_pfs());
-        if (G()->net_query_dispatcher().get_main_dc_id().get_raw_id() != raw_dc_id_) {
-          can_drop_main_auth_key_without_logging_out = true;
-        }
+      if (auth_data_.use_pfs() && !is_main_) {
+        // temporary key can be dropped any time
+        auth_data_.drop_tmp_auth_key();
+        on_tmp_auth_key_updated();
+        error_code = 500;
       }
+
+      bool can_drop_main_auth_key_without_logging_out = is_cdn_;
+      if (!is_main_ && G()->net_query_dispatcher().get_main_dc_id().get_raw_id() != raw_dc_id_) {
+        can_drop_main_auth_key_without_logging_out = true;
+      }
+      LOG(INFO) << "Receive 401, " << message << " in session " << auth_data_.get_session_id() << " for auth key "
+                << auth_data_.get_auth_key().id() << ", PFS = " << auth_data_.use_pfs() << ", is_main = " << is_main_
+                << ", can_drop_main_auth_key_without_logging_out = " << can_drop_main_auth_key_without_logging_out;
       if (can_drop_main_auth_key_without_logging_out) {
-        LOG(INFO) << "Receive 401, " << message << " in session " << auth_data_.get_session_id() << " for auth key "
-                  << auth_data_.get_auth_key().id();
         auth_data_.drop_main_auth_key();
         on_auth_key_updated();
         error_code = 500;
