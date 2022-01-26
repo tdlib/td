@@ -2393,6 +2393,9 @@ chosenReaction reaction:string chooser_id:MessageSender = ChosenReaction;
 //@description Represents a list of chosen reactions for a message @total_count The total count of found reactions @reactions The list of chosen reactions @next_offset The offset for the next request. If empty, there are no more results
 chosenReactions total_count:int32 reactions:vector<chosenReaction> next_offset:string = ChosenReactions;
 
+//@description Represents a list of reactions @reactions List of reactions
+availableReactions reactions:vector<string> = AvailableReactions;
+
 
 //@description Contains stickers which must be used for reaction animation rendering
 //@reaction Text representation of the reaction
@@ -4597,6 +4600,11 @@ editInlineMessageReplyMarkup inline_message_id:string reply_markup:ReplyMarkup =
 //@scheduling_state The new message scheduling state; pass null to send the message immediately
 editMessageSchedulingState chat_id:int53 message_id:int53 scheduling_state:MessageSchedulingState = Ok;
 
+
+//@description Returns reactions, which can be set for a message. The list can change after updateReactions, updateChatAvailableReactions for the chat, or updateMessageInteractionInfo for the message
+//@chat_id Identifier of the chat to which the message belongs
+//@message_id Identifier of the message
+getMessageAvailableReactions chat_id:int53 message_id:int53 = AvailableReactions;
 
 //@description Changes chosen reaction for a message
 //@chat_id Identifier of the chat to which the message belongs

@@ -23758,6 +23758,45 @@ void MessagesManager::on_get_scheduled_messages_from_database(DialogId dialog_id
   }
 }
 
+Result<vector<string>> MessagesManager::get_message_available_reactions(FullMessageId full_message_id) {
+  auto dialog_id = full_message_id.get_dialog_id();
+  Dialog *d = get_dialog_force(dialog_id, "get_message_available_reactions");
+  if (d == nullptr) {
+    return Status::Error(400, "Chat not found");
+  }
+
+  Message *m = get_message_force(d, full_message_id.get_message_id(), "get_message_available_reactions");
+  if (m == nullptr) {
+    return Status::Error(400, "Message not found");
+  }
+
+  if (!m->message_id.is_valid() || !m->message_id.is_server() || get_active_reactions(d->available_reactions).empty()) {
+    return vector<string>();
+  }
+
+  vector<string> result;
+  int64 reactions_uniq_max = G()->shared_config().get_option_integer("reactions_uniq_max", 11);
+  bool can_add_new_reactions =
+      m->reactions == nullptr || static_cast<int64>(m->reactions->reactions_.size()) < reactions_uniq_max;
+  // can add only active available reactions or remove previously set reaction
+  for (const auto &active_reaction : active_reactions_) {
+    // can add the reaction if it has already been used for the message or is available in the chat
+    if ((m->reactions != nullptr && m->reactions->get_reaction(active_reaction) != nullptr) ||
+        (can_add_new_reactions && td::contains(d->available_reactions, active_reaction))) {
+      result.push_back(active_reaction);
+    }
+  }
+  if (m->reactions != nullptr) {
+    for (const auto &reaction : m->reactions->reactions_) {
+      if (reaction.is_chosen() && !td::contains(result, reaction.get_reaction())) {
+        CHECK(!td::contains(active_reactions_, reaction.get_reaction()));
+        result.push_back(reaction.get_reaction());
+      }
+    }
+  }
+  return result;
+}
+
 void MessagesManager::set_message_reaction(FullMessageId full_message_id, string reaction, Promise<Unit> &&promise) {
   auto dialog_id = full_message_id.get_dialog_id();
   Dialog *d = get_dialog_force(dialog_id, "set_message_reaction");

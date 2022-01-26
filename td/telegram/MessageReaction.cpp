@@ -262,6 +262,15 @@ unique_ptr<MessageReactions> MessageReactions::get_message_reactions(
   return result;
 }
 
+MessageReaction *MessageReactions::get_reaction(const string &reaction) {
+  for (auto &chosen_reaction : reactions_) {
+    if (chosen_reaction.get_reaction() == reaction) {
+      return &chosen_reaction;
+    }
+  }
+  return nullptr;
+}
+
 void MessageReactions::update_from(const MessageReactions &old_reactions) {
   if (old_reactions.has_pending_reaction_) {
     // we will ignore all updates, received while there is a pending reaction, so there are no reasons to update
@@ -274,10 +283,9 @@ void MessageReactions::update_from(const MessageReactions &old_reactions) {
     is_min_ = false;
     for (const auto &old_reaction : old_reactions.reactions_) {
       if (old_reaction.is_chosen()) {
-        for (auto &reaction : reactions_) {
-          if (reaction.get_reaction() == old_reaction.get_reaction()) {
-            reaction.set_is_chosen(true, DialogId(), false);
-          }
+        auto *reaction = get_reaction(old_reaction.get_reaction());
+        if (reaction != nullptr) {
+          reaction->set_is_chosen(true, DialogId(), false);
         }
       }
     }

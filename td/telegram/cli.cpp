@@ -2079,6 +2079,11 @@ class CliClient final : public Actor {
       ChatId chat_id;
       get_args(args, chat_id);
       send_request(td_api::make_object<td_api::getChatScheduledMessages>(chat_id));
+    } else if (op == "gmar") {
+      ChatId chat_id;
+      MessageId message_id;
+      get_args(args, chat_id, message_id);
+      send_request(td_api::make_object<td_api::getMessageAvailableReactions>(chat_id, message_id));
     } else if (op == "react") {
       ChatId chat_id;
       MessageId message_id;

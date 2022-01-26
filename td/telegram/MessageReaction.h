@@ -107,6 +107,8 @@ struct MessageReactions {
                                                             tl_object_ptr<telegram_api::messageReactions> &&reactions,
                                                             bool is_bot);
 
+  MessageReaction *get_reaction(const string &reaction);
+
   void update_from(const MessageReactions &old_reactions);
 
   void sort(const std::unordered_map<string, size_t> &active_reaction_pos);
