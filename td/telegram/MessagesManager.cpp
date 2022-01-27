@@ -20481,18 +20481,30 @@ void MessagesManager::open_dialog(Dialog *d) {
       td_->contacts_manager_->repair_chat_participants(dialog_id.get_chat_id());
       reget_dialog_action_bar(dialog_id, "open_dialog", false);
       break;
-    case DialogType::Channel:
+    case DialogType::Channel: {
+      auto channel_id = dialog_id.get_channel_id();
       if (!is_broadcast_channel(dialog_id)) {
-        auto participant_count = td_->contacts_manager_->get_channel_participant_count(dialog_id.get_channel_id());
+        auto participant_count = td_->contacts_manager_->get_channel_participant_count(channel_id);
         if (participant_count < 195) {  // include unknown participant_count
-          td_->contacts_manager_->get_channel_participants(dialog_id.get_channel_id(),
-                                                           td_api::make_object<td_api::supergroupMembersFilterRecent>(),
-                                                           string(), 0, 200, 200, Auto());
+          td_->contacts_manager_->get_channel_participants(
+              channel_id, td_api::make_object<td_api::supergroupMembersFilterRecent>(), string(), 0, 200, 200, Auto());
         }
       }
       get_channel_difference(dialog_id, d->pts, true, "open_dialog");
       reget_dialog_action_bar(dialog_id, "open_dialog", false);
+
+      if (td_->contacts_manager_->get_channel_has_linked_channel(channel_id)) {
+        auto linked_channel_id = td_->contacts_manager_->get_channel_linked_channel_id(channel_id);
+        if (!linked_channel_id.is_valid()) {
+          // load linked_channel_id
+          send_closure_later(G()->contacts_manager(), &ContactsManager::load_channel_full, channel_id, false,
+                             Promise<Unit>(), "open_dialog");
+        } else {
+          get_dialog_info_full(DialogId(linked_channel_id), Auto(), "open_dialog");
+        }
+      }
       break;
+    }
     case DialogType::SecretChat: {
       // to repair dialog action bar
       auto user_id = td_->contacts_manager_->get_secret_chat_user_id(dialog_id.get_secret_chat_id());
