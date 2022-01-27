@@ -23775,7 +23775,8 @@ Result<vector<string>> MessagesManager::get_message_available_reactions(FullMess
 vector<string> MessagesManager::get_message_available_reactions(const Dialog *d, const Message *m) {
   CHECK(d != nullptr);
   CHECK(m != nullptr);
-  if (!m->message_id.is_valid() || !m->message_id.is_server() || get_dialog_active_reactions(d).empty()) {
+  auto active_reactions = get_dialog_active_reactions(d);
+  if (!m->message_id.is_valid() || !m->message_id.is_server() || active_reactions.empty()) {
     return vector<string>();
   }
 
@@ -23787,7 +23788,7 @@ vector<string> MessagesManager::get_message_available_reactions(const Dialog *d,
   for (const auto &active_reaction : active_reactions_) {
     // can add the reaction if it has already been used for the message or is available in the chat
     if ((m->reactions != nullptr && m->reactions->get_reaction(active_reaction) != nullptr) ||
-        (can_add_new_reactions && td::contains(d->available_reactions, active_reaction))) {
+        (can_add_new_reactions && td::contains(active_reactions, active_reaction))) {
       result.push_back(active_reaction);
     }
   }
