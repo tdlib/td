@@ -2611,6 +2611,8 @@ class MessagesManager final : public Actor {
 
   vector<string> get_dialog_active_reactions(const Dialog *d) const;
 
+  vector<string> get_message_active_reactions(const Dialog *d, const Message *m) const;
+
   bool is_dialog_action_unneeded(DialogId dialog_id) const;
 
   void on_send_dialog_action_timeout(DialogId dialog_id);

@@ -6948,7 +6948,7 @@ bool MessagesManager::is_visible_message_reactions(DialogId dialog_id, const Mes
 
   const Dialog *d = get_dialog(dialog_id);
   CHECK(d != nullptr);
-  if (get_dialog_active_reactions(d).empty()) {
+  if (get_message_active_reactions(d, m).empty()) {
     return false;
   }
   return true;
@@ -8356,6 +8356,20 @@ vector<string> MessagesManager::get_dialog_active_reactions(const Dialog *d) con
       UNREACHABLE();
       return {};
   }
+}
+
+vector<string> MessagesManager::get_message_active_reactions(const Dialog *d, const Message *m) const {
+  CHECK(d != nullptr);
+  CHECK(m != nullptr);
+  if (is_discussion_message(d->dialog_id, m)) {
+    d = get_dialog(m->forward_info->from_dialog_id);
+    if (d == nullptr) {
+      LOG(ERROR) << "Failed to find linked " << m->forward_info->from_dialog_id
+                 << " to determine correct active reactions";
+      return vector<string>();
+    }
+  }
+  return get_dialog_active_reactions(d);
 }
 
 bool MessagesManager::update_dialog_silent_send_message(Dialog *d, bool silent_send_message) {
@@ -23775,7 +23789,7 @@ Result<vector<string>> MessagesManager::get_message_available_reactions(FullMess
 vector<string> MessagesManager::get_message_available_reactions(const Dialog *d, const Message *m) {
   CHECK(d != nullptr);
   CHECK(m != nullptr);
-  auto active_reactions = get_dialog_active_reactions(d);
+  auto active_reactions = get_message_active_reactions(d, m);
   if (!m->message_id.is_valid() || !m->message_id.is_server() || active_reactions.empty()) {
     return vector<string>();
   }
