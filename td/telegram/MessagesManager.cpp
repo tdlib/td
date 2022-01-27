@@ -24097,6 +24097,7 @@ tl_object_ptr<td_api::message> MessagesManager::get_message_object(DialogId dial
   auto can_be_saved = can_save_message(dialog_id, m);
   auto can_be_edited = for_event_log ? false : can_edit_message(dialog_id, m, false, td_->auth_manager_->is_bot());
   auto can_be_forwarded = for_event_log ? false : can_forward_message(dialog_id, m) && can_be_saved;
+  auto can_get_added_reactions = for_event_log ? false : m->reactions != nullptr && m->reactions->can_see_all_choosers_;
   auto can_get_statistics = for_event_log ? false : can_get_message_statistics(dialog_id, m);
   auto can_get_message_thread = for_event_log ? false : get_top_thread_full_message_id(dialog_id, m).is_ok();
   auto can_get_viewers = for_event_log ? false : can_get_message_viewers(dialog_id, m).is_ok();
@@ -24123,7 +24124,7 @@ tl_object_ptr<td_api::message> MessagesManager::get_message_object(DialogId dial
   return make_tl_object<td_api::message>(
       m->message_id.get(), std::move(sender), dialog_id.get(), std::move(sending_state), std::move(scheduling_state),
       is_outgoing, is_pinned, can_be_edited, can_be_forwarded, can_be_saved, can_delete_for_self,
-      can_delete_for_all_users, can_get_statistics, can_get_message_thread, can_get_viewers,
+      can_delete_for_all_users, can_get_added_reactions, can_get_statistics, can_get_message_thread, can_get_viewers,
       can_get_media_timestamp_links, has_timestamped_media, m->is_channel_post, contains_unread_mention, date,
       edit_date, std::move(forward_info), std::move(interaction_info), reply_in_dialog_id.get(), reply_to_message_id,
       top_thread_message_id, ttl, ttl_expires_in, via_bot_user_id, m->author_signature, media_album_id,
