@@ -6948,7 +6948,7 @@ bool MessagesManager::is_visible_message_reactions(DialogId dialog_id, const Mes
 
   const Dialog *d = get_dialog(dialog_id);
   CHECK(d != nullptr);
-  if (get_active_reactions(d->available_reactions).empty()) {
+  if (get_dialog_active_reactions(d).empty()) {
     return false;
   }
   return true;
@@ -23775,7 +23775,7 @@ Result<vector<string>> MessagesManager::get_message_available_reactions(FullMess
 vector<string> MessagesManager::get_message_available_reactions(const Dialog *d, const Message *m) {
   CHECK(d != nullptr);
   CHECK(m != nullptr);
-  if (!m->message_id.is_valid() || !m->message_id.is_server() || get_active_reactions(d->available_reactions).empty()) {
+  if (!m->message_id.is_valid() || !m->message_id.is_server() || get_dialog_active_reactions(d).empty()) {
     return vector<string>();
   }
 
