@@ -93,10 +93,44 @@ inline bool operator!=(const MessageReaction &lhs, const MessageReaction &rhs) {
   return !(lhs == rhs);
 }
 
-StringBuilder &operator<<(StringBuilder &string_builder, const MessageReaction &message_reaction);
+StringBuilder &operator<<(StringBuilder &string_builder, const MessageReaction &reaction);
+
+class UnreadMessageReaction {
+  string reaction_;
+  DialogId sender_dialog_id_;
+  bool is_big_ = false;
+
+  friend bool operator==(const UnreadMessageReaction &lhs, const UnreadMessageReaction &rhs);
+
+  friend StringBuilder &operator<<(StringBuilder &string_builder, const UnreadMessageReaction &message_reaction);
+
+ public:
+  UnreadMessageReaction() = default;
+
+  UnreadMessageReaction(string reaction, DialogId sender_dialog_id, bool is_big)
+      : reaction_(std::move(reaction)), sender_dialog_id_(sender_dialog_id), is_big_(is_big) {
+  }
+
+  td_api::object_ptr<td_api::unreadReaction> get_unread_reaction_object(Td *td) const;
+
+  template <class StorerT>
+  void store(StorerT &storer) const;
+
+  template <class ParserT>
+  void parse(ParserT &parser);
+};
+
+bool operator==(const UnreadMessageReaction &lhs, const UnreadMessageReaction &rhs);
+
+inline bool operator!=(const UnreadMessageReaction &lhs, const UnreadMessageReaction &rhs) {
+  return !(lhs == rhs);
+}
+
+StringBuilder &operator<<(StringBuilder &string_builder, const UnreadMessageReaction &unread_reaction);
 
 struct MessageReactions {
   vector<MessageReaction> reactions_;
+  vector<UnreadMessageReaction> unread_reactions_;
   bool is_min_ = false;
   bool need_polling_ = true;
   bool can_see_all_choosers_ = false;
@@ -118,6 +152,9 @@ struct MessageReactions {
 
   static bool need_update_message_reactions(const MessageReactions *old_reactions,
                                             const MessageReactions *new_reactions);
+
+  static bool need_update_unread_reactions(const MessageReactions *old_reactions,
+                                           const MessageReactions *new_reactions);
 
   template <class StorerT>
   void store(StorerT &storer) const;

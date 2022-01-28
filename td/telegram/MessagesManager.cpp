@@ -6996,6 +6996,20 @@ td_api::object_ptr<td_api::messageInteractionInfo> MessagesManager::get_message_
                                                              std::move(reactions));
 }
 
+vector<td_api::object_ptr<td_api::unreadReaction>> MessagesManager::get_unread_reactions_object(
+    DialogId dialog_id, const Message *m) const {
+  vector<td_api::object_ptr<td_api::unreadReaction>> unread_reactions;
+  if (is_visible_message_reactions(dialog_id, m) && m->reactions != nullptr) {
+    for (const auto &unread_reaction : m->reactions->unread_reactions_) {
+      auto unread_reaction_object = unread_reaction.get_unread_reaction_object(td_);
+      if (unread_reaction_object != nullptr) {
+        unread_reactions.push_back(std::move(unread_reaction_object));
+      }
+    }
+  }
+  return std::move(unread_reactions);
+}
+
 bool MessagesManager::update_message_interaction_info(DialogId dialog_id, Message *m, int32 view_count,
                                                       int32 forward_count, bool has_reply_info,
                                                       MessageReplyInfo &&reply_info, bool has_reactions,
@@ -7017,16 +7031,18 @@ bool MessagesManager::update_message_interaction_info(DialogId dialog_id, Messag
       }
     }
   }
-  if (has_reactions && reactions != nullptr && m->reactions != nullptr) {
-    reactions->update_from(*m->reactions);
-  }
   if (has_reactions && reactions != nullptr) {
+    if (m->reactions != nullptr) {
+      reactions->update_from(*m->reactions);
+    }
     reactions->sort(active_reaction_pos_);
   }
   bool need_update_reactions =
       has_reactions && MessageReactions::need_update_message_reactions(m->reactions.get(), reactions.get());
+  bool need_update_unread_reactions =
+      has_reactions && MessageReactions::need_update_unread_reactions(m->reactions.get(), reactions.get());
   if (view_count > m->view_count || forward_count > m->forward_count || need_update_reply_info ||
-      need_update_reactions) {
+      need_update_reactions || need_update_unread_reactions) {
     LOG(DEBUG) << "Update interaction info of " << FullMessageId{dialog_id, m->message_id} << " from " << m->view_count
                << '/' << m->forward_count << "/" << m->reply_info << " to " << view_count << '/' << forward_count << "/"
                << reply_info;
@@ -7053,9 +7069,14 @@ bool MessagesManager::update_message_interaction_info(DialogId dialog_id, Messag
       }
       need_update |= is_visible_message_reply_info(dialog_id, m);
     }
-    if (need_update_reactions) {
+    if (need_update_reactions || need_update_unread_reactions) {
       m->reactions = std::move(reactions);
-      need_update |= is_visible_message_reactions(dialog_id, m);
+      if (is_visible_message_reactions(dialog_id, m)) {
+        need_update |= need_update_reactions;
+        if (need_update_unread_reactions) {
+          send_update_message_unread_reactions(dialog_id, m);
+        }
+      }
     }
     if (need_update) {
       send_update_message_interaction_info(dialog_id, m);
@@ -8281,7 +8302,11 @@ void MessagesManager::update_dialog_message_reactions_visibility(const Dialog *d
   for (auto message_id : message_ids) {
     const auto *m = get_message(d, message_id);
     CHECK(m != nullptr);
+    CHECK(m->reactions != nullptr);
     send_update_message_interaction_info(d->dialog_id, m);
+    if (!m->reactions->unread_reactions_.empty()) {
+      send_update_message_unread_reactions(d->dialog_id, m);
+    }
   }
 }
 
@@ -20775,7 +20800,7 @@ td_api::object_ptr<td_api::chat> MessagesManager::get_chat_object(const Dialog *
       get_dialog_has_scheduled_messages(d), can_delete_for_self, can_delete_for_all_users,
       can_report_dialog(d->dialog_id), d->notification_settings.silent_send_message,
       d->server_unread_count + d->local_unread_count, d->last_read_inbox_message_id.get(),
-      d->last_read_outbox_message_id.get(), d->unread_mention_count,
+      d->last_read_outbox_message_id.get(), d->unread_mention_count, 0,
       get_chat_notification_settings_object(&d->notification_settings), get_dialog_active_reactions(d),
       d->message_ttl.get_message_ttl_object(), get_dialog_theme_name(d), get_chat_action_bar_object(d),
       get_video_chat_object(d), get_chat_join_requests_info_object(d), d->reply_markup_message_id.get(),
@@ -24121,6 +24146,7 @@ tl_object_ptr<td_api::message> MessagesManager::get_message_object(DialogId dial
   auto scheduling_state = is_scheduled ? get_message_scheduling_state_object(m->date) : nullptr;
   auto forward_info = get_message_forward_info_object(m->forward_info);
   auto interaction_info = get_message_interaction_info_object(dialog_id, m);
+  auto unread_reactions = get_unread_reactions_object(dialog_id, m);
   auto can_be_saved = can_save_message(dialog_id, m);
   auto can_be_edited = for_event_log ? false : can_edit_message(dialog_id, m, false, td_->auth_manager_->is_bot());
   auto can_be_forwarded = for_event_log ? false : can_forward_message(dialog_id, m) && can_be_saved;
@@ -24153,9 +24179,10 @@ tl_object_ptr<td_api::message> MessagesManager::get_message_object(DialogId dial
       is_outgoing, is_pinned, can_be_edited, can_be_forwarded, can_be_saved, can_delete_for_self,
       can_delete_for_all_users, can_get_added_reactions, can_get_statistics, can_get_message_thread, can_get_viewers,
       can_get_media_timestamp_links, has_timestamped_media, m->is_channel_post, contains_unread_mention, date,
-      edit_date, std::move(forward_info), std::move(interaction_info), reply_in_dialog_id.get(), reply_to_message_id,
-      top_thread_message_id, ttl, ttl_expires_in, via_bot_user_id, m->author_signature, media_album_id,
-      get_restriction_reason_description(m->restriction_reasons), std::move(content), std::move(reply_markup));
+      edit_date, std::move(forward_info), std::move(interaction_info), std::move(unread_reactions),
+      reply_in_dialog_id.get(), reply_to_message_id, top_thread_message_id, ttl, ttl_expires_in, via_bot_user_id,
+      m->author_signature, media_album_id, get_restriction_reason_description(m->restriction_reasons),
+      std::move(content), std::move(reply_markup));
 }
 
 tl_object_ptr<td_api::messages> MessagesManager::get_messages_object(int32 total_count, DialogId dialog_id,
@@ -29763,6 +29790,17 @@ void MessagesManager::send_update_message_interaction_info(DialogId dialog_id, c
   send_closure(G()->td(), &Td::send_update,
                make_tl_object<td_api::updateMessageInteractionInfo>(dialog_id.get(), m->message_id.get(),
                                                                     get_message_interaction_info_object(dialog_id, m)));
+}
+
+void MessagesManager::send_update_message_unread_reactions(DialogId dialog_id, const Message *m) const {
+  CHECK(m != nullptr);
+  if (td_->auth_manager_->is_bot() || !m->is_update_sent) {
+    return;
+  }
+
+  send_closure(G()->td(), &Td::send_update,
+               make_tl_object<td_api::updateMessageUnreadReactions>(dialog_id.get(), m->message_id.get(),
+                                                                    get_unread_reactions_object(dialog_id, m), 0));
 }
 
 void MessagesManager::send_update_message_live_location_viewed(FullMessageId full_message_id) {

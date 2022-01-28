@@ -2111,6 +2111,9 @@ class MessagesManager final : public Actor {
   td_api::object_ptr<td_api::messageInteractionInfo> get_message_interaction_info_object(DialogId dialog_id,
                                                                                          const Message *m) const;
 
+  vector<td_api::object_ptr<td_api::unreadReaction>> get_unread_reactions_object(DialogId dialog_id,
+                                                                                 const Message *m) const;
+
   bool update_message_interaction_info(DialogId dialog_id, Message *m, int32 view_count, int32 forward_count,
                                        bool has_reply_info, MessageReplyInfo &&reply_info, bool has_reactions,
                                        unique_ptr<MessageReactions> &&reactions, const char *source);
@@ -2386,6 +2389,8 @@ class MessagesManager final : public Actor {
   void send_update_message_edited(DialogId dialog_id, const Message *m);
 
   void send_update_message_interaction_info(DialogId dialog_id, const Message *m) const;
+
+  void send_update_message_unread_reactions(DialogId dialog_id, const Message *m) const;
 
   void send_update_message_live_location_viewed(FullMessageId full_message_id);
 

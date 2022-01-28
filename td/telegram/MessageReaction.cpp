@@ -239,6 +239,23 @@ StringBuilder &operator<<(StringBuilder &string_builder, const MessageReaction &
   return string_builder << ']';
 }
 
+td_api::object_ptr<td_api::unreadReaction> UnreadMessageReaction::get_unread_reaction_object(Td *td) const {
+  auto sender_id = get_min_message_sender_object(td, sender_dialog_id_, "get_unread_reaction_object");
+  if (sender_id == nullptr) {
+    return nullptr;
+  }
+  return td_api::make_object<td_api::unreadReaction>(reaction_, std::move(sender_id), is_big_);
+}
+
+bool operator==(const UnreadMessageReaction &lhs, const UnreadMessageReaction &rhs) {
+  return lhs.reaction_ == rhs.reaction_ && lhs.sender_dialog_id_ == rhs.sender_dialog_id_ && lhs.is_big_ == rhs.is_big_;
+}
+
+StringBuilder &operator<<(StringBuilder &string_builder, const UnreadMessageReaction &unread_reaction) {
+  return string_builder << '[' << unread_reaction.reaction_ << (unread_reaction.is_big_ ? " BY " : " by ")
+                        << unread_reaction.sender_dialog_id_ << ']';
+}
+
 unique_ptr<MessageReactions> MessageReactions::get_message_reactions(
     Td *td, tl_object_ptr<telegram_api::messageReactions> &&reactions, bool is_bot) {
   if (reactions == nullptr || is_bot) {
@@ -299,6 +316,9 @@ unique_ptr<MessageReactions> MessageReactions::get_message_reactions(
         }
 
         recent_chooser_dialog_ids.push_back(dialog_id);
+        if (peer_reaction->unread_) {
+          result->unread_reactions_.emplace_back(std::move(peer_reaction->reaction_), dialog_id, peer_reaction->big_);
+        }
         if (recent_chooser_dialog_ids.size() == MessageReaction::MAX_RECENT_CHOOSERS) {
           break;
         }
@@ -384,11 +404,18 @@ bool MessageReactions::need_update_message_reactions(const MessageReactions *old
     return true;
   }
 
-  // has_pending_reaction_ doesn't affect visible state
-  // compare all other fields
+  // unread_reactions_ are updated independently; compare all other fields
   return old_reactions->reactions_ != new_reactions->reactions_ || old_reactions->is_min_ != new_reactions->is_min_ ||
          old_reactions->can_see_all_choosers_ != new_reactions->can_see_all_choosers_ ||
          old_reactions->need_polling_ != new_reactions->need_polling_;
+}
+
+bool MessageReactions::need_update_unread_reactions(const MessageReactions *old_reactions,
+                                                    const MessageReactions *new_reactions) {
+  if (old_reactions == nullptr || old_reactions->unread_reactions_.empty()) {
+    return !(new_reactions == nullptr || new_reactions->unread_reactions_.empty());
+  }
+  return new_reactions == nullptr || old_reactions->unread_reactions_ != new_reactions->unread_reactions_;
 }
 
 void reload_message_reactions(Td *td, DialogId dialog_id, vector<MessageId> &&message_ids) {

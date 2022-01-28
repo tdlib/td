@@ -786,6 +786,12 @@ messageReaction reaction:string total_count:int32 is_chosen:Bool recent_sender_i
 //@reactions The list of reactions added to the message
 messageInteractionInfo view_count:int32 forward_count:int32 reply_info:messageReplyInfo reactions:vector<messageReaction> = MessageInteractionInfo;
 
+//@description Contains information about an unread reaction to a message
+//@reaction Text representation of the reaction
+//@sender_id Identifier of the sender, added the reaction
+//@is_big True, if the reaction was added with a big animation
+unreadReaction reaction:string sender_id:MessageSender is_big:Bool = UnreadReaction;
+
 
 //@class MessageSendingState @description Contains information about the sending state of the message
 
@@ -824,6 +830,7 @@ messageSendingStateFailed error_code:int32 error_message:string can_retry:Bool n
 //@edit_date Point in time (Unix timestamp) when the message was last edited
 //@forward_info Information about the initial message sender; may be null
 //@interaction_info Information about interactions with the message; may be null
+//@unread_reactions Information about unread reactions added to the message
 //@reply_in_chat_id If non-zero, the identifier of the chat to which the replied message belongs; Currently, only messages in the Replies chat can have different reply_in_chat_id and chat_id
 //@reply_to_message_id If non-zero, the identifier of the message this message is replying to; can be the identifier of a deleted message
 //@message_thread_id If non-zero, the identifier of the message thread the message belongs to; unique within the chat to which the message belongs
@@ -835,7 +842,7 @@ messageSendingStateFailed error_code:int32 error_message:string can_retry:Bool n
 //@restriction_reason If non-empty, contains a human-readable description of the reason why access to this message must be restricted
 //@content Content of the message
 //@reply_markup Reply markup for the message; may be null
-message id:int53 sender_id:MessageSender chat_id:int53 sending_state:MessageSendingState scheduling_state:MessageSchedulingState is_outgoing:Bool is_pinned:Bool can_be_edited:Bool can_be_forwarded:Bool can_be_saved:Bool can_be_deleted_only_for_self:Bool can_be_deleted_for_all_users:Bool can_get_added_reactions:Bool can_get_statistics:Bool can_get_message_thread:Bool can_get_viewers:Bool can_get_media_timestamp_links:Bool has_timestamped_media:Bool is_channel_post:Bool contains_unread_mention:Bool date:int32 edit_date:int32 forward_info:messageForwardInfo interaction_info:messageInteractionInfo reply_in_chat_id:int53 reply_to_message_id:int53 message_thread_id:int53 ttl:int32 ttl_expires_in:double via_bot_user_id:int53 author_signature:string media_album_id:int64 restriction_reason:string content:MessageContent reply_markup:ReplyMarkup = Message;
+message id:int53 sender_id:MessageSender chat_id:int53 sending_state:MessageSendingState scheduling_state:MessageSchedulingState is_outgoing:Bool is_pinned:Bool can_be_edited:Bool can_be_forwarded:Bool can_be_saved:Bool can_be_deleted_only_for_self:Bool can_be_deleted_for_all_users:Bool can_get_added_reactions:Bool can_get_statistics:Bool can_get_message_thread:Bool can_get_viewers:Bool can_get_media_timestamp_links:Bool has_timestamped_media:Bool is_channel_post:Bool contains_unread_mention:Bool date:int32 edit_date:int32 forward_info:messageForwardInfo interaction_info:messageInteractionInfo unread_reactions:vector<unreadReaction> reply_in_chat_id:int53 reply_to_message_id:int53 message_thread_id:int53 ttl:int32 ttl_expires_in:double via_bot_user_id:int53 author_signature:string media_album_id:int64 restriction_reason:string content:MessageContent reply_markup:ReplyMarkup = Message;
 
 //@description Contains a list of messages @total_count Approximate total count of messages found @messages List of messages; messages may be null
 messages total_count:int32 messages:vector<message> = Messages;
@@ -1006,6 +1013,7 @@ videoChat group_call_id:int32 has_participants:Bool default_participant_id:Messa
 //@last_read_inbox_message_id Identifier of the last read incoming message
 //@last_read_outbox_message_id Identifier of the last read outgoing message
 //@unread_mention_count Number of unread messages with a mention/reply in the chat
+//@unread_reaction_count Number of messages with unread reactions in the chat
 //@notification_settings Notification settings for the chat
 //@available_reactions List of reactions, available in the chat
 //@message_ttl Current message Time To Live setting (self-destruct timer) for the chat; 0 if not defined. TTL is counted from the time message or its content is viewed in secret chats and from the send date in other chats
@@ -1016,7 +1024,7 @@ videoChat group_call_id:int32 has_participants:Bool default_participant_id:Messa
 //@reply_markup_message_id Identifier of the message from which reply markup needs to be used; 0 if there is no default custom reply markup in the chat
 //@draft_message A draft of a message in the chat; may be null
 //@client_data Application-specific data associated with the chat. (For example, the chat scroll position or local chat notification settings can be stored here.) Persistent if the message database is used
-chat id:int53 type:ChatType title:string photo:chatPhotoInfo permissions:chatPermissions last_message:message positions:vector<chatPosition> message_sender_id:MessageSender has_protected_content:Bool is_marked_as_unread:Bool is_blocked:Bool has_scheduled_messages:Bool can_be_deleted_only_for_self:Bool can_be_deleted_for_all_users:Bool can_be_reported:Bool default_disable_notification:Bool unread_count:int32 last_read_inbox_message_id:int53 last_read_outbox_message_id:int53 unread_mention_count:int32 notification_settings:chatNotificationSettings available_reactions:vector<string> message_ttl:int32 theme_name:string action_bar:ChatActionBar video_chat:videoChat pending_join_requests:chatJoinRequestsInfo reply_markup_message_id:int53 draft_message:draftMessage client_data:string = Chat;
+chat id:int53 type:ChatType title:string photo:chatPhotoInfo permissions:chatPermissions last_message:message positions:vector<chatPosition> message_sender_id:MessageSender has_protected_content:Bool is_marked_as_unread:Bool is_blocked:Bool has_scheduled_messages:Bool can_be_deleted_only_for_self:Bool can_be_deleted_for_all_users:Bool can_be_reported:Bool default_disable_notification:Bool unread_count:int32 last_read_inbox_message_id:int53 last_read_outbox_message_id:int53 unread_mention_count:int32 unread_reaction_count:int32 notification_settings:chatNotificationSettings available_reactions:vector<string> message_ttl:int32 theme_name:string action_bar:ChatActionBar video_chat:videoChat pending_join_requests:chatJoinRequestsInfo reply_markup_message_id:int53 draft_message:draftMessage client_data:string = Chat;
 
 //@description Represents a list of chats @total_count Approximate total count of chats found @chat_ids List of chat identifiers
 chats total_count:int32 chat_ids:vector<int53> = Chats;
@@ -3753,6 +3761,9 @@ updateMessageContentOpened chat_id:int53 message_id:int53 = Update;
 //@description A message with an unread mention was read @chat_id Chat identifier @message_id Message identifier @unread_mention_count The new number of unread mention messages left in the chat
 updateMessageMentionRead chat_id:int53 message_id:int53 unread_mention_count:int32 = Update;
 
+//@description The list of unread reactions added to a message was changed @chat_id Chat identifier @message_id Message identifier @unread_reactions The new list of unread reactions @unread_reaction_count The new number of messages with unread reactions left in the chat
+updateMessageUnreadReactions chat_id:int53 message_id:int53 unread_reactions:vector<unreadReaction> unread_reaction_count:int32 = Update;
+
 //@description A message with a live location was viewed. When the update is received, the application is supposed to update the live location
 //@chat_id Identifier of the chat with the live location message @message_id Identifier of the message with live location
 updateMessageLiveLocationViewed chat_id:int53 message_id:int53 = Update;
@@ -3811,6 +3822,9 @@ updateChatTheme chat_id:int53 theme_name:string = Update;
 
 //@description The chat unread_mention_count has changed @chat_id Chat identifier @unread_mention_count The number of unread mention messages left in the chat
 updateChatUnreadMentionCount chat_id:int53 unread_mention_count:int32 = Update;
+
+//@description The chat unread_reaction_count has changed @chat_id Chat identifier @unread_reaction_count The number of messages with unread reactions left in the chat
+updateChatUnreadReactionCount chat_id:int53 unread_reaction_count:int32 = Update;
 
 //@description A chat video chat state has changed @chat_id Chat identifier @video_chat New value of video_chat
 updateChatVideoChat chat_id:int53 video_chat:videoChat = Update;
