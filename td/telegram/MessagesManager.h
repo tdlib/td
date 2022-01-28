@@ -1221,6 +1221,7 @@ class MessagesManager final : public Actor {
     int32 server_unread_count = 0;
     int32 local_unread_count = 0;
     int32 unread_mention_count = 0;
+    int32 unread_reaction_count = 0;
     int32 last_read_inbox_message_date = 0;  // secret chats only
     MessageId last_read_inbox_message_id;
     MessageId last_read_outbox_message_id;
@@ -2390,7 +2391,7 @@ class MessagesManager final : public Actor {
 
   void send_update_message_interaction_info(DialogId dialog_id, const Message *m) const;
 
-  void send_update_message_unread_reactions(DialogId dialog_id, const Message *m) const;
+  void send_update_message_unread_reactions(DialogId dialog_id, const Message *m, int32 unread_reaction_count) const;
 
   void send_update_message_live_location_viewed(FullMessageId full_message_id);
 
@@ -2418,6 +2419,8 @@ class MessagesManager final : public Actor {
   void send_update_chat_read_outbox(const Dialog *d);
 
   void send_update_chat_unread_mention_count(const Dialog *d);
+
+  void send_update_chat_unread_reaction_count(const Dialog *d);
 
   void send_update_chat_position(DialogListId dialog_list_id, const Dialog *d, const char *source) const;
 
@@ -2510,6 +2513,8 @@ class MessagesManager final : public Actor {
                                           const char *source, bool is_loaded_from_database = false);
 
   static void set_dialog_unread_mention_count(Dialog *d, int32 unread_mention_count);
+
+  static void set_dialog_unread_reaction_count(Dialog *d, int32 unread_reaction_count);
 
   void set_dialog_is_empty(Dialog *d, const char *source);
 
@@ -2607,7 +2612,7 @@ class MessagesManager final : public Actor {
 
   void set_dialog_available_reactions(Dialog *d, vector<string> &&available_reactions);
 
-  void update_dialog_message_reactions_visibility(const Dialog *d);
+  void update_dialog_message_reactions_visibility(Dialog *d);
 
   vector<string> get_active_reactions(const vector<string> &available_reactions) const;
 
@@ -3050,7 +3055,7 @@ class MessagesManager final : public Actor {
                                               vector<tl_object_ptr<telegram_api::Update>> &&other_updates);
 
   void on_get_channel_dialog(DialogId dialog_id, MessageId last_message_id, MessageId read_inbox_max_message_id,
-                             int32 server_unread_count, int32 unread_mention_count,
+                             int32 server_unread_count, int32 unread_mention_count, int32 unread_reaction_count,
                              MessageId read_outbox_max_message_id,
                              vector<tl_object_ptr<telegram_api::Message>> &&messages);
 

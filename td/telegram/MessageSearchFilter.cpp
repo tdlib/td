@@ -47,6 +47,7 @@ tl_object_ptr<telegram_api::MessagesFilter> get_input_messages_filter(MessageSea
       return make_tl_object<telegram_api::inputMessagesFilterPinned>();
     case MessageSearchFilter::UnreadMention:
     case MessageSearchFilter::FailedToSend:
+    case MessageSearchFilter::UnreadReaction:
     default:
       UNREACHABLE();
       return nullptr;
@@ -134,6 +135,8 @@ StringBuilder &operator<<(StringBuilder &string_builder, MessageSearchFilter fil
       return string_builder << "FailedToSend";
     case MessageSearchFilter::Pinned:
       return string_builder << "Pinned";
+    case MessageSearchFilter::UnreadReaction:
+      return string_builder << "UnreadReaction";
     default:
       UNREACHABLE();
       return string_builder;

@@ -2484,6 +2484,7 @@ class GetSearchCountersQuery final : public Td::ResultHandler {
     CHECK(filter != MessageSearchFilter::Empty);
     CHECK(filter != MessageSearchFilter::UnreadMention);
     CHECK(filter != MessageSearchFilter::FailedToSend);
+    CHECK(filter != MessageSearchFilter::UnreadReaction);
     vector<telegram_api::object_ptr<telegram_api::MessagesFilter>> filters;
     filters.push_back(get_input_messages_filter(filter));
     send_query(G()->net_query_creator().create(
@@ -5807,6 +5808,11 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
   if (unread_mention_count < 0) {
     unread_mention_count = 0;
   }
+  unread_reaction_count = message_count_by_index[message_search_filter_index(MessageSearchFilter::UnreadReaction)];
+  LOG(INFO) << "Set unread reaction count in " << dialog_id << " to " << unread_reaction_count;
+  if (unread_reaction_count < 0) {
+    unread_reaction_count = 0;
+  }
   if (has_client_data) {
     parse(client_data, parser);
   }
@@ -6225,6 +6231,8 @@ void MessagesManager::update_message_count_by_index(Dialog *d, int diff, const M
   auto index_mask = get_message_index_mask(d->dialog_id, m);
   index_mask &= ~message_search_filter_index_mask(
       MessageSearchFilter::UnreadMention);  // unread mention count has been already manually updated
+  index_mask &= ~message_search_filter_index_mask(
+      MessageSearchFilter::UnreadReaction);  // unread reaction count has been already manually updated
 
   update_message_count_by_index(d, diff, index_mask);
 }
@@ -6295,6 +6303,9 @@ int32 MessagesManager::get_message_index_mask(DialogId dialog_id, const Message 
     index_mask |= message_search_filter_index_mask(MessageSearchFilter::Mention);
     if (m->contains_unread_mention) {
       index_mask |= message_search_filter_index_mask(MessageSearchFilter::UnreadMention);
+    }
+    if (m->reactions != nullptr && !m->reactions->unread_reactions_.empty()) {
+      index_mask |= message_search_filter_index_mask(MessageSearchFilter::UnreadReaction);
     }
   }
   LOG(INFO) << "Have index mask " << index_mask << " for " << m->message_id << " in " << dialog_id;
@@ -7018,6 +7029,7 @@ bool MessagesManager::update_message_interaction_info(DialogId dialog_id, Messag
   m->interaction_info_update_date = G()->unix_time();  // doesn't force message saving
   if (m->message_id.is_valid_scheduled()) {
     has_reply_info = false;
+    has_reactions = false;
   }
   bool need_update_reply_info = has_reply_info && m->reply_info.need_update_to(reply_info);
   if (has_reply_info && m->reply_info.channel_id == reply_info.channel_id) {
@@ -7070,11 +7082,32 @@ bool MessagesManager::update_message_interaction_info(DialogId dialog_id, Messag
       need_update |= is_visible_message_reply_info(dialog_id, m);
     }
     if (need_update_reactions || need_update_unread_reactions) {
+      int32 unread_reaction_diff = 0;
+      unread_reaction_diff -= (m->reactions != nullptr && !m->reactions->unread_reactions_.empty() ? 1 : 0);
       m->reactions = std::move(reactions);
+      unread_reaction_diff += (m->reactions != nullptr && !m->reactions->unread_reactions_.empty() ? 1 : 0);
       if (is_visible_message_reactions(dialog_id, m)) {
         need_update |= need_update_reactions;
         if (need_update_unread_reactions) {
-          send_update_message_unread_reactions(dialog_id, m);
+          Dialog *d = get_dialog(dialog_id);
+          CHECK(d != nullptr);
+
+          if (unread_reaction_diff != 0) {
+            CHECK(m->message_id.is_valid());
+
+            // remove_message_notification_id(d, m, true, true);
+
+            if (d->unread_reaction_count + unread_reaction_diff < 0) {
+              if (is_dialog_inited(d)) {
+                LOG(ERROR) << "Unread reaction count of " << d->dialog_id << " became negative from " << source;
+              }
+            } else {
+              set_dialog_unread_reaction_count(d, d->unread_reaction_count + unread_reaction_diff);
+              on_dialog_updated(dialog_id, "update_message_interaction_info");
+            }
+          }
+
+          send_update_message_unread_reactions(dialog_id, m, d->unread_reaction_count);
         }
       }
     }
@@ -7153,7 +7186,7 @@ bool MessagesManager::update_message_contains_unread_mention(Dialog *d, Message 
   LOG_CHECK(m != nullptr) << source;
   CHECK(!m->message_id.is_scheduled());
   if (!contains_unread_mention && m->contains_unread_mention) {
-    remove_message_notification_id(d, m, true, true);  // should be called before contains_unread_mention is updated
+    remove_message_notification_id(d, m, true, true);  // must be called before contains_unread_mention is updated
 
     m->contains_unread_mention = false;
     if (d->unread_mention_count == 0) {
@@ -8295,19 +8328,24 @@ void MessagesManager::set_dialog_available_reactions(Dialog *d, vector<string> &
   }
 }
 
-void MessagesManager::update_dialog_message_reactions_visibility(const Dialog *d) {
+void MessagesManager::update_dialog_message_reactions_visibility(Dialog *d) {
   vector<MessageId> message_ids;
   find_messages(d->messages.get(), message_ids,
                 [](const Message *m) { return m->reactions != nullptr && !m->reactions->reactions_.empty(); });
+  int32 unread_reaction_count = 0;
   for (auto message_id : message_ids) {
     const auto *m = get_message(d, message_id);
     CHECK(m != nullptr);
     CHECK(m->reactions != nullptr);
     send_update_message_interaction_info(d->dialog_id, m);
     if (!m->reactions->unread_reactions_.empty()) {
-      send_update_message_unread_reactions(d->dialog_id, m);
+      if (is_visible_message_reactions(d->dialog_id, m)) {
+        unread_reaction_count++;
+      }
+      send_update_message_unread_reactions(d->dialog_id, m, unread_reaction_count);
     }
   }
+  set_dialog_unread_reaction_count(d, unread_reaction_count);
 }
 
 void MessagesManager::set_active_reactions(vector<string> active_reactions) {
@@ -8321,8 +8359,8 @@ void MessagesManager::set_active_reactions(vector<string> active_reactions) {
     active_reaction_pos_[active_reactions_[i]] = i;
   }
 
-  for (const auto &dialog : dialogs_) {
-    const Dialog *d = dialog.second.get();
+  for (auto &dialog : dialogs_) {
+    Dialog *d = dialog.second.get();
     switch (d->dialog_id.get_type()) {
       case DialogType::User:
         send_update_chat_available_reactions(d);
@@ -10122,6 +10160,11 @@ void MessagesManager::on_get_dialog_messages_search_result(
         update_dialog_mention_notification_count(d);
         send_update_chat_unread_mention_count(d);
       }
+      if (filter == MessageSearchFilter::UnreadReaction) {
+        d->unread_reaction_count = old_message_count;
+        update_dialog_mention_notification_count(d);
+        send_update_chat_unread_reaction_count(d);
+      }
       update_dialog = true;
     }
 
@@ -10170,6 +10213,7 @@ void MessagesManager::on_get_dialog_message_count(DialogId dialog_id, MessageSea
   CHECK(d != nullptr);
   CHECK(filter != MessageSearchFilter::Empty);
   CHECK(filter != MessageSearchFilter::UnreadMention);
+  CHECK(filter != MessageSearchFilter::UnreadReaction);
   CHECK(filter != MessageSearchFilter::FailedToSend);
 
   auto &old_message_count = d->message_count_by_index[message_search_filter_index(filter)];
@@ -11539,6 +11583,10 @@ void MessagesManager::delete_all_dialog_messages(Dialog *d, bool remove_from_dia
     set_dialog_unread_mention_count(d, 0);
     send_update_chat_unread_mention_count(d);
   }
+  if (d->unread_reaction_count > 0) {
+    set_dialog_unread_reaction_count(d, 0);
+    send_update_chat_unread_reaction_count(d);
+  }
 
   bool has_last_message_id = d->last_message_id != MessageId();
   int32 last_message_date = 0;
@@ -11662,7 +11710,7 @@ void MessagesManager::read_all_dialog_mentions(DialogId dialog_id, Promise<Unit>
     CHECK(m->contains_unread_mention);
     CHECK(m->message_id == message_id);
     CHECK(m->message_id.is_valid());
-    remove_message_notification_id(d, m, true, false);  // should be called before contains_unread_mention is updated
+    remove_message_notification_id(d, m, true, false);  // must be called before contains_unread_mention is updated
     m->contains_unread_mention = false;
 
     send_closure(G()->td(), &Td::send_update,
@@ -14551,6 +14599,14 @@ void MessagesManager::set_dialog_unread_mention_count(Dialog *d, int32 unread_me
   d->message_count_by_index[message_search_filter_index(MessageSearchFilter::UnreadMention)] = unread_mention_count;
 }
 
+void MessagesManager::set_dialog_unread_reaction_count(Dialog *d, int32 unread_reaction_count) {
+  CHECK(d->unread_reaction_count != unread_reaction_count);
+  CHECK(unread_reaction_count >= 0);
+
+  d->unread_reaction_count = unread_reaction_count;
+  d->message_count_by_index[message_search_filter_index(MessageSearchFilter::UnreadReaction)] = unread_reaction_count;
+}
+
 void MessagesManager::set_dialog_is_empty(Dialog *d, const char *source) {
   LOG(INFO) << "Set " << d->dialog_id << " is_empty to true from " << source;
   CHECK(d->have_full_history);
@@ -14569,6 +14625,10 @@ void MessagesManager::set_dialog_is_empty(Dialog *d, const char *source) {
   if (d->unread_mention_count > 0) {
     set_dialog_unread_mention_count(d, 0);
     send_update_chat_unread_mention_count(d);
+  }
+  if (d->unread_reaction_count > 0) {
+    set_dialog_unread_reaction_count(d, 0);
+    send_update_chat_unread_reaction_count(d);
   }
   if (d->reply_markup_message_id != MessageId()) {
     set_dialog_reply_markup(d, MessageId());
@@ -15108,6 +15168,11 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
                  << dialog_id;
       dialog->unread_mentions_count_ = 0;
     }
+    if (dialog->unread_reactions_count_ < 0) {
+      LOG(ERROR) << "Receive " << dialog->unread_reactions_count_ << " as number of messages with unread reactions in "
+                 << dialog_id;
+      dialog->unread_reactions_count_ = 0;
+    }
     if (!d->is_is_blocked_inited && !td_->auth_manager_->is_bot()) {
       // asynchronously get is_blocked from the server
       // TODO add is_blocked to telegram_api::dialog
@@ -15234,6 +15299,11 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
         set_dialog_unread_mention_count(d, dialog->unread_mentions_count_);
         update_dialog_mention_notification_count(d);
         send_update_chat_unread_mention_count(d);
+      }
+      if (d->unread_reaction_count != dialog->unread_reactions_count_) {
+        set_dialog_unread_reaction_count(d, dialog->unread_reactions_count_);
+        update_dialog_mention_notification_count(d);
+        send_update_chat_unread_reaction_count(d);
       }
     }
 
@@ -15834,6 +15904,17 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
       } else {
         set_dialog_unread_mention_count(d, d->unread_mention_count - 1);
         send_update_chat_unread_mention_count(d);
+      }
+    }
+    if (result->reactions != nullptr && !result->reactions->unread_reactions_.empty()) {
+      if (d->unread_reaction_count == 0) {
+        if (is_dialog_inited(d)) {
+          LOG(ERROR) << "Unread reaction count became negative in " << d->dialog_id << " after deletion of "
+                     << message_id;
+        }
+      } else {
+        set_dialog_unread_reaction_count(d, d->unread_reaction_count - 1);
+        send_update_chat_unread_reaction_count(d);
       }
     }
 
@@ -20800,7 +20881,7 @@ td_api::object_ptr<td_api::chat> MessagesManager::get_chat_object(const Dialog *
       get_dialog_has_scheduled_messages(d), can_delete_for_self, can_delete_for_all_users,
       can_report_dialog(d->dialog_id), d->notification_settings.silent_send_message,
       d->server_unread_count + d->local_unread_count, d->last_read_inbox_message_id.get(),
-      d->last_read_outbox_message_id.get(), d->unread_mention_count, 0,
+      d->last_read_outbox_message_id.get(), d->unread_mention_count, d->unread_reaction_count,
       get_chat_notification_settings_object(&d->notification_settings), get_dialog_active_reactions(d),
       d->message_ttl.get_message_ttl_object(), get_dialog_theme_name(d), get_chat_action_bar_object(d),
       get_video_chat_object(d), get_chat_join_requests_info_object(d), d->reply_markup_message_id.get(),
@@ -21794,7 +21875,7 @@ td_api::object_ptr<td_api::messageCalendar> MessagesManager::get_dialog_message_
 
   CHECK(filter != MessageSearchFilter::Call && filter != MessageSearchFilter::MissedCall);
   if (filter == MessageSearchFilter::Empty || filter == MessageSearchFilter::Mention ||
-      filter == MessageSearchFilter::UnreadMention) {
+      filter == MessageSearchFilter::UnreadMention || filter == MessageSearchFilter::UnreadReaction) {
     promise.set_error(Status::Error(400, "The filter is not supported"));
     return {};
   }
@@ -22006,7 +22087,7 @@ std::pair<int32, vector<MessageId>> MessagesManager::search_dialog_messages(
   } while (random_id == 0 || found_dialog_messages_.find(random_id) != found_dialog_messages_.end());
   found_dialog_messages_[random_id];  // reserve place for result
 
-  if (filter == MessageSearchFilter::UnreadMention) {
+  if (filter == MessageSearchFilter::UnreadMention || filter == MessageSearchFilter::UnreadReaction) {
     if (!query.empty()) {
       promise.set_error(Status::Error(400, "Non-empty query is unsupported with the specified filter"));
       return result;
@@ -22071,7 +22152,8 @@ std::pair<int32, vector<MessageId>> MessagesManager::search_dialog_messages(
                  random_id);
       break;
     case DialogType::SecretChat:
-      if (filter == MessageSearchFilter::UnreadMention || filter == MessageSearchFilter::Pinned) {
+      if (filter == MessageSearchFilter::UnreadMention || filter == MessageSearchFilter::Pinned ||
+          filter == MessageSearchFilter::UnreadReaction) {
         promise.set_value(Unit());
       } else {
         promise.set_error(Status::Error(500, "Search messages in secret chats is not supported"));
@@ -22610,6 +22692,11 @@ void MessagesManager::on_search_dialog_messages_db_result(int64 random_id, Dialo
       d->unread_mention_count = message_count;
       update_dialog_mention_notification_count(d);
       send_update_chat_unread_mention_count(d);
+    }
+    if (filter == MessageSearchFilter::UnreadReaction) {
+      d->unread_reaction_count = message_count;
+      update_dialog_mention_notification_count(d);
+      send_update_chat_unread_reaction_count(d);
     }
     on_dialog_updated(dialog_id, "on_search_dialog_messages_db_result");
   }
@@ -23159,6 +23246,9 @@ void MessagesManager::get_dialog_message_count(DialogId dialog_id, MessageSearch
   int32 message_count = d->message_count_by_index[message_search_filter_index(filter)];
   if (message_count == -1 && filter == MessageSearchFilter::UnreadMention) {
     message_count = d->unread_mention_count;
+  }
+  if (message_count == -1 && filter == MessageSearchFilter::UnreadReaction) {
+    message_count = d->unread_reaction_count;
   }
   if (message_count != -1 || return_local || dialog_type == DialogType::SecretChat ||
       filter == MessageSearchFilter::FailedToSend) {
@@ -28712,9 +28802,10 @@ MessagesManager::MessageNotificationGroup MessagesManager::get_message_notificat
   MessageNotificationGroup result;
   VLOG(notifications) << "Found " << (from_mentions ? "Mentions " : "Messages ") << group_info.group_id << '/'
                       << d->dialog_id << " by " << group_id << " with " << d->unread_mention_count
-                      << " unread mentions, pinned " << d->pinned_message_notification_message_id
-                      << ", new secret chat " << d->new_secret_chat_notification_id << " and "
-                      << d->server_unread_count + d->local_unread_count << " unread messages";
+                      << " unread mentions, " << d->unread_reaction_count << " unread reactions, pinned "
+                      << d->pinned_message_notification_message_id << ", new secret chat "
+                      << d->new_secret_chat_notification_id << " and " << d->server_unread_count + d->local_unread_count
+                      << " unread messages";
   result.dialog_id = d->dialog_id;
   result.total_count = get_dialog_pending_notification_count(d, from_mentions);
   auto pending_notification_count =
@@ -29792,15 +29883,17 @@ void MessagesManager::send_update_message_interaction_info(DialogId dialog_id, c
                                                                     get_message_interaction_info_object(dialog_id, m)));
 }
 
-void MessagesManager::send_update_message_unread_reactions(DialogId dialog_id, const Message *m) const {
+void MessagesManager::send_update_message_unread_reactions(DialogId dialog_id, const Message *m,
+                                                           int32 unread_reaction_count) const {
   CHECK(m != nullptr);
   if (td_->auth_manager_->is_bot() || !m->is_update_sent) {
     return;
   }
 
-  send_closure(G()->td(), &Td::send_update,
-               make_tl_object<td_api::updateMessageUnreadReactions>(dialog_id.get(), m->message_id.get(),
-                                                                    get_unread_reactions_object(dialog_id, m), 0));
+  send_closure(
+      G()->td(), &Td::send_update,
+      make_tl_object<td_api::updateMessageUnreadReactions>(
+          dialog_id.get(), m->message_id.get(), get_unread_reactions_object(dialog_id, m), unread_reaction_count));
 }
 
 void MessagesManager::send_update_message_live_location_viewed(FullMessageId full_message_id) {
@@ -30054,6 +30147,19 @@ void MessagesManager::send_update_chat_unread_mention_count(const Dialog *d) {
   on_dialog_updated(d->dialog_id, "send_update_chat_unread_mention_count");
   send_closure(G()->td(), &Td::send_update,
                make_tl_object<td_api::updateChatUnreadMentionCount>(d->dialog_id.get(), d->unread_mention_count));
+}
+
+void MessagesManager::send_update_chat_unread_reaction_count(const Dialog *d) {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+
+  CHECK(d != nullptr);
+  LOG_CHECK(d->is_update_new_chat_sent) << "Wrong " << d->dialog_id << " in send_update_chat_unread_reaction_count";
+  LOG(INFO) << "Update unread reaction message count in " << d->dialog_id << " to " << d->unread_reaction_count;
+  on_dialog_updated(d->dialog_id, "send_update_chat_unread_reaction_count");
+  send_closure(G()->td(), &Td::send_update,
+               make_tl_object<td_api::updateChatUnreadReactionCount>(d->dialog_id.get(), d->unread_reaction_count));
 }
 
 void MessagesManager::send_update_chat_position(DialogListId dialog_list_id, const Dialog *d,
@@ -33673,7 +33779,8 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
         message->have_next = false;
       }
       if (!message->from_database && (from_update || message->edit_date >= m->edit_date)) {
-        const int32 INDEX_MASK_MASK = ~message_search_filter_index_mask(MessageSearchFilter::UnreadMention);
+        const int32 INDEX_MASK_MASK = ~(message_search_filter_index_mask(MessageSearchFilter::UnreadMention) |
+                                        message_search_filter_index_mask(MessageSearchFilter::UnreadReaction));
         auto old_index_mask = get_message_index_mask(dialog_id, m) & INDEX_MASK_MASK;
         bool was_deleted = delete_active_live_location(dialog_id, m);
         auto old_file_ids = get_message_content_file_ids(m->content.get(), td_);
@@ -34009,6 +34116,10 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
   if (*need_update && message->contains_unread_mention) {
     set_dialog_unread_mention_count(d, d->unread_mention_count + 1);
     send_update_chat_unread_mention_count(d);
+  }
+  if (*need_update && message->reactions != nullptr && !message->reactions->unread_reactions_.empty()) {
+    set_dialog_unread_reaction_count(d, d->unread_reaction_count + 1);
+    send_update_chat_unread_reaction_count(d);
   }
   if (*need_update) {
     update_message_count_by_index(d, +1, message.get());
@@ -37411,7 +37522,8 @@ void MessagesManager::process_get_channel_difference_updates(
 
 void MessagesManager::on_get_channel_dialog(DialogId dialog_id, MessageId last_message_id,
                                             MessageId read_inbox_max_message_id, int32 server_unread_count,
-                                            int32 unread_mention_count, MessageId read_outbox_max_message_id,
+                                            int32 unread_mention_count, int32 unread_reaction_count,
+                                            MessageId read_outbox_max_message_id,
                                             vector<tl_object_ptr<telegram_api::Message>> &&messages) {
   std::unordered_map<FullMessageId, tl_object_ptr<telegram_api::Message>, FullMessageIdHash> full_message_id_to_message;
   for (auto &message : messages) {
@@ -37506,6 +37618,11 @@ void MessagesManager::on_get_channel_dialog(DialogId dialog_id, MessageId last_m
     set_dialog_unread_mention_count(d, unread_mention_count);
     update_dialog_mention_notification_count(d);
     send_update_chat_unread_mention_count(d);
+  }
+  if (d->unread_reaction_count != unread_reaction_count) {
+    set_dialog_unread_reaction_count(d, unread_reaction_count);
+    update_dialog_mention_notification_count(d);
+    send_update_chat_unread_reaction_count(d);
   }
 
   if (d->last_read_outbox_message_id != read_outbox_max_message_id) {
@@ -37703,8 +37820,8 @@ void MessagesManager::on_get_channel_difference(
 
       on_get_channel_dialog(dialog_id, MessageId(ServerMessageId(dialog->top_message_)),
                             MessageId(ServerMessageId(dialog->read_inbox_max_id_)), dialog->unread_count_,
-                            dialog->unread_mentions_count_, MessageId(ServerMessageId(dialog->read_outbox_max_id_)),
-                            std::move(difference->messages_));
+                            dialog->unread_mentions_count_, dialog->unread_reactions_count_,
+                            MessageId(ServerMessageId(dialog->read_outbox_max_id_)), std::move(difference->messages_));
       update_dialog_pos(d, "updates.channelDifferenceTooLong");
 
       if (!td_->auth_manager_->is_bot()) {
