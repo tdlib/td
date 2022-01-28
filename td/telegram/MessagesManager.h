@@ -52,8 +52,8 @@
 #include "td/telegram/secret_api.h"
 #include "td/telegram/SecretChatId.h"
 #include "td/telegram/SecretInputMedia.h"
-#include "td/telegram/ServerMessageId.h"
 #include "td/telegram/SequenceDispatcher.h"
+#include "td/telegram/ServerMessageId.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/UserId.h"
@@ -2104,6 +2104,8 @@ class MessagesManager final : public Actor {
   bool is_visible_message_reply_info(DialogId dialog_id, const Message *m) const;
 
   bool is_visible_message_reactions(DialogId dialog_id, const Message *m) const;
+
+  bool has_unread_message_reactions(DialogId dialog_id, const Message *m) const;
 
   void on_message_reply_info_changed(DialogId dialog_id, const Message *m) const;
 
