@@ -8360,7 +8360,9 @@ void MessagesManager::update_dialog_message_reactions_visibility(Dialog *d) {
       send_update_message_unread_reactions(d->dialog_id, m, unread_reaction_count);
     }
   }
-  set_dialog_unread_reaction_count(d, unread_reaction_count);
+  if (d->unread_reaction_count != unread_reaction_count) {
+    set_dialog_unread_reaction_count(d, unread_reaction_count);
+  }
 }
 
 void MessagesManager::set_active_reactions(vector<string> active_reactions) {
