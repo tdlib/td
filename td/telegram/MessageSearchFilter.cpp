@@ -91,6 +91,8 @@ MessageSearchFilter get_message_search_filter(const tl_object_ptr<td_api::Search
       return MessageSearchFilter::FailedToSend;
     case td_api::searchMessagesFilterPinned::ID:
       return MessageSearchFilter::Pinned;
+    case td_api::searchMessagesFilterUnreadReaction::ID:
+      return MessageSearchFilter::UnreadReaction;
     default:
       UNREACHABLE();
       return MessageSearchFilter::Empty;

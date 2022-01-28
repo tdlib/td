@@ -2356,6 +2356,10 @@ class SearchMessagesQuery final : public Td::ResultHandler {
       send_query(G()->net_query_creator().create(
           telegram_api::messages_getUnreadMentions(std::move(input_peer), from_message_id.get_server_message_id().get(),
                                                    offset, limit, std::numeric_limits<int32>::max(), 0)));
+    } else if (filter == MessageSearchFilter::UnreadReaction) {
+      send_query(G()->net_query_creator().create(telegram_api::messages_getUnreadReactions(
+          std::move(input_peer), from_message_id.get_server_message_id().get(), offset, limit,
+          std::numeric_limits<int32>::max(), 0)));
     } else if (top_thread_message_id.is_valid() && query.empty() && !sender_dialog_id.is_valid() &&
                filter == MessageSearchFilter::Empty) {
       handle_errors_ = dialog_id.get_type() != DialogType::Channel ||
@@ -2386,6 +2390,9 @@ class SearchMessagesQuery final : public Td::ResultHandler {
 
   void on_result(BufferSlice packet) final {
     static_assert(std::is_same<telegram_api::messages_getUnreadMentions::ReturnType,
+                               telegram_api::messages_search::ReturnType>::value,
+                  "");
+    static_assert(std::is_same<telegram_api::messages_getUnreadReactions::ReturnType,
                                telegram_api::messages_search::ReturnType>::value,
                   "");
     static_assert(
@@ -22899,7 +22906,8 @@ std::pair<int32, vector<FullMessageId>> MessagesManager::search_messages(
 
   CHECK(filter != MessageSearchFilter::Call && filter != MessageSearchFilter::MissedCall);
   if (filter == MessageSearchFilter::Mention || filter == MessageSearchFilter::UnreadMention ||
-      filter == MessageSearchFilter::FailedToSend || filter == MessageSearchFilter::Pinned) {
+      filter == MessageSearchFilter::UnreadReaction || filter == MessageSearchFilter::FailedToSend ||
+      filter == MessageSearchFilter::Pinned) {
     promise.set_error(Status::Error(400, "The filter is not supported"));
     return {};
   }
@@ -23157,7 +23165,8 @@ void MessagesManager::get_dialog_sparse_message_positions(
 
   CHECK(filter != MessageSearchFilter::Call && filter != MessageSearchFilter::MissedCall);
   if (filter == MessageSearchFilter::Empty || filter == MessageSearchFilter::Mention ||
-      filter == MessageSearchFilter::UnreadMention || filter == MessageSearchFilter::Pinned) {
+      filter == MessageSearchFilter::UnreadMention || filter == MessageSearchFilter::UnreadReaction ||
+      filter == MessageSearchFilter::Pinned) {
     return promise.set_error(Status::Error(400, "The filter is not supported"));
   }
 
