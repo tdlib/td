@@ -341,7 +341,7 @@ class GetPinnedDialogsActor final : public NetActorOnce {
     auto query = G()->net_query_creator().create(telegram_api::messages_getPinnedDialogs(folder_id.get()));
     auto result = query.get_weak();
     send_closure(td_->messages_manager_->sequence_dispatcher_, &MultiSequenceDispatcher::send_with_callback,
-                 std::move(query), actor_shared(this), sequence_id);
+                 std::move(query), actor_shared(this), ChainIds{sequence_id});
     return result;
   }
 
@@ -796,7 +796,7 @@ class GetDialogListActor final : public NetActorOnce {
         telegram_api::messages_getDialogs(flags, false /*ignored*/, folder_id.get(), offset_date,
                                           offset_message_id.get(), std::move(input_peer), limit, 0));
     send_closure(td_->messages_manager_->sequence_dispatcher_, &MultiSequenceDispatcher::send_with_callback,
-                 std::move(query), actor_shared(this), sequence_id);
+                 std::move(query), actor_shared(this), ChainIds{sequence_id});
   }
 
   void on_result(BufferSlice packet) final {
@@ -1853,7 +1853,7 @@ class ToggleDialogIsBlockedActor final : public NetActorOnce {
     auto query = is_blocked ? G()->net_query_creator().create(telegram_api::contacts_block(std::move(input_peer)))
                             : G()->net_query_creator().create(telegram_api::contacts_unblock(std::move(input_peer)));
     send_closure(td_->messages_manager_->sequence_dispatcher_, &MultiSequenceDispatcher::send_with_callback,
-                 std::move(query), actor_shared(this), sequence_dispatcher_id);
+                 std::move(query), actor_shared(this), ChainIds{sequence_dispatcher_id});
   }
 
   void on_result(BufferSlice packet) final {
@@ -3053,7 +3053,7 @@ class SaveDefaultSendAsActor final : public NetActorOnce {
         telegram_api::messages_saveDefaultSendAs(std::move(input_peer), std::move(send_as_input_peer)));
     query->debug("send to MessagesManager::MultiSequenceDispatcher");
     send_closure(td_->messages_manager_->sequence_dispatcher_, &MultiSequenceDispatcher::send_with_callback,
-                 std::move(query), actor_shared(this), sequence_dispatcher_id);
+                 std::move(query), actor_shared(this), ChainIds{sequence_dispatcher_id});
   }
 
   void on_result(BufferSlice packet) final {
@@ -3165,7 +3165,7 @@ class SendMessageActor final : public NetActorOnce {
     *send_query_ref = query.get_weak();
     query->debug("send to MessagesManager::MultiSequenceDispatcher");
     send_closure(td_->messages_manager_->sequence_dispatcher_, &MultiSequenceDispatcher::send_with_callback,
-                 std::move(query), actor_shared(this), sequence_dispatcher_id);
+                 std::move(query), actor_shared(this), ChainIds{sequence_dispatcher_id});
   }
 
   void on_result(BufferSlice packet) final {
@@ -3350,7 +3350,7 @@ class SendMultiMediaActor final : public NetActorOnce {
     // no quick ack, because file reference errors are very likely to happen
     query->debug("send to MessagesManager::MultiSequenceDispatcher");
     send_closure(td_->messages_manager_->sequence_dispatcher_, &MultiSequenceDispatcher::send_with_callback,
-                 std::move(query), actor_shared(this), sequence_dispatcher_id);
+                 std::move(query), actor_shared(this), ChainIds{sequence_dispatcher_id});
   }
 
   void on_result(BufferSlice packet) final {
@@ -3476,7 +3476,7 @@ class SendMediaActor final : public NetActorOnce {
     *send_query_ref = query.get_weak();
     query->debug("send to MessagesManager::MultiSequenceDispatcher");
     send_closure(td_->messages_manager_->sequence_dispatcher_, &MultiSequenceDispatcher::send_with_callback,
-                 std::move(query), actor_shared(this), sequence_dispatcher_id);
+                 std::move(query), actor_shared(this), ChainIds{sequence_dispatcher_id});
   }
 
   void on_result(BufferSlice packet) final {
@@ -3641,7 +3641,7 @@ class SendScheduledMessageActor final : public NetActorOnce {
 
     query->debug("send to MessagesManager::MultiSequenceDispatcher");
     send_closure(td_->messages_manager_->sequence_dispatcher_, &MultiSequenceDispatcher::send_with_callback,
-                 std::move(query), actor_shared(this), sequence_dispatcher_id);
+                 std::move(query), actor_shared(this), ChainIds{sequence_dispatcher_id});
   }
 
   void on_result(BufferSlice packet) final {
@@ -3723,7 +3723,7 @@ class EditMessageActor final : public NetActorOnce {
 
     query->debug("send to MessagesManager::MultiSequenceDispatcher");
     send_closure(td_->messages_manager_->sequence_dispatcher_, &MultiSequenceDispatcher::send_with_callback,
-                 std::move(query), actor_shared(this), sequence_dispatcher_id);
+                 std::move(query), actor_shared(this), ChainIds{sequence_dispatcher_id});
   }
 
   void on_result(BufferSlice packet) final {
@@ -3854,7 +3854,7 @@ class ForwardMessagesActor final : public NetActorOnce {
           PromiseCreator::Ignore());
     }
     send_closure(td_->messages_manager_->sequence_dispatcher_, &MultiSequenceDispatcher::send_with_callback,
-                 std::move(query), actor_shared(this), sequence_dispatcher_id);
+                 std::move(query), actor_shared(this), ChainIds{sequence_dispatcher_id});
   }
 
   void on_result(BufferSlice packet) final {

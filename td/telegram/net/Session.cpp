@@ -992,14 +992,17 @@ void Session::connection_send_query(ConnectionInfo *info, NetQueryPtr &&net_quer
     return return_query(std::move(net_query));
   }
 
-  uint64 invoke_after_id = 0;
-  NetQueryRef invoke_after = net_query->invoke_after();
-  if (!invoke_after.empty()) {
-    invoke_after_id = invoke_after->message_id();
-    if (invoke_after->session_id() != auth_data_.get_session_id() || invoke_after_id == 0) {
+  Span<NetQueryRef> invoke_after = net_query->invoke_after();
+  std::vector<uint64> invoke_after_ids;
+  for (auto &ref : invoke_after) {
+    auto invoke_after_id = ref->message_id();
+    if (ref->session_id() != auth_data_.get_session_id() || invoke_after_id == 0) {
       net_query->set_error_resend_invoke_after();
       return return_query(std::move(net_query));
     }
+    invoke_after_ids.push_back(invoke_after_id);
+  }
+  if (!invoke_after.empty()) {
     if (!unknown_queries_.empty()) {
       pending_invoke_after_queries_.push_back(std::move(net_query));
       return;
@@ -1010,7 +1013,7 @@ void Session::connection_send_query(ConnectionInfo *info, NetQueryPtr &&net_quer
   if (!immediately_fail_query) {
     auto r_message_id =
         info->connection_->send_query(net_query->query().clone(), net_query->gzip_flag() == NetQuery::GzipFlag::On,
-                                      message_id, invoke_after_id, static_cast<bool>(net_query->quick_ack_promise_));
+                                      message_id, invoke_after_ids, static_cast<bool>(net_query->quick_ack_promise_));
 
     net_query->on_net_write(net_query->query().size());
 
@@ -1024,7 +1027,7 @@ void Session::connection_send_query(ConnectionInfo *info, NetQueryPtr &&net_quer
     }
   }
   VLOG(net_query) << "Send query to connection " << net_query << " [msg_id:" << format::as_hex(message_id) << "]"
-                  << tag("invoke_after", format::as_hex(invoke_after_id));
+                  << tag("invoke_after", td::transform(invoke_after_ids, [](auto id){return format::as_hex(id);}));
   net_query->set_message_id(message_id);
   net_query->cancel_slot_.clear_event();
   LOG_CHECK(sent_queries_.find(message_id) == sent_queries_.end()) << message_id;

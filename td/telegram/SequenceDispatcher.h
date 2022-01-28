@@ -75,7 +75,7 @@ class SequenceDispatcher final : public NetQueryCallback {
 
 class MultiSequenceDispatcherOld final : public SequenceDispatcher::Parent {
  public:
-  void send_with_callback(NetQueryPtr query, ActorShared<NetQueryCallback> callback, uint64 sequence_id);
+  void send_with_callback(NetQueryPtr query, ActorShared<NetQueryCallback> callback, Span<uint64> chains);
   static ActorOwn<MultiSequenceDispatcherOld> create(td::Slice name) {
     return create_actor<MultiSequenceDispatcherOld>(name);
   }
@@ -90,12 +90,14 @@ class MultiSequenceDispatcherOld final : public SequenceDispatcher::Parent {
   void ready_to_close() final;
 };
 
+using ChainId = uint64;
+using ChainIds = std::vector<ChainId>;
 class MultiSequenceDispatcherNew : public NetQueryCallback {
  public:
-  virtual void send_with_callback(NetQueryPtr query, ActorShared<NetQueryCallback> callback, uint64 sequence_id) = 0;
+  virtual void send_with_callback(NetQueryPtr query, ActorShared<NetQueryCallback> callback, Span<uint64> chains) = 0;
   static ActorOwn<MultiSequenceDispatcherNew> create(Slice name);
 };
 
-using MultiSequenceDispatcher = MultiSequenceDispatcherOld;
+using MultiSequenceDispatcher = MultiSequenceDispatcherNew;
 
 }  // namespace td

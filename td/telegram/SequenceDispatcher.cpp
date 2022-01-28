@@ -168,7 +168,11 @@ void SequenceDispatcher::loop() {
     if (last_sent_i_ != std::numeric_limits<size_t>::max() && data_[last_sent_i_].state_ == State::Wait) {
       invoke_after = data_[last_sent_i_].net_query_ref_;
     }
-    data_[next_i_].query_->set_invoke_after(invoke_after);
+    if (!invoke_after.empty()) {
+      data_[next_i_].query_->set_invoke_after({invoke_after});
+    } else {
+      data_[next_i_].query_->set_invoke_after({});
+    }
     data_[next_i_].query_->last_timeout_ = 0;
 
     VLOG(net_query) << "Send " << data_[next_i_].query_;
@@ -243,8 +247,11 @@ void SequenceDispatcher::close_silent() {
 
 /*** MultiSequenceDispatcher ***/
 void MultiSequenceDispatcherOld::send_with_callback(NetQueryPtr query, ActorShared<NetQueryCallback> callback,
-                                                 uint64 sequence_id) {
-  CHECK(sequence_id != 0);
+                                                 td::Span<uint64> chains) {
+  CHECK(all_of(chains, [](auto chain_id) {return chain_id != 0;}));
+  CHECK(!chains.empty());
+  auto sequence_id = chains[0];
+
   auto it_ok = dispatchers_.emplace(sequence_id, Data{0, ActorOwn<SequenceDispatcher>()});
   auto &data = it_ok.first->second;
   if (it_ok.second) {
@@ -273,14 +280,14 @@ void MultiSequenceDispatcherOld::ready_to_close() {
 
 class MultiSequenceDispatcherNewImpl final : public MultiSequenceDispatcherNew {
  public:
-  void send_with_callback(NetQueryPtr query, ActorShared<NetQueryCallback> callback, uint64 sequence_id) final {
-    LOG(ERROR) << "send " << query;
+  void send_with_callback(NetQueryPtr query, ActorShared<NetQueryCallback> callback, td::Span<uint64> chains) final {
+    CHECK(all_of(chains, [](auto chain_id) {return chain_id != 0;}));
     Node node;
     node.net_query = std::move(query);
     node.net_query->debug("Waiting at SequenceDispatcher");
     node.net_query_ref = node.net_query.get_weak();
     node.callback = std::move(callback);
-    scheduler_.create_task({ChainId{sequence_id}}, std::move(node));
+    scheduler_.create_task(chains, std::move(node));
     loop();
   }
 
@@ -335,11 +342,9 @@ class MultiSequenceDispatcherNewImpl final : public MultiSequenceDispatcherNew {
     while (true) {
       auto o_task = scheduler_.start_next_task();
       if (!o_task) {
-        LOG(ERROR) << " no more tasks " << scheduler_;
         break;
       }
       auto task = o_task.unwrap();
-      LOG(ERROR) << " next task = " << task.task_id;
       auto &node = *scheduler_.get_task_extra(task.task_id);
       CHECK(!node.net_query.empty());
 
@@ -348,15 +353,10 @@ class MultiSequenceDispatcherNewImpl final : public MultiSequenceDispatcherNew {
       for (auto parent_id : task.parents) {
         auto &parent_node = *scheduler_.get_task_extra(parent_id);
         parents.push_back(parent_node.net_query_ref);
+        CHECK(!parent_node.net_query_ref.empty());
       }
 
-      if (parents.empty()) {
-        query->set_invoke_after({});
-      } else if (parents.size() == 1) {
-        query->set_invoke_after(parents[0]);
-      } else if (parents.size() > 1){
-        LOG(FATAL) << "TODO: support invokeAfterMsgs";
-      }
+      query->set_invoke_after(std::move(parents));
       query->last_timeout_ = 0; // TODO: flood
       VLOG(net_query) << "Send " << query;
       query->debug("send to Td::send_with_callback");

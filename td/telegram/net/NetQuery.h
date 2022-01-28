@@ -196,11 +196,11 @@ class NetQuery final : public TsListNode<NetQueryDebug> {
     message_id_ = message_id;
   }
 
-  NetQueryRef invoke_after() const {
+  Span<NetQueryRef> invoke_after() const {
     return invoke_after_;
   }
-  void set_invoke_after(NetQueryRef ref) {
-    invoke_after_ = ref;
+  void set_invoke_after(std::vector<NetQueryRef> refs) {
+    invoke_after_ = std::move(refs);
   }
   void set_session_rand(uint32 session_rand) {
     session_rand_ = session_rand;
@@ -289,7 +289,7 @@ class NetQuery final : public TsListNode<NetQueryDebug> {
   BufferSlice answer_;
   int32 tl_constructor_ = 0;
 
-  NetQueryRef invoke_after_;
+  std::vector<NetQueryRef> invoke_after_;
   uint32 session_rand_ = 0;
 
   bool may_be_lost_ = false;
