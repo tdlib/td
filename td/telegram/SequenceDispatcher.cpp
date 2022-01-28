@@ -282,6 +282,9 @@ class MultiSequenceDispatcherNewImpl final : public MultiSequenceDispatcherNew {
  public:
   void send_with_callback(NetQueryPtr query, ActorShared<NetQueryCallback> callback, td::Span<uint64> chains) final {
     CHECK(all_of(chains, [](auto chain_id) {return chain_id != 0;}));
+    if (!chains.empty()) {
+      query->set_session_rand(static_cast<uint32>(chains[0] >> 10));
+    }
     Node node;
     node.net_query = std::move(query);
     node.net_query->debug("Waiting at SequenceDispatcher");
@@ -368,7 +371,6 @@ class MultiSequenceDispatcherNewImpl final : public MultiSequenceDispatcherNew {
       query->last_timeout_ = 0; // TODO: flood
       VLOG(net_query) << "Send " << query;
       query->debug("send to Td::send_with_callback");
-      query->set_session_rand(123); // TODO: chain_rand
       G()->net_query_dispatcher().dispatch_with_callback(std::move(query),
                                                          actor_shared(this, task.task_id));
     }
