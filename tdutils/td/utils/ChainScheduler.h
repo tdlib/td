@@ -4,10 +4,9 @@
 #include "td/utils/Container.h"
 #include "td/utils/List.h"
 #include "td/utils/optional.h"
-#include "td/utils/Span.h"
-#include "td/utils/tests.h"
-#include "td/utils/VectorQueue.h"
 #include "td/utils/Random.h"
+#include "td/utils/Span.h"
+#include "td/utils/VectorQueue.h"
 
 #include <map>
 #include <vector>
@@ -15,6 +14,11 @@
 #include <numeric>
 
 namespace td {
+
+struct ChainSchedulerTaskWithParents {
+  uint64 task_id{};
+  vector<uint64> parents;
+};
 
 template <class ExtraT = Unit>
 class ChainScheduler {
@@ -24,16 +28,11 @@ class ChainScheduler {
   TaskId create_task(td::Span<ChainId> chains, ExtraT extra = {});
   ExtraT *get_task_extra(TaskId task_id);
 
-  struct TaskWithParents {
-    TaskId task_id{};
-    std::vector<TaskId> parents;
-  };
-
-  optional<TaskWithParents> start_next_task();
+  optional<ChainSchedulerTaskWithParents> start_next_task();
   void finish_task(TaskId task_id);
   void reset_task(TaskId task_id);
   template <class ExtraTT>
-  friend td::StringBuilder &operator<<(StringBuilder &sb, ChainScheduler<ExtraTT> &scheduler);
+  friend StringBuilder &operator<<(StringBuilder &sb, ChainScheduler<ExtraTT> &scheduler);
 
   template <class F>
   void for_each(F &&f) {
@@ -226,12 +225,12 @@ ExtraT *ChainScheduler<ExtraT>::get_task_extra(ChainScheduler::TaskId task_id) {
   return &task->extra;
 }
 template <class ExtraT>
-optional<typename ChainScheduler<ExtraT>::TaskWithParents> ChainScheduler<ExtraT>::start_next_task() {
+optional<ChainSchedulerTaskWithParents> ChainScheduler<ExtraT>::start_next_task() {
   if (pending_tasks_.empty()) {
     return {};
   }
   auto task_id = pending_tasks_.pop();
-  TaskWithParents res;
+  ChainSchedulerTaskWithParents res;
   res.task_id = task_id;
   auto *task = tasks_.get(task_id);
   CHECK(task);
@@ -271,7 +270,7 @@ void ChainScheduler<ExtraT>::reset_task(ChainScheduler::TaskId task_id) {
   try_start_task(task_id, task);
 }
 template <class ExtraT>
-td::StringBuilder &operator<<(StringBuilder &sb, ChainScheduler<ExtraT> &scheduler) {
+StringBuilder &operator<<(StringBuilder &sb, ChainScheduler<ExtraT> &scheduler) {
   // 1 print chains
   sb << "\n";
   for (auto &it : scheduler.chains_) {

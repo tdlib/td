@@ -20,6 +20,7 @@
 #include "td/utils/logging.h"
 #include "td/utils/ObjectPool.h"
 #include "td/utils/Slice.h"
+#include "td/utils/Span.h"
 #include "td/utils/Status.h"
 #include "td/utils/StringBuilder.h"
 #include "td/utils/Time.h"

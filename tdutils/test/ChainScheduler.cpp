@@ -1,4 +1,5 @@
 #include "td/utils/algorithm.h"
+#include "td/utils/misc.h"
 #include "td/utils/optional.h"
 #include "td/utils/Span.h"
 #include "td/utils/tests.h"
@@ -90,7 +91,7 @@ TEST(ChainScheduler, Stress) {
     td::random_shuffle(td::as_mutable_span(chain_ids), rnd);
     chain_ids.resize(chain_n);
     for (auto chain_id : chain_ids) {
-      chains[chain_id].push_back(query);
+      chains[td::narrow_cast<size_t>(chain_id)].push_back(query);
     }
     auto task_id = scheduler.create_task(chain_ids, query);
     query->task_id = task_id;
