@@ -1009,7 +1009,7 @@ class CreateNewStickerSetQuery final : public Td::ResultHandler {
       flags |= telegram_api::stickers_createStickerSet::ANIMATED_MASK;
     }
     if (sticker_format == StickerFormat::Webm) {
-      flags |= telegram_api::stickers_createStickerSet::GIFS_MASK;
+      flags |= telegram_api::stickers_createStickerSet::VIDEOS_MASK;
     }
     if (!software.empty()) {
       flags |= telegram_api::stickers_createStickerSet::SOFTWARE_MASK;
@@ -2793,7 +2793,7 @@ StickerSetId StickersManager::on_get_sticker_set(tl_object_ptr<telegram_api::sti
   bool is_archived = set->archived_;
   bool is_official = set->official_;
   StickerFormat sticker_format =
-      set->gifs_ ? StickerFormat::Webm : (set->animated_ ? StickerFormat::Tgs : StickerFormat::Webp);
+      set->videos_ ? StickerFormat::Webm : (set->animated_ ? StickerFormat::Tgs : StickerFormat::Webp);
   bool is_masks = set->masks_;
 
   PhotoSize thumbnail;
