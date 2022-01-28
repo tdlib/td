@@ -319,7 +319,6 @@ class MultiSequenceDispatcherNewImpl final : public MultiSequenceDispatcherNew {
     send_closure(node.callback, &NetQueryCallback::on_result_resendable, std::move(query), std::move(promise));
   }
 
-  // TODO: without td::Result?
   void on_resend(td::Result<NetQueryPtr> query) {
     auto task_id = TaskId(get_link_token());
     auto &node = *scheduler_.get_task_extra(task_id);
@@ -336,6 +335,15 @@ class MultiSequenceDispatcherNewImpl final : public MultiSequenceDispatcherNew {
 
   void loop() override {
     flush_pending_queries();
+  }
+  void tear_down() override {
+    // Leaves scheduler_ in an invalid state, but we are closing anyway
+    scheduler_.for_each([&](Node &node) {
+      if (node.net_query.empty()) {
+        return;
+      }
+      node.net_query->set_error(Global::request_aborted_error());
+    });
   }
 
   void flush_pending_queries() {

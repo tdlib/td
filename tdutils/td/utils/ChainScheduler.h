@@ -35,6 +35,13 @@ class ChainScheduler {
   template <class ExtraTT>
   friend td::StringBuilder &operator<<(StringBuilder &sb, ChainScheduler<ExtraTT> &scheduler);
 
+  template <class F>
+  void for_each(F &&f) {
+    tasks_.for_each([&f](auto, Task &task) {
+      f(task.extra) ;
+    });
+  }
+
  private:
   struct ChainNode : ListNode {
     TaskId task_id{};
