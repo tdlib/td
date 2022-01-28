@@ -7114,7 +7114,7 @@ bool MessagesManager::update_message_interaction_info(DialogId dialog_id, Messag
 
             if (d->unread_reaction_count + unread_reaction_diff < 0) {
               if (is_dialog_inited(d)) {
-                LOG(ERROR) << "Unread reaction count of " << d->dialog_id << " became negative from " << source;
+                LOG(ERROR) << "Unread reaction count of " << dialog_id << " became negative from " << source;
               }
             } else {
               set_dialog_unread_reaction_count(d, d->unread_reaction_count + unread_reaction_diff);
@@ -7221,6 +7221,31 @@ bool MessagesManager::update_message_contains_unread_mention(Dialog *d, Message 
     return true;
   }
   return false;
+}
+
+bool MessagesManager::remove_message_unread_reactions(Dialog *d, Message *m, const char *source) {
+  CHECK(m != nullptr);
+  CHECK(!m->message_id.is_scheduled());
+  if (!has_unread_message_reactions(d->dialog_id, m)) {
+    return false;
+  }
+  // remove_message_notification_id(d, m, true, true);
+
+  m->reactions->unread_reactions_.clear();
+  if (d->unread_reaction_count == 0) {
+    if (is_dialog_inited(d)) {
+      LOG(ERROR) << "Unread reaction count of " << d->dialog_id << " became negative from " << source;
+    }
+  } else {
+    set_dialog_unread_reaction_count(d, d->unread_reaction_count - 1);
+    on_dialog_updated(d->dialog_id, "remove_message_unread_reactions");
+  }
+  LOG(INFO) << "Update unread reaction count in " << d->dialog_id << " to " << d->unread_reaction_count
+            << " by reading " << m->message_id << " from " << source;
+
+  send_update_message_unread_reactions(d->dialog_id, m, d->unread_reaction_count);
+
+  return true;
 }
 
 void MessagesManager::on_read_channel_inbox(ChannelId channel_id, MessageId max_message_id, int32 server_unread_count,
@@ -12845,6 +12870,7 @@ void MessagesManager::on_message_ttl_expired_impl(Dialog *d, Message *m) {
   }
   remove_message_notification_id(d, m, true, true);
   update_message_contains_unread_mention(d, m, false, "on_message_ttl_expired_impl");
+  remove_message_unread_reactions(d, m, "on_message_ttl_expired_impl");
   unregister_message_reply(d, m);
   m->noforwards = false;
   m->contains_mention = false;
@@ -20338,6 +20364,12 @@ Status MessagesManager::view_messages(DialogId dialog_id, MessageId top_thread_m
       if (need_read && message_content_type != MessageContentType::VoiceNote &&
           message_content_type != MessageContentType::VideoNote &&
           update_message_contains_unread_mention(d, m, false, "view_messages")) {
+        CHECK(m->message_id.is_server());
+        read_content_message_ids.push_back(m->message_id);
+        on_message_changed(d, m, true, "view_messages");
+      }
+
+      if (need_read && remove_message_unread_reactions(d, m, "view_messages")) {
         CHECK(m->message_id.is_server());
         read_content_message_ids.push_back(m->message_id);
         on_message_changed(d, m, true, "view_messages");
