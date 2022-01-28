@@ -89,10 +89,22 @@ struct ListNode {
   ListNode *end() {
     return this;
   }
+  const ListNode *begin() const {
+    return next;
+  }
+  const ListNode *end() const {
+    return this;
+  }
   ListNode *get_next() {
     return next;
   }
   ListNode *get_prev() {
+    return prev;
+  }
+  const ListNode *get_next() const {
+    return next;
+  }
+  const ListNode *get_prev() const {
     return prev;
   }
 

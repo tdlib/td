@@ -53,6 +53,7 @@
 #include "td/telegram/SecretChatId.h"
 #include "td/telegram/SecretInputMedia.h"
 #include "td/telegram/ServerMessageId.h"
+#include "td/telegram/SequenceDispatcher.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/UserId.h"
@@ -92,7 +93,6 @@ class DraftMessage;
 struct InputMessageContent;
 class MessageContent;
 struct MessageReactions;
-class MultiSequenceDispatcher;
 class Td;
 
 class MessagesManager final : public Actor {

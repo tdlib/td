@@ -117,6 +117,15 @@ bool contains(const V &v, const T &value) {
   }
   return false;
 }
+template <class V, class F>
+bool all_of(const V &v, F &&f) {
+  for (auto &x : v) {
+    if (!f(x)) {
+      return false;
+    }
+  }
+  return true;
+}
 
 template <class T>
 void reset_to_empty(T &value) {

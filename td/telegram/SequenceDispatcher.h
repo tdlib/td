@@ -73,9 +73,12 @@ class SequenceDispatcher final : public NetQueryCallback {
   void tear_down() final;
 };
 
-class MultiSequenceDispatcher final : public SequenceDispatcher::Parent {
+class MultiSequenceDispatcherOld final : public SequenceDispatcher::Parent {
  public:
   void send_with_callback(NetQueryPtr query, ActorShared<NetQueryCallback> callback, uint64 sequence_id);
+  static ActorOwn<MultiSequenceDispatcherOld> create(td::Slice name) {
+    return create_actor<MultiSequenceDispatcherOld>(name);
+  }
 
  private:
   struct Data {
@@ -86,5 +89,13 @@ class MultiSequenceDispatcher final : public SequenceDispatcher::Parent {
   void on_result() final;
   void ready_to_close() final;
 };
+
+class MultiSequenceDispatcherNew : public NetQueryCallback {
+ public:
+  virtual void send_with_callback(NetQueryPtr query, ActorShared<NetQueryCallback> callback, uint64 sequence_id) = 0;
+  static ActorOwn<MultiSequenceDispatcherNew> create(Slice name);
+};
+
+using MultiSequenceDispatcher = MultiSequenceDispatcherOld;
 
 }  // namespace td

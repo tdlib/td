@@ -383,6 +383,9 @@ inline StringBuilder &operator<<(StringBuilder &stream, const NetQuery &net_quer
 }
 
 inline StringBuilder &operator<<(StringBuilder &stream, const NetQueryPtr &net_query_ptr) {
+  if (net_query_ptr.empty()) {
+    return stream << "[Query: null]";
+  }
   return stream << *net_query_ptr;
 }
 

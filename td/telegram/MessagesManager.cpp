@@ -5998,7 +5998,7 @@ MessagesManager::MessagesManager(Td *td, ActorShared<> parent)
   preload_folder_dialog_list_timeout_.set_callback(on_preload_folder_dialog_list_timeout_callback);
   preload_folder_dialog_list_timeout_.set_callback_data(static_cast<void *>(this));
 
-  sequence_dispatcher_ = create_actor<MultiSequenceDispatcher>("multi sequence dispatcher");
+  sequence_dispatcher_ = MultiSequenceDispatcher::create("multi sequence dispatcher");
 }
 
 MessagesManager::~MessagesManager() = default;
