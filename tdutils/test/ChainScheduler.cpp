@@ -17,6 +17,36 @@
 #include <memory>
 #include <numeric>
 
+TEST(ChainScheduler, CreateAfterActive) {
+  td::ChainScheduler<int> scheduler;
+  using ChainId = td::ChainScheduler<int>::ChainId;
+  using TaskId = td::ChainScheduler<int>::TaskId;
+  std::vector<ChainId> chains{1};
+
+  auto first_task_id = scheduler.create_task( chains, 1);
+  ASSERT_EQ(first_task_id, scheduler.start_next_task().unwrap().task_id);
+  auto second_task_id = scheduler.create_task( chains, 2);
+  ASSERT_EQ(second_task_id, scheduler.start_next_task().unwrap().task_id);
+}
+
+TEST(ChainScheduler, RestartAfterActive) {
+  td::ChainScheduler<int> scheduler;
+  using ChainId = td::ChainScheduler<int>::ChainId;
+  using TaskId = td::ChainScheduler<int>::TaskId;
+  std::vector<ChainId> chains{1};
+
+  auto first_task_id = scheduler.create_task( chains, 1);
+  auto second_task_id = scheduler.create_task( chains, 2);
+  ASSERT_EQ(first_task_id, scheduler.start_next_task().unwrap().task_id);
+  ASSERT_EQ(second_task_id, scheduler.start_next_task().unwrap().task_id);
+
+  scheduler.reset_task(first_task_id);
+  ASSERT_EQ(first_task_id, scheduler.start_next_task().unwrap().task_id);
+
+  scheduler.reset_task(second_task_id);
+  ASSERT_EQ(second_task_id, scheduler.start_next_task().unwrap().task_id);
+}
+
 TEST(ChainScheduler, Basic) {
   td::ChainScheduler<int> scheduler;
   using ChainId = td::ChainScheduler<int>::ChainId;

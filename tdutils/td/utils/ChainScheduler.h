@@ -146,6 +146,7 @@ class ChainScheduler {
     for (TaskChainInfo &task_chain_info : task->chains) {
       ChainInfo &chain_info = chains_[task_chain_info.chain_id];
       chain_info.active_tasks++;
+      task_chain_info.waiting_for_parent = true;
     }
     task->state = Task::State::Active;
 
@@ -215,7 +216,13 @@ typename ChainScheduler<ExtraT>::TaskId ChainScheduler<ExtraT>::create_task(Span
   for (TaskChainInfo &task_chain_info : task.chains) {
     auto &chain = task_chain_info.chain_info->chain;
     chain.add_task(&task_chain_info.chain_node);
-    task_chain_info.waiting_for_parent = static_cast<bool>(chain.get_parent(&task_chain_info.chain_node));
+    auto o_parent = chain.get_parent(&task_chain_info.chain_node);
+    if (o_parent) {
+      auto parent = o_parent.unwrap();
+      if (tasks_.get(parent)->state == Task::State::Pending) {
+        task_chain_info.waiting_for_parent = true;
+      }
+    }
   }
 
   try_start_task(task_id, &task);
@@ -273,7 +280,7 @@ void ChainScheduler<ExtraT>::reset_task(ChainScheduler::TaskId task_id) {
 
   for (TaskChainInfo &task_chain_info : task->chains) {
     ChainInfo &chain_info = chains_[task_chain_info.chain_id];
-    task_chain_info.waiting_for_parent = static_cast<bool>(chain_info.chain.get_parent(&task_chain_info.chain_node));
+    task_chain_info.waiting_for_parent &= bool(chain_info.chain.get_parent(&task_chain_info.chain_node));
   }
 
   try_start_task(task_id, task);
