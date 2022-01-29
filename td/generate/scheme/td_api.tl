@@ -4462,12 +4462,11 @@ getMessageEmbeddingCode chat_id:int53 message_id:int53 for_album:Bool = Text;
 getMessageLinkInfo url:string = MessageLinkInfo;
 
 
-//@description Translates a message text or caption to the given language. Returns a 404 error if the translation can't be performed
-//@chat_id Identifier of the chat to which the message belongs
-//@message_id Identifier of the message
+//@description Translates a text to the given language. Returns a 404 error if the translation can't be performed
+//@text Text to translate
 //@from_language_code A two-letter ISO 639-1 language code of the language from which the message is translated. If empty, the language will be detected automatically
 //@to_language_code A two-letter ISO 639-1 language code of the language to which the message is translated
-translateMessage chat_id:int53 message_id:int53 from_language_code:string to_language_code:string = Text;
+translateText text:string from_language_code:string to_language_code:string = Text;
 
 
 //@description Returns list of message sender identifiers, which can be used to send messages in a chat @chat_id Chat identifier

@@ -4741,13 +4741,14 @@ void Td::on_request(uint64 id, td_api::getMessageLinkInfo &request) {
   CREATE_REQUEST(GetMessageLinkInfoRequest, std::move(request.url_));
 }
 
-void Td::on_request(uint64 id, td_api::translateMessage &request) {
+void Td::on_request(uint64 id, td_api::translateText &request) {
   CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.text_);
   CLEAN_INPUT_STRING(request.from_language_code_);
   CLEAN_INPUT_STRING(request.to_language_code_);
   CREATE_REQUEST_PROMISE();
-  messages_manager_->translate_message({DialogId(request.chat_id_), MessageId(request.message_id_)},
-                                       request.from_language_code_, request.to_language_code_, std::move(promise));
+  messages_manager_->translate_text(request.text_, request.from_language_code_, request.to_language_code_,
+                                    std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::getFile &request) {

@@ -609,8 +609,8 @@ class MessagesManager final : public Actor {
 
   void get_message_viewers(FullMessageId full_message_id, Promise<td_api::object_ptr<td_api::users>> &&promise);
 
-  void translate_message(FullMessageId full_message_id, const string &from_language_code,
-                         const string &to_language_code, Promise<td_api::object_ptr<td_api::text>> &&promise);
+  void translate_text(const string &text, const string &from_language_code, const string &to_language_code,
+                      Promise<td_api::object_ptr<td_api::text>> &&promise);
 
   bool is_message_edited_recently(FullMessageId full_message_id, int32 seconds);
 
