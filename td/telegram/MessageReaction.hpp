@@ -78,7 +78,7 @@ void MessageReactions::store(StorerT &storer) const {
   BEGIN_STORE_FLAGS();
   STORE_FLAG(is_min_);
   STORE_FLAG(need_polling_);
-  STORE_FLAG(can_see_all_choosers_);
+  STORE_FLAG(can_get_added_reactions_);
   STORE_FLAG(has_unread_reactions);
   STORE_FLAG(has_reactions);
   END_STORE_FLAGS();
@@ -97,7 +97,7 @@ void MessageReactions::parse(ParserT &parser) {
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(is_min_);
   PARSE_FLAG(need_polling_);
-  PARSE_FLAG(can_see_all_choosers_);
+  PARSE_FLAG(can_get_added_reactions_);
   PARSE_FLAG(has_unread_reactions);
   PARSE_FLAG(has_reactions);
   END_PARSE_FLAGS();

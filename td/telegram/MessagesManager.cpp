@@ -7112,8 +7112,8 @@ bool MessagesManager::update_message_interaction_info(DialogId dialog_id, Messag
   if (view_count > m->view_count || forward_count > m->forward_count || need_update_reply_info ||
       need_update_reactions || need_update_unread_reactions) {
     LOG(DEBUG) << "Update interaction info of " << FullMessageId{dialog_id, m->message_id} << " from " << m->view_count
-               << '/' << m->forward_count << "/" << m->reply_info << " to " << view_count << '/' << forward_count << "/"
-               << reply_info;
+               << '/' << m->forward_count << '/' << m->reply_info << '/' << m->reactions << " to " << view_count << '/'
+               << forward_count << '/' << reply_info << '/' << reactions;
     bool need_update = false;
     if (view_count > m->view_count) {
       m->view_count = view_count;
@@ -24121,14 +24121,14 @@ void MessagesManager::set_message_reaction(FullMessageId full_message_id, string
     return promise.set_error(Status::Error(400, "The reaction isn't available for the message"));
   }
 
-  bool can_see_all_choosers = !is_broadcast_channel(dialog_id);
+  bool can_get_added_reactions = !is_broadcast_channel(dialog_id);
   if (m->reactions == nullptr) {
     if (reaction.empty()) {
       return promise.set_value(Unit());
     }
 
     m->reactions = make_unique<MessageReactions>();
-    m->reactions->can_see_all_choosers_ = can_see_all_choosers;
+    m->reactions->can_get_added_reactions_ = can_get_added_reactions;
   }
 
   bool is_found = false;
@@ -24139,14 +24139,14 @@ void MessagesManager::set_message_reaction(FullMessageId full_message_id, string
         // double set removes reaction
         reaction = string();
       }
-      message_reaction.set_is_chosen(false, get_my_dialog_id(), can_see_all_choosers);
+      message_reaction.set_is_chosen(false, get_my_dialog_id(), can_get_added_reactions);
       if (message_reaction.is_empty()) {
         it = m->reactions->reactions_.erase(it);
         continue;
       }
     } else {
       if (message_reaction.get_reaction() == reaction) {
-        message_reaction.set_is_chosen(true, get_my_dialog_id(), can_see_all_choosers);
+        message_reaction.set_is_chosen(true, get_my_dialog_id(), can_get_added_reactions);
         is_found = true;
       }
     }
@@ -24413,7 +24413,8 @@ tl_object_ptr<td_api::message> MessagesManager::get_message_object(DialogId dial
   auto can_be_saved = can_save_message(dialog_id, m);
   auto can_be_edited = for_event_log ? false : can_edit_message(dialog_id, m, false, td_->auth_manager_->is_bot());
   auto can_be_forwarded = for_event_log ? false : can_forward_message(dialog_id, m) && can_be_saved;
-  auto can_get_added_reactions = for_event_log ? false : m->reactions != nullptr && m->reactions->can_see_all_choosers_;
+  auto can_get_added_reactions =
+      for_event_log ? false : m->reactions != nullptr && m->reactions->can_get_added_reactions_;
   auto can_get_statistics = for_event_log ? false : can_get_message_statistics(dialog_id, m);
   auto can_get_message_thread = for_event_log ? false : get_top_thread_full_message_id(dialog_id, m).is_ok();
   auto can_get_viewers = for_event_log ? false : can_get_message_viewers(dialog_id, m).is_ok();

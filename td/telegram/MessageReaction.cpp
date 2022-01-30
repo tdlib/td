@@ -192,7 +192,7 @@ class GetMessageReactionsListQuery final : public Td::ResultHandler {
   }
 };
 
-void MessageReaction::set_is_chosen(bool is_chosen, DialogId chooser_dialog_id, bool can_see_all_choosers) {
+void MessageReaction::set_is_chosen(bool is_chosen, DialogId chooser_dialog_id, bool can_get_added_reactions) {
   if (is_chosen_ == is_chosen) {
     return;
   }
@@ -201,7 +201,7 @@ void MessageReaction::set_is_chosen(bool is_chosen, DialogId chooser_dialog_id, 
 
   if (chooser_dialog_id.is_valid()) {
     choose_count_ += is_chosen_ ? 1 : -1;
-    if (can_see_all_choosers) {
+    if (can_get_added_reactions) {
       td::remove(recent_chooser_dialog_ids_, chooser_dialog_id);
       if (is_chosen_) {
         recent_chooser_dialog_ids_.insert(recent_chooser_dialog_ids_.begin(), chooser_dialog_id);
@@ -263,7 +263,7 @@ unique_ptr<MessageReactions> MessageReactions::get_message_reactions(
   }
 
   auto result = make_unique<MessageReactions>();
-  result->can_see_all_choosers_ = reactions->can_see_list_;
+  result->can_get_added_reactions_ = reactions->can_see_list_;
   result->is_min_ = reactions->min_;
 
   std::unordered_set<string> reaction_strings;
@@ -396,7 +396,7 @@ bool MessageReactions::need_update_message_reactions(const MessageReactions *old
 
   // unread_reactions_ are updated independently; compare all other fields
   return old_reactions->reactions_ != new_reactions->reactions_ || old_reactions->is_min_ != new_reactions->is_min_ ||
-         old_reactions->can_see_all_choosers_ != new_reactions->can_see_all_choosers_ ||
+         old_reactions->can_get_added_reactions_ != new_reactions->can_get_added_reactions_ ||
          old_reactions->need_polling_ != new_reactions->need_polling_;
 }
 
@@ -406,6 +406,19 @@ bool MessageReactions::need_update_unread_reactions(const MessageReactions *old_
     return !(new_reactions == nullptr || new_reactions->unread_reactions_.empty());
   }
   return new_reactions == nullptr || old_reactions->unread_reactions_ != new_reactions->unread_reactions_;
+}
+
+StringBuilder &operator<<(StringBuilder &string_builder, const MessageReactions &reactions) {
+  return string_builder << (reactions.is_min_ ? "Min" : "") << "MessageReactions{" << reactions.reactions_
+                        << " with unread " << reactions.unread_reactions_
+                        << " and can_get_added_reactions = " << reactions.can_get_added_reactions_;
+}
+
+StringBuilder &operator<<(StringBuilder &string_builder, const unique_ptr<MessageReactions> &reactions) {
+  if (reactions == nullptr) {
+    return string_builder << "null";
+  }
+  return string_builder << *reactions;
 }
 
 void reload_message_reactions(Td *td, DialogId dialog_id, vector<MessageId> &&message_ids) {

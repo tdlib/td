@@ -64,7 +64,7 @@ class MessageReaction {
     return is_chosen_;
   }
 
-  void set_is_chosen(bool is_chosen, DialogId chooser_dialog_id, bool can_see_all_choosers);
+  void set_is_chosen(bool is_chosen, DialogId chooser_dialog_id, bool can_get_added_reactions);
 
   int32 get_choose_count() const {
     return choose_count_;
@@ -133,7 +133,7 @@ struct MessageReactions {
   vector<UnreadMessageReaction> unread_reactions_;
   bool is_min_ = false;
   bool need_polling_ = true;
-  bool can_see_all_choosers_ = false;
+  bool can_get_added_reactions_ = false;
 
   MessageReactions() = default;
 
@@ -161,6 +161,10 @@ struct MessageReactions {
   template <class ParserT>
   void parse(ParserT &parser);
 };
+
+StringBuilder &operator<<(StringBuilder &string_builder, const MessageReactions &reactions);
+
+StringBuilder &operator<<(StringBuilder &string_builder, const unique_ptr<MessageReactions> &reactions);
 
 void reload_message_reactions(Td *td, DialogId dialog_id, vector<MessageId> &&message_ids);
 
