@@ -318,7 +318,7 @@ static vector<Slice> match_bot_commands(Slice str) {
 
 static bool is_hashtag_letter(uint32 c, UnicodeSimpleCategory &category) {
   category = get_unicode_simple_category(c);
-  if (c == '_' || c == 0x200c) {
+  if (c == '_' || c == 0x200c || c == 0xb7) {
     return true;
   }
   switch (category) {

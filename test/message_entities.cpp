@@ -109,6 +109,7 @@ TEST(MessageEntities, hashtag) {
   check_hashtag(" #" + td::string(255, '1') + "a" + td::string(255, 'b') + "# ", {});
   check_hashtag("#a#b #c #d", {"#c", "#d"});
   check_hashtag("#test", {"#test"});
+  check_hashtag("#te·st", {"#te·st"});
   check_hashtag(u8"\U0001F604\U0001F604\U0001F604\U0001F604 \U0001F604\U0001F604\U0001F604#" + td::string(200, '1') +
                     "ООО" + td::string(200, '2'),
                 {"#" + td::string(200, '1') + "ООО" + td::string(53, '2')});
