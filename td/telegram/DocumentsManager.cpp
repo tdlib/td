@@ -134,6 +134,10 @@ Document DocumentsManager::on_get_document(RemoteDocument remote_document, Dialo
         // video animation
         video = nullptr;
       }
+    } else if (sticker != nullptr) {
+      // some stickers uploaded before release
+      type_attributes--;
+      video = nullptr;
     }
   }
   if (animated != nullptr && audio != nullptr) {
