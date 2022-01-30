@@ -373,7 +373,7 @@ TEST(MessageEntities, is_email_address) {
                                         "a.a.a.a.a.a+ab",
                                         "a+a.a.a.a.a.ab",
                                         "a.a.a.a.a.a.a",
-                                        "a.a.a.a.a.a.abcdefg",
+                                        "a.a.a.a.a.a.abcdefghi",
                                         "a.a.a.a.a.a.ab0yz",
                                         "a.a.a.a.a.a.ab9yz",
                                         "a.a.a.a.a.a.ab-yz",
@@ -694,6 +694,7 @@ TEST(MessageEntities, url) {
   check_url("http://google.com/‖", {"http://google.com/"});
   check_url("a@b@c.com", {}, {});
   check_url("a@b.com:c@1", {}, {"a@b.com"});
+  check_url("test@test.software", {}, {"test@test.software"});
 }
 
 static void check_fix_formatted_text(td::string str, td::vector<td::MessageEntity> entities,

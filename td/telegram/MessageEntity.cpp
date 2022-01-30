@@ -929,7 +929,7 @@ static bool is_valid_bank_card(Slice str) {
 }
 
 bool is_email_address(Slice str) {
-  // /^([a-z0-9_-]{0,26}[.+]){0,10}[a-z0-9_-]{1,35}@(([a-z0-9][a-z0-9_-]{0,28})?[a-z0-9][.]){1,6}[a-z]{2,6}$/i
+  // /^([a-z0-9_-]{0,26}[.+]){0,10}[a-z0-9_-]{1,35}@(([a-z0-9][a-z0-9_-]{0,28})?[a-z0-9][.]){1,6}[a-z]{2,8}$/i
   Slice userdata;
   Slice domain;
   std::tie(userdata, domain) = split(str, '@');
@@ -966,7 +966,7 @@ bool is_email_address(Slice str) {
   if (domain_parts.size() <= 1 || domain_parts.size() > 7) {
     return false;
   }
-  if (domain_parts.back().size() <= 1 || domain_parts.back().size() >= 7) {
+  if (domain_parts.back().size() <= 1 || domain_parts.back().size() >= 9) {
     return false;
   }
   for (auto c : domain_parts.back()) {
