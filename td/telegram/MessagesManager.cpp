@@ -24121,7 +24121,7 @@ void MessagesManager::set_message_reaction(FullMessageId full_message_id, string
     return promise.set_error(Status::Error(400, "The reaction isn't available for the message"));
   }
 
-  bool can_get_added_reactions = !is_broadcast_channel(dialog_id);
+  bool can_get_added_reactions = !is_broadcast_channel(dialog_id) && dialog_id.get_type() != DialogType::User;
   if (m->reactions == nullptr) {
     if (reaction.empty()) {
       return promise.set_value(Unit());
