@@ -4799,6 +4799,9 @@ getExternalLink link:string allow_write_access:Bool = HttpUrl;
 //@description Marks all mentions in a chat as read @chat_id Chat identifier
 readAllChatMentions chat_id:int53 = Ok;
 
+//@description Marks all reactions in a chat as read @chat_id Chat identifier
+readAllChatReactions chat_id:int53 = Ok;
+
 
 //@description Returns an existing chat corresponding to a given user @user_id User identifier @force If true, the chat will be created without network request. In this case all information about the chat except its type, title and photo can be incorrect
 createPrivateChat user_id:int53 force:Bool = Chat;

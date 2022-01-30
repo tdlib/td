@@ -3043,6 +3043,40 @@ class ReadMentionsQuery final : public Td::ResultHandler {
   }
 };
 
+class ReadReactionsQuery final : public Td::ResultHandler {
+  Promise<AffectedHistory> promise_;
+  DialogId dialog_id_;
+
+ public:
+  explicit ReadReactionsQuery(Promise<AffectedHistory> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(DialogId dialog_id) {
+    dialog_id_ = dialog_id;
+
+    auto input_peer = td_->messages_manager_->get_input_peer(dialog_id_, AccessRights::Read);
+    if (input_peer == nullptr) {
+      return promise_.set_error(Status::Error(400, "Chat is not accessible"));
+    }
+
+    send_query(G()->net_query_creator().create(telegram_api::messages_readReactions(std::move(input_peer))));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_readReactions>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    promise_.set_value(AffectedHistory(result_ptr.move_as_ok()));
+  }
+
+  void on_error(Status status) final {
+    td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "ReadReactionsQuery");
+    promise_.set_error(std::move(status));
+  }
+};
+
 class SaveDefaultSendAsActor final : public NetActorOnce {
   Promise<Unit> promise_;
 
@@ -10204,7 +10238,7 @@ void MessagesManager::on_get_dialog_messages_search_result(
       }
       if (filter == MessageSearchFilter::UnreadReaction) {
         d->unread_reaction_count = old_message_count;
-        update_dialog_mention_notification_count(d);
+        // update_dialog_mention_notification_count(d);
         send_update_chat_unread_reaction_count(d);
       }
       update_dialog = true;
@@ -11804,6 +11838,90 @@ void MessagesManager::read_all_dialog_mentions_on_server(DialogId dialog_id, uin
 
   AffectedHistoryQuery query = [td = td_](DialogId dialog_id, Promise<AffectedHistory> &&query_promise) {
     td->create_handler<ReadMentionsQuery>(std::move(query_promise))->send(dialog_id);
+  };
+  run_affected_history_query_until_complete(dialog_id, std::move(query), false,
+                                            get_erase_log_event_promise(log_event_id, std::move(promise)));
+}
+
+void MessagesManager::read_all_dialog_reactions(DialogId dialog_id, Promise<Unit> &&promise) {
+  Dialog *d = get_dialog_force(dialog_id, "read_all_dialog_reactions");
+  if (d == nullptr) {
+    return promise.set_error(Status::Error(400, "Chat not found"));
+  }
+
+  LOG(INFO) << "Receive readAllChatReactions request in " << dialog_id << " with " << d->unread_reaction_count
+            << " unread reactions";
+  if (!have_input_peer(dialog_id, AccessRights::Read)) {
+    return promise.set_error(Status::Error(400, "Chat is not accessible"));
+  }
+  if (dialog_id.get_type() == DialogType::SecretChat) {
+    CHECK(d->unread_reaction_count == 0);
+    return promise.set_value(Unit());
+  }
+
+  vector<MessageId> message_ids;
+  find_messages(d->messages.get(), message_ids,
+                [this, dialog_id](const Message *m) { return has_unread_message_reactions(dialog_id, m); });
+
+  LOG(INFO) << "Found " << message_ids.size() << " messages with unread reactions in memory";
+  bool is_update_sent = false;
+  for (auto message_id : message_ids) {
+    auto m = get_message(d, message_id);
+    CHECK(m != nullptr);
+    CHECK(has_unread_message_reactions(dialog_id, m));
+    CHECK(m->message_id == message_id);
+    CHECK(m->message_id.is_valid());
+    // remove_message_notification_id(d, m, true, false);  // must be called before unread_reactions are cleared
+    m->reactions->unread_reactions_.clear();
+
+    send_update_message_unread_reactions(dialog_id, m, 0);
+    is_update_sent = true;
+    on_message_changed(d, m, true, "read_all_dialog_reactions");
+  }
+
+  if (d->unread_reaction_count != 0) {
+    set_dialog_unread_reaction_count(d, 0);
+    if (!is_update_sent) {
+      send_update_chat_unread_reaction_count(d);
+    } else {
+      LOG(INFO) << "Update unread reaction message count in " << dialog_id << " to " << d->unread_reaction_count;
+      on_dialog_updated(dialog_id, "read_all_dialog_reactions");
+    }
+  }
+  // remove_message_dialog_notifications(d, MessageId::max(), true, "read_all_dialog_reactions");
+
+  read_all_dialog_reactions_on_server(dialog_id, 0, std::move(promise));
+}
+
+class MessagesManager::ReadAllDialogReactionsOnServerLogEvent {
+ public:
+  DialogId dialog_id_;
+
+  template <class StorerT>
+  void store(StorerT &storer) const {
+    td::store(dialog_id_, storer);
+  }
+
+  template <class ParserT>
+  void parse(ParserT &parser) {
+    td::parse(dialog_id_, parser);
+  }
+};
+
+uint64 MessagesManager::save_read_all_dialog_reactions_on_server_log_event(DialogId dialog_id) {
+  ReadAllDialogReactionsOnServerLogEvent log_event{dialog_id};
+  return binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::ReadAllDialogReactionsOnServer,
+                    get_log_event_storer(log_event));
+}
+
+void MessagesManager::read_all_dialog_reactions_on_server(DialogId dialog_id, uint64 log_event_id,
+                                                          Promise<Unit> &&promise) {
+  if (log_event_id == 0 && G()->parameters().use_message_db) {
+    log_event_id = save_read_all_dialog_reactions_on_server_log_event(dialog_id);
+  }
+
+  AffectedHistoryQuery query = [td = td_](DialogId dialog_id, Promise<AffectedHistory> &&query_promise) {
+    td->create_handler<ReadReactionsQuery>(std::move(query_promise))->send(dialog_id);
   };
   run_affected_history_query_until_complete(dialog_id, std::move(query), false,
                                             get_erase_log_event_promise(log_event_id, std::move(promise)));
@@ -15345,7 +15463,7 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
       }
       if (d->unread_reaction_count != dialog->unread_reactions_count_) {
         set_dialog_unread_reaction_count(d, dialog->unread_reactions_count_);
-        update_dialog_mention_notification_count(d);
+        // update_dialog_mention_notification_count(d);
         send_update_chat_unread_reaction_count(d);
       }
     }
@@ -22728,7 +22846,7 @@ void MessagesManager::on_search_dialog_messages_db_result(int64 random_id, Dialo
     }
     if (filter == MessageSearchFilter::UnreadReaction) {
       d->unread_reaction_count = message_count;
-      update_dialog_mention_notification_count(d);
+      // update_dialog_mention_notification_count(d);
       send_update_chat_unread_reaction_count(d);
     }
     on_dialog_updated(dialog_id, "on_search_dialog_messages_db_result");
@@ -37656,7 +37774,7 @@ void MessagesManager::on_get_channel_dialog(DialogId dialog_id, MessageId last_m
   }
   if (d->unread_reaction_count != unread_reaction_count) {
     set_dialog_unread_reaction_count(d, unread_reaction_count);
-    update_dialog_mention_notification_count(d);
+    // update_dialog_mention_notification_count(d);
     send_update_chat_unread_reaction_count(d);
   }
 
@@ -38745,6 +38863,25 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
         }
 
         read_all_dialog_mentions_on_server(dialog_id, event.id_, Promise<Unit>());
+        break;
+      }
+      case LogEvent::HandlerType::ReadAllDialogReactionsOnServer: {
+        if (!G()->parameters().use_message_db) {
+          binlog_erase(G()->td_db()->get_binlog(), event.id_);
+          break;
+        }
+
+        ReadAllDialogReactionsOnServerLogEvent log_event;
+        log_event_parse(log_event, event.data_).ensure();
+
+        auto dialog_id = log_event.dialog_id_;
+        Dialog *d = get_dialog_force(dialog_id, "ReadAllDialogReactionsOnServerLogEvent");
+        if (d == nullptr || !have_input_peer(dialog_id, AccessRights::Read)) {
+          binlog_erase(G()->td_db()->get_binlog(), event.id_);
+          break;
+        }
+
+        read_all_dialog_reactions_on_server(dialog_id, event.id_, Promise<Unit>());
         break;
       }
       case LogEvent::HandlerType::ToggleDialogIsPinnedOnServer: {

@@ -386,6 +386,8 @@ class MessagesManager final : public Actor {
 
   void read_all_dialog_mentions(DialogId dialog_id, Promise<Unit> &&promise);
 
+  void read_all_dialog_reactions(DialogId dialog_id, Promise<Unit> &&promise);
+
   Status add_recently_found_dialog(DialogId dialog_id) TD_WARN_UNUSED_RESULT;
 
   Status remove_recently_found_dialog(DialogId dialog_id) TD_WARN_UNUSED_RESULT;
@@ -1699,6 +1701,7 @@ class MessagesManager final : public Actor {
   class ForwardMessagesLogEvent;
   class GetChannelDifferenceLogEvent;
   class ReadAllDialogMentionsOnServerLogEvent;
+  class ReadAllDialogReactionsOnServerLogEvent;
   class ReadHistoryInSecretChatLogEvent;
   class ReadHistoryOnServerLogEvent;
   class ReadMessageContentsOnServerLogEvent;
@@ -2068,6 +2071,8 @@ class MessagesManager final : public Actor {
                                                 uint64 log_event_id, Promise<Unit> &&promise);
 
   void read_all_dialog_mentions_on_server(DialogId dialog_id, uint64 log_event_id, Promise<Unit> &&promise);
+
+  void read_all_dialog_reactions_on_server(DialogId dialog_id, uint64 log_event_id, Promise<Unit> &&promise);
 
   void unpin_all_dialog_messages_on_server(DialogId dialog_id, uint64 log_event_id, Promise<Unit> &&promise);
 
@@ -3205,6 +3210,8 @@ class MessagesManager final : public Actor {
                                                                         int32 max_date, bool revoke);
 
   static uint64 save_read_all_dialog_mentions_on_server_log_event(DialogId dialog_id);
+
+  static uint64 save_read_all_dialog_reactions_on_server_log_event(DialogId dialog_id);
 
   static uint64 save_toggle_dialog_is_pinned_on_server_log_event(DialogId dialog_id, bool is_pinned);
 

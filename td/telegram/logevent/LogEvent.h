@@ -100,6 +100,7 @@ class LogEvent {
     UnpinAllDialogMessagesOnServer = 0x121,
     DeleteAllCallMessagesOnServer = 0x122,
     DeleteDialogMessagesByDateOnServer = 0x123,
+    ReadAllDialogReactionsOnServer = 0x124,
     GetChannelDifference = 0x140,
     AddMessagePushNotification = 0x200,
     EditMessagePushNotification = 0x201,
