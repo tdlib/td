@@ -351,12 +351,6 @@ const MessageReaction *MessageReactions::get_reaction(const string &reaction) co
 }
 
 void MessageReactions::update_from(const MessageReactions &old_reactions) {
-  if (old_reactions.has_pending_reaction_) {
-    // we will ignore all updates, received while there is a pending reaction, so there are no reasons to update
-    return;
-  }
-  CHECK(!has_pending_reaction_);
-
   if (is_min_ && !old_reactions.is_min_) {
     // chosen reaction was known, keep it
     is_min_ = false;
@@ -394,10 +388,6 @@ bool MessageReactions::need_update_message_reactions(const MessageReactions *old
   if (old_reactions == nullptr) {
     // add reactions
     return new_reactions != nullptr;
-  }
-  if (old_reactions->has_pending_reaction_) {
-    // ignore all updates, received while there is a pending reaction
-    return false;
   }
   if (new_reactions == nullptr) {
     // remove reactions when they are disabled

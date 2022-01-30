@@ -134,7 +134,6 @@ struct MessageReactions {
   bool is_min_ = false;
   bool need_polling_ = true;
   bool can_see_all_choosers_ = false;
-  bool has_pending_reaction_ = false;
 
   MessageReactions() = default;
 

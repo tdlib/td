@@ -3633,6 +3633,12 @@ class MessagesManager final : public Actor {
 
   std::unordered_map<DialogId, MessageId, DialogIdHash> previous_repaired_read_inbox_max_message_id_;
 
+  struct PendingReaction {
+    int32 query_count = 0;
+    bool was_updated = false;
+  };
+  std::unordered_map<FullMessageId, PendingReaction, FullMessageIdHash> pending_reactions_;
+
   vector<string> active_reactions_;
   std::unordered_map<string, size_t> active_reaction_pos_;
 

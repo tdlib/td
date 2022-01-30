@@ -7092,6 +7092,13 @@ bool MessagesManager::update_message_interaction_info(DialogId dialog_id, Messag
       }
     }
   }
+  if (has_reactions) {
+    auto it = pending_reactions_.find({dialog_id, m->message_id});
+    if (it != pending_reactions_.end()) {
+      has_reactions = false;
+      it->second.was_updated = true;
+    }
+  }
   if (has_reactions && reactions != nullptr) {
     if (m->reactions != nullptr) {
       reactions->update_from(*m->reactions);
@@ -24146,7 +24153,9 @@ void MessagesManager::set_message_reaction(FullMessageId full_message_id, string
 
     ++it;
   }
-  // m->reactions->has_pending_reaction_ = true;
+
+  pending_reactions_[full_message_id].query_count++;
+
   if (!is_found && !reaction.empty()) {
     vector<DialogId> recent_chooser_dialog_ids;
     if (!is_broadcast_channel(dialog_id)) {
@@ -24172,12 +24181,23 @@ void MessagesManager::on_set_message_reaction(FullMessageId full_message_id, Res
                                               Promise<Unit> promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
 
-  if (result.is_error() && have_message_force(full_message_id, "on_set_message_reaction")) {
-    reload_message_reactions(td_, full_message_id.get_dialog_id(), {full_message_id.get_message_id()});
-    promise.set_error(result.move_as_error());
-  } else {
-    promise.set_value(Unit());
+  bool need_reload = result.is_error();
+  auto it = pending_reactions_.find(full_message_id);
+  CHECK(it != pending_reactions_.end());
+  if (--it->second.query_count == 0) {
+    need_reload |= it->second.was_updated;
+    pending_reactions_.erase(it);
   }
+
+  if (!have_message_force(full_message_id, "on_set_message_reaction")) {
+    return promise.set_value(Unit());
+  }
+
+  if (need_reload) {
+    reload_message_reactions(td_, full_message_id.get_dialog_id(), {full_message_id.get_message_id()});
+  }
+
+  promise.set_result(std::move(result));
 }
 
 void MessagesManager::get_message_public_forwards(FullMessageId full_message_id, string offset, int32 limit,
