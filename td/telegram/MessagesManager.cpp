@@ -1953,6 +1953,7 @@ class ReadMessagesContentsQuery final : public Td::ResultHandler {
 
     auto affected_messages = result_ptr.move_as_ok();
     CHECK(affected_messages->get_id() == telegram_api::messages_affectedMessages::ID);
+    LOG(INFO) << "Receive result for ReadMessagesContentsQuery: " << to_string(affected_messages);
 
     if (affected_messages->pts_count_ > 0) {
       td_->updates_manager_->add_pending_pts_update(make_tl_object<dummyUpdate>(), affected_messages->pts_,
@@ -6345,9 +6346,9 @@ int32 MessagesManager::get_message_index_mask(DialogId dialog_id, const Message 
     if (m->contains_unread_mention) {
       index_mask |= message_search_filter_index_mask(MessageSearchFilter::UnreadMention);
     }
-    if (has_unread_message_reactions(dialog_id, m)) {
-      index_mask |= message_search_filter_index_mask(MessageSearchFilter::UnreadReaction);
-    }
+  }
+  if (has_unread_message_reactions(dialog_id, m)) {
+    index_mask |= message_search_filter_index_mask(MessageSearchFilter::UnreadReaction);
   }
   LOG(INFO) << "Have index mask " << index_mask << " for " << m->message_id << " in " << dialog_id;
   return index_mask;
@@ -23154,6 +23155,9 @@ void MessagesManager::on_get_affected_history(DialogId dialog_id, AffectedHistor
                                               bool get_affected_messages, AffectedHistory affected_history,
                                               Promise<Unit> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
+  LOG(INFO) << "Receive " << (affected_history.is_final_ ? "final " : "partial ")
+            << "affected history with pts = " << affected_history.pts_
+            << " and pts_count = " << affected_history.pts_count_;
 
   if (affected_history.pts_count_ > 0) {
     if (get_affected_messages) {
