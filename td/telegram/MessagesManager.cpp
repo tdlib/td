@@ -33110,9 +33110,11 @@ void MessagesManager::set_dialog_available_reactions(DialogId dialog_id, vector<
       UNREACHABLE();
   }
 
+  bool is_changed = d->available_reactions != available_reactions;
+
   set_dialog_available_reactions(d, vector<string>(available_reactions));
 
-  if (d->available_reactions == available_reactions) {
+  if (!is_changed) {
     return promise.set_value(Unit());
   }
 
