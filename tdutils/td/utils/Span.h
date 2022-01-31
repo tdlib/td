@@ -146,45 +146,10 @@ template <class T>
 using MutableSpan = detail::SpanImpl<T, T>;
 
 template <class T>
-Span<T> span(const T *ptr, size_t size) {
-  return Span<T>(ptr, size);
-}
-template <class T>
-Span<T> span(const vector<T> &vec) {
-  return Span<T>(vec);
-}
-
-template <class T>
-MutableSpan<T> mutable_span(T *ptr, size_t size) {
-  return MutableSpan<T>(ptr, size);
-}
-template <class T>
-MutableSpan<T> mutable_span(vector<T> &vec) {
-  return MutableSpan<T>(vec);
-}
-
-template <class T>
-Span<T> span_one(const T &value) {
-  return Span<T>(&value, 1);
-}
-template <class T>
-MutableSpan<T> mutable_span_one(T &value) {
-  return MutableSpan<T>(&value, 1);
-}
-
-template <class T>
-Span<T> as_span(Span<T> span) {
-  return span;
-}
-template <class T>
 Span<T> as_span(const std::vector<T> &vec) {
   return Span<T>(vec);
 }
 
-template <class T>
-MutableSpan<T> as_mutable_span(MutableSpan<T> span) {
-  return span;
-}
 template <class T>
 MutableSpan<T> as_mutable_span(std::vector<T> &vec) {
   return MutableSpan<T>(vec);
