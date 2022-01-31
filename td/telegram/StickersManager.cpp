@@ -5584,8 +5584,7 @@ Result<std::tuple<FileId, bool, bool, StickerFormat>> StickersManager::prepare_i
 
 Result<std::tuple<FileId, bool, bool, StickerFormat>> StickersManager::prepare_input_file(
     const tl_object_ptr<td_api::InputFile> &input_file, StickerFormat format, bool for_thumbnail) {
-  auto file_type =
-      format == StickerFormat::Webm || format == StickerFormat::Tgs ? FileType::Sticker : FileType::Document;
+  auto file_type = format == StickerFormat::Tgs ? FileType::Sticker : FileType::Document;
   auto r_file_id = td_->file_manager_->get_input_file_id(file_type, input_file, DialogId(), for_thumbnail, false);
   if (r_file_id.is_error()) {
     return Status::Error(400, r_file_id.error().message());
