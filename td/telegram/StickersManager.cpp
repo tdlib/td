@@ -5594,10 +5594,12 @@ Result<std::tuple<FileId, bool, bool, StickerFormat>> StickersManager::prepare_i
     return std::make_tuple(FileId(), false, false, StickerFormat::Unknown);
   }
 
-  if (file_type == FileType::Sticker) {
+  if (format == StickerFormat::Tgs) {
     int32 width = for_thumbnail ? 100 : 512;
     create_sticker(file_id, string(), PhotoSize(), get_dimensions(width, width, "prepare_input_file"), nullptr, format,
                    nullptr);
+  } else if (format == StickerFormat::Webm) {
+    td_->documents_manager_->create_document(file_id, string(), PhotoSize(), "sticker.webm", "video/webm", false);
   } else {
     td_->documents_manager_->create_document(file_id, string(), PhotoSize(), "sticker.png", "image/png", false);
   }
