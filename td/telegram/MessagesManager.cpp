@@ -7137,6 +7137,7 @@ bool MessagesManager::update_message_interaction_info(DialogId dialog_id, Messag
       }
       need_update |= is_visible_message_reply_info(dialog_id, m);
     }
+    int32 new_dialog_unread_reaction_count = -1;
     if (need_update_reactions || need_update_unread_reactions) {
       int32 unread_reaction_diff = 0;
       unread_reaction_diff -= (has_unread_message_reactions(dialog_id, m) ? 1 : 0);
@@ -7163,12 +7164,19 @@ bool MessagesManager::update_message_interaction_info(DialogId dialog_id, Messag
             }
           }
 
-          send_update_message_unread_reactions(dialog_id, m, d->unread_reaction_count);
+          if (unread_reaction_diff < 0) {
+            send_update_message_unread_reactions(dialog_id, m, d->unread_reaction_count);
+          } else {
+            new_dialog_unread_reaction_count = d->unread_reaction_count;
+          }
         }
       }
     }
     if (need_update) {
       send_update_message_interaction_info(dialog_id, m);
+    }
+    if (new_dialog_unread_reaction_count >= 0) {
+      send_update_message_unread_reactions(dialog_id, m, new_dialog_unread_reaction_count);
     }
     return true;
   }
@@ -35085,9 +35093,7 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
       if (new_message->edit_date > old_message->edit_date) {
         LOG(DEBUG) << "Message edit date has changed from " << old_message->edit_date << " to "
                    << new_message->edit_date;
-
         old_message->edit_date = new_message->edit_date;
-        need_send_update = true;
       }
     } else {
       LOG(ERROR) << "Receive " << message_id << " in " << dialog_id << " of type " << old_content_type << "/"
@@ -35135,6 +35141,8 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
                    << ", really forwarded from " << old_message->real_forward_from_message_id << " in "
                    << old_message->real_forward_from_dialog_id << ", message content type is " << old_content_type
                    << '/' << new_content_type;
+      } else {
+        LOG(DEBUG) << "Message forward has changed to " << *new_message->forward_info;
       }
       old_message->forward_info = std::move(new_message->forward_info);
       need_send_update = true;
@@ -35162,6 +35170,9 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
                      << *old_message->forward_info << " to " << *new_message->forward_info << ", really forwarded from "
                      << old_message->real_forward_from_message_id << " in " << old_message->real_forward_from_dialog_id
                      << ", message content type is " << old_content_type << '/' << new_content_type;
+        } else {
+          LOG(DEBUG) << "Message forward info has changed from " << *old_message->forward_info << " to "
+                     << *new_message->forward_info;
         }
         old_message->forward_info = std::move(new_message->forward_info);
         need_send_update = true;
@@ -35177,8 +35188,9 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
     }
   }
   if (old_message->had_forward_info != new_message->had_forward_info) {
+    LOG(DEBUG) << "Message had_forward_info has changed from " << old_message->had_forward_info << " to "
+               << new_message->had_forward_info;
     old_message->had_forward_info = new_message->had_forward_info;
-    need_send_update = true;
   }
   if (old_message->notification_id != new_message->notification_id) {
     CHECK(!is_scheduled);
@@ -35273,6 +35285,9 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
       LOG(ERROR) << message_id << " in " << dialog_id << " has changed is_outgoing from " << old_message->is_outgoing
                  << " to " << new_message->is_outgoing << ", message content type is " << old_content_type << '/'
                  << new_content_type;
+    } else {
+      LOG(DEBUG) << "Message is_outgoing has changed from " << old_message->is_outgoing << " to "
+                 << new_message->is_outgoing;
     }
     old_message->is_outgoing = new_message->is_outgoing;
     need_send_update = true;
@@ -35319,10 +35334,14 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
     need_send_update = true;
   }
   if (old_message->noforwards != new_message->noforwards) {
+    LOG(DEBUG) << "Message can_be_saved has changed from " << !old_message->noforwards << " to "
+               << !old_message->noforwards;
     old_message->noforwards = new_message->noforwards;
     need_send_update = true;
   }
   if (old_message->restriction_reasons != new_message->restriction_reasons) {
+    LOG(DEBUG) << "Message restriction_reasons has changed from " << old_message->restriction_reasons << " to "
+               << old_message->restriction_reasons;
     old_message->restriction_reasons = std::move(new_message->restriction_reasons);
     need_send_update = true;
   }
@@ -35336,13 +35355,12 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
   }
   if (old_message->hide_edit_date != new_message->hide_edit_date) {
     old_message->hide_edit_date = new_message->hide_edit_date;
-    if (old_message->edit_date > 0) {
-      need_send_update = true;
-    }
   }
   int32 new_shown_edit_date = old_message->hide_edit_date ? 0 : old_message->edit_date;
   if (new_shown_edit_date != old_shown_edit_date) {
+    LOG(DEBUG) << "Message edit_date has changed";
     is_edited = true;
+    need_send_update = true;
   }
 
   if (old_message->is_from_scheduled != new_message->is_from_scheduled) {
