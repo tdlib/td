@@ -100,6 +100,6 @@ class MultiSequenceDispatcherNew : public NetQueryCallback {
   static ActorOwn<MultiSequenceDispatcherNew> create(Slice name);
 };
 
-using MultiSequenceDispatcher = MultiSequenceDispatcherNew;
+using MultiSequenceDispatcher = MultiSequenceDispatcherOld;
 
 }  // namespace td
