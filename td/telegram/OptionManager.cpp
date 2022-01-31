@@ -379,7 +379,7 @@ void OptionManager::set_option(const string &name, td_api::object_ptr<td_api::Op
     if (value_constructor_id != td_api::optionValueInteger::ID &&
         value_constructor_id != td_api::optionValueEmpty::ID) {
       promise.set_error(Status::Error(400, PSLICE() << "Option \"" << name << "\" must have integer value"));
-      return true;
+      return false;
     }
     if (value_constructor_id == td_api::optionValueEmpty::ID) {
       G()->shared_config().set_option_empty(option_name);
@@ -389,7 +389,7 @@ void OptionManager::set_option(const string &name, td_api::object_ptr<td_api::Op
         promise.set_error(Status::Error(400, PSLICE() << "Option's \"" << name << "\" value " << int_value
                                                       << " is outside of the valid range [" << min_value << ", "
                                                       << max_value << "]"));
-        return true;
+        return false;
       }
       G()->shared_config().set_option_integer(name, int_value);
     }
@@ -404,7 +404,7 @@ void OptionManager::set_option(const string &name, td_api::object_ptr<td_api::Op
     if (value_constructor_id != td_api::optionValueBoolean::ID &&
         value_constructor_id != td_api::optionValueEmpty::ID) {
       promise.set_error(Status::Error(400, PSLICE() << "Option \"" << name << "\" must have boolean value"));
-      return true;
+      return false;
     }
     if (value_constructor_id == td_api::optionValueEmpty::ID) {
       G()->shared_config().set_option_empty(name);
@@ -422,7 +422,7 @@ void OptionManager::set_option(const string &name, td_api::object_ptr<td_api::Op
     }
     if (value_constructor_id != td_api::optionValueString::ID && value_constructor_id != td_api::optionValueEmpty::ID) {
       promise.set_error(Status::Error(400, PSLICE() << "Option \"" << name << "\" must have string value"));
-      return true;
+      return false;
     }
     if (value_constructor_id == td_api::optionValueEmpty::ID) {
       G()->shared_config().set_option_empty(name);
@@ -435,7 +435,7 @@ void OptionManager::set_option(const string &name, td_api::object_ptr<td_api::Op
           G()->shared_config().set_option_string(name, str_value);
         } else {
           promise.set_error(Status::Error(400, PSLICE() << "Option \"" << name << "\" can't have specified value"));
-          return true;
+          return false;
         }
       }
     }
@@ -664,7 +664,9 @@ void OptionManager::set_option(const string &name, td_api::object_ptr<td_api::Op
     }
   }
 
-  promise.set_error(Status::Error(400, "Option can't be set"));
+  if (promise) {
+    promise.set_error(Status::Error(400, "Option can't be set"));
+  }
 }
 
 td_api::object_ptr<td_api::OptionValue> OptionManager::get_option_value_object(Slice value) {
