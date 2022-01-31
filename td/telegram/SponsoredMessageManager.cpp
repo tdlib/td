@@ -26,8 +26,6 @@
 #include "td/utils/SliceBuilder.h"
 #include "td/utils/Status.h"
 
-#include <limits>
-
 namespace td {
 
 class GetSponsoredMessagesQuery final : public Td::ResultHandler {

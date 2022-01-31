@@ -9,7 +9,6 @@
 #include "td/telegram/StickersManager.h"
 
 #include "td/telegram/files/FileId.hpp"
-#include "td/telegram/Global.h"
 #include "td/telegram/misc.h"
 #include "td/telegram/Photo.hpp"
 #include "td/telegram/StickerFormat.h"

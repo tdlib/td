@@ -4,6 +4,7 @@
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
+#include "td/utils/algorithm.h"
 #include "td/utils/buffer.h"
 #include "td/utils/ByteFlow.h"
 #include "td/utils/common.h"
@@ -15,8 +16,6 @@
 #include "td/utils/Status.h"
 #include "td/utils/tests.h"
 #include "td/utils/Time.h"
-
-#include <algorithm>
 
 static void encode_decode(const td::string &s) {
   auto r = td::gzencode(s, 2);
@@ -128,7 +127,7 @@ TEST(Gzip, encode_decode_flow_big) {
   td::clear_thread_locals();
   auto start_mem = td::BufferAllocator::get_buffer_mem();
   {
-    auto str = std::string(200000, 'a');
+    auto str = td::string(200000, 'a');
     td::ChainBufferWriter input_writer;
     auto input = input_writer.extract_reader();
     td::ByteFlowSource source(&input);
@@ -145,7 +144,7 @@ TEST(Gzip, encode_decode_flow_big) {
     auto validate = [&](td::Slice chunk) {
       CHECK(chunk.size() <= left_size);
       left_size -= chunk.size();
-      ASSERT_TRUE(std::all_of(chunk.begin(), chunk.end(), [](auto c) { return c == 'a'; }));
+      ASSERT_TRUE(td::all_of(chunk, [](auto c) { return c == 'a'; }));
     };
 
     for (size_t i = 0; i < n; i++) {
@@ -171,7 +170,7 @@ TEST(Gzip, encode_decode_flow_big) {
 }
 
 TEST(Gzip, decode_encode_flow_bomb) {
-  std::string gzip_bomb_str;
+  td::string gzip_bomb_str;
   size_t N = 200;
   {
     td::ChainBufferWriter input_writer;
@@ -181,7 +180,7 @@ TEST(Gzip, decode_encode_flow_bomb) {
     td::ByteFlowSink sink;
     source >> gzip_flow >> sink;
 
-    std::string s(1 << 16, 'a');
+    td::string s(1 << 16, 'a');
     for (size_t i = 0; i < N; i++) {
       input_writer.append(s);
       source.wakeup();
@@ -224,7 +223,7 @@ TEST(Gzip, decode_encode_flow_bomb) {
     auto validate = [&](td::Slice chunk) {
       CHECK(chunk.size() <= left_size);
       left_size -= chunk.size();
-      ASSERT_TRUE(std::all_of(chunk.begin(), chunk.end(), [](auto c) { return c == 'a'; }));
+      ASSERT_TRUE(td::all_of(chunk, [](auto c) { return c == 'a'; }));
     };
 
     input_writer.append(gzip_bomb_str);

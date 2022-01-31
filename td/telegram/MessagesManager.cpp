@@ -7104,7 +7104,7 @@ bool MessagesManager::update_message_interaction_info(DialogId dialog_id, Messag
     if (m->reactions != nullptr) {
       reactions->update_from(*m->reactions);
     }
-    reactions->sort(active_reaction_pos_);
+    reactions->sort_reactions(active_reaction_pos_);
   }
   bool need_update_reactions =
       has_reactions && MessageReactions::need_update_message_reactions(m->reactions.get(), reactions.get());
@@ -24175,7 +24175,7 @@ void MessagesManager::set_message_reaction(FullMessageId full_message_id, string
     }
     m->reactions->reactions_.emplace_back(reaction, 1, true, std::move(recent_chooser_dialog_ids), Auto());
   }
-  m->reactions->sort(active_reaction_pos_);
+  m->reactions->sort_reactions(active_reaction_pos_);
 
   send_update_message_interaction_info(dialog_id, m);
   on_message_changed(d, m, true, "set_message_reaction");
@@ -35344,7 +35344,7 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
     need_send_update = true;
   }
   if (old_message->restriction_reasons != new_message->restriction_reasons) {
-    LOG(DEBUG) << "Message restriction_reasons has changed from " << old_message->restriction_reasons << " to "
+    LOG(DEBUG) << "Message restriction_reasons have changed from " << old_message->restriction_reasons << " to "
                << old_message->restriction_reasons;
     old_message->restriction_reasons = std::move(new_message->restriction_reasons);
     need_send_update = true;

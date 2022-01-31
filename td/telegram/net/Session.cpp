@@ -35,6 +35,7 @@
 #include "td/utils/Random.h"
 #include "td/utils/Slice.h"
 #include "td/utils/SliceBuilder.h"
+#include "td/utils/Span.h"
 #include "td/utils/Time.h"
 #include "td/utils/Timer.h"
 #include "td/utils/tl_parsers.h"
@@ -1027,7 +1028,7 @@ void Session::connection_send_query(ConnectionInfo *info, NetQueryPtr &&net_quer
     }
   }
   VLOG(net_query) << "Send query to connection " << net_query << " [msg_id:" << format::as_hex(message_id) << "]"
-                  << tag("invoke_after", td::transform(invoke_after_ids, [](auto id){return format::as_hex(id);}));
+                  << tag("invoke_after", transform(invoke_after_ids, [](auto id) { return format::as_hex(id); }));
   net_query->set_message_id(message_id);
   net_query->cancel_slot_.clear_event();
   LOG_CHECK(sent_queries_.find(message_id) == sent_queries_.end()) << message_id;

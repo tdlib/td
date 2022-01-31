@@ -1,17 +1,22 @@
+//
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
+//
+// Distributed under the Boost Software License, Version 1.0. (See accompanying
+// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+//
 #pragma once
 
 #include "td/utils/algorithm.h"
+#include "td/utils/common.h"
 #include "td/utils/Container.h"
 #include "td/utils/List.h"
 #include "td/utils/optional.h"
-#include "td/utils/Random.h"
 #include "td/utils/Span.h"
+#include "td/utils/StringBuilder.h"
 #include "td/utils/VectorQueue.h"
 
+#include <functional>
 #include <map>
-#include <vector>
-#include <set>
-#include <numeric>
 
 namespace td {
 
@@ -25,7 +30,7 @@ class ChainScheduler {
  public:
   using TaskId = uint64;
   using ChainId = uint64;
-  TaskId create_task(td::Span<ChainId> chains, ExtraT extra = {});
+  TaskId create_task(Span<ChainId> chains, ExtraT extra = {});
   ExtraT *get_task_extra(TaskId task_id);
 
   optional<ChainSchedulerTaskWithParents> start_next_task();
@@ -36,9 +41,7 @@ class ChainScheduler {
 
   template <class F>
   void for_each(F &&f) {
-    tasks_.for_each([&f](auto, Task &task) {
-      f(task.extra) ;
-    });
+    tasks_.for_each([&f](auto, Task &task) { f(task.extra); });
   }
 
  private:
@@ -101,7 +104,7 @@ class ChainScheduler {
   };
   struct Task {
     enum class State { Pending, Active } state{State::Pending};
-    std::vector<TaskChainInfo> chains;
+    vector<TaskChainInfo> chains;
     ExtraT extra;
   };
   std::map<ChainId, ChainInfo> chains_;
@@ -193,8 +196,10 @@ class ChainScheduler {
     }
   }
 };
+
 template <class ExtraT>
-typename ChainScheduler<ExtraT>::TaskId ChainScheduler<ExtraT>::create_task(Span<ChainScheduler::ChainId> chains, ExtraT extra) {
+typename ChainScheduler<ExtraT>::TaskId ChainScheduler<ExtraT>::create_task(Span<ChainScheduler::ChainId> chains,
+                                                                            ExtraT extra) {
   auto task_id = tasks_.create();
   Task &task = *tasks_.get(task_id);
   task.extra = std::move(extra);
@@ -210,12 +215,13 @@ typename ChainScheduler<ExtraT>::TaskId ChainScheduler<ExtraT>::create_task(Span
   for (TaskChainInfo &task_chain_info : task.chains) {
     auto &chain = task_chain_info.chain_info->chain;
     chain.add_task(&task_chain_info.chain_node);
-    task_chain_info.waiting_for_parent = bool(chain.get_parent(&task_chain_info.chain_node));
+    task_chain_info.waiting_for_parent = static_cast<bool>(chain.get_parent(&task_chain_info.chain_node));
   }
 
   try_start_task(task_id, &task);
   return task_id;
 }
+
 template <class ExtraT>
 ExtraT *ChainScheduler<ExtraT>::get_task_extra(ChainScheduler::TaskId task_id) {  // may return nullptr
   auto *task = tasks_.get(task_id);
@@ -224,6 +230,7 @@ ExtraT *ChainScheduler<ExtraT>::get_task_extra(ChainScheduler::TaskId task_id) {
   }
   return &task->extra;
 }
+
 template <class ExtraT>
 optional<ChainSchedulerTaskWithParents> ChainScheduler<ExtraT>::start_next_task() {
   if (pending_tasks_.empty()) {
@@ -243,6 +250,7 @@ optional<ChainSchedulerTaskWithParents> ChainScheduler<ExtraT>::start_next_task(
   }
   return res;
 }
+
 template <class ExtraT>
 void ChainScheduler<ExtraT>::finish_task(ChainScheduler::TaskId task_id) {
   auto *task = tasks_.get(task_id);
@@ -256,6 +264,7 @@ void ChainScheduler<ExtraT>::finish_task(ChainScheduler::TaskId task_id) {
   }
   tasks_.erase(task_id);
 }
+
 template <class ExtraT>
 void ChainScheduler<ExtraT>::reset_task(ChainScheduler::TaskId task_id) {
   auto *task = tasks_.get(task_id);
@@ -264,11 +273,12 @@ void ChainScheduler<ExtraT>::reset_task(ChainScheduler::TaskId task_id) {
 
   for (TaskChainInfo &task_chain_info : task->chains) {
     ChainInfo &chain_info = chains_[task_chain_info.chain_id];
-    task_chain_info.waiting_for_parent = bool(chain_info.chain.get_parent(&task_chain_info.chain_node));
+    task_chain_info.waiting_for_parent = static_cast<bool>(chain_info.chain.get_parent(&task_chain_info.chain_node));
   }
 
   try_start_task(task_id, task);
 }
+
 template <class ExtraT>
 StringBuilder &operator<<(StringBuilder &sb, ChainScheduler<ExtraT> &scheduler) {
   // 1 print chains
@@ -277,21 +287,22 @@ StringBuilder &operator<<(StringBuilder &sb, ChainScheduler<ExtraT> &scheduler) 
     sb << "ChainId{" << it.first << "} ";
     sb << " active_cnt=" << it.second.active_tasks;
     sb << " : ";
-    it.second.chain.foreach([&](auto task_id) {
-      sb << *scheduler.get_task_extra(task_id);
-    });
+    it.second.chain.foreach([&](auto task_id) { sb << *scheduler.get_task_extra(task_id); });
     sb << "\n";
   }
   scheduler.tasks_.for_each([&](auto id, auto &task) {
     sb << "Task: " << task.extra;
     sb << " state =" << static_cast<int>(task.state);
-    for (auto& task_chain_info : task.chains) {
+    for (auto &task_chain_info : task.chains) {
       if (task_chain_info.waiting_for_parent) {
-        sb << " wait " << *scheduler.get_task_extra(task_chain_info.chain_info->chain.get_parent(&task_chain_info.chain_node).value());
+        sb << " wait "
+           << *scheduler.get_task_extra(
+                  task_chain_info.chain_info->chain.get_parent(&task_chain_info.chain_node).value());
       }
     }
     sb << "\n";
   });
   return sb;
 }
+
 }  // namespace td

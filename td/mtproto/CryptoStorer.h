@@ -14,7 +14,9 @@
 #include "td/mtproto/mtproto_api.h"
 
 #include "td/utils/common.h"
+#include "td/utils/misc.h"
 #include "td/utils/Slice.h"
+#include "td/utils/Span.h"
 #include "td/utils/StorerBase.h"
 #include "td/utils/Time.h"
 
@@ -105,7 +107,7 @@ class CancelVectorImpl {
 
 class InvokeAfter {
  public:
-  explicit InvokeAfter(Span<uint64> ids): ids_(ids){
+  explicit InvokeAfter(Span<uint64> ids) : ids_(ids) {
   }
   template <class StorerT>
   void store(StorerT &storer) const {
@@ -120,11 +122,12 @@ class InvokeAfter {
     //  invokeAfterMsgs#3dc4b4f0 {X:Type} msg_ids:Vector<long> query:!X = X;
     storer.store_int(static_cast<int32>(0x3dc4b4f0));
     storer.store_int(static_cast<int32>(0x1cb5c415));
-    storer.store_int(narrow_cast<int>(ids_.size()));
+    storer.store_int(narrow_cast<int32>(ids_.size()));
     for (auto id : ids_) {
       storer.store_long(static_cast<int64>(id));
     }
   }
+
  private:
   Span<uint64> ids_;
 };

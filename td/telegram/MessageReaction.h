@@ -147,7 +147,7 @@ struct MessageReactions {
 
   void update_from(const MessageReactions &old_reactions);
 
-  void sort(const std::unordered_map<string, size_t> &active_reaction_pos);
+  void sort_reactions(const std::unordered_map<string, size_t> &active_reaction_pos);
 
   static bool need_update_message_reactions(const MessageReactions *old_reactions,
                                             const MessageReactions *new_reactions);

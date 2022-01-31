@@ -6,17 +6,23 @@
 //
 #include "td/telegram/MessageReaction.h"
 
+#include "td/telegram/AccessRights.h"
 #include "td/telegram/ContactsManager.h"
+#include "td/telegram/Global.h"
 #include "td/telegram/MessageSender.h"
 #include "td/telegram/MessagesManager.h"
+#include "td/telegram/ServerMessageId.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/UpdatesManager.h"
 
 #include "td/utils/algorithm.h"
 #include "td/utils/buffer.h"
 #include "td/utils/logging.h"
+#include "td/utils/Status.h"
 
+#include <algorithm>
 #include <unordered_set>
+#include <utility>
 
 namespace td {
 
@@ -365,7 +371,7 @@ void MessageReactions::update_from(const MessageReactions &old_reactions) {
   }
 }
 
-void MessageReactions::sort(const std::unordered_map<string, size_t> &active_reaction_pos) {
+void MessageReactions::sort_reactions(const std::unordered_map<string, size_t> &active_reaction_pos) {
   std::sort(reactions_.begin(), reactions_.end(),
             [&active_reaction_pos](const MessageReaction &lhs, const MessageReaction &rhs) {
               if (lhs.get_choose_count() != rhs.get_choose_count()) {

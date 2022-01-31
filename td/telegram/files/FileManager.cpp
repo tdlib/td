@@ -883,7 +883,7 @@ string FileManager::get_file_name(FileType file_type, Slice path) {
       }
       break;
     case FileType::Sticker:
-      if (extension != "webp" && extension != "tgs") {
+      if (extension != "webp" && extension != "tgs" && extension != "webm") {
         return fix_file_extension(file_name, "sticker", "webp");
       }
       break;
@@ -3221,7 +3221,7 @@ FileType FileManager::guess_file_type(const tl_object_ptr<td_api::InputFile> &fi
     if (extension == "mp3" || extension == "mpeg3" || extension == "m4a") {
       return FileType::Audio;
     }
-    if (extension == "webp" || extension == "tgs") {
+    if (extension == "webp" || extension == "tgs" || extension == "webm") {
       return FileType::Sticker;
     }
     if (extension == "gif") {

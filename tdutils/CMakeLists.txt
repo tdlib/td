@@ -184,6 +184,7 @@ set(TDUTILS_SOURCE
   td/utils/BufferedUdp.h
   td/utils/ByteFlow.h
   td/utils/CancellationToken.h
+  td/utils/ChainScheduler.h
   td/utils/ChangesProcessor.h
   td/utils/check.h
   td/utils/Closure.h

@@ -11,12 +11,14 @@
 
 #include "td/actor/PromiseFuture.h"
 
+#include "td/utils/algorithm.h"
 #include "td/utils/ChainScheduler.h"
 #include "td/utils/format.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/SliceBuilder.h"
 #include "td/utils/Status.h"
+#include "td/utils/StringBuilder.h"
 
 #include <limits>
 
@@ -247,8 +249,8 @@ void SequenceDispatcher::close_silent() {
 
 /*** MultiSequenceDispatcher ***/
 void MultiSequenceDispatcherOld::send_with_callback(NetQueryPtr query, ActorShared<NetQueryCallback> callback,
-                                                 td::Span<uint64> chains) {
-  CHECK(all_of(chains, [](auto chain_id) {return chain_id != 0;}));
+                                                    Span<uint64> chains) {
+  CHECK(all_of(chains, [](auto chain_id) { return chain_id != 0; }));
   CHECK(!chains.empty());
   auto sequence_id = chains[0];
 
@@ -280,8 +282,8 @@ void MultiSequenceDispatcherOld::ready_to_close() {
 
 class MultiSequenceDispatcherNewImpl final : public MultiSequenceDispatcherNew {
  public:
-  void send_with_callback(NetQueryPtr query, ActorShared<NetQueryCallback> callback, td::Span<uint64> chains) final {
-    CHECK(all_of(chains, [](auto chain_id) {return chain_id != 0;}));
+  void send_with_callback(NetQueryPtr query, ActorShared<NetQueryCallback> callback, Span<uint64> chains) final {
+    CHECK(all_of(chains, [](auto chain_id) { return chain_id != 0; }));
     if (!chains.empty()) {
       query->set_session_rand(static_cast<uint32>(chains[0] >> 10));
     }
@@ -299,7 +301,7 @@ class MultiSequenceDispatcherNewImpl final : public MultiSequenceDispatcherNew {
     NetQueryRef net_query_ref;
     NetQueryPtr net_query;
     ActorShared<NetQueryCallback> callback;
-    friend StringBuilder &operator << (StringBuilder &sb, const Node &node) {
+    friend StringBuilder &operator<<(StringBuilder &sb, const Node &node) {
       return sb << node.net_query;
     }
   };
@@ -307,7 +309,7 @@ class MultiSequenceDispatcherNewImpl final : public MultiSequenceDispatcherNew {
   using TaskId = ChainScheduler<NetQueryPtr>::TaskId;
   using ChainId = ChainScheduler<NetQueryPtr>::ChainId;
 
-  void on_result(NetQueryPtr query) override {
+  void on_result(NetQueryPtr query) final {
     auto task_id = TaskId(get_link_token());
     auto &node = *scheduler_.get_task_extra(task_id);
 
@@ -322,7 +324,7 @@ class MultiSequenceDispatcherNewImpl final : public MultiSequenceDispatcherNew {
     send_closure(node.callback, &NetQueryCallback::on_result_resendable, std::move(query), std::move(promise));
   }
 
-  void on_resend(td::Result<NetQueryPtr> query) {
+  void on_resend(Result<NetQueryPtr> query) {
     auto task_id = TaskId(get_link_token());
     auto &node = *scheduler_.get_task_extra(task_id);
     if (query.is_error()) {
@@ -336,10 +338,11 @@ class MultiSequenceDispatcherNewImpl final : public MultiSequenceDispatcherNew {
     loop();
   }
 
-  void loop() override {
+  void loop() final {
     flush_pending_queries();
   }
-  void tear_down() override {
+
+  void tear_down() final {
     // Leaves scheduler_ in an invalid state, but we are closing anyway
     scheduler_.for_each([&](Node &node) {
       if (node.net_query.empty()) {
@@ -360,7 +363,7 @@ class MultiSequenceDispatcherNewImpl final : public MultiSequenceDispatcherNew {
       CHECK(!node.net_query.empty());
 
       auto query = std::move(node.net_query);
-      std::vector<NetQueryRef> parents;
+      vector<NetQueryRef> parents;
       for (auto parent_id : task.parents) {
         auto &parent_node = *scheduler_.get_task_extra(parent_id);
         parents.push_back(parent_node.net_query_ref);
@@ -368,11 +371,10 @@ class MultiSequenceDispatcherNewImpl final : public MultiSequenceDispatcherNew {
       }
 
       query->set_invoke_after(std::move(parents));
-      query->last_timeout_ = 0; // TODO: flood
+      query->last_timeout_ = 0;  // TODO: flood
       VLOG(net_query) << "Send " << query;
       query->debug("send to Td::send_with_callback");
-      G()->net_query_dispatcher().dispatch_with_callback(std::move(query),
-                                                         actor_shared(this, task.task_id));
+      G()->net_query_dispatcher().dispatch_with_callback(std::move(query), actor_shared(this, task.task_id));
     }
   }
 };
