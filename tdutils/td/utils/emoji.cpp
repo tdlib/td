@@ -17,6 +17,7 @@ namespace td {
 bool is_emoji(Slice str) {
   constexpr size_t MAX_EMOJI_LENGTH = 35;
   static const std::unordered_set<Slice, SliceHash> emojis = [MAX_EMOJI_LENGTH] {
+#if TD_HAVE_ZLIB
     Slice packed_emojis(
         "eJyNnety27i2rV8lVfvf-XXul7frVmfZ6cS6kKJskrLj7tUUaUmOI1uObcUEWLUfJecBdledFzgaJIfJiUkyqyqAJ4wxJzE_QABF2fGPs_"
         "jdj7Plux_T9bFsjmV7LLfHsjuW_bsfF-ZY7LsfYXAsi3c_og_H8vuxfDyWT8dydizjY5kcy_RYZsfiHYt_LPNjKd79iI9f4z-P5Rg_"
@@ -196,8 +197,12 @@ bool is_emoji(Slice str) {
         "H4F47_G2_-wZhg9a71F2KqVmmuD-2OY-voXf6GdZyVZtVzbFW7U9n39_XZh1Ynm-WPMoZ_tMzKZ_YBrdslzEU1sO-wyyPm6n3LrHfAX0vRRfn_"
         "k_7Ka1zcVL3hXdn00Rt-q2z8H2PhUzUUYdd7bf2_db5_9_8BRjaqUQ");
     static string all_emojis_str = gzdecode(base64url_decode(packed_emojis).ok()).as_slice().str();
-    std::unordered_set<Slice, SliceHash> all_emojis;
     constexpr size_t EMOJI_COUNT = 4682;
+#else
+    string all_emojis_str;
+    constexpr size_t EMOJI_COUNT = 0;
+#endif
+    std::unordered_set<Slice, SliceHash> all_emojis;
     all_emojis.reserve(EMOJI_COUNT);
     for (size_t i = 0; i < all_emojis_str.size(); i++) {
       CHECK(all_emojis_str[i] != ' ');
