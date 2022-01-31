@@ -16,7 +16,7 @@ namespace td {
 
 bool is_emoji(Slice str) {
   constexpr size_t MAX_EMOJI_LENGTH = 35;
-  static const std::unordered_set<Slice, SliceHash> emojis = [MAX_EMOJI_LENGTH] {
+  static const std::unordered_set<Slice, SliceHash> emojis = [max_emoji_length = MAX_EMOJI_LENGTH] {
 #if TD_HAVE_ZLIB
     Slice packed_emojis(
         "eJyNnety27i2rV8lVfvf-XXul7frVmfZ6cS6kKJskrLj7tUUaUmOI1uObcUEWLUfJecBdledFzgaJIfJiUkyqyqAJ4wxJzE_QABF2fGPs_"
@@ -213,7 +213,7 @@ bool is_emoji(Slice str) {
       }
       CHECK(j < all_emojis_str.size());
       all_emojis.insert(Slice(&all_emojis_str[i], &all_emojis_str[j]));
-      CHECK(j - i <= MAX_EMOJI_LENGTH);
+      CHECK(j - i <= max_emoji_length);
       i = j;
     }
     CHECK(all_emojis.size() == EMOJI_COUNT);

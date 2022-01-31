@@ -7068,7 +7068,7 @@ vector<td_api::object_ptr<td_api::unreadReaction>> MessagesManager::get_unread_r
       unread_reactions.push_back(std::move(unread_reaction_object));
     }
   }
-  return std::move(unread_reactions);
+  return unread_reactions;
 }
 
 bool MessagesManager::update_message_interaction_info(DialogId dialog_id, Message *m, int32 view_count,
