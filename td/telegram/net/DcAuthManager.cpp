@@ -166,7 +166,7 @@ void DcAuthManager::dc_loop(DcInfo &dc) {
       VLOG(dc) << "Send exportAuthorization to " << dc.dc_id;
       auto id = UniqueId::next();
       auto query = G()->net_query_creator().create(id, telegram_api::auth_exportAuthorization(dc.dc_id.get_raw_id()),
-                                                   DcId::main(), NetQuery::Type::Common, NetQuery::AuthFlag::On);
+                                                   {}, DcId::main(), NetQuery::Type::Common, NetQuery::AuthFlag::On);
       query->total_timeout_limit_ = 60 * 60 * 24;
       G()->net_query_dispatcher().dispatch_with_callback(std::move(query), actor_shared(this, dc.dc_id.get_raw_id()));
       dc.wait_id = id;
@@ -182,7 +182,7 @@ void DcAuthManager::dc_loop(DcInfo &dc) {
       uint64 id = UniqueId::next();
       VLOG(dc) << "Send importAuthorization to " << dc.dc_id;
       auto query = G()->net_query_creator().create(
-          id, telegram_api::auth_importAuthorization(dc.export_id, std::move(dc.export_bytes)), dc.dc_id,
+          id, telegram_api::auth_importAuthorization(dc.export_id, std::move(dc.export_bytes)), {}, dc.dc_id,
           NetQuery::Type::Common, NetQuery::AuthFlag::Off);
       query->total_timeout_limit_ = 60 * 60 * 24;
       G()->net_query_dispatcher().dispatch_with_callback(std::move(query), actor_shared(this, dc.dc_id.get_raw_id()));

@@ -338,10 +338,9 @@ class GetPinnedDialogsActor final : public NetActorOnce {
 
   NetQueryRef send(FolderId folder_id, uint64 sequence_id) {
     folder_id_ = folder_id;
-    auto query = G()->net_query_creator().create(telegram_api::messages_getPinnedDialogs(folder_id.get()));
+    auto query = G()->net_query_creator().create(telegram_api::messages_getPinnedDialogs(folder_id.get()), {sequence_id});
     auto result = query.get_weak();
-    send_closure(td_->messages_manager_->sequence_dispatcher_, &MultiSequenceDispatcher::send_with_callback,
-                 std::move(query), actor_shared(this), ChainIds{sequence_id});
+    send_query(std::move(query));
     return result;
   }
 
@@ -794,9 +793,8 @@ class GetDialogListActor final : public NetActorOnce {
         telegram_api::messages_getDialogs::EXCLUDE_PINNED_MASK | telegram_api::messages_getDialogs::FOLDER_ID_MASK;
     auto query = G()->net_query_creator().create(
         telegram_api::messages_getDialogs(flags, false /*ignored*/, folder_id.get(), offset_date,
-                                          offset_message_id.get(), std::move(input_peer), limit, 0));
-    send_closure(td_->messages_manager_->sequence_dispatcher_, &MultiSequenceDispatcher::send_with_callback,
-                 std::move(query), actor_shared(this), ChainIds{sequence_id});
+                                          offset_message_id.get(), std::move(input_peer), limit, 0), {sequence_id});
+    send_query(std::move(query));
   }
 
   void on_result(BufferSlice packet) final {
@@ -1852,8 +1850,8 @@ class ToggleDialogIsBlockedActor final : public NetActorOnce {
     CHECK(input_peer != nullptr && input_peer->get_id() != telegram_api::inputPeerEmpty::ID);
     auto query = is_blocked ? G()->net_query_creator().create(telegram_api::contacts_block(std::move(input_peer)))
                             : G()->net_query_creator().create(telegram_api::contacts_unblock(std::move(input_peer)));
-    send_closure(td_->messages_manager_->sequence_dispatcher_, &MultiSequenceDispatcher::send_with_callback,
-                 std::move(query), actor_shared(this), ChainIds{sequence_dispatcher_id});
+    query->set_chains({sequence_dispatcher_id});
+    send_query(std::move(query));
   }
 
   void on_result(BufferSlice packet) final {
@@ -2709,7 +2707,7 @@ class GetMessagePublicForwardsQuery final : public Td::ResultHandler {
                                             td_->contacts_manager_->get_input_channel(dialog_id_.get_channel_id()),
                                             full_message_id.get_message_id().get_server_message_id().get(), offset_date,
                                             std::move(input_peer), offset_message_id.get(), limit),
-                                        dc_id));
+                                        {}, dc_id));
   }
 
   void on_result(BufferSlice packet) final {
@@ -3093,10 +3091,8 @@ class SaveDefaultSendAsActor final : public NetActorOnce {
     CHECK(send_as_input_peer != nullptr);
 
     auto query = G()->net_query_creator().create(
-        telegram_api::messages_saveDefaultSendAs(std::move(input_peer), std::move(send_as_input_peer)));
-    query->debug("send to MessagesManager::MultiSequenceDispatcher");
-    send_closure(td_->messages_manager_->sequence_dispatcher_, &MultiSequenceDispatcher::send_with_callback,
-                 std::move(query), actor_shared(this), ChainIds{sequence_dispatcher_id});
+        telegram_api::messages_saveDefaultSendAs(std::move(input_peer), std::move(send_as_input_peer)), {sequence_dispatcher_id});
+    send_query(std::move(query));
   }
 
   void on_result(BufferSlice packet) final {
@@ -3197,7 +3193,7 @@ class SendMessageActor final : public NetActorOnce {
     auto query = G()->net_query_creator().create(telegram_api::messages_sendMessage(
         flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
         std::move(input_peer), reply_to_message_id.get_server_message_id().get(), text, random_id,
-        std::move(reply_markup), std::move(entities), schedule_date, std::move(as_input_peer)));
+        std::move(reply_markup), std::move(entities), schedule_date, std::move(as_input_peer)), {sequence_dispatcher_id});
     if (G()->shared_config().get_option_boolean("use_quick_ack")) {
       query->quick_ack_promise_ = PromiseCreator::lambda(
           [random_id](Unit) {
@@ -3206,9 +3202,7 @@ class SendMessageActor final : public NetActorOnce {
           PromiseCreator::Ignore());
     }
     *send_query_ref = query.get_weak();
-    query->debug("send to MessagesManager::MultiSequenceDispatcher");
-    send_closure(td_->messages_manager_->sequence_dispatcher_, &MultiSequenceDispatcher::send_with_callback,
-                 std::move(query), actor_shared(this), ChainIds{sequence_dispatcher_id});
+    send_query(std::move(query));
   }
 
   void on_result(BufferSlice packet) final {
@@ -3389,11 +3383,9 @@ class SendMultiMediaActor final : public NetActorOnce {
     auto query = G()->net_query_creator().create(telegram_api::messages_sendMultiMedia(
         flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, std::move(input_peer),
         reply_to_message_id.get_server_message_id().get(), std::move(input_single_media), schedule_date,
-        std::move(as_input_peer)));
+        std::move(as_input_peer)), {sequence_dispatcher_id});
     // no quick ack, because file reference errors are very likely to happen
-    query->debug("send to MessagesManager::MultiSequenceDispatcher");
-    send_closure(td_->messages_manager_->sequence_dispatcher_, &MultiSequenceDispatcher::send_with_callback,
-                 std::move(query), actor_shared(this), ChainIds{sequence_dispatcher_id});
+    send_query(std::move(query));
   }
 
   void on_result(BufferSlice packet) final {
@@ -3508,7 +3500,7 @@ class SendMediaActor final : public NetActorOnce {
     auto query = G()->net_query_creator().create(telegram_api::messages_sendMedia(
         flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, std::move(input_peer),
         reply_to_message_id.get_server_message_id().get(), std::move(input_media), text, random_id,
-        std::move(reply_markup), std::move(entities), schedule_date, std::move(as_input_peer)));
+        std::move(reply_markup), std::move(entities), schedule_date, std::move(as_input_peer)), {sequence_dispatcher_id});
     if (G()->shared_config().get_option_boolean("use_quick_ack") && was_uploaded_) {
       query->quick_ack_promise_ = PromiseCreator::lambda(
           [random_id](Unit) {
@@ -3517,9 +3509,7 @@ class SendMediaActor final : public NetActorOnce {
           PromiseCreator::Ignore());
     }
     *send_query_ref = query.get_weak();
-    query->debug("send to MessagesManager::MultiSequenceDispatcher");
-    send_closure(td_->messages_manager_->sequence_dispatcher_, &MultiSequenceDispatcher::send_with_callback,
-                 std::move(query), actor_shared(this), ChainIds{sequence_dispatcher_id});
+    send_query(std::move(query));
   }
 
   void on_result(BufferSlice packet) final {
@@ -3680,11 +3670,9 @@ class SendScheduledMessageActor final : public NetActorOnce {
 
     int32 server_message_id = message_id.get_scheduled_server_message_id().get();
     auto query = G()->net_query_creator().create(
-        telegram_api::messages_sendScheduledMessages(std::move(input_peer), {server_message_id}));
+        telegram_api::messages_sendScheduledMessages(std::move(input_peer), {server_message_id}), {sequence_dispatcher_id});
 
-    query->debug("send to MessagesManager::MultiSequenceDispatcher");
-    send_closure(td_->messages_manager_->sequence_dispatcher_, &MultiSequenceDispatcher::send_with_callback,
-                 std::move(query), actor_shared(this), ChainIds{sequence_dispatcher_id});
+    send_query(std::move(query));
   }
 
   void on_result(BufferSlice packet) final {
@@ -3762,11 +3750,8 @@ class EditMessageActor final : public NetActorOnce {
                                                  : message_id.get_server_message_id().get();
     auto query = G()->net_query_creator().create(telegram_api::messages_editMessage(
         flags, false /*ignored*/, std::move(input_peer), server_message_id, text, std::move(input_media),
-        std::move(reply_markup), std::move(entities), schedule_date));
-
-    query->debug("send to MessagesManager::MultiSequenceDispatcher");
-    send_closure(td_->messages_manager_->sequence_dispatcher_, &MultiSequenceDispatcher::send_with_callback,
-                 std::move(query), actor_shared(this), ChainIds{sequence_dispatcher_id});
+        std::move(reply_markup), std::move(entities), schedule_date), {sequence_dispatcher_id});
+    send_query(std::move(query));
   }
 
   void on_result(BufferSlice packet) final {
@@ -3828,7 +3813,7 @@ class EditInlineMessageQuery final : public Td::ResultHandler {
         telegram_api::messages_editInlineBotMessage(flags, false /*ignored*/, std::move(input_bot_inline_message_id),
                                                     text, std::move(input_media), std::move(reply_markup),
                                                     std::move(entities)),
-        dc_id));
+        {}, dc_id));
   }
 
   void on_result(BufferSlice packet) final {
@@ -3886,7 +3871,7 @@ class ForwardMessagesActor final : public NetActorOnce {
     auto query = G()->net_query_creator().create(telegram_api::messages_forwardMessages(
         flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
         false /*ignored*/, std::move(from_input_peer), MessagesManager::get_server_message_ids(message_ids),
-        std::move(random_ids), std::move(to_input_peer), schedule_date, std::move(as_input_peer)));
+        std::move(random_ids), std::move(to_input_peer), schedule_date, std::move(as_input_peer)), {sequence_dispatcher_id});
     if (G()->shared_config().get_option_boolean("use_quick_ack")) {
       query->quick_ack_promise_ = PromiseCreator::lambda(
           [random_ids = random_ids_](Unit) {
@@ -3896,8 +3881,7 @@ class ForwardMessagesActor final : public NetActorOnce {
           },
           PromiseCreator::Ignore());
     }
-    send_closure(td_->messages_manager_->sequence_dispatcher_, &MultiSequenceDispatcher::send_with_callback,
-                 std::move(query), actor_shared(this), ChainIds{sequence_dispatcher_id});
+    send_query(std::move(query));
   }
 
   void on_result(BufferSlice packet) final {
@@ -6045,8 +6029,6 @@ MessagesManager::MessagesManager(Td *td, ActorShared<> parent)
 
   preload_folder_dialog_list_timeout_.set_callback(on_preload_folder_dialog_list_timeout_callback);
   preload_folder_dialog_list_timeout_.set_callback_data(static_cast<void *>(this));
-
-  sequence_dispatcher_ = MultiSequenceDispatcher::create("multi sequence dispatcher");
 }
 
 MessagesManager::~MessagesManager() = default;

@@ -155,12 +155,11 @@ class SetPollAnswerActor final : public NetActorOnce {
     }
 
     auto message_id = full_message_id.get_message_id().get_server_message_id().get();
+    auto sequence_id = static_cast<uint64>(-1);
     auto query = G()->net_query_creator().create(
-        telegram_api::messages_sendVote(std::move(input_peer), message_id, std::move(options)));
+        telegram_api::messages_sendVote(std::move(input_peer), message_id, std::move(options)), {sequence_id});
     *query_ref = query.get_weak();
-    auto sequence_id = -1;
-    send_closure(td_->messages_manager_->sequence_dispatcher_, &MultiSequenceDispatcher::send_with_callback,
-                 std::move(query), actor_shared(this), sequence_id);
+    send_query(std::move(query));
   }
 
   void on_result(BufferSlice packet) final {
@@ -210,13 +209,11 @@ class StopPollActor final : public NetActorOnce {
     auto query = G()->net_query_creator().create(telegram_api::messages_editMessage(
         flags, false /*ignored*/, std::move(input_peer), message_id, string(), std::move(input_media),
         std::move(input_reply_markup), vector<tl_object_ptr<telegram_api::MessageEntity>>(), 0));
-    if (td_->auth_manager_->is_bot()) {
-      send_query(std::move(query));
-    } else {
-      auto sequence_id = -1;
-      send_closure(td_->messages_manager_->sequence_dispatcher_, &MultiSequenceDispatcher::send_with_callback,
-                   std::move(query), actor_shared(this), sequence_id);
+    if (!td_->auth_manager_->is_bot()) {
+      auto sequence_id = static_cast<uint64>(-1);
+      query->set_chains({sequence_id});
     }
+    send_query(std::move(query));
   }
 
   void on_result(BufferSlice packet) final {

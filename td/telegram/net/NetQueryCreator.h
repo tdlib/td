@@ -29,14 +29,14 @@ class NetQueryCreator {
     object_pool_.set_check_empty(false);
   }
 
-  NetQueryPtr create(const telegram_api::Function &function, DcId dc_id = DcId::main(),
+  NetQueryPtr create(const telegram_api::Function &function, std::vector<uint64> chains = {}, DcId dc_id = DcId::main(),
                      NetQuery::Type type = NetQuery::Type::Common);
 
   NetQueryPtr create_unauth(const telegram_api::Function &function, DcId dc_id = DcId::main()) {
-    return create(UniqueId::next(), function, dc_id, NetQuery::Type::Common, NetQuery::AuthFlag::Off);
+    return create(UniqueId::next(), function, {}, dc_id, NetQuery::Type::Common, NetQuery::AuthFlag::Off);
   }
 
-  NetQueryPtr create(uint64 id, const telegram_api::Function &function, DcId dc_id, NetQuery::Type type,
+  NetQueryPtr create(uint64 id, const telegram_api::Function &function, std::vector<uint64> chains, DcId dc_id, NetQuery::Type type,
                      NetQuery::AuthFlag auth_flag);
 
  private:

@@ -58,11 +58,8 @@ class SetGameScoreActor final : public NetActorOnce {
     CHECK(input_user != nullptr);
     auto query = G()->net_query_creator().create(
         telegram_api::messages_setGameScore(flags, false /*ignored*/, false /*ignored*/, std::move(input_peer),
-                                            message_id.get_server_message_id().get(), std::move(input_user), score));
-
-    query->debug("send to MultiSequenceDispatcher");
-    send_closure(td_->messages_manager_->sequence_dispatcher_, &MultiSequenceDispatcher::send_with_callback,
-                 std::move(query), actor_shared(this), sequence_dispatcher_id);
+                                            message_id.get_server_message_id().get(), std::move(input_user), score), {sequence_dispatcher_id});
+    send_query(std::move(query));
   }
 
   void on_result(BufferSlice packet) final {
@@ -107,7 +104,7 @@ class SetInlineGameScoreQuery final : public Td::ResultHandler {
     send_query(G()->net_query_creator().create(
         telegram_api::messages_setInlineGameScore(flags, false /*ignored*/, false /*ignored*/,
                                                   std::move(input_bot_inline_message_id), std::move(input_user), score),
-        dc_id));
+        {}, dc_id));
   }
 
   void on_result(BufferSlice packet) final {
@@ -178,7 +175,7 @@ class GetInlineGameHighScoresQuery final : public Td::ResultHandler {
     auto dc_id = DcId::internal(InlineQueriesManager::get_inline_message_dc_id(input_bot_inline_message_id));
     send_query(G()->net_query_creator().create(
         telegram_api::messages_getInlineGameHighScores(std::move(input_bot_inline_message_id), std::move(input_user)),
-        dc_id));
+        {}, dc_id));
   }
 
   void on_result(BufferSlice packet) final {

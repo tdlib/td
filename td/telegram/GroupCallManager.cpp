@@ -51,7 +51,7 @@ class GetGroupCallStreamQuery final : public Td::ResultHandler {
     int32 flags = 0;
     auto query = G()->net_query_creator().create(
         telegram_api::upload_getFile(flags, false /*ignored*/, false /*ignored*/, std::move(input_stream), 0, 1 << 20),
-        stream_dc_id, NetQuery::Type::DownloadSmall);
+        {}, stream_dc_id, NetQuery::Type::DownloadSmall);
     query->total_timeout_limit_ = 0;
     send_query(std::move(query));
   }

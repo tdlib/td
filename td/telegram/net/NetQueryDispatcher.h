@@ -15,6 +15,7 @@
 #include "td/utils/common.h"
 #include "td/utils/ScopeGuard.h"
 #include "td/utils/Status.h"
+#include "td/telegram/SequenceDispatcher.h"
 
 #include <array>
 #include <atomic>
@@ -63,6 +64,7 @@ class NetQueryDispatcher {
   bool need_destroy_auth_key_{false};
   ActorOwn<NetQueryDelayer> delayer_;
   ActorOwn<DcAuthManager> dc_auth_manager_;
+  ActorOwn<MultiSequenceDispatcher> sequence_dispatcher_;
   struct Dc {
     DcId id_;
     std::atomic<bool> is_valid_{false};

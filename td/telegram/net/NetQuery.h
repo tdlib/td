@@ -203,11 +203,11 @@ class NetQuery final : public TsListNode<NetQueryDebug> {
   void set_invoke_after(std::vector<NetQueryRef> refs) {
     invoke_after_ = std::move(refs);
   }
-  void set_session_rand(uint32 session_rand) {
-    session_rand_ = session_rand;
-  }
   uint32 session_rand() const {
-    return session_rand_;
+    if (in_sequence_dispacher_ && !chains_.empty()) {
+      return static_cast<uint32>(chains_[0] >> 10);
+    }
+    return 0;
   }
 
   void cancel(int32 cancellation_token) {
@@ -276,6 +276,19 @@ class NetQuery final : public TsListNode<NetQueryDebug> {
     priority_ = priority;
   }
 
+  Span<uint64> chains() const {
+    return chains_;
+  }
+  void set_chains(std::vector<uint64> chains) {
+    chains_ = std::move(chains);
+  }
+  void set_in_sequence_dispatcher(bool flag) {
+    in_sequence_dispacher_ = flag;
+  }
+  bool in_sequence_dispatcher() const {
+    return in_sequence_dispacher_;
+  }
+
  private:
   State state_ = State::Empty;
   Type type_ = Type::Common;
@@ -291,8 +304,9 @@ class NetQuery final : public TsListNode<NetQueryDebug> {
   int32 tl_constructor_ = 0;
 
   std::vector<NetQueryRef> invoke_after_;
-  uint32 session_rand_ = 0;
+  std::vector<uint64> chains_;
 
+  bool in_sequence_dispacher_ = false;
   bool may_be_lost_ = false;
   int8 priority_{0};
 

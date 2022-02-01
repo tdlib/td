@@ -49,10 +49,19 @@ void NetQueryDispatcher::dispatch(NetQueryPtr net_query) {
   if (G()->shared_config().get_option_boolean("test_flood_wait")) {
     net_query->set_error(Status::Error(429, "Too Many Requests: retry after 10"));
     return complete_net_query(std::move(net_query));
+//    if (net_query->is_ok() && net_query->tl_constructor() == 0x0d9d75a4) {
+//      net_query->set_error(Status::Error(420, "FLOOD_WAIT_10"));
+//    }
   }
   if (net_query->tl_constructor() == telegram_api::account_getPassword::ID && false) {
     net_query->set_error(Status::Error(429, "Too Many Requests: retry after 10"));
     return complete_net_query(std::move(net_query));
+  }
+
+  if (!net_query->in_sequence_dispatcher() && !net_query->chains().empty()) {
+    net_query->debug("sent to main sequence dispatcher");
+    send_closure(sequence_dispatcher_, &MultiSequenceDispatcher::send, std::move(net_query));
+    return;
   }
 
   if (net_query->is_ready()) {
@@ -208,6 +217,7 @@ void NetQueryDispatcher::stop() {
   }
   public_rsa_key_watchdog_.reset();
   dc_auth_manager_.reset();
+  sequence_dispatcher_.reset();
 }
 
 void NetQueryDispatcher::update_session_count() {
@@ -286,6 +296,7 @@ NetQueryDispatcher::NetQueryDispatcher(const std::function<ActorShared<>()> &cre
   dc_auth_manager_ = create_actor<DcAuthManager>("DcAuthManager", create_reference());
   common_public_rsa_key_ = std::make_shared<PublicRsaKeyShared>(DcId::empty(), G()->is_test_dc());
   public_rsa_key_watchdog_ = create_actor<PublicRsaKeyWatchdog>("PublicRsaKeyWatchdog", create_reference());
+  sequence_dispatcher_ = MultiSequenceDispatcher::create("MultiSequenceDispatcher");
 
   td_guard_ = create_shared_lambda_guard([actor = create_reference()] {});
 }

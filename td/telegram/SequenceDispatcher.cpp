@@ -180,7 +180,6 @@ void SequenceDispatcher::loop() {
     VLOG(net_query) << "Send " << data_[next_i_].query_;
 
     data_[next_i_].query_->debug("send to Td::send_with_callback");
-    data_[next_i_].query_->set_session_rand(session_rand_);
     G()->net_query_dispatcher().dispatch_with_callback(std::move(data_[next_i_].query_),
                                                        actor_shared(this, next_i_ + id_offset_));
     data_[next_i_].state_ = State::Wait;
@@ -248,8 +247,11 @@ void SequenceDispatcher::close_silent() {
 }
 
 /*** MultiSequenceDispatcher ***/
-void MultiSequenceDispatcherOld::send_with_callback(NetQueryPtr query, ActorShared<NetQueryCallback> callback,
-                                                    Span<uint64> chains) {
+void MultiSequenceDispatcherOld::send(NetQueryPtr query) {
+  auto callback = query->move_callback();
+  CHECK(!callback.empty());
+  Span<ChainId> chains = query->chains();
+  query->set_in_sequence_dispatcher(true);
   CHECK(all_of(chains, [](auto chain_id) { return chain_id != 0; }));
   CHECK(!chains.empty());
   auto sequence_id = chains[0];
@@ -282,11 +284,12 @@ void MultiSequenceDispatcherOld::ready_to_close() {
 
 class MultiSequenceDispatcherNewImpl final : public MultiSequenceDispatcherNew {
  public:
-  void send_with_callback(NetQueryPtr query, ActorShared<NetQueryCallback> callback, Span<uint64> chains) final {
+  void send(NetQueryPtr query) final {
+    auto callback = query->move_callback();
+    CHECK(!callback.empty());
+    Span<ChainId> chains = query->chains();
+    query->set_in_sequence_dispatcher(true);
     CHECK(all_of(chains, [](auto chain_id) { return chain_id != 0; }));
-    if (!chains.empty()) {
-      query->set_session_rand(static_cast<uint32>(chains[0] >> 10));
-    }
     Node node;
     node.net_query = std::move(query);
     node.net_query->debug("Waiting at SequenceDispatcher");

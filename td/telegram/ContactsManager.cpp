@@ -3034,7 +3034,7 @@ class GetMegagroupStatsQuery final : public Td::ResultHandler {
       flags |= telegram_api::stats_getMegagroupStats::DARK_MASK;
     }
     send_query(G()->net_query_creator().create(
-        telegram_api::stats_getMegagroupStats(flags, false /*ignored*/, std::move(input_channel)), dc_id));
+        telegram_api::stats_getMegagroupStats(flags, false /*ignored*/, std::move(input_channel)), {}, dc_id));
   }
 
   void on_result(BufferSlice packet) final {
@@ -3072,7 +3072,7 @@ class GetBroadcastStatsQuery final : public Td::ResultHandler {
       flags |= telegram_api::stats_getBroadcastStats::DARK_MASK;
     }
     send_query(G()->net_query_creator().create(
-        telegram_api::stats_getBroadcastStats(flags, false /*ignored*/, std::move(input_channel)), dc_id));
+        telegram_api::stats_getBroadcastStats(flags, false /*ignored*/, std::move(input_channel)), {}, dc_id));
   }
 
   void on_result(BufferSlice packet) final {
@@ -3123,7 +3123,7 @@ class GetMessageStatsQuery final : public Td::ResultHandler {
     send_query(G()->net_query_creator().create(
         telegram_api::stats_getMessageStats(flags, false /*ignored*/, std::move(input_channel),
                                             message_id.get_server_message_id().get()),
-        dc_id));
+        {}, dc_id));
   }
 
   void on_result(BufferSlice packet) final {
@@ -3154,7 +3154,7 @@ class LoadAsyncGraphQuery final : public Td::ResultHandler {
     if (x != 0) {
       flags |= telegram_api::stats_loadAsyncGraph::X_MASK;
     }
-    send_query(G()->net_query_creator().create(telegram_api::stats_loadAsyncGraph(flags, token, x), dc_id));
+    send_query(G()->net_query_creator().create(telegram_api::stats_loadAsyncGraph(flags, token, x), {}, dc_id));
   }
 
   void on_result(BufferSlice packet) final {

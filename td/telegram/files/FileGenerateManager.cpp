@@ -201,7 +201,7 @@ class MapDownloadGenerateActor final : public FileGenerateActor {
     LOG(INFO) << "Download " << conversion_;
     auto query =
         G()->net_query_creator().create(telegram_api::upload_getWebFile(r_input_web_file.move_as_ok(), 0, 1 << 20),
-                                        G()->get_webfile_dc_id(), NetQuery::Type::DownloadSmall);
+                                        {}, G()->get_webfile_dc_id(), NetQuery::Type::DownloadSmall);
     G()->net_query_dispatcher().dispatch_with_callback(std::move(query), {net_callback_.get(), 0});
   }
 

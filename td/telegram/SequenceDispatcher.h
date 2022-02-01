@@ -77,7 +77,7 @@ class SequenceDispatcher final : public NetQueryCallback {
 
 class MultiSequenceDispatcherOld final : public SequenceDispatcher::Parent {
  public:
-  void send_with_callback(NetQueryPtr query, ActorShared<NetQueryCallback> callback, Span<uint64> chains);
+  void send(NetQueryPtr query);
   static ActorOwn<MultiSequenceDispatcherOld> create(Slice name) {
     return create_actor<MultiSequenceDispatcherOld>(name);
   }
@@ -96,7 +96,7 @@ using ChainId = uint64;
 using ChainIds = vector<ChainId>;
 class MultiSequenceDispatcherNew : public NetQueryCallback {
  public:
-  virtual void send_with_callback(NetQueryPtr query, ActorShared<NetQueryCallback> callback, Span<uint64> chains) = 0;
+  virtual void send(NetQueryPtr query) = 0;
   static ActorOwn<MultiSequenceDispatcherNew> create(Slice name);
 };
 

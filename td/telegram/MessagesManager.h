@@ -52,7 +52,6 @@
 #include "td/telegram/secret_api.h"
 #include "td/telegram/SecretChatId.h"
 #include "td/telegram/SecretInputMedia.h"
-#include "td/telegram/SequenceDispatcher.h"
 #include "td/telegram/ServerMessageId.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
@@ -973,8 +972,6 @@ class MessagesManager final : public Actor {
   bool can_set_game_score(FullMessageId full_message_id) const;
 
   void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
-
-  ActorOwn<MultiSequenceDispatcher> sequence_dispatcher_;
 
   static uint64 get_sequence_dispatcher_id(DialogId dialog_id, MessageContentType message_content_type);
 
