@@ -15,7 +15,6 @@
 #include "td/utils/common.h"
 #include "td/utils/ScopeGuard.h"
 #include "td/utils/Status.h"
-#include "td/telegram/SequenceDispatcher.h"
 
 #include <array>
 #include <atomic>
@@ -26,6 +25,7 @@
 namespace td {
 
 class DcAuthManager;
+class MultiSequenceDispatcher;
 class NetQueryDelayer;
 class PublicRsaKeyShared;
 class PublicRsaKeyWatchdog;

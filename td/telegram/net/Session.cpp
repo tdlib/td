@@ -1214,8 +1214,8 @@ bool Session::connection_send_check_main_key(ConnectionInfo *info) {
   LOG(INFO) << "Check main key";
   being_checked_main_auth_key_id_ = key_id;
   last_check_query_id_ = UniqueId::next(UniqueId::BindKey);
-  NetQueryPtr query = G()->net_query_creator().create(last_check_query_id_, telegram_api::help_getNearestDc(),
-                                                      {}, DcId::main(), NetQuery::Type::Common, NetQuery::AuthFlag::On);
+  NetQueryPtr query = G()->net_query_creator().create(last_check_query_id_, telegram_api::help_getNearestDc(), {},
+                                                      DcId::main(), NetQuery::Type::Common, NetQuery::AuthFlag::On);
   query->dispatch_ttl_ = 0;
   query->set_callback(actor_shared(this));
   connection_send_query(info, std::move(query));

@@ -15,6 +15,7 @@
 #include "td/telegram/net/PublicRsaKeyShared.h"
 #include "td/telegram/net/PublicRsaKeyWatchdog.h"
 #include "td/telegram/net/SessionMultiProxy.h"
+#include "td/telegram/SequenceDispatcher.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"
 #include "td/telegram/telegram_api.h"
@@ -49,9 +50,9 @@ void NetQueryDispatcher::dispatch(NetQueryPtr net_query) {
   if (G()->shared_config().get_option_boolean("test_flood_wait")) {
     net_query->set_error(Status::Error(429, "Too Many Requests: retry after 10"));
     return complete_net_query(std::move(net_query));
-//    if (net_query->is_ok() && net_query->tl_constructor() == 0x0d9d75a4) {
-//      net_query->set_error(Status::Error(420, "FLOOD_WAIT_10"));
-//    }
+    //    if (net_query->is_ok() && net_query->tl_constructor() == 0x0d9d75a4) {
+    //      net_query->set_error(Status::Error(420, "FLOOD_WAIT_10"));
+    //    }
   }
   if (net_query->tl_constructor() == telegram_api::account_getPassword::ID && false) {
     net_query->set_error(Status::Error(429, "Too Many Requests: retry after 10"));

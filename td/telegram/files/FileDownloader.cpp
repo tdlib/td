@@ -276,8 +276,8 @@ Result<std::pair<NetQueryPtr, bool>> FileDownloader::start_part(Part part, int32
       auto query = telegram_api::upload_reuploadCdnFile(BufferSlice(cdn_file_token_), BufferSlice(it->second));
       LOG(DEBUG) << part.id << " " << to_string(query);
       net_query = G()->net_query_creator().create(
-          UniqueId::next(UniqueId::Type::Default, static_cast<uint8>(QueryType::ReuploadCDN)), query,
-          {}, remote_.get_dc_id(), net_query_type, NetQuery::AuthFlag::On);
+          UniqueId::next(UniqueId::Type::Default, static_cast<uint8>(QueryType::ReuploadCDN)), query, {},
+          remote_.get_dc_id(), net_query_type, NetQuery::AuthFlag::On);
       cdn_part_reupload_token_.erase(it);
     }
   }

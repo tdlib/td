@@ -94,12 +94,10 @@ class MultiSequenceDispatcherOld final : public SequenceDispatcher::Parent {
 
 using ChainId = uint64;
 using ChainIds = vector<ChainId>;
-class MultiSequenceDispatcherNew : public NetQueryCallback {
+class MultiSequenceDispatcher : public NetQueryCallback {
  public:
   virtual void send(NetQueryPtr query) = 0;
-  static ActorOwn<MultiSequenceDispatcherNew> create(Slice name);
+  static ActorOwn<MultiSequenceDispatcher> create(Slice name);
 };
-
-using MultiSequenceDispatcher = MultiSequenceDispatcherNew;
 
 }  // namespace td

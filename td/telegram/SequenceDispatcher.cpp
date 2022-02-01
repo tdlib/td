@@ -282,7 +282,7 @@ void MultiSequenceDispatcherOld::ready_to_close() {
   }
 }
 
-class MultiSequenceDispatcherNewImpl final : public MultiSequenceDispatcherNew {
+class MultiSequenceDispatcherImpl final : public MultiSequenceDispatcher {
  public:
   void send(NetQueryPtr query) final {
     auto callback = query->move_callback();
@@ -371,7 +371,7 @@ class MultiSequenceDispatcherNewImpl final : public MultiSequenceDispatcherNew {
 
   void try_resend(TaskId task_id) {
     auto &node = *scheduler_.get_task_extra(task_id);
-    auto promise = promise_send_closure(actor_shared(this, task_id), &MultiSequenceDispatcherNewImpl::on_resend);
+    auto promise = promise_send_closure(actor_shared(this, task_id), &MultiSequenceDispatcherImpl::on_resend);
     send_closure(node.callback, &NetQueryCallback::on_result_resendable, std::move(node.net_query), std::move(promise));
   }
 
@@ -435,8 +435,8 @@ class MultiSequenceDispatcherNewImpl final : public MultiSequenceDispatcherNew {
   }
 };
 
-ActorOwn<MultiSequenceDispatcherNew> MultiSequenceDispatcherNew::create(Slice name) {
-  return ActorOwn<MultiSequenceDispatcherNew>(create_actor<MultiSequenceDispatcherNewImpl>(name));
+ActorOwn<MultiSequenceDispatcher> MultiSequenceDispatcher::create(Slice name) {
+  return ActorOwn<MultiSequenceDispatcher>(create_actor<MultiSequenceDispatcherImpl>(name));
 }
 
 }  // namespace td

@@ -18,7 +18,6 @@
 #include "td/telegram/net/DcId.h"
 #include "td/telegram/net/NetActor.h"
 #include "td/telegram/net/NetQueryCreator.h"
-#include "td/telegram/SequenceDispatcher.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/UpdatesManager.h"
 
@@ -56,10 +55,10 @@ class SetGameScoreActor final : public NetActorOnce {
     }
 
     CHECK(input_user != nullptr);
-    auto query = G()->net_query_creator().create(
+    send_query(G()->net_query_creator().create(
         telegram_api::messages_setGameScore(flags, false /*ignored*/, false /*ignored*/, std::move(input_peer),
-                                            message_id.get_server_message_id().get(), std::move(input_user), score), {sequence_dispatcher_id});
-    send_query(std::move(query));
+                                            message_id.get_server_message_id().get(), std::move(input_user), score),
+        {sequence_dispatcher_id}));
   }
 
   void on_result(BufferSlice packet) final {

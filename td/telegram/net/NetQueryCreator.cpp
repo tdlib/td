@@ -25,12 +25,13 @@ NetQueryCreator::NetQueryCreator(std::shared_ptr<NetQueryStats> net_query_stats)
   object_pool_.set_check_empty(true);
 }
 
-NetQueryPtr NetQueryCreator::create(const telegram_api::Function &function, std::vector<uint64> chains, DcId dc_id, NetQuery::Type type) {
+NetQueryPtr NetQueryCreator::create(const telegram_api::Function &function, std::vector<uint64> chains, DcId dc_id,
+                                    NetQuery::Type type) {
   return create(UniqueId::next(), function, std::move(chains), dc_id, type, NetQuery::AuthFlag::On);
 }
 
-NetQueryPtr NetQueryCreator::create(uint64 id, const telegram_api::Function &function, std::vector<uint64> chains, DcId dc_id, NetQuery::Type type,
-                                    NetQuery::AuthFlag auth_flag) {
+NetQueryPtr NetQueryCreator::create(uint64 id, const telegram_api::Function &function, std::vector<uint64> chains,
+                                    DcId dc_id, NetQuery::Type type, NetQuery::AuthFlag auth_flag) {
   LOG(INFO) << "Create query " << to_string(function);
   auto storer = DefaultStorer<telegram_api::Function>(function);
   BufferSlice slice(storer.size());

@@ -19,7 +19,6 @@
 #include "td/telegram/net/NetActor.h"
 #include "td/telegram/PollId.hpp"
 #include "td/telegram/PollManager.hpp"
-#include "td/telegram/SequenceDispatcher.h"
 #include "td/telegram/StateManager.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"

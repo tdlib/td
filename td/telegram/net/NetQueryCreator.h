@@ -36,8 +36,8 @@ class NetQueryCreator {
     return create(UniqueId::next(), function, {}, dc_id, NetQuery::Type::Common, NetQuery::AuthFlag::Off);
   }
 
-  NetQueryPtr create(uint64 id, const telegram_api::Function &function, std::vector<uint64> chains, DcId dc_id, NetQuery::Type type,
-                     NetQuery::AuthFlag auth_flag);
+  NetQueryPtr create(uint64 id, const telegram_api::Function &function, std::vector<uint64> chains, DcId dc_id,
+                     NetQuery::Type type, NetQuery::AuthFlag auth_flag);
 
  private:
   std::shared_ptr<NetQueryStats> net_query_stats_;
