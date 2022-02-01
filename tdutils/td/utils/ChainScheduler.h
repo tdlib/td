@@ -20,20 +20,22 @@
 
 namespace td {
 
-struct ChainSchedulerTaskWithParents {
-  uint64 task_id{};
-  vector<uint64> parents;
+struct ChainSchedulerBase {
+  struct TaskWithParents {
+    uint64 task_id{};
+    vector<uint64> parents;
+  };
 };
 
 template <class ExtraT = Unit>
-class ChainScheduler {
+class ChainScheduler : public ChainSchedulerBase {
  public:
   using TaskId = uint64;
   using ChainId = uint64;
   TaskId create_task(Span<ChainId> chains, ExtraT extra = {});
   ExtraT *get_task_extra(TaskId task_id);
 
-  optional<ChainSchedulerTaskWithParents> start_next_task();
+  optional<TaskWithParents> start_next_task();
   void finish_task(TaskId task_id);
   void reset_task(TaskId task_id);
   template <class ExtraTT>
@@ -47,6 +49,7 @@ class ChainScheduler {
  private:
   struct ChainNode : ListNode {
     TaskId task_id{};
+    uint64 generation{};
   };
 
   class Chain {
@@ -68,11 +71,11 @@ class ChainScheduler {
       }
       return static_cast<ChainNode &>(*chain_node->get_next()).task_id;
     }
-    optional<TaskId> get_parent(ChainNode *chain_node) {
+    optional<ChainNode*> get_parent(ChainNode *chain_node) {
       if (chain_node->get_prev() == head_.end()) {
         return {};
       }
-      return static_cast<ChainNode &>(*chain_node->get_prev()).task_id;
+      return static_cast<ChainNode *>(chain_node->get_prev());
     }
 
     void finish_task(ChainNode *node) {
@@ -83,9 +86,10 @@ class ChainScheduler {
       return head_.empty();
     }
 
-    void foreach(std::function<void(TaskId)> f) const {
+    void foreach(std::function<void(TaskId, uint64)> f) const {
       for (auto it = head_.begin(); it != head_.end(); it = it->get_next()) {
-        f(static_cast<const ChainNode &>(*it).task_id);
+        auto &node = static_cast<const ChainNode &>(*it);
+        f(node.task_id, node.generation);
       }
     }
 
@@ -95,12 +99,12 @@ class ChainScheduler {
   struct ChainInfo {
     Chain chain;
     uint32 active_tasks{};
+    uint64 generation{1};
   };
   struct TaskChainInfo {
     ChainNode chain_node;
     ChainId chain_id{};
     ChainInfo *chain_info{};
-    bool waiting_for_parent{};
   };
   struct Task {
     enum class State { Pending, Active } state{State::Pending};
@@ -112,28 +116,20 @@ class ChainScheduler {
   Container<Task> tasks_;
   VectorQueue<TaskId> pending_tasks_;
 
-  void on_parent_is_ready(TaskId task_id, ChainId chain_id) {
-    auto *task = tasks_.get(task_id);
-    CHECK(task);
-    for (TaskChainInfo &task_chain_info : task->chains) {
-      if (task_chain_info.chain_id == chain_id) {
-        task_chain_info.waiting_for_parent = false;
-      }
-    }
-
-    try_start_task(task_id, task);
-  }
-
   void try_start_task(TaskId task_id, Task *task) {
     if (task->state != Task::State::Pending) {
       return;
     }
     for (TaskChainInfo &task_chain_info : task->chains) {
-      if (task_chain_info.waiting_for_parent) {
-        return;
+      auto o_parent = task_chain_info.chain_info->chain.get_parent(&task_chain_info.chain_node);
+
+      if (o_parent) {
+        if (o_parent.value()->generation != task_chain_info.chain_info->generation) {
+          return;
+        }
       }
-      ChainInfo &chain_info = chains_[task_chain_info.chain_id];
-      if (chain_info.active_tasks >= 10) {
+
+      if (task_chain_info.chain_info->active_tasks >= 10) {
         limited_tasks_[task_chain_info.chain_id] = task_id;
         return;
       }
@@ -146,44 +142,50 @@ class ChainScheduler {
     for (TaskChainInfo &task_chain_info : task->chains) {
       ChainInfo &chain_info = chains_[task_chain_info.chain_id];
       chain_info.active_tasks++;
-      task_chain_info.waiting_for_parent = true;
+      task_chain_info.chain_node.generation = chain_info.generation;
     }
     task->state = Task::State::Active;
 
     pending_tasks_.push(task_id);
-    notify_children(task);
+    for_each_child(task, [&](auto task_id) {
+      try_start_task(task_id, tasks_.get(task_id));
+    });
   }
 
-  void notify_children(Task *task) {
+  template <class F>
+  void for_each_child(Task *task, F &&f) {
     for (TaskChainInfo &task_chain_info : task->chains) {
-      ChainInfo &chain_info = chains_[task_chain_info.chain_id];
+      ChainInfo &chain_info = *task_chain_info.chain_info;
       auto o_child = chain_info.chain.get_child(&task_chain_info.chain_node);
       if (o_child) {
-        on_parent_is_ready(o_child.value(), task_chain_info.chain_id);
+        f(o_child.value());
       }
     }
   }
 
   void inactivate_task(TaskId task_id, Task *task) {
-    CHECK(task->state == Task::State::Active);
+    LOG(ERROR) << "inactivate " << task_id;
+    bool was_active = task->state == Task::State::Active;
     task->state = Task::State::Pending;
     for (TaskChainInfo &task_chain_info : task->chains) {
-      ChainInfo &chain_info = chains_[task_chain_info.chain_id];
-      chain_info.active_tasks--;
+      ChainInfo &chain_info = *task_chain_info.chain_info;
+      if (was_active) {
+        chain_info.active_tasks--;
+      }
 
       auto it = limited_tasks_.find(task_chain_info.chain_id);
       if (it != limited_tasks_.end()) {
         auto limited_task_id = it->second;
         limited_tasks_.erase(it);
         if (limited_task_id != task_id) {
-          try_start_task(limited_task_id, tasks_.get(limited_task_id));
+          try_start_task_later(limited_task_id);
         }
       }
       auto o_first = chain_info.chain.get_first();
       if (o_first) {
         auto first_task_id = o_first.unwrap();
         if (first_task_id != task_id) {
-          try_start_task(first_task_id, tasks_.get(first_task_id));
+          try_start_task_later(first_task_id);
         }
       }
     }
@@ -195,6 +197,18 @@ class ChainScheduler {
     if (chain.empty()) {
       chains_.erase(task_chain_info.chain_id);
     }
+  }
+
+  std::vector<TaskId> to_start;
+  void try_start_task_later(TaskId task_id) {
+    to_start.push_back(task_id);
+  }
+  void flush_try_start_task() {
+    auto moved_to_start = std::move(to_start);
+    for (auto task_id : moved_to_start) {
+      try_start_task(task_id, tasks_.get(task_id));
+    }
+    CHECK(to_start.empty());
   }
 };
 
@@ -214,15 +228,8 @@ typename ChainScheduler<ExtraT>::TaskId ChainScheduler<ExtraT>::create_task(Span
   });
 
   for (TaskChainInfo &task_chain_info : task.chains) {
-    auto &chain = task_chain_info.chain_info->chain;
-    chain.add_task(&task_chain_info.chain_node);
-    auto o_parent = chain.get_parent(&task_chain_info.chain_node);
-    if (o_parent) {
-      auto parent = o_parent.unwrap();
-      if (tasks_.get(parent)->state == Task::State::Pending) {
-        task_chain_info.waiting_for_parent = true;
-      }
-    }
+    ChainInfo &chain_info = *task_chain_info.chain_info;
+    chain_info.chain.add_task(&task_chain_info.chain_node);
   }
 
   try_start_task(task_id, &task);
@@ -239,12 +246,12 @@ ExtraT *ChainScheduler<ExtraT>::get_task_extra(ChainScheduler::TaskId task_id) {
 }
 
 template <class ExtraT>
-optional<ChainSchedulerTaskWithParents> ChainScheduler<ExtraT>::start_next_task() {
+optional<ChainSchedulerBase::TaskWithParents> ChainScheduler<ExtraT>::start_next_task() {
   if (pending_tasks_.empty()) {
     return {};
   }
   auto task_id = pending_tasks_.pop();
-  ChainSchedulerTaskWithParents res;
+  TaskWithParents res;
   res.task_id = task_id;
   auto *task = tasks_.get(task_id);
   CHECK(task);
@@ -252,7 +259,7 @@ optional<ChainSchedulerTaskWithParents> ChainScheduler<ExtraT>::start_next_task(
     Chain &chain = task_chain_info.chain_info->chain;
     auto o_parent = chain.get_parent(&task_chain_info.chain_node);
     if (o_parent) {
-      res.parents.push_back(o_parent.value());
+      res.parents.push_back(o_parent.value()->task_id);
     }
   }
   return res;
@@ -263,13 +270,19 @@ void ChainScheduler<ExtraT>::finish_task(ChainScheduler::TaskId task_id) {
   auto *task = tasks_.get(task_id);
   CHECK(task);
 
+  CHECK(to_start.empty());
   inactivate_task(task_id, task);
-  notify_children(task);
+  for_each_child(task, [&](auto task_id) {
+    try_start_task_later(task_id);
+  });
 
   for (TaskChainInfo &task_chain_info : task->chains) {
     finish_chain_task(task_chain_info);
   }
+
+  auto task_copy = std::move(*task);
   tasks_.erase(task_id);
+  flush_try_start_task();
 }
 
 template <class ExtraT>
@@ -279,11 +292,12 @@ void ChainScheduler<ExtraT>::reset_task(ChainScheduler::TaskId task_id) {
   inactivate_task(task_id, task);
 
   for (TaskChainInfo &task_chain_info : task->chains) {
-    ChainInfo &chain_info = chains_[task_chain_info.chain_id];
-    task_chain_info.waiting_for_parent &= bool(chain_info.chain.get_parent(&task_chain_info.chain_node));
+    ChainInfo &chain_info = *task_chain_info.chain_info;
+    chain_info.generation = td::max(chain_info.generation, task_chain_info.chain_node.generation + 1);
   }
 
-  try_start_task(task_id, task);
+  try_start_task_later(task_id);
+  flush_try_start_task();
 }
 
 template <class ExtraT>
@@ -293,18 +307,20 @@ StringBuilder &operator<<(StringBuilder &sb, ChainScheduler<ExtraT> &scheduler) 
   for (auto &it : scheduler.chains_) {
     sb << "ChainId{" << it.first << "} ";
     sb << " active_cnt=" << it.second.active_tasks;
-    sb << " : ";
-    it.second.chain.foreach([&](auto task_id) { sb << *scheduler.get_task_extra(task_id); });
+    sb << " g=" << it.second.generation;
+    sb << " :";
+    it.second.chain.foreach([&](auto task_id, auto generation) {
+      sb << " " << *scheduler.get_task_extra(task_id) << ":" << generation;
+    });
     sb << "\n";
   }
   scheduler.tasks_.for_each([&](auto id, auto &task) {
     sb << "Task: " << task.extra;
     sb << " state =" << static_cast<int>(task.state);
-    for (auto &task_chain_info : task.chains) {
-      if (task_chain_info.waiting_for_parent) {
-        sb << " wait "
-           << *scheduler.get_task_extra(
-                  task_chain_info.chain_info->chain.get_parent(&task_chain_info.chain_node).value());
+    for (auto& task_chain_info : task.chains) {
+      sb << " g=" << task_chain_info.chain_node.generation;
+      if (task_chain_info.chain_info->generation != task_chain_info.chain_node.generation) {
+        sb << " chain_g=" << task_chain_info.chain_info->generation;
       }
     }
     sb << "\n";

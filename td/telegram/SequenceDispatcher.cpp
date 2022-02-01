@@ -300,6 +300,8 @@ class MultiSequenceDispatcherNewImpl final : public MultiSequenceDispatcherNew {
   struct Node {
     NetQueryRef net_query_ref;
     NetQueryPtr net_query;
+    double total_timeout{0};
+    double last_timeout{0};
     ActorShared<NetQueryCallback> callback;
     friend StringBuilder &operator<<(StringBuilder &sb, const Node &node) {
       return sb << node.net_query;
@@ -312,6 +314,23 @@ class MultiSequenceDispatcherNewImpl final : public MultiSequenceDispatcherNew {
   void on_result(NetQueryPtr query) final {
     auto task_id = TaskId(get_link_token());
     auto &node = *scheduler_.get_task_extra(task_id);
+
+//    if (query->last_timeout_ != 0) {
+//      for (auto i = pos + 1; i < data_.size(); i++) {
+//        data_[i].total_timeout_ += query->last_timeout_;
+//        data_[i].last_timeout_ = query->last_timeout_;
+//        check_timeout(data_[i]);
+//        if (data.query_->total_timeout_ > data.query_->total_timeout_limit_) {
+//          LOG(WARNING) << "Fail " << data.query_ << " to " << data.query_->source_ << " because total_timeout "
+//                       << data.query_->total_timeout_ << " is greater than total_timeout_limit "
+//                       << data.query_->total_timeout_limit_;
+//          data.query_->set_error(Status::Error(
+//              429, PSLICE() << "Too Many Requests: retry after " << static_cast<int32>(data.last_timeout_ + 0.999)));
+//          data.state_ = State::Dummy;
+//          try_resend_query(data, std::move(data.query_));
+//        }
+//      }
+//    }
 
     if (query->is_error() && (query->error().code() == NetQuery::ResendInvokeAfter ||
                               (query->error().code() == 400 && (query->error().message() == "MSG_WAIT_FAILED" ||
