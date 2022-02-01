@@ -128,7 +128,11 @@ void HttpConnectionBase::loop() {
       }
       live_event();
       state_ = State::Write;
-      LOG(INFO) << res.error();
+      if (res.error().code() == 500) {
+        LOG(WARNING) << "Failed to process an HTTP query:" << res.error();
+      } else {
+        LOG(INFO) << res.error();
+      }
       HttpHeaderCreator hc;
       hc.init_status_line(res.error().code());
       hc.set_content_size(0);
