@@ -17,6 +17,7 @@
 
 #include <functional>
 #include <map>
+#include <set>
 
 namespace td {
 
@@ -342,6 +343,7 @@ void ChainScheduler<ExtraT>::pause_task(TaskId task_id) {
   CHECK(task);
   inactivate_task(task_id, true);
   task->state = Task::State::Paused;
+  flush_try_start_task();
 }
 
 template <class ExtraT>

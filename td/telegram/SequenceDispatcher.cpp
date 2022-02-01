@@ -314,7 +314,7 @@ class MultiSequenceDispatcherNewImpl final : public MultiSequenceDispatcherNew {
   bool check_timeout(TaskId task_id) {
     auto &node = *scheduler_.get_task_extra(task_id);
     NetQueryPtr &net_query = node.net_query;
-    if (net_query->is_ready()) {
+    if (net_query.empty() || net_query->is_ready()) {
       return false;
     }
     net_query->total_timeout_ += node.total_timeout;
@@ -340,9 +340,9 @@ class MultiSequenceDispatcherNewImpl final : public MultiSequenceDispatcherNew {
       auto tl_constructor = query->tl_constructor();
       scheduler_.for_each_dependent(task_id, [&](TaskId child_task_id) {
         auto &child_node = *scheduler_.get_task_extra(child_task_id);
-        if (node.net_query_ref->tl_constructor() == tl_constructor) {
-          node.total_timeout += query->last_timeout_;
-          node.last_timeout = query->last_timeout_;
+        if (child_node.net_query_ref->tl_constructor() == tl_constructor) {
+          child_node.total_timeout += query->last_timeout_;
+          child_node.last_timeout = query->last_timeout_;
           to_check_timeout.push_back(child_task_id);
         }
       });
