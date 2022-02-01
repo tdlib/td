@@ -347,10 +347,10 @@ class MultiSequenceDispatcherNewImpl final : public MultiSequenceDispatcherNew {
         }
       });
 
-      for (auto task_id : to_check_timeout) {
-        if (check_timeout(task_id)) {
-          scheduler_.pause_task(task_id);
-          try_resend(task_id);
+      for (auto dependent_task_id : to_check_timeout) {
+        if (check_timeout(dependent_task_id)) {
+          scheduler_.pause_task(dependent_task_id);
+          try_resend(dependent_task_id);
         }
       }
     }

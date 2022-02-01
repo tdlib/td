@@ -10,6 +10,7 @@
 #include "td/utils/common.h"
 #include "td/utils/Container.h"
 #include "td/utils/List.h"
+#include "td/utils/logging.h"
 #include "td/utils/optional.h"
 #include "td/utils/Span.h"
 #include "td/utils/StringBuilder.h"
@@ -29,7 +30,7 @@ struct ChainSchedulerBase {
 };
 
 template <class ExtraT = Unit>
-class ChainScheduler : public ChainSchedulerBase {
+class ChainScheduler final : public ChainSchedulerBase {
  public:
   using TaskId = uint64;
   using ChainId = uint64;
@@ -96,7 +97,7 @@ class ChainScheduler : public ChainSchedulerBase {
       }
       return static_cast<ChainNode &>(*chain_node->get_next()).task_id;
     }
-    optional<ChainNode*> get_parent(ChainNode *chain_node) {
+    optional<ChainNode *> get_parent(ChainNode *chain_node) {
       if (chain_node->get_prev() == head_.end()) {
         return {};
       }
@@ -117,8 +118,8 @@ class ChainScheduler : public ChainSchedulerBase {
         f(node.task_id, node.generation);
       }
     }
-    void foreach_child(ListNode *node, std::function<void(TaskId, uint64)> f) const {
-      for (auto it = node; it != head_.end(); it = it->get_next()) {
+    void foreach_child(ListNode *start_node, std::function<void(TaskId, uint64)> f) const {
+      for (auto it = start_node; it != head_.end(); it = it->get_next()) {
         auto &node = static_cast<const ChainNode &>(*it);
         f(node.task_id, node.generation);
       }
@@ -180,9 +181,7 @@ class ChainScheduler : public ChainSchedulerBase {
     task->state = Task::State::Active;
 
     pending_tasks_.push(task_id);
-    for_each_child(task, [&](auto task_id) {
-      try_start_task(task_id);
-    });
+    for_each_child(task, [&](auto task_id) { try_start_task(task_id); });
   }
 
   template <class F>
@@ -197,7 +196,7 @@ class ChainScheduler : public ChainSchedulerBase {
   }
 
   void inactivate_task(TaskId task_id, bool failed) {
-    LOG(ERROR) << "inactivate " << task_id << " " << (failed ? "failed" : "finished");
+    LOG(DEBUG) << "Inactivate " << task_id << " " << (failed ? "failed" : "finished");
     auto *task = tasks_.get(task_id);
     CHECK(task);
     bool was_active = task->state == Task::State::Active;
@@ -238,17 +237,19 @@ class ChainScheduler : public ChainSchedulerBase {
     }
   }
 
-  std::vector<TaskId> to_start;
+  vector<TaskId> to_start_;
+
   void try_start_task_later(TaskId task_id) {
-    LOG(ERROR) << "try start later " << task_id;
-    to_start.push_back(task_id);
+    LOG(DEBUG) << "Try to start later " << task_id;
+    to_start_.push_back(task_id);
   }
+
   void flush_try_start_task() {
-    auto moved_to_start = std::move(to_start);
+    auto moved_to_start = std::move(to_start_);
     for (auto task_id : moved_to_start) {
       try_start_task(task_id);
     }
-    CHECK(to_start.empty());
+    CHECK(to_start_.empty());
   }
 };
 
@@ -311,13 +312,11 @@ template <class ExtraT>
 void ChainScheduler<ExtraT>::finish_task(ChainScheduler::TaskId task_id) {
   auto *task = tasks_.get(task_id);
   CHECK(task);
-  CHECK(to_start.empty());
+  CHECK(to_start_.empty());
 
   inactivate_task(task_id, false);
 
-  for_each_child(task, [&](auto task_id) {
-    try_start_task_later(task_id);
-  });
+  for_each_child(task, [&](auto task_id) { try_start_task_later(task_id); });
 
   for (TaskChainInfo &task_chain_info : task->chains) {
     finish_chain_task(task_chain_info);
@@ -329,7 +328,7 @@ void ChainScheduler<ExtraT>::finish_task(ChainScheduler::TaskId task_id) {
 
 template <class ExtraT>
 void ChainScheduler<ExtraT>::reset_task(ChainScheduler::TaskId task_id) {
-  CHECK(to_start.empty());
+  CHECK(to_start_.empty());
   auto *task = tasks_.get(task_id);
   CHECK(task);
   inactivate_task(task_id, true);
@@ -355,15 +354,14 @@ StringBuilder &operator<<(StringBuilder &sb, ChainScheduler<ExtraT> &scheduler) 
     sb << " active_cnt=" << it.second.active_tasks;
     sb << " g=" << it.second.generation;
     sb << " :";
-    it.second.chain.foreach([&](auto task_id, auto generation) {
-      sb << " " << *scheduler.get_task_extra(task_id) << ":" << generation;
-    });
+    it.second.chain.foreach(
+        [&](auto task_id, auto generation) { sb << " " << *scheduler.get_task_extra(task_id) << ":" << generation; });
     sb << "\n";
   }
   scheduler.tasks_.for_each([&](auto id, auto &task) {
     sb << "Task: " << task.extra;
     sb << " state =" << static_cast<int>(task.state);
-    for (auto& task_chain_info : task.chains) {
+    for (auto &task_chain_info : task.chains) {
       sb << " g=" << task_chain_info.chain_node.generation;
       if (task_chain_info.chain_info->generation != task_chain_info.chain_node.generation) {
         sb << " chain_g=" << task_chain_info.chain_info->generation;

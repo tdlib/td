@@ -23,9 +23,9 @@ TEST(ChainScheduler, CreateAfterActive) {
   using TaskId = td::ChainScheduler<int>::TaskId;
   std::vector<ChainId> chains{1};
 
-  auto first_task_id = scheduler.create_task( chains, 1);
+  auto first_task_id = scheduler.create_task(chains, 1);
   ASSERT_EQ(first_task_id, scheduler.start_next_task().unwrap().task_id);
-  auto second_task_id = scheduler.create_task( chains, 2);
+  auto second_task_id = scheduler.create_task(chains, 2);
   ASSERT_EQ(second_task_id, scheduler.start_next_task().unwrap().task_id);
 }
 
@@ -35,8 +35,8 @@ TEST(ChainScheduler, RestartAfterActive) {
   using TaskId = td::ChainScheduler<int>::TaskId;
   std::vector<ChainId> chains{1};
 
-  auto first_task_id = scheduler.create_task( chains, 1);
-  auto second_task_id = scheduler.create_task( chains, 2);
+  auto first_task_id = scheduler.create_task(chains, 1);
+  auto second_task_id = scheduler.create_task(chains, 2);
   ASSERT_EQ(first_task_id, scheduler.start_next_task().unwrap().task_id);
   ASSERT_EQ(second_task_id, scheduler.start_next_task().unwrap().task_id);
 
@@ -53,14 +53,14 @@ TEST(ChainScheduler, SendAfterRestart) {
   using TaskId = td::ChainScheduler<int>::TaskId;
   std::vector<ChainId> chains{1};
 
-  auto first_task_id = scheduler.create_task( chains, 1);
-  auto second_task_id = scheduler.create_task( chains, 2);
+  auto first_task_id = scheduler.create_task(chains, 1);
+  auto second_task_id = scheduler.create_task(chains, 2);
   ASSERT_EQ(first_task_id, scheduler.start_next_task().unwrap().task_id);
   ASSERT_EQ(second_task_id, scheduler.start_next_task().unwrap().task_id);
 
   scheduler.reset_task(first_task_id);
 
-  auto third_task_id = scheduler.create_task( chains, 3);
+  scheduler.create_task(chains, 3);
 
   ASSERT_EQ(first_task_id, scheduler.start_next_task().unwrap().task_id);
   ASSERT_TRUE(!scheduler.start_next_task());
@@ -102,18 +102,22 @@ struct Query;
 using QueryPtr = std::shared_ptr<Query>;
 using ChainId = td::ChainScheduler<QueryPtr>::ChainId;
 using TaskId = td::ChainScheduler<QueryPtr>::TaskId;
+
 struct Query {
   int id{};
   TaskId task_id{};
   bool is_ok{};
   bool skipped{};
-  friend td::StringBuilder &operator << (td::StringBuilder &sb, const Query &q) {
-    return sb << "Q{" << q.id << "}";
-  }
 };
-td::StringBuilder &operator << (td::StringBuilder &sb, const QueryPtr &query_ptr) {
+
+static td::StringBuilder &operator<<(td::StringBuilder &sb, const Query &q) {
+  return sb << "Q{" << q.id << "}";
+}
+
+static td::StringBuilder &operator<<(td::StringBuilder &sb, const QueryPtr &query_ptr) {
   return sb << *query_ptr;
 }
+
 TEST(ChainScheduler, Stress) {
   td::Random::Xorshift128plus rnd(123);
   int max_query_id = 100000;
@@ -184,14 +188,14 @@ TEST(ChainScheduler, Stress) {
       sent_cnt++;
     }
   };
-  auto skip_one_query = [&]() {
+  auto skip_one_query = [&] {
     if (pending_queries.empty()) {
       return;
     }
-    auto it = pending_queries.begin() + rnd.fast(0, (int)pending_queries.size() - 1);
+    auto it = pending_queries.begin() + rnd.fast(0, static_cast<int>(pending_queries.size()) - 1);
     auto task_id = *it;
     pending_queries.erase(it);
-    td::remove_if(active_queries, [&](auto &q) {return q.task_id == task_id;});
+    td::remove_if(active_queries, [&](auto &q) { return q.task_id == task_id; });
 
     auto query = *scheduler.get_task_extra(task_id);
     query->skipped = true;
