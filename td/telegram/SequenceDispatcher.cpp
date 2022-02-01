@@ -311,26 +311,49 @@ class MultiSequenceDispatcherNewImpl final : public MultiSequenceDispatcherNew {
   using TaskId = ChainScheduler<NetQueryPtr>::TaskId;
   using ChainId = ChainScheduler<NetQueryPtr>::ChainId;
 
+  bool check_timeout(TaskId task_id) {
+    auto &node = *scheduler_.get_task_extra(task_id);
+    NetQueryPtr &net_query = node.net_query;
+    if (net_query->is_ready()) {
+      return false;
+    }
+    net_query->total_timeout_ += node.total_timeout;
+    node.total_timeout = 0;
+    if (net_query->total_timeout_ > net_query->total_timeout_limit_) {
+      LOG(WARNING) << "Fail " << net_query << " to " << net_query->source_ << " because total_timeout "
+                   << net_query->total_timeout_ << " is greater than total_timeout_limit "
+                   << net_query->total_timeout_limit_;
+      net_query->set_error(Status::Error(
+          429, PSLICE() << "Too Many Requests: retry after " << static_cast<int32>(node.last_timeout + 0.999)));
+      return true;
+    }
+    return false;
+  }
+
   void on_result(NetQueryPtr query) final {
     auto task_id = TaskId(get_link_token());
     auto &node = *scheduler_.get_task_extra(task_id);
 
-//    if (query->last_timeout_ != 0) {
-//      for (auto i = pos + 1; i < data_.size(); i++) {
-//        data_[i].total_timeout_ += query->last_timeout_;
-//        data_[i].last_timeout_ = query->last_timeout_;
-//        check_timeout(data_[i]);
-//        if (data.query_->total_timeout_ > data.query_->total_timeout_limit_) {
-//          LOG(WARNING) << "Fail " << data.query_ << " to " << data.query_->source_ << " because total_timeout "
-//                       << data.query_->total_timeout_ << " is greater than total_timeout_limit "
-//                       << data.query_->total_timeout_limit_;
-//          data.query_->set_error(Status::Error(
-//              429, PSLICE() << "Too Many Requests: retry after " << static_cast<int32>(data.last_timeout_ + 0.999)));
-//          data.state_ = State::Dummy;
-//          try_resend_query(data, std::move(data.query_));
-//        }
-//      }
-//    }
+    if (query->last_timeout_ != 0) {
+      std::vector<TaskId> to_check_timeout;
+
+      auto tl_constructor = query->tl_constructor();
+      scheduler_.for_each_dependent(task_id, [&](TaskId child_task_id) {
+        auto &child_node = *scheduler_.get_task_extra(child_task_id);
+        if (node.net_query_ref->tl_constructor() == tl_constructor) {
+          node.total_timeout += query->last_timeout_;
+          node.last_timeout = query->last_timeout_;
+          to_check_timeout.push_back(child_task_id);
+        }
+      });
+
+      for (auto task_id : to_check_timeout) {
+        if (check_timeout(task_id)) {
+          scheduler_.pause_task(task_id);
+          try_resend(task_id);
+        }
+      }
+    }
 
     if (query->is_error() && (query->error().code() == NetQuery::ResendInvokeAfter ||
                               (query->error().code() == 400 && (query->error().message() == "MSG_WAIT_FAILED" ||
@@ -339,20 +362,31 @@ class MultiSequenceDispatcherNewImpl final : public MultiSequenceDispatcherNew {
       query->resend();
       return on_resend(std::move(query));
     }
-    auto promise = promise_send_closure(actor_shared(this, task_id), &MultiSequenceDispatcherNewImpl::on_resend);
-    send_closure(node.callback, &NetQueryCallback::on_result_resendable, std::move(query), std::move(promise));
+    node.net_query = std::move(query);
+    try_resend(task_id);
   }
 
-  void on_resend(Result<NetQueryPtr> query) {
+  void try_resend(TaskId task_id) {
+    auto &node = *scheduler_.get_task_extra(task_id);
+    auto promise = promise_send_closure(actor_shared(this, task_id), &MultiSequenceDispatcherNewImpl::on_resend);
+    send_closure(node.callback, &NetQueryCallback::on_result_resendable, std::move(node.net_query), std::move(promise));
+  }
+
+  void on_resend(Result<NetQueryPtr> r_query) {
     auto task_id = TaskId(get_link_token());
     auto &node = *scheduler_.get_task_extra(task_id);
-    if (query.is_error()) {
+    if (r_query.is_error()) {
       scheduler_.finish_task(task_id);
     } else {
-      node.net_query = query.move_as_ok();
+      node.net_query = r_query.move_as_ok();
       node.net_query->debug("Waiting at SequenceDispatcher");
       node.net_query_ref = node.net_query.get_weak();
-      scheduler_.reset_task(task_id);
+      if (check_timeout(task_id)) {
+        scheduler_.pause_task(task_id);
+        try_resend(task_id);
+      } else {
+        scheduler_.reset_task(task_id);
+      }
     }
     loop();
   }
@@ -390,7 +424,7 @@ class MultiSequenceDispatcherNewImpl final : public MultiSequenceDispatcherNew {
       }
 
       query->set_invoke_after(std::move(parents));
-      query->last_timeout_ = 0;  // TODO: flood
+      query->last_timeout_ = 0;
       VLOG(net_query) << "Send " << query;
       query->debug("send to Td::send_with_callback");
       G()->net_query_dispatcher().dispatch_with_callback(std::move(query), actor_shared(this, task.task_id));
