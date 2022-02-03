@@ -9021,8 +9021,11 @@ void MessagesManager::on_upload_media(FileId file_id, tl_object_ptr<telegram_api
       if (input_file && thumbnail_file_id.is_valid()) {
         // TODO: download thumbnail if needed (like in secret chats)
         LOG(INFO) << "Ask to upload thumbnail " << thumbnail_file_id;
-        CHECK(being_uploaded_thumbnails_.find(thumbnail_file_id) == being_uploaded_thumbnails_.end());
-        being_uploaded_thumbnails_[thumbnail_file_id] = {full_message_id, file_id, std::move(input_file)};
+        bool is_inserted =
+            being_uploaded_thumbnails_
+                .emplace(thumbnail_file_id, UploadedThumbnailInfo{full_message_id, file_id, std::move(input_file)})
+                .second;
+        CHECK(is_inserted);
         td_->file_manager_->upload(thumbnail_file_id, upload_thumbnail_callback_, 32, m->message_id.get());
       } else {
         do_send_media(dialog_id, m, file_id, thumbnail_file_id, std::move(input_file), nullptr);
@@ -9031,9 +9034,11 @@ void MessagesManager::on_upload_media(FileId file_id, tl_object_ptr<telegram_api
     case DialogType::SecretChat:
       if (thumbnail_file_id.is_valid()) {
         LOG(INFO) << "Ask to load thumbnail " << thumbnail_file_id;
-        CHECK(being_loaded_secret_thumbnails_.find(thumbnail_file_id) == being_loaded_secret_thumbnails_.end());
-        being_loaded_secret_thumbnails_[thumbnail_file_id] = {full_message_id, file_id,
-                                                              std::move(input_encrypted_file)};
+        bool is_inserted = being_loaded_secret_thumbnails_
+                               .emplace(thumbnail_file_id, UploadedSecretThumbnailInfo{full_message_id, file_id,
+                                                                                       std::move(input_encrypted_file)})
+                               .second;
+        CHECK(is_inserted);
 
         load_secret_thumbnail(thumbnail_file_id);
       } else {
@@ -24669,9 +24674,10 @@ MessagesManager::Message *MessagesManager::get_message_to_send(
 
 int64 MessagesManager::begin_send_message(DialogId dialog_id, const Message *m) {
   LOG(INFO) << "Begin to send " << FullMessageId(dialog_id, m->message_id) << " with random_id = " << m->random_id;
-  CHECK(m->random_id != 0 && being_sent_messages_.find(m->random_id) == being_sent_messages_.end());
+  CHECK(m->random_id != 0);
   CHECK(m->message_id.is_yet_unsent());
-  being_sent_messages_[m->random_id] = FullMessageId(dialog_id, m->message_id);
+  bool is_inserted = being_sent_messages_.emplace(m->random_id, FullMessageId(dialog_id, m->message_id)).second;
+  CHECK(is_inserted);
   return m->random_id;
 }
 
@@ -25439,8 +25445,11 @@ void MessagesManager::do_send_message(DialogId dialog_id, const Message *m, vect
       LOG(INFO) << "Ask to upload encrypted file " << file_id;
       CHECK(file_view.is_encrypted_secret());
       CHECK(file_id.is_valid());
-      CHECK(being_uploaded_files_.find(file_id) == being_uploaded_files_.end());
-      being_uploaded_files_[file_id] = {FullMessageId(dialog_id, m->message_id), thumbnail_file_id};
+      bool is_inserted =
+          being_uploaded_files_
+              .emplace(file_id, std::make_pair(FullMessageId(dialog_id, m->message_id), thumbnail_file_id))
+              .second;
+      CHECK(is_inserted);
       // need to call resume_upload synchronously to make upload process consistent with being_uploaded_files_
       td_->file_manager_->resume_upload(file_id, std::move(bad_parts), upload_media_callback_, 1, m->message_id.get());
     } else {
@@ -25459,8 +25468,11 @@ void MessagesManager::do_send_message(DialogId dialog_id, const Message *m, vect
 
       LOG(INFO) << "Ask to upload file " << file_id << " with bad parts " << bad_parts;
       CHECK(file_id.is_valid());
-      CHECK(being_uploaded_files_.find(file_id) == being_uploaded_files_.end());
-      being_uploaded_files_[file_id] = {FullMessageId(dialog_id, m->message_id), thumbnail_file_id};
+      bool is_inserted =
+          being_uploaded_files_
+              .emplace(file_id, std::make_pair(FullMessageId(dialog_id, m->message_id), thumbnail_file_id))
+              .second;
+      CHECK(is_inserted);
       // need to call resume_upload synchronously to make upload process consistent with being_uploaded_files_
       td_->file_manager_->resume_upload(file_id, std::move(bad_parts), upload_media_callback_, 1, m->message_id.get());
     } else {
@@ -28555,10 +28567,12 @@ void MessagesManager::upload_imported_messages(DialogId dialog_id, FileId file_i
                                                bool is_reupload, Promise<Unit> &&promise, vector<int> bad_parts) {
   CHECK(file_id.is_valid());
   LOG(INFO) << "Ask to upload imported messages file " << file_id;
-  CHECK(being_uploaded_imported_messages_.find(file_id) == being_uploaded_imported_messages_.end());
-  being_uploaded_imported_messages_.emplace(
-      file_id, td::make_unique<UploadedImportedMessagesInfo>(dialog_id, std::move(attached_file_ids), is_reupload,
-                                                             std::move(promise)));
+  bool is_inserted =
+      being_uploaded_imported_messages_
+          .emplace(file_id, td::make_unique<UploadedImportedMessagesInfo>(dialog_id, std::move(attached_file_ids),
+                                                                          is_reupload, std::move(promise)))
+          .second;
+  CHECK(is_inserted);
   // TODO use force_reupload if is_reupload
   td_->file_manager_->resume_upload(file_id, std::move(bad_parts), upload_imported_messages_callback_, 1, 0, false,
                                     true);
@@ -33008,9 +33022,11 @@ void MessagesManager::upload_dialog_photo(DialogId dialog_id, FileId file_id, bo
                                           vector<int> bad_parts) {
   CHECK(file_id.is_valid());
   LOG(INFO) << "Ask to upload chat photo " << file_id;
-  CHECK(being_uploaded_dialog_photos_.find(file_id) == being_uploaded_dialog_photos_.end());
-  being_uploaded_dialog_photos_.emplace(
-      file_id, UploadedDialogPhotoInfo{dialog_id, main_frame_timestamp, is_animation, is_reupload, std::move(promise)});
+  bool is_inserted = being_uploaded_dialog_photos_
+                         .emplace(file_id, UploadedDialogPhotoInfo{dialog_id, main_frame_timestamp, is_animation,
+                                                                   is_reupload, std::move(promise)})
+                         .second;
+  CHECK(is_inserted);
   // TODO use force_reupload if is_reupload
   td_->file_manager_->resume_upload(file_id, std::move(bad_parts), upload_dialog_photo_callback_, 32, 0);
 }

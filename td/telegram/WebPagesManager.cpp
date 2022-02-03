@@ -762,8 +762,8 @@ void WebPagesManager::on_get_web_page_preview_success(int64 request_id, const st
                                                       Promise<Unit> &&promise) {
   CHECK(web_page_id == WebPageId() || have_web_page(web_page_id));
 
-  CHECK(got_web_page_previews_.find(request_id) == got_web_page_previews_.end());
-  got_web_page_previews_[request_id] = web_page_id;
+  bool is_inserted = got_web_page_previews_.emplace(request_id, web_page_id).second;
+  CHECK(is_inserted);
 
   if (web_page_id.is_valid() && !url.empty()) {
     on_get_web_page_by_url(url, web_page_id, true);

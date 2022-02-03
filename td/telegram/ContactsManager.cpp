@@ -6163,9 +6163,11 @@ void ContactsManager::send_update_profile_photo_query(FileId file_id, int64 old_
 void ContactsManager::upload_profile_photo(FileId file_id, bool is_animation, double main_frame_timestamp,
                                            Promise<Unit> &&promise, int reupload_count, vector<int> bad_parts) {
   CHECK(file_id.is_valid());
-  CHECK(uploaded_profile_photos_.find(file_id) == uploaded_profile_photos_.end());
-  uploaded_profile_photos_.emplace(
-      file_id, UploadedProfilePhoto{main_frame_timestamp, is_animation, reupload_count, std::move(promise)});
+  bool is_inserted = uploaded_profile_photos_
+                         .emplace(file_id, UploadedProfilePhoto{main_frame_timestamp, is_animation, reupload_count,
+                                                                std::move(promise)})
+                         .second;
+  CHECK(is_inserted);
   LOG(INFO) << "Ask to upload " << (is_animation ? "animated" : "static") << " profile photo " << file_id
             << " with bad parts " << bad_parts;
   // TODO use force_reupload if reupload_count >= 1, replace reupload_count with is_reupload
