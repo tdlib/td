@@ -13,7 +13,6 @@
 #include "td/utils/common.h"
 #include "td/utils/Random.h"
 #include "td/utils/Slice.h"
-#include "td/utils/Span.h"
 
 #include <limits>
 #include <unordered_map>
