@@ -1850,7 +1850,7 @@ class ToggleDialogIsBlockedActor final : public NetActorOnce {
     CHECK(input_peer != nullptr && input_peer->get_id() != telegram_api::inputPeerEmpty::ID);
     auto query = is_blocked ? G()->net_query_creator().create(telegram_api::contacts_block(std::move(input_peer)))
                             : G()->net_query_creator().create(telegram_api::contacts_unblock(std::move(input_peer)));
-    query->set_chains({sequence_dispatcher_id});
+    query->set_chain_ids({sequence_dispatcher_id});
     send_query(std::move(query));
   }
 

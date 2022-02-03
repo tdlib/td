@@ -210,7 +210,7 @@ class StopPollActor final : public NetActorOnce {
         std::move(input_reply_markup), vector<tl_object_ptr<telegram_api::MessageEntity>>(), 0));
     if (!td_->auth_manager_->is_bot()) {
       auto sequence_id = static_cast<uint64>(-1);
-      query->set_chains({sequence_id});
+      query->set_chain_ids({sequence_id});
     }
     send_query(std::move(query));
   }

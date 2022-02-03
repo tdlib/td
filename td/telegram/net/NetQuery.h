@@ -204,8 +204,8 @@ class NetQuery final : public TsListNode<NetQueryDebug> {
     invoke_after_ = std::move(refs);
   }
   uint32 session_rand() const {
-    if (in_sequence_dispacher_ && !chains_.empty()) {
-      return static_cast<uint32>(chains_[0] >> 10);
+    if (in_sequence_dispacher_ && !chain_ids_.empty()) {
+      return static_cast<uint32>(chain_ids_[0] >> 10);
     }
     return 0;
   }
@@ -276,14 +276,15 @@ class NetQuery final : public TsListNode<NetQueryDebug> {
     priority_ = priority;
   }
 
-  Span<uint64> chains() const {
-    return chains_;
+  Span<uint64> get_chain_ids() const {
+    return chain_ids_;
   }
-  void set_chains(std::vector<uint64> chains) {
-    chains_ = std::move(chains);
+  void set_chain_ids(vector<uint64> &&chain_ids) {
+    chain_ids_ = std::move(chain_ids);
   }
-  void set_in_sequence_dispatcher(bool flag) {
-    in_sequence_dispacher_ = flag;
+
+  void set_in_sequence_dispatcher(bool in_sequence_dispacher) {
+    in_sequence_dispacher_ = in_sequence_dispacher;
   }
   bool in_sequence_dispatcher() const {
     return in_sequence_dispacher_;
@@ -303,8 +304,8 @@ class NetQuery final : public TsListNode<NetQueryDebug> {
   BufferSlice answer_;
   int32 tl_constructor_ = 0;
 
-  std::vector<NetQueryRef> invoke_after_;
-  std::vector<uint64> chains_;
+  vector<NetQueryRef> invoke_after_;
+  vector<uint64> chain_ids_;
 
   bool in_sequence_dispacher_ = false;
   bool may_be_lost_ = false;

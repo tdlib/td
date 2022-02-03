@@ -250,11 +250,11 @@ void SequenceDispatcher::close_silent() {
 void MultiSequenceDispatcherOld::send(NetQueryPtr query) {
   auto callback = query->move_callback();
   CHECK(!callback.empty());
-  auto chains = query->chains();
+  auto chain_ids = query->get_chain_ids();
   query->set_in_sequence_dispatcher(true);
-  CHECK(all_of(chains, [](auto chain_id) { return chain_id != 0; }));
-  CHECK(!chains.empty());
-  auto sequence_id = chains[0];
+  CHECK(all_of(chain_ids, [](auto chain_id) { return chain_id != 0; }));
+  CHECK(!chain_ids.empty());
+  auto sequence_id = chain_ids[0];
 
   auto it_ok = dispatchers_.emplace(sequence_id, Data{0, ActorOwn<SequenceDispatcher>()});
   auto &data = it_ok.first->second;
@@ -287,15 +287,15 @@ class MultiSequenceDispatcherImpl final : public MultiSequenceDispatcher {
   void send(NetQueryPtr query) final {
     auto callback = query->move_callback();
     CHECK(!callback.empty());
-    auto chains = query->chains();
+    auto chain_ids = query->get_chain_ids();
     query->set_in_sequence_dispatcher(true);
-    CHECK(all_of(chains, [](auto chain_id) { return chain_id != 0; }));
+    CHECK(all_of(chain_ids, [](auto chain_id) { return chain_id != 0; }));
     Node node;
     node.net_query = std::move(query);
     node.net_query->debug("Waiting at SequenceDispatcher");
     node.net_query_ref = node.net_query.get_weak();
     node.callback = std::move(callback);
-    scheduler_.create_task(chains, std::move(node));
+    scheduler_.create_task(chain_ids, std::move(node));
     loop();
   }
 

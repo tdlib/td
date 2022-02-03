@@ -59,7 +59,7 @@ void NetQueryDispatcher::dispatch(NetQueryPtr net_query) {
     return complete_net_query(std::move(net_query));
   }
 
-  if (!net_query->in_sequence_dispatcher() && !net_query->chains().empty()) {
+  if (!net_query->in_sequence_dispatcher() && !net_query->get_chain_ids().empty()) {
     net_query->debug("sent to main sequence dispatcher");
     send_closure(sequence_dispatcher_, &MultiSequenceDispatcher::send, std::move(net_query));
     return;
