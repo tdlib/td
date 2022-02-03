@@ -1028,10 +1028,10 @@ void Session::connection_send_query(ConnectionInfo *info, NetQueryPtr &&net_quer
     }
   }
   VLOG(net_query) << "Send query to connection " << net_query << " [msg_id:" << format::as_hex(message_id) << "]"
-                  << tag("invoke_after", transform(invoke_after_ids, [](auto id) { return format::as_hex(id); }));
+                  << tag("invoke_after",
+                         transform(invoke_after_ids, [](auto id) { return PSTRING() << format::as_hex(id); }));
   net_query->set_message_id(message_id);
   net_query->cancel_slot_.clear_event();
-  LOG_CHECK(sent_queries_.find(message_id) == sent_queries_.end()) << message_id;
   {
     auto lock = net_query->lock();
     net_query->get_data_unsafe().unknown_state_ = false;
@@ -1043,6 +1043,7 @@ void Session::connection_send_query(ConnectionInfo *info, NetQueryPtr &&net_quer
   }
   auto status = sent_queries_.emplace(
       message_id, Query{message_id, std::move(net_query), main_connection_.connection_id_, Time::now_cached()});
+  LOG_CHECK(status.second) << message_id;
   sent_queries_list_.put(status.first->second.get_list_node());
   if (!status.second) {
     LOG(FATAL) << "Duplicate message_id [message_id = " << message_id << "]";
