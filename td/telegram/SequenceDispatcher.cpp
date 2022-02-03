@@ -405,7 +405,7 @@ class MultiSequenceDispatcherImpl final : public MultiSequenceDispatcher {
 
   void tear_down() final {
     // Leaves scheduler_ in an invalid state, but we are closing anyway
-    scheduler_.for_each([&](Node &node) {
+    scheduler_.for_each([](Node &node) {
       if (node.net_query.empty()) {
         return;
       }

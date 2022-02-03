@@ -201,7 +201,7 @@ TEST(ChainScheduler, Stress) {
     query->skipped = true;
     scheduler.finish_task(task_id);
     inflight_queries--;
-    LOG(ERROR) << "Skip " << query->id;
+    LOG(INFO) << "Skip " << query->id;
   };
   auto execute_one_query = [&] {
     if (active_queries.empty()) {
@@ -225,7 +225,7 @@ TEST(ChainScheduler, Stress) {
       LOG(INFO) << "OK " << query->id;
     } else {
       scheduler.reset_task(query->task_id);
-      LOG(ERROR) << "Reset " << query->id;
+      LOG(INFO) << "Reset " << query->id;
     }
   };
 
@@ -235,8 +235,8 @@ TEST(ChainScheduler, Stress) {
     flush_pending_queries();
     // LOG(INFO) << scheduler;
   }
-  LOG(ERROR) << "Sent queries count " << sent_cnt;
-  LOG(ERROR) << "Total queries " << current_query_id;
+  LOG(INFO) << "Sent queries count " << sent_cnt;
+  LOG(INFO) << "Total queries " << current_query_id;
   for (auto &chain : chains) {
     int prev_ok = -1;
     int failed_cnt = 0;
