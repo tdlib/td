@@ -696,6 +696,12 @@ TEST(MessageEntities, url) {
   check_url("a@b@c.com", {}, {});
   check_url("a@b.com:c@1", {}, {"a@b.com"});
   check_url("test@test.software", {}, {"test@test.software"});
+  check_url("a:b?@gmail.com", {});
+  check_url("a?:b@gmail.com", {});
+  check_url("a#:b@gmail.com", {});
+  check_url("a:b#@gmail.com", {});
+  check_url("a!:b@gmail.com", {"a!:b@gmail.com"});
+  check_url("a:b!@gmail.com", {"a:b!@gmail.com"});
 }
 
 static void check_fix_formatted_text(td::string str, td::vector<td::MessageEntity> entities,
