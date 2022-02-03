@@ -8,6 +8,7 @@
 
 #include "td/telegram/Global.h"
 #include "td/telegram/net/NetQueryDispatcher.h"
+#include "td/telegram/Td.h"
 
 #include "td/actor/PromiseFuture.h"
 
@@ -74,6 +75,12 @@ void SequenceDispatcher::try_resend_query(Data &data, NetQueryPtr query) {
   wait_cnt_++;
   auto token = pos + id_offset_;
   // TODO: if query is ok, use NetQueryCallback::on_result
+  if (data.callback_.empty()) {
+    do_finish(data);
+    send_closure(G()->td(), &Td::on_result, std::move(query));
+    loop();
+    return;
+  }
   auto promise = PromiseCreator::lambda([&, self = actor_shared(this, token)](NetQueryPtr query) mutable {
     if (!query.empty()) {
       send_closure(std::move(self), &SequenceDispatcher::on_resend_ok, std::move(query));
@@ -246,10 +253,8 @@ void SequenceDispatcher::close_silent() {
   stop();
 }
 
-/*** MultiSequenceDispatcher ***/
 void MultiSequenceDispatcherOld::send(NetQueryPtr query) {
   auto callback = query->move_callback();
-  CHECK(!callback.empty());
   auto chain_ids = query->get_chain_ids();
   query->set_in_sequence_dispatcher(true);
   CHECK(all_of(chain_ids, [](auto chain_id) { return chain_id != 0; }));
@@ -286,7 +291,6 @@ class MultiSequenceDispatcherImpl final : public MultiSequenceDispatcher {
  public:
   void send(NetQueryPtr query) final {
     auto callback = query->move_callback();
-    CHECK(!callback.empty());
     auto chain_ids = query->get_chain_ids();
     query->set_in_sequence_dispatcher(true);
     CHECK(all_of(chain_ids, [](auto chain_id) { return chain_id != 0; }));
@@ -372,6 +376,13 @@ class MultiSequenceDispatcherImpl final : public MultiSequenceDispatcher {
 
   void try_resend(TaskId task_id) {
     auto &node = *scheduler_.get_task_extra(task_id);
+    if (node.callback.empty()) {
+      auto query = std::move(node.net_query);
+      scheduler_.finish_task(task_id);
+      send_closure(G()->td(), &Td::on_result, std::move(query));
+      loop();
+      return;
+    }
     auto promise = promise_send_closure(actor_shared(this, task_id), &MultiSequenceDispatcherImpl::on_resend);
     send_closure(node.callback, &NetQueryCallback::on_result_resendable, std::move(node.net_query), std::move(promise));
   }
