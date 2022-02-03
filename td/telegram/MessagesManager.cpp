@@ -327,12 +327,12 @@ class GetDialogsQuery final : public Td::ResultHandler {
   }
 };
 
-class GetPinnedDialogsActor final : public NetActorOnce {
+class GetPinnedDialogsQuery final : public Td::ResultHandler {
   FolderId folder_id_;
   Promise<Unit> promise_;
 
  public:
-  explicit GetPinnedDialogsActor(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  explicit GetPinnedDialogsQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
   NetQueryRef send(FolderId folder_id, uint64 sequence_id) {
@@ -353,8 +353,8 @@ class GetPinnedDialogsActor final : public NetActorOnce {
     auto result = result_ptr.move_as_ok();
     LOG(INFO) << "Receive pinned chats in " << folder_id_ << ": " << to_string(result);
 
-    td_->contacts_manager_->on_get_users(std::move(result->users_), "GetPinnedDialogsActor");
-    td_->contacts_manager_->on_get_chats(std::move(result->chats_), "GetPinnedDialogsActor");
+    td_->contacts_manager_->on_get_users(std::move(result->users_), "GetPinnedDialogsQuery");
+    td_->contacts_manager_->on_get_chats(std::move(result->chats_), "GetPinnedDialogsQuery");
     td_->messages_manager_->on_get_dialogs(folder_id_, std::move(result->dialogs_), -2, std::move(result->messages_),
                                            std::move(promise_));
   }
@@ -775,12 +775,12 @@ class ExportChannelMessageLinkQuery final : public Td::ResultHandler {
   }
 };
 
-class GetDialogListActor final : public NetActorOnce {
+class GetDialogListQuery final : public Td::ResultHandler {
   FolderId folder_id_;
   Promise<Unit> promise_;
 
  public:
-  explicit GetDialogListActor(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  explicit GetDialogListQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
   void send(FolderId folder_id, int32 offset_date, ServerMessageId offset_message_id, DialogId offset_dialog_id,
@@ -808,8 +808,8 @@ class GetDialogListActor final : public NetActorOnce {
     switch (ptr->get_id()) {
       case telegram_api::messages_dialogs::ID: {
         auto dialogs = move_tl_object_as<telegram_api::messages_dialogs>(ptr);
-        td_->contacts_manager_->on_get_users(std::move(dialogs->users_), "GetDialogListActor");
-        td_->contacts_manager_->on_get_chats(std::move(dialogs->chats_), "GetDialogListActor");
+        td_->contacts_manager_->on_get_users(std::move(dialogs->users_), "GetDialogListQuery");
+        td_->contacts_manager_->on_get_chats(std::move(dialogs->chats_), "GetDialogListQuery");
         td_->messages_manager_->on_get_dialogs(folder_id_, std::move(dialogs->dialogs_),
                                                narrow_cast<int32>(dialogs->dialogs_.size()),
                                                std::move(dialogs->messages_), std::move(promise_));
@@ -817,8 +817,8 @@ class GetDialogListActor final : public NetActorOnce {
       }
       case telegram_api::messages_dialogsSlice::ID: {
         auto dialogs = move_tl_object_as<telegram_api::messages_dialogsSlice>(ptr);
-        td_->contacts_manager_->on_get_users(std::move(dialogs->users_), "GetDialogListActor");
-        td_->contacts_manager_->on_get_chats(std::move(dialogs->chats_), "GetDialogListActor");
+        td_->contacts_manager_->on_get_users(std::move(dialogs->users_), "GetDialogListQuery");
+        td_->contacts_manager_->on_get_chats(std::move(dialogs->chats_), "GetDialogListQuery");
         td_->messages_manager_->on_get_dialogs(folder_id_, std::move(dialogs->dialogs_), max(dialogs->count_, 0),
                                                std::move(dialogs->messages_), std::move(promise_));
         break;
@@ -1833,13 +1833,13 @@ class ToggleDialogUnreadMarkQuery final : public Td::ResultHandler {
   }
 };
 
-class ToggleDialogIsBlockedActor final : public NetActorOnce {
+class ToggleDialogIsBlockedQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   DialogId dialog_id_;
   bool is_blocked_;
 
  public:
-  explicit ToggleDialogIsBlockedActor(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  explicit ToggleDialogIsBlockedQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
   void send(DialogId dialog_id, bool is_blocked, uint64 sequence_dispatcher_id) {
@@ -1869,13 +1869,13 @@ class ToggleDialogIsBlockedActor final : public NetActorOnce {
   }
 
   void on_error(Status status) final {
-    if (!td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "ToggleDialogIsBlockedActor")) {
-      LOG(ERROR) << "Receive error for ToggleDialogIsBlockedActor: " << status;
+    if (!td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "ToggleDialogIsBlockedQuery")) {
+      LOG(ERROR) << "Receive error for ToggleDialogIsBlockedQuery: " << status;
     }
     if (!G()->close_flag()) {
       td_->messages_manager_->on_update_dialog_is_blocked(dialog_id_, !is_blocked_);
-      td_->messages_manager_->get_dialog_info_full(dialog_id_, Auto(), "ToggleDialogIsBlockedActor");
-      td_->messages_manager_->reget_dialog_action_bar(dialog_id_, "ToggleDialogIsBlockedActor");
+      td_->messages_manager_->get_dialog_info_full(dialog_id_, Auto(), "ToggleDialogIsBlockedQuery");
+      td_->messages_manager_->reget_dialog_action_bar(dialog_id_, "ToggleDialogIsBlockedQuery");
     }
     promise_.set_error(std::move(status));
   }
@@ -3076,11 +3076,11 @@ class ReadReactionsQuery final : public Td::ResultHandler {
   }
 };
 
-class SaveDefaultSendAsActor final : public NetActorOnce {
+class SaveDefaultSendAsQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
  public:
-  explicit SaveDefaultSendAsActor(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  explicit SaveDefaultSendAsQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
   void send(DialogId dialog_id, DialogId send_as_dialog_id, uint64 sequence_dispatcher_id) {
@@ -3102,13 +3102,13 @@ class SaveDefaultSendAsActor final : public NetActorOnce {
     }
 
     auto success = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for SaveDefaultSendAsActor: " << success;
+    LOG(INFO) << "Receive result for SaveDefaultSendAsQuery: " << success;
 
     promise_.set_value(Unit());
   }
 
   void on_error(Status status) final {
-    // td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "SaveDefaultSendAsActor");
+    // td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "SaveDefaultSendAsQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -3164,7 +3164,7 @@ class SendSecretMessageActor final : public NetActor {
   }
 };
 
-class SendMessageActor final : public NetActorOnce {
+class SendMessageQuery final : public Td::ResultHandler {
   int64 random_id_;
   DialogId dialog_id_;
 
@@ -3178,9 +3178,7 @@ class SendMessageActor final : public NetActorOnce {
 
     auto input_peer = td_->messages_manager_->get_input_peer(dialog_id, AccessRights::Write);
     if (input_peer == nullptr) {
-      on_error(Status::Error(400, "Have no write access to the chat"));
-      stop();
-      return;
+      return on_error(Status::Error(400, "Have no write access to the chat"));
     }
 
     if (!entities.empty()) {
@@ -3214,7 +3212,7 @@ class SendMessageActor final : public NetActorOnce {
     }
 
     auto ptr = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for SendMessage for " << random_id_ << ": " << to_string(ptr);
+    LOG(INFO) << "Receive result for SendMessageQuery for " << random_id_ << ": " << to_string(ptr);
 
     auto constructor_id = ptr->get_id();
     if (constructor_id != telegram_api::updateShortSentMessage::ID) {
@@ -3247,7 +3245,7 @@ class SendMessageActor final : public NetActorOnce {
       // do not send error, message will be re-sent
       return;
     }
-    td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "SendMessageActor");
+    td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "SendMessageQuery");
     td_->messages_manager_->on_send_message_fail(random_id_, std::move(status));
   }
 };
@@ -3352,7 +3350,7 @@ class SendInlineBotResultQuery final : public Td::ResultHandler {
   }
 };
 
-class SendMultiMediaActor final : public NetActorOnce {
+class SendMultiMediaQuery final : public Td::ResultHandler {
   vector<FileId> file_ids_;
   vector<string> file_references_;
   vector<int64> random_ids_;
@@ -3373,9 +3371,7 @@ class SendMultiMediaActor final : public NetActorOnce {
 
     auto input_peer = td_->messages_manager_->get_input_peer(dialog_id, AccessRights::Write);
     if (input_peer == nullptr) {
-      on_error(Status::Error(400, "Have no write access to the chat"));
-      stop();
-      return;
+      return on_error(Status::Error(400, "Have no write access to the chat"));
     }
 
     if (as_input_peer != nullptr) {
@@ -3429,7 +3425,7 @@ class SendMultiMediaActor final : public NetActorOnce {
       }
     }
     if (is_result_wrong) {
-      LOG(ERROR) << "Receive wrong result for SendMultiMedia with random_ids " << format::as_array(random_ids_)
+      LOG(ERROR) << "Receive wrong result for SendMultiMediaQuery with random_ids " << format::as_array(random_ids_)
                  << " to " << dialog_id_ << ": " << oneline(to_string(ptr));
       td_->updates_manager_->schedule_get_difference("Wrong sendMultiMedia result");
     }
@@ -3455,14 +3451,14 @@ class SendMultiMediaActor final : public NetActorOnce {
                    << ", message_count = " << file_ids_.size();
       }
     }
-    td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "SendMultiMediaActor");
+    td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "SendMultiMediaQuery");
     for (auto &random_id : random_ids_) {
       td_->messages_manager_->on_send_message_fail(random_id, status.clone());
     }
   }
 };
 
-class SendMediaActor final : public NetActorOnce {
+class SendMediaQuery final : public Td::ResultHandler {
   int64 random_id_ = 0;
   FileId file_id_;
   FileId thumbnail_file_id_;
@@ -3488,9 +3484,7 @@ class SendMediaActor final : public NetActorOnce {
 
     auto input_peer = td_->messages_manager_->get_input_peer(dialog_id, AccessRights::Write);
     if (input_peer == nullptr) {
-      on_error(Status::Error(400, "Have no write access to the chat"));
-      stop();
-      return;
+      return on_error(Status::Error(400, "Have no write access to the chat"));
     }
 
     if (!entities.empty()) {
@@ -3531,7 +3525,7 @@ class SendMediaActor final : public NetActorOnce {
     }
 
     auto ptr = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for SendMedia for " << random_id_ << ": " << to_string(ptr);
+    LOG(INFO) << "Receive result for SendMediaQuery for " << random_id_ << ": " << to_string(ptr);
     td_->messages_manager_->check_send_message_result(random_id_, dialog_id_, ptr.get(), "SendMedia");
     td_->updates_manager_->on_get_updates(std::move(ptr), Promise<Unit>());
   }
@@ -3571,7 +3565,7 @@ class SendMediaActor final : public NetActorOnce {
       }
     }
 
-    td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "SendMediaActor");
+    td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "SendMediaQuery");
     td_->messages_manager_->on_send_message_fail(random_id_, std::move(status));
   }
 };
@@ -3655,12 +3649,12 @@ class UploadMediaQuery final : public Td::ResultHandler {
   }
 };
 
-class SendScheduledMessageActor final : public NetActorOnce {
+class SendScheduledMessageQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   DialogId dialog_id_;
 
  public:
-  explicit SendScheduledMessageActor(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  explicit SendScheduledMessageQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
   void send(DialogId dialog_id, MessageId message_id, uint64 sequence_dispatcher_id) {
@@ -3668,9 +3662,7 @@ class SendScheduledMessageActor final : public NetActorOnce {
 
     auto input_peer = td_->messages_manager_->get_input_peer(dialog_id, AccessRights::Edit);
     if (input_peer == nullptr) {
-      on_error(Status::Error(400, "Can't access the chat"));
-      stop();
-      return;
+      return on_error(Status::Error(400, "Can't access the chat"));
     }
 
     int32 server_message_id = message_id.get_scheduled_server_message_id().get();
@@ -3686,23 +3678,23 @@ class SendScheduledMessageActor final : public NetActorOnce {
     }
 
     auto ptr = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for SendScheduledMessageActor: " << to_string(ptr);
+    LOG(INFO) << "Receive result for SendScheduledMessageQuery: " << to_string(ptr);
     td_->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
   }
 
   void on_error(Status status) final {
-    LOG(INFO) << "Receive error for SendScheduledMessageActor: " << status;
-    td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "SendScheduledMessageActor");
+    LOG(INFO) << "Receive error for SendScheduledMessageQuery: " << status;
+    td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "SendScheduledMessageQuery");
     promise_.set_error(std::move(status));
   }
 };
 
-class EditMessageActor final : public NetActorOnce {
+class EditMessageQuery final : public Td::ResultHandler {
   Promise<int32> promise_;
   DialogId dialog_id_;
 
  public:
-  explicit EditMessageActor(Promise<Unit> &&promise) {
+  explicit EditMessageQuery(Promise<Unit> &&promise) {
     promise_ = PromiseCreator::lambda([promise = std::move(promise)](Result<int32> result) mutable {
       if (result.is_error()) {
         promise.set_error(result.move_as_error());
@@ -3711,7 +3703,7 @@ class EditMessageActor final : public NetActorOnce {
       }
     });
   }
-  explicit EditMessageActor(Promise<int32> &&promise) : promise_(std::move(promise)) {
+  explicit EditMessageQuery(Promise<int32> &&promise) : promise_(std::move(promise)) {
   }
 
   void send(int32 flags, DialogId dialog_id, MessageId message_id, const string &text,
@@ -3722,16 +3714,12 @@ class EditMessageActor final : public NetActorOnce {
     dialog_id_ = dialog_id;
 
     if (input_media != nullptr && false) {
-      on_error(Status::Error(400, "FILE_PART_1_MISSING"));
-      stop();
-      return;
+      return on_error(Status::Error(400, "FILE_PART_1_MISSING"));
     }
 
     auto input_peer = td_->messages_manager_->get_input_peer(dialog_id, AccessRights::Edit);
     if (input_peer == nullptr) {
-      on_error(Status::Error(400, "Can't access the chat"));
-      stop();
-      return;
+      return on_error(Status::Error(400, "Can't access the chat"));
     }
 
     if (reply_markup != nullptr) {
@@ -3766,7 +3754,7 @@ class EditMessageActor final : public NetActorOnce {
     }
 
     auto ptr = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for EditMessageActor: " << to_string(ptr);
+    LOG(INFO) << "Receive result for EditMessageQuery: " << to_string(ptr);
     auto pts = td_->updates_manager_->get_update_edit_message_pts(ptr.get());
     auto promise = PromiseCreator::lambda(
         [promise = std::move(promise_), pts](Result<Unit> result) mutable { promise.set_value(std::move(pts)); });
@@ -3778,7 +3766,7 @@ class EditMessageActor final : public NetActorOnce {
     if (!td_->auth_manager_->is_bot() && status.message() == "MESSAGE_NOT_MODIFIED") {
       return promise_.set_value(0);
     }
-    td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "EditMessageActor");
+    td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "EditMessageQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -3838,14 +3826,14 @@ class EditInlineMessageQuery final : public Td::ResultHandler {
   }
 };
 
-class ForwardMessagesActor final : public NetActorOnce {
+class ForwardMessagesQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   vector<int64> random_ids_;
   DialogId from_dialog_id_;
   DialogId to_dialog_id_;
 
  public:
-  explicit ForwardMessagesActor(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  explicit ForwardMessagesQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
   void send(int32 flags, DialogId to_dialog_id, DialogId from_dialog_id,
@@ -3857,16 +3845,12 @@ class ForwardMessagesActor final : public NetActorOnce {
 
     auto to_input_peer = td_->messages_manager_->get_input_peer(to_dialog_id, AccessRights::Write);
     if (to_input_peer == nullptr) {
-      on_error(Status::Error(400, "Have no write access to the chat"));
-      stop();
-      return;
+      return on_error(Status::Error(400, "Have no write access to the chat"));
     }
 
     auto from_input_peer = td_->messages_manager_->get_input_peer(from_dialog_id, AccessRights::Read);
     if (from_input_peer == nullptr) {
-      on_error(Status::Error(400, "Can't access the chat to forward messages from"));
-      stop();
-      return;
+      return on_error(Status::Error(400, "Can't access the chat to forward messages from"));
     }
 
     if (as_input_peer != nullptr) {
@@ -3898,7 +3882,8 @@ class ForwardMessagesActor final : public NetActorOnce {
     }
 
     auto ptr = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for ForwardMessages for " << format::as_array(random_ids_) << ": " << to_string(ptr);
+    LOG(INFO) << "Receive result for ForwardMessagesQuery for " << format::as_array(random_ids_) << ": "
+              << to_string(ptr);
     auto sent_random_ids = UpdatesManager::get_sent_messages_random_ids(ptr.get());
     bool is_result_wrong = false;
     auto sent_random_ids_size = sent_random_ids.size();
@@ -12295,9 +12280,9 @@ void MessagesManager::repair_server_dialog_total_count(DialogListId dialog_list_
   }
 
   LOG(INFO) << "Repair total chat count in " << dialog_list_id;
-  send_closure(td_->create_net_actor<GetDialogListActor>(Promise<Unit>()), &GetDialogListActor::send,
-               dialog_list_id.get_folder_id(), 2147483647, ServerMessageId(), DialogId(), 1,
-               get_sequence_dispatcher_id(DialogId(), MessageContentType::None));
+  td_->create_handler<GetDialogListQuery>(Promise<Unit>())
+      ->send(dialog_list_id.get_folder_id(), 2147483647, ServerMessageId(), DialogId(), 1,
+             get_sequence_dispatcher_id(DialogId(), MessageContentType::None));
 }
 
 void MessagesManager::repair_secret_chat_total_count(DialogListId dialog_list_id) {
@@ -16659,12 +16644,11 @@ void MessagesManager::load_folder_dialog_list(FolderId folder_id, int32 limit, b
     auto lock = multipromise.get_promise();
     reload_pinned_dialogs(DialogListId(folder_id), multipromise.get_promise());
     if (folder.folder_last_dialog_date_ == folder.last_server_dialog_date_) {
-      send_closure(
-          td_->create_net_actor<GetDialogListActor>(multipromise.get_promise()), &GetDialogListActor::send, folder_id,
-          folder.last_server_dialog_date_.get_date(),
-          folder.last_server_dialog_date_.get_message_id().get_next_server_message_id().get_server_message_id(),
-          folder.last_server_dialog_date_.get_dialog_id(), int32{MAX_GET_DIALOGS},
-          get_sequence_dispatcher_id(DialogId(), MessageContentType::None));
+      td_->create_handler<GetDialogListQuery>(multipromise.get_promise())
+          ->send(folder_id, folder.last_server_dialog_date_.get_date(),
+                 folder.last_server_dialog_date_.get_message_id().get_next_server_message_id().get_server_message_id(),
+                 folder.last_server_dialog_date_.get_dialog_id(), int32{MAX_GET_DIALOGS},
+                 get_sequence_dispatcher_id(DialogId(), MessageContentType::None));
       is_query_sent = true;
     }
     if (folder_id == FolderId::main() && folder.last_server_dialog_date_ == MIN_DIALOG_DATE) {
@@ -16930,8 +16914,8 @@ void MessagesManager::reload_pinned_dialogs(DialogListId dialog_list_id, Promise
   CHECK(!td_->auth_manager_->is_bot());
 
   if (dialog_list_id.is_folder()) {
-    send_closure(td_->create_net_actor<GetPinnedDialogsActor>(std::move(promise)), &GetPinnedDialogsActor::send,
-                 dialog_list_id.get_folder_id(), get_sequence_dispatcher_id(DialogId(), MessageContentType::None));
+    td_->create_handler<GetPinnedDialogsQuery>(std::move(promise))
+        ->send(dialog_list_id.get_folder_id(), get_sequence_dispatcher_id(DialogId(), MessageContentType::None));
   } else if (dialog_list_id.is_filter()) {
     schedule_dialog_filters_reload(0.0);
     dialog_filter_reload_queries_.push_back(std::move(promise));
@@ -20085,9 +20069,8 @@ void MessagesManager::toggle_dialog_is_blocked_on_server(DialogId dialog_id, boo
     log_event_id = save_toggle_dialog_is_blocked_on_server_log_event(dialog_id, is_blocked);
   }
 
-  send_closure(td_->create_net_actor<ToggleDialogIsBlockedActor>(get_erase_log_event_promise(log_event_id)),
-               &ToggleDialogIsBlockedActor::send, dialog_id, is_blocked,
-               get_sequence_dispatcher_id(dialog_id, MessageContentType::Text));
+  td_->create_handler<ToggleDialogIsBlockedQuery>(get_erase_log_event_promise(log_event_id))
+      ->send(dialog_id, is_blocked, get_sequence_dispatcher_id(dialog_id, MessageContentType::Text));
 }
 
 Status MessagesManager::toggle_dialog_silent_send_message(DialogId dialog_id, bool silent_send_message) {
@@ -25045,8 +25028,8 @@ void MessagesManager::set_dialog_default_send_message_as_dialog_id(DialogId dial
   }
 
   // TODO save order with all types of messages
-  send_closure(td_->create_net_actor<SaveDefaultSendAsActor>(std::move(promise)), &SaveDefaultSendAsActor::send,
-               dialog_id, message_sender_dialog_id, get_sequence_dispatcher_id(dialog_id, MessageContentType::Text));
+  td_->create_handler<SaveDefaultSendAsQuery>(std::move(promise))
+      ->send(dialog_id, message_sender_dialog_id, get_sequence_dispatcher_id(dialog_id, MessageContentType::Text));
 
   on_update_dialog_default_send_message_as_dialog_id(dialog_id, message_sender_dialog_id, true);
 }
@@ -25507,11 +25490,11 @@ void MessagesManager::on_message_media_uploaded(DialogId dialog_id, const Messag
                        thumbnail_file_id, was_uploaded, was_thumbnail_uploaded, std::move(file_reference),
                        schedule_date, generation, std::move(result));
         });
-    send_closure(td_->create_net_actor<EditMessageActor>(std::move(promise)), &EditMessageActor::send, 1 << 11,
-                 dialog_id, message_id, caption == nullptr ? "" : caption->text,
-                 get_input_message_entities(td_->contacts_manager_.get(), caption, "edit_message_media"),
-                 std::move(input_media), std::move(input_reply_markup), schedule_date,
-                 get_sequence_dispatcher_id(dialog_id, MessageContentType::None));
+    td_->create_handler<EditMessageQuery>(std::move(promise))
+        ->send(1 << 11, dialog_id, message_id, caption == nullptr ? "" : caption->text,
+               get_input_message_entities(td_->contacts_manager_.get(), caption, "edit_message_media"),
+               std::move(input_media), std::move(input_reply_markup), schedule_date,
+               get_sequence_dispatcher_id(dialog_id, MessageContentType::None));
     return;
   }
 
@@ -25532,10 +25515,9 @@ void MessagesManager::on_message_media_uploaded(DialogId dialog_id, const Messag
           LOG(INFO) << "Send media from " << m->message_id << " in " << dialog_id << " in reply to "
                     << m->reply_to_message_id;
           int64 random_id = begin_send_message(dialog_id, m);
-          send_closure(
-              td_->create_net_actor<SendMediaActor>(), &SendMediaActor::send, file_id, thumbnail_file_id,
-              get_message_flags(m), dialog_id, get_send_message_as_input_peer(m), m->reply_to_message_id,
-              get_message_schedule_date(m), get_input_reply_markup(m->reply_markup),
+          td_->create_handler<SendMediaQuery>()->send(
+              file_id, thumbnail_file_id, get_message_flags(m), dialog_id, get_send_message_as_input_peer(m),
+              m->reply_to_message_id, get_message_schedule_date(m), get_input_reply_markup(m->reply_markup),
               get_input_message_entities(td_->contacts_manager_.get(), caption, "on_message_media_uploaded"),
               caption == nullptr ? "" : caption->text, std::move(input_media), random_id, &m->send_query_ref,
               get_sequence_dispatcher_id(dialog_id, m->is_copy ? MessageContentType::None : m->content->get_type()));
@@ -25872,10 +25854,10 @@ void MessagesManager::do_send_message_group(int64 media_album_id) {
   if (input_single_media.empty()) {
     LOG(INFO) << "Media group " << media_album_id << " from " << dialog_id << " is empty";
   }
-  send_closure(td_->create_net_actor<SendMultiMediaActor>(), &SendMultiMediaActor::send, flags, dialog_id,
-               std::move(as_input_peer), reply_to_message_id, schedule_date, std::move(file_ids),
-               std::move(input_single_media),
-               get_sequence_dispatcher_id(dialog_id, is_copy ? MessageContentType::None : MessageContentType::Photo));
+  td_->create_handler<SendMultiMediaQuery>()->send(
+      flags, dialog_id, std::move(as_input_peer), reply_to_message_id, schedule_date, std::move(file_ids),
+      std::move(input_single_media),
+      get_sequence_dispatcher_id(dialog_id, is_copy ? MessageContentType::None : MessageContentType::Photo));
 }
 
 void MessagesManager::on_text_message_ready_to_send(DialogId dialog_id, MessageId message_id) {
@@ -25908,12 +25890,11 @@ void MessagesManager::on_text_message_ready_to_send(DialogId dialog_id, MessageI
                  get_input_secret_message_entities(message_text->entities, layer), m->via_bot_user_id,
                  m->media_album_id, m->disable_notification, random_id);
   } else {
-    send_closure(td_->create_net_actor<SendMessageActor>(), &SendMessageActor::send, get_message_flags(m), dialog_id,
-                 get_send_message_as_input_peer(m), m->reply_to_message_id, get_message_schedule_date(m),
-                 get_input_reply_markup(m->reply_markup),
-                 get_input_message_entities(td_->contacts_manager_.get(), message_text->entities, "do_send_message"),
-                 message_text->text, random_id, &m->send_query_ref,
-                 get_sequence_dispatcher_id(dialog_id, content_type));
+    td_->create_handler<SendMessageQuery>()->send(
+        get_message_flags(m), dialog_id, get_send_message_as_input_peer(m), m->reply_to_message_id,
+        get_message_schedule_date(m), get_input_reply_markup(m->reply_markup),
+        get_input_message_entities(td_->contacts_manager_.get(), message_text->entities, "do_send_message"),
+        message_text->text, random_id, &m->send_query_ref, get_sequence_dispatcher_id(dialog_id, content_type));
   }
 }
 
@@ -26628,12 +26609,12 @@ void MessagesManager::edit_message_text(FullMessageId full_message_id,
     flags |= SEND_MESSAGE_FLAG_DISABLE_WEB_PAGE_PREVIEW;
   }
 
-  send_closure(
-      td_->create_net_actor<EditMessageActor>(std::move(promise)), &EditMessageActor::send, flags, dialog_id,
-      m->message_id, input_message_text.text.text,
-      get_input_message_entities(td_->contacts_manager_.get(), input_message_text.text.entities, "edit_message_text"),
-      nullptr, std::move(input_reply_markup), get_message_schedule_date(m),
-      get_sequence_dispatcher_id(dialog_id, MessageContentType::None));
+  td_->create_handler<EditMessageQuery>(std::move(promise))
+      ->send(flags, dialog_id, m->message_id, input_message_text.text.text,
+             get_input_message_entities(td_->contacts_manager_.get(), input_message_text.text.entities,
+                                        "edit_message_text"),
+             nullptr, std::move(input_reply_markup), get_message_schedule_date(m),
+             get_sequence_dispatcher_id(dialog_id, MessageContentType::None));
 }
 
 void MessagesManager::edit_message_live_location(FullMessageId full_message_id,
@@ -26691,10 +26672,10 @@ void MessagesManager::edit_message_live_location(FullMessageId full_message_id,
   flags |= telegram_api::inputMediaGeoLive::PROXIMITY_NOTIFICATION_RADIUS_MASK;
   auto input_media = telegram_api::make_object<telegram_api::inputMediaGeoLive>(
       flags, false /*ignored*/, location.get_input_geo_point(), heading, 0, proximity_alert_radius);
-  send_closure(td_->create_net_actor<EditMessageActor>(std::move(promise)), &EditMessageActor::send, 0, dialog_id,
-               m->message_id, string(), vector<tl_object_ptr<telegram_api::MessageEntity>>(), std::move(input_media),
-               std::move(input_reply_markup), get_message_schedule_date(m),
-               get_sequence_dispatcher_id(dialog_id, MessageContentType::None));
+  td_->create_handler<EditMessageQuery>(std::move(promise))
+      ->send(0, dialog_id, m->message_id, string(), vector<tl_object_ptr<telegram_api::MessageEntity>>(),
+             std::move(input_media), std::move(input_reply_markup), get_message_schedule_date(m),
+             get_sequence_dispatcher_id(dialog_id, MessageContentType::None));
 }
 
 void MessagesManager::cancel_edit_message_media(DialogId dialog_id, Message *m, Slice error_message) {
@@ -26918,11 +26899,11 @@ void MessagesManager::edit_message_caption(FullMessageId full_message_id,
   }
   auto input_reply_markup = get_input_reply_markup(r_new_reply_markup.ok());
 
-  send_closure(td_->create_net_actor<EditMessageActor>(std::move(promise)), &EditMessageActor::send, 1 << 11, dialog_id,
-               m->message_id, caption.text,
-               get_input_message_entities(td_->contacts_manager_.get(), caption.entities, "edit_message_caption"),
-               nullptr, std::move(input_reply_markup), get_message_schedule_date(m),
-               get_sequence_dispatcher_id(dialog_id, MessageContentType::None));
+  td_->create_handler<EditMessageQuery>(std::move(promise))
+      ->send(1 << 11, dialog_id, m->message_id, caption.text,
+             get_input_message_entities(td_->contacts_manager_.get(), caption.entities, "edit_message_caption"),
+             nullptr, std::move(input_reply_markup), get_message_schedule_date(m),
+             get_sequence_dispatcher_id(dialog_id, MessageContentType::None));
 }
 
 void MessagesManager::edit_message_reply_markup(FullMessageId full_message_id,
@@ -26958,10 +26939,10 @@ void MessagesManager::edit_message_reply_markup(FullMessageId full_message_id,
     return promise.set_error(r_new_reply_markup.move_as_error());
   }
   auto input_reply_markup = get_input_reply_markup(r_new_reply_markup.ok());
-  send_closure(td_->create_net_actor<EditMessageActor>(std::move(promise)), &EditMessageActor::send, 0, dialog_id,
-               m->message_id, string(), vector<tl_object_ptr<telegram_api::MessageEntity>>(), nullptr,
-               std::move(input_reply_markup), get_message_schedule_date(m),
-               get_sequence_dispatcher_id(dialog_id, MessageContentType::None));
+  td_->create_handler<EditMessageQuery>(std::move(promise))
+      ->send(0, dialog_id, m->message_id, string(), vector<tl_object_ptr<telegram_api::MessageEntity>>(), nullptr,
+             std::move(input_reply_markup), get_message_schedule_date(m),
+             get_sequence_dispatcher_id(dialog_id, MessageContentType::None));
 }
 
 void MessagesManager::edit_inline_message_text(const string &inline_message_id,
@@ -27190,12 +27171,12 @@ void MessagesManager::edit_message_scheduling_state(
   m->edited_schedule_date = schedule_date;
 
   if (schedule_date > 0) {
-    send_closure(td_->create_net_actor<EditMessageActor>(std::move(promise)), &EditMessageActor::send, 0, dialog_id,
-                 m->message_id, string(), vector<tl_object_ptr<telegram_api::MessageEntity>>(), nullptr, nullptr,
-                 schedule_date, get_sequence_dispatcher_id(dialog_id, MessageContentType::None));
+    td_->create_handler<EditMessageQuery>(std::move(promise))
+        ->send(0, dialog_id, m->message_id, string(), vector<tl_object_ptr<telegram_api::MessageEntity>>(), nullptr,
+               nullptr, schedule_date, get_sequence_dispatcher_id(dialog_id, MessageContentType::None));
   } else {
-    send_closure(td_->create_net_actor<SendScheduledMessageActor>(std::move(promise)), &SendScheduledMessageActor::send,
-                 dialog_id, m->message_id, get_sequence_dispatcher_id(dialog_id, MessageContentType::None));
+    td_->create_handler<SendScheduledMessageQuery>(std::move(promise))
+        ->send(dialog_id, m->message_id, get_sequence_dispatcher_id(dialog_id, MessageContentType::None));
   }
 }
 
@@ -27725,10 +27706,9 @@ void MessagesManager::do_forward_messages(DialogId to_dialog_id, DialogId from_d
 
   vector<int64> random_ids =
       transform(messages, [this, to_dialog_id](const Message *m) { return begin_send_message(to_dialog_id, m); });
-  send_closure(td_->create_net_actor<ForwardMessagesActor>(get_erase_log_event_promise(log_event_id)),
-               &ForwardMessagesActor::send, flags, to_dialog_id, from_dialog_id,
-               get_send_message_as_input_peer(messages[0]), message_ids, std::move(random_ids), schedule_date,
-               get_sequence_dispatcher_id(to_dialog_id, MessageContentType::None));
+  td_->create_handler<ForwardMessagesQuery>(get_erase_log_event_promise(log_event_id))
+      ->send(flags, to_dialog_id, from_dialog_id, get_send_message_as_input_peer(messages[0]), message_ids,
+             std::move(random_ids), schedule_date, get_sequence_dispatcher_id(to_dialog_id, MessageContentType::None));
 }
 
 Result<td_api::object_ptr<td_api::message>> MessagesManager::forward_message(

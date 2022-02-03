@@ -6,7 +6,6 @@
 //
 #pragma once
 
-#include "td/telegram/Global.h"
 #include "td/telegram/net/NetQuery.h"
 
 #include "td/actor/actor.h"
@@ -43,17 +42,6 @@ class NetActor : public NetQueryCallback {
   ActorShared<> parent_;
 
   void send_query(NetQueryPtr query);
-};
-
-class NetActorOnce : public NetActor {
-  void hangup() override {
-    on_error(Global::request_aborted_error());
-    stop();
-  }
-
-  void on_result_finish() override {
-    stop();
-  }
 };
 
 }  // namespace td

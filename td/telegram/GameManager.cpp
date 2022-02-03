@@ -16,7 +16,6 @@
 #include "td/telegram/MessageId.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/net/DcId.h"
-#include "td/telegram/net/NetActor.h"
 #include "td/telegram/net/NetQueryCreator.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/UpdatesManager.h"
@@ -27,12 +26,12 @@
 
 namespace td {
 
-class SetGameScoreActor final : public NetActorOnce {
+class SetGameScoreQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   DialogId dialog_id_;
 
  public:
-  explicit SetGameScoreActor(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  explicit SetGameScoreQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
   void send(DialogId dialog_id, MessageId message_id, bool edit_message,
@@ -49,9 +48,7 @@ class SetGameScoreActor final : public NetActorOnce {
 
     auto input_peer = td_->messages_manager_->get_input_peer(dialog_id, AccessRights::Edit);
     if (input_peer == nullptr) {
-      on_error(Status::Error(400, "Can't access the chat"));
-      stop();
-      return;
+      return on_error(Status::Error(400, "Can't access the chat"));
     }
 
     CHECK(input_user != nullptr);
@@ -73,8 +70,8 @@ class SetGameScoreActor final : public NetActorOnce {
   }
 
   void on_error(Status status) final {
-    LOG(INFO) << "Receive error for SetGameScore: " << status;
-    td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "SetGameScoreActor");
+    LOG(INFO) << "Receive error for SetGameScoreQuery: " << status;
+    td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "SetGameScoreQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -229,9 +226,9 @@ void GameManager::set_game_score(FullMessageId full_message_id, bool edit_messag
         }
         send_closure(actor_id, &GameManager::on_set_game_score, full_message_id, std::move(promise));
       });
-  send_closure(td_->create_net_actor<SetGameScoreActor>(std::move(query_promise)), &SetGameScoreActor::send, dialog_id,
-               full_message_id.get_message_id(), edit_message, r_input_user.move_as_ok(), score, force,
-               MessagesManager::get_sequence_dispatcher_id(dialog_id, MessageContentType::None));
+  td_->create_handler<SetGameScoreQuery>(std::move(query_promise))
+      ->send(dialog_id, full_message_id.get_message_id(), edit_message, r_input_user.move_as_ok(), score, force,
+             MessagesManager::get_sequence_dispatcher_id(dialog_id, MessageContentType::None));
 }
 
 void GameManager::on_set_game_score(FullMessageId full_message_id,

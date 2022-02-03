@@ -16,7 +16,6 @@
 #include "td/telegram/logevent/LogEventHelper.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/misc.h"
-#include "td/telegram/net/NetActor.h"
 #include "td/telegram/PollId.hpp"
 #include "td/telegram/PollManager.hpp"
 #include "td/telegram/StateManager.h"
@@ -137,12 +136,12 @@ class GetPollVotersQuery final : public Td::ResultHandler {
   }
 };
 
-class SetPollAnswerActor final : public NetActorOnce {
+class SendVoteQuery final : public Td::ResultHandler {
   Promise<tl_object_ptr<telegram_api::Updates>> promise_;
   DialogId dialog_id_;
 
  public:
-  explicit SetPollAnswerActor(Promise<tl_object_ptr<telegram_api::Updates>> &&promise) : promise_(std::move(promise)) {
+  explicit SendVoteQuery(Promise<tl_object_ptr<telegram_api::Updates>> &&promise) : promise_(std::move(promise)) {
   }
 
   void send(FullMessageId full_message_id, vector<BufferSlice> &&options, uint64 generation, NetQueryRef *query_ref) {
@@ -168,22 +167,22 @@ class SetPollAnswerActor final : public NetActorOnce {
     }
 
     auto result = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive sendVote result: " << to_string(result);
+    LOG(INFO) << "Receive SendVoteQuery result: " << to_string(result);
     promise_.set_value(std::move(result));
   }
 
   void on_error(Status status) final {
-    td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "SetPollAnswerActor");
+    td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "SendVoteQuery");
     promise_.set_error(std::move(status));
   }
 };
 
-class StopPollActor final : public NetActorOnce {
+class StopPollQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   DialogId dialog_id_;
 
  public:
-  explicit StopPollActor(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  explicit StopPollQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
   void send(FullMessageId full_message_id, unique_ptr<ReplyMarkup> &&reply_markup) {
@@ -222,7 +221,7 @@ class StopPollActor final : public NetActorOnce {
     }
 
     auto result = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for StopPoll: " << to_string(result);
+    LOG(INFO) << "Receive result for StopPollQuery: " << to_string(result);
     td_->updates_manager_->on_get_updates(std::move(result), std::move(promise_));
   }
 
@@ -230,7 +229,7 @@ class StopPollActor final : public NetActorOnce {
     if (!td_->auth_manager_->is_bot() && status.message() == "MESSAGE_NOT_MODIFIED") {
       return promise_.set_value(Unit());
     }
-    td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "StopPollActor");
+    td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "StopPollQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -818,8 +817,8 @@ void PollManager::do_set_poll_answer(PollId poll_id, FullMessageId full_message_
       [poll_id, generation, actor_id = actor_id(this)](Result<tl_object_ptr<telegram_api::Updates>> &&result) {
         send_closure(actor_id, &PollManager::on_set_poll_answer, poll_id, generation, std::move(result));
       });
-  send_closure(td_->create_net_actor<SetPollAnswerActor>(std::move(query_promise)), &SetPollAnswerActor::send,
-               full_message_id, std::move(sent_options), generation, &pending_answer.query_ref_);
+  td_->create_handler<SendVoteQuery>(std::move(query_promise))
+      ->send(full_message_id, std::move(sent_options), generation, &pending_answer.query_ref_);
 }
 
 void PollManager::on_set_poll_answer(PollId poll_id, uint64 generation,
@@ -1131,8 +1130,7 @@ void PollManager::do_stop_poll(PollId poll_id, FullMessageId full_message_id, un
   CHECK(is_inserted);
   auto new_promise = get_erase_log_event_promise(log_event_id, std::move(promise));
 
-  send_closure(td_->create_net_actor<StopPollActor>(std::move(new_promise)), &StopPollActor::send, full_message_id,
-               std::move(reply_markup));
+  td_->create_handler<StopPollQuery>(std::move(new_promise))->send(full_message_id, std::move(reply_markup));
 }
 
 void PollManager::stop_local_poll(PollId poll_id) {
