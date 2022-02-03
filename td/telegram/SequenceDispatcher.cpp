@@ -250,7 +250,7 @@ void SequenceDispatcher::close_silent() {
 void MultiSequenceDispatcherOld::send(NetQueryPtr query) {
   auto callback = query->move_callback();
   CHECK(!callback.empty());
-  Span<ChainId> chains = query->chains();
+  auto chains = query->chains();
   query->set_in_sequence_dispatcher(true);
   CHECK(all_of(chains, [](auto chain_id) { return chain_id != 0; }));
   CHECK(!chains.empty());
@@ -287,7 +287,7 @@ class MultiSequenceDispatcherImpl final : public MultiSequenceDispatcher {
   void send(NetQueryPtr query) final {
     auto callback = query->move_callback();
     CHECK(!callback.empty());
-    Span<ChainId> chains = query->chains();
+    auto chains = query->chains();
     query->set_in_sequence_dispatcher(true);
     CHECK(all_of(chains, [](auto chain_id) { return chain_id != 0; }));
     Node node;
@@ -311,8 +311,8 @@ class MultiSequenceDispatcherImpl final : public MultiSequenceDispatcher {
     }
   };
   ChainScheduler<Node> scheduler_;
+
   using TaskId = ChainScheduler<NetQueryPtr>::TaskId;
-  using ChainId = ChainScheduler<NetQueryPtr>::ChainId;
 
   bool check_timeout(TaskId task_id) {
     auto &node = *scheduler_.get_task_extra(task_id);

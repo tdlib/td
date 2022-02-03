@@ -92,8 +92,6 @@ class MultiSequenceDispatcherOld final : public SequenceDispatcher::Parent {
   void ready_to_close() final;
 };
 
-using ChainId = uint64;
-using ChainIds = vector<ChainId>;
 class MultiSequenceDispatcher : public NetQueryCallback {
  public:
   virtual void send(NetQueryPtr query) = 0;
