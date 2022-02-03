@@ -24135,23 +24135,22 @@ void MessagesManager::set_message_reaction(FullMessageId full_message_id, string
   for (auto it = m->reactions->reactions_.begin(); it != m->reactions->reactions_.end();) {
     auto &message_reaction = *it;
     if (message_reaction.is_chosen()) {
-      if (message_reaction.get_reaction() == reaction) {
-        // double set removes reaction
+      if (message_reaction.get_reaction() == reaction && !is_big) {
+        // double set removes reaction, unless a big reaction is set
         reaction = string();
       }
       message_reaction.set_is_chosen(false, get_my_dialog_id(), can_get_added_reactions);
-      if (message_reaction.is_empty()) {
-        it = m->reactions->reactions_.erase(it);
-        continue;
-      }
-    } else {
-      if (message_reaction.get_reaction() == reaction) {
-        message_reaction.set_is_chosen(true, get_my_dialog_id(), can_get_added_reactions);
-        is_found = true;
-      }
+    }
+    if (message_reaction.get_reaction() == reaction) {
+      message_reaction.set_is_chosen(true, get_my_dialog_id(), can_get_added_reactions);
+      is_found = true;
     }
 
-    ++it;
+    if (message_reaction.is_empty()) {
+      it = m->reactions->reactions_.erase(it);
+    } else {
+      ++it;
+    }
   }
 
   pending_reactions_[full_message_id].query_count++;
