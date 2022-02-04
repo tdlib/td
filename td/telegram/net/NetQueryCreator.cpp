@@ -61,7 +61,7 @@ NetQueryPtr NetQueryCreator::create(uint64 id, const telegram_api::Function &fun
     }
   }
 
-  double total_timeout_limit = 60;
+  int32 total_timeout_limit = 60;
   if (!G()->close_flag()) {
     auto td = G()->td();
     if (!td.empty()) {

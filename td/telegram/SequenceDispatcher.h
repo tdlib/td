@@ -41,8 +41,8 @@ class SequenceDispatcher final : public NetQueryCallback {
     NetQueryPtr query_;
     ActorShared<NetQueryCallback> callback_;
     uint64 generation_;
-    double total_timeout_;
-    double last_timeout_;
+    int32 total_timeout_;
+    int32 last_timeout_;
   };
 
   ActorShared<Parent> parent_;

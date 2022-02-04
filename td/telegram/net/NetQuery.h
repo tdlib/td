@@ -346,19 +346,19 @@ class NetQuery final : public TsListNode<NetQueryDebug> {
   static int32 tl_magic(const BufferSlice &buffer_slice);
 
  public:
-  double next_timeout_ = 1;          // for NetQueryDelayer
-  double total_timeout_ = 0;         // for NetQueryDelayer/SequenceDispatcher
-  double total_timeout_limit_ = 60;  // for NetQueryDelayer/SequenceDispatcher and to be set by caller
-  double last_timeout_ = 0;          // for NetQueryDelayer/SequenceDispatcher
-  string source_;                    // for NetQueryDelayer/SequenceDispatcher
-  bool need_resend_on_503_ = true;   // for NetQueryDispatcher and to be set by caller
-  int32 dispatch_ttl_ = -1;          // for NetQueryDispatcher and to be set by caller
-  Slot cancel_slot_;                 // for Session and to be set by caller
-  Promise<> quick_ack_promise_;      // for Session and to be set by caller
-  int32 file_type_ = -1;             // to be set by caller
+  int32 next_timeout_ = 1;          // for NetQueryDelayer
+  int32 total_timeout_ = 0;         // for NetQueryDelayer/SequenceDispatcher
+  int32 total_timeout_limit_ = 60;  // for NetQueryDelayer/SequenceDispatcher and to be set by caller
+  int32 last_timeout_ = 0;          // for NetQueryDelayer/SequenceDispatcher
+  string source_;                   // for NetQueryDelayer/SequenceDispatcher
+  int32 dispatch_ttl_ = -1;         // for NetQueryDispatcher and to be set by caller
+  int32 file_type_ = -1;            // to be set by caller
+  Slot cancel_slot_;                // for Session and to be set by caller
+  Promise<> quick_ack_promise_;     // for Session and to be set by caller
+  bool need_resend_on_503_ = true;  // for NetQueryDispatcher and to be set by caller
 
   NetQuery(State state, uint64 id, BufferSlice &&query, BufferSlice &&answer, DcId dc_id, Type type, AuthFlag auth_flag,
-           GzipFlag gzip_flag, int32 tl_constructor, double total_timeout_limit, NetQueryStats *stats)
+           GzipFlag gzip_flag, int32 tl_constructor, int32 total_timeout_limit, NetQueryStats *stats)
       : state_(state)
       , type_(type)
       , auth_flag_(auth_flag)

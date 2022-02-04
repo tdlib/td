@@ -46,7 +46,7 @@ void SequenceDispatcher::send_with_callback(NetQueryPtr query, ActorShared<NetQu
   cancel_timeout();
   query->debug("Waiting at SequenceDispatcher");
   auto query_weak_ref = query.get_weak();
-  data_.push_back(Data{State::Start, std::move(query_weak_ref), std::move(query), std::move(callback), 0, 0.0, 0.0});
+  data_.push_back(Data{State::Start, std::move(query_weak_ref), std::move(query), std::move(callback), 0, 0, 0});
   loop();
 }
 
@@ -60,8 +60,7 @@ void SequenceDispatcher::check_timeout(Data &data) {
     LOG(WARNING) << "Fail " << data.query_ << " to " << data.query_->source_ << " because total_timeout "
                  << data.query_->total_timeout_ << " is greater than total_timeout_limit "
                  << data.query_->total_timeout_limit_;
-    data.query_->set_error(Status::Error(
-        429, PSLICE() << "Too Many Requests: retry after " << static_cast<int32>(data.last_timeout_ + 0.999)));
+    data.query_->set_error(Status::Error(429, PSLICE() << "Too Many Requests: retry after " << data.last_timeout_));
     data.state_ = State::Dummy;
     try_resend_query(data, std::move(data.query_));
   }
@@ -307,8 +306,8 @@ class MultiSequenceDispatcherImpl final : public MultiSequenceDispatcher {
   struct Node {
     NetQueryRef net_query_ref;
     NetQueryPtr net_query;
-    double total_timeout{0};
-    double last_timeout{0};
+    int32 total_timeout{0};
+    int32 last_timeout{0};
     ActorShared<NetQueryCallback> callback;
     friend StringBuilder &operator<<(StringBuilder &sb, const Node &node) {
       return sb << node.net_query;
@@ -329,8 +328,7 @@ class MultiSequenceDispatcherImpl final : public MultiSequenceDispatcher {
       LOG(WARNING) << "Fail " << net_query << " to " << net_query->source_ << " because total_timeout "
                    << net_query->total_timeout_ << " is greater than total_timeout_limit "
                    << net_query->total_timeout_limit_;
-      net_query->set_error(Status::Error(
-          429, PSLICE() << "Too Many Requests: retry after " << static_cast<int32>(node.last_timeout + 0.999)));
+      net_query->set_error(Status::Error(429, PSLICE() << "Too Many Requests: retry after " << node.last_timeout));
       return true;
     }
     return false;
