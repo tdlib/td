@@ -40,7 +40,6 @@
 #include "td/telegram/MessageSender.h"
 #include "td/telegram/misc.h"
 #include "td/telegram/net/DcId.h"
-#include "td/telegram/net/NetActor.h"
 #include "td/telegram/net/NetQuery.h"
 #include "td/telegram/NotificationGroupType.h"
 #include "td/telegram/NotificationManager.h"
@@ -3110,57 +3109,6 @@ class SaveDefaultSendAsQuery final : public Td::ResultHandler {
   void on_error(Status status) final {
     // td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "SaveDefaultSendAsQuery");
     promise_.set_error(std::move(status));
-  }
-};
-
-class SendSecretMessageActor final : public NetActor {
-  int64 random_id_;
-
- public:
-  void send(DialogId dialog_id, int64 reply_to_random_id, int32 ttl, const string &text, SecretInputMedia media,
-            vector<tl_object_ptr<secret_api::MessageEntity>> &&entities, UserId via_bot_user_id, int64 media_album_id,
-            bool disable_notification, int64 random_id) {
-    if (false && !media.empty()) {
-      td_->messages_manager_->on_send_secret_message_error(random_id, Status::Error(400, "FILE_PART_1_MISSING"),
-                                                           Auto());
-      stop();
-      return;
-    }
-
-    CHECK(dialog_id.get_type() == DialogType::SecretChat);
-    random_id_ = random_id;
-
-    int32 flags = 0;
-    if (reply_to_random_id != 0) {
-      flags |= secret_api::decryptedMessage::REPLY_TO_RANDOM_ID_MASK;
-    }
-    if (via_bot_user_id.is_valid()) {
-      flags |= secret_api::decryptedMessage::VIA_BOT_NAME_MASK;
-    }
-    if (!media.empty()) {
-      flags |= secret_api::decryptedMessage::MEDIA_MASK;
-    }
-    if (!entities.empty()) {
-      flags |= secret_api::decryptedMessage::ENTITIES_MASK;
-    }
-    if (media_album_id != 0) {
-      CHECK(media_album_id < 0);
-      flags |= secret_api::decryptedMessage::GROUPED_ID_MASK;
-    }
-    if (disable_notification) {
-      flags |= secret_api::decryptedMessage::SILENT_MASK;
-    }
-
-    send_closure(
-        G()->secret_chats_manager(), &SecretChatsManager::send_message, dialog_id.get_secret_chat_id(),
-        make_tl_object<secret_api::decryptedMessage>(
-            flags, false /*ignored*/, random_id, ttl, text, std::move(media.decrypted_media_), std::move(entities),
-            td_->contacts_manager_->get_user_username(via_bot_user_id), reply_to_random_id, -media_album_id),
-        std::move(media.input_file_), PromiseCreator::event(self_closure(this, &SendSecretMessageActor::done)));
-  }
-
-  void done() {
-    stop();
   }
 };
 
@@ -25575,30 +25523,60 @@ void MessagesManager::on_secret_message_media_uploaded(DialogId dialog_id, const
   */
   // TODO use file_id, thumbnail_file_id, was_uploaded, was_thumbnail_uploaded,
   // invalidate partial remote location for file_id in case of failed upload even message has already been deleted
-  send_closure_later(
-      actor_id(this), &MessagesManager::on_media_message_ready_to_send, dialog_id, m->message_id,
-      PromiseCreator::lambda(
-          [this, dialog_id, secret_input_media = std::move(secret_input_media)](Result<Message *> result) mutable {
-            if (result.is_error() || G()->close_flag()) {
-              return;
-            }
+  send_closure_later(actor_id(this), &MessagesManager::on_media_message_ready_to_send, dialog_id, m->message_id,
+                     PromiseCreator::lambda([this, dialog_id, secret_input_media = std::move(secret_input_media)](
+                                                Result<Message *> result) mutable {
+                       if (result.is_error() || G()->close_flag()) {
+                         return;
+                       }
 
-            auto m = result.move_as_ok();
-            CHECK(m != nullptr);
-            CHECK(!secret_input_media.empty());
-            LOG(INFO) << "Send secret media from " << m->message_id << " in " << dialog_id << " in reply to "
-                      << m->reply_to_message_id;
-            int64 random_id = begin_send_message(dialog_id, m);
-            auto layer = td_->contacts_manager_->get_secret_chat_layer(dialog_id.get_secret_chat_id());
-            auto caption = get_message_content_caption(m->content.get());
-            vector<tl_object_ptr<secret_api::MessageEntity>> entities;
-            if (caption != nullptr && !caption->entities.empty()) {
-              entities = get_input_secret_message_entities(caption->entities, layer);
-            }
-            send_closure(td_->create_net_actor<SendSecretMessageActor>(), &SendSecretMessageActor::send, dialog_id,
-                         m->reply_to_random_id, m->ttl, "", std::move(secret_input_media), std::move(entities),
-                         m->via_bot_user_id, m->media_album_id, m->disable_notification, random_id);
-          }));
+                       auto m = result.move_as_ok();
+                       CHECK(m != nullptr);
+                       CHECK(!secret_input_media.empty());
+                       send_secret_message(dialog_id, m, std::move(secret_input_media));
+                     }));
+}
+
+void MessagesManager::send_secret_message(DialogId dialog_id, const Message *m, SecretInputMedia media) {
+  CHECK(dialog_id.get_type() == DialogType::SecretChat);
+  int64 random_id = begin_send_message(dialog_id, m);
+
+  auto text = get_message_content_text(m->content.get());
+  vector<tl_object_ptr<secret_api::MessageEntity>> entities;
+  if (text != nullptr && !text->entities.empty()) {
+    auto layer = td_->contacts_manager_->get_secret_chat_layer(dialog_id.get_secret_chat_id());
+    entities = get_input_secret_message_entities(text->entities, layer);
+  }
+
+  int32 flags = 0;
+  if (m->reply_to_random_id != 0) {
+    flags |= secret_api::decryptedMessage::REPLY_TO_RANDOM_ID_MASK;
+  }
+  if (m->via_bot_user_id.is_valid()) {
+    flags |= secret_api::decryptedMessage::VIA_BOT_NAME_MASK;
+  }
+  if (!media.empty()) {
+    flags |= secret_api::decryptedMessage::MEDIA_MASK;
+  }
+  if (!entities.empty()) {
+    flags |= secret_api::decryptedMessage::ENTITIES_MASK;
+  }
+  if (m->media_album_id != 0) {
+    CHECK(m->media_album_id < 0);
+    flags |= secret_api::decryptedMessage::GROUPED_ID_MASK;
+  }
+  if (m->disable_notification) {
+    flags |= secret_api::decryptedMessage::SILENT_MASK;
+  }
+
+  send_closure(
+      td_->secret_chats_manager_, &SecretChatsManager::send_message, dialog_id.get_secret_chat_id(),
+      make_tl_object<secret_api::decryptedMessage>(
+          flags, false /*ignored*/, random_id, m->ttl,
+          m->content->get_type() == MessageContentType::Text ? text->text : string(), std::move(media.decrypted_media_),
+          std::move(entities), td_->contacts_manager_->get_user_username(m->via_bot_user_id), m->reply_to_random_id,
+          -m->media_album_id),
+      std::move(media.input_file_), Promise<Unit>());
 }
 
 void MessagesManager::on_upload_message_media_success(DialogId dialog_id, MessageId message_id,
@@ -25875,21 +25853,17 @@ void MessagesManager::on_text_message_ready_to_send(DialogId dialog_id, MessageI
 
   auto content = m->content.get();
   CHECK(content != nullptr);
-  auto content_type = content->get_type();
 
-  const FormattedText *message_text = get_message_content_text(content);
-  CHECK(message_text != nullptr);
-
-  int64 random_id = begin_send_message(dialog_id, m);
   if (dialog_id.get_type() == DialogType::SecretChat) {
     CHECK(!message_id.is_scheduled());
-    auto layer = td_->contacts_manager_->get_secret_chat_layer(dialog_id.get_secret_chat_id());
-    send_closure(td_->create_net_actor<SendSecretMessageActor>(), &SendSecretMessageActor::send, dialog_id,
-                 m->reply_to_random_id, m->ttl, message_text->text,
-                 get_secret_input_media(content, td_, nullptr, BufferSlice()),
-                 get_input_secret_message_entities(message_text->entities, layer), m->via_bot_user_id,
-                 m->media_album_id, m->disable_notification, random_id);
+    send_secret_message(dialog_id, m, get_secret_input_media(content, td_, nullptr, BufferSlice()));
   } else {
+    auto content_type = content->get_type();
+
+    const FormattedText *message_text = get_message_content_text(content);
+    CHECK(message_text != nullptr);
+
+    int64 random_id = begin_send_message(dialog_id, m);
     td_->create_handler<SendMessageQuery>()->send(
         get_message_flags(m), dialog_id, get_send_message_as_input_peer(m), m->reply_to_message_id,
         get_message_schedule_date(m), get_input_reply_markup(m->reply_markup),

@@ -1981,6 +1981,8 @@ class MessagesManager final : public Actor {
 
   void on_media_message_ready_to_send(DialogId dialog_id, MessageId message_id, Promise<Message *> &&promise);
 
+  void send_secret_message(DialogId dialog_id, const Message *m, SecretInputMedia media);
+
   void on_yet_unsent_media_queue_updated(DialogId dialog_id);
 
   static void save_send_bot_start_message_log_event(UserId bot_user_id, DialogId dialog_id, const string &parameter,
