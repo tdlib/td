@@ -128,24 +128,6 @@ class Td final : public Actor {
 
   void set_is_bot_online(bool is_bot_online);
 
-  template <class ActorT, class... ArgsT>
-  ActorId<ActorT> create_net_actor(ArgsT &&...args) {
-    LOG_CHECK(close_flag_ < 1) << close_flag_
-#if TD_CLANG || TD_GCC
-                               << ' ' << __PRETTY_FUNCTION__
-#endif
-        ;
-    auto slot_id = request_actors_.create(ActorOwn<>(), RequestActorIdType);
-    inc_request_actor_refcnt();
-    auto actor = make_unique<ActorT>(std::forward<ArgsT>(args)...);
-    actor->set_parent(actor_shared(this, slot_id));
-
-    auto actor_own = register_actor("net_actor", std::move(actor));
-    auto actor_id = actor_own.get();
-    *request_actors_.get(slot_id) = std::move(actor_own);
-    return actor_id;
-  }
-
   unique_ptr<AudiosManager> audios_manager_;
   unique_ptr<CallbackQueriesManager> callback_queries_manager_;
   unique_ptr<DocumentsManager> documents_manager_;

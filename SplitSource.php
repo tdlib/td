@@ -165,8 +165,8 @@ function split_file($file, $chunks, $undo) {
     $deps = array();  // all functions from the same subarray must be in the same file
     $parents = array();
     foreach ($functions as $i => $f) {
-        if (preg_match_all('/(?J)(create_handler|create_net_actor)<(?<name>[A-Z][A-Za-z]*)>|'.
-                           '(?<name>[A-Z][A-Za-z]*) (final )?: public (Td::ResultHandler|NetActor|Request)|'.
+        if (preg_match_all('/(?J)create_handler<(?<name>[A-Z][A-Za-z]*)>|'.
+                           '(?<name>[A-Z][A-Za-z]*) (final )?: public (Td::ResultHandler|Request)|'.
                            '(CREATE_REQUEST|CREATE_NO_ARGS_REQUEST)[(](?<name>[A-Z][A-Za-z]*)|'.
                            '(?<name>complete_pending_preauthentication_requests)|'.
                            '(?<name>get_message_history_slice)|'.
