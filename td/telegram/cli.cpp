@@ -3733,20 +3733,15 @@ class CliClient final : public Actor {
       }
       send_message(chat_id, td_api::make_object<td_api::inputMessagePoll>(question, std::move(options), op != "spollp",
                                                                           std::move(poll_type), 0, 0, false));
-    } else if (op == "sp" || op == "spcaption" || op == "spttl") {
+    } else if (op == "sp" || op == "spttl") {
       ChatId chat_id;
-      string photo_path;
-      string sticker_file_ids_str;
-      vector<int32> sticker_file_ids;
-      get_args(args, chat_id, sticker_file_ids_str, photo_path);
-      if (trim(photo_path).empty()) {
-        photo_path = sticker_file_ids_str;
-      } else {
-        sticker_file_ids = to_integers<int32>(sticker_file_ids_str);
-      }
+      string photo;
+      string caption;
+      string sticker_file_ids;
+      get_args(args, chat_id, photo, caption, sticker_file_ids);
       send_message(chat_id, td_api::make_object<td_api::inputMessagePhoto>(
-                                as_input_file(photo_path), nullptr, std::move(sticker_file_ids), 0, 0,
-                                as_caption(op == "spcaption" ? "cap \n\n\n\n tion " : ""), op == "spttl" ? 10 : 0));
+                                as_input_file(photo), nullptr, to_integers<int32>(sticker_file_ids), 0, 0,
+                                as_caption(caption), op == "spttl" ? 10 : 0));
     } else if (op == "spg" || op == "spgttl") {
       ChatId chat_id;
       string photo_path;
