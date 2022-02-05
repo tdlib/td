@@ -474,6 +474,7 @@ set(TDLIB_SOURCE
   td/telegram/CallId.h
   td/telegram/CallManager.h
   td/telegram/CallbackQueriesManager.h
+  td/telegram/ChainId.h
   td/telegram/ChannelId.h
   td/telegram/ChatId.h
   td/telegram/ClientActor.h

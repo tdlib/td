@@ -973,8 +973,6 @@ class MessagesManager final : public Actor {
 
   void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
 
-  static uint64 get_sequence_dispatcher_id(DialogId dialog_id, MessageContentType message_content_type);
-
  private:
   class PendingPtsUpdate {
    public:

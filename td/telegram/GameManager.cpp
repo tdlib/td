@@ -8,6 +8,7 @@
 
 #include "td/telegram/AccessRights.h"
 #include "td/telegram/AuthManager.h"
+#include "td/telegram/ChainId.h"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/Global.h"
@@ -35,7 +36,7 @@ class SetGameScoreQuery final : public Td::ResultHandler {
   }
 
   void send(DialogId dialog_id, MessageId message_id, bool edit_message,
-            tl_object_ptr<telegram_api::InputUser> input_user, int32 score, bool force, uint64 sequence_dispatcher_id) {
+            tl_object_ptr<telegram_api::InputUser> input_user, int32 score, bool force) {
     int32 flags = 0;
     if (edit_message) {
       flags |= telegram_api::messages_setGameScore::EDIT_MESSAGE_MASK;
@@ -55,7 +56,7 @@ class SetGameScoreQuery final : public Td::ResultHandler {
     send_query(G()->net_query_creator().create(
         telegram_api::messages_setGameScore(flags, false /*ignored*/, false /*ignored*/, std::move(input_peer),
                                             message_id.get_server_message_id().get(), std::move(input_user), score),
-        {sequence_dispatcher_id}));
+        {{dialog_id}}));
   }
 
   void on_result(BufferSlice packet) final {
@@ -227,8 +228,7 @@ void GameManager::set_game_score(FullMessageId full_message_id, bool edit_messag
         send_closure(actor_id, &GameManager::on_set_game_score, full_message_id, std::move(promise));
       });
   td_->create_handler<SetGameScoreQuery>(std::move(query_promise))
-      ->send(dialog_id, full_message_id.get_message_id(), edit_message, r_input_user.move_as_ok(), score, force,
-             MessagesManager::get_sequence_dispatcher_id(dialog_id, MessageContentType::None));
+      ->send(dialog_id, full_message_id.get_message_id(), edit_message, r_input_user.move_as_ok(), score, force);
 }
 
 void GameManager::on_set_game_score(FullMessageId full_message_id,

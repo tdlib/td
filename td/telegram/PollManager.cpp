@@ -8,6 +8,7 @@
 
 #include "td/telegram/AccessRights.h"
 #include "td/telegram/AuthManager.h"
+#include "td/telegram/ChainId.h"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/Dependencies.h"
 #include "td/telegram/DialogId.h"
@@ -144,7 +145,8 @@ class SendVoteQuery final : public Td::ResultHandler {
   explicit SendVoteQuery(Promise<tl_object_ptr<telegram_api::Updates>> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(FullMessageId full_message_id, vector<BufferSlice> &&options, uint64 generation, NetQueryRef *query_ref) {
+  void send(FullMessageId full_message_id, vector<BufferSlice> &&options, PollId poll_id, uint64 generation,
+            NetQueryRef *query_ref) {
     dialog_id_ = full_message_id.get_dialog_id();
     auto input_peer = td_->messages_manager_->get_input_peer(dialog_id_, AccessRights::Read);
     if (input_peer == nullptr) {
@@ -153,9 +155,8 @@ class SendVoteQuery final : public Td::ResultHandler {
     }
 
     auto message_id = full_message_id.get_message_id().get_server_message_id().get();
-    auto sequence_id = static_cast<uint64>(-1);
     auto query = G()->net_query_creator().create(
-        telegram_api::messages_sendVote(std::move(input_peer), message_id, std::move(options)), {sequence_id});
+        telegram_api::messages_sendVote(std::move(input_peer), message_id, std::move(options)), {{poll_id}});
     *query_ref = query.get_weak();
     send_query(std::move(query));
   }
@@ -185,7 +186,7 @@ class StopPollQuery final : public Td::ResultHandler {
   explicit StopPollQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(FullMessageId full_message_id, unique_ptr<ReplyMarkup> &&reply_markup) {
+  void send(FullMessageId full_message_id, unique_ptr<ReplyMarkup> &&reply_markup, PollId poll_id) {
     dialog_id_ = full_message_id.get_dialog_id();
     auto input_peer = td_->messages_manager_->get_input_peer(dialog_id_, AccessRights::Edit);
     if (input_peer == nullptr) {
@@ -204,14 +205,11 @@ class StopPollQuery final : public Td::ResultHandler {
     poll->flags_ |= telegram_api::poll::CLOSED_MASK;
     auto input_media = telegram_api::make_object<telegram_api::inputMediaPoll>(0, std::move(poll),
                                                                                vector<BufferSlice>(), string(), Auto());
-    auto query = G()->net_query_creator().create(telegram_api::messages_editMessage(
-        flags, false /*ignored*/, std::move(input_peer), message_id, string(), std::move(input_media),
-        std::move(input_reply_markup), vector<tl_object_ptr<telegram_api::MessageEntity>>(), 0));
-    if (!td_->auth_manager_->is_bot()) {
-      auto sequence_id = static_cast<uint64>(-1);
-      query->set_chain_ids({sequence_id});
-    }
-    send_query(std::move(query));
+    send_query(G()->net_query_creator().create(
+        telegram_api::messages_editMessage(flags, false /*ignored*/, std::move(input_peer), message_id, string(),
+                                           std::move(input_media), std::move(input_reply_markup),
+                                           vector<tl_object_ptr<telegram_api::MessageEntity>>(), 0),
+        {{poll_id}}));
   }
 
   void on_result(BufferSlice packet) final {
@@ -818,7 +816,7 @@ void PollManager::do_set_poll_answer(PollId poll_id, FullMessageId full_message_
         send_closure(actor_id, &PollManager::on_set_poll_answer, poll_id, generation, std::move(result));
       });
   td_->create_handler<SendVoteQuery>(std::move(query_promise))
-      ->send(full_message_id, std::move(sent_options), generation, &pending_answer.query_ref_);
+      ->send(full_message_id, std::move(sent_options), poll_id, generation, &pending_answer.query_ref_);
 }
 
 void PollManager::on_set_poll_answer(PollId poll_id, uint64 generation,
@@ -1130,7 +1128,7 @@ void PollManager::do_stop_poll(PollId poll_id, FullMessageId full_message_id, un
   CHECK(is_inserted);
   auto new_promise = get_erase_log_event_promise(log_event_id, std::move(promise));
 
-  td_->create_handler<StopPollQuery>(std::move(new_promise))->send(full_message_id, std::move(reply_markup));
+  td_->create_handler<StopPollQuery>(std::move(new_promise))->send(full_message_id, std::move(reply_markup), poll_id);
 }
 
 void PollManager::stop_local_poll(PollId poll_id) {

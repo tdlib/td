@@ -341,4 +341,20 @@ bool can_have_message_content_caption(MessageContentType content_type) {
   }
 }
 
+uint64 get_message_content_chain_id(MessageContentType content_type) {
+  switch (content_type) {
+    case MessageContentType::Animation:
+    case MessageContentType::Audio:
+    case MessageContentType::Document:
+    case MessageContentType::Photo:
+    case MessageContentType::Sticker:
+    case MessageContentType::Video:
+    case MessageContentType::VideoNote:
+    case MessageContentType::VoiceNote:
+      return 1;
+    default:
+      return 2;
+  }
+}
+
 }  // namespace td

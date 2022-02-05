@@ -34,6 +34,8 @@ namespace td {
 
 extern int VERBOSITY_NAME(net_query);
 
+class ChainId;
+
 class NetQuery;
 using NetQueryPtr = ObjectPool<NetQuery>::OwnerPtr;
 using NetQueryRef = ObjectPool<NetQuery>::WeakPtr;
@@ -279,9 +281,7 @@ class NetQuery final : public TsListNode<NetQueryDebug> {
   Span<uint64> get_chain_ids() const {
     return chain_ids_;
   }
-  void set_chain_ids(vector<uint64> &&chain_ids) {
-    chain_ids_ = std::move(chain_ids);
-  }
+  void set_chain_ids(vector<ChainId> &&chain_ids);
 
   void set_in_sequence_dispatcher(bool in_sequence_dispacher) {
     in_sequence_dispacher_ = in_sequence_dispacher;

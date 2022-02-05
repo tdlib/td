@@ -6,6 +6,7 @@
 //
 #pragma once
 
+#include "td/telegram/ChainId.h"
 #include "td/telegram/net/DcId.h"
 #include "td/telegram/net/NetQuery.h"
 #include "td/telegram/net/NetQueryStats.h"
@@ -29,14 +30,14 @@ class NetQueryCreator {
     object_pool_.set_check_empty(false);
   }
 
-  NetQueryPtr create(const telegram_api::Function &function, vector<uint64> chain_ids = {}, DcId dc_id = DcId::main(),
+  NetQueryPtr create(const telegram_api::Function &function, vector<ChainId> chain_ids = {}, DcId dc_id = DcId::main(),
                      NetQuery::Type type = NetQuery::Type::Common);
 
   NetQueryPtr create_unauth(const telegram_api::Function &function, DcId dc_id = DcId::main()) {
     return create(UniqueId::next(), function, {}, dc_id, NetQuery::Type::Common, NetQuery::AuthFlag::Off);
   }
 
-  NetQueryPtr create(uint64 id, const telegram_api::Function &function, vector<uint64> &&chain_ids, DcId dc_id,
+  NetQueryPtr create(uint64 id, const telegram_api::Function &function, vector<ChainId> &&chain_ids, DcId dc_id,
                      NetQuery::Type type, NetQuery::AuthFlag auth_flag);
 
  private:

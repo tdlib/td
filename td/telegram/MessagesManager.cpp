@@ -7,6 +7,7 @@
 #include "td/telegram/MessagesManager.h"
 
 #include "td/telegram/AuthManager.h"
+#include "td/telegram/ChainId.h"
 #include "td/telegram/ChatId.h"
 #include "td/telegram/ConfigShared.h"
 #include "td/telegram/ContactsManager.h"
@@ -334,10 +335,10 @@ class GetPinnedDialogsQuery final : public Td::ResultHandler {
   explicit GetPinnedDialogsQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  NetQueryRef send(FolderId folder_id, uint64 sequence_id) {
+  NetQueryRef send(FolderId folder_id) {
     folder_id_ = folder_id;
     auto query =
-        G()->net_query_creator().create(telegram_api::messages_getPinnedDialogs(folder_id.get()), {sequence_id});
+        G()->net_query_creator().create(telegram_api::messages_getPinnedDialogs(folder_id.get()), {{folder_id}});
     auto result = query.get_weak();
     send_query(std::move(query));
     return result;
@@ -783,7 +784,7 @@ class GetDialogListQuery final : public Td::ResultHandler {
   }
 
   void send(FolderId folder_id, int32 offset_date, ServerMessageId offset_message_id, DialogId offset_dialog_id,
-            int32 limit, uint64 sequence_id) {
+            int32 limit) {
     folder_id_ = folder_id;
     auto input_peer = MessagesManager::get_input_peer_force(offset_dialog_id);
     CHECK(input_peer != nullptr);
@@ -793,7 +794,7 @@ class GetDialogListQuery final : public Td::ResultHandler {
     send_query(G()->net_query_creator().create(
         telegram_api::messages_getDialogs(flags, false /*ignored*/, folder_id.get(), offset_date,
                                           offset_message_id.get(), std::move(input_peer), limit, 0),
-        {sequence_id}));
+        {{folder_id}}));
   }
 
   void on_result(BufferSlice packet) final {
@@ -1841,7 +1842,7 @@ class ToggleDialogIsBlockedQuery final : public Td::ResultHandler {
   explicit ToggleDialogIsBlockedQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(DialogId dialog_id, bool is_blocked, uint64 sequence_dispatcher_id) {
+  void send(DialogId dialog_id, bool is_blocked) {
     dialog_id_ = dialog_id;
     is_blocked_ = is_blocked;
 
@@ -1849,7 +1850,7 @@ class ToggleDialogIsBlockedQuery final : public Td::ResultHandler {
     CHECK(input_peer != nullptr && input_peer->get_id() != telegram_api::inputPeerEmpty::ID);
     auto query = is_blocked ? G()->net_query_creator().create(telegram_api::contacts_block(std::move(input_peer)))
                             : G()->net_query_creator().create(telegram_api::contacts_unblock(std::move(input_peer)));
-    query->set_chain_ids({sequence_dispatcher_id});
+    query->set_chain_ids({{dialog_id, MessageContentType::Photo}, {dialog_id, MessageContentType::Text}});
     send_query(std::move(query));
   }
 
@@ -3082,7 +3083,7 @@ class SaveDefaultSendAsQuery final : public Td::ResultHandler {
   explicit SaveDefaultSendAsQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(DialogId dialog_id, DialogId send_as_dialog_id, uint64 sequence_dispatcher_id) {
+  void send(DialogId dialog_id, DialogId send_as_dialog_id) {
     auto input_peer = td_->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
     CHECK(input_peer != nullptr);
 
@@ -3091,7 +3092,7 @@ class SaveDefaultSendAsQuery final : public Td::ResultHandler {
 
     send_query(G()->net_query_creator().create(
         telegram_api::messages_saveDefaultSendAs(std::move(input_peer), std::move(send_as_input_peer)),
-        {sequence_dispatcher_id}));
+        {{dialog_id, MessageContentType::Photo}, {dialog_id}}));
   }
 
   void on_result(BufferSlice packet) final {
@@ -3120,7 +3121,7 @@ class SendMessageQuery final : public Td::ResultHandler {
   void send(int32 flags, DialogId dialog_id, tl_object_ptr<telegram_api::InputPeer> as_input_peer,
             MessageId reply_to_message_id, int32 schedule_date, tl_object_ptr<telegram_api::ReplyMarkup> &&reply_markup,
             vector<tl_object_ptr<telegram_api::MessageEntity>> &&entities, const string &text, int64 random_id,
-            NetQueryRef *send_query_ref, uint64 sequence_dispatcher_id) {
+            NetQueryRef *send_query_ref) {
     random_id_ = random_id;
     dialog_id_ = dialog_id;
 
@@ -3141,7 +3142,7 @@ class SendMessageQuery final : public Td::ResultHandler {
             flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
             std::move(input_peer), reply_to_message_id.get_server_message_id().get(), text, random_id,
             std::move(reply_markup), std::move(entities), schedule_date, std::move(as_input_peer)),
-        {sequence_dispatcher_id});
+        {{dialog_id, MessageContentType::Text}});
     if (G()->shared_config().get_option_boolean("use_quick_ack")) {
       query->quick_ack_promise_ = PromiseCreator::lambda(
           [random_id](Unit) {
@@ -3307,7 +3308,7 @@ class SendMultiMediaQuery final : public Td::ResultHandler {
  public:
   void send(int32 flags, DialogId dialog_id, tl_object_ptr<telegram_api::InputPeer> as_input_peer,
             MessageId reply_to_message_id, int32 schedule_date, vector<FileId> &&file_ids,
-            vector<tl_object_ptr<telegram_api::inputSingleMedia>> &&input_single_media, uint64 sequence_dispatcher_id) {
+            vector<tl_object_ptr<telegram_api::inputSingleMedia>> &&input_single_media, bool is_copy) {
     for (auto &single_media : input_single_media) {
       random_ids_.push_back(single_media->random_id_);
       CHECK(FileManager::extract_was_uploaded(single_media->media_) == false);
@@ -3332,7 +3333,8 @@ class SendMultiMediaQuery final : public Td::ResultHandler {
                                               false /*ignored*/, std::move(input_peer),
                                               reply_to_message_id.get_server_message_id().get(),
                                               std::move(input_single_media), schedule_date, std::move(as_input_peer)),
-        {sequence_dispatcher_id}));
+        {{dialog_id, is_copy ? MessageContentType::None : MessageContentType::Photo},
+         {dialog_id, MessageContentType::Photo}}));
   }
 
   void on_result(BufferSlice packet) final {
@@ -3420,8 +3422,8 @@ class SendMediaQuery final : public Td::ResultHandler {
             tl_object_ptr<telegram_api::InputPeer> as_input_peer, MessageId reply_to_message_id, int32 schedule_date,
             tl_object_ptr<telegram_api::ReplyMarkup> &&reply_markup,
             vector<tl_object_ptr<telegram_api::MessageEntity>> &&entities, const string &text,
-            tl_object_ptr<telegram_api::InputMedia> &&input_media, int64 random_id, NetQueryRef *send_query_ref,
-            uint64 sequence_dispatcher_id) {
+            tl_object_ptr<telegram_api::InputMedia> &&input_media, MessageContentType content_type, int64 random_id,
+            NetQueryRef *send_query_ref) {
     random_id_ = random_id;
     file_id_ = file_id;
     thumbnail_file_id_ = thumbnail_file_id;
@@ -3447,7 +3449,7 @@ class SendMediaQuery final : public Td::ResultHandler {
             flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, std::move(input_peer),
             reply_to_message_id.get_server_message_id().get(), std::move(input_media), text, random_id,
             std::move(reply_markup), std::move(entities), schedule_date, std::move(as_input_peer)),
-        {sequence_dispatcher_id});
+        {{dialog_id, content_type}});
     if (G()->shared_config().get_option_boolean("use_quick_ack") && was_uploaded_) {
       query->quick_ack_promise_ = PromiseCreator::lambda(
           [random_id](Unit) {
@@ -3605,7 +3607,7 @@ class SendScheduledMessageQuery final : public Td::ResultHandler {
   explicit SendScheduledMessageQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(DialogId dialog_id, MessageId message_id, uint64 sequence_dispatcher_id) {
+  void send(DialogId dialog_id, MessageId message_id) {
     dialog_id_ = dialog_id;
 
     auto input_peer = td_->messages_manager_->get_input_peer(dialog_id, AccessRights::Edit);
@@ -3616,7 +3618,7 @@ class SendScheduledMessageQuery final : public Td::ResultHandler {
     int32 server_message_id = message_id.get_scheduled_server_message_id().get();
     send_query(G()->net_query_creator().create(
         telegram_api::messages_sendScheduledMessages(std::move(input_peer), {server_message_id}),
-        {sequence_dispatcher_id}));
+        {{dialog_id, MessageContentType::Text}, {dialog_id, MessageContentType::Photo}}));
   }
 
   void on_result(BufferSlice packet) final {
@@ -3657,8 +3659,7 @@ class EditMessageQuery final : public Td::ResultHandler {
   void send(int32 flags, DialogId dialog_id, MessageId message_id, const string &text,
             vector<tl_object_ptr<telegram_api::MessageEntity>> &&entities,
             tl_object_ptr<telegram_api::InputMedia> &&input_media,
-            tl_object_ptr<telegram_api::ReplyMarkup> &&reply_markup, int32 schedule_date,
-            uint64 sequence_dispatcher_id) {
+            tl_object_ptr<telegram_api::ReplyMarkup> &&reply_markup, int32 schedule_date) {
     dialog_id_ = dialog_id;
 
     if (input_media != nullptr && false) {
@@ -3692,7 +3693,7 @@ class EditMessageQuery final : public Td::ResultHandler {
         telegram_api::messages_editMessage(flags, false /*ignored*/, std::move(input_peer), server_message_id, text,
                                            std::move(input_media), std::move(reply_markup), std::move(entities),
                                            schedule_date),
-        {sequence_dispatcher_id}));
+        {{dialog_id}}));
   }
 
   void on_result(BufferSlice packet) final {
@@ -3786,7 +3787,7 @@ class ForwardMessagesQuery final : public Td::ResultHandler {
 
   void send(int32 flags, DialogId to_dialog_id, DialogId from_dialog_id,
             tl_object_ptr<telegram_api::InputPeer> as_input_peer, const vector<MessageId> &message_ids,
-            vector<int64> &&random_ids, int32 schedule_date, uint64 sequence_dispatcher_id) {
+            vector<int64> &&random_ids, int32 schedule_date) {
     random_ids_ = random_ids;
     from_dialog_id_ = from_dialog_id;
     to_dialog_id_ = to_dialog_id;
@@ -3810,7 +3811,7 @@ class ForwardMessagesQuery final : public Td::ResultHandler {
             flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
             false /*ignored*/, std::move(from_input_peer), MessagesManager::get_server_message_ids(message_ids),
             std::move(random_ids), std::move(to_input_peer), schedule_date, std::move(as_input_peer)),
-        {sequence_dispatcher_id});
+        {{to_dialog_id, MessageContentType::Text}, {to_dialog_id, MessageContentType::Photo}});
     if (G()->shared_config().get_option_boolean("use_quick_ack")) {
       query->quick_ack_promise_ = PromiseCreator::lambda(
           [random_ids = random_ids_](Unit) {
@@ -12229,8 +12230,7 @@ void MessagesManager::repair_server_dialog_total_count(DialogListId dialog_list_
 
   LOG(INFO) << "Repair total chat count in " << dialog_list_id;
   td_->create_handler<GetDialogListQuery>(Promise<Unit>())
-      ->send(dialog_list_id.get_folder_id(), 2147483647, ServerMessageId(), DialogId(), 1,
-             get_sequence_dispatcher_id(DialogId(), MessageContentType::None));
+      ->send(dialog_list_id.get_folder_id(), 2147483647, ServerMessageId(), DialogId(), 1);
 }
 
 void MessagesManager::repair_secret_chat_total_count(DialogListId dialog_list_id) {
@@ -16595,8 +16595,7 @@ void MessagesManager::load_folder_dialog_list(FolderId folder_id, int32 limit, b
       td_->create_handler<GetDialogListQuery>(multipromise.get_promise())
           ->send(folder_id, folder.last_server_dialog_date_.get_date(),
                  folder.last_server_dialog_date_.get_message_id().get_next_server_message_id().get_server_message_id(),
-                 folder.last_server_dialog_date_.get_dialog_id(), int32{MAX_GET_DIALOGS},
-                 get_sequence_dispatcher_id(DialogId(), MessageContentType::None));
+                 folder.last_server_dialog_date_.get_dialog_id(), int32{MAX_GET_DIALOGS});
       is_query_sent = true;
     }
     if (folder_id == FolderId::main() && folder.last_server_dialog_date_ == MIN_DIALOG_DATE) {
@@ -16862,8 +16861,7 @@ void MessagesManager::reload_pinned_dialogs(DialogListId dialog_list_id, Promise
   CHECK(!td_->auth_manager_->is_bot());
 
   if (dialog_list_id.is_folder()) {
-    td_->create_handler<GetPinnedDialogsQuery>(std::move(promise))
-        ->send(dialog_list_id.get_folder_id(), get_sequence_dispatcher_id(DialogId(), MessageContentType::None));
+    td_->create_handler<GetPinnedDialogsQuery>(std::move(promise))->send(dialog_list_id.get_folder_id());
   } else if (dialog_list_id.is_filter()) {
     schedule_dialog_filters_reload(0.0);
     dialog_filter_reload_queries_.push_back(std::move(promise));
@@ -20018,7 +20016,7 @@ void MessagesManager::toggle_dialog_is_blocked_on_server(DialogId dialog_id, boo
   }
 
   td_->create_handler<ToggleDialogIsBlockedQuery>(get_erase_log_event_promise(log_event_id))
-      ->send(dialog_id, is_blocked, get_sequence_dispatcher_id(dialog_id, MessageContentType::Text));
+      ->send(dialog_id, is_blocked);
 }
 
 Status MessagesManager::toggle_dialog_silent_send_message(DialogId dialog_id, bool silent_send_message) {
@@ -24773,7 +24771,7 @@ void MessagesManager::cancel_send_message_query(DialogId dialog_id, Message *m) 
 
   if (!m->message_id.is_scheduled() && G()->parameters().use_file_db &&
       !m->is_copy) {  // ResourceManager::Mode::Baseline
-    auto queue_id = get_sequence_dispatcher_id(dialog_id, m->content->get_type());
+    auto queue_id = ChainId(dialog_id, m->content->get_type()).get();
     if (queue_id & 1) {
       auto queue_it = yet_unsent_media_queues_.find(queue_id);
       if (queue_it != yet_unsent_media_queues_.end()) {
@@ -24975,9 +24973,7 @@ void MessagesManager::set_dialog_default_send_message_as_dialog_id(DialogId dial
     }
   }
 
-  // TODO save order with all types of messages
-  td_->create_handler<SaveDefaultSendAsQuery>(std::move(promise))
-      ->send(dialog_id, message_sender_dialog_id, get_sequence_dispatcher_id(dialog_id, MessageContentType::Text));
+  td_->create_handler<SaveDefaultSendAsQuery>(std::move(promise))->send(dialog_id, message_sender_dialog_id);
 
   on_update_dialog_default_send_message_as_dialog_id(dialog_id, message_sender_dialog_id, true);
 }
@@ -25441,8 +25437,7 @@ void MessagesManager::on_message_media_uploaded(DialogId dialog_id, const Messag
     td_->create_handler<EditMessageQuery>(std::move(promise))
         ->send(1 << 11, dialog_id, message_id, caption == nullptr ? "" : caption->text,
                get_input_message_entities(td_->contacts_manager_.get(), caption, "edit_message_media"),
-               std::move(input_media), std::move(input_reply_markup), schedule_date,
-               get_sequence_dispatcher_id(dialog_id, MessageContentType::None));
+               std::move(input_media), std::move(input_reply_markup), schedule_date);
     return;
   }
 
@@ -25467,8 +25462,8 @@ void MessagesManager::on_message_media_uploaded(DialogId dialog_id, const Messag
               file_id, thumbnail_file_id, get_message_flags(m), dialog_id, get_send_message_as_input_peer(m),
               m->reply_to_message_id, get_message_schedule_date(m), get_input_reply_markup(m->reply_markup),
               get_input_message_entities(td_->contacts_manager_.get(), caption, "on_message_media_uploaded"),
-              caption == nullptr ? "" : caption->text, std::move(input_media), random_id, &m->send_query_ref,
-              get_sequence_dispatcher_id(dialog_id, m->is_copy ? MessageContentType::None : m->content->get_type()));
+              caption == nullptr ? "" : caption->text, std::move(input_media),
+              m->is_copy ? MessageContentType::None : m->content->get_type(), random_id, &m->send_query_ref);
         }));
   } else {
     switch (input_media->get_id()) {
@@ -25832,10 +25827,9 @@ void MessagesManager::do_send_message_group(int64 media_album_id) {
   if (input_single_media.empty()) {
     LOG(INFO) << "Media group " << media_album_id << " from " << dialog_id << " is empty";
   }
-  td_->create_handler<SendMultiMediaQuery>()->send(
-      flags, dialog_id, std::move(as_input_peer), reply_to_message_id, schedule_date, std::move(file_ids),
-      std::move(input_single_media),
-      get_sequence_dispatcher_id(dialog_id, is_copy ? MessageContentType::None : MessageContentType::Photo));
+  td_->create_handler<SendMultiMediaQuery>()->send(flags, dialog_id, std::move(as_input_peer), reply_to_message_id,
+                                                   schedule_date, std::move(file_ids), std::move(input_single_media),
+                                                   is_copy);
 }
 
 void MessagesManager::on_text_message_ready_to_send(DialogId dialog_id, MessageId message_id) {
@@ -25858,8 +25852,6 @@ void MessagesManager::on_text_message_ready_to_send(DialogId dialog_id, MessageI
     CHECK(!message_id.is_scheduled());
     send_secret_message(dialog_id, m, get_secret_input_media(content, td_, nullptr, BufferSlice()));
   } else {
-    auto content_type = content->get_type();
-
     const FormattedText *message_text = get_message_content_text(content);
     CHECK(message_text != nullptr);
 
@@ -25868,7 +25860,7 @@ void MessagesManager::on_text_message_ready_to_send(DialogId dialog_id, MessageI
         get_message_flags(m), dialog_id, get_send_message_as_input_peer(m), m->reply_to_message_id,
         get_message_schedule_date(m), get_input_reply_markup(m->reply_markup),
         get_input_message_entities(td_->contacts_manager_.get(), message_text->entities, "do_send_message"),
-        message_text->text, random_id, &m->send_query_ref, get_sequence_dispatcher_id(dialog_id, content_type));
+        message_text->text, random_id, &m->send_query_ref);
   }
 }
 
@@ -25884,7 +25876,7 @@ void MessagesManager::on_media_message_ready_to_send(DialogId dialog_id, Message
     return;
   }
 
-  auto queue_id = get_sequence_dispatcher_id(dialog_id, MessageContentType::Photo);
+  auto queue_id = ChainId(dialog_id, MessageContentType::Photo).get();
   CHECK(queue_id & 1);
   auto &queue = yet_unsent_media_queues_[queue_id];
   auto it = queue.find(message_id);
@@ -25910,7 +25902,7 @@ void MessagesManager::on_media_message_ready_to_send(DialogId dialog_id, Message
 }
 
 void MessagesManager::on_yet_unsent_media_queue_updated(DialogId dialog_id) {
-  auto queue_id = get_sequence_dispatcher_id(dialog_id, MessageContentType::Photo);
+  auto queue_id = ChainId(dialog_id, MessageContentType::Photo).get();
   CHECK(queue_id & 1);
   while (true) {
     auto it = yet_unsent_media_queues_.find(queue_id);
@@ -26587,8 +26579,7 @@ void MessagesManager::edit_message_text(FullMessageId full_message_id,
       ->send(flags, dialog_id, m->message_id, input_message_text.text.text,
              get_input_message_entities(td_->contacts_manager_.get(), input_message_text.text.entities,
                                         "edit_message_text"),
-             nullptr, std::move(input_reply_markup), get_message_schedule_date(m),
-             get_sequence_dispatcher_id(dialog_id, MessageContentType::None));
+             nullptr, std::move(input_reply_markup), get_message_schedule_date(m));
 }
 
 void MessagesManager::edit_message_live_location(FullMessageId full_message_id,
@@ -26648,8 +26639,7 @@ void MessagesManager::edit_message_live_location(FullMessageId full_message_id,
       flags, false /*ignored*/, location.get_input_geo_point(), heading, 0, proximity_alert_radius);
   td_->create_handler<EditMessageQuery>(std::move(promise))
       ->send(0, dialog_id, m->message_id, string(), vector<tl_object_ptr<telegram_api::MessageEntity>>(),
-             std::move(input_media), std::move(input_reply_markup), get_message_schedule_date(m),
-             get_sequence_dispatcher_id(dialog_id, MessageContentType::None));
+             std::move(input_media), std::move(input_reply_markup), get_message_schedule_date(m));
 }
 
 void MessagesManager::cancel_edit_message_media(DialogId dialog_id, Message *m, Slice error_message) {
@@ -26876,8 +26866,7 @@ void MessagesManager::edit_message_caption(FullMessageId full_message_id,
   td_->create_handler<EditMessageQuery>(std::move(promise))
       ->send(1 << 11, dialog_id, m->message_id, caption.text,
              get_input_message_entities(td_->contacts_manager_.get(), caption.entities, "edit_message_caption"),
-             nullptr, std::move(input_reply_markup), get_message_schedule_date(m),
-             get_sequence_dispatcher_id(dialog_id, MessageContentType::None));
+             nullptr, std::move(input_reply_markup), get_message_schedule_date(m));
 }
 
 void MessagesManager::edit_message_reply_markup(FullMessageId full_message_id,
@@ -26915,8 +26904,7 @@ void MessagesManager::edit_message_reply_markup(FullMessageId full_message_id,
   auto input_reply_markup = get_input_reply_markup(r_new_reply_markup.ok());
   td_->create_handler<EditMessageQuery>(std::move(promise))
       ->send(0, dialog_id, m->message_id, string(), vector<tl_object_ptr<telegram_api::MessageEntity>>(), nullptr,
-             std::move(input_reply_markup), get_message_schedule_date(m),
-             get_sequence_dispatcher_id(dialog_id, MessageContentType::None));
+             std::move(input_reply_markup), get_message_schedule_date(m));
 }
 
 void MessagesManager::edit_inline_message_text(const string &inline_message_id,
@@ -27147,10 +27135,9 @@ void MessagesManager::edit_message_scheduling_state(
   if (schedule_date > 0) {
     td_->create_handler<EditMessageQuery>(std::move(promise))
         ->send(0, dialog_id, m->message_id, string(), vector<tl_object_ptr<telegram_api::MessageEntity>>(), nullptr,
-               nullptr, schedule_date, get_sequence_dispatcher_id(dialog_id, MessageContentType::None));
+               nullptr, schedule_date);
   } else {
-    td_->create_handler<SendScheduledMessageQuery>(std::move(promise))
-        ->send(dialog_id, m->message_id, get_sequence_dispatcher_id(dialog_id, MessageContentType::None));
+    td_->create_handler<SendScheduledMessageQuery>(std::move(promise))->send(dialog_id, m->message_id);
   }
 }
 
@@ -27682,7 +27669,7 @@ void MessagesManager::do_forward_messages(DialogId to_dialog_id, DialogId from_d
       transform(messages, [this, to_dialog_id](const Message *m) { return begin_send_message(to_dialog_id, m); });
   td_->create_handler<ForwardMessagesQuery>(get_erase_log_event_promise(log_event_id))
       ->send(flags, to_dialog_id, from_dialog_id, get_send_message_as_input_peer(messages[0]), message_ids,
-             std::move(random_ids), schedule_date, get_sequence_dispatcher_id(to_dialog_id, MessageContentType::None));
+             std::move(random_ids), schedule_date);
 }
 
 Result<td_api::object_ptr<td_api::message>> MessagesManager::forward_message(
@@ -32619,7 +32606,7 @@ void MessagesManager::on_send_dialog_action_timeout(DialogId dialog_id) {
     return;
   }
 
-  auto queue_id = get_sequence_dispatcher_id(dialog_id, MessageContentType::Photo);
+  auto queue_id = ChainId(dialog_id, MessageContentType::Photo).get();
   CHECK(queue_id & 1);
 
   auto queue_it = yet_unsent_media_queues_.find(queue_id);
@@ -34115,7 +34102,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
 
   if (G()->parameters().use_file_db && message_id.is_yet_unsent() && !message->via_bot_user_id.is_valid() &&
       !message->hide_via_bot && !message->is_copy) {
-    auto queue_id = get_sequence_dispatcher_id(dialog_id, message_content_type);
+    auto queue_id = ChainId(dialog_id, message_content_type).get();
     if (queue_id & 1) {
       LOG(INFO) << "Add " << message_id << " from " << source << " to queue " << queue_id;
       yet_unsent_media_queues_[queue_id][message_id];  // reserve place for promise
@@ -36844,22 +36831,6 @@ void MessagesManager::update_list_last_dialog_date(DialogList &list) {
     for (auto &promise : promises) {
       promise.set_value(Unit());
     }
-  }
-}
-
-uint64 MessagesManager::get_sequence_dispatcher_id(DialogId dialog_id, MessageContentType message_content_type) {
-  switch (message_content_type) {
-    case MessageContentType::Animation:
-    case MessageContentType::Audio:
-    case MessageContentType::Document:
-    case MessageContentType::Photo:
-    case MessageContentType::Sticker:
-    case MessageContentType::Video:
-    case MessageContentType::VideoNote:
-    case MessageContentType::VoiceNote:
-      return static_cast<uint64>(dialog_id.get() * 2 + 1);
-    default:
-      return static_cast<uint64>(dialog_id.get() * 2 + 2);
   }
 }
 

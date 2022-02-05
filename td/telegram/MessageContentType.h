@@ -76,6 +76,8 @@ bool is_service_message_content(MessageContentType content_type);
 
 bool can_have_message_content_caption(MessageContentType content_type);
 
+uint64 get_message_content_chain_id(MessageContentType content_type);
+
 struct MessageContentTypeHash {
   std::size_t operator()(MessageContentType content_type) const {
     return std::hash<int32>()(static_cast<int32>(content_type));
