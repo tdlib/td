@@ -1015,9 +1015,11 @@ class CreateNewStickerSetQuery final : public Td::ResultHandler {
       flags |= telegram_api::stickers_createStickerSet::SOFTWARE_MASK;
     }
 
-    send_query(G()->net_query_creator().create(telegram_api::stickers_createStickerSet(
-        flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, std::move(input_user), title, short_name,
-        nullptr, std::move(input_stickers), software)));
+    send_query(G()->net_query_creator().create(
+        telegram_api::stickers_createStickerSet(flags, false /*ignored*/, false /*ignored*/, false /*ignored*/,
+                                                std::move(input_user), title, short_name, nullptr,
+                                                std::move(input_stickers), software),
+        {{short_name}}));
   }
 
   void on_result(BufferSlice packet) final {
@@ -1046,8 +1048,10 @@ class AddStickerToSetQuery final : public Td::ResultHandler {
   }
 
   void send(const string &short_name, tl_object_ptr<telegram_api::inputStickerSetItem> &&input_sticker) {
-    send_query(G()->net_query_creator().create(telegram_api::stickers_addStickerToSet(
-        make_tl_object<telegram_api::inputStickerSetShortName>(short_name), std::move(input_sticker))));
+    send_query(G()->net_query_creator().create(
+        telegram_api::stickers_addStickerToSet(make_tl_object<telegram_api::inputStickerSetShortName>(short_name),
+                                               std::move(input_sticker)),
+        {{short_name}}));
   }
 
   void on_result(BufferSlice packet) final {
@@ -1076,8 +1080,10 @@ class SetStickerSetThumbnailQuery final : public Td::ResultHandler {
   }
 
   void send(const string &short_name, tl_object_ptr<telegram_api::InputDocument> &&input_document) {
-    send_query(G()->net_query_creator().create(telegram_api::stickers_setStickerSetThumb(
-        make_tl_object<telegram_api::inputStickerSetShortName>(short_name), std::move(input_document))));
+    send_query(G()->net_query_creator().create(
+        telegram_api::stickers_setStickerSetThumb(make_tl_object<telegram_api::inputStickerSetShortName>(short_name),
+                                                  std::move(input_document)),
+        {{short_name}}));
   }
 
   void on_result(BufferSlice packet) final {
@@ -1105,9 +1111,9 @@ class SetStickerPositionQuery final : public Td::ResultHandler {
   explicit SetStickerPositionQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(tl_object_ptr<telegram_api::inputDocument> &&input_document, int32 position) {
+  void send(const string &short_name, tl_object_ptr<telegram_api::inputDocument> &&input_document, int32 position) {
     send_query(G()->net_query_creator().create(
-        telegram_api::stickers_changeStickerPosition(std::move(input_document), position)));
+        telegram_api::stickers_changeStickerPosition(std::move(input_document), position), {{short_name}}));
   }
 
   void on_result(BufferSlice packet) final {
@@ -1135,8 +1141,9 @@ class DeleteStickerFromSetQuery final : public Td::ResultHandler {
   explicit DeleteStickerFromSetQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(tl_object_ptr<telegram_api::inputDocument> &&input_document) {
-    send_query(G()->net_query_creator().create(telegram_api::stickers_removeStickerFromSet(std::move(input_document))));
+  void send(const string &short_name, tl_object_ptr<telegram_api::inputDocument> &&input_document) {
+    send_query(G()->net_query_creator().create(telegram_api::stickers_removeStickerFromSet(std::move(input_document)),
+                                               {{short_name}}));
   }
 
   void on_result(BufferSlice packet) final {
@@ -6154,6 +6161,18 @@ void StickersManager::on_sticker_set_thumbnail_uploaded(int64 random_id, Result<
       ->send(pending_set_sticker_set_thumbnail->short_name, file_view.main_remote_location().as_input_document());
 }
 
+string StickersManager::get_sticker_set_short_name(FileId sticker_id) const {
+  string sticker_set_short_name;
+  const Sticker *s = get_sticker(sticker_id);
+  if (s != nullptr && s->set_id.is_valid()) {
+    const StickerSet *sticker_set = get_sticker_set(s->set_id);
+    if (sticker_set != nullptr) {
+      return sticker_set->short_name;
+    }
+  }
+  return string();
+}
+
 void StickersManager::set_sticker_position_in_set(const tl_object_ptr<td_api::InputFile> &sticker, int32 position,
                                                   Promise<Unit> &&promise) {
   if (position < 0) {
@@ -6173,7 +6192,7 @@ void StickersManager::set_sticker_position_in_set(const tl_object_ptr<td_api::In
   }
 
   td_->create_handler<SetStickerPositionQuery>(std::move(promise))
-      ->send(file_view.main_remote_location().as_input_document(), position);
+      ->send(get_sticker_set_short_name(file_id), file_view.main_remote_location().as_input_document(), position);
 }
 
 void StickersManager::remove_sticker_from_set(const tl_object_ptr<td_api::InputFile> &sticker,
@@ -6191,7 +6210,7 @@ void StickersManager::remove_sticker_from_set(const tl_object_ptr<td_api::InputF
   }
 
   td_->create_handler<DeleteStickerFromSetQuery>(std::move(promise))
-      ->send(file_view.main_remote_location().as_input_document());
+      ->send(get_sticker_set_short_name(file_id), file_view.main_remote_location().as_input_document());
 }
 
 vector<FileId> StickersManager::get_attached_sticker_file_ids(const vector<int32> &int_file_ids) {

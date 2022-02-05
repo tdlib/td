@@ -504,6 +504,8 @@ class StickersManager final : public Actor {
   StickerSetId on_get_input_sticker_set(FileId sticker_file_id, tl_object_ptr<telegram_api::InputStickerSet> &&set_ptr,
                                         MultiPromiseActor *load_data_multipromise_ptr = nullptr);
 
+  string get_sticker_set_short_name(FileId sticker_id) const;
+
   void on_resolve_sticker_set_short_name(FileId sticker_file_id, const string &short_name);
 
   int apply_installed_sticker_sets_order(bool is_masks, const vector<StickerSetId> &sticker_set_ids);

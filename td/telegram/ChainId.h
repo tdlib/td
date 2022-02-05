@@ -13,6 +13,8 @@
 
 #include "td/utils/common.h"
 
+#include <functional>
+
 namespace td {
 
 class ChainId {
@@ -27,6 +29,9 @@ class ChainId {
   }
 
   ChainId(PollId poll_id) : id(static_cast<uint64>(poll_id.get())) {
+  }
+
+  ChainId(const string &str) : id(std::hash<string>()(str)) {
   }
 
   uint64 get() const {
