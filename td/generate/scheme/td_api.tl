@@ -5652,11 +5652,11 @@ setUserPrivacySettingRules setting:UserPrivacySetting rules:userPrivacySettingRu
 getUserPrivacySettingRules setting:UserPrivacySetting = UserPrivacySettingRules;
 
 
-//@description Returns the value of an option by its name. (Check the list of available options on https://core.telegram.org/tdlib/options.) Can be called before authorization
+//@description Returns the value of an option by its name. (Check the list of available options on https://core.telegram.org/tdlib/options) Can be called before authorization
 //@name The name of the option
 getOption name:string = OptionValue;
 
-//@description Sets the value of an option. (Check the list of available options on https://core.telegram.org/tdlib/options.) Only writable options can be set. Can be called before authorization
+//@description Sets the value of an option. (Check the list of available options on https://core.telegram.org/tdlib/options) Only writable options can be set. Can be called before authorization
 //@name The name of the option @value The new value of the option; pass null to reset option value to a default value
 setOption name:string value:OptionValue = Ok;
 
