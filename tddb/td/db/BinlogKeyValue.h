@@ -15,6 +15,7 @@
 
 #include "td/utils/buffer.h"
 #include "td/utils/common.h"
+#include "td/utils/FlatHashMap.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/port/RwMutex.h"
@@ -25,7 +26,7 @@
 #include "td/utils/tl_storers.h"
 
 #include <memory>
-#include "td/utils/FlatHashMap.h"
+#include <unordered_map>
 #include <utility>
 
 namespace td {

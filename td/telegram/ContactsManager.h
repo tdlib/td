@@ -40,6 +40,7 @@
 #include "td/actor/Timeout.h"
 
 #include "td/utils/common.h"
+#include "td/utils/FlatHashMap.h"
 #include "td/utils/Hints.h"
 #include "td/utils/Status.h"
 #include "td/utils/StringBuilder.h"
@@ -47,7 +48,7 @@
 
 #include <functional>
 #include <memory>
-#include "td/utils/FlatHashMap.h"
+#include <unordered_map>
 #include <unordered_set>
 #include <utility>
 

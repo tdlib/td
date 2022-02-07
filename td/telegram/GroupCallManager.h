@@ -21,9 +21,9 @@
 #include "td/actor/Timeout.h"
 
 #include "td/utils/common.h"
+#include "td/utils/FlatHashMap.h"
 #include "td/utils/Status.h"
 
-#include "td/utils/FlatHashMap.h"
 #include <utility>
 
 namespace td {
@@ -385,8 +385,7 @@ class GroupCallManager final : public Actor {
 
   string pending_group_call_join_params_;
 
-  FlatHashMap<InputGroupCallId, unique_ptr<GroupCallParticipants>, InputGroupCallIdHash>
-      group_call_participants_;
+  FlatHashMap<InputGroupCallId, unique_ptr<GroupCallParticipants>, InputGroupCallIdHash> group_call_participants_;
   FlatHashMap<DialogId, vector<InputGroupCallId>, DialogIdHash> participant_id_to_group_call_id_;
 
   FlatHashMap<GroupCallId, unique_ptr<GroupCallRecentSpeakers>, GroupCallIdHash> group_call_recent_speakers_;

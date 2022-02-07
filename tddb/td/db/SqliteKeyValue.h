@@ -9,11 +9,10 @@
 #include "td/db/SqliteDb.h"
 #include "td/db/SqliteStatement.h"
 
+#include "td/utils/FlatHashMap.h"
 #include "td/utils/Slice.h"
 #include "td/utils/SliceBuilder.h"
 #include "td/utils/Status.h"
-
-#include "td/utils/FlatHashMap.h"
 
 namespace td {
 

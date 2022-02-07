@@ -13,9 +13,8 @@
 #include "td/telegram/telegram_api.h"
 
 #include "td/utils/common.h"
-#include "td/utils/Slice.h"
-
 #include "td/utils/FlatHashMap.h"
+#include "td/utils/Slice.h"
 
 namespace td {
 

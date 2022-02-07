@@ -9,10 +9,10 @@
 #include "td/db/KeyValueSyncInterface.h"
 
 #include "td/utils/common.h"
+#include "td/utils/FlatHashMap.h"
 #include "td/utils/Slice.h"
 
 #include <memory>
-#include "td/utils/FlatHashMap.h"
 
 namespace td {
 

@@ -20,12 +20,11 @@
 #include "td/actor/PromiseFuture.h"
 
 #include "td/utils/common.h"
+#include "td/utils/FlatHashMap.h"
 #include "td/utils/logging.h"
 #include "td/utils/Slice.h"
 #include "td/utils/Status.h"
 #include "td/utils/Variant.h"
-
-#include "td/utils/FlatHashMap.h"
 
 namespace td {
 

@@ -14,7 +14,6 @@
 
 #include "td/utils/buffer.h"
 #include "td/utils/common.h"
-
 #include "td/utils/FlatHashMap.h"
 
 namespace td {

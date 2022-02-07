@@ -771,25 +771,17 @@ td_api::object_ptr<td_api::LanguagePackStringValue> LanguagePackManager::get_lan
 }
 
 td_api::object_ptr<td_api::languagePackString> LanguagePackManager::get_language_pack_string_object(
-    const std::pair<string, string> &str) {
-  return td_api::make_object<td_api::languagePackString>(str.first, get_language_pack_string_value_object(str.second));
-}
-td_api::object_ptr<td_api::languagePackString> LanguagePackManager::get_language_pack_string_object(
-    const string &a, const string &b) {
-  return td_api::make_object<td_api::languagePackString>(a, get_language_pack_string_value_object(b));
+    const string &key, const string &value) {
+  return td_api::make_object<td_api::languagePackString>(key, get_language_pack_string_value_object(value));
 }
 
 td_api::object_ptr<td_api::languagePackString> LanguagePackManager::get_language_pack_string_object(
-    const std::pair<string, PluralizedString> &str) {
-  return td_api::make_object<td_api::languagePackString>(str.first, get_language_pack_string_value_object(str.second));
-}
-td_api::object_ptr<td_api::languagePackString> LanguagePackManager::get_language_pack_string_object(
-    const string &a, const PluralizedString &b) {
-  return td_api::make_object<td_api::languagePackString>(a, get_language_pack_string_value_object(b));
+    const string &key, const PluralizedString &value) {
+  return td_api::make_object<td_api::languagePackString>(key, get_language_pack_string_value_object(value));
 }
 
-td_api::object_ptr<td_api::languagePackString> LanguagePackManager::get_language_pack_string_object(const string &str) {
-  return td_api::make_object<td_api::languagePackString>(str, get_language_pack_string_value_object());
+td_api::object_ptr<td_api::languagePackString> LanguagePackManager::get_language_pack_string_object(const string &key) {
+  return td_api::make_object<td_api::languagePackString>(key, get_language_pack_string_value_object());
 }
 
 td_api::object_ptr<td_api::LanguagePackStringValue> LanguagePackManager::get_language_pack_string_value_object(

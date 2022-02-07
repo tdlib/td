@@ -17,9 +17,9 @@
 #include "td/actor/PromiseFuture.h"
 
 #include "td/utils/common.h"
+#include "td/utils/FlatHashMap.h"
 #include "td/utils/StringBuilder.h"
 
-#include "td/utils/FlatHashMap.h"
 #include <utility>
 
 namespace td {

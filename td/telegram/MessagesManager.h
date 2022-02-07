@@ -66,6 +66,7 @@
 #include "td/utils/buffer.h"
 #include "td/utils/ChangesProcessor.h"
 #include "td/utils/common.h"
+#include "td/utils/FlatHashMap.h"
 #include "td/utils/Heap.h"
 #include "td/utils/Hints.h"
 #include "td/utils/logging.h"
@@ -73,14 +74,11 @@
 #include "td/utils/Status.h"
 #include "td/utils/StringBuilder.h"
 
-#include "td/utils/FlatHashMap.h"
-
 #include <array>
 #include <functional>
 #include <map>
 #include <memory>
 #include <set>
-#include "td/utils/FlatHashMap.h"
 #include <unordered_set>
 #include <utility>
 
@@ -1326,11 +1324,11 @@ class MessagesManager final : public Actor {
     bool suffix_load_done_ = false;
     bool suffix_load_has_query_ = false;
 
-    int32 pts = 0;                                                 // for channels only
-    int32 pending_read_channel_inbox_pts = 0;                      // for channels only
-    int32 pending_read_channel_inbox_server_unread_count = 0;      // for channels only
-    MessageId pending_read_channel_inbox_max_message_id;           // for channels only
-    FlatHashMap<int64, MessageId> random_id_to_message_id;  // for secret chats only
+    int32 pts = 0;                                             // for channels only
+    int32 pending_read_channel_inbox_pts = 0;                  // for channels only
+    int32 pending_read_channel_inbox_server_unread_count = 0;  // for channels only
+    MessageId pending_read_channel_inbox_max_message_id;       // for channels only
+    FlatHashMap<int64, MessageId> random_id_to_message_id;     // for secret chats only
 
     MessageId last_assigned_message_id;  // identifier of the last local or yet unsent message, assigned after
                                          // application start, used to guarantee that all assigned message identifiers
@@ -3022,8 +3020,7 @@ class MessagesManager final : public Actor {
   bool set_dialog_order(Dialog *d, int64 new_order, bool need_send_update, bool is_loaded_from_database,
                         const char *source);
 
-  void update_dialog_lists(Dialog *d,
-                           FlatHashMap<DialogListId, DialogPositionInList, DialogListIdHash> &&old_positions,
+  void update_dialog_lists(Dialog *d, FlatHashMap<DialogListId, DialogPositionInList, DialogListIdHash> &&old_positions,
                            bool need_send_update, bool is_loaded_from_database, const char *source);
 
   void update_last_dialog_date(FolderId folder_id);
@@ -3326,10 +3323,9 @@ class MessagesManager final : public Actor {
 
   FlatHashMap<int64, FullMessageId> being_sent_messages_;  // message_random_id -> message
 
-  FlatHashMap<FullMessageId, MessageId, FullMessageIdHash>
-      update_message_ids_;  // new_message_id -> temporary_id
+  FlatHashMap<FullMessageId, MessageId, FullMessageIdHash> update_message_ids_;  // new_message_id -> temporary_id
   FlatHashMap<DialogId, FlatHashMap<ScheduledServerMessageId, MessageId, ScheduledServerMessageIdHash>,
-                     DialogIdHash>
+              DialogIdHash>
       update_scheduled_message_ids_;  // new_message_id -> temporary_id
 
   const char *debug_add_message_to_dialog_fail_reason_ = "";
@@ -3444,7 +3440,7 @@ class MessagesManager final : public Actor {
 
   FlatHashMap<int64, td_api::object_ptr<td_api::messageCalendar>> found_dialog_message_calendars_;
   FlatHashMap<int64, std::pair<int32, vector<MessageId>>>
-      found_dialog_messages_;                                            // random_id -> [total_count, [message_id]...]
+      found_dialog_messages_;                                     // random_id -> [total_count, [message_id]...]
   FlatHashMap<int64, DialogId> found_dialog_messages_dialog_id_;  // random_id -> dialog_id
   FlatHashMap<int64, std::pair<int32, vector<FullMessageId>>>
       found_messages_;  // random_id -> [total_count, [full_message_id]...]
@@ -3578,8 +3574,7 @@ class MessagesManager final : public Actor {
 
   ChangesProcessor<unique_ptr<PendingSecretMessage>> pending_secret_messages_;
 
-  FlatHashMap<DialogId, vector<DialogId>, DialogIdHash>
-      pending_add_dialog_last_database_message_dependent_dialogs_;
+  FlatHashMap<DialogId, vector<DialogId>, DialogIdHash> pending_add_dialog_last_database_message_dependent_dialogs_;
   FlatHashMap<DialogId, std::pair<int32, unique_ptr<Message>>, DialogIdHash>
       pending_add_dialog_last_database_message_;  // dialog -> dependency counter + message
 

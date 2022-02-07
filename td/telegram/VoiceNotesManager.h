@@ -12,7 +12,6 @@
 #include "td/telegram/telegram_api.h"
 
 #include "td/utils/common.h"
-
 #include "td/utils/FlatHashMap.h"
 
 namespace td {

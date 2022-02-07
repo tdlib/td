@@ -10,6 +10,7 @@
 #include "td/telegram/td_api_json.h"
 
 #include "td/utils/common.h"
+#include "td/utils/FlatHashMap.h"
 #include "td/utils/JsonBuilder.h"
 #include "td/utils/port/thread_local.h"
 #include "td/utils/SliceBuilder.h"

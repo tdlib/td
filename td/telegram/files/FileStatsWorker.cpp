@@ -19,6 +19,7 @@
 
 #include "td/db/SqliteKeyValue.h"
 
+#include "td/utils/FlatHashMap.h"
 #include "td/utils/format.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
@@ -31,7 +32,6 @@
 #include "td/utils/tl_parsers.h"
 
 #include <functional>
-#include "td/utils/FlatHashMap.h"
 #include <unordered_set>
 
 namespace td {

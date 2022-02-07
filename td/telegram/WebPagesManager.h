@@ -20,9 +20,9 @@
 #include "td/actor/Timeout.h"
 
 #include "td/utils/common.h"
+#include "td/utils/FlatHashMap.h"
 #include "td/utils/Status.h"
 
-#include "td/utils/FlatHashMap.h"
 #include <unordered_set>
 #include <utility>
 
@@ -192,8 +192,7 @@ class WebPagesManager final : public Actor {
 
   FlatHashMap<WebPageId, std::unordered_set<FullMessageId, FullMessageIdHash>, WebPageIdHash> web_page_messages_;
 
-  FlatHashMap<WebPageId, FlatHashMap<int64, std::pair<string, Promise<Unit>>>, WebPageIdHash>
-      pending_get_web_pages_;
+  FlatHashMap<WebPageId, FlatHashMap<int64, std::pair<string, Promise<Unit>>>, WebPageIdHash> pending_get_web_pages_;
 
   int64 get_web_page_preview_request_id_ = 1;
   FlatHashMap<int64, WebPageId> got_web_page_previews_;

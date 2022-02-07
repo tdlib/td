@@ -10,11 +10,11 @@
 #include "td/telegram/files/FileType.h"
 
 #include "td/utils/common.h"
+#include "td/utils/FlatHashMap.h"
 #include "td/utils/StringBuilder.h"
 #include "td/utils/tl_helpers.h"
 
 #include <array>
-#include "td/utils/FlatHashMap.h"
 
 namespace td {
 

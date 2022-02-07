@@ -22,6 +22,7 @@
 #include "td/utils/buffer.h"
 #include "td/utils/CancellationToken.h"
 #include "td/utils/common.h"
+#include "td/utils/FlatHashMap.h"
 #include "td/utils/List.h"
 #include "td/utils/Status.h"
 #include "td/utils/StringBuilder.h"
@@ -32,7 +33,6 @@
 #include <functional>
 #include <map>
 #include <memory>
-#include "td/utils/FlatHashMap.h"
 #include <unordered_set>
 #include <utility>
 

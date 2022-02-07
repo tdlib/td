@@ -48,6 +48,7 @@
 #include "td/utils/common.h"
 #include "td/utils/crypto.h"
 #include "td/utils/emoji.h"
+#include "td/utils/FlatHashMap.h"
 #include "td/utils/format.h"
 #include "td/utils/JsonBuilder.h"
 #include "td/utils/logging.h"
@@ -61,9 +62,9 @@
 #include "td/utils/tl_parsers.h"
 #include "td/utils/UInt.h"
 
+#include "td/utils/FlatHashMap.h"
 #include <functional>
 #include <memory>
-#include "td/utils/FlatHashMap.h"
 #include <utility>
 
 namespace td {

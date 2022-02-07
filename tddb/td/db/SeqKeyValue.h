@@ -6,9 +6,8 @@
 //
 #pragma once
 
-#include "td/utils/Slice.h"
-
 #include "td/utils/FlatHashMap.h"
+#include "td/utils/Slice.h"
 
 namespace td {
 

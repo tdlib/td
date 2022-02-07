@@ -8,13 +8,13 @@
 
 #include "td/telegram/Client.h"
 
+#include "td/utils/FlatHashMap.h"
 #include "td/utils/Slice.h"
 
 #include <atomic>
 #include <cstdint>
 #include <mutex>
 #include <string>
-#include "td/utils/FlatHashMap.h"
 
 namespace td {
 

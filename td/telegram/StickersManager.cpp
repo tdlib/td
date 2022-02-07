@@ -46,6 +46,7 @@
 #include "td/utils/algorithm.h"
 #include "td/utils/base64.h"
 #include "td/utils/emoji.h"
+#include "td/utils/FlatHashMap.h"
 #include "td/utils/format.h"
 #include "td/utils/JsonBuilder.h"
 #include "td/utils/logging.h"

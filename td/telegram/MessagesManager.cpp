@@ -1,4 +1,6 @@
 //
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
+//
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
@@ -81,7 +83,6 @@
 #include <limits>
 #include <tuple>
 #include <type_traits>
-#include "td/utils/FlatHashMap.h"
 #include <unordered_set>
 #include <utility>
 
@@ -36572,8 +36573,8 @@ bool MessagesManager::set_dialog_order(Dialog *d, int64 new_order, bool need_sen
 }
 
 void MessagesManager::update_dialog_lists(
-    Dialog *d, FlatHashMap<DialogListId, DialogPositionInList, DialogListIdHash> &&old_positions,
-    bool need_send_update, bool is_loaded_from_database, const char *source) {
+    Dialog *d, FlatHashMap<DialogListId, DialogPositionInList, DialogListIdHash> &&old_positions, bool need_send_update,
+    bool is_loaded_from_database, const char *source) {
   if (td_->auth_manager_->is_bot()) {
     return;
   }

@@ -23,6 +23,7 @@
 #include "td/utils/base64.h"
 #include "td/utils/common.h"
 #include "td/utils/filesystem.h"
+#include "td/utils/FlatHashMap.h"
 #include "td/utils/logging.h"
 #include "td/utils/port/FileFd.h"
 #include "td/utils/port/thread.h"
@@ -34,7 +35,6 @@
 #include <limits>
 #include <map>
 #include <memory>
-#include <unordered_map>
 
 template <class ContainerT>
 static typename ContainerT::value_type &rand_elem(ContainerT &cont) {

@@ -15,11 +15,11 @@
 
 #include "td/utils/common.h"
 #include "td/utils/Container.h"
+#include "td/utils/FlatHashMap.h"
 #include "td/utils/Slice.h"
 #include "td/utils/Status.h"
 
 #include <mutex>
-#include "td/utils/FlatHashMap.h"
 #include <utility>
 
 namespace td {
@@ -125,15 +125,11 @@ class LanguagePackManager final : public NetQueryCallback {
       const PluralizedString &value);
   static td_api::object_ptr<td_api::LanguagePackStringValue> get_language_pack_string_value_object();
 
-  static td_api::object_ptr<td_api::languagePackString> get_language_pack_string_object(
-      const std::pair<string, string> &str);
-  static td_api::object_ptr<td_api::languagePackString> get_language_pack_string_object(
-      const string &, const string &);
-  static td_api::object_ptr<td_api::languagePackString> get_language_pack_string_object(
-      const std::pair<string, PluralizedString> &str);
-  static td_api::object_ptr<td_api::languagePackString> get_language_pack_string_object(
-      const string &, const PluralizedString &);
-  static td_api::object_ptr<td_api::languagePackString> get_language_pack_string_object(const string &str);
+  static td_api::object_ptr<td_api::languagePackString> get_language_pack_string_object(const string &key,
+                                                                                        const string &value);
+  static td_api::object_ptr<td_api::languagePackString> get_language_pack_string_object(const string &key,
+                                                                                        const PluralizedString &value);
+  static td_api::object_ptr<td_api::languagePackString> get_language_pack_string_object(const string &key);
 
   static td_api::object_ptr<td_api::LanguagePackStringValue> get_language_pack_string_value_object(
       const Language *language, const string &key);

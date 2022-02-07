@@ -25,6 +25,7 @@
 #include "td/utils/ExitGuard.h"
 #include "td/utils/FileLog.h"
 #include "td/utils/filesystem.h"
+#include "td/utils/FlatHashMap.h"
 #include "td/utils/format.h"
 #include "td/utils/JsonBuilder.h"
 #include "td/utils/logging.h"
@@ -63,7 +64,6 @@
 #include <memory>
 #include <queue>
 #include <tuple>
-#include "td/utils/FlatHashMap.h"
 #include <unordered_set>
 #include <utility>
 

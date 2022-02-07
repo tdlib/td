@@ -16,6 +16,7 @@
 #include "td/utils/common.h"
 #include "td/utils/crypto.h"
 #include "td/utils/ExitGuard.h"
+#include "td/utils/FlatHashMap.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/MpscPollableQueue.h"
@@ -29,7 +30,6 @@
 #include <memory>
 #include <mutex>
 #include <queue>
-#include "td/utils/FlatHashMap.h"
 #include <unordered_set>
 
 namespace td {

@@ -18,6 +18,7 @@
 #include "td/actor/SchedulerLocalStorage.h"
 
 #include "td/utils/common.h"
+#include "td/utils/FlatHashMap.h"
 #include "td/utils/logging.h"
 #include "td/utils/Slice.h"
 #include "td/utils/Status.h"
@@ -26,7 +27,6 @@
 #include <atomic>
 #include <memory>
 #include <mutex>
-#include "td/utils/FlatHashMap.h"
 
 namespace td {
 class AnimationsManager;
