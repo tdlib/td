@@ -956,6 +956,7 @@ void SessionConnection::flush_packet() {
       std::any_of(queries.begin(), queries.end(), [](const auto &query) { return query.use_quick_ack; });
 
   {
+    // LOG(ERROR) << (auth_data_->get_header().empty() ? '-' : '+');
     uint64 parent_message_id = 0;
     auto storer = PacketStorer<CryptoImpl>(
         queries, auth_data_->get_header(), std::move(to_ack), ping_id, ping_disconnect_delay() + 2, max_delay,

@@ -839,9 +839,14 @@ void Session::on_message_result_error(uint64 id, int error_code, string message)
       }
     }
   }
+  if (error_code == 400 && (message == "CONNECTION_NOT_INITED" || message == "CONNECTION_LAYER_INVALID")) {
+    LOG(WARNING) << "Receive " << message;
+    auth_data_.on_connection_not_inited();
+    error_code = 500;
+  }
 
   if (id == 0) {
-    LOG(WARNING) << "Session got error update";
+    LOG(ERROR) << "Received an error update";
     return;
   }
 

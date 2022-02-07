@@ -169,13 +169,17 @@ class AuthData {
 
   void on_api_response() {
     if (use_pfs()) {
-      if (tmp_auth_key_.auth_flag()) {
-        tmp_auth_key_.remove_header();
-      }
+      tmp_auth_key_.remove_header();
     } else {
-      if (main_auth_key_.auth_flag()) {
-        main_auth_key_.remove_header();
-      }
+      main_auth_key_.remove_header();
+    }
+  }
+
+  void on_connection_not_inited() {
+    if (use_pfs()) {
+      tmp_auth_key_.restore_header();
+    } else {
+      main_auth_key_.restore_header();
     }
   }
 

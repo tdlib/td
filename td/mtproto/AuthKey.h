@@ -42,10 +42,13 @@ class AuthKey {
     return have_header_ || Time::now() < header_expires_at_;
   }
   void remove_header() {
-    if (have_header_) {
+    if (auth_flag_ && have_header_) {
       have_header_ = false;
       header_expires_at_ = Time::now() + 3;
     }
+  }
+  void restore_header() {
+    have_header_ = true;
   }
 
   double expires_at() const {
