@@ -17,7 +17,7 @@
 #include "td/utils/Status.h"
 
 #include <map>
-#include <unordered_map>
+#include "td/utils/FlatHashMap.h"
 
 namespace td {
 
@@ -48,7 +48,7 @@ class CallManager final : public Actor {
   };
   std::map<int64, CallInfo> call_info_;
   int32 next_call_id_{1};
-  std::unordered_map<CallId, ActorOwn<CallActor>, CallIdHash> id_to_actor_;
+  FlatHashMap<CallId, ActorOwn<CallActor>, CallIdHash> id_to_actor_;
 
   ActorId<CallActor> get_call_actor(CallId call_id);
   CallId create_call_actor();

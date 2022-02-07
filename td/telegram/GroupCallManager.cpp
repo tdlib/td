@@ -883,7 +883,7 @@ struct GroupCallManager::GroupCallParticipants {
   vector<DialogId> administrator_dialog_ids;
 
   struct PendingUpdates {
-    std::unordered_map<DialogId, GroupCallParticipant, DialogIdHash> updates;
+    FlatHashMap<DialogId, GroupCallParticipant, DialogIdHash> updates;
   };
   std::map<int32, PendingUpdates> pending_version_updates_;
   std::map<int32, PendingUpdates> pending_mute_updates_;

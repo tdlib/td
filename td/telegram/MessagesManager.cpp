@@ -1,6 +1,4 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
-//
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
@@ -83,7 +81,7 @@
 #include <limits>
 #include <tuple>
 #include <type_traits>
-#include <unordered_map>
+#include "td/utils/FlatHashMap.h"
 #include <unordered_set>
 #include <utility>
 
@@ -8115,9 +8113,9 @@ void MessagesManager::update_scope_unmute_timeout(NotificationSettingsScope scop
   auto is_muted = new_mute_until != 0;
   if (was_muted != is_muted) {
     if (G()->parameters().use_message_db) {
-      std::unordered_map<DialogListId, int32, DialogListIdHash> delta;
-      std::unordered_map<DialogListId, int32, DialogListIdHash> total_count;
-      std::unordered_map<DialogListId, int32, DialogListIdHash> marked_count;
+      FlatHashMap<DialogListId, int32, DialogListIdHash> delta;
+      FlatHashMap<DialogListId, int32, DialogListIdHash> total_count;
+      FlatHashMap<DialogListId, int32, DialogListIdHash> marked_count;
       std::unordered_set<DialogListId, DialogListIdHash> dialog_list_ids;
       for (auto &dialog : dialogs_) {
         Dialog *d = dialog.second.get();
@@ -10319,7 +10317,7 @@ void MessagesManager::on_get_scheduled_server_messages(DialogId dialog_id, uint3
   vector<MessageId> old_message_ids;
   find_old_messages(d->scheduled_messages.get(),
                     MessageId(ScheduledServerMessageId(), std::numeric_limits<int32>::max(), true), old_message_ids);
-  std::unordered_map<ScheduledServerMessageId, MessageId, ScheduledServerMessageIdHash> old_server_message_ids;
+  FlatHashMap<ScheduledServerMessageId, MessageId, ScheduledServerMessageIdHash> old_server_message_ids;
   for (auto &message_id : old_message_ids) {
     if (message_id.is_scheduled_server()) {
       old_server_message_ids[message_id.get_scheduled_server_message_id()] = message_id;
@@ -10433,8 +10431,8 @@ void MessagesManager::on_get_message_public_forwards(int32 total_count,
 }
 
 void MessagesManager::delete_messages_from_updates(const vector<MessageId> &message_ids) {
-  std::unordered_map<DialogId, vector<int64>, DialogIdHash> deleted_message_ids;
-  std::unordered_map<DialogId, bool, DialogIdHash> need_update_dialog_pos;
+  FlatHashMap<DialogId, vector<int64>, DialogIdHash> deleted_message_ids;
+  FlatHashMap<DialogId, bool, DialogIdHash> need_update_dialog_pos;
   for (auto message_id : message_ids) {
     if (!message_id.is_valid() || !message_id.is_server()) {
       LOG(ERROR) << "Incoming update tries to delete " << message_id;
@@ -12865,7 +12863,7 @@ void MessagesManager::ttl_period_unregister_message(DialogId dialog_id, const Me
 }
 
 void MessagesManager::ttl_loop(double now) {
-  std::unordered_map<DialogId, std::vector<MessageId>, DialogIdHash> to_delete;
+  FlatHashMap<DialogId, std::vector<MessageId>, DialogIdHash> to_delete;
   while (!ttl_heap_.empty() && ttl_heap_.top_key() < now) {
     TtlNode *ttl_node = TtlNode::from_heap_node(ttl_heap_.pop());
     auto full_message_id = ttl_node->full_message_id_;
@@ -15141,8 +15139,8 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
   } else {
     LOG(INFO) << "Process " << dialogs.size() << " chats out of " << total_count << " in " << folder_id;
   }
-  std::unordered_map<FullMessageId, DialogDate, FullMessageIdHash> full_message_id_to_dialog_date;
-  std::unordered_map<FullMessageId, tl_object_ptr<telegram_api::Message>, FullMessageIdHash> full_message_id_to_message;
+  FlatHashMap<FullMessageId, DialogDate, FullMessageIdHash> full_message_id_to_dialog_date;
+  FlatHashMap<FullMessageId, tl_object_ptr<telegram_api::Message>, FullMessageIdHash> full_message_id_to_message;
   for (auto &message : messages) {
     auto full_message_id = get_full_message_id(message, false);
     if (from_dialog_list) {
@@ -16964,7 +16962,7 @@ void MessagesManager::on_get_dialog_filters(Result<vector<tl_object_ptr<telegram
   if (server_dialog_filters_ != new_server_dialog_filters) {
     LOG(INFO) << "Change server chat filters from " << get_dialog_filter_ids(server_dialog_filters_) << " to "
               << get_dialog_filter_ids(new_server_dialog_filters);
-    std::unordered_map<DialogFilterId, const DialogFilter *, DialogFilterIdHash> old_server_dialog_filters;
+    FlatHashMap<DialogFilterId, const DialogFilter *, DialogFilterIdHash> old_server_dialog_filters;
     for (const auto &filter : server_dialog_filters_) {
       old_server_dialog_filters.emplace(filter->dialog_filter_id, filter.get());
     }
@@ -18274,8 +18272,8 @@ void MessagesManager::get_messages_from_server(vector<FullMessageId> &&message_i
   }
 
   vector<tl_object_ptr<telegram_api::InputMessage>> ordinary_message_ids;
-  std::unordered_map<ChannelId, vector<tl_object_ptr<telegram_api::InputMessage>>, ChannelIdHash> channel_message_ids;
-  std::unordered_map<DialogId, vector<int32>, DialogIdHash> scheduled_message_ids;
+  FlatHashMap<ChannelId, vector<tl_object_ptr<telegram_api::InputMessage>>, ChannelIdHash> channel_message_ids;
+  FlatHashMap<DialogId, vector<int32>, DialogIdHash> scheduled_message_ids;
   for (auto &full_message_id : message_ids) {
     auto dialog_id = full_message_id.get_dialog_id();
     auto message_id = full_message_id.get_message_id();
@@ -27862,8 +27860,8 @@ Result<MessagesManager::ForwardedMessages> MessagesManager::get_forwarded_messag
   auto &copied_messages = result.copied_messages;
   auto &forwarded_message_contents = result.forwarded_message_contents;
 
-  std::unordered_map<int64, std::pair<int64, int32>> new_copied_media_album_ids;
-  std::unordered_map<int64, std::pair<int64, int32>> new_forwarded_media_album_ids;
+  FlatHashMap<int64, std::pair<int64, int32>> new_copied_media_album_ids;
+  FlatHashMap<int64, std::pair<int64, int32>> new_forwarded_media_album_ids;
 
   for (size_t i = 0; i < message_ids.size(); i++) {
     MessageId message_id = get_persistent_message_id(from_dialog, message_ids[i]);
@@ -28129,7 +28127,7 @@ Result<vector<MessageId>> MessagesManager::resend_messages(DialogId dialog_id, v
   }
 
   vector<unique_ptr<MessageContent>> new_contents(message_ids.size());
-  std::unordered_map<int64, std::pair<int64, int32>> new_media_album_ids;
+  FlatHashMap<int64, std::pair<int64, int32>> new_media_album_ids;
   for (size_t i = 0; i < message_ids.size(); i++) {
     MessageId message_id = message_ids[i];
     const Message *m = get_message(d, message_id);
@@ -36574,7 +36572,7 @@ bool MessagesManager::set_dialog_order(Dialog *d, int64 new_order, bool need_sen
 }
 
 void MessagesManager::update_dialog_lists(
-    Dialog *d, std::unordered_map<DialogListId, DialogPositionInList, DialogListIdHash> &&old_positions,
+    Dialog *d, FlatHashMap<DialogListId, DialogPositionInList, DialogListIdHash> &&old_positions,
     bool need_send_update, bool is_loaded_from_database, const char *source) {
   if (td_->auth_manager_->is_bot()) {
     return;
@@ -37173,10 +37171,10 @@ MessagesManager::DialogPositionInList MessagesManager::get_dialog_position_in_li
   return position;
 }
 
-std::unordered_map<DialogListId, MessagesManager::DialogPositionInList, DialogListIdHash>
+FlatHashMap<DialogListId, MessagesManager::DialogPositionInList, DialogListIdHash>
 MessagesManager::get_dialog_positions(const Dialog *d) const {
   CHECK(d != nullptr);
-  std::unordered_map<DialogListId, MessagesManager::DialogPositionInList, DialogListIdHash> positions;
+  FlatHashMap<DialogListId, MessagesManager::DialogPositionInList, DialogListIdHash> positions;
   if (!td_->auth_manager_->is_bot()) {
     for (const auto &dialog_list : dialog_lists_) {
       positions.emplace(dialog_list.first, get_dialog_position_in_list(&dialog_list.second, d));
@@ -37656,7 +37654,7 @@ void MessagesManager::on_get_channel_dialog(DialogId dialog_id, MessageId last_m
                                             int32 unread_mention_count, int32 unread_reaction_count,
                                             MessageId read_outbox_max_message_id,
                                             vector<tl_object_ptr<telegram_api::Message>> &&messages) {
-  std::unordered_map<FullMessageId, tl_object_ptr<telegram_api::Message>, FullMessageIdHash> full_message_id_to_message;
+  FlatHashMap<FullMessageId, tl_object_ptr<telegram_api::Message>, FullMessageIdHash> full_message_id_to_message;
   for (auto &message : messages) {
     auto message_id = get_message_id(message, false);
     auto message_dialog_id = get_message_dialog_id(message);

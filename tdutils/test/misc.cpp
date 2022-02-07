@@ -50,6 +50,7 @@
 
 #if TD_HAVE_ABSL
 #include <absl/container/flat_hash_map.h>
+#include <absl/hash/hash.h>
 #endif
 
 struct CheckExitGuard {
@@ -1174,7 +1175,7 @@ static void test_hash() {
 TEST(Misc, Hasher) {
   test_hash<td::TdHash>();
 #if TD_HAVE_ABSL
-  test_hash<AbslHash>();
+  test_hash<td::AbslHash>();
 #endif
 }
 

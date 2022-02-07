@@ -22,7 +22,7 @@
 #include "td/utils/Status.h"
 
 #include <memory>
-#include <unordered_map>
+#include "td/utils/FlatHashMap.h"
 #include <unordered_set>
 #include <utility>
 
@@ -160,17 +160,17 @@ class BackgroundManager final : public Actor {
   void do_upload_background_file(FileId file_id, const BackgroundType &type, bool for_dark_theme,
                                  tl_object_ptr<telegram_api::InputFile> &&input_file, Promise<Unit> &&promise);
 
-  std::unordered_map<BackgroundId, Background, BackgroundIdHash> backgrounds_;
+  FlatHashMap<BackgroundId, Background, BackgroundIdHash> backgrounds_;
 
-  std::unordered_map<BackgroundId, std::pair<int64, FileSourceId>, BackgroundIdHash>
+  FlatHashMap<BackgroundId, std::pair<int64, FileSourceId>, BackgroundIdHash>
       background_id_to_file_source_id_;  // id -> [access_hash, file_source_id]
 
-  std::unordered_map<string, BackgroundId> name_to_background_id_;
+  FlatHashMap<string, BackgroundId> name_to_background_id_;
 
-  std::unordered_map<FileId, BackgroundId, FileIdHash> file_id_to_background_id_;
+  FlatHashMap<FileId, BackgroundId, FileIdHash> file_id_to_background_id_;
 
   std::unordered_set<string> loaded_from_database_backgrounds_;
-  std::unordered_map<string, vector<Promise<Unit>>> being_loaded_from_database_backgrounds_;
+  FlatHashMap<string, vector<Promise<Unit>>> being_loaded_from_database_backgrounds_;
 
   BackgroundId set_background_id_[2];
   BackgroundType set_background_type_[2];
@@ -190,7 +190,7 @@ class BackgroundManager final : public Actor {
         : type_(type), for_dark_theme_(for_dark_theme), promise_(std::move(promise)) {
     }
   };
-  std::unordered_map<FileId, UploadedFileInfo, FileIdHash> being_uploaded_files_;
+  FlatHashMap<FileId, UploadedFileInfo, FileIdHash> being_uploaded_files_;
 
   BackgroundId max_local_background_id_;
   vector<BackgroundId> local_background_ids_[2];

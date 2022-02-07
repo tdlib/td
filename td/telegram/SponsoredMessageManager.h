@@ -18,7 +18,7 @@
 #include "td/utils/common.h"
 #include "td/utils/Status.h"
 
-#include <unordered_map>
+#include "td/utils/FlatHashMap.h"
 
 namespace td {
 
@@ -58,7 +58,7 @@ class SponsoredMessageManager final : public Actor {
   void on_get_dialog_sponsored_messages(
       DialogId dialog_id, Result<telegram_api::object_ptr<telegram_api::messages_sponsoredMessages>> &&result);
 
-  std::unordered_map<DialogId, unique_ptr<DialogSponsoredMessages>, DialogIdHash> dialog_sponsored_messages_;
+  FlatHashMap<DialogId, unique_ptr<DialogSponsoredMessages>, DialogIdHash> dialog_sponsored_messages_;
 
   MessageId current_sponsored_message_id_ = MessageId::max();
 

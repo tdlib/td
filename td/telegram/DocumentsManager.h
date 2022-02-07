@@ -19,7 +19,7 @@
 #include "td/utils/buffer.h"
 #include "td/utils/common.h"
 
-#include <unordered_map>
+#include "td/utils/FlatHashMap.h"
 #include <utility>
 
 namespace td {
@@ -125,7 +125,7 @@ class DocumentsManager {
   FileId on_get_document(unique_ptr<GeneralDocument> new_document, bool replace);
 
   Td *td_;
-  std::unordered_map<FileId, unique_ptr<GeneralDocument>, FileIdHash> documents_;  // file_id -> GeneralDocument
+  FlatHashMap<FileId, unique_ptr<GeneralDocument>, FileIdHash> documents_;  // file_id -> GeneralDocument
 };
 
 }  // namespace td

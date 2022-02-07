@@ -61,7 +61,7 @@
 #include <algorithm>
 #include <iterator>
 #include <limits>
-#include <unordered_map>
+#include "td/utils/FlatHashMap.h"
 #include <unordered_set>
 
 namespace td {
@@ -1075,8 +1075,8 @@ void NotificationManager::flush_pending_updates(int32 group_id, const char *sour
     is_changed = false;
 
     size_t cur_pos = 0;
-    std::unordered_map<int32, size_t> first_add_notification_pos;
-    std::unordered_map<int32, size_t> first_edit_notification_pos;
+    FlatHashMap<int32, size_t> first_add_notification_pos;
+    FlatHashMap<int32, size_t> first_edit_notification_pos;
     std::unordered_set<int32> can_be_deleted_notification_ids;
     std::vector<int32> moved_deleted_notification_ids;
     size_t first_notification_group_pos = 0;

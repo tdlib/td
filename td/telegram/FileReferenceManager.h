@@ -25,7 +25,7 @@
 #include "td/utils/Status.h"
 #include "td/utils/Variant.h"
 
-#include <unordered_map>
+#include "td/utils/FlatHashMap.h"
 
 namespace td {
 
@@ -150,7 +150,7 @@ class FileReferenceManager final : public Actor {
 
   int64 query_generation_{0};
 
-  std::unordered_map<NodeId, Node, FileIdHash> nodes_;
+  FlatHashMap<NodeId, Node, FileIdHash> nodes_;
 
   void run_node(NodeId node);
   void send_query(Destination dest, FileSourceId file_source_id);

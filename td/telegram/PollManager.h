@@ -23,7 +23,7 @@
 #include "td/utils/common.h"
 #include "td/utils/Status.h"
 
-#include <unordered_map>
+#include "td/utils/FlatHashMap.h"
 #include <unordered_set>
 #include <utility>
 
@@ -207,9 +207,9 @@ class PollManager final : public Actor {
 
   Td *td_;
   ActorShared<> parent_;
-  std::unordered_map<PollId, unique_ptr<Poll>, PollIdHash> polls_;
+  FlatHashMap<PollId, unique_ptr<Poll>, PollIdHash> polls_;
 
-  std::unordered_map<PollId, std::unordered_set<FullMessageId, FullMessageIdHash>, PollIdHash> poll_messages_;
+  FlatHashMap<PollId, std::unordered_set<FullMessageId, FullMessageIdHash>, PollIdHash> poll_messages_;
 
   struct PendingPollAnswer {
     vector<string> options_;
@@ -218,9 +218,9 @@ class PollManager final : public Actor {
     uint64 log_event_id_ = 0;
     NetQueryRef query_ref_;
   };
-  std::unordered_map<PollId, PendingPollAnswer, PollIdHash> pending_answers_;
+  FlatHashMap<PollId, PendingPollAnswer, PollIdHash> pending_answers_;
 
-  std::unordered_map<PollId, vector<PollOptionVoters>, PollIdHash> poll_voters_;
+  FlatHashMap<PollId, vector<PollOptionVoters>, PollIdHash> poll_voters_;
 
   int64 current_local_poll_id_ = 0;
 

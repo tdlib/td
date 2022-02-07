@@ -63,7 +63,7 @@
 
 #include <functional>
 #include <memory>
-#include <unordered_map>
+#include "td/utils/FlatHashMap.h"
 #include <utility>
 
 namespace td {
@@ -1495,8 +1495,8 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
   vector<tl_object_ptr<telegram_api::jsonObjectValue>> new_values;
   string ignored_restriction_reasons;
   vector<string> dice_emojis;
-  std::unordered_map<string, size_t> dice_emoji_index;
-  std::unordered_map<string, string> dice_emoji_success_value;
+  FlatHashMap<string, size_t> dice_emoji_index;
+  FlatHashMap<string, string> dice_emoji_success_value;
   vector<string> emoji_sounds;
   string animation_search_provider;
   string animation_search_emojis;

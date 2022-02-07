@@ -8,7 +8,7 @@
 
 #include "td/utils/Slice.h"
 
-#include <unordered_map>
+#include "td/utils/FlatHashMap.h"
 
 namespace td {
 
@@ -23,7 +23,7 @@ class SeqKeyValue {
   ~SeqKeyValue() = default;
 
   SeqNo set(Slice key, Slice value) {
-    auto it_ok = map_.insert({key.str(), value.str()});
+    auto it_ok = map_.emplace(key.str(), value.str());
     if (!it_ok.second) {
       if (it_ok.first->second == value) {
         return 0;
@@ -62,12 +62,12 @@ class SeqKeyValue {
     return map_.size();
   }
 
-  std::unordered_map<string, string> get_all() const {
+  FlatHashMap<string, string> get_all() const {
     return map_;
   }
 
  private:
-  std::unordered_map<string, string> map_;
+  FlatHashMap<string, string> map_;
   SeqNo current_id_ = 0;
   SeqNo next_seq_no() {
     return ++current_id_;

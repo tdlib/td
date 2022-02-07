@@ -25,7 +25,7 @@
 #include "td/utils/common.h"
 #include "td/utils/Status.h"
 
-#include <unordered_map>
+#include "td/utils/FlatHashMap.h"
 #include <utility>
 
 namespace td {
@@ -141,12 +141,12 @@ class InlineQueriesManager final : public Actor {
   };
 
   MultiTimeout drop_inline_query_result_timeout_{"DropInlineQueryResultTimeout"};
-  std::unordered_map<uint64, InlineQueryResult> inline_query_results_;  // query_hash -> result
+  FlatHashMap<uint64, InlineQueryResult> inline_query_results_;  // query_hash -> result
 
-  std::unordered_map<int64, std::unordered_map<string, InlineMessageContent>>
+  FlatHashMap<int64, FlatHashMap<string, InlineMessageContent>>
       inline_message_contents_;  // query_id -> [result_id -> inline_message_content]
 
-  std::unordered_map<int64, UserId> query_id_to_bot_user_id_;
+  FlatHashMap<int64, UserId> query_id_to_bot_user_id_;
 
   Td *td_;
   ActorShared<> parent_;

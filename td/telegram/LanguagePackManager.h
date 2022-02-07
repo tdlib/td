@@ -19,7 +19,7 @@
 #include "td/utils/Status.h"
 
 #include <mutex>
-#include <unordered_map>
+#include "td/utils/FlatHashMap.h"
 #include <utility>
 
 namespace td {
@@ -100,12 +100,12 @@ class LanguagePackManager final : public NetQueryCallback {
     vector<Promise<td_api::object_ptr<td_api::languagePackStrings>>> queries_;
   };
 
-  std::unordered_map<string, std::unordered_map<string, PendingQueries>> get_all_language_pack_strings_queries_;
+  FlatHashMap<string, FlatHashMap<string, PendingQueries>> get_all_language_pack_strings_queries_;
 
   static int32 manager_count_;
 
   static std::mutex language_database_mutex_;
-  static std::unordered_map<string, unique_ptr<LanguageDatabase>> language_databases_;
+  static FlatHashMap<string, unique_ptr<LanguageDatabase>> language_databases_;
 
   static LanguageDatabase *add_language_database(string path);
 
@@ -128,7 +128,11 @@ class LanguagePackManager final : public NetQueryCallback {
   static td_api::object_ptr<td_api::languagePackString> get_language_pack_string_object(
       const std::pair<string, string> &str);
   static td_api::object_ptr<td_api::languagePackString> get_language_pack_string_object(
+      const string &, const string &);
+  static td_api::object_ptr<td_api::languagePackString> get_language_pack_string_object(
       const std::pair<string, PluralizedString> &str);
+  static td_api::object_ptr<td_api::languagePackString> get_language_pack_string_object(
+      const string &, const PluralizedString &);
   static td_api::object_ptr<td_api::languagePackString> get_language_pack_string_object(const string &str);
 
   static td_api::object_ptr<td_api::LanguagePackStringValue> get_language_pack_string_value_object(

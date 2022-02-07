@@ -15,7 +15,7 @@
 #include "td/utils/buffer.h"
 #include "td/utils/common.h"
 
-#include <unordered_map>
+#include "td/utils/FlatHashMap.h"
 
 namespace td {
 
@@ -70,7 +70,7 @@ class VideoNotesManager {
   FileId on_get_video_note(unique_ptr<VideoNote> new_video_note, bool replace);
 
   Td *td_;
-  std::unordered_map<FileId, unique_ptr<VideoNote>, FileIdHash> video_notes_;
+  FlatHashMap<FileId, unique_ptr<VideoNote>, FileIdHash> video_notes_;
 };
 
 }  // namespace td

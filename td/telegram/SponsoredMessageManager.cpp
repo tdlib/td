@@ -111,7 +111,7 @@ struct SponsoredMessageManager::SponsoredMessage {
 struct SponsoredMessageManager::DialogSponsoredMessages {
   vector<Promise<td_api::object_ptr<td_api::sponsoredMessage>>> promises;
   vector<SponsoredMessage> messages;
-  std::unordered_map<int64, string> message_random_ids;
+  FlatHashMap<int64, string> message_random_ids;
 };
 
 SponsoredMessageManager::SponsoredMessageManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {

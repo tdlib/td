@@ -31,7 +31,7 @@
 
 #include <functional>
 #include <map>
-#include <unordered_map>
+#include "td/utils/FlatHashMap.h"
 #include <unordered_set>
 
 namespace td {
@@ -375,19 +375,19 @@ class NotificationManager final : public Actor {
   std::unordered_set<int32> running_get_chat_difference_;
 
   NotificationGroups groups_;
-  std::unordered_map<NotificationGroupId, NotificationGroupKey, NotificationGroupIdHash> group_keys_;
+  FlatHashMap<NotificationGroupId, NotificationGroupKey, NotificationGroupIdHash> group_keys_;
 
-  std::unordered_map<int32, vector<td_api::object_ptr<td_api::Update>>> pending_updates_;
+  FlatHashMap<int32, vector<td_api::object_ptr<td_api::Update>>> pending_updates_;
 
   MultiTimeout flush_pending_notifications_timeout_{"FlushPendingNotificationsTimeout"};
   MultiTimeout flush_pending_updates_timeout_{"FlushPendingUpdatesTimeout"};
 
   vector<NotificationGroupId> call_notification_group_ids_;
   std::unordered_set<NotificationGroupId, NotificationGroupIdHash> available_call_notification_group_ids_;
-  std::unordered_map<DialogId, NotificationGroupId, DialogIdHash> dialog_id_to_call_notification_group_id_;
+  FlatHashMap<DialogId, NotificationGroupId, DialogIdHash> dialog_id_to_call_notification_group_id_;
 
-  std::unordered_map<NotificationId, uint64, NotificationIdHash> temporary_notification_log_event_ids_;
-  std::unordered_map<NotificationId, uint64, NotificationIdHash> temporary_edit_notification_log_event_ids_;
+  FlatHashMap<NotificationId, uint64, NotificationIdHash> temporary_notification_log_event_ids_;
+  FlatHashMap<NotificationId, uint64, NotificationIdHash> temporary_edit_notification_log_event_ids_;
   struct TemporaryNotification {
     NotificationGroupId group_id;
     NotificationId notification_id;
@@ -396,17 +396,17 @@ class NotificationManager final : public Actor {
     string sender_name;
     bool is_outgoing;
   };
-  std::unordered_map<FullMessageId, TemporaryNotification, FullMessageIdHash> temporary_notifications_;
-  std::unordered_map<NotificationId, FullMessageId, NotificationIdHash> temporary_notification_message_ids_;
-  std::unordered_map<NotificationId, vector<Promise<Unit>>, NotificationIdHash> push_notification_promises_;
+  FlatHashMap<FullMessageId, TemporaryNotification, FullMessageIdHash> temporary_notifications_;
+  FlatHashMap<NotificationId, FullMessageId, NotificationIdHash> temporary_notification_message_ids_;
+  FlatHashMap<NotificationId, vector<Promise<Unit>>, NotificationIdHash> push_notification_promises_;
 
   struct ActiveCallNotification {
     CallId call_id;
     NotificationId notification_id;
   };
-  std::unordered_map<DialogId, vector<ActiveCallNotification>, DialogIdHash> active_call_notifications_;
+  FlatHashMap<DialogId, vector<ActiveCallNotification>, DialogIdHash> active_call_notifications_;
 
-  std::unordered_map<int32, int32> announcement_id_date_;
+  FlatHashMap<int32, int32> announcement_id_date_;
 
   Td *td_;
   ActorShared<> parent_;

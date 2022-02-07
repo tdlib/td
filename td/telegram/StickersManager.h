@@ -31,7 +31,7 @@
 
 #include <memory>
 #include <tuple>
-#include <unordered_map>
+#include "td/utils/FlatHashMap.h"
 #include <unordered_set>
 #include <utility>
 
@@ -374,8 +374,8 @@ class StickersManager final : public Actor {
     PhotoSize thumbnail;
 
     vector<FileId> sticker_ids;
-    std::unordered_map<string, vector<FileId>> emoji_stickers_map_;              // emoji -> stickers
-    std::unordered_map<FileId, vector<string>, FileIdHash> sticker_emojis_map_;  // sticker -> emojis
+    FlatHashMap<string, vector<FileId>> emoji_stickers_map_;              // emoji -> stickers
+    FlatHashMap<FileId, vector<string>, FileIdHash> sticker_emojis_map_;  // sticker -> emojis
 
     bool is_installed = false;
     bool is_archived = false;
@@ -758,9 +758,9 @@ class StickersManager final : public Actor {
 
   bool is_inited_ = false;
 
-  std::unordered_map<FileId, unique_ptr<Sticker>, FileIdHash> stickers_;                     // file_id -> Sticker
-  std::unordered_map<StickerSetId, unique_ptr<StickerSet>, StickerSetIdHash> sticker_sets_;  // id -> StickerSet
-  std::unordered_map<string, StickerSetId> short_name_to_sticker_set_id_;
+  FlatHashMap<FileId, unique_ptr<Sticker>, FileIdHash> stickers_;                     // file_id -> Sticker
+  FlatHashMap<StickerSetId, unique_ptr<StickerSet>, StickerSetIdHash> sticker_sets_;  // id -> StickerSet
+  FlatHashMap<string, StickerSetId> short_name_to_sticker_set_id_;
 
   vector<StickerSetId> installed_sticker_set_ids_[2];
   vector<StickerSetId> featured_sticker_set_ids_;
@@ -808,7 +808,7 @@ class StickersManager final : public Actor {
   vector<StickerSetId> archived_sticker_set_ids_[2];
   int32 total_archived_sticker_set_count_[2] = {-1, -1};
 
-  std::unordered_map<FileId, vector<StickerSetId>, FileIdHash> attached_sticker_sets_;
+  FlatHashMap<FileId, vector<StickerSetId>, FileIdHash> attached_sticker_sets_;
 
   Hints installed_sticker_sets_hints_[2];  // search installed sticker sets by their title and name
 
@@ -817,11 +817,11 @@ class StickersManager final : public Actor {
     int32 cache_time_ = 300;
     double next_reload_time_ = 0;
   };
-  std::unordered_map<string, FoundStickers> found_stickers_;
-  std::unordered_map<string, vector<Promise<Unit>>> search_stickers_queries_;
+  FlatHashMap<string, FoundStickers> found_stickers_;
+  FlatHashMap<string, vector<Promise<Unit>>> search_stickers_queries_;
 
-  std::unordered_map<string, vector<StickerSetId>> found_sticker_sets_;
-  std::unordered_map<string, vector<Promise<Unit>>> search_sticker_sets_queries_;
+  FlatHashMap<string, vector<StickerSetId>> found_sticker_sets_;
+  FlatHashMap<string, vector<Promise<Unit>>> search_sticker_sets_queries_;
 
   std::unordered_set<StickerSetId, StickerSetIdHash> pending_viewed_featured_sticker_set_ids_;
   Timeout pending_featured_sticker_set_views_timeout_;
@@ -829,7 +829,7 @@ class StickersManager final : public Actor {
   int32 recent_stickers_limit_ = 200;
   int32 favorite_stickers_limit_ = 5;
 
-  std::unordered_map<SpecialStickerSetType, SpecialStickerSet, SpecialStickerSetTypeHash> special_sticker_sets_;
+  FlatHashMap<SpecialStickerSetType, SpecialStickerSet, SpecialStickerSetTypeHash> special_sticker_sets_;
 
   struct StickerSetLoadRequest {
     Promise<Unit> promise;
@@ -837,14 +837,14 @@ class StickersManager final : public Actor {
     size_t left_queries = 0;
   };
 
-  std::unordered_map<uint32, StickerSetLoadRequest> sticker_set_load_requests_;
+  FlatHashMap<uint32, StickerSetLoadRequest> sticker_set_load_requests_;
   uint32 current_sticker_set_load_request_ = 0;
 
-  std::unordered_map<int64, unique_ptr<PendingNewStickerSet>> pending_new_sticker_sets_;
+  FlatHashMap<int64, unique_ptr<PendingNewStickerSet>> pending_new_sticker_sets_;
 
-  std::unordered_map<int64, unique_ptr<PendingAddStickerToSet>> pending_add_sticker_to_sets_;
+  FlatHashMap<int64, unique_ptr<PendingAddStickerToSet>> pending_add_sticker_to_sets_;
 
-  std::unordered_map<int64, unique_ptr<PendingSetStickerSetThumbnail>> pending_set_sticker_set_thumbnails_;
+  FlatHashMap<int64, unique_ptr<PendingSetStickerSetThumbnail>> pending_set_sticker_set_thumbnails_;
 
   vector<Promise<Unit>> pending_get_animated_emoji_queries_;
 
@@ -866,26 +866,26 @@ class StickersManager final : public Actor {
 
   std::shared_ptr<UploadStickerFileCallback> upload_sticker_file_callback_;
 
-  std::unordered_map<FileId, std::pair<UserId, Promise<Unit>>, FileIdHash> being_uploaded_files_;
+  FlatHashMap<FileId, std::pair<UserId, Promise<Unit>>, FileIdHash> being_uploaded_files_;
 
   Reactions reactions_;
 
-  std::unordered_map<string, vector<string>> emoji_language_codes_;
-  std::unordered_map<string, int32> emoji_language_code_versions_;
-  std::unordered_map<string, double> emoji_language_code_last_difference_times_;
+  FlatHashMap<string, vector<string>> emoji_language_codes_;
+  FlatHashMap<string, int32> emoji_language_code_versions_;
+  FlatHashMap<string, double> emoji_language_code_last_difference_times_;
   std::unordered_set<string> reloaded_emoji_keywords_;
-  std::unordered_map<string, vector<Promise<Unit>>> load_emoji_keywords_queries_;
-  std::unordered_map<string, vector<Promise<Unit>>> load_language_codes_queries_;
-  std::unordered_map<int64, string> emoji_suggestions_urls_;
+  FlatHashMap<string, vector<Promise<Unit>>> load_emoji_keywords_queries_;
+  FlatHashMap<string, vector<Promise<Unit>>> load_language_codes_queries_;
+  FlatHashMap<int64, string> emoji_suggestions_urls_;
 
-  std::unordered_map<string, std::unordered_set<FullMessageId, FullMessageIdHash>> dice_messages_;
+  FlatHashMap<string, std::unordered_set<FullMessageId, FullMessageIdHash>> dice_messages_;
 
   struct EmojiMessages {
     std::unordered_set<FullMessageId, FullMessageIdHash> full_message_ids;
     std::pair<FileId, int> animated_emoji_sticker;
     FileId sound_file_id;
   };
-  std::unordered_map<string, EmojiMessages> emoji_messages_;
+  FlatHashMap<string, EmojiMessages> emoji_messages_;
 
   string dice_emojis_str_;
   vector<string> dice_emojis_;
@@ -894,7 +894,7 @@ class StickersManager final : public Actor {
   vector<std::pair<int32, int32>> dice_success_values_;
 
   string emoji_sounds_str_;
-  std::unordered_map<string, FileId> emoji_sounds_;
+  FlatHashMap<string, FileId> emoji_sounds_;
 
   double animated_emoji_zoom_ = 0.0;
 

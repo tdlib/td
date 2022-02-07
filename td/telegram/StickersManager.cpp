@@ -3025,7 +3025,7 @@ StickerSetId StickersManager::on_get_messages_sticker_set(StickerSetId sticker_s
   vector<tl_object_ptr<telegram_api::stickerPack>> packs = std::move(set->packs_);
   vector<tl_object_ptr<telegram_api::Document>> documents = std::move(set->documents_);
 
-  std::unordered_map<int64, FileId> document_id_to_sticker_id;
+  FlatHashMap<int64, FileId> document_id_to_sticker_id;
 
   s->sticker_ids.clear();
   bool is_bot = td_->auth_manager_->is_bot();
@@ -3037,7 +3037,7 @@ StickerSetId StickersManager::on_get_messages_sticker_set(StickerSetId sticker_s
 
     s->sticker_ids.push_back(sticker_id.second);
     if (!is_bot) {
-      document_id_to_sticker_id.insert(sticker_id);
+      document_id_to_sticker_id.emplace(sticker_id.first, sticker_id.second);
     }
   }
   if (static_cast<int32>(s->sticker_ids.size()) != s->sticker_count) {
@@ -4850,7 +4850,7 @@ void StickersManager::schedule_update_animated_emoji_clicked(const StickerSet *s
   }
 
   auto all_sticker_ids = get_animated_emoji_click_stickers(sticker_set, emoji);
-  std::unordered_map<int, FileId> sticker_ids;
+  FlatHashMap<int, FileId> sticker_ids;
   for (auto sticker_id : all_sticker_ids) {
     auto it = sticker_set->sticker_emojis_map_.find(sticker_id);
     if (it != sticker_set->sticker_emojis_map_.end()) {
@@ -7435,7 +7435,7 @@ void StickersManager::on_get_emoji_keywords_difference(
     keywords->version_ = version;
   }
   version = keywords->version_;
-  std::unordered_map<string, string> key_values;
+  FlatHashMap<string, string> key_values;
   key_values.emplace(get_emoji_language_code_version_database_key(language_code), to_string(version));
   key_values.emplace(get_emoji_language_code_last_difference_time_database_key(language_code),
                      to_string(G()->unix_time()));

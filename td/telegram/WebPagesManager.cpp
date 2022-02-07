@@ -1391,7 +1391,7 @@ void WebPagesManager::on_pending_web_page_timeout(WebPageId web_page_id) {
 void WebPagesManager::on_get_web_page_instant_view(WebPage *web_page, tl_object_ptr<telegram_api::page> &&page,
                                                    int32 hash, DialogId owner_dialog_id) {
   CHECK(page != nullptr);
-  std::unordered_map<int64, Photo> photos;
+  FlatHashMap<int64, Photo> photos;
   for (auto &photo_ptr : page->photos_) {
     Photo photo = get_photo(td_->file_manager_.get(), std::move(photo_ptr), owner_dialog_id);
     if (photo.is_empty() || photo.id.get() == 0) {
@@ -1405,12 +1405,12 @@ void WebPagesManager::on_get_web_page_instant_view(WebPage *web_page, tl_object_
     photos.emplace(web_page->photo.id.get(), web_page->photo);
   }
 
-  std::unordered_map<int64, FileId> animations;
-  std::unordered_map<int64, FileId> audios;
-  std::unordered_map<int64, FileId> documents;
-  std::unordered_map<int64, FileId> videos;
-  std::unordered_map<int64, FileId> voice_notes;
-  std::unordered_map<int64, FileId> others;
+  FlatHashMap<int64, FileId> animations;
+  FlatHashMap<int64, FileId> audios;
+  FlatHashMap<int64, FileId> documents;
+  FlatHashMap<int64, FileId> videos;
+  FlatHashMap<int64, FileId> voice_notes;
+  FlatHashMap<int64, FileId> others;
   auto get_map = [&](Document::Type document_type) {
     switch (document_type) {
       case Document::Type::Animation:

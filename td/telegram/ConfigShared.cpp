@@ -58,7 +58,7 @@ string ConfigShared::get_option(Slice name) const {
   return config_pmc_->get(name.str());
 }
 
-std::unordered_map<string, string> ConfigShared::get_options() const {
+FlatHashMap<string, string> ConfigShared::get_options() const {
   return config_pmc_->get_all();
 }
 

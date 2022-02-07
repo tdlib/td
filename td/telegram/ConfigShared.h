@@ -12,7 +12,7 @@
 #include "td/utils/Slice.h"
 
 #include <memory>
-#include <unordered_map>
+#include "td/utils/FlatHashMap.h"
 
 namespace td {
 
@@ -42,7 +42,7 @@ class ConfigShared {
 
   string get_option(Slice name) const;
 
-  std::unordered_map<string, string> get_options() const;
+  FlatHashMap<string, string> get_options() const;
 
   bool get_option_boolean(Slice name, bool default_value = false) const;
   int64 get_option_integer(Slice name, int64 default_value = 0) const;

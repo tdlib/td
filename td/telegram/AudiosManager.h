@@ -15,7 +15,7 @@
 #include "td/utils/buffer.h"
 #include "td/utils/common.h"
 
-#include <unordered_map>
+#include "td/utils/FlatHashMap.h"
 
 namespace td {
 
@@ -75,7 +75,7 @@ class AudiosManager {
   FileId on_get_audio(unique_ptr<Audio> new_audio, bool replace);
 
   Td *td_;
-  std::unordered_map<FileId, unique_ptr<Audio>, FileIdHash> audios_;
+  FlatHashMap<FileId, unique_ptr<Audio>, FileIdHash> audios_;
 };
 
 }  // namespace td

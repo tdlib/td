@@ -63,7 +63,7 @@
 #include <memory>
 #include <queue>
 #include <tuple>
-#include <unordered_map>
+#include "td/utils/FlatHashMap.h"
 #include <unordered_set>
 #include <utility>
 
@@ -228,8 +228,8 @@ class CliClient final : public Actor {
     yield();
   }
 
-  std::unordered_map<uint64, SendMessageInfo> query_id_to_send_message_info_;
-  std::unordered_map<uint64, SendMessageInfo> message_id_to_send_message_info_;
+  FlatHashMap<uint64, SendMessageInfo> query_id_to_send_message_info_;
+  FlatHashMap<uint64, SendMessageInfo> message_id_to_send_message_info_;
 
   struct User {
     string first_name;
@@ -237,8 +237,8 @@ class CliClient final : public Actor {
     string username;
   };
 
-  std::unordered_map<int64, User> users_;
-  std::unordered_map<string, int64> username_to_user_id_;
+  FlatHashMap<int64, User> users_;
+  FlatHashMap<string, int64> username_to_user_id_;
 
   vector<string> authentication_tokens_;
 
@@ -269,7 +269,7 @@ class CliClient final : public Actor {
     }
   }
 
-  std::unordered_map<string, int64> username_to_supergroup_id_;
+  FlatHashMap<string, int64> username_to_supergroup_id_;
   void register_supergroup(const td_api::supergroup &supergroup) {
     if (!supergroup.username_.empty()) {
       username_to_supergroup_id_[to_lower(supergroup.username_)] = supergroup.id_;
@@ -4708,7 +4708,7 @@ class CliClient final : public Actor {
     return res;
   }
 
-  std::unordered_map<int32, double> being_downloaded_files_;
+  FlatHashMap<int32, double> being_downloaded_files_;
 
   int64 my_id_ = 0;
   td_api::object_ptr<td_api::AuthorizationState> authorization_state_;

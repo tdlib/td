@@ -15,7 +15,7 @@
 #include "td/utils/Slice.h"
 
 #include <limits>
-#include <unordered_map>
+#include "td/utils/FlatHashMap.h"
 
 namespace td {
 
@@ -86,7 +86,7 @@ class MultiSequenceDispatcherOld final : public SequenceDispatcher::Parent {
     int32 cnt_;
     ActorOwn<SequenceDispatcher> dispatcher_;
   };
-  std::unordered_map<uint64, Data> dispatchers_;
+  FlatHashMap<uint64, Data> dispatchers_;
   void on_result() final;
   void ready_to_close() final;
 };

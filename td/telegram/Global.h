@@ -26,7 +26,7 @@
 #include <atomic>
 #include <memory>
 #include <mutex>
-#include <unordered_map>
+#include "td/utils/FlatHashMap.h"
 
 namespace td {
 class AnimationsManager;
@@ -492,7 +492,7 @@ class Global final : public ActorContext {
 
   static int64 get_location_key(double latitude, double longitude);
 
-  std::unordered_map<int64, int64> location_access_hashes_;
+  FlatHashMap<int64, int64> location_access_hashes_;
 
   int32 to_unix_time(double server_time) const;
 

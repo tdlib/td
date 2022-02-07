@@ -14,7 +14,7 @@
 #include "td/utils/Status.h"
 
 #include <queue>
-#include <unordered_map>
+#include "td/utils/FlatHashMap.h"
 
 namespace td {
 
@@ -39,7 +39,7 @@ class QueryCombiner final : public Actor {
 
   std::queue<int64> delayed_queries_;
 
-  std::unordered_map<int64, QueryInfo> queries_;
+  FlatHashMap<int64, QueryInfo> queries_;
 
   void do_send_query(int64 query_id, QueryInfo &query);
 

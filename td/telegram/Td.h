@@ -31,7 +31,7 @@
 #include "td/utils/Status.h"
 
 #include <memory>
-#include <unordered_map>
+#include "td/utils/FlatHashMap.h"
 #include <unordered_set>
 #include <utility>
 
@@ -284,7 +284,7 @@ class Td final : public Actor {
   enum class State : int32 { WaitParameters, Decrypt, Run, Close } state_ = State::WaitParameters;
   bool is_database_encrypted_ = false;
 
-  std::unordered_map<uint64, std::shared_ptr<ResultHandler>> result_handlers_;
+  FlatHashMap<uint64, std::shared_ptr<ResultHandler>> result_handlers_;
   enum : int8 { RequestActorIdType = 1, ActorIdType = 2 };
   Container<ActorOwn<Actor>> request_actors_;
 
@@ -293,7 +293,7 @@ class Td final : public Actor {
   NetQueryRef update_status_query_;
 
   int64 alarm_id_ = 1;
-  std::unordered_map<int64, uint64> pending_alarms_;
+  FlatHashMap<int64, uint64> pending_alarms_;
   MultiTimeout alarm_timeout_{"AlarmTimeout"};
 
   TermsOfService pending_terms_of_service_;
@@ -303,7 +303,7 @@ class Td final : public Actor {
     int32 limit = -1;
     vector<uint64> request_ids;
   };
-  std::unordered_map<FileId, DownloadInfo, FileIdHash> pending_file_downloads_;
+  FlatHashMap<FileId, DownloadInfo, FileIdHash> pending_file_downloads_;
 
   vector<std::pair<uint64, td_api::object_ptr<td_api::Function>>> pending_preauthentication_requests_;
 

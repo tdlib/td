@@ -457,7 +457,7 @@ TEST(DB, key_value_set_all) {
   int queries_n = 100;
   while (queries_n-- > 0) {
     int cnt = td::Random::fast(0, 10);
-    std::unordered_map<td::string, td::string> key_values;
+    td::FlatHashMap<td::string, td::string> key_values;
     for (int i = 0; i < cnt; i++) {
       auto key = rand_elem(keys);
       auto value = rand_elem(values);

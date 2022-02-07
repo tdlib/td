@@ -13,7 +13,7 @@
 
 #include "td/utils/common.h"
 
-#include <unordered_map>
+#include "td/utils/FlatHashMap.h"
 
 namespace td {
 
@@ -61,7 +61,7 @@ class VoiceNotesManager {
   FileId on_get_voice_note(unique_ptr<VoiceNote> new_voice_note, bool replace);
 
   Td *td_;
-  std::unordered_map<FileId, unique_ptr<VoiceNote>, FileIdHash> voice_notes_;
+  FlatHashMap<FileId, unique_ptr<VoiceNote>, FileIdHash> voice_notes_;
 };
 
 }  // namespace td

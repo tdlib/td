@@ -51,8 +51,8 @@ struct LanguagePackManager::Language {
   bool was_loaded_full_ = false;
   bool has_get_difference_query_ = false;
   vector<Promise<Unit>> get_difference_queries_;
-  std::unordered_map<string, string> ordinary_strings_;
-  std::unordered_map<string, PluralizedString> pluralized_strings_;
+  FlatHashMap<string, string> ordinary_strings_;
+  FlatHashMap<string, PluralizedString> pluralized_strings_;
   std::unordered_set<string> deleted_strings_;
   SqliteKeyValue kv_;  // usages should be guarded by database_->mutex_
 };
@@ -84,15 +84,15 @@ struct LanguagePackManager::LanguagePack {
   SqliteKeyValue pack_kv_;                                              // usages should be guarded by database_->mutex_
   std::map<string, LanguageInfo> custom_language_pack_infos_;           // sorted by language_code
   vector<std::pair<string, LanguageInfo>> server_language_pack_infos_;  // sorted by server
-  std::unordered_map<string, LanguageInfo> all_server_language_pack_infos_;
-  std::unordered_map<string, unique_ptr<Language>> languages_;
+  FlatHashMap<string, LanguageInfo> all_server_language_pack_infos_;
+  FlatHashMap<string, unique_ptr<Language>> languages_;
 };
 
 struct LanguagePackManager::LanguageDatabase {
   std::mutex mutex_;
   string path_;
   SqliteDb database_;
-  std::unordered_map<string, unique_ptr<LanguagePack>> language_packs_;
+  FlatHashMap<string, unique_ptr<LanguagePack>> language_packs_;
 };
 
 LanguagePackManager::~LanguagePackManager() = default;
@@ -774,10 +774,18 @@ td_api::object_ptr<td_api::languagePackString> LanguagePackManager::get_language
     const std::pair<string, string> &str) {
   return td_api::make_object<td_api::languagePackString>(str.first, get_language_pack_string_value_object(str.second));
 }
+td_api::object_ptr<td_api::languagePackString> LanguagePackManager::get_language_pack_string_object(
+    const string &a, const string &b) {
+  return td_api::make_object<td_api::languagePackString>(a, get_language_pack_string_value_object(b));
+}
 
 td_api::object_ptr<td_api::languagePackString> LanguagePackManager::get_language_pack_string_object(
     const std::pair<string, PluralizedString> &str) {
   return td_api::make_object<td_api::languagePackString>(str.first, get_language_pack_string_value_object(str.second));
+}
+td_api::object_ptr<td_api::languagePackString> LanguagePackManager::get_language_pack_string_object(
+    const string &a, const PluralizedString &b) {
+  return td_api::make_object<td_api::languagePackString>(a, get_language_pack_string_value_object(b));
 }
 
 td_api::object_ptr<td_api::languagePackString> LanguagePackManager::get_language_pack_string_object(const string &str) {
@@ -812,10 +820,10 @@ td_api::object_ptr<td_api::languagePackStrings> LanguagePackManager::get_languag
   vector<td_api::object_ptr<td_api::languagePackString>> strings;
   if (keys.empty()) {
     for (auto &str : language->ordinary_strings_) {
-      strings.push_back(get_language_pack_string_object(str));
+      strings.push_back(get_language_pack_string_object(str.first, str.second));
     }
     for (auto &str : language->pluralized_strings_) {
-      strings.push_back(get_language_pack_string_object(str));
+      strings.push_back(get_language_pack_string_object(str.first, str.second));
     }
   } else {
     for (auto &key : keys) {
@@ -1377,7 +1385,7 @@ void LanguagePackManager::on_get_language_pack_strings(
             key_count_delta -= static_cast<int32>(language->pluralized_strings_.erase(str->key_));
             language->deleted_strings_.erase(str->key_);
             if (is_diff) {
-              strings.push_back(get_language_pack_string_object(*it));
+              strings.push_back(get_language_pack_string_object(it->first, it->second));
             }
             database_strings.emplace_back(std::move(str->key_), PSTRING() << '1' << it->second);
             break;
@@ -1397,7 +1405,7 @@ void LanguagePackManager::on_get_language_pack_strings(
             key_count_delta -= static_cast<int32>(language->ordinary_strings_.erase(str->key_));
             language->deleted_strings_.erase(str->key_);
             if (is_diff) {
-              strings.push_back(get_language_pack_string_object(*it));
+              strings.push_back(get_language_pack_string_object(it->first, it->second));
             }
             database_strings.emplace_back(
                 std::move(str->key_), PSTRING()
@@ -1876,6 +1884,6 @@ void LanguagePackManager::hangup() {
 
 int32 LanguagePackManager::manager_count_ = 0;
 std::mutex LanguagePackManager::language_database_mutex_;
-std::unordered_map<string, unique_ptr<LanguagePackManager::LanguageDatabase>> LanguagePackManager::language_databases_;
+FlatHashMap<string, unique_ptr<LanguagePackManager::LanguageDatabase>> LanguagePackManager::language_databases_;
 
 }  // namespace td

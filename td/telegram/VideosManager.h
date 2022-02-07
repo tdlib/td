@@ -15,7 +15,7 @@
 #include "td/utils/buffer.h"
 #include "td/utils/common.h"
 
-#include <unordered_map>
+#include "td/utils/FlatHashMap.h"
 
 namespace td {
 
@@ -84,7 +84,7 @@ class VideosManager {
   FileId on_get_video(unique_ptr<Video> new_video, bool replace);
 
   Td *td_;
-  std::unordered_map<FileId, unique_ptr<Video>, FileIdHash> videos_;
+  FlatHashMap<FileId, unique_ptr<Video>, FileIdHash> videos_;
 };
 
 }  // namespace td

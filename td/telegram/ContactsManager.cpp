@@ -5493,7 +5493,7 @@ std::pair<vector<UserId>, vector<int32>> ContactsManager::change_imported_contac
   vector<size_t> new_contacts_unique_id(contacts.size());
   vector<Contact> unique_new_contacts;
   unique_new_contacts.reserve(contacts.size());
-  std::unordered_map<Contact, size_t, ContactHash, ContactEqual> different_new_contacts;
+  FlatHashMap<Contact, size_t, ContactHash, ContactEqual> different_new_contacts;
   std::unordered_set<string> different_new_phone_numbers;
   size_t unique_size = 0;
   for (size_t i = 0; i < contacts.size(); i++) {
@@ -6694,7 +6694,7 @@ void ContactsManager::report_channel_spam(ChannelId channel_id, const vector<Mes
     return promise.set_error(Status::Error(400, "Spam can be reported only by chat administrators"));
   }
 
-  std::unordered_map<DialogId, vector<MessageId>, DialogIdHash> server_message_ids;
+  FlatHashMap<DialogId, vector<MessageId>, DialogIdHash> server_message_ids;
   for (auto &message_id : message_ids) {
     if (message_id.is_valid_scheduled()) {
       return promise.set_error(Status::Error(400, "Can't report scheduled messages"));
@@ -7984,7 +7984,7 @@ void ContactsManager::on_import_contacts_finished(int64 random_id, vector<UserId
     CHECK(unimported_contact_invites.size() == add_size);
     CHECK(imported_contacts_unique_id_.size() == result_size);
 
-    std::unordered_map<size_t, int32> unique_id_to_unimported_contact_invites;
+    FlatHashMap<size_t, int32> unique_id_to_unimported_contact_invites;
     for (size_t i = 0; i < add_size; i++) {
       auto unique_id = imported_contacts_pos_[i];
       get_user_id_object(imported_contact_user_ids[i], "on_import_contacts_finished");  // to ensure updateUser

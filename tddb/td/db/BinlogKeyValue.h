@@ -25,7 +25,7 @@
 #include "td/utils/tl_storers.h"
 
 #include <memory>
-#include <unordered_map>
+#include "td/utils/FlatHashMap.h"
 #include <utility>
 
 namespace td {
@@ -120,7 +120,7 @@ class BinlogKeyValue final : public KeyValueSyncInterface {
   SeqNo set(string key, string value) final {
     auto lock = rw_mutex_.lock_write().move_as_ok();
     uint64 old_id = 0;
-    auto it_ok = map_.insert({key, {value, 0}});
+    auto it_ok = map_.emplace(key, std::make_pair(value, 0));
     if (!it_ok.second) {
       if (it_ok.first->second.first == value) {
         return 0;
@@ -192,9 +192,9 @@ class BinlogKeyValue final : public KeyValueSyncInterface {
     binlog_->lazy_sync(std::move(promise));
   }
 
-  std::unordered_map<string, string> prefix_get(Slice prefix) final {
+  FlatHashMap<string, string> prefix_get(Slice prefix) final {
     auto lock = rw_mutex_.lock_write().move_as_ok();
-    std::unordered_map<string, string> res;
+    FlatHashMap<string, string> res;
     for (const auto &kv : map_) {
       if (begins_with(kv.first, prefix)) {
         res[kv.first.substr(prefix.size())] = kv.second.first;
@@ -203,9 +203,9 @@ class BinlogKeyValue final : public KeyValueSyncInterface {
     return res;
   }
 
-  std::unordered_map<string, string> get_all() final {
+  FlatHashMap<string, string> get_all() final {
     auto lock = rw_mutex_.lock_write().move_as_ok();
-    std::unordered_map<string, string> res;
+    FlatHashMap<string, string> res;
     for (const auto &kv : map_) {
       res[kv.first] = kv.second.first;
     }

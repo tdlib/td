@@ -19,7 +19,7 @@
 #include "td/utils/tl_storers.h"
 
 #include <set>
-#include <unordered_map>
+#include "td/utils/FlatHashMap.h"
 
 namespace td {
 
@@ -286,7 +286,7 @@ class TQueueImpl final : public TQueue {
     int32 gc_at = 0;
   };
 
-  std::unordered_map<QueueId, Queue> queues_;
+  FlatHashMap<QueueId, Queue> queues_;
   std::set<std::pair<int32, QueueId>> queue_gc_at_;
   unique_ptr<StorageCallback> callback_;
 

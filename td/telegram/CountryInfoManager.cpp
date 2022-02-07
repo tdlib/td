@@ -537,6 +537,6 @@ const CountryInfoManager::CountryList *CountryInfoManager::get_country_list(Coun
 
 int32 CountryInfoManager::manager_count_ = 0;
 std::mutex CountryInfoManager::country_mutex_;
-std::unordered_map<string, unique_ptr<CountryInfoManager::CountryList>> CountryInfoManager::countries_;
+FlatHashMap<string, unique_ptr<CountryInfoManager::CountryList>> CountryInfoManager::countries_;
 
 }  // namespace td

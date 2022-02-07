@@ -15,7 +15,7 @@
 #include "td/utils/common.h"
 #include "td/utils/Slice.h"
 
-#include <unordered_map>
+#include "td/utils/FlatHashMap.h"
 
 namespace td {
 
@@ -98,9 +98,9 @@ void parse(unique_ptr<WebPageBlock> &block, LogEventParser &parser);
 
 vector<unique_ptr<WebPageBlock>> get_web_page_blocks(
     Td *td, vector<tl_object_ptr<telegram_api::PageBlock>> page_block_ptrs,
-    const std::unordered_map<int64, FileId> &animations, const std::unordered_map<int64, FileId> &audios,
-    const std::unordered_map<int64, FileId> &documents, const std::unordered_map<int64, Photo> &photos,
-    const std::unordered_map<int64, FileId> &videos, const std::unordered_map<int64, FileId> &voice_notes);
+    const FlatHashMap<int64, FileId> &animations, const FlatHashMap<int64, FileId> &audios,
+    const FlatHashMap<int64, FileId> &documents, const FlatHashMap<int64, Photo> &photos,
+    const FlatHashMap<int64, FileId> &videos, const FlatHashMap<int64, FileId> &voice_notes);
 
 vector<td_api::object_ptr<td_api::PageBlock>> get_page_block_objects(
     const vector<unique_ptr<WebPageBlock>> &page_blocks, Td *td, Slice base_url);

@@ -47,7 +47,7 @@ struct GetWebPageBlockObjectContext {
 
   bool is_first_pass_ = true;
   bool has_anchor_urls_ = false;
-  std::unordered_map<Slice, const RichText *, SliceHash> anchors_;  // anchor -> text
+  FlatHashMap<Slice, const RichText *, SliceHash> anchors_;  // anchor -> text
 };
 
 static vector<td_api::object_ptr<td_api::PageBlock>> get_page_block_objects(
@@ -1763,10 +1763,10 @@ class WebPageBlockVoiceNote final : public WebPageBlock {
 };
 
 vector<RichText> get_rich_texts(vector<tl_object_ptr<telegram_api::RichText>> &&rich_text_ptrs,
-                                const std::unordered_map<int64, FileId> &documents);
+                                const FlatHashMap<int64, FileId> &documents);
 
 RichText get_rich_text(tl_object_ptr<telegram_api::RichText> &&rich_text_ptr,
-                       const std::unordered_map<int64, FileId> &documents) {
+                       const FlatHashMap<int64, FileId> &documents) {
   CHECK(rich_text_ptr != nullptr);
 
   RichText result;
@@ -1881,14 +1881,14 @@ RichText get_rich_text(tl_object_ptr<telegram_api::RichText> &&rich_text_ptr,
 }
 
 vector<RichText> get_rich_texts(vector<tl_object_ptr<telegram_api::RichText>> &&rich_text_ptrs,
-                                const std::unordered_map<int64, FileId> &documents) {
+                                const FlatHashMap<int64, FileId> &documents) {
   return transform(std::move(rich_text_ptrs), [&documents](tl_object_ptr<telegram_api::RichText> &&rich_text) {
     return get_rich_text(std::move(rich_text), documents);
   });
 }
 
 WebPageBlockCaption get_page_block_caption(tl_object_ptr<telegram_api::pageCaption> &&page_caption,
-                                           const std::unordered_map<int64, FileId> &documents) {
+                                           const FlatHashMap<int64, FileId> &documents) {
   CHECK(page_caption != nullptr);
   WebPageBlockCaption result;
   result.text = get_rich_text(std::move(page_caption->text_), documents);
@@ -1897,12 +1897,12 @@ WebPageBlockCaption get_page_block_caption(tl_object_ptr<telegram_api::pageCapti
 }
 
 unique_ptr<WebPageBlock> get_web_page_block(Td *td, tl_object_ptr<telegram_api::PageBlock> page_block_ptr,
-                                            const std::unordered_map<int64, FileId> &animations,
-                                            const std::unordered_map<int64, FileId> &audios,
-                                            const std::unordered_map<int64, FileId> &documents,
-                                            const std::unordered_map<int64, Photo> &photos,
-                                            const std::unordered_map<int64, FileId> &videos,
-                                            const std::unordered_map<int64, FileId> &voice_notes) {
+                                            const FlatHashMap<int64, FileId> &animations,
+                                            const FlatHashMap<int64, FileId> &audios,
+                                            const FlatHashMap<int64, FileId> &documents,
+                                            const FlatHashMap<int64, Photo> &photos,
+                                            const FlatHashMap<int64, FileId> &videos,
+                                            const FlatHashMap<int64, FileId> &voice_notes) {
   CHECK(page_block_ptr != nullptr);
   switch (page_block_ptr->get_id()) {
     case telegram_api::pageBlockUnsupported::ID:
@@ -2368,9 +2368,9 @@ void parse(unique_ptr<WebPageBlock> &block, LogEventParser &parser) {
 
 vector<unique_ptr<WebPageBlock>> get_web_page_blocks(
     Td *td, vector<tl_object_ptr<telegram_api::PageBlock>> page_block_ptrs,
-    const std::unordered_map<int64, FileId> &animations, const std::unordered_map<int64, FileId> &audios,
-    const std::unordered_map<int64, FileId> &documents, const std::unordered_map<int64, Photo> &photos,
-    const std::unordered_map<int64, FileId> &videos, const std::unordered_map<int64, FileId> &voice_notes) {
+    const FlatHashMap<int64, FileId> &animations, const FlatHashMap<int64, FileId> &audios,
+    const FlatHashMap<int64, FileId> &documents, const FlatHashMap<int64, Photo> &photos,
+    const FlatHashMap<int64, FileId> &videos, const FlatHashMap<int64, FileId> &voice_notes) {
   vector<unique_ptr<WebPageBlock>> result;
   result.reserve(page_block_ptrs.size());
   for (auto &page_block_ptr : page_block_ptrs) {

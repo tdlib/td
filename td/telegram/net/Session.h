@@ -32,7 +32,7 @@
 #include <functional>
 #include <map>
 #include <memory>
-#include <unordered_map>
+#include "td/utils/FlatHashMap.h"
 #include <unordered_set>
 #include <utility>
 
@@ -174,7 +174,7 @@ class Session final
     size_t ref_cnt;
     std::vector<uint64> message_ids;
   };
-  std::unordered_map<uint64, ContainerInfo> sent_containers_;
+  FlatHashMap<uint64, ContainerInfo> sent_containers_;
 
   friend class GenAuthKeyActor;
   struct HandshakeInfo {

@@ -14,7 +14,7 @@
 #include "td/utils/tl_helpers.h"
 
 #include <array>
-#include <unordered_map>
+#include "td/utils/FlatHashMap.h"
 
 namespace td {
 
@@ -73,7 +73,7 @@ class FileStats {
   using StatByType = std::array<FileTypeStat, MAX_FILE_TYPE>;
 
   StatByType stat_by_type_;
-  std::unordered_map<DialogId, StatByType, DialogIdHash> stat_by_owner_dialog_id_;
+  FlatHashMap<DialogId, StatByType, DialogIdHash> stat_by_owner_dialog_id_;
   vector<FullFileInfo> all_files_;
 
   void add_impl(const FullFileInfo &info);

@@ -22,7 +22,7 @@
 #include "td/utils/common.h"
 #include "td/utils/Status.h"
 
-#include <unordered_map>
+#include "td/utils/FlatHashMap.h"
 #include <unordered_set>
 #include <utility>
 
@@ -179,28 +179,28 @@ class WebPagesManager final : public Actor {
 
   Td *td_;
   ActorShared<> parent_;
-  std::unordered_map<WebPageId, unique_ptr<WebPage>, WebPageIdHash> web_pages_;
+  FlatHashMap<WebPageId, unique_ptr<WebPage>, WebPageIdHash> web_pages_;
 
-  std::unordered_map<WebPageId, vector<Promise<Unit>>, WebPageIdHash> load_web_page_from_database_queries_;
+  FlatHashMap<WebPageId, vector<Promise<Unit>>, WebPageIdHash> load_web_page_from_database_queries_;
   std::unordered_set<WebPageId, WebPageIdHash> loaded_from_database_web_pages_;
 
   struct PendingWebPageInstantViewQueries {
     vector<Promise<WebPageId>> partial;
     vector<Promise<WebPageId>> full;
   };
-  std::unordered_map<WebPageId, PendingWebPageInstantViewQueries, WebPageIdHash> load_web_page_instant_view_queries_;
+  FlatHashMap<WebPageId, PendingWebPageInstantViewQueries, WebPageIdHash> load_web_page_instant_view_queries_;
 
-  std::unordered_map<WebPageId, std::unordered_set<FullMessageId, FullMessageIdHash>, WebPageIdHash> web_page_messages_;
+  FlatHashMap<WebPageId, std::unordered_set<FullMessageId, FullMessageIdHash>, WebPageIdHash> web_page_messages_;
 
-  std::unordered_map<WebPageId, std::unordered_map<int64, std::pair<string, Promise<Unit>>>, WebPageIdHash>
+  FlatHashMap<WebPageId, FlatHashMap<int64, std::pair<string, Promise<Unit>>>, WebPageIdHash>
       pending_get_web_pages_;
 
   int64 get_web_page_preview_request_id_ = 1;
-  std::unordered_map<int64, WebPageId> got_web_page_previews_;
+  FlatHashMap<int64, WebPageId> got_web_page_previews_;
 
-  std::unordered_map<string, WebPageId> url_to_web_page_id_;
+  FlatHashMap<string, WebPageId> url_to_web_page_id_;
 
-  std::unordered_map<string, FileSourceId> url_to_file_source_id_;
+  FlatHashMap<string, FileSourceId> url_to_file_source_id_;
 
   MultiTimeout pending_web_pages_timeout_{"PendingWebPagesTimeout"};
 };

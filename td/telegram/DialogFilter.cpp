@@ -455,7 +455,7 @@ bool DialogFilter::are_flags_equal(const DialogFilter &lhs, const DialogFilter &
          lhs.include_groups == rhs.include_groups && lhs.include_channels == rhs.include_channels;
 }
 
-std::unordered_map<string, string> DialogFilter::emoji_to_icon_name_;
-std::unordered_map<string, string> DialogFilter::icon_name_to_emoji_;
+FlatHashMap<string, string> DialogFilter::emoji_to_icon_name_;
+FlatHashMap<string, string> DialogFilter::icon_name_to_emoji_;
 
 }  // namespace td

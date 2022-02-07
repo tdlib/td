@@ -44,7 +44,7 @@
 
 #include <algorithm>
 #include <limits>
-#include <unordered_map>
+#include "td/utils/FlatHashMap.h"
 
 namespace td {
 
@@ -441,7 +441,7 @@ vector<int32> PollManager::get_vote_percentage(const vector<int32> &voter_counts
     int32 pos = -1;
     int32 count = 0;
   };
-  std::unordered_map<int32, Option> options;
+  FlatHashMap<int32, Option> options;
   for (size_t i = 0; i < result.size(); i++) {
     auto &option = options[voter_counts[i]];
     if (option.pos == -1) {
@@ -703,7 +703,7 @@ void PollManager::set_poll_answer(PollId poll_id, FullMessageId full_message_id,
     return promise.set_error(Status::Error(400, "Can't revote in a quiz"));
   }
 
-  std::unordered_map<size_t, int> affected_option_ids;
+  FlatHashMap<size_t, int> affected_option_ids;
   vector<string> options;
   for (auto &option_id : option_ids) {
     auto index = static_cast<size_t>(option_id);
@@ -722,7 +722,7 @@ void PollManager::set_poll_answer(PollId poll_id, FullMessageId full_message_id,
       affected_option_ids[option_index]++;
     }
   }
-  for (auto it : affected_option_ids) {
+  for (const auto &it : affected_option_ids) {
     if (it.second == 1) {
       invalidate_poll_option_voters(poll, poll_id, it.first);
     }

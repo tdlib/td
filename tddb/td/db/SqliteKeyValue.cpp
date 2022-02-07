@@ -60,7 +60,7 @@ void SqliteKeyValue::set(Slice key, Slice value) {
   set_stmt_.reset();
 }
 
-void SqliteKeyValue::set_all(const std::unordered_map<string, string> &key_values) {
+void SqliteKeyValue::set_all(const FlatHashMap<string, string> &key_values) {
   begin_write_transaction().ensure();
   for (auto &key_value : key_values) {
     set(key_value.first, key_value.second);

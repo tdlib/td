@@ -21,7 +21,7 @@
 #include "td/utils/Status.h"
 
 #include <map>
-#include <unordered_map>
+#include "td/utils/FlatHashMap.h"
 #include <utility>
 
 namespace td {
@@ -77,7 +77,7 @@ class SecureManager final : public NetQueryCallback {
     vector<telegram_api::object_ptr<telegram_api::SecureValueError>> errors;
   };
 
-  std::unordered_map<int32, AuthorizationForm> authorization_forms_;
+  FlatHashMap<int32, AuthorizationForm> authorization_forms_;
   int32 max_authorization_form_id_{0};
 
   void hangup() final;
