@@ -1,8 +1,18 @@
+//
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
+//
+// Distributed under the Boost Software License, Version 1.0. (See accompanying
+// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+//
 #pragma once
 
+#include "td/utils/common.h"
+
+#include <cstddef>
+#include <functional>
+#include <new>
 #include <unordered_map>
 #include <utility>
-#include <vector>
 
 namespace td {
 
@@ -27,10 +37,10 @@ class FlatHashMapImpl {
         second.~ValueT();
       }
     }
-    Node(Node &&other) {
+    Node(Node &&other) noexcept {
       *this = std::move(other);
     }
-    Node &operator=(Node &&other) {
+    Node &operator=(Node &&other) noexcept {
       DCHECK(empty());
       DCHECK(!other.empty());
       first = std::move(other.first);
@@ -62,7 +72,6 @@ class FlatHashMapImpl {
 
  public:
   struct Iterator {
-   public:
     using iterator_category = std::bidirectional_iterator_tag;
     using difference_type = std::ptrdiff_t;
     using value_type = Node;
@@ -110,7 +119,6 @@ class FlatHashMapImpl {
     Self *map_;
   };
   struct ConstIterator {
-   public:
     using iterator_category = std::bidirectional_iterator_tag;
     using difference_type = std::ptrdiff_t;
     using value_type = Node;
@@ -165,10 +173,10 @@ class FlatHashMapImpl {
   using value_type = std::pair<const KeyT, ValueT>;
 
   FlatHashMapImpl() = default;
-  FlatHashMapImpl(FlatHashMapImpl &&other) : nodes_(std::move(other.nodes_)), used_nodes_(other.used_nodes_) {
+  FlatHashMapImpl(FlatHashMapImpl &&other) noexcept : nodes_(std::move(other.nodes_)), used_nodes_(other.used_nodes_) {
     other.used_nodes_ = 0;
   }
-  FlatHashMapImpl &operator=(FlatHashMapImpl &&other) {
+  FlatHashMapImpl &operator=(FlatHashMapImpl &&other) noexcept {
     nodes_ = std::move(other.nodes_);
     used_nodes_ = other.used_nodes_;
     other.used_nodes_ = 0;
@@ -225,7 +233,7 @@ class FlatHashMapImpl {
     }
     auto it = nodes_.begin();
     while (it->empty()) {
-      it++;
+      ++it;
     }
     return Iterator(it, this);
   }
@@ -238,7 +246,7 @@ class FlatHashMapImpl {
     }
     auto it = nodes_.begin();
     while (it->empty()) {
-      it++;
+      ++it;
     }
     return ConstIterator(it, this);
   }
@@ -297,7 +305,7 @@ class FlatHashMapImpl {
     DCHECK(!is_key_empty(it->key()));
     size_t empty_i = it.it_ - nodes_.begin();
     auto empty_bucket = empty_i;
-    DCHECK(0 <= empty_i < nodes_.size());
+    DCHECK(0 <= empty_i && empty_i < nodes_.size());
     nodes_[empty_bucket].clear();
     used_nodes_--;
 
@@ -364,12 +372,15 @@ class FlatHashMapImpl {
       if (is_key_empty(node.key())) {
         continue;
       }
-      *find_bucket_for_insert(node.key()) = std::move(node);
+      auto new_node = find_bucket_for_insert(node.key());
+      *new_node = std::move(node);
     }
   }
 };
+
 //template <class KeyT, class ValueT, class HashT = std::hash<KeyT>, class EqualT = std::equal_to<KeyT>>
 //using FlatHashMap = FlatHashMapImpl<KeyT, ValueT, HashT, EqualT>;
+
 template <class KeyT, class ValueT, class HashT = std::hash<KeyT>, class EqualT = std::equal_to<KeyT>>
 using FlatHashMap = std::unordered_map<KeyT, ValueT, HashT, EqualT>;
 

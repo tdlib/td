@@ -5493,7 +5493,7 @@ std::pair<vector<UserId>, vector<int32>> ContactsManager::change_imported_contac
   vector<size_t> new_contacts_unique_id(contacts.size());
   vector<Contact> unique_new_contacts;
   unique_new_contacts.reserve(contacts.size());
-  FlatHashMap<Contact, size_t, ContactHash, ContactEqual> different_new_contacts;
+  std::unordered_map<Contact, size_t, ContactHash, ContactEqual> different_new_contacts;
   std::unordered_set<string> different_new_phone_numbers;
   size_t unique_size = 0;
   for (size_t i = 0; i < contacts.size(); i++) {

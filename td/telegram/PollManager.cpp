@@ -167,7 +167,7 @@ class SendVoteQuery final : public Td::ResultHandler {
     }
 
     auto result = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive SendVoteQuery result: " << to_string(result);
+    LOG(INFO) << "Receive result for SendVoteQuery: " << to_string(result);
     promise_.set_value(std::move(result));
   }
 

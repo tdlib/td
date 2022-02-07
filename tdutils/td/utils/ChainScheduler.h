@@ -237,7 +237,7 @@ class ChainScheduler final : public ChainSchedulerBase {
   vector<TaskId> to_start_;
 
   void try_start_task_later(TaskId task_id) {
-    LOG(DEBUG) << "Try to start later " << task_id;
+    LOG(DEBUG) << "Start later " << task_id;
     to_start_.push_back(task_id);
   }
 
