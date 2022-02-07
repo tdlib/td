@@ -16,7 +16,7 @@
 
 namespace td {
 
-template <class KeyT, class ValueT, class HashT = std::hash<KeyT>, class EqualT = std::equal_to<KeyT>>
+template <class KeyT, class ValueT, class HashT = std::hash<KeyT>>
 class FlatHashMapImpl {
   struct Node {
     KeyT first{};
@@ -66,7 +66,7 @@ class FlatHashMapImpl {
       CHECK(!empty());
     }
   };
-  using Self = FlatHashMapImpl<KeyT, ValueT, HashT, EqualT>;
+  using Self = FlatHashMapImpl<KeyT, ValueT, HashT>;
   using NodeIterator = typename std::vector<Node>::iterator;
   using ConstNodeIterator = typename std::vector<Node>::const_iterator;
 
@@ -357,7 +357,7 @@ class FlatHashMapImpl {
   }
   auto find_bucket_for_insert(const KeyT &key) const {
     size_t bucket = calc_bucket(key);
-    while (!EqualT()(nodes_[bucket].key(), key) && !is_key_empty(nodes_[bucket].key())) {
+    while (!(nodes_[bucket].key() == key) && !is_key_empty(nodes_[bucket].key())) {
       bucket++;
       if (bucket == nodes_.size()) {
         bucket = 0;
@@ -378,10 +378,10 @@ class FlatHashMapImpl {
   }
 };
 
-//template <class KeyT, class ValueT, class HashT = std::hash<KeyT>, class EqualT = std::equal_to<KeyT>>
-//using FlatHashMap = FlatHashMapImpl<KeyT, ValueT, HashT, EqualT>;
+//template <class KeyT, class ValueT, class HashT = std::hash<KeyT>>
+//using FlatHashMap = FlatHashMapImpl<KeyT, ValueT, HashT>;
 
-template <class KeyT, class ValueT, class HashT = std::hash<KeyT>, class EqualT = std::equal_to<KeyT>>
-using FlatHashMap = std::unordered_map<KeyT, ValueT, HashT, EqualT>;
+template <class KeyT, class ValueT, class HashT = std::hash<KeyT>>
+using FlatHashMap = std::unordered_map<KeyT, ValueT, HashT>;
 
 }  // namespace td
