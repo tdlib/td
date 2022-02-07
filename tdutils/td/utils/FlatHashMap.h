@@ -10,6 +10,7 @@
 
 #include <cstddef>
 #include <functional>
+#include <iterator>
 #include <new>
 #include <unordered_map>
 #include <utility>
@@ -39,6 +40,7 @@ class FlatHashMapImpl {
     }
     Node(Node &&other) noexcept {
       *this = std::move(other);
+      other.first = KeyT{};
     }
     Node &operator=(Node &&other) noexcept {
       DCHECK(empty());
@@ -49,15 +51,18 @@ class FlatHashMapImpl {
       other.second.~ValueT();
       return *this;
     }
+
     bool empty() const {
       return is_key_empty(key());
     }
+
     void clear() {
       DCHECK(!empty());
       first = KeyT();
       second.~ValueT();
       DCHECK(empty());
     }
+
     template <class... ArgsT>
     void emplace(KeyT key, ArgsT &&...args) {
       DCHECK(empty());
@@ -106,11 +111,6 @@ class FlatHashMapImpl {
       return it_ != other.it_;
     }
 
-    Iterator() = default;
-    Iterator(const Iterator &other) = default;
-    Iterator &operator=(const Iterator &other) = default;
-    Iterator(Iterator &&other) = default;
-    Iterator &operator=(Iterator &&other) = default;
     Iterator(NodeIterator it, Self *map) : it_(std::move(it)), map_(map) {
     }
 
@@ -153,14 +153,7 @@ class FlatHashMapImpl {
       return it_ != other.it_;
     }
 
-    ConstIterator() = default;
-    ConstIterator(const ConstIterator &other) = default;
-    ConstIterator &operator=(const ConstIterator &other) = default;
-    ConstIterator(ConstIterator &&other) = default;
-    ConstIterator &operator=(ConstIterator &&other) = default;
     ConstIterator(ConstNodeIterator it, const Self *map) : it_(std::move(it)), map_(map) {
-    }
-    ConstIterator(Iterator iterator) : it_(std::move(iterator.it_)), map_(iterator.map_) {
     }
 
    private:
@@ -168,11 +161,13 @@ class FlatHashMapImpl {
     const Self *map_;
   };
 
-  using iterator = Iterator;
-  using key_type = KeyT;
-  using value_type = std::pair<const KeyT, ValueT>;
-
   FlatHashMapImpl() = default;
+  FlatHashMapImpl(const FlatHashMapImpl &other) : FlatHashMapImpl(other.begin(), other.end()) {
+  }
+  FlatHashMapImpl &operator=(const FlatHashMapImpl &other) {
+    assign(other.begin(), other.end());
+    return *this;
+  }
   FlatHashMapImpl(FlatHashMapImpl &&other) noexcept : nodes_(std::move(other.nodes_)), used_nodes_(other.used_nodes_) {
     other.used_nodes_ = 0;
   }
@@ -182,23 +177,11 @@ class FlatHashMapImpl {
     other.used_nodes_ = 0;
     return *this;
   }
+  ~FlatHashMapImpl() = default;
+
   template <class ItT>
   FlatHashMapImpl(ItT begin, ItT end) {
     assign(begin, end);
-  }
-  FlatHashMapImpl(const FlatHashMapImpl &other) : FlatHashMapImpl(other.begin(), other.end()) {
-  }
-  FlatHashMapImpl &operator=(const FlatHashMapImpl &other) {
-    assign(other.begin(), other.end());
-    return *this;
-  }
-
-  template <class ItT>
-  void assign(ItT begin, ItT end) {
-    resize(std::distance(begin, end));  // TODO: should be conditional
-    for (; begin != end; ++begin) {
-      emplace(begin->first, begin->second);
-    }
   }
 
   Iterator find(const KeyT &key) {
@@ -211,6 +194,7 @@ class FlatHashMapImpl {
     }
     return Iterator(it, this);
   }
+
   ConstIterator find(const KeyT &key) const {
     if (empty()) {
       return end();
@@ -221,13 +205,16 @@ class FlatHashMapImpl {
     }
     return ConstIterator(it, this);
   }
+
   size_t size() const {
     return used_nodes_;
   }
+
   bool empty() const {
     return size() == 0;
   }
-  auto begin() {
+
+  Iterator begin() {
     if (empty()) {
       return end();
     }
@@ -237,10 +224,11 @@ class FlatHashMapImpl {
     }
     return Iterator(it, this);
   }
-  auto end() {
+  Iterator end() {
     return Iterator(nodes_.end(), this);
   }
-  auto begin() const {
+
+  ConstIterator begin() const {
     if (empty()) {
       return end();
     }
@@ -250,7 +238,7 @@ class FlatHashMapImpl {
     }
     return ConstIterator(it, this);
   }
-  auto end() const {
+  ConstIterator end() const {
     return ConstIterator(nodes_.end(), this);
   }
 
@@ -291,6 +279,7 @@ class FlatHashMapImpl {
     erase(it);
     return 1;
   }
+
   size_t count(const KeyT &key) const {
     return find(key) != end();
   }
@@ -315,11 +304,11 @@ class FlatHashMapImpl {
         test_bucket -= nodes_.size();
       }
 
-      if (is_key_empty(nodes_[test_bucket].key())) {
+      if (nodes_[test_bucket].empty()) {
         break;
       }
 
-      auto want_i = HashT()(nodes_[test_bucket].key()) % nodes_.size();
+      auto want_i = calc_bucket(nodes_[test_bucket].key());
       if (want_i < empty_i) {
         want_i += nodes_.size();
       }
@@ -336,18 +325,29 @@ class FlatHashMapImpl {
   static bool is_key_empty(const KeyT &key) {
     return key == KeyT();
   }
-  std::vector<Node> nodes_;
+
+  vector<Node> nodes_;
   size_t used_nodes_{};
+
+  template <class ItT>
+  void assign(ItT begin, ItT end) {
+    resize(std::distance(begin, end));  // TODO: should be conditional
+    for (; begin != end; ++begin) {
+      emplace(begin->first, begin->second);
+    }
+  }
 
   bool should_resize() const {
     return (used_nodes_ + 1) * 10 > nodes_.size() * 6;
   }
+
   size_t calc_bucket(const KeyT &key) const {
-    return HashT()(key) % nodes_.size();
+    return HashT()(key) * 2 % nodes_.size();
   }
-  auto find_bucket_for_insert(const KeyT &key) {
+
+  NodeIterator find_bucket_for_insert(const KeyT &key) {
     size_t bucket = calc_bucket(key);
-    while (!(nodes_[bucket].key() == key) && !is_key_empty(nodes_[bucket].key())) {
+    while (!(nodes_[bucket].key() == key) && !nodes_[bucket].empty()) {
       bucket++;
       if (bucket == nodes_.size()) {
         bucket = 0;
@@ -355,9 +355,10 @@ class FlatHashMapImpl {
     }
     return nodes_.begin() + bucket;
   }
-  auto find_bucket_for_insert(const KeyT &key) const {
+
+  ConstNodeIterator find_bucket_for_insert(const KeyT &key) const {
     size_t bucket = calc_bucket(key);
-    while (!(nodes_[bucket].key() == key) && !is_key_empty(nodes_[bucket].key())) {
+    while (!(nodes_[bucket].key() == key) && !nodes_[bucket].empty()) {
       bucket++;
       if (bucket == nodes_.size()) {
         bucket = 0;
@@ -365,11 +366,12 @@ class FlatHashMapImpl {
     }
     return nodes_.begin() + bucket;
   }
+
   void resize(size_t size) {
     auto old_nodes = std::move(nodes_);
     nodes_.resize(td::max(old_nodes.size(), size) * 2 + 1);  // TODO: some other logic
     for (auto &node : old_nodes) {
-      if (is_key_empty(node.key())) {
+      if (node.empty()) {
         continue;
       }
       auto new_node = find_bucket_for_insert(node.key());
@@ -378,10 +380,8 @@ class FlatHashMapImpl {
   }
 };
 
-//template <class KeyT, class ValueT, class HashT = std::hash<KeyT>>
-//using FlatHashMap = FlatHashMapImpl<KeyT, ValueT, HashT>;
-
 template <class KeyT, class ValueT, class HashT = std::hash<KeyT>>
+//using FlatHashMap = FlatHashMapImpl<KeyT, ValueT, HashT>;
 using FlatHashMap = std::unordered_map<KeyT, ValueT, HashT>;
 
 }  // namespace td
