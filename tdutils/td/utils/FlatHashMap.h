@@ -72,7 +72,10 @@ class fixed_vector {
 
 template <class KeyT, class ValueT, class HashT = std::hash<KeyT>>
 class FlatHashMapImpl {
+ public:
   struct Node {
+    using first_type = KeyT;
+    using second_type = ValueT;
     KeyT first{};
     union {
       ValueT second;
@@ -85,6 +88,10 @@ class FlatHashMapImpl {
     }
 
     Node() {
+    }
+    Node(KeyT key, ValueT value) : first(std::move(key)) {
+      new (&second) ValueT(std::move(value));
+      CHECK(!empty());
     }
     ~Node() {
       if (!empty()) {
@@ -127,10 +134,9 @@ class FlatHashMapImpl {
   using NodeIterator = typename fixed_vector<Node>::iterator;
   using ConstNodeIterator = typename fixed_vector<Node>::const_iterator;
 
- public:
   // define key_type and value_type for benchmarks
   using key_type = KeyT;
-  using value_type = std::pair<const KeyT, ValueT>;
+  using value_type = Node;
 
   struct Iterator {
     using iterator_category = std::bidirectional_iterator_tag;
@@ -218,6 +224,18 @@ class FlatHashMapImpl {
     assign(other.begin(), other.end());
     return *this;
   }
+
+  FlatHashMapImpl(std::initializer_list<Node> nodes) {
+    reserve(nodes.size());
+    for (auto &node : nodes) {
+      size_t bucket = calc_bucket(node.key());
+      while (!nodes_[bucket].empty()) {
+        next_bucket(bucket);
+      }
+      nodes_[bucket].emplace(node.first, node.second);
+    }
+  }
+
   FlatHashMapImpl(FlatHashMapImpl &&other) noexcept : nodes_(std::move(other.nodes_)), used_nodes_(other.used_nodes_) {
     other.used_nodes_ = 0;
   }
