@@ -40,7 +40,6 @@ class FlatHashMapImpl {
     }
     Node(Node &&other) noexcept {
       *this = std::move(other);
-      other.first = KeyT{};
     }
     Node &operator=(Node &&other) noexcept {
       DCHECK(empty());
@@ -118,6 +117,7 @@ class FlatHashMapImpl {
     NodeIterator it_;
     Self *map_;
   };
+
   struct ConstIterator {
     using iterator_category = std::bidirectional_iterator_tag;
     using difference_type = std::ptrdiff_t;
@@ -127,15 +127,11 @@ class FlatHashMapImpl {
 
     friend class FlatHashMapImpl;
     ConstIterator &operator++() {
-      do {
-        ++it_;
-      } while (it_ != map_->nodes_.end() && it_->empty());
+      ++it_;
       return *this;
     }
     ConstIterator &operator--() {
-      do {
-        --it_;
-      } while (it_->empty());
+      --it_;
       return *this;
     }
     const Node &operator*() {
@@ -145,20 +141,17 @@ class FlatHashMapImpl {
       return &*it_;
     }
     bool operator==(const ConstIterator &other) const {
-      DCHECK(map_ == other.map_);
       return it_ == other.it_;
     }
     bool operator!=(const ConstIterator &other) const {
-      DCHECK(map_ == other.map_);
       return it_ != other.it_;
     }
 
-    ConstIterator(ConstNodeIterator it, const Self *map) : it_(std::move(it)), map_(map) {
+    explicit ConstIterator(Iterator it) : it_(std::move(it)) {
     }
 
    private:
-    ConstNodeIterator it_;
-    const Self *map_;
+    Iterator it_;
   };
 
   FlatHashMapImpl() = default;
@@ -196,14 +189,7 @@ class FlatHashMapImpl {
   }
 
   ConstIterator find(const KeyT &key) const {
-    if (empty()) {
-      return end();
-    }
-    auto it = find_bucket_for_insert(key);
-    if (it->empty()) {
-      return end();
-    }
-    return ConstIterator(it, this);
+    return ConstIterator(const_cast<Self*>(this)->find(key));
   }
 
   size_t size() const {
@@ -229,17 +215,10 @@ class FlatHashMapImpl {
   }
 
   ConstIterator begin() const {
-    if (empty()) {
-      return end();
-    }
-    auto it = nodes_.begin();
-    while (it->empty()) {
-      ++it;
-    }
-    return ConstIterator(it, this);
+    return ConstIterator(const_cast<Self *>(this)->begin());
   }
   ConstIterator end() const {
-    return ConstIterator(nodes_.end(), this);
+    return ConstIterator(const_cast<Self *>(this)->end());
   }
 
   template <class... ArgsT>
@@ -357,14 +336,7 @@ class FlatHashMapImpl {
   }
 
   ConstNodeIterator find_bucket_for_insert(const KeyT &key) const {
-    size_t bucket = calc_bucket(key);
-    while (!(nodes_[bucket].key() == key) && !nodes_[bucket].empty()) {
-      bucket++;
-      if (bucket == nodes_.size()) {
-        bucket = 0;
-      }
-    }
-    return nodes_.begin() + bucket;
+    return const_cast<Self *>(find_bucket_for_insert(key));
   }
 
   void resize(size_t size) {
