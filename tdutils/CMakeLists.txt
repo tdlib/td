@@ -355,7 +355,7 @@ if (CRC32C_FOUND)
   target_link_libraries(tdutils PRIVATE crc32c)
 endif()
 if (ABSL_FOUND)
-  target_link_libraries(tdutils SYSTEM PUBLIC absl::flat_hash_map absl::flat_hash_set absl::hash)
+  target_link_libraries(tdutils PUBLIC absl::flat_hash_map absl::flat_hash_set absl::hash)
 endif()
 
 if (WIN32)
@@ -385,3 +385,13 @@ install(TARGETS tdutils EXPORT TdTargets
   LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
   ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
 )
+
+find_package(ABSL)
+find_package(benchmark)
+find_package(gflags)
+find_package(folly)
+
+if (ABSL_FOUND AND benchmark_FOUND AND gflags_FOUND AND folly_FOUND)
+  add_executable(benchmark-hashset ${CMAKE_CURRENT_SOURCE_DIR}/test/hashset_benchmark.cpp)
+  target_link_libraries(benchmark-hashset tdutils benchmark::benchmark Folly::folly ${gflags_LIBRARIES} absl::flat_hash_map absl::hash)
+endif()
