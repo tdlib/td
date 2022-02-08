@@ -30018,7 +30018,13 @@ void MessagesManager::send_update_message_interaction_info(DialogId dialog_id, c
 void MessagesManager::send_update_message_unread_reactions(DialogId dialog_id, const Message *m,
                                                            int32 unread_reaction_count) const {
   CHECK(m != nullptr);
-  if (td_->auth_manager_->is_bot() || !m->is_update_sent) {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+  if (!m->is_update_sent) {
+    LOG(INFO) << "Update unread reaction message count in " << dialog_id << " to " << unread_reaction_count;
+    send_closure(G()->td(), &Td::send_update,
+                 make_tl_object<td_api::updateChatUnreadReactionCount>(dialog_id.get(), unread_reaction_count));
     return;
   }
 
