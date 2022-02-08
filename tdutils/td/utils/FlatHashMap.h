@@ -234,33 +234,20 @@ class FlatHashMapImpl {
     assign(begin, end);
   }
 
-  template <class SomeF, class NoneF>
-  auto with_node(const KeyT &key, SomeF &&some, NoneF &&none) {
-    size_t bucket = calc_bucket(key);
-    while (true) {
-      if (nodes_[bucket].key() == key) {
-        return some(nodes_.begin() + bucket);
-      }
-      if (nodes_[bucket].empty()) {
-        return none(nodes_.begin() + bucket);
-      }
-      bucket++;
-      if (bucket == nodes_.size()) {
-        bucket = 0;
-      }
-    }
-  }
-
   Iterator find(const KeyT &key) {
     if (empty()) {
       return end();
     }
-    return with_node(
-        key,
-        [&](auto it) {
-          return Iterator{it, this};
-        },
-        [&](auto it) { return end(); });
+    size_t bucket = calc_bucket(key);
+    while (true) {
+      if (nodes_[bucket].key() == key) {
+        return Iterator{nodes_.begin() + bucket, this};
+      }
+      if (nodes_[bucket].empty()) {
+        return end();
+      }
+      next_bucket(bucket);
+    }
   }
 
   ConstIterator find(const KeyT &key) const {
@@ -309,29 +296,22 @@ class FlatHashMapImpl {
     if (unlikely(should_resize())) {
       grow();
     }
-    return with_node(
-        key, [&](auto it) { return std::make_pair(Iterator(it, this), false); },
-        [&](auto it) {
-          it->emplace(std::move(key), std::forward<ArgsT>(args)...);
-          used_nodes_++;
-          return std::make_pair(Iterator(it, this), true);
-        });
+    size_t bucket = calc_bucket(key);
+    while (true) {
+      if (nodes_[bucket].key() == key) {
+        return {Iterator{nodes_.begin() + bucket, this}, false};
+      }
+      if (nodes_[bucket].empty()) {
+        nodes_[bucket].emplace(std::move(key), std::forward<ArgsT>(args)...);
+        used_nodes_++;
+        return {Iterator{nodes_.begin() + bucket, this}, true};
+      }
+      next_bucket(bucket);
+    }
   }
 
   ValueT &operator[](const KeyT &key) {
-    DCHECK(!is_key_empty(key));
-
-    if (should_resize()) {
-      grow();
-    }
-
-    return *with_node(
-        key, [&](auto it) { return &it->second; },
-        [&](auto it) {
-          it->emplace(key);
-          used_nodes_++;
-          return &it->second;
-        });
+    return emplace(key).first->second;
   }
 
   size_t erase(const KeyT &key) {
@@ -420,7 +400,6 @@ class FlatHashMapImpl {
     resize(want_size);
   }
   void resize(size_t new_size) {
-    // LOG(ERROR) << new_size;
     fixed_vector<Node> old_nodes(new_size);
     std::swap(old_nodes, nodes_);
 
@@ -428,8 +407,18 @@ class FlatHashMapImpl {
       if (node.empty()) {
         continue;
       }
-      with_node(
-          node.key(), [](auto it) { UNREACHABLE(); }, [&](auto it) { *it = std::move(node); });
+      size_t bucket = calc_bucket(node.key());
+      while (!nodes_[bucket].empty()) {
+        next_bucket(bucket);
+      }
+      nodes_[bucket] = std::move(node);
+    }
+  }
+
+  void next_bucket(size_t &bucket) const {
+    bucket++;
+    if (bucket == nodes_.size()) {
+      bucket = 0;
     }
   }
 };
