@@ -6791,8 +6791,17 @@ void MessagesManager::on_update_message_forward_count(FullMessageId full_message
 }
 
 void MessagesManager::on_update_message_reactions(FullMessageId full_message_id,
-                                                  tl_object_ptr<telegram_api::messageReactions> &&reactions) {
+                                                  tl_object_ptr<telegram_api::messageReactions> &&reactions,
+                                                  Promise<Unit> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+
+  if (!have_message_force(full_message_id, "on_update_message_reactions")) {
+    LOG(INFO) << "Need to load " << full_message_id << " to process updateMessageReaction";
+    return get_message_from_server(full_message_id, std::move(promise), "on_update_message_reactions");
+  }
+
   update_message_interaction_info(full_message_id, -1, -1, false, nullptr, true, std::move(reactions));
+  promise.set_value(Unit());
 }
 
 void MessagesManager::on_update_message_interaction_info(FullMessageId full_message_id, int32 view_count,
@@ -12984,6 +12993,7 @@ void MessagesManager::tear_down() {
 
 void MessagesManager::hangup() {
   postponed_channel_updates_.clear();
+  load_active_live_location_messages_queries_.clear();
   stop();
 }
 

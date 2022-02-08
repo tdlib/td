@@ -336,7 +336,7 @@ class MessagesManager final : public Actor {
   void on_update_message_forward_count(FullMessageId full_message_id, int32 forward_count);
 
   void on_update_message_reactions(FullMessageId full_message_id,
-                                   tl_object_ptr<telegram_api::messageReactions> &&reactions);
+                                   tl_object_ptr<telegram_api::messageReactions> &&reactions, Promise<Unit> &&promise);
 
   void on_update_message_interaction_info(FullMessageId full_message_id, int32 view_count, int32 forward_count,
                                           bool has_reply_info, tl_object_ptr<telegram_api::messageReplies> &&reply_info,

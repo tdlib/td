@@ -62,7 +62,7 @@ class GetMessagesReactionsQuery final : public Td::ResultHandler {
         }
       }
       for (auto message_id : skipped_message_ids) {
-        td_->messages_manager_->on_update_message_reactions({dialog_id_, message_id}, nullptr);
+        td_->messages_manager_->on_update_message_reactions({dialog_id_, message_id}, nullptr, Promise<Unit>());
       }
     }
     td_->updates_manager_->on_get_updates(std::move(ptr), Promise<Unit>());

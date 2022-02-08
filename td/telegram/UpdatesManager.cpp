@@ -2703,8 +2703,8 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateChannelWebPage>
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateMessageReactions> update, Promise<Unit> &&promise) {
   td_->messages_manager_->on_update_message_reactions(
-      {DialogId(update->peer_), MessageId(ServerMessageId(update->msg_id_))}, std::move(update->reactions_));
-  promise.set_value(Unit());
+      {DialogId(update->peer_), MessageId(ServerMessageId(update->msg_id_))}, std::move(update->reactions_),
+      std::move(promise));
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateFolderPeers> update, Promise<Unit> &&promise) {
