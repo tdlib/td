@@ -155,7 +155,8 @@ class SendVoteQuery final : public Td::ResultHandler {
 
     auto message_id = full_message_id.get_message_id().get_server_message_id().get();
     auto query = G()->net_query_creator().create(
-        telegram_api::messages_sendVote(std::move(input_peer), message_id, std::move(options)), {{poll_id}});
+        telegram_api::messages_sendVote(std::move(input_peer), message_id, std::move(options)),
+        {{poll_id}, {dialog_id_}});
     *query_ref = query.get_weak();
     send_query(std::move(query));
   }
@@ -208,7 +209,7 @@ class StopPollQuery final : public Td::ResultHandler {
         telegram_api::messages_editMessage(flags, false /*ignored*/, std::move(input_peer), message_id, string(),
                                            std::move(input_media), std::move(input_reply_markup),
                                            vector<tl_object_ptr<telegram_api::MessageEntity>>(), 0),
-        {{poll_id}}));
+        {{poll_id}, {dialog_id_}}));
   }
 
   void on_result(BufferSlice packet) final {

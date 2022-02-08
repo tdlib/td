@@ -21,8 +21,11 @@ class ChainId {
   uint64 id = 0;
 
  public:
-  ChainId(DialogId dialog_id, MessageContentType message_content_type = MessageContentType::None)
+  ChainId(DialogId dialog_id, MessageContentType message_content_type)
       : id((static_cast<uint64>(dialog_id.get()) << 10) + get_message_content_chain_id(message_content_type)) {
+  }
+
+  ChainId(DialogId dialog_id) : id((static_cast<uint64>(dialog_id.get()) << 10) + 10) {
   }
 
   ChainId(FolderId folder_id) : id((static_cast<uint64>(folder_id.get() + (1 << 30)) << 10)) {
