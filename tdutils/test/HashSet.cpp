@@ -35,5 +35,15 @@ TEST(FlatHashMap, basic) {
   {
     td::FlatHashMap<int, std::string> map = {{1, "hello"}, {2, "world"}};
     ASSERT_EQ("hello", map[1]);
+    ASSERT_EQ("world", map[2]);
+    ASSERT_EQ(2u, map.size());
+    ASSERT_EQ("", map[3]);
+    ASSERT_EQ(3u, map.size());
+  }
+
+  {
+    td::FlatHashMap<int, std::string> map = {{1, "hello"}, {1, "world"}};
+    ASSERT_EQ("world", map[1]);
+    ASSERT_EQ(1u, map.size());
   }
 }

@@ -1,24 +1,35 @@
-#include <cstdio>
-
-#include <benchmark/benchmark.h>
-#include <td/utils/Random.h>
-#include <td/utils/FlatHashMap.h>
-#include <unordered_map>
-#include <map>
-#include <absl/container/flat_hash_map.h>
-#include <absl/hash/hash.h>
-#include <folly/container/F14Map.h>
-#include "td/utils/Time.h"
-#include "td/utils/logging.h"
+//
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
+//
+// Distributed under the Boost Software License, Version 1.0. (See accompanying
+// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+//
+#include "td/utils/common.h"
+#include "td/utils/FlatHashMap.h"
 #include "td/utils/format.h"
 #include "td/utils/Hash.h"
+#include "td/utils/logging.h"
+#include "td/utils/Random.h"
+#include "td/utils/Slice.h"
+#include "td/utils/Span.h"
+#include "td/utils/Time.h"
+
+#include <absl/container/flat_hash_map.h>
+#include <absl/hash/hash.h>
+#include <algorithm>
+#include <benchmark/benchmark.h>
+#include <folly/container/F14Map.h>
+#include <map>
+#include <unordered_map>
+#include <utility>
 
 template <class TableT>
-void reserve(TableT &table, size_t size) {
+static void reserve(TableT &table, size_t size) {
   table.reserve(size);
 }
+
 template <class A, class B>
-void reserve(std::map<A, B> &table, size_t size) {
+static void reserve(std::map<A, B> &table, size_t size) {
 }
 
 template <class KeyT, class ValueT>
@@ -58,14 +69,12 @@ class VectorTable {
     return it->second;
   }
   auto find(const KeyT &needle) {
-    return std::find_if(table_.begin(), table_.end(), [&](auto &key) {
-      return key.first == needle;
-    });
+    return std::find_if(table_.begin(), table_.end(), [&](auto &key) { return key.first == needle; });
   }
 
  private:
   using KeyValue = value_type;
-  std::vector<KeyValue> table_;
+  td::vector<KeyValue> table_;
 };
 
 template <class KeyT, class ValueT>
@@ -79,9 +88,8 @@ class SortedVectorTable {
   }
 
   ValueT &operator[](const KeyT &needle) {
-    auto it = std::lower_bound(table_.begin(), table_.end(), needle, [](auto l, auto r) {
-      return l.first < r;
-    });
+    auto it = std::lower_bound(table_.begin(), table_.end(), needle,
+                               [](const auto &l, const auto &r) { return l.first < r; });
     if (it == table_.end() || it->first != needle) {
       it = table_.insert(it, {needle, ValueT{}});
     }
@@ -89,9 +97,8 @@ class SortedVectorTable {
   }
 
   auto find(const KeyT &needle) {
-    auto it = std::lower_bound(table_.begin(), table_.end(), needle, [](auto l, auto r) {
-      return l.first < r;
-    });
+    auto it = std::lower_bound(table_.begin(), table_.end(), needle,
+                               [](const auto &l, const auto &r) { return l.first < r; });
     if (it != table_.end() && it->first == needle) {
       return it;
     }
@@ -100,7 +107,7 @@ class SortedVectorTable {
 
  private:
   using KeyValue = value_type;
-  std::vector<KeyValue> table_;
+  td::vector<KeyValue> table_;
 };
 
 template <class KeyT, class ValueT, class HashT = td::Hash<KeyT>>
@@ -135,21 +142,20 @@ class SimpleHashTable {
         i = 0;
       }
     }
-
   }
 
  private:
   using KeyValue = value_type;
   struct Node {
-    td::uint64 hash{0};
+    std::size_t hash{0};
     KeyT key;
     ValueT value;
   };
-  std::vector<Node> nodes_;
+  td::vector<Node> nodes_;
 
   void insert(KeyT key, ValueT value) {
     auto hash = HashT()(key);
-    size_t i = hash % nodes_.size();
+    std::size_t i = hash % nodes_.size();
     while (true) {
       if (nodes_[i].hash == 0 || (nodes_[i].hash == hash && nodes_[i].key == key)) {
         nodes_[i].value = value;
@@ -166,15 +172,15 @@ class SimpleHashTable {
 };
 
 template <typename TableT>
-void BM_Get(benchmark::State& state) {
-  size_t n = state.range(0);
-  constexpr size_t batch_size = 1024;
+static void BM_Get(benchmark::State &state) {
+  std::size_t n = state.range(0);
+  constexpr std::size_t BATCH_SIZE = 1024;
   td::Random::Xorshift128plus rnd(123);
   using Key = typename TableT::key_type;
   using Value = typename TableT::value_type::second_type;
   using KeyValue = std::pair<Key, Value>;
-  std::vector<KeyValue> data;
-  std::vector<Key> keys;
+  td::vector<KeyValue> data;
+  td::vector<Key> keys;
 
   for (size_t i = 0; i < n; i++) {
     auto key = rnd();
@@ -194,19 +200,19 @@ void BM_Get(benchmark::State& state) {
     return keys[key_i];
   };
 
-  while (state.KeepRunningBatch(batch_size)) {
-    for (size_t i = 0; i < batch_size; i++) {
+  while (state.KeepRunningBatch(BATCH_SIZE)) {
+    for (size_t i = 0; i < BATCH_SIZE; i++) {
       benchmark::DoNotOptimize(table.find(next_key()));
     }
   }
 }
 
 template <typename TableT>
-void BM_find_same(benchmark::State& state) {
+static void BM_find_same(benchmark::State &state) {
   td::Random::Xorshift128plus rnd(123);
   TableT table;
-  size_t N = 100000;
-  size_t batch_size = 1024;
+  constexpr size_t N = 100000;
+  constexpr size_t BATCH_SIZE = 1024;
   reserve(table, N);
 
   for (size_t i = 0; i < N; i++) {
@@ -216,19 +222,19 @@ void BM_find_same(benchmark::State& state) {
   auto key = td::Random::secure_uint64();
   table[key] = 123;
 
-  while (state.KeepRunningBatch(batch_size)) {
-    for (size_t i = 0; i < batch_size; i++) {
+  while (state.KeepRunningBatch(BATCH_SIZE)) {
+    for (size_t i = 0; i < BATCH_SIZE; i++) {
       benchmark::DoNotOptimize(table.find(key));
     }
   }
 }
 
 template <typename TableT>
-void BM_emplace_same(benchmark::State& state) {
+static void BM_emplace_same(benchmark::State &state) {
   td::Random::Xorshift128plus rnd(123);
   TableT table;
-  size_t N = 100000;
-  size_t batch_size = 1024;
+  constexpr size_t N = 100000;
+  constexpr size_t BATCH_SIZE = 1024;
   reserve(table, N);
 
   for (size_t i = 0; i < N; i++) {
@@ -238,17 +244,18 @@ void BM_emplace_same(benchmark::State& state) {
   auto key = 123743;
   table[key] = 123;
 
-  while (state.KeepRunningBatch(batch_size)) {
-    for (size_t i = 0; i < batch_size; i++) {
+  while (state.KeepRunningBatch(BATCH_SIZE)) {
+    for (size_t i = 0; i < BATCH_SIZE; i++) {
       benchmark::DoNotOptimize(table.emplace(key, 43784932));
     }
   }
 }
+
 template <typename TableT>
-void bench_create(td::Slice name) {
+static void benchmark_create(td::Slice name) {
   td::Random::Xorshift128plus rnd(123);
   {
-    size_t N = 10000000;
+    constexpr size_t N = 10000000;
     TableT table;
     reserve(table, N);
     auto start = td::Timestamp::now();
@@ -256,10 +263,11 @@ void bench_create(td::Slice name) {
       table.emplace(rnd(), i);
     }
     auto end = td::Timestamp::now();
-    LOG(INFO) << name << ":" << "create " << N << " elements: " << td::format::as_time(end.at() - start.at());
+    LOG(INFO) << name << ":"
+              << "create " << N << " elements: " << td::format::as_time(end.at() - start.at());
 
     double res = 0;
-    std::vector<std::pair<size_t, td::format::Time>> pauses;
+    td::vector<std::pair<size_t, td::format::Time>> pauses;
     for (size_t i = 0; i < N; i++) {
       auto emplace_start = td::Timestamp::now();
       table.emplace(rnd(), i);
@@ -271,47 +279,40 @@ void bench_create(td::Slice name) {
       }
     }
 
-    LOG(INFO) << name << ":" << "create another " << N << " elements, max pause = " << td::format::as_time(res) << " " << pauses;
+    LOG(INFO) << name << ":"
+              << "create another " << N << " elements, max pause = " << td::format::as_time(res) << " " << pauses;
   }
 }
 
 #define FOR_EACH_TABLE(F) \
-  F(td::FlatHashMapImpl) \
-  F(folly::F14FastMap) \
-  F(absl::flat_hash_map) \
-  F(std::unordered_map) \
-  F(std::map) \
+  F(td::FlatHashMapImpl)  \
+  F(folly::F14FastMap)    \
+  F(absl::flat_hash_map)  \
+  F(std::unordered_map)   \
+  F(std::map)
 
 //BENCHMARK(BM_Get<VectorTable<td::uint64, td::uint64>>)->Range(1, 1 << 26);
 //BENCHMARK(BM_Get<SortedVectorTable<td::uint64, td::uint64>>)->Range(1, 1 << 26);
 //BENCHMARK(BM_Get<NoOpTable<td::uint64, td::uint64>>)->Range(1, 1 << 26);
 
+#define REGISTER_GET_BENCHMARK(HT) BENCHMARK(BM_Get<HT<td::uint64, td::uint64>>)->Range(1, 1 << 23);
 
+#define REGISTER_FIND_BENCHMARK(HT)                                                                                 \
+  BENCHMARK(BM_find_same<HT<td::uint64, td::uint64>>)                                                               \
+      ->ComputeStatistics("max", [](const td::vector<double> &v) { return *std::max_element(v.begin(), v.end()); }) \
+      ->ComputeStatistics("min", [](const td::vector<double> &v) { return *std::min_element(v.begin(), v.end()); }) \
+      ->Repetitions(20)                                                                                             \
+      ->DisplayAggregatesOnly(true);
 
-#define REGISTER_GET_BENCHMARK(HT) \
-  BENCHMARK(BM_Get<HT<td::uint64, td::uint64>>)->Range(1, 1 << 23);
+#define REGISTER_EMPLACE_BENCHMARK(HT) BENCHMARK(BM_emplace_same<HT<td::uint64, td::uint64>>);
 
-#define REGISTER_FIND_BENCHMARK(HT) \
-  BENCHMARK(BM_find_same<HT<td::uint64, td::uint64>>)-> \
-      ComputeStatistics("max", [](const std::vector<double>& v) -> double { \
-        return *(std::max_element(std::begin(v), std::end(v))); \
-      })-> \
-      ComputeStatistics("min", [](const std::vector<double>& v) -> double { \
-        return *(std::min_element(std::begin(v), std::end(v))); \
-      })-> \
-      Repetitions(20)->DisplayAggregatesOnly(true);
-
-#define REGISTER_EMPLACE_BENCHMARK(HT) \
-  BENCHMARK(BM_emplace_same<HT<td::uint64, td::uint64>>);
-
-#define RUN_CREATE_BENCHMARK(HT) \
-  bench_create<HT<td::uint64, td::uint64>>(#HT);
+#define RUN_CREATE_BENCHMARK(HT) benchmark_create<HT<td::uint64, td::uint64>>(#HT);
 
 FOR_EACH_TABLE(REGISTER_FIND_BENCHMARK)
 FOR_EACH_TABLE(REGISTER_EMPLACE_BENCHMARK)
 FOR_EACH_TABLE(REGISTER_GET_BENCHMARK)
 
-int main(int argc, char** argv) {
+int main(int argc, char **argv) {
   FOR_EACH_TABLE(RUN_CREATE_BENCHMARK);
 
   benchmark::Initialize(&argc, argv);

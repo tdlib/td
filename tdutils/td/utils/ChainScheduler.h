@@ -204,7 +204,7 @@ class ChainScheduler final : public ChainSchedulerBase {
         chain_info.active_tasks--;
       }
       if (was_active && failed) {
-        chain_info.generation = std::max(chain_info.generation, task_chain_info.chain_node.generation + 1);
+        chain_info.generation = td::max(chain_info.generation, task_chain_info.chain_node.generation + 1);
       }
 
       auto it = limited_tasks_.find(task_chain_info.chain_id);

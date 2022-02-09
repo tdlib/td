@@ -8,10 +8,10 @@
 
 #include "td/utils/bits.h"
 #include "td/utils/common.h"
-#include "td/utils/logging.h"
 
 #include <cstddef>
 #include <functional>
+#include <initializer_list>
 #include <iterator>
 #include <new>
 #include <unordered_map>
@@ -91,7 +91,7 @@ class FlatHashMapImpl {
     }
     Node(KeyT key, ValueT value) : first(std::move(key)) {
       new (&second) ValueT(std::move(value));
-      CHECK(!empty());
+      DCHECK(!empty());
     }
     ~Node() {
       if (!empty()) {
@@ -134,7 +134,6 @@ class FlatHashMapImpl {
   using NodeIterator = typename fixed_vector<Node>::iterator;
   using ConstNodeIterator = typename fixed_vector<Node>::const_iterator;
 
-  // define key_type and value_type for benchmarks
   using key_type = KeyT;
   using value_type = Node;
 
@@ -228,11 +227,19 @@ class FlatHashMapImpl {
   FlatHashMapImpl(std::initializer_list<Node> nodes) {
     reserve(nodes.size());
     for (auto &node : nodes) {
-      size_t bucket = calc_bucket(node.key());
-      while (!nodes_[bucket].empty()) {
+      auto bucket = calc_bucket(node.first);
+      while (true) {
+        if (nodes_[bucket].key() == node.first) {
+          nodes_[bucket].second = node.second;
+          break;
+        }
+        if (nodes_[bucket].empty()) {
+          nodes_[bucket].emplace(node.first, node.second);
+          used_nodes_++;
+          break;
+        }
         next_bucket(bucket);
       }
-      nodes_[bucket].emplace(node.first, node.second);
     }
   }
 
@@ -256,7 +263,7 @@ class FlatHashMapImpl {
     if (empty()) {
       return end();
     }
-    size_t bucket = calc_bucket(key);
+    auto bucket = calc_bucket(key);
     while (true) {
       if (nodes_[bucket].key() == key) {
         return Iterator{nodes_.begin() + bucket, this};
@@ -302,7 +309,7 @@ class FlatHashMapImpl {
   }
 
   void reserve(size_t size) {
-    size_t want_size = normalize(size * 10 / 6 + 1);
+    size_t want_size = normalize(size * 5 / 3 + 1);
     // size_t want_size = size * 2;
     if (want_size > nodes_.size()) {
       resize(want_size);
@@ -314,7 +321,7 @@ class FlatHashMapImpl {
     if (unlikely(should_resize())) {
       grow();
     }
-    size_t bucket = calc_bucket(key);
+    auto bucket = calc_bucket(key);
     while (true) {
       if (nodes_[bucket].key() == key) {
         return {Iterator{nodes_.begin() + bucket, this}, false};
@@ -401,8 +408,8 @@ class FlatHashMapImpl {
   bool should_resize() const {
     return should_resize(used_nodes_ + 1, nodes_.size());
   }
-  static bool should_resize(size_t used_count, size_t buckets_count) {
-    return used_count * 10 > buckets_count * 6;
+  static bool should_resize(size_t used_count, size_t bucket_count) {
+    return used_count * 5 > bucket_count * 3;
   }
 
   size_t calc_bucket(const KeyT &key) const {
@@ -410,13 +417,16 @@ class FlatHashMapImpl {
   }
 
   static size_t normalize(size_t size) {
-    return size_t(1) << (64 - count_leading_zeroes64(size));
+    // return size ? (size | 7) : 0;
+    return static_cast<size_t>(1) << (64 - count_leading_zeroes64(size));
   }
+
   void grow() {
-    size_t want_size = normalize(td::max(nodes_.size() * 2 - 1, (used_nodes_ + 1) * 10 / 6 + 1));
+    size_t want_size = normalize(td::max(nodes_.size() * 2 - 1, (used_nodes_ + 1) * 5 / 3 + 1));
     // size_t want_size = td::max(nodes_.size(), (used_nodes_ + 1)) * 2;
     resize(want_size);
   }
+
   void resize(size_t new_size) {
     fixed_vector<Node> old_nodes(new_size);
     std::swap(old_nodes, nodes_);

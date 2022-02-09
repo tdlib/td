@@ -13,7 +13,6 @@
 #include "td/telegram/DialogId.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/InlineQueriesManager.h"
-#include "td/telegram/MessageContentType.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/net/DcId.h"

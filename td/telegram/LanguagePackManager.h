@@ -20,6 +20,7 @@
 #include "td/utils/Status.h"
 
 #include <mutex>
+#include <unordered_map>
 #include <utility>
 
 namespace td {
