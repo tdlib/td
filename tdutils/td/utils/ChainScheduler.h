@@ -178,7 +178,7 @@ class ChainScheduler final : public ChainSchedulerBase {
     task->state = Task::State::Active;
 
     pending_tasks_.push(task_id);
-    for_each_child(task, [&](auto task_id) { try_start_task(task_id); });
+    for_each_child(task, [&](TaskId task_id) { try_start_task(task_id); });
   }
 
   template <class F>
@@ -316,7 +316,7 @@ void ChainScheduler<ExtraT>::finish_task(ChainScheduler::TaskId task_id) {
 
   inactivate_task(task_id, false);
 
-  for_each_child(task, [&](auto task_id) { try_start_task_later(task_id); });
+  for_each_child(task, [&](TaskId task_id) { try_start_task_later(task_id); });
 
   for (TaskChainInfo &task_chain_info : task->chains) {
     finish_chain_task(task_chain_info);
