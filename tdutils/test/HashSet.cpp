@@ -12,6 +12,13 @@
 #include "td/utils/Random.h"
 #include "td/utils/algorithm.h"
 
+template <class T>
+auto extract_kv(const T &reference) {
+  auto expected = td::transform(reference, [](auto &it) {return std::make_pair(it.first, it.second);});
+  std::sort(expected.begin(), expected.end());
+  return expected;
+}
+
 TEST(FlatHashMap, basic) {
   {
     td::FlatHashMap<int, int> map;
@@ -48,23 +55,80 @@ TEST(FlatHashMap, basic) {
     ASSERT_EQ("world", map[1]);
     ASSERT_EQ(1u, map.size());
   }
-}
 
-template <class T>
-auto extract_kv(const T &reference) {
-  auto expected = td::transform(reference, [](auto &it) {return std::make_pair(it.first, it.second);});
-  std::sort(expected.begin(), expected.end());
-  return expected;
+  using KV = td::FlatHashMapImpl<std::string, std::string>;
+  using Data = std::vector<std::pair<std::string, std::string>>;
+  auto data = Data{{"a", "b"}, {"c", "d"}};
+  {
+    ASSERT_EQ(Data{}, extract_kv(KV()));
+  }
+
+  {
+    KV kv(data.begin(), data.end());
+    ASSERT_EQ(data, extract_kv(kv));
+
+    KV copied_kv(kv);
+    ASSERT_EQ(data, extract_kv(copied_kv));
+
+    KV moved_kv(std::move(kv));
+    ASSERT_EQ(data, extract_kv(moved_kv));
+    ASSERT_EQ(Data{}, extract_kv(kv));
+    ASSERT_TRUE(kv.empty());
+    kv = std::move(moved_kv);
+    ASSERT_EQ(data, extract_kv(kv));
+
+    KV assign_copied_kv;
+    assign_copied_kv = kv;
+    ASSERT_EQ(data, extract_kv(assign_copied_kv));
+
+    KV assign_moved_kv;
+    assign_moved_kv = std::move(kv);
+    ASSERT_EQ(data, extract_kv(assign_moved_kv));
+    ASSERT_EQ(Data{}, extract_kv(kv));
+    ASSERT_TRUE(kv.empty());
+    kv = std::move(assign_moved_kv);
+
+    KV it_copy_kv(kv.begin(), kv.end());
+    ASSERT_EQ(data, extract_kv(it_copy_kv));
+  }
+
+  {
+    KV kv;
+    ASSERT_TRUE(kv.empty());
+    ASSERT_EQ(0u, kv.size());
+    kv = KV(data.begin(), data.end());
+    ASSERT_TRUE(!kv.empty());
+    ASSERT_EQ(2u, kv.size());
+
+    ASSERT_EQ("a", kv.find("a")->first);
+    ASSERT_EQ("b", kv.find("a")->second);
+    ASSERT_EQ("a", kv.find("a")->key());
+    ASSERT_EQ("b", kv.find("a")->value());
+    kv.find("a")->second = "c";
+    ASSERT_EQ("c", kv.find("a")->second);
+    ASSERT_EQ("c", kv["a"]);
+
+    ASSERT_EQ(0u, kv.count("x"));
+    ASSERT_EQ(1u, kv.count("a"));
+  }
+  {
+    KV kv;
+    kv["d"];
+    ASSERT_EQ((Data{{"d", ""}}), extract_kv(kv));
+    kv.erase(kv.find("d"));
+    ASSERT_EQ(Data{}, extract_kv(kv));
+  }
 }
 
 TEST(FlatHashMap, remove_if_basic) {
   td::Random::Xorshift128plus rnd(123);
 
-  for (int test_i = 0; test_i < 1000000; test_i++) {
+  constexpr int TESTS_N = 10000;
+  constexpr int MAX_TABLE_SIZE = 1000;
+  for (int test_i = 0; test_i < TESTS_N; test_i++) {
     std::unordered_map<td::uint64, td::uint64> reference;
     td::FlatHashMap<td::uint64, td::uint64> table;
-    LOG_IF(ERROR, test_i % 1000 == 0) << test_i;
-    int N = rnd.fast(1, 1000);
+    int N = rnd.fast(1, MAX_TABLE_SIZE);
     for (int i = 0; i < N; i++) {
       auto key = rnd();
       auto value = i;
@@ -80,5 +144,116 @@ TEST(FlatHashMap, remove_if_basic) {
 
     td::table_remove_if(reference, [](auto &it) {return it.second % 2 == 0;});
     ASSERT_EQ(extract_kv(reference), extract_kv(table));
+  }
+}
+
+
+TEST(FlatHashMap, stress_test) {
+  std::vector<td::RandomSteps::Step> steps;
+  auto add_step = [&steps](td::Slice, td::uint32 weight, auto f) {
+    steps.emplace_back(td::RandomSteps::Step{std::move(f), weight});
+  };
+
+  td::Random::Xorshift128plus rnd(123);
+  size_t max_table_size = 1000; // dynamic value
+  std::unordered_map<td::uint64, td::uint64> ref;
+  td::FlatHashMapImpl<td::uint64, td::uint64> tbl;
+
+  auto validate = [&]() {
+    ASSERT_EQ(ref.empty(), tbl.empty());
+    ASSERT_EQ(ref.size(), tbl.size());
+    ASSERT_EQ(extract_kv(ref), extract_kv(tbl));
+    for (auto &kv : ref) {
+      ASSERT_EQ(ref[kv.first], tbl[kv.first]);
+    }
+  };
+  auto gen_key = [&]() {
+    auto key = rnd() % 4000 + 1;
+    return key;
+  };
+
+  add_step("Reset hash table", 1, [&]() {
+    validate();
+    td::reset_to_empty(ref);
+    td::reset_to_empty(tbl);
+    max_table_size = rnd.fast(1, 1000);
+  });
+  add_step("Clear hash table", 1, [&]() {
+    validate();
+    ref.clear();
+    tbl.clear();
+    max_table_size = rnd.fast(1, 1000);
+  });
+
+  add_step("Insert random value", 1000, [&]() {
+    if (tbl.size() > max_table_size) {
+      return;
+    }
+    auto key = gen_key();
+    auto value = rnd();
+    ref[key] = value;
+    tbl[key] = value;
+    ASSERT_EQ(ref[key], tbl[key]);
+  });
+
+  add_step("Emplace random value", 1000, [&]() {
+    if (tbl.size() > max_table_size) {
+      return;
+    }
+    auto key = gen_key();
+    auto value = rnd();
+    auto ref_it = ref.emplace(key, value);
+    auto tbl_it = tbl.emplace(key, value);
+    ASSERT_EQ(ref_it.second, tbl_it.second);
+    ASSERT_EQ(key, tbl_it.first->first);
+  });
+
+  add_step("empty operator[]", 1000, [&]() {
+    if (tbl.size() > max_table_size) {
+      return;
+    }
+    auto key = gen_key();
+    ASSERT_EQ(ref[key], tbl[key]);
+  });
+
+  add_step("reserve", 10, [&]() {
+    tbl.reserve(rnd() % max_table_size);
+  });
+
+  add_step("find", 1000, [&] {
+    auto key = gen_key();
+    auto ref_it = ref.find(key) ;
+    auto tbl_it = tbl.find(key) ;
+    ASSERT_EQ(ref_it == ref.end(), tbl_it == tbl.end());
+    if (ref_it != ref.end()) {
+      ASSERT_EQ(ref_it->first, tbl_it->first);
+      ASSERT_EQ(ref_it->second, tbl_it->second);
+    }
+  });
+
+  add_step("find_and_erase", 100, [&] {
+    auto key = gen_key();
+    auto ref_it = ref.find(key) ;
+    auto tbl_it = tbl.find(key) ;
+    ASSERT_EQ(ref_it == ref.end(), tbl_it == tbl.end());
+    if (ref_it != ref.end()) {
+      ref.erase(ref_it);
+      tbl.erase(tbl_it);
+    }
+  });
+
+  add_step("remove_if", 5, [&] {
+    auto mul = rnd();
+    auto bit = rnd() % 64;
+    auto cnd = [&](auto &it) {
+      return (((it.second * mul) >> bit) & 1) == 0;
+    };
+    td::table_remove_if(tbl, cnd);
+    td::table_remove_if(ref, cnd);
+  });
+
+  td::RandomSteps runner(std::move(steps));
+  for (size_t i = 0; i < 1000000; i++) {
+    runner.step(rnd);
   }
 }

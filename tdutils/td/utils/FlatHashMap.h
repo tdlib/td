@@ -127,7 +127,7 @@ class FlatHashMapImpl {
       DCHECK(empty());
       first = std::move(key);
       new (&second) ValueT(std::forward<ArgsT>(args)...);
-      CHECK(!empty());
+      DCHECK(!empty());
     }
   };
   using Self = FlatHashMapImpl<KeyT, ValueT, HashT>;
@@ -420,7 +420,7 @@ class FlatHashMapImpl {
   }
 
   void grow() {
-    size_t want_size = normalize(td::max(nodes_.size() * 2 - 1, (used_nodes_ + 1) * 5 / 3 + 1));
+    size_t want_size = normalize((used_nodes_ + 1) * 5 / 3 + 1);
     // size_t want_size = td::max(nodes_.size(), (used_nodes_ + 1)) * 2;
     resize(want_size);
   }
