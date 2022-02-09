@@ -9,10 +9,10 @@
 #include "td/db/KeyValueSyncInterface.h"
 
 #include "td/utils/common.h"
-#include "td/utils/FlatHashMap.h"
 #include "td/utils/Slice.h"
 
 #include <memory>
+#include <unordered_map>
 
 namespace td {
 
@@ -42,7 +42,7 @@ class ConfigShared {
 
   string get_option(Slice name) const;
 
-  FlatHashMap<string, string> get_options() const;
+  std::unordered_map<string, string> get_options() const;
 
   bool get_option_boolean(Slice name, bool default_value = false) const;
   int64 get_option_integer(Slice name, int64 default_value = 0) const;

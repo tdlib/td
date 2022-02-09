@@ -15,7 +15,6 @@
 
 #include "td/utils/buffer.h"
 #include "td/utils/common.h"
-#include "td/utils/FlatHashMap.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/port/RwMutex.h"
@@ -193,29 +192,29 @@ class BinlogKeyValue final : public KeyValueSyncInterface {
     binlog_->lazy_sync(std::move(promise));
   }
 
-  FlatHashMap<string, string> prefix_get(Slice prefix) final {
+  std::unordered_map<string, string> prefix_get(Slice prefix) final {
     auto lock = rw_mutex_.lock_write().move_as_ok();
-    FlatHashMap<string, string> res;
+    std::unordered_map<string, string> res;
     for (const auto &kv : map_) {
       if (begins_with(kv.first, prefix)) {
-        res[kv.first.substr(prefix.size())] = kv.second.first;
+        res.emplace(kv.first.substr(prefix.size()), kv.second.first);
       }
     }
     return res;
   }
 
-  FlatHashMap<string, string> get_all() final {
+  std::unordered_map<string, string> get_all() final {
     auto lock = rw_mutex_.lock_write().move_as_ok();
-    FlatHashMap<string, string> res;
+    std::unordered_map<string, string> res;
     for (const auto &kv : map_) {
-      res[kv.first] = kv.second.first;
+      res.emplace(kv.first, kv.second.first);
     }
     return res;
   }
 
   void erase_by_prefix(Slice prefix) final {
     auto lock = rw_mutex_.lock_write().move_as_ok();
-    std::vector<uint64> ids;
+    vector<uint64> ids;
     for (auto it = map_.begin(); it != map_.end();) {
       if (begins_with(it->first, prefix)) {
         ids.push_back(it->second.second);

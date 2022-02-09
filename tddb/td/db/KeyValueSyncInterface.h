@@ -9,8 +9,9 @@
 #include "td/actor/PromiseFuture.h"
 
 #include "td/utils/common.h"
-#include "td/utils/FlatHashMap.h"
 #include "td/utils/Slice.h"
+
+#include <unordered_map>
 
 namespace td {
 
@@ -33,9 +34,9 @@ class KeyValueSyncInterface {
 
   virtual string get(const string &key) = 0;
 
-  virtual FlatHashMap<string, string> prefix_get(Slice prefix) = 0;
+  virtual std::unordered_map<string, string> prefix_get(Slice prefix) = 0;
 
-  virtual FlatHashMap<string, string> get_all() = 0;
+  virtual std::unordered_map<string, string> get_all() = 0;
 
   virtual SeqNo erase(const string &key) = 0;
 

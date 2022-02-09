@@ -11,6 +11,7 @@
 #include "td/actor/impl/EventFull-decl.h"
 
 #include "td/utils/Closure.h"
+#include "td/utils/FlatHashMap.h"
 #include "td/utils/Heap.h"
 #include "td/utils/List.h"
 #include "td/utils/logging.h"
@@ -28,7 +29,6 @@
 #include <functional>
 #include <memory>
 #include <type_traits>
-#include <unordered_map>
 #include <utility>
 
 namespace td {
@@ -210,7 +210,7 @@ class Scheduler {
   ListNode ready_actors_list_;
   KHeap<double> timeout_queue_;
 
-  std::unordered_map<ActorInfo *, std::vector<Event>> pending_events_;
+  FlatHashMap<ActorInfo *, std::vector<Event>> pending_events_;
 
   ServiceActor service_actor_;
   Poll poll_;

@@ -9,6 +9,7 @@
 #if !TD_EMSCRIPTEN
 #include "td/utils/common.h"
 #include "td/utils/crypto.h"
+#include "td/utils/FlatHashMap.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/port/IPAddress.h"
@@ -26,7 +27,6 @@
 #include <cstring>
 #include <memory>
 #include <mutex>
-#include <unordered_map>
 
 #if TD_PORT_WINDOWS
 #include <wincrypt.h>
@@ -130,7 +130,7 @@ int verify_callback(int preverify_ok, X509_STORE_CTX *ctx) {
     static std::mutex warning_mutex;
     {
       std::lock_guard<std::mutex> lock(warning_mutex);
-      static std::unordered_map<std::string, double> next_warning_time;
+      static FlatHashMap<string, double> next_warning_time;
       double &next = next_warning_time[warning];
       if (next <= now) {
         next = now + 300;  // one warning per 5 minutes

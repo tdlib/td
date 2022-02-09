@@ -9,11 +9,11 @@
 #include "td/actor/actor.h"
 #include "td/actor/PromiseFuture.h"
 
+#include "td/utils/FlatHashMap.h"
 #include "td/utils/logging.h"
 #include "td/utils/port/IPAddress.h"
 #include "td/utils/Status.h"
 
-#include <unordered_map>
 #include <utility>
 
 namespace td {
@@ -56,7 +56,7 @@ class GetHostByNameActor final : public Actor {
       return result;
     }
   };
-  std::unordered_map<string, Value> cache_[2];
+  FlatHashMap<string, Value> cache_[2];
 
   struct Query {
     ActorOwn<> query;
@@ -65,7 +65,7 @@ class GetHostByNameActor final : public Actor {
     double begin_time = 0.0;
     std::vector<std::pair<int, Promise<IPAddress>>> promises;
   };
-  std::unordered_map<string, Query> active_queries_[2];
+  FlatHashMap<string, Query> active_queries_[2];
 
   Options options_;
 

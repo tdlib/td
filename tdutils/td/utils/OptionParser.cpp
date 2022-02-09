@@ -6,6 +6,7 @@
 //
 #include "td/utils/OptionParser.h"
 
+#include "td/utils/FlatHashMap.h"
 #include "td/utils/logging.h"
 #include "td/utils/PathView.h"
 #include "td/utils/SliceBuilder.h"
@@ -15,8 +16,6 @@
 #include "td/utils/port/wstring_convert.h"
 #endif
 #endif
-
-#include <unordered_map>
 
 #if TD_PORT_WINDOWS
 #if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
@@ -96,8 +95,8 @@ Result<vector<char *>> OptionParser::run(int argc, char *argv[], int expected_no
 }
 
 Result<vector<char *>> OptionParser::run_impl(int argc, char *argv[], int expected_non_option_count) {
-  std::unordered_map<char, const Option *> short_options;
-  std::unordered_map<string, const Option *> long_options;
+  FlatHashMap<char, const Option *> short_options;
+  FlatHashMap<string, const Option *> long_options;
   for (auto &opt : options_) {
     if (opt.short_key != '\0') {
       short_options[opt.short_key] = &opt;
