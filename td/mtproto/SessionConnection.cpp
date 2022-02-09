@@ -437,13 +437,13 @@ Status SessionConnection::on_packet(const MsgInfo &info, const mtproto_api::msgs
   if (it == service_queries_.end()) {
     return Status::Error("Unknown msgs_state_info");
   }
-  SCOPE_EXIT {
-    service_queries_.erase(it);
-  };
-  if (it->second.type != ServiceQuery::GetStateInfo) {
-    return Status::Error("Got msg_state_info in response not to GetStateInfo");
+  auto query = std::move(it->second);
+  service_queries_.erase(it);
+
+  if (query.type != ServiceQuery::GetStateInfo) {
+    return Status::Error("Receive msg_state_info in response not to GetStateInfo");
   }
-  return on_msgs_state_info(it->second.message_ids, msgs_state_info.info_);
+  return on_msgs_state_info(query.message_ids, msgs_state_info.info_);
 }
 
 Status SessionConnection::on_packet(const MsgInfo &info, const mtproto_api::msgs_all_info &msgs_all_info) {
@@ -573,8 +573,9 @@ void SessionConnection::on_message_failed(uint64 id, Status status) {
 
   auto cit = container_to_service_msg_.find(id);
   if (cit != container_to_service_msg_.end()) {
-    for (auto nid : cit->second) {
-      on_message_failed_inner(nid);
+    auto message_ids = cit->second;
+    for (auto message_id : message_ids) {
+      on_message_failed_inner(message_id);
     }
   } else {
     on_message_failed_inner(id);
@@ -586,21 +587,25 @@ void SessionConnection::on_message_failed_inner(uint64 id) {
   if (it == service_queries_.end()) {
     return;
   }
-  switch (it->second.type) {
+  auto query = std::move(it->second);
+  service_queries_.erase(it);
+
+  switch (query.type) {
     case ServiceQuery::ResendAnswer: {
-      for (auto message_id : it->second.message_ids) {
+      for (auto message_id : query.message_ids) {
         resend_answer(message_id);
       }
       break;
     }
     case ServiceQuery::GetStateInfo: {
-      for (auto message_id : it->second.message_ids) {
+      for (auto message_id : query.message_ids) {
         get_state_info(message_id);
       }
       break;
     }
+    default:
+      UNREACHABLE();
   }
-  service_queries_.erase(id);
 }
 
 bool SessionConnection::must_flush_packet() {
@@ -968,11 +973,10 @@ void SessionConnection::flush_packet() {
   }
 
   if (resend_answer_id) {
-    service_queries_.insert({resend_answer_id, ServiceQuery{ServiceQuery::ResendAnswer, std::move(to_resend_answer)}});
+    service_queries_.emplace(resend_answer_id, ServiceQuery{ServiceQuery::ResendAnswer, std::move(to_resend_answer)});
   }
   if (get_state_info_id) {
-    service_queries_.insert(
-        {get_state_info_id, ServiceQuery{ServiceQuery::GetStateInfo, std::move(to_get_state_info)}});
+    service_queries_.emplace(get_state_info_id, ServiceQuery{ServiceQuery::GetStateInfo, std::move(to_get_state_info)});
   }
   if (ping_id != 0) {
     last_ping_container_id_ = container_id;

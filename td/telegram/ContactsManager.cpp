@@ -3441,12 +3441,14 @@ void ContactsManager::on_channel_participant_cache_timeout(ChannelId channel_id)
 
   auto &participants = channel_participants_it->second.participants_;
   auto min_access_date = G()->unix_time() - CHANNEL_PARTICIPANT_CACHE_TIME;
-  for (auto it = participants.begin(); it != participants.end();) {
+  vector<DialogId> to_delete_dialog_ids;
+  for (auto it = participants.begin(); it != participants.end(); ++it) {
     if (it->second.last_access_date_ < min_access_date) {
-      it = participants.erase(it);
-    } else {
-      ++it;
+      to_delete_dialog_ids.push_back(it->first);
     }
+  }
+  for (auto dialog_id : to_delete_dialog_ids) {
+    participants.erase(dialog_id);
   }
 
   if (participants.empty()) {

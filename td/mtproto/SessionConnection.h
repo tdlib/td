@@ -11,6 +11,7 @@
 #include "td/mtproto/RawConnection.h"
 
 #include "td/utils/buffer.h"
+#include "td/utils/FlatHashMap.h"
 #include "td/utils/format.h"
 #include "td/utils/logging.h"
 #include "td/utils/Named.h"
@@ -22,7 +23,6 @@
 #include "td/utils/StringBuilder.h"
 #include "td/utils/tl_parsers.h"
 
-#include <unordered_map>
 #include <utility>
 
 namespace td {
@@ -176,10 +176,10 @@ class SessionConnection final
   vector<int64> to_resend_answer_;
   vector<int64> to_cancel_answer_;
   vector<int64> to_get_state_info_;
-  std::unordered_map<uint64, ServiceQuery> service_queries_;
+  FlatHashMap<uint64, ServiceQuery> service_queries_;
 
   // nobody cleans up this map. But it should be really small.
-  std::unordered_map<uint64, vector<uint64>> container_to_service_msg_;
+  FlatHashMap<uint64, vector<uint64>> container_to_service_msg_;
 
   double last_read_at_ = 0;
   double last_ping_at_ = 0;

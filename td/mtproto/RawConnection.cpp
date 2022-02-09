@@ -15,6 +15,7 @@
 #include "td/net/DarwinHttp.h"
 #endif
 
+#include "td/utils/FlatHashMap.h"
 #include "td/utils/format.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
@@ -26,7 +27,6 @@
 #include "td/utils/StorerBase.h"
 
 #include <memory>
-#include <unordered_map>
 #include <utility>
 
 namespace td {
@@ -67,6 +67,7 @@ class RawConnectionDefault final : public RawConnection {
 
     bool use_quick_ack = false;
     if (quick_ack_token != 0 && transport_->support_quick_ack()) {
+      CHECK(info.message_ack & (1u << 31));
       auto tmp = quick_ack_to_token_.emplace(info.message_ack, quick_ack_token);
       if (tmp.second) {
         use_quick_ack = true;
@@ -130,7 +131,7 @@ class RawConnectionDefault final : public RawConnection {
   PublicFields extra_;
   BufferedFd<SocketFd> socket_fd_;
   unique_ptr<IStreamTransport> transport_;
-  std::unordered_map<uint32, uint64> quick_ack_to_token_;
+  FlatHashMap<uint32, uint64> quick_ack_to_token_;
   bool has_error_{false};
 
   unique_ptr<StatsCallback> stats_callback_;
@@ -218,11 +219,15 @@ class RawConnectionDefault final : public RawConnection {
   }
 
   Status on_quick_ack(uint32 quick_ack, Callback &callback) {
+    if ((quick_ack & (1u << 31)) == 0) {
+      LOG(ERROR) << "Receive invalid quick_ack " << quick_ack;
+      return Status::OK();
+    }
+
     auto it = quick_ack_to_token_.find(quick_ack);
     if (it == quick_ack_to_token_.end()) {
-      LOG(WARNING) << Status::Error(PSLICE() << "Unknown quick_ack " << quick_ack);
+      LOG(WARNING) << "Receive unknown quick_ack " << quick_ack;
       return Status::OK();
-      // TODO: return Status::Error(PSLICE() << "Unknown quick_ack " << quick_ack);
     }
     auto token = it->second;
     quick_ack_to_token_.erase(it);

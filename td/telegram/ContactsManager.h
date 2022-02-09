@@ -48,7 +48,6 @@
 
 #include <functional>
 #include <memory>
-#include <unordered_map>
 #include <unordered_set>
 #include <utility>
 
@@ -1742,7 +1741,7 @@ class ContactsManager final : public Actor {
     int32 last_access_date_ = 0;
   };
   struct ChannelParticipants {
-    std::unordered_map<DialogId, ChannelParticipantInfo, DialogIdHash> participants_;
+    FlatHashMap<DialogId, ChannelParticipantInfo, DialogIdHash> participants_;
   };
   FlatHashMap<ChannelId, ChannelParticipants, ChannelIdHash> channel_participants_;
 
