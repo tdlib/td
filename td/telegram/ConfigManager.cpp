@@ -62,7 +62,6 @@
 #include "td/utils/tl_parsers.h"
 #include "td/utils/UInt.h"
 
-#include "td/utils/FlatHashMap.h"
 #include <functional>
 #include <memory>
 #include <utility>
@@ -1561,7 +1560,7 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
           auto success_values = std::move(static_cast<telegram_api::jsonObject *>(value)->value_);
           for (auto &success_value : success_values) {
             CHECK(success_value != nullptr);
-            if (success_value->value_->get_id() == telegram_api::jsonObject::ID) {
+            if (!success_value->key_.empty() && success_value->value_->get_id() == telegram_api::jsonObject::ID) {
               int32 dice_value = -1;
               int32 frame_start = -1;
               for (auto &dice_key_value :

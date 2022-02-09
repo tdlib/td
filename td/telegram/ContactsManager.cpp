@@ -14104,6 +14104,9 @@ void ContactsManager::reload_user_full(UserId user_id) {
 void ContactsManager::send_get_user_full_query(UserId user_id, tl_object_ptr<telegram_api::InputUser> &&input_user,
                                                Promise<Unit> &&promise, const char *source) {
   LOG(INFO) << "Get full " << user_id << " from " << source;
+  if (!user_id.is_valid()) {
+    return promise.set_error(Status::Error(500, "Invalid user_id"));
+  }
   auto send_query =
       PromiseCreator::lambda([td = td_, input_user = std::move(input_user)](Result<Promise<Unit>> &&promise) mutable {
         if (promise.is_ok() && !G()->close_flag()) {
@@ -14201,6 +14204,10 @@ void ContactsManager::reload_user_profile_photo(UserId user_id, int64 photo_id, 
 }
 
 FileSourceId ContactsManager::get_user_profile_photo_file_source_id(UserId user_id, int64 photo_id) {
+  if (!user_id.is_valid()) {
+    return FileSourceId();
+  }
+
   auto u = get_user(user_id);
   if (u != nullptr && u->photo_ids.count(photo_id) != 0) {
     VLOG(file_references) << "Don't need to create file source for photo " << photo_id << " of " << user_id;
@@ -14217,6 +14224,10 @@ FileSourceId ContactsManager::get_user_profile_photo_file_source_id(UserId user_
 }
 
 FileSourceId ContactsManager::get_chat_full_file_source_id(ChatId chat_id) {
+  if (!chat_id.is_valid()) {
+    return FileSourceId();
+  }
+
   if (get_chat_full(chat_id) != nullptr) {
     VLOG(file_references) << "Don't need to create file source for full " << chat_id;
     // chat full was already added, source ID was registered and shouldn't be needed
@@ -14232,6 +14243,10 @@ FileSourceId ContactsManager::get_chat_full_file_source_id(ChatId chat_id) {
 }
 
 FileSourceId ContactsManager::get_channel_full_file_source_id(ChannelId channel_id) {
+  if (!channel_id.is_valid()) {
+    return FileSourceId();
+  }
+
   if (get_channel_full(channel_id) != nullptr) {
     VLOG(file_references) << "Don't need to create file source for full " << channel_id;
     // channel full was already added, source ID was registered and shouldn't be needed
@@ -14391,6 +14406,9 @@ void ContactsManager::reload_chat_full(ChatId chat_id, Promise<Unit> &&promise) 
 
 void ContactsManager::send_get_chat_full_query(ChatId chat_id, Promise<Unit> &&promise, const char *source) {
   LOG(INFO) << "Get full " << chat_id << " from " << source;
+  if (!chat_id.is_valid()) {
+    return promise.set_error(Status::Error(500, "Invalid chat_id"));
+  }
   auto send_query = PromiseCreator::lambda([td = td_, chat_id](Result<Promise<Unit>> &&promise) {
     if (promise.is_ok() && !G()->close_flag()) {
       td->create_handler<GetFullChatQuery>(promise.move_as_ok())->send(chat_id);

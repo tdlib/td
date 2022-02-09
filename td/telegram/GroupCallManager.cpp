@@ -1329,6 +1329,9 @@ void GroupCallManager::reload_group_call(InputGroupCallId input_group_call_id,
   if (td_->auth_manager_->is_bot()) {
     return promise.set_error(Status::Error(400, "Bots can't get group call info"));
   }
+  if (!input_group_call_id.is_valid()) {
+    return promise.set_error(Status::Error(400, "Invalid group call identifier specified"));
+  }
 
   auto &queries = load_group_call_queries_[input_group_call_id];
   queries.push_back(std::move(promise));

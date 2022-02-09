@@ -320,6 +320,11 @@ bool InlineQueriesManager::register_inline_message_content(
     int64 query_id, const string &result_id, FileId file_id,
     tl_object_ptr<telegram_api::BotInlineMessage> &&inline_message, int32 allowed_media_content_id, bool allow_invoice,
     Photo *photo, Game *game) {
+  CHECK(query_id != 0);
+  if (result_id.empty()) {
+    return false;
+  }
+
   InlineMessageContent content =
       create_inline_message_content(td_, file_id, std::move(inline_message), allowed_media_content_id, photo, game);
   if (content.message_content != nullptr) {
@@ -841,6 +846,9 @@ uint64 InlineQueriesManager::send_inline_query(UserId bot_user_id, DialogId dial
     query_hash = query_hash * 2023654985u + static_cast<uint64>(user_location.get_longitude() * 1e4);
   }
   query_hash &= 0x7FFFFFFFFFFFFFFF;
+  if (query_hash == 0) {
+    query_hash = 1;
+  }
 
   auto it = inline_query_results_.find(query_hash);
   if (it != inline_query_results_.end()) {
@@ -1288,7 +1296,7 @@ string InlineQueriesManager::get_web_document_content_type(
 void InlineQueriesManager::on_get_inline_query_results(DialogId dialog_id, UserId bot_user_id, uint64 query_hash,
                                                        tl_object_ptr<telegram_api::messages_botResults> &&results) {
   LOG(INFO) << "Receive results for inline query " << query_hash;
-  if (results == nullptr) {
+  if (results == nullptr || results->query_id_ == 0) {
     decrease_pending_request_count(query_hash);
     return;
   }

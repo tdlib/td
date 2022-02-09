@@ -78,7 +78,7 @@ FileId VoiceNotesManager::dup_voice_note(FileId new_id, FileId old_id) {
   const VoiceNote *old_voice_note = get_voice_note(old_id);
   CHECK(old_voice_note != nullptr);
   auto &new_voice_note = voice_notes_[new_id];
-  CHECK(!new_voice_note);
+  CHECK(new_voice_note == nullptr);
   new_voice_note = make_unique<VoiceNote>(*old_voice_note);
   new_voice_note->file_id = new_id;
   return new_id;

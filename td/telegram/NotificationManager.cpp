@@ -277,7 +277,7 @@ void NotificationManager::init() {
     for (size_t i = 0; i < ids.size(); i += 2) {
       auto id = ids[i];
       auto date = ids[i + 1];
-      if (date < min_date) {
+      if (date < min_date || id == 0) {
         is_changed = true;
         continue;
       }
@@ -2249,6 +2249,9 @@ NotificationGroupId NotificationManager::get_call_notification_group_id(DialogId
   if (it != dialog_id_to_call_notification_group_id_.end()) {
     return it->second;
   }
+  if (!dialog_id.is_valid()) {
+    return {};
+  }
 
   if (available_call_notification_group_ids_.empty()) {
     // need to reserve new group_id for calls
@@ -2999,9 +3002,12 @@ Status NotificationManager::process_push_notification_payload(string payload, bo
 
   if (loc_key == "MESSAGE_ANNOUNCEMENT") {
     if (announcement_message_text.empty()) {
-      return Status::Error("Have empty announcement message text");
+      return Status::Error("Receive empty announcement message text");
     }
     TRY_RESULT(announcement_id, get_json_object_int_field(custom, "announcement"));
+    if (announcement_id == 0) {
+      return Status::Error(200, "Receive unsupported announcement ID");
+    }
     auto &date = announcement_id_date_[announcement_id];
     auto now = G()->unix_time();
     if (date >= now - ANNOUNCEMENT_ID_CACHE_TIME) {

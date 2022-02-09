@@ -228,11 +228,12 @@ void ConnectionCreator::get_proxies(Promise<td_api::object_ptr<td_api::proxies>>
 }
 
 void ConnectionCreator::get_proxy_link(int32 proxy_id, Promise<string> promise) {
-  if (proxies_.count(proxy_id) == 0) {
+  auto it = proxies_.find(proxy_id);
+  if (it == proxies_.end()) {
     return promise.set_error(Status::Error(400, "Unknown proxy identifier"));
   }
 
-  auto &proxy = proxies_[proxy_id];
+  auto &proxy = it->second;
   string url = G()->shared_config().get_option_string("t_me_url", "https://t.me/");
   bool is_socks = false;
   switch (proxy.type()) {
@@ -1132,11 +1133,13 @@ void ConnectionCreator::start_up() {
     if (begins_with(info.first, "_used")) {
       auto proxy_id = to_integer_safe<int32>(Slice(info.first).substr(5)).move_as_ok();
       auto last_used = to_integer_safe<int32>(info.second).move_as_ok();
+      CHECK(proxy_id > 0);
       proxy_last_used_date_[proxy_id] = last_used;
       proxy_last_used_saved_date_[proxy_id] = last_used;
     } else {
       LOG_CHECK(!ends_with(info.first, "_max_id")) << info.first;
       auto proxy_id = info.first.empty() ? static_cast<int32>(1) : to_integer_safe<int32>(info.first).move_as_ok();
+      CHECK(proxy_id > 0);
       CHECK(proxies_.count(proxy_id) == 0);
       log_event_parse(proxies_[proxy_id], info.second).ensure();
       if (proxies_[proxy_id].type() == Proxy::Type::None) {

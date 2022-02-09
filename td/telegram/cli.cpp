@@ -247,7 +247,9 @@ class CliClient final : public Actor {
     new_user.first_name = user.first_name_;
     new_user.last_name = user.last_name_;
     new_user.username = user.username_;
-    username_to_user_id_[to_lower(new_user.username)] = user.id_;
+    if (!new_user.username.empty()) {
+      username_to_user_id_[to_lower(new_user.username)] = user.id_;
+    }
   }
 
   void print_user(Logger &log, int64 user_id, bool full = false) {
@@ -1681,7 +1683,9 @@ class CliClient final : public Actor {
         td_api::make_object<td_api::messageSendOptions>(disable_notification, from_background, true,
                                                         as_message_scheduling_state(schedule_date_)),
         nullptr, std::move(input_message_content)));
-    query_id_to_send_message_info_[id].start_time = Time::now();
+    if (id != 0) {
+      query_id_to_send_message_info_[id].start_time = Time::now();
+    }
   }
 
   td_api::object_ptr<td_api::messageSendOptions> default_message_send_options() const {

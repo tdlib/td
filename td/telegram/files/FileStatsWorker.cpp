@@ -19,7 +19,6 @@
 
 #include "td/db/SqliteKeyValue.h"
 
-#include "td/utils/FlatHashMap.h"
 #include "td/utils/format.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
@@ -32,6 +31,7 @@
 #include "td/utils/tl_parsers.h"
 
 #include <functional>
+#include <unordered_map>
 #include <unordered_set>
 
 namespace td {
@@ -184,7 +184,7 @@ void FileStatsWorker::get_stats(bool need_all_files, bool split_by_owner_dialog_
       return promise.set_error(Global::request_aborted_error());
     }
 
-    FlatHashMap<size_t, size_t> hash_to_pos;
+    std::unordered_map<size_t, size_t> hash_to_pos;
     size_t pos = 0;
     for (auto &full_info : full_infos) {
       hash_to_pos[std::hash<std::string>()(full_info.path)] = pos;

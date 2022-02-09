@@ -6,8 +6,9 @@
 //
 #pragma once
 
-#include "td/utils/FlatHashMap.h"
 #include "td/utils/Slice.h"
+
+#include <unordered_map>
 
 namespace td {
 
@@ -61,12 +62,12 @@ class SeqKeyValue {
     return map_.size();
   }
 
-  FlatHashMap<string, string> get_all() const {
+  std::unordered_map<string, string> get_all() const {
     return map_;
   }
 
  private:
-  FlatHashMap<string, string> map_;
+  std::unordered_map<string, string> map_;
   SeqNo current_id_ = 0;
   SeqNo next_seq_no() {
     return ++current_id_;

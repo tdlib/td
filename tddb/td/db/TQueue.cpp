@@ -96,7 +96,7 @@ class TQueueImpl final : public TQueue {
   bool do_push(QueueId queue_id, RawEvent &&raw_event) final {
     CHECK(raw_event.event_id.is_valid());
     // raw_event.data can be empty when replaying binlog
-    if (raw_event.data.size() > MAX_EVENT_LENGTH) {
+    if (raw_event.data.size() > MAX_EVENT_LENGTH || queue_id == 0) {
       return false;
     }
     auto &q = queues_[queue_id];
@@ -138,6 +138,9 @@ class TQueueImpl final : public TQueue {
     }
     if (data.size() > MAX_EVENT_LENGTH) {
       return Status::Error("Data is too big");
+    }
+    if (queue_id == 0) {
+      return Status::Error("Queue identifier is invalid");
     }
 
     auto &q = queues_[queue_id];

@@ -661,7 +661,7 @@ FileId DocumentsManager::dup_document(FileId new_id, FileId old_id) {
   const GeneralDocument *old_document = get_document(old_id);
   CHECK(old_document != nullptr);
   auto &new_document = documents_[new_id];
-  CHECK(!new_document);
+  CHECK(new_document == nullptr);
   new_document = make_unique<GeneralDocument>(*old_document);
   new_document->file_id = new_id;
   new_document->thumbnail.file_id = td_->file_manager_->dup_file_id(new_document->thumbnail.file_id);

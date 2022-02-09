@@ -36,6 +36,7 @@
 #include "td/utils/tl_helpers.h"
 
 #include <type_traits>
+#include <unordered_map>
 
 namespace td {
 
@@ -47,7 +48,7 @@ struct GetWebPageBlockObjectContext {
 
   bool is_first_pass_ = true;
   bool has_anchor_urls_ = false;
-  FlatHashMap<Slice, const RichText *, SliceHash> anchors_;  // anchor -> text
+  std::unordered_map<Slice, const RichText *, SliceHash> anchors_;  // anchor -> text
 };
 
 static vector<td_api::object_ptr<td_api::PageBlock>> get_page_block_objects(

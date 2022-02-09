@@ -134,7 +134,7 @@ FileId VideosManager::dup_video(FileId new_id, FileId old_id) {
   const Video *old_video = get_video(old_id);
   CHECK(old_video != nullptr);
   auto &new_video = videos_[new_id];
-  CHECK(!new_video);
+  CHECK(new_video == nullptr);
   new_video = make_unique<Video>(*old_video);
   new_video->file_id = new_id;
   new_video->thumbnail.file_id = td_->file_manager_->dup_file_id(new_video->thumbnail.file_id);

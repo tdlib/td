@@ -51,6 +51,7 @@ class SqliteKeyValueAsync final : public SqliteKeyValueAsyncInterface {
       if (it != buffer_.end()) {
         it->second = std::move(value);
       } else {
+        CHECK(!key.empty());
         buffer_.emplace(std::move(key), std::move(value));
       }
       if (promise) {
@@ -71,6 +72,7 @@ class SqliteKeyValueAsync final : public SqliteKeyValueAsyncInterface {
       if (it != buffer_.end()) {
         it->second = optional<string>();
       } else {
+        CHECK(!key.empty());
         buffer_.emplace(std::move(key), optional<string>());
       }
       if (promise) {
@@ -109,7 +111,7 @@ class SqliteKeyValueAsync final : public SqliteKeyValueAsyncInterface {
     static constexpr double MAX_PENDING_QUERIES_DELAY = 0.01;
     static constexpr size_t MAX_PENDING_QUERIES_COUNT = 100;
     FlatHashMap<string, optional<string>> buffer_;
-    std::vector<Promise<Unit>> buffer_promises_;
+    vector<Promise<Unit>> buffer_promises_;
     size_t cnt_ = 0;
 
     double wakeup_at_ = 0;

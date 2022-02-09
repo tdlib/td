@@ -377,7 +377,7 @@ PollManager::Poll *PollManager::get_poll_force(PollId poll_id) {
   if (!G()->parameters().use_message_db) {
     return nullptr;
   }
-  if (loaded_from_database_polls_.count(poll_id)) {
+  if (!poll_id.is_valid() || loaded_from_database_polls_.count(poll_id)) {
     return nullptr;
   }
 
@@ -443,7 +443,7 @@ vector<int32> PollManager::get_vote_percentage(const vector<int32> &voter_counts
   };
   FlatHashMap<int32, Option> options;
   for (size_t i = 0; i < result.size(); i++) {
-    auto &option = options[voter_counts[i]];
+    auto &option = options[voter_counts[i] + 1];
     if (option.pos == -1) {
       option.pos = narrow_cast<int32>(i);
     }
@@ -712,19 +712,19 @@ void PollManager::set_poll_answer(PollId poll_id, FullMessageId full_message_id,
     }
     options.push_back(poll->options[index].data);
 
-    affected_option_ids[index]++;
+    affected_option_ids[index + 1]++;
   }
   for (size_t option_index = 0; option_index < poll->options.size(); option_index++) {
     if (poll->options[option_index].is_chosen) {
       if (poll->is_quiz) {
         return promise.set_error(Status::Error(400, "Can't revote in a quiz"));
       }
-      affected_option_ids[option_index]++;
+      affected_option_ids[option_index + 1]++;
     }
   }
   for (const auto &it : affected_option_ids) {
     if (it.second == 1) {
-      invalidate_poll_option_voters(poll, poll_id, it.first);
+      invalidate_poll_option_voters(poll, poll_id, it.first - 1);
     }
   }
 
@@ -755,6 +755,14 @@ class PollManager::SetPollAnswerLogEvent {
 void PollManager::do_set_poll_answer(PollId poll_id, FullMessageId full_message_id, vector<string> &&options,
                                      uint64 log_event_id, Promise<Unit> &&promise) {
   LOG(INFO) << "Set answer in " << poll_id << " from " << full_message_id;
+  if (!poll_id.is_valid() || !full_message_id.get_dialog_id().is_valid() ||
+      !full_message_id.get_message_id().is_valid()) {
+    CHECK(log_event_id != 0);
+    LOG(ERROR) << "Invalid SetPollAnswer log event";
+    binlog_erase(G()->td_db()->get_binlog(), log_event_id);
+    return;
+  }
+
   auto &pending_answer = pending_answers_[poll_id];
   if (!pending_answer.promises_.empty() && pending_answer.options_ == options) {
     pending_answer.promises_.push_back(std::move(promise));

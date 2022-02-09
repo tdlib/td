@@ -63,6 +63,7 @@ class SqliteKeyValue {
   FlatHashMap<string, string> get_all() {
     FlatHashMap<string, string> res;
     get_by_prefix("", [&](Slice key, Slice value) {
+      CHECK(!key.empty());
       res.emplace(key.str(), value.str());
       return true;
     });

@@ -19,6 +19,7 @@ QueryCombiner::QueryCombiner(Slice name, double min_delay) : next_query_time_(Ti
 
 void QueryCombiner::add_query(int64 query_id, Promise<Promise<Unit>> &&send_query, Promise<Unit> &&promise) {
   LOG(INFO) << "Add query " << query_id << " with" << (promise ? "" : "out") << " promise";
+  CHECK(query_id != 0);
   auto &query = queries_[query_id];
   if (promise) {
     query.promises.push_back(std::move(promise));

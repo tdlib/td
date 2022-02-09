@@ -46,7 +46,6 @@
 #include "td/utils/algorithm.h"
 #include "td/utils/base64.h"
 #include "td/utils/emoji.h"
-#include "td/utils/FlatHashMap.h"
 #include "td/utils/format.h"
 #include "td/utils/JsonBuilder.h"
 #include "td/utils/logging.h"
@@ -2429,7 +2428,7 @@ FileId StickersManager::dup_sticker(FileId new_id, FileId old_id) {
   const Sticker *old_sticker = get_sticker(old_id);
   CHECK(old_sticker != nullptr);
   auto &new_sticker = stickers_[new_id];
-  CHECK(!new_sticker);
+  CHECK(new_sticker == nullptr);
   new_sticker = make_unique<Sticker>(*old_sticker);
   new_sticker->file_id = new_id;
   // there is no reason to dup m_thumbnail
@@ -3032,7 +3031,7 @@ StickerSetId StickersManager::on_get_messages_sticker_set(StickerSetId sticker_s
   bool is_bot = td_->auth_manager_->is_bot();
   for (auto &document_ptr : documents) {
     auto sticker_id = on_get_sticker_document(std::move(document_ptr), s->sticker_format);
-    if (!sticker_id.second.is_valid()) {
+    if (!sticker_id.second.is_valid() || sticker_id.first == 0) {
       continue;
     }
 
@@ -3187,7 +3186,15 @@ void StickersManager::load_reactions() {
   auto status = log_event_parse(reactions_, reactions);
   if (status.is_error()) {
     LOG(ERROR) << "Can't load available reactions: " << status;
+    reactions_ = {};
     return reload_reactions();
+  }
+  for (auto &reaction : reactions_.reactions_) {
+    if (!reaction.is_valid()) {
+      LOG(ERROR) << "Loaded invalid reaction";
+      reactions_ = {};
+      return reload_reactions();
+    }
   }
 
   LOG(INFO) << "Successfully loaded " << reactions_.reactions_.size() << " available reactions";
@@ -3244,9 +3251,8 @@ void StickersManager::on_get_available_reactions(
         on_get_sticker_document(std::move(available_reaction->around_animation_), StickerFormat::Tgs).second;
     reaction.center_animation_ =
         on_get_sticker_document(std::move(available_reaction->center_icon_), StickerFormat::Tgs).second;
-    if (!reaction.static_icon_.is_valid() || !reaction.appear_animation_.is_valid() ||
-        !reaction.select_animation_.is_valid() || !reaction.activate_animation_.is_valid() ||
-        !reaction.effect_animation_.is_valid()) {
+
+    if (!reaction.is_valid()) {
       LOG(ERROR) << "Receive invalid reaction " << reaction.reaction_;
       continue;
     }
@@ -4868,6 +4874,9 @@ void StickersManager::schedule_update_animated_emoji_clicked(const StickerSet *s
   auto start_time = max(now, next_update_animated_emoji_clicked_time_);
   for (const auto &click : clicks) {
     auto index = click.first;
+    if (index <= 0) {
+      return;
+    }
     auto sticker_id = sticker_ids[index];
     if (!sticker_id.is_valid()) {
       LOG(INFO) << "Failed to find sticker for " << emoji << " with index " << index;

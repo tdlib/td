@@ -25,6 +25,7 @@
 #include "td/utils/Slice.h"
 #include "td/utils/SliceBuilder.h"
 
+#include <limits>
 #include <memory>
 
 namespace td {
@@ -954,6 +955,7 @@ void SecureManager::set_secure_value_errors(Td *td, tl_object_ptr<telegram_api::
 void SecureManager::get_passport_authorization_form(UserId bot_user_id, string scope, string public_key, string nonce,
                                                     Promise<TdApiAuthorizationForm> promise) {
   refcnt_++;
+  CHECK(max_authorization_form_id_ < std::numeric_limits<int32>::max());
   auto authorization_form_id = ++max_authorization_form_id_;
   auto &form = authorization_forms_[authorization_form_id];
   form.bot_user_id = bot_user_id;

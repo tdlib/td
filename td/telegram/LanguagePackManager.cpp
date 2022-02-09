@@ -572,6 +572,10 @@ LanguagePackManager::Language *LanguagePackManager::add_language(LanguageDatabas
           auto all_infos = full_split(lang.second, '\x00');
           if (all_infos.size() % 11 == 0) {
             for (size_t i = 0; i < all_infos.size(); i += 11) {
+              if (all_infos[i].empty()) {
+                LOG(ERROR) << "Have empty info about a language pack";
+                continue;
+              }
               LanguageInfo info;
               info.name_ = std::move(all_infos[i + 1]);
               info.native_name_ = std::move(all_infos[i + 2]);
@@ -921,7 +925,7 @@ void LanguagePackManager::on_get_language_info(const string &language_pack,
     std::lock_guard<std::mutex> lock(language->mutex_);
     if (language_pack_info->base_language_pack_id_ != language->base_language_code_) {
       language->base_language_code_ = language_pack_info->base_language_pack_id_;
-      if (language_pack_info->id_ == language_code_) {
+      if (language_pack == language_pack_ && language_pack_info->id_ == language_code_) {
         base_language_code_ = language->base_language_code_;
         was_updated_base_language_code = true;
       }
@@ -1367,6 +1371,10 @@ void LanguagePackManager::on_get_language_pack_strings(
         switch (result->get_id()) {
           case telegram_api::langPackString::ID: {
             auto str = telegram_api::move_object_as<telegram_api::langPackString>(result);
+            if (!is_valid_key(str->key_)) {
+              LOG(ERROR) << "Receive invalid key \"" << str->key_ << '"';
+              break;
+            }
             auto it = language->ordinary_strings_.find(str->key_);
             if (it == language->ordinary_strings_.end()) {
               key_count_delta++;
@@ -1384,6 +1392,10 @@ void LanguagePackManager::on_get_language_pack_strings(
           }
           case telegram_api::langPackStringPluralized::ID: {
             auto str = telegram_api::move_object_as<telegram_api::langPackStringPluralized>(result);
+            if (!is_valid_key(str->key_)) {
+              LOG(ERROR) << "Receive invalid key \"" << str->key_ << '"';
+              break;
+            }
             PluralizedString value{std::move(str->zero_value_), std::move(str->one_value_),
                                    std::move(str->two_value_),  std::move(str->few_value_),
                                    std::move(str->many_value_), std::move(str->other_value_)};
@@ -1408,6 +1420,10 @@ void LanguagePackManager::on_get_language_pack_strings(
           }
           case telegram_api::langPackStringDeleted::ID: {
             auto str = telegram_api::move_object_as<telegram_api::langPackStringDeleted>(result);
+            if (!is_valid_key(str->key_)) {
+              LOG(ERROR) << "Receive invalid key \"" << str->key_ << '"';
+              break;
+            }
             key_count_delta -= static_cast<int32>(language->ordinary_strings_.erase(str->key_));
             key_count_delta -= static_cast<int32>(language->pluralized_strings_.erase(str->key_));
             language->deleted_strings_.insert(str->key_);
@@ -1590,7 +1606,7 @@ Result<tl_object_ptr<telegram_api::LangPackString>> LanguagePackManager::convert
 
 Result<LanguagePackManager::LanguageInfo> LanguagePackManager::get_language_info(
     telegram_api::langPackLanguage *language) {
-  if (!check_language_code_name(language->lang_code_)) {
+  if (!check_language_code_name(language->lang_code_) || language->lang_code_.empty()) {
     LOG(ERROR) << "Receive unsupported language pack ID " << language->lang_code_ << " from server";
     return Status::Error(500, "Unsupported language pack ID");
   }

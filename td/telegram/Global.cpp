@@ -248,6 +248,9 @@ int64 Global::get_location_key(double latitude, double longitude) {
   double f = std::tan(PI / 4 - latitude / 2);
   key += static_cast<int64>(f * std::cos(longitude) * 128) * 256;
   key += static_cast<int64>(f * std::sin(longitude) * 128);
+  if (key == 0) {
+    key = 1;
+  }
   return key;
 }
 

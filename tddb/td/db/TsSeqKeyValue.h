@@ -8,10 +8,10 @@
 
 #include "td/db/SeqKeyValue.h"
 
-#include "td/utils/FlatHashMap.h"
 #include "td/utils/port/RwMutex.h"
 #include "td/utils/Slice.h"
 
+#include <unordered_map>
 #include <utility>
 
 namespace td {
@@ -52,7 +52,7 @@ class TsSeqKeyValue {
   size_t size() const {
     return kv_.size();
   }
-  FlatHashMap<string, string> get_all() {
+  std::unordered_map<string, string> get_all() {
     auto lock = rw_mutex_.lock_write().move_as_ok();
     return kv_.get_all();
   }

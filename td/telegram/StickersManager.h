@@ -451,6 +451,11 @@ class StickersManager final : public Actor {
     FileId around_animation_;
     FileId center_animation_;
 
+    bool is_valid() const {
+      return static_icon_.is_valid() && appear_animation_.is_valid() && select_animation_.is_valid() &&
+             activate_animation_.is_valid() && effect_animation_.is_valid() && !reaction_.empty();
+    }
+
     template <class StorerT>
     void store(StorerT &storer) const;
 

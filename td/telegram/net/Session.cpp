@@ -619,6 +619,8 @@ void Session::on_session_failed(Status status) {
 }
 
 void Session::on_container_sent(uint64 container_id, vector<uint64> msg_ids) {
+  CHECK(container_id != 0);
+
   td::remove_if(msg_ids, [&](uint64 msg_id) {
     auto it = sent_queries_.find(msg_id);
     if (it == sent_queries_.end()) {
@@ -642,10 +644,11 @@ void Session::on_message_ack_impl(uint64 id, int32 type) {
   auto cit = sent_containers_.find(id);
   if (cit != sent_containers_.end()) {
     auto container_info = std::move(cit->second);
+    sent_containers_.erase(cit);
+
     for (auto message_id : container_info.message_ids) {
       on_message_ack_impl_inner(message_id, type, true);
     }
-    sent_containers_.erase(cit);
     return;
   }
 
@@ -902,10 +905,11 @@ void Session::on_message_failed(uint64 id, Status status) {
   auto cit = sent_containers_.find(id);
   if (cit != sent_containers_.end()) {
     auto container_info = std::move(cit->second);
+    sent_containers_.erase(cit);
+
     for (auto message_id : container_info.message_ids) {
       on_message_failed_inner(message_id, true);
     }
-    sent_containers_.erase(cit);
     return;
   }
 
