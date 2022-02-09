@@ -260,7 +260,7 @@ class FlatHashMapImpl {
   }
 
   Iterator find(const KeyT &key) {
-    if (empty()) {
+    if (empty() || is_key_empty(key)) {
       return end();
     }
     auto bucket = calc_bucket(key);
