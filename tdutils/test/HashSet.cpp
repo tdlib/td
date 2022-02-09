@@ -9,6 +9,8 @@
 #include "td/utils/tests.h"
 
 #include <array>
+#include "td/utils/Random.h"
+#include "td/utils/algorithm.h"
 
 TEST(FlatHashMap, basic) {
   {
@@ -45,5 +47,38 @@ TEST(FlatHashMap, basic) {
     td::FlatHashMap<int, std::string> map = {{1, "hello"}, {1, "world"}};
     ASSERT_EQ("world", map[1]);
     ASSERT_EQ(1u, map.size());
+  }
+}
+
+template <class T>
+auto extract_kv(const T &reference) {
+  auto expected = td::transform(reference, [](auto &it) {return std::make_pair(it.first, it.second);});
+  std::sort(expected.begin(), expected.end());
+  return expected;
+}
+
+TEST(FlatHashMap, remove_if_basic) {
+  td::Random::Xorshift128plus rnd(123);
+
+  for (int test_i = 0; test_i < 1000000; test_i++) {
+    std::unordered_map<td::uint64, td::uint64> reference;
+    td::FlatHashMap<td::uint64, td::uint64> table;
+    LOG_IF(ERROR, test_i % 1000 == 0) << test_i;
+    int N = rnd.fast(1, 1000);
+    for (int i = 0; i < N; i++) {
+      auto key = rnd();
+      auto value = i;
+      reference[key] = value;
+      table[key] = value;
+    }
+    ASSERT_EQ(extract_kv(reference), extract_kv(table));
+
+    std::vector<std::pair<td::uint64, td::uint64>> kv;
+    td::table_remove_if(table, [&](auto &it) {kv.emplace_back(it.first, it.second); return it.second % 2 == 0; });
+    std::sort(kv.begin(), kv.end());
+    ASSERT_EQ(extract_kv(reference), kv);
+
+    td::table_remove_if(reference, [](auto &it) {return it.second % 2 == 0;});
+    ASSERT_EQ(extract_kv(reference), extract_kv(table));
   }
 }

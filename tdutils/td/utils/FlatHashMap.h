@@ -360,33 +360,31 @@ class FlatHashMapImpl {
   void erase(Iterator it) {
     DCHECK(it != end());
     DCHECK(!is_key_empty(it->key()));
-    size_t empty_i = it.it_ - nodes_.begin();
-    auto empty_bucket = empty_i;
-    DCHECK(0 <= empty_i && empty_i < nodes_.size());
-    nodes_[empty_bucket].clear();
-    used_nodes_--;
+    erase_node(it.it_);
+  }
 
-    for (size_t test_i = empty_i + 1;; test_i++) {
-      auto test_bucket = test_i;
-      if (test_bucket >= nodes_.size()) {
-        test_bucket -= nodes_.size();
-      }
-
-      if (nodes_[test_bucket].empty()) {
-        break;
-      }
-
-      auto want_i = calc_bucket(nodes_[test_bucket].key());
-      if (want_i < empty_i) {
-        want_i += nodes_.size();
-      }
-
-      if (want_i <= empty_i || want_i > test_i) {
-        nodes_[empty_bucket] = std::move(nodes_[test_bucket]);
-        empty_i = test_i;
-        empty_bucket = test_bucket;
+  template <class F>
+  void remove_if(F &&f) {
+    auto it = nodes_.begin();
+    while (it != nodes_.end() && !it->empty()) {
+      ++it;
+    }
+    auto first_empty = it;
+    for (; it != nodes_.end();) {
+      if (!it->empty() && f(*it)) {
+        erase_node(it);
+      } else {
+        ++it;
       }
     }
+    for (it = nodes_.begin(); it != first_empty;) {
+      if (!it->empty() && f(*it)) {
+        erase_node(it);
+      } else {
+        ++it;
+      }
+    }
+    // TODO: resize hashtable is necessary
   }
 
  private:
@@ -449,7 +447,42 @@ class FlatHashMapImpl {
       bucket = 0;
     }
   }
+
+  void erase_node(NodeIterator it) {
+    size_t empty_i = it - nodes_.begin();
+    auto empty_bucket = empty_i;
+        DCHECK(0 <= empty_i && empty_i < nodes_.size());
+    nodes_[empty_bucket].clear();
+    used_nodes_--;
+
+    for (size_t test_i = empty_i + 1;; test_i++) {
+      auto test_bucket = test_i;
+      if (test_bucket >= nodes_.size()) {
+        test_bucket -= nodes_.size();
+      }
+
+      if (nodes_[test_bucket].empty()) {
+        break;
+      }
+
+      auto want_i = calc_bucket(nodes_[test_bucket].key());
+      if (want_i < empty_i) {
+        want_i += nodes_.size();
+      }
+
+      if (want_i <= empty_i || want_i > test_i) {
+        nodes_[empty_bucket] = std::move(nodes_[test_bucket]);
+        empty_i = test_i;
+        empty_bucket = test_bucket;
+      }
+    }
+  }
 };
+
+template <class K, class V, class H, class FuncT>
+void table_remove_if(FlatHashMapImpl<K, V, H> &table, FuncT &&func) {
+  table.remove_if(func);
+}
 
 template <class KeyT, class ValueT, class HashT = std::hash<KeyT>>
 using FlatHashMap = FlatHashMapImpl<KeyT, ValueT, HashT>;

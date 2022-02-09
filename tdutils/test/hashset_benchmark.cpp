@@ -4,6 +4,7 @@
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
+#include "td/utils/algorithm.h"
 #include "td/utils/common.h"
 #include "td/utils/FlatHashMap.h"
 #include "td/utils/format.h"
@@ -251,6 +252,43 @@ static void BM_emplace_same(benchmark::State &state) {
   }
 }
 
+namespace td {
+template <class K, class V, class FunctT>
+void table_remove_if(absl::flat_hash_map<K, V> &table, FunctT &&func) {
+  for (auto it = table.begin(); it != table.end();) {
+    if (func(*it)) {
+      auto copy = it;
+      ++it;
+      table.erase(copy);
+    } else {
+      ++it;
+    }
+  }
+}
+}
+
+
+template <typename TableT>
+static void BM_remove_if(benchmark::State &state) {
+  constexpr size_t N = 100000;
+  constexpr size_t BATCH_SIZE = N;
+
+  TableT table;
+  reserve(table, N);
+  while (state.KeepRunningBatch(BATCH_SIZE)) {
+    state.PauseTiming();
+    td::Random::Xorshift128plus rnd(123);
+    for (size_t i = 0; i < N; i++) {
+      table.emplace(rnd(), i);
+    }
+    state.ResumeTiming();
+
+    td::table_remove_if(table, [](auto &it) {
+      return it.second % 2 == 0;
+    });
+  }
+}
+
 template <typename TableT>
 static void benchmark_create(td::Slice name) {
   td::Random::Xorshift128plus rnd(123);
@@ -296,6 +334,7 @@ static void benchmark_create(td::Slice name) {
 //BENCHMARK(BM_Get<NoOpTable<td::uint64, td::uint64>>)->Range(1, 1 << 26);
 
 #define REGISTER_GET_BENCHMARK(HT) BENCHMARK(BM_Get<HT<td::uint64, td::uint64>>)->Range(1, 1 << 23);
+#define REGISTER_REMOVE_IF_BENCHMARK(HT) BENCHMARK(BM_remove_if<HT<td::uint64, td::uint64>>);
 
 #define REGISTER_FIND_BENCHMARK(HT)                                                                                 \
   BENCHMARK(BM_find_same<HT<td::uint64, td::uint64>>)                                                               \
@@ -308,12 +347,13 @@ static void benchmark_create(td::Slice name) {
 
 #define RUN_CREATE_BENCHMARK(HT) benchmark_create<HT<td::uint64, td::uint64>>(#HT);
 
+FOR_EACH_TABLE(REGISTER_REMOVE_IF_BENCHMARK)
 FOR_EACH_TABLE(REGISTER_FIND_BENCHMARK)
 FOR_EACH_TABLE(REGISTER_EMPLACE_BENCHMARK)
 FOR_EACH_TABLE(REGISTER_GET_BENCHMARK)
 
 int main(int argc, char **argv) {
-  FOR_EACH_TABLE(RUN_CREATE_BENCHMARK);
+//  FOR_EACH_TABLE(RUN_CREATE_BENCHMARK);
 
   benchmark::Initialize(&argc, argv);
   benchmark::RunSpecifiedBenchmarks();
