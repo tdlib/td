@@ -261,33 +261,45 @@ static ActorOwn<> get_simple_config_dns(Slice address, Slice host, Promise<Simpl
     name = is_test ? "tapv3.stel.com" : "apv3.stel.com";
   }
   auto get_config = [](HttpQuery &http_query) -> Result<string> {
-    VLOG(config_recoverer) << "Receive DNS response " << http_query.content_;
-    TRY_RESULT(json, json_decode(http_query.content_));
-    if (json.type() != JsonValue::Type::Object) {
-      return Status::Error("Expected JSON object");
-    }
-    auto &answer_object = json.get_object();
-    TRY_RESULT(answer, get_json_object_field(answer_object, "Answer", JsonValue::Type::Array, false));
-    auto &answer_array = answer.get_array();
-    vector<string> parts;
-    for (auto &answer_part : answer_array) {
-      if (answer_part.type() != JsonValue::Type::Object) {
+    auto get_data = [](JsonValue &answer) -> Result<string> {
+      auto &answer_array = answer.get_array();
+      vector<string> parts;
+      for (auto &answer_part : answer_array) {
+        if (answer_part.type() != JsonValue::Type::Object) {
+          return Status::Error("Expected JSON object");
+        }
+        auto &data_object = answer_part.get_object();
+        TRY_RESULT(part, get_json_object_string_field(data_object, "data", false));
+        parts.push_back(std::move(part));
+      }
+      if (parts.size() != 2) {
+        return Status::Error("Expected data in two parts");
+      }
+      string data;
+      if (parts[0].size() < parts[1].size()) {
+        data = parts[1] + parts[0];
+      } else {
+        data = parts[0] + parts[1];
+      }
+      return data;
+    };
+    if (!http_query.get_arg("Answer").empty()) {
+      VLOG(config_recoverer) << "Receive DNS response " << http_query.get_arg("Answer");
+      TRY_RESULT(answer, json_decode(http_query.get_arg("Answer")));
+      if (answer.type() != JsonValue::Type::Array) {
+        return Status::Error("Expected JSON array");
+      }
+      return get_data(answer);
+    } else {
+      VLOG(config_recoverer) << "Receive DNS response " << http_query.content_;
+      TRY_RESULT(json, json_decode(http_query.content_));
+      if (json.type() != JsonValue::Type::Object) {
         return Status::Error("Expected JSON object");
       }
-      auto &data_object = answer_part.get_object();
-      TRY_RESULT(part, get_json_object_string_field(data_object, "data", false));
-      parts.push_back(std::move(part));
+      auto &answer_object = json.get_object();
+      TRY_RESULT(answer, get_json_object_field(answer_object, "Answer", JsonValue::Type::Array, false));
+      return get_data(answer);
     }
-    if (parts.size() != 2) {
-      return Status::Error("Expected data in two parts");
-    }
-    string data;
-    if (parts[0].size() < parts[1].size()) {
-      data = parts[1] + parts[0];
-    } else {
-      data = parts[0] + parts[1];
-    }
-    return data;
   };
   return get_simple_config_impl(std::move(promise), scheduler_id,
                                 PSTRING() << "https://" << address << "?name=" << url_encode(name) << "&type=TXT",
