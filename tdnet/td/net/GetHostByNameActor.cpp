@@ -56,23 +56,35 @@ class GoogleDnsResolver final : public Actor {
 
   static Result<IPAddress> get_ip_address(Result<unique_ptr<HttpQuery>> r_http_query) {
     TRY_RESULT(http_query, std::move(r_http_query));
-    TRY_RESULT(json_value, json_decode(http_query->content_));
-    if (json_value.type() != JsonValue::Type::Object) {
-      return Status::Error("Failed to parse DNS result: not an object");
+
+    auto get_ip_address = [](JsonValue &answer) -> Result<IPAddress> {
+      auto &array = answer.get_array();
+      if (array.empty()) {
+        return Status::Error("Failed to parse DNS result: Answer is an empty array");
+      }
+      if (array[0].type() != JsonValue::Type::Object) {
+        return Status::Error("Failed to parse DNS result: Answer[0] is not an object");
+      }
+      auto &answer_0 = array[0].get_object();
+      TRY_RESULT(ip_str, get_json_object_string_field(answer_0, "data", false));
+      IPAddress ip;
+      TRY_STATUS(ip.init_host_port(ip_str, 0));
+      return ip;
+    };
+    if (!http_query->get_arg("Answer").empty()) {
+      TRY_RESULT(answer, json_decode(http_query->get_arg("Answer")));
+      if (answer.type() != JsonValue::Type::Array) {
+        return Status::Error("Expected JSON array");
+      }
+      return get_ip_address(answer);
+    } else {
+      TRY_RESULT(json_value, json_decode(http_query->content_));
+      if (json_value.type() != JsonValue::Type::Object) {
+        return Status::Error("Failed to parse DNS result: not an object");
+      }
+      TRY_RESULT(answer, get_json_object_field(json_value.get_object(), "Answer", JsonValue::Type::Array, false));
+      return get_ip_address(answer);
     }
-    TRY_RESULT(answer, get_json_object_field(json_value.get_object(), "Answer", JsonValue::Type::Array, false));
-    auto &array = answer.get_array();
-    if (array.empty()) {
-      return Status::Error("Failed to parse DNS result: Answer is an empty array");
-    }
-    if (array[0].type() != JsonValue::Type::Object) {
-      return Status::Error("Failed to parse DNS result: Answer[0] is not an object");
-    }
-    auto &answer_0 = array[0].get_object();
-    TRY_RESULT(ip_str, get_json_object_string_field(answer_0, "data", false));
-    IPAddress ip;
-    TRY_STATUS(ip.init_host_port(ip_str, 0));
-    return ip;
   }
 
   void on_result(Result<unique_ptr<HttpQuery>> r_http_query) {
