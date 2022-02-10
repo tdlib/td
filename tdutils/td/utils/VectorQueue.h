@@ -31,6 +31,13 @@ class VectorQueue {
     return std::move(vector_[read_pos_++]);
   }
 
+  template <class RndT>
+  T pop_rand(RndT &rnd) {
+    auto i = rnd() % size();
+    std::swap(vector_[i], vector_[read_pos_]);
+    return pop();
+  }
+
   void pop_n(size_t n) {
     read_pos_ += n;
     try_shrink();

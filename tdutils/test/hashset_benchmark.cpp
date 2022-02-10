@@ -14,6 +14,7 @@
 #include "td/utils/Slice.h"
 #include "td/utils/Span.h"
 #include "td/utils/Time.h"
+#include "td/utils/VectorQueue.h"
 
 #include <absl/container/flat_hash_map.h>
 #include <absl/hash/hash.h>
@@ -287,6 +288,106 @@ static void BM_remove_if(benchmark::State &state) {
 }
 
 template <typename TableT>
+static void BM_erase_all_with_begin(benchmark::State &state) {
+  constexpr size_t N = 100000;
+  constexpr size_t BATCH_SIZE = N;
+
+  TableT table;
+  td::Random::Xorshift128plus rnd(123);
+  while (state.KeepRunningBatch(BATCH_SIZE)) {
+    for (size_t i = 0; i < BATCH_SIZE; i++) {
+      table.emplace(rnd() + 1, i);
+    }
+    while (!table.empty()) {
+      table.erase(table.begin());
+    }
+  }
+}
+
+template <typename TableT>
+static void BM_cache(benchmark::State &state) {
+  constexpr size_t N = 1000;
+  constexpr size_t BATCH_SIZE = 1000000;
+
+  TableT table;
+  td::Random::Xorshift128plus rnd(123);
+  td::VectorQueue<td::uint64> keys;
+  while (state.KeepRunningBatch(BATCH_SIZE)) {
+    for (size_t i = 0; i < BATCH_SIZE; i++) {
+      auto key = rnd() + 1;
+      keys.push(key);
+      table.emplace(key, i);
+      if (table.size() > N) {
+        table.erase(keys.pop());
+      }
+    }
+  }
+}
+
+template <typename TableT>
+static void BM_cache2(benchmark::State &state) {
+  constexpr size_t N = 1000;
+  constexpr size_t BATCH_SIZE = 1000000;
+
+  TableT table;
+  td::Random::Xorshift128plus rnd(123);
+  td::VectorQueue<td::uint64> keys;
+  while (state.KeepRunningBatch(BATCH_SIZE)) {
+    for (size_t i = 0; i < BATCH_SIZE; i++) {
+      auto key = rnd() + 1;
+      keys.push(key);
+      table.emplace(key, i);
+      if (table.size() > N) {
+        table.erase(keys.pop_rand(rnd));
+      }
+    }
+  }
+}
+
+template <typename TableT>
+static void BM_cache3(benchmark::State &state) {
+  size_t N = state.range(0);
+  constexpr size_t BATCH_SIZE = 1000000;
+
+  TableT table;
+  td::Random::Xorshift128plus rnd(123);
+  td::VectorQueue<td::uint64> keys;
+  size_t step = 20;
+  while (state.KeepRunningBatch(BATCH_SIZE)) {
+    for (size_t i = 0; i < BATCH_SIZE; i += step) {
+      auto key = rnd() + 1;
+      keys.push(key);
+      table.emplace(key, i);
+
+      for (size_t j = 1; j < step; j++) {
+        auto key_to_find = keys.data()[rnd()%keys.size()];
+        benchmark::DoNotOptimize(table.find(key_to_find));
+      }
+
+      if (table.size() > N) {
+        table.erase(keys.pop_rand(rnd));
+      }
+    }
+  }
+}
+template <typename TableT>
+static void BM_remove_if_slow(benchmark::State &state) {
+  constexpr size_t N = 100000;
+  constexpr size_t BATCH_SIZE = 500000;
+
+  TableT table;
+  while (state.KeepRunningBatch(BATCH_SIZE)) {
+    td::Random::Xorshift128plus rnd(123);
+    for (size_t i = 0; i < BATCH_SIZE; i++) {
+      table.emplace(rnd() + 1, i);
+      if (table.size() > N) {
+        size_t cnt = 0;
+        td::table_remove_if(table, [&cnt](auto &) { cnt += 2; return cnt <= N; });
+      }
+    }
+  }}
+
+template <typename TableT>
 static void benchmark_create(td::Slice name) {
   td::Random::Xorshift128plus rnd(123);
   {
@@ -331,7 +432,6 @@ static void benchmark_create(td::Slice name) {
 //BENCHMARK(BM_Get<NoOpTable<td::uint64, td::uint64>>)->Range(1, 1 << 26);
 
 #define REGISTER_GET_BENCHMARK(HT) BENCHMARK(BM_Get<HT<td::uint64, td::uint64>>)->Range(1, 1 << 23);
-#define REGISTER_REMOVE_IF_BENCHMARK(HT) BENCHMARK(BM_remove_if<HT<td::uint64, td::uint64>>);
 
 #define REGISTER_FIND_BENCHMARK(HT)                                                                                 \
   BENCHMARK(BM_find_same<HT<td::uint64, td::uint64>>)                                                               \
@@ -340,15 +440,32 @@ static void benchmark_create(td::Slice name) {
       ->Repetitions(20)                                                                                             \
       ->DisplayAggregatesOnly(true);
 
+#define REGISTER_REMOVE_IF_BENCHMARK(HT) BENCHMARK(BM_remove_if<HT<td::uint64, td::uint64>>);
 #define REGISTER_EMPLACE_BENCHMARK(HT) BENCHMARK(BM_emplace_same<HT<td::uint64, td::uint64>>);
+#define REGISTER_CACHE_BENCHMARK(HT) BENCHMARK(BM_cache<HT<td::uint64, td::uint64>>);
+#define REGISTER_CACHE2_BENCHMARK(HT) BENCHMARK(BM_cache2<HT<td::uint64, td::uint64>>);
+#define REGISTER_CACHE3_BENCHMARK(HT) BENCHMARK(BM_cache3<HT<td::uint64, td::uint64>>)->Range(1, 1 << 23);
+#define REGISTER_ERASE_ALL_BENCHMARK(HT) BENCHMARK(BM_erase_all_with_begin<HT<td::uint64, td::uint64>>);
+#define REGISTER_REMOVE_IF_SLOW_BENCHMARK(HT) BENCHMARK(BM_remove_if_slow<HT<td::uint64, td::uint64>>);
 
-#define RUN_CREATE_BENCHMARK(HT) benchmark_create<HT<td::uint64, td::uint64>>(#HT);
 
+FOR_EACH_TABLE(REGISTER_CACHE3_BENCHMARK)
+FOR_EACH_TABLE(REGISTER_CACHE_BENCHMARK)
+FOR_EACH_TABLE(REGISTER_CACHE2_BENCHMARK)
+FOR_EACH_TABLE(REGISTER_REMOVE_IF_SLOW_BENCHMARK)
+FOR_EACH_TABLE(REGISTER_ERASE_ALL_BENCHMARK)
+FOR_EACH_TABLE(REGISTER_CACHE_BENCHMARK)
 FOR_EACH_TABLE(REGISTER_REMOVE_IF_BENCHMARK)
-FOR_EACH_TABLE(REGISTER_FIND_BENCHMARK)
 FOR_EACH_TABLE(REGISTER_EMPLACE_BENCHMARK)
 FOR_EACH_TABLE(REGISTER_GET_BENCHMARK)
+FOR_EACH_TABLE(REGISTER_FIND_BENCHMARK)
 
+
+
+#define REGISTER_(X) BENCHMARK(X<HT<td::uint64, td:uint64>);
+#define REGISTER(X) FOR_EACH_TABLE(REGISTER_(X))
+
+#define RUN_CREATE_BENCHMARK(HT) benchmark_create<HT<td::uint64, td::uint64>>(#HT);
 int main(int argc, char **argv) {
   //  FOR_EACH_TABLE(RUN_CREATE_BENCHMARK);
 
