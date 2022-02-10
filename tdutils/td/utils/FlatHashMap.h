@@ -55,6 +55,9 @@ class fixed_vector {
   const T *end() const {
     return ptr_ + size_;
   }
+  bool empty() const {
+    return size() == 0;
+  }
   size_t size() const {
     return size_;
   }
@@ -431,7 +434,7 @@ class FlatHashMapImpl {
   }
 
   void grow() {
-    size_t want_size = normalize(2 * nodes_.size() - 1);
+    size_t want_size = normalize(2 * nodes_.size() - !nodes_.empty());
     resize(want_size);
   }
 
