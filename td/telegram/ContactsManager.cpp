@@ -7437,6 +7437,7 @@ void ContactsManager::check_dialog_invite_link(const string &invite_link, Promis
     return promise.set_error(Status::Error(400, "Wrong invite link"));
   }
 
+  CHECK(!invite_link.empty());
   td_->create_handler<CheckChatInviteQuery>(std::move(promise))->send(invite_link);
 }
 
@@ -7980,7 +7981,7 @@ void ContactsManager::on_import_contacts_finished(int64 random_id, vector<UserId
     CHECK(unimported_contact_invites.size() == add_size);
     CHECK(imported_contacts_unique_id_.size() == result_size);
 
-    FlatHashMap<size_t, int32> unique_id_to_unimported_contact_invites;
+    std::unordered_map<size_t, int32> unique_id_to_unimported_contact_invites;
     for (size_t i = 0; i < add_size; i++) {
       auto unique_id = imported_contacts_pos_[i];
       get_user_id_object(imported_contact_user_ids[i], "on_import_contacts_finished");  // to ensure updateUser
@@ -11147,7 +11148,7 @@ void ContactsManager::register_user_photo(User *u, UserId user_id, const Photo &
   CHECK(file_type == FileType::Photo);
   CHECK(u != nullptr);
   auto photo_id = photo.id.get();
-  if (u->photo_ids.emplace(photo_id).second) {
+  if (photo_id != 0 && u->photo_ids.emplace(photo_id).second) {
     VLOG(file_references) << "Register photo " << photo_id << " of " << user_id;
     if (user_id == get_my_id()) {
       my_photo_file_id_[photo_id] = first_file_id;
@@ -11644,7 +11645,7 @@ void ContactsManager::update_user_online_member_count(User *u) {
 
   auto now = G()->unix_time_cached();
   vector<DialogId> expired_dialog_ids;
-  for (auto &it : u->online_member_dialogs) {
+  for (const auto &it : u->online_member_dialogs) {
     auto dialog_id = it.first;
     auto time = it.second;
     if (time < now - MessagesManager::ONLINE_MEMBER_COUNT_CACHE_EXPIRE_TIME) {
@@ -11701,6 +11702,7 @@ void ContactsManager::update_dialog_online_member_count(const vector<DialogParti
   if (td_->auth_manager_->is_bot()) {
     return;
   }
+  CHECK(dialog_id.is_valid());
 
   int32 online_member_count = 0;
   int32 time = G()->unix_time();
@@ -12083,6 +12085,8 @@ bool ContactsManager::have_channel_participant_cache(ChannelId channel_id) const
 void ContactsManager::add_channel_participant_to_cache(ChannelId channel_id,
                                                        const DialogParticipant &dialog_participant,
                                                        bool allow_replace) {
+  CHECK(channel_id.is_valid());
+  CHECK(dialog_participant.is_valid());
   auto &participants = channel_participants_[channel_id];
   if (participants.participants_.empty()) {
     channel_participant_cache_timeout_.set_timeout_in(channel_id.get(), CHANNEL_PARTICIPANT_CACHE_TIME);
@@ -12748,7 +12752,7 @@ void ContactsManager::on_get_dialog_invite_link_info(const string &invite_link,
         invite_link_info = make_unique<InviteLinkInfo>();
       }
       invite_link_info->dialog_id = dialog_id;
-      if (accessible_before != 0) {
+      if (accessible_before != 0 && dialog_id.is_valid()) {
         auto &access = dialog_access_by_invite_link_[dialog_id];
         access.invite_links.insert(invite_link);
         if (access.accessible_before < accessible_before) {
@@ -14610,7 +14614,7 @@ const MinChannel *ContactsManager::get_min_channel(ChannelId channel_id) const {
 }
 
 void ContactsManager::add_min_channel(ChannelId channel_id, const MinChannel &min_channel) {
-  if (have_channel(channel_id) || have_min_channel(channel_id)) {
+  if (have_channel(channel_id) || have_min_channel(channel_id) || !channel_id.is_valid()) {
     return;
   }
   min_channels_[channel_id] = td::make_unique<MinChannel>(min_channel);
@@ -15255,7 +15259,9 @@ void ContactsManager::finish_get_channel_participant(ChannelId channel_id, Dialo
                                                      Promise<DialogParticipant> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
 
-  LOG(INFO) << "Receive a member " << dialog_participant.dialog_id_ << " of a channel " << channel_id;
+  CHECK(dialog_participant.is_valid());  // checked in GetChannelParticipantQuery
+
+  LOG(INFO) << "Receive " << dialog_participant.dialog_id_ << " as a member of a channel " << channel_id;
 
   dialog_participant.status_.update_restrictions();
   if (have_channel_participant_cache(channel_id)) {
@@ -15422,6 +15428,7 @@ void ContactsManager::on_update_dialog_administrators(DialogId dialog_id, vector
                                                       bool have_access, bool from_database) {
   LOG(INFO) << "Update administrators in " << dialog_id << " to " << format::as_array(administrators);
   if (have_access) {
+    CHECK(dialog_id.is_valid());
     std::sort(administrators.begin(), administrators.end(),
               [](const DialogAdministrator &lhs, const DialogAdministrator &rhs) {
                 return lhs.get_user_id().get() < rhs.get_user_id().get();
@@ -16415,30 +16422,30 @@ void ContactsManager::get_current_state(vector<td_api::object_ptr<td_api::Update
     }
   }
 
-  for (auto &it : users_) {
+  for (const auto &it : users_) {
     updates.push_back(td_api::make_object<td_api::updateUser>(get_user_object(it.first, it.second.get())));
   }
-  for (auto &it : channels_) {
+  for (const auto &it : channels_) {
     updates.push_back(td_api::make_object<td_api::updateSupergroup>(get_supergroup_object(it.first, it.second.get())));
   }
-  for (auto &it : chats_) {  // chat object can contain channel_id, so it must be sent after channels
+  for (const auto &it : chats_) {  // chat object can contain channel_id, so it must be sent after channels
     updates.push_back(
         td_api::make_object<td_api::updateBasicGroup>(get_basic_group_object_const(it.first, it.second.get())));
   }
-  for (auto &it : secret_chats_) {  // secret chat object contains user_id, so it must be sent after users
+  for (const auto &it : secret_chats_) {  // secret chat object contains user_id, so it must be sent after users
     updates.push_back(
         td_api::make_object<td_api::updateSecretChat>(get_secret_chat_object_const(it.first, it.second.get())));
   }
 
-  for (auto &it : users_full_) {
+  for (const auto &it : users_full_) {
     updates.push_back(td_api::make_object<td_api::updateUserFullInfo>(
         it.first.get(), get_user_full_info_object(it.first, it.second.get())));
   }
-  for (auto &it : channels_full_) {
+  for (const auto &it : channels_full_) {
     updates.push_back(td_api::make_object<td_api::updateSupergroupFullInfo>(
         it.first.get(), get_supergroup_full_info_object(it.second.get(), it.first)));
   }
-  for (auto &it : chats_full_) {
+  for (const auto &it : chats_full_) {
     updates.push_back(td_api::make_object<td_api::updateBasicGroupFullInfo>(
         it.first.get(), get_basic_group_full_info_object(it.second.get())));
   }

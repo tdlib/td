@@ -32,6 +32,7 @@
 
 #include <memory>
 #include <tuple>
+#include <unordered_map>
 #include <unordered_set>
 #include <utility>
 
@@ -825,8 +826,8 @@ class StickersManager final : public Actor {
   FlatHashMap<string, FoundStickers> found_stickers_;
   FlatHashMap<string, vector<Promise<Unit>>> search_stickers_queries_;
 
-  FlatHashMap<string, vector<StickerSetId>> found_sticker_sets_;
-  FlatHashMap<string, vector<Promise<Unit>>> search_sticker_sets_queries_;
+  std::unordered_map<string, vector<StickerSetId>> found_sticker_sets_;
+  std::unordered_map<string, vector<Promise<Unit>>> search_sticker_sets_queries_;
 
   std::unordered_set<StickerSetId, StickerSetIdHash> pending_viewed_featured_sticker_set_ids_;
   Timeout pending_featured_sticker_set_views_timeout_;

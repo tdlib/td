@@ -79,6 +79,7 @@
 #include <map>
 #include <memory>
 #include <set>
+#include <unordered_map>
 #include <unordered_set>
 #include <utility>
 
@@ -1231,7 +1232,7 @@ class MessagesManager final : public Actor {
     unique_ptr<DialogActionBar> action_bar;
     LogEventIdWithGeneration save_draft_message_log_event_id;
     LogEventIdWithGeneration save_notification_settings_log_event_id;
-    FlatHashMap<int64, LogEventIdWithGeneration> read_history_log_event_ids;
+    std::unordered_map<int64, LogEventIdWithGeneration> read_history_log_event_ids;
     std::unordered_set<MessageId, MessageIdHash> updated_read_history_message_ids;
     LogEventIdWithGeneration set_folder_id_log_event_id;
     InputGroupCallId active_group_call_id;
@@ -1324,11 +1325,11 @@ class MessagesManager final : public Actor {
     bool suffix_load_done_ = false;
     bool suffix_load_has_query_ = false;
 
-    int32 pts = 0;                                             // for channels only
-    int32 pending_read_channel_inbox_pts = 0;                  // for channels only
-    int32 pending_read_channel_inbox_server_unread_count = 0;  // for channels only
-    MessageId pending_read_channel_inbox_max_message_id;       // for channels only
-    FlatHashMap<int64, MessageId> random_id_to_message_id;     // for secret chats only
+    int32 pts = 0;                                                 // for channels only
+    int32 pending_read_channel_inbox_pts = 0;                      // for channels only
+    int32 pending_read_channel_inbox_server_unread_count = 0;      // for channels only
+    MessageId pending_read_channel_inbox_max_message_id;           // for channels only
+    std::unordered_map<int64, MessageId> random_id_to_message_id;  // for secret chats only
 
     MessageId last_assigned_message_id;  // identifier of the last local or yet unsent message, assigned after
                                          // application start, used to guarantee that all assigned message identifiers
@@ -2773,7 +2774,7 @@ class MessagesManager final : public Actor {
 
   DialogPositionInList get_dialog_position_in_list(const DialogList *list, const Dialog *d, bool actual = false) const;
 
-  FlatHashMap<DialogListId, DialogPositionInList, DialogListIdHash> get_dialog_positions(const Dialog *d) const;
+  std::unordered_map<DialogListId, DialogPositionInList, DialogListIdHash> get_dialog_positions(const Dialog *d) const;
 
   static vector<DialogListId> get_dialog_list_ids(const Dialog *d);
 
@@ -3020,7 +3021,8 @@ class MessagesManager final : public Actor {
   bool set_dialog_order(Dialog *d, int64 new_order, bool need_send_update, bool is_loaded_from_database,
                         const char *source);
 
-  void update_dialog_lists(Dialog *d, FlatHashMap<DialogListId, DialogPositionInList, DialogListIdHash> &&old_positions,
+  void update_dialog_lists(Dialog *d,
+                           std::unordered_map<DialogListId, DialogPositionInList, DialogListIdHash> &&old_positions,
                            bool need_send_update, bool is_loaded_from_database, const char *source);
 
   void update_last_dialog_date(FolderId folder_id);
@@ -3495,8 +3497,8 @@ class MessagesManager final : public Actor {
 
   int64 current_pinned_dialog_order_ = static_cast<int64>(MIN_PINNED_DIALOG_DATE) << 32;
 
-  FlatHashMap<DialogListId, DialogList, DialogListIdHash> dialog_lists_;
-  FlatHashMap<FolderId, DialogFolder, FolderIdHash> dialog_folders_;
+  std::unordered_map<DialogListId, DialogList, DialogListIdHash> dialog_lists_;
+  std::unordered_map<FolderId, DialogFolder, FolderIdHash> dialog_folders_;
 
   bool are_dialog_filters_being_synchronized_ = false;
   bool are_dialog_filters_being_reloaded_ = false;

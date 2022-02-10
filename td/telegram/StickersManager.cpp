@@ -1358,6 +1358,7 @@ void StickersManager::reload_reactions() {
 }
 
 StickersManager::SpecialStickerSet &StickersManager::add_special_sticker_set(const SpecialStickerSetType &type) {
+  CHECK(!type.is_empty());
   auto &result = special_sticker_sets_[type];
   if (result.type_.is_empty()) {
     result.type_ = type;
@@ -1403,7 +1404,9 @@ void StickersManager::load_special_sticker_set_info_from_binlog(SpecialStickerSe
   }
 
   add_sticker_set(sticker_set.id_, sticker_set.access_hash_);
-  short_name_to_sticker_set_id_.emplace(sticker_set.short_name_, sticker_set.id_);
+  if (!sticker_set.short_name_.empty()) {
+    short_name_to_sticker_set_id_.emplace(sticker_set.short_name_, sticker_set.id_);
+  }
 }
 
 void StickersManager::load_special_sticker_set_by_type(SpecialStickerSetType type) {
@@ -2379,6 +2382,9 @@ StickerSetId StickersManager::add_sticker_set(tl_object_ptr<telegram_api::InputS
 }
 
 StickersManager::StickerSet *StickersManager::add_sticker_set(StickerSetId sticker_set_id, int64 access_hash) {
+  if (!sticker_set_id.is_valid()) {
+    return nullptr;
+  }
   auto &s = sticker_sets_[sticker_set_id];
   if (s == nullptr) {
     s = make_unique<StickerSet>();
@@ -2795,6 +2801,9 @@ StickerSetId StickersManager::on_get_sticker_set(tl_object_ptr<telegram_api::sti
   CHECK(set != nullptr);
   StickerSetId set_id{set->id_};
   StickerSet *s = add_sticker_set(set_id, set->access_hash_);
+  if (s == nullptr) {
+    return {};
+  }
 
   bool is_installed = (set->flags_ & telegram_api::stickerSet::INSTALLED_DATE_MASK) != 0;
   bool is_archived = set->archived_;
@@ -2907,7 +2916,10 @@ StickerSetId StickersManager::on_get_sticker_set(tl_object_ptr<telegram_api::sti
     LOG_IF(ERROR, s->is_masks != is_masks) << "Masks type of " << set_id << "/" << s->short_name << " has changed from "
                                            << s->is_masks << " to " << is_masks << " from " << source;
   }
-  short_name_to_sticker_set_id_.emplace(clean_username(s->short_name), set_id);
+  auto cleaned_username = clean_username(s->short_name);
+  if (!cleaned_username.empty()) {
+    short_name_to_sticker_set_id_.emplace(cleaned_username, set_id);
+  }
 
   on_update_sticker_set(s, is_installed, is_archived, is_changed);
 
@@ -3063,10 +3075,13 @@ StickerSetId StickersManager::on_get_messages_sticker_set(StickerSetId sticker_s
         stickers.push_back(it->second);
         s->sticker_emojis_map_[it->second].push_back(pack->emoticon_);
       }
-      auto &sticker_ids = s->emoji_stickers_map_[remove_emoji_modifiers(pack->emoticon_).str()];
-      for (auto sticker_id : stickers) {
-        if (!td::contains(sticker_ids, sticker_id)) {
-          sticker_ids.push_back(sticker_id);
+      auto cleaned_emoji = remove_emoji_modifiers(pack->emoticon_).str();
+      if (!cleaned_emoji.empty()) {
+        auto &sticker_ids = s->emoji_stickers_map_[cleaned_emoji];
+        for (auto sticker_id : stickers) {
+          if (!td::contains(sticker_ids, sticker_id)) {
+            sticker_ids.push_back(sticker_id);
+          }
         }
       }
     }
@@ -4086,7 +4101,8 @@ void StickersManager::load_sticker_sets(vector<StickerSetId> &&sticker_set_ids, 
     return;
   }
 
-  auto load_request_id = current_sticker_set_load_request_++;
+  CHECK(current_sticker_set_load_request_ < std::numeric_limits<uint32>::max());
+  auto load_request_id = ++current_sticker_set_load_request_;
   StickerSetLoadRequest &load_request = sticker_set_load_requests_[load_request_id];
   load_request.promise = std::move(promise);
   load_request.left_queries = sticker_set_ids.size();
@@ -4120,7 +4136,8 @@ void StickersManager::load_sticker_sets_without_stickers(vector<StickerSetId> &&
     return;
   }
 
-  auto load_request_id = current_sticker_set_load_request_++;
+  CHECK(current_sticker_set_load_request_ < std::numeric_limits<uint32>::max());
+  auto load_request_id = ++current_sticker_set_load_request_;
   StickerSetLoadRequest &load_request = sticker_set_load_requests_[load_request_id];
   load_request.promise = std::move(promise);
   load_request.left_queries = sticker_set_ids.size();
@@ -4369,8 +4386,11 @@ void StickersManager::on_update_emoji_sounds() {
         FullRemoteFileLocation(FileType::VoiceNote, id, access_hash, dc_id, std::move(file_reference)),
         FileLocationSource::FromServer, DialogId(), 0, expected_size, std::move(suggested_file_name));
     CHECK(file_id.is_valid());
-    emoji_sounds_.emplace(remove_fitzpatrick_modifier(sounds[i]).str(), file_id);
-    new_file_ids.push_back(file_id);
+    auto cleaned_emoji = remove_fitzpatrick_modifier(sounds[i]).str();
+    if (!cleaned_emoji.empty()) {
+      emoji_sounds_.emplace(cleaned_emoji, file_id);
+      new_file_ids.push_back(file_id);
+    }
   }
   td_->file_manager_->change_files_source(get_app_config_file_source_id(), old_file_ids, new_file_ids);
 
@@ -5478,6 +5498,7 @@ void StickersManager::send_get_attached_stickers_query(FileId file_id, Promise<U
 
 void StickersManager::on_get_attached_sticker_sets(
     FileId file_id, vector<tl_object_ptr<telegram_api::StickerSetCovered>> &&sticker_sets) {
+  CHECK(file_id.is_valid());
   vector<StickerSetId> &sticker_set_ids = attached_sticker_sets_[file_id];
   sticker_set_ids.clear();
   for (auto &sticker_set_covered : sticker_sets) {
@@ -5867,6 +5888,7 @@ void StickersManager::upload_sticker_file(UserId user_id, FileId file_id, Promis
     upload_file_id = td_->documents_manager_->dup_document(td_->file_manager_->dup_file_id(file_id), file_id);
   }
 
+  CHECK(upload_file_id.is_valid());
   being_uploaded_files_[upload_file_id] = {user_id, std::move(promise)};
   LOG(INFO) << "Ask to upload sticker file " << upload_file_id;
   td_->file_manager_->upload(upload_file_id, upload_sticker_file_callback_, 2, 0);
@@ -7136,6 +7158,9 @@ int32 StickersManager::get_emoji_language_code_version(const string &language_co
   if (it != emoji_language_code_versions_.end()) {
     return it->second;
   }
+  if (language_code.empty()) {
+    return 0;
+  }
   auto &result = emoji_language_code_versions_[language_code];
   result = to_integer<int32>(
       G()->td_db()->get_sqlite_sync_pmc()->get(get_emoji_language_code_version_database_key(language_code)));
@@ -7150,6 +7175,9 @@ double StickersManager::get_emoji_language_code_last_difference_time(const strin
   auto it = emoji_language_code_last_difference_times_.find(language_code);
   if (it != emoji_language_code_last_difference_times_.end()) {
     return it->second;
+  }
+  if (language_code.empty()) {
+    return Time::now_cached() - G()->unix_time();
   }
   auto &result = emoji_language_code_last_difference_times_[language_code];
   auto old_unix_time = to_integer<int32>(G()->td_db()->get_sqlite_sync_pmc()->get(
@@ -7290,6 +7318,13 @@ vector<string> StickersManager::get_emoji_language_codes(const vector<string> &i
   auto it = emoji_language_codes_.find(key);
   if (it == emoji_language_codes_.end()) {
     it = emoji_language_codes_.emplace(key, full_split(G()->td_db()->get_sqlite_sync_pmc()->get(key), '$')).first;
+    td::remove_if(it->second, [](const string &language_code) {
+      if (language_code.empty() || language_code.find('$') != string::npos) {
+        LOG(ERROR) << "Loaded language_code \"" << language_code << '"';
+        return true;
+      }
+      return false;
+    });
   }
   if (it->second.empty()) {
     load_language_codes(std::move(language_codes), std::move(key), std::move(promise));
@@ -7405,6 +7440,7 @@ void StickersManager::on_get_emoji_keywords(
 
 void StickersManager::load_emoji_keywords_difference(const string &language_code) {
   LOG(INFO) << "Load emoji keywords difference for language " << language_code;
+  CHECK(!language_code.empty());
   emoji_language_code_last_difference_times_[language_code] =
       Time::now_cached() + 1e9;  // prevent simultaneous requests
   int32 from_version = get_emoji_language_code_version(language_code);
@@ -7534,6 +7570,7 @@ vector<string> StickersManager::search_emojis(const string &text, bool exact_mat
 
   vector<string> languages_to_load;
   for (auto &language_code : language_codes) {
+    CHECK(!language_code.empty());
     auto version = get_emoji_language_code_version(language_code);
     if (version == 0) {
       languages_to_load.push_back(language_code);

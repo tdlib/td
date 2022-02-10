@@ -6556,7 +6556,7 @@ void MessagesManager::skip_old_pending_pts_update(tl_object_ptr<telegram_api::Up
                                 update_sent_message->date_, update_sent_message->ttl_period_, FileId(),
                                 "process old updateSentMessage");
         return;
-      } else {
+      } else if (update_sent_message->random_id_ != 0) {
         LOG(ERROR) << "Receive awaited sent " << update_sent_message->message_id_ << " from " << source << " with pts "
                    << new_pts << " and pts_count " << pts_count << ", but current pts is " << old_pts;
         dump_debug_message_op(get_dialog(being_sent_messages_[update_sent_message->random_id_].get_dialog_id()), 3);
@@ -6580,7 +6580,7 @@ MessagesManager::Dialog *MessagesManager::get_service_notifications_dialog() {
 void MessagesManager::save_auth_notification_ids() {
   auto min_date = G()->unix_time() - AUTH_NOTIFICATION_ID_CACHE_TIME;
   vector<string> ids;
-  for (auto &it : auth_notification_id_date_) {
+  for (const auto &it : auth_notification_id_date_) {
     auto date = it.second;
     if (date < min_date) {
       continue;
@@ -6605,7 +6605,7 @@ void MessagesManager::on_update_service_notification(tl_object_ptr<telegram_api:
     LOG(ERROR) << "Receive message date " << date << " in " << to_string(update);
     return;
   }
-  bool is_auth_notification = begins_with(update->type_, "auth");
+  bool is_auth_notification = update->type_.size() >= 5 && begins_with(update->type_, "auth");
   if (is_auth_notification) {
     auto &old_date = auth_notification_id_date_[update->type_.substr(4)];
     if (date <= old_date) {
@@ -8123,9 +8123,9 @@ void MessagesManager::update_scope_unmute_timeout(NotificationSettingsScope scop
   auto is_muted = new_mute_until != 0;
   if (was_muted != is_muted) {
     if (G()->parameters().use_message_db) {
-      FlatHashMap<DialogListId, int32, DialogListIdHash> delta;
-      FlatHashMap<DialogListId, int32, DialogListIdHash> total_count;
-      FlatHashMap<DialogListId, int32, DialogListIdHash> marked_count;
+      std::unordered_map<DialogListId, int32, DialogListIdHash> delta;
+      std::unordered_map<DialogListId, int32, DialogListIdHash> total_count;
+      std::unordered_map<DialogListId, int32, DialogListIdHash> marked_count;
       std::unordered_set<DialogListId, DialogListIdHash> dialog_list_ids;
       for (auto &dialog : dialogs_) {
         Dialog *d = dialog.second.get();
@@ -13067,7 +13067,8 @@ void MessagesManager::init() {
         dialog_filters_updated_date_ = G()->ignore_background_updates() ? 0 : log_event.updated_date;
         std::unordered_set<DialogFilterId, DialogFilterIdHash> server_dialog_filter_ids;
         for (auto &dialog_filter : log_event.server_dialog_filters_out) {
-          if (server_dialog_filter_ids.insert(dialog_filter->dialog_filter_id).second) {
+          if (dialog_filter->dialog_filter_id.is_valid() &&
+              server_dialog_filter_ids.insert(dialog_filter->dialog_filter_id).second) {
             server_dialog_filters_.push_back(std::move(dialog_filter));
           }
         }
@@ -13169,6 +13170,10 @@ void MessagesManager::init() {
         CHECK(list->pinned_dialogs_.empty());
         for (auto &r_dialog_id : reversed(r_dialog_ids)) {
           auto dialog_id = r_dialog_id.move_as_ok();
+          if (!dialog_id.is_valid()) {
+            LOG(ERROR) << "Loaded " << dialog_id << " as a pinned dialog";
+            continue;
+          }
           auto order = get_next_pinned_dialog_order();
           list->pinned_dialogs_.emplace_back(order, dialog_id);
           list->pinned_dialog_id_orders_.emplace(dialog_id, order);
@@ -13280,7 +13285,7 @@ void MessagesManager::init() {
     auto min_date = G()->unix_time() - AUTH_NOTIFICATION_ID_CACHE_TIME;
     for (size_t i = 0; i < ids.size(); i += 2) {
       auto date = to_integer_safe<int32>(ids[i + 1]).ok();
-      if (date < min_date) {
+      if (date < min_date || ids[i].empty()) {
         is_changed = true;
         continue;
       }
@@ -15109,7 +15114,7 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
 
   if (from_get_dialog && dialog_folders.size() == 1 && dialog_folders[0]->get_id() == telegram_api::dialog::ID) {
     DialogId dialog_id(static_cast<const telegram_api::dialog *>(dialog_folders[0].get())->peer_);
-    if (running_get_channel_difference(dialog_id)) {
+    if (dialog_id.is_valid() && running_get_channel_difference(dialog_id)) {
       LOG(INFO) << "Postpone result of channels getDialogs for " << dialog_id;
       pending_channel_on_get_dialogs_.emplace(
           dialog_id, PendingOnGetDialogs{folder_id, std::move(dialog_folders), total_count, std::move(messages),
@@ -15154,6 +15159,9 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
   FlatHashMap<FullMessageId, tl_object_ptr<telegram_api::Message>, FullMessageIdHash> full_message_id_to_message;
   for (auto &message : messages) {
     auto full_message_id = get_full_message_id(message, false);
+    if (!full_message_id.get_message_id().is_valid()) {
+      continue;
+    }
     if (from_dialog_list) {
       auto message_date = get_message_date(message);
       int64 order = get_dialog_order(full_message_id.get_message_id(), message_date);
@@ -15316,10 +15324,11 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
       bool has_pts = (dialog->flags_ & DIALOG_FLAG_HAS_PTS) != 0;
       if (last_message_id.is_valid()) {
         FullMessageId full_message_id(dialog_id, last_message_id);
-        auto last_message = std::move(full_message_id_to_message[full_message_id]);
-        if (last_message == nullptr) {
+        auto it = full_message_id_to_message.find(full_message_id);
+        if (it == full_message_id_to_message.end()) {
           LOG(ERROR) << "Last " << full_message_id << " not found";
         } else if (!has_pts || d->pts == 0 || dialog->pts_ <= d->pts || d->is_channel_difference_finished) {
+          auto last_message = std::move(it->second);
           auto added_full_message_id =
               on_get_message(std::move(last_message), false, has_pts, false, false, false, "get chats");
           CHECK(d->last_new_message_id == MessageId());
@@ -17195,6 +17204,7 @@ vector<DialogId> MessagesManager::search_public_dialogs(const string &query, Pro
 }
 
 void MessagesManager::send_search_public_dialogs_query(const string &query, Promise<Unit> &&promise) {
+  CHECK(!query.empty());
   auto &promises = search_public_dialogs_queries_[query];
   promises.push_back(std::move(promise));
   if (promises.size() != 1) {
@@ -17376,6 +17386,7 @@ std::pair<int32, vector<DialogId>> MessagesManager::get_common_dialogs(UserId us
 
 void MessagesManager::on_get_common_dialogs(UserId user_id, int64 offset_chat_id,
                                             vector<tl_object_ptr<telegram_api::Chat>> &&chats, int32 total_count) {
+  CHECK(user_id.is_valid());
   td_->contacts_manager_->on_update_user_common_chat_count(user_id, total_count);
 
   auto &common_dialogs = found_common_dialogs_[user_id];
@@ -18289,7 +18300,7 @@ void MessagesManager::get_messages_from_server(vector<FullMessageId> &&message_i
     auto dialog_id = full_message_id.get_dialog_id();
     auto message_id = full_message_id.get_message_id();
     if (!message_id.is_valid() || !message_id.is_server()) {
-      if (message_id.is_valid_scheduled() && message_id.is_scheduled_server()) {
+      if (message_id.is_valid_scheduled() && message_id.is_scheduled_server() && dialog_id.is_valid()) {
         scheduled_message_ids[dialog_id].push_back(message_id.get_scheduled_server_message_id().get());
       }
       continue;
@@ -19119,6 +19130,9 @@ void MessagesManager::add_dialog_filter(unique_ptr<DialogFilter> dialog_filter, 
 
   for (const auto &input_dialog_id : reversed(dialog_filters_.back()->pinned_dialog_ids)) {
     auto dialog_id = input_dialog_id.get_dialog_id();
+    if (!dialog_id.is_valid()) {
+      continue;
+    }
     auto order = get_next_pinned_dialog_order();
     list.pinned_dialogs_.emplace_back(order, dialog_id);
     list.pinned_dialog_id_orders_.emplace(dialog_id, order);
@@ -19163,6 +19177,9 @@ void MessagesManager::edit_dialog_filter(unique_ptr<DialogFilter> new_dialog_fil
       auto old_it = old_list.pinned_dialogs_.rbegin();
       for (const auto &input_dialog_id : reversed(new_dialog_filter->pinned_dialog_ids)) {
         auto dialog_id = input_dialog_id.get_dialog_id();
+        if (!dialog_id.is_valid()) {
+          continue;
+        }
         while (old_it < old_list.pinned_dialogs_.rend()) {
           if (old_it->get_dialog_id() == dialog_id) {
             break;
@@ -27871,8 +27888,8 @@ Result<MessagesManager::ForwardedMessages> MessagesManager::get_forwarded_messag
   auto &copied_messages = result.copied_messages;
   auto &forwarded_message_contents = result.forwarded_message_contents;
 
-  FlatHashMap<int64, std::pair<int64, int32>> new_copied_media_album_ids;
-  FlatHashMap<int64, std::pair<int64, int32>> new_forwarded_media_album_ids;
+  std::unordered_map<int64, std::pair<int64, int32>> new_copied_media_album_ids;
+  std::unordered_map<int64, std::pair<int64, int32>> new_forwarded_media_album_ids;
 
   for (size_t i = 0; i < message_ids.size(); i++) {
     MessageId message_id = get_persistent_message_id(from_dialog, message_ids[i]);
@@ -28138,7 +28155,7 @@ Result<vector<MessageId>> MessagesManager::resend_messages(DialogId dialog_id, v
   }
 
   vector<unique_ptr<MessageContent>> new_contents(message_ids.size());
-  FlatHashMap<int64, std::pair<int64, int32>> new_media_album_ids;
+  std::unordered_map<int64, std::pair<int64, int32>> new_media_album_ids;
   for (size_t i = 0; i < message_ids.size(); i++) {
     MessageId message_id = message_ids[i];
     const Message *m = get_message(d, message_id);
@@ -28522,11 +28539,9 @@ void MessagesManager::upload_imported_messages(DialogId dialog_id, FileId file_i
                                                bool is_reupload, Promise<Unit> &&promise, vector<int> bad_parts) {
   CHECK(file_id.is_valid());
   LOG(INFO) << "Ask to upload imported messages file " << file_id;
-  bool is_inserted =
-      being_uploaded_imported_messages_
-          .emplace(file_id, td::make_unique<UploadedImportedMessagesInfo>(dialog_id, std::move(attached_file_ids),
-                                                                          is_reupload, std::move(promise)))
-          .second;
+  auto info = td::make_unique<UploadedImportedMessagesInfo>(dialog_id, std::move(attached_file_ids), is_reupload,
+                                                            std::move(promise));
+  bool is_inserted = being_uploaded_imported_messages_.emplace(file_id, std::move(info)).second;
   CHECK(is_inserted);
   // TODO use force_reupload if is_reupload
   td_->file_manager_->resume_upload(file_id, std::move(bad_parts), upload_imported_messages_callback_, 1, 0, false,
@@ -28570,11 +28585,10 @@ void MessagesManager::upload_imported_message_attachment(DialogId dialog_id, int
                                                          vector<int> bad_parts) {
   CHECK(file_id.is_valid());
   LOG(INFO) << "Ask to upload improted message attached file " << file_id;
-  CHECK(being_uploaded_imported_message_attachments_.find(file_id) ==
-        being_uploaded_imported_message_attachments_.end());
-  being_uploaded_imported_message_attachments_.emplace(
-      file_id,
-      td::make_unique<UploadedImportedMessageAttachmentInfo>(dialog_id, import_id, is_reupload, std::move(promise)));
+  auto info =
+      td::make_unique<UploadedImportedMessageAttachmentInfo>(dialog_id, import_id, is_reupload, std::move(promise));
+  bool is_inserted = being_uploaded_imported_message_attachments_.emplace(file_id, std::move(info)).second;
+  CHECK(is_inserted);
   // TODO use force_reupload if is_reupload
   td_->file_manager_->resume_upload(file_id, std::move(bad_parts), upload_imported_message_attachment_callback_, 1, 0,
                                     false, true);
@@ -28932,11 +28946,7 @@ MessagesManager::MessageNotificationGroup MessagesManager::get_message_notificat
     }
   }
 
-  LOG_CHECK(d->message_notification_group.group_id == group_id || d->mention_notification_group.group_id == group_id)
-      << group_id << " " << d->message_notification_group.group_id << " " << d->mention_notification_group.group_id
-      << " " << d->dialog_id << " " << notification_group_id_to_dialog_id_[group_id] << " "
-      << notification_group_id_to_dialog_id_[d->message_notification_group.group_id] << " "
-      << notification_group_id_to_dialog_id_[d->mention_notification_group.group_id];
+  LOG_CHECK(d->message_notification_group.group_id == group_id || d->mention_notification_group.group_id == group_id);
 
   bool from_mentions = d->mention_notification_group.group_id == group_id;
   auto &group_info = from_mentions ? d->mention_notification_group : d->message_notification_group;
@@ -29206,6 +29216,7 @@ vector<NotificationGroupKey> MessagesManager::get_message_notification_group_key
 
   vector<NotificationGroupKey> result;
   for (auto &group_key : group_keys) {
+    CHECK(group_key.group_id.is_valid());
     CHECK(group_key.dialog_id.is_valid());
     const Dialog *d = get_dialog_force(group_key.dialog_id, "get_message_notification_group_keys_from_database");
     if (d == nullptr || (d->message_notification_group.group_id != group_key.group_id &&
@@ -32388,7 +32399,10 @@ void MessagesManager::on_dialog_username_updated(DialogId dialog_id, const strin
   if (!new_username.empty()) {
     auto cache_time = is_update_about_username_change_received(dialog_id) ? USERNAME_CACHE_EXPIRE_TIME
                                                                           : USERNAME_CACHE_EXPIRE_TIME_SHORT;
-    resolved_usernames_[clean_username(new_username)] = ResolvedUsername{dialog_id, Time::now() + cache_time};
+    auto cleaned_username = clean_username(new_username);
+    if (!cleaned_username.empty()) {
+      resolved_usernames_[cleaned_username] = ResolvedUsername{dialog_id, Time::now() + cache_time};
+    }
   }
 }
 
@@ -32398,14 +32412,19 @@ void MessagesManager::on_resolved_username(const string &username, DialogId dial
     return;
   }
 
-  auto it = resolved_usernames_.find(clean_username(username));
+  auto cleaned_username = clean_username(username);
+  if (cleaned_username.empty()) {
+    return;
+  }
+
+  auto it = resolved_usernames_.find(cleaned_username);
   if (it != resolved_usernames_.end()) {
     LOG_IF(ERROR, it->second.dialog_id != dialog_id)
         << "Resolve username \"" << username << "\" to " << dialog_id << ", but have it in " << it->second.dialog_id;
     return;
   }
 
-  inaccessible_resolved_usernames_[clean_username(username)] = dialog_id;
+  inaccessible_resolved_usernames_[cleaned_username] = dialog_id;
 }
 
 void MessagesManager::drop_username(const string &username) {
@@ -36589,8 +36608,8 @@ bool MessagesManager::set_dialog_order(Dialog *d, int64 new_order, bool need_sen
 }
 
 void MessagesManager::update_dialog_lists(
-    Dialog *d, FlatHashMap<DialogListId, DialogPositionInList, DialogListIdHash> &&old_positions, bool need_send_update,
-    bool is_loaded_from_database, const char *source) {
+    Dialog *d, std::unordered_map<DialogListId, DialogPositionInList, DialogListIdHash> &&old_positions,
+    bool need_send_update, bool is_loaded_from_database, const char *source) {
   if (td_->auth_manager_->is_bot()) {
     return;
   }
@@ -37188,10 +37207,10 @@ MessagesManager::DialogPositionInList MessagesManager::get_dialog_position_in_li
   return position;
 }
 
-FlatHashMap<DialogListId, MessagesManager::DialogPositionInList, DialogListIdHash>
+std::unordered_map<DialogListId, MessagesManager::DialogPositionInList, DialogListIdHash>
 MessagesManager::get_dialog_positions(const Dialog *d) const {
   CHECK(d != nullptr);
-  FlatHashMap<DialogListId, MessagesManager::DialogPositionInList, DialogListIdHash> positions;
+  std::unordered_map<DialogListId, MessagesManager::DialogPositionInList, DialogListIdHash> positions;
   if (!td_->auth_manager_->is_bot()) {
     for (const auto &dialog_list : dialog_lists_) {
       positions.emplace(dialog_list.first, get_dialog_position_in_list(&dialog_list.second, d));
@@ -37674,6 +37693,9 @@ void MessagesManager::on_get_channel_dialog(DialogId dialog_id, MessageId last_m
   FlatHashMap<FullMessageId, tl_object_ptr<telegram_api::Message>, FullMessageIdHash> full_message_id_to_message;
   for (auto &message : messages) {
     auto message_id = get_message_id(message, false);
+    if (!message_id.is_valid()) {
+      continue;
+    }
     auto message_dialog_id = get_message_dialog_id(message);
     if (!message_dialog_id.is_valid()) {
       message_dialog_id = dialog_id;
@@ -37736,8 +37758,11 @@ void MessagesManager::on_get_channel_dialog(DialogId dialog_id, MessageId last_m
     d->last_new_message_id = MessageId();
     set_dialog_last_message_id(d, MessageId(), "on_get_channel_dialog 20");
     send_update_chat_last_message(d, "on_get_channel_dialog 30");
-    auto added_full_message_id = on_get_message(std::move(full_message_id_to_message[last_full_message_id]), true, true,
-                                                false, true, true, "channel difference too long");
+    FullMessageId added_full_message_id;
+    if (last_full_message_id.get_message_id().is_valid()) {
+      last_full_message_id = on_get_message(std::move(full_message_id_to_message[last_full_message_id]), true, true,
+                                            false, true, true, "channel difference too long");
+    }
     if (added_full_message_id.get_message_id().is_valid()) {
       if (added_full_message_id.get_message_id() == d->last_new_message_id) {
         CHECK(last_full_message_id == added_full_message_id);
@@ -39101,6 +39126,11 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
         log_event_parse(log_event, event.data_).ensure();
 
         DialogId dialog_id(log_event.channel_id);
+        if (dialog_id.get_type() != DialogType::Channel) {
+          LOG(ERROR) << "Trying to run GetChannelDifference in " << dialog_id;
+          binlog_erase(G()->td_db()->get_binlog(), event.id_);
+          break;
+        }
         LOG(INFO) << "Continue to run getChannelDifference in " << dialog_id;
         get_channel_difference_to_log_event_id_.emplace(dialog_id, event.id_);
         do_get_channel_difference(
@@ -39528,7 +39558,7 @@ void MessagesManager::get_current_state(vector<td_api::object_ptr<td_api::Update
   }
 
   vector<td_api::object_ptr<td_api::Update>> last_message_updates;
-  for (auto &it : dialogs_) {
+  for (const auto &it : dialogs_) {
     const Dialog *d = it.second.get();
     auto update = td_api::make_object<td_api::updateNewChat>(get_chat_object(d));
     if (update->chat_->last_message_ != nullptr && update->chat_->last_message_->forward_info_ != nullptr) {
