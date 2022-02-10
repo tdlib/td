@@ -265,12 +265,14 @@ void free(void *data_void) {
 #endif
   return free_old(info);
 }
+
 void *calloc(std::size_t size_a, std::size_t size_b) {
   auto size = size_a * size_b;
   void *res = malloc_with_frame(size, get_backtrace());
   std::memset(res, 0, size);
   return res;
 }
+
 void *realloc(void *ptr, std::size_t size) {
   if (ptr == nullptr) {
     return malloc_with_frame(size, get_backtrace());
@@ -282,6 +284,7 @@ void *realloc(void *ptr, std::size_t size) {
   free(ptr);
   return new_ptr;
 }
+
 void *memalign(std::size_t aligment, std::size_t size) {
   my_assert(false && "Memalign is unsupported");
   return nullptr;

@@ -114,5 +114,4 @@ int main() {
     // empty
   }
   scheduler->finish();
-  return 0;
 }

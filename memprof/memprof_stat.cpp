@@ -4,7 +4,7 @@
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
-#include "memprof_stat.h"
+#include "memprof/memprof_stat.h"
 
 #include "td/utils/port/platform.h"
 
@@ -15,7 +15,6 @@
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
-#include <functional>
 #include <new>
 #include <utility>
 #include <vector>
@@ -37,7 +36,8 @@ struct malloc_info {
   std::int32_t size;
 };
 
-std::atomic<uint64_t> total_memory_used;
+static std::atomic<std::size_t> total_memory_used;
+
 void register_xalloc(malloc_info *info, std::int32_t diff) {
   my_assert(info->size >= 0);
   // TODO: this is very slow in case of several threads.
@@ -106,12 +106,14 @@ void free(void *data_void) {
 #endif
   return free_old(info);
 }
+
 void *calloc(std::size_t size_a, std::size_t size_b) {
   auto size = size_a * size_b;
   void *res = do_malloc(size);
   std::memset(res, 0, size);
   return res;
 }
+
 void *realloc(void *ptr, std::size_t size) {
   if (ptr == nullptr) {
     return do_malloc(size);
@@ -123,15 +125,16 @@ void *realloc(void *ptr, std::size_t size) {
   free(ptr);
   return new_ptr;
 }
+
 void *memalign(std::size_t alignment, std::size_t size) {
   auto res = malloc(size);
-  my_assert(reinterpret_cast<uint64_t>(res) % alignment == 0);
+  my_assert(reinterpret_cast<std::uintptr_t>(res) % alignment == 0);
   return res;
 }
 
 int posix_memalign(void **memptr, size_t alignment, size_t size) {
   auto res = malloc(size);
-  my_assert(reinterpret_cast<uint64_t>(res) % alignment == 0);
+  my_assert(reinterpret_cast<std::uintptr_t>(res) % alignment == 0);
   *memptr = res;
   return 0;
 }
@@ -158,6 +161,6 @@ bool is_memprof_on() {
   return false;
 }
 std::size_t get_used_memory_size() {
-  return false;
+  return 0;
 }
 #endif

@@ -8,7 +8,6 @@
 
 #include "td/utils/bits.h"
 #include "td/utils/common.h"
-#include "td/utils/logging.h"
 
 #include <cstddef>
 #include <functional>
@@ -419,12 +418,11 @@ class FlatHashMapImpl {
     }
   }
   static bool should_shrink(size_t used_count, size_t bucket_count) {
-    return used_count * 5 < bucket_count;
+    return used_count * 10 < bucket_count;
   }
 
   static size_t normalize(size_t size) {
-    size |= (size != 0) * 7;
-    return static_cast<size_t>(1) << (64 - count_leading_zeroes64(size));
+    return static_cast<size_t>(1) << (64 - count_leading_zeroes64(size | 7));
   }
 
   void shrink() {
@@ -433,7 +431,7 @@ class FlatHashMapImpl {
   }
 
   void grow() {
-    size_t want_size = normalize((used_nodes_ + 1) * 5 / 3 + 1);
+    size_t want_size = normalize(2 * nodes_.size() - 1);
     resize(want_size);
   }
 

@@ -74,11 +74,10 @@ if (NOT WIN32 AND NOT CYGWIN)
 endif()
 
 find_package(ABSL QUIET)
-find_package(benchmark QUIET)
 find_package(gflags QUIET)
 find_package(folly QUIET)
 
-if (ABSL_FOUND AND benchmark_FOUND AND gflags_FOUND AND folly_FOUND)
+if (ABSL_FOUND AND gflags_FOUND AND folly_FOUND)
   add_executable(memory-hashset-memprof EXCLUDE_FROM_ALL ${CMAKE_CURRENT_SOURCE_DIR}/hashset_memory.cpp)
   target_compile_definitions(memory-hashset-memprof PRIVATE USE_MEMPROF=1)
   target_link_libraries(memory-hashset-memprof PRIVATE tdutils memprof_stat)

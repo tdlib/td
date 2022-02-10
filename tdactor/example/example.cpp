@@ -47,5 +47,4 @@ int main() {
     scheduler.run_main(td::Timestamp::in(10));
   }
   scheduler.finish();
-  return 0;
 }
