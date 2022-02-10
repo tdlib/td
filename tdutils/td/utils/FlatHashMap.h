@@ -451,7 +451,7 @@ class FlatHashMapImpl {
   void erase_node(NodeIterator it) {
     size_t empty_i = it - nodes_.begin();
     auto empty_bucket = empty_i;
-        DCHECK(0 <= empty_i && empty_i < nodes_.size());
+    DCHECK(0 <= empty_i && empty_i < nodes_.size());
     nodes_[empty_bucket].clear();
     used_nodes_--;
 
@@ -479,14 +479,8 @@ class FlatHashMapImpl {
   }
 };
 
-template <class K, class V, class H, class FuncT>
-void table_remove_if(FlatHashMapImpl<K, V, H> &table, FuncT &&func) {
-  table.remove_if(func);
-}
-
 template <class KeyT, class ValueT, class HashT = std::hash<KeyT>>
 using FlatHashMap = FlatHashMapImpl<KeyT, ValueT, HashT>;
 //using FlatHashMap = std::unordered_map<KeyT, ValueT, HashT>;
-//using FlatHashMap = absl::flat_hash_map<KeyT, ValueT, HashT>;
 
 }  // namespace td

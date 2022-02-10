@@ -68,6 +68,7 @@
 #include <algorithm>
 #include <limits>
 #include <tuple>
+#include <unordered_map>
 #include <utility>
 
 namespace td {

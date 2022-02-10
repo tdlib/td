@@ -206,4 +206,12 @@ void table_remove_if(TableT &table, FuncT &&func) {
   }
 }
 
+template <class KeyT, class ValueT, class HashT>
+class FlatHashMapImpl;
+
+template <class KeyT, class ValueT, class HashT, class FuncT>
+void table_remove_if(FlatHashMapImpl<KeyT, ValueT, HashT> &table, FuncT &&func) {
+  table.remove_if(func);
+}
+
 }  // namespace td

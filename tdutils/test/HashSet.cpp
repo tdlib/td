@@ -4,17 +4,21 @@
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
+#include "td/utils/algorithm.h"
 #include "td/utils/common.h"
 #include "td/utils/FlatHashMap.h"
+#include "td/utils/Random.h"
+#include "td/utils/Slice.h"
 #include "td/utils/tests.h"
 
+#include <algorithm>
 #include <array>
-#include "td/utils/Random.h"
-#include "td/utils/algorithm.h"
+#include <unordered_map>
+#include <utility>
 
 template <class T>
-auto extract_kv(const T &reference) {
-  auto expected = td::transform(reference, [](auto &it) {return std::make_pair(it.first, it.second);});
+static auto extract_kv(const T &reference) {
+  auto expected = td::transform(reference, [](auto &it) { return std::make_pair(it.first, it.second); });
   std::sort(expected.begin(), expected.end());
   return expected;
 }
@@ -42,7 +46,7 @@ TEST(FlatHashMap, basic) {
   x.erase(x.find(12));
 
   {
-    td::FlatHashMap<int, std::string> map = {{1, "hello"}, {2, "world"}};
+    td::FlatHashMap<int, td::string> map = {{1, "hello"}, {2, "world"}};
     ASSERT_EQ("hello", map[1]);
     ASSERT_EQ("world", map[2]);
     ASSERT_EQ(2u, map.size());
@@ -51,17 +55,15 @@ TEST(FlatHashMap, basic) {
   }
 
   {
-    td::FlatHashMap<int, std::string> map = {{1, "hello"}, {1, "world"}};
+    td::FlatHashMap<int, td::string> map = {{1, "hello"}, {1, "world"}};
     ASSERT_EQ("world", map[1]);
     ASSERT_EQ(1u, map.size());
   }
 
-  using KV = td::FlatHashMapImpl<std::string, std::string>;
-  using Data = std::vector<std::pair<std::string, std::string>>;
+  using KV = td::FlatHashMapImpl<td::string, td::string>;
+  using Data = td::vector<std::pair<td::string, td::string>>;
   auto data = Data{{"a", "b"}, {"c", "d"}};
-  {
-    ASSERT_EQ(Data{}, extract_kv(KV()));
-  }
+  { ASSERT_EQ(Data{}, extract_kv(KV())); }
 
   {
     KV kv(data.begin(), data.end());
@@ -137,29 +139,31 @@ TEST(FlatHashMap, remove_if_basic) {
     }
     ASSERT_EQ(extract_kv(reference), extract_kv(table));
 
-    std::vector<std::pair<td::uint64, td::uint64>> kv;
-    td::table_remove_if(table, [&](auto &it) {kv.emplace_back(it.first, it.second); return it.second % 2 == 0; });
+    td::vector<std::pair<td::uint64, td::uint64>> kv;
+    td::table_remove_if(table, [&](auto &it) {
+      kv.emplace_back(it.first, it.second);
+      return it.second % 2 == 0;
+    });
     std::sort(kv.begin(), kv.end());
     ASSERT_EQ(extract_kv(reference), kv);
 
-    td::table_remove_if(reference, [](auto &it) {return it.second % 2 == 0;});
+    td::table_remove_if(reference, [](auto &it) { return it.second % 2 == 0; });
     ASSERT_EQ(extract_kv(reference), extract_kv(table));
   }
 }
 
-
 TEST(FlatHashMap, stress_test) {
-  std::vector<td::RandomSteps::Step> steps;
+  td::vector<td::RandomSteps::Step> steps;
   auto add_step = [&steps](td::Slice, td::uint32 weight, auto f) {
     steps.emplace_back(td::RandomSteps::Step{std::move(f), weight});
   };
 
   td::Random::Xorshift128plus rnd(123);
-  size_t max_table_size = 1000; // dynamic value
+  size_t max_table_size = 1000;  // dynamic value
   std::unordered_map<td::uint64, td::uint64> ref;
   td::FlatHashMapImpl<td::uint64, td::uint64> tbl;
 
-  auto validate = [&]() {
+  auto validate = [&] {
     ASSERT_EQ(ref.empty(), tbl.empty());
     ASSERT_EQ(ref.size(), tbl.size());
     ASSERT_EQ(extract_kv(ref), extract_kv(tbl));
@@ -167,25 +171,25 @@ TEST(FlatHashMap, stress_test) {
       ASSERT_EQ(ref[kv.first], tbl[kv.first]);
     }
   };
-  auto gen_key = [&]() {
+  auto gen_key = [&] {
     auto key = rnd() % 4000 + 1;
     return key;
   };
 
-  add_step("Reset hash table", 1, [&]() {
+  add_step("Reset hash table", 1, [&] {
     validate();
     td::reset_to_empty(ref);
     td::reset_to_empty(tbl);
     max_table_size = rnd.fast(1, 1000);
   });
-  add_step("Clear hash table", 1, [&]() {
+  add_step("Clear hash table", 1, [&] {
     validate();
     ref.clear();
     tbl.clear();
     max_table_size = rnd.fast(1, 1000);
   });
 
-  add_step("Insert random value", 1000, [&]() {
+  add_step("Insert random value", 1000, [&] {
     if (tbl.size() > max_table_size) {
       return;
     }
@@ -196,7 +200,7 @@ TEST(FlatHashMap, stress_test) {
     ASSERT_EQ(ref[key], tbl[key]);
   });
 
-  add_step("Emplace random value", 1000, [&]() {
+  add_step("Emplace random value", 1000, [&] {
     if (tbl.size() > max_table_size) {
       return;
     }
@@ -208,7 +212,7 @@ TEST(FlatHashMap, stress_test) {
     ASSERT_EQ(key, tbl_it.first->first);
   });
 
-  add_step("empty operator[]", 1000, [&]() {
+  add_step("empty operator[]", 1000, [&] {
     if (tbl.size() > max_table_size) {
       return;
     }
@@ -216,14 +220,12 @@ TEST(FlatHashMap, stress_test) {
     ASSERT_EQ(ref[key], tbl[key]);
   });
 
-  add_step("reserve", 10, [&]() {
-    tbl.reserve(rnd() % max_table_size);
-  });
+  add_step("reserve", 10, [&] { tbl.reserve(rnd() % max_table_size); });
 
   add_step("find", 1000, [&] {
     auto key = gen_key();
-    auto ref_it = ref.find(key) ;
-    auto tbl_it = tbl.find(key) ;
+    auto ref_it = ref.find(key);
+    auto tbl_it = tbl.find(key);
     ASSERT_EQ(ref_it == ref.end(), tbl_it == tbl.end());
     if (ref_it != ref.end()) {
       ASSERT_EQ(ref_it->first, tbl_it->first);
@@ -233,8 +235,8 @@ TEST(FlatHashMap, stress_test) {
 
   add_step("find_and_erase", 100, [&] {
     auto key = gen_key();
-    auto ref_it = ref.find(key) ;
-    auto tbl_it = tbl.find(key) ;
+    auto ref_it = ref.find(key);
+    auto tbl_it = tbl.find(key);
     ASSERT_EQ(ref_it == ref.end(), tbl_it == tbl.end());
     if (ref_it != ref.end()) {
       ref.erase(ref_it);
@@ -245,11 +247,11 @@ TEST(FlatHashMap, stress_test) {
   add_step("remove_if", 5, [&] {
     auto mul = rnd();
     auto bit = rnd() % 64;
-    auto cnd = [&](auto &it) {
+    auto condition = [&](auto &it) {
       return (((it.second * mul) >> bit) & 1) == 0;
     };
-    td::table_remove_if(tbl, cnd);
-    td::table_remove_if(ref, cnd);
+    td::table_remove_if(tbl, condition);
+    td::table_remove_if(ref, condition);
   });
 
   td::RandomSteps runner(std::move(steps));

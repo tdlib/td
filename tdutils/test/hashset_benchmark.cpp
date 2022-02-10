@@ -254,7 +254,7 @@ static void BM_emplace_same(benchmark::State &state) {
 
 namespace td {
 template <class K, class V, class FunctT>
-void table_remove_if(absl::flat_hash_map<K, V> &table, FunctT &&func) {
+static void table_remove_if(absl::flat_hash_map<K, V> &table, FunctT &&func) {
   for (auto it = table.begin(); it != table.end();) {
     if (func(*it)) {
       auto copy = it;
@@ -265,8 +265,7 @@ void table_remove_if(absl::flat_hash_map<K, V> &table, FunctT &&func) {
     }
   }
 }
-}
-
+}  // namespace td
 
 template <typename TableT>
 static void BM_remove_if(benchmark::State &state) {
@@ -283,9 +282,7 @@ static void BM_remove_if(benchmark::State &state) {
     }
     state.ResumeTiming();
 
-    td::table_remove_if(table, [](auto &it) {
-      return it.second % 2 == 0;
-    });
+    td::table_remove_if(table, [](auto &it) { return it.second % 2 == 0; });
   }
 }
 
@@ -353,7 +350,7 @@ FOR_EACH_TABLE(REGISTER_EMPLACE_BENCHMARK)
 FOR_EACH_TABLE(REGISTER_GET_BENCHMARK)
 
 int main(int argc, char **argv) {
-//  FOR_EACH_TABLE(RUN_CREATE_BENCHMARK);
+  //  FOR_EACH_TABLE(RUN_CREATE_BENCHMARK);
 
   benchmark::Initialize(&argc, argv);
   benchmark::RunSpecifiedBenchmarks();
