@@ -27,16 +27,16 @@ bool is_memprof_on() {
   return true;
 }
 
+#define my_assert(f) \
+  if (!(f)) {        \
+    std::abort();    \
+  }
+
 #if USE_MEMPROF_SAFE
 double get_fast_backtrace_success_rate() {
   return 0;
 }
 #else
-
-#define my_assert(f) \
-  if (!(f)) {        \
-    std::abort();    \
-  }
 
 #if TD_LINUX
 extern void *__libc_stack_end;

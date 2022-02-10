@@ -744,7 +744,7 @@ if (MEMPROF)
   endif()
 endif()
 
-add_library(memprof_stat STATIC ${MEMPROF_STAT_SOURCE})
+add_library(memprof_stat EXCLUDE_FROM_ALL STATIC ${MEMPROF_STAT_SOURCE})
 target_include_directories(memprof_stat PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
 target_link_libraries(memprof_stat PRIVATE tdutils)
 
