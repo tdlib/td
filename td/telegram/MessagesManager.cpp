@@ -33063,9 +33063,11 @@ void MessagesManager::set_dialog_available_reactions(DialogId dialog_id, vector<
     return promise.set_error(Status::Error(400, "Chat not found"));
   }
 
-  if (get_active_reactions(available_reactions) != available_reactions) {
+  auto active_reactions = get_active_reactions(available_reactions);
+  if (active_reactions.size() != available_reactions.size()) {
     return promise.set_error(Status::Error(400, "Invalid reactions specified"));
   }
+  available_reactions = std::move(active_reactions);
 
   switch (dialog_id.get_type()) {
     case DialogType::User:
