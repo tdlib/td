@@ -8,6 +8,7 @@
 
 #include "td/utils/bits.h"
 #include "td/utils/common.h"
+#include "td/utils/logging.h"
 
 #include <cstddef>
 #include <functional>
@@ -318,9 +319,7 @@ class FlatHashMapImpl {
 
   template <class... ArgsT>
   std::pair<Iterator, bool> emplace(KeyT key, ArgsT &&...args) {
-    if (unlikely(should_resize())) {
-      grow();
-    }
+    try_grow();
     auto bucket = calc_bucket(key);
     while (true) {
       if (nodes_[bucket].key() == key) {
@@ -345,6 +344,7 @@ class FlatHashMapImpl {
       return 0;
     }
     erase(it);
+    try_shrink();
     return 1;
   }
 
@@ -384,7 +384,7 @@ class FlatHashMapImpl {
         ++it;
       }
     }
-    // TODO: resize hashtable is necessary
+    try_shrink();
   }
 
  private:
@@ -403,27 +403,44 @@ class FlatHashMapImpl {
     }
   }
 
-  bool should_resize() const {
-    return should_resize(used_nodes_ + 1, nodes_.size());
+  void try_grow() {
+    if (should_grow(used_nodes_ + 1, nodes_.size())) {
+      grow();
+    }
   }
-  static bool should_resize(size_t used_count, size_t bucket_count) {
+  static bool should_grow(size_t used_count, size_t bucket_count) {
     return used_count * 5 > bucket_count * 3;
   }
-
-  size_t calc_bucket(const KeyT &key) const {
-    return HashT()(key) * 2 % nodes_.size();
+  void try_shrink() {
+    if (should_shrink(used_nodes_, nodes_.size())) {
+      shrink();
+    }
+  }
+  static bool should_shrink(size_t used_count, size_t bucket_count) {
+    return used_count * 5 < bucket_count;
   }
 
+
   static size_t normalize(size_t size) {
-    // return size ? (size | 7) : 0;
+    size |= (size != 0) * 7;
     return static_cast<size_t>(1) << (64 - count_leading_zeroes64(size));
+  }
+
+  void shrink() {
+    size_t want_size = normalize((used_nodes_ + 1) * 5 / 3 + 1);
+    resize(want_size);
   }
 
   void grow() {
     size_t want_size = normalize((used_nodes_ + 1) * 5 / 3 + 1);
-    // size_t want_size = td::max(nodes_.size(), (used_nodes_ + 1)) * 2;
     resize(want_size);
+    }
+
+  size_t calc_bucket(const KeyT &key) const {
+    CHECK(!is_key_empty(key));
+    return HashT()(key) * 2 % nodes_.size();
   }
+
 
   void resize(size_t new_size) {
     fixed_vector<Node> old_nodes(new_size);

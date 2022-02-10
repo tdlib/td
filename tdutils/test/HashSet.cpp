@@ -255,7 +255,7 @@ TEST(FlatHashMap, stress_test) {
   });
 
   td::RandomSteps runner(std::move(steps));
-  for (size_t i = 0; i < 1000000; i++) {
+  for (size_t i = 0; i < 10000000; i++) {
     runner.step(rnd);
   }
 }
