@@ -706,6 +706,11 @@ set(MEMPROF_SOURCE
   memprof/memprof.h
 )
 
+set(MEMPROF_STAT_SOURCE
+  memprof/memprof_stat.cpp
+  memprof/memprof_stat.h
+)
+
 #RULES
 
 file(MAKE_DIRECTORY auto)
@@ -738,6 +743,10 @@ if (MEMPROF)
     message(FATAL_ERROR "Unsupported MEMPROF value \"${MEMPROF}\"")
   endif()
 endif()
+
+add_library(memprof_stat STATIC ${MEMPROF_STAT_SOURCE})
+target_include_directories(memprof_stat PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
+target_link_libraries(memprof_stat PRIVATE tdutils)
 
 
 add_library(tdapi ${TL_TD_API_SOURCE})

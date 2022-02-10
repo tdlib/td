@@ -395,4 +395,8 @@ if (ABSL_FOUND AND benchmark_FOUND AND gflags_FOUND AND folly_FOUND)
   add_executable(benchmark-hashset ${CMAKE_CURRENT_SOURCE_DIR}/test/hashset_benchmark.cpp)
   target_link_libraries(benchmark-hashset PRIVATE tdutils)
   target_link_libraries(benchmark-hashset PRIVATE SYSTEM benchmark::benchmark Folly::folly absl::flat_hash_map absl::hash)
+
+  add_executable(memory-hashset ${CMAKE_CURRENT_SOURCE_DIR}/test/hashset_memory.cpp)
+  target_link_libraries(memory-hashset PRIVATE tdutils memprof_stat)
+  target_link_libraries(memory-hashset PRIVATE SYSTEM Folly::folly absl::flat_hash_map absl::hash)
 endif()
