@@ -112,21 +112,17 @@ void FileStats::apply_dialog_ids(const vector<DialogId> &dialog_ids) {
   std::unordered_set<DialogId, DialogIdHash> all_dialogs(dialog_ids.begin(), dialog_ids.end());
   StatByType other_stats;
   bool other_flag = false;
-  std::vector<DialogId> to_remove;
-  for (auto it = stat_by_owner_dialog_id_.begin(); it != stat_by_owner_dialog_id_.end(); ++it) {
-    if (!all_dialogs.count(it->first)) {
+  table_remove_if(stat_by_owner_dialog_id_, [&](const auto &it) {
+    if (!all_dialogs.count(it.first)) {
       for (int32 i = 0; i < MAX_FILE_TYPE; i++) {
-        other_stats[i].size += it->second[i].size;
-        other_stats[i].cnt += it->second[i].cnt;
+        other_stats[i].size += it.second[i].size;
+        other_stats[i].cnt += it.second[i].cnt;
       }
       other_flag = true;
-      to_remove.push_back(it->first);
+      return true;
     }
-  }
-
-  for (auto id : to_remove) {
-    stat_by_owner_dialog_id_.erase(id);
-  }
+    return false;
+  });
 
   if (other_flag) {
     DialogId other_dialog_id;  // prevents MSVC warning C4709: comma operator within array index expression

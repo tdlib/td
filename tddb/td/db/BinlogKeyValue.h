@@ -13,6 +13,7 @@
 
 #include "td/actor/PromiseFuture.h"
 
+#include "td/utils/algorithm.h"
 #include "td/utils/buffer.h"
 #include "td/utils/common.h"
 #include "td/utils/logging.h"
@@ -215,14 +216,13 @@ class BinlogKeyValue final : public KeyValueSyncInterface {
   void erase_by_prefix(Slice prefix) final {
     auto lock = rw_mutex_.lock_write().move_as_ok();
     vector<uint64> ids;
-    for (auto it = map_.begin(); it != map_.end();) {
-      if (begins_with(it->first, prefix)) {
-        ids.push_back(it->second.second);
-        it = map_.erase(it);
-      } else {
-        ++it;
+    table_remove_if(map_, [&](const auto &it) {
+      if (begins_with(it.first, prefix)) {
+        ids.push_back(it.second.second);
+        return true;
       }
-    }
+      return false;
+    });
     auto seq_no = binlog_->next_id(narrow_cast<int32>(ids.size()));
     lock.reset();
     for (auto id : ids) {
