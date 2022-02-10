@@ -45,17 +45,17 @@ static td::uint32 slow_pow_mod_uint32(td::uint32 x, td::uint32 p) {
   return res;
 }
 
-struct Query {
+struct ActorQuery {
   td::uint32 query_id{};
   td::uint32 result{};
   td::vector<int> todo;
-  Query() = default;
-  Query(const Query &) = delete;
-  Query &operator=(const Query &) = delete;
-  Query(Query &&) = default;
-  Query &operator=(Query &&) = default;
-  ~Query() {
-    LOG_CHECK(todo.empty()) << "Query lost";
+  ActorQuery() = default;
+  ActorQuery(const ActorQuery &) = delete;
+  ActorQuery &operator=(const ActorQuery &) = delete;
+  ActorQuery(ActorQuery &&) = default;
+  ActorQuery &operator=(ActorQuery &&) = default;
+  ~ActorQuery() {
+    LOG_CHECK(todo.empty()) << "ActorQuery lost";
   }
   int next_pow() {
     CHECK(!todo.empty());
@@ -68,7 +68,7 @@ struct Query {
   }
 };
 
-static td::uint32 fast_calc(Query &q) {
+static td::uint32 fast_calc(ActorQuery &q) {
   td::uint32 result = q.result;
   for (auto x : q.todo) {
     result = fast_pow_mod_uint32(result, x);
@@ -104,7 +104,7 @@ class QueryActor final : public td::Actor {
     Callback(Callback &&) = delete;
     Callback &operator=(Callback &&) = delete;
     virtual ~Callback() = default;
-    virtual void on_result(Query &&query) = 0;
+    virtual void on_result(ActorQuery &&query) = 0;
     virtual void on_closed() = 0;
   };
 
@@ -118,7 +118,7 @@ class QueryActor final : public td::Actor {
     workers_ = std::move(workers);
   }
 
-  void query(Query &&query) {
+  void query(ActorQuery &&query) {
     td::uint32 x = query.result;
     td::uint32 p = query.next_pow();
     if (td::Random::fast(0, 3) && (p <= 1000 || workers_.empty())) {
@@ -171,7 +171,7 @@ class QueryActor final : public td::Actor {
 
  private:
   td::unique_ptr<Callback> callback_;
-  std::map<td::uint32, std::pair<td::FutureActor<td::uint32>, Query>> pending_;
+  std::map<td::uint32, std::pair<td::FutureActor<td::uint32>, ActorQuery>> pending_;
   td::vector<td::ActorId<Worker>> workers_;
   int threads_n_;
 };
@@ -179,7 +179,7 @@ class QueryActor final : public td::Actor {
 class MainQueryActor final : public td::Actor {
   class QueryActorCallback final : public QueryActor::Callback {
    public:
-    void on_result(Query &&query) final {
+    void on_result(ActorQuery &&query) final {
       if (query.ready()) {
         send_closure(parent_id_, &MainQueryActor::on_result, std::move(query));
       } else {
@@ -229,15 +229,15 @@ class MainQueryActor final : public td::Actor {
     yield();
   }
 
-  void on_result(Query &&query) {
+  void on_result(ActorQuery &&query) {
     CHECK(query.ready());
     CHECK(query.result == expected_[query.query_id]);
     in_cnt_++;
     wakeup();
   }
 
-  Query create_query() {
-    Query q;
+  ActorQuery create_query() {
+    ActorQuery q;
     q.query_id = (query_id_ += 2);
     q.result = q.query_id;
     q.todo = {1, 1, 1, 1, 1, 1, 1, 1, 10000};

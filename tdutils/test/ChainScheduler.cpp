@@ -98,19 +98,19 @@ TEST(ChainScheduler, Basic) {
   }
 }
 
-struct Query;
-using QueryPtr = std::shared_ptr<Query>;
+struct ChainSchedulerQuery;
+using QueryPtr = std::shared_ptr<ChainSchedulerQuery>;
 using ChainId = td::ChainScheduler<QueryPtr>::ChainId;
 using TaskId = td::ChainScheduler<QueryPtr>::TaskId;
 
-struct Query {
+struct ChainSchedulerQuery {
   int id{};
   TaskId task_id{};
   bool is_ok{};
   bool skipped{};
 };
 
-static td::StringBuilder &operator<<(td::StringBuilder &sb, const Query &q) {
+static td::StringBuilder &operator<<(td::StringBuilder &sb, const ChainSchedulerQuery &q) {
   return sb << "Q{" << q.id << "}";
 }
 
@@ -150,7 +150,7 @@ TEST(ChainScheduler, Stress) {
       return;
     }
     auto query_id = current_query_id++;
-    auto query = std::make_shared<Query>();
+    auto query = std::make_shared<ChainSchedulerQuery>();
     query->id = query_id;
     int chain_n = rnd.fast(1, ChainsN);
     td::vector<ChainId> chain_ids(ChainsN);
