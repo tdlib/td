@@ -228,6 +228,7 @@ class FlatHashMapImpl {
   FlatHashMapImpl(std::initializer_list<Node> nodes) {
     reserve(nodes.size());
     for (auto &node : nodes) {
+      CHECK(!is_key_empty(node.first));
       auto bucket = calc_bucket(node.first);
       while (true) {
         if (nodes_[bucket].key() == node.first) {
@@ -320,6 +321,7 @@ class FlatHashMapImpl {
   template <class... ArgsT>
   std::pair<Iterator, bool> emplace(KeyT key, ArgsT &&...args) {
     try_grow();
+    CHECK(!is_key_empty(key));
     auto bucket = calc_bucket(key);
     while (true) {
       if (nodes_[bucket].key() == key) {
@@ -420,7 +422,6 @@ class FlatHashMapImpl {
     return used_count * 5 < bucket_count;
   }
 
-
   static size_t normalize(size_t size) {
     size |= (size != 0) * 7;
     return static_cast<size_t>(1) << (64 - count_leading_zeroes64(size));
@@ -434,13 +435,11 @@ class FlatHashMapImpl {
   void grow() {
     size_t want_size = normalize((used_nodes_ + 1) * 5 / 3 + 1);
     resize(want_size);
-    }
-
-  size_t calc_bucket(const KeyT &key) const {
-    CHECK(!is_key_empty(key));
-    return HashT()(key) * 2 % nodes_.size();
   }
 
+  size_t calc_bucket(const KeyT &key) const {
+    return HashT()(key) * 2 % nodes_.size();
+  }
 
   void resize(size_t new_size) {
     fixed_vector<Node> old_nodes(new_size);

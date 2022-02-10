@@ -4,25 +4,25 @@
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
-
 #include "memprof/memprof.h"
+
 #include "td/utils/check.h"
-#include "td/utils/Slice.h"
 #include "td/utils/FlatHashMap.h"
 #include "td/utils/format.h"
+#include "td/utils/Slice.h"
 #include "td/utils/UInt.h"
 
-#include <folly/container/F14Map.h>
 #include <absl/container/flat_hash_map.h>
+#include <folly/container/F14Map.h>
 #include <map>
 #include <unordered_map>
 
 template <class T>
 class Generator {
  public:
-   T next() {
-     UNREACHABLE();
-   }
+  T next() {
+    UNREACHABLE();
+  }
 };
 
 template <class T>
@@ -31,6 +31,7 @@ class IntGenerator {
   T next() {
     return ++value;
   }
+
  private:
   T value{};
 };
@@ -101,13 +102,11 @@ void measure(td::StringBuilder &sb, td::Slice name, td::Slice key_name, td::Slic
   sb << "\n";
 }
 
-
-template <template<typename... Args> class T>
+template <template <typename... Args> class T>
 void print_memory_stats(td::Slice name) {
-  std::string big_buff(1<<16, '\0');
+  std::string big_buff(1 << 16, '\0');
   td::StringBuilder sb(big_buff, false);
-#define MEASURE(KeyT, ValueT) \
-  measure<T<KeyT, ValueT>, KeyT, ValueT>(sb, name, #KeyT, #ValueT);
+#define MEASURE(KeyT, ValueT) measure<T<KeyT, ValueT>, KeyT, ValueT>(sb, name, #KeyT, #ValueT);
   MEASURE(uint32_t, uint32_t)
   // MEASURE(uint64_t, td::UInt256)
   LOG(ERROR) << "\n" << sb.as_cslice();
