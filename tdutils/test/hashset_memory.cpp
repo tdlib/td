@@ -23,6 +23,9 @@ class Generator {
   T next() {
     UNREACHABLE();
   }
+  static size_t dyn_size() {
+    UNREACHABLE();
+  }
 };
 
 template <class T>
@@ -30,6 +33,9 @@ class IntGenerator {
  public:
   T next() {
     return ++value;
+  }
+  static size_t dyn_size() {
+    return 0;
   }
 
  private:
@@ -45,10 +51,21 @@ class Generator<uint64_t> : public IntGenerator<uint64_t> {
  public:
 };
 
+template <class T>
+class Generator<td::unique_ptr<T>> {
+ public:
+  td::unique_ptr<T> next() {
+    return td::make_unique<T>();
+  }
+  static size_t dyn_size() {
+    return sizeof(T);
+  }
+};
+
 template <class T, class KeyT, class ValueT>
 void measure(td::StringBuilder &sb, td::Slice name, td::Slice key_name, td::Slice value_name) {
   sb << name << "<" << key_name << "," << value_name << ">:\n";
-  size_t ideal_size = sizeof(KeyT) + sizeof(ValueT);
+  size_t ideal_size = sizeof(KeyT) + sizeof(ValueT) + Generator<ValueT>::dyn_size();
 
   sb << "\tempty:" << sizeof(T);
   struct Stat {
@@ -60,11 +77,13 @@ void measure(td::StringBuilder &sb, td::Slice name, td::Slice key_name, td::Slic
   stat.reserve(1024);
   for (size_t size : {10000000u}) {
     Generator<KeyT> key_generator;
+    Generator<ValueT> value_generator;
     auto start_mem = get_used_memory_size();
     T ht;
     auto ratio = [&]() {
       auto end_mem = get_used_memory_size();
       auto used_mem = end_mem - start_mem;
+      //return double(used_mem);
       return double(used_mem) / double(ideal_size * ht.size());
     };
     double min_ratio;
@@ -77,16 +96,13 @@ void measure(td::StringBuilder &sb, td::Slice name, td::Slice key_name, td::Slic
       auto x = ratio();
       min_ratio = std::min(min_ratio, x);
       max_ratio = std::max(max_ratio, x);
-      if (x > 14) {
-        LOG(ERROR) << "WTF";
-      }
     };
     reset();
 
     int p = 10;
     int pi = 1;
     for (size_t i = 0; i < size; i++) {
-      ht.emplace(key_generator.next(), ValueT{});
+      ht.emplace(key_generator.next(), value_generator.next());
       update();
       if ((i + 1) % p == 0) {
         stat.emplace_back(Stat{pi, min_ratio, max_ratio});
@@ -102,13 +118,18 @@ void measure(td::StringBuilder &sb, td::Slice name, td::Slice key_name, td::Slic
   sb << "\n";
 }
 
-template <template <typename... Args> class T>
+
+template <size_t size>
+using Bytes = std::array<uint8_t, size>;
+
+template <template<typename... Args> class T>
 void print_memory_stats(td::Slice name) {
   std::string big_buff(1 << 16, '\0');
   td::StringBuilder sb(big_buff, false);
-#define MEASURE(KeyT, ValueT) measure<T<KeyT, ValueT>, KeyT, ValueT>(sb, name, #KeyT, #ValueT);
-  MEASURE(uint32_t, uint32_t)
-  // MEASURE(uint64_t, td::UInt256)
+#define MEASURE(KeyT, ValueT) \
+  measure<T<KeyT, ValueT>, KeyT, ValueT>(sb, name, #KeyT, #ValueT);
+  MEASURE(uint32_t, uint32_t);
+  MEASURE(uint64_t, td::unique_ptr<Bytes<360>>);
   LOG(ERROR) << "\n" << sb.as_cslice();
 }
 
