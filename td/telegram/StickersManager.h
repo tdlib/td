@@ -485,6 +485,8 @@ class StickersManager final : public Actor {
                                                                                         StickerSetId sticker_set_id,
                                                                                         int64 document_id, double zoom);
 
+  static double get_sticker_set_minithumbnail_zoom(const StickerSet *sticker_set);
+
   static tl_object_ptr<td_api::MaskPoint> get_mask_point_object(int32 point);
 
   tl_object_ptr<td_api::stickerSetInfo> get_sticker_set_info_object(StickerSetId sticker_set_id,
