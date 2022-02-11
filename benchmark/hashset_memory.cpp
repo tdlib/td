@@ -33,7 +33,7 @@ static bool use_memprof() {
 #endif
 }
 
-static auto get_memory() {
+static td::uint64 get_memory() {
 #if USE_MEMPROF
   if (use_memprof()) {
     return get_used_memory_size();

@@ -248,7 +248,7 @@ static void BM_emplace_same(benchmark::State &state) {
 
   while (state.KeepRunningBatch(BATCH_SIZE)) {
     for (size_t i = 0; i < BATCH_SIZE; i++) {
-      benchmark::DoNotOptimize(table.emplace(key, 43784932));
+      benchmark::DoNotOptimize(table.emplace(key + (i & 15) * 100 , 43784932));
     }
   }
 }
@@ -376,6 +376,28 @@ static void BM_remove_if_slow(benchmark::State &state) {
   constexpr size_t BATCH_SIZE = 500000;
 
   TableT table;
+  td::Random::Xorshift128plus rnd(123);
+  for (size_t i = 0; i < N; i++) {
+    table.emplace(rnd() + 1, i);
+  }
+  auto first_key = table.begin()->first;
+  {
+    size_t cnt = 0;
+    td::table_remove_if(table, [&cnt](auto &) { cnt += 2; return cnt <= N; });
+  }
+  while (state.KeepRunningBatch(BATCH_SIZE)) {
+    for (size_t i = 0; i < BATCH_SIZE; i++) {
+      table.emplace(first_key, i);
+      table.erase(first_key);
+    }
+  }
+}
+template <typename TableT>
+static void BM_remove_if_slow_old(benchmark::State &state) {
+  constexpr size_t N = 100000;
+  constexpr size_t BATCH_SIZE = 500000;
+
+  TableT table;
   while (state.KeepRunningBatch(BATCH_SIZE)) {
     td::Random::Xorshift128plus rnd(123);
     for (size_t i = 0; i < BATCH_SIZE; i++) {
@@ -452,14 +474,13 @@ static void benchmark_create(td::Slice name) {
 #define REGISTER_ERASE_ALL_BENCHMARK(HT) BENCHMARK_TEMPLATE(BM_erase_all_with_begin, HT<td::uint64, td::uint64>);
 #define REGISTER_REMOVE_IF_SLOW_BENCHMARK(HT) BENCHMARK_TEMPLATE(BM_remove_if_slow, HT<td::uint64, td::uint64>);
 
-FOR_EACH_TABLE(REGISTER_CACHE3_BENCHMARK)
-FOR_EACH_TABLE(REGISTER_CACHE_BENCHMARK)
-FOR_EACH_TABLE(REGISTER_CACHE2_BENCHMARK)
 FOR_EACH_TABLE(REGISTER_REMOVE_IF_SLOW_BENCHMARK)
-FOR_EACH_TABLE(REGISTER_ERASE_ALL_BENCHMARK)
+FOR_EACH_TABLE(REGISTER_CACHE3_BENCHMARK)
+FOR_EACH_TABLE(REGISTER_CACHE2_BENCHMARK)
 FOR_EACH_TABLE(REGISTER_CACHE_BENCHMARK)
 FOR_EACH_TABLE(REGISTER_REMOVE_IF_BENCHMARK)
 FOR_EACH_TABLE(REGISTER_EMPLACE_BENCHMARK)
+FOR_EACH_TABLE(REGISTER_ERASE_ALL_BENCHMARK)
 FOR_EACH_TABLE(REGISTER_GET_BENCHMARK)
 FOR_EACH_TABLE(REGISTER_FIND_BENCHMARK)
 

@@ -206,11 +206,11 @@ void table_remove_if(TableT &table, FuncT &&func) {
   }
 }
 
-template <class KeyT, class ValueT, class HashT>
-class FlatHashMapImpl;
+template <class NodeT, class HashT, class EqT>
+class FlatHashTable;
 
-template <class KeyT, class ValueT, class HashT, class FuncT>
-void table_remove_if(FlatHashMapImpl<KeyT, ValueT, HashT> &table, FuncT &&func) {
+template <class NodeT, class HashT, class EqT, class FuncT>
+void table_remove_if(FlatHashTable<NodeT, HashT, EqT> &table, FuncT &&func) {
   table.remove_if(func);
 }
 
