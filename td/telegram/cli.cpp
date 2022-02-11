@@ -784,7 +784,11 @@ class CliClient final : public Actor {
         case td_api::stickerSets::ID: {
           auto sticker_sets = static_cast<const td_api::stickerSets *>(result.get());
           result_str = PSTRING() << "StickerSets { total_count = " << sticker_sets->total_count_
-                                 << ", count = " << sticker_sets->sets_.size() << " }";
+                                 << ", count = " << sticker_sets->sets_.size();
+          for (auto &sticker_set : sticker_sets->sets_) {
+            result_str += PSTRING() << ", " << sticker_set->name_;
+          }
+          result_str += " }";
           break;
         }
         default:
