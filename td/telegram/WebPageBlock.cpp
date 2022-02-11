@@ -1901,7 +1901,7 @@ unique_ptr<WebPageBlock> get_web_page_block(Td *td, tl_object_ptr<telegram_api::
                                             const FlatHashMap<int64, FileId> &animations,
                                             const FlatHashMap<int64, FileId> &audios,
                                             const FlatHashMap<int64, FileId> &documents,
-                                            const FlatHashMap<int64, Photo> &photos,
+                                            const FlatHashMap<int64, unique_ptr<Photo>> &photos,
                                             const FlatHashMap<int64, FileId> &videos,
                                             const FlatHashMap<int64, FileId> &voice_notes) {
   CHECK(page_block_ptr != nullptr);
@@ -2026,7 +2026,7 @@ unique_ptr<WebPageBlock> get_web_page_block(Td *td, tl_object_ptr<telegram_api::
       auto it = photos.find(page_block->photo_id_);
       Photo photo;
       if (it != photos.end()) {
-        photo = it->second;
+        photo = *it->second;
       }
       string url;
       WebPageId web_page_id;
@@ -2076,7 +2076,7 @@ unique_ptr<WebPageBlock> get_web_page_block(Td *td, tl_object_ptr<telegram_api::
                     : photos.end();
       Photo poster_photo;
       if (it != photos.end()) {
-        poster_photo = it->second;
+        poster_photo = *it->second;
       }
       Dimensions dimensions;
       if (has_dimensions) {
@@ -2091,7 +2091,7 @@ unique_ptr<WebPageBlock> get_web_page_block(Td *td, tl_object_ptr<telegram_api::
       auto it = photos.find(page_block->author_photo_id_);
       Photo author_photo;
       if (it != photos.end()) {
-        author_photo = it->second;
+        author_photo = *it->second;
       }
       return td::make_unique<WebPageBlockEmbeddedPost>(
           std::move(page_block->url_), std::move(page_block->author_), std::move(author_photo), page_block->date_,
@@ -2215,7 +2215,7 @@ unique_ptr<WebPageBlock> get_web_page_block(Td *td, tl_object_ptr<telegram_api::
                           ? photos.find(related_article->photo_id_)
                           : photos.end();
             if (it != photos.end()) {
-              article.photo = it->second;
+              article.photo = *it->second;
             }
             article.author = std::move(related_article->author_);
             if ((related_article->flags_ & telegram_api::pageRelatedArticle::PUBLISHED_DATE_MASK) != 0) {
@@ -2370,7 +2370,7 @@ void parse(unique_ptr<WebPageBlock> &block, LogEventParser &parser) {
 vector<unique_ptr<WebPageBlock>> get_web_page_blocks(
     Td *td, vector<tl_object_ptr<telegram_api::PageBlock>> page_block_ptrs,
     const FlatHashMap<int64, FileId> &animations, const FlatHashMap<int64, FileId> &audios,
-    const FlatHashMap<int64, FileId> &documents, const FlatHashMap<int64, Photo> &photos,
+    const FlatHashMap<int64, FileId> &documents, const FlatHashMap<int64, unique_ptr<Photo>> &photos,
     const FlatHashMap<int64, FileId> &videos, const FlatHashMap<int64, FileId> &voice_notes) {
   vector<unique_ptr<WebPageBlock>> result;
   result.reserve(page_block_ptrs.size());

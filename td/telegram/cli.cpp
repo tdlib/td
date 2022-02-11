@@ -237,13 +237,17 @@ class CliClient final : public Actor {
     string username;
   };
 
-  FlatHashMap<int64, User> users_;
+  FlatHashMap<int64, unique_ptr<User>> users_;
   FlatHashMap<string, int64> username_to_user_id_;
 
   vector<string> authentication_tokens_;
 
   void register_user(const td_api::user &user) {
-    User &new_user = users_[user.id_];
+    auto &new_user_ptr = users_[user.id_];
+    if (new_user_ptr == nullptr) {
+      new_user_ptr = make_unique<User>();
+    }
+    User &new_user = *new_user_ptr;
     new_user.first_name = user.first_name_;
     new_user.last_name = user.last_name_;
     new_user.username = user.username_;
@@ -253,7 +257,8 @@ class CliClient final : public Actor {
   }
 
   void print_user(Logger &log, int64 user_id, bool full = false) {
-    const User *user = &users_[user_id];
+    const User *user = users_[user_id].get();
+    CHECK(user != nullptr);
     log << user->first_name << " " << user->last_name << " #" << user_id;
     if (!user->username.empty()) {
       log << " @" << user->username;

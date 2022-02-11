@@ -40,6 +40,16 @@ struct LanguagePackManager::PluralizedString {
   string few_value_;
   string many_value_;
   string other_value_;
+
+  PluralizedString(string &&zero_value, string &&one_value, string &&two_value, string &&few_value, string &&many_value,
+                   string &&other_value)
+      : zero_value_(std::move(zero_value))
+      , one_value_(std::move(one_value))
+      , two_value_(std::move(two_value))
+      , few_value_(std::move(few_value))
+      , many_value_(std::move(many_value))
+      , other_value_(std::move(other_value)) {
+  }
 };
 
 struct LanguagePackManager::Language {
@@ -52,7 +62,7 @@ struct LanguagePackManager::Language {
   bool has_get_difference_query_ = false;
   vector<Promise<Unit>> get_difference_queries_;
   FlatHashMap<string, string> ordinary_strings_;
-  FlatHashMap<string, PluralizedString> pluralized_strings_;
+  FlatHashMap<string, unique_ptr<PluralizedString>> pluralized_strings_;
   std::unordered_set<string> deleted_strings_;
   SqliteKeyValue kv_;  // usages should be guarded by database_->mutex_
 };
@@ -84,7 +94,7 @@ struct LanguagePackManager::LanguagePack {
   SqliteKeyValue pack_kv_;                                              // usages should be guarded by database_->mutex_
   std::map<string, LanguageInfo> custom_language_pack_infos_;           // sorted by language_code
   vector<std::pair<string, LanguageInfo>> server_language_pack_infos_;  // sorted by server
-  FlatHashMap<string, LanguageInfo> all_server_language_pack_infos_;
+  FlatHashMap<string, unique_ptr<LanguageInfo>> all_server_language_pack_infos_;
   FlatHashMap<string, unique_ptr<Language>> languages_;
 };
 
@@ -588,7 +598,7 @@ LanguagePackManager::Language *LanguagePackManager::add_language(LanguageDatabas
               info.total_string_count_ = to_integer<int32>(all_infos[i + 8]);
               info.translated_string_count_ = to_integer<int32>(all_infos[i + 9]);
               info.translation_url_ = std::move(all_infos[i + 10]);
-              pack->all_server_language_pack_infos_.emplace(all_infos[i], info);
+              pack->all_server_language_pack_infos_.emplace(all_infos[i], td::make_unique<LanguageInfo>(info));
               pack->server_language_pack_infos_.emplace_back(std::move(all_infos[i]), std::move(info));
             }
           } else {
@@ -683,7 +693,8 @@ void LanguagePackManager::load_language_string_unsafe(Language *language, const 
     auto all = full_split(Slice(value).substr(1), '\x00');
     if (all.size() == 6) {
       language->pluralized_strings_.emplace(
-          key, PluralizedString{all[0].str(), all[1].str(), all[2].str(), all[3].str(), all[4].str(), all[5].str()});
+          key, td::make_unique<PluralizedString>(all[0].str(), all[1].str(), all[2].str(), all[3].str(), all[4].str(),
+                                                 all[5].str()));
       return;
     }
   }
@@ -797,7 +808,7 @@ td_api::object_ptr<td_api::LanguagePackStringValue> LanguagePackManager::get_lan
   }
   auto pluralized_it = language->pluralized_strings_.find(key);
   if (pluralized_it != language->pluralized_strings_.end()) {
-    return get_language_pack_string_value_object(pluralized_it->second);
+    return get_language_pack_string_value_object(*pluralized_it->second);
   }
   LOG_IF(ERROR, !language->is_full_ && language->deleted_strings_.count(key) == 0) << "Have no string for key " << key;
   return get_language_pack_string_value_object();
@@ -819,7 +830,7 @@ td_api::object_ptr<td_api::languagePackStrings> LanguagePackManager::get_languag
       strings.push_back(get_language_pack_string_object(str.first, str.second));
     }
     for (auto &str : language->pluralized_strings_) {
-      strings.push_back(get_language_pack_string_object(str.first, str.second));
+      strings.push_back(get_language_pack_string_object(str.first, *str.second));
     }
   } else {
     for (auto &key : keys) {
@@ -1018,7 +1029,7 @@ void LanguagePackManager::on_get_languages(vector<tl_object_ptr<telegram_api::la
       std::lock_guard<std::mutex> pack_lock(pack->mutex_);
       if (pack->server_language_pack_infos_ != all_server_infos) {
         for (auto &info : all_server_infos) {
-          pack->all_server_language_pack_infos_[info.first] = info.second;
+          pack->all_server_language_pack_infos_[info.first] = td::make_unique<LanguageInfo>(info.second);
         }
         pack->server_language_pack_infos_ = std::move(all_server_infos);
 
@@ -1062,7 +1073,8 @@ void LanguagePackManager::on_get_language(tl_object_ptr<telegram_api::langPackLa
         }
       }
     }
-    pack->all_server_language_pack_infos_[lang_pack_language->lang_code_] = r_info.move_as_ok();
+    pack->all_server_language_pack_infos_[lang_pack_language->lang_code_] =
+        td::make_unique<LanguageInfo>(r_info.move_as_ok());
 
     if (is_changed) {
       save_server_language_pack_infos(pack);
@@ -1396,9 +1408,9 @@ void LanguagePackManager::on_get_language_pack_strings(
               LOG(ERROR) << "Receive invalid key \"" << str->key_ << '"';
               break;
             }
-            PluralizedString value{std::move(str->zero_value_), std::move(str->one_value_),
-                                   std::move(str->two_value_),  std::move(str->few_value_),
-                                   std::move(str->many_value_), std::move(str->other_value_)};
+            auto value = td::make_unique<PluralizedString>(std::move(str->zero_value_), std::move(str->one_value_),
+                                                           std::move(str->two_value_), std::move(str->few_value_),
+                                                           std::move(str->many_value_), std::move(str->other_value_));
             auto it = language->pluralized_strings_.find(str->key_);
             if (it == language->pluralized_strings_.end()) {
               key_count_delta++;
@@ -1409,13 +1421,13 @@ void LanguagePackManager::on_get_language_pack_strings(
             key_count_delta -= static_cast<int32>(language->ordinary_strings_.erase(str->key_));
             language->deleted_strings_.erase(str->key_);
             if (is_diff) {
-              strings.push_back(get_language_pack_string_object(it->first, it->second));
+              strings.push_back(get_language_pack_string_object(it->first, *it->second));
             }
             database_strings.emplace_back(
                 std::move(str->key_), PSTRING()
-                                          << '2' << it->second.zero_value_ << '\x00' << it->second.one_value_ << '\x00'
-                                          << it->second.two_value_ << '\x00' << it->second.few_value_ << '\x00'
-                                          << it->second.many_value_ << '\x00' << it->second.other_value_);
+                                          << '2' << it->second->zero_value_ << '\x00' << it->second->one_value_
+                                          << '\x00' << it->second->two_value_ << '\x00' << it->second->few_value_
+                                          << '\x00' << it->second->many_value_ << '\x00' << it->second->other_value_);
             break;
           }
           case telegram_api::langPackStringDeleted::ID: {
@@ -1554,7 +1566,7 @@ void LanguagePackManager::add_custom_server_language(string language_code, Promi
     return promise.set_error(Status::Error(400, "Language pack info not found"));
   }
   auto &info = pack->custom_language_pack_infos_[language_code];
-  info = it->second;
+  info = *it->second;
   if (!pack->pack_kv_.empty()) {
     pack->pack_kv_.set(language_code, get_language_info_string(info));
   }

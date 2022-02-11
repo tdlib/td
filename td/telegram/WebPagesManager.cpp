@@ -1407,18 +1407,18 @@ void WebPagesManager::on_pending_web_page_timeout(WebPageId web_page_id) {
 void WebPagesManager::on_get_web_page_instant_view(WebPage *web_page, tl_object_ptr<telegram_api::page> &&page,
                                                    int32 hash, DialogId owner_dialog_id) {
   CHECK(page != nullptr);
-  FlatHashMap<int64, Photo> photos;
+  FlatHashMap<int64, unique_ptr<Photo>> photos;
   for (auto &photo_ptr : page->photos_) {
     Photo photo = get_photo(td_->file_manager_.get(), std::move(photo_ptr), owner_dialog_id);
     if (photo.is_empty() || photo.id.get() == 0) {
       LOG(ERROR) << "Receive empty photo in web page instant view for " << web_page->url;
     } else {
       auto photo_id = photo.id.get();
-      photos.emplace(photo_id, std::move(photo));
+      photos.emplace(photo_id, make_unique<Photo>(std::move(photo)));
     }
   }
   if (!web_page->photo.is_empty() && web_page->photo.id.get() != 0) {
-    photos.emplace(web_page->photo.id.get(), web_page->photo);
+    photos.emplace(web_page->photo.id.get(), make_unique<Photo>(web_page->photo));
   }
 
   FlatHashMap<int64, FileId> animations;

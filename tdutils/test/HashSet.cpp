@@ -40,7 +40,7 @@ TEST(FlatHashMap, basic) {
     auto map_copy = map;
   }
 
-  td::FlatHashMap<int, std::array<td::unique_ptr<td::string>, 20>> x;
+  td::FlatHashMap<int, std::array<td::unique_ptr<td::string>, 10>> x;
   auto y = std::move(x);
   x[12];
   x.erase(x.find(12));

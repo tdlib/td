@@ -77,7 +77,7 @@ class SecureManager final : public NetQueryCallback {
     vector<telegram_api::object_ptr<telegram_api::SecureValueError>> errors;
   };
 
-  FlatHashMap<int32, AuthorizationForm> authorization_forms_;
+  FlatHashMap<int32, unique_ptr<AuthorizationForm>> authorization_forms_;
   int32 max_authorization_form_id_{0};
 
   void hangup() final;

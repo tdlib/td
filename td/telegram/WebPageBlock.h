@@ -98,7 +98,7 @@ void parse(unique_ptr<WebPageBlock> &block, LogEventParser &parser);
 vector<unique_ptr<WebPageBlock>> get_web_page_blocks(
     Td *td, vector<tl_object_ptr<telegram_api::PageBlock>> page_block_ptrs,
     const FlatHashMap<int64, FileId> &animations, const FlatHashMap<int64, FileId> &audios,
-    const FlatHashMap<int64, FileId> &documents, const FlatHashMap<int64, Photo> &photos,
+    const FlatHashMap<int64, FileId> &documents, const FlatHashMap<int64, unique_ptr<Photo>> &photos,
     const FlatHashMap<int64, FileId> &videos, const FlatHashMap<int64, FileId> &voice_notes);
 
 vector<td_api::object_ptr<td_api::PageBlock>> get_page_block_objects(

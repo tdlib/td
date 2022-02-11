@@ -976,7 +976,11 @@ void BackgroundManager::add_background(const Background &background, bool replac
   LOG(INFO) << "Add " << background.id << " of " << background.type;
 
   CHECK(background.id.is_valid());
-  auto *result = &backgrounds_[background.id];
+  auto &result_ptr = backgrounds_[background.id];
+  if (result_ptr == nullptr) {
+    result_ptr = make_unique<Background>();
+  }
+  auto *result = result_ptr.get();
 
   FileSourceId file_source_id;
   auto it = background_id_to_file_source_id_.find(background.id);
@@ -1055,7 +1059,7 @@ BackgroundManager::Background *BackgroundManager::get_background_ref(BackgroundI
   if (p == backgrounds_.end()) {
     return nullptr;
   } else {
-    return &p->second;
+    return p->second.get();
   }
 }
 
@@ -1064,7 +1068,7 @@ const BackgroundManager::Background *BackgroundManager::get_background(Backgroun
   if (p == backgrounds_.end()) {
     return nullptr;
   } else {
-    return &p->second;
+    return p->second.get();
   }
 }
 

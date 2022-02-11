@@ -148,7 +148,11 @@ void GetHostByNameActor::run(string host, int port, bool prefer_ipv6, Promise<IP
     return promise.set_result(value.get_ip_port(port));
   }
 
-  auto &query = active_queries_[prefer_ipv6][ascii_host];
+  auto &query_ptr = active_queries_[prefer_ipv6][ascii_host];
+  if (query_ptr == nullptr) {
+    query_ptr = make_unique<Query>();
+  }
+  auto &query = *query_ptr;
   query.promises.emplace_back(port, std::move(promise));
   if (query.query.empty()) {
     CHECK(query.promises.size() == 1);
@@ -184,7 +188,7 @@ void GetHostByNameActor::run_query(std::string host, bool prefer_ipv6, Query &qu
 void GetHostByNameActor::on_query_result(std::string host, bool prefer_ipv6, Result<IPAddress> result) {
   auto query_it = active_queries_[prefer_ipv6].find(host);
   CHECK(query_it != active_queries_[prefer_ipv6].end());
-  auto &query = query_it->second;
+  auto &query = *query_it->second;
   CHECK(!query.promises.empty());
   CHECK(!query.query.empty());
 

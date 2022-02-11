@@ -837,7 +837,7 @@ class StickersManager final : public Actor {
   int32 recent_stickers_limit_ = 200;
   int32 favorite_stickers_limit_ = 5;
 
-  FlatHashMap<SpecialStickerSetType, SpecialStickerSet, SpecialStickerSetTypeHash> special_sticker_sets_;
+  FlatHashMap<SpecialStickerSetType, unique_ptr<SpecialStickerSet>, SpecialStickerSetTypeHash> special_sticker_sets_;
 
   struct StickerSetLoadRequest {
     Promise<Unit> promise;
@@ -893,7 +893,7 @@ class StickersManager final : public Actor {
     std::pair<FileId, int> animated_emoji_sticker;
     FileId sound_file_id;
   };
-  FlatHashMap<string, EmojiMessages> emoji_messages_;
+  FlatHashMap<string, unique_ptr<EmojiMessages>> emoji_messages_;
 
   string dice_emojis_str_;
   vector<string> dice_emojis_;

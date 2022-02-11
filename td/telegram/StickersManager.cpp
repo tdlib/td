@@ -1359,7 +1359,11 @@ void StickersManager::reload_reactions() {
 
 StickersManager::SpecialStickerSet &StickersManager::add_special_sticker_set(const SpecialStickerSetType &type) {
   CHECK(!type.is_empty());
-  auto &result = special_sticker_sets_[type];
+  auto &result_ptr = special_sticker_sets_[type];
+  if (result_ptr == nullptr) {
+    result_ptr = make_unique<SpecialStickerSet>();
+  }
+  auto &result = *result_ptr;
   if (result.type_.is_empty()) {
     result.type_ = type;
   } else {
@@ -1889,7 +1893,7 @@ tl_object_ptr<td_api::DiceStickers> StickersManager::get_dice_stickers_object(co
     return nullptr;
   }
 
-  auto sticker_set_id = it->second.id_;
+  auto sticker_set_id = it->second->id_;
   if (!sticker_set_id.is_valid()) {
     return nullptr;
   }
@@ -2125,7 +2129,7 @@ td_api::object_ptr<td_api::animatedEmoji> StickersManager::get_animated_emoji_ob
   if (it == emoji_messages_.end()) {
     return get_animated_emoji_object(get_animated_emoji_sticker(emoji), get_animated_emoji_sound_file_id(emoji));
   } else {
-    return get_animated_emoji_object(it->second.animated_emoji_sticker, it->second.sound_file_id);
+    return get_animated_emoji_object(it->second->animated_emoji_sticker, it->second->sound_file_id);
   }
 }
 
@@ -4444,11 +4448,11 @@ void StickersManager::try_update_animated_emoji_messages() {
   for (auto &it : emoji_messages_) {
     auto new_animated_sticker = get_animated_emoji_sticker(sticker_set, it.first);
     auto new_sound_file_id = get_animated_emoji_sound_file_id(it.first);
-    if (new_animated_sticker != it.second.animated_emoji_sticker ||
-        (new_animated_sticker.first.is_valid() && new_sound_file_id != it.second.sound_file_id)) {
-      it.second.animated_emoji_sticker = new_animated_sticker;
-      it.second.sound_file_id = new_sound_file_id;
-      for (const auto &full_message_id : it.second.full_message_ids) {
+    if (new_animated_sticker != it.second->animated_emoji_sticker ||
+        (new_animated_sticker.first.is_valid() && new_sound_file_id != it.second->sound_file_id)) {
+      it.second->animated_emoji_sticker = new_animated_sticker;
+      it.second->sound_file_id = new_sound_file_id;
+      for (const auto &full_message_id : it.second->full_message_ids) {
         full_message_ids.push_back(full_message_id);
       }
     }
@@ -4523,7 +4527,11 @@ void StickersManager::register_emoji(const string &emoji, FullMessageId full_mes
   }
 
   LOG(INFO) << "Register emoji " << emoji << " from " << full_message_id << " from " << source;
-  auto &emoji_messages = emoji_messages_[emoji];
+  auto &emoji_messages_ptr = emoji_messages_[emoji];
+  if (emoji_messages_ptr == nullptr) {
+    emoji_messages_ptr = make_unique<EmojiMessages>();
+  }
+  auto &emoji_messages = *emoji_messages_ptr;
   if (emoji_messages.full_message_ids.empty()) {
     emoji_messages.animated_emoji_sticker = get_animated_emoji_sticker(emoji);
     emoji_messages.sound_file_id = get_animated_emoji_sound_file_id(emoji);
@@ -4541,7 +4549,7 @@ void StickersManager::unregister_emoji(const string &emoji, FullMessageId full_m
   LOG(INFO) << "Unregister emoji " << emoji << " from " << full_message_id << " from " << source;
   auto it = emoji_messages_.find(emoji);
   CHECK(it != emoji_messages_.end());
-  auto &full_message_ids = it->second.full_message_ids;
+  auto &full_message_ids = it->second->full_message_ids;
   auto is_deleted = full_message_ids.erase(full_message_id) > 0;
   LOG_CHECK(is_deleted) << source << ' ' << emoji << ' ' << full_message_id;
 

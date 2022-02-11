@@ -957,7 +957,11 @@ void SecureManager::get_passport_authorization_form(UserId bot_user_id, string s
   refcnt_++;
   CHECK(max_authorization_form_id_ < std::numeric_limits<int32>::max());
   auto authorization_form_id = ++max_authorization_form_id_;
-  auto &form = authorization_forms_[authorization_form_id];
+  auto &form_ptr = authorization_forms_[authorization_form_id];
+  if (form_ptr == nullptr) {
+    form_ptr = make_unique<AuthorizationForm>();
+  }
+  auto &form = *form_ptr;
   form.bot_user_id = bot_user_id;
   form.scope = scope;
   form.public_key = public_key;
@@ -978,7 +982,8 @@ void SecureManager::on_get_passport_authorization_form(
     Result<telegram_api::object_ptr<telegram_api::account_authorizationForm>> r_authorization_form) {
   auto it = authorization_forms_.find(authorization_form_id);
   CHECK(it != authorization_forms_.end());
-  CHECK(it->second.is_received == false);
+  CHECK(it->second != nullptr);
+  CHECK(!it->second->is_received);
   if (r_authorization_form.is_error()) {
     authorization_forms_.erase(it);
     return promise.set_error(r_authorization_form.move_as_error());
@@ -1022,10 +1027,10 @@ void SecureManager::on_get_passport_authorization_form(
     }
   }
 
-  it->second.options = std::move(all_types);
-  it->second.values = std::move(authorization_form->values_);
-  it->second.errors = std::move(authorization_form->errors_);
-  it->second.is_received = true;
+  it->second->options = std::move(all_types);
+  it->second->values = std::move(authorization_form->values_);
+  it->second->errors = std::move(authorization_form->errors_);
+  it->second->is_received = true;
 
   promise.set_value(td_api::make_object<td_api::passportAuthorizationForm>(
       authorization_form_id, get_passport_required_elements_object(required_types),
@@ -1038,7 +1043,8 @@ void SecureManager::get_passport_authorization_form_available_elements(int32 aut
   if (it == authorization_forms_.end()) {
     return promise.set_error(Status::Error(400, "Unknown authorization_form_id"));
   }
-  if (!it->second.is_received) {
+  CHECK(it->second != nullptr);
+  if (!it->second->is_received) {
     return promise.set_error(Status::Error(400, "Authorization form isn't received yet"));
   }
 
@@ -1058,8 +1064,9 @@ void SecureManager::on_get_passport_authorization_form_secret(int32 authorizatio
   if (it == authorization_forms_.end()) {
     return promise.set_error(Status::Error(400, "Authorization form has already been sent"));
   }
-  CHECK(it->second.is_received);
-  if (it->second.is_decrypted) {
+  CHECK(it->second != nullptr);
+  CHECK(it->second->is_received);
+  if (it->second->is_decrypted) {
     return promise.set_error(Status::Error(400, "Authorization form has already been decrypted"));
   }
 
@@ -1075,14 +1082,14 @@ void SecureManager::on_get_passport_authorization_form_secret(int32 authorizatio
   }
   auto secret = r_secret.move_as_ok();
 
-  it->second.is_decrypted = true;
+  it->second->is_decrypted = true;
 
   auto *file_manager = G()->td().get_actor_unsafe()->file_manager_.get();
   std::vector<TdApiSecureValue> values;
   std::map<SecureValueType, SecureValueCredentials> all_credentials;
-  for (const auto &suitable_type : it->second.options) {
+  for (const auto &suitable_type : it->second->options) {
     auto type = suitable_type.first;
-    for (auto &value : it->second.values) {
+    for (auto &value : it->second->values) {
       if (value == nullptr) {
         continue;
       }
@@ -1124,7 +1131,7 @@ void SecureManager::on_get_passport_authorization_form_secret(int32 authorizatio
   };
 
   vector<td_api::object_ptr<td_api::passportElementError>> errors;
-  for (auto &error_ptr : it->second.errors) {
+  for (auto &error_ptr : it->second->errors) {
     CHECK(error_ptr != nullptr);
     SecureValueType type = SecureValueType::None;
     td_api::object_ptr<td_api::PassportElementErrorSource> source;
@@ -1227,7 +1234,8 @@ void SecureManager::send_passport_authorization_form(int32 authorization_form_id
   if (it == authorization_forms_.end()) {
     return promise.set_error(Status::Error(400, "Unknown authorization_form_id"));
   }
-  if (!it->second.is_received) {
+  CHECK(it->second != nullptr);
+  if (!it->second->is_received) {
     return promise.set_error(Status::Error(400, "Authorization form isn't received yet"));
   }
   // there is no need to check for is_decrypted
@@ -1249,8 +1257,8 @@ void SecureManager::send_passport_authorization_form(int32 authorization_form_id
   for (auto &c : credentials) {
     hashes.push_back(telegram_api::make_object<telegram_api::secureValueHash>(get_input_secure_value_type(c.type),
                                                                               BufferSlice(c.hash)));
-    auto options_it = it->second.options.find(c.type);
-    if (options_it == it->second.options.end()) {
+    auto options_it = it->second->options.find(c.type);
+    if (options_it == it->second->options.end()) {
       return promise.set_error(Status::Error(400, "Passport Element with the specified type was not requested"));
     }
     auto &options = options_it->second;
@@ -1263,14 +1271,14 @@ void SecureManager::send_passport_authorization_form(int32 authorization_form_id
   }
 
   auto r_encrypted_credentials =
-      get_encrypted_credentials(credentials, it->second.nonce, it->second.public_key,
-                                it->second.scope[0] == '{' && it->second.scope.back() == '}');
+      get_encrypted_credentials(credentials, it->second->nonce, it->second->public_key,
+                                it->second->scope[0] == '{' && it->second->scope.back() == '}');
   if (r_encrypted_credentials.is_error()) {
     return promise.set_error(r_encrypted_credentials.move_as_error());
   }
 
   auto td_query = telegram_api::account_acceptAuthorization(
-      it->second.bot_user_id.get(), it->second.scope, it->second.public_key, std::move(hashes),
+      it->second->bot_user_id.get(), it->second->scope, it->second->public_key, std::move(hashes),
       get_secure_credentials_encrypted_object(r_encrypted_credentials.move_as_ok()));
   auto query = G()->net_query_creator().create(td_query);
   auto new_promise =

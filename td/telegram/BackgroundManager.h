@@ -160,7 +160,7 @@ class BackgroundManager final : public Actor {
   void do_upload_background_file(FileId file_id, const BackgroundType &type, bool for_dark_theme,
                                  tl_object_ptr<telegram_api::InputFile> &&input_file, Promise<Unit> &&promise);
 
-  FlatHashMap<BackgroundId, Background, BackgroundIdHash> backgrounds_;
+  FlatHashMap<BackgroundId, unique_ptr<Background>, BackgroundIdHash> backgrounds_;
 
   FlatHashMap<BackgroundId, std::pair<int64, FileSourceId>, BackgroundIdHash>
       background_id_to_file_source_id_;  // id -> [access_hash, file_source_id]

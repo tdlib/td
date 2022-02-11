@@ -65,7 +65,7 @@ class GetHostByNameActor final : public Actor {
     double begin_time = 0.0;
     std::vector<std::pair<int, Promise<IPAddress>>> promises;
   };
-  FlatHashMap<string, Query> active_queries_[2];
+  FlatHashMap<string, unique_ptr<Query>> active_queries_[2];
 
   Options options_;
 
