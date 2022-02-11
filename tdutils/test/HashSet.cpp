@@ -25,15 +25,15 @@ static auto extract_kv(const T &reference) {
 
 TEST(FlatHashMap, basic) {
   {
-      td::FlatHashSet<int> s;
-      s.insert(5);
-      for (auto x : s) {
-      }
-      int N = 100000;
-      for (int i = 0; i < 10000000; i++) {
-        s.insert((i + N/2)%N);
-        s.erase(i%N);
-      }
+    td::FlatHashSet<int> s;
+    s.insert(5);
+    for (auto x : s) {
+    }
+    int N = 100000;
+    for (int i = 0; i < 10000000; i++) {
+      s.insert((i + N / 2) % N);
+      s.erase(i % N);
+    }
   }
   {
     td::FlatHashMap<int, int> map;

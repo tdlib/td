@@ -248,7 +248,7 @@ static void BM_emplace_same(benchmark::State &state) {
 
   while (state.KeepRunningBatch(BATCH_SIZE)) {
     for (size_t i = 0; i < BATCH_SIZE; i++) {
-      benchmark::DoNotOptimize(table.emplace(key + (i & 15) * 100 , 43784932));
+      benchmark::DoNotOptimize(table.emplace(key + (i & 15) * 100, 43784932));
     }
   }
 }
@@ -383,7 +383,10 @@ static void BM_remove_if_slow(benchmark::State &state) {
   auto first_key = table.begin()->first;
   {
     size_t cnt = 0;
-    td::table_remove_if(table, [&cnt](auto &) { cnt += 2; return cnt <= N; });
+    td::table_remove_if(table, [&cnt](auto &) {
+      cnt += 2;
+      return cnt <= N;
+    });
   }
   while (state.KeepRunningBatch(BATCH_SIZE)) {
     for (size_t i = 0; i < BATCH_SIZE; i++) {

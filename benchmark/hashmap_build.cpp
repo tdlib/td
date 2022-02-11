@@ -7,6 +7,7 @@
 #include "td/utils/FlatHashMap.h"
 
 #include <absl/container/flat_hash_map.h>
+#include <array>
 #include <folly/container/F14Map.h>
 #include <map>
 #include <unordered_map>
