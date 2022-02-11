@@ -26,10 +26,10 @@ struct GroupCallParticipant {
   GroupCallVideoPayload presentation_payload;
   int32 audio_source = 0;
   int32 presentation_audio_source = 0;
+  int64 raise_hand_rating = 0;
   int32 joined_date = 0;
   int32 active_date = 0;
   int32 volume_level = 10000;
-  int64 raise_hand_rating = 0;
   bool is_volume_level_local = false;
   bool server_is_muted_by_themselves = false;
   bool server_is_muted_by_admin = false;

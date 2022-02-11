@@ -883,7 +883,7 @@ struct GroupCallManager::GroupCallParticipants {
   vector<DialogId> administrator_dialog_ids;
 
   struct PendingUpdates {
-    FlatHashMap<DialogId, GroupCallParticipant, DialogIdHash> updates;
+    FlatHashMap<DialogId, unique_ptr<GroupCallParticipant>, DialogIdHash> updates;
   };
   std::map<int32, PendingUpdates> pending_version_updates_;
   std::map<int32, PendingUpdates> pending_mute_updates_;
@@ -1744,9 +1744,9 @@ void GroupCallManager::on_update_group_call_participants(
     }
 
     if (GroupCallParticipant::is_versioned_update(group_call_participant)) {
-      pending_version_updates[dialog_id] = std::move(participant);
+      pending_version_updates[dialog_id] = td::make_unique<GroupCallParticipant>(std::move(participant));
     } else {
-      pending_mute_updates[dialog_id] = std::move(participant);
+      pending_mute_updates[dialog_id] = td::make_unique<GroupCallParticipant>(std::move(participant));
     }
   }
 
@@ -1783,7 +1783,7 @@ bool GroupCallManager::process_pending_group_call_participant_updates(InputGroup
       }
       auto &participants = it->second.updates;
       for (auto &participant_it : participants) {
-        auto &participant = participant_it.second;
+        auto &participant = *participant_it.second;
         on_participant_speaking_in_group_call(input_group_call_id, participant);
         auto mute_diff = process_group_call_participant(input_group_call_id, std::move(participant));
         CHECK(mute_diff.first == 0);
@@ -1802,7 +1802,7 @@ bool GroupCallManager::process_pending_group_call_participant_updates(InputGroup
     auto &participants = it->second.updates;
     if (version <= group_call->version) {
       for (auto &participant_it : participants) {
-        auto &participant = participant_it.second;
+        auto &participant = *participant_it.second;
         on_participant_speaking_in_group_call(input_group_call_id, participant);
         if (participant.is_self || participant.joined_date != 0) {
           auto new_diff = process_group_call_participant(input_group_call_id, std::move(participant));
@@ -1819,7 +1819,7 @@ bool GroupCallManager::process_pending_group_call_participant_updates(InputGroup
     if (version == group_call->version + 1) {
       group_call->version = version;
       for (auto &participant_it : participants) {
-        auto &participant = participant_it.second;
+        auto &participant = *participant_it.second;
         if (participant.is_self && group_call->is_joined &&
             (participant.joined_date == 0) == (participant.audio_source == group_call->audio_source)) {
           is_left = true;
