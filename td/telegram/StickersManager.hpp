@@ -287,7 +287,10 @@ void StickersManager::parse_sticker_set(StickerSet *sticker_set, ParserT &parser
       sticker_set->is_masks = is_masks;
       sticker_set->sticker_format = sticker_format;
 
-      short_name_to_sticker_set_id_.emplace(clean_username(sticker_set->short_name), sticker_set->id);
+      auto cleaned_username = clean_username(sticker_set->short_name);
+      if (!cleaned_username.empty()) {
+        short_name_to_sticker_set_id_.emplace(cleaned_username, sticker_set->id);
+      }
       on_update_sticker_set(sticker_set, is_installed, is_archived, false, true);
     } else {
       if (sticker_set->title != title) {
@@ -338,9 +341,15 @@ void StickersManager::parse_sticker_set(StickerSet *sticker_set, ParserT &parser
         vector<string> emojis;
         parse(emojis, parser);
         for (auto &emoji : emojis) {
-          auto &sticker_ids = sticker_set->emoji_stickers_map_[remove_emoji_modifiers(emoji).str()];
-          if (sticker_ids.empty() || sticker_ids.back() != sticker_id) {
-            sticker_ids.push_back(sticker_id);
+          auto cleaned_emoji = remove_emoji_modifiers(emoji).str();
+          if (!cleaned_emoji.empty()) {
+            auto &sticker_ids = sticker_set->emoji_stickers_map_[cleaned_emoji];
+            if (sticker_ids.empty() || sticker_ids.back() != sticker_id) {
+              sticker_ids.push_back(sticker_id);
+            }
+          } else {
+            LOG(INFO) << "Sticker " << sticker_id << " in " << sticker_set_id << '/' << sticker_set->short_name
+                      << " has an empty emoji";
           }
         }
         sticker_set->sticker_emojis_map_[sticker_id] = std::move(emojis);

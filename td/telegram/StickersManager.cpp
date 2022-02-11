@@ -3062,6 +3062,12 @@ StickerSetId StickersManager::on_get_messages_sticker_set(StickerSetId sticker_s
     s->emoji_stickers_map_.clear();
     s->sticker_emojis_map_.clear();
     for (auto &pack : packs) {
+      auto cleaned_emoji = remove_emoji_modifiers(pack->emoticon_).str();
+      if (cleaned_emoji.empty()) {
+        LOG(ERROR) << "Receive empty emoji in " << set_id << "/" << s->short_name << " from " << source;
+        continue;
+      }
+
       vector<FileId> stickers;
       stickers.reserve(pack->documents_.size());
       for (int64 document_id : pack->documents_) {
@@ -3075,13 +3081,11 @@ StickerSetId StickersManager::on_get_messages_sticker_set(StickerSetId sticker_s
         stickers.push_back(it->second);
         s->sticker_emojis_map_[it->second].push_back(pack->emoticon_);
       }
-      auto cleaned_emoji = remove_emoji_modifiers(pack->emoticon_).str();
-      if (!cleaned_emoji.empty()) {
-        auto &sticker_ids = s->emoji_stickers_map_[cleaned_emoji];
-        for (auto sticker_id : stickers) {
-          if (!td::contains(sticker_ids, sticker_id)) {
-            sticker_ids.push_back(sticker_id);
-          }
+
+      auto &sticker_ids = s->emoji_stickers_map_[cleaned_emoji];
+      for (auto sticker_id : stickers) {
+        if (!td::contains(sticker_ids, sticker_id)) {
+          sticker_ids.push_back(sticker_id);
         }
       }
     }
