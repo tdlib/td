@@ -360,7 +360,7 @@ static void BM_cache3(benchmark::State &state) {
       table.emplace(key, i);
 
       for (size_t j = 1; j < step; j++) {
-        auto key_to_find = keys.data()[rnd()%keys.size()];
+        auto key_to_find = keys.data()[rnd() % keys.size()];
         benchmark::DoNotOptimize(table.find(key_to_find));
       }
 
@@ -382,10 +382,14 @@ static void BM_remove_if_slow(benchmark::State &state) {
       table.emplace(rnd() + 1, i);
       if (table.size() > N) {
         size_t cnt = 0;
-        td::table_remove_if(table, [&cnt](auto &) { cnt += 2; return cnt <= N; });
+        td::table_remove_if(table, [&cnt, n = N](auto &) {
+          cnt += 2;
+          return cnt <= n;
+        });
       }
     }
-  }}
+  }
+}
 
 template <typename TableT>
 static void benchmark_create(td::Slice name) {
@@ -427,27 +431,26 @@ static void benchmark_create(td::Slice name) {
   F(std::unordered_map)   \
   F(std::map)
 
-//BENCHMARK(BM_Get<VectorTable<td::uint64, td::uint64>>)->Range(1, 1 << 26);
-//BENCHMARK(BM_Get<SortedVectorTable<td::uint64, td::uint64>>)->Range(1, 1 << 26);
-//BENCHMARK(BM_Get<NoOpTable<td::uint64, td::uint64>>)->Range(1, 1 << 26);
+//BENCHMARK_TEMPLATE(BM_Get, VectorTable<td::uint64, td::uint64>)->Range(1, 1 << 26);
+//BENCHMARK_TEMPLATE(BM_Get, SortedVectorTable<td::uint64, td::uint64>)->Range(1, 1 << 26);
+//BENCHMARK_TEMPLATE(BM_Get, NoOpTable<td::uint64, td::uint64>)->Range(1, 1 << 26);
 
-#define REGISTER_GET_BENCHMARK(HT) BENCHMARK(BM_Get<HT<td::uint64, td::uint64>>)->Range(1, 1 << 23);
+#define REGISTER_GET_BENCHMARK(HT) BENCHMARK_TEMPLATE(BM_Get, HT<td::uint64, td::uint64>)->Range(1, 1 << 23);
 
 #define REGISTER_FIND_BENCHMARK(HT)                                                                                 \
-  BENCHMARK(BM_find_same<HT<td::uint64, td::uint64>>)                                                               \
+  BENCHMARK_TEMPLATE(BM_find_same, HT<td::uint64, td::uint64>)                                                      \
       ->ComputeStatistics("max", [](const td::vector<double> &v) { return *std::max_element(v.begin(), v.end()); }) \
       ->ComputeStatistics("min", [](const td::vector<double> &v) { return *std::min_element(v.begin(), v.end()); }) \
       ->Repetitions(20)                                                                                             \
       ->DisplayAggregatesOnly(true);
 
-#define REGISTER_REMOVE_IF_BENCHMARK(HT) BENCHMARK(BM_remove_if<HT<td::uint64, td::uint64>>);
-#define REGISTER_EMPLACE_BENCHMARK(HT) BENCHMARK(BM_emplace_same<HT<td::uint64, td::uint64>>);
-#define REGISTER_CACHE_BENCHMARK(HT) BENCHMARK(BM_cache<HT<td::uint64, td::uint64>>);
-#define REGISTER_CACHE2_BENCHMARK(HT) BENCHMARK(BM_cache2<HT<td::uint64, td::uint64>>);
-#define REGISTER_CACHE3_BENCHMARK(HT) BENCHMARK(BM_cache3<HT<td::uint64, td::uint64>>)->Range(1, 1 << 23);
-#define REGISTER_ERASE_ALL_BENCHMARK(HT) BENCHMARK(BM_erase_all_with_begin<HT<td::uint64, td::uint64>>);
-#define REGISTER_REMOVE_IF_SLOW_BENCHMARK(HT) BENCHMARK(BM_remove_if_slow<HT<td::uint64, td::uint64>>);
-
+#define REGISTER_REMOVE_IF_BENCHMARK(HT) BENCHMARK_TEMPLATE(BM_remove_if, HT<td::uint64, td::uint64>);
+#define REGISTER_EMPLACE_BENCHMARK(HT) BENCHMARK_TEMPLATE(BM_emplace_same, HT<td::uint64, td::uint64>);
+#define REGISTER_CACHE_BENCHMARK(HT) BENCHMARK_TEMPLATE(BM_cache, HT<td::uint64, td::uint64>);
+#define REGISTER_CACHE2_BENCHMARK(HT) BENCHMARK_TEMPLATE(BM_cache2, HT<td::uint64, td::uint64>);
+#define REGISTER_CACHE3_BENCHMARK(HT) BENCHMARK_TEMPLATE(BM_cache3, HT<td::uint64, td::uint64>)->Range(1, 1 << 23);
+#define REGISTER_ERASE_ALL_BENCHMARK(HT) BENCHMARK_TEMPLATE(BM_erase_all_with_begin, HT<td::uint64, td::uint64>);
+#define REGISTER_REMOVE_IF_SLOW_BENCHMARK(HT) BENCHMARK_TEMPLATE(BM_remove_if_slow, HT<td::uint64, td::uint64>);
 
 FOR_EACH_TABLE(REGISTER_CACHE3_BENCHMARK)
 FOR_EACH_TABLE(REGISTER_CACHE_BENCHMARK)
@@ -460,12 +463,8 @@ FOR_EACH_TABLE(REGISTER_EMPLACE_BENCHMARK)
 FOR_EACH_TABLE(REGISTER_GET_BENCHMARK)
 FOR_EACH_TABLE(REGISTER_FIND_BENCHMARK)
 
-
-
-#define REGISTER_(X) BENCHMARK(X<HT<td::uint64, td:uint64>);
-#define REGISTER(X) FOR_EACH_TABLE(REGISTER_(X))
-
 #define RUN_CREATE_BENCHMARK(HT) benchmark_create<HT<td::uint64, td::uint64>>(#HT);
+
 int main(int argc, char **argv) {
   //  FOR_EACH_TABLE(RUN_CREATE_BENCHMARK);
 
