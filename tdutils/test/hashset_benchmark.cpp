@@ -372,7 +372,7 @@ static void BM_cache3(benchmark::State &state) {
 }
 template <typename TableT>
 static void BM_remove_if_slow(benchmark::State &state) {
-  constexpr size_t N = 100000;
+  constexpr size_t N = 5000;
   constexpr size_t BATCH_SIZE = 500000;
 
   TableT table;
