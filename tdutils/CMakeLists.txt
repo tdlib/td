@@ -389,6 +389,7 @@ install(TARGETS tdutils EXPORT TdTargets
 
 find_package(benchmark QUIET)
 find_package(folly QUIET)
+find_package(gflags QUIET)
 
 if (ABSL_FOUND AND benchmark_FOUND AND folly_FOUND)
   add_executable(benchmark-hashset test/hashset_benchmark.cpp)

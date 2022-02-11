@@ -104,7 +104,7 @@ struct MapNode {
   }
   MapNode(KeyT key, ValueT value) : first(std::move(key)) {
     new (&second) ValueT(std::move(value));
-        DCHECK(!empty());
+    DCHECK(!empty());
   }
   ~MapNode() {
     if (!empty()) {
@@ -115,8 +115,8 @@ struct MapNode {
     *this = std::move(other);
   }
   MapNode &operator=(MapNode &&other) noexcept {
-        DCHECK(empty());
-        DCHECK(!other.empty());
+    DCHECK(empty());
+    DCHECK(!other.empty());
     first = std::move(other.first);
     other.first = KeyT{};
     new (&second) ValueT(std::move(other.second));
@@ -129,18 +129,18 @@ struct MapNode {
   }
 
   void clear() {
-        DCHECK(!empty());
+    DCHECK(!empty());
     first = KeyT();
     second.~ValueT();
-        DCHECK(empty());
+    DCHECK(empty());
   }
 
   template <class... ArgsT>
   void emplace(KeyT key, ArgsT &&...args) {
-        DCHECK(empty());
+    DCHECK(empty());
     first = std::move(key);
     new (&second) ValueT(std::forward<ArgsT>(args)...);
-        DCHECK(!empty());
+    DCHECK(!empty());
   }
 };
 
@@ -168,8 +168,8 @@ struct SetNode {
     *this = std::move(other);
   }
   SetNode &operator=(SetNode &&other) noexcept {
-        DCHECK(empty());
-        DCHECK(!other.empty());
+    DCHECK(empty());
+    DCHECK(!other.empty());
     first = std::move(other.first);
     other.first = KeyT{};
     return *this;
@@ -198,8 +198,9 @@ class FlatHashTable {
   using ConstNodeIterator = typename fixed_vector<Node>::const_iterator;
 
   using KeyT = typename Node::key_type;
+  using key_type = typename Node::key_type;
   using public_type = typename Node::public_type;
-  using value_type = typename Node::value_type;
+  using value_type = typename Node::public_type;
 
   struct Iterator {
     using iterator_category = std::bidirectional_iterator_tag;
@@ -228,11 +229,11 @@ class FlatHashTable {
       return &*it_;
     }
     bool operator==(const Iterator &other) const {
-          DCHECK(map_ == other.map_);
+      DCHECK(map_ == other.map_);
       return it_ == other.it_;
     }
     bool operator!=(const Iterator &other) const {
-          DCHECK(map_ == other.map_);
+      DCHECK(map_ == other.map_);
       return it_ != other.it_;
     }
 
@@ -417,13 +418,13 @@ class FlatHashTable {
   }
 
   template <class ItT>
-  void insert(ItT begin, ItT end)  {
+  void insert(ItT begin, ItT end) {
     for (; begin != end; ++begin) {
       emplace(*begin);
     }
   }
 
-  value_type &operator[](const KeyT &key) {
+  typename Node::value_type &operator[](const KeyT &key) {
     return emplace(key).first->value();
   }
 
@@ -477,7 +478,6 @@ class FlatHashTable {
   }
 
  private:
-
   fixed_vector<Node> nodes_;
   size_t used_nodes_{};
 
@@ -590,6 +590,5 @@ using FlatHashMap = FlatHashMapImpl<KeyT, ValueT, HashT, EqT>;
 template <class KeyT, class HashT = std::hash<KeyT>, class EqT = std::equal_to<KeyT>>
 using FlatHashSet = FlatHashSetImpl<KeyT, HashT, EqT>;
 //using FlatHashSet = std::unordered_set<KeyT, HashT, EqT>;
-
 
 }  // namespace td
