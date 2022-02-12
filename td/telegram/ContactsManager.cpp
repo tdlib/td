@@ -3086,7 +3086,7 @@ class GetBroadcastStatsQuery final : public Td::ResultHandler {
     for (auto &info : result->recent_message_interactions_) {
       td_->messages_manager_->on_update_message_interaction_info({DialogId(channel_id_), MessageId(info->message_id_)},
                                                                  info->view_count_, info->forward_count_, false,
-                                                                 nullptr, false, nullptr);
+                                                                 nullptr);
     }
     promise_.set_value(std::move(result));
   }

@@ -62,7 +62,7 @@ class GetMessagesReactionsQuery final : public Td::ResultHandler {
         }
       }
       for (auto message_id : skipped_message_ids) {
-        td_->messages_manager_->on_update_message_reactions({dialog_id_, message_id}, nullptr, Promise<Unit>());
+        td_->messages_manager_->update_message_reactions({dialog_id_, message_id}, nullptr);
       }
     }
     td_->updates_manager_->on_get_updates(std::move(ptr), Promise<Unit>());
@@ -169,15 +169,17 @@ class GetMessageReactionsListQuery final : public Td::ResultHandler {
     td_->contacts_manager_->on_get_chats(std::move(ptr->chats_), "GetMessageReactionsListQuery");
 
     int32 total_count = ptr->count_;
-    if (total_count < static_cast<int32>(ptr->reactions_.size())) {
+    auto received_reaction_count = static_cast<int32>(ptr->reactions_.size());
+    if (total_count < received_reaction_count) {
       LOG(ERROR) << "Receive invalid total_count in " << to_string(ptr);
-      total_count = static_cast<int32>(ptr->reactions_.size());
+      total_count = received_reaction_count;
     }
 
     vector<td_api::object_ptr<td_api::addedReaction>> reactions;
-    for (auto &reaction : ptr->reactions_) {
+    for (const auto &reaction : ptr->reactions_) {
       DialogId dialog_id(reaction->peer_id_);
-      if (!dialog_id.is_valid() || (!reaction_.empty() && reaction_ != reaction->reaction_)) {
+      if (!dialog_id.is_valid() ||
+          (reaction_.empty() ? reaction->reaction_.empty() : reaction_ != reaction->reaction_)) {
         LOG(ERROR) << "Receive unexpected " << to_string(reaction);
         continue;
       }
@@ -368,6 +370,7 @@ void MessageReactions::update_from(const MessageReactions &old_reactions) {
         }
       }
     }
+    unread_reactions_ = old_reactions.unread_reactions_;
   }
 }
 

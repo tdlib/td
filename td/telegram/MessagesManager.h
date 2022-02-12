@@ -339,10 +339,11 @@ class MessagesManager final : public Actor {
   void on_update_message_reactions(FullMessageId full_message_id,
                                    tl_object_ptr<telegram_api::messageReactions> &&reactions, Promise<Unit> &&promise);
 
+  void update_message_reactions(FullMessageId full_message_id, unique_ptr<MessageReactions> &&reactions);
+
   void on_update_message_interaction_info(FullMessageId full_message_id, int32 view_count, int32 forward_count,
-                                          bool has_reply_info, tl_object_ptr<telegram_api::messageReplies> &&reply_info,
-                                          bool has_reactions,
-                                          tl_object_ptr<telegram_api::messageReactions> &&reactions);
+                                          bool has_reply_info,
+                                          tl_object_ptr<telegram_api::messageReplies> &&reply_info);
 
   void on_update_live_location_viewed(FullMessageId full_message_id);
 
@@ -2100,7 +2101,7 @@ class MessagesManager final : public Actor {
 
   void update_message_interaction_info(FullMessageId full_message_id, int32 view_count, int32 forward_count,
                                        bool has_reply_info, tl_object_ptr<telegram_api::messageReplies> &&reply_info,
-                                       bool has_reactions, tl_object_ptr<telegram_api::messageReactions> &&reactions);
+                                       bool has_reactions, unique_ptr<MessageReactions> &&reactions);
 
   bool is_active_message_reply_info(DialogId dialog_id, const MessageReplyInfo &info) const;
 

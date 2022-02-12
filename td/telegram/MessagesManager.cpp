@@ -1919,7 +1919,7 @@ class GetMessagesViewsQuery final : public Td::ResultHandler {
       auto view_count = (flags & telegram_api::messageViews::VIEWS_MASK) != 0 ? info->views_ : 0;
       auto forward_count = (flags & telegram_api::messageViews::FORWARDS_MASK) != 0 ? info->forwards_ : 0;
       td_->messages_manager_->on_update_message_interaction_info(full_message_id, view_count, forward_count, true,
-                                                                 std::move(info->replies_), false, nullptr);
+                                                                 std::move(info->replies_));
     }
   }
 
@@ -6800,21 +6800,25 @@ void MessagesManager::on_update_message_reactions(FullMessageId full_message_id,
     return get_message_from_server(full_message_id, std::move(promise), "on_update_message_reactions");
   }
 
-  update_message_interaction_info(full_message_id, -1, -1, false, nullptr, true, std::move(reactions));
+  auto new_reactions = MessageReactions::get_message_reactions(td_, std::move(reactions), td_->auth_manager_->is_bot());
+  update_message_interaction_info(full_message_id, -1, -1, false, nullptr, true, std::move(new_reactions));
   promise.set_value(Unit());
+}
+
+void MessagesManager::update_message_reactions(FullMessageId full_message_id,
+                                               unique_ptr<MessageReactions> &&reactions) {
+  update_message_interaction_info(full_message_id, -1, -1, false, nullptr, true, std::move(reactions));
 }
 
 void MessagesManager::on_update_message_interaction_info(FullMessageId full_message_id, int32 view_count,
                                                          int32 forward_count, bool has_reply_info,
-                                                         tl_object_ptr<telegram_api::messageReplies> &&reply_info,
-                                                         bool has_reactions,
-                                                         tl_object_ptr<telegram_api::messageReactions> &&reactions) {
+                                                         tl_object_ptr<telegram_api::messageReplies> &&reply_info) {
   if (view_count < 0 || forward_count < 0) {
     LOG(ERROR) << "Receive " << view_count << "/" << forward_count << " interaction counters for " << full_message_id;
     return;
   }
   update_message_interaction_info(full_message_id, view_count, forward_count, has_reply_info, std::move(reply_info),
-                                  has_reactions, std::move(reactions));
+                                  false, nullptr);
 }
 
 void MessagesManager::on_pending_message_views_timeout(DialogId dialog_id) {
@@ -6845,8 +6849,7 @@ void MessagesManager::on_pending_message_views_timeout(DialogId dialog_id) {
 void MessagesManager::update_message_interaction_info(FullMessageId full_message_id, int32 view_count,
                                                       int32 forward_count, bool has_reply_info,
                                                       tl_object_ptr<telegram_api::messageReplies> &&reply_info,
-                                                      bool has_reactions,
-                                                      tl_object_ptr<telegram_api::messageReactions> &&reactions) {
+                                                      bool has_reactions, unique_ptr<MessageReactions> &&reactions) {
   auto dialog_id = full_message_id.get_dialog_id();
   Dialog *d = get_dialog_force(dialog_id, "update_message_interaction_info");
   if (d == nullptr) {
@@ -6874,10 +6877,9 @@ void MessagesManager::update_message_interaction_info(FullMessageId full_message
   if (new_reply_info.is_empty() && !is_empty_reply_info) {
     has_reply_info = false;
   }
-  auto new_reactions = MessageReactions::get_message_reactions(td_, std::move(reactions), td_->auth_manager_->is_bot());
 
   if (update_message_interaction_info(dialog_id, m, view_count, forward_count, has_reply_info,
-                                      std::move(new_reply_info), has_reactions, std::move(new_reactions),
+                                      std::move(new_reply_info), has_reactions, std::move(reactions),
                                       "update_message_interaction_info")) {
     on_message_changed(d, m, true, "update_message_interaction_info");
   }
