@@ -244,16 +244,16 @@ optional<int32> SqliteDb::get_cipher_version() const {
 
 Result<SqliteDb> SqliteDb::change_key(CSlice path, bool allow_creation, const DbKey &new_db_key,
                                       const DbKey &old_db_key) {
-  PerfWarningTimer perf("change key", 0.05);
-
   // fast path
   {
+    PerfWarningTimer perf("open database", 0.05);
     auto r_db = open_with_key(path, allow_creation, new_db_key);
     if (r_db.is_ok()) {
       return r_db;
     }
   }
 
+  PerfWarningTimer perf("change database key", 0.5);
   auto create_database = [](CSlice tmp_path) -> Status {
     TRY_STATUS(destroy(tmp_path));
     SqliteDb db;
