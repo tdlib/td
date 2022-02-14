@@ -176,6 +176,7 @@ class GetMessageReactionsListQuery final : public Td::ResultHandler {
     }
 
     vector<td_api::object_ptr<td_api::addedReaction>> reactions;
+    FlatHashMap<string, vector<DialogId>> recent_reactions;
     for (const auto &reaction : ptr->reactions_) {
       DialogId dialog_id(reaction->peer_id_);
       if (!dialog_id.is_valid() ||
@@ -184,10 +185,19 @@ class GetMessageReactionsListQuery final : public Td::ResultHandler {
         continue;
       }
 
+      if (offset_.empty()) {
+        recent_reactions[reaction->reaction_].push_back(dialog_id);
+      }
+
       auto message_sender = get_min_message_sender_object(td_, dialog_id, "GetMessageReactionsListQuery");
       if (message_sender != nullptr) {
         reactions.push_back(td_api::make_object<td_api::addedReaction>(reaction->reaction_, std::move(message_sender)));
       }
+    }
+
+    if (offset_.empty()) {
+      td_->messages_manager_->on_get_message_reaction_list({dialog_id_, message_id_}, reaction_,
+                                                           std::move(recent_reactions), total_count);
     }
 
     promise_.set_value(

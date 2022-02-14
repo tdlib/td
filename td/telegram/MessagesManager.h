@@ -341,6 +341,9 @@ class MessagesManager final : public Actor {
 
   void update_message_reactions(FullMessageId full_message_id, unique_ptr<MessageReactions> &&reactions);
 
+  void on_get_message_reaction_list(FullMessageId full_message_id, const string &reaction,
+                                    FlatHashMap<string, vector<DialogId>> reactions, int32 total_count);
+
   void on_update_message_interaction_info(FullMessageId full_message_id, int32 view_count, int32 forward_count,
                                           bool has_reply_info,
                                           tl_object_ptr<telegram_api::messageReplies> &&reply_info);

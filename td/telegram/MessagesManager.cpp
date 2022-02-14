@@ -6810,6 +6810,60 @@ void MessagesManager::update_message_reactions(FullMessageId full_message_id,
   update_message_interaction_info(full_message_id, -1, -1, false, nullptr, true, std::move(reactions));
 }
 
+void MessagesManager::on_get_message_reaction_list(FullMessageId full_message_id, const string &reaction,
+                                                   FlatHashMap<string, vector<DialogId>> reactions, int32 total_count) {
+  const Message *m = get_message_force(full_message_id, "on_get_message_reaction_list");
+  if (m == nullptr || m->reactions == nullptr) {
+    return;
+  }
+
+  auto are_consistent = [](const vector<DialogId> &lhs, const vector<DialogId> &rhs) {
+    size_t i = 0;
+    size_t max_i = td::min(lhs.size(), rhs.size());
+    while (i < max_i && lhs[i] == rhs[i]) {
+      i++;
+    }
+    return i == max_i;
+  };
+
+  // it's impossible to use received reactions to update message reactions, because there is no way to find,
+  // which reaction is chosen by the current user, so just reload message reactions for consistency
+  bool need_reload = false;
+  if (reaction.empty()) {
+    // received list and total_count for all reactions
+    int32 old_total_count = 0;
+    for (const auto &message_reaction : m->reactions->reactions_) {
+      need_reload |=
+          !are_consistent(reactions[message_reaction.get_reaction()], message_reaction.get_recent_chooser_dialog_ids());
+      old_total_count += message_reaction.get_choose_count();
+      reactions.erase(message_reaction.get_reaction());
+    }
+    need_reload |= old_total_count != total_count || !reactions.empty();
+  } else {
+    // received list and total_count for a single reaction
+    const auto *message_reaction = m->reactions->get_reaction(reaction);
+    if (message_reaction == nullptr) {
+      need_reload = reactions.count(reaction) != 0 || total_count > 0;
+    } else {
+      need_reload = !are_consistent(reactions[reaction], message_reaction->get_recent_chooser_dialog_ids()) ||
+                    message_reaction->get_choose_count() != total_count;
+    }
+  }
+
+  if (!need_reload) {
+    return;
+  }
+
+  LOG(INFO) << "Need reload reactions in " << full_message_id << " for consistency";
+
+  auto it = pending_reactions_.find(full_message_id);
+  if (it != pending_reactions_.end()) {
+    it->second.was_updated = true;
+  } else {
+    reload_message_reactions(td_, full_message_id.get_dialog_id(), {full_message_id.get_message_id()});
+  }
+}
+
 void MessagesManager::on_update_message_interaction_info(FullMessageId full_message_id, int32 view_count,
                                                          int32 forward_count, bool has_reply_info,
                                                          tl_object_ptr<telegram_api::messageReplies> &&reply_info) {
