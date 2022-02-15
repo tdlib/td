@@ -4866,6 +4866,7 @@ void MessagesManager::Message::store(StorerT &storer) const {
   bool are_message_media_timestamp_entities_found = true;
   bool has_flags3 = true;
   bool has_reactions = reactions != nullptr;
+  bool has_available_reactions_generation = has_reactions && available_reactions_generation != 0;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(is_channel_post);
   STORE_FLAG(is_outgoing);
@@ -4937,6 +4938,7 @@ void MessagesManager::Message::store(StorerT &storer) const {
     STORE_FLAG(noforwards);
     STORE_FLAG(has_explicit_sender);
     STORE_FLAG(has_reactions);
+    STORE_FLAG(has_available_reactions_generation);
     END_STORE_FLAGS();
   }
 
@@ -5058,6 +5060,9 @@ void MessagesManager::Message::store(StorerT &storer) const {
   if (has_reactions) {
     store(reactions, storer);
   }
+  if (has_available_reactions_generation) {
+    store(available_reactions_generation, storer);
+  }
 }
 
 // do not forget to resolve message dependencies
@@ -5102,6 +5107,7 @@ void MessagesManager::Message::parse(ParserT &parser) {
   bool has_max_reply_media_timestamp = false;
   bool has_flags3 = false;
   bool has_reactions = false;
+  bool has_available_reactions_generation = false;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(is_channel_post);
   PARSE_FLAG(is_outgoing);
@@ -5173,6 +5179,7 @@ void MessagesManager::Message::parse(ParserT &parser) {
     PARSE_FLAG(noforwards);
     PARSE_FLAG(has_explicit_sender);
     PARSE_FLAG(has_reactions);
+    PARSE_FLAG(has_available_reactions_generation);
     END_PARSE_FLAGS();
   }
 
@@ -5301,6 +5308,9 @@ void MessagesManager::Message::parse(ParserT &parser) {
   if (has_reactions) {
     parse(reactions, parser);
   }
+  if (has_available_reactions_generation) {
+    parse(available_reactions_generation, parser);
+  }
 
   CHECK(content != nullptr);
   is_content_secret |=
@@ -5376,6 +5386,7 @@ void MessagesManager::Dialog::store(StorerT &storer) const {
   bool has_action_bar = action_bar != nullptr;
   bool has_default_send_message_as_dialog_id = default_send_message_as_dialog_id.is_valid();
   bool has_available_reactions = !available_reactions.empty();
+  bool has_available_reactions_generation = available_reactions_generation != 0;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_draft_message);
   STORE_FLAG(has_last_database_message);
@@ -5454,6 +5465,7 @@ void MessagesManager::Dialog::store(StorerT &storer) const {
     STORE_FLAG(need_drop_default_send_message_as_dialog_id);
     STORE_FLAG(has_available_reactions);
     STORE_FLAG(is_available_reactions_inited);
+    STORE_FLAG(available_reactions_generation);
     END_STORE_FLAGS();
   }
 
@@ -5560,6 +5572,9 @@ void MessagesManager::Dialog::store(StorerT &storer) const {
   if (has_available_reactions) {
     store(available_reactions, storer);
   }
+  if (has_available_reactions_generation) {
+    store(available_reactions_generation, storer);
+  }
 }
 
 // do not forget to resolve dialog dependencies including dependencies of last_message
@@ -5606,6 +5621,7 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
   bool has_action_bar = false;
   bool has_default_send_message_as_dialog_id = false;
   bool has_available_reactions = false;
+  bool has_available_reactions_generation = false;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(has_draft_message);
   PARSE_FLAG(has_last_database_message);
@@ -5699,6 +5715,7 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
     PARSE_FLAG(need_drop_default_send_message_as_dialog_id);
     PARSE_FLAG(has_available_reactions);
     PARSE_FLAG(is_available_reactions_inited);
+    PARSE_FLAG(has_available_reactions_generation);
     END_PARSE_FLAGS();
   } else {
     need_repair_action_bar = false;
@@ -5849,6 +5866,9 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
   }
   if (has_available_reactions) {
     parse(available_reactions, parser);
+  }
+  if (has_available_reactions_generation) {
+    parse(available_reactions_generation, parser);
   }
 
   (void)legacy_know_can_report_spam;
@@ -6995,6 +7015,9 @@ bool MessagesManager::is_visible_message_reactions(DialogId dialog_id, const Mes
   if (get_message_active_reactions(d, m).empty()) {
     return false;
   }
+  if (m->reactions != nullptr && m->available_reactions_generation != d->available_reactions_generation) {
+    return false;
+  }
   return true;
 }
 
@@ -7131,19 +7154,20 @@ bool MessagesManager::update_message_interaction_info(DialogId dialog_id, Messag
     }
     int32 new_dialog_unread_reaction_count = -1;
     if (need_update_reactions || need_update_unread_reactions) {
+      Dialog *d = get_dialog(dialog_id);
+      CHECK(d != nullptr);
+      CHECK(m->message_id.is_valid());
+
       int32 unread_reaction_diff = 0;
       unread_reaction_diff -= (has_unread_message_reactions(dialog_id, m) ? 1 : 0);
       m->reactions = std::move(reactions);
+      m->available_reactions_generation = m->reactions == nullptr ? 0 : d->available_reactions_generation;
       unread_reaction_diff += (has_unread_message_reactions(dialog_id, m) ? 1 : 0);
+
       if (is_visible_message_reactions(dialog_id, m)) {
         need_update |= need_update_reactions;
         if (need_update_unread_reactions) {
-          Dialog *d = get_dialog(dialog_id);
-          CHECK(d != nullptr);
-
           if (unread_reaction_diff != 0) {
-            CHECK(m->message_id.is_valid());
-
             // remove_message_notification_id(d, m, true, true);
 
             if (d->unread_reaction_count + unread_reaction_diff < 0) {
@@ -8398,36 +8422,38 @@ void MessagesManager::set_dialog_available_reactions(Dialog *d, vector<string> &
 
   d->available_reactions = std::move(available_reactions);
   d->is_available_reactions_inited = true;
-  on_dialog_updated(d->dialog_id, "set_dialog_available_reactions");
-
   if (need_update_message_reactions_visibility) {
-    update_dialog_message_reactions_visibility(d);
+    if (!old_active_reactions.empty()) {
+      hide_dialog_message_reactions(d);
+    }
+
+    d->available_reactions_generation++;
   }
+  on_dialog_updated(d->dialog_id, "set_dialog_available_reactions");
 
   if (need_update) {
     send_update_chat_available_reactions(d);
   }
 }
 
-void MessagesManager::update_dialog_message_reactions_visibility(Dialog *d) {
+void MessagesManager::hide_dialog_message_reactions(Dialog *d) {
   vector<MessageId> message_ids;
   find_messages(d->messages.get(), message_ids,
                 [](const Message *m) { return m->reactions != nullptr && !m->reactions->reactions_.empty(); });
-  int32 unread_reaction_count = 0;
   for (auto message_id : message_ids) {
-    const auto *m = get_message(d, message_id);
+    Message *m = get_message(d, message_id);
     CHECK(m != nullptr);
     CHECK(m->reactions != nullptr);
-    send_update_message_interaction_info(d->dialog_id, m);
-    if (!m->reactions->unread_reactions_.empty()) {
-      if (has_unread_message_reactions(d->dialog_id, m)) {
-        unread_reaction_count++;
-      }
-      send_update_message_unread_reactions(d->dialog_id, m, unread_reaction_count);
+    bool need_update_unread_reactions = !m->reactions->unread_reactions_.empty();
+    m->reactions = nullptr;
+    // don't resave all messages to the database
+    if (need_update_unread_reactions) {
+      send_update_message_unread_reactions(d->dialog_id, m, d->unread_reaction_count);
     }
+    send_update_message_interaction_info(d->dialog_id, m);
   }
-  if (d->unread_reaction_count != unread_reaction_count) {
-    set_dialog_unread_reaction_count(d, unread_reaction_count);
+  if (d->unread_reaction_count != 0) {
+    set_dialog_unread_reaction_count(d, 0);
   }
 }
 
@@ -8454,7 +8480,11 @@ void MessagesManager::set_active_reactions(vector<string> active_reactions) {
         auto new_reactions = get_active_reactions(d->available_reactions, active_reactions_);
         if (old_reactions != new_reactions) {
           if (old_reactions.empty() != new_reactions.empty()) {
-            update_dialog_message_reactions_visibility(d);
+            if (!old_reactions.empty()) {
+              hide_dialog_message_reactions(d);
+            }
+            d->available_reactions_generation++;
+            on_dialog_updated(d->dialog_id, "set_active_reactions");
           }
           send_update_chat_available_reactions(d);
         }
@@ -14457,6 +14487,13 @@ FullMessageId MessagesManager::on_get_message(MessageInfo &&message_info, bool f
 
   new_message->have_previous = have_previous;
   new_message->have_next = have_next;
+
+  if (new_message->reactions != nullptr) {
+    const Dialog *d = get_dialog_force(dialog_id, "on_get_message");
+    if (d != nullptr) {
+      new_message->available_reactions_generation = d->available_reactions_generation;
+    }
+  }
 
   bool need_update = from_update;
   bool need_update_dialog_pos = false;
@@ -23499,7 +23536,8 @@ void MessagesManager::preload_older_messages(const Dialog *d, MessageId min_mess
   }
 }
 
-unique_ptr<MessagesManager::Message> MessagesManager::parse_message(DialogId dialog_id, MessageId expected_message_id,
+unique_ptr<MessagesManager::Message> MessagesManager::parse_message(Dialog *d, DialogId dialog_id,
+                                                                    MessageId expected_message_id,
                                                                     const BufferSlice &value, bool is_scheduled) {
   auto m = make_unique<Message>();
 
@@ -23536,6 +23574,18 @@ unique_ptr<MessagesManager::Message> MessagesManager::parse_message(DialogId dia
       }
     }
     return nullptr;
+  }
+  if (m->reactions != nullptr && d != nullptr) {
+    if (m->available_reactions_generation < d->available_reactions_generation) {
+      m->reactions = nullptr;
+      m->available_reactions_generation = 0;
+    } else if (m->available_reactions_generation > d->available_reactions_generation) {
+      LOG(ERROR) << "Fix available_reactions_generation in " << dialog_id << " from "
+                 << d->available_reactions_generation << " to " << m->available_reactions_generation;
+      hide_dialog_message_reactions(d);
+      d->available_reactions_generation = m->available_reactions_generation;
+      on_dialog_updated(dialog_id, "parse_message");
+    }
   }
 
   LOG(INFO) << "Loaded " << m->message_id << " in " << dialog_id << " of size " << value.size() << " from database";
@@ -23606,7 +23656,7 @@ void MessagesManager::on_get_history_from_database(DialogId dialog_id, MessageId
     if (!d->first_database_message_id.is_valid() && !d->have_full_history) {
       break;
     }
-    auto message = parse_message(dialog_id, message_slice.message_id, message_slice.data, false);
+    auto message = parse_message(d, dialog_id, message_slice.message_id, message_slice.data, false);
     if (message == nullptr) {
       if (d->have_full_history) {
         d->have_full_history = false;
@@ -24044,7 +24094,7 @@ void MessagesManager::on_get_scheduled_messages_from_database(DialogId dialog_id
   Dependencies dependencies;
   vector<MessageId> added_message_ids;
   for (auto &message_slice : messages) {
-    auto message = parse_message(dialog_id, message_slice.message_id, message_slice.data, true);
+    auto message = parse_message(d, dialog_id, message_slice.message_id, message_slice.data, true);
     if (message == nullptr) {
       continue;
     }
@@ -24150,6 +24200,7 @@ void MessagesManager::set_message_reaction(FullMessageId full_message_id, string
 
     m->reactions = make_unique<MessageReactions>();
     m->reactions->can_get_added_reactions_ = can_get_added_reactions;
+    m->available_reactions_generation = d->available_reactions_generation;
   }
 
   bool is_found = false;
@@ -33671,7 +33722,7 @@ MessagesManager::Message *MessagesManager::on_get_message_from_database(Dialog *
     return nullptr;
   }
 
-  auto m = parse_message(dialog_id, expected_message_id, value, is_scheduled);
+  auto m = parse_message(d, dialog_id, expected_message_id, value, is_scheduled);
   if (m == nullptr) {
     return nullptr;
   }

@@ -1143,6 +1143,7 @@ class MessagesManager final : public Actor {
     MessageReplyInfo reply_info;
     unique_ptr<MessageReactions> reactions;
     unique_ptr<DraftMessage> thread_draft_message;
+    uint32 available_reactions_generation = 0;
     int32 interaction_info_update_date = 0;
 
     int32 legacy_layer = 0;
@@ -1231,6 +1232,7 @@ class MessagesManager final : public Actor {
     MessageId reply_markup_message_id;
     DialogNotificationSettings notification_settings;
     vector<string> available_reactions;
+    uint32 available_reactions_generation = 0;
     MessageTtl message_ttl;
     unique_ptr<DraftMessage> draft_message;
     unique_ptr<DialogActionBar> action_bar;
@@ -2623,7 +2625,7 @@ class MessagesManager final : public Actor {
 
   void set_dialog_available_reactions(Dialog *d, vector<string> &&available_reactions);
 
-  void update_dialog_message_reactions_visibility(Dialog *d);
+  void hide_dialog_message_reactions(Dialog *d);
 
   vector<string> get_active_reactions(const vector<string> &available_reactions) const;
 
@@ -3169,8 +3171,8 @@ class MessagesManager final : public Actor {
 
   string get_message_search_text(const Message *m) const;
 
-  unique_ptr<Message> parse_message(DialogId dialog_id, MessageId expected_message_id, const BufferSlice &value,
-                                    bool is_scheduled);
+  unique_ptr<Message> parse_message(Dialog *d, DialogId dialog_id, MessageId expected_message_id,
+                                    const BufferSlice &value, bool is_scheduled);
 
   unique_ptr<Dialog> parse_dialog(DialogId dialog_id, const BufferSlice &value, const char *source);
 
