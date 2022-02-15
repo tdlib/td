@@ -23555,9 +23555,10 @@ void MessagesManager::preload_older_messages(const Dialog *d, MessageId min_mess
   }
 }
 
-unique_ptr<MessagesManager::Message> MessagesManager::parse_message(Dialog *d, DialogId dialog_id,
-                                                                    MessageId expected_message_id,
+unique_ptr<MessagesManager::Message> MessagesManager::parse_message(Dialog *d, MessageId expected_message_id,
                                                                     const BufferSlice &value, bool is_scheduled) {
+  CHECK(d != nullptr);
+  auto dialog_id = d->dialog_id;
   auto m = make_unique<Message>();
 
   auto status = log_event_parse(*m, value.as_slice());
@@ -23687,7 +23688,7 @@ void MessagesManager::on_get_history_from_database(DialogId dialog_id, MessageId
     if (!d->first_database_message_id.is_valid() && !d->have_full_history) {
       break;
     }
-    auto message = parse_message(d, dialog_id, message_slice.message_id, message_slice.data, false);
+    auto message = parse_message(d, message_slice.message_id, message_slice.data, false);
     if (message == nullptr) {
       if (d->have_full_history) {
         d->have_full_history = false;
@@ -24125,7 +24126,7 @@ void MessagesManager::on_get_scheduled_messages_from_database(DialogId dialog_id
   Dependencies dependencies;
   vector<MessageId> added_message_ids;
   for (auto &message_slice : messages) {
-    auto message = parse_message(d, dialog_id, message_slice.message_id, message_slice.data, true);
+    auto message = parse_message(d, message_slice.message_id, message_slice.data, true);
     if (message == nullptr) {
       continue;
     }
@@ -33735,29 +33736,12 @@ MessagesManager::Message *MessagesManager::get_message_force(Dialog *d, MessageI
 
 MessagesManager::Message *MessagesManager::on_get_message_from_database(const MessagesDbMessage &message,
                                                                         bool is_scheduled, const char *source) {
-  return on_get_message_from_database(get_dialog_force(message.dialog_id, source), message.dialog_id,
-                                      message.message_id, message.data, is_scheduled, source);
-}
-
-MessagesManager::Message *MessagesManager::on_get_message_from_database(Dialog *d,
-                                                                        const MessagesDbDialogMessage &message,
-                                                                        bool is_scheduled, const char *source) {
-  return on_get_message_from_database(d, d->dialog_id, message.message_id, message.data, is_scheduled, source);
-}
-
-MessagesManager::Message *MessagesManager::on_get_message_from_database(Dialog *d, DialogId dialog_id,
-                                                                        MessageId expected_message_id,
-                                                                        const BufferSlice &value, bool is_scheduled,
-                                                                        const char *source) {
-  if (value.empty()) {
+  if (message.data.empty()) {
     return nullptr;
   }
 
-  auto m = parse_message(d, dialog_id, expected_message_id, value, is_scheduled);
-  if (m == nullptr) {
-    return nullptr;
-  }
-
+  auto dialog_id = message.dialog_id;
+  Dialog *d = get_dialog_force(dialog_id, source);
   if (d == nullptr) {
     LOG(ERROR) << "Can't find " << dialog_id << ", but have a message from it from " << source;
     if (!dialog_id.is_valid()) {
@@ -33765,9 +33749,12 @@ MessagesManager::Message *MessagesManager::on_get_message_from_database(Dialog *
       return nullptr;
     }
 
-    if (m->message_id.is_valid() && m->message_id.is_any_server() &&
+    bool is_valid_server_message_id =
+        (is_scheduled ? message.message_id.is_valid_scheduled() && message.message_id.is_scheduled_server()
+                      : message.message_id.is_valid() && message.message_id.is_server());
+    if (is_valid_server_message_id &&
         (dialog_id.get_type() == DialogType::User || dialog_id.get_type() == DialogType::Chat)) {
-      get_message_from_server({dialog_id, m->message_id}, Auto(), "on_get_message_from_database 1");
+      get_message_from_server({dialog_id, message.message_id}, Auto(), "on_get_message_from_database 1");
     }
 
     force_create_dialog(dialog_id, source);
@@ -33775,6 +33762,29 @@ MessagesManager::Message *MessagesManager::on_get_message_from_database(Dialog *
     CHECK(d != nullptr);
   }
 
+  return on_get_message_from_database(d, message.message_id, message.data, is_scheduled, source);
+}
+
+MessagesManager::Message *MessagesManager::on_get_message_from_database(Dialog *d,
+                                                                        const MessagesDbDialogMessage &message,
+                                                                        bool is_scheduled, const char *source) {
+  return on_get_message_from_database(d, message.message_id, message.data, is_scheduled, source);
+}
+
+MessagesManager::Message *MessagesManager::on_get_message_from_database(Dialog *d, MessageId expected_message_id,
+                                                                        const BufferSlice &value, bool is_scheduled,
+                                                                        const char *source) {
+  if (value.empty()) {
+    return nullptr;
+  }
+
+  auto m = parse_message(d, expected_message_id, value, is_scheduled);
+  if (m == nullptr) {
+    return nullptr;
+  }
+
+  CHECK(d != nullptr);
+  auto dialog_id = d->dialog_id;
   if (!have_input_peer(dialog_id, AccessRights::Read)) {
     return nullptr;
   }
