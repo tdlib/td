@@ -2126,7 +2126,7 @@ class MessagesManager final : public Actor {
   vector<td_api::object_ptr<td_api::unreadReaction>> get_unread_reactions_object(DialogId dialog_id,
                                                                                  const Message *m) const;
 
-  bool update_message_interaction_info(DialogId dialog_id, Message *m, int32 view_count, int32 forward_count,
+  bool update_message_interaction_info(Dialog *d, Message *m, int32 view_count, int32 forward_count,
                                        bool has_reply_info, MessageReplyInfo &&reply_info, bool has_reactions,
                                        unique_ptr<MessageReactions> &&reactions, const char *source);
 
@@ -2624,6 +2624,8 @@ class MessagesManager final : public Actor {
   void on_set_message_reaction(FullMessageId full_message_id, Result<Unit> result, Promise<Unit> promise);
 
   void set_dialog_available_reactions(Dialog *d, vector<string> &&available_reactions);
+
+  void set_dialog_available_reactions_generation(Dialog *d, uint32 new_generation);
 
   void hide_dialog_message_reactions(Dialog *d);
 
