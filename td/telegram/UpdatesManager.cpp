@@ -1242,6 +1242,8 @@ int32 UpdatesManager::get_update_edit_message_pts(const telegram_api::Updates *u
   if (pts == -1) {
     LOG(ERROR) << "Receive multiple edit message updates in " << to_string(*updates_ptr);
     pts = 0;
+  } else if (pts == 0) {
+    LOG(ERROR) << "Receive no edit message updates for " << full_message_id << " in " << to_string(*updates_ptr);
   }
   return pts;
 }
