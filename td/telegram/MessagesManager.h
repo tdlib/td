@@ -158,6 +158,8 @@ class MessagesManager final : public Actor {
 
   static DialogId get_message_dialog_id(const tl_object_ptr<telegram_api::Message> &message_ptr);
 
+  static FullMessageId get_full_message_id(const tl_object_ptr<telegram_api::Message> &message_ptr, bool is_scheduled);
+
   tl_object_ptr<telegram_api::InputPeer> get_input_peer(DialogId dialog_id, AccessRights access_rights) const;
 
   static tl_object_ptr<telegram_api::InputPeer> get_input_peer_force(DialogId dialog_id);
@@ -1780,8 +1782,6 @@ class MessagesManager final : public Actor {
   static constexpr const char *DELETE_MESSAGE_USER_REQUEST_SOURCE = "user request";
 
   static constexpr bool DROP_SEND_MESSAGE_UPDATES = false;
-
-  static FullMessageId get_full_message_id(const tl_object_ptr<telegram_api::Message> &message_ptr, bool is_scheduled);
 
   static int32 get_message_date(const tl_object_ptr<telegram_api::Message> &message_ptr);
 

@@ -1204,17 +1204,28 @@ vector<DialogId> UpdatesManager::get_chat_dialog_ids(const telegram_api::Updates
   return dialog_ids;
 }
 
-int32 UpdatesManager::get_update_edit_message_pts(const telegram_api::Updates *updates_ptr) {
+int32 UpdatesManager::get_update_edit_message_pts(const telegram_api::Updates *updates_ptr,
+                                                  FullMessageId full_message_id) {
   int32 pts = 0;
   auto updates = get_updates(updates_ptr);
   if (updates != nullptr) {
     for (auto &update : *updates) {
       int32 update_pts = [&] {
         switch (update->get_id()) {
-          case telegram_api::updateEditMessage::ID:
-            return static_cast<const telegram_api::updateEditMessage *>(update.get())->pts_;
-          case telegram_api::updateEditChannelMessage::ID:
-            return static_cast<const telegram_api::updateEditChannelMessage *>(update.get())->pts_;
+          case telegram_api::updateEditMessage::ID: {
+            auto update_ptr = static_cast<const telegram_api::updateEditMessage *>(update.get());
+            if (MessagesManager::get_full_message_id(update_ptr->message_, false) == full_message_id) {
+              return update_ptr->pts_;
+            }
+            return 0;
+          }
+          case telegram_api::updateEditChannelMessage::ID: {
+            auto update_ptr = static_cast<const telegram_api::updateEditChannelMessage *>(update.get());
+            if (MessagesManager::get_full_message_id(update_ptr->message_, false) == full_message_id) {
+              return update_ptr->pts_;
+            }
+            return 0;
+          }
           default:
             return 0;
         }

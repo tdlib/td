@@ -9,6 +9,7 @@
 #include "td/telegram/ChannelId.h"
 #include "td/telegram/ChatId.h"
 #include "td/telegram/DialogId.h"
+#include "td/telegram/FullMessageId.h"
 #include "td/telegram/InputGroupCallId.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/PtsManager.h"
@@ -111,7 +112,7 @@ class UpdatesManager final : public Actor {
 
   static vector<DialogId> get_chat_dialog_ids(const telegram_api::Updates *updates_ptr);
 
-  static int32 get_update_edit_message_pts(const telegram_api::Updates *updates_ptr);
+  static int32 get_update_edit_message_pts(const telegram_api::Updates *updates_ptr, FullMessageId full_message_id);
 
   void get_difference(const char *source);
 

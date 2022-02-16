@@ -3645,6 +3645,7 @@ class SendScheduledMessageQuery final : public Td::ResultHandler {
 class EditMessageQuery final : public Td::ResultHandler {
   Promise<int32> promise_;
   DialogId dialog_id_;
+  MessageId message_id_;
 
  public:
   explicit EditMessageQuery(Promise<Unit> &&promise) {
@@ -3664,6 +3665,7 @@ class EditMessageQuery final : public Td::ResultHandler {
             tl_object_ptr<telegram_api::InputMedia> &&input_media,
             tl_object_ptr<telegram_api::ReplyMarkup> &&reply_markup, int32 schedule_date) {
     dialog_id_ = dialog_id;
+    message_id_ = message_id;
 
     if (input_media != nullptr && false) {
       return on_error(Status::Error(400, "FILE_PART_1_MISSING"));
@@ -3707,7 +3709,7 @@ class EditMessageQuery final : public Td::ResultHandler {
 
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for EditMessageQuery: " << to_string(ptr);
-    auto pts = td_->updates_manager_->get_update_edit_message_pts(ptr.get());
+    auto pts = td_->updates_manager_->get_update_edit_message_pts(ptr.get(), {dialog_id_, message_id_});
     auto promise = PromiseCreator::lambda(
         [promise = std::move(promise_), pts](Result<Unit> result) mutable { promise.set_value(std::move(pts)); });
     td_->updates_manager_->on_get_updates(std::move(ptr), std::move(promise));
