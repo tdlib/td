@@ -848,13 +848,25 @@ void WebPagesManager::get_web_page_instant_view(const string &url, bool force_fu
       // ignore negative caching
       return reload_web_page_by_url(url, std::move(promise));
     }
-    return get_web_page_instant_view(it->second, force_full, std::move(promise));
+    return get_web_page_instant_view_impl(it->second, force_full, std::move(promise));
   }
 
-  load_web_page_by_url(url, std::move(promise));
+  auto new_promise = PromiseCreator::lambda(
+      [actor_id = actor_id(this), force_full, promise = std::move(promise)](Result<WebPageId> r_web_page_id) mutable {
+        if (r_web_page_id.is_error()) {
+          promise.set_error(r_web_page_id.move_as_error());
+        } else {
+          send_closure(actor_id, &WebPagesManager::get_web_page_instant_view_impl, r_web_page_id.ok(), force_full,
+                       std::move(promise));
+        }
+      });
+  load_web_page_by_url(url, std::move(new_promise));
 }
 
-void WebPagesManager::get_web_page_instant_view(WebPageId web_page_id, bool force_full, Promise<WebPageId> &&promise) {
+void WebPagesManager::get_web_page_instant_view_impl(WebPageId web_page_id, bool force_full,
+                                                     Promise<WebPageId> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+
   LOG(INFO) << "Trying to get web page instant view for " << web_page_id;
 
   const WebPageInstantView *web_page_instant_view = get_web_page_instant_view(web_page_id);

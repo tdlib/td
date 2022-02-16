@@ -122,7 +122,7 @@ class WebPagesManager final : public Actor {
 
   const WebPageInstantView *get_web_page_instant_view(WebPageId web_page_id) const;
 
-  void get_web_page_instant_view(WebPageId web_page_id, bool force_full, Promise<WebPageId> &&promise);
+  void get_web_page_instant_view_impl(WebPageId web_page_id, bool force_full, Promise<WebPageId> &&promise);
 
   tl_object_ptr<td_api::webPageInstantView> get_web_page_instant_view_object(
       WebPageId web_page_id, const WebPageInstantView *web_page_instant_view) const;
