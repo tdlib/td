@@ -2638,6 +2638,10 @@ class MessagesManager final : public Actor {
 
   vector<string> get_message_active_reactions(const Dialog *d, const Message *m) const;
 
+  void queue_message_reactions_reload(FullMessageId full_message_id);
+
+  void try_reload_message_reactions(DialogId dialog_id, bool is_finished);
+
   bool is_dialog_action_unneeded(DialogId dialog_id) const;
 
   void on_send_dialog_action_timeout(DialogId dialog_id);
@@ -3628,8 +3632,13 @@ class MessagesManager final : public Actor {
     double updated_time = 0;
     bool is_update_sent = false;
   };
-
   FlatHashMap<DialogId, OnlineMemberCountInfo, DialogIdHash> dialog_online_member_counts_;
+
+  struct ReactionsToReload {
+    std::unordered_set<MessageId, MessageIdHash> message_ids;
+    bool is_request_sent = false;
+  };
+  FlatHashMap<DialogId, ReactionsToReload, DialogIdHash> being_reloaded_reactions_;
 
   FlatHashMap<DialogId, std::pair<bool, bool>, DialogIdHash> pending_dialog_group_call_updates_;
 

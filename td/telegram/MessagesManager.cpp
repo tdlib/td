@@ -6880,7 +6880,7 @@ void MessagesManager::on_get_message_reaction_list(FullMessageId full_message_id
   if (it != pending_reactions_.end()) {
     it->second.was_updated = true;
   } else {
-    reload_message_reactions(td_, full_message_id.get_dialog_id(), {full_message_id.get_message_id()});
+    queue_message_reactions_reload(full_message_id);
   }
 }
 
@@ -8572,6 +8572,53 @@ vector<string> MessagesManager::get_message_active_reactions(const Dialog *d, co
     }
   }
   return get_dialog_active_reactions(d);
+}
+
+void MessagesManager::queue_message_reactions_reload(FullMessageId full_message_id) {
+  auto dialog_id = full_message_id.get_dialog_id();
+  CHECK(dialog_id.is_valid());
+  auto message_id = full_message_id.get_message_id();
+  CHECK(message_id.is_valid());
+  being_reloaded_reactions_[dialog_id].message_ids.insert(message_id);
+  try_reload_message_reactions(dialog_id, false);
+}
+
+void MessagesManager::try_reload_message_reactions(DialogId dialog_id, bool is_finished) {
+  if (G()->close_flag()) {
+    return;
+  }
+
+  auto it = being_reloaded_reactions_.find(dialog_id);
+  if (it == being_reloaded_reactions_.end()) {
+    return;
+  }
+  if (is_finished) {
+    CHECK(it->second.is_request_sent);
+    it->second.is_request_sent = false;
+
+    if (it->second.message_ids.empty()) {
+      being_reloaded_reactions_.erase(it);
+      return;
+    }
+  } else if (it->second.is_request_sent) {
+    return;
+  }
+
+  CHECK(!it->second.message_ids.empty());
+  CHECK(!it->second.is_request_sent);
+
+  it->second.is_request_sent = true;
+
+  static constexpr size_t MAX_MESSAGE_IDS = 100;  // server-side limit
+  vector<MessageId> message_ids;
+  for (auto message_id_it = it->second.message_ids.begin();
+       message_id_it != it->second.message_ids.end() && message_ids.size() < MAX_MESSAGE_IDS; ++message_id_it) {
+    message_ids.push_back(*message_id_it);
+  }
+  for (auto message_id : message_ids) {
+    it->second.message_ids.erase(message_id);
+  }
+  reload_message_reactions(td_, dialog_id, std::move(message_ids));
 }
 
 bool MessagesManager::update_dialog_silent_send_message(Dialog *d, bool silent_send_message) {
@@ -23595,7 +23642,7 @@ unique_ptr<MessagesManager::Message> MessagesManager::parse_message(Dialog *d, M
     }
     return nullptr;
   }
-  if (m->reactions != nullptr && d != nullptr) {
+  if (m->reactions != nullptr) {
     if (m->available_reactions_generation < d->available_reactions_generation) {
       m->reactions = nullptr;
       m->available_reactions_generation = 0;
@@ -24297,7 +24344,7 @@ void MessagesManager::on_set_message_reaction(FullMessageId full_message_id, Res
   }
 
   if (need_reload) {
-    reload_message_reactions(td_, full_message_id.get_dialog_id(), {full_message_id.get_message_id()});
+    queue_message_reactions_reload(full_message_id);
   }
 
   promise.set_result(std::move(result));
