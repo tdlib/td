@@ -76,7 +76,6 @@ class GetMessagesReactionsQuery final : public Td::ResultHandler {
 class SendReactionQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   DialogId dialog_id_;
-  MessageId message_id_;
 
  public:
   explicit SendReactionQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
@@ -84,7 +83,6 @@ class SendReactionQuery final : public Td::ResultHandler {
 
   void send(FullMessageId full_message_id, string reaction, bool is_big) {
     dialog_id_ = full_message_id.get_dialog_id();
-    message_id_ = full_message_id.get_message_id();
 
     auto input_peer = td_->messages_manager_->get_input_peer(dialog_id_, AccessRights::Read);
     if (input_peer == nullptr) {
@@ -100,8 +98,10 @@ class SendReactionQuery final : public Td::ResultHandler {
       }
     }
 
-    send_query(G()->net_query_creator().create(telegram_api::messages_sendReaction(
-        flags, false /*ignored*/, std::move(input_peer), message_id_.get_server_message_id().get(), reaction)));
+    send_query(G()->net_query_creator().create(
+        telegram_api::messages_sendReaction(flags, false /*ignored*/, std::move(input_peer),
+                                            full_message_id.get_message_id().get_server_message_id().get(), reaction),
+        {{dialog_id_}, {full_message_id}}));
   }
 
   void on_result(BufferSlice packet) final {
@@ -152,8 +152,10 @@ class GetMessageReactionsListQuery final : public Td::ResultHandler {
       flags |= telegram_api::messages_getMessageReactionsList::OFFSET_MASK;
     }
 
-    send_query(G()->net_query_creator().create(telegram_api::messages_getMessageReactionsList(
-        flags, std::move(input_peer), message_id_.get_server_message_id().get(), reaction_, offset_, limit)));
+    send_query(G()->net_query_creator().create(
+        telegram_api::messages_getMessageReactionsList(
+            flags, std::move(input_peer), message_id_.get_server_message_id().get(), reaction_, offset_, limit),
+        {{full_message_id}}));
   }
 
   void on_result(BufferSlice packet) final {
