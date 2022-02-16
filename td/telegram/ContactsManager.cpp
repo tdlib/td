@@ -8119,7 +8119,7 @@ void ContactsManager::save_contacts_to_database() {
   G()->td_db()->get_binlog_pmc()->set("saved_contact_count", to_string(saved_contact_count_));
   G()->td_db()->get_binlog()->force_sync(PromiseCreator::lambda([user_ids = std::move(user_ids)](Result<> result) {
     if (result.is_ok()) {
-      LOG(INFO) << "Save contacts to database";
+      LOG(INFO) << "Saved contacts to database";
       G()->td_db()->get_sqlite_pmc()->set(
           "user_contacts", log_event_store(user_ids).as_slice().str(), PromiseCreator::lambda([](Result<> result) {
             if (result.is_ok()) {
@@ -9915,7 +9915,8 @@ void ContactsManager::update_user(User *u, UserId user_id, bool from_binlog, boo
   }
 
   LOG(DEBUG) << "Update " << user_id << ": need_save_to_database = " << u->need_save_to_database
-             << ", is_changed = " << u->is_changed << ", is_status_changed = " << u->is_status_changed;
+             << ", is_changed = " << u->is_changed << ", is_status_changed = " << u->is_status_changed
+             << ", from_binlog = " << from_binlog << ", from_database = " << from_database;
   u->need_save_to_database |= u->is_changed;
   if (u->need_save_to_database) {
     if (!from_database) {
@@ -13817,7 +13818,7 @@ void ContactsManager::update_contacts_hints(const User *u, UserId user_id, bool 
 
   int64 key = user_id.get();
   string old_value = contacts_hints_.key_to_string(key);
-  string new_value = is_contact ? u->first_name + " " + u->last_name + " " + u->username : "";
+  string new_value = is_contact ? (PSTRING() << u->first_name << ' ' << u->last_name << ' ' << u->username) : string();
 
   if (new_value != old_value) {
     if (is_contact) {
@@ -13830,7 +13831,7 @@ void ContactsManager::update_contacts_hints(const User *u, UserId user_id, bool 
   if (G()->parameters().use_chat_info_db) {
     // update contacts database
     if (!are_contacts_loaded_) {
-      if (!from_database && load_contacts_queries_.empty()) {
+      if (!from_database && load_contacts_queries_.empty() && is_contact) {
         search_contacts("", std::numeric_limits<int32>::max(), Auto());
       }
     } else {
