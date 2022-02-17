@@ -543,8 +543,10 @@ void BM_mask(benchmark::State &state) {
   }
 }
 BENCHMARK_TEMPLATE(BM_mask, MaskPortable);
+#ifdef __aarch64__
 BENCHMARK_TEMPLATE(BM_mask, MaskNeonFolly);
 BENCHMARK_TEMPLATE(BM_mask, MaskNeon);
+#endif
 
 #define FOR_EACH_TABLE(F)  \
   F(td::FlatHashMapChunks) \
