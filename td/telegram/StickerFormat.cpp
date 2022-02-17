@@ -10,7 +10,7 @@
 
 namespace td {
 
-StickerFormat get_sticker_format(Slice mime_type) {
+StickerFormat get_sticker_format_by_mime_type(Slice mime_type) {
   if (mime_type == "application/x-tgsticker") {
     return StickerFormat::Tgs;
   }
@@ -18,6 +18,19 @@ StickerFormat get_sticker_format(Slice mime_type) {
     return StickerFormat::Webp;
   }
   if (mime_type == "video/webm") {
+    return StickerFormat::Webm;
+  }
+  return StickerFormat::Unknown;
+}
+
+StickerFormat get_sticker_format_by_extension(Slice extension) {
+  if (extension == "tgs") {
+    return StickerFormat::Tgs;
+  }
+  if (extension == "webp") {
+    return StickerFormat::Webp;
+  }
+  if (extension == "webm") {
     return StickerFormat::Webm;
   }
   return StickerFormat::Unknown;

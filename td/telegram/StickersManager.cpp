@@ -2267,7 +2267,7 @@ std::pair<int64, FileId> StickersManager::on_get_sticker_document(tl_object_ptr<
     return {};
   }
 
-  auto format = get_sticker_format(document->mime_type_);
+  auto format = get_sticker_format_by_mime_type(document->mime_type_);
   if (format == StickerFormat::Unknown || (expected_format != StickerFormat::Unknown && format != expected_format)) {
     LOG(ERROR) << "Expected sticker of the type " << expected_format << ", but received of the type " << format;
     return {};
@@ -2619,6 +2619,21 @@ void StickersManager::add_sticker_thumbnail(Sticker *s, PhotoSize thumbnail) {
 void StickersManager::create_sticker(FileId file_id, string minithumbnail, PhotoSize thumbnail, Dimensions dimensions,
                                      tl_object_ptr<telegram_api::documentAttributeSticker> sticker,
                                      StickerFormat format, MultiPromiseActor *load_data_multipromise_ptr) {
+  if (format == StickerFormat::Unknown && sticker == nullptr) {
+    auto old_sticker = get_sticker(file_id);
+    if (old_sticker != nullptr) {
+      format = old_sticker->format;
+    } else {
+      // guess format by file extension
+      auto file_view = td_->file_manager_->get_file_view(file_id);
+      auto suggested_path = file_view.suggested_path();
+      const PathView path_view(suggested_path);
+      format = get_sticker_format_by_extension(path_view.extension());
+      if (format == StickerFormat::Unknown) {
+        format = StickerFormat::Webp;
+      }
+    }
+  }
   if (is_sticker_format_vector(format) && dimensions.width == 0) {
     dimensions.width = 512;
     dimensions.height = 512;
@@ -2790,15 +2805,6 @@ tl_object_ptr<telegram_api::InputMedia> StickersManager::get_input_media(
       flags |= telegram_api::inputMediaUploadedDocument::THUMB_MASK;
     }
     auto mime_type = get_sticker_format_mime_type(s->format);
-    if (s->format == StickerFormat::Unknown && !s->set_id.is_valid()) {
-      auto suggested_path = file_view.suggested_path();
-      const PathView path_view(suggested_path);
-      if (path_view.extension() == "tgs") {
-        mime_type = "application/x-tgsticker";
-      } else if (path_view.extension() == "webm") {
-        mime_type = "video/webm";
-      }
-    }
     return make_tl_object<telegram_api::inputMediaUploadedDocument>(
         flags, false /*ignored*/, false /*ignored*/, std::move(input_file), std::move(input_thumbnail), mime_type,
         std::move(attributes), vector<tl_object_ptr<telegram_api::InputDocument>>(), 0);
