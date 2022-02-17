@@ -838,7 +838,7 @@ FileManager::~FileManager() {
 }
 
 string FileManager::fix_file_extension(Slice file_name, Slice file_type, Slice file_extension) {
-  return (file_name.empty() ? file_type : file_name).str() + "." + file_extension.str();
+  return PSTRING() << (file_name.empty() ? file_type : file_name) << '.' << file_extension;
 }
 
 string FileManager::get_file_name(FileType file_type, Slice path) {
@@ -866,7 +866,8 @@ string FileManager::get_file_name(FileType file_type, Slice path) {
       break;
     case FileType::Video:
     case FileType::VideoNote:
-      if (extension != "mov" && extension != "3gp" && extension != "mpeg4" && extension != "mp4") {
+      if (extension != "mov" && extension != "3gp" && extension != "mpeg4" && extension != "mp4" &&
+          extension != "mkv") {
         return fix_file_extension(file_name, "video", "mp4");
       }
       break;
