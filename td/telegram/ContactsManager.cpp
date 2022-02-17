@@ -8308,11 +8308,22 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
 
   bool have_access_hash = (flags & USER_FLAG_HAS_ACCESS_HASH) != 0;
   bool is_received = (flags & USER_FLAG_IS_INACCESSIBLE) == 0;
+  bool is_contact = (flags & USER_FLAG_IS_CONTACT) != 0;
 
-  if (!is_received && !have_user_force(user_id)) {
-    // we must preload information about received inaccessible users from database in order to not save
-    // the min-user to the database and to not override access_hash and another info
-    LOG(INFO) << "Receive inaccessible " << user_id;
+  if (!have_min_user(user_id)) {
+    if (!is_received) {
+      // we must preload received inaccessible users from database in order to not save
+      // the min-user to the database and to not override access_hash and another info
+      if (!have_user_force(user_id)) {
+        LOG(INFO) << "Receive inaccessible " << user_id;
+      }
+    } else if (is_contact && !are_contacts_loaded_) {
+      // preload contact users from database to know that is_contact didn't changed
+      // and the list of contacts doesn't need to be saved to the database
+      if (!have_user_force(user_id)) {
+        LOG(INFO) << "Receive contact " << user_id << " for the first time";
+      }
+    }
   }
 
   User *u = add_user(user_id, "on_get_user");
@@ -8336,7 +8347,6 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
   if (is_received) {
     on_update_user_online(u, user_id, std::move(user->status_));
 
-    auto is_contact = (flags & USER_FLAG_IS_CONTACT) != 0;
     auto is_mutual_contact = (flags & USER_FLAG_IS_MUTUAL_CONTACT) != 0;
     on_update_user_is_contact(u, user_id, is_contact, is_mutual_contact);
   }
@@ -13831,7 +13841,7 @@ void ContactsManager::update_contacts_hints(const User *u, UserId user_id, bool 
   if (G()->parameters().use_chat_info_db) {
     // update contacts database
     if (!are_contacts_loaded_) {
-      if (!from_database && load_contacts_queries_.empty() && is_contact) {
+      if (!from_database && load_contacts_queries_.empty() && is_contact && u->is_is_contact_changed) {
         search_contacts("", std::numeric_limits<int32>::max(), Auto());
       }
     } else {
