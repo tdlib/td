@@ -886,6 +886,7 @@ class CliClient final : public Actor {
         on_file_generation_start(*static_cast<const td_api::updateFileGenerationStart *>(result.get()));
         break;
       case td_api::updateAuthorizationState::ID:
+        LOG(WARNING) << result_str;
         on_update_autorization_state(
             std::move(static_cast<td_api::updateAuthorizationState *>(result.get())->authorization_state_));
         break;

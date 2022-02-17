@@ -3231,6 +3231,7 @@ void StickersManager::load_reactions() {
 
   LOG(INFO) << "Successfully loaded " << reactions_.reactions_.size() << " available reactions";
   send_closure(G()->td(), &Td::send_update, get_update_reactions_object());
+  LOG(INFO) << "Successfully sent updateReactions";
 
   update_active_reactions();
 }
