@@ -14180,8 +14180,8 @@ MessagesManager::MessageInfo MessagesManager::parse_telegram_api_message(
       if (is_scheduled) {
         is_content_read = false;
       }
-      auto new_source = PSTRING() << FullMessageId(message_info.dialog_id, message_info.message_id) << " from "
-                                  << source;
+      auto new_source = PSTRING() << FullMessageId(message_info.dialog_id, message_info.message_id) << " sent by "
+                                  << message_info.sender_dialog_id << " from " << source;
       message_info.content = get_message_content(
           td_,
           get_message_text(td_->contacts_manager_.get(), std::move(message->message_), std::move(message->entities_),
