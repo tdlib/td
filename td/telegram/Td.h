@@ -925,6 +925,18 @@ class Td final : public Actor {
 
   void on_request(uint64 id, const td_api::deleteFile &request);
 
+  void on_request(uint64 id, const td_api::addFileToDownloads &request);
+
+  void on_request(uint64 id, const td_api::toggleDownloadIsPaused &request);
+
+  void on_request(uint64 id, const td_api::toggleAllDownloadsArePaused &request);
+
+  void on_request(uint64 id, const td_api::removeFileFromDownloads &request);
+
+  void on_request(uint64 id, const td_api::removeAllFilesFromDownloads &request);
+
+  void on_request(uint64 id, td_api::searchFileDownloads &request);
+
   void on_request(uint64 id, td_api::getMessageFileType &request);
 
   void on_request(uint64 id, const td_api::getMessageImportConfirmationText &request);

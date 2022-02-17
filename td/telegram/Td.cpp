@@ -6505,6 +6505,38 @@ void Td::on_request(uint64 id, const td_api::deleteFile &request) {
                "td_api::deleteFile");
 }
 
+void Td::on_request(uint64 id, const td_api::addFileToDownloads &request) {
+  CREATE_REQUEST_PROMISE();
+  promise.set_error(Status::Error(500, "Unsupported"));
+}
+
+void Td::on_request(uint64 id, const td_api::toggleDownloadIsPaused &request) {
+  CREATE_OK_REQUEST_PROMISE();
+  promise.set_error(Status::Error(500, "Unsupported"));
+}
+
+void Td::on_request(uint64 id, const td_api::toggleAllDownloadsArePaused &request) {
+  CREATE_OK_REQUEST_PROMISE();
+  promise.set_error(Status::Error(500, "Unsupported"));
+}
+
+void Td::on_request(uint64 id, const td_api::removeFileFromDownloads &request) {
+  CREATE_OK_REQUEST_PROMISE();
+  promise.set_error(Status::Error(500, "Unsupported"));
+}
+
+void Td::on_request(uint64 id, const td_api::removeAllFilesFromDownloads &request) {
+  CREATE_OK_REQUEST_PROMISE();
+  promise.set_error(Status::Error(500, "Unsupported"));
+}
+
+void Td::on_request(uint64 id, td_api::searchFileDownloads &request) {
+  CLEAN_INPUT_STRING(request.query_);
+  CLEAN_INPUT_STRING(request.offset_);
+  CREATE_REQUEST_PROMISE();
+  promise.set_error(Status::Error(500, "Unsupported"));
+}
+
 void Td::on_request(uint64 id, td_api::getMessageFileType &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.message_file_head_);

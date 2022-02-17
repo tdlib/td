@@ -2870,6 +2870,39 @@ class CliClient final : public Actor {
     } else if (op == "delf" || op == "DeleteFile") {
       const string &file_id = args;
       send_request(td_api::make_object<td_api::deleteFile>(as_file_id(file_id)));
+    } else if (op == "aftd") {
+      string file_id;
+      ChatId chat_id;
+      MessageId message_id;
+      int32 priority;
+      get_args(args, file_id, chat_id, message_id, priority);
+      send_request(
+          td_api::make_object<td_api::addFileToDownloads>(as_file_id(file_id), chat_id, message_id, max(priority, 1)));
+    } else if (op == "tdip") {
+      string file_id;
+      bool is_paused;
+      get_args(args, file_id, is_paused);
+      send_request(td_api::make_object<td_api::toggleDownloadIsPaused>(as_file_id(file_id), is_paused));
+    } else if (op == "tadap") {
+      bool are_paused;
+      get_args(args, are_paused);
+      send_request(td_api::make_object<td_api::toggleAllDownloadsArePaused>(are_paused));
+    } else if (op == "rffd") {
+      string file_id;
+      bool delete_from_cache;
+      get_args(args, file_id, delete_from_cache);
+      send_request(td_api::make_object<td_api::removeFileFromDownloads>(as_file_id(file_id), delete_from_cache));
+    } else if (op == "raffd" || op == "raffda" || op == "raffdc") {
+      bool delete_from_cache;
+      get_args(args, delete_from_cache);
+      send_request(td_api::make_object<td_api::removeAllFilesFromDownloads>(op.back() == 'a', op.back() == 'c',
+                                                                            delete_from_cache));
+    } else if (op == "sfd" || op == "sfda" || op == "sfdc") {
+      string offset;
+      SearchQuery query;
+      get_args(args, offset, query);
+      send_request(td_api::make_object<td_api::searchFileDownloads>(query.query, op.back() == 'a', op.back() == 'c',
+                                                                    offset, query.limit));
     } else if (op == "dm" || op == "dmr") {
       ChatId chat_id;
       string message_ids;
