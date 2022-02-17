@@ -7,13 +7,16 @@
 #include "td/utils/algorithm.h"
 #include "td/utils/common.h"
 #include "td/utils/FlatHashMap.h"
+#include "td/utils/FlatHashMapChunks.h"
 #include "td/utils/Random.h"
 #include "td/utils/Slice.h"
 #include "td/utils/tests.h"
 
 #include <algorithm>
 #include <array>
+#include <random>
 #include <unordered_map>
+#include <unordered_set>
 #include <utility>
 
 template <class T>
@@ -23,18 +26,66 @@ static auto extract_kv(const T &reference) {
   return expected;
 }
 
-TEST(FlatHashMap, basic) {
-  {
-    td::FlatHashSet<int> s;
-    s.insert(5);
-    for (auto x : s) {
+template <class T>
+static auto extract_k(const T &reference) {
+  auto expected = td::transform(reference, [](auto &it) { return it; });
+  std::sort(expected.begin(), expected.end());
+  return expected;
+}
+
+TEST(FlatHashMapChunks, basic) {
+  td::FlatHashMapChunks<int, int> kv;
+  kv[5] = 3;
+  ASSERT_EQ(3, kv[5]);
+  kv[3] = 4;
+  ASSERT_EQ(4, kv[3]);
+}
+
+TEST(FlatHashMap, probing) {
+  auto test = [](int buckets, int elements) {
+    CHECK(buckets >= elements);
+    std::vector<bool> data(buckets, false);
+    std::random_device rnd;
+    std::mt19937 mt(rnd());
+    std::uniform_int_distribution<int32_t> d(0, buckets - 1);
+    for (int i = 0; i < elements; i++) {
+      int pos = d(mt);
+      while (data[pos]) {
+        pos++;
+        if (pos == buckets) {
+          pos = 0;
+        }
+      }
+      data[pos] = true;
     }
-    int N = 100000;
-    for (int i = 0; i < 10000000; i++) {
-      s.insert((i + N / 2) % N);
-      s.erase(i % N);
+    int max_chain = 0;
+    int cur_chain = 0;
+    for (auto x : data) {
+      if (x) {
+        cur_chain++;
+        max_chain = std::max(max_chain, cur_chain);
+      } else {
+        cur_chain = 0;
+      }
     }
+    LOG(ERROR) << "buckets=" << buckets << " elements=" << elements << " max_chain=" << max_chain;
+  };
+  test(8192, int(8192 * 0.8));
+  test(8192, int(8192 * 0.6));
+  test(8192, int(8192 * 0.3));
+}
+
+TEST(FlatHashSet, TL) {
+  return;
+  td::FlatHashSet<int> s;
+  int N = 100000;
+  for (int i = 0; i < 10000000; i++) {
+    s.insert((i + N / 2) % N + 1);
+    s.erase(i % N + 1);
   }
+}
+
+TEST(FlatHashMap, basic) {
   {
     td::FlatHashMap<int, int> map;
     map[1] = 2;
@@ -71,7 +122,7 @@ TEST(FlatHashMap, basic) {
     ASSERT_EQ(1u, map.size());
   }
 
-  using KV = td::FlatHashMapImpl<td::string, td::string>;
+  using KV = td::FlatHashMap<td::string, td::string>;
   using Data = td::vector<std::pair<td::string, td::string>>;
   auto data = Data{{"a", "b"}, {"c", "d"}};
   { ASSERT_EQ(Data{}, extract_kv(KV())); }
@@ -163,25 +214,36 @@ TEST(FlatHashMap, remove_if_basic) {
   }
 }
 
+static constexpr size_t MAX_TABLE_SIZE = 1000;
 TEST(FlatHashMap, stress_test) {
-  td::vector<td::RandomSteps::Step> steps;
-  auto add_step = [&steps](td::Slice, td::uint32 weight, auto f) {
-    steps.emplace_back(td::RandomSteps::Step{std::move(f), weight});
-  };
-
   td::Random::Xorshift128plus rnd(123);
-  size_t max_table_size = 1000;  // dynamic value
+  size_t max_table_size = MAX_TABLE_SIZE;  // dynamic value
   std::unordered_map<td::uint64, td::uint64> ref;
-  td::FlatHashMapImpl<td::uint64, td::uint64> tbl;
+  td::FlatHashMap<td::uint64, td::uint64> tbl;
 
   auto validate = [&] {
     ASSERT_EQ(ref.empty(), tbl.empty());
     ASSERT_EQ(ref.size(), tbl.size());
     ASSERT_EQ(extract_kv(ref), extract_kv(tbl));
     for (auto &kv : ref) {
-      ASSERT_EQ(ref[kv.first], tbl[kv.first]);
+      auto tbl_it = tbl.find(kv.first);
+      ASSERT_TRUE(tbl_it != tbl.end());
+      ASSERT_EQ(kv.second, tbl_it->second);
     }
   };
+
+  td::vector<td::RandomSteps::Step> steps;
+  auto add_step = [&](td::Slice step_name, td::uint32 weight, auto f) {
+    auto g = [&, step_name, f = std::move(f)]() {
+      //LOG(ERROR) << step_name;
+      //ASSERT_EQ(ref.size(), tbl.size());
+      f();
+      ASSERT_EQ(ref.size(), tbl.size());
+      //validate();
+    };
+    steps.emplace_back(td::RandomSteps::Step{std::move(g), weight});
+  };
+
   auto gen_key = [&] {
     auto key = rnd() % 4000 + 1;
     return key;
@@ -191,13 +253,13 @@ TEST(FlatHashMap, stress_test) {
     validate();
     td::reset_to_empty(ref);
     td::reset_to_empty(tbl);
-    max_table_size = rnd.fast(1, 1000);
+    max_table_size = rnd.fast(1, MAX_TABLE_SIZE);
   });
   add_step("Clear hash table", 1, [&] {
     validate();
     ref.clear();
     tbl.clear();
-    max_table_size = rnd.fast(1, 1000);
+    max_table_size = rnd.fast(1, MAX_TABLE_SIZE);
   });
 
   add_step("Insert random value", 1000, [&] {
@@ -260,6 +322,88 @@ TEST(FlatHashMap, stress_test) {
     auto bit = rnd() % 64;
     auto condition = [&](auto &it) {
       return (((it.second * mul) >> bit) & 1) == 0;
+    };
+    td::table_remove_if(tbl, condition);
+    td::table_remove_if(ref, condition);
+  });
+
+  td::RandomSteps runner(std::move(steps));
+  for (size_t i = 0; i < 1000000000; i++) {
+    runner.step(rnd);
+  }
+}
+
+TEST(FlatHashSet, stress_test) {
+  td::vector<td::RandomSteps::Step> steps;
+  auto add_step = [&steps](td::Slice, td::uint32 weight, auto f) {
+    steps.emplace_back(td::RandomSteps::Step{std::move(f), weight});
+  };
+
+  td::Random::Xorshift128plus rnd(123);
+  size_t max_table_size = MAX_TABLE_SIZE;  // dynamic value
+  std::unordered_set<td::uint64> ref;
+  td::FlatHashSet<td::uint64> tbl;
+
+  auto validate = [&] {
+    ASSERT_EQ(ref.empty(), tbl.empty());
+    ASSERT_EQ(ref.size(), tbl.size());
+    ASSERT_EQ(extract_k(ref), extract_k(tbl));
+  };
+  auto gen_key = [&] {
+    auto key = rnd() % 4000 + 1;
+    return key;
+  };
+
+  add_step("Reset hash table", 1, [&] {
+    validate();
+    td::reset_to_empty(ref);
+    td::reset_to_empty(tbl);
+    max_table_size = rnd.fast(1, MAX_TABLE_SIZE);
+  });
+  add_step("Clear hash table", 1, [&] {
+    validate();
+    ref.clear();
+    tbl.clear();
+    max_table_size = rnd.fast(1, MAX_TABLE_SIZE);
+  });
+
+  add_step("Insert random value", 1000, [&] {
+    if (tbl.size() > max_table_size) {
+      return;
+    }
+    auto key = gen_key();
+    ref.insert(key);
+    tbl.insert(key);
+  });
+
+  add_step("reserve", 10, [&] { tbl.reserve(rnd() % max_table_size); });
+
+  add_step("find", 1000, [&] {
+    auto key = gen_key();
+    auto ref_it = ref.find(key);
+    auto tbl_it = tbl.find(key);
+    ASSERT_EQ(ref_it == ref.end(), tbl_it == tbl.end());
+    if (ref_it != ref.end()) {
+      ASSERT_EQ(*ref_it, *tbl_it);
+    }
+  });
+
+  add_step("find_and_erase", 100, [&] {
+    auto key = gen_key();
+    auto ref_it = ref.find(key);
+    auto tbl_it = tbl.find(key);
+    ASSERT_EQ(ref_it == ref.end(), tbl_it == tbl.end());
+    if (ref_it != ref.end()) {
+      ref.erase(ref_it);
+      tbl.erase(tbl_it);
+    }
+  });
+
+  add_step("remove_if", 5, [&] {
+    auto mul = rnd();
+    auto bit = rnd() % 64;
+    auto condition = [&](auto &it) {
+      return (((it * mul) >> bit) & 1) == 0;
     };
     td::table_remove_if(tbl, condition);
     td::table_remove_if(ref, condition);

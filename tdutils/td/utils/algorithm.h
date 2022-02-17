@@ -181,12 +181,14 @@ struct reversion_wrapper {
 
 template <typename T>
 auto begin(reversion_wrapper<T> w) {
-  return w.iterable.rbegin();
+  using std::rbegin;
+  return rbegin(w.iterable);
 }
 
 template <typename T>
 auto end(reversion_wrapper<T> w) {
-  return w.iterable.rend();
+  using std::rend;
+  return rend(w.iterable);
 }
 }  // namespace detail
 

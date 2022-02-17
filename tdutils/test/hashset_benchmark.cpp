@@ -7,6 +7,7 @@
 #include "td/utils/algorithm.h"
 #include "td/utils/common.h"
 #include "td/utils/FlatHashMap.h"
+#include "td/utils/FlatHashMapChunks.h"
 #include "td/utils/format.h"
 #include "td/utils/Hash.h"
 #include "td/utils/logging.h"
@@ -398,7 +399,7 @@ static void BM_remove_if_slow(benchmark::State &state) {
 template <typename TableT>
 static void BM_remove_if_slow_old(benchmark::State &state) {
   constexpr size_t N = 100000;
-  constexpr size_t BATCH_SIZE = 500000;
+  constexpr size_t BATCH_SIZE = 5000000;
 
   TableT table;
   while (state.KeepRunningBatch(BATCH_SIZE)) {
@@ -449,13 +450,112 @@ static void benchmark_create(td::Slice name) {
   }
 }
 
-#define FOR_EACH_TABLE(F) \
-  F(td::FlatHashMapImpl)  \
-  F(folly::F14FastMap)    \
-  F(absl::flat_hash_map)  \
-  F(std::unordered_map)   \
+struct CacheMissNode {
+  uint32_t data{};
+  char padding[64 - sizeof(data)];
+};
+
+class IterateFast {
+ public:
+  static __attribute__((noinline)) uint32_t iterate(CacheMissNode *ptr, size_t max_shift) {
+    uint32_t res = 1;
+    for (size_t i = 0; i < max_shift; i++) {
+      if (ptr[i].data % max_shift != 0) {
+        res *= ptr[i].data;
+      } else {
+        res /= ptr[i].data;
+      }
+    }
+    return res;
+  }
+};
+
+class IterateSlow {
+ public:
+  static __attribute__((noinline)) uint32_t iterate(CacheMissNode *ptr, size_t max_shift) {
+    uint32_t res = 1;
+    for (size_t i = 0;; i++) {
+      if (ptr[i].data % max_shift != 0) {
+        res *= ptr[i].data;
+      } else {
+        break;
+      }
+    }
+    return res;
+  }
+};
+#include <random>
+template <class F>
+void BM_cache_miss(benchmark::State &state) {
+  uint32_t max_shift = state.range(0);
+  bool flag = state.range(1);
+  std::random_device rd;
+  std::mt19937 rnd(rd());
+  int N = 50000000;
+  std::vector<CacheMissNode> nodes(N);
+  uint32_t i = 0;
+  for (auto &node : nodes) {
+    if (flag) {
+      node.data = i++ % max_shift;
+    } else {
+      node.data = rnd();
+    }
+  }
+
+  std::vector<int> positions(N);
+  std::uniform_int_distribution<uint32_t> rnd_pos(0, N - 1000);
+  for (auto &pos : positions) {
+    pos = rnd_pos(rnd);
+    if (flag) {
+      pos = pos / max_shift * max_shift + 1;
+    }
+  }
+
+  while (state.KeepRunningBatch(positions.size())) {
+    for (const auto pos : positions) {
+      auto *ptr = &nodes[pos];
+      auto res = F::iterate(ptr, max_shift);
+      benchmark::DoNotOptimize(res);
+    }
+  }
+}
+
+uint64_t equal_mask_slow(uint8_t *bytes, uint8_t needle) {
+  uint64_t mask = 0;
+  for (int i = 0; i < 16; i++) {
+    mask |= (bytes[i] == needle) << i;
+  }
+  return mask;
+}
+
+template <class MaskT>
+void BM_mask(benchmark::State &state) {
+  size_t BATCH_SIZE = 1024;
+  std::vector<uint8_t> bytes(BATCH_SIZE + 16);
+  for (auto &b : bytes) {
+    b = static_cast<uint8_t>(td::Random::fast(0, 17));
+  }
+
+  while (state.KeepRunningBatch(BATCH_SIZE)) {
+    for (size_t i = 0; i < BATCH_SIZE; i++) {
+      benchmark::DoNotOptimize(MaskT::equal_mask(bytes.data() + i, 17));
+    }
+  }
+}
+BENCHMARK_TEMPLATE(BM_mask, MaskPortable);
+BENCHMARK_TEMPLATE(BM_mask, MaskNeonFolly);
+BENCHMARK_TEMPLATE(BM_mask, MaskNeon);
+
+#define FOR_EACH_TABLE(F)  \
+  F(td::FlatHashMapChunks) \
+  F(td::FlatHashMapImpl)   \
+  F(folly::F14FastMap)     \
+  F(absl::flat_hash_map)   \
+  F(std::unordered_map)    \
   F(std::map)
 
+//BENCHMARK(BM_cache_miss<IterateSlow>)->Ranges({{1, 16}, {0, 1}});
+//BENCHMARK(BM_cache_miss<IterateFast>)->Ranges({{1, 16}, {0, 1}});
 //BENCHMARK_TEMPLATE(BM_Get, VectorTable<td::uint64, td::uint64>)->Range(1, 1 << 26);
 //BENCHMARK_TEMPLATE(BM_Get, SortedVectorTable<td::uint64, td::uint64>)->Range(1, 1 << 26);
 //BENCHMARK_TEMPLATE(BM_Get, NoOpTable<td::uint64, td::uint64>)->Range(1, 1 << 26);
@@ -476,16 +576,18 @@ static void benchmark_create(td::Slice name) {
 #define REGISTER_CACHE3_BENCHMARK(HT) BENCHMARK_TEMPLATE(BM_cache3, HT<td::uint64, td::uint64>)->Range(1, 1 << 23);
 #define REGISTER_ERASE_ALL_BENCHMARK(HT) BENCHMARK_TEMPLATE(BM_erase_all_with_begin, HT<td::uint64, td::uint64>);
 #define REGISTER_REMOVE_IF_SLOW_BENCHMARK(HT) BENCHMARK_TEMPLATE(BM_remove_if_slow, HT<td::uint64, td::uint64>);
+#define REGISTER_REMOVE_IF_SLOW_OLD_BENCHMARK(HT) BENCHMARK_TEMPLATE(BM_remove_if_slow_old, HT<td::uint64, td::uint64>);
 
-FOR_EACH_TABLE(REGISTER_REMOVE_IF_SLOW_BENCHMARK)
+FOR_EACH_TABLE(REGISTER_GET_BENCHMARK)
 FOR_EACH_TABLE(REGISTER_CACHE3_BENCHMARK)
 FOR_EACH_TABLE(REGISTER_CACHE2_BENCHMARK)
 FOR_EACH_TABLE(REGISTER_CACHE_BENCHMARK)
 FOR_EACH_TABLE(REGISTER_REMOVE_IF_BENCHMARK)
 FOR_EACH_TABLE(REGISTER_EMPLACE_BENCHMARK)
 FOR_EACH_TABLE(REGISTER_ERASE_ALL_BENCHMARK)
-FOR_EACH_TABLE(REGISTER_GET_BENCHMARK)
 FOR_EACH_TABLE(REGISTER_FIND_BENCHMARK)
+FOR_EACH_TABLE(REGISTER_REMOVE_IF_SLOW_OLD_BENCHMARK)
+FOR_EACH_TABLE(REGISTER_REMOVE_IF_SLOW_BENCHMARK)
 
 #define RUN_CREATE_BENCHMARK(HT) benchmark_create<HT<td::uint64, td::uint64>>(#HT);
 

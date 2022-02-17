@@ -75,6 +75,7 @@ endif()
 
 find_package(ABSL QUIET)
 find_package(folly QUIET)
+find_package(gflags QUIET)
 
 if (ABSL_FOUND AND folly_FOUND)
   add_executable(memory-hashset-memprof EXCLUDE_FROM_ALL hashset_memory.cpp)

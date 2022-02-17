@@ -203,8 +203,11 @@ set(TDUTILS_SOURCE
   td/utils/ExitGuard.h
   td/utils/FileLog.h
   td/utils/filesystem.h
+  td/utils/fixed_vector.h
   td/utils/find_boundary.h
   td/utils/FlatHashMap.h
+  td/utils/FlatHashMapChunks.h
+  td/utils/FlatHashMapLinear.h
   td/utils/FloodControlFast.h
   td/utils/FloodControlStrict.h
   td/utils/format.h
