@@ -542,10 +542,13 @@ void BM_mask(benchmark::State &state) {
     }
   }
 }
-BENCHMARK_TEMPLATE(BM_mask, MaskPortable);
+BENCHMARK_TEMPLATE(BM_mask, td::MaskPortable);
 #ifdef __aarch64__
-BENCHMARK_TEMPLATE(BM_mask, MaskNeonFolly);
-BENCHMARK_TEMPLATE(BM_mask, MaskNeon);
+BENCHMARK_TEMPLATE(BM_mask, td::MaskNeonFolly);
+BENCHMARK_TEMPLATE(BM_mask, td::MaskNeon);
+#endif
+#if TD_SSE2
+BENCHMARK_TEMPLATE(BM_mask, td::MaskSse2);
 #endif
 
 #define FOR_EACH_TABLE(F)  \
