@@ -104,6 +104,7 @@ class LinkManager final : public Actor {
   class InternalLinkThemeSettings;
   class InternalLinkUnknownDeepLink;
   class InternalLinkUnsupportedProxy;
+  class InternalLinkUserPhoneNumber;
   class InternalLinkVoiceChat;
 
   struct LinkInfo {
