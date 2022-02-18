@@ -16,6 +16,10 @@
 #include "td/utils/Slice.h"
 #include "td/utils/StringBuilder.h"
 
+#ifdef SCOPE_EXIT
+#undef SCOPE_EXIT
+#endif
+
 #include <absl/container/flat_hash_map.h>
 #include <array>
 #include <folly/container/F14Map.h>

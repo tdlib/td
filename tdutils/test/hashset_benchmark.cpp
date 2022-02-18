@@ -17,6 +17,10 @@
 #include "td/utils/Time.h"
 #include "td/utils/VectorQueue.h"
 
+#ifdef SCOPE_EXIT
+#undef SCOPE_EXIT
+#endif
+
 #include <absl/container/flat_hash_map.h>
 #include <absl/hash/hash.h>
 #include <algorithm>
