@@ -9,14 +9,12 @@
 #include "td/utils/bits.h"
 #include "td/utils/common.h"
 #include "td/utils/fixed_vector.h"
-#include "td/utils/logging.h"
 
 #include <cstddef>
 #include <functional>
 #include <initializer_list>
 #include <iterator>
 #include <new>
-#include <unordered_map>
 #include <utility>
 
 namespace td {

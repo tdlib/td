@@ -23,16 +23,17 @@
 #include <benchmark/benchmark.h>
 #include <folly/container/F14Map.h>
 #include <map>
+#include <random>
 #include <unordered_map>
 #include <utility>
 
 template <class TableT>
-static void reserve(TableT &table, size_t size) {
+static void reserve(TableT &table, std::size_t size) {
   table.reserve(size);
 }
 
 template <class A, class B>
-static void reserve(std::map<A, B> &table, size_t size) {
+static void reserve(std::map<A, B> &table, std::size_t size) {
 }
 
 template <class KeyT, class ValueT>
@@ -132,7 +133,7 @@ class SimpleHashTable {
 
   ValueT *find(const KeyT &needle) {
     auto hash = HashT()(needle);
-    size_t i = hash % nodes_.size();
+    std::size_t i = hash % nodes_.size();
     while (true) {
       if (nodes_[i].key == needle) {
         return &nodes_[i].value;
@@ -185,7 +186,7 @@ static void BM_Get(benchmark::State &state) {
   td::vector<KeyValue> data;
   td::vector<Key> keys;
 
-  for (size_t i = 0; i < n; i++) {
+  for (std::size_t i = 0; i < n; i++) {
     auto key = rnd();
     auto value = rnd();
     data.emplace_back(key, value);
@@ -193,7 +194,7 @@ static void BM_Get(benchmark::State &state) {
   }
   TableT table(data.begin(), data.end());
 
-  size_t key_i = 0;
+  std::size_t key_i = 0;
   td::random_shuffle(td::as_mutable_span(keys), rnd);
   auto next_key = [&] {
     key_i++;
@@ -204,7 +205,7 @@ static void BM_Get(benchmark::State &state) {
   };
 
   while (state.KeepRunningBatch(BATCH_SIZE)) {
-    for (size_t i = 0; i < BATCH_SIZE; i++) {
+    for (std::size_t i = 0; i < BATCH_SIZE; i++) {
       benchmark::DoNotOptimize(table.find(next_key()));
     }
   }
@@ -214,11 +215,11 @@ template <typename TableT>
 static void BM_find_same(benchmark::State &state) {
   td::Random::Xorshift128plus rnd(123);
   TableT table;
-  constexpr size_t N = 100000;
-  constexpr size_t BATCH_SIZE = 1024;
+  constexpr std::size_t N = 100000;
+  constexpr std::size_t BATCH_SIZE = 1024;
   reserve(table, N);
 
-  for (size_t i = 0; i < N; i++) {
+  for (std::size_t i = 0; i < N; i++) {
     table.emplace(rnd(), i);
   }
 
@@ -226,7 +227,7 @@ static void BM_find_same(benchmark::State &state) {
   table[key] = 123;
 
   while (state.KeepRunningBatch(BATCH_SIZE)) {
-    for (size_t i = 0; i < BATCH_SIZE; i++) {
+    for (std::size_t i = 0; i < BATCH_SIZE; i++) {
       benchmark::DoNotOptimize(table.find(key));
     }
   }
@@ -236,11 +237,11 @@ template <typename TableT>
 static void BM_emplace_same(benchmark::State &state) {
   td::Random::Xorshift128plus rnd(123);
   TableT table;
-  constexpr size_t N = 100000;
-  constexpr size_t BATCH_SIZE = 1024;
+  constexpr std::size_t N = 100000;
+  constexpr std::size_t BATCH_SIZE = 1024;
   reserve(table, N);
 
-  for (size_t i = 0; i < N; i++) {
+  for (std::size_t i = 0; i < N; i++) {
     table.emplace(rnd(), i);
   }
 
@@ -248,7 +249,7 @@ static void BM_emplace_same(benchmark::State &state) {
   table[key] = 123;
 
   while (state.KeepRunningBatch(BATCH_SIZE)) {
-    for (size_t i = 0; i < BATCH_SIZE; i++) {
+    for (std::size_t i = 0; i < BATCH_SIZE; i++) {
       benchmark::DoNotOptimize(table.emplace(key + (i & 15) * 100, 43784932));
     }
   }
@@ -271,15 +272,15 @@ static void table_remove_if(absl::flat_hash_map<K, V> &table, FunctT &&func) {
 
 template <typename TableT>
 static void BM_remove_if(benchmark::State &state) {
-  constexpr size_t N = 100000;
-  constexpr size_t BATCH_SIZE = N;
+  constexpr std::size_t N = 100000;
+  constexpr std::size_t BATCH_SIZE = N;
 
   TableT table;
   reserve(table, N);
   while (state.KeepRunningBatch(BATCH_SIZE)) {
     state.PauseTiming();
     td::Random::Xorshift128plus rnd(123);
-    for (size_t i = 0; i < N; i++) {
+    for (std::size_t i = 0; i < N; i++) {
       table.emplace(rnd(), i);
     }
     state.ResumeTiming();
@@ -290,13 +291,13 @@ static void BM_remove_if(benchmark::State &state) {
 
 template <typename TableT>
 static void BM_erase_all_with_begin(benchmark::State &state) {
-  constexpr size_t N = 100000;
-  constexpr size_t BATCH_SIZE = N;
+  constexpr std::size_t N = 100000;
+  constexpr std::size_t BATCH_SIZE = N;
 
   TableT table;
   td::Random::Xorshift128plus rnd(123);
   while (state.KeepRunningBatch(BATCH_SIZE)) {
-    for (size_t i = 0; i < BATCH_SIZE; i++) {
+    for (std::size_t i = 0; i < BATCH_SIZE; i++) {
       table.emplace(rnd() + 1, i);
     }
     while (!table.empty()) {
@@ -307,14 +308,14 @@ static void BM_erase_all_with_begin(benchmark::State &state) {
 
 template <typename TableT>
 static void BM_cache(benchmark::State &state) {
-  constexpr size_t N = 1000;
-  constexpr size_t BATCH_SIZE = 1000000;
+  constexpr std::size_t N = 1000;
+  constexpr std::size_t BATCH_SIZE = 1000000;
 
   TableT table;
   td::Random::Xorshift128plus rnd(123);
   td::VectorQueue<td::uint64> keys;
   while (state.KeepRunningBatch(BATCH_SIZE)) {
-    for (size_t i = 0; i < BATCH_SIZE; i++) {
+    for (std::size_t i = 0; i < BATCH_SIZE; i++) {
       auto key = rnd() + 1;
       keys.push(key);
       table.emplace(key, i);
@@ -327,14 +328,14 @@ static void BM_cache(benchmark::State &state) {
 
 template <typename TableT>
 static void BM_cache2(benchmark::State &state) {
-  constexpr size_t N = 1000;
-  constexpr size_t BATCH_SIZE = 1000000;
+  constexpr std::size_t N = 1000;
+  constexpr std::size_t BATCH_SIZE = 1000000;
 
   TableT table;
   td::Random::Xorshift128plus rnd(123);
   td::VectorQueue<td::uint64> keys;
   while (state.KeepRunningBatch(BATCH_SIZE)) {
-    for (size_t i = 0; i < BATCH_SIZE; i++) {
+    for (std::size_t i = 0; i < BATCH_SIZE; i++) {
       auto key = rnd() + 1;
       keys.push(key);
       table.emplace(key, i);
@@ -347,20 +348,20 @@ static void BM_cache2(benchmark::State &state) {
 
 template <typename TableT>
 static void BM_cache3(benchmark::State &state) {
-  size_t N = state.range(0);
-  constexpr size_t BATCH_SIZE = 1000000;
+  std::size_t N = state.range(0);
+  constexpr std::size_t BATCH_SIZE = 1000000;
 
   TableT table;
   td::Random::Xorshift128plus rnd(123);
   td::VectorQueue<td::uint64> keys;
-  size_t step = 20;
+  std::size_t step = 20;
   while (state.KeepRunningBatch(BATCH_SIZE)) {
-    for (size_t i = 0; i < BATCH_SIZE; i += step) {
+    for (std::size_t i = 0; i < BATCH_SIZE; i += step) {
       auto key = rnd() + 1;
       keys.push(key);
       table.emplace(key, i);
 
-      for (size_t j = 1; j < step; j++) {
+      for (std::size_t j = 1; j < step; j++) {
         auto key_to_find = keys.data()[rnd() % keys.size()];
         benchmark::DoNotOptimize(table.find(key_to_find));
       }
@@ -373,24 +374,24 @@ static void BM_cache3(benchmark::State &state) {
 }
 template <typename TableT>
 static void BM_remove_if_slow(benchmark::State &state) {
-  constexpr size_t N = 5000;
-  constexpr size_t BATCH_SIZE = 500000;
+  constexpr std::size_t N = 5000;
+  constexpr std::size_t BATCH_SIZE = 500000;
 
   TableT table;
   td::Random::Xorshift128plus rnd(123);
-  for (size_t i = 0; i < N; i++) {
+  for (std::size_t i = 0; i < N; i++) {
     table.emplace(rnd() + 1, i);
   }
   auto first_key = table.begin()->first;
   {
-    size_t cnt = 0;
-    td::table_remove_if(table, [&cnt](auto &) {
+    std::size_t cnt = 0;
+    td::table_remove_if(table, [&cnt, n = N](auto &) {
       cnt += 2;
-      return cnt <= N;
+      return cnt <= n;
     });
   }
   while (state.KeepRunningBatch(BATCH_SIZE)) {
-    for (size_t i = 0; i < BATCH_SIZE; i++) {
+    for (std::size_t i = 0; i < BATCH_SIZE; i++) {
       table.emplace(first_key, i);
       table.erase(first_key);
     }
@@ -398,16 +399,16 @@ static void BM_remove_if_slow(benchmark::State &state) {
 }
 template <typename TableT>
 static void BM_remove_if_slow_old(benchmark::State &state) {
-  constexpr size_t N = 100000;
-  constexpr size_t BATCH_SIZE = 5000000;
+  constexpr std::size_t N = 100000;
+  constexpr std::size_t BATCH_SIZE = 5000000;
 
   TableT table;
   while (state.KeepRunningBatch(BATCH_SIZE)) {
     td::Random::Xorshift128plus rnd(123);
-    for (size_t i = 0; i < BATCH_SIZE; i++) {
+    for (std::size_t i = 0; i < BATCH_SIZE; i++) {
       table.emplace(rnd() + 1, i);
       if (table.size() > N) {
-        size_t cnt = 0;
+        std::size_t cnt = 0;
         td::table_remove_if(table, [&cnt, n = N](auto &) {
           cnt += 2;
           return cnt <= n;
@@ -421,11 +422,11 @@ template <typename TableT>
 static void benchmark_create(td::Slice name) {
   td::Random::Xorshift128plus rnd(123);
   {
-    constexpr size_t N = 10000000;
+    constexpr std::size_t N = 10000000;
     TableT table;
     reserve(table, N);
     auto start = td::Timestamp::now();
-    for (size_t i = 0; i < N; i++) {
+    for (std::size_t i = 0; i < N; i++) {
       table.emplace(rnd(), i);
     }
     auto end = td::Timestamp::now();
@@ -433,8 +434,8 @@ static void benchmark_create(td::Slice name) {
               << "create " << N << " elements: " << td::format::as_time(end.at() - start.at());
 
     double res = 0;
-    td::vector<std::pair<size_t, td::format::Time>> pauses;
-    for (size_t i = 0; i < N; i++) {
+    td::vector<std::pair<std::size_t, td::format::Time>> pauses;
+    for (std::size_t i = 0; i < N; i++) {
       auto emplace_start = td::Timestamp::now();
       table.emplace(rnd(), i);
       auto emplace_end = td::Timestamp::now();
@@ -451,15 +452,15 @@ static void benchmark_create(td::Slice name) {
 }
 
 struct CacheMissNode {
-  uint32_t data{};
+  td::uint32 data{};
   char padding[64 - sizeof(data)];
 };
 
 class IterateFast {
  public:
-  static __attribute__((noinline)) uint32_t iterate(CacheMissNode *ptr, size_t max_shift) {
-    uint32_t res = 1;
-    for (size_t i = 0; i < max_shift; i++) {
+  static td::uint32 iterate(CacheMissNode *ptr, std::size_t max_shift) {
+    td::uint32 res = 1;
+    for (std::size_t i = 0; i < max_shift; i++) {
       if (ptr[i].data % max_shift != 0) {
         res *= ptr[i].data;
       } else {
@@ -472,9 +473,9 @@ class IterateFast {
 
 class IterateSlow {
  public:
-  static __attribute__((noinline)) uint32_t iterate(CacheMissNode *ptr, size_t max_shift) {
-    uint32_t res = 1;
-    for (size_t i = 0;; i++) {
+  static td::uint32 iterate(CacheMissNode *ptr, std::size_t max_shift) {
+    td::uint32 res = 1;
+    for (std::size_t i = 0;; i++) {
       if (ptr[i].data % max_shift != 0) {
         res *= ptr[i].data;
       } else {
@@ -484,16 +485,16 @@ class IterateSlow {
     return res;
   }
 };
-#include <random>
+
 template <class F>
-void BM_cache_miss(benchmark::State &state) {
-  uint32_t max_shift = state.range(0);
+static void BM_cache_miss(benchmark::State &state) {
+  td::uint32 max_shift = state.range(0);
   bool flag = state.range(1);
   std::random_device rd;
   std::mt19937 rnd(rd());
   int N = 50000000;
-  std::vector<CacheMissNode> nodes(N);
-  uint32_t i = 0;
+  td::vector<CacheMissNode> nodes(N);
+  td::uint32 i = 0;
   for (auto &node : nodes) {
     if (flag) {
       node.data = i++ % max_shift;
@@ -502,8 +503,8 @@ void BM_cache_miss(benchmark::State &state) {
     }
   }
 
-  std::vector<int> positions(N);
-  std::uniform_int_distribution<uint32_t> rnd_pos(0, N - 1000);
+  td::vector<int> positions(N);
+  std::uniform_int_distribution<td::uint32> rnd_pos(0, N - 1000);
   for (auto &pos : positions) {
     pos = rnd_pos(rnd);
     if (flag) {
@@ -520,7 +521,7 @@ void BM_cache_miss(benchmark::State &state) {
   }
 }
 
-uint64_t equal_mask_slow(uint8_t *bytes, uint8_t needle) {
+static uint64_t equal_mask_slow(td::uint8 *bytes, td::uint8 needle) {
   uint64_t mask = 0;
   for (int i = 0; i < 16; i++) {
     mask |= (bytes[i] == needle) << i;
@@ -529,19 +530,20 @@ uint64_t equal_mask_slow(uint8_t *bytes, uint8_t needle) {
 }
 
 template <class MaskT>
-void BM_mask(benchmark::State &state) {
-  size_t BATCH_SIZE = 1024;
-  std::vector<uint8_t> bytes(BATCH_SIZE + 16);
+static void BM_mask(benchmark::State &state) {
+  std::size_t BATCH_SIZE = 1024;
+  td::vector<td::uint8> bytes(BATCH_SIZE + 16);
   for (auto &b : bytes) {
-    b = static_cast<uint8_t>(td::Random::fast(0, 17));
+    b = static_cast<td::uint8>(td::Random::fast(0, 17));
   }
 
   while (state.KeepRunningBatch(BATCH_SIZE)) {
-    for (size_t i = 0; i < BATCH_SIZE; i++) {
+    for (std::size_t i = 0; i < BATCH_SIZE; i++) {
       benchmark::DoNotOptimize(MaskT::equal_mask(bytes.data() + i, 17));
     }
   }
 }
+
 BENCHMARK_TEMPLATE(BM_mask, td::MaskPortable);
 #ifdef __aarch64__
 BENCHMARK_TEMPLATE(BM_mask, td::MaskNeonFolly);

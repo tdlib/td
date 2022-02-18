@@ -8,6 +8,7 @@
 #include "td/utils/common.h"
 #include "td/utils/FlatHashMap.h"
 #include "td/utils/FlatHashMapChunks.h"
+#include "td/utils/logging.h"
 #include "td/utils/Random.h"
 #include "td/utils/Slice.h"
 #include "td/utils/tests.h"
@@ -44,10 +45,10 @@ TEST(FlatHashMapChunks, basic) {
 TEST(FlatHashMap, probing) {
   auto test = [](int buckets, int elements) {
     CHECK(buckets >= elements);
-    std::vector<bool> data(buckets, false);
+    td::vector<bool> data(buckets, false);
     std::random_device rnd;
     std::mt19937 mt(rnd());
-    std::uniform_int_distribution<int32_t> d(0, buckets - 1);
+    std::uniform_int_distribution<td::int32> d(0, buckets - 1);
     for (int i = 0; i < elements; i++) {
       int pos = d(mt);
       while (data[pos]) {
@@ -63,16 +64,16 @@ TEST(FlatHashMap, probing) {
     for (auto x : data) {
       if (x) {
         cur_chain++;
-        max_chain = std::max(max_chain, cur_chain);
+        max_chain = td::max(max_chain, cur_chain);
       } else {
         cur_chain = 0;
       }
     }
-    LOG(ERROR) << "buckets=" << buckets << " elements=" << elements << " max_chain=" << max_chain;
+    LOG(INFO) << "Buckets=" << buckets << " elements=" << elements << " max_chain=" << max_chain;
   };
-  test(8192, int(8192 * 0.8));
-  test(8192, int(8192 * 0.6));
-  test(8192, int(8192 * 0.3));
+  test(8192, static_cast<int>(8192 * 0.8));
+  test(8192, static_cast<int>(8192 * 0.6));
+  test(8192, static_cast<int>(8192 * 0.3));
 }
 
 TEST(FlatHashSet, TL) {
@@ -187,7 +188,7 @@ TEST(FlatHashMap, basic) {
 TEST(FlatHashMap, remove_if_basic) {
   td::Random::Xorshift128plus rnd(123);
 
-  constexpr int TESTS_N = 10000;
+  constexpr int TESTS_N = 1000;
   constexpr int MAX_TABLE_SIZE = 1000;
   for (int test_i = 0; test_i < TESTS_N; test_i++) {
     std::unordered_map<td::uint64, td::uint64> reference;
@@ -234,7 +235,7 @@ TEST(FlatHashMap, stress_test) {
 
   td::vector<td::RandomSteps::Step> steps;
   auto add_step = [&](td::Slice step_name, td::uint32 weight, auto f) {
-    auto g = [&, step_name, f = std::move(f)]() {
+    auto g = [&, step_name, f = std::move(f)] {
       //LOG(ERROR) << step_name;
       //ASSERT_EQ(ref.size(), tbl.size());
       f();
@@ -328,7 +329,7 @@ TEST(FlatHashMap, stress_test) {
   });
 
   td::RandomSteps runner(std::move(steps));
-  for (size_t i = 0; i < 10000000; i++) {
+  for (size_t i = 0; i < 1000000; i++) {
     runner.step(rnd);
   }
 }

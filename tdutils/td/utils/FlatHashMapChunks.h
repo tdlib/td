@@ -10,22 +10,22 @@
 #include "td/utils/bits.h"
 #include "td/utils/common.h"
 #include "td/utils/FlatHashMapLinear.h"
-#include "td/utils/logging.h"
 
 #include <cstddef>
 #include <functional>
 #include <initializer_list>
 #include <iterator>
-#include <new>
+#include <limits>
 #include <utility>
 
-#if (defined(_MSC_VER) && (defined(_M_X64) || (defined(_M_IX86) && _M_IX86_FP >= 2)))
+#if defined(__SSE2__) || (TD_MSVC && (defined(_M_X64) || (defined(_M_IX86) && _M_IX86_FP >= 2)))
 #define TD_SSE2 1
 #endif
 
 #ifdef __aarch64__
 #include <arm_neon.h>
 #endif
+
 #if TD_SSE2
 #include <emmintrin.h>
 #endif
@@ -33,12 +33,12 @@
 namespace td {
 template <int shift>
 struct MaskIterator {
-  uint64_t mask;
+  uint64 mask;
   explicit operator bool() const {
     return mask != 0;
   }
   int pos() const {
-    return td::count_trailing_zeroes64(mask) / shift;
+    return count_trailing_zeroes64(mask) / shift;
   }
   void next() {
     mask &= mask - 1;
@@ -63,8 +63,8 @@ struct MaskIterator {
 };
 
 struct MaskPortable {
-  static MaskIterator<1> equal_mask(uint8_t *bytes, uint8_t needle) {
-    uint64_t res = 0;
+  static MaskIterator<1> equal_mask(uint8 *bytes, uint8 needle) {
+    uint64 res = 0;
     for (int i = 0; i < 16; i++) {
       res |= (bytes[i] == needle) << i;
     }
@@ -74,20 +74,20 @@ struct MaskPortable {
 
 #ifdef __aarch64__
 struct MaskNeonFolly {
-  static MaskIterator<4> equal_mask(uint8_t *bytes, uint8_t needle) {
+  static MaskIterator<4> equal_mask(uint8 *bytes, uint8 needle) {
     uint8x16_t input_mask = vld1q_u8(bytes);
     auto needle_mask = vdupq_n_u8(needle);
     auto eq_mask = vceqq_u8(input_mask, needle_mask);
-    // get info from every byte into the bottom half of every uint16_t
+    // get info from every byte into the bottom half of every uint16
     // by shifting right 4, then round to get it into a 64-bit vector
     uint8x8_t shifted_eq_mask = vshrn_n_u16(vreinterpretq_u16_u8(eq_mask), 4);
-    uint64_t mask = vget_lane_u64(vreinterpret_u64_u8(shifted_eq_mask), 0);
+    uint64 mask = vget_lane_u64(vreinterpret_u64_u8(shifted_eq_mask), 0);
     return {mask & 0x11111111111111};
   }
 };
 
 struct MaskNeon {
-  static MaskIterator<1> equal_mask(uint8_t *bytes, uint8_t needle) {
+  static MaskIterator<1> equal_mask(uint8 *bytes, uint8 needle) {
     uint8x16_t input_mask = vld1q_u8(bytes);
     auto needle_mask = vdupq_n_u8(needle);
     auto eq_mask = vceqq_u8(input_mask, needle_mask);
@@ -101,11 +101,11 @@ struct MaskNeon {
 };
 #elif TD_SSE2
 struct MaskSse2 {
-  static MaskIterator<1> equal_mask(uint8_t *bytes, uint8_t needle) {
+  static MaskIterator<1> equal_mask(uint8 *bytes, uint8 needle) {
     auto input_mask = _mm_loadu_si128(reinterpret_cast<const __m128i *>(bytes));
     auto needle_mask = _mm_set1_epi8(needle);
     auto match_mask = _mm_cmpeq_epi8(needle_mask, input_mask);
-    return {static_cast<uint32_t>(_mm_movemask_epi8(match_mask))};
+    return {static_cast<uint32>(_mm_movemask_epi8(match_mask)) & ((1u << 14) - 1)};
   }
 };
 #endif
@@ -224,7 +224,7 @@ class FlatHashTableChunks {
 
   FlatHashTableChunks(std::initializer_list<Node> nodes) {
     reserve(nodes.size());
-    for (auto &node : td::reversed(nodes)) {
+    for (auto &node : reversed(nodes)) {
       CHECK(!node.empty());
       if (count(node.first) > 0) {
         continue;
@@ -351,7 +351,7 @@ class FlatHashTableChunks {
         used_nodes_++;
         return {{node_it, this}, true};
       }
-      CHECK(chunk.skipped_cnt != std::numeric_limits<uint16_t>::max());
+      CHECK(chunk.skipped_cnt != std::numeric_limits<uint16>::max());
       chunk.skipped_cnt++;
       chunk_it.next();
     }
@@ -413,7 +413,7 @@ class FlatHashTableChunks {
     static constexpr int CHUNK_SIZE = 14;
     static constexpr int MASK = (1 << CHUNK_SIZE) - 1;
     // 0x0 - empty
-    td::uint8 ctrl[CHUNK_SIZE] = {};
+    uint8 ctrl[CHUNK_SIZE] = {};
     uint16 skipped_cnt{0};
   };
   fixed_vector<Node> nodes_;
@@ -464,7 +464,7 @@ class FlatHashTableChunks {
 
   struct HashInfo {
     size_t chunk_i;
-    uint8_t small_hash;
+    uint8 small_hash;
   };
   struct ChunkIt {
     size_t chunk_i;
@@ -488,7 +488,7 @@ class FlatHashTableChunks {
   HashInfo calc_hash(const KeyT &key) {
     auto h = HashT()(key);
     // TODO: will be problematic with current hash.
-    return {(h >> 8) % chunks_.size(), uint8_t(0x80 | h)};
+    return {(h >> 8) % chunks_.size(), static_cast<uint8>(0x80 | h)};
   }
 
   void resize(size_t new_size) {
@@ -526,7 +526,7 @@ class FlatHashTableChunks {
         used_nodes_++;
         break;
       }
-      CHECK(chunk.skipped_cnt != std::numeric_limits<uint16_t>::max());
+      CHECK(chunk.skipped_cnt != std::numeric_limits<uint16>::max());
       chunk.skipped_cnt++;
       chunk_it.next();
     }
