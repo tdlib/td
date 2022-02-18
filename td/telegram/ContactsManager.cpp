@@ -188,6 +188,50 @@ class AddContactQuery final : public Td::ResultHandler {
   }
 };
 
+class ResolvePhoneQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  string phone_number_;
+
+ public:
+  explicit ResolvePhoneQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(const string &phone_number) {
+    phone_number_ = phone_number;
+    send_query(G()->net_query_creator().create(telegram_api::contacts_resolvePhone(phone_number)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::contacts_resolvePhone>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(DEBUG) << "Receive result for ResolvePhoneQuery: " << to_string(ptr);
+    td_->contacts_manager_->on_get_users(std::move(ptr->users_), "ResolvePhoneQuery");
+    td_->contacts_manager_->on_get_chats(std::move(ptr->chats_), "ResolvePhoneQuery");
+
+    DialogId dialog_id(ptr->peer_);
+    if (dialog_id.get_type() != DialogType::User) {
+      LOG(ERROR) << "Receive " << dialog_id << " by " << phone_number_;
+      return on_error(Status::Error(500, "Receive invalid response"));
+    }
+
+    td_->contacts_manager_->on_resolved_phone_number(phone_number_, dialog_id.get_user_id());
+
+    promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    if (status.message() == Slice("PHONE_NOT_OCCUPIED")) {
+      td_->contacts_manager_->on_resolved_phone_number(phone_number_, UserId());
+      return promise_.set_value(Unit());
+    }
+    promise_.set_error(std::move(status));
+  }
+};
+
 class AcceptContactQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   UserId user_id_;
@@ -5660,6 +5704,42 @@ std::pair<int32, vector<UserId>> ContactsManager::search_contacts(const string &
   return {narrow_cast<int32>(result.first), std::move(user_ids)};
 }
 
+UserId ContactsManager::search_user_by_phone_number(string phone_number, Promise<Unit> &&promise) {
+  clean_phone_number(phone_number);
+  if (phone_number.empty()) {
+    promise.set_error(Status::Error(200, "Phone number is invalid"));
+    return UserId();
+  }
+
+  auto it = resolved_phone_numbers_.find(phone_number);
+  if (it != resolved_phone_numbers_.end()) {
+    promise.set_value(Unit());
+    return it->second;
+  }
+
+  td_->create_handler<ResolvePhoneQuery>(std::move(promise))->send(phone_number);
+  return UserId();
+}
+
+void ContactsManager::on_resolved_phone_number(const string &phone_number, UserId user_id) {
+  if (!user_id.is_valid()) {
+    resolved_phone_numbers_[phone_number] = user_id;  // negative cache
+    return;
+  }
+
+  auto it = resolved_phone_numbers_.find(phone_number);
+  if (it != resolved_phone_numbers_.end()) {
+    if (it->second != user_id) {
+      LOG(ERROR) << "Resolve phone number \"" << phone_number << "\" to " << user_id << ", but have it in "
+                 << it->second;
+    }
+    return;
+  }
+
+  LOG(ERROR) << "Resolve phone number \"" << phone_number << "\" to " << user_id << ", but doesn't have it";
+  resolved_phone_numbers_[phone_number] = user_id;
+}
+
 void ContactsManager::share_phone_number(UserId user_id, Promise<Unit> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
 
@@ -11085,7 +11165,8 @@ void ContactsManager::on_update_user_phone_number(User *u, UserId user_id, strin
   clean_phone_number(phone_number);
   if (u->phone_number != phone_number) {
     if (!u->phone_number.empty()) {
-      resolved_phone_numbers_.erase(u->phone_number);
+      auto erased_count = resolved_phone_numbers_.erase(u->phone_number) > 0;
+      CHECK(erased_count == 1);
     }
 
     u->phone_number = std::move(phone_number);

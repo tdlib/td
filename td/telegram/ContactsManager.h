@@ -305,6 +305,10 @@ class ContactsManager final : public Actor {
 
   void on_update_contacts_reset();
 
+  UserId search_user_by_phone_number(string phone_number, Promise<Unit> &&promise);
+
+  void on_resolved_phone_number(const string &phone_number, UserId user_id);
+
   void share_phone_number(UserId user_id, Promise<Unit> &&promise);
 
   void search_dialogs_nearby(const Location &location, Promise<td_api::object_ptr<td_api::chatsNearby>> &&promise);

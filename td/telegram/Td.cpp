@@ -784,6 +784,25 @@ class GetChatFilterRequest final : public RequestActor<> {
   }
 };
 
+class SearchUserByPhoneNumberRequest final : public RequestActor<> {
+  string phone_number_;
+
+  UserId user_id_;
+
+  void do_run(Promise<Unit> &&promise) final {
+    user_id_ = td_->contacts_manager_->search_user_by_phone_number(phone_number_, std::move(promise));
+  }
+
+  void do_send_result() final {
+    send_result(td_->contacts_manager_->get_user_object(user_id_));
+  }
+
+ public:
+  SearchUserByPhoneNumberRequest(ActorShared<Td> td, uint64 request_id, string &&phone_number)
+      : RequestActor(std::move(td), request_id), phone_number_(std::move(phone_number)) {
+  }
+};
+
 class LoadChatsRequest final : public RequestActor<> {
   DialogListId dialog_list_id_;
   DialogDate offset_;
@@ -6661,6 +6680,12 @@ void Td::on_request(uint64 id, const td_api::clearImportedContacts &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
   contacts_manager_->clear_imported_contacts(std::move(promise));
+}
+
+void Td::on_request(uint64 id, td_api::searchUserByPhoneNumber &request) {
+  CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.phone_number_);
+  CREATE_REQUEST(SearchUserByPhoneNumberRequest, std::move(request.phone_number_));
 }
 
 void Td::on_request(uint64 id, const td_api::sharePhoneNumber &request) {

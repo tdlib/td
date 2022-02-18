@@ -2049,6 +2049,10 @@ class CliClient final : public Actor {
       get_args(args, user_id, first_name, last_name);
       send_request(td_api::make_object<td_api::addContact>(
           td_api::make_object<td_api::contact>(string(), first_name, last_name, string(), user_id), false));
+    } else if (op == "subpn") {
+      string phone_number;
+      get_args(args, phone_number);
+      send_request(td_api::make_object<td_api::searchUserByPhoneNumber>(phone_number));
     } else if (op == "spn") {
       UserId user_id;
       get_args(args, user_id);
