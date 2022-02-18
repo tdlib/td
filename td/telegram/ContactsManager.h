@@ -1191,7 +1191,7 @@ class ContactsManager final : public Actor {
   static bool is_valid_username(const string &username);
 
   void on_update_user_name(User *u, UserId user_id, string &&first_name, string &&last_name, string &&username);
-  static void on_update_user_phone_number(User *u, UserId user_id, string &&phone_number);
+  void on_update_user_phone_number(User *u, UserId user_id, string &&phone_number);
   void on_update_user_photo(User *u, UserId user_id, tl_object_ptr<telegram_api::UserProfilePhoto> &&photo,
                             const char *source);
   void on_update_user_is_contact(User *u, UserId user_id, bool is_contact, bool is_mutual_contact);
@@ -1733,6 +1733,8 @@ class ContactsManager final : public Actor {
   FlatHashMap<int64, std::pair<vector<UserId>, vector<int32>>> imported_contacts_;
 
   FlatHashMap<ChannelId, vector<DialogParticipant>, ChannelIdHash> cached_channel_participants_;
+
+  FlatHashMap<string, UserId> resolved_phone_numbers_;
 
   // bot-administrators only
   struct ChannelParticipantInfo {

@@ -3626,6 +3626,7 @@ void ContactsManager::User::parse(ParserT &parser) {
     cache_version = 0;
   }
 
+  clean_phone_number(phone_number);
   if (first_name.empty() && last_name.empty()) {
     first_name = phone_number;
   }
@@ -8527,6 +8528,10 @@ void ContactsManager::on_binlog_user_event(BinlogEvent &&event) {
   User *u = add_user(user_id, "on_binlog_user_event");
   *u = std::move(log_event.u);  // users come from binlog before all other events, so just add them
 
+  if (!u->phone_number.empty()) {
+    resolved_phone_numbers_[u->phone_number] = user_id;
+  }
+
   u->log_event_id = event.id_;
 
   update_user(u, user_id, true, false);
@@ -8654,6 +8659,10 @@ void ContactsManager::on_load_user_from_database(UserId user_id, string value, b
       u = add_user(user_id, "on_load_user_from_database");
 
       log_event_parse(*u, value).ensure();
+
+      if (!u->phone_number.empty()) {
+        resolved_phone_numbers_[u->phone_number] = user_id;
+      }
 
       u->is_saved = true;
       u->is_status_saved = true;
@@ -11073,10 +11082,19 @@ void ContactsManager::on_update_user_phone_number(UserId user_id, string &&phone
 }
 
 void ContactsManager::on_update_user_phone_number(User *u, UserId user_id, string &&phone_number) {
+  clean_phone_number(phone_number);
   if (u->phone_number != phone_number) {
+    if (!u->phone_number.empty()) {
+      resolved_phone_numbers_.erase(u->phone_number);
+    }
+
     u->phone_number = std::move(phone_number);
     LOG(DEBUG) << "Phone number has changed for " << user_id;
     u->is_changed = true;
+
+    if (!u->phone_number.empty()) {
+      resolved_phone_numbers_[u->phone_number] = user_id;
+    }
   }
 }
 
