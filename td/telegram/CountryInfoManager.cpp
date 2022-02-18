@@ -8,6 +8,7 @@
 
 #include "td/telegram/Global.h"
 #include "td/telegram/LanguagePackManager.h"
+#include "td/telegram/misc.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/telegram_api.h"
 
@@ -179,7 +180,7 @@ void CountryInfoManager::do_get_countries(string language_code, bool is_recursiv
 
 void CountryInfoManager::get_phone_number_info(string phone_number_prefix,
                                                Promise<td_api::object_ptr<td_api::phoneNumberInfo>> &&promise) {
-  td::remove_if(phone_number_prefix, [](char c) { return c < '0' || c > '9'; });
+  clean_phone_number(phone_number_prefix);
   if (phone_number_prefix.empty()) {
     return promise.set_value(td_api::make_object<td_api::phoneNumberInfo>(nullptr, string(), string()));
   }
@@ -222,7 +223,7 @@ void CountryInfoManager::do_get_phone_number_info(string phone_number_prefix, st
 
 td_api::object_ptr<td_api::phoneNumberInfo> CountryInfoManager::get_phone_number_info_sync(const string &language_code,
                                                                                            string phone_number_prefix) {
-  td::remove_if(phone_number_prefix, [](char c) { return !is_digit(c); });
+  clean_phone_number(phone_number_prefix);
   if (phone_number_prefix.empty()) {
     return td_api::make_object<td_api::phoneNumberInfo>(nullptr, string(), string());
   }

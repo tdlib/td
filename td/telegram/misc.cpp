@@ -51,6 +51,10 @@ string clean_username(string str) {
   return trim(str);
 }
 
+void clean_phone_number(string &phone_number) {
+  td::remove_if(phone_number, [](char c) { return !is_digit(c); });
+}
+
 void replace_offending_characters(string &str) {
   // "(\xe2\x80\x8f|\xe2\x80\x8e){N}(\xe2\x80\x8f|\xe2\x80\x8e)" -> "(\xe2\x80\x8c){N}$2"
   auto s = MutableSlice(str).ubegin();

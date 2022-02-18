@@ -16,6 +16,9 @@ string clean_name(string str, size_t max_length) TD_WARN_UNUSED_RESULT;
 // prepares username/stickername for search
 string clean_username(string str) TD_WARN_UNUSED_RESULT;
 
+// prepares phone number for search
+void clean_phone_number(string &phone_number);
+
 // replaces some offending characters without changing string length
 void replace_offending_characters(string &str);
 
