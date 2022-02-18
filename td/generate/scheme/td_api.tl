@@ -3255,6 +3255,12 @@ chatReportReasonUnrelatedLocation = ChatReportReason;
 //@description The chat represents a fake account
 chatReportReasonFake = ChatReportReason;
 
+//@description The chat has illegal drugs related content
+chatReportReasonIllegalDrugs = ChatReportReason;
+
+//@description The chat contains messages with personal details
+chatReportReasonPersonalDetails = ChatReportReason;
+
 //@description A custom reason provided by the user
 chatReportReasonCustom = ChatReportReason;
 

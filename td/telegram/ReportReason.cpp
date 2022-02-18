@@ -35,6 +35,10 @@ Result<ReportReason> ReportReason::get_report_reason(td_api::object_ptr<td_api::
         return ReportReason::Type::UnrelatedLocation;
       case td_api::chatReportReasonFake::ID:
         return ReportReason::Type::Fake;
+      case td_api::chatReportReasonIllegalDrugs::ID:
+        return ReportReason::Type::IllegalDrugs;
+      case td_api::chatReportReasonPersonalDetails::ID:
+        return ReportReason::Type::PersonalDetails;
       case td_api::chatReportReasonCustom::ID:
         return ReportReason::Type::Custom;
       default:
@@ -61,6 +65,10 @@ tl_object_ptr<telegram_api::ReportReason> ReportReason::get_input_report_reason(
       return make_tl_object<telegram_api::inputReportReasonGeoIrrelevant>();
     case ReportReason::Type::Fake:
       return make_tl_object<telegram_api::inputReportReasonFake>();
+    case ReportReason::Type::IllegalDrugs:
+      return make_tl_object<telegram_api::inputReportReasonIllegalDrugs>();
+    case ReportReason::Type::PersonalDetails:
+      return make_tl_object<telegram_api::inputReportReasonPersonalDetails>();
     case ReportReason::Type::Custom:
       return make_tl_object<telegram_api::inputReportReasonOther>();
     default:
@@ -86,6 +94,10 @@ StringBuilder &operator<<(StringBuilder &string_builder, const ReportReason &rep
       return string_builder << "UnrelatedLocation";
     case ReportReason::Type::Fake:
       return string_builder << "Fake";
+    case ReportReason::Type::IllegalDrugs:
+      return string_builder << "IllegalDrugs";
+    case ReportReason::Type::PersonalDetails:
+      return string_builder << "PersonalDetails";
     case ReportReason::Type::Custom:
       return string_builder << "Custom";
     default:

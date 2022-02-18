@@ -1443,6 +1443,12 @@ class CliClient final : public Actor {
     if (reason == "fake") {
       return td_api::make_object<td_api::chatReportReasonFake>();
     }
+    if (reason == "drugs") {
+      return td_api::make_object<td_api::chatReportReasonIllegalDrugs>();
+    }
+    if (reason == "pd") {
+      return td_api::make_object<td_api::chatReportReasonPersonalDetails>();
+    }
     return td_api::make_object<td_api::chatReportReasonCustom>();
   }
 

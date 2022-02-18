@@ -16,7 +16,18 @@
 namespace td {
 
 class ReportReason {
-  enum class Type : int32 { Spam, Violence, Pornography, ChildAbuse, Copyright, UnrelatedLocation, Fake, Custom };
+  enum class Type : int32 {
+    Spam,
+    Violence,
+    Pornography,
+    ChildAbuse,
+    Copyright,
+    UnrelatedLocation,
+    Fake,
+    IllegalDrugs,
+    PersonalDetails,
+    Custom
+  };
   Type type_ = Type::Spam;
   string message_;
 
