@@ -20,7 +20,7 @@
 #include <utility>
 
 #if (defined(_MSC_VER) && (defined(_M_X64) || (defined(_M_IX86) && _M_IX86_FP >= 2)))
-#define TD_SSE2
+#define TD_SSE2 1
 #endif
 
 #ifdef __aarch64__
@@ -105,7 +105,7 @@ struct MaskSse2 {
     auto input_mask = _mm_loadu_si128(reinterpret_cast<const __m128i *>(bytes));
     auto needle_mask = _mm_set1_epi8(needle);
     auto match_mask = _mm_cmpeq_epi8(needle_mask, input_mask);
-    return MaskIterator<1>(static_cast<uint32_t>(_mm_movemask_epi8(match_mask)));
+    return {static_cast<uint32_t>(_mm_movemask_epi8(match_mask))};
   }
 };
 #endif
