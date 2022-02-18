@@ -172,8 +172,8 @@ class CreateGroupCallQuery final : public Td::ResultHandler {
     if (start_date > 0) {
       flags |= telegram_api::phone_createGroupCall::SCHEDULE_DATE_MASK;
     }
-    send_query(G()->net_query_creator().create(
-        telegram_api::phone_createGroupCall(flags, std::move(input_peer), Random::secure_int32(), title, start_date)));
+    send_query(G()->net_query_creator().create(telegram_api::phone_createGroupCall(
+        flags, false, std::move(input_peer), Random::secure_int32(), title, start_date)));
   }
 
   void on_result(BufferSlice packet) final {
