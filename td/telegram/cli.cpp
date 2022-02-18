@@ -774,6 +774,18 @@ class CliClient final : public Actor {
     arg.user_id = as_user_id(args);
   }
 
+  struct FileId {
+    int32 file_id = 0;
+
+    operator int32() const {
+      return file_id;
+    }
+  };
+
+  void get_args(string &args, FileId &arg) const {
+    arg.file_id = as_file_id(args);
+  }
+
   template <class FirstType, class SecondType, class... Types>
   void get_args(string &args, FirstType &first_arg, SecondType &second_arg, Types &...other_args) const {
     string arg;
@@ -2511,7 +2523,9 @@ class CliClient final : public Actor {
       get_args(args, offset, limit);
       send_request(td_api::make_object<td_api::getTrendingStickerSets>(offset, as_limit(limit, 1000)));
     } else if (op == "gatss") {
-      send_request(td_api::make_object<td_api::getAttachedStickerSets>(as_file_id(args)));
+      FileId file_id;
+      get_args(args, file_id);
+      send_request(td_api::make_object<td_api::getAttachedStickerSets>(file_id));
     } else if (op == "storage") {
       int32 chat_limit;
       get_args(args, chat_limit);
@@ -2798,18 +2812,20 @@ class CliClient final : public Actor {
       get_args(args, text, from_language_code, to_language_code);
       send_request(td_api::make_object<td_api::translateText>(text, from_language_code, to_language_code));
     } else if (op == "gf" || op == "GetFile") {
-      send_request(td_api::make_object<td_api::getFile>(as_file_id(args)));
+      FileId file_id;
+      get_args(args, file_id);
+      send_request(td_api::make_object<td_api::getFile>(file_id));
     } else if (op == "gfdps") {
-      string file_id;
+      FileId file_id;
       int32 offset;
       get_args(args, file_id, offset);
-      send_request(td_api::make_object<td_api::getFileDownloadedPrefixSize>(as_file_id(file_id), offset));
+      send_request(td_api::make_object<td_api::getFileDownloadedPrefixSize>(file_id, offset));
     } else if (op == "rfp") {
-      string file_id;
+      FileId file_id;
       int32 offset;
       int32 count;
       get_args(args, file_id, offset, count);
-      send_request(td_api::make_object<td_api::readFilePart>(as_file_id(file_id), offset, count));
+      send_request(td_api::make_object<td_api::readFilePart>(file_id, offset, count));
     } else if (op == "grf") {
       send_request(td_api::make_object<td_api::getRemoteFile>(args, nullptr));
     } else if (op == "gmtf") {
@@ -2824,7 +2840,7 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::getMapThumbnailFile>(as_location(latitude, longitude, string()), zoom,
                                                                     width, height, scale, chat_id));
     } else if (op == "df" || op == "DownloadFile" || op == "dff" || op == "dfs") {
-      string file_id;
+      FileId file_id;
       int32 offset;
       int32 limit;
       int32 priority;
@@ -2832,18 +2848,20 @@ class CliClient final : public Actor {
       if (priority <= 0) {
         priority = 1;
       }
-      int32 max_file_id = as_file_id(file_id);
+      int32 max_file_id = file_id.file_id;
       int32 min_file_id = (op == "dff" ? 1 : max_file_id);
       for (int32 i = min_file_id; i <= max_file_id; i++) {
         send_request(td_api::make_object<td_api::downloadFile>(i, priority, offset, limit, op == "dfs"));
       }
     } else if (op == "cdf") {
-      send_request(td_api::make_object<td_api::cancelDownloadFile>(as_file_id(args), false));
+      FileId file_id;
+      get_args(args, file_id);
+      send_request(td_api::make_object<td_api::cancelDownloadFile>(file_id, false));
     } else if (op == "gsfn") {
-      string file_id;
+      FileId file_id;
       string directory_name;
       get_args(args, file_id, directory_name);
-      send_request(td_api::make_object<td_api::getSuggestedFileName>(as_file_id(file_id), directory_name));
+      send_request(td_api::make_object<td_api::getSuggestedFileName>(file_id, directory_name));
     } else if (op == "uf" || op == "ufs" || op == "ufse") {
       string file_path;
       int32 priority;
@@ -2866,32 +2884,34 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::uploadFile>(as_generated_file(file_path, conversion),
                                                            td_api::make_object<td_api::fileTypePhoto>(), 1));
     } else if (op == "cuf") {
-      send_request(td_api::make_object<td_api::cancelUploadFile>(as_file_id(args)));
+      FileId file_id;
+      get_args(args, file_id);
+      send_request(td_api::make_object<td_api::cancelUploadFile>(file_id));
     } else if (op == "delf" || op == "DeleteFile") {
-      const string &file_id = args;
-      send_request(td_api::make_object<td_api::deleteFile>(as_file_id(file_id)));
+      FileId file_id;
+      get_args(args, file_id);
+      send_request(td_api::make_object<td_api::deleteFile>(file_id));
     } else if (op == "aftd") {
-      string file_id;
+      FileId file_id;
       ChatId chat_id;
       MessageId message_id;
       int32 priority;
       get_args(args, file_id, chat_id, message_id, priority);
-      send_request(
-          td_api::make_object<td_api::addFileToDownloads>(as_file_id(file_id), chat_id, message_id, max(priority, 1)));
+      send_request(td_api::make_object<td_api::addFileToDownloads>(file_id, chat_id, message_id, max(priority, 1)));
     } else if (op == "tdip") {
-      string file_id;
+      FileId file_id;
       bool is_paused;
       get_args(args, file_id, is_paused);
-      send_request(td_api::make_object<td_api::toggleDownloadIsPaused>(as_file_id(file_id), is_paused));
+      send_request(td_api::make_object<td_api::toggleDownloadIsPaused>(file_id, is_paused));
     } else if (op == "tadap") {
       bool are_paused;
       get_args(args, are_paused);
       send_request(td_api::make_object<td_api::toggleAllDownloadsArePaused>(are_paused));
     } else if (op == "rffd") {
-      string file_id;
+      FileId file_id;
       bool delete_from_cache;
       get_args(args, file_id, delete_from_cache);
-      send_request(td_api::make_object<td_api::removeFileFromDownloads>(as_file_id(file_id), delete_from_cache));
+      send_request(td_api::make_object<td_api::removeFileFromDownloads>(file_id, delete_from_cache));
     } else if (op == "raffd" || op == "raffda" || op == "raffdc") {
       bool delete_from_cache;
       get_args(args, delete_from_cache);
@@ -4451,12 +4471,12 @@ class CliClient final : public Actor {
                                                            get_chat_report_reason(reason), text));
     } else if (op == "rcp") {
       ChatId chat_id;
-      string file_id;
+      FileId file_id;
       string reason;
       string text;
       get_args(args, chat_id, file_id, reason, text);
-      send_request(td_api::make_object<td_api::reportChatPhoto>(chat_id, as_file_id(file_id),
-                                                                get_chat_report_reason(reason), text));
+      send_request(
+          td_api::make_object<td_api::reportChatPhoto>(chat_id, file_id, get_chat_report_reason(reason), text));
     } else if (op == "gcst") {
       ChatId chat_id;
       bool is_dark;
