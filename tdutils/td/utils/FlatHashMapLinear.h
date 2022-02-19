@@ -51,11 +51,8 @@ struct MapNode {
     new (&second) ValueT(std::move(value));
     DCHECK(!empty());
   }
-  ~MapNode() {
-    if (!empty()) {
-      second.~ValueT();
-    }
-  }
+  MapNode(const MapNode &other) = delete;
+  MapNode &operator=(const MapNode &other) = delete;
   MapNode(MapNode &&other) noexcept {
     *this = std::move(other);
   }
@@ -67,6 +64,11 @@ struct MapNode {
     new (&second) ValueT(std::move(other.second));
     other.second.~ValueT();
     return *this;
+  }
+  ~MapNode() {
+    if (!empty()) {
+      second.~ValueT();
+    }
   }
 
   bool empty() const {
@@ -109,6 +111,8 @@ struct SetNode {
   SetNode() = default;
   explicit SetNode(KeyT key) : first(std::move(key)) {
   }
+  SetNode(const SetNode &other) = delete;
+  SetNode &operator=(const SetNode &other) = delete;
   SetNode(SetNode &&other) noexcept {
     *this = std::move(other);
   }
@@ -119,6 +123,7 @@ struct SetNode {
     other.first = KeyT{};
     return *this;
   }
+  ~SetNode() = default;
 
   bool empty() const {
     return is_key_empty(key());
@@ -126,7 +131,7 @@ struct SetNode {
 
   void clear() {
     first = KeyT();
-    CHECK(empty());
+    DCHECK(empty());
   }
 
   void emplace(KeyT key) {
@@ -240,16 +245,17 @@ class FlatHashTable {
 
   FlatHashTable(std::initializer_list<Node> nodes) {
     reserve(nodes.size());
-    for (auto &node : nodes) {
-      CHECK(!node.empty());
-      auto bucket = calc_bucket(node.first);
+    for (auto &new_node : nodes) {
+      CHECK(!new_node.empty());
+      auto bucket = calc_bucket(new_node.first);
       while (true) {
-        if (nodes_[bucket].key() == node.first) {
-          nodes_[bucket].second = node.second;
+        auto &node = nodes_[bucket];
+        if (node.key() == new_node.first) {
+          node.second = new_node.second;
           break;
         }
-        if (nodes_[bucket].empty()) {
-          nodes_[bucket].emplace(node.first, node.second);
+        if (node.empty()) {
+          node.emplace(new_node.first, new_node.second);
           used_nodes_++;
           break;
         }
@@ -289,10 +295,11 @@ class FlatHashTable {
     }
     auto bucket = calc_bucket(key);
     while (true) {
-      if (EqT()(nodes_[bucket].key(), key)) {
-        return Iterator{nodes_.begin() + bucket, this};
+      auto &node = nodes_[bucket];
+      if (EqT()(node.key(), key)) {
+        return Iterator{&node, this};
       }
-      if (nodes_[bucket].empty()) {
+      if (node.empty()) {
         return end();
       }
       next_bucket(bucket);
@@ -346,13 +353,14 @@ class FlatHashTable {
     CHECK(!is_key_empty(key));
     auto bucket = calc_bucket(key);
     while (true) {
-      if (EqT()(nodes_[bucket].key(), key)) {
-        return {Iterator{nodes_.begin() + bucket, this}, false};
+      auto &node = nodes_[bucket];
+      if (EqT()(node.key(), key)) {
+        return {Iterator{&node, this}, false};
       }
-      if (nodes_[bucket].empty()) {
-        nodes_[bucket].emplace(std::move(key), std::forward<ArgsT>(args)...);
+      if (node.empty()) {
+        node.emplace(std::move(key), std::forward<ArgsT>(args)...);
         used_nodes_++;
-        return {Iterator{nodes_.begin() + bucket, this}, true};
+        return {Iterator{&node, this}, true};
       }
       next_bucket(bucket);
     }
@@ -400,7 +408,7 @@ class FlatHashTable {
 
   template <class F>
   void remove_if(F &&f) {
-    auto it = nodes_.begin();
+    auto it = begin().it_;
     while (it != nodes_.end() && !it->empty()) {
       ++it;
     }
@@ -473,15 +481,15 @@ class FlatHashTable {
     fixed_vector<Node> old_nodes(new_size);
     std::swap(old_nodes, nodes_);
 
-    for (auto &node : old_nodes) {
-      if (node.empty()) {
+    for (auto &old_node : old_nodes) {
+      if (old_node.empty()) {
         continue;
       }
-      size_t bucket = calc_bucket(node.key());
+      size_t bucket = calc_bucket(old_node.key());
       while (!nodes_[bucket].empty()) {
         next_bucket(bucket);
       }
-      nodes_[bucket] = std::move(node);
+      nodes_[bucket] = std::move(old_node);
     }
   }
 

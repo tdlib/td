@@ -93,7 +93,7 @@ struct MaskNeon {
     auto eq_mask = vceqq_u8(input_mask, needle_mask);
     uint16x8_t MASK = vdupq_n_u16(0x180);
     uint16x8_t a_masked = vandq_u16(vreinterpretq_u16_u8(eq_mask), MASK);
-    const int16_t __attribute__((aligned(16))) SHIFT_ARR[8] = {-7, -5, -3, -1, 1, 3, 5, 7};
+    const int16 __attribute__((aligned(16))) SHIFT_ARR[8] = {-7, -5, -3, -1, 1, 3, 5, 7};
     int16x8_t SHIFT = vld1q_s16(SHIFT_ARR);
     uint16x8_t a_shifted = vshlq_u16(a_masked, SHIFT);
     return {vaddvq_u16(a_shifted) & ((1u << 14) - 1)};

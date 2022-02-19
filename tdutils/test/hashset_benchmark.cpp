@@ -525,8 +525,8 @@ static void BM_cache_miss(benchmark::State &state) {
   }
 }
 
-static uint64_t equal_mask_slow(td::uint8 *bytes, td::uint8 needle) {
-  uint64_t mask = 0;
+static td::uint64 equal_mask_slow(td::uint8 *bytes, td::uint8 needle) {
+  td::uint64 mask = 0;
   for (int i = 0; i < 16; i++) {
     mask |= (bytes[i] == needle) << i;
   }
