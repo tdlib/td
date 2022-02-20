@@ -119,7 +119,7 @@ TEST(FlatHashMap, basic) {
 
   {
     td::FlatHashMap<int, td::string> map = {{1, "hello"}, {1, "world"}};
-    ASSERT_EQ("world", map[1]);
+    ASSERT_EQ("hello", map[1]);
     ASSERT_EQ(1u, map.size());
   }
 

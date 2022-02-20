@@ -276,8 +276,6 @@ class FlatHashTable {
           break;
         }
         if (EqT()(node.key(), new_node.key())) {
-          node.clear();
-          node.copy_from(new_node);
           break;
         }
         next_bucket(bucket);

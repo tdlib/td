@@ -6,7 +6,6 @@
 //
 #pragma once
 
-#include "td/utils/algorithm.h"
 #include "td/utils/bits.h"
 #include "td/utils/common.h"
 #include "td/utils/FlatHashMapLinear.h"
@@ -224,9 +223,9 @@ class FlatHashTableChunks {
 
   FlatHashTableChunks(std::initializer_list<Node> nodes) {
     reserve(nodes.size());
-    for (auto &node : reversed(nodes)) {
+    for (auto &node : nodes) {
       CHECK(!node.empty());
-      if (count(node.first) > 0) {
+      if (count(node.key()) > 0) {
         continue;
       }
       emplace_node(Node{node.first, node.second});
