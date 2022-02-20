@@ -176,7 +176,6 @@ TEST(FlatHashMap, basic) {
     ASSERT_EQ("a", kv.find("a")->first);
     ASSERT_EQ("b", kv.find("a")->second);
     ASSERT_EQ("a", kv.find("a")->key());
-    ASSERT_EQ("b", kv.find("a")->value());
     kv.find("a")->second = "c";
     ASSERT_EQ("c", kv.find("a")->second);
     ASSERT_EQ("c", kv["a"]);

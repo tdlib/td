@@ -125,17 +125,16 @@ class FlatHashTableChunks {
   using NodeIterator = typename fixed_vector<Node>::iterator;
   using ConstNodeIterator = typename fixed_vector<Node>::const_iterator;
 
-  using KeyT = typename Node::key_type;
-  using key_type = typename Node::key_type;
-  using public_type = typename Node::public_type;
+  using KeyT = typename Node::public_key_type;
+  using key_type = typename Node::public_key_type;
   using value_type = typename Node::public_type;
 
   struct Iterator {
     using iterator_category = std::bidirectional_iterator_tag;
     using difference_type = std::ptrdiff_t;
-    using value_type = public_type;
-    using pointer = public_type *;
-    using reference = public_type &;
+    using value_type = FlatHashTableChunks::value_type;
+    using pointer = value_type *;
+    using reference = value_type &;
 
     friend class FlatHashTableChunks;
     Iterator &operator++() {
@@ -177,7 +176,7 @@ class FlatHashTableChunks {
   struct ConstIterator {
     using iterator_category = std::bidirectional_iterator_tag;
     using difference_type = std::ptrdiff_t;
-    using value_type = public_type;
+    using value_type = FlatHashTableChunks::value_type;
     using pointer = const value_type *;
     using reference = const value_type &;
 
@@ -214,21 +213,25 @@ class FlatHashTableChunks {
   using const_iterator = ConstIterator;
 
   FlatHashTableChunks() = default;
-  FlatHashTableChunks(const FlatHashTableChunks &other) : FlatHashTableChunks(other.begin(), other.end()) {
+  FlatHashTableChunks(const FlatHashTableChunks &other) {
+    assign(other);
   }
   FlatHashTableChunks &operator=(const FlatHashTableChunks &other) {
-    assign(other.begin(), other.end());
+    clear();
+    assign(other);
     return *this;
   }
 
   FlatHashTableChunks(std::initializer_list<Node> nodes) {
     reserve(nodes.size());
-    for (auto &node : nodes) {
-      CHECK(!node.empty());
-      if (count(node.key()) > 0) {
+    for (auto &new_node : nodes) {
+      CHECK(!new_node.empty());
+      if (count(new_node.key()) > 0) {
         continue;
       }
-      emplace_node(Node{node.first, node.second});
+      Node node;
+      node.copy_from(new_node);
+      emplace_node(std::move(node));
     }
   }
 
@@ -246,11 +249,6 @@ class FlatHashTableChunks {
     swap(used_nodes_, other.used_nodes_);
   }
   ~FlatHashTableChunks() = default;
-
-  template <class ItT>
-  FlatHashTableChunks(ItT begin, ItT end) {
-    assign(begin, end);
-  }
 
   size_t bucket_count() const {
     return nodes_.size();
@@ -270,7 +268,7 @@ class FlatHashTableChunks {
       auto mask_it = MaskHelper::equal_mask(chunk.ctrl, hash.small_hash);
       for (auto pos : mask_it) {
         auto it = chunk_begin + pos;
-        if (likely(EqT()(it->first, key))) {
+        if (likely(EqT()(it->key(), key))) {
           return Iterator{it, this};
         }
       }
@@ -367,8 +365,9 @@ class FlatHashTableChunks {
     }
   }
 
-  typename Node::value_type &operator[](const KeyT &key) {
-    return emplace(key).first->value();
+  template <class T = typename Node::second_type>
+  T &operator[](const KeyT &key) {
+    return emplace(key).first->second;
   }
 
   size_t erase(const KeyT &key) {
@@ -419,12 +418,12 @@ class FlatHashTableChunks {
   fixed_vector<Chunk> chunks_;
   size_t used_nodes_{};
 
-  template <class ItT>
-  void assign(ItT begin, ItT end) {
-    clear();
-    reserve(std::distance(begin, end));
-    for (; begin != end; ++begin) {
-      emplace(begin->first, begin->second);
+  void assign(const FlatHashTableChunks &other) {
+    reserve(other.size());
+    for (const auto &new_node : other) {
+      Node node;
+      node.copy_from(new_node);
+      emplace_node(std::move(node));
     }
   }
 
@@ -508,7 +507,7 @@ class FlatHashTableChunks {
 
   void emplace_node(Node &&node) {
     DCHECK(!node.empty());
-    auto hash = calc_hash(node.first);
+    auto hash = calc_hash(node.key());
     auto chunk_it = get_chunk_it(hash.chunk_i);
     while (true) {
       auto chunk_i = chunk_it.pos();
@@ -543,7 +542,7 @@ class FlatHashTableChunks {
     size_t empty_i = it - nodes_.begin();
     DCHECK(0 <= empty_i && empty_i < nodes_.size());
     auto empty_chunk_i = empty_i / Chunk::CHUNK_SIZE;
-    auto hash = calc_hash(it->first);
+    auto hash = calc_hash(it->key());
     auto chunk_it = get_chunk_it(hash.chunk_i);
     while (true) {
       auto chunk_i = chunk_it.pos();

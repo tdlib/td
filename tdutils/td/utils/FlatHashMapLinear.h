@@ -28,20 +28,19 @@ template <class KeyT, class ValueT>
 struct MapNode {
   using first_type = KeyT;
   using second_type = ValueT;
-  using key_type = KeyT;
-  using public_type = MapNode<KeyT, ValueT>;
-  using value_type = ValueT;
+  using public_key_type = KeyT;
+  using public_type = MapNode;
+
   KeyT first{};
   union {
     ValueT second;
   };
-  const auto &key() const {
+
+  const KeyT &key() const {
     return first;
   }
-  auto &value() {
-    return second;
-  }
-  auto &get_public() {
+
+  MapNode &get_public() {
     return *this;
   }
 
@@ -100,23 +99,19 @@ struct MapNode {
 
 template <class KeyT>
 struct SetNode {
-  using first_type = KeyT;
-  using key_type = KeyT;
+  using public_key_type = KeyT;
   using public_type = KeyT;
-  using value_type = KeyT;
 
   KeyT first{};
 
-  const auto &key() const {
-    return first;
-  }
-  const auto &value() const {
+  const KeyT &key() const {
     return first;
   }
 
-  auto &get_public() {
+  KeyT &get_public() {
     return first;
   }
+
   SetNode() = default;
   explicit SetNode(KeyT key) : first(std::move(key)) {
   }
@@ -162,17 +157,16 @@ class FlatHashTable {
   using NodeIterator = typename fixed_vector<Node>::iterator;
   using ConstNodeIterator = typename fixed_vector<Node>::const_iterator;
 
-  using KeyT = typename Node::key_type;
-  using key_type = typename Node::key_type;
-  using public_type = typename Node::public_type;
+  using KeyT = typename Node::public_key_type;
+  using key_type = typename Node::public_key_type;
   using value_type = typename Node::public_type;
 
   struct Iterator {
     using iterator_category = std::bidirectional_iterator_tag;
     using difference_type = std::ptrdiff_t;
-    using value_type = public_type;
-    using pointer = public_type *;
-    using reference = public_type &;
+    using value_type = FlatHashTable::value_type;
+    using pointer = value_type *;
+    using reference = value_type &;
 
     friend class FlatHashTable;
     Iterator &operator++() {
@@ -214,7 +208,7 @@ class FlatHashTable {
   struct ConstIterator {
     using iterator_category = std::bidirectional_iterator_tag;
     using difference_type = std::ptrdiff_t;
-    using value_type = public_type;
+    using value_type = FlatHashTable::value_type;
     using pointer = const value_type *;
     using reference = const value_type &;
 
@@ -391,8 +385,9 @@ class FlatHashTable {
     }
   }
 
-  typename Node::value_type &operator[](const KeyT &key) {
-    return emplace(key).first->value();
+  template <class T = typename Node::second_type>
+  T &operator[](const KeyT &key) {
+    return emplace(key).first->second;
   }
 
   size_t erase(const KeyT &key) {

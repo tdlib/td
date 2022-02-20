@@ -190,13 +190,14 @@ static void BM_Get(benchmark::State &state) {
   td::vector<KeyValue> data;
   td::vector<Key> keys;
 
+  TableT table;
   for (std::size_t i = 0; i < n; i++) {
     auto key = rnd();
     auto value = rnd();
     data.emplace_back(key, value);
+    table.emplace(key, value);
     keys.push_back(key);
   }
-  TableT table(data.begin(), data.end());
 
   std::size_t key_i = 0;
   td::random_shuffle(td::as_mutable_span(keys), rnd);
