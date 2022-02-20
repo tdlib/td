@@ -71,6 +71,13 @@ struct MapNode {
     }
   }
 
+  void copy_from(const MapNode &other) {
+    DCHECK(empty());
+    DCHECK(!other.empty());
+    first = other.first;
+    new (&second) ValueT(other.second);
+  }
+
   bool empty() const {
     return is_key_empty(key());
   }
@@ -97,7 +104,9 @@ struct SetNode {
   using key_type = KeyT;
   using public_type = KeyT;
   using value_type = KeyT;
+
   KeyT first{};
+
   const auto &key() const {
     return first;
   }
@@ -124,6 +133,12 @@ struct SetNode {
     return *this;
   }
   ~SetNode() = default;
+
+  void copy_from(const SetNode &other) {
+    DCHECK(empty());
+    DCHECK(!other.empty());
+    first = other.first;
+  }
 
   bool empty() const {
     return is_key_empty(key());
@@ -236,27 +251,33 @@ class FlatHashTable {
   using const_iterator = ConstIterator;
 
   FlatHashTable() = default;
-  FlatHashTable(const FlatHashTable &other) : FlatHashTable(other.begin(), other.end()) {
+  FlatHashTable(const FlatHashTable &other) {
+    assign(other);
   }
   FlatHashTable &operator=(const FlatHashTable &other) {
-    assign(other.begin(), other.end());
+    clear();
+    assign(other);
     return *this;
   }
 
   FlatHashTable(std::initializer_list<Node> nodes) {
+    if (nodes.size() == 0) {
+      return;
+    }
     reserve(nodes.size());
     for (auto &new_node : nodes) {
       CHECK(!new_node.empty());
-      auto bucket = calc_bucket(new_node.first);
+      auto bucket = calc_bucket(new_node.key());
       while (true) {
         auto &node = nodes_[bucket];
-        if (node.key() == new_node.first) {
-          node.second = new_node.second;
+        if (node.empty()) {
+          node.copy_from(new_node);
+          used_nodes_++;
           break;
         }
-        if (node.empty()) {
-          node.emplace(new_node.first, new_node.second);
-          used_nodes_++;
+        if (EqT()(node.key(), new_node.key())) {
+          node.clear();
+          node.copy_from(new_node);
           break;
         }
         next_bucket(bucket);
@@ -279,11 +300,6 @@ class FlatHashTable {
     swap(used_nodes_, other.used_nodes_);
   }
   ~FlatHashTable() = default;
-
-  template <class ItT>
-  FlatHashTable(ItT begin, ItT end) {
-    assign(begin, end);
-  }
 
   size_t bucket_count() const {
     return nodes_.size();
@@ -434,12 +450,20 @@ class FlatHashTable {
   fixed_vector<Node> nodes_;
   size_t used_nodes_{};
 
-  template <class ItT>
-  void assign(ItT begin, ItT end) {
-    resize(std::distance(begin, end));  // TODO: should be conditional
-    for (; begin != end; ++begin) {
-      emplace(begin->first, begin->second);
+  void assign(const FlatHashTable &other) {
+    resize(other.size());
+    for (const auto &new_node : other) {
+      auto bucket = calc_bucket(new_node.key());
+      while (true) {
+        auto &node = nodes_[bucket];
+        if (node.empty()) {
+          node.copy_from(new_node);
+          break;
+        }
+        next_bucket(bucket);
+      }
     }
+    used_nodes_ = other.size();
   }
 
   void try_grow() {

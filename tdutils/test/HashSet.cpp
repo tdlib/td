@@ -129,7 +129,10 @@ TEST(FlatHashMap, basic) {
   { ASSERT_EQ(Data{}, extract_kv(KV())); }
 
   {
-    KV kv(data.begin(), data.end());
+    KV kv;
+    for (auto &pair : data) {
+      kv.emplace(pair.first, pair.second);
+    }
     ASSERT_EQ(data, extract_kv(kv));
 
     KV copied_kv(kv);
@@ -153,7 +156,10 @@ TEST(FlatHashMap, basic) {
     ASSERT_TRUE(kv.empty());
     kv = std::move(assign_moved_kv);
 
-    KV it_copy_kv(kv.begin(), kv.end());
+    KV it_copy_kv;
+    for (auto &pair : kv) {
+      it_copy_kv.emplace(pair.first, pair.second);
+    }
     ASSERT_EQ(data, extract_kv(it_copy_kv));
   }
 
@@ -161,7 +167,9 @@ TEST(FlatHashMap, basic) {
     KV kv;
     ASSERT_TRUE(kv.empty());
     ASSERT_EQ(0u, kv.size());
-    kv = KV(data.begin(), data.end());
+    for (auto &pair : data) {
+      kv.emplace(pair.first, pair.second);
+    }
     ASSERT_TRUE(!kv.empty());
     ASSERT_EQ(2u, kv.size());
 
