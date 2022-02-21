@@ -71,4 +71,9 @@ class fixed_vector {
   size_t size_{0};
 };
 
+template <class T>
+void swap(fixed_vector<T> &lhs, fixed_vector<T> &rhs) {
+  lhs.swap(rhs);
+}
+
 }  // namespace td

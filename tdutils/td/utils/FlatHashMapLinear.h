@@ -287,9 +287,8 @@ class FlatHashTable {
     return *this;
   }
   void swap(FlatHashTable &other) noexcept {
-    using std::swap;
-    swap(nodes_, other.nodes_);
-    swap(used_nodes_, other.used_nodes_);
+    nodes_.swap(other.nodes_);
+    std::swap(used_nodes_, other.used_nodes_);
   }
   ~FlatHashTable() = default;
 
@@ -496,7 +495,7 @@ class FlatHashTable {
 
   void resize(size_t new_size) {
     fixed_vector<Node> old_nodes(new_size);
-    std::swap(old_nodes, nodes_);
+    old_nodes.swap(nodes_);
 
     for (auto &old_node : old_nodes) {
       if (old_node.empty()) {

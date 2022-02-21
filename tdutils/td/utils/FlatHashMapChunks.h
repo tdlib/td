@@ -243,10 +243,9 @@ class FlatHashTableChunks {
     return *this;
   }
   void swap(FlatHashTableChunks &other) noexcept {
-    using std::swap;
-    swap(nodes_, other.nodes_);
-    swap(chunks_, other.chunks_);
-    swap(used_nodes_, other.used_nodes_);
+    nodes_.swap(other.nodes_);
+    chunks_.swap(other.chunks_);
+    std::swap(used_nodes_, other.used_nodes_);
   }
   ~FlatHashTableChunks() = default;
 
@@ -493,7 +492,7 @@ class FlatHashTableChunks {
     CHECK(new_size >= Chunk::CHUNK_SIZE);
     fixed_vector<Node> old_nodes(new_size);
     fixed_vector<Chunk> chunks(new_size / Chunk::CHUNK_SIZE);
-    std::swap(old_nodes, nodes_);
+    old_nodes.swap(nodes_);
     chunks_ = std::move(chunks);
     used_nodes_ = 0;
 
