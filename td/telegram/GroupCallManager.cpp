@@ -33,6 +33,38 @@
 
 namespace td {
 
+class GetGroupCallStreamChannelsQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::groupCallStreams>> promise_;
+
+ public:
+  explicit GetGroupCallStreamChannelsQuery(Promise<td_api::object_ptr<td_api::groupCallStreams>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(InputGroupCallId input_group_call_id, DcId stream_dc_id) {
+    send_query(G()->net_query_creator().create(
+        telegram_api::phone_getGroupCallStreamChannels(input_group_call_id.get_input_group_call()), {}, stream_dc_id));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::phone_getGroupCallStreamChannels>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    auto streams = transform(ptr->channels_, [](const tl_object_ptr<telegram_api::groupCallStreamChannel> &channel) {
+      return td_api::make_object<td_api::groupCallStream>(channel->channel_, channel->scale_,
+                                                          channel->last_timestamp_ms_);
+    });
+    promise_.set_value(td_api::make_object<td_api::groupCallStreams>(std::move(streams)));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class GetGroupCallStreamQuery final : public Td::ResultHandler {
   Promise<string> promise_;
 
@@ -2300,6 +2332,47 @@ int32 GroupCallManager::cancel_join_group_call_presentation_request(InputGroupCa
   auto audio_source = it->second->audio_source;
   pending_join_presentation_requests_.erase(it);
   return audio_source;
+}
+
+void GroupCallManager::get_group_call_streams(GroupCallId group_call_id,
+                                              Promise<td_api::object_ptr<td_api::groupCallStreams>> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+  TRY_RESULT_PROMISE(promise, input_group_call_id, get_input_group_call_id(group_call_id));
+
+  auto *group_call = get_group_call(input_group_call_id);
+  if (group_call == nullptr || !group_call->is_inited) {
+    reload_group_call(input_group_call_id,
+                      PromiseCreator::lambda([actor_id = actor_id(this), group_call_id, promise = std::move(promise)](
+                                                 Result<td_api::object_ptr<td_api::groupCall>> &&result) mutable {
+                        if (result.is_error()) {
+                          promise.set_error(result.move_as_error());
+                        } else {
+                          send_closure(actor_id, &GroupCallManager::get_group_call_streams, group_call_id,
+                                       std::move(promise));
+                        }
+                      }));
+    return;
+  }
+  if (!group_call->is_active || !group_call->stream_dc_id.is_exact()) {
+    return promise.set_error(Status::Error(400, "Group call can't be streamed"));
+  }
+  if (!group_call->is_joined) {
+    if (is_group_call_being_joined(input_group_call_id) || group_call->need_rejoin) {
+      group_call->after_join.push_back(PromiseCreator::lambda(
+          [actor_id = actor_id(this), group_call_id, promise = std::move(promise)](Result<Unit> &&result) mutable {
+            if (result.is_error()) {
+              promise.set_error(result.move_as_error());
+            } else {
+              send_closure(actor_id, &GroupCallManager::get_group_call_streams, group_call_id, std::move(promise));
+            }
+          }));
+      return;
+    }
+    return promise.set_error(Status::Error(400, "GROUPCALL_JOIN_MISSING"));
+  }
+
+  td_->create_handler<GetGroupCallStreamChannelsQuery>(std::move(promise))
+      ->send(input_group_call_id, group_call->stream_dc_id);
 }
 
 void GroupCallManager::get_group_call_stream_segment(GroupCallId group_call_id, int64 time_offset, int32 scale,

@@ -5938,6 +5938,12 @@ void Td::on_request(uint64 id, const td_api::endGroupCall &request) {
   group_call_manager_->discard_group_call(GroupCallId(request.group_call_id_), std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::getGroupCallStreams &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  group_call_manager_->get_group_call_streams(GroupCallId(request.group_call_id_), std::move(promise));
+}
+
 void Td::on_request(uint64 id, td_api::getGroupCallStreamSegment &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();

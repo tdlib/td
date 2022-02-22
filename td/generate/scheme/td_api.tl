@@ -2323,6 +2323,16 @@ groupCallVideoQualityMedium = GroupCallVideoQuality;
 groupCallVideoQualityFull = GroupCallVideoQuality;
 
 
+//@description Describes an available stream in a group call
+//@channel_id Identifier of an audio/video channel
+//@scale Scale of segment durations in the stream. The duration is 1000/(2**scale) milliseconds
+//@time_offset Point in time when the stream currently ends; Unix timestamp in milliseconds
+groupCallStream channel_id:int32 scale:int32 time_offset:int53 = GroupCallStream;
+
+//@description Represents a list of group call streams @streams A list of group call streams
+groupCallStreams streams:vector<groupCallStream> = GroupCallStreams;
+
+
 //@description Describes a recently speaking participant in a group call @participant_id Group call participant identifier @is_speaking True, is the user has spoken recently
 groupCallRecentSpeaker participant_id:MessageSender is_speaking:Bool = GroupCallRecentSpeaker;
 
@@ -5360,6 +5370,9 @@ leaveGroupCall group_call_id:int32 = Ok;
 
 //@description Ends a group call. Requires groupCall.can_be_managed @group_call_id Group call identifier
 endGroupCall group_call_id:int32 = Ok;
+
+//@description Returns information about available group call streams @group_call_id Group call identifier
+getGroupCallStreams group_call_id:int32 = GroupCallStreams;
 
 //@description Returns a file with a segment of a group call stream in a modified OGG format for audio or MPEG-4 format for video
 //@group_call_id Group call identifier
