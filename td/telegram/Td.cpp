@@ -5394,16 +5394,14 @@ void Td::on_request(uint64 id, td_api::sendMessage &request) {
 }
 
 void Td::on_request(uint64 id, td_api::sendMessageAlbum &request) {
-  DialogId dialog_id(request.chat_id_);
-  auto r_message_ids = messages_manager_->send_message_group(
-      dialog_id, MessageId(request.message_thread_id_), MessageId(request.reply_to_message_id_),
+  auto r_messages = messages_manager_->send_message_group(
+      DialogId(request.chat_id_), MessageId(request.message_thread_id_), MessageId(request.reply_to_message_id_),
       std::move(request.options_), std::move(request.input_message_contents_));
-  if (r_message_ids.is_error()) {
-    return send_closure(actor_id(this), &Td::send_error, id, r_message_ids.move_as_error());
+  if (r_messages.is_error()) {
+    send_closure(actor_id(this), &Td::send_error, id, r_messages.move_as_error());
+  } else {
+    send_closure(actor_id(this), &Td::send_result, id, r_messages.move_as_ok());
   }
-
-  send_closure(actor_id(this), &Td::send_result, id,
-               messages_manager_->get_messages_object(-1, dialog_id, r_message_ids.ok(), false, "sendMessageAlbum"));
 }
 
 void Td::on_request(uint64 id, td_api::sendBotStartMessage &request) {

@@ -25774,7 +25774,7 @@ int64 MessagesManager::generate_new_media_album_id() {
   return media_album_id;
 }
 
-Result<vector<MessageId>> MessagesManager::send_message_group(
+Result<td_api::object_ptr<td_api::messages>> MessagesManager::send_message_group(
     DialogId dialog_id, MessageId top_thread_message_id, MessageId reply_to_message_id,
     tl_object_ptr<td_api::messageSendOptions> &&options,
     vector<tl_object_ptr<td_api::InputMessageContent>> &&input_message_contents) {
@@ -25824,7 +25824,7 @@ Result<vector<MessageId>> MessagesManager::send_message_group(
 
   // there must be no errors after get_message_to_send calls
 
-  vector<MessageId> result;
+  vector<tl_object_ptr<td_api::message>> result;
   bool need_update_dialog_pos = false;
   for (size_t i = 0; i < message_contents.size(); i++) {
     auto &message_content = message_contents[i];
@@ -25832,7 +25832,7 @@ Result<vector<MessageId>> MessagesManager::send_message_group(
                                      dup_message_content(td_, dialog_id, message_content.first.get(),
                                                          MessageContentDupType::Send, MessageCopyOptions()),
                                      &need_update_dialog_pos, i != 0);
-    result.push_back(m->message_id);
+    result.push_back(get_message_object(dialog_id, m, "send_message_group"));
     auto ttl = message_content.second;
     if (ttl > 0) {
       m->ttl = ttl;
@@ -25850,7 +25850,7 @@ Result<vector<MessageId>> MessagesManager::send_message_group(
     send_update_chat_last_message(d, "send_message_group");
   }
 
-  return result;
+  return get_messages_object(-1, std::move(result), false);
 }
 
 void MessagesManager::save_send_message_log_event(DialogId dialog_id, const Message *m) {
