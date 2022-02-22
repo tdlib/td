@@ -8523,20 +8523,6 @@ void ContactsManager::on_binlog_user_event(BinlogEvent &&event) {
     return;
   }
 
-  if (!log_event.u.is_received) {
-    // we must preload received inaccessible users from database in order to not save
-    // the min-user to the database and to not override access_hash and another info
-    if (!have_user_force(user_id)) {
-      LOG(INFO) << "Receive inaccessible " << user_id << " from binlog";
-    }
-  } else if (log_event.u.is_contact && !are_contacts_loaded_) {
-    // preload contact users from database to know that is_contact didn't changed
-    // and the list of contacts doesn't need to be saved to the database
-    if (!have_user_force(user_id)) {
-      LOG(INFO) << "Receive contact " << user_id << " for the first time from binlog";
-    }
-  }
-
   LOG(INFO) << "Add " << user_id << " from binlog";
   User *u = add_user(user_id, "on_binlog_user_event");
   *u = std::move(log_event.u);  // users come from binlog before all other events, so just add them
