@@ -9737,6 +9737,9 @@ MessagesManager::MessagesInfo MessagesManager::get_messages_info(
 
 void MessagesManager::get_channel_difference_if_needed(DialogId dialog_id, MessagesInfo &&messages_info,
                                                        Promise<MessagesInfo> &&promise) {
+  if (!dialog_id.is_valid()) {
+    return get_channel_differences_if_needed(std::move(messages_info), std::move(promise));
+  }
   for (auto &message : messages_info.messages) {
     if (need_channel_difference_to_add_message(dialog_id, message)) {
       return run_after_channel_difference(
