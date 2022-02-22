@@ -2211,6 +2211,10 @@ class CliClient final : public Actor {
       bool only_missed;
       get_args(args, limit, offset_message_id, only_missed);
       send_request(td_api::make_object<td_api::searchCallMessages>(offset_message_id, as_limit(limit), only_missed));
+    } else if (op == "sodm") {
+      SearchQuery query;
+      get_args(args, query);
+      send_request(td_api::make_object<td_api::searchOutgoingDocumentMessages>(query.query, query.limit));
     } else if (op == "DeleteAllCallMessages") {
       bool revoke = as_bool(args);
       send_request(td_api::make_object<td_api::deleteAllCallMessages>(revoke));

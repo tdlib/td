@@ -614,7 +614,9 @@ class Td final : public Actor {
 
   void on_request(uint64 id, td_api::searchMessages &request);
 
-  void on_request(uint64 id, td_api::searchCallMessages &request);
+  void on_request(uint64 id, const td_api::searchCallMessages &request);
+
+  void on_request(uint64 id, td_api::searchOutgoingDocumentMessages &request);
 
   void on_request(uint64 id, const td_api::deleteAllCallMessages &request);
 

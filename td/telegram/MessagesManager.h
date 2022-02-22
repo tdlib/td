@@ -227,6 +227,9 @@ class MessagesManager final : public Actor {
                                      vector<tl_object_ptr<telegram_api::Message>> &&messages, Promise<Unit> &&promise);
   void on_failed_messages_search(int64 random_id);
 
+  void on_get_outgoing_document_messages(vector<tl_object_ptr<telegram_api::Message>> &&messages,
+                                         Promise<td_api::object_ptr<td_api::foundMessages>> &&promise);
+
   void on_get_scheduled_server_messages(DialogId dialog_id, uint32 generation,
                                         vector<tl_object_ptr<telegram_api::Message>> &&messages, bool is_not_modified);
 
@@ -763,6 +766,9 @@ class MessagesManager final : public Actor {
 
   std::pair<int32, vector<FullMessageId>> search_call_messages(MessageId from_message_id, int32 limit, bool only_missed,
                                                                int64 &random_id, bool use_db, Promise<Unit> &&promise);
+
+  void search_outgoing_document_messages(const string &query, int32 limit,
+                                         Promise<td_api::object_ptr<td_api::foundMessages>> &&promise);
 
   void search_dialog_recent_location_messages(DialogId dialog_id, int32 limit,
                                               Promise<td_api::object_ptr<td_api::messages>> &&promise);

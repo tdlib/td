@@ -5220,9 +5220,16 @@ void Td::on_request(uint64 id, td_api::searchMessages &request) {
                  request.limit_, std::move(request.filter_), request.min_date_, request.max_date_);
 }
 
-void Td::on_request(uint64 id, td_api::searchCallMessages &request) {
+void Td::on_request(uint64 id, const td_api::searchCallMessages &request) {
   CHECK_IS_USER();
   CREATE_REQUEST(SearchCallMessagesRequest, request.from_message_id_, request.limit_, request.only_missed_);
+}
+
+void Td::on_request(uint64 id, td_api::searchOutgoingDocumentMessages &request) {
+  CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.query_);
+  CREATE_REQUEST_PROMISE();
+  messages_manager_->search_outgoing_document_messages(request.query_, request.limit_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::deleteAllCallMessages &request) {

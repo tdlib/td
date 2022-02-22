@@ -2636,6 +2636,45 @@ class GetAllScheduledMessagesQuery final : public Td::ResultHandler {
   }
 };
 
+class SearchSentMediaQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::foundMessages>> promise_;
+
+ public:
+  explicit SearchSentMediaQuery(Promise<td_api::object_ptr<td_api::foundMessages>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(const string &query, int32 limit) {
+    send_query(G()->net_query_creator().create(telegram_api::messages_searchSentMedia(
+        query, telegram_api::make_object<telegram_api::inputMessagesFilterDocument>(), limit)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_searchSentMedia>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto info = td_->messages_manager_->get_messages_info(result_ptr.move_as_ok(), "SearchSentMediaQuery");
+    td_->messages_manager_->get_channel_differences_if_needed(
+        std::move(info),
+        PromiseCreator::lambda([actor_id = td_->messages_manager_actor_.get(),
+                                promise = std::move(promise_)](Result<MessagesManager::MessagesInfo> &&result) mutable {
+          if (result.is_error()) {
+            promise.set_error(result.move_as_error());
+          } else {
+            auto info = result.move_as_ok();
+            send_closure(actor_id, &MessagesManager::on_get_outgoing_document_messages, std::move(info.messages),
+                         std::move(promise));
+          }
+        }));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class GetRecentLocationsQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::messages>> promise_;
   DialogId dialog_id_;
@@ -10573,6 +10612,27 @@ void MessagesManager::on_failed_messages_search(int64 random_id) {
   auto it = found_messages_.find(random_id);
   CHECK(it != found_messages_.end());
   found_messages_.erase(it);
+}
+
+void MessagesManager::on_get_outgoing_document_messages(vector<tl_object_ptr<telegram_api::Message>> &&messages,
+                                                        Promise<td_api::object_ptr<td_api::foundMessages>> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+
+  FoundMessages found_messages;
+  for (auto &message : messages) {
+    auto dialog_id = get_message_dialog_id(message);
+    auto full_message_id = on_get_message(std::move(message), false, dialog_id.get_type() == DialogType::Channel, false,
+                                          false, false, "on_get_outgoing_document_messages");
+    if (full_message_id != FullMessageId()) {
+      CHECK(dialog_id == full_message_id.get_dialog_id());
+      found_messages.full_message_ids.push_back(full_message_id);
+    }
+  }
+  auto result = get_found_messages_object(found_messages, "on_get_outgoing_document_messages");
+  td::remove_if(result->messages_,
+                [](const auto &message) { return message->content_->get_id() != td_api::messageDocument::ID; });
+  result->total_count_ = narrow_cast<int32>(result->messages_.size());
+  promise.set_value(std::move(result));
 }
 
 void MessagesManager::on_get_scheduled_server_messages(DialogId dialog_id, uint32 generation,
@@ -22746,10 +22806,21 @@ std::pair<int32, vector<FullMessageId>> MessagesManager::search_call_messages(Me
     }
   }
 
-  LOG(DEBUG) << "Search call messages on server from " << from_message_id << " and with limit " << limit;
   td_->create_handler<SearchMessagesQuery>(std::move(promise))
       ->send(DialogId(), "", DialogId(), from_message_id, 0, limit, filter, MessageId(), random_id);
   return result;
+}
+
+void MessagesManager::search_outgoing_document_messages(const string &query, int32 limit,
+                                                        Promise<td_api::object_ptr<td_api::foundMessages>> &&promise) {
+  if (limit <= 0) {
+    return promise.set_error(Status::Error(400, "Parameter limit must be positive"));
+  }
+  if (limit > MAX_SEARCH_MESSAGES) {
+    limit = MAX_SEARCH_MESSAGES;
+  }
+
+  td_->create_handler<SearchSentMediaQuery>(std::move(promise))->send(query, limit);
 }
 
 void MessagesManager::search_dialog_recent_location_messages(DialogId dialog_id, int32 limit,
