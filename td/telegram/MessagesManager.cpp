@@ -25777,7 +25777,7 @@ int64 MessagesManager::generate_new_media_album_id() {
 Result<td_api::object_ptr<td_api::messages>> MessagesManager::send_message_group(
     DialogId dialog_id, MessageId top_thread_message_id, MessageId reply_to_message_id,
     tl_object_ptr<td_api::messageSendOptions> &&options,
-    vector<tl_object_ptr<td_api::InputMessageContent>> &&input_message_contents) {
+    vector<tl_object_ptr<td_api::InputMessageContent>> &&input_message_contents, bool only_preview) {
   if (input_message_contents.size() > MAX_GROUPED_MESSAGES) {
     return Status::Error(400, "Too many messages to send as an album");
   }
@@ -25828,11 +25828,23 @@ Result<td_api::object_ptr<td_api::messages>> MessagesManager::send_message_group
   bool need_update_dialog_pos = false;
   for (size_t i = 0; i < message_contents.size(); i++) {
     auto &message_content = message_contents[i];
-    Message *m = get_message_to_send(d, top_thread_message_id, reply_to_message_id, message_send_options,
-                                     dup_message_content(td_, dialog_id, message_content.first.get(),
-                                                         MessageContentDupType::Send, MessageCopyOptions()),
-                                     &need_update_dialog_pos, i != 0);
-    result.push_back(get_message_object(dialog_id, m, "send_message_group"));
+    unique_ptr<Message> message;
+    Message *m;
+    if (only_preview) {
+      message = create_message_to_send(d, top_thread_message_id, reply_to_message_id, message_send_options,
+                                       std::move(message_content.first), i != 0, nullptr, false, DialogId());
+      MessageId new_message_id = message_send_options.schedule_date != 0
+                                     ? get_next_yet_unsent_scheduled_message_id(d, message_send_options.schedule_date)
+                                     : get_next_yet_unsent_message_id(d);
+      set_message_id(message, new_message_id);
+      m = message.get();
+    } else {
+      m = get_message_to_send(d, top_thread_message_id, reply_to_message_id, message_send_options,
+                              dup_message_content(td_, dialog_id, message_content.first.get(),
+                                                  MessageContentDupType::Send, MessageCopyOptions()),
+                              &need_update_dialog_pos, i != 0);
+    }
+
     auto ttl = message_content.second;
     if (ttl > 0) {
       m->ttl = ttl;
@@ -25840,13 +25852,18 @@ Result<td_api::object_ptr<td_api::messages>> MessagesManager::send_message_group
     }
     m->media_album_id = media_album_id;
 
-    save_send_message_log_event(dialog_id, m);
-    do_send_message(dialog_id, m);
+    result.push_back(get_message_object(dialog_id, m, "send_message_group"));
 
-    send_update_new_message(d, m);
+    if (!only_preview) {
+      save_send_message_log_event(dialog_id, m);
+      do_send_message(dialog_id, m);
+
+      send_update_new_message(d, m);
+    }
   }
 
   if (need_update_dialog_pos) {
+    CHECK(!only_preview);
     send_update_chat_last_message(d, "send_message_group");
   }
 

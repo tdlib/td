@@ -3465,34 +3465,32 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::addLocalMessage>(
           chat_id, as_message_sender(sender_id), reply_to_message_id, false,
           td_api::make_object<td_api::inputMessageText>(as_formatted_text(message), false, true)));
-    } else if (op == "smap" || op == "smapr") {
+    } else if (op == "smap" || op == "smapr" || op == "smapp" || op == "smaprp") {
       ChatId chat_id;
       MessageId reply_to_message_id;
-      vector<string> photos;
       get_args(args, chat_id, args);
-      if (op == "smapr") {
+      if (op == "smapr" || op == "smaprp") {
         get_args(args, reply_to_message_id, args);
       }
-      photos = full_split(args);
+      auto input_message_contents = transform(full_split(args), [](const string &photo) {
+        td_api::object_ptr<td_api::InputMessageContent> content = td_api::make_object<td_api::inputMessagePhoto>(
+            as_input_file(photo), nullptr, Auto(), 0, 0, as_caption(""), 0);
+        return content;
+      });
       send_request(td_api::make_object<td_api::sendMessageAlbum>(
           chat_id, as_message_thread_id(message_thread_id_), reply_to_message_id, default_message_send_options(),
-          transform(photos, [](const string &photo) {
-            td_api::object_ptr<td_api::InputMessageContent> content = td_api::make_object<td_api::inputMessagePhoto>(
-                as_input_file(photo), nullptr, Auto(), 0, 0, as_caption(""), 0);
-            return content;
-          })));
-    } else if (op == "smad") {
+          std::move(input_message_contents), op == "smapp" || op == "smaprp"));
+    } else if (op == "smad" || op == "smadp") {
       ChatId chat_id;
-      vector<string> documents;
       get_args(args, chat_id, args);
-      documents = full_split(args);
-      send_request(td_api::make_object<td_api::sendMessageAlbum>(
-          chat_id, as_message_thread_id(message_thread_id_), 0, default_message_send_options(),
-          transform(documents, [](const string &document) {
-            td_api::object_ptr<td_api::InputMessageContent> content = td_api::make_object<td_api::inputMessageDocument>(
-                as_input_file(document), nullptr, true, as_caption(""));
-            return content;
-          })));
+      auto input_message_contents = transform(full_split(args), [](const string &document) {
+        td_api::object_ptr<td_api::InputMessageContent> content =
+            td_api::make_object<td_api::inputMessageDocument>(as_input_file(document), nullptr, true, as_caption(""));
+        return content;
+      });
+      send_request(td_api::make_object<td_api::sendMessageAlbum>(chat_id, as_message_thread_id(message_thread_id_), 0,
+                                                                 default_message_send_options(),
+                                                                 std::move(input_message_contents), op.back() == 'p'));
     } else if (op == "gmft") {
       auto r_message_file_head = read_file_str(args, 2 << 10);
       if (r_message_file_head.is_error()) {

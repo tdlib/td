@@ -5396,7 +5396,7 @@ void Td::on_request(uint64 id, td_api::sendMessage &request) {
 void Td::on_request(uint64 id, td_api::sendMessageAlbum &request) {
   auto r_messages = messages_manager_->send_message_group(
       DialogId(request.chat_id_), MessageId(request.message_thread_id_), MessageId(request.reply_to_message_id_),
-      std::move(request.options_), std::move(request.input_message_contents_));
+      std::move(request.options_), std::move(request.input_message_contents_), request.only_preview_);
   if (r_messages.is_error()) {
     send_closure(actor_id(this), &Td::send_error, id, r_messages.move_as_error());
   } else {

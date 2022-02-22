@@ -428,7 +428,8 @@ class MessagesManager final : public Actor {
   Result<td_api::object_ptr<td_api::messages>> send_message_group(
       DialogId dialog_id, MessageId top_thread_message_id, MessageId reply_to_message_id,
       tl_object_ptr<td_api::messageSendOptions> &&options,
-      vector<tl_object_ptr<td_api::InputMessageContent>> &&input_message_contents) TD_WARN_UNUSED_RESULT;
+      vector<tl_object_ptr<td_api::InputMessageContent>> &&input_message_contents,
+      bool only_preview) TD_WARN_UNUSED_RESULT;
 
   Result<MessageId> send_bot_start_message(UserId bot_user_id, DialogId dialog_id,
                                            const string &parameter) TD_WARN_UNUSED_RESULT;
