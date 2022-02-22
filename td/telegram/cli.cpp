@@ -3020,8 +3020,9 @@ class CliClient final : public Actor {
       ChatId chat_id;
       string title;
       int32 start_date;
-      get_args(args, chat_id, title, start_date);
-      send_request(td_api::make_object<td_api::createVideoChat>(chat_id, title, start_date));
+      bool is_rtmp_stream;
+      get_args(args, chat_id, title, start_date, is_rtmp_stream);
+      send_request(td_api::make_object<td_api::createVideoChat>(chat_id, title, start_date, is_rtmp_stream));
     } else if (op == "ggc") {
       send_request(td_api::make_object<td_api::getGroupCall>(as_group_call_id(args)));
     } else if (op == "ggcss") {

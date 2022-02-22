@@ -5744,7 +5744,7 @@ void Td::on_request(uint64 id, td_api::createVideoChat &request) {
     }
   });
   group_call_manager_->create_voice_chat(DialogId(request.chat_id_), std::move(request.title_), request.start_date_,
-                                         std::move(query_promise));
+                                         request.is_rtmp_stream_, std::move(query_promise));
 }
 
 void Td::on_request(uint64 id, const td_api::getGroupCall &request) {

@@ -49,7 +49,8 @@ class GroupCallManager final : public Actor {
 
   void set_group_call_default_join_as(DialogId dialog_id, DialogId as_dialog_id, Promise<Unit> &&promise);
 
-  void create_voice_chat(DialogId dialog_id, string title, int32 start_date, Promise<GroupCallId> &&promise);
+  void create_voice_chat(DialogId dialog_id, string title, int32 start_date, bool is_rtmp_stream,
+                         Promise<GroupCallId> &&promise);
 
   void get_group_call(GroupCallId group_call_id, Promise<td_api::object_ptr<td_api::groupCall>> &&promise);
 

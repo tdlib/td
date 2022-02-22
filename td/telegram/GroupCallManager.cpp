@@ -159,7 +159,7 @@ class CreateGroupCallQuery final : public Td::ResultHandler {
   explicit CreateGroupCallQuery(Promise<InputGroupCallId> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(DialogId dialog_id, const string &title, int32 start_date) {
+  void send(DialogId dialog_id, const string &title, int32 start_date, bool is_rtmp_stream) {
     dialog_id_ = dialog_id;
 
     auto input_peer = td_->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
@@ -171,6 +171,9 @@ class CreateGroupCallQuery final : public Td::ResultHandler {
     }
     if (start_date > 0) {
       flags |= telegram_api::phone_createGroupCall::SCHEDULE_DATE_MASK;
+    }
+    if (is_rtmp_stream) {
+      flags |= telegram_api::phone_createGroupCall::RTMP_STREAM_MASK;
     }
     send_query(G()->net_query_creator().create(telegram_api::phone_createGroupCall(
         flags, false, std::move(input_peer), Random::secure_int32(), title, start_date)));
@@ -1243,7 +1246,7 @@ void GroupCallManager::set_group_call_default_join_as(DialogId dialog_id, Dialog
   td_->messages_manager_->on_update_dialog_default_join_group_call_as_dialog_id(dialog_id, as_dialog_id, true);
 }
 
-void GroupCallManager::create_voice_chat(DialogId dialog_id, string title, int32 start_date,
+void GroupCallManager::create_voice_chat(DialogId dialog_id, string title, int32 start_date, bool is_rtmp_stream,
                                          Promise<GroupCallId> &&promise) {
   if (!dialog_id.is_valid()) {
     return promise.set_error(Status::Error(400, "Invalid chat identifier specified"));
@@ -1268,7 +1271,8 @@ void GroupCallManager::create_voice_chat(DialogId dialog_id, string title, int32
                        std::move(promise));
         }
       });
-  td_->create_handler<CreateGroupCallQuery>(std::move(query_promise))->send(dialog_id, title, start_date);
+  td_->create_handler<CreateGroupCallQuery>(std::move(query_promise))
+      ->send(dialog_id, title, start_date, is_rtmp_stream);
 }
 
 void GroupCallManager::on_voice_chat_created(DialogId dialog_id, InputGroupCallId input_group_call_id,
