@@ -390,11 +390,13 @@ install(TARGETS tdutils EXPORT TdTargets
   ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
 )
 
-find_package(benchmark QUIET)
-find_package(folly QUIET)
-find_package(gflags QUIET)
+if (TD_TEST_FOLLY)
+  find_package(benchmark QUIET)
+  find_package(folly QUIET)
+  find_package(gflags QUIET)
 
-if (ABSL_FOUND AND benchmark_FOUND AND folly_FOUND)
-  add_executable(benchmark-hashset test/hashset_benchmark.cpp)
-  target_link_libraries(benchmark-hashset PRIVATE tdutils benchmark::benchmark Folly::folly absl::flat_hash_map absl::hash)
+  if (ABSL_FOUND AND benchmark_FOUND AND folly_FOUND)
+    add_executable(benchmark-hashset test/hashset_benchmark.cpp)
+    target_link_libraries(benchmark-hashset PRIVATE tdutils benchmark::benchmark Folly::folly absl::flat_hash_map absl::hash)
+  endif()
 endif()
