@@ -8,6 +8,7 @@
 
 #include "td/utils/bits.h"
 #include "td/utils/common.h"
+#include "td/utils/fixed_vector.h"
 #include "td/utils/FlatHashMapLinear.h"
 
 #include <cstddef>
