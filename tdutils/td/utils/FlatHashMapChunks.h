@@ -483,8 +483,7 @@ class FlatHashTableChunks {
   }
 
   HashInfo calc_hash(const KeyT &key) {
-    auto h = HashT()(key);
-    // TODO: will be problematic with current hash.
+    auto h = randomize_hash(HashT()(key));
     return {(h >> 8) % chunks_.size(), static_cast<uint8>(0x80 | h)};
   }
 

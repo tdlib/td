@@ -18,10 +18,20 @@
 #include <utility>
 
 namespace td {
-// TODO: move
+
 template <class KeyT>
 bool is_key_empty(const KeyT &key) {
   return key == KeyT();
+}
+
+inline uint32 randomize_hash(size_t h) {
+  auto result = static_cast<uint32>(h & 0xFFFFFFFF);
+  result ^= result >> 16;
+  result *= 0x85ebca6b;
+  result ^= result >> 13;
+  result *= 0xc2b2ae35;
+  result ^= result >> 16;
+  return result;
 }
 
 template <class KeyT, class ValueT>
@@ -485,8 +495,8 @@ class FlatHashTable {
     resize(want_size);
   }
 
-  size_t calc_bucket(const KeyT &key) const {
-    return HashT()(key) % nodes_.size();
+  uint32 calc_bucket(const KeyT &key) const {
+    return randomize_hash(HashT()(key)) & static_cast<uint32>(nodes_.size() - 1);
   }
 
   void resize(size_t new_size) {
@@ -497,7 +507,7 @@ class FlatHashTable {
       if (old_node.empty()) {
         continue;
       }
-      size_t bucket = calc_bucket(old_node.key());
+      auto bucket = calc_bucket(old_node.key());
       while (!nodes_[bucket].empty()) {
         next_bucket(bucket);
       }
@@ -505,11 +515,8 @@ class FlatHashTable {
     }
   }
 
-  void next_bucket(size_t &bucket) const {
-    bucket++;
-    if (unlikely(bucket == nodes_.size())) {
-      bucket = 0;
-    }
+  void next_bucket(uint32 &bucket) const {
+    bucket = (bucket + 1) & static_cast<uint32>(nodes_.size() - 1);
   }
 
   void erase_node(NodeIterator it) {
@@ -531,7 +538,7 @@ class FlatHashTable {
 
       auto want_i = calc_bucket(nodes_[test_bucket].key());
       if (want_i < empty_i) {
-        want_i += nodes_.size();
+        want_i += static_cast<uint32>(nodes_.size());
       }
 
       if (want_i <= empty_i || want_i > test_i) {
