@@ -353,7 +353,7 @@ class FlatHashTable {
   void reserve(size_t size) {
     size_t want_size = normalize(size * 5 / 3 + 1);
     // size_t want_size = size * 2;
-    if (want_size > nodes_.size()) {
+    if (want_size > bucket_count()) {
       resize(want_size);
     }
   }
@@ -463,7 +463,7 @@ class FlatHashTable {
   }
 
   void try_grow() {
-    if (should_grow(used_nodes_ + 1, nodes_.size())) {
+    if (should_grow(used_nodes_ + 1, bucket_count())) {
       grow();
     }
   }
@@ -471,7 +471,7 @@ class FlatHashTable {
     return used_count * 5 > bucket_count * 3;
   }
   void try_shrink() {
-    if (should_shrink(used_nodes_, nodes_.size())) {
+    if (should_shrink(used_nodes_, bucket_count())) {
       shrink();
     }
   }
@@ -489,12 +489,12 @@ class FlatHashTable {
   }
 
   void grow() {
-    size_t want_size = normalize(2 * nodes_.size() - !nodes_.empty());
+    size_t want_size = normalize(2 * bucket_count() - !nodes_.empty());
     resize(want_size);
   }
 
   uint32 calc_bucket(const KeyT &key) const {
-    return randomize_hash(HashT()(key)) & static_cast<uint32>(nodes_.size() - 1);
+    return randomize_hash(HashT()(key)) & static_cast<uint32>(bucket_count() - 1);
   }
 
   void resize(size_t new_size) {
@@ -514,20 +514,20 @@ class FlatHashTable {
   }
 
   void next_bucket(uint32 &bucket) const {
-    bucket = (bucket + 1) & static_cast<uint32>(nodes_.size() - 1);
+    bucket = (bucket + 1) & static_cast<uint32>(bucket_count() - 1);
   }
 
   void erase_node(NodeIterator it) {
     size_t empty_i = it - nodes_.begin();
     auto empty_bucket = empty_i;
-    DCHECK(0 <= empty_i && empty_i < nodes_.size());
+    DCHECK(0 <= empty_i && empty_i < bucket_count());
     nodes_[empty_bucket].clear();
     used_nodes_--;
 
     for (size_t test_i = empty_i + 1;; test_i++) {
       auto test_bucket = test_i;
-      if (test_bucket >= nodes_.size()) {
-        test_bucket -= nodes_.size();
+      if (test_bucket >= bucket_count()) {
+        test_bucket -= bucket_count();
       }
 
       if (nodes_[test_bucket].empty()) {
@@ -536,7 +536,7 @@ class FlatHashTable {
 
       auto want_i = calc_bucket(nodes_[test_bucket].key());
       if (want_i < empty_i) {
-        want_i += static_cast<uint32>(nodes_.size());
+        want_i += static_cast<uint32>(bucket_count());
       }
 
       if (want_i <= empty_i || want_i > test_i) {
