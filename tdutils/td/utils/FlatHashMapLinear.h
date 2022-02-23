@@ -160,14 +160,12 @@ struct SetNode {
 template <class NodeT, class HashT, class EqT>
 class FlatHashTable {
  public:
-  using Self = FlatHashTable<NodeT, HashT, EqT>;
-  using Node = NodeT;
-  using NodeIterator = typename fixed_vector<Node>::iterator;
-  using ConstNodeIterator = typename fixed_vector<Node>::const_iterator;
+  using NodeIterator = NodeT *;
+  using ConstNodeIterator = const NodeT *;
 
-  using KeyT = typename Node::public_key_type;
-  using key_type = typename Node::public_key_type;
-  using value_type = typename Node::public_type;
+  using KeyT = typename NodeT::public_key_type;
+  using key_type = typename NodeT::public_key_type;
+  using value_type = typename NodeT::public_type;
 
   struct Iterator {
     using iterator_category = std::bidirectional_iterator_tag;
@@ -205,12 +203,12 @@ class FlatHashTable {
     }
 
     Iterator() = default;
-    Iterator(NodeIterator it, Self *map) : it_(std::move(it)), map_(map) {
+    Iterator(NodeIterator it, FlatHashTable *map) : it_(std::move(it)), map_(map) {
     }
 
    private:
     NodeIterator it_;
-    Self *map_;
+    FlatHashTable *map_;
   };
 
   struct ConstIterator {
@@ -261,7 +259,7 @@ class FlatHashTable {
     assign(other);
   }
 
-  FlatHashTable(std::initializer_list<Node> nodes) {
+  FlatHashTable(std::initializer_list<NodeT> nodes) {
     if (nodes.size() == 0) {
       return;
     }
@@ -320,7 +318,7 @@ class FlatHashTable {
   }
 
   ConstIterator find(const KeyT &key) const {
-    return ConstIterator(const_cast<Self *>(this)->find(key));
+    return ConstIterator(const_cast<FlatHashTable *>(this)->find(key));
   }
 
   size_t size() const {
@@ -346,10 +344,10 @@ class FlatHashTable {
   }
 
   ConstIterator begin() const {
-    return ConstIterator(const_cast<Self *>(this)->begin());
+    return ConstIterator(const_cast<FlatHashTable *>(this)->begin());
   }
   ConstIterator end() const {
-    return ConstIterator(const_cast<Self *>(this)->end());
+    return ConstIterator(const_cast<FlatHashTable *>(this)->end());
   }
 
   void reserve(size_t size) {
@@ -390,7 +388,7 @@ class FlatHashTable {
     }
   }
 
-  template <class T = typename Node::second_type>
+  template <class T = typename NodeT::second_type>
   T &operator[](const KeyT &key) {
     return emplace(key).first->second;
   }
@@ -445,7 +443,7 @@ class FlatHashTable {
   }
 
  private:
-  fixed_vector<Node> nodes_;
+  fixed_vector<NodeT> nodes_;
   size_t used_nodes_{};
 
   void assign(const FlatHashTable &other) {
@@ -500,7 +498,7 @@ class FlatHashTable {
   }
 
   void resize(size_t new_size) {
-    fixed_vector<Node> old_nodes(new_size);
+    fixed_vector<NodeT> old_nodes(new_size);
     old_nodes.swap(nodes_);
 
     for (auto &old_node : old_nodes) {
