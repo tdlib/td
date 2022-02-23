@@ -398,7 +398,6 @@ class FlatHashTable {
       return 0;
     }
     erase(it);
-    try_shrink();
     return 1;
   }
 
@@ -415,6 +414,7 @@ class FlatHashTable {
     DCHECK(it != end());
     DCHECK(!it.it_->empty());
     erase_node(it.it_);
+    try_shrink();
   }
 
   template <class F>
