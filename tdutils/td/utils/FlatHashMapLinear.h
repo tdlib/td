@@ -161,7 +161,6 @@ template <class NodeT, class HashT, class EqT>
 class FlatHashTable {
  public:
   using NodeIterator = NodeT *;
-  using ConstNodeIterator = const NodeT *;
 
   using KeyT = typename NodeT::public_key_type;
   using key_type = typename NodeT::public_key_type;
@@ -178,7 +177,7 @@ class FlatHashTable {
     Iterator &operator++() {
       do {
         ++it_;
-      } while (it_ != map_->nodes_.end() && it_->empty());
+      } while (it_ != end_ && it_->empty());
       return *this;
     }
     Iterator &operator--() {
@@ -194,21 +193,21 @@ class FlatHashTable {
       return &*it_;
     }
     bool operator==(const Iterator &other) const {
-      DCHECK(map_ == other.map_);
+      DCHECK(end_ == other.end_);
       return it_ == other.it_;
     }
     bool operator!=(const Iterator &other) const {
-      DCHECK(map_ == other.map_);
+      DCHECK(end_ == other.end_);
       return it_ != other.it_;
     }
 
     Iterator() = default;
-    Iterator(NodeIterator it, FlatHashTable *map) : it_(std::move(it)), map_(map) {
+    Iterator(NodeIterator it, FlatHashTable *map) : it_(std::move(it)), end_(map->nodes_.end()) {
     }
 
    private:
     NodeIterator it_;
-    FlatHashTable *map_;
+    NodeT *end_;
   };
 
   struct ConstIterator {
