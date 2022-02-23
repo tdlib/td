@@ -9,10 +9,12 @@
 #include "td/utils/FlatHashMapChunks.h"
 #include "td/utils/FlatHashMapLinear.h"
 
+#include <functional>
 //#include <unordered_map>
 //#include <unordered_set>
 
 namespace td {
+
 template <class KeyT, class ValueT, class HashT = std::hash<KeyT>, class EqT = std::equal_to<KeyT>>
 using FlatHashMap = FlatHashMapImpl<KeyT, ValueT, HashT, EqT>;
 //using FlatHashMap = FlatHashMapChunks<KeyT, ValueT, HashT, EqT>;

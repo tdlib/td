@@ -55,14 +55,13 @@ struct MapNode {
   MapNode(MapNode &&other) noexcept {
     *this = std::move(other);
   }
-  MapNode &operator=(MapNode &&other) noexcept {
+  void operator=(MapNode &&other) noexcept {
     DCHECK(empty());
     DCHECK(!other.empty());
     first = std::move(other.first);
     other.first = KeyT{};
     new (&second) ValueT(std::move(other.second));
     other.second.~ValueT();
-    return *this;
   }
   ~MapNode() {
     if (!empty()) {
@@ -120,12 +119,11 @@ struct SetNode {
   SetNode(SetNode &&other) noexcept {
     *this = std::move(other);
   }
-  SetNode &operator=(SetNode &&other) noexcept {
+  void operator=(SetNode &&other) noexcept {
     DCHECK(empty());
     DCHECK(!other.empty());
     first = std::move(other.first);
     other.first = KeyT{};
-    return *this;
   }
   ~SetNode() = default;
 
@@ -248,10 +246,9 @@ class FlatHashTable {
   FlatHashTable(const FlatHashTable &other) {
     assign(other);
   }
-  FlatHashTable &operator=(const FlatHashTable &other) {
+  void operator=(const FlatHashTable &other) {
     clear();
     assign(other);
-    return *this;
   }
 
   FlatHashTable(std::initializer_list<Node> nodes) {
@@ -280,11 +277,10 @@ class FlatHashTable {
   FlatHashTable(FlatHashTable &&other) noexcept : nodes_(std::move(other.nodes_)), used_nodes_(other.used_nodes_) {
     other.used_nodes_ = 0;
   }
-  FlatHashTable &operator=(FlatHashTable &&other) noexcept {
+  void operator=(FlatHashTable &&other) noexcept {
     nodes_ = std::move(other.nodes_);
     used_nodes_ = other.used_nodes_;
     other.used_nodes_ = 0;
-    return *this;
   }
   void swap(FlatHashTable &other) noexcept {
     nodes_.swap(other.nodes_);
