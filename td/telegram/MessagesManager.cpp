@@ -17,6 +17,7 @@
 #include "td/telegram/DialogFilter.h"
 #include "td/telegram/DialogFilter.hpp"
 #include "td/telegram/DialogLocation.h"
+#include "td/telegram/DownloadManager.h"
 #include "td/telegram/DraftMessage.h"
 #include "td/telegram/DraftMessage.hpp"
 #include "td/telegram/FileReferenceManager.h"
@@ -39794,6 +39795,23 @@ void MessagesManager::get_current_state(vector<td_api::object_ptr<td_api::Update
     }
   }
   append(updates, std::move(last_message_updates));
+}
+
+void MessagesManager::add_message_file_to_downloads(FullMessageId full_message_id, FileId file_id, int32 priority,
+                                                    Promise<td_api::object_ptr<td_api::file>> promise) {
+  auto message = get_message_force(full_message_id, "add message file to downloads");
+  if (!message) {
+    promise.set_error(Status::Error(400, "Can't find message"));
+    return;
+  }
+  if (!contains(get_message_file_ids(message), file_id)) {
+    promise.set_error(Status::Error(400, "Can't find file in message"));
+    return;
+  }
+  auto search_text = get_message_search_text(message);
+  auto file_source_id = td_->file_reference_manager_->create_message_file_source(full_message_id);
+  td_->download_manager_->add_file(file_id, file_source_id, std::move(search_text), static_cast<int8>(priority));
+  promise.set_value(td_->file_manager_->get_file_object(file_id));
 }
 
 }  // namespace td

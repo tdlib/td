@@ -3501,7 +3501,7 @@ void Td::clear() {
   LOG(DEBUG) << "ContactsManager actor was cleared" << timer;
   country_info_manager_actor_.reset();
   LOG(DEBUG) << "CountryInfoManager actor was cleared" << timer;
-  download_manger_actor_.reset();
+  download_manager_actor_.reset();
   LOG(DEBUG) << "DownloadManager actor was cleared" << timer;
   file_manager_actor_.reset();
   LOG(DEBUG) << "FileManager actor was cleared" << timer;
@@ -3971,7 +3971,7 @@ void Td::init_managers() {
   country_info_manager_ = make_unique<CountryInfoManager>(this, create_reference());
   country_info_manager_actor_ = register_actor("CountryInfoManager", country_info_manager_.get());
   download_manager_ = DownloadManager::create();
-  download_manger_actor_ = register_actor("DownloadManager", download_manager_.get());
+  download_manager_actor_ = register_actor("DownloadManager", download_manager_.get());
   // TODO: move this callback somewhere else
   class DownloadManagerCallback final : public DownloadManager::Callback {
    public:
@@ -4006,7 +4006,7 @@ void Td::init_managers() {
    private:
     ActorShared<> parent_;
   };
-  send_closure_later(download_manger_actor_, &DownloadManager::set_callback,
+  send_closure_later(download_manager_actor_, &DownloadManager::set_callback,
                      make_unique<DownloadManagerCallback>(create_reference()));
 
   game_manager_ = make_unique<GameManager>(this, create_reference());
@@ -6551,7 +6551,9 @@ void Td::on_request(uint64 id, const td_api::deleteFile &request) {
 
 void Td::on_request(uint64 id, const td_api::addFileToDownloads &request) {
   CREATE_REQUEST_PROMISE();
-  promise.set_error(Status::Error(500, "Unsupported"));
+  messages_manager_->add_message_file_to_downloads(
+      FullMessageId(DialogId(request.chat_id_), MessageId(request.message_id_)), FileId(request.file_id_, 0),
+      request.priority_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::toggleDownloadIsPaused &request) {

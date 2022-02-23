@@ -147,7 +147,7 @@ class Td final : public Actor {
   unique_ptr<CountryInfoManager> country_info_manager_;
   ActorOwn<CountryInfoManager> country_info_manager_actor_;
   unique_ptr<DownloadManager> download_manager_;
-  ActorOwn<DownloadManager> download_manger_actor_;
+  ActorOwn<DownloadManager> download_manager_actor_;
   unique_ptr<FileManager> file_manager_;
   ActorOwn<FileManager> file_manager_actor_;
   unique_ptr<FileReferenceManager> file_reference_manager_;

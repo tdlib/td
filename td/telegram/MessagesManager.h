@@ -980,6 +980,9 @@ class MessagesManager final : public Actor {
 
   void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
 
+  void add_message_file_to_downloads(FullMessageId full_message_id, FileId file_id, int32 priority,
+                                     Promise<td_api::object_ptr<td_api::file>> promise);
+
  private:
   class PendingPtsUpdate {
    public:
