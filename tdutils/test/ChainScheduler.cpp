@@ -19,9 +19,7 @@
 
 TEST(ChainScheduler, CreateAfterActive) {
   td::ChainScheduler<int> scheduler;
-  using ChainId = td::ChainScheduler<int>::ChainId;
-  using TaskId = td::ChainScheduler<int>::TaskId;
-  std::vector<ChainId> chains{1};
+  td::vector<td::ChainScheduler<int>::ChainId> chains{1};
 
   auto first_task_id = scheduler.create_task(chains, 1);
   ASSERT_EQ(first_task_id, scheduler.start_next_task().unwrap().task_id);
@@ -31,9 +29,7 @@ TEST(ChainScheduler, CreateAfterActive) {
 
 TEST(ChainScheduler, RestartAfterActive) {
   td::ChainScheduler<int> scheduler;
-  using ChainId = td::ChainScheduler<int>::ChainId;
-  using TaskId = td::ChainScheduler<int>::TaskId;
-  std::vector<ChainId> chains{1};
+  std::vector<td::ChainScheduler<int>::ChainId> chains{1};
 
   auto first_task_id = scheduler.create_task(chains, 1);
   auto second_task_id = scheduler.create_task(chains, 2);
@@ -49,9 +45,7 @@ TEST(ChainScheduler, RestartAfterActive) {
 
 TEST(ChainScheduler, SendAfterRestart) {
   td::ChainScheduler<int> scheduler;
-  using ChainId = td::ChainScheduler<int>::ChainId;
-  using TaskId = td::ChainScheduler<int>::TaskId;
-  std::vector<ChainId> chains{1};
+  std::vector<td::ChainScheduler<int>::ChainId> chains{1};
 
   auto first_task_id = scheduler.create_task(chains, 1);
   auto second_task_id = scheduler.create_task(chains, 2);
@@ -68,14 +62,12 @@ TEST(ChainScheduler, SendAfterRestart) {
 
 TEST(ChainScheduler, Basic) {
   td::ChainScheduler<int> scheduler;
-  using ChainId = td::ChainScheduler<int>::ChainId;
-  using TaskId = td::ChainScheduler<int>::TaskId;
   for (int i = 0; i < 100; i++) {
-    scheduler.create_task({ChainId{1}}, i);
+    scheduler.create_task({td::ChainScheduler<int>::ChainId{1}}, i);
   }
   int j = 0;
   while (j != 100) {
-    td::vector<TaskId> tasks;
+    td::vector<td::ChainScheduler<int>::TaskId> tasks;
     while (true) {
       auto o_task_id = scheduler.start_next_task();
       if (!o_task_id) {
@@ -112,10 +104,6 @@ struct ChainSchedulerQuery {
 
 static td::StringBuilder &operator<<(td::StringBuilder &sb, const ChainSchedulerQuery &q) {
   return sb << "Q{" << q.id << "}";
-}
-
-static td::StringBuilder &operator<<(td::StringBuilder &sb, const QueryPtr &query_ptr) {
-  return sb << *query_ptr;
 }
 
 TEST(ChainScheduler, Stress) {
