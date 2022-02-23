@@ -110,6 +110,7 @@ template <class KeyT>
 struct SetNode {
   using public_key_type = KeyT;
   using public_type = KeyT;
+  using second_type = KeyT;  // TODO: remove second_type?
 
   KeyT first{};
 

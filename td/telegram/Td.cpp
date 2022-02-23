@@ -35,6 +35,7 @@
 #include "td/telegram/DialogParticipant.h"
 #include "td/telegram/DialogSource.h"
 #include "td/telegram/DocumentsManager.h"
+#include "td/telegram/DownloadManager.h"
 #include "td/telegram/FileReferenceManager.h"
 #include "td/telegram/files/FileGcParameters.h"
 #include "td/telegram/files/FileId.h"
@@ -3312,6 +3313,8 @@ void Td::dec_actor_refcnt() {
       LOG(DEBUG) << "CountryInfoManager was cleared" << timer;
       documents_manager_.reset();
       LOG(DEBUG) << "DocumentsManager was cleared" << timer;
+      download_manager_.reset();
+      LOG(DEBUG) << "DownloadManager was cleared" << timer;
       file_manager_.reset();
       LOG(DEBUG) << "FileManager was cleared" << timer;
       file_reference_manager_.reset();
@@ -3498,6 +3501,8 @@ void Td::clear() {
   LOG(DEBUG) << "ContactsManager actor was cleared" << timer;
   country_info_manager_actor_.reset();
   LOG(DEBUG) << "CountryInfoManager actor was cleared" << timer;
+  download_manger_actor_.reset();
+  LOG(DEBUG) << "DownloadManager actor was cleared" << timer;
   file_manager_actor_.reset();
   LOG(DEBUG) << "FileManager actor was cleared" << timer;
   file_reference_manager_actor_.reset();
@@ -3965,6 +3970,45 @@ void Td::init_managers() {
   G()->set_contacts_manager(contacts_manager_actor_.get());
   country_info_manager_ = make_unique<CountryInfoManager>(this, create_reference());
   country_info_manager_actor_ = register_actor("CountryInfoManager", country_info_manager_.get());
+  download_manager_ = DownloadManager::create();
+  download_manger_actor_ = register_actor("DownloadManager", download_manager_.get());
+  // TODO: move this callback somewhere else
+  class DownloadManagerCallback final : public DownloadManager::Callback {
+   public:
+    DownloadManagerCallback(ActorShared<> parent) : parent_(std::move(parent)) {
+      // TODO
+    }
+    void update_counters(DownloadManager::Counters counters) final {
+      // TODO
+    }
+    void start_file(FileId file_id, int8 priority) final {
+      // TODO
+    }
+    void pause_file(FileId file_id) final {
+      // TODO
+    }
+    void delete_file(FileId file_id) final {
+      // TODO
+    }
+    FileId dup_file_id(FileId file_id) final {
+      // TODO
+      return FileId();
+    }
+    string get_unique_file_id(FileId file_id) final {
+      // TODO
+      return std::string();
+    }
+    string get_file_source_serialized(FileSourceId file_source_id) final {
+      // TODO
+      return std::string();
+    }
+
+   private:
+    ActorShared<> parent_;
+  };
+  send_closure_later(download_manger_actor_, &DownloadManager::set_callback,
+                     make_unique<DownloadManagerCallback>(create_reference()));
+
   game_manager_ = make_unique<GameManager>(this, create_reference());
   game_manager_actor_ = register_actor("GameManager", game_manager_.get());
   G()->set_game_manager(game_manager_actor_.get());

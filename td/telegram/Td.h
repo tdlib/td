@@ -48,6 +48,7 @@ class ContactsManager;
 class CountryInfoManager;
 class DeviceTokenManager;
 class DocumentsManager;
+class DownloadManager;
 class FileManager;
 class FileReferenceManager;
 class GameManager;
@@ -145,6 +146,8 @@ class Td final : public Actor {
   ActorOwn<ContactsManager> contacts_manager_actor_;
   unique_ptr<CountryInfoManager> country_info_manager_;
   ActorOwn<CountryInfoManager> country_info_manager_actor_;
+  unique_ptr<DownloadManager> download_manager_;
+  ActorOwn<DownloadManager> download_manger_actor_;
   unique_ptr<FileManager> file_manager_;
   ActorOwn<FileManager> file_manager_actor_;
   unique_ptr<FileReferenceManager> file_reference_manager_;
