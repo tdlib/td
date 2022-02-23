@@ -275,12 +275,12 @@ class FlatHashTable {
   }
 
   FlatHashTable(FlatHashTable &&other) noexcept : nodes_(std::move(other.nodes_)), used_nodes_(other.used_nodes_) {
-    other.used_nodes_ = 0;
+    other.clear();
   }
   void operator=(FlatHashTable &&other) noexcept {
     nodes_ = std::move(other.nodes_);
     used_nodes_ = other.used_nodes_;
-    other.used_nodes_ = 0;
+    other.clear();
   }
   void swap(FlatHashTable &other) noexcept {
     nodes_.swap(other.nodes_);

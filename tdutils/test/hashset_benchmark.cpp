@@ -435,8 +435,7 @@ static void benchmark_create(td::Slice name) {
       table.emplace(rnd(), i);
     }
     auto end = td::Timestamp::now();
-    LOG(INFO) << name << ":"
-              << "create " << N << " elements: " << td::format::as_time(end.at() - start.at());
+    LOG(INFO) << name << ": create " << N << " elements: " << td::format::as_time(end.at() - start.at());
 
     double res = 0;
     td::vector<std::pair<std::size_t, td::format::Time>> pauses;
@@ -451,8 +450,8 @@ static void benchmark_create(td::Slice name) {
       }
     }
 
-    LOG(INFO) << name << ":"
-              << "create another " << N << " elements, max pause = " << td::format::as_time(res) << " " << pauses;
+    LOG(INFO) << name << ": create another " << N << " elements, max pause = " << td::format::as_time(res) << " "
+              << pauses;
   }
 }
 
@@ -559,8 +558,8 @@ BENCHMARK_TEMPLATE(BM_mask, td::MaskSse2);
 #endif
 
 #define FOR_EACH_TABLE(F)  \
-  F(td::FlatHashMapChunks) \
   F(td::FlatHashMapImpl)   \
+  F(td::FlatHashMapChunks) \
   F(folly::F14FastMap)     \
   F(absl::flat_hash_map)   \
   F(std::unordered_map)    \
