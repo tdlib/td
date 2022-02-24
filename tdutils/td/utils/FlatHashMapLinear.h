@@ -170,7 +170,7 @@ class FlatHashTable {
   static NodeT *allocate_nodes(uint32 size) {
     DCHECK(size >= 8);
     DCHECK((size & (size - 1)) == 0);
-    CHECK(size <= (1 << 29));
+    CHECK(size <= min(static_cast<uint32>(1) << 29, static_cast<uint32>((0x7FFFFFFF - OFFSET) / sizeof(NodeT))));
     auto inner = static_cast<FlatHashTableInner *>(std::malloc(OFFSET + sizeof(NodeT) * size));
     NodeT *nodes = &inner->nodes_[0];
     for (uint32 i = 0; i < size; i++) {
@@ -555,6 +555,7 @@ class FlatHashTable {
   void resize(uint32 new_size) {
     if (unlikely(nodes_ == nullptr)) {
       nodes_ = allocate_nodes(new_size);
+      used_node_count() = 0;
       return;
     }
 
