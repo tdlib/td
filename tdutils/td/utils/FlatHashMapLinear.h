@@ -8,6 +8,7 @@
 
 #include "td/utils/bits.h"
 #include "td/utils/common.h"
+#include "td/utils/Random.h"
 
 #include <cstddef>
 #include <functional>
@@ -226,14 +227,15 @@ class FlatHashTable {
 
     friend class FlatHashTable;
     Iterator &operator++() {
+      DCHECK(it_ != nullptr);
       do {
-        ++it_;
-      } while (it_ != end_ && it_->empty());
-      return *this;
-    }
-    Iterator &operator--() {
-      do {
-        --it_;
+        if (unlikely(++it_ == end_)) {
+          it_ = begin_;
+        }
+        if (unlikely(it_ == start_)) {
+          it_ = nullptr;
+          break;
+        }
       } while (it_->empty());
       return *this;
     }
@@ -244,21 +246,26 @@ class FlatHashTable {
       return &*it_;
     }
     bool operator==(const Iterator &other) const {
+      DCHECK(begin_ == other.begin_);
       DCHECK(end_ == other.end_);
       return it_ == other.it_;
     }
     bool operator!=(const Iterator &other) const {
+      DCHECK(begin_ == other.begin_);
       DCHECK(end_ == other.end_);
       return it_ != other.it_;
     }
 
     Iterator() = default;
-    Iterator(NodeT *it, FlatHashTable *map) : it_(it), end_(map->nodes_ + map->bucket_count()) {
+    Iterator(NodeT *it, FlatHashTable *map)
+        : it_(it), begin_(map->nodes_), start_(it_), end_(map->nodes_ + map->bucket_count()) {
     }
 
    private:
-    NodeT *it_;
-    NodeT *end_;
+    NodeT *it_ = nullptr;
+    NodeT *begin_ = nullptr;
+    NodeT *start_ = nullptr;
+    NodeT *end_ = nullptr;
   };
 
   struct ConstIterator {
@@ -271,10 +278,6 @@ class FlatHashTable {
     friend class FlatHashTable;
     ConstIterator &operator++() {
       ++it_;
-      return *this;
-    }
-    ConstIterator &operator--() {
-      --it_;
       return *this;
     }
     reference operator*() {
@@ -384,14 +387,14 @@ class FlatHashTable {
     if (empty()) {
       return end();
     }
-    auto it = nodes_;
-    while (it->empty()) {
-      ++it;
+    auto bucket = Random::fast_uint32() & get_bucket_count_mask();
+    while (nodes_[bucket].empty()) {
+      next_bucket(bucket);
     }
-    return Iterator(it, this);
+    return Iterator(nodes_ + bucket, this);
   }
   Iterator end() {
-    return Iterator(nodes_ + bucket_count(), this);
+    return Iterator(nullptr, this);
   }
 
   ConstIterator begin() const {
@@ -420,12 +423,12 @@ class FlatHashTable {
     while (true) {
       auto &node = nodes_[bucket];
       if (EqT()(node.key(), key)) {
-        return {Iterator{&node, this}, false};
+        return {Iterator(&node, this), false};
       }
       if (node.empty()) {
         node.emplace(std::move(key), std::forward<ArgsT>(args)...);
         used_node_count()++;
-        return {Iterator{&node, this}, true};
+        return {Iterator(&node, this), true};
       }
       next_bucket(bucket);
     }
@@ -484,6 +487,11 @@ class FlatHashTable {
     auto end = nodes_ + bucket_count();
     while (it != end && !it->empty()) {
       ++it;
+    }
+    if (it == end) {
+      do {
+        --it;
+      } while (!it->empty());
     }
     auto first_empty = it;
     while (it != end) {

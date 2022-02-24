@@ -77,7 +77,6 @@ TEST(FlatHashMap, probing) {
 }
 
 TEST(FlatHashSet, TL) {
-  return;
   td::FlatHashSet<int> s;
   int N = 100000;
   for (int i = 0; i < 10000000; i++) {
