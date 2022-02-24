@@ -561,7 +561,6 @@ class FlatHashTable {
     auto old_nodes = nodes_;
     uint32 old_size = get_used_node_count();
     uint32 old_bucket_count = get_bucket_count_mask() + 1;
-    ;
     nodes_ = allocate_nodes(new_size);
     used_node_count() = old_size;
 
@@ -579,7 +578,7 @@ class FlatHashTable {
   }
 
   void erase_node(NodeT *it) {
-    DCHECK(nodes_ <= it && it - nodes_ < bucket_count());
+    DCHECK(nodes_ <= it && static_cast<size_t>(it - nodes_) < bucket_count());
     uint32 empty_i = static_cast<uint32>(it - nodes_);
     auto empty_bucket = empty_i;
     nodes_[empty_bucket].clear();

@@ -102,10 +102,6 @@ struct ChainSchedulerQuery {
   bool skipped{};
 };
 
-static td::StringBuilder &operator<<(td::StringBuilder &sb, const ChainSchedulerQuery &q) {
-  return sb << "Q{" << q.id << "}";
-}
-
 TEST(ChainScheduler, Stress) {
   td::Random::Xorshift128plus rnd(123);
   int max_query_id = 100000;
