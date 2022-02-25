@@ -163,8 +163,8 @@ class FlatHashTable {
   struct FlatHashTableInner {
     uint32 used_node_count_;
     uint32 bucket_count_mask_;
+    uint32 bucket_count_;
     uint32 begin_bucket_;
-    uint32 padding_;
     NodeT nodes_[1];
   };
 
@@ -182,12 +182,13 @@ class FlatHashTable {
     }
     // inner->used_node_count_ = 0;
     inner->bucket_count_mask_ = size - 1;
+    inner->bucket_count_ = size;
     inner->begin_bucket_ = INVALID_BUCKET;
     return nodes;
   }
 
   static void clear_inner(FlatHashTableInner *inner) {
-    auto size = inner->bucket_count_mask_ + 1;
+    auto size = inner->bucket_count_;
     NodeT *nodes = &inner->nodes_[0];
     for (uint32 i = 0; i < size; i++) {
       nodes[i].~NodeT();
@@ -215,6 +216,10 @@ class FlatHashTable {
 
   inline uint32 get_bucket_count_mask() const {
     return get_inner()->bucket_count_mask_;
+  }
+
+  inline uint32 get_bucket_count() const {
+    return get_inner()->bucket_count_;
   }
 
  public:
@@ -355,7 +360,7 @@ class FlatHashTable {
   ~FlatHashTable() = default;
 
   uint32 bucket_count() const {
-    return unlikely(nodes_ == nullptr) ? 0 : get_bucket_count_mask() + 1;
+    return unlikely(nodes_ == nullptr) ? 0 : get_bucket_count();
   }
 
   Iterator find(const KeyT &key) {
@@ -578,7 +583,7 @@ class FlatHashTable {
 
     auto old_nodes = nodes_;
     uint32 old_size = get_used_node_count();
-    uint32 old_bucket_count = get_bucket_count_mask() + 1;
+    uint32 old_bucket_count = get_bucket_count();
     nodes_ = allocate_nodes(new_size);
     used_node_count() = old_size;
 
@@ -603,18 +608,14 @@ class FlatHashTable {
     used_node_count()--;
 
     for (uint32 test_i = empty_i + 1;; test_i++) {
-      auto test_bucket = test_i;
-      if (test_bucket >= bucket_count()) {
-        test_bucket -= bucket_count();
-      }
-
+      auto test_bucket = test_i & get_bucket_count_mask();
       if (nodes_[test_bucket].empty()) {
         break;
       }
 
       auto want_i = calc_bucket(nodes_[test_bucket].key());
       if (want_i < empty_i) {
-        want_i += static_cast<uint32>(bucket_count());
+        want_i += get_bucket_count();
       }
 
       if (want_i <= empty_i || want_i > test_i) {
