@@ -602,20 +602,33 @@ class FlatHashTable {
 
   void erase_node(NodeT *it) {
     DCHECK(nodes_ <= it && static_cast<size_t>(it - nodes_) < bucket_count());
-    uint32 empty_i = static_cast<uint32>(it - nodes_);
-    auto empty_bucket = empty_i;
-    nodes_[empty_bucket].clear();
+    it->clear();
     used_node_count()--;
 
-    for (uint32 test_i = empty_i + 1;; test_i++) {
-      auto test_bucket = test_i & get_bucket_count_mask();
+    const auto bucket_count = get_bucket_count();
+    auto empty_bucket = static_cast<uint32>(it - nodes_);
+    for (uint32 test_bucket = empty_bucket + 1; test_bucket < bucket_count; test_bucket++) {
       if (nodes_[test_bucket].empty()) {
-        break;
+        return;
+      }
+
+      auto want_bucket = calc_bucket(nodes_[test_bucket].key());
+      if (want_bucket <= empty_bucket || want_bucket > test_bucket) {
+        nodes_[empty_bucket] = std::move(nodes_[test_bucket]);
+        empty_bucket = test_bucket;
+      }
+    }
+
+    auto empty_i = empty_bucket;
+    for (uint32 test_i = bucket_count;; test_i++) {
+      auto test_bucket = test_i - get_bucket_count();
+      if (nodes_[test_bucket].empty()) {
+        return;
       }
 
       auto want_i = calc_bucket(nodes_[test_bucket].key());
       if (want_i < empty_i) {
-        want_i += get_bucket_count();
+        want_i += bucket_count;
       }
 
       if (want_i <= empty_i || want_i > test_i) {
