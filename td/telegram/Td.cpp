@@ -3975,7 +3975,7 @@ void Td::init_managers() {
   // TODO: move this callback somewhere else
   class DownloadManagerCallback final : public DownloadManager::Callback {
    public:
-    DownloadManagerCallback(ActorShared<> parent) : parent_(std::move(parent)) {
+    explicit DownloadManagerCallback(ActorShared<> parent) : parent_(std::move(parent)) {
       // TODO
     }
     void update_counters(DownloadManager::Counters counters) final {
@@ -3996,11 +3996,11 @@ void Td::init_managers() {
     }
     string get_unique_file_id(FileId file_id) final {
       // TODO
-      return std::string();
+      return string();
     }
     string get_file_source_serialized(FileSourceId file_source_id) final {
       // TODO
-      return std::string();
+      return string();
     }
 
    private:
@@ -6391,7 +6391,7 @@ void Td::on_request(uint64 id, const td_api::clearAllDraftMessages &request) {
 void Td::on_request(uint64 id, const td_api::downloadFile &request) {
   auto priority = request.priority_;
   if (!(1 <= priority && priority <= 32)) {
-    return send_error_raw(id, 400, "Download priority must be in [1;32] range");
+    return send_error_raw(id, 400, "Download priority must be between 1 and 32");
   }
   auto offset = request.offset_;
   if (offset < 0) {
@@ -6489,7 +6489,7 @@ void Td::on_request(uint64 id, const td_api::getSuggestedFileName &request) {
 void Td::on_request(uint64 id, td_api::uploadFile &request) {
   auto priority = request.priority_;
   if (!(1 <= priority && priority <= 32)) {
-    return send_error_raw(id, 400, "Upload priority must be in [1;32] range");
+    return send_error_raw(id, 400, "Upload priority must be between 1 and 32");
   }
 
   auto file_type = request.file_type_ == nullptr ? FileType::Temp : get_file_type(*request.file_type_);
@@ -6550,10 +6550,10 @@ void Td::on_request(uint64 id, const td_api::deleteFile &request) {
 }
 
 void Td::on_request(uint64 id, const td_api::addFileToDownloads &request) {
-  CREATE_REQUEST_PROMISE();
   if (!(1 <= request.priority_ && request.priority_ <= 32)) {
-    promise.set_error(Status::Error(400, "Upload priority must be in [1;32] range"));
+    return send_error_raw(id, 400, "Download priority must be between 1 and 32");
   }
+  CREATE_REQUEST_PROMISE();
   messages_manager_->add_message_file_to_downloads(
       FullMessageId(DialogId(request.chat_id_), MessageId(request.message_id_)), FileId(request.file_id_, 0),
       request.priority_, std::move(promise));
@@ -6590,7 +6590,6 @@ void Td::on_request(uint64 id, td_api::searchFileDownloads &request) {
   };
   send_closure(download_manager_actor_, &DownloadManager::search, std::move(request.query_), request.only_active_,
                request.only_completed_, std::move(request.offset_), request.limit_, std::move(wrapped_promise));
-  promise.set_error(Status::Error(500, "Unsupported"));
 }
 
 void Td::on_request(uint64 id, td_api::getMessageFileType &request) {

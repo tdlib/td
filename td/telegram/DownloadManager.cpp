@@ -4,10 +4,12 @@
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
-#include "DownloadManager.h"
-#include "td/utils/algorithm.h"
+#include "td/telegram/DownloadManager.h"
+
 #include "td/utils/FlatHashMap.h"
+
 namespace td {
+
 class DownloadManagerImpl final : public DownloadManager {
  public:
   void set_callback(unique_ptr<Callback> callback) final {
@@ -94,7 +96,7 @@ class DownloadManagerImpl final : public DownloadManager {
     return Status::OK();
   }
 
-  Status add_file(FileId file_id, FileSourceId file_source_id, std::string search_by, int8 priority) final {
+  Status add_file(FileId file_id, FileSourceId file_source_id, string search_by, int8 priority) final {
     if (!callback_) {
       return Status::Error("TODO: code and message`");
     }
@@ -116,7 +118,7 @@ class DownloadManagerImpl final : public DownloadManager {
     return Status::OK();
   }
 
-  void search(std::string query, bool only_active, bool only_completed, std::string offset, int32 limit,
+  void search(string query, bool only_active, bool only_completed, string offset, int32 limit,
               Promise<FoundFileDownloads> promise) final {
     if (!callback_) {
       return promise.set_error(Status::Error("TODO: code and message`"));
@@ -138,11 +140,11 @@ class DownloadManagerImpl final : public DownloadManager {
     CHECK(it != active_files_.end());
     auto &file_info = it->second;
     counters_.downloaded_size -= file_info.downloaded_size;
-    counters_.total_count -= file_info.size;
+    counters_.total_size -= file_info.size;
     file_info.size = size;
     file_info.downloaded_size = download_size;
     counters_.downloaded_size += file_info.downloaded_size;
-    counters_.total_count += file_info.size;
+    counters_.total_size += file_info.size;
     file_info.is_paused = is_paused;
 
     if (download_size == size) {
@@ -184,14 +186,14 @@ class DownloadManagerImpl final : public DownloadManager {
 
   Counters counters_;
 
-  void loop() override {
+  void loop() final {
     if (!callback_) {
       return;
     }
     // TODO: ???
     // TODO: load active files from db
   }
-  void tear_down() override {
+  void tear_down() final {
     callback_.reset();
   }
 };
@@ -199,7 +201,9 @@ class DownloadManagerImpl final : public DownloadManager {
 unique_ptr<DownloadManager> DownloadManager::create() {
   return make_unique<DownloadManagerImpl>();
 }
+
 tl_object_ptr<td_api::foundFileDownloads> DownloadManager::FoundFileDownloads::to_td_api() const {
   return make_tl_object<td_api::foundFileDownloads>();
 }
+
 }  // namespace td

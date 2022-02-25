@@ -506,6 +506,7 @@ set(TDLIB_SOURCE
   td/telegram/DialogSource.h
   td/telegram/Document.h
   td/telegram/DocumentsManager.h
+  td/telegram/DownloadManager.h
   td/telegram/DraftMessage.h
   td/telegram/EncryptedFile.h
   td/telegram/FileReferenceManager.h

@@ -22822,16 +22822,18 @@ void MessagesManager::delete_bot_command_message_id(DialogId dialog_id, MessageI
   }
 }
 
-FileSourceId MessagesManager::get_message_file_source_id(FullMessageId full_message_id) {
-  if (td_->auth_manager_->is_bot()) {
-    return FileSourceId();
-  }
+FileSourceId MessagesManager::get_message_file_source_id(FullMessageId full_message_id, bool force) {
+  if (!force) {
+    if (td_->auth_manager_->is_bot()) {
+      return FileSourceId();
+    }
 
-  auto dialog_id = full_message_id.get_dialog_id();
-  auto message_id = full_message_id.get_message_id();
-  if (!dialog_id.is_valid() || !(message_id.is_valid() || message_id.is_valid_scheduled()) ||
-      dialog_id.get_type() == DialogType::SecretChat || !message_id.is_any_server()) {
-    return FileSourceId();
+    auto dialog_id = full_message_id.get_dialog_id();
+    auto message_id = full_message_id.get_message_id();
+    if (!dialog_id.is_valid() || !(message_id.is_valid() || message_id.is_valid_scheduled()) ||
+        dialog_id.get_type() == DialogType::SecretChat || !message_id.is_any_server()) {
+      return FileSourceId();
+    }
   }
 
   auto &file_source_id = full_message_id_to_file_source_id_[full_message_id];
@@ -39799,21 +39801,16 @@ void MessagesManager::get_current_state(vector<td_api::object_ptr<td_api::Update
 
 void MessagesManager::add_message_file_to_downloads(FullMessageId full_message_id, FileId file_id, int32 priority,
                                                     Promise<td_api::object_ptr<td_api::file>> promise) {
-  auto message = get_message_force(full_message_id, "add message file to downloads");
-  if (!message) {
-    promise.set_error(Status::Error(400, "Can't find message"));
-    return;
+  auto m = get_message_force(full_message_id, "add_message_file_to_downloads");
+  if (m == nullptr) {
+    return promise.set_error(Status::Error(400, "Message not found"));
   }
-  if (!contains(get_message_file_ids(message), file_id)) {
-    promise.set_error(Status::Error(400, "Can't find file in message"));
-    return;
+  if (!contains(get_message_file_ids(m), file_id)) {
+    return promise.set_error(Status::Error(400, "Message has no specified file"));
   }
-  auto search_text = get_message_search_text(message);
-  auto file_source_id = get_message_file_source_id(full_message_id);
-  if (!file_source_id.is_valid()) {
-    promise.set_error(Status::Error(400, "Can't get file source"));
-    return;
-  }
+  auto search_text = get_message_search_text(m);
+  auto file_source_id = get_message_file_source_id(full_message_id, true);
+  CHECK(file_source_id.is_valid());
   TRY_STATUS_PROMISE(promise, td_->download_manager_->add_file(file_id, file_source_id, std::move(search_text),
                                                                static_cast<int8>(priority)));
   promise.set_value(td_->file_manager_->get_file_object(file_id));

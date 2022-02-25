@@ -922,7 +922,7 @@ class MessagesManager final : public Actor {
                                vector<tl_object_ptr<telegram_api::User>> users,
                                vector<tl_object_ptr<telegram_api::Chat>> chats);
 
-  FileSourceId get_message_file_source_id(FullMessageId full_message_id);
+  FileSourceId get_message_file_source_id(FullMessageId full_message_id, bool force = false);
 
   struct MessagePushNotificationInfo {
     NotificationGroupId group_id;

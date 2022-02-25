@@ -5,15 +5,20 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 #pragma once
-#include "td/actor/actor.h"
-#include "td/actor/PromiseFuture.h"
+
 #include "td/telegram/files/FileId.h"
 #include "td/telegram/files/FileSourceId.h"
 #include "td/telegram/td_api.h"
+
+#include "td/actor/actor.h"
+#include "td/actor/PromiseFuture.h"
+
 #include "td/utils/common.h"
+#include "td/utils/Status.h"
 
 namespace td {
-class DownloadManager : public td::Actor {
+
+class DownloadManager : public Actor {
  public:
   // creates, but do not stats the actor
   static td::unique_ptr<DownloadManager> create();
@@ -34,8 +39,8 @@ class DownloadManager : public td::Actor {
 
   struct FoundFileDownloads {
     int32 total_count{};
-    std::vector<FileDownload> file_downloads;
-    std::string offset;
+    vector<FileDownload> file_downloads;
+    string offset;
     tl_object_ptr<td_api::foundFileDownloads> to_td_api() const;
   };
 
@@ -49,8 +54,8 @@ class DownloadManager : public td::Actor {
     virtual void delete_file(FileId file_id) = 0;
     virtual FileId dup_file_id(FileId file_id) = 0;
 
-    virtual std::string get_unique_file_id(FileId file_id) = 0;
-    virtual std::string get_file_source_serialized(FileSourceId file_source_id) = 0;
+    virtual string get_unique_file_id(FileId file_id) = 0;
+    virtual string get_file_source_serialized(FileSourceId file_source_id) = 0;
   };
 
   //
@@ -65,8 +70,8 @@ class DownloadManager : public td::Actor {
   virtual Status remove_file(FileId file_id, FileSourceId file_source_id, bool delete_from_cache) = 0;
   virtual Status remove_all_files(bool only_active, bool only_completed, bool delete_from_cache) = 0;
   // Files are always added in is_paused = false state
-  virtual Status add_file(FileId file_id, FileSourceId file_source_id, std::string search_by, int8 priority) = 0;
-  virtual void search(std::string query, bool only_active, bool only_completed, std::string offset, int32 limit,
+  virtual Status add_file(FileId file_id, FileSourceId file_source_id, string search_by, int8 priority) = 0;
+  virtual void search(std::string query, bool only_active, bool only_completed, string offset, int32 limit,
                       Promise<FoundFileDownloads> promise) = 0;
 
   //
@@ -75,4 +80,5 @@ class DownloadManager : public td::Actor {
   virtual void update_file_download_state(FileId file_id, int64 download_size, int64 size, bool is_paused) = 0;
   virtual void update_file_deleted(FileId file_id) = 0;
 };
-};  // namespace td
+
+}  // namespace td
