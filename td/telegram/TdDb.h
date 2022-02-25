@@ -34,6 +34,9 @@ class FileDbInterface;
 class MessagesDbSyncInterface;
 class MessagesDbSyncSafeInterface;
 class MessagesDbAsyncInterface;
+class DownloadsDbSyncInterface;
+class DownloadsDbSyncSafeInterface;
+class DownloadsDbAsyncInterface;
 class SqliteConnectionSafe;
 class SqliteKeyValueSafe;
 class SqliteKeyValueAsyncInterface;
@@ -95,6 +98,9 @@ class TdDb {
   DialogDbSyncInterface *get_dialog_db_sync();
   DialogDbAsyncInterface *get_dialog_db_async();
 
+  DownloadsDbSyncInterface *get_downloads_db_sync();
+  DownloadsDbAsyncInterface *get_downloads_db_async();
+
   void change_key(DbKey key, Promise<> promise);
 
   void with_db_path(const std::function<void(CSlice)> &callback);
@@ -112,6 +118,9 @@ class TdDb {
 
   std::shared_ptr<MessagesDbSyncSafeInterface> messages_db_sync_safe_;
   std::shared_ptr<MessagesDbAsyncInterface> messages_db_async_;
+
+  std::shared_ptr<DownloadsDbSyncSafeInterface> downloads_db_sync_safe_;
+  std::shared_ptr<DownloadsDbAsyncInterface> downloads_db_async_;
 
   std::shared_ptr<DialogDbSyncSafeInterface> dialog_db_sync_safe_;
   std::shared_ptr<DialogDbAsyncInterface> dialog_db_async_;

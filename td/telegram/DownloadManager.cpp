@@ -8,6 +8,10 @@
 
 #include "td/utils/FlatHashMap.h"
 
+#include "td/telegram/DownloadsDb.h"
+#include "td/telegram/Global.h"
+#include "td/telegram/TdDb.h"
+
 namespace td {
 
 class DownloadManagerImpl final : public DownloadManager {
@@ -114,8 +118,10 @@ class DownloadManagerImpl final : public DownloadManager {
     active_files_[file_id] = file_info;
     callback_->start_file(file_info.internal_file_id, file_info.priority);
 
-    // TODO: add file to db
-    return Status::OK();
+    G()->td_db()->get_downloads_db_async()->add_download(
+        DownloadsDbDownload{callback_->get_unique_file_id(file_id),
+                            callback_->get_file_source_serialized(file_source_id), search_by, 0, priority},
+        [](Result<Unit>) {});
   }
 
   void search(string query, bool only_active, bool only_completed, string offset, int32 limit,
@@ -123,7 +129,10 @@ class DownloadManagerImpl final : public DownloadManager {
     if (!callback_) {
       return promise.set_error(Status::Error("TODO: code and message`"));
     }
-    // TODO: do query
+    TRY_RESULT_PROMISE(promise, offset_int64, to_integer_safe<int64>(offset));
+    // TODO: only active, only completed
+    G()->td_db()->get_downloads_db_async()->get_downloads_fts(DownloadsDbFtsQuery{query, offset_int64, limit},
+                                                              [](Result<Unit>) {});
     return promise.set_value({});
   }
 
@@ -192,6 +201,10 @@ class DownloadManagerImpl final : public DownloadManager {
     }
     // TODO: ???
     // TODO: load active files from db
+    auto downloads = G()->td_db()->get_downloads_db_sync()->get_active_downloads().move_as_ok();
+    for (auto &download : downloads.downloads) {
+      // ...
+    }
   }
   void tear_down() final {
     callback_.reset();
