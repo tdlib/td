@@ -606,20 +606,21 @@ class FlatHashTable {
     used_node_count()--;
 
     const auto bucket_count = get_bucket_count();
-    auto empty_bucket = static_cast<uint32>(it - nodes_);
-    for (uint32 test_bucket = empty_bucket + 1; test_bucket < bucket_count; test_bucket++) {
-      if (nodes_[test_bucket].empty()) {
+    const auto *end = nodes_ + bucket_count;
+    for (auto *test_node = it + 1; test_node != end; test_node++) {
+      if (test_node->empty()) {
         return;
       }
 
-      auto want_bucket = calc_bucket(nodes_[test_bucket].key());
-      if (want_bucket <= empty_bucket || want_bucket > test_bucket) {
-        nodes_[empty_bucket] = std::move(nodes_[test_bucket]);
-        empty_bucket = test_bucket;
+      auto want_node = nodes_ + calc_bucket(test_node->key());
+      if (want_node <= it || want_node > test_node) {
+        *it = std::move(*test_node);
+        it = test_node;
       }
     }
 
-    auto empty_i = empty_bucket;
+    auto empty_i = static_cast<uint32>(it - nodes_);
+    auto empty_bucket = empty_i;
     for (uint32 test_i = bucket_count;; test_i++) {
       auto test_bucket = test_i - get_bucket_count();
       if (nodes_[test_bucket].empty()) {
