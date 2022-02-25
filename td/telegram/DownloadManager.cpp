@@ -205,5 +205,7 @@ unique_ptr<DownloadManager> DownloadManager::create() {
 tl_object_ptr<td_api::foundFileDownloads> DownloadManager::FoundFileDownloads::to_td_api() const {
   return make_tl_object<td_api::foundFileDownloads>();
 }
-
+tl_object_ptr<td_api::updateFileDownloads> DownloadManager::Counters::to_td_api() const {
+  return make_tl_object<td_api::updateFileDownloads>(total_size, total_count, downloaded_size);
+}
 }  // namespace td

@@ -3975,39 +3975,40 @@ void Td::init_managers() {
   // TODO: move this callback somewhere else
   class DownloadManagerCallback final : public DownloadManager::Callback {
    public:
-    explicit DownloadManagerCallback(ActorShared<> parent) : parent_(std::move(parent)) {
-      // TODO
+    DownloadManagerCallback(ActorShared<> parent, std::shared_ptr<DownloadFileCallback> download_file_callback)
+        : parent_(std::move(parent)), download_file_callback_(std::move(download_file_callback)) {
     }
     void update_counters(DownloadManager::Counters counters) final {
-      // TODO
+      send_closure(G()->td(), &Td::send_update, counters.to_td_api());
     }
     void start_file(FileId file_id, int8 priority) final {
-      // TODO
+      send_closure(G()->file_manager(), &FileManager::download, file_id, download_file_callback_, priority, -1, -1);
     }
     void pause_file(FileId file_id) final {
-      // TODO
+      send_closure(G()->file_manager(), &FileManager::download, file_id, nullptr, 0, -1, -1);
     }
     void delete_file(FileId file_id) final {
-      // TODO
+      send_closure(
+          G()->file_manager(), &FileManager::delete_file, file_id, [](Result<Unit>) {}, "download manager callback");
     }
     FileId dup_file_id(FileId file_id) final {
-      // TODO
-      return FileId();
+      return G()->file_manager().get_actor_unsafe()->dup_file_id(file_id);
     }
     string get_unique_file_id(FileId file_id) final {
-      // TODO
-      return string();
+      return G()->file_manager().get_actor_unsafe()->get_file_view(file_id).get_unique_file_id();
     }
     string get_file_source_serialized(FileSourceId file_source_id) final {
-      // TODO
-      return string();
+      TlStorerToString storer;
+      G()->file_reference_manager().get_actor_unsafe()->store_file_source(file_source_id, storer);
+      return storer.move_as_string();
     }
 
    private:
     ActorShared<> parent_;
+    std::shared_ptr<DownloadFileCallback> download_file_callback_;
   };
   send_closure_later(download_manager_actor_, &DownloadManager::set_callback,
-                     make_unique<DownloadManagerCallback>(create_reference()));
+                     td::make_unique<DownloadManagerCallback>(create_reference(), download_file_callback_));
 
   game_manager_ = make_unique<GameManager>(this, create_reference());
   game_manager_actor_ = register_actor("GameManager", game_manager_.get());

@@ -27,6 +27,8 @@ class DownloadManager : public Actor {
     int64 total_size{};
     int32 total_count{};
     int64 downloaded_size{};
+
+    tl_object_ptr<td_api::updateFileDownloads> to_td_api() const;
   };
 
   struct FileDownload {
