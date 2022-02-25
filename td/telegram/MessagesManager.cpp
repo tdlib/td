@@ -39809,8 +39809,13 @@ void MessagesManager::add_message_file_to_downloads(FullMessageId full_message_i
     return;
   }
   auto search_text = get_message_search_text(message);
-  auto file_source_id = td_->file_reference_manager_->create_message_file_source(full_message_id);
-  td_->download_manager_->add_file(file_id, file_source_id, std::move(search_text), static_cast<int8>(priority));
+  auto file_source_id = get_message_file_source_id(full_message_id);
+  if (!file_source_id.is_valid()) {
+    promise.set_error(Status::Error(400, "Can't get file source"));
+    return;
+  }
+  TRY_STATUS_PROMISE(promise, td_->download_manager_->add_file(file_id, file_source_id, std::move(search_text),
+                                                               static_cast<int8>(priority)));
   promise.set_value(td_->file_manager_->get_file_object(file_id));
 }
 

@@ -6,8 +6,10 @@
 //
 #pragma once
 #include "td/actor/actor.h"
+#include "td/actor/PromiseFuture.h"
 #include "td/telegram/files/FileId.h"
 #include "td/telegram/files/FileSourceId.h"
+#include "td/telegram/td_api.h"
 #include "td/utils/common.h"
 
 namespace td {
@@ -34,6 +36,7 @@ class DownloadManager : public td::Actor {
     int32 total_count{};
     std::vector<FileDownload> file_downloads;
     std::string offset;
+    tl_object_ptr<td_api::foundFileDownloads> to_td_api() const;
   };
 
   // Trying to make DownloadManager testable, so all interactions with G() will be hidden is this probably monstrous interface
@@ -58,13 +61,13 @@ class DownloadManager : public td::Actor {
   virtual void set_callback(unique_ptr<Callback> callback) = 0;
 
   virtual Status toggle_is_paused(FileId, bool is_paused) = 0;
-  virtual void toggle_all_is_paused(bool is_paused) = 0;
-  virtual void remove_file(FileId file_id, FileSourceId file_source_id, bool delete_from_cache) = 0;
-  virtual void remove_all_files(bool only_active, bool only_completed, bool delete_from_cache) = 0;
+  virtual Status toggle_all_is_paused(bool is_paused) = 0;
+  virtual Status remove_file(FileId file_id, FileSourceId file_source_id, bool delete_from_cache) = 0;
+  virtual Status remove_all_files(bool only_active, bool only_completed, bool delete_from_cache) = 0;
   // Files are always added in is_paused = false state
-  virtual void add_file(FileId file_id, FileSourceId file_source_id, std::string search_by, int8 priority) = 0;
-  virtual FoundFileDownloads search(std::string query, bool only_active, bool only_completed, std::string offset,
-                                    int32 limit) = 0;
+  virtual Status add_file(FileId file_id, FileSourceId file_source_id, std::string search_by, int8 priority) = 0;
+  virtual void search(std::string query, bool only_active, bool only_completed, std::string offset, int32 limit,
+                      Promise<FoundFileDownloads> promise) = 0;
 
   //
   // private interface to handle all kinds of updates

@@ -6551,6 +6551,9 @@ void Td::on_request(uint64 id, const td_api::deleteFile &request) {
 
 void Td::on_request(uint64 id, const td_api::addFileToDownloads &request) {
   CREATE_REQUEST_PROMISE();
+  if (!(1 <= request.priority_ && request.priority_ <= 32)) {
+    promise.set_error(Status::Error(400, "Upload priority must be in [1;32] range"));
+  }
   messages_manager_->add_message_file_to_downloads(
       FullMessageId(DialogId(request.chat_id_), MessageId(request.message_id_)), FileId(request.file_id_, 0),
       request.priority_, std::move(promise));
@@ -6558,28 +6561,35 @@ void Td::on_request(uint64 id, const td_api::addFileToDownloads &request) {
 
 void Td::on_request(uint64 id, const td_api::toggleDownloadIsPaused &request) {
   CREATE_OK_REQUEST_PROMISE();
-  promise.set_error(Status::Error(500, "Unsupported"));
+  promise.set_result(download_manager_->toggle_is_paused(FileId(request.file_id_, 0), request.is_paused_));
 }
 
 void Td::on_request(uint64 id, const td_api::toggleAllDownloadsArePaused &request) {
   CREATE_OK_REQUEST_PROMISE();
-  promise.set_error(Status::Error(500, "Unsupported"));
+  promise.set_result(download_manager_->toggle_all_is_paused(request.are_paused_));
 }
 
 void Td::on_request(uint64 id, const td_api::removeFileFromDownloads &request) {
   CREATE_OK_REQUEST_PROMISE();
-  promise.set_error(Status::Error(500, "Unsupported"));
+  promise.set_result(download_manager_->remove_file(FileId(request.file_id_, 0), {}, request.delete_from_cache_));
 }
 
 void Td::on_request(uint64 id, const td_api::removeAllFilesFromDownloads &request) {
   CREATE_OK_REQUEST_PROMISE();
-  promise.set_error(Status::Error(500, "Unsupported"));
+  promise.set_result(
+      download_manager_->remove_all_files(request.only_active_, request.only_completed_, request.delete_from_cache_));
 }
 
 void Td::on_request(uint64 id, td_api::searchFileDownloads &request) {
   CLEAN_INPUT_STRING(request.query_);
   CLEAN_INPUT_STRING(request.offset_);
   CREATE_REQUEST_PROMISE();
+  auto wrapped_promise = [promise = std::move(promise)](Result<DownloadManager::FoundFileDownloads> result) mutable {
+    TRY_RESULT_PROMISE(promise, found, std::move(result));
+    promise.set_value(found.to_td_api());
+  };
+  send_closure(download_manager_actor_, &DownloadManager::search, std::move(request.query_), request.only_active_,
+               request.only_completed_, std::move(request.offset_), request.limit_, std::move(wrapped_promise));
   promise.set_error(Status::Error(500, "Unsupported"));
 }
 

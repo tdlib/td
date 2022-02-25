@@ -39,20 +39,21 @@ class DownloadManagerImpl final : public DownloadManager {
     return Status::OK();
   }
 
-  void toggle_all_is_paused(bool is_paused) final {
+  Status toggle_all_is_paused(bool is_paused) final {
     if (!callback_) {
-      return;
+      return Status::Error("TODO: code and message`");
     }
     for (auto &it : active_files_) {
       toggle_is_paused(it.key(), is_paused);
     }
 
     // TODO: update db
+    return Status::OK();
   }
 
-  void remove_file(FileId file_id, FileSourceId file_source_id, bool delete_from_cache) final {
+  Status remove_file(FileId file_id, FileSourceId file_source_id, bool delete_from_cache) final {
     if (!callback_) {
-      return;
+      return Status::Error("TODO: code and message`");
     }
     auto it = active_files_.find(file_id);
     if (it != active_files_.end() && (!file_source_id.is_valid() || file_source_id == it->second.file_source_id)) {
@@ -68,14 +69,15 @@ class DownloadManagerImpl final : public DownloadManager {
       active_files_.erase(it);
     }
     // TODO: remove from db
+    return Status::OK();
   }
 
-  void remove_all_files(bool only_active, bool only_completed, bool delete_from_cache) final {
+  Status remove_all_files(bool only_active, bool only_completed, bool delete_from_cache) final {
     if (!callback_) {
-      return;
+      return Status::Error("TODO: code and message`");
     }
     if (!only_completed) {
-      td::table_remove_if(active_files_, [&](auto &it) {
+      for (auto &it : active_files_) {
         FileInfo &file_info = it.second;
         if (!file_info.is_paused) {
           callback_->pause_file(file_info.internal_file_id);
@@ -83,17 +85,18 @@ class DownloadManagerImpl final : public DownloadManager {
         if (delete_from_cache) {
           callback_->delete_file(file_info.internal_file_id);
         }
-        return true;
-      });
+      }
+      active_files_.clear();
     }
 
     // TODO: remove from db. should respect only_active
     // TODO: if delete_from_cache, should iterate all files in db
+    return Status::OK();
   }
 
-  void add_file(FileId file_id, FileSourceId file_source_id, std::string search_by, int8 priority) final {
+  Status add_file(FileId file_id, FileSourceId file_source_id, std::string search_by, int8 priority) final {
     if (!callback_) {
-      return;
+      return Status::Error("TODO: code and message`");
     }
     FileInfo file_info;
     file_info.internal_file_id = callback_->dup_file_id(file_id);
@@ -110,15 +113,16 @@ class DownloadManagerImpl final : public DownloadManager {
     callback_->start_file(file_info.internal_file_id, file_info.priority);
 
     // TODO: add file to db
+    return Status::OK();
   }
 
-  FoundFileDownloads search(std::string query, bool only_active, bool only_completed, std::string offset,
-                            int32 limit) final {
+  void search(std::string query, bool only_active, bool only_completed, std::string offset, int32 limit,
+              Promise<FoundFileDownloads> promise) final {
     if (!callback_) {
-      return {};
+      return promise.set_error(Status::Error("TODO: code and message`"));
     }
-    // TODO: query to database
-    return FoundFileDownloads();
+    // TODO: do query
+    return promise.set_value({});
   }
 
   void update_file_download_state(FileId internal_file_id, int64 download_size, int64 size, bool is_paused) final {
@@ -194,5 +198,8 @@ class DownloadManagerImpl final : public DownloadManager {
 
 unique_ptr<DownloadManager> DownloadManager::create() {
   return make_unique<DownloadManagerImpl>();
+}
+tl_object_ptr<td_api::foundFileDownloads> DownloadManager::FoundFileDownloads::to_td_api() const {
+  return make_tl_object<td_api::foundFileDownloads>();
 }
 }  // namespace td
