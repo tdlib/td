@@ -171,6 +171,11 @@ class FlatHashTable {
   static constexpr size_t OFFSET = 4 * sizeof(uint32);
   static constexpr uint32 INVALID_BUCKET = 0xFFFFFFFF;
 
+  static inline FlatHashTableInner *get_inner(NodeT *nodes) {
+    DCHECK(nodes != nullptr);
+    return reinterpret_cast<FlatHashTableInner *>(reinterpret_cast<char *>(nodes) - OFFSET);
+  }
+
   static NodeT *allocate_nodes(uint32 size) {
     DCHECK(size >= 8);
     DCHECK((size & (size - 1)) == 0);
@@ -187,9 +192,9 @@ class FlatHashTable {
     return nodes;
   }
 
-  static void clear_inner(FlatHashTableInner *inner) {
+  static void clear_nodes(NodeT *nodes) {
+    auto inner = get_inner(nodes);
     auto size = inner->bucket_count_;
-    NodeT *nodes = &inner->nodes_[0];
     for (uint32 i = 0; i < size; i++) {
       nodes[i].~NodeT();
     }
@@ -197,13 +202,12 @@ class FlatHashTable {
   }
 
   inline FlatHashTableInner *get_inner() {
-    DCHECK(nodes_ != nullptr);
-    return reinterpret_cast<FlatHashTableInner *>(reinterpret_cast<char *>(nodes_) - OFFSET);
+    return get_inner(nodes_);
   }
 
   inline const FlatHashTableInner *get_inner() const {
     DCHECK(nodes_ != nullptr);
-    return reinterpret_cast<const FlatHashTableInner *>(reinterpret_cast<const char *>(nodes_) - OFFSET);
+    return get_inner(const_cast<NodeT *>(nodes_));
   }
 
   inline uint32 &used_node_count() {
@@ -477,7 +481,7 @@ class FlatHashTable {
 
   void clear() {
     if (nodes_ != nullptr) {
-      clear_inner(get_inner());
+      clear_nodes(nodes_);
       nodes_ = nullptr;
     }
   }
@@ -587,17 +591,18 @@ class FlatHashTable {
     nodes_ = allocate_nodes(new_size);
     used_node_count() = old_size;
 
-    for (uint32 i = 0; i < old_bucket_count; i++) {
-      auto &old_node = old_nodes[i];
-      if (old_node.empty()) {
+    auto old_nodes_end = old_nodes + old_bucket_count;
+    for (NodeT *old_node = old_nodes; old_node != old_nodes_end; ++old_node) {
+      if (old_node->empty()) {
         continue;
       }
-      auto bucket = calc_bucket(old_node.key());
+      auto bucket = calc_bucket(old_node->key());
       while (!nodes_[bucket].empty()) {
         next_bucket(bucket);
       }
-      nodes_[bucket] = std::move(old_node);
+      nodes_[bucket] = std::move(*old_node);
     }
+    clear_nodes(old_nodes);
   }
 
   void erase_node(NodeT *it) {
@@ -608,7 +613,7 @@ class FlatHashTable {
     const auto bucket_count = get_bucket_count();
     const auto *end = nodes_ + bucket_count;
     for (auto *test_node = it + 1; test_node != end; test_node++) {
-      if (test_node->empty()) {
+      if (likely(test_node->empty())) {
         return;
       }
 
