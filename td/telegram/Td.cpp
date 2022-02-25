@@ -5745,6 +5745,18 @@ void Td::on_request(uint64 id, td_api::createVideoChat &request) {
                                          request.is_rtmp_stream_, std::move(query_promise));
 }
 
+void Td::on_request(uint64 id, const td_api::getVideoChatRtmpUrl &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  group_call_manager_->get_voice_chat_rtmp_stream_url(DialogId(request.chat_id_), false, std::move(promise));
+}
+
+void Td::on_request(uint64 id, const td_api::replaceVideoChatRtmpUrl &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  group_call_manager_->get_voice_chat_rtmp_stream_url(DialogId(request.chat_id_), true, std::move(promise));
+}
+
 void Td::on_request(uint64 id, const td_api::getGroupCall &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();

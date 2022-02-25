@@ -2332,6 +2332,9 @@ groupCallStream channel_id:int32 scale:int32 time_offset:int53 = GroupCallStream
 //@description Represents a list of group call streams @streams A list of group call streams
 groupCallStreams streams:vector<groupCallStream> = GroupCallStreams;
 
+//@description Represents an RTMP url @url The URL @stream_key Stream key
+rtmpUrl url:string stream_key:string = RtmpUrl;
+
 
 //@description Describes a recently speaking participant in a group call @participant_id Group call participant identifier @is_speaking True, is the user has spoken recently
 groupCallRecentSpeaker participant_id:MessageSender is_speaking:Bool = GroupCallRecentSpeaker;
@@ -5278,8 +5281,14 @@ setVideoChatDefaultParticipant chat_id:int53 default_participant_id:MessageSende
 //@chat_id Chat identifier, in which the video chat will be created
 //@title Group call title; if empty, chat title will be used
 //@start_date Point in time (Unix timestamp) when the group call is supposed to be started by an administrator; 0 to start the video chat immediately. The date must be at least 10 seconds and at most 8 days in the future
-//@is_rtmp_stream True, if the chat will be an RTMP stream instead of an ordinary video chat
+//@is_rtmp_stream True, if the chat will be an RTMP stream instead of an ordinary video chat; requires creator privileges
 createVideoChat chat_id:int53 title:string start_date:int32 is_rtmp_stream:Bool = GroupCallId;
+
+//@description Returns RTMP URL for streaming to the chat; requires creator privileges @chat_id Chat identifier
+getVideoChatRtmpUrl chat_id:int53 = RtmpUrl;
+
+//@description Replaces the current RTMP URL for streaming to the chat; requires creator privileges @chat_id Chat identifier
+replaceVideoChatRtmpUrl chat_id:int53 = RtmpUrl;
 
 //@description Returns information about a group call @group_call_id Group call identifier
 getGroupCall group_call_id:int32 = GroupCall;

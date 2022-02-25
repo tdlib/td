@@ -245,6 +245,41 @@ class CreateGroupCallQuery final : public Td::ResultHandler {
   }
 };
 
+class GetGroupCallRtmpStreamUrlGroupCallQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::rtmpUrl>> promise_;
+  DialogId dialog_id_;
+
+ public:
+  explicit GetGroupCallRtmpStreamUrlGroupCallQuery(Promise<td_api::object_ptr<td_api::rtmpUrl>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(DialogId dialog_id, bool revoke) {
+    dialog_id_ = dialog_id;
+
+    auto input_peer = td_->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
+    CHECK(input_peer != nullptr);
+
+    send_query(
+        G()->net_query_creator().create(telegram_api::phone_getGroupCallStreamRtmpUrl(std::move(input_peer), revoke)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::phone_getGroupCallStreamRtmpUrl>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    promise_.set_value(td_api::make_object<td_api::rtmpUrl>(ptr->url_, ptr->key_));
+  }
+
+  void on_error(Status status) final {
+    td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "GetGroupCallRtmpStreamUrlGroupCallQuery");
+    promise_.set_error(std::move(status));
+  }
+};
+
 class GetGroupCallQuery final : public Td::ResultHandler {
   Promise<tl_object_ptr<telegram_api::phone_groupCall>> promise_;
 
@@ -1306,6 +1341,23 @@ void GroupCallManager::create_voice_chat(DialogId dialog_id, string title, int32
       });
   td_->create_handler<CreateGroupCallQuery>(std::move(query_promise))
       ->send(dialog_id, title, start_date, is_rtmp_stream);
+}
+
+void GroupCallManager::get_voice_chat_rtmp_stream_url(DialogId dialog_id, bool revoke,
+                                                      Promise<td_api::object_ptr<td_api::rtmpUrl>> &&promise) {
+  if (!dialog_id.is_valid()) {
+    return promise.set_error(Status::Error(400, "Invalid chat identifier specified"));
+  }
+  if (!td_->messages_manager_->have_dialog_force(dialog_id, "get_voice_chat_rtmp_stream_url")) {
+    return promise.set_error(Status::Error(400, "Chat not found"));
+  }
+  if (!td_->messages_manager_->have_input_peer(dialog_id, AccessRights::Read)) {
+    return promise.set_error(Status::Error(400, "Can't access chat"));
+  }
+
+  TRY_STATUS_PROMISE(promise, can_manage_group_calls(dialog_id));
+
+  td_->create_handler<GetGroupCallRtmpStreamUrlGroupCallQuery>(std::move(promise))->send(dialog_id, revoke);
 }
 
 void GroupCallManager::on_voice_chat_created(DialogId dialog_id, InputGroupCallId input_group_call_id,

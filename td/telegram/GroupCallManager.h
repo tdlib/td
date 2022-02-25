@@ -52,6 +52,9 @@ class GroupCallManager final : public Actor {
   void create_voice_chat(DialogId dialog_id, string title, int32 start_date, bool is_rtmp_stream,
                          Promise<GroupCallId> &&promise);
 
+  void get_voice_chat_rtmp_stream_url(DialogId dialog_id, bool revoke,
+                                      Promise<td_api::object_ptr<td_api::rtmpUrl>> &&promise);
+
   void get_group_call(GroupCallId group_call_id, Promise<td_api::object_ptr<td_api::groupCall>> &&promise);
 
   void on_update_group_call_rights(InputGroupCallId input_group_call_id);
