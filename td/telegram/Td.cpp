@@ -3972,11 +3972,10 @@ void Td::init_managers() {
   country_info_manager_actor_ = register_actor("CountryInfoManager", country_info_manager_.get());
   download_manager_ = DownloadManager::create();
   download_manager_actor_ = register_actor("DownloadManager", download_manager_.get());
-  // TODO: move this callback somewhere else
   class DownloadManagerCallback final : public DownloadManager::Callback {
    public:
-    DownloadManagerCallback(ActorShared<> parent, std::shared_ptr<DownloadFileCallback> download_file_callback)
-        : parent_(std::move(parent)), download_file_callback_(std::move(download_file_callback)) {
+    DownloadManagerCallback(ActorShared<> parent, ActorId<DownloadManager> download_manager)
+        : parent_(std::move(parent)), download_manager_(download_manager) {
     }
     void update_counters(DownloadManager::Counters counters) final {
       send_closure(G()->td(), &Td::send_update, counters.to_td_api());
@@ -4005,10 +4004,37 @@ void Td::init_managers() {
 
    private:
     ActorShared<> parent_;
-    std::shared_ptr<DownloadFileCallback> download_file_callback_;
+    ActorId<DownloadManager> download_manager_;
+    std::shared_ptr<FileManager::DownloadCallback> download_file_callback_;
+    std::shared_ptr<FileManager::DownloadCallback> make_download_file_callback() {
+      if (!download_file_callback_) {
+        class Impl : public FileManager::DownloadCallback {
+         public:
+          Impl(ActorId<DownloadManager> download_manager) : download_manager_(download_manager_) {
+          }
+          void on_progress(FileId file_id) final {
+            auto view = G()->file_manager().get_actor_unsafe()->get_file_view(file_id);
+            send_closure(download_manager_, &DownloadManager::update_file_download_state, file_id,
+                         view.local_total_size(), view.size(), !view.is_downloading());
+            // TODO: handle deleted state?
+          }
+          void on_download_ok(FileId file_id) final {
+            on_progress(file_id);
+          }
+          void on_download_error(FileId file_id, Status error) {
+            on_progress(file_id);
+          }
+
+         private:
+          ActorId<DownloadManager> download_manager_;
+        };
+        download_file_callback_ = std::make_shared<Impl>(download_manager_);
+      }
+      return download_file_callback_;
+    }
   };
   send_closure_later(download_manager_actor_, &DownloadManager::set_callback,
-                     td::make_unique<DownloadManagerCallback>(create_reference(), download_file_callback_));
+                     td::make_unique<DownloadManagerCallback>(create_reference(), download_manager_actor_.get()));
 
   game_manager_ = make_unique<GameManager>(this, create_reference());
   game_manager_actor_ = register_actor("GameManager", game_manager_.get());

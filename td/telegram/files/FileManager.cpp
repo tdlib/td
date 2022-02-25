@@ -1809,6 +1809,10 @@ void FileManager::try_flush_node_info(FileNodePtr node, const char *source) {
         VLOG(update_file) << "Send UpdateFile about file " << file_id << " from " << source;
         context_->on_file_updated(file_id);
       }
+      if (info->download_callback_) {
+        // For DownloadManger. For everybody else it is just an empty function call (I hope).
+        info->download_callback_->on_progress(file_id);
+      }
     }
     node->on_info_flushed();
   }
