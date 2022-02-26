@@ -7,7 +7,6 @@
 #include "td/telegram/TdDb.h"
 
 #include "td/telegram/DialogDb.h"
-#include "td/telegram/DownloadsDb.h"
 #include "td/telegram/files/FileDb.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/logevent/LogEvent.h"
@@ -203,12 +202,6 @@ DialogDbSyncInterface *TdDb::get_dialog_db_sync() {
 DialogDbAsyncInterface *TdDb::get_dialog_db_async() {
   return dialog_db_async_.get();
 }
-DownloadsDbSyncInterface *TdDb::get_downloads_db_sync() {
-  return &downloads_db_sync_safe_->get();
-}
-DownloadsDbAsyncInterface *TdDb::get_downloads_db_async() {
-  return downloads_db_async_.get();
-}
 
 CSlice TdDb::binlog_path() const {
   return binlog_->get_path();
@@ -270,11 +263,6 @@ void TdDb::do_close(Promise<> on_finished, bool destroy_flag) {
   dialog_db_sync_safe_.reset();
   if (dialog_db_async_) {
     dialog_db_async_->close(mpas.get_promise());
-  }
-
-  downloads_db_sync_safe_.reset();
-  if (downloads_db_async_) {
-    downloads_db_async_->close(mpas.get_promise());
   }
 
   // binlog_pmc is dependent on binlog_ and anyway it doesn't support close_and_destroy
@@ -351,12 +339,6 @@ Status TdDb::init_sqlite(int32 scheduler_id, const TdParameters &parameters, con
     TRY_STATUS(init_file_db(db, user_version));
   } else {
     TRY_STATUS(drop_file_db(db, user_version));
-  }
-
-  if (use_downloads_db) {
-    TRY_STATUS(init_downloads_db(db, user_version));
-  } else {
-    TRY_STATUS(drop_downloads_db(db, user_version));
   }
 
   // Update 'PRAGMA user_version'

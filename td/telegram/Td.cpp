@@ -3981,7 +3981,8 @@ void Td::init_managers() {
       send_closure(G()->td(), &Td::send_update, counters.to_td_api());
     }
     void start_file(FileId file_id, int8 priority) final {
-      send_closure(G()->file_manager(), &FileManager::download, file_id, download_file_callback_, priority, -1, -1);
+      send_closure(G()->file_manager(), &FileManager::download, file_id, make_download_file_callback(), priority, -1,
+                   -1);
     }
     void pause_file(FileId file_id) final {
       send_closure(G()->file_manager(), &FileManager::download, file_id, nullptr, 0, -1, -1);
@@ -3996,11 +3997,6 @@ void Td::init_managers() {
     string get_unique_file_id(FileId file_id) final {
       return G()->file_manager().get_actor_unsafe()->get_file_view(file_id).get_unique_file_id();
     }
-    string get_file_source_serialized(FileSourceId file_source_id) final {
-      TlStorerToString storer;
-      G()->file_reference_manager().get_actor_unsafe()->store_file_source(file_source_id, storer);
-      return storer.move_as_string();
-    }
 
    private:
     ActorShared<> parent_;
@@ -4010,7 +4006,7 @@ void Td::init_managers() {
       if (!download_file_callback_) {
         class Impl : public FileManager::DownloadCallback {
          public:
-          Impl(ActorId<DownloadManager> download_manager) : download_manager_(download_manager_) {
+          Impl(ActorId<DownloadManager> download_manager) : download_manager_(download_manager) {
           }
           void on_progress(FileId file_id) final {
             auto view = G()->file_manager().get_actor_unsafe()->get_file_view(file_id);

@@ -2205,6 +2205,10 @@ void FileManager::download(FileId file_id, std::shared_ptr<DownloadCallback> cal
   }
   file_info->download_priority_ = narrow_cast<int8>(new_priority);
   file_info->download_callback_ = std::move(callback);
+
+  if (file_info->download_callback_) {
+    file_info->download_callback_->on_progress(file_id);
+  }
   // TODO: send current progress?
 
   run_generate(node);

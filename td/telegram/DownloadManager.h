@@ -15,6 +15,7 @@
 
 #include "td/utils/common.h"
 #include "td/utils/Status.h"
+#include "td/utils/tl_helpers.h"
 
 namespace td {
 
@@ -28,7 +29,16 @@ class DownloadManager : public Actor {
     int32 total_count{};
     int64 downloaded_size{};
 
+    bool operator==(const Counters &other) const {
+      return total_size == other.total_size && total_count == other.total_count && downloaded_size == other.downloaded_size;
+    }
+
     tl_object_ptr<td_api::updateFileDownloads> to_td_api() const;
+    template <class StorerT>
+    void store(StorerT &storer) const;
+
+    template <class ParserT>
+    void parse(ParserT &parser);
   };
 
   struct FileDownload {
@@ -57,7 +67,6 @@ class DownloadManager : public Actor {
     virtual FileId dup_file_id(FileId file_id) = 0;
 
     virtual string get_unique_file_id(FileId file_id) = 0;
-    virtual string get_file_source_serialized(FileSourceId file_source_id) = 0;
   };
 
   //
