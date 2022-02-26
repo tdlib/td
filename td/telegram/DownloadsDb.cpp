@@ -247,7 +247,7 @@ class DownloadsDbAsync final : public DownloadsDbAsyncInterface {
       promise.set_result(sync_db_->get_downloads_fts(std::move(query)));
     }
 
-    void get_active_downloads(Promise<> promise) {
+    void get_active_downloads(Promise<GetActiveDownloadsResult> promise) {
       add_read_query();
       promise.set_result(sync_db_->get_active_downloads());
     }

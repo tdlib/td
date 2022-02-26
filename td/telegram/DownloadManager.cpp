@@ -6,11 +6,11 @@
 //
 #include "td/telegram/DownloadManager.h"
 
-#include "td/utils/FlatHashMap.h"
-
 #include "td/telegram/DownloadsDb.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/TdDb.h"
+
+#include "td/utils/FlatHashMap.h"
 
 namespace td {
 
@@ -50,7 +50,7 @@ class DownloadManagerImpl final : public DownloadManager {
       return Status::Error("TODO: code and message`");
     }
     for (auto &it : active_files_) {
-      toggle_is_paused(it.key(), is_paused);
+      toggle_is_paused(it.first, is_paused);
     }
 
     // TODO: update db
@@ -132,7 +132,7 @@ class DownloadManagerImpl final : public DownloadManager {
     TRY_RESULT_PROMISE(promise, offset_int64, to_integer_safe<int64>(offset));
     // TODO: only active, only completed
     G()->td_db()->get_downloads_db_async()->get_downloads_fts(DownloadsDbFtsQuery{query, offset_int64, limit},
-                                                              [](Result<Unit>) {});
+                                                              [](Result<DownloadsDbFtsResult>) {});
     return promise.set_value({});
   }
 
