@@ -30,7 +30,8 @@ class DownloadManager : public Actor {
     int64 downloaded_size{};
 
     bool operator==(const Counters &other) const {
-      return total_size == other.total_size && total_count == other.total_count && downloaded_size == other.downloaded_size;
+      return total_size == other.total_size && total_count == other.total_count &&
+             downloaded_size == other.downloaded_size;
     }
 
     tl_object_ptr<td_api::updateFileDownloads> to_td_api() const;
@@ -79,6 +80,7 @@ class DownloadManager : public Actor {
   virtual Status toggle_is_paused(FileId, bool is_paused) = 0;
   virtual Status toggle_all_is_paused(bool is_paused) = 0;
   virtual Status remove_file(FileId file_id, FileSourceId file_source_id, bool delete_from_cache) = 0;
+  virtual Status change_search_text(FileId file_id, FileSourceId file_source_id, string search_by) = 0;
   virtual Status remove_all_files(bool only_active, bool only_completed, bool delete_from_cache) = 0;
   // Files are always added in is_paused = false state
   virtual Status add_file(FileId file_id, FileSourceId file_source_id, string search_by, int8 priority) = 0;
