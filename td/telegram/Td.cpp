@@ -3978,7 +3978,7 @@ void Td::init_managers() {
         : parent_(std::move(parent)), download_manager_(download_manager) {
     }
     void update_counters(DownloadManager::Counters counters) final {
-      send_closure(G()->td(), &Td::send_update, counters.to_td_api());
+      send_closure(G()->td(), &Td::send_update, counters.get_update_file_downloads_object());
     }
     void start_file(FileId file_id, int8 priority) final {
       send_closure(G()->file_manager(), &FileManager::download, file_id, make_download_file_callback(), priority, -1,
@@ -3992,10 +3992,20 @@ void Td::init_managers() {
           G()->file_manager(), &FileManager::delete_file, file_id, [](Result<Unit>) {}, "download manager callback");
     }
     FileId dup_file_id(FileId file_id) final {
-      return G()->file_manager().get_actor_unsafe()->dup_file_id(file_id);
+      auto td = G()->td().get_actor_unsafe();
+      return td->file_manager_->dup_file_id(file_id);
     }
     string get_unique_file_id(FileId file_id) final {
-      return G()->file_manager().get_actor_unsafe()->get_file_view(file_id).get_unique_file_id();
+      auto td = G()->td().get_actor_unsafe();
+      return td->file_manager_->get_file_view(file_id).get_unique_file_id();
+    }
+    td_api::object_ptr<td_api::fileDownload> get_file_download_object(FileId file_id, FileSourceId file_source_id,
+                                                                      int32 add_date, int32 complete_date,
+                                                                      bool is_paused) {
+      auto td = G()->td().get_actor_unsafe();
+      return td_api::make_object<td_api::fileDownload>(td->file_manager_->get_file_view(file_id).file_id().get(),
+                                                       td->file_reference_manager_->get_message_object(file_source_id),
+                                                       add_date, complete_date, is_paused);
     }
 
    private:
@@ -6607,12 +6617,8 @@ void Td::on_request(uint64 id, td_api::searchFileDownloads &request) {
   CLEAN_INPUT_STRING(request.query_);
   CLEAN_INPUT_STRING(request.offset_);
   CREATE_REQUEST_PROMISE();
-  auto wrapped_promise = [promise = std::move(promise)](Result<DownloadManager::FoundFileDownloads> result) mutable {
-    TRY_RESULT_PROMISE(promise, found, std::move(result));
-    promise.set_value(found.to_td_api());
-  };
   send_closure(download_manager_actor_, &DownloadManager::search, std::move(request.query_), request.only_active_,
-               request.only_completed_, std::move(request.offset_), request.limit_, std::move(wrapped_promise));
+               request.only_completed_, std::move(request.offset_), request.limit_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::getMessageFileType &request) {

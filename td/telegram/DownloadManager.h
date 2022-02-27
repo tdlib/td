@@ -22,7 +22,7 @@ namespace td {
 class DownloadManager : public Actor {
  public:
   // creates, but do not stats the actor
-  static td::unique_ptr<DownloadManager> create();
+  static unique_ptr<DownloadManager> create();
 
   struct Counters {
     int64 total_size{};
@@ -34,27 +34,13 @@ class DownloadManager : public Actor {
              downloaded_size == other.downloaded_size;
     }
 
-    tl_object_ptr<td_api::updateFileDownloads> to_td_api() const;
+    td_api::object_ptr<td_api::updateFileDownloads> get_update_file_downloads_object() const;
+
     template <class StorerT>
     void store(StorerT &storer) const;
 
     template <class ParserT>
     void parse(ParserT &parser);
-  };
-
-  struct FileDownload {
-    FileId file_id;
-    FileSourceId file_source_id;
-    bool is_paused{};
-    int32 add_date{};
-    int32 complete_date{};
-  };
-
-  struct FoundFileDownloads {
-    int32 total_count{};
-    vector<FileDownload> file_downloads;
-    string offset;
-    tl_object_ptr<td_api::foundFileDownloads> to_td_api() const;
   };
 
   // Trying to make DownloadManager testable, so all interactions with G() will be hidden is this probably monstrous interface
@@ -68,6 +54,10 @@ class DownloadManager : public Actor {
     virtual FileId dup_file_id(FileId file_id) = 0;
 
     virtual string get_unique_file_id(FileId file_id) = 0;
+    virtual td_api::object_ptr<td_api::fileDownload> get_file_download_object(FileId file_id,
+                                                                              FileSourceId file_source_id,
+                                                                              int32 add_date, int32 complete_date,
+                                                                              bool is_paused) = 0;
   };
 
   //
@@ -85,7 +75,7 @@ class DownloadManager : public Actor {
   // Files are always added in is_paused = false state
   virtual Status add_file(FileId file_id, FileSourceId file_source_id, string search_by, int8 priority) = 0;
   virtual void search(std::string query, bool only_active, bool only_completed, string offset, int32 limit,
-                      Promise<FoundFileDownloads> promise) = 0;
+                      Promise<td_api::object_ptr<td_api::foundFileDownloads>> promise) = 0;
 
   //
   // private interface to handle all kinds of updates

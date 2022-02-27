@@ -984,7 +984,8 @@ class MessagesManager final : public Actor {
   void add_message_file_to_downloads(FullMessageId full_message_id, FileId file_id, int32 priority,
                                      Promise<td_api::object_ptr<td_api::file>> promise);
 
-  void get_message_file_info(FullMessageId full_message_id, string unique_file_id, Promise<FileSearchInfo> promise);
+  void get_message_file_search_info(FullMessageId full_message_id, string unique_file_id,
+                                    Promise<FileSearchInfo> promise);
 
  private:
   class PendingPtsUpdate {

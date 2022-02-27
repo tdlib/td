@@ -394,16 +394,29 @@ void FileReferenceManager::reload_photo(PhotoSizeSource source, Promise<Unit> pr
   }
 }
 
-void FileReferenceManager::get_file_info(FileSourceId file_source_id, string unique_file_id,
-                                         Promise<FileSearchInfo> promise) {
+void FileReferenceManager::get_file_search_info(FileSourceId file_source_id, string unique_file_id,
+                                                Promise<FileSearchInfo> promise) {
   auto index = static_cast<size_t>(file_source_id.get()) - 1;
   CHECK(index < file_sources_.size());
   file_sources_[index].visit(overloaded(
       [&](const FileSourceMessage &source) {
-        send_closure_later(G()->messages_manager(), &MessagesManager::get_message_file_info, source.full_message_id,
-                           std::move(unique_file_id), std::move(promise));
+        send_closure_later(G()->messages_manager(), &MessagesManager::get_message_file_search_info,
+                           source.full_message_id, std::move(unique_file_id), std::move(promise));
       },
       [&](const auto &source) { promise.set_error(Status::Error(500, "Unsupported file source")); }));
+}
+
+td_api::object_ptr<td_api::message> FileReferenceManager::get_message_object(FileSourceId file_source_id) const {
+  auto index = static_cast<size_t>(file_source_id.get()) - 1;
+  CHECK(index < file_sources_.size());
+  td_api::object_ptr<td_api::message> result;
+  file_sources_[index].visit(overloaded(
+      [&](const FileSourceMessage &source) {
+        result = G()->td().get_actor_unsafe()->messages_manager_->get_message_object(source.full_message_id,
+                                                                                     "FileReferenceManager");
+      },
+      [&](const auto &source) { LOG(ERROR) << "Unsupported file source"; }));
+  return result;
 }
 
 }  // namespace td

@@ -6,17 +6,18 @@
 //
 #include "td/telegram/DownloadManager.h"
 
-#include "td/utils/FlatHashMap.h"
-#include "td/utils/Hints.h"
-#include "td/utils/tl_helpers.h"
-
-#include "td/actor/MultiPromise.h"
 #include "td/telegram/FileReferenceManager.h"
 #include "td/telegram/files/FileSourceId.hpp"
 #include "td/telegram/Global.h"
 #include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/TdDb.h"
+
+#include "td/actor/MultiPromise.h"
+
 #include "td/utils/algorithm.h"
+#include "td/utils/FlatHashMap.h"
+#include "td/utils/Hints.h"
+#include "td/utils/tl_helpers.h"
 
 namespace td {
 
@@ -172,7 +173,7 @@ class DownloadManagerImpl final : public DownloadManager {
   }
 
   void search(string query, bool only_active, bool only_completed, string offset, int32 limit,
-              Promise<FoundFileDownloads> promise) final {
+              Promise<td_api::object_ptr<td_api::foundFileDownloads>> promise) final {
     TRY_STATUS_PROMISE(promise, check_is_active());
     int64 offset_int64 = std::numeric_limits<int64>::max();
     if (!offset.empty()) {
@@ -198,28 +199,24 @@ class DownloadManagerImpl final : public DownloadManager {
       return false;
     });
     std::sort(ids.begin(), ids.end(), std::greater<>());
-    FoundFileDownloads found;
-    found.total_count = narrow_cast<int32>(ids.size());
+    int32 total_count = narrow_cast<int32>(ids.size());
     remove_if(ids, [offset_int64](auto id) { return id < offset_int64; });
     if (static_cast<int32>(ids.size()) > limit) {
       ids.resize(max(0, limit));
     }
     int64 last_id = 0;
-    found.file_downloads = transform(ids, [&](auto id) {
-      auto it = files_.find(id);
-      FileInfo &file_info = it->second;
-      FileDownload res;
-      res.is_paused = file_info.is_paused;
-      res.file_source_id = file_info.file_source_id;
-      res.file_id = it->second.file_id;
-      res.add_date = file_info.created_at;
-      res.complete_date = file_info.completed_at;
-      return res;
+    auto file_downloads = transform(ids, [&](auto id) {
+      last_id = id;
+      FileInfo &file_info = files_[id];
+      return callback_->get_file_download_object(file_info.file_id, file_info.file_source_id, file_info.created_at,
+                                                 file_info.completed_at, file_info.is_paused);
     });
+    td::remove_if(file_downloads, [](const auto &file_download) { return file_download->message_ == nullptr; });
+    string next_offset;
     if (last_id != 0) {
-      found.offset = to_string(last_id);
+      next_offset = to_string(last_id);
     }
-    return promise.set_value(std::move(found));
+    return promise.set_value(td_api::make_object<td_api::foundFileDownloads>(total_count, Auto(), next_offset));
   }
 
   void update_file_download_state(FileId internal_file_id, int64 download_size, int64 size, bool is_paused) final {
@@ -354,7 +351,7 @@ class DownloadManagerImpl final : public DownloadManager {
         send_closure(self, &DownloadManagerImpl::add_file_from_db, res.move_as_ok(), std::move(in_db));
         promise.set_value({});
       };
-      send_closure(G()->file_reference_manager(), &FileReferenceManager::get_file_info, file_source_id,
+      send_closure(G()->file_reference_manager(), &FileReferenceManager::get_file_search_info, file_source_id,
                    std::move(unique_file_id), std::move(new_promise));
     }
   }
@@ -401,7 +398,7 @@ class DownloadManagerImpl final : public DownloadManager {
     callback_->update_counters(counters_);
   }
 
-  td::Result<const FileInfo *> get_file_info(FileId file_id, FileSourceId file_source_id = {}) {
+  Result<const FileInfo *> get_file_info(FileId file_id, FileSourceId file_source_id = {}) {
     auto it = by_file_id_.find(file_id);
     if (it == by_file_id_.end()) {
       return Status::Error(400, "Can't find file");
@@ -409,7 +406,7 @@ class DownloadManagerImpl final : public DownloadManager {
     return get_file_info(it->second, file_source_id);
   }
 
-  td::Result<const FileInfo *> get_file_info_by_internal(FileId file_id) {
+  Result<const FileInfo *> get_file_info_by_internal(FileId file_id) {
     auto it = by_internal_file_id_.find(file_id);
     if (it == by_internal_file_id_.end()) {
       return Status::Error(400, "Can't find file");
@@ -417,7 +414,7 @@ class DownloadManagerImpl final : public DownloadManager {
     return get_file_info(it->second);
   }
 
-  td::Result<const FileInfo *> get_file_info(int64 download_id, FileSourceId file_source_id = {}) {
+  Result<const FileInfo *> get_file_info(int64 download_id, FileSourceId file_source_id = {}) {
     auto it = files_.find(download_id);
     if (it == files_.end()) {
       return Status::Error(400, "Can't find file");
@@ -433,6 +430,7 @@ class DownloadManagerImpl final : public DownloadManager {
     counters_.downloaded_size -= file_info.downloaded_size;
     counters_.total_size -= file_info.size;
   }
+
   void register_file_info(FileInfo &file_info) {
     active_files_count_ += is_active(file_info);
     counters_.downloaded_size += file_info.downloaded_size;
@@ -444,6 +442,7 @@ class DownloadManagerImpl final : public DownloadManager {
     sync_with_db(file_info);
     update_counters();
   }
+
   template <class F>
   void with_file_info(const FileInfo &const_file_info, F &&f) {
     unregister_file_info(const_file_info);
@@ -451,6 +450,7 @@ class DownloadManagerImpl final : public DownloadManager {
     f(file_info);
     register_file_info(file_info);
   }
+
   Status check_is_active() {
     if (!callback_) {
       return Status::Error("TODO: code and message`");
@@ -463,11 +463,8 @@ unique_ptr<DownloadManager> DownloadManager::create() {
   return make_unique<DownloadManagerImpl>();
 }
 
-tl_object_ptr<td_api::foundFileDownloads> DownloadManager::FoundFileDownloads::to_td_api() const {
-  return make_tl_object<td_api::foundFileDownloads>();
-}
-tl_object_ptr<td_api::updateFileDownloads> DownloadManager::Counters::to_td_api() const {
-  return make_tl_object<td_api::updateFileDownloads>(total_size, total_count, downloaded_size);
+td_api::object_ptr<td_api::updateFileDownloads> DownloadManager::Counters::get_update_file_downloads_object() const {
+  return td_api::make_object<td_api::updateFileDownloads>(total_size, total_count, downloaded_size);
 }
 
 template <class StorerT>
@@ -487,4 +484,5 @@ void DownloadManager::Counters::parse(ParserT &parser) {
   td::parse(total_count, parser);
   td::parse(downloaded_size, parser);
 }
+
 }  // namespace td
