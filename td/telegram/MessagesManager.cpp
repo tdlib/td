@@ -22880,6 +22880,7 @@ void MessagesManager::remove_message_file_sources(DialogId dialog_id, const Mess
   auto file_source_id = get_message_file_source_id(FullMessageId(dialog_id, m->message_id));
   if (file_source_id.is_valid()) {
     for (auto file_id : file_ids) {
+      send_closure(td_->download_manager_actor_, &DownloadManager::remove_file, file_id, file_source_id, false);
       td_->file_manager_->remove_file_source(file_id, file_source_id);
     }
   }
@@ -22896,15 +22897,19 @@ void MessagesManager::change_message_files(DialogId dialog_id, const Message *m,
   }
 
   FullMessageId full_message_id{dialog_id, m->message_id};
-  if (need_delete_message_files(dialog_id, m)) {
-    for (auto file_id : old_file_ids) {
-      if (!td::contains(new_file_ids, file_id) && need_delete_file(full_message_id, file_id)) {
+  bool need_delete_files = need_delete_message_files(dialog_id, m);
+  auto file_source_id = get_message_file_source_id(full_message_id);
+  for (auto file_id : old_file_ids) {
+    if (!td::contains(new_file_ids, file_id)) {
+      if (need_delete_files && need_delete_file(full_message_id, file_id)) {
         send_closure(G()->file_manager(), &FileManager::delete_file, file_id, Promise<>(), "change_message_files");
+      }
+      if (file_source_id.is_valid()) {
+        send_closure(td_->download_manager_actor_, &DownloadManager::remove_file, file_id, file_source_id, false);
       }
     }
   }
 
-  auto file_source_id = get_message_file_source_id(full_message_id);
   if (file_source_id.is_valid()) {
     td_->file_manager_->change_files_source(file_source_id, old_file_ids, new_file_ids);
   }
@@ -35789,8 +35794,22 @@ bool MessagesManager::update_message_content(DialogId dialog_id, Message *old_me
     LOG(INFO) << "Content of " << old_message->message_id << " in " << dialog_id << " has changed";
   }
 
-  if (need_update && need_send_update_message_content) {
-    send_update_message_content(dialog_id, old_message, is_message_in_dialog, "update_message_content");
+  if (need_update) {
+    if (need_send_update_message_content) {
+      send_update_message_content(dialog_id, old_message, is_message_in_dialog, "update_message_content");
+    }
+
+    auto file_ids = get_message_content_file_ids(old_content.get(), td_);
+    if (!file_ids.empty()) {
+      auto file_source_id = get_message_file_source_id(FullMessageId(dialog_id, old_message->message_id));
+      if (file_source_id.is_valid()) {
+        auto search_text = get_message_search_text(old_message);
+        for (auto file_id : file_ids) {
+          send_closure(td_->download_manager_actor_, &DownloadManager::change_search_text, file_id, file_source_id,
+                       search_text);
+        }
+      }
+    }
   }
   return need_update;
 }

@@ -119,6 +119,7 @@ class DownloadManagerImpl final : public DownloadManager {
     files_.erase(file_info.download_id);
     return Status::OK();
   }
+
   Status change_search_text(FileId file_id, FileSourceId file_source_id, string search_by) final {
     TRY_STATUS(check_is_active());
     TRY_RESULT(file_info_ptr, get_file_info(file_id, file_source_id));
