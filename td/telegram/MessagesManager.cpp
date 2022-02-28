@@ -22880,7 +22880,9 @@ void MessagesManager::remove_message_file_sources(DialogId dialog_id, const Mess
   auto file_source_id = get_message_file_source_id(FullMessageId(dialog_id, m->message_id));
   if (file_source_id.is_valid()) {
     for (auto file_id : file_ids) {
-      send_closure(td_->download_manager_actor_, &DownloadManager::remove_file, file_id, file_source_id, false);
+      auto file_view = td_->file_manager_->get_file_view(file_id);
+      send_closure(td_->download_manager_actor_, &DownloadManager::remove_file, file_view.file_id(), file_source_id,
+                   false);
       td_->file_manager_->remove_file_source(file_id, file_source_id);
     }
   }
@@ -22905,7 +22907,9 @@ void MessagesManager::change_message_files(DialogId dialog_id, const Message *m,
         send_closure(G()->file_manager(), &FileManager::delete_file, file_id, Promise<>(), "change_message_files");
       }
       if (file_source_id.is_valid()) {
-        send_closure(td_->download_manager_actor_, &DownloadManager::remove_file, file_id, file_source_id, false);
+        auto file_view = td_->file_manager_->get_file_view(file_id);
+        send_closure(td_->download_manager_actor_, &DownloadManager::remove_file, file_view.file_id(), file_source_id,
+                     false);
       }
     }
   }
@@ -35805,8 +35809,9 @@ bool MessagesManager::update_message_content(DialogId dialog_id, Message *old_me
       if (file_source_id.is_valid()) {
         auto search_text = get_message_search_text(old_message);
         for (auto file_id : file_ids) {
-          send_closure(td_->download_manager_actor_, &DownloadManager::change_search_text, file_id, file_source_id,
-                       search_text);
+          auto file_view = td_->file_manager_->get_file_view(file_id);
+          send_closure(td_->download_manager_actor_, &DownloadManager::change_search_text, file_view.file_id(),
+                       file_source_id, search_text);
         }
       }
     }
@@ -39824,7 +39829,20 @@ void MessagesManager::add_message_file_to_downloads(FullMessageId full_message_i
   if (m == nullptr) {
     return promise.set_error(Status::Error(400, "Message not found"));
   }
-  if (!contains(get_message_file_ids(m), file_id)) {
+  auto file_view = td_->file_manager_->get_file_view(file_id);
+  if (file_view.empty()) {
+    return promise.set_error(Status::Error(400, "File not found"));
+  }
+  file_id = file_view.file_id();
+  bool is_found = false;
+  for (auto message_file_id : get_message_file_ids(m)) {
+    auto message_file_view = td_->file_manager_->get_file_view(message_file_id);
+    CHECK(!message_file_view.empty());
+    if (message_file_view.file_id() == file_id) {
+      is_found = true;
+    }
+  }
+  if (!is_found) {
     return promise.set_error(Status::Error(400, "Message has no specified file"));
   }
   auto search_text = get_message_search_text(m);

@@ -15,13 +15,12 @@
 
 #include "td/utils/common.h"
 #include "td/utils/Status.h"
-#include "td/utils/tl_helpers.h"
 
 namespace td {
 
 class DownloadManager : public Actor {
  public:
-  // creates, but do not stats the actor
+  // creates, but do not starts the actor
   static unique_ptr<DownloadManager> create();
 
   struct Counters {
@@ -43,7 +42,7 @@ class DownloadManager : public Actor {
     void parse(ParserT &parser);
   };
 
-  // Trying to make DownloadManager testable, so all interactions with G() will be hidden is this probably monstrous interface
+  // trying to make DownloadManager testable, so all interactions with G() will be hidden is this probably monstrous interface
   class Callback {
    public:
     virtual ~Callback() = default;
@@ -67,21 +66,21 @@ class DownloadManager : public Actor {
   // sets callback to handle all updates
   virtual void set_callback(unique_ptr<Callback> callback) = 0;
 
-  virtual Status toggle_is_paused(FileId, bool is_paused) = 0;
-  virtual Status toggle_all_is_paused(bool is_paused) = 0;
-  virtual Status remove_file(FileId file_id, FileSourceId file_source_id, bool delete_from_cache) = 0;
-  virtual Status change_search_text(FileId file_id, FileSourceId file_source_id, string search_by) = 0;
-  virtual Status remove_all_files(bool only_active, bool only_completed, bool delete_from_cache) = 0;
-  // Files are always added in is_paused = false state
+  // files are always added in is_paused = false state
   virtual Status add_file(FileId file_id, FileSourceId file_source_id, string search_by, int8 priority) = 0;
-  virtual void search(std::string query, bool only_active, bool only_completed, string offset, int32 limit,
+  virtual Status change_search_text(FileId file_id, FileSourceId file_source_id, string search_by) = 0;
+  virtual Status toggle_is_paused(FileId file_id, bool is_paused) = 0;
+  virtual Status toggle_all_is_paused(bool is_paused) = 0;
+  virtual void search(string query, bool only_active, bool only_completed, string offset, int32 limit,
                       Promise<td_api::object_ptr<td_api::foundFileDownloads>> promise) = 0;
+  virtual Status remove_file(FileId file_id, FileSourceId file_source_id, bool delete_from_cache) = 0;
+  virtual Status remove_all_files(bool only_active, bool only_completed, bool delete_from_cache) = 0;
 
   //
   // private interface to handle all kinds of updates
   //
-  virtual void update_file_download_state(FileId file_id, int64 download_size, int64 size, bool is_paused) = 0;
-  virtual void update_file_deleted(FileId file_id) = 0;
+  virtual void update_file_download_state(FileId internal_file_id, int64 download_size, int64 size, bool is_paused) = 0;
+  virtual void update_file_deleted(FileId internal_file_id) = 0;
 };
 
 }  // namespace td

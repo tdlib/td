@@ -207,9 +207,9 @@ void FileNode::update_effective_download_limit(int64 old_download_limit) {
     return;
   }
 
-  // Should be no false positives here
+  // There should be no false positives here
   // When we use IGNORE_DOWNLOAD_LIMIT, set_download_limit will be ignored
-  // And in case we turn off ignore_download_limit, set_download_limit will not change effective downoad limit
+  // And in case we turn off ignore_download_limit, set_download_limit will not change effective download limit
   VLOG(update_file) << "File " << main_file_id_ << " has changed download_limit from " << old_download_limit << " to "
                     << get_download_limit() << " (limit=" << private_download_limit_
                     << ";ignore=" << ignore_download_limit_ << ")";
@@ -1835,7 +1835,7 @@ void FileManager::try_flush_node_info(FileNodePtr node, const char *source) {
         context_->on_file_updated(file_id);
       }
       if (info->download_callback_) {
-        // For DownloadManger. For everybody else it is just an empty function call (I hope).
+        // For DownloadManager. For everybody else it is just an empty function call (I hope).
         info->download_callback_->on_progress(file_id);
       }
     }

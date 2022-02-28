@@ -3989,8 +3989,8 @@ void Td::init_managers() {
                    FileManager::KEEP_DOWNLOAD_LIMIT);
     }
     void delete_file(FileId file_id) final {
-      send_closure(
-          G()->file_manager(), &FileManager::delete_file, file_id, [](Result<Unit>) {}, "download manager callback");
+      send_closure(G()->file_manager(), &FileManager::delete_file, file_id, Promise<Unit>(),
+                   "download manager callback");
     }
     FileId dup_file_id(FileId file_id) final {
       auto td = G()->td().get_actor_unsafe();
@@ -4015,14 +4015,15 @@ void Td::init_managers() {
     std::shared_ptr<FileManager::DownloadCallback> download_file_callback_;
     std::shared_ptr<FileManager::DownloadCallback> make_download_file_callback() {
       if (!download_file_callback_) {
-        class Impl : public FileManager::DownloadCallback {
+        class Impl final : public FileManager::DownloadCallback {
          public:
-          Impl(ActorId<DownloadManager> download_manager) : download_manager_(download_manager) {
+          explicit Impl(ActorId<DownloadManager> download_manager) : download_manager_(download_manager) {
           }
           void on_progress(FileId file_id) final {
-            auto view = G()->file_manager().get_actor_unsafe()->get_file_view(file_id);
+            auto td = G()->td().get_actor_unsafe();
+            auto file_view = td->file_manager_->get_file_view(file_id);
             send_closure(download_manager_, &DownloadManager::update_file_download_state, file_id,
-                         view.local_total_size(), view.size(), !view.is_downloading());
+                         file_view.local_total_size(), file_view.size(), !file_view.is_downloading());
             // TODO: handle deleted state?
           }
           void on_download_ok(FileId file_id) final {

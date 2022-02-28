@@ -6,6 +6,7 @@
 //
 #pragma once
 
+#include "td/telegram/FileReferenceManager.h"
 #include "td/telegram/FileReferenceManager.hpp"
 #include "td/telegram/files/FileSourceId.h"
 #include "td/telegram/Td.h"
