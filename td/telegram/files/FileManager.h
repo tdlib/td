@@ -105,6 +105,7 @@ class FileNode {
 
   void set_download_offset(int64 download_offset);
   void set_download_limit(int64 download_limit);
+  void set_ignore_download_limit(bool ignore_download_limit);
 
   void on_changed();
   void on_info_changed();
@@ -115,6 +116,8 @@ class FileNode {
 
   void on_pmc_flushed();
   void on_info_flushed();
+
+  int64 get_download_limit() const;
 
   string suggested_path() const;
 
@@ -129,7 +132,7 @@ class FileNode {
   LocalFileLocation local_;
   FileLoadManager::QueryId upload_id_ = 0;
   int64 download_offset_ = 0;
-  int64 download_limit_ = 0;
+  int64 private_download_limit_ = 0;
   int64 local_ready_size_ = 0;         // PartialLocal only
   int64 local_ready_prefix_size_ = 0;  // PartialLocal only
 
@@ -184,9 +187,12 @@ class FileNode {
 
   bool upload_prefer_small_{false};
 
+  bool ignore_download_limit_{false};
+
   void init_ready_size();
 
   void recalc_ready_prefix_size(int64 prefix_offset, int64 ready_prefix_size);
+  void update_effective_download_limit(int64 old_download_limit);
 };
 
 class FileManager;
@@ -342,6 +348,9 @@ class FileView {
 
 class FileManager final : public FileLoadManager::Callback {
  public:
+  static constexpr int64 KEEP_DOWNLOAD_LIMIT = -1;
+  static constexpr int64 KEEP_DOWNLOAD_OFFSET = -1;
+  static constexpr int64 IGNORE_DOWNLOAD_LIMIT = -2;
   class DownloadCallback {
    public:
     DownloadCallback() = default;
@@ -534,6 +543,7 @@ class FileManager final : public FileLoadManager::Callback {
     bool send_updates_flag_{false};
     bool pin_flag_{false};
     bool sent_file_id_flag_{false};
+    bool ignore_download_limit{false};
 
     int8 download_priority_{0};
     int8 upload_priority_{0};

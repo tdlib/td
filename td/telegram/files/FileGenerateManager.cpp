@@ -83,10 +83,11 @@ class FileDownloadGenerateActor final : public FileGenerateActor {
     };
 
     send_closure(G()->file_manager(), &FileManager::download, file_id_, std::make_shared<Callback>(actor_id(this)), 1,
-                 -1, -1);
+                 FileManager::KEEP_DOWNLOAD_OFFSET, FileManager::KEEP_DOWNLOAD_LIMIT);
   }
   void hangup() final {
-    send_closure(G()->file_manager(), &FileManager::download, file_id_, nullptr, 0, -1, -1);
+    send_closure(G()->file_manager(), &FileManager::download, file_id_, nullptr, 0, FileManager::KEEP_DOWNLOAD_OFFSET,
+                 FileManager::KEEP_DOWNLOAD_LIMIT);
     stop();
   }
 

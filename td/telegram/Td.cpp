@@ -3981,11 +3981,12 @@ void Td::init_managers() {
       send_closure(G()->td(), &Td::send_update, counters.get_update_file_downloads_object());
     }
     void start_file(FileId file_id, int8 priority) final {
-      send_closure(G()->file_manager(), &FileManager::download, file_id, make_download_file_callback(), priority, -1,
-                   -1);
+      send_closure(G()->file_manager(), &FileManager::download, file_id, make_download_file_callback(), priority,
+                   FileManager::KEEP_DOWNLOAD_OFFSET, FileManager::IGNORE_DOWNLOAD_LIMIT);
     }
     void pause_file(FileId file_id) final {
-      send_closure(G()->file_manager(), &FileManager::download, file_id, nullptr, 0, -1, -1);
+      send_closure(G()->file_manager(), &FileManager::download, file_id, nullptr, 0, FileManager::KEEP_DOWNLOAD_OFFSET,
+                   FileManager::KEEP_DOWNLOAD_LIMIT);
     }
     void delete_file(FileId file_id) final {
       send_closure(
@@ -6506,7 +6507,8 @@ void Td::on_request(uint64 id, const td_api::getFileDownloadedPrefixSize &reques
 }
 
 void Td::on_request(uint64 id, const td_api::cancelDownloadFile &request) {
-  file_manager_->download(FileId(request.file_id_, 0), nullptr, request.only_if_pending_ ? -1 : 0, -1, -1);
+  file_manager_->download(FileId(request.file_id_, 0), nullptr, request.only_if_pending_ ? -1 : 0,
+                          FileManager::KEEP_DOWNLOAD_OFFSET, FileManager::KEEP_DOWNLOAD_LIMIT);
 
   send_closure(actor_id(this), &Td::send_result, id, make_tl_object<td_api::ok>());
 }

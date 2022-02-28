@@ -180,6 +180,7 @@ void FileNode::init_ready_size() {
 
 void FileNode::set_download_offset(int64 download_offset) {
   if (download_offset < 0 || download_offset > MAX_FILE_SIZE) {
+    // KEEP_DOWNLOAD_OFFSET is handled here
     return;
   }
   if (download_offset == download_offset_) {
@@ -193,18 +194,42 @@ void FileNode::set_download_offset(int64 download_offset) {
   recalc_ready_prefix_size(-1, -1);
   on_info_changed();
 }
-void FileNode::set_download_limit(int64 download_limit) {
-  if (download_limit < 0) {
-    return;
+
+int64 FileNode::get_download_limit() const {
+  if (ignore_download_limit_) {
+    return 0;
   }
-  if (download_limit == download_limit_) {
+  return private_download_limit_;
+}
+
+void FileNode::update_effective_download_limit(int64 old_download_limit) {
+  if (get_download_limit() == old_download_limit) {
     return;
   }
 
-  VLOG(update_file) << "File " << main_file_id_ << " has changed download_limit from " << download_limit_ << " to "
-                    << download_limit;
-  download_limit_ = download_limit;
+  // Should be no false positives here
+  // When we use IGNORE_DOWNLOAD_LIMIT, set_download_limit will be ignored
+  // And in case we turn off ignore_download_limit, set_download_limit will not change effective downoad limit
+  VLOG(update_file) << "File " << main_file_id_ << " has changed download_limit from " << old_download_limit << " to "
+                    << get_download_limit() << " (limit=" << private_download_limit_
+                    << ";ignore=" << ignore_download_limit_ << ")";
   is_download_limit_dirty_ = true;
+}
+
+void FileNode::set_download_limit(int64 download_limit) {
+  if (download_limit < 0) {
+    // KEEP_DOWNLOAD_LIMIT is handled here
+    return;
+  }
+  auto old_download_limit = get_download_limit();
+  private_download_limit_ = download_limit;
+  update_effective_download_limit(old_download_limit);
+}
+
+void FileNode::set_ignore_download_limit(bool ignore_download_limit) {
+  auto old_download_limit = get_download_limit();
+  ignore_download_limit_ = ignore_download_limit;
+  update_effective_download_limit(old_download_limit);
 }
 
 void FileNode::drop_local_location() {
@@ -2203,6 +2228,7 @@ void FileManager::download(FileId file_id, std::shared_ptr<DownloadCallback> cal
     CHECK(new_priority == 0);
     file_info->download_callback_->on_download_error(file_id, Status::Error(200, "Canceled"));
   }
+  file_info->ignore_download_limit = limit == IGNORE_DOWNLOAD_LIMIT;
   file_info->download_priority_ = narrow_cast<int8>(new_priority);
   file_info->download_callback_ = std::move(callback);
 
@@ -2219,11 +2245,13 @@ void FileManager::download(FileId file_id, std::shared_ptr<DownloadCallback> cal
 
 void FileManager::run_download(FileNodePtr node, bool force_update_priority) {
   int8 priority = 0;
+  bool ignore_download_limit = false;
   for (auto id : node->file_ids_) {
     auto *info = get_file_id_info(id);
     if (info->download_priority_ > priority) {
       priority = info->download_priority_;
     }
+    ignore_download_limit |= info->ignore_download_limit;
   }
 
   auto old_priority = node->download_priority_;
@@ -2251,6 +2279,7 @@ void FileManager::run_download(FileNodePtr node, bool force_update_priority) {
     return;
   }
   node->set_download_priority(priority);
+  node->set_ignore_download_limit(ignore_download_limit);
   bool need_update_offset = node->is_download_offset_dirty_;
   node->is_download_offset_dirty_ = false;
 
@@ -2265,7 +2294,7 @@ void FileManager::run_download(FileNodePtr node, bool force_update_priority) {
     }
     if (need_update_limit || need_update_offset) {
       auto download_offset = node->download_offset_;
-      auto download_limit = node->download_limit_;
+      auto download_limit = node->get_download_limit();
       if (file_view.is_encrypted_any()) {
         CHECK(download_offset <= MAX_FILE_SIZE);
         CHECK(download_limit <= std::numeric_limits<int32>::max());
@@ -2334,7 +2363,7 @@ void FileManager::run_download(FileNodePtr node, bool force_update_priority) {
             << node->remote_.full.value() << " with suggested name " << node->suggested_path() << " and encyption key "
             << node->encryption_key_;
   auto download_offset = node->download_offset_;
-  auto download_limit = node->download_limit_;
+  auto download_limit = node->get_download_limit();
   if (file_view.is_encrypted_any()) {
     CHECK(download_offset <= MAX_FILE_SIZE);
     CHECK(download_limit <= std::numeric_limits<int32>::max());
