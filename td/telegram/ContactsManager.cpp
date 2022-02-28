@@ -5723,7 +5723,7 @@ UserId ContactsManager::search_user_by_phone_number(string phone_number, Promise
 
 void ContactsManager::on_resolved_phone_number(const string &phone_number, UserId user_id) {
   if (!user_id.is_valid()) {
-    resolved_phone_numbers_[phone_number] = user_id;  // negative cache
+    resolved_phone_numbers_.emplace(phone_number, user_id);  // negative cache
     return;
   }
 
@@ -5737,7 +5737,7 @@ void ContactsManager::on_resolved_phone_number(const string &phone_number, UserI
   }
 
   LOG(ERROR) << "Resolve phone number \"" << phone_number << "\" to " << user_id << ", but doesn't have it";
-  resolved_phone_numbers_[phone_number] = user_id;
+  resolved_phone_numbers_[phone_number] = user_id;  // always update cached value
 }
 
 void ContactsManager::share_phone_number(UserId user_id, Promise<Unit> &&promise) {
@@ -8608,10 +8608,6 @@ void ContactsManager::on_binlog_user_event(BinlogEvent &&event) {
   User *u = add_user(user_id, "on_binlog_user_event");
   *u = std::move(log_event.u);  // users come from binlog before all other events, so just add them
 
-  if (!u->phone_number.empty()) {
-    resolved_phone_numbers_[u->phone_number] = user_id;
-  }
-
   u->log_event_id = event.id_;
 
   update_user(u, user_id, true, false);
@@ -8739,10 +8735,6 @@ void ContactsManager::on_load_user_from_database(UserId user_id, string value, b
       u = add_user(user_id, "on_load_user_from_database");
 
       log_event_parse(*u, value).ensure();
-
-      if (!u->phone_number.empty()) {
-        resolved_phone_numbers_[u->phone_number] = user_id;
-      }
 
       u->is_saved = true;
       u->is_status_saved = true;
@@ -9990,6 +9982,12 @@ void ContactsManager::update_user(User *u, UserId user_id, bool from_binlog, boo
     });
     u->is_photo_changed = false;
   }
+  if (u->is_phone_number_changed) {
+    if (!u->phone_number.empty() && !td_->auth_manager_->is_bot()) {
+      resolved_phone_numbers_[u->phone_number] = user_id;
+    }
+    u->is_phone_number_changed = false;
+  }
   if (u->is_status_changed && user_id != get_my_id()) {
     auto left_time = get_user_was_online(u, user_id) - G()->server_time_cached();
     if (left_time >= 0 && left_time < 30 * 86400) {
@@ -11165,17 +11163,17 @@ void ContactsManager::on_update_user_phone_number(User *u, UserId user_id, strin
   clean_phone_number(phone_number);
   if (u->phone_number != phone_number) {
     if (!u->phone_number.empty()) {
-      auto erased_count = resolved_phone_numbers_.erase(u->phone_number) > 0;
-      CHECK(erased_count == 1);
+      auto it = resolved_phone_numbers_.find(u->phone_number);
+      CHECK(it != resolved_phone_numbers_.end());
+      if (it->second == user_id) {
+        resolved_phone_numbers_.erase(it);
+      }
     }
 
     u->phone_number = std::move(phone_number);
+    u->is_phone_number_changed = true;
     LOG(DEBUG) << "Phone number has changed for " << user_id;
     u->is_changed = true;
-
-    if (!u->phone_number.empty()) {
-      resolved_phone_numbers_[u->phone_number] = user_id;
-    }
   }
 }
 
