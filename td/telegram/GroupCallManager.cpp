@@ -891,6 +891,7 @@ struct GroupCallManager::GroupCall {
   bool is_speaking = false;
   bool can_self_unmute = false;
   bool can_be_managed = false;
+  bool has_hidden_listeners = false;
   bool syncing_participants = false;
   bool need_syncing_participants = false;
   bool loaded_all_participants = false;
@@ -4190,6 +4191,7 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
       input_group_call_id = InputGroupCallId(group_call->id_, group_call->access_hash_);
       call.is_active = true;
       call.is_rtmp_stream = group_call->rtmp_stream_;
+      call.has_hidden_listeners = group_call->listeners_hidden_;
       call.title = group_call->title_;
       call.start_subscribed = group_call->schedule_start_subscribed_;
       call.mute_new_participants = group_call->join_muted_;
@@ -4314,6 +4316,10 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
     } else {
       if (call.is_rtmp_stream != group_call->is_rtmp_stream) {
         group_call->is_rtmp_stream = call.is_rtmp_stream;
+        need_update = true;
+      }
+      if (call.has_hidden_listeners != group_call->has_hidden_listeners) {
+        group_call->has_hidden_listeners = call.has_hidden_listeners;
         need_update = true;
       }
       if ((call.unmuted_video_count != group_call->unmuted_video_count ||
@@ -4645,7 +4651,8 @@ bool GroupCallManager::set_group_call_participant_count(GroupCall *group_call, i
                    << group_call->dialog_id;
       }
       count = known_participant_count;
-    } else if (group_call->loaded_all_participants && count > known_participant_count) {
+    } else if (group_call->loaded_all_participants && !group_call->has_hidden_listeners &&
+               count > known_participant_count) {
       if (group_call->joined_date_asc) {
         group_call->loaded_all_participants = false;
         result = true;
@@ -4786,8 +4793,8 @@ tl_object_ptr<td_api::groupCall> GroupCallManager::get_group_call_object(
   return td_api::make_object<td_api::groupCall>(
       group_call->group_call_id.get(), get_group_call_title(group_call), scheduled_start_date, start_subscribed,
       is_active, group_call->is_rtmp_stream, is_joined, group_call->need_rejoin, group_call->can_be_managed,
-      group_call->participant_count, group_call->loaded_all_participants, std::move(recent_speakers),
-      is_my_video_enabled, is_my_video_paused, can_enable_video, mute_new_participants,
+      group_call->participant_count, group_call->has_hidden_listeners, group_call->loaded_all_participants,
+      std::move(recent_speakers), is_my_video_enabled, is_my_video_paused, can_enable_video, mute_new_participants,
       can_toggle_mute_new_participants, record_duration, is_video_recorded, group_call->duration);
 }
 
