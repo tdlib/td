@@ -83,7 +83,7 @@ class DownloadManagerImpl final : public DownloadManager {
     TRY_STATUS(check_is_active());
 
     for (auto &it : files_) {
-      toggle_is_paused(it.second, is_paused);
+      toggle_is_paused(*it.second, is_paused);
     }
 
     return Status::OK();
@@ -121,7 +121,7 @@ class DownloadManagerImpl final : public DownloadManager {
     TRY_STATUS(check_is_active());
     vector<FileId> to_remove;
     for (auto &it : files_) {
-      FileInfo &file_info = it.second;
+      FileInfo &file_info = *it.second;
       if (only_active && !is_active(file_info)) {
         continue;
       }
@@ -143,22 +143,22 @@ class DownloadManagerImpl final : public DownloadManager {
 
     auto download_id = next_download_id();
 
-    FileInfo file_info;
-    file_info.download_id = download_id;
-    file_info.file_id = file_id;
-    file_info.internal_file_id = callback_->dup_file_id(file_id);
-    file_info.file_source_id = file_source_id;
-    file_info.is_paused = false;
-    file_info.priority = priority;
-    file_info.created_at = G()->unix_time();
-    file_info.need_save_to_db = true;
-    by_internal_file_id_[file_info.internal_file_id] = download_id;
-    by_file_id_[file_info.file_id] = download_id;
+    auto file_info = make_unique<FileInfo>();
+    file_info->download_id = download_id;
+    file_info->file_id = file_id;
+    file_info->internal_file_id = callback_->dup_file_id(file_id);
+    file_info->file_source_id = file_source_id;
+    file_info->is_paused = false;
+    file_info->priority = priority;
+    file_info->created_at = G()->unix_time();
+    file_info->need_save_to_db = true;
+    by_internal_file_id_[file_info->internal_file_id] = download_id;
+    by_file_id_[file_info->file_id] = download_id;
     hints_.add(download_id, search_by);
 
     auto it = files_.emplace(download_id, std::move(file_info)).first;
-    register_file_info(it->second);
-    callback_->start_file(it->second.internal_file_id, it->second.priority);
+    register_file_info(*it->second);
+    callback_->start_file(it->second->internal_file_id, it->second->priority);
     return Status::OK();
   }
 
@@ -199,7 +199,9 @@ class DownloadManagerImpl final : public DownloadManager {
       ids.resize(limit);
     }
     auto file_downloads = transform(ids, [&](auto id) {
-      FileInfo &file_info = files_[id];
+      auto it = files_.find(id);
+      CHECK(it != files_.end());
+      const FileInfo &file_info = *it->second;
       return callback_->get_file_download_object(file_info.file_id, file_info.file_source_id, file_info.created_at,
                                                  file_info.completed_at, file_info.is_paused);
     });
@@ -263,7 +265,7 @@ class DownloadManagerImpl final : public DownloadManager {
 
   FlatHashMap<FileId, int64, FileIdHash> by_file_id_;
   FlatHashMap<FileId, int64, FileIdHash> by_internal_file_id_;
-  FlatHashMap<int64, FileInfo> files_;
+  FlatHashMap<int64, unique_ptr<FileInfo>> files_;
   // size_t active_file_count_{};
   Hints hints_;
 
@@ -357,25 +359,25 @@ class DownloadManagerImpl final : public DownloadManager {
     }
 
     auto download_id = in_db.download_id;
-    FileInfo file_info;
-    file_info.download_id = download_id;
-    file_info.file_id = file_search_info.file_id;
-    file_info.internal_file_id = callback_->dup_file_id(file_info.file_id);
-    file_info.file_source_id = in_db.file_source_id;
-    file_info.is_paused = in_db.is_paused;
-    file_info.priority = narrow_cast<int8>(in_db.priority);
-    file_info.completed_at = in_db.completed_at;
-    file_info.created_at = in_db.created_at;
-    by_internal_file_id_[file_info.internal_file_id] = download_id;
-    by_file_id_[file_info.file_id] = download_id;
+    auto file_info = make_unique<FileInfo>();
+    file_info->download_id = download_id;
+    file_info->file_id = file_search_info.file_id;
+    file_info->internal_file_id = callback_->dup_file_id(file_info->file_id);
+    file_info->file_source_id = in_db.file_source_id;
+    file_info->is_paused = in_db.is_paused;
+    file_info->priority = narrow_cast<int8>(in_db.priority);
+    file_info->completed_at = in_db.completed_at;
+    file_info->created_at = in_db.created_at;
+    by_internal_file_id_[file_info->internal_file_id] = download_id;
+    by_file_id_[file_info->file_id] = download_id;
     hints_.add(download_id, file_search_info.search_text);
 
-    if (file_info.completed_at > 0) {
+    if (file_info->completed_at > 0) {
       // file must be removed from the list if it isn't fully downloaded
     } else {
-      auto it = files_.emplace(download_id, file_info).first;
-      register_file_info(it->second);
-      callback_->start_file(it->second.internal_file_id, it->second.priority);
+      auto it = files_.emplace(download_id, std::move(file_info)).first;
+      register_file_info(*it->second);
+      callback_->start_file(it->second->internal_file_id, it->second->priority);
       promise.set_value(Unit());
     }
   }
@@ -439,10 +441,10 @@ class DownloadManagerImpl final : public DownloadManager {
     if (it == files_.end()) {
       return Status::Error(400, "Can't find file");
     }
-    if (file_source_id.is_valid() && file_source_id != it->second.file_source_id) {
+    if (file_source_id.is_valid() && file_source_id != it->second->file_source_id) {
       return Status::Error(400, "Can't find file with such source");
     }
-    return &it->second;
+    return it->second.get();
   }
 
   void unregister_file_info(const FileInfo &file_info) {
@@ -473,7 +475,7 @@ class DownloadManagerImpl final : public DownloadManager {
     register_file_info(file_info);
   }
 
-  Status check_is_active() {
+  Status check_is_active() const {
     if (!callback_) {
       LOG(ERROR) << "DownloadManager wasn't initialized";
       return Status::Error(500, "DownloadManager isn't initialized");
