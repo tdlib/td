@@ -113,7 +113,7 @@ class DownloadManagerImpl final : public DownloadManager {
     TRY_STATUS(check_is_active());
     TRY_RESULT(file_info_ptr, get_file_info(file_id, file_source_id));
     auto &file_info = *file_info_ptr;
-    hints_.add(file_info.download_id, search_text);
+    hints_.add(file_info.download_id, search_text.empty() ? string(" ") : search_text);
     return Status::OK();
   }
 
@@ -171,8 +171,8 @@ class DownloadManagerImpl final : public DownloadManager {
       }
       offset_int64 = r_offset.move_as_ok();
     }
-    auto ids =
-        query.empty() ? transform(files_, [](auto &it) { return it.first; }) : hints_.search(query, 10000).second;
+    auto ids = hints_.search(query, 10000, true).second;
+    int32 total_count = 0;
     td::remove_if(ids, [&](auto download_id) {
       auto r = get_file_info(download_id);
       CHECK(r.is_ok());
@@ -183,13 +183,13 @@ class DownloadManagerImpl final : public DownloadManager {
       if (only_completed && is_active(file_info)) {
         return true;
       }
+      total_count++;
       if (download_id >= offset_int64) {
         return true;
       }
       return false;
     });
     std::sort(ids.begin(), ids.end(), std::greater<>());
-    auto total_count = narrow_cast<int32>(ids.size());
     if (total_count > limit) {
       ids.resize(limit);
     }
