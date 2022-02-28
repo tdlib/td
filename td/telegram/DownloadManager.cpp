@@ -109,11 +109,11 @@ class DownloadManagerImpl final : public DownloadManager {
     return Status::OK();
   }
 
-  Status change_search_text(FileId file_id, FileSourceId file_source_id, string search_by) final {
+  Status change_search_text(FileId file_id, FileSourceId file_source_id, string search_text) final {
     TRY_STATUS(check_is_active());
     TRY_RESULT(file_info_ptr, get_file_info(file_id, file_source_id));
     auto &file_info = *file_info_ptr;
-    hints_.add(file_info.download_id, search_by);
+    hints_.add(file_info.download_id, search_text);
     return Status::OK();
   }
 
@@ -136,7 +136,7 @@ class DownloadManagerImpl final : public DownloadManager {
     return Status::OK();
   }
 
-  Status add_file(FileId file_id, FileSourceId file_source_id, string search_by, int8 priority) final {
+  Status add_file(FileId file_id, FileSourceId file_source_id, string search_text, int8 priority) final {
     TRY_STATUS(check_is_active());
 
     remove_file(file_id, {}, false);
@@ -146,19 +146,14 @@ class DownloadManagerImpl final : public DownloadManager {
     auto file_info = make_unique<FileInfo>();
     file_info->download_id = download_id;
     file_info->file_id = file_id;
-    file_info->internal_file_id = callback_->dup_file_id(file_id);
     file_info->file_source_id = file_source_id;
     file_info->is_paused = false;
     file_info->priority = priority;
     file_info->created_at = G()->unix_time();
     file_info->need_save_to_db = true;
-    by_internal_file_id_[file_info->internal_file_id] = download_id;
-    by_file_id_[file_info->file_id] = download_id;
-    hints_.add(download_id, search_by);
 
-    auto it = files_.emplace(download_id, std::move(file_info)).first;
-    register_file_info(*it->second);
-    callback_->start_file(it->second->internal_file_id, it->second->priority);
+    add_file_info(std::move(file_info), search_text);
+
     return Status::OK();
   }
 
@@ -358,27 +353,37 @@ class DownloadManagerImpl final : public DownloadManager {
       return promise.set_value(Unit());
     }
 
-    auto download_id = in_db.download_id;
+    if (in_db.completed_at > 0) {
+      // TODO file must not be added if it isn't fully downloaded
+      // return promise.set_value(Unit());
+    }
+
     auto file_info = make_unique<FileInfo>();
-    file_info->download_id = download_id;
+    file_info->download_id = in_db.download_id;
     file_info->file_id = file_search_info.file_id;
-    file_info->internal_file_id = callback_->dup_file_id(file_info->file_id);
     file_info->file_source_id = in_db.file_source_id;
     file_info->is_paused = in_db.is_paused;
     file_info->priority = narrow_cast<int8>(in_db.priority);
     file_info->completed_at = in_db.completed_at;
     file_info->created_at = in_db.created_at;
+
+    add_file_info(std::move(file_info), file_search_info.search_text);
+
+    promise.set_value(Unit());
+  }
+
+  void add_file_info(unique_ptr<FileInfo> &&file_info, const string &search_text) {
+    CHECK(file_info != nullptr);
+    auto download_id = file_info->download_id;
+    file_info->internal_file_id = callback_->dup_file_id(file_info->file_id);
     by_internal_file_id_[file_info->internal_file_id] = download_id;
     by_file_id_[file_info->file_id] = download_id;
-    hints_.add(download_id, file_search_info.search_text);
+    hints_.add(download_id, search_text.empty() ? string(" ") : search_text);
 
-    if (file_info->completed_at > 0) {
-      // file must be removed from the list if it isn't fully downloaded
-    } else {
-      auto it = files_.emplace(download_id, std::move(file_info)).first;
-      register_file_info(*it->second);
+    auto it = files_.emplace(download_id, std::move(file_info)).first;
+    register_file_info(*it->second);
+    if (it->second->completed_at == 0) {
       callback_->start_file(it->second->internal_file_id, it->second->priority);
-      promise.set_value(Unit());
     }
   }
 

@@ -67,8 +67,8 @@ class DownloadManager : public Actor {
   virtual void set_callback(unique_ptr<Callback> callback) = 0;
 
   // files are always added in is_paused = false state
-  virtual Status add_file(FileId file_id, FileSourceId file_source_id, string search_by, int8 priority) = 0;
-  virtual Status change_search_text(FileId file_id, FileSourceId file_source_id, string search_by) = 0;
+  virtual Status add_file(FileId file_id, FileSourceId file_source_id, string search_text, int8 priority) = 0;
+  virtual Status change_search_text(FileId file_id, FileSourceId file_source_id, string search_text) = 0;
   virtual Status toggle_is_paused(FileId file_id, bool is_paused) = 0;
   virtual Status toggle_all_is_paused(bool is_paused) = 0;
   virtual void search(string query, bool only_active, bool only_completed, string offset, int32 limit,
