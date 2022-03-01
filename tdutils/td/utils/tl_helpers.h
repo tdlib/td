@@ -26,8 +26,9 @@
     ::td::uint32 flags_store = 0; \
   ::td::uint32 bit_offset_store = 0
 
-#define STORE_FLAG(flag)                     \
-  flags_store |= (flag) << bit_offset_store; \
+#define STORE_FLAG(flag)                                                         \
+  static_assert(std::is_same<decltype(flag), bool>::value, "flag must be bool"); \
+  flags_store |= (flag) << bit_offset_store;                                     \
   bit_offset_store++
 
 #define END_STORE_FLAGS()           \
@@ -42,8 +43,9 @@
     ::td::uint32 bit_offset_parse = 0; \
   ::td::parse(flags_parse, parser)
 
-#define PARSE_FLAG(flag)                               \
-  flag = ((flags_parse >> bit_offset_parse) & 1) != 0; \
+#define PARSE_FLAG(flag)                                                         \
+  static_assert(std::is_same<decltype(flag), bool>::value, "flag must be bool"); \
+  flag = ((flags_parse >> bit_offset_parse) & 1) != 0;                           \
   bit_offset_parse++
 
 #define END_PARSE_FLAGS()                                                                                           \

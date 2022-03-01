@@ -5468,7 +5468,7 @@ void MessagesManager::Dialog::store(StorerT &storer) const {
     STORE_FLAG(need_drop_default_send_message_as_dialog_id);
     STORE_FLAG(has_available_reactions);
     STORE_FLAG(is_available_reactions_inited);
-    STORE_FLAG(available_reactions_generation);
+    STORE_FLAG(has_available_reactions_generation);
     END_STORE_FLAGS();
   }
 
@@ -23700,7 +23700,7 @@ unique_ptr<MessagesManager::Message> MessagesManager::parse_message(Dialog *d, M
           LOG(ERROR) << "Fix available_reactions_generation in " << dialog_id << " from "
                      << d->available_reactions_generation << " to " << m->available_reactions_generation;
           hide_dialog_message_reactions(d);
-          set_dialog_available_reactions_generation(d, m->available_reactions_generation);
+          set_dialog_available_reactions_generation(d, m->available_reactions_generation + 1);
           on_dialog_updated(dialog_id, "parse_message");
           break;
         case DialogType::User:
