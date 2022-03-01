@@ -43,7 +43,8 @@ class GetGroupCallStreamChannelsQuery final : public Td::ResultHandler {
 
   void send(InputGroupCallId input_group_call_id, DcId stream_dc_id) {
     send_query(G()->net_query_creator().create(
-        telegram_api::phone_getGroupCallStreamChannels(input_group_call_id.get_input_group_call()), {}, stream_dc_id));
+        telegram_api::phone_getGroupCallStreamChannels(input_group_call_id.get_input_group_call()), {}, stream_dc_id,
+        NetQuery::Type::DownloadSmall));
   }
 
   void on_result(BufferSlice packet) final {
@@ -2425,8 +2426,27 @@ void GroupCallManager::get_group_call_streams(GroupCallId group_call_id,
     return promise.set_error(Status::Error(400, "GROUPCALL_JOIN_MISSING"));
   }
 
-  td_->create_handler<GetGroupCallStreamChannelsQuery>(std::move(promise))
+  auto query_promise = PromiseCreator::lambda(
+      [actor_id = actor_id(this), input_group_call_id, audio_source = group_call->audio_source,
+       promise = std::move(promise)](Result<td_api::object_ptr<td_api::groupCallStreams>> &&result) mutable {
+        send_closure(actor_id, &GroupCallManager::finish_get_group_call_streams, input_group_call_id, audio_source,
+                     std::move(result), std::move(promise));
+      });
+  td_->create_handler<GetGroupCallStreamChannelsQuery>(std::move(query_promise))
       ->send(input_group_call_id, group_call->stream_dc_id);
+}
+
+void GroupCallManager::finish_get_group_call_streams(InputGroupCallId input_group_call_id, int32 audio_source,
+                                                     Result<td_api::object_ptr<td_api::groupCallStreams>> &&result,
+                                                     Promise<td_api::object_ptr<td_api::groupCallStreams>> &&promise) {
+  if (!G()->close_flag() && result.is_error()) {
+    auto message = result.error().message();
+    if (message == "GROUPCALL_JOIN_MISSING" || message == "GROUPCALL_FORBIDDEN" || message == "GROUPCALL_INVALID") {
+      on_group_call_left(input_group_call_id, audio_source, message == "GROUPCALL_JOIN_MISSING");
+    }
+  }
+
+  promise.set_result(std::move(result));
 }
 
 void GroupCallManager::get_group_call_stream_segment(GroupCallId group_call_id, int64 time_offset, int32 scale,
