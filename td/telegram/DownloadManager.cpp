@@ -295,7 +295,7 @@ class DownloadManagerImpl final : public DownloadManager {
     to_save.priority = file_info.priority;
     to_save.created_at = file_info.created_at;
     to_save.completed_at = file_info.completed_at;
-    to_save.unique_file_id = callback_->get_unique_file_id(file_info.file_id);
+    to_save.unique_file_id = callback_->get_file_view(file_info.file_id).get_unique_file_id();
     G()->td_db()->get_binlog_pmc()->set(pmc_key(file_info), log_event_store(to_save).as_slice().str());
   }
   static void remove_from_db(const FileInfo &file_info) {

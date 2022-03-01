@@ -4000,9 +4000,9 @@ void Td::init_managers() {
       auto td = G()->td().get_actor_unsafe();
       return td->file_manager_->dup_file_id(file_id);
     }
-    string get_unique_file_id(FileId file_id) final {
+    FileView get_file_view(FileId file_id) final {
       auto td = G()->td().get_actor_unsafe();
-      return td->file_manager_->get_file_view(file_id).get_unique_file_id();
+      return td->file_manager_->get_file_view(file_id);
     }
     td_api::object_ptr<td_api::fileDownload> get_file_download_object(FileId file_id, FileSourceId file_source_id,
                                                                       int32 add_date, int32 complete_date,
