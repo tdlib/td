@@ -3915,6 +3915,7 @@ void FileManager::hangup() {
 void FileManager::tear_down() {
   parent_.reset();
 }
+
 constexpr int64 FileManager::KEEP_DOWNLOAD_LIMIT;
 constexpr int64 FileManager::KEEP_DOWNLOAD_OFFSET;
 constexpr int64 FileManager::IGNORE_DOWNLOAD_LIMIT;

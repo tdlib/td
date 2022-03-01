@@ -4027,13 +4027,14 @@ void Td::init_managers() {
         void on_download_ok(FileId file_id) final {
           send_update(file_id, true);
         }
-        void on_download_error(FileId file_id, Status error) {
+        void on_download_error(FileId file_id, Status error) final {
           send_update(file_id, true);
         }
 
        private:
         ActorShared<DownloadManager> download_manager_;
-        void send_update(FileId file_id, bool is_paused) {
+
+        void send_update(FileId file_id, bool is_paused) const {
           auto td = G()->td().get_actor_unsafe();
           auto file_view = td->file_manager_->get_file_view(file_id);
           send_closure(download_manager_, &DownloadManager::update_file_download_state, file_id,

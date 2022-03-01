@@ -401,7 +401,7 @@ class DownloadManagerImpl final : public DownloadManager {
               << " with is_paused = " << file_info->is_paused;
     auto it = files_.emplace(download_id, std::move(file_info)).first;
     register_file_info(*it->second);
-    if (it->second->completed_at == 0) {
+    if (it->second->completed_at == 0 && !it->second->is_paused) {
       callback_->start_file(it->second->internal_file_id, it->second->priority, it->second->link_token);
     }
   }
