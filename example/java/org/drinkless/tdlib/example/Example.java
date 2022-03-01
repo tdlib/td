@@ -9,22 +9,25 @@ package org.drinkless.tdlib.example;
 import org.drinkless.tdlib.Client;
 import org.drinkless.tdlib.TdApi;
 
-import java.io.IOError;
-import java.io.IOException;
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.util.NavigableSet;
-import java.util.TreeSet;
+import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.stream.Collectors;
 
 /**
  * Example class for TDLib usage from Java.
  */
 public final class Example {
+
     private static Client client = null;
 
     private static TdApi.AuthorizationState authorizationState = null;
@@ -51,7 +54,25 @@ public final class Example {
     private static final ConcurrentMap<Long, TdApi.SupergroupFullInfo> supergroupsFullInfo = new ConcurrentHashMap<Long, TdApi.SupergroupFullInfo>();
 
     private static final String newLine = System.getProperty("line.separator");
-    private static final String commandsLine = "Enter command (gcs - GetChats, gc <chatId> - GetChat, me - GetMe, sm <chatId> <message> - SendMessage, lo - LogOut, q - Quit): ";
+    private static final String commandsLine = "Enter command (\n" +
+        "reportPornography <text>/<chatName>/<messageId>/.../<messageId>,\n" +
+        "reportCopyright <text>/<chatName>/<messageId>/.../<messageId>,\n" +
+        "reportViolence <text>/<chatName>/<messageId>/.../<messageId>,\n" +
+        "reportSpam <text>/<chatName>/<messageId>/.../<messageId>,\n" +
+        "reportFake <text>/<chatName>/<messageId>/.../<messageId>,\n" +
+        "reportChildAbuse <text>/<chatName>/<messageId>/.../<messageId>,\n" +
+        "reportCustom <text>/<chatName>/<messageId>/.../<messageId>,\n" +
+        "report <full_path_to_resolved_file>,\n" +
+        "resolveIds <full_path_to_file>,\n" +
+        "gcs - GetChats,\n" +
+        "gc <chatId> - GetChat,\n" +
+        "gc <chatId> <messageId> - GetMessage,\n" +
+        "sc <chatName> - SearchChat,\n" +
+        "gml <chatName> <messageId> - GetMessageLinkInfo,\n" +
+        "me - GetMe,\n" +
+        "sm <chatId> <message> - SendMessage,\n" +
+        "lo - LogOut,\n" +
+        "q - Quit): ";
     private static volatile String currentPrompt = null;
 
     static {
@@ -73,8 +94,8 @@ public final class Example {
     }
 
     private static void setChatPositions(TdApi.Chat chat, TdApi.ChatPosition[] positions) {
-        synchronized (mainChatList) {
-            synchronized (chat) {
+        synchronized(mainChatList) {
+            synchronized(chat) {
                 for (TdApi.ChatPosition position : chat.positions) {
                     if (position.list.getConstructor() == TdApi.ChatListMain.CONSTRUCTOR) {
                         boolean isRemoved = mainChatList.remove(new OrderedChat(chat.id, position));
@@ -220,6 +241,17 @@ public final class Example {
                 case "gc":
                     client.send(new TdApi.GetChat(getChatId(commands[1])), defaultHandler);
                     break;
+                case "gm":
+                    String[] values = commands[1].split(" ");
+                    client.send(new TdApi.GetMessage(getChatId(values[0]), getChatId(values[1])), defaultHandler);
+                    break;
+                case "gml":
+                    String[] data = commands[1].split(" ");
+                    client.send(new TdApi.GetMessageLinkInfo("https://t.me/" + data[0] + "/" + data[1]), defaultHandler);
+                    break;
+                case "sc":
+                    client.send(new TdApi.SearchPublicChat(commands[1]), defaultHandler);
+                    break;
                 case "me":
                     client.send(new TdApi.GetMe(), defaultHandler);
                     break;
@@ -237,6 +269,33 @@ public final class Example {
                     haveAuthorization = false;
                     client.send(new TdApi.Close(), defaultHandler);
                     break;
+                case "reportCustom":
+                    report(commands[1].split("/"), new TdApi.ChatReportReasonCustom());
+                    break;
+                case "reportChildAbuse":
+                    report(commands[1].split("/"), new TdApi.ChatReportReasonChildAbuse());
+                    break;
+                case "reportFake":
+                    report(commands[1].split("/"), new TdApi.ChatReportReasonFake());
+                    break;
+                case "reportSpam":
+                    report(commands[1].split("/"), new TdApi.ChatReportReasonSpam());
+                    break;
+                case "reportViolence":
+                    report(commands[1].split("/"), new TdApi.ChatReportReasonViolence());
+                    break;
+                case "reportCopyright":
+                    report(commands[1].split("/"), new TdApi.ChatReportReasonCopyright());
+                    break;
+                case "reportPornography":
+                    report(commands[1].split("/"), new TdApi.ChatReportReasonPornography());
+                    break;
+                case "resolveIds":
+                    ReportResolver.resolveIds(Paths.get(commands[1]));
+                    break;
+                case "report":
+                    ReportExecutor.execute(Paths.get(commands[1]));
+                    break;
                 default:
                     System.err.println("Unsupported command: " + command);
             }
@@ -245,8 +304,32 @@ public final class Example {
         }
     }
 
+    private static void report(String[] commands, TdApi.ChatReportReason reason) {
+        String text = commands[0];
+        String channel = commands[1];
+        LinkedBlockingQueue<Long> chatIds = new LinkedBlockingQueue<>(commands.length);
+        LinkedBlockingQueue<Long> messageIds = new LinkedBlockingQueue<>(commands.length);
+        CountDownLatch latch = new CountDownLatch(commands.length - 2);
+        for (int i = 2; i < commands.length; i++) {
+            client.send(new TdApi.GetMessageLinkInfo("https://t.me/" + channel + "/" + commands[i]), object -> {
+                TdApi.MessageLinkInfo info = (TdApi.MessageLinkInfo) object;
+                messageIds.add(info.message.id);
+                chatIds.add(info.message.chatId);
+                latch.countDown();
+            });
+        }
+        try {
+            latch.await();
+        } catch (InterruptedException e) {
+            throw new IllegalStateException(e);
+        }
+        System.out.println("Reporting chat ids:" + chatIds);
+        System.out.println("Reporting message ids:" + messageIds);
+        client.send(new TdApi.ReportChat(chatIds.poll(), messageIds.stream().mapToLong(Long::longValue).toArray(), reason, text), defaultHandler);
+    }
+
     private static void getMainChatList(final int limit) {
-        synchronized (mainChatList) {
+        synchronized(mainChatList) {
             if (!haveFullMainChatList && limit > mainChatList.size()) {
                 // send LoadChats request if there are some unknown chats and have not enough known chats
                 client.send(new TdApi.LoadChats(new TdApi.ChatListMain(), limit - mainChatList.size()), new Client.ResultHandler() {
@@ -255,7 +338,7 @@ public final class Example {
                         switch (object.getConstructor()) {
                             case TdApi.Error.CONSTRUCTOR:
                                 if (((TdApi.Error) object).code == 404) {
-                                    synchronized (mainChatList) {
+                                    synchronized(mainChatList) {
                                         haveFullMainChatList = true;
                                     }
                                 } else {
@@ -280,7 +363,7 @@ public final class Example {
             for (int i = 0; i < limit && i < mainChatList.size(); i++) {
                 long chatId = iter.next().chatId;
                 TdApi.Chat chat = chats.get(chatId);
-                synchronized (chat) {
+                synchronized(chat) {
                     System.out.println(chatId + ": " + chat.title);
                 }
             }
@@ -290,8 +373,16 @@ public final class Example {
 
     private static void sendMessage(long chatId, String message) {
         // initialize reply markup just for testing
-        TdApi.InlineKeyboardButton[] row = {new TdApi.InlineKeyboardButton("https://telegram.org?1", new TdApi.InlineKeyboardButtonTypeUrl()), new TdApi.InlineKeyboardButton("https://telegram.org?2", new TdApi.InlineKeyboardButtonTypeUrl()), new TdApi.InlineKeyboardButton("https://telegram.org?3", new TdApi.InlineKeyboardButtonTypeUrl())};
-        TdApi.ReplyMarkup replyMarkup = new TdApi.ReplyMarkupInlineKeyboard(new TdApi.InlineKeyboardButton[][]{row, row, row});
+        TdApi.InlineKeyboardButton[] row = {
+            new TdApi.InlineKeyboardButton("https://telegram.org?1", new TdApi.InlineKeyboardButtonTypeUrl()),
+            new TdApi.InlineKeyboardButton("https://telegram.org?2", new TdApi.InlineKeyboardButtonTypeUrl()),
+            new TdApi.InlineKeyboardButton("https://telegram.org?3", new TdApi.InlineKeyboardButtonTypeUrl())
+        };
+        TdApi.ReplyMarkup replyMarkup = new TdApi.ReplyMarkupInlineKeyboard(new TdApi.InlineKeyboardButton[][]{
+            row,
+            row,
+            row
+        });
 
         TdApi.InputMessageContent content = new TdApi.InputMessageText(new TdApi.FormattedText(message, null), false, true);
         client.send(new TdApi.SendMessage(chatId, 0, 0, null, replyMarkup, content), defaultHandler);
@@ -332,6 +423,7 @@ public final class Example {
     }
 
     private static class OrderedChat implements Comparable<OrderedChat> {
+
         final long chatId;
         final TdApi.ChatPosition position;
 
@@ -359,6 +451,7 @@ public final class Example {
     }
 
     private static class DefaultHandler implements Client.ResultHandler {
+
         @Override
         public void onResult(TdApi.Object object) {
             print(object.toString());
@@ -366,6 +459,7 @@ public final class Example {
     }
 
     private static class UpdateHandler implements Client.ResultHandler {
+
         @Override
         public void onResult(TdApi.Object object) {
             switch (object.getConstructor()) {
@@ -377,10 +471,10 @@ public final class Example {
                     TdApi.UpdateUser updateUser = (TdApi.UpdateUser) object;
                     users.put(updateUser.user.id, updateUser.user);
                     break;
-                case TdApi.UpdateUserStatus.CONSTRUCTOR:  {
+                case TdApi.UpdateUserStatus.CONSTRUCTOR: {
                     TdApi.UpdateUserStatus updateUserStatus = (TdApi.UpdateUserStatus) object;
                     TdApi.User user = users.get(updateUserStatus.userId);
-                    synchronized (user) {
+                    synchronized(user) {
                         user.status = updateUserStatus.status;
                     }
                     break;
@@ -401,7 +495,7 @@ public final class Example {
                 case TdApi.UpdateNewChat.CONSTRUCTOR: {
                     TdApi.UpdateNewChat updateNewChat = (TdApi.UpdateNewChat) object;
                     TdApi.Chat chat = updateNewChat.chat;
-                    synchronized (chat) {
+                    synchronized(chat) {
                         chats.put(chat.id, chat);
 
                         TdApi.ChatPosition[] positions = chat.positions;
@@ -413,7 +507,7 @@ public final class Example {
                 case TdApi.UpdateChatTitle.CONSTRUCTOR: {
                     TdApi.UpdateChatTitle updateChat = (TdApi.UpdateChatTitle) object;
                     TdApi.Chat chat = chats.get(updateChat.chatId);
-                    synchronized (chat) {
+                    synchronized(chat) {
                         chat.title = updateChat.title;
                     }
                     break;
@@ -421,7 +515,7 @@ public final class Example {
                 case TdApi.UpdateChatPhoto.CONSTRUCTOR: {
                     TdApi.UpdateChatPhoto updateChat = (TdApi.UpdateChatPhoto) object;
                     TdApi.Chat chat = chats.get(updateChat.chatId);
-                    synchronized (chat) {
+                    synchronized(chat) {
                         chat.photo = updateChat.photo;
                     }
                     break;
@@ -429,7 +523,7 @@ public final class Example {
                 case TdApi.UpdateChatLastMessage.CONSTRUCTOR: {
                     TdApi.UpdateChatLastMessage updateChat = (TdApi.UpdateChatLastMessage) object;
                     TdApi.Chat chat = chats.get(updateChat.chatId);
-                    synchronized (chat) {
+                    synchronized(chat) {
                         chat.lastMessage = updateChat.lastMessage;
                         setChatPositions(chat, updateChat.positions);
                     }
@@ -438,21 +532,25 @@ public final class Example {
                 case TdApi.UpdateChatPosition.CONSTRUCTOR: {
                     TdApi.UpdateChatPosition updateChat = (TdApi.UpdateChatPosition) object;
                     if (updateChat.position.list.getConstructor() != TdApi.ChatListMain.CONSTRUCTOR) {
-                      break;
+                        break;
                     }
 
                     TdApi.Chat chat = chats.get(updateChat.chatId);
-                    synchronized (chat) {
+                    synchronized(chat) {
                         int i;
                         for (i = 0; i < chat.positions.length; i++) {
                             if (chat.positions[i].list.getConstructor() == TdApi.ChatListMain.CONSTRUCTOR) {
                                 break;
                             }
                         }
-                        TdApi.ChatPosition[] new_positions = new TdApi.ChatPosition[chat.positions.length + (updateChat.position.order == 0 ? 0 : 1) - (i < chat.positions.length ? 1 : 0)];
+                        TdApi.ChatPosition[] new_positions = new TdApi.ChatPosition[chat.positions.length + (updateChat.position.order == 0
+                                                                                                             ? 0
+                                                                                                             : 1) - (i < chat.positions.length
+                                                                                                                     ? 1
+                                                                                                                     : 0)];
                         int pos = 0;
                         if (updateChat.position.order != 0) {
-                          new_positions[pos++] = updateChat.position;
+                            new_positions[pos++] = updateChat.position;
                         }
                         for (int j = 0; j < chat.positions.length; j++) {
                             if (j != i) {
@@ -468,7 +566,7 @@ public final class Example {
                 case TdApi.UpdateChatReadInbox.CONSTRUCTOR: {
                     TdApi.UpdateChatReadInbox updateChat = (TdApi.UpdateChatReadInbox) object;
                     TdApi.Chat chat = chats.get(updateChat.chatId);
-                    synchronized (chat) {
+                    synchronized(chat) {
                         chat.lastReadInboxMessageId = updateChat.lastReadInboxMessageId;
                         chat.unreadCount = updateChat.unreadCount;
                     }
@@ -477,7 +575,7 @@ public final class Example {
                 case TdApi.UpdateChatReadOutbox.CONSTRUCTOR: {
                     TdApi.UpdateChatReadOutbox updateChat = (TdApi.UpdateChatReadOutbox) object;
                     TdApi.Chat chat = chats.get(updateChat.chatId);
-                    synchronized (chat) {
+                    synchronized(chat) {
                         chat.lastReadOutboxMessageId = updateChat.lastReadOutboxMessageId;
                     }
                     break;
@@ -485,7 +583,7 @@ public final class Example {
                 case TdApi.UpdateChatUnreadMentionCount.CONSTRUCTOR: {
                     TdApi.UpdateChatUnreadMentionCount updateChat = (TdApi.UpdateChatUnreadMentionCount) object;
                     TdApi.Chat chat = chats.get(updateChat.chatId);
-                    synchronized (chat) {
+                    synchronized(chat) {
                         chat.unreadMentionCount = updateChat.unreadMentionCount;
                     }
                     break;
@@ -493,7 +591,7 @@ public final class Example {
                 case TdApi.UpdateMessageMentionRead.CONSTRUCTOR: {
                     TdApi.UpdateMessageMentionRead updateChat = (TdApi.UpdateMessageMentionRead) object;
                     TdApi.Chat chat = chats.get(updateChat.chatId);
-                    synchronized (chat) {
+                    synchronized(chat) {
                         chat.unreadMentionCount = updateChat.unreadMentionCount;
                     }
                     break;
@@ -501,7 +599,7 @@ public final class Example {
                 case TdApi.UpdateChatReplyMarkup.CONSTRUCTOR: {
                     TdApi.UpdateChatReplyMarkup updateChat = (TdApi.UpdateChatReplyMarkup) object;
                     TdApi.Chat chat = chats.get(updateChat.chatId);
-                    synchronized (chat) {
+                    synchronized(chat) {
                         chat.replyMarkupMessageId = updateChat.replyMarkupMessageId;
                     }
                     break;
@@ -509,7 +607,7 @@ public final class Example {
                 case TdApi.UpdateChatDraftMessage.CONSTRUCTOR: {
                     TdApi.UpdateChatDraftMessage updateChat = (TdApi.UpdateChatDraftMessage) object;
                     TdApi.Chat chat = chats.get(updateChat.chatId);
-                    synchronized (chat) {
+                    synchronized(chat) {
                         chat.draftMessage = updateChat.draftMessage;
                         setChatPositions(chat, updateChat.positions);
                     }
@@ -518,7 +616,7 @@ public final class Example {
                 case TdApi.UpdateChatPermissions.CONSTRUCTOR: {
                     TdApi.UpdateChatPermissions update = (TdApi.UpdateChatPermissions) object;
                     TdApi.Chat chat = chats.get(update.chatId);
-                    synchronized (chat) {
+                    synchronized(chat) {
                         chat.permissions = update.permissions;
                     }
                     break;
@@ -526,7 +624,7 @@ public final class Example {
                 case TdApi.UpdateChatNotificationSettings.CONSTRUCTOR: {
                     TdApi.UpdateChatNotificationSettings update = (TdApi.UpdateChatNotificationSettings) object;
                     TdApi.Chat chat = chats.get(update.chatId);
-                    synchronized (chat) {
+                    synchronized(chat) {
                         chat.notificationSettings = update.notificationSettings;
                     }
                     break;
@@ -534,7 +632,7 @@ public final class Example {
                 case TdApi.UpdateChatDefaultDisableNotification.CONSTRUCTOR: {
                     TdApi.UpdateChatDefaultDisableNotification update = (TdApi.UpdateChatDefaultDisableNotification) object;
                     TdApi.Chat chat = chats.get(update.chatId);
-                    synchronized (chat) {
+                    synchronized(chat) {
                         chat.defaultDisableNotification = update.defaultDisableNotification;
                     }
                     break;
@@ -542,7 +640,7 @@ public final class Example {
                 case TdApi.UpdateChatIsMarkedAsUnread.CONSTRUCTOR: {
                     TdApi.UpdateChatIsMarkedAsUnread update = (TdApi.UpdateChatIsMarkedAsUnread) object;
                     TdApi.Chat chat = chats.get(update.chatId);
-                    synchronized (chat) {
+                    synchronized(chat) {
                         chat.isMarkedAsUnread = update.isMarkedAsUnread;
                     }
                     break;
@@ -550,7 +648,7 @@ public final class Example {
                 case TdApi.UpdateChatIsBlocked.CONSTRUCTOR: {
                     TdApi.UpdateChatIsBlocked update = (TdApi.UpdateChatIsBlocked) object;
                     TdApi.Chat chat = chats.get(update.chatId);
-                    synchronized (chat) {
+                    synchronized(chat) {
                         chat.isBlocked = update.isBlocked;
                     }
                     break;
@@ -558,7 +656,7 @@ public final class Example {
                 case TdApi.UpdateChatHasScheduledMessages.CONSTRUCTOR: {
                     TdApi.UpdateChatHasScheduledMessages update = (TdApi.UpdateChatHasScheduledMessages) object;
                     TdApi.Chat chat = chats.get(update.chatId);
-                    synchronized (chat) {
+                    synchronized(chat) {
                         chat.hasScheduledMessages = update.hasScheduledMessages;
                     }
                     break;
@@ -583,6 +681,7 @@ public final class Example {
     }
 
     private static class AuthorizationRequestHandler implements Client.ResultHandler {
+
         @Override
         public void onResult(TdApi.Object object) {
             switch (object.getConstructor()) {
@@ -595,6 +694,180 @@ public final class Example {
                     break;
                 default:
                     System.err.println("Receive wrong response from TDLib:" + newLine + object);
+            }
+        }
+    }
+
+    public static class UnresolvedRecord {
+
+        public final String reason;
+        public final String description;
+        public final String channelId;
+        public final List<String> messageIds;
+
+        private UnresolvedRecord(String reason, String description, String channelId, List<String> messageIds) {
+            this.reason = reason;
+            this.description = description;
+            this.channelId = channelId;
+            this.messageIds = messageIds;
+        }
+
+        public static UnresolvedRecord from(String[] columns) {
+            return new UnresolvedRecord(columns[0], columns[1], columns[2], List.of(Arrays.copyOfRange(columns, 3, columns.length)));
+        }
+
+        @Override
+        public String toString() {
+            return reason +
+                "," +
+                description +
+                "," +
+                channelId +
+                "," +
+                String.join(",", messageIds);
+        }
+    }
+
+    public static class ReportResolver {
+
+        public static void resolveIds(Path path) {
+            try (
+                BufferedReader br = Files.newBufferedReader(path);
+                BufferedWriter bw = Files.newBufferedWriter(path.getParent().resolve("resolved_" + path.getFileName()))) {
+
+                // CSV file delimiter
+                String DELIMITER = ",";
+
+                // read the file line by line
+                String line;
+                boolean isFirstLine = true;
+                while ((line = br.readLine()) != null) {
+                    // convert line into columns
+                    UnresolvedRecord unresolvedRecord = UnresolvedRecord.from(line.split(DELIMITER));
+                    CountDownLatch latch = new CountDownLatch(unresolvedRecord.messageIds.size());
+                    LinkedBlockingQueue<Long> chatIds = new LinkedBlockingQueue<>(unresolvedRecord.messageIds.size());
+                    LinkedBlockingQueue<Long> messageIds = new LinkedBlockingQueue<>(unresolvedRecord.messageIds.size());
+                    for (String messageId : unresolvedRecord.messageIds) {
+                        client.send(
+                            new TdApi.GetMessageLinkInfo("https://t.me/" + unresolvedRecord.channelId + "/" + messageId),
+                            object -> {
+                                TdApi.MessageLinkInfo info = (TdApi.MessageLinkInfo) object;
+                                messageIds.add(info.message.id);
+                                chatIds.add(info.message.chatId);
+                                latch.countDown();
+                            },
+                            e -> latch.countDown());
+                    }
+                    latch.await();
+                    if (chatIds.isEmpty() || messageIds.isEmpty()) {
+                        continue;
+                    }
+                    if (!isFirstLine) {
+                        bw.write("\n");
+                    }
+                    isFirstLine = false;
+                    bw.write(ResolvedRecord.from(unresolvedRecord, chatIds.poll(), messageIds).toString());
+                }
+                bw.flush();
+            } catch (IOException ex) {
+                ex.printStackTrace();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    public static class ResolvedRecord {
+
+        public final String reason;
+        public final String description;
+        public final Long channelId;
+        public final Collection<Long> messageIds;
+
+        private ResolvedRecord(String reason, String description, Long channelId, Collection<Long> messageIds) {
+            this.reason = reason;
+            this.description = description;
+            this.channelId = channelId;
+            this.messageIds = messageIds;
+        }
+
+        public static ResolvedRecord from(String[] columns) {
+            return new ResolvedRecord(
+                columns[0],
+                columns[1],
+                Long.parseLong(columns[2]),
+                List.of(Arrays.copyOfRange(columns, 3, columns.length))
+                    .stream()
+                    .mapToLong(Long::parseLong)
+                    .boxed()
+                    .collect(Collectors.toUnmodifiableList())
+            );
+        }
+
+        public static ResolvedRecord from(UnresolvedRecord record, Long channelId, Collection<Long> messageIds) {
+            return new ResolvedRecord(record.reason, record.description, channelId, messageIds);
+        }
+
+        @Override
+        public String toString() {
+            return reason +
+                "," +
+                description +
+                "," +
+                channelId +
+                "," +
+                messageIds.stream().map(Object::toString).collect(Collectors.joining(","));
+        }
+    }
+
+    public static class ReportExecutor {
+
+        public static void execute(Path path) {
+            try (BufferedReader br = Files.newBufferedReader(path)) {
+                // CSV file delimiter
+                String DELIMITER = ",";
+
+                // read the file line by line
+                String line;
+                boolean isFirstLine = true;
+                while ((line = br.readLine()) != null) {
+                    // convert line into columns
+                    ResolvedRecord resolvedRecord = ResolvedRecord.from(line.split(DELIMITER));
+                    System.out.println("Reporting: " + resolvedRecord.toString());
+                    client.send(
+                        new TdApi.ReportChat(
+                            resolvedRecord.channelId,
+                            resolvedRecord.messageIds.stream().mapToLong(Long::longValue).toArray(),
+                            toReason(resolvedRecord.reason),
+                            resolvedRecord.description
+                        ),
+                        defaultHandler);
+                }
+            } catch (IOException ex) {
+                ex.printStackTrace();
+            }
+        }
+
+        private static TdApi.ChatReportReason toReason(String reason) {
+            switch (reason) {
+                case "unrelated":
+                    return new TdApi.ChatReportReasonUnrelatedLocation();
+                case "custom":
+                    return new TdApi.ChatReportReasonCustom();
+                case "childAbuse":
+                    return new TdApi.ChatReportReasonChildAbuse();
+                case "fake":
+                    return new TdApi.ChatReportReasonFake();
+                case "spam":
+                    return new TdApi.ChatReportReasonSpam();
+                case "violence":
+                    return new TdApi.ChatReportReasonViolence();
+                case "copyright":
+                    return new TdApi.ChatReportReasonCopyright();
+                case "pornography":
+                    return new TdApi.ChatReportReasonPornography();
+                default:
+                    throw new IllegalStateException("Unsupported type");
             }
         }
     }
