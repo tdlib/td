@@ -7,6 +7,7 @@
 #include "td/telegram/DownloadManager.h"
 
 #include "td/telegram/FileReferenceManager.h"
+#include "td/telegram/files/FileId.hpp"
 #include "td/telegram/files/FileSourceId.hpp"
 #include "td/telegram/Global.h"
 #include "td/telegram/logevent/LogEvent.h"
@@ -31,7 +32,7 @@ namespace td {
 
 struct FileDownloadInDb {
   int64 download_id{};
-  string unique_file_id;
+  FileId file_id;
   FileSourceId file_source_id;
   int32 priority{};
   int32 created_at{};
@@ -44,7 +45,7 @@ struct FileDownloadInDb {
     STORE_FLAG(is_paused);
     END_STORE_FLAGS();
     td::store(download_id, storer);
-    td::store(unique_file_id, storer);
+    td::store(file_id, storer);
     td::store(file_source_id, storer);
     td::store(priority, storer);
     td::store(created_at, storer);
@@ -57,7 +58,7 @@ struct FileDownloadInDb {
     PARSE_FLAG(is_paused);
     END_PARSE_FLAGS();
     td::parse(download_id, parser);
-    td::parse(unique_file_id, parser);
+    td::parse(file_id, parser);
     td::parse(file_source_id, parser);
     td::parse(priority, parser);
     td::parse(created_at, parser);
@@ -158,9 +159,34 @@ class DownloadManagerImpl final : public DownloadManager {
     return Status::OK();
   }
 
+  void hints_synchronized(Result<Unit>) {
+    LOG(INFO) << "DownloadManager: hints are synchronized";
+    hints_state_ = 2;
+  }
   void search(string query, bool only_active, bool only_completed, string offset, int32 limit,
               Promise<td_api::object_ptr<td_api::foundFileDownloads>> promise) final {
+    return do_search(std::move(query), only_active, only_completed, std::move(offset), limit, std::move(promise),
+                     Unit{});
+  }
+  void do_search(string query, bool only_active, bool only_completed, string offset, int32 limit,
+                 Promise<td_api::object_ptr<td_api::foundFileDownloads>> promise, Result<Unit>) {
     TRY_STATUS_PROMISE(promise, check_is_active());
+
+    if (hints_state_ < 2) {
+      Promise<Unit> lock;
+      if (hints_state_ == 0) {
+        mpas_.add_promise(promise_send_closure(actor_id(this), &DownloadManagerImpl::hints_synchronized));
+        mpas_.set_ignore_errors(true);
+        lock = mpas_.get_promise();
+        prepare_hints();
+        hints_state_ = 1;
+      }
+      mpas_.add_promise(promise_send_closure(actor_id(this), &DownloadManagerImpl::do_search, std::move(query),
+                                             only_active, only_completed, std::move(offset), limit,
+                                             std::move(promise)));
+      return;
+    }
+
     if (limit <= 0) {
       return promise.set_error(Status::Error(400, "Limit must be positive"));
     }
@@ -278,6 +304,8 @@ class DownloadManagerImpl final : public DownloadManager {
   bool is_started_{false};
   int64 max_download_id_{0};
   uint64 last_link_token_{0};
+  int hints_state_;
+  MultiPromiseActorSafe mpas_{"DownloadManager: hints"};
 
   int64 next_download_id() {
     return ++max_download_id_;
@@ -305,17 +333,11 @@ class DownloadManagerImpl final : public DownloadManager {
     to_save.priority = file_info.priority;
     to_save.created_at = file_info.created_at;
     to_save.completed_at = file_info.completed_at;
-    to_save.unique_file_id = callback_->get_file_view(file_info.file_id).get_unique_file_id();
+    to_save.file_id = file_info.file_id;
     G()->td_db()->get_binlog_pmc()->set(pmc_key(file_info), log_event_store(to_save).as_slice().str());
   }
   static void remove_from_db(const FileInfo &file_info) {
     G()->td_db()->get_binlog_pmc()->erase(pmc_key(file_info));
-  }
-
-  void on_synchronized(Result<Unit> result) {
-    LOG(INFO) << "DownloadManager: synchronized";
-    is_synchonized_ = true;
-    update_counters();
   }
 
   void try_start() {
@@ -330,10 +352,6 @@ class DownloadManagerImpl final : public DownloadManager {
     }
 
     auto downloads_in_kv = G()->td_db()->get_binlog_pmc()->prefix_get("dlds#");
-    MultiPromiseActorSafe mpas("DownloadManager: initialization");
-    mpas.add_promise(promise_send_closure(actor_id(this), &DownloadManagerImpl::on_synchronized));
-    mpas.set_ignore_errors(true);
-    auto lock = mpas.get_promise();
     for (auto &it : downloads_in_kv) {
       Slice key = it.first;
       Slice value = it.second;
@@ -341,46 +359,63 @@ class DownloadManagerImpl final : public DownloadManager {
       log_event_parse(in_db, value).ensure();
       CHECK(in_db.download_id == to_integer_safe<int64>(key).ok());
       max_download_id_ = max(in_db.download_id, max_download_id_);
-      auto promise = mpas.get_promise();
-      auto unique_file_id = std::move(in_db.unique_file_id);
-      auto file_source_id = in_db.file_source_id;
-      auto new_promise = [actor_id = actor_id(this), in_db = std::move(in_db),
-                          promise = std::move(promise)](Result<FileSearchInfo> res) mutable {
-        if (res.is_error()) {
-          return promise.set_value(Unit());
-        }
-        send_closure(actor_id, &DownloadManagerImpl::add_file_from_db, res.move_as_ok(), std::move(in_db),
-                     std::move(promise));
-      };
-      send_closure(G()->file_reference_manager(), &FileReferenceManager::get_file_search_info, file_source_id,
-                   std::move(unique_file_id), std::move(new_promise));
+      add_file_from_db(in_db);
     }
-    lock.set_value(Unit());
+    is_synchonized_ = true;
+    update_counters();
   }
 
-  void add_file_from_db(FileSearchInfo file_search_info, FileDownloadInDb in_db, Promise<Unit> promise) {
-    if (by_file_id_.count(file_search_info.file_id) != 0) {
+  void add_file_from_db(FileDownloadInDb in_db) {
+    if (by_file_id_.count(in_db.file_id) != 0) {
       // file has already been added
-      return promise.set_value(Unit());
+      return;
     }
 
     if (in_db.completed_at > 0) {
       // TODO file must not be added if it isn't fully downloaded
-      // return promise.set_value(Unit());
     }
 
     auto file_info = make_unique<FileInfo>();
     file_info->download_id = in_db.download_id;
-    file_info->file_id = file_search_info.file_id;
+    file_info->file_id = in_db.file_id;
     file_info->file_source_id = in_db.file_source_id;
     file_info->is_paused = in_db.is_paused;
     file_info->priority = narrow_cast<int8>(in_db.priority);
     file_info->completed_at = in_db.completed_at;
     file_info->created_at = in_db.created_at;
 
-    add_file_info(std::move(file_info), file_search_info.search_text);
+    add_file_info(std::move(file_info), "");
+  }
 
-    promise.set_value(Unit());
+  void prepare_hints() {
+    for (auto &it : files_) {
+      const auto &file_info = *it.second;
+      send_closure(G()->file_reference_manager(), &FileReferenceManager::get_file_search_info, file_info.file_source_id,
+                   callback_->get_file_view(file_info.file_id).get_unique_file_id(),
+                   [self = actor_id(this), cont = mpas_.get_promise(),
+                    download_id = it.first](Result<FileSearchInfo> result) mutable {
+                     send_closure(self, &DownloadManagerImpl::add_download_to_hints, download_id, std::move(result),
+                                  std::move(cont));
+                   });
+    }
+  }
+
+  void add_download_to_hints(int64 download_id, Result<FileSearchInfo> r_file_search_info, Promise<Unit> promise) {
+    auto it = files_.find(download_id);
+    if (it == files_.end()) {
+      return;
+    }
+
+    if (r_file_search_info.is_error()) {
+      if (!G()->close_flag()) {
+        remove_file(it->second->file_id, {}, false);
+      }
+      return;
+    }
+
+    auto search_info = r_file_search_info.move_as_ok();
+    // TODO: This is a race. Synchronous call to MessagesManager would be better.
+    hints_.add(download_id, search_info.search_text.empty() ? string(" ") : search_info.search_text);
   }
 
   void add_file_info(unique_ptr<FileInfo> &&file_info, const string &search_text) {
