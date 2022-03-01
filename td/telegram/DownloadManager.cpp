@@ -160,30 +160,38 @@ class DownloadManagerImpl final : public DownloadManager {
   }
 
   void hints_synchronized(Result<Unit>) {
+    if (G()->close_flag()) {
+      return;
+    }
+
     LOG(INFO) << "DownloadManager: hints are synchronized";
-    hints_state_ = 2;
+    is_search_inited_ = true;
   }
+
   void search(string query, bool only_active, bool only_completed, string offset, int32 limit,
               Promise<td_api::object_ptr<td_api::foundFileDownloads>> promise) final {
     return do_search(std::move(query), only_active, only_completed, std::move(offset), limit, std::move(promise),
                      Unit{});
   }
+
   void do_search(string query, bool only_active, bool only_completed, string offset, int32 limit,
                  Promise<td_api::object_ptr<td_api::foundFileDownloads>> promise, Result<Unit>) {
+    TRY_STATUS_PROMISE(promise, G()->close_status());
     TRY_STATUS_PROMISE(promise, check_is_active());
 
-    if (hints_state_ < 2) {
+    if (!is_search_inited_) {
       Promise<Unit> lock;
-      if (hints_state_ == 0) {
-        mpas_.add_promise(promise_send_closure(actor_id(this), &DownloadManagerImpl::hints_synchronized));
-        mpas_.set_ignore_errors(true);
-        lock = mpas_.get_promise();
+      if (load_search_text_multipromise_.promise_count() == 0) {
+        load_search_text_multipromise_.add_promise(
+            promise_send_closure(actor_id(this), &DownloadManagerImpl::hints_synchronized));
+        load_search_text_multipromise_.set_ignore_errors(true);
+        lock = load_search_text_multipromise_.get_promise();
         prepare_hints();
-        hints_state_ = 1;
       }
-      mpas_.add_promise(promise_send_closure(actor_id(this), &DownloadManagerImpl::do_search, std::move(query),
-                                             only_active, only_completed, std::move(offset), limit,
-                                             std::move(promise)));
+      load_search_text_multipromise_.add_promise(promise_send_closure(actor_id(this), &DownloadManagerImpl::do_search,
+                                                                      std::move(query), only_active, only_completed,
+                                                                      std::move(offset), limit, std::move(promise)));
+      lock.set_value(Unit());
       return;
     }
 
@@ -300,12 +308,11 @@ class DownloadManagerImpl final : public DownloadManager {
 
   Counters counters_;
   Counters sent_counters_;
-  bool is_synchonized_{false};
   bool is_started_{false};
+  bool is_search_inited_{false};
   int64 max_download_id_{0};
   uint64 last_link_token_{0};
-  int hints_state_;
-  MultiPromiseActorSafe mpas_{"DownloadManager: hints"};
+  MultiPromiseActor load_search_text_multipromise_{"LoadFileSearchTextMultiPromiseActor"};
 
   int64 next_download_id() {
     return ++max_download_id_;
@@ -344,7 +351,7 @@ class DownloadManagerImpl final : public DownloadManager {
     if (is_started_) {
       return;
     }
-    is_started_ = true;
+
     auto serialized_counter = G()->td_db()->get_binlog_pmc()->get("dlds_counter");
     if (!serialized_counter.empty()) {
       log_event_parse(sent_counters_, serialized_counter).ensure();
@@ -361,7 +368,8 @@ class DownloadManagerImpl final : public DownloadManager {
       max_download_id_ = max(in_db.download_id, max_download_id_);
       add_file_from_db(in_db);
     }
-    is_synchonized_ = true;
+
+    is_started_ = true;
     update_counters();
   }
 
@@ -390,32 +398,32 @@ class DownloadManagerImpl final : public DownloadManager {
   void prepare_hints() {
     for (auto &it : files_) {
       const auto &file_info = *it.second;
-      send_closure(G()->file_reference_manager(), &FileReferenceManager::get_file_search_info, file_info.file_source_id,
+      send_closure(G()->file_reference_manager(), &FileReferenceManager::get_file_search_text, file_info.file_source_id,
                    callback_->get_file_view(file_info.file_id).get_unique_file_id(),
-                   [self = actor_id(this), cont = mpas_.get_promise(),
-                    download_id = it.first](Result<FileSearchInfo> result) mutable {
-                     send_closure(self, &DownloadManagerImpl::add_download_to_hints, download_id, std::move(result),
-                                  std::move(cont));
+                   [self = actor_id(this), promise = load_search_text_multipromise_.get_promise(),
+                    download_id = it.first](Result<string> r_search_text) mutable {
+                     send_closure(self, &DownloadManagerImpl::add_download_to_hints, download_id,
+                                  std::move(r_search_text), std::move(promise));
                    });
     }
   }
 
-  void add_download_to_hints(int64 download_id, Result<FileSearchInfo> r_file_search_info, Promise<Unit> promise) {
+  void add_download_to_hints(int64 download_id, Result<string> r_search_text, Promise<Unit> promise) {
     auto it = files_.find(download_id);
     if (it == files_.end()) {
-      return;
+      return promise.set_value(Unit());
     }
 
-    if (r_file_search_info.is_error()) {
+    if (r_search_text.is_error()) {
       if (!G()->close_flag()) {
         remove_file(it->second->file_id, {}, false);
       }
-      return;
+    } else {
+      auto search_text = r_search_text.move_as_ok();
+      // TODO: This is a race. Synchronous call to MessagesManager would be better.
+      hints_.add(download_id, search_text.empty() ? string(" ") : search_text);
     }
-
-    auto search_info = r_file_search_info.move_as_ok();
-    // TODO: This is a race. Synchronous call to MessagesManager would be better.
-    hints_.add(download_id, search_info.search_text.empty() ? string(" ") : search_info.search_text);
+    promise.set_value(Unit());
   }
 
   void add_file_info(unique_ptr<FileInfo> &&file_info, const string &search_text) {
@@ -471,7 +479,7 @@ class DownloadManagerImpl final : public DownloadManager {
   }
 
   void update_counters() {
-    if (!is_synchonized_) {
+    if (!is_started_) {
       return;
     }
     if (counters_ == sent_counters_) {
@@ -541,6 +549,7 @@ class DownloadManagerImpl final : public DownloadManager {
       LOG(ERROR) << "DownloadManager wasn't initialized";
       return Status::Error(500, "DownloadManager isn't initialized");
     }
+    CHECK(is_started_);
     return Status::OK();
   }
 };

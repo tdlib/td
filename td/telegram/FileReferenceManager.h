@@ -33,11 +33,6 @@ class Td;
 
 extern int VERBOSITY_NAME(file_references);
 
-struct FileSearchInfo {
-  FileId file_id;
-  string search_text;
-};
-
 class FileReferenceManager final : public Actor {
  public:
   static bool is_file_reference_error(const Status &error);
@@ -61,7 +56,7 @@ class FileReferenceManager final : public Actor {
   using NodeId = FileId;
   void repair_file_reference(NodeId node_id, Promise<> promise);
 
-  void get_file_search_info(FileSourceId file_source_id, string unique_file_id, Promise<FileSearchInfo> promise);
+  void get_file_search_text(FileSourceId file_source_id, string unique_file_id, Promise<string> promise);
 
   td_api::object_ptr<td_api::message> get_message_object(FileSourceId file_source_id) const;
 

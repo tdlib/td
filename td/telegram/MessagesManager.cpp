@@ -39882,9 +39882,9 @@ void MessagesManager::add_message_file_to_downloads(FullMessageId full_message_i
   promise.set_value(td_->file_manager_->get_file_object(file_id));
 }
 
-void MessagesManager::get_message_file_search_info(FullMessageId full_message_id, string unique_file_id,
-                                                   Promise<FileSearchInfo> promise) {
-  auto m = get_message_force(full_message_id, "add_message_file_to_downloads");
+void MessagesManager::get_message_file_search_text(FullMessageId full_message_id, string unique_file_id,
+                                                   Promise<string> promise) {
+  auto m = get_message_force(full_message_id, "get_message_file_search_text");
   if (m == nullptr) {
     return promise.set_error(Status::Error(200, "Message not found"));
   }
@@ -39892,10 +39892,7 @@ void MessagesManager::get_message_file_search_info(FullMessageId full_message_id
     auto file_view = td_->file_manager_->get_file_view(file_id);
     CHECK(!file_view.empty());
     if (file_view.get_unique_file_id() == unique_file_id) {
-      FileSearchInfo info;
-      info.file_id = file_id;
-      info.search_text = get_message_search_text(m);
-      return promise.set_value(std::move(info));
+      return promise.set_value(get_message_search_text(m));
     }
   }
   return promise.set_error(Status::Error(200, "File not found"));

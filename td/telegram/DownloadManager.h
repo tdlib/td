@@ -43,7 +43,7 @@ class DownloadManager : public Actor {
     void parse(ParserT &parser);
   };
 
-  // trying to make DownloadManager testable, so all interactions with G() will be hidden is this probably monstrous interface
+  // to make DownloadManager testable all interactions with G() must be hidden in this probably monstrous interface
   class Callback {
    public:
     virtual ~Callback() = default;

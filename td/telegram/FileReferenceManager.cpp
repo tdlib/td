@@ -394,13 +394,13 @@ void FileReferenceManager::reload_photo(PhotoSizeSource source, Promise<Unit> pr
   }
 }
 
-void FileReferenceManager::get_file_search_info(FileSourceId file_source_id, string unique_file_id,
-                                                Promise<FileSearchInfo> promise) {
+void FileReferenceManager::get_file_search_text(FileSourceId file_source_id, string unique_file_id,
+                                                Promise<string> promise) {
   auto index = static_cast<size_t>(file_source_id.get()) - 1;
   CHECK(index < file_sources_.size());
   file_sources_[index].visit(overloaded(
       [&](const FileSourceMessage &source) {
-        send_closure_later(G()->messages_manager(), &MessagesManager::get_message_file_search_info,
+        send_closure_later(G()->messages_manager(), &MessagesManager::get_message_file_search_text,
                            source.full_message_id, std::move(unique_file_id), std::move(promise));
       },
       [&](const auto &source) { promise.set_error(Status::Error(500, "Unsupported file source")); }));
