@@ -4027,7 +4027,7 @@ void Td::init_managers() {
             auto td = G()->td().get_actor_unsafe();
             auto file_view = td->file_manager_->get_file_view(file_id);
             send_closure(download_manager_, &DownloadManager::update_file_download_state, file_id,
-                         file_view.local_total_size(), file_view.size(), !file_view.is_downloading());
+                         file_view.local_total_size(), file_view.expected_size(), !file_view.is_downloading());
             // TODO: handle deleted state?
           }
           void on_download_ok(FileId file_id) final {

@@ -377,6 +377,11 @@ class DownloadManagerImpl final : public DownloadManager {
     CHECK(file_info != nullptr);
     auto download_id = file_info->download_id;
     file_info->internal_file_id = callback_->dup_file_id(file_info->file_id);
+    auto file_view = callback_->get_file_view(file_info->file_id);
+    CHECK(!file_view.empty());
+    file_info->size = file_view.expected_size();
+    file_info->downloaded_size = file_view.local_total_size();
+
     by_internal_file_id_[file_info->internal_file_id] = download_id;
     by_file_id_[file_info->file_id] = download_id;
     hints_.add(download_id, search_text.empty() ? string(" ") : search_text);
