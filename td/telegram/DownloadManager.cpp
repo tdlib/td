@@ -211,6 +211,8 @@ class DownloadManagerImpl final : public DownloadManager {
   }
 
   void update_file_download_state(FileId internal_file_id, int64 download_size, int64 size, bool is_paused) final {
+    LOG(INFO) << "Update file download state for file " << internal_file_id << " of size " << size
+              << " to download_size = " << download_size << " and is_paused = " << is_paused;
     if (!callback_) {
       return;
     }
@@ -288,6 +290,8 @@ class DownloadManagerImpl final : public DownloadManager {
     }
     file_info.need_save_to_db = false;
 
+    LOG(INFO) << "Saving to download database file " << file_info.file_id << '/' << file_info.internal_file_id
+              << " with is_paused = " << file_info.is_paused;
     FileDownloadInDb to_save;
     to_save.download_id = file_info.download_id;
     to_save.file_source_id = file_info.file_source_id;
@@ -386,6 +390,8 @@ class DownloadManagerImpl final : public DownloadManager {
     by_file_id_[file_info->file_id] = download_id;
     hints_.add(download_id, search_text.empty() ? string(" ") : search_text);
 
+    LOG(INFO) << "Adding to downloads file " << file_info->file_id << '/' << file_info->internal_file_id
+              << " with is_paused = " << file_info->is_paused;
     auto it = files_.emplace(download_id, std::move(file_info)).first;
     register_file_info(*it->second);
     if (it->second->completed_at == 0) {
@@ -408,6 +414,7 @@ class DownloadManagerImpl final : public DownloadManager {
     if (!is_active(file_info) || is_paused == file_info.is_paused) {
       return;
     }
+    LOG(INFO) << "Change is_paused state of file " << file_info.file_id << " to " << is_paused;
 
     with_file_info(file_info, [&](auto &file_info) {
       file_info.is_paused = is_paused;
