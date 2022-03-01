@@ -223,6 +223,7 @@ class DownloadManagerImpl final : public DownloadManager {
     auto &file_info = *r_file_info_ptr.ok();
     if (file_info.link_token != get_link_token()) {
       LOG(INFO) << "Ignore update_file_download_state because of outdated link_token";
+      return;
     }
 
     with_file_info(file_info, [&](FileInfo &file_info) {
