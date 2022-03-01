@@ -3984,9 +3984,9 @@ void Td::init_managers() {
       send_closure(G()->td(), &Td::send_update,
                    td_api::make_object<td_api::updateFileRemovedFromDownloads>(file_id.get()));
     }
-    void start_file(FileId file_id, int8 priority) final {
-      send_closure(G()->file_manager(), &FileManager::download, file_id, make_download_file_callback(), priority,
-                   FileManager::KEEP_DOWNLOAD_OFFSET, FileManager::IGNORE_DOWNLOAD_LIMIT);
+    void start_file(FileId file_id, int8 priority, uint64 link_token) final {
+      send_closure(G()->file_manager(), &FileManager::download, file_id, make_download_file_callback(link_token),
+                   priority, FileManager::KEEP_DOWNLOAD_OFFSET, FileManager::IGNORE_DOWNLOAD_LIMIT);
     }
     void pause_file(FileId file_id) final {
       send_closure(G()->file_manager(), &FileManager::download, file_id, nullptr, 0, FileManager::KEEP_DOWNLOAD_OFFSET,
@@ -4016,33 +4016,32 @@ void Td::init_managers() {
    private:
     ActorShared<> parent_;
     ActorId<DownloadManager> download_manager_;
-    std::shared_ptr<FileManager::DownloadCallback> download_file_callback_;
-    std::shared_ptr<FileManager::DownloadCallback> make_download_file_callback() {
-      if (!download_file_callback_) {
-        class Impl final : public FileManager::DownloadCallback {
-         public:
-          explicit Impl(ActorId<DownloadManager> download_manager) : download_manager_(download_manager) {
-          }
-          void on_progress(FileId file_id) final {
-            auto td = G()->td().get_actor_unsafe();
-            auto file_view = td->file_manager_->get_file_view(file_id);
-            send_closure(download_manager_, &DownloadManager::update_file_download_state, file_id,
-                         file_view.local_total_size(), file_view.expected_size(), !file_view.is_downloading());
-            // TODO: handle deleted state?
-          }
-          void on_download_ok(FileId file_id) final {
-            on_progress(file_id);
-          }
-          void on_download_error(FileId file_id, Status error) {
-            on_progress(file_id);
-          }
+    std::shared_ptr<FileManager::DownloadCallback> make_download_file_callback(uint64 link_token) {
+      class Impl final : public FileManager::DownloadCallback {
+       public:
+        explicit Impl(ActorShared<DownloadManager> download_manager) : download_manager_(std::move(download_manager)) {
+        }
+        void on_progress(FileId file_id) final {
+          send_update(file_id, false);
+        }
+        void on_download_ok(FileId file_id) final {
+          send_update(file_id, true);
+        }
+        void on_download_error(FileId file_id, Status error) {
+          send_update(file_id, true);
+        }
 
-         private:
-          ActorId<DownloadManager> download_manager_;
-        };
-        download_file_callback_ = std::make_shared<Impl>(download_manager_);
-      }
-      return download_file_callback_;
+       private:
+        ActorShared<DownloadManager> download_manager_;
+        void send_update(FileId file_id, bool is_paused) {
+          auto td = G()->td().get_actor_unsafe();
+          auto file_view = td->file_manager_->get_file_view(file_id);
+          send_closure(download_manager_, &DownloadManager::update_file_download_state, file_id,
+                       file_view.local_total_size(), file_view.size(), is_paused);
+          // TODO: handle deleted state?
+        }
+      };
+      return std::make_shared<Impl>(ActorShared<DownloadManager>(download_manager_, link_token));
     }
   };
   send_closure_later(download_manager_actor_, &DownloadManager::set_callback,

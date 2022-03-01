@@ -49,7 +49,7 @@ class DownloadManager : public Actor {
     virtual ~Callback() = default;
     virtual void update_counters(Counters counters) = 0;
     virtual void update_file_removed(FileId file_id) = 0;
-    virtual void start_file(FileId file_id, int8 priority) = 0;
+    virtual void start_file(FileId file_id, int8 priority, uint64 link_token) = 0;
     virtual void pause_file(FileId file_id) = 0;
     virtual void delete_file(FileId file_id) = 0;
     virtual FileId dup_file_id(FileId file_id) = 0;

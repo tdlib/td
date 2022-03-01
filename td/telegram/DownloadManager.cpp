@@ -221,11 +221,14 @@ class DownloadManagerImpl final : public DownloadManager {
       return;
     }
     auto &file_info = *r_file_info_ptr.ok();
+    if (file_info.link_token != get_link_token()) {
+      LOG(INFO) << "Ignore update_file_download_state because of outdated link_token";
+    }
 
     with_file_info(file_info, [&](FileInfo &file_info) {
       file_info.size = size;
       file_info.downloaded_size = download_size;
-      if (file_info.is_paused != is_paused) {
+      if (is_paused && file_info.is_paused != is_paused) {
         file_info.is_paused = is_paused;
         file_info.need_save_to_db = true;
       }
@@ -259,6 +262,7 @@ class DownloadManagerImpl final : public DownloadManager {
     int64 downloaded_size{};
     int32 created_at{};
     int32 completed_at{};
+    uint64 link_token{};
   };
 
   FlatHashMap<FileId, int64, FileIdHash> by_file_id_;
@@ -272,6 +276,7 @@ class DownloadManagerImpl final : public DownloadManager {
   bool is_synchonized_{false};
   bool is_started_{false};
   int64 max_download_id_{0};
+  uint64 last_link_token_{0};
 
   int64 next_download_id() {
     return ++max_download_id_;
@@ -389,13 +394,14 @@ class DownloadManagerImpl final : public DownloadManager {
     by_internal_file_id_[file_info->internal_file_id] = download_id;
     by_file_id_[file_info->file_id] = download_id;
     hints_.add(download_id, search_text.empty() ? string(" ") : search_text);
+    file_info->link_token = ++last_link_token_;
 
     LOG(INFO) << "Adding to downloads file " << file_info->file_id << '/' << file_info->internal_file_id
               << " with is_paused = " << file_info->is_paused;
     auto it = files_.emplace(download_id, std::move(file_info)).first;
     register_file_info(*it->second);
     if (it->second->completed_at == 0) {
-      callback_->start_file(it->second->internal_file_id, it->second->priority);
+      callback_->start_file(it->second->internal_file_id, it->second->priority, it->second->link_token);
     }
   }
 
@@ -419,11 +425,12 @@ class DownloadManagerImpl final : public DownloadManager {
     with_file_info(file_info, [&](auto &file_info) {
       file_info.is_paused = is_paused;
       file_info.need_save_to_db = true;
+      file_info.link_token = ++last_link_token_;
     });
     if (is_paused) {
       callback_->pause_file(file_info.internal_file_id);
     } else {
-      callback_->start_file(file_info.internal_file_id, file_info.priority);
+      callback_->start_file(file_info.internal_file_id, file_info.priority, file_info.link_token);
     }
   }
 
