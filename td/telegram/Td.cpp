@@ -3980,6 +3980,10 @@ void Td::init_managers() {
     void update_counters(DownloadManager::Counters counters) final {
       send_closure(G()->td(), &Td::send_update, counters.get_update_file_downloads_object());
     }
+    void update_file_removed(FileId file_id) final {
+      send_closure(G()->td(), &Td::send_update,
+                   td_api::make_object<td_api::updateFileRemovedFromDownloads>(file_id.get()));
+    }
     void start_file(FileId file_id, int8 priority) final {
       send_closure(G()->file_manager(), &FileManager::download, file_id, make_download_file_callback(), priority,
                    FileManager::KEEP_DOWNLOAD_OFFSET, FileManager::IGNORE_DOWNLOAD_LIMIT);

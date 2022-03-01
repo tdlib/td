@@ -106,6 +106,7 @@ class DownloadManagerImpl final : public DownloadManager {
 
     remove_from_db(file_info);
     files_.erase(file_info.download_id);
+    callback_->update_file_removed(file_id);
     return Status::OK();
   }
 
