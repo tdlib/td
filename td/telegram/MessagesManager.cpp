@@ -6819,6 +6819,35 @@ void MessagesManager::on_update_message_reactions(FullMessageId full_message_id,
   TRY_STATUS_PROMISE(promise, G()->close_status());
 
   if (!have_message_force(full_message_id, "on_update_message_reactions")) {
+    auto dialog_id = full_message_id.get_dialog_id();
+    if (!have_input_peer(dialog_id, AccessRights::Read)) {
+      LOG(INFO) << "Ignore updateMessageReaction in inaccessible " << full_message_id;
+      return;
+    }
+
+    switch (dialog_id.get_type()) {
+      case DialogType::User:
+      case DialogType::Chat: {
+        const Dialog *d = get_dialog(dialog_id);
+        if (d == nullptr) {
+          LOG(INFO) << "Ignore updateMessageReaction in unknown " << dialog_id;
+          return;
+        }
+        if (d->last_new_message_id != MessageId() && full_message_id.get_message_id() > d->last_new_message_id) {
+          LOG(INFO) << "Ignore updateMessageReaction about too new " << full_message_id << ", last known is "
+                    << d->last_new_message_id;
+          return;
+        }
+        break;
+      }
+      case DialogType::Channel:
+        // the message will be added after get_channel_difference_if_needed
+        break;
+      case DialogType::SecretChat:
+      default:
+        UNREACHABLE();
+        break;
+    }
     LOG(INFO) << "Need to load " << full_message_id << " to process updateMessageReaction";
     return get_message_from_server(full_message_id, std::move(promise), "on_update_message_reactions");
   }
