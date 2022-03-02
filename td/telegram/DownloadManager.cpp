@@ -500,11 +500,9 @@ class DownloadManagerImpl final : public DownloadManager {
     }
 
     for (auto &it : files_) {
-      with_file_info(*it.second, [&](auto &file_info) {
-        if (!file_info.is_paused) {
-          file_info.is_counted = false;
-        }
-      });
+      if (!it.second->is_paused) {
+        it.second->is_counted = false;
+      }
     }
     counters_ = Counters();
     update_counters();
@@ -542,16 +540,15 @@ class DownloadManagerImpl final : public DownloadManager {
     CHECK(counters_.total_size >= 0);
     CHECK(counters_.total_count >= 0);
     CHECK(counters_.downloaded_size >= 0);
-    if (counters_.downloaded_size == counters_.total_size && counters_.total_size != 0) {
-      set_timeout_in(60.0);
-    }
-    sent_counters_ = counters_;
-    if (counters_ == Counters()) {
+    if ((counters_.downloaded_size == counters_.total_size && counters_.total_size != 0) || counters_ == Counters()) {
+      if (counters_.total_size != 0) {
+        set_timeout_in(60.0);
+      }
       G()->td_db()->get_binlog_pmc()->erase("dlds_counter");
     } else {
       G()->td_db()->get_binlog_pmc()->set("dlds_counter", log_event_store(counters_).as_slice().str());
     }
-
+    sent_counters_ = counters_;
     callback_->update_counters(counters_);
   }
 
@@ -584,6 +581,7 @@ class DownloadManagerImpl final : public DownloadManager {
 
   void unregister_file_info(const FileInfo &file_info) {
     if (file_info.is_counted && !file_info.is_paused) {
+      LOG(INFO) << "Unregister file " << file_info.file_id;
       counters_.downloaded_size -= file_info.downloaded_size;
       counters_.total_size -= get_file_size(file_info);
       counters_.total_count--;
@@ -591,15 +589,16 @@ class DownloadManagerImpl final : public DownloadManager {
   }
 
   void register_file_info(FileInfo &file_info) {
+    if (!is_completed(file_info) && file_info.size != 0 && file_info.downloaded_size == file_info.size) {
+      LOG(INFO) << "Register file " << file_info.file_id;
+      file_info.is_paused = false;
+      file_info.completed_at = G()->unix_time();
+      file_info.need_save_to_db = true;
+    }
     if (file_info.is_counted && !file_info.is_paused) {
       counters_.downloaded_size += file_info.downloaded_size;
       counters_.total_size += get_file_size(file_info);
       counters_.total_count++;
-    }
-    if (!is_completed(file_info) && file_info.size != 0 && file_info.downloaded_size == file_info.size) {
-      file_info.is_paused = false;
-      file_info.completed_at = G()->unix_time();
-      file_info.need_save_to_db = true;
     }
     sync_with_db(file_info);
     update_counters();
