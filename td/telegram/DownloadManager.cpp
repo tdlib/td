@@ -68,9 +68,11 @@ struct FileDownloadInDb {
 
 class DownloadManagerImpl final : public DownloadManager {
  public:
-  void set_callback(unique_ptr<Callback> callback) final {
-    callback_ = std::move(callback);
-    loop();
+  explicit DownloadManagerImpl(unique_ptr<Callback> callback) : callback_(std::move(callback)) {
+  }
+
+  void start_up() final {
+    try_start();
   }
 
   Status toggle_is_paused(FileId file_id, bool is_paused) final {
@@ -445,7 +447,8 @@ class DownloadManagerImpl final : public DownloadManager {
     auto it = files_.emplace(download_id, std::move(file_info)).first;
     register_file_info(*it->second);
     if (it->second->completed_at == 0 && !it->second->is_paused) {
-      callback_->start_file(it->second->internal_file_id, it->second->priority, it->second->link_token);
+      callback_->start_file(it->second->internal_file_id, it->second->priority,
+                            actor_shared(this, it->second->link_token));
     }
   }
 
@@ -474,7 +477,7 @@ class DownloadManagerImpl final : public DownloadManager {
     if (is_paused) {
       callback_->pause_file(file_info.internal_file_id);
     } else {
-      callback_->start_file(file_info.internal_file_id, file_info.priority, file_info.link_token);
+      callback_->start_file(file_info.internal_file_id, file_info.priority, actor_shared(this, file_info.link_token));
     }
   }
 
@@ -554,8 +557,8 @@ class DownloadManagerImpl final : public DownloadManager {
   }
 };
 
-unique_ptr<DownloadManager> DownloadManager::create() {
-  return make_unique<DownloadManagerImpl>();
+unique_ptr<DownloadManager> DownloadManager::create(unique_ptr<Callback> callback) {
+  return make_unique<DownloadManagerImpl>(std::move(callback));
 }
 
 td_api::object_ptr<td_api::updateFileDownloads> DownloadManager::Counters::get_update_file_downloads_object() const {

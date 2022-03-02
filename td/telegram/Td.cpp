@@ -3970,12 +3970,9 @@ void Td::init_managers() {
   G()->set_contacts_manager(contacts_manager_actor_.get());
   country_info_manager_ = make_unique<CountryInfoManager>(this, create_reference());
   country_info_manager_actor_ = register_actor("CountryInfoManager", country_info_manager_.get());
-  download_manager_ = DownloadManager::create();
-  download_manager_actor_ = register_actor("DownloadManager", download_manager_.get());
   class DownloadManagerCallback final : public DownloadManager::Callback {
    public:
-    DownloadManagerCallback(ActorShared<> parent, ActorId<DownloadManager> download_manager)
-        : parent_(std::move(parent)), download_manager_(download_manager) {
+    explicit DownloadManagerCallback(ActorShared<> parent) : parent_(std::move(parent)) {
     }
     void update_counters(DownloadManager::Counters counters) final {
       send_closure(G()->td(), &Td::send_update, counters.get_update_file_downloads_object());
@@ -3984,9 +3981,10 @@ void Td::init_managers() {
       send_closure(G()->td(), &Td::send_update,
                    td_api::make_object<td_api::updateFileRemovedFromDownloads>(file_id.get()));
     }
-    void start_file(FileId file_id, int8 priority, uint64 link_token) final {
-      send_closure(G()->file_manager(), &FileManager::download, file_id, make_download_file_callback(link_token),
-                   priority, FileManager::KEEP_DOWNLOAD_OFFSET, FileManager::IGNORE_DOWNLOAD_LIMIT);
+    void start_file(FileId file_id, int8 priority, ActorShared<DownloadManager> download_manager) final {
+      send_closure(G()->file_manager(), &FileManager::download, file_id,
+                   make_download_file_callback(std::move(download_manager)), priority,
+                   FileManager::KEEP_DOWNLOAD_OFFSET, FileManager::IGNORE_DOWNLOAD_LIMIT);
     }
     void pause_file(FileId file_id) final {
       send_closure(G()->file_manager(), &FileManager::download, file_id, nullptr, 0, FileManager::KEEP_DOWNLOAD_OFFSET,
@@ -4015,8 +4013,8 @@ void Td::init_managers() {
 
    private:
     ActorShared<> parent_;
-    ActorId<DownloadManager> download_manager_;
-    std::shared_ptr<FileManager::DownloadCallback> make_download_file_callback(uint64 link_token) {
+    static std::shared_ptr<FileManager::DownloadCallback> make_download_file_callback(
+        ActorShared<DownloadManager> download_manager) {
       class Impl final : public FileManager::DownloadCallback {
        public:
         explicit Impl(ActorShared<DownloadManager> download_manager) : download_manager_(std::move(download_manager)) {
@@ -4042,12 +4040,11 @@ void Td::init_managers() {
           // TODO: handle deleted state?
         }
       };
-      return std::make_shared<Impl>(ActorShared<DownloadManager>(download_manager_, link_token));
+      return std::make_shared<Impl>(std::move(download_manager));
     }
   };
-  send_closure_later(download_manager_actor_, &DownloadManager::set_callback,
-                     td::make_unique<DownloadManagerCallback>(create_reference(), download_manager_actor_.get()));
-
+  download_manager_ = DownloadManager::create(td::make_unique<DownloadManagerCallback>(create_reference()));
+  download_manager_actor_ = register_actor("DownloadManager", download_manager_.get());
   game_manager_ = make_unique<GameManager>(this, create_reference());
   game_manager_actor_ = register_actor("GameManager", game_manager_.get());
   G()->set_game_manager(game_manager_actor_.get());

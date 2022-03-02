@@ -21,9 +21,6 @@ namespace td {
 
 class DownloadManager : public Actor {
  public:
-  // creates, but do not starts the actor
-  static unique_ptr<DownloadManager> create();
-
   struct Counters {
     int64 total_size{};
     int32 total_count{};
@@ -49,7 +46,7 @@ class DownloadManager : public Actor {
     virtual ~Callback() = default;
     virtual void update_counters(Counters counters) = 0;
     virtual void update_file_removed(FileId file_id) = 0;
-    virtual void start_file(FileId file_id, int8 priority, uint64 link_token) = 0;
+    virtual void start_file(FileId file_id, int8 priority, ActorShared<DownloadManager> download_manager) = 0;
     virtual void pause_file(FileId file_id) = 0;
     virtual void delete_file(FileId file_id) = 0;
     virtual FileId dup_file_id(FileId file_id) = 0;
@@ -61,14 +58,11 @@ class DownloadManager : public Actor {
                                                                               bool is_paused) = 0;
   };
 
+  static unique_ptr<DownloadManager> create(unique_ptr<Callback> callback);
+
   //
   // public interface for user
   //
-
-  // sets callback to handle all updates
-  virtual void set_callback(unique_ptr<Callback> callback) = 0;
-
-  // files are always added in is_paused = false state
   virtual Status add_file(FileId file_id, FileSourceId file_source_id, string search_text, int8 priority) = 0;
   virtual Status change_search_text(FileId file_id, FileSourceId file_source_id, string search_text) = 0;
   virtual Status toggle_is_paused(FileId file_id, bool is_paused) = 0;
