@@ -172,6 +172,7 @@ class DownloadManagerImpl final : public DownloadManager {
 
   void search(string query, bool only_active, bool only_completed, string offset, int32 limit,
               Promise<td_api::object_ptr<td_api::foundFileDownloads>> promise) final {
+    clear_counters();
     return do_search(std::move(query), only_active, only_completed, std::move(offset), limit, std::move(promise),
                      Unit{});
   }
@@ -364,7 +365,12 @@ class DownloadManagerImpl final : public DownloadManager {
     auto serialized_counter = G()->td_db()->get_binlog_pmc()->get("dlds_counter");
     if (!serialized_counter.empty()) {
       log_event_parse(sent_counters_, serialized_counter).ensure();
-      callback_->update_counters(sent_counters_);
+      if (sent_counters_.downloaded_size == sent_counters_.total_size || sent_counters_.total_size == 0) {
+        G()->td_db()->get_binlog_pmc()->erase("dlds_counter");
+        sent_counters_ = Counters();
+      } else {
+        callback_->update_counters(sent_counters_);
+      }
     }
 
     auto downloads_in_kv = G()->td_db()->get_binlog_pmc()->prefix_get("dlds#");
@@ -468,6 +474,27 @@ class DownloadManagerImpl final : public DownloadManager {
     try_start();
   }
 
+  void timeout_expired() final {
+    clear_counters();
+  }
+
+  void clear_counters() {
+    CHECK(counters_ == sent_counters_);
+    if (counters_.downloaded_size != counters_.total_size || counters_.total_size == 0) {
+      return;
+    }
+
+    for (auto &it : files_) {
+      with_file_info(*it.second, [&](auto &file_info) {
+        if (!file_info.is_paused) {
+          file_info.is_counted = false;
+        }
+      });
+    }
+    counters_ = Counters();
+    update_counters();
+  }
+
   void tear_down() final {
     callback_.reset();
   }
@@ -496,6 +523,12 @@ class DownloadManagerImpl final : public DownloadManager {
     }
     if (counters_ == sent_counters_) {
       return;
+    }
+    CHECK(counters_.total_size >= 0);
+    CHECK(counters_.total_count >= 0);
+    CHECK(counters_.downloaded_size >= 0);
+    if (counters_.downloaded_size == counters_.total_size && counters_.total_size != 0) {
+      set_timeout_in(60.0);
     }
     sent_counters_ = counters_;
     callback_->update_counters(counters_);
