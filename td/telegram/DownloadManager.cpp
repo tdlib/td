@@ -27,6 +27,7 @@
 #include <algorithm>
 #include <functional>
 #include <limits>
+#include <set>
 
 namespace td {
 
@@ -93,6 +94,7 @@ class DownloadManagerImpl final : public DownloadManager {
   }
 
   Status remove_file(FileId file_id, FileSourceId file_source_id, bool delete_from_cache) final {
+    LOG(INFO) << "Remove from downloads file " << file_id << " from " << file_source_id;
     TRY_STATUS(check_is_active());
     TRY_RESULT(file_info_ptr, get_file_info(file_id, file_source_id));
     auto &file_info = *file_info_ptr;
@@ -106,6 +108,7 @@ class DownloadManagerImpl final : public DownloadManager {
     by_internal_file_id_.erase(file_info.internal_file_id);
     by_file_id_.erase(file_info.file_id);
     hints_.remove(file_info.download_id);
+    completed_download_ids_.erase(file_info.download_id);
 
     remove_from_db(file_info);
     files_.erase(file_info.download_id);
@@ -310,6 +313,7 @@ class DownloadManagerImpl final : public DownloadManager {
   FlatHashMap<FileId, int64, FileIdHash> by_file_id_;
   FlatHashMap<FileId, int64, FileIdHash> by_internal_file_id_;
   FlatHashMap<int64, unique_ptr<FileInfo>> files_;
+  std::set<int64> completed_download_ids_;
   Hints hints_;
 
   Counters counters_;
@@ -361,6 +365,7 @@ class DownloadManagerImpl final : public DownloadManager {
     to_save.file_id = file_info.file_id;
     G()->td_db()->get_binlog_pmc()->set(pmc_key(file_info), log_event_store(to_save).as_slice().str());
   }
+
   static void remove_from_db(const FileInfo &file_info) {
     G()->td_db()->get_binlog_pmc()->erase(pmc_key(file_info));
   }
@@ -399,6 +404,7 @@ class DownloadManagerImpl final : public DownloadManager {
 
     is_started_ = true;
     update_counters();
+    check_completed_downloads_size();
   }
 
   void add_file_from_db(FileDownloadInDb in_db) {
@@ -475,11 +481,16 @@ class DownloadManagerImpl final : public DownloadManager {
               << " with downloaded_size = " << file_info->downloaded_size
               << " and is_paused = " << file_info->is_paused;
     auto it = files_.emplace(download_id, std::move(file_info)).first;
-    register_file_info(*it->second);
-    if (!is_completed(*it->second) && !it->second->is_paused) {
-      callback_->start_file(it->second->internal_file_id, it->second->priority,
-                            actor_shared(this, it->second->link_token));
+    if (is_completed(*it->second)) {
+      bool is_inserted = completed_download_ids_.insert(it->second->download_id).second;
+      CHECK(is_inserted);
+    } else {
+      if (!it->second->is_paused) {
+        callback_->start_file(it->second->internal_file_id, it->second->priority,
+                              actor_shared(this, it->second->link_token));
+      }
     }
+    register_file_info(*it->second);
   }
 
   void loop() final {
@@ -542,7 +553,8 @@ class DownloadManagerImpl final : public DownloadManager {
     CHECK(counters_.downloaded_size >= 0);
     if ((counters_.downloaded_size == counters_.total_size && counters_.total_size != 0) || counters_ == Counters()) {
       if (counters_.total_size != 0) {
-        set_timeout_in(60.0);
+        constexpr double EMPTY_UPDATE_DELAY = 60.0;
+        set_timeout_in(EMPTY_UPDATE_DELAY);
       }
       G()->td_db()->get_binlog_pmc()->erase("dlds_counter");
     } else {
@@ -594,6 +606,9 @@ class DownloadManagerImpl final : public DownloadManager {
       file_info.is_paused = false;
       file_info.completed_at = G()->unix_time();
       file_info.need_save_to_db = true;
+
+      bool is_inserted = completed_download_ids_.insert(file_info.download_id).second;
+      CHECK(is_inserted);
     }
     if (file_info.is_counted && !file_info.is_paused) {
       counters_.downloaded_size += file_info.downloaded_size;
@@ -602,6 +617,17 @@ class DownloadManagerImpl final : public DownloadManager {
     }
     sync_with_db(file_info);
     update_counters();
+
+    check_completed_downloads_size();
+  }
+
+  void check_completed_downloads_size() {
+    constexpr size_t MAX_COMPLETED_DOWNLOADS = 200;
+    while (completed_download_ids_.size() > MAX_COMPLETED_DOWNLOADS) {
+      auto download_id = *completed_download_ids_.begin();
+      auto file_info = get_file_info(download_id).move_as_ok();
+      remove_file(file_info->file_id, FileSourceId(), false);
+    }
   }
 
   template <class F>
