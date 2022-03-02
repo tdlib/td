@@ -246,9 +246,10 @@ class DownloadManagerImpl final : public DownloadManager {
         td_api::make_object<td_api::foundFileDownloads>(total_count, std::move(file_downloads), next_offset));
   }
 
-  void update_file_download_state(FileId internal_file_id, int64 download_size, int64 size, bool is_paused) final {
-    LOG(INFO) << "Update file download state for file " << internal_file_id << " of size " << size
-              << " to download_size = " << download_size << " and is_paused = " << is_paused;
+  void update_file_download_state(FileId internal_file_id, int64 download_size, int64 size, int64 expected_size,
+                                  bool is_paused) final {
+    LOG(INFO) << "Update file download state for file " << internal_file_id << " of size " << size << '/'
+              << expected_size << " to download_size = " << download_size << " and is_paused = " << is_paused;
     if (!callback_) {
       return;
     }
@@ -264,6 +265,7 @@ class DownloadManagerImpl final : public DownloadManager {
 
     with_file_info(file_info, [&](FileInfo &file_info) {
       file_info.size = size;
+      file_info.expected_size = expected_size;
       file_info.downloaded_size = download_size;
       if (is_paused && file_info.is_paused != is_paused) {
         file_info.is_paused = is_paused;
@@ -297,6 +299,7 @@ class DownloadManagerImpl final : public DownloadManager {
     bool is_counted{};
     mutable bool need_save_to_db{};
     int64 size{};
+    int64 expected_size{};
     int64 downloaded_size{};
     int32 created_at{};
     int32 completed_at{};
@@ -322,6 +325,10 @@ class DownloadManagerImpl final : public DownloadManager {
 
   static bool is_completed(const FileInfo &file_info) {
     return file_info.completed_at != 0;
+  }
+
+  static bool get_file_size(const FileInfo &file_info) {
+    return file_info.size == 0 ? max(file_info.downloaded_size + 1, file_info.expected_size) : file_info.size;
   }
 
   static string pmc_key(const FileInfo &file_info) {
@@ -434,7 +441,8 @@ class DownloadManagerImpl final : public DownloadManager {
     file_info->internal_file_id = callback_->dup_file_id(file_info->file_id);
     auto file_view = callback_->get_file_view(file_info->file_id);
     CHECK(!file_view.empty());
-    file_info->size = file_view.expected_size();
+    file_info->size = file_view.size();
+    file_info->expected_size = file_view.expected_size();
     file_info->downloaded_size = file_view.local_total_size();
     file_info->is_counted = !is_completed(*file_info);
 
@@ -523,7 +531,7 @@ class DownloadManagerImpl final : public DownloadManager {
   void unregister_file_info(const FileInfo &file_info) {
     if (file_info.is_counted && !file_info.is_paused) {
       counters_.downloaded_size -= file_info.downloaded_size;
-      counters_.total_size -= max(file_info.downloaded_size, file_info.size);
+      counters_.total_size -= get_file_size(file_info);
       counters_.total_count--;
     }
   }
@@ -531,10 +539,11 @@ class DownloadManagerImpl final : public DownloadManager {
   void register_file_info(FileInfo &file_info) {
     if (file_info.is_counted && !file_info.is_paused) {
       counters_.downloaded_size += file_info.downloaded_size;
-      counters_.total_size += max(file_info.downloaded_size, file_info.size);
+      counters_.total_size += get_file_size(file_info);
       counters_.total_count++;
     }
     if (!is_completed(file_info) && file_info.size != 0 && file_info.downloaded_size == file_info.size) {
+      file_info.is_paused = false;
       file_info.completed_at = G()->unix_time();
       file_info.need_save_to_db = true;
     }

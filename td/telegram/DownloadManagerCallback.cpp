@@ -83,7 +83,7 @@ std::shared_ptr<FileManager::DownloadCallback> DownloadManagerCallback::make_dow
       auto td = G()->td().get_actor_unsafe();
       auto file_view = td->file_manager_->get_file_view(file_id);
       send_closure(download_manager_, &DownloadManager::update_file_download_state, file_id,
-                   file_view.local_total_size(), file_view.size(), is_paused);
+                   file_view.local_total_size(), file_view.size(), file_view.expected_size(), is_paused);
       // TODO: handle deleted state?
     }
   };
