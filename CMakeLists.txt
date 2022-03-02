@@ -314,6 +314,7 @@ set(TDLIB_SOURCE
   td/telegram/Document.cpp
   td/telegram/DocumentsManager.cpp
   td/telegram/DownloadManager.cpp
+  td/telegram/DownloadManagerCallback.cpp
   td/telegram/DraftMessage.cpp
   td/telegram/FileReferenceManager.cpp
   td/telegram/files/FileBitmask.cpp
