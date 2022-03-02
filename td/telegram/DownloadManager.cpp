@@ -126,10 +126,10 @@ class DownloadManagerImpl final : public DownloadManager {
     vector<FileId> to_remove;
     for (auto &it : files_) {
       FileInfo &file_info = *it.second;
-      if (only_active && !is_active(file_info)) {
+      if (only_active && is_completed(file_info)) {
         continue;
       }
-      if (only_completed && is_active(file_info)) {
+      if (only_completed && !is_completed(file_info)) {
         continue;
       }
       to_remove.push_back(file_info.file_id);
@@ -214,10 +214,10 @@ class DownloadManagerImpl final : public DownloadManager {
       auto r = get_file_info(download_id);
       CHECK(r.is_ok());
       auto &file_info = *r.ok();
-      if (only_active && !is_active(file_info)) {
+      if (only_active && is_completed(file_info)) {
         return true;
       }
-      if (only_completed && is_active(file_info)) {
+      if (only_completed && !is_completed(file_info)) {
         return true;
       }
       total_count++;
@@ -305,7 +305,6 @@ class DownloadManagerImpl final : public DownloadManager {
   FlatHashMap<FileId, int64, FileIdHash> by_file_id_;
   FlatHashMap<FileId, int64, FileIdHash> by_internal_file_id_;
   FlatHashMap<int64, unique_ptr<FileInfo>> files_;
-  // size_t active_file_count_{};
   Hints hints_;
 
   Counters counters_;
@@ -320,8 +319,8 @@ class DownloadManagerImpl final : public DownloadManager {
     return ++max_download_id_;
   }
 
-  static bool is_active(const FileInfo &file_info) {
-    return file_info.size == 0 || file_info.downloaded_size != file_info.size;
+  static bool is_completed(const FileInfo &file_info) {
+    return file_info.completed_at != 0;
   }
 
   static string pmc_key(const FileInfo &file_info) {
@@ -446,7 +445,7 @@ class DownloadManagerImpl final : public DownloadManager {
               << " with is_paused = " << file_info->is_paused;
     auto it = files_.emplace(download_id, std::move(file_info)).first;
     register_file_info(*it->second);
-    if (it->second->completed_at == 0 && !it->second->is_paused) {
+    if (!is_completed(*it->second) && !it->second->is_paused) {
       callback_->start_file(it->second->internal_file_id, it->second->priority,
                             actor_shared(this, it->second->link_token));
     }
@@ -464,7 +463,7 @@ class DownloadManagerImpl final : public DownloadManager {
   }
 
   void toggle_is_paused(const FileInfo &file_info, bool is_paused) {
-    if (!is_active(file_info) || is_paused == file_info.is_paused) {
+    if (is_completed(file_info) || is_paused == file_info.is_paused) {
       return;
     }
     LOG(INFO) << "Change is_paused state of file " << file_info.file_id << " to " << is_paused;
@@ -520,18 +519,16 @@ class DownloadManagerImpl final : public DownloadManager {
   }
 
   void unregister_file_info(const FileInfo &file_info) {
-    // active_file_count_ -= is_active(file_info);
     counters_.downloaded_size -= file_info.downloaded_size;
     counters_.total_size -= max(file_info.downloaded_size, file_info.size);
     counters_.total_count--;
   }
 
   void register_file_info(FileInfo &file_info) {
-    // active_file_count_ += is_active(file_info);
     counters_.downloaded_size += file_info.downloaded_size;
     counters_.total_size += max(file_info.downloaded_size, file_info.size);
     counters_.total_count++;
-    if (!is_active(file_info) && file_info.completed_at == 0) {
+    if (!is_completed(file_info) && file_info.size != 0 && file_info.downloaded_size == file_info.size) {
       file_info.completed_at = G()->unix_time();
       file_info.need_save_to_db = true;
     }
