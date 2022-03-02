@@ -247,10 +247,10 @@ class DownloadManagerImpl final : public DownloadManager {
         td_api::make_object<td_api::foundFileDownloads>(total_count, std::move(file_downloads), next_offset));
   }
 
-  void update_file_download_state(FileId internal_file_id, int64 download_size, int64 size, int64 expected_size,
+  void update_file_download_state(FileId internal_file_id, int64 downloaded_size, int64 size, int64 expected_size,
                                   bool is_paused) final {
     LOG(INFO) << "Update file download state for file " << internal_file_id << " of size " << size << '/'
-              << expected_size << " to download_size = " << download_size << " and is_paused = " << is_paused;
+              << expected_size << " to downloaded_size = " << downloaded_size << " and is_paused = " << is_paused;
     if (!callback_) {
       return;
     }
@@ -267,7 +267,7 @@ class DownloadManagerImpl final : public DownloadManager {
     with_file_info(file_info, [&](FileInfo &file_info) {
       file_info.size = size;
       file_info.expected_size = expected_size;
-      file_info.downloaded_size = download_size;
+      file_info.downloaded_size = downloaded_size;
       if (is_paused && file_info.is_paused != is_paused) {
         file_info.is_paused = is_paused;
         file_info.need_save_to_db = true;
@@ -328,7 +328,7 @@ class DownloadManagerImpl final : public DownloadManager {
     return file_info.completed_at != 0;
   }
 
-  static bool get_file_size(const FileInfo &file_info) {
+  static int64 get_file_size(const FileInfo &file_info) {
     return file_info.size == 0 ? max(file_info.downloaded_size + 1, file_info.expected_size) : file_info.size;
   }
 
@@ -470,8 +470,10 @@ class DownloadManagerImpl final : public DownloadManager {
     hints_.add(download_id, search_text.empty() ? string(" ") : search_text);
     file_info->link_token = ++last_link_token_;
 
-    LOG(INFO) << "Adding to downloads file " << file_info->file_id << '/' << file_info->internal_file_id
-              << " with is_paused = " << file_info->is_paused;
+    LOG(INFO) << "Adding to downloads file " << file_info->file_id << '/' << file_info->internal_file_id << " of size "
+              << file_info->size << '/' << file_info->expected_size
+              << " with downloaded_size = " << file_info->downloaded_size
+              << " and is_paused = " << file_info->is_paused;
     auto it = files_.emplace(download_id, std::move(file_info)).first;
     register_file_info(*it->second);
     if (!is_completed(*it->second) && !it->second->is_paused) {

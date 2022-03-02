@@ -75,8 +75,8 @@ class DownloadManager : public Actor {
   //
   // private interface to handle all kinds of updates
   //
-  virtual void update_file_download_state(FileId internal_file_id, int64 download_size, int64 size, int64 expected_size,
-                                          bool is_paused) = 0;
+  virtual void update_file_download_state(FileId internal_file_id, int64 downloaded_size, int64 size,
+                                          int64 expected_size, bool is_paused) = 0;
   virtual void update_file_deleted(FileId internal_file_id) = 0;
 };
 
