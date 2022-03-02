@@ -332,6 +332,10 @@ class DownloadManagerImpl final : public DownloadManager {
     return file_info.size == 0 ? max(file_info.downloaded_size + 1, file_info.expected_size) : file_info.size;
   }
 
+  static bool is_database_enabled() {
+    return G()->parameters().use_message_db;
+  }
+
   static string pmc_key(const FileInfo &file_info) {
     return PSTRING() << "dlds#" << file_info.download_id;
   }
@@ -340,6 +344,10 @@ class DownloadManagerImpl final : public DownloadManager {
       return;
     }
     file_info.need_save_to_db = false;
+
+    if (!is_database_enabled()) {
+      return;
+    }
 
     LOG(INFO) << "Saving to download database file " << file_info.file_id << '/' << file_info.internal_file_id
               << " with is_paused = " << file_info.is_paused;
@@ -362,26 +370,31 @@ class DownloadManagerImpl final : public DownloadManager {
       return;
     }
 
-    auto serialized_counter = G()->td_db()->get_binlog_pmc()->get("dlds_counter");
-    if (!serialized_counter.empty()) {
-      log_event_parse(sent_counters_, serialized_counter).ensure();
-      if (sent_counters_.downloaded_size == sent_counters_.total_size || sent_counters_.total_size == 0) {
-        G()->td_db()->get_binlog_pmc()->erase("dlds_counter");
-        sent_counters_ = Counters();
-      } else {
-        callback_->update_counters(sent_counters_);
+    if (is_database_enabled()) {
+      auto serialized_counter = G()->td_db()->get_binlog_pmc()->get("dlds_counter");
+      if (!serialized_counter.empty()) {
+        log_event_parse(sent_counters_, serialized_counter).ensure();
+        if (sent_counters_.downloaded_size == sent_counters_.total_size || sent_counters_.total_size == 0) {
+          G()->td_db()->get_binlog_pmc()->erase("dlds_counter");
+          sent_counters_ = Counters();
+        } else {
+          callback_->update_counters(sent_counters_);
+        }
       }
-    }
 
-    auto downloads_in_kv = G()->td_db()->get_binlog_pmc()->prefix_get("dlds#");
-    for (auto &it : downloads_in_kv) {
-      Slice key = it.first;
-      Slice value = it.second;
-      FileDownloadInDb in_db;
-      log_event_parse(in_db, value).ensure();
-      CHECK(in_db.download_id == to_integer_safe<int64>(key).ok());
-      max_download_id_ = max(in_db.download_id, max_download_id_);
-      add_file_from_db(in_db);
+      auto downloads_in_kv = G()->td_db()->get_binlog_pmc()->prefix_get("dlds#");
+      for (auto &it : downloads_in_kv) {
+        Slice key = it.first;
+        Slice value = it.second;
+        FileDownloadInDb in_db;
+        log_event_parse(in_db, value).ensure();
+        CHECK(in_db.download_id == to_integer_safe<int64>(key).ok());
+        max_download_id_ = max(in_db.download_id, max_download_id_);
+        add_file_from_db(in_db);
+      }
+    } else {
+      G()->td_db()->get_binlog_pmc()->erase("dlds_counter");
+      G()->td_db()->get_binlog_pmc()->erase_by_prefix("dlds#");
     }
 
     is_started_ = true;
@@ -531,6 +544,12 @@ class DownloadManagerImpl final : public DownloadManager {
       set_timeout_in(60.0);
     }
     sent_counters_ = counters_;
+    if (counters_ == Counters()) {
+      G()->td_db()->get_binlog_pmc()->erase("dlds_counter");
+    } else {
+      G()->td_db()->get_binlog_pmc()->set("dlds_counter", log_event_store(counters_).as_slice().str());
+    }
+
     callback_->update_counters(counters_);
   }
 

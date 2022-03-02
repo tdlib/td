@@ -355,6 +355,8 @@ Status TdDb::init_sqlite(int32 scheduler_id, const TdParameters &parameters, con
     binlog_pmc.erase_by_prefix("unread_dialog_count");
     binlog_pmc.erase("sponsored_dialog_id");
     binlog_pmc.erase_by_prefix("top_dialogs");
+    binlog_pmc.erase("dlds_counter");
+    binlog_pmc.erase_by_prefix("dlds#");
   }
   if (user_version == 0) {
     binlog_pmc.erase("next_contacts_sync_date");
