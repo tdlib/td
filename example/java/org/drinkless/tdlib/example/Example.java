@@ -94,8 +94,8 @@ public final class Example {
     }
 
     private static void setChatPositions(TdApi.Chat chat, TdApi.ChatPosition[] positions) {
-        synchronized(mainChatList) {
-            synchronized(chat) {
+        synchronized (mainChatList) {
+            synchronized (chat) {
                 for (TdApi.ChatPosition position : chat.positions) {
                     if (position.list.getConstructor() == TdApi.ChatListMain.CONSTRUCTOR) {
                         boolean isRemoved = mainChatList.remove(new OrderedChat(chat.id, position));
@@ -329,7 +329,7 @@ public final class Example {
     }
 
     private static void getMainChatList(final int limit) {
-        synchronized(mainChatList) {
+        synchronized (mainChatList) {
             if (!haveFullMainChatList && limit > mainChatList.size()) {
                 // send LoadChats request if there are some unknown chats and have not enough known chats
                 client.send(new TdApi.LoadChats(new TdApi.ChatListMain(), limit - mainChatList.size()), new Client.ResultHandler() {
@@ -338,7 +338,7 @@ public final class Example {
                         switch (object.getConstructor()) {
                             case TdApi.Error.CONSTRUCTOR:
                                 if (((TdApi.Error) object).code == 404) {
-                                    synchronized(mainChatList) {
+                                    synchronized (mainChatList) {
                                         haveFullMainChatList = true;
                                     }
                                 } else {
@@ -363,7 +363,7 @@ public final class Example {
             for (int i = 0; i < limit && i < mainChatList.size(); i++) {
                 long chatId = iter.next().chatId;
                 TdApi.Chat chat = chats.get(chatId);
-                synchronized(chat) {
+                synchronized (chat) {
                     System.out.println(chatId + ": " + chat.title);
                 }
             }
@@ -373,16 +373,8 @@ public final class Example {
 
     private static void sendMessage(long chatId, String message) {
         // initialize reply markup just for testing
-        TdApi.InlineKeyboardButton[] row = {
-            new TdApi.InlineKeyboardButton("https://telegram.org?1", new TdApi.InlineKeyboardButtonTypeUrl()),
-            new TdApi.InlineKeyboardButton("https://telegram.org?2", new TdApi.InlineKeyboardButtonTypeUrl()),
-            new TdApi.InlineKeyboardButton("https://telegram.org?3", new TdApi.InlineKeyboardButtonTypeUrl())
-        };
-        TdApi.ReplyMarkup replyMarkup = new TdApi.ReplyMarkupInlineKeyboard(new TdApi.InlineKeyboardButton[][]{
-            row,
-            row,
-            row
-        });
+        TdApi.InlineKeyboardButton[] row = {new TdApi.InlineKeyboardButton("https://telegram.org?1", new TdApi.InlineKeyboardButtonTypeUrl()), new TdApi.InlineKeyboardButton("https://telegram.org?2", new TdApi.InlineKeyboardButtonTypeUrl()), new TdApi.InlineKeyboardButton("https://telegram.org?3", new TdApi.InlineKeyboardButtonTypeUrl())};
+        TdApi.ReplyMarkup replyMarkup = new TdApi.ReplyMarkupInlineKeyboard(new TdApi.InlineKeyboardButton[][]{row, row, row});
 
         TdApi.InputMessageContent content = new TdApi.InputMessageText(new TdApi.FormattedText(message, null), false, true);
         client.send(new TdApi.SendMessage(chatId, 0, 0, null, replyMarkup, content), defaultHandler);
@@ -423,7 +415,6 @@ public final class Example {
     }
 
     private static class OrderedChat implements Comparable<OrderedChat> {
-
         final long chatId;
         final TdApi.ChatPosition position;
 
@@ -451,7 +442,6 @@ public final class Example {
     }
 
     private static class DefaultHandler implements Client.ResultHandler {
-
         @Override
         public void onResult(TdApi.Object object) {
             print(object.toString());
@@ -459,7 +449,6 @@ public final class Example {
     }
 
     private static class UpdateHandler implements Client.ResultHandler {
-
         @Override
         public void onResult(TdApi.Object object) {
             switch (object.getConstructor()) {
@@ -471,10 +460,10 @@ public final class Example {
                     TdApi.UpdateUser updateUser = (TdApi.UpdateUser) object;
                     users.put(updateUser.user.id, updateUser.user);
                     break;
-                case TdApi.UpdateUserStatus.CONSTRUCTOR: {
+                case TdApi.UpdateUserStatus.CONSTRUCTOR:  {
                     TdApi.UpdateUserStatus updateUserStatus = (TdApi.UpdateUserStatus) object;
                     TdApi.User user = users.get(updateUserStatus.userId);
-                    synchronized(user) {
+                    synchronized (user) {
                         user.status = updateUserStatus.status;
                     }
                     break;
@@ -495,7 +484,7 @@ public final class Example {
                 case TdApi.UpdateNewChat.CONSTRUCTOR: {
                     TdApi.UpdateNewChat updateNewChat = (TdApi.UpdateNewChat) object;
                     TdApi.Chat chat = updateNewChat.chat;
-                    synchronized(chat) {
+                    synchronized (chat) {
                         chats.put(chat.id, chat);
 
                         TdApi.ChatPosition[] positions = chat.positions;
@@ -507,7 +496,7 @@ public final class Example {
                 case TdApi.UpdateChatTitle.CONSTRUCTOR: {
                     TdApi.UpdateChatTitle updateChat = (TdApi.UpdateChatTitle) object;
                     TdApi.Chat chat = chats.get(updateChat.chatId);
-                    synchronized(chat) {
+                    synchronized (chat) {
                         chat.title = updateChat.title;
                     }
                     break;
@@ -515,7 +504,7 @@ public final class Example {
                 case TdApi.UpdateChatPhoto.CONSTRUCTOR: {
                     TdApi.UpdateChatPhoto updateChat = (TdApi.UpdateChatPhoto) object;
                     TdApi.Chat chat = chats.get(updateChat.chatId);
-                    synchronized(chat) {
+                    synchronized (chat) {
                         chat.photo = updateChat.photo;
                     }
                     break;
@@ -523,7 +512,7 @@ public final class Example {
                 case TdApi.UpdateChatLastMessage.CONSTRUCTOR: {
                     TdApi.UpdateChatLastMessage updateChat = (TdApi.UpdateChatLastMessage) object;
                     TdApi.Chat chat = chats.get(updateChat.chatId);
-                    synchronized(chat) {
+                    synchronized (chat) {
                         chat.lastMessage = updateChat.lastMessage;
                         setChatPositions(chat, updateChat.positions);
                     }
@@ -532,25 +521,21 @@ public final class Example {
                 case TdApi.UpdateChatPosition.CONSTRUCTOR: {
                     TdApi.UpdateChatPosition updateChat = (TdApi.UpdateChatPosition) object;
                     if (updateChat.position.list.getConstructor() != TdApi.ChatListMain.CONSTRUCTOR) {
-                        break;
+                      break;
                     }
 
                     TdApi.Chat chat = chats.get(updateChat.chatId);
-                    synchronized(chat) {
+                    synchronized (chat) {
                         int i;
                         for (i = 0; i < chat.positions.length; i++) {
                             if (chat.positions[i].list.getConstructor() == TdApi.ChatListMain.CONSTRUCTOR) {
                                 break;
                             }
                         }
-                        TdApi.ChatPosition[] new_positions = new TdApi.ChatPosition[chat.positions.length + (updateChat.position.order == 0
-                                                                                                             ? 0
-                                                                                                             : 1) - (i < chat.positions.length
-                                                                                                                     ? 1
-                                                                                                                     : 0)];
+                        TdApi.ChatPosition[] new_positions = new TdApi.ChatPosition[chat.positions.length + (updateChat.position.order == 0 ? 0 : 1) - (i < chat.positions.length ? 1 : 0)];
                         int pos = 0;
                         if (updateChat.position.order != 0) {
-                            new_positions[pos++] = updateChat.position;
+                          new_positions[pos++] = updateChat.position;
                         }
                         for (int j = 0; j < chat.positions.length; j++) {
                             if (j != i) {
@@ -566,7 +551,7 @@ public final class Example {
                 case TdApi.UpdateChatReadInbox.CONSTRUCTOR: {
                     TdApi.UpdateChatReadInbox updateChat = (TdApi.UpdateChatReadInbox) object;
                     TdApi.Chat chat = chats.get(updateChat.chatId);
-                    synchronized(chat) {
+                    synchronized (chat) {
                         chat.lastReadInboxMessageId = updateChat.lastReadInboxMessageId;
                         chat.unreadCount = updateChat.unreadCount;
                     }
@@ -575,7 +560,7 @@ public final class Example {
                 case TdApi.UpdateChatReadOutbox.CONSTRUCTOR: {
                     TdApi.UpdateChatReadOutbox updateChat = (TdApi.UpdateChatReadOutbox) object;
                     TdApi.Chat chat = chats.get(updateChat.chatId);
-                    synchronized(chat) {
+                    synchronized (chat) {
                         chat.lastReadOutboxMessageId = updateChat.lastReadOutboxMessageId;
                     }
                     break;
@@ -583,7 +568,7 @@ public final class Example {
                 case TdApi.UpdateChatUnreadMentionCount.CONSTRUCTOR: {
                     TdApi.UpdateChatUnreadMentionCount updateChat = (TdApi.UpdateChatUnreadMentionCount) object;
                     TdApi.Chat chat = chats.get(updateChat.chatId);
-                    synchronized(chat) {
+                    synchronized (chat) {
                         chat.unreadMentionCount = updateChat.unreadMentionCount;
                     }
                     break;
@@ -591,7 +576,7 @@ public final class Example {
                 case TdApi.UpdateMessageMentionRead.CONSTRUCTOR: {
                     TdApi.UpdateMessageMentionRead updateChat = (TdApi.UpdateMessageMentionRead) object;
                     TdApi.Chat chat = chats.get(updateChat.chatId);
-                    synchronized(chat) {
+                    synchronized (chat) {
                         chat.unreadMentionCount = updateChat.unreadMentionCount;
                     }
                     break;
@@ -599,7 +584,7 @@ public final class Example {
                 case TdApi.UpdateChatReplyMarkup.CONSTRUCTOR: {
                     TdApi.UpdateChatReplyMarkup updateChat = (TdApi.UpdateChatReplyMarkup) object;
                     TdApi.Chat chat = chats.get(updateChat.chatId);
-                    synchronized(chat) {
+                    synchronized (chat) {
                         chat.replyMarkupMessageId = updateChat.replyMarkupMessageId;
                     }
                     break;
@@ -607,7 +592,7 @@ public final class Example {
                 case TdApi.UpdateChatDraftMessage.CONSTRUCTOR: {
                     TdApi.UpdateChatDraftMessage updateChat = (TdApi.UpdateChatDraftMessage) object;
                     TdApi.Chat chat = chats.get(updateChat.chatId);
-                    synchronized(chat) {
+                    synchronized (chat) {
                         chat.draftMessage = updateChat.draftMessage;
                         setChatPositions(chat, updateChat.positions);
                     }
@@ -616,7 +601,7 @@ public final class Example {
                 case TdApi.UpdateChatPermissions.CONSTRUCTOR: {
                     TdApi.UpdateChatPermissions update = (TdApi.UpdateChatPermissions) object;
                     TdApi.Chat chat = chats.get(update.chatId);
-                    synchronized(chat) {
+                    synchronized (chat) {
                         chat.permissions = update.permissions;
                     }
                     break;
@@ -624,7 +609,7 @@ public final class Example {
                 case TdApi.UpdateChatNotificationSettings.CONSTRUCTOR: {
                     TdApi.UpdateChatNotificationSettings update = (TdApi.UpdateChatNotificationSettings) object;
                     TdApi.Chat chat = chats.get(update.chatId);
-                    synchronized(chat) {
+                    synchronized (chat) {
                         chat.notificationSettings = update.notificationSettings;
                     }
                     break;
@@ -632,7 +617,7 @@ public final class Example {
                 case TdApi.UpdateChatDefaultDisableNotification.CONSTRUCTOR: {
                     TdApi.UpdateChatDefaultDisableNotification update = (TdApi.UpdateChatDefaultDisableNotification) object;
                     TdApi.Chat chat = chats.get(update.chatId);
-                    synchronized(chat) {
+                    synchronized (chat) {
                         chat.defaultDisableNotification = update.defaultDisableNotification;
                     }
                     break;
@@ -640,7 +625,7 @@ public final class Example {
                 case TdApi.UpdateChatIsMarkedAsUnread.CONSTRUCTOR: {
                     TdApi.UpdateChatIsMarkedAsUnread update = (TdApi.UpdateChatIsMarkedAsUnread) object;
                     TdApi.Chat chat = chats.get(update.chatId);
-                    synchronized(chat) {
+                    synchronized (chat) {
                         chat.isMarkedAsUnread = update.isMarkedAsUnread;
                     }
                     break;
@@ -648,7 +633,7 @@ public final class Example {
                 case TdApi.UpdateChatIsBlocked.CONSTRUCTOR: {
                     TdApi.UpdateChatIsBlocked update = (TdApi.UpdateChatIsBlocked) object;
                     TdApi.Chat chat = chats.get(update.chatId);
-                    synchronized(chat) {
+                    synchronized (chat) {
                         chat.isBlocked = update.isBlocked;
                     }
                     break;
@@ -656,7 +641,7 @@ public final class Example {
                 case TdApi.UpdateChatHasScheduledMessages.CONSTRUCTOR: {
                     TdApi.UpdateChatHasScheduledMessages update = (TdApi.UpdateChatHasScheduledMessages) object;
                     TdApi.Chat chat = chats.get(update.chatId);
-                    synchronized(chat) {
+                    synchronized (chat) {
                         chat.hasScheduledMessages = update.hasScheduledMessages;
                     }
                     break;
@@ -681,7 +666,6 @@ public final class Example {
     }
 
     private static class AuthorizationRequestHandler implements Client.ResultHandler {
-
         @Override
         public void onResult(TdApi.Object object) {
             switch (object.getConstructor()) {
