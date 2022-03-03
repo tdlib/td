@@ -73,7 +73,7 @@ class DownloadManagerImpl final : public DownloadManager {
   }
 
   void start_up() final {
-    try_start();
+    init();
   }
 
   Status toggle_is_paused(FileId file_id, bool is_paused) final {
@@ -347,7 +347,7 @@ class DownloadManagerImpl final : public DownloadManager {
 
   Counters counters_;
   Counters sent_counters_;
-  bool is_started_{false};
+  bool is_inited_{false};
   bool is_search_inited_{false};
   int64 max_download_id_{0};
   uint64 last_link_token_{0};
@@ -399,8 +399,8 @@ class DownloadManagerImpl final : public DownloadManager {
     G()->td_db()->get_binlog_pmc()->erase(pmc_key(file_info));
   }
 
-  void try_start() {
-    if (is_started_) {
+  void init() {
+    if (is_inited_) {
       return;
     }
 
@@ -431,7 +431,7 @@ class DownloadManagerImpl final : public DownloadManager {
       G()->td_db()->get_binlog_pmc()->erase_by_prefix("dlds#");
     }
 
-    is_started_ = true;
+    is_inited_ = true;
     update_counters();
     check_completed_downloads_size();
   }
@@ -523,19 +523,12 @@ class DownloadManagerImpl final : public DownloadManager {
     }
   }
 
-  void loop() final {
-    if (!callback_) {
-      return;
-    }
-    try_start();
-  }
-
   void timeout_expired() final {
     clear_counters();
   }
 
   void clear_counters() {
-    if (!is_started_) {
+    if (!is_inited_) {
       return;
     }
     CHECK(counters_ == sent_counters_);
@@ -575,7 +568,7 @@ class DownloadManagerImpl final : public DownloadManager {
   }
 
   void update_counters() {
-    if (!is_started_) {
+    if (!is_inited_) {
       return;
     }
     if (counters_ == sent_counters_) {
@@ -690,10 +683,10 @@ class DownloadManagerImpl final : public DownloadManager {
 
   Status check_is_active() const {
     if (!callback_) {
-      LOG(ERROR) << "DownloadManager wasn't initialized";
-      return Status::Error(500, "DownloadManager isn't initialized");
+      LOG(ERROR) << "DownloadManager is closed";
+      return Status::Error(500, "DownloadManager is closed");
     }
-    CHECK(is_started_);
+    CHECK(is_inited_);
     return Status::OK();
   }
 };
