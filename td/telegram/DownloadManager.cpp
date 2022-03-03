@@ -115,6 +115,7 @@ class DownloadManagerImpl final : public DownloadManager {
     files_.erase(download_id);
     callback_->update_file_removed(file_id);
 
+    update_counters();
     on_file_viewed(download_id);
 
     return Status::OK();
@@ -525,6 +526,9 @@ class DownloadManagerImpl final : public DownloadManager {
   }
 
   void clear_counters() {
+    if (!is_started_) {
+      return;
+    }
     CHECK(counters_ == sent_counters_);
     if (counters_.downloaded_size != counters_.total_size || counters_.total_size == 0) {
       return;
