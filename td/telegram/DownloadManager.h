@@ -63,6 +63,7 @@ class DownloadManager : public Actor {
   //
   // public interface for user
   //
+  virtual void after_get_difference() = 0;
   virtual Status add_file(FileId file_id, FileSourceId file_source_id, string search_text, int8 priority) = 0;
   virtual Status change_search_text(FileId file_id, FileSourceId file_source_id, string search_text) = 0;
   virtual Status toggle_is_paused(FileId file_id, bool is_paused) = 0;

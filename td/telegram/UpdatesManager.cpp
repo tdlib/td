@@ -19,6 +19,7 @@
 #include "td/telegram/DialogId.h"
 #include "td/telegram/DialogInviteLink.h"
 #include "td/telegram/DialogParticipant.h"
+#include "td/telegram/DownloadManager.h"
 #include "td/telegram/FolderId.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/GroupCallManager.h"
@@ -1562,6 +1563,7 @@ void UpdatesManager::after_get_difference() {
 
   td_->animations_manager_->after_get_difference();
   td_->contacts_manager_->after_get_difference();
+  td_->download_manager_->after_get_difference();
   td_->inline_queries_manager_->after_get_difference();
   td_->messages_manager_->after_get_difference();
   td_->stickers_manager_->after_get_difference();

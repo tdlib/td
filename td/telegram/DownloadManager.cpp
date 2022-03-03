@@ -76,6 +76,10 @@ class DownloadManagerImpl final : public DownloadManager {
     init();
   }
 
+  void after_get_difference() final {
+    load_database_files();
+  }
+
   Status toggle_is_paused(FileId file_id, bool is_paused) final {
     TRY_STATUS(check_is_active());
     TRY_RESULT(file_info_ptr, get_file_info(file_id));
@@ -121,14 +125,6 @@ class DownloadManagerImpl final : public DownloadManager {
     return Status::OK();
   }
 
-  Status change_search_text(FileId file_id, FileSourceId file_source_id, string search_text) final {
-    TRY_STATUS(check_is_active());
-    TRY_RESULT(file_info_ptr, get_file_info(file_id, file_source_id));
-    auto &file_info = *file_info_ptr;
-    hints_.add(file_info.download_id, search_text.empty() ? string(" ") : search_text);
-    return Status::OK();
-  }
-
   Status remove_all_files(bool only_active, bool only_completed, bool delete_from_cache) final {
     TRY_STATUS(check_is_active());
     vector<FileId> to_remove;
@@ -166,6 +162,18 @@ class DownloadManagerImpl final : public DownloadManager {
 
     add_file_info(std::move(file_info), search_text);
 
+    return Status::OK();
+  }
+
+  Status change_search_text(FileId file_id, FileSourceId file_source_id, string search_text) final {
+    if (!is_search_inited_) {
+      return Status::OK();
+    }
+
+    TRY_STATUS(check_is_active());
+    TRY_RESULT(file_info_ptr, get_file_info(file_id, file_source_id));
+    auto &file_info = *file_info_ptr;
+    hints_.add(file_info.download_id, search_text.empty() ? string(" ") : search_text);
     return Status::OK();
   }
 
@@ -267,11 +275,11 @@ class DownloadManagerImpl final : public DownloadManager {
 
   void update_file_download_state(FileId internal_file_id, int64 downloaded_size, int64 size, int64 expected_size,
                                   bool is_paused) final {
-    LOG(INFO) << "Update file download state for file " << internal_file_id << " of size " << size << '/'
-              << expected_size << " to downloaded_size = " << downloaded_size << " and is_paused = " << is_paused;
-    if (!callback_) {
+    if (!callback_ || !is_database_loaded_) {
       return;
     }
+    LOG(INFO) << "Update file download state for file " << internal_file_id << " of size " << size << '/'
+              << expected_size << " to downloaded_size = " << downloaded_size << " and is_paused = " << is_paused;
     auto r_file_info_ptr = get_file_info_by_internal(internal_file_id);
     if (r_file_info_ptr.is_error()) {
       return;
@@ -294,7 +302,7 @@ class DownloadManagerImpl final : public DownloadManager {
   }
 
   void update_file_deleted(FileId internal_file_id) final {
-    if (!callback_) {
+    if (!callback_ || !is_database_loaded_) {
       return;
     }
 
@@ -307,7 +315,7 @@ class DownloadManagerImpl final : public DownloadManager {
   }
 
   void update_file_viewed(FileId file_id, FileSourceId file_source_id) final {
-    if (unviewed_completed_download_ids_.empty() || !callback_) {
+    if (unviewed_completed_download_ids_.empty() || !callback_ || !is_database_loaded_) {
       return;
     }
 
@@ -348,6 +356,7 @@ class DownloadManagerImpl final : public DownloadManager {
   Counters counters_;
   Counters sent_counters_;
   bool is_inited_{false};
+  bool is_database_loaded_{false};
   bool is_search_inited_{false};
   int64 max_download_id_{0};
   uint64 last_link_token_{0};
@@ -372,6 +381,7 @@ class DownloadManagerImpl final : public DownloadManager {
   static string pmc_key(const FileInfo &file_info) {
     return PSTRING() << "dlds#" << file_info.download_id;
   }
+
   void sync_with_db(const FileInfo &file_info) {
     if (!file_info.need_save_to_db) {
       return;
@@ -415,25 +425,12 @@ class DownloadManagerImpl final : public DownloadManager {
           callback_->update_counters(sent_counters_);
         }
       }
-
-      auto downloads_in_kv = G()->td_db()->get_binlog_pmc()->prefix_get("dlds#");
-      for (auto &it : downloads_in_kv) {
-        Slice key = it.first;
-        Slice value = it.second;
-        FileDownloadInDb in_db;
-        log_event_parse(in_db, value).ensure();
-        CHECK(in_db.download_id == to_integer_safe<int64>(key).ok());
-        max_download_id_ = max(in_db.download_id, max_download_id_);
-        add_file_from_db(in_db);
-      }
     } else {
       G()->td_db()->get_binlog_pmc()->erase("dlds_counter");
       G()->td_db()->get_binlog_pmc()->erase_by_prefix("dlds#");
     }
 
     is_inited_ = true;
-    update_counters();
-    check_completed_downloads_size();
   }
 
   void add_file_from_db(FileDownloadInDb in_db) {
@@ -456,6 +453,37 @@ class DownloadManagerImpl final : public DownloadManager {
     file_info->created_at = in_db.created_at;
 
     add_file_info(std::move(file_info), "");
+  }
+
+  void load_database_files() {
+    if (is_database_loaded_) {
+      return;
+    }
+
+    if (!is_database_enabled()) {
+      is_database_loaded_ = true;
+      return;
+    }
+    CHECK(is_inited_);
+
+    LOG(INFO) << "Start Download Manager database loading";
+
+    auto downloads_in_kv = G()->td_db()->get_binlog_pmc()->prefix_get("dlds#");
+    for (auto &it : downloads_in_kv) {
+      Slice key = it.first;
+      Slice value = it.second;
+      FileDownloadInDb in_db;
+      log_event_parse(in_db, value).ensure();
+      CHECK(in_db.download_id == to_integer_safe<int64>(key).ok());
+      max_download_id_ = max(in_db.download_id, max_download_id_);
+      add_file_from_db(in_db);
+    }
+
+    is_database_loaded_ = true;
+    update_counters();
+    check_completed_downloads_size();
+
+    LOG(INFO) << "Finish Download Manager database loading";
   }
 
   void prepare_hints() {
@@ -528,7 +556,7 @@ class DownloadManagerImpl final : public DownloadManager {
   }
 
   void clear_counters() {
-    if (!is_inited_) {
+    if (!is_database_loaded_) {
       return;
     }
     CHECK(counters_ == sent_counters_);
@@ -568,7 +596,7 @@ class DownloadManagerImpl final : public DownloadManager {
   }
 
   void update_counters() {
-    if (!is_inited_) {
+    if (!is_database_loaded_) {
       return;
     }
     if (counters_ == sent_counters_) {
@@ -681,12 +709,13 @@ class DownloadManagerImpl final : public DownloadManager {
     register_file_info(file_info);
   }
 
-  Status check_is_active() const {
+  Status check_is_active() {
     if (!callback_) {
       LOG(ERROR) << "DownloadManager is closed";
       return Status::Error(500, "DownloadManager is closed");
     }
     CHECK(is_inited_);
+    load_database_files();
     return Status::OK();
   }
 };
