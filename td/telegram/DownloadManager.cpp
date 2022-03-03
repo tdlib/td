@@ -99,7 +99,7 @@ class DownloadManagerImpl final : public DownloadManager {
     TRY_RESULT(file_info_ptr, get_file_info(file_id, file_source_id));
     auto &file_info = *file_info_ptr;
     auto download_id = file_info.download_id;
-    if (!file_info.is_paused) {
+    if (!is_completed(file_info) && !file_info.is_paused) {
       callback_->pause_file(file_info.internal_file_id);
     }
     unregister_file_info(file_info);
@@ -217,25 +217,34 @@ class DownloadManagerImpl final : public DownloadManager {
       offset_int64 = r_offset.move_as_ok();
     }
     auto download_ids = hints_.search(query, 10000, true).second;
-    int32 total_count = 0;
+    int32 total_active_count = 0;
+    int32 total_paused_count = 0;
+    int32 total_completed_count = 0;
     td::remove_if(download_ids, [&](int64 download_id) {
       auto r = get_file_info(download_id);
       CHECK(r.is_ok());
       auto &file_info = *r.ok();
-      if (only_active && is_completed(file_info)) {
-        return true;
+      if (is_completed(file_info)) {
+        total_completed_count++;
+        if (only_active) {
+          return true;
+        }
+      } else {
+        total_active_count++;
+        if (file_info.is_paused) {
+          total_paused_count++;
+        }
+        if (only_completed) {
+          return true;
+        }
       }
-      if (only_completed && !is_completed(file_info)) {
-        return true;
-      }
-      total_count++;
       if (download_id >= offset_int64) {
         return true;
       }
       return false;
     });
     std::sort(download_ids.begin(), download_ids.end(), std::greater<>());
-    if (total_count > limit) {
+    if (static_cast<int32>(download_ids.size()) > limit) {
       download_ids.resize(limit);
     }
     auto file_downloads = transform(download_ids, [&](int64 download_id) {
@@ -252,8 +261,8 @@ class DownloadManagerImpl final : public DownloadManager {
     if (!download_ids.empty()) {
       next_offset = to_string(download_ids.back());
     }
-    promise.set_value(
-        td_api::make_object<td_api::foundFileDownloads>(total_count, std::move(file_downloads), next_offset));
+    promise.set_value(td_api::make_object<td_api::foundFileDownloads>(
+        total_active_count, total_paused_count, total_completed_count, std::move(file_downloads), next_offset));
   }
 
   void update_file_download_state(FileId internal_file_id, int64 downloaded_size, int64 size, int64 expected_size,
@@ -535,7 +544,7 @@ class DownloadManagerImpl final : public DownloadManager {
     }
 
     for (auto &it : files_) {
-      if (!it.second->is_paused) {
+      if (is_completed(*it.second) || !it.second->is_paused) {
         it.second->is_counted = false;
       }
     }
@@ -619,7 +628,7 @@ class DownloadManagerImpl final : public DownloadManager {
   }
 
   void unregister_file_info(const FileInfo &file_info) {
-    if (file_info.is_counted && !file_info.is_paused) {
+    if (file_info.is_counted && (is_completed(file_info) || !file_info.is_paused)) {
       LOG(INFO) << "Unregister file " << file_info.file_id;
       counters_.downloaded_size -= file_info.downloaded_size;
       counters_.total_size -= get_file_size(file_info);
@@ -640,7 +649,7 @@ class DownloadManagerImpl final : public DownloadManager {
         unviewed_completed_download_ids_.insert(file_info.download_id);
       }
     }
-    if (file_info.is_counted && !file_info.is_paused) {
+    if (file_info.is_counted && (is_completed(file_info) || !file_info.is_paused)) {
       counters_.downloaded_size += file_info.downloaded_size;
       counters_.total_size += get_file_size(file_info);
       counters_.total_count++;

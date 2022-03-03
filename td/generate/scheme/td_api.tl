@@ -881,10 +881,12 @@ sponsoredMessage message_id:int53 sponsor_chat_id:int53 sponsor_chat_info:chatIn
 fileDownload file_id:int32 message:message add_date:int32 complete_date:int32 is_paused:Bool = FileDownload;
 
 //@description Contains a list of downloaded files found by a search
-//@total_count Total count of files found
+//@total_active_count Total count of active file downloads found, including paused
+//@total_paused_count Total count of paused file downloads found
+//@total_completed_count Total count of completed file downloads found
 //@files List of downloaded files
 //@next_offset The offset for the next request. If empty, there are no more results
-foundFileDownloads total_count:int32 files:vector<fileDownload> next_offset:string = FoundFileDownloads;
+foundFileDownloads total_active_count:int32 total_paused_count:int32 total_completed_count:int32 files:vector<fileDownload> next_offset:string = FoundFileDownloads;
 
 
 //@class NotificationSettingsScope @description Describes the types of chats to which notification settings are relevant
