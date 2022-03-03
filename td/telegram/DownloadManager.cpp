@@ -500,16 +500,17 @@ class DownloadManagerImpl final : public DownloadManager {
               << " with downloaded_size = " << file_info->downloaded_size
               << " and is_paused = " << file_info->is_paused;
     auto it = files_.emplace(download_id, std::move(file_info)).first;
+    bool was_completed = is_completed(*it->second);
+    register_file_info(*it->second);  // must be called before start_file, which can call update_file_download_state
     if (is_completed(*it->second)) {
       bool is_inserted = completed_download_ids_.insert(it->second->download_id).second;
-      CHECK(is_inserted);
+      CHECK(is_inserted == was_completed);
     } else {
       if (!it->second->is_paused) {
         callback_->start_file(it->second->internal_file_id, it->second->priority,
                               actor_shared(this, it->second->link_token));
       }
     }
-    register_file_info(*it->second);
   }
 
   void loop() final {
