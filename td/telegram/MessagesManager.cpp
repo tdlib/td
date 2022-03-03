@@ -20639,6 +20639,17 @@ Status MessagesManager::view_messages(DialogId dialog_id, MessageId top_thread_m
         read_content_message_ids.push_back(m->message_id);
         on_message_changed(d, m, true, "view_messages");
       }
+
+      auto it = full_message_id_to_file_source_id_.find({dialog_id, m->message_id});
+      if (it != full_message_id_to_file_source_id_.end()) {
+        auto file_source_id = it->second;
+        CHECK(file_source_id.is_valid());
+        for (auto file_id : get_message_file_ids(m)) {
+          auto file_view = td_->file_manager_->get_file_view(file_id);
+          CHECK(!file_view.empty());
+          td_->download_manager_->update_file_viewed(file_view.file_id(), file_source_id);
+        }
+      }
     } else if (!message_id.is_yet_unsent() && message_id > max_message_id &&
                message_id <= d->max_notification_message_id) {
       max_message_id = message_id;

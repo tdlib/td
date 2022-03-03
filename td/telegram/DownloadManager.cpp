@@ -98,6 +98,7 @@ class DownloadManagerImpl final : public DownloadManager {
     TRY_STATUS(check_is_active());
     TRY_RESULT(file_info_ptr, get_file_info(file_id, file_source_id));
     auto &file_info = *file_info_ptr;
+    auto download_id = file_info.download_id;
     if (!file_info.is_paused) {
       callback_->pause_file(file_info.internal_file_id);
     }
@@ -107,12 +108,15 @@ class DownloadManagerImpl final : public DownloadManager {
     }
     by_internal_file_id_.erase(file_info.internal_file_id);
     by_file_id_.erase(file_info.file_id);
-    hints_.remove(file_info.download_id);
-    completed_download_ids_.erase(file_info.download_id);
+    hints_.remove(download_id);
+    completed_download_ids_.erase(download_id);
 
     remove_from_db(file_info);
-    files_.erase(file_info.download_id);
+    files_.erase(download_id);
     callback_->update_file_removed(file_id);
+
+    on_file_viewed(download_id);
+
     return Status::OK();
   }
 
@@ -175,7 +179,6 @@ class DownloadManagerImpl final : public DownloadManager {
 
   void search(string query, bool only_active, bool only_completed, string offset, int32 limit,
               Promise<td_api::object_ptr<td_api::foundFileDownloads>> promise) final {
-    clear_counters();
     return do_search(std::move(query), only_active, only_completed, std::move(offset), limit, std::move(promise),
                      Unit{});
   }
@@ -212,9 +215,9 @@ class DownloadManagerImpl final : public DownloadManager {
       }
       offset_int64 = r_offset.move_as_ok();
     }
-    auto ids = hints_.search(query, 10000, true).second;
+    auto download_ids = hints_.search(query, 10000, true).second;
     int32 total_count = 0;
-    td::remove_if(ids, [&](auto download_id) {
+    td::remove_if(download_ids, [&](int64 download_id) {
       auto r = get_file_info(download_id);
       CHECK(r.is_ok());
       auto &file_info = *r.ok();
@@ -230,12 +233,14 @@ class DownloadManagerImpl final : public DownloadManager {
       }
       return false;
     });
-    std::sort(ids.begin(), ids.end(), std::greater<>());
+    std::sort(download_ids.begin(), download_ids.end(), std::greater<>());
     if (total_count > limit) {
-      ids.resize(limit);
+      download_ids.resize(limit);
     }
-    auto file_downloads = transform(ids, [&](auto id) {
-      auto it = files_.find(id);
+    auto file_downloads = transform(download_ids, [&](int64 download_id) {
+      on_file_viewed(download_id);
+
+      auto it = files_.find(download_id);
       CHECK(it != files_.end());
       const FileInfo &file_info = *it->second;
       return callback_->get_file_download_object(file_info.file_id, file_info.file_source_id, file_info.created_at,
@@ -243,8 +248,8 @@ class DownloadManagerImpl final : public DownloadManager {
     });
     td::remove_if(file_downloads, [](const auto &file_download) { return file_download->message_ == nullptr; });
     string next_offset;
-    if (!ids.empty()) {
-      next_offset = to_string(ids.back());
+    if (!download_ids.empty()) {
+      next_offset = to_string(download_ids.back());
     }
     promise.set_value(
         td_api::make_object<td_api::foundFileDownloads>(total_count, std::move(file_downloads), next_offset));
@@ -291,6 +296,19 @@ class DownloadManagerImpl final : public DownloadManager {
     remove_file(file_info.file_id, {}, false);
   }
 
+  void update_file_viewed(FileId file_id, FileSourceId file_source_id) final {
+    if (unviewed_completed_download_ids_.empty() || !callback_) {
+      return;
+    }
+
+    auto r_file_info_ptr = get_file_info(file_id, file_source_id);
+    if (r_file_info_ptr.is_error()) {
+      return;
+    }
+    auto &file_info = *r_file_info_ptr.ok();
+    on_file_viewed(file_info.download_id);
+  }
+
  private:
   unique_ptr<Callback> callback_;
   struct FileInfo {
@@ -314,6 +332,7 @@ class DownloadManagerImpl final : public DownloadManager {
   FlatHashMap<FileId, int64, FileIdHash> by_internal_file_id_;
   FlatHashMap<int64, unique_ptr<FileInfo>> files_;
   std::set<int64> completed_download_ids_;
+  FlatHashSet<int64> unviewed_completed_download_ids_;
   Hints hints_;
 
   Counters counters_;
@@ -529,7 +548,7 @@ class DownloadManagerImpl final : public DownloadManager {
     }
     LOG(INFO) << "Change is_paused state of file " << file_info.file_id << " to " << is_paused;
 
-    with_file_info(file_info, [&](auto &file_info) {
+    with_file_info(file_info, [&](FileInfo &file_info) {
       file_info.is_paused = is_paused;
       file_info.need_save_to_db = true;
       file_info.link_token = ++last_link_token_;
@@ -555,9 +574,12 @@ class DownloadManagerImpl final : public DownloadManager {
       if (counters_.total_size != 0) {
         constexpr double EMPTY_UPDATE_DELAY = 60.0;
         set_timeout_in(EMPTY_UPDATE_DELAY);
+      } else {
+        cancel_timeout();
       }
       G()->td_db()->get_binlog_pmc()->erase("dlds_counter");
     } else {
+      cancel_timeout();
       G()->td_db()->get_binlog_pmc()->set("dlds_counter", log_event_store(counters_).as_slice().str());
     }
     sent_counters_ = counters_;
@@ -609,6 +631,9 @@ class DownloadManagerImpl final : public DownloadManager {
 
       bool is_inserted = completed_download_ids_.insert(file_info.download_id).second;
       CHECK(is_inserted);
+      if (file_info.is_counted) {
+        unviewed_completed_download_ids_.insert(file_info.download_id);
+      }
     }
     if (file_info.is_counted && !file_info.is_paused) {
       counters_.downloaded_size += file_info.downloaded_size;
@@ -627,6 +652,17 @@ class DownloadManagerImpl final : public DownloadManager {
       auto download_id = *completed_download_ids_.begin();
       auto file_info = get_file_info(download_id).move_as_ok();
       remove_file(file_info->file_id, FileSourceId(), false);
+    }
+  }
+
+  void on_file_viewed(int64 download_id) {
+    if (unviewed_completed_download_ids_.empty()) {
+      return;
+    }
+
+    unviewed_completed_download_ids_.erase(download_id);
+    if (unviewed_completed_download_ids_.empty()) {
+      clear_counters();
     }
   }
 

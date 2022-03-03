@@ -78,6 +78,7 @@ class DownloadManager : public Actor {
   virtual void update_file_download_state(FileId internal_file_id, int64 downloaded_size, int64 size,
                                           int64 expected_size, bool is_paused) = 0;
   virtual void update_file_deleted(FileId internal_file_id) = 0;
+  virtual void update_file_viewed(FileId file_id, FileSourceId file_source_id) = 0;
 };
 
 }  // namespace td
