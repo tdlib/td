@@ -420,7 +420,7 @@ class CliClient final : public Actor {
         LOG(INFO) << "Logged in";
         break;
       case td_api::authorizationStateClosed::ID:
-        LOG(WARNING) << "TD closed";
+        LOG(WARNING) << "Td closed";
         td_client_.reset();
         if (!close_flag_) {
           create_td("ClientActor3");
@@ -997,7 +997,7 @@ class CliClient final : public Actor {
       return;
     }
 
-    LOG(WARNING) << "Creating new TD " << name << " with generation " << generation_ + 1;
+    LOG(WARNING) << "Creating new Td " << name << " with generation " << generation_ + 1;
     class TdCallbackImpl final : public TdCallback {
      public:
       TdCallbackImpl(CliClient *client, uint64 generation) : client_(client), generation_(generation) {

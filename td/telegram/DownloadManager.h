@@ -52,6 +52,7 @@ class DownloadManager : public Actor {
     virtual FileId dup_file_id(FileId file_id) = 0;
 
     virtual FileView get_file_view(FileId file_id) = 0;
+    virtual FileView get_sync_file_view(FileId file_id) = 0;
     virtual td_api::object_ptr<td_api::fileDownload> get_file_download_object(FileId file_id,
                                                                               FileSourceId file_source_id,
                                                                               int32 add_date, int32 complete_date,

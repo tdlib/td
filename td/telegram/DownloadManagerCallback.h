@@ -38,6 +38,8 @@ class DownloadManagerCallback final : public DownloadManager::Callback {
 
   FileView get_file_view(FileId file_id) final;
 
+  FileView get_sync_file_view(FileId file_id) final;
+
   td_api::object_ptr<td_api::fileDownload> get_file_download_object(FileId file_id, FileSourceId file_source_id,
                                                                     int32 add_date, int32 complete_date,
                                                                     bool is_paused);

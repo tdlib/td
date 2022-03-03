@@ -51,6 +51,10 @@ FileView DownloadManagerCallback::get_file_view(FileId file_id) {
   return td_->file_manager_->get_file_view(file_id);
 }
 
+FileView DownloadManagerCallback::get_sync_file_view(FileId file_id) {
+  return td_->file_manager_->get_sync_file_view(file_id);
+}
+
 td_api::object_ptr<td_api::fileDownload> DownloadManagerCallback::get_file_download_object(
     FileId file_id, FileSourceId file_source_id, int32 add_date, int32 complete_date, bool is_paused) {
   return td_api::make_object<td_api::fileDownload>(td_->file_manager_->get_file_view(file_id).file_id().get(),
@@ -84,7 +88,6 @@ std::shared_ptr<FileManager::DownloadCallback> DownloadManagerCallback::make_dow
       auto file_view = td->file_manager_->get_file_view(file_id);
       send_closure(download_manager_, &DownloadManager::update_file_download_state, file_id,
                    file_view.local_total_size(), file_view.size(), file_view.expected_size(), is_paused);
-      // TODO: handle deleted state?
     }
   };
   return std::make_shared<Impl>(td, std::move(download_manager));

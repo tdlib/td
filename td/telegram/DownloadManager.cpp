@@ -415,6 +415,10 @@ class DownloadManagerImpl final : public DownloadManager {
   }
 
   static void remove_from_db(const FileInfo &file_info) {
+    if (!is_database_enabled()) {
+      return;
+    }
+
     G()->td_db()->get_binlog_pmc()->erase(pmc_key(file_info));
   }
 
@@ -446,10 +450,6 @@ class DownloadManagerImpl final : public DownloadManager {
     if (by_file_id_.count(in_db.file_id) != 0) {
       // file has already been added
       return;
-    }
-
-    if (in_db.completed_at > 0) {
-      // TODO file must not be added if it isn't fully downloaded
     }
 
     auto file_info = make_unique<FileInfo>();
@@ -530,12 +530,19 @@ class DownloadManagerImpl final : public DownloadManager {
     CHECK(file_info != nullptr);
     auto download_id = file_info->download_id;
     file_info->internal_file_id = callback_->dup_file_id(file_info->file_id);
-    auto file_view = callback_->get_file_view(file_info->file_id);
+    auto file_view = callback_->get_sync_file_view(file_info->file_id);
     CHECK(!file_view.empty());
     file_info->size = file_view.size();
     file_info->expected_size = file_view.expected_size();
     file_info->downloaded_size = file_view.local_total_size();
     file_info->is_counted = !is_completed(*file_info);
+
+    if (file_info->completed_at > 0 && (file_info->size == 0 || file_info->downloaded_size != file_info->size)) {
+      LOG(INFO) << "Skip adding file " << file_info->file_id << " to recently downloaded files, because local size is "
+                << file_info->downloaded_size << " instead of expected " << file_info->size;
+      remove_from_db(*file_info);
+      return;
+    }
 
     by_internal_file_id_[file_info->internal_file_id] = download_id;
     by_file_id_[file_info->file_id] = download_id;
