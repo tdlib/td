@@ -71,6 +71,7 @@ class DownloadManager : public Actor {
   virtual void search(string query, bool only_active, bool only_completed, string offset, int32 limit,
                       Promise<td_api::object_ptr<td_api::foundFileDownloads>> promise) = 0;
   virtual Status remove_file(FileId file_id, FileSourceId file_source_id, bool delete_from_cache) = 0;
+  virtual Status remove_file_if_finished(FileId file_id) = 0;
   virtual Status remove_all_files(bool only_active, bool only_completed, bool delete_from_cache) = 0;
 
   //

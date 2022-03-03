@@ -36,6 +36,7 @@ class ConfigManager;
 class ConfigShared;
 class ConnectionCreator;
 class ContactsManager;
+class DownloadManager;
 class FileManager;
 class FileReferenceManager;
 class GameManager;
@@ -203,6 +204,13 @@ class Global final : public ActorContext {
   }
   void set_contacts_manager(ActorId<ContactsManager> contacts_manager) {
     contacts_manager_ = contacts_manager;
+  }
+
+  ActorId<DownloadManager> download_manager() const {
+    return download_manager_;
+  }
+  void set_download_manager(ActorId<DownloadManager> download_manager) {
+    download_manager_ = std::move(download_manager);
   }
 
   ActorId<FileManager> file_manager() const {
@@ -437,6 +445,7 @@ class Global final : public ActorContext {
   ActorId<CallManager> call_manager_;
   ActorId<ConfigManager> config_manager_;
   ActorId<ContactsManager> contacts_manager_;
+  ActorId<DownloadManager> download_manager_;
   ActorId<FileManager> file_manager_;
   ActorId<FileReferenceManager> file_reference_manager_;
   ActorId<GameManager> game_manager_;

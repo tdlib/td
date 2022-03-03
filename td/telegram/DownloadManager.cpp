@@ -125,6 +125,23 @@ class DownloadManagerImpl final : public DownloadManager {
     return Status::OK();
   }
 
+  Status remove_file_if_finished(FileId file_id) {
+    TRY_STATUS(check_is_active());
+    TRY_RESULT(file_info_ptr, get_file_info(file_id, {}));
+    if (!is_completed(*file_info_ptr)) {
+      return Status::Error("File is active");
+    }
+    return remove_file(file_id, {}, false);
+  }
+
+  Status change_search_text(FileId file_id, FileSourceId file_source_id, string search_text) final {
+    TRY_STATUS(check_is_active());
+    TRY_RESULT(file_info_ptr, get_file_info(file_id, file_source_id));
+    auto &file_info = *file_info_ptr;
+    hints_.add(file_info.download_id, search_text.empty() ? string(" ") : search_text);
+    return Status::OK();
+  }
+
   Status remove_all_files(bool only_active, bool only_completed, bool delete_from_cache) final {
     TRY_STATUS(check_is_active());
     vector<FileId> to_remove;
@@ -162,18 +179,6 @@ class DownloadManagerImpl final : public DownloadManager {
 
     add_file_info(std::move(file_info), search_text);
 
-    return Status::OK();
-  }
-
-  Status change_search_text(FileId file_id, FileSourceId file_source_id, string search_text) final {
-    if (!is_search_inited_) {
-      return Status::OK();
-    }
-
-    TRY_STATUS(check_is_active());
-    TRY_RESULT(file_info_ptr, get_file_info(file_id, file_source_id));
-    auto &file_info = *file_info_ptr;
-    hints_.add(file_info.download_id, search_text.empty() ? string(" ") : search_text);
     return Status::OK();
   }
 

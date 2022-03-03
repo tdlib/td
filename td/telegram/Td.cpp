@@ -3973,6 +3973,7 @@ void Td::init_managers() {
   country_info_manager_actor_ = register_actor("CountryInfoManager", country_info_manager_.get());
   download_manager_ = DownloadManager::create(td::make_unique<DownloadManagerCallback>(this, create_reference()));
   download_manager_actor_ = register_actor("DownloadManager", download_manager_.get());
+  G()->set_download_manager(download_manager_actor_.get());
   game_manager_ = make_unique<GameManager>(this, create_reference());
   game_manager_actor_ = register_actor("GameManager", game_manager_.get());
   G()->set_game_manager(game_manager_actor_.get());
