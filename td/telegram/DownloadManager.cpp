@@ -31,7 +31,7 @@
 
 namespace td {
 
-struct FileDownloadInDb {
+struct FileDownloadInDatabase {
   int64 download_id{};
   FileId file_id;
   FileSourceId file_source_id;
@@ -115,7 +115,7 @@ class DownloadManagerImpl final : public DownloadManager {
     hints_.remove(download_id);
     completed_download_ids_.erase(download_id);
 
-    remove_from_db(file_info);
+    remove_from_database(file_info);
     files_.erase(download_id);
     callback_->update_file_removed(file_id);
 
@@ -167,7 +167,7 @@ class DownloadManagerImpl final : public DownloadManager {
     file_info->is_paused = false;
     file_info->priority = priority;
     file_info->created_at = G()->unix_time();
-    file_info->need_save_to_db = true;
+    file_info->need_save_to_database = true;
 
     add_file_info(std::move(file_info), search_text);
 
@@ -305,7 +305,7 @@ class DownloadManagerImpl final : public DownloadManager {
       file_info.downloaded_size = downloaded_size;
       if (is_paused && file_info.is_paused != is_paused) {
         file_info.is_paused = is_paused;
-        file_info.need_save_to_db = true;
+        file_info.need_save_to_database = true;
       }
     });
   }
@@ -346,7 +346,7 @@ class DownloadManagerImpl final : public DownloadManager {
     int8 priority;
     bool is_paused{};
     bool is_counted{};
-    mutable bool need_save_to_db{};
+    mutable bool need_save_to_database{};
     int64 size{};
     int64 expected_size{};
     int64 downloaded_size{};
@@ -391,11 +391,11 @@ class DownloadManagerImpl final : public DownloadManager {
     return PSTRING() << "dlds#" << file_info.download_id;
   }
 
-  void sync_with_db(const FileInfo &file_info) {
-    if (!file_info.need_save_to_db) {
+  void sync_with_database(const FileInfo &file_info) {
+    if (!file_info.need_save_to_database) {
       return;
     }
-    file_info.need_save_to_db = false;
+    file_info.need_save_to_database = false;
 
     if (!is_database_enabled()) {
       return;
@@ -403,7 +403,7 @@ class DownloadManagerImpl final : public DownloadManager {
 
     LOG(INFO) << "Saving to download database file " << file_info.file_id << '/' << file_info.internal_file_id
               << " with is_paused = " << file_info.is_paused;
-    FileDownloadInDb to_save;
+    FileDownloadInDatabase to_save;
     to_save.download_id = file_info.download_id;
     to_save.file_source_id = file_info.file_source_id;
     to_save.is_paused = file_info.is_paused;
@@ -414,7 +414,7 @@ class DownloadManagerImpl final : public DownloadManager {
     G()->td_db()->get_binlog_pmc()->set(pmc_key(file_info), log_event_store(to_save).as_slice().str());
   }
 
-  static void remove_from_db(const FileInfo &file_info) {
+  static void remove_from_database(const FileInfo &file_info) {
     if (!is_database_enabled()) {
       return;
     }
@@ -446,7 +446,11 @@ class DownloadManagerImpl final : public DownloadManager {
     is_inited_ = true;
   }
 
-  void add_file_from_db(FileDownloadInDb in_db) {
+  void add_file_from_database(FileDownloadInDatabase in_db) {
+    if (!in_db.file_id.is_valid() || !in_db.file_source_id.is_valid()) {
+      LOG(INFO) << "Skip adding file " << in_db.file_id << " from " << in_db.file_source_id;
+      return;
+    }
     if (by_file_id_.count(in_db.file_id) != 0) {
       // file has already been added
       return;
@@ -481,11 +485,11 @@ class DownloadManagerImpl final : public DownloadManager {
     for (auto &it : downloads_in_kv) {
       Slice key = it.first;
       Slice value = it.second;
-      FileDownloadInDb in_db;
+      FileDownloadInDatabase in_db;
       log_event_parse(in_db, value).ensure();
       CHECK(in_db.download_id == to_integer_safe<int64>(key).ok());
       max_download_id_ = max(in_db.download_id, max_download_id_);
-      add_file_from_db(in_db);
+      add_file_from_database(in_db);
     }
 
     is_database_loaded_ = true;
@@ -540,7 +544,7 @@ class DownloadManagerImpl final : public DownloadManager {
     if (file_info->completed_at > 0 && (file_info->size == 0 || file_info->downloaded_size != file_info->size)) {
       LOG(INFO) << "Skip adding file " << file_info->file_id << " to recently downloaded files, because local size is "
                 << file_info->downloaded_size << " instead of expected " << file_info->size;
-      remove_from_db(*file_info);
+      remove_from_database(*file_info);
       return;
     }
 
@@ -601,7 +605,7 @@ class DownloadManagerImpl final : public DownloadManager {
 
     with_file_info(file_info, [&](FileInfo &file_info) {
       file_info.is_paused = is_paused;
-      file_info.need_save_to_db = true;
+      file_info.need_save_to_database = true;
       file_info.link_token = ++last_link_token_;
     });
     if (is_paused) {
@@ -678,7 +682,7 @@ class DownloadManagerImpl final : public DownloadManager {
       LOG(INFO) << "Register file " << file_info.file_id;
       file_info.is_paused = false;
       file_info.completed_at = G()->unix_time();
-      file_info.need_save_to_db = true;
+      file_info.need_save_to_database = true;
 
       bool is_inserted = completed_download_ids_.insert(file_info.download_id).second;
       CHECK(is_inserted);
@@ -691,7 +695,7 @@ class DownloadManagerImpl final : public DownloadManager {
       counters_.total_size += get_file_size(file_info);
       counters_.total_count++;
     }
-    sync_with_db(file_info);
+    sync_with_database(file_info);
     update_counters();
 
     check_completed_downloads_size();

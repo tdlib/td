@@ -39885,6 +39885,9 @@ void MessagesManager::add_message_file_to_downloads(FullMessageId full_message_i
   if (!is_found) {
     return promise.set_error(Status::Error(400, "Message has no specified file"));
   }
+  if (m->message_id.is_yet_unsent()) {
+    return promise.set_error(Status::Error(400, "Yet unsent messages can't be added to Downloads"));
+  }
   auto search_text = get_message_search_text(m);
   auto file_source_id = get_message_file_source_id(full_message_id, true);
   CHECK(file_source_id.is_valid());
