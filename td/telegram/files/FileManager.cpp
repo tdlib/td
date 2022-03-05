@@ -1120,7 +1120,7 @@ void FileManager::on_file_unlink(const FullLocalFileLocation &location) {
   auto file_id = it->second;
   auto file_node = get_sync_file_node(file_id);
   CHECK(file_node);
-  send_closure(G()->download_manager(), &DownloadManager::remove_file, file_node->main_file_id_, FileSourceId{}, false);
+  send_closure(G()->download_manager(), &DownloadManager::remove_file_if_finished, file_node->main_file_id_, FileSourceId{}, false);
   file_node->drop_local_location();
   try_flush_node_info(file_node, "on_file_unlink");
 }
@@ -2146,7 +2146,7 @@ void FileManager::delete_file(FileId file_id, Promise<Unit> promise, const char 
 
   auto file_view = FileView(node);
 
-  send_closure(G()->download_manager(), &DownloadManager::remove_file, file_view.file_id(), FileSourceId{}, false);
+  send_closure(G()->download_manager(), &DownloadManager::remove_file_if_finished, file_view.file_id(), FileSourceId{}, false);
   // TODO review delete condition
   if (file_view.has_local_location()) {
     if (begins_with(file_view.local_location().path_, get_files_dir(file_view.get_type()))) {

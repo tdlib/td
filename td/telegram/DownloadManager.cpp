@@ -117,7 +117,9 @@ class DownloadManagerImpl final : public DownloadManager {
 
     remove_from_database(file_info);
     files_.erase(download_id);
-    callback_->update_file_removed(file_id);
+    if (is_search_inited_) {
+      callback_->update_file_removed(file_id);
+    }
 
     update_counters();
     on_file_viewed(download_id);
@@ -306,6 +308,10 @@ class DownloadManagerImpl final : public DownloadManager {
       if (is_paused && file_info.is_paused != is_paused) {
         file_info.is_paused = is_paused;
         file_info.need_save_to_database = true;
+
+        if (is_search_inited_) {
+          callback_->update_file_changed(file_info.file_id, file_info.completed_at, file_info.is_paused);
+        }
       }
     });
   }
@@ -569,6 +575,10 @@ class DownloadManagerImpl final : public DownloadManager {
                               actor_shared(this, it->second->link_token));
       }
     }
+    if (is_search_inited_) {
+      callback_->update_file_added(it->second->file_id, it->second->file_source_id, it->second->created_at,
+                                   it->second->completed_at, it->second->is_paused);
+    }
   }
 
   void timeout_expired() final {
@@ -612,6 +622,9 @@ class DownloadManagerImpl final : public DownloadManager {
       callback_->pause_file(file_info.internal_file_id);
     } else {
       callback_->start_file(file_info.internal_file_id, file_info.priority, actor_shared(this, file_info.link_token));
+    }
+    if (is_search_inited_) {
+      callback_->update_file_changed(file_info.file_id, file_info.completed_at, file_info.is_paused);
     }
   }
 
@@ -688,6 +701,10 @@ class DownloadManagerImpl final : public DownloadManager {
       CHECK(is_inserted);
       if (file_info.is_counted) {
         unviewed_completed_download_ids_.insert(file_info.download_id);
+      }
+
+      if (is_search_inited_) {
+        callback_->update_file_changed(file_info.file_id, file_info.completed_at, file_info.is_paused);
       }
     }
     if (file_info.is_counted && (is_completed(file_info) || !file_info.is_paused)) {

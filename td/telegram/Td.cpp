@@ -4064,6 +4064,9 @@ void Td::send_update(tl_object_ptr<td_api::Update> &&object) {
     case td_api::updateChatAction::ID / 2:
     case td_api::updateChatFilters::ID / 2:
     case td_api::updateChatPosition::ID / 2:
+    case td_api::updateFileAddedToDownloads::ID:
+    case td_api::updateFileDownload::ID:
+    case td_api::updateFileRemovedFromDownloads::ID:
       LOG(ERROR) << "Sending update: " << oneline(to_string(object));
       break;
     default:

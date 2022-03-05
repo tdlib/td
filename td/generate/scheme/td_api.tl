@@ -3950,7 +3950,15 @@ updateFileGenerationStop generation_id:int64 = Update;
 //@downloaded_size Total downloaded size of files in the file download list, in bytes
 updateFileDownloads total_size:int53 total_count:int32 downloaded_size:int53 = Update;
 
-//@description A file was removed from the file download list @file_id File identifier
+//@description A file was added to the file download list. This update is sent only after file download list is loaded for the first time @file_download The added file download
+updateFileAddedToDownloads file_download:fileDownload = Update;
+
+//@description A file download was changed. This update is sent only after file download list is loaded for the first time @file_id File identifier
+//@complete_date Point in time (Unix timestamp) when the file downloading was completed; 0 if the file downloading isn't completed
+//@is_paused True, if downloading of the file is paused
+updateFileDownload file_id:int32 complete_date:int32 is_paused:Bool = Update;
+
+//@description A file was removed from the file download list. This update is sent only after file download list is loaded for the first time @file_id File identifier
 updateFileRemovedFromDownloads file_id:int32 = Update;
 
 //@description New call was created or information about a call was updated @call New data about a call

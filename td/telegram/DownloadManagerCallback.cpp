@@ -22,6 +22,18 @@ void DownloadManagerCallback::update_counters(DownloadManager::Counters counters
   send_closure(td_->actor_id(td_), &Td::send_update, counters.get_update_file_downloads_object());
 }
 
+void DownloadManagerCallback::update_file_added(FileId file_id, FileSourceId file_source_id, int32 add_date,
+                                                int32 complete_date, bool is_paused) {
+  send_closure(td_->actor_id(td_), &Td::send_update,
+               td_api::make_object<td_api::updateFileAddedToDownloads>(
+                   get_file_download_object(file_id, file_source_id, add_date, complete_date, is_paused)));
+}
+
+void DownloadManagerCallback::update_file_changed(FileId file_id, int32 complete_date, bool is_paused) {
+  send_closure(td_->actor_id(td_), &Td::send_update,
+               td_api::make_object<td_api::updateFileDownload>(file_id.get(), complete_date, is_paused));
+}
+
 void DownloadManagerCallback::update_file_removed(FileId file_id) {
   send_closure(td_->actor_id(td_), &Td::send_update,
                td_api::make_object<td_api::updateFileRemovedFromDownloads>(file_id.get()));
@@ -73,7 +85,7 @@ std::shared_ptr<FileManager::DownloadCallback> DownloadManagerCallback::make_dow
       send_update(file_id, false);
     }
     void on_download_ok(FileId file_id) final {
-      send_update(file_id, true);
+      send_update(file_id, false);
     }
     void on_download_error(FileId file_id, Status error) final {
       send_update(file_id, true);
