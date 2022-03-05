@@ -40,19 +40,19 @@ void DownloadManagerCallback::update_file_removed(FileId file_id) {
 }
 
 void DownloadManagerCallback::start_file(FileId file_id, int8 priority, ActorShared<DownloadManager> download_manager) {
-  send_closure(td_->file_manager_actor_, &FileManager::download, file_id,
-               make_download_file_callback(td_, std::move(download_manager)), priority,
-               FileManager::KEEP_DOWNLOAD_OFFSET, FileManager::IGNORE_DOWNLOAD_LIMIT);
+  send_closure_later(td_->file_manager_actor_, &FileManager::download, file_id,
+                     make_download_file_callback(td_, std::move(download_manager)), priority,
+                     FileManager::KEEP_DOWNLOAD_OFFSET, FileManager::IGNORE_DOWNLOAD_LIMIT);
 }
 
 void DownloadManagerCallback::pause_file(FileId file_id) {
-  send_closure(td_->file_manager_actor_, &FileManager::download, file_id, nullptr, 0, FileManager::KEEP_DOWNLOAD_OFFSET,
-               FileManager::KEEP_DOWNLOAD_LIMIT);
+  send_closure_later(td_->file_manager_actor_, &FileManager::download, file_id, nullptr, 0,
+                     FileManager::KEEP_DOWNLOAD_OFFSET, FileManager::KEEP_DOWNLOAD_LIMIT);
 }
 
 void DownloadManagerCallback::delete_file(FileId file_id) {
-  send_closure(td_->file_manager_actor_, &FileManager::delete_file, file_id, Promise<Unit>(),
-               "download manager callback");
+  send_closure_later(td_->file_manager_actor_, &FileManager::delete_file, file_id, Promise<Unit>(),
+                     "download manager callback");
 }
 
 FileId DownloadManagerCallback::dup_file_id(FileId file_id) {
@@ -98,8 +98,8 @@ std::shared_ptr<FileManager::DownloadCallback> DownloadManagerCallback::make_dow
     void send_update(FileId file_id, bool is_paused) const {
       auto td = G()->td().get_actor_unsafe();
       auto file_view = td->file_manager_->get_file_view(file_id);
-      send_closure(download_manager_, &DownloadManager::update_file_download_state, file_id,
-                   file_view.local_total_size(), file_view.size(), file_view.expected_size(), is_paused);
+      send_closure_later(download_manager_, &DownloadManager::update_file_download_state, file_id,
+                         file_view.local_total_size(), file_view.size(), file_view.expected_size(), is_paused);
     }
   };
   return std::make_shared<Impl>(td, std::move(download_manager));
