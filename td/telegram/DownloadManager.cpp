@@ -350,6 +350,7 @@ class DownloadManagerImpl final : public DownloadManager {
     int8 priority;
     bool is_paused{};
     bool is_counted{};
+    mutable bool is_registered{};
     mutable bool need_save_to_database{};
     int64 size{};
     int64 expected_size{};
@@ -680,6 +681,8 @@ class DownloadManagerImpl final : public DownloadManager {
   }
 
   void unregister_file_info(const FileInfo &file_info) {
+    CHECK(file_info.is_registered);
+    file_info.is_registered = false;
     if (file_info.is_counted && (is_completed(file_info) || !file_info.is_paused)) {
       LOG(INFO) << "Unregister file " << file_info.file_id;
       counters_.downloaded_size -= file_info.downloaded_size;
@@ -689,6 +692,8 @@ class DownloadManagerImpl final : public DownloadManager {
   }
 
   void register_file_info(FileInfo &file_info) {
+    CHECK(!file_info.is_registered);
+    file_info.is_registered = true;
     if (!is_completed(file_info) && file_info.size != 0 && file_info.downloaded_size == file_info.size) {
       LOG(INFO) << "Register file " << file_info.file_id;
       file_info.is_paused = false;
@@ -712,6 +717,7 @@ class DownloadManagerImpl final : public DownloadManager {
     }
     sync_with_database(file_info);
     update_counters();
+    CHECK(file_info.is_registered);
 
     check_completed_downloads_size();
   }
