@@ -236,22 +236,20 @@ class DownloadManagerImpl final : public DownloadManager {
       offset_int64 = r_offset.move_as_ok();
     }
     auto download_ids = hints_.search(query, 10000, true).second;
-    int32 total_active_count = 0;
-    int32 total_paused_count = 0;
-    int32 total_completed_count = 0;
+    FileCounters counters;
     td::remove_if(download_ids, [&](int64 download_id) {
       auto r = get_file_info(download_id);
       CHECK(r.is_ok());
       auto &file_info = *r.ok();
       if (is_completed(file_info)) {
-        total_completed_count++;
+        counters.completed_count++;
         if (only_active) {
           return true;
         }
       } else {
-        total_active_count++;
+        counters.active_count++;
         if (file_info.is_paused) {
-          total_paused_count++;
+          counters.paused_count++;
         }
         if (only_completed) {
           return true;
@@ -280,8 +278,8 @@ class DownloadManagerImpl final : public DownloadManager {
     if (!download_ids.empty()) {
       next_offset = to_string(download_ids.back());
     }
-    promise.set_value(td_api::make_object<td_api::foundFileDownloads>(
-        total_active_count, total_paused_count, total_completed_count, std::move(file_downloads), next_offset));
+    promise.set_value(td_api::make_object<td_api::foundFileDownloads>(counters.get_downloaded_file_counts_object(),
+                                                                      std::move(file_downloads), next_offset));
   }
 
   void update_file_download_state(FileId internal_file_id, int64 downloaded_size, int64 size, int64 expected_size,
@@ -763,6 +761,11 @@ unique_ptr<DownloadManager> DownloadManager::create(unique_ptr<Callback> callbac
 
 td_api::object_ptr<td_api::updateFileDownloads> DownloadManager::Counters::get_update_file_downloads_object() const {
   return td_api::make_object<td_api::updateFileDownloads>(total_size, total_count, downloaded_size);
+}
+
+td_api::object_ptr<td_api::downloadedFileCounts> DownloadManager::FileCounters::get_downloaded_file_counts_object()
+    const {
+  return td_api::make_object<td_api::downloadedFileCounts>(active_count, paused_count, completed_count);
 }
 
 template <class StorerT>

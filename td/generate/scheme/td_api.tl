@@ -454,7 +454,7 @@ user id:int53 first_name:string last_name:string username:string phone_number:st
 //@commands For bots, list of the bot commands
 userFullInfo photo:chatPhoto is_blocked:Bool can_be_called:Bool supports_video_calls:Bool has_private_calls:Bool has_private_forwards:Bool need_phone_number_privacy_exception:Bool bio:string share_text:string description:string group_in_common_count:int32 commands:vector<botCommand> = UserFullInfo;
 
-//@description Represents a list of users @total_count Approximate total count of users found @user_ids A list of user identifiers
+//@description Represents a list of users @total_count Approximate total number of users found @user_ids A list of user identifiers
 users total_count:int32 user_ids:vector<int53> = Users;
 
 
@@ -525,7 +525,7 @@ chatMemberStatusBanned banned_until_date:int32 = ChatMemberStatus;
 //@status Status of the member in the chat
 chatMember member_id:MessageSender inviter_user_id:int53 joined_chat_date:int32 status:ChatMemberStatus = ChatMember;
 
-//@description Contains a list of chat members @total_count Approximate total count of chat members found @members A list of chat members
+//@description Contains a list of chat members @total_count Approximate total number of chat members found @members A list of chat members
 chatMembers total_count:int32 members:vector<chatMember> = ChatMembers;
 
 
@@ -595,7 +595,7 @@ supergroupMembersFilterBots = SupergroupMembersFilter;
 //@is_revoked True, if the link was revoked
 chatInviteLink invite_link:string name:string creator_user_id:int53 date:int32 edit_date:int32 expiration_date:int32 member_limit:int32 member_count:int32 pending_join_request_count:int32 creates_join_request:Bool is_primary:Bool is_revoked:Bool = ChatInviteLink;
 
-//@description Contains a list of chat invite links @total_count Approximate total count of chat invite links found @invite_links List of invite links
+//@description Contains a list of chat invite links @total_count Approximate total number of chat invite links found @invite_links List of invite links
 chatInviteLinks total_count:int32 invite_links:vector<chatInviteLink> = ChatInviteLinks;
 
 //@description Describes a chat administrator with a number of active and revoked chat invite links
@@ -610,7 +610,7 @@ chatInviteLinkCounts invite_link_counts:vector<chatInviteLinkCount> = ChatInvite
 //@description Describes a chat member joined a chat via an invite link @user_id User identifier @joined_chat_date Point in time (Unix timestamp) when the user joined the chat @approver_user_id User identifier of the chat administrator, approved user join request
 chatInviteLinkMember user_id:int53 joined_chat_date:int32 approver_user_id:int53 = ChatInviteLinkMember;
 
-//@description Contains a list of chat members joined a chat via an invite link @total_count Approximate total count of chat members found @members List of chat members, joined a chat via an invite link
+//@description Contains a list of chat members joined a chat via an invite link @total_count Approximate total number of chat members found @members List of chat members, joined a chat via an invite link
 chatInviteLinkMembers total_count:int32 members:vector<chatInviteLinkMember> = ChatInviteLinkMembers;
 
 //@description Contains information about a chat invite link
@@ -629,7 +629,7 @@ chatInviteLinkInfo chat_id:int53 accessible_for:int32 type:ChatType title:string
 //@description Describes a user that sent a join request and waits for administrator approval @user_id User identifier @date Point in time (Unix timestamp) when the user sent the join request @bio A short bio of the user
 chatJoinRequest user_id:int53 date:int32 bio:string = ChatJoinRequest;
 
-//@description Contains a list of requests to join a chat @total_count Approximate total count of requests found @requests List of the requests
+//@description Contains a list of requests to join a chat @total_count Approximate total number of requests found @requests List of the requests
 chatJoinRequests total_count:int32 requests:vector<chatJoinRequest> = ChatJoinRequests;
 
 //@description Contains information about pending join requests for a chat @total_count Total number of pending join requests @user_ids Identifiers of at most 3 users sent the newest pending join requests
@@ -729,7 +729,7 @@ messageSenderUser user_id:int53 = MessageSender;
 messageSenderChat chat_id:int53 = MessageSender;
 
 
-//@description Represents a list of message senders @total_count Approximate total count of messages senders found @senders List of message senders
+//@description Represents a list of message senders @total_count Approximate total number of messages senders found @senders List of message senders
 messageSenders total_count:int32 senders:vector<MessageSender> = MessageSenders;
 
 
@@ -844,16 +844,16 @@ messageSendingStateFailed error_code:int32 error_message:string can_retry:Bool n
 //@reply_markup Reply markup for the message; may be null
 message id:int53 sender_id:MessageSender chat_id:int53 sending_state:MessageSendingState scheduling_state:MessageSchedulingState is_outgoing:Bool is_pinned:Bool can_be_edited:Bool can_be_forwarded:Bool can_be_saved:Bool can_be_deleted_only_for_self:Bool can_be_deleted_for_all_users:Bool can_get_added_reactions:Bool can_get_statistics:Bool can_get_message_thread:Bool can_get_viewers:Bool can_get_media_timestamp_links:Bool has_timestamped_media:Bool is_channel_post:Bool contains_unread_mention:Bool date:int32 edit_date:int32 forward_info:messageForwardInfo interaction_info:messageInteractionInfo unread_reactions:vector<unreadReaction> reply_in_chat_id:int53 reply_to_message_id:int53 message_thread_id:int53 ttl:int32 ttl_expires_in:double via_bot_user_id:int53 author_signature:string media_album_id:int64 restriction_reason:string content:MessageContent reply_markup:ReplyMarkup = Message;
 
-//@description Contains a list of messages @total_count Approximate total count of messages found @messages List of messages; messages may be null
+//@description Contains a list of messages @total_count Approximate total number of messages found @messages List of messages; messages may be null
 messages total_count:int32 messages:vector<message> = Messages;
 
-//@description Contains a list of messages found by a search @total_count Approximate total count of messages found; -1 if unknown @messages List of messages @next_offset The offset for the next request. If empty, there are no more results
+//@description Contains a list of messages found by a search @total_count Approximate total number of messages found; -1 if unknown @messages List of messages @next_offset The offset for the next request. If empty, there are no more results
 foundMessages total_count:int32 messages:vector<message> next_offset:string = FoundMessages;
 
 //@description Contains information about a message in a specific position @position 0-based message position in the full list of suitable messages @message_id Message identifier @date Point in time (Unix timestamp) when the message was sent
 messagePosition position:int32 message_id:int53 date:int32 = MessagePosition;
 
-//@description Contains a list of message positions @total_count Total count of messages found @positions List of message positions
+//@description Contains a list of message positions @total_count Total number of messages found @positions List of message positions
 messagePositions total_count:int32 positions:vector<messagePosition> = MessagePositions;
 
 //@description Contains information about found messages sent on a specific day @total_count Total number of found messages sent on the day @message First message sent on the day
@@ -880,13 +880,17 @@ sponsoredMessage message_id:int53 sponsor_chat_id:int53 sponsor_chat_info:chatIn
 //@is_paused True, if downloading of the file is paused
 fileDownload file_id:int32 message:message add_date:int32 complete_date:int32 is_paused:Bool = FileDownload;
 
-//@description Contains a list of downloaded files found by a search
-//@total_active_count Total count of active file downloads found, including paused
-//@total_paused_count Total count of paused file downloads found
-//@total_completed_count Total count of completed file downloads found
-//@files List of downloaded files
+//@description Contains number of being downloaded and recently downloaded files found
+//@active_count Number of active file downloads found, including paused
+//@paused_count Number of paused file downloads found
+//@completed_count Number of completed file downloads found
+downloadedFileCounts active_count:int32 paused_count:int32 completed_count:int32 = DownloadedFileCounts;
+
+//@description Contains a list of downloaded files, found by a search
+//@total_counts Total number of suitable files, ignoring offset
+//@files The list of files
 //@next_offset The offset for the next request. If empty, there are no more results
-foundFileDownloads total_active_count:int32 total_paused_count:int32 total_completed_count:int32 files:vector<fileDownload> next_offset:string = FoundFileDownloads;
+foundFileDownloads total_counts:downloadedFileCounts files:vector<fileDownload> next_offset:string = FoundFileDownloads;
 
 
 //@class NotificationSettingsScope @description Describes the types of chats to which notification settings are relevant
@@ -1043,7 +1047,7 @@ videoChat group_call_id:int32 has_participants:Bool default_participant_id:Messa
 //@client_data Application-specific data associated with the chat. (For example, the chat scroll position or local chat notification settings can be stored here.) Persistent if the message database is used
 chat id:int53 type:ChatType title:string photo:chatPhotoInfo permissions:chatPermissions last_message:message positions:vector<chatPosition> message_sender_id:MessageSender has_protected_content:Bool is_marked_as_unread:Bool is_blocked:Bool has_scheduled_messages:Bool can_be_deleted_only_for_self:Bool can_be_deleted_for_all_users:Bool can_be_reported:Bool default_disable_notification:Bool unread_count:int32 last_read_inbox_message_id:int53 last_read_outbox_message_id:int53 unread_mention_count:int32 unread_reaction_count:int32 notification_settings:chatNotificationSettings available_reactions:vector<string> message_ttl:int32 theme_name:string action_bar:ChatActionBar video_chat:videoChat pending_join_requests:chatJoinRequestsInfo reply_markup_message_id:int53 draft_message:draftMessage client_data:string = Chat;
 
-//@description Represents a list of chats @total_count Approximate total count of chats found @chat_ids List of chat identifiers
+//@description Represents a list of chats @total_count Approximate total number of chats found @chat_ids List of chat identifiers
 chats total_count:int32 chat_ids:vector<int53> = Chats;
 
 
@@ -2419,7 +2423,7 @@ phoneNumberAuthenticationSettings allow_flash_call:Bool allow_missed_call:Bool i
 //@description Represents a reaction applied to a message @reaction Text representation of the reaction @sender_id Identifier of the chat member, applied the reaction
 addedReaction reaction:string sender_id:MessageSender = AddedReaction;
 
-//@description Represents a list of reactions added to a message @total_count The total count of found reactions @reactions The list of added reactions @next_offset The offset for the next request. If empty, there are no more results
+//@description Represents a list of reactions added to a message @total_count The total number of found reactions @reactions The list of added reactions @next_offset The offset for the next request. If empty, there are no more results
 addedReactions total_count:int32 reactions:vector<addedReaction> next_offset:string = AddedReactions;
 
 //@description Represents a list of available reactions @reactions List of reactions
@@ -5771,7 +5775,7 @@ getDatabaseStatistics = DatabaseStatistics;
 //@description Optimizes storage usage, i.e. deletes some files and returns new storage usage statistics. Secret thumbnails can't be deleted
 //@size Limit on the total size of files after deletion, in bytes. Pass -1 to use the default limit
 //@ttl Limit on the time that has passed since the last time a file was accessed (or creation time for some filesystems). Pass -1 to use the default limit
-//@count Limit on the total count of files after deletion. Pass -1 to use the default limit
+//@count Limit on the total number of files after deletion. Pass -1 to use the default limit
 //@immunity_delay The amount of time after the creation of a file during which it can't be deleted, in seconds. Pass -1 to use the default value
 //@file_types If non-empty, only files with the given types are considered. By default, all types except thumbnails, profile photos, stickers and wallpapers are deleted
 //@chat_ids If non-empty, only files from the given chats are considered. Use 0 as chat identifier to delete files not belonging to any chat (e.g., profile photos)

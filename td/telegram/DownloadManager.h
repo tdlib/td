@@ -40,6 +40,25 @@ class DownloadManager : public Actor {
     void parse(ParserT &parser);
   };
 
+  struct FileCounters {
+    int32 active_count{};
+    int32 paused_count{};
+    int32 completed_count{};
+
+    bool operator==(const FileCounters &other) const {
+      return active_count == other.active_count && paused_count == other.paused_count &&
+             completed_count == other.completed_count;
+    }
+
+    td_api::object_ptr<td_api::downloadedFileCounts> get_downloaded_file_counts_object() const;
+
+    template <class StorerT>
+    void store(StorerT &storer) const;
+
+    template <class ParserT>
+    void parse(ParserT &parser);
+  };
+
   // to make DownloadManager testable all interactions with G() must be hidden in this probably monstrous interface
   class Callback {
    public:
