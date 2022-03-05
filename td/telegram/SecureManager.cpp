@@ -1050,10 +1050,10 @@ void SecureManager::get_passport_authorization_form_available_elements(int32 aut
 
   refcnt_++;
   send_closure(G()->password_manager(), &PasswordManager::get_secure_secret, password,
-               PromiseCreator::lambda([actor_id = actor_shared(this), authorization_form_id,
+               PromiseCreator::lambda([self = actor_shared(this), authorization_form_id,
                                        promise = std::move(promise)](Result<secure_storage::Secret> r_secret) mutable {
-                 send_closure(actor_id, &SecureManager::on_get_passport_authorization_form_secret,
-                              authorization_form_id, std::move(promise), std::move(r_secret));
+                 send_closure(self, &SecureManager::on_get_passport_authorization_form_secret, authorization_form_id,
+                              std::move(promise), std::move(r_secret));
                }));
 }
 

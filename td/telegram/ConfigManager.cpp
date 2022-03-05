@@ -812,10 +812,9 @@ class ConfigRecoverer final : public Actor {
     if (need_simple_config) {
       ref_cnt_++;
       VLOG(config_recoverer) << "Ask simple config with turn " << simple_config_turn_;
-      auto promise =
-          PromiseCreator::lambda([actor_id = actor_shared(this)](Result<SimpleConfigResult> r_simple_config) {
-            send_closure(actor_id, &ConfigRecoverer::on_simple_config, std::move(r_simple_config), false);
-          });
+      auto promise = PromiseCreator::lambda([self = actor_shared(this)](Result<SimpleConfigResult> r_simple_config) {
+        send_closure(self, &ConfigRecoverer::on_simple_config, std::move(r_simple_config), false);
+      });
       auto get_simple_config = [&] {
         switch (simple_config_turn_ % 10) {
           case 6:

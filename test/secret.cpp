@@ -791,13 +791,13 @@ class Master final : public Actor {
     if (can_fail(query) && Random::fast_bool()) {
       LOG(INFO) << "Fail query " << query;
       auto resend_promise =
-          PromiseCreator::lambda([id = actor_shared(this, get_link_token()), callback_actor = callback.get(),
+          PromiseCreator::lambda([self = actor_shared(this, get_link_token()), callback_actor = callback.get(),
                                   callback_token = callback.token()](Result<NetQueryPtr> r_net_query) mutable {
             if (r_net_query.is_error()) {
-              id.release();
+              self.release();
               return;
             }
-            send_closure(std::move(id), &Master::send_net_query, r_net_query.move_as_ok(),
+            send_closure(std::move(self), &Master::send_net_query, r_net_query.move_as_ok(),
                          ActorShared<NetQueryCallback>(callback_actor, callback_token), true);
           });
       query->set_error(Status::Error(429, "Test error"));

@@ -261,8 +261,9 @@ class QueryBench final : public td::Benchmark {
           send_lambda(client_, [&] { val = n_ * n_; });
         } else if (type == 5) {
           send_closure(client_, &ClientActor::f_promise,
-                       td::PromiseCreator::lambda(
-                           [id = actor_id(this), n = n_](td::Unit) { send_closure(id, &ServerActor::result, n * n); }));
+                       td::PromiseCreator::lambda([actor_id = actor_id(this), n = n_](td::Unit) {
+                         send_closure(actor_id, &ServerActor::result, n * n);
+                       }));
           return;
         }
       }

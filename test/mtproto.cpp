@@ -367,12 +367,12 @@ class HandshakeTestActor final : public td::Actor {
           "HandshakeActor", std::move(handshake_), std::move(raw_connection_), td::make_unique<HandshakeContext>(),
           10.0,
           td::PromiseCreator::lambda(
-              [self = actor_id(this)](td::Result<td::unique_ptr<td::mtproto::RawConnection>> raw_connection) {
-                td::send_closure(self, &HandshakeTestActor::got_connection, std::move(raw_connection), 1);
+              [actor_id = actor_id(this)](td::Result<td::unique_ptr<td::mtproto::RawConnection>> raw_connection) {
+                td::send_closure(actor_id, &HandshakeTestActor::got_connection, std::move(raw_connection), 1);
               }),
           td::PromiseCreator::lambda(
-              [self = actor_id(this)](td::Result<td::unique_ptr<td::mtproto::AuthKeyHandshake>> handshake) {
-                td::send_closure(self, &HandshakeTestActor::got_handshake, std::move(handshake), 1);
+              [actor_id = actor_id(this)](td::Result<td::unique_ptr<td::mtproto::AuthKeyHandshake>> handshake) {
+                td::send_closure(actor_id, &HandshakeTestActor::got_handshake, std::move(handshake), 1);
               }))
           .release();
       wait_for_raw_connection_ = true;
@@ -557,12 +557,12 @@ class FastPingTestActor final : public td::Actor {
     td::create_actor<td::mtproto::HandshakeActor>(
         "HandshakeActor", std::move(handshake), std::move(raw_connection), td::make_unique<HandshakeContext>(), 10.0,
         td::PromiseCreator::lambda(
-            [self = actor_id(this)](td::Result<td::unique_ptr<td::mtproto::RawConnection>> raw_connection) {
-              td::send_closure(self, &FastPingTestActor::got_connection, std::move(raw_connection), 1);
+            [actor_id = actor_id(this)](td::Result<td::unique_ptr<td::mtproto::RawConnection>> raw_connection) {
+              td::send_closure(actor_id, &FastPingTestActor::got_connection, std::move(raw_connection), 1);
             }),
         td::PromiseCreator::lambda(
-            [self = actor_id(this)](td::Result<td::unique_ptr<td::mtproto::AuthKeyHandshake>> handshake) {
-              td::send_closure(self, &FastPingTestActor::got_handshake, std::move(handshake), 1);
+            [actor_id = actor_id(this)](td::Result<td::unique_ptr<td::mtproto::AuthKeyHandshake>> handshake) {
+              td::send_closure(actor_id, &FastPingTestActor::got_handshake, std::move(handshake), 1);
             }))
         .release();
   }
@@ -623,8 +623,8 @@ class FastPingTestActor final : public td::Actor {
       fast_ping_ = create_ping_actor(
           td::Slice(), std::move(connection_), std::move(auth_data),
           td::PromiseCreator::lambda(
-              [self = actor_id(this)](td::Result<td::unique_ptr<td::mtproto::RawConnection>> r_raw_connection) {
-                td::send_closure(self, &FastPingTestActor::got_raw_connection, std::move(r_raw_connection));
+              [actor_id = actor_id(this)](td::Result<td::unique_ptr<td::mtproto::RawConnection>> r_raw_connection) {
+                td::send_closure(actor_id, &FastPingTestActor::got_raw_connection, std::move(r_raw_connection));
               }),
           td::ActorShared<>());
     }
