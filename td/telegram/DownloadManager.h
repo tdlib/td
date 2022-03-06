@@ -65,9 +65,9 @@ class DownloadManager : public Actor {
     virtual ~Callback() = default;
     virtual void update_counters(Counters counters) = 0;
     virtual void update_file_added(FileId file_id, FileSourceId file_source_id, int32 add_date, int32 complete_date,
-                                   bool is_paused) = 0;
-    virtual void update_file_changed(FileId file_id, int32 complete_date, bool is_paused) = 0;
-    virtual void update_file_removed(FileId file_id) = 0;
+                                   bool is_paused, FileCounters counters) = 0;
+    virtual void update_file_changed(FileId file_id, int32 complete_date, bool is_paused, FileCounters counters) = 0;
+    virtual void update_file_removed(FileId file_id, FileCounters counters) = 0;
     virtual void start_file(FileId file_id, int8 priority, ActorShared<DownloadManager> download_manager) = 0;
     virtual void pause_file(FileId file_id) = 0;
     virtual void delete_file(FileId file_id) = 0;

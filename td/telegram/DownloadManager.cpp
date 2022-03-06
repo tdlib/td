@@ -118,7 +118,7 @@ class DownloadManagerImpl final : public DownloadManager {
     remove_from_database(file_info);
     files_.erase(download_id);
     if (is_search_inited_) {
-      callback_->update_file_removed(file_id);
+      callback_->update_file_removed(file_id, file_counters_);
     }
 
     update_counters();
@@ -299,6 +299,7 @@ class DownloadManagerImpl final : public DownloadManager {
       return;
     }
 
+    bool need_update = false;
     with_file_info(file_info, [&](FileInfo &file_info) {
       file_info.size = size;
       file_info.expected_size = expected_size;
@@ -306,12 +307,12 @@ class DownloadManagerImpl final : public DownloadManager {
       if (is_paused && file_info.is_paused != is_paused) {
         file_info.is_paused = is_paused;
         file_info.need_save_to_database = true;
-
-        if (is_search_inited_) {
-          callback_->update_file_changed(file_info.file_id, file_info.completed_at, file_info.is_paused);
-        }
+        need_update = true;
       }
     });
+    if (is_search_inited_ && need_update) {
+      callback_->update_file_changed(file_info.file_id, file_info.completed_at, file_info.is_paused, file_counters_);
+    }
   }
 
   void update_file_deleted(FileId internal_file_id) final {
@@ -369,6 +370,7 @@ class DownloadManagerImpl final : public DownloadManager {
 
   Counters counters_;
   Counters sent_counters_;
+  FileCounters file_counters_;
   bool is_inited_{false};
   bool is_database_loaded_{false};
   bool is_search_inited_{false};
@@ -576,7 +578,7 @@ class DownloadManagerImpl final : public DownloadManager {
     }
     if (is_search_inited_) {
       callback_->update_file_added(it->second->file_id, it->second->file_source_id, it->second->created_at,
-                                   it->second->completed_at, it->second->is_paused);
+                                   it->second->completed_at, it->second->is_paused, file_counters_);
     }
   }
 
@@ -623,7 +625,7 @@ class DownloadManagerImpl final : public DownloadManager {
       callback_->start_file(file_info.internal_file_id, file_info.priority, actor_shared(this, file_info.link_token));
     }
     if (is_search_inited_) {
-      callback_->update_file_changed(file_info.file_id, file_info.completed_at, file_info.is_paused);
+      callback_->update_file_changed(file_info.file_id, file_info.completed_at, file_info.is_paused, file_counters_);
     }
   }
 
@@ -689,11 +691,23 @@ class DownloadManagerImpl final : public DownloadManager {
       counters_.total_size -= get_file_size(file_info);
       counters_.total_count--;
     }
+    if (is_completed(file_info)) {
+      file_counters_.completed_count--;
+      CHECK(file_counters_.completed_count >= 0);
+    } else {
+      if (file_info.is_paused) {
+        file_counters_.paused_count--;
+        CHECK(file_counters_.paused_count >= 0);
+      }
+      file_counters_.active_count--;
+      CHECK(file_counters_.active_count >= file_counters_.paused_count);
+    }
   }
 
   void register_file_info(FileInfo &file_info) {
     CHECK(!file_info.is_registered);
     file_info.is_registered = true;
+    bool need_update = false;
     if (!is_completed(file_info) && file_info.size != 0 && file_info.downloaded_size == file_info.size) {
       LOG(INFO) << "Register file " << file_info.file_id;
       file_info.is_paused = false;
@@ -706,14 +720,23 @@ class DownloadManagerImpl final : public DownloadManager {
         unviewed_completed_download_ids_.insert(file_info.download_id);
       }
 
-      if (is_search_inited_) {
-        callback_->update_file_changed(file_info.file_id, file_info.completed_at, file_info.is_paused);
-      }
+      need_update = true;
     }
     if (file_info.is_counted && (is_completed(file_info) || !file_info.is_paused)) {
       counters_.downloaded_size += file_info.downloaded_size;
       counters_.total_size += get_file_size(file_info);
       counters_.total_count++;
+    }
+    if (is_completed(file_info)) {
+      file_counters_.completed_count++;
+    } else {
+      if (file_info.is_paused) {
+        file_counters_.paused_count++;
+      }
+      file_counters_.active_count++;
+    }
+    if (is_search_inited_ && need_update) {
+      callback_->update_file_changed(file_info.file_id, file_info.completed_at, file_info.is_paused, file_counters_);
     }
     sync_with_database(file_info);
     update_counters();

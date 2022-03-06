@@ -23,20 +23,25 @@ void DownloadManagerCallback::update_counters(DownloadManager::Counters counters
 }
 
 void DownloadManagerCallback::update_file_added(FileId file_id, FileSourceId file_source_id, int32 add_date,
-                                                int32 complete_date, bool is_paused) {
+                                                int32 complete_date, bool is_paused,
+                                                DownloadManager::FileCounters counters) {
   send_closure(td_->actor_id(td_), &Td::send_update,
                td_api::make_object<td_api::updateFileAddedToDownloads>(
-                   get_file_download_object(file_id, file_source_id, add_date, complete_date, is_paused)));
+                   get_file_download_object(file_id, file_source_id, add_date, complete_date, is_paused),
+                   counters.get_downloaded_file_counts_object()));
 }
 
-void DownloadManagerCallback::update_file_changed(FileId file_id, int32 complete_date, bool is_paused) {
+void DownloadManagerCallback::update_file_changed(FileId file_id, int32 complete_date, bool is_paused,
+                                                  DownloadManager::FileCounters counters) {
   send_closure(td_->actor_id(td_), &Td::send_update,
-               td_api::make_object<td_api::updateFileDownload>(file_id.get(), complete_date, is_paused));
+               td_api::make_object<td_api::updateFileDownload>(file_id.get(), complete_date, is_paused,
+                                                               counters.get_downloaded_file_counts_object()));
 }
 
-void DownloadManagerCallback::update_file_removed(FileId file_id) {
+void DownloadManagerCallback::update_file_removed(FileId file_id, DownloadManager::FileCounters counters) {
   send_closure(td_->actor_id(td_), &Td::send_update,
-               td_api::make_object<td_api::updateFileRemovedFromDownloads>(file_id.get()));
+               td_api::make_object<td_api::updateFileRemovedFromDownloads>(
+                   file_id.get(), counters.get_downloaded_file_counts_object()));
 }
 
 void DownloadManagerCallback::start_file(FileId file_id, int8 priority, ActorShared<DownloadManager> download_manager) {

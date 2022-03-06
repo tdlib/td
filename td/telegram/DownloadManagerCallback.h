@@ -27,11 +27,12 @@ class DownloadManagerCallback final : public DownloadManager::Callback {
   void update_counters(DownloadManager::Counters counters) final;
 
   void update_file_added(FileId file_id, FileSourceId file_source_id, int32 add_date, int32 complete_date,
-                         bool is_paused) final;
+                         bool is_paused, DownloadManager::FileCounters counters) final;
 
-  void update_file_changed(FileId file_id, int32 complete_date, bool is_paused) final;
+  void update_file_changed(FileId file_id, int32 complete_date, bool is_paused,
+                           DownloadManager::FileCounters counters) final;
 
-  void update_file_removed(FileId file_id) final;
+  void update_file_removed(FileId file_id, DownloadManager::FileCounters counters) final;
 
   void start_file(FileId file_id, int8 priority, ActorShared<DownloadManager> download_manager) final;
 
