@@ -12939,7 +12939,7 @@ void MessagesManager::on_update_viewed_messages_timeout(DialogId dialog_id) {
   }
 
   auto it = dialog_viewed_messages_.find(dialog_id);
-  if (it == dialog_viewed_messages_.end()) {
+  if (it == dialog_viewed_messages_.end() || !td_->is_online()) {
     return;
   }
 
@@ -20789,7 +20789,9 @@ Status MessagesManager::view_messages(DialogId dialog_id, MessageId top_thread_m
     if (!viewed_reaction_message_ids.empty()) {
       queue_message_reactions_reload(dialog_id, new_viewed_message_ids);
     }
-    update_viewed_messages_timeout_.add_timeout_in(dialog_id.get(), UPDATE_VIEWED_MESSAGES_PERIOD);
+    if (td_->is_online()) {
+      update_viewed_messages_timeout_.add_timeout_in(dialog_id.get(), UPDATE_VIEWED_MESSAGES_PERIOD);
+    }
   }
 
   if (!need_read) {
