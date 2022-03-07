@@ -1922,12 +1922,14 @@ class GetMessagesViewsQuery final : public Td::ResultHandler {
       td_->messages_manager_->on_update_message_interaction_info(full_message_id, view_count, forward_count, true,
                                                                  std::move(info->replies_));
     }
+    td_->messages_manager_->finish_get_message_views(dialog_id_, message_ids_);
   }
 
   void on_error(Status status) final {
     if (!td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "GetMessagesViewsQuery")) {
       LOG(ERROR) << "Receive error for GetMessagesViewsQuery: " << status;
     }
+    td_->messages_manager_->finish_get_message_views(dialog_id_, message_ids_);
   }
 };
 
@@ -6952,6 +6954,19 @@ void MessagesManager::on_pending_message_views_timeout(DialogId dialog_id) {
   vector<MessageId> message_ids;
   message_ids.reserve(min(d->pending_viewed_message_ids.size(), MAX_MESSAGE_VIEWS));
   for (auto message_id : d->pending_viewed_message_ids) {
+    auto *m = get_message(d, message_id);
+    if (m == nullptr) {
+      continue;
+    }
+    if (m->has_get_message_views_query) {
+      if (!d->increment_view_counter || m->need_view_counter_increment) {
+        continue;
+      }
+      m->need_view_counter_increment = true;
+    } else {
+      m->has_get_message_views_query = true;
+      m->need_view_counter_increment = d->increment_view_counter;
+    }
     message_ids.push_back(message_id);
     if (message_ids.size() >= MAX_MESSAGE_VIEWS) {
       td_->create_handler<GetMessagesViewsQuery>()->send(dialog_id, std::move(message_ids), d->increment_view_counter);
@@ -12948,13 +12963,14 @@ void MessagesManager::on_update_viewed_messages_timeout(DialogId dialog_id) {
   vector<MessageId> reaction_message_ids;
   vector<MessageId> views_message_ids;
   for (auto &message_it : info->message_id_to_view_id) {
-    const Message *m = get_message_force(d, message_it.first, "on_update_viewed_messages_timeout");
+    Message *m = get_message_force(d, message_it.first, "on_update_viewed_messages_timeout");
     CHECK(m != nullptr);
     CHECK(m->message_id.is_valid());
     if (need_poll_message_reactions(d, m)) {
       reaction_message_ids.push_back(m->message_id);
     }
-    if (m->view_count > 0) {
+    if (m->view_count > 0 && !m->has_get_message_views_query) {
+      m->has_get_message_views_query = true;
       views_message_ids.push_back(m->message_id);
     }
   }
@@ -20796,9 +20812,9 @@ Status MessagesManager::view_messages(DialogId dialog_id, MessageId top_thread_m
     if (!viewed_reaction_message_ids.empty()) {
       queue_message_reactions_reload(dialog_id, new_viewed_message_ids);
     }
-    if (td_->is_online()) {
-      update_viewed_messages_timeout_.add_timeout_in(dialog_id.get(), UPDATE_VIEWED_MESSAGES_PERIOD);
-    }
+  }
+  if (td_->is_online() && dialog_viewed_messages_.count(dialog_id) != 0) {
+    update_viewed_messages_timeout_.add_timeout_in(dialog_id.get(), UPDATE_VIEWED_MESSAGES_PERIOD);
   }
 
   if (!need_read) {
@@ -20878,6 +20894,18 @@ Status MessagesManager::view_messages(DialogId dialog_id, MessageId top_thread_m
   }
 
   return Status::OK();
+}
+
+void MessagesManager::finish_get_message_views(DialogId dialog_id, const vector<MessageId> &message_ids) {
+  Dialog *d = get_dialog(dialog_id);
+  CHECK(d != nullptr);
+  for (auto message_id : message_ids) {
+    auto *m = get_message(d, message_id);
+    if (m != nullptr) {
+      m->has_get_message_views_query = false;
+      m->need_view_counter_increment = false;
+    }
+  }
 }
 
 Status MessagesManager::open_message_content(FullMessageId full_message_id) {

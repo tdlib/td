@@ -689,6 +689,8 @@ class MessagesManager final : public Actor {
   Status view_messages(DialogId dialog_id, MessageId top_thread_message_id, const vector<MessageId> &message_ids,
                        bool force_read) TD_WARN_UNUSED_RESULT;
 
+  void finish_get_message_views(DialogId dialog_id, const vector<MessageId> &message_ids);
+
   Status open_message_content(FullMessageId full_message_id) TD_WARN_UNUSED_RESULT;
 
   void click_animated_emoji_message(FullMessageId full_message_id,
@@ -1135,6 +1137,9 @@ class MessagesManager final : public Actor {
     bool have_previous = false;
     bool have_next = false;
     bool from_database = false;
+
+    bool has_get_message_views_query = false;
+    bool need_view_counter_increment = false;
 
     DialogId real_forward_from_dialog_id;    // for resend_message
     MessageId real_forward_from_message_id;  // for resend_message
