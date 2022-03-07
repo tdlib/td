@@ -12943,20 +12943,27 @@ void MessagesManager::on_update_viewed_messages_timeout(DialogId dialog_id) {
     return;
   }
 
-  if (need_poll_dialog_message_reactions(d)) {
-    auto &info = it->second;
-    CHECK(info != nullptr);
-    vector<MessageId> reaction_message_ids;
-    for (auto &message_it : info->message_id_to_view_id) {
-      const Message *m = get_message_force(d, message_it.first, "on_update_viewed_messages_timeout");
-      CHECK(m != nullptr);
-      CHECK(m->message_id.is_valid());
-      if (need_poll_message_reactions(d, m)) {
-        reaction_message_ids.push_back(m->message_id);
-      }
+  auto &info = it->second;
+  CHECK(info != nullptr);
+  vector<MessageId> reaction_message_ids;
+  vector<MessageId> views_message_ids;
+  for (auto &message_it : info->message_id_to_view_id) {
+    const Message *m = get_message_force(d, message_it.first, "on_update_viewed_messages_timeout");
+    CHECK(m != nullptr);
+    CHECK(m->message_id.is_valid());
+    if (need_poll_message_reactions(d, m)) {
+      reaction_message_ids.push_back(m->message_id);
     }
+    if (m->view_count > 0) {
+      views_message_ids.push_back(m->message_id);
+    }
+  }
 
+  if (!reaction_message_ids.empty()) {
     queue_message_reactions_reload(dialog_id, reaction_message_ids);
+  }
+  if (!views_message_ids.empty()) {
+    td_->create_handler<GetMessagesViewsQuery>()->send(dialog_id, std::move(views_message_ids), false);
   }
 
   update_viewed_messages_timeout_.add_timeout_in(dialog_id.get(), UPDATE_VIEWED_MESSAGES_PERIOD);
