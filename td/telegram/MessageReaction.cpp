@@ -66,10 +66,12 @@ class GetMessagesReactionsQuery final : public Td::ResultHandler {
       }
     }
     td_->updates_manager_->on_get_updates(std::move(ptr), Promise<Unit>());
+    td_->messages_manager_->try_reload_message_reactions(dialog_id_, true);
   }
 
   void on_error(Status status) final {
     td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "GetMessagesReactionsQuery");
+    td_->messages_manager_->try_reload_message_reactions(dialog_id_, true);
   }
 };
 

@@ -8615,6 +8615,14 @@ void MessagesManager::queue_message_reactions_reload(FullMessageId full_message_
   try_reload_message_reactions(dialog_id, false);
 }
 
+void MessagesManager::queue_message_reactions_reload(DialogId dialog_id, const vector<MessageId> &message_ids) {
+  auto &message_ids_to_reload = being_reloaded_reactions_[dialog_id].message_ids;
+  for (auto &message_id : message_ids) {
+    message_ids_to_reload.insert(message_id);
+  }
+  try_reload_message_reactions(dialog_id, false);
+}
+
 void MessagesManager::try_reload_message_reactions(DialogId dialog_id, bool is_finished) {
   if (G()->close_flag()) {
     return;
@@ -12835,7 +12843,7 @@ void MessagesManager::set_dialog_online_member_count(DialogId dialog_id, int32 o
             << " in " << dialog_id << " from " << source;
   bool need_update = d->is_opened && (!info.is_update_sent || info.online_member_count != online_member_count);
   info.online_member_count = online_member_count;
-  info.updated_time = Time::now();
+  info.update_time = Time::now();
 
   if (need_update) {
     info.is_update_sent = true;
@@ -16248,7 +16256,8 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
 }
 
 void MessagesManager::on_message_deleted(Dialog *d, Message *m, bool is_permanently_deleted, const char *source) {
-  // also called for unloaded messages
+  // also called for unloaded messages, but not for scheduled messages
+  CHECK(m->message_id.is_valid());
 
   if (m->message_id.is_yet_unsent() && m->top_thread_message_id.is_valid()) {
     auto it = d->yet_unsent_thread_message_ids.find(m->top_thread_message_id);
@@ -16259,10 +16268,21 @@ void MessagesManager::on_message_deleted(Dialog *d, Message *m, bool is_permanen
       d->yet_unsent_thread_message_ids.erase(it);
     }
   }
+  if (d->is_opened) {
+    auto it = dialog_viewed_messages.find(d->dialog_id);
+    if (it != dialog_viewed_messages.end()) {
+      auto &info = it->second;
+      CHECK(info != nullptr);
+      auto message_it = info->message_id_to_view_id.find(m->message_id);
+      if (message_it != info->message_id_to_view_id.end()) {
+        info->recently_viewed_messages.erase(message_it->second);
+        info->message_id_to_view_id.erase(message_it);
+      }
+    }
+  }
 
   cancel_send_deleted_message(d->dialog_id, m, is_permanently_deleted);
 
-  CHECK(m->message_id.is_valid());
   switch (d->dialog_id.get_type()) {
     case DialogType::User:
     case DialogType::Chat:
@@ -20606,6 +20626,7 @@ Status MessagesManager::view_messages(DialogId dialog_id, MessageId top_thread_m
   bool need_read = force_read || d->is_opened;
   MessageId max_message_id;  // max server or local viewed message_id
   vector<MessageId> read_content_message_ids;
+  vector<MessageId> new_viewed_message_ids;
   for (auto message_id : message_ids) {
     if (!message_id.is_valid()) {
       continue;
@@ -20650,6 +20671,21 @@ Status MessagesManager::view_messages(DialogId dialog_id, MessageId top_thread_m
           td_->download_manager_->update_file_viewed(file_view.file_id(), file_source_id);
         }
       }
+
+      if (m->message_id.is_server() && d->is_opened) {
+        auto &info = dialog_viewed_messages[dialog_id];
+        if (info == nullptr) {
+          info = make_unique<ViewedMessagesInfo>();
+        }
+        auto &view_id = info->message_id_to_view_id[message_id];
+        if (view_id == 0) {
+          new_viewed_message_ids.push_back(message_id);
+        } else {
+          info->recently_viewed_messages.erase(view_id);
+        }
+        view_id = ++info->current_view_id;
+        info->recently_viewed_messages[view_id] = message_id;
+      }
     } else if (!message_id.is_yet_unsent() && message_id > max_message_id &&
                message_id <= d->max_notification_message_id) {
       max_message_id = message_id;
@@ -20661,6 +20697,19 @@ Status MessagesManager::view_messages(DialogId dialog_id, MessageId top_thread_m
   }
   if (!read_content_message_ids.empty()) {
     read_message_contents_on_server(dialog_id, std::move(read_content_message_ids), 0, Auto());
+  }
+  if (!new_viewed_message_ids.empty()) {
+    LOG(INFO) << "Have new viewed " << new_viewed_message_ids;
+    auto &info = dialog_viewed_messages[dialog_id];
+    CHECK(info != nullptr);
+    CHECK(info->message_id_to_view_id.size() == info->recently_viewed_messages.size());
+    constexpr size_t MAX_RECENTLY_VIEWED_MESSAGES = 50;
+    while (info->recently_viewed_messages.size() > MAX_RECENTLY_VIEWED_MESSAGES) {
+      auto it = info->recently_viewed_messages.begin();
+      info->message_id_to_view_id.erase(it->second);
+      info->recently_viewed_messages.erase(it);
+    }
+    queue_message_reactions_reload(dialog_id, new_viewed_message_ids);
   }
 
   if (!need_read) {
@@ -20954,7 +21003,7 @@ void MessagesManager::open_dialog(Dialog *d) {
     if (online_count_it != dialog_online_member_counts_.end()) {
       auto &info = online_count_it->second;
       CHECK(!info.is_update_sent);
-      if (Time::now() - info.updated_time < ONLINE_MEMBER_COUNT_CACHE_EXPIRE_TIME) {
+      if (Time::now() - info.update_time < ONLINE_MEMBER_COUNT_CACHE_EXPIRE_TIME) {
         info.is_update_sent = true;
         send_update_chat_online_member_count(dialog_id, info.online_member_count);
       }
@@ -21011,6 +21060,8 @@ void MessagesManager::close_dialog(Dialog *d) {
     pending_unload_dialog_timeout_.set_timeout_in(dialog_id.get(), get_next_unload_dialog_delay());
     d->has_unload_timeout = true;
   }
+
+  dialog_viewed_messages.erase(dialog_id);
 
   for (auto &it : d->pending_viewed_live_locations) {
     auto live_location_task_id = it.second;

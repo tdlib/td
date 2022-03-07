@@ -343,6 +343,8 @@ class MessagesManager final : public Actor {
 
   void update_message_reactions(FullMessageId full_message_id, unique_ptr<MessageReactions> &&reactions);
 
+  void try_reload_message_reactions(DialogId dialog_id, bool is_finished);
+
   void on_get_message_reaction_list(FullMessageId full_message_id, const string &reaction,
                                     FlatHashMap<string, vector<DialogId>> reactions, int32 total_count);
 
@@ -2645,7 +2647,7 @@ class MessagesManager final : public Actor {
 
   void queue_message_reactions_reload(FullMessageId full_message_id);
 
-  void try_reload_message_reactions(DialogId dialog_id, bool is_finished);
+  void queue_message_reactions_reload(DialogId dialog_id, const vector<MessageId> &message_ids);
 
   bool is_dialog_action_unneeded(DialogId dialog_id) const;
 
@@ -3632,9 +3634,16 @@ class MessagesManager final : public Actor {
 
   FlatHashMap<DialogId, int32, DialogIdHash> last_outgoing_forwarded_message_date_;
 
+  struct ViewedMessagesInfo {
+    FlatHashMap<MessageId, uint64, MessageIdHash> message_id_to_view_id;
+    std::map<uint64, MessageId> recently_viewed_messages;
+    uint64 current_view_id = 0;
+  };
+  FlatHashMap<DialogId, unique_ptr<ViewedMessagesInfo>, DialogIdHash> dialog_viewed_messages;
+
   struct OnlineMemberCountInfo {
     int32 online_member_count = 0;
-    double updated_time = 0;
+    double update_time = 0;
     bool is_update_sent = false;
   };
   FlatHashMap<DialogId, OnlineMemberCountInfo, DialogIdHash> dialog_online_member_counts_;
