@@ -1772,7 +1772,8 @@ class MessagesManager final : public Actor {
   static constexpr int32 MIN_READ_HISTORY_DELAY = 3;  // seconds
   static constexpr int32 MAX_SAVE_DIALOG_DELAY = 0;   // seconds
 
-  static constexpr int32 LIVE_LOCATION_VIEW_PERIOD = 60;  // seconds, server-side limit
+  static constexpr int32 LIVE_LOCATION_VIEW_PERIOD = 60;      // seconds, server-side limit
+  static constexpr int32 UPDATE_VIEWED_MESSAGES_PERIOD = 15;  // seconds
 
   static constexpr int32 USERNAME_CACHE_EXPIRE_TIME = 3 * 86400;
   static constexpr int32 USERNAME_CACHE_EXPIRE_TIME_SHORT = 900;
@@ -2187,6 +2188,8 @@ class MessagesManager final : public Actor {
                                       const char *source);
 
   void on_update_dialog_online_member_count_timeout(DialogId dialog_id);
+
+  void on_update_viewed_messages_timeout(DialogId dialog_id);
 
   bool delete_newer_server_messages_at_the_end(Dialog *d, MessageId max_message_id);
 
@@ -2644,6 +2647,10 @@ class MessagesManager final : public Actor {
   vector<string> get_dialog_active_reactions(const Dialog *d) const;
 
   vector<string> get_message_active_reactions(const Dialog *d, const Message *m) const;
+
+  static bool need_poll_dialog_message_reactions(const Dialog *d);
+
+  static bool need_poll_message_reactions(const Dialog *d, const Message *m);
 
   void queue_message_reactions_reload(FullMessageId full_message_id);
 
@@ -3111,6 +3118,8 @@ class MessagesManager final : public Actor {
 
   static void on_preload_folder_dialog_list_timeout_callback(void *messages_manager_ptr, int64 folder_id_int);
 
+  static void on_update_viewed_messages_timeout_callback(void *messages_manager_ptr, int64 dialog_id_int);
+
   void load_secret_thumbnail(FileId thumbnail_file_id);
 
   void on_upload_media(FileId file_id, tl_object_ptr<telegram_api::InputFile> input_file,
@@ -3549,6 +3558,7 @@ class MessagesManager final : public Actor {
   MultiTimeout active_dialog_action_timeout_{"ActiveDialogActionTimeout"};
   MultiTimeout update_dialog_online_member_count_timeout_{"UpdateDialogOnlineMemberCountTimeout"};
   MultiTimeout preload_folder_dialog_list_timeout_{"PreloadFolderDialogListTimeout"};
+  MultiTimeout update_viewed_messages_timeout_{"UpdateViewedMessagesTimeout"};
 
   Timeout reload_dialog_filters_timeout_;
 
@@ -3639,7 +3649,7 @@ class MessagesManager final : public Actor {
     std::map<uint64, MessageId> recently_viewed_messages;
     uint64 current_view_id = 0;
   };
-  FlatHashMap<DialogId, unique_ptr<ViewedMessagesInfo>, DialogIdHash> dialog_viewed_messages;
+  FlatHashMap<DialogId, unique_ptr<ViewedMessagesInfo>, DialogIdHash> dialog_viewed_messages_;
 
   struct OnlineMemberCountInfo {
     int32 online_member_count = 0;

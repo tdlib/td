@@ -5996,6 +5996,9 @@ MessagesManager::MessagesManager(Td *td, ActorShared<> parent)
 
   preload_folder_dialog_list_timeout_.set_callback(on_preload_folder_dialog_list_timeout_callback);
   preload_folder_dialog_list_timeout_.set_callback_data(static_cast<void *>(this));
+
+  update_viewed_messages_timeout_.set_callback(on_update_viewed_messages_timeout_callback);
+  update_viewed_messages_timeout_.set_callback_data(static_cast<void *>(this));
 }
 
 MessagesManager::~MessagesManager() = default;
@@ -6125,6 +6128,16 @@ void MessagesManager::on_preload_folder_dialog_list_timeout_callback(void *messa
   auto messages_manager = static_cast<MessagesManager *>(messages_manager_ptr);
   send_closure_later(messages_manager->actor_id(messages_manager), &MessagesManager::preload_folder_dialog_list,
                      FolderId(narrow_cast<int32>(folder_id_int)));
+}
+
+void MessagesManager::on_update_viewed_messages_timeout_callback(void *messages_manager_ptr, int64 dialog_id_int) {
+  if (G()->close_flag()) {
+    return;
+  }
+
+  auto messages_manager = static_cast<MessagesManager *>(messages_manager_ptr);
+  send_closure_later(messages_manager->actor_id(messages_manager), &MessagesManager::on_update_viewed_messages_timeout,
+                     DialogId(dialog_id_int));
 }
 
 BufferSlice MessagesManager::get_dialog_database_value(const Dialog *d) {
@@ -8604,6 +8617,30 @@ vector<string> MessagesManager::get_message_active_reactions(const Dialog *d, co
     }
   }
   return get_dialog_active_reactions(d);
+}
+
+bool MessagesManager::need_poll_dialog_message_reactions(const Dialog *d) {
+  CHECK(d != nullptr);
+  switch (d->dialog_id.get_type()) {
+    case DialogType::User:
+    case DialogType::SecretChat:
+      return false;
+    case DialogType::Chat:
+    case DialogType::Channel:
+      return (d->available_reactions_generation & 1) == 0;
+    default:
+      UNREACHABLE();
+      return {};
+  }
+}
+
+bool MessagesManager::need_poll_message_reactions(const Dialog *d, const Message *m) {
+  CHECK(m != nullptr);
+  if (!m->message_id.is_valid() || !m->message_id.is_server()) {
+    return false;
+  }
+  return need_poll_dialog_message_reactions(d) &&
+         (m->reactions != nullptr || m->available_reactions_generation != d->available_reactions_generation);
 }
 
 void MessagesManager::queue_message_reactions_reload(FullMessageId full_message_id) {
@@ -12889,6 +12926,42 @@ void MessagesManager::on_update_dialog_online_member_count_timeout(DialogId dial
   }
 }
 
+void MessagesManager::on_update_viewed_messages_timeout(DialogId dialog_id) {
+  if (G()->close_flag()) {
+    return;
+  }
+
+  LOG(INFO) << "Expired timeout for updating of recently viewed messages in " << dialog_id;
+  Dialog *d = get_dialog(dialog_id);
+  CHECK(d != nullptr);
+  if (!d->is_opened) {
+    return;
+  }
+
+  auto it = dialog_viewed_messages_.find(dialog_id);
+  if (it == dialog_viewed_messages_.end()) {
+    return;
+  }
+
+  if (need_poll_dialog_message_reactions(d)) {
+    auto &info = it->second;
+    CHECK(info != nullptr);
+    vector<MessageId> reaction_message_ids;
+    for (auto &message_it : info->message_id_to_view_id) {
+      const Message *m = get_message_force(d, message_it.first, "on_update_viewed_messages_timeout");
+      CHECK(m != nullptr);
+      CHECK(m->message_id.is_valid());
+      if (need_poll_message_reactions(d, m)) {
+        reaction_message_ids.push_back(m->message_id);
+      }
+    }
+
+    queue_message_reactions_reload(dialog_id, reaction_message_ids);
+  }
+
+  update_viewed_messages_timeout_.add_timeout_in(dialog_id.get(), UPDATE_VIEWED_MESSAGES_PERIOD);
+}
+
 MessageId MessagesManager::get_message_id(const tl_object_ptr<telegram_api::Message> &message_ptr, bool is_scheduled) {
   switch (message_ptr->get_id()) {
     case telegram_api::messageEmpty::ID: {
@@ -16269,8 +16342,8 @@ void MessagesManager::on_message_deleted(Dialog *d, Message *m, bool is_permanen
     }
   }
   if (d->is_opened) {
-    auto it = dialog_viewed_messages.find(d->dialog_id);
-    if (it != dialog_viewed_messages.end()) {
+    auto it = dialog_viewed_messages_.find(d->dialog_id);
+    if (it != dialog_viewed_messages_.end()) {
       auto &info = it->second;
       CHECK(info != nullptr);
       auto message_it = info->message_id_to_view_id.find(m->message_id);
@@ -20627,6 +20700,7 @@ Status MessagesManager::view_messages(DialogId dialog_id, MessageId top_thread_m
   MessageId max_message_id;  // max server or local viewed message_id
   vector<MessageId> read_content_message_ids;
   vector<MessageId> new_viewed_message_ids;
+  vector<MessageId> viewed_reaction_message_ids;
   for (auto message_id : message_ids) {
     if (!message_id.is_valid()) {
       continue;
@@ -20673,13 +20747,16 @@ Status MessagesManager::view_messages(DialogId dialog_id, MessageId top_thread_m
       }
 
       if (m->message_id.is_server() && d->is_opened) {
-        auto &info = dialog_viewed_messages[dialog_id];
+        auto &info = dialog_viewed_messages_[dialog_id];
         if (info == nullptr) {
           info = make_unique<ViewedMessagesInfo>();
         }
         auto &view_id = info->message_id_to_view_id[message_id];
         if (view_id == 0) {
           new_viewed_message_ids.push_back(message_id);
+          if (need_poll_message_reactions(d, m)) {
+            viewed_reaction_message_ids.push_back(message_id);
+          }
         } else {
           info->recently_viewed_messages.erase(view_id);
         }
@@ -20700,7 +20777,7 @@ Status MessagesManager::view_messages(DialogId dialog_id, MessageId top_thread_m
   }
   if (!new_viewed_message_ids.empty()) {
     LOG(INFO) << "Have new viewed " << new_viewed_message_ids;
-    auto &info = dialog_viewed_messages[dialog_id];
+    auto &info = dialog_viewed_messages_[dialog_id];
     CHECK(info != nullptr);
     CHECK(info->message_id_to_view_id.size() == info->recently_viewed_messages.size());
     constexpr size_t MAX_RECENTLY_VIEWED_MESSAGES = 50;
@@ -20709,7 +20786,10 @@ Status MessagesManager::view_messages(DialogId dialog_id, MessageId top_thread_m
       info->message_id_to_view_id.erase(it->second);
       info->recently_viewed_messages.erase(it);
     }
-    queue_message_reactions_reload(dialog_id, new_viewed_message_ids);
+    if (!viewed_reaction_message_ids.empty()) {
+      queue_message_reactions_reload(dialog_id, new_viewed_message_ids);
+    }
+    update_viewed_messages_timeout_.add_timeout_in(dialog_id.get(), UPDATE_VIEWED_MESSAGES_PERIOD);
   }
 
   if (!need_read) {
@@ -21061,7 +21141,8 @@ void MessagesManager::close_dialog(Dialog *d) {
     d->has_unload_timeout = true;
   }
 
-  dialog_viewed_messages.erase(dialog_id);
+  dialog_viewed_messages_.erase(dialog_id);
+  update_viewed_messages_timeout_.cancel_timeout(dialog_id.get());
 
   for (auto &it : d->pending_viewed_live_locations) {
     auto live_location_task_id = it.second;
