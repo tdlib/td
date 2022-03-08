@@ -8623,6 +8623,9 @@ vector<string> MessagesManager::get_dialog_active_reactions(const Dialog *d) con
 vector<string> MessagesManager::get_message_active_reactions(const Dialog *d, const Message *m) const {
   CHECK(d != nullptr);
   CHECK(m != nullptr);
+  if (is_service_message_content(m->content->get_type())) {
+    return vector<string>();
+  }
   if (is_discussion_message(d->dialog_id, m)) {
     d = get_dialog(m->forward_info->from_dialog_id);
     if (d == nullptr) {
@@ -8654,8 +8657,19 @@ bool MessagesManager::need_poll_message_reactions(const Dialog *d, const Message
   if (!m->message_id.is_valid() || !m->message_id.is_server()) {
     return false;
   }
-  return need_poll_dialog_message_reactions(d) &&
-         (m->reactions != nullptr || m->available_reactions_generation != d->available_reactions_generation);
+  if (!need_poll_dialog_message_reactions(d)) {
+    return false;
+  }
+  if (m->reactions != nullptr) {
+    return true;
+  }
+  if (m->available_reactions_generation == d->available_reactions_generation) {
+    return false;
+  }
+  if (is_service_message_content(m->content->get_type())) {
+    return false;
+  }
+  return true;
 }
 
 void MessagesManager::queue_message_reactions_reload(FullMessageId full_message_id) {
@@ -20810,7 +20824,7 @@ Status MessagesManager::view_messages(DialogId dialog_id, MessageId top_thread_m
       info->recently_viewed_messages.erase(it);
     }
     if (!viewed_reaction_message_ids.empty()) {
-      queue_message_reactions_reload(dialog_id, new_viewed_message_ids);
+      queue_message_reactions_reload(dialog_id, viewed_reaction_message_ids);
     }
   }
   if (td_->is_online() && dialog_viewed_messages_.count(dialog_id) != 0) {
