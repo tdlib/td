@@ -37486,7 +37486,7 @@ unique_ptr<MessagesManager::Dialog> MessagesManager::parse_dialog(DialogId dialo
     LOG_CHECK(dialog_id.is_valid()) << "Can't repair " << dialog_id << ' ' << d->dialog_id << ' ' << status << ' '
                                     << source << ' ' << format::as_hex_dump<4>(value.as_slice());
 
-    LOG(ERROR) << "Repair broken " << dialog_id << ': ' << status << ' ' << format::as_hex_dump<4>(value.as_slice());
+    LOG(ERROR) << "Repair broken " << dialog_id << ": " << status << ' ' << format::as_hex_dump<4>(value.as_slice());
 
     // just clean all known data about the dialog
     d = make_unique<Dialog>();

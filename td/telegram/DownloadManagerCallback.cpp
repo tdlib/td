@@ -101,8 +101,7 @@ std::shared_ptr<FileManager::DownloadCallback> DownloadManagerCallback::make_dow
     ActorShared<DownloadManager> download_manager_;
 
     void send_update(FileId file_id, bool is_paused) const {
-      auto td = G()->td().get_actor_unsafe();
-      auto file_view = td->file_manager_->get_file_view(file_id);
+      auto file_view = td_->file_manager_->get_file_view(file_id);
       send_closure_later(download_manager_, &DownloadManager::update_file_download_state, file_id,
                          file_view.local_total_size(), file_view.size(), file_view.expected_size(), is_paused);
     }

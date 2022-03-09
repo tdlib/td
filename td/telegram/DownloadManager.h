@@ -59,7 +59,7 @@ class DownloadManager : public Actor {
     void parse(ParserT &parser);
   };
 
-  // to make DownloadManager testable all interactions with G() must be hidden in this probably monstrous interface
+  // Callback is needed to make DownloadManager testable
   class Callback {
    public:
     virtual ~Callback() = default;

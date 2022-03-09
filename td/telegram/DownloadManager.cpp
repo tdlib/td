@@ -531,7 +531,7 @@ class DownloadManagerImpl final : public DownloadManager {
       }
     } else {
       auto search_text = r_search_text.move_as_ok();
-      // TODO: This is a race. Synchronous call to MessagesManager would be better.
+      // TODO: This is a race. Synchronous call would be better.
       hints_.add(download_id, search_text.empty() ? string(" ") : search_text);
     }
     promise.set_value(Unit());
