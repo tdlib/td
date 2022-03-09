@@ -189,7 +189,6 @@ class FlatHashTable {
     using pointer = value_type *;
     using reference = value_type &;
 
-    friend class FlatHashTable;
     Iterator &operator++() {
       DCHECK(it_ != nullptr);
       do {
@@ -221,8 +220,7 @@ class FlatHashTable {
     }
 
     Iterator() = default;
-    Iterator(NodeT *it, FlatHashTable *map)
-        : it_(it), begin_(map->nodes_), start_(it_), end_(map->nodes_ + map->bucket_count()) {
+    Iterator(NodeT *it, NodeT *begin, NodeT *end) : it_(it), begin_(begin), start_(it), end_(end) {
     }
 
    private:
@@ -342,7 +340,7 @@ class FlatHashTable {
     while (true) {
       auto &node = nodes_[bucket];
       if (EqT()(node.key(), key)) {
-        return Iterator{&node, this};
+        return create_iterator(&node);
       }
       if (node.empty()) {
         return end();
@@ -373,10 +371,10 @@ class FlatHashTable {
         next_bucket(begin_bucket_);
       }
     }
-    return Iterator(nodes_ + begin_bucket_, this);
+    return create_iterator(nodes_ + begin_bucket_);
   }
   Iterator end() {
-    return Iterator(nullptr, this);
+    return create_iterator(nullptr);
   }
 
   ConstIterator begin() const {
@@ -405,12 +403,12 @@ class FlatHashTable {
     while (true) {
       auto &node = nodes_[bucket];
       if (EqT()(node.key(), key)) {
-        return {Iterator(&node, this), false};
+        return {create_iterator(&node), false};
       }
       if (node.empty()) {
         node.emplace(std::move(key), std::forward<ArgsT>(args)...);
         used_node_count_++;
-        return {Iterator(&node, this), true};
+        return {create_iterator(&node), true};
       }
       next_bucket(bucket);
     }
@@ -621,6 +619,10 @@ class FlatHashTable {
         empty_bucket = test_bucket;
       }
     }
+  }
+
+  Iterator create_iterator(NodeT *node) {
+    return Iterator(node, nodes_, nodes_ + bucket_count());
   }
 
   void invalidate_iterators() {
