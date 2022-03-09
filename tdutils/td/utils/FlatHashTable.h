@@ -6,15 +6,12 @@
 //
 #pragma once
 
-#include "td/utils/bits.h"
 #include "td/utils/common.h"
 #include "td/utils/HashTableUtils.h"
 #include "td/utils/MapNode.h"
-#include "td/utils/Random.h"
 #include "td/utils/SetNode.h"
 
 #include <cstddef>
-#include <functional>
 #include <initializer_list>
 #include <iterator>
 #include <utility>
@@ -22,13 +19,8 @@
 namespace td {
 
 namespace detail {
-inline uint32 normalize_flat_hash_table_size(uint32 size) {
-  return td::max(static_cast<uint32>(1) << (32 - count_leading_zeroes32(size)), static_cast<uint32>(8));
-}
-
-inline uint32 get_random_flat_hash_table_bucket(uint32 bucket_count_mask) {
-  return Random::fast_uint32() & bucket_count_mask;
-}
+uint32 normalize_flat_hash_table_size(uint32 size);
+uint32 get_random_flat_hash_table_bucket(uint32 bucket_count_mask);
 }  // namespace detail
 
 template <class NodeT, class HashT, class EqT>
@@ -56,7 +48,7 @@ class FlatHashTable {
   using value_type = typename NodeT::public_type;
 
   struct Iterator {
-    using iterator_category = std::bidirectional_iterator_tag;
+    using iterator_category = std::forward_iterator_tag;
     using difference_type = std::ptrdiff_t;
     using value_type = FlatHashTable::value_type;
     using pointer = value_type *;
@@ -108,7 +100,7 @@ class FlatHashTable {
   };
 
   struct ConstIterator {
-    using iterator_category = std::bidirectional_iterator_tag;
+    using iterator_category = std::forward_iterator_tag;
     using difference_type = std::ptrdiff_t;
     using value_type = FlatHashTable::value_type;
     using pointer = const value_type *;
