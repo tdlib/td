@@ -11,7 +11,7 @@
 namespace td {
 
 template <class KeyT>
-bool is_key_empty(const KeyT &key) {
+bool is_hash_table_key_empty(const KeyT &key) {
   return key == KeyT();
 }
 

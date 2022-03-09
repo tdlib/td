@@ -200,7 +200,7 @@ class FlatHashTable {
   }
 
   Iterator find(const KeyT &key) {
-    if (unlikely(nodes_ == nullptr) || is_key_empty(key)) {
+    if (unlikely(nodes_ == nullptr) || is_hash_table_key_empty(key)) {
       return end();
     }
     auto bucket = calc_bucket(key);
@@ -265,7 +265,7 @@ class FlatHashTable {
   template <class... ArgsT>
   std::pair<Iterator, bool> emplace(KeyT key, ArgsT &&...args) {
     try_grow();
-    CHECK(!is_key_empty(key));
+    CHECK(!is_hash_table_key_empty(key));
     auto bucket = calc_bucket(key);
     while (true) {
       auto &node = nodes_[bucket];

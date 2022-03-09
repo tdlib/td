@@ -65,7 +65,7 @@ struct MapNode {
   }
 
   bool empty() const {
-    return is_key_empty(first);
+    return is_hash_table_key_empty(first);
   }
 
   void clear() {

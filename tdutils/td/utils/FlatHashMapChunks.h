@@ -257,7 +257,7 @@ class FlatHashTableChunks {
   }
 
   Iterator find(const KeyT &key) {
-    if (empty() || is_key_empty(key)) {
+    if (empty() || is_hash_table_key_empty(key)) {
       return end();
     }
     const auto hash = calc_hash(key);
@@ -326,7 +326,7 @@ class FlatHashTableChunks {
 
   template <class... ArgsT>
   std::pair<Iterator, bool> emplace(KeyT key, ArgsT &&...args) {
-    CHECK(!is_key_empty(key));
+    CHECK(!is_hash_table_key_empty(key));
     auto it = find(key);
     if (it != end()) {
       return {it, false};
