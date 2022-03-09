@@ -503,10 +503,4 @@ class FlatHashTable {
   }
 };
 
-template <class KeyT, class ValueT, class HashT = std::hash<KeyT>, class EqT = std::equal_to<KeyT>>
-using FlatHashMapImpl = FlatHashTable<MapNode<KeyT, ValueT>, HashT, EqT>;
-
-template <class KeyT, class HashT = std::hash<KeyT>, class EqT = std::equal_to<KeyT>>
-using FlatHashSetImpl = FlatHashTable<SetNode<KeyT>, HashT, EqT>;
-
 }  // namespace td

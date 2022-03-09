@@ -11,7 +11,7 @@
 #include "td/utils/common.h"
 #include "td/utils/FlatHashMap.h"
 #include "td/utils/FlatHashMapChunks.h"
-#include "td/utils/FlatHashMapLinear.h"
+#include "td/utils/FlatHashTable.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/port/Stat.h"
@@ -25,6 +25,7 @@
 #include <absl/container/flat_hash_map.h>
 #include <array>
 #include <folly/container/F14Map.h>
+#include <functional>
 #include <map>
 #include <unordered_map>
 
@@ -164,8 +165,11 @@ void print_memory_stats(td::Slice name) {
   }
 }
 
+template <class KeyT, class ValueT, class HashT = std::hash<KeyT>, class EqT = std::equal_to<KeyT>>
+using FlatHashMapImpl = td::FlatHashTable<td::MapNode<KeyT, ValueT>, HashT, EqT>;
+
 #define FOR_EACH_TABLE(F) \
-  F(td::FlatHashMapImpl)  \
+  F(FlatHashMapImpl)      \
   F(folly::F14FastMap)    \
   F(absl::flat_hash_map)  \
   F(std::unordered_map)   \

@@ -207,7 +207,7 @@ set(TDUTILS_SOURCE
   td/utils/find_boundary.h
   td/utils/FlatHashMap.h
   td/utils/FlatHashMapChunks.h
-  td/utils/FlatHashMapLinear.h
+  td/utils/FlatHashTable.h
   td/utils/FloodControlFast.h
   td/utils/FloodControlStrict.h
   td/utils/format.h

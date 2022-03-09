@@ -8,10 +8,11 @@
 #include "td/utils/common.h"
 #include "td/utils/FlatHashMap.h"
 #include "td/utils/FlatHashMapChunks.h"
-#include "td/utils/FlatHashMapLinear.h"
+#include "td/utils/FlatHashTable.h"
 #include "td/utils/format.h"
 #include "td/utils/Hash.h"
 #include "td/utils/logging.h"
+#include "td/utils/MapNode.h"
 #include "td/utils/Random.h"
 #include "td/utils/Slice.h"
 #include "td/utils/Span.h"
@@ -27,6 +28,7 @@
 #include <algorithm>
 #include <benchmark/benchmark.h>
 #include <folly/container/F14Map.h>
+#include <functional>
 #include <map>
 #include <random>
 #include <unordered_map>
@@ -558,8 +560,11 @@ BENCHMARK_TEMPLATE(BM_mask, td::MaskNeon);
 BENCHMARK_TEMPLATE(BM_mask, td::MaskSse2);
 #endif
 
+template <class KeyT, class ValueT, class HashT = std::hash<KeyT>, class EqT = std::equal_to<KeyT>>
+using FlatHashMapImpl = td::FlatHashTable<td::MapNode<KeyT, ValueT>, HashT, EqT>;
+
 #define FOR_EACH_TABLE(F)  \
-  F(td::FlatHashMapImpl)   \
+  F(FlatHashMapImpl)       \
   F(td::FlatHashMapChunks) \
   F(folly::F14FastMap)     \
   F(absl::flat_hash_map)   \
