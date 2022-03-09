@@ -16,6 +16,7 @@
 #include "td/utils/Random.h"
 #include "td/utils/Slice.h"
 #include "td/utils/Span.h"
+#include "td/utils/StringBuilder.h"
 #include "td/utils/Time.h"
 #include "td/utils/VectorQueue.h"
 
@@ -259,6 +260,31 @@ static void BM_emplace_same(benchmark::State &state) {
   while (state.KeepRunningBatch(BATCH_SIZE)) {
     for (std::size_t i = 0; i < BATCH_SIZE; i++) {
       benchmark::DoNotOptimize(table.emplace(key + (i & 15) * 100, 43784932));
+    }
+  }
+}
+
+template <typename TableT>
+static void BM_emplace_string(benchmark::State &state) {
+  td::Random::Xorshift128plus rnd(123);
+  TableT table;
+  constexpr std::size_t N = 100000;
+  constexpr std::size_t BATCH_SIZE = 1024;
+  reserve(table, N);
+
+  for (std::size_t i = 0; i < N; i++) {
+    table.emplace(td::to_string(rnd()), i);
+  }
+
+  table["0"] = 123;
+  td::vector<td::string> strings;
+  for (std::size_t i = 0; i < 16; i++) {
+    strings.emplace_back(1, static_cast<char>('0' + i));
+  }
+
+  while (state.KeepRunningBatch(BATCH_SIZE)) {
+    for (std::size_t i = 0; i < BATCH_SIZE; i++) {
+      benchmark::DoNotOptimize(table.emplace(strings[i & 15], 43784932));
     }
   }
 }
@@ -590,6 +616,7 @@ using FlatHashMapImpl = td::FlatHashTable<td::MapNode<KeyT, ValueT>, HashT, EqT>
 
 #define REGISTER_REMOVE_IF_BENCHMARK(HT) BENCHMARK_TEMPLATE(BM_remove_if, HT<td::uint64, td::uint64>);
 #define REGISTER_EMPLACE_BENCHMARK(HT) BENCHMARK_TEMPLATE(BM_emplace_same, HT<td::uint64, td::uint64>);
+#define REGISTER_EMPLACE_STRING_BENCHMARK(HT) BENCHMARK_TEMPLATE(BM_emplace_string, HT<td::string, td::uint64>);
 #define REGISTER_CACHE_BENCHMARK(HT) BENCHMARK_TEMPLATE(BM_cache, HT<td::uint64, td::uint64>);
 #define REGISTER_CACHE2_BENCHMARK(HT) BENCHMARK_TEMPLATE(BM_cache2, HT<td::uint64, td::uint64>);
 #define REGISTER_CACHE3_BENCHMARK(HT) BENCHMARK_TEMPLATE(BM_cache3, HT<td::uint64, td::uint64>)->Range(1, 1 << 23);
@@ -603,6 +630,7 @@ FOR_EACH_TABLE(REGISTER_CACHE2_BENCHMARK)
 FOR_EACH_TABLE(REGISTER_CACHE_BENCHMARK)
 FOR_EACH_TABLE(REGISTER_REMOVE_IF_BENCHMARK)
 FOR_EACH_TABLE(REGISTER_EMPLACE_BENCHMARK)
+FOR_EACH_TABLE(REGISTER_EMPLACE_STRING_BENCHMARK)
 FOR_EACH_TABLE(REGISTER_ERASE_ALL_BENCHMARK)
 FOR_EACH_TABLE(REGISTER_FIND_BENCHMARK)
 FOR_EACH_TABLE(REGISTER_REMOVE_IF_SLOW_OLD_BENCHMARK)
