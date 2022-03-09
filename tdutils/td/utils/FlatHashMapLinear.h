@@ -8,155 +8,18 @@
 
 #include "td/utils/bits.h"
 #include "td/utils/common.h"
+#include "td/utils/HashTableUtils.h"
+#include "td/utils/MapNode.h"
 #include "td/utils/Random.h"
+#include "td/utils/SetNode.h"
 
 #include <cstddef>
 #include <functional>
 #include <initializer_list>
 #include <iterator>
-#include <new>
 #include <utility>
 
 namespace td {
-
-template <class KeyT>
-bool is_key_empty(const KeyT &key) {
-  return key == KeyT();
-}
-
-inline uint32 randomize_hash(size_t h) {
-  auto result = static_cast<uint32>(h & 0xFFFFFFFF);
-  result ^= result >> 16;
-  result *= 0x85ebca6b;
-  result ^= result >> 13;
-  result *= 0xc2b2ae35;
-  result ^= result >> 16;
-  return result;
-}
-
-template <class KeyT, class ValueT>
-struct MapNode {
-  using first_type = KeyT;
-  using second_type = ValueT;
-  using public_key_type = KeyT;
-  using public_type = MapNode;
-
-  KeyT first{};
-  union {
-    ValueT second;
-  };
-
-  const KeyT &key() const {
-    return first;
-  }
-
-  MapNode &get_public() {
-    return *this;
-  }
-
-  MapNode() {
-  }
-  MapNode(KeyT key, ValueT value) : first(std::move(key)) {
-    new (&second) ValueT(std::move(value));
-    DCHECK(!empty());
-  }
-  MapNode(const MapNode &other) = delete;
-  MapNode &operator=(const MapNode &other) = delete;
-  MapNode(MapNode &&other) noexcept {
-    *this = std::move(other);
-  }
-  void operator=(MapNode &&other) noexcept {
-    DCHECK(empty());
-    DCHECK(!other.empty());
-    first = std::move(other.first);
-    other.first = KeyT{};
-    new (&second) ValueT(std::move(other.second));
-    other.second.~ValueT();
-  }
-  ~MapNode() {
-    if (!empty()) {
-      second.~ValueT();
-    }
-  }
-
-  void copy_from(const MapNode &other) {
-    DCHECK(empty());
-    DCHECK(!other.empty());
-    first = other.first;
-    new (&second) ValueT(other.second);
-  }
-
-  bool empty() const {
-    return is_key_empty(key());
-  }
-
-  void clear() {
-    DCHECK(!empty());
-    first = KeyT();
-    second.~ValueT();
-    DCHECK(empty());
-  }
-
-  template <class... ArgsT>
-  void emplace(KeyT key, ArgsT &&...args) {
-    DCHECK(empty());
-    first = std::move(key);
-    new (&second) ValueT(std::forward<ArgsT>(args)...);
-    DCHECK(!empty());
-  }
-};
-
-template <class KeyT>
-struct SetNode {
-  using public_key_type = KeyT;
-  using public_type = KeyT;
-  using second_type = KeyT;  // TODO: remove second_type?
-
-  KeyT first{};
-
-  const KeyT &key() const {
-    return first;
-  }
-
-  KeyT &get_public() {
-    return first;
-  }
-
-  SetNode() = default;
-  explicit SetNode(KeyT key) : first(std::move(key)) {
-  }
-  SetNode(const SetNode &other) = delete;
-  SetNode &operator=(const SetNode &other) = delete;
-  SetNode(SetNode &&other) noexcept {
-    *this = std::move(other);
-  }
-  void operator=(SetNode &&other) noexcept {
-    DCHECK(empty());
-    DCHECK(!other.empty());
-    first = std::move(other.first);
-    other.first = KeyT{};
-  }
-  ~SetNode() = default;
-
-  void copy_from(const SetNode &other) {
-    DCHECK(empty());
-    DCHECK(!other.empty());
-    first = other.first;
-  }
-
-  bool empty() const {
-    return is_key_empty(key());
-  }
-
-  void clear() {
-    first = KeyT();
-    DCHECK(empty());
-  }
-
-  void emplace(KeyT key) {
-    first = std::move(key);
-  }
-};
 
 template <class NodeT, class HashT, class EqT>
 class FlatHashTable {
@@ -208,6 +71,10 @@ class FlatHashTable {
     pointer operator->() {
       return &*it_;
     }
+    NodeT *get() {
+      return it_;
+    }
+
     bool operator==(const Iterator &other) const {
       DCHECK(begin_ == other.begin_);
       DCHECK(end_ == other.end_);
@@ -452,8 +319,8 @@ class FlatHashTable {
 
   void erase(Iterator it) {
     DCHECK(it != end());
-    DCHECK(!it.it_->empty());
-    erase_node(it.it_);
+    DCHECK(!it.get()->empty());
+    erase_node(it.get());
     try_shrink();
   }
 
@@ -463,7 +330,7 @@ class FlatHashTable {
       return;
     }
 
-    auto it = begin().it_;
+    auto it = begin().get();
     auto end = nodes_ + bucket_count();
     while (it != end && !it->empty()) {
       ++it;

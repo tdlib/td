@@ -9,7 +9,9 @@
 #include "td/utils/bits.h"
 #include "td/utils/common.h"
 #include "td/utils/fixed_vector.h"
-#include "td/utils/FlatHashMapLinear.h"
+#include "td/utils/HashTableUtils.h"
+#include "td/utils/MapNode.h"
+#include "td/utils/SetNode.h"
 
 #include <cstddef>
 #include <functional>

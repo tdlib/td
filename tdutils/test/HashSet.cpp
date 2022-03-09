@@ -8,6 +8,7 @@
 #include "td/utils/common.h"
 #include "td/utils/FlatHashMap.h"
 #include "td/utils/FlatHashMapChunks.h"
+#include "td/utils/FlatHashMapLinear.h"
 #include "td/utils/logging.h"
 #include "td/utils/Random.h"
 #include "td/utils/Slice.h"

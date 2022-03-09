@@ -216,6 +216,7 @@ set(TDUTILS_SOURCE
   td/utils/Hash.h
   td/utils/HashMap.h
   td/utils/HashSet.h
+  td/utils/HashTableUtils.h
   td/utils/HazardPointers.h
   td/utils/Heap.h
   td/utils/Hints.h
@@ -225,6 +226,7 @@ set(TDUTILS_SOURCE
   td/utils/JsonBuilder.h
   td/utils/List.h
   td/utils/logging.h
+  td/utils/MapNode.h
   td/utils/MemoryLog.h
   td/utils/misc.h
   td/utils/MovableValue.h
@@ -245,6 +247,7 @@ set(TDUTILS_SOURCE
   td/utils/queue.h
   td/utils/Random.h
   td/utils/ScopeGuard.h
+  td/utils/SetNode.h
   td/utils/SharedObjectPool.h
   td/utils/SharedSlice.h
   td/utils/Slice-decl.h

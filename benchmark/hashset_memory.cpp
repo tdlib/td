@@ -10,6 +10,8 @@
 
 #include "td/utils/common.h"
 #include "td/utils/FlatHashMap.h"
+#include "td/utils/FlatHashMapChunks.h"
+#include "td/utils/FlatHashMapLinear.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/port/Stat.h"
