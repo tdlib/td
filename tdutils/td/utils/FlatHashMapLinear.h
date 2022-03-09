@@ -21,6 +21,16 @@
 
 namespace td {
 
+namespace detail {
+inline uint32 normalize_flat_hash_table_size(uint32 size) {
+  return td::max(static_cast<uint32>(1) << (32 - count_leading_zeroes32(size)), static_cast<uint32>(8));
+}
+
+inline uint32 get_random_flat_hash_table_bucket(uint32 bucket_count_mask) {
+  return Random::fast_uint32() & bucket_count_mask;
+}
+}  // namespace detail
+
 template <class NodeT, class HashT, class EqT>
 class FlatHashTable {
   static constexpr uint32 INVALID_BUCKET = 0xFFFFFFFF;
@@ -233,7 +243,7 @@ class FlatHashTable {
       return end();
     }
     if (begin_bucket_ == INVALID_BUCKET) {
-      begin_bucket_ = Random::fast_uint32() & bucket_count_mask_;
+      begin_bucket_ = detail::get_random_flat_hash_table_bucket(bucket_count_mask_);
       while (nodes_[begin_bucket_].empty()) {
         next_bucket(begin_bucket_);
       }
@@ -256,7 +266,7 @@ class FlatHashTable {
       return;
     }
     CHECK(size <= (1u << 29));
-    uint32 want_size = normalize(static_cast<uint32>(size) * 5 / 3 + 1);
+    uint32 want_size = detail::normalize_flat_hash_table_size(static_cast<uint32>(size) * 5 / 3 + 1);
     if (want_size > bucket_count()) {
       resize(want_size);
     }
@@ -404,13 +414,9 @@ class FlatHashTable {
   void try_shrink() {
     DCHECK(nodes_ != nullptr);
     if (unlikely(used_node_count_ * 10 < bucket_count_mask_ && bucket_count_mask_ > 7)) {
-      resize(normalize((used_node_count_ + 1) * 5 / 3 + 1));
+      resize(detail::normalize_flat_hash_table_size((used_node_count_ + 1) * 5 / 3 + 1));
     }
     invalidate_iterators();
-  }
-
-  static uint32 normalize(uint32 size) {
-    return td::max(static_cast<uint32>(1) << (32 - count_leading_zeroes32(size)), static_cast<uint32>(8));
   }
 
   uint32 calc_bucket(const KeyT &key) const {
