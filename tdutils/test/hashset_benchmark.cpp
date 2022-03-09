@@ -380,6 +380,7 @@ static void BM_cache3(benchmark::State &state) {
     }
   }
 }
+
 template <typename TableT>
 static void BM_remove_if_slow(benchmark::State &state) {
   constexpr std::size_t N = 5000;
@@ -405,6 +406,7 @@ static void BM_remove_if_slow(benchmark::State &state) {
     }
   }
 }
+
 template <typename TableT>
 static void BM_remove_if_slow_old(benchmark::State &state) {
   constexpr std::size_t N = 100000;

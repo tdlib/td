@@ -184,17 +184,18 @@ class FlatHashTable {
     begin_bucket_ = other.begin_bucket_;
     other.drop();
   }
+  ~FlatHashTable() {
+    if (nodes_ != nullptr) {
+      clear_nodes(nodes_);
+    }
+  }
+
   void swap(FlatHashTable &other) noexcept {
     std::swap(nodes_, other.nodes_);
     std::swap(used_node_count_, other.used_node_count_);
     std::swap(bucket_count_mask_, other.bucket_count_mask_);
     std::swap(bucket_count_, other.bucket_count_);
     std::swap(begin_bucket_, other.begin_bucket_);
-  }
-  ~FlatHashTable() {
-    if (nodes_ != nullptr) {
-      clear_nodes(nodes_);
-    }
   }
 
   uint32 bucket_count() const {

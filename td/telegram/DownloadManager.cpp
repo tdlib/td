@@ -17,6 +17,7 @@
 
 #include "td/utils/algorithm.h"
 #include "td/utils/FlatHashMap.h"
+#include "td/utils/FlatHashSet.h"
 #include "td/utils/Hints.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
