@@ -25356,13 +25356,13 @@ bool MessagesManager::is_message_auto_read(DialogId dialog_id, bool is_outgoing)
 }
 
 void MessagesManager::add_message_dependencies(Dependencies &dependencies, const Message *m) {
-  dependencies.user_ids.insert(m->sender_user_id);
+  dependencies.add(m->sender_user_id);
   dependencies.add_dialog_and_dependencies(m->sender_dialog_id);
   dependencies.add_dialog_and_dependencies(m->reply_in_dialog_id);
   dependencies.add_dialog_and_dependencies(m->real_forward_from_dialog_id);
-  dependencies.user_ids.insert(m->via_bot_user_id);
+  dependencies.add(m->via_bot_user_id);
   if (m->forward_info != nullptr) {
-    dependencies.user_ids.insert(m->forward_info->sender_user_id);
+    dependencies.add(m->forward_info->sender_user_id);
     dependencies.add_dialog_and_dependencies(m->forward_info->sender_dialog_id);
     dependencies.add_dialog_and_dependencies(m->forward_info->from_dialog_id);
   }
@@ -36677,7 +36677,7 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
     add_message_dependencies(dependencies, last_database_message.get());
 
     int32 dependent_dialog_count = 0;
-    for (auto &other_dialog_id : dependencies.dialog_ids) {
+    for (const auto &other_dialog_id : dependencies.get_dialog_ids()) {
       if (other_dialog_id.is_valid() && !have_dialog(other_dialog_id)) {
         LOG(INFO) << "Postpone adding of last message in " << dialog_id << " because of cyclic dependency with "
                   << other_dialog_id;
@@ -37520,7 +37520,7 @@ unique_ptr<MessagesManager::Dialog> MessagesManager::parse_dialog(DialogId dialo
     add_formatted_text_dependencies(dependencies, &d->draft_message->input_message_text.text);
   }
   for (auto user_id : d->pending_join_request_user_ids) {
-    dependencies.user_ids.insert(user_id);
+    dependencies.add(user_id);
   }
   if (!dependencies.resolve_force(td_, source)) {
     send_get_dialog_query(dialog_id, Auto(), 0, source);

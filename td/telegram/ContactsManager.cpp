@@ -9633,7 +9633,7 @@ void ContactsManager::on_load_user_full_from_database(UserId user_id, string val
   }
 
   Dependencies dependencies;
-  dependencies.user_ids.insert(user_id);
+  dependencies.add(user_id);
   if (!dependencies.resolve_force(td_, "on_load_user_full_from_database")) {
     users_full_.erase(user_id);
     G()->td_db()->get_sqlite_pmc()->erase(get_user_full_database_key(user_id), Auto());
@@ -9731,13 +9731,13 @@ void ContactsManager::on_load_chat_full_from_database(ChatId chat_id, string val
   }
 
   Dependencies dependencies;
-  dependencies.chat_ids.insert(chat_id);
-  dependencies.user_ids.insert(chat_full->creator_user_id);
+  dependencies.add(chat_id);
+  dependencies.add(chat_full->creator_user_id);
   for (auto &participant : chat_full->participants) {
     dependencies.add_message_sender_dependencies(participant.dialog_id_);
-    dependencies.user_ids.insert(participant.inviter_user_id_);
+    dependencies.add(participant.inviter_user_id_);
   }
-  dependencies.user_ids.insert(chat_full->invite_link.get_creator_user_id());
+  dependencies.add(chat_full->invite_link.get_creator_user_id());
   if (!dependencies.resolve_force(td_, "on_load_chat_full_from_database")) {
     chats_full_.erase(chat_id);
     G()->td_db()->get_sqlite_pmc()->erase(get_chat_full_database_key(chat_id), Auto());
@@ -9840,13 +9840,15 @@ void ContactsManager::on_load_channel_full_from_database(ChannelId channel_id, s
   }
 
   Dependencies dependencies;
-  dependencies.channel_ids.insert(channel_id);
+  dependencies.add(channel_id);
   // must not depend on the linked_dialog_id itself, because message database can be disabled
   // the Dialog will be forcely created in update_channel_full
   dependencies.add_dialog_dependencies(DialogId(channel_full->linked_channel_id));
-  dependencies.chat_ids.insert(channel_full->migrated_from_chat_id);
-  dependencies.user_ids.insert(channel_full->bot_user_ids.begin(), channel_full->bot_user_ids.end());
-  dependencies.user_ids.insert(channel_full->invite_link.get_creator_user_id());
+  dependencies.add(channel_full->migrated_from_chat_id);
+  for (auto bot_user_id : channel_full->bot_user_ids) {
+    dependencies.add(bot_user_id);
+  }
+  dependencies.add(channel_full->invite_link.get_creator_user_id());
   if (!dependencies.resolve_force(td_, source)) {
     channels_full_.erase(channel_id);
     G()->td_db()->get_sqlite_pmc()->erase(get_channel_full_database_key(channel_id), Auto());

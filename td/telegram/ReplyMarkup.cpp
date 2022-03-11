@@ -910,7 +910,7 @@ void add_reply_markup_dependencies(Dependencies &dependencies, const ReplyMarkup
   for (auto &row : reply_markup->inline_keyboard) {
     for (auto &button : row) {
       if (button.user_id.is_valid()) {
-        dependencies.user_ids.insert(button.user_id);
+        dependencies.add(button.user_id);
       }
     }
   }

@@ -5496,7 +5496,7 @@ void add_message_content_dependencies(Dependencies &dependencies, const MessageC
   switch (message_content->get_type()) {
     case MessageContentType::Text: {
       const auto *content = static_cast<const MessageText *>(message_content);
-      dependencies.web_page_ids.insert(content->web_page_id);
+      dependencies.add(content->web_page_id);
       break;
     }
     case MessageContentType::Animation:
@@ -5505,14 +5505,14 @@ void add_message_content_dependencies(Dependencies &dependencies, const MessageC
       break;
     case MessageContentType::Contact: {
       const auto *content = static_cast<const MessageContact *>(message_content);
-      dependencies.user_ids.insert(content->contact.get_user_id());
+      dependencies.add(content->contact.get_user_id());
       break;
     }
     case MessageContentType::Document:
       break;
     case MessageContentType::Game: {
       const auto *content = static_cast<const MessageGame *>(message_content);
-      dependencies.user_ids.insert(content->game.get_bot_user_id());
+      dependencies.add(content->game.get_bot_user_id());
       break;
     }
     case MessageContentType::Invoice:
@@ -5535,7 +5535,9 @@ void add_message_content_dependencies(Dependencies &dependencies, const MessageC
       break;
     case MessageContentType::ChatCreate: {
       const auto *content = static_cast<const MessageChatCreate *>(message_content);
-      dependencies.user_ids.insert(content->participant_user_ids.begin(), content->participant_user_ids.end());
+      for (auto &participant_user_id : content->participant_user_ids) {
+        dependencies.add(participant_user_id);
+      }
       break;
     }
     case MessageContentType::ChatChangeTitle:
@@ -5548,26 +5550,28 @@ void add_message_content_dependencies(Dependencies &dependencies, const MessageC
       break;
     case MessageContentType::ChatAddUsers: {
       const auto *content = static_cast<const MessageChatAddUsers *>(message_content);
-      dependencies.user_ids.insert(content->user_ids.begin(), content->user_ids.end());
+      for (auto &user_id : content->user_ids) {
+        dependencies.add(user_id);
+      }
       break;
     }
     case MessageContentType::ChatJoinedByLink:
       break;
     case MessageContentType::ChatDeleteUser: {
       const auto *content = static_cast<const MessageChatDeleteUser *>(message_content);
-      dependencies.user_ids.insert(content->user_id);
+      dependencies.add(content->user_id);
       break;
     }
     case MessageContentType::ChatMigrateTo: {
       const auto *content = static_cast<const MessageChatMigrateTo *>(message_content);
-      dependencies.channel_ids.insert(content->migrated_to_channel_id);
+      dependencies.add(content->migrated_to_channel_id);
       break;
     }
     case MessageContentType::ChannelCreate:
       break;
     case MessageContentType::ChannelMigrateFrom: {
       const auto *content = static_cast<const MessageChannelMigrateFrom *>(message_content);
-      dependencies.chat_ids.insert(content->migrated_from_chat_id);
+      dependencies.add(content->migrated_from_chat_id);
       break;
     }
     case MessageContentType::PinMessage:
@@ -5616,7 +5620,9 @@ void add_message_content_dependencies(Dependencies &dependencies, const MessageC
       break;
     case MessageContentType::InviteToGroupCall: {
       const auto *content = static_cast<const MessageInviteToGroupCall *>(message_content);
-      dependencies.user_ids.insert(content->user_ids.begin(), content->user_ids.end());
+      for (auto &user_id : content->user_ids) {
+        dependencies.add(user_id);
+      }
       break;
     }
     case MessageContentType::ChatSetTheme:
