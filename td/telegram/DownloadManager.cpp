@@ -442,8 +442,6 @@ class DownloadManagerImpl final : public DownloadManager {
         if (sent_counters_.downloaded_size == sent_counters_.total_size || sent_counters_.total_size == 0) {
           G()->td_db()->get_binlog_pmc()->erase("dlds_counter");
           sent_counters_ = Counters();
-        } else {
-          callback_->update_counters(sent_counters_);
         }
       }
     } else {
@@ -451,6 +449,7 @@ class DownloadManagerImpl final : public DownloadManager {
       G()->td_db()->get_binlog_pmc()->erase_by_prefix("dlds#");
     }
 
+    callback_->update_counters(sent_counters_);
     is_inited_ = true;
   }
 
