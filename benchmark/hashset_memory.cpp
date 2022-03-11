@@ -13,6 +13,7 @@
 #include "td/utils/FlatHashMapChunks.h"
 #include "td/utils/FlatHashTable.h"
 #include "td/utils/logging.h"
+#include "td/utils/MapNode.h"
 #include "td/utils/misc.h"
 #include "td/utils/port/Stat.h"
 #include "td/utils/Slice.h"

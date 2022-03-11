@@ -7,8 +7,10 @@
 #pragma once
 
 #include "td/utils/common.h"
+#include "td/utils/HashTableUtils.h"
 
 #include <new>
+#include <utility>
 
 namespace td {
 

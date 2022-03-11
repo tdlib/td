@@ -16,6 +16,7 @@
 
 #include <algorithm>
 #include <array>
+#include <functional>
 #include <random>
 #include <unordered_map>
 #include <unordered_set>

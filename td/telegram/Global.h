@@ -29,6 +29,7 @@
 #include <mutex>
 
 namespace td {
+
 class AnimationsManager;
 class BackgroundManager;
 class CallManager;
