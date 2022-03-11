@@ -820,7 +820,7 @@ messageSendingStateFailed error_code:int32 error_message:string can_retry:Bool n
 //@can_be_deleted_for_all_users True, if the message can be deleted for all users
 //@can_get_added_reactions True, if the list of added reactions is available through getMessageAddedReactions
 //@can_get_statistics True, if the message statistics are available through getMessageStatistics
-//@can_get_message_thread True, if the message thread info is available through getMessageThread
+//@can_get_message_thread True, if information about the message thread is available through getMessageThread
 //@can_get_viewers True, if chat members already viewed the message can be received through getMessageViewers
 //@can_get_media_timestamp_links True, if media timestamp links can be generated for media timestamp entities in the message text, caption or web page description through getMessageLink
 //@has_timestamped_media True, if media timestamp entities refers to a media in this message as opposed to a media in the replied message
@@ -2767,7 +2767,7 @@ chatEventLogFilters message_edits:Bool message_deletions:Bool message_pins:Bool 
 //@description An ordinary language pack string @value String value
 languagePackStringValueOrdinary value:string = LanguagePackStringValue;
 
-//@description A language pack string which has different forms based on the number of some object it mentions. See https://www.unicode.org/cldr/charts/latest/supplemental/language_plural_rules.html for more info
+//@description A language pack string which has different forms based on the number of some object it mentions. See https://www.unicode.org/cldr/charts/latest/supplemental/language_plural_rules.html for more information
 //@zero_value Value for zero objects @one_value Value for one object @two_value Value for two objects
 //@few_value Value for few objects @many_value Value for many objects @other_value Default value
 languagePackStringValuePluralized zero_value:string one_value:string two_value:string few_value:string many_value:string other_value:string = LanguagePackStringValue;
@@ -2785,7 +2785,7 @@ languagePackStrings strings:vector<languagePackString> = LanguagePackStrings;
 //@description Contains information about a language pack @id Unique language pack identifier
 //@base_language_pack_id Identifier of a base language pack; may be empty. If a string is missed in the language pack, then it must be fetched from base language pack. Unsupported in custom language packs
 //@name Language name @native_name Name of the language in that language
-//@plural_code A language code to be used to apply plural forms. See https://www.unicode.org/cldr/charts/latest/supplemental/language_plural_rules.html for more info
+//@plural_code A language code to be used to apply plural forms. See https://www.unicode.org/cldr/charts/latest/supplemental/language_plural_rules.html for more information
 //@is_official True, if the language pack is official @is_rtl True, if the language pack strings are RTL @is_beta True, if the language pack is a beta language pack
 //@is_installed True, if the language pack is installed by the current user
 //@total_string_count Total number of non-deleted strings from the language pack @translated_string_count Total number of translated strings from the language pack
@@ -3562,7 +3562,7 @@ tMeUrlTypeUser user_id:int53 = TMeUrlType;
 //@description A URL linking to a public supergroup or channel @supergroup_id Identifier of the supergroup or channel
 tMeUrlTypeSupergroup supergroup_id:int53 = TMeUrlType;
 
-//@description A chat invite link @info Chat invite link info
+//@description A chat invite link @info Information about the chat invite link
 tMeUrlTypeChatInvite info:chatInviteLinkInfo = TMeUrlType;
 
 //@description A URL linking to a sticker set @sticker_set_id Identifier of the sticker set
@@ -5682,10 +5682,10 @@ sendPaymentForm chat_id:int53 message_id:int53 payment_form_id:int64 order_info_
 //@description Returns information about a successful payment @chat_id Chat identifier of the PaymentSuccessful message @message_id Message identifier
 getPaymentReceipt chat_id:int53 message_id:int53 = PaymentReceipt;
 
-//@description Returns saved order info. Returns a 404 error if there is no saved order info
+//@description Returns saved order information. Returns a 404 error if there is no saved order information
 getSavedOrderInfo = OrderInfo;
 
-//@description Deletes saved order info
+//@description Deletes saved order information
 deleteSavedOrderInfo = Ok;
 
 //@description Deletes saved credentials for all payment provider bots
