@@ -16,7 +16,7 @@
 
 namespace td {
 
-struct Dependencies;
+class Dependencies;
 
 struct KeyboardButton {
   // append only

@@ -7784,10 +7784,10 @@ void ContactsManager::get_created_public_dialogs(PublicDialogType type,
         vector<ChannelId> channel_ids;
         for (auto &r_channel_id : r_channel_ids) {
           auto channel_id = r_channel_id.move_as_ok();
-          add_dialog_and_dependencies(dependencies, DialogId(channel_id));
+          dependencies.add_dialog_and_dependencies(DialogId(channel_id));
           channel_ids.push_back(channel_id);
         }
-        if (!resolve_dependencies_force(td_, dependencies, "get_created_public_dialogs")) {
+        if (!dependencies.resolve_force(td_, "get_created_public_dialogs")) {
           G()->td_db()->get_binlog_pmc()->erase(pmc_key);
         } else {
           created_public_channels_[index] = std::move(channel_ids);
@@ -9634,7 +9634,7 @@ void ContactsManager::on_load_user_full_from_database(UserId user_id, string val
 
   Dependencies dependencies;
   dependencies.user_ids.insert(user_id);
-  if (!resolve_dependencies_force(td_, dependencies, "on_load_user_full_from_database")) {
+  if (!dependencies.resolve_force(td_, "on_load_user_full_from_database")) {
     users_full_.erase(user_id);
     G()->td_db()->get_sqlite_pmc()->erase(get_user_full_database_key(user_id), Auto());
     return;
@@ -9734,11 +9734,11 @@ void ContactsManager::on_load_chat_full_from_database(ChatId chat_id, string val
   dependencies.chat_ids.insert(chat_id);
   dependencies.user_ids.insert(chat_full->creator_user_id);
   for (auto &participant : chat_full->participants) {
-    add_message_sender_dependencies(dependencies, participant.dialog_id_);
+    dependencies.add_message_sender_dependencies(participant.dialog_id_);
     dependencies.user_ids.insert(participant.inviter_user_id_);
   }
   dependencies.user_ids.insert(chat_full->invite_link.get_creator_user_id());
-  if (!resolve_dependencies_force(td_, dependencies, "on_load_chat_full_from_database")) {
+  if (!dependencies.resolve_force(td_, "on_load_chat_full_from_database")) {
     chats_full_.erase(chat_id);
     G()->td_db()->get_sqlite_pmc()->erase(get_chat_full_database_key(chat_id), Auto());
     return;
@@ -9843,11 +9843,11 @@ void ContactsManager::on_load_channel_full_from_database(ChannelId channel_id, s
   dependencies.channel_ids.insert(channel_id);
   // must not depend on the linked_dialog_id itself, because message database can be disabled
   // the Dialog will be forcely created in update_channel_full
-  add_dialog_dependencies(dependencies, DialogId(channel_full->linked_channel_id));
+  dependencies.add_dialog_dependencies(DialogId(channel_full->linked_channel_id));
   dependencies.chat_ids.insert(channel_full->migrated_from_chat_id);
   dependencies.user_ids.insert(channel_full->bot_user_ids.begin(), channel_full->bot_user_ids.end());
   dependencies.user_ids.insert(channel_full->invite_link.get_creator_user_id());
-  if (!resolve_dependencies_force(td_, dependencies, source)) {
+  if (!dependencies.resolve_force(td_, source)) {
     channels_full_.erase(channel_id);
     G()->td_db()->get_sqlite_pmc()->erase(get_channel_full_database_key(channel_id), Auto());
     return;

@@ -23,7 +23,7 @@
 namespace td {
 
 class ContactsManager;
-struct Dependencies;
+class Dependencies;
 
 class MessageEntity {
  public:

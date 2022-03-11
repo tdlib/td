@@ -86,7 +86,7 @@
 namespace td {
 
 struct BinlogEvent;
-struct Dependencies;
+class Dependencies;
 class DialogActionBar;
 class DialogFilter;
 class DraftMessage;

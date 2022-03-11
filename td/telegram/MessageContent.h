@@ -37,7 +37,7 @@
 
 namespace td {
 
-struct Dependencies;
+class Dependencies;
 class DialogAction;
 class Game;
 struct Photo;

@@ -5584,7 +5584,7 @@ void add_message_content_dependencies(Dependencies &dependencies, const MessageC
       break;
     case MessageContentType::PaymentSuccessful: {
       const auto *content = static_cast<const MessagePaymentSuccessful *>(message_content);
-      add_dialog_and_dependencies(dependencies, content->invoice_dialog_id);
+      dependencies.add_dialog_and_dependencies(content->invoice_dialog_id);
       break;
     }
     case MessageContentType::ContactRegistered:
@@ -5608,8 +5608,8 @@ void add_message_content_dependencies(Dependencies &dependencies, const MessageC
       break;
     case MessageContentType::ProximityAlertTriggered: {
       const auto *content = static_cast<const MessageProximityAlertTriggered *>(message_content);
-      add_message_sender_dependencies(dependencies, content->traveler_dialog_id);
-      add_message_sender_dependencies(dependencies, content->watcher_dialog_id);
+      dependencies.add_message_sender_dependencies(content->traveler_dialog_id);
+      dependencies.add_message_sender_dependencies(content->watcher_dialog_id);
       break;
     }
     case MessageContentType::GroupCall:

@@ -19,21 +19,22 @@ namespace td {
 
 class Td;
 
-struct Dependencies {
+class Dependencies {
+ public:
   std::unordered_set<UserId, UserIdHash> user_ids;
   std::unordered_set<ChatId, ChatIdHash> chat_ids;
   std::unordered_set<ChannelId, ChannelIdHash> channel_ids;
   std::unordered_set<SecretChatId, SecretChatIdHash> secret_chat_ids;
   std::unordered_set<DialogId, DialogIdHash> dialog_ids;
   std::unordered_set<WebPageId, WebPageIdHash> web_page_ids;
+
+  void add_dialog_and_dependencies(DialogId dialog_id);
+
+  void add_dialog_dependencies(DialogId dialog_id);
+
+  void add_message_sender_dependencies(DialogId dialog_id);
+
+  bool resolve_force(Td *td, const char *source) const;
 };
-
-void add_dialog_and_dependencies(Dependencies &dependencies, DialogId dialog_id);
-
-void add_dialog_dependencies(Dependencies &dependencies, DialogId dialog_id);
-
-void add_message_sender_dependencies(Dependencies &dependencies, DialogId dialog_id);
-
-bool resolve_dependencies_force(Td *td, const Dependencies &dependencies, const char *source);
 
 }  // namespace td
