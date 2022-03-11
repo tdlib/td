@@ -1789,7 +1789,7 @@ class CheckChatInviteLinkRequest final : public RequestActor<> {
   string invite_link_;
 
   void do_run(Promise<Unit> &&promise) final {
-    td_->contacts_manager_->check_dialog_invite_link(invite_link_, std::move(promise));
+    td_->contacts_manager_->check_dialog_invite_link(invite_link_, get_tries() < 2, std::move(promise));
   }
 
   void do_send_result() final {

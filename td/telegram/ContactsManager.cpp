@@ -7509,9 +7509,15 @@ void ContactsManager::delete_all_revoked_dialog_invite_links(DialogId dialog_id,
   td_->create_handler<DeleteRevokedExportedChatInvitesQuery>(std::move(promise))->send(dialog_id, creator_user_id);
 }
 
-void ContactsManager::check_dialog_invite_link(const string &invite_link, Promise<Unit> &&promise) const {
-  if (invite_link_infos_.count(invite_link) > 0) {
-    return promise.set_value(Unit());
+void ContactsManager::check_dialog_invite_link(const string &invite_link, bool force, Promise<Unit> &&promise) {
+  auto it = invite_link_infos_.find(invite_link);
+  if (it != invite_link_infos_.end()) {
+    auto dialog_id = it->second->dialog_id;
+    if (!force && dialog_id.get_type() == DialogType::Chat && !get_chat_is_active(dialog_id.get_chat_id())) {
+      invite_link_infos_.erase(it);
+    } else {
+      return promise.set_value(Unit());
+    }
   }
 
   if (!DialogInviteLink::is_valid_invite_link(invite_link)) {
