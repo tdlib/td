@@ -71,7 +71,7 @@ class FlatHashTable {
       return it_->get_public();
     }
     pointer operator->() {
-      return &*it_;
+      return &it_->get_public();
     }
     NodeT *get() {
       return it_;

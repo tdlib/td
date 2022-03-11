@@ -156,7 +156,7 @@ class FlatHashTableChunks {
       return it_->get_public();
     }
     pointer operator->() {
-      return &*it_;
+      return &it_->get_public();
     }
     bool operator==(const Iterator &other) const {
       DCHECK(map_ == other.map_);

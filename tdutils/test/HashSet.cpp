@@ -77,6 +77,29 @@ TEST(FlatHashMap, probing) {
   test(8192, static_cast<int>(8192 * 0.3));
 }
 
+struct A {
+  int a;
+};
+
+struct AHash {
+  std::size_t operator()(A a) const {
+    return std::hash<int>()(a.a);
+  }
+};
+
+static bool operator==(const A &lhs, const A &rhs) {
+  return lhs.a == rhs.a;
+}
+
+TEST(FlatHashSet, foreach) {
+  td::FlatHashSet<A, AHash> s;
+  for (auto it : s) {
+    LOG(ERROR) << it.a;
+  }
+  s.insert({1});
+  LOG(INFO) << s.begin()->a;
+}
+
 TEST(FlatHashSet, TL) {
   td::FlatHashSet<int> s;
   int N = 100000;
