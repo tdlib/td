@@ -22,13 +22,13 @@
 
 #include "td/utils/algorithm.h"
 #include "td/utils/buffer.h"
+#include "td/utils/FlatHashSet.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/Random.h"
 #include "td/utils/SliceBuilder.h"
 
 #include <map>
-#include <unordered_set>
 #include <utility>
 
 namespace td {
@@ -2064,10 +2064,11 @@ void GroupCallManager::process_group_call_participants(
     return;
   }
 
-  std::unordered_set<DialogId, DialogIdHash> old_participant_dialog_ids;
+  FlatHashSet<DialogId, DialogIdHash> old_participant_dialog_ids;
   if (is_sync) {
     auto *group_call_participants = add_group_call_participants(input_group_call_id);
     for (auto &participant : group_call_participants->participants) {
+      CHECK(participant.dialog_id.is_valid());
       old_participant_dialog_ids.insert(participant.dialog_id);
     }
   }

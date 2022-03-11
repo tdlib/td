@@ -26,6 +26,7 @@
 #include "td/utils/FileLog.h"
 #include "td/utils/filesystem.h"
 #include "td/utils/FlatHashMap.h"
+#include "td/utils/FlatHashSet.h"
 #include "td/utils/format.h"
 #include "td/utils/JsonBuilder.h"
 #include "td/utils/logging.h"
@@ -64,7 +65,6 @@
 #include <memory>
 #include <queue>
 #include <tuple>
-#include <unordered_set>
 #include <utility>
 
 #ifdef USE_READLINE
@@ -432,9 +432,9 @@ class CliClient final : public Actor {
   }
 
   static char get_delimiter(Slice str) {
-    std::unordered_set<char> chars;
+    FlatHashSet<char> chars;
     for (auto c : trim(str)) {
-      if (!is_alnum(c) && c != '-' && c != '.' && c != '/' && static_cast<uint8>(c) <= 127) {
+      if (!is_alnum(c) && c != '-' && c != '.' && c != '/' && c != '\0' && static_cast<uint8>(c) <= 127) {
         chars.insert(c);
       }
     }

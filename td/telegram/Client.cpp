@@ -17,6 +17,7 @@
 #include "td/utils/crypto.h"
 #include "td/utils/ExitGuard.h"
 #include "td/utils/FlatHashMap.h"
+#include "td/utils/FlatHashSet.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/MpscPollableQueue.h"
@@ -30,7 +31,6 @@
 #include <memory>
 #include <mutex>
 #include <queue>
-#include <unordered_set>
 
 namespace td {
 
@@ -204,7 +204,7 @@ class ClientManager::Impl final {
   unique_ptr<ConcurrentScheduler> concurrent_scheduler_;
   ClientId client_id_{0};
   Td::Options options_;
-  std::unordered_set<int32> pending_clients_;
+  FlatHashSet<int32> pending_clients_;
   FlatHashMap<int32, ActorOwn<Td>> tds_;
 };
 

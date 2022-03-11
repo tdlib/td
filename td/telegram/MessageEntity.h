@@ -13,11 +13,11 @@
 #include "td/telegram/UserId.h"
 
 #include "td/utils/common.h"
+#include "td/utils/FlatHashSet.h"
 #include "td/utils/Slice.h"
 #include "td/utils/Status.h"
 #include "td/utils/StringBuilder.h"
 
-#include <unordered_set>
 #include <utility>
 
 namespace td {
@@ -131,7 +131,7 @@ inline bool operator!=(const FormattedText &lhs, const FormattedText &rhs) {
   return !(lhs == rhs);
 }
 
-const std::unordered_set<Slice, SliceHash> &get_valid_short_usernames();
+const FlatHashSet<Slice, SliceHash> &get_valid_short_usernames();
 
 Result<vector<MessageEntity>> get_message_entities(const ContactsManager *contacts_manager,
                                                    vector<tl_object_ptr<td_api::textEntity>> &&input_entities,

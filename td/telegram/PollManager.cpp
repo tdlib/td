@@ -337,6 +337,7 @@ void PollManager::save_poll(const Poll *poll, PollId poll_id) {
 }
 
 void PollManager::on_load_poll_from_database(PollId poll_id, string value) {
+  CHECK(poll_id.is_valid());
   loaded_from_database_polls_.insert(poll_id);
 
   LOG(INFO) << "Successfully loaded " << poll_id << " of size " << value.size() << " from database";
@@ -1126,6 +1127,8 @@ class PollManager::StopPollLogEvent {
 void PollManager::do_stop_poll(PollId poll_id, FullMessageId full_message_id, unique_ptr<ReplyMarkup> &&reply_markup,
                                uint64 log_event_id, Promise<Unit> &&promise) {
   LOG(INFO) << "Stop " << poll_id << " from " << full_message_id;
+  CHECK(poll_id.is_valid());
+
   if (log_event_id == 0 && G()->parameters().use_message_db && reply_markup == nullptr) {
     StopPollLogEvent log_event{poll_id, full_message_id};
     log_event_id =
@@ -1352,7 +1355,7 @@ PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll
     return PollId();
   }
   if (poll_server != nullptr) {
-    std::unordered_set<Slice, SliceHash> option_data;
+    FlatHashSet<Slice, SliceHash> option_data;
     for (auto &answer : poll_server->answers_) {
       if (answer->option_.empty()) {
         LOG(ERROR) << "Receive " << poll_id << " with an empty option data: " << to_string(poll_server);

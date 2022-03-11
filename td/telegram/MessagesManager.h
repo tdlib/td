@@ -67,6 +67,7 @@
 #include "td/utils/ChangesProcessor.h"
 #include "td/utils/common.h"
 #include "td/utils/FlatHashMap.h"
+#include "td/utils/FlatHashSet.h"
 #include "td/utils/Heap.h"
 #include "td/utils/Hints.h"
 #include "td/utils/logging.h"
@@ -1371,11 +1372,11 @@ class MessagesManager final : public Actor {
 
     FlatHashMap<int32, MessageId> last_assigned_scheduled_message_id;  // date -> message_id
 
-    std::unordered_set<MessageId, MessageIdHash> deleted_message_ids;
-    std::unordered_set<ScheduledServerMessageId, ScheduledServerMessageIdHash> deleted_scheduled_server_message_ids;
+    FlatHashSet<MessageId, MessageIdHash> deleted_message_ids;
+    FlatHashSet<ScheduledServerMessageId, ScheduledServerMessageIdHash> deleted_scheduled_server_message_ids;
 
-    std::vector<std::pair<DialogId, MessageId>> pending_new_message_notifications;
-    std::vector<std::pair<DialogId, MessageId>> pending_new_mention_notifications;
+    vector<std::pair<DialogId, MessageId>> pending_new_message_notifications;
+    vector<std::pair<DialogId, MessageId>> pending_new_mention_notifications;
 
     FlatHashMap<NotificationId, MessageId, NotificationIdHash> notification_id_to_message_id;
 
@@ -1388,7 +1389,7 @@ class MessagesManager final : public Actor {
     std::vector<std::pair<Promise<>, std::function<bool(const Message *)>>> suffix_load_queries_;
 
     FlatHashMap<MessageId, int64, MessageIdHash> pending_viewed_live_locations;  // message_id -> task_id
-    std::unordered_set<MessageId, MessageIdHash> pending_viewed_message_ids;
+    FlatHashSet<MessageId, MessageIdHash> pending_viewed_message_ids;
 
     unique_ptr<Message> messages;
     unique_ptr<Message> scheduled_messages;
@@ -3450,10 +3451,9 @@ class MessagesManager final : public Actor {
 
   FlatHashMap<DialogId, unique_ptr<Dialog>, DialogIdHash> dialogs_;
 
-  std::unordered_set<DialogId, DialogIdHash>
-      loaded_dialogs_;  // dialogs loaded from database, but not added to dialogs_
+  FlatHashSet<DialogId, DialogIdHash> loaded_dialogs_;  // dialogs loaded from database, but not added to dialogs_
 
-  std::unordered_set<DialogId, DialogIdHash> postponed_chat_read_inbox_updates_;
+  FlatHashSet<DialogId, DialogIdHash> postponed_chat_read_inbox_updates_;
 
   struct PendingGetMessageRequest {
     MessageId message_id;
@@ -3504,7 +3504,7 @@ class MessagesManager final : public Actor {
   FlatHashMap<FullMessageId, int32, FullMessageIdHash> replied_by_yet_unsent_messages_;
 
   // full_message_id -> replies with media timestamps
-  FlatHashMap<FullMessageId, std::unordered_set<MessageId, MessageIdHash>, FullMessageIdHash>
+  FlatHashMap<FullMessageId, FlatHashSet<MessageId, MessageIdHash>, FullMessageIdHash>
       replied_by_media_timestamp_messages_;
 
   struct ActiveDialogAction {
@@ -3555,7 +3555,7 @@ class MessagesManager final : public Actor {
   FlatHashMap<DialogId, uint64, DialogIdHash> get_channel_difference_to_log_event_id_;
   FlatHashMap<DialogId, int32, DialogIdHash> channel_get_difference_retry_timeouts_;
   FlatHashMap<DialogId, std::multimap<int32, PendingPtsUpdate>, DialogIdHash> postponed_channel_updates_;
-  std::unordered_set<DialogId, DialogIdHash> is_channel_difference_finished_;
+  FlatHashSet<DialogId, DialogIdHash> is_channel_difference_finished_;
 
   MultiTimeout channel_get_difference_timeout_{"ChannelGetDifferenceTimeout"};
   MultiTimeout channel_get_difference_retry_timeout_{"ChannelGetDifferenceRetryTimeout"};
@@ -3576,7 +3576,7 @@ class MessagesManager final : public Actor {
 
   Hints dialogs_hints_;  // search dialogs by title and username
 
-  std::unordered_set<FullMessageId, FullMessageIdHash> active_live_location_full_message_ids_;
+  FlatHashSet<FullMessageId, FullMessageIdHash> active_live_location_full_message_ids_;
   bool are_active_live_location_messages_loaded_ = false;
   vector<Promise<Unit>> load_active_live_location_messages_queries_;
 
@@ -3589,7 +3589,7 @@ class MessagesManager final : public Actor {
 
   FlatHashMap<string, ResolvedUsername> resolved_usernames_;
   FlatHashMap<string, DialogId> inaccessible_resolved_usernames_;
-  std::unordered_set<string> reload_voice_chat_on_search_usernames_;
+  FlatHashSet<string> reload_voice_chat_on_search_usernames_;
 
   struct GetDialogsTask {
     DialogListId dialog_list_id;
@@ -3628,7 +3628,7 @@ class MessagesManager final : public Actor {
       pending_add_default_send_message_as_dialog_id_;  // dialog_id -> [dependent dialog, need_drop]
 
   struct MessageIds {
-    std::unordered_set<MessageId, MessageIdHash> message_ids;
+    FlatHashSet<MessageId, MessageIdHash> message_ids;
   };
   FlatHashMap<DialogId, MessageIds, DialogIdHash> dialog_bot_command_message_ids_;
 
@@ -3671,7 +3671,7 @@ class MessagesManager final : public Actor {
   FlatHashMap<DialogId, OnlineMemberCountInfo, DialogIdHash> dialog_online_member_counts_;
 
   struct ReactionsToReload {
-    std::unordered_set<MessageId, MessageIdHash> message_ids;
+    FlatHashSet<MessageId, MessageIdHash> message_ids;
     bool is_request_sent = false;
   };
   FlatHashMap<DialogId, ReactionsToReload, DialogIdHash> being_reloaded_reactions_;

@@ -26,6 +26,7 @@
 #include "td/utils/buffer.h"
 #include "td/utils/common.h"
 #include "td/utils/FlatHashMap.h"
+#include "td/utils/FlatHashSet.h"
 #include "td/utils/Hints.h"
 #include "td/utils/Slice.h"
 #include "td/utils/Status.h"
@@ -33,7 +34,6 @@
 #include <memory>
 #include <tuple>
 #include <unordered_map>
-#include <unordered_set>
 #include <utility>
 
 namespace td {
@@ -831,7 +831,7 @@ class StickersManager final : public Actor {
   std::unordered_map<string, vector<StickerSetId>> found_sticker_sets_;
   std::unordered_map<string, vector<Promise<Unit>>> search_sticker_sets_queries_;
 
-  std::unordered_set<StickerSetId, StickerSetIdHash> pending_viewed_featured_sticker_set_ids_;
+  FlatHashSet<StickerSetId, StickerSetIdHash> pending_viewed_featured_sticker_set_ids_;
   Timeout pending_featured_sticker_set_views_timeout_;
 
   int32 recent_stickers_limit_ = 200;
@@ -881,15 +881,15 @@ class StickersManager final : public Actor {
   FlatHashMap<string, vector<string>> emoji_language_codes_;
   FlatHashMap<string, int32> emoji_language_code_versions_;
   FlatHashMap<string, double> emoji_language_code_last_difference_times_;
-  std::unordered_set<string> reloaded_emoji_keywords_;
+  FlatHashSet<string> reloaded_emoji_keywords_;
   FlatHashMap<string, vector<Promise<Unit>>> load_emoji_keywords_queries_;
   FlatHashMap<string, vector<Promise<Unit>>> load_language_codes_queries_;
   FlatHashMap<int64, string> emoji_suggestions_urls_;
 
-  FlatHashMap<string, std::unordered_set<FullMessageId, FullMessageIdHash>> dice_messages_;
+  FlatHashMap<string, FlatHashSet<FullMessageId, FullMessageIdHash>> dice_messages_;
 
   struct EmojiMessages {
-    std::unordered_set<FullMessageId, FullMessageIdHash> full_message_ids;
+    FlatHashSet<FullMessageId, FullMessageIdHash> full_message_ids;
     std::pair<FileId, int> animated_emoji_sticker;
     FileId sound_file_id;
   };

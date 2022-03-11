@@ -21,13 +21,13 @@
 #include "td/actor/Timeout.h"
 
 #include "td/utils/common.h"
+#include "td/utils/FlatHashSet.h"
 #include "td/utils/logging.h"
 #include "td/utils/Status.h"
 #include "td/utils/tl_storers.h"
 #include "td/utils/TlStorerToString.h"
 
 #include <map>
-#include <unordered_set>
 
 namespace td {
 
@@ -99,7 +99,7 @@ class UpdatesManager final : public Actor {
   void add_pending_pts_update(tl_object_ptr<telegram_api::Update> &&update, int32 new_pts, int32 pts_count,
                               double receive_time, Promise<Unit> &&promise, const char *source);
 
-  static std::unordered_set<int64> get_sent_messages_random_ids(const telegram_api::Updates *updates_ptr);
+  static FlatHashSet<int64> get_sent_messages_random_ids(const telegram_api::Updates *updates_ptr);
 
   static vector<const tl_object_ptr<telegram_api::Message> *> get_new_messages(
       const telegram_api::Updates *updates_ptr);

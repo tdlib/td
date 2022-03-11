@@ -45,8 +45,8 @@ struct SetNode {
 
   void copy_from(const SetNode &other) {
     DCHECK(empty());
-    DCHECK(!other.empty());
     first = other.first;
+    DCHECK(!empty());
   }
 
   bool empty() const {

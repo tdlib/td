@@ -61,7 +61,6 @@
 #include <algorithm>
 #include <iterator>
 #include <limits>
-#include <unordered_set>
 
 namespace td {
 
@@ -249,6 +248,9 @@ void NotificationManager::init() {
     });
     VLOG(notifications) << "Load call_notification_group_ids = " << call_notification_group_ids;
     for (auto &group_id : call_notification_group_ids) {
+      if (!group_id.is_valid()) {
+        continue;
+      }
       if (group_id.get() > current_notification_group_id_.get()) {
         LOG(ERROR) << "Fix current notification group identifier from " << current_notification_group_id_ << " to "
                    << group_id;
@@ -1021,21 +1023,23 @@ void NotificationManager::flush_pending_updates(int32 group_id, const char *sour
   // and second addition, because we has kept the deletion
 
   // calculate last state of all notifications
-  std::unordered_set<int32> added_notification_ids;
-  std::unordered_set<int32> edited_notification_ids;
-  std::unordered_set<int32> removed_notification_ids;
+  FlatHashSet<int32> added_notification_ids;
+  FlatHashSet<int32> edited_notification_ids;
+  FlatHashSet<int32> removed_notification_ids;
   for (auto &update : updates) {
     CHECK(update != nullptr);
     if (update->get_id() == td_api::updateNotificationGroup::ID) {
       auto update_ptr = static_cast<td_api::updateNotificationGroup *>(update.get());
       for (auto &notification : update_ptr->added_notifications_) {
         auto notification_id = notification->id_;
+        CHECK(notification_id != 0);
         bool is_inserted = added_notification_ids.insert(notification_id).second;
         CHECK(is_inserted);                                          // there must be no additions after addition
         CHECK(edited_notification_ids.count(notification_id) == 0);  // there must be no additions after edit
         removed_notification_ids.erase(notification_id);
       }
       for (auto &notification_id : update_ptr->removed_notification_ids_) {
+        CHECK(notification_id != 0);
         added_notification_ids.erase(notification_id);
         edited_notification_ids.erase(notification_id);
         if (!removed_notification_ids.insert(notification_id).second) {
@@ -1050,6 +1054,7 @@ void NotificationManager::flush_pending_updates(int32 group_id, const char *sour
       CHECK(update->get_id() == td_api::updateNotification::ID);
       auto update_ptr = static_cast<td_api::updateNotification *>(update.get());
       auto notification_id = update_ptr->notification_->id_;
+      CHECK(notification_id != 0);
       CHECK(removed_notification_ids.count(notification_id) == 0);  // there must be no edits of deleted notifications
       added_notification_ids.erase(notification_id);
       edited_notification_ids.insert(notification_id);
@@ -1076,8 +1081,8 @@ void NotificationManager::flush_pending_updates(int32 group_id, const char *sour
     size_t cur_pos = 0;
     FlatHashMap<int32, size_t> first_add_notification_pos;
     FlatHashMap<int32, size_t> first_edit_notification_pos;
-    std::unordered_set<int32> can_be_deleted_notification_ids;
-    std::vector<int32> moved_deleted_notification_ids;
+    FlatHashSet<int32> can_be_deleted_notification_ids;
+    vector<int32> moved_deleted_notification_ids;
     size_t first_notification_group_pos = 0;
 
     for (auto &update : updates) {
@@ -1089,6 +1094,7 @@ void NotificationManager::flush_pending_updates(int32 group_id, const char *sour
 
         for (auto &notification : update_ptr->added_notifications_) {
           auto notification_id = notification->id_;
+          CHECK(notification_id != 0);
           bool is_needed =
               added_notification_ids.count(notification_id) != 0 || edited_notification_ids.count(notification_id) != 0;
           if (!is_needed) {
@@ -1772,7 +1778,7 @@ void NotificationManager::remove_added_notifications_from_pending_updates(
     return;
   }
 
-  std::unordered_set<int32> removed_notification_ids;
+  FlatHashSet<int32> removed_notification_ids;
   for (auto &update : it->second) {
     if (update == nullptr) {
       continue;
@@ -1786,6 +1792,7 @@ void NotificationManager::remove_added_notifications_from_pending_updates(
       }
       for (auto &notification : update_ptr->added_notifications_) {
         if (is_removed(notification)) {
+          CHECK(notification->id_ != 0);
           removed_notification_ids.insert(notification->id_);
           VLOG(notifications) << "Remove " << NotificationId(notification->id_) << " in " << group_id;
           notification = nullptr;
@@ -1796,6 +1803,7 @@ void NotificationManager::remove_added_notifications_from_pending_updates(
       CHECK(update->get_id() == td_api::updateNotification::ID);
       auto update_ptr = static_cast<td_api::updateNotification *>(update.get());
       if (is_removed(update_ptr->notification_)) {
+        CHECK(update_ptr->notification_->id_ != 0);
         removed_notification_ids.insert(update_ptr->notification_->id_);
         VLOG(notifications) << "Remove " << NotificationId(update_ptr->notification_->id_) << " in " << group_id;
         update = nullptr;

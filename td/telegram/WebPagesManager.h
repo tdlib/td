@@ -21,9 +21,9 @@
 
 #include "td/utils/common.h"
 #include "td/utils/FlatHashMap.h"
+#include "td/utils/FlatHashSet.h"
 #include "td/utils/Status.h"
 
-#include <unordered_set>
 #include <utility>
 
 namespace td {
@@ -182,7 +182,7 @@ class WebPagesManager final : public Actor {
   FlatHashMap<WebPageId, unique_ptr<WebPage>, WebPageIdHash> web_pages_;
 
   FlatHashMap<WebPageId, vector<Promise<Unit>>, WebPageIdHash> load_web_page_from_database_queries_;
-  std::unordered_set<WebPageId, WebPageIdHash> loaded_from_database_web_pages_;
+  FlatHashSet<WebPageId, WebPageIdHash> loaded_from_database_web_pages_;
 
   struct PendingWebPageInstantViewQueries {
     vector<Promise<WebPageId>> partial;
@@ -190,7 +190,7 @@ class WebPagesManager final : public Actor {
   };
   FlatHashMap<WebPageId, PendingWebPageInstantViewQueries, WebPageIdHash> load_web_page_instant_view_queries_;
 
-  FlatHashMap<WebPageId, std::unordered_set<FullMessageId, FullMessageIdHash>, WebPageIdHash> web_page_messages_;
+  FlatHashMap<WebPageId, FlatHashSet<FullMessageId, FullMessageIdHash>, WebPageIdHash> web_page_messages_;
 
   FlatHashMap<WebPageId, FlatHashMap<int64, std::pair<string, Promise<Unit>>>, WebPageIdHash> pending_get_web_pages_;
 

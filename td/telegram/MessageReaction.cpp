@@ -17,11 +17,11 @@
 
 #include "td/utils/algorithm.h"
 #include "td/utils/buffer.h"
+#include "td/utils/FlatHashSet.h"
 #include "td/utils/logging.h"
 #include "td/utils/Status.h"
 
 #include <algorithm>
-#include <unordered_set>
 #include <utility>
 
 namespace td {
@@ -52,7 +52,10 @@ class GetMessagesReactionsQuery final : public Td::ResultHandler {
     LOG(INFO) << "Receive result for GetMessagesReactionsQuery: " << to_string(ptr);
     if (ptr->get_id() == telegram_api::updates::ID) {
       auto &updates = static_cast<telegram_api::updates *>(ptr.get())->updates_;
-      std::unordered_set<MessageId, MessageIdHash> skipped_message_ids(message_ids_.begin(), message_ids_.end());
+      FlatHashSet<MessageId, MessageIdHash> skipped_message_ids;
+      for (auto message_id : message_ids_) {
+        skipped_message_ids.insert(message_id);
+      }
       for (const auto &update : updates) {
         if (update->get_id() == telegram_api::updateMessageReactions::ID) {
           auto update_message_reactions = static_cast<const telegram_api::updateMessageReactions *>(update.get());
@@ -288,10 +291,11 @@ unique_ptr<MessageReactions> MessageReactions::get_message_reactions(
   result->can_get_added_reactions_ = reactions->can_see_list_;
   result->is_min_ = reactions->min_;
 
-  std::unordered_set<string> reaction_strings;
-  std::unordered_set<DialogId, DialogIdHash> recent_choosers;
+  FlatHashSet<string> reaction_strings;
+  FlatHashSet<DialogId, DialogIdHash> recent_choosers;
   for (auto &reaction_count : reactions->results_) {
-    if (reaction_count->count_ <= 0 || reaction_count->count_ >= MessageReaction::MAX_CHOOSE_COUNT) {
+    if (reaction_count->count_ <= 0 || reaction_count->count_ >= MessageReaction::MAX_CHOOSE_COUNT ||
+        reaction_count->reaction_.empty()) {
       LOG(ERROR) << "Receive reaction " << reaction_count->reaction_ << " with invalid count "
                  << reaction_count->count_;
       continue;

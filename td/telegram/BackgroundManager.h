@@ -20,10 +20,10 @@
 
 #include "td/utils/common.h"
 #include "td/utils/FlatHashMap.h"
+#include "td/utils/FlatHashSet.h"
 #include "td/utils/Status.h"
 
 #include <memory>
-#include <unordered_set>
 #include <utility>
 
 namespace td {
@@ -169,7 +169,7 @@ class BackgroundManager final : public Actor {
 
   FlatHashMap<FileId, BackgroundId, FileIdHash> file_id_to_background_id_;
 
-  std::unordered_set<string> loaded_from_database_backgrounds_;
+  FlatHashSet<string> loaded_from_database_backgrounds_;
   FlatHashMap<string, vector<Promise<Unit>>> being_loaded_from_database_backgrounds_;
 
   BackgroundId set_background_id_[2];

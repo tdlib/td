@@ -65,7 +65,6 @@
 #include <cmath>
 #include <limits>
 #include <type_traits>
-#include <unordered_set>
 
 namespace td {
 
@@ -3320,8 +3319,10 @@ void StickersManager::on_get_installed_sticker_sets(bool is_masks,
   CHECK(constructor_id == telegram_api::messages_allStickers::ID);
   auto stickers = move_tl_object_as<telegram_api::messages_allStickers>(stickers_ptr);
 
-  std::unordered_set<StickerSetId, StickerSetIdHash> uninstalled_sticker_sets(
-      installed_sticker_set_ids_[is_masks].begin(), installed_sticker_set_ids_[is_masks].end());
+  FlatHashSet<StickerSetId, StickerSetIdHash> uninstalled_sticker_sets;
+  for (auto &sticker_set_id : installed_sticker_set_ids_[is_masks]) {
+    uninstalled_sticker_sets.insert(sticker_set_id);
+  }
 
   vector<StickerSetId> sets_to_load;
   vector<StickerSetId> installed_sticker_set_ids;
@@ -5241,9 +5242,12 @@ void StickersManager::on_get_featured_sticker_sets(
     // the count will be fixed in on_load_old_featured_sticker_sets_finished
   }
 
-  std::unordered_set<StickerSetId, StickerSetIdHash> unread_sticker_set_ids;
+  FlatHashSet<StickerSetId, StickerSetIdHash> unread_sticker_set_ids;
   for (auto &unread_sticker_set_id : featured_stickers->unread_) {
-    unread_sticker_set_ids.insert(StickerSetId(unread_sticker_set_id));
+    StickerSetId sticker_set_id(unread_sticker_set_id);
+    if (sticker_set_id.is_valid()) {
+      unread_sticker_set_ids.insert(sticker_set_id);
+    }
   }
 
   vector<StickerSetId> featured_sticker_set_ids;
@@ -5555,8 +5559,11 @@ int StickersManager::apply_installed_sticker_sets_order(bool is_masks, const vec
     return 0;
   }
 
-  std::unordered_set<StickerSetId, StickerSetIdHash> valid_set_ids(current_sticker_set_ids.begin(),
-                                                                   current_sticker_set_ids.end());
+  FlatHashSet<StickerSetId, StickerSetIdHash> valid_set_ids;
+  for (auto sticker_set_id : current_sticker_set_ids) {
+    valid_set_ids.insert(sticker_set_id);
+  }
+
   vector<StickerSetId> new_sticker_set_ids;
   for (auto sticker_set_id : sticker_set_ids) {
     auto it = valid_set_ids.find(sticker_set_id);
@@ -5845,7 +5852,7 @@ void StickersManager::create_new_sticker_set(UserId user_id, string &title, stri
   file_ids.reserve(stickers.size());
   vector<FileId> local_file_ids;
   vector<FileId> url_file_ids;
-  std::unordered_set<int32> sticker_formats;
+  FlatHashSet<int32> sticker_formats;
   StickerFormat sticker_format = StickerFormat::Unknown;
   for (auto &sticker : stickers) {
     auto r_file_id = prepare_input_sticker(sticker.get());

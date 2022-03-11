@@ -69,6 +69,7 @@
 #include <limits>
 #include <tuple>
 #include <unordered_map>
+#include <unordered_set>
 #include <utility>
 
 namespace td {
@@ -8152,7 +8153,7 @@ void ContactsManager::on_get_contacts(tl_object_ptr<telegram_api::contacts_Conta
   }
 
   auto contacts = move_tl_object_as<telegram_api::contacts_contacts>(new_contacts);
-  std::unordered_set<UserId, UserIdHash> contact_user_ids;
+  FlatHashSet<UserId, UserIdHash> contact_user_ids;
   for (auto &user : contacts->users_) {
     auto user_id = get_user_id(user);
     if (!user_id.is_valid()) {
@@ -8719,6 +8720,7 @@ void ContactsManager::on_load_user_from_database(UserId user_id, string value, b
     return;
   }
 
+  CHECK(user_id.is_valid());
   if (!loaded_from_database_users_.insert(user_id).second) {
     return;
   }
@@ -9020,6 +9022,7 @@ void ContactsManager::on_load_chat_from_database(ChatId chat_id, string value, b
     return;
   }
 
+  CHECK(chat_id.is_valid());
   if (!loaded_from_database_chats_.insert(chat_id).second) {
     return;
   }
@@ -9259,6 +9262,7 @@ void ContactsManager::on_load_channel_from_database(ChannelId channel_id, string
     return;
   }
 
+  CHECK(channel_id.is_valid());
   if (!loaded_from_database_channels_.insert(channel_id).second) {
     return;
   }
@@ -9515,6 +9519,7 @@ void ContactsManager::on_load_secret_chat_from_database(SecretChatId secret_chat
     return;
   }
 
+  CHECK(secret_chat_id.is_valid());
   if (!loaded_from_database_secret_chats_.insert(secret_chat_id).second) {
     return;
   }
@@ -12175,8 +12180,11 @@ void ContactsManager::on_get_channel_participants(
         search_among_dialogs(dialog_ids, additional_query, additional_limit);
 
     total_count = result_dialog_ids.first;
-    std::unordered_set<DialogId, DialogIdHash> result_dialog_ids_set(result_dialog_ids.second.begin(),
-                                                                     result_dialog_ids.second.end());
+    FlatHashSet<DialogId, DialogIdHash> result_dialog_ids_set;
+    for (auto result_dialog_id : result_dialog_ids.second) {
+      CHECK(result_dialog_id.is_valid());
+      result_dialog_ids_set.insert(result_dialog_id);
+    }
     auto all_participants = std::move(result);
     result.clear();
     for (auto &participant : all_participants) {
@@ -12502,7 +12510,7 @@ void ContactsManager::invalidate_channel_full(ChannelId channel_id, bool need_dr
   if (channel_full != nullptr) {
     do_invalidate_channel_full(channel_full, channel_id, need_drop_slow_mode_delay);
     update_channel_full(channel_full, channel_id, "invalidate_channel_full");
-  } else {
+  } else if (channel_id.is_valid()) {
     invalidated_channels_full_.insert(channel_id);
   }
 }

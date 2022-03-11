@@ -25,13 +25,13 @@
 #include "td/utils/buffer.h"
 #include "td/utils/common.h"
 #include "td/utils/crypto.h"
+#include "td/utils/FlatHashSet.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/Random.h"
 #include "td/utils/SliceBuilder.h"
 
 #include <tuple>
-#include <unordered_set>
 
 namespace td {
 
@@ -254,7 +254,7 @@ void CallActor::rate_call(int32 rating, string comment, vector<td_api::object_pt
     comment.clear();
   }
 
-  std::unordered_set<string> tags;
+  FlatHashSet<string> tags;
   for (auto &problem : problems) {
     if (problem == nullptr) {
       continue;

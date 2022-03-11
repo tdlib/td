@@ -10,10 +10,9 @@
 
 #include "td/utils/algorithm.h"
 #include "td/utils/emoji.h"
+#include "td/utils/FlatHashSet.h"
 #include "td/utils/format.h"
 #include "td/utils/logging.h"
-
-#include <unordered_set>
 
 namespace td {
 
@@ -28,7 +27,7 @@ unique_ptr<DialogFilter> DialogFilter::get_dialog_filter(telegram_api::object_pt
   dialog_filter->dialog_filter_id = dialog_filter_id;
   dialog_filter->title = std::move(filter->title_);
   dialog_filter->emoji = std::move(filter->emoticon_);
-  std::unordered_set<DialogId, DialogIdHash> added_dialog_ids;
+  FlatHashSet<DialogId, DialogIdHash> added_dialog_ids;
   dialog_filter->pinned_dialog_ids = InputDialogId::get_input_dialog_ids(filter->pinned_peers_, &added_dialog_ids);
   dialog_filter->included_dialog_ids = InputDialogId::get_input_dialog_ids(filter->include_peers_, &added_dialog_ids);
   dialog_filter->excluded_dialog_ids = InputDialogId::get_input_dialog_ids(filter->exclude_peers_, &added_dialog_ids);
@@ -271,7 +270,7 @@ unique_ptr<DialogFilter> DialogFilter::merge_dialog_filter_changes(const DialogF
       LOG(INFO) << "Pinned chats was not changed locally in " << dialog_filter_id << ", keep remote changes";
 
       size_t kept_server_dialogs = 0;
-      std::unordered_set<DialogId, DialogIdHash> removed_dialog_ids;
+      FlatHashSet<DialogId, DialogIdHash> removed_dialog_ids;
       auto old_it = old_server_dialog_ids.rbegin();
       for (auto &input_dialog_id : reversed(new_server_dialog_ids)) {
         auto dialog_id = input_dialog_id.get_dialog_id();
@@ -283,12 +282,14 @@ unique_ptr<DialogFilter> DialogFilter::merge_dialog_filter_changes(const DialogF
           }
 
           // remove the dialog, it could be added back later
+          CHECK(old_it->get_dialog_id().is_valid());
           removed_dialog_ids.insert(old_it->get_dialog_id());
           ++old_it;
         }
       }
       while (old_it < old_server_dialog_ids.rend()) {
         // remove the dialog, it could be added back later
+        CHECK(old_it->get_dialog_id().is_valid());
         removed_dialog_ids.insert(old_it->get_dialog_id());
         ++old_it;
       }
@@ -310,11 +311,12 @@ unique_ptr<DialogFilter> DialogFilter::merge_dialog_filter_changes(const DialogF
     }
 
     // merge additions and deletions from other clients to the local changes
-    std::unordered_set<DialogId, DialogIdHash> deleted_dialog_ids;
+    FlatHashSet<DialogId, DialogIdHash> deleted_dialog_ids;
     for (const auto &old_dialog_id : old_server_dialog_ids) {
+      CHECK(old_dialog_id.get_dialog_id().is_valid());
       deleted_dialog_ids.insert(old_dialog_id.get_dialog_id());
     }
-    std::unordered_set<DialogId, DialogIdHash> added_dialog_ids;
+    FlatHashSet<DialogId, DialogIdHash> added_dialog_ids;
     for (const auto &new_dialog_id : new_server_dialog_ids) {
       auto dialog_id = new_dialog_id.get_dialog_id();
       if (deleted_dialog_ids.erase(dialog_id) == 0) {
@@ -347,10 +349,12 @@ unique_ptr<DialogFilter> DialogFilter::merge_dialog_filter_changes(const DialogF
                 new_server_filter->excluded_dialog_ids);
 
   {
-    std::unordered_set<DialogId, DialogIdHash> added_dialog_ids;
+    FlatHashSet<DialogId, DialogIdHash> added_dialog_ids;
     auto remove_duplicates = [&added_dialog_ids](auto &input_dialog_ids) {
       td::remove_if(input_dialog_ids, [&added_dialog_ids](auto input_dialog_id) {
-        return !added_dialog_ids.insert(input_dialog_id.get_dialog_id()).second;
+        auto dialog_id = input_dialog_id.get_dialog_id();
+        CHECK(dialog_id.is_valid());
+        return !added_dialog_ids.insert(dialog_id).second;
       });
     };
     remove_duplicates(new_filter->pinned_dialog_ids);

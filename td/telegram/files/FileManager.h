@@ -28,6 +28,7 @@
 #include "td/utils/Container.h"
 #include "td/utils/Enumerator.h"
 #include "td/utils/FlatHashMap.h"
+#include "td/utils/FlatHashSet.h"
 #include "td/utils/logging.h"
 #include "td/utils/optional.h"
 #include "td/utils/Slice.h"
@@ -37,7 +38,6 @@
 #include <map>
 #include <memory>
 #include <set>
-#include <unordered_set>
 #include <utility>
 
 namespace td {
@@ -666,7 +666,7 @@ class FileManager final : public FileLoadManager::Callback {
 
   FullRemoteFileLocation *get_remote(int32 key);
 
-  std::unordered_set<FileId, FileIdHash> get_main_file_ids(const vector<FileId> &file_ids);
+  FlatHashSet<FileId, FileIdHash> get_main_file_ids(const vector<FileId> &file_ids);
 
   void hangup() final;
   void tear_down() final;

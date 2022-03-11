@@ -41,6 +41,7 @@
 
 #include "td/utils/common.h"
 #include "td/utils/FlatHashMap.h"
+#include "td/utils/FlatHashSet.h"
 #include "td/utils/Hints.h"
 #include "td/utils/Status.h"
 #include "td/utils/StringBuilder.h"
@@ -48,7 +49,6 @@
 
 #include <functional>
 #include <memory>
-#include <unordered_set>
 #include <utility>
 
 namespace td {
@@ -629,7 +629,7 @@ class ContactsManager final : public Actor {
 
     string language_code;
 
-    std::unordered_set<int64> photo_ids;
+    FlatHashSet<int64> photo_ids;
 
     FlatHashMap<DialogId, int32, DialogIdHash> online_member_dialogs;  // id -> time
 
@@ -1642,7 +1642,7 @@ class ContactsManager final : public Actor {
   FlatHashMap<UserId, unique_ptr<User>, UserIdHash> users_;
   FlatHashMap<UserId, unique_ptr<UserFull>, UserIdHash> users_full_;
   FlatHashMap<UserId, UserPhotos, UserIdHash> user_photos_;
-  mutable std::unordered_set<UserId, UserIdHash> unknown_users_;
+  mutable FlatHashSet<UserId, UserIdHash> unknown_users_;
   FlatHashMap<UserId, tl_object_ptr<telegram_api::UserProfilePhoto>, UserIdHash> pending_user_photos_;
   struct UserIdPhotoIdHash {
     std::size_t operator()(const std::pair<UserId, int64> &pair) const {
@@ -1654,23 +1654,23 @@ class ContactsManager final : public Actor {
 
   FlatHashMap<ChatId, unique_ptr<Chat>, ChatIdHash> chats_;
   FlatHashMap<ChatId, unique_ptr<ChatFull>, ChatIdHash> chats_full_;
-  mutable std::unordered_set<ChatId, ChatIdHash> unknown_chats_;
+  mutable FlatHashSet<ChatId, ChatIdHash> unknown_chats_;
   FlatHashMap<ChatId, FileSourceId, ChatIdHash> chat_full_file_source_ids_;
 
   FlatHashMap<ChannelId, unique_ptr<MinChannel>, ChannelIdHash> min_channels_;
   FlatHashMap<ChannelId, unique_ptr<Channel>, ChannelIdHash> channels_;
   FlatHashMap<ChannelId, unique_ptr<ChannelFull>, ChannelIdHash> channels_full_;
-  mutable std::unordered_set<ChannelId, ChannelIdHash> unknown_channels_;
-  std::unordered_set<ChannelId, ChannelIdHash> invalidated_channels_full_;
+  mutable FlatHashSet<ChannelId, ChannelIdHash> unknown_channels_;
+  FlatHashSet<ChannelId, ChannelIdHash> invalidated_channels_full_;
   FlatHashMap<ChannelId, FileSourceId, ChannelIdHash> channel_full_file_source_ids_;
 
   FlatHashMap<SecretChatId, unique_ptr<SecretChat>, SecretChatIdHash> secret_chats_;
-  mutable std::unordered_set<SecretChatId, SecretChatIdHash> unknown_secret_chats_;
+  mutable FlatHashSet<SecretChatId, SecretChatIdHash> unknown_secret_chats_;
 
   FlatHashMap<UserId, vector<SecretChatId>, UserIdHash> secret_chats_with_user_;
 
   struct DialogAccessByInviteLink {
-    std::unordered_set<string> invite_links;
+    FlatHashSet<string> invite_links;
     int32 accessible_before = 0;
   };
   FlatHashMap<string, unique_ptr<InviteLinkInfo>> invite_link_infos_;
@@ -1687,19 +1687,19 @@ class ContactsManager final : public Actor {
   vector<ChannelId> inactive_channels_;
 
   FlatHashMap<UserId, vector<Promise<Unit>>, UserIdHash> load_user_from_database_queries_;
-  std::unordered_set<UserId, UserIdHash> loaded_from_database_users_;
-  std::unordered_set<UserId, UserIdHash> unavailable_user_fulls_;
+  FlatHashSet<UserId, UserIdHash> loaded_from_database_users_;
+  FlatHashSet<UserId, UserIdHash> unavailable_user_fulls_;
 
   FlatHashMap<ChatId, vector<Promise<Unit>>, ChatIdHash> load_chat_from_database_queries_;
-  std::unordered_set<ChatId, ChatIdHash> loaded_from_database_chats_;
-  std::unordered_set<ChatId, ChatIdHash> unavailable_chat_fulls_;
+  FlatHashSet<ChatId, ChatIdHash> loaded_from_database_chats_;
+  FlatHashSet<ChatId, ChatIdHash> unavailable_chat_fulls_;
 
   FlatHashMap<ChannelId, vector<Promise<Unit>>, ChannelIdHash> load_channel_from_database_queries_;
-  std::unordered_set<ChannelId, ChannelIdHash> loaded_from_database_channels_;
-  std::unordered_set<ChannelId, ChannelIdHash> unavailable_channel_fulls_;
+  FlatHashSet<ChannelId, ChannelIdHash> loaded_from_database_channels_;
+  FlatHashSet<ChannelId, ChannelIdHash> unavailable_channel_fulls_;
 
   FlatHashMap<SecretChatId, vector<Promise<Unit>>, SecretChatIdHash> load_secret_chat_from_database_queries_;
-  std::unordered_set<SecretChatId, SecretChatIdHash> loaded_from_database_secret_chats_;
+  FlatHashSet<SecretChatId, SecretChatIdHash> loaded_from_database_secret_chats_;
 
   QueryCombiner get_user_full_queries_{"GetUserFullCombiner", 2.0};
   QueryCombiner get_chat_full_queries_{"GetChatFullCombiner", 2.0};
@@ -1771,7 +1771,7 @@ class ContactsManager final : public Actor {
 
   vector<DialogNearby> users_nearby_;
   vector<DialogNearby> channels_nearby_;
-  std::unordered_set<UserId, UserIdHash> all_users_nearby_;
+  FlatHashSet<UserId, UserIdHash> all_users_nearby_;
 
   int32 location_visibility_expire_date_ = 0;
   int32 pending_location_visibility_expire_date_ = -1;
@@ -1780,8 +1780,8 @@ class ContactsManager final : public Actor {
 
   FlatHashMap<ChannelId, ChannelId, ChannelIdHash> linked_channel_ids_;
 
-  std::unordered_set<UserId, UserIdHash> restricted_user_ids_;
-  std::unordered_set<ChannelId, ChannelIdHash> restricted_channel_ids_;
+  FlatHashSet<UserId, UserIdHash> restricted_user_ids_;
+  FlatHashSet<ChannelId, ChannelIdHash> restricted_channel_ids_;
 
   vector<Contact> next_all_imported_contacts_;
   vector<size_t> imported_contacts_unique_id_;

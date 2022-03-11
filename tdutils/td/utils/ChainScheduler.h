@@ -9,6 +9,7 @@
 #include "td/utils/algorithm.h"
 #include "td/utils/common.h"
 #include "td/utils/Container.h"
+#include "td/utils/FlatHashSet.h"
 #include "td/utils/List.h"
 #include "td/utils/logging.h"
 #include "td/utils/optional.h"
@@ -18,7 +19,6 @@
 
 #include <functional>
 #include <unordered_map>
-#include <unordered_set>
 
 namespace td {
 
@@ -56,7 +56,7 @@ class ChainScheduler final : public ChainSchedulerBase {
   void for_each_dependent(TaskId task_id, F &&f) {
     auto *task = tasks_.get(task_id);
     CHECK(task != nullptr);
-    std::unordered_set<TaskId> visited;
+    FlatHashSet<TaskId> visited;
     bool check_for_collisions = task->chains.size() > 1;
     for (TaskChainInfo &task_chain_info : task->chains) {
       ChainInfo &chain_info = *task_chain_info.chain_info;

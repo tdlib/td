@@ -12,8 +12,8 @@
 #include "td/actor/PromiseFuture.h"
 
 #include "td/utils/common.h"
+#include "td/utils/FlatHashSet.h"
 
-#include <unordered_set>
 #include <utility>
 
 namespace td {
@@ -38,7 +38,7 @@ class RecentDialogList final : public Actor {
   const char *name_;
   size_t max_size_;
   vector<DialogId> dialog_ids_;
-  std::unordered_set<DialogId, DialogIdHash> removed_dialog_ids_;
+  FlatHashSet<DialogId, DialogIdHash> removed_dialog_ids_;
 
   bool is_loaded_ = false;
   vector<Promise<Unit>> load_list_queries_;

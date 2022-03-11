@@ -7,6 +7,7 @@
 #pragma once
 
 #include "td/utils/common.h"
+#include "td/utils/FlatHashSet.h"
 #include "td/utils/misc.h"
 #include "td/utils/SharedSlice.h"
 #include "td/utils/Slice.h"
@@ -18,7 +19,6 @@
 #include "td/utils/Variant.h"
 
 #include <type_traits>
-#include <unordered_set>
 #include <utility>
 
 #define BEGIN_STORE_FLAGS()       \
@@ -172,15 +172,15 @@ void parse(unique_ptr<T> &ptr, ParserT &parser) {
   parse(*ptr, parser);
 }
 
-template <class Key, class Hash, class KeyEqual, class Allocator, class StorerT>
-void store(const std::unordered_set<Key, Hash, KeyEqual, Allocator> &s, StorerT &storer) {
+template <class Key, class Hash, class KeyEqual, class StorerT>
+void store(const FlatHashSet<Key, Hash, KeyEqual> &s, StorerT &storer) {
   storer.store_binary(narrow_cast<int32>(s.size()));
   for (auto &val : s) {
     store(val, storer);
   }
 }
-template <class Key, class Hash, class KeyEqual, class Allocator, class ParserT>
-void parse(std::unordered_set<Key, Hash, KeyEqual, Allocator> &s, ParserT &parser) {
+template <class Key, class Hash, class KeyEqual, class ParserT>
+void parse(FlatHashSet<Key, Hash, KeyEqual> &s, ParserT &parser) {
   uint32 size = parser.fetch_int();
   if (parser.get_left_len() < size) {
     parser.set_error("Wrong set length");

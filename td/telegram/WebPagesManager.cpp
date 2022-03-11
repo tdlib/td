@@ -1634,6 +1634,7 @@ void WebPagesManager::on_load_web_page_from_database(WebPageId web_page_id, stri
   if (G()->close_flag()) {
     return;
   }
+  CHECK(web_page_id.is_valid());
   if (!loaded_from_database_web_pages_.insert(web_page_id).second) {
     return;
   }

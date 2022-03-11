@@ -7,16 +7,15 @@
 #include "td/utils/emoji.h"
 
 #include "td/utils/base64.h"
+#include "td/utils/FlatHashSet.h"
 #include "td/utils/Gzip.h"
 #include "td/utils/misc.h"
-
-#include <unordered_set>
 
 namespace td {
 
 bool is_emoji(Slice str) {
   constexpr size_t MAX_EMOJI_LENGTH = 35;
-  static const std::unordered_set<Slice, SliceHash> emojis = [max_emoji_length = MAX_EMOJI_LENGTH] {
+  static const FlatHashSet<Slice, SliceHash> emojis = [max_emoji_length = MAX_EMOJI_LENGTH] {
 #if TD_HAVE_ZLIB
     Slice packed_emojis(
         "eJyNnety27i2rV8lVfvf-XXul7frVmfZ6cS6kKJskrLj7tUUaUmOI1uObcUEWLUfJecBdledFzgaJIfJiUkyqyqAJ4wxJzE_QABF2fGPs_"
@@ -202,7 +201,7 @@ bool is_emoji(Slice str) {
     string all_emojis_str;
     constexpr size_t EMOJI_COUNT = 0;
 #endif
-    std::unordered_set<Slice, SliceHash> all_emojis;
+    FlatHashSet<Slice, SliceHash> all_emojis;
     all_emojis.reserve(EMOJI_COUNT);
     for (size_t i = 0; i < all_emojis_str.size(); i++) {
       CHECK(all_emojis_str[i] != ' ');

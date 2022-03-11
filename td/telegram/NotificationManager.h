@@ -25,6 +25,7 @@
 
 #include "td/utils/common.h"
 #include "td/utils/FlatHashMap.h"
+#include "td/utils/FlatHashSet.h"
 #include "td/utils/logging.h"
 #include "td/utils/Status.h"
 #include "td/utils/StringBuilder.h"
@@ -32,7 +33,6 @@
 
 #include <functional>
 #include <map>
-#include <unordered_set>
 
 namespace td {
 
@@ -372,7 +372,7 @@ class NotificationManager final : public Actor {
   bool is_binlog_processed_ = false;
 
   bool running_get_difference_ = false;
-  std::unordered_set<int32> running_get_chat_difference_;
+  FlatHashSet<int32> running_get_chat_difference_;
 
   NotificationGroups groups_;
   FlatHashMap<NotificationGroupId, NotificationGroupKey, NotificationGroupIdHash> group_keys_;
@@ -383,7 +383,7 @@ class NotificationManager final : public Actor {
   MultiTimeout flush_pending_updates_timeout_{"FlushPendingUpdatesTimeout"};
 
   vector<NotificationGroupId> call_notification_group_ids_;
-  std::unordered_set<NotificationGroupId, NotificationGroupIdHash> available_call_notification_group_ids_;
+  FlatHashSet<NotificationGroupId, NotificationGroupIdHash> available_call_notification_group_ids_;
   FlatHashMap<DialogId, NotificationGroupId, DialogIdHash> dialog_id_to_call_notification_group_id_;
 
   FlatHashMap<NotificationId, uint64, NotificationIdHash> temporary_notification_log_event_ids_;

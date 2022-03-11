@@ -48,7 +48,6 @@
 #include <limits>
 #include <numeric>
 #include <tuple>
-#include <unordered_set>
 #include <utility>
 
 namespace td {
@@ -827,7 +826,7 @@ FileManager::FileManager(unique_ptr<Context> context) : context_(std::move(conte
   next_file_id();
   next_file_node_id();
 
-  std::unordered_set<string> dir_paths;
+  FlatHashSet<string> dir_paths;
   for (int32 i = 0; i < MAX_FILE_TYPE; i++) {
     dir_paths.insert(get_files_dir(static_cast<FileType>(i)));
   }
@@ -1787,8 +1786,8 @@ void FileManager::on_file_reference_repaired(FileId file_id, FileSourceId file_s
   promise.set_result(std::move(result));
 }
 
-std::unordered_set<FileId, FileIdHash> FileManager::get_main_file_ids(const vector<FileId> &file_ids) {
-  std::unordered_set<FileId, FileIdHash> result;
+FlatHashSet<FileId, FileIdHash> FileManager::get_main_file_ids(const vector<FileId> &file_ids) {
+  FlatHashSet<FileId, FileIdHash> result;
   for (auto file_id : file_ids) {
     auto node = get_file_node(file_id);
     if (node) {

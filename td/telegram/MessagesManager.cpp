@@ -8723,6 +8723,7 @@ void MessagesManager::queue_message_reactions_reload(FullMessageId full_message_
 void MessagesManager::queue_message_reactions_reload(DialogId dialog_id, const vector<MessageId> &message_ids) {
   auto &message_ids_to_reload = being_reloaded_reactions_[dialog_id].message_ids;
   for (auto &message_id : message_ids) {
+    CHECK(message_id.is_valid());
     message_ids_to_reload.insert(message_id);
   }
   try_reload_message_reactions(dialog_id, false);
@@ -11968,6 +11969,7 @@ void MessagesManager::delete_all_dialog_messages(Dialog *d, bool remove_from_dia
   delete_all_dialog_messages_from_database(d, MessageId::max(), "delete_all_dialog_messages 3");
   if (is_permanently_deleted) {
     for (auto id : deleted_message_ids) {
+      CHECK(id != 0);
       d->deleted_message_ids.insert(MessageId{id});
     }
   }
@@ -15340,7 +15342,7 @@ void MessagesManager::remove_dialog_mention_notifications(Dialog *d) {
   VLOG(notifications) << "Remove mention notifications in " << d->dialog_id;
 
   vector<MessageId> message_ids;
-  std::unordered_set<NotificationId, NotificationIdHash> removed_notification_ids_set;
+  FlatHashSet<NotificationId, NotificationIdHash> removed_notification_ids_set;
   find_messages(d->messages.get(), message_ids, [](const Message *m) { return m->contains_unread_mention; });
   VLOG(notifications) << "Found unread mentions in " << message_ids;
   for (auto &message_id : message_ids) {
@@ -15854,8 +15856,10 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
     if (pinned_dialog_ids != added_dialog_ids) {
       LOG(INFO) << "Update pinned chats order from " << format::as_array(pinned_dialog_ids) << " to "
                 << format::as_array(added_dialog_ids);
-      std::unordered_set<DialogId, DialogIdHash> old_pinned_dialog_ids(pinned_dialog_ids.begin(),
-                                                                       pinned_dialog_ids.end());
+      FlatHashSet<DialogId, DialogIdHash> old_pinned_dialog_ids;
+      for (auto pinned_dialog_id : pinned_dialog_ids) {
+        old_pinned_dialog_ids.insert(pinned_dialog_id);
+      }
 
       std::reverse(pinned_dialog_ids.begin(), pinned_dialog_ids.end());
       std::reverse(added_dialog_ids.begin(), added_dialog_ids.end());
@@ -19158,12 +19162,13 @@ void MessagesManager::sort_dialog_filter_input_dialog_ids(DialogFilter *dialog_f
   sort_input_dialog_ids(dialog_filter->excluded_dialog_ids);
   sort_input_dialog_ids(dialog_filter->included_dialog_ids);
 
-  std::unordered_set<DialogId, DialogIdHash> all_dialog_ids;
+  FlatHashSet<DialogId, DialogIdHash> all_dialog_ids;
   for (auto input_dialog_ids :
        {&dialog_filter->pinned_dialog_ids, &dialog_filter->excluded_dialog_ids, &dialog_filter->included_dialog_ids}) {
     for (const auto &input_dialog_id : *input_dialog_ids) {
-      LOG_CHECK(all_dialog_ids.insert(input_dialog_id.get_dialog_id()).second)
-          << source << ' ' << input_dialog_id.get_dialog_id() << ' ' << dialog_filter;
+      auto dialog_id = input_dialog_id.get_dialog_id();
+      CHECK(dialog_id.is_valid());
+      LOG_CHECK(all_dialog_ids.insert(dialog_id).second) << source << ' ' << dialog_id << ' ' << dialog_filter;
     }
   }
 }
@@ -19193,7 +19198,7 @@ Result<unique_ptr<DialogFilter>> MessagesManager::create_dialog_filter(DialogFil
   auto dialog_filter = make_unique<DialogFilter>();
   dialog_filter->dialog_filter_id = dialog_filter_id;
 
-  std::unordered_set<int64> added_dialog_ids;
+  FlatHashSet<int64> added_dialog_ids;
   auto add_chats = [this, &added_dialog_ids](vector<InputDialogId> &input_dialog_ids, const vector<int64> &chat_ids) {
     for (const auto &chat_id : chat_ids) {
       if (!added_dialog_ids.insert(chat_id).second) {
@@ -20129,6 +20134,7 @@ Status MessagesManager::set_pinned_dialogs(DialogListId dialog_list_id, vector<D
   int32 dialog_count = 0;
   int32 secret_dialog_count = 0;
   auto dialog_count_limit = get_pinned_dialogs_limit(dialog_list_id);
+  FlatHashSet<DialogId, DialogIdHash> new_pinned_dialog_ids;
   for (auto dialog_id : dialog_ids) {
     Dialog *d = get_dialog_force(dialog_id, "set_pinned_dialogs");
     if (d == nullptr) {
@@ -20152,8 +20158,9 @@ Status MessagesManager::set_pinned_dialogs(DialogListId dialog_list_id, vector<D
     if (dialog_count > dialog_count_limit || secret_dialog_count > dialog_count_limit) {
       return Status::Error(400, "The maximum number of pinned chats exceeded");
     }
+
+    new_pinned_dialog_ids.insert(dialog_id);
   }
-  std::unordered_set<DialogId, DialogIdHash> new_pinned_dialog_ids(dialog_ids.begin(), dialog_ids.end());
   if (new_pinned_dialog_ids.size() != dialog_ids.size()) {
     return Status::Error(400, "Duplicate chats in the list of pinned chats");
   }
@@ -20211,7 +20218,10 @@ Status MessagesManager::set_pinned_dialogs(DialogListId dialog_list_id, vector<D
   std::reverse(pinned_dialog_ids.begin(), pinned_dialog_ids.end());
   std::reverse(dialog_ids.begin(), dialog_ids.end());
 
-  std::unordered_set<DialogId, DialogIdHash> old_pinned_dialog_ids(pinned_dialog_ids.begin(), pinned_dialog_ids.end());
+  FlatHashSet<DialogId, DialogIdHash> old_pinned_dialog_ids;
+  for (auto dialog_id : pinned_dialog_ids) {
+    old_pinned_dialog_ids.insert(dialog_id);
+  }
   auto old_it = pinned_dialog_ids.begin();
   for (auto dialog_id : dialog_ids) {
     old_pinned_dialog_ids.erase(dialog_id);
@@ -32736,7 +32746,10 @@ DialogId MessagesManager::search_public_dialog(const string &username_to_search,
 }
 
 void MessagesManager::reload_voice_chat_on_search(const string &username) {
-  reload_voice_chat_on_search_usernames_.insert(clean_username(username));
+  auto cleaned_username = clean_username(username);
+  if (!cleaned_username.empty()) {
+    reload_voice_chat_on_search_usernames_.insert(cleaned_username);
+  }
 }
 
 void MessagesManager::send_get_dialog_notification_settings_query(DialogId dialog_id, Promise<Unit> &&promise) {
@@ -35423,7 +35436,7 @@ void MessagesManager::delete_message_from_database(Dialog *d, MessageId message_
   }
 
   if (is_permanently_deleted) {
-    if (message_id.is_scheduled() && message_id.is_scheduled_server()) {
+    if (message_id.is_scheduled() && message_id.is_valid_scheduled() && message_id.is_scheduled_server()) {
       d->deleted_scheduled_server_message_ids.insert(message_id.get_scheduled_server_message_id());
     } else {
       // don't store failed to send message identifiers for bots to reduce memory usage
@@ -37473,6 +37486,7 @@ MessagesManager::Dialog *MessagesManager::get_dialog_force(DialogId dialog_id, c
 unique_ptr<MessagesManager::Dialog> MessagesManager::parse_dialog(DialogId dialog_id, const BufferSlice &value,
                                                                   const char *source) {
   LOG(INFO) << "Loaded " << dialog_id << " of size " << value.size() << " from database from " << source;
+  CHECK(dialog_id.is_valid());
   auto d = make_unique<Dialog>();
   d->dialog_id = dialog_id;
   invalidate_message_indexes(d.get());  // must initialize indexes, because some of them could be not parsed
@@ -38087,7 +38101,7 @@ void MessagesManager::process_get_channel_difference_updates(
   debug_channel_difference_dialog_ = dialog_id;
 
   // identifiers of edited and deleted messages
-  std::unordered_set<MessageId, MessageIdHash> changed_message_ids;
+  FlatHashSet<MessageId, MessageIdHash> changed_message_ids;
   for (auto &update_ptr : other_updates) {
     bool is_good_update = true;
     switch (update_ptr->get_id()) {
@@ -38146,7 +38160,10 @@ void MessagesManager::process_get_channel_difference_updates(
 
   for (auto &message : new_messages) {
     if (is_edited_message(message)) {
-      changed_message_ids.insert(get_message_id(message, false));
+      auto message_id = get_message_id(message, false);
+      if (message_id.is_valid()) {
+        changed_message_ids.insert(message_id);
+      }
     }
   }
 
@@ -39189,7 +39206,7 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
           auto message_id = log_event.full_message_id_.get_message_id();
           if (message_id.is_valid_scheduled() && message_id.is_scheduled_server()) {
             d->deleted_scheduled_server_message_ids.insert(message_id.get_scheduled_server_message_id());
-          } else {
+          } else if (message_id != MessageId()) {
             d->deleted_message_ids.insert(message_id);
           }
         }
@@ -39213,7 +39230,10 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
           break;
         }
 
-        d->deleted_message_ids.insert(log_event.message_ids_.begin(), log_event.message_ids_.end());
+        for (auto message_id : log_event.message_ids_) {
+          CHECK(message_id.is_valid());
+          d->deleted_message_ids.insert(message_id);
+        }
 
         delete_messages_on_server(dialog_id, std::move(log_event.message_ids_), log_event.revoke_, event.id_, Auto());
         break;

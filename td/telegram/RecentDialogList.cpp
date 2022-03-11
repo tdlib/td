@@ -198,6 +198,9 @@ bool RecentDialogList::do_add_dialog(DialogId dialog_id) {
 }
 
 void RecentDialogList::remove_dialog(DialogId dialog_id) {
+  if (!dialog_id.is_valid()) {
+    return;
+  }
   if (!is_loaded_) {
     load_dialogs(Promise<Unit>());
   }

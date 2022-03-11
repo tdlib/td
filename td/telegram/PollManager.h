@@ -22,9 +22,9 @@
 #include "td/utils/buffer.h"
 #include "td/utils/common.h"
 #include "td/utils/FlatHashMap.h"
+#include "td/utils/FlatHashSet.h"
 #include "td/utils/Status.h"
 
-#include <unordered_set>
 #include <utility>
 
 namespace td {
@@ -209,7 +209,7 @@ class PollManager final : public Actor {
   ActorShared<> parent_;
   FlatHashMap<PollId, unique_ptr<Poll>, PollIdHash> polls_;
 
-  FlatHashMap<PollId, std::unordered_set<FullMessageId, FullMessageIdHash>, PollIdHash> poll_messages_;
+  FlatHashMap<PollId, FlatHashSet<FullMessageId, FullMessageIdHash>, PollIdHash> poll_messages_;
 
   struct PendingPollAnswer {
     vector<string> options_;
@@ -226,9 +226,9 @@ class PollManager final : public Actor {
 
   uint64 current_generation_ = 0;
 
-  std::unordered_set<PollId, PollIdHash> loaded_from_database_polls_;
+  FlatHashSet<PollId, PollIdHash> loaded_from_database_polls_;
 
-  std::unordered_set<PollId, PollIdHash> being_closed_polls_;
+  FlatHashSet<PollId, PollIdHash> being_closed_polls_;
 };
 
 }  // namespace td

@@ -14,6 +14,7 @@
 
 #include "td/utils/common.h"
 #include "td/utils/ExitGuard.h"
+#include "td/utils/FlatHashSet.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/port/detail/PollableFd.h"
@@ -26,7 +27,6 @@
 
 #include <cstring>
 #include <mutex>
-#include <unordered_set>
 #include <utility>
 
 #if TD_PORT_POSIX
@@ -384,14 +384,14 @@ Result<size_t> FileFd::pread(MutableSlice slice, int64 offset) const {
 }
 
 static std::mutex in_process_lock_mutex;
-static std::unordered_set<string> locked_files;
+static FlatHashSet<string> locked_files;
 static ExitGuard exit_guard;
 
 static Status create_local_lock(const string &path, int32 &max_tries) {
   while (true) {
     {  // mutex lock scope
       std::lock_guard<std::mutex> lock(in_process_lock_mutex);
-      if (locked_files.find(path) == locked_files.end()) {
+      if (!path.empty() && locked_files.find(path) == locked_files.end()) {
         VLOG(fd) << "Lock file \"" << path << '"';
         locked_files.insert(path);
         return Status::OK();
@@ -505,7 +505,7 @@ void FileFd::remove_local_lock(const string &path) {
   VLOG(fd) << "Unlock file \"" << path << '"';
   std::unique_lock<std::mutex> lock(in_process_lock_mutex);
   auto erased_count = locked_files.erase(path);
-  CHECK(erased_count > 0 || ExitGuard::is_exited());
+  CHECK(erased_count > 0 || path.empty() || ExitGuard::is_exited());
 }
 
 void FileFd::close() {

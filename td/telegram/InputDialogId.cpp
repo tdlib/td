@@ -54,8 +54,8 @@ InputDialogId::InputDialogId(const tl_object_ptr<telegram_api::InputPeer> &input
 
 vector<InputDialogId> InputDialogId::get_input_dialog_ids(
     const vector<tl_object_ptr<telegram_api::InputPeer>> &input_peers,
-    std::unordered_set<DialogId, DialogIdHash> *added_dialog_ids) {
-  std::unordered_set<DialogId, DialogIdHash> temp_added_dialog_ids;
+    FlatHashSet<DialogId, DialogIdHash> *added_dialog_ids) {
+  FlatHashSet<DialogId, DialogIdHash> temp_added_dialog_ids;
   if (added_dialog_ids == nullptr) {
     added_dialog_ids = &temp_added_dialog_ids;
   }

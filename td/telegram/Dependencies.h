@@ -13,19 +13,19 @@
 #include "td/telegram/UserId.h"
 #include "td/telegram/WebPageId.h"
 
-#include <unordered_set>
+#include "td/utils/FlatHashSet.h"
 
 namespace td {
 
 class Td;
 
 class Dependencies {
-  std::unordered_set<UserId, UserIdHash> user_ids;
-  std::unordered_set<ChatId, ChatIdHash> chat_ids;
-  std::unordered_set<ChannelId, ChannelIdHash> channel_ids;
-  std::unordered_set<SecretChatId, SecretChatIdHash> secret_chat_ids;
-  std::unordered_set<DialogId, DialogIdHash> dialog_ids;
-  std::unordered_set<WebPageId, WebPageIdHash> web_page_ids;
+  FlatHashSet<UserId, UserIdHash> user_ids;
+  FlatHashSet<ChatId, ChatIdHash> chat_ids;
+  FlatHashSet<ChannelId, ChannelIdHash> channel_ids;
+  FlatHashSet<SecretChatId, SecretChatIdHash> secret_chat_ids;
+  FlatHashSet<DialogId, DialogIdHash> dialog_ids;
+  FlatHashSet<WebPageId, WebPageIdHash> web_page_ids;
 
  public:
   void add(UserId user_id);
@@ -46,7 +46,7 @@ class Dependencies {
 
   bool resolve_force(Td *td, const char *source) const;
 
-  const std::unordered_set<DialogId, DialogIdHash> &get_dialog_ids() const {
+  const FlatHashSet<DialogId, DialogIdHash> &get_dialog_ids() const {
     return dialog_ids;
   }
 };

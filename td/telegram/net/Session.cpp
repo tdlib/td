@@ -726,6 +726,7 @@ void Session::mark_as_unknown(uint64 id, Query *query) {
   }
   VLOG(net_query) << "Mark as unknown " << tag("msg_id", id) << query->query;
   query->unknown = true;
+  CHECK(id != 0);
   unknown_queries_.insert(id);
 }
 

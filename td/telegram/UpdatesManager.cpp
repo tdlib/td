@@ -1064,14 +1064,14 @@ vector<tl_object_ptr<telegram_api::Update>> *UpdatesManager::get_updates(telegra
       get_updates(static_cast<const telegram_api::Updates *>(updates_ptr)));
 }
 
-std::unordered_set<int64> UpdatesManager::get_sent_messages_random_ids(const telegram_api::Updates *updates_ptr) {
-  std::unordered_set<int64> random_ids;
+FlatHashSet<int64> UpdatesManager::get_sent_messages_random_ids(const telegram_api::Updates *updates_ptr) {
+  FlatHashSet<int64> random_ids;
   auto updates = get_updates(updates_ptr);
   if (updates != nullptr) {
     for (auto &update : *updates) {
       if (update->get_id() == telegram_api::updateMessageID::ID) {
         int64 random_id = static_cast<const telegram_api::updateMessageID *>(update.get())->random_id_;
-        if (!random_ids.insert(random_id).second) {
+        if (random_id != 0 && !random_ids.insert(random_id).second) {
           LOG(ERROR) << "Receive twice updateMessageID for " << random_id;
         }
       }

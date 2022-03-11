@@ -20,6 +20,7 @@
 
 #include "td/utils/algorithm.h"
 #include "td/utils/ExitGuard.h"
+#include "td/utils/FlatHashSet.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/SliceBuilder.h"
@@ -28,7 +29,6 @@
 #include <atomic>
 #include <limits>
 #include <map>
-#include <unordered_set>
 #include <utility>
 
 namespace td {
@@ -63,7 +63,7 @@ struct LanguagePackManager::Language {
   vector<Promise<Unit>> get_difference_queries_;
   FlatHashMap<string, string> ordinary_strings_;
   FlatHashMap<string, unique_ptr<PluralizedString>> pluralized_strings_;
-  std::unordered_set<string> deleted_strings_;
+  FlatHashSet<string> deleted_strings_;
   SqliteKeyValue kv_;  // usages should be guarded by database_->mutex_
 };
 
@@ -979,11 +979,11 @@ void LanguagePackManager::on_get_languages(vector<tl_object_ptr<telegram_api::la
                                            string language_pack, bool only_local,
                                            Promise<td_api::object_ptr<td_api::localizationTargetInfo>> promise) {
   auto results = td_api::make_object<td_api::localizationTargetInfo>();
-  std::unordered_set<string> added_languages;
+  FlatHashSet<string> added_languages;
 
   auto add_language_info = [&results, &added_languages](const string &language_code, const LanguageInfo &info,
                                                         bool is_installed) {
-    if (added_languages.insert(language_code).second) {
+    if (!language_code.empty() && added_languages.insert(language_code).second) {
       results->language_packs_.push_back(get_language_pack_info_object(language_code, info));
       results->language_packs_.back()->is_installed_ = is_installed;
     }

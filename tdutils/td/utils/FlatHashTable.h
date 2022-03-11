@@ -68,9 +68,16 @@ class FlatHashTable {
     reference operator*() {
       return it_->get_public();
     }
+    const value_type &operator*() const {
+      return it_->get_public();
+    }
     pointer operator->() {
       return &it_->get_public();
     }
+    const value_type *operator->() const {
+      return &it_->get_public();
+    }
+
     NodeT *get() {
       return it_;
     }
@@ -108,10 +115,10 @@ class FlatHashTable {
       ++it_;
       return *this;
     }
-    reference operator*() {
+    reference operator*() const {
       return *it_;
     }
-    pointer operator->() {
+    pointer operator->() const {
       return &*it_;
     }
     bool operator==(const ConstIterator &other) const {
@@ -358,12 +365,17 @@ class FlatHashTable {
       return;
     }
     resize(other.bucket_count());
-    for (const auto &new_node : other) {
-      auto bucket = calc_bucket(new_node.key());
+    auto other_nodes_end = other.nodes_ + other.bucket_count_;
+    for (const NodeT *other_node = other.nodes_; other_node != other_nodes_end; ++other_node) {
+      if (other_node->empty()) {
+        continue;
+      }
+
+      auto bucket = calc_bucket(other_node->key());
       while (true) {
         auto &node = nodes_[bucket];
         if (node.empty()) {
-          node.copy_from(new_node);
+          node.copy_from(*other_node);
           break;
         }
         next_bucket(bucket);
