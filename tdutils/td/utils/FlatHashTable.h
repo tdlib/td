@@ -8,8 +8,6 @@
 
 #include "td/utils/common.h"
 #include "td/utils/HashTableUtils.h"
-#include "td/utils/MapNode.h"
-#include "td/utils/SetNode.h"
 
 #include <cstddef>
 #include <initializer_list>
@@ -203,20 +201,7 @@ class FlatHashTable {
   }
 
   Iterator find(const KeyT &key) {
-    if (unlikely(nodes_ == nullptr) || is_hash_table_key_empty(key)) {
-      return end();
-    }
-    auto bucket = calc_bucket(key);
-    while (true) {
-      auto &node = nodes_[bucket];
-      if (EqT()(node.key(), key)) {
-        return create_iterator(&node);
-      }
-      if (node.empty()) {
-        return end();
-      }
-      next_bucket(bucket);
-    }
+    return create_iterator(find_impl(key));
   }
 
   ConstIterator find(const KeyT &key) const {
@@ -232,16 +217,7 @@ class FlatHashTable {
   }
 
   Iterator begin() {
-    if (empty()) {
-      return end();
-    }
-    if (begin_bucket_ == INVALID_BUCKET) {
-      begin_bucket_ = detail::get_random_flat_hash_table_bucket(bucket_count_mask_);
-      while (nodes_[begin_bucket_].empty()) {
-        next_bucket(begin_bucket_);
-      }
-    }
-    return create_iterator(nodes_ + begin_bucket_);
+    return create_iterator(begin_impl());
   }
   Iterator end() {
     return create_iterator(nullptr);
@@ -301,16 +277,17 @@ class FlatHashTable {
   }
 
   size_t erase(const KeyT &key) {
-    auto it = find(key);
-    if (it == end()) {
+    auto *node = find_impl(key);
+    if (node == nullptr) {
       return 0;
     }
-    erase(it);
+    erase_node(node);
+    try_shrink();
     return 1;
   }
 
   size_t count(const KeyT &key) const {
-    return find(key) != end();
+    return const_cast<FlatHashTable *>(this)->find_impl(key) != nullptr;
   }
 
   void clear() {
@@ -333,7 +310,7 @@ class FlatHashTable {
       return;
     }
 
-    auto it = begin().get();
+    auto it = begin_impl();
     auto end = nodes_ + bucket_count();
     while (it != end && !it->empty()) {
       ++it;
@@ -393,6 +370,36 @@ class FlatHashTable {
       }
     }
     used_node_count_ = other.used_node_count_;
+  }
+
+  NodeT *begin_impl() {
+    if (empty()) {
+      return nullptr;
+    }
+    if (begin_bucket_ == INVALID_BUCKET) {
+      begin_bucket_ = detail::get_random_flat_hash_table_bucket(bucket_count_mask_);
+      while (nodes_[begin_bucket_].empty()) {
+        next_bucket(begin_bucket_);
+      }
+    }
+    return nodes_ + begin_bucket_;
+  }
+
+  NodeT *find_impl(const KeyT &key) {
+    if (unlikely(nodes_ == nullptr) || is_hash_table_key_empty(key)) {
+      return nullptr;
+    }
+    auto bucket = calc_bucket(key);
+    while (true) {
+      auto &node = nodes_[bucket];
+      if (EqT()(node.key(), key)) {
+        return &node;
+      }
+      if (node.empty()) {
+        return nullptr;
+      }
+      next_bucket(bucket);
+    }
   }
 
   void try_grow() {
