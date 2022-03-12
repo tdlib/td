@@ -5001,8 +5001,12 @@ void StickersManager::read_featured_sticker_sets(void *td_void) {
   auto td = static_cast<Td *>(td_void);
 
   auto &set_ids = td->stickers_manager_->pending_viewed_featured_sticker_set_ids_;
-  td->create_handler<ReadFeaturedStickerSetsQuery>()->send(vector<StickerSetId>(set_ids.begin(), set_ids.end()));
+  vector<StickerSetId> sticker_set_ids;
+  for (auto sticker_set_id : set_ids) {
+    sticker_set_ids.push_back(sticker_set_id);
+  }
   set_ids.clear();
+  td->create_handler<ReadFeaturedStickerSetsQuery>()->send(std::move(sticker_set_ids));
 }
 
 std::pair<int32, vector<StickerSetId>> StickersManager::get_archived_sticker_sets(bool is_masks,

@@ -1335,9 +1335,7 @@ void WebPagesManager::on_web_page_changed(WebPageId web_page_id, bool have_web_p
       }
     }
     if (have_web_page) {
-      LOG_CHECK(web_page_messages_[web_page_id].size() == full_message_ids.size())
-          << full_message_ids << ' '
-          << std::vector<FullMessageId>(web_page_messages_[web_page_id].begin(), web_page_messages_[web_page_id].end());
+      CHECK(web_page_messages_[web_page_id].size() == full_message_ids.size());
     } else {
       CHECK(web_page_messages_.count(web_page_id) == 0);
     }

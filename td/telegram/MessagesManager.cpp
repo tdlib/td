@@ -15368,8 +15368,10 @@ void MessagesManager::remove_dialog_mention_notifications(Dialog *d) {
     }
   }
 
-  vector<NotificationId> removed_notification_ids(removed_notification_ids_set.begin(),
-                                                  removed_notification_ids_set.end());
+  vector<NotificationId> removed_notification_ids;
+  for (auto notification_id : removed_notification_ids_set) {
+    removed_notification_ids.push_back(notification_id);
+  }
   for (size_t i = 0; i < removed_notification_ids.size(); i++) {
     send_closure_later(G()->notification_manager(), &NotificationManager::remove_notification, notification_group_id,
                        removed_notification_ids[i], false, i + 1 == removed_notification_ids.size(), Promise<Unit>(),
