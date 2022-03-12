@@ -34,6 +34,10 @@ struct MapNode {
     return *this;
   }
 
+  const MapNode &get_public() const {
+    return *this;
+  }
+
   MapNode() {
   }
   MapNode(KeyT key, ValueT value) : first(std::move(key)) {

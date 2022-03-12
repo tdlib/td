@@ -14,7 +14,7 @@ namespace td {
 template <class KeyT>
 struct SetNode {
   using public_key_type = KeyT;
-  using public_type = KeyT;
+  using public_type = const KeyT;
   using second_type = KeyT;  // TODO: remove second_type?
 
   KeyT first{};
@@ -23,7 +23,7 @@ struct SetNode {
     return first;
   }
 
-  KeyT &get_public() {
+  const KeyT &get_public() {
     return first;
   }
 
