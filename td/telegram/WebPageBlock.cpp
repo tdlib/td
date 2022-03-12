@@ -2071,12 +2071,12 @@ unique_ptr<WebPageBlock> get_web_page_block(Td *td, tl_object_ptr<telegram_api::
       bool is_full_width = page_block->full_width_;
       bool allow_scrolling = page_block->allow_scrolling_;
       bool has_dimensions = (page_block->flags_ & telegram_api::pageBlockEmbed::W_MASK) != 0;
-      auto it = (page_block->flags_ & telegram_api::pageBlockEmbed::POSTER_PHOTO_ID_MASK) != 0
-                    ? photos.find(page_block->poster_photo_id_)
-                    : photos.end();
       Photo poster_photo;
-      if (it != photos.end()) {
-        poster_photo = *it->second;
+      if ((page_block->flags_ & telegram_api::pageBlockEmbed::POSTER_PHOTO_ID_MASK) != 0) {
+        auto it = photos.find(page_block->poster_photo_id_);
+        if (it != photos.end()) {
+          poster_photo = *it->second;
+        }
       }
       Dimensions dimensions;
       if (has_dimensions) {
@@ -2211,11 +2211,11 @@ unique_ptr<WebPageBlock> get_web_page_block(Td *td, tl_object_ptr<telegram_api::
             article.web_page_id = WebPageId(related_article->webpage_id_);
             article.title = std::move(related_article->title_);
             article.description = std::move(related_article->description_);
-            auto it = (related_article->flags_ & telegram_api::pageRelatedArticle::PHOTO_ID_MASK) != 0
-                          ? photos.find(related_article->photo_id_)
-                          : photos.end();
-            if (it != photos.end()) {
-              article.photo = *it->second;
+            if ((related_article->flags_ & telegram_api::pageRelatedArticle::PHOTO_ID_MASK) != 0) {
+              auto it = photos.find(related_article->photo_id_);
+              if (it != photos.end()) {
+                article.photo = *it->second;
+              }
             }
             article.author = std::move(related_article->author_);
             if ((related_article->flags_ & telegram_api::pageRelatedArticle::PUBLISHED_DATE_MASK) != 0) {
