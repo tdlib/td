@@ -45,6 +45,8 @@ class FlatHashTable {
   using key_type = typename NodeT::public_key_type;
   using value_type = typename NodeT::public_type;
 
+  struct EndSentinel {};
+
   struct Iterator {
     using iterator_category = std::forward_iterator_tag;
     using difference_type = std::ptrdiff_t;
@@ -82,15 +84,11 @@ class FlatHashTable {
       return it_;
     }
 
-    bool operator==(const Iterator &other) const {
-      DCHECK(begin_ == other.begin_);
-      DCHECK(end_ == other.end_);
-      return it_ == other.it_;
+    bool operator==(const EndSentinel &other) const {
+      return it_ == nullptr;
     }
-    bool operator!=(const Iterator &other) const {
-      DCHECK(begin_ == other.begin_);
-      DCHECK(end_ == other.end_);
-      return it_ != other.it_;
+    bool operator!=(const EndSentinel &other) const {
+      return it_ != nullptr;
     }
 
     Iterator() = default;
@@ -121,11 +119,11 @@ class FlatHashTable {
     pointer operator->() const {
       return &*it_;
     }
-    bool operator==(const ConstIterator &other) const {
-      return it_ == other.it_;
+    bool operator==(const EndSentinel &other) const {
+      return it_ == other;
     }
-    bool operator!=(const ConstIterator &other) const {
-      return it_ != other.it_;
+    bool operator!=(const EndSentinel &other) const {
+      return it_ != other;
     }
 
     ConstIterator() = default;
@@ -226,15 +224,12 @@ class FlatHashTable {
   Iterator begin() {
     return create_iterator(begin_impl());
   }
-  Iterator end() {
-    return create_iterator(nullptr);
-  }
-
   ConstIterator begin() const {
     return ConstIterator(const_cast<FlatHashTable *>(this)->begin());
   }
-  ConstIterator end() const {
-    return ConstIterator(const_cast<FlatHashTable *>(this)->end());
+
+  EndSentinel end() const {
+    return EndSentinel();
   }
 
   void reserve(size_t size) {
@@ -306,7 +301,6 @@ class FlatHashTable {
 
   void erase(Iterator it) {
     DCHECK(it != end());
-    DCHECK(!it.get()->empty());
     erase_node(it.get());
     try_shrink();
   }
