@@ -180,6 +180,12 @@ TEST(Link, parse_internal_link) {
   auto video_chat = [](const td::string &chat_username, const td::string &invite_hash, bool is_live_stream) {
     return td::td_api::make_object<td::td_api::internalLinkTypeVideoChat>(chat_username, invite_hash, is_live_stream);
   };
+  auto language_settings = [] {
+    return td::td_api::make_object<td::td_api::internalLinkTypeLanguageSettings>();
+  };
+  auto privacy_settings = [] {
+    return td::td_api::make_object<td::td_api::internalLinkTypePrivacySettings>();
+  };
 
   parse_internal_link("t.me/levlam/1", message("tg:resolve?domain=levlam&post=1"));
   parse_internal_link("telegram.me/levlam/1", message("tg:resolve?domain=levlam&post=1"));
@@ -686,4 +692,7 @@ TEST(Link, parse_internal_link) {
   parse_internal_link("tg://settings/change_number", change_phone_number());
   parse_internal_link("tg://settings/folders", filter_settings());
   parse_internal_link("tg://settings/filters", settings());
+  parse_internal_link("tg://settings/theme", theme_settings());
+  parse_internal_link("tg://settings/language", language_settings());
+  parse_internal_link("tg://settings/privacy", privacy_settings());
 }

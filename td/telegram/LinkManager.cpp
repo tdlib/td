@@ -407,6 +407,18 @@ class LinkManager::InternalLinkVoiceChat final : public InternalLink {
   }
 };
 
+class LinkManager::InternalLinkLanguageSettings final : public InternalLink {
+  td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
+    return td_api::make_object<td_api::internalLinkTypeLanguageSettings>();
+  }
+};
+
+class LinkManager::InternalLinkPrivacySettings final : public InternalLink {
+  td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
+    return td_api::make_object<td_api::internalLinkTypePrivacySettings>();
+  }
+};
+
 class GetDeepLinkInfoQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::deepLinkInfo>> promise_;
 
@@ -859,9 +871,17 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
       // settings/folders
       return td::make_unique<InternalLinkFilterSettings>();
     }
-    if (path.size() == 2 && path[1] == "themes") {
-      // settings/themes
+    if (path.size() == 2 && (path[1] == "themes" || path[1] == "theme")) {
+      // settings/theme(s)
       return td::make_unique<InternalLinkThemeSettings>();
+    }
+    if (path.size() == 2 && path[1] == "language") {
+      // settings/language
+      return td::make_unique<InternalLinkLanguageSettings>();
+    }
+    if (path.size() == 2 && path[1] == "privacy") {
+      // settings/privacy
+      return td::make_unique<InternalLinkPrivacySettings>();
     }
     // settings
     return td::make_unique<InternalLinkSettings>();

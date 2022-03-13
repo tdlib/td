@@ -3370,6 +3370,12 @@ internalLinkTypeUserPhoneNumber phone_number:string = InternalLinkType;
 //@is_live_stream True, if the video chat is expected to be a live stream in a channel or a broadcast group
 internalLinkTypeVideoChat chat_username:string invite_hash:string is_live_stream:Bool = InternalLinkType;
 
+//@description The link is a link to the language settings section of the app
+internalLinkTypeLanguageSettings = InternalLinkType;
+
+//@description The link is a link to the privacy settings section of the app
+internalLinkTypePrivacySettings = InternalLinkType;
+
 
 //@description Contains an HTTPS link to a message in a supergroup or channel @link Message link @is_public True, if the link will work for non-members of the chat
 messageLink link:string is_public:Bool = MessageLink;

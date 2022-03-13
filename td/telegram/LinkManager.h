@@ -106,6 +106,8 @@ class LinkManager final : public Actor {
   class InternalLinkUnsupportedProxy;
   class InternalLinkUserPhoneNumber;
   class InternalLinkVoiceChat;
+  class InternalLinkLanguageSettings;
+  class InternalLinkPrivacySettings;
 
   struct LinkInfo {
     bool is_internal_ = false;
