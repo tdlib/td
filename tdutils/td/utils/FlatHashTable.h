@@ -478,10 +478,8 @@ class FlatHashTable {
   }
 
   void try_grow() {
-    if (unlikely(nodes_ == nullptr)) {
-      resize(8);
-    } else if (unlikely(used_node_count_ * 5 > bucket_count_mask_ * 3)) {
-      resize(2 * bucket_count_mask_ + 2);
+    if (unlikely(used_node_count_ * 5 >= bucket_count_mask_ * 3)) {
+      resize(2 * bucket_count_mask_ + 2 + 6 * (bucket_count_mask_ == 0));
     }
     invalidate_iterators();
   }
