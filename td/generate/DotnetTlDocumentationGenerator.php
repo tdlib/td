@@ -164,7 +164,7 @@ EOT
         return "\r\n$shift/// <para>Returns <see cref=\"".substr($return_type, 0, -1).'"/>.</para>';
     }
 
-    protected function addClassDocumentation($class_name, $base_class_name, $description)
+    protected function addClassDocumentation($class_name, $base_class_name, $return_type, $description)
     {
         $this->addDocumentation("public ref class $class_name sealed : $base_class_name {", <<<EOT
 /// <summary>

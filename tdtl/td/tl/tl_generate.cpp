@@ -245,7 +245,7 @@ static void write_function(tl_outputer &out, const tl_combinator *t, const std::
 
   std::string class_name = w.gen_class_name(t->name);
 
-  out.append(w.gen_class_begin(class_name, w.gen_base_function_class_name(), false));
+  out.append(w.gen_class_begin(class_name, w.gen_base_function_class_name(), false, t->result));
 
   int required_args = gen_field_definitions(out, t, class_name, w);
   out.append(w.gen_flags_definitions(t, true));
@@ -302,7 +302,7 @@ static void write_constructor(tl_outputer &out, const tl_combinator *t, const st
 
   std::string class_name = w.gen_class_name(t->name);
 
-  out.append(w.gen_class_begin(class_name, base_class, is_proxy));
+  out.append(w.gen_class_begin(class_name, base_class, is_proxy, t->result));
   int required_args = gen_field_definitions(out, t, class_name, w);
 
   bool can_be_parsed = false;
@@ -386,7 +386,7 @@ void write_class(tl_outputer &out, const tl_type *t, const std::set<std::string>
   std::vector<var_description> empty_vars;
   bool optimize_one_constructor = (t->simple_constructors == 1);
   if (!optimize_one_constructor) {
-    out.append(w.gen_class_begin(class_name, base_class, true));
+    out.append(w.gen_class_begin(class_name, base_class, true, nullptr));
 
     out.append(w.gen_get_id(class_name, 0, true));
 
@@ -648,7 +648,7 @@ void write_tl(const tl_config &config, tl_outputer &out, const TL_writer &w) {
   // write base classes
   std::vector<var_description> empty_vars;
   for (int i = 0; i <= w.get_max_arity(); i++) {
-    out.append(w.gen_class_begin(w.gen_base_type_class_name(i), w.gen_base_tl_class_name(), true));
+    out.append(w.gen_class_begin(w.gen_base_type_class_name(i), w.gen_base_tl_class_name(), true, nullptr));
 
     out.append(w.gen_get_id(w.gen_base_type_class_name(i), 0, true));
 
@@ -742,7 +742,7 @@ void write_tl(const tl_config &config, tl_outputer &out, const TL_writer &w) {
   }
 
   {
-    out.append(w.gen_class_begin(w.gen_base_function_class_name(), w.gen_base_tl_class_name(), true));
+    out.append(w.gen_class_begin(w.gen_base_function_class_name(), w.gen_base_tl_class_name(), true, nullptr));
 
     out.append(w.gen_get_id(w.gen_base_function_class_name(), 0, true));
 

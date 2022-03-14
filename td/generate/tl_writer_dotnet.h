@@ -201,7 +201,7 @@ class TlWriterDotNet final : public TL_writer {
   }
 
   std::string gen_class_begin(const std::string &class_name, const std::string &base_class_name,
-                              bool is_proxy) const final {
+                              bool is_proxy, const tl::tl_tree *result) const final {
     if (!is_header_) {
       return "";
     }

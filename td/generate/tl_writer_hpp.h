@@ -34,7 +34,7 @@ class TD_TL_writer_hpp final : public TD_TL_writer {
   std::string gen_forward_class_declaration(const std::string &class_name, bool is_proxy) const final;
 
   std::string gen_class_begin(const std::string &class_name, const std::string &base_class_name,
-                              bool is_proxy) const final;
+                              bool is_proxy, const tl::tl_tree *result) const final;
   std::string gen_class_end() const final;
 
   std::string gen_class_alias(const std::string &class_name, const std::string &alias_name) const final;

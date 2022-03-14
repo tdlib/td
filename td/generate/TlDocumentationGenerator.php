@@ -89,7 +89,7 @@ abstract class TlDocumentationGenerator
 
     abstract protected function getFunctionReturnTypeDescription($return_type, $for_constructor);
 
-    abstract protected function addClassDocumentation($class_name, $base_class_name, $description);
+    abstract protected function addClassDocumentation($class_name, $base_class_name, $return_type, $description);
 
     abstract protected function addFieldDocumentation($class_name, $field_name, $type_name, $field_info, $may_be_null);
 
@@ -244,10 +244,12 @@ abstract class TlDocumentationGenerator
 
                 $base_class_name = $current_class ?: $this->getBaseClassName($is_function);
                 $class_description = $description;
+                $return_type = "";
                 if ($is_function) {
-                    $class_description .= $this->getFunctionReturnTypeDescription($this->getTypeName($type), false);
+                    $return_type = $this->getTypeName($type);
+                    $class_description .= $this->getFunctionReturnTypeDescription($return_type, false);
                 }
-                $this->addClassDocumentation($class_name, $base_class_name, $class_description);
+                $this->addClassDocumentation($class_name, $base_class_name, $return_type, $class_description);
 
                 foreach ($known_fields as $name => $field_type) {
                     $may_be_null = stripos($info[$name], 'may be null') !== false;

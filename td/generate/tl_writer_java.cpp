@@ -206,10 +206,24 @@ std::string TD_TL_writer_java::gen_forward_class_declaration(const std::string &
 }
 
 std::string TD_TL_writer_java::gen_class_begin(const std::string &class_name, const std::string &base_class_name,
-                                               bool is_proxy) const {
+                                               bool is_proxy, const tl::tl_tree *result_tl) const {
   std::string full_class_name = "static class " + class_name;
+  if (class_name == "Function") {
+    full_class_name += "<R extends " + gen_base_tl_class_name() + ">";
+  }
   if (class_name != gen_base_tl_class_name()) {
     full_class_name += " extends " + base_class_name;
+  }
+  if (result_tl != nullptr && base_class_name == "Function") {
+    assert(result_tl->get_type() == tl::NODE_TYPE_TYPE);
+    const tl::tl_tree_type *result_type = static_cast<const tl::tl_tree_type *>(result_tl);
+    std::string fetched_type = gen_type_name(result_type);
+
+    if (!fetched_type.empty() && fetched_type[fetched_type.size() - 1] == ' ') {
+      fetched_type.pop_back();
+    }
+
+    full_class_name += "<" + fetched_type + ">";
   }
   std::string result = "    public " + std::string(is_proxy ? "abstract " : "") + full_class_name + " {\n";
   if (class_name == gen_base_tl_class_name() || class_name == gen_base_function_class_name()) {
