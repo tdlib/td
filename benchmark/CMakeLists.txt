@@ -73,7 +73,7 @@ if (NOT WIN32 AND NOT CYGWIN)
   target_link_libraries(bench_queue PRIVATE tdutils)
 endif()
 
-if (TD_TEST_FOLLY)
+if (TD_TEST_FOLLY AND TD_WITH_ABSEIL)
   find_package(ABSL QUIET)
   find_package(folly QUIET)
   find_package(gflags QUIET)

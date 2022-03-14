@@ -28,9 +28,11 @@ if (CRC32C_FOUND)
   set(TD_HAVE_CRC32C 1)
 endif()
 
-find_package(ABSL QUIET)
-if (ABSL_FOUND)
-  set(TD_HAVE_ABSL 1)
+if (TD_WITH_ABSEIL)
+  find_package(ABSL QUIET)
+  if (ABSL_FOUND)
+    set(TD_HAVE_ABSL 1)
+  endif()
 endif()
 
 configure_file(td/utils/config.h.in td/utils/config.h @ONLY)
@@ -395,12 +397,12 @@ install(TARGETS tdutils EXPORT TdTargets
   ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
 )
 
-if (TD_TEST_FOLLY)
+if (TD_TEST_FOLLY AND ABSL_FOUND)
   find_package(benchmark QUIET)
   find_package(folly QUIET)
   find_package(gflags QUIET)
 
-  if (ABSL_FOUND AND benchmark_FOUND AND folly_FOUND)
+  if (benchmark_FOUND AND folly_FOUND)
     add_executable(benchmark-hashset test/hashset_benchmark.cpp)
     target_link_libraries(benchmark-hashset PRIVATE tdutils benchmark::benchmark Folly::folly absl::flat_hash_map absl::hash)
   endif()
