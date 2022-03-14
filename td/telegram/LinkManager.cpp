@@ -280,6 +280,12 @@ class LinkManager::InternalLinkPassportDataRequest final : public InternalLink {
   }
 };
 
+class LinkManager::InternalLinkPrivacyAndSecuritySettings final : public InternalLink {
+  td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
+    return td_api::make_object<td_api::internalLinkTypePrivacyAndSecuritySettings>();
+  }
+};
+
 class LinkManager::InternalLinkProxy final : public InternalLink {
   string server_;
   int32 port_;
@@ -309,12 +315,6 @@ class LinkManager::InternalLinkProxy final : public InternalLink {
  public:
   InternalLinkProxy(string server, int32 port, td_api::object_ptr<td_api::ProxyType> type)
       : server_(std::move(server)), port_(port), type_(std::move(type)) {
-  }
-};
-
-class LinkManager::InternalLinkPrivacyAndSecuritySettings final : public InternalLink {
-  td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
-    return td_api::make_object<td_api::internalLinkTypePrivacyAndSecuritySettings>();
   }
 };
 
