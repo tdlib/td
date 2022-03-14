@@ -224,6 +224,12 @@ class LinkManager::InternalLinkLanguage final : public InternalLink {
   }
 };
 
+class LinkManager::InternalLinkLanguageSettings final : public InternalLink {
+  td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
+    return td_api::make_object<td_api::internalLinkTypeLanguageSettings>();
+  }
+};
+
 class LinkManager::InternalLinkMessage final : public InternalLink {
   string url_;
 
@@ -271,6 +277,12 @@ class LinkManager::InternalLinkPassportDataRequest final : public InternalLink {
       , public_key_(std::move(public_key))
       , nonce_(std::move(nonce))
       , callback_url_(std::move(callback_url)) {
+  }
+};
+
+class LinkManager::InternalLinkPrivacyAndSecuritySettings final : public InternalLink {
+  td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
+    return td_api::make_object<td_api::internalLinkTypePrivacyAndSecuritySettings>();
   }
 };
 
@@ -858,6 +870,14 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
     if (path.size() == 2 && path[1] == "folders") {
       // settings/folders
       return td::make_unique<InternalLinkFilterSettings>();
+    }
+    if (path.size() == 2 && path[1] == "language") {
+      // settings/language
+      return td::make_unique<InternalLinkLanguageSettings>();
+    }
+    if (path.size() == 2 && path[1] == "privacy") {
+      // settings/privacy
+      return td::make_unique<InternalLinkPrivacyAndSecuritySettings>();
     }
     if (path.size() == 2 && path[1] == "themes") {
       // settings/themes

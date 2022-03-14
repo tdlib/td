@@ -92,9 +92,11 @@ class LinkManager final : public Actor {
   class InternalLinkFilterSettings;
   class InternalLinkGame;
   class InternalLinkLanguage;
+  class InternalLinkLanguageSettings;
   class InternalLinkMessage;
   class InternalLinkMessageDraft;
   class InternalLinkPassportDataRequest;
+  class InternalLinkPrivacyAndSecuritySettings;
   class InternalLinkProxy;
   class InternalLinkPublicDialog;
   class InternalLinkQrCodeAuthentication;
