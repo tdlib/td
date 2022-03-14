@@ -855,11 +855,11 @@ void Session::on_message_result_error(uint64 id, int error_code, string message)
   }
 
   if (error_code < 0) {
-    LOG(WARNING) << "Session::on_message_result_error from mtproto " << tag("id", id) << tag("error_code", error_code)
-                 << tag("msg", message);
+    LOG(WARNING) << "Receive MTProto error " << error_code << " : " << message << " in session "
+                 << auth_data_.get_session_id() << " for auth key " << auth_data_.get_auth_key().id() << " with "
+                 << sent_queries_.size() << " pending requests";
   } else {
-    LOG(DEBUG) << "Session::on_message_result_error " << tag("id", id) << tag("error_code", error_code)
-               << tag("msg", message);
+    LOG(DEBUG) << "Receive error " << error_code << " : " << message;
   }
   auto it = sent_queries_.find(id);
   if (it == sent_queries_.end()) {
