@@ -224,6 +224,12 @@ class LinkManager::InternalLinkLanguage final : public InternalLink {
   }
 };
 
+class LinkManager::InternalLinkLanguageSettings final : public InternalLink {
+  td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
+    return td_api::make_object<td_api::internalLinkTypeLanguageSettings>();
+  }
+};
+
 class LinkManager::InternalLinkMessage final : public InternalLink {
   string url_;
 
@@ -303,6 +309,12 @@ class LinkManager::InternalLinkProxy final : public InternalLink {
  public:
   InternalLinkProxy(string server, int32 port, td_api::object_ptr<td_api::ProxyType> type)
       : server_(std::move(server)), port_(port), type_(std::move(type)) {
+  }
+};
+
+class LinkManager::InternalLinkPrivacyAndSecuritySettings final : public InternalLink {
+  td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
+    return td_api::make_object<td_api::internalLinkTypePrivacyAndSecuritySettings>();
   }
 };
 
@@ -404,18 +416,6 @@ class LinkManager::InternalLinkVoiceChat final : public InternalLink {
       : dialog_username_(std::move(dialog_username))
       , invite_hash_(std::move(invite_hash))
       , is_live_stream_(is_live_stream) {
-  }
-};
-
-class LinkManager::InternalLinkLanguageSettings final : public InternalLink {
-  td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
-    return td_api::make_object<td_api::internalLinkTypeLanguageSettings>();
-  }
-};
-
-class LinkManager::InternalLinkPrivacySettings final : public InternalLink {
-  td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
-    return td_api::make_object<td_api::internalLinkTypePrivacySettings>();
   }
 };
 
@@ -871,17 +871,17 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
       // settings/folders
       return td::make_unique<InternalLinkFilterSettings>();
     }
-    if (path.size() == 2 && (path[1] == "themes" || path[1] == "theme")) {
-      // settings/theme(s)
-      return td::make_unique<InternalLinkThemeSettings>();
-    }
     if (path.size() == 2 && path[1] == "language") {
       // settings/language
       return td::make_unique<InternalLinkLanguageSettings>();
     }
     if (path.size() == 2 && path[1] == "privacy") {
       // settings/privacy
-      return td::make_unique<InternalLinkPrivacySettings>();
+      return td::make_unique<InternalLinkPrivacyAndSecuritySettings>();
+    }
+    if (path.size() == 2 && path[1] == "themes") {
+      // settings/themes
+      return td::make_unique<InternalLinkThemeSettings>();
     }
     // settings
     return td::make_unique<InternalLinkSettings>();

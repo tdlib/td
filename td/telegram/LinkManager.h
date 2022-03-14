@@ -92,9 +92,11 @@ class LinkManager final : public Actor {
   class InternalLinkFilterSettings;
   class InternalLinkGame;
   class InternalLinkLanguage;
+  class InternalLinkLanguageSettings;
   class InternalLinkMessage;
   class InternalLinkMessageDraft;
   class InternalLinkPassportDataRequest;
+  class InternalLinkPrivacyAndSecuritySettings;
   class InternalLinkProxy;
   class InternalLinkPublicDialog;
   class InternalLinkQrCodeAuthentication;
@@ -106,8 +108,6 @@ class LinkManager final : public Actor {
   class InternalLinkUnsupportedProxy;
   class InternalLinkUserPhoneNumber;
   class InternalLinkVoiceChat;
-  class InternalLinkLanguageSettings;
-  class InternalLinkPrivacySettings;
 
   struct LinkInfo {
     bool is_internal_ = false;
