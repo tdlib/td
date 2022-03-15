@@ -103,7 +103,7 @@ target_link_libraries(YourTarget PRIVATE Td::TdStatic)
 
 Or you could install `TDLib` and then reference it in your CMakeLists.txt like this:
 ```
-find_package(Td 1.8.1 REQUIRED)
+find_package(Td 1.8.2 REQUIRED)
 target_link_libraries(YourTarget PRIVATE Td::TdStatic)
 ```
 See [example/cpp/CMakeLists.txt](https://github.com/tdlib/td/tree/master/example/cpp/CMakeLists.txt).
