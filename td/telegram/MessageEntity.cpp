@@ -3274,9 +3274,17 @@ Result<vector<MessageEntity>> get_message_entities(const ContactsManager *contac
         if (!clean_input_string(entity->url_)) {
           return Status::Error(400, "MessageEntityTextUrl.url must be encoded in UTF-8");
         }
+        auto user_id = LinkManager::get_link_user_id(entity->url_);
+        if (user_id.is_valid()) {
+          if (contacts_manager != nullptr && !contacts_manager->have_input_user(user_id)) {
+            return Status::Error(400, "Have no access to the user");
+          }
+          entities.emplace_back(offset, length, user_id);
+          break;
+        }
         auto r_url = LinkManager::check_link(entity->url_);
         if (r_url.is_error()) {
-          return Status::Error(400, PSTRING() << "Wrong message input_entity: " << r_url.error().message());
+          return Status::Error(400, PSTRING() << "Wrong URL entity specified: " << r_url.error().message());
         }
         entities.emplace_back(MessageEntity::Type::TextUrl, offset, length, r_url.move_as_ok());
         break;
