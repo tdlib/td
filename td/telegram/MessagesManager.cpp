@@ -28375,7 +28375,7 @@ Result<MessagesManager::ForwardedMessages> MessagesManager::get_forwarded_messag
   if (get_dialog_has_protected_content(from_dialog_id)) {
     for (const auto &copy_option : copy_options) {
       if (!copy_option.send_copy || !td_->auth_manager_->is_bot()) {
-        return Status::Error(400, "Administrators of the chat restricted message forwarding");
+        return Status::Error(400, "Message has protected content and can't be forwarded");
       }
     }
   }
@@ -31468,6 +31468,8 @@ void MessagesManager::on_send_message_fail(int64 random_id, Status error) {
         error_message = "Failed to get HTTP URL content";
       } else if (error.message() == "WEBPAGE_MEDIA_EMPTY") {
         error_message = "Wrong type of the web page content";
+      } else if (error.message() == "CHAT_FORWARDS_RESTRICTED") {
+        error_message = "Message has protected content and can't be forwarded";
       } else if (error.message() == "MEDIA_EMPTY") {
         auto content_type = m->content->get_type();
         if (content_type == MessageContentType::Game) {
