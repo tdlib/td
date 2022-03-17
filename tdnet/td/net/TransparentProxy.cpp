@@ -39,7 +39,7 @@ void TransparentProxy::tear_down() {
   if (callback_) {
     if (!fd_.input_buffer().empty()) {
       LOG(ERROR) << "Have " << fd_.input_buffer().size() << " unread bytes";
-      callback_->set_result(Status::Error("Proxy has sent to much data"));
+      callback_->set_result(Status::Error("Proxy has sent too many data"));
     } else {
       callback_->set_result(std::move(fd_));
     }
