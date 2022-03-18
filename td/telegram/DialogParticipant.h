@@ -131,11 +131,18 @@ class RestrictedRights {
   static constexpr uint32 CAN_INVITE_USERS = 1 << 25;
   static constexpr uint32 CAN_PIN_MESSAGES = 1 << 26;
 
+  static constexpr uint32 ALL_ADMIN_PERMISSION_RIGHTS =
+      CAN_CHANGE_INFO_AND_SETTINGS | CAN_INVITE_USERS | CAN_PIN_MESSAGES;
+
+  static constexpr uint32 ALL_RESTRICTED_RIGHTS =
+      CAN_SEND_MESSAGES | CAN_SEND_MEDIA | CAN_SEND_STICKERS | CAN_SEND_ANIMATIONS | CAN_SEND_GAMES |
+      CAN_USE_INLINE_BOTS | CAN_ADD_WEB_PAGE_PREVIEWS | CAN_SEND_POLLS | ALL_ADMIN_PERMISSION_RIGHTS;
+
   uint32 flags_;
 
   friend class DialogParticipantStatus;
 
-  explicit RestrictedRights(int32 flags) : flags_(flags) {
+  explicit RestrictedRights(int32 flags) : flags_(flags & ALL_RESTRICTED_RIGHTS) {
   }
 
  public:
@@ -218,30 +225,11 @@ class DialogParticipantStatus {
   static constexpr uint32 HAS_RANK = 1 << 14;
   static constexpr uint32 CAN_BE_EDITED = 1 << 15;
 
-  static constexpr uint32 CAN_SEND_MESSAGES = 1 << 16;
-  static constexpr uint32 CAN_SEND_MEDIA = 1 << 17;
-  static constexpr uint32 CAN_SEND_STICKERS = 1 << 18;
-  static constexpr uint32 CAN_SEND_ANIMATIONS = 1 << 19;
-  static constexpr uint32 CAN_SEND_GAMES = 1 << 20;
-  static constexpr uint32 CAN_USE_INLINE_BOTS = 1 << 21;
-  static constexpr uint32 CAN_ADD_WEB_PAGE_PREVIEWS = 1 << 22;
-  static constexpr uint32 CAN_SEND_POLLS = 1 << 23;
-  static constexpr uint32 CAN_CHANGE_INFO_AND_SETTINGS_BANNED = 1 << 24;
-  static constexpr uint32 CAN_INVITE_USERS_BANNED = 1 << 25;
-  static constexpr uint32 CAN_PIN_MESSAGES_BANNED = 1 << 26;
-
   static constexpr uint32 IS_MEMBER = 1 << 27;
 
   // bits 28-30 reserved for Type
   static constexpr int TYPE_SHIFT = 28;
   static constexpr uint32 HAS_UNTIL_DATE = 1u << 31;
-
-  static constexpr uint32 ALL_ADMIN_PERMISSION_RIGHTS =
-      CAN_CHANGE_INFO_AND_SETTINGS_BANNED | CAN_INVITE_USERS_BANNED | CAN_PIN_MESSAGES_BANNED;
-
-  static constexpr uint32 ALL_RESTRICTED_RIGHTS =
-      CAN_SEND_MESSAGES | CAN_SEND_MEDIA | CAN_SEND_STICKERS | CAN_SEND_ANIMATIONS | CAN_SEND_GAMES |
-      CAN_USE_INLINE_BOTS | CAN_ADD_WEB_PAGE_PREVIEWS | CAN_SEND_POLLS | ALL_ADMIN_PERMISSION_RIGHTS;
 
   enum class Type : int32 { Creator, Administrator, Member, Restricted, Left, Banned };
   // all fields are logically const, but should be updated in update_restrictions()
@@ -259,7 +247,7 @@ class DialogParticipantStatus {
   }
 
   RestrictedRights get_restricted_rights() const {
-    return RestrictedRights(flags_ & ALL_RESTRICTED_RIGHTS);
+    return RestrictedRights(flags_);
   }
 
  public:
@@ -309,7 +297,7 @@ class DialogParticipantStatus {
 
   bool can_change_info_and_settings() const {
     return get_administrator_rights().can_change_info_and_settings() ||
-           (flags_ & CAN_CHANGE_INFO_AND_SETTINGS_BANNED) != 0;
+           get_restricted_rights().can_change_info_and_settings();
   }
 
   bool can_post_messages() const {
@@ -325,7 +313,7 @@ class DialogParticipantStatus {
   }
 
   bool can_invite_users() const {
-    return get_administrator_rights().can_invite_users() || (flags_ & CAN_INVITE_USERS_BANNED) != 0;
+    return get_administrator_rights().can_invite_users() || get_restricted_rights().can_invite_users();
   }
 
   bool can_manage_invite_links() const {
@@ -338,7 +326,7 @@ class DialogParticipantStatus {
   }
 
   bool can_pin_messages() const {
-    return get_administrator_rights().can_pin_messages() || (flags_ & CAN_PIN_MESSAGES_BANNED) != 0;
+    return get_administrator_rights().can_pin_messages() || get_restricted_rights().can_pin_messages();
   }
 
   bool can_promote_members() const {
@@ -354,35 +342,35 @@ class DialogParticipantStatus {
   }
 
   bool can_send_messages() const {
-    return (flags_ & CAN_SEND_MESSAGES) != 0;
+    return get_restricted_rights().can_send_messages();
   }
 
   bool can_send_media() const {
-    return (flags_ & CAN_SEND_MEDIA) != 0;
+    return get_restricted_rights().can_send_media();
   }
 
   bool can_send_stickers() const {
-    return (flags_ & CAN_SEND_STICKERS) != 0;
+    return get_restricted_rights().can_send_stickers();
   }
 
   bool can_send_animations() const {
-    return (flags_ & CAN_SEND_ANIMATIONS) != 0;
+    return get_restricted_rights().can_send_animations();
   }
 
   bool can_send_games() const {
-    return (flags_ & CAN_SEND_GAMES) != 0;
+    return get_restricted_rights().can_send_games();
   }
 
   bool can_use_inline_bots() const {
-    return (flags_ & CAN_USE_INLINE_BOTS) != 0;
+    return get_restricted_rights().can_use_inline_bots();
   }
 
   bool can_add_web_page_previews() const {
-    return (flags_ & CAN_ADD_WEB_PAGE_PREVIEWS) != 0;
+    return get_restricted_rights().can_add_web_page_previews();
   }
 
   bool can_send_polls() const {
-    return (flags_ & CAN_SEND_POLLS) != 0;
+    return get_restricted_rights().can_send_polls();
   }
 
   void set_is_member(bool is_member) {
@@ -463,7 +451,7 @@ class DialogParticipantStatus {
     flags_ = stored_flags & ((1 << TYPE_SHIFT) - 1);
 
     if (is_creator()) {
-      flags_ |= AdministratorRights::ALL_ADMINISTRATOR_RIGHTS | ALL_RESTRICTED_RIGHTS;
+      flags_ |= AdministratorRights::ALL_ADMINISTRATOR_RIGHTS | RestrictedRights::ALL_RESTRICTED_RIGHTS;
     } else if (is_administrator()) {
       flags_ |= AdministratorRights::CAN_MANAGE_DIALOG;
     }
