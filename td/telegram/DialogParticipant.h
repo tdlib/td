@@ -291,7 +291,9 @@ class DialogParticipantStatus {
   // legacy rights
   static DialogParticipantStatus ChannelAdministrator(bool is_creator, bool is_megagroup);
 
-  AdministratorRights get_administrator_rights() const;
+  AdministratorRights get_administrator_rights() const {
+    return AdministratorRights(flags_ & ALL_ADMINISTRATOR_RIGHTS);
+  }
 
   RestrictedRights get_restricted_rights() const;
 
@@ -307,48 +309,49 @@ class DialogParticipantStatus {
   void update_restrictions() const;
 
   bool can_manage_dialog() const {
-    return (flags_ & CAN_MANAGE_DIALOG) != 0;
+    return get_administrator_rights().can_manage_dialog();
   }
 
   bool can_change_info_and_settings() const {
-    return (flags_ & CAN_CHANGE_INFO_AND_SETTINGS_ADMIN) != 0 || (flags_ & CAN_CHANGE_INFO_AND_SETTINGS_BANNED) != 0;
+    return get_administrator_rights().can_change_info_and_settings() ||
+           (flags_ & CAN_CHANGE_INFO_AND_SETTINGS_BANNED) != 0;
   }
 
   bool can_post_messages() const {
-    return (flags_ & CAN_POST_MESSAGES) != 0;
+    return get_administrator_rights().can_post_messages();
   }
 
   bool can_edit_messages() const {
-    return (flags_ & CAN_EDIT_MESSAGES) != 0;
+    return get_administrator_rights().can_edit_messages();
   }
 
   bool can_delete_messages() const {
-    return (flags_ & CAN_DELETE_MESSAGES) != 0;
+    return get_administrator_rights().can_edit_messages();
   }
 
   bool can_invite_users() const {
-    return (flags_ & CAN_INVITE_USERS_ADMIN) != 0 || (flags_ & CAN_INVITE_USERS_BANNED) != 0;
+    return get_administrator_rights().can_invite_users() || (flags_ & CAN_INVITE_USERS_BANNED) != 0;
   }
 
   bool can_manage_invite_links() const {
     // invite links can be managed, only if administrator was explicitly granted the right
-    return (flags_ & CAN_INVITE_USERS_ADMIN) != 0;
+    return get_administrator_rights().can_invite_users();
   }
 
   bool can_restrict_members() const {
-    return (flags_ & CAN_RESTRICT_MEMBERS) != 0;
+    return get_administrator_rights().can_restrict_members();
   }
 
   bool can_pin_messages() const {
-    return (flags_ & CAN_PIN_MESSAGES_ADMIN) != 0 || (flags_ & CAN_PIN_MESSAGES_BANNED) != 0;
+    return get_administrator_rights().can_pin_messages() || (flags_ & CAN_PIN_MESSAGES_BANNED) != 0;
   }
 
   bool can_promote_members() const {
-    return (flags_ & CAN_PROMOTE_MEMBERS) != 0;
+    return get_administrator_rights().can_promote_members();
   }
 
   bool can_manage_calls() const {
-    return (flags_ & CAN_MANAGE_CALLS) != 0;
+    return get_administrator_rights().can_manage_calls();
   }
 
   bool can_be_edited() const {

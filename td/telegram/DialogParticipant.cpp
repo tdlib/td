@@ -77,6 +77,119 @@ StringBuilder &operator<<(StringBuilder &string_builder, const AdministratorRigh
   return string_builder;
 }
 
+RestrictedRights::RestrictedRights(bool can_send_messages, bool can_send_media, bool can_send_stickers,
+                                   bool can_send_animations, bool can_send_games, bool can_use_inline_bots,
+                                   bool can_add_web_page_previews, bool can_send_polls,
+                                   bool can_change_info_and_settings, bool can_invite_users, bool can_pin_messages) {
+  flags_ = (static_cast<uint32>(can_send_messages) * CAN_SEND_MESSAGES) |
+           (static_cast<uint32>(can_send_media) * CAN_SEND_MEDIA) |
+           (static_cast<uint32>(can_send_stickers) * CAN_SEND_STICKERS) |
+           (static_cast<uint32>(can_send_animations) * CAN_SEND_ANIMATIONS) |
+           (static_cast<uint32>(can_send_games) * CAN_SEND_GAMES) |
+           (static_cast<uint32>(can_use_inline_bots) * CAN_USE_INLINE_BOTS) |
+           (static_cast<uint32>(can_add_web_page_previews) * CAN_ADD_WEB_PAGE_PREVIEWS) |
+           (static_cast<uint32>(can_send_polls) * CAN_SEND_POLLS) |
+           (static_cast<uint32>(can_change_info_and_settings) * CAN_CHANGE_INFO_AND_SETTINGS) |
+           (static_cast<uint32>(can_invite_users) * CAN_INVITE_USERS) |
+           (static_cast<uint32>(can_pin_messages) * CAN_PIN_MESSAGES);
+}
+
+tl_object_ptr<td_api::chatPermissions> RestrictedRights::get_chat_permissions_object() const {
+  return td_api::make_object<td_api::chatPermissions>(
+      can_send_messages(), can_send_media(), can_send_polls(),
+      can_send_stickers() || can_send_animations() || can_send_games() || can_use_inline_bots(),
+      can_add_web_page_previews(), can_change_info_and_settings(), can_invite_users(), can_pin_messages());
+}
+
+tl_object_ptr<telegram_api::chatBannedRights> RestrictedRights::get_chat_banned_rights() const {
+  int32 flags = 0;
+  if (!can_send_messages()) {
+    flags |= telegram_api::chatBannedRights::SEND_MESSAGES_MASK;
+  }
+  if (!can_send_media()) {
+    flags |= telegram_api::chatBannedRights::SEND_MEDIA_MASK;
+  }
+  if (!can_send_stickers()) {
+    flags |= telegram_api::chatBannedRights::SEND_STICKERS_MASK;
+  }
+  if (!can_send_animations()) {
+    flags |= telegram_api::chatBannedRights::SEND_GIFS_MASK;
+  }
+  if (!can_send_games()) {
+    flags |= telegram_api::chatBannedRights::SEND_GAMES_MASK;
+  }
+  if (!can_use_inline_bots()) {
+    flags |= telegram_api::chatBannedRights::SEND_INLINE_MASK;
+  }
+  if (!can_add_web_page_previews()) {
+    flags |= telegram_api::chatBannedRights::EMBED_LINKS_MASK;
+  }
+  if (!can_send_polls()) {
+    flags |= telegram_api::chatBannedRights::SEND_POLLS_MASK;
+  }
+  if (!can_change_info_and_settings()) {
+    flags |= telegram_api::chatBannedRights::CHANGE_INFO_MASK;
+  }
+  if (!can_invite_users()) {
+    flags |= telegram_api::chatBannedRights::INVITE_USERS_MASK;
+  }
+  if (!can_pin_messages()) {
+    flags |= telegram_api::chatBannedRights::PIN_MESSAGES_MASK;
+  }
+
+  LOG(INFO) << "Create chat banned rights " << flags;
+  return make_tl_object<telegram_api::chatBannedRights>(flags, false /*ignored*/, false /*ignored*/, false /*ignored*/,
+                                                        false /*ignored*/, false /*ignored*/, false /*ignored*/,
+                                                        false /*ignored*/, false /*ignored*/, false /*ignored*/,
+                                                        false /*ignored*/, false /*ignored*/, false /*ignored*/, 0);
+}
+
+bool operator==(const RestrictedRights &lhs, const RestrictedRights &rhs) {
+  return lhs.flags_ == rhs.flags_;
+}
+
+bool operator!=(const RestrictedRights &lhs, const RestrictedRights &rhs) {
+  return !(lhs == rhs);
+}
+
+StringBuilder &operator<<(StringBuilder &string_builder, const RestrictedRights &status) {
+  string_builder << "Restricted: ";
+  if (!status.can_send_messages()) {
+    string_builder << "(text)";
+  }
+  if (!status.can_send_media()) {
+    string_builder << "(media)";
+  }
+  if (!status.can_send_stickers()) {
+    string_builder << "(stickers)";
+  }
+  if (!status.can_send_animations()) {
+    string_builder << "(animations)";
+  }
+  if (!status.can_send_games()) {
+    string_builder << "(games)";
+  }
+  if (!status.can_send_polls()) {
+    string_builder << "(polls)";
+  }
+  if (!status.can_use_inline_bots()) {
+    string_builder << "(inline bots)";
+  }
+  if (!status.can_add_web_page_previews()) {
+    string_builder << "(links)";
+  }
+  if (!status.can_change_info_and_settings()) {
+    string_builder << "(change)";
+  }
+  if (!status.can_invite_users()) {
+    string_builder << "(invite)";
+  }
+  if (!status.can_pin_messages()) {
+    string_builder << "(pin)";
+  }
+  return string_builder;
+}
+
 DialogParticipantStatus::DialogParticipantStatus(Type type, uint32 flags, int32 until_date, string rank)
     : type_(type), flags_(flags), until_date_(until_date), rank_(strip_empty_characters(std::move(rank), 16)) {
 }
@@ -151,10 +264,6 @@ DialogParticipantStatus DialogParticipantStatus::ChannelAdministrator(bool is_cr
   } else {
     return Administrator(false, string(), is_creator, true, false, true, true, true, false, true, false, false, false);
   }
-}
-
-AdministratorRights DialogParticipantStatus::get_administrator_rights() const {
-  return AdministratorRights(flags_ & ALL_ADMINISTRATOR_RIGHTS);
 }
 
 RestrictedRights DialogParticipantStatus::get_restricted_rights() const {
@@ -487,119 +596,6 @@ DialogParticipantStatus get_dialog_participant_status(bool is_member,
       is_member, banned_rights->until_date_, can_send_messages, can_send_media_messages, can_send_stickers,
       can_send_animations, can_send_games, can_use_inline_bots, can_add_web_page_previews, can_send_polls,
       can_change_info_and_settings, can_invite_users, can_pin_messages);
-}
-
-RestrictedRights::RestrictedRights(bool can_send_messages, bool can_send_media, bool can_send_stickers,
-                                   bool can_send_animations, bool can_send_games, bool can_use_inline_bots,
-                                   bool can_add_web_page_previews, bool can_send_polls,
-                                   bool can_change_info_and_settings, bool can_invite_users, bool can_pin_messages) {
-  flags_ = (static_cast<uint32>(can_send_messages) * CAN_SEND_MESSAGES) |
-           (static_cast<uint32>(can_send_media) * CAN_SEND_MEDIA) |
-           (static_cast<uint32>(can_send_stickers) * CAN_SEND_STICKERS) |
-           (static_cast<uint32>(can_send_animations) * CAN_SEND_ANIMATIONS) |
-           (static_cast<uint32>(can_send_games) * CAN_SEND_GAMES) |
-           (static_cast<uint32>(can_use_inline_bots) * CAN_USE_INLINE_BOTS) |
-           (static_cast<uint32>(can_add_web_page_previews) * CAN_ADD_WEB_PAGE_PREVIEWS) |
-           (static_cast<uint32>(can_send_polls) * CAN_SEND_POLLS) |
-           (static_cast<uint32>(can_change_info_and_settings) * CAN_CHANGE_INFO_AND_SETTINGS) |
-           (static_cast<uint32>(can_invite_users) * CAN_INVITE_USERS) |
-           (static_cast<uint32>(can_pin_messages) * CAN_PIN_MESSAGES);
-}
-
-tl_object_ptr<td_api::chatPermissions> RestrictedRights::get_chat_permissions_object() const {
-  return td_api::make_object<td_api::chatPermissions>(
-      can_send_messages(), can_send_media(), can_send_polls(),
-      can_send_stickers() || can_send_animations() || can_send_games() || can_use_inline_bots(),
-      can_add_web_page_previews(), can_change_info_and_settings(), can_invite_users(), can_pin_messages());
-}
-
-tl_object_ptr<telegram_api::chatBannedRights> RestrictedRights::get_chat_banned_rights() const {
-  int32 flags = 0;
-  if (!can_send_messages()) {
-    flags |= telegram_api::chatBannedRights::SEND_MESSAGES_MASK;
-  }
-  if (!can_send_media()) {
-    flags |= telegram_api::chatBannedRights::SEND_MEDIA_MASK;
-  }
-  if (!can_send_stickers()) {
-    flags |= telegram_api::chatBannedRights::SEND_STICKERS_MASK;
-  }
-  if (!can_send_animations()) {
-    flags |= telegram_api::chatBannedRights::SEND_GIFS_MASK;
-  }
-  if (!can_send_games()) {
-    flags |= telegram_api::chatBannedRights::SEND_GAMES_MASK;
-  }
-  if (!can_use_inline_bots()) {
-    flags |= telegram_api::chatBannedRights::SEND_INLINE_MASK;
-  }
-  if (!can_add_web_page_previews()) {
-    flags |= telegram_api::chatBannedRights::EMBED_LINKS_MASK;
-  }
-  if (!can_send_polls()) {
-    flags |= telegram_api::chatBannedRights::SEND_POLLS_MASK;
-  }
-  if (!can_change_info_and_settings()) {
-    flags |= telegram_api::chatBannedRights::CHANGE_INFO_MASK;
-  }
-  if (!can_invite_users()) {
-    flags |= telegram_api::chatBannedRights::INVITE_USERS_MASK;
-  }
-  if (!can_pin_messages()) {
-    flags |= telegram_api::chatBannedRights::PIN_MESSAGES_MASK;
-  }
-
-  LOG(INFO) << "Create chat banned rights " << flags;
-  return make_tl_object<telegram_api::chatBannedRights>(flags, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-                                                        false /*ignored*/, false /*ignored*/, false /*ignored*/,
-                                                        false /*ignored*/, false /*ignored*/, false /*ignored*/,
-                                                        false /*ignored*/, false /*ignored*/, false /*ignored*/, 0);
-}
-
-bool operator==(const RestrictedRights &lhs, const RestrictedRights &rhs) {
-  return lhs.flags_ == rhs.flags_;
-}
-
-bool operator!=(const RestrictedRights &lhs, const RestrictedRights &rhs) {
-  return !(lhs == rhs);
-}
-
-StringBuilder &operator<<(StringBuilder &string_builder, const RestrictedRights &status) {
-  string_builder << "Restricted: ";
-  if (!status.can_send_messages()) {
-    string_builder << "(text)";
-  }
-  if (!status.can_send_media()) {
-    string_builder << "(media)";
-  }
-  if (!status.can_send_stickers()) {
-    string_builder << "(stickers)";
-  }
-  if (!status.can_send_animations()) {
-    string_builder << "(animations)";
-  }
-  if (!status.can_send_games()) {
-    string_builder << "(games)";
-  }
-  if (!status.can_send_polls()) {
-    string_builder << "(polls)";
-  }
-  if (!status.can_use_inline_bots()) {
-    string_builder << "(inline bots)";
-  }
-  if (!status.can_add_web_page_previews()) {
-    string_builder << "(links)";
-  }
-  if (!status.can_change_info_and_settings()) {
-    string_builder << "(change)";
-  }
-  if (!status.can_invite_users()) {
-    string_builder << "(invite)";
-  }
-  if (!status.can_pin_messages()) {
-    string_builder << "(pin)";
-  }
-  return string_builder;
 }
 
 RestrictedRights get_restricted_rights(tl_object_ptr<telegram_api::chatBannedRights> &&banned_rights) {
