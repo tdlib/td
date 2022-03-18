@@ -15656,7 +15656,7 @@ void ContactsManager::on_chat_update(telegram_api::chat &chat, const char *sourc
     if (is_creator) {
       return DialogParticipantStatus::Creator(!has_left, false, string());
     } else if (chat.admin_rights_ != nullptr) {
-      return get_dialog_participant_status(false, std::move(chat.admin_rights_), string());
+      return DialogParticipantStatus(false, std::move(chat.admin_rights_), string());
     } else if (was_kicked) {
       return DialogParticipantStatus::Banned(0);
     } else if (has_left) {
@@ -15838,9 +15838,9 @@ void ContactsManager::on_chat_update(telegram_api::channel &channel, const char 
                           (channel.admin_rights_->flags_ & telegram_api::chatAdminRights::ANONYMOUS_MASK) != 0;
       return DialogParticipantStatus::Creator(!has_left, is_anonymous, string());
     } else if (channel.admin_rights_ != nullptr) {
-      return get_dialog_participant_status(false, std::move(channel.admin_rights_), string());
+      return DialogParticipantStatus(false, std::move(channel.admin_rights_), string());
     } else if (channel.banned_rights_ != nullptr) {
-      return get_dialog_participant_status(!has_left, std::move(channel.banned_rights_));
+      return DialogParticipantStatus(!has_left, std::move(channel.banned_rights_));
     } else if (has_left) {
       return DialogParticipantStatus::Left();
     } else {

@@ -278,6 +278,10 @@ class DialogParticipantStatus {
   // legacy rights
   static DialogParticipantStatus ChannelAdministrator(bool is_creator, bool is_megagroup);
 
+  DialogParticipantStatus(bool can_be_edited, tl_object_ptr<telegram_api::chatAdminRights> &&admin_rights, string rank);
+
+  DialogParticipantStatus(bool is_member, tl_object_ptr<telegram_api::chatBannedRights> &&banned_rights);
+
   RestrictedRights get_effective_restricted_rights() const;
 
   DialogParticipantStatus apply_restrictions(RestrictedRights default_restrictions, bool is_bot) const;
@@ -595,13 +599,6 @@ class DialogParticipantsFilter {
 StringBuilder &operator<<(StringBuilder &string_builder, const DialogParticipantsFilter &filter);
 
 DialogParticipantStatus get_dialog_participant_status(const tl_object_ptr<td_api::ChatMemberStatus> &status);
-
-DialogParticipantStatus get_dialog_participant_status(bool can_be_edited,
-                                                      tl_object_ptr<telegram_api::chatAdminRights> &&admin_rights,
-                                                      string rank);
-
-DialogParticipantStatus get_dialog_participant_status(bool is_member,
-                                                      tl_object_ptr<telegram_api::chatBannedRights> &&banned_rights);
 
 RestrictedRights get_restricted_rights(tl_object_ptr<telegram_api::chatBannedRights> &&banned_rights);
 

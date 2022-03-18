@@ -528,9 +528,9 @@ DialogParticipantStatus get_dialog_participant_status(const tl_object_ptr<td_api
   }
 }
 
-DialogParticipantStatus get_dialog_participant_status(bool can_be_edited,
-                                                      tl_object_ptr<telegram_api::chatAdminRights> &&admin_rights,
-                                                      string rank) {
+DialogParticipantStatus::DialogParticipantStatus(bool can_be_edited,
+                                                 tl_object_ptr<telegram_api::chatAdminRights> &&admin_rights,
+                                                 string rank) {
   bool can_change_info = (admin_rights->flags_ & telegram_api::chatAdminRights::CHANGE_INFO_MASK) != 0;
   bool can_post_messages = (admin_rights->flags_ & telegram_api::chatAdminRights::POST_MESSAGES_MASK) != 0;
   bool can_edit_messages = (admin_rights->flags_ & telegram_api::chatAdminRights::EDIT_MESSAGES_MASK) != 0;
@@ -545,18 +545,19 @@ DialogParticipantStatus get_dialog_participant_status(bool can_be_edited,
   if (!can_manage_dialog) {
     LOG(ERROR) << "Receive wrong other flag in " << to_string(admin_rights);
   }
-  return DialogParticipantStatus::Administrator(is_anonymous, std::move(rank), can_be_edited, can_manage_dialog,
-                                                can_change_info, can_post_messages, can_edit_messages,
-                                                can_delete_messages, can_invite_users, can_restrict_members,
-                                                can_pin_messages, can_promote_members, can_manage_calls);
+  *this = DialogParticipantStatus::Administrator(is_anonymous, std::move(rank), can_be_edited, can_manage_dialog,
+                                                 can_change_info, can_post_messages, can_edit_messages,
+                                                 can_delete_messages, can_invite_users, can_restrict_members,
+                                                 can_pin_messages, can_promote_members, can_manage_calls);
 }
 
-DialogParticipantStatus get_dialog_participant_status(bool is_member,
-                                                      tl_object_ptr<telegram_api::chatBannedRights> &&banned_rights) {
+DialogParticipantStatus::DialogParticipantStatus(bool is_member,
+                                                 tl_object_ptr<telegram_api::chatBannedRights> &&banned_rights) {
   CHECK(banned_rights != nullptr);
   bool can_view_messages = (banned_rights->flags_ & telegram_api::chatBannedRights::VIEW_MESSAGES_MASK) == 0;
   if (!can_view_messages) {
-    return DialogParticipantStatus::Banned(banned_rights->until_date_);
+    *this = DialogParticipantStatus::Banned(banned_rights->until_date_);
+    return;
   }
   bool can_send_messages = (banned_rights->flags_ & telegram_api::chatBannedRights::SEND_MESSAGES_MASK) == 0;
   bool can_send_media_messages = (banned_rights->flags_ & telegram_api::chatBannedRights::SEND_MEDIA_MASK) == 0;
@@ -569,7 +570,7 @@ DialogParticipantStatus get_dialog_participant_status(bool is_member,
   bool can_change_info_and_settings = (banned_rights->flags_ & telegram_api::chatBannedRights::CHANGE_INFO_MASK) == 0;
   bool can_invite_users = (banned_rights->flags_ & telegram_api::chatBannedRights::INVITE_USERS_MASK) == 0;
   bool can_pin_messages = (banned_rights->flags_ & telegram_api::chatBannedRights::PIN_MESSAGES_MASK) == 0;
-  return DialogParticipantStatus::Restricted(
+  *this = DialogParticipantStatus::Restricted(
       is_member, banned_rights->until_date_, can_send_messages, can_send_media_messages, can_send_stickers,
       can_send_animations, can_send_games, can_use_inline_bots, can_add_web_page_previews, can_send_polls,
       can_change_info_and_settings, can_invite_users, can_pin_messages);
@@ -679,8 +680,8 @@ DialogParticipant::DialogParticipant(tl_object_ptr<telegram_api::ChannelParticip
     case telegram_api::channelParticipantAdmin::ID: {
       auto participant = move_tl_object_as<telegram_api::channelParticipantAdmin>(participant_ptr);
       *this = {DialogId(UserId(participant->user_id_)), UserId(participant->promoted_by_), participant->date_,
-               get_dialog_participant_status(participant->can_edit_, std::move(participant->admin_rights_),
-                                             std::move(participant->rank_))};
+               DialogParticipantStatus(participant->can_edit_, std::move(participant->admin_rights_),
+                                       std::move(participant->rank_))};
       break;
     }
     case telegram_api::channelParticipantLeft::ID: {
@@ -691,7 +692,7 @@ DialogParticipant::DialogParticipant(tl_object_ptr<telegram_api::ChannelParticip
     case telegram_api::channelParticipantBanned::ID: {
       auto participant = move_tl_object_as<telegram_api::channelParticipantBanned>(participant_ptr);
       *this = {DialogId(participant->peer_), UserId(participant->kicked_by_), participant->date_,
-               get_dialog_participant_status(!participant->left_, std::move(participant->banned_rights_))};
+               DialogParticipantStatus(!participant->left_, std::move(participant->banned_rights_))};
       break;
     }
     default:
