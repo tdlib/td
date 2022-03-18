@@ -101,17 +101,11 @@ DialogParticipantStatus DialogParticipantStatus::Administrator(bool is_anonymous
                                                                bool can_delete_messages, bool can_invite_users,
                                                                bool can_restrict_members, bool can_pin_messages,
                                                                bool can_promote_members, bool can_manage_calls) {
-  uint32 flags = (static_cast<uint32>(can_be_edited) * CAN_BE_EDITED) |
-                 (static_cast<uint32>(can_manage_dialog) * CAN_MANAGE_DIALOG) |
-                 (static_cast<uint32>(can_change_info) * CAN_CHANGE_INFO_AND_SETTINGS_ADMIN) |
-                 (static_cast<uint32>(can_post_messages) * CAN_POST_MESSAGES) |
-                 (static_cast<uint32>(can_edit_messages) * CAN_EDIT_MESSAGES) |
-                 (static_cast<uint32>(can_delete_messages) * CAN_DELETE_MESSAGES) |
-                 (static_cast<uint32>(can_invite_users) * CAN_INVITE_USERS_ADMIN) |
-                 (static_cast<uint32>(can_restrict_members) * CAN_RESTRICT_MEMBERS) |
-                 (static_cast<uint32>(can_pin_messages) * CAN_PIN_MESSAGES_ADMIN) |
-                 (static_cast<uint32>(can_promote_members) * CAN_PROMOTE_MEMBERS) |
-                 (static_cast<uint32>(can_manage_calls) * CAN_MANAGE_CALLS) |
+  uint32 flags = AdministratorRights(can_manage_dialog, can_change_info, can_post_messages, can_edit_messages,
+                                     can_delete_messages, can_invite_users, can_restrict_members, can_pin_messages,
+                                     can_promote_members, can_manage_calls)
+                     .flags_ |
+                 (static_cast<uint32>(can_be_edited) * CAN_BE_EDITED) |
                  (static_cast<uint32>(is_anonymous) * IS_ANONYMOUS);
   if (flags == 0 || flags == CAN_BE_EDITED) {
     return Member();
@@ -128,17 +122,10 @@ DialogParticipantStatus DialogParticipantStatus::Restricted(
     bool is_member, int32 restricted_until_date, bool can_send_messages, bool can_send_media, bool can_send_stickers,
     bool can_send_animations, bool can_send_games, bool can_use_inline_bots, bool can_add_web_page_previews,
     bool can_send_polls, bool can_change_info_and_settings, bool can_invite_users, bool can_pin_messages) {
-  uint32 flags = (static_cast<uint32>(can_send_messages) * CAN_SEND_MESSAGES) |
-                 (static_cast<uint32>(can_send_media) * CAN_SEND_MEDIA) |
-                 (static_cast<uint32>(can_send_stickers) * CAN_SEND_STICKERS) |
-                 (static_cast<uint32>(can_send_animations) * CAN_SEND_ANIMATIONS) |
-                 (static_cast<uint32>(can_send_games) * CAN_SEND_GAMES) |
-                 (static_cast<uint32>(can_use_inline_bots) * CAN_USE_INLINE_BOTS) |
-                 (static_cast<uint32>(can_add_web_page_previews) * CAN_ADD_WEB_PAGE_PREVIEWS) |
-                 (static_cast<uint32>(can_send_polls) * CAN_SEND_POLLS) |
-                 (static_cast<uint32>(can_change_info_and_settings) * CAN_CHANGE_INFO_AND_SETTINGS_BANNED) |
-                 (static_cast<uint32>(can_invite_users) * CAN_INVITE_USERS_BANNED) |
-                 (static_cast<uint32>(can_pin_messages) * CAN_PIN_MESSAGES_BANNED) |
+  uint32 flags = RestrictedRights(can_send_messages, can_send_media, can_send_stickers, can_send_animations,
+                                  can_send_games, can_use_inline_bots, can_add_web_page_previews, can_send_polls,
+                                  can_change_info_and_settings, can_invite_users, can_pin_messages)
+                     .flags_ |
                  (static_cast<uint32>(is_member) * IS_MEMBER);
   if (flags == (IS_MEMBER | ALL_PERMISSION_RIGHTS)) {
     return Member();
@@ -164,6 +151,10 @@ DialogParticipantStatus DialogParticipantStatus::ChannelAdministrator(bool is_cr
   } else {
     return Administrator(false, string(), is_creator, true, false, true, true, true, false, true, false, false, false);
   }
+}
+
+AdministratorRights DialogParticipantStatus::get_administrator_rights() const {
+  return AdministratorRights(flags_ & ALL_ADMINISTRATOR_RIGHTS);
 }
 
 RestrictedRights DialogParticipantStatus::get_restricted_rights() const {
@@ -360,37 +351,7 @@ StringBuilder &operator<<(StringBuilder &string_builder, const DialogParticipant
       }
       return string_builder;
     case DialogParticipantStatus::Type::Administrator:
-      string_builder << "Administrator: ";
-      if (status.can_manage_dialog()) {
-        string_builder << "(manage)";
-      }
-      if (status.can_change_info_and_settings()) {
-        string_builder << "(change)";
-      }
-      if (status.can_post_messages()) {
-        string_builder << "(post)";
-      }
-      if (status.can_edit_messages()) {
-        string_builder << "(edit)";
-      }
-      if (status.can_delete_messages()) {
-        string_builder << "(delete)";
-      }
-      if (status.can_invite_users()) {
-        string_builder << "(invite)";
-      }
-      if (status.can_restrict_members()) {
-        string_builder << "(restrict)";
-      }
-      if (status.can_pin_messages()) {
-        string_builder << "(pin)";
-      }
-      if (status.can_promote_members()) {
-        string_builder << "(promote)";
-      }
-      if (status.can_manage_calls()) {
-        string_builder << "(voice chat)";
-      }
+      string_builder << status.get_administrator_rights();
       if (!status.rank_.empty()) {
         string_builder << " [" << status.rank_ << "]";
       }
@@ -401,7 +362,7 @@ StringBuilder &operator<<(StringBuilder &string_builder, const DialogParticipant
     case DialogParticipantStatus::Type::Member:
       return string_builder << "Member";
     case DialogParticipantStatus::Type::Restricted:
-      string_builder << "Restricted ";
+      string_builder << status.get_restricted_rights();
       if (status.until_date_ == 0) {
         string_builder << "forever ";
       } else {
@@ -410,40 +371,7 @@ StringBuilder &operator<<(StringBuilder &string_builder, const DialogParticipant
       if (!status.is_member()) {
         string_builder << "non-";
       }
-      string_builder << "member: ";
-      if (!status.can_send_messages()) {
-        string_builder << "(text)";
-      }
-      if (!status.can_send_media()) {
-        string_builder << "(media)";
-      }
-      if (!status.can_send_stickers()) {
-        string_builder << "(stickers)";
-      }
-      if (!status.can_send_animations()) {
-        string_builder << "(animations)";
-      }
-      if (!status.can_send_games()) {
-        string_builder << "(games)";
-      }
-      if (!status.can_send_polls()) {
-        string_builder << "(polls)";
-      }
-      if (!status.can_use_inline_bots()) {
-        string_builder << "(inline bots)";
-      }
-      if (!status.can_add_web_page_previews()) {
-        string_builder << "(links)";
-      }
-      if (!status.can_change_info_and_settings()) {
-        string_builder << "(change)";
-      }
-      if (!status.can_invite_users()) {
-        string_builder << "(invite)";
-      }
-      if (!status.can_pin_messages()) {
-        string_builder << "(pin)";
-      }
+      string_builder << "member";
       return string_builder;
     case DialogParticipantStatus::Type::Left:
       return string_builder << "Left";

@@ -34,14 +34,12 @@ class AdministratorRights {
   static constexpr uint32 CAN_MANAGE_CALLS = 1 << 9;
   static constexpr uint32 CAN_MANAGE_DIALOG = 1 << 10;
 
-  static constexpr uint32 ALL_ADMINISTRATOR_RIGHTS = CAN_CHANGE_INFO_AND_SETTINGS_ADMIN | CAN_POST_MESSAGES |
-                                                     CAN_EDIT_MESSAGES | CAN_DELETE_MESSAGES | CAN_INVITE_USERS_ADMIN |
-                                                     CAN_RESTRICT_MEMBERS | CAN_PIN_MESSAGES_ADMIN |
-                                                     CAN_PROMOTE_MEMBERS | CAN_MANAGE_CALLS | CAN_MANAGE_DIALOG;
-
   uint32 flags_;
 
   friend class DialogParticipantStatus;
+
+  explicit AdministratorRights(int32 flags) : flags_(flags) {
+  }
 
  public:
   AdministratorRights(bool can_manage_dialog, bool can_change_info, bool can_post_messages, bool can_edit_messages,
@@ -292,6 +290,8 @@ class DialogParticipantStatus {
 
   // legacy rights
   static DialogParticipantStatus ChannelAdministrator(bool is_creator, bool is_megagroup);
+
+  AdministratorRights get_administrator_rights() const;
 
   RestrictedRights get_restricted_rights() const;
 
