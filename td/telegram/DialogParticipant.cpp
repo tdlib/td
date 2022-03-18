@@ -18,6 +18,65 @@
 
 namespace td {
 
+AdministratorRights::AdministratorRights(bool can_manage_dialog, bool can_change_info, bool can_post_messages,
+                                         bool can_edit_messages, bool can_delete_messages, bool can_invite_users,
+                                         bool can_restrict_members, bool can_pin_messages, bool can_promote_members,
+                                         bool can_manage_calls) {
+  flags_ = (static_cast<uint32>(can_manage_dialog) * CAN_MANAGE_DIALOG) |
+           (static_cast<uint32>(can_change_info) * CAN_CHANGE_INFO_AND_SETTINGS_ADMIN) |
+           (static_cast<uint32>(can_post_messages) * CAN_POST_MESSAGES) |
+           (static_cast<uint32>(can_edit_messages) * CAN_EDIT_MESSAGES) |
+           (static_cast<uint32>(can_delete_messages) * CAN_DELETE_MESSAGES) |
+           (static_cast<uint32>(can_invite_users) * CAN_INVITE_USERS_ADMIN) |
+           (static_cast<uint32>(can_restrict_members) * CAN_RESTRICT_MEMBERS) |
+           (static_cast<uint32>(can_pin_messages) * CAN_PIN_MESSAGES_ADMIN) |
+           (static_cast<uint32>(can_promote_members) * CAN_PROMOTE_MEMBERS) |
+           (static_cast<uint32>(can_manage_calls) * CAN_MANAGE_CALLS);
+}
+
+bool operator==(const AdministratorRights &lhs, const AdministratorRights &rhs) {
+  return lhs.flags_ == rhs.flags_;
+}
+
+bool operator!=(const AdministratorRights &lhs, const AdministratorRights &rhs) {
+  return !(lhs == rhs);
+}
+
+StringBuilder &operator<<(StringBuilder &string_builder, const AdministratorRights &status) {
+  string_builder << "Administrator: ";
+  if (status.can_manage_dialog()) {
+    string_builder << "(manage)";
+  }
+  if (status.can_change_info_and_settings()) {
+    string_builder << "(change)";
+  }
+  if (status.can_post_messages()) {
+    string_builder << "(post)";
+  }
+  if (status.can_edit_messages()) {
+    string_builder << "(edit)";
+  }
+  if (status.can_delete_messages()) {
+    string_builder << "(delete)";
+  }
+  if (status.can_invite_users()) {
+    string_builder << "(invite)";
+  }
+  if (status.can_restrict_members()) {
+    string_builder << "(restrict)";
+  }
+  if (status.can_pin_messages()) {
+    string_builder << "(pin)";
+  }
+  if (status.can_promote_members()) {
+    string_builder << "(promote)";
+  }
+  if (status.can_manage_calls()) {
+    string_builder << "(voice chat)";
+  }
+  return string_builder;
+}
+
 DialogParticipantStatus::DialogParticipantStatus(Type type, uint32 flags, int32 until_date, string rank)
     : type_(type), flags_(flags), until_date_(until_date), rank_(strip_empty_characters(std::move(rank), 16)) {
 }

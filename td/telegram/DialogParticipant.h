@@ -21,6 +21,99 @@ namespace td {
 
 class Td;
 
+class AdministratorRights {
+  static constexpr uint32 CAN_CHANGE_INFO_AND_SETTINGS_ADMIN = 1 << 0;
+  static constexpr uint32 CAN_POST_MESSAGES = 1 << 1;
+  static constexpr uint32 CAN_EDIT_MESSAGES = 1 << 2;
+  static constexpr uint32 CAN_DELETE_MESSAGES = 1 << 3;
+  static constexpr uint32 CAN_INVITE_USERS_ADMIN = 1 << 4;
+  // static constexpr uint32 CAN_EXPORT_DIALOG_INVITE_LINK = 1 << 5;
+  static constexpr uint32 CAN_RESTRICT_MEMBERS = 1 << 6;
+  static constexpr uint32 CAN_PIN_MESSAGES_ADMIN = 1 << 7;
+  static constexpr uint32 CAN_PROMOTE_MEMBERS = 1 << 8;
+  static constexpr uint32 CAN_MANAGE_CALLS = 1 << 9;
+  static constexpr uint32 CAN_MANAGE_DIALOG = 1 << 10;
+
+  static constexpr uint32 ALL_ADMINISTRATOR_RIGHTS = CAN_CHANGE_INFO_AND_SETTINGS_ADMIN | CAN_POST_MESSAGES |
+                                                     CAN_EDIT_MESSAGES | CAN_DELETE_MESSAGES | CAN_INVITE_USERS_ADMIN |
+                                                     CAN_RESTRICT_MEMBERS | CAN_PIN_MESSAGES_ADMIN |
+                                                     CAN_PROMOTE_MEMBERS | CAN_MANAGE_CALLS | CAN_MANAGE_DIALOG;
+
+  uint32 flags_;
+
+  friend class DialogParticipantStatus;
+
+ public:
+  AdministratorRights(bool can_manage_dialog, bool can_change_info, bool can_post_messages, bool can_edit_messages,
+                      bool can_delete_messages, bool can_invite_users, bool can_restrict_members, bool can_pin_messages,
+                      bool can_promote_members, bool can_manage_calls);
+
+  bool can_manage_dialog() const {
+    return (flags_ & CAN_MANAGE_DIALOG) != 0;
+  }
+
+  bool can_change_info_and_settings() const {
+    return (flags_ & CAN_CHANGE_INFO_AND_SETTINGS_ADMIN) != 0;
+  }
+
+  bool can_post_messages() const {
+    return (flags_ & CAN_POST_MESSAGES) != 0;
+  }
+
+  bool can_edit_messages() const {
+    return (flags_ & CAN_EDIT_MESSAGES) != 0;
+  }
+
+  bool can_delete_messages() const {
+    return (flags_ & CAN_DELETE_MESSAGES) != 0;
+  }
+
+  bool can_invite_users() const {
+    return (flags_ & CAN_INVITE_USERS_ADMIN) != 0;
+  }
+
+  bool can_manage_invite_links() const {
+    // invite links can be managed, only if administrator was explicitly granted the right
+    return (flags_ & CAN_INVITE_USERS_ADMIN) != 0;
+  }
+
+  bool can_restrict_members() const {
+    return (flags_ & CAN_RESTRICT_MEMBERS) != 0;
+  }
+
+  bool can_pin_messages() const {
+    return (flags_ & CAN_PIN_MESSAGES_ADMIN) != 0;
+  }
+
+  bool can_promote_members() const {
+    return (flags_ & CAN_PROMOTE_MEMBERS) != 0;
+  }
+
+  bool can_manage_calls() const {
+    return (flags_ & CAN_MANAGE_CALLS) != 0;
+  }
+
+  template <class StorerT>
+  void store(StorerT &storer) const {
+    td::store(flags_, storer);
+  }
+
+  template <class ParserT>
+  void parse(ParserT &parser) {
+    td::parse(flags_, parser);
+  }
+
+  friend bool operator==(const AdministratorRights &lhs, const AdministratorRights &rhs);
+
+  friend StringBuilder &operator<<(StringBuilder &string_builder, const AdministratorRights &status);
+};
+
+bool operator==(const AdministratorRights &lhs, const AdministratorRights &rhs);
+
+bool operator!=(const AdministratorRights &lhs, const AdministratorRights &rhs);
+
+StringBuilder &operator<<(StringBuilder &string_builder, const AdministratorRights &status);
+
 class RestrictedRights {
   static constexpr uint32 CAN_SEND_MESSAGES = 1 << 16;
   static constexpr uint32 CAN_SEND_MEDIA = 1 << 17;
