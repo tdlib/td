@@ -8831,9 +8831,9 @@ ContactsManager::User *ContactsManager::get_user_force(UserId user_id) {
     auto user = telegram_api::make_object<telegram_api::user>(
         flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
         false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-        false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, user_id.get(), 1,
-        first_name, string(), username, phone_number, std::move(profile_photo), nullptr, bot_info_version, Auto(),
-        string(), string());
+        false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
+        false /*ignored*/, user_id.get(), 1, first_name, string(), username, phone_number, std::move(profile_photo),
+        nullptr, bot_info_version, Auto(), string(), string());
     on_get_user(std::move(user), "get_user_force");
     u = get_user(user_id);
     CHECK(u != nullptr && u->is_received);
@@ -15648,18 +15648,10 @@ void ContactsManager::on_chat_update(telegram_api::chat &chat, const char *sourc
   DialogParticipantStatus status = [&] {
     bool is_creator = 0 != (chat.flags_ & CHAT_FLAG_USER_IS_CREATOR);
     bool has_left = 0 != (chat.flags_ & CHAT_FLAG_USER_HAS_LEFT);
-    bool was_kicked = 0 != (chat.flags_ & CHAT_FLAG_USER_WAS_KICKED);
-    if (was_kicked) {
-      LOG_IF(ERROR, has_left) << "Kicked and left" << debug_str;  // only one of the flags can be set
-      has_left = true;
-    }
-
     if (is_creator) {
       return DialogParticipantStatus::Creator(!has_left, false, string());
     } else if (chat.admin_rights_ != nullptr) {
       return DialogParticipantStatus(false, std::move(chat.admin_rights_), string());
-    } else if (was_kicked) {
-      return DialogParticipantStatus::Banned(0);
     } else if (has_left) {
       return DialogParticipantStatus::Left();
     } else {

@@ -4786,6 +4786,10 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
     }
     case telegram_api::messageActionChatJoinedByRequest::ID:
       return make_unique<MessageChatJoinedByLink>(true);
+    case telegram_api::messageActionWebViewDataSentMe::ID:
+      return make_unique<MessageUnsupported>();
+    case telegram_api::messageActionWebViewDataSent::ID:
+      return make_unique<MessageUnsupported>();
     default:
       UNREACHABLE();
   }

@@ -717,6 +717,8 @@ bool UpdatesManager::is_acceptable_message(const telegram_api::Message *message_
         case telegram_api::messageActionSetMessagesTTL::ID:
         case telegram_api::messageActionSetChatTheme::ID:
         case telegram_api::messageActionChatJoinedByRequest::ID:
+        case telegram_api::messageActionWebViewDataSentMe::ID:
+        case telegram_api::messageActionWebViewDataSent::ID:
           break;
         case telegram_api::messageActionChatCreate::ID: {
           auto chat_create = static_cast<const telegram_api::messageActionChatCreate *>(action);
@@ -2942,6 +2944,10 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateBotCommands> up
   promise.set_value(Unit());
 }
 
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateBotMenuButton> update, Promise<Unit> &&promise) {
+  promise.set_value(Unit());
+}
+
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateChatParticipants> update, Promise<Unit> &&promise) {
   td_->contacts_manager_->on_get_chat_participants(std::move(update->participants_), true);
   promise.set_value(Unit());
@@ -3299,6 +3305,18 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updatePendingJoinRequ
   promise.set_value(Unit());
 }
 
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateWebViewResultSent> update, Promise<Unit> &&promise) {
+  promise.set_value(Unit());
+}
+
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateSavedRingtones> update, Promise<Unit> &&promise) {
+  promise.set_value(Unit());
+}
+
 // unsupported updates
+
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateAttachMenuBots> update, Promise<Unit> &&promise) {
+  promise.set_value(Unit());
+}
 
 }  // namespace td

@@ -2870,8 +2870,8 @@ class DeleteChannelHistoryQuery final : public Td::ResultHandler {
     auto input_channel = td_->contacts_manager_->get_input_channel(channel_id);
     CHECK(input_channel != nullptr);
 
-    send_query(G()->net_query_creator().create(
-        telegram_api::channels_deleteHistory(std::move(input_channel), max_message_id.get_server_message_id().get())));
+    send_query(G()->net_query_creator().create(telegram_api::channels_deleteHistory(
+        0, false /*ignored*/, std::move(input_channel), max_message_id.get_server_message_id().get())));
   }
 
   void on_result(BufferSlice packet) final {
@@ -2880,11 +2880,9 @@ class DeleteChannelHistoryQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
-    bool result = result_ptr.ok();
-    LOG_IF(ERROR, !allow_error_ && !result)
-        << "Delete history in " << channel_id_ << " up to " << max_message_id_ << " failed";
-
-    promise_.set_value(Unit());
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for DeleteChannelHistoryQuery: " << to_string(ptr);
+    td_->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
   }
 
   void on_error(Status status) final {
@@ -4320,9 +4318,10 @@ class UpdateDialogNotifySettingsQuery final : public Td::ResultHandler {
       flags |= telegram_api::inputPeerNotifySettings::SILENT_MASK;
     }
     send_query(G()->net_query_creator().create(telegram_api::account_updateNotifySettings(
-        std::move(input_notify_peer), make_tl_object<telegram_api::inputPeerNotifySettings>(
-                                          flags, new_settings.show_preview, new_settings.silent_send_message,
-                                          new_settings.mute_until, new_settings.sound))));
+        std::move(input_notify_peer),
+        make_tl_object<telegram_api::inputPeerNotifySettings>(
+            flags, new_settings.show_preview, new_settings.silent_send_message, new_settings.mute_until,
+            make_tl_object<telegram_api::notificationSoundDefault>()))));
   }
 
   void on_result(BufferSlice packet) final {
@@ -4368,9 +4367,9 @@ class UpdateScopeNotifySettingsQuery final : public Td::ResultHandler {
                   telegram_api::inputPeerNotifySettings::SOUND_MASK |
                   telegram_api::inputPeerNotifySettings::SHOW_PREVIEWS_MASK;
     send_query(G()->net_query_creator().create(telegram_api::account_updateNotifySettings(
-        std::move(input_notify_peer),
-        make_tl_object<telegram_api::inputPeerNotifySettings>(flags, new_settings.show_preview, false,
-                                                              new_settings.mute_until, new_settings.sound))));
+        std::move(input_notify_peer), make_tl_object<telegram_api::inputPeerNotifySettings>(
+                                          flags, new_settings.show_preview, false, new_settings.mute_until,
+                                          make_tl_object<telegram_api::notificationSoundDefault>()))));
     scope_ = scope;
   }
 

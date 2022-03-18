@@ -177,13 +177,10 @@ DialogNotificationSettings get_dialog_notification_settings(tl_object_ptr<telegr
                                                             bool old_use_default_disable_mention_notifications,
                                                             bool old_disable_mention_notifications) {
   bool use_default_mute_until = (settings->flags_ & telegram_api::peerNotifySettings::MUTE_UNTIL_MASK) == 0;
-  bool use_default_sound = (settings->flags_ & telegram_api::peerNotifySettings::SOUND_MASK) == 0;
+  bool use_default_sound = settings->other_sound_ == nullptr;
   bool use_default_show_preview = (settings->flags_ & telegram_api::peerNotifySettings::SHOW_PREVIEWS_MASK) == 0;
   auto mute_until = use_default_mute_until || settings->mute_until_ <= G()->unix_time() ? 0 : settings->mute_until_;
-  auto sound = std::move(settings->sound_);
-  if (sound.empty()) {
-    sound = "default";
-  }
+  string sound = "default";
   bool silent_send_message =
       (settings->flags_ & telegram_api::peerNotifySettings::SILENT_MASK) == 0 ? false : settings->silent_;
   return {use_default_mute_until,
@@ -206,10 +203,7 @@ ScopeNotificationSettings get_scope_notification_settings(tl_object_ptr<telegram
                             settings->mute_until_ <= G()->unix_time()
                         ? 0
                         : settings->mute_until_;
-  auto sound = std::move(settings->sound_);
-  if (sound.empty()) {
-    sound = "default";
-  }
+  string sound = "default";
   auto show_preview =
       (settings->flags_ & telegram_api::peerNotifySettings::SHOW_PREVIEWS_MASK) == 0 ? false : settings->show_previews_;
   return {mute_until, std::move(sound), show_preview, old_disable_pinned_message_notifications,

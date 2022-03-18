@@ -1042,7 +1042,6 @@ class ContactsManager final : public Actor {
   static constexpr int32 USER_FULL_FLAG_HAS_PRIVATE_FORWARD_NAME = 1 << 16;
 
   static constexpr int32 CHAT_FLAG_USER_IS_CREATOR = 1 << 0;
-  static constexpr int32 CHAT_FLAG_USER_WAS_KICKED = 1 << 1;
   static constexpr int32 CHAT_FLAG_USER_HAS_LEFT = 1 << 2;
   // static constexpr int32 CHAT_FLAG_ADMINISTRATORS_ENABLED = 1 << 3;
   // static constexpr int32 CHAT_FLAG_IS_ADMINISTRATOR = 1 << 4;
