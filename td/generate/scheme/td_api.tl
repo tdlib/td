@@ -439,6 +439,12 @@ inputChatPhotoAnimation animation:InputFile main_frame_timestamp:double = InputC
 //@language_code IETF language tag of the user's language; only available to bots
 user id:int53 first_name:string last_name:string username:string phone_number:string status:UserStatus profile_photo:profilePhoto is_contact:Bool is_mutual_contact:Bool is_verified:Bool is_support:Bool restriction_reason:string is_scam:Bool is_fake:Bool have_access:Bool type:UserType language_code:string = User;
 
+//@description Contains information about a bot
+//@share_text The text that is shown on the bot's profile page and is sent together with the link when users share the bot
+//@param_description The text shown in the chat with the bot if the chat is empty
+//@commands List of the bot commands
+botInfo share_text:string description:string commands:vector<botCommand> = BotInfo;
+
 //@description Contains full information about a user
 //@photo User profile photo; may be null
 //@is_blocked True, if the user is blocked by the current user
@@ -448,11 +454,9 @@ user id:int53 first_name:string last_name:string username:string phone_number:st
 //@has_private_forwards True, if the user can't be linked in forwarded messages due to their privacy settings
 //@need_phone_number_privacy_exception True, if the current user needs to explicitly allow to share their phone number with the user when the method addContact is used
 //@bio A short user bio
-//@share_text For bots, the text that is shown on the bot's profile page and is sent together with the link when users share the bot
-//@param_description For bots, the text shown in the chat with the bot if the chat is empty
 //@group_in_common_count Number of group chats where both the other user and the current user are a member; 0 for the current user
-//@commands For bots, list of the bot commands
-userFullInfo photo:chatPhoto is_blocked:Bool can_be_called:Bool supports_video_calls:Bool has_private_calls:Bool has_private_forwards:Bool need_phone_number_privacy_exception:Bool bio:string share_text:string description:string group_in_common_count:int32 commands:vector<botCommand> = UserFullInfo;
+//@bot_info For bots, information about the bot; may be null
+userFullInfo photo:chatPhoto is_blocked:Bool can_be_called:Bool supports_video_calls:Bool has_private_calls:Bool has_private_forwards:Bool need_phone_number_privacy_exception:Bool bio:string group_in_common_count:int32 bot_info:botInfo = UserFullInfo;
 
 //@description Represents a list of users @total_count Approximate total number of users found @user_ids A list of user identifiers
 users total_count:int32 user_ids:vector<int53> = Users;

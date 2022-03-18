@@ -16221,14 +16221,18 @@ tl_object_ptr<td_api::userFullInfo> ContactsManager::get_user_full_info_object(U
 tl_object_ptr<td_api::userFullInfo> ContactsManager::get_user_full_info_object(UserId user_id,
                                                                                const UserFull *user_full) const {
   CHECK(user_full != nullptr);
+  td_api::object_ptr<td_api::botInfo> bot_info;
   bool is_bot = is_user_bot(user_id);
-  auto commands = transform(user_full->commands, [](const auto &command) { return command.get_bot_command_object(); });
+  if (is_bot) {
+    auto commands =
+        transform(user_full->commands, [](const auto &command) { return command.get_bot_command_object(); });
+    bot_info = td_api::make_object<td_api::botInfo>(user_full->about, user_full->description, std::move(commands));
+  }
   return make_tl_object<td_api::userFullInfo>(
       get_chat_photo_object(td_->file_manager_.get(), user_full->photo), user_full->is_blocked,
       user_full->can_be_called, user_full->supports_video_calls, user_full->has_private_calls,
       !user_full->private_forward_name.empty(), user_full->need_phone_number_privacy_exception,
-      is_bot ? string() : user_full->about, is_bot ? user_full->about : string(),
-      is_bot ? user_full->description : string(), user_full->common_chat_count, std::move(commands));
+      is_bot ? string() : user_full->about, user_full->common_chat_count, std::move(bot_info));
 }
 
 td_api::object_ptr<td_api::updateBasicGroup> ContactsManager::get_update_unknown_basic_group_object(ChatId chat_id) {
