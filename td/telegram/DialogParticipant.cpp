@@ -576,6 +576,32 @@ DialogParticipantStatus::DialogParticipantStatus(bool is_member,
       can_change_info_and_settings, can_invite_users, can_pin_messages);
 }
 
+AdministratorRights get_administrator_rights(tl_object_ptr<telegram_api::chatAdminRights> &&admin_rights) {
+  if (admin_rights == nullptr) {
+    return AdministratorRights(false, false, false, false, false, false, false, false, false, false);
+  }
+  if (admin_rights->anonymous_) {
+    LOG(ERROR) << "Receive is_anonymous = true in AdministratorRights";
+  }
+
+  bool can_change_info = (admin_rights->flags_ & telegram_api::chatAdminRights::CHANGE_INFO_MASK) != 0;
+  bool can_post_messages = (admin_rights->flags_ & telegram_api::chatAdminRights::POST_MESSAGES_MASK) != 0;
+  bool can_edit_messages = (admin_rights->flags_ & telegram_api::chatAdminRights::EDIT_MESSAGES_MASK) != 0;
+  bool can_delete_messages = (admin_rights->flags_ & telegram_api::chatAdminRights::DELETE_MESSAGES_MASK) != 0;
+  bool can_invite_users = (admin_rights->flags_ & telegram_api::chatAdminRights::INVITE_USERS_MASK) != 0;
+  bool can_restrict_members = (admin_rights->flags_ & telegram_api::chatAdminRights::BAN_USERS_MASK) != 0;
+  bool can_pin_messages = (admin_rights->flags_ & telegram_api::chatAdminRights::PIN_MESSAGES_MASK) != 0;
+  bool can_promote_members = (admin_rights->flags_ & telegram_api::chatAdminRights::ADD_ADMINS_MASK) != 0;
+  bool can_manage_calls = (admin_rights->flags_ & telegram_api::chatAdminRights::MANAGE_CALL_MASK) != 0;
+  bool can_manage_dialog = (admin_rights->flags_ & telegram_api::chatAdminRights::OTHER_MASK) != 0;
+  if (!can_manage_dialog) {
+    LOG(ERROR) << "Receive wrong other flag in " << to_string(admin_rights);
+  }
+  return AdministratorRights(can_manage_dialog, can_change_info, can_post_messages, can_edit_messages,
+                             can_delete_messages, can_invite_users, can_restrict_members, can_pin_messages,
+                             can_promote_members, can_manage_calls);
+}
+
 RestrictedRights get_restricted_rights(tl_object_ptr<telegram_api::chatBannedRights> &&banned_rights) {
   if (banned_rights == nullptr) {
     return RestrictedRights(false, false, false, false, false, false, false, false, false, false, false);
