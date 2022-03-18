@@ -2489,9 +2489,10 @@ Status can_send_message_content(DialogId dialog_id, const MessageContent *conten
       case DialogType::User:
         return td->contacts_manager_->get_user_default_permissions(dialog_id.get_user_id());
       case DialogType::Chat:
-        return td->contacts_manager_->get_chat_permissions(dialog_id.get_chat_id()).get_restricted_rights();
+        return td->contacts_manager_->get_chat_permissions(dialog_id.get_chat_id()).get_effective_restricted_rights();
       case DialogType::Channel:
-        return td->contacts_manager_->get_channel_permissions(dialog_id.get_channel_id()).get_restricted_rights();
+        return td->contacts_manager_->get_channel_permissions(dialog_id.get_channel_id())
+            .get_effective_restricted_rights();
       case DialogType::SecretChat:
         return td->contacts_manager_->get_secret_chat_default_permissions(dialog_id.get_secret_chat_id());
       case DialogType::None:

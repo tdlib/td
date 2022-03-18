@@ -313,7 +313,7 @@ DialogParticipantStatus DialogParticipantStatus::ChannelAdministrator(bool is_cr
   }
 }
 
-RestrictedRights DialogParticipantStatus::get_restricted_rights() const {
+RestrictedRights DialogParticipantStatus::get_effective_restricted_rights() const {
   return RestrictedRights(can_send_messages(), can_send_media(), can_send_stickers(), can_send_animations(),
                           can_send_games(), can_use_inline_bots(), can_add_web_page_previews(), can_send_polls(),
                           can_change_info_and_settings(), can_invite_users(), can_pin_messages());

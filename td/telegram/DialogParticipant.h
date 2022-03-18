@@ -135,6 +135,9 @@ class RestrictedRights {
 
   friend class DialogParticipantStatus;
 
+  explicit RestrictedRights(int32 flags) : flags_(flags) {
+  }
+
  public:
   RestrictedRights(bool can_send_messages, bool can_send_media, bool can_send_stickers, bool can_send_animations,
                    bool can_send_games, bool can_use_inline_bots, bool can_add_web_page_previews, bool can_send_polls,
@@ -210,6 +213,9 @@ bool operator!=(const RestrictedRights &lhs, const RestrictedRights &rhs);
 StringBuilder &operator<<(StringBuilder &string_builder, const RestrictedRights &status);
 
 class DialogParticipantStatus {
+  // only flags 11 and 12 are unused
+  static constexpr uint32 IS_ANONYMOUS = 1 << 13;
+  static constexpr uint32 HAS_RANK = 1 << 14;
   static constexpr uint32 CAN_BE_EDITED = 1 << 15;
 
   static constexpr uint32 CAN_SEND_MESSAGES = 1 << 16;
@@ -226,8 +232,6 @@ class DialogParticipantStatus {
 
   static constexpr uint32 IS_MEMBER = 1 << 27;
 
-  static constexpr uint32 IS_ANONYMOUS = 1 << 13;
-  static constexpr uint32 HAS_RANK = 1 << 14;
   // bits 28-30 reserved for Type
   static constexpr int TYPE_SHIFT = 28;
   static constexpr uint32 HAS_UNTIL_DATE = 1u << 31;
@@ -251,6 +255,14 @@ class DialogParticipantStatus {
   static int32 fix_until_date(int32 date);
 
   DialogParticipantStatus(Type type, uint32 flags, int32 until_date, string rank);
+
+  AdministratorRights get_administrator_rights() const {
+    return AdministratorRights(flags_);
+  }
+
+  RestrictedRights get_restricted_rights() const {
+    return RestrictedRights(flags_ & ALL_PERMISSION_RIGHTS);
+  }
 
  public:
   static DialogParticipantStatus Creator(bool is_member, bool is_anonymous, string rank);
@@ -280,11 +292,7 @@ class DialogParticipantStatus {
   // legacy rights
   static DialogParticipantStatus ChannelAdministrator(bool is_creator, bool is_megagroup);
 
-  AdministratorRights get_administrator_rights() const {
-    return AdministratorRights(flags_);
-  }
-
-  RestrictedRights get_restricted_rights() const;
+  RestrictedRights get_effective_restricted_rights() const;
 
   DialogParticipantStatus apply_restrictions(RestrictedRights default_restrictions, bool is_bot) const;
 
