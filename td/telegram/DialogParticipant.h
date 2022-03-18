@@ -239,11 +239,9 @@ class DialogParticipantStatus {
   static constexpr uint32 ALL_ADMIN_PERMISSION_RIGHTS =
       CAN_CHANGE_INFO_AND_SETTINGS_BANNED | CAN_INVITE_USERS_BANNED | CAN_PIN_MESSAGES_BANNED;
 
-  static constexpr uint32 ALL_RESTRICTED_RIGHTS = CAN_SEND_MESSAGES | CAN_SEND_MEDIA | CAN_SEND_STICKERS |
-                                                  CAN_SEND_ANIMATIONS | CAN_SEND_GAMES | CAN_USE_INLINE_BOTS |
-                                                  CAN_ADD_WEB_PAGE_PREVIEWS | CAN_SEND_POLLS;
-
-  static constexpr uint32 ALL_PERMISSION_RIGHTS = ALL_RESTRICTED_RIGHTS | ALL_ADMIN_PERMISSION_RIGHTS;
+  static constexpr uint32 ALL_RESTRICTED_RIGHTS =
+      CAN_SEND_MESSAGES | CAN_SEND_MEDIA | CAN_SEND_STICKERS | CAN_SEND_ANIMATIONS | CAN_SEND_GAMES |
+      CAN_USE_INLINE_BOTS | CAN_ADD_WEB_PAGE_PREVIEWS | CAN_SEND_POLLS | ALL_ADMIN_PERMISSION_RIGHTS;
 
   enum class Type : int32 { Creator, Administrator, Member, Restricted, Left, Banned };
   // all fields are logically const, but should be updated in update_restrictions()
@@ -261,7 +259,7 @@ class DialogParticipantStatus {
   }
 
   RestrictedRights get_restricted_rights() const {
-    return RestrictedRights(flags_ & ALL_PERMISSION_RIGHTS);
+    return RestrictedRights(flags_ & ALL_RESTRICTED_RIGHTS);
   }
 
  public:
@@ -465,7 +463,7 @@ class DialogParticipantStatus {
     flags_ = stored_flags & ((1 << TYPE_SHIFT) - 1);
 
     if (is_creator()) {
-      flags_ |= AdministratorRights::ALL_ADMINISTRATOR_RIGHTS | ALL_PERMISSION_RIGHTS;
+      flags_ |= AdministratorRights::ALL_ADMINISTRATOR_RIGHTS | ALL_RESTRICTED_RIGHTS;
     } else if (is_administrator()) {
       flags_ |= AdministratorRights::CAN_MANAGE_DIALOG;
     }

@@ -249,7 +249,7 @@ int32 DialogParticipantStatus::fix_until_date(int32 date) {
 
 DialogParticipantStatus DialogParticipantStatus::Creator(bool is_member, bool is_anonymous, string rank) {
   return DialogParticipantStatus(Type::Creator,
-                                 AdministratorRights::ALL_ADMINISTRATOR_RIGHTS | ALL_PERMISSION_RIGHTS |
+                                 AdministratorRights::ALL_ADMINISTRATOR_RIGHTS | ALL_RESTRICTED_RIGHTS |
                                      (is_member ? IS_MEMBER : 0) | (is_anonymous ? IS_ANONYMOUS : 0),
                                  0, std::move(rank));
 }
@@ -271,11 +271,13 @@ DialogParticipantStatus DialogParticipantStatus::Administrator(bool is_anonymous
     return Member();
   }
   flags = flags | (static_cast<uint32>(can_be_edited) * CAN_BE_EDITED);
-  return DialogParticipantStatus(Type::Administrator, IS_MEMBER | ALL_RESTRICTED_RIGHTS | flags, 0, std::move(rank));
+  return DialogParticipantStatus(Type::Administrator,
+                                 IS_MEMBER | (ALL_RESTRICTED_RIGHTS & ~ALL_ADMIN_PERMISSION_RIGHTS) | flags, 0,
+                                 std::move(rank));
 }
 
 DialogParticipantStatus DialogParticipantStatus::Member() {
-  return DialogParticipantStatus(Type::Member, IS_MEMBER | ALL_PERMISSION_RIGHTS, 0, string());
+  return DialogParticipantStatus(Type::Member, IS_MEMBER | ALL_RESTRICTED_RIGHTS, 0, string());
 }
 
 DialogParticipantStatus DialogParticipantStatus::Restricted(
@@ -287,14 +289,14 @@ DialogParticipantStatus DialogParticipantStatus::Restricted(
                                   can_change_info_and_settings, can_invite_users, can_pin_messages)
                      .flags_ |
                  (static_cast<uint32>(is_member) * IS_MEMBER);
-  if (flags == (IS_MEMBER | ALL_PERMISSION_RIGHTS)) {
+  if (flags == (IS_MEMBER | ALL_RESTRICTED_RIGHTS)) {
     return Member();
   }
   return DialogParticipantStatus(Type::Restricted, flags, fix_until_date(restricted_until_date), string());
 }
 
 DialogParticipantStatus DialogParticipantStatus::Left() {
-  return DialogParticipantStatus(Type::Left, ALL_PERMISSION_RIGHTS, 0, string());
+  return DialogParticipantStatus(Type::Left, ALL_RESTRICTED_RIGHTS, 0, string());
 }
 
 DialogParticipantStatus DialogParticipantStatus::Banned(int32 banned_until_date) {
@@ -411,7 +413,7 @@ DialogParticipantStatus DialogParticipantStatus::apply_restrictions(RestrictedRi
     case Type::Restricted:
     case Type::Left:
       // members and restricted are affected by default restrictions
-      flags &= ~ALL_PERMISSION_RIGHTS | default_restrictions.flags_;
+      flags &= (~ALL_RESTRICTED_RIGHTS) | default_restrictions.flags_;
       if (is_bot) {
         flags &= ~ALL_ADMIN_PERMISSION_RIGHTS;
       }
@@ -436,7 +438,7 @@ void DialogParticipantStatus::update_restrictions() const {
       } else {
         type_ = Type::Left;
       }
-      flags_ |= ALL_PERMISSION_RIGHTS;
+      flags_ |= ALL_RESTRICTED_RIGHTS;
     } else if (type_ == Type::Banned) {
       type_ = Type::Left;
     } else {
