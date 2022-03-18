@@ -23,15 +23,61 @@ AdministratorRights::AdministratorRights(bool can_manage_dialog, bool can_change
                                          bool can_restrict_members, bool can_pin_messages, bool can_promote_members,
                                          bool can_manage_calls) {
   flags_ = (static_cast<uint32>(can_manage_dialog) * CAN_MANAGE_DIALOG) |
-           (static_cast<uint32>(can_change_info) * CAN_CHANGE_INFO_AND_SETTINGS_ADMIN) |
+           (static_cast<uint32>(can_change_info) * CAN_CHANGE_INFO_AND_SETTINGS) |
            (static_cast<uint32>(can_post_messages) * CAN_POST_MESSAGES) |
            (static_cast<uint32>(can_edit_messages) * CAN_EDIT_MESSAGES) |
            (static_cast<uint32>(can_delete_messages) * CAN_DELETE_MESSAGES) |
-           (static_cast<uint32>(can_invite_users) * CAN_INVITE_USERS_ADMIN) |
+           (static_cast<uint32>(can_invite_users) * CAN_INVITE_USERS) |
            (static_cast<uint32>(can_restrict_members) * CAN_RESTRICT_MEMBERS) |
-           (static_cast<uint32>(can_pin_messages) * CAN_PIN_MESSAGES_ADMIN) |
+           (static_cast<uint32>(can_pin_messages) * CAN_PIN_MESSAGES) |
            (static_cast<uint32>(can_promote_members) * CAN_PROMOTE_MEMBERS) |
            (static_cast<uint32>(can_manage_calls) * CAN_MANAGE_CALLS);
+  if (flags_ != 0) {
+    flags_ |= CAN_MANAGE_DIALOG;
+  }
+}
+
+telegram_api::object_ptr<telegram_api::chatAdminRights> AdministratorRights::get_chat_admin_rights(
+    bool is_anonymous) const {
+  int32 flags = 0;
+  if ((flags_ & CAN_CHANGE_INFO_AND_SETTINGS) != 0) {
+    flags |= telegram_api::chatAdminRights::CHANGE_INFO_MASK;
+  }
+  if (can_post_messages()) {
+    flags |= telegram_api::chatAdminRights::POST_MESSAGES_MASK;
+  }
+  if (can_edit_messages()) {
+    flags |= telegram_api::chatAdminRights::EDIT_MESSAGES_MASK;
+  }
+  if (can_delete_messages()) {
+    flags |= telegram_api::chatAdminRights::DELETE_MESSAGES_MASK;
+  }
+  if ((flags_ & CAN_INVITE_USERS) != 0) {
+    flags |= telegram_api::chatAdminRights::INVITE_USERS_MASK;
+  }
+  if (can_restrict_members()) {
+    flags |= telegram_api::chatAdminRights::BAN_USERS_MASK;
+  }
+  if ((flags_ & CAN_PIN_MESSAGES) != 0) {
+    flags |= telegram_api::chatAdminRights::PIN_MESSAGES_MASK;
+  }
+  if (can_promote_members()) {
+    flags |= telegram_api::chatAdminRights::ADD_ADMINS_MASK;
+  }
+  if (can_manage_calls()) {
+    flags |= telegram_api::chatAdminRights::MANAGE_CALL_MASK;
+  }
+  if (can_manage_dialog()) {
+    flags |= telegram_api::chatAdminRights::OTHER_MASK;
+  }
+
+  if (is_anonymous) {
+    flags |= telegram_api::chatAdminRights::ANONYMOUS_MASK;
+  }
+
+  return telegram_api::make_object<telegram_api::chatAdminRights>(
+      flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
+      false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/);
 }
 
 bool operator==(const AdministratorRights &lhs, const AdministratorRights &rhs) {
@@ -203,8 +249,8 @@ int32 DialogParticipantStatus::fix_until_date(int32 date) {
 
 DialogParticipantStatus DialogParticipantStatus::Creator(bool is_member, bool is_anonymous, string rank) {
   return DialogParticipantStatus(Type::Creator,
-                                 ALL_ADMINISTRATOR_RIGHTS | ALL_PERMISSION_RIGHTS | (is_member ? IS_MEMBER : 0) |
-                                     (is_anonymous ? IS_ANONYMOUS : 0),
+                                 AdministratorRights::ALL_ADMINISTRATOR_RIGHTS | ALL_PERMISSION_RIGHTS |
+                                     (is_member ? IS_MEMBER : 0) | (is_anonymous ? IS_ANONYMOUS : 0),
                                  0, std::move(rank));
 }
 
@@ -217,13 +263,14 @@ DialogParticipantStatus DialogParticipantStatus::Administrator(bool is_anonymous
   uint32 flags = AdministratorRights(can_manage_dialog, can_change_info, can_post_messages, can_edit_messages,
                                      can_delete_messages, can_invite_users, can_restrict_members, can_pin_messages,
                                      can_promote_members, can_manage_calls)
-                     .flags_ |
-                 (static_cast<uint32>(can_be_edited) * CAN_BE_EDITED) |
-                 (static_cast<uint32>(is_anonymous) * IS_ANONYMOUS);
-  if (flags == 0 || flags == CAN_BE_EDITED) {
+                     .flags_;
+  if (is_anonymous) {
+    flags |= IS_ANONYMOUS | AdministratorRights::CAN_MANAGE_DIALOG;
+  }
+  if (flags == 0) {
     return Member();
   }
-  flags |= CAN_MANAGE_DIALOG;
+  flags = flags | (static_cast<uint32>(can_be_edited) * CAN_BE_EDITED);
   return DialogParticipantStatus(Type::Administrator, IS_MEMBER | ALL_RESTRICTED_RIGHTS | flags, 0, std::move(rank));
 }
 
@@ -297,45 +344,7 @@ tl_object_ptr<td_api::ChatMemberStatus> DialogParticipantStatus::get_chat_member
 }
 
 tl_object_ptr<telegram_api::chatAdminRights> DialogParticipantStatus::get_chat_admin_rights() const {
-  int32 flags = 0;
-  if ((flags_ & CAN_CHANGE_INFO_AND_SETTINGS_ADMIN) != 0) {
-    flags |= telegram_api::chatAdminRights::CHANGE_INFO_MASK;
-  }
-  if (can_post_messages()) {
-    flags |= telegram_api::chatAdminRights::POST_MESSAGES_MASK;
-  }
-  if (can_edit_messages()) {
-    flags |= telegram_api::chatAdminRights::EDIT_MESSAGES_MASK;
-  }
-  if (can_delete_messages()) {
-    flags |= telegram_api::chatAdminRights::DELETE_MESSAGES_MASK;
-  }
-  if ((flags_ & CAN_INVITE_USERS_ADMIN) != 0) {
-    flags |= telegram_api::chatAdminRights::INVITE_USERS_MASK;
-  }
-  if (can_restrict_members()) {
-    flags |= telegram_api::chatAdminRights::BAN_USERS_MASK;
-  }
-  if ((flags_ & CAN_PIN_MESSAGES_ADMIN) != 0) {
-    flags |= telegram_api::chatAdminRights::PIN_MESSAGES_MASK;
-  }
-  if (can_promote_members()) {
-    flags |= telegram_api::chatAdminRights::ADD_ADMINS_MASK;
-  }
-  if (can_manage_calls()) {
-    flags |= telegram_api::chatAdminRights::MANAGE_CALL_MASK;
-  }
-  if (is_anonymous()) {
-    flags |= telegram_api::chatAdminRights::ANONYMOUS_MASK;
-  }
-  if (can_manage_dialog()) {
-    flags |= telegram_api::chatAdminRights::OTHER_MASK;
-  }
-
-  LOG(INFO) << "Create chat admin rights " << flags;
-  return make_tl_object<telegram_api::chatAdminRights>(
-      flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-      false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/);
+  return get_administrator_rights().get_chat_admin_rights(is_anonymous());
 }
 
 tl_object_ptr<telegram_api::chatBannedRights> DialogParticipantStatus::get_chat_banned_rights() const {

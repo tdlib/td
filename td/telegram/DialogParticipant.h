@@ -22,23 +22,27 @@ namespace td {
 class Td;
 
 class AdministratorRights {
-  static constexpr uint32 CAN_CHANGE_INFO_AND_SETTINGS_ADMIN = 1 << 0;
+  static constexpr uint32 CAN_CHANGE_INFO_AND_SETTINGS = 1 << 0;
   static constexpr uint32 CAN_POST_MESSAGES = 1 << 1;
   static constexpr uint32 CAN_EDIT_MESSAGES = 1 << 2;
   static constexpr uint32 CAN_DELETE_MESSAGES = 1 << 3;
-  static constexpr uint32 CAN_INVITE_USERS_ADMIN = 1 << 4;
+  static constexpr uint32 CAN_INVITE_USERS = 1 << 4;
   // static constexpr uint32 CAN_EXPORT_DIALOG_INVITE_LINK = 1 << 5;
   static constexpr uint32 CAN_RESTRICT_MEMBERS = 1 << 6;
-  static constexpr uint32 CAN_PIN_MESSAGES_ADMIN = 1 << 7;
+  static constexpr uint32 CAN_PIN_MESSAGES = 1 << 7;
   static constexpr uint32 CAN_PROMOTE_MEMBERS = 1 << 8;
   static constexpr uint32 CAN_MANAGE_CALLS = 1 << 9;
   static constexpr uint32 CAN_MANAGE_DIALOG = 1 << 10;
+
+  static constexpr uint32 ALL_ADMINISTRATOR_RIGHTS =
+      CAN_CHANGE_INFO_AND_SETTINGS | CAN_POST_MESSAGES | CAN_EDIT_MESSAGES | CAN_DELETE_MESSAGES | CAN_INVITE_USERS |
+      CAN_RESTRICT_MEMBERS | CAN_PIN_MESSAGES | CAN_PROMOTE_MEMBERS | CAN_MANAGE_CALLS | CAN_MANAGE_DIALOG;
 
   uint32 flags_;
 
   friend class DialogParticipantStatus;
 
-  explicit AdministratorRights(int32 flags) : flags_(flags) {
+  explicit AdministratorRights(int32 flags) : flags_(flags & ALL_ADMINISTRATOR_RIGHTS) {
   }
 
  public:
@@ -46,12 +50,14 @@ class AdministratorRights {
                       bool can_delete_messages, bool can_invite_users, bool can_restrict_members, bool can_pin_messages,
                       bool can_promote_members, bool can_manage_calls);
 
+  telegram_api::object_ptr<telegram_api::chatAdminRights> get_chat_admin_rights(bool is_anonymous) const;
+
   bool can_manage_dialog() const {
     return (flags_ & CAN_MANAGE_DIALOG) != 0;
   }
 
   bool can_change_info_and_settings() const {
-    return (flags_ & CAN_CHANGE_INFO_AND_SETTINGS_ADMIN) != 0;
+    return (flags_ & CAN_CHANGE_INFO_AND_SETTINGS) != 0;
   }
 
   bool can_post_messages() const {
@@ -67,12 +73,12 @@ class AdministratorRights {
   }
 
   bool can_invite_users() const {
-    return (flags_ & CAN_INVITE_USERS_ADMIN) != 0;
+    return (flags_ & CAN_INVITE_USERS) != 0;
   }
 
   bool can_manage_invite_links() const {
     // invite links can be managed, only if administrator was explicitly granted the right
-    return (flags_ & CAN_INVITE_USERS_ADMIN) != 0;
+    return (flags_ & CAN_INVITE_USERS) != 0;
   }
 
   bool can_restrict_members() const {
@@ -80,7 +86,7 @@ class AdministratorRights {
   }
 
   bool can_pin_messages() const {
-    return (flags_ & CAN_PIN_MESSAGES_ADMIN) != 0;
+    return (flags_ & CAN_PIN_MESSAGES) != 0;
   }
 
   bool can_promote_members() const {
@@ -204,18 +210,6 @@ bool operator!=(const RestrictedRights &lhs, const RestrictedRights &rhs);
 StringBuilder &operator<<(StringBuilder &string_builder, const RestrictedRights &status);
 
 class DialogParticipantStatus {
-  static constexpr uint32 CAN_CHANGE_INFO_AND_SETTINGS_ADMIN = 1 << 0;
-  static constexpr uint32 CAN_POST_MESSAGES = 1 << 1;
-  static constexpr uint32 CAN_EDIT_MESSAGES = 1 << 2;
-  static constexpr uint32 CAN_DELETE_MESSAGES = 1 << 3;
-  static constexpr uint32 CAN_INVITE_USERS_ADMIN = 1 << 4;
-  // static constexpr uint32 CAN_EXPORT_DIALOG_INVITE_LINK = 1 << 5;
-  static constexpr uint32 CAN_RESTRICT_MEMBERS = 1 << 6;
-  static constexpr uint32 CAN_PIN_MESSAGES_ADMIN = 1 << 7;
-  static constexpr uint32 CAN_PROMOTE_MEMBERS = 1 << 8;
-  static constexpr uint32 CAN_MANAGE_CALLS = 1 << 9;
-  static constexpr uint32 CAN_MANAGE_DIALOG = 1 << 10;
-
   static constexpr uint32 CAN_BE_EDITED = 1 << 15;
 
   static constexpr uint32 CAN_SEND_MESSAGES = 1 << 16;
@@ -237,11 +231,6 @@ class DialogParticipantStatus {
   // bits 28-30 reserved for Type
   static constexpr int TYPE_SHIFT = 28;
   static constexpr uint32 HAS_UNTIL_DATE = 1u << 31;
-
-  static constexpr uint32 ALL_ADMINISTRATOR_RIGHTS = CAN_CHANGE_INFO_AND_SETTINGS_ADMIN | CAN_POST_MESSAGES |
-                                                     CAN_EDIT_MESSAGES | CAN_DELETE_MESSAGES | CAN_INVITE_USERS_ADMIN |
-                                                     CAN_RESTRICT_MEMBERS | CAN_PIN_MESSAGES_ADMIN |
-                                                     CAN_PROMOTE_MEMBERS | CAN_MANAGE_CALLS | CAN_MANAGE_DIALOG;
 
   static constexpr uint32 ALL_ADMIN_PERMISSION_RIGHTS =
       CAN_CHANGE_INFO_AND_SETTINGS_BANNED | CAN_INVITE_USERS_BANNED | CAN_PIN_MESSAGES_BANNED;
@@ -292,7 +281,7 @@ class DialogParticipantStatus {
   static DialogParticipantStatus ChannelAdministrator(bool is_creator, bool is_megagroup);
 
   AdministratorRights get_administrator_rights() const {
-    return AdministratorRights(flags_ & ALL_ADMINISTRATOR_RIGHTS);
+    return AdministratorRights(flags_);
   }
 
   RestrictedRights get_restricted_rights() const;
@@ -468,9 +457,9 @@ class DialogParticipantStatus {
     flags_ = stored_flags & ((1 << TYPE_SHIFT) - 1);
 
     if (is_creator()) {
-      flags_ |= ALL_ADMINISTRATOR_RIGHTS | ALL_PERMISSION_RIGHTS;
+      flags_ |= AdministratorRights::ALL_ADMINISTRATOR_RIGHTS | ALL_PERMISSION_RIGHTS;
     } else if (is_administrator()) {
-      flags_ |= CAN_MANAGE_DIALOG;
+      flags_ |= AdministratorRights::CAN_MANAGE_DIALOG;
     }
   }
 
