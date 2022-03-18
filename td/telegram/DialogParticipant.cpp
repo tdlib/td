@@ -140,7 +140,7 @@ RestrictedRights::RestrictedRights(bool can_send_messages, bool can_send_media, 
            (static_cast<uint32>(can_pin_messages) * CAN_PIN_MESSAGES);
 }
 
-tl_object_ptr<td_api::chatPermissions> RestrictedRights::get_chat_permissions_object() const {
+td_api::object_ptr<td_api::chatPermissions> RestrictedRights::get_chat_permissions_object() const {
   return td_api::make_object<td_api::chatPermissions>(
       can_send_messages(), can_send_media(), can_send_polls(),
       can_send_stickers() || can_send_animations() || can_send_games() || can_use_inline_bots(),
@@ -350,49 +350,12 @@ tl_object_ptr<telegram_api::chatAdminRights> DialogParticipantStatus::get_chat_a
 }
 
 tl_object_ptr<telegram_api::chatBannedRights> DialogParticipantStatus::get_chat_banned_rights() const {
-  int32 flags = 0;
+  auto result = get_restricted_rights().get_chat_banned_rights();
   if (type_ == Type::Banned) {
-    flags |= telegram_api::chatBannedRights::VIEW_MESSAGES_MASK;
+    result->flags_ |= telegram_api::chatBannedRights::VIEW_MESSAGES_MASK;
   }
-  if (!can_send_messages()) {
-    flags |= telegram_api::chatBannedRights::SEND_MESSAGES_MASK;
-  }
-  if (!can_send_media()) {
-    flags |= telegram_api::chatBannedRights::SEND_MEDIA_MASK;
-  }
-  if (!can_send_stickers()) {
-    flags |= telegram_api::chatBannedRights::SEND_STICKERS_MASK;
-  }
-  if (!can_send_animations()) {
-    flags |= telegram_api::chatBannedRights::SEND_GIFS_MASK;
-  }
-  if (!can_send_games()) {
-    flags |= telegram_api::chatBannedRights::SEND_GAMES_MASK;
-  }
-  if (!can_use_inline_bots()) {
-    flags |= telegram_api::chatBannedRights::SEND_INLINE_MASK;
-  }
-  if (!can_add_web_page_previews()) {
-    flags |= telegram_api::chatBannedRights::EMBED_LINKS_MASK;
-  }
-  if (!can_send_polls()) {
-    flags |= telegram_api::chatBannedRights::SEND_POLLS_MASK;
-  }
-  if ((flags_ & CAN_CHANGE_INFO_AND_SETTINGS_BANNED) == 0) {
-    flags |= telegram_api::chatBannedRights::CHANGE_INFO_MASK;
-  }
-  if ((flags_ & CAN_INVITE_USERS_BANNED) == 0) {
-    flags |= telegram_api::chatBannedRights::INVITE_USERS_MASK;
-  }
-  if ((flags_ & CAN_PIN_MESSAGES_BANNED) == 0) {
-    flags |= telegram_api::chatBannedRights::PIN_MESSAGES_MASK;
-  }
-
-  LOG(INFO) << "Create chat banned rights " << flags << " until " << until_date_;
-  return make_tl_object<telegram_api::chatBannedRights>(
-      flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-      false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-      false /*ignored*/, until_date_);
+  result->until_date_ = until_date_;
+  return result;
 }
 
 DialogParticipantStatus DialogParticipantStatus::apply_restrictions(RestrictedRights default_restrictions,
