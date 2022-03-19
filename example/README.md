@@ -174,7 +174,7 @@ See [project.scarlet](https://github.com/aaugmentum/project.scarlet), [tdlib](ht
 
 TDLib can be used from the Rust programming language through the [JSON](https://github.com/tdlib/td#using-json) interface.
 
-See [rust-tdlib](https://github.com/aCLr/rust-tdlib), [tdgrand](https://github.com/melix99/tdgrand), or [tdlib-rs](https://github.com/agnipau/tdlib-rs), which provide convenient TDLib clients with automatically generated and fully-documented classes for all TDLib API methods and objects.
+See [rust-tdlib](https://github.com/aCLr/rust-tdlib), [tdlib](https://github.com/melix99/tdlib-rs), or [tdlib-rs](https://github.com/agnipau/tdlib-rs), which provide convenient TDLib clients with automatically generated and fully-documented classes for all TDLib API methods and objects.
 
 See [rtdlib](https://github.com/fewensa/rtdlib), [tdlib-rs](https://github.com/d653/tdlib-rs), [tdlib-futures](https://github.com/yuri91/tdlib-futures),
 [tdlib-sys](https://github.com/nuxeh/tdlib-sys), or
