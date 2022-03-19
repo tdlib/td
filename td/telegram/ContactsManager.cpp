@@ -15215,7 +15215,7 @@ void ContactsManager::do_get_dialog_participant(DialogId dialog_id, DialogId par
 
 DialogParticipants ContactsManager::search_private_chat_participants(UserId my_user_id, UserId peer_user_id,
                                                                      const string &query, int32 limit,
-                                                                     DialogParticipantsFilter filter) const {
+                                                                     DialogParticipantFilter filter) const {
   vector<DialogId> dialog_ids;
   if (filter.is_dialog_participant_suitable(td_, DialogParticipant::private_member(my_user_id, peer_user_id))) {
     dialog_ids.push_back(DialogId(my_user_id));
@@ -15233,7 +15233,7 @@ DialogParticipants ContactsManager::search_private_chat_participants(UserId my_u
 }
 
 void ContactsManager::search_dialog_participants(DialogId dialog_id, const string &query, int32 limit,
-                                                 DialogParticipantsFilter filter,
+                                                 DialogParticipantFilter filter,
                                                  Promise<DialogParticipants> &&promise) {
   LOG(INFO) << "Receive searchChatMembers request to search for \"" << query << "\" in " << dialog_id << " with filter "
             << filter;
@@ -15311,7 +15311,7 @@ void ContactsManager::finish_get_chat_participant(ChatId chat_id, UserId user_id
 }
 
 void ContactsManager::search_chat_participants(ChatId chat_id, const string &query, int32 limit,
-                                               DialogParticipantsFilter filter, Promise<DialogParticipants> &&promise) {
+                                               DialogParticipantFilter filter, Promise<DialogParticipants> &&promise) {
   if (limit < 0) {
     return promise.set_error(Status::Error(400, "Parameter limit must be non-negative"));
   }
@@ -15329,7 +15329,7 @@ void ContactsManager::search_chat_participants(ChatId chat_id, const string &que
 }
 
 void ContactsManager::do_search_chat_participants(ChatId chat_id, const string &query, int32 limit,
-                                                  DialogParticipantsFilter filter,
+                                                  DialogParticipantFilter filter,
                                                   Promise<DialogParticipants> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
 

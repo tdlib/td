@@ -10,6 +10,7 @@
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/DialogAction.h"
+#include "td/telegram/DialogParticipantFilter.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/MessageSender.h"
@@ -2778,8 +2779,8 @@ void GroupCallManager::try_load_group_call_administrators(InputGroupCallId input
                      std::move(result));
       });
   td_->contacts_manager_->search_dialog_participants(
-      dialog_id, string(), 100,
-      DialogParticipantsFilter(td_api::make_object<td_api::chatMembersFilterAdministrators>()), std::move(promise));
+      dialog_id, string(), 100, DialogParticipantFilter(td_api::make_object<td_api::chatMembersFilterAdministrators>()),
+      std::move(promise));
 }
 
 void GroupCallManager::finish_load_group_call_administrators(InputGroupCallId input_group_call_id,

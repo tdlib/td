@@ -310,6 +310,7 @@ set(TDLIB_SOURCE
   td/telegram/DialogInviteLink.cpp
   td/telegram/DialogLocation.cpp
   td/telegram/DialogParticipant.cpp
+  td/telegram/DialogParticipantFilter.cpp
   td/telegram/DialogSource.cpp
   td/telegram/Document.cpp
   td/telegram/DocumentsManager.cpp
@@ -504,6 +505,7 @@ set(TDLIB_SOURCE
   td/telegram/DialogListId.h
   td/telegram/DialogLocation.h
   td/telegram/DialogParticipant.h
+  td/telegram/DialogParticipantFilter.h
   td/telegram/DialogSource.h
   td/telegram/Document.h
   td/telegram/DocumentsManager.h
