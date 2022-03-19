@@ -7,6 +7,7 @@
 #include "td/telegram/ContactsManager.h"
 
 #include "td/telegram/AuthManager.h"
+#include "td/telegram/ChannelParticipantFilter.h"
 #include "td/telegram/ConfigShared.h"
 #include "td/telegram/Dependencies.h"
 #include "td/telegram/DialogInviteLink.h"
@@ -2807,7 +2808,7 @@ class GetChannelParticipantsQuery final : public Td::ResultHandler {
       : promise_(std::move(promise)) {
   }
 
-  void send(ChannelId channel_id, const ChannelParticipantsFilter &filter, int32 offset, int32 limit) {
+  void send(ChannelId channel_id, const ChannelParticipantFilter &filter, int32 offset, int32 limit) {
     auto input_channel = td_->contacts_manager_->get_input_channel(channel_id);
     if (input_channel == nullptr) {
       return promise_.set_error(Status::Error(400, "Supergroup not found"));
@@ -12039,7 +12040,7 @@ bool ContactsManager::is_user_contact(const User *u, UserId user_id, bool is_mut
 }
 
 void ContactsManager::on_get_channel_participants(
-    ChannelId channel_id, ChannelParticipantsFilter filter, int32 offset, int32 limit, string additional_query,
+    ChannelId channel_id, ChannelParticipantFilter &&filter, int32 offset, int32 limit, string additional_query,
     int32 additional_limit, tl_object_ptr<telegram_api::channels_channelParticipants> &&channel_participants,
     Promise<DialogParticipants> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
@@ -15414,9 +15415,9 @@ void ContactsManager::get_channel_participants(ChannelId channel_id,
     return promise.set_error(Status::Error(400, "Member list is inaccessible"));
   }
 
-  ChannelParticipantsFilter participants_filter(filter);
+  ChannelParticipantFilter participant_filter(filter);
   auto get_channel_participants_promise = PromiseCreator::lambda(
-      [actor_id = actor_id(this), channel_id, filter = participants_filter,
+      [actor_id = actor_id(this), channel_id, filter = participant_filter,
        additional_query = std::move(additional_query), offset, limit, additional_limit, promise = std::move(promise)](
           Result<tl_object_ptr<telegram_api::channels_channelParticipants>> &&result) mutable {
         if (result.is_error()) {
@@ -15427,7 +15428,7 @@ void ContactsManager::get_channel_participants(ChannelId channel_id,
         }
       });
   td_->create_handler<GetChannelParticipantsQuery>(std::move(get_channel_participants_promise))
-      ->send(channel_id, participants_filter, offset, limit);
+      ->send(channel_id, participant_filter, offset, limit);
 }
 
 td_api::object_ptr<td_api::chatAdministrators> ContactsManager::get_chat_administrators_object(

@@ -535,50 +535,6 @@ struct DialogParticipants {
   td_api::object_ptr<td_api::chatMembers> get_chat_members_object(Td *td) const;
 };
 
-class ChannelParticipantsFilter {
-  enum class Type : int32 { Recent, Contacts, Administrators, Search, Mention, Restricted, Banned, Bots };
-  Type type_;
-  string query_;
-  MessageId top_thread_message_id_;
-
-  friend StringBuilder &operator<<(StringBuilder &string_builder, const ChannelParticipantsFilter &filter);
-
- public:
-  explicit ChannelParticipantsFilter(const tl_object_ptr<td_api::SupergroupMembersFilter> &filter);
-
-  tl_object_ptr<telegram_api::ChannelParticipantsFilter> get_input_channel_participants_filter() const;
-
-  bool is_administrators() const {
-    return type_ == Type::Administrators;
-  }
-
-  bool is_bots() const {
-    return type_ == Type::Bots;
-  }
-
-  bool is_recent() const {
-    return type_ == Type::Recent;
-  }
-
-  bool is_contacts() const {
-    return type_ == Type::Contacts;
-  }
-
-  bool is_search() const {
-    return type_ == Type::Search;
-  }
-
-  bool is_restricted() const {
-    return type_ == Type::Restricted;
-  }
-
-  bool is_banned() const {
-    return type_ == Type::Banned;
-  }
-};
-
-StringBuilder &operator<<(StringBuilder &string_builder, const ChannelParticipantsFilter &filter);
-
 DialogParticipantStatus get_dialog_participant_status(const tl_object_ptr<td_api::ChatMemberStatus> &status);
 
 AdministratorRights get_administrator_rights(tl_object_ptr<telegram_api::chatAdminRights> &&admin_rights);

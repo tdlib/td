@@ -56,6 +56,8 @@ namespace td {
 
 struct BinlogEvent;
 
+class ChannelParticipantFilter;
+
 struct MinChannel;
 
 class Td;
@@ -1566,7 +1568,7 @@ class ContactsManager final : public Actor {
   void do_search_chat_participants(ChatId chat_id, const string &query, int32 limit, DialogParticipantFilter filter,
                                    Promise<DialogParticipants> &&promise);
 
-  void on_get_channel_participants(ChannelId channel_id, ChannelParticipantsFilter filter, int32 offset, int32 limit,
+  void on_get_channel_participants(ChannelId channel_id, ChannelParticipantFilter &&filter, int32 offset, int32 limit,
                                    string additional_query, int32 additional_limit,
                                    tl_object_ptr<telegram_api::channels_channelParticipants> &&channel_participants,
                                    Promise<DialogParticipants> &&promise);
