@@ -5725,15 +5725,16 @@ UserId ContactsManager::search_user_by_phone_number(string phone_number, Promise
 
 void ContactsManager::on_resolved_phone_number(const string &phone_number, UserId user_id) {
   if (!user_id.is_valid()) {
-    resolved_phone_numbers_.emplace(phone_number, user_id);  // negative cache
+    resolved_phone_numbers_.emplace(phone_number, UserId());  // negative cache
     return;
   }
 
   auto it = resolved_phone_numbers_.find(phone_number);
   if (it != resolved_phone_numbers_.end()) {
     if (it->second != user_id) {
-      LOG(ERROR) << "Resolve phone number \"" << phone_number << "\" to " << user_id << ", but have it in "
-                 << it->second;
+      LOG(WARNING) << "Resolve phone number \"" << phone_number << "\" to " << user_id << ", but have it in "
+                   << it->second;
+      it->second = user_id;
     }
     return;
   }
@@ -11178,8 +11179,7 @@ void ContactsManager::on_update_user_phone_number(User *u, UserId user_id, strin
   if (u->phone_number != phone_number) {
     if (!u->phone_number.empty()) {
       auto it = resolved_phone_numbers_.find(u->phone_number);
-      CHECK(it != resolved_phone_numbers_.end());
-      if (it->second == user_id) {
+      if (it != resolved_phone_numbers_.end() && it->second == user_id) {
         resolved_phone_numbers_.erase(it);
       }
     }
