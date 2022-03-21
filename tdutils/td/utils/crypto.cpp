@@ -55,41 +55,38 @@
 
 namespace td {
 
-static uint64 gcd(uint64 a, uint64 b) {
+static uint64 pq_gcd(uint64 a, uint64 b) {
   if (a == 0) {
     return b;
   }
-  if (b == 0) {
-    return a;
-  }
-
-  int shift = 0;
-  while ((a & 1) == 0 && (b & 1) == 0) {
+  while ((a & 1) == 0) {
     a >>= 1;
-    b >>= 1;
-    shift++;
   }
+  DCHECK((b & 1) != 0);
 
   while (true) {
-    while ((a & 1) == 0) {
-      a >>= 1;
-    }
-    while ((b & 1) == 0) {
-      b >>= 1;
-    }
     if (a > b) {
-      a -= b;
+      a = (a - b) >> 1;
+      while ((a & 1) == 0) {
+        a >>= 1;
+      }
     } else if (b > a) {
-      b -= a;
+      b = (b - a) >> 1;
+      while ((b & 1) == 0) {
+        b >>= 1;
+      }
     } else {
-      return a << shift;
+      return a;
     }
   }
 }
 
 uint64 pq_factorize(uint64 pq) {
-  if (pq < 2 || pq > (static_cast<uint64>(1) << 63)) {
+  if (pq <= 2 || pq > (static_cast<uint64>(1) << 63)) {
     return 1;
+  }
+  if ((pq & 1) == 0) {
+    return 2;
   }
   uint64 g = 0;
   for (int i = 0, iter = 0; i < 3 || iter < 1000; i++) {
@@ -120,7 +117,7 @@ uint64 pq_factorize(uint64 pq) {
 
       x = c;
       uint64 z = x < y ? pq + x - y : x - y;
-      g = gcd(z, pq);
+      g = pq_gcd(z, pq);
       if (g != 1) {
         break;
       }
