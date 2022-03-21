@@ -36,20 +36,26 @@ static td::vector<td::uint64> gen_primes(td::uint64 L, td::uint64 R, std::size_t
   return res;
 }
 
-static td::vector<td::uint64> gen_primes() {
+static td::vector<td::uint64> gen_primes(int mode) {
   td::vector<td::uint64> result;
-  td::append(result, gen_primes(1, 100));
-  td::append(result, gen_primes((1ull << 31) - 500000, std::numeric_limits<td::uint64>::max(), 5));
-  td::append(result, gen_primes((1ull << 32) - 500000, std::numeric_limits<td::uint64>::max(), 5));
-  td::append(result, gen_primes((1ull << 39) - 500000, std::numeric_limits<td::uint64>::max(), 1));
+  if (mode == 1) {
+    for (size_t i = 10; i <= 19; i++) {
+      td::append(result, gen_primes(i * 100000000, (i + 1) * 100000000, 1));
+    }
+  } else {
+    td::append(result, gen_primes(1, 100));
+    td::append(result, gen_primes((1ull << 31) - 500000, std::numeric_limits<td::uint64>::max(), 5));
+    td::append(result, gen_primes((1ull << 32) - 500000, std::numeric_limits<td::uint64>::max(), 2));
+    td::append(result, gen_primes((1ull << 39) - 500000, std::numeric_limits<td::uint64>::max(), 1));
+  }
   return result;
 }
 
 using PqQuery = std::pair<td::uint64, td::uint64>;
 
-static td::vector<PqQuery> gen_pq_queries() {
+static td::vector<PqQuery> gen_pq_queries(int mode = 0) {
   td::vector<PqQuery> res;
-  auto primes = gen_primes();
+  auto primes = gen_primes(mode);
   for (auto q : primes) {
     for (auto p : primes) {
       if (p > q) {
@@ -134,6 +140,13 @@ TEST(CryptoPQ, four) {
 
 TEST(CryptoPQ, generated_fast) {
   auto queries = gen_pq_queries();
+  for (const auto &query : queries) {
+    test_pq_fast(query.first, query.second);
+  }
+}
+
+TEST(CryptoPQ, generated_server) {
+  auto queries = gen_pq_queries(1);
   for (const auto &query : queries) {
     test_pq_fast(query.first, query.second);
   }
