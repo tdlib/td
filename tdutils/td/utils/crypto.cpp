@@ -81,6 +81,24 @@ static uint64 pq_gcd(uint64 a, uint64 b) {
   }
 }
 
+// returns (c + a * b) % pq
+static uint64 pq_add_mul(uint64 c, uint64 a, uint64 b, uint64 pq) {
+  while (b) {
+    if (b & 1) {
+      c += a;
+      if (c >= pq) {
+        c -= pq;
+      }
+    }
+    a += a;
+    if (a >= pq) {
+      a -= pq;
+    }
+    b >>= 1;
+  }
+  return c;
+}
+
 uint64 pq_factorize(uint64 pq) {
   if (pq <= 2 || pq > (static_cast<uint64>(1) << 63)) {
     return 1;
@@ -96,26 +114,7 @@ uint64 pq_factorize(uint64 pq) {
     int lim = 1 << (min(5, i) + 18);
     for (int j = 1; j < lim; j++) {
       iter++;
-      uint64 a = x;
-      uint64 b = x;
-      uint64 c = q;
-
-      // c += a * b
-      while (b) {
-        if (b & 1) {
-          c += a;
-          if (c >= pq) {
-            c -= pq;
-          }
-        }
-        a += a;
-        if (a >= pq) {
-          a -= pq;
-        }
-        b >>= 1;
-      }
-
-      x = c;
+      x = pq_add_mul(q, x, x, pq);
       uint64 z = x < y ? pq + x - y : x - y;
       g = pq_gcd(z, pq);
       if (g != 1) {
