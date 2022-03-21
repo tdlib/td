@@ -10033,8 +10033,7 @@ void MessagesManager::on_get_history(DialogId dialog_id, MessageId from_message_
         for (const auto &debug_message : messages) {
           error += to_string(debug_message);
         }
-        // TODO move to ERROR
-        LOG(FATAL) << error;
+        LOG(ERROR) << error;
         promise.set_value(Unit());
         return;
       }
@@ -24068,8 +24067,7 @@ void MessagesManager::on_get_history_from_database(DialogId dialog_id, MessageId
       break;
     }
     if (message->message_id >= last_received_message_id) {
-      // TODO move to ERROR
-      LOG(FATAL) << "Receive " << message->message_id << " after " << last_received_message_id
+      LOG(ERROR) << "Receive " << message->message_id << " after " << last_received_message_id
                  << " from database in the history of " << dialog_id << " from " << from_message_id << " with offset "
                  << offset << ", limit " << limit << ", from_the_end = " << from_the_end;
       break;
@@ -30487,7 +30485,7 @@ void MessagesManager::remove_message_dialog_notifications(Dialog *d, MessageId m
     set_dialog_last_notification(d->dialog_id, group_info, 0, NotificationId(),
                                  "remove_message_dialog_notifications 2");
   } else {
-    LOG(FATAL) << "TODO support notification deletion up to " << max_message_id << " if will be ever needed";
+    LOG(FATAL) << "TODO support notification deletion up to " << max_message_id << " if it would be ever needed";
   }
 
   send_closure_later(G()->notification_manager(), &NotificationManager::remove_notification_group, group_info.group_id,
@@ -38499,8 +38497,7 @@ void MessagesManager::on_get_channel_difference(
         for (const auto &message : difference->new_messages_) {
           auto message_id = get_message_id(message, false);
           if (message_id <= cur_message_id) {
-            // TODO move to ERROR
-            LOG(FATAL) << "Receive " << cur_message_id << " after " << message_id << " in channelDifference of "
+            LOG(ERROR) << "Receive " << cur_message_id << " after " << message_id << " in channelDifference of "
                        << dialog_id << " with pts " << request_pts << " and limit " << request_limit << ": "
                        << to_string(difference);
             after_get_channel_difference(dialog_id, false);
