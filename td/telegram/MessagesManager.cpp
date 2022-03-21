@@ -10058,6 +10058,26 @@ void MessagesManager::on_get_history(DialogId dialog_id, MessageId from_message_
     }
   }
 
+  if (d->last_new_message_id.is_valid()) {
+    // remove too new messages from response
+    while (!messages.empty()) {
+      if (get_message_dialog_id(messages[0]) == dialog_id &&
+          get_message_id(messages[0], false) <= d->last_new_message_id) {
+        // the message is old enough
+        break;
+      }
+
+      LOG(INFO) << "Ignore too new " << get_message_id(messages[0], false);
+      messages.erase(messages.begin());
+      if (messages.empty()) {
+        // received no suitable messages; try again
+        return promise.set_value(Unit());
+      } else {
+        last_received_message_id = get_message_id(messages[0], false);
+      }
+    }
+  }
+
   bool prev_have_full_history = d->have_full_history;
   MessageId prev_last_new_message_id = d->last_new_message_id;
   MessageId prev_first_database_message_id = d->first_database_message_id;
