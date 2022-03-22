@@ -272,13 +272,6 @@ class DialogParticipantStatus {
   static DialogParticipantStatus Restricted(RestrictedRights restricted_rights, bool is_member,
                                             int32 restricted_until_date);
 
-  static DialogParticipantStatus Restricted(bool is_member, int32 restricted_until_date, bool can_send_messages,
-                                            bool can_send_media, bool can_send_stickers, bool can_send_animations,
-                                            bool can_send_games, bool can_use_inline_bots,
-                                            bool can_add_web_page_previews, bool can_send_polls,
-                                            bool can_change_info_and_settings, bool can_invite_users,
-                                            bool can_pin_messages);
-
   static DialogParticipantStatus Left();
 
   static DialogParticipantStatus Banned(int32 banned_until_date);

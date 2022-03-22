@@ -296,16 +296,6 @@ DialogParticipantStatus DialogParticipantStatus::Restricted(RestrictedRights res
   return DialogParticipantStatus(Type::Restricted, flags, fix_until_date(restricted_until_date), string());
 }
 
-DialogParticipantStatus DialogParticipantStatus::Restricted(
-    bool is_member, int32 restricted_until_date, bool can_send_messages, bool can_send_media, bool can_send_stickers,
-    bool can_send_animations, bool can_send_games, bool can_use_inline_bots, bool can_add_web_page_previews,
-    bool can_send_polls, bool can_change_info_and_settings, bool can_invite_users, bool can_pin_messages) {
-  RestrictedRights restricted_rights(can_send_messages, can_send_media, can_send_stickers, can_send_animations,
-                                     can_send_games, can_use_inline_bots, can_add_web_page_previews, can_send_polls,
-                                     can_change_info_and_settings, can_invite_users, can_pin_messages);
-  return Restricted(restricted_rights, is_member, restricted_until_date);
-}
-
 DialogParticipantStatus DialogParticipantStatus::Left() {
   return DialogParticipantStatus(Type::Left, RestrictedRights::ALL_RESTRICTED_RIGHTS, 0, string());
 }
@@ -537,21 +527,8 @@ DialogParticipantStatus get_dialog_participant_status(const tl_object_ptr<td_api
       return DialogParticipantStatus::Member();
     case td_api::chatMemberStatusRestricted::ID: {
       auto st = static_cast<const td_api::chatMemberStatusRestricted *>(status.get());
-      auto permissions = st->permissions_.get();
-      if (permissions == nullptr) {
-        return DialogParticipantStatus::Restricted(st->is_member_, st->restricted_until_date_, false, false, false,
-                                                   false, false, false, false, false, false, false, false);
-      }
-      bool can_send_polls = permissions->can_send_polls_;
-      bool can_send_media = permissions->can_send_media_messages_;
-      bool can_send_messages = permissions->can_send_messages_ || can_send_media || can_send_polls ||
-                               permissions->can_send_other_messages_ || permissions->can_add_web_page_previews_;
-      return DialogParticipantStatus::Restricted(
-          st->is_member_, st->restricted_until_date_, can_send_messages, can_send_media,
-          permissions->can_send_other_messages_, permissions->can_send_other_messages_,
-          permissions->can_send_other_messages_, permissions->can_send_other_messages_,
-          permissions->can_add_web_page_previews_, permissions->can_send_polls_, permissions->can_change_info_,
-          permissions->can_invite_users_, permissions->can_pin_messages_);
+      return DialogParticipantStatus::Restricted(::td::get_restricted_rights(st->permissions_), st->is_member_,
+                                                 st->restricted_until_date_);
     }
     case td_api::chatMemberStatusLeft::ID:
       return DialogParticipantStatus::Left();
@@ -617,6 +594,10 @@ RestrictedRights get_restricted_rights(tl_object_ptr<telegram_api::chatBannedRig
 }
 
 RestrictedRights get_restricted_rights(const td_api::object_ptr<td_api::chatPermissions> &permissions) {
+  if (permissions == nullptr) {
+    return RestrictedRights(false, false, false, false, false, false, false, false, false, false, false);
+  }
+
   bool can_send_polls = permissions->can_send_polls_;
   bool can_send_media = permissions->can_send_media_messages_;
   bool can_send_messages = permissions->can_send_messages_ || can_send_media || can_send_polls ||
@@ -624,7 +605,7 @@ RestrictedRights get_restricted_rights(const td_api::object_ptr<td_api::chatPerm
   return RestrictedRights(can_send_messages, can_send_media, permissions->can_send_other_messages_,
                           permissions->can_send_other_messages_, permissions->can_send_other_messages_,
                           permissions->can_send_other_messages_, permissions->can_add_web_page_previews_,
-                          permissions->can_send_polls_, permissions->can_change_info_, permissions->can_invite_users_,
+                          can_send_polls, permissions->can_change_info_, permissions->can_invite_users_,
                           permissions->can_pin_messages_);
 }
 
