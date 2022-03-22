@@ -419,56 +419,6 @@ inputChatPhotoStatic photo:InputFile = InputChatPhoto;
 inputChatPhotoAnimation animation:InputFile main_frame_timestamp:double = InputChatPhoto;
 
 
-//@description Represents a user
-//@id User identifier
-//@first_name First name of the user
-//@last_name Last name of the user
-//@username Username of the user
-//@phone_number Phone number of the user
-//@status Current online status of the user
-//@profile_photo Profile photo of the user; may be null
-//@is_contact The user is a contact of the current user
-//@is_mutual_contact The user is a contact of the current user and the current user is a contact of the user
-//@is_verified True, if the user is verified
-//@is_support True, if the user is Telegram support account
-//@restriction_reason If non-empty, it contains a human-readable description of the reason why access to this user must be restricted
-//@is_scam True, if many users reported this user as a scam
-//@is_fake True, if many users reported this user as a fake account
-//@have_access If false, the user is inaccessible, and the only information known about the user is inside this class. Identifier of the user can't be passed to any method except GetUser
-//@type Type of the user
-//@language_code IETF language tag of the user's language; only available to bots
-user id:int53 first_name:string last_name:string username:string phone_number:string status:UserStatus profile_photo:profilePhoto is_contact:Bool is_mutual_contact:Bool is_verified:Bool is_support:Bool restriction_reason:string is_scam:Bool is_fake:Bool have_access:Bool type:UserType language_code:string = User;
-
-//@description Contains information about a bot
-//@share_text The text that is shown on the bot's profile page and is sent together with the link when users share the bot
-//@param_description The text shown in the chat with the bot if the chat is empty
-//@commands List of the bot commands
-botInfo share_text:string description:string commands:vector<botCommand> = BotInfo;
-
-//@description Contains full information about a user
-//@photo User profile photo; may be null
-//@is_blocked True, if the user is blocked by the current user
-//@can_be_called True, if the user can be called
-//@supports_video_calls True, if a video call can be created with the user
-//@has_private_calls True, if the user can't be called due to their privacy settings
-//@has_private_forwards True, if the user can't be linked in forwarded messages due to their privacy settings
-//@need_phone_number_privacy_exception True, if the current user needs to explicitly allow to share their phone number with the user when the method addContact is used
-//@bio A short user bio
-//@group_in_common_count Number of group chats where both the other user and the current user are a member; 0 for the current user
-//@bot_info For bots, information about the bot; may be null
-userFullInfo photo:chatPhoto is_blocked:Bool can_be_called:Bool supports_video_calls:Bool has_private_calls:Bool has_private_forwards:Bool need_phone_number_privacy_exception:Bool bio:string group_in_common_count:int32 bot_info:botInfo = UserFullInfo;
-
-//@description Represents a list of users @total_count Approximate total number of users found @user_ids A list of user identifiers
-users total_count:int32 user_ids:vector<int53> = Users;
-
-
-//@description Contains information about a chat administrator @user_id User identifier of the administrator @custom_title Custom title of the administrator @is_owner True, if the user is the owner of the chat
-chatAdministrator user_id:int53 custom_title:string is_owner:Bool = ChatAdministrator;
-
-//@description Represents a list of chat administrators @administrators A list of chat administrators
-chatAdministrators administrators:vector<chatAdministrator> = ChatAdministrators;
-
-
 //@description Describes actions that a user is allowed to take in a chat
 //@can_send_messages True, if the user can send text messages, contacts, locations, and venues
 //@can_send_media_messages True, if the user can send audio files, documents, photos, videos, video notes, and voice notes. Implies can_send_messages permissions
@@ -493,6 +443,58 @@ chatPermissions can_send_messages:Bool can_send_media_messages:Bool can_send_pol
 //@can_manage_video_chats True, if the administrator can manage video chats
 //@is_anonymous True, if the administrator isn't shown in the chat member list and sends messages anonymously; applicable to supergroups only
 chatAdministratorRights can_manage_chat:Bool can_change_info:Bool can_post_messages:Bool can_edit_messages:Bool can_delete_messages:Bool can_invite_users:Bool can_restrict_members:Bool can_pin_messages:Bool can_promote_members:Bool can_manage_video_chats:Bool is_anonymous:Bool = ChatAdministratorRights;
+
+
+//@description Represents a user
+//@id User identifier
+//@first_name First name of the user
+//@last_name Last name of the user
+//@username Username of the user
+//@phone_number Phone number of the user
+//@status Current online status of the user
+//@profile_photo Profile photo of the user; may be null
+//@is_contact The user is a contact of the current user
+//@is_mutual_contact The user is a contact of the current user and the current user is a contact of the user
+//@is_verified True, if the user is verified
+//@is_support True, if the user is Telegram support account
+//@restriction_reason If non-empty, it contains a human-readable description of the reason why access to this user must be restricted
+//@is_scam True, if many users reported this user as a scam
+//@is_fake True, if many users reported this user as a fake account
+//@have_access If false, the user is inaccessible, and the only information known about the user is inside this class. Identifier of the user can't be passed to any method except GetUser
+//@type Type of the user
+//@language_code IETF language tag of the user's language; only available to bots
+user id:int53 first_name:string last_name:string username:string phone_number:string status:UserStatus profile_photo:profilePhoto is_contact:Bool is_mutual_contact:Bool is_verified:Bool is_support:Bool restriction_reason:string is_scam:Bool is_fake:Bool have_access:Bool type:UserType language_code:string = User;
+
+//@description Contains information about a bot
+//@share_text The text that is shown on the bot's profile page and is sent together with the link when users share the bot
+//@param_description The text shown in the chat with the bot if the chat is empty
+//@commands List of the bot commands
+//@default_group_administrator_rights Default administrator rights for adding the bot to basic groups and supergroups; may be null
+//@default_channel_administrator_rights Default administrator rights for adding the bot to channels; may be null
+botInfo share_text:string description:string commands:vector<botCommand> default_group_administrator_rights:chatAdministratorRights default_channel_administrator_rights:chatAdministratorRights = BotInfo;
+
+//@description Contains full information about a user
+//@photo User profile photo; may be null
+//@is_blocked True, if the user is blocked by the current user
+//@can_be_called True, if the user can be called
+//@supports_video_calls True, if a video call can be created with the user
+//@has_private_calls True, if the user can't be called due to their privacy settings
+//@has_private_forwards True, if the user can't be linked in forwarded messages due to their privacy settings
+//@need_phone_number_privacy_exception True, if the current user needs to explicitly allow to share their phone number with the user when the method addContact is used
+//@bio A short user bio
+//@group_in_common_count Number of group chats where both the other user and the current user are a member; 0 for the current user
+//@bot_info For bots, information about the bot; may be null
+userFullInfo photo:chatPhoto is_blocked:Bool can_be_called:Bool supports_video_calls:Bool has_private_calls:Bool has_private_forwards:Bool need_phone_number_privacy_exception:Bool bio:string group_in_common_count:int32 bot_info:botInfo = UserFullInfo;
+
+//@description Represents a list of users @total_count Approximate total number of users found @user_ids A list of user identifiers
+users total_count:int32 user_ids:vector<int53> = Users;
+
+
+//@description Contains information about a chat administrator @user_id User identifier of the administrator @custom_title Custom title of the administrator @is_owner True, if the user is the owner of the chat
+chatAdministrator user_id:int53 custom_title:string is_owner:Bool = ChatAdministrator;
+
+//@description Represents a list of chat administrators @administrators A list of chat administrators
+chatAdministrators administrators:vector<chatAdministrator> = ChatAdministrators;
 
 
 //@class ChatMemberStatus @description Provides information about the status of a member in a chat

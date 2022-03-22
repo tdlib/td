@@ -544,7 +544,7 @@ DialogParticipantStatus get_dialog_participant_status(const tl_object_ptr<td_api
 
 AdministratorRights get_administrator_rights(tl_object_ptr<telegram_api::chatAdminRights> &&admin_rights) {
   if (admin_rights == nullptr) {
-    return AdministratorRights(false, false, false, false, false, false, false, false, false, false, false);
+    return AdministratorRights();
   }
 
   if (!admin_rights->other_) {
@@ -558,7 +558,7 @@ AdministratorRights get_administrator_rights(tl_object_ptr<telegram_api::chatAdm
 
 AdministratorRights get_administrator_rights(const td_api::object_ptr<td_api::chatAdministratorRights> &rights) {
   if (rights == nullptr) {
-    return AdministratorRights(false, false, false, false, false, false, false, false, false, false, false);
+    return AdministratorRights();
   }
   return AdministratorRights(rights->is_anonymous_, rights->can_manage_chat_, rights->can_change_info_,
                              rights->can_post_messages_, rights->can_edit_messages_, rights->can_delete_messages_,

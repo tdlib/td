@@ -695,6 +695,8 @@ class ContactsManager final : public Actor {
     string private_forward_name;
 
     vector<BotCommand> commands;
+    AdministratorRights group_administrator_rights;
+    AdministratorRights broadcast_administrator_rights;
 
     int32 common_chat_count = 0;
 
@@ -1040,6 +1042,8 @@ class ContactsManager final : public Actor {
   static constexpr int32 USER_FULL_FLAG_HAS_SCHEDULED_MESSAGES = 1 << 12;
   static constexpr int32 USER_FULL_FLAG_HAS_MESSAGE_TTL = 1 << 14;
   static constexpr int32 USER_FULL_FLAG_HAS_PRIVATE_FORWARD_NAME = 1 << 16;
+  static constexpr int32 USER_FULL_FLAG_HAS_GROUP_ADMINISTRATOR_RIGHTS = 1 << 17;
+  static constexpr int32 USER_FULL_FLAG_HAS_BROADCAST_ADMINISTRATOR_RIGHTS = 1 << 18;
 
   static constexpr int32 CHAT_FLAG_USER_IS_CREATOR = 1 << 0;
   static constexpr int32 CHAT_FLAG_USER_HAS_LEFT = 1 << 2;

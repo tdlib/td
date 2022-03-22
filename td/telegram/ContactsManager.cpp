@@ -3691,6 +3691,8 @@ void ContactsManager::UserFull::store(StorerT &storer) const {
   bool has_description = !description.empty();
   bool has_commands = !commands.empty();
   bool has_private_forward_name = !private_forward_name.empty();
+  bool has_group_administrator_rights = group_administrator_rights != AdministratorRights();
+  bool has_broadcast_administrator_rights = broadcast_administrator_rights != AdministratorRights();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_about);
   STORE_FLAG(is_blocked);
@@ -3703,6 +3705,8 @@ void ContactsManager::UserFull::store(StorerT &storer) const {
   STORE_FLAG(has_description);
   STORE_FLAG(has_commands);
   STORE_FLAG(has_private_forward_name);
+  STORE_FLAG(has_group_administrator_rights);
+  STORE_FLAG(has_broadcast_administrator_rights);
   END_STORE_FLAGS();
   if (has_about) {
     store(about, storer);
@@ -3721,6 +3725,12 @@ void ContactsManager::UserFull::store(StorerT &storer) const {
   if (has_private_forward_name) {
     store(private_forward_name, storer);
   }
+  if (has_group_administrator_rights) {
+    store(group_administrator_rights, storer);
+  }
+  if (has_broadcast_administrator_rights) {
+    store(broadcast_administrator_rights, storer);
+  }
 }
 
 template <class ParserT>
@@ -3731,6 +3741,8 @@ void ContactsManager::UserFull::parse(ParserT &parser) {
   bool has_description;
   bool has_commands;
   bool has_private_forward_name;
+  bool has_group_administrator_rights;
+  bool has_broadcast_administrator_rights;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(has_about);
   PARSE_FLAG(is_blocked);
@@ -3743,6 +3755,8 @@ void ContactsManager::UserFull::parse(ParserT &parser) {
   PARSE_FLAG(has_description);
   PARSE_FLAG(has_commands);
   PARSE_FLAG(has_private_forward_name);
+  PARSE_FLAG(has_group_administrator_rights);
+  PARSE_FLAG(has_broadcast_administrator_rights);
   END_PARSE_FLAGS();
   if (has_about) {
     parse(about, parser);
@@ -3760,6 +3774,12 @@ void ContactsManager::UserFull::parse(ParserT &parser) {
   }
   if (has_private_forward_name) {
     parse(private_forward_name, parser);
+  }
+  if (has_group_administrator_rights) {
+    parse(group_administrator_rights, parser);
+  }
+  if (has_broadcast_administrator_rights) {
+    parse(broadcast_administrator_rights, parser);
   }
 }
 
@@ -10503,13 +10523,19 @@ void ContactsManager::on_get_user_full(tl_object_ptr<telegram_api::userFull> &&u
   bool can_be_called = user->phone_calls_available_ && !user->phone_calls_private_;
   bool supports_video_calls = user->video_calls_available_ && !user->phone_calls_private_;
   bool has_private_calls = user->phone_calls_private_;
+  auto group_administrator_rights = get_administrator_rights(std::move(user->bot_group_admin_rights_));
+  auto broadcast_administrator_rights = get_administrator_rights(std::move(user->bot_broadcast_admin_rights_));
   if (user_full->can_be_called != can_be_called || user_full->supports_video_calls != supports_video_calls ||
       user_full->has_private_calls != has_private_calls ||
-      user_full->private_forward_name != user->private_forward_name_) {
+      user_full->private_forward_name != user->private_forward_name_ ||
+      user_full->group_administrator_rights != group_administrator_rights ||
+      user_full->broadcast_administrator_rights != broadcast_administrator_rights) {
     user_full->can_be_called = can_be_called;
     user_full->supports_video_calls = supports_video_calls;
     user_full->has_private_calls = has_private_calls;
     user_full->private_forward_name = std::move(user->private_forward_name_);
+    user_full->group_administrator_rights = group_administrator_rights;
+    user_full->broadcast_administrator_rights = broadcast_administrator_rights;
 
     user_full->is_changed = true;
   }
@@ -11754,6 +11780,8 @@ void ContactsManager::drop_user_full(UserId user_id) {
   user_full->commands.clear();
   user_full->common_chat_count = 0;
   user_full->private_forward_name.clear();
+  user_full->group_administrator_rights = {};
+  user_full->broadcast_administrator_rights = {};
   user_full->is_changed = true;
 
   update_user_full(user_full, user_id, "drop_user_full");
@@ -16226,7 +16254,14 @@ tl_object_ptr<td_api::userFullInfo> ContactsManager::get_user_full_info_object(U
   if (is_bot) {
     auto commands =
         transform(user_full->commands, [](const auto &command) { return command.get_bot_command_object(); });
-    bot_info = td_api::make_object<td_api::botInfo>(user_full->about, user_full->description, std::move(commands));
+    bot_info = td_api::make_object<td_api::botInfo>(
+        user_full->about, user_full->description, std::move(commands),
+        user_full->group_administrator_rights == AdministratorRights()
+            ? nullptr
+            : user_full->group_administrator_rights.get_chat_administrator_rights_object(),
+        user_full->broadcast_administrator_rights == AdministratorRights()
+            ? nullptr
+            : user_full->broadcast_administrator_rights.get_chat_administrator_rights_object());
   }
   return make_tl_object<td_api::userFullInfo>(
       get_chat_photo_object(td_->file_manager_.get(), user_full->photo), user_full->is_blocked,

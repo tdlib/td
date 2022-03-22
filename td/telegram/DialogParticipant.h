@@ -47,6 +47,9 @@ class AdministratorRights {
   }
 
  public:
+  AdministratorRights() : flags_(0) {
+  }
+
   AdministratorRights(bool is_anonymous, bool can_manage_dialog, bool can_change_info, bool can_post_messages,
                       bool can_edit_messages, bool can_delete_messages, bool can_invite_users,
                       bool can_restrict_members, bool can_pin_messages, bool can_promote_members,
