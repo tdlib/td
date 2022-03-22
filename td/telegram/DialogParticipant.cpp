@@ -332,8 +332,7 @@ DialogParticipantStatus::DialogParticipantStatus(bool can_be_edited,
 DialogParticipantStatus::DialogParticipantStatus(bool is_member,
                                                  tl_object_ptr<telegram_api::chatBannedRights> &&banned_rights) {
   CHECK(banned_rights != nullptr);
-  bool can_view_messages = (banned_rights->flags_ & telegram_api::chatBannedRights::VIEW_MESSAGES_MASK) == 0;
-  if (!can_view_messages) {
+  if (banned_rights->view_messages_) {
     *this = DialogParticipantStatus::Banned(banned_rights->until_date_);
     return;
   }
@@ -547,50 +546,29 @@ AdministratorRights get_administrator_rights(tl_object_ptr<telegram_api::chatAdm
     return AdministratorRights(false, false, false, false, false, false, false, false, false, false, false);
   }
 
-  bool is_anonymous = admin_rights->anonymous_;
-  bool can_change_info = (admin_rights->flags_ & telegram_api::chatAdminRights::CHANGE_INFO_MASK) != 0;
-  bool can_post_messages = (admin_rights->flags_ & telegram_api::chatAdminRights::POST_MESSAGES_MASK) != 0;
-  bool can_edit_messages = (admin_rights->flags_ & telegram_api::chatAdminRights::EDIT_MESSAGES_MASK) != 0;
-  bool can_delete_messages = (admin_rights->flags_ & telegram_api::chatAdminRights::DELETE_MESSAGES_MASK) != 0;
-  bool can_invite_users = (admin_rights->flags_ & telegram_api::chatAdminRights::INVITE_USERS_MASK) != 0;
-  bool can_restrict_members = (admin_rights->flags_ & telegram_api::chatAdminRights::BAN_USERS_MASK) != 0;
-  bool can_pin_messages = (admin_rights->flags_ & telegram_api::chatAdminRights::PIN_MESSAGES_MASK) != 0;
-  bool can_promote_members = (admin_rights->flags_ & telegram_api::chatAdminRights::ADD_ADMINS_MASK) != 0;
-  bool can_manage_calls = (admin_rights->flags_ & telegram_api::chatAdminRights::MANAGE_CALL_MASK) != 0;
-  bool can_manage_dialog = (admin_rights->flags_ & telegram_api::chatAdminRights::OTHER_MASK) != 0;
-  if (!can_manage_dialog) {
+  if (!admin_rights->other_) {
     LOG(ERROR) << "Receive wrong other flag in " << to_string(admin_rights);
   }
-  return AdministratorRights(is_anonymous, can_manage_dialog, can_change_info, can_post_messages, can_edit_messages,
-                             can_delete_messages, can_invite_users, can_restrict_members, can_pin_messages,
-                             can_promote_members, can_manage_calls);
+  return AdministratorRights(admin_rights->anonymous_, admin_rights->other_, admin_rights->change_info_,
+                             admin_rights->post_messages_, admin_rights->edit_messages_, admin_rights->delete_messages_,
+                             admin_rights->invite_users_, admin_rights->ban_users_, admin_rights->pin_messages_,
+                             admin_rights->add_admins_, admin_rights->manage_call_);
 }
 
 RestrictedRights get_restricted_rights(tl_object_ptr<telegram_api::chatBannedRights> &&banned_rights) {
   if (banned_rights == nullptr) {
     return RestrictedRights(false, false, false, false, false, false, false, false, false, false, false);
   }
-  bool can_view_messages = (banned_rights->flags_ & telegram_api::chatBannedRights::VIEW_MESSAGES_MASK) == 0;
-  if (!can_view_messages) {
-    LOG(ERROR) << "Can't view messages in restricted rights " << to_string(banned_rights);
+  if (banned_rights->view_messages_) {
+    LOG(ERROR) << "Can't view messages in banned rights " << to_string(banned_rights);
   }
   LOG_IF(ERROR, banned_rights->until_date_ != std::numeric_limits<int32>::max())
       << "Have until date " << banned_rights->until_date_ << " in restricted rights";
 
-  bool can_send_messages = (banned_rights->flags_ & telegram_api::chatBannedRights::SEND_MESSAGES_MASK) == 0;
-  bool can_send_media_messages = (banned_rights->flags_ & telegram_api::chatBannedRights::SEND_MEDIA_MASK) == 0;
-  bool can_send_stickers = (banned_rights->flags_ & telegram_api::chatBannedRights::SEND_STICKERS_MASK) == 0;
-  bool can_send_animations = (banned_rights->flags_ & telegram_api::chatBannedRights::SEND_GIFS_MASK) == 0;
-  bool can_send_games = (banned_rights->flags_ & telegram_api::chatBannedRights::SEND_GAMES_MASK) == 0;
-  bool can_use_inline_bots = (banned_rights->flags_ & telegram_api::chatBannedRights::SEND_INLINE_MASK) == 0;
-  bool can_add_web_page_previews = (banned_rights->flags_ & telegram_api::chatBannedRights::EMBED_LINKS_MASK) == 0;
-  bool can_send_polls = (banned_rights->flags_ & telegram_api::chatBannedRights::SEND_POLLS_MASK) == 0;
-  bool can_change_info_and_settings = (banned_rights->flags_ & telegram_api::chatBannedRights::CHANGE_INFO_MASK) == 0;
-  bool can_invite_users = (banned_rights->flags_ & telegram_api::chatBannedRights::INVITE_USERS_MASK) == 0;
-  bool can_pin_messages = (banned_rights->flags_ & telegram_api::chatBannedRights::PIN_MESSAGES_MASK) == 0;
-  return RestrictedRights(can_send_messages, can_send_media_messages, can_send_stickers, can_send_animations,
-                          can_send_games, can_use_inline_bots, can_add_web_page_previews, can_send_polls,
-                          can_change_info_and_settings, can_invite_users, can_pin_messages);
+  return RestrictedRights(!banned_rights->send_messages_, !banned_rights->send_media_, !banned_rights->send_stickers_,
+                          !banned_rights->send_gifs_, !banned_rights->send_games_, !banned_rights->send_inline_,
+                          !banned_rights->embed_links_, !banned_rights->send_polls_, !banned_rights->change_info_,
+                          !banned_rights->invite_users_, !banned_rights->pin_messages_);
 }
 
 RestrictedRights get_restricted_rights(const td_api::object_ptr<td_api::chatPermissions> &permissions) {
