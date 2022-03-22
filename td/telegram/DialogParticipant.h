@@ -54,6 +54,8 @@ class AdministratorRights {
 
   telegram_api::object_ptr<telegram_api::chatAdminRights> get_chat_admin_rights() const;
 
+  td_api::object_ptr<td_api::chatAdministratorRights> get_chat_administrator_rights_object() const;
+
   bool can_manage_dialog() const {
     return (flags_ & CAN_MANAGE_DIALOG) != 0;
   }
@@ -542,6 +544,8 @@ struct DialogParticipants {
 DialogParticipantStatus get_dialog_participant_status(const tl_object_ptr<td_api::ChatMemberStatus> &status);
 
 AdministratorRights get_administrator_rights(tl_object_ptr<telegram_api::chatAdminRights> &&admin_rights);
+
+AdministratorRights get_administrator_rights(const td_api::object_ptr<td_api::chatAdministratorRights> &rights);
 
 RestrictedRights get_restricted_rights(tl_object_ptr<telegram_api::chatBannedRights> &&banned_rights);
 
