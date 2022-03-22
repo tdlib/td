@@ -429,6 +429,10 @@ class GetDiscussionMessageQuery final : public Td::ResultHandler {
     if (expected_dialog_id_ == dialog_id_) {
       td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "GetDiscussionMessageQuery");
     }
+    if (status.message() == "MSG_ID_INVALID") {
+      td_->messages_manager_->get_message_from_server({dialog_id_, message_id_}, Promise<Unit>(),
+                                                      "GetDiscussionMessageQuery");
+    }
     promise_.set_error(std::move(status));
   }
 };
