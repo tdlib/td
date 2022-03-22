@@ -33,6 +33,7 @@ class AdministratorRights {
   static constexpr uint32 CAN_PROMOTE_MEMBERS = 1 << 8;
   static constexpr uint32 CAN_MANAGE_CALLS = 1 << 9;
   static constexpr uint32 CAN_MANAGE_DIALOG = 1 << 10;
+  static constexpr uint32 IS_ANONYMOUS = 1 << 13;
 
   static constexpr uint32 ALL_ADMINISTRATOR_RIGHTS =
       CAN_CHANGE_INFO_AND_SETTINGS | CAN_POST_MESSAGES | CAN_EDIT_MESSAGES | CAN_DELETE_MESSAGES | CAN_INVITE_USERS |
@@ -46,11 +47,12 @@ class AdministratorRights {
   }
 
  public:
-  AdministratorRights(bool can_manage_dialog, bool can_change_info, bool can_post_messages, bool can_edit_messages,
-                      bool can_delete_messages, bool can_invite_users, bool can_restrict_members, bool can_pin_messages,
-                      bool can_promote_members, bool can_manage_calls);
+  AdministratorRights(bool is_anonymous, bool can_manage_dialog, bool can_change_info, bool can_post_messages,
+                      bool can_edit_messages, bool can_delete_messages, bool can_invite_users,
+                      bool can_restrict_members, bool can_pin_messages, bool can_promote_members,
+                      bool can_manage_calls);
 
-  telegram_api::object_ptr<telegram_api::chatAdminRights> get_chat_admin_rights(bool is_anonymous) const;
+  telegram_api::object_ptr<telegram_api::chatAdminRights> get_chat_admin_rights() const;
 
   bool can_manage_dialog() const {
     return (flags_ & CAN_MANAGE_DIALOG) != 0;
@@ -95,6 +97,10 @@ class AdministratorRights {
 
   bool can_manage_calls() const {
     return (flags_ & CAN_MANAGE_CALLS) != 0;
+  }
+
+  bool is_anonymous() const {
+    return (flags_ & IS_ANONYMOUS) != 0;
   }
 
   template <class StorerT>
@@ -221,7 +227,6 @@ StringBuilder &operator<<(StringBuilder &string_builder, const RestrictedRights 
 
 class DialogParticipantStatus {
   // only flags 11 and 12 are unused
-  static constexpr uint32 IS_ANONYMOUS = 1 << 13;
   static constexpr uint32 HAS_RANK = 1 << 14;
   static constexpr uint32 CAN_BE_EDITED = 1 << 15;
 
@@ -414,7 +419,7 @@ class DialogParticipantStatus {
   }
 
   bool is_anonymous() const {
-    return (flags_ & IS_ANONYMOUS) != 0;
+    return get_administrator_rights().is_anonymous();
   }
 
   const string &get_rank() const {
