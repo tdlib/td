@@ -6188,7 +6188,8 @@ void Td::on_request(uint64 id, const td_api::leaveChat &request) {
         return promise.set_value(Unit());
       }
 
-      new_status = DialogParticipantStatus::Creator(false, status.is_anonymous(), status.get_rank());
+      auto rank = status.get_rank();
+      new_status = DialogParticipantStatus::Creator(false, status.is_anonymous(), std::move(rank));
     }
   }
   contacts_manager_->set_dialog_participant_status(dialog_id, DialogId(contacts_manager_->get_my_id()),

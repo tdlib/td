@@ -249,7 +249,7 @@ int32 DialogParticipantStatus::fix_until_date(int32 date) {
   return date;
 }
 
-DialogParticipantStatus DialogParticipantStatus::Creator(bool is_member, bool is_anonymous, string rank) {
+DialogParticipantStatus DialogParticipantStatus::Creator(bool is_member, bool is_anonymous, string &&rank) {
   return DialogParticipantStatus(Type::Creator,
                                  AdministratorRights::ALL_ADMINISTRATOR_RIGHTS |
                                      RestrictedRights::ALL_RESTRICTED_RIGHTS | (is_member ? IS_MEMBER : 0) |
@@ -257,16 +257,9 @@ DialogParticipantStatus DialogParticipantStatus::Creator(bool is_member, bool is
                                  0, std::move(rank));
 }
 
-DialogParticipantStatus DialogParticipantStatus::Administrator(bool is_anonymous, string rank, bool can_be_edited,
-                                                               bool can_manage_dialog, bool can_change_info,
-                                                               bool can_post_messages, bool can_edit_messages,
-                                                               bool can_delete_messages, bool can_invite_users,
-                                                               bool can_restrict_members, bool can_pin_messages,
-                                                               bool can_promote_members, bool can_manage_calls) {
-  uint32 flags = AdministratorRights(is_anonymous, can_manage_dialog, can_change_info, can_post_messages,
-                                     can_edit_messages, can_delete_messages, can_invite_users, can_restrict_members,
-                                     can_pin_messages, can_promote_members, can_manage_calls)
-                     .flags_;
+DialogParticipantStatus DialogParticipantStatus::Administrator(AdministratorRights administrator_rights, string &&rank,
+                                                               bool can_be_edited) {
+  uint32 flags = administrator_rights.flags_;
   if (flags == 0) {
     return Member();
   }
@@ -277,23 +270,40 @@ DialogParticipantStatus DialogParticipantStatus::Administrator(bool is_anonymous
       std::move(rank));
 }
 
+DialogParticipantStatus DialogParticipantStatus::Administrator(bool is_anonymous, string &&rank, bool can_be_edited,
+                                                               bool can_manage_dialog, bool can_change_info,
+                                                               bool can_post_messages, bool can_edit_messages,
+                                                               bool can_delete_messages, bool can_invite_users,
+                                                               bool can_restrict_members, bool can_pin_messages,
+                                                               bool can_promote_members, bool can_manage_calls) {
+  auto administrator_rights = AdministratorRights(
+      is_anonymous, can_manage_dialog, can_change_info, can_post_messages, can_edit_messages, can_delete_messages,
+      can_invite_users, can_restrict_members, can_pin_messages, can_promote_members, can_manage_calls);
+  return Administrator(administrator_rights, std::move(rank), can_be_edited);
+}
+
 DialogParticipantStatus DialogParticipantStatus::Member() {
   return DialogParticipantStatus(Type::Member, IS_MEMBER | RestrictedRights::ALL_RESTRICTED_RIGHTS, 0, string());
+}
+
+DialogParticipantStatus DialogParticipantStatus::Restricted(RestrictedRights restricted_rights, bool is_member,
+                                                            int32 restricted_until_date) {
+  uint32 flags = restricted_rights.flags_;
+  if (flags == RestrictedRights::ALL_RESTRICTED_RIGHTS) {
+    return is_member ? Member() : Left();
+  }
+  flags |= (static_cast<uint32>(is_member) * IS_MEMBER);
+  return DialogParticipantStatus(Type::Restricted, flags, fix_until_date(restricted_until_date), string());
 }
 
 DialogParticipantStatus DialogParticipantStatus::Restricted(
     bool is_member, int32 restricted_until_date, bool can_send_messages, bool can_send_media, bool can_send_stickers,
     bool can_send_animations, bool can_send_games, bool can_use_inline_bots, bool can_add_web_page_previews,
     bool can_send_polls, bool can_change_info_and_settings, bool can_invite_users, bool can_pin_messages) {
-  uint32 flags = RestrictedRights(can_send_messages, can_send_media, can_send_stickers, can_send_animations,
-                                  can_send_games, can_use_inline_bots, can_add_web_page_previews, can_send_polls,
-                                  can_change_info_and_settings, can_invite_users, can_pin_messages)
-                     .flags_ |
-                 (static_cast<uint32>(is_member) * IS_MEMBER);
-  if (flags == (IS_MEMBER | RestrictedRights::ALL_RESTRICTED_RIGHTS)) {
-    return Member();
-  }
-  return DialogParticipantStatus(Type::Restricted, flags, fix_until_date(restricted_until_date), string());
+  RestrictedRights restricted_rights(can_send_messages, can_send_media, can_send_stickers, can_send_animations,
+                                     can_send_games, can_use_inline_bots, can_add_web_page_previews, can_send_polls,
+                                     can_change_info_and_settings, can_invite_users, can_pin_messages);
+  return Restricted(restricted_rights, is_member, restricted_until_date);
 }
 
 DialogParticipantStatus DialogParticipantStatus::Left() {
@@ -508,7 +518,7 @@ DialogParticipantStatus get_dialog_participant_status(const tl_object_ptr<td_api
       if (!clean_input_string(custom_title)) {
         custom_title.clear();
       }
-      return DialogParticipantStatus::Creator(st->is_member_, st->is_anonymous_, custom_title);
+      return DialogParticipantStatus::Creator(st->is_member_, st->is_anonymous_, std::move(custom_title));
     }
     case td_api::chatMemberStatusAdministrator::ID: {
       auto st = static_cast<const td_api::chatMemberStatusAdministrator *>(status.get());
@@ -516,10 +526,12 @@ DialogParticipantStatus get_dialog_participant_status(const tl_object_ptr<td_api
       if (!clean_input_string(custom_title)) {
         custom_title.clear();
       }
-      return DialogParticipantStatus::Administrator(
-          st->is_anonymous_, custom_title, true /*st->can_be_edited_*/, st->can_manage_chat_, st->can_change_info_,
-          st->can_post_messages_, st->can_edit_messages_, st->can_delete_messages_, st->can_invite_users_,
-          st->can_restrict_members_, st->can_pin_messages_, st->can_promote_members_, st->can_manage_video_chats_);
+      AdministratorRights administrator_rights(st->is_anonymous_, st->can_manage_chat_, st->can_change_info_,
+                                               st->can_post_messages_, st->can_edit_messages_, st->can_delete_messages_,
+                                               st->can_invite_users_, st->can_restrict_members_, st->can_pin_messages_,
+                                               st->can_promote_members_, st->can_manage_video_chats_);
+      return DialogParticipantStatus::Administrator(administrator_rights, std::move(custom_title),
+                                                    true /*st->can_be_edited_*/);
     }
     case td_api::chatMemberStatusMember::ID:
       return DialogParticipantStatus::Member();
