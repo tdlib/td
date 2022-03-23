@@ -35801,12 +35801,19 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
       LOG(DEBUG) << "Drop message reply_to_message_id";
       unregister_message_reply(dialog_id, old_message);
       old_message->reply_to_message_id = MessageId();
-      update_message_max_reply_media_timestamp(d, old_message, true);
+      update_message_max_reply_media_timestamp(d, old_message, is_message_in_dialog);
       need_send_update = true;
     } else if (is_new_available) {
-      LOG(ERROR) << message_id << " in " << dialog_id << " has changed message it is reply to from "
-                 << old_message->reply_to_message_id << " to " << new_message->reply_to_message_id
-                 << ", message content type is " << old_content_type << '/' << new_content_type;
+      if (message_id.is_yet_unsent() && old_message->reply_to_message_id == MessageId()) {
+        CHECK(!is_message_in_dialog);
+        CHECK(new_message->reply_to_message_id.is_valid());
+        CHECK(new_message->reply_to_message_id.is_server());
+        old_message->reply_to_message_id = new_message->reply_to_message_id;
+      } else {
+        LOG(ERROR) << message_id << " in " << dialog_id << " has changed message it is reply to from "
+                   << old_message->reply_to_message_id << " to " << new_message->reply_to_message_id
+                   << ", message content type is " << old_content_type << '/' << new_content_type;
+      }
     }
   }
   if (old_message->reply_in_dialog_id != new_message->reply_in_dialog_id) {
