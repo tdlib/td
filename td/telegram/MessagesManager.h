@@ -2356,11 +2356,11 @@ class MessagesManager final : public Actor {
 
   void update_message_max_reply_media_timestamp_in_replied_messages(DialogId dialog_id, MessageId reply_to_message_id);
 
-  void register_message_reply(const Dialog *d, const Message *m);
+  void register_message_reply(DialogId dialog_id, const Message *m);
 
-  void reregister_message_reply(const Dialog *d, const Message *m);
+  void reregister_message_reply(DialogId dialog_id, const Message *m);
 
-  void unregister_message_reply(const Dialog *d, const Message *m);
+  void unregister_message_reply(DialogId dialog_id, const Message *m);
 
   void send_update_new_message(const Dialog *d, const Message *m);
 
