@@ -9,6 +9,7 @@
       --background: #fafafa;
       --color: black;
       --color-primary: #0088ff;
+      --color-primary-light: #42a7ff;
       --color-code-block: #ebf9ff;
       --color-select-border: rgb(211, 211, 211);
       --color-checkbox-background: rgb(211, 211, 211);
@@ -80,10 +81,15 @@
     a {
       color: var(--color-primary);
       text-decoration-color: transparent;
-      transition: text-decoration-color 200ms;
+      transition: text-decoration 200ms, color 200ms;
     }
     a:hover {
       text-decoration: underline;
+    }
+    a:focus {
+      text-decoration: underline 2px; 
+      color: var(--color-primary-light);
+      outline: none;
     }
     select, button {
       border: 1px solid var(--color-select-border);
