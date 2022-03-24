@@ -363,11 +363,10 @@ UserId InlineQueriesManager::get_inline_bot_user_id(int64 query_id) const {
   return it->second;
 }
 
-void InlineQueriesManager::answer_inline_query(int64 inline_query_id, bool is_personal,
-                                               vector<tl_object_ptr<td_api::InputInlineQueryResult>> &&input_results,
-                                               int32 cache_time, const string &next_offset,
-                                               const string &switch_pm_text, const string &switch_pm_parameter,
-                                               Promise<Unit> &&promise) const {
+void InlineQueriesManager::answer_inline_query(
+    int64 inline_query_id, bool is_personal, vector<td_api::object_ptr<td_api::InputInlineQueryResult>> &&input_results,
+    int32 cache_time, const string &next_offset, const string &switch_pm_text, const string &switch_pm_parameter,
+    Promise<Unit> &&promise) const {
   if (!td_->auth_manager_->is_bot()) {
     return promise.set_error(Status::Error(400, "Method can be used by bots only"));
   }
@@ -389,410 +388,420 @@ void InlineQueriesManager::answer_inline_query(int64 inline_query_id, bool is_pe
   bool is_gallery = false;
   bool force_vertical = false;
   for (auto &input_result : input_results) {
-    if (input_result == nullptr) {
-      return promise.set_error(Status::Error(400, "Inline query result must be non-empty"));
-    }
-
-    string id;
-    string url;
-    string type;
-    string title;
-    string description;
-    string thumbnail_url;
-    string thumbnail_type = "image/jpeg";
-    string content_url;
-    string content_type;
-    int32 thumbnail_width = 0;
-    int32 thumbnail_height = 0;
-    int32 width = 0;
-    int32 height = 0;
-    int32 duration = 0;
-
-    FileType file_type = FileType::Temp;
-    Result<tl_object_ptr<telegram_api::InputBotInlineMessage>> r_inline_message = Status::Error(500, "Uninited");
-    switch (input_result->get_id()) {
-      case td_api::inputInlineQueryResultAnimation::ID: {
-        auto animation = move_tl_object_as<td_api::inputInlineQueryResultAnimation>(input_result);
-        type = "gif";
-        id = std::move(animation->id_);
-        title = std::move(animation->title_);
-        thumbnail_url = std::move(animation->thumbnail_url_);
-        if (!animation->thumbnail_mime_type_.empty()) {
-          thumbnail_type = std::move(animation->thumbnail_mime_type_);
-        }
-        content_url = std::move(animation->video_url_);
-        content_type = std::move(animation->video_mime_type_);
-        if (content_type != "image/gif" && content_type != "video/mp4") {
-          return promise.set_error(Status::Error(400, "Wrong animation MIME type specified"));
-        }
-        duration = animation->video_duration_;
-        width = animation->video_width_;
-        height = animation->video_height_;
-        is_gallery = true;
-
-        file_type = FileType::Animation;
-        r_inline_message = get_inline_message(std::move(animation->input_message_content_),
-                                              std::move(animation->reply_markup_), td_api::inputMessageAnimation::ID);
-        break;
-      }
-      case td_api::inputInlineQueryResultArticle::ID: {
-        auto article = move_tl_object_as<td_api::inputInlineQueryResultArticle>(input_result);
-        type = "article";
-        id = std::move(article->id_);
-        if (!article->url_.empty()) {
-          content_url = std::move(article->url_);
-          content_type = "text/html";
-          if (!article->hide_url_) {
-            url = content_url;
-          }
-        }
-        title = std::move(article->title_);
-        description = std::move(article->description_);
-        thumbnail_url = std::move(article->thumbnail_url_);
-        if (!thumbnail_url.empty()) {
-          thumbnail_width = article->thumbnail_width_;
-          thumbnail_height = article->thumbnail_height_;
-        }
-        force_vertical = true;
-
-        r_inline_message =
-            get_inline_message(std::move(article->input_message_content_), std::move(article->reply_markup_), -1);
-        break;
-      }
-      case td_api::inputInlineQueryResultAudio::ID: {
-        auto audio = move_tl_object_as<td_api::inputInlineQueryResultAudio>(input_result);
-        type = "audio";
-        id = std::move(audio->id_);
-        title = std::move(audio->title_);
-        description = std::move(audio->performer_);
-        content_url = std::move(audio->audio_url_);
-        content_type = "audio/mpeg";
-        duration = audio->audio_duration_;
-        force_vertical = true;
-
-        file_type = FileType::Audio;
-        r_inline_message = get_inline_message(std::move(audio->input_message_content_), std::move(audio->reply_markup_),
-                                              td_api::inputMessageAudio::ID);
-        break;
-      }
-      case td_api::inputInlineQueryResultContact::ID: {
-        auto contact = move_tl_object_as<td_api::inputInlineQueryResultContact>(input_result);
-        if (contact->contact_ == nullptr) {
-          return promise.set_error(Status::Error(400, "Contact must be non-empty"));
-        }
-        type = "contact";
-        id = std::move(contact->id_);
-        string phone_number = trim(contact->contact_->phone_number_);
-        string first_name = trim(contact->contact_->first_name_);
-        string last_name = trim(contact->contact_->last_name_);
-        if (phone_number.empty()) {
-          return promise.set_error(Status::Error(400, "Field \"phone_number\" must contain a valid phone number"));
-        }
-        if (first_name.empty()) {
-          return promise.set_error(Status::Error(400, "Field \"first_name\" must be non-empty"));
-        }
-        if (last_name.empty()) {
-          title = std::move(first_name);
-        } else {
-          title = PSTRING() << first_name << ' ' << last_name;
-        }
-        description = std::move(phone_number);
-        thumbnail_url = std::move(contact->thumbnail_url_);
-        if (!thumbnail_url.empty()) {
-          thumbnail_width = contact->thumbnail_width_;
-          thumbnail_height = contact->thumbnail_height_;
-        }
-        force_vertical = true;
-
-        r_inline_message =
-            get_inline_message(std::move(contact->input_message_content_), std::move(contact->reply_markup_), -1);
-        break;
-      }
-      case td_api::inputInlineQueryResultDocument::ID: {
-        auto document = move_tl_object_as<td_api::inputInlineQueryResultDocument>(input_result);
-        type = "file";
-        id = std::move(document->id_);
-        title = std::move(document->title_);
-        description = std::move(document->description_);
-        thumbnail_url = std::move(document->thumbnail_url_);
-        content_url = std::move(document->document_url_);
-        content_type = std::move(document->mime_type_);
-        thumbnail_width = document->thumbnail_width_;
-        thumbnail_height = document->thumbnail_height_;
-
-        if (content_url.find('.') != string::npos) {
-          if (begins_with(content_type, "application/pdf")) {
-            content_type = "application/pdf";
-          } else if (begins_with(content_type, "application/zip")) {
-            content_type = "application/zip";
-          } else {
-            return promise.set_error(Status::Error(400, "Unallowed document MIME type"));
-          }
-        }
-
-        file_type = FileType::Document;
-        r_inline_message = get_inline_message(std::move(document->input_message_content_),
-                                              std::move(document->reply_markup_), td_api::inputMessageDocument::ID);
-        break;
-      }
-      case td_api::inputInlineQueryResultGame::ID: {
-        auto game = move_tl_object_as<td_api::inputInlineQueryResultGame>(input_result);
-        auto r_reply_markup = get_reply_markup(std::move(game->reply_markup_), true, true, false, true);
-        if (r_reply_markup.is_error()) {
-          return promise.set_error(r_reply_markup.move_as_error());
-        }
-
-        auto input_reply_markup = get_input_reply_markup(r_reply_markup.ok());
-        int32 flags = 0;
-        if (input_reply_markup != nullptr) {
-          flags |= telegram_api::inputBotInlineMessageGame::REPLY_MARKUP_MASK;
-        }
-        auto result = make_tl_object<telegram_api::inputBotInlineResultGame>(
-            game->id_, game->game_short_name_,
-            make_tl_object<telegram_api::inputBotInlineMessageGame>(flags, std::move(input_reply_markup)));
-        results.push_back(std::move(result));
-        continue;
-      }
-      case td_api::inputInlineQueryResultLocation::ID: {
-        auto location = move_tl_object_as<td_api::inputInlineQueryResultLocation>(input_result);
-        if (location->location_ == nullptr) {
-          return promise.set_error(Status::Error(400, "Location must be non-empty"));
-        }
-        type = "geo";
-        id = std::move(location->id_);
-        title = std::move(location->title_);
-        description = PSTRING() << location->location_->latitude_ << ' ' << location->location_->longitude_;
-        thumbnail_url = std::move(location->thumbnail_url_);
-        // duration = location->live_period_;
-        if (!thumbnail_url.empty()) {
-          thumbnail_width = location->thumbnail_width_;
-          thumbnail_height = location->thumbnail_height_;
-        }
-
-        r_inline_message =
-            get_inline_message(std::move(location->input_message_content_), std::move(location->reply_markup_), -1);
-        break;
-      }
-      case td_api::inputInlineQueryResultPhoto::ID: {
-        auto photo = move_tl_object_as<td_api::inputInlineQueryResultPhoto>(input_result);
-        type = "photo";
-        id = std::move(photo->id_);
-        title = std::move(photo->title_);
-        description = std::move(photo->description_);
-        thumbnail_url = std::move(photo->thumbnail_url_);
-        content_url = std::move(photo->photo_url_);
-        content_type = "image/jpeg";
-        width = photo->photo_width_;
-        height = photo->photo_height_;
-        is_gallery = true;
-
-        file_type = FileType::Photo;
-        r_inline_message = get_inline_message(std::move(photo->input_message_content_), std::move(photo->reply_markup_),
-                                              td_api::inputMessagePhoto::ID);
-        break;
-      }
-      case td_api::inputInlineQueryResultSticker::ID: {
-        auto sticker = move_tl_object_as<td_api::inputInlineQueryResultSticker>(input_result);
-        type = "sticker";
-        id = std::move(sticker->id_);
-        thumbnail_url = std::move(sticker->thumbnail_url_);
-        content_url = std::move(sticker->sticker_url_);
-        content_type =
-            "image/webp";  // or "application/x-tgsticker"/"video/webm"; not used for previously uploaded files
-        width = sticker->sticker_width_;
-        height = sticker->sticker_height_;
-        is_gallery = true;
-
-        if (content_url.find('.') != string::npos) {
-          return promise.set_error(Status::Error(400, "Wrong sticker_file_id specified"));
-        }
-
-        file_type = FileType::Sticker;
-        r_inline_message = get_inline_message(std::move(sticker->input_message_content_),
-                                              std::move(sticker->reply_markup_), td_api::inputMessageSticker::ID);
-        break;
-      }
-      case td_api::inputInlineQueryResultVenue::ID: {
-        auto venue = move_tl_object_as<td_api::inputInlineQueryResultVenue>(input_result);
-        if (venue->venue_ == nullptr) {
-          return promise.set_error(Status::Error(400, "Venue must be non-empty"));
-        }
-        type = "venue";
-        id = std::move(venue->id_);
-        title = std::move(venue->venue_->title_);
-        description = std::move(venue->venue_->address_);
-        thumbnail_url = std::move(venue->thumbnail_url_);
-        if (!thumbnail_url.empty()) {
-          thumbnail_width = venue->thumbnail_width_;
-          thumbnail_height = venue->thumbnail_height_;
-        }
-
-        r_inline_message =
-            get_inline_message(std::move(venue->input_message_content_), std::move(venue->reply_markup_), -1);
-        break;
-      }
-      case td_api::inputInlineQueryResultVideo::ID: {
-        auto video = move_tl_object_as<td_api::inputInlineQueryResultVideo>(input_result);
-        type = "video";
-        id = std::move(video->id_);
-        title = std::move(video->title_);
-        description = std::move(video->description_);
-        thumbnail_url = std::move(video->thumbnail_url_);
-        content_url = std::move(video->video_url_);
-        content_type = std::move(video->mime_type_);
-        width = video->video_width_;
-        height = video->video_height_;
-        duration = video->video_duration_;
-
-        if (content_url.find('.') != string::npos) {
-          if (begins_with(content_type, "video/mp4")) {
-            content_type = "video/mp4";
-          } else if (begins_with(content_type, "text/html")) {
-            content_type = "text/html";
-          } else {
-            return promise.set_error(Status::Error(400, "Unallowed video MIME type"));
-          }
-        }
-
-        file_type = FileType::Video;
-        r_inline_message = get_inline_message(std::move(video->input_message_content_), std::move(video->reply_markup_),
-                                              td_api::inputMessageVideo::ID);
-        break;
-      }
-      case td_api::inputInlineQueryResultVoiceNote::ID: {
-        auto voice_note = move_tl_object_as<td_api::inputInlineQueryResultVoiceNote>(input_result);
-        type = "voice";
-        id = std::move(voice_note->id_);
-        title = std::move(voice_note->title_);
-        content_url = std::move(voice_note->voice_note_url_);
-        content_type = "audio/ogg";
-        duration = voice_note->voice_note_duration_;
-        force_vertical = true;
-
-        file_type = FileType::VoiceNote;
-        r_inline_message = get_inline_message(std::move(voice_note->input_message_content_),
-                                              std::move(voice_note->reply_markup_), td_api::inputMessageVoiceNote::ID);
-        break;
-      }
-      default:
-        UNREACHABLE();
-        break;
-    }
-    if (r_inline_message.is_error()) {
-      return promise.set_error(r_inline_message.move_as_error());
-    }
-    auto inline_message = r_inline_message.move_as_ok();
-    if (inline_message->get_id() == telegram_api::inputBotInlineMessageMediaAuto::ID && file_type == FileType::Temp) {
-      return promise.set_error(Status::Error(400, "Sent message content must be explicitly specified"));
-    }
-
-    if (duration < 0) {
-      duration = 0;
-    }
-
-    int32 flags = 0;
-    if (!title.empty()) {
-      flags |= telegram_api::inputBotInlineResult::TITLE_MASK;
-      if (!clean_input_string(title)) {
-        return promise.set_error(Status::Error(400, "Strings must be encoded in UTF-8"));
-      }
-    }
-    if (!description.empty()) {
-      flags |= telegram_api::inputBotInlineResult::DESCRIPTION_MASK;
-      if (!clean_input_string(description)) {
-        return promise.set_error(Status::Error(400, "Strings must be encoded in UTF-8"));
-      }
-    }
-
-    if (file_type != FileType::Temp && content_url.find('.') == string::npos) {
-      auto r_file_id = td_->file_manager_->get_input_file_id(
-          file_type, make_tl_object<td_api::inputFileRemote>(content_url), DialogId(), false, false);
-      if (r_file_id.is_error()) {
-        return promise.set_error(Status::Error(400, r_file_id.error().message()));
-      }
-      auto file_id = r_file_id.ok();
-      FileView file_view = td_->file_manager_->get_file_view(file_id);
-      CHECK(file_view.has_remote_location());
-      if (file_view.is_encrypted()) {
-        return promise.set_error(Status::Error(400, "Can't send encrypted file"));
-      }
-      if (file_view.main_remote_location().is_web()) {
-        return promise.set_error(Status::Error(400, "Can't send web file"));
-      }
-
-      if (file_type == FileType::Photo) {
-        auto result = make_tl_object<telegram_api::inputBotInlineResultPhoto>(
-            id, type, file_view.main_remote_location().as_input_photo(), std::move(inline_message));
-        results.push_back(std::move(result));
-        continue;
-      }
-
-      auto result = make_tl_object<telegram_api::inputBotInlineResultDocument>(
-          flags, id, type, title, description, file_view.main_remote_location().as_input_document(),
-          std::move(inline_message));
-      results.push_back(std::move(result));
-      continue;
-    }
-
-    if (!url.empty()) {
-      flags |= telegram_api::inputBotInlineResult::URL_MASK;
-      if (!clean_input_string(url)) {
-        return promise.set_error(Status::Error(400, "Strings must be encoded in UTF-8"));
-      }
-    }
-    tl_object_ptr<telegram_api::inputWebDocument> thumbnail;
-    if (!thumbnail_url.empty()) {
-      flags |= telegram_api::inputBotInlineResult::THUMB_MASK;
-      if (!clean_input_string(thumbnail_url)) {
-        return promise.set_error(Status::Error(400, "Strings must be encoded in UTF-8"));
-      }
-      vector<tl_object_ptr<telegram_api::DocumentAttribute>> attributes;
-      if (thumbnail_width > 0 && thumbnail_height > 0) {
-        attributes.push_back(
-            make_tl_object<telegram_api::documentAttributeImageSize>(thumbnail_width, thumbnail_height));
-      }
-      thumbnail =
-          make_tl_object<telegram_api::inputWebDocument>(thumbnail_url, 0, thumbnail_type, std::move(attributes));
-    }
-    tl_object_ptr<telegram_api::inputWebDocument> content;
-    if (!content_url.empty() || !content_type.empty()) {
-      flags |= telegram_api::inputBotInlineResult::CONTENT_MASK;
-      if (!clean_input_string(content_url)) {
-        return promise.set_error(Status::Error(400, "Strings must be encoded in UTF-8"));
-      }
-      if (!clean_input_string(content_type)) {
-        return promise.set_error(Status::Error(400, "Strings must be encoded in UTF-8"));
-      }
-
-      vector<tl_object_ptr<telegram_api::DocumentAttribute>> attributes;
-      if (width > 0 && height > 0) {
-        if ((duration > 0 || type == "video" || content_type == "video/mp4") && !begins_with(content_type, "image/")) {
-          attributes.push_back(make_tl_object<telegram_api::documentAttributeVideo>(
-              0, false /*ignored*/, false /*ignored*/, duration, width, height));
-        } else {
-          attributes.push_back(make_tl_object<telegram_api::documentAttributeImageSize>(width, height));
-        }
-      } else if (type == "audio") {
-        attributes.push_back(make_tl_object<telegram_api::documentAttributeAudio>(
-            telegram_api::documentAttributeAudio::TITLE_MASK | telegram_api::documentAttributeAudio::PERFORMER_MASK,
-            false /*ignored*/, duration, title, description, BufferSlice()));
-      } else if (type == "voice") {
-        attributes.push_back(make_tl_object<telegram_api::documentAttributeAudio>(
-            telegram_api::documentAttributeAudio::VOICE_MASK, false /*ignored*/, duration, "", "", BufferSlice()));
-      }
-      attributes.push_back(make_tl_object<telegram_api::documentAttributeFilename>(get_url_file_name(content_url)));
-
-      content = make_tl_object<telegram_api::inputWebDocument>(content_url, 0, content_type, std::move(attributes));
-    }
-
-    auto result = make_tl_object<telegram_api::inputBotInlineResult>(
-        flags, id, type, title, description, url, std::move(thumbnail), std::move(content), std::move(inline_message));
+    TRY_RESULT_PROMISE(promise, result,
+                       get_input_bot_inline_result(std::move(input_result), &is_gallery, &force_vertical));
     results.push_back(std::move(result));
   }
 
   td_->create_handler<SetInlineBotResultsQuery>(std::move(promise))
       ->send(inline_query_id, is_gallery && !force_vertical, is_personal, std::move(results), cache_time, next_offset,
              switch_pm_text, switch_pm_parameter);
+}
+
+Result<tl_object_ptr<telegram_api::InputBotInlineResult>> InlineQueriesManager::get_input_bot_inline_result(
+    td_api::object_ptr<td_api::InputInlineQueryResult> &&result, bool *is_gallery, bool *force_vertical) const {
+  if (result == nullptr) {
+    return Status::Error(400, "Inline query result must be non-empty");
+  }
+
+  string id;
+  string url;
+  string type;
+  string title;
+  string description;
+  string thumbnail_url;
+  string thumbnail_type = "image/jpeg";
+  string content_url;
+  string content_type;
+  int32 thumbnail_width = 0;
+  int32 thumbnail_height = 0;
+  int32 width = 0;
+  int32 height = 0;
+  int32 duration = 0;
+
+  FileType file_type = FileType::Temp;
+  Result<tl_object_ptr<telegram_api::InputBotInlineMessage>> r_inline_message = Status::Error(500, "Uninited");
+  switch (result->get_id()) {
+    case td_api::inputInlineQueryResultAnimation::ID: {
+      auto animation = move_tl_object_as<td_api::inputInlineQueryResultAnimation>(result);
+      type = "gif";
+      id = std::move(animation->id_);
+      title = std::move(animation->title_);
+      thumbnail_url = std::move(animation->thumbnail_url_);
+      if (!animation->thumbnail_mime_type_.empty()) {
+        thumbnail_type = std::move(animation->thumbnail_mime_type_);
+      }
+      content_url = std::move(animation->video_url_);
+      content_type = std::move(animation->video_mime_type_);
+      if (content_type != "image/gif" && content_type != "video/mp4") {
+        return Status::Error(400, "Wrong animation MIME type specified");
+      }
+      duration = animation->video_duration_;
+      width = animation->video_width_;
+      height = animation->video_height_;
+      if (is_gallery != nullptr) {
+        *is_gallery = true;
+      }
+
+      file_type = FileType::Animation;
+      r_inline_message = get_inline_message(std::move(animation->input_message_content_),
+                                            std::move(animation->reply_markup_), td_api::inputMessageAnimation::ID);
+      break;
+    }
+    case td_api::inputInlineQueryResultArticle::ID: {
+      auto article = move_tl_object_as<td_api::inputInlineQueryResultArticle>(result);
+      type = "article";
+      id = std::move(article->id_);
+      if (!article->url_.empty()) {
+        content_url = std::move(article->url_);
+        content_type = "text/html";
+        if (!article->hide_url_) {
+          url = content_url;
+        }
+      }
+      title = std::move(article->title_);
+      description = std::move(article->description_);
+      thumbnail_url = std::move(article->thumbnail_url_);
+      if (!thumbnail_url.empty()) {
+        thumbnail_width = article->thumbnail_width_;
+        thumbnail_height = article->thumbnail_height_;
+      }
+      if (force_vertical != nullptr) {
+        *force_vertical = true;
+      }
+
+      r_inline_message =
+          get_inline_message(std::move(article->input_message_content_), std::move(article->reply_markup_), -1);
+      break;
+    }
+    case td_api::inputInlineQueryResultAudio::ID: {
+      auto audio = move_tl_object_as<td_api::inputInlineQueryResultAudio>(result);
+      type = "audio";
+      id = std::move(audio->id_);
+      title = std::move(audio->title_);
+      description = std::move(audio->performer_);
+      content_url = std::move(audio->audio_url_);
+      content_type = "audio/mpeg";
+      duration = audio->audio_duration_;
+      if (force_vertical != nullptr) {
+        *force_vertical = true;
+      }
+
+      file_type = FileType::Audio;
+      r_inline_message = get_inline_message(std::move(audio->input_message_content_), std::move(audio->reply_markup_),
+                                            td_api::inputMessageAudio::ID);
+      break;
+    }
+    case td_api::inputInlineQueryResultContact::ID: {
+      auto contact = move_tl_object_as<td_api::inputInlineQueryResultContact>(result);
+      if (contact->contact_ == nullptr) {
+        return Status::Error(400, "Contact must be non-empty");
+      }
+      type = "contact";
+      id = std::move(contact->id_);
+      string phone_number = trim(contact->contact_->phone_number_);
+      string first_name = trim(contact->contact_->first_name_);
+      string last_name = trim(contact->contact_->last_name_);
+      if (phone_number.empty()) {
+        return Status::Error(400, "Field \"phone_number\" must contain a valid phone number");
+      }
+      if (first_name.empty()) {
+        return Status::Error(400, "Field \"first_name\" must be non-empty");
+      }
+      if (last_name.empty()) {
+        title = std::move(first_name);
+      } else {
+        title = PSTRING() << first_name << ' ' << last_name;
+      }
+      description = std::move(phone_number);
+      thumbnail_url = std::move(contact->thumbnail_url_);
+      if (!thumbnail_url.empty()) {
+        thumbnail_width = contact->thumbnail_width_;
+        thumbnail_height = contact->thumbnail_height_;
+      }
+      if (force_vertical != nullptr) {
+        *force_vertical = true;
+      }
+
+      r_inline_message =
+          get_inline_message(std::move(contact->input_message_content_), std::move(contact->reply_markup_), -1);
+      break;
+    }
+    case td_api::inputInlineQueryResultDocument::ID: {
+      auto document = move_tl_object_as<td_api::inputInlineQueryResultDocument>(result);
+      type = "file";
+      id = std::move(document->id_);
+      title = std::move(document->title_);
+      description = std::move(document->description_);
+      thumbnail_url = std::move(document->thumbnail_url_);
+      content_url = std::move(document->document_url_);
+      content_type = std::move(document->mime_type_);
+      thumbnail_width = document->thumbnail_width_;
+      thumbnail_height = document->thumbnail_height_;
+
+      if (content_url.find('.') != string::npos) {
+        if (begins_with(content_type, "application/pdf")) {
+          content_type = "application/pdf";
+        } else if (begins_with(content_type, "application/zip")) {
+          content_type = "application/zip";
+        } else {
+          return Status::Error(400, "Unallowed document MIME type");
+        }
+      }
+
+      file_type = FileType::Document;
+      r_inline_message = get_inline_message(std::move(document->input_message_content_),
+                                            std::move(document->reply_markup_), td_api::inputMessageDocument::ID);
+      break;
+    }
+    case td_api::inputInlineQueryResultGame::ID: {
+      auto game = move_tl_object_as<td_api::inputInlineQueryResultGame>(result);
+      auto r_reply_markup = get_reply_markup(std::move(game->reply_markup_), true, true, false, true);
+      if (r_reply_markup.is_error()) {
+        return r_reply_markup.move_as_error();
+      }
+
+      auto input_reply_markup = get_input_reply_markup(r_reply_markup.ok());
+      int32 flags = 0;
+      if (input_reply_markup != nullptr) {
+        flags |= telegram_api::inputBotInlineMessageGame::REPLY_MARKUP_MASK;
+      }
+      return make_tl_object<telegram_api::inputBotInlineResultGame>(
+          game->id_, game->game_short_name_,
+          make_tl_object<telegram_api::inputBotInlineMessageGame>(flags, std::move(input_reply_markup)));
+    }
+    case td_api::inputInlineQueryResultLocation::ID: {
+      auto location = move_tl_object_as<td_api::inputInlineQueryResultLocation>(result);
+      if (location->location_ == nullptr) {
+        return Status::Error(400, "Location must be non-empty");
+      }
+      type = "geo";
+      id = std::move(location->id_);
+      title = std::move(location->title_);
+      description = PSTRING() << location->location_->latitude_ << ' ' << location->location_->longitude_;
+      thumbnail_url = std::move(location->thumbnail_url_);
+      // duration = location->live_period_;
+      if (!thumbnail_url.empty()) {
+        thumbnail_width = location->thumbnail_width_;
+        thumbnail_height = location->thumbnail_height_;
+      }
+
+      r_inline_message =
+          get_inline_message(std::move(location->input_message_content_), std::move(location->reply_markup_), -1);
+      break;
+    }
+    case td_api::inputInlineQueryResultPhoto::ID: {
+      auto photo = move_tl_object_as<td_api::inputInlineQueryResultPhoto>(result);
+      type = "photo";
+      id = std::move(photo->id_);
+      title = std::move(photo->title_);
+      description = std::move(photo->description_);
+      thumbnail_url = std::move(photo->thumbnail_url_);
+      content_url = std::move(photo->photo_url_);
+      content_type = "image/jpeg";
+      width = photo->photo_width_;
+      height = photo->photo_height_;
+      if (is_gallery != nullptr) {
+        *is_gallery = true;
+      }
+
+      file_type = FileType::Photo;
+      r_inline_message = get_inline_message(std::move(photo->input_message_content_), std::move(photo->reply_markup_),
+                                            td_api::inputMessagePhoto::ID);
+      break;
+    }
+    case td_api::inputInlineQueryResultSticker::ID: {
+      auto sticker = move_tl_object_as<td_api::inputInlineQueryResultSticker>(result);
+      type = "sticker";
+      id = std::move(sticker->id_);
+      thumbnail_url = std::move(sticker->thumbnail_url_);
+      content_url = std::move(sticker->sticker_url_);
+      content_type = "image/webp";  // or "application/x-tgsticker"/"video/webm"; not used for previously uploaded files
+      width = sticker->sticker_width_;
+      height = sticker->sticker_height_;
+      if (is_gallery != nullptr) {
+        *is_gallery = true;
+      }
+      if (content_url.find('.') != string::npos) {
+        return Status::Error(400, "Wrong sticker_file_id specified");
+      }
+
+      file_type = FileType::Sticker;
+      r_inline_message = get_inline_message(std::move(sticker->input_message_content_),
+                                            std::move(sticker->reply_markup_), td_api::inputMessageSticker::ID);
+      break;
+    }
+    case td_api::inputInlineQueryResultVenue::ID: {
+      auto venue = move_tl_object_as<td_api::inputInlineQueryResultVenue>(result);
+      if (venue->venue_ == nullptr) {
+        return Status::Error(400, "Venue must be non-empty");
+      }
+      type = "venue";
+      id = std::move(venue->id_);
+      title = std::move(venue->venue_->title_);
+      description = std::move(venue->venue_->address_);
+      thumbnail_url = std::move(venue->thumbnail_url_);
+      if (!thumbnail_url.empty()) {
+        thumbnail_width = venue->thumbnail_width_;
+        thumbnail_height = venue->thumbnail_height_;
+      }
+
+      r_inline_message =
+          get_inline_message(std::move(venue->input_message_content_), std::move(venue->reply_markup_), -1);
+      break;
+    }
+    case td_api::inputInlineQueryResultVideo::ID: {
+      auto video = move_tl_object_as<td_api::inputInlineQueryResultVideo>(result);
+      type = "video";
+      id = std::move(video->id_);
+      title = std::move(video->title_);
+      description = std::move(video->description_);
+      thumbnail_url = std::move(video->thumbnail_url_);
+      content_url = std::move(video->video_url_);
+      content_type = std::move(video->mime_type_);
+      width = video->video_width_;
+      height = video->video_height_;
+      duration = video->video_duration_;
+
+      if (content_url.find('.') != string::npos) {
+        if (begins_with(content_type, "video/mp4")) {
+          content_type = "video/mp4";
+        } else if (begins_with(content_type, "text/html")) {
+          content_type = "text/html";
+        } else {
+          return Status::Error(400, "Unallowed video MIME type");
+        }
+      }
+
+      file_type = FileType::Video;
+      r_inline_message = get_inline_message(std::move(video->input_message_content_), std::move(video->reply_markup_),
+                                            td_api::inputMessageVideo::ID);
+      break;
+    }
+    case td_api::inputInlineQueryResultVoiceNote::ID: {
+      auto voice_note = move_tl_object_as<td_api::inputInlineQueryResultVoiceNote>(result);
+      type = "voice";
+      id = std::move(voice_note->id_);
+      title = std::move(voice_note->title_);
+      content_url = std::move(voice_note->voice_note_url_);
+      content_type = "audio/ogg";
+      duration = voice_note->voice_note_duration_;
+      if (force_vertical != nullptr) {
+        *force_vertical = true;
+      }
+
+      file_type = FileType::VoiceNote;
+      r_inline_message = get_inline_message(std::move(voice_note->input_message_content_),
+                                            std::move(voice_note->reply_markup_), td_api::inputMessageVoiceNote::ID);
+      break;
+    }
+    default:
+      UNREACHABLE();
+      break;
+  }
+  if (r_inline_message.is_error()) {
+    return r_inline_message.move_as_error();
+  }
+  auto inline_message = r_inline_message.move_as_ok();
+  if (inline_message->get_id() == telegram_api::inputBotInlineMessageMediaAuto::ID && file_type == FileType::Temp) {
+    return Status::Error(400, "Sent message content must be explicitly specified");
+  }
+
+  if (duration < 0) {
+    duration = 0;
+  }
+
+  int32 flags = 0;
+  if (!title.empty()) {
+    flags |= telegram_api::inputBotInlineResult::TITLE_MASK;
+    if (!clean_input_string(title)) {
+      return Status::Error(400, "Strings must be encoded in UTF-8");
+    }
+  }
+  if (!description.empty()) {
+    flags |= telegram_api::inputBotInlineResult::DESCRIPTION_MASK;
+    if (!clean_input_string(description)) {
+      return Status::Error(400, "Strings must be encoded in UTF-8");
+    }
+  }
+
+  if (file_type != FileType::Temp && content_url.find('.') == string::npos) {
+    auto r_file_id = td_->file_manager_->get_input_file_id(
+        file_type, make_tl_object<td_api::inputFileRemote>(content_url), DialogId(), false, false);
+    if (r_file_id.is_error()) {
+      return Status::Error(400, r_file_id.error().message());
+    }
+    auto file_id = r_file_id.ok();
+    FileView file_view = td_->file_manager_->get_file_view(file_id);
+    CHECK(file_view.has_remote_location());
+    if (file_view.is_encrypted()) {
+      return Status::Error(400, "Can't send encrypted file");
+    }
+    if (file_view.main_remote_location().is_web()) {
+      return Status::Error(400, "Can't send web file");
+    }
+
+    if (file_type == FileType::Photo) {
+      return make_tl_object<telegram_api::inputBotInlineResultPhoto>(
+          id, type, file_view.main_remote_location().as_input_photo(), std::move(inline_message));
+    }
+
+    return make_tl_object<telegram_api::inputBotInlineResultDocument>(
+        flags, id, type, title, description, file_view.main_remote_location().as_input_document(),
+        std::move(inline_message));
+  }
+
+  if (!url.empty()) {
+    flags |= telegram_api::inputBotInlineResult::URL_MASK;
+    if (!clean_input_string(url)) {
+      return Status::Error(400, "Strings must be encoded in UTF-8");
+    }
+  }
+  tl_object_ptr<telegram_api::inputWebDocument> thumbnail;
+  if (!thumbnail_url.empty()) {
+    flags |= telegram_api::inputBotInlineResult::THUMB_MASK;
+    if (!clean_input_string(thumbnail_url)) {
+      return Status::Error(400, "Strings must be encoded in UTF-8");
+    }
+    vector<tl_object_ptr<telegram_api::DocumentAttribute>> attributes;
+    if (thumbnail_width > 0 && thumbnail_height > 0) {
+      attributes.push_back(make_tl_object<telegram_api::documentAttributeImageSize>(thumbnail_width, thumbnail_height));
+    }
+    thumbnail = make_tl_object<telegram_api::inputWebDocument>(thumbnail_url, 0, thumbnail_type, std::move(attributes));
+  }
+  tl_object_ptr<telegram_api::inputWebDocument> content;
+  if (!content_url.empty() || !content_type.empty()) {
+    flags |= telegram_api::inputBotInlineResult::CONTENT_MASK;
+    if (!clean_input_string(content_url)) {
+      return Status::Error(400, "Strings must be encoded in UTF-8");
+    }
+    if (!clean_input_string(content_type)) {
+      return Status::Error(400, "Strings must be encoded in UTF-8");
+    }
+
+    vector<tl_object_ptr<telegram_api::DocumentAttribute>> attributes;
+    if (width > 0 && height > 0) {
+      if ((duration > 0 || type == "video" || content_type == "video/mp4") && !begins_with(content_type, "image/")) {
+        attributes.push_back(make_tl_object<telegram_api::documentAttributeVideo>(
+            0, false /*ignored*/, false /*ignored*/, duration, width, height));
+      } else {
+        attributes.push_back(make_tl_object<telegram_api::documentAttributeImageSize>(width, height));
+      }
+    } else if (type == "audio") {
+      attributes.push_back(make_tl_object<telegram_api::documentAttributeAudio>(
+          telegram_api::documentAttributeAudio::TITLE_MASK | telegram_api::documentAttributeAudio::PERFORMER_MASK,
+          false /*ignored*/, duration, title, description, BufferSlice()));
+    } else if (type == "voice") {
+      attributes.push_back(make_tl_object<telegram_api::documentAttributeAudio>(
+          telegram_api::documentAttributeAudio::VOICE_MASK, false /*ignored*/, duration, "", "", BufferSlice()));
+    }
+    attributes.push_back(make_tl_object<telegram_api::documentAttributeFilename>(get_url_file_name(content_url)));
+
+    content = make_tl_object<telegram_api::inputWebDocument>(content_url, 0, content_type, std::move(attributes));
+  }
+
+  return make_tl_object<telegram_api::inputBotInlineResult>(
+      flags, id, type, title, description, url, std::move(thumbnail), std::move(content), std::move(inline_message));
 }
 
 uint64 InlineQueriesManager::send_inline_query(UserId bot_user_id, DialogId dialog_id, Location user_location,
