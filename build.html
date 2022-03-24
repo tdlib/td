@@ -40,7 +40,7 @@
     body {
       font-family: 'Segoe UI', Arial, Helvetica, sans-serif;
     }
-    :focus:not(:focus-within) {
+    :focus:not(:focus-visible) {
       outline: none;
     }
     input:focus-visible, select:focus-visible, button:focus-visible {
@@ -86,7 +86,7 @@
     a:hover {
       text-decoration: underline;
     }
-    a:focus {
+    a:focus-visible {
       text-decoration: underline 2px; 
       color: var(--color-primary-light);
       outline: none;
