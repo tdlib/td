@@ -1131,8 +1131,11 @@ keyboardButton text:string type:KeyboardButtonType = KeyboardButton;
 //@description A button that opens a specified URL @url HTTP or tg:// URL to open
 inlineKeyboardButtonTypeUrl url:string = InlineKeyboardButtonType;
 
-//@description A button that opens a specified URL and automatically authorize the current user if allowed to do so @url An HTTP URL to open @id Unique button identifier @forward_text If non-empty, new text of the button in forwarded messages
+//@description A button that opens a specified URL and automatically authorize the current user by calling getLoginUrlInfo @url An HTTP URL to pass to getLoginUrlInfo @id Unique button identifier @forward_text If non-empty, new text of the button in forwarded messages
 inlineKeyboardButtonTypeLoginUrl url:string id:int53 forward_text:string = InlineKeyboardButtonType;
+
+//@description A button that opens a specified URL in web view by calling getWebViewUrl @url An HTTP URL to pass to getWebViewUrl
+inlineKeyboardButtonTypeWebViewUrl url:string = InlineKeyboardButtonType;
 
 //@description A button that sends a callback query to a bot @data Data to be sent to the bot via a callback query
 inlineKeyboardButtonTypeCallback data:bytes = InlineKeyboardButtonType;

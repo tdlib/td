@@ -43,7 +43,8 @@ struct InlineKeyboardButton {
     Buy,
     UrlAuth,
     CallbackWithPassword,
-    User
+    User,
+    WebView
   };
   Type type;
   int64 id = 0;    // UrlAuth only, button_id or (2 * request_write_access - 1) * bot_user_id
