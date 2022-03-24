@@ -4813,6 +4813,12 @@ getInlineQueryResults bot_user_id:int53 chat_id:int53 user_location:location que
 answerInlineQuery inline_query_id:int64 is_personal:Bool results:vector<InputInlineQueryResult> cache_time:int32 next_offset:string switch_pm_text:string switch_pm_parameter:string = Ok;
 
 
+//@description Sets the result of interaction with web view and sends corresponding message on behalf of the user to the chat from which the query originated; for bots only
+//@web_view_query_id Identifier of the web view query
+//@result The result of the query
+answerWebViewQuery web_view_query_id:string result:InputInlineQueryResult = Ok;
+
+
 //@description Sends a callback query to a bot and returns an answer. Returns an error with code 502 if the bot fails to answer the query before the query timeout expires @chat_id Identifier of the chat with the message @message_id Identifier of the message from which the query originated @payload Query payload
 getCallbackQueryAnswer chat_id:int53 message_id:int53 payload:CallbackQueryPayload = CallbackQueryAnswer;
 

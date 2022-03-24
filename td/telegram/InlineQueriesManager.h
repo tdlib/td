@@ -45,6 +45,10 @@ class InlineQueriesManager final : public Actor {
                            const string &next_offset, const string &switch_pm_text, const string &switch_pm_parameter,
                            Promise<Unit> &&promise) const;
 
+  void answer_web_view_query(const string &web_view_query_id,
+                             td_api::object_ptr<td_api::InputInlineQueryResult> &&input_result,
+                             Promise<Unit> &&promise) const;
+
   uint64 send_inline_query(UserId bot_user_id, DialogId dialog_id, Location user_location, const string &query,
                            const string &offset, Promise<Unit> &&promise);
 

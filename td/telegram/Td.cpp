@@ -7321,6 +7321,14 @@ void Td::on_request(uint64 id, td_api::answerInlineQuery &request) {
       request.next_offset_, request.switch_pm_text_, request.switch_pm_parameter_, std::move(promise));
 }
 
+void Td::on_request(uint64 id, td_api::answerWebViewQuery &request) {
+  CHECK_IS_BOT();
+  CLEAN_INPUT_STRING(request.web_view_query_id_);
+  CREATE_OK_REQUEST_PROMISE();
+  inline_queries_manager_->answer_web_view_query(request.web_view_query_id_, std::move(request.result_),
+                                                 std::move(promise));
+}
+
 void Td::on_request(uint64 id, td_api::getCallbackQueryAnswer &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();

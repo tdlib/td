@@ -151,8 +151,35 @@ class SetInlineBotResultsQuery final : public Td::ResultHandler {
 
     bool result = result_ptr.ok();
     if (!result) {
-      LOG(INFO) << "Sending answer to an inline query has failed";
+      LOG(ERROR) << "Sending answer to an inline query has failed";
     }
+    promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
+class SendWebViewResultMessageQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit SendWebViewResultMessageQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(const string &bot_query_id, tl_object_ptr<telegram_api::InputBotInlineResult> &&result) {
+    send_query(G()->net_query_creator().create(
+        telegram_api::messages_sendWebViewResultMessage(bot_query_id, std::move(result))));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_sendWebViewResultMessage>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    // auto ptr = result_ptr.move_as_ok();
     promise_.set_value(Unit());
   }
 
@@ -367,9 +394,7 @@ void InlineQueriesManager::answer_inline_query(
     int64 inline_query_id, bool is_personal, vector<td_api::object_ptr<td_api::InputInlineQueryResult>> &&input_results,
     int32 cache_time, const string &next_offset, const string &switch_pm_text, const string &switch_pm_parameter,
     Promise<Unit> &&promise) const {
-  if (!td_->auth_manager_->is_bot()) {
-    return promise.set_error(Status::Error(400, "Method can be used by bots only"));
-  }
+  CHECK(td_->auth_manager_->is_bot());
 
   if (!switch_pm_text.empty()) {
     if (switch_pm_parameter.empty()) {
@@ -396,6 +421,16 @@ void InlineQueriesManager::answer_inline_query(
   td_->create_handler<SetInlineBotResultsQuery>(std::move(promise))
       ->send(inline_query_id, is_gallery && !force_vertical, is_personal, std::move(results), cache_time, next_offset,
              switch_pm_text, switch_pm_parameter);
+}
+
+void InlineQueriesManager::answer_web_view_query(const string &web_view_query_id,
+                                                 td_api::object_ptr<td_api::InputInlineQueryResult> &&input_result,
+                                                 Promise<Unit> &&promise) const {
+  CHECK(td_->auth_manager_->is_bot());
+
+  TRY_RESULT_PROMISE(promise, result, get_input_bot_inline_result(std::move(input_result), nullptr, nullptr));
+
+  td_->create_handler<SendWebViewResultMessageQuery>(std::move(promise))->send(web_view_query_id, std::move(result));
 }
 
 Result<tl_object_ptr<telegram_api::InputBotInlineResult>> InlineQueriesManager::get_input_bot_inline_result(
