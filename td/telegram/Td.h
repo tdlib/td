@@ -38,6 +38,7 @@
 namespace td {
 
 class AnimationsManager;
+class AttachMenuManager;
 class AudiosManager;
 class AuthManager;
 class BackgroundManager;
@@ -138,6 +139,8 @@ class Td final : public Actor {
 
   unique_ptr<AnimationsManager> animations_manager_;
   ActorOwn<AnimationsManager> animations_manager_actor_;
+  unique_ptr<AttachMenuManager> attach_menu_manager_;
+  ActorOwn<AttachMenuManager> attach_menu_manager_actor_;
   unique_ptr<AuthManager> auth_manager_;
   ActorOwn<AuthManager> auth_manager_actor_;
   unique_ptr<BackgroundManager> background_manager_;

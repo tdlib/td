@@ -278,6 +278,7 @@ set(TDLIB_SOURCE
 
   td/telegram/Account.cpp
   td/telegram/AnimationsManager.cpp
+  td/telegram/AttachMenuManager.cpp
   td/telegram/AudiosManager.cpp
   td/telegram/AuthManager.cpp
   td/telegram/AutoDownloadSettings.cpp
@@ -465,6 +466,7 @@ set(TDLIB_SOURCE
   td/telegram/Account.h
   td/telegram/AffectedHistory.h
   td/telegram/AnimationsManager.h
+  td/telegram/AttachMenuManager.h
   td/telegram/AudiosManager.h
   td/telegram/AuthManager.h
   td/telegram/AutoDownloadSettings.h

@@ -8,6 +8,7 @@
 
 #include "td/telegram/Account.h"
 #include "td/telegram/AnimationsManager.h"
+#include "td/telegram/AttachMenuManager.h"
 #include "td/telegram/AudiosManager.h"
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/AutoDownloadSettings.h"
@@ -3320,6 +3321,8 @@ void Td::dec_actor_refcnt() {
       Timer timer;
       animations_manager_.reset();
       LOG(DEBUG) << "AnimationsManager was cleared" << timer;
+      attach_menu_manager_.reset();
+      LOG(DEBUG) << "AttachMenuManager was cleared" << timer;
       audios_manager_.reset();
       LOG(DEBUG) << "AudiosManager was cleared" << timer;
       auth_manager_.reset();
@@ -3514,6 +3517,8 @@ void Td::clear() {
   // clear actors which are unique pointers
   animations_manager_actor_.reset();
   LOG(DEBUG) << "AnimationsManager actor was cleared" << timer;
+  attach_menu_manager_actor_.reset();
+  LOG(DEBUG) << "AttachMenuManager actor was cleared" << timer;
   auth_manager_actor_.reset();
   LOG(DEBUG) << "AuthManager actor was cleared" << timer;
   background_manager_actor_.reset();
@@ -3983,6 +3988,8 @@ void Td::init_managers() {
   animations_manager_ = make_unique<AnimationsManager>(this, create_reference());
   animations_manager_actor_ = register_actor("AnimationsManager", animations_manager_.get());
   G()->set_animations_manager(animations_manager_actor_.get());
+  attach_menu_manager_ = make_unique<AttachMenuManager>(this, create_reference());
+  attach_menu_manager_actor_ = register_actor("AttachMenuManager", attach_menu_manager_.get());
   background_manager_ = make_unique<BackgroundManager>(this, create_reference());
   background_manager_actor_ = register_actor("BackgroundManager", background_manager_.get());
   G()->set_background_manager(background_manager_actor_.get());
@@ -4416,6 +4423,8 @@ void Td::on_request(uint64 id, const td_api::getCurrentState &request) {
     background_manager_->get_current_state(updates);
 
     animations_manager_->get_current_state(updates);
+
+    attach_menu_manager_->get_current_state(updates);
 
     stickers_manager_->get_current_state(updates);
 
