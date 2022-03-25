@@ -22,6 +22,7 @@
 #include "td/utils/algorithm.h"
 #include "td/utils/buffer.h"
 #include "td/utils/misc.h"
+#include "td/utils/Random.h"
 #include "td/utils/tl_helpers.h"
 
 namespace td {
@@ -200,8 +201,16 @@ void AttachMenuManager::init() {
   reload_attach_menu_bots();
 }
 
+void AttachMenuManager::timeout_expired() {
+  if (!is_active()) {
+    return;
+  }
+
+  reload_attach_menu_bots();
+}
+
 bool AttachMenuManager::is_active() const {
-  return td_->auth_manager_->is_authorized() && !td_->auth_manager_->is_bot();
+  return !G()->close_flag() && td_->auth_manager_->is_authorized() && !td_->auth_manager_->is_bot();
 }
 
 void AttachMenuManager::reload_attach_menu_bots() {
@@ -221,11 +230,13 @@ void AttachMenuManager::on_reload_attach_menu_bots(
     return;
   }
   if (result.is_error()) {
-    // TODO retry after some time
+    set_timeout_in(Random::fast(60, 120));
     return;
   }
 
   is_inited_ = true;
+
+  set_timeout_in(Random::fast(3600, 4800));
 
   auto attach_menu_bots_ptr = result.move_as_ok();
   auto constructor_id = attach_menu_bots_ptr->get_id();

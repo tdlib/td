@@ -35,6 +35,8 @@ class AttachMenuManager final : public Actor {
  private:
   void start_up() final;
 
+  void timeout_expired() final;
+
   void tear_down() final;
 
   bool is_active() const;
