@@ -47,7 +47,15 @@ class AttachMenuManager final : public Actor {
     FileId ios_animated_icon_file_id_;
     FileId android_icon_file_id_;
     FileId macos_icon_file_id_;
+
+    template <class StorerT>
+    void store(StorerT &storer) const;
+
+    template <class ParserT>
+    void parse(ParserT &parser);
   };
+
+  class AttachMenuBotsLogEvent;
 
   friend bool operator==(const AttachMenuBot &lhs, const AttachMenuBot &rhs);
 
@@ -56,6 +64,10 @@ class AttachMenuManager final : public Actor {
   td_api::object_ptr<td_api::updateAttachMenuBots> get_update_attach_menu_bots_object() const;
 
   void send_update_attach_menu_bots() const;
+
+  static string get_attach_menu_bots_database_key();
+
+  void save_attach_menu_bots();
 
   Td *td_;
   ActorShared<> parent_;

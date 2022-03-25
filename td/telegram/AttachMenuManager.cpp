@@ -8,16 +8,21 @@
 
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/ContactsManager.h"
+#include "td/telegram/Dependencies.h"
 #include "td/telegram/Document.h"
 #include "td/telegram/DocumentsManager.h"
+#include "td/telegram/files/FileId.hpp"
 #include "td/telegram/files/FileManager.h"
+#include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/Td.h"
+#include "td/telegram/TdDb.h"
 
 #include "td/actor/PromiseFuture.h"
 
 #include "td/utils/algorithm.h"
 #include "td/utils/buffer.h"
 #include "td/utils/misc.h"
+#include "td/utils/tl_helpers.h"
 
 namespace td {
 
@@ -62,7 +67,93 @@ bool operator!=(const AttachMenuManager::AttachMenuBot &lhs, const AttachMenuMan
   return !(lhs == rhs);
 }
 
+template <class StorerT>
+void AttachMenuManager::AttachMenuBot::store(StorerT &storer) const {
+  bool has_ios_static_icon_file_id = ios_static_icon_file_id_.is_valid();
+  bool has_ios_animated_icon_file_id = ios_animated_icon_file_id_.is_valid();
+  bool has_android_icon_file_id = android_icon_file_id_.is_valid();
+  bool has_macos_icon_file_id = macos_icon_file_id_.is_valid();
+  BEGIN_STORE_FLAGS();
+  STORE_FLAG(has_ios_static_icon_file_id);
+  STORE_FLAG(has_ios_animated_icon_file_id);
+  STORE_FLAG(has_android_icon_file_id);
+  STORE_FLAG(has_macos_icon_file_id);
+  END_STORE_FLAGS();
+  td::store(user_id_, storer);
+  td::store(name_, storer);
+  td::store(default_icon_file_id_, storer);
+  if (has_ios_static_icon_file_id) {
+    td::store(ios_static_icon_file_id_, storer);
+  }
+  if (has_ios_animated_icon_file_id) {
+    td::store(ios_animated_icon_file_id_, storer);
+  }
+  if (has_android_icon_file_id) {
+    td::store(android_icon_file_id_, storer);
+  }
+  if (has_macos_icon_file_id) {
+    td::store(macos_icon_file_id_, storer);
+  }
+}
+
+template <class ParserT>
+void AttachMenuManager::AttachMenuBot::parse(ParserT &parser) {
+  bool has_ios_static_icon_file_id;
+  bool has_ios_animated_icon_file_id;
+  bool has_android_icon_file_id;
+  bool has_macos_icon_file_id;
+  BEGIN_PARSE_FLAGS();
+  PARSE_FLAG(has_ios_static_icon_file_id);
+  PARSE_FLAG(has_ios_animated_icon_file_id);
+  PARSE_FLAG(has_android_icon_file_id);
+  PARSE_FLAG(has_macos_icon_file_id);
+  END_PARSE_FLAGS();
+  td::parse(user_id_, parser);
+  td::parse(name_, parser);
+  td::parse(default_icon_file_id_, parser);
+  if (has_ios_static_icon_file_id) {
+    td::parse(ios_static_icon_file_id_, parser);
+  }
+  if (has_ios_animated_icon_file_id) {
+    td::parse(ios_animated_icon_file_id_, parser);
+  }
+  if (has_android_icon_file_id) {
+    td::parse(android_icon_file_id_, parser);
+  }
+  if (has_macos_icon_file_id) {
+    td::parse(macos_icon_file_id_, parser);
+  }
+}
+
+class AttachMenuManager::AttachMenuBotsLogEvent {
+ public:
+  int64 hash_ = 0;
+  vector<AttachMenuBot> attach_menu_bots_;
+
+  AttachMenuBotsLogEvent() = default;
+
+  AttachMenuBotsLogEvent(int64 hash, vector<AttachMenuBot> attach_menu_bots)
+      : hash_(hash), attach_menu_bots_(std::move(attach_menu_bots)) {
+  }
+
+  template <class StorerT>
+  void store(StorerT &storer) const {
+    td::store(hash_, storer);
+    td::store(attach_menu_bots_, storer);
+  }
+
+  template <class ParserT>
+  void parse(ParserT &parser) {
+    td::parse(hash_, parser);
+    td::parse(attach_menu_bots_, parser);
+  }
+};
+
 AttachMenuManager::AttachMenuManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
+}
+
+void AttachMenuManager::tear_down() {
+  parent_.reset();
 }
 
 void AttachMenuManager::start_up() {
@@ -78,11 +169,35 @@ void AttachMenuManager::init() {
   }
   is_inited_ = true;
 
-  reload_attach_menu_bots();
-}
+  if (!G()->parameters().use_chat_info_db) {
+    G()->td_db()->get_binlog_pmc()->erase(get_attach_menu_bots_database_key());
+  } else {
+    auto attach_menu_bots_string = G()->td_db()->get_binlog_pmc()->get(get_attach_menu_bots_database_key());
 
-void AttachMenuManager::tear_down() {
-  parent_.reset();
+    if (!attach_menu_bots_string.empty()) {
+      AttachMenuBotsLogEvent attach_menu_bots_log_event;
+      log_event_parse(attach_menu_bots_string, attach_menu_bots_string).ensure();
+
+      Dependencies dependencies;
+      bool is_valid = true;
+      for (auto &attach_menu_bot : attach_menu_bots_log_event.attach_menu_bots_) {
+        if (!attach_menu_bot.user_id_.is_valid() || !attach_menu_bot.default_icon_file_id_.is_valid()) {
+          is_valid = false;
+          break;
+        }
+        dependencies.add(attach_menu_bot.user_id_);
+      }
+      if (is_valid && dependencies.resolve_force(td_, "AttachMenuBotsLogEvent")) {
+        hash_ = attach_menu_bots_log_event.hash_;
+        attach_menu_bots_ = std::move(attach_menu_bots_log_event.attach_menu_bots_);
+      } else {
+        LOG(ERROR) << "Ignore invalid attach menu bots log event";
+      }
+    }
+  }
+
+  send_update_attach_menu_bots();
+  reload_attach_menu_bots();
 }
 
 bool AttachMenuManager::is_active() const {
@@ -97,7 +212,7 @@ void AttachMenuManager::reload_attach_menu_bots() {
       [actor_id = actor_id(this)](Result<telegram_api::object_ptr<telegram_api::AttachMenuBots>> &&result) {
         send_closure(actor_id, &AttachMenuManager::on_reload_attach_menu_bots, std::move(result));
       });
-  td_->create_handler<GetAttachMenuBotsQuery>(std::move(promise))->send(0);
+  td_->create_handler<GetAttachMenuBotsQuery>(std::move(promise))->send(hash_);
 }
 
 void AttachMenuManager::on_reload_attach_menu_bots(
@@ -190,13 +305,16 @@ void AttachMenuManager::on_reload_attach_menu_bots(
     if (need_update) {
       send_update_attach_menu_bots();
     }
+
+    save_attach_menu_bots();
   }
 }
 
 td_api::object_ptr<td_api::updateAttachMenuBots> AttachMenuManager::get_update_attach_menu_bots_object() const {
   CHECK(is_active());
+  CHECK(is_inited_);
   auto bots = transform(attach_menu_bots_, [td = td_](const AttachMenuBot &bot) {
-    auto get_file = [td](FileId file_id) {
+    auto get_file = [td](FileId file_id) -> td_api::object_ptr<td_api::file> {
       if (!file_id.is_valid()) {
         return nullptr;
       }
@@ -214,6 +332,24 @@ td_api::object_ptr<td_api::updateAttachMenuBots> AttachMenuManager::get_update_a
 
 void AttachMenuManager::send_update_attach_menu_bots() const {
   send_closure(G()->td(), &Td::send_update, get_update_attach_menu_bots_object());
+}
+
+string AttachMenuManager::get_attach_menu_bots_database_key() {
+  return "attach_bots";
+}
+
+void AttachMenuManager::save_attach_menu_bots() {
+  if (!G()->parameters().use_chat_info_db) {
+    return;
+  }
+
+  if (attach_menu_bots_.empty()) {
+    G()->td_db()->get_binlog_pmc()->erase(get_attach_menu_bots_database_key());
+  } else {
+    AttachMenuBotsLogEvent attach_menu_bots_log_event{hash_, attach_menu_bots_};
+    G()->td_db()->get_binlog_pmc()->set(get_attach_menu_bots_database_key(),
+                                        log_event_store(attach_menu_bots_log_event).as_slice().str());
+  }
 }
 
 void AttachMenuManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const {
