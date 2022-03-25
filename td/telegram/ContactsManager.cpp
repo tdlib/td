@@ -3534,6 +3534,7 @@ void ContactsManager::User::store(StorerT &storer) const {
   STORE_FLAG(has_restriction_reasons);
   STORE_FLAG(need_apply_min_photo);
   STORE_FLAG(is_fake);
+  STORE_FLAG(can_be_added_to_attach_menu);
   END_STORE_FLAGS();
   store(first_name, storer);
   if (has_last_name) {
@@ -3604,6 +3605,7 @@ void ContactsManager::User::parse(ParserT &parser) {
   PARSE_FLAG(has_restriction_reasons);
   PARSE_FLAG(need_apply_min_photo);
   PARSE_FLAG(is_fake);
+  PARSE_FLAG(can_be_added_to_attach_menu);
   END_PARSE_FLAGS();
   parse(first_name, parser);
   if (has_last_name) {
@@ -8471,6 +8473,7 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
   bool is_deleted = (flags & USER_FLAG_IS_DELETED) != 0;
   bool can_join_groups = (flags & USER_FLAG_IS_PRIVATE_BOT) == 0;
   bool can_read_all_group_messages = (flags & USER_FLAG_IS_BOT_WITH_PRIVACY_DISABLED) != 0;
+  bool can_be_added_to_attach_menu = (flags & USER_FLAG_IS_ATTACH_MENU_BOT) != 0;
   auto restriction_reasons = get_restriction_reasons(std::move(user->restriction_reason_));
   bool is_scam = (flags & USER_FLAG_IS_SCAM) != 0;
   bool is_inline_bot = (flags & USER_FLAG_IS_INLINE_BOT) != 0;
@@ -8485,6 +8488,8 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
       << "Receive not bot " << user_id << " which can't join groups from " << source;
   LOG_IF(ERROR, can_read_all_group_messages && !is_bot)
       << "Receive not bot " << user_id << " which can read all group messages from " << source;
+  LOG_IF(ERROR, can_be_added_to_attach_menu && !is_bot)
+      << "Receive not bot " << user_id << " which can be added to attach menu from " << source;
   LOG_IF(ERROR, is_inline_bot && !is_bot) << "Receive not bot " << user_id << " which is inline bot from " << source;
   LOG_IF(ERROR, need_location_bot && !is_inline_bot)
       << "Receive not inline bot " << user_id << " which needs user location from " << source;
@@ -8496,6 +8501,7 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
     is_bot = false;
     can_join_groups = false;
     can_read_all_group_messages = false;
+    can_be_added_to_attach_menu = false;
     is_inline_bot = false;
     inline_query_placeholder = string();
     need_location_bot = false;
@@ -8511,7 +8517,7 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
       can_join_groups != u->can_join_groups || can_read_all_group_messages != u->can_read_all_group_messages ||
       restriction_reasons != u->restriction_reasons || is_scam != u->is_scam || is_fake != u->is_fake ||
       is_inline_bot != u->is_inline_bot || inline_query_placeholder != u->inline_query_placeholder ||
-      need_location_bot != u->need_location_bot) {
+      need_location_bot != u->need_location_bot || can_be_added_to_attach_menu != u->can_be_added_to_attach_menu) {
     LOG_IF(ERROR, is_bot != u->is_bot && !is_deleted && !u->is_deleted && u->is_received)
         << "User.is_bot has changed for " << user_id << "/" << u->username << " from " << source << " from "
         << u->is_bot << " to " << is_bot;
@@ -8526,6 +8532,7 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
     u->is_inline_bot = is_inline_bot;
     u->inline_query_placeholder = std::move(inline_query_placeholder);
     u->need_location_bot = need_location_bot;
+    u->can_be_added_to_attach_menu = can_be_added_to_attach_menu;
 
     LOG(DEBUG) << "Info has changed for " << user_id;
     u->is_changed = true;
@@ -14024,23 +14031,24 @@ Result<ContactsManager::BotData> ContactsManager::get_bot_data(UserId user_id) c
     return Status::Error(400, "Bot not found");
   }
 
-  auto bot = p->second.get();
-  if (!bot->is_bot) {
+  auto u = p->second.get();
+  if (!u->is_bot) {
     return Status::Error(400, "User is not a bot");
   }
-  if (bot->is_deleted) {
+  if (u->is_deleted) {
     return Status::Error(400, "Bot is deleted");
   }
-  if (!bot->is_received) {
+  if (!u->is_received) {
     return Status::Error(400, "Bot is inaccessible");
   }
 
   BotData bot_data;
-  bot_data.username = bot->username;
-  bot_data.can_join_groups = bot->can_join_groups;
-  bot_data.can_read_all_group_messages = bot->can_read_all_group_messages;
-  bot_data.is_inline = bot->is_inline_bot;
-  bot_data.need_location = bot->need_location_bot;
+  bot_data.username = u->username;
+  bot_data.can_join_groups = u->can_join_groups;
+  bot_data.can_read_all_group_messages = u->can_read_all_group_messages;
+  bot_data.is_inline = u->is_inline_bot;
+  bot_data.need_location = u->need_location_bot;
+  bot_data.can_be_added_to_attach_menu = u->can_be_added_to_attach_menu;
   return bot_data;
 }
 
@@ -16218,7 +16226,8 @@ tl_object_ptr<td_api::user> ContactsManager::get_user_object(UserId user_id, con
     type = make_tl_object<td_api::userTypeDeleted>();
   } else if (u->is_bot) {
     type = make_tl_object<td_api::userTypeBot>(u->can_join_groups, u->can_read_all_group_messages, u->is_inline_bot,
-                                               u->inline_query_placeholder, u->need_location_bot);
+                                               u->inline_query_placeholder, u->need_location_bot,
+                                               u->can_be_added_to_attach_menu);
   } else {
     type = make_tl_object<td_api::userTypeRegular>();
   }

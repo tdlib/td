@@ -366,10 +366,14 @@ userTypeRegular = UserType;
 //@description A deleted user or deleted bot. No information on the user besides the user identifier is available. It is not possible to perform any active actions on this type of user
 userTypeDeleted = UserType;
 
-//@description A bot (see https://core.telegram.org/bots) @can_join_groups True, if the bot can be invited to basic group and supergroup chats
+//@description A bot (see https://core.telegram.org/bots)
+//@can_join_groups True, if the bot can be invited to basic group and supergroup chats
 //@can_read_all_group_messages True, if the bot can read all messages in basic group or supergroup chats and not just those addressed to the bot. In private and channel chats a bot can always read all messages
-//@is_inline True, if the bot supports inline queries @inline_query_placeholder Placeholder for inline queries (displayed on the application input field) @need_location True, if the location of the user is expected to be sent with every inline query to this bot
-userTypeBot can_join_groups:Bool can_read_all_group_messages:Bool is_inline:Bool inline_query_placeholder:string need_location:Bool = UserType;
+//@is_inline True, if the bot supports inline queries
+//@inline_query_placeholder Placeholder for inline queries (displayed on the application input field)
+//@need_location True, if the location of the user is expected to be sent with every inline query to this bot
+//@can_be_added_to_attach_menu True, if the bot can be added to attach menu
+userTypeBot can_join_groups:Bool can_read_all_group_messages:Bool is_inline:Bool inline_query_placeholder:string need_location:Bool can_be_added_to_attach_menu:Bool = UserType;
 
 //@description No information on the user besides the user identifier is available, yet this user has not been deleted. This object is extremely rare and must be handled like a deleted user. It is not possible to perform any actions on users of this type
 userTypeUnknown = UserType;

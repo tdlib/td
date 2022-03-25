@@ -455,6 +455,7 @@ class ContactsManager final : public Actor {
     bool can_read_all_group_messages;
     bool is_inline;
     bool need_location;
+    bool can_be_added_to_attach_menu;
   };
   Result<BotData> get_bot_data(UserId user_id) const TD_WARN_UNUSED_RESULT;
 
@@ -654,6 +655,7 @@ class ContactsManager final : public Actor {
     bool is_contact = false;
     bool is_mutual_contact = false;
     bool need_apply_min_photo = false;
+    bool can_be_added_to_attach_menu = false;
 
     bool is_photo_inited = false;
 
@@ -1031,6 +1033,7 @@ class ContactsManager final : public Actor {
   static constexpr int32 USER_FLAG_IS_SCAM = 1 << 24;
   static constexpr int32 USER_FLAG_NEED_APPLY_MIN_PHOTO = 1 << 25;
   static constexpr int32 USER_FLAG_IS_FAKE = 1 << 26;
+  static constexpr int32 USER_FLAG_IS_ATTACH_MENU_BOT = 1 << 27;
 
   static constexpr int32 USER_FULL_FLAG_IS_BLOCKED = 1 << 0;
   static constexpr int32 USER_FULL_FLAG_HAS_ABOUT = 1 << 1;
