@@ -7,6 +7,7 @@
 #include "td/telegram/UpdatesManager.h"
 
 #include "td/telegram/AnimationsManager.h"
+#include "td/telegram/AttachMenuManager.h"
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/CallbackQueriesManager.h"
 #include "td/telegram/CallManager.h"
@@ -2724,6 +2725,11 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateMessageReaction
       std::move(promise));
 }
 
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateAttachMenuBots> update, Promise<Unit> &&promise) {
+  td_->attach_menu_manager_->reload_attach_menu_bots();
+  promise.set_value(Unit());
+}
+
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateFolderPeers> update, Promise<Unit> &&promise) {
   for (auto &folder_peer : update->folder_peers_) {
     DialogId dialog_id(folder_peer->peer_);
@@ -3314,9 +3320,5 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateSavedRingtones>
 }
 
 // unsupported updates
-
-void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateAttachMenuBots> update, Promise<Unit> &&promise) {
-  promise.set_value(Unit());
-}
 
 }  // namespace td

@@ -222,6 +222,8 @@ class ContactsManager final : public Actor {
   void on_update_dialog_administrators(DialogId dialog_id, vector<DialogAdministrator> &&administrators,
                                        bool have_access, bool from_database);
 
+  void reload_attach_menu_bots();
+
   void speculative_add_channel_participants(ChannelId channel_id, const vector<UserId> &added_user_ids,
                                             UserId inviter_user_id, int32 date, bool by_me);
 
