@@ -54,6 +54,9 @@ static StringBuilder &operator<<(StringBuilder &string_builder, const KeyboardBu
     case KeyboardButton::Type::RequestPollRegular:
       string_builder << "RequestPollRegular";
       break;
+    case KeyboardButton::Type::WebView:
+      string_builder << "WebView";
+      break;
     default:
       UNREACHABLE();
   }
@@ -215,6 +218,13 @@ static KeyboardButton get_keyboard_button(tl_object_ptr<telegram_api::KeyboardBu
         button.type = KeyboardButton::Type::RequestPoll;
       }
       button.text = std::move(keyboard_button->text_);
+      break;
+    }
+    case telegram_api::keyboardButtonSimpleWebView::ID: {
+      auto keyboard_button = move_tl_object_as<telegram_api::keyboardButtonSimpleWebView>(keyboard_button_ptr);
+      button.type = KeyboardButton::Type::WebView;
+      button.text = std::move(keyboard_button->text_);
+      button.url = std::move(keyboard_button->url_);
       break;
     }
     default:
@@ -430,6 +440,13 @@ static Result<KeyboardButton> get_keyboard_button(tl_object_ptr<td_api::keyboard
       }
       break;
     }
+    case td_api::keyboardButtonTypeWebView::ID:
+      if (!request_buttons_allowed) {
+        return Status::Error(400, "Web view can be used in private chats only");
+      }
+      current_button.type = KeyboardButton::Type::WebView;
+      current_button.url = std::move(static_cast<td_api::keyboardButtonTypeWebView *>(button->type_.get())->url_);
+      break;
     default:
       UNREACHABLE();
   }
@@ -690,6 +707,8 @@ static tl_object_ptr<telegram_api::KeyboardButton> get_keyboard_button(const Key
       return make_tl_object<telegram_api::keyboardButtonRequestPoll>(1, true, keyboard_button.text);
     case KeyboardButton::Type::RequestPollRegular:
       return make_tl_object<telegram_api::keyboardButtonRequestPoll>(1, false, keyboard_button.text);
+    case KeyboardButton::Type::WebView:
+      return make_tl_object<telegram_api::keyboardButtonSimpleWebView>(keyboard_button.text, keyboard_button.url);
     default:
       UNREACHABLE();
       return nullptr;
@@ -827,6 +846,9 @@ static tl_object_ptr<td_api::keyboardButton> get_keyboard_button_object(const Ke
       break;
     case KeyboardButton::Type::RequestPollRegular:
       type = make_tl_object<td_api::keyboardButtonTypeRequestPoll>(true, false);
+      break;
+    case KeyboardButton::Type::WebView:
+      type = make_tl_object<td_api::keyboardButtonTypeWebView>(keyboard_button.url);
       break;
     default:
       UNREACHABLE();

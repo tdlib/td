@@ -26,10 +26,12 @@ struct KeyboardButton {
     RequestLocation,
     RequestPoll,
     RequestPollQuiz,
-    RequestPollRegular
+    RequestPollRegular,
+    WebView
   };
   Type type;
   string text;
+  string url;  // WebView only
 };
 
 struct InlineKeyboardButton {

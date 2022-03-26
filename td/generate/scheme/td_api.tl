@@ -1125,6 +1125,9 @@ keyboardButtonTypeRequestLocation = KeyboardButtonType;
 //@description A button that allows the user to create and send a poll when pressed; available only in private chats @force_regular If true, only regular polls must be allowed to create @force_quiz If true, only polls in quiz mode must be allowed to create
 keyboardButtonTypeRequestPoll force_regular:Bool force_quiz:Bool = KeyboardButtonType;
 
+//@description A button that opens a specified URL in web view by calling getSimpleWebViewUrl @url An HTTP URL to pass to getSimpleWebViewUrl
+keyboardButtonTypeWebView url:string = KeyboardButtonType;
+
 
 //@description Represents a single button in a bot keyboard @text Text of the button @type Type of the button
 keyboardButton text:string type:KeyboardButtonType = KeyboardButton;
