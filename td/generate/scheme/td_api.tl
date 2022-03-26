@@ -5119,6 +5119,10 @@ toggleChatIsPinned chat_list:ChatList chat_id:int53 is_pinned:Bool = Ok;
 setPinnedChats chat_list:ChatList chat_ids:vector<int53> = Ok;
 
 
+//@description Adds or removes a bot to attach menu. Bot can be added to attach menu, only if userTypeBot.can_be_added_to_attach_menu == true @bot_user_id Bot's user identifier @is_added Pass true to add the bot to attach menu; pass false to remove the bot from attach menu
+toggleBotIsAddedToAttachMenu bot_user_id:int53 is_added:Bool = Ok;
+
+
 //@description Downloads a file from the cloud. Download progress and completion of the download will be notified through updateFile updates
 //@file_id Identifier of the file to download
 //@priority Priority of the download (1-32). The higher the priority, the earlier the file will be downloaded. If the priorities of two files are equal, then the last one for which downloadFile/addFileToDownloads was called will be downloaded first

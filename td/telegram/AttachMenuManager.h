@@ -12,6 +12,7 @@
 #include "td/telegram/UserId.h"
 
 #include "td/actor/actor.h"
+#include "td/actor/PromiseFuture.h"
 
 #include "td/utils/common.h"
 #include "td/utils/Status.h"
@@ -26,11 +27,11 @@ class AttachMenuManager final : public Actor {
 
   void init();
 
-  void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
-
   void reload_attach_menu_bots();
 
-  void on_reload_attach_menu_bots(Result<telegram_api::object_ptr<telegram_api::AttachMenuBots>> &&result);
+  void toggle_bot_is_added_to_attach_menu(UserId user_id, bool is_added, Promise<Unit> &&promise);
+
+  void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
 
  private:
   void start_up() final;
@@ -70,6 +71,8 @@ class AttachMenuManager final : public Actor {
   static string get_attach_menu_bots_database_key();
 
   void save_attach_menu_bots();
+
+  void on_reload_attach_menu_bots(Result<telegram_api::object_ptr<telegram_api::AttachMenuBots>> &&result);
 
   Td *td_;
   ActorShared<> parent_;

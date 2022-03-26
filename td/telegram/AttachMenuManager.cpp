@@ -17,8 +17,6 @@
 #include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"
 
-#include "td/actor/PromiseFuture.h"
-
 #include "td/utils/algorithm.h"
 #include "td/utils/buffer.h"
 #include "td/utils/misc.h"
@@ -49,6 +47,36 @@ class GetAttachMenuBotsQuery final : public Td::ResultHandler {
     LOG(INFO) << "Receive result for GetAttachMenuBotsQuery: " << to_string(ptr);
 
     promise_.set_value(std::move(ptr));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
+class ToggleBotInAttachMenuQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit ToggleBotInAttachMenuQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(tl_object_ptr<telegram_api::InputUser> &&input_user, bool is_added) {
+    send_query(
+        G()->net_query_creator().create(telegram_api::messages_toggleBotInAttachMenu(std::move(input_user), is_added)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_toggleBotInAttachMenu>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto result = result_ptr.move_as_ok();
+    if (!result) {
+      LOG(ERROR) << "Failed to add a bot to attach menu";
+    }
+    promise_.set_value(Unit());
   }
 
   void on_error(Status status) final {
@@ -319,6 +347,32 @@ void AttachMenuManager::on_reload_attach_menu_bots(
 
     save_attach_menu_bots();
   }
+}
+
+void AttachMenuManager::toggle_bot_is_added_to_attach_menu(UserId user_id, bool is_added, Promise<Unit> &&promise) {
+  CHECK(is_active());
+
+  TRY_RESULT_PROMISE(promise, input_user, td_->contacts_manager_->get_input_user(user_id));
+
+  bool is_found = false;
+  for (auto &bot : attach_menu_bots_) {
+    if (bot.user_id_ == user_id) {
+      is_found = true;
+      break;
+    }
+  }
+  if (is_added == is_found) {
+    return promise.set_value(Unit());
+  }
+
+  if (is_added) {
+    TRY_RESULT_PROMISE(promise, bot_data, td_->contacts_manager_->get_bot_data(user_id));
+    if (!bot_data.can_be_added_to_attach_menu) {
+      return promise.set_error(Status::Error(400, "The bot can't be added to attach menu"));
+    }
+  }
+
+  td_->create_handler<ToggleBotInAttachMenuQuery>(std::move(promise))->send(std::move(input_user), is_added);
 }
 
 td_api::object_ptr<td_api::updateAttachMenuBots> AttachMenuManager::get_update_attach_menu_bots_object() const {
