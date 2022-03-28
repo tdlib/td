@@ -450,7 +450,7 @@ static Result<KeyboardButton> get_keyboard_button(tl_object_ptr<td_api::keyboard
       if (user_id.is_valid()) {
         return Status::Error(400, "Link to a user can't be used in web view URL buttons");
       }
-      auto r_url = LinkManager::check_link(button_type->url_);
+      auto r_url = LinkManager::check_link(button_type->url_, true, true);
       if (r_url.is_error()) {
         return Status::Error(400, "Inline keyboard button web view URL is invalid");
       }
@@ -537,7 +537,7 @@ static Result<InlineKeyboardButton> get_inline_keyboard_button(tl_object_ptr<td_
       if (user_id.is_valid()) {
         return Status::Error(400, "Link to a user can't be used in login URL buttons");
       }
-      auto r_url = LinkManager::check_link(button_type->url_);
+      auto r_url = LinkManager::check_link(button_type->url_, true);
       if (r_url.is_error()) {
         return Status::Error(400, "Inline keyboard button login URL is invalid");
       }
@@ -572,7 +572,7 @@ static Result<InlineKeyboardButton> get_inline_keyboard_button(tl_object_ptr<td_
       if (user_id.is_valid()) {
         return Status::Error(400, "Link to a user can't be used in web view URL buttons");
       }
-      auto r_url = LinkManager::check_link(button_type->url_);
+      auto r_url = LinkManager::check_link(button_type->url_, true, true);
       if (r_url.is_error()) {
         return Status::Error(400, "Inline keyboard button web view URL is invalid");
       }

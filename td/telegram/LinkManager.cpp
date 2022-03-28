@@ -623,7 +623,7 @@ static bool tolower_begins_with(Slice str, Slice prefix) {
   return true;
 }
 
-Result<string> LinkManager::check_link(Slice link) {
+Result<string> LinkManager::check_link(Slice link, bool http_only, bool https_only) {
   bool is_tg = false;
   bool is_ton = false;
   if (tolower_begins_with(link, "tg:")) {
@@ -637,7 +637,13 @@ Result<string> LinkManager::check_link(Slice link) {
     link.remove_prefix(2);
   }
   TRY_RESULT(http_url, parse_url(link));
+  if (https_only && (http_url.protocol_ != HttpUrl::Protocol::Https || is_tg || is_ton)) {
+    return Status::Error("Only HTTPS links are allowed");
+  }
   if (is_tg || is_ton) {
+    if (http_only) {
+      return Status::Error("Only HTTP links are allowed");
+    }
     if (tolower_begins_with(link, "http://") || http_url.protocol_ == HttpUrl::Protocol::Https ||
         !http_url.userinfo_.empty() || http_url.specified_port_ != 0 || http_url.is_ipv6_) {
       return Status::Error(is_tg ? Slice("Wrong tg URL") : Slice("Wrong ton URL"));
