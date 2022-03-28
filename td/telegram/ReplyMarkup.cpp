@@ -440,13 +440,24 @@ static Result<KeyboardButton> get_keyboard_button(tl_object_ptr<td_api::keyboard
       }
       break;
     }
-    case td_api::keyboardButtonTypeWebView::ID:
+    case td_api::keyboardButtonTypeWebView::ID: {
       if (!request_buttons_allowed) {
         return Status::Error(400, "Web view can be used in private chats only");
       }
+
+      auto button_type = move_tl_object_as<td_api::keyboardButtonTypeWebView>(button->type_);
+      auto user_id = LinkManager::get_link_user_id(button_type->url_);
+      if (user_id.is_valid()) {
+        return Status::Error(400, "Link to a user can't be used in web view URL buttons");
+      }
+      auto r_url = LinkManager::check_link(button_type->url_);
+      if (r_url.is_error()) {
+        return Status::Error(400, "Inline keyboard button web view URL is invalid");
+      }
       current_button.type = KeyboardButton::Type::WebView;
-      current_button.url = std::move(static_cast<td_api::keyboardButtonTypeWebView *>(button->type_.get())->url_);
+      current_button.url = std::move(button_type->url_);
       break;
+    }
     default:
       UNREACHABLE();
   }
@@ -560,7 +571,6 @@ static Result<InlineKeyboardButton> get_inline_keyboard_button(tl_object_ptr<td_
       auto user_id = LinkManager::get_link_user_id(button_type->url_);
       if (user_id.is_valid()) {
         return Status::Error(400, "Link to a user can't be used in web view URL buttons");
-        break;
       }
       auto r_url = LinkManager::check_link(button_type->url_);
       if (r_url.is_error()) {
