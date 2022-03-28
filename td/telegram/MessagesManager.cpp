@@ -21441,8 +21441,9 @@ td_api::object_ptr<td_api::chat> MessagesManager::get_chat_object(const Dialog *
         }
         break;
       case DialogType::Chat:
-        // chats can be deleted only for self with deleteChatHistory
+        // chats can be deleted only for self with deleteChatHistory and for everyone by their creator
         can_delete_for_self = true;
+        can_delete_for_all_users = td_->contacts_manager_->get_chat_status(d->dialog_id.get_chat_id()).is_creator();
         break;
       case DialogType::Channel:
         if (is_broadcast_channel(d->dialog_id) ||
