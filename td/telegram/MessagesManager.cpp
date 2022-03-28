@@ -26984,6 +26984,8 @@ bool MessagesManager::can_edit_message(DialogId dialog_id, const Message *m, boo
     case MessageContentType::GroupCall:
     case MessageContentType::InviteToGroupCall:
     case MessageContentType::ChatSetTheme:
+    case MessageContentType::WebViewDataSent:
+    case MessageContentType::WebViewDataReceived:
       return false;
     default:
       UNREACHABLE();
@@ -30183,6 +30185,8 @@ bool MessagesManager::is_message_notification_disabled(const Dialog *d, const Me
     case MessageContentType::ExpiredVideo:
     case MessageContentType::PassportDataSent:
     case MessageContentType::PassportDataReceived:
+    case MessageContentType::WebViewDataSent:
+    case MessageContentType::WebViewDataReceived:
       VLOG(notifications) << "Disable notification for " << m->message_id << " in " << d->dialog_id
                           << " with content of type " << m->content->get_type();
       return true;

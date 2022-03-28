@@ -1940,7 +1940,13 @@ messageContactRegistered = MessageContent;
 //@description The current user has connected a website by logging in using Telegram Login Widget on it @domain_name Domain name of the connected website
 messageWebsiteConnected domain_name:string = MessageContent;
 
-//@description Telegram Passport data has been sent @types List of Telegram Passport element types sent
+//@description Data from web view has been sent to a bot @button_text Text of the keyboardButtonTypeWebView button, which opened the web view
+messageWebViewDataSent button_text:string = MessageContent;
+
+//@description Data from web view has been received; for bots only @button_text Text of the keyboardButtonTypeWebView button, which opened the web view @data Received data
+messageWebViewDataReceived button_text:string data:string = MessageContent;
+
+//@description Telegram Passport data has been sent to a bot @types List of Telegram Passport element types sent
 messagePassportDataSent types:vector<PassportElementType> = MessageContent;
 
 //@description Telegram Passport data has been received; for bots only @elements List of received Telegram Passport elements @credentials Encrypted data credentials
