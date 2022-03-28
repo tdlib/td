@@ -1153,6 +1153,8 @@ class Td final : public Actor {
 
   void on_request(uint64 id, td_api::answerInlineQuery &request);
 
+  void on_request(uint64 id, td_api::sendWebViewData &request);
+
   void on_request(uint64 id, td_api::answerWebViewQuery &request);
 
   void on_request(uint64 id, td_api::getCallbackQueryAnswer &request);

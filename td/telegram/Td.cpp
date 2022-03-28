@@ -7328,6 +7328,15 @@ void Td::on_request(uint64 id, td_api::answerInlineQuery &request) {
       request.next_offset_, request.switch_pm_text_, request.switch_pm_parameter_, std::move(promise));
 }
 
+void Td::on_request(uint64 id, td_api::sendWebViewData &request) {
+  CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.button_text_);
+  CLEAN_INPUT_STRING(request.data_);
+  CREATE_OK_REQUEST_PROMISE();
+  inline_queries_manager_->send_web_view_data(UserId(request.bot_user_id_), std::move(request.button_text_),
+                                              std::move(request.data_), std::move(promise));
+}
+
 void Td::on_request(uint64 id, td_api::answerWebViewQuery &request) {
   CHECK_IS_BOT();
   CLEAN_INPUT_STRING(request.web_view_query_id_);

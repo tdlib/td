@@ -4843,6 +4843,10 @@ getInlineQueryResults bot_user_id:int53 chat_id:int53 user_location:location que
 answerInlineQuery inline_query_id:int64 is_personal:Bool results:vector<InputInlineQueryResult> cache_time:int32 next_offset:string switch_pm_text:string switch_pm_parameter:string = Ok;
 
 
+//@description Sends data received from keyboardButtonTypeWebView web view to a bot
+//@bot_user_id Identifier of the target bot @button_text Text of the keyboardButtonTypeWebView button, which opened the web view @data Received data
+sendWebViewData bot_user_id:int53 button_text:string data:string = Ok;
+
 //@description Sets the result of interaction with web view and sends corresponding message on behalf of the user to the chat from which the query originated; for bots only
 //@web_view_query_id Identifier of the web view query
 //@result The result of the query

@@ -3419,6 +3419,12 @@ class CliClient final : public Actor {
       bool is_added;
       get_args(args, user_id, is_added);
       send_request(td_api::make_object<td_api::toggleBotIsAddedToAttachMenu>(user_id, is_added));
+    } else if (op == "swwd") {
+      UserId user_id;
+      string button_text;
+      string data;
+      get_args(args, user_id, button_text, data);
+      send_request(td_api::make_object<td_api::sendWebViewData>(user_id, button_text, data));
     } else if (op == "sca") {
       ChatId chat_id;
       string message_thread_id;

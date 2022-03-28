@@ -35,6 +35,7 @@
 #include "td/telegram/TdDb.h"
 #include "td/telegram/TdParameters.h"
 #include "td/telegram/telegram_api.hpp"
+#include "td/telegram/UpdatesManager.h"
 #include "td/telegram/Venue.h"
 #include "td/telegram/VideosManager.h"
 #include "td/telegram/VoiceNotesManager.h"
@@ -45,6 +46,7 @@
 #include "td/utils/HttpUrl.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
+#include "td/utils/Random.h"
 #include "td/utils/Slice.h"
 #include "td/utils/SliceBuilder.h"
 #include "td/utils/Time.h"
@@ -154,6 +156,35 @@ class SetInlineBotResultsQuery final : public Td::ResultHandler {
       LOG(ERROR) << "Sending answer to an inline query has failed";
     }
     promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
+class SendWebViewDataQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit SendWebViewDataQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(tl_object_ptr<telegram_api::InputUser> &&input_user, int64 random_id, const string &button_text,
+            const string &data) {
+    send_query(G()->net_query_creator().create(
+        telegram_api::messages_sendWebViewData(std::move(input_user), random_id, button_text, data)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_sendWebViewData>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for SendWebViewDataQuery: " << to_string(ptr);
+    td_->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
   }
 
   void on_error(Status status) final {
@@ -421,6 +452,21 @@ void InlineQueriesManager::answer_inline_query(
   td_->create_handler<SetInlineBotResultsQuery>(std::move(promise))
       ->send(inline_query_id, is_gallery && !force_vertical, is_personal, std::move(results), cache_time, next_offset,
              switch_pm_text, switch_pm_parameter);
+}
+
+void InlineQueriesManager::send_web_view_data(UserId bot_user_id, string &&button_text, string &&data,
+                                              Promise<Unit> &&promise) const {
+  TRY_RESULT_PROMISE(promise, bot_data, td_->contacts_manager_->get_bot_data(bot_user_id));
+
+  int64 random_id;
+  do {
+    random_id = Random::secure_int64();
+  } while (random_id == 0);
+
+  TRY_RESULT_PROMISE(promise, input_user, td_->contacts_manager_->get_input_user(bot_user_id));
+
+  td_->create_handler<SendWebViewDataQuery>(std::move(promise))
+      ->send(std::move(input_user), random_id, button_text, data);
 }
 
 void InlineQueriesManager::answer_web_view_query(const string &web_view_query_id,
