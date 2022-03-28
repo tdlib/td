@@ -193,10 +193,11 @@ class SendWebViewDataQuery final : public Td::ResultHandler {
 };
 
 class SendWebViewResultMessageQuery final : public Td::ResultHandler {
-  Promise<Unit> promise_;
+  Promise<td_api::object_ptr<td_api::sentWebViewMessage>> promise_;
 
  public:
-  explicit SendWebViewResultMessageQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  explicit SendWebViewResultMessageQuery(Promise<td_api::object_ptr<td_api::sentWebViewMessage>> &&promise)
+      : promise_(std::move(promise)) {
   }
 
   void send(const string &bot_query_id, tl_object_ptr<telegram_api::InputBotInlineResult> &&result) {
@@ -210,8 +211,10 @@ class SendWebViewResultMessageQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
-    // auto ptr = result_ptr.move_as_ok();
-    promise_.set_value(Unit());
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for SendWebViewResultMessageQuery: " << to_string(ptr);
+    promise_.set_value(td_api::make_object<td_api::sentWebViewMessage>(
+        InlineQueriesManager::get_inline_message_id(std::move(ptr->msg_id_))));
   }
 
   void on_error(Status status) final {
@@ -469,9 +472,9 @@ void InlineQueriesManager::send_web_view_data(UserId bot_user_id, string &&butto
       ->send(std::move(input_user), random_id, button_text, data);
 }
 
-void InlineQueriesManager::answer_web_view_query(const string &web_view_query_id,
-                                                 td_api::object_ptr<td_api::InputInlineQueryResult> &&input_result,
-                                                 Promise<Unit> &&promise) const {
+void InlineQueriesManager::answer_web_view_query(
+    const string &web_view_query_id, td_api::object_ptr<td_api::InputInlineQueryResult> &&input_result,
+    Promise<td_api::object_ptr<td_api::sentWebViewMessage>> &&promise) const {
   CHECK(td_->auth_manager_->is_bot());
 
   TRY_RESULT_PROMISE(promise, result, get_input_bot_inline_result(std::move(input_result), nullptr, nullptr));

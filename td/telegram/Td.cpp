@@ -7340,7 +7340,7 @@ void Td::on_request(uint64 id, td_api::sendWebViewData &request) {
 void Td::on_request(uint64 id, td_api::answerWebViewQuery &request) {
   CHECK_IS_BOT();
   CLEAN_INPUT_STRING(request.web_view_query_id_);
-  CREATE_OK_REQUEST_PROMISE();
+  CREATE_REQUEST_PROMISE();
   inline_queries_manager_->answer_web_view_query(request.web_view_query_id_, std::move(request.result_),
                                                  std::move(promise));
 }

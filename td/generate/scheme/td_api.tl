@@ -2518,6 +2518,9 @@ importedContacts user_ids:vector<int53> importer_count:vector<int32> = ImportedC
 //@macos_icon Attach menu icon for the bot in TGS format for the official native macOS app; may be null
 attachMenuBot bot_user_id:int53 name:string default_icon:file ios_static_icon:file ios_animated_icon:file android_icon:file macos_icon:file = AttachMenuBot;
 
+//@description Information about the message sent by answerWebViewQuery @inline_message_id Identifier of the sent inline message, if known
+sentWebViewMessage inline_message_id:string = SentWebViewMessage;
+
 
 //@description Contains an HTTP URL @url The URL
 httpUrl url:string = HttpUrl;
@@ -4850,7 +4853,7 @@ sendWebViewData bot_user_id:int53 button_text:string data:string = Ok;
 //@description Sets the result of interaction with web view and sends corresponding message on behalf of the user to the chat from which the query originated; for bots only
 //@web_view_query_id Identifier of the web view query
 //@result The result of the query
-answerWebViewQuery web_view_query_id:string result:InputInlineQueryResult = Ok;
+answerWebViewQuery web_view_query_id:string result:InputInlineQueryResult = SentWebViewMessage;
 
 
 //@description Sends a callback query to a bot and returns an answer. Returns an error with code 502 if the bot fails to answer the query before the query timeout expires @chat_id Identifier of the chat with the message @message_id Identifier of the message from which the query originated @payload Query payload
