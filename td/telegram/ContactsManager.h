@@ -78,7 +78,6 @@ class ContactsManager final : public Actor {
   static ChannelId get_channel_id(const tl_object_ptr<telegram_api::Chat> &chat);
 
   Result<tl_object_ptr<telegram_api::InputUser>> get_input_user(UserId user_id) const;
-  bool have_input_user(UserId user_id) const;
 
   // TODO get_input_chat ???
 

@@ -530,7 +530,7 @@ bool UpdatesManager::is_acceptable_message_entities(
     if (entity->get_id() == telegram_api::messageEntityMentionName::ID) {
       auto entity_mention_name = static_cast<const telegram_api::messageEntityMentionName *>(entity.get());
       UserId user_id(entity_mention_name->user_id_);
-      if (!is_acceptable_user(user_id) || !td_->contacts_manager_->have_input_user(user_id)) {
+      if (!is_acceptable_user(user_id) || td_->contacts_manager_->get_input_user(user_id).is_error()) {
         return false;
       }
     }
@@ -547,7 +547,7 @@ bool UpdatesManager::is_acceptable_reply_markup(const tl_object_ptr<telegram_api
       if (button->get_id() == telegram_api::keyboardButtonUserProfile::ID) {
         auto user_profile_button = static_cast<const telegram_api::keyboardButtonUserProfile *>(button.get());
         UserId user_id(user_profile_button->user_id_);
-        if (!is_acceptable_user(user_id) || !td_->contacts_manager_->have_input_user(user_id)) {
+        if (!is_acceptable_user(user_id) || td_->contacts_manager_->get_input_user(user_id).is_error()) {
           return false;
         }
       }

@@ -1471,16 +1471,13 @@ class GetExportedChatInvitesQuery final : public Td::ResultHandler {
       : promise_(std::move(promise)) {
   }
 
-  void send(DialogId dialog_id, UserId creator_user_id, bool is_revoked, int32 offset_date,
+  void send(DialogId dialog_id, tl_object_ptr<telegram_api::InputUser> &&input_user, bool is_revoked, int32 offset_date,
             const string &offset_invite_link, int32 limit) {
     dialog_id_ = dialog_id;
     auto input_peer = td_->messages_manager_->get_input_peer(dialog_id, AccessRights::Write);
     if (input_peer == nullptr) {
       return on_error(Status::Error(400, "Can't access the chat"));
     }
-
-    auto r_input_user = td_->contacts_manager_->get_input_user(creator_user_id);
-    CHECK(r_input_user.is_ok());
 
     int32 flags = 0;
     if (!offset_invite_link.empty() || offset_date != 0) {
@@ -1490,9 +1487,9 @@ class GetExportedChatInvitesQuery final : public Td::ResultHandler {
     if (is_revoked) {
       flags |= telegram_api::messages_getExportedChatInvites::REVOKED_MASK;
     }
-    send_query(G()->net_query_creator().create(telegram_api::messages_getExportedChatInvites(
-        flags, false /*ignored*/, std::move(input_peer), r_input_user.move_as_ok(), offset_date, offset_invite_link,
-        limit)));
+    send_query(G()->net_query_creator().create(
+        telegram_api::messages_getExportedChatInvites(flags, false /*ignored*/, std::move(input_peer),
+                                                      std::move(input_user), offset_date, offset_invite_link, limit)));
   }
 
   void on_result(BufferSlice packet) final {
@@ -1934,18 +1931,15 @@ class DeleteRevokedExportedChatInvitesQuery final : public Td::ResultHandler {
   explicit DeleteRevokedExportedChatInvitesQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(DialogId dialog_id, UserId creator_user_id) {
+  void send(DialogId dialog_id, tl_object_ptr<telegram_api::InputUser> &&input_user) {
     dialog_id_ = dialog_id;
     auto input_peer = td_->messages_manager_->get_input_peer(dialog_id, AccessRights::Write);
     if (input_peer == nullptr) {
       return on_error(Status::Error(400, "Can't access the chat"));
     }
 
-    auto r_input_user = td_->contacts_manager_->get_input_user(creator_user_id);
-    CHECK(r_input_user.is_ok());
-
     send_query(G()->net_query_creator().create(
-        telegram_api::messages_deleteRevokedExportedChatInvites(std::move(input_peer), r_input_user.move_as_ok())));
+        telegram_api::messages_deleteRevokedExportedChatInvites(std::move(input_peer), std::move(input_user))));
   }
 
   void on_result(BufferSlice packet) final {
@@ -4443,22 +4437,6 @@ Result<tl_object_ptr<telegram_api::InputUser>> ContactsManager::get_input_user(U
   }
 
   return make_tl_object<telegram_api::inputUser>(user_id.get(), u->access_hash);
-}
-
-bool ContactsManager::have_input_user(UserId user_id) const {
-  if (user_id == get_my_id()) {
-    return true;
-  }
-
-  const User *u = get_user(user_id);
-  if (u == nullptr || u->access_hash == -1 || u->is_min_access_hash) {
-    if (td_->auth_manager_->is_bot() && user_id.is_valid()) {
-      return true;
-    }
-    return false;
-  }
-
-  return true;
 }
 
 tl_object_ptr<telegram_api::InputChannel> ContactsManager::get_input_channel(ChannelId channel_id) const {
@@ -7432,17 +7410,14 @@ void ContactsManager::get_dialog_invite_links(DialogId dialog_id, UserId creator
                                               int32 offset_date, const string &offset_invite_link, int32 limit,
                                               Promise<td_api::object_ptr<td_api::chatInviteLinks>> &&promise) {
   TRY_STATUS_PROMISE(promise, can_manage_dialog_invite_links(dialog_id, creator_user_id != get_my_id()));
-
-  if (!have_input_user(creator_user_id)) {
-    return promise.set_error(Status::Error(400, "Administrator user not found"));
-  }
+  TRY_RESULT_PROMISE(promise, input_user, get_input_user(creator_user_id));
 
   if (limit <= 0) {
     return promise.set_error(Status::Error(400, "Parameter limit must be positive"));
   }
 
   td_->create_handler<GetExportedChatInvitesQuery>(std::move(promise))
-      ->send(dialog_id, creator_user_id, is_revoked, offset_date, offset_invite_link, limit);
+      ->send(dialog_id, std::move(input_user), is_revoked, offset_date, offset_invite_link, limit);
 }
 
 void ContactsManager::get_dialog_invite_link_users(
@@ -7526,12 +7501,10 @@ void ContactsManager::delete_revoked_dialog_invite_link(DialogId dialog_id, cons
 void ContactsManager::delete_all_revoked_dialog_invite_links(DialogId dialog_id, UserId creator_user_id,
                                                              Promise<Unit> &&promise) {
   TRY_STATUS_PROMISE(promise, can_manage_dialog_invite_links(dialog_id, creator_user_id != get_my_id()));
+  TRY_RESULT_PROMISE(promise, input_user, get_input_user(creator_user_id));
 
-  if (!have_input_user(creator_user_id)) {
-    return promise.set_error(Status::Error(400, "Administrator user not found"));
-  }
-
-  td_->create_handler<DeleteRevokedExportedChatInvitesQuery>(std::move(promise))->send(dialog_id, creator_user_id);
+  td_->create_handler<DeleteRevokedExportedChatInvitesQuery>(std::move(promise))
+      ->send(dialog_id, std::move(input_user));
 }
 
 void ContactsManager::check_dialog_invite_link(const string &invite_link, bool force, Promise<Unit> &&promise) {

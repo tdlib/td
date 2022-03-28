@@ -120,9 +120,7 @@ Result<Game> process_input_message_game(const ContactsManager *contacts_manager,
   auto input_message_game = move_tl_object_as<td_api::inputMessageGame>(input_message_content);
 
   UserId bot_user_id(input_message_game->bot_user_id_);
-  if (!contacts_manager->have_input_user(bot_user_id)) {
-    return Status::Error(400, "Game owner bot is not accessible");
-  }
+  TRY_STATUS(contacts_manager->get_input_user(bot_user_id));
 
   if (!clean_input_string(input_message_game->game_short_name_)) {
     return Status::Error(400, "Game short name must be encoded in UTF-8");

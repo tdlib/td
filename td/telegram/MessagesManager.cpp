@@ -880,15 +880,12 @@ class GetCommonDialogsQuery final : public Td::ResultHandler {
   explicit GetCommonDialogsQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(UserId user_id, int64 offset_chat_id, int32 limit) {
+  void send(UserId user_id, tl_object_ptr<telegram_api::InputUser> &&input_user, int64 offset_chat_id, int32 limit) {
     user_id_ = user_id;
     offset_chat_id_ = offset_chat_id;
 
-    auto r_input_user = td_->contacts_manager_->get_input_user(user_id);
-    CHECK(r_input_user.is_ok());
-
     send_query(G()->net_query_creator().create(
-        telegram_api::messages_getCommonChats(r_input_user.move_as_ok(), offset_chat_id, limit)));
+        telegram_api::messages_getCommonChats(std::move(input_user), offset_chat_id, limit)));
   }
 
   void on_result(BufferSlice packet) final {
@@ -17717,8 +17714,9 @@ void MessagesManager::drop_common_dialogs_cache(UserId user_id) {
 std::pair<int32, vector<DialogId>> MessagesManager::get_common_dialogs(UserId user_id, DialogId offset_dialog_id,
                                                                        int32 limit, bool force,
                                                                        Promise<Unit> &&promise) {
-  if (!td_->contacts_manager_->have_input_user(user_id)) {
-    promise.set_error(Status::Error(400, "Have no access to the user"));
+  auto r_input_user = td_->contacts_manager_->get_input_user(user_id);
+  if (r_input_user.is_error()) {
+    promise.set_error(r_input_user.move_as_error());
     return {};
   }
 
@@ -17792,7 +17790,8 @@ std::pair<int32, vector<DialogId>> MessagesManager::get_common_dialogs(UserId us
     }
   }
 
-  td_->create_handler<GetCommonDialogsQuery>(std::move(promise))->send(user_id, offset_chat_id, MAX_GET_DIALOGS);
+  td_->create_handler<GetCommonDialogsQuery>(std::move(promise))
+      ->send(user_id, r_input_user.move_as_ok(), offset_chat_id, MAX_GET_DIALOGS);
   return {};
 }
 
