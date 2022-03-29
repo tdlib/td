@@ -1861,7 +1861,7 @@ class RevokeChatInviteLinkQuery final : public Td::ResultHandler {
       case telegram_api::messages_exportedChatInviteReplaced::ID: {
         auto invite = move_tl_object_as<telegram_api::messages_exportedChatInviteReplaced>(result);
 
-        td_->contacts_manager_->on_get_users(std::move(invite->users_), "RevokeChatInviteLinkQuery");
+        td_->contacts_manager_->on_get_users(std::move(invite->users_), "RevokeChatInviteLinkQuery replaced");
 
         DialogInviteLink invite_link(std::move(invite->invite_));
         DialogInviteLink new_invite_link(std::move(invite->new_invite_));
@@ -2568,7 +2568,7 @@ class GetUserPhotosQuery final : public Td::ResultHandler {
       CHECK(constructor_id == telegram_api::photos_photosSlice::ID);
       auto photos = move_tl_object_as<telegram_api::photos_photosSlice>(ptr);
 
-      td_->contacts_manager_->on_get_users(std::move(photos->users_), "GetUserPhotosQuery");
+      td_->contacts_manager_->on_get_users(std::move(photos->users_), "GetUserPhotosQuery slice");
       td_->contacts_manager_->on_get_user_photos(user_id_, offset_, limit_, photos->count_, std::move(photos->photos_));
     }
 
@@ -2608,7 +2608,7 @@ class GetChatsQuery final : public Td::ResultHandler {
       case telegram_api::messages_chatsSlice::ID: {
         auto chats = move_tl_object_as<telegram_api::messages_chatsSlice>(chats_ptr);
         LOG(ERROR) << "Receive chatsSlice in result of GetChatsQuery";
-        td_->contacts_manager_->on_get_chats(std::move(chats->chats_), "GetChatsQuery");
+        td_->contacts_manager_->on_get_chats(std::move(chats->chats_), "GetChatsQuery slice");
         break;
       }
       default:
@@ -2690,7 +2690,7 @@ class GetChannelsQuery final : public Td::ResultHandler {
       case telegram_api::messages_chatsSlice::ID: {
         auto chats = move_tl_object_as<telegram_api::messages_chatsSlice>(chats_ptr);
         LOG(ERROR) << "Receive chatsSlice in result of GetChannelsQuery";
-        td_->contacts_manager_->on_get_chats(std::move(chats->chats_), "GetChannelsQuery");
+        td_->contacts_manager_->on_get_chats(std::move(chats->chats_), "GetChannelsQuery slice");
         break;
       }
       default:

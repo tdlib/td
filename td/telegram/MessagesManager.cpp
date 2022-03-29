@@ -821,8 +821,8 @@ class GetDialogListQuery final : public Td::ResultHandler {
       }
       case telegram_api::messages_dialogsSlice::ID: {
         auto dialogs = move_tl_object_as<telegram_api::messages_dialogsSlice>(ptr);
-        td_->contacts_manager_->on_get_users(std::move(dialogs->users_), "GetDialogListQuery");
-        td_->contacts_manager_->on_get_chats(std::move(dialogs->chats_), "GetDialogListQuery");
+        td_->contacts_manager_->on_get_users(std::move(dialogs->users_), "GetDialogListQuery slice");
+        td_->contacts_manager_->on_get_chats(std::move(dialogs->chats_), "GetDialogListQuery slice");
         td_->messages_manager_->on_get_dialogs(folder_id_, std::move(dialogs->dialogs_), max(dialogs->count_, 0),
                                                std::move(dialogs->messages_), std::move(promise_));
         break;
@@ -961,8 +961,8 @@ class GetBlockedDialogsQuery final : public Td::ResultHandler {
       case telegram_api::contacts_blockedSlice::ID: {
         auto blocked_peers = move_tl_object_as<telegram_api::contacts_blockedSlice>(ptr);
 
-        td_->contacts_manager_->on_get_users(std::move(blocked_peers->users_), "GetBlockedDialogsQuery");
-        td_->contacts_manager_->on_get_chats(std::move(blocked_peers->chats_), "GetBlockedDialogsQuery");
+        td_->contacts_manager_->on_get_users(std::move(blocked_peers->users_), "GetBlockedDialogsQuery slice");
+        td_->contacts_manager_->on_get_chats(std::move(blocked_peers->chats_), "GetBlockedDialogsQuery slice");
         td_->messages_manager_->on_get_blocked_dialogs(offset_, limit_, blocked_peers->count_,
                                                        std::move(blocked_peers->blocked_), std::move(promise_));
         break;
