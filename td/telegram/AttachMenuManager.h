@@ -43,6 +43,7 @@ class AttachMenuManager final : public Actor {
   bool is_active() const;
 
   struct AttachMenuBot {
+    bool is_added_ = false;
     UserId user_id_;
     string name_;
     FileId default_icon_file_id_;
@@ -63,6 +64,8 @@ class AttachMenuManager final : public Actor {
   friend bool operator==(const AttachMenuBot &lhs, const AttachMenuBot &rhs);
 
   friend bool operator!=(const AttachMenuBot &lhs, const AttachMenuBot &rhs);
+
+  Result<AttachMenuBot> get_attach_menu_bot(tl_object_ptr<telegram_api::attachMenuBot> &&bot) const;
 
   td_api::object_ptr<td_api::updateAttachMenuBots> get_update_attach_menu_bots_object() const;
 

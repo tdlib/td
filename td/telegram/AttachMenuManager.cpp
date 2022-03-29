@@ -89,7 +89,8 @@ bool operator==(const AttachMenuManager::AttachMenuBot &lhs, const AttachMenuMan
          lhs.default_icon_file_id_ == rhs.default_icon_file_id_ &&
          lhs.ios_static_icon_file_id_ == rhs.ios_static_icon_file_id_ &&
          lhs.ios_animated_icon_file_id_ == rhs.ios_animated_icon_file_id_ &&
-         lhs.android_icon_file_id_ == rhs.android_icon_file_id_ && lhs.macos_icon_file_id_ == rhs.macos_icon_file_id_;
+         lhs.android_icon_file_id_ == rhs.android_icon_file_id_ && lhs.macos_icon_file_id_ == rhs.macos_icon_file_id_ &&
+         lhs.is_added_ == rhs.is_added_;
 }
 
 bool operator!=(const AttachMenuManager::AttachMenuBot &lhs, const AttachMenuManager::AttachMenuBot &rhs) {
@@ -107,6 +108,7 @@ void AttachMenuManager::AttachMenuBot::store(StorerT &storer) const {
   STORE_FLAG(has_ios_animated_icon_file_id);
   STORE_FLAG(has_android_icon_file_id);
   STORE_FLAG(has_macos_icon_file_id);
+  STORE_FLAG(is_added_);
   END_STORE_FLAGS();
   td::store(user_id_, storer);
   td::store(name_, storer);
@@ -136,6 +138,7 @@ void AttachMenuManager::AttachMenuBot::parse(ParserT &parser) {
   PARSE_FLAG(has_ios_animated_icon_file_id);
   PARSE_FLAG(has_android_icon_file_id);
   PARSE_FLAG(has_macos_icon_file_id);
+  PARSE_FLAG(is_added_);
   END_PARSE_FLAGS();
   td::parse(user_id_, parser);
   td::parse(name_, parser);
@@ -252,6 +255,66 @@ void AttachMenuManager::reload_attach_menu_bots() {
   td_->create_handler<GetAttachMenuBotsQuery>(std::move(promise))->send(hash_);
 }
 
+Result<AttachMenuManager::AttachMenuBot> AttachMenuManager::get_attach_menu_bot(
+    tl_object_ptr<telegram_api::attachMenuBot> &&bot) const {
+  UserId user_id(bot->bot_id_);
+  if (!td_->contacts_manager_->have_user(user_id)) {
+    return Status::Error(PSLICE() << "Have no information about " << user_id);
+  }
+
+  AttachMenuBot attach_menu_bot;
+  attach_menu_bot.is_added_ = !bot->inactive_;
+  attach_menu_bot.user_id_ = user_id;
+  attach_menu_bot.name_ = std::move(bot->short_name_);
+  for (auto &icon : bot->icons_) {
+    Slice name = icon->name_;
+    int32 document_id = icon->icon_->get_id();
+    if (document_id == telegram_api::documentEmpty::ID) {
+      return Status::Error(PSLICE() << "Have no icon for " << user_id << " with name " << name);
+    }
+    CHECK(document_id == telegram_api::document::ID);
+
+    if (name != "default_static" && name != "ios_static" && name != "ios_animated" && name != "android_animated" &&
+        name != "macos_animated") {
+      LOG(ERROR) << "Have icon for " << user_id << " with name " << name;
+      continue;
+    }
+
+    auto expected_document_type = ends_with(name, "_static") ? Document::Type::General : Document::Type::Sticker;
+    auto parsed_document =
+        td_->documents_manager_->on_get_document(move_tl_object_as<telegram_api::document>(icon->icon_), DialogId());
+    if (parsed_document.type != expected_document_type) {
+      LOG(ERROR) << "Receive wrong attach menu bot icon for " << user_id;
+      continue;
+    }
+    switch (name[5]) {
+      case 'l':
+        attach_menu_bot.default_icon_file_id_ = parsed_document.file_id;
+        break;
+      case 't':
+        attach_menu_bot.ios_static_icon_file_id_ = parsed_document.file_id;
+        break;
+      case 'n':
+        attach_menu_bot.ios_animated_icon_file_id_ = parsed_document.file_id;
+        break;
+      case 'i':
+        attach_menu_bot.android_icon_file_id_ = parsed_document.file_id;
+        break;
+      case '_':
+        attach_menu_bot.macos_icon_file_id_ = parsed_document.file_id;
+        break;
+      default:
+        UNREACHABLE();
+    }
+  }
+
+  if (!attach_menu_bot.default_icon_file_id_.is_valid()) {
+    return Status::Error(PSLICE() << "Have no default icon for " << user_id);
+  }
+
+  return std::move(attach_menu_bot);
+}
+
 void AttachMenuManager::on_reload_attach_menu_bots(
     Result<telegram_api::object_ptr<telegram_api::AttachMenuBots>> &&result) {
   if (!is_active()) {
@@ -280,65 +343,19 @@ void AttachMenuManager::on_reload_attach_menu_bots(
   vector<AttachMenuBot> new_attach_menu_bots;
 
   for (auto &bot : attach_menu_bots->bots_) {
-    UserId user_id(bot->bot_id_);
-    if (!td_->contacts_manager_->have_user(user_id)) {
-      LOG(ERROR) << "Have no information about " << user_id;
+    auto r_attach_menu_bot = get_attach_menu_bot(std::move(bot));
+    if (r_attach_menu_bot.is_error()) {
+      LOG(ERROR) << r_attach_menu_bot.error().message();
       new_hash = 0;
       continue;
     }
-    if (bot->inactive_) {
-      LOG(ERROR) << "Receive inactive attach menu bot " << user_id;
+    if (!r_attach_menu_bot.ok().is_added_) {
+      LOG(ERROR) << "Receive non-added attach menu bot " << r_attach_menu_bot.ok().user_id_;
       new_hash = 0;
       continue;
     }
 
-    AttachMenuBot attach_menu_bot;
-    attach_menu_bot.user_id_ = user_id;
-    attach_menu_bot.name_ = std::move(bot->short_name_);
-    for (auto &icon : bot->icons_) {
-      Slice name = icon->name_;
-      int32 document_id = icon->icon_->get_id();
-      if (document_id == telegram_api::documentEmpty::ID) {
-        LOG(ERROR) << "Have no icon for " << user_id << " with name " << name;
-        new_hash = 0;
-        continue;
-      }
-      CHECK(document_id == telegram_api::document::ID);
-
-      if (name != "default_static" && name != "ios_static" && name != "ios_animated" && name != "android_animated" &&
-          name != "macos_animated") {
-        LOG(ERROR) << "Have icon for " << user_id << " with name " << name;
-        continue;
-      }
-
-      auto expected_document_type = ends_with(name, "_static") ? Document::Type::General : Document::Type::Sticker;
-      auto parsed_document =
-          td_->documents_manager_->on_get_document(move_tl_object_as<telegram_api::document>(icon->icon_), DialogId());
-      if (parsed_document.type != expected_document_type) {
-        LOG(ERROR) << "Receive wrong attach menu bot icon for " << user_id;
-        continue;
-      }
-      switch (name[5]) {
-        case 'l':
-          attach_menu_bot.default_icon_file_id_ = parsed_document.file_id;
-          break;
-        case 't':
-          attach_menu_bot.ios_static_icon_file_id_ = parsed_document.file_id;
-          break;
-        case 'n':
-          attach_menu_bot.ios_animated_icon_file_id_ = parsed_document.file_id;
-          break;
-        case 'i':
-          attach_menu_bot.android_icon_file_id_ = parsed_document.file_id;
-          break;
-        case '_':
-          attach_menu_bot.macos_icon_file_id_ = parsed_document.file_id;
-          break;
-        default:
-          UNREACHABLE();
-      }
-    }
-    new_attach_menu_bots.push_back(std::move(attach_menu_bot));
+    new_attach_menu_bots.push_back(r_attach_menu_bot.move_as_ok());
   }
 
   bool need_update = new_attach_menu_bots != attach_menu_bots_;
