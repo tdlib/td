@@ -4103,7 +4103,7 @@ updateTermsOfService terms_of_service_id:string terms_of_service:termsOfService 
 //@description The list of users nearby has changed. The update is guaranteed to be sent only 60 seconds after a successful searchChatsNearby request @users_nearby The new list of users nearby
 updateUsersNearby users_nearby:vector<chatNearby> = Update;
 
-//@description The list of bots added to attach menu has changed @bots The new list of bots added to attach menu
+//@description The list of bots added to attach menu has changed @bots The new list of bots added to attach menu. The bots must not be shown in attach menu on scheduled messages screen
 updateAttachMenuBots bots:vector<attachMenuBot> = Update;
 
 //@description The list of supported reactions has changed @reactions The new list of supported reactions
