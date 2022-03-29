@@ -29,6 +29,9 @@ class ThemeManager final : public Actor {
 
   void on_update_theme(telegram_api::object_ptr<telegram_api::theme> &&theme, Promise<Unit> &&promise);
 
+  static string get_theme_parameters_json_string(const td_api::object_ptr<td_api::themeParameters> &theme,
+                                                 bool for_web_view);
+
   void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
 
  private:

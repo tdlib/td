@@ -16,6 +16,7 @@
 #include "td/telegram/PasswordManager.h"
 #include "td/telegram/ServerMessageId.h"
 #include "td/telegram/Td.h"
+#include "td/telegram/ThemeManager.h"
 #include "td/telegram/UpdatesManager.h"
 
 #include "td/utils/algorithm.h"
@@ -1152,17 +1153,7 @@ void get_payment_form(Td *td, FullMessageId full_message_id, const td_api::objec
   tl_object_ptr<telegram_api::dataJSON> theme_parameters;
   if (theme != nullptr) {
     theme_parameters = make_tl_object<telegram_api::dataJSON>(string());
-    theme_parameters->data_ = json_encode<string>(json_object([&theme](auto &o) {
-      auto get_color = [](int32 color) {
-        return static_cast<int64>(static_cast<uint32>(color) | 0x000000FF);
-      };
-      o("bg_color", get_color(theme->background_color_));
-      o("text_color", get_color(theme->text_color_));
-      o("hint_color", get_color(theme->hint_color_));
-      o("link_color", get_color(theme->link_color_));
-      o("button_color", get_color(theme->button_color_));
-      o("button_text_color", get_color(theme->button_text_color_));
-    }));
+    theme_parameters->data_ = ThemeManager::get_theme_parameters_json_string(theme, false);
   }
   td->create_handler<GetPaymentFormQuery>(std::move(promise))
       ->send(full_message_id.get_dialog_id(), server_message_id, std::move(theme_parameters));

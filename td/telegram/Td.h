@@ -1305,6 +1305,8 @@ class Td final : public Actor {
 
   void on_request(uint64 id, const td_api::getJsonString &request);
 
+  void on_request(uint64 id, const td_api::getThemeParametersJsonString &request);
+
   void on_request(uint64 id, const td_api::setLogStream &request);
 
   void on_request(uint64 id, const td_api::getLogStream &request);
@@ -1353,6 +1355,7 @@ class Td final : public Actor {
   static td_api::object_ptr<td_api::Object> do_static_request(const td_api::getChatFilterDefaultIconName &request);
   static td_api::object_ptr<td_api::Object> do_static_request(td_api::getJsonValue &request);
   static td_api::object_ptr<td_api::Object> do_static_request(const td_api::getJsonString &request);
+  static td_api::object_ptr<td_api::Object> do_static_request(const td_api::getThemeParametersJsonString &request);
   static td_api::object_ptr<td_api::Object> do_static_request(td_api::setLogStream &request);
   static td_api::object_ptr<td_api::Object> do_static_request(const td_api::getLogStream &request);
   static td_api::object_ptr<td_api::Object> do_static_request(const td_api::setLogVerbosityLevel &request);

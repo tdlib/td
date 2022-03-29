@@ -4791,6 +4791,9 @@ getJsonValue json:string = JsonValue;
 //@description Converts a JsonValue object to corresponding JSON-serialized string. Can be called synchronously @json_value The JsonValue object
 getJsonString json_value:JsonValue = Text;
 
+//@description Converts a themeParameters object to corresponding JSON-serialized string. Can be called synchronously @theme Theme parameters to convert to JSON
+getThemeParametersJsonString theme:themeParameters = Text;
+
 
 //@description Changes the user answer to a poll. A poll in quiz mode can be answered only once
 //@chat_id Identifier of the chat to which the poll belongs

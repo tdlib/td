@@ -2927,6 +2927,7 @@ bool Td::is_synchronous_request(int32 id) {
     case td_api::getChatFilterDefaultIconName::ID:
     case td_api::getJsonValue::ID:
     case td_api::getJsonString::ID:
+    case td_api::getThemeParametersJsonString::ID:
     case td_api::getPushReceiverId::ID:
     case td_api::setLogStream::ID:
     case td_api::getLogStream::ID:
@@ -3158,6 +3159,7 @@ td_api::object_ptr<td_api::Object> Td::static_request(td_api::object_ptr<td_api:
       case td_api::getChatFilterDefaultIconName::ID:
       case td_api::getJsonValue::ID:
       case td_api::getJsonString::ID:
+      case td_api::getThemeParametersJsonString::ID:
       case td_api::testReturnError::ID:
         return true;
       default:
@@ -7885,6 +7887,10 @@ void Td::on_request(uint64 id, const td_api::getJsonString &request) {
   UNREACHABLE();
 }
 
+void Td::on_request(uint64 id, const td_api::getThemeParametersJsonString &request) {
+  UNREACHABLE();
+}
+
 void Td::on_request(uint64 id, const td_api::setLogStream &request) {
   UNREACHABLE();
 }
@@ -8064,6 +8070,10 @@ td_api::object_ptr<td_api::Object> Td::do_static_request(td_api::getJsonValue &r
 
 td_api::object_ptr<td_api::Object> Td::do_static_request(const td_api::getJsonString &request) {
   return td_api::make_object<td_api::text>(get_json_string(request.json_value_.get()));
+}
+
+td_api::object_ptr<td_api::Object> Td::do_static_request(const td_api::getThemeParametersJsonString &request) {
+  return td_api::make_object<td_api::text>(ThemeManager::get_theme_parameters_json_string(request.theme_, true));
 }
 
 td_api::object_ptr<td_api::Object> Td::do_static_request(td_api::setLogStream &request) {

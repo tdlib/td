@@ -17,6 +17,7 @@
 #include "td/utils/algorithm.h"
 #include "td/utils/buffer.h"
 #include "td/utils/emoji.h"
+#include "td/utils/JsonBuilder.h"
 #include "td/utils/logging.h"
 #include "td/utils/Random.h"
 #include "td/utils/Time.h"
@@ -238,6 +239,53 @@ void ThemeManager::on_update_theme(telegram_api::object_ptr<telegram_api::theme>
     send_update_chat_themes();
   }
   promise.set_value(Unit());
+}
+
+namespace {
+template <bool for_web_view>
+static auto get_color_json(int32 color);
+
+template <>
+auto get_color_json<false>(int32 color) {
+  return static_cast<int64>(static_cast<uint32>(color) | 0x000000FF);
+}
+
+template <>
+auto get_color_json<true>(int32 color) {
+  string res(7, '#');
+  const char *hex = "0123456789abcdef";
+  for (int i = 0; i < 3; i++) {
+    int32 num = (color >> (i * 8)) & 0xFF;
+    res[2 * i + 1] = hex[num >> 4];
+    res[2 * i + 2] = hex[num & 15];
+  }
+  return res;
+}
+
+template <bool for_web_view>
+string get_theme_parameters_json_string_impl(const td_api::object_ptr<td_api::themeParameters> &theme) {
+  if (for_web_view && theme == nullptr) {
+    return "null";
+  }
+  return json_encode<string>(json_object([&theme](auto &o) {
+    auto get_color = &get_color_json<for_web_view>;
+    o("bg_color", get_color(theme->background_color_));
+    o("text_color", get_color(theme->text_color_));
+    o("hint_color", get_color(theme->hint_color_));
+    o("link_color", get_color(theme->link_color_));
+    o("button_color", get_color(theme->button_color_));
+    o("button_text_color", get_color(theme->button_text_color_));
+  }));
+}
+}  // namespace
+
+string ThemeManager::get_theme_parameters_json_string(const td_api::object_ptr<td_api::themeParameters> &theme,
+                                                      bool for_web_view) {
+  if (for_web_view) {
+    return get_theme_parameters_json_string_impl<true>(theme);
+  } else {
+    return get_theme_parameters_json_string_impl<false>(theme);
+  }
 }
 
 td_api::object_ptr<td_api::themeSettings> ThemeManager::get_theme_settings_object(const ThemeSettings &settings) const {
