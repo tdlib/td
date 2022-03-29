@@ -1145,7 +1145,7 @@ void answer_pre_checkout_query(Td *td, int64 pre_checkout_query_id, const string
   td->create_handler<SetBotPreCheckoutAnswerQuery>(std::move(promise))->send(pre_checkout_query_id, error_message);
 }
 
-void get_payment_form(Td *td, FullMessageId full_message_id, const td_api::object_ptr<td_api::paymentFormTheme> &theme,
+void get_payment_form(Td *td, FullMessageId full_message_id, const td_api::object_ptr<td_api::themeParameters> &theme,
                       Promise<tl_object_ptr<td_api::paymentForm>> &&promise) {
   TRY_RESULT_PROMISE(promise, server_message_id, td->messages_manager_->get_invoice_message_id(full_message_id));
 

@@ -1459,6 +1459,12 @@ bankCardInfo title:string actions:vector<bankCardActionOpenUrl> = BankCardInfo;
 address country_code:string state:string city:string street_line1:string street_line2:string postal_code:string = Address;
 
 
+//@description Contains parameters of the app theme @background_color A color of the background in the RGB24 format @text_color A color of text in the RGB24 format
+//@hint_color A color of hints in the RGB24 format @link_color A color of links in the RGB24 format @button_color A color of the buttons in the RGB24 format
+//@button_text_color A color of text on the buttons in the RGB24 format
+themeParameters background_color:int32 text_color:int32 hint_color:int32 link_color:int32 button_color:int32 button_text_color:int32 = ThemeParameters;
+
+
 //@description Portion of the price of a product (e.g., "delivery cost", "tax amount") @label Label for this portion of the product price @amount Currency amount in the smallest units of the currency
 labeledPricePart label:string amount:int53 = LabeledPricePart;
 
@@ -1501,11 +1507,6 @@ inputCredentialsGooglePay data:string = InputCredentials;
 
 //@description Stripe payment provider @publishable_key Stripe API publishable key @need_country True, if the user country must be provided @need_postal_code True, if the user ZIP/postal code must be provided @need_cardholder_name True, if the cardholder name must be provided
 paymentsProviderStripe publishable_key:string need_country:Bool need_postal_code:Bool need_cardholder_name:Bool = PaymentsProviderStripe;
-
-//@description Theme colors for a payment form @background_color A color of the payment form background in the RGB24 format @text_color A color of text in the RGB24 format
-//@hint_color A color of hints in the RGB24 format @link_color A color of links in the RGB24 format @button_color A color of the buttons in the RGB24 format
-//@button_text_color A color of text on the buttons in the RGB24 format
-paymentFormTheme background_color:int32 text_color:int32 hint_color:int32 link_color:int32 button_color:int32 button_text_color:int32 = PaymentFormTheme;
 
 //@description Contains information about an invoice payment form
 //@id The payment form identifier
@@ -5731,7 +5732,7 @@ getChatEventLog chat_id:int53 query:string from_event_id:int64 limit:int32 filte
 //@chat_id Chat identifier of the Invoice message
 //@message_id Message identifier
 //@theme Preferred payment form theme; pass null to use the default theme
-getPaymentForm chat_id:int53 message_id:int53 theme:paymentFormTheme = PaymentForm;
+getPaymentForm chat_id:int53 message_id:int53 theme:themeParameters = PaymentForm;
 
 //@description Validates the order information provided by a user and returns the available shipping options for a flexible invoice
 //@chat_id Chat identifier of the Invoice message

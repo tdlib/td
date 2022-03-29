@@ -1983,7 +1983,7 @@ class CliClient final : public Actor {
       MessageId message_id;
       get_args(args, chat_id, message_id);
       send_request(td_api::make_object<td_api::getPaymentForm>(
-          chat_id, message_id, td_api::make_object<td_api::paymentFormTheme>(0, -1, 256, 65536, 123456789, 65535)));
+          chat_id, message_id, td_api::make_object<td_api::themeParameters>(0, -1, 256, 65536, 123456789, 65535)));
     } else if (op == "voi") {
       ChatId chat_id;
       MessageId message_id;

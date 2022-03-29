@@ -180,7 +180,7 @@ void answer_shipping_query(Td *td, int64 shipping_query_id,
 void answer_pre_checkout_query(Td *td, int64 pre_checkout_query_id, const string &error_message,
                                Promise<Unit> &&promise);
 
-void get_payment_form(Td *td, FullMessageId full_message_id, const td_api::object_ptr<td_api::paymentFormTheme> &theme,
+void get_payment_form(Td *td, FullMessageId full_message_id, const td_api::object_ptr<td_api::themeParameters> &theme,
                       Promise<tl_object_ptr<td_api::paymentForm>> &&promise);
 
 void validate_order_info(Td *td, FullMessageId full_message_id, tl_object_ptr<td_api::orderInfo> order_info,
