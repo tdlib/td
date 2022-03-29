@@ -29,6 +29,8 @@ class AttachMenuManager final : public Actor {
 
   void reload_attach_menu_bots();
 
+  void get_attach_menu_bot(UserId user_id, Promise<td_api::object_ptr<td_api::attachMenuBot>> &&promise);
+
   void toggle_bot_is_added_to_attach_menu(UserId user_id, bool is_added, Promise<Unit> &&promise);
 
   void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
@@ -78,6 +80,10 @@ class AttachMenuManager final : public Actor {
   void save_attach_menu_bots();
 
   void on_reload_attach_menu_bots(Result<telegram_api::object_ptr<telegram_api::AttachMenuBots>> &&result);
+
+  void on_get_attach_menu_bot(UserId user_id,
+                              Result<telegram_api::object_ptr<telegram_api::attachMenuBotsBot>> &&result,
+                              Promise<td_api::object_ptr<td_api::attachMenuBot>> &&promise);
 
   Td *td_;
   ActorShared<> parent_;

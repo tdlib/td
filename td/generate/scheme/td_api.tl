@@ -5135,6 +5135,9 @@ toggleChatIsPinned chat_list:ChatList chat_id:int53 is_pinned:Bool = Ok;
 setPinnedChats chat_list:ChatList chat_ids:vector<int53> = Ok;
 
 
+//@description Returns information about a bot that can be added to attach menu @bot_user_id Bot's user identifier
+getAttachMenuBot bot_user_id:int53 = AttachMenuBot;
+
 //@description Adds or removes a bot to attach menu. Bot can be added to attach menu, only if userTypeBot.can_be_added_to_attach_menu == true @bot_user_id Bot's user identifier @is_added Pass true to add the bot to attach menu; pass false to remove the bot from attach menu
 toggleBotIsAddedToAttachMenu bot_user_id:int53 is_added:Bool = Ok;
 

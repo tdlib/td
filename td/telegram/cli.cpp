@@ -3414,6 +3414,10 @@ class CliClient final : public Actor {
           td_api::make_object<td_api::toggleChatDefaultDisableNotification>(chat_id, default_disable_notification));
     } else if (op == "spchats" || op == "spchatsa" || begins_with(op, "spchats-")) {
       send_request(td_api::make_object<td_api::setPinnedChats>(as_chat_list(op), as_chat_ids(args)));
+    } else if (op == "gamb") {
+      UserId user_id;
+      get_args(args, user_id);
+      send_request(td_api::make_object<td_api::getAttachMenuBot>(user_id));
     } else if (op == "tbiatam") {
       UserId user_id;
       bool is_added;

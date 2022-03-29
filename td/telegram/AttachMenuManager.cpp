@@ -54,6 +54,34 @@ class GetAttachMenuBotsQuery final : public Td::ResultHandler {
   }
 };
 
+class GetAttachMenuBotQuery final : public Td::ResultHandler {
+  Promise<telegram_api::object_ptr<telegram_api::attachMenuBotsBot>> promise_;
+
+ public:
+  explicit GetAttachMenuBotQuery(Promise<telegram_api::object_ptr<telegram_api::attachMenuBotsBot>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(tl_object_ptr<telegram_api::InputUser> &&input_user) {
+    send_query(G()->net_query_creator().create(telegram_api::messages_getAttachMenuBot(std::move(input_user))));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_getAttachMenuBot>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for GetAttachMenuBotQuery: " << to_string(ptr);
+    promise_.set_value(std::move(ptr));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class ToggleBotInAttachMenuQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
@@ -369,6 +397,71 @@ void AttachMenuManager::on_reload_attach_menu_bots(
 
     save_attach_menu_bots();
   }
+}
+
+void AttachMenuManager::get_attach_menu_bot(UserId user_id,
+                                            Promise<td_api::object_ptr<td_api::attachMenuBot>> &&promise) {
+  TRY_RESULT_PROMISE(promise, input_user, td_->contacts_manager_->get_input_user(user_id));
+
+  TRY_RESULT_PROMISE(promise, bot_data, td_->contacts_manager_->get_bot_data(user_id));
+  if (!bot_data.can_be_added_to_attach_menu) {
+    return promise.set_error(Status::Error(400, "The bot can't be added to attach menu"));
+  }
+
+  auto query_promise =
+      PromiseCreator::lambda([actor_id = actor_id(this), user_id, promise = std::move(promise)](
+                                 Result<telegram_api::object_ptr<telegram_api::attachMenuBotsBot>> &&result) mutable {
+        send_closure(actor_id, &AttachMenuManager::on_get_attach_menu_bot, user_id, std::move(result),
+                     std::move(promise));
+      });
+  td_->create_handler<GetAttachMenuBotQuery>(std::move(query_promise))->send(std::move(input_user));
+}
+
+void AttachMenuManager::on_get_attach_menu_bot(
+    UserId user_id, Result<telegram_api::object_ptr<telegram_api::attachMenuBotsBot>> &&result,
+    Promise<td_api::object_ptr<td_api::attachMenuBot>> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+  TRY_RESULT_PROMISE(promise, bot, std::move(result));
+
+  td_->contacts_manager_->on_get_users(std::move(bot->users_), "on_get_attach_menu_bot");
+
+  auto r_attach_menu_bot = get_attach_menu_bot(std::move(bot->bot_));
+  if (r_attach_menu_bot.is_error()) {
+    LOG(ERROR) << r_attach_menu_bot.error().message();
+    return promise.set_error(Status::Error(500, "Receive invalid response"));
+  }
+  auto attach_menu_bot = r_attach_menu_bot.move_as_ok();
+  if (attach_menu_bot.user_id_ != user_id) {
+    return promise.set_error(Status::Error(500, "Receive wrong bot"));
+  }
+  if (attach_menu_bot.is_added_) {
+    bool is_found = false;
+    for (auto &old_bot : attach_menu_bots_) {
+      if (old_bot.user_id_ == user_id) {
+        is_found = true;
+        break;
+      }
+    }
+    if (!is_found) {
+      LOG(INFO) << "Add missing attach menu bot " << user_id;
+    }
+    hash_ = 0;
+    attach_menu_bots_.insert(attach_menu_bots_.begin(), attach_menu_bot);
+
+    send_update_attach_menu_bots();
+    save_attach_menu_bots();
+  } else {
+    for (auto it = attach_menu_bots_.begin(); it != attach_menu_bots_.end(); ++it) {
+      if (it->user_id_ == user_id) {
+        hash_ = 0;
+        attach_menu_bots_.erase(it);
+
+        send_update_attach_menu_bots();
+        save_attach_menu_bots();
+      }
+    }
+  }
+  promise.set_value(get_attach_menu_bot_object(attach_menu_bot));
 }
 
 void AttachMenuManager::toggle_bot_is_added_to_attach_menu(UserId user_id, bool is_added, Promise<Unit> &&promise) {

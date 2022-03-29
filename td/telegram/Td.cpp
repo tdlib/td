@@ -6120,6 +6120,12 @@ void Td::on_request(uint64 id, const td_api::setPinnedChats &request) {
                           transform(request.chat_ids_, [](int64 chat_id) { return DialogId(chat_id); })));
 }
 
+void Td::on_request(uint64 id, const td_api::getAttachMenuBot &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  attach_menu_manager_->get_attach_menu_bot(UserId(request.bot_user_id_), std::move(promise));
+}
+
 void Td::on_request(uint64 id, const td_api::toggleBotIsAddedToAttachMenu &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();

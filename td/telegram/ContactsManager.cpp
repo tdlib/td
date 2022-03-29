@@ -4296,6 +4296,7 @@ void ContactsManager::ChannelFull::parse(ParserT &parser) {
   PARSE_FLAG(legacy_has_active_group_call_id);
   PARSE_FLAG(has_invite_link);
   PARSE_FLAG(has_bot_commands);
+  PARSE_FLAG(can_be_deleted);
   END_PARSE_FLAGS();
   if (has_description) {
     parse(description, parser);
