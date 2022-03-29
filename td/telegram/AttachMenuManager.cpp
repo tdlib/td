@@ -496,7 +496,16 @@ void AttachMenuManager::toggle_bot_is_added_to_attach_menu(UserId user_id, bool 
     remove_bot_from_attach_menu(user_id);
   }
 
-  td_->create_handler<ToggleBotInAttachMenuQuery>(std::move(promise))->send(std::move(input_user), is_added);
+  auto query_promise =
+      PromiseCreator::lambda([actor_id = actor_id(this), promise = std::move(promise)](Result<Unit> &&result) mutable {
+        if (result.is_error()) {
+          promise.set_error(result.move_as_error());
+        } else {
+          send_closure(actor_id, &AttachMenuManager::reload_attach_menu_bots, std::move(promise));
+        }
+      });
+
+  td_->create_handler<ToggleBotInAttachMenuQuery>(std::move(query_promise))->send(std::move(input_user), is_added);
 }
 
 td_api::object_ptr<td_api::attachMenuBot> AttachMenuManager::get_attach_menu_bot_object(
