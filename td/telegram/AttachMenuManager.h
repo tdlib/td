@@ -67,6 +67,8 @@ class AttachMenuManager final : public Actor {
 
   Result<AttachMenuBot> get_attach_menu_bot(tl_object_ptr<telegram_api::attachMenuBot> &&bot) const;
 
+  td_api::object_ptr<td_api::attachMenuBot> get_attach_menu_bot_object(const AttachMenuBot &bot) const;
+
   td_api::object_ptr<td_api::updateAttachMenuBots> get_update_attach_menu_bots_object() const;
 
   void send_update_attach_menu_bots() const;

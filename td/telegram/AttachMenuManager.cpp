@@ -397,23 +397,26 @@ void AttachMenuManager::toggle_bot_is_added_to_attach_menu(UserId user_id, bool 
   td_->create_handler<ToggleBotInAttachMenuQuery>(std::move(promise))->send(std::move(input_user), is_added);
 }
 
+td_api::object_ptr<td_api::attachMenuBot> AttachMenuManager::get_attach_menu_bot_object(
+    const AttachMenuBot &bot) const {
+  auto get_file = [td = td_](FileId file_id) -> td_api::object_ptr<td_api::file> {
+    if (!file_id.is_valid()) {
+      return nullptr;
+    }
+    return td->file_manager_->get_file_object(file_id);
+  };
+
+  return td_api::make_object<td_api::attachMenuBot>(
+      td_->contacts_manager_->get_user_id_object(bot.user_id_, "get_attach_menu_bot_object"), bot.name_,
+      get_file(bot.default_icon_file_id_), get_file(bot.ios_static_icon_file_id_),
+      get_file(bot.ios_animated_icon_file_id_), get_file(bot.android_icon_file_id_), get_file(bot.macos_icon_file_id_));
+}
+
 td_api::object_ptr<td_api::updateAttachMenuBots> AttachMenuManager::get_update_attach_menu_bots_object() const {
   CHECK(is_active());
   CHECK(is_inited_);
-  auto bots = transform(attach_menu_bots_, [td = td_](const AttachMenuBot &bot) {
-    auto get_file = [td](FileId file_id) -> td_api::object_ptr<td_api::file> {
-      if (!file_id.is_valid()) {
-        return nullptr;
-      }
-      return td->file_manager_->get_file_object(file_id);
-    };
-
-    return td_api::make_object<td_api::attachMenuBot>(
-        td->contacts_manager_->get_user_id_object(bot.user_id_, "attachMenuBot"), bot.name_,
-        get_file(bot.default_icon_file_id_), get_file(bot.ios_static_icon_file_id_),
-        get_file(bot.ios_animated_icon_file_id_), get_file(bot.android_icon_file_id_),
-        get_file(bot.macos_icon_file_id_));
-  });
+  auto bots =
+      transform(attach_menu_bots_, [this](const AttachMenuBot &bot) { return get_attach_menu_bot_object(bot); });
   return td_api::make_object<td_api::updateAttachMenuBots>(std::move(bots));
 }
 
