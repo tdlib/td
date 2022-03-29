@@ -286,6 +286,11 @@ void AttachMenuManager::on_reload_attach_menu_bots(
       new_hash = 0;
       continue;
     }
+    if (bot->inactive_) {
+      LOG(ERROR) << "Receive inactive attach menu bot " << user_id;
+      new_hash = 0;
+      continue;
+    }
 
     AttachMenuBot attach_menu_bot;
     attach_menu_bot.user_id_ = user_id;
