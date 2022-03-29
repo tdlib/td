@@ -236,7 +236,7 @@ void AttachMenuManager::init() {
 
     if (!attach_menu_bots_string.empty()) {
       AttachMenuBotsLogEvent attach_menu_bots_log_event;
-      log_event_parse(attach_menu_bots_string, attach_menu_bots_string).ensure();
+      log_event_parse(attach_menu_bots_log_event, attach_menu_bots_string).ensure();
 
       Dependencies dependencies;
       bool is_valid = true;
@@ -257,7 +257,7 @@ void AttachMenuManager::init() {
   }
 
   send_update_attach_menu_bots();
-  reload_attach_menu_bots();
+  reload_attach_menu_bots(Promise<Unit>());
 }
 
 void AttachMenuManager::timeout_expired() {
@@ -265,22 +265,11 @@ void AttachMenuManager::timeout_expired() {
     return;
   }
 
-  reload_attach_menu_bots();
+  reload_attach_menu_bots(Promise<Unit>());
 }
 
 bool AttachMenuManager::is_active() const {
   return !G()->close_flag() && td_->auth_manager_->is_authorized() && !td_->auth_manager_->is_bot();
-}
-
-void AttachMenuManager::reload_attach_menu_bots() {
-  if (!is_active()) {
-    return;
-  }
-  auto promise = PromiseCreator::lambda(
-      [actor_id = actor_id(this)](Result<telegram_api::object_ptr<telegram_api::AttachMenuBots>> &&result) {
-        send_closure(actor_id, &AttachMenuManager::on_reload_attach_menu_bots, std::move(result));
-      });
-  td_->create_handler<GetAttachMenuBotsQuery>(std::move(promise))->send(hash_);
 }
 
 Result<AttachMenuManager::AttachMenuBot> AttachMenuManager::get_attach_menu_bot(
@@ -343,14 +332,26 @@ Result<AttachMenuManager::AttachMenuBot> AttachMenuManager::get_attach_menu_bot(
   return std::move(attach_menu_bot);
 }
 
-void AttachMenuManager::on_reload_attach_menu_bots(
-    Result<telegram_api::object_ptr<telegram_api::AttachMenuBots>> &&result) {
+void AttachMenuManager::reload_attach_menu_bots(Promise<Unit> &&promise) {
   if (!is_active()) {
     return;
   }
+  auto query_promise =
+      PromiseCreator::lambda([actor_id = actor_id(this), promise = std::move(promise)](
+                                 Result<telegram_api::object_ptr<telegram_api::AttachMenuBots>> &&result) mutable {
+        send_closure(actor_id, &AttachMenuManager::on_reload_attach_menu_bots, std::move(result), std::move(promise));
+      });
+  td_->create_handler<GetAttachMenuBotsQuery>(std::move(query_promise))->send(hash_);
+}
+
+void AttachMenuManager::on_reload_attach_menu_bots(
+    Result<telegram_api::object_ptr<telegram_api::AttachMenuBots>> &&result, Promise<Unit> &&promise) {
+  if (!is_active()) {
+    return promise.set_value(Unit());
+  }
   if (result.is_error()) {
     set_timeout_in(Random::fast(60, 120));
-    return;
+    return promise.set_value(Unit());
   }
 
   is_inited_ = true;
@@ -360,7 +361,7 @@ void AttachMenuManager::on_reload_attach_menu_bots(
   auto attach_menu_bots_ptr = result.move_as_ok();
   auto constructor_id = attach_menu_bots_ptr->get_id();
   if (constructor_id == telegram_api::attachMenuBotsNotModified::ID) {
-    return;
+    return promise.set_value(Unit());
   }
   CHECK(constructor_id == telegram_api::attachMenuBots::ID);
   auto attach_menu_bots = move_tl_object_as<telegram_api::attachMenuBots>(attach_menu_bots_ptr);
@@ -396,6 +397,20 @@ void AttachMenuManager::on_reload_attach_menu_bots(
     }
 
     save_attach_menu_bots();
+  }
+  promise.set_value(Unit());
+}
+
+void AttachMenuManager::remove_bot_from_attach_menu(UserId user_id) {
+  for (auto it = attach_menu_bots_.begin(); it != attach_menu_bots_.end(); ++it) {
+    if (it->user_id_ == user_id) {
+      hash_ = 0;
+      attach_menu_bots_.erase(it);
+
+      send_update_attach_menu_bots();
+      save_attach_menu_bots();
+      return;
+    }
   }
 }
 
@@ -451,15 +466,7 @@ void AttachMenuManager::on_get_attach_menu_bot(
     send_update_attach_menu_bots();
     save_attach_menu_bots();
   } else {
-    for (auto it = attach_menu_bots_.begin(); it != attach_menu_bots_.end(); ++it) {
-      if (it->user_id_ == user_id) {
-        hash_ = 0;
-        attach_menu_bots_.erase(it);
-
-        send_update_attach_menu_bots();
-        save_attach_menu_bots();
-      }
-    }
+    remove_bot_from_attach_menu(user_id);
   }
   promise.set_value(get_attach_menu_bot_object(attach_menu_bot));
 }
@@ -485,6 +492,8 @@ void AttachMenuManager::toggle_bot_is_added_to_attach_menu(UserId user_id, bool 
     if (!bot_data.can_be_added_to_attach_menu) {
       return promise.set_error(Status::Error(400, "The bot can't be added to attach menu"));
     }
+  } else {
+    remove_bot_from_attach_menu(user_id);
   }
 
   td_->create_handler<ToggleBotInAttachMenuQuery>(std::move(promise))->send(std::move(input_user), is_added);

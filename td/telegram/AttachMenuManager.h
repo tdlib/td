@@ -27,7 +27,7 @@ class AttachMenuManager final : public Actor {
 
   void init();
 
-  void reload_attach_menu_bots();
+  void reload_attach_menu_bots(Promise<Unit> &&promise);
 
   void get_attach_menu_bot(UserId user_id, Promise<td_api::object_ptr<td_api::attachMenuBot>> &&promise);
 
@@ -73,13 +73,16 @@ class AttachMenuManager final : public Actor {
 
   td_api::object_ptr<td_api::updateAttachMenuBots> get_update_attach_menu_bots_object() const;
 
+  void remove_bot_from_attach_menu(UserId user_id);
+
   void send_update_attach_menu_bots() const;
 
   static string get_attach_menu_bots_database_key();
 
   void save_attach_menu_bots();
 
-  void on_reload_attach_menu_bots(Result<telegram_api::object_ptr<telegram_api::AttachMenuBots>> &&result);
+  void on_reload_attach_menu_bots(Result<telegram_api::object_ptr<telegram_api::AttachMenuBots>> &&result,
+                                  Promise<Unit> &&promise);
 
   void on_get_attach_menu_bot(UserId user_id,
                               Result<telegram_api::object_ptr<telegram_api::attachMenuBotsBot>> &&result,

@@ -2726,8 +2726,7 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateMessageReaction
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateAttachMenuBots> update, Promise<Unit> &&promise) {
-  td_->attach_menu_manager_->reload_attach_menu_bots();
-  promise.set_value(Unit());
+  td_->attach_menu_manager_->reload_attach_menu_bots(std::move(promise));
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateFolderPeers> update, Promise<Unit> &&promise) {
