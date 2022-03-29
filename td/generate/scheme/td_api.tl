@@ -4465,7 +4465,7 @@ getMessageThreadHistory chat_id:int53 message_id:int53 from_message_id:int53 off
 //@chat_id Chat identifier @remove_from_chat_list Pass true to remove the chat from all chat lists @revoke Pass true to delete chat history for all users
 deleteChatHistory chat_id:int53 remove_from_chat_list:Bool revoke:Bool = Ok;
 
-//@description Deletes a chat along with all messages in the corresponding chat for all chat members; requires owner privileges. For group chats this will release the username and remove all members. Chats with more than 1000 members can't be deleted using this method @chat_id Chat identifier
+//@description Deletes a chat along with all messages in the corresponding chat for all chat members. For group chats this will release the username and remove all members. Use the field chat.can_be_deleted_for_all_users to find whether the method can be applied to the chat @chat_id Chat identifier
 deleteChat chat_id:int53 = Ok;
 
 //@description Searches for messages with given words in the chat. Returns the results in reverse chronological order, i.e. in order of decreasing message_id. Cannot be used in secret chats with a non-empty query

@@ -531,6 +531,7 @@ class ContactsManager final : public Actor {
   bool get_channel_has_linked_channel(ChannelId channel_id) const;
   ChannelId get_channel_linked_channel_id(ChannelId channel_id);
   int32 get_channel_slow_mode_delay(ChannelId channel_id);
+  bool get_channel_can_be_deleted(ChannelId channel_id);
 
   void add_dialog_participant(DialogId dialog_id, UserId user_id, int32 forward_limit, Promise<Unit> &&promise);
 
@@ -902,6 +903,7 @@ class ContactsManager final : public Actor {
     bool can_view_statistics = false;
     bool is_can_view_statistics_inited = false;
     bool is_all_history_available = true;
+    bool can_be_deleted = false;
 
     bool is_slow_mode_next_send_date_changed = true;
     bool is_changed = true;             // have new changes that need to be sent to the client and database

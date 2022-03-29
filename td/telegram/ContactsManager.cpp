@@ -4172,27 +4172,28 @@ void ContactsManager::ChannelFull::store(StorerT &storer) const {
   STORE_FLAG(has_restricted_count);
   STORE_FLAG(has_banned_count);
   STORE_FLAG(legacy_has_invite_link);
-  STORE_FLAG(has_sticker_set);
+  STORE_FLAG(has_sticker_set);  // 5
   STORE_FLAG(has_linked_channel_id);
   STORE_FLAG(has_migrated_from_max_message_id);
   STORE_FLAG(has_migrated_from_chat_id);
   STORE_FLAG(can_get_participants);
-  STORE_FLAG(can_set_username);
+  STORE_FLAG(can_set_username);  // 10
   STORE_FLAG(can_set_sticker_set);
   STORE_FLAG(false);  // legacy_can_view_statistics
   STORE_FLAG(is_all_history_available);
   STORE_FLAG(can_set_location);
-  STORE_FLAG(has_location);
+  STORE_FLAG(has_location);  // 15
   STORE_FLAG(has_bot_user_ids);
   STORE_FLAG(is_slow_mode_enabled);
   STORE_FLAG(is_slow_mode_delay_active);
   STORE_FLAG(has_stats_dc_id);
-  STORE_FLAG(has_photo);
+  STORE_FLAG(has_photo);  // 20
   STORE_FLAG(is_can_view_statistics_inited);
   STORE_FLAG(can_view_statistics);
   STORE_FLAG(legacy_has_active_group_call_id);
   STORE_FLAG(has_invite_link);
-  STORE_FLAG(has_bot_commands);
+  STORE_FLAG(has_bot_commands);  // 25
+  STORE_FLAG(can_be_deleted);
   END_STORE_FLAGS();
   if (has_description) {
     store(description, storer);
@@ -6829,8 +6830,8 @@ void ContactsManager::delete_channel(ChannelId channel_id, Promise<Unit> &&promi
   if (c == nullptr) {
     return promise.set_error(Status::Error(400, "Chat info not found"));
   }
-  if (!get_channel_status(c).is_creator()) {
-    return promise.set_error(Status::Error(400, "Not enough rights to delete the chat"));
+  if (!get_channel_can_be_deleted(channel_id)) {
+    return promise.set_error(Status::Error(400, "The chat can't be deleted"));
   }
 
   td_->create_handler<DeleteChannelQuery>(std::move(promise))->send(channel_id);
@@ -11044,6 +11045,10 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
       }
       on_update_channel_full_slow_mode_delay(channel_full, channel_id, slow_mode_delay, slow_mode_next_send_date);
     }
+    if (channel_full->can_be_deleted != channel->can_delete_channel_) {
+      channel_full->can_be_deleted = channel->can_delete_channel_;
+      channel_full->need_save_to_database = true;
+    }
 
     ChatId migrated_from_chat_id;
     MessageId migrated_from_max_message_id;
@@ -14729,6 +14734,17 @@ int32 ContactsManager::get_channel_slow_mode_delay(ChannelId channel_id) {
     }
   }
   return channel_full->slow_mode_delay;
+}
+
+bool ContactsManager::get_channel_can_be_deleted(ChannelId channel_id) {
+  auto channel_full = get_channel_full_const(channel_id);
+  if (channel_full == nullptr) {
+    channel_full = get_channel_full_force(channel_id, false, "get_channel_can_be_deleted");
+    if (channel_full == nullptr) {
+      return get_channel_status(channel_id).is_creator();
+    }
+  }
+  return channel_full->can_be_deleted;
 }
 
 bool ContactsManager::have_channel(ChannelId channel_id) const {

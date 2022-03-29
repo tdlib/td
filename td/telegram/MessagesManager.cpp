@@ -2860,15 +2860,20 @@ class DeleteChannelHistoryQuery final : public Td::ResultHandler {
   explicit DeleteChannelHistoryQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(ChannelId channel_id, MessageId max_message_id, bool allow_error) {
+  void send(ChannelId channel_id, MessageId max_message_id, bool allow_error, bool revoke) {
     channel_id_ = channel_id;
     max_message_id_ = max_message_id;
     allow_error_ = allow_error;
     auto input_channel = td_->contacts_manager_->get_input_channel(channel_id);
     CHECK(input_channel != nullptr);
 
+    int32 flags = 0;
+    if (revoke) {
+      flags |= telegram_api::channels_deleteHistory::FOR_EVERYONE_MASK;
+    }
+
     send_query(G()->net_query_creator().create(telegram_api::channels_deleteHistory(
-        0, false /*ignored*/, std::move(input_channel), max_message_id.get_server_message_id().get())));
+        flags, false /*ignored*/, std::move(input_channel), max_message_id.get_server_message_id().get())));
   }
 
   void on_result(BufferSlice packet) final {
@@ -11396,11 +11401,17 @@ void MessagesManager::delete_dialog_history(DialogId dialog_id, bool remove_from
       // ok
       break;
     case DialogType::Channel:
-      if (is_broadcast_channel(dialog_id)) {
-        return promise.set_error(Status::Error(400, "Can't delete chat history in a channel"));
-      }
-      if (td_->contacts_manager_->is_channel_public(dialog_id.get_channel_id())) {
-        return promise.set_error(Status::Error(400, "Can't delete chat history in a public supergroup"));
+      if (revoke) {
+        if (!td_->contacts_manager_->get_channel_can_be_deleted(d->dialog_id.get_channel_id())) {
+          return promise.set_error(Status::Error(400, "Can't delete chat history for all chat members"));
+        }
+      } else {
+        if (is_broadcast_channel(dialog_id)) {
+          return promise.set_error(Status::Error(400, "Can't delete chat history in a channel"));
+        }
+        if (td_->contacts_manager_->is_channel_public(dialog_id.get_channel_id())) {
+          return promise.set_error(Status::Error(400, "Can't delete chat history in a public supergroup"));
+        }
       }
       break;
     case DialogType::SecretChat:
@@ -11498,7 +11509,7 @@ void MessagesManager::delete_dialog_history_on_server(DialogId dialog_id, Messag
     }
     case DialogType::Channel:
       td_->create_handler<DeleteChannelHistoryQuery>(std::move(promise))
-          ->send(dialog_id.get_channel_id(), max_message_id, allow_error);
+          ->send(dialog_id.get_channel_id(), max_message_id, allow_error, revoke);
       break;
     case DialogType::SecretChat:
       send_closure(G()->secret_chats_manager(), &SecretChatsManager::delete_all_messages,
@@ -21448,10 +21459,13 @@ td_api::object_ptr<td_api::chat> MessagesManager::get_chat_object(const Dialog *
       case DialogType::Channel:
         if (is_broadcast_channel(d->dialog_id) ||
             td_->contacts_manager_->is_channel_public(d->dialog_id.get_channel_id())) {
-          // deleteChatHistory can't be used in channels and public supergroups
+          // deleteChatHistory can't be used in channels and public supergroups to delete messages for self
         } else {
           // private supergroups can be deleted for self
           can_delete_for_self = true;
+        }
+        if (td_->contacts_manager_->get_channel_can_be_deleted(d->dialog_id.get_channel_id())) {
+          can_delete_for_all_users = true;
         }
         break;
       case DialogType::SecretChat:
