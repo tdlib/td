@@ -7,6 +7,7 @@
 #include "td/telegram/OptionManager.h"
 
 #include "td/telegram/AnimationsManager.h"
+#include "td/telegram/AttachMenuManager.h"
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/ConfigManager.h"
 #include "td/telegram/ConfigShared.h"
@@ -226,6 +227,7 @@ void OptionManager::on_option_updated(const string &name) {
         if (G()->mtproto_header().set_language_code(G()->shared_config().get_option_string(name))) {
           G()->net_query_dispatcher().update_mtproto_header();
         }
+        send_closure(td_->attach_menu_manager_actor_, &AttachMenuManager::reload_attach_menu_bots, Promise<Unit>());
       }
       if (name == "language_pack_version") {
         send_closure(td_->language_pack_manager_, &LanguagePackManager::on_language_pack_version_changed, false, -1);
