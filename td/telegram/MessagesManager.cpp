@@ -24693,7 +24693,7 @@ void MessagesManager::on_set_message_reaction(FullMessageId full_message_id, Res
   auto it = pending_reactions_.find(full_message_id);
   CHECK(it != pending_reactions_.end());
   if (--it->second.query_count == 0) {
-    need_reload |= it->second.was_updated;
+    // need_reload |= it->second.was_updated;
     pending_reactions_.erase(it);
   }
 
