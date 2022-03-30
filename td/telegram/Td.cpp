@@ -7336,6 +7336,21 @@ void Td::on_request(uint64 id, td_api::answerInlineQuery &request) {
       request.next_offset_, request.switch_pm_text_, request.switch_pm_parameter_, std::move(promise));
 }
 
+void Td::on_request(uint64 id, td_api::getSimpleWebViewUrl &request) {
+  CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.url_);
+  CREATE_REQUEST_PROMISE();
+  auto query_promise = PromiseCreator::lambda([promise = std::move(promise)](Result<string> result) mutable {
+    if (result.is_error()) {
+      promise.set_error(result.move_as_error());
+    } else {
+      promise.set_value(td_api::make_object<td_api::httpUrl>(result.move_as_ok()));
+    }
+  });
+  inline_queries_manager_->get_simple_web_view_url(UserId(request.bot_user_id_), std::move(request.url_),
+                                                   std::move(request.theme_), std::move(query_promise));
+}
+
 void Td::on_request(uint64 id, td_api::sendWebViewData &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.button_text_);

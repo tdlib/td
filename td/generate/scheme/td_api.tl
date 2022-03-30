@@ -4850,6 +4850,12 @@ getInlineQueryResults bot_user_id:int53 chat_id:int53 user_location:location que
 answerInlineQuery inline_query_id:int64 is_personal:Bool results:vector<InputInlineQueryResult> cache_time:int32 next_offset:string switch_pm_text:string switch_pm_parameter:string = Ok;
 
 
+//@description Returns an HTTPS URL to open in a web view when keyboardButtonTypeWebView button is pressed
+//@bot_user_id Identifier of the target bot
+//@url The URL from the keyboardButtonTypeWebView button
+//@theme Preferred web view theme; pass null to use the default theme
+getSimpleWebViewUrl bot_user_id:int53 url:string theme:themeParameters = HttpUrl;
+
 //@description Sends data received from keyboardButtonTypeWebView web view to a bot
 //@bot_user_id Identifier of the target bot @button_text Text of the keyboardButtonTypeWebView button, which opened the web view @data Received data
 sendWebViewData bot_user_id:int53 button_text:string data:string = Ok;
