@@ -29,12 +29,12 @@
 namespace td {
 
 class RequestWebViewQuery final : public Td::ResultHandler {
-  Promise<td_api::object_ptr<td_api::webViewInfo>> promise_;
+  Promise<td_api::object_ptr<td_api::webAppInfo>> promise_;
   DialogId dialog_id_;
   bool from_attach_menu_ = false;
 
  public:
-  explicit RequestWebViewQuery(Promise<td_api::object_ptr<td_api::webViewInfo>> &&promise)
+  explicit RequestWebViewQuery(Promise<td_api::object_ptr<td_api::webAppInfo>> &&promise)
       : promise_(std::move(promise)) {
   }
 
@@ -89,7 +89,7 @@ class RequestWebViewQuery final : public Td::ResultHandler {
     }
 
     auto ptr = result_ptr.move_as_ok();
-    promise_.set_value(td_api::make_object<td_api::webViewInfo>(ptr->query_id_, ptr->url_));
+    promise_.set_value(td_api::make_object<td_api::webAppInfo>(ptr->query_id_, ptr->url_));
   }
 
   void on_error(Status status) final {
@@ -395,7 +395,7 @@ bool AttachMenuManager::is_active() const {
 void AttachMenuManager::request_web_view(DialogId dialog_id, UserId bot_user_id, MessageId reply_to_message_id,
                                          string &&url, bool from_bot_menu,
                                          td_api::object_ptr<td_api::themeParameters> &&theme,
-                                         Promise<td_api::object_ptr<td_api::webViewInfo>> &&promise) {
+                                         Promise<td_api::object_ptr<td_api::webAppInfo>> &&promise) {
   TRY_STATUS_PROMISE(promise, td_->contacts_manager_->get_bot_data(bot_user_id));
   TRY_RESULT_PROMISE(promise, input_user, td_->contacts_manager_->get_input_user(bot_user_id));
 

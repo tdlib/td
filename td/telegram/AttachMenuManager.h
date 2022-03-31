@@ -31,7 +31,7 @@ class AttachMenuManager final : public Actor {
 
   void request_web_view(DialogId dialog_id, UserId bot_user_id, MessageId reply_to_message_id, string &&url,
                         bool from_bot_menu, td_api::object_ptr<td_api::themeParameters> &&theme,
-                        Promise<td_api::object_ptr<td_api::webViewInfo>> &&promise);
+                        Promise<td_api::object_ptr<td_api::webAppInfo>> &&promise);
 
   void reload_attach_menu_bots(Promise<Unit> &&promise);
 

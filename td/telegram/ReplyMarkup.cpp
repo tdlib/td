@@ -440,19 +440,19 @@ static Result<KeyboardButton> get_keyboard_button(tl_object_ptr<td_api::keyboard
       }
       break;
     }
-    case td_api::keyboardButtonTypeWebView::ID: {
+    case td_api::keyboardButtonTypeWebApp::ID: {
       if (!request_buttons_allowed) {
         return Status::Error(400, "Web view can be used in private chats only");
       }
 
-      auto button_type = move_tl_object_as<td_api::keyboardButtonTypeWebView>(button->type_);
+      auto button_type = move_tl_object_as<td_api::keyboardButtonTypeWebApp>(button->type_);
       auto user_id = LinkManager::get_link_user_id(button_type->url_);
       if (user_id.is_valid()) {
-        return Status::Error(400, "Link to a user can't be used in web view URL buttons");
+        return Status::Error(400, "Link to a user can't be used in web app URL buttons");
       }
       auto r_url = LinkManager::check_link(button_type->url_, true, true);
       if (r_url.is_error()) {
-        return Status::Error(400, "Inline keyboard button web view URL is invalid");
+        return Status::Error(400, "Inline keyboard button web app URL is invalid");
       }
       current_button.type = KeyboardButton::Type::WebView;
       current_button.url = std::move(button_type->url_);
@@ -566,20 +566,20 @@ static Result<InlineKeyboardButton> get_inline_keyboard_button(tl_object_ptr<td_
       }
       break;
     }
-    case td_api::inlineKeyboardButtonTypeWebView::ID: {
-      auto button_type = move_tl_object_as<td_api::inlineKeyboardButtonTypeWebView>(button->type_);
+    case td_api::inlineKeyboardButtonTypeWebApp::ID: {
+      auto button_type = move_tl_object_as<td_api::inlineKeyboardButtonTypeWebApp>(button->type_);
       auto user_id = LinkManager::get_link_user_id(button_type->url_);
       if (user_id.is_valid()) {
-        return Status::Error(400, "Link to a user can't be used in web view URL buttons");
+        return Status::Error(400, "Link to a user can't be used in web app URL buttons");
       }
       auto r_url = LinkManager::check_link(button_type->url_, true, true);
       if (r_url.is_error()) {
-        return Status::Error(400, "Inline keyboard button web view URL is invalid");
+        return Status::Error(400, "Inline keyboard button web app URL is invalid");
       }
       current_button.type = InlineKeyboardButton::Type::WebView;
       current_button.data = r_url.move_as_ok();
       if (!clean_input_string(current_button.data)) {
-        return Status::Error(400, "Inline keyboard button web view URL must be encoded in UTF-8");
+        return Status::Error(400, "Inline keyboard button web app URL must be encoded in UTF-8");
       }
       break;
     }
@@ -858,7 +858,7 @@ static tl_object_ptr<td_api::keyboardButton> get_keyboard_button_object(const Ke
       type = make_tl_object<td_api::keyboardButtonTypeRequestPoll>(true, false);
       break;
     case KeyboardButton::Type::WebView:
-      type = make_tl_object<td_api::keyboardButtonTypeWebView>(keyboard_button.url);
+      type = make_tl_object<td_api::keyboardButtonTypeWebApp>(keyboard_button.url);
       break;
     default:
       UNREACHABLE();
@@ -902,7 +902,7 @@ static tl_object_ptr<td_api::inlineKeyboardButton> get_inline_keyboard_button_ob
                                                                               "get_inline_keyboard_button_object"));
       break;
     case InlineKeyboardButton::Type::WebView:
-      type = make_tl_object<td_api::inlineKeyboardButtonTypeWebView>(keyboard_button.data);
+      type = make_tl_object<td_api::inlineKeyboardButtonTypeWebApp>(keyboard_button.data);
       break;
     default:
       UNREACHABLE();

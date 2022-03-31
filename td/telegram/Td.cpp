@@ -7336,7 +7336,7 @@ void Td::on_request(uint64 id, td_api::answerInlineQuery &request) {
       request.next_offset_, request.switch_pm_text_, request.switch_pm_parameter_, std::move(promise));
 }
 
-void Td::on_request(uint64 id, td_api::getWebViewUrl &request) {
+void Td::on_request(uint64 id, td_api::getWebAppUrl &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.url_);
   CREATE_REQUEST_PROMISE();
@@ -7351,7 +7351,7 @@ void Td::on_request(uint64 id, td_api::getWebViewUrl &request) {
                                                    std::move(request.theme_), std::move(query_promise));
 }
 
-void Td::on_request(uint64 id, td_api::sendWebViewData &request) {
+void Td::on_request(uint64 id, td_api::sendWebAppData &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.button_text_);
   CLEAN_INPUT_STRING(request.data_);
@@ -7360,7 +7360,7 @@ void Td::on_request(uint64 id, td_api::sendWebViewData &request) {
                                               std::move(request.data_), std::move(promise));
 }
 
-void Td::on_request(uint64 id, td_api::openWebView &request) {
+void Td::on_request(uint64 id, td_api::openWebApp &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.url_);
   CREATE_REQUEST_PROMISE();
@@ -7369,11 +7369,11 @@ void Td::on_request(uint64 id, td_api::openWebView &request) {
                                          request.from_bot_menu_, std::move(request.theme_), std::move(promise));
 }
 
-void Td::on_request(uint64 id, td_api::answerWebViewQuery &request) {
+void Td::on_request(uint64 id, td_api::answerWebAppQuery &request) {
   CHECK_IS_BOT();
-  CLEAN_INPUT_STRING(request.web_view_query_id_);
+  CLEAN_INPUT_STRING(request.web_app_query_id_);
   CREATE_REQUEST_PROMISE();
-  inline_queries_manager_->answer_web_view_query(request.web_view_query_id_, std::move(request.result_),
+  inline_queries_manager_->answer_web_view_query(request.web_app_query_id_, std::move(request.result_),
                                                  std::move(promise));
 }
 

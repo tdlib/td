@@ -5130,11 +5130,11 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
     }
     case MessageContentType::WebViewDataSent: {
       const auto *m = static_cast<const MessageWebViewDataSent *>(content);
-      return make_tl_object<td_api::messageWebViewDataSent>(m->button_text);
+      return make_tl_object<td_api::messageWebAppDataSent>(m->button_text);
     }
     case MessageContentType::WebViewDataReceived: {
       const auto *m = static_cast<const MessageWebViewDataReceived *>(content);
-      return make_tl_object<td_api::messageWebViewDataReceived>(m->button_text, m->data);
+      return make_tl_object<td_api::messageWebAppDataReceived>(m->button_text, m->data);
     }
     default:
       UNREACHABLE();

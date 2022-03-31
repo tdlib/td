@@ -1155,13 +1155,13 @@ class Td final : public Actor {
 
   void on_request(uint64 id, td_api::answerInlineQuery &request);
 
-  void on_request(uint64 id, td_api::getWebViewUrl &request);
+  void on_request(uint64 id, td_api::getWebAppUrl &request);
 
-  void on_request(uint64 id, td_api::sendWebViewData &request);
+  void on_request(uint64 id, td_api::sendWebAppData &request);
 
-  void on_request(uint64 id, td_api::openWebView &request);
+  void on_request(uint64 id, td_api::openWebApp &request);
 
-  void on_request(uint64 id, td_api::answerWebViewQuery &request);
+  void on_request(uint64 id, td_api::answerWebAppQuery &request);
 
   void on_request(uint64 id, td_api::getCallbackQueryAnswer &request);
 

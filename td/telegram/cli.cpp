@@ -3428,26 +3428,26 @@ class CliClient final : public Actor {
       bool is_added;
       get_args(args, user_id, is_added);
       send_request(td_api::make_object<td_api::toggleBotIsAddedToAttachMenu>(user_id, is_added));
-    } else if (op == "gwvu") {
+    } else if (op == "gwau") {
       UserId user_id;
       string url;
       get_args(args, user_id, url);
-      send_request(td_api::make_object<td_api::getWebViewUrl>(user_id, url, get_theme_parameters()));
-    } else if (op == "swvd") {
+      send_request(td_api::make_object<td_api::getWebAppUrl>(user_id, url, get_theme_parameters()));
+    } else if (op == "swad") {
       UserId user_id;
       string button_text;
       string data;
       get_args(args, user_id, button_text, data);
-      send_request(td_api::make_object<td_api::sendWebViewData>(user_id, button_text, data));
-    } else if (op == "owv") {
+      send_request(td_api::make_object<td_api::sendWebAppData>(user_id, button_text, data));
+    } else if (op == "owa") {
       ChatId chat_id;
       UserId bot_user_id;
       string url;
       bool from_bot_menu;
       MessageId reply_to_message_id;
       get_args(args, chat_id, bot_user_id, url, from_bot_menu, reply_to_message_id);
-      send_request(td_api::make_object<td_api::openWebView>(chat_id, bot_user_id, url, from_bot_menu,
-                                                            get_theme_parameters(), reply_to_message_id));
+      send_request(td_api::make_object<td_api::openWebApp>(chat_id, bot_user_id, url, from_bot_menu,
+                                                           get_theme_parameters(), reply_to_message_id));
     } else if (op == "sca") {
       ChatId chat_id;
       string message_thread_id;

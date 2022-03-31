@@ -1125,8 +1125,8 @@ keyboardButtonTypeRequestLocation = KeyboardButtonType;
 //@description A button that allows the user to create and send a poll when pressed; available only in private chats @force_regular If true, only regular polls must be allowed to create @force_quiz If true, only polls in quiz mode must be allowed to create
 keyboardButtonTypeRequestPoll force_regular:Bool force_quiz:Bool = KeyboardButtonType;
 
-//@description A button that opens a specified URL in web view by calling getWebViewUrl @url An HTTP URL to pass to getWebViewUrl
-keyboardButtonTypeWebView url:string = KeyboardButtonType;
+//@description A button that opens a web app by calling getWebAppUrl @url An HTTP URL to pass to getWebAppUrl
+keyboardButtonTypeWebApp url:string = KeyboardButtonType;
 
 
 //@description Represents a single button in a bot keyboard @text Text of the button @type Type of the button
@@ -1141,8 +1141,8 @@ inlineKeyboardButtonTypeUrl url:string = InlineKeyboardButtonType;
 //@description A button that opens a specified URL and automatically authorize the current user by calling getLoginUrlInfo @url An HTTP URL to pass to getLoginUrlInfo @id Unique button identifier @forward_text If non-empty, new text of the button in forwarded messages
 inlineKeyboardButtonTypeLoginUrl url:string id:int53 forward_text:string = InlineKeyboardButtonType;
 
-//@description A button that opens a specified URL in web view by calling openWebView @url An HTTP URL to pass to openWebView
-inlineKeyboardButtonTypeWebView url:string = InlineKeyboardButtonType;
+//@description A button that opens a web app by calling openWebApp @url An HTTP URL to pass to openWebApp
+inlineKeyboardButtonTypeWebApp url:string = InlineKeyboardButtonType;
 
 //@description A button that sends a callback query to a bot @data Data to be sent to the bot via a callback query
 inlineKeyboardButtonTypeCallback data:bytes = InlineKeyboardButtonType;
@@ -1201,8 +1201,8 @@ loginUrlInfoOpen url:string skip_confirm:Bool = LoginUrlInfo;
 loginUrlInfoRequestConfirmation url:string domain:string bot_user_id:int53 request_write_access:Bool = LoginUrlInfo;
 
 
-//@description Contains information about URL to be opened in web view @query_id Unique identifier for the web view opening query @url The URL to open in web view
-webViewInfo query_id:int64 url:string = WebViewInfo;
+//@description Contains information about a web app @launch_id Unique identifier for the web app launch @url A web app URL to open in a web view
+webAppInfo launch_id:int64 url:string = WebAppInfo;
 
 
 //@description Contains information about a message thread
@@ -1945,11 +1945,11 @@ messageContactRegistered = MessageContent;
 //@description The current user has connected a website by logging in using Telegram Login Widget on it @domain_name Domain name of the connected website
 messageWebsiteConnected domain_name:string = MessageContent;
 
-//@description Data from web view has been sent to a bot @button_text Text of the keyboardButtonTypeWebView button, which opened the web view
-messageWebViewDataSent button_text:string = MessageContent;
+//@description Data from a web app has been sent to a bot @button_text Text of the keyboardButtonTypeWebApp button, which opened the web app
+messageWebAppDataSent button_text:string = MessageContent;
 
-//@description Data from web view has been received; for bots only @button_text Text of the keyboardButtonTypeWebView button, which opened the web view @data Received data
-messageWebViewDataReceived button_text:string data:string = MessageContent;
+//@description Data from a web app has been received; for bots only @button_text Text of the keyboardButtonTypeWebApp button, which opened the web app @data Received data
+messageWebAppDataReceived button_text:string data:string = MessageContent;
 
 //@description Telegram Passport data has been sent to a bot @types List of Telegram Passport element types sent
 messagePassportDataSent types:vector<PassportElementType> = MessageContent;
@@ -2528,8 +2528,8 @@ attachMenuBotColor light_color:int32 dark_color:int32 = AttachMenuBotColor;
 //@icon_color Color to highlight selected icon of the bot if appropriate; may be null
 attachMenuBot bot_user_id:int53 name:string name_color:attachMenuBotColor default_icon:file ios_static_icon:file ios_animated_icon:file android_icon:file macos_icon:file icon_color:attachMenuBotColor = AttachMenuBot;
 
-//@description Information about the message sent by answerWebViewQuery @inline_message_id Identifier of the sent inline message, if known
-sentWebViewMessage inline_message_id:string = SentWebViewMessage;
+//@description Information about the message sent by answerWebAppQuery @inline_message_id Identifier of the sent inline message, if known
+sentWebAppMessage inline_message_id:string = SentWebAppMessage;
 
 
 //@description Contains an HTTP URL @url The URL
@@ -4859,29 +4859,29 @@ getInlineQueryResults bot_user_id:int53 chat_id:int53 user_location:location que
 answerInlineQuery inline_query_id:int64 is_personal:Bool results:vector<InputInlineQueryResult> cache_time:int32 next_offset:string switch_pm_text:string switch_pm_parameter:string = Ok;
 
 
-//@description Returns an HTTPS URL to open in a web view when keyboardButtonTypeWebView button is pressed
+//@description Returns an HTTPS URL of a web app to open after keyboardButtonTypeWebApp button is pressed
 //@bot_user_id Identifier of the target bot
-//@url The URL from the keyboardButtonTypeWebView button
-//@theme Preferred web view theme; pass null to use the default theme
-getWebViewUrl bot_user_id:int53 url:string theme:themeParameters = HttpUrl;
+//@url The URL from the keyboardButtonTypeWebApp button
+//@theme Preferred web app theme; pass null to use the default theme
+getWebAppUrl bot_user_id:int53 url:string theme:themeParameters = HttpUrl;
 
-//@description Sends data received from keyboardButtonTypeWebView web view to a bot
-//@bot_user_id Identifier of the target bot @button_text Text of the keyboardButtonTypeWebView button, which opened the web view @data Received data
-sendWebViewData bot_user_id:int53 button_text:string data:string = Ok;
+//@description Sends data received from a keyboardButtonTypeWebApp web app to a bot
+//@bot_user_id Identifier of the target bot @button_text Text of the keyboardButtonTypeWebApp button, which opened the web app @data Received data
+sendWebAppData bot_user_id:int53 button_text:string data:string = Ok;
 
-//@description Informs TDLib that a web view is being opened from attach menu, bot menu, internalLinkTypeAttachMenuBot links, or an inlineKeyboardButtonTypeWebView button
-//@chat_id Identifier of the chat in which web view is opened. Web view can be opened only in private chats for now
-//@bot_user_id Identifier of the target bot, providing web view
-//@url The URL from the inlineKeyboardButtonTypeWebView button or the internalLinkTypeAttachMenuBot link, or an empty string otherwise
-//@from_bot_menu Pass true if the web view is opened from bot menu
-//@theme Preferred web view theme; pass null to use the default theme
-//@reply_to_message_id Identifier of the message to reply to by web view-generated message or 0
-openWebView chat_id:int53 bot_user_id:int53 url:string from_bot_menu:Bool theme:themeParameters reply_to_message_id:int53 = WebViewInfo;
+//@description Informs TDLib that a web app is being opened from attach menu, bot menu, internalLinkTypeAttachMenuBot links, or an inlineKeyboardButtonTypeWebApp button
+//@chat_id Identifier of the chat in which the web app is opened. Web apps can be opened only in private chats for now
+//@bot_user_id Identifier of the bot, providing the web app
+//@url The URL from the inlineKeyboardButtonTypeWebApp button or the internalLinkTypeAttachMenuBot link, or an empty string otherwise
+//@from_bot_menu Pass true if the web app is opened from bot menu
+//@theme Preferred web app theme; pass null to use the default theme
+//@reply_to_message_id Identifier of the replied message for the message sent by the web app or 0
+openWebApp chat_id:int53 bot_user_id:int53 url:string from_bot_menu:Bool theme:themeParameters reply_to_message_id:int53 = WebAppInfo;
 
-//@description Sets the result of interaction with web view and sends corresponding message on behalf of the user to the chat from which the query originated; for bots only
-//@web_view_query_id Identifier of the web view query
+//@description Sets the result of interaction with a web app and sends corresponding message on behalf of the user to the chat from which the query originated; for bots only
+//@web_app_query_id Identifier of the web app query
 //@result The result of the query
-answerWebViewQuery web_view_query_id:string result:InputInlineQueryResult = SentWebViewMessage;
+answerWebAppQuery web_app_query_id:string result:InputInlineQueryResult = SentWebAppMessage;
 
 
 //@description Sends a callback query to a bot and returns an answer. Returns an error with code 502 if the bot fails to answer the query before the query timeout expires @chat_id Identifier of the chat with the message @message_id Identifier of the message from which the query originated @payload Query payload
