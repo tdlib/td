@@ -937,7 +937,7 @@ scopeNotificationSettings mute_for:int32 sound:string show_preview:Bool disable_
 
 
 //@description Contains information about a message draft
-//@reply_to_message_id Identifier of the message to reply to; 0 if none
+//@reply_to_message_id Identifier of the replied message; 0 if none
 //@date Point in time (Unix timestamp) when the draft was created
 //@input_message_text Content of the message draft; must be of the type inputMessageText
 draftMessage reply_to_message_id:int53 date:int32 input_message_text:InputMessageContent = DraftMessage;
@@ -4606,7 +4606,7 @@ setChatMessageSender chat_id:int53 message_sender_id:MessageSender = Ok;
 //@description Sends a message. Returns the sent message
 //@chat_id Target chat
 //@message_thread_id If not 0, a message thread identifier in which the message will be sent
-//@reply_to_message_id Identifier of the message to reply to or 0
+//@reply_to_message_id Identifier of the replied message; 0 if none
 //@options Options to be used to send the message; pass null to use default options
 //@reply_markup Markup for replying to the message; pass null if none; for bots only
 //@input_message_content The content of the message to be sent
@@ -4615,7 +4615,7 @@ sendMessage chat_id:int53 message_thread_id:int53 reply_to_message_id:int53 opti
 //@description Sends 2-10 messages grouped together into an album. Currently, only audio, document, photo and video messages can be grouped into an album. Documents and audio files can be only grouped in an album with messages of the same type. Returns sent messages
 //@chat_id Target chat
 //@message_thread_id If not 0, a message thread identifier in which the messages will be sent
-//@reply_to_message_id Identifier of a message to reply to or 0
+//@reply_to_message_id Identifier of a replied message; 0 if none
 //@options Options to be used to send the messages; pass null to use default options
 //@input_message_contents Contents of messages to be sent. At most 10 messages can be added to an album
 //@only_preview Pass true to get fake messages instead of actually sending them
@@ -4628,7 +4628,7 @@ sendBotStartMessage bot_user_id:int53 chat_id:int53 parameter:string = Message;
 //@description Sends the result of an inline query as a message. Returns the sent message. Always clears a chat draft message
 //@chat_id Target chat
 //@message_thread_id If not 0, a message thread identifier in which the message will be sent
-//@reply_to_message_id Identifier of a message to reply to or 0
+//@reply_to_message_id Identifier of a replied message; 0 if none
 //@options Options to be used to send the message; pass null to use default options
 //@query_id Identifier of the inline query
 //@result_id Identifier of the inline result
@@ -4656,7 +4656,7 @@ sendChatScreenshotTakenNotification chat_id:int53 = Ok;
 //@description Adds a local message to a chat. The message is persistent across application restarts only if the message database is used. Returns the added message
 //@chat_id Target chat
 //@sender_id Identifier of the sender of the message
-//@reply_to_message_id Identifier of the message to reply to or 0
+//@reply_to_message_id Identifier of the replied message; 0 if none
 //@disable_notification Pass true to disable notification for the message
 //@input_message_content The content of the message to be added
 addLocalMessage chat_id:int53 sender_id:MessageSender reply_to_message_id:int53 disable_notification:Bool input_message_content:InputMessageContent = Message;
@@ -4875,7 +4875,7 @@ sendWebAppData bot_user_id:int53 button_text:string data:string = Ok;
 //@url The URL from the inlineKeyboardButtonTypeWebApp button or the internalLinkTypeAttachMenuBot link, or an empty string otherwise
 //@from_bot_menu Pass true if the web app is opened from bot menu
 //@theme Preferred web app theme; pass null to use the default theme
-//@reply_to_message_id Identifier of the replied message for the message sent by the web app or 0
+//@reply_to_message_id Identifier of the replied message for the message sent by the web app; 0 if none
 openWebApp chat_id:int53 bot_user_id:int53 url:string from_bot_menu:Bool theme:themeParameters reply_to_message_id:int53 = WebAppInfo;
 
 //@description Sets the result of interaction with a web app and sends corresponding message on behalf of the user to the chat from which the query originated; for bots only
