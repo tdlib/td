@@ -16,6 +16,7 @@
 #include "td/telegram/files/FileManager.h"
 #include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/MessagesManager.h"
+#include "td/telegram/StateManager.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"
 #include "td/telegram/ThemeManager.h"
@@ -105,6 +106,49 @@ class RequestWebViewQuery final : public Td::ResultHandler {
       }
     }
     promise_.set_error(std::move(status));
+  }
+};
+
+class ProlongWebViewQuery final : public Td::ResultHandler {
+  DialogId dialog_id_;
+
+ public:
+  void send(DialogId dialog_id, UserId bot_user_id, int64 query_id, MessageId reply_to_message_id, bool silent) {
+    dialog_id_ = dialog_id;
+
+    auto input_peer = td_->messages_manager_->get_input_peer(dialog_id, AccessRights::Write);
+    auto r_input_user = td_->contacts_manager_->get_input_user(bot_user_id);
+    if (input_peer == nullptr || r_input_user.is_error()) {
+      return;
+    }
+
+    int32 flags = 0;
+    if (reply_to_message_id.is_valid()) {
+      flags |= telegram_api::messages_prolongWebView::REPLY_TO_MSG_ID_MASK;
+    }
+    if (silent) {
+      flags |= telegram_api::messages_prolongWebView::SILENT_MASK;
+    }
+
+    send_query(G()->net_query_creator().create(telegram_api::messages_prolongWebView(
+        flags, false /*ignored*/, std::move(input_peer), r_input_user.move_as_ok(), query_id,
+        reply_to_message_id.get_server_message_id().get())));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_prolongWebView>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    bool ptr = result_ptr.ok();
+    if (!ptr) {
+      LOG(ERROR) << "Failed to prolong a web view";
+    }
+  }
+
+  void on_error(Status status) final {
+    td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "ProlongWebViewQuery");
   }
 };
 
@@ -382,6 +426,22 @@ void AttachMenuManager::init() {
     }
   }
 
+  class StateCallback final : public StateManager::Callback {
+   public:
+    explicit StateCallback(ActorId<AttachMenuManager> parent) : parent_(std::move(parent)) {
+    }
+    bool on_online(bool is_online) final {
+      if (is_online) {
+        send_closure(parent_, &AttachMenuManager::on_online, is_online);
+      }
+      return parent_.is_alive();
+    }
+
+   private:
+    ActorId<AttachMenuManager> parent_;
+  };
+  send_closure(G()->state_manager(), &StateManager::add_callback, make_unique<StateCallback>(actor_id(this)));
+
   send_update_attach_menu_bots();
   reload_attach_menu_bots(Promise<Unit>());
 }
@@ -396,6 +456,46 @@ void AttachMenuManager::timeout_expired() {
 
 bool AttachMenuManager::is_active() const {
   return !G()->close_flag() && td_->auth_manager_->is_authorized() && !td_->auth_manager_->is_bot();
+}
+
+void AttachMenuManager::on_online(bool is_online) {
+  if (is_online) {
+    ping_web_view();
+  } else {
+    ping_web_view_timeout_.cancel_timeout();
+  }
+}
+
+void AttachMenuManager::ping_web_view_static(void *td_void) {
+  if (G()->close_flag()) {
+    return;
+  }
+
+  CHECK(td_void != nullptr);
+  auto td = static_cast<Td *>(td_void);
+
+  td->attach_menu_manager_->ping_web_view();
+}
+
+void AttachMenuManager::ping_web_view() {
+  if (G()->close_flag() || opened_web_views_.empty()) {
+    return;
+  }
+
+  for (const auto &it : opened_web_views_) {
+    const auto &opened_web_view = it.second;
+    bool silent = td_->messages_manager_->get_dialog_silent_send_message(opened_web_view.dialog_id_);
+    td_->create_handler<ProlongWebViewQuery>()->send(opened_web_view.dialog_id_, opened_web_view.bot_user_id_, it.first,
+                                                     opened_web_view.reply_to_message_id_, silent);
+  }
+
+  schedule_ping_web_view();
+}
+
+void AttachMenuManager::schedule_ping_web_view() {
+  ping_web_view_timeout_.set_callback(ping_web_view_static);
+  ping_web_view_timeout_.set_callback_data(static_cast<void *>(td_));
+  ping_web_view_timeout_.set_timeout_in(PING_WEB_VIEW_TIMEOUT);
 }
 
 void AttachMenuManager::request_web_view(DialogId dialog_id, UserId bot_user_id, MessageId reply_to_message_id,
@@ -448,6 +548,10 @@ void AttachMenuManager::open_web_view(int64 query_id, DialogId dialog_id, UserId
     LOG(ERROR) << "Receive web app query identifier == 0";
     return;
   }
+
+  if (opened_web_views_.empty()) {
+    schedule_ping_web_view();
+  }
   OpenedWebView opened_web_view;
   opened_web_view.dialog_id_ = dialog_id;
   opened_web_view.bot_user_id_ = bot_user_id;
@@ -457,6 +561,9 @@ void AttachMenuManager::open_web_view(int64 query_id, DialogId dialog_id, UserId
 
 void AttachMenuManager::close_web_view(int64 query_id, Promise<Unit> &&promise) {
   opened_web_views_.erase(query_id);
+  if (opened_web_views_.empty()) {
+    ping_web_view_timeout_.cancel_timeout();
+  }
   promise.set_value(Unit());
 }
 

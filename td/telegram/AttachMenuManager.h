@@ -15,6 +15,7 @@
 
 #include "td/actor/actor.h"
 #include "td/actor/PromiseFuture.h"
+#include "td/actor/Timeout.h"
 
 #include "td/utils/common.h"
 #include "td/utils/FlatHashSet.h"
@@ -47,13 +48,13 @@ class AttachMenuManager final : public Actor {
   void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
 
  private:
+  static const int32 PING_WEB_VIEW_TIMEOUT = 60;
+
   void start_up() final;
 
   void timeout_expired() final;
 
   void tear_down() final;
-
-  bool is_active() const;
 
   struct AttachMenuBotColor {
     int32 light_color_ = -1;
@@ -95,6 +96,16 @@ class AttachMenuManager final : public Actor {
 
   friend bool operator!=(const AttachMenuBot &lhs, const AttachMenuBot &rhs);
 
+  bool is_active() const;
+
+  void on_online(bool is_online);
+
+  static void ping_web_view_static(void *td_void);
+
+  void ping_web_view();
+
+  void schedule_ping_web_view();
+
   Result<AttachMenuBot> get_attach_menu_bot(tl_object_ptr<telegram_api::attachMenuBot> &&bot) const;
 
   td_api::object_ptr<td_api::attachMenuBot> get_attach_menu_bot_object(const AttachMenuBot &bot) const;
@@ -129,6 +140,7 @@ class AttachMenuManager final : public Actor {
     MessageId reply_to_message_id_;
   };
   FlatHashMap<int64, OpenedWebView> opened_web_views_;
+  Timeout ping_web_view_timeout_;
 };
 
 }  // namespace td
