@@ -3448,6 +3448,10 @@ class CliClient final : public Actor {
       get_args(args, chat_id, bot_user_id, url, from_bot_menu, reply_to_message_id);
       send_request(td_api::make_object<td_api::openWebApp>(chat_id, bot_user_id, url, from_bot_menu,
                                                            get_theme_parameters(), reply_to_message_id));
+    } else if (op == "cwa") {
+      int64 launch_id;
+      get_args(args, launch_id);
+      send_request(td_api::make_object<td_api::closeWebApp>(launch_id));
     } else if (op == "sca") {
       ChatId chat_id;
       string message_thread_id;

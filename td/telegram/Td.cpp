@@ -7369,6 +7369,12 @@ void Td::on_request(uint64 id, td_api::openWebApp &request) {
                                          request.from_bot_menu_, std::move(request.theme_), std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::closeWebApp &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  attach_menu_manager_->close_web_view(request.launch_id_, std::move(promise));
+}
+
 void Td::on_request(uint64 id, td_api::answerWebAppQuery &request) {
   CHECK_IS_BOT();
   CLEAN_INPUT_STRING(request.web_app_query_id_);

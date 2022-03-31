@@ -1161,6 +1161,8 @@ class Td final : public Actor {
 
   void on_request(uint64 id, td_api::openWebApp &request);
 
+  void on_request(uint64 id, const td_api::closeWebApp &request);
+
   void on_request(uint64 id, td_api::answerWebAppQuery &request);
 
   void on_request(uint64 id, td_api::getCallbackQueryAnswer &request);

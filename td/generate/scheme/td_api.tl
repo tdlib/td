@@ -4878,6 +4878,9 @@ sendWebAppData bot_user_id:int53 button_text:string data:string = Ok;
 //@reply_to_message_id Identifier of the replied message for the message sent by the web app; 0 if none
 openWebApp chat_id:int53 bot_user_id:int53 url:string from_bot_menu:Bool theme:themeParameters reply_to_message_id:int53 = WebAppInfo;
 
+//@description Informs TDLib that a previously opened web app was closed @launch_id Identifier of web app launch, received from openWebApp
+closeWebApp launch_id:int64 = Ok;
+
 //@description Sets the result of interaction with a web app and sends corresponding message on behalf of the user to the chat from which the query originated; for bots only
 //@web_app_query_id Identifier of the web app query
 //@result The result of the query

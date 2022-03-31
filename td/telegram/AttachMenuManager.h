@@ -17,6 +17,7 @@
 #include "td/actor/PromiseFuture.h"
 
 #include "td/utils/common.h"
+#include "td/utils/FlatHashSet.h"
 #include "td/utils/Status.h"
 
 namespace td {
@@ -32,6 +33,10 @@ class AttachMenuManager final : public Actor {
   void request_web_view(DialogId dialog_id, UserId bot_user_id, MessageId reply_to_message_id, string &&url,
                         bool from_bot_menu, td_api::object_ptr<td_api::themeParameters> &&theme,
                         Promise<td_api::object_ptr<td_api::webAppInfo>> &&promise);
+
+  void open_web_view(int64 query_id, DialogId dialog_id, UserId bot_user_id, MessageId reply_to_message_id);
+
+  void close_web_view(int64 query_id, Promise<Unit> &&promise);
 
   void reload_attach_menu_bots(Promise<Unit> &&promise);
 
@@ -117,6 +122,13 @@ class AttachMenuManager final : public Actor {
   bool is_inited_ = false;
   int64 hash_ = 0;
   vector<AttachMenuBot> attach_menu_bots_;
+
+  struct OpenedWebView {
+    DialogId dialog_id_;
+    UserId bot_user_id_;
+    MessageId reply_to_message_id_;
+  };
+  FlatHashMap<int64, OpenedWebView> opened_web_views_;
 };
 
 }  // namespace td

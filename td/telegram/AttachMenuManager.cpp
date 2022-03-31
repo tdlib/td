@@ -31,6 +31,8 @@ namespace td {
 class RequestWebViewQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::webAppInfo>> promise_;
   DialogId dialog_id_;
+  UserId bot_user_id_;
+  MessageId reply_to_message_id_;
   bool from_attach_menu_ = false;
 
  public:
@@ -38,9 +40,12 @@ class RequestWebViewQuery final : public Td::ResultHandler {
       : promise_(std::move(promise)) {
   }
 
-  void send(DialogId dialog_id, tl_object_ptr<telegram_api::InputUser> &&input_user, string &&url, bool from_bot_menu,
-            td_api::object_ptr<td_api::themeParameters> &&theme, MessageId reply_to_message_id, bool silent) {
+  void send(DialogId dialog_id, UserId bot_user_id, tl_object_ptr<telegram_api::InputUser> &&input_user, string &&url,
+            bool from_bot_menu, td_api::object_ptr<td_api::themeParameters> &&theme, MessageId reply_to_message_id,
+            bool silent) {
     dialog_id_ = dialog_id;
+    bot_user_id_ = bot_user_id;
+    reply_to_message_id_ = reply_to_message_id;
 
     int32 flags = 0;
 
@@ -89,6 +94,7 @@ class RequestWebViewQuery final : public Td::ResultHandler {
     }
 
     auto ptr = result_ptr.move_as_ok();
+    td_->attach_menu_manager_->open_web_view(ptr->query_id_, dialog_id_, bot_user_id_, reply_to_message_id_);
     promise_.set_value(td_api::make_object<td_api::webAppInfo>(ptr->query_id_, ptr->url_));
   }
 
@@ -432,8 +438,26 @@ void AttachMenuManager::request_web_view(DialogId dialog_id, UserId bot_user_id,
   bool silent = td_->messages_manager_->get_dialog_silent_send_message(dialog_id);
 
   td_->create_handler<RequestWebViewQuery>(std::move(promise))
-      ->send(dialog_id, std::move(input_user), std::move(url), from_bot_menu, std::move(theme), reply_to_message_id,
-             silent);
+      ->send(dialog_id, bot_user_id, std::move(input_user), std::move(url), from_bot_menu, std::move(theme),
+             reply_to_message_id, silent);
+}
+
+void AttachMenuManager::open_web_view(int64 query_id, DialogId dialog_id, UserId bot_user_id,
+                                      MessageId reply_to_message_id) {
+  if (query_id == 0) {
+    LOG(ERROR) << "Receive web app query identifier == 0";
+    return;
+  }
+  OpenedWebView opened_web_view;
+  opened_web_view.dialog_id_ = dialog_id;
+  opened_web_view.bot_user_id_ = bot_user_id;
+  opened_web_view.reply_to_message_id_ = reply_to_message_id;
+  opened_web_views_.emplace(query_id, std::move(opened_web_view));
+}
+
+void AttachMenuManager::close_web_view(int64 query_id, Promise<Unit> &&promise) {
+  opened_web_views_.erase(query_id);
+  promise.set_value(Unit());
 }
 
 Result<AttachMenuManager::AttachMenuBot> AttachMenuManager::get_attach_menu_bot(

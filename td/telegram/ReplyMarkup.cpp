@@ -442,7 +442,7 @@ static Result<KeyboardButton> get_keyboard_button(tl_object_ptr<td_api::keyboard
     }
     case td_api::keyboardButtonTypeWebApp::ID: {
       if (!request_buttons_allowed) {
-        return Status::Error(400, "Web view can be used in private chats only");
+        return Status::Error(400, "Web app can be used in private chats only");
       }
 
       auto button_type = move_tl_object_as<td_api::keyboardButtonTypeWebApp>(button->type_);
