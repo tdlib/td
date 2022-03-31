@@ -112,13 +112,33 @@ class ToggleBotInAttachMenuQuery final : public Td::ResultHandler {
   }
 };
 
+bool operator==(const AttachMenuManager::AttachMenuBotColor &lhs, const AttachMenuManager::AttachMenuBotColor &rhs) {
+  return lhs.light_color_ == rhs.light_color_ && lhs.dark_color_ == rhs.dark_color_;
+}
+
+bool operator!=(const AttachMenuManager::AttachMenuBotColor &lhs, const AttachMenuManager::AttachMenuBotColor &rhs) {
+  return !(lhs == rhs);
+}
+
+template <class StorerT>
+void AttachMenuManager::AttachMenuBotColor::store(StorerT &storer) const {
+  td::store(light_color_, storer);
+  td::store(dark_color_, storer);
+}
+
+template <class ParserT>
+void AttachMenuManager::AttachMenuBotColor::parse(ParserT &parser) {
+  td::parse(light_color_, parser);
+  td::parse(dark_color_, parser);
+}
+
 bool operator==(const AttachMenuManager::AttachMenuBot &lhs, const AttachMenuManager::AttachMenuBot &rhs) {
   return lhs.user_id_ == rhs.user_id_ && lhs.name_ == rhs.name_ &&
          lhs.default_icon_file_id_ == rhs.default_icon_file_id_ &&
          lhs.ios_static_icon_file_id_ == rhs.ios_static_icon_file_id_ &&
          lhs.ios_animated_icon_file_id_ == rhs.ios_animated_icon_file_id_ &&
          lhs.android_icon_file_id_ == rhs.android_icon_file_id_ && lhs.macos_icon_file_id_ == rhs.macos_icon_file_id_ &&
-         lhs.is_added_ == rhs.is_added_;
+         lhs.is_added_ == rhs.is_added_ && lhs.name_color_ == rhs.name_color_ && lhs.icon_color_ == rhs.icon_color_;
 }
 
 bool operator!=(const AttachMenuManager::AttachMenuBot &lhs, const AttachMenuManager::AttachMenuBot &rhs) {
@@ -131,12 +151,16 @@ void AttachMenuManager::AttachMenuBot::store(StorerT &storer) const {
   bool has_ios_animated_icon_file_id = ios_animated_icon_file_id_.is_valid();
   bool has_android_icon_file_id = android_icon_file_id_.is_valid();
   bool has_macos_icon_file_id = macos_icon_file_id_.is_valid();
+  bool has_name_color = name_color_ != AttachMenuBotColor();
+  bool has_icon_color = icon_color_ != AttachMenuBotColor();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_ios_static_icon_file_id);
   STORE_FLAG(has_ios_animated_icon_file_id);
   STORE_FLAG(has_android_icon_file_id);
   STORE_FLAG(has_macos_icon_file_id);
   STORE_FLAG(is_added_);
+  STORE_FLAG(has_name_color);
+  STORE_FLAG(has_icon_color);
   END_STORE_FLAGS();
   td::store(user_id_, storer);
   td::store(name_, storer);
@@ -153,6 +177,12 @@ void AttachMenuManager::AttachMenuBot::store(StorerT &storer) const {
   if (has_macos_icon_file_id) {
     td::store(macos_icon_file_id_, storer);
   }
+  if (has_name_color) {
+    td::store(name_color_, storer);
+  }
+  if (has_icon_color) {
+    td::store(icon_color_, storer);
+  }
 }
 
 template <class ParserT>
@@ -161,12 +191,16 @@ void AttachMenuManager::AttachMenuBot::parse(ParserT &parser) {
   bool has_ios_animated_icon_file_id;
   bool has_android_icon_file_id;
   bool has_macos_icon_file_id;
+  bool has_name_color;
+  bool has_icon_color;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(has_ios_static_icon_file_id);
   PARSE_FLAG(has_ios_animated_icon_file_id);
   PARSE_FLAG(has_android_icon_file_id);
   PARSE_FLAG(has_macos_icon_file_id);
   PARSE_FLAG(is_added_);
+  PARSE_FLAG(has_name_color);
+  PARSE_FLAG(has_icon_color);
   END_PARSE_FLAGS();
   td::parse(user_id_, parser);
   td::parse(name_, parser);
@@ -182,6 +216,12 @@ void AttachMenuManager::AttachMenuBot::parse(ParserT &parser) {
   }
   if (has_macos_icon_file_id) {
     td::parse(macos_icon_file_id_, parser);
+  }
+  if (has_name_color) {
+    td::parse(name_color_, parser);
+  }
+  if (has_icon_color) {
+    td::parse(icon_color_, parser);
   }
 }
 
@@ -236,13 +276,15 @@ void AttachMenuManager::init() {
 
     if (!attach_menu_bots_string.empty()) {
       AttachMenuBotsLogEvent attach_menu_bots_log_event;
-      log_event_parse(attach_menu_bots_log_event, attach_menu_bots_string).ensure();
+      bool is_valid = true;
+      is_valid &= log_event_parse(attach_menu_bots_log_event, attach_menu_bots_string).is_ok();
 
       Dependencies dependencies;
-      bool is_valid = true;
       for (auto &attach_menu_bot : attach_menu_bots_log_event.attach_menu_bots_) {
         if (!attach_menu_bot.user_id_.is_valid() || !attach_menu_bot.default_icon_file_id_.is_valid()) {
           is_valid = false;
+        }
+        if (!is_valid) {
           break;
         }
         dependencies.add(attach_menu_bot.user_id_);
@@ -304,6 +346,7 @@ Result<AttachMenuManager::AttachMenuBot> AttachMenuManager::get_attach_menu_bot(
       LOG(ERROR) << "Receive wrong attach menu bot icon for " << user_id;
       continue;
     }
+    bool expect_colors = false;
     switch (name[5]) {
       case 'l':
         attach_menu_bot.default_icon_file_id_ = parsed_document.file_id;
@@ -316,12 +359,59 @@ Result<AttachMenuManager::AttachMenuBot> AttachMenuManager::get_attach_menu_bot(
         break;
       case 'i':
         attach_menu_bot.android_icon_file_id_ = parsed_document.file_id;
+        expect_colors = true;
         break;
       case '_':
         attach_menu_bot.macos_icon_file_id_ = parsed_document.file_id;
         break;
       default:
         UNREACHABLE();
+    }
+    if (expect_colors) {
+      if (icon->colors_.empty()) {
+        LOG(ERROR) << "Have no colors for attach menu bot icon for " << user_id;
+      } else {
+        for (auto &color : icon->colors_) {
+          if (color->name_ != "light_icon" && color->name_ != "light_text" && color->name_ != "dark_icon" &&
+              color->name_ != "dark_text") {
+            LOG(ERROR) << "Receive unexpected attach menu color " << color->name_ << " for " << user_id;
+            continue;
+          }
+          auto alpha = (color->color_ >> 24) & 0xFF;
+          if (alpha != 0 && alpha != 0xFF) {
+            LOG(ERROR) << "Receive alpha in attach menu color " << color->name_ << " for " << user_id;
+          }
+          auto c = color->color_ & 0xFFFFFF;
+          switch (color->name_[6]) {
+            case 'i':
+              attach_menu_bot.icon_color_.light_color_ = c;
+              break;
+            case 't':
+              attach_menu_bot.name_color_.light_color_ = c;
+              break;
+            case 'c':
+              attach_menu_bot.icon_color_.dark_color_ = c;
+              break;
+            case 'e':
+              attach_menu_bot.name_color_.dark_color_ = c;
+              break;
+            default:
+              UNREACHABLE();
+          }
+          if (attach_menu_bot.icon_color_.light_color_ == -1 || attach_menu_bot.icon_color_.dark_color_ == -1) {
+            LOG(ERROR) << "Receive wrong icon_color for " << user_id;
+            attach_menu_bot.icon_color_ = AttachMenuBotColor();
+          }
+          if (attach_menu_bot.name_color_.light_color_ == -1 || attach_menu_bot.name_color_.dark_color_ == -1) {
+            LOG(ERROR) << "Receive wrong name_color for " << user_id;
+            attach_menu_bot.name_color_ = AttachMenuBotColor();
+          }
+        }
+      }
+    } else {
+      if (!icon->colors_.empty()) {
+        LOG(ERROR) << "Have unexpected colors for attach menu bot icon for " << user_id << " with name " << name;
+      }
     }
   }
 
@@ -516,11 +606,20 @@ td_api::object_ptr<td_api::attachMenuBot> AttachMenuManager::get_attach_menu_bot
     }
     return td->file_manager_->get_file_object(file_id);
   };
+  auto get_attach_menu_bot_color_object =
+      [](const AttachMenuBotColor &color) -> td_api::object_ptr<td_api::attachMenuBotColor> {
+    if (color == AttachMenuBotColor()) {
+      return nullptr;
+    }
+    return td_api::make_object<td_api::attachMenuBotColor>(color.light_color_, color.dark_color_);
+  };
 
   return td_api::make_object<td_api::attachMenuBot>(
       td_->contacts_manager_->get_user_id_object(bot.user_id_, "get_attach_menu_bot_object"), bot.name_,
-      get_file(bot.default_icon_file_id_), get_file(bot.ios_static_icon_file_id_),
-      get_file(bot.ios_animated_icon_file_id_), get_file(bot.android_icon_file_id_), get_file(bot.macos_icon_file_id_));
+      get_attach_menu_bot_color_object(bot.name_color_), get_file(bot.default_icon_file_id_),
+      get_file(bot.ios_static_icon_file_id_), get_file(bot.ios_animated_icon_file_id_),
+      get_file(bot.android_icon_file_id_), get_file(bot.macos_icon_file_id_),
+      get_attach_menu_bot_color_object(bot.icon_color_));
 }
 
 td_api::object_ptr<td_api::updateAttachMenuBots> AttachMenuManager::get_update_attach_menu_bots_object() const {

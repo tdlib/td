@@ -44,15 +44,32 @@ class AttachMenuManager final : public Actor {
 
   bool is_active() const;
 
+  struct AttachMenuBotColor {
+    int32 light_color_ = -1;
+    int32 dark_color_ = -1;
+
+    template <class StorerT>
+    void store(StorerT &storer) const;
+
+    template <class ParserT>
+    void parse(ParserT &parser);
+  };
+
+  friend bool operator==(const AttachMenuBotColor &lhs, const AttachMenuBotColor &rhs);
+
+  friend bool operator!=(const AttachMenuBotColor &lhs, const AttachMenuBotColor &rhs);
+
   struct AttachMenuBot {
     bool is_added_ = false;
     UserId user_id_;
     string name_;
+    AttachMenuBotColor name_color_;
     FileId default_icon_file_id_;
     FileId ios_static_icon_file_id_;
     FileId ios_animated_icon_file_id_;
     FileId android_icon_file_id_;
     FileId macos_icon_file_id_;
+    AttachMenuBotColor icon_color_;
 
     template <class StorerT>
     void store(StorerT &storer) const;

@@ -2509,15 +2509,20 @@ diceStickersSlotMachine background:sticker lever:sticker left_reel:sticker cente
 importedContacts user_ids:vector<int53> importer_count:vector<int32> = ImportedContacts;
 
 
+//@description Describes a color to highlight a bot added to attach menu @light_color Color in the RGB24 format for light themes @dark_color Color in the RGB24 format for dark themes
+attachMenuBotColor light_color:int32 dark_color:int32 = AttachMenuBotColor;
+
 //@description Represents a bot added to attach menu
 //@bot_user_id User identifier of the bot added to attach menu
 //@name Name for the bot in attach menu
+//@name_color Color to highlight selected name of the bot if appropriate; may be null
 //@default_icon Default attach menu icon for the bot in SVG format; may be null
 //@ios_static_icon Attach menu icon for the bot in SVG format for the official iOS app; may be null
 //@ios_animated_icon Attach menu icon for the bot in TGS format for the official iOS app; may be null
 //@android_icon Attach menu icon for the bot in TGS format for the official Android app; may be null
 //@macos_icon Attach menu icon for the bot in TGS format for the official native macOS app; may be null
-attachMenuBot bot_user_id:int53 name:string default_icon:file ios_static_icon:file ios_animated_icon:file android_icon:file macos_icon:file = AttachMenuBot;
+//@icon_color Color to highlight selected icon of the bot if appropriate; may be null
+attachMenuBot bot_user_id:int53 name:string name_color:attachMenuBotColor default_icon:file ios_static_icon:file ios_animated_icon:file android_icon:file macos_icon:file icon_color:attachMenuBotColor = AttachMenuBot;
 
 //@description Information about the message sent by answerWebViewQuery @inline_message_id Identifier of the sent inline message, if known
 sentWebViewMessage inline_message_id:string = SentWebViewMessage;
