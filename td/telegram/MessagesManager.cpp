@@ -25019,6 +25019,12 @@ bool MessagesManager::is_anonymous_administrator(DialogId dialog_id, string *aut
   return true;
 }
 
+bool MessagesManager::get_dialog_silent_send_message(DialogId dialog_id) const {
+  auto *d = get_dialog(dialog_id);
+  CHECK(d != nullptr);
+  return d->notification_settings.silent_send_message;
+}
+
 int64 MessagesManager::generate_new_random_id() {
   int64 random_id;
   do {
@@ -26529,9 +26535,7 @@ void MessagesManager::on_yet_unsent_media_queue_updated(DialogId dialog_id) {
 Result<MessageId> MessagesManager::send_bot_start_message(UserId bot_user_id, DialogId dialog_id,
                                                           const string &parameter) {
   LOG(INFO) << "Begin to send bot start message to " << dialog_id;
-  if (td_->auth_manager_->is_bot()) {
-    return Status::Error(400, "Bot can't send start message to another bot");
-  }
+  CHECK(!td_->auth_manager_->is_bot());
 
   TRY_RESULT(bot_data, td_->contacts_manager_->get_bot_data(bot_user_id));
 

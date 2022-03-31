@@ -7360,6 +7360,15 @@ void Td::on_request(uint64 id, td_api::sendWebViewData &request) {
                                               std::move(request.data_), std::move(promise));
 }
 
+void Td::on_request(uint64 id, td_api::openWebView &request) {
+  CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.url_);
+  CREATE_REQUEST_PROMISE();
+  attach_menu_manager_->request_web_view(DialogId(request.chat_id_), UserId(request.bot_user_id_),
+                                         MessageId(request.reply_to_message_id_), std::move(request.url_),
+                                         request.from_bot_menu_, std::move(request.theme_), std::move(promise));
+}
+
 void Td::on_request(uint64 id, td_api::answerWebViewQuery &request) {
   CHECK_IS_BOT();
   CLEAN_INPUT_STRING(request.web_view_query_id_);

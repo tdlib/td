@@ -1201,6 +1201,10 @@ loginUrlInfoOpen url:string skip_confirm:Bool = LoginUrlInfo;
 loginUrlInfoRequestConfirmation url:string domain:string bot_user_id:int53 request_write_access:Bool = LoginUrlInfo;
 
 
+//@description Contains information about URL to be opened in web view @query_id Unique identifier for the web view opening query @url The URL to open in web view
+webViewInfo query_id:int64 url:string = WebViewInfo;
+
+
 //@description Contains information about a message thread
 //@chat_id Identifier of the chat to which the message thread belongs
 //@message_thread_id Message thread identifier, unique within the chat
@@ -4864,6 +4868,15 @@ getWebViewUrl bot_user_id:int53 url:string theme:themeParameters = HttpUrl;
 //@description Sends data received from keyboardButtonTypeWebView web view to a bot
 //@bot_user_id Identifier of the target bot @button_text Text of the keyboardButtonTypeWebView button, which opened the web view @data Received data
 sendWebViewData bot_user_id:int53 button_text:string data:string = Ok;
+
+//@description Informs TDLib that a web view is being opened from attach menu, bot menu, internalLinkTypeAttachMenuBot links, or an inlineKeyboardButtonTypeWebView button
+//@chat_id Identifier of the chat in which web view is opened. Web view can be opened only in private chats for now
+//@bot_user_id Identifier of the target bot, providing web view
+//@url The URL from the inlineKeyboardButtonTypeWebView button or the internalLinkTypeAttachMenuBot link, or an empty string otherwise
+//@from_bot_menu Pass true if the web view is opened from bot menu
+//@theme Preferred web view theme; pass null to use the default theme
+//@reply_to_message_id Identifier of the message to reply to by web view-generated message or 0
+openWebView chat_id:int53 bot_user_id:int53 url:string from_bot_menu:Bool theme:themeParameters reply_to_message_id:int53 = WebViewInfo;
 
 //@description Sets the result of interaction with web view and sends corresponding message on behalf of the user to the chat from which the query originated; for bots only
 //@web_view_query_id Identifier of the web view query

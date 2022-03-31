@@ -3439,6 +3439,15 @@ class CliClient final : public Actor {
       string data;
       get_args(args, user_id, button_text, data);
       send_request(td_api::make_object<td_api::sendWebViewData>(user_id, button_text, data));
+    } else if (op == "owv") {
+      ChatId chat_id;
+      UserId bot_user_id;
+      string url;
+      bool from_bot_menu;
+      MessageId reply_to_message_id;
+      get_args(args, chat_id, bot_user_id, url, from_bot_menu, reply_to_message_id);
+      send_request(td_api::make_object<td_api::openWebView>(chat_id, bot_user_id, url, from_bot_menu,
+                                                            get_theme_parameters(), reply_to_message_id));
     } else if (op == "sca") {
       ChatId chat_id;
       string message_thread_id;
