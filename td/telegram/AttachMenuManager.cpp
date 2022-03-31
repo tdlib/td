@@ -108,6 +108,7 @@ class ToggleBotInAttachMenuQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
+    td_->attach_menu_manager_->reload_attach_menu_bots(Promise<Unit>());
     promise_.set_error(std::move(status));
   }
 };
