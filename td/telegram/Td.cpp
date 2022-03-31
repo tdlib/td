@@ -7336,7 +7336,7 @@ void Td::on_request(uint64 id, td_api::answerInlineQuery &request) {
       request.next_offset_, request.switch_pm_text_, request.switch_pm_parameter_, std::move(promise));
 }
 
-void Td::on_request(uint64 id, td_api::getSimpleWebViewUrl &request) {
+void Td::on_request(uint64 id, td_api::getWebViewUrl &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.url_);
   CREATE_REQUEST_PROMISE();

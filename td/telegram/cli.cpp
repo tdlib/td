@@ -3428,11 +3428,11 @@ class CliClient final : public Actor {
       bool is_added;
       get_args(args, user_id, is_added);
       send_request(td_api::make_object<td_api::toggleBotIsAddedToAttachMenu>(user_id, is_added));
-    } else if (op == "gswvu") {
+    } else if (op == "gwvu") {
       UserId user_id;
       string url;
       get_args(args, user_id, url);
-      send_request(td_api::make_object<td_api::getSimpleWebViewUrl>(user_id, url, get_theme_parameters()));
+      send_request(td_api::make_object<td_api::getWebViewUrl>(user_id, url, get_theme_parameters()));
     } else if (op == "swvd") {
       UserId user_id;
       string button_text;

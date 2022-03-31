@@ -566,8 +566,8 @@ static Result<InlineKeyboardButton> get_inline_keyboard_button(tl_object_ptr<td_
       }
       break;
     }
-    case td_api::inlineKeyboardButtonTypeWebViewUrl::ID: {
-      auto button_type = move_tl_object_as<td_api::inlineKeyboardButtonTypeWebViewUrl>(button->type_);
+    case td_api::inlineKeyboardButtonTypeWebView::ID: {
+      auto button_type = move_tl_object_as<td_api::inlineKeyboardButtonTypeWebView>(button->type_);
       auto user_id = LinkManager::get_link_user_id(button_type->url_);
       if (user_id.is_valid()) {
         return Status::Error(400, "Link to a user can't be used in web view URL buttons");
@@ -902,7 +902,7 @@ static tl_object_ptr<td_api::inlineKeyboardButton> get_inline_keyboard_button_ob
                                                                               "get_inline_keyboard_button_object"));
       break;
     case InlineKeyboardButton::Type::WebView:
-      type = make_tl_object<td_api::inlineKeyboardButtonTypeWebViewUrl>(keyboard_button.data);
+      type = make_tl_object<td_api::inlineKeyboardButtonTypeWebView>(keyboard_button.data);
       break;
     default:
       UNREACHABLE();

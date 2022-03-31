@@ -1125,7 +1125,7 @@ keyboardButtonTypeRequestLocation = KeyboardButtonType;
 //@description A button that allows the user to create and send a poll when pressed; available only in private chats @force_regular If true, only regular polls must be allowed to create @force_quiz If true, only polls in quiz mode must be allowed to create
 keyboardButtonTypeRequestPoll force_regular:Bool force_quiz:Bool = KeyboardButtonType;
 
-//@description A button that opens a specified URL in web view by calling getSimpleWebViewUrl @url An HTTP URL to pass to getSimpleWebViewUrl
+//@description A button that opens a specified URL in web view by calling getWebViewUrl @url An HTTP URL to pass to getWebViewUrl
 keyboardButtonTypeWebView url:string = KeyboardButtonType;
 
 
@@ -1141,8 +1141,8 @@ inlineKeyboardButtonTypeUrl url:string = InlineKeyboardButtonType;
 //@description A button that opens a specified URL and automatically authorize the current user by calling getLoginUrlInfo @url An HTTP URL to pass to getLoginUrlInfo @id Unique button identifier @forward_text If non-empty, new text of the button in forwarded messages
 inlineKeyboardButtonTypeLoginUrl url:string id:int53 forward_text:string = InlineKeyboardButtonType;
 
-//@description A button that opens a specified URL in web view by calling getWebViewUrl @url An HTTP URL to pass to getWebViewUrl
-inlineKeyboardButtonTypeWebViewUrl url:string = InlineKeyboardButtonType;
+//@description A button that opens a specified URL in web view by calling openWebView @url An HTTP URL to pass to openWebView
+inlineKeyboardButtonTypeWebView url:string = InlineKeyboardButtonType;
 
 //@description A button that sends a callback query to a bot @data Data to be sent to the bot via a callback query
 inlineKeyboardButtonTypeCallback data:bytes = InlineKeyboardButtonType;
@@ -4108,7 +4108,7 @@ updateTermsOfService terms_of_service_id:string terms_of_service:termsOfService 
 //@description The list of users nearby has changed. The update is guaranteed to be sent only 60 seconds after a successful searchChatsNearby request @users_nearby The new list of users nearby
 updateUsersNearby users_nearby:vector<chatNearby> = Update;
 
-//@description The list of bots added to attach menu has changed @bots The new list of bots added to attach menu. The bots must not be shown in attach menu on scheduled messages screen
+//@description The list of bots added to attach menu has changed @bots The new list of bots added to attach menu. The bots must be shown in attach menu only in private chats. The bots must not be shown on scheduled messages screen
 updateAttachMenuBots bots:vector<attachMenuBot> = Update;
 
 //@description The list of supported reactions has changed @reactions The new list of supported reactions
@@ -4859,7 +4859,7 @@ answerInlineQuery inline_query_id:int64 is_personal:Bool results:vector<InputInl
 //@bot_user_id Identifier of the target bot
 //@url The URL from the keyboardButtonTypeWebView button
 //@theme Preferred web view theme; pass null to use the default theme
-getSimpleWebViewUrl bot_user_id:int53 url:string theme:themeParameters = HttpUrl;
+getWebViewUrl bot_user_id:int53 url:string theme:themeParameters = HttpUrl;
 
 //@description Sends data received from keyboardButtonTypeWebView web view to a bot
 //@bot_user_id Identifier of the target bot @button_text Text of the keyboardButtonTypeWebView button, which opened the web view @data Received data
