@@ -7372,7 +7372,7 @@ void Td::on_request(uint64 id, td_api::openWebApp &request) {
 void Td::on_request(uint64 id, const td_api::closeWebApp &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  attach_menu_manager_->close_web_view(request.launch_id_, std::move(promise));
+  attach_menu_manager_->close_web_view(request.web_app_launch_id_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::answerWebAppQuery &request) {

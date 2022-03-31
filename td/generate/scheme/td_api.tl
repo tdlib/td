@@ -4115,6 +4115,9 @@ updateUsersNearby users_nearby:vector<chatNearby> = Update;
 //@description The list of bots added to attach menu has changed @bots The new list of bots added to attach menu. The bots must be shown in attach menu only in private chats. The bots must not be shown on scheduled messages screen
 updateAttachMenuBots bots:vector<attachMenuBot> = Update;
 
+//@description A message was sent by an opened web app, so the web app needs to be closed @web_app_launch_id Identifier of web app launch
+updateWebAppMessageSent web_app_launch_id:int64 = Update;
+
 //@description The list of supported reactions has changed @reactions The new list of supported reactions
 updateReactions reactions:vector<reaction> = Update;
 
@@ -4878,8 +4881,8 @@ sendWebAppData bot_user_id:int53 button_text:string data:string = Ok;
 //@reply_to_message_id Identifier of the replied message for the message sent by the web app; 0 if none
 openWebApp chat_id:int53 bot_user_id:int53 url:string from_bot_menu:Bool theme:themeParameters reply_to_message_id:int53 = WebAppInfo;
 
-//@description Informs TDLib that a previously opened web app was closed @launch_id Identifier of web app launch, received from openWebApp
-closeWebApp launch_id:int64 = Ok;
+//@description Informs TDLib that a previously opened web app was closed @web_app_launch_id Identifier of web app launch, received from openWebApp
+closeWebApp web_app_launch_id:int64 = Ok;
 
 //@description Sets the result of interaction with a web app and sends corresponding message on behalf of the user to the chat from which the query originated; for bots only
 //@web_app_query_id Identifier of the web app query

@@ -2729,6 +2729,11 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateAttachMenuBots>
   td_->attach_menu_manager_->reload_attach_menu_bots(std::move(promise));
 }
 
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateWebViewResultSent> update, Promise<Unit> &&promise) {
+  td_->attach_menu_manager_->close_web_view(update->query_id_, std::move(promise));
+  send_closure(G()->td(), &Td::send_update, td_api::make_object<td_api::updateWebAppMessageSent>(update->query_id_));
+}
+
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateFolderPeers> update, Promise<Unit> &&promise) {
   for (auto &folder_peer : update->folder_peers_) {
     DialogId dialog_id(folder_peer->peer_);
@@ -3307,10 +3312,6 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateTheme> update, 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updatePendingJoinRequests> update, Promise<Unit> &&promise) {
   td_->messages_manager_->on_update_dialog_pending_join_requests(DialogId(update->peer_), update->requests_pending_,
                                                                  std::move(update->recent_requesters_));
-  promise.set_value(Unit());
-}
-
-void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateWebViewResultSent> update, Promise<Unit> &&promise) {
   promise.set_value(Unit());
 }
 
