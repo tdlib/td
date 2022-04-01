@@ -108,6 +108,25 @@ class LinkManager::InternalLinkActiveSessions final : public InternalLink {
   }
 };
 
+class LinkManager::InternalLinkAttachMenuBot final : public InternalLink {
+  unique_ptr<InternalLink> dialog_link_;
+  string bot_username_;
+  string url_;
+
+  td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
+    return td_api::make_object<td_api::internalLinkTypeAttachMenuBot>(
+        dialog_link_ == nullptr ? nullptr : dialog_link_->get_internal_link_type_object(), bot_username_, url_);
+  }
+
+ public:
+  InternalLinkAttachMenuBot(unique_ptr<InternalLink> dialog_link, string bot_username, Slice start_parameter)
+      : dialog_link_(std::move(dialog_link)), bot_username_(std::move(bot_username)) {
+    if (!start_parameter.empty()) {
+      url_ = PSTRING() << "start://" << start_parameter;
+    }
+  }
+};
+
 class LinkManager::InternalLinkAuthenticationCode final : public InternalLink {
   string code_;
 
@@ -830,17 +849,29 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
           return td::make_unique<InternalLinkVoiceChat>(std::move(username), arg.second, arg.first == "livestream");
         }
         if (arg.first == "start" && is_valid_start_parameter(arg.second)) {
-          // resolve?domain=<bot_username>?start=<parameter>
+          // resolve?domain=<bot_username>&start=<parameter>
           return td::make_unique<InternalLinkBotStart>(std::move(username), arg.second);
         }
         if (arg.first == "startgroup" && is_valid_start_parameter(arg.second)) {
-          // resolve?domain=<bot_username>?startgroup=<parameter>
+          // resolve?domain=<bot_username>&startgroup=<parameter>
           return td::make_unique<InternalLinkBotStartInGroup>(std::move(username), arg.second);
         }
         if (arg.first == "game" && !arg.second.empty()) {
-          // resolve?domain=<bot_username>?game=<short_name>
+          // resolve?domain=<bot_username>&game=<short_name>
           return td::make_unique<InternalLinkGame>(std::move(username), arg.second);
         }
+      }
+      if (!url_query.get_arg("attach").empty()) {
+        // resolve?domain=<username>&attach=<bot_username>
+        // resolve?domain=<username>&attach=<bot_username>&startattach=<start_parameter>
+        return td::make_unique<InternalLinkAttachMenuBot>(
+            td::make_unique<InternalLinkPublicDialog>(std::move(username)), url_query.get_arg("attach").str(),
+            url_query.get_arg("startattach"));
+      } else if (url_query.has_arg("startattach")) {
+        // resolve?domain=<bot_username>&startattach
+        // resolve?domain=<bot_username>&startattach=<start_parameter>
+        return td::make_unique<InternalLinkAttachMenuBot>(nullptr, std::move(username),
+                                                          url_query.get_arg("startattach"));
       }
       if (username == "telegrampassport") {
         // resolve?domain=telegrampassport&bot_id=<bot_user_id>&scope=<scope>&public_key=<public_key>&nonce=<nonce>
@@ -849,8 +880,15 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
       // resolve?domain=<username>
       return td::make_unique<InternalLinkPublicDialog>(std::move(username));
     } else if (is_valid_phone_number(get_arg("phone"))) {
+      auto user_link = td::make_unique<InternalLinkUserPhoneNumber>(get_arg("phone"));
+      if (!url_query.get_arg("attach").empty()) {
+        // resolve?phone=<phone_number>&attach=<bot_username>
+        // resolve?phone=<phone_number>&attach=<bot_username>&startattach=<start_parameter>
+        return td::make_unique<InternalLinkAttachMenuBot>(std::move(user_link), url_query.get_arg("attach").str(),
+                                                          url_query.get_arg("startattach"));
+      }
       // resolve?phone=12345
-      return td::make_unique<InternalLinkUserPhoneNumber>(get_arg("phone"));
+      return user_link;
     }
   } else if (path.size() == 1 && path[0] == "login") {
     // login?code=123456
@@ -1016,8 +1054,15 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_t_me_link_query(Slice q
   } else if (path[0][0] == ' ' || path[0][0] == '+') {
     if (path[0].size() >= 2) {
       if (is_valid_phone_number(Slice(path[0]).substr(1))) {
+        auto user_link = td::make_unique<InternalLinkUserPhoneNumber>(path[0].substr(1));
+        if (!url_query.get_arg("attach").empty()) {
+          // /+<phone_number>?attach=<bot_username>
+          // /+<phone_number>?attach=<bot_username>&startattach=<start_parameter>
+          return td::make_unique<InternalLinkAttachMenuBot>(std::move(user_link), url_query.get_arg("attach").str(),
+                                                            url_query.get_arg("startattach"));
+        }
         // /+<phone_number>
-        return td::make_unique<InternalLinkUserPhoneNumber>(path[0].substr(1));
+        return user_link;
       } else {
         // /+<link>
         return td::make_unique<InternalLinkDialogInvite>(PSTRING() << "tg:join?invite="
@@ -1114,6 +1159,18 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_t_me_link_query(Slice q
         return td::make_unique<InternalLinkGame>(std::move(username), arg.second);
       }
     }
+    if (!url_query.get_arg("attach").empty()) {
+      // /<username>?attach=<bot_username>
+      // /<username>?attach=<bot_username>&startattach=<start_parameter>
+      return td::make_unique<InternalLinkAttachMenuBot>(td::make_unique<InternalLinkPublicDialog>(std::move(username)),
+                                                        url_query.get_arg("attach").str(),
+                                                        url_query.get_arg("startattach"));
+    } else if (url_query.has_arg("startattach")) {
+      // /<bot_username>?startattach
+      // /<bot_username>?startattach=<start_parameter>
+      return td::make_unique<InternalLinkAttachMenuBot>(nullptr, std::move(username), url_query.get_arg("startattach"));
+    }
+
     // /<username>
     return td::make_unique<InternalLinkPublicDialog>(std::move(username));
   }

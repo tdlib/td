@@ -82,6 +82,7 @@ class LinkManager final : public Actor {
   void tear_down() final;
 
   class InternalLinkActiveSessions;
+  class InternalLinkAttachMenuBot;
   class InternalLinkAuthenticationCode;
   class InternalLinkBackground;
   class InternalLinkBotStart;

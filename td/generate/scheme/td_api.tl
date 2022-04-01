@@ -881,7 +881,7 @@ messageCalendar total_count:int32 days:vector<messageCalendarDay> = MessageCalen
 //@message_id Message identifier; unique for the chat to which the sponsored message belongs among both ordinary and sponsored messages
 //@sponsor_chat_id Sponsor chat identifier; 0 if the sponsor chat is accessible through an invite link
 //@sponsor_chat_info Information about the sponsor chat; may be null unless sponsor_chat_id == 0
-//@link An internal link to be opened when the sponsored message is clicked; may be null. If null, the sponsor chat needs to be opened instead
+//@link An internal link to be opened when the sponsored message is clicked; may be null if the sponsor chat needs to be opened instead
 //@content Content of the message. Currently, can be only of the type messageText
 sponsoredMessage message_id:int53 sponsor_chat_id:int53 sponsor_chat_info:chatInviteLinkInfo link:InternalLinkType content:MessageContent = SponsoredMessage;
 
@@ -3335,6 +3335,13 @@ chatReportReasonCustom = ChatReportReason;
 //@description The link is a link to the active sessions section of the app. Use getActiveSessions to handle the link
 internalLinkTypeActiveSessions = InternalLinkType;
 
+//@description The link is a link to an attach menu bot to be opened in the specified chat. Process given chat_link to open corresponding chat.
+//-Then call searchPublicChat with the given bot username, check that the user is a bot and can be added to attach menu. Then use getAttachMenuBot to receive information about the bot.
+//-If the bot isn't added to attach menu, then user needs to confirm adding the bot to attach menu. If user confirms adding, then use toggleBotIsAddedToAttachMenu to add it.
+//-If attach menu bots can't be used in the current chat, show an error to the user. If the bot is added to attach menu, then use openWebApp with the given url
+//@chat_link An internal link pointing to a chat; may be null if the current chat needs to be kept @bot_username Username of the bot @url URL to be passed to openWebApp
+internalLinkTypeAttachMenuBot chat_link:InternalLinkType bot_username:string url:string = InternalLinkType;
+
 //@description The link contains an authentication code. Call checkAuthenticationCode with the code if the current authorization state is authorizationStateWaitCode @code The authentication code
 internalLinkTypeAuthenticationCode code:string = InternalLinkType;
 
@@ -4872,7 +4879,8 @@ getWebAppUrl bot_user_id:int53 url:string theme:themeParameters = HttpUrl;
 //@bot_user_id Identifier of the target bot @button_text Text of the keyboardButtonTypeWebApp button, which opened the web app @data Received data
 sendWebAppData bot_user_id:int53 button_text:string data:string = Ok;
 
-//@description Informs TDLib that a web app is being opened from attach menu, bot menu, internalLinkTypeAttachMenuBot links, or an inlineKeyboardButtonTypeWebApp button
+//@description Informs TDLib that a web app is being opened from attach menu, bot menu, an internalLinkTypeAttachMenuBot link, or an inlineKeyboardButtonTypeWebApp button.
+//-For each bot, a confirmation alert about data sent to the bot must be shown once
 //@chat_id Identifier of the chat in which the web app is opened. Web apps can be opened only in private chats for now
 //@bot_user_id Identifier of the bot, providing the web app
 //@url The URL from the inlineKeyboardButtonTypeWebApp button or the internalLinkTypeAttachMenuBot link, or an empty string otherwise

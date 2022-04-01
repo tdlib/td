@@ -220,6 +220,12 @@ HttpUrlQuery parse_url_query(Slice query) {
   return result;
 }
 
+bool HttpUrlQuery::has_arg(Slice key) const {
+  auto it =
+      std::find_if(args_.begin(), args_.end(), [&key](const std::pair<string, string> &s) { return s.first == key; });
+  return it != args_.end();
+}
+
 Slice HttpUrlQuery::get_arg(Slice key) const {
   auto it =
       std::find_if(args_.begin(), args_.end(), [&key](const std::pair<string, string> &s) { return s.first == key; });

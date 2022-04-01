@@ -48,6 +48,8 @@ class HttpUrlQuery {
   vector<string> path_;
   vector<std::pair<string, string>> args_;
 
+  bool has_arg(Slice key) const;
+
   Slice get_arg(Slice key) const;
 };
 
