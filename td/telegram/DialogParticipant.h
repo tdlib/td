@@ -50,6 +50,8 @@ class AdministratorRights {
   AdministratorRights() : flags_(0) {
   }
 
+  explicit AdministratorRights(const td_api::object_ptr<td_api::chatAdministratorRights> &administrator_rights);
+
   AdministratorRights(bool is_anonymous, bool can_manage_dialog, bool can_change_info, bool can_post_messages,
                       bool can_edit_messages, bool can_delete_messages, bool can_invite_users,
                       bool can_restrict_members, bool can_pin_messages, bool can_promote_members,

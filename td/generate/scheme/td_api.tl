@@ -473,7 +473,7 @@ user id:int53 first_name:string last_name:string username:string phone_number:st
 //@share_text The text that is shown on the bot's profile page and is sent together with the link when users share the bot
 //@param_description The text shown in the chat with the bot if the chat is empty
 //@commands List of the bot commands
-//@default_group_administrator_rights Default administrator rights for adding the bot to basic groups and supergroups; may be null
+//@default_group_administrator_rights Default administrator rights for adding the bot to basic group and supergroup chats; may be null
 //@default_channel_administrator_rights Default administrator rights for adding the bot to channels; may be null
 botInfo share_text:string description:string commands:vector<botCommand> default_group_administrator_rights:chatAdministratorRights default_channel_administrator_rights:chatAdministratorRights = BotInfo;
 
@@ -790,7 +790,7 @@ messageReplyInfo reply_count:int32 recent_replier_ids:vector<MessageSender> last
 //@reaction Text representation of the reaction
 //@total_count Number of times the reaction was added
 //@is_chosen True, if the reaction is chosen by the current user
-//@recent_sender_ids Identifiers of at most 3 recent message senders, added the reaction; available in private chats, basic groups and supergroups
+//@recent_sender_ids Identifiers of at most 3 recent message senders, added the reaction; available in private, basic group and supergroup chats
 messageReaction reaction:string total_count:int32 is_chosen:Bool recent_sender_ids:vector<MessageSender> = MessageReaction;
 
 //@description Contains information about interactions with a message
@@ -912,10 +912,10 @@ foundFileDownloads total_counts:downloadedFileCounts files:vector<fileDownload> 
 //@description Notification settings applied to all private and secret chats when the corresponding chat setting has a default value
 notificationSettingsScopePrivateChats = NotificationSettingsScope;
 
-//@description Notification settings applied to all basic groups and supergroups when the corresponding chat setting has a default value
+//@description Notification settings applied to all basic group and supergroup chats when the corresponding chat setting has a default value
 notificationSettingsScopeGroupChats = NotificationSettingsScope;
 
-//@description Notification settings applied to all channels when the corresponding chat setting has a default value
+//@description Notification settings applied to all channel chats when the corresponding chat setting has a default value
 notificationSettingsScopeChannelChats = NotificationSettingsScope;
 
 
@@ -5711,6 +5711,12 @@ deleteCommands scope:BotCommandScope language_code:string = Ok;
 //@scope The scope to which the commands are relevant; pass null to get commands in the default bot command scope
 //@language_code A two-letter ISO 639-1 language code or an empty string
 getCommands scope:BotCommandScope language_code:string = BotCommands;
+
+//@description Sets default administrator rights for adding the bot to basic group and supergroup chats; for bots only @default_group_administrator_rights Default administrator rights for adding the bot to basic group and supergroup chats; may be null
+setDefaultGroupAdministratorRights default_group_administrator_rights:chatAdministratorRights = Ok;
+
+//@description Sets default administrator rights for adding the bot to channel chats; for bots only @default_channel_administrator_rights Default administrator rights for adding the bot to channels; may be null
+setDefaultChannelAdministratorRights default_channel_administrator_rights:chatAdministratorRights = Ok;
 
 
 //@description Returns all active sessions of the current user

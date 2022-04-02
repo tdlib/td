@@ -999,6 +999,10 @@ class Td final : public Actor {
 
   void on_request(uint64 id, td_api::getCommands &request);
 
+  void on_request(uint64 id, const td_api::setDefaultGroupAdministratorRights &request);
+
+  void on_request(uint64 id, const td_api::setDefaultChannelAdministratorRights &request);
+
   void on_request(uint64 id, const td_api::setLocation &request);
 
   void on_request(uint64 id, td_api::setProfilePhoto &request);

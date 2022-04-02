@@ -18,6 +18,20 @@
 
 namespace td {
 
+AdministratorRights::AdministratorRights(
+    const td_api::object_ptr<td_api::chatAdministratorRights> &administrator_rights) {
+  if (administrator_rights == nullptr) {
+    flags_ = 0;
+    return;
+  }
+  *this = AdministratorRights(administrator_rights->is_anonymous_, administrator_rights->can_manage_chat_,
+                              administrator_rights->can_change_info_, administrator_rights->can_post_messages_,
+                              administrator_rights->can_edit_messages_, administrator_rights->can_delete_messages_,
+                              administrator_rights->can_invite_users_, administrator_rights->can_restrict_members_,
+                              administrator_rights->can_pin_messages_, administrator_rights->can_promote_members_,
+                              administrator_rights->can_manage_video_chats_);
+}
+
 AdministratorRights::AdministratorRights(bool is_anonymous, bool can_manage_dialog, bool can_change_info,
                                          bool can_post_messages, bool can_edit_messages, bool can_delete_messages,
                                          bool can_invite_users, bool can_restrict_members, bool can_pin_messages,

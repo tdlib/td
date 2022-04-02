@@ -6789,6 +6789,20 @@ void Td::on_request(uint64 id, td_api::getCommands &request) {
   get_commands(this, std::move(request.scope_), std::move(request.language_code_), std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::setDefaultGroupAdministratorRights &request) {
+  CHECK_IS_BOT();
+  CREATE_OK_REQUEST_PROMISE();
+  set_default_group_administrator_rights(this, AdministratorRights(request.default_group_administrator_rights_),
+                                         std::move(promise));
+}
+
+void Td::on_request(uint64 id, const td_api::setDefaultChannelAdministratorRights &request) {
+  CHECK_IS_BOT();
+  CREATE_OK_REQUEST_PROMISE();
+  set_default_channel_administrator_rights(this, AdministratorRights(request.default_channel_administrator_rights_),
+                                           std::move(promise));
+}
+
 void Td::on_request(uint64 id, const td_api::setLocation &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();

@@ -6,6 +6,7 @@
 //
 #pragma once
 
+#include "td/telegram/DialogParticipant.h"
 #include "td/telegram/td_api.h"
 
 #include "td/actor/PromiseFuture.h"
@@ -40,5 +41,10 @@ void get_connected_websites(Td *td, Promise<td_api::object_ptr<td_api::connected
 void disconnect_website(Td *td, int64 website_id, Promise<Unit> &&promise);
 
 void disconnect_all_websites(Td *td, Promise<Unit> &&promise);
+
+void set_default_group_administrator_rights(Td *td, AdministratorRights administrator_rights, Promise<Unit> &&promise);
+
+void set_default_channel_administrator_rights(Td *td, AdministratorRights administrator_rights,
+                                              Promise<Unit> &&promise);
 
 }  // namespace td
