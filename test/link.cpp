@@ -109,6 +109,11 @@ TEST(Link, parse_internal_link) {
   auto background = [](const td::string &background_name) {
     return td::td_api::make_object<td::td_api::internalLinkTypeBackground>(background_name);
   };
+  auto bot_add_to_channel = [](const td::string &bot_username,
+                               td::td_api::object_ptr<td::td_api::chatAdministratorRights> &&administrator_rights) {
+    return td::td_api::make_object<td::td_api::internalLinkTypeBotAddToChannel>(bot_username,
+                                                                                std::move(administrator_rights));
+  };
   auto bot_start = [](const td::string &bot_username, const td::string &start_parameter) {
     return td::td_api::make_object<td::td_api::internalLinkTypeBotStart>(bot_username, start_parameter);
   };
@@ -640,6 +645,18 @@ TEST(Link, parse_internal_link) {
   parse_internal_link("tg:resolve?domain=&startgroup=", unknown_deep_link("tg://resolve?domain=&startgroup="));
   parse_internal_link("tg:resolve?domain=telegram&&&&&&&startgroup=%30", bot_start_in_group("telegram", "0"));
 
+  parse_internal_link("tg:resolve?domain=username&startchannel", public_chat("username"));
+  parse_internal_link("tg:resolve?domain=username&startchannel&admin=", public_chat("username"));
+  parse_internal_link(
+      "tg:resolve?domain=username&startchannel&admin=post_messages",
+      bot_add_to_channel("username", td::td_api::make_object<td::td_api::chatAdministratorRights>(
+                                         true, false, true, false, false, false, true, false, false, false, false)));
+  parse_internal_link(
+      "tg:resolve?domain=username&startchannel&admin=manage_chat+change_info+post_messages+edit_messages+delete_"
+      "messages+invite_users+restrict_members+pin_messages+promote_members+manage_video_chats+anonymous",
+      bot_add_to_channel("username", td::td_api::make_object<td::td_api::chatAdministratorRights>(
+                                         true, true, true, true, true, true, true, false, true, true, false)));
+
   parse_internal_link("t.me/username/0/a//s/as?startgroup=", bot_start_in_group("username", ""));
   parse_internal_link("t.me/username/aasdas?test=1&startgroup=#12312", bot_start_in_group("username", ""));
   parse_internal_link("t.me/username/0?startgroup=", bot_start_in_group("username", ""));
@@ -648,6 +665,19 @@ TEST(Link, parse_internal_link) {
   parse_internal_link("t.me/username#startgroup=asdas", public_chat("username"));
   parse_internal_link("t.me//username?startgroup=", nullptr);
   parse_internal_link("https://telegram.dog/tele%63ram?startgroup=t%63st", bot_start_in_group("telecram", "tcst"));
+
+  parse_internal_link("t.me/username?startchannel", public_chat("username"));
+  parse_internal_link("t.me/username?startchannel&admin=", public_chat("username"));
+  parse_internal_link(
+      "t.me/username?startchannel&admin=post_messages",
+      bot_add_to_channel("username", td::td_api::make_object<td::td_api::chatAdministratorRights>(
+                                         true, false, true, false, false, false, true, false, false, false, false)));
+  parse_internal_link(
+      "t.me/"
+      "username?startchannel&admin=manage_chat+change_info+post_messages+edit_messages+delete_messages+invite_users+"
+      "restrict_members+pin_messages+promote_members+manage_video_chats+anonymous",
+      bot_add_to_channel("username", td::td_api::make_object<td::td_api::chatAdministratorRights>(
+                                         true, true, true, true, true, true, true, false, true, true, false)));
 
   parse_internal_link("tg:resolve?domain=username&game=aasdasd", game("username", "aasdasd"));
   parse_internal_link("TG://resolve?domain=username&game=", public_chat("username"));

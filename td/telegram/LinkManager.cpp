@@ -12,6 +12,7 @@
 #include "td/telegram/ConfigShared.h"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/DialogId.h"
+#include "td/telegram/DialogParticipant.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/MessageEntity.h"
 #include "td/telegram/MessageId.h"
@@ -102,6 +103,59 @@ static string get_url_query_hash(bool is_tg, const HttpUrlQuery &url_query) {
   return string();
 }
 
+static AdministratorRights get_administrator_rights(Slice rights, bool for_channel) {
+  bool can_manage_dialog = false;
+  bool can_change_info = false;
+  bool can_post_messages = false;
+  bool can_edit_messages = false;
+  bool can_delete_messages = false;
+  bool can_invite_users = false;
+  bool can_restrict_members = false;
+  bool can_pin_messages = false;
+  bool can_promote_members = false;
+  bool can_manage_calls = false;
+  bool is_anonymous = false;
+  for (auto right : full_split(rights, ' ')) {
+    if (right == "change_info") {
+      can_change_info = true;
+    } else if (right == "post_messages") {
+      can_post_messages = true;
+    } else if (right == "edit_messages") {
+      can_edit_messages = true;
+    } else if (right == "delete_messages") {
+      can_delete_messages = true;
+    } else if (right == "restrict_members") {
+      can_restrict_members = true;
+    } else if (right == "invite_users") {
+      can_invite_users = true;
+    } else if (right == "pin_messages") {
+      can_pin_messages = true;
+    } else if (right == "promote_members") {
+      can_promote_members = true;
+    } else if (right == "manage_video_chats") {
+      can_manage_calls = true;
+    } else if (right == "anonymous") {
+      is_anonymous = true;
+    } else if (right == "manage_chat") {
+      can_manage_dialog = true;
+    }
+  }
+  if (for_channel) {
+    can_pin_messages = false;
+    is_anonymous = false;
+    if (can_manage_dialog || can_change_info || can_post_messages || can_edit_messages || can_delete_messages ||
+        can_invite_users || can_promote_members || can_manage_calls) {
+      can_restrict_members = true;
+    }
+  } else {
+    can_post_messages = false;
+    can_edit_messages = false;
+  }
+  return AdministratorRights(is_anonymous, can_manage_dialog, can_change_info, can_post_messages, can_edit_messages,
+                             can_delete_messages, can_invite_users, can_restrict_members, can_pin_messages,
+                             can_promote_members, can_manage_calls);
+}
+
 class LinkManager::InternalLinkActiveSessions final : public InternalLink {
   td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
     return td_api::make_object<td_api::internalLinkTypeActiveSessions>();
@@ -148,6 +202,21 @@ class LinkManager::InternalLinkBackground final : public InternalLink {
 
  public:
   explicit InternalLinkBackground(string background_name) : background_name_(std::move(background_name)) {
+  }
+};
+
+class LinkManager::InternalLinkBotAddToChannel final : public InternalLink {
+  string bot_username_;
+  AdministratorRights administrator_rights_;
+
+  td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
+    return td_api::make_object<td_api::internalLinkTypeBotAddToChannel>(
+        bot_username_, administrator_rights_.get_chat_administrator_rights_object());
+  }
+
+ public:
+  InternalLinkBotAddToChannel(string bot_username, AdministratorRights &&administrator_rights)
+      : bot_username_(std::move(bot_username)), administrator_rights_(std::move(administrator_rights)) {
   }
 };
 
@@ -856,6 +925,13 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
           // resolve?domain=<bot_username>&startgroup=<parameter>
           return td::make_unique<InternalLinkBotStartInGroup>(std::move(username), arg.second);
         }
+        if (arg.first == "startchannel") {
+          // resolve?domain=<bot_username>&startchannel&admin=change_info+post_messages+promote_members
+          auto administrator_rights = get_administrator_rights(url_query.get_arg("admin"), true);
+          if (administrator_rights != AdministratorRights()) {
+            return td::make_unique<InternalLinkBotAddToChannel>(std::move(username), std::move(administrator_rights));
+          }
+        }
         if (arg.first == "game" && !arg.second.empty()) {
           // resolve?domain=<bot_username>&game=<short_name>
           return td::make_unique<InternalLinkGame>(std::move(username), arg.second);
@@ -1153,6 +1229,13 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_t_me_link_query(Slice q
       if (arg.first == "startgroup" && is_valid_start_parameter(arg.second)) {
         // /<bot_username>?startgroup=<parameter>
         return td::make_unique<InternalLinkBotStartInGroup>(std::move(username), arg.second);
+      }
+      if (arg.first == "startchannel") {
+        // /<bot_username>?startchannel&admin=change_info+post_messages+promote_members
+        auto administrator_rights = get_administrator_rights(url_query.get_arg("admin"), true);
+        if (administrator_rights != AdministratorRights()) {
+          return td::make_unique<InternalLinkBotAddToChannel>(std::move(username), std::move(administrator_rights));
+        }
       }
       if (arg.first == "game" && !arg.second.empty()) {
         // /<bot_username>?game=<short_name>

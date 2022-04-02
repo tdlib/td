@@ -85,6 +85,7 @@ class LinkManager final : public Actor {
   class InternalLinkAttachMenuBot;
   class InternalLinkAuthenticationCode;
   class InternalLinkBackground;
+  class InternalLinkBotAddToChannel;
   class InternalLinkBotStart;
   class InternalLinkBotStartInGroup;
   class InternalLinkChangePhoneNumber;
