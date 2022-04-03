@@ -96,7 +96,7 @@ class ClientManager final {
     ClientId client_id;
 
     /**
-     * Request identifier, to which the response corresponds, or 0 for incoming updates from TDLib.
+     * Request identifier to which the response corresponds, or 0 for incoming updates from TDLib.
      */
     RequestId request_id;
 

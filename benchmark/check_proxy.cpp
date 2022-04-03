@@ -26,7 +26,7 @@ static void usage() {
   td::TsCerr() << "Options:\n";
   td::TsCerr() << "  -v<N>\tSet verbosity level to N\n";
   td::TsCerr() << "  -h/--help\tDisplay this information\n";
-  td::TsCerr() << "  -d/--dc-id\tIdentifier of a datacenter, to which try to connect (default is 2)\n";
+  td::TsCerr() << "  -d/--dc-id\tIdentifier of a datacenter to which try to connect (default is 2)\n";
   td::TsCerr() << "  -l/--proxy-list\tName of a file with proxies to check; one proxy per line\n";
   td::TsCerr() << "  -t/--timeout\tMaximum overall timeout for the request (default is 10 seconds)\n";
   std::exit(2);

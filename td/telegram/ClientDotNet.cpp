@@ -77,7 +77,7 @@ public:
 
   /// <summary>
   /// Launches a cycle which will fetch all results of queries to TDLib and incoming updates from TDLib.
-  /// Must be called once on a separate dedicated thread, on which all updates and query results from all Clients will be handled.
+  /// Must be called once on a separate dedicated thread on which all updates and query results from all Clients will be handled.
   /// Never returns.
   /// </summary>
   static void Run() {
