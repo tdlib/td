@@ -385,10 +385,12 @@ class ResetWebAuthorizationsQuery final : public Td::ResultHandler {
 
     bool result = result_ptr.move_as_ok();
     LOG_IF(WARNING, !result) << "Failed to disconnect all websites";
+    td_->contacts_manager_->invalidate_user_full(td_->contacts_manager_->get_my_id());
     promise_.set_value(Unit());
   }
 
   void on_error(Status status) final {
+    td_->contacts_manager_->invalidate_user_full(td_->contacts_manager_->get_my_id());
     promise_.set_error(std::move(status));
   }
 };
@@ -413,10 +415,12 @@ class SetBotGroupDefaultAdminRightsQuery final : public Td::ResultHandler {
 
     bool result = result_ptr.move_as_ok();
     LOG_IF(WARNING, !result) << "Failed to set group default administrator rights";
+    td_->contacts_manager_->invalidate_user_full(td_->contacts_manager_->get_my_id());
     promise_.set_value(Unit());
   }
 
   void on_error(Status status) final {
+    td_->contacts_manager_->invalidate_user_full(td_->contacts_manager_->get_my_id());
     promise_.set_error(std::move(status));
   }
 };
@@ -510,11 +514,13 @@ void disconnect_all_websites(Td *td, Promise<Unit> &&promise) {
 }
 
 void set_default_group_administrator_rights(Td *td, AdministratorRights administrator_rights, Promise<Unit> &&promise) {
+  td->contacts_manager_->invalidate_user_full(td->contacts_manager_->get_my_id());
   td->create_handler<SetBotGroupDefaultAdminRightsQuery>(std::move(promise))->send(administrator_rights);
 }
 
 void set_default_channel_administrator_rights(Td *td, AdministratorRights administrator_rights,
                                               Promise<Unit> &&promise) {
+  td->contacts_manager_->invalidate_user_full(td->contacts_manager_->get_my_id());
   td->create_handler<SetBotBroadcastDefaultAdminRightsQuery>(std::move(promise))->send(administrator_rights);
 }
 
