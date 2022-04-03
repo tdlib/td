@@ -385,12 +385,10 @@ class ResetWebAuthorizationsQuery final : public Td::ResultHandler {
 
     bool result = result_ptr.move_as_ok();
     LOG_IF(WARNING, !result) << "Failed to disconnect all websites";
-    td_->contacts_manager_->invalidate_user_full(td_->contacts_manager_->get_my_id());
     promise_.set_value(Unit());
   }
 
   void on_error(Status status) final {
-    td_->contacts_manager_->invalidate_user_full(td_->contacts_manager_->get_my_id());
     promise_.set_error(std::move(status));
   }
 };
@@ -420,6 +418,9 @@ class SetBotGroupDefaultAdminRightsQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
+    if (status.message() == "RIGHTS_NOT_MODIFIED") {
+      return promise_.set_value(Unit());
+    }
     td_->contacts_manager_->invalidate_user_full(td_->contacts_manager_->get_my_id());
     promise_.set_error(std::move(status));
   }
@@ -445,10 +446,15 @@ class SetBotBroadcastDefaultAdminRightsQuery final : public Td::ResultHandler {
 
     bool result = result_ptr.move_as_ok();
     LOG_IF(WARNING, !result) << "Failed to set channel default administrator rights";
+    td_->contacts_manager_->invalidate_user_full(td_->contacts_manager_->get_my_id());
     promise_.set_value(Unit());
   }
 
   void on_error(Status status) final {
+    if (status.message() == "RIGHTS_NOT_MODIFIED") {
+      return promise_.set_value(Unit());
+    }
+    td_->contacts_manager_->invalidate_user_full(td_->contacts_manager_->get_my_id());
     promise_.set_error(std::move(status));
   }
 };
