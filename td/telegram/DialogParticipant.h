@@ -50,6 +50,8 @@ class AdministratorRights {
   AdministratorRights() : flags_(0) {
   }
 
+  explicit AdministratorRights(const tl_object_ptr<telegram_api::chatAdminRights> &admin_rights);
+
   explicit AdministratorRights(const td_api::object_ptr<td_api::chatAdministratorRights> &administrator_rights);
 
   AdministratorRights(bool is_anonymous, bool can_manage_dialog, bool can_change_info, bool can_post_messages,
@@ -547,10 +549,6 @@ struct DialogParticipants {
 };
 
 DialogParticipantStatus get_dialog_participant_status(const tl_object_ptr<td_api::ChatMemberStatus> &status);
-
-AdministratorRights get_administrator_rights(tl_object_ptr<telegram_api::chatAdminRights> &&admin_rights);
-
-AdministratorRights get_administrator_rights(const td_api::object_ptr<td_api::chatAdministratorRights> &rights);
 
 RestrictedRights get_restricted_rights(tl_object_ptr<telegram_api::chatBannedRights> &&banned_rights);
 

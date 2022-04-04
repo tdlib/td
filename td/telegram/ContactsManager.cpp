@@ -10505,8 +10505,8 @@ void ContactsManager::on_get_user_full(tl_object_ptr<telegram_api::userFull> &&u
   bool can_be_called = user->phone_calls_available_ && !user->phone_calls_private_;
   bool supports_video_calls = user->video_calls_available_ && !user->phone_calls_private_;
   bool has_private_calls = user->phone_calls_private_;
-  auto group_administrator_rights = get_administrator_rights(std::move(user->bot_group_admin_rights_));
-  auto broadcast_administrator_rights = get_administrator_rights(std::move(user->bot_broadcast_admin_rights_));
+  AdministratorRights group_administrator_rights(user->bot_group_admin_rights_);
+  AdministratorRights broadcast_administrator_rights(user->bot_broadcast_admin_rights_);
   if (user_full->can_be_called != can_be_called || user_full->supports_video_calls != supports_video_calls ||
       user_full->has_private_calls != has_private_calls ||
       user_full->private_forward_name != user->private_forward_name_ ||
