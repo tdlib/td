@@ -12386,7 +12386,7 @@ int32 MessagesManager::calc_new_unread_count(Dialog *d, MessageId max_message_id
   }
 }
 
-void MessagesManager::repair_server_unread_count(DialogId dialog_id, int32 unread_count) {
+void MessagesManager::repair_server_unread_count(DialogId dialog_id, int32 unread_count, const char *source) {
   if (td_->auth_manager_->is_bot() || !have_input_peer(dialog_id, AccessRights::Read)) {
     return;
   }
@@ -12394,7 +12394,7 @@ void MessagesManager::repair_server_unread_count(DialogId dialog_id, int32 unrea
     return;  // postpone until read history request is sent
   }
 
-  LOG(INFO) << "Repair server unread count in " << dialog_id << " from " << unread_count;
+  LOG(INFO) << "Repair server unread count in " << dialog_id << " from " << unread_count << " from " << source;
   create_actor<SleepActor>("RepairServerUnreadCountSleepActor", 0.2,
                            PromiseCreator::lambda([actor_id = actor_id(this), dialog_id](Result<Unit> result) {
                              send_closure(actor_id, &MessagesManager::send_get_dialog_query, dialog_id, Promise<Unit>(),
@@ -12499,7 +12499,7 @@ void MessagesManager::read_history_inbox(DialogId dialog_id, MessageId max_messa
       if (dialog_id.get_type() != DialogType::SecretChat && have_input_peer(dialog_id, AccessRights::Read) &&
           need_unread_counter(d->order)) {
         d->need_repair_server_unread_count = true;
-        repair_server_unread_count(dialog_id, server_unread_count);
+        repair_server_unread_count(dialog_id, server_unread_count, "read_history_inbox");
       }
     }
     if (local_unread_count < 0) {
@@ -15797,7 +15797,7 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
           LOG(INFO) << "Have last_read_inbox_message_id = " << d->last_read_inbox_message_id << ", but received only "
                     << read_inbox_max_message_id << " from the server, trying to repair server unread count again";
           previous_message_id = read_inbox_max_message_id;
-          repair_server_unread_count(dialog_id, d->server_unread_count);
+          repair_server_unread_count(dialog_id, d->server_unread_count, "on_get_dialogs");
         }
       }
       if (!d->need_repair_server_unread_count) {
@@ -22170,7 +22170,7 @@ void MessagesManager::read_history_on_server_impl(Dialog *d, MessageId max_messa
     });
   }
   if (d->need_repair_server_unread_count && need_unread_counter(d->order)) {
-    repair_server_unread_count(dialog_id, d->server_unread_count);
+    repair_server_unread_count(dialog_id, d->server_unread_count, "read_history_on_server_impl");
   }
 
   if (!max_message_id.is_valid() || !have_input_peer(dialog_id, AccessRights::Read)) {
@@ -36893,7 +36893,7 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
   }
   if (d->need_repair_server_unread_count && need_unread_counter(d->order)) {
     CHECK(dialog_type != DialogType::SecretChat);
-    repair_server_unread_count(dialog_id, d->server_unread_count);
+    repair_server_unread_count(dialog_id, d->server_unread_count, "fix_new_dialog");
   }
   if (d->need_repair_channel_server_unread_count) {
     repair_channel_server_unread_count(d);

@@ -2175,7 +2175,7 @@ class MessagesManager final : public Actor {
 
   int32 calc_new_unread_count(Dialog *d, MessageId max_message_id, MessageType type, int32 hint_unread_count) const;
 
-  void repair_server_unread_count(DialogId dialog_id, int32 unread_count);
+  void repair_server_unread_count(DialogId dialog_id, int32 unread_count, const char *source);
 
   void repair_channel_server_unread_count(Dialog *d);
 
