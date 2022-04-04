@@ -65,7 +65,8 @@ static td_api::object_ptr<td_api::ChatEventAction> get_chat_event_action_object(
       return td_api::make_object<td_api::chatEventMemberLeft>();
     case telegram_api::channelAdminLogEventActionParticipantInvite::ID: {
       auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionParticipantInvite>(action_ptr);
-      DialogParticipant dialog_participant(std::move(action->participant_));
+      DialogParticipant dialog_participant(std::move(action->participant_),
+                                           td->contacts_manager_->get_channel_type(channel_id));
       if (!dialog_participant.is_valid() || dialog_participant.dialog_id_.get_type() != DialogType::User) {
         LOG(ERROR) << "Wrong invite: " << dialog_participant;
         return nullptr;
@@ -77,8 +78,9 @@ static td_api::object_ptr<td_api::ChatEventAction> get_chat_event_action_object(
     }
     case telegram_api::channelAdminLogEventActionParticipantToggleBan::ID: {
       auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionParticipantToggleBan>(action_ptr);
-      DialogParticipant old_dialog_participant(std::move(action->prev_participant_));
-      DialogParticipant new_dialog_participant(std::move(action->new_participant_));
+      auto channel_type = td->contacts_manager_->get_channel_type(channel_id);
+      DialogParticipant old_dialog_participant(std::move(action->prev_participant_), channel_type);
+      DialogParticipant new_dialog_participant(std::move(action->new_participant_), channel_type);
       if (old_dialog_participant.dialog_id_ != new_dialog_participant.dialog_id_) {
         LOG(ERROR) << old_dialog_participant.dialog_id_ << " VS " << new_dialog_participant.dialog_id_;
         return nullptr;
@@ -94,8 +96,9 @@ static td_api::object_ptr<td_api::ChatEventAction> get_chat_event_action_object(
     }
     case telegram_api::channelAdminLogEventActionParticipantToggleAdmin::ID: {
       auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionParticipantToggleAdmin>(action_ptr);
-      DialogParticipant old_dialog_participant(std::move(action->prev_participant_));
-      DialogParticipant new_dialog_participant(std::move(action->new_participant_));
+      auto channel_type = td->contacts_manager_->get_channel_type(channel_id);
+      DialogParticipant old_dialog_participant(std::move(action->prev_participant_), channel_type);
+      DialogParticipant new_dialog_participant(std::move(action->new_participant_), channel_type);
       if (old_dialog_participant.dialog_id_ != new_dialog_participant.dialog_id_) {
         LOG(ERROR) << old_dialog_participant.dialog_id_ << " VS " << new_dialog_participant.dialog_id_;
         return nullptr;
