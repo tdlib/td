@@ -335,6 +335,7 @@ class DownloadManagerImpl final : public DownloadManager {
       return;
     }
 
+    LOG(INFO) << "File " << file_id << " was viewed from " << file_source_id;
     auto r_file_info_ptr = get_file_info(file_id, file_source_id);
     if (r_file_info_ptr.is_error()) {
       return;
@@ -760,6 +761,7 @@ class DownloadManagerImpl final : public DownloadManager {
       return;
     }
 
+    LOG(INFO) << "Mark download " << download_id << " as viewed";
     unviewed_completed_download_ids_.erase(download_id);
     if (unviewed_completed_download_ids_.empty()) {
       clear_counters();

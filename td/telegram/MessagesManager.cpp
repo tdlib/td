@@ -20878,6 +20878,7 @@ Status MessagesManager::view_messages(DialogId dialog_id, MessageId top_thread_m
       auto it = full_message_id_to_file_source_id_.find({dialog_id, m->message_id});
       if (it != full_message_id_to_file_source_id_.end()) {
         auto file_source_id = it->second;
+        LOG(INFO) << "Have " << file_source_id << " for " << m->message_id;
         CHECK(file_source_id.is_valid());
         for (auto file_id : get_message_file_ids(m)) {
           auto file_view = td_->file_manager_->get_file_view(file_id);
