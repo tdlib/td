@@ -2136,14 +2136,18 @@ class InviteToChannelQuery final : public Td::ResultHandler {
 class EditChannelAdminQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   ChannelId channel_id_;
+  UserId user_id_;
+  DialogParticipantStatus status_ = DialogParticipantStatus::Left();
 
  public:
   explicit EditChannelAdminQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(ChannelId channel_id, tl_object_ptr<telegram_api::InputUser> &&input_user,
+  void send(ChannelId channel_id, UserId user_id, tl_object_ptr<telegram_api::InputUser> &&input_user,
             const DialogParticipantStatus &status) {
     channel_id_ = channel_id;
+    user_id_ = user_id;
+    status_ = status;
     auto input_channel = td_->contacts_manager_->get_input_channel(channel_id);
     CHECK(input_channel != nullptr);
     send_query(G()->net_query_creator().create(telegram_api::channels_editAdmin(
@@ -2160,6 +2164,7 @@ class EditChannelAdminQuery final : public Td::ResultHandler {
     LOG(INFO) << "Receive result for EditChannelAdminQuery: " << to_string(ptr);
     td_->contacts_manager_->invalidate_channel_full(channel_id_, false);
     td_->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
+    td_->contacts_manager_->on_set_channel_participant_status(channel_id_, DialogId(user_id_), status_);
   }
 
   void on_error(Status status) final {
@@ -2173,6 +2178,7 @@ class EditChannelBannedQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   ChannelId channel_id_;
   DialogId participant_dialog_id_;
+  DialogParticipantStatus status_ = DialogParticipantStatus::Left();
 
  public:
   explicit EditChannelBannedQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
@@ -2182,6 +2188,7 @@ class EditChannelBannedQuery final : public Td::ResultHandler {
             const DialogParticipantStatus &status) {
     channel_id_ = channel_id;
     participant_dialog_id_ = participant_dialog_id;
+    status_ = status;
     auto input_channel = td_->contacts_manager_->get_input_channel(channel_id);
     CHECK(input_channel != nullptr);
     send_query(G()->net_query_creator().create(telegram_api::channels_editBanned(
@@ -2198,6 +2205,7 @@ class EditChannelBannedQuery final : public Td::ResultHandler {
     LOG(INFO) << "Receive result for EditChannelBannedQuery: " << to_string(ptr);
     td_->contacts_manager_->invalidate_channel_full(channel_id_, false);
     td_->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
+    td_->contacts_manager_->on_set_channel_participant_status(channel_id_, participant_dialog_id_, status_);
   }
 
   void on_error(Status status) final {
@@ -7022,15 +7030,16 @@ void ContactsManager::set_channel_participant_status_impl(ChannelId channel_id, 
     if (!status.is_creator()) {
       return promise.set_error(Status::Error(400, "Can't remove chat owner"));
     }
-    if (participant_dialog_id != DialogId(get_my_id())) {
+    auto user_id = get_my_id();
+    if (participant_dialog_id != DialogId(user_id)) {
       return promise.set_error(Status::Error(400, "Not enough rights to edit chat owner rights"));
     }
     if (status.is_member() == old_status.is_member()) {
       // change rank and is_anonymous
-      auto r_input_user = get_input_user(get_my_id());
+      auto r_input_user = get_input_user(user_id);
       CHECK(r_input_user.is_ok());
       td_->create_handler<EditChannelAdminQuery>(std::move(promise))
-          ->send(channel_id, r_input_user.move_as_ok(), status);
+          ->send(channel_id, user_id, r_input_user.move_as_ok(), status);
       return;
     }
     if (status.is_member()) {
@@ -7109,13 +7118,11 @@ void ContactsManager::promote_channel_participant(ChannelId channel_id, UserId u
     CHECK(!status.is_creator());
   }
 
-  auto r_input_user = get_input_user(user_id);
-  if (r_input_user.is_error()) {
-    return promise.set_error(r_input_user.move_as_error());
-  }
+  TRY_RESULT_PROMISE(promise, input_user, get_input_user(user_id));
 
   speculative_add_channel_user(channel_id, user_id, status, old_status);
-  td_->create_handler<EditChannelAdminQuery>(std::move(promise))->send(channel_id, r_input_user.move_as_ok(), status);
+  td_->create_handler<EditChannelAdminQuery>(std::move(promise))
+      ->send(channel_id, user_id, std::move(input_user), status);
 }
 
 void ContactsManager::set_chat_participant_status(ChatId chat_id, UserId user_id, DialogParticipantStatus status,
@@ -7684,6 +7691,18 @@ void ContactsManager::restrict_channel_participant(ChannelId channel_id, DialogI
   }
   td_->create_handler<EditChannelBannedQuery>(std::move(promise))
       ->send(channel_id, participant_dialog_id, std::move(input_peer), status);
+}
+
+void ContactsManager::on_set_channel_participant_status(ChannelId channel_id, DialogId participant_dialog_id,
+                                                        DialogParticipantStatus status) {
+  if (G()->close_flag() || participant_dialog_id == DialogId(get_my_id())) {
+    return;
+  }
+
+  status.update_restrictions();
+  if (have_channel_participant_cache(channel_id)) {
+    update_channel_participant_status_cache(channel_id, participant_dialog_id, std::move(status));
+  }
 }
 
 ChannelId ContactsManager::migrate_chat_to_megagroup(ChatId chat_id, Promise<Unit> &promise) {
@@ -12235,6 +12254,26 @@ void ContactsManager::add_channel_participant_to_cache(ChannelId channel_id,
     return;
   }
   participant_info.participant_ = dialog_participant;
+  participant_info.last_access_date_ = G()->unix_time();
+}
+
+void ContactsManager::update_channel_participant_status_cache(ChannelId channel_id, DialogId participant_dialog_id,
+                                                              DialogParticipantStatus &&dialog_participant_status) {
+  CHECK(channel_id.is_valid());
+  CHECK(participant_dialog_id.is_valid());
+  auto channel_participants_it = channel_participants_.find(channel_id);
+  if (channel_participants_it == channel_participants_.end()) {
+    return;
+  }
+  auto &participants = channel_participants_it->second;
+  auto it = participants.participants_.find(participant_dialog_id);
+  if (it == participants.participants_.end()) {
+    return;
+  }
+  auto &participant_info = it->second;
+  LOG(INFO) << "Update cached status of " << participant_dialog_id << " in " << channel_id << " from "
+            << participant_info.participant_.status_ << " to " << dialog_participant_status;
+  participant_info.participant_.status_ = std::move(dialog_participant_status);
   participant_info.last_access_date_ = G()->unix_time();
 }
 

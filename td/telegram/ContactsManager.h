@@ -543,6 +543,9 @@ class ContactsManager final : public Actor {
   void ban_dialog_participant(DialogId dialog_id, DialogId participant_dialog_id, int32 banned_until_date,
                               bool revoke_messages, Promise<Unit> &&promise);
 
+  void on_set_channel_participant_status(ChannelId channel_id, DialogId participant_dialog_id,
+                                         DialogParticipantStatus status);
+
   void get_dialog_participant(DialogId dialog_id, DialogId participant_dialog_id,
                               Promise<td_api::object_ptr<td_api::chatMember>> &&promise);
 
@@ -1580,6 +1583,9 @@ class ContactsManager final : public Actor {
 
   void add_channel_participant_to_cache(ChannelId channel_id, const DialogParticipant &dialog_participant,
                                         bool allow_replace);
+
+  void update_channel_participant_status_cache(ChannelId channel_id, DialogId participant_dialog_id,
+                                               DialogParticipantStatus &&dialog_participant_status);
 
   const DialogParticipant *get_channel_participant_from_cache(ChannelId channel_id, DialogId participant_dialog_id);
 
