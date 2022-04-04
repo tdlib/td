@@ -20,6 +20,7 @@
 #include "td/telegram/CallId.h"
 #include "td/telegram/CallManager.h"
 #include "td/telegram/ChannelId.h"
+#include "td/telegram/ChannelType.h"
 #include "td/telegram/ChatId.h"
 #include "td/telegram/ConfigManager.h"
 #include "td/telegram/ConfigShared.h"
@@ -6204,7 +6205,7 @@ void Td::on_request(uint64 id, const td_api::joinChat &request) {
 void Td::on_request(uint64 id, const td_api::leaveChat &request) {
   CREATE_OK_REQUEST_PROMISE();
   DialogId dialog_id(request.chat_id_);
-  auto new_status = DialogParticipantStatus::Left();
+  td_api::object_ptr<td_api::ChatMemberStatus> new_status = td_api::make_object<td_api::chatMemberStatusLeft>();
   if (dialog_id.get_type() == DialogType::Channel && messages_manager_->have_dialog_force(dialog_id, "leaveChat")) {
     auto status = contacts_manager_->get_channel_status(dialog_id.get_channel_id());
     if (status.is_creator()) {
@@ -6212,8 +6213,8 @@ void Td::on_request(uint64 id, const td_api::leaveChat &request) {
         return promise.set_value(Unit());
       }
 
-      auto rank = status.get_rank();
-      new_status = DialogParticipantStatus::Creator(false, status.is_anonymous(), std::move(rank));
+      new_status =
+          td_api::make_object<td_api::chatMemberStatusCreator>(status.get_rank(), status.is_anonymous(), false);
     }
   }
   contacts_manager_->set_dialog_participant_status(dialog_id, DialogId(contacts_manager_->get_my_id()),
@@ -6234,12 +6235,12 @@ void Td::on_request(uint64 id, const td_api::addChatMembers &request) {
                                              std::move(promise));
 }
 
-void Td::on_request(uint64 id, const td_api::setChatMemberStatus &request) {
+void Td::on_request(uint64 id, td_api::setChatMemberStatus &request) {
   CREATE_OK_REQUEST_PROMISE();
   TRY_RESULT_PROMISE(promise, participant_dialog_id,
                      get_message_sender_dialog_id(this, request.member_id_, false, false));
   contacts_manager_->set_dialog_participant_status(DialogId(request.chat_id_), participant_dialog_id,
-                                                   get_dialog_participant_status(request.status_), std::move(promise));
+                                                   std::move(request.status_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::banChatMember &request) {
@@ -6792,15 +6793,17 @@ void Td::on_request(uint64 id, td_api::getCommands &request) {
 void Td::on_request(uint64 id, const td_api::setDefaultGroupAdministratorRights &request) {
   CHECK_IS_BOT();
   CREATE_OK_REQUEST_PROMISE();
-  set_default_group_administrator_rights(this, AdministratorRights(request.default_group_administrator_rights_),
-                                         std::move(promise));
+  set_default_group_administrator_rights(
+      this, AdministratorRights(request.default_group_administrator_rights_, ChannelType::Megagroup),
+      std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::setDefaultChannelAdministratorRights &request) {
   CHECK_IS_BOT();
   CREATE_OK_REQUEST_PROMISE();
-  set_default_channel_administrator_rights(this, AdministratorRights(request.default_channel_administrator_rights_),
-                                           std::move(promise));
+  set_default_channel_administrator_rights(
+      this, AdministratorRights(request.default_channel_administrator_rights_, ChannelType::Broadcast),
+      std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::setLocation &request) {

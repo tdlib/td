@@ -537,7 +537,8 @@ class ContactsManager final : public Actor {
   void add_dialog_participants(DialogId dialog_id, const vector<UserId> &user_ids, Promise<Unit> &&promise);
 
   void set_dialog_participant_status(DialogId dialog_id, DialogId participant_dialog_id,
-                                     DialogParticipantStatus &&status, Promise<Unit> &&promise);
+                                     td_api::object_ptr<td_api::ChatMemberStatus> &&chat_member_status,
+                                     Promise<Unit> &&promise);
 
   void ban_dialog_participant(DialogId dialog_id, DialogId participant_dialog_id, int32 banned_until_date,
                               bool revoke_messages, Promise<Unit> &&promise);
@@ -1560,12 +1561,6 @@ class ContactsManager final : public Actor {
 
   void update_dialogs_for_discussion(DialogId dialog_id, bool is_suitable);
 
-  void set_chat_participant_status(ChatId chat_id, UserId user_id, DialogParticipantStatus status,
-                                   Promise<Unit> &&promise);
-
-  void set_channel_participant_status(ChannelId channel_id, DialogId participant_dialog_id,
-                                      DialogParticipantStatus status, Promise<Unit> &&promise);
-
   void send_edit_chat_admin_query(ChatId chat_id, UserId user_id, bool is_administrator, Promise<Unit> &&promise);
 
   void delete_chat_participant(ChatId chat_id, UserId user_id, bool revoke_messages, Promise<Unit> &&promise);
@@ -1587,6 +1582,13 @@ class ContactsManager final : public Actor {
                                         bool allow_replace);
 
   const DialogParticipant *get_channel_participant_from_cache(ChannelId channel_id, DialogId participant_dialog_id);
+
+  void set_chat_participant_status(ChatId chat_id, UserId user_id, DialogParticipantStatus status,
+                                   Promise<Unit> &&promise);
+
+  void set_channel_participant_status(ChannelId channel_id, DialogId participant_dialog_id,
+                                      td_api::object_ptr<td_api::ChatMemberStatus> &&chat_member_status,
+                                      Promise<Unit> &&promise);
 
   void set_channel_participant_status_impl(ChannelId channel_id, DialogId participant_dialog_id,
                                            DialogParticipantStatus status, DialogParticipantStatus old_status,

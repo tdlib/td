@@ -18,7 +18,8 @@
 
 namespace td {
 
-AdministratorRights::AdministratorRights(const tl_object_ptr<telegram_api::chatAdminRights> &rights) {
+AdministratorRights::AdministratorRights(const tl_object_ptr<telegram_api::chatAdminRights> &rights,
+                                         ChannelType channel_type) {
   if (rights == nullptr) {
     flags_ = 0;
     return;
@@ -27,12 +28,14 @@ AdministratorRights::AdministratorRights(const tl_object_ptr<telegram_api::chatA
   if (!rights->other_) {
     LOG(ERROR) << "Receive wrong other flag in " << to_string(rights);
   }
-  *this = AdministratorRights(rights->anonymous_, rights->other_, rights->change_info_, rights->post_messages_,
-                              rights->edit_messages_, rights->delete_messages_, rights->invite_users_,
-                              rights->ban_users_, rights->pin_messages_, rights->add_admins_, rights->manage_call_);
+  *this =
+      AdministratorRights(rights->anonymous_, rights->other_, rights->change_info_, rights->post_messages_,
+                          rights->edit_messages_, rights->delete_messages_, rights->invite_users_, rights->ban_users_,
+                          rights->pin_messages_, rights->add_admins_, rights->manage_call_, channel_type);
 }
 
-AdministratorRights::AdministratorRights(const td_api::object_ptr<td_api::chatAdministratorRights> &rights) {
+AdministratorRights::AdministratorRights(const td_api::object_ptr<td_api::chatAdministratorRights> &rights,
+                                         ChannelType channel_type) {
   if (rights == nullptr) {
     flags_ = 0;
     return;
@@ -40,13 +43,25 @@ AdministratorRights::AdministratorRights(const td_api::object_ptr<td_api::chatAd
   *this = AdministratorRights(rights->is_anonymous_, rights->can_manage_chat_, rights->can_change_info_,
                               rights->can_post_messages_, rights->can_edit_messages_, rights->can_delete_messages_,
                               rights->can_invite_users_, rights->can_restrict_members_, rights->can_pin_messages_,
-                              rights->can_promote_members_, rights->can_manage_video_chats_);
+                              rights->can_promote_members_, rights->can_manage_video_chats_, channel_type);
 }
 
 AdministratorRights::AdministratorRights(bool is_anonymous, bool can_manage_dialog, bool can_change_info,
                                          bool can_post_messages, bool can_edit_messages, bool can_delete_messages,
                                          bool can_invite_users, bool can_restrict_members, bool can_pin_messages,
-                                         bool can_promote_members, bool can_manage_calls) {
+                                         bool can_promote_members, bool can_manage_calls, ChannelType channel_type) {
+  switch (channel_type) {
+    case ChannelType::Broadcast:
+      can_pin_messages = false;
+      is_anonymous = false;
+      break;
+    case ChannelType::Megagroup:
+      can_post_messages = false;
+      can_edit_messages = false;
+      break;
+    case ChannelType::Unknown:
+      break;
+  }
   flags_ = (static_cast<uint32>(can_manage_dialog) * CAN_MANAGE_DIALOG) |
            (static_cast<uint32>(can_change_info) * CAN_CHANGE_INFO_AND_SETTINGS) |
            (static_cast<uint32>(can_post_messages) * CAN_POST_MESSAGES) |
@@ -60,6 +75,9 @@ AdministratorRights::AdministratorRights(bool is_anonymous, bool can_manage_dial
            (static_cast<uint32>(is_anonymous) * IS_ANONYMOUS);
   if (flags_ != 0) {
     flags_ |= CAN_MANAGE_DIALOG;
+    if (channel_type == ChannelType::Broadcast) {
+      flags_ |= CAN_RESTRICT_MEMBERS;
+    }
   }
 }
 
@@ -357,22 +375,24 @@ DialogParticipantStatus DialogParticipantStatus::Banned(int32 banned_until_date)
 }
 
 DialogParticipantStatus DialogParticipantStatus::GroupAdministrator(bool is_creator) {
-  return Administrator(AdministratorRights(false, true, true, false, false, true, true, true, true, false, true),
-                       string(), is_creator);
+  return Administrator(
+      AdministratorRights(false, true, true, false, false, true, true, true, true, false, true, ChannelType::Unknown),
+      string(), is_creator);
 }
 
 DialogParticipantStatus DialogParticipantStatus::ChannelAdministrator(bool is_creator, bool is_megagroup) {
-  auto rights = is_megagroup
-                    ? AdministratorRights(false, true, true, false, false, true, true, true, true, false, false)
-                    : AdministratorRights(false, true, false, true, true, true, false, true, false, false, false);
+  auto rights = is_megagroup ? AdministratorRights(false, true, true, false, false, true, true, true, true, false,
+                                                   false, ChannelType::Megagroup)
+                             : AdministratorRights(false, true, false, true, true, true, false, true, false, false,
+                                                   false, ChannelType::Broadcast);
   return Administrator(rights, string(), is_creator);
 }
 
 DialogParticipantStatus::DialogParticipantStatus(bool can_be_edited,
                                                  tl_object_ptr<telegram_api::chatAdminRights> &&admin_rights,
-                                                 string rank) {
+                                                 string rank, ChannelType channel_type) {
   CHECK(admin_rights != nullptr);
-  uint32 flags = AdministratorRights(std::move(admin_rights)).flags_ | AdministratorRights::CAN_MANAGE_DIALOG;
+  uint32 flags = AdministratorRights(admin_rights, channel_type).flags_ | AdministratorRights::CAN_MANAGE_DIALOG;
   if (can_be_edited) {
     flags |= CAN_BE_EDITED;
   }
@@ -546,7 +566,8 @@ StringBuilder &operator<<(StringBuilder &string_builder, const DialogParticipant
   }
 }
 
-DialogParticipantStatus get_dialog_participant_status(const tl_object_ptr<td_api::ChatMemberStatus> &status) {
+DialogParticipantStatus get_dialog_participant_status(const td_api::object_ptr<td_api::ChatMemberStatus> &status,
+                                                      ChannelType channel_type) {
   auto constructor_id = status == nullptr ? td_api::chatMemberStatusMember::ID : status->get_id();
   switch (constructor_id) {
     case td_api::chatMemberStatusCreator::ID: {
@@ -563,8 +584,8 @@ DialogParticipantStatus get_dialog_participant_status(const tl_object_ptr<td_api
       if (!clean_input_string(custom_title)) {
         custom_title.clear();
       }
-      return DialogParticipantStatus::Administrator(AdministratorRights(st->rights_), std::move(custom_title),
-                                                    true /*st->can_be_edited_*/);
+      return DialogParticipantStatus::Administrator(AdministratorRights(st->rights_, channel_type),
+                                                    std::move(custom_title), true /*st->can_be_edited_*/);
     }
     case td_api::chatMemberStatusMember::ID:
       return DialogParticipantStatus::Member();
@@ -624,7 +645,8 @@ DialogParticipant::DialogParticipant(tl_object_ptr<telegram_api::ChatParticipant
   }
 }
 
-DialogParticipant::DialogParticipant(tl_object_ptr<telegram_api::ChannelParticipant> &&participant_ptr) {
+DialogParticipant::DialogParticipant(tl_object_ptr<telegram_api::ChannelParticipant> &&participant_ptr,
+                                     ChannelType channel_type) {
   CHECK(participant_ptr != nullptr);
 
   switch (participant_ptr->get_id()) {
@@ -651,7 +673,7 @@ DialogParticipant::DialogParticipant(tl_object_ptr<telegram_api::ChannelParticip
       auto participant = move_tl_object_as<telegram_api::channelParticipantAdmin>(participant_ptr);
       *this = {DialogId(UserId(participant->user_id_)), UserId(participant->promoted_by_), participant->date_,
                DialogParticipantStatus(participant->can_edit_, std::move(participant->admin_rights_),
-                                       std::move(participant->rank_))};
+                                       std::move(participant->rank_), channel_type)};
       break;
     }
     case telegram_api::channelParticipantLeft::ID: {

@@ -8,6 +8,7 @@
 
 #include "td/telegram/AccessRights.h"
 #include "td/telegram/ChannelId.h"
+#include "td/telegram/ChannelType.h"
 #include "td/telegram/ConfigManager.h"
 #include "td/telegram/ConfigShared.h"
 #include "td/telegram/ContactsManager.h"
@@ -140,20 +141,10 @@ static AdministratorRights get_administrator_rights(Slice rights, bool for_chann
       can_manage_dialog = true;
     }
   }
-  if (for_channel) {
-    can_pin_messages = false;
-    is_anonymous = false;
-    if (can_manage_dialog || can_change_info || can_post_messages || can_edit_messages || can_delete_messages ||
-        can_invite_users || can_promote_members || can_manage_calls) {
-      can_restrict_members = true;
-    }
-  } else {
-    can_post_messages = false;
-    can_edit_messages = false;
-  }
   return AdministratorRights(is_anonymous, can_manage_dialog, can_change_info, can_post_messages, can_edit_messages,
                              can_delete_messages, can_invite_users, can_restrict_members, can_pin_messages,
-                             can_promote_members, can_manage_calls);
+                             can_promote_members, can_manage_calls,
+                             for_channel ? ChannelType::Broadcast : ChannelType::Megagroup);
 }
 
 class LinkManager::InternalLinkActiveSessions final : public InternalLink {

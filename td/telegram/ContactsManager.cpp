@@ -6962,11 +6962,13 @@ void ContactsManager::add_channel_participants(ChannelId channel_id, const vecto
 }
 
 void ContactsManager::set_channel_participant_status(ChannelId channel_id, DialogId participant_dialog_id,
-                                                     DialogParticipantStatus status, Promise<Unit> &&promise) {
+                                                     td_api::object_ptr<td_api::ChatMemberStatus> &&chat_member_status,
+                                                     Promise<Unit> &&promise) {
   auto c = get_channel(channel_id);
   if (c == nullptr) {
     return promise.set_error(Status::Error(400, "Chat info not found"));
   }
+  auto status = get_dialog_participant_status(chat_member_status, get_channel_type(c));
 
   if (participant_dialog_id == DialogId(get_my_id())) {
     // fast path is needed, because get_channel_status may return Creator, while GetChannelParticipantQuery returning Left
@@ -10505,8 +10507,8 @@ void ContactsManager::on_get_user_full(tl_object_ptr<telegram_api::userFull> &&u
   bool can_be_called = user->phone_calls_available_ && !user->phone_calls_private_;
   bool supports_video_calls = user->video_calls_available_ && !user->phone_calls_private_;
   bool has_private_calls = user->phone_calls_private_;
-  AdministratorRights group_administrator_rights(user->bot_group_admin_rights_);
-  AdministratorRights broadcast_administrator_rights(user->bot_broadcast_admin_rights_);
+  AdministratorRights group_administrator_rights(user->bot_group_admin_rights_, ChannelType::Megagroup);
+  AdministratorRights broadcast_administrator_rights(user->bot_broadcast_admin_rights_, ChannelType::Broadcast);
   if (user_full->can_be_called != can_be_called || user_full->supports_video_calls != supports_video_calls ||
       user_full->has_private_calls != has_private_calls ||
       user_full->private_forward_name != user->private_forward_name_ ||
@@ -15122,7 +15124,8 @@ void ContactsManager::add_dialog_participants(DialogId dialog_id, const vector<U
 }
 
 void ContactsManager::set_dialog_participant_status(DialogId dialog_id, DialogId participant_dialog_id,
-                                                    DialogParticipantStatus &&status, Promise<Unit> &&promise) {
+                                                    td_api::object_ptr<td_api::ChatMemberStatus> &&chat_member_status,
+                                                    Promise<Unit> &&promise) {
   if (!td_->messages_manager_->have_dialog_force(dialog_id, "set_dialog_participant_status")) {
     return promise.set_error(Status::Error(400, "Chat not found"));
   }
@@ -15130,7 +15133,8 @@ void ContactsManager::set_dialog_participant_status(DialogId dialog_id, DialogId
   switch (dialog_id.get_type()) {
     case DialogType::User:
       return promise.set_error(Status::Error(400, "Chat member status can't be changed in private chats"));
-    case DialogType::Chat:
+    case DialogType::Chat: {
+      auto status = get_dialog_participant_status(chat_member_status, ChannelType::Unknown);
       if (participant_dialog_id.get_type() != DialogType::User) {
         if (status == DialogParticipantStatus::Left()) {
           return promise.set_value(Unit());
@@ -15140,9 +15144,10 @@ void ContactsManager::set_dialog_participant_status(DialogId dialog_id, DialogId
       }
       return set_chat_participant_status(dialog_id.get_chat_id(), participant_dialog_id.get_user_id(), status,
                                          std::move(promise));
+    }
     case DialogType::Channel:
-      return set_channel_participant_status(dialog_id.get_channel_id(), participant_dialog_id, status,
-                                            std::move(promise));
+      return set_channel_participant_status(dialog_id.get_channel_id(), participant_dialog_id,
+                                            std::move(chat_member_status), std::move(promise));
     case DialogType::SecretChat:
       return promise.set_error(Status::Error(400, "Chat member status can't be changed in secret chats"));
     case DialogType::None:
@@ -15168,7 +15173,8 @@ void ContactsManager::ban_dialog_participant(DialogId dialog_id, DialogId partic
                                      std::move(promise));
     case DialogType::Channel:
       return set_channel_participant_status(dialog_id.get_channel_id(), participant_dialog_id,
-                                            DialogParticipantStatus::Banned(banned_until_date), std::move(promise));
+                                            td_api::make_object<td_api::chatMemberStatusBanned>(banned_until_date),
+                                            std::move(promise));
     case DialogType::SecretChat:
       return promise.set_error(Status::Error(400, "Can't ban members in secret chats"));
     case DialogType::None:
@@ -15685,7 +15691,7 @@ void ContactsManager::on_chat_update(telegram_api::chat &chat, const char *sourc
     if (is_creator) {
       return DialogParticipantStatus::Creator(!has_left, false, string());
     } else if (chat.admin_rights_ != nullptr) {
-      return DialogParticipantStatus(false, std::move(chat.admin_rights_), string());
+      return DialogParticipantStatus(false, std::move(chat.admin_rights_), string(), ChannelType::Unknown);
     } else if (has_left) {
       return DialogParticipantStatus::Left();
     } else {
@@ -15864,7 +15870,8 @@ void ContactsManager::on_chat_update(telegram_api::channel &channel, const char 
                           (channel.admin_rights_->flags_ & telegram_api::chatAdminRights::ANONYMOUS_MASK) != 0;
       return DialogParticipantStatus::Creator(!has_left, is_anonymous, string());
     } else if (channel.admin_rights_ != nullptr) {
-      return DialogParticipantStatus(false, std::move(channel.admin_rights_), string());
+      return DialogParticipantStatus(false, std::move(channel.admin_rights_), string(),
+                                     is_megagroup ? ChannelType::Megagroup : ChannelType::Broadcast);
     } else if (channel.banned_rights_ != nullptr) {
       return DialogParticipantStatus(!has_left, std::move(channel.banned_rights_));
     } else if (has_left) {
