@@ -157,6 +157,40 @@ StringBuilder &operator<<(StringBuilder &string_builder, const AdministratorRigh
   return string_builder;
 }
 
+RestrictedRights::RestrictedRights(const tl_object_ptr<telegram_api::chatBannedRights> &rights) {
+  if (rights == nullptr) {
+    flags_ = 0;
+    return;
+  }
+  if (rights->view_messages_) {
+    LOG(ERROR) << "Can't view messages in banned rights " << to_string(rights);
+  }
+  LOG_IF(ERROR, rights->until_date_ != std::numeric_limits<int32>::max())
+      << "Have until date " << rights->until_date_ << " in restricted rights";
+
+  *this = RestrictedRights(!rights->send_messages_, !rights->send_media_, !rights->send_stickers_,
+                           !rights->send_gifs_, !rights->send_games_, !rights->send_inline_,
+                           !rights->embed_links_, !rights->send_polls_, !rights->change_info_,
+                           !rights->invite_users_, !rights->pin_messages_);
+}
+
+RestrictedRights::RestrictedRights(const td_api::object_ptr<td_api::chatPermissions> &rights) {
+  if (rights == nullptr) {
+    flags_ = 0;
+    return;
+  }
+
+  bool can_send_polls = rights->can_send_polls_;
+  bool can_send_media = rights->can_send_media_messages_;
+  bool can_send_messages = rights->can_send_messages_ || can_send_media || can_send_polls ||
+                           rights->can_send_other_messages_ || rights->can_add_web_page_previews_;
+  *this =
+      RestrictedRights(can_send_messages, can_send_media, rights->can_send_other_messages_,
+                       rights->can_send_other_messages_, rights->can_send_other_messages_,
+                       rights->can_send_other_messages_, rights->can_add_web_page_previews_, can_send_polls,
+                       rights->can_change_info_, rights->can_invite_users_, rights->can_pin_messages_);
+}
+
 RestrictedRights::RestrictedRights(bool can_send_messages, bool can_send_media, bool can_send_stickers,
                                    bool can_send_animations, bool can_send_games, bool can_use_inline_bots,
                                    bool can_add_web_page_previews, bool can_send_polls,
@@ -370,8 +404,7 @@ DialogParticipantStatus::DialogParticipantStatus(bool is_member,
 
   auto until_date = fix_until_date(banned_rights->until_date_);
   banned_rights->until_date_ = std::numeric_limits<int32>::max();
-  uint32 flags =
-      ::td::get_restricted_rights(std::move(banned_rights)).flags_ | (static_cast<uint32>(is_member) * IS_MEMBER);
+  uint32 flags = RestrictedRights(banned_rights).flags_ | (static_cast<uint32>(is_member) * IS_MEMBER);
   *this = DialogParticipantStatus(Type::Restricted, flags, until_date, string());
 }
 
@@ -551,7 +584,7 @@ DialogParticipantStatus get_dialog_participant_status(const tl_object_ptr<td_api
       return DialogParticipantStatus::Member();
     case td_api::chatMemberStatusRestricted::ID: {
       auto st = static_cast<const td_api::chatMemberStatusRestricted *>(status.get());
-      return DialogParticipantStatus::Restricted(::td::get_restricted_rights(st->permissions_), st->is_member_,
+      return DialogParticipantStatus::Restricted(RestrictedRights(st->permissions_), st->is_member_,
                                                  st->restricted_until_date_);
     }
     case td_api::chatMemberStatusLeft::ID:
@@ -564,38 +597,6 @@ DialogParticipantStatus get_dialog_participant_status(const tl_object_ptr<td_api
       UNREACHABLE();
       return DialogParticipantStatus::Member();
   }
-}
-
-RestrictedRights get_restricted_rights(tl_object_ptr<telegram_api::chatBannedRights> &&banned_rights) {
-  if (banned_rights == nullptr) {
-    return RestrictedRights(false, false, false, false, false, false, false, false, false, false, false);
-  }
-  if (banned_rights->view_messages_) {
-    LOG(ERROR) << "Can't view messages in banned rights " << to_string(banned_rights);
-  }
-  LOG_IF(ERROR, banned_rights->until_date_ != std::numeric_limits<int32>::max())
-      << "Have until date " << banned_rights->until_date_ << " in restricted rights";
-
-  return RestrictedRights(!banned_rights->send_messages_, !banned_rights->send_media_, !banned_rights->send_stickers_,
-                          !banned_rights->send_gifs_, !banned_rights->send_games_, !banned_rights->send_inline_,
-                          !banned_rights->embed_links_, !banned_rights->send_polls_, !banned_rights->change_info_,
-                          !banned_rights->invite_users_, !banned_rights->pin_messages_);
-}
-
-RestrictedRights get_restricted_rights(const td_api::object_ptr<td_api::chatPermissions> &permissions) {
-  if (permissions == nullptr) {
-    return RestrictedRights(false, false, false, false, false, false, false, false, false, false, false);
-  }
-
-  bool can_send_polls = permissions->can_send_polls_;
-  bool can_send_media = permissions->can_send_media_messages_;
-  bool can_send_messages = permissions->can_send_messages_ || can_send_media || can_send_polls ||
-                           permissions->can_send_other_messages_ || permissions->can_add_web_page_previews_;
-  return RestrictedRights(can_send_messages, can_send_media, permissions->can_send_other_messages_,
-                          permissions->can_send_other_messages_, permissions->can_send_other_messages_,
-                          permissions->can_send_other_messages_, permissions->can_add_web_page_previews_,
-                          can_send_polls, permissions->can_change_info_, permissions->can_invite_users_,
-                          permissions->can_pin_messages_);
 }
 
 DialogParticipant::DialogParticipant(DialogId dialog_id, UserId inviter_user_id, int32 joined_date,

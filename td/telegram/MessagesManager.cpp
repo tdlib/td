@@ -33790,7 +33790,7 @@ void MessagesManager::set_dialog_permissions(DialogId dialog_id,
       UNREACHABLE();
   }
 
-  auto new_permissions = get_restricted_rights(permissions);
+  RestrictedRights new_permissions(permissions);
 
   // TODO this can be wrong if there were previous change permissions requests
   if (get_dialog_default_permissions(dialog_id) == new_permissions) {

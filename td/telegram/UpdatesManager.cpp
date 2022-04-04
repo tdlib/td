@@ -2986,7 +2986,7 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateChatParticipant
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateChatDefaultBannedRights> update,
                                Promise<Unit> &&promise) {
   DialogId dialog_id(update->peer_);
-  RestrictedRights permissions = get_restricted_rights(std::move(update->default_banned_rights_));
+  RestrictedRights permissions(update->default_banned_rights_);
   auto version = update->version_;
   switch (dialog_id.get_type()) {
     case DialogType::Chat:

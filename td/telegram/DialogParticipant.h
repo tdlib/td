@@ -161,6 +161,10 @@ class RestrictedRights {
   }
 
  public:
+  explicit RestrictedRights(const tl_object_ptr<telegram_api::chatBannedRights> &rights);
+
+  explicit RestrictedRights(const td_api::object_ptr<td_api::chatPermissions> &rights);
+
   RestrictedRights(bool can_send_messages, bool can_send_media, bool can_send_stickers, bool can_send_animations,
                    bool can_send_games, bool can_use_inline_bots, bool can_add_web_page_previews, bool can_send_polls,
                    bool can_change_info_and_settings, bool can_invite_users, bool can_pin_messages);
@@ -549,9 +553,5 @@ struct DialogParticipants {
 };
 
 DialogParticipantStatus get_dialog_participant_status(const tl_object_ptr<td_api::ChatMemberStatus> &status);
-
-RestrictedRights get_restricted_rights(tl_object_ptr<telegram_api::chatBannedRights> &&banned_rights);
-
-RestrictedRights get_restricted_rights(const td_api::object_ptr<td_api::chatPermissions> &permissions);
 
 }  // namespace td

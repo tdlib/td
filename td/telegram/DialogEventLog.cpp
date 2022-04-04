@@ -136,8 +136,8 @@ static td_api::object_ptr<td_api::ChatEventAction> get_chat_event_action_object(
     }
     case telegram_api::channelAdminLogEventActionDefaultBannedRights::ID: {
       auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionDefaultBannedRights>(action_ptr);
-      auto old_permissions = get_restricted_rights(std::move(action->prev_banned_rights_));
-      auto new_permissions = get_restricted_rights(std::move(action->new_banned_rights_));
+      auto old_permissions = RestrictedRights(action->prev_banned_rights_);
+      auto new_permissions = RestrictedRights(action->new_banned_rights_);
       return td_api::make_object<td_api::chatEventPermissionsChanged>(old_permissions.get_chat_permissions_object(),
                                                                       new_permissions.get_chat_permissions_object());
     }
