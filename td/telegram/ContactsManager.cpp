@@ -14626,7 +14626,7 @@ bool ContactsManager::is_channel_public(const Channel *c) {
   return c != nullptr && (!c->username.empty() || c->has_location);
 }
 
-ContactsManager::ChannelType ContactsManager::get_channel_type(ChannelId channel_id) const {
+ChannelType ContactsManager::get_channel_type(ChannelId channel_id) const {
   auto c = get_channel(channel_id);
   if (c == nullptr) {
     auto min_channel = get_min_channel(channel_id);
@@ -14638,7 +14638,7 @@ ContactsManager::ChannelType ContactsManager::get_channel_type(ChannelId channel
   return get_channel_type(c);
 }
 
-ContactsManager::ChannelType ContactsManager::get_channel_type(const Channel *c) {
+ChannelType ContactsManager::get_channel_type(const Channel *c) {
   if (c->is_megagroup) {
     return ChannelType::Megagroup;
   }

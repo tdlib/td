@@ -483,6 +483,7 @@ set(TDLIB_SOURCE
   td/telegram/ChainId.h
   td/telegram/ChannelId.h
   td/telegram/ChannelParticipantFilter.h
+  td/telegram/ChannelType.h
   td/telegram/ChatId.h
   td/telegram/ClientActor.h
   td/telegram/ConfigManager.h

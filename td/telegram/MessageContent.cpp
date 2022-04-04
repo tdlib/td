@@ -13,6 +13,7 @@
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/CallDiscardReason.h"
 #include "td/telegram/ChannelId.h"
+#include "td/telegram/ChannelType.h"
 #include "td/telegram/ChatId.h"
 #include "td/telegram/Contact.h"
 #include "td/telegram/ContactsManager.h"
@@ -2593,8 +2594,8 @@ Status can_send_message_content(DialogId dialog_id, const MessageContent *conten
       }
       break;
     case MessageContentType::Game:
-      if (dialog_type == DialogType::Channel && td->contacts_manager_->get_channel_type(dialog_id.get_channel_id()) ==
-                                                    ContactsManager::ChannelType::Broadcast) {
+      if (dialog_type == DialogType::Channel &&
+          td->contacts_manager_->get_channel_type(dialog_id.get_channel_id()) == ChannelType::Broadcast) {
         // return Status::Error(400, "Games can't be sent to channel chats");
       }
       if (dialog_type == DialogType::SecretChat) {
@@ -2632,8 +2633,7 @@ Status can_send_message_content(DialogId dialog_id, const MessageContent *conten
         return Status::Error(400, "Not enough rights to send polls to the chat");
       }
       if (dialog_type == DialogType::Channel &&
-          td->contacts_manager_->get_channel_type(dialog_id.get_channel_id()) ==
-              ContactsManager::ChannelType::Broadcast &&
+          td->contacts_manager_->get_channel_type(dialog_id.get_channel_id()) == ChannelType::Broadcast &&
           !td->poll_manager_->get_poll_is_anonymous(static_cast<const MessagePoll *>(content)->poll_id)) {
         return Status::Error(400, "Non-anonymous polls can't be sent to channel chats");
       }

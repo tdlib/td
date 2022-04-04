@@ -9,6 +9,7 @@
 #include "td/telegram/AccessRights.h"
 #include "td/telegram/BotCommand.h"
 #include "td/telegram/ChannelId.h"
+#include "td/telegram/ChannelType.h"
 #include "td/telegram/ChatId.h"
 #include "td/telegram/Contact.h"
 #include "td/telegram/DialogAdministrator.h"
@@ -517,8 +518,6 @@ class ContactsManager final : public Actor {
   bool have_secret_chat_force(SecretChatId secret_chat_id);
   bool get_secret_chat(SecretChatId secret_chat_id, bool force, Promise<Unit> &&promise);
   bool get_secret_chat_full(SecretChatId secret_chat_id, Promise<Unit> &&promise);
-
-  enum class ChannelType : uint8 { Broadcast, Megagroup, Unknown };
 
   ChannelType get_channel_type(ChannelId channel_id) const;
   int32 get_channel_date(ChannelId channel_id) const;
