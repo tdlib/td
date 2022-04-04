@@ -274,12 +274,6 @@ class DialogParticipantStatus {
   static DialogParticipantStatus Administrator(AdministratorRights administrator_rights, string &&rank,
                                                bool can_be_edited);
 
-  static DialogParticipantStatus Administrator(bool is_anonymous, string &&rank, bool can_be_edited,
-                                               bool can_manage_dialog, bool can_change_info, bool can_post_messages,
-                                               bool can_edit_messages, bool can_delete_messages, bool can_invite_users,
-                                               bool can_restrict_members, bool can_pin_messages,
-                                               bool can_promote_members, bool can_manage_calls);
-
   static DialogParticipantStatus Member();
 
   static DialogParticipantStatus Restricted(RestrictedRights restricted_rights, bool is_member,

@@ -168,10 +168,9 @@ RestrictedRights::RestrictedRights(const tl_object_ptr<telegram_api::chatBannedR
   LOG_IF(ERROR, rights->until_date_ != std::numeric_limits<int32>::max())
       << "Have until date " << rights->until_date_ << " in restricted rights";
 
-  *this = RestrictedRights(!rights->send_messages_, !rights->send_media_, !rights->send_stickers_,
-                           !rights->send_gifs_, !rights->send_games_, !rights->send_inline_,
-                           !rights->embed_links_, !rights->send_polls_, !rights->change_info_,
-                           !rights->invite_users_, !rights->pin_messages_);
+  *this = RestrictedRights(!rights->send_messages_, !rights->send_media_, !rights->send_stickers_, !rights->send_gifs_,
+                           !rights->send_games_, !rights->send_inline_, !rights->embed_links_, !rights->send_polls_,
+                           !rights->change_info_, !rights->invite_users_, !rights->pin_messages_);
 }
 
 RestrictedRights::RestrictedRights(const td_api::object_ptr<td_api::chatPermissions> &rights) {
@@ -184,11 +183,10 @@ RestrictedRights::RestrictedRights(const td_api::object_ptr<td_api::chatPermissi
   bool can_send_media = rights->can_send_media_messages_;
   bool can_send_messages = rights->can_send_messages_ || can_send_media || can_send_polls ||
                            rights->can_send_other_messages_ || rights->can_add_web_page_previews_;
-  *this =
-      RestrictedRights(can_send_messages, can_send_media, rights->can_send_other_messages_,
-                       rights->can_send_other_messages_, rights->can_send_other_messages_,
-                       rights->can_send_other_messages_, rights->can_add_web_page_previews_, can_send_polls,
-                       rights->can_change_info_, rights->can_invite_users_, rights->can_pin_messages_);
+  *this = RestrictedRights(can_send_messages, can_send_media, rights->can_send_other_messages_,
+                           rights->can_send_other_messages_, rights->can_send_other_messages_,
+                           rights->can_send_other_messages_, rights->can_add_web_page_previews_, can_send_polls,
+                           rights->can_change_info_, rights->can_invite_users_, rights->can_pin_messages_);
 }
 
 RestrictedRights::RestrictedRights(bool can_send_messages, bool can_send_media, bool can_send_stickers,
@@ -336,18 +334,6 @@ DialogParticipantStatus DialogParticipantStatus::Administrator(AdministratorRigh
       std::move(rank));
 }
 
-DialogParticipantStatus DialogParticipantStatus::Administrator(bool is_anonymous, string &&rank, bool can_be_edited,
-                                                               bool can_manage_dialog, bool can_change_info,
-                                                               bool can_post_messages, bool can_edit_messages,
-                                                               bool can_delete_messages, bool can_invite_users,
-                                                               bool can_restrict_members, bool can_pin_messages,
-                                                               bool can_promote_members, bool can_manage_calls) {
-  auto administrator_rights = AdministratorRights(
-      is_anonymous, can_manage_dialog, can_change_info, can_post_messages, can_edit_messages, can_delete_messages,
-      can_invite_users, can_restrict_members, can_pin_messages, can_promote_members, can_manage_calls);
-  return Administrator(administrator_rights, std::move(rank), can_be_edited);
-}
-
 DialogParticipantStatus DialogParticipantStatus::Member() {
   return DialogParticipantStatus(Type::Member, IS_MEMBER | RestrictedRights::ALL_RESTRICTED_RIGHTS, 0, string());
 }
@@ -371,15 +357,15 @@ DialogParticipantStatus DialogParticipantStatus::Banned(int32 banned_until_date)
 }
 
 DialogParticipantStatus DialogParticipantStatus::GroupAdministrator(bool is_creator) {
-  return Administrator(false, string(), is_creator, true, true, false, false, true, true, true, true, false, true);
+  return Administrator(AdministratorRights(false, true, true, false, false, true, true, true, true, false, true),
+                       string(), is_creator);
 }
 
 DialogParticipantStatus DialogParticipantStatus::ChannelAdministrator(bool is_creator, bool is_megagroup) {
-  if (is_megagroup) {
-    return Administrator(false, string(), is_creator, true, true, false, false, true, true, true, true, false, false);
-  } else {
-    return Administrator(false, string(), is_creator, true, false, true, true, true, false, true, false, false, false);
-  }
+  auto rights = is_megagroup
+                    ? AdministratorRights(false, true, true, false, false, true, true, true, true, false, false)
+                    : AdministratorRights(false, true, false, true, true, true, false, true, false, false, false);
+  return Administrator(rights, string(), is_creator);
 }
 
 DialogParticipantStatus::DialogParticipantStatus(bool can_be_edited,
