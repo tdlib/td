@@ -298,6 +298,7 @@ function split_file($file, $chunks, $undo) {
                 'MessageCopyOptions' => 'MessageCopyOptions',
                 'messages_manager[_(-][^.]|MessagesManager' => 'MessagesManager',
                 'notification_manager[_(-][^.]|NotificationManager|notifications[)]' => 'NotificationManager',
+                'notification_settings_manager[_(-][^.]|NotificationSettingsManager' => 'NotificationSettingsManager',
                 'option_manager[_(-][^.]|OptionManager' => "OptionManager",
                 'phone_number_manager[_(-][^.]|PhoneNumberManager' => "PhoneNumberManager",
                 'poll_manager[_(-][^.]|PollManager' => "PollManager",

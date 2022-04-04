@@ -61,6 +61,7 @@ class LinkManager;
 class MessagesManager;
 class NetStatsManager;
 class NotificationManager;
+class NotificationSettingsManager;
 class OptionManager;
 class PasswordManager;
 class PhoneNumberManager;
@@ -167,6 +168,8 @@ class Td final : public Actor {
   ActorOwn<MessagesManager> messages_manager_actor_;
   unique_ptr<NotificationManager> notification_manager_;
   ActorOwn<NotificationManager> notification_manager_actor_;
+  unique_ptr<NotificationSettingsManager> notification_settings_manager_;
+  ActorOwn<NotificationSettingsManager> notification_settings_manager_actor_;
   unique_ptr<OptionManager> option_manager_;
   ActorOwn<OptionManager> option_manager_actor_;
   unique_ptr<PollManager> poll_manager_;

@@ -390,6 +390,7 @@ set(TDLIB_SOURCE
   td/telegram/NewPasswordState.cpp
   td/telegram/NotificationManager.cpp
   td/telegram/NotificationSettings.cpp
+  td/telegram/NotificationSettingsManager.cpp
   td/telegram/NotificationType.cpp
   td/telegram/OptionManager.cpp
   td/telegram/Payments.cpp
@@ -615,6 +616,7 @@ set(TDLIB_SOURCE
   td/telegram/NotificationId.h
   td/telegram/NotificationManager.h
   td/telegram/NotificationSettings.h
+  td/telegram/NotificationSettingsManager.h
   td/telegram/NotificationType.h
   td/telegram/OptionManager.h
   td/telegram/PasswordManager.h
