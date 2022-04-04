@@ -7,7 +7,6 @@
 #include "td/telegram/PrivacyManager.h"
 
 #include "td/telegram/ChannelId.h"
-#include "td/telegram/ChannelType.h"
 #include "td/telegram/ChatId.h"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/DialogId.h"
@@ -160,7 +159,7 @@ void PrivacyManager::UserPrivacySettingRule::set_chat_ids(const vector<int64> &d
         break;
       case DialogType::Channel: {
         auto channel_id = dialog_id.get_channel_id();
-        if (td->contacts_manager_->get_channel_type(channel_id) != ChannelType::Megagroup) {
+        if (!td->contacts_manager_->is_megagroup_channel(channel_id)) {
           LOG(ERROR) << "Ignore broadcast " << channel_id;
           break;
         }

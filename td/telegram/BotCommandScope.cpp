@@ -8,7 +8,6 @@
 
 #include "td/telegram/AccessRights.h"
 #include "td/telegram/AuthManager.h"
-#include "td/telegram/ChannelType.h"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/Td.h"
@@ -79,7 +78,7 @@ Result<BotCommandScope> BotCommandScope::get_bot_command_scope(Td *td,
       // ok
       break;
     case DialogType::Channel:
-      if (td->contacts_manager_->get_channel_type(dialog_id.get_channel_id()) != ChannelType::Megagroup) {
+      if (td->contacts_manager_->is_broadcast_channel(dialog_id.get_channel_id())) {
         return Status::Error(400, "Can't change commands in channel chats");
       }
       break;

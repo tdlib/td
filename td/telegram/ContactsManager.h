@@ -520,6 +520,8 @@ class ContactsManager final : public Actor {
   bool get_secret_chat_full(SecretChatId secret_chat_id, Promise<Unit> &&promise);
 
   ChannelType get_channel_type(ChannelId channel_id) const;
+  bool is_broadcast_channel(ChannelId channel_id) const;
+  bool is_megagroup_channel(ChannelId channel_id) const;
   int32 get_channel_date(ChannelId channel_id) const;
   DialogParticipantStatus get_channel_status(ChannelId channel_id) const;
   DialogParticipantStatus get_channel_permissions(ChannelId channel_id) const;

@@ -11822,7 +11822,7 @@ void ContactsManager::update_chat_online_member_count(const ChatFull *chat_full,
 }
 
 void ContactsManager::update_channel_online_member_count(ChannelId channel_id, bool is_from_server) {
-  if (get_channel_type(channel_id) != ChannelType::Megagroup) {
+  if (!is_megagroup_channel(channel_id)) {
     return;
   }
 
@@ -12103,7 +12103,7 @@ void ContactsManager::on_get_channel_participants(
     total_count = static_cast<int32>(result.size());
   }
 
-  const auto max_participant_count = get_channel_type(channel_id) == ChannelType::Megagroup ? 975 : 195;
+  const auto max_participant_count = is_megagroup_channel(channel_id) ? 975 : 195;
   auto participant_count =
       filter.is_recent() && total_count != 0 && total_count < max_participant_count ? total_count : -1;
   int32 administrator_count = filter.is_administrators() ? total_count : -1;
@@ -12126,7 +12126,7 @@ void ContactsManager::on_get_channel_participants(
         }
         administrator_count = narrow_cast<int32>(administrators.size());
 
-        if (get_channel_type(channel_id) == ChannelType::Megagroup && !td_->auth_manager_->is_bot()) {
+        if (is_megagroup_channel(channel_id) && !td_->auth_manager_->is_bot()) {
           cached_channel_participants_[channel_id] = result;
           update_channel_online_member_count(channel_id, true);
         }
@@ -14643,6 +14643,14 @@ ChannelType ContactsManager::get_channel_type(const Channel *c) {
     return ChannelType::Megagroup;
   }
   return ChannelType::Broadcast;
+}
+
+bool ContactsManager::is_broadcast_channel(ChannelId channel_id) const {
+  return get_channel_type(channel_id) == ChannelType::Broadcast;
+}
+
+bool ContactsManager::is_megagroup_channel(ChannelId channel_id) const {
+  return get_channel_type(channel_id) == ChannelType::Megagroup;
 }
 
 int32 ContactsManager::get_channel_date(ChannelId channel_id) const {

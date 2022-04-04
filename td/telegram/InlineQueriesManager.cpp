@@ -10,7 +10,6 @@
 #include "td/telegram/AnimationsManager.h"
 #include "td/telegram/AudiosManager.h"
 #include "td/telegram/AuthManager.h"
-#include "td/telegram/ChannelType.h"
 #include "td/telegram/Contact.h"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/Document.h"
@@ -1463,7 +1462,7 @@ void InlineQueriesManager::on_get_inline_query_results(DialogId dialog_id, UserI
             break;
           }
           if (dialog_type == DialogType::Channel &&
-              td_->contacts_manager_->get_channel_type(dialog_id.get_channel_id()) == ChannelType::Broadcast) {
+              td_->contacts_manager_->is_broadcast_channel(dialog_id.get_channel_id())) {
             continue;
           }
           if (dialog_type == DialogType::SecretChat) {

@@ -2366,7 +2366,7 @@ class SearchMessagesQuery final : public Td::ResultHandler {
     } else if (top_thread_message_id.is_valid() && query.empty() && !sender_dialog_id.is_valid() &&
                filter == MessageSearchFilter::Empty) {
       handle_errors_ = dialog_id.get_type() != DialogType::Channel ||
-                       td_->contacts_manager_->get_channel_type(dialog_id.get_channel_id()) != ChannelType::Broadcast;
+                       !td_->contacts_manager_->is_broadcast_channel(dialog_id.get_channel_id());
       send_query(G()->net_query_creator().create(telegram_api::messages_getReplies(
           std::move(input_peer), top_thread_message_id.get_server_message_id().get(),
           from_message_id.get_server_message_id().get(), 0, offset, limit, std::numeric_limits<int32>::max(), 0, 0)));
@@ -11659,8 +11659,7 @@ void MessagesManager::delete_dialog_messages_by_sender(DialogId dialog_id, Dialo
           Status::Error(400, "All messages from a sender can be deleted only in supergroup chats"));
     case DialogType::Channel: {
       channel_id = dialog_id.get_channel_id();
-      auto channel_type = td_->contacts_manager_->get_channel_type(channel_id);
-      if (channel_type != ChannelType::Megagroup) {
+      if (!td_->contacts_manager_->is_megagroup_channel(channel_id)) {
         return promise.set_error(Status::Error(400, "The method is available only for supergroup chats"));
       }
       channel_status = td_->contacts_manager_->get_channel_permissions(channel_id);
@@ -21341,10 +21340,9 @@ td_api::object_ptr<td_api::ChatType> MessagesManager::get_chat_type_object(Dialo
           td_->contacts_manager_->get_basic_group_id_object(dialog_id.get_chat_id(), "chatTypeBasicGroup"));
     case DialogType::Channel: {
       auto channel_id = dialog_id.get_channel_id();
-      auto channel_type = td_->contacts_manager_->get_channel_type(channel_id);
       return td_api::make_object<td_api::chatTypeSupergroup>(
           td_->contacts_manager_->get_supergroup_id_object(channel_id, "chatTypeSupergroup"),
-          channel_type != ChannelType::Megagroup);
+          !td_->contacts_manager_->is_megagroup_channel(channel_id));
     }
     case DialogType::SecretChat: {
       auto secret_chat_id = dialog_id.get_secret_chat_id();
@@ -27047,7 +27045,7 @@ bool MessagesManager::is_group_dialog(DialogId dialog_id) const {
     case DialogType::Chat:
       return true;
     case DialogType::Channel:
-      return td_->contacts_manager_->get_channel_type(dialog_id.get_channel_id()) == ChannelType::Megagroup;
+      return td_->contacts_manager_->is_megagroup_channel(dialog_id.get_channel_id());
     default:
       return false;
   }
@@ -27058,7 +27056,7 @@ bool MessagesManager::is_broadcast_channel(DialogId dialog_id) const {
     return false;
   }
 
-  return td_->contacts_manager_->get_channel_type(dialog_id.get_channel_id()) == ChannelType::Broadcast;
+  return td_->contacts_manager_->is_broadcast_channel(dialog_id.get_channel_id());
 }
 
 bool MessagesManager::is_deleted_secret_chat(DialogId dialog_id) const {
@@ -36381,8 +36379,7 @@ MessagesManager::Dialog *MessagesManager::add_new_dialog(unique_ptr<Dialog> &&d,
       d->is_is_blocked_inited = true;
       break;
     case DialogType::Channel: {
-      auto channel_type = td_->contacts_manager_->get_channel_type(dialog_id.get_channel_id());
-      if (channel_type == ChannelType::Broadcast) {
+      if (td_->contacts_manager_->is_broadcast_channel(dialog_id.get_channel_id())) {
         d->last_read_outbox_message_id = MessageId::max();
         d->is_last_read_outbox_message_id_inited = true;
       }
