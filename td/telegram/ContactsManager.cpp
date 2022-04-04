@@ -14935,7 +14935,17 @@ void ContactsManager::load_channel_full(ChannelId channel_id, bool force, Promis
       return send_get_channel_full_query(channel_full, channel_id, std::move(promise), "load expired channel_full");
     }
 
-    send_get_channel_full_query(channel_full, channel_id, Auto(), "load expired channel_full");
+    Promise<Unit> new_promise;
+    if (promise) {
+      new_promise = PromiseCreator::lambda([channel_id](Result<Unit> result) {
+        if (result.is_error()) {
+          LOG(INFO) << "Failed to reload expired " << channel_id << ": " << result.error();
+        } else {
+          LOG(INFO) << "Reloaded expired " << channel_id;
+        }
+      });
+    }
+    send_get_channel_full_query(channel_full, channel_id, std::move(new_promise), "load expired channel_full");
   }
 
   promise.set_value(Unit());
