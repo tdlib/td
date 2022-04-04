@@ -263,8 +263,10 @@ class GetDialogQuery final : public Td::ResultHandler {
  public:
   void send(DialogId dialog_id) {
     dialog_id_ = dialog_id;
-    send_query(G()->net_query_creator().create(telegram_api::messages_getPeerDialogs(
-        td_->messages_manager_->get_input_dialog_peers({dialog_id}, AccessRights::Read))));
+    send_query(G()->net_query_creator().create(
+        telegram_api::messages_getPeerDialogs(
+            td_->messages_manager_->get_input_dialog_peers({dialog_id}, AccessRights::Read)),
+        {{dialog_id}}));
   }
 
   void on_result(BufferSlice packet) final {
@@ -1636,13 +1638,16 @@ class SaveDraftMessageQuery final : public Td::ResultHandler {
       }
     }
 
-    send_query(G()->net_query_creator().create(telegram_api::messages_saveDraft(
-        flags, false /*ignored*/, reply_to_message_id.get(), std::move(input_peer),
-        draft_message == nullptr ? "" : draft_message->input_message_text.text.text,
-        draft_message == nullptr
-            ? vector<tl_object_ptr<telegram_api::MessageEntity>>()
-            : get_input_message_entities(td_->contacts_manager_.get(), draft_message->input_message_text.text.entities,
-                                         "SaveDraftMessageQuery"))));
+    vector<tl_object_ptr<telegram_api::MessageEntity>> input_message_entities;
+    if (draft_message != nullptr) {
+      input_message_entities = get_input_message_entities(
+          td_->contacts_manager_.get(), draft_message->input_message_text.text.entities, "SaveDraftMessageQuery");
+    }
+    send_query(G()->net_query_creator().create(
+        telegram_api::messages_saveDraft(flags, false /*ignored*/, reply_to_message_id.get(), std::move(input_peer),
+                                         draft_message == nullptr ? "" : draft_message->input_message_text.text.text,
+                                         std::move(input_message_entities)),
+        {{dialog_id}}));
   }
 
   void on_result(BufferSlice packet) final {
@@ -1719,7 +1724,7 @@ class ToggleDialogPinQuery final : public Td::ResultHandler {
       flags |= telegram_api::messages_toggleDialogPin::PINNED_MASK;
     }
     send_query(G()->net_query_creator().create(
-        telegram_api::messages_toggleDialogPin(flags, false /*ignored*/, std::move(input_peer))));
+        telegram_api::messages_toggleDialogPin(flags, false /*ignored*/, std::move(input_peer)), {{dialog_id}}));
   }
 
   void on_result(BufferSlice packet) final {
@@ -1807,7 +1812,7 @@ class ToggleDialogUnreadMarkQuery final : public Td::ResultHandler {
       flags |= telegram_api::messages_markDialogUnread::UNREAD_MASK;
     }
     send_query(G()->net_query_creator().create(
-        telegram_api::messages_markDialogUnread(flags, false /*ignored*/, std::move(input_peer))));
+        telegram_api::messages_markDialogUnread(flags, false /*ignored*/, std::move(input_peer)), {{dialog_id}}));
   }
 
   void on_result(BufferSlice packet) final {
@@ -2162,7 +2167,8 @@ class ReadHistoryQuery final : public Td::ResultHandler {
     auto input_peer = td_->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
     CHECK(input_peer != nullptr);
     send_query(G()->net_query_creator().create(
-        telegram_api::messages_readHistory(std::move(input_peer), max_message_id.get_server_message_id().get())));
+        telegram_api::messages_readHistory(std::move(input_peer), max_message_id.get_server_message_id().get()),
+        {{dialog_id}}));
   }
 
   void on_result(BufferSlice packet) final {
@@ -2206,7 +2212,8 @@ class ReadChannelHistoryQuery final : public Td::ResultHandler {
     CHECK(input_channel != nullptr);
 
     send_query(G()->net_query_creator().create(
-        telegram_api::channels_readHistory(std::move(input_channel), max_message_id.get_server_message_id().get())));
+        telegram_api::channels_readHistory(std::move(input_channel), max_message_id.get_server_message_id().get()),
+        {{DialogId(channel_id)}}));
   }
 
   void on_result(BufferSlice packet) final {
@@ -2238,9 +2245,11 @@ class ReadDiscussionQuery final : public Td::ResultHandler {
     dialog_id_ = dialog_id;
     auto input_peer = td_->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
     CHECK(input_peer != nullptr);
-    send_query(G()->net_query_creator().create(telegram_api::messages_readDiscussion(
-        std::move(input_peer), top_thread_message_id.get_server_message_id().get(),
-        max_message_id.get_server_message_id().get())));
+    send_query(G()->net_query_creator().create(
+        telegram_api::messages_readDiscussion(std::move(input_peer),
+                                              top_thread_message_id.get_server_message_id().get(),
+                                              max_message_id.get_server_message_id().get()),
+        {{dialog_id}}));
   }
 
   void on_result(BufferSlice packet) final {
@@ -3069,7 +3078,8 @@ class ReadMentionsQuery final : public Td::ResultHandler {
       return promise_.set_error(Status::Error(400, "Chat is not accessible"));
     }
 
-    send_query(G()->net_query_creator().create(telegram_api::messages_readMentions(std::move(input_peer))));
+    send_query(
+        G()->net_query_creator().create(telegram_api::messages_readMentions(std::move(input_peer)), {{dialog_id}}));
   }
 
   void on_result(BufferSlice packet) final {
@@ -3103,7 +3113,8 @@ class ReadReactionsQuery final : public Td::ResultHandler {
       return promise_.set_error(Status::Error(400, "Chat is not accessible"));
     }
 
-    send_query(G()->net_query_creator().create(telegram_api::messages_readReactions(std::move(input_peer))));
+    send_query(
+        G()->net_query_creator().create(telegram_api::messages_readReactions(std::move(input_peer)), {{dialog_id}}));
   }
 
   void on_result(BufferSlice packet) final {
@@ -22064,9 +22075,13 @@ void MessagesManager::read_history_on_server(Dialog *d, MessageId max_message_id
   CHECK(!max_message_id.is_scheduled());
 
   auto dialog_id = d->dialog_id;
-  LOG(INFO) << "Read history in " << dialog_id << " on server up to " << max_message_id;
-
   bool is_secret = dialog_id.get_type() == DialogType::SecretChat;
+  bool need_delay = d->is_opened && !is_secret &&
+                    (d->server_unread_count > 0 || (!need_unread_counter(d->order) && d->last_message_id.is_valid() &&
+                                                    max_message_id < d->last_message_id));
+  LOG(INFO) << "Read history in " << dialog_id << " on server up to " << max_message_id << " with"
+            << (need_delay ? "" : "out") << " delay";
+
   if (is_secret) {
     auto *m = get_message_force(d, max_message_id, "read_history_on_server");
     if (m == nullptr) {
@@ -22091,9 +22106,6 @@ void MessagesManager::read_history_on_server(Dialog *d, MessageId max_message_id
 
   d->updated_read_history_message_ids.insert(MessageId());
 
-  bool need_delay = d->is_opened && !is_secret &&
-                    (d->server_unread_count > 0 || (!need_unread_counter(d->order) && d->last_message_id.is_valid() &&
-                                                    max_message_id < d->last_message_id));
   pending_read_history_timeout_.set_timeout_in(dialog_id.get(), need_delay ? MIN_READ_HISTORY_DELAY : 0);
 }
 
