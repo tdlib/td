@@ -6988,11 +6988,6 @@ void ContactsManager::set_channel_participant_status(ChannelId channel_id, Dialo
         status.is_banned() ? DialogParticipantStatus::Left() : DialogParticipantStatus::Banned(0), std::move(promise));
   }
 
-  auto input_peer = td_->messages_manager_->get_input_peer(participant_dialog_id, AccessRights::Read);
-  if (input_peer == nullptr) {
-    return promise.set_error(Status::Error(400, "Member not found"));
-  }
-
   auto on_result_promise =
       PromiseCreator::lambda([actor_id = actor_id(this), channel_id, participant_dialog_id, status,
                               promise = std::move(promise)](Result<DialogParticipant> r_dialog_participant) mutable {
@@ -7005,8 +7000,7 @@ void ContactsManager::set_channel_participant_status(ChannelId channel_id, Dialo
                      std::move(status), r_dialog_participant.ok().status_, std::move(promise));
       });
 
-  td_->create_handler<GetChannelParticipantQuery>(std::move(on_result_promise))
-      ->send(channel_id, participant_dialog_id, std::move(input_peer));
+  get_channel_participant(channel_id, participant_dialog_id, std::move(on_result_promise));
 }
 
 void ContactsManager::set_channel_participant_status_impl(ChannelId channel_id, DialogId participant_dialog_id,
