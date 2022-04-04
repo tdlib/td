@@ -15799,9 +15799,16 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
         auto &previous_message_id = previous_repaired_read_inbox_max_message_id_[dialog_id];
         if (previous_message_id >= read_inbox_max_message_id) {
           // protect from sending the request in a loop
-          LOG(ERROR) << "Failed to repair server unread count in " << dialog_id
-                     << ", because receive read_inbox_max_message_id = " << read_inbox_max_message_id << " after "
-                     << previous_message_id << ", but messages are read up to " << d->last_read_inbox_message_id;
+          if (d->server_unread_count != 0) {
+            LOG(ERROR) << "Failed to repair server unread count in " << dialog_id
+                       << ", because receive read_inbox_max_message_id = " << read_inbox_max_message_id << " after "
+                       << previous_message_id << ", but messages are read up to " << d->last_read_inbox_message_id;
+          } else {
+            LOG(INFO) << "Failed to repair server unread count in " << dialog_id
+                      << ", because receive read_inbox_max_message_id = " << read_inbox_max_message_id
+                      << ", but messages are read up to " << d->last_read_inbox_message_id
+                      << ". Likely all messages after " << read_inbox_max_message_id << " are outgoing";
+          }
           d->need_repair_server_unread_count = false;
           on_dialog_updated(dialog_id, "failed to repair dialog server unread count");
         } else {
