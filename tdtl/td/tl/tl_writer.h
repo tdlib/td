@@ -88,8 +88,8 @@ class TL_writer {
 
   virtual std::string gen_forward_class_declaration(const std::string &class_name, bool is_proxy) const = 0;
 
-  virtual std::string gen_class_begin(const std::string &class_name, const std::string &base_class_name,
-                                      bool is_proxy, const tl_tree *result) const = 0;
+  virtual std::string gen_class_begin(const std::string &class_name, const std::string &base_class_name, bool is_proxy,
+                                      const tl_tree *result) const = 0;
   virtual std::string gen_class_end() const = 0;
 
   virtual std::string gen_class_alias(const std::string &class_name, const std::string &alias_name) const = 0;

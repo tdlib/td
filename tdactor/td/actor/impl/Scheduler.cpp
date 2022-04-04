@@ -303,7 +303,8 @@ void Scheduler::register_migrated_actor(ActorInfo *actor_info) {
               << tag("actor_count", actor_count_);
   actor_count_++;
   LOG_CHECK(actor_info->is_migrating()) << *actor_info << ' ' << actor_count_ << ' ' << sched_id_ << ' '
-                                        << actor_info->migrate_dest() << ' ' << actor_info->is_running() << ' ' << close_flag_;
+                                        << actor_info->migrate_dest() << ' ' << actor_info->is_running() << ' '
+                                        << close_flag_;
   CHECK(sched_id_ == actor_info->migrate_dest());
   // CHECK(!actor_info->is_running());
   actor_info->finish_migrate();

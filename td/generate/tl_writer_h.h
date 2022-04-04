@@ -33,8 +33,8 @@ class TD_TL_writer_h : public TD_TL_writer {
 
   std::string gen_forward_class_declaration(const std::string &class_name, bool is_proxy) const override;
 
-  std::string gen_class_begin(const std::string &class_name, const std::string &base_class_name,
-                              bool is_proxy, const tl::tl_tree *result) const override;
+  std::string gen_class_begin(const std::string &class_name, const std::string &base_class_name, bool is_proxy,
+                              const tl::tl_tree *result) const override;
   std::string gen_class_end() const override;
 
   std::string gen_class_alias(const std::string &class_name, const std::string &alias_name) const override;

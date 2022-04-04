@@ -302,8 +302,8 @@ class TlWriterCCommon final : public tl::TL_writer {
            class_name + ", struct TdVector" + class_name + " *);\n";
   }
 
-  std::string gen_class_begin(const std::string &class_name, const std::string &base_class_name,
-                              bool is_proxy, const tl::tl_tree *result) const final {
+  std::string gen_class_begin(const std::string &class_name, const std::string &base_class_name, bool is_proxy,
+                              const tl::tl_tree *result) const final {
     if (is_header_ != 1 || class_name == "") {
       return "";
     }
