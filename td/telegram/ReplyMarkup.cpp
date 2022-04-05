@@ -450,7 +450,7 @@ static Result<KeyboardButton> get_keyboard_button(tl_object_ptr<td_api::keyboard
       if (user_id.is_valid()) {
         return Status::Error(400, "Link to a user can't be used in web app URL buttons");
       }
-      auto r_url = LinkManager::check_link(button_type->url_, true, true);
+      auto r_url = LinkManager::check_link(button_type->url_, true, !G()->is_test_dc());
       if (r_url.is_error()) {
         return Status::Error(400, "Inline keyboard button web app URL is invalid");
       }
@@ -572,7 +572,7 @@ static Result<InlineKeyboardButton> get_inline_keyboard_button(tl_object_ptr<td_
       if (user_id.is_valid()) {
         return Status::Error(400, "Link to a user can't be used in web app URL buttons");
       }
-      auto r_url = LinkManager::check_link(button_type->url_, true, true);
+      auto r_url = LinkManager::check_link(button_type->url_, true, !G()->is_test_dc());
       if (r_url.is_error()) {
         return Status::Error(400, "Inline keyboard button web app URL is invalid");
       }
