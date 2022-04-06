@@ -57,6 +57,8 @@ namespace td {
 
 struct BinlogEvent;
 
+class BotMenuButton;
+
 class ChannelParticipantFilter;
 
 struct MinChannel;
@@ -218,6 +220,8 @@ class ContactsManager final : public Actor {
 
   void on_update_bot_commands(DialogId dialog_id, UserId bot_user_id,
                               vector<tl_object_ptr<telegram_api::botCommand>> &&bot_commands);
+
+  void on_update_bot_menu_button(UserId bot_user_id, tl_object_ptr<telegram_api::BotMenuButton> &&bot_menu_button);
 
   void on_update_dialog_administrators(DialogId dialog_id, vector<DialogAdministrator> &&administrators,
                                        bool have_access, bool from_database);
@@ -701,6 +705,7 @@ class ContactsManager final : public Actor {
     string description;
     string private_forward_name;
 
+    unique_ptr<BotMenuButton> menu_button;
     vector<BotCommand> commands;
     AdministratorRights group_administrator_rights;
     AdministratorRights broadcast_administrator_rights;
@@ -1235,6 +1240,8 @@ class ContactsManager final : public Actor {
   static void on_update_user_full_common_chat_count(UserFull *user_full, UserId user_id, int32 common_chat_count);
   static void on_update_user_full_commands(UserFull *user_full, UserId user_id,
                                            vector<tl_object_ptr<telegram_api::botCommand>> &&bot_commands);
+  static void on_update_user_full_menu_button(UserFull *user_full, UserId user_id,
+                                              tl_object_ptr<telegram_api::BotMenuButton> &&bot_menu_button);
   void on_update_user_full_need_phone_number_privacy_exception(UserFull *user_full, UserId user_id,
                                                                bool need_phone_number_privacy_exception) const;
 

@@ -7,6 +7,7 @@
 #include "td/telegram/ContactsManager.h"
 
 #include "td/telegram/AuthManager.h"
+#include "td/telegram/BotMenuButton.h"
 #include "td/telegram/ChannelParticipantFilter.h"
 #include "td/telegram/ConfigShared.h"
 #include "td/telegram/Dependencies.h"
@@ -3700,6 +3701,7 @@ void ContactsManager::UserFull::store(StorerT &storer) const {
   bool has_private_forward_name = !private_forward_name.empty();
   bool has_group_administrator_rights = group_administrator_rights != AdministratorRights();
   bool has_broadcast_administrator_rights = broadcast_administrator_rights != AdministratorRights();
+  bool has_menu_button = menu_button != nullptr;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_about);
   STORE_FLAG(is_blocked);
@@ -3714,6 +3716,7 @@ void ContactsManager::UserFull::store(StorerT &storer) const {
   STORE_FLAG(has_private_forward_name);
   STORE_FLAG(has_group_administrator_rights);
   STORE_FLAG(has_broadcast_administrator_rights);
+  STORE_FLAG(has_menu_button);
   END_STORE_FLAGS();
   if (has_about) {
     store(about, storer);
@@ -3738,6 +3741,9 @@ void ContactsManager::UserFull::store(StorerT &storer) const {
   if (has_broadcast_administrator_rights) {
     store(broadcast_administrator_rights, storer);
   }
+  if (has_menu_button) {
+    store(menu_button, storer);
+  }
 }
 
 template <class ParserT>
@@ -3750,6 +3756,7 @@ void ContactsManager::UserFull::parse(ParserT &parser) {
   bool has_private_forward_name;
   bool has_group_administrator_rights;
   bool has_broadcast_administrator_rights;
+  bool has_menu_button;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(has_about);
   PARSE_FLAG(is_blocked);
@@ -3764,6 +3771,7 @@ void ContactsManager::UserFull::parse(ParserT &parser) {
   PARSE_FLAG(has_private_forward_name);
   PARSE_FLAG(has_group_administrator_rights);
   PARSE_FLAG(has_broadcast_administrator_rights);
+  PARSE_FLAG(has_menu_button);
   END_PARSE_FLAGS();
   if (has_about) {
     parse(about, parser);
@@ -3787,6 +3795,9 @@ void ContactsManager::UserFull::parse(ParserT &parser) {
   }
   if (has_broadcast_administrator_rights) {
     parse(broadcast_administrator_rights, parser);
+  }
+  if (has_menu_button) {
+    parse(menu_button, parser);
   }
 }
 
@@ -6177,6 +6188,26 @@ void ContactsManager::on_update_bot_commands(DialogId dialog_id, UserId bot_user
     default:
       LOG(ERROR) << "Receive updateBotCommands in " << dialog_id;
       break;
+  }
+}
+
+void ContactsManager::on_update_bot_menu_button(UserId bot_user_id,
+                                                tl_object_ptr<telegram_api::BotMenuButton> &&bot_menu_button) {
+  if (!bot_user_id.is_valid()) {
+    LOG(ERROR) << "Receive updateBotCOmmands about invalid " << bot_user_id;
+    return;
+  }
+  if (!have_user(bot_user_id) || !is_user_bot(bot_user_id)) {
+    return;
+  }
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+
+  auto user_full = get_user_full(bot_user_id);
+  if (user_full != nullptr) {
+    on_update_user_full_menu_button(user_full, bot_user_id, std::move(bot_menu_button));
+    update_user_full(user_full, bot_user_id, "on_update_bot_menu_button");
   }
 }
 
@@ -10549,6 +10580,7 @@ void ContactsManager::on_get_user_full(tl_object_ptr<telegram_api::userFull> &&u
     description = std::move(user->bot_info_->description_);
 
     on_update_user_full_commands(user_full, user_id, std::move(user->bot_info_->commands_));
+    on_update_user_full_menu_button(user_full, user_id, std::move(user->bot_info_->menu_button_));
   }
   if (user_full->description != description) {
     user_full->description = std::move(description);
@@ -11531,6 +11563,17 @@ void ContactsManager::on_update_user_full_commands(UserFull *user_full, UserId u
   }
 }
 
+void ContactsManager::on_update_user_full_menu_button(UserFull *user_full, UserId user_id,
+                                                      tl_object_ptr<telegram_api::BotMenuButton> &&bot_menu_button) {
+  CHECK(user_full != nullptr);
+  CHECK(bot_menu_button != nullptr);
+  auto new_button = BotMenuButton::get_bot_menu_button(std::move(bot_menu_button));
+  if (user_full->menu_button != new_button) {
+    user_full->menu_button = std::move(new_button);
+    user_full->is_changed = true;
+  }
+}
+
 void ContactsManager::on_update_user_need_phone_number_privacy_exception(UserId user_id,
                                                                          bool need_phone_number_privacy_exception) {
   LOG(INFO) << "Receive " << need_phone_number_privacy_exception << " need phone number privacy exception with "
@@ -11781,6 +11824,7 @@ void ContactsManager::drop_user_full(UserId user_id) {
   user_full->need_phone_number_privacy_exception = false;
   user_full->about = string();
   user_full->description = string();
+  user_full->menu_button = nullptr;
   user_full->commands.clear();
   user_full->common_chat_count = 0;
   user_full->private_forward_name.clear();
@@ -16311,10 +16355,14 @@ tl_object_ptr<td_api::userFullInfo> ContactsManager::get_user_full_info_object(U
   td_api::object_ptr<td_api::botInfo> bot_info;
   bool is_bot = is_user_bot(user_id);
   if (is_bot) {
+    td_api::object_ptr<td_api::botMenuButton> menu_button;
+    if (user_full->menu_button != nullptr) {
+      menu_button = user_full->menu_button->get_bot_menu_button_object();
+    }
     auto commands =
         transform(user_full->commands, [](const auto &command) { return command.get_bot_command_object(); });
     bot_info = td_api::make_object<td_api::botInfo>(
-        user_full->about, user_full->description, std::move(commands),
+        user_full->about, user_full->description, std::move(menu_button), std::move(commands),
         user_full->group_administrator_rights == AdministratorRights()
             ? nullptr
             : user_full->group_administrator_rights.get_chat_administrator_rights_object(),

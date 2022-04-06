@@ -2955,6 +2955,7 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateBotCommands> up
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateBotMenuButton> update, Promise<Unit> &&promise) {
+  td_->contacts_manager_->on_update_bot_menu_button(UserId(update->bot_id_), std::move(update->button_));
   promise.set_value(Unit());
 }
 

@@ -385,6 +385,9 @@ botCommand command:string description:string = BotCommand;
 //@description Contains a list of bot commands @bot_user_id Bot's user identifier @commands List of bot commands
 botCommands bot_user_id:int53 commands:vector<botCommand> = BotCommands;
 
+//@description Describes a button to be shown instead of bot commands menu button @text Text of the button @url URL to be passed to openWebApp
+botMenuButton text:string url:string = BotMenuButton;
+
 
 //@description Represents a location to which a chat is connected @location The location @address Location address; 1-64 characters, as defined by the chat owner
 chatLocation location:location address:string = ChatLocation;
@@ -472,10 +475,11 @@ user id:int53 first_name:string last_name:string username:string phone_number:st
 //@description Contains information about a bot
 //@share_text The text that is shown on the bot's profile page and is sent together with the link when users share the bot
 //@param_description The text shown in the chat with the bot if the chat is empty
+//@menu_button Information about a button to show instead of the bot commands menu button; may be null if ordinary bot commands menu must be shown
 //@commands List of the bot commands
 //@default_group_administrator_rights Default administrator rights for adding the bot to basic group and supergroup chats; may be null
 //@default_channel_administrator_rights Default administrator rights for adding the bot to channels; may be null
-botInfo share_text:string description:string commands:vector<botCommand> default_group_administrator_rights:chatAdministratorRights default_channel_administrator_rights:chatAdministratorRights = BotInfo;
+botInfo share_text:string description:string menu_button:botMenuButton commands:vector<botCommand> default_group_administrator_rights:chatAdministratorRights default_channel_administrator_rights:chatAdministratorRights = BotInfo;
 
 //@description Contains full information about a user
 //@photo User profile photo; may be null
@@ -4885,11 +4889,11 @@ getWebAppUrl bot_user_id:int53 url:string theme:themeParameters = HttpUrl;
 //@bot_user_id Identifier of the target bot @button_text Text of the keyboardButtonTypeWebApp button, which opened the web app @data Received data
 sendWebAppData bot_user_id:int53 button_text:string data:string = Ok;
 
-//@description Informs TDLib that a web app is being opened from attach menu, bot menu, an internalLinkTypeAttachMenuBot link, or an inlineKeyboardButtonTypeWebApp button.
+//@description Informs TDLib that a web app is being opened from attach menu, a botMenuButton button, an internalLinkTypeAttachMenuBot link, or an inlineKeyboardButtonTypeWebApp button.
 //-For each bot, a confirmation alert about data sent to the bot must be shown once
 //@chat_id Identifier of the chat in which the web app is opened. Web apps can be opened only in private chats for now
 //@bot_user_id Identifier of the bot, providing the web app
-//@url The URL from the inlineKeyboardButtonTypeWebApp button or the internalLinkTypeAttachMenuBot link, or an empty string otherwise
+//@url The URL from an inlineKeyboardButtonTypeWebApp button, a botMenuButton button, or an internalLinkTypeAttachMenuBot link, or an empty string otherwise
 //@from_bot_menu Pass true if the web app is opened from bot menu
 //@theme Preferred web app theme; pass null to use the default theme
 //@reply_to_message_id Identifier of the replied message for the message sent by the web app; 0 if none

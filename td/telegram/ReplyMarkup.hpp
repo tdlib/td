@@ -16,7 +16,6 @@ namespace td {
 template <class StorerT>
 void store(KeyboardButton button, StorerT &storer) {
   bool has_url = !button.url.empty();
-  ;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_url);
   END_STORE_FLAGS();
