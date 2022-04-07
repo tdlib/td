@@ -3342,7 +3342,7 @@ internalLinkTypeActiveSessions = InternalLinkType;
 //@description The link is a link to an attach menu bot to be opened in the specified chat. Process given chat_link to open corresponding chat.
 //-Then call searchPublicChat with the given bot username, check that the user is a bot and can be added to attach menu. Then use getAttachMenuBot to receive information about the bot.
 //-If the bot isn't added to attach menu, then user needs to confirm adding the bot to attach menu. If user confirms adding, then use toggleBotIsAddedToAttachMenu to add it.
-//-If attach menu bots can't be used in the current chat, show an error to the user. If the bot is added to attach menu, then use openWebApp with the given url
+//-If attach menu bots can't be used in the current chat, show an error to the user. If the bot is added to attach menu, then use openWebApp with the given URL
 //@chat_link An internal link pointing to a chat; may be null if the current chat needs to be kept @bot_username Username of the bot @url URL to be passed to openWebApp
 internalLinkTypeAttachMenuBot chat_link:InternalLinkType bot_username:string url:string = InternalLinkType;
 

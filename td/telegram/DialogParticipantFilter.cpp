@@ -34,7 +34,7 @@ StringBuilder &operator<<(StringBuilder &string_builder, const DialogParticipant
   }
 }
 
-DialogParticipantFilter::DialogParticipantFilter(const tl_object_ptr<td_api::ChatMembersFilter> &filter) {
+DialogParticipantFilter::DialogParticipantFilter(const td_api::object_ptr<td_api::ChatMembersFilter> &filter) {
   if (filter == nullptr) {
     type_ = Type::Members;
     return;

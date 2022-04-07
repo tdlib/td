@@ -18,7 +18,7 @@
 #include "td/actor/Timeout.h"
 
 #include "td/utils/common.h"
-#include "td/utils/FlatHashSet.h"
+#include "td/utils/FlatHashMap.h"
 #include "td/utils/Status.h"
 
 namespace td {

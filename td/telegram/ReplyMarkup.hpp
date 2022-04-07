@@ -28,11 +28,13 @@ void store(KeyboardButton button, StorerT &storer) {
 
 template <class ParserT>
 void parse(KeyboardButton &button, ParserT &parser) {
-  bool has_url = false;
+  bool has_url;
   if (parser.version() >= static_cast<int32>(Version::AddKeyboardButtonFlags)) {
     BEGIN_PARSE_FLAGS();
     PARSE_FLAG(has_url);
     END_PARSE_FLAGS();
+  } else {
+    has_url = false;
   }
   parse(button.type, parser);
   parse(button.text, parser);

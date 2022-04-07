@@ -6,11 +6,8 @@
 //
 #pragma once
 
-#include "td/telegram/DialogId.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/td_api.h"
-#include "td/telegram/telegram_api.h"
-#include "td/telegram/UserId.h"
 
 #include "td/utils/common.h"
 #include "td/utils/StringBuilder.h"
@@ -28,7 +25,7 @@ class DialogParticipantFilter {
   friend StringBuilder &operator<<(StringBuilder &string_builder, const DialogParticipantFilter &filter);
 
  public:
-  explicit DialogParticipantFilter(const tl_object_ptr<td_api::ChatMembersFilter> &filter);
+  explicit DialogParticipantFilter(const td_api::object_ptr<td_api::ChatMembersFilter> &filter);
 
   td_api::object_ptr<td_api::SupergroupMembersFilter> get_supergroup_members_filter_object(const string &query) const;
 

@@ -11568,8 +11568,13 @@ void ContactsManager::on_update_user_full_menu_button(UserFull *user_full, UserI
   CHECK(user_full != nullptr);
   CHECK(bot_menu_button != nullptr);
   auto new_button = get_bot_menu_button(std::move(bot_menu_button));
-  if (user_full->menu_button == nullptr ? new_button != nullptr
-                                        : new_button == nullptr || *user_full->menu_button != *new_button) {
+  bool is_changed;
+  if (user_full->menu_button == nullptr) {
+    is_changed = (new_button != nullptr);
+  } else {
+    is_changed = (new_button == nullptr || *user_full->menu_button != *new_button);
+  }
+  if (is_changed) {
     user_full->menu_button = std::move(new_button);
     user_full->is_changed = true;
   }
