@@ -5716,6 +5716,9 @@ deleteCommands scope:BotCommandScope language_code:string = Ok;
 //@language_code A two-letter ISO 639-1 language code or an empty string
 getCommands scope:BotCommandScope language_code:string = BotCommands;
 
+//@description Returns menu button set by the bot for the given user; for bots only @user_id Identifier of the user
+getMenuButton user_id:int53 = BotMenuButton;
+
 //@description Sets default administrator rights for adding the bot to basic group and supergroup chats; for bots only @default_group_administrator_rights Default administrator rights for adding the bot to basic group and supergroup chats; may be null
 setDefaultGroupAdministratorRights default_group_administrator_rights:chatAdministratorRights = Ok;
 

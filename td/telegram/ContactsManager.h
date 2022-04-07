@@ -8,6 +8,7 @@
 
 #include "td/telegram/AccessRights.h"
 #include "td/telegram/BotCommand.h"
+#include "td/telegram/BotMenuButton.h"
 #include "td/telegram/ChannelId.h"
 #include "td/telegram/ChannelType.h"
 #include "td/telegram/ChatId.h"
@@ -56,8 +57,6 @@
 namespace td {
 
 struct BinlogEvent;
-
-class BotMenuButton;
 
 class ChannelParticipantFilter;
 

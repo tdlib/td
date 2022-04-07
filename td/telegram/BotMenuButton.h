@@ -8,6 +8,9 @@
 
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
+#include "td/telegram/UserId.h"
+
+#include "td/actor/PromiseFuture.h"
 
 #include "td/utils/common.h"
 #include "td/utils/tl_helpers.h"
@@ -27,9 +30,6 @@ class BotMenuButton {
 
   BotMenuButton(string &&text, string &&url) : text_(std::move(text)), url_(std::move(url)) {
   }
-
-  static unique_ptr<BotMenuButton> get_bot_menu_button(
-      telegram_api::object_ptr<telegram_api::BotMenuButton> &&bot_menu_button);
 
   td_api::object_ptr<td_api::botMenuButton> get_bot_menu_button_object() const;
 
@@ -68,10 +68,14 @@ class BotMenuButton {
 
 bool operator==(const BotMenuButton &lhs, const BotMenuButton &rhs);
 
-bool operator==(const unique_ptr<BotMenuButton> &lhs, const unique_ptr<BotMenuButton> &rhs);
-
-inline bool operator!=(const unique_ptr<BotMenuButton> &lhs, const unique_ptr<BotMenuButton> &rhs) {
+inline bool operator!=(const BotMenuButton &lhs, const BotMenuButton &rhs) {
   return !(lhs == rhs);
 }
+
+unique_ptr<BotMenuButton> get_bot_menu_button(telegram_api::object_ptr<telegram_api::BotMenuButton> &&bot_menu_button);
+
+td_api::object_ptr<td_api::botMenuButton> get_bot_menu_button_object(const BotMenuButton *bot_menu_button);
+
+void get_menu_button(Td *td, UserId user_id, Promise<td_api::object_ptr<td_api::botMenuButton>> &&promise);
 
 }  // namespace td

@@ -11567,8 +11567,9 @@ void ContactsManager::on_update_user_full_menu_button(UserFull *user_full, UserI
                                                       tl_object_ptr<telegram_api::BotMenuButton> &&bot_menu_button) {
   CHECK(user_full != nullptr);
   CHECK(bot_menu_button != nullptr);
-  auto new_button = BotMenuButton::get_bot_menu_button(std::move(bot_menu_button));
-  if (user_full->menu_button != new_button) {
+  auto new_button = get_bot_menu_button(std::move(bot_menu_button));
+  if (user_full->menu_button == nullptr ? new_button != nullptr
+                                        : new_button == nullptr || *user_full->menu_button != *new_button) {
     user_full->menu_button = std::move(new_button);
     user_full->is_changed = true;
   }
@@ -16355,10 +16356,7 @@ tl_object_ptr<td_api::userFullInfo> ContactsManager::get_user_full_info_object(U
   td_api::object_ptr<td_api::botInfo> bot_info;
   bool is_bot = is_user_bot(user_id);
   if (is_bot) {
-    td_api::object_ptr<td_api::botMenuButton> menu_button;
-    if (user_full->menu_button != nullptr) {
-      menu_button = user_full->menu_button->get_bot_menu_button_object();
-    }
+    auto menu_button = get_bot_menu_button_object(user_full->menu_button.get());
     auto commands =
         transform(user_full->commands, [](const auto &command) { return command.get_bot_command_object(); });
     bot_info = td_api::make_object<td_api::botInfo>(

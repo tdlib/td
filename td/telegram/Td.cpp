@@ -16,6 +16,7 @@
 #include "td/telegram/BackgroundManager.h"
 #include "td/telegram/BackgroundType.h"
 #include "td/telegram/BotCommand.h"
+#include "td/telegram/BotMenuButton.h"
 #include "td/telegram/CallbackQueriesManager.h"
 #include "td/telegram/CallId.h"
 #include "td/telegram/CallManager.h"
@@ -6796,6 +6797,12 @@ void Td::on_request(uint64 id, td_api::getCommands &request) {
   CHECK_IS_BOT();
   CREATE_REQUEST_PROMISE();
   get_commands(this, std::move(request.scope_), std::move(request.language_code_), std::move(promise));
+}
+
+void Td::on_request(uint64 id, const td_api::getMenuButton &request) {
+  CHECK_IS_BOT();
+  CREATE_REQUEST_PROMISE();
+  get_menu_button(this, UserId(request.user_id_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::setDefaultGroupAdministratorRights &request) {
