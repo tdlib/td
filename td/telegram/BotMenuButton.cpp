@@ -7,11 +7,45 @@
 #include "td/telegram/BotMenuButton.h"
 
 #include "td/telegram/ContactsManager.h"
+#include "td/telegram/Global.h"
+#include "td/telegram/LinkManager.h"
+#include "td/telegram/misc.h"
 #include "td/telegram/Td.h"
 
 #include "td/utils/buffer.h"
 
 namespace td {
+
+class SetBotMenuButtonQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit SetBotMenuButtonQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(UserId user_id, telegram_api::object_ptr<telegram_api::BotMenuButton> input_bot_menu_button) {
+    auto input_user = user_id.is_valid() ? td_->contacts_manager_->get_input_user(user_id).move_as_ok()
+                                         : tl_object_ptr<telegram_api::inputUserEmpty>();
+    send_query(G()->net_query_creator().create(
+        telegram_api::bots_setBotMenuButton(std::move(input_user), std::move(input_bot_menu_button))));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::bots_setBotMenuButton>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    if (!result_ptr.ok()) {
+      LOG(ERROR) << "Receive false as result of SetBotMenuButtonQuery";
+    }
+    promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
 
 class GetBotMenuButtonQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::botMenuButton>> promise_;
@@ -77,6 +111,39 @@ td_api::object_ptr<td_api::botMenuButton> get_bot_menu_button_object(const BotMe
     return nullptr;
   }
   return bot_menu_button->get_bot_menu_button_object();
+}
+
+void set_menu_button(Td *td, UserId user_id, td_api::object_ptr<td_api::botMenuButton> &&menu_button,
+                     Promise<Unit> &&promise) {
+  if (!user_id.is_valid() && user_id != UserId()) {
+    return promise.set_error(Status::Error(400, "User not found"));
+  }
+
+  telegram_api::object_ptr<telegram_api::BotMenuButton> input_bot_menu_button;
+  if (menu_button == nullptr) {
+    input_bot_menu_button = telegram_api::make_object<telegram_api::botMenuButtonCommands>();
+  } else if (menu_button->text_.empty()) {
+    if (menu_button->url_ != "default") {
+      return promise.set_error(Status::Error(400, "Menu button text can't be empty"));
+    }
+    input_bot_menu_button = telegram_api::make_object<telegram_api::botMenuButtonDefault>();
+  } else {
+    if (!clean_input_string(menu_button->text_)) {
+      return promise.set_error(Status::Error(400, "Menu button text must be encoded in UTF-8"));
+    }
+    if (!clean_input_string(menu_button->url_)) {
+      return promise.set_error(Status::Error(400, "Menu button URL must be encoded in UTF-8"));
+    }
+    auto r_url = LinkManager::check_link(menu_button->url_, true, !G()->is_test_dc());
+    if (r_url.is_error()) {
+      return promise.set_error(Status::Error(400, PSLICE()
+                                                      << "Inline keyboard button web app URL '" << menu_button->url_
+                                                      << "' is invalid: " << r_url.error().message()));
+    }
+    input_bot_menu_button = telegram_api::make_object<telegram_api::botMenuButton>(menu_button->text_, r_url.ok());
+  }
+
+  td->create_handler<SetBotMenuButtonQuery>(std::move(promise))->send(user_id, std::move(input_bot_menu_button));
 }
 
 void get_menu_button(Td *td, UserId user_id, Promise<td_api::object_ptr<td_api::botMenuButton>> &&promise) {

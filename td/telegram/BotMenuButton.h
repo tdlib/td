@@ -76,6 +76,9 @@ unique_ptr<BotMenuButton> get_bot_menu_button(telegram_api::object_ptr<telegram_
 
 td_api::object_ptr<td_api::botMenuButton> get_bot_menu_button_object(const BotMenuButton *bot_menu_button);
 
+void set_menu_button(Td *td, UserId user_id, td_api::object_ptr<td_api::botMenuButton> &&menu_button,
+                     Promise<Unit> &&promise);
+
 void get_menu_button(Td *td, UserId user_id, Promise<td_api::object_ptr<td_api::botMenuButton>> &&promise);
 
 }  // namespace td

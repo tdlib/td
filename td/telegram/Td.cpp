@@ -6799,6 +6799,12 @@ void Td::on_request(uint64 id, td_api::getCommands &request) {
   get_commands(this, std::move(request.scope_), std::move(request.language_code_), std::move(promise));
 }
 
+void Td::on_request(uint64 id, td_api::setMenuButton &request) {
+  CHECK_IS_BOT();
+  CREATE_OK_REQUEST_PROMISE();
+  set_menu_button(this, UserId(request.user_id_), std::move(request.menu_button_), std::move(promise));
+}
+
 void Td::on_request(uint64 id, const td_api::getMenuButton &request) {
   CHECK_IS_BOT();
   CREATE_REQUEST_PROMISE();
