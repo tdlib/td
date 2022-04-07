@@ -16356,7 +16356,7 @@ tl_object_ptr<td_api::userFullInfo> ContactsManager::get_user_full_info_object(U
   td_api::object_ptr<td_api::botInfo> bot_info;
   bool is_bot = is_user_bot(user_id);
   if (is_bot) {
-    auto menu_button = get_bot_menu_button_object(user_full->menu_button.get());
+    auto menu_button = get_bot_menu_button_object(td_, user_full->menu_button.get());
     auto commands =
         transform(user_full->commands, [](const auto &command) { return command.get_bot_command_object(); });
     bot_info = td_api::make_object<td_api::botInfo>(

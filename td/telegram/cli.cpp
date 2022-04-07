@@ -3443,11 +3443,10 @@ class CliClient final : public Actor {
       ChatId chat_id;
       UserId bot_user_id;
       string url;
-      bool from_bot_menu;
       MessageId reply_to_message_id;
-      get_args(args, chat_id, bot_user_id, url, from_bot_menu, reply_to_message_id);
-      send_request(td_api::make_object<td_api::openWebApp>(chat_id, bot_user_id, url, from_bot_menu,
-                                                           get_theme_parameters(), reply_to_message_id));
+      get_args(args, chat_id, bot_user_id, url, reply_to_message_id);
+      send_request(td_api::make_object<td_api::openWebApp>(chat_id, bot_user_id, url, get_theme_parameters(),
+                                                           reply_to_message_id));
     } else if (op == "cwa") {
       int64 launch_id;
       get_args(args, launch_id);

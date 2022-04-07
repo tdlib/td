@@ -4894,10 +4894,9 @@ sendWebAppData bot_user_id:int53 button_text:string data:string = Ok;
 //@chat_id Identifier of the chat in which the web app is opened. Web apps can be opened only in private chats for now
 //@bot_user_id Identifier of the bot, providing the web app
 //@url The URL from an inlineKeyboardButtonTypeWebApp button, a botMenuButton button, or an internalLinkTypeAttachMenuBot link, or an empty string otherwise
-//@from_bot_menu Pass true if the web app is opened from bot menu
 //@theme Preferred web app theme; pass null to use the default theme
 //@reply_to_message_id Identifier of the replied message for the message sent by the web app; 0 if none
-openWebApp chat_id:int53 bot_user_id:int53 url:string from_bot_menu:Bool theme:themeParameters reply_to_message_id:int53 = WebAppInfo;
+openWebApp chat_id:int53 bot_user_id:int53 url:string theme:themeParameters reply_to_message_id:int53 = WebAppInfo;
 
 //@description Informs TDLib that a previously opened web app was closed @web_app_launch_id Identifier of web app launch, received from openWebApp
 closeWebApp web_app_launch_id:int64 = Ok;

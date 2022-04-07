@@ -6,6 +6,7 @@
 //
 #include "td/telegram/BotMenuButton.h"
 
+#include "td/telegram/AuthManager.h"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/LinkManager.h"
@@ -69,7 +70,7 @@ class GetBotMenuButtonQuery final : public Td::ResultHandler {
 
     auto bot_menu_button = get_bot_menu_button(result_ptr.move_as_ok());
     promise_.set_value(bot_menu_button == nullptr ? td_api::make_object<td_api::botMenuButton>()
-                                                  : bot_menu_button->get_bot_menu_button_object());
+                                                  : bot_menu_button->get_bot_menu_button_object(td_));
   }
 
   void on_error(Status status) final {
@@ -98,19 +99,20 @@ unique_ptr<BotMenuButton> get_bot_menu_button(telegram_api::object_ptr<telegram_
   }
 }
 
-td_api::object_ptr<td_api::botMenuButton> BotMenuButton::get_bot_menu_button_object() const {
-  return td_api::make_object<td_api::botMenuButton>(text_, url_);
+td_api::object_ptr<td_api::botMenuButton> BotMenuButton::get_bot_menu_button_object(Td *td) const {
+  bool is_bot = td->auth_manager_->is_bot();
+  return td_api::make_object<td_api::botMenuButton>(text_, is_bot ? url_ : "menu://" + url_);
 }
 
 bool operator==(const BotMenuButton &lhs, const BotMenuButton &rhs) {
   return lhs.text_ == rhs.text_ && lhs.url_ == rhs.url_;
 }
 
-td_api::object_ptr<td_api::botMenuButton> get_bot_menu_button_object(const BotMenuButton *bot_menu_button) {
+td_api::object_ptr<td_api::botMenuButton> get_bot_menu_button_object(Td *td, const BotMenuButton *bot_menu_button) {
   if (bot_menu_button == nullptr) {
     return nullptr;
   }
-  return bot_menu_button->get_bot_menu_button_object();
+  return bot_menu_button->get_bot_menu_button_object(td);
 }
 
 void set_menu_button(Td *td, UserId user_id, td_api::object_ptr<td_api::botMenuButton> &&menu_button,

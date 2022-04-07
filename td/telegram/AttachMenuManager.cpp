@@ -42,8 +42,7 @@ class RequestWebViewQuery final : public Td::ResultHandler {
   }
 
   void send(DialogId dialog_id, UserId bot_user_id, tl_object_ptr<telegram_api::InputUser> &&input_user, string &&url,
-            bool from_bot_menu, td_api::object_ptr<td_api::themeParameters> &&theme, MessageId reply_to_message_id,
-            bool silent) {
+            td_api::object_ptr<td_api::themeParameters> &&theme, MessageId reply_to_message_id, bool silent) {
     dialog_id_ = dialog_id;
     bot_user_id_ = bot_user_id;
     reply_to_message_id_ = reply_to_message_id;
@@ -59,10 +58,12 @@ class RequestWebViewQuery final : public Td::ResultHandler {
       url = string();
 
       flags |= telegram_api::messages_requestWebView::START_PARAM_MASK;
+    } else if (begins_with(url, "menu://")) {
+      url = url.substr(7);
+
+      flags |= telegram_api::messages_requestWebView::FROM_BOT_MENU_MASK;
     } else if (!url.empty()) {
       flags |= telegram_api::messages_requestWebView::URL_MASK;
-    } else if (from_bot_menu) {
-      flags |= telegram_api::messages_requestWebView::FROM_BOT_MENU_MASK;
     } else {
       from_attach_menu_ = true;
     }
@@ -499,8 +500,7 @@ void AttachMenuManager::schedule_ping_web_view() {
 }
 
 void AttachMenuManager::request_web_view(DialogId dialog_id, UserId bot_user_id, MessageId reply_to_message_id,
-                                         string &&url, bool from_bot_menu,
-                                         td_api::object_ptr<td_api::themeParameters> &&theme,
+                                         string &&url, td_api::object_ptr<td_api::themeParameters> &&theme,
                                          Promise<td_api::object_ptr<td_api::webAppInfo>> &&promise) {
   TRY_STATUS_PROMISE(promise, td_->contacts_manager_->get_bot_data(bot_user_id));
   TRY_RESULT_PROMISE(promise, input_user, td_->contacts_manager_->get_input_user(bot_user_id));
@@ -522,10 +522,6 @@ void AttachMenuManager::request_web_view(DialogId dialog_id, UserId bot_user_id,
       UNREACHABLE();
   }
 
-  if (from_bot_menu && !url.empty()) {
-    return promise.set_error(Status::Error(400, "URL can't be specified when web app is opened from bot menu"));
-  }
-
   if (!td_->messages_manager_->have_input_peer(dialog_id, AccessRights::Write)) {
     return promise.set_error(Status::Error(400, "Have no write access to the chat"));
   }
@@ -538,8 +534,8 @@ void AttachMenuManager::request_web_view(DialogId dialog_id, UserId bot_user_id,
   bool silent = td_->messages_manager_->get_dialog_silent_send_message(dialog_id);
 
   td_->create_handler<RequestWebViewQuery>(std::move(promise))
-      ->send(dialog_id, bot_user_id, std::move(input_user), std::move(url), from_bot_menu, std::move(theme),
-             reply_to_message_id, silent);
+      ->send(dialog_id, bot_user_id, std::move(input_user), std::move(url), std::move(theme), reply_to_message_id,
+             silent);
 }
 
 void AttachMenuManager::open_web_view(int64 query_id, DialogId dialog_id, UserId bot_user_id,

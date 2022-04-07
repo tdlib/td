@@ -31,7 +31,7 @@ class BotMenuButton {
   BotMenuButton(string &&text, string &&url) : text_(std::move(text)), url_(std::move(url)) {
   }
 
-  td_api::object_ptr<td_api::botMenuButton> get_bot_menu_button_object() const;
+  td_api::object_ptr<td_api::botMenuButton> get_bot_menu_button_object(Td *td) const;
 
   template <class StorerT>
   void store(StorerT &storer) const {
@@ -74,7 +74,7 @@ inline bool operator!=(const BotMenuButton &lhs, const BotMenuButton &rhs) {
 
 unique_ptr<BotMenuButton> get_bot_menu_button(telegram_api::object_ptr<telegram_api::BotMenuButton> &&bot_menu_button);
 
-td_api::object_ptr<td_api::botMenuButton> get_bot_menu_button_object(const BotMenuButton *bot_menu_button);
+td_api::object_ptr<td_api::botMenuButton> get_bot_menu_button_object(Td *td, const BotMenuButton *bot_menu_button);
 
 void set_menu_button(Td *td, UserId user_id, td_api::object_ptr<td_api::botMenuButton> &&menu_button,
                      Promise<Unit> &&promise);

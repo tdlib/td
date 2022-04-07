@@ -32,7 +32,7 @@ class AttachMenuManager final : public Actor {
   void init();
 
   void request_web_view(DialogId dialog_id, UserId bot_user_id, MessageId reply_to_message_id, string &&url,
-                        bool from_bot_menu, td_api::object_ptr<td_api::themeParameters> &&theme,
+                        td_api::object_ptr<td_api::themeParameters> &&theme,
                         Promise<td_api::object_ptr<td_api::webAppInfo>> &&promise);
 
   void open_web_view(int64 query_id, DialogId dialog_id, UserId bot_user_id, MessageId reply_to_message_id);

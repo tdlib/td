@@ -7404,7 +7404,7 @@ void Td::on_request(uint64 id, td_api::openWebApp &request) {
   CREATE_REQUEST_PROMISE();
   attach_menu_manager_->request_web_view(DialogId(request.chat_id_), UserId(request.bot_user_id_),
                                          MessageId(request.reply_to_message_id_), std::move(request.url_),
-                                         request.from_bot_menu_, std::move(request.theme_), std::move(promise));
+                                         std::move(request.theme_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::closeWebApp &request) {
