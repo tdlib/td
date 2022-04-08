@@ -71,7 +71,9 @@ class GetBotMenuButtonQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
-    auto bot_menu_button = get_bot_menu_button(result_ptr.move_as_ok());
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for GetBotMenuButtonQuery: " << to_string(ptr);
+    auto bot_menu_button = get_bot_menu_button(std::move(ptr));
     promise_.set_value(bot_menu_button == nullptr ? td_api::make_object<td_api::botMenuButton>()
                                                   : bot_menu_button->get_bot_menu_button_object(td_));
   }

@@ -6197,14 +6197,14 @@ void ContactsManager::on_update_bot_menu_button(UserId bot_user_id,
     LOG(ERROR) << "Receive updateBotCOmmands about invalid " << bot_user_id;
     return;
   }
-  if (!have_user(bot_user_id) || !is_user_bot(bot_user_id)) {
+  if (!have_user_force(bot_user_id) || !is_user_bot(bot_user_id)) {
     return;
   }
   if (td_->auth_manager_->is_bot()) {
     return;
   }
 
-  auto user_full = get_user_full(bot_user_id);
+  auto user_full = get_user_full_force(bot_user_id);
   if (user_full != nullptr) {
     on_update_user_full_menu_button(user_full, bot_user_id, std::move(bot_menu_button));
     update_user_full(user_full, bot_user_id, "on_update_bot_menu_button");
