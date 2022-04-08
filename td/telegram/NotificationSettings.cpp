@@ -176,6 +176,9 @@ DialogNotificationSettings get_dialog_notification_settings(tl_object_ptr<telegr
                                                             bool old_disable_pinned_message_notifications,
                                                             bool old_use_default_disable_mention_notifications,
                                                             bool old_disable_mention_notifications) {
+  if (settings == nullptr) {
+    return DialogNotificationSettings();
+  }
   bool use_default_mute_until = (settings->flags_ & telegram_api::peerNotifySettings::MUTE_UNTIL_MASK) == 0;
   bool use_default_sound = settings->other_sound_ == nullptr;
   bool use_default_show_preview = (settings->flags_ & telegram_api::peerNotifySettings::SHOW_PREVIEWS_MASK) == 0;
@@ -199,6 +202,9 @@ DialogNotificationSettings get_dialog_notification_settings(tl_object_ptr<telegr
 ScopeNotificationSettings get_scope_notification_settings(tl_object_ptr<telegram_api::peerNotifySettings> &&settings,
                                                           bool old_disable_pinned_message_notifications,
                                                           bool old_disable_mention_notifications) {
+  if (settings == nullptr) {
+    return ScopeNotificationSettings();
+  }
   auto mute_until = (settings->flags_ & telegram_api::peerNotifySettings::MUTE_UNTIL_MASK) == 0 ||
                             settings->mute_until_ <= G()->unix_time()
                         ? 0
