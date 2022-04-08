@@ -922,12 +922,6 @@ class MessagesManager final : public Actor {
   void force_create_dialog(DialogId dialog_id, const char *source, bool expect_no_access = false,
                            bool force_update_dialog_pos = false);
 
-  void send_get_dialog_notification_settings_query(DialogId dialog_id, Promise<Unit> &&promise);
-
-  void send_get_scope_notification_settings_query(NotificationSettingsScope scope, Promise<Unit> &&promise);
-
-  void on_get_dialog_notification_settings_query_finished(DialogId dialog_id, Status &&status);
-
   void on_get_dialog_query_finished(DialogId dialog_id, Status &&status);
 
   void remove_sponsored_dialog();
@@ -3497,8 +3491,6 @@ class MessagesManager final : public Actor {
     FlatHashMap<MessageId, string, MessageIdHash> embedding_codes_;
   };
   FlatHashMap<DialogId, MessageEmbeddingCodes, DialogIdHash> message_embedding_codes_[2];
-
-  FlatHashMap<DialogId, vector<Promise<Unit>>, DialogIdHash> get_dialog_notification_settings_queries_;
 
   FlatHashMap<DialogId, vector<Promise<Unit>>, DialogIdHash> get_dialog_queries_;
   FlatHashMap<DialogId, uint64, DialogIdHash> get_dialog_query_log_event_id_;

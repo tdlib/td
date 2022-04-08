@@ -47,6 +47,7 @@
 #include "td/telegram/NotificationGroupType.h"
 #include "td/telegram/NotificationManager.h"
 #include "td/telegram/NotificationSettings.hpp"
+#include "td/telegram/NotificationSettingsManager.h"
 #include "td/telegram/NotificationType.h"
 #include "td/telegram/PublicDialogType.h"
 #include "td/telegram/ReplyMarkup.h"
@@ -4173,273 +4174,6 @@ class DeleteScheduledMessagesQuery final : public Td::ResultHandler {
   void on_error(Status status) final {
     if (!td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "DeleteScheduledMessagesQuery")) {
       LOG(ERROR) << "Receive error for delete scheduled messages: " << status;
-    }
-    promise_.set_error(std::move(status));
-  }
-};
-
-class GetDialogNotifySettingsQuery final : public Td::ResultHandler {
-  DialogId dialog_id_;
-
- public:
-  void send(DialogId dialog_id) {
-    dialog_id_ = dialog_id;
-    auto input_notify_peer = td_->messages_manager_->get_input_notify_peer(dialog_id);
-    CHECK(input_notify_peer != nullptr);
-    send_query(G()->net_query_creator().create(telegram_api::account_getNotifySettings(std::move(input_notify_peer))));
-  }
-
-  void on_result(BufferSlice packet) final {
-    auto result_ptr = fetch_result<telegram_api::account_getNotifySettings>(packet);
-    if (result_ptr.is_error()) {
-      return on_error(result_ptr.move_as_error());
-    }
-
-    auto ptr = result_ptr.move_as_ok();
-    td_->messages_manager_->on_update_dialog_notify_settings(dialog_id_, std::move(ptr),
-                                                             "GetDialogNotifySettingsQuery");
-    td_->messages_manager_->on_get_dialog_notification_settings_query_finished(dialog_id_, Status::OK());
-  }
-
-  void on_error(Status status) final {
-    td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "GetDialogNotifySettingsQuery");
-    td_->messages_manager_->on_get_dialog_notification_settings_query_finished(dialog_id_, std::move(status));
-  }
-};
-
-class GetNotifySettingsExceptionsQuery final : public Td::ResultHandler {
-  Promise<Unit> promise_;
-
- public:
-  explicit GetNotifySettingsExceptionsQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
-  }
-
-  void send(NotificationSettingsScope scope, bool filter_scope, bool compare_sound) {
-    int32 flags = 0;
-    tl_object_ptr<telegram_api::InputNotifyPeer> input_notify_peer;
-    if (filter_scope) {
-      flags |= telegram_api::account_getNotifyExceptions::PEER_MASK;
-      input_notify_peer = get_input_notify_peer(scope);
-    }
-    if (compare_sound) {
-      flags |= telegram_api::account_getNotifyExceptions::COMPARE_SOUND_MASK;
-    }
-    send_query(G()->net_query_creator().create(
-        telegram_api::account_getNotifyExceptions(flags, false /* ignored */, std::move(input_notify_peer))));
-  }
-
-  void on_result(BufferSlice packet) final {
-    auto result_ptr = fetch_result<telegram_api::account_getNotifyExceptions>(packet);
-    if (result_ptr.is_error()) {
-      return on_error(result_ptr.move_as_error());
-    }
-
-    auto updates_ptr = result_ptr.move_as_ok();
-    auto dialog_ids = UpdatesManager::get_update_notify_settings_dialog_ids(updates_ptr.get());
-    vector<tl_object_ptr<telegram_api::User>> users;
-    vector<tl_object_ptr<telegram_api::Chat>> chats;
-    switch (updates_ptr->get_id()) {
-      case telegram_api::updatesCombined::ID: {
-        auto updates = static_cast<telegram_api::updatesCombined *>(updates_ptr.get());
-        users = std::move(updates->users_);
-        chats = std::move(updates->chats_);
-        reset_to_empty(updates->users_);
-        reset_to_empty(updates->chats_);
-        break;
-      }
-      case telegram_api::updates::ID: {
-        auto updates = static_cast<telegram_api::updates *>(updates_ptr.get());
-        users = std::move(updates->users_);
-        chats = std::move(updates->chats_);
-        reset_to_empty(updates->users_);
-        reset_to_empty(updates->chats_);
-        break;
-      }
-    }
-    td_->contacts_manager_->on_get_users(std::move(users), "GetNotifySettingsExceptionsQuery");
-    td_->contacts_manager_->on_get_chats(std::move(chats), "GetNotifySettingsExceptionsQuery");
-    for (auto &dialog_id : dialog_ids) {
-      td_->messages_manager_->force_create_dialog(dialog_id, "GetNotifySettingsExceptionsQuery");
-    }
-    td_->updates_manager_->on_get_updates(std::move(updates_ptr), std::move(promise_));
-  }
-
-  void on_error(Status status) final {
-    promise_.set_error(std::move(status));
-  }
-};
-
-class GetScopeNotifySettingsQuery final : public Td::ResultHandler {
-  Promise<Unit> promise_;
-  NotificationSettingsScope scope_;
-
- public:
-  explicit GetScopeNotifySettingsQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
-  }
-
-  void send(NotificationSettingsScope scope) {
-    scope_ = scope;
-    auto input_notify_peer = get_input_notify_peer(scope);
-    CHECK(input_notify_peer != nullptr);
-    send_query(G()->net_query_creator().create(telegram_api::account_getNotifySettings(std::move(input_notify_peer))));
-  }
-
-  void on_result(BufferSlice packet) final {
-    auto result_ptr = fetch_result<telegram_api::account_getNotifySettings>(packet);
-    if (result_ptr.is_error()) {
-      return on_error(result_ptr.move_as_error());
-    }
-
-    auto ptr = result_ptr.move_as_ok();
-    td_->messages_manager_->on_update_scope_notify_settings(scope_, std::move(ptr));
-
-    promise_.set_value(Unit());
-  }
-
-  void on_error(Status status) final {
-    promise_.set_error(std::move(status));
-  }
-};
-
-class UpdateDialogNotifySettingsQuery final : public Td::ResultHandler {
-  Promise<Unit> promise_;
-  DialogId dialog_id_;
-
- public:
-  explicit UpdateDialogNotifySettingsQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
-  }
-
-  void send(DialogId dialog_id, const DialogNotificationSettings &new_settings) {
-    dialog_id_ = dialog_id;
-
-    auto input_notify_peer = td_->messages_manager_->get_input_notify_peer(dialog_id);
-    if (input_notify_peer == nullptr) {
-      return on_error(Status::Error(500, "Can't update chat notification settings"));
-    }
-
-    int32 flags = 0;
-    if (!new_settings.use_default_mute_until) {
-      flags |= telegram_api::inputPeerNotifySettings::MUTE_UNTIL_MASK;
-    }
-    if (!new_settings.use_default_sound) {
-      flags |= telegram_api::inputPeerNotifySettings::SOUND_MASK;
-    }
-    if (!new_settings.use_default_show_preview) {
-      flags |= telegram_api::inputPeerNotifySettings::SHOW_PREVIEWS_MASK;
-    }
-    if (new_settings.silent_send_message) {
-      flags |= telegram_api::inputPeerNotifySettings::SILENT_MASK;
-    }
-    send_query(G()->net_query_creator().create(telegram_api::account_updateNotifySettings(
-        std::move(input_notify_peer),
-        make_tl_object<telegram_api::inputPeerNotifySettings>(
-            flags, new_settings.show_preview, new_settings.silent_send_message, new_settings.mute_until,
-            make_tl_object<telegram_api::notificationSoundDefault>()))));
-  }
-
-  void on_result(BufferSlice packet) final {
-    auto result_ptr = fetch_result<telegram_api::account_updateNotifySettings>(packet);
-    if (result_ptr.is_error()) {
-      return on_error(result_ptr.move_as_error());
-    }
-
-    bool result = result_ptr.ok();
-    if (!result) {
-      return on_error(Status::Error(400, "Receive false as result"));
-    }
-
-    promise_.set_value(Unit());
-  }
-
-  void on_error(Status status) final {
-    if (!td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "UpdateDialogNotifySettingsQuery")) {
-      LOG(INFO) << "Receive error for set chat notification settings: " << status;
-    }
-
-    if (!td_->auth_manager_->is_bot() && td_->messages_manager_->get_input_notify_peer(dialog_id_) != nullptr) {
-      // trying to repair notification settings for this dialog
-      td_->messages_manager_->send_get_dialog_notification_settings_query(dialog_id_, Promise<>());
-    }
-
-    promise_.set_error(std::move(status));
-  }
-};
-
-class UpdateScopeNotifySettingsQuery final : public Td::ResultHandler {
-  Promise<Unit> promise_;
-  NotificationSettingsScope scope_;
-
- public:
-  explicit UpdateScopeNotifySettingsQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
-  }
-
-  void send(NotificationSettingsScope scope, const ScopeNotificationSettings &new_settings) {
-    auto input_notify_peer = get_input_notify_peer(scope);
-    CHECK(input_notify_peer != nullptr);
-    int32 flags = telegram_api::inputPeerNotifySettings::MUTE_UNTIL_MASK |
-                  telegram_api::inputPeerNotifySettings::SOUND_MASK |
-                  telegram_api::inputPeerNotifySettings::SHOW_PREVIEWS_MASK;
-    send_query(G()->net_query_creator().create(telegram_api::account_updateNotifySettings(
-        std::move(input_notify_peer), make_tl_object<telegram_api::inputPeerNotifySettings>(
-                                          flags, new_settings.show_preview, false, new_settings.mute_until,
-                                          make_tl_object<telegram_api::notificationSoundDefault>()))));
-    scope_ = scope;
-  }
-
-  void on_result(BufferSlice packet) final {
-    auto result_ptr = fetch_result<telegram_api::account_updateNotifySettings>(packet);
-    if (result_ptr.is_error()) {
-      return on_error(result_ptr.move_as_error());
-    }
-
-    bool result = result_ptr.ok();
-    if (!result) {
-      return on_error(Status::Error(400, "Receive false as result"));
-    }
-
-    promise_.set_value(Unit());
-  }
-
-  void on_error(Status status) final {
-    LOG(INFO) << "Receive error for set notification settings: " << status;
-
-    if (!td_->auth_manager_->is_bot()) {
-      // trying to repair notification settings for this scope
-      td_->messages_manager_->send_get_scope_notification_settings_query(scope_, Promise<>());
-    }
-
-    promise_.set_error(std::move(status));
-  }
-};
-
-class ResetNotifySettingsQuery final : public Td::ResultHandler {
-  Promise<Unit> promise_;
-
- public:
-  explicit ResetNotifySettingsQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
-  }
-
-  void send() {
-    send_query(G()->net_query_creator().create(telegram_api::account_resetNotifySettings()));
-  }
-
-  void on_result(BufferSlice packet) final {
-    auto result_ptr = fetch_result<telegram_api::account_resetNotifySettings>(packet);
-    if (result_ptr.is_error()) {
-      return on_error(result_ptr.move_as_error());
-    }
-
-    bool result = result_ptr.ok();
-    if (!result) {
-      return on_error(Status::Error(400, "Receive false as result"));
-    }
-
-    promise_.set_value(Unit());
-  }
-
-  void on_error(Status status) final {
-    if (!G()->is_expected_error(status)) {
-      LOG(ERROR) << "Receive error for reset notification settings: " << status;
     }
     promise_.set_error(std::move(status));
   }
@@ -13468,7 +13202,8 @@ void MessagesManager::init() {
       channels_notification_settings_.disable_pinned_message_notifications = false;
       channels_notification_settings_.disable_mention_notifications = false;
       channels_notification_settings_.is_synchronized = false;
-      send_get_scope_notification_settings_query(NotificationSettingsScope::Channel, Promise<>());
+      td_->notification_settings_manager_->send_get_scope_notification_settings_query(
+          NotificationSettingsScope::Channel, Promise<>());
     }
   }
   G()->td_db()->get_binlog_pmc()->erase("nsfac");
@@ -20568,8 +20303,8 @@ void MessagesManager::send_update_dialog_notification_settings_query(const Dialo
   CHECK(!td_->auth_manager_->is_bot());
   CHECK(d != nullptr);
   // TODO do not send two queries simultaneously or use InvokeAfter
-  td_->create_handler<UpdateDialogNotifySettingsQuery>(std::move(promise))
-      ->send(d->dialog_id, d->notification_settings);
+  td_->notification_settings_manager_->update_dialog_notify_settings(d->dialog_id, d->notification_settings,
+                                                                     std::move(promise));
 }
 
 void MessagesManager::on_updated_dialog_notification_settings(DialogId dialog_id, uint64 generation) {
@@ -21679,7 +21414,8 @@ vector<DialogId> MessagesManager::get_dialog_notification_settings_exceptions(No
     load_folder_dialog_list(folder.first, MAX_GET_DIALOGS, true);
   }
 
-  td_->create_handler<GetNotifySettingsExceptionsQuery>(std::move(promise))->send(scope, filter_scope, compare_sound);
+  td_->notification_settings_manager_->get_notify_settings_exceptions(scope, filter_scope, compare_sound,
+                                                                      std::move(promise));
   return {};
 }
 
@@ -21688,7 +21424,7 @@ const ScopeNotificationSettings *MessagesManager::get_scope_notification_setting
   const ScopeNotificationSettings *notification_settings = get_scope_notification_settings(scope);
   CHECK(notification_settings != nullptr);
   if (!notification_settings->is_synchronized && !td_->auth_manager_->is_bot()) {
-    send_get_scope_notification_settings_query(scope, std::move(promise));
+    td_->notification_settings_manager_->send_get_scope_notification_settings_query(scope, std::move(promise));
     return nullptr;
   }
 
@@ -21805,8 +21541,8 @@ void MessagesManager::update_scope_notification_settings_on_server(NotificationS
   }
 
   LOG(INFO) << "Update " << scope << " notification settings on server with log_event " << log_event_id;
-  td_->create_handler<UpdateScopeNotifySettingsQuery>(get_erase_log_event_promise(log_event_id))
-      ->send(scope, *get_scope_notification_settings(scope));
+  td_->notification_settings_manager_->update_scope_notify_settings(scope, *get_scope_notification_settings(scope),
+                                                                    get_erase_log_event_promise(log_event_id));
 }
 
 void MessagesManager::reset_all_notification_settings() {
@@ -21854,7 +21590,7 @@ void MessagesManager::reset_all_notification_settings_on_server(uint64 log_event
   }
 
   LOG(INFO) << "Reset all notification settings";
-  td_->create_handler<ResetNotifySettingsQuery>(get_erase_log_event_promise(log_event_id))->send();
+  td_->notification_settings_manager_->reset_notify_settings(get_erase_log_event_promise(log_event_id));
 }
 
 tl_object_ptr<td_api::messages> MessagesManager::get_dialog_history(DialogId dialog_id, MessageId from_message_id,
@@ -30392,7 +30128,8 @@ bool MessagesManager::add_new_message_notification(Dialog *d, Message *m, bool f
         settings_dialog = get_dialog(settings_dialog_id);
       }
       if (settings_dialog != nullptr) {
-        send_get_dialog_notification_settings_query(settings_dialog_id, std::move(promise));
+        td_->notification_settings_manager_->send_get_dialog_notification_settings_query(settings_dialog_id,
+                                                                                         std::move(promise));
       } else {
         send_get_dialog_query(settings_dialog_id, std::move(promise), 0, "add_new_message_notification");
       }
@@ -32812,53 +32549,6 @@ void MessagesManager::reload_voice_chat_on_search(const string &username) {
   auto cleaned_username = clean_username(username);
   if (!cleaned_username.empty()) {
     reload_voice_chat_on_search_usernames_.insert(cleaned_username);
-  }
-}
-
-void MessagesManager::send_get_dialog_notification_settings_query(DialogId dialog_id, Promise<Unit> &&promise) {
-  if (td_->auth_manager_->is_bot() || dialog_id.get_type() == DialogType::SecretChat) {
-    LOG(WARNING) << "Can't get notification settings for " << dialog_id;
-    return promise.set_error(Status::Error(500, "Wrong getDialogNotificationSettings query"));
-  }
-  if (!have_input_peer(dialog_id, AccessRights::Read)) {
-    LOG(WARNING) << "Have no access to " << dialog_id << " to get notification settings";
-    return promise.set_error(Status::Error(400, "Can't access the chat"));
-  }
-
-  auto &promises = get_dialog_notification_settings_queries_[dialog_id];
-  promises.push_back(std::move(promise));
-  if (promises.size() != 1) {
-    // query has already been sent, just wait for the result
-    return;
-  }
-
-  td_->create_handler<GetDialogNotifySettingsQuery>()->send(dialog_id);
-}
-
-void MessagesManager::send_get_scope_notification_settings_query(NotificationSettingsScope scope,
-                                                                 Promise<Unit> &&promise) {
-  if (td_->auth_manager_->is_bot()) {
-    LOG(ERROR) << "Can't get notification settings for " << scope;
-    return promise.set_error(Status::Error(500, "Wrong getScopeNotificationSettings query"));
-  }
-
-  td_->create_handler<GetScopeNotifySettingsQuery>(std::move(promise))->send(scope);
-}
-
-void MessagesManager::on_get_dialog_notification_settings_query_finished(DialogId dialog_id, Status &&status) {
-  CHECK(!td_->auth_manager_->is_bot());
-  auto it = get_dialog_notification_settings_queries_.find(dialog_id);
-  CHECK(it != get_dialog_notification_settings_queries_.end());
-  CHECK(!it->second.empty());
-  auto promises = std::move(it->second);
-  get_dialog_notification_settings_queries_.erase(it);
-
-  for (auto &promise : promises) {
-    if (status.is_ok()) {
-      promise.set_value(Unit());
-    } else {
-      promise.set_error(status.clone());
-    }
   }
 }
 
@@ -36612,7 +36302,7 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
       d->notification_settings.is_use_default_fixed = true;
       on_dialog_updated(dialog_id, "reget notification settings");
     } else {
-      send_get_dialog_notification_settings_query(dialog_id, Promise<>());
+      td_->notification_settings_manager_->send_get_dialog_notification_settings_query(dialog_id, Promise<>());
     }
   }
   if (td_->auth_manager_->is_bot() || d->notification_settings.use_default_mute_until ||
@@ -37947,13 +37637,16 @@ void MessagesManager::load_notification_settings() {
     return;
   }
   if (!users_notification_settings_.is_synchronized) {
-    send_get_scope_notification_settings_query(NotificationSettingsScope::Private, Promise<>());
+    td_->notification_settings_manager_->send_get_scope_notification_settings_query(NotificationSettingsScope::Private,
+                                                                                    Promise<>());
   }
   if (!chats_notification_settings_.is_synchronized) {
-    send_get_scope_notification_settings_query(NotificationSettingsScope::Group, Promise<>());
+    td_->notification_settings_manager_->send_get_scope_notification_settings_query(NotificationSettingsScope::Group,
+                                                                                    Promise<>());
   }
   if (!channels_notification_settings_.is_synchronized) {
-    send_get_scope_notification_settings_query(NotificationSettingsScope::Channel, Promise<>());
+    td_->notification_settings_manager_->send_get_scope_notification_settings_query(NotificationSettingsScope::Channel,
+                                                                                    Promise<>());
   }
 }
 
