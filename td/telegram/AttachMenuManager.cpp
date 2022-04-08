@@ -67,6 +67,7 @@ class RequestWebViewQuery final : public Td::ResultHandler {
       url = url.substr(7);
 
       flags |= telegram_api::messages_requestWebView::FROM_BOT_MENU_MASK;
+      flags |= telegram_api::messages_requestWebView::URL_MASK;
     } else if (!url.empty()) {
       flags |= telegram_api::messages_requestWebView::URL_MASK;
     } else {
