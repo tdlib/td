@@ -14646,6 +14646,14 @@ void ContactsManager::send_get_chat_full_query(ChatId chat_id, Promise<Unit> &&p
   get_chat_full_queries_.add_query(DialogId(chat_id).get(), std::move(send_query), std::move(promise));
 }
 
+int32 ContactsManager::get_chat_date(ChatId chat_id) const {
+  auto c = get_chat(chat_id);
+  if (c == nullptr) {
+    return 0;
+  }
+  return c->date;
+}
+
 int32 ContactsManager::get_chat_participant_count(ChatId chat_id) const {
   auto c = get_chat(chat_id);
   if (c == nullptr) {

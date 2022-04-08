@@ -37139,24 +37139,39 @@ void MessagesManager::update_dialog_pos(Dialog *d, const char *source, bool need
         new_order = draft_order;
       }
     }
-    auto dialog_type = d->dialog_id.get_type();
-    if (dialog_type == DialogType::Channel) {
-      auto date = td_->contacts_manager_->get_channel_date(d->dialog_id.get_channel_id());
-      LOG(INFO) << "Join of channel at " << date << " found";
-      int64 join_order = get_dialog_order(MessageId(), date);
-      if (join_order > new_order) {
-        new_order = join_order;
-      }
-    }
-    if (dialog_type == DialogType::SecretChat) {
-      auto date = td_->contacts_manager_->get_secret_chat_date(d->dialog_id.get_secret_chat_id());
-      if (date != 0 && !is_deleted_secret_chat(d)) {
-        LOG(INFO) << "Creation of secret chat at " << date << " found";
-        int64 creation_order = get_dialog_order(MessageId(), date);
-        if (creation_order > new_order) {
-          new_order = creation_order;
+    switch (d->dialog_id.get_type()) {
+      case DialogType::Chat: {
+        auto chat_id = d->dialog_id.get_chat_id();
+        auto date = td_->contacts_manager_->get_chat_date(chat_id);
+        LOG(INFO) << "Creation at " << date << " found";
+        int64 join_order = get_dialog_order(MessageId(), date);
+        if (join_order > new_order && td_->contacts_manager_->get_chat_status(chat_id).is_member()) {
+          new_order = join_order;
         }
+        break;
       }
+      case DialogType::Channel: {
+        auto date = td_->contacts_manager_->get_channel_date(d->dialog_id.get_channel_id());
+        LOG(INFO) << "Join at " << date << " found";
+        int64 join_order = get_dialog_order(MessageId(), date);
+        if (join_order > new_order) {
+          new_order = join_order;
+        }
+        break;
+      }
+      case DialogType::SecretChat: {
+        auto date = td_->contacts_manager_->get_secret_chat_date(d->dialog_id.get_secret_chat_id());
+        if (date != 0 && !is_deleted_secret_chat(d)) {
+          LOG(INFO) << "Creation at " << date << " found";
+          int64 creation_order = get_dialog_order(MessageId(), date);
+          if (creation_order > new_order) {
+            new_order = creation_order;
+          }
+        }
+        break;
+      }
+      default:
+        break;
     }
     if (new_order == DEFAULT_ORDER && !d->is_empty) {
       LOG(INFO) << "There are no known messages in the chat, just leave it where it is";
