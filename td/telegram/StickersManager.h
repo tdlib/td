@@ -11,6 +11,7 @@
 #include "td/telegram/files/FileSourceId.h"
 #include "td/telegram/FullMessageId.h"
 #include "td/telegram/Photo.h"
+#include "td/telegram/PhotoFormat.h"
 #include "td/telegram/SecretInputMedia.h"
 #include "td/telegram/SpecialStickerSetType.h"
 #include "td/telegram/StickerFormat.h"

@@ -11,6 +11,7 @@
 #include "td/telegram/files/FileId.h"
 #include "td/telegram/files/FileType.h"
 #include "td/telegram/net/DcId.h"
+#include "td/telegram/PhotoFormat.h"
 #include "td/telegram/PhotoSizeSource.h"
 #include "td/telegram/secret_api.h"
 #include "td/telegram/SecretInputMedia.h"
@@ -106,8 +107,6 @@ bool operator==(const DialogPhoto &lhs, const DialogPhoto &rhs);
 bool operator!=(const DialogPhoto &lhs, const DialogPhoto &rhs);
 
 StringBuilder &operator<<(StringBuilder &string_builder, const DialogPhoto &dialog_photo);
-
-enum class PhotoFormat : int32 { Jpeg, Png, Webp, Gif, Tgs, Mpeg4, Webm };
 
 PhotoSize get_secret_thumbnail_photo_size(FileManager *file_manager, BufferSlice bytes, DialogId owner_dialog_id,
                                           int32 width, int32 height);

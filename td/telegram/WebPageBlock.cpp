@@ -20,6 +20,7 @@
 #include "td/telegram/Location.h"
 #include "td/telegram/Photo.h"
 #include "td/telegram/Photo.hpp"
+#include "td/telegram/PhotoFormat.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/Version.h"
 #include "td/telegram/VideosManager.h"
