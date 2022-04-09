@@ -400,6 +400,7 @@ set(TDLIB_SOURCE
   td/telegram/PhoneNumberManager.cpp
   td/telegram/PrivacyManager.cpp
   td/telegram/Photo.cpp
+  td/telegram/PhotoSize.cpp
   td/telegram/PhotoSizeSource.cpp
   td/telegram/PollManager.cpp
   td/telegram/QueryCombiner.cpp
@@ -625,6 +626,7 @@ set(TDLIB_SOURCE
   td/telegram/Payments.h
   td/telegram/PhoneNumberManager.h
   td/telegram/Photo.h
+  td/telegram/PhotoSize.h
   td/telegram/PhotoSizeSource.h
   td/telegram/PollId.h
   td/telegram/PollManager.h
@@ -702,6 +704,7 @@ set(TDLIB_SOURCE
   td/telegram/NotificationSettings.hpp
   td/telegram/Payments.hpp
   td/telegram/Photo.hpp
+  td/telegram/PhotoSize.hpp
   td/telegram/PhotoSizeSource.hpp
   td/telegram/PollId.hpp
   td/telegram/PollManager.hpp

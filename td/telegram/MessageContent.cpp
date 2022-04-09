@@ -47,6 +47,7 @@
 #include "td/telegram/Photo.h"
 #include "td/telegram/Photo.hpp"
 #include "td/telegram/PhotoFormat.h"
+#include "td/telegram/PhotoSize.h"
 #include "td/telegram/PhotoSizeSource.h"
 #include "td/telegram/PollId.h"
 #include "td/telegram/PollId.hpp"

@@ -17,6 +17,7 @@
 #include "td/telegram/NotificationGroupType.h"
 #include "td/telegram/NotificationId.h"
 #include "td/telegram/NotificationType.h"
+#include "td/telegram/Photo.h"
 #include "td/telegram/td_api.h"
 
 #include "td/actor/actor.h"

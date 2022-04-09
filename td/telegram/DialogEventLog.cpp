@@ -18,6 +18,7 @@
 #include "td/telegram/MessageSender.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/MessageTtl.h"
+#include "td/telegram/Photo.h"
 #include "td/telegram/StickersManager.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/telegram_api.h"

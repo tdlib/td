@@ -29,6 +29,7 @@
 #include "td/telegram/Payments.h"
 #include "td/telegram/Photo.h"
 #include "td/telegram/PhotoFormat.h"
+#include "td/telegram/PhotoSize.h"
 #include "td/telegram/ReplyMarkup.h"
 #include "td/telegram/StickersManager.h"
 #include "td/telegram/Td.h"

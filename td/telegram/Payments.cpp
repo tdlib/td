@@ -14,6 +14,7 @@
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/misc.h"
 #include "td/telegram/PasswordManager.h"
+#include "td/telegram/PhotoSize.h"
 #include "td/telegram/ServerMessageId.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/ThemeManager.h"

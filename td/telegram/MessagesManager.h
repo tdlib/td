@@ -44,6 +44,7 @@
 #include "td/telegram/NotificationGroupType.h"
 #include "td/telegram/NotificationId.h"
 #include "td/telegram/NotificationSettings.h"
+#include "td/telegram/Photo.h"
 #include "td/telegram/RecentDialogList.h"
 #include "td/telegram/ReplyMarkup.h"
 #include "td/telegram/ReportReason.h"

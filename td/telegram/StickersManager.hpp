@@ -10,7 +10,7 @@
 
 #include "td/telegram/files/FileId.hpp"
 #include "td/telegram/misc.h"
-#include "td/telegram/Photo.hpp"
+#include "td/telegram/PhotoSize.hpp"
 #include "td/telegram/StickerFormat.h"
 #include "td/telegram/StickersManager.h"
 #include "td/telegram/Td.h"
