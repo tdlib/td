@@ -11,7 +11,6 @@
 #include "td/telegram/UserId.h"
 
 #include "td/utils/common.h"
-#include "td/utils/HttpUrl.h"
 #include "td/utils/Slice.h"
 #include "td/utils/SliceBuilder.h"
 #include "td/utils/StackAllocator.h"

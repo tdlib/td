@@ -7,6 +7,7 @@
 #include "td/telegram/DialogParticipantFilter.h"
 
 #include "td/telegram/ContactsManager.h"
+#include "td/telegram/DialogId.h"
 #include "td/telegram/DialogParticipant.h"
 #include "td/telegram/Td.h"
 
