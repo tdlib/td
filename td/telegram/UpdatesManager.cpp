@@ -33,6 +33,7 @@
 #include "td/telegram/net/DcOptions.h"
 #include "td/telegram/net/NetQuery.h"
 #include "td/telegram/NotificationManager.h"
+#include "td/telegram/NotificationSettingsManager.h"
 #include "td/telegram/Payments.h"
 #include "td/telegram/PollId.h"
 #include "td/telegram/PollManager.h"
@@ -1569,6 +1570,7 @@ void UpdatesManager::after_get_difference() {
   td_->download_manager_->after_get_difference();
   td_->inline_queries_manager_->after_get_difference();
   td_->messages_manager_->after_get_difference();
+  td_->notification_settings_manager_->after_get_difference();
   td_->stickers_manager_->after_get_difference();
   send_closure_later(td_->notification_manager_actor_, &NotificationManager::after_get_difference);
   send_closure(G()->state_manager(), &StateManager::on_synchronized, true);
@@ -2668,16 +2670,16 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateNotifySettings>
       break;
     }
     case telegram_api::notifyUsers::ID:
-      td_->messages_manager_->on_update_scope_notify_settings(NotificationSettingsScope::Private,
-                                                              std::move(update->notify_settings_));
+      td_->notification_settings_manager_->on_update_scope_notify_settings(NotificationSettingsScope::Private,
+                                                                           std::move(update->notify_settings_));
       break;
     case telegram_api::notifyChats::ID:
-      td_->messages_manager_->on_update_scope_notify_settings(NotificationSettingsScope::Group,
-                                                              std::move(update->notify_settings_));
+      td_->notification_settings_manager_->on_update_scope_notify_settings(NotificationSettingsScope::Group,
+                                                                           std::move(update->notify_settings_));
       break;
     case telegram_api::notifyBroadcasts::ID:
-      td_->messages_manager_->on_update_scope_notify_settings(NotificationSettingsScope::Channel,
-                                                              std::move(update->notify_settings_));
+      td_->notification_settings_manager_->on_update_scope_notify_settings(NotificationSettingsScope::Channel,
+                                                                           std::move(update->notify_settings_));
       break;
     default:
       UNREACHABLE();

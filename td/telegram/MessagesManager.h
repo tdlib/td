@@ -704,21 +704,11 @@ class MessagesManager final : public Actor {
   void click_animated_emoji_message(FullMessageId full_message_id,
                                     Promise<td_api::object_ptr<td_api::sticker>> &&promise);
 
-  td_api::object_ptr<td_api::updateScopeNotificationSettings> get_update_scope_notification_settings_object(
-      NotificationSettingsScope scope) const;
-
   vector<DialogId> get_dialog_notification_settings_exceptions(NotificationSettingsScope scope, bool filter_scope,
                                                                bool compare_sound, bool force, Promise<Unit> &&promise);
 
-  const ScopeNotificationSettings *get_scope_notification_settings(NotificationSettingsScope scope,
-                                                                   Promise<Unit> &&promise);
-
   Status set_dialog_notification_settings(DialogId dialog_id,
                                           tl_object_ptr<td_api::chatNotificationSettings> &&notification_settings)
-      TD_WARN_UNUSED_RESULT;
-
-  Status set_scope_notification_settings(NotificationSettingsScope scope,
-                                         tl_object_ptr<td_api::scopeNotificationSettings> &&notification_settings)
       TD_WARN_UNUSED_RESULT;
 
   void reset_all_notification_settings();
@@ -858,12 +848,11 @@ class MessagesManager final : public Actor {
 
   tl_object_ptr<telegram_api::InputNotifyPeer> get_input_notify_peer(DialogId dialog_id) const;
 
+  void on_update_notification_scope_is_muted(NotificationSettingsScope scope, bool is_muted);
+
   void on_update_dialog_notify_settings(DialogId dialog_id,
                                         tl_object_ptr<telegram_api::peerNotifySettings> &&peer_notify_settings,
                                         const char *source);
-
-  void on_update_scope_notify_settings(NotificationSettingsScope scope,
-                                       tl_object_ptr<telegram_api::peerNotifySettings> &&peer_notify_settings);
 
   void on_update_dialog_available_reactions(DialogId dialog_id, vector<string> &&available_reactions);
 
@@ -965,6 +954,10 @@ class MessagesManager final : public Actor {
 
   void remove_message_notifications(DialogId dialog_id, NotificationGroupId group_id,
                                     NotificationId max_notification_id, MessageId max_message_id);
+
+  void remove_scope_pinned_message_notifications(NotificationSettingsScope scope);
+
+  void on_update_scope_mention_notifications(NotificationSettingsScope scope, bool disable_mention_notifications);
 
   void upload_dialog_photo(DialogId dialog_id, FileId file_id, bool is_animation, double main_frame_timestamp,
                            bool is_reupload, Promise<Unit> &&promise, vector<int> bad_parts = {});
@@ -1742,7 +1735,6 @@ class MessagesManager final : public Actor {
   class ToggleDialogReportSpamStateOnServerLogEvent;
   class UnpinAllDialogMessagesOnServerLogEvent;
   class UpdateDialogNotificationSettingsOnServerLogEvent;
-  class UpdateScopeNotificationSettingsOnServerLogEvent;
 
   class DialogFiltersLogEvent;
 
@@ -2613,29 +2605,15 @@ class MessagesManager final : public Actor {
   bool set_dialog_last_notification(DialogId dialog_id, NotificationGroupInfo &group_info, int32 last_notification_date,
                                     NotificationId last_notification_id, const char *source);
 
-  static string get_notification_settings_scope_database_key(NotificationSettingsScope scope);
-
-  static void save_scope_notification_settings(NotificationSettingsScope scope,
-                                               const ScopeNotificationSettings &new_settings);
-
   bool update_dialog_notification_settings(DialogId dialog_id, DialogNotificationSettings *current_settings,
                                            const DialogNotificationSettings &new_settings);
-
-  bool update_scope_notification_settings(NotificationSettingsScope scope, ScopeNotificationSettings *current_settings,
-                                          const ScopeNotificationSettings &new_settings);
 
   void schedule_dialog_unmute(DialogId dialog_id, bool use_default, int32 mute_until);
 
   void update_dialog_unmute_timeout(Dialog *d, bool &old_use_default, int32 &old_mute_until, bool new_use_default,
                                     int32 new_mute_until);
 
-  void schedule_scope_unmute(NotificationSettingsScope scope, int32 mute_until);
-
-  void update_scope_unmute_timeout(NotificationSettingsScope scope, int32 &old_mute_until, int32 new_mute_until);
-
   void on_dialog_unmute(DialogId dialog_id);
-
-  void on_scope_unmute(NotificationSettingsScope scope);
 
   bool update_dialog_silent_send_message(Dialog *d, bool silent_send_message);
 
@@ -2863,13 +2841,7 @@ class MessagesManager final : public Actor {
 
   NotificationSettingsScope get_dialog_notification_setting_scope(DialogId dialog_id) const;
 
-  int32 get_scope_mute_until(DialogId dialog_id) const;
-
   DialogNotificationSettings *get_dialog_notification_settings(DialogId dialog_id, bool force);
-
-  ScopeNotificationSettings *get_scope_notification_settings(NotificationSettingsScope scope);
-
-  const ScopeNotificationSettings *get_scope_notification_settings(NotificationSettingsScope scope) const;
 
   vector<FileId> get_message_file_ids(const Message *m) const;
 
@@ -3036,8 +3008,6 @@ class MessagesManager final : public Actor {
 
   void on_updated_dialog_notification_settings(DialogId dialog_id, uint64 generation);
 
-  void update_scope_notification_settings_on_server(NotificationSettingsScope scope, uint64 log_event_id);
-
   void reset_all_notification_settings_on_server(uint64 log_event_id);
 
   void toggle_dialog_report_spam_state_on_server(DialogId dialog_id, bool is_spam_dialog, uint64 log_event_id,
@@ -3070,8 +3040,6 @@ class MessagesManager final : public Actor {
   bool do_update_list_last_dialog_date(DialogList &list, const vector<FolderId> &folder_ids) const;
 
   void update_list_last_dialog_date(DialogList &list);
-
-  void load_notification_settings();
 
   static string get_channel_pts_key(DialogId dialog_id);
 
@@ -3260,8 +3228,6 @@ class MessagesManager final : public Actor {
 
   static uint64 save_read_message_contents_on_server_log_event(DialogId dialog_id,
                                                                const vector<MessageId> &message_ids);
-
-  static uint64 save_update_scope_notification_settings_on_server_log_event(NotificationSettingsScope scope);
 
   static uint64 save_reset_all_notification_settings_on_server_log_event();
 
@@ -3518,10 +3484,6 @@ class MessagesManager final : public Actor {
   };
 
   FlatHashMap<DialogId, std::vector<ActiveDialogAction>, DialogIdHash> active_dialog_actions_;
-
-  ScopeNotificationSettings users_notification_settings_;
-  ScopeNotificationSettings chats_notification_settings_;
-  ScopeNotificationSettings channels_notification_settings_;
 
   FlatHashMap<NotificationGroupId, DialogId, NotificationGroupIdHash> notification_group_id_to_dialog_id_;
 

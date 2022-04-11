@@ -10,10 +10,18 @@
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/Global.h"
+#include "td/telegram/logevent/LogEvent.h"
+#include "td/telegram/logevent/LogEventHelper.h"
 #include "td/telegram/MessagesManager.h"
+#include "td/telegram/NotificationManager.h"
+#include "td/telegram/NotificationSettings.hpp"
 #include "td/telegram/Td.h"
+#include "td/telegram/TdDb.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/UpdatesManager.h"
+
+#include "td/db/binlog/BinlogEvent.h"
+#include "td/db/binlog/BinlogHelper.h"
 
 #include "td/utils/algorithm.h"
 #include "td/utils/buffer.h"
@@ -135,7 +143,7 @@ class GetScopeNotifySettingsQuery final : public Td::ResultHandler {
     }
 
     auto ptr = result_ptr.move_as_ok();
-    td_->messages_manager_->on_update_scope_notify_settings(scope_, std::move(ptr));
+    td_->notification_settings_manager_->on_update_scope_notify_settings(scope_, std::move(ptr));
 
     promise_.set_value(Unit());
   }
@@ -291,12 +299,273 @@ class ResetNotifySettingsQuery final : public Td::ResultHandler {
 
 NotificationSettingsManager::NotificationSettingsManager(Td *td, ActorShared<> parent)
     : td_(td), parent_(std::move(parent)) {
+  scope_unmute_timeout_.set_callback(on_scope_unmute_timeout_callback);
+  scope_unmute_timeout_.set_callback_data(static_cast<void *>(this));
 }
 
 NotificationSettingsManager::~NotificationSettingsManager() = default;
 
 void NotificationSettingsManager::tear_down() {
   parent_.reset();
+}
+
+void NotificationSettingsManager::start_up() {
+  init();
+}
+
+void NotificationSettingsManager::init() {
+  if (is_inited_) {
+    return;
+  }
+  is_inited_ = true;
+
+  bool is_authorized = td_->auth_manager_->is_authorized();
+  bool was_authorized_user = td_->auth_manager_->was_authorized() && !td_->auth_manager_->is_bot();
+  if (was_authorized_user) {
+    for (auto scope :
+         {NotificationSettingsScope::Private, NotificationSettingsScope::Group, NotificationSettingsScope::Channel}) {
+      auto notification_settings_string =
+          G()->td_db()->get_binlog_pmc()->get(get_notification_settings_scope_database_key(scope));
+      if (!notification_settings_string.empty()) {
+        auto current_settings = get_scope_notification_settings(scope);
+        CHECK(current_settings != nullptr);
+        log_event_parse(*current_settings, notification_settings_string).ensure();
+
+        VLOG(notifications) << "Loaded notification settings in " << scope << ": " << *current_settings;
+
+        schedule_scope_unmute(scope, current_settings->mute_until);
+
+        send_closure(G()->td(), &Td::send_update, get_update_scope_notification_settings_object(scope));
+      }
+    }
+    if (!channels_notification_settings_.is_synchronized && is_authorized) {
+      channels_notification_settings_ = chats_notification_settings_;
+      channels_notification_settings_.disable_pinned_message_notifications = false;
+      channels_notification_settings_.disable_mention_notifications = false;
+      channels_notification_settings_.is_synchronized = false;
+      send_get_scope_notification_settings_query(NotificationSettingsScope::Channel, Promise<>());
+    }
+  }
+  G()->td_db()->get_binlog_pmc()->erase("nsfac");
+}
+
+void NotificationSettingsManager::on_scope_unmute_timeout_callback(void *notification_settings_manager_ptr,
+                                                                   int64 scope_int) {
+  if (G()->close_flag()) {
+    return;
+  }
+
+  CHECK(1 <= scope_int && scope_int <= 3);
+  auto notification_settings_manager = static_cast<NotificationSettingsManager *>(notification_settings_manager_ptr);
+  send_closure_later(notification_settings_manager->actor_id(notification_settings_manager),
+                     &NotificationSettingsManager::on_scope_unmute,
+                     static_cast<NotificationSettingsScope>(scope_int - 1));
+}
+
+int32 NotificationSettingsManager::get_scope_mute_until(NotificationSettingsScope scope) const {
+  return get_scope_notification_settings(scope)->mute_until;
+}
+
+bool NotificationSettingsManager::get_scope_disable_pinned_message_notifications(
+    NotificationSettingsScope scope) const {
+  return get_scope_notification_settings(scope)->disable_pinned_message_notifications;
+}
+
+bool NotificationSettingsManager::get_scope_disable_mention_notifications(NotificationSettingsScope scope) const {
+  return get_scope_notification_settings(scope)->disable_mention_notifications;
+}
+
+ScopeNotificationSettings *NotificationSettingsManager::get_scope_notification_settings(
+    NotificationSettingsScope scope) {
+  switch (scope) {
+    case NotificationSettingsScope::Private:
+      return &users_notification_settings_;
+    case NotificationSettingsScope::Group:
+      return &chats_notification_settings_;
+    case NotificationSettingsScope::Channel:
+      return &channels_notification_settings_;
+    default:
+      UNREACHABLE();
+      return nullptr;
+  }
+}
+
+const ScopeNotificationSettings *NotificationSettingsManager::get_scope_notification_settings(
+    NotificationSettingsScope scope) const {
+  switch (scope) {
+    case NotificationSettingsScope::Private:
+      return &users_notification_settings_;
+    case NotificationSettingsScope::Group:
+      return &chats_notification_settings_;
+    case NotificationSettingsScope::Channel:
+      return &channels_notification_settings_;
+    default:
+      UNREACHABLE();
+      return nullptr;
+  }
+}
+
+td_api::object_ptr<td_api::updateScopeNotificationSettings>
+NotificationSettingsManager::get_update_scope_notification_settings_object(NotificationSettingsScope scope) const {
+  auto notification_settings = get_scope_notification_settings(scope);
+  CHECK(notification_settings != nullptr);
+  return td_api::make_object<td_api::updateScopeNotificationSettings>(
+      get_notification_settings_scope_object(scope), get_scope_notification_settings_object(notification_settings));
+}
+
+void NotificationSettingsManager::on_scope_unmute(NotificationSettingsScope scope) {
+  if (td_->auth_manager_->is_bot()) {
+    // just in case
+    return;
+  }
+
+  auto notification_settings = get_scope_notification_settings(scope);
+  CHECK(notification_settings != nullptr);
+
+  if (notification_settings->mute_until == 0) {
+    return;
+  }
+
+  auto now = G()->unix_time();
+  if (notification_settings->mute_until > now) {
+    LOG(ERROR) << "Failed to unmute " << scope << " in " << now << ", will be unmuted in "
+               << notification_settings->mute_until;
+    schedule_scope_unmute(scope, notification_settings->mute_until);
+    return;
+  }
+
+  LOG(INFO) << "Unmute " << scope;
+  update_scope_unmute_timeout(scope, notification_settings->mute_until, 0);
+  send_closure(G()->td(), &Td::send_update, get_update_scope_notification_settings_object(scope));
+  save_scope_notification_settings(scope, *notification_settings);
+}
+
+string NotificationSettingsManager::get_notification_settings_scope_database_key(NotificationSettingsScope scope) {
+  switch (scope) {
+    case NotificationSettingsScope::Private:
+      return "nsfpc";
+    case NotificationSettingsScope::Group:
+      return "nsfgc";
+    case NotificationSettingsScope::Channel:
+      return "nsfcc";
+    default:
+      UNREACHABLE();
+      return "";
+  }
+}
+
+void NotificationSettingsManager::save_scope_notification_settings(NotificationSettingsScope scope,
+                                                                   const ScopeNotificationSettings &new_settings) {
+  string key = get_notification_settings_scope_database_key(scope);
+  G()->td_db()->get_binlog_pmc()->set(key, log_event_store(new_settings).as_slice().str());
+}
+
+void NotificationSettingsManager::on_update_scope_notify_settings(
+    NotificationSettingsScope scope, tl_object_ptr<telegram_api::peerNotifySettings> &&peer_notify_settings) {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+
+  auto old_notification_settings = get_scope_notification_settings(scope);
+  CHECK(old_notification_settings != nullptr);
+
+  const ScopeNotificationSettings notification_settings = ::td::get_scope_notification_settings(
+      std::move(peer_notify_settings), old_notification_settings->disable_pinned_message_notifications,
+      old_notification_settings->disable_mention_notifications);
+  if (!notification_settings.is_synchronized) {
+    return;
+  }
+
+  update_scope_notification_settings(scope, old_notification_settings, notification_settings);
+}
+
+bool NotificationSettingsManager::update_scope_notification_settings(NotificationSettingsScope scope,
+                                                                     ScopeNotificationSettings *current_settings,
+                                                                     const ScopeNotificationSettings &new_settings) {
+  if (td_->auth_manager_->is_bot()) {
+    // just in case
+    return false;
+  }
+
+  bool need_update_server = current_settings->mute_until != new_settings.mute_until ||
+                            current_settings->sound != new_settings.sound ||
+                            current_settings->show_preview != new_settings.show_preview;
+  bool need_update_local =
+      current_settings->disable_pinned_message_notifications != new_settings.disable_pinned_message_notifications ||
+      current_settings->disable_mention_notifications != new_settings.disable_mention_notifications;
+  bool was_inited = current_settings->is_synchronized;
+  bool is_inited = new_settings.is_synchronized;
+  if (was_inited && !is_inited) {
+    return false;  // just in case
+  }
+  bool is_changed = need_update_server || need_update_local || was_inited != is_inited;
+  if (is_changed) {
+    save_scope_notification_settings(scope, new_settings);
+
+    VLOG(notifications) << "Update notification settings in " << scope << " from " << *current_settings << " to "
+                        << new_settings;
+
+    update_scope_unmute_timeout(scope, current_settings->mute_until, new_settings.mute_until);
+
+    if (!current_settings->disable_pinned_message_notifications && new_settings.disable_pinned_message_notifications) {
+      td_->messages_manager_->remove_scope_pinned_message_notifications(scope);
+    }
+    if (current_settings->disable_mention_notifications != new_settings.disable_mention_notifications) {
+      td_->messages_manager_->on_update_scope_mention_notifications(scope, new_settings.disable_mention_notifications);
+    }
+
+    *current_settings = new_settings;
+
+    send_closure(G()->td(), &Td::send_update, get_update_scope_notification_settings_object(scope));
+  }
+  return need_update_server;
+}
+
+void NotificationSettingsManager::schedule_scope_unmute(NotificationSettingsScope scope, int32 mute_until) {
+  auto now = G()->unix_time_cached();
+  if (mute_until >= now && mute_until < now + 366 * 86400) {
+    scope_unmute_timeout_.set_timeout_in(static_cast<int64>(scope) + 1, mute_until - now + 1);
+  } else {
+    scope_unmute_timeout_.cancel_timeout(static_cast<int64>(scope) + 1);
+  }
+}
+
+void NotificationSettingsManager::update_scope_unmute_timeout(NotificationSettingsScope scope, int32 &old_mute_until,
+                                                              int32 new_mute_until) {
+  if (td_->auth_manager_->is_bot()) {
+    // just in case
+    return;
+  }
+
+  LOG(INFO) << "Update " << scope << " unmute timeout from " << old_mute_until << " to " << new_mute_until;
+  if (old_mute_until == new_mute_until) {
+    return;
+  }
+  CHECK(old_mute_until >= 0);
+
+  schedule_scope_unmute(scope, new_mute_until);
+
+  auto was_muted = old_mute_until != 0;
+  auto is_muted = new_mute_until != 0;
+
+  old_mute_until = new_mute_until;
+
+  if (was_muted != is_muted) {
+    td_->messages_manager_->on_update_notification_scope_is_muted(scope, is_muted);
+  }
+}
+
+void NotificationSettingsManager::reset_scope_notification_settings() {
+  CHECK(!td_->auth_manager_->is_bot());
+  ScopeNotificationSettings new_scope_settings;
+  new_scope_settings.is_synchronized = true;
+
+  update_scope_notification_settings(NotificationSettingsScope::Private, &users_notification_settings_,
+                                     new_scope_settings);
+  update_scope_notification_settings(NotificationSettingsScope::Group, &chats_notification_settings_,
+                                     new_scope_settings);
+  update_scope_notification_settings(NotificationSettingsScope::Channel, &channels_notification_settings_,
+                                     new_scope_settings);
 }
 
 void NotificationSettingsManager::send_get_dialog_notification_settings_query(DialogId dialog_id,
@@ -318,6 +587,19 @@ void NotificationSettingsManager::send_get_dialog_notification_settings_query(Di
   }
 
   td_->create_handler<GetDialogNotifySettingsQuery>()->send(dialog_id);
+}
+
+const ScopeNotificationSettings *NotificationSettingsManager::get_scope_notification_settings(
+    NotificationSettingsScope scope, Promise<Unit> &&promise) {
+  const ScopeNotificationSettings *notification_settings = get_scope_notification_settings(scope);
+  CHECK(notification_settings != nullptr);
+  if (!notification_settings->is_synchronized && !td_->auth_manager_->is_bot()) {
+    send_get_scope_notification_settings_query(scope, std::move(promise));
+    return nullptr;
+  }
+
+  promise.set_value(Unit());
+  return notification_settings;
 }
 
 void NotificationSettingsManager::send_get_scope_notification_settings_query(NotificationSettingsScope scope,
@@ -354,10 +636,48 @@ void NotificationSettingsManager::update_dialog_notify_settings(DialogId dialog_
   td_->create_handler<UpdateDialogNotifySettingsQuery>(std::move(promise))->send(dialog_id, new_settings);
 }
 
-void NotificationSettingsManager::update_scope_notify_settings(NotificationSettingsScope scope,
-                                                               const ScopeNotificationSettings &new_settings,
-                                                               Promise<Unit> &&promise) {
-  td_->create_handler<UpdateScopeNotifySettingsQuery>(std::move(promise))->send(scope, new_settings);
+Status NotificationSettingsManager::set_scope_notification_settings(
+    NotificationSettingsScope scope, td_api::object_ptr<td_api::scopeNotificationSettings> &&notification_settings) {
+  CHECK(!td_->auth_manager_->is_bot());
+  TRY_RESULT(new_settings, ::td::get_scope_notification_settings(std::move(notification_settings)));
+  if (update_scope_notification_settings(scope, get_scope_notification_settings(scope), new_settings)) {
+    update_scope_notification_settings_on_server(scope, 0);
+  }
+  return Status::OK();
+}
+
+class NotificationSettingsManager::UpdateScopeNotificationSettingsOnServerLogEvent {
+ public:
+  NotificationSettingsScope scope_;
+
+  template <class StorerT>
+  void store(StorerT &storer) const {
+    td::store(scope_, storer);
+  }
+
+  template <class ParserT>
+  void parse(ParserT &parser) {
+    td::parse(scope_, parser);
+  }
+};
+
+uint64 NotificationSettingsManager::save_update_scope_notification_settings_on_server_log_event(
+    NotificationSettingsScope scope) {
+  UpdateScopeNotificationSettingsOnServerLogEvent log_event{scope};
+  return binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::UpdateScopeNotificationSettingsOnServer,
+                    get_log_event_storer(log_event));
+}
+
+void NotificationSettingsManager::update_scope_notification_settings_on_server(NotificationSettingsScope scope,
+                                                                               uint64 log_event_id) {
+  CHECK(!td_->auth_manager_->is_bot());
+  if (log_event_id == 0) {
+    log_event_id = save_update_scope_notification_settings_on_server_log_event(scope);
+  }
+
+  LOG(INFO) << "Update " << scope << " notification settings on server with log_event " << log_event_id;
+  td_->create_handler<UpdateScopeNotifySettingsQuery>(get_erase_log_event_promise(log_event_id))
+      ->send(scope, *get_scope_notification_settings(scope));
 }
 
 void NotificationSettingsManager::reset_notify_settings(Promise<Unit> &&promise) {
@@ -367,6 +687,57 @@ void NotificationSettingsManager::reset_notify_settings(Promise<Unit> &&promise)
 void NotificationSettingsManager::get_notify_settings_exceptions(NotificationSettingsScope scope, bool filter_scope,
                                                                  bool compare_sound, Promise<Unit> &&promise) {
   td_->create_handler<GetNotifySettingsExceptionsQuery>(std::move(promise))->send(scope, filter_scope, compare_sound);
+}
+
+void NotificationSettingsManager::after_get_difference() {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+
+  if (!users_notification_settings_.is_synchronized) {
+    send_get_scope_notification_settings_query(NotificationSettingsScope::Private, Promise<>());
+  }
+  if (!chats_notification_settings_.is_synchronized) {
+    send_get_scope_notification_settings_query(NotificationSettingsScope::Group, Promise<>());
+  }
+  if (!channels_notification_settings_.is_synchronized) {
+    send_get_scope_notification_settings_query(NotificationSettingsScope::Channel, Promise<>());
+  }
+}
+
+void NotificationSettingsManager::on_binlog_events(vector<BinlogEvent> &&events) {
+  if (G()->close_flag()) {
+    return;
+  }
+  for (auto &event : events) {
+    CHECK(event.id_ != 0);
+    switch (event.type_) {
+      case LogEvent::HandlerType::UpdateScopeNotificationSettingsOnServer: {
+        UpdateScopeNotificationSettingsOnServerLogEvent log_event;
+        log_event_parse(log_event, event.data_).ensure();
+
+        update_scope_notification_settings_on_server(log_event.scope_, event.id_);
+        break;
+      }
+      default:
+        LOG(FATAL) << "Unsupported log event type " << event.type_;
+    }
+  }
+}
+
+void NotificationSettingsManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+
+  for (auto scope :
+       {NotificationSettingsScope::Private, NotificationSettingsScope::Group, NotificationSettingsScope::Channel}) {
+    auto current_settings = get_scope_notification_settings(scope);
+    CHECK(current_settings != nullptr);
+    if (current_settings->is_synchronized) {
+      updates.push_back(get_update_scope_notification_settings_object(scope));
+    }
+  }
 }
 
 }  // namespace td

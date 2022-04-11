@@ -105,7 +105,6 @@ Status init_binlog(Binlog &binlog, string path, BinlogKeyValue<Binlog> &binlog_p
       case LogEvent::HandlerType::ReorderPinnedDialogsOnServer:
       case LogEvent::HandlerType::SaveDialogDraftMessageOnServer:
       case LogEvent::HandlerType::UpdateDialogNotificationSettingsOnServer:
-      case LogEvent::HandlerType::UpdateScopeNotificationSettingsOnServer:
       case LogEvent::HandlerType::ResetAllNotificationSettingsOnServer:
       case LogEvent::HandlerType::ToggleDialogReportSpamStateOnServer:
       case LogEvent::HandlerType::RegetDialog:
@@ -122,6 +121,9 @@ Status init_binlog(Binlog &binlog, string path, BinlogKeyValue<Binlog> &binlog_p
       case LogEvent::HandlerType::DeleteDialogMessagesByDateOnServer:
       case LogEvent::HandlerType::ReadAllDialogReactionsOnServer:
         events.to_messages_manager.push_back(event.clone());
+        break;
+      case LogEvent::HandlerType::UpdateScopeNotificationSettingsOnServer:
+        events.to_notification_settings_manager.push_back(event.clone());
         break;
       case LogEvent::HandlerType::AddMessagePushNotification:
       case LogEvent::HandlerType::EditMessagePushNotification:

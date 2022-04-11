@@ -2024,7 +2024,8 @@ class GetScopeNotificationSettingsRequest final : public RequestActor<> {
   const ScopeNotificationSettings *notification_settings_ = nullptr;
 
   void do_run(Promise<Unit> &&promise) final {
-    notification_settings_ = td_->messages_manager_->get_scope_notification_settings(scope_, std::move(promise));
+    notification_settings_ =
+        td_->notification_settings_manager_->get_scope_notification_settings(scope_, std::move(promise));
   }
 
   void do_send_result() final {
@@ -3782,6 +3783,9 @@ Status Td::init(DbKey key) {
   send_closure_later(notification_manager_actor_, &NotificationManager::on_binlog_events,
                      std::move(events.to_notification_manager));
 
+  send_closure_later(notification_settings_manager_actor_, &NotificationSettingsManager::on_binlog_events,
+                     std::move(events.to_notification_settings_manager));
+
   send_closure(secret_chats_manager_, &SecretChatsManager::binlog_replay_finish);
 
   VLOG(td_init) << "Ping datacenter";
@@ -4439,6 +4443,8 @@ void Td::on_request(uint64 id, const td_api::getCurrentState &request) {
     attach_menu_manager_->get_current_state(updates);
 
     stickers_manager_->get_current_state(updates);
+
+    notification_settings_manager_->get_current_state(updates);
 
     messages_manager_->get_current_state(updates);
 
@@ -7199,7 +7205,7 @@ void Td::on_request(uint64 id, td_api::setScopeNotificationSettings &request) {
   if (request.scope_ == nullptr) {
     return send_error_raw(id, 400, "Scope must be non-empty");
   }
-  answer_ok_query(id, messages_manager_->set_scope_notification_settings(
+  answer_ok_query(id, notification_settings_manager_->set_scope_notification_settings(
                           get_notification_settings_scope(request.scope_), std::move(request.notification_settings_)));
 }
 

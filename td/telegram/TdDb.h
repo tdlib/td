@@ -58,6 +58,7 @@ class TdDb {
     vector<BinlogEvent> to_poll_manager;
     vector<BinlogEvent> to_messages_manager;
     vector<BinlogEvent> to_notification_manager;
+    vector<BinlogEvent> to_notification_settings_manager;
   };
   static Result<unique_ptr<TdDb>> open(int32 scheduler_id, const TdParameters &parameters, DbKey key, Events &events);
 
