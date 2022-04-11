@@ -598,7 +598,7 @@ Result<AttachMenuManager::AttachMenuBot> AttachMenuManager::get_attach_menu_bot(
     auto parsed_document =
         td_->documents_manager_->on_get_document(move_tl_object_as<telegram_api::document>(icon->icon_), DialogId());
     if (parsed_document.type != expected_document_type) {
-      LOG(ERROR) << "Receive wrong attach menu bot icon for " << user_id;
+      LOG(ERROR) << "Receive wrong attach menu bot icon \"" << name << "\" for " << user_id;
       continue;
     }
     bool expect_colors = false;
@@ -653,14 +653,14 @@ Result<AttachMenuManager::AttachMenuBot> AttachMenuManager::get_attach_menu_bot(
             default:
               UNREACHABLE();
           }
-          if (attach_menu_bot.icon_color_.light_color_ == -1 || attach_menu_bot.icon_color_.dark_color_ == -1) {
-            LOG(ERROR) << "Receive wrong icon_color for " << user_id;
-            attach_menu_bot.icon_color_ = AttachMenuBotColor();
-          }
-          if (attach_menu_bot.name_color_.light_color_ == -1 || attach_menu_bot.name_color_.dark_color_ == -1) {
-            LOG(ERROR) << "Receive wrong name_color for " << user_id;
-            attach_menu_bot.name_color_ = AttachMenuBotColor();
-          }
+        }
+        if (attach_menu_bot.icon_color_.light_color_ == -1 || attach_menu_bot.icon_color_.dark_color_ == -1) {
+          LOG(ERROR) << "Receive wrong icon_color for " << user_id;
+          attach_menu_bot.icon_color_ = AttachMenuBotColor();
+        }
+        if (attach_menu_bot.name_color_.light_color_ == -1 || attach_menu_bot.name_color_.dark_color_ == -1) {
+          LOG(ERROR) << "Receive wrong name_color for " << user_id;
+          attach_menu_bot.name_color_ = AttachMenuBotColor();
         }
       }
     } else {
