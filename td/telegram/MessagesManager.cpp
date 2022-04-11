@@ -8123,7 +8123,7 @@ void MessagesManager::set_dialog_available_reactions(Dialog *d, vector<string> &
       hide_dialog_message_reactions(d);
     }
 
-    set_dialog_available_reactions_generation(d, d->available_reactions_generation + 1);
+    set_dialog_next_available_reactions_generation(d, d->available_reactions_generation);
   }
   on_dialog_updated(d->dialog_id, "set_dialog_available_reactions");
 
@@ -8132,7 +8132,7 @@ void MessagesManager::set_dialog_available_reactions(Dialog *d, vector<string> &
   }
 }
 
-void MessagesManager::set_dialog_available_reactions_generation(Dialog *d, uint32 new_generation) {
+void MessagesManager::set_dialog_next_available_reactions_generation(Dialog *d, uint32 generation) {
   CHECK(d != nullptr);
   switch (d->dialog_id.get_type()) {
     case DialogType::Chat:
@@ -8146,11 +8146,17 @@ void MessagesManager::set_dialog_available_reactions_generation(Dialog *d, uint3
       break;
   }
   if (get_active_reactions(d->available_reactions).empty()) {
-    new_generation |= 1;
+    // 0 -> 1
+    // 1 -> 3
+    generation = generation + (generation & 1) + 1;
+  } else {
+    // 0 -> 2
+    // 1 -> 2
+    generation = generation - (generation & 1) + 2;
   }
   LOG(INFO) << "Change available reactions generation from " << d->available_reactions_generation << " to "
-            << new_generation << " in " << d->dialog_id;
-  d->available_reactions_generation = new_generation;
+            << generation << " in " << d->dialog_id;
+  d->available_reactions_generation = generation;
 }
 
 void MessagesManager::hide_dialog_message_reactions(Dialog *d) {
@@ -8200,7 +8206,7 @@ void MessagesManager::set_active_reactions(vector<string> active_reactions) {
             if (!old_reactions.empty()) {
               hide_dialog_message_reactions(d);
             }
-            set_dialog_available_reactions_generation(d, d->available_reactions_generation + 1);
+            set_dialog_next_available_reactions_generation(d, d->available_reactions_generation);
             on_dialog_updated(d->dialog_id, "set_active_reactions");
           }
           send_update_chat_available_reactions(d);
@@ -8313,6 +8319,7 @@ void MessagesManager::queue_message_reactions_reload(FullMessageId full_message_
 }
 
 void MessagesManager::queue_message_reactions_reload(DialogId dialog_id, const vector<MessageId> &message_ids) {
+  LOG(INFO) << "Queue reload of reactions in " << message_ids << " in " << dialog_id;
   auto &message_ids_to_reload = being_reloaded_reactions_[dialog_id].message_ids;
   for (auto &message_id : message_ids) {
     CHECK(message_id.is_valid());
@@ -13004,7 +13011,8 @@ void MessagesManager::init() {
   }
   is_inited_ = true;
 
-  td_->notification_settings_manager_->init();
+  td_->notification_settings_manager_->init();  // load scope notification settings
+  init_stickers_manager(td_);                   // load available reactions
 
   always_wait_for_mailbox();
 
@@ -23484,7 +23492,7 @@ unique_ptr<MessagesManager::Message> MessagesManager::parse_message(Dialog *d, M
           LOG(ERROR) << "Fix available_reactions_generation in " << dialog_id << " from "
                      << d->available_reactions_generation << " to " << m->available_reactions_generation;
           hide_dialog_message_reactions(d);
-          set_dialog_available_reactions_generation(d, m->available_reactions_generation + 1);
+          set_dialog_next_available_reactions_generation(d, m->available_reactions_generation);
           on_dialog_updated(dialog_id, "parse_message");
           break;
         case DialogType::User:
@@ -37020,6 +37028,19 @@ unique_ptr<MessagesManager::Dialog> MessagesManager::parse_dialog(DialogId dialo
   }
   if (!dependencies.resolve_force(td_, source)) {
     send_get_dialog_query(dialog_id, Auto(), 0, source);
+  }
+
+  switch (d->dialog_id.get_type()) {
+    case DialogType::Chat:
+    case DialogType::Channel:
+      if (get_active_reactions(d->available_reactions).empty() != ((d->available_reactions_generation & 1) == 1)) {
+        set_dialog_next_available_reactions_generation(d.get(), d->available_reactions_generation);
+      }
+      break;
+    case DialogType::User:
+    case DialogType::SecretChat:
+    default:
+      break;
   }
 
   return d;

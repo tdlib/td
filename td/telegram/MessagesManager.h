@@ -2621,7 +2621,7 @@ class MessagesManager final : public Actor {
 
   void set_dialog_available_reactions(Dialog *d, vector<string> &&available_reactions);
 
-  void set_dialog_available_reactions_generation(Dialog *d, uint32 new_generation);
+  void set_dialog_next_available_reactions_generation(Dialog *d, uint32 generation);
 
   void hide_dialog_message_reactions(Dialog *d);
 
