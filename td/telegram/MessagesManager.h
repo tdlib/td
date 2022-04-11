@@ -2604,7 +2604,7 @@ class MessagesManager final : public Actor {
                                     NotificationId last_notification_id, const char *source);
 
   bool update_dialog_notification_settings(DialogId dialog_id, DialogNotificationSettings *current_settings,
-                                           const DialogNotificationSettings &new_settings);
+                                           DialogNotificationSettings &&new_settings);
 
   void schedule_dialog_unmute(DialogId dialog_id, bool use_default, int32 mute_until);
 

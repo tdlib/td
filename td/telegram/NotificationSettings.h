@@ -6,6 +6,7 @@
 //
 #pragma once
 
+#include "td/telegram/NotificationSound.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 
@@ -18,11 +19,10 @@ namespace td {
 class DialogNotificationSettings {
  public:
   int32 mute_until = 0;
-  string sound = "default";
+  unique_ptr<NotificationSound> sound;
   bool show_preview = true;
   bool silent_send_message = false;
   bool use_default_mute_until = true;
-  bool use_default_sound = true;
   bool use_default_show_preview = true;
   bool is_use_default_fixed = true;
   bool is_secret_chat_show_preview_fixed = false;
@@ -36,7 +36,7 @@ class DialogNotificationSettings {
 
   DialogNotificationSettings() = default;
 
-  DialogNotificationSettings(bool use_default_mute_until, int32 mute_until, bool use_default_sound, string sound,
+  DialogNotificationSettings(bool use_default_mute_until, int32 mute_until, unique_ptr<NotificationSound> &&sound,
                              bool use_default_show_preview, bool show_preview, bool silent_send_message,
                              bool use_default_disable_pinned_message_notifications,
                              bool disable_pinned_message_notifications, bool use_default_disable_mention_notifications,
@@ -46,7 +46,6 @@ class DialogNotificationSettings {
       , show_preview(show_preview)
       , silent_send_message(silent_send_message)
       , use_default_mute_until(use_default_mute_until)
-      , use_default_sound(use_default_sound)
       , use_default_show_preview(use_default_show_preview)
       , is_synchronized(true)
       , use_default_disable_pinned_message_notifications(use_default_disable_pinned_message_notifications)
@@ -61,7 +60,7 @@ enum class NotificationSettingsScope : int32 { Private, Group, Channel };
 class ScopeNotificationSettings {
  public:
   int32 mute_until = 0;
-  string sound = "default";
+  unique_ptr<NotificationSound> sound;
   bool show_preview = true;
   bool is_synchronized = false;
 
@@ -71,7 +70,7 @@ class ScopeNotificationSettings {
 
   ScopeNotificationSettings() = default;
 
-  ScopeNotificationSettings(int32 mute_until, string sound, bool show_preview,
+  ScopeNotificationSettings(int32 mute_until, unique_ptr<NotificationSound> &&sound, bool show_preview,
                             bool disable_pinned_message_notifications, bool disable_mention_notifications)
       : mute_until(mute_until)
       , sound(std::move(sound))

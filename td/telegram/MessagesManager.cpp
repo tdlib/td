@@ -48,6 +48,7 @@
 #include "td/telegram/NotificationManager.h"
 #include "td/telegram/NotificationSettings.hpp"
 #include "td/telegram/NotificationSettingsManager.h"
+#include "td/telegram/NotificationSound.h"
 #include "td/telegram/NotificationType.h"
 #include "td/telegram/PublicDialogType.h"
 #include "td/telegram/ReplyMarkup.h"
@@ -7825,17 +7826,16 @@ void MessagesManager::on_message_edited(FullMessageId full_message_id, int32 pts
 
 bool MessagesManager::update_dialog_notification_settings(DialogId dialog_id,
                                                           DialogNotificationSettings *current_settings,
-                                                          const DialogNotificationSettings &new_settings) {
+                                                          DialogNotificationSettings &&new_settings) {
   if (td_->auth_manager_->is_bot()) {
     // just in case
     return false;
   }
 
   bool need_update_server = current_settings->mute_until != new_settings.mute_until ||
-                            current_settings->sound != new_settings.sound ||
+                            !are_equivalent_notification_sounds(current_settings->sound, new_settings.sound) ||
                             current_settings->show_preview != new_settings.show_preview ||
                             current_settings->use_default_mute_until != new_settings.use_default_mute_until ||
-                            current_settings->use_default_sound != new_settings.use_default_sound ||
                             current_settings->use_default_show_preview != new_settings.use_default_show_preview;
   bool need_update_local =
       current_settings->use_default_disable_pinned_message_notifications !=
@@ -7847,7 +7847,8 @@ bool MessagesManager::update_dialog_notification_settings(DialogId dialog_id,
 
   bool is_changed = need_update_server || need_update_local ||
                     current_settings->is_synchronized != new_settings.is_synchronized ||
-                    current_settings->is_use_default_fixed != new_settings.is_use_default_fixed;
+                    current_settings->is_use_default_fixed != new_settings.is_use_default_fixed ||
+                    are_different_equivalent_notification_sounds(current_settings->sound, new_settings.sound);
 
   if (is_changed) {
     Dialog *d = get_dialog(dialog_id);
@@ -7860,7 +7861,7 @@ bool MessagesManager::update_dialog_notification_settings(DialogId dialog_id,
     update_dialog_unmute_timeout(d, current_settings->use_default_mute_until, current_settings->mute_until,
                                  new_settings.use_default_mute_until, new_settings.mute_until);
 
-    *current_settings = new_settings;
+    *current_settings = std::move(new_settings);
     on_dialog_updated(dialog_id, "update_dialog_notification_settings");
 
     if (is_dialog_muted(d)) {
@@ -8063,7 +8064,7 @@ void MessagesManager::on_update_dialog_notify_settings(
     return;
   }
 
-  const DialogNotificationSettings notification_settings = ::td::get_dialog_notification_settings(
+  DialogNotificationSettings notification_settings = ::td::get_dialog_notification_settings(
       std::move(peer_notify_settings), current_settings->use_default_disable_pinned_message_notifications,
       current_settings->disable_pinned_message_notifications,
       current_settings->use_default_disable_mention_notifications, current_settings->disable_mention_notifications);
@@ -8071,7 +8072,7 @@ void MessagesManager::on_update_dialog_notify_settings(
     return;
   }
 
-  update_dialog_notification_settings(dialog_id, current_settings, notification_settings);
+  update_dialog_notification_settings(dialog_id, current_settings, std::move(notification_settings));
 }
 
 void MessagesManager::on_update_dialog_available_reactions(DialogId dialog_id, vector<string> &&available_reactions) {
@@ -21270,7 +21271,10 @@ Status MessagesManager::set_dialog_notification_settings(
 
   TRY_RESULT(new_settings, ::td::get_dialog_notification_settings(std::move(notification_settings),
                                                                   current_settings->silent_send_message));
-  if (update_dialog_notification_settings(dialog_id, current_settings, new_settings)) {
+  if (is_notification_sound_default(current_settings->sound) && is_notification_sound_default(new_settings.sound)) {
+    new_settings.sound = dup_notification_sound(current_settings->sound);
+  }
+  if (update_dialog_notification_settings(dialog_id, current_settings, std::move(new_settings))) {
     update_dialog_notification_settings_on_server(dialog_id, false);
   }
   return Status::OK();
@@ -21279,11 +21283,11 @@ Status MessagesManager::set_dialog_notification_settings(
 void MessagesManager::reset_all_notification_settings() {
   CHECK(!td_->auth_manager_->is_bot());
 
-  DialogNotificationSettings new_dialog_settings;
-  new_dialog_settings.is_synchronized = true;
   for (auto &dialog : dialogs_) {
+    DialogNotificationSettings new_dialog_settings;
+    new_dialog_settings.is_synchronized = true;
     Dialog *d = dialog.second.get();
-    update_dialog_notification_settings(d->dialog_id, &d->notification_settings, new_dialog_settings);
+    update_dialog_notification_settings(d->dialog_id, &d->notification_settings, std::move(new_dialog_settings));
   }
 
   td_->notification_settings_manager_->reset_scope_notification_settings();
@@ -35721,11 +35725,14 @@ void MessagesManager::force_create_dialog(DialogId dialog_id, const char *source
         Dialog *user_d = get_dialog_force(DialogId(user_id), source);
         if (user_d != nullptr && user_d->notification_settings.is_synchronized) {
           VLOG(notifications) << "Copy notification settings from " << user_d->dialog_id << " to " << dialog_id;
-          auto new_notification_settings = user_d->notification_settings;
-          new_notification_settings.use_default_show_preview = true;
-          new_notification_settings.show_preview = false;
+          auto user_settings = &user_d->notification_settings;
+          auto new_notification_settings = DialogNotificationSettings(
+              user_settings->use_default_mute_until, user_settings->mute_until,
+              dup_notification_sound(user_settings->sound), true /*use_default_show_preview*/, false /*show_preview*/,
+              user_settings->silent_send_message, true, false, true, false);
           new_notification_settings.is_secret_chat_show_preview_fixed = true;
-          update_dialog_notification_settings(dialog_id, &d->notification_settings, new_notification_settings);
+          update_dialog_notification_settings(dialog_id, &d->notification_settings,
+                                              std::move(new_notification_settings));
         } else {
           d->notification_settings.is_synchronized = true;
         }

@@ -99,7 +99,7 @@ class NotificationSettingsManager final : public Actor {
                                                const ScopeNotificationSettings &new_settings);
 
   bool update_scope_notification_settings(NotificationSettingsScope scope, ScopeNotificationSettings *current_settings,
-                                          const ScopeNotificationSettings &new_settings);
+                                          ScopeNotificationSettings &&new_settings);
 
   static uint64 save_update_scope_notification_settings_on_server_log_event(NotificationSettingsScope scope);
 

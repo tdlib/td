@@ -4498,17 +4498,17 @@ class CliClient final : public Actor {
     } else if (op == "scns" || op == "ssns") {
       string chat_id_or_scope;
       string mute_for;
-      string sound;
+      int64 ringtone_id;
       string show_preview;
       string disable_pinned_message_notifications;
       string disable_mention_notifications;
-      get_args(args, chat_id_or_scope, mute_for, sound, show_preview, disable_pinned_message_notifications,
+      get_args(args, chat_id_or_scope, mute_for, ringtone_id, show_preview, disable_pinned_message_notifications,
                disable_mention_notifications);
       if (op == "scns") {
         send_request(td_api::make_object<td_api::setChatNotificationSettings>(
             as_chat_id(chat_id_or_scope),
             td_api::make_object<td_api::chatNotificationSettings>(
-                mute_for.empty(), to_integer<int32>(mute_for), sound.empty(), sound, show_preview.empty(),
+                mute_for.empty(), to_integer<int32>(mute_for), ringtone_id == -1, ringtone_id, show_preview.empty(),
                 as_bool(show_preview), disable_pinned_message_notifications.empty(),
                 as_bool(disable_pinned_message_notifications), disable_mention_notifications.empty(),
                 as_bool(disable_mention_notifications))));
@@ -4516,7 +4516,7 @@ class CliClient final : public Actor {
         send_request(td_api::make_object<td_api::setScopeNotificationSettings>(
             get_notification_settings_scope(chat_id_or_scope),
             td_api::make_object<td_api::scopeNotificationSettings>(
-                to_integer<int32>(mute_for), sound, as_bool(show_preview),
+                to_integer<int32>(mute_for), ringtone_id, as_bool(show_preview),
                 as_bool(disable_pinned_message_notifications), as_bool(disable_mention_notifications))));
       }
     } else if (op == "rans") {

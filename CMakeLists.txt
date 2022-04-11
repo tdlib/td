@@ -393,6 +393,7 @@ set(TDLIB_SOURCE
   td/telegram/NotificationManager.cpp
   td/telegram/NotificationSettings.cpp
   td/telegram/NotificationSettingsManager.cpp
+  td/telegram/NotificationSound.cpp
   td/telegram/NotificationType.cpp
   td/telegram/OptionManager.cpp
   td/telegram/Payments.cpp
@@ -620,6 +621,8 @@ set(TDLIB_SOURCE
   td/telegram/NotificationManager.h
   td/telegram/NotificationSettings.h
   td/telegram/NotificationSettingsManager.h
+  td/telegram/NotificationSound.h
+  td/telegram/NotificationSoundType.h
   td/telegram/NotificationType.h
   td/telegram/OptionManager.h
   td/telegram/PasswordManager.h

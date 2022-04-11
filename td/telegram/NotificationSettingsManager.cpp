@@ -15,6 +15,7 @@
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/NotificationManager.h"
 #include "td/telegram/NotificationSettings.hpp"
+#include "td/telegram/NotificationSound.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"
 #include "td/telegram/telegram_api.h"
@@ -174,7 +175,7 @@ class UpdateDialogNotifySettingsQuery final : public Td::ResultHandler {
     if (!new_settings.use_default_mute_until) {
       flags |= telegram_api::inputPeerNotifySettings::MUTE_UNTIL_MASK;
     }
-    if (!new_settings.use_default_sound) {
+    if (new_settings.sound != nullptr) {
       flags |= telegram_api::inputPeerNotifySettings::SOUND_MASK;
     }
     if (!new_settings.use_default_show_preview) {
@@ -184,10 +185,9 @@ class UpdateDialogNotifySettingsQuery final : public Td::ResultHandler {
       flags |= telegram_api::inputPeerNotifySettings::SILENT_MASK;
     }
     send_query(G()->net_query_creator().create(telegram_api::account_updateNotifySettings(
-        std::move(input_notify_peer),
-        make_tl_object<telegram_api::inputPeerNotifySettings>(
-            flags, new_settings.show_preview, new_settings.silent_send_message, new_settings.mute_until,
-            make_tl_object<telegram_api::notificationSoundDefault>()))));
+        std::move(input_notify_peer), make_tl_object<telegram_api::inputPeerNotifySettings>(
+                                          flags, new_settings.show_preview, new_settings.silent_send_message,
+                                          new_settings.mute_until, get_input_notification_sound(new_settings.sound)))));
   }
 
   void on_result(BufferSlice packet) final {
@@ -231,12 +231,14 @@ class UpdateScopeNotifySettingsQuery final : public Td::ResultHandler {
     auto input_notify_peer = get_input_notify_peer(scope);
     CHECK(input_notify_peer != nullptr);
     int32 flags = telegram_api::inputPeerNotifySettings::MUTE_UNTIL_MASK |
-                  telegram_api::inputPeerNotifySettings::SOUND_MASK |
                   telegram_api::inputPeerNotifySettings::SHOW_PREVIEWS_MASK;
+    if (new_settings.sound != nullptr) {
+      flags |= telegram_api::inputPeerNotifySettings::SOUND_MASK;
+    }
     send_query(G()->net_query_creator().create(telegram_api::account_updateNotifySettings(
         std::move(input_notify_peer), make_tl_object<telegram_api::inputPeerNotifySettings>(
                                           flags, new_settings.show_preview, false, new_settings.mute_until,
-                                          make_tl_object<telegram_api::notificationSoundDefault>()))));
+                                          get_input_notification_sound(new_settings.sound)))));
     scope_ = scope;
   }
 
@@ -341,9 +343,9 @@ void NotificationSettingsManager::init() {
       }
     }
     if (!channels_notification_settings_.is_synchronized && is_authorized) {
-      channels_notification_settings_ = chats_notification_settings_;
-      channels_notification_settings_.disable_pinned_message_notifications = false;
-      channels_notification_settings_.disable_mention_notifications = false;
+      channels_notification_settings_ = ScopeNotificationSettings(
+          chats_notification_settings_.mute_until, dup_notification_sound(chats_notification_settings_.sound),
+          chats_notification_settings_.show_preview, false, false);
       channels_notification_settings_.is_synchronized = false;
       send_get_scope_notification_settings_query(NotificationSettingsScope::Channel, Promise<>());
     }
@@ -483,26 +485,26 @@ void NotificationSettingsManager::on_update_scope_notify_settings(
   auto old_notification_settings = get_scope_notification_settings(scope);
   CHECK(old_notification_settings != nullptr);
 
-  const ScopeNotificationSettings notification_settings = ::td::get_scope_notification_settings(
+  ScopeNotificationSettings notification_settings = ::td::get_scope_notification_settings(
       std::move(peer_notify_settings), old_notification_settings->disable_pinned_message_notifications,
       old_notification_settings->disable_mention_notifications);
   if (!notification_settings.is_synchronized) {
     return;
   }
 
-  update_scope_notification_settings(scope, old_notification_settings, notification_settings);
+  update_scope_notification_settings(scope, old_notification_settings, std::move(notification_settings));
 }
 
 bool NotificationSettingsManager::update_scope_notification_settings(NotificationSettingsScope scope,
                                                                      ScopeNotificationSettings *current_settings,
-                                                                     const ScopeNotificationSettings &new_settings) {
+                                                                     ScopeNotificationSettings &&new_settings) {
   if (td_->auth_manager_->is_bot()) {
     // just in case
     return false;
   }
 
   bool need_update_server = current_settings->mute_until != new_settings.mute_until ||
-                            current_settings->sound != new_settings.sound ||
+                            !are_equivalent_notification_sounds(current_settings->sound, new_settings.sound) ||
                             current_settings->show_preview != new_settings.show_preview;
   bool need_update_local =
       current_settings->disable_pinned_message_notifications != new_settings.disable_pinned_message_notifications ||
@@ -512,7 +514,8 @@ bool NotificationSettingsManager::update_scope_notification_settings(Notificatio
   if (was_inited && !is_inited) {
     return false;  // just in case
   }
-  bool is_changed = need_update_server || need_update_local || was_inited != is_inited;
+  bool is_changed = need_update_server || need_update_local || was_inited != is_inited ||
+                    are_different_equivalent_notification_sounds(current_settings->sound, new_settings.sound);
   if (is_changed) {
     save_scope_notification_settings(scope, new_settings);
 
@@ -528,7 +531,7 @@ bool NotificationSettingsManager::update_scope_notification_settings(Notificatio
       td_->messages_manager_->on_update_scope_mention_notifications(scope, new_settings.disable_mention_notifications);
     }
 
-    *current_settings = new_settings;
+    *current_settings = std::move(new_settings);
 
     send_closure(G()->td(), &Td::send_update, get_update_scope_notification_settings_object(scope));
   }
@@ -571,15 +574,15 @@ void NotificationSettingsManager::update_scope_unmute_timeout(NotificationSettin
 
 void NotificationSettingsManager::reset_scope_notification_settings() {
   CHECK(!td_->auth_manager_->is_bot());
-  ScopeNotificationSettings new_scope_settings;
-  new_scope_settings.is_synchronized = true;
 
-  update_scope_notification_settings(NotificationSettingsScope::Private, &users_notification_settings_,
-                                     new_scope_settings);
-  update_scope_notification_settings(NotificationSettingsScope::Group, &chats_notification_settings_,
-                                     new_scope_settings);
-  update_scope_notification_settings(NotificationSettingsScope::Channel, &channels_notification_settings_,
-                                     new_scope_settings);
+  for (auto scope :
+       {NotificationSettingsScope::Private, NotificationSettingsScope::Group, NotificationSettingsScope::Channel}) {
+    auto current_settings = get_scope_notification_settings(scope);
+    CHECK(current_settings != nullptr);
+    ScopeNotificationSettings new_scope_settings;
+    new_scope_settings.is_synchronized = true;
+    update_scope_notification_settings(scope, current_settings, std::move(new_scope_settings));
+  }
 }
 
 void NotificationSettingsManager::send_get_dialog_notification_settings_query(DialogId dialog_id,
@@ -653,8 +656,13 @@ void NotificationSettingsManager::update_dialog_notify_settings(DialogId dialog_
 Status NotificationSettingsManager::set_scope_notification_settings(
     NotificationSettingsScope scope, td_api::object_ptr<td_api::scopeNotificationSettings> &&notification_settings) {
   CHECK(!td_->auth_manager_->is_bot());
+  auto *current_settings = get_scope_notification_settings(scope);
+  CHECK(current_settings != nullptr);
   TRY_RESULT(new_settings, ::td::get_scope_notification_settings(std::move(notification_settings)));
-  if (update_scope_notification_settings(scope, get_scope_notification_settings(scope), new_settings)) {
+  if (is_notification_sound_default(current_settings->sound) && is_notification_sound_default(new_settings.sound)) {
+    new_settings.sound = dup_notification_sound(current_settings->sound);
+  }
+  if (update_scope_notification_settings(scope, current_settings, std::move(new_settings))) {
     update_scope_notification_settings_on_server(scope, 0);
   }
   return Status::OK();
