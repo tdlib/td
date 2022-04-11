@@ -846,8 +846,6 @@ class MessagesManager final : public Actor {
   void on_resolved_username(const string &username, DialogId dialog_id);
   void drop_username(const string &username);
 
-  tl_object_ptr<telegram_api::InputNotifyPeer> get_input_notify_peer(DialogId dialog_id) const;
-
   void on_update_notification_scope_is_muted(NotificationSettingsScope scope, bool is_muted);
 
   void on_update_dialog_notify_settings(DialogId dialog_id,

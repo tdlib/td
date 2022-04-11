@@ -35,7 +35,7 @@ class GetDialogNotifySettingsQuery final : public Td::ResultHandler {
  public:
   void send(DialogId dialog_id) {
     dialog_id_ = dialog_id;
-    auto input_notify_peer = td_->messages_manager_->get_input_notify_peer(dialog_id);
+    auto input_notify_peer = td_->notification_settings_manager_->get_input_notify_peer(dialog_id);
     CHECK(input_notify_peer != nullptr);
     send_query(G()->net_query_creator().create(telegram_api::account_getNotifySettings(std::move(input_notify_peer))));
   }
@@ -164,7 +164,7 @@ class UpdateDialogNotifySettingsQuery final : public Td::ResultHandler {
   void send(DialogId dialog_id, const DialogNotificationSettings &new_settings) {
     dialog_id_ = dialog_id;
 
-    auto input_notify_peer = td_->messages_manager_->get_input_notify_peer(dialog_id);
+    auto input_notify_peer = td_->notification_settings_manager_->get_input_notify_peer(dialog_id);
     if (input_notify_peer == nullptr) {
       return on_error(Status::Error(500, "Can't update chat notification settings"));
     }
@@ -208,7 +208,8 @@ class UpdateDialogNotifySettingsQuery final : public Td::ResultHandler {
       LOG(INFO) << "Receive error for set chat notification settings: " << status;
     }
 
-    if (!td_->auth_manager_->is_bot() && td_->messages_manager_->get_input_notify_peer(dialog_id_) != nullptr) {
+    if (!td_->auth_manager_->is_bot() &&
+        td_->notification_settings_manager_->get_input_notify_peer(dialog_id_) != nullptr) {
       // trying to repair notification settings for this dialog
       td_->notification_settings_manager_->send_get_dialog_notification_settings_query(dialog_id_, Promise<>());
     }
@@ -373,6 +374,18 @@ bool NotificationSettingsManager::get_scope_disable_pinned_message_notifications
 
 bool NotificationSettingsManager::get_scope_disable_mention_notifications(NotificationSettingsScope scope) const {
   return get_scope_notification_settings(scope)->disable_mention_notifications;
+}
+
+tl_object_ptr<telegram_api::InputNotifyPeer> NotificationSettingsManager::get_input_notify_peer(
+    DialogId dialog_id) const {
+  if (!td_->messages_manager_->have_dialog(dialog_id)) {
+    return nullptr;
+  }
+  auto input_peer = td_->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
+  if (input_peer == nullptr) {
+    return nullptr;
+  }
+  return make_tl_object<telegram_api::inputNotifyPeer>(std::move(input_peer));
 }
 
 ScopeNotificationSettings *NotificationSettingsManager::get_scope_notification_settings(

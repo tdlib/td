@@ -40,6 +40,8 @@ class NotificationSettingsManager final : public Actor {
 
   bool get_scope_disable_mention_notifications(NotificationSettingsScope scope) const;
 
+  tl_object_ptr<telegram_api::InputNotifyPeer> get_input_notify_peer(DialogId dialog_id) const;
+
   void on_update_scope_notify_settings(NotificationSettingsScope scope,
                                        tl_object_ptr<telegram_api::peerNotifySettings> &&peer_notify_settings);
 

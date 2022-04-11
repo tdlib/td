@@ -20110,7 +20110,7 @@ void MessagesManager::update_dialog_notification_settings_on_server(DialogId dia
     return;
   }
 
-  if (!from_binlog && get_input_notify_peer(dialog_id) == nullptr) {
+  if (!from_binlog && td_->notification_settings_manager_->get_input_notify_peer(dialog_id) == nullptr) {
     // don't even create new binlog events
     return;
   }
@@ -21247,17 +21247,6 @@ DialogNotificationSettings *MessagesManager::get_dialog_notification_settings(Di
     return nullptr;
   }
   return &d->notification_settings;
-}
-
-tl_object_ptr<telegram_api::InputNotifyPeer> MessagesManager::get_input_notify_peer(DialogId dialog_id) const {
-  if (get_dialog(dialog_id) == nullptr) {
-    return nullptr;
-  }
-  auto input_peer = get_input_peer(dialog_id, AccessRights::Read);
-  if (input_peer == nullptr) {
-    return nullptr;
-  }
-  return make_tl_object<telegram_api::inputNotifyPeer>(std::move(input_peer));
 }
 
 Status MessagesManager::set_dialog_notification_settings(
