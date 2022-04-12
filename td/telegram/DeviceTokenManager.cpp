@@ -22,6 +22,7 @@
 #include "td/utils/format.h"
 #include "td/utils/JsonBuilder.h"
 #include "td/utils/logging.h"
+#include "td/utils/misc.h"
 #include "td/utils/Random.h"
 #include "td/utils/SliceBuilder.h"
 #include "td/utils/Status.h"
@@ -431,9 +432,13 @@ void DeviceTokenManager::on_result(NetQueryPtr net_query) {
     }
     info.state = TokenInfo::State::Sync;
   } else {
+    int32 retry_after = 0;
     if (r_flag.is_error()) {
-      if (!G()->is_expected_error(r_flag.error())) {
-        LOG(ERROR) << "Failed to " << info.state << " device: " << r_flag.error();
+      auto &error = r_flag.error();
+      if (!G()->is_expected_error(error)) {
+        LOG(ERROR) << "Failed to " << info.state << " device: " << error;
+      } else {
+        retry_after = Global::get_retry_after(error.code(), error.message());
       }
       info.promise.set_error(r_flag.move_as_error());
     } else {
@@ -441,7 +446,7 @@ void DeviceTokenManager::on_result(NetQueryPtr net_query) {
     }
     if (info.state == TokenInfo::State::Reregister) {
       // keep trying to reregister the token
-      return loop();
+      return set_timeout_in(clamp(retry_after, 1, 3600));
     } else if (info.state == TokenInfo::State::Register) {
       info.state = TokenInfo::State::Unregister;
     } else {
