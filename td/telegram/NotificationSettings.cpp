@@ -137,7 +137,7 @@ Result<DialogNotificationSettings> get_dialog_notification_settings(
       notification_settings->use_default_mute_for_ ? 0 : get_mute_until(notification_settings->mute_for_);
   return DialogNotificationSettings(
       notification_settings->use_default_mute_for_, mute_until,
-      get_notification_sound(notification_settings->use_default_sound_, notification_settings->ringtone_id_),
+      get_notification_sound(notification_settings->use_default_sound_, notification_settings->tone_id_),
       notification_settings->use_default_show_preview_, notification_settings->show_preview_, old_silent_send_message,
       notification_settings->use_default_disable_pinned_message_notifications_,
       notification_settings->disable_pinned_message_notifications_,
@@ -152,7 +152,7 @@ Result<ScopeNotificationSettings> get_scope_notification_settings(
   }
 
   auto mute_until = get_mute_until(notification_settings->mute_for_);
-  return ScopeNotificationSettings(mute_until, get_notification_sound(false, notification_settings->ringtone_id_),
+  return ScopeNotificationSettings(mute_until, get_notification_sound(false, notification_settings->tone_id_),
                                    notification_settings->show_preview_,
                                    notification_settings->disable_pinned_message_notifications_,
                                    notification_settings->disable_mention_notifications_);
