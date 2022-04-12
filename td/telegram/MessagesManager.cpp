@@ -4056,6 +4056,7 @@ class SetTypingQuery final : public Td::ResultHandler {
 class DeleteMessagesQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   DialogId dialog_id_;
+  vector<int32> server_message_ids_;
 
  public:
   explicit DeleteMessagesQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
@@ -4063,6 +4064,8 @@ class DeleteMessagesQuery final : public Td::ResultHandler {
 
   void send(DialogId dialog_id, vector<int32> &&server_message_ids, bool revoke) {
     dialog_id_ = dialog_id;
+    server_message_ids_ = server_message_ids;
+
     int32 flags = 0;
     if (revoke) {
       flags |= telegram_api::messages_deleteMessages::REVOKE_MASK;
@@ -4097,6 +4100,7 @@ class DeleteMessagesQuery final : public Td::ResultHandler {
         LOG(ERROR) << "Receive error for delete messages: " << status;
       }
     }
+    td_->messages_manager_->on_failed_message_deletion(dialog_id_, server_message_ids_);
     promise_.set_error(std::move(status));
   }
 };
@@ -4104,6 +4108,7 @@ class DeleteMessagesQuery final : public Td::ResultHandler {
 class DeleteChannelMessagesQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   ChannelId channel_id_;
+  vector<int32> server_message_ids_;
 
  public:
   explicit DeleteChannelMessagesQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
@@ -4111,6 +4116,8 @@ class DeleteChannelMessagesQuery final : public Td::ResultHandler {
 
   void send(ChannelId channel_id, vector<int32> &&server_message_ids) {
     channel_id_ = channel_id;
+    server_message_ids_ = server_message_ids;
+
     auto input_channel = td_->contacts_manager_->get_input_channel(channel_id);
     CHECK(input_channel != nullptr);
     send_query(G()->net_query_creator().create(
@@ -4134,10 +4141,12 @@ class DeleteChannelMessagesQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    if (!td_->contacts_manager_->on_get_channel_error(channel_id_, status, "DeleteChannelMessagesQuery") &&
-        status.message() != "MESSAGE_DELETE_FORBIDDEN") {
-      LOG(ERROR) << "Receive error for delete channel messages: " << status;
+    if (!td_->contacts_manager_->on_get_channel_error(channel_id_, status, "DeleteChannelMessagesQuery")) {
+      if (status.message() != "MESSAGE_DELETE_FORBIDDEN") {
+        LOG(ERROR) << "Receive error for delete channel messages: " << status;
+      }
     }
+    td_->messages_manager_->on_failed_message_deletion(DialogId(channel_id_), server_message_ids_);
     promise_.set_error(std::move(status));
   }
 };
@@ -4145,6 +4154,7 @@ class DeleteChannelMessagesQuery final : public Td::ResultHandler {
 class DeleteScheduledMessagesQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   DialogId dialog_id_;
+  vector<MessageId> message_ids_;
 
  public:
   explicit DeleteScheduledMessagesQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
@@ -4152,13 +4162,14 @@ class DeleteScheduledMessagesQuery final : public Td::ResultHandler {
 
   void send(DialogId dialog_id, vector<MessageId> &&message_ids) {
     dialog_id_ = dialog_id;
+    message_ids_ = std::move(message_ids);
 
     auto input_peer = td_->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
     if (input_peer == nullptr) {
       return on_error(Status::Error(400, "Can't access the chat"));
     }
     send_query(G()->net_query_creator().create(telegram_api::messages_deleteScheduledMessages(
-        std::move(input_peer), MessagesManager::get_scheduled_server_message_ids(message_ids))));
+        std::move(input_peer), MessagesManager::get_scheduled_server_message_ids(message_ids_))));
   }
 
   void on_result(BufferSlice packet) final {
@@ -4176,6 +4187,7 @@ class DeleteScheduledMessagesQuery final : public Td::ResultHandler {
     if (!td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "DeleteScheduledMessagesQuery")) {
       LOG(ERROR) << "Receive error for delete scheduled messages: " << status;
     }
+    td_->messages_manager_->on_failed_scheduled_message_deletion(dialog_id_, message_ids_);
     promise_.set_error(std::move(status));
   }
 };
@@ -10868,7 +10880,6 @@ void MessagesManager::delete_messages_on_server(DialogId dialog_id, vector<Messa
       send_closure(actor_id, &MessagesManager::erase_delete_messages_log_event, log_event_id);
     }));
   }
-  mpas.set_ignore_errors(true);
   auto lock = mpas.get_promise();
   auto dialog_type = dialog_id.get_type();
   switch (dialog_type) {
@@ -10953,6 +10964,39 @@ void MessagesManager::delete_scheduled_messages_on_server(DialogId dialog_id, ve
   promise = std::move(new_promise);  // to prevent self-move
 
   td_->create_handler<DeleteScheduledMessagesQuery>(std::move(promise))->send(dialog_id, std::move(message_ids));
+}
+
+void MessagesManager::on_failed_message_deletion(DialogId dialog_id, const vector<int32> &server_message_ids) {
+  if (G()->close_flag()) {
+    return;
+  }
+  Dialog *d = get_dialog(dialog_id);
+  CHECK(d != nullptr);
+  vector<FullMessageId> full_message_ids;
+  for (auto &server_message_id : server_message_ids) {
+    auto message_id = MessageId(ServerMessageId(server_message_id));
+    d->deleted_message_ids.erase(message_id);
+    full_message_ids.emplace_back(dialog_id, message_id);
+  }
+  if (!have_input_peer(dialog_id, AccessRights::Read)) {
+    return;
+  }
+  get_messages_from_server(std::move(full_message_ids), Promise<Unit>(), "on_failed_message_deletion");
+}
+
+void MessagesManager::on_failed_scheduled_message_deletion(DialogId dialog_id, const vector<MessageId> &message_ids) {
+  if (G()->close_flag()) {
+    return;
+  }
+  Dialog *d = get_dialog(dialog_id);
+  CHECK(d != nullptr);
+  for (auto &message_id : message_ids) {
+    d->deleted_scheduled_server_message_ids.erase(message_id.get_scheduled_server_message_id());
+  }
+  if (!have_input_peer(dialog_id, AccessRights::Read)) {
+    return;
+  }
+  load_dialog_scheduled_messages(dialog_id, false, 0, Promise<Unit>());
 }
 
 void MessagesManager::delete_dialog_history(DialogId dialog_id, bool remove_from_dialog_list, bool revoke,
@@ -34398,6 +34442,29 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
                    << " from " << source << " in " << dialog_id;
         dump_debug_message_op(d);
       }
+    } else if (m->message_id.is_server() && d->last_message_id.is_valid() && m->message_id > d->last_message_id) {
+      LOG(INFO) << "Receive " << m->message_id << ", which is newer than the last " << d->last_message_id
+                << " not from update";
+      set_dialog_last_message_id(d, MessageId(), source);
+      if (m->message_id > d->deleted_last_message_id) {
+        d->delete_last_message_date = m->date;
+        d->deleted_last_message_id = message_id;
+      }
+
+      set_dialog_first_database_message_id(d, MessageId(), source);
+      set_dialog_last_database_message_id(d, MessageId(), source);
+      d->have_full_history = false;
+      invalidate_message_indexes(d);
+
+      on_dialog_updated(dialog_id, source);
+
+      send_update_chat_last_message(d, source);
+      *need_update_dialog_pos = false;
+
+      on_dialog_updated(d->dialog_id, "do delete last message");
+
+      send_closure_later(actor_id(this), &MessagesManager::get_history_from_the_end, d->dialog_id, false, false,
+                         Promise<Unit>());
     }
   }
 

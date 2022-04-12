@@ -384,6 +384,10 @@ class MessagesManager final : public Actor {
 
   void delete_messages(DialogId dialog_id, const vector<MessageId> &message_ids, bool revoke, Promise<Unit> &&promise);
 
+  void on_failed_message_deletion(DialogId dialog_id, const vector<int32> &server_message_ids);
+
+  void on_failed_scheduled_message_deletion(DialogId dialog_id, const vector<MessageId> &message_ids);
+
   void delete_dialog_history(DialogId dialog_id, bool remove_from_dialog_list, bool revoke, Promise<Unit> &&promise);
 
   void delete_all_call_messages(bool revoke, Promise<Unit> &&promise);
