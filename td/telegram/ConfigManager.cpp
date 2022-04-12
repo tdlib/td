@@ -1530,7 +1530,7 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
         if (value->get_id() == telegram_api::jsonArray::ID) {
           auto reasons = std::move(static_cast<telegram_api::jsonArray *>(value)->value_);
           for (auto &reason : reasons) {
-            auto reason_name = get_json_value_string(std::move(reason), "ignore_restriction_reasons");
+            auto reason_name = get_json_value_string(std::move(reason), key);
             if (!reason_name.empty() && reason_name.find(',') == string::npos) {
               if (!ignored_restriction_reasons.empty()) {
                 ignored_restriction_reasons += ',';
@@ -1546,14 +1546,14 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
         continue;
       }
       if (key == "emojies_animated_zoom") {
-        animated_emoji_zoom = get_json_value_double(std::move(key_value->value_), "emojies_animated_zoom");
+        animated_emoji_zoom = get_json_value_double(std::move(key_value->value_), key);
         continue;
       }
       if (key == "emojies_send_dice") {
         if (value->get_id() == telegram_api::jsonArray::ID) {
           auto emojis = std::move(static_cast<telegram_api::jsonArray *>(value)->value_);
           for (auto &emoji : emojis) {
-            auto emoji_text = get_json_value_string(std::move(emoji), "emojies_send_dice");
+            auto emoji_text = get_json_value_string(std::move(emoji), key);
             if (!emoji_text.empty()) {
               dice_emoji_index[emoji_text] = dice_emojis.size();
               dice_emojis.push_back(emoji_text);
@@ -1640,14 +1640,14 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
         continue;
       }
       if (key == "gif_search_branding") {
-        animation_search_provider = get_json_value_string(std::move(key_value->value_), "gif_search_branding");
+        animation_search_provider = get_json_value_string(std::move(key_value->value_), key);
         continue;
       }
       if (key == "gif_search_emojies") {
         if (value->get_id() == telegram_api::jsonArray::ID) {
           auto emojis = std::move(static_cast<telegram_api::jsonArray *>(value)->value_);
           for (auto &emoji : emojis) {
-            auto emoji_str = get_json_value_string(std::move(emoji), "gif_search_emojies");
+            auto emoji_str = get_json_value_string(std::move(emoji), key);
             if (!emoji_str.empty() && emoji_str.find(',') == string::npos) {
               if (!animation_search_emojis.empty()) {
                 animation_search_emojis += ',';
@@ -1666,7 +1666,7 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
         if (value->get_id() == telegram_api::jsonArray::ID) {
           auto actions = std::move(static_cast<telegram_api::jsonArray *>(value)->value_);
           for (auto &action : actions) {
-            auto action_str = get_json_value_string(std::move(action), "pending_suggestions");
+            auto action_str = get_json_value_string(std::move(action), key);
             SuggestedAction suggested_action(action_str);
             if (!suggested_action.is_empty()) {
               if (archive_and_mute &&
@@ -1685,19 +1685,18 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
         continue;
       }
       if (key == "autoarchive_setting_available") {
-        can_archive_and_mute_new_chats_from_unknown_users =
-            get_json_value_bool(std::move(key_value->value_), "autoarchive_setting_available");
+        can_archive_and_mute_new_chats_from_unknown_users = get_json_value_bool(std::move(key_value->value_), key);
         continue;
       }
       if (key == "autologin_token") {
-        autologin_token = get_json_value_string(std::move(key_value->value_), "autologin_token");
+        autologin_token = get_json_value_string(std::move(key_value->value_), key);
         continue;
       }
       if (key == "autologin_domains") {
         if (value->get_id() == telegram_api::jsonArray::ID) {
           auto domains = std::move(static_cast<telegram_api::jsonArray *>(value)->value_);
           for (auto &domain : domains) {
-            autologin_domains.push_back(get_json_value_string(std::move(domain), "autologin_domains"));
+            autologin_domains.push_back(get_json_value_string(std::move(domain), key));
           }
         } else {
           LOG(ERROR) << "Receive unexpected autologin_domains " << to_string(*value);
@@ -1708,7 +1707,7 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
         if (value->get_id() == telegram_api::jsonArray::ID) {
           auto domains = std::move(static_cast<telegram_api::jsonArray *>(value)->value_);
           for (auto &domain : domains) {
-            autologin_domains.push_back(get_json_value_string(std::move(domain), "url_auth_domains"));
+            autologin_domains.push_back(get_json_value_string(std::move(domain), key));
           }
         } else {
           LOG(ERROR) << "Receive unexpected url_auth_domains " << to_string(*value);
@@ -1750,20 +1749,19 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
         continue;
       }
       if (key == "chat_read_mark_expire_period") {
-        chat_read_mark_expire_period = get_json_value_int(std::move(key_value->value_), "chat_read_mark_expire_period");
+        chat_read_mark_expire_period = get_json_value_int(std::move(key_value->value_), key);
         continue;
       }
       if (key == "chat_read_mark_size_threshold") {
-        chat_read_mark_size_threshold =
-            get_json_value_int(std::move(key_value->value_), "chat_read_mark_size_threshold");
+        chat_read_mark_size_threshold = get_json_value_int(std::move(key_value->value_), key);
         continue;
       }
       if (key == "reactions_default") {
-        default_reaction = get_json_value_string(std::move(key_value->value_), "reactions_default");
+        default_reaction = get_json_value_string(std::move(key_value->value_), key);
         continue;
       }
       if (key == "reactions_uniq_max") {
-        reactions_uniq_max = get_json_value_int(std::move(key_value->value_), "reactions_uniq_max");
+        reactions_uniq_max = get_json_value_int(std::move(key_value->value_), key);
         continue;
       }
 
