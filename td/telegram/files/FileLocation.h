@@ -211,6 +211,7 @@ class FullRemoteFileLocation {
       case FileType::Secure:
       case FileType::Background:
       case FileType::DocumentAsFile:
+      case FileType::Ringtone:
         return LocationType::Common;
       case FileType::None:
       case FileType::Size:

@@ -33,6 +33,7 @@ enum class FileType : int32 {
   Secure,
   Background,
   DocumentAsFile,
+  Ringtone,
   Size,
   None
 };

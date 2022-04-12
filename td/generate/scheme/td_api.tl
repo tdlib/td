@@ -3475,6 +3475,9 @@ fileTypeAudio = FileType;
 //@description The file is a document
 fileTypeDocument = FileType;
 
+//@description The file is a notification sound
+fileTypeNotificationSound = FileType;
+
 //@description The file is a photo
 fileTypePhoto = FileType;
 

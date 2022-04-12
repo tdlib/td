@@ -65,7 +65,8 @@ tl_object_ptr<td_api::document> DocumentsManager::get_document_object(FileId fil
 
 Document DocumentsManager::on_get_document(RemoteDocument remote_document, DialogId owner_dialog_id,
                                            MultiPromiseActor *load_data_multipromise_ptr,
-                                           Document::Type default_document_type, bool is_background, bool is_pattern) {
+                                           Document::Type default_document_type, bool is_background, bool is_pattern,
+                                           bool is_ringtone) {
   tl_object_ptr<telegram_api::documentAttributeAnimated> animated;
   tl_object_ptr<telegram_api::documentAttributeVideo> video;
   tl_object_ptr<telegram_api::documentAttributeAudio> audio;
@@ -222,6 +223,15 @@ Document DocumentsManager::on_get_document(RemoteDocument remote_document, Dialo
     } else {
       default_extension = Slice("jpg");
     }
+  }
+
+  if (is_ringtone) {
+    if (document_type != Document::Type::Audio) {
+      LOG(ERROR) << "Receive notification tone of type " << document_type;
+      document_type = Document::Type::Audio;
+    }
+    file_type = FileType::Ringtone;
+    default_extension = Slice("mp3");
   }
 
   int64 id;

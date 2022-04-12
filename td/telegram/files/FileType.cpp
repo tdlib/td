@@ -40,6 +40,8 @@ FileType get_file_type(const td_api::FileType &file_type) {
       return FileType::VideoNote;
     case td_api::fileTypeSecure::ID:
       return FileType::Secure;
+    case td_api::fileTypeNotificationSound::ID:
+      return FileType::Ringtone;
     case td_api::fileTypeNone::ID:
       return FileType::None;
     default:
@@ -87,6 +89,8 @@ tl_object_ptr<td_api::FileType> get_file_type_object(FileType file_type) {
       return make_tl_object<td_api::fileTypeWallpaper>();
     case FileType::DocumentAsFile:
       return make_tl_object<td_api::fileTypeDocument>();
+    case FileType::Ringtone:
+      return make_tl_object<td_api::fileTypeNotificationSound>();
     case FileType::None:
       return make_tl_object<td_api::fileTypeNone>();
     default:
@@ -146,6 +150,8 @@ CSlice get_file_type_name(FileType file_type) {
       return CSlice("wallpapers");
     case FileType::DocumentAsFile:
       return CSlice("documents");
+    case FileType::Ringtone:
+      return CSlice("notification_sounds");
     case FileType::Size:
     case FileType::None:
     default:
@@ -170,6 +176,7 @@ FileDirType get_file_dir_type(FileType file_type) {
     case FileType::Secure:
     case FileType::SecureRaw:
     case FileType::Background:
+    case FileType::Ringtone:
       return FileDirType::Secure;
     default:
       return FileDirType::Common;
@@ -183,6 +190,7 @@ bool is_file_big(FileType file_type, int64 expected_size) {
     case FileType::Photo:
     case FileType::EncryptedThumbnail:
     case FileType::VideoNote:
+    case FileType::Ringtone:
       return false;
     default:
       break;

@@ -45,6 +45,7 @@ void FileGcWorker::run_gc(const FileGcParameters &parameters, std::vector<FullFi
     immune_types[narrow_cast<size_t>(FileType::Thumbnail)] = true;
     immune_types[narrow_cast<size_t>(FileType::Wallpaper)] = true;
     immune_types[narrow_cast<size_t>(FileType::Background)] = true;
+    immune_types[narrow_cast<size_t>(FileType::Ringtone)] = true;
   }
 
   if (!parameters.file_types_.empty()) {

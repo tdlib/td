@@ -913,6 +913,11 @@ string FileManager::get_file_name(FileType file_type, Slice path) {
         return fix_file_extension(file_name, "sticker", "webp");
       }
       break;
+    case FileType::Ringtone:
+      if (extension != "ogg" && extension != "oga" && extension != "mp3" && extension != "mpeg3") {
+        return fix_file_extension(file_name, "notification_tone", "mp3");
+      }
+      break;
     case FileType::Document:
     case FileType::Animation:
     case FileType::Encrypted:
@@ -2880,7 +2885,8 @@ void FileManager::cancel_upload(FileId file_id) {
 
 static bool is_document_type(FileType type) {
   return type == FileType::Document || type == FileType::Sticker || type == FileType::Audio ||
-         type == FileType::Animation || type == FileType::Background || type == FileType::DocumentAsFile;
+         type == FileType::Animation || type == FileType::Background || type == FileType::DocumentAsFile ||
+         type == FileType::Ringtone;
 }
 
 static bool is_background_type(FileType type) {
