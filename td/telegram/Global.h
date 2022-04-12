@@ -420,6 +420,8 @@ class Global final : public ActorContext {
     return close_flag();
   }
 
+  static int32 get_retry_after(int32 error_code, Slice error_message);
+
   const std::vector<std::shared_ptr<NetStatsCallback>> &get_net_stats_file_callbacks() {
     return net_stats_file_callbacks_;
   }

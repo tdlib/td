@@ -31147,12 +31147,9 @@ void MessagesManager::fail_send_message(FullMessageId full_message_id, int error
   message->send_error_code = error_code;
   message->send_error_message = error_message;
   message->try_resend_at = 0.0;
-  Slice retry_after_prefix("Too Many Requests: retry after ");
-  if (error_code == 429 && begins_with(error_message, retry_after_prefix)) {
-    auto r_retry_after = to_integer_safe<int32>(error_message.substr(retry_after_prefix.size()));
-    if (r_retry_after.is_ok() && r_retry_after.ok() > 0) {
-      message->try_resend_at = Time::now() + r_retry_after.ok();
-    }
+  auto retry_after = Global::get_retry_after(error_code, error_message);
+  if (retry_after > 0) {
+    message->try_resend_at = Time::now() + retry_after;
   }
   update_failed_to_send_message_content(td_, message->content);
 
