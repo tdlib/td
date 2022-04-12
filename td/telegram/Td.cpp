@@ -3826,46 +3826,6 @@ void Td::init_options_and_network() {
   VLOG(td_init) << "Create ConfigShared";
   G()->set_shared_config(td::make_unique<ConfigShared>(G()->td_db()->get_config_pmc_shared()));
 
-  if (G()->shared_config().have_option("language_database_path")) {
-    G()->shared_config().set_option_string("language_pack_database_path",
-                                           G()->shared_config().get_option_string("language_database_path"));
-    G()->shared_config().set_option_empty("language_database_path");
-  }
-  if (G()->shared_config().have_option("language_pack")) {
-    G()->shared_config().set_option_string("localization_target",
-                                           G()->shared_config().get_option_string("language_pack"));
-    G()->shared_config().set_option_empty("language_pack");
-  }
-  if (G()->shared_config().have_option("language_code")) {
-    G()->shared_config().set_option_string("language_pack_id", G()->shared_config().get_option_string("language_code"));
-    G()->shared_config().set_option_empty("language_code");
-  }
-  if (!G()->shared_config().have_option("message_text_length_max")) {
-    G()->shared_config().set_option_integer("message_text_length_max", 4096);
-  }
-  if (!G()->shared_config().have_option("message_caption_length_max")) {
-    G()->shared_config().set_option_integer("message_caption_length_max", 1024);
-  }
-  if (!G()->shared_config().have_option("suggested_video_note_length")) {
-    G()->shared_config().set_option_integer("suggested_video_note_length", 384);
-  }
-  if (!G()->shared_config().have_option("suggested_video_note_video_bitrate")) {
-    G()->shared_config().set_option_integer("suggested_video_note_video_bitrate", 1000);
-  }
-  if (!G()->shared_config().have_option("suggested_video_note_audio_bitrate")) {
-    G()->shared_config().set_option_integer("suggested_video_note_audio_bitrate", 64);
-  }
-  if (!G()->shared_config().have_option("notification_tone_duration_max")) {
-    G()->shared_config().set_option_integer("notification_tone_duration_max", 5);
-  }
-  if (!G()->shared_config().have_option("notification_tone_size_max")) {
-    G()->shared_config().set_option_integer("notification_tone_size_max", 307200);
-  }
-  if (!G()->shared_config().have_option("notification_tone_count_max")) {
-    G()->shared_config().set_option_integer("notification_tone_count_max", G()->is_test_dc() ? 5 : 100);
-  }
-  G()->shared_config().set_option_integer("utc_time_offset", Clocks::tz_offset());
-
   init_connection_creator();
 
   VLOG(td_init) << "Create TempAuthKeyWatchdog";
