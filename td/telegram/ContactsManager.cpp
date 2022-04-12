@@ -14824,7 +14824,7 @@ bool ContactsManager::get_channel_has_linked_channel(const Channel *c) {
 ChannelId ContactsManager::get_channel_linked_channel_id(ChannelId channel_id) {
   auto channel_full = get_channel_full_const(channel_id);
   if (channel_full == nullptr) {
-    channel_full = get_channel_full_force(channel_id, false, "get_channel_linked_channel_id");
+    channel_full = get_channel_full_force(channel_id, true, "get_channel_linked_channel_id");
     if (channel_full == nullptr) {
       return ChannelId();
     }
@@ -14835,7 +14835,7 @@ ChannelId ContactsManager::get_channel_linked_channel_id(ChannelId channel_id) {
 int32 ContactsManager::get_channel_slow_mode_delay(ChannelId channel_id) {
   auto channel_full = get_channel_full_const(channel_id);
   if (channel_full == nullptr) {
-    channel_full = get_channel_full_force(channel_id, false, "get_channel_slow_mode_delay");
+    channel_full = get_channel_full_force(channel_id, true, "get_channel_slow_mode_delay");
     if (channel_full == nullptr) {
       return 0;
     }
@@ -14846,7 +14846,7 @@ int32 ContactsManager::get_channel_slow_mode_delay(ChannelId channel_id) {
 bool ContactsManager::get_channel_can_be_deleted(ChannelId channel_id) {
   auto channel_full = get_channel_full_const(channel_id);
   if (channel_full == nullptr) {
-    channel_full = get_channel_full_force(channel_id, false, "get_channel_can_be_deleted");
+    channel_full = get_channel_full_force(channel_id, true, "get_channel_can_be_deleted");
     if (channel_full == nullptr) {
       return get_channel_status(channel_id).is_creator();
     }
