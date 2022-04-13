@@ -1004,9 +1004,7 @@ void WebPagesManager::update_web_page_instant_view_load_requests(WebPageId web_p
   if (r_web_page_id.is_error()) {
     LOG(INFO) << "Receive error " << r_web_page_id.error() << " for load " << web_page_id;
     combine(promises[0], std::move(promises[1]));
-    for (auto &promise : promises[0]) {
-      promise.set_error(r_web_page_id.error().clone());
-    }
+    fail_promises(promises[0], r_web_page_id.move_as_error());
     return;
   }
 
@@ -1666,9 +1664,7 @@ void WebPagesManager::on_load_web_page_from_database(WebPageId web_page_id, stri
     // web page has already been loaded from the server
   }
 
-  for (auto &promise : promises) {
-    promise.set_value(Unit());
-  }
+  set_promises(promises);
 }
 
 bool WebPagesManager::have_web_page_force(WebPageId web_page_id) {

@@ -144,10 +144,7 @@ class SqliteKeyValueAsync final : public SqliteKeyValueAsyncInterface {
       }
       kv_->commit_transaction().ensure();
       buffer_.clear();
-      for (auto &promise : buffer_promises_) {
-        promise.set_value(Unit());
-      }
-      buffer_promises_.clear();
+      set_promises(buffer_promises_);
     }
 
     void timeout_expired() final {

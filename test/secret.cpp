@@ -433,7 +433,7 @@ class FakeBinlog final
     has_request_sync = false;
     auto pos = static_cast<size_t>(Random::fast_uint64() % pending_events_.size());
     // pos = pending_events_.size() - 1;
-    std::vector<Promise<>> promises;
+    td::vector<Promise<Unit>> promises;
     for (size_t i = 0; i <= pos; i++) {
       auto &pending = pending_events_[i];
       auto event = std::move(pending.event);
@@ -444,9 +444,7 @@ class FakeBinlog final
       append(promises, std::move(pending.promises_));
     }
     pending_events_.erase(pending_events_.begin(), pending_events_.begin() + pos + 1);
-    for (auto &promise : promises) {
-      promise.set_value(Unit());
-    }
+    set_promises(promises);
 
     for (auto &event : pending_events_) {
       if (event.sync_flag) {
@@ -470,7 +468,7 @@ class FakeBinlog final
   struct PendingEvent {
     BinlogEvent event;
     bool sync_flag = false;
-    std::vector<Promise<>> promises_;
+    td::vector<Promise<Unit>> promises_;
   };
 
   std::vector<PendingEvent> pending_events_;

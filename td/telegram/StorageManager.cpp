@@ -135,10 +135,7 @@ void StorageManager::on_file_stats(Result<FileStats> r_file_stats, uint32 genera
     return;
   }
   if (r_file_stats.is_error()) {
-    auto promises = std::move(pending_storage_stats_);
-    for (auto &promise : promises) {
-      promise.set_error(r_file_stats.error().clone());
-    }
+    fail_promises(pending_storage_stats_, r_file_stats.move_as_error());
     return;
   }
 
@@ -223,9 +220,7 @@ void StorageManager::on_gc_finished(int32 dialog_limit, Result<FileGcResult> r_f
     append(promises, std::move(pending_run_gc_[1]));
     pending_run_gc_[0].clear();
     pending_run_gc_[1].clear();
-    for (auto &promise : promises) {
-      promise.set_error(r_file_gc_result.error().clone());
-    }
+    fail_promises(promises, r_file_gc_result.move_as_error());
     return;
   }
 
@@ -288,11 +283,7 @@ void StorageManager::hangup_shared() {
 }
 
 void StorageManager::close_stats_worker() {
-  auto promises = std::move(pending_storage_stats_);
-  pending_storage_stats_.clear();
-  for (auto &promise : promises) {
-    promise.set_error(Global::request_aborted_error());
-  }
+  fail_promises(pending_storage_stats_, Global::request_aborted_error());
   stats_generation_++;
   stats_worker_.reset();
   stats_cancellation_token_source_.cancel();
@@ -303,9 +294,7 @@ void StorageManager::close_gc_worker() {
   append(promises, std::move(pending_run_gc_[1]));
   pending_run_gc_[0].clear();
   pending_run_gc_[1].clear();
-  for (auto &promise : promises) {
-    promise.set_error(Global::request_aborted_error());
-  }
+  fail_promises(promises, Global::request_aborted_error());
   gc_worker_.reset();
   gc_cancellation_token_source_.cancel();
 }

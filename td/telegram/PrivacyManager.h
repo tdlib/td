@@ -151,7 +151,7 @@ class PrivacyManager final : public NetQueryCallback {
     return info_[static_cast<size_t>(key.type())];
   }
 
-  void on_get_result(UserPrivacySetting user_privacy_setting, Result<UserPrivacySettingRules> privacy_rules);
+  void on_get_result(UserPrivacySetting user_privacy_setting, Result<UserPrivacySettingRules> r_privacy_rules);
   void do_update_privacy(UserPrivacySetting user_privacy_setting, UserPrivacySettingRules &&privacy_rules,
                          bool from_update);
 

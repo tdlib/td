@@ -9898,9 +9898,7 @@ void MessagesManager::on_get_public_dialogs_search_result(const string &query,
   found_public_dialogs_[query] = get_peers_dialog_ids(std::move(peers));
   found_on_server_dialogs_[query] = get_peers_dialog_ids(std::move(my_peers));
 
-  for (auto &promise : promises) {
-    promise.set_value(Unit());
-  }
+  set_promises(promises);
 }
 
 void MessagesManager::on_failed_public_dialogs_search(const string &query, Status &&error) {
@@ -9913,9 +9911,7 @@ void MessagesManager::on_failed_public_dialogs_search(const string &query, Statu
   found_public_dialogs_[query];     // negative cache
   found_on_server_dialogs_[query];  // negative cache
 
-  for (auto &promise : promises) {
-    promise.set_error(error.clone());
-  }
+  fail_promises(promises, std::move(error));
 }
 
 void MessagesManager::on_get_message_search_result_calendar(
@@ -16733,9 +16729,7 @@ void MessagesManager::on_load_folder_dialog_list(FolderId folder_id, Result<Unit
     }
   }
 
-  for (auto &promise : promises) {
-    promise.set_error(result.error().clone());
-  }
+  fail_promises(promises, result.move_as_error());
 }
 
 void MessagesManager::load_folder_dialog_list_from_database(FolderId folder_id, int32 limit, Promise<Unit> &&promise) {
@@ -17016,9 +17010,7 @@ void MessagesManager::on_get_dialog_filters(Result<vector<tl_object_ptr<telegram
   auto promises = std::move(dialog_filter_reload_queries_);
   dialog_filter_reload_queries_.clear();
   if (r_filters.is_error()) {
-    for (auto &promise : promises) {
-      promise.set_error(r_filters.error().clone());
-    }
+    fail_promises(promises, r_filters.move_as_error());
     LOG(WARNING) << "Receive error " << r_filters.error() << " for GetDialogFiltersQuery";
     need_dialog_filters_reload_ = false;
     schedule_dialog_filters_reload(Random::fast(60, 5 * 60));
@@ -17142,9 +17134,7 @@ void MessagesManager::on_get_dialog_filters(Result<vector<tl_object_ptr<telegram
   if (need_synchronize_dialog_filters()) {
     synchronize_dialog_filters();
   }
-  for (auto &promise : promises) {
-    promise.set_value(Unit());
-  }
+  set_promises(promises);
 }
 
 bool MessagesManager::need_synchronize_dialog_filters() const {
@@ -19407,9 +19397,7 @@ void MessagesManager::edit_dialog_filter(unique_ptr<DialogFilter> new_dialog_fil
 
       if (!load_list_promises.empty()) {
         LOG(INFO) << "Retry loading of chats in " << dialog_list_id;
-        for (auto &promise : load_list_promises) {
-          promise.set_value(Unit());  // try again
-        }
+        set_promises(load_list_promises);  // try again
       }
       return;
     }
@@ -19479,10 +19467,7 @@ void MessagesManager::delete_dialog_filter(DialogFilterId dialog_filter_id, cons
         }
       }
 
-      auto promises = std::move(list->load_list_queries_);
-      for (auto &promise : promises) {
-        promise.set_error(Status::Error(400, "Chat list not found"));
-      }
+      fail_promises(list->load_list_queries_, Status::Error(400, "Chat list not found"));
 
       dialog_lists_.erase(dialog_list_id);
       dialog_filters_.erase(it);
@@ -22511,11 +22496,7 @@ void MessagesManager::on_load_active_live_location_full_message_ids_from_databas
 
 void MessagesManager::on_load_active_live_location_messages_finished() {
   are_active_live_location_messages_loaded_ = true;
-  auto promises = std::move(load_active_live_location_messages_queries_);
-  load_active_live_location_messages_queries_.clear();
-  for (auto &promise : promises) {
-    promise.set_value(Unit());
-  }
+  set_promises(load_active_live_location_messages_queries_);
 }
 
 void MessagesManager::try_add_active_live_location(DialogId dialog_id, const Message *m) {
@@ -24044,9 +24025,7 @@ void MessagesManager::on_get_scheduled_messages_from_database(DialogId dialog_id
     auto promises = std::move(it->second);
     load_scheduled_messages_from_database_queries_.erase(it);
 
-    for (auto &promise : promises) {
-      promise.set_error(Global::request_aborted_error());
-    }
+    fail_promises(promises, Global::request_aborted_error());
     return;
   }
   auto d = get_dialog(dialog_id);
@@ -24089,9 +24068,7 @@ void MessagesManager::on_get_scheduled_messages_from_database(DialogId dialog_id
   auto promises = std::move(it->second);
   load_scheduled_messages_from_database_queries_.erase(it);
 
-  for (auto &promise : promises) {
-    promise.set_value(Unit());
-  }
+  set_promises(promises);
 }
 
 Result<vector<string>> MessagesManager::get_message_available_reactions(FullMessageId full_message_id) {
@@ -32406,12 +32383,10 @@ void MessagesManager::on_get_dialog_query_finished(DialogId dialog_id, Status &&
     get_dialog_query_log_event_id_.erase(log_event_it);
   }
 
-  for (auto &promise : promises) {
-    if (status.is_ok()) {
-      promise.set_value(Unit());
-    } else {
-      promise.set_error(status.clone());
-    }
+  if (status.is_ok()) {
+    set_promises(promises);
+  } else {
+    fail_promises(promises, std::move(status));
   }
 }
 
@@ -36995,11 +36970,7 @@ void MessagesManager::update_list_last_dialog_date(DialogList &list) {
             << " have is_list_further_loaded == " << is_list_further_loaded << " and " << list.load_list_queries_.size()
             << " pending load list queries";
   if (is_list_further_loaded && !list.load_list_queries_.empty()) {
-    auto promises = std::move(list.load_list_queries_);
-    list.load_list_queries_.clear();
-    for (auto &promise : promises) {
-      promise.set_value(Unit());
-    }
+    set_promises(list.load_list_queries_);
   }
 }
 
@@ -38243,12 +38214,10 @@ void MessagesManager::after_get_channel_difference(DialogId dialog_id, bool succ
 
   auto promise_it = run_after_get_channel_difference_.find(dialog_id);
   if (promise_it != run_after_get_channel_difference_.end()) {
-    vector<Promise<Unit>> promises = std::move(promise_it->second);
+    auto promises = std::move(promise_it->second);
     run_after_get_channel_difference_.erase(promise_it);
 
-    for (auto &promise : promises) {
-      promise.set_value(Unit());
-    }
+    set_promises(promises);
   }
 
   auto it = pending_channel_on_get_dialogs_.find(dialog_id);

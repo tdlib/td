@@ -565,9 +565,7 @@ void BackgroundManager::on_load_background_from_database(string name, string val
     }
   }
 
-  for (auto &promise : promises) {
-    promise.set_value(Unit());
-  }
+  set_promises(promises);
 }
 
 td_api::object_ptr<td_api::updateSelectedBackground> BackgroundManager::get_update_selected_background_object(

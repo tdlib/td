@@ -638,12 +638,10 @@ void NotificationSettingsManager::on_get_dialog_notification_settings_query_fini
   auto promises = std::move(it->second);
   get_dialog_notification_settings_queries_.erase(it);
 
-  for (auto &promise : promises) {
-    if (status.is_ok()) {
-      promise.set_value(Unit());
-    } else {
-      promise.set_error(status.clone());
-    }
+  if (status.is_ok()) {
+    set_promises(promises);
+  } else {
+    fail_promises(promises, std::move(status));
   }
 }
 

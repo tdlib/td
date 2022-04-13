@@ -885,8 +885,10 @@ void PollManager::on_set_poll_answer_finished(PollId poll_id, Result<Unit> &&res
     }
   }
 
-  for (auto &promise : promises) {
-    promise.set_result(result.clone());
+  if (result.is_ok()) {
+    set_promises(promises);
+  } else {
+    fail_promises(promises, result.move_as_error());
   }
 }
 
@@ -1020,9 +1022,7 @@ void PollManager::on_get_poll_voters(PollId poll_id, int32 option_id, string off
     return;
   }
   if (result.is_error()) {
-    for (auto &promise : promises) {
-      promise.set_error(result.error().clone());
-    }
+    fail_promises(promises, result.move_as_error());
     return;
   }
 
@@ -1423,10 +1423,7 @@ PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll
       auto it = poll_voters_.find(poll_id);
       if (it != poll_voters_.end()) {
         for (auto &voters : it->second) {
-          auto promises = std::move(voters.pending_queries);
-          for (auto &promise : promises) {
-            promise.set_error(Status::Error(500, "The poll was changed"));
-          }
+          fail_promises(voters.pending_queries, Status::Error(500, "The poll was changed"));
         }
         poll_voters_.erase(it);
       }

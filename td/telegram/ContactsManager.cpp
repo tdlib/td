@@ -5507,11 +5507,7 @@ void ContactsManager::on_load_imported_contacts_finished() {
     all_imported_contacts_.clear();
   }
   are_imported_contacts_loaded_ = true;
-  auto promises = std::move(load_imported_contacts_queries_);
-  load_imported_contacts_queries_.clear();
-  for (auto &promise : promises) {
-    promise.set_value(Unit());
-  }
+  set_promises(load_imported_contacts_queries_);
 }
 
 std::pair<vector<UserId>, vector<int32>> ContactsManager::change_imported_contacts(vector<Contact> &contacts,
@@ -7877,9 +7873,7 @@ void ContactsManager::finish_get_created_public_dialogs(PublicDialogType type, R
     result = G()->close_status();
   }
   if (result.is_error()) {
-    for (auto &promise : promises) {
-      promise.set_error(result.error().clone());
-    }
+    fail_promises(promises, result.move_as_error());
     return;
   }
 
@@ -8084,17 +8078,13 @@ void ContactsManager::on_dismiss_suggested_action(SuggestedAction action, Result
   dismiss_suggested_action_queries_.erase(it);
 
   if (result.is_error()) {
-    for (auto &promise : promises) {
-      promise.set_error(result.error().clone());
-    }
+    fail_promises(promises, result.move_as_error());
     return;
   }
 
   remove_dialog_suggested_action(action);
 
-  for (auto &promise : promises) {
-    promise.set_value(Unit());
-  }
+  set_promises(promises);
 }
 
 void ContactsManager::on_import_contacts_finished(int64 random_id, vector<UserId> imported_contact_user_ids,
@@ -8269,11 +8259,7 @@ void ContactsManager::save_contacts_to_database() {
 void ContactsManager::on_get_contacts_failed(Status error) {
   CHECK(error.is_error());
   next_contacts_sync_date_ = G()->unix_time() + Random::fast(5, 10);
-  auto promises = std::move(load_contacts_queries_);
-  load_contacts_queries_.clear();
-  for (auto &promise : promises) {
-    promise.set_error(error.clone());
-  }
+  fail_promises(load_contacts_queries_, std::move(error));
 }
 
 void ContactsManager::on_load_contacts_from_database(string value) {
@@ -8309,11 +8295,7 @@ void ContactsManager::on_load_contacts_from_database(string value) {
 void ContactsManager::on_get_contacts_finished(size_t expected_contact_count) {
   LOG(INFO) << "Finished to get " << contacts_hints_.size() << " contacts out of expected " << expected_contact_count;
   are_contacts_loaded_ = true;
-  auto promises = std::move(load_contacts_queries_);
-  load_contacts_queries_.clear();
-  for (auto &promise : promises) {
-    promise.set_value(Unit());
-  }
+  set_promises(load_contacts_queries_);
   if (expected_contact_count != contacts_hints_.size()) {
     save_contacts_to_database();
   }
@@ -8813,9 +8795,7 @@ void ContactsManager::on_load_user_from_database(UserId user_id, string value, b
     }
   }
 
-  for (auto &promise : promises) {
-    promise.set_value(Unit());
-  }
+  set_promises(promises);
 }
 
 bool ContactsManager::have_user_force(UserId user_id) {
@@ -9118,9 +9098,7 @@ void ContactsManager::on_load_chat_from_database(ChatId chat_id, string value, b
     LOG(ERROR) << "Can't find " << c->migrated_to_channel_id << " from " << chat_id;
   }
 
-  for (auto &promise : promises) {
-    promise.set_value(Unit());
-  }
+  set_promises(promises);
 }
 
 bool ContactsManager::have_chat_force(ChatId chat_id) {
@@ -9376,9 +9354,7 @@ void ContactsManager::on_load_channel_from_database(ChannelId channel_id, string
     }
   }
 
-  for (auto &promise : promises) {
-    promise.set_value(Unit());
-  }
+  set_promises(promises);
 }
 
 bool ContactsManager::have_channel_force(ChannelId channel_id) {
@@ -9616,9 +9592,7 @@ void ContactsManager::on_load_secret_chat_from_database(SecretChatId secret_chat
     LOG(ERROR) << "Can't find " << c->user_id << " from " << secret_chat_id;
   }
 
-  for (auto &promise : promises) {
-    promise.set_value(Unit());
-  }
+  set_promises(promises);
 }
 
 bool ContactsManager::have_secret_chat_force(SecretChatId secret_chat_id) {

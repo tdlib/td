@@ -1402,10 +1402,7 @@ void UpdatesManager::on_get_difference(tl_object_ptr<telegram_api::updates_Diffe
         pending_qts_updates_.clear();
 
         for (auto &pending_update : pending_qts_updates) {
-          auto promises = std::move(pending_update.second.promises);
-          for (auto &promise : promises) {
-            promise.set_value(Unit());
-          }
+          set_promises(pending_update.second.promises);
         }
       }
 
@@ -2412,11 +2409,8 @@ void UpdatesManager::process_pending_qts_updates() {
       // the update will be applied later
       break;
     }
-    auto promise = PromiseCreator::lambda([promises = std::move(update_it->second.promises)](Unit) mutable {
-      for (auto &promise : promises) {
-        promise.set_value(Unit());
-      }
-    });
+    auto promise = PromiseCreator::lambda(
+        [promises = std::move(update_it->second.promises)](Unit) mutable { set_promises(promises); });
     processed_pending_update = true;
     if (qts == old_qts + 1) {
       process_qts_update(std::move(update_it->second.update), qts, std::move(promise));

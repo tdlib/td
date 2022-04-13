@@ -243,9 +243,7 @@ void SponsoredMessageManager::on_get_dialog_sponsored_messages(
   }
   if (result.is_error()) {
     dialog_sponsored_messages_.erase(dialog_id);
-    for (auto &promise : promises) {
-      promise.set_error(result.error().clone());
-    }
+    fail_promises(promises, result.move_as_error());
     return;
   }
 

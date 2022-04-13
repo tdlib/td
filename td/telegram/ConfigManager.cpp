@@ -1147,47 +1147,32 @@ void ConfigManager::on_result(NetQueryPtr res) {
 
     auto result_ptr = fetch_result<telegram_api::help_dismissSuggestion>(std::move(res));
     if (result_ptr.is_error()) {
-      for (auto &promise : promises) {
-        promise.set_error(result_ptr.error().clone());
-      }
+      fail_promises(promises, result_ptr.move_as_error());
       return;
     }
     remove_suggested_action(suggested_actions_, suggested_action);
     reget_app_config(Auto());
 
-    for (auto &promise : promises) {
-      promise.set_value(Unit());
-    }
+    set_promises(promises);
     return;
   }
   if (token == 6 || token == 7) {
     is_set_archive_and_mute_request_sent_ = false;
     bool archive_and_mute = (token == 7);
-    auto promises = std::move(set_archive_and_mute_queries_[archive_and_mute]);
-    set_archive_and_mute_queries_[archive_and_mute].clear();
-    CHECK(!promises.empty());
     auto result_ptr = fetch_result<telegram_api::account_setGlobalPrivacySettings>(std::move(res));
     if (result_ptr.is_error()) {
-      for (auto &promise : promises) {
-        promise.set_error(result_ptr.error().clone());
-      }
+      fail_promises(set_archive_and_mute_queries_[archive_and_mute], result_ptr.move_as_error());
     } else {
       if (last_set_archive_and_mute_ == archive_and_mute) {
         do_set_archive_and_mute(archive_and_mute);
       }
 
-      for (auto &promise : promises) {
-        promise.set_value(Unit());
-      }
+      set_promises(set_archive_and_mute_queries_[archive_and_mute]);
     }
 
     if (!set_archive_and_mute_queries_[!archive_and_mute].empty()) {
       if (archive_and_mute == last_set_archive_and_mute_) {
-        promises = std::move(set_archive_and_mute_queries_[!archive_and_mute]);
-        set_archive_and_mute_queries_[!archive_and_mute].clear();
-        for (auto &promise : promises) {
-          promise.set_value(Unit());
-        }
+        set_promises(set_archive_and_mute_queries_[!archive_and_mute]);
       } else {
         set_archive_and_mute(!archive_and_mute, Auto());
       }
@@ -1195,14 +1180,9 @@ void ConfigManager::on_result(NetQueryPtr res) {
     return;
   }
   if (token == 5) {
-    auto promises = std::move(get_global_privacy_settings_queries_);
-    get_global_privacy_settings_queries_.clear();
-    CHECK(!promises.empty());
     auto result_ptr = fetch_result<telegram_api::account_getGlobalPrivacySettings>(std::move(res));
     if (result_ptr.is_error()) {
-      for (auto &promise : promises) {
-        promise.set_error(result_ptr.error().clone());
-      }
+      fail_promises(get_global_privacy_settings_queries_, result_ptr.move_as_error());
       return;
     }
 
@@ -1213,40 +1193,27 @@ void ConfigManager::on_result(NetQueryPtr res) {
       LOG(ERROR) << "Receive wrong response: " << to_string(result);
     }
 
-    for (auto &promise : promises) {
-      promise.set_value(Unit());
-    }
+    set_promises(get_global_privacy_settings_queries_);
     return;
   }
   if (token == 3 || token == 4) {
     is_set_content_settings_request_sent_ = false;
     bool ignore_sensitive_content_restrictions = (token == 4);
-    auto promises = std::move(set_content_settings_queries_[ignore_sensitive_content_restrictions]);
-    set_content_settings_queries_[ignore_sensitive_content_restrictions].clear();
-    CHECK(!promises.empty());
     auto result_ptr = fetch_result<telegram_api::account_setContentSettings>(std::move(res));
     if (result_ptr.is_error()) {
-      for (auto &promise : promises) {
-        promise.set_error(result_ptr.error().clone());
-      }
+      fail_promises(set_content_settings_queries_[ignore_sensitive_content_restrictions], result_ptr.move_as_error());
     } else {
       if (G()->shared_config().get_option_boolean("can_ignore_sensitive_content_restrictions") &&
           last_set_content_settings_ == ignore_sensitive_content_restrictions) {
         do_set_ignore_sensitive_content_restrictions(ignore_sensitive_content_restrictions);
       }
 
-      for (auto &promise : promises) {
-        promise.set_value(Unit());
-      }
+      set_promises(set_content_settings_queries_[ignore_sensitive_content_restrictions]);
     }
 
     if (!set_content_settings_queries_[!ignore_sensitive_content_restrictions].empty()) {
       if (ignore_sensitive_content_restrictions == last_set_content_settings_) {
-        promises = std::move(set_content_settings_queries_[!ignore_sensitive_content_restrictions]);
-        set_content_settings_queries_[!ignore_sensitive_content_restrictions].clear();
-        for (auto &promise : promises) {
-          promise.set_value(Unit());
-        }
+        set_promises(set_content_settings_queries_[!ignore_sensitive_content_restrictions]);
       } else {
         set_content_settings(!ignore_sensitive_content_restrictions, Auto());
       }
@@ -1254,14 +1221,9 @@ void ConfigManager::on_result(NetQueryPtr res) {
     return;
   }
   if (token == 2) {
-    auto promises = std::move(get_content_settings_queries_);
-    get_content_settings_queries_.clear();
-    CHECK(!promises.empty());
     auto result_ptr = fetch_result<telegram_api::account_getContentSettings>(std::move(res));
     if (result_ptr.is_error()) {
-      for (auto &promise : promises) {
-        promise.set_error(result_ptr.error().clone());
-      }
+      fail_promises(get_content_settings_queries_, result_ptr.move_as_error());
       return;
     }
 
@@ -1269,9 +1231,7 @@ void ConfigManager::on_result(NetQueryPtr res) {
     do_set_ignore_sensitive_content_restrictions(result->sensitive_enabled_);
     G()->shared_config().set_option_boolean("can_ignore_sensitive_content_restrictions", result->sensitive_can_change_);
 
-    for (auto &promise : promises) {
-      promise.set_value(Unit());
-    }
+    set_promises(get_content_settings_queries_);
     return;
   }
   if (token == 1) {
@@ -1282,12 +1242,8 @@ void ConfigManager::on_result(NetQueryPtr res) {
     CHECK(!promises.empty() || !unit_promises.empty());
     auto result_ptr = fetch_result<telegram_api::help_getAppConfig>(std::move(res));
     if (result_ptr.is_error()) {
-      for (auto &promise : promises) {
-        promise.set_error(result_ptr.error().clone());
-      }
-      for (auto &promise : unit_promises) {
-        promise.set_error(result_ptr.error().clone());
-      }
+      fail_promises(promises, result_ptr.error().clone());
+      fail_promises(unit_promises, result_ptr.move_as_error());
       return;
     }
 
@@ -1296,9 +1252,7 @@ void ConfigManager::on_result(NetQueryPtr res) {
     for (auto &promise : promises) {
       promise.set_value(convert_json_value_object(result));
     }
-    for (auto &promise : unit_promises) {
-      promise.set_value(Unit());
-    }
+    set_promises(unit_promises);
     return;
   }
 

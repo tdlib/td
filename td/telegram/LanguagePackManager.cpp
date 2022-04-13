@@ -1227,9 +1227,7 @@ void LanguagePackManager::on_get_all_language_pack_strings(
   }
 
   if (r_strings.is_error()) {
-    for (auto &promise : promises) {
-      promise.set_error(r_strings.error().clone());
-    }
+    fail_promises(promises, r_strings.move_as_error());
     return;
   }
 
@@ -1533,11 +1531,7 @@ void LanguagePackManager::on_failed_get_difference(string language_pack, string 
       reset_to_empty(language->get_difference_queries_);
     }
   }
-  for (auto &query : get_difference_queries) {
-    if (query) {
-      query.set_error(error.clone());
-    }
-  }
+  fail_promises(get_difference_queries, std::move(error));
 }
 
 void LanguagePackManager::add_custom_server_language(string language_code, Promise<Unit> &&promise) {

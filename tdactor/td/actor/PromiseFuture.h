@@ -723,4 +723,33 @@ class PromiseCreator {
   }
 };
 
+inline void set_promises(vector<Promise<Unit>> &promises) {
+  auto moved_promises = std::move(promises);
+  promises.clear();
+
+  for (auto &promise : moved_promises) {
+    promise.set_value(Unit());
+  }
+}
+
+template <class T>
+void fail_promises(vector<Promise<T>> &promises, Status &&error) {
+  CHECK(error.is_error());
+  auto moved_promises = std::move(promises);
+  promises.clear();
+
+  auto size = moved_promises.size();
+  if (size == 0) {
+    return;
+  }
+  size--;
+  for (size_t i = 0; i < size; i++) {
+    auto &promise = moved_promises[i];
+    if (promise) {
+      promise.set_error(error.clone());
+    }
+  }
+  moved_promises[size].set_error(std::move(error));
+}
+
 }  // namespace td

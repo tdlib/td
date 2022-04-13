@@ -152,10 +152,7 @@ class BinlogActor final : public Actor {
     if (need_sync) {
       binlog_->sync();
       // LOG(ERROR) << "BINLOG SYNC";
-      for (auto &promise : sync_promises_) {
-        promise.set_value(Unit());
-      }
-      sync_promises_.clear();
+      set_promises(sync_promises_);
     } else if (need_flush) {
       try_flush();
       // LOG(ERROR) << "BINLOG FLUSH";

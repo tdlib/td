@@ -1513,11 +1513,7 @@ void StickersManager::on_load_special_sticker_set(const SpecialStickerSetType &t
   special_sticker_set.is_being_loaded_ = false;
 
   if (type == SpecialStickerSetType::animated_emoji()) {
-    auto promises = std::move(pending_get_animated_emoji_queries_);
-    reset_to_empty(pending_get_animated_emoji_queries_);
-    for (auto &promise : promises) {
-      promise.set_value(Unit());
-    }
+    set_promises(pending_get_animated_emoji_queries_);
     return;
   }
 
@@ -3385,11 +3381,7 @@ void StickersManager::on_get_installed_sticker_sets(bool is_masks,
 void StickersManager::on_get_installed_sticker_sets_failed(bool is_masks, Status error) {
   CHECK(error.is_error());
   next_installed_sticker_sets_load_time_[is_masks] = Time::now_cached() + Random::fast(5, 10);
-  auto promises = std::move(load_installed_sticker_sets_queries_[is_masks]);
-  load_installed_sticker_sets_queries_[is_masks].clear();
-  for (auto &promise : promises) {
-    promise.set_error(error.clone());
-  }
+  fail_promises(load_installed_sticker_sets_queries_[is_masks], std::move(error));
 }
 
 vector<FileId> StickersManager::get_stickers(string emoji, int32 limit, bool force, Promise<Unit> &&promise) {
@@ -3672,9 +3664,7 @@ void StickersManager::on_find_stickers_success(const string &emoji,
   auto promises = std::move(it->second);
   search_stickers_queries_.erase(it);
 
-  for (auto &promise : promises) {
-    promise.set_value(Unit());
-  }
+  set_promises(promises);
 }
 
 void StickersManager::on_find_stickers_fail(const string &emoji, Status &&error) {
@@ -3689,9 +3679,7 @@ void StickersManager::on_find_stickers_fail(const string &emoji, Status &&error)
   auto promises = std::move(it->second);
   search_stickers_queries_.erase(it);
 
-  for (auto &promise : promises) {
-    promise.set_error(error.clone());
-  }
+  fail_promises(promises, std::move(error));
 }
 
 vector<StickerSetId> StickersManager::get_installed_sticker_sets(bool is_masks, Promise<Unit> &&promise) {
@@ -3844,9 +3832,7 @@ void StickersManager::on_find_sticker_sets_success(
   auto promises = std::move(it->second);
   search_sticker_sets_queries_.erase(it);
 
-  for (auto &promise : promises) {
-    promise.set_value(Unit());
-  }
+  set_promises(promises);
 }
 
 void StickersManager::on_find_sticker_sets_fail(const string &query, Status &&error) {
@@ -3858,9 +3844,7 @@ void StickersManager::on_find_sticker_sets_fail(const string &query, Status &&er
   auto promises = std::move(it->second);
   search_sticker_sets_queries_.erase(it);
 
-  for (auto &promise : promises) {
-    promise.set_error(error.clone());
-  }
+  fail_promises(promises, std::move(error));
 }
 
 void StickersManager::change_sticker_set(StickerSetId set_id, bool is_installed, bool is_archived,
@@ -4064,11 +4048,7 @@ void StickersManager::on_load_installed_sticker_sets_finished(bool is_masks,
   are_installed_sticker_sets_loaded_[is_masks] = true;
   need_update_installed_sticker_sets_[is_masks] = true;
   send_update_installed_sticker_sets(from_database);
-  auto promises = std::move(load_installed_sticker_sets_queries_[is_masks]);
-  load_installed_sticker_sets_queries_[is_masks].clear();
-  for (auto &promise : promises) {
-    promise.set_value(Unit());
-  }
+  set_promises(load_installed_sticker_sets_queries_[is_masks]);
 }
 
 string StickersManager::get_sticker_set_database_key(StickerSetId set_id) {
@@ -5180,11 +5160,7 @@ void StickersManager::invalidate_old_featured_sticker_sets() {
   old_featured_sticker_set_ids_.clear();
 
   old_featured_sticker_set_generation_++;
-  auto promises = std::move(load_old_featured_sticker_sets_queries_);
-  load_old_featured_sticker_sets_queries_.clear();
-  for (auto &promise : promises) {
-    promise.set_error(Status::Error(400, "Trending sticker sets were updated"));
-  }
+  fail_promises(load_old_featured_sticker_sets_queries_, Status::Error(400, "Trending sticker sets were updated"));
 }
 
 void StickersManager::set_old_featured_sticker_set_count(int32 count) {
@@ -5307,21 +5283,14 @@ void StickersManager::on_get_featured_sticker_sets(
 
 void StickersManager::on_get_featured_sticker_sets_failed(int32 offset, int32 limit, uint32 generation, Status error) {
   CHECK(error.is_error());
-  vector<Promise<Unit>> promises;
   if (offset >= 0) {
     if (generation != old_featured_sticker_set_generation_) {
       return;
     }
-    promises = std::move(load_old_featured_sticker_sets_queries_);
-    load_old_featured_sticker_sets_queries_.clear();
+    fail_promises(load_old_featured_sticker_sets_queries_, std::move(error));
   } else {
     next_featured_sticker_sets_load_time_ = Time::now_cached() + Random::fast(5, 10);
-    promises = std::move(load_featured_sticker_sets_queries_);
-    load_featured_sticker_sets_queries_.clear();
-  }
-
-  for (auto &promise : promises) {
-    promise.set_error(error.clone());
+    fail_promises(load_featured_sticker_sets_queries_, std::move(error));
   }
 }
 
@@ -5400,11 +5369,7 @@ void StickersManager::on_load_featured_sticker_sets_finished(vector<StickerSetId
   are_featured_sticker_sets_loaded_ = true;
   need_update_featured_sticker_sets_ = true;
   send_update_featured_sticker_sets();
-  auto promises = std::move(load_featured_sticker_sets_queries_);
-  load_featured_sticker_sets_queries_.clear();
-  for (auto &promise : promises) {
-    promise.set_value(Unit());
-  }
+  set_promises(load_featured_sticker_sets_queries_);
 }
 
 void StickersManager::load_old_featured_sticker_sets(Promise<Unit> &&promise) {
@@ -5482,11 +5447,7 @@ void StickersManager::on_load_old_featured_sticker_sets_finished(uint32 generati
   }
   append(old_featured_sticker_set_ids_, std::move(featured_sticker_set_ids));
   fix_old_featured_sticker_set_count();
-  auto promises = std::move(load_old_featured_sticker_sets_queries_);
-  load_old_featured_sticker_sets_queries_.clear();
-  for (auto &promise : promises) {
-    promise.set_value(Unit());
-  }
+  set_promises(load_old_featured_sticker_sets_queries_);
 }
 
 vector<StickerSetId> StickersManager::get_attached_sticker_sets(FileId file_id, Promise<Unit> &&promise) {
@@ -6493,11 +6454,7 @@ void StickersManager::on_load_recent_stickers_finished(bool is_attached, vector<
   recent_sticker_ids_[is_attached] = std::move(recent_sticker_ids);
   are_recent_stickers_loaded_[is_attached] = true;
   send_update_recent_stickers(is_attached, from_database);
-  auto promises = std::move(load_recent_stickers_queries_[is_attached]);
-  load_recent_stickers_queries_[is_attached].clear();
-  for (auto &promise : promises) {
-    promise.set_value(Unit());
-  }
+  set_promises(load_recent_stickers_queries_[is_attached]);
 }
 
 void StickersManager::on_get_recent_stickers(bool is_repair, bool is_attached,
@@ -6530,11 +6487,7 @@ void StickersManager::on_get_recent_stickers(bool is_repair, bool is_attached,
   }
 
   if (is_repair) {
-    auto promises = std::move(repair_recent_stickers_queries_[is_attached]);
-    repair_recent_stickers_queries_[is_attached].clear();
-    for (auto &promise : promises) {
-      promise.set_value(Unit());
-    }
+    set_promises(repair_recent_stickers_queries_[is_attached]);
   } else {
     on_load_recent_stickers_finished(is_attached, std::move(recent_sticker_ids));
 
@@ -6547,12 +6500,8 @@ void StickersManager::on_get_recent_stickers_failed(bool is_repair, bool is_atta
   if (!is_repair) {
     next_recent_stickers_load_time_[is_attached] = Time::now_cached() + Random::fast(5, 10);
   }
-  auto &queries = is_repair ? repair_recent_stickers_queries_[is_attached] : load_recent_stickers_queries_[is_attached];
-  auto promises = std::move(queries);
-  queries.clear();
-  for (auto &promise : promises) {
-    promise.set_error(error.clone());
-  }
+  fail_promises(is_repair ? repair_recent_stickers_queries_[is_attached] : load_recent_stickers_queries_[is_attached],
+                std::move(error));
 }
 
 int64 StickersManager::get_recent_stickers_hash(const vector<FileId> &sticker_ids) const {
@@ -6896,11 +6845,7 @@ void StickersManager::on_load_favorite_stickers_finished(vector<FileId> &&favori
   favorite_sticker_ids_ = std::move(favorite_sticker_ids);
   are_favorite_stickers_loaded_ = true;
   send_update_favorite_stickers(from_database);
-  auto promises = std::move(load_favorite_stickers_queries_);
-  load_favorite_stickers_queries_.clear();
-  for (auto &promise : promises) {
-    promise.set_value(Unit());
-  }
+  set_promises(load_favorite_stickers_queries_);
 }
 
 void StickersManager::on_get_favorite_stickers(
@@ -6936,11 +6881,7 @@ void StickersManager::on_get_favorite_stickers(
   }
 
   if (is_repair) {
-    auto promises = std::move(repair_favorite_stickers_queries_);
-    repair_favorite_stickers_queries_.clear();
-    for (auto &promise : promises) {
-      promise.set_value(Unit());
-    }
+    set_promises(repair_favorite_stickers_queries_);
   } else {
     on_load_favorite_stickers_finished(std::move(favorite_sticker_ids));
 
@@ -6953,12 +6894,7 @@ void StickersManager::on_get_favorite_stickers_failed(bool is_repair, Status err
   if (!is_repair) {
     next_favorite_stickers_load_time_ = Time::now_cached() + Random::fast(5, 10);
   }
-  auto &queries = is_repair ? repair_favorite_stickers_queries_ : load_favorite_stickers_queries_;
-  auto promises = std::move(queries);
-  queries.clear();
-  for (auto &promise : promises) {
-    promise.set_error(error.clone());
-  }
+  fail_promises(is_repair ? repair_favorite_stickers_queries_ : load_favorite_stickers_queries_, std::move(error));
 }
 
 int64 StickersManager::get_favorite_stickers_hash() const {
@@ -7279,9 +7215,7 @@ void StickersManager::on_get_language_codes(const string &key, Result<vector<str
     if (!G()->is_expected_error(result.error())) {
       LOG(ERROR) << "Receive " << result.error() << " from GetEmojiKeywordsLanguageQuery";
     }
-    for (auto &promise : promises) {
-      promise.set_error(result.error().clone());
-    }
+    fail_promises(promises, result.move_as_error());
     return;
   }
 
@@ -7311,9 +7245,7 @@ void StickersManager::on_get_language_codes(const string &key, Result<vector<str
     it->second = std::move(language_codes);
   }
 
-  for (auto &promise : promises) {
-    promise.set_value(Unit());
-  }
+  set_promises(promises);
 }
 
 vector<string> StickersManager::get_emoji_language_codes(const vector<string> &input_language_codes, Slice text,
@@ -7412,9 +7344,7 @@ void StickersManager::on_get_emoji_keywords(
     if (!G()->is_expected_error(result.error())) {
       LOG(ERROR) << "Receive " << result.error() << " from GetEmojiKeywordsQuery";
     }
-    for (auto &promise : promises) {
-      promise.set_error(result.error().clone());
-    }
+    fail_promises(promises, result.move_as_error());
     return;
   }
 

@@ -1655,9 +1655,7 @@ void NotificationManager::on_notification_processed(NotificationId notification_
     auto promises = std::move(promise_it->second);
     push_notification_promises_.erase(promise_it);
 
-    for (auto &promise : promises) {
-      promise.set_value(Unit());
-    }
+    set_promises(promises);
   }
 }
 

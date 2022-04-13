@@ -362,15 +362,11 @@ void CountryInfoManager::on_get_country_list(const string &language_code,
         it->second->next_reload_time = max(Time::now() + Random::fast(60, 120), it->second->next_reload_time);
 
         // if we have data for the language, then we don't need to fail promises
-        for (auto &promise : promises) {
-          promise.set_value(Unit());
-        }
+        set_promises(promises);
         return;
       }
     }
-    for (auto &promise : promises) {
-      promise.set_error(r_country_list.error().clone());
-    }
+    fail_promises(promises, r_country_list.move_as_error());
     return;
   }
 
@@ -379,9 +375,7 @@ void CountryInfoManager::on_get_country_list(const string &language_code,
     on_get_country_list_impl(language_code, r_country_list.move_as_ok());
   }
 
-  for (auto &promise : promises) {
-    promise.set_value(Unit());
-  }
+  set_promises(promises);
 }
 
 void CountryInfoManager::on_get_country_list_impl(const string &language_code,

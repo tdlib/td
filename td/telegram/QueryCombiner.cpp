@@ -68,12 +68,10 @@ void QueryCombiner::on_get_query_result(int64 query_id, Result<Unit> &&result) {
   auto promises = std::move(it->second.promises);
   queries_.erase(it);
 
-  for (auto &promise : promises) {
-    if (result.is_ok()) {
-      promise.set_value(Unit());
-    } else {
-      promise.set_error(result.error().clone());
-    }
+  if (result.is_ok()) {
+    set_promises(promises);
+  } else {
+    fail_promises(promises, result.move_as_error());
   }
   loop();
 }

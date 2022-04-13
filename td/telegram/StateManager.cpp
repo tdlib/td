@@ -22,11 +22,7 @@ void StateManager::on_synchronized(bool is_synchronized) {
   }
   if (sync_flag_ && !was_sync_) {
     was_sync_ = true;
-    auto promises = std::move(wait_first_sync_);
-    reset_to_empty(wait_first_sync_);
-    for (auto &promise : promises) {
-      promise.set_value(Unit());
-    }
+    set_promises(wait_first_sync_);
   }
 }
 
