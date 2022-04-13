@@ -46,6 +46,8 @@ class NotificationSettingsManager final : public Actor {
   void on_update_scope_notify_settings(NotificationSettingsScope scope,
                                        tl_object_ptr<telegram_api::peerNotifySettings> &&peer_notify_settings);
 
+  void reload_ringtones(Promise<Unit> &&promise);
+
   void send_get_dialog_notification_settings_query(DialogId dialog_id, Promise<Unit> &&promise);
 
   const ScopeNotificationSettings *get_scope_notification_settings(NotificationSettingsScope scope,
@@ -83,7 +85,15 @@ class NotificationSettingsManager final : public Actor {
 
   void tear_down() final;
 
+  void timeout_expired() final;
+
+  bool is_active() const;
+
   static void on_scope_unmute_timeout_callback(void *notification_settings_manager_ptr, int64 scope_int);
+
+  Result<FileId> get_ringtone(telegram_api::object_ptr<telegram_api::Document> &&ringtone) const;
+
+  void on_reload_ringtones(Result<telegram_api::object_ptr<telegram_api::account_SavedRingtones>> &&result);
 
   ScopeNotificationSettings *get_scope_notification_settings(NotificationSettingsScope scope);
 
@@ -114,12 +124,18 @@ class NotificationSettingsManager final : public Actor {
   ActorShared<> parent_;
 
   bool is_inited_ = false;
+  bool are_ringtones_reloaded_ = false;
 
   ScopeNotificationSettings users_notification_settings_;
   ScopeNotificationSettings chats_notification_settings_;
   ScopeNotificationSettings channels_notification_settings_;
 
   MultiTimeout scope_unmute_timeout_{"ScopeUnmuteTimeout"};
+
+  int64 ringtone_hash_ = 0;
+  vector<FileId> ringtone_file_ids_;
+
+  vector<Promise<Unit>> reload_ringtone_queries_;
 
   FlatHashMap<DialogId, vector<Promise<Unit>>, DialogIdHash> get_dialog_notification_settings_queries_;
 };

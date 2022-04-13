@@ -9,6 +9,7 @@
 #include "td/telegram/AccessRights.h"
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/ContactsManager.h"
+#include "td/telegram/DocumentsManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/logevent/LogEventHelper.h"
@@ -27,9 +28,39 @@
 #include "td/utils/algorithm.h"
 #include "td/utils/buffer.h"
 #include "td/utils/logging.h"
+#include "td/utils/Random.h"
 #include "td/utils/tl_helpers.h"
 
 namespace td {
+
+class GetSavedRingtonesQuery final : public Td::ResultHandler {
+  Promise<telegram_api::object_ptr<telegram_api::account_SavedRingtones>> promise_;
+
+ public:
+  explicit GetSavedRingtonesQuery(Promise<telegram_api::object_ptr<telegram_api::account_SavedRingtones>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(int64 hash) {
+    send_query(G()->net_query_creator().create(telegram_api::account_getSavedRingtones(hash)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::account_getSavedRingtones>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for GetSavedRingtonesQuery: " << to_string(ptr);
+
+    promise_.set_value(std::move(ptr));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
 
 class GetDialogNotifySettingsQuery final : public Td::ResultHandler {
   DialogId dialog_id_;
@@ -79,7 +110,7 @@ class GetNotifySettingsExceptionsQuery final : public Td::ResultHandler {
       flags |= telegram_api::account_getNotifyExceptions::COMPARE_SOUND_MASK;
     }
     send_query(G()->net_query_creator().create(
-        telegram_api::account_getNotifyExceptions(flags, false /* ignored */, std::move(input_notify_peer))));
+        telegram_api::account_getNotifyExceptions(flags, false /*ignored*/, std::move(input_notify_peer))));
   }
 
   void on_result(BufferSlice packet) final {
@@ -366,6 +397,10 @@ void NotificationSettingsManager::on_scope_unmute_timeout_callback(void *notific
                      static_cast<NotificationSettingsScope>(scope_int - 1));
 }
 
+void NotificationSettingsManager::timeout_expired() {
+  reload_ringtones(Promise<Unit>());
+}
+
 int32 NotificationSettingsManager::get_scope_mute_until(NotificationSettingsScope scope) const {
   return get_scope_notification_settings(scope)->mute_until;
 }
@@ -585,6 +620,86 @@ void NotificationSettingsManager::reset_scope_notification_settings() {
   }
 }
 
+bool NotificationSettingsManager::is_active() const {
+  return !G()->close_flag() && td_->auth_manager_->is_authorized() && !td_->auth_manager_->is_bot();
+}
+
+Result<FileId> NotificationSettingsManager::get_ringtone(
+    telegram_api::object_ptr<telegram_api::Document> &&ringtone) const {
+  int32 document_id = ringtone->get_id();
+  if (document_id == telegram_api::documentEmpty::ID) {
+    return Status::Error("Received an empty ringtone");
+  }
+  CHECK(document_id == telegram_api::document::ID);
+
+  auto parsed_document =
+      td_->documents_manager_->on_get_document(move_tl_object_as<telegram_api::document>(ringtone), DialogId(), nullptr,
+                                               Document::Type::Audio, false, false, true);
+  if (parsed_document.type != Document::Type::Audio) {
+    return Status::Error("Receive ringtone of a wrong type");
+  }
+  return parsed_document.file_id;
+}
+
+void NotificationSettingsManager::reload_ringtones(Promise<Unit> &&promise) {
+  if (!is_active()) {
+    return;
+  }
+  reload_ringtone_queries_.push_back(std::move(promise));
+  if (reload_ringtone_queries_.size() == 1) {
+    auto query_promise = PromiseCreator::lambda(
+        [actor_id = actor_id(this)](Result<telegram_api::object_ptr<telegram_api::account_SavedRingtones>> &&result) {
+          send_closure(actor_id, &NotificationSettingsManager::on_reload_ringtones, std::move(result));
+        });
+    td_->create_handler<GetSavedRingtonesQuery>(std::move(query_promise))->send(ringtone_hash_);
+  }
+}
+
+void NotificationSettingsManager::on_reload_ringtones(
+    Result<telegram_api::object_ptr<telegram_api::account_SavedRingtones>> &&result) {
+  if (!is_active()) {
+    set_promises(reload_ringtone_queries_);
+    return;
+  }
+  if (result.is_error()) {
+    fail_promises(reload_ringtone_queries_, result.move_as_error());
+    set_timeout_in(Random::fast(60, 120));
+    return;
+  }
+
+  set_timeout_in(Random::fast(3600, 4800));
+
+  auto ringtones_ptr = result.move_as_ok();
+  auto constructor_id = ringtones_ptr->get_id();
+  if (constructor_id == telegram_api::account_savedRingtonesNotModified::ID) {
+    set_promises(reload_ringtone_queries_);
+    return;
+  }
+  CHECK(constructor_id == telegram_api::account_savedRingtones::ID);
+  auto ringtones = move_tl_object_as<telegram_api::account_savedRingtones>(ringtones_ptr);
+
+  auto new_hash = ringtones->hash_;
+  vector<FileId> new_ringtone_file_ids;
+
+  for (auto &ringtone : ringtones->ringtones_) {
+    auto r_ringtone = get_ringtone(std::move(ringtone));
+    if (r_ringtone.is_error()) {
+      LOG(ERROR) << r_ringtone.error().message();
+      new_hash = 0;
+      continue;
+    }
+
+    new_ringtone_file_ids.push_back(r_ringtone.move_as_ok());
+  }
+
+  bool need_update = new_ringtone_file_ids != ringtone_file_ids_;
+  if (need_update || ringtone_hash_ != new_hash) {
+    ringtone_hash_ = new_hash;
+    ringtone_file_ids_ = std::move(new_ringtone_file_ids);
+  }
+  set_promises(reload_ringtone_queries_);
+}
+
 void NotificationSettingsManager::send_get_dialog_notification_settings_query(DialogId dialog_id,
                                                                               Promise<Unit> &&promise) {
   if (td_->auth_manager_->is_bot() || dialog_id.get_type() == DialogType::SecretChat) {
@@ -722,6 +837,11 @@ void NotificationSettingsManager::after_get_difference() {
   }
   if (!channels_notification_settings_.is_synchronized) {
     send_get_scope_notification_settings_query(NotificationSettingsScope::Channel, Promise<>());
+  }
+
+  if (td_->is_online() && !are_ringtones_reloaded_) {
+    are_ringtones_reloaded_ = true;
+    reload_ringtones(Auto());
   }
 }
 
