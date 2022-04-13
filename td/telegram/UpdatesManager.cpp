@@ -3313,7 +3313,7 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updatePendingJoinRequ
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateSavedRingtones> update, Promise<Unit> &&promise) {
-  td_->notification_settings_manager_->reload_ringtones(std::move(promise));
+  td_->notification_settings_manager_->reload_saved_ringtones(std::move(promise));
 }
 
 // unsupported updates

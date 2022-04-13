@@ -44,6 +44,22 @@ tl_object_ptr<td_api::audio> AudiosManager::get_audio_object(FileId file_id) con
       td_->file_manager_->get_file_object(file_id));
 }
 
+td_api::object_ptr<td_api::notificationSound> AudiosManager::get_notification_sound_object(FileId file_id) const {
+  CHECK(file_id.is_valid());
+
+  auto it = audios_.find(file_id);
+  CHECK(it != audios_.end());
+  auto audio = it->second.get();
+  CHECK(audio != nullptr);
+  auto file_view = td_->file_manager_->get_file_view(file_id);
+  CHECK(!file_view.empty());
+  CHECK(file_view.get_type() == FileType::Ringtone);
+  CHECK(file_view.has_remote_location());
+  auto document_id = file_view.remote_location().get_id();
+  return td_api::make_object<td_api::notificationSound>(document_id, audio->duration, audio->title, audio->performer,
+                                                        td_->file_manager_->get_file_object(file_id));
+}
+
 FileId AudiosManager::on_get_audio(unique_ptr<Audio> new_audio, bool replace) {
   auto file_id = new_audio->file_id;
   CHECK(file_id.is_valid());

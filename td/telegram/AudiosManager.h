@@ -28,6 +28,8 @@ class AudiosManager {
 
   tl_object_ptr<td_api::audio> get_audio_object(FileId file_id) const;
 
+  td_api::object_ptr<td_api::notificationSound> get_notification_sound_object(FileId file_id) const;
+
   void create_audio(FileId file_id, string minithumbnail, PhotoSize thumbnail, string file_name, string mime_type,
                     int32 duration, string title, string performer, bool replace);
 

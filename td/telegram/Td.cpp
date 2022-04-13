@@ -2555,10 +2555,9 @@ class GetSavedAnimationsRequest final : public RequestActor<> {
   }
 
   void do_send_result() final {
-    send_result(
-        make_tl_object<td_api::animations>(transform(std::move(animation_ids_), [td_ = td_](FileId animation_id) {
-          return td_->animations_manager_->get_animation_object(animation_id);
-        })));
+    send_result(make_tl_object<td_api::animations>(transform(animation_ids_, [td = td_](FileId animation_id) {
+      return td->animations_manager_->get_animation_object(animation_id);
+    })));
   }
 
  public:
@@ -2591,6 +2590,25 @@ class RemoveSavedAnimationRequest final : public RequestOnceActor {
   RemoveSavedAnimationRequest(ActorShared<Td> td, uint64 request_id, tl_object_ptr<td_api::InputFile> &&input_file)
       : RequestOnceActor(std::move(td), request_id), input_file_(std::move(input_file)) {
     set_tries(3);
+  }
+};
+
+class GetSavedNotificationSoundsRequest final : public RequestActor<> {
+  vector<FileId> ringtone_file_ids_;
+
+  void do_run(Promise<Unit> &&promise) final {
+    ringtone_file_ids_ = td_->notification_settings_manager_->get_saved_ringtones(std::move(promise));
+  }
+
+  void do_send_result() final {
+    send_result(td_api::make_object<td_api::notificationSounds>(
+        transform(ringtone_file_ids_, [td = td_](FileId ringtone_file_id) {
+          return td->audios_manager_->get_notification_sound_object(ringtone_file_id);
+        })));
+  }
+
+ public:
+  GetSavedNotificationSoundsRequest(ActorShared<Td> td, uint64 request_id) : RequestActor(std::move(td), request_id) {
   }
 };
 
@@ -7093,6 +7111,11 @@ void Td::on_request(uint64 id, td_api::addSavedAnimation &request) {
 void Td::on_request(uint64 id, td_api::removeSavedAnimation &request) {
   CHECK_IS_USER();
   CREATE_REQUEST(RemoveSavedAnimationRequest, std::move(request.animation_));
+}
+
+void Td::on_request(uint64 id, const td_api::getSavedNotificationSounds &request) {
+  CHECK_IS_USER();
+  CREATE_NO_ARGS_REQUEST(GetSavedNotificationSoundsRequest);
 }
 
 void Td::on_request(uint64 id, const td_api::getChatNotificationSettingsExceptions &request) {

@@ -4490,6 +4490,8 @@ class CliClient final : public Actor {
       int64 profile_photo_id;
       get_args(args, profile_photo_id);
       send_request(td_api::make_object<td_api::deleteProfilePhoto>(profile_photo_id));
+    } else if (op == "gsnss") {
+      send_request(td_api::make_object<td_api::getSavedNotificationSounds>());
     } else if (op == "gcnse" || op == "gcnses") {
       send_request(td_api::make_object<td_api::getChatNotificationSettingsExceptions>(
           get_notification_settings_scope(args), op == "gcnses"));

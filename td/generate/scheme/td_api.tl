@@ -3159,6 +3159,18 @@ notificationGroupTypeSecretChat = NotificationGroupType;
 notificationGroupTypeCalls = NotificationGroupType;
 
 
+//@description Describes a notification sound in MP3 format
+//@id Unique identifier of the notification sound
+//@duration Duration of the sound, in seconds
+//@title Title of the notification sound
+//@data Arbitrary data, defined while the sound was uploaded
+//@sound File containing the sound
+notificationSound id:int64 duration:int32 title:string data:string sound:file = NotificationSound;
+
+//@description Contains a list of notification sounds @notification_sounds A list of notification sounds
+notificationSounds notification_sounds:vector<notificationSound> = NotificationSounds;
+
+
 //@description Contains information about a notification @id Unique persistent identifier of this notification @date Notification date
 //@is_silent True, if the notification was initially silent @type Notification type
 notification id:int32 date:int32 is_silent:Bool type:NotificationType = Notification;
@@ -5164,6 +5176,10 @@ getChatAdministrators chat_id:int53 = ChatAdministrators;
 
 //@description Clears message drafts in all chats @exclude_secret_chats Pass true to keep local message drafts in secret chats
 clearAllDraftMessages exclude_secret_chats:Bool = Ok;
+
+
+//@description Returns list of saved notification sounds. If a sound isn't in the list, then default sound needs to be used
+getSavedNotificationSounds = NotificationSounds;
 
 
 //@description Returns list of chats with non-default notification settings
