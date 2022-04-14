@@ -846,9 +846,9 @@ class Td final : public Actor {
 
   void on_request(uint64 id, const td_api::setPinnedChats &request);
 
-  void on_request(uint64 id, const td_api::getAttachMenuBot &request);
+  void on_request(uint64 id, const td_api::getAttachmentMenuBot &request);
 
-  void on_request(uint64 id, const td_api::toggleBotIsAddedToAttachMenu &request);
+  void on_request(uint64 id, const td_api::toggleBotIsAddedToAttachmentMenu &request);
 
   void on_request(uint64 id, td_api::setChatAvailableReactions &request);
 

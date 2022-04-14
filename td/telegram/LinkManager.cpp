@@ -159,7 +159,7 @@ class LinkManager::InternalLinkAttachMenuBot final : public InternalLink {
   string url_;
 
   td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
-    return td_api::make_object<td_api::internalLinkTypeAttachMenuBot>(
+    return td_api::make_object<td_api::internalLinkTypeAttachmentMenuBot>(
         dialog_link_ == nullptr ? nullptr : dialog_link_->get_internal_link_type_object(), bot_username_, url_);
   }
 

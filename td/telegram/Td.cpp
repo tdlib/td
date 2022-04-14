@@ -6158,13 +6158,13 @@ void Td::on_request(uint64 id, const td_api::setPinnedChats &request) {
                           transform(request.chat_ids_, [](int64 chat_id) { return DialogId(chat_id); })));
 }
 
-void Td::on_request(uint64 id, const td_api::getAttachMenuBot &request) {
+void Td::on_request(uint64 id, const td_api::getAttachmentMenuBot &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
   attach_menu_manager_->get_attach_menu_bot(UserId(request.bot_user_id_), std::move(promise));
 }
 
-void Td::on_request(uint64 id, const td_api::toggleBotIsAddedToAttachMenu &request) {
+void Td::on_request(uint64 id, const td_api::toggleBotIsAddedToAttachmentMenu &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
   attach_menu_manager_->toggle_bot_is_added_to_attach_menu(UserId(request.bot_user_id_), request.is_added_,

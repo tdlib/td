@@ -236,7 +236,7 @@ class ToggleBotInAttachMenuQuery final : public Td::ResultHandler {
 
     auto result = result_ptr.move_as_ok();
     if (!result) {
-      LOG(ERROR) << "Failed to add a bot to attach menu";
+      LOG(ERROR) << "Failed to add a bot to attachment menu";
     }
     promise_.set_value(Unit());
   }
@@ -428,7 +428,7 @@ void AttachMenuManager::init() {
         hash_ = attach_menu_bots_log_event.hash_;
         attach_menu_bots_ = std::move(attach_menu_bots_log_event.attach_menu_bots_);
       } else {
-        LOG(ERROR) << "Ignore invalid attach menu bots log event";
+        LOG(ERROR) << "Ignore invalid attachment menu bots log event";
       }
     }
   }
@@ -598,7 +598,7 @@ Result<AttachMenuManager::AttachMenuBot> AttachMenuManager::get_attach_menu_bot(
     auto parsed_document =
         td_->documents_manager_->on_get_document(move_tl_object_as<telegram_api::document>(icon->icon_), DialogId());
     if (parsed_document.type != expected_document_type) {
-      LOG(ERROR) << "Receive wrong attach menu bot icon \"" << name << "\" for " << user_id;
+      LOG(ERROR) << "Receive wrong attachment menu bot icon \"" << name << "\" for " << user_id;
       continue;
     }
     bool expect_colors = false;
@@ -624,17 +624,17 @@ Result<AttachMenuManager::AttachMenuBot> AttachMenuManager::get_attach_menu_bot(
     }
     if (expect_colors) {
       if (icon->colors_.empty()) {
-        LOG(ERROR) << "Have no colors for attach menu bot icon for " << user_id;
+        LOG(ERROR) << "Have no colors for attachment menu bot icon for " << user_id;
       } else {
         for (auto &color : icon->colors_) {
           if (color->name_ != "light_icon" && color->name_ != "light_text" && color->name_ != "dark_icon" &&
               color->name_ != "dark_text") {
-            LOG(ERROR) << "Receive unexpected attach menu color " << color->name_ << " for " << user_id;
+            LOG(ERROR) << "Receive unexpected attachment menu color " << color->name_ << " for " << user_id;
             continue;
           }
           auto alpha = (color->color_ >> 24) & 0xFF;
           if (alpha != 0 && alpha != 0xFF) {
-            LOG(ERROR) << "Receive alpha in attach menu color " << color->name_ << " for " << user_id;
+            LOG(ERROR) << "Receive alpha in attachment menu color " << color->name_ << " for " << user_id;
           }
           auto c = color->color_ & 0xFFFFFF;
           switch (color->name_[6]) {
@@ -665,7 +665,7 @@ Result<AttachMenuManager::AttachMenuBot> AttachMenuManager::get_attach_menu_bot(
       }
     } else {
       if (!icon->colors_.empty()) {
-        LOG(ERROR) << "Have unexpected colors for attach menu bot icon for " << user_id << " with name " << name;
+        LOG(ERROR) << "Have unexpected colors for attachment menu bot icon for " << user_id << " with name " << name;
       }
     }
   }
@@ -724,7 +724,7 @@ void AttachMenuManager::on_reload_attach_menu_bots(
       continue;
     }
     if (!r_attach_menu_bot.ok().is_added_) {
-      LOG(ERROR) << "Receive non-added attach menu bot " << r_attach_menu_bot.ok().user_id_;
+      LOG(ERROR) << "Receive non-added attachment menu bot " << r_attach_menu_bot.ok().user_id_;
       new_hash = 0;
       continue;
     }
@@ -760,12 +760,12 @@ void AttachMenuManager::remove_bot_from_attach_menu(UserId user_id) {
 }
 
 void AttachMenuManager::get_attach_menu_bot(UserId user_id,
-                                            Promise<td_api::object_ptr<td_api::attachMenuBot>> &&promise) {
+                                            Promise<td_api::object_ptr<td_api::attachmentMenuBot>> &&promise) {
   TRY_RESULT_PROMISE(promise, input_user, td_->contacts_manager_->get_input_user(user_id));
 
   TRY_RESULT_PROMISE(promise, bot_data, td_->contacts_manager_->get_bot_data(user_id));
   if (!bot_data.can_be_added_to_attach_menu) {
-    return promise.set_error(Status::Error(400, "The bot can't be added to attach menu"));
+    return promise.set_error(Status::Error(400, "The bot can't be added to attachment menu"));
   }
 
   auto query_promise =
@@ -779,7 +779,7 @@ void AttachMenuManager::get_attach_menu_bot(UserId user_id,
 
 void AttachMenuManager::on_get_attach_menu_bot(
     UserId user_id, Result<telegram_api::object_ptr<telegram_api::attachMenuBotsBot>> &&result,
-    Promise<td_api::object_ptr<td_api::attachMenuBot>> &&promise) {
+    Promise<td_api::object_ptr<td_api::attachmentMenuBot>> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
   TRY_RESULT_PROMISE(promise, bot, std::move(result));
 
@@ -803,7 +803,7 @@ void AttachMenuManager::on_get_attach_menu_bot(
       }
     }
     if (!is_found) {
-      LOG(INFO) << "Add missing attach menu bot " << user_id;
+      LOG(INFO) << "Add missing attachment menu bot " << user_id;
     }
     hash_ = 0;
     attach_menu_bots_.insert(attach_menu_bots_.begin(), attach_menu_bot);
@@ -813,7 +813,7 @@ void AttachMenuManager::on_get_attach_menu_bot(
   } else {
     remove_bot_from_attach_menu(user_id);
   }
-  promise.set_value(get_attach_menu_bot_object(attach_menu_bot));
+  promise.set_value(get_attachment_menu_bot_object(attach_menu_bot));
 }
 
 void AttachMenuManager::toggle_bot_is_added_to_attach_menu(UserId user_id, bool is_added, Promise<Unit> &&promise) {
@@ -835,7 +835,7 @@ void AttachMenuManager::toggle_bot_is_added_to_attach_menu(UserId user_id, bool 
   if (is_added) {
     TRY_RESULT_PROMISE(promise, bot_data, td_->contacts_manager_->get_bot_data(user_id));
     if (!bot_data.can_be_added_to_attach_menu) {
-      return promise.set_error(Status::Error(400, "The bot can't be added to attach menu"));
+      return promise.set_error(Status::Error(400, "The bot can't be added to attachment menu"));
     }
   } else {
     remove_bot_from_attach_menu(user_id);
@@ -853,7 +853,7 @@ void AttachMenuManager::toggle_bot_is_added_to_attach_menu(UserId user_id, bool 
   td_->create_handler<ToggleBotInAttachMenuQuery>(std::move(query_promise))->send(std::move(input_user), is_added);
 }
 
-td_api::object_ptr<td_api::attachMenuBot> AttachMenuManager::get_attach_menu_bot_object(
+td_api::object_ptr<td_api::attachmentMenuBot> AttachMenuManager::get_attachment_menu_bot_object(
     const AttachMenuBot &bot) const {
   auto get_file = [td = td_](FileId file_id) -> td_api::object_ptr<td_api::file> {
     if (!file_id.is_valid()) {
@@ -862,31 +862,31 @@ td_api::object_ptr<td_api::attachMenuBot> AttachMenuManager::get_attach_menu_bot
     return td->file_manager_->get_file_object(file_id);
   };
   auto get_attach_menu_bot_color_object =
-      [](const AttachMenuBotColor &color) -> td_api::object_ptr<td_api::attachMenuBotColor> {
+      [](const AttachMenuBotColor &color) -> td_api::object_ptr<td_api::attachmentMenuBotColor> {
     if (color == AttachMenuBotColor()) {
       return nullptr;
     }
-    return td_api::make_object<td_api::attachMenuBotColor>(color.light_color_, color.dark_color_);
+    return td_api::make_object<td_api::attachmentMenuBotColor>(color.light_color_, color.dark_color_);
   };
 
-  return td_api::make_object<td_api::attachMenuBot>(
-      td_->contacts_manager_->get_user_id_object(bot.user_id_, "get_attach_menu_bot_object"), bot.name_,
+  return td_api::make_object<td_api::attachmentMenuBot>(
+      td_->contacts_manager_->get_user_id_object(bot.user_id_, "get_attachment_menu_bot_object"), bot.name_,
       get_attach_menu_bot_color_object(bot.name_color_), get_file(bot.default_icon_file_id_),
       get_file(bot.ios_static_icon_file_id_), get_file(bot.ios_animated_icon_file_id_),
       get_file(bot.android_icon_file_id_), get_file(bot.macos_icon_file_id_),
       get_attach_menu_bot_color_object(bot.icon_color_));
 }
 
-td_api::object_ptr<td_api::updateAttachMenuBots> AttachMenuManager::get_update_attach_menu_bots_object() const {
+td_api::object_ptr<td_api::updateAttachmentMenuBots> AttachMenuManager::get_update_attachment_menu_bots_object() const {
   CHECK(is_active());
   CHECK(is_inited_);
   auto bots =
-      transform(attach_menu_bots_, [this](const AttachMenuBot &bot) { return get_attach_menu_bot_object(bot); });
-  return td_api::make_object<td_api::updateAttachMenuBots>(std::move(bots));
+      transform(attach_menu_bots_, [this](const AttachMenuBot &bot) { return get_attachment_menu_bot_object(bot); });
+  return td_api::make_object<td_api::updateAttachmentMenuBots>(std::move(bots));
 }
 
 void AttachMenuManager::send_update_attach_menu_bots() const {
-  send_closure(G()->td(), &Td::send_update, get_update_attach_menu_bots_object());
+  send_closure(G()->td(), &Td::send_update, get_update_attachment_menu_bots_object());
 }
 
 string AttachMenuManager::get_attach_menu_bots_database_key() {
@@ -912,7 +912,7 @@ void AttachMenuManager::get_current_state(vector<td_api::object_ptr<td_api::Upda
     return;
   }
 
-  updates.push_back(get_update_attach_menu_bots_object());
+  updates.push_back(get_update_attachment_menu_bots_object());
 }
 
 }  // namespace td

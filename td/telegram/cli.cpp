@@ -3422,12 +3422,12 @@ class CliClient final : public Actor {
     } else if (op == "gamb") {
       UserId user_id;
       get_args(args, user_id);
-      send_request(td_api::make_object<td_api::getAttachMenuBot>(user_id));
+      send_request(td_api::make_object<td_api::getAttachmentMenuBot>(user_id));
     } else if (op == "tbiatam") {
       UserId user_id;
       bool is_added;
       get_args(args, user_id, is_added);
-      send_request(td_api::make_object<td_api::toggleBotIsAddedToAttachMenu>(user_id, is_added));
+      send_request(td_api::make_object<td_api::toggleBotIsAddedToAttachmentMenu>(user_id, is_added));
     } else if (op == "gwau") {
       UserId user_id;
       string url;

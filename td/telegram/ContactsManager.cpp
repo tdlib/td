@@ -8495,7 +8495,7 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
   LOG_IF(ERROR, can_read_all_group_messages && !is_bot)
       << "Receive not bot " << user_id << " which can read all group messages from " << source;
   LOG_IF(ERROR, can_be_added_to_attach_menu && !is_bot)
-      << "Receive not bot " << user_id << " which can be added to attach menu from " << source;
+      << "Receive not bot " << user_id << " which can be added to attachment menu from " << source;
   LOG_IF(ERROR, is_inline_bot && !is_bot) << "Receive not bot " << user_id << " which is inline bot from " << source;
   LOG_IF(ERROR, need_location_bot && !is_inline_bot)
       << "Receive not inline bot " << user_id << " which needs user location from " << source;

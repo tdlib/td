@@ -98,9 +98,9 @@ TEST(Link, parse_internal_link) {
   auto active_sessions = [] {
     return td::td_api::make_object<td::td_api::internalLinkTypeActiveSessions>();
   };
-  auto attach_menu_bot = [](td::td_api::object_ptr<td::td_api::InternalLinkType> chat_link,
-                            const td::string &bot_username, const td::string &start_parameter) {
-    return td::td_api::make_object<td::td_api::internalLinkTypeAttachMenuBot>(
+  auto attachment_menu_bot = [](td::td_api::object_ptr<td::td_api::InternalLinkType> chat_link,
+                                const td::string &bot_username, const td::string &start_parameter) {
+    return td::td_api::make_object<td::td_api::internalLinkTypeAttachmentMenuBot>(
         std::move(chat_link), bot_username, start_parameter.empty() ? td::string() : "start://" + start_parameter);
   };
   auto authentication_code = [](const td::string &code) {
@@ -234,14 +234,15 @@ TEST(Link, parse_internal_link) {
   parse_internal_link("tg:resolve?domain=telegram&post=&single", public_chat("telegram"));
   parse_internal_link("tg:resolve?domain=123456&post=&single",
                       unknown_deep_link("tg://resolve?domain=123456&post=&single"));
-  parse_internal_link("tg:resolve?domain=telegram&startattach", attach_menu_bot(nullptr, "telegram", ""));
-  parse_internal_link("tg:resolve?domain=telegram&startattach=1", attach_menu_bot(nullptr, "telegram", "1"));
-  parse_internal_link("tg:resolve?domain=telegram&attach=&startattach", attach_menu_bot(nullptr, "telegram", ""));
-  parse_internal_link("tg:resolve?domain=telegram&attach=&startattach=1", attach_menu_bot(nullptr, "telegram", "1"));
+  parse_internal_link("tg:resolve?domain=telegram&startattach", attachment_menu_bot(nullptr, "telegram", ""));
+  parse_internal_link("tg:resolve?domain=telegram&startattach=1", attachment_menu_bot(nullptr, "telegram", "1"));
+  parse_internal_link("tg:resolve?domain=telegram&attach=&startattach", attachment_menu_bot(nullptr, "telegram", ""));
+  parse_internal_link("tg:resolve?domain=telegram&attach=&startattach=1",
+                      attachment_menu_bot(nullptr, "telegram", "1"));
   parse_internal_link("tg:resolve?domain=telegram&attach=test&startattach",
-                      attach_menu_bot(public_chat("telegram"), "test", ""));
+                      attachment_menu_bot(public_chat("telegram"), "test", ""));
   parse_internal_link("tg:resolve?domain=telegram&attach=test&startattach=1",
-                      attach_menu_bot(public_chat("telegram"), "test", "1"));
+                      attachment_menu_bot(public_chat("telegram"), "test", "1"));
 
   parse_internal_link("tg:resolve?phone=1", user_phone_number("1"));
   parse_internal_link("tg:resolve?phone=123456", user_phone_number("123456"));
@@ -250,11 +251,12 @@ TEST(Link, parse_internal_link) {
   parse_internal_link("tg:resolve?phone=123456&attach=", user_phone_number("123456"));
   parse_internal_link("tg:resolve?phone=123456&attach=&startattach", user_phone_number("123456"));
   parse_internal_link("tg:resolve?phone=123456&attach=&startattach=123", user_phone_number("123456"));
-  parse_internal_link("tg:resolve?phone=123456&attach=test", attach_menu_bot(user_phone_number("123456"), "test", ""));
+  parse_internal_link("tg:resolve?phone=123456&attach=test",
+                      attachment_menu_bot(user_phone_number("123456"), "test", ""));
   parse_internal_link("tg:resolve?phone=123456&attach=test&startattach",
-                      attach_menu_bot(user_phone_number("123456"), "test", ""));
+                      attachment_menu_bot(user_phone_number("123456"), "test", ""));
   parse_internal_link("tg:resolve?phone=123456&attach=test&startattach=123",
-                      attach_menu_bot(user_phone_number("123456"), "test", "123"));
+                      attachment_menu_bot(user_phone_number("123456"), "test", "123"));
   parse_internal_link("tg:resolve?phone=01234567890123456789012345678912",
                       user_phone_number("01234567890123456789012345678912"));
   parse_internal_link("tg:resolve?phone=012345678901234567890123456789123",
@@ -279,14 +281,15 @@ TEST(Link, parse_internal_link) {
   parse_internal_link("t.me/username/-12345", public_chat("username"));
   parse_internal_link("t.me//12345?single", nullptr);
   parse_internal_link("https://telegram.dog/telegram/?single", public_chat("telegram"));
-  parse_internal_link("t.me/username?startattach", attach_menu_bot(nullptr, "username", ""));
-  parse_internal_link("t.me/username?startattach=1", attach_menu_bot(nullptr, "username", "1"));
+  parse_internal_link("t.me/username?startattach", attachment_menu_bot(nullptr, "username", ""));
+  parse_internal_link("t.me/username?startattach=1", attachment_menu_bot(nullptr, "username", "1"));
   parse_internal_link("t.me/username?attach=", public_chat("username"));
-  parse_internal_link("t.me/username?attach=&startattach", attach_menu_bot(nullptr, "username", ""));
-  parse_internal_link("t.me/username?attach=&startattach=1", attach_menu_bot(nullptr, "username", "1"));
-  parse_internal_link("t.me/username?attach=bot", attach_menu_bot(public_chat("username"), "bot", ""));
-  parse_internal_link("t.me/username?attach=bot&startattach", attach_menu_bot(public_chat("username"), "bot", ""));
-  parse_internal_link("t.me/username?attach=bot&startattach=1", attach_menu_bot(public_chat("username"), "bot", "1"));
+  parse_internal_link("t.me/username?attach=&startattach", attachment_menu_bot(nullptr, "username", ""));
+  parse_internal_link("t.me/username?attach=&startattach=1", attachment_menu_bot(nullptr, "username", "1"));
+  parse_internal_link("t.me/username?attach=bot", attachment_menu_bot(public_chat("username"), "bot", ""));
+  parse_internal_link("t.me/username?attach=bot&startattach", attachment_menu_bot(public_chat("username"), "bot", ""));
+  parse_internal_link("t.me/username?attach=bot&startattach=1",
+                      attachment_menu_bot(public_chat("username"), "bot", "1"));
 
   parse_internal_link("tg:privatepost?domain=username/12345&single",
                       unknown_deep_link("tg://privatepost?domain=username/12345&single"));
@@ -454,10 +457,11 @@ TEST(Link, parse_internal_link) {
   parse_internal_link("t.me/+123456?attach=", user_phone_number("123456"));
   parse_internal_link("t.me/+123456?attach=&startattach", user_phone_number("123456"));
   parse_internal_link("t.me/+123456?attach=&startattach=1", user_phone_number("123456"));
-  parse_internal_link("t.me/+123456?attach=bot", attach_menu_bot(user_phone_number("123456"), "bot", ""));
-  parse_internal_link("t.me/+123456?attach=bot&startattach", attach_menu_bot(user_phone_number("123456"), "bot", ""));
+  parse_internal_link("t.me/+123456?attach=bot", attachment_menu_bot(user_phone_number("123456"), "bot", ""));
+  parse_internal_link("t.me/+123456?attach=bot&startattach",
+                      attachment_menu_bot(user_phone_number("123456"), "bot", ""));
   parse_internal_link("t.me/+123456?attach=bot&startattach=1",
-                      attach_menu_bot(user_phone_number("123456"), "bot", "1"));
+                      attachment_menu_bot(user_phone_number("123456"), "bot", "1"));
 
   parse_internal_link("tg:join?invite=abcdef", chat_invite("abcdef"));
   parse_internal_link("tg:join?invite=abc%20def", chat_invite("abc%20def"));

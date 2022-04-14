@@ -41,7 +41,7 @@ class AttachMenuManager final : public Actor {
 
   void reload_attach_menu_bots(Promise<Unit> &&promise);
 
-  void get_attach_menu_bot(UserId user_id, Promise<td_api::object_ptr<td_api::attachMenuBot>> &&promise);
+  void get_attach_menu_bot(UserId user_id, Promise<td_api::object_ptr<td_api::attachmentMenuBot>> &&promise);
 
   void toggle_bot_is_added_to_attach_menu(UserId user_id, bool is_added, Promise<Unit> &&promise);
 
@@ -108,9 +108,9 @@ class AttachMenuManager final : public Actor {
 
   Result<AttachMenuBot> get_attach_menu_bot(tl_object_ptr<telegram_api::attachMenuBot> &&bot) const;
 
-  td_api::object_ptr<td_api::attachMenuBot> get_attach_menu_bot_object(const AttachMenuBot &bot) const;
+  td_api::object_ptr<td_api::attachmentMenuBot> get_attachment_menu_bot_object(const AttachMenuBot &bot) const;
 
-  td_api::object_ptr<td_api::updateAttachMenuBots> get_update_attach_menu_bots_object() const;
+  td_api::object_ptr<td_api::updateAttachmentMenuBots> get_update_attachment_menu_bots_object() const;
 
   void remove_bot_from_attach_menu(UserId user_id);
 
@@ -125,7 +125,7 @@ class AttachMenuManager final : public Actor {
 
   void on_get_attach_menu_bot(UserId user_id,
                               Result<telegram_api::object_ptr<telegram_api::attachMenuBotsBot>> &&result,
-                              Promise<td_api::object_ptr<td_api::attachMenuBot>> &&promise);
+                              Promise<td_api::object_ptr<td_api::attachmentMenuBot>> &&promise);
 
   Td *td_;
   ActorShared<> parent_;

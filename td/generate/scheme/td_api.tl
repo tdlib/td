@@ -372,8 +372,8 @@ userTypeDeleted = UserType;
 //@is_inline True, if the bot supports inline queries
 //@inline_query_placeholder Placeholder for inline queries (displayed on the application input field)
 //@need_location True, if the location of the user is expected to be sent with every inline query to this bot
-//@can_be_added_to_attach_menu True, if the bot can be added to attach menu
-userTypeBot can_join_groups:Bool can_read_all_group_messages:Bool is_inline:Bool inline_query_placeholder:string need_location:Bool can_be_added_to_attach_menu:Bool = UserType;
+//@can_be_added_to_attachment_menu True, if the bot can be added to attachment menu
+userTypeBot can_join_groups:Bool can_read_all_group_messages:Bool is_inline:Bool inline_query_placeholder:string need_location:Bool can_be_added_to_attachment_menu:Bool = UserType;
 
 //@description No information on the user besides the user identifier is available, yet this user has not been deleted. This object is extremely rare and must be handled like a deleted user. It is not possible to perform any actions on users of this type
 userTypeUnknown = UserType;
@@ -2517,20 +2517,20 @@ diceStickersSlotMachine background:sticker lever:sticker left_reel:sticker cente
 importedContacts user_ids:vector<int53> importer_count:vector<int32> = ImportedContacts;
 
 
-//@description Describes a color to highlight a bot added to attach menu @light_color Color in the RGB24 format for light themes @dark_color Color in the RGB24 format for dark themes
-attachMenuBotColor light_color:int32 dark_color:int32 = AttachMenuBotColor;
+//@description Describes a color to highlight a bot added to attachment menu @light_color Color in the RGB24 format for light themes @dark_color Color in the RGB24 format for dark themes
+attachmentMenuBotColor light_color:int32 dark_color:int32 = AttachmentMenuBotColor;
 
-//@description Represents a bot added to attach menu
-//@bot_user_id User identifier of the bot added to attach menu
-//@name Name for the bot in attach menu
+//@description Represents a bot added to attachment menu
+//@bot_user_id User identifier of the bot added to attachment menu
+//@name Name for the bot in attachment menu
 //@name_color Color to highlight selected name of the bot if appropriate; may be null
-//@default_icon Default attach menu icon for the bot in SVG format; may be null
-//@ios_static_icon Attach menu icon for the bot in SVG format for the official iOS app; may be null
-//@ios_animated_icon Attach menu icon for the bot in TGS format for the official iOS app; may be null
-//@android_icon Attach menu icon for the bot in TGS format for the official Android app; may be null
-//@macos_icon Attach menu icon for the bot in TGS format for the official native macOS app; may be null
+//@default_icon Default attachment menu icon for the bot in SVG format; may be null
+//@ios_static_icon Attachment menu icon for the bot in SVG format for the official iOS app; may be null
+//@ios_animated_icon Attachment menu icon for the bot in TGS format for the official iOS app; may be null
+//@android_icon Attachment menu icon for the bot in TGS format for the official Android app; may be null
+//@macos_icon Attachment menu icon for the bot in TGS format for the official native macOS app; may be null
 //@icon_color Color to highlight selected icon of the bot if appropriate; may be null
-attachMenuBot bot_user_id:int53 name:string name_color:attachMenuBotColor default_icon:file ios_static_icon:file ios_animated_icon:file android_icon:file macos_icon:file icon_color:attachMenuBotColor = AttachMenuBot;
+attachmentMenuBot bot_user_id:int53 name:string name_color:attachmentMenuBotColor default_icon:file ios_static_icon:file ios_animated_icon:file android_icon:file macos_icon:file icon_color:attachmentMenuBotColor = AttachmentMenuBot;
 
 //@description Information about the message sent by answerWebAppQuery @inline_message_id Identifier of the sent inline message, if known
 sentWebAppMessage inline_message_id:string = SentWebAppMessage;
@@ -3351,12 +3351,12 @@ chatReportReasonCustom = ChatReportReason;
 //@description The link is a link to the active sessions section of the app. Use getActiveSessions to handle the link
 internalLinkTypeActiveSessions = InternalLinkType;
 
-//@description The link is a link to an attach menu bot to be opened in the specified chat. Process given chat_link to open corresponding chat.
-//-Then call searchPublicChat with the given bot username, check that the user is a bot and can be added to attach menu. Then use getAttachMenuBot to receive information about the bot.
-//-If the bot isn't added to attach menu, then user needs to confirm adding the bot to attach menu. If user confirms adding, then use toggleBotIsAddedToAttachMenu to add it.
-//-If attach menu bots can't be used in the current chat, show an error to the user. If the bot is added to attach menu, then use openWebApp with the given URL
+//@description The link is a link to an attachment menu bot to be opened in the specified chat. Process given chat_link to open corresponding chat.
+//-Then call searchPublicChat with the given bot username, check that the user is a bot and can be added to attachment menu. Then use getAttachmentMenuBot to receive information about the bot.
+//-If the bot isn't added to attachment menu, then user needs to confirm adding the bot to attachment menu. If user confirms adding, then use toggleBotIsAddedToAttachmentMenu to add it.
+//-If attachment menu bots can't be used in the current chat, show an error to the user. If the bot is added to attachment menu, then use openWebApp with the given URL
 //@chat_link An internal link pointing to a chat; may be null if the current chat needs to be kept @bot_username Username of the bot @url URL to be passed to openWebApp
-internalLinkTypeAttachMenuBot chat_link:InternalLinkType bot_username:string url:string = InternalLinkType;
+internalLinkTypeAttachmentMenuBot chat_link:InternalLinkType bot_username:string url:string = InternalLinkType;
 
 //@description The link contains an authentication code. Call checkAuthenticationCode with the code if the current authorization state is authorizationStateWaitCode @code The authentication code
 internalLinkTypeAuthenticationCode code:string = InternalLinkType;
@@ -4144,8 +4144,8 @@ updateTermsOfService terms_of_service_id:string terms_of_service:termsOfService 
 //@description The list of users nearby has changed. The update is guaranteed to be sent only 60 seconds after a successful searchChatsNearby request @users_nearby The new list of users nearby
 updateUsersNearby users_nearby:vector<chatNearby> = Update;
 
-//@description The list of bots added to attach menu has changed @bots The new list of bots added to attach menu. The bots must be shown in attach menu only in private chats. The bots must not be shown on scheduled messages screen
-updateAttachMenuBots bots:vector<attachMenuBot> = Update;
+//@description The list of bots added to attachment menu has changed @bots The new list of bots added to attachment menu. The bots must be shown in attachment menu only in private chats. The bots must not be shown on scheduled messages screen
+updateAttachmentMenuBots bots:vector<attachmentMenuBot> = Update;
 
 //@description A message was sent by an opened web app, so the web app needs to be closed @web_app_launch_id Identifier of web app launch
 updateWebAppMessageSent web_app_launch_id:int64 = Update;
@@ -4904,11 +4904,11 @@ getWebAppUrl bot_user_id:int53 url:string theme:themeParameters = HttpUrl;
 //@bot_user_id Identifier of the target bot @button_text Text of the keyboardButtonTypeWebApp button, which opened the web app @data Received data
 sendWebAppData bot_user_id:int53 button_text:string data:string = Ok;
 
-//@description Informs TDLib that a web app is being opened from attach menu, a botMenuButton button, an internalLinkTypeAttachMenuBot link, or an inlineKeyboardButtonTypeWebApp button.
+//@description Informs TDLib that a web app is being opened from attachment menu, a botMenuButton button, an internalLinkTypeAttachmentMenuBot link, or an inlineKeyboardButtonTypeWebApp button.
 //-For each bot, a confirmation alert about data sent to the bot must be shown once
 //@chat_id Identifier of the chat in which the web app is opened. Web apps can be opened only in private chats for now
 //@bot_user_id Identifier of the bot, providing the web app
-//@url The URL from an inlineKeyboardButtonTypeWebApp button, a botMenuButton button, or an internalLinkTypeAttachMenuBot link, or an empty string otherwise
+//@url The URL from an inlineKeyboardButtonTypeWebApp button, a botMenuButton button, or an internalLinkTypeAttachmentMenuBot link, or an empty string otherwise
 //@theme Preferred web app theme; pass null to use the default theme
 //@reply_to_message_id Identifier of the replied message for the message sent by the web app; 0 if none
 openWebApp chat_id:int53 bot_user_id:int53 url:string theme:themeParameters reply_to_message_id:int53 = WebAppInfo;
@@ -5214,11 +5214,11 @@ toggleChatIsPinned chat_list:ChatList chat_id:int53 is_pinned:Bool = Ok;
 setPinnedChats chat_list:ChatList chat_ids:vector<int53> = Ok;
 
 
-//@description Returns information about a bot that can be added to attach menu @bot_user_id Bot's user identifier
-getAttachMenuBot bot_user_id:int53 = AttachMenuBot;
+//@description Returns information about a bot that can be added to attachment menu @bot_user_id Bot's user identifier
+getAttachmentMenuBot bot_user_id:int53 = AttachmentMenuBot;
 
-//@description Adds or removes a bot to attach menu. Bot can be added to attach menu, only if userTypeBot.can_be_added_to_attach_menu == true @bot_user_id Bot's user identifier @is_added Pass true to add the bot to attach menu; pass false to remove the bot from attach menu
-toggleBotIsAddedToAttachMenu bot_user_id:int53 is_added:Bool = Ok;
+//@description Adds or removes a bot to attachment menu. Bot can be added to attachment menu, only if userTypeBot.can_be_added_to_attachment_menu == true @bot_user_id Bot's user identifier @is_added Pass true to add the bot to attachment menu; pass false to remove the bot from attachment menu
+toggleBotIsAddedToAttachmentMenu bot_user_id:int53 is_added:Bool = Ok;
 
 
 //@description Downloads a file from the cloud. Download progress and completion of the download will be notified through updateFile updates
