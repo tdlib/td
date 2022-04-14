@@ -7,6 +7,7 @@
 #include "td/telegram/NotificationSettingsManager.h"
 
 #include "td/telegram/AccessRights.h"
+#include "td/telegram/AudiosManager.h"
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/DocumentsManager.h"
@@ -729,6 +730,106 @@ void NotificationSettingsManager::send_save_ringtone_query(
       ->send(ringtone_file_id, file_view.remote_location().as_input_document(), unsave);
 }
 
+void NotificationSettingsManager::add_saved_ringtone(td_api::object_ptr<td_api::InputFile> &&input_file,
+                                                     Promise<td_api::object_ptr<td_api::notificationSound>> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+
+  if (!are_saved_ringtones_loaded_) {
+    reload_saved_ringtones(PromiseCreator::lambda([actor_id = actor_id(this), input_file = std::move(input_file),
+                                                   promise = std::move(promise)](Result<Unit> &&result) mutable {
+      if (result.is_error()) {
+        return promise.set_error(result.move_as_error());
+      }
+
+      send_closure(actor_id, &NotificationSettingsManager::add_saved_ringtone, std::move(input_file),
+                   std::move(promise));
+    }));
+    return;
+  }
+
+  auto r_file_id = td_->file_manager_->get_input_file_id(FileType::Ringtone, input_file, DialogId(), false, false);
+  if (r_file_id.is_error()) {
+    // TODO promise.set_error(r_file_id.move_as_error());
+    return promise.set_error(Status::Error(400, r_file_id.error().message()));
+  }
+  FileId file_id = r_file_id.ok();
+  auto file_view = td_->file_manager_->get_file_view(file_id);
+  CHECK(!file_view.empty());
+  if (file_view.has_remote_location()) {
+    CHECK(file_view.remote_location().is_document());
+    if (file_view.main_remote_location().is_web()) {
+      return promise.set_error(Status::Error(400, "Can't use web document as notification sound"));
+    }
+
+    FileId ringtone_file_id = file_view.file_id();
+    auto file_type = file_view.get_type();
+    if (file_type != FileType::Ringtone) {
+      if (file_type != FileType::Audio && file_type != FileType::VoiceNote) {
+        return promise.set_error(Status::Error(400, "Unsupported file specified"));
+      }
+      auto &remote = file_view.main_remote_location();
+      ringtone_file_id = td_->file_manager_->register_remote(
+          FullRemoteFileLocation(FileType::Ringtone, remote.get_id(), remote.get_access_hash(), remote.get_dc_id(),
+                                 remote.get_file_reference().str()),
+          FileLocationSource::FromServer, DialogId(), file_view.size(), file_view.expected_size(),
+          file_view.suggested_path());
+    }
+
+    if (file_type != FileType::VoiceNote) {
+      for (auto &saved_ringtone_file_id : saved_ringtone_file_ids_) {
+        if (ringtone_file_id == saved_ringtone_file_id) {
+          return promise.set_value(td_->audios_manager_->get_notification_sound_object(ringtone_file_id));
+        }
+      }
+    }
+
+    send_save_ringtone_query(
+        file_view.file_id(), false,
+        PromiseCreator::lambda(
+            [actor_id = actor_id(this), file_id = ringtone_file_id, promise = std::move(promise)](
+                Result<telegram_api::object_ptr<telegram_api::account_SavedRingtone>> &&result) mutable {
+              if (result.is_error()) {
+                promise.set_error(result.move_as_error());
+              } else {
+                send_closure(actor_id, &NotificationSettingsManager::on_add_saved_ringtone, file_id,
+                             result.move_as_ok(), std::move(promise));
+              }
+            }));
+    return;
+  }
+
+  promise.set_error(Status::Error(400, "Unsupported"));
+}
+
+void NotificationSettingsManager::on_add_saved_ringtone(
+    FileId file_id, telegram_api::object_ptr<telegram_api::account_SavedRingtone> &&saved_ringtone,
+    Promise<td_api::object_ptr<td_api::notificationSound>> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+
+  if (saved_ringtone != nullptr && saved_ringtone->get_id() == telegram_api::account_savedRingtoneConverted::ID) {
+    auto ringtone = move_tl_object_as<telegram_api::account_savedRingtoneConverted>(saved_ringtone);
+    TRY_RESULT_PROMISE_ASSIGN(promise, file_id, get_ringtone(std::move(ringtone->document_)));
+  } else {
+    for (auto &saved_ringtone_file_id : saved_ringtone_file_ids_) {
+      if (file_id == saved_ringtone_file_id) {
+        return promise.set_value(td_->audios_manager_->get_notification_sound_object(file_id));
+      }
+    }
+    if (saved_ringtone == nullptr) {
+      return promise.set_error(Status::Error(500, "Failed to find saved notification sound"));
+    }
+  }
+
+  reload_saved_ringtones(PromiseCreator::lambda([actor_id = actor_id(this), file_id,
+                                                 promise = std::move(promise)](Result<Unit> &&result) mutable {
+    if (result.is_error()) {
+      promise.set_error(result.move_as_error());
+    } else {
+      send_closure(actor_id, &NotificationSettingsManager::on_add_saved_ringtone, file_id, nullptr, std::move(promise));
+    }
+  }));
+}
+
 void NotificationSettingsManager::remove_saved_ringtone(int64 ringtone_id, Promise<Unit> &&promise) {
   if (!are_saved_ringtones_loaded_) {
     reload_saved_ringtones(std::move(promise));
@@ -761,6 +862,8 @@ void NotificationSettingsManager::remove_saved_ringtone(int64 ringtone_id, Promi
 }
 
 void NotificationSettingsManager::on_remove_saved_ringtone(int64 ringtone_id, Promise<Unit> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+
   CHECK(are_saved_ringtones_loaded_);
 
   for (auto it = saved_ringtone_file_ids_.begin(); it != saved_ringtone_file_ids_.begin(); ++it) {

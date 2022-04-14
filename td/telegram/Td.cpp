@@ -7156,6 +7156,12 @@ void Td::on_request(uint64 id, const td_api::getSavedNotificationSounds &request
   CREATE_NO_ARGS_REQUEST(GetSavedNotificationSoundsRequest);
 }
 
+void Td::on_request(uint64 id, td_api::addSavedNotificationSound &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  notification_settings_manager_->add_saved_ringtone(std::move(request.sound_), std::move(promise));
+}
+
 void Td::on_request(uint64 id, const td_api::removeSavedNotificationSound &request) {
   CHECK_IS_USER();
   CREATE_REQUEST(RemoveSavedNotificationSoundRequest, request.notification_sound_id_);

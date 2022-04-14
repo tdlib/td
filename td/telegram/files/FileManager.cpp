@@ -2885,8 +2885,8 @@ void FileManager::cancel_upload(FileId file_id) {
 
 static bool is_document_type(FileType type) {
   return type == FileType::Document || type == FileType::Sticker || type == FileType::Audio ||
-         type == FileType::Animation || type == FileType::Background || type == FileType::DocumentAsFile ||
-         type == FileType::Ringtone;
+         type == FileType::Animation || type == FileType::VoiceNote || type == FileType::Background ||
+         type == FileType::DocumentAsFile || type == FileType::Ringtone;
 }
 
 static bool is_background_type(FileType type) {

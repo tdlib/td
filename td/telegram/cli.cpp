@@ -4496,6 +4496,10 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::getSavedNotificationSound>(notification_sound_id));
     } else if (op == "gnss") {
       send_request(td_api::make_object<td_api::getSavedNotificationSounds>());
+    } else if (op == "asns") {
+      string sound;
+      get_args(args, sound);
+      send_request(td_api::make_object<td_api::addSavedNotificationSound>(as_input_file(sound)));
     } else if (op == "rns") {
       int64 notification_sound_id;
       get_args(args, notification_sound_id);

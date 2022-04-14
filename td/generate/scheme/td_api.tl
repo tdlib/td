@@ -5184,6 +5184,9 @@ getSavedNotificationSound notification_sound_id:int64 = NotificationSounds;
 //@description Returns list of saved notification sounds. If a sound isn't in the list, then default sound needs to be used
 getSavedNotificationSounds = NotificationSounds;
 
+//@description Adds a new notification sound to the list of saved notification sounds. The new notification sound is added to the top of the list. If it is already in the list, it is position isn't changed @sound Notification sound file to add
+addSavedNotificationSound sound:InputFile = NotificationSound;
+
 //@description Removes a notification sound from the list of saved notification sounds @notification_sound_id Identifier of the notification sound
 removeSavedNotificationSound notification_sound_id:int64 = Ok;
 

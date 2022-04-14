@@ -46,6 +46,9 @@ class NotificationSettingsManager final : public Actor {
   void on_update_scope_notify_settings(NotificationSettingsScope scope,
                                        tl_object_ptr<telegram_api::peerNotifySettings> &&peer_notify_settings);
 
+  void add_saved_ringtone(td_api::object_ptr<td_api::InputFile> &&input_file,
+                          Promise<td_api::object_ptr<td_api::notificationSound>> &&promise);
+
   FileId get_saved_ringtone(int64 ringtone_id, Promise<Unit> &&promise);
 
   vector<FileId> get_saved_ringtones(Promise<Unit> &&promise);
@@ -101,6 +104,10 @@ class NotificationSettingsManager final : public Actor {
   static void on_scope_unmute_timeout_callback(void *notification_settings_manager_ptr, int64 scope_int);
 
   Result<FileId> get_ringtone(telegram_api::object_ptr<telegram_api::Document> &&ringtone) const;
+
+  void on_add_saved_ringtone(FileId file_id,
+                             telegram_api::object_ptr<telegram_api::account_SavedRingtone> &&saved_ringtone,
+                             Promise<td_api::object_ptr<td_api::notificationSound>> &&promise);
 
   void on_remove_saved_ringtone(int64 ringtone_id, Promise<Unit> &&promise);
 
