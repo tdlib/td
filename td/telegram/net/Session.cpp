@@ -995,7 +995,6 @@ void Session::add_query(NetQueryPtr &&net_query) {
 }
 
 void Session::connection_send_query(ConnectionInfo *info, NetQueryPtr &&net_query, uint64 message_id) {
-  net_query->debug("Session: trying to send to mtproto::connection");
   CHECK(info->state_ == ConnectionInfo::State::Ready);
   current_info_ = info;
 
@@ -1015,6 +1014,7 @@ void Session::connection_send_query(ConnectionInfo *info, NetQueryPtr &&net_quer
   }
   if (!invoke_after.empty()) {
     if (!unknown_queries_.empty()) {
+      net_query->debug("Session: wait unknown query to invoke after it");
       pending_invoke_after_queries_.push_back(std::move(net_query));
       return;
     }
@@ -1022,6 +1022,7 @@ void Session::connection_send_query(ConnectionInfo *info, NetQueryPtr &&net_quer
 
   bool immediately_fail_query = false;
   if (!immediately_fail_query) {
+    net_query->debug("Session: send to mtproto::connection");
     auto r_message_id =
         info->connection_->send_query(net_query->query().clone(), net_query->gzip_flag() == NetQuery::GzipFlag::On,
                                       message_id, invoke_after_ids, static_cast<bool>(net_query->quick_ack_promise_));
