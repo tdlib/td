@@ -3755,6 +3755,7 @@ void GroupCallManager::toggle_group_call_participant_is_muted(GroupCallId group_
                                                promise = std::move(promise)](Result<Unit> &&result) mutable {
     if (result.is_error()) {
       promise.set_error(result.move_as_error());
+      promise = Promise<Unit>();
     }
     send_closure(actor_id, &GroupCallManager::on_toggle_group_call_participant_is_muted, input_group_call_id, dialog_id,
                  generation, std::move(promise));
@@ -3850,6 +3851,7 @@ void GroupCallManager::set_group_call_participant_volume_level(GroupCallId group
                                                promise = std::move(promise)](Result<Unit> &&result) mutable {
     if (result.is_error()) {
       promise.set_error(result.move_as_error());
+      promise = Promise<Unit>();
     }
     send_closure(actor_id, &GroupCallManager::on_set_group_call_participant_volume_level, input_group_call_id,
                  dialog_id, generation, std::move(promise));
@@ -3949,6 +3951,7 @@ void GroupCallManager::toggle_group_call_participant_is_hand_raised(GroupCallId 
                                                promise = std::move(promise)](Result<Unit> &&result) mutable {
     if (result.is_error()) {
       promise.set_error(result.move_as_error());
+      promise = Promise<Unit>();
     }
     send_closure(actor_id, &GroupCallManager::on_toggle_group_call_participant_is_hand_raised, input_group_call_id,
                  dialog_id, generation, std::move(promise));
