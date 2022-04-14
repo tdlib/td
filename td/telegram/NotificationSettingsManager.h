@@ -46,6 +46,8 @@ class NotificationSettingsManager final : public Actor {
   void on_update_scope_notify_settings(NotificationSettingsScope scope,
                                        tl_object_ptr<telegram_api::peerNotifySettings> &&peer_notify_settings);
 
+  FileId get_saved_ringtone(int64 ringtone_id, Promise<Unit> &&promise);
+
   vector<FileId> get_saved_ringtones(Promise<Unit> &&promise);
 
   void reload_saved_ringtones(Promise<Unit> &&promise);

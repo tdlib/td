@@ -45,7 +45,9 @@ tl_object_ptr<td_api::audio> AudiosManager::get_audio_object(FileId file_id) con
 }
 
 td_api::object_ptr<td_api::notificationSound> AudiosManager::get_notification_sound_object(FileId file_id) const {
-  CHECK(file_id.is_valid());
+  if (!file_id.is_valid()) {
+    return nullptr;
+  }
 
   auto it = audios_.find(file_id);
   CHECK(it != audios_.end());

@@ -1104,6 +1104,8 @@ class Td final : public Actor {
 
   void on_request(uint64 id, td_api::removeFavoriteSticker &request);
 
+  void on_request(uint64 id, const td_api::getSavedNotificationSound &request);
+
   void on_request(uint64 id, const td_api::getSavedNotificationSounds &request);
 
   void on_request(uint64 id, const td_api::getChatNotificationSettingsExceptions &request);

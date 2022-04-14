@@ -2593,6 +2593,24 @@ class RemoveSavedAnimationRequest final : public RequestOnceActor {
   }
 };
 
+class GetSavedNotificationSoundRequest final : public RequestActor<> {
+  int64 ringtone_id_;
+  FileId ringtone_file_id_;
+
+  void do_run(Promise<Unit> &&promise) final {
+    ringtone_file_id_ = td_->notification_settings_manager_->get_saved_ringtone(ringtone_id_, std::move(promise));
+  }
+
+  void do_send_result() final {
+    send_result(td_->audios_manager_->get_notification_sound_object(ringtone_file_id_));
+  }
+
+ public:
+  GetSavedNotificationSoundRequest(ActorShared<Td> td, uint64 request_id, int64 ringtone_id)
+      : RequestActor(std::move(td), request_id), ringtone_id_(ringtone_id) {
+  }
+};
+
 class GetSavedNotificationSoundsRequest final : public RequestActor<> {
   vector<FileId> ringtone_file_ids_;
 
@@ -7111,6 +7129,11 @@ void Td::on_request(uint64 id, td_api::addSavedAnimation &request) {
 void Td::on_request(uint64 id, td_api::removeSavedAnimation &request) {
   CHECK_IS_USER();
   CREATE_REQUEST(RemoveSavedAnimationRequest, std::move(request.animation_));
+}
+
+void Td::on_request(uint64 id, const td_api::getSavedNotificationSound &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST(GetSavedNotificationSoundRequest, request.notification_sound_id_);
 }
 
 void Td::on_request(uint64 id, const td_api::getSavedNotificationSounds &request) {

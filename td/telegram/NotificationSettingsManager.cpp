@@ -10,6 +10,7 @@
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/DocumentsManager.h"
+#include "td/telegram/files/FileManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/logevent/LogEventHelper.h"
@@ -622,6 +623,25 @@ void NotificationSettingsManager::reset_scope_notification_settings() {
 
 bool NotificationSettingsManager::is_active() const {
   return !G()->close_flag() && td_->auth_manager_->is_authorized() && !td_->auth_manager_->is_bot();
+}
+
+FileId NotificationSettingsManager::get_saved_ringtone(int64 ringtone_id, Promise<Unit> &&promise) {
+  if (!are_saved_ringtones_loaded_) {
+    reload_saved_ringtones(std::move(promise));
+    return {};
+  }
+
+  promise.set_value(Unit());
+  for (auto &file_id : saved_ringtone_file_ids_) {
+    auto file_view = td_->file_manager_->get_file_view(file_id);
+    CHECK(!file_view.empty());
+    CHECK(file_view.get_type() == FileType::Ringtone);
+    CHECK(file_view.has_remote_location());
+    if (file_view.remote_location().get_id() == ringtone_id) {
+      return file_view.file_id();
+    }
+  }
+  return {};
 }
 
 vector<FileId> NotificationSettingsManager::get_saved_ringtones(Promise<Unit> &&promise) {
