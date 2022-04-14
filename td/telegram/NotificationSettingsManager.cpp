@@ -10,6 +10,7 @@
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/DocumentsManager.h"
+#include "td/telegram/FileReferenceManager.h"
 #include "td/telegram/files/FileManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/logevent/LogEvent.h"
@@ -34,6 +35,65 @@
 
 namespace td {
 
+class SaveRingtoneQuery final : public Td::ResultHandler {
+  FileId file_id_;
+  string file_reference_;
+  bool unsave_ = false;
+
+  Promise<telegram_api::object_ptr<telegram_api::account_SavedRingtone>> promise_;
+
+ public:
+  explicit SaveRingtoneQuery(Promise<telegram_api::object_ptr<telegram_api::account_SavedRingtone>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(FileId file_id, tl_object_ptr<telegram_api::inputDocument> &&input_document, bool unsave) {
+    CHECK(input_document != nullptr);
+    CHECK(file_id.is_valid());
+    file_id_ = file_id;
+    file_reference_ = input_document->file_reference_.as_slice().str();
+    unsave_ = unsave;
+
+    send_query(G()->net_query_creator().create(telegram_api::account_saveRingtone(std::move(input_document), unsave),
+                                               {{"ringtone"}}));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::account_saveRingtone>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto result = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for SaveRingtoneQuery: " << to_string(result);
+    promise_.set_value(std::move(result));
+  }
+
+  void on_error(Status status) final {
+    if (!td_->auth_manager_->is_bot() && FileReferenceManager::is_file_reference_error(status)) {
+      VLOG(file_references) << "Receive " << status << " for " << file_id_;
+      td_->file_manager_->delete_file_reference(file_id_, file_reference_);
+      td_->file_reference_manager_->repair_file_reference(
+          file_id_, PromiseCreator::lambda([ringtone_id = file_id_, unsave = unsave_,
+                                            promise = std::move(promise_)](Result<Unit> result) mutable {
+            if (result.is_error()) {
+              return promise.set_error(Status::Error(400, "Failed to find the ringtone"));
+            }
+
+            send_closure(G()->notification_settings_manager(), &NotificationSettingsManager::send_save_ringtone_query,
+                         ringtone_id, unsave, std::move(promise));
+          }));
+      return;
+    }
+
+    if (!G()->is_expected_error(status)) {
+      LOG(ERROR) << "Receive error for SaveRingtoneQuery: " << status;
+    }
+    td_->notification_settings_manager_->reload_saved_ringtones(Auto());
+    promise_.set_error(std::move(status));
+  }
+};
+
 class GetSavedRingtonesQuery final : public Td::ResultHandler {
   Promise<telegram_api::object_ptr<telegram_api::account_SavedRingtones>> promise_;
 
@@ -43,7 +103,7 @@ class GetSavedRingtonesQuery final : public Td::ResultHandler {
   }
 
   void send(int64 hash) {
-    send_query(G()->net_query_creator().create(telegram_api::account_getSavedRingtones(hash)));
+    send_query(G()->net_query_creator().create(telegram_api::account_getSavedRingtones(hash), {{"ringtone"}}));
   }
 
   void on_result(BufferSlice packet) final {
@@ -652,6 +712,69 @@ vector<FileId> NotificationSettingsManager::get_saved_ringtones(Promise<Unit> &&
 
   promise.set_value(Unit());
   return saved_ringtone_file_ids_;
+}
+
+void NotificationSettingsManager::send_save_ringtone_query(
+    FileId ringtone_file_id, bool unsave,
+    Promise<telegram_api::object_ptr<telegram_api::account_SavedRingtone>> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+
+  // TODO log event
+  auto file_view = td_->file_manager_->get_file_view(ringtone_file_id);
+  CHECK(!file_view.empty());
+  CHECK(file_view.has_remote_location());
+  CHECK(file_view.remote_location().is_document());
+  CHECK(!file_view.remote_location().is_web());
+  td_->create_handler<SaveRingtoneQuery>(std::move(promise))
+      ->send(ringtone_file_id, file_view.remote_location().as_input_document(), unsave);
+}
+
+void NotificationSettingsManager::remove_saved_ringtone(int64 ringtone_id, Promise<Unit> &&promise) {
+  if (!are_saved_ringtones_loaded_) {
+    reload_saved_ringtones(std::move(promise));
+    return;
+  }
+
+  for (auto &file_id : saved_ringtone_file_ids_) {
+    auto file_view = td_->file_manager_->get_file_view(file_id);
+    CHECK(!file_view.empty());
+    CHECK(file_view.get_type() == FileType::Ringtone);
+    CHECK(file_view.has_remote_location());
+    if (file_view.remote_location().get_id() == ringtone_id) {
+      send_save_ringtone_query(
+          file_view.file_id(), true,
+          PromiseCreator::lambda(
+              [actor_id = actor_id(this), ringtone_id, promise = std::move(promise)](
+                  Result<telegram_api::object_ptr<telegram_api::account_SavedRingtone>> &&result) mutable {
+                if (result.is_error()) {
+                  promise.set_error(result.move_as_error());
+                } else {
+                  send_closure(actor_id, &NotificationSettingsManager::on_remove_saved_ringtone, ringtone_id,
+                               std::move(promise));
+                }
+              }));
+      return;
+    }
+  }
+
+  promise.set_value(Unit());
+}
+
+void NotificationSettingsManager::on_remove_saved_ringtone(int64 ringtone_id, Promise<Unit> &&promise) {
+  CHECK(are_saved_ringtones_loaded_);
+
+  for (auto it = saved_ringtone_file_ids_.begin(); it != saved_ringtone_file_ids_.begin(); ++it) {
+    auto file_view = td_->file_manager_->get_file_view(*it);
+    CHECK(!file_view.empty());
+    CHECK(file_view.get_type() == FileType::Ringtone);
+    CHECK(file_view.has_remote_location());
+    if (file_view.remote_location().get_id() == ringtone_id) {
+      saved_ringtone_file_ids_.erase(it);
+      break;
+    }
+  }
+
+  promise.set_value(Unit());
 }
 
 Result<FileId> NotificationSettingsManager::get_ringtone(

@@ -5184,6 +5184,9 @@ getSavedNotificationSound notification_sound_id:int64 = NotificationSounds;
 //@description Returns list of saved notification sounds. If a sound isn't in the list, then default sound needs to be used
 getSavedNotificationSounds = NotificationSounds;
 
+//@description Removes a notification sound from the list of saved notification sounds @notification_sound_id Identifier of the notification sound
+removeSavedNotificationSound notification_sound_id:int64 = Ok;
+
 
 //@description Returns list of chats with non-default notification settings
 //@scope If specified, only chats from the scope will be returned; pass null to return chats from all scopes

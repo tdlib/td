@@ -2630,6 +2630,20 @@ class GetSavedNotificationSoundsRequest final : public RequestActor<> {
   }
 };
 
+class RemoveSavedNotificationSoundRequest final : public RequestOnceActor {
+  int64 ringtone_id_;
+
+  void do_run(Promise<Unit> &&promise) final {
+    td_->notification_settings_manager_->remove_saved_ringtone(ringtone_id_, std::move(promise));
+  }
+
+ public:
+  RemoveSavedNotificationSoundRequest(ActorShared<Td> td, uint64 request_id, int64 ringtone_id)
+      : RequestOnceActor(std::move(td), request_id), ringtone_id_(ringtone_id) {
+    set_tries(3);
+  }
+};
+
 class GetInlineQueryResultsRequest final : public RequestOnceActor {
   UserId bot_user_id_;
   DialogId dialog_id_;
@@ -4039,6 +4053,7 @@ void Td::init_managers() {
   notification_settings_manager_ = make_unique<NotificationSettingsManager>(this, create_reference());
   notification_settings_manager_actor_ =
       register_actor("NotificationSettingsManager", notification_settings_manager_.get());
+  G()->set_notification_settings_manager(notification_settings_manager_actor_.get());
   poll_manager_ = make_unique<PollManager>(this, create_reference());
   poll_manager_actor_ = register_actor("PollManager", poll_manager_.get());
   sponsored_message_manager_ = make_unique<SponsoredMessageManager>(this, create_reference());
@@ -7139,6 +7154,11 @@ void Td::on_request(uint64 id, const td_api::getSavedNotificationSound &request)
 void Td::on_request(uint64 id, const td_api::getSavedNotificationSounds &request) {
   CHECK_IS_USER();
   CREATE_NO_ARGS_REQUEST(GetSavedNotificationSoundsRequest);
+}
+
+void Td::on_request(uint64 id, const td_api::removeSavedNotificationSound &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST(RemoveSavedNotificationSoundRequest, request.notification_sound_id_);
 }
 
 void Td::on_request(uint64 id, const td_api::getChatNotificationSettingsExceptions &request) {
