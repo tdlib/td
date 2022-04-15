@@ -31,10 +31,57 @@
 #include "td/utils/algorithm.h"
 #include "td/utils/buffer.h"
 #include "td/utils/logging.h"
+#include "td/utils/MimeType.h"
+#include "td/utils/PathView.h"
 #include "td/utils/Random.h"
 #include "td/utils/tl_helpers.h"
 
 namespace td {
+
+class UploadRingtoneQuery final : public Td::ResultHandler {
+  FileId file_id_;
+  Promise<telegram_api::object_ptr<telegram_api::Document>> promise_;
+
+ public:
+  explicit UploadRingtoneQuery(Promise<telegram_api::object_ptr<telegram_api::Document>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(FileId file_id, tl_object_ptr<telegram_api::InputFile> &&input_file, const string &file_name,
+            const string &mime_type) {
+    CHECK(input_file != nullptr);
+    file_id_ = file_id;
+
+    send_query(G()->net_query_creator().create(
+        telegram_api::account_uploadRingtone(std::move(input_file), file_name, mime_type)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::account_uploadRingtone>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    td_->file_manager_->delete_partial_remote_location(file_id_);
+
+    auto result = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for UploadRingtoneQuery: " << to_string(result);
+    promise_.set_value(std::move(result));
+  }
+
+  void on_error(Status status) final {
+    if (FileReferenceManager::is_file_reference_error(status)) {
+      LOG(ERROR) << "Receive file reference error " << status;
+    }
+    if (begins_with(status.message(), "FILE_PART_") && ends_with(status.message(), "_MISSING")) {
+      // TODO support FILE_PART_*_MISSING
+    }
+
+    td_->file_manager_->delete_partial_remote_location(file_id_);
+    td_->notification_settings_manager_->reload_saved_ringtones(Auto());
+    promise_.set_error(std::move(status));
+  }
+};
 
 class SaveRingtoneQuery final : public Td::ResultHandler {
   FileId file_id_;
@@ -394,8 +441,28 @@ class ResetNotifySettingsQuery final : public Td::ResultHandler {
   }
 };
 
+class NotificationSettingsManager::UploadRingtoneCallback final : public FileManager::UploadCallback {
+ public:
+  void on_upload_ok(FileId file_id, tl_object_ptr<telegram_api::InputFile> input_file) final {
+    send_closure_later(G()->notification_settings_manager(), &NotificationSettingsManager::on_upload_ringtone, file_id,
+                       std::move(input_file));
+  }
+  void on_upload_encrypted_ok(FileId file_id, tl_object_ptr<telegram_api::InputEncryptedFile> input_file) final {
+    UNREACHABLE();
+  }
+  void on_upload_secure_ok(FileId file_id, tl_object_ptr<telegram_api::InputSecureFile> input_file) final {
+    UNREACHABLE();
+  }
+  void on_upload_error(FileId file_id, Status error) final {
+    send_closure_later(G()->notification_settings_manager(), &NotificationSettingsManager::on_upload_ringtone_error,
+                       file_id, std::move(error));
+  }
+};
+
 NotificationSettingsManager::NotificationSettingsManager(Td *td, ActorShared<> parent)
     : td_(td), parent_(std::move(parent)) {
+  upload_ringtone_callback_ = std::make_shared<UploadRingtoneCallback>();
+
   scope_unmute_timeout_.set_callback(on_scope_unmute_timeout_callback);
   scope_unmute_timeout_.set_callback_data(static_cast<void *>(this));
 }
@@ -755,7 +822,7 @@ void NotificationSettingsManager::add_saved_ringtone(td_api::object_ptr<td_api::
   FileId file_id = r_file_id.ok();
   auto file_view = td_->file_manager_->get_file_view(file_id);
   CHECK(!file_view.empty());
-  if (file_view.has_remote_location()) {
+  if (file_view.has_remote_location() && !file_view.is_encrypted()) {
     CHECK(file_view.remote_location().is_document());
     if (file_view.main_remote_location().is_web()) {
       return promise.set_error(Status::Error(400, "Can't use web document as notification sound"));
@@ -798,7 +865,119 @@ void NotificationSettingsManager::add_saved_ringtone(td_api::object_ptr<td_api::
     return;
   }
 
-  promise.set_error(Status::Error(400, "Unsupported"));
+  auto download_file_id = td_->file_manager_->dup_file_id(file_id);
+  file_id = td_->file_manager_
+                ->register_generate(FileType::Ringtone, FileLocationSource::FromServer, file_view.suggested_path(),
+                                    PSTRING() << "#file_id#" << download_file_id.get(), DialogId(), file_view.size())
+                .ok();
+
+  upload_ringtone(file_id, false, std::move(promise));
+}
+
+void NotificationSettingsManager::upload_ringtone(FileId file_id, bool is_reupload,
+                                                  Promise<td_api::object_ptr<td_api::notificationSound>> &&promise,
+                                                  vector<int> bad_parts) {
+  CHECK(file_id.is_valid());
+  LOG(INFO) << "Ask to upload ringtone " << file_id;
+  bool is_inserted =
+      being_uploaded_ringtones_.emplace(file_id, UploadedRingtone{is_reupload, std::move(promise)}).second;
+  CHECK(is_inserted);
+  // TODO use force_reupload if is_reupload
+  td_->file_manager_->resume_upload(file_id, std::move(bad_parts), upload_ringtone_callback_, 32, 0);
+}
+
+void NotificationSettingsManager::on_upload_ringtone(FileId file_id,
+                                                     tl_object_ptr<telegram_api::InputFile> input_file) {
+  LOG(INFO) << "File " << file_id << " has been uploaded";
+
+  auto it = being_uploaded_ringtones_.find(file_id);
+  if (it == being_uploaded_ringtones_.end()) {
+    // just in case, as in on_upload_media
+    return;
+  }
+
+  bool is_reupload = it->second.is_reupload;
+  auto promise = std::move(it->second.promise);
+
+  being_uploaded_ringtones_.erase(it);
+
+  FileView file_view = td_->file_manager_->get_file_view(file_id);
+  CHECK(!file_view.is_encrypted());
+  CHECK(file_view.get_type() == FileType::Ringtone);
+  if (input_file == nullptr && file_view.has_remote_location()) {
+    if (file_view.main_remote_location().is_web()) {
+      return promise.set_error(Status::Error(400, "Can't use web document as notification sound"));
+    }
+    if (is_reupload) {
+      return promise.set_error(Status::Error(400, "Failed to reupload the file"));
+    }
+
+    send_save_ringtone_query(
+        file_view.file_id(), false,
+        PromiseCreator::lambda(
+            [actor_id = actor_id(this), file_id = file_view.file_id(), promise = std::move(promise)](
+                Result<telegram_api::object_ptr<telegram_api::account_SavedRingtone>> &&result) mutable {
+              if (result.is_error()) {
+                promise.set_error(result.move_as_error());
+              } else {
+                send_closure(actor_id, &NotificationSettingsManager::on_add_saved_ringtone, file_id,
+                             result.move_as_ok(), std::move(promise));
+              }
+            }));
+    return;
+  }
+  CHECK(input_file != nullptr);
+  CHECK(input_file->get_id() == telegram_api::inputFile::ID);
+  const PathView path_view(static_cast<const telegram_api::inputFile *>(input_file.get())->name_);
+  auto file_name = path_view.file_name().str();
+  auto mime_type = MimeType::from_extension(path_view.extension());
+  auto query_promise =
+      PromiseCreator::lambda([actor_id = actor_id(this), promise = std::move(promise)](
+                                 Result<telegram_api::object_ptr<telegram_api::Document>> &&result) mutable {
+        if (result.is_error()) {
+          promise.set_error(result.move_as_error());
+        } else {
+          send_closure(actor_id, &NotificationSettingsManager::on_upload_saved_ringtone, result.move_as_ok(),
+                       std::move(promise));
+        }
+      });
+
+  td_->create_handler<UploadRingtoneQuery>(std::move(query_promise))
+      ->send(file_id, std::move(input_file), file_name, mime_type);
+}
+
+void NotificationSettingsManager::on_upload_ringtone_error(FileId file_id, Status status) {
+  LOG(INFO) << "File " << file_id << " has upload error " << status;
+  CHECK(status.is_error());
+
+  auto it = being_uploaded_ringtones_.find(file_id);
+  if (it == being_uploaded_ringtones_.end()) {
+    // just in case
+    return;
+  }
+
+  auto promise = std::move(it->second.promise);
+
+  being_uploaded_ringtones_.erase(it);
+
+  promise.set_error(std::move(status));
+}
+
+void NotificationSettingsManager::on_upload_saved_ringtone(
+    telegram_api::object_ptr<telegram_api::Document> &&saved_ringtone,
+    Promise<td_api::object_ptr<td_api::notificationSound>> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+
+  TRY_RESULT_PROMISE(promise, file_id, get_ringtone(std::move(saved_ringtone)));
+
+  reload_saved_ringtones(PromiseCreator::lambda([actor_id = actor_id(this), file_id,
+                                                 promise = std::move(promise)](Result<Unit> &&result) mutable {
+    if (result.is_error()) {
+      promise.set_error(result.move_as_error());
+    } else {
+      send_closure(actor_id, &NotificationSettingsManager::on_add_saved_ringtone, file_id, nullptr, std::move(promise));
+    }
+  }));
 }
 
 void NotificationSettingsManager::on_add_saved_ringtone(

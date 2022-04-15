@@ -20,6 +20,8 @@
 #include "td/utils/FlatHashMap.h"
 #include "td/utils/Status.h"
 
+#include <memory>
+
 namespace td {
 
 struct BinlogEvent;
@@ -93,6 +95,8 @@ class NotificationSettingsManager final : public Actor {
  private:
   class UpdateScopeNotificationSettingsOnServerLogEvent;
 
+  class UploadRingtoneCallback;
+
   void start_up() final;
 
   void tear_down() final;
@@ -104,6 +108,16 @@ class NotificationSettingsManager final : public Actor {
   static void on_scope_unmute_timeout_callback(void *notification_settings_manager_ptr, int64 scope_int);
 
   Result<FileId> get_ringtone(telegram_api::object_ptr<telegram_api::Document> &&ringtone) const;
+
+  void upload_ringtone(FileId file_id, bool is_reupload,
+                       Promise<td_api::object_ptr<td_api::notificationSound>> &&promise, vector<int> bad_parts = {});
+
+  void on_upload_ringtone(FileId file_id, tl_object_ptr<telegram_api::InputFile> input_file);
+
+  void on_upload_ringtone_error(FileId file_id, Status status);
+
+  void on_upload_saved_ringtone(telegram_api::object_ptr<telegram_api::Document> &&saved_ringtone,
+                                Promise<td_api::object_ptr<td_api::notificationSound>> &&promise);
 
   void on_add_saved_ringtone(FileId file_id,
                              telegram_api::object_ptr<telegram_api::account_SavedRingtone> &&saved_ringtone,
@@ -153,6 +167,18 @@ class NotificationSettingsManager final : public Actor {
 
   int64 saved_ringtone_hash_ = 0;
   vector<FileId> saved_ringtone_file_ids_;
+
+  std::shared_ptr<UploadRingtoneCallback> upload_ringtone_callback_;
+
+  struct UploadedRingtone {
+    bool is_reupload;
+    Promise<td_api::object_ptr<td_api::notificationSound>> promise;
+
+    UploadedRingtone(bool is_reupload, Promise<td_api::object_ptr<td_api::notificationSound>> promise)
+        : is_reupload(is_reupload), promise(std::move(promise)) {
+    }
+  };
+  FlatHashMap<FileId, UploadedRingtone, FileIdHash> being_uploaded_ringtones_;
 
   vector<Promise<Unit>> reload_saved_ringtone_queries_;
 

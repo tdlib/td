@@ -915,7 +915,7 @@ string FileManager::get_file_name(FileType file_type, Slice path) {
       break;
     case FileType::Ringtone:
       if (extension != "ogg" && extension != "oga" && extension != "mp3" && extension != "mpeg3") {
-        return fix_file_extension(file_name, "notification_tone", "mp3");
+        return fix_file_extension(file_name, "notification_sound", "mp3");
       }
       break;
     case FileType::Document:
