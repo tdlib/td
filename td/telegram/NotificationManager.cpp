@@ -3440,6 +3440,8 @@ Status NotificationManager::process_push_notification_payload(string payload, bo
     int64 ringtone_id = -1;
     if (has_json_object_field(custom, "silent")) {
       ringtone_id = 0;
+    } else if (has_json_object_field(custom, "ringtone")) {
+      TRY_RESULT_ASSIGN(ringtone_id, get_json_object_long_field(custom, "ringtone"));
     }
     add_message_push_notification(dialog_id, MessageId(server_message_id), random_id, sender_user_id, sender_dialog_id,
                                   std::move(sender_name), sent_date, is_from_scheduled, contains_mention, ringtone_id,
