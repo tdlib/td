@@ -3173,8 +3173,8 @@ notificationSounds notification_sounds:vector<notificationSound> = NotificationS
 
 
 //@description Contains information about a notification @id Unique persistent identifier of this notification @date Notification date
-//@is_silent True, if the notification was initially silent @type Notification type
-notification id:int32 date:int32 is_silent:Bool type:NotificationType = Notification;
+//@sound_id Identifier of the notification sound to be played; 0 if sound is disabled @type Notification type
+notification id:int32 date:int32 sound_id:int64 type:NotificationType = Notification;
 
 //@description Describes a group of notifications @id Unique persistent auto-incremented from 1 identifier of the notification group @type Type of the group
 //@chat_id Identifier of a chat to which all notifications in the group belong
@@ -3998,10 +3998,10 @@ updateNotification notification_group_id:int32 notification:notification = Updat
 //@type New type of the notification group
 //@chat_id Identifier of a chat to which all notifications in the group belong
 //@notification_settings_chat_id Chat identifier, which notification settings must be applied to the added notifications
-//@is_silent True, if the notifications must be shown without sound
+//@notification_sound_id Identifier of the notification sound to be played; 0 if sound is disabled
 //@total_count Total number of unread notifications in the group, can be bigger than number of active notifications
 //@added_notifications List of added group notifications, sorted by notification ID @removed_notification_ids Identifiers of removed group notifications, sorted by notification ID
-updateNotificationGroup notification_group_id:int32 type:NotificationGroupType chat_id:int53 notification_settings_chat_id:int53 is_silent:Bool total_count:int32 added_notifications:vector<notification> removed_notification_ids:vector<int32> = Update;
+updateNotificationGroup notification_group_id:int32 type:NotificationGroupType chat_id:int53 notification_settings_chat_id:int53 notification_sound_id:int64 total_count:int32 added_notifications:vector<notification> removed_notification_ids:vector<int32> = Update;
 
 //@description Contains active notifications that was shown on previous application launches. This update is sent only if the message database is used. In that case it comes once before any updateNotification and updateNotificationGroup update @groups Lists of active notification groups
 updateActiveNotifications groups:vector<notificationGroup> = Update;

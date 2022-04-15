@@ -2841,6 +2841,8 @@ class MessagesManager final : public Actor {
 
   std::pair<bool, int32> get_dialog_mute_until(DialogId dialog_id, const Dialog *d) const;
 
+  int64 get_dialog_notification_ringtone_id(DialogId dialog_id, const Dialog *d) const;
+
   NotificationSettingsScope get_dialog_notification_setting_scope(DialogId dialog_id) const;
 
   DialogNotificationSettings *get_dialog_notification_settings(DialogId dialog_id, bool force);

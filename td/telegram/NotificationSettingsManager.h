@@ -40,6 +40,8 @@ class NotificationSettingsManager final : public Actor {
 
   int32 get_scope_mute_until(NotificationSettingsScope scope) const;
 
+  const unique_ptr<NotificationSound> &get_scope_notification_sound(NotificationSettingsScope scope) const;
+
   bool get_scope_disable_pinned_message_notifications(NotificationSettingsScope scope) const;
 
   bool get_scope_disable_mention_notifications(NotificationSettingsScope scope) const;

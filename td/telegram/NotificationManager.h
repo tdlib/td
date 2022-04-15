@@ -67,7 +67,7 @@ class NotificationManager final : public Actor {
   void load_group_force(NotificationGroupId group_id);
 
   void add_notification(NotificationGroupId group_id, NotificationGroupType group_type, DialogId dialog_id, int32 date,
-                        DialogId notification_settings_dialog_id, bool initial_is_silent, bool is_silent,
+                        DialogId notification_settings_dialog_id, int64 initial_ringtone_id, int64 ringtone_id,
                         int32 min_delay_ms, NotificationId notification_id, unique_ptr<NotificationType> type,
                         const char *source);
 
@@ -161,8 +161,8 @@ class NotificationManager final : public Actor {
   struct PendingNotification {
     int32 date = 0;
     DialogId settings_dialog_id;
-    bool initial_is_silent = false;
-    bool is_silent = false;
+    int64 initial_ringtone_id = -1;
+    int64 ringtone_id = -1;
     NotificationId notification_id;
     unique_ptr<NotificationType> type;
 
@@ -170,7 +170,7 @@ class NotificationManager final : public Actor {
       return string_builder << "PendingNotification[" << pending_notification.notification_id << " of type "
                             << pending_notification.type << " sent at " << pending_notification.date
                             << " with settings from " << pending_notification.settings_dialog_id
-                            << ", is_silent = " << pending_notification.is_silent << "]";
+                            << ", ringtone_id = " << pending_notification.ringtone_id << "]";
     }
   };
 
@@ -313,9 +313,9 @@ class NotificationManager final : public Actor {
 
   void add_message_push_notification(DialogId dialog_id, MessageId message_id, int64 random_id, UserId sender_user_id,
                                      DialogId sender_dialog_id, string sender_name, int32 date, bool is_from_scheduled,
-                                     bool contains_mention, bool initial_is_silent, bool is_silent, string loc_key,
-                                     string arg, Photo photo, Document document, NotificationId notification_id,
-                                     uint64 log_event_id, Promise<Unit> promise);
+                                     bool contains_mention, int64 initial_ringtone_id, int64 ringtone_id,
+                                     string loc_key, string arg, Photo photo, Document document,
+                                     NotificationId notification_id, uint64 log_event_id, Promise<Unit> promise);
 
   void edit_message_push_notification(DialogId dialog_id, MessageId message_id, int32 edit_date, string loc_key,
                                       string arg, Photo photo, Document document, uint64 log_event_id,

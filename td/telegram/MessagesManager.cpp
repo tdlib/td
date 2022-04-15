@@ -21200,6 +21200,16 @@ std::pair<bool, int32> MessagesManager::get_dialog_mute_until(DialogId dialog_id
   return {d->notification_settings.is_use_default_fixed, get_dialog_mute_until(d)};
 }
 
+int64 MessagesManager::get_dialog_notification_ringtone_id(DialogId dialog_id, const Dialog *d) const {
+  CHECK(!td_->auth_manager_->is_bot());
+  if (d == nullptr || !d->notification_settings.is_synchronized || d->notification_settings.use_default_mute_until) {
+    auto scope = get_dialog_notification_setting_scope(dialog_id);
+    return get_notification_sound_ringtone_id(td_->notification_settings_manager_->get_scope_notification_sound(scope));
+  }
+
+  return get_notification_sound_ringtone_id(d->notification_settings.sound);
+}
+
 NotificationSettingsScope MessagesManager::get_dialog_notification_setting_scope(DialogId dialog_id) const {
   switch (dialog_id.get_type()) {
     case DialogType::User:
@@ -29929,10 +29939,12 @@ bool MessagesManager::add_new_message_notification(Dialog *d, Message *m, bool f
   } else if (td_->is_online() && d->is_opened) {
     min_delay_ms = 1000;  // 1 second
   }
+  auto ringtone_id = get_dialog_notification_ringtone_id(settings_dialog_id, settings_dialog);
   bool is_silent = m->disable_notification || m->message_id <= d->max_notification_message_id;
   send_closure_later(G()->notification_manager(), &NotificationManager::add_notification, notification_group_id,
                      from_mentions ? NotificationGroupType::Mentions : NotificationGroupType::Messages, d->dialog_id,
-                     m->date, settings_dialog_id, m->disable_notification, is_silent, min_delay_ms, m->notification_id,
+                     m->date, settings_dialog_id, m->disable_notification ? 0 : ringtone_id,
+                     is_silent ? 0 : ringtone_id, min_delay_ms, m->notification_id,
                      create_new_message_notification(m->message_id), "add_new_message_notification");
   return true;
 }
@@ -35792,9 +35804,10 @@ void MessagesManager::force_create_dialog(DialogId dialog_id, const char *source
                                                              d->new_secret_chat_notification_id, "add_new_secret_chat");
               CHECK(is_changed);
               VLOG(notifications) << "Create " << d->new_secret_chat_notification_id << " with " << secret_chat_id;
+              auto ringtone_id = get_dialog_notification_ringtone_id(dialog_id, d);
               send_closure_later(G()->notification_manager(), &NotificationManager::add_notification,
                                  notification_group_id, NotificationGroupType::SecretChat, dialog_id, date, dialog_id,
-                                 false, false, 0, d->new_secret_chat_notification_id,
+                                 ringtone_id, ringtone_id, 0, d->new_secret_chat_notification_id,
                                  create_new_secret_chat_notification(), "add_new_secret_chat_notification");
             }
           }
