@@ -52,6 +52,7 @@ class FileReferenceManager final : public Actor {
   FileSourceId create_chat_full_file_source(ChatId chat_id);
   FileSourceId create_channel_full_file_source(ChannelId channel_id);
   FileSourceId create_app_config_file_source();
+  FileSourceId create_saved_ringtones_file_source();
 
   using NodeId = FileId;
   void repair_file_reference(NodeId node_id, Promise<> promise);
@@ -144,12 +145,15 @@ class FileReferenceManager final : public Actor {
   struct FileSourceAppConfig {
     // empty
   };
+  struct FileSourceSavedRingtones {
+    // empty
+  };
 
   // append only
-  using FileSource =
-      Variant<FileSourceMessage, FileSourceUserPhoto, FileSourceChatPhoto, FileSourceChannelPhoto, FileSourceWallpapers,
-              FileSourceWebPage, FileSourceSavedAnimations, FileSourceRecentStickers, FileSourceFavoriteStickers,
-              FileSourceBackground, FileSourceChatFull, FileSourceChannelFull, FileSourceAppConfig>;
+  using FileSource = Variant<FileSourceMessage, FileSourceUserPhoto, FileSourceChatPhoto, FileSourceChannelPhoto,
+                             FileSourceWallpapers, FileSourceWebPage, FileSourceSavedAnimations,
+                             FileSourceRecentStickers, FileSourceFavoriteStickers, FileSourceBackground,
+                             FileSourceChatFull, FileSourceChannelFull, FileSourceAppConfig, FileSourceSavedRingtones>;
   vector<FileSource> file_sources_;
 
   int64 query_generation_{0};

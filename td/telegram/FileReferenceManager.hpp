@@ -15,6 +15,7 @@
 #include "td/telegram/files/FileSourceId.h"
 #include "td/telegram/FullMessageId.h"
 #include "td/telegram/MessagesManager.h"
+#include "td/telegram/NotificationSettingsManager.h"
 #include "td/telegram/StickersManager.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/UserId.h"
@@ -50,7 +51,7 @@ void FileReferenceManager::store_file_source(FileSourceId file_source_id, Storer
                           },
                           [&](const FileSourceChatFull &source) { td::store(source.chat_id, storer); },
                           [&](const FileSourceChannelFull &source) { td::store(source.channel_id, storer); },
-                          [&](const FileSourceAppConfig &source) {}));
+                          [&](const FileSourceAppConfig &source) {}, [&](const FileSourceSavedRingtones &source) {}));
 }
 
 template <class ParserT>
@@ -114,6 +115,8 @@ FileSourceId FileReferenceManager::parse_file_source(Td *td, ParserT &parser) {
     }
     case 12:
       return td->stickers_manager_->get_app_config_file_source_id();
+    case 13:
+      return td->notification_settings_manager_->get_saved_ringtones_file_source_id();
     default:
       parser.set_error("Invalid type in FileSource");
       return FileSourceId();

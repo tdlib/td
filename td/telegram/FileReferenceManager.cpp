@@ -13,6 +13,7 @@
 #include "td/telegram/files/FileManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/MessagesManager.h"
+#include "td/telegram/NotificationSettingsManager.h"
 #include "td/telegram/StickerSetId.h"
 #include "td/telegram/StickersManager.h"
 #include "td/telegram/Td.h"
@@ -60,6 +61,7 @@ fileSourceBackground background_id:int64 access_hash:int64 = FileSource; // repa
 fileSourceBasicGroupFull basic_group_id:int32 = FileSource;              // repaired with messages.getFullChat
 fileSourceSupergroupFull supergroup_id:int32 = FileSource;               // repaired with messages.getFullChannel
 fileSourceAppConfig = FileSource;                                        // repaired with help.getAppConfig, not reliable
+fileSourceSavedRingtones = FileSource;                                   // repaired with account.getSavedRingtones
 */
 
 FileSourceId FileReferenceManager::get_current_file_source_id() const {
@@ -129,6 +131,11 @@ bool FileReferenceManager::add_file_source(NodeId node_id, FileSourceId file_sou
   bool is_added = nodes_[node_id].file_source_ids.add(file_source_id);
   VLOG(file_references) << "Add " << (is_added ? "new" : "old") << ' ' << file_source_id << " for file " << node_id;
   return is_added;
+}
+
+FileSourceId FileReferenceManager::create_saved_ringtones_file_source() {
+  FileSourceSavedRingtones source;
+  return add_file_source_id(source, "saved notification sounds");
 }
 
 bool FileReferenceManager::remove_file_source(NodeId node_id, FileSourceId file_source_id) {
@@ -305,6 +312,10 @@ void FileReferenceManager::send_query(Destination dest, FileSourceId file_source
       },
       [&](const FileSourceAppConfig &source) {
         send_closure_later(G()->config_manager(), &ConfigManager::reget_app_config, std::move(promise));
+      },
+      [&](const FileSourceSavedRingtones &source) {
+        send_closure_later(G()->notification_settings_manager(), &NotificationSettingsManager::repair_saved_ringtones,
+                           std::move(promise));
       }));
 }
 

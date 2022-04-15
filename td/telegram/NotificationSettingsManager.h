@@ -8,6 +8,7 @@
 
 #include "td/telegram/DialogId.h"
 #include "td/telegram/files/FileId.h"
+#include "td/telegram/files/FileSourceId.h"
 #include "td/telegram/NotificationSettings.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
@@ -58,6 +59,10 @@ class NotificationSettingsManager final : public Actor {
   void remove_saved_ringtone(int64 ringtone_id, Promise<Unit> &&promise);
 
   void reload_saved_ringtones(Promise<Unit> &&promise);
+
+  void repair_saved_ringtones(Promise<Unit> &&promise);
+
+  FileSourceId get_saved_ringtones_file_source_id();
 
   void send_save_ringtone_query(FileId ringtone_file_id, bool unsave,
                                 Promise<telegram_api::object_ptr<telegram_api::account_SavedRingtone>> &&promise);
@@ -125,7 +130,10 @@ class NotificationSettingsManager final : public Actor {
 
   void on_remove_saved_ringtone(int64 ringtone_id, Promise<Unit> &&promise);
 
-  void on_reload_saved_ringtones(Result<telegram_api::object_ptr<telegram_api::account_SavedRingtones>> &&result);
+  void on_reload_saved_ringtones(bool is_repair,
+                                 Result<telegram_api::object_ptr<telegram_api::account_SavedRingtones>> &&result);
+
+  void on_saved_ringtones_updated(bool from_database);
 
   ScopeNotificationSettings *get_scope_notification_settings(NotificationSettingsScope scope);
 
@@ -167,6 +175,8 @@ class NotificationSettingsManager final : public Actor {
 
   int64 saved_ringtone_hash_ = 0;
   vector<FileId> saved_ringtone_file_ids_;
+  vector<FileId> sorted_saved_ringtone_file_ids_;
+  FileSourceId saved_ringtones_file_source_id_;
 
   std::shared_ptr<UploadRingtoneCallback> upload_ringtone_callback_;
 
@@ -180,7 +190,8 @@ class NotificationSettingsManager final : public Actor {
   };
   FlatHashMap<FileId, UploadedRingtone, FileIdHash> being_uploaded_ringtones_;
 
-  vector<Promise<Unit>> reload_saved_ringtone_queries_;
+  vector<Promise<Unit>> reload_saved_ringtones_queries_;
+  vector<Promise<Unit>> repair_saved_ringtones_queries_;
 
   FlatHashMap<DialogId, vector<Promise<Unit>>, DialogIdHash> get_dialog_notification_settings_queries_;
 };

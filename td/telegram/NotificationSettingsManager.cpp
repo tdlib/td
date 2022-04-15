@@ -53,7 +53,7 @@ class UploadRingtoneQuery final : public Td::ResultHandler {
     file_id_ = file_id;
 
     send_query(G()->net_query_creator().create(
-        telegram_api::account_uploadRingtone(std::move(input_file), file_name, mime_type)));
+        telegram_api::account_uploadRingtone(std::move(input_file), file_name, mime_type), {{"ringtone"}}));
   }
 
   void on_result(BufferSlice packet) final {
@@ -1052,6 +1052,7 @@ void NotificationSettingsManager::on_remove_saved_ringtone(int64 ringtone_id, Pr
     CHECK(file_view.has_remote_location());
     if (file_view.remote_location().get_id() == ringtone_id) {
       saved_ringtone_file_ids_.erase(it);
+      on_saved_ringtones_updated(false);
       break;
     }
   }
@@ -1078,38 +1079,64 @@ Result<FileId> NotificationSettingsManager::get_ringtone(
 
 void NotificationSettingsManager::reload_saved_ringtones(Promise<Unit> &&promise) {
   if (!is_active()) {
-    return;
+    return promise.set_error(Status::Error(400, "Don't need to reload saved notification sounds"));
   }
-  reload_saved_ringtone_queries_.push_back(std::move(promise));
-  if (reload_saved_ringtone_queries_.size() == 1) {
+  reload_saved_ringtones_queries_.push_back(std::move(promise));
+  if (reload_saved_ringtones_queries_.size() == 1) {
     auto query_promise = PromiseCreator::lambda(
         [actor_id = actor_id(this)](Result<telegram_api::object_ptr<telegram_api::account_SavedRingtones>> &&result) {
-          send_closure(actor_id, &NotificationSettingsManager::on_reload_saved_ringtones, std::move(result));
+          send_closure(actor_id, &NotificationSettingsManager::on_reload_saved_ringtones, false, std::move(result));
         });
     td_->create_handler<GetSavedRingtonesQuery>(std::move(query_promise))->send(saved_ringtone_hash_);
   }
 }
 
+void NotificationSettingsManager::repair_saved_ringtones(Promise<Unit> &&promise) {
+  if (!is_active()) {
+    return promise.set_error(Status::Error(400, "Don't need to repair saved notification sounds"));
+  }
+
+  repair_saved_ringtones_queries_.push_back(std::move(promise));
+  if (repair_saved_ringtones_queries_.size() == 1u) {
+    auto query_promise = PromiseCreator::lambda(
+        [actor_id = actor_id(this)](Result<telegram_api::object_ptr<telegram_api::account_SavedRingtones>> &&result) {
+          send_closure(actor_id, &NotificationSettingsManager::on_reload_saved_ringtones, true, std::move(result));
+        });
+    td_->create_handler<GetSavedRingtonesQuery>(std::move(query_promise))->send(0);
+  }
+}
+
 void NotificationSettingsManager::on_reload_saved_ringtones(
-    Result<telegram_api::object_ptr<telegram_api::account_SavedRingtones>> &&result) {
+    bool is_repair, Result<telegram_api::object_ptr<telegram_api::account_SavedRingtones>> &&result) {
   if (!is_active()) {
     are_saved_ringtones_loaded_ = true;
-    set_promises(reload_saved_ringtone_queries_);
+    set_promises(reload_saved_ringtones_queries_);
+    set_promises(repair_saved_ringtones_queries_);
     return;
   }
   if (result.is_error()) {
-    fail_promises(reload_saved_ringtone_queries_, result.move_as_error());
-    set_timeout_in(Random::fast(60, 120));
+    if (is_repair) {
+      fail_promises(repair_saved_ringtones_queries_, result.move_as_error());
+    } else {
+      fail_promises(reload_saved_ringtones_queries_, result.move_as_error());
+      set_timeout_in(Random::fast(60, 120));
+    }
     return;
   }
 
-  set_timeout_in(Random::fast(3600, 4800));
+  if (!is_repair) {
+    set_timeout_in(Random::fast(3600, 4800));
+  }
 
   auto saved_ringtones_ptr = result.move_as_ok();
   auto constructor_id = saved_ringtones_ptr->get_id();
   if (constructor_id == telegram_api::account_savedRingtonesNotModified::ID) {
-    are_saved_ringtones_loaded_ = true;
-    set_promises(reload_saved_ringtone_queries_);
+    if (is_repair) {
+      fail_promises(repair_saved_ringtones_queries_, Status::Error(500, "Failed to repair saved animations"));
+    } else {
+      are_saved_ringtones_loaded_ = true;
+      set_promises(reload_saved_ringtones_queries_);
+    }
     return;
   }
   CHECK(constructor_id == telegram_api::account_savedRingtones::ID);
@@ -1130,12 +1157,42 @@ void NotificationSettingsManager::on_reload_saved_ringtones(
   }
 
   bool need_update = new_saved_ringtone_file_ids != saved_ringtone_file_ids_;
+  are_saved_ringtones_loaded_ = true;
   if (need_update || saved_ringtone_hash_ != new_hash) {
     saved_ringtone_hash_ = new_hash;
     saved_ringtone_file_ids_ = std::move(new_saved_ringtone_file_ids);
+
+    if (need_update) {
+      on_saved_ringtones_updated(false);
+    }
   }
-  are_saved_ringtones_loaded_ = true;
-  set_promises(reload_saved_ringtone_queries_);
+  if (is_repair) {
+    set_promises(repair_saved_ringtones_queries_);
+  } else {
+    set_promises(reload_saved_ringtones_queries_);
+  }
+}
+
+void NotificationSettingsManager::on_saved_ringtones_updated(bool from_database) {
+  CHECK(are_saved_ringtones_loaded_);
+  vector<FileId> new_sorted_saved_ringtone_file_ids = saved_ringtone_file_ids_;
+  std::sort(new_sorted_saved_ringtone_file_ids.begin(), new_sorted_saved_ringtone_file_ids.end());
+  if (new_sorted_saved_ringtone_file_ids != sorted_saved_ringtone_file_ids_) {
+    td_->file_manager_->change_files_source(get_saved_ringtones_file_source_id(), sorted_saved_ringtone_file_ids_,
+                                            new_sorted_saved_ringtone_file_ids);
+    sorted_saved_ringtone_file_ids_ = std::move(new_sorted_saved_ringtone_file_ids);
+  }
+
+  if (!from_database) {
+    // save_saved_ringtones_to_database();
+  }
+}
+
+FileSourceId NotificationSettingsManager::get_saved_ringtones_file_source_id() {
+  if (!saved_ringtones_file_source_id_.is_valid()) {
+    saved_ringtones_file_source_id_ = td_->file_reference_manager_->create_saved_ringtones_file_source();
+  }
+  return saved_ringtones_file_source_id_;
 }
 
 void NotificationSettingsManager::send_get_dialog_notification_settings_query(DialogId dialog_id,
