@@ -1740,7 +1740,7 @@ static Result<InputMessageContent> create_input_message_content(
 
       td->audios_manager_->create_audio(file_id, string(), thumbnail, std::move(file_name), std::move(mime_type),
                                         input_audio->duration_, std::move(input_audio->title_),
-                                        std::move(input_audio->performer_), false);
+                                        std::move(input_audio->performer_), 0, false);
 
       content = make_unique<MessageAudio>(file_id, std::move(caption));
       break;

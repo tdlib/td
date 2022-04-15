@@ -238,6 +238,7 @@ Document DocumentsManager::on_get_document(RemoteDocument remote_document, Dialo
   int64 access_hash;
   int32 dc_id;
   int32 size;
+  int32 date = 0;
   string mime_type;
   string file_reference;
   string minithumbnail;
@@ -272,6 +273,9 @@ Document DocumentsManager::on_get_document(RemoteDocument remote_document, Dialo
     access_hash = document->access_hash_;
     dc_id = document->dc_id_;
     size = document->size_;
+    if (is_ringtone) {
+      date = document->date_;
+    }
     mime_type = std::move(document->mime_type_);
     file_reference = document->file_reference_.as_slice().str();
 
@@ -461,7 +465,7 @@ Document DocumentsManager::on_get_document(RemoteDocument remote_document, Dialo
         performer = std::move(audio->performer_);
       }
       td_->audios_manager_->create_audio(file_id, std::move(minithumbnail), std::move(thumbnail), std::move(file_name),
-                                         std::move(mime_type), duration, std::move(title), std::move(performer),
+                                         std::move(mime_type), duration, std::move(title), std::move(performer), date,
                                          !is_web);
       break;
     }

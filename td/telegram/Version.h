@@ -49,6 +49,7 @@ enum class Version : int32 {
   Support64BitIds,
   AddInviteLinksRequiringApproval,
   AddKeyboardButtonFlags,  // 35
+  AddAudioFlags,
   Next
 };
 

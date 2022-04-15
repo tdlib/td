@@ -58,8 +58,8 @@ td_api::object_ptr<td_api::notificationSound> AudiosManager::get_notification_so
   CHECK(file_view.get_type() == FileType::Ringtone);
   CHECK(file_view.has_remote_location());
   auto document_id = file_view.remote_location().get_id();
-  return td_api::make_object<td_api::notificationSound>(document_id, audio->duration, audio->title, audio->performer,
-                                                        td_->file_manager_->get_file_object(file_id));
+  return td_api::make_object<td_api::notificationSound>(document_id, audio->duration, audio->date, audio->title,
+                                                        audio->performer, td_->file_manager_->get_file_object(file_id));
 }
 
 FileId AudiosManager::on_get_audio(unique_ptr<Audio> new_audio, bool replace) {
@@ -84,6 +84,9 @@ FileId AudiosManager::on_get_audio(unique_ptr<Audio> new_audio, bool replace) {
     if (a->file_name != new_audio->file_name) {
       LOG(DEBUG) << "Audio " << file_id << " file name has changed";
       a->file_name = std::move(new_audio->file_name);
+    }
+    if (a->date != new_audio->date) {
+      a->date = new_audio->date;
     }
     if (a->minithumbnail != new_audio->minithumbnail) {
       a->minithumbnail = std::move(new_audio->minithumbnail);
@@ -177,7 +180,8 @@ void AudiosManager::delete_audio_thumbnail(FileId file_id) {
 }
 
 void AudiosManager::create_audio(FileId file_id, string minithumbnail, PhotoSize thumbnail, string file_name,
-                                 string mime_type, int32 duration, string title, string performer, bool replace) {
+                                 string mime_type, int32 duration, string title, string performer, int32 date,
+                                 bool replace) {
   auto a = make_unique<Audio>();
   a->file_id = file_id;
   a->file_name = std::move(file_name);
@@ -185,6 +189,7 @@ void AudiosManager::create_audio(FileId file_id, string minithumbnail, PhotoSize
   a->duration = max(duration, 0);
   a->title = std::move(title);
   a->performer = std::move(performer);
+  a->date = date;
   if (!td_->auth_manager_->is_bot()) {
     a->minithumbnail = std::move(minithumbnail);
   }
