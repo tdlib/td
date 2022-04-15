@@ -3083,7 +3083,8 @@ Result<FileId> FileManager::check_input_file_id(FileType type, Result<FileId> re
   if (!is_encrypted && !is_secure) {
     if (real_type != type && !(real_type == FileType::Temp && file_view.has_url()) &&
         !(is_document_type(real_type) && is_document_type(type)) &&
-        !(is_background_type(real_type) && is_background_type(type))) {
+        !(is_background_type(real_type) && is_background_type(type)) &&
+        !(file_view.is_encrypted() && type == FileType::Ringtone)) {
       // TODO: send encrypted file to unencrypted chat
       return Status::Error(400, "Type of file mismatch");
     }
