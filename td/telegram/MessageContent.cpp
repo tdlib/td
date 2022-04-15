@@ -451,7 +451,7 @@ class MessageChatSetTtl final : public MessageContent {
 
 class MessageUnsupported final : public MessageContent {
  public:
-  static constexpr int32 CURRENT_VERSION = 10;
+  static constexpr int32 CURRENT_VERSION = 11;
   int32 version = CURRENT_VERSION;
 
   MessageUnsupported() = default;
