@@ -9,6 +9,7 @@
 #include "td/telegram/AccessRights.h"
 #include "td/telegram/AudiosManager.h"
 #include "td/telegram/AuthManager.h"
+#include "td/telegram/ConfigShared.h"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/DocumentsManager.h"
 #include "td/telegram/FileReferenceManager.h"
@@ -1049,6 +1050,15 @@ void NotificationSettingsManager::on_remove_saved_ringtone(int64 ringtone_id, Pr
   TRY_STATUS_PROMISE(promise, G()->close_status());
 
   CHECK(are_saved_ringtones_loaded_);
+
+  auto max_count = G()->shared_config().get_option_integer("notification_sound_count_max");
+  if (saved_ringtone_file_ids_.size() >= static_cast<uint64>(max_count)) {
+    // reload all saved ringtones to get ringtones besides the limit
+    return reload_saved_ringtones(PromiseCreator::lambda([promise = std::move(promise)](Result<Unit> &&result) mutable {
+      // ignore errors
+      promise.set_value(Unit());
+    }));
+  }
 
   for (auto it = saved_ringtone_file_ids_.begin(); it != saved_ringtone_file_ids_.begin(); ++it) {
     auto file_view = td_->file_manager_->get_file_view(*it);
