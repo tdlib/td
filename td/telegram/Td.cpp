@@ -4109,6 +4109,7 @@ void Td::send_update(tl_object_ptr<td_api::Update> &&object) {
     case td_api::updateInstalledStickerSets::ID:
     case td_api::updateRecentStickers::ID:
     case td_api::updateSavedAnimations::ID:
+    case td_api::updateSavedNotificationSounds::ID:
     case td_api::updateUserStatus::ID:
       VLOG(td_requests) << "Sending update: " << oneline(to_string(object));
       break;

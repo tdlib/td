@@ -1188,6 +1188,18 @@ void NotificationSettingsManager::on_reload_saved_ringtones(
   }
 }
 
+td_api::object_ptr<td_api::updateSavedNotificationSounds>
+NotificationSettingsManager::get_update_saved_notification_sounds_object() const {
+  auto ringtone_ids = transform(saved_ringtone_file_ids_, [file_manager = td_->file_manager_.get()](FileId file_id) {
+    auto file_view = file_manager->get_file_view(file_id);
+    CHECK(!file_view.empty());
+    CHECK(file_view.get_type() == FileType::Ringtone);
+    CHECK(file_view.has_remote_location());
+    return file_view.remote_location().get_id();
+  });
+  return td_api::make_object<td_api::updateSavedNotificationSounds>(std::move(ringtone_ids));
+}
+
 void NotificationSettingsManager::on_saved_ringtones_updated(bool from_database) {
   CHECK(are_saved_ringtones_loaded_);
   vector<FileId> new_sorted_saved_ringtone_file_ids = saved_ringtone_file_ids_;
@@ -1201,6 +1213,8 @@ void NotificationSettingsManager::on_saved_ringtones_updated(bool from_database)
   if (!from_database) {
     // save_saved_ringtones_to_database();
   }
+
+  send_closure(G()->td(), &Td::send_update, get_update_saved_notification_sounds_object());
 }
 
 FileSourceId NotificationSettingsManager::get_saved_ringtones_file_source_id() {
@@ -1387,6 +1401,10 @@ void NotificationSettingsManager::get_current_state(vector<td_api::object_ptr<td
     if (current_settings->is_synchronized) {
       updates.push_back(get_update_scope_notification_settings_object(scope));
     }
+  }
+
+  if (are_saved_ringtones_loaded_) {
+    updates.push_back(get_update_saved_notification_sounds_object());
   }
 }
 

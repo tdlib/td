@@ -144,6 +144,8 @@ class NotificationSettingsManager final : public Actor {
   td_api::object_ptr<td_api::updateScopeNotificationSettings> get_update_scope_notification_settings_object(
       NotificationSettingsScope scope) const;
 
+  td_api::object_ptr<td_api::updateSavedNotificationSounds> get_update_saved_notification_sounds_object() const;
+
   void on_scope_unmute(NotificationSettingsScope scope);
 
   static string get_notification_settings_scope_database_key(NotificationSettingsScope scope);

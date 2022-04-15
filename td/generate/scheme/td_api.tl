@@ -4127,6 +4127,9 @@ updateFavoriteStickers sticker_ids:vector<int32> = Update;
 //@description The list of saved animations was updated @animation_ids The new list of file identifiers of saved animations
 updateSavedAnimations animation_ids:vector<int32> = Update;
 
+//@description The list of saved notifications sounds was updated. This update may not be sent until information about a notification sound was requested for the first time @notification_sound_ids The new list of identifiers of saved notification sounds
+updateSavedNotificationSounds notification_sound_ids:vector<int64> = Update;
+
 //@description The selected background has changed @for_dark_theme True, if background for dark theme has changed @background The new selected background; may be null
 updateSelectedBackground for_dark_theme:Bool background:background = Update;
 
