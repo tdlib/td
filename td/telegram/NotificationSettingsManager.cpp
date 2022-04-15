@@ -1060,13 +1060,14 @@ void NotificationSettingsManager::on_remove_saved_ringtone(int64 ringtone_id, Pr
     }));
   }
 
-  for (auto it = saved_ringtone_file_ids_.begin(); it != saved_ringtone_file_ids_.begin(); ++it) {
+  for (auto it = saved_ringtone_file_ids_.begin(); it != saved_ringtone_file_ids_.end(); ++it) {
     auto file_view = td_->file_manager_->get_file_view(*it);
     CHECK(!file_view.empty());
     CHECK(file_view.get_type() == FileType::Ringtone);
     CHECK(file_view.has_remote_location());
     if (file_view.remote_location().get_id() == ringtone_id) {
       saved_ringtone_file_ids_.erase(it);
+      saved_ringtone_hash_ = 0;
       on_saved_ringtones_updated(false);
       break;
     }
