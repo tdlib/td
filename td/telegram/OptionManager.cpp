@@ -101,14 +101,14 @@ OptionManager::OptionManager(Td *td, ActorShared<> parent) : td_(td), parent_(st
   if (!G()->shared_config().have_option("suggested_video_note_audio_bitrate")) {
     G()->shared_config().set_option_integer("suggested_video_note_audio_bitrate", 64);
   }
-  if (!G()->shared_config().have_option("notification_tone_duration_max")) {
-    G()->shared_config().set_option_integer("notification_tone_duration_max", 5);
+  if (!G()->shared_config().have_option("notification_sound_duration_max")) {
+    G()->shared_config().set_option_integer("notification_sound_duration_max", 5);
   }
-  if (!G()->shared_config().have_option("notification_tone_size_max")) {
-    G()->shared_config().set_option_integer("notification_tone_size_max", 307200);
+  if (!G()->shared_config().have_option("notification_sound_size_max")) {
+    G()->shared_config().set_option_integer("notification_sound_size_max", 307200);
   }
-  if (!G()->shared_config().have_option("notification_tone_count_max")) {
-    G()->shared_config().set_option_integer("notification_tone_count_max", G()->is_test_dc() ? 5 : 100);
+  if (!G()->shared_config().have_option("notification_sound_count_max")) {
+    G()->shared_config().set_option_integer("notification_sound_count_max", G()->is_test_dc() ? 5 : 100);
   }
   G()->shared_config().set_option_integer("utc_time_offset", Clocks::tz_offset());
 }

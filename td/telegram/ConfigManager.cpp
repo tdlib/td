@@ -1720,17 +1720,17 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
       }
       if (key == "ringtone_duration_max") {
         auto setting_value = get_json_value_int(std::move(key_value->value_), key);
-        G()->shared_config().set_option_integer("notification_tone_duration_max", setting_value);
+        G()->shared_config().set_option_integer("notification_sound_duration_max", setting_value);
         continue;
       }
       if (key == "ringtone_size_max") {
         auto setting_value = get_json_value_int(std::move(key_value->value_), key);
-        G()->shared_config().set_option_integer("notification_tone_size_max", setting_value);
+        G()->shared_config().set_option_integer("notification_sound_size_max", setting_value);
         continue;
       }
       if (key == "ringtone_saved_count_max") {
         auto setting_value = get_json_value_int(std::move(key_value->value_), key);
-        G()->shared_config().set_option_integer("notification_tone_count_max", setting_value);
+        G()->shared_config().set_option_integer("notification_sound_count_max", setting_value);
         continue;
       }
 
