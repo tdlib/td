@@ -27,6 +27,8 @@ namespace td {
 
 struct BinlogEvent;
 
+class NotificationSound;
+
 class Td;
 
 class NotificationSettingsManager final : public Actor {

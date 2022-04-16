@@ -12,9 +12,12 @@
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/ConfigShared.h"
 #include "td/telegram/ContactsManager.h"
+#include "td/telegram/Document.h"
 #include "td/telegram/DocumentsManager.h"
 #include "td/telegram/FileReferenceManager.h"
+#include "td/telegram/files/FileLocation.h"
 #include "td/telegram/files/FileManager.h"
+#include "td/telegram/files/FileType.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/logevent/LogEventHelper.h"
@@ -34,9 +37,13 @@
 #include "td/utils/buffer.h"
 #include "td/utils/logging.h"
 #include "td/utils/MimeType.h"
+#include "td/utils/misc.h"
 #include "td/utils/PathView.h"
 #include "td/utils/Random.h"
+#include "td/utils/SliceBuilder.h"
 #include "td/utils/tl_helpers.h"
+
+#include <algorithm>
 
 namespace td {
 

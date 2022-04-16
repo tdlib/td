@@ -17,6 +17,7 @@
 #include "td/utils/SliceBuilder.h"
 
 #include <algorithm>
+#include <cmath>
 #include <limits>
 
 namespace td {

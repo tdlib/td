@@ -21,7 +21,7 @@
 #include "td/utils/misc.h"
 #include "td/utils/SliceBuilder.h"
 
-#include <cmath>
+#include <algorithm>
 
 namespace td {
 
