@@ -102,6 +102,8 @@ class NotificationSettingsManager final : public Actor {
  private:
   class UpdateScopeNotificationSettingsOnServerLogEvent;
 
+  class RingtoneListLogEvent;
+
   class UploadRingtoneCallback;
 
   void start_up() final;
@@ -134,6 +136,14 @@ class NotificationSettingsManager final : public Actor {
 
   void on_reload_saved_ringtones(bool is_repair,
                                  Result<telegram_api::object_ptr<telegram_api::account_SavedRingtones>> &&result);
+
+  static string get_saved_ringtones_database_key();
+
+  void load_saved_ringtones(Promise<Unit> &&promise);
+
+  void on_load_saved_ringtones(Promise<Unit> &&promise);
+
+  void save_saved_ringtones_to_database() const;
 
   void on_saved_ringtones_updated(bool from_database);
 

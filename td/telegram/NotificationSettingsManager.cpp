@@ -8,6 +8,7 @@
 
 #include "td/telegram/AccessRights.h"
 #include "td/telegram/AudiosManager.h"
+#include "td/telegram/AudiosManager.hpp"
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/ConfigShared.h"
 #include "td/telegram/ContactsManager.h"
@@ -460,6 +461,39 @@ class NotificationSettingsManager::UploadRingtoneCallback final : public FileMan
   }
 };
 
+class NotificationSettingsManager::RingtoneListLogEvent {
+ public:
+  int64 hash_;
+  vector<FileId> ringtone_file_ids_;
+
+  RingtoneListLogEvent() = default;
+
+  RingtoneListLogEvent(int64 hash, vector<FileId> ringtone_file_ids)
+      : hash_(hash), ringtone_file_ids_(std::move(ringtone_file_ids)) {
+  }
+
+  template <class StorerT>
+  void store(StorerT &storer) const {
+    td::store(hash_, storer);
+    AudiosManager *audios_manager = storer.context()->td().get_actor_unsafe()->audios_manager_.get();
+    td::store(narrow_cast<int32>(ringtone_file_ids_.size()), storer);
+    for (auto ringtone_file_id : ringtone_file_ids_) {
+      audios_manager->store_audio(ringtone_file_id, storer);
+    }
+  }
+
+  template <class ParserT>
+  void parse(ParserT &parser) {
+    td::parse(hash_, parser);
+    AudiosManager *audios_manager = parser.context()->td().get_actor_unsafe()->audios_manager_.get();
+    int32 size = parser.fetch_int();
+    ringtone_file_ids_.resize(size);
+    for (auto &ringtone_file_id : ringtone_file_ids_) {
+      ringtone_file_id = audios_manager->parse_audio(parser);
+    }
+  }
+};
+
 NotificationSettingsManager::NotificationSettingsManager(Td *td, ActorShared<> parent)
     : td_(td), parent_(std::move(parent)) {
   upload_ringtone_callback_ = std::make_shared<UploadRingtoneCallback>();
@@ -761,7 +795,7 @@ bool NotificationSettingsManager::is_active() const {
 
 FileId NotificationSettingsManager::get_saved_ringtone(int64 ringtone_id, Promise<Unit> &&promise) {
   if (!are_saved_ringtones_loaded_) {
-    reload_saved_ringtones(std::move(promise));
+    load_saved_ringtones(std::move(promise));
     return {};
   }
 
@@ -780,7 +814,7 @@ FileId NotificationSettingsManager::get_saved_ringtone(int64 ringtone_id, Promis
 
 vector<FileId> NotificationSettingsManager::get_saved_ringtones(Promise<Unit> &&promise) {
   if (!are_saved_ringtones_loaded_) {
-    reload_saved_ringtones(std::move(promise));
+    load_saved_ringtones(std::move(promise));
     return {};
   }
 
@@ -808,8 +842,8 @@ void NotificationSettingsManager::add_saved_ringtone(td_api::object_ptr<td_api::
   TRY_STATUS_PROMISE(promise, G()->close_status());
 
   if (!are_saved_ringtones_loaded_) {
-    reload_saved_ringtones(PromiseCreator::lambda([actor_id = actor_id(this), input_file = std::move(input_file),
-                                                   promise = std::move(promise)](Result<Unit> &&result) mutable {
+    load_saved_ringtones(PromiseCreator::lambda([actor_id = actor_id(this), input_file = std::move(input_file),
+                                                 promise = std::move(promise)](Result<Unit> &&result) mutable {
       if (result.is_error()) {
         return promise.set_error(result.move_as_error());
       }
@@ -1017,7 +1051,7 @@ void NotificationSettingsManager::on_add_saved_ringtone(
 
 void NotificationSettingsManager::remove_saved_ringtone(int64 ringtone_id, Promise<Unit> &&promise) {
   if (!are_saved_ringtones_loaded_) {
-    reload_saved_ringtones(std::move(promise));
+    load_saved_ringtones(std::move(promise));
     return;
   }
 
@@ -1093,12 +1127,51 @@ Result<FileId> NotificationSettingsManager::get_ringtone(
   return parsed_document.file_id;
 }
 
+void NotificationSettingsManager::load_saved_ringtones(Promise<Unit> &&promise) {
+  CHECK(!are_saved_ringtones_loaded_);
+  auto saved_ringtones_string = G()->td_db()->get_binlog_pmc()->get(get_saved_ringtones_database_key());
+  if (saved_ringtones_string.empty()) {
+    return reload_saved_ringtones(std::move(promise));
+  }
+
+  RingtoneListLogEvent saved_ringtones_log_event;
+  bool is_valid = log_event_parse(saved_ringtones_log_event, saved_ringtones_string).is_ok();
+
+  for (auto &ringtone_file_id : saved_ringtones_log_event.ringtone_file_ids_) {
+    if (!ringtone_file_id.is_valid()) {
+      is_valid = false;
+      break;
+    }
+  }
+  if (is_valid) {
+    saved_ringtone_hash_ = saved_ringtones_log_event.hash_;
+    saved_ringtone_file_ids_ = std::move(saved_ringtones_log_event.ringtone_file_ids_);
+    are_saved_ringtones_loaded_ = true;
+
+    if (!saved_ringtone_file_ids_.empty()) {
+      on_saved_ringtones_updated(true);
+    }
+
+    // the promis must not be set synchronously
+    send_closure_later(actor_id(this), &NotificationSettingsManager::on_load_saved_ringtones, std::move(promise));
+    reload_saved_ringtones(Auto());
+  } else {
+    LOG(ERROR) << "Ignore invalid saved notification sounds log event";
+    reload_saved_ringtones(std::move(promise));
+  }
+}
+
+void NotificationSettingsManager::on_load_saved_ringtones(Promise<Unit> &&promise) {
+  promise.set_value(Unit());
+}
+
 void NotificationSettingsManager::reload_saved_ringtones(Promise<Unit> &&promise) {
   if (!is_active()) {
     return promise.set_error(Status::Error(400, "Don't need to reload saved notification sounds"));
   }
   reload_saved_ringtones_queries_.push_back(std::move(promise));
   if (reload_saved_ringtones_queries_.size() == 1) {
+    are_saved_ringtones_reloaded_ = true;
     auto query_promise = PromiseCreator::lambda(
         [actor_id = actor_id(this)](Result<telegram_api::object_ptr<telegram_api::account_SavedRingtones>> &&result) {
           send_closure(actor_id, &NotificationSettingsManager::on_reload_saved_ringtones, false, std::move(result));
@@ -1114,6 +1187,7 @@ void NotificationSettingsManager::repair_saved_ringtones(Promise<Unit> &&promise
 
   repair_saved_ringtones_queries_.push_back(std::move(promise));
   if (repair_saved_ringtones_queries_.size() == 1u) {
+    are_saved_ringtones_reloaded_ = true;
     auto query_promise = PromiseCreator::lambda(
         [actor_id = actor_id(this)](Result<telegram_api::object_ptr<telegram_api::account_SavedRingtones>> &&result) {
           send_closure(actor_id, &NotificationSettingsManager::on_reload_saved_ringtones, true, std::move(result));
@@ -1201,6 +1275,16 @@ NotificationSettingsManager::get_update_saved_notification_sounds_object() const
   return td_api::make_object<td_api::updateSavedNotificationSounds>(std::move(ringtone_ids));
 }
 
+string NotificationSettingsManager::get_saved_ringtones_database_key() {
+  return "ringtones";
+}
+
+void NotificationSettingsManager::save_saved_ringtones_to_database() const {
+  RingtoneListLogEvent ringtone_list_log_event{saved_ringtone_hash_, saved_ringtone_file_ids_};
+  G()->td_db()->get_binlog_pmc()->set(get_saved_ringtones_database_key(),
+                                      log_event_store(ringtone_list_log_event).as_slice().str());
+}
+
 void NotificationSettingsManager::on_saved_ringtones_updated(bool from_database) {
   CHECK(are_saved_ringtones_loaded_);
   vector<FileId> new_sorted_saved_ringtone_file_ids = saved_ringtone_file_ids_;
@@ -1212,7 +1296,7 @@ void NotificationSettingsManager::on_saved_ringtones_updated(bool from_database)
   }
 
   if (!from_database) {
-    // save_saved_ringtones_to_database();
+    save_saved_ringtones_to_database();
   }
 
   send_closure(G()->td(), &Td::send_update, get_update_saved_notification_sounds_object());
@@ -1365,7 +1449,6 @@ void NotificationSettingsManager::after_get_difference() {
   }
 
   if (td_->is_online() && !are_saved_ringtones_reloaded_) {
-    are_saved_ringtones_reloaded_ = true;
     reload_saved_ringtones(Auto());
   }
 }
