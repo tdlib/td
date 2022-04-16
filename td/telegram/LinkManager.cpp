@@ -228,14 +228,20 @@ class LinkManager::InternalLinkBotStart final : public InternalLink {
 class LinkManager::InternalLinkBotStartInGroup final : public InternalLink {
   string bot_username_;
   string start_parameter_;
+  AdministratorRights administrator_rights_;
 
   td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
-    return td_api::make_object<td_api::internalLinkTypeBotStartInGroup>(bot_username_, start_parameter_);
+    return td_api::make_object<td_api::internalLinkTypeBotStartInGroup>(
+        bot_username_, start_parameter_,
+        administrator_rights_ == AdministratorRights() ? nullptr
+                                                       : administrator_rights_.get_chat_administrator_rights_object());
   }
 
  public:
-  InternalLinkBotStartInGroup(string bot_username, string start_parameter)
-      : bot_username_(std::move(bot_username)), start_parameter_(std::move(start_parameter)) {
+  InternalLinkBotStartInGroup(string bot_username, string start_parameter, AdministratorRights &&administrator_rights)
+      : bot_username_(std::move(bot_username))
+      , start_parameter_(std::move(start_parameter))
+      , administrator_rights_(std::move(administrator_rights)) {
   }
 };
 
@@ -914,7 +920,11 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
         }
         if (arg.first == "startgroup" && is_valid_start_parameter(arg.second)) {
           // resolve?domain=<bot_username>&startgroup=<parameter>
-          return td::make_unique<InternalLinkBotStartInGroup>(std::move(username), arg.second);
+          // resolve?domain=<bot_username>&startgroup=>parameter>&admin=change_info+delete_messages+restrict_members
+          // resolve?domain=<bot_username>&startgroup&admin=change_info+delete_messages+restrict_members
+          auto administrator_rights = get_administrator_rights(url_query.get_arg("admin"), false);
+          return td::make_unique<InternalLinkBotStartInGroup>(std::move(username), arg.second,
+                                                              std::move(administrator_rights));
         }
         if (arg.first == "startchannel") {
           // resolve?domain=<bot_username>&startchannel&admin=change_info+post_messages+promote_members
@@ -1219,7 +1229,11 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_t_me_link_query(Slice q
       }
       if (arg.first == "startgroup" && is_valid_start_parameter(arg.second)) {
         // /<bot_username>?startgroup=<parameter>
-        return td::make_unique<InternalLinkBotStartInGroup>(std::move(username), arg.second);
+        // /<bot_username>?startgroup=<parameter>&admin=change_info+delete_messages+restrict_members
+        // /<bot_username>?startgroup&admin=change_info+delete_messages+restrict_members
+        auto administrator_rights = get_administrator_rights(url_query.get_arg("admin"), false);
+        return td::make_unique<InternalLinkBotStartInGroup>(std::move(username), arg.second,
+                                                            std::move(administrator_rights));
       }
       if (arg.first == "startchannel") {
         // /<bot_username>?startchannel&admin=change_info+post_messages+promote_members
