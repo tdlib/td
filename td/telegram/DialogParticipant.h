@@ -43,7 +43,7 @@ class AdministratorRights {
 
   friend class DialogParticipantStatus;
 
-  explicit AdministratorRights(int32 flags) : flags_(flags & ALL_ADMINISTRATOR_RIGHTS) {
+  explicit AdministratorRights(int32 flags) : flags_(flags & (ALL_ADMINISTRATOR_RIGHTS | IS_ANONYMOUS)) {
   }
 
  public:
