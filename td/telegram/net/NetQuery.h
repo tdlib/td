@@ -23,7 +23,6 @@
 #include "td/utils/Span.h"
 #include "td/utils/Status.h"
 #include "td/utils/StringBuilder.h"
-#include "td/utils/Time.h"
 #include "td/utils/tl_parsers.h"
 #include "td/utils/TsList.h"
 
@@ -242,17 +241,7 @@ class NetQuery final : public TsListNode<NetQueryDebug> {
     get_data_unsafe().send_failed_count_++;
   }
 
-  void debug(string state, bool may_be_lost = false) {
-    may_be_lost_ = may_be_lost;
-    VLOG(net_query) << *this << " " << tag("state", state);
-    {
-      auto guard = lock();
-      auto &data = get_data_unsafe();
-      data.state_ = std::move(state);
-      data.state_timestamp_ = Time::now();
-      data.state_change_count_++;
-    }
-  }
+  void debug(string state, bool may_be_lost = false);
 
   void set_callback(ActorShared<NetQueryCallback> callback) {
     callback_ = std::move(callback);
@@ -281,7 +270,6 @@ class NetQuery final : public TsListNode<NetQueryDebug> {
   Span<uint64> get_chain_ids() const {
     return chain_ids_;
   }
-  void set_chain_ids(vector<ChainId> &&chain_ids);
 
   void set_in_sequence_dispatcher(bool in_sequence_dispacher) {
     in_sequence_dispacher_ = in_sequence_dispacher;
@@ -358,27 +346,8 @@ class NetQuery final : public TsListNode<NetQueryDebug> {
   bool need_resend_on_503_ = true;  // for NetQueryDispatcher and to be set by caller
 
   NetQuery(State state, uint64 id, BufferSlice &&query, BufferSlice &&answer, DcId dc_id, Type type, AuthFlag auth_flag,
-           GzipFlag gzip_flag, int32 tl_constructor, int32 total_timeout_limit, NetQueryStats *stats)
-      : state_(state)
-      , type_(type)
-      , auth_flag_(auth_flag)
-      , gzip_flag_(gzip_flag)
-      , dc_id_(dc_id)
-      , status_()
-      , id_(id)
-      , query_(std::move(query))
-      , answer_(std::move(answer))
-      , tl_constructor_(tl_constructor)
-      , total_timeout_limit_(total_timeout_limit) {
-    CHECK(id_ != 0);
-    auto &data = get_data_unsafe();
-    data.my_id_ = get_my_id();
-    data.start_timestamp_ = data.state_timestamp_ = Time::now();
-    LOG(INFO) << *this;
-    if (stats) {
-      nq_counter_ = stats->register_query(this);
-    }
-  }
+           GzipFlag gzip_flag, int32 tl_constructor, int32 total_timeout_limit, NetQueryStats *stats,
+           vector<ChainId> chain_ids);
 };
 
 inline StringBuilder &operator<<(StringBuilder &stream, const NetQuery &net_query) {

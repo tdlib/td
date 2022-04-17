@@ -25,10 +25,43 @@ int64 NetQuery::get_my_id() {
   return G()->get_my_id();
 }
 
-void NetQuery::set_chain_ids(vector<ChainId> &&chain_ids) {
+void NetQuery::debug(string state, bool may_be_lost) {
+  may_be_lost_ = may_be_lost;
+  VLOG(net_query) << *this << " " << tag("state", state);
+  {
+    auto guard = lock();
+    auto &data = get_data_unsafe();
+    data.state_ = std::move(state);
+    data.state_timestamp_ = Time::now();
+    data.state_change_count_++;
+  }
+}
+
+NetQuery::NetQuery(State state, uint64 id, BufferSlice &&query, BufferSlice &&answer, DcId dc_id, Type type,
+                   AuthFlag auth_flag, GzipFlag gzip_flag, int32 tl_constructor, int32 total_timeout_limit,
+                   NetQueryStats *stats, vector<ChainId> chain_ids)
+    : state_(state)
+    , type_(type)
+    , auth_flag_(auth_flag)
+    , gzip_flag_(gzip_flag)
+    , dc_id_(dc_id)
+    , status_()
+    , id_(id)
+    , query_(std::move(query))
+    , answer_(std::move(answer))
+    , tl_constructor_(tl_constructor)
+    , total_timeout_limit_(total_timeout_limit) {
+  CHECK(id_ != 0);
   chain_ids_ = transform(chain_ids, [](ChainId chain_id) { return chain_id.get() == 0 ? 1 : chain_id.get(); });
   td::unique(chain_ids_);
-  // LOG(ERROR) << chain_ids_;
+
+  auto &data = get_data_unsafe();
+  data.my_id_ = get_my_id();
+  data.start_timestamp_ = data.state_timestamp_ = Time::now();
+  LOG(INFO) << *this;
+  if (stats) {
+    nq_counter_ = stats->register_query(this);
+  }
 }
 
 void NetQuery::on_net_write(size_t size) {

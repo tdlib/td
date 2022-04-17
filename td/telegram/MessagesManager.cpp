@@ -1857,9 +1857,11 @@ class ToggleDialogIsBlockedQuery final : public Td::ResultHandler {
 
     auto input_peer = td_->messages_manager_->get_input_peer(dialog_id, AccessRights::Know);
     CHECK(input_peer != nullptr && input_peer->get_id() != telegram_api::inputPeerEmpty::ID);
-    auto query = is_blocked ? G()->net_query_creator().create(telegram_api::contacts_block(std::move(input_peer)))
-                            : G()->net_query_creator().create(telegram_api::contacts_unblock(std::move(input_peer)));
-    query->set_chain_ids({{dialog_id, MessageContentType::Photo}, {dialog_id, MessageContentType::Text}});
+    vector<ChainId> chain_ids{{dialog_id, MessageContentType::Photo}, {dialog_id, MessageContentType::Text}};
+    auto query = is_blocked ? G()->net_query_creator().create(telegram_api::contacts_block(std::move(input_peer)),
+                                                              std::move(chain_ids))
+                            : G()->net_query_creator().create(telegram_api::contacts_unblock(std::move(input_peer)),
+                                                              std::move(chain_ids));
     send_query(std::move(query));
   }
 
