@@ -1111,8 +1111,12 @@ class SetStickerPositionQuery final : public Td::ResultHandler {
   }
 
   void send(const string &short_name, tl_object_ptr<telegram_api::inputDocument> &&input_document, int32 position) {
+    vector<ChainId> chain_ids;
+    if (!short_name.empty()) {
+      chain_ids.emplace_back(short_name);
+    }
     send_query(G()->net_query_creator().create(
-        telegram_api::stickers_changeStickerPosition(std::move(input_document), position), {{short_name}}));
+        telegram_api::stickers_changeStickerPosition(std::move(input_document), position), std::move(chain_ids)));
   }
 
   void on_result(BufferSlice packet) final {
@@ -1141,8 +1145,12 @@ class DeleteStickerFromSetQuery final : public Td::ResultHandler {
   }
 
   void send(const string &short_name, tl_object_ptr<telegram_api::inputDocument> &&input_document) {
+    vector<ChainId> chain_ids;
+    if (!short_name.empty()) {
+      chain_ids.emplace_back(short_name);
+    }
     send_query(G()->net_query_creator().create(telegram_api::stickers_removeStickerFromSet(std::move(input_document)),
-                                               {{short_name}}));
+                                               std::move(chain_ids)));
   }
 
   void on_result(BufferSlice packet) final {
@@ -6200,6 +6208,8 @@ string StickersManager::get_sticker_set_short_name(FileId sticker_id) const {
     const StickerSet *sticker_set = get_sticker_set(s->set_id);
     if (sticker_set != nullptr) {
       return sticker_set->short_name;
+    } else {
+      return to_string(s->set_id.get());
     }
   }
   return string();
