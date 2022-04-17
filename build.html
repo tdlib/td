@@ -3,11 +3,13 @@
 
 <head>
   <title>TDLib build instructions</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     :root {
       --background: #fafafa;
       --color: black;
       --color-primary: #0088ff;
+      --color-primary-light: #42a7ff;
       --color-code-block: #ebf9ff;
       --color-select-border: rgb(211, 211, 211);
       --color-checkbox-background: rgb(211, 211, 211);
@@ -38,6 +40,14 @@
     body {
       font-family: 'Segoe UI', Arial, Helvetica, sans-serif;
     }
+    :focus:not(:focus-visible) {
+      outline: none;
+    }
+    input:focus-visible, select:focus-visible, button:focus-visible {
+      box-shadow: 0 0 0 3px var(--color-primary);
+      outline: none;
+    }
+      
     .hide {
       display: none;
     }
@@ -62,6 +72,7 @@
       padding: 5px;
       margin-bottom: 0;
       display: block;
+      overflow-x: auto;
     }
     #buildCommands ul {
       list-style: '$ ';
@@ -70,10 +81,15 @@
     a {
       color: var(--color-primary);
       text-decoration-color: transparent;
-      transition: text-decoration-color 200ms;
+      transition: text-decoration 200ms, color 200ms;
     }
     a:hover {
       text-decoration: underline;
+    }
+    a:focus-visible {
+      text-decoration: underline 2px; 
+      color: var(--color-primary-light);
+      outline: none;
     }
     select, button {
       border: 1px solid var(--color-select-border);
@@ -81,17 +97,11 @@
       color: var(--color);
       padding: 5px;
       margin-top: 5px;
-      transition: border 200ms, padding 200ms;
+      box-shadow: 0 0 0 0 var(--color-primary);
+      transition: border 200ms, padding 200ms, box-shadow 200ms;
       border-radius: 999em;
       font-size: 16px;
       cursor: pointer;
-    }
-
-    select:focus, button:focus {
-      outline: none;
-      border-color: var(--color-primary);
-      border-width: 2px;
-      padding: 4px;
     }
 
     label * {
@@ -108,7 +118,8 @@
       width: 20px;
       border-radius: 3px;
       position: relative;
-      transition: background-color 200ms;
+      top: -1px; // Fix alignment
+      transition: background-color 200ms, box-shadow 200ms;
     }
     input[type=checkbox]::after {
       content: "";
@@ -141,7 +152,8 @@
       width: 20px;
       border-radius: 100%;
       position: relative;
-      transition: background-color 200ms;
+      top: -2px; // Fix alignment
+      transition: background-color 200ms, box-shadow 200ms;
     }
     input[type=radio]::after {
       content: "";
