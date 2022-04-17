@@ -14,6 +14,7 @@
 
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
+#include "td/utils/PathView.h"
 #include "td/utils/SliceBuilder.h"
 #include "td/utils/Status.h"
 
@@ -58,7 +59,11 @@ td_api::object_ptr<td_api::notificationSound> AudiosManager::get_notification_so
   CHECK(file_view.get_type() == FileType::Ringtone);
   CHECK(file_view.has_remote_location());
   auto document_id = file_view.remote_location().get_id();
-  return td_api::make_object<td_api::notificationSound>(document_id, audio->duration, audio->date, audio->title,
+  auto title = audio->title;
+  if (title.empty() && !audio->file_name.empty()) {
+    title = PathView(audio->file_name).file_name_without_extension().str();
+  }
+  return td_api::make_object<td_api::notificationSound>(document_id, audio->duration, audio->date, title,
                                                         audio->performer, td_->file_manager_->get_file_object(file_id));
 }
 

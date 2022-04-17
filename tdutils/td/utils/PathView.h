@@ -49,6 +49,10 @@ class PathView {
     return path_.substr(last_slash_ + 1);
   }
 
+  Slice file_name_without_extension() const {
+    return path_.substr(last_slash_ + 1, last_dot_ - last_slash_ - 1);
+  }
+
   Slice path() const {
     return path_;
   }
