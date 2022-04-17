@@ -34450,8 +34450,10 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
 
       on_dialog_updated(d->dialog_id, "do delete last message");
 
-      send_closure_later(actor_id(this), &MessagesManager::get_history_from_the_end, d->dialog_id, false, false,
-                         Promise<Unit>());
+      if (!td_->auth_manager_->is_bot()) {
+        send_closure_later(actor_id(this), &MessagesManager::get_history_from_the_end, d->dialog_id, false, false,
+                           Promise<Unit>());
+      }
     }
   }
 
