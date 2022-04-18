@@ -316,9 +316,6 @@ class FlatHashTable {
     auto bucket = calc_bucket(key);
     while (true) {
       auto &node = nodes_[bucket];
-      if (EqT()(node.key(), key)) {
-        return {NodePointer(&node), false};
-      }
       if (node.empty()) {
         if (unlikely(used_node_count_ * 5 >= bucket_count_mask_ * 3)) {
           resize(2 * bucket_count_);
@@ -330,6 +327,9 @@ class FlatHashTable {
         node.emplace(std::move(key), std::forward<ArgsT>(args)...);
         used_node_count_++;
         return {NodePointer(&node), true};
+      }
+      if (EqT()(node.key(), key)) {
+        return {NodePointer(&node), false};
       }
       next_bucket(bucket);
     }
@@ -477,11 +477,11 @@ class FlatHashTable {
     auto bucket = calc_bucket(key);
     while (true) {
       auto &node = nodes_[bucket];
-      if (EqT()(node.key(), key)) {
-        return &node;
-      }
       if (node.empty()) {
         return nullptr;
+      }
+      if (EqT()(node.key(), key)) {
+        return &node;
       }
       next_bucket(bucket);
     }

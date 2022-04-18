@@ -10,11 +10,12 @@
 #include "td/utils/HashTableUtils.h"
 
 #include <new>
+#include <type_traits>
 #include <utility>
 
 namespace td {
 
-template <class KeyT, class ValueT>
+template <class KeyT, class ValueT, class Enable = void>
 struct MapNode {
   using first_type = KeyT;
   using second_type = ValueT;
@@ -87,6 +88,78 @@ struct MapNode {
     first = std::move(key);
     new (&second) ValueT(std::forward<ArgsT>(args)...);
     DCHECK(!empty());
+  }
+};
+
+template <class KeyT, class ValueT>
+struct MapNode<KeyT, ValueT, typename std::enable_if_t<(sizeof(KeyT) + sizeof(ValueT) > 6 * sizeof(void *))>> {
+  struct Impl {
+    using first_type = KeyT;
+    using second_type = ValueT;
+
+    KeyT first{};
+    union {
+      ValueT second;
+    };
+
+    template <class InputKeyT, class... ArgsT>
+    Impl(InputKeyT &&key, ArgsT &&...args) : first(std::forward<InputKeyT>(key)) {
+      new (&second) ValueT(std::forward<ArgsT>(args)...);
+      DCHECK(!is_hash_table_key_empty(first));
+    }
+    Impl(const Impl &other) = delete;
+    Impl &operator=(const Impl &other) = delete;
+    Impl(Impl &&other) = delete;
+    void operator=(Impl &&other) = delete;
+    ~Impl() {
+      second.~ValueT();
+    }
+  };
+
+  using first_type = KeyT;
+  using second_type = ValueT;
+  using public_key_type = KeyT;
+  using public_type = Impl;
+
+  unique_ptr<Impl> impl_;
+
+  const KeyT &key() const {
+    DCHECK(!empty());
+    return impl_->first;
+  }
+
+  Impl &get_public() {
+    return *impl_;
+  }
+
+  const Impl &get_public() const {
+    return *impl_;
+  }
+
+  MapNode() {
+  }
+  MapNode(KeyT key, ValueT value) : impl_(td::make_unique<Impl>(std::move(key), std::move(value))) {
+  }
+
+  void copy_from(const MapNode &other) {
+    DCHECK(empty());
+    DCHECK(!other.empty());
+    impl_ = td::make_unique<Impl>(other.impl_->first, other.impl_->second);
+  }
+
+  bool empty() const {
+    return impl_ == nullptr;
+  }
+
+  void clear() {
+    DCHECK(!empty());
+    impl_ = nullptr;
+  }
+
+  template <class... ArgsT>
+  void emplace(KeyT key, ArgsT &&...args) {
+    DCHECK(empty());
+    impl_ = td::make_unique<Impl>(std::move(key), std::forward<ArgsT>(args)...);
   }
 };
 
