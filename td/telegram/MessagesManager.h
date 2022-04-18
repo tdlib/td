@@ -1822,7 +1822,7 @@ class MessagesManager final : public Actor {
   void on_resolve_secret_chat_message_via_bot_username(const string &via_bot_username, MessageInfo *message_info_ptr,
                                                        Promise<Unit> &&promise);
 
-  void add_secret_message(unique_ptr<PendingSecretMessage> pending_secret_message, Promise<Unit> lock_promise = Auto());
+  void add_secret_message(unique_ptr<PendingSecretMessage> pending_secret_message, Promise<Unit> lock_promise = {});
 
   void on_add_secret_message_ready(int64 token);
 
