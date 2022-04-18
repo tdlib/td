@@ -29,6 +29,7 @@
 #include "td/telegram/TdDb.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/UpdatesManager.h"
+#include "td/telegram/VoiceNotesManager.h"
 
 #include "td/db/binlog/BinlogEvent.h"
 #include "td/db/binlog/BinlogHelper.h"
@@ -869,6 +870,24 @@ void NotificationSettingsManager::add_saved_ringtone(td_api::object_ptr<td_api::
   FileId file_id = r_file_id.ok();
   auto file_view = td_->file_manager_->get_file_view(file_id);
   CHECK(!file_view.empty());
+  if (file_view.size() > G()->shared_config().get_option_integer("notification_sound_size_max")) {
+    return promise.set_error(Status::Error(400, "Notification sound file is too big"));
+  }
+  auto file_type = file_view.get_type();
+  int32 duration = 0;
+  switch (file_type) {
+    case FileType::Audio:
+      duration = td_->audios_manager_->get_audio_duration(file_id);
+      break;
+    case FileType::VoiceNote:
+      duration = td_->voice_notes_manager_->get_voice_note_duration(file_id);
+      break;
+    default:
+      break;
+  }
+  if (duration > G()->shared_config().get_option_integer("notification_sound_duration_max")) {
+    return promise.set_error(Status::Error(400, "Notification sound is too long"));
+  }
   if (file_view.has_remote_location() && !file_view.is_encrypted()) {
     CHECK(file_view.remote_location().is_document());
     if (file_view.main_remote_location().is_web()) {
@@ -876,7 +895,6 @@ void NotificationSettingsManager::add_saved_ringtone(td_api::object_ptr<td_api::
     }
 
     FileId ringtone_file_id = file_view.file_id();
-    auto file_type = file_view.get_type();
     if (file_type != FileType::Ringtone) {
       if (file_type != FileType::Audio && file_type != FileType::VoiceNote) {
         return promise.set_error(Status::Error(400, "Unsupported file specified"));

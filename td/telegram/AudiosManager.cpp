@@ -25,7 +25,9 @@ AudiosManager::AudiosManager(Td *td) : td_(td) {
 
 int32 AudiosManager::get_audio_duration(FileId file_id) const {
   auto it = audios_.find(file_id);
-  CHECK(it != audios_.end());
+  if (it == audios_.end()) {
+    return 0;
+  }
   return it->second->duration;
 }
 

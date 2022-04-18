@@ -24,7 +24,9 @@ VoiceNotesManager::VoiceNotesManager(Td *td) : td_(td) {
 
 int32 VoiceNotesManager::get_voice_note_duration(FileId file_id) const {
   auto it = voice_notes_.find(file_id);
-  CHECK(it != voice_notes_.end());
+  if (it == voice_notes_.end()) {
+    return 0;
+  }
   return it->second->duration;
 }
 
