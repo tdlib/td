@@ -702,8 +702,10 @@ class ContactsManager final : public Actor {
     Photo photo;
 
     string about;
-    string description;
     string private_forward_name;
+    string description;
+    Photo description_photo;
+    FileId description_animation_file_id;
 
     unique_ptr<BotMenuButton> menu_button;
     vector<BotCommand> commands;

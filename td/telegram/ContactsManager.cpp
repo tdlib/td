@@ -6,6 +6,7 @@
 //
 #include "td/telegram/ContactsManager.h"
 
+#include "td/telegram/AnimationsManager.h"
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/BotMenuButton.h"
 #include "td/telegram/ChannelParticipantFilter.h"
@@ -13,6 +14,7 @@
 #include "td/telegram/Dependencies.h"
 #include "td/telegram/DialogInviteLink.h"
 #include "td/telegram/DialogLocation.h"
+#include "td/telegram/DocumentsManager.h"
 #include "td/telegram/FileReferenceManager.h"
 #include "td/telegram/files/FileManager.h"
 #include "td/telegram/files/FileType.h"
@@ -3708,6 +3710,8 @@ void ContactsManager::UserFull::store(StorerT &storer) const {
   bool has_group_administrator_rights = group_administrator_rights != AdministratorRights();
   bool has_broadcast_administrator_rights = broadcast_administrator_rights != AdministratorRights();
   bool has_menu_button = menu_button != nullptr;
+  bool has_description_photo = !description_photo.is_empty();
+  bool has_description_animation = description_animation_file_id.is_valid();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_about);
   STORE_FLAG(is_blocked);
@@ -3723,6 +3727,8 @@ void ContactsManager::UserFull::store(StorerT &storer) const {
   STORE_FLAG(has_group_administrator_rights);
   STORE_FLAG(has_broadcast_administrator_rights);
   STORE_FLAG(has_menu_button);
+  STORE_FLAG(has_description_photo);
+  STORE_FLAG(has_description_animation);
   END_STORE_FLAGS();
   if (has_about) {
     store(about, storer);
@@ -3750,6 +3756,13 @@ void ContactsManager::UserFull::store(StorerT &storer) const {
   if (has_menu_button) {
     store(menu_button, storer);
   }
+  if (has_description_photo) {
+    store(description_photo, storer);
+  }
+  if (has_description_animation) {
+    storer.context()->td().get_actor_unsafe()->animations_manager_->store_animation(description_animation_file_id,
+                                                                                    storer);
+  }
 }
 
 template <class ParserT>
@@ -3763,6 +3776,8 @@ void ContactsManager::UserFull::parse(ParserT &parser) {
   bool has_group_administrator_rights;
   bool has_broadcast_administrator_rights;
   bool has_menu_button;
+  bool has_description_photo;
+  bool has_description_animation;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(has_about);
   PARSE_FLAG(is_blocked);
@@ -3778,6 +3793,8 @@ void ContactsManager::UserFull::parse(ParserT &parser) {
   PARSE_FLAG(has_group_administrator_rights);
   PARSE_FLAG(has_broadcast_administrator_rights);
   PARSE_FLAG(has_menu_button);
+  PARSE_FLAG(has_description_photo);
+  PARSE_FLAG(has_description_animation);
   END_PARSE_FLAGS();
   if (has_about) {
     parse(about, parser);
@@ -3804,6 +3821,13 @@ void ContactsManager::UserFull::parse(ParserT &parser) {
   }
   if (has_menu_button) {
     parse(menu_button, parser);
+  }
+  if (has_description_photo) {
+    parse(description_photo, parser);
+  }
+  if (has_description_animation) {
+    description_animation_file_id =
+        parser.context()->td().get_actor_unsafe()->animations_manager_->parse_animation(parser);
   }
 }
 
@@ -10608,14 +10632,34 @@ void ContactsManager::on_get_user_full(tl_object_ptr<telegram_api::userFull> &&u
     td_->group_call_manager_->on_update_dialog_about(DialogId(user_id), user_full->about, true);
   }
   string description;
+  Photo description_photo;
+  FileId description_animation_file_id;
   if (user->bot_info_ != nullptr && !td_->auth_manager_->is_bot()) {
     description = std::move(user->bot_info_->description_);
+    description_photo =
+        get_photo(td_->file_manager_.get(), std::move(user->bot_info_->description_photo_), DialogId(user_id));
+    auto document = std::move(user->bot_info_->description_document_);
+    if (document != nullptr) {
+      int32 document_id = document->get_id();
+      if (document_id == telegram_api::document::ID) {
+        auto parsed_document = td_->documents_manager_->on_get_document(
+            move_tl_object_as<telegram_api::document>(document), DialogId(user_id));
+        if (parsed_document.type == Document::Type::Animation) {
+          description_animation_file_id = parsed_document.file_id;
+        } else {
+          LOG(ERROR) << "Receive non-animation document in bot description";
+        }
+      }
+    }
 
     on_update_user_full_commands(user_full, user_id, std::move(user->bot_info_->commands_));
     on_update_user_full_menu_button(user_full, user_id, std::move(user->bot_info_->menu_button_));
   }
-  if (user_full->description != description) {
+  if (user_full->description != description || user_full->description_photo != description_photo ||
+      user_full->description_animation_file_id != description_animation_file_id) {
     user_full->description = std::move(description);
+    user_full->description_photo == std::move(description_photo);
+    user_full->description_animation_file_id = description_animation_file_id;
     user_full->is_changed = true;
   }
 
@@ -11888,6 +11932,8 @@ void ContactsManager::drop_user_full(UserId user_id) {
   user_full->need_phone_number_privacy_exception = false;
   user_full->about = string();
   user_full->description = string();
+  user_full->description_photo = Photo();
+  user_full->description_animation_file_id = FileId();
   user_full->menu_button = nullptr;
   user_full->commands.clear();
   user_full->common_chat_count = 0;
@@ -16436,7 +16482,10 @@ tl_object_ptr<td_api::userFullInfo> ContactsManager::get_user_full_info_object(U
     auto commands =
         transform(user_full->commands, [](const auto &command) { return command.get_bot_command_object(); });
     bot_info = td_api::make_object<td_api::botInfo>(
-        user_full->about, user_full->description, std::move(menu_button), std::move(commands),
+        user_full->about, user_full->description,
+        get_photo_object(td_->file_manager_.get(), user_full->description_photo),
+        td_->animations_manager_->get_animation_object(user_full->description_animation_file_id),
+        std::move(menu_button), std::move(commands),
         user_full->group_administrator_rights == AdministratorRights()
             ? nullptr
             : user_full->group_administrator_rights.get_chat_administrator_rights_object(),

@@ -475,11 +475,14 @@ user id:int53 first_name:string last_name:string username:string phone_number:st
 //@description Contains information about a bot
 //@share_text The text that is shown on the bot's profile page and is sent together with the link when users share the bot
 //@param_description The text shown in the chat with the bot if the chat is empty
+//@photo Photo shown in the chat with the bot if the chat is empty; may be null
+//@animation Animation shown in the chat with the bot if the chat is empty; may be null
 //@menu_button Information about a button to show instead of the bot commands menu button; may be null if ordinary bot commands menu must be shown
 //@commands List of the bot commands
 //@default_group_administrator_rights Default administrator rights for adding the bot to basic group and supergroup chats; may be null
 //@default_channel_administrator_rights Default administrator rights for adding the bot to channels; may be null
-botInfo share_text:string description:string menu_button:botMenuButton commands:vector<botCommand> default_group_administrator_rights:chatAdministratorRights default_channel_administrator_rights:chatAdministratorRights = BotInfo;
+botInfo share_text:string description:string photo:photo animation:animation menu_button:botMenuButton commands:vector<botCommand> default_group_administrator_rights:chatAdministratorRights default_channel_administrator_rights:chatAdministratorRights = BotInfo;
+
 
 //@description Contains full information about a user
 //@photo User profile photo; may be null
