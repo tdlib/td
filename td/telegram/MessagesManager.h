@@ -2737,7 +2737,7 @@ class MessagesManager final : public Actor {
 
   void reload_dialog_filters();
 
-  void on_get_dialog_filters(Result<vector<tl_object_ptr<telegram_api::dialogFilter>>> r_filters, bool dummy);
+  void on_get_dialog_filters(Result<vector<tl_object_ptr<telegram_api::DialogFilter>>> r_filters, bool dummy);
 
   bool need_synchronize_dialog_filters() const;
 

@@ -283,7 +283,8 @@ class GetPaymentFormQuery final : public Td::ResultHandler {
       flags |= telegram_api::payments_getPaymentForm::THEME_PARAMS_MASK;
     }
     send_query(G()->net_query_creator().create(telegram_api::payments_getPaymentForm(
-        flags, std::move(input_peer), server_message_id.get(), std::move(theme_parameters))));
+        flags, make_tl_object<telegram_api::inputInvoiceMessage>(std::move(input_peer), server_message_id.get()),
+        std::move(theme_parameters))));
   }
 
   void on_result(BufferSlice packet) final {
@@ -350,7 +351,9 @@ class ValidateRequestedInfoQuery final : public Td::ResultHandler {
       requested_info->flags_ = 0;
     }
     send_query(G()->net_query_creator().create(telegram_api::payments_validateRequestedInfo(
-        flags, false /*ignored*/, std::move(input_peer), server_message_id.get(), std::move(requested_info))));
+        flags, false /*ignored*/,
+        make_tl_object<telegram_api::inputInvoiceMessage>(std::move(input_peer), server_message_id.get()),
+        std::move(requested_info))));
   }
 
   void on_result(BufferSlice packet) final {
@@ -404,8 +407,9 @@ class SendPaymentFormQuery final : public Td::ResultHandler {
       flags |= telegram_api::payments_sendPaymentForm::TIP_AMOUNT_MASK;
     }
     send_query(G()->net_query_creator().create(telegram_api::payments_sendPaymentForm(
-        flags, payment_form_id, std::move(input_peer), server_message_id.get(), order_info_id, shipping_option_id,
-        std::move(input_credentials), tip_amount)));
+        flags, payment_form_id,
+        make_tl_object<telegram_api::inputInvoiceMessage>(std::move(input_peer), server_message_id.get()),
+        order_info_id, shipping_option_id, std::move(input_credentials), tip_amount)));
   }
 
   void on_result(BufferSlice packet) final {
@@ -851,8 +855,8 @@ static tl_object_ptr<telegram_api::invoice> get_input_invoice(const Invoice &inv
   });
   return make_tl_object<telegram_api::invoice>(
       flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-      false /*ignored*/, false /*ignored*/, false /*ignored*/, invoice.currency, std::move(prices),
-      invoice.max_tip_amount, vector<int64>(invoice.suggested_tip_amounts));
+      false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, invoice.currency, std::move(prices),
+      invoice.max_tip_amount, vector<int64>(invoice.suggested_tip_amounts), string());
 }
 
 static tl_object_ptr<telegram_api::inputWebDocument> get_input_web_document(const FileManager *file_manager,

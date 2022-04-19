@@ -1270,7 +1270,7 @@ class ContactsManager final : public Actor {
   void on_update_chat_full_participants(ChatFull *chat_full, ChatId chat_id, vector<DialogParticipant> participants,
                                         int32 version, bool from_update);
   void on_update_chat_full_invite_link(ChatFull *chat_full,
-                                       tl_object_ptr<telegram_api::chatInviteExported> &&invite_link);
+                                       tl_object_ptr<telegram_api::ExportedChatInvite> &&invite_link);
 
   void on_update_channel_photo(Channel *c, ChannelId channel_id,
                                tl_object_ptr<telegram_api::ChatPhoto> &&chat_photo_ptr);
@@ -1287,7 +1287,7 @@ class ContactsManager final : public Actor {
 
   void on_update_channel_full_photo(ChannelFull *channel_full, ChannelId channel_id, Photo photo);
   void on_update_channel_full_invite_link(ChannelFull *channel_full,
-                                          tl_object_ptr<telegram_api::chatInviteExported> &&invite_link);
+                                          tl_object_ptr<telegram_api::ExportedChatInvite> &&invite_link);
   void on_update_channel_full_linked_channel_id(ChannelFull *channel_full, ChannelId channel_id,
                                                 ChannelId linked_channel_id);
   void on_update_channel_full_location(ChannelFull *channel_full, ChannelId channel_id, const DialogLocation &location);

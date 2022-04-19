@@ -93,10 +93,10 @@
 namespace td {
 
 class GetDialogFiltersQuery final : public Td::ResultHandler {
-  Promise<vector<tl_object_ptr<telegram_api::dialogFilter>>> promise_;
+  Promise<vector<tl_object_ptr<telegram_api::DialogFilter>>> promise_;
 
  public:
-  explicit GetDialogFiltersQuery(Promise<vector<tl_object_ptr<telegram_api::dialogFilter>>> &&promise)
+  explicit GetDialogFiltersQuery(Promise<vector<tl_object_ptr<telegram_api::DialogFilter>>> &&promise)
       : promise_(std::move(promise)) {
   }
 
@@ -125,7 +125,7 @@ class UpdateDialogFilterQuery final : public Td::ResultHandler {
   explicit UpdateDialogFilterQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(DialogFilterId dialog_filter_id, tl_object_ptr<telegram_api::dialogFilter> filter) {
+  void send(DialogFilterId dialog_filter_id, tl_object_ptr<telegram_api::DialogFilter> filter) {
     int32 flags = 0;
     if (filter != nullptr) {
       flags |= telegram_api::messages_updateDialogFilter::FILTER_MASK;
@@ -14242,7 +14242,7 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
   MessageId reply_to_message_id = message_info.reply_to_message_id;  // for secret messages
   DialogId reply_in_dialog_id;
   MessageId top_thread_message_id;
-  if (message_info.reply_header != nullptr) {
+  if (message_info.reply_header != nullptr && !message_info.reply_header->reply_to_scheduled_) {
     reply_to_message_id = MessageId(ServerMessageId(message_info.reply_header->reply_to_msg_id_));
     auto reply_to_peer_id = std::move(message_info.reply_header->reply_to_peer_id_);
     if (reply_to_peer_id != nullptr) {
@@ -17069,13 +17069,13 @@ void MessagesManager::reload_dialog_filters() {
   are_dialog_filters_being_reloaded_ = true;
   need_dialog_filters_reload_ = false;
   auto promise = PromiseCreator::lambda(
-      [actor_id = actor_id(this)](Result<vector<tl_object_ptr<telegram_api::dialogFilter>>> r_filters) {
+      [actor_id = actor_id(this)](Result<vector<tl_object_ptr<telegram_api::DialogFilter>>> r_filters) {
         send_closure(actor_id, &MessagesManager::on_get_dialog_filters, std::move(r_filters), false);
       });
   td_->create_handler<GetDialogFiltersQuery>(std::move(promise))->send();
 }
 
-void MessagesManager::on_get_dialog_filters(Result<vector<tl_object_ptr<telegram_api::dialogFilter>>> r_filters,
+void MessagesManager::on_get_dialog_filters(Result<vector<tl_object_ptr<telegram_api::DialogFilter>>> r_filters,
                                             bool dummy) {
   are_dialog_filters_being_reloaded_ = false;
   if (G()->close_flag()) {

@@ -33,7 +33,8 @@ struct EncryptedFile {
       return nullptr;
     }
     auto file = move_tl_object_as<telegram_api::encryptedFile>(file_ptr);
-    return make_unique<EncryptedFile>(file->id_, file->access_hash_, file->size_, file->dc_id_, file->key_fingerprint_);
+    return make_unique<EncryptedFile>(file->id_, file->access_hash_, static_cast<int32>(file->size_), file->dc_id_,
+                                      file->key_fingerprint_);
   }
 
   template <class StorerT>

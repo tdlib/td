@@ -3418,4 +3418,7 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateSavedRingtones>
 
 // unsupported updates
 
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateTranscribedAudio> update, Promise<Unit> &&promise) {
+}
+
 }  // namespace td

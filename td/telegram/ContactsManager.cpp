@@ -8879,8 +8879,8 @@ ContactsManager::User *ContactsManager::get_user_force(UserId user_id) {
         flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
         false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
         false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-        false /*ignored*/, user_id.get(), 1, first_name, string(), username, phone_number, std::move(profile_photo),
-        nullptr, bot_info_version, Auto(), string(), string());
+        false /*ignored*/, false /*ignored*/, false /*ignored*/, user_id.get(), 1, first_name, string(), username,
+        phone_number, std::move(profile_photo), nullptr, bot_info_version, Auto(), string(), string());
     on_get_user(std::move(user), "get_user_force");
     u = get_user(user_id);
     CHECK(u != nullptr && u->is_received);
@@ -11625,7 +11625,6 @@ void ContactsManager::on_update_user_full_commands(UserFull *user_full, UserId u
 void ContactsManager::on_update_user_full_menu_button(UserFull *user_full, UserId user_id,
                                                       tl_object_ptr<telegram_api::BotMenuButton> &&bot_menu_button) {
   CHECK(user_full != nullptr);
-  CHECK(bot_menu_button != nullptr);
   auto new_button = get_bot_menu_button(std::move(bot_menu_button));
   bool is_changed;
   if (user_full->menu_button == nullptr) {
@@ -12771,7 +12770,7 @@ void ContactsManager::on_get_permanent_dialog_invite_link(DialogId dialog_id, co
 }
 
 void ContactsManager::on_update_chat_full_invite_link(ChatFull *chat_full,
-                                                      tl_object_ptr<telegram_api::chatInviteExported> &&invite_link) {
+                                                      tl_object_ptr<telegram_api::ExportedChatInvite> &&invite_link) {
   CHECK(chat_full != nullptr);
   if (update_permanent_invite_link(chat_full->invite_link, DialogInviteLink(std::move(invite_link)))) {
     chat_full->is_changed = true;
@@ -12779,7 +12778,7 @@ void ContactsManager::on_update_chat_full_invite_link(ChatFull *chat_full,
 }
 
 void ContactsManager::on_update_channel_full_invite_link(
-    ChannelFull *channel_full, tl_object_ptr<telegram_api::chatInviteExported> &&invite_link) {
+    ChannelFull *channel_full, tl_object_ptr<telegram_api::ExportedChatInvite> &&invite_link) {
   CHECK(channel_full != nullptr);
   if (update_permanent_invite_link(channel_full->invite_link, DialogInviteLink(std::move(invite_link)))) {
     channel_full->is_changed = true;

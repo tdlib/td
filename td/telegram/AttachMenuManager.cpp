@@ -92,7 +92,7 @@ class RequestWebViewQuery final : public Td::ResultHandler {
 
     send_query(G()->net_query_creator().create(telegram_api::messages_requestWebView(
         flags, false /*ignored*/, false /*ignored*/, std::move(input_peer), std::move(input_user), url, start_parameter,
-        std::move(theme_parameters), reply_to_message_id.get_server_message_id().get())));
+        std::move(theme_parameters), reply_to_message_id.get_server_message_id().get(), nullptr)));
   }
 
   void on_result(BufferSlice packet) final {
@@ -139,7 +139,7 @@ class ProlongWebViewQuery final : public Td::ResultHandler {
 
     send_query(G()->net_query_creator().create(telegram_api::messages_prolongWebView(
         flags, false /*ignored*/, std::move(input_peer), r_input_user.move_as_ok(), query_id,
-        reply_to_message_id.get_server_message_id().get())));
+        reply_to_message_id.get_server_message_id().get(), nullptr)));
   }
 
   void on_result(BufferSlice packet) final {

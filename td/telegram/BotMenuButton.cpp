@@ -84,7 +84,9 @@ class GetBotMenuButtonQuery final : public Td::ResultHandler {
 };
 
 unique_ptr<BotMenuButton> get_bot_menu_button(telegram_api::object_ptr<telegram_api::BotMenuButton> &&bot_menu_button) {
-  CHECK(bot_menu_button != nullptr);
+  if (bot_menu_button == nullptr) {
+    return nullptr;
+  }
   switch (bot_menu_button->get_id()) {
     case telegram_api::botMenuButtonCommands::ID:
       return nullptr;

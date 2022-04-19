@@ -16,8 +16,13 @@
 
 namespace td {
 
-unique_ptr<DialogFilter> DialogFilter::get_dialog_filter(telegram_api::object_ptr<telegram_api::dialogFilter> filter,
-                                                         bool with_id) {
+unique_ptr<DialogFilter> DialogFilter::get_dialog_filter(
+    telegram_api::object_ptr<telegram_api::DialogFilter> filter_ptr, bool with_id) {
+  if (filter_ptr->get_id() != telegram_api::dialogFilter::ID) {
+    LOG(ERROR) << "Ignore " << to_string(filter_ptr);
+    return nullptr;
+  }
+  auto filter = telegram_api::move_object_as<telegram_api::dialogFilter>(filter_ptr);
   DialogFilterId dialog_filter_id(filter->id_);
   if (with_id && !dialog_filter_id.is_valid()) {
     LOG(ERROR) << "Receive invalid " << to_string(filter);
@@ -205,7 +210,7 @@ string DialogFilter::get_default_icon_name(const td_api::chatFilter *filter) {
   return "Custom";
 }
 
-telegram_api::object_ptr<telegram_api::dialogFilter> DialogFilter::get_input_dialog_filter() const {
+telegram_api::object_ptr<telegram_api::DialogFilter> DialogFilter::get_input_dialog_filter() const {
   int32 flags = 0;
   if (!emoji.empty()) {
     flags |= telegram_api::dialogFilter::EMOTICON_MASK;
