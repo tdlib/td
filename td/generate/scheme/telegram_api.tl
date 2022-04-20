@@ -1797,6 +1797,7 @@ phone.joinGroupCallPresentation#cbea6bc4 call:InputGroupCall params:DataJSON = U
 phone.leaveGroupCallPresentation#1c50d144 call:InputGroupCall = Updates;
 phone.getGroupCallStreamChannels#1ab21940 call:InputGroupCall = phone.GroupCallStreamChannels;
 phone.getGroupCallStreamRtmpUrl#deb3abbf peer:InputPeer revoke:Bool = phone.GroupCallStreamRtmpUrl;
+phone.saveCallLog#41248786 peer:InputPhoneCall file:InputFile = Bool;
 
 langpack.getLangPack#f2f2330a lang_pack:string lang_code:string = LangPackDifference;
 langpack.getStrings#efea3803 lang_pack:string lang_code:string keys:Vector<string> = Vector<LangPackString>;
