@@ -129,7 +129,7 @@ void HttpConnectionBase::loop() {
       live_event();
       state_ = State::Write;
       if (res.error().code() == 500) {
-        LOG(WARNING) << "Failed to process an HTTP query:" << res.error();
+        LOG(WARNING) << "Failed to process an HTTP query: " << res.error();
       } else {
         LOG(INFO) << res.error();
       }
