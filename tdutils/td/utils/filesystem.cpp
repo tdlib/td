@@ -159,8 +159,8 @@ string clean_filename(CSlice name) {
   }
 
   PathView path_view(name);
-  auto filename = clean_filename_part(path_view.file_stem(), 60);
-  auto extension = clean_filename_part(path_view.extension(), 20);
+  auto filename = clean_filename_part(path_view.file_stem(), 64);
+  auto extension = clean_filename_part(path_view.extension(), 16);
   if (!extension.empty()) {
     if (filename.empty()) {
       filename = std::move(extension);
