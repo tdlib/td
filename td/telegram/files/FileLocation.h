@@ -192,32 +192,17 @@ class FullRemoteFileLocation {
     if (is_web()) {
       return LocationType::Web;
     }
-    switch (file_type_) {
-      case FileType::Photo:
-      case FileType::ProfilePhoto:
-      case FileType::Thumbnail:
-      case FileType::EncryptedThumbnail:
-      case FileType::Wallpaper:
+    switch (get_file_type_class(file_type_)) {
+      case FileTypeClass::Photo:
         return LocationType::Photo;
-      case FileType::Video:
-      case FileType::VoiceNote:
-      case FileType::Document:
-      case FileType::Sticker:
-      case FileType::Audio:
-      case FileType::Animation:
-      case FileType::Encrypted:
-      case FileType::VideoNote:
-      case FileType::SecureRaw:
-      case FileType::Secure:
-      case FileType::Background:
-      case FileType::DocumentAsFile:
-      case FileType::Ringtone:
+      case FileTypeClass::Document:
+      case FileTypeClass::Secure:
+      case FileTypeClass::Encrypted:
         return LocationType::Common;
-      case FileType::None:
-      case FileType::Size:
+      case FileTypeClass::Temp:
+        return LocationType::None;
       default:
         UNREACHABLE();
-      case FileType::Temp:
         return LocationType::None;
     }
   }

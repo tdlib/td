@@ -160,22 +160,42 @@ CSlice get_file_type_name(FileType file_type) {
   }
 }
 
-bool is_document_file_type(FileType file_type) {
+FileTypeClass get_file_type_class(FileType file_type) {
   switch (file_type) {
-    case FileType::Animation:
-    case FileType::Audio:
-    case FileType::Background:
+    case FileType::Photo:
+    case FileType::ProfilePhoto:
+    case FileType::Thumbnail:
+    case FileType::EncryptedThumbnail:
+    case FileType::Wallpaper:
+      return FileTypeClass::Photo;
+    case FileType::Video:
+    case FileType::VoiceNote:
     case FileType::Document:
+    case FileType::Sticker:
+    case FileType::Audio:
+    case FileType::Animation:
+    case FileType::VideoNote:
+    case FileType::Background:
     case FileType::DocumentAsFile:
     case FileType::Ringtone:
-    case FileType::Sticker:
-    case FileType::Video:
-    case FileType::VideoNote:
-    case FileType::VoiceNote:
-      return true;
+      return FileTypeClass::Document;
+    case FileType::SecureRaw:
+    case FileType::Secure:
+      return FileTypeClass::Secure;
+    case FileType::Encrypted:
+      return FileTypeClass::Encrypted;
+    case FileType::Temp:
+      return FileTypeClass::Temp;
+    case FileType::None:
+    case FileType::Size:
     default:
-      return false;
+      UNREACHABLE();
+      return FileTypeClass::Temp;
   }
+}
+
+bool is_document_file_type(FileType file_type) {
+  return get_file_type_class(file_type) == FileTypeClass::Document;
 }
 
 StringBuilder &operator<<(StringBuilder &string_builder, FileType file_type) {
