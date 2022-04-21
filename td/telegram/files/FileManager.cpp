@@ -2883,12 +2883,6 @@ void FileManager::cancel_upload(FileId file_id) {
   return resume_upload(file_id, std::vector<int>(), nullptr, 0, 0);
 }
 
-static bool is_document_type(FileType type) {
-  return type == FileType::Document || type == FileType::Sticker || type == FileType::Audio ||
-         type == FileType::Animation || type == FileType::VoiceNote || type == FileType::Background ||
-         type == FileType::DocumentAsFile || type == FileType::Ringtone;
-}
-
 static bool is_background_type(FileType type) {
   return type == FileType::Wallpaper || type == FileType::Background;
 }
@@ -2962,7 +2956,7 @@ Result<FileId> FileManager::from_persistent_id_v23(Slice binary, FileType file_t
     return Status::Error(400, "Wrong remote file identifier specified: can't unserialize it");
   }
   auto &real_file_type = remote_location.file_type_;
-  if (is_document_type(real_file_type) && is_document_type(file_type)) {
+  if (is_document_file_type(real_file_type) && is_document_file_type(file_type)) {
     real_file_type = file_type;
   } else if (is_background_type(real_file_type) && is_background_type(file_type)) {
     // type of file matches, but real type is in the stored remote location
@@ -3082,7 +3076,7 @@ Result<FileId> FileManager::check_input_file_id(FileType type, Result<FileId> re
   LOG(INFO) << "Checking file " << file_id << " of type " << type << "/" << real_type;
   if (!is_encrypted && !is_secure) {
     if (real_type != type && !(real_type == FileType::Temp && file_view.has_url()) &&
-        !(is_document_type(real_type) && is_document_type(type)) &&
+        !(is_document_file_type(real_type) && is_document_file_type(type)) &&
         !(is_background_type(real_type) && is_background_type(type)) &&
         !(file_view.is_encrypted() && type == FileType::Ringtone)) {
       // TODO: send encrypted file to unencrypted chat

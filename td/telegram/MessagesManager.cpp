@@ -35613,21 +35613,6 @@ bool MessagesManager::update_message_content(DialogId dialog_id, Message *old_me
             old_file_view.size() == new_file_view.size()) {
           auto old_file_type = old_file_view.get_type();
           auto new_file_type = new_file_view.get_type();
-          auto is_document_file_type = [](FileType file_type) {
-            switch (file_type) {
-              case FileType::Animation:
-              case FileType::Audio:
-              case FileType::Document:
-              case FileType::DocumentAsFile:
-              case FileType::Sticker:
-              case FileType::Video:
-              case FileType::VideoNote:
-              case FileType::VoiceNote:
-                return true;
-              default:
-                return false;
-            }
-          };
 
           if (is_document_file_type(old_file_type) && is_document_file_type(new_file_type)) {
             auto &old_location = old_file_view.local_location();

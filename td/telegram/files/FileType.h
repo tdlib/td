@@ -50,6 +50,8 @@ FileType get_main_file_type(FileType file_type);
 
 CSlice get_file_type_name(FileType file_type);
 
+bool is_document_file_type(FileType file_type);
+
 StringBuilder &operator<<(StringBuilder &string_builder, FileType file_type);
 
 FileDirType get_file_dir_type(FileType file_type);

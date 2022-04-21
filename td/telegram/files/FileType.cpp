@@ -160,6 +160,24 @@ CSlice get_file_type_name(FileType file_type) {
   }
 }
 
+bool is_document_file_type(FileType file_type) {
+  switch (file_type) {
+    case FileType::Animation:
+    case FileType::Audio:
+    case FileType::Background:
+    case FileType::Document:
+    case FileType::DocumentAsFile:
+    case FileType::Ringtone:
+    case FileType::Sticker:
+    case FileType::Video:
+    case FileType::VideoNote:
+    case FileType::VoiceNote:
+      return true;
+    default:
+      return false;
+  }
+}
+
 StringBuilder &operator<<(StringBuilder &string_builder, FileType file_type) {
   return string_builder << get_file_type_name(file_type);
 }
