@@ -926,6 +926,7 @@ string FileManager::get_file_name(FileType file_type, Slice path) {
     case FileType::Secure:
     case FileType::SecureRaw:
     case FileType::DocumentAsFile:
+    case FileType::CallLog:
       break;
     default:
       UNREACHABLE();

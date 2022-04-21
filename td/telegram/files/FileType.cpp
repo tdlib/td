@@ -91,6 +91,8 @@ tl_object_ptr<td_api::FileType> get_file_type_object(FileType file_type) {
       return make_tl_object<td_api::fileTypeDocument>();
     case FileType::Ringtone:
       return make_tl_object<td_api::fileTypeNotificationSound>();
+    case FileType::CallLog:
+      return make_tl_object<td_api::fileTypeDocument>();
     case FileType::None:
       return make_tl_object<td_api::fileTypeNone>();
     default:
@@ -106,6 +108,8 @@ FileType get_main_file_type(FileType file_type) {
     case FileType::SecureRaw:
       return FileType::Secure;
     case FileType::DocumentAsFile:
+      return FileType::Document;
+    case FileType::CallLog:
       return FileType::Document;
     default:
       return file_type;
@@ -152,6 +156,8 @@ CSlice get_file_type_name(FileType file_type) {
       return CSlice("documents");
     case FileType::Ringtone:
       return CSlice("notification_sounds");
+    case FileType::CallLog:
+      return CSlice("documents");
     case FileType::Size:
     case FileType::None:
     default:
@@ -178,6 +184,7 @@ FileTypeClass get_file_type_class(FileType file_type) {
     case FileType::Background:
     case FileType::DocumentAsFile:
     case FileType::Ringtone:
+    case FileType::CallLog:
       return FileTypeClass::Document;
     case FileType::SecureRaw:
     case FileType::Secure:
@@ -229,6 +236,7 @@ bool is_file_big(FileType file_type, int64 expected_size) {
     case FileType::EncryptedThumbnail:
     case FileType::VideoNote:
     case FileType::Ringtone:
+    case FileType::CallLog:
       return false;
     default:
       break;
