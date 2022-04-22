@@ -3035,10 +3035,15 @@ class CliClient final : public Actor {
       problems.emplace_back(td_api::make_object<td_api::callProblemDistortedSpeech>());
       send_request(td_api::make_object<td_api::sendCallRating>(call_id, rating, "Wow, such good call! (TDLib test)",
                                                                std::move(problems)));
-    } else if (op == "scdi" || op == "SendCallDebugInformation") {
+    } else if (op == "scdi") {
       CallId call_id;
       get_args(args, call_id);
       send_request(td_api::make_object<td_api::sendCallDebugInformation>(call_id, "{}"));
+    } else if (op == "sclog") {
+      CallId call_id;
+      string log_file;
+      get_args(args, call_id, log_file);
+      send_request(td_api::make_object<td_api::sendCallLog>(call_id, as_input_file(log_file)));
     } else if (op == "gvcap") {
       ChatId chat_id;
       get_args(args, chat_id);

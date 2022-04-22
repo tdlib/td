@@ -128,7 +128,7 @@ tl_object_ptr<td_api::CallState> CallState::get_call_state_object() const {
       return make_tl_object<td_api::callStateHangingUp>();
     case Type::Discarded:
       return make_tl_object<td_api::callStateDiscarded>(get_call_discard_reason_object(discard_reason), need_rating,
-                                                        need_debug_information);
+                                                        need_debug_information, need_log);
     case Type::Error:
       CHECK(error.is_error());
       return make_tl_object<td_api::callStateError>(make_tl_object<td_api::error>(error.code(), error.message().str()));
@@ -159,7 +159,7 @@ void CallActor::create_call(UserId user_id, tl_object_ptr<telegram_api::InputUse
   promise.set_value(CallId(local_call_id_));
 }
 
-void CallActor::accept_call(CallProtocol &&protocol, Promise<> promise) {
+void CallActor::accept_call(CallProtocol &&protocol, Promise<Unit> promise) {
   if (state_ != State::SendAcceptQuery) {
     return promise.set_error(Status::Error(400, "Unexpected acceptCall"));
   }
@@ -180,7 +180,7 @@ void CallActor::update_call_signaling_data(string data) {
   send_closure(G()->td(), &Td::send_update, std::move(update));
 }
 
-void CallActor::send_call_signaling_data(string &&data, Promise<> promise) {
+void CallActor::send_call_signaling_data(string &&data, Promise<Unit> promise) {
   if (call_state_.type != CallState::Type::Ready) {
     return promise.set_error(Status::Error(400, "Call is not active"));
   }
@@ -199,7 +199,7 @@ void CallActor::send_call_signaling_data(string &&data, Promise<> promise) {
 }
 
 void CallActor::discard_call(bool is_disconnected, int32 duration, bool is_video, int64 connection_id,
-                             Promise<> promise) {
+                             Promise<Unit> promise) {
   promise.set_value(Unit());
   if (state_ == State::Discarded || state_ == State::WaitDiscardResult || state_ == State::SendDiscardQuery) {
     return;
@@ -244,7 +244,7 @@ void CallActor::discard_call(bool is_disconnected, int32 duration, bool is_video
 }
 
 void CallActor::rate_call(int32 rating, string comment, vector<td_api::object_ptr<td_api::CallProblem>> &&problems,
-                          Promise<> promise) {
+                          Promise<Unit> promise) {
   if (!call_state_.need_rating) {
     return promise.set_error(Status::Error(400, "Unexpected sendCallRating"));
   }
@@ -309,11 +309,15 @@ void CallActor::on_set_rating_query_result(Result<NetQueryPtr> r_net_query) {
   if (res.is_error()) {
     return on_error(res.move_as_error());
   }
-  call_state_.need_rating = false;
+  if (call_state_.need_rating) {
+    call_state_.need_rating = false;
+    call_state_need_flush_ = true;
+    loop();
+  }
   send_closure(G()->updates_manager(), &UpdatesManager::on_get_updates, res.move_as_ok(), Promise<Unit>());
 }
 
-void CallActor::send_call_debug_information(string data, Promise<> promise) {
+void CallActor::send_call_debug_information(string data, Promise<Unit> promise) {
   if (!call_state_.need_debug_information) {
     return promise.set_error(Status::Error(400, "Unexpected sendCallDebugInformation"));
   }
@@ -333,7 +337,23 @@ void CallActor::on_set_debug_query_result(Result<NetQueryPtr> r_net_query) {
   if (res.is_error()) {
     return on_error(res.move_as_error());
   }
-  call_state_.need_debug_information = false;
+  if (!res.ok() && !call_state_.need_log) {
+    call_state_.need_log = true;
+    call_state_need_flush_ = true;
+  }
+  if (call_state_.need_debug_information) {
+    call_state_.need_debug_information = false;
+    call_state_need_flush_ = true;
+  }
+  loop();
+}
+
+void CallActor::send_call_log(td_api::object_ptr<td_api::InputFile> log_file, Promise<Unit> promise) {
+  if (!call_state_.need_log) {
+    return promise.set_error(Status::Error(400, "Unexpected sendCallLog"));
+  }
+
+  promise.set_error(Status::Error(500, "Unsupported"));
 }
 
 // Requests

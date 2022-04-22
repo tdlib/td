@@ -2339,8 +2339,8 @@ callStateReady protocol:callProtocol servers:vector<callServer> config:string en
 //@description The call is hanging up after discardCall has been called
 callStateHangingUp = CallState;
 
-//@description The call has ended successfully @reason The reason, why the call has ended @need_rating True, if the call rating must be sent to the server @need_debug_information True, if the call debug information must be sent to the server
-callStateDiscarded reason:CallDiscardReason need_rating:Bool need_debug_information:Bool = CallState;
+//@description The call has ended successfully @reason The reason, why the call has ended @need_rating True, if the call rating must be sent to the server @need_debug_information True, if the call debug information must be sent to the server @need_log True, if the call log must be sent to the server
+callStateDiscarded reason:CallDiscardReason need_rating:Bool need_debug_information:Bool need_log:Bool = CallState;
 
 //@description The call has ended with an error @error Error. An error with the code 4005000 will be returned if an outgoing call is missed because of an expired timeout
 callStateError error:error = CallState;
@@ -5421,8 +5421,11 @@ discardCall call_id:int32 is_disconnected:Bool duration:int32 is_video:Bool conn
 //@description Sends a call rating @call_id Call identifier @rating Call rating; 1-5 @comment An optional user comment if the rating is less than 5 @problems List of the exact types of problems with the call, specified by the user
 sendCallRating call_id:int32 rating:int32 comment:string problems:vector<CallProblem> = Ok;
 
-//@description Sends debug information for a call @call_id Call identifier @debug_information Debug information in application-specific format
+//@description Sends debug information for a call to Telegram servers @call_id Call identifier @debug_information Debug information in application-specific format
 sendCallDebugInformation call_id:int32 debug_information:string = Ok;
+
+//@description Sends log file for a call to Telegram servers @call_id Call identifier @log_file Call log file
+sendCallLog call_id:int32 log_file:InputFile = Ok;
 
 
 //@description Returns list of participant identifiers, on whose behalf a video chat in the chat can be joined @chat_id Chat identifier

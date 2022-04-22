@@ -76,6 +76,7 @@ struct CallState {
   bool is_received{false};
   bool need_debug_information{false};
   bool need_rating{false};
+  bool need_log{false};
 
   int64 key_fingerprint{0};
   string key;
@@ -94,13 +95,14 @@ class CallActor final : public NetQueryCallback {
 
   void create_call(UserId user_id, tl_object_ptr<telegram_api::InputUser> &&input_user, CallProtocol &&protocol,
                    bool is_video, Promise<CallId> &&promise);
-  void accept_call(CallProtocol &&protocol, Promise<> promise);
+  void accept_call(CallProtocol &&protocol, Promise<Unit> promise);
   void update_call_signaling_data(string data);
-  void send_call_signaling_data(string &&data, Promise<> promise);
-  void discard_call(bool is_disconnected, int32 duration, bool is_video, int64 connection_id, Promise<> promise);
+  void send_call_signaling_data(string &&data, Promise<Unit> promise);
+  void discard_call(bool is_disconnected, int32 duration, bool is_video, int64 connection_id, Promise<Unit> promise);
   void rate_call(int32 rating, string comment, vector<td_api::object_ptr<td_api::CallProblem>> &&problems,
-                 Promise<> promise);
-  void send_call_debug_information(string data, Promise<> promise);
+                 Promise<Unit> promise);
+  void send_call_debug_information(string data, Promise<Unit> promise);
+  void send_call_log(td_api::object_ptr<td_api::InputFile> log_file, Promise<Unit> promise);
 
   void update_call(tl_object_ptr<telegram_api::PhoneCall> call);
 

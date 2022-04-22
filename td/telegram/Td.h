@@ -744,6 +744,8 @@ class Td final : public Actor {
 
   void on_request(uint64 id, td_api::sendCallDebugInformation &request);
 
+  void on_request(uint64 id, td_api::sendCallLog &request);
+
   void on_request(uint64 id, const td_api::getVideoChatAvailableParticipants &request);
 
   void on_request(uint64 id, const td_api::setVideoChatDefaultParticipant &request);
