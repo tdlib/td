@@ -672,8 +672,16 @@ class CliClient final : public Actor {
     return as_input_thumbnail(as_generated_file(original_path, conversion), width, height);
   }
 
-  static int32 as_call_id(string str) {
-    return to_integer<int32>(trim(std::move(str)));
+  struct CallId {
+    int32 call_id = 0;
+
+    operator int32() const {
+      return call_id;
+    }
+  };
+
+  void get_args(string &args, CallId &arg) const {
+    arg.call_id = to_integer<int32>(trim(args));
   }
 
   static int32 as_group_call_id(string str) {
@@ -2991,18 +2999,21 @@ class CliClient final : public Actor {
           user_id, td_api::make_object<td_api::callProtocol>(true, true, 65, 65, vector<string>{"2.6", "3.0"}),
           rand_bool()));
     } else if (op == "ac" || op == "AcceptCall") {
+      CallId call_id;
+      get_args(args, call_id);
       send_request(td_api::make_object<td_api::acceptCall>(
-          as_call_id(args),
-          td_api::make_object<td_api::callProtocol>(true, true, 65, 65, vector<string>{"2.6", "3.0"})));
+          call_id, td_api::make_object<td_api::callProtocol>(true, true, 65, 65, vector<string>{"2.6", "3.0"})));
     } else if (op == "scsd") {
-      send_request(td_api::make_object<td_api::sendCallSignalingData>(as_call_id(args), "abacaba"));
+      CallId call_id;
+      get_args(args, call_id);
+      send_request(td_api::make_object<td_api::sendCallSignalingData>(call_id, "abacaba"));
     } else if (op == "dc" || op == "DiscardCall") {
-      string call_id;
+      CallId call_id;
       bool is_disconnected;
       get_args(args, call_id, is_disconnected);
-      send_request(td_api::make_object<td_api::discardCall>(as_call_id(call_id), is_disconnected, 0, rand_bool(), 0));
+      send_request(td_api::make_object<td_api::discardCall>(call_id, is_disconnected, 0, rand_bool(), 0));
     } else if (op == "scr" || op == "SendCallRating") {
-      string call_id;
+      CallId call_id;
       int32 rating;
       get_args(args, call_id, rating);
       vector<td_api::object_ptr<td_api::CallProblem>> problems;
@@ -3014,10 +3025,12 @@ class CliClient final : public Actor {
       problems.emplace_back(td_api::make_object<td_api::callProblemEcho>());
       problems.emplace_back(td_api::make_object<td_api::callProblemPixelatedVideo>());
       problems.emplace_back(td_api::make_object<td_api::callProblemDistortedSpeech>());
-      send_request(td_api::make_object<td_api::sendCallRating>(
-          as_call_id(call_id), rating, "Wow, such good call! (TDLib test)", std::move(problems)));
+      send_request(td_api::make_object<td_api::sendCallRating>(call_id, rating, "Wow, such good call! (TDLib test)",
+                                                               std::move(problems)));
     } else if (op == "scdi" || op == "SendCallDebugInformation") {
-      send_request(td_api::make_object<td_api::sendCallDebugInformation>(as_call_id(args), "{}"));
+      CallId call_id;
+      get_args(args, call_id);
+      send_request(td_api::make_object<td_api::sendCallDebugInformation>(call_id, "{}"));
     } else if (op == "gvcap") {
       ChatId chat_id;
       get_args(args, chat_id);
