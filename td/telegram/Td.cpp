@@ -8064,6 +8064,9 @@ td_api::object_ptr<td_api::Object> Td::do_static_request(td_api::parseTextEntiti
   }
 
   auto r_entities = [&]() -> Result<vector<MessageEntity>> {
+    if (utf8_length(request.text_) > 65536) {
+      return Status::Error("Text is too long");
+    }
     switch (request.parse_mode_->get_id()) {
       case td_api::textParseModeHTML::ID:
         return parse_html(request.text_);
