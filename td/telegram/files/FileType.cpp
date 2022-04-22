@@ -246,4 +246,16 @@ bool is_file_big(FileType file_type, int64 expected_size) {
   return expected_size > SMALL_FILE_MAX_SIZE;
 }
 
+bool can_reuse_remote_file(FileType file_type) {
+  switch (file_type) {
+    case FileType::Thumbnail:
+    case FileType::EncryptedThumbnail:
+    case FileType::Background:
+    case FileType::CallLog:
+      return false;
+    default:
+      return true;
+  }
+}
+
 }  // namespace td

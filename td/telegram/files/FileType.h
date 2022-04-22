@@ -63,4 +63,6 @@ FileDirType get_file_dir_type(FileType file_type);
 
 bool is_file_big(FileType file_type, int64 expected_size);
 
+bool can_reuse_remote_file(FileType file_type);
+
 }  // namespace td

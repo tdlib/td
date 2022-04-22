@@ -2559,8 +2559,7 @@ void FileManager::resume_upload(FileId file_id, std::vector<int> bad_parts, std:
     node->set_upload_pause(FileId());
   }
   FileView file_view(node);
-  if (file_view.has_active_upload_remote_location() && file_view.get_type() != FileType::Thumbnail &&
-      file_view.get_type() != FileType::EncryptedThumbnail && file_view.get_type() != FileType::Background) {
+  if (file_view.has_active_upload_remote_location() && can_reuse_remote_file(file_view.get_type())) {
     LOG(INFO) << "File " << file_id << " is already uploaded";
     if (callback) {
       callback->on_upload_ok(file_id, nullptr);
@@ -2832,8 +2831,7 @@ void FileManager::run_upload(FileNodePtr node, std::vector<int> bad_parts) {
 
   CHECK(node->upload_id_ == 0);
   if (file_view.has_alive_remote_location() && !file_view.has_active_upload_remote_location() &&
-      file_view.get_type() != FileType::Thumbnail && file_view.get_type() != FileType::EncryptedThumbnail &&
-      file_view.get_type() != FileType::Background) {
+      can_reuse_remote_file(file_view.get_type())) {
     QueryId id = queries_container_.create(Query{file_id, Query::Type::UploadWaitFileReference});
     node->upload_id_ = id;
     if (node->upload_was_update_file_reference_) {
