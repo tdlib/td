@@ -5424,7 +5424,7 @@ sendCallRating call_id:int32 rating:int32 comment:string problems:vector<CallPro
 //@description Sends debug information for a call to Telegram servers @call_id Call identifier @debug_information Debug information in application-specific format
 sendCallDebugInformation call_id:int32 debug_information:string = Ok;
 
-//@description Sends log file for a call to Telegram servers @call_id Call identifier @log_file Call log file
+//@description Sends log file for a call to Telegram servers @call_id Call identifier @log_file Call log file. Only inputFileLocal and inputFileGenerated are supported
 sendCallLog call_id:int32 log_file:InputFile = Ok;
 
 

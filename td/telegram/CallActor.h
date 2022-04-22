@@ -9,6 +9,7 @@
 #include "td/telegram/CallDiscardReason.h"
 #include "td/telegram/CallId.h"
 #include "td/telegram/DhConfig.h"
+#include "td/telegram/files/FileId.h"
 #include "td/telegram/net/NetQuery.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
@@ -184,7 +185,18 @@ class CallActor final : public NetQueryCallback {
   void on_call_discarded(CallDiscardReason reason, bool need_rating, bool need_debug, bool is_video);
 
   void on_set_rating_query_result(Result<NetQueryPtr> r_net_query);
-  void on_set_debug_query_result(Result<NetQueryPtr> r_net_query);
+
+  void on_save_debug_query_result(Result<NetQueryPtr> r_net_query);
+
+  void upload_log_file(FileId file_id, Promise<Unit> &&promise);
+
+  void on_upload_log_file(FileId file_id, Promise<Unit> &&promise, tl_object_ptr<telegram_api::InputFile> input_file);
+
+  void on_upload_log_file_error(FileId file_id, Promise<Unit> &&promise, Status status);
+
+  void do_upload_log_file(FileId file_id, tl_object_ptr<telegram_api::InputFile> &&input_file, Promise<Unit> &&promise);
+
+  void on_save_log_query_result(FileId file_id, Promise<Unit> promise, Result<NetQueryPtr> r_net_query);
 
   void on_get_call_config_result(Result<NetQueryPtr> r_net_query);
 
