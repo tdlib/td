@@ -684,8 +684,16 @@ class CliClient final : public Actor {
     arg.call_id = to_integer<int32>(trim(args));
   }
 
-  static int32 as_group_call_id(string str) {
-    return to_integer<int32>(trim(std::move(str)));
+  struct GroupCallId {
+    int32 group_call_id = 0;
+
+    operator int32() const {
+      return group_call_id;
+    }
+  };
+
+  void get_args(string &args, GroupCallId &arg) const {
+    arg.group_call_id = to_integer<int32>(trim(args));
   }
 
   static int32 as_proxy_id(string str) {
@@ -3057,24 +3065,30 @@ class CliClient final : public Actor {
       get_args(args, chat_id);
       send_request(td_api::make_object<td_api::replaceVideoChatRtmpUrl>(chat_id));
     } else if (op == "ggc") {
-      send_request(td_api::make_object<td_api::getGroupCall>(as_group_call_id(args)));
-    } else if (op == "ggcs") {
-      string group_call_id;
+      GroupCallId group_call_id;
       get_args(args, group_call_id);
-      send_request(td_api::make_object<td_api::getGroupCallStreams>(as_group_call_id(group_call_id)));
+      send_request(td_api::make_object<td_api::getGroupCall>(group_call_id));
+    } else if (op == "ggcs") {
+      GroupCallId group_call_id;
+      get_args(args, group_call_id);
+      send_request(td_api::make_object<td_api::getGroupCallStreams>(group_call_id));
     } else if (op == "ggcss") {
-      string group_call_id;
+      GroupCallId group_call_id;
       int32 channel_id;
       get_args(args, group_call_id, channel_id);
       send_request(td_api::make_object<td_api::getGroupCallStreamSegment>(
-          as_group_call_id(group_call_id), (std::time(nullptr) - 5) * 1000, 0, channel_id, nullptr));
+          group_call_id, (std::time(nullptr) - 5) * 1000, 0, channel_id, nullptr));
     } else if (op == "ssgc") {
-      send_request(td_api::make_object<td_api::startScheduledGroupCall>(as_group_call_id(args)));
+      GroupCallId group_call_id;
+      get_args(args, group_call_id);
+      send_request(td_api::make_object<td_api::startScheduledGroupCall>(group_call_id));
     } else if (op == "tgcesn" || op == "tgcesne") {
-      send_request(td_api::make_object<td_api::toggleGroupCallEnabledStartNotification>(as_group_call_id(args),
-                                                                                        op == "tgcesne"));
+      GroupCallId group_call_id;
+      get_args(args, group_call_id);
+      send_request(
+          td_api::make_object<td_api::toggleGroupCallEnabledStartNotification>(group_call_id, op == "tgcesne"));
     } else if (op == "jgc" || op == "jgcv" || op == "sgcss") {
-      string group_call_id;
+      GroupCallId group_call_id;
       string participant_id;
       string invite_hash;
       get_args(args, group_call_id, participant_id, invite_hash);
@@ -3100,106 +3114,108 @@ class CliClient final : public Actor {
             sim_sources + ",\"semantics\":\"SIM\"},{\"sources\":" + fid_sources + ",\"semantics\":\"FID\"}]}";
       }
       if (op == "sgcss") {
-        send_request(td_api::make_object<td_api::startGroupCallScreenSharing>(
-            as_group_call_id(group_call_id), group_call_source_ + 1, std::move(payload)));
+        send_request(td_api::make_object<td_api::startGroupCallScreenSharing>(group_call_id, group_call_source_ + 1,
+                                                                              std::move(payload)));
       } else {
-        send_request(td_api::make_object<td_api::joinGroupCall>(as_group_call_id(group_call_id),
-                                                                as_message_sender(participant_id), group_call_source_,
-                                                                std::move(payload), true, true, invite_hash));
+        send_request(td_api::make_object<td_api::joinGroupCall>(group_call_id, as_message_sender(participant_id),
+                                                                group_call_source_, std::move(payload), true, true,
+                                                                invite_hash));
       }
     } else if (op == "tgcssip") {
-      string group_call_id;
+      GroupCallId group_call_id;
       bool is_paused;
       get_args(args, group_call_id, is_paused);
-      send_request(td_api::make_object<td_api::toggleGroupCallScreenSharingIsPaused>(as_group_call_id(group_call_id),
-                                                                                     is_paused));
+      send_request(td_api::make_object<td_api::toggleGroupCallScreenSharingIsPaused>(group_call_id, is_paused));
     } else if (op == "egcss") {
-      const string &group_call_id = args;
-      send_request(td_api::make_object<td_api::endGroupCallScreenSharing>(as_group_call_id(group_call_id)));
+      GroupCallId group_call_id;
+      get_args(args, group_call_id);
+      send_request(td_api::make_object<td_api::endGroupCallScreenSharing>(group_call_id));
     } else if (op == "sgct") {
-      string group_call_id;
+      GroupCallId group_call_id;
       string title;
       get_args(args, group_call_id, title);
-      send_request(td_api::make_object<td_api::setGroupCallTitle>(as_group_call_id(group_call_id), title));
+      send_request(td_api::make_object<td_api::setGroupCallTitle>(group_call_id, title));
     } else if (op == "tgcmnp" || op == "tgcmnpe") {
-      send_request(
-          td_api::make_object<td_api::toggleGroupCallMuteNewParticipants>(as_group_call_id(args), op == "tgcmnpe"));
+      GroupCallId group_call_id;
+      get_args(args, group_call_id);
+      send_request(td_api::make_object<td_api::toggleGroupCallMuteNewParticipants>(group_call_id, op == "tgcmnpe"));
     } else if (op == "rgcil") {
-      send_request(td_api::make_object<td_api::revokeGroupCallInviteLink>(as_group_call_id(args)));
+      GroupCallId group_call_id;
+      get_args(args, group_call_id);
+      send_request(td_api::make_object<td_api::revokeGroupCallInviteLink>(group_call_id));
     } else if (op == "tgcimvp") {
-      string group_call_id;
+      GroupCallId group_call_id;
       bool is_my_video_paused;
       get_args(args, group_call_id, is_my_video_paused);
-      send_request(td_api::make_object<td_api::toggleGroupCallIsMyVideoPaused>(as_group_call_id(group_call_id),
-                                                                               is_my_video_paused));
+      send_request(td_api::make_object<td_api::toggleGroupCallIsMyVideoPaused>(group_call_id, is_my_video_paused));
     } else if (op == "tgcimve") {
-      string group_call_id;
+      GroupCallId group_call_id;
       bool is_my_video_enabled;
       get_args(args, group_call_id, is_my_video_enabled);
-      send_request(td_api::make_object<td_api::toggleGroupCallIsMyVideoEnabled>(as_group_call_id(group_call_id),
-                                                                                is_my_video_enabled));
+      send_request(td_api::make_object<td_api::toggleGroupCallIsMyVideoEnabled>(group_call_id, is_my_video_enabled));
     } else if (op == "sgcpis") {
-      string group_call_id;
+      GroupCallId group_call_id;
       int32 source_id;
       bool is_speaking;
       get_args(args, group_call_id, source_id, is_speaking);
-      send_request(td_api::make_object<td_api::setGroupCallParticipantIsSpeaking>(as_group_call_id(group_call_id),
-                                                                                  source_id, is_speaking));
+      send_request(
+          td_api::make_object<td_api::setGroupCallParticipantIsSpeaking>(group_call_id, source_id, is_speaking));
     } else if (op == "igcp") {
-      string group_call_id;
+      GroupCallId group_call_id;
       string user_ids;
       get_args(args, group_call_id, user_ids);
-      send_request(td_api::make_object<td_api::inviteGroupCallParticipants>(as_group_call_id(group_call_id),
-                                                                            as_user_ids(user_ids)));
+      send_request(td_api::make_object<td_api::inviteGroupCallParticipants>(group_call_id, as_user_ids(user_ids)));
     } else if (op == "ggcil") {
-      string group_call_id;
+      GroupCallId group_call_id;
       bool can_self_unmute;
       get_args(args, group_call_id, can_self_unmute);
-      send_request(
-          td_api::make_object<td_api::getGroupCallInviteLink>(as_group_call_id(group_call_id), can_self_unmute));
+      send_request(td_api::make_object<td_api::getGroupCallInviteLink>(group_call_id, can_self_unmute));
     } else if (op == "sgcr") {
-      string group_call_id;
+      GroupCallId group_call_id;
       string title;
       bool record_video;
       bool use_portrait_orientation;
       get_args(args, group_call_id, title, record_video, use_portrait_orientation);
-      send_request(td_api::make_object<td_api::startGroupCallRecording>(as_group_call_id(group_call_id), title,
-                                                                        record_video, use_portrait_orientation));
+      send_request(td_api::make_object<td_api::startGroupCallRecording>(group_call_id, title, record_video,
+                                                                        use_portrait_orientation));
     } else if (op == "egcr") {
-      string group_call_id;
+      GroupCallId group_call_id;
       get_args(args, group_call_id);
-      send_request(td_api::make_object<td_api::endGroupCallRecording>(as_group_call_id(group_call_id)));
+      send_request(td_api::make_object<td_api::endGroupCallRecording>(group_call_id));
     } else if (op == "tgcpim") {
-      string group_call_id;
+      GroupCallId group_call_id;
       string participant_id;
       bool is_muted;
       get_args(args, group_call_id, participant_id, is_muted);
       send_request(td_api::make_object<td_api::toggleGroupCallParticipantIsMuted>(
-          as_group_call_id(group_call_id), as_message_sender(participant_id), is_muted));
+          group_call_id, as_message_sender(participant_id), is_muted));
     } else if (op == "sgcpvl") {
-      string group_call_id;
+      GroupCallId group_call_id;
       string participant_id;
       int32 volume_level;
       get_args(args, group_call_id, participant_id, volume_level);
       send_request(td_api::make_object<td_api::setGroupCallParticipantVolumeLevel>(
-          as_group_call_id(group_call_id), as_message_sender(participant_id), volume_level));
+          group_call_id, as_message_sender(participant_id), volume_level));
     } else if (op == "tgcpihr") {
-      string group_call_id;
+      GroupCallId group_call_id;
       string participant_id;
       bool is_hand_raised;
       get_args(args, group_call_id, participant_id, is_hand_raised);
       send_request(td_api::make_object<td_api::toggleGroupCallParticipantIsHandRaised>(
-          as_group_call_id(group_call_id), as_message_sender(participant_id), is_hand_raised));
+          group_call_id, as_message_sender(participant_id), is_hand_raised));
     } else if (op == "lgcp") {
-      string group_call_id;
+      GroupCallId group_call_id;
       string limit;
       get_args(args, group_call_id, limit);
-      send_request(
-          td_api::make_object<td_api::loadGroupCallParticipants>(as_group_call_id(group_call_id), as_limit(limit)));
+      send_request(td_api::make_object<td_api::loadGroupCallParticipants>(group_call_id, as_limit(limit)));
     } else if (op == "lgc") {
-      send_request(td_api::make_object<td_api::leaveGroupCall>(as_group_call_id(args)));
+      GroupCallId group_call_id;
+      get_args(args, group_call_id);
+      send_request(td_api::make_object<td_api::leaveGroupCall>(group_call_id));
     } else if (op == "egc") {
-      send_request(td_api::make_object<td_api::endGroupCall>(as_group_call_id(args)));
+      GroupCallId group_call_id;
+      get_args(args, group_call_id);
+      send_request(td_api::make_object<td_api::endGroupCall>(group_call_id));
     } else if (op == "rpcil") {
       ChatId chat_id;
       get_args(args, chat_id);
