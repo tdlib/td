@@ -10130,7 +10130,7 @@ void MessagesManager::on_get_dialog_messages_search_result(
       if (filter == MessageSearchFilter::UnreadReaction) {
         d->unread_reaction_count = old_message_count;
         // update_dialog_mention_notification_count(d);
-        send_update_chat_unread_reaction_count(d);
+        send_update_chat_unread_reaction_count(d, "on_get_dialog_messages_search_result");
       }
       update_dialog = true;
     }
@@ -11610,7 +11610,7 @@ void MessagesManager::delete_all_dialog_messages(Dialog *d, bool remove_from_dia
   }
   if (d->unread_reaction_count > 0) {
     set_dialog_unread_reaction_count(d, 0);
-    send_update_chat_unread_reaction_count(d);
+    send_update_chat_unread_reaction_count(d, "delete_all_dialog_messages");
   }
 
   bool has_last_message_id = d->last_message_id != MessageId();
@@ -11832,7 +11832,7 @@ void MessagesManager::read_all_dialog_reactions(DialogId dialog_id, Promise<Unit
   if (d->unread_reaction_count != 0) {
     set_dialog_unread_reaction_count(d, 0);
     if (!is_update_sent) {
-      send_update_chat_unread_reaction_count(d);
+      send_update_chat_unread_reaction_count(d, "read_all_dialog_reactions");
     } else {
       LOG(INFO) << "Update unread reaction message count in " << dialog_id << " to " << d->unread_reaction_count;
       on_dialog_updated(dialog_id, "read_all_dialog_reactions");
@@ -14763,7 +14763,7 @@ void MessagesManager::set_dialog_is_empty(Dialog *d, const char *source) {
   }
   if (d->unread_reaction_count > 0) {
     set_dialog_unread_reaction_count(d, 0);
-    send_update_chat_unread_reaction_count(d);
+    send_update_chat_unread_reaction_count(d, "set_dialog_is_empty");
   }
   if (d->reply_markup_message_id != MessageId()) {
     set_dialog_reply_markup(d, MessageId());
@@ -15479,7 +15479,7 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
       if (d->unread_reaction_count != dialog->unread_reactions_count_) {
         set_dialog_unread_reaction_count(d, dialog->unread_reactions_count_);
         // update_dialog_mention_notification_count(d);
-        send_update_chat_unread_reaction_count(d);
+        send_update_chat_unread_reaction_count(d, "on_get_dialogs");
       }
     }
 
@@ -16092,7 +16092,7 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
         }
       } else {
         set_dialog_unread_reaction_count(d, d->unread_reaction_count - 1);
-        send_update_chat_unread_reaction_count(d);
+        send_update_chat_unread_reaction_count(d, "do_delete_message");
       }
     }
 
@@ -22854,7 +22854,7 @@ void MessagesManager::on_search_dialog_messages_db_result(int64 random_id, Dialo
     if (filter == MessageSearchFilter::UnreadReaction) {
       d->unread_reaction_count = message_count;
       // update_dialog_mention_notification_count(d);
-      send_update_chat_unread_reaction_count(d);
+      send_update_chat_unread_reaction_count(d, "on_search_dialog_messages_db_result");
     }
     on_dialog_updated(dialog_id, "on_search_dialog_messages_db_result");
   }
@@ -30394,17 +30394,20 @@ void MessagesManager::send_update_chat_unread_mention_count(const Dialog *d) {
                make_tl_object<td_api::updateChatUnreadMentionCount>(d->dialog_id.get(), d->unread_mention_count));
 }
 
-void MessagesManager::send_update_chat_unread_reaction_count(const Dialog *d) {
+void MessagesManager::send_update_chat_unread_reaction_count(const Dialog *d, const char *source) {
   if (td_->auth_manager_->is_bot()) {
     return;
   }
 
   CHECK(d != nullptr);
-  LOG_CHECK(d->is_update_new_chat_sent) << "Wrong " << d->dialog_id << " in send_update_chat_unread_reaction_count";
-  LOG(INFO) << "Update unread reaction message count in " << d->dialog_id << " to " << d->unread_reaction_count;
+  LOG_CHECK(d->is_update_new_chat_sent) << "Wrong " << d->dialog_id
+                                        << " in send_update_chat_unread_reaction_count from " << source;
+  LOG(INFO) << "Update unread reaction message count in " << d->dialog_id << " to " << d->unread_reaction_count
+            << " from " << source;
   on_dialog_updated(d->dialog_id, "send_update_chat_unread_reaction_count");
-  send_closure(G()->td(), &Td::send_update,
-               make_tl_object<td_api::updateChatUnreadReactionCount>(d->dialog_id.get(), d->unread_reaction_count));
+  send_closure(
+      G()->td(), &Td::send_update,
+      td_api::make_object<td_api::updateChatUnreadReactionCount>(d->dialog_id.get(), d->unread_reaction_count));
 }
 
 void MessagesManager::send_update_chat_position(DialogListId dialog_list_id, const Dialog *d,
@@ -34356,7 +34359,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
   }
   if (*need_update && has_unread_message_reactions(dialog_id, message.get())) {
     set_dialog_unread_reaction_count(d, d->unread_reaction_count + 1);
-    send_update_chat_unread_reaction_count(d);
+    send_update_chat_unread_reaction_count(d, "add_message_to_dialog");
   }
   if (*need_update) {
     update_message_count_by_index(d, +1, message.get());
@@ -37898,7 +37901,7 @@ void MessagesManager::on_get_channel_dialog(DialogId dialog_id, MessageId last_m
   if (d->unread_reaction_count != unread_reaction_count) {
     set_dialog_unread_reaction_count(d, unread_reaction_count);
     // update_dialog_mention_notification_count(d);
-    send_update_chat_unread_reaction_count(d);
+    send_update_chat_unread_reaction_count(d, "on_get_channel_dialog 60");
   }
 
   if (d->last_read_outbox_message_id != read_outbox_max_message_id) {
