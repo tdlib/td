@@ -28,13 +28,68 @@
 
 namespace td {
 
+static td_api::object_ptr<td_api::SessionType> get_session_type(
+    tl_object_ptr<telegram_api::authorization> &&authorization) {
+  auto app_name = to_lower(authorization->app_name_);
+  auto device_model = to_lower(authorization->device_model_);
+  auto platform = to_lower(authorization->platform_);
+  auto system_version = to_lower(authorization->system_version_);
+
+  if (device_model.find("xbox") != string::npos) {
+    return td_api::make_object<td_api::sessionTypeXbox>();
+  }
+  
+  if (app_name.find("web") != string::npos) {
+    if (device_model.find("chrome") != string::npos) {
+      return td_api::make_object<td_api::sessionTypeChrome>();
+    } else if (device_model.find("brave") != string::npos) {
+      return td_api::make_object<td_api::sessionTypeBrave>();
+    } else if (device_model.find("vivaldi") != string::npos) {
+      return td_api::make_object<td_api::sessionTypeVivaldi>();
+    } else if (device_model.find("safari") != string::npos) {
+      return td_api::make_object<td_api::sessionTypeSafari>();
+    } else if (device_model.find("firefox") != string::npos) {
+      return td_api::make_object<td_api::sessionTypeFirefox>();
+    } else if (device_model.find("opera") != string::npos) {
+      return td_api::make_object<td_api::sessionTypeOpera>();
+    } else if (device_model.find("edg") != string::npos) {
+      return td_api::make_object<td_api::sessionTypeEdge>();
+    }
+  }
+
+  if ((platform.find("android") != string::npos) || (system_version.find("android") != string::npos)) {
+    return td_api::make_object<td_api::sessionTypeAndroid>();
+  } else if ((platform.find("windows") != string::npos) || (system_version.find("windows") != string::npos)) {
+    return td_api::make_object<td_api::sessionTypeWindows>();
+  } else if ((platform.find("ubuntu") != string::npos) || (system_version.find("ubuntu") != string::npos)) {
+    return td_api::make_object<td_api::sessionTypeUbuntu>();
+  } else if ((platform.find("linux") != string::npos) || (system_version.find("linux") != string::npos)) {
+    return td_api::make_object<td_api::sessionTypeLinux>();
+  }
+
+  auto ios = (platform.find("ios") != string::npos) || (system_version.find("ios") != string::npos);
+  auto macos = (platform.find("macos") != string::npos) || (system_version.find("macos") != string::npos);
+  if (ios && (device_model.find("iphone") != string::npos)) {
+    return td_api::make_object<td_api::sessionTypeIphone>();
+  } else if (ios && (device_model.find("ipad") != string::npos)) {
+    return td_api::make_object<td_api::sessionTypeIpad>();
+  } else if (macos && (device_model.find("mac") != string::npos)) {
+    return td_api::make_object<td_api::sessionTypeMac>();
+  } else if (ios || macos) {
+    return td_api::make_object<td_api::sessionTypeApple>();
+  }
+
+  return td_api::make_object<td_api::sessionTypeUnknown>();
+}
+
 static td_api::object_ptr<td_api::session> convert_authorization_object(
     tl_object_ptr<telegram_api::authorization> &&authorization) {
   CHECK(authorization != nullptr);
   return td_api::make_object<td_api::session>(
       authorization->hash_, authorization->current_, authorization->password_pending_,
-      !authorization->encrypted_requests_disabled_, !authorization->call_requests_disabled_, authorization->api_id_,
-      authorization->app_name_, authorization->app_version_, authorization->official_app_, authorization->device_model_,
+      !authorization->encrypted_requests_disabled_, !authorization->call_requests_disabled_,
+      get_session_type(std::move(authorization)), authorization->api_id_, authorization->app_name_,
+      authorization->app_version_, authorization->official_app_, authorization->device_model_,
       authorization->platform_, authorization->system_version_, authorization->date_created_,
       authorization->date_active_, authorization->ip_, authorization->country_, authorization->region_);
 }
