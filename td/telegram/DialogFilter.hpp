@@ -50,9 +50,9 @@ void DialogFilter::store(StorerT &storer) const {
 template <class ParserT>
 void DialogFilter::parse(ParserT &parser) {
   using td::parse;
-  bool has_pinned_dialog_ids = !pinned_dialog_ids.empty();
-  bool has_included_dialog_ids = !included_dialog_ids.empty();
-  bool has_excluded_dialog_ids = !excluded_dialog_ids.empty();
+  bool has_pinned_dialog_ids;
+  bool has_included_dialog_ids;
+  bool has_excluded_dialog_ids;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(exclude_muted);
   PARSE_FLAG(exclude_read);

@@ -41,9 +41,9 @@ void SendCodeHelper::store(StorerT &storer) const {
 
 template <class ParserT>
 void SendCodeHelper::parse(ParserT &parser) {
-  bool legacy_is_registered = false;
   using td::parse;
   parse(phone_number_, parser);
+  bool legacy_is_registered;
   parse(legacy_is_registered, parser);
   parse(phone_code_hash_, parser);
   parse(sent_code_info_, parser);
