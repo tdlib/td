@@ -200,7 +200,7 @@ void NotificationManager::start_up() {
 }
 
 void NotificationManager::init() {
-  if (is_disabled()) {
+  if (is_disabled() || is_inited_) {
     return;
   }
 

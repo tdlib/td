@@ -1295,7 +1295,7 @@ void StickersManager::start_up() {
 }
 
 void StickersManager::init() {
-  if (!td_->auth_manager_->is_authorized() || td_->auth_manager_->is_bot() || G()->close_flag()) {
+  if (is_inited_ || !td_->auth_manager_->is_authorized() || td_->auth_manager_->is_bot() || G()->close_flag()) {
     return;
   }
   LOG(INFO) << "Init StickersManager";
