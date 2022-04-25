@@ -3385,13 +3385,14 @@ FileId FileManager::next_file_id() {
     empty_file_ids_.pop_back();
     return FileId{res, 0};
   }
+  CHECK(file_id_info_.size() <= static_cast<size_t>(std::numeric_limits<int32>::max()));
   FileId res(static_cast<int32>(file_id_info_.size()), 0);
-  // LOG(ERROR) << "NEXT file_id " << res;
   file_id_info_.push_back({});
   return res;
 }
 
 FileManager::FileNodeId FileManager::next_file_node_id() {
+  CHECK(file_nodes_.size() <= static_cast<size_t>(std::numeric_limits<FileNodeId>::max()));
   auto res = static_cast<FileNodeId>(file_nodes_.size());
   file_nodes_.emplace_back(nullptr);
   return res;
