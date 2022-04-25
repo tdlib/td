@@ -63,7 +63,7 @@ Result<FileLoader::FileInfo> FileDownloader::init() {
   if (encryption_key_.is_secure() && !encryption_key_.has_value_hash()) {
     LOG(ERROR) << "Can't download Secure file with unknown value_hash";
   }
-  if (remote_.file_type_ == FileType::Secure) {
+  if (remote_.file_type_ == FileType::SecureEncrypted) {
     size_ = 0;
   }
   int32 part_size = 0;

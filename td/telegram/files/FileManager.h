@@ -305,10 +305,10 @@ class FileView {
     return get_type() == FileType::Encrypted;
   }
   bool is_encrypted_secure() const {
-    return get_type() == FileType::Secure;
+    return get_type() == FileType::SecureEncrypted;
   }
   bool is_secure() const {
-    return get_type() == FileType::Secure || get_type() == FileType::SecureRaw;
+    return get_type() == FileType::SecureEncrypted || get_type() == FileType::SecureDecrypted;
   }
   bool is_encrypted_any() const {
     return is_encrypted_secret() || is_encrypted_secure();

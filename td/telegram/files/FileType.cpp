@@ -39,7 +39,7 @@ FileType get_file_type(const td_api::FileType &file_type) {
     case td_api::fileTypeVideoNote::ID:
       return FileType::VideoNote;
     case td_api::fileTypeSecure::ID:
-      return FileType::Secure;
+      return FileType::SecureEncrypted;
     case td_api::fileTypeNotificationSound::ID:
       return FileType::Ringtone;
     case td_api::fileTypeNone::ID:
@@ -80,9 +80,9 @@ tl_object_ptr<td_api::FileType> get_file_type_object(FileType file_type) {
       return make_tl_object<td_api::fileTypeWallpaper>();
     case FileType::VideoNote:
       return make_tl_object<td_api::fileTypeVideoNote>();
-    case FileType::Secure:
+    case FileType::SecureEncrypted:
       return make_tl_object<td_api::fileTypeSecure>();
-    case FileType::SecureRaw:
+    case FileType::SecureDecrypted:
       UNREACHABLE();
       return make_tl_object<td_api::fileTypeSecure>();
     case FileType::Background:
@@ -105,8 +105,8 @@ FileType get_main_file_type(FileType file_type) {
   switch (file_type) {
     case FileType::Wallpaper:
       return FileType::Background;
-    case FileType::SecureRaw:
-      return FileType::Secure;
+    case FileType::SecureDecrypted:
+      return FileType::SecureEncrypted;
     case FileType::DocumentAsFile:
       return FileType::Document;
     case FileType::CallLog:
@@ -146,9 +146,9 @@ CSlice get_file_type_name(FileType file_type) {
       return CSlice("wallpapers");
     case FileType::VideoNote:
       return CSlice("video_notes");
-    case FileType::SecureRaw:
+    case FileType::SecureDecrypted:
       return CSlice("passport");
-    case FileType::Secure:
+    case FileType::SecureEncrypted:
       return CSlice("passport");
     case FileType::Background:
       return CSlice("wallpapers");
@@ -186,8 +186,8 @@ FileTypeClass get_file_type_class(FileType file_type) {
     case FileType::Ringtone:
     case FileType::CallLog:
       return FileTypeClass::Document;
-    case FileType::SecureRaw:
-    case FileType::Secure:
+    case FileType::SecureDecrypted:
+    case FileType::SecureEncrypted:
       return FileTypeClass::Secure;
     case FileType::Encrypted:
       return FileTypeClass::Encrypted;
@@ -218,8 +218,8 @@ FileDirType get_file_dir_type(FileType file_type) {
     case FileType::Temp:
     case FileType::Wallpaper:
     case FileType::EncryptedThumbnail:
-    case FileType::Secure:
-    case FileType::SecureRaw:
+    case FileType::SecureEncrypted:
+    case FileType::SecureDecrypted:
     case FileType::Background:
     case FileType::Ringtone:
       return FileDirType::Secure;

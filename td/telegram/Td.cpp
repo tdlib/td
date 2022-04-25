@@ -6575,7 +6575,7 @@ void Td::on_request(uint64 id, td_api::uploadFile &request) {
 
   auto file_type = request.file_type_ == nullptr ? FileType::Temp : get_file_type(*request.file_type_);
   bool is_secret = file_type == FileType::Encrypted || file_type == FileType::EncryptedThumbnail;
-  bool is_secure = file_type == FileType::Secure;
+  bool is_secure = file_type == FileType::SecureEncrypted;
   auto r_file_id = file_manager_->get_input_file_id(file_type, request.file_, DialogId(), false, is_secret,
                                                     !is_secure && !is_secret, is_secure);
   if (r_file_id.is_error()) {

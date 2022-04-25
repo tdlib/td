@@ -52,7 +52,7 @@ struct NetworkStats {
     result->since_date_ = since;
     result->entries_.reserve(entries.size());
     for (const auto &entry : entries) {
-      if ((entry.rx != 0 || entry.tx != 0) && entry.file_type != FileType::SecureRaw) {
+      if ((entry.rx != 0 || entry.tx != 0) && entry.file_type != FileType::SecureDecrypted) {
         result->entries_.push_back(entry.get_network_statistics_entry_object());
       }
     }

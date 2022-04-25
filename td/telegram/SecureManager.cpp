@@ -548,7 +548,7 @@ void SetSecureValue::start_upload(FileManager *file_manager, FileId &file_id, Se
       auto download_file_id = file_manager->dup_file_id(file_id);
       file_id =
           file_manager
-              ->register_generate(FileType::Secure, FileLocationSource::FromServer, file_view.suggested_path(),
+              ->register_generate(FileType::SecureEncrypted, FileLocationSource::FromServer, file_view.suggested_path(),
                                   PSTRING() << "#file_id#" << download_file_id.get(), DialogId(), file_view.size())
               .ok();
     }

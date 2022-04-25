@@ -923,8 +923,8 @@ string FileManager::get_file_name(FileType file_type, Slice path) {
     case FileType::Encrypted:
     case FileType::Temp:
     case FileType::EncryptedThumbnail:
-    case FileType::Secure:
-    case FileType::SecureRaw:
+    case FileType::SecureEncrypted:
+    case FileType::SecureDecrypted:
     case FileType::DocumentAsFile:
     case FileType::CallLog:
       break;
@@ -2796,7 +2796,7 @@ void FileManager::run_upload(FileNodePtr node, std::vector<int> bad_parts) {
                 << ", generate_id = " << node->generate_id_ << ", generate_was_update = " << node->generate_was_update_;
       return;
     }
-    if (file_view.has_generate_location() && file_view.generate_location().file_type_ == FileType::Secure) {
+    if (file_view.has_generate_location() && file_view.generate_location().file_type_ == FileType::SecureEncrypted) {
       // Can't upload secure file before its size is known
       LOG(INFO) << "Can't upload secure file " << node->main_file_id_ << " before it's size is known";
       return;
@@ -2815,7 +2815,7 @@ void FileManager::run_upload(FileNodePtr node, std::vector<int> bad_parts) {
   }
 
   // create encryption key if necessary
-  if (file_view.has_local_location() && file_view.local_location().file_type_ == FileType::Secure &&
+  if (file_view.has_local_location() && file_view.local_location().file_type_ == FileType::SecureEncrypted &&
       file_view.encryption_key().empty()) {
     CHECK(!node->file_ids_.empty());
     bool success = set_encryption_key(node->file_ids_[0], FileEncryptionKey::create_secure_key());
@@ -3148,7 +3148,7 @@ Result<FileId> FileManager::get_input_file_id(FileType type, const tl_object_ptr
     get_by_hash = false;
   }
 
-  auto new_type = is_encrypted ? FileType::Encrypted : (is_secure ? FileType::Secure : type);
+  auto new_type = is_encrypted ? FileType::Encrypted : (is_secure ? FileType::SecureEncrypted : type);
 
   auto r_file_id = [&]() -> Result<FileId> {
     switch (file->get_id()) {

@@ -361,13 +361,13 @@ class FullRemoteFileLocation {
     return file_type_ == FileType::Encrypted;
   }
   bool is_encrypted_secure() const {
-    return file_type_ == FileType::Secure;
+    return file_type_ == FileType::SecureEncrypted;
   }
   bool is_encrypted_any() const {
     return is_encrypted_secret() || is_encrypted_secure();
   }
   bool is_secure() const {
-    return file_type_ == FileType::SecureRaw || file_type_ == FileType::Secure;
+    return file_type_ == FileType::SecureDecrypted || file_type_ == FileType::SecureEncrypted;
   }
   bool is_document() const {
     return is_common() && !is_secure() && !is_encrypted_secret();
