@@ -12933,7 +12933,7 @@ void ContactsManager::on_get_dialog_invite_link_info(const string &invite_link,
         LOG(ERROR) << "Receive invalid " << channel_id;
         channel_id = ChannelId();
       }
-      if (!channel_id.is_valid() || accessible_before < 0) {
+      if (accessible_before != 0 && (!channel_id.is_valid() || accessible_before < 0)) {
         LOG(ERROR) << "Receive expires = " << accessible_before << " for invite link " << invite_link << " to "
                    << to_string(chat);
         accessible_before = 0;
