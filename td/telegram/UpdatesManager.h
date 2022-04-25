@@ -195,6 +195,8 @@ class UpdatesManager final : public Actor {
   int32 pending_pts_ = 0;
   int32 pending_qts_ = 0;
 
+  int64 being_processed_updates_ = 0;
+
   int32 short_update_date_ = 0;
 
   int32 accumulated_pts_count_ = 0;

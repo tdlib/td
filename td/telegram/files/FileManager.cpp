@@ -3918,6 +3918,10 @@ void FileManager::hangup() {
 
 void FileManager::tear_down() {
   parent_.reset();
+
+  LOG(DEBUG) << "Have " << file_id_info_.size() << " files with " << file_nodes_.size() << " file nodes, "
+             << local_location_to_file_id_.size() << " local locations and " << remote_location_info_.size()
+             << " remote locations to free";
 }
 
 constexpr int64 FileManager::KEEP_DOWNLOAD_LIMIT;

@@ -13027,6 +13027,8 @@ class MessagesManager::DialogFiltersLogEvent {
 
 void MessagesManager::tear_down() {
   parent_.reset();
+
+  LOG(DEBUG) << "Have " << dialogs_.size() << " chats with " << added_message_count_ << " messages to free";
 }
 
 void MessagesManager::hangup() {
@@ -16158,6 +16160,8 @@ void MessagesManager::on_message_deleted(Dialog *d, Message *m, bool is_permanen
   if (m->notification_id.is_valid()) {
     delete_notification_id_to_message_id_correspondence(d, m->notification_id, m->message_id);
   }
+
+  added_message_count_--;
 }
 
 unique_ptr<MessagesManager::Message> MessagesManager::do_delete_scheduled_message(Dialog *d, MessageId message_id,
@@ -34584,6 +34588,8 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
       }
     }
   }
+
+  added_message_count_++;
 
   return result_message;
 }

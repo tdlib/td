@@ -413,6 +413,8 @@ WebPagesManager::WebPagesManager(Td *td, ActorShared<> parent) : td_(td), parent
 
 void WebPagesManager::tear_down() {
   parent_.reset();
+
+  LOG(DEBUG) << "Have " << web_pages_.size() << " web pages to free";
 }
 
 WebPagesManager::~WebPagesManager() = default;

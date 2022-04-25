@@ -177,6 +177,8 @@ UpdatesManager::UpdatesManager(Td *td, ActorShared<> parent) : td_(td), parent_(
 
 void UpdatesManager::tear_down() {
   parent_.reset();
+
+  LOG(DEBUG) << "Have " << being_processed_updates_ << " unprocessed updates to apply";
 }
 
 void UpdatesManager::hangup_shared() {
@@ -1709,6 +1711,7 @@ void UpdatesManager::on_pending_updates(vector<tl_object_ptr<telegram_api::Updat
   }
 
   MultiPromiseActorSafe mpas{"OnPendingUpdatesMultiPromiseActor"};
+  being_processed_updates_++;
   mpas.add_promise([actor_id = create_reference(), promise = std::move(promise)](Result<Unit> &&result) mutable {
     send_closure(actor_id, &UpdatesManager::on_pending_updates_processed, std::move(result), std::move(promise));
   });
@@ -1831,6 +1834,7 @@ void UpdatesManager::on_pending_updates(vector<tl_object_ptr<telegram_api::Updat
 }
 
 void UpdatesManager::on_pending_updates_processed(Result<Unit> result, Promise<Unit> promise) {
+  being_processed_updates_--;
   promise.set_result(std::move(result));
 }
 

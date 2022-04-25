@@ -3317,6 +3317,11 @@ ContactsManager::~ContactsManager() = default;
 
 void ContactsManager::tear_down() {
   parent_.reset();
+
+  LOG(DEBUG) << "Have " << users_.size() << " users, " << chats_.size() << " basic groups, " << channels_.size()
+             << " supergroups and " << secret_chats_.size() << " secret chats to free";
+  LOG(DEBUG) << "Have " << users_full_.size() << " full users, " << chats_full_.size() << " full basic groups and "
+             << channels_full_.size() << " full supergroups to free";
 }
 
 UserId ContactsManager::load_my_id() {

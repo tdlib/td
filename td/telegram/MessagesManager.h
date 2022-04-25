@@ -3417,6 +3417,7 @@ class MessagesManager final : public Actor {
   bool running_get_difference_ = false;  // true after before_get_difference and false after after_get_difference
 
   FlatHashMap<DialogId, unique_ptr<Dialog>, DialogIdHash> dialogs_;
+  int64 added_message_count_ = 0;
 
   FlatHashSet<DialogId, DialogIdHash> loaded_dialogs_;  // dialogs loaded from database, but not added to dialogs_
 

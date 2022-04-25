@@ -37,6 +37,11 @@ class Enumerator {
     return *arr_[pos];
   }
 
+  size_t size() const {
+    CHECK(map_.size() == arr_.size());
+    return arr_.size();
+  }
+
  private:
   std::map<ValueT, int32> map_;
   std::vector<const ValueT *> arr_;
