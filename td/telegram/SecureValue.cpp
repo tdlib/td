@@ -356,7 +356,7 @@ EncryptedSecureFile get_encrypted_secure_file(FileManager *file_manager,
       result.file.file_id = file_manager->register_remote(
           FullRemoteFileLocation(FileType::SecureEncrypted, secure_file->id_, secure_file->access_hash_,
                                  DcId::internal(dc_id), ""),
-          FileLocationSource::FromServer, DialogId(), 0, secure_file->size_, PSTRING() << secure_file->id_ << ".jpg");
+          FileLocationSource::FromServer, DialogId(), secure_file->size_, 0, PSTRING() << secure_file->id_ << ".jpg");
       result.file.date = secure_file->date_;
       if (result.file.date < 0) {
         LOG(ERROR) << "Receive wrong date " << result.file.date;
@@ -427,12 +427,16 @@ static td_api::object_ptr<td_api::datedFile> get_dated_file_object(FileManager *
     LOG(ERROR) << "Have wrong file in get_dated_file_object";
     return nullptr;
   }
+  if (file_view.get_type() != FileType::SecureEncrypted) {
+    LOG(ERROR) << "Have file of a wrong type in get_dated_file_object";
+  } else if (file_view.encryption_key().empty()) {
+    return get_dated_file_object(file_manager, dated_file);
+  }
   dated_file.file_id = file_manager->register_remote(
       FullRemoteFileLocation(FileType::SecureDecrypted, file_view.remote_location().get_id(),
                              file_view.remote_location().get_access_hash(), file_view.remote_location().get_dc_id(),
                              ""),
-      FileLocationSource::FromServer, DialogId(), file_view.size(), file_view.expected_size(),
-      file_view.suggested_path());
+      FileLocationSource::FromServer, DialogId(), 0, file_view.expected_size(), file_view.suggested_path());
   return get_dated_file_object(file_manager, dated_file);
 }
 
