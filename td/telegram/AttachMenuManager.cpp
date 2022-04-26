@@ -290,7 +290,11 @@ void AttachMenuManager::AttachMenuBotColor::parse(ParserT &parser) {
 }
 
 bool operator==(const AttachMenuManager::AttachMenuBot &lhs, const AttachMenuManager::AttachMenuBot &rhs) {
-  return lhs.user_id_ == rhs.user_id_ && lhs.name_ == rhs.name_ &&
+  return lhs.user_id_ == rhs.user_id_ && lhs.supports_self_dialog_ == rhs.supports_self_dialog_ &&
+         lhs.supports_user_dialogs_ == rhs.supports_user_dialogs_ &&
+         lhs.supports_bot_dialogs_ == rhs.supports_bot_dialogs_ &&
+         lhs.supports_group_dialogs_ == rhs.supports_group_dialogs_ &&
+         lhs.supports_broadcast_dialogs_ == rhs.supports_broadcast_dialogs_ && lhs.name_ == rhs.name_ &&
          lhs.default_icon_file_id_ == rhs.default_icon_file_id_ &&
          lhs.ios_static_icon_file_id_ == rhs.ios_static_icon_file_id_ &&
          lhs.ios_animated_icon_file_id_ == rhs.ios_animated_icon_file_id_ &&
@@ -310,6 +314,7 @@ void AttachMenuManager::AttachMenuBot::store(StorerT &storer) const {
   bool has_macos_icon_file_id = macos_icon_file_id_.is_valid();
   bool has_name_color = name_color_ != AttachMenuBotColor();
   bool has_icon_color = icon_color_ != AttachMenuBotColor();
+  bool has_support_flags = true;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_ios_static_icon_file_id);
   STORE_FLAG(has_ios_animated_icon_file_id);
@@ -318,6 +323,12 @@ void AttachMenuManager::AttachMenuBot::store(StorerT &storer) const {
   STORE_FLAG(is_added_);
   STORE_FLAG(has_name_color);
   STORE_FLAG(has_icon_color);
+  STORE_FLAG(has_support_flags);
+  STORE_FLAG(supports_self_dialog_);
+  STORE_FLAG(supports_user_dialogs_);
+  STORE_FLAG(supports_bot_dialogs_);
+  STORE_FLAG(supports_group_dialogs_);
+  STORE_FLAG(supports_broadcast_dialogs_);
   END_STORE_FLAGS();
   td::store(user_id_, storer);
   td::store(name_, storer);
@@ -350,6 +361,7 @@ void AttachMenuManager::AttachMenuBot::parse(ParserT &parser) {
   bool has_macos_icon_file_id;
   bool has_name_color;
   bool has_icon_color;
+  bool has_support_flags;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(has_ios_static_icon_file_id);
   PARSE_FLAG(has_ios_animated_icon_file_id);
@@ -358,6 +370,12 @@ void AttachMenuManager::AttachMenuBot::parse(ParserT &parser) {
   PARSE_FLAG(is_added_);
   PARSE_FLAG(has_name_color);
   PARSE_FLAG(has_icon_color);
+  PARSE_FLAG(has_support_flags);
+  PARSE_FLAG(supports_self_dialog_);
+  PARSE_FLAG(supports_user_dialogs_);
+  PARSE_FLAG(supports_bot_dialogs_);
+  PARSE_FLAG(supports_group_dialogs_);
+  PARSE_FLAG(supports_broadcast_dialogs_);
   END_PARSE_FLAGS();
   td::parse(user_id_, parser);
   td::parse(name_, parser);
@@ -379,6 +397,12 @@ void AttachMenuManager::AttachMenuBot::parse(ParserT &parser) {
   }
   if (has_icon_color) {
     td::parse(icon_color_, parser);
+  }
+
+  if (!has_support_flags) {
+    supports_self_dialog_ = true;
+    supports_user_dialogs_ = true;
+    supports_bot_dialogs_ = true;
   }
 }
 
@@ -540,12 +564,12 @@ void AttachMenuManager::request_web_view(DialogId dialog_id, UserId bot_user_id,
 
   switch (dialog_id.get_type()) {
     case DialogType::User:
-      // ok
-      break;
     case DialogType::Chat:
     case DialogType::Channel:
+      // ok
+      break;
     case DialogType::SecretChat:
-      return promise.set_error(Status::Error(400, "Web apps can be opened only in private chats"));
+      return promise.set_error(Status::Error(400, "Web apps can't be opened in secret chats"));
     case DialogType::None:
     default:
       UNREACHABLE();
@@ -696,7 +720,28 @@ Result<AttachMenuManager::AttachMenuBot> AttachMenuManager::get_attach_menu_bot(
       }
     }
   }
-
+  for (auto &peer_type : bot->peer_types_) {
+    switch (peer_type->get_id()) {
+      case telegram_api::attachMenuPeerTypeSameBotPM::ID:
+        attach_menu_bot.supports_self_dialog_ = true;
+        break;
+      case telegram_api::attachMenuPeerTypeBotPM::ID:
+        attach_menu_bot.supports_bot_dialogs_ = true;
+        break;
+      case telegram_api::attachMenuPeerTypePM::ID:
+        attach_menu_bot.supports_user_dialogs_ = true;
+        break;
+      case telegram_api::attachMenuPeerTypeChat::ID:
+        attach_menu_bot.supports_group_dialogs_ = true;
+        break;
+      case telegram_api::attachMenuPeerTypeBroadcast::ID:
+        attach_menu_bot.supports_broadcast_dialogs_ = true;
+        break;
+      default:
+        UNREACHABLE();
+        break;
+    }
+  }
   if (!attach_menu_bot.default_icon_file_id_.is_valid()) {
     return Status::Error(PSLICE() << "Have no default icon for " << user_id);
   }
@@ -897,10 +942,11 @@ td_api::object_ptr<td_api::attachmentMenuBot> AttachMenuManager::get_attachment_
   };
 
   return td_api::make_object<td_api::attachmentMenuBot>(
-      td_->contacts_manager_->get_user_id_object(bot.user_id_, "get_attachment_menu_bot_object"), bot.name_,
-      get_attach_menu_bot_color_object(bot.name_color_), get_file(bot.default_icon_file_id_),
-      get_file(bot.ios_static_icon_file_id_), get_file(bot.ios_animated_icon_file_id_),
-      get_file(bot.android_icon_file_id_), get_file(bot.macos_icon_file_id_),
+      td_->contacts_manager_->get_user_id_object(bot.user_id_, "get_attachment_menu_bot_object"),
+      bot.supports_self_dialog_, bot.supports_user_dialogs_, bot.supports_bot_dialogs_, bot.supports_group_dialogs_,
+      bot.supports_broadcast_dialogs_, bot.name_, get_attach_menu_bot_color_object(bot.name_color_),
+      get_file(bot.default_icon_file_id_), get_file(bot.ios_static_icon_file_id_),
+      get_file(bot.ios_animated_icon_file_id_), get_file(bot.android_icon_file_id_), get_file(bot.macos_icon_file_id_),
       get_attach_menu_bot_color_object(bot.icon_color_));
 }
 

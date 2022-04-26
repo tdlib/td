@@ -75,6 +75,11 @@ class AttachMenuManager final : public Actor {
   struct AttachMenuBot {
     bool is_added_ = false;
     UserId user_id_;
+    bool supports_self_dialog_ = false;
+    bool supports_user_dialogs_ = false;
+    bool supports_bot_dialogs_ = false;
+    bool supports_group_dialogs_ = false;
+    bool supports_broadcast_dialogs_ = false;
     string name_;
     AttachMenuBotColor name_color_;
     FileId default_icon_file_id_;

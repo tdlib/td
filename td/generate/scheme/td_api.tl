@@ -2526,6 +2526,11 @@ attachmentMenuBotColor light_color:int32 dark_color:int32 = AttachmentMenuBotCol
 
 //@description Represents a bot added to attachment menu
 //@bot_user_id User identifier of the bot added to attachment menu
+//@supports_self_chat True, if the bot supports opening from attachment menu in the chat with the bot
+//@supports_user_chats True, if the bot supports opening from attachment menu in private chats with ordinary users
+//@supports_bot_chats  True, if the bot supports opening from attachment menu in private chats with other bots
+//@supports_group_chats True, if the bot supports opening from attachment menu in basic group and supergroup chats
+//@supports_channel_chats True, if the bot supports opening from attachment menu in channel chats
 //@name Name for the bot in attachment menu
 //@name_color Color to highlight selected name of the bot if appropriate; may be null
 //@default_icon Default attachment menu icon for the bot in SVG format; may be null
@@ -2534,7 +2539,7 @@ attachmentMenuBotColor light_color:int32 dark_color:int32 = AttachmentMenuBotCol
 //@android_icon Attachment menu icon for the bot in TGS format for the official Android app; may be null
 //@macos_icon Attachment menu icon for the bot in TGS format for the official native macOS app; may be null
 //@icon_color Color to highlight selected icon of the bot if appropriate; may be null
-attachmentMenuBot bot_user_id:int53 name:string name_color:attachmentMenuBotColor default_icon:file ios_static_icon:file ios_animated_icon:file android_icon:file macos_icon:file icon_color:attachmentMenuBotColor = AttachmentMenuBot;
+attachmentMenuBot bot_user_id:int53 supports_self_chat:Bool supports_user_chats:Bool supports_bot_chats:Bool supports_group_chats:Bool supports_channel_chats:Bool name:string name_color:attachmentMenuBotColor default_icon:file ios_static_icon:file ios_animated_icon:file android_icon:file macos_icon:file icon_color:attachmentMenuBotColor = AttachmentMenuBot;
 
 //@description Information about the message sent by answerWebAppQuery @inline_message_id Identifier of the sent inline message, if known
 sentWebAppMessage inline_message_id:string = SentWebAppMessage;
@@ -3414,7 +3419,7 @@ internalLinkTypeActiveSessions = InternalLinkType;
 //@description The link is a link to an attachment menu bot to be opened in the specified chat. Process given chat_link to open corresponding chat.
 //-Then call searchPublicChat with the given bot username, check that the user is a bot and can be added to attachment menu. Then use getAttachmentMenuBot to receive information about the bot.
 //-If the bot isn't added to attachment menu, then user needs to confirm adding the bot to attachment menu. If user confirms adding, then use toggleBotIsAddedToAttachmentMenu to add it.
-//-If attachment menu bots can't be used in the current chat, show an error to the user. If the bot is added to attachment menu, then use openWebApp with the given URL
+//-If the attachment menu bot can't be used in the opened chat, show an error to the user. If the bot is added to attachment menu, then use openWebApp with the given URL
 //@chat_link An internal link pointing to a chat; may be null if the current chat needs to be kept @bot_username Username of the bot @url URL to be passed to openWebApp
 internalLinkTypeAttachmentMenuBot chat_link:InternalLinkType bot_username:string url:string = InternalLinkType;
 
@@ -4211,7 +4216,7 @@ updateTermsOfService terms_of_service_id:string terms_of_service:termsOfService 
 //@description The list of users nearby has changed. The update is guaranteed to be sent only 60 seconds after a successful searchChatsNearby request @users_nearby The new list of users nearby
 updateUsersNearby users_nearby:vector<chatNearby> = Update;
 
-//@description The list of bots added to attachment menu has changed @bots The new list of bots added to attachment menu. The bots must be shown in attachment menu only in private chats. The bots must not be shown on scheduled messages screen
+//@description The list of bots added to attachment menu has changed @bots The new list of bots added to attachment menu. The bots must not be shown on scheduled messages screen
 updateAttachmentMenuBots bots:vector<attachmentMenuBot> = Update;
 
 //@description A message was sent by an opened web app, so the web app needs to be closed @web_app_launch_id Identifier of web app launch
