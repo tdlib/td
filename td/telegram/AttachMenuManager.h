@@ -35,7 +35,8 @@ class AttachMenuManager final : public Actor {
                         td_api::object_ptr<td_api::themeParameters> &&theme,
                         Promise<td_api::object_ptr<td_api::webAppInfo>> &&promise);
 
-  void open_web_view(int64 query_id, DialogId dialog_id, UserId bot_user_id, MessageId reply_to_message_id);
+  void open_web_view(int64 query_id, DialogId dialog_id, UserId bot_user_id, MessageId reply_to_message_id,
+                     DialogId as_dialog_id);
 
   void close_web_view(int64 query_id, Promise<Unit> &&promise);
 
@@ -138,6 +139,7 @@ class AttachMenuManager final : public Actor {
     DialogId dialog_id_;
     UserId bot_user_id_;
     MessageId reply_to_message_id_;
+    DialogId as_dialog_id_;
   };
   FlatHashMap<int64, OpenedWebView> opened_web_views_;
   Timeout ping_web_view_timeout_;

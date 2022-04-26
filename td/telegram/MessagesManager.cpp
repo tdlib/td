@@ -24528,6 +24528,12 @@ bool MessagesManager::get_dialog_silent_send_message(DialogId dialog_id) const {
   return d->notification_settings.silent_send_message;
 }
 
+DialogId MessagesManager::get_dialog_default_send_message_as_dialog_id(DialogId dialog_id) const {
+  auto *d = get_dialog(dialog_id);
+  CHECK(d != nullptr);
+  return d->default_send_message_as_dialog_id;
+}
+
 int64 MessagesManager::generate_new_random_id(const Dialog *d) {
   int64 random_id;
   do {
