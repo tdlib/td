@@ -94,9 +94,9 @@ class StickersManager final : public Actor {
 
   bool is_active_reaction(const string &reaction) const;
 
-  void create_sticker(FileId file_id, string minithumbnail, PhotoSize thumbnail, Dimensions dimensions,
-                      tl_object_ptr<telegram_api::documentAttributeSticker> sticker, StickerFormat sticker_format,
-                      MultiPromiseActor *load_data_multipromise_ptr);
+  void create_sticker(FileId file_id, FileId premium_animation_file_id, string minithumbnail, PhotoSize thumbnail,
+                      Dimensions dimensions, tl_object_ptr<telegram_api::documentAttributeSticker> sticker,
+                      StickerFormat sticker_format, MultiPromiseActor *load_data_multipromise_ptr);
 
   bool has_input_media(FileId sticker_file_id, bool is_secret) const;
 
@@ -351,6 +351,7 @@ class StickersManager final : public Actor {
     string minithumbnail;
     PhotoSize s_thumbnail;
     PhotoSize m_thumbnail;
+    FileId premium_animation_file_id;
     FileId file_id;
     StickerFormat format = StickerFormat::Unknown;
     bool is_mask = false;

@@ -88,6 +88,21 @@ Slice get_sticker_format_extension(StickerFormat sticker_format) {
   }
 }
 
+PhotoFormat get_sticker_format_photo_format(StickerFormat sticker_format) {
+  switch (sticker_format) {
+    case StickerFormat::Unknown:
+    case StickerFormat::Webp:
+      return PhotoFormat::Webp;
+    case StickerFormat::Tgs:
+      return PhotoFormat::Tgs;
+    case StickerFormat::Webm:
+      return PhotoFormat::Webm;
+    default:
+      UNREACHABLE();
+      return PhotoFormat::Webp;
+  }
+}
+
 bool is_sticker_format_animated(StickerFormat sticker_format) {
   switch (sticker_format) {
     case StickerFormat::Unknown:

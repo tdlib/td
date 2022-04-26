@@ -245,6 +245,7 @@ Document DocumentsManager::on_get_document(RemoteDocument remote_document, Dialo
   string minithumbnail;
   PhotoSize thumbnail;
   AnimationSize animated_thumbnail;
+  FileId premium_animation_file_id;
   FileEncryptionKey encryption_key;
   bool is_web = false;
   bool is_web_no_proxy = false;
@@ -310,11 +311,17 @@ Document DocumentsManager::on_get_document(RemoteDocument remote_document, Dialo
     }
     for (auto &thumb : document->video_thumbs_) {
       if (thumb->type_ == "v") {
-        animated_thumbnail =
-            get_animation_size(td_->file_manager_.get(), PhotoSizeSource::thumbnail(FileType::Thumbnail, 0), id,
-                               access_hash, file_reference, DcId::create(dc_id), owner_dialog_id, std::move(thumb));
-        if (animated_thumbnail.file_id.is_valid()) {
-          break;
+        if (!animated_thumbnail.file_id.is_valid()) {
+          animated_thumbnail =
+              get_animation_size(td_->file_manager_.get(), PhotoSizeSource::thumbnail(FileType::Thumbnail, 0), id,
+                                 access_hash, file_reference, DcId::create(dc_id), owner_dialog_id, std::move(thumb));
+        }
+      } else if (thumb->type_ == "f") {
+        if (!premium_animation_file_id.is_valid()) {
+          premium_animation_file_id =
+              register_photo_size(td_->file_manager_.get(), PhotoSizeSource::thumbnail(FileType::Thumbnail, 'f'), id,
+                                  access_hash, file_reference, owner_dialog_id, thumb->size_, DcId::create(dc_id),
+                                  get_sticker_format_photo_format(sticker_format));
         }
       }
     }
@@ -478,8 +485,9 @@ Document DocumentsManager::on_get_document(RemoteDocument remote_document, Dialo
       if (thumbnail_format == PhotoFormat::Jpeg) {
         minithumbnail = string();
       }
-      td_->stickers_manager_->create_sticker(file_id, std::move(minithumbnail), std::move(thumbnail), dimensions,
-                                             std::move(sticker), sticker_format, load_data_multipromise_ptr);
+      td_->stickers_manager_->create_sticker(file_id, premium_animation_file_id, std::move(minithumbnail),
+                                             std::move(thumbnail), dimensions, std::move(sticker), sticker_format,
+                                             load_data_multipromise_ptr);
       break;
     case Document::Type::Video:
       td_->videos_manager_->create_video(file_id, std::move(minithumbnail), std::move(thumbnail),

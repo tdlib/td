@@ -1823,7 +1823,7 @@ static Result<InputMessageContent> create_input_message_content(
 
       emoji = std::move(input_sticker->emoji_);
 
-      td->stickers_manager_->create_sticker(file_id, string(), thumbnail,
+      td->stickers_manager_->create_sticker(file_id, FileId(), string(), thumbnail,
                                             get_dimensions(input_sticker->width_, input_sticker->height_, nullptr),
                                             nullptr, StickerFormat::Unknown, nullptr);
 

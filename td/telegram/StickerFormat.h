@@ -6,6 +6,7 @@
 //
 #pragma once
 
+#include "td/telegram/PhotoFormat.h"
 #include "td/telegram/td_api.h"
 
 #include "td/utils/common.h"
@@ -27,6 +28,8 @@ td_api::object_ptr<td_api::StickerType> get_sticker_type_object(StickerFormat st
 string get_sticker_format_mime_type(StickerFormat sticker_format);
 
 Slice get_sticker_format_extension(StickerFormat sticker_format);
+
+PhotoFormat get_sticker_format_photo_format(StickerFormat sticker_format);
 
 bool is_sticker_format_animated(StickerFormat sticker_format);
 

@@ -27,8 +27,8 @@ class FileManager;
 
 struct PhotoSize {
   int32 type = 0;
-  Dimensions dimensions;
   int32 size = 0;
+  Dimensions dimensions;
   FileId file_id;
   vector<int32> progressive_sizes;
 };

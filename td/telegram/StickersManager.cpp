@@ -1872,11 +1872,14 @@ tl_object_ptr<td_api::sticker> StickersManager::get_sticker_object(FileId file_i
     width = static_cast<int32>(width * zoom + 0.5);
     height = static_cast<int32>(height * zoom + 0.5);
   }
-  return make_tl_object<td_api::sticker>(
+  auto premium_animation_object = sticker->premium_animation_file_id.is_valid()
+                                      ? td_->file_manager_->get_file_object(sticker->premium_animation_file_id)
+                                      : nullptr;
+  return td_api::make_object<td_api::sticker>(
       sticker->set_id.get(), width, height, sticker->alt,
       get_sticker_type_object(sticker->format, sticker->is_mask, std::move(mask_position)),
       get_sticker_minithumbnail(sticker->minithumbnail, sticker->set_id, document_id, zoom),
-      std::move(thumbnail_object), td_->file_manager_->get_file_object(file_id));
+      std::move(thumbnail_object), std::move(premium_animation_object), td_->file_manager_->get_file_object(file_id));
 }
 
 tl_object_ptr<td_api::stickers> StickersManager::get_stickers_object(const vector<FileId> &sticker_ids) const {
@@ -2195,6 +2198,7 @@ FileId StickersManager::on_get_sticker(unique_ptr<Sticker> new_sticker, bool rep
                                                       << s->m_thumbnail << " to " << new_sticker->m_thumbnail;
       s->m_thumbnail = std::move(new_sticker->m_thumbnail);
     }
+    s->premium_animation_file_id = new_sticker->premium_animation_file_id;
     if (s->format != new_sticker->format && new_sticker->format != StickerFormat::Unknown) {
       s->format = new_sticker->format;
     }
@@ -2290,6 +2294,7 @@ std::pair<int64, FileId> StickersManager::on_get_sticker_document(tl_object_ptr<
   PhotoSize thumbnail;
   string minithumbnail;
   auto thumbnail_format = has_webp_thumbnail(document->thumbs_) ? PhotoFormat::Webp : PhotoFormat::Jpeg;
+  FileId premium_animation_file_id;
   for (auto &thumb : document->thumbs_) {
     auto photo_size = get_photo_size(td_->file_manager_.get(), PhotoSizeSource::thumbnail(FileType::Thumbnail, 0),
                                      document_id, document->access_hash_, document->file_reference_.as_slice().str(),
@@ -2305,9 +2310,19 @@ std::pair<int64, FileId> StickersManager::on_get_sticker_document(tl_object_ptr<
       }
     }
   }
+  for (auto &thumb : document->video_thumbs_) {
+    if (thumb->type_ == "f") {
+      if (!premium_animation_file_id.is_valid()) {
+        premium_animation_file_id =
+            register_photo_size(td_->file_manager_.get(), PhotoSizeSource::thumbnail(FileType::Thumbnail, 'f'),
+                                document_id, document->access_hash_, document->file_reference_.as_slice().str(),
+                                DialogId(), thumb->size_, dc_id, get_sticker_format_photo_format(format));
+      }
+    }
+  }
 
-  create_sticker(sticker_id, std::move(minithumbnail), std::move(thumbnail), dimensions, std::move(sticker), format,
-                 nullptr);
+  create_sticker(sticker_id, premium_animation_file_id, std::move(minithumbnail), std::move(thumbnail), dimensions,
+                 std::move(sticker), format, nullptr);
   return {document_id, sticker_id};
 }
 
@@ -2448,6 +2463,9 @@ vector<FileId> StickersManager::get_sticker_file_ids(FileId file_id) const {
   if (sticker->m_thumbnail.file_id.is_valid()) {
     result.push_back(sticker->m_thumbnail.file_id);
   }
+  if (sticker->premium_animation_file_id.is_valid()) {
+    result.push_back(sticker->premium_animation_file_id);
+  }
   return result;
 }
 
@@ -2458,7 +2476,7 @@ FileId StickersManager::dup_sticker(FileId new_id, FileId old_id) {
   CHECK(new_sticker == nullptr);
   new_sticker = make_unique<Sticker>(*old_sticker);
   new_sticker->file_id = new_id;
-  // there is no reason to dup m_thumbnail
+  // there is no reason to dup m_thumbnail and premium_animation_file_id
   new_sticker->s_thumbnail.file_id = td_->file_manager_->dup_file_id(new_sticker->s_thumbnail.file_id);
   return new_id;
 }
@@ -2624,7 +2642,8 @@ void StickersManager::add_sticker_thumbnail(Sticker *s, PhotoSize thumbnail) {
   LOG(ERROR) << "Receive sticker thumbnail of unsupported type " << thumbnail.type;
 }
 
-void StickersManager::create_sticker(FileId file_id, string minithumbnail, PhotoSize thumbnail, Dimensions dimensions,
+void StickersManager::create_sticker(FileId file_id, FileId premium_animation_file_id, string minithumbnail,
+                                     PhotoSize thumbnail, Dimensions dimensions,
                                      tl_object_ptr<telegram_api::documentAttributeSticker> sticker,
                                      StickerFormat format, MultiPromiseActor *load_data_multipromise_ptr) {
   if (format == StickerFormat::Unknown && sticker == nullptr) {
@@ -2654,6 +2673,7 @@ void StickersManager::create_sticker(FileId file_id, string minithumbnail, Photo
     s->minithumbnail = std::move(minithumbnail);
   }
   add_sticker_thumbnail(s.get(), std::move(thumbnail));
+  s->premium_animation_file_id = premium_animation_file_id;
   if (sticker != nullptr) {
     s->set_id = on_get_input_sticker_set(file_id, std::move(sticker->stickerset_), load_data_multipromise_ptr);
     s->alt = std::move(sticker->alt_);
@@ -5649,7 +5669,8 @@ Result<std::tuple<FileId, bool, bool, StickerFormat>> StickersManager::prepare_i
 
   if (format == StickerFormat::Tgs) {
     int32 width = for_thumbnail ? 100 : 512;
-    create_sticker(file_id, string(), PhotoSize(), get_dimensions(width, width, nullptr), nullptr, format, nullptr);
+    create_sticker(file_id, FileId(), string(), PhotoSize(), get_dimensions(width, width, "prepare_input_file"),
+                   nullptr, format, nullptr);
   } else if (format == StickerFormat::Webm) {
     td_->documents_manager_->create_document(file_id, string(), PhotoSize(), "sticker.webm", "video/webm", false);
   } else {
