@@ -248,8 +248,6 @@ void on_sent_message_content(Td *td, const MessageContent *content);
 
 bool is_unsent_animated_emoji_click(Td *td, DialogId dialog_id, const DialogAction &action);
 
-bool is_active_reaction(Td *td, const string &reaction);
-
 void init_stickers_manager(Td *td);
 
 void on_dialog_used(TopDialogCategory category, DialogId dialog_id, int32 date);

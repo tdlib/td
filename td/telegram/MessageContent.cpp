@@ -5759,10 +5759,6 @@ bool is_unsent_animated_emoji_click(Td *td, DialogId dialog_id, const DialogActi
   return !td->stickers_manager_->is_sent_animated_emoji_click(dialog_id, remove_emoji_modifiers(emoji));
 }
 
-bool is_active_reaction(Td *td, const string &reaction) {
-  return td->stickers_manager_->is_active_reaction(reaction);
-}
-
 void init_stickers_manager(Td *td) {
   td->stickers_manager_->init();
 }
