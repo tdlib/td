@@ -598,7 +598,9 @@ Result<AttachMenuManager::AttachMenuBot> AttachMenuManager::get_attach_menu_bot(
     auto parsed_document =
         td_->documents_manager_->on_get_document(move_tl_object_as<telegram_api::document>(icon->icon_), DialogId());
     if (parsed_document.type != expected_document_type) {
-      LOG(ERROR) << "Receive wrong attachment menu bot icon \"" << name << "\" for " << user_id;
+      if (user_id != UserId(5000860301) || !G()->is_test_dc() || name != "macos_animated") {
+        LOG(ERROR) << "Receive wrong attachment menu bot icon \"" << name << "\" for " << user_id;
+      }
       continue;
     }
     bool expect_colors = false;
