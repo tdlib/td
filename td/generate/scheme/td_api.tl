@@ -2487,6 +2487,7 @@ availableReactions reactions:vector<string> = AvailableReactions;
 //@reaction Text representation of the reaction
 //@title Reaction title
 //@is_active True, if the reaction can be added to new messages and enabled in chats
+//@is_premium True, if the reaction is available only for premium users
 //@static_icon Static icon for the reaction
 //@appear_animation Appear animation for the reaction
 //@select_animation Select animation for the reaction
@@ -2494,7 +2495,7 @@ availableReactions reactions:vector<string> = AvailableReactions;
 //@effect_animation Effect animation for the reaction
 //@around_animation Around animation for the reaction; may be null
 //@center_animation Center animation for the reaction; may be null
-reaction reaction:string title:string is_active:Bool static_icon:sticker appear_animation:sticker select_animation:sticker activate_animation:sticker effect_animation:sticker around_animation:sticker center_animation:sticker = Reaction;
+reaction reaction:string title:string is_active:Bool is_premium:Bool static_icon:sticker appear_animation:sticker select_animation:sticker activate_animation:sticker effect_animation:sticker around_animation:sticker center_animation:sticker = Reaction;
 
 
 //@description Represents a list of animations @animations List of animations
@@ -4848,7 +4849,7 @@ editInlineMessageReplyMarkup inline_message_id:string reply_markup:ReplyMarkup =
 editMessageSchedulingState chat_id:int53 message_id:int53 scheduling_state:MessageSchedulingState = Ok;
 
 
-//@description Returns reactions, which can be added to a message. The list can change after updateReactions, updateChatAvailableReactions for the chat, or updateMessageInteractionInfo for the message
+//@description Returns reactions, which can be added to a message. The list can change after updateReactions, updateChatAvailableReactions for the chat, or updateMessageInteractionInfo for the message. The method will return Premium reactions, even the current user has no Premium account
 //@chat_id Identifier of the chat to which the message belongs
 //@message_id Identifier of the message
 getMessageAvailableReactions chat_id:int53 message_id:int53 = AvailableReactions;

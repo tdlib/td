@@ -448,6 +448,7 @@ class StickersManager final : public Actor {
     string reaction_;
     string title_;
     bool is_active_ = false;
+    bool is_premium_ = false;
     FileId static_icon_;
     FileId appear_animation_;
     FileId select_animation_;

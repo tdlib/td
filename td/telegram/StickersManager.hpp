@@ -396,6 +396,7 @@ void StickersManager::Reaction::store(StorerT &storer) const {
   STORE_FLAG(is_active_);
   STORE_FLAG(has_around_animation);
   STORE_FLAG(has_center_animation);
+  STORE_FLAG(is_premium_);
   END_STORE_FLAGS();
   td::store(reaction_, storer);
   td::store(title_, storer);
@@ -421,6 +422,7 @@ void StickersManager::Reaction::parse(ParserT &parser) {
   PARSE_FLAG(is_active_);
   PARSE_FLAG(has_around_animation);
   PARSE_FLAG(has_center_animation);
+  PARSE_FLAG(is_premium_);
   END_PARSE_FLAGS();
   td::parse(reaction_, parser);
   td::parse(title_, parser);

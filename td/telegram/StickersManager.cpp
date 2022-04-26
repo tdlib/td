@@ -3210,10 +3210,11 @@ void StickersManager::on_get_special_sticker_set(const SpecialStickerSetType &ty
 td_api::object_ptr<td_api::updateReactions> StickersManager::get_update_reactions_object() const {
   auto reactions = transform(reactions_.reactions_, [this](const Reaction &reaction) {
     return td_api::make_object<td_api::reaction>(
-        reaction.reaction_, reaction.title_, reaction.is_active_, get_sticker_object(reaction.static_icon_),
-        get_sticker_object(reaction.appear_animation_), get_sticker_object(reaction.select_animation_),
-        get_sticker_object(reaction.activate_animation_), get_sticker_object(reaction.effect_animation_),
-        get_sticker_object(reaction.around_animation_), get_sticker_object(reaction.center_animation_));
+        reaction.reaction_, reaction.title_, reaction.is_active_, reaction.is_premium_,
+        get_sticker_object(reaction.static_icon_), get_sticker_object(reaction.appear_animation_),
+        get_sticker_object(reaction.select_animation_), get_sticker_object(reaction.activate_animation_),
+        get_sticker_object(reaction.effect_animation_), get_sticker_object(reaction.around_animation_),
+        get_sticker_object(reaction.center_animation_));
   });
   return td_api::make_object<td_api::updateReactions>(std::move(reactions));
 }
@@ -3282,6 +3283,7 @@ void StickersManager::on_get_available_reactions(
   for (auto &available_reaction : available_reactions->reactions_) {
     Reaction reaction;
     reaction.is_active_ = !available_reaction->inactive_;
+    reaction.is_premium_ = available_reaction->premium_;
     reaction.reaction_ = std::move(available_reaction->reaction_);
     reaction.title_ = std::move(available_reaction->title_);
     reaction.static_icon_ =
