@@ -217,6 +217,17 @@ class GetMessageReactionsListQuery final : public Td::ResultHandler {
   }
 };
 
+void MessageReaction::add_recent_chooser_dialog_id(DialogId dialog_id) {
+  recent_chooser_dialog_ids_.insert(recent_chooser_dialog_ids_.begin(), dialog_id);
+  if (recent_chooser_dialog_ids_.size() > MAX_RECENT_CHOOSERS) {
+    recent_chooser_dialog_ids_.resize(MAX_RECENT_CHOOSERS);
+  }
+}
+
+bool MessageReaction::remove_recent_chooser_dialog_id(DialogId dialog_id) {
+  return td::remove(recent_chooser_dialog_ids_, dialog_id);
+}
+
 void MessageReaction::set_is_chosen(bool is_chosen, DialogId chooser_dialog_id, bool can_get_added_reactions) {
   if (is_chosen_ == is_chosen) {
     return;
@@ -227,12 +238,9 @@ void MessageReaction::set_is_chosen(bool is_chosen, DialogId chooser_dialog_id, 
   if (chooser_dialog_id.is_valid()) {
     choose_count_ += is_chosen_ ? 1 : -1;
     if (can_get_added_reactions) {
-      td::remove(recent_chooser_dialog_ids_, chooser_dialog_id);
+      remove_recent_chooser_dialog_id(chooser_dialog_id);
       if (is_chosen_) {
-        recent_chooser_dialog_ids_.insert(recent_chooser_dialog_ids_.begin(), chooser_dialog_id);
-        if (recent_chooser_dialog_ids_.size() > MAX_RECENT_CHOOSERS) {
-          recent_chooser_dialog_ids_.resize(MAX_RECENT_CHOOSERS);
-        }
+        add_recent_chooser_dialog_id(chooser_dialog_id);
       }
     }
   }
@@ -408,6 +416,24 @@ void MessageReactions::sort_reactions(const FlatHashMap<string, size_t> &active_
 
               return lhs.get_reaction() < rhs.get_reaction();
             });
+}
+
+void MessageReactions::fix_chosen_reaction(DialogId my_dialog_id) {
+  bool need_fix = false;
+  for (auto &reaction : reactions_) {
+    if (!reaction.is_chosen() && reaction.remove_recent_chooser_dialog_id(my_dialog_id)) {
+      LOG(WARNING) << "Fix recent chosen reaction in " << *this;
+      need_fix = true;
+    }
+  }
+  if (!need_fix) {
+    return;
+  }
+  for (auto &reaction : reactions_) {
+    if (reaction.is_chosen() && !td::contains(reaction.get_recent_chooser_dialog_ids(), my_dialog_id)) {
+      reaction.add_recent_chooser_dialog_id(my_dialog_id);
+    }
+  }
 }
 
 bool MessageReactions::need_update_message_reactions(const MessageReactions *old_reactions,

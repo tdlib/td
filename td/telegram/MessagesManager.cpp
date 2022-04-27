@@ -6979,6 +6979,11 @@ bool MessagesManager::update_message_interaction_info(Dialog *d, Message *m, int
       reactions->update_from(*m->reactions);
     }
     reactions->sort_reactions(active_reaction_pos_);
+    reactions->fix_chosen_reaction(get_my_dialog_id());
+    if (d->default_send_message_as_dialog_id.is_valid()) {
+      // the reaction could be set by previous owner of the broadcast
+      // reactions->fix_chosen_reaction(d->default_send_message_as_dialog_id);
+    }
   }
   bool need_update_reactions =
       has_reactions && MessageReactions::need_update_message_reactions(m->reactions.get(), reactions.get());
