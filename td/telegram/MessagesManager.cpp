@@ -27760,6 +27760,7 @@ void MessagesManager::do_forward_messages(DialogId to_dialog_id, DialogId from_d
   }
 
   auto schedule_date = get_message_schedule_date(messages[0]);
+  auto as_input_peer = get_send_message_as_input_peer(messages[0]);
 
   int32 flags = 0;
   if (messages[0]->disable_notification) {
@@ -27774,7 +27775,7 @@ void MessagesManager::do_forward_messages(DialogId to_dialog_id, DialogId from_d
   if (schedule_date != 0) {
     flags |= SEND_MESSAGE_FLAG_HAS_SCHEDULE_DATE;
   }
-  if (messages[0]->has_explicit_sender) {
+  if (as_input_peer != nullptr) {
     flags |= SEND_MESSAGE_FLAG_HAS_SEND_AS;
   }
   if (messages[0]->noforwards) {
@@ -27784,8 +27785,8 @@ void MessagesManager::do_forward_messages(DialogId to_dialog_id, DialogId from_d
   vector<int64> random_ids =
       transform(messages, [this, to_dialog_id](const Message *m) { return begin_send_message(to_dialog_id, m); });
   td_->create_handler<ForwardMessagesQuery>(get_erase_log_event_promise(log_event_id))
-      ->send(flags, to_dialog_id, from_dialog_id, get_send_message_as_input_peer(messages[0]), message_ids,
-             std::move(random_ids), schedule_date);
+      ->send(flags, to_dialog_id, from_dialog_id, std::move(as_input_peer), message_ids, std::move(random_ids),
+             schedule_date);
 }
 
 Result<td_api::object_ptr<td_api::message>> MessagesManager::forward_message(
