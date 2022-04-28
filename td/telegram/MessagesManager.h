@@ -1842,6 +1842,8 @@ class MessagesManager final : public Actor {
 
   void delete_update_message_id(DialogId dialog_id, MessageId message_id);
 
+  void get_dialog_message_count_from_server(DialogId dialog_id, MessageSearchFilter filter, Promise<int32> &&promise);
+
   FullMessageId on_get_message(MessageInfo &&message_info, bool from_update, bool is_channel_message,
                                bool have_previous, bool have_next, const char *source);
 

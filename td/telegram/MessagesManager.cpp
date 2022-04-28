@@ -6632,41 +6632,28 @@ void MessagesManager::on_update_message_reactions(FullMessageId full_message_id,
                                                   Promise<Unit> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
 
+  auto new_reactions = MessageReactions::get_message_reactions(td_, std::move(reactions), td_->auth_manager_->is_bot());
   if (!have_message_force(full_message_id, "on_update_message_reactions")) {
     auto dialog_id = full_message_id.get_dialog_id();
     if (!have_input_peer(dialog_id, AccessRights::Read)) {
       LOG(INFO) << "Ignore updateMessageReaction in inaccessible " << full_message_id;
       return;
     }
-
-    switch (dialog_id.get_type()) {
-      case DialogType::User:
-      case DialogType::Chat: {
-        const Dialog *d = get_dialog(dialog_id);
-        if (d == nullptr) {
-          LOG(INFO) << "Ignore updateMessageReaction in unknown " << dialog_id;
-          return;
-        }
-        if (d->last_new_message_id != MessageId() && full_message_id.get_message_id() > d->last_new_message_id) {
-          LOG(INFO) << "Ignore updateMessageReaction about too new " << full_message_id << ", last known is "
-                    << d->last_new_message_id;
-          return;
-        }
-        break;
-      }
-      case DialogType::Channel:
-        // the message will be added after get_channel_difference_if_needed
-        break;
-      case DialogType::SecretChat:
-      default:
-        UNREACHABLE();
-        break;
+    const Dialog *d = get_dialog(dialog_id);
+    if (d == nullptr) {
+      LOG(INFO) << "Ignore updateMessageReaction in unknown " << dialog_id;
+      return;
     }
-    LOG(INFO) << "Need to load " << full_message_id << " to process updateMessageReaction";
-    return get_message_from_server(full_message_id, std::move(promise), "on_update_message_reactions");
+
+    // there is no message, so the update can be ignored
+    if ((new_reactions != nullptr && !new_reactions->unread_reactions_.empty()) || d->unread_reaction_count > 0) {
+      // but if there are unread reactions or the chat has unread reactions,
+      // then number of unread reactions could have been changed, so reload the number of unread reactions
+      send_get_dialog_query(dialog_id, std::move(promise), 0, "on_update_message_reactions");
+    }
+    return;
   }
 
-  auto new_reactions = MessageReactions::get_message_reactions(td_, std::move(reactions), td_->auth_manager_->is_bot());
   update_message_interaction_info(full_message_id, -1, -1, false, nullptr, true, std::move(new_reactions));
   promise.set_value(Unit());
 }
@@ -23427,9 +23414,14 @@ void MessagesManager::get_dialog_message_count(DialogId dialog_id, MessageSearch
     return promise.set_value(std::move(message_count));
   }
 
+  get_dialog_message_count_from_server(dialog_id, filter, std::move(promise));
+}
+
+void MessagesManager::get_dialog_message_count_from_server(DialogId dialog_id, MessageSearchFilter filter,
+                                                           Promise<int32> &&promise) {
   LOG(INFO) << "Get number of messages in " << dialog_id << " filtered by " << filter << " from the server";
 
-  switch (dialog_type) {
+  switch (dialog_id.get_type()) {
     case DialogType::User:
     case DialogType::Chat:
     case DialogType::Channel:
