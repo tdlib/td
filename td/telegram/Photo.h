@@ -69,6 +69,9 @@ tl_object_ptr<td_api::chatPhotoInfo> get_chat_photo_info_object(FileManager *fil
 
 DialogPhoto as_fake_dialog_photo(const Photo &photo, DialogId dialog_id);
 
+DialogPhoto as_dialog_photo(FileManager *file_manager, DialogId dialog_id, int64 dialog_access_hash,
+                            const Photo &photo);
+
 ProfilePhoto as_profile_photo(FileManager *file_manager, UserId user_id, int64 user_access_hash, const Photo &photo);
 
 vector<FileId> dialog_photo_get_file_ids(const DialogPhoto &dialog_photo);
