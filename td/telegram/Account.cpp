@@ -34,7 +34,7 @@ static td_api::object_ptr<td_api::SessionType> get_session_type(
     return str.find(substr) != string::npos;
   };
   
-  auto app_name = to_lower(authorization->app_name_);
+  auto app_name = authorization->app_name_;
   auto device_model = to_lower(authorization->device_model_);
   auto platform = to_lower(authorization->platform_);
   auto system_version = to_lower(authorization->system_version_);
@@ -42,22 +42,29 @@ static td_api::object_ptr<td_api::SessionType> get_session_type(
   if (device_model.find("xbox") != string::npos) {
     return td_api::make_object<td_api::sessionTypeXbox>();
   }
-  
-  if (contains(app_name, "web")) {
-    if (contains(device_model, "chrome")) {
-      return td_api::make_object<td_api::sessionTypeChrome>();
-    } else if (contains(device_model, "brave")) {
+
+  bool web = false;
+  string web_name = "Web";
+  if ((auto pos = app_name.find(web_name)) != string::npos) {
+    auto next = app_name.substr(pos + web_name.length(), 1);
+    web = !next.length() || !('a' <= next[0] && next[0] <= 'z');
+  }
+
+  if (web) {
+    if (contains(device_model, "brave")) {
       return td_api::make_object<td_api::sessionTypeBrave>();
     } else if (contains(device_model, "vivaldi")) {
       return td_api::make_object<td_api::sessionTypeVivaldi>();
-    } else if (contains(device_model, "safari")) {
-      return td_api::make_object<td_api::sessionTypeSafari>();
-    } else if (contains(device_model, "firefox")) {
-      return td_api::make_object<td_api::sessionTypeFirefox>();
-    } else if (contains(device_model, "opera")) {
+    } else if (contains(device_model, "opera") || contains(device_model, "opr")) {
       return td_api::make_object<td_api::sessionTypeOpera>();
     } else if (contains(device_model, "edg")) {
       return td_api::make_object<td_api::sessionTypeEdge>();
+    } else if (contains(device_model, "chrome")) {
+      return td_api::make_object<td_api::sessionTypeChrome>();
+    } else if (contains(device_model, "firefox") || contains(device_model, "fxios")) {
+      return td_api::make_object<td_api::sessionTypeFirefox>();
+    } else if (contains(device_model, "safari")) {
+      return td_api::make_object<td_api::sessionTypeSafari>();
     }
   }
 
