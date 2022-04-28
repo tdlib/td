@@ -818,7 +818,7 @@ class MessagesManager final : public Actor {
   tl_object_ptr<td_api::messages> get_messages_object(int32 total_count, const vector<FullMessageId> &full_message_ids,
                                                       bool skip_not_found, const char *source);
 
-  void process_pts_update(tl_object_ptr<telegram_api::Update> &&update);
+  void process_pts_update(tl_object_ptr<telegram_api::Update> &&update_ptr);
 
   void skip_old_pending_pts_update(tl_object_ptr<telegram_api::Update> &&update, int32 new_pts, int32 old_pts,
                                    int32 pts_count, const char *source);
@@ -1917,7 +1917,7 @@ class MessagesManager final : public Actor {
   void add_postponed_channel_update(DialogId dialog_id, tl_object_ptr<telegram_api::Update> &&update, int32 new_pts,
                                     int32 pts_count, Promise<Unit> &&promise);
 
-  void process_channel_update(tl_object_ptr<telegram_api::Update> &&update);
+  void process_channel_update(tl_object_ptr<telegram_api::Update> &&update_ptr);
 
   void on_message_edited(FullMessageId full_message_id, int32 pts, bool had_message);
 

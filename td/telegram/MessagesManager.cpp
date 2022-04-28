@@ -7663,81 +7663,78 @@ bool MessagesManager::is_old_channel_update(DialogId dialog_id, int32 new_pts) {
   return new_pts <= (d == nullptr ? load_channel_pts(dialog_id) : d->pts);
 }
 
-void MessagesManager::process_pts_update(tl_object_ptr<telegram_api::Update> &&update) {
-  switch (update->get_id()) {
+void MessagesManager::process_pts_update(tl_object_ptr<telegram_api::Update> &&update_ptr) {
+  switch (update_ptr->get_id()) {
     case dummyUpdate::ID:
       LOG(INFO) << "Process dummyUpdate";
       break;
     case telegram_api::updateNewMessage::ID: {
-      auto update_new_message = move_tl_object_as<telegram_api::updateNewMessage>(update);
+      auto update = move_tl_object_as<telegram_api::updateNewMessage>(update_ptr);
       LOG(INFO) << "Process updateNewMessage";
-      on_get_message(std::move(update_new_message->message_), true, false, false, true, true, "updateNewMessage");
+      on_get_message(std::move(update->message_), true, false, false, true, true, "updateNewMessage");
       break;
     }
     case updateSentMessage::ID: {
-      auto update_sent_message = move_tl_object_as<updateSentMessage>(update);
-      LOG(INFO) << "Process updateSentMessage " << update_sent_message->random_id_;
-      on_send_message_success(update_sent_message->random_id_, update_sent_message->message_id_,
-                              update_sent_message->date_, update_sent_message->ttl_period_, FileId(),
+      auto update = move_tl_object_as<updateSentMessage>(update_ptr);
+      LOG(INFO) << "Process updateSentMessage " << update->random_id_;
+      on_send_message_success(update->random_id_, update->message_id_, update->date_, update->ttl_period_, FileId(),
                               "process updateSentMessage");
       break;
     }
     case telegram_api::updateReadMessagesContents::ID: {
-      auto read_contents_update = move_tl_object_as<telegram_api::updateReadMessagesContents>(update);
+      auto update = move_tl_object_as<telegram_api::updateReadMessagesContents>(update_ptr);
       LOG(INFO) << "Process updateReadMessageContents";
-      for (auto &message_id : read_contents_update->messages_) {
+      for (auto &message_id : update->messages_) {
         read_message_content_from_updates(MessageId(ServerMessageId(message_id)));
       }
       break;
     }
     case telegram_api::updateEditMessage::ID: {
-      auto update_edit_message = move_tl_object_as<telegram_api::updateEditMessage>(update);
+      auto update = move_tl_object_as<telegram_api::updateEditMessage>(update_ptr);
       LOG(INFO) << "Process updateEditMessage";
-      bool had_message =
-          have_message_force(get_full_message_id(update_edit_message->message_, false), "updateEditMessage");
-      auto full_message_id = on_get_message(std::move(update_edit_message->message_), false, false, false, false, false,
-                                            "updateEditMessage");
-      on_message_edited(full_message_id, update_edit_message->pts_, had_message);
+      bool had_message = have_message_force(get_full_message_id(update->message_, false), "updateEditMessage");
+      auto full_message_id =
+          on_get_message(std::move(update->message_), false, false, false, false, false, "updateEditMessage");
+      on_message_edited(full_message_id, update->pts_, had_message);
       break;
     }
     case telegram_api::updateDeleteMessages::ID: {
-      auto delete_update = move_tl_object_as<telegram_api::updateDeleteMessages>(update);
+      auto update = move_tl_object_as<telegram_api::updateDeleteMessages>(update_ptr);
       LOG(INFO) << "Process updateDeleteMessages";
       vector<MessageId> message_ids;
-      for (auto message : delete_update->messages_) {
+      for (auto message : update->messages_) {
         message_ids.push_back(MessageId(ServerMessageId(message)));
       }
       delete_messages_from_updates(message_ids);
       break;
     }
     case telegram_api::updateReadHistoryInbox::ID: {
-      auto read_update = move_tl_object_as<telegram_api::updateReadHistoryInbox>(update);
+      auto update = move_tl_object_as<telegram_api::updateReadHistoryInbox>(update_ptr);
       LOG(INFO) << "Process updateReadHistoryInbox";
-      DialogId dialog_id(read_update->peer_);
+      DialogId dialog_id(update->peer_);
       FolderId folder_id;
-      if ((read_update->flags_ & telegram_api::updateReadHistoryInbox::FOLDER_ID_MASK) != 0) {
-        folder_id = FolderId(read_update->folder_id_);
+      if ((update->flags_ & telegram_api::updateReadHistoryInbox::FOLDER_ID_MASK) != 0) {
+        folder_id = FolderId(update->folder_id_);
       }
       on_update_dialog_folder_id(dialog_id, folder_id);
-      read_history_inbox(dialog_id, MessageId(ServerMessageId(read_update->max_id_)),
-                         -1 /*read_update->still_unread_count*/, "updateReadHistoryInbox");
+      read_history_inbox(dialog_id, MessageId(ServerMessageId(update->max_id_)), -1 /*update->still_unread_count*/,
+                         "updateReadHistoryInbox");
       break;
     }
     case telegram_api::updateReadHistoryOutbox::ID: {
-      auto read_update = move_tl_object_as<telegram_api::updateReadHistoryOutbox>(update);
+      auto update = move_tl_object_as<telegram_api::updateReadHistoryOutbox>(update_ptr);
       LOG(INFO) << "Process updateReadHistoryOutbox";
-      read_history_outbox(DialogId(read_update->peer_), MessageId(ServerMessageId(read_update->max_id_)));
+      read_history_outbox(DialogId(update->peer_), MessageId(ServerMessageId(update->max_id_)));
       break;
     }
     case telegram_api::updatePinnedMessages::ID: {
-      auto pinned_messages_update = move_tl_object_as<telegram_api::updatePinnedMessages>(update);
+      auto update = move_tl_object_as<telegram_api::updatePinnedMessages>(update_ptr);
       LOG(INFO) << "Process updatePinnedMessages";
       vector<MessageId> message_ids;
-      for (auto message : pinned_messages_update->messages_) {
+      for (auto message : update->messages_) {
         message_ids.push_back(MessageId(ServerMessageId(message)));
       }
-      update_dialog_pinned_messages_from_updates(DialogId(pinned_messages_update->peer_), message_ids,
-                                                 pinned_messages_update->pinned_);
+      update_dialog_pinned_messages_from_updates(DialogId(update->peer_), message_ids, update->pinned_);
       break;
     }
     default:
@@ -7746,37 +7743,35 @@ void MessagesManager::process_pts_update(tl_object_ptr<telegram_api::Update> &&u
   CHECK(!td_->updates_manager_->running_get_difference());
 }
 
-void MessagesManager::process_channel_update(tl_object_ptr<telegram_api::Update> &&update) {
-  switch (update->get_id()) {
+void MessagesManager::process_channel_update(tl_object_ptr<telegram_api::Update> &&update_ptr) {
+  switch (update_ptr->get_id()) {
     case dummyUpdate::ID:
       LOG(INFO) << "Process dummyUpdate";
       break;
     case updateSentMessage::ID: {
-      auto update_sent_message = move_tl_object_as<updateSentMessage>(update);
-      LOG(INFO) << "Process updateSentMessage " << update_sent_message->random_id_;
-      on_send_message_success(update_sent_message->random_id_, update_sent_message->message_id_,
-                              update_sent_message->date_, update_sent_message->ttl_period_, FileId(),
+      auto update = move_tl_object_as<updateSentMessage>(update_ptr);
+      LOG(INFO) << "Process updateSentMessage " << update->random_id_;
+      on_send_message_success(update->random_id_, update->message_id_, update->date_, update->ttl_period_, FileId(),
                               "process updateSentChannelMessage");
       break;
     }
     case telegram_api::updateNewChannelMessage::ID: {
-      auto update_new_channel_message = move_tl_object_as<telegram_api::updateNewChannelMessage>(update);
+      auto update = move_tl_object_as<telegram_api::updateNewChannelMessage>(update_ptr);
       LOG(INFO) << "Process updateNewChannelMessage";
-      on_get_message(std::move(update_new_channel_message->message_), true, true, false, true, true,
-                     "updateNewChannelMessage");
+      on_get_message(std::move(update->message_), true, true, false, true, true, "updateNewChannelMessage");
       break;
     }
     case telegram_api::updateDeleteChannelMessages::ID: {
-      auto delete_channel_messages_update = move_tl_object_as<telegram_api::updateDeleteChannelMessages>(update);
+      auto update = move_tl_object_as<telegram_api::updateDeleteChannelMessages>(update_ptr);
       LOG(INFO) << "Process updateDeleteChannelMessages";
-      ChannelId channel_id(delete_channel_messages_update->channel_id_);
+      ChannelId channel_id(update->channel_id_);
       if (!channel_id.is_valid()) {
         LOG(ERROR) << "Receive invalid " << channel_id;
         break;
       }
 
       vector<MessageId> message_ids;
-      for (auto &message : delete_channel_messages_update->messages_) {
+      for (auto &message : update->messages_) {
         message_ids.push_back(MessageId(ServerMessageId(message)));
       }
 
@@ -7785,31 +7780,29 @@ void MessagesManager::process_channel_update(tl_object_ptr<telegram_api::Update>
       break;
     }
     case telegram_api::updateEditChannelMessage::ID: {
-      auto update_edit_channel_message = move_tl_object_as<telegram_api::updateEditChannelMessage>(update);
+      auto update = move_tl_object_as<telegram_api::updateEditChannelMessage>(update_ptr);
       LOG(INFO) << "Process updateEditChannelMessage";
-      bool had_message = have_message_force(get_full_message_id(update_edit_channel_message->message_, false),
-                                            "updateEditChannelMessage");
-      auto full_message_id = on_get_message(std::move(update_edit_channel_message->message_), false, true, false, false,
-                                            false, "updateEditChannelMessage");
-      on_message_edited(full_message_id, update_edit_channel_message->pts_, had_message);
+      bool had_message = have_message_force(get_full_message_id(update->message_, false), "updateEditChannelMessage");
+      auto full_message_id =
+          on_get_message(std::move(update->message_), false, true, false, false, false, "updateEditChannelMessage");
+      on_message_edited(full_message_id, update->pts_, had_message);
       break;
     }
     case telegram_api::updatePinnedChannelMessages::ID: {
-      auto pinned_channel_messages_update = move_tl_object_as<telegram_api::updatePinnedChannelMessages>(update);
+      auto update = move_tl_object_as<telegram_api::updatePinnedChannelMessages>(update_ptr);
       LOG(INFO) << "Process updatePinnedChannelMessages";
-      ChannelId channel_id(pinned_channel_messages_update->channel_id_);
+      ChannelId channel_id(update->channel_id_);
       if (!channel_id.is_valid()) {
         LOG(ERROR) << "Receive invalid " << channel_id;
         break;
       }
 
       vector<MessageId> message_ids;
-      for (auto &message : pinned_channel_messages_update->messages_) {
+      for (auto &message : update->messages_) {
         message_ids.push_back(MessageId(ServerMessageId(message)));
       }
 
-      update_dialog_pinned_messages_from_updates(DialogId(channel_id), message_ids,
-                                                 pinned_channel_messages_update->pinned_);
+      update_dialog_pinned_messages_from_updates(DialogId(channel_id), message_ids, update->pinned_);
       break;
     }
     default:
