@@ -10100,10 +10100,19 @@ void ContactsManager::update_user(User *u, UserId user_id, bool from_binlog, boo
 
 void ContactsManager::update_chat(Chat *c, ChatId chat_id, bool from_binlog, bool from_database) {
   CHECK(c != nullptr);
+  bool need_update_chat_full = false;
   if (c->is_photo_changed) {
     td_->messages_manager_->on_dialog_photo_updated(DialogId(chat_id));
-    drop_chat_photos(chat_id, !c->photo.small_file_id.is_valid(), true, "update_chat");
     c->is_photo_changed = false;
+
+    auto chat_full = get_chat_full(chat_id);  // must not load ChatFull
+    if (chat_full != nullptr &&
+        !is_same_dialog_photo(td_->file_manager_.get(), DialogId(chat_id), chat_full->photo, c->photo)) {
+      on_update_chat_full_photo(chat_full, chat_id, Photo());
+      if (c->photo.small_file_id.is_valid()) {
+        reload_chat_full(chat_id, Auto());
+      }
+    }
   }
   if (c->is_title_changed) {
     td_->messages_manager_->on_dialog_title_updated(DialogId(chat_id));
@@ -10155,14 +10164,33 @@ void ContactsManager::update_chat(Chat *c, ChatId chat_id, bool from_binlog, boo
     LOG(INFO) << "Repairing cache of " << chat_id;
     reload_chat(chat_id, Promise<Unit>());
   }
+
+  if (need_update_chat_full) {
+    auto chat_full = get_chat_full(chat_id);
+    CHECK(chat_full != nullptr);
+    update_chat_full(chat_full, chat_id, "drop_chat_photos");
+  }
 }
 
 void ContactsManager::update_channel(Channel *c, ChannelId channel_id, bool from_binlog, bool from_database) {
   CHECK(c != nullptr);
+  bool need_update_channel_full = false;
   if (c->is_photo_changed) {
     td_->messages_manager_->on_dialog_photo_updated(DialogId(channel_id));
-    drop_channel_photos(channel_id, !c->photo.small_file_id.is_valid(), true, "update_channel");
     c->is_photo_changed = false;
+
+    auto channel_full = get_channel_full(channel_id, true, "update_channel");
+    if (channel_full != nullptr &&
+        !is_same_dialog_photo(td_->file_manager_.get(), DialogId(channel_id), channel_full->photo, c->photo)) {
+      on_update_channel_full_photo(channel_full, channel_id, Photo());
+      if (c->photo.small_file_id.is_valid()) {
+        if (channel_full->expires_at > 0.0) {
+          channel_full->expires_at = 0.0;
+          channel_full->need_save_to_database = true;
+        }
+        send_get_channel_full_query(channel_full, channel_id, Auto(), "update_channel");
+      }
+    }
   }
   if (c->is_title_changed) {
     td_->messages_manager_->on_dialog_title_updated(DialogId(channel_id));
@@ -10269,6 +10297,12 @@ void ContactsManager::update_channel(Channel *c, ChannelId channel_id, bool from
 
     LOG(INFO) << "Repairing cache of " << channel_id;
     reload_channel(channel_id, Promise<Unit>());
+  }
+
+  if (need_update_channel_full) {
+    auto channel_full = get_channel_full(channel_id, true, "update_channel");
+    CHECK(channel_full != nullptr);
+    update_channel_full(channel_full, channel_id, "update_channel");
   }
 }
 
@@ -12570,26 +12604,6 @@ void ContactsManager::speculative_add_channel_user(ChannelId channel_id, UserId 
   update_channel_full(channel_full, channel_id, "speculative_add_channel_user");
 }
 
-void ContactsManager::drop_channel_photos(ChannelId channel_id, bool is_empty, bool drop_channel_full_photo,
-                                          const char *source) {
-  if (drop_channel_full_photo) {
-    auto channel_full = get_channel_full(channel_id, true, "drop_channel_photos");  // must not load ChannelFull
-    if (channel_full == nullptr) {
-      return;
-    }
-
-    on_update_channel_full_photo(channel_full, channel_id, Photo());
-    if (!is_empty) {
-      if (channel_full->expires_at > 0.0) {
-        channel_full->expires_at = 0.0;
-        channel_full->need_save_to_database = true;
-      }
-      send_get_channel_full_query(channel_full, channel_id, Auto(), "drop_channel_photos");
-    }
-    update_channel_full(channel_full, channel_id, "drop_channel_photos");
-  }
-}
-
 void ContactsManager::invalidate_channel_full(ChannelId channel_id, bool need_drop_slow_mode_delay) {
   LOG(INFO) << "Invalidate supergroup full for " << channel_id;
   auto channel_full = get_channel_full(channel_id, true, "invalidate_channel_full");  // must not load ChannelFull
@@ -13542,25 +13556,9 @@ void ContactsManager::on_update_chat_full_participants(ChatFull *chat_full, Chat
   update_chat_online_member_count(chat_full, chat_id, true);
 }
 
-void ContactsManager::drop_chat_photos(ChatId chat_id, bool is_empty, bool drop_chat_full_photo, const char *source) {
-  if (drop_chat_full_photo) {
-    auto chat_full = get_chat_full(chat_id);  // must not load ChatFull
-    if (chat_full == nullptr) {
-      return;
-    }
-
-    on_update_chat_full_photo(chat_full, chat_id, Photo());
-    if (!is_empty) {
-      reload_chat_full(chat_id, Auto());
-    }
-    update_chat_full(chat_full, chat_id, "drop_chat_photos");
-  }
-}
-
 void ContactsManager::drop_chat_full(ChatId chat_id) {
   ChatFull *chat_full = get_chat_full_force(chat_id, "drop_chat_full");
   if (chat_full == nullptr) {
-    drop_chat_photos(chat_id, false, false, "drop_chat_full");
     return;
   }
 
