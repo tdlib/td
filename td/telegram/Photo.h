@@ -74,6 +74,9 @@ DialogPhoto as_dialog_photo(FileManager *file_manager, DialogId dialog_id, int64
 
 ProfilePhoto as_profile_photo(FileManager *file_manager, UserId user_id, int64 user_access_hash, const Photo &photo);
 
+bool is_same_dialog_photo(FileManager *file_manager, DialogId dialog_id, const Photo &photo,
+                          const DialogPhoto &dialog_photo);
+
 vector<FileId> dialog_photo_get_file_ids(const DialogPhoto &dialog_photo);
 
 bool operator==(const DialogPhoto &lhs, const DialogPhoto &rhs);

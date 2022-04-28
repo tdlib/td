@@ -194,6 +194,16 @@ ProfilePhoto as_profile_photo(FileManager *file_manager, UserId user_id, int64 u
   return result;
 }
 
+bool is_same_dialog_photo(FileManager *file_manager, DialogId dialog_id, const Photo &photo,
+                          const DialogPhoto &dialog_photo) {
+  auto get_unique_file_id = [file_manager](FileId file_id) {
+    return file_manager->get_file_view(file_id).get_unique_file_id();
+  };
+  auto fake_photo = as_fake_dialog_photo(photo, dialog_id);
+  return get_unique_file_id(fake_photo.small_file_id) == get_unique_file_id(dialog_photo.small_file_id) &&
+         get_unique_file_id(fake_photo.big_file_id) == get_unique_file_id(dialog_photo.big_file_id);
+}
+
 bool operator==(const DialogPhoto &lhs, const DialogPhoto &rhs) {
   return lhs.small_file_id == rhs.small_file_id && lhs.big_file_id == rhs.big_file_id &&
          lhs.minithumbnail == rhs.minithumbnail && lhs.has_animation == rhs.has_animation;
