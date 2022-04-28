@@ -175,8 +175,8 @@ DialogPhoto as_dialog_photo(FileManager *file_manager, DialogId dialog_id, int64
     CHECK(remote.is_photo());
     CHECK(!remote.is_web());
     remote.set_source(PhotoSizeSource::dialog_photo(dialog_id, dialog_access_hash, is_big));
-    return file_manager->register_remote(std::move(remote), FileLocationSource::FromServer, DialogId(),
-                                         file_view.size(), file_view.expected_size(), file_view.remote_name());
+    return file_manager->register_remote(std::move(remote), FileLocationSource::FromServer, DialogId(), 0, 0,
+                                         file_view.remote_name());
   };
 
   result.small_file_id = reregister_photo(false, result.small_file_id);

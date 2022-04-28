@@ -10832,6 +10832,7 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
     ChatFull *chat_full = add_chat_full(chat_id);
     on_update_chat_full_invite_link(chat_full, std::move(chat->exported_invite_));
     auto photo = get_photo(td_->file_manager_.get(), std::move(chat->chat_photo_), DialogId(chat_id));
+    // on_update_chat_photo should be a no-op if server sent consistent data
     on_update_chat_photo(c, as_dialog_photo(td_->file_manager_.get(), DialogId(chat_id), 0, photo));
     on_update_chat_full_photo(chat_full, chat_id, std::move(photo));
     if (chat_full->description != chat->about_) {
@@ -11000,6 +11001,7 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
     }
 
     auto photo = get_photo(td_->file_manager_.get(), std::move(channel->chat_photo_), DialogId(channel_id));
+    // on_update_channel_photo should be a no-op if server sent consistent data
     on_update_channel_photo(c, as_dialog_photo(td_->file_manager_.get(), DialogId(channel_id), c->access_hash, photo));
     on_update_channel_full_photo(channel_full, channel_id, std::move(photo));
 
