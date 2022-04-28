@@ -7692,10 +7692,12 @@ void MessagesManager::process_pts_update(tl_object_ptr<telegram_api::Update> &&u
     }
     case telegram_api::updateEditMessage::ID: {
       auto update_edit_message = move_tl_object_as<telegram_api::updateEditMessage>(update);
+      LOG(INFO) << "Process updateEditMessage";
+      bool had_message =
+          have_message_force(get_full_message_id(update_edit_message->message_, false), "updateEditMessage");
       auto full_message_id = on_get_message(std::move(update_edit_message->message_), false, false, false, false, false,
                                             "updateEditMessage");
-      LOG(INFO) << "Process updateEditMessage";
-      on_message_edited(full_message_id, update_edit_message->pts_);
+      on_message_edited(full_message_id, update_edit_message->pts_, had_message);
       break;
     }
     case telegram_api::updateDeleteMessages::ID: {
@@ -7785,9 +7787,11 @@ void MessagesManager::process_channel_update(tl_object_ptr<telegram_api::Update>
     case telegram_api::updateEditChannelMessage::ID: {
       auto update_edit_channel_message = move_tl_object_as<telegram_api::updateEditChannelMessage>(update);
       LOG(INFO) << "Process updateEditChannelMessage";
+      bool had_message = have_message_force(get_full_message_id(update_edit_channel_message->message_, false),
+                                            "updateEditChannelMessage");
       auto full_message_id = on_get_message(std::move(update_edit_channel_message->message_), false, true, false, false,
                                             false, "updateEditChannelMessage");
-      on_message_edited(full_message_id, update_edit_channel_message->pts_);
+      on_message_edited(full_message_id, update_edit_channel_message->pts_, had_message);
       break;
     }
     case telegram_api::updatePinnedChannelMessages::ID: {
@@ -7813,7 +7817,7 @@ void MessagesManager::process_channel_update(tl_object_ptr<telegram_api::Update>
   }
 }
 
-void MessagesManager::on_message_edited(FullMessageId full_message_id, int32 pts) {
+void MessagesManager::on_message_edited(FullMessageId full_message_id, int32 pts, bool had_message) {
   if (full_message_id == FullMessageId()) {
     return;
   }
@@ -7828,6 +7832,13 @@ void MessagesManager::on_message_edited(FullMessageId full_message_id, int32 pts
     send_update_message_edited(dialog_id, m);
   }
   update_used_hashtags(dialog_id, m);
+
+  if (!had_message &&
+      ((m->reactions != nullptr && !m->reactions->unread_reactions_.empty()) || d->unread_reaction_count > 0)) {
+    // if new message with unread reactions was added or the chat has unread reactions,
+    // then number of unread reactions could have been changed, so reload the number of unread reactions
+    send_get_dialog_query(dialog_id, Promise<Unit>(), 0, "on_message_edited");
+  }
 }
 
 bool MessagesManager::update_dialog_notification_settings(DialogId dialog_id,

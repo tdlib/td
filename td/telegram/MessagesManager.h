@@ -1919,7 +1919,7 @@ class MessagesManager final : public Actor {
 
   void process_channel_update(tl_object_ptr<telegram_api::Update> &&update);
 
-  void on_message_edited(FullMessageId full_message_id, int32 pts);
+  void on_message_edited(FullMessageId full_message_id, int32 pts, bool had_message);
 
   void delete_messages_from_updates(const vector<MessageId> &message_ids);
 
