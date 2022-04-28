@@ -9805,9 +9805,11 @@ void ContactsManager::on_load_chat_full_from_database(ChatId chat_id, string val
     }
   }
 
-  td_->group_call_manager_->on_update_dialog_about(DialogId(chat_id), chat_full->description, false);
+  auto photo = std::move(chat_full->photo);
+  chat_full->photo = Photo();
+  on_update_chat_full_photo(chat_full, chat_id, std::move(photo));
 
-  on_update_chat_full_photo(chat_full, chat_id, std::move(chat_full->photo));
+  td_->group_call_manager_->on_update_dialog_about(DialogId(chat_id), chat_full->description, false);
 
   chat_full->is_update_chat_full_sent = true;
   update_chat_full(chat_full, chat_id, "on_load_chat_full_from_database", true);
@@ -9916,6 +9918,7 @@ void ContactsManager::on_load_channel_full_from_database(ChannelId channel_id, s
     }
   }
   auto photo = std::move(channel_full->photo);
+  channel_full->photo = Photo();
   on_update_channel_full_photo(channel_full, channel_id, std::move(photo));
 
   if (channel_full->participant_count < channel_full->administrator_count) {
@@ -10741,16 +10744,17 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
       return promise.set_value(Unit());
     }
 
+    Chat *c = get_chat(chat_id);
+    if (c == nullptr) {
+      LOG(ERROR) << "Can't find " << chat_id;
+      return promise.set_value(Unit());
+    }
     {
       MessageId pinned_message_id;
       if ((chat->flags_ & CHAT_FULL_FLAG_HAS_PINNED_MESSAGE) != 0) {
         pinned_message_id = MessageId(ServerMessageId(chat->pinned_msg_id_));
       }
-      Chat *c = get_chat(chat_id);
-      if (c == nullptr) {
-        LOG(ERROR) << "Can't find " << chat_id;
-        return promise.set_value(Unit());
-      } else if (c->version >= c->pinned_message_version) {
+      if (c->version >= c->pinned_message_version) {
         LOG(INFO) << "Receive pinned " << pinned_message_id << " in " << chat_id << " with version " << c->version
                   << ". Current version is " << c->pinned_message_version;
         td_->messages_manager_->on_update_dialog_last_pinned_message_id(DialogId(chat_id), pinned_message_id);
@@ -10797,8 +10801,9 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
 
     ChatFull *chat_full = add_chat_full(chat_id);
     on_update_chat_full_invite_link(chat_full, std::move(chat->exported_invite_));
-    on_update_chat_full_photo(chat_full, chat_id,
-                              get_photo(td_->file_manager_.get(), std::move(chat->chat_photo_), DialogId(chat_id)));
+    auto photo = get_photo(td_->file_manager_.get(), std::move(chat->chat_photo_), DialogId(chat_id));
+    on_update_chat_photo(c, as_dialog_photo(td_->file_manager_.get(), DialogId(chat_id), 0, photo));
+    on_update_chat_full_photo(chat_full, chat_id, std::move(photo));
     if (chat_full->description != chat->about_) {
       chat_full->description = std::move(chat->about_);
       chat_full->is_changed = true;
@@ -10828,6 +10833,7 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
     }
 
     chat_full->is_update_chat_full_sent = true;
+    update_chat(c, chat_id);
     update_chat_full(chat_full, chat_id, "on_get_chat_full");
   } else {
     CHECK(chat_full_ptr->get_id() == telegram_api::channelFull::ID);
@@ -10963,9 +10969,9 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
       channel_full->need_save_to_database = true;
     }
 
-    on_update_channel_full_photo(
-        channel_full, channel_id,
-        get_photo(td_->file_manager_.get(), std::move(channel->chat_photo_), DialogId(channel_id)));
+    auto photo = get_photo(td_->file_manager_.get(), std::move(channel->chat_photo_), DialogId(channel_id));
+    on_update_channel_photo(c, as_dialog_photo(td_->file_manager_.get(), DialogId(channel_id), c->access_hash, photo));
+    on_update_channel_full_photo(channel_full, channel_id, std::move(photo));
 
     td_->messages_manager_->on_read_channel_outbox(channel_id,
                                                    MessageId(ServerMessageId(channel->read_outbox_max_id_)));
@@ -11096,6 +11102,7 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
     }
 
     channel_full->is_update_channel_full_sent = true;
+    update_channel(c, channel_id);
     update_channel_full(channel_full, channel_id, "on_get_channel_full");
 
     if (linked_channel_id.is_valid()) {
@@ -12620,9 +12627,6 @@ void ContactsManager::on_update_chat_full_photo(ChatFull *chat_full, ChatId chat
     chat_full->photo = std::move(photo);
     chat_full->is_changed = true;
   }
-  if (chat_full->photo.is_empty()) {
-    drop_chat_photos(chat_id, true, false, "on_update_chat_full_photo");
-  }
 
   auto photo_file_ids = photo_get_file_ids(chat_full->photo);
   if (chat_full->registered_photo_file_ids == photo_file_ids) {
@@ -12656,9 +12660,6 @@ void ContactsManager::on_update_channel_full_photo(ChannelFull *channel_full, Ch
   if (photo != channel_full->photo) {
     channel_full->photo = std::move(photo);
     channel_full->is_changed = true;
-  }
-  if (channel_full->photo.is_empty()) {
-    drop_channel_photos(channel_id, true, false, "on_update_channel_full_photo");
   }
 
   auto photo_file_ids = photo_get_file_ids(channel_full->photo);
@@ -13437,14 +13438,16 @@ void ContactsManager::on_update_chat_participant_count(Chat *c, ChatId chat_id, 
 
 void ContactsManager::on_update_chat_photo(Chat *c, ChatId chat_id,
                                            tl_object_ptr<telegram_api::ChatPhoto> &&chat_photo_ptr) {
-  DialogPhoto new_chat_photo =
-      get_dialog_photo(td_->file_manager_.get(), DialogId(chat_id), 0, std::move(chat_photo_ptr));
+  on_update_chat_photo(c, get_dialog_photo(td_->file_manager_.get(), DialogId(chat_id), 0, std::move(chat_photo_ptr)));
+}
+
+void ContactsManager::on_update_chat_photo(Chat *c, DialogPhoto &&photo) {
   if (td_->auth_manager_->is_bot()) {
-    new_chat_photo.minithumbnail.clear();
+    photo.minithumbnail.clear();
   }
 
-  if (new_chat_photo != c->photo) {
-    c->photo = new_chat_photo;
+  if (photo != c->photo) {
+    c->photo = std::move(photo);
     c->is_photo_changed = true;
     c->need_save_to_database = true;
   }
@@ -13579,14 +13582,17 @@ void ContactsManager::drop_chat_full(ChatId chat_id) {
 
 void ContactsManager::on_update_channel_photo(Channel *c, ChannelId channel_id,
                                               tl_object_ptr<telegram_api::ChatPhoto> &&chat_photo_ptr) {
-  DialogPhoto new_chat_photo =
-      get_dialog_photo(td_->file_manager_.get(), DialogId(channel_id), c->access_hash, std::move(chat_photo_ptr));
+  on_update_channel_photo(
+      c, get_dialog_photo(td_->file_manager_.get(), DialogId(channel_id), c->access_hash, std::move(chat_photo_ptr)));
+}
+
+void ContactsManager::on_update_channel_photo(Channel *c, DialogPhoto &&photo) {
   if (td_->auth_manager_->is_bot()) {
-    new_chat_photo.minithumbnail.clear();
+    photo.minithumbnail.clear();
   }
 
-  if (new_chat_photo != c->photo) {
-    c->photo = new_chat_photo;
+  if (photo != c->photo) {
+    c->photo = std::move(photo);
     c->is_photo_changed = true;
     c->need_save_to_database = true;
   }
