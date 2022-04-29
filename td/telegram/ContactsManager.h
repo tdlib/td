@@ -826,7 +826,7 @@ class ContactsManager final : public Actor {
     int32 date = 0;
     int32 participant_count = 0;
 
-    static constexpr uint32 CACHE_VERSION = 8;
+    static constexpr uint32 CACHE_VERSION = 9;
     uint32 cache_version = 0;
 
     bool has_linked_channel = false;
@@ -835,6 +835,8 @@ class ContactsManager final : public Actor {
     bool is_slow_mode_enabled = false;
     bool noforwards = false;
     bool can_be_deleted = false;
+    bool join_to_send = false;
+    bool join_request = false;
 
     bool is_megagroup = false;
     bool is_gigagroup = false;
@@ -1104,6 +1106,8 @@ class ContactsManager final : public Actor {
   static constexpr int32 CHANNEL_FLAG_IS_FAKE = 1 << 25;
   static constexpr int32 CHANNEL_FLAG_IS_GIGAGROUP = 1 << 26;
   static constexpr int32 CHANNEL_FLAG_NOFORWARDS = 1 << 27;
+  static constexpr int32 CHANNEL_FLAG_JOIN_TO_SEND = 1 << 28;
+  static constexpr int32 CHANNEL_FLAG_JOIN_REQUEST = 1 << 29;
 
   static constexpr int32 CHANNEL_FULL_FLAG_HAS_PARTICIPANT_COUNT = 1 << 0;
   static constexpr int32 CHANNEL_FULL_FLAG_HAS_ADMINISTRATOR_COUNT = 1 << 1;
