@@ -10993,6 +10993,52 @@ void MessagesManager::on_failed_scheduled_message_deletion(DialogId dialog_id, c
   load_dialog_scheduled_messages(dialog_id, false, 0, Promise<Unit>());
 }
 
+MessagesManager::CanDeleteDialog MessagesManager::can_delete_dialog(const Dialog *d) const {
+  auto chat_source = sponsored_dialog_source_.get_chat_source_object();
+  if (chat_source != nullptr) {
+    switch (chat_source->get_id()) {
+      case td_api::chatSourcePublicServiceAnnouncement::ID:
+        // can delete for self (but only while removing from dialog list)
+        return {true, false};
+      default:
+        return {false, false};
+    }
+  }
+  if (td_->auth_manager_->is_bot() || !have_input_peer(d->dialog_id, AccessRights::Read)) {
+    return {false, false};
+  }
+
+  switch (d->dialog_id.get_type()) {
+    case DialogType::User:
+      if (d->dialog_id == get_my_dialog_id() || td_->contacts_manager_->is_user_deleted(d->dialog_id.get_user_id()) ||
+          td_->contacts_manager_->is_user_bot(d->dialog_id.get_user_id())) {
+        return {true, false};
+      }
+      return {true, G()->shared_config().get_option_boolean("revoke_pm_inbox", true)};
+    case DialogType::Chat:
+      // chats can be deleted only for self and can be deleted for everyone by their creator
+      return {true, td_->contacts_manager_->get_chat_status(d->dialog_id.get_chat_id()).is_creator()};
+    case DialogType::Channel:
+      // private supergroups can be deleted for self
+      return {!is_broadcast_channel(d->dialog_id) &&
+                  !td_->contacts_manager_->is_channel_public(d->dialog_id.get_channel_id()),
+              td_->contacts_manager_->get_channel_can_be_deleted(d->dialog_id.get_channel_id())};
+    case DialogType::SecretChat:
+      if (td_->contacts_manager_->get_secret_chat_state(d->dialog_id.get_secret_chat_id()) == SecretChatState::Closed) {
+        // in a closed secret chats there is no way to delete messages for both users
+        return {true, false};
+      } else {
+        // active secret chats can be deleted only for both users
+        return {false, true};
+      }
+      break;
+    case DialogType::None:
+    default:
+      UNREACHABLE();
+      return {false, false};
+  }
+}
+
 void MessagesManager::delete_dialog_history(DialogId dialog_id, bool remove_from_dialog_list, bool revoke,
                                             Promise<Unit> &&promise) {
   LOG(INFO) << "Receive deleteChatHistory request to delete all messages in " << dialog_id
@@ -21063,65 +21109,9 @@ td_api::object_ptr<td_api::chat> MessagesManager::get_chat_object(const Dialog *
   CHECK(d != nullptr);
 
   auto chat_source = is_dialog_sponsored(d) ? sponsored_dialog_source_.get_chat_source_object() : nullptr;
-
-  bool can_delete_for_self = false;
-  bool can_delete_for_all_users = false;
-  if (chat_source != nullptr) {
-    switch (chat_source->get_id()) {
-      case td_api::chatSourcePublicServiceAnnouncement::ID:
-        // can delete for self (but only while removing from dialog list)
-        can_delete_for_self = true;
-        break;
-      default:
-        // can't delete
-        break;
-    }
-  } else if (!td_->auth_manager_->is_bot() && have_input_peer(d->dialog_id, AccessRights::Read)) {
-    switch (d->dialog_id.get_type()) {
-      case DialogType::User:
-        can_delete_for_self = true;
-        can_delete_for_all_users = G()->shared_config().get_option_boolean("revoke_pm_inbox", true);
-        if (d->dialog_id == get_my_dialog_id() || td_->contacts_manager_->is_user_deleted(d->dialog_id.get_user_id()) ||
-            td_->contacts_manager_->is_user_bot(d->dialog_id.get_user_id())) {
-          can_delete_for_all_users = false;
-        }
-        break;
-      case DialogType::Chat:
-        // chats can be deleted only for self with deleteChatHistory and for everyone by their creator
-        can_delete_for_self = true;
-        can_delete_for_all_users = td_->contacts_manager_->get_chat_status(d->dialog_id.get_chat_id()).is_creator();
-        break;
-      case DialogType::Channel:
-        if (is_broadcast_channel(d->dialog_id) ||
-            td_->contacts_manager_->is_channel_public(d->dialog_id.get_channel_id())) {
-          // deleteChatHistory can't be used in channels and public supergroups to delete messages for self
-        } else {
-          // private supergroups can be deleted for self
-          can_delete_for_self = true;
-        }
-        if (td_->contacts_manager_->get_channel_can_be_deleted(d->dialog_id.get_channel_id())) {
-          can_delete_for_all_users = true;
-        }
-        break;
-      case DialogType::SecretChat:
-        if (td_->contacts_manager_->get_secret_chat_state(d->dialog_id.get_secret_chat_id()) ==
-            SecretChatState::Closed) {
-          // in a closed secret chats there is no way to delete messages for both users
-          can_delete_for_self = true;
-        } else {
-          // active secret chats can be deleted only for both users
-          can_delete_for_all_users = true;
-        }
-        break;
-      case DialogType::None:
-      default:
-        UNREACHABLE();
-    }
-  }
-
+  auto can_delete = can_delete_dialog(d);
   // TODO hide/show draft message when can_send_message(dialog_id) changes
   auto draft_message = can_send_message(d->dialog_id).is_ok() ? get_draft_message_object(d->draft_message) : nullptr;
-
   return make_tl_object<td_api::chat>(
       d->dialog_id.get(), get_chat_type_object(d->dialog_id), get_dialog_title(d->dialog_id),
       get_chat_photo_info_object(td_->file_manager_.get(), get_dialog_photo(d->dialog_id)),
@@ -21129,7 +21119,7 @@ td_api::object_ptr<td_api::chat> MessagesManager::get_chat_object(const Dialog *
       get_message_object(d->dialog_id, get_message(d, d->last_message_id), "get_chat_object"),
       get_chat_positions_object(d), get_default_message_sender_object(d),
       get_dialog_has_protected_content(d->dialog_id), d->is_marked_as_unread, d->is_blocked,
-      get_dialog_has_scheduled_messages(d), can_delete_for_self, can_delete_for_all_users,
+      get_dialog_has_scheduled_messages(d), can_delete.for_self_, can_delete.for_all_users_,
       can_report_dialog(d->dialog_id), d->notification_settings.silent_send_message,
       d->server_unread_count + d->local_unread_count, d->last_read_inbox_message_id.get(),
       d->last_read_outbox_message_id.get(), d->unread_mention_count, d->unread_reaction_count,

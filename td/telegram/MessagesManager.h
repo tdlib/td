@@ -2031,6 +2031,15 @@ class MessagesManager final : public Actor {
 
   bool can_get_message_statistics(DialogId dialog_id, const Message *m) const;
 
+  struct CanDeleteDialog {
+    bool for_self_;
+    bool for_all_users_;
+
+    CanDeleteDialog(bool for_self, bool for_all_users) : for_self_(for_self), for_all_users_(for_all_users) {
+    }
+  };
+  CanDeleteDialog can_delete_dialog(const Dialog *d) const;
+
   static bool can_delete_channel_message(const DialogParticipantStatus &status, const Message *m, bool is_bot);
 
   bool can_delete_message(DialogId dialog_id, const Message *m) const;
