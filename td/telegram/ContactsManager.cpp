@@ -10109,6 +10109,7 @@ void ContactsManager::update_chat(Chat *c, ChatId chat_id, bool from_binlog, boo
     if (chat_full != nullptr &&
         !is_same_dialog_photo(td_->file_manager_.get(), DialogId(chat_id), chat_full->photo, c->photo)) {
       on_update_chat_full_photo(chat_full, chat_id, Photo());
+      need_update_chat_full = true;
       if (c->photo.small_file_id.is_valid()) {
         reload_chat_full(chat_id, Auto());
       }
@@ -10183,6 +10184,7 @@ void ContactsManager::update_channel(Channel *c, ChannelId channel_id, bool from
     if (channel_full != nullptr &&
         !is_same_dialog_photo(td_->file_manager_.get(), DialogId(channel_id), channel_full->photo, c->photo)) {
       on_update_channel_full_photo(channel_full, channel_id, Photo());
+      need_update_channel_full = true;
       if (c->photo.small_file_id.is_valid()) {
         if (channel_full->expires_at > 0.0) {
           channel_full->expires_at = 0.0;
