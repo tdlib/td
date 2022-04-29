@@ -4661,20 +4661,26 @@ tl_object_ptr<telegram_api::inputEncryptedChat> ContactsManager::get_input_encry
   return make_tl_object<telegram_api::inputEncryptedChat>(secret_chat_id.get(), sc->access_hash);
 }
 
+void ContactsManager::apply_pending_user_photo(User *u, UserId user_id) {
+  if (u == nullptr || u->is_photo_inited) {
+    return;
+  }
+
+  auto it = pending_user_photos_.find(user_id);
+  if (it != pending_user_photos_.end()) {
+    do_update_user_photo(u, user_id, std::move(it->second), "get_user_dialog_photo");
+    pending_user_photos_.erase(it);
+    update_user(u, user_id);
+  }
+}
+
 const DialogPhoto *ContactsManager::get_user_dialog_photo(UserId user_id) {
   auto u = get_user(user_id);
   if (u == nullptr) {
     return nullptr;
   }
 
-  if (!u->is_photo_inited) {
-    auto it = pending_user_photos_.find(user_id);
-    if (it != pending_user_photos_.end()) {
-      do_update_user_photo(u, user_id, std::move(it->second), "get_user_dialog_photo");
-      pending_user_photos_.erase(it);
-      update_user(u, user_id);
-    }
-  }
+  apply_pending_user_photo(u, user_id);
   return &u->photo;
 }
 
@@ -10517,6 +10523,8 @@ void ContactsManager::on_get_user_full(tl_object_ptr<telegram_api::userFull> &&u
     return;
   }
 
+  apply_pending_user_photo(u, user_id);
+
   td_->messages_manager_->on_update_dialog_notify_settings(DialogId(user_id), std::move(user->notify_settings_),
                                                            "on_get_user_full");
 
@@ -14350,7 +14358,7 @@ std::pair<int32, vector<const Photo *>> ContactsManager::get_user_profile_photos
     return result;
   }
 
-  get_user_dialog_photo(user_id);  // apply pending user photo
+  apply_pending_user_photo(get_user(user_id), user_id);
 
   auto user_photos = &user_photos_[user_id];
   if (user_photos->getting_now) {

@@ -1227,6 +1227,7 @@ class ContactsManager final : public Actor {
                             const char *source);
   void do_update_user_photo(User *u, UserId user_id, ProfilePhoto &&new_photo, bool invalidate_photo_cache,
                             const char *source);
+  void apply_pending_user_photo(User *u, UserId user_id);
 
   void upload_profile_photo(FileId file_id, bool is_animation, double main_frame_timestamp, Promise<Unit> &&promise,
                             int reupload_count = 0, vector<int> bad_parts = {});
