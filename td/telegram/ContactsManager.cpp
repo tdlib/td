@@ -11323,7 +11323,7 @@ void ContactsManager::do_update_user_photo(User *u, UserId user_id,
 void ContactsManager::do_update_user_photo(User *u, UserId user_id, ProfilePhoto &&new_photo,
                                            bool invalidate_photo_cache, const char *source) {
   u->is_photo_inited = true;
-  if (new_photo != u->photo) {
+  if (need_update_profile_photo(u->photo, new_photo)) {
     LOG_IF(ERROR, u->access_hash == -1 && new_photo.small_file_id.is_valid())
         << "Update profile photo of " << user_id << " without access hash from " << source;
     u->photo = new_photo;
@@ -13458,7 +13458,7 @@ void ContactsManager::on_update_chat_photo(Chat *c, DialogPhoto &&photo) {
     photo.minithumbnail.clear();
   }
 
-  if (photo != c->photo) {
+  if (need_update_dialog_photo(c->photo, photo)) {
     c->photo = std::move(photo);
     c->is_photo_changed = true;
     c->need_save_to_database = true;
@@ -13587,7 +13587,7 @@ void ContactsManager::on_update_channel_photo(Channel *c, DialogPhoto &&photo) {
     photo.minithumbnail.clear();
   }
 
-  if (photo != c->photo) {
+  if (need_update_dialog_photo(c->photo, photo)) {
     c->photo = std::move(photo);
     c->is_photo_changed = true;
     c->need_save_to_database = true;

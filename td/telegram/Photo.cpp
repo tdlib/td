@@ -67,18 +67,8 @@ tl_object_ptr<td_api::profilePhoto> get_profile_photo_object(FileManager *file_m
       profile_photo.has_animation);
 }
 
-bool operator==(const ProfilePhoto &lhs, const ProfilePhoto &rhs) {
-  bool location_differs = lhs.small_file_id != rhs.small_file_id || lhs.big_file_id != rhs.big_file_id;
-  bool id_differs = lhs.id != rhs.id;
-
-  if (location_differs) {
-    return false;
-  }
-  return lhs.has_animation == rhs.has_animation && lhs.minithumbnail == rhs.minithumbnail && !id_differs;
-}
-
-bool operator!=(const ProfilePhoto &lhs, const ProfilePhoto &rhs) {
-  return !(lhs == rhs);
+bool need_update_profile_photo(const ProfilePhoto &from, const ProfilePhoto &to) {
+  return from.id != to.id || need_update_dialog_photo(from, to);
 }
 
 StringBuilder &operator<<(StringBuilder &string_builder, const ProfilePhoto &profile_photo) {
@@ -204,13 +194,10 @@ bool is_same_dialog_photo(FileManager *file_manager, DialogId dialog_id, const P
          get_unique_file_id(fake_photo.big_file_id) == get_unique_file_id(dialog_photo.big_file_id);
 }
 
-bool operator==(const DialogPhoto &lhs, const DialogPhoto &rhs) {
-  return lhs.small_file_id == rhs.small_file_id && lhs.big_file_id == rhs.big_file_id &&
-         lhs.minithumbnail == rhs.minithumbnail && lhs.has_animation == rhs.has_animation;
-}
-
-bool operator!=(const DialogPhoto &lhs, const DialogPhoto &rhs) {
-  return !(lhs == rhs);
+bool need_update_dialog_photo(const DialogPhoto &from, const DialogPhoto &to) {
+  return from.small_file_id != to.small_file_id || from.big_file_id != to.big_file_id ||
+         from.has_animation != to.has_animation ||
+         need_update_dialog_photo_minithumbnail(from.minithumbnail, to.minithumbnail);
 }
 
 StringBuilder &operator<<(StringBuilder &string_builder, const DialogPhoto &dialog_photo) {

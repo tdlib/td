@@ -48,6 +48,8 @@ bool operator!=(const Dimensions &lhs, const Dimensions &rhs);
 
 StringBuilder &operator<<(StringBuilder &string_builder, const Dimensions &dimensions);
 
+bool need_update_dialog_photo_minithumbnail(const string &from, const string &to);
+
 td_api::object_ptr<td_api::minithumbnail> get_minithumbnail_object(const string &packed);
 
 FileId register_photo_size(FileManager *file_manager, const PhotoSizeSource &source, int64 id, int64 access_hash,

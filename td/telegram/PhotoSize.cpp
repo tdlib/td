@@ -57,6 +57,27 @@ StringBuilder &operator<<(StringBuilder &string_builder, const Dimensions &dimen
   return string_builder << "(" << dimensions.width << ", " << dimensions.height << ")";
 }
 
+static int32 get_minithumbnail_size(const string &packed) {
+  if (packed.size() < 3) {
+    return 0;
+  }
+  if (packed[0] == '\x01') {
+    return max(static_cast<unsigned char>(packed[1]), static_cast<unsigned char>(packed[2]));
+  }
+  return 0;
+}
+
+bool need_update_dialog_photo_minithumbnail(const string &from, const string &to) {
+  if (from == to) {
+    return false;
+  }
+
+  auto from_size = get_minithumbnail_size(from);
+  auto to_size = get_minithumbnail_size(to);
+  // dialog photo minithumbnail is expected to be 8x8
+  return to_size != 0 && (to_size <= 8 || from_size > 8);
+}
+
 td_api::object_ptr<td_api::minithumbnail> get_minithumbnail_object(const string &packed) {
   if (packed.size() < 3) {
     return nullptr;
