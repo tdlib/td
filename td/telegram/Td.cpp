@@ -6868,6 +6868,20 @@ void Td::on_request(uint64 id, const td_api::toggleSupergroupSignMessages &reque
                                                   std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::toggleSupergroupJoinToSendMessages &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  contacts_manager_->toggle_channel_join_to_send(ChannelId(request.supergroup_id_), request.join_to_send_messages_,
+                                                 std::move(promise));
+}
+
+void Td::on_request(uint64 id, const td_api::toggleSupergroupJoinByRequest &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  contacts_manager_->toggle_channel_join_request(ChannelId(request.supergroup_id_), request.join_by_request_,
+                                                 std::move(promise));
+}
+
 void Td::on_request(uint64 id, const td_api::toggleSupergroupIsAllHistoryAvailable &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();

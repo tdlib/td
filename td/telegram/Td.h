@@ -1032,6 +1032,10 @@ class Td final : public Actor {
 
   void on_request(uint64 id, const td_api::toggleSupergroupSignMessages &request);
 
+  void on_request(uint64 id, const td_api::toggleSupergroupJoinToSendMessages &request);
+
+  void on_request(uint64 id, const td_api::toggleSupergroupJoinByRequest &request);
+
   void on_request(uint64 id, const td_api::toggleSupergroupIsAllHistoryAvailable &request);
 
   void on_request(uint64 id, const td_api::toggleSupergroupIsBroadcastGroup &request);

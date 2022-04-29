@@ -4372,6 +4372,18 @@ class CliClient final : public Actor {
       get_args(args, supergroup_id, sign_messages);
       send_request(
           td_api::make_object<td_api::toggleSupergroupSignMessages>(as_supergroup_id(supergroup_id), sign_messages));
+    } else if (op == "tsgjtsm") {
+      string supergroup_id;
+      bool join_to_send_message;
+      get_args(args, supergroup_id, join_to_send_message);
+      send_request(td_api::make_object<td_api::toggleSupergroupJoinToSendMessages>(as_supergroup_id(supergroup_id),
+                                                                                   join_to_send_message));
+    } else if (op == "tsgjtsm") {
+      string supergroup_id;
+      bool join_by_request;
+      get_args(args, supergroup_id, join_by_request);
+      send_request(
+          td_api::make_object<td_api::toggleSupergroupJoinByRequest>(as_supergroup_id(supergroup_id), join_by_request));
     } else if (op == "scar") {
       ChatId chat_id;
       string available_reactions;

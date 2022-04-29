@@ -844,6 +844,86 @@ class ToggleChannelSignaturesQuery final : public Td::ResultHandler {
   }
 };
 
+class ToggleChannelJoinToSendQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  ChannelId channel_id_;
+
+ public:
+  explicit ToggleChannelJoinToSendQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(ChannelId channel_id, bool join_to_send) {
+    channel_id_ = channel_id;
+    auto input_channel = td_->contacts_manager_->get_input_channel(channel_id);
+    CHECK(input_channel != nullptr);
+    send_query(G()->net_query_creator().create(
+        telegram_api::channels_toggleJoinToSend(std::move(input_channel), join_to_send)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::channels_toggleJoinToSend>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for ToggleChannelJoinToSendQuery: " << to_string(ptr);
+    td_->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
+  }
+
+  void on_error(Status status) final {
+    if (status.message() == "CHAT_NOT_MODIFIED") {
+      if (!td_->auth_manager_->is_bot()) {
+        promise_.set_value(Unit());
+        return;
+      }
+    } else {
+      td_->contacts_manager_->on_get_channel_error(channel_id_, status, "ToggleChannelJoinToSendQuery");
+    }
+    promise_.set_error(std::move(status));
+  }
+};
+
+class ToggleChannelJoinRequestQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  ChannelId channel_id_;
+
+ public:
+  explicit ToggleChannelJoinRequestQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(ChannelId channel_id, bool join_request) {
+    channel_id_ = channel_id;
+    auto input_channel = td_->contacts_manager_->get_input_channel(channel_id);
+    CHECK(input_channel != nullptr);
+    send_query(G()->net_query_creator().create(
+        telegram_api::channels_toggleJoinRequest(std::move(input_channel), join_request)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::channels_toggleJoinRequest>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for ToggleChannelJoinRequestQuery: " << to_string(ptr);
+    td_->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
+  }
+
+  void on_error(Status status) final {
+    if (status.message() == "CHAT_NOT_MODIFIED") {
+      if (!td_->auth_manager_->is_bot()) {
+        promise_.set_value(Unit());
+        return;
+      }
+    } else {
+      td_->contacts_manager_->on_get_channel_error(channel_id_, status, "ToggleChannelJoinRequestQuery");
+    }
+    promise_.set_error(std::move(status));
+  }
+};
+
 class TogglePrehistoryHiddenQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   ChannelId channel_id_;
@@ -6507,6 +6587,36 @@ void ContactsManager::toggle_channel_sign_messages(ChannelId channel_id, bool si
   }
 
   td_->create_handler<ToggleChannelSignaturesQuery>(std::move(promise))->send(channel_id, sign_messages);
+}
+
+void ContactsManager::toggle_channel_join_to_send(ChannelId channel_id, bool join_to_send, Promise<Unit> &&promise) {
+  auto c = get_channel(channel_id);
+  if (c == nullptr) {
+    return promise.set_error(Status::Error(400, "Supergroup not found"));
+  }
+  if (get_channel_type(c) == ChannelType::Broadcast) {
+    return promise.set_error(Status::Error(400, "The method can't be called for channels"));
+  }
+  if (!get_channel_permissions(c).can_restrict_members()) {
+    return promise.set_error(Status::Error(400, "Not enough rights"));
+  }
+
+  td_->create_handler<ToggleChannelJoinToSendQuery>(std::move(promise))->send(channel_id, join_to_send);
+}
+
+void ContactsManager::toggle_channel_join_request(ChannelId channel_id, bool join_request, Promise<Unit> &&promise) {
+  auto c = get_channel(channel_id);
+  if (c == nullptr) {
+    return promise.set_error(Status::Error(400, "Supergroup not found"));
+  }
+  if (get_channel_type(c) == ChannelType::Broadcast) {
+    return promise.set_error(Status::Error(400, "The method can't be called for channels"));
+  }
+  if (!get_channel_permissions(c).can_restrict_members()) {
+    return promise.set_error(Status::Error(400, "Not enough rights"));
+  }
+
+  td_->create_handler<ToggleChannelJoinRequestQuery>(std::move(promise))->send(channel_id, join_request);
 }
 
 void ContactsManager::toggle_channel_is_all_history_available(ChannelId channel_id, bool is_all_history_available,
