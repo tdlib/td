@@ -11059,8 +11059,7 @@ void MessagesManager::delete_dialog_history(DialogId dialog_id, bool remove_from
       return promise.set_error(Status::Error(400, "Can't delete the chat"));
     }
     if (!remove_from_dialog_list) {
-      return promise.set_error(
-          Status::Error(400, "Can't delete only chat history without removing the chat from the chat list"));
+      return promise.set_error(Status::Error(400, "Can't delete chat history without removing the chat"));
     }
 
     removed_sponsored_dialog_id_ = dialog_id;
@@ -11071,37 +11070,25 @@ void MessagesManager::delete_dialog_history(DialogId dialog_id, bool remove_from
     return;
   }
 
-  auto dialog_type = dialog_id.get_type();
-  switch (dialog_type) {
-    case DialogType::User:
-    case DialogType::Chat:
-      // ok
-      break;
-    case DialogType::Channel:
-      if (revoke) {
-        if (!td_->contacts_manager_->get_channel_can_be_deleted(d->dialog_id.get_channel_id())) {
-          return promise.set_error(Status::Error(400, "Can't delete chat history for all chat members"));
-        }
-      } else {
-        if (is_broadcast_channel(dialog_id)) {
-          return promise.set_error(Status::Error(400, "Can't delete chat history in a channel"));
-        }
-        if (td_->contacts_manager_->is_channel_public(dialog_id.get_channel_id())) {
-          return promise.set_error(Status::Error(400, "Can't delete chat history in a public supergroup"));
-        }
+  auto can_delete = can_delete_dialog(d);
+  if (revoke) {
+    if (!can_delete.for_all_users_) {
+      if (!can_delete.for_self_) {
+        return promise.set_error(Status::Error(400, "Chat history can't be deleted"));
       }
-      break;
-    case DialogType::SecretChat:
-      // ok
-      break;
-    case DialogType::None:
-    default:
-      UNREACHABLE();
-      break;
+
+      LOG(INFO) << "Can't delete history of " << dialog_id << " for everyone; delete it only for self";
+      revoke = false;
+    }
+  } else {
+    if (!can_delete.for_self_) {
+      return promise.set_error(
+          Status::Error(400, PSLICE() << "Can't delete history of " << dialog_id << " only for self"));
+    }
   }
 
   auto last_new_message_id = d->last_new_message_id;
-  if (dialog_type != DialogType::SecretChat && last_new_message_id == MessageId()) {
+  if (dialog_id.get_type() != DialogType::SecretChat && last_new_message_id == MessageId()) {
     // TODO get dialog from the server and delete history from last message identifier
   }
 
