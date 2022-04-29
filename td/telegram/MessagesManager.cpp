@@ -31190,6 +31190,11 @@ void MessagesManager::on_send_message_fail(int64 random_id, Status error) {
       if (error.message() == "MESSAGE_DELETE_FORBIDDEN") {
         error_code = 400;
         error_message = "Message can't be deleted";
+      } else if (error.message() == "CHAT_GUEST_SEND_FORBIDDEN") {
+        error_code = 400;
+        if (dialog_id.get_type() == DialogType::Channel) {
+          td_->contacts_manager_->reload_channel(dialog_id.get_channel_id(), Promise<Unit>());
+        }
       } else if (error.message() != "CHANNEL_PUBLIC_GROUP_NA" && error.message() != "USER_IS_BLOCKED" &&
                  error.message() != "USER_BOT_INVALID" && error.message() != "USER_DELETED") {
         error_code = 400;
