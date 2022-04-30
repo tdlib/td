@@ -17498,62 +17498,11 @@ void MessagesManager::on_get_common_dialogs(UserId user_id, int64 offset_chat_id
   }
   bool is_last = chats.empty() && offset_chat_id == 0;
   for (auto &chat : chats) {
-    DialogId dialog_id;
-    switch (chat->get_id()) {
-      case telegram_api::chatEmpty::ID: {
-        auto c = static_cast<const telegram_api::chatEmpty *>(chat.get());
-        ChatId chat_id(c->id_);
-        if (!chat_id.is_valid()) {
-          LOG(ERROR) << "Receive invalid " << chat_id;
-          continue;
-        }
-        dialog_id = DialogId(chat_id);
-        break;
-      }
-      case telegram_api::chat::ID: {
-        auto c = static_cast<const telegram_api::chat *>(chat.get());
-        ChatId chat_id(c->id_);
-        if (!chat_id.is_valid()) {
-          LOG(ERROR) << "Receive invalid " << chat_id;
-          continue;
-        }
-        dialog_id = DialogId(chat_id);
-        break;
-      }
-      case telegram_api::chatForbidden::ID: {
-        auto c = static_cast<const telegram_api::chatForbidden *>(chat.get());
-        ChatId chat_id(c->id_);
-        if (!chat_id.is_valid()) {
-          LOG(ERROR) << "Receive invalid " << chat_id;
-          continue;
-        }
-        dialog_id = DialogId(chat_id);
-        break;
-      }
-      case telegram_api::channel::ID: {
-        auto c = static_cast<const telegram_api::channel *>(chat.get());
-        ChannelId channel_id(c->id_);
-        if (!channel_id.is_valid()) {
-          LOG(ERROR) << "Receive invalid " << channel_id;
-          continue;
-        }
-        dialog_id = DialogId(channel_id);
-        break;
-      }
-      case telegram_api::channelForbidden::ID: {
-        auto c = static_cast<const telegram_api::channelForbidden *>(chat.get());
-        ChannelId channel_id(c->id_);
-        if (!channel_id.is_valid()) {
-          LOG(ERROR) << "Receive invalid " << channel_id;
-          continue;
-        }
-        dialog_id = DialogId(channel_id);
-        break;
-      }
-      default:
-        UNREACHABLE();
+    auto dialog_id = ContactsManager::get_dialog_id(chat);
+    if (!dialog_id.is_valid()) {
+      LOG(ERROR) << "Receive invalid " << to_string(chat);
+      continue;
     }
-    CHECK(dialog_id.is_valid());
     td_->contacts_manager_->on_get_chat(std::move(chat), "on_get_common_dialogs");
 
     if (!td::contains(result, dialog_id)) {
