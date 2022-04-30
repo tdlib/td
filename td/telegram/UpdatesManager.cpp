@@ -1194,19 +1194,12 @@ vector<DialogId> UpdatesManager::get_chat_dialog_ids(const telegram_api::Updates
   vector<DialogId> dialog_ids;
   dialog_ids.reserve(chats->size());
   for (const auto &chat : *chats) {
-    auto chat_id = ContactsManager::get_chat_id(chat);
-    if (chat_id.is_valid()) {
-      dialog_ids.push_back(DialogId(chat_id));
-      continue;
+    auto dialog_id = ContactsManager::get_dialog_id(chat);
+    if (dialog_id.is_valid()) {
+      dialog_ids.push_back(dialog_id);
+    } else {
+      LOG(ERROR) << "Can't find identifier of " << oneline(to_string(chat));
     }
-
-    auto channel_id = ContactsManager::get_channel_id(chat);
-    if (channel_id.is_valid()) {
-      dialog_ids.push_back(DialogId(channel_id));
-      continue;
-    }
-
-    LOG(ERROR) << "Can't find identifier of " << oneline(to_string(chat));
   }
   return dialog_ids;
 }

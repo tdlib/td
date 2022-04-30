@@ -8388,6 +8388,14 @@ ChannelId ContactsManager::get_channel_id(const tl_object_ptr<telegram_api::Chat
   }
 }
 
+DialogId ContactsManager::get_dialog_id(const tl_object_ptr<telegram_api::Chat> &chat) {
+  auto channel_id = get_channel_id(chat);
+  if (channel_id.is_valid()) {
+    return DialogId(channel_id);
+  }
+  return DialogId(get_chat_id(chat));
+}
+
 void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, const char *source, bool is_me,
                                   bool expect_support) {
   LOG(DEBUG) << "Receive from " << source << ' ' << to_string(user_ptr);

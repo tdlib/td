@@ -78,6 +78,7 @@ class ContactsManager final : public Actor {
   static UserId get_user_id(const tl_object_ptr<telegram_api::User> &user);
   static ChatId get_chat_id(const tl_object_ptr<telegram_api::Chat> &chat);
   static ChannelId get_channel_id(const tl_object_ptr<telegram_api::Chat> &chat);
+  static DialogId get_dialog_id(const tl_object_ptr<telegram_api::Chat> &chat);
 
   Result<tl_object_ptr<telegram_api::InputUser>> get_input_user(UserId user_id) const;
 
