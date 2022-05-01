@@ -211,7 +211,7 @@ std::pair<size_t, vector<Hints::KeyT>> Hints::search(Slice query, int32 limit, b
 }
 
 bool Hints::has_key(KeyT key) const {
-  return key_to_name_.find(key) != key_to_name_.end();
+  return key_to_name_.count(key) > 0;
 }
 
 string Hints::key_to_string(KeyT key) const {

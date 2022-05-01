@@ -45,7 +45,7 @@ void FileLoadManager::download(QueryId id, const FullRemoteFileLocation &remote_
   if (stop_flag_) {
     return;
   }
-  CHECK(query_id_to_node_id_.find(id) == query_id_to_node_id_.end());
+  CHECK(query_id_to_node_id_.count(id) == 0);
   NodeId node_id = nodes_container_.create(Node());
   Node *node = nodes_container_.get(node_id);
   CHECK(node);
@@ -68,7 +68,7 @@ void FileLoadManager::upload(QueryId id, const LocalFileLocation &local_location
   if (stop_flag_) {
     return;
   }
-  CHECK(query_id_to_node_id_.find(id) == query_id_to_node_id_.end());
+  CHECK(query_id_to_node_id_.count(id) == 0);
   NodeId node_id = nodes_container_.create(Node());
   Node *node = nodes_container_.get(node_id);
   CHECK(node);
@@ -86,7 +86,7 @@ void FileLoadManager::upload_by_hash(QueryId id, const FullLocalFileLocation &lo
   if (stop_flag_) {
     return;
   }
-  CHECK(query_id_to_node_id_.find(id) == query_id_to_node_id_.end());
+  CHECK(query_id_to_node_id_.count(id) == 0);
   NodeId node_id = nodes_container_.create(Node());
   Node *node = nodes_container_.get(node_id);
   CHECK(node);
@@ -117,7 +117,7 @@ void FileLoadManager::from_bytes(QueryId id, FileType type, BufferSlice bytes, s
   if (stop_flag_) {
     return;
   }
-  CHECK(query_id_to_node_id_.find(id) == query_id_to_node_id_.end());
+  CHECK(query_id_to_node_id_.count(id) == 0);
   NodeId node_id = nodes_container_.create(Node());
   Node *node = nodes_container_.get(node_id);
   CHECK(node);

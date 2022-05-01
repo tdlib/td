@@ -5297,7 +5297,7 @@ std::pair<vector<UserId>, vector<int32>> ContactsManager::import_contacts(const 
 
   do {
     random_id = Random::secure_int64();
-  } while (random_id == 0 || imported_contacts_.find(random_id) != imported_contacts_.end());
+  } while (random_id == 0 || imported_contacts_.count(random_id) > 0);
   imported_contacts_[random_id];  // reserve place for result
 
   do_import_contacts(contacts, random_id, std::move(promise));

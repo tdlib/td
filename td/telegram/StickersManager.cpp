@@ -5867,7 +5867,7 @@ void StickersManager::create_new_sticker_set(UserId user_id, string &title, stri
   int64 random_id;
   do {
     random_id = Random::secure_int64();
-  } while (random_id == 0 || pending_new_sticker_sets_.find(random_id) != pending_new_sticker_sets_.end());
+  } while (random_id == 0 || pending_new_sticker_sets_.count(random_id) > 0);
   pending_new_sticker_sets_[random_id] = std::move(pending_new_sticker_set);
 
   multipromise.add_promise(PromiseCreator::lambda([actor_id = actor_id(this), random_id](Result<Unit> result) {
@@ -6066,7 +6066,7 @@ void StickersManager::add_sticker_to_set(UserId user_id, string &short_name,
   int64 random_id;
   do {
     random_id = Random::secure_int64();
-  } while (random_id == 0 || pending_add_sticker_to_sets_.find(random_id) != pending_add_sticker_to_sets_.end());
+  } while (random_id == 0 || pending_add_sticker_to_sets_.count(random_id) > 0);
   pending_add_sticker_to_sets_[random_id] = std::move(pending_add_sticker_to_set);
 
   auto on_upload_promise = PromiseCreator::lambda([random_id](Result<Unit> result) {
@@ -6162,8 +6162,7 @@ void StickersManager::do_set_sticker_set_thumbnail(UserId user_id, string short_
   int64 random_id;
   do {
     random_id = Random::secure_int64();
-  } while (random_id == 0 ||
-           pending_set_sticker_set_thumbnails_.find(random_id) != pending_set_sticker_set_thumbnails_.end());
+  } while (random_id == 0 || pending_set_sticker_set_thumbnails_.count(random_id) > 0);
   pending_set_sticker_set_thumbnails_[random_id] = std::move(pending_set_sticker_set_thumbnail);
 
   auto on_upload_promise = PromiseCreator::lambda([random_id](Result<Unit> result) {
@@ -7590,7 +7589,7 @@ int64 StickersManager::get_emoji_suggestions_url(const string &language_code, Pr
   int64 random_id = 0;
   do {
     random_id = Random::secure_int64();
-  } while (random_id == 0 || emoji_suggestions_urls_.find(random_id) != emoji_suggestions_urls_.end());
+  } while (random_id == 0 || emoji_suggestions_urls_.count(random_id) > 0);
   emoji_suggestions_urls_[random_id];  // reserve place for result
 
   auto query_promise =

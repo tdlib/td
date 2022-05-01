@@ -391,7 +391,7 @@ static Status create_local_lock(const string &path, int32 &max_tries) {
   while (true) {
     {  // mutex lock scope
       std::lock_guard<std::mutex> lock(in_process_lock_mutex);
-      if (!path.empty() && locked_files.find(path) == locked_files.end()) {
+      if (!path.empty() && locked_files.count(path) == 0) {
         VLOG(fd) << "Lock file \"" << path << '"';
         locked_files.insert(path);
         return Status::OK();

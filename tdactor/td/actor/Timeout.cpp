@@ -12,7 +12,7 @@
 namespace td {
 
 bool MultiTimeout::has_timeout(int64 key) const {
-  return items_.find(Item(key)) != items_.end();
+  return items_.count(Item(key)) > 0;
 }
 
 void MultiTimeout::set_timeout_at(int64 key, double timeout) {

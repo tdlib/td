@@ -548,7 +548,7 @@ void SecretChatActor::run_fill_gaps() {
       auto message = std::move(begin->second);
       pending_inbound_messages_.erase(begin);
       check_status(do_inbound_message_decrypted_unchecked(std::move(message), -1));
-      CHECK(pending_inbound_messages_.find(next_seq_no) == pending_inbound_messages_.end());
+      CHECK(pending_inbound_messages_.count(next_seq_no) == 0);
     } else {
       break;
     }

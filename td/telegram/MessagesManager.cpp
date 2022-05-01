@@ -6371,7 +6371,7 @@ void MessagesManager::skip_old_pending_pts_update(tl_object_ptr<telegram_api::Up
   if (update->get_id() == telegram_api::updateNewMessage::ID) {
     auto update_new_message = static_cast<telegram_api::updateNewMessage *>(update.get());
     auto full_message_id = get_full_message_id(update_new_message->message_, false);
-    if (update_message_ids_.find(full_message_id) != update_message_ids_.end()) {
+    if (update_message_ids_.count(full_message_id) > 0) {
       if (new_pts == old_pts) {  // otherwise message can be already deleted
         // apply sent message anyway
         on_get_message(std::move(update_new_message->message_), true, false, false, true, true,
@@ -7587,7 +7587,7 @@ void MessagesManager::add_pending_channel_update(DialogId dialog_id, tl_object_p
         auto update_new_channel_message = static_cast<telegram_api::updateNewChannelMessage *>(update.get());
         auto message_id = get_message_id(update_new_channel_message->message_, false);
         FullMessageId full_message_id(dialog_id, message_id);
-        if (update_message_ids_.find(full_message_id) != update_message_ids_.end()) {
+        if (update_message_ids_.count(full_message_id) > 0) {
           // apply sent channel message
           on_get_message(std::move(update_new_channel_message->message_), true, true, false, true, true,
                          "updateNewChannelMessage with an awaited message");
@@ -19145,7 +19145,7 @@ void MessagesManager::add_dialog_filter(unique_ptr<DialogFilter> dialog_filter, 
   }
 
   auto dialog_list_id = DialogListId(dialog_filter_id);
-  CHECK(dialog_lists_.find(dialog_list_id) == dialog_lists_.end());
+  CHECK(dialog_lists_.count(dialog_list_id) == 0);
 
   auto &list = add_dialog_list(dialog_list_id);
   auto folder_ids = get_dialog_list_folder_ids(list);
@@ -20296,7 +20296,7 @@ DialogId MessagesManager::create_new_group_chat(const vector<UserId> &user_ids, 
 
   do {
     random_id = Random::secure_int64();
-  } while (random_id == 0 || created_dialogs_.find(random_id) != created_dialogs_.end());
+  } while (random_id == 0 || created_dialogs_.count(random_id) > 0);
   created_dialogs_[random_id];  // reserve place for result
 
   td_->create_handler<CreateChatQuery>(std::move(promise))->send(std::move(input_users), new_title, random_id);
@@ -20334,7 +20334,7 @@ DialogId MessagesManager::create_new_channel_chat(const string &title, bool is_m
 
   do {
     random_id = Random::secure_int64();
-  } while (random_id == 0 || created_dialogs_.find(random_id) != created_dialogs_.end());
+  } while (random_id == 0 || created_dialogs_.count(random_id) > 0);
   created_dialogs_[random_id];  // reserve place for result
 
   td_->create_handler<CreateChannelQuery>(std::move(promise))
@@ -21887,7 +21887,7 @@ std::pair<DialogId, vector<MessageId>> MessagesManager::get_message_thread_histo
 
   do {
     random_id = Random::secure_int64();
-  } while (random_id == 0 || found_dialog_messages_.find(random_id) != found_dialog_messages_.end());
+  } while (random_id == 0 || found_dialog_messages_.count(random_id) > 0);
   found_dialog_messages_[random_id];  // reserve place for result
 
   td_->create_handler<SearchMessagesQuery>(std::move(promise))
@@ -21936,7 +21936,7 @@ td_api::object_ptr<td_api::messageCalendar> MessagesManager::get_dialog_message_
 
   do {
     random_id = Random::secure_int64();
-  } while (random_id == 0 || found_dialog_message_calendars_.find(random_id) != found_dialog_message_calendars_.end());
+  } while (random_id == 0 || found_dialog_message_calendars_.count(random_id) > 0);
   found_dialog_message_calendars_[random_id];  // reserve place for result
 
   CHECK(filter != MessageSearchFilter::Call && filter != MessageSearchFilter::MissedCall);
@@ -22150,7 +22150,7 @@ std::pair<int32, vector<MessageId>> MessagesManager::search_dialog_messages(
 
   do {
     random_id = Random::secure_int64();
-  } while (random_id == 0 || found_dialog_messages_.find(random_id) != found_dialog_messages_.end());
+  } while (random_id == 0 || found_dialog_messages_.count(random_id) > 0);
   found_dialog_messages_[random_id];  // reserve place for result
 
   if (filter == MessageSearchFilter::UnreadMention || filter == MessageSearchFilter::UnreadReaction) {
@@ -22270,7 +22270,7 @@ std::pair<int32, vector<FullMessageId>> MessagesManager::search_call_messages(Me
 
   do {
     random_id = Random::secure_int64();
-  } while (random_id == 0 || found_call_messages_.find(random_id) != found_call_messages_.end());
+  } while (random_id == 0 || found_call_messages_.count(random_id) > 0);
   found_call_messages_[random_id];  // reserve place for result
 
   auto filter = only_missed ? MessageSearchFilter::MissedCall : MessageSearchFilter::Call;
@@ -22863,7 +22863,7 @@ MessagesManager::FoundMessages MessagesManager::offline_search_messages(DialogId
 
   do {
     random_id = Random::secure_int64();
-  } while (random_id == 0 || found_fts_messages_.find(random_id) != found_fts_messages_.end());
+  } while (random_id == 0 || found_fts_messages_.count(random_id) > 0);
   found_fts_messages_[random_id];  // reserve place for result
 
   G()->td_db()->get_messages_db_async()->get_messages_fts(
@@ -22996,7 +22996,7 @@ std::pair<int32, vector<FullMessageId>> MessagesManager::search_messages(
 
   do {
     random_id = Random::secure_int64();
-  } while (random_id == 0 || found_messages_.find(random_id) != found_messages_.end());
+  } while (random_id == 0 || found_messages_.count(random_id) > 0);
   found_messages_[random_id];  // reserve place for result
 
   LOG(DEBUG) << "Search all messages filtered by " << filter << " with query = \"" << query << "\" from date "
@@ -23027,8 +23027,7 @@ int64 MessagesManager::get_dialog_message_by_date(DialogId dialog_id, int32 date
   int64 random_id = 0;
   do {
     random_id = Random::secure_int64();
-  } while (random_id == 0 ||
-           get_dialog_message_by_date_results_.find(random_id) != get_dialog_message_by_date_results_.end());
+  } while (random_id == 0 || get_dialog_message_by_date_results_.count(random_id) > 0);
   get_dialog_message_by_date_results_[random_id];  // reserve place for result
 
   auto message_id = find_message_by_date(d->messages.get(), date);
@@ -24477,7 +24476,7 @@ int64 MessagesManager::generate_new_random_id() {
   int64 random_id;
   do {
     random_id = Random::secure_int64();
-  } while (random_id == 0 || being_sent_messages_.find(random_id) != being_sent_messages_.end());
+  } while (random_id == 0 || being_sent_messages_.count(random_id) > 0);
   return random_id;
 }
 
@@ -28577,7 +28576,7 @@ void MessagesManager::start_import_messages(DialogId dialog_id, int64 import_id,
   int64 random_id;
   do {
     random_id = Random::secure_int64();
-  } while (random_id == 0 || pending_message_imports_.find(random_id) != pending_message_imports_.end());
+  } while (random_id == 0 || pending_message_imports_.count(random_id) > 0);
   pending_message_imports_[random_id] = std::move(pending_message_import);
 
   multipromise.add_promise(PromiseCreator::lambda([actor_id = actor_id(this), random_id](Result<Unit> result) {
@@ -31964,10 +31963,10 @@ void MessagesManager::on_create_new_dialog_success(int64 random_id, tl_object_pt
     return promise.set_value(Unit());
   }
 
-  if (pending_created_dialogs_.find(dialog_id) == pending_created_dialogs_.end()) {
+  if (pending_created_dialogs_.count(dialog_id) == 0) {
     pending_created_dialogs_.emplace(dialog_id, std::move(promise));
   } else {
-    LOG(ERROR) << dialog_id << " returned twice as result of chat creation";
+    LOG(ERROR) << "Receive twice " << dialog_id << " as result of chat creation";
     return on_create_new_dialog_fail(random_id, Status::Error(500, "Chat was created earlier"), std::move(promise));
   }
 
@@ -37287,7 +37286,7 @@ MessagesManager::DialogList &MessagesManager::add_dialog_list(DialogListId dialo
   if (dialog_list_id.is_folder() && dialog_list_id.get_folder_id() != FolderId::archive()) {
     dialog_list_id = DialogListId(FolderId::main());
   }
-  if (dialog_lists_.find(dialog_list_id) == dialog_lists_.end()) {
+  if (dialog_lists_.count(dialog_list_id) == 0) {
     LOG(INFO) << "Create " << dialog_list_id;
   }
   auto &list = dialog_lists_[dialog_list_id];
@@ -37661,8 +37660,7 @@ void MessagesManager::process_get_channel_difference_updates(
         auto update_new_channel_message = static_cast<telegram_api::updateNewChannelMessage *>(update.get());
         auto message_id = get_message_id(update_new_channel_message->message_, false);
         FullMessageId full_message_id(dialog_id, message_id);
-        if (update_message_ids_.find(full_message_id) != update_message_ids_.end() &&
-            changed_message_ids.find(message_id) != changed_message_ids.end()) {
+        if (update_message_ids_.count(full_message_id) > 0 && changed_message_ids.count(message_id) > 0) {
           changed_message_ids.erase(message_id);
           AwaitedMessage awaited_message;
           awaited_message.message = std::move(update_new_channel_message->message_);
