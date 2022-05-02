@@ -3283,55 +3283,55 @@ accountTtl days:int32 = AccountTtl;
 
 //@class SessionType @description Represents the type of a session
 
-//@description This session is running on an Android device
+//@description The session is running on an Android device
 sessionTypeAndroid = SessionType;
 
-//@description This session is running on a generic Apple device
+//@description The session is running on a generic Apple device
 sessionTypeApple = SessionType;
 
-//@description This session is running on the Brave browser
+//@description The session is running on the Brave browser
 sessionTypeBrave = SessionType;
 
-//@description This session is running on the Chrome browser
+//@description The session is running on the Chrome browser
 sessionTypeChrome = SessionType;
 
-//@description This session is running on the Edge browser
+//@description The session is running on the Edge browser
 sessionTypeEdge = SessionType;
 
-//@description This session is running on the Firefox browser
+//@description The session is running on the Firefox browser
 sessionTypeFirefox = SessionType;
 
-//@description This session is running on an iPad device
+//@description The session is running on an iPad device
 sessionTypeIpad = SessionType;
 
-//@description This session is running on an iPhone device
+//@description The session is running on an iPhone device
 sessionTypeIphone = SessionType;
 
-//@description This session is running on a Linux device
+//@description The session is running on a Linux device
 sessionTypeLinux = SessionType;
 
-//@description This session is running on a Mac device
+//@description The session is running on a Mac device
 sessionTypeMac = SessionType;
 
-//@description This session is running on the Opera browser
+//@description The session is running on the Opera browser
 sessionTypeOpera = SessionType;
 
-//@description This session is running on the Safari browser
+//@description The session is running on the Safari browser
 sessionTypeSafari = SessionType;
 
-//@description This session is running on an Ubuntu device
+//@description The session is running on an Ubuntu device
 sessionTypeUbuntu = SessionType;
 
-//@description This session is running on an unknown type of device
+//@description The session is running on an unknown type of device
 sessionTypeUnknown = SessionType;
 
-//@description This session is running on the Vivaldi browser
+//@description The session is running on the Vivaldi browser
 sessionTypeVivaldi = SessionType;
 
-//@description This session is running on a Windows device
+//@description The session is running on a Windows device
 sessionTypeWindows = SessionType;
 
-//@description This session is running on a Xbox console
+//@description The session is running on an Xbox console
 sessionTypeXbox = SessionType;
 
 

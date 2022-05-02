@@ -28,12 +28,12 @@
 
 namespace td {
 
-static td_api::object_ptr<td_api::SessionType> get_session_type(
+static td_api::object_ptr<td_api::SessionType> get_session_type_object(
     const tl_object_ptr<telegram_api::authorization> &authorization) {
   auto contains = [](const string &str, const char *substr) {
     return str.find(substr) != string::npos;
   };
-  
+
   const string &app_name = authorization->app_name_;
   auto device_model = to_lower(authorization->device_model_);
   auto platform = to_lower(authorization->platform_);
@@ -43,8 +43,8 @@ static td_api::object_ptr<td_api::SessionType> get_session_type(
     return td_api::make_object<td_api::sessionTypeXbox>();
   }
 
-  bool web = [&] {
-    Slice web_name("Web");
+  bool is_web = [&] {
+    CSlice web_name("Web");
     auto pos = app_name.find(web_name.c_str());
     if (pos == string::npos) {
       return false;
@@ -54,7 +54,7 @@ static td_api::object_ptr<td_api::SessionType> get_session_type(
     return !('a' <= next_character && next_character <= 'z');
   }();
 
-  if (web) {
+  if (is_web) {
     if (contains(device_model, "brave")) {
       return td_api::make_object<td_api::sessionTypeBrave>();
     } else if (contains(device_model, "vivaldi")) {
@@ -82,15 +82,15 @@ static td_api::object_ptr<td_api::SessionType> get_session_type(
     return td_api::make_object<td_api::sessionTypeLinux>();
   }
 
-  auto ios = begins_with(platform, "ios") || contains(system_version, "ios");
-  auto macos = begins_with(platform, "macos") || contains(system_version, "macos");
-  if (ios && contains(device_model, "iphone")) {
+  auto is_ios = begins_with(platform, "ios") || contains(system_version, "ios");
+  auto is_macos = begins_with(platform, "macos") || contains(system_version, "macos");
+  if (is_ios && contains(device_model, "iphone")) {
     return td_api::make_object<td_api::sessionTypeIphone>();
-  } else if (ios && contains(device_model, "ipad")) {
+  } else if (is_ios && contains(device_model, "ipad")) {
     return td_api::make_object<td_api::sessionTypeIpad>();
-  } else if (macos && contains(device_model, "mac")) {
+  } else if (is_macos && contains(device_model, "mac")) {
     return td_api::make_object<td_api::sessionTypeMac>();
-  } else if (ios || macos) {
+  } else if (is_ios || is_macos) {
     return td_api::make_object<td_api::sessionTypeApple>();
   }
 
@@ -103,10 +103,10 @@ static td_api::object_ptr<td_api::session> convert_authorization_object(
   return td_api::make_object<td_api::session>(
       authorization->hash_, authorization->current_, authorization->password_pending_,
       !authorization->encrypted_requests_disabled_, !authorization->call_requests_disabled_,
-      get_session_type(authorization), authorization->api_id_, authorization->app_name_,
-      authorization->app_version_, authorization->official_app_, authorization->device_model_,
-      authorization->platform_, authorization->system_version_, authorization->date_created_,
-      authorization->date_active_, authorization->ip_, authorization->country_, authorization->region_);
+      get_session_type_object(authorization), authorization->api_id_, authorization->app_name_,
+      authorization->app_version_, authorization->official_app_, authorization->device_model_, authorization->platform_,
+      authorization->system_version_, authorization->date_created_, authorization->date_active_, authorization->ip_,
+      authorization->country_, authorization->region_);
 }
 
 class SetAccountTtlQuery final : public Td::ResultHandler {
