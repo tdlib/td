@@ -6594,8 +6594,8 @@ void ContactsManager::toggle_channel_join_to_send(ChannelId channel_id, bool joi
   if (c == nullptr) {
     return promise.set_error(Status::Error(400, "Supergroup not found"));
   }
-  if (get_channel_type(c) == ChannelType::Broadcast) {
-    return promise.set_error(Status::Error(400, "The method can't be called for channels"));
+  if (get_channel_type(c) == ChannelType::Broadcast || c->is_gigagroup) {
+    return promise.set_error(Status::Error(400, "The method can be called only for ordinary supergroups"));
   }
   if (!get_channel_permissions(c).can_restrict_members()) {
     return promise.set_error(Status::Error(400, "Not enough rights"));
@@ -6609,8 +6609,8 @@ void ContactsManager::toggle_channel_join_request(ChannelId channel_id, bool joi
   if (c == nullptr) {
     return promise.set_error(Status::Error(400, "Supergroup not found"));
   }
-  if (get_channel_type(c) == ChannelType::Broadcast) {
-    return promise.set_error(Status::Error(400, "The method can't be called for channels"));
+  if (get_channel_type(c) == ChannelType::Broadcast || c->is_gigagroup) {
+    return promise.set_error(Status::Error(400, "The method can be called only for ordinary supergroups"));
   }
   if (!get_channel_permissions(c).can_restrict_members()) {
     return promise.set_error(Status::Error(400, "Not enough rights"));
@@ -10330,12 +10330,6 @@ void ContactsManager::update_chat(Chat *c, ChatId chat_id, bool from_binlog, boo
 void ContactsManager::update_channel(Channel *c, ChannelId channel_id, bool from_binlog, bool from_database) {
   CHECK(c != nullptr);
   bool need_update_channel_full = false;
-  if (!c->is_megagroup || !c->has_linked_channel) {
-    c->join_to_send = true;
-  }
-  if (!c->is_megagroup || (c->username.empty() && !c->has_linked_channel && !c->has_location)) {
-    c->join_request = false;
-  }
   if (c->is_photo_changed) {
     td_->messages_manager_->on_dialog_photo_updated(DialogId(channel_id));
     c->is_photo_changed = false;
@@ -15056,6 +15050,14 @@ bool ContactsManager::get_channel_can_be_deleted(const Channel *c) {
   return c->can_be_deleted;
 }
 
+bool ContactsManager::get_channel_join_to_send(const Channel *c) {
+  return c->join_to_send || !c->is_megagroup || !c->has_linked_channel;
+}
+
+bool ContactsManager::get_channel_join_request(const Channel *c) {
+  return c->join_request && c->is_megagroup && (is_channel_public(c) || c->has_linked_channel);
+}
+
 ChannelId ContactsManager::get_channel_linked_channel_id(ChannelId channel_id) {
   auto channel_full = get_channel_full_const(channel_id);
   if (channel_full == nullptr) {
@@ -16171,13 +16173,6 @@ void ContactsManager::on_chat_update(telegram_api::channel &channel, const char 
   bool have_participant_count = (channel.flags_ & CHANNEL_FLAG_HAS_PARTICIPANT_COUNT) != 0;
   int32 participant_count = have_participant_count ? channel.participants_count_ : 0;
 
-  if (!is_megagroup || !has_linked_channel) {
-    join_to_send = true;
-  }
-  if (!is_megagroup || (channel.username_.empty() && !has_linked_channel && !channel.has_geo_)) {
-    join_request = false;
-  }
-
   if (have_participant_count) {
     auto channel_full = get_channel_full_const(channel_id);
     if (channel_full != nullptr && channel_full->administrator_count > participant_count) {
@@ -16229,6 +16224,9 @@ void ContactsManager::on_chat_update(telegram_api::channel &channel, const char 
     Channel *c = get_channel_force(channel_id);
     if (c != nullptr) {
       LOG(DEBUG) << "Receive known min " << channel_id;
+
+      auto old_join_to_send = get_channel_join_to_send(c);
+      auto old_join_request = get_channel_join_request(c);
       on_update_channel_title(c, channel_id, std::move(channel.title_));
       on_update_channel_username(c, channel_id, std::move(channel.username_));
       on_update_channel_photo(c, channel_id, std::move(channel.photo_));
@@ -16238,8 +16236,7 @@ void ContactsManager::on_chat_update(telegram_api::channel &channel, const char 
 
       if (c->has_linked_channel != has_linked_channel || c->is_slow_mode_enabled != is_slow_mode_enabled ||
           c->is_megagroup != is_megagroup || c->restriction_reasons != restriction_reasons || c->is_scam != is_scam ||
-          c->is_fake != is_fake || c->is_gigagroup != is_gigagroup || c->join_to_send != join_to_send ||
-          c->join_request != join_request) {
+          c->is_fake != is_fake || c->is_gigagroup != is_gigagroup) {
         c->has_linked_channel = has_linked_channel;
         c->is_slow_mode_enabled = is_slow_mode_enabled;
         c->is_megagroup = is_megagroup;
@@ -16247,16 +16244,23 @@ void ContactsManager::on_chat_update(telegram_api::channel &channel, const char 
         c->is_scam = is_scam;
         c->is_fake = is_fake;
         c->is_gigagroup = is_gigagroup;
-        c->join_to_send = join_to_send;
-        c->join_request = join_request;
 
         c->is_changed = true;
         invalidate_channel_full(channel_id, !c->is_slow_mode_enabled);
+      }
+      if (c->join_to_send != join_to_send || c->join_request != join_request) {
+        c->join_to_send = join_to_send;
+        c->join_request = join_request;
+
+        c->need_save_to_database = true;
       }
       // sign_messages isn't known for min-channels
       if (c->is_verified != is_verified) {
         c->is_verified = is_verified;
 
+        c->is_changed = true;
+      }
+      if (old_join_to_send != get_channel_join_to_send(c) || old_join_request != get_channel_join_request(c)) {
         c->is_changed = true;
       }
 
@@ -16289,6 +16293,8 @@ void ContactsManager::on_chat_update(telegram_api::channel &channel, const char 
   if (c->status.is_banned()) {  // possibly uninited channel
     min_channels_.erase(channel_id);
   }
+  auto old_join_to_send = get_channel_join_to_send(c);
+  auto old_join_request = get_channel_join_request(c);
   if (c->access_hash != access_hash) {
     c->access_hash = access_hash;
     c->need_save_to_database = true;
@@ -16314,8 +16320,7 @@ void ContactsManager::on_chat_update(telegram_api::channel &channel, const char 
   bool need_invalidate_channel_full = false;
   if (c->has_linked_channel != has_linked_channel || c->is_slow_mode_enabled != is_slow_mode_enabled ||
       c->is_megagroup != is_megagroup || c->restriction_reasons != restriction_reasons || c->is_scam != is_scam ||
-      c->is_fake != is_fake || c->is_gigagroup != is_gigagroup || c->join_to_send != join_to_send ||
-      c->join_request != join_request) {
+      c->is_fake != is_fake || c->is_gigagroup != is_gigagroup) {
     c->has_linked_channel = has_linked_channel;
     c->is_slow_mode_enabled = is_slow_mode_enabled;
     c->is_megagroup = is_megagroup;
@@ -16329,10 +16334,19 @@ void ContactsManager::on_chat_update(telegram_api::channel &channel, const char 
     c->is_changed = true;
     need_invalidate_channel_full = true;
   }
+  if (c->join_to_send != join_to_send || c->join_request != join_request) {
+    c->join_to_send = join_to_send;
+    c->join_request = join_request;
+
+    c->need_save_to_database = true;
+  }
   if (c->is_verified != is_verified || c->sign_messages != sign_messages) {
     c->is_verified = is_verified;
     c->sign_messages = sign_messages;
 
+    c->is_changed = true;
+  }
+  if (old_join_to_send != get_channel_join_to_send(c) || old_join_request != get_channel_join_request(c)) {
     c->is_changed = true;
   }
 
@@ -16383,6 +16397,8 @@ void ContactsManager::on_chat_update(telegram_api::channelForbidden &channel, co
   if (c->status.is_banned()) {  // possibly uninited channel
     min_channels_.erase(channel_id);
   }
+  auto old_join_to_send = get_channel_join_to_send(c);
+  auto old_join_request = get_channel_join_request(c);
   if (c->access_hash != channel.access_hash_) {
     c->access_hash = channel.access_hash_;
     c->need_save_to_database = true;
@@ -16411,10 +16427,6 @@ void ContactsManager::on_chat_update(telegram_api::channelForbidden &channel, co
   bool is_scam = false;
   bool is_fake = false;
 
-  if (!is_megagroup || !c->has_linked_channel) {
-    join_to_send = true;
-  }
-
   {
     bool is_broadcast = (channel.flags_ & CHANNEL_FLAG_IS_BROADCAST) != 0;
     LOG_IF(ERROR, is_broadcast == is_megagroup)
@@ -16442,10 +16454,19 @@ void ContactsManager::on_chat_update(telegram_api::channelForbidden &channel, co
     c->is_changed = true;
     need_invalidate_channel_full = true;
   }
+  if (c->join_to_send != join_to_send || c->join_request != join_request) {
+    c->join_to_send = join_to_send;
+    c->join_request = join_request;
+
+    c->need_save_to_database = true;
+  }
   if (c->sign_messages != sign_messages || c->is_verified != is_verified) {
     c->sign_messages = sign_messages;
     c->is_verified = is_verified;
 
+    c->is_changed = true;
+  }
+  if (old_join_to_send != get_channel_join_to_send(c) || old_join_request != get_channel_join_request(c)) {
     c->is_changed = true;
   }
 
@@ -16728,8 +16749,8 @@ tl_object_ptr<td_api::supergroup> ContactsManager::get_supergroup_object(Channel
   }
   return td_api::make_object<td_api::supergroup>(
       channel_id.get(), c->username, c->date, get_channel_status(c).get_chat_member_status_object(),
-      c->participant_count, c->has_linked_channel, c->has_location, c->sign_messages, c->join_to_send, c->join_request,
-      c->is_slow_mode_enabled, !c->is_megagroup, c->is_gigagroup, c->is_verified,
+      c->participant_count, c->has_linked_channel, c->has_location, c->sign_messages, get_channel_join_to_send(c),
+      get_channel_join_request(c), c->is_slow_mode_enabled, !c->is_megagroup, c->is_gigagroup, c->is_verified,
       get_restriction_reason_description(c->restriction_reasons), c->is_scam, c->is_fake);
 }
 

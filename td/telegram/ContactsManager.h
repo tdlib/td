@@ -1222,6 +1222,8 @@ class ContactsManager final : public Actor {
   static bool get_channel_sign_messages(const Channel *c);
   static bool get_channel_has_linked_channel(const Channel *c);
   static bool get_channel_can_be_deleted(const Channel *c);
+  static bool get_channel_join_to_send(const Channel *c);
+  static bool get_channel_join_request(const Channel *c);
 
   void set_my_id(UserId my_id);
 
