@@ -3609,26 +3609,27 @@ void ContactsManager::User::store(StorerT &storer) const {
   STORE_FLAG(is_deleted);
   STORE_FLAG(is_bot);
   STORE_FLAG(can_join_groups);
-  STORE_FLAG(can_read_all_group_messages);
+  STORE_FLAG(can_read_all_group_messages);  // 5
   STORE_FLAG(is_inline_bot);
   STORE_FLAG(need_location_bot);
   STORE_FLAG(has_last_name);
   STORE_FLAG(has_username);
-  STORE_FLAG(has_photo);
-  STORE_FLAG(false);  // legacy is_restricted
+  STORE_FLAG(has_photo);  // 10
+  STORE_FLAG(false);      // legacy is_restricted
   STORE_FLAG(has_language_code);
   STORE_FLAG(have_access_hash);
   STORE_FLAG(is_support);
-  STORE_FLAG(is_min_access_hash);
+  STORE_FLAG(is_min_access_hash);  // 15
   STORE_FLAG(is_scam);
   STORE_FLAG(has_cache_version);
   STORE_FLAG(has_is_contact);
   STORE_FLAG(is_contact);
-  STORE_FLAG(is_mutual_contact);
+  STORE_FLAG(is_mutual_contact);  // 20
   STORE_FLAG(has_restriction_reasons);
   STORE_FLAG(need_apply_min_photo);
   STORE_FLAG(is_fake);
   STORE_FLAG(can_be_added_to_attach_menu);
+  STORE_FLAG(is_premium);  // 25
   END_STORE_FLAGS();
   store(first_name, storer);
   if (has_last_name) {
@@ -3700,6 +3701,7 @@ void ContactsManager::User::parse(ParserT &parser) {
   PARSE_FLAG(need_apply_min_photo);
   PARSE_FLAG(is_fake);
   PARSE_FLAG(can_be_added_to_attach_menu);
+  PARSE_FLAG(is_premium);
   END_PARSE_FLAGS();
   parse(first_name, parser);
   if (has_last_name) {
@@ -8630,6 +8632,7 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
   }
 
   bool is_verified = (flags & USER_FLAG_IS_VERIFIED) != 0;
+  bool is_premium = (flags & USER_FLAG_IS_PREMIUM) != 0;
   bool is_support = (flags & USER_FLAG_IS_SUPPORT) != 0;
   bool is_deleted = (flags & USER_FLAG_IS_DELETED) != 0;
   bool can_join_groups = (flags & USER_FLAG_IS_PRIVATE_BOT) == 0;
@@ -8657,6 +8660,7 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
   if (is_deleted) {
     // just in case
     is_verified = false;
+    is_premium = false;
     is_support = false;
     is_bot = false;
     can_join_groups = false;
@@ -8673,15 +8677,17 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
       << "Receive not bot " << user_id << " which has bot info version from " << source;
 
   int32 bot_info_version = has_bot_info_version ? user->bot_info_version_ : -1;
-  if (is_verified != u->is_verified || is_support != u->is_support || is_bot != u->is_bot ||
-      can_join_groups != u->can_join_groups || can_read_all_group_messages != u->can_read_all_group_messages ||
-      restriction_reasons != u->restriction_reasons || is_scam != u->is_scam || is_fake != u->is_fake ||
-      is_inline_bot != u->is_inline_bot || inline_query_placeholder != u->inline_query_placeholder ||
-      need_location_bot != u->need_location_bot || can_be_added_to_attach_menu != u->can_be_added_to_attach_menu) {
+  if (is_verified != u->is_verified || is_premium != u->is_premium || is_support != u->is_support ||
+      is_bot != u->is_bot || can_join_groups != u->can_join_groups ||
+      can_read_all_group_messages != u->can_read_all_group_messages || restriction_reasons != u->restriction_reasons ||
+      is_scam != u->is_scam || is_fake != u->is_fake || is_inline_bot != u->is_inline_bot ||
+      inline_query_placeholder != u->inline_query_placeholder || need_location_bot != u->need_location_bot ||
+      can_be_added_to_attach_menu != u->can_be_added_to_attach_menu) {
     LOG_IF(ERROR, is_bot != u->is_bot && !is_deleted && !u->is_deleted && u->is_received)
         << "User.is_bot has changed for " << user_id << "/" << u->username << " from " << source << " from "
         << u->is_bot << " to " << is_bot;
     u->is_verified = is_verified;
+    u->is_premium = is_premium;
     u->is_support = is_support;
     u->is_bot = is_bot;
     u->can_join_groups = can_join_groups;
@@ -16583,7 +16589,7 @@ td_api::object_ptr<td_api::UserStatus> ContactsManager::get_user_status_object(U
 td_api::object_ptr<td_api::updateUser> ContactsManager::get_update_unknown_user_object(UserId user_id) {
   return td_api::make_object<td_api::updateUser>(td_api::make_object<td_api::user>(
       user_id.get(), "", "", "", "", td_api::make_object<td_api::userStatusEmpty>(), nullptr, false, false, false,
-      false, "", false, false, false, td_api::make_object<td_api::userTypeUnknown>(), ""));
+      false, false, "", false, false, false, td_api::make_object<td_api::userTypeUnknown>(), ""));
 }
 
 int64 ContactsManager::get_user_id_object(UserId user_id, const char *source) const {
@@ -16617,8 +16623,8 @@ tl_object_ptr<td_api::user> ContactsManager::get_user_object(UserId user_id, con
   return make_tl_object<td_api::user>(
       user_id.get(), u->first_name, u->last_name, u->username, u->phone_number, get_user_status_object(user_id, u),
       get_profile_photo_object(td_->file_manager_.get(), u->photo), u->is_contact, u->is_mutual_contact, u->is_verified,
-      u->is_support, get_restriction_reason_description(u->restriction_reasons), u->is_scam, u->is_fake, u->is_received,
-      std::move(type), u->language_code);
+      u->is_premium, u->is_support, get_restriction_reason_description(u->restriction_reasons), u->is_scam, u->is_fake,
+      u->is_received, std::move(type), u->language_code);
 }
 
 vector<int64> ContactsManager::get_user_ids_object(const vector<UserId> &user_ids, const char *source) const {

@@ -463,6 +463,7 @@ chatAdministratorRights can_manage_chat:Bool can_change_info:Bool can_post_messa
 //@is_contact The user is a contact of the current user
 //@is_mutual_contact The user is a contact of the current user and the current user is a contact of the user
 //@is_verified True, if the user is verified
+//@is_premium True, if the user is a Telegram Premium user
 //@is_support True, if the user is Telegram support account
 //@restriction_reason If non-empty, it contains a human-readable description of the reason why access to this user must be restricted
 //@is_scam True, if many users reported this user as a scam
@@ -470,7 +471,7 @@ chatAdministratorRights can_manage_chat:Bool can_change_info:Bool can_post_messa
 //@have_access If false, the user is inaccessible, and the only information known about the user is inside this class. Identifier of the user can't be passed to any method except GetUser
 //@type Type of the user
 //@language_code IETF language tag of the user's language; only available to bots
-user id:int53 first_name:string last_name:string username:string phone_number:string status:UserStatus profile_photo:profilePhoto is_contact:Bool is_mutual_contact:Bool is_verified:Bool is_support:Bool restriction_reason:string is_scam:Bool is_fake:Bool have_access:Bool type:UserType language_code:string = User;
+user id:int53 first_name:string last_name:string username:string phone_number:string status:UserStatus profile_photo:profilePhoto is_contact:Bool is_mutual_contact:Bool is_verified:Bool is_premium:Bool is_support:Bool restriction_reason:string is_scam:Bool is_fake:Bool have_access:Bool type:UserType language_code:string = User;
 
 //@description Contains information about a bot
 //@share_text The text that is shown on the bot's profile page and is sent together with the link when users share the bot

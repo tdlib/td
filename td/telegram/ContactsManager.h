@@ -656,6 +656,7 @@ class ContactsManager final : public Actor {
     bool is_min_access_hash = true;
     bool is_received = false;
     bool is_verified = false;
+    bool is_premium = false;
     bool is_support = false;
     bool is_deleted = true;
     bool is_bot = true;
@@ -1054,6 +1055,7 @@ class ContactsManager final : public Actor {
   static constexpr int32 USER_FLAG_NEED_APPLY_MIN_PHOTO = 1 << 25;
   static constexpr int32 USER_FLAG_IS_FAKE = 1 << 26;
   static constexpr int32 USER_FLAG_IS_ATTACH_MENU_BOT = 1 << 27;
+  static constexpr int32 USER_FLAG_IS_PREMIUM = 1 << 28;
 
   static constexpr int32 USER_FULL_FLAG_IS_BLOCKED = 1 << 0;
   static constexpr int32 USER_FULL_FLAG_HAS_ABOUT = 1 << 1;
