@@ -232,20 +232,21 @@ void DcAuthManager::loop() {
   }
   auto main_dc = find_dc(main_dc_id_.get_raw_id());
   if (!main_dc || main_dc->auth_key_state != AuthKeyState::OK) {
+    if (need_check_authorization_is_ok_) {
+      G()->shared_config().set_option_string("auth", "Authorization check failed in DcAuthManager");
+    }
     VLOG(dc) << "Skip loop, because main DC is " << main_dc_id_ << ", main auth key state is "
              << (main_dc != nullptr ? main_dc->auth_key_state : AuthKeyState::Empty);
     return;
   }
+  need_check_authorization_is_ok_ = false;
   for (auto &dc : dcs_) {
     dc_loop(dc);
   }
 }
 
 void DcAuthManager::check_authorization_is_ok() {
-  auto main_dc = find_dc(main_dc_id_.get_raw_id());
-  if (!main_dc || main_dc->auth_key_state != AuthKeyState::OK) {
-    G()->shared_config().set_option_string("auth", "Authorization check failed in DcAuthManager");
-  }
+  need_check_authorization_is_ok_ = true;
 }
 
 }  // namespace td

@@ -50,6 +50,7 @@ class DcAuthManager final : public NetQueryCallback {
 
   std::vector<DcInfo> dcs_;
   DcId main_dc_id_;
+  bool need_check_authorization_is_ok_{false};
   bool close_flag_{false};
   Promise<> destroy_promise_;
 
