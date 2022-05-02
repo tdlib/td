@@ -272,13 +272,10 @@ void NetQueryDispatcher::update_mtproto_header() {
   }
 }
 
-void NetQueryDispatcher::update_valid_dc(DcId dc_id) {
-  wait_dc_init(dc_id, true).ignore();
-}
-
 bool NetQueryDispatcher::is_dc_inited(int32 raw_dc_id) {
   return dcs_[raw_dc_id - 1].is_valid_.load(std::memory_order_relaxed);
 }
+
 int32 NetQueryDispatcher::get_session_count() {
   return max(narrow_cast<int32>(G()->shared_config().get_option_integer("session_count")), 1);
 }
