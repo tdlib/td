@@ -294,6 +294,7 @@ void Session::on_bind_result(NetQueryPtr query) {
           LOG(WARNING) << "Drop main key because check with temporary key failed";
           auth_data_.drop_main_auth_key();
           on_auth_key_updated();
+          G()->log_out("Main authorization key is invalid");
         }
       } else {
         if (has_immunity) {
@@ -538,6 +539,7 @@ void Session::on_closed(Status status) {
         LOG(WARNING) << "Invalidate main key";
         auth_data_.drop_main_auth_key();
         on_auth_key_updated();
+        G()->log_out("Main PFS authorization key is invalid");
       }
       yield();
     }
