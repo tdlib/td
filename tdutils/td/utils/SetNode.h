@@ -64,7 +64,7 @@ struct SetNode {
 };
 
 template <class KeyT>
-struct SetNode<KeyT, typename std::enable_if_t<(sizeof(KeyT) > 6 * sizeof(void *))>> {
+struct SetNode<KeyT, typename std::enable_if_t<(sizeof(KeyT) > 28 * sizeof(void *))>> {
   struct Impl {
     using second_type = KeyT;
 

@@ -92,7 +92,7 @@ struct MapNode {
 };
 
 template <class KeyT, class ValueT>
-struct MapNode<KeyT, ValueT, typename std::enable_if_t<(sizeof(KeyT) + sizeof(ValueT) > 6 * sizeof(void *))>> {
+struct MapNode<KeyT, ValueT, typename std::enable_if_t<(sizeof(KeyT) + sizeof(ValueT) > 28 * sizeof(void *))>> {
   struct Impl {
     using first_type = KeyT;
     using second_type = ValueT;
