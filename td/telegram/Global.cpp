@@ -33,7 +33,9 @@ Global::~Global() = default;
 
 void Global::log_out(Slice reason) {
   CHECK(shared_config_ != nullptr);
-  shared_config_->set_option_string("auth", reason);
+  if (!shared_config_->have_option("auth")) {
+    shared_config_->set_option_string("auth", reason);
+  }
 }
 
 void Global::close_all(Promise<> on_finished) {
