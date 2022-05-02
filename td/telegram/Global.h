@@ -84,6 +84,8 @@ class Global final : public ActorContext {
     return td_db_.get();
   }
 
+  void log_out(Slice reason);
+
   void close_all(Promise<> on_finished);
   void close_and_destroy_all(Promise<> on_finished);
 

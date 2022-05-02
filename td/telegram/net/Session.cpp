@@ -6,7 +6,6 @@
 //
 #include "td/telegram/net/Session.h"
 
-#include "td/telegram/ConfigShared.h"
 #include "td/telegram/DhCache.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/net/DcAuthManager.h"
@@ -837,7 +836,7 @@ void Session::on_message_result_error(uint64 id, int error_code, string message)
                  "write to recover@telegram.org your phone number and other details to recover the account.";
         }
         auth_data_.set_auth_flag(false);
-        G()->shared_config().set_option_string("auth", message);
+        G()->log_out(message);
         shared_auth_data_->set_auth_key(auth_data_.get_main_auth_key());
         on_session_failed(Status::OK());
       }
