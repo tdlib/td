@@ -231,7 +231,7 @@ void DcAuthManager::loop() {
   }
   auto main_dc = find_dc(main_dc_id_.get_raw_id());
   if (!main_dc || main_dc->auth_key_state != AuthKeyState::OK) {
-    if (need_check_authorization_is_ok_) {
+    if (main_dc && need_check_authorization_is_ok_) {
       G()->log_out("Authorization check failed in DcAuthManager");
     }
     VLOG(dc) << "Skip loop, because main DC is " << main_dc_id_ << ", main auth key state is "
