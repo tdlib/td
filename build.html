@@ -734,7 +734,7 @@ function onOptionsChanged() {
     pre_text.push('Install Git, ' + compiler + ', make, CMake >= 3.0.2, OpenSSL-dev, zlib-dev, gperf, PHP' + jdk + ' using your package manager.');
   }
   if (os_linux && os.includes('Node.js')) {
-    pre_text.push('Note that for Node.js &le; 9.11.2 you must build TDLib with OpenSSL 1.0.* and for Node.js &ge; 10 with OpenSSL 1.1.* instead, so you may need to modify the following commands to install a proper OpenSSL version.');
+    pre_text.push('Note that for Node.js &ge; 17 you must build TDLib with OpenSSL 3.0.*, for Node.js &ge; 10 with OpenSSL 1.1.*, and for Node.js &lt; 10 with OpenSSL 1.0.*, so you may need to modify the following commands to install a proper OpenSSL version.');
   }
   if (os_freebsd) {
     pre_text.push('Note that the following instruction is for FreeBSD 11.');
