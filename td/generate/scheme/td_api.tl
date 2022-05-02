@@ -3281,18 +3281,73 @@ userPrivacySettingAllowFindingByPhoneNumber = UserPrivacySetting;
 accountTtl days:int32 = AccountTtl;
 
 
+//@class SessionType @description Represents the type of a session
+
+//@description This session is running on an Android device
+sessionTypeAndroid = SessionType;
+
+//@description This session is running on a generic Apple device
+sessionTypeApple = SessionType;
+
+//@description This session is running on the Brave browser
+sessionTypeBrave = SessionType;
+
+//@description This session is running on the Chrome browser
+sessionTypeChrome = SessionType;
+
+//@description This session is running on the Edge browser
+sessionTypeEdge = SessionType;
+
+//@description This session is running on the Firefox browser
+sessionTypeFirefox = SessionType;
+
+//@description This session is running on an iPad device
+sessionTypeIpad = SessionType;
+
+//@description This session is running on an iPhone device
+sessionTypeIphone = SessionType;
+
+//@description This session is running on a Linux device
+sessionTypeLinux = SessionType;
+
+//@description This session is running on a Mac device
+sessionTypeMac = SessionType;
+
+//@description This session is running on the Opera browser
+sessionTypeOpera = SessionType;
+
+//@description This session is running on the Safari browser
+sessionTypeSafari = SessionType;
+
+//@description This session is running on an Ubuntu device
+sessionTypeUbuntu = SessionType;
+
+//@description This session is running on an unknown type of device
+sessionTypeUnknown = SessionType;
+
+//@description This session is running on the Vivaldi browser
+sessionTypeVivaldi = SessionType;
+
+//@description This session is running on a Windows device
+sessionTypeWindows = SessionType;
+
+//@description This session is running on a Xbox console
+sessionTypeXbox = SessionType;
+
+
 //@description Contains information about one session in a Telegram application used by the current user. Sessions must be shown to the user in the returned order
 //@id Session identifier @is_current True, if this session is the current session
 //@is_password_pending True, if a password is needed to complete authorization of the session
 //@can_accept_secret_chats True, if incoming secret chats can be accepted by the session
 //@can_accept_calls True, if incoming calls can be accepted by the session
+//@type Session type based on the system and application version, which can be used to display a corresponding icon
 //@api_id Telegram API identifier, as provided by the application @application_name Name of the application, as provided by the application
 //@application_version The version of the application, as provided by the application @is_official_application True, if the application is an official application or uses the api_id of an official application
 //@device_model Model of the device the application has been run or is running on, as provided by the application @platform Operating system the application has been run or is running on, as provided by the application
 //@system_version Version of the operating system the application has been run or is running on, as provided by the application @log_in_date Point in time (Unix timestamp) when the user has logged in
 //@last_active_date Point in time (Unix timestamp) when the session was last used @ip IP address from which the session was created, in human-readable format
 //@country A two-letter country code for the country from which the session was created, based on the IP address @region Region code from which the session was created, based on the IP address
-session id:int64 is_current:Bool is_password_pending:Bool can_accept_secret_chats:Bool can_accept_calls:Bool api_id:int32 application_name:string application_version:string is_official_application:Bool device_model:string platform:string system_version:string log_in_date:int32 last_active_date:int32 ip:string country:string region:string = Session;
+session id:int64 is_current:Bool is_password_pending:Bool can_accept_secret_chats:Bool can_accept_calls:Bool type:SessionType api_id:int32 application_name:string application_version:string is_official_application:Bool device_model:string platform:string system_version:string log_in_date:int32 last_active_date:int32 ip:string country:string region:string = Session;
 
 //@description Contains a list of sessions @sessions List of sessions @inactive_session_ttl_days Number of days of inactivity before sessions will automatically be terminated; 1-366 days
 sessions sessions:vector<session> inactive_session_ttl_days:int32 = Sessions;
