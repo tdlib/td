@@ -31,6 +31,8 @@ class DcAuthManager final : public NetQueryCallback {
   void update_main_dc(DcId new_main_dc_id);
   void destroy(Promise<> promise);
 
+  void check_authorization_is_ok();
+
  private:
   struct DcInfo {
     DcId dc_id;

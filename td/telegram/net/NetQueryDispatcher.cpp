@@ -352,4 +352,8 @@ void NetQueryDispatcher::set_main_dc_id(int32 new_main_dc_id) {
   G()->td_db()->get_binlog_pmc()->set("main_dc_id", to_string(main_dc_id_.load(std::memory_order_relaxed)));
 }
 
+void NetQueryDispatcher::check_authorization_is_ok() {
+  send_closure(dc_auth_manager_, &DcAuthManager::check_authorization_is_ok);
+}
+
 }  // namespace td

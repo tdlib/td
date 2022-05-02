@@ -6,6 +6,7 @@
 //
 #include "td/telegram/net/DcAuthManager.h"
 
+#include "td/telegram/ConfigShared.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/net/AuthDataShared.h"
 #include "td/telegram/net/NetQuery.h"
@@ -237,6 +238,13 @@ void DcAuthManager::loop() {
   }
   for (auto &dc : dcs_) {
     dc_loop(dc);
+  }
+}
+
+void DcAuthManager::check_authorization_is_ok() {
+  auto main_dc = find_dc(main_dc_id_.get_raw_id());
+  if (!main_dc || main_dc->auth_key_state != AuthKeyState::OK) {
+    G()->shared_config().set_option_string("auth", "Authorization check failed in DcAuthManager");
   }
 }
 

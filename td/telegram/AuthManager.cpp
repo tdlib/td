@@ -59,6 +59,7 @@ AuthManager::AuthManager(int32 api_id, const string &api_hash, ActorShared<> par
       ContactsManager::send_get_me_query(
           td_, PromiseCreator::lambda([this](Result<Unit> result) { update_state(State::Ok); }));
     }
+    G()->net_query_dispatcher().check_authorization_is_ok();
   } else if (auth_str == "logout") {
     LOG(WARNING) << "Continue to log out";
     update_state(State::LoggingOut);
