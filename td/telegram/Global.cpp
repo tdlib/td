@@ -34,8 +34,7 @@ Global::~Global() = default;
 void Global::log_out(Slice reason) {
   CHECK(shared_config_ != nullptr);
   if (!shared_config_->have_option("auth")) {
-    LOG(ERROR) << reason;
-    // shared_config_->set_option_string("auth", reason);
+    shared_config_->set_option_string("auth", reason);
   }
 }
 
