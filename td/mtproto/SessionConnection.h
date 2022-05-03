@@ -91,6 +91,7 @@ class SessionConnection final
   void destroy_key();
 
   void set_online(bool online_flag, bool is_main);
+  void force_ack();
 
   class Callback {
    public:

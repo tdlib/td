@@ -838,6 +838,12 @@ std::pair<uint64, BufferSlice> SessionConnection::encrypted_bind(int64 perm_key,
   return std::make_pair(query.message_id, packet.as_buffer_slice());
 }
 
+void SessionConnection::force_ack() {
+  if (!to_ack_.empty()) {
+    send_before(Time::now_cached());
+  }
+}
+
 void SessionConnection::send_ack(uint64 message_id) {
   VLOG(mtproto) << "Send ack: [msg_id:" << format::as_hex(message_id) << "]";
   if (to_ack_.empty()) {

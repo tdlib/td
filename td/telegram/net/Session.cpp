@@ -871,6 +871,7 @@ void Session::on_message_result_error(uint64 id, int error_code, string message)
   }
   auto it = sent_queries_.find(id);
   if (it == sent_queries_.end()) {
+    current_info_->connection_->force_ack();
     return;
   }
 
