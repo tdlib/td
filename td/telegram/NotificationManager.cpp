@@ -855,7 +855,7 @@ int32 NotificationManager::get_notification_delay_ms(DialogId dialog_id, const P
 
 void NotificationManager::add_notification(NotificationGroupId group_id, NotificationGroupType group_type,
                                            DialogId dialog_id, int32 date, DialogId notification_settings_dialog_id,
-                                           int64 initial_ringtone_id, int64 ringtone_id, int32 min_delay_ms,
+                                           bool disable_notification, int64 ringtone_id, int32 min_delay_ms,
                                            NotificationId notification_id, unique_ptr<NotificationType> type,
                                            const char *source) {
   if (is_disabled() || max_notification_group_count_ == 0) {
@@ -904,8 +904,8 @@ void NotificationManager::add_notification(NotificationGroupId group_id, Notific
   PendingNotification notification;
   notification.date = date;
   notification.settings_dialog_id = notification_settings_dialog_id;
-  notification.initial_ringtone_id = initial_ringtone_id;
-  notification.ringtone_id = ringtone_id;
+  notification.disable_notification = disable_notification;
+  notification.ringtone_id = disable_notification ? 0 : ringtone_id;
   notification.notification_id = notification_id;
   notification.type = std::move(type);
 
@@ -1392,7 +1392,7 @@ bool NotificationManager::do_flush_pending_notifications(NotificationGroupKey &g
   added_notifications.reserve(pending_notifications.size());
   for (auto &pending_notification : pending_notifications) {
     Notification notification(pending_notification.notification_id, pending_notification.date,
-                              pending_notification.initial_ringtone_id, std::move(pending_notification.type));
+                              pending_notification.disable_notification, std::move(pending_notification.type));
     added_notifications.push_back(get_notification_object(group_key.dialog_id, notification));
     CHECK(added_notifications.back()->type_ != nullptr);
 
@@ -1523,7 +1523,7 @@ void NotificationManager::flush_pending_notifications(NotificationGroupId group_
     group.total_count += narrow_cast<int32>(group.pending_notifications.size());
     for (auto &pending_notification : group.pending_notifications) {
       group.notifications.emplace_back(pending_notification.notification_id, pending_notification.date,
-                                       pending_notification.initial_ringtone_id, std::move(pending_notification.type));
+                                       pending_notification.disable_notification, std::move(pending_notification.type));
     }
   } else {
     if (!was_updated) {
@@ -2318,8 +2318,8 @@ void NotificationManager::add_call_notification(DialogId dialog_id, CallId call_
   }
   active_notifications.push_back(ActiveCallNotification{call_id, notification_id});
 
-  add_notification(group_id, NotificationGroupType::Calls, dialog_id, G()->unix_time() + 120, dialog_id, false, false,
-                   0, notification_id, create_new_call_notification(call_id), "add_call_notification");
+  add_notification(group_id, NotificationGroupType::Calls, dialog_id, G()->unix_time() + 120, dialog_id, false, -1, 0,
+                   notification_id, create_new_call_notification(call_id), "add_call_notification");
 }
 
 void NotificationManager::remove_call_notification(DialogId dialog_id, CallId call_id) {
@@ -3437,16 +3437,19 @@ Status NotificationManager::process_push_notification_payload(string payload, bo
                                    std::move(promise));
   } else {
     bool is_from_scheduled = has_json_object_field(custom, "schedule");
+    bool disable_notification = false;
     int64 ringtone_id = -1;
     if (has_json_object_field(custom, "silent")) {
+      disable_notification = true;
       ringtone_id = 0;
     } else if (has_json_object_field(custom, "ringtone")) {
       TRY_RESULT_ASSIGN(ringtone_id, get_json_object_long_field(custom, "ringtone"));
     }
     add_message_push_notification(dialog_id, MessageId(server_message_id), random_id, sender_user_id, sender_dialog_id,
-                                  std::move(sender_name), sent_date, is_from_scheduled, contains_mention, ringtone_id,
-                                  ringtone_id, std::move(loc_key), std::move(arg), std::move(attached_photo),
-                                  std::move(attached_document), NotificationId(), 0, std::move(promise));
+                                  std::move(sender_name), sent_date, is_from_scheduled, contains_mention,
+                                  disable_notification, ringtone_id, std::move(loc_key), std::move(arg),
+                                  std::move(attached_photo), std::move(attached_document), NotificationId(), 0,
+                                  std::move(promise));
   }
   return Status::OK();
 }
@@ -3462,6 +3465,7 @@ class NotificationManager::AddMessagePushNotificationLogEvent {
   int32 date_;
   bool is_from_scheduled_;
   bool contains_mention_;
+  bool disable_notification_;
   int64 ringtone_id_;
   string loc_key_;
   string arg_;
@@ -3479,11 +3483,10 @@ class NotificationManager::AddMessagePushNotificationLogEvent {
     bool has_photo = !photo_.is_empty();
     bool has_document = !document_.empty();
     bool has_sender_dialog_id = sender_dialog_id_.is_valid();
-    bool is_silent = ringtone_id_ == 0;
-    bool has_ringtone_id = !is_silent && ringtone_id_ != -1;
+    bool has_ringtone_id = !disable_notification_ && ringtone_id_ != -1;
     BEGIN_STORE_FLAGS();
     STORE_FLAG(contains_mention_);
-    STORE_FLAG(is_silent);
+    STORE_FLAG(disable_notification_);
     STORE_FLAG(has_message_id);
     STORE_FLAG(has_random_id);
     STORE_FLAG(has_sender);
@@ -3538,11 +3541,10 @@ class NotificationManager::AddMessagePushNotificationLogEvent {
     bool has_photo;
     bool has_document;
     bool has_sender_dialog_id;
-    bool is_silent;
     bool has_ringtone_id;
     BEGIN_PARSE_FLAGS();
     PARSE_FLAG(contains_mention_);
-    PARSE_FLAG(is_silent);
+    PARSE_FLAG(disable_notification_);
     PARSE_FLAG(has_message_id);
     PARSE_FLAG(has_random_id);
     PARSE_FLAG(has_sender);
@@ -3587,7 +3589,7 @@ class NotificationManager::AddMessagePushNotificationLogEvent {
     if (has_ringtone_id) {
       td::parse(ringtone_id_, parser);
     } else {
-      ringtone_id_ = is_silent ? 0 : -1;
+      ringtone_id_ = disable_notification_ ? 0 : -1;
     }
   }
 };
@@ -3595,7 +3597,7 @@ class NotificationManager::AddMessagePushNotificationLogEvent {
 void NotificationManager::add_message_push_notification(DialogId dialog_id, MessageId message_id, int64 random_id,
                                                         UserId sender_user_id, DialogId sender_dialog_id,
                                                         string sender_name, int32 date, bool is_from_scheduled,
-                                                        bool contains_mention, int64 initial_ringtone_id,
+                                                        bool contains_mention, bool disable_notification,
                                                         int64 ringtone_id, string loc_key, string arg, Photo photo,
                                                         Document document, NotificationId notification_id,
                                                         uint64 log_event_id, Promise<Unit> promise) {
@@ -3659,10 +3661,22 @@ void NotificationManager::add_message_push_notification(DialogId dialog_id, Mess
   }
 
   if (log_event_id == 0 && G()->parameters().use_message_db) {
-    AddMessagePushNotificationLogEvent log_event{
-        dialog_id, message_id,        random_id,        sender_user_id,      sender_dialog_id, sender_name,
-        date,      is_from_scheduled, contains_mention, initial_ringtone_id, loc_key,          arg,
-        photo,     document,          notification_id};
+    AddMessagePushNotificationLogEvent log_event{dialog_id,
+                                                 message_id,
+                                                 random_id,
+                                                 sender_user_id,
+                                                 sender_dialog_id,
+                                                 sender_name,
+                                                 date,
+                                                 is_from_scheduled,
+                                                 contains_mention,
+                                                 disable_notification,
+                                                 ringtone_id,
+                                                 loc_key,
+                                                 arg,
+                                                 photo,
+                                                 document,
+                                                 notification_id};
     log_event_id = binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::AddMessagePushNotification,
                               get_log_event_storer(log_event));
   }
@@ -3690,7 +3704,7 @@ void NotificationManager::add_message_push_notification(DialogId dialog_id, Mess
                       << group_type << " with settings from " << settings_dialog_id;
 
   add_notification(
-      group_id, group_type, dialog_id, date, settings_dialog_id, initial_ringtone_id, ringtone_id, 0, notification_id,
+      group_id, group_type, dialog_id, date, settings_dialog_id, disable_notification, ringtone_id, 0, notification_id,
       create_new_push_message_notification(sender_user_id, sender_dialog_id, sender_name, is_outgoing, message_id,
                                            std::move(loc_key), std::move(arg), std::move(photo), std::move(document)),
       "add_message_push_notification");
@@ -4143,7 +4157,7 @@ void NotificationManager::on_binlog_events(vector<BinlogEvent> &&events) {
         add_message_push_notification(
             log_event.dialog_id_, log_event.message_id_, log_event.random_id_, log_event.sender_user_id_,
             log_event.sender_dialog_id_, log_event.sender_name_, log_event.date_, log_event.is_from_scheduled_,
-            log_event.contains_mention_, log_event.ringtone_id_, 0, log_event.loc_key_, log_event.arg_,
+            log_event.contains_mention_, log_event.disable_notification_, 0, log_event.loc_key_, log_event.arg_,
             log_event.photo_, log_event.document_, log_event.notification_id_, event.id_,
             PromiseCreator::lambda([](Result<Unit> result) {
               if (result.is_error() && result.error().code() != 200 && result.error().code() != 406) {

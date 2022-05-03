@@ -29761,7 +29761,7 @@ bool MessagesManager::add_new_message_notification(Dialog *d, Message *m, bool f
 
   DialogId settings_dialog_id = d->dialog_id;
   Dialog *settings_dialog = d;
-  if (m->contains_mention && !m->is_mention_notification_disabled) {
+  if (is_from_mention_notification_group(d, m)) {
     // have a mention, so use notification settings from the dialog with the sender
     auto sender_dialog_id = get_message_sender(m);
     if (sender_dialog_id.is_valid()) {
@@ -29877,9 +29877,9 @@ bool MessagesManager::add_new_message_notification(Dialog *d, Message *m, bool f
   bool is_silent = m->disable_notification || m->message_id <= d->max_notification_message_id;
   send_closure_later(G()->notification_manager(), &NotificationManager::add_notification, notification_group_id,
                      from_mentions ? NotificationGroupType::Mentions : NotificationGroupType::Messages, d->dialog_id,
-                     m->date, settings_dialog_id, m->disable_notification ? 0 : ringtone_id,
-                     is_silent ? 0 : ringtone_id, min_delay_ms, m->notification_id,
-                     create_new_message_notification(m->message_id), "add_new_message_notification");
+                     m->date, settings_dialog_id, m->disable_notification, is_silent ? 0 : ringtone_id, min_delay_ms,
+                     m->notification_id, create_new_message_notification(m->message_id),
+                     "add_new_message_notification");
   return true;
 }
 
@@ -35733,7 +35733,7 @@ void MessagesManager::force_create_dialog(DialogId dialog_id, const char *source
               auto ringtone_id = get_dialog_notification_ringtone_id(dialog_id, d);
               send_closure_later(G()->notification_manager(), &NotificationManager::add_notification,
                                  notification_group_id, NotificationGroupType::SecretChat, dialog_id, date, dialog_id,
-                                 ringtone_id, ringtone_id, 0, d->new_secret_chat_notification_id,
+                                 false, ringtone_id, 0, d->new_secret_chat_notification_id,
                                  create_new_secret_chat_notification(), "add_new_secret_chat_notification");
             }
           }

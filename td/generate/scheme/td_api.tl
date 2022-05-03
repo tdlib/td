@@ -3173,8 +3173,8 @@ notificationSounds notification_sounds:vector<notificationSound> = NotificationS
 
 
 //@description Contains information about a notification @id Unique persistent identifier of this notification @date Notification date
-//@sound_id Identifier of the notification sound to be played; 0 if sound is disabled @type Notification type
-notification id:int32 date:int32 sound_id:int64 type:NotificationType = Notification;
+//@is_silent True, if the notification was explicitly sent without sound @type Notification type
+notification id:int32 date:int32 is_silent:Bool type:NotificationType = Notification;
 
 //@description Describes a group of notifications @id Unique persistent auto-incremented from 1 identifier of the notification group @type Type of the group
 //@chat_id Identifier of a chat to which all notifications in the group belong
