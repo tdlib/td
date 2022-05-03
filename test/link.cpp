@@ -134,6 +134,9 @@ TEST(Link, parse_internal_link) {
   auto game = [](const td::string &bot_username, const td::string &game_short_name) {
     return td::td_api::make_object<td::td_api::internalLinkTypeGame>(bot_username, game_short_name);
   };
+  auto invoice = [](const td::string &invoice_name) {
+    return td::td_api::make_object<td::td_api::internalLinkTypeInvoice>(invoice_name);
+  };
   auto language_pack = [](const td::string &language_pack_name) {
     return td::td_api::make_object<td::td_api::internalLinkTypeLanguagePack>(language_pack_name);
   };
@@ -367,6 +370,24 @@ TEST(Link, parse_internal_link) {
   parse_internal_link("t.me/bg//", nullptr);
   parse_internal_link("t.me/bg/%20/", background("%20"));
   parse_internal_link("t.me/bg/", nullptr);
+
+  parse_internal_link("t.me/invoice?slug=abcdef", nullptr);
+  parse_internal_link("t.me/invoice", nullptr);
+  parse_internal_link("t.me/invoice/", nullptr);
+  parse_internal_link("t.me/invoice//abcdef", nullptr);
+  parse_internal_link("t.me/invoice?/abcdef", nullptr);
+  parse_internal_link("t.me/invoice/?abcdef", nullptr);
+  parse_internal_link("t.me/invoice/#abcdef", nullptr);
+  parse_internal_link("t.me/invoice/abacaba", invoice("abacaba"));
+  parse_internal_link("t.me/invoice/aba%20aba", invoice("aba aba"));
+  parse_internal_link("t.me/invoice/123456a", invoice("123456a"));
+  parse_internal_link("t.me/invoice/12345678901", invoice("12345678901"));
+  parse_internal_link("t.me/invoice/123456", invoice("123456"));
+  parse_internal_link("t.me/invoice/123456/123123/12/31/a/s//21w/?asdas#test", invoice("123456"));
+
+  parse_internal_link("tg:invoice?slug=abcdef", invoice("abcdef"));
+  parse_internal_link("tg:invoice?slug=abc%30ef", invoice("abc0ef"));
+  parse_internal_link("tg://invoice?slug=", unknown_deep_link("tg://invoice?slug="));
 
   parse_internal_link("tg:share?url=google.com&text=text#asdasd", message_draft("google.com\ntext", true));
   parse_internal_link("tg:share?url=google.com&text=", message_draft("google.com", false));

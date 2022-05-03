@@ -297,6 +297,18 @@ class LinkManager::InternalLinkGame final : public InternalLink {
   }
 };
 
+class LinkManager::InternalLinkInvoice final : public InternalLink {
+  string invoice_name_;
+
+  td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
+    return td_api::make_object<td_api::internalLinkTypeInvoice>(invoice_name_);
+  }
+
+ public:
+  explicit InternalLinkInvoice(string invoice_name) : invoice_name_(std::move(invoice_name)) {
+  }
+};
+
 class LinkManager::InternalLinkLanguage final : public InternalLink {
   string language_pack_id_;
 
@@ -1099,6 +1111,11 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
                                                      << pass_arg("slug") << copy_arg("mode") << copy_arg("intensity")
                                                      << copy_arg("bg_color") << copy_arg("rotation"));
     }
+  } else if (path.size() == 1 && path[0] == "invoice") {
+    // invoice?slug=<invoice_name>
+    if (has_arg("slug")) {
+      return td::make_unique<InternalLinkInvoice>(url_query.get_arg("slug").str());
+    }
   } else if (path.size() == 1 && (path[0] == "share" || path[0] == "msg" || path[0] == "msg_url")) {
     // msg_url?url=<url>
     // msg_url?url=<url>&text=<text>
@@ -1219,6 +1236,11 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_t_me_link_query(Slice q
       return td::make_unique<InternalLinkBackground>(PSTRING()
                                                      << url_encode(path[1]) << copy_arg("mode") << copy_arg("intensity")
                                                      << copy_arg("bg_color") << copy_arg("rotation"));
+    }
+  } else if (path[0] == "invoice") {
+    if (path.size() >= 2 && !path[1].empty()) {
+      // /invoice/<name>
+      return td::make_unique<InternalLinkInvoice>(path[1]);
     }
   } else if (path[0] == "share" || path[0] == "msg") {
     if (!(path.size() > 1 && (path[1] == "bookmarklet" || path[1] == "embed"))) {
