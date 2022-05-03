@@ -119,7 +119,8 @@ class Session final
   uint64 last_bind_query_id_ = 0;
   uint64 last_check_query_id_ = 0;
   double last_activity_timestamp_ = 0;
-  double last_success_timestamp_ = 0;  // time when auth_key and Session definitely was valid
+  double last_success_timestamp_ = 0;       // time when auth_key and Session definitely was valid
+  double last_bind_success_timestamp_ = 0;  // time when auth_key and Session definitely was valid and authorized
   size_t dropped_size_ = 0;
 
   FlatHashSet<uint64> unknown_queries_;
