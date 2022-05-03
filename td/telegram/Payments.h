@@ -180,15 +180,18 @@ void answer_shipping_query(Td *td, int64 shipping_query_id,
 void answer_pre_checkout_query(Td *td, int64 pre_checkout_query_id, const string &error_message,
                                Promise<Unit> &&promise);
 
-void get_payment_form(Td *td, FullMessageId full_message_id, const td_api::object_ptr<td_api::themeParameters> &theme,
+void get_payment_form(Td *td, td_api::object_ptr<td_api::InputInvoice> &&input_invoice,
+                      const td_api::object_ptr<td_api::themeParameters> &theme,
                       Promise<tl_object_ptr<td_api::paymentForm>> &&promise);
 
-void validate_order_info(Td *td, FullMessageId full_message_id, tl_object_ptr<td_api::orderInfo> order_info,
-                         bool allow_save, Promise<tl_object_ptr<td_api::validatedOrderInfo>> &&promise);
+void validate_order_info(Td *td, td_api::object_ptr<td_api::InputInvoice> &&input_invoice,
+                         td_api::object_ptr<td_api::orderInfo> &&order_info, bool allow_save,
+                         Promise<td_api::object_ptr<td_api::validatedOrderInfo>> &&promise);
 
-void send_payment_form(Td *td, FullMessageId full_message_id, int64 payment_form_id, const string &order_info_id,
-                       const string &shipping_option_id, const tl_object_ptr<td_api::InputCredentials> &credentials,
-                       int64 tip_amount, Promise<tl_object_ptr<td_api::paymentResult>> &&promise);
+void send_payment_form(Td *td, td_api::object_ptr<td_api::InputInvoice> &&input_invoice, int64 payment_form_id,
+                       const string &order_info_id, const string &shipping_option_id,
+                       const td_api::object_ptr<td_api::InputCredentials> &credentials, int64 tip_amount,
+                       Promise<td_api::object_ptr<td_api::paymentResult>> &&promise);
 
 void get_payment_receipt(Td *td, FullMessageId full_message_id,
                          Promise<tl_object_ptr<td_api::paymentReceipt>> &&promise);

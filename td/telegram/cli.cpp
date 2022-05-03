@@ -434,7 +434,7 @@ class CliClient final : public Actor {
   static char get_delimiter(Slice str) {
     FlatHashSet<char> chars;
     for (auto c : trim(str)) {
-      if (!is_alnum(c) && c != '-' && c != '.' && c != '/' && c != '\0' && static_cast<uint8>(c) <= 127) {
+      if (!is_alnum(c) && c != '-' && c != '@' && c != '.' && c != '/' && c != '\0' && static_cast<uint8>(c) <= 127) {
         chars.insert(c);
       }
     }
@@ -800,6 +800,32 @@ class CliClient final : public Actor {
 
   void get_args(string &args, FileId &arg) const {
     arg.file_id = as_file_id(args);
+  }
+
+  struct InputInvoice {
+    int64 chat_id = 0;
+    int64 message_id = 0;
+    string invoice_name;
+
+    operator td_api::object_ptr<td_api::InputInvoice>() const {
+      if (invoice_name.empty()) {
+        return td_api::make_object<td_api::inputInvoiceMessage>(chat_id, message_id);
+      } else {
+        return td_api::make_object<td_api::inputInvoiceName>(invoice_name);
+      }
+    }
+  };
+
+  void get_args(string &args, InputInvoice &arg) const {
+    if (args.size() > 1 && args[0] == '#') {
+      arg.invoice_name = args;
+    } else {
+      string chat_id;
+      string message_id;
+      std::tie(chat_id, message_id) = split(args, get_delimiter(args));
+      arg.chat_id = as_chat_id(args);
+      arg.message_id = as_message_id(args);
+    }
   }
 
   template <class FirstType, class SecondType, class... Types>
@@ -1999,40 +2025,36 @@ class CliClient final : public Actor {
     } else if (op == "gbci") {
       send_request(td_api::make_object<td_api::getBankCardInfo>(args));
     } else if (op == "gpf") {
-      ChatId chat_id;
-      MessageId message_id;
-      get_args(args, chat_id, message_id);
-      send_request(td_api::make_object<td_api::getPaymentForm>(chat_id, message_id, get_theme_parameters()));
+      InputInvoice input_invoice;
+      get_args(args, input_invoice);
+      send_request(td_api::make_object<td_api::getPaymentForm>(input_invoice, get_theme_parameters()));
     } else if (op == "voi") {
-      ChatId chat_id;
-      MessageId message_id;
+      InputInvoice input_invoice;
       bool allow_save;
-      get_args(args, chat_id, message_id, allow_save);
-      send_request(td_api::make_object<td_api::validateOrderInfo>(chat_id, message_id, nullptr, allow_save));
+      get_args(args, input_invoice, allow_save);
+      send_request(td_api::make_object<td_api::validateOrderInfo>(input_invoice, nullptr, allow_save));
     } else if (op == "spfs") {
-      ChatId chat_id;
-      MessageId message_id;
+      InputInvoice input_invoice;
       int64 tip_amount;
       int64 payment_form_id;
       string order_info_id;
       string shipping_option_id;
       string saved_credentials_id;
-      get_args(args, chat_id, message_id, tip_amount, payment_form_id, order_info_id, shipping_option_id,
+      get_args(args, input_invoice, tip_amount, payment_form_id, order_info_id, shipping_option_id,
                saved_credentials_id);
       send_request(td_api::make_object<td_api::sendPaymentForm>(
-          chat_id, message_id, payment_form_id, order_info_id, shipping_option_id,
+          input_invoice, payment_form_id, order_info_id, shipping_option_id,
           td_api::make_object<td_api::inputCredentialsSaved>(saved_credentials_id), tip_amount));
     } else if (op == "spfn") {
-      ChatId chat_id;
-      MessageId message_id;
+      InputInvoice input_invoice;
       int64 tip_amount;
       int64 payment_form_id;
       string order_info_id;
       string shipping_option_id;
       string data;
-      get_args(args, chat_id, message_id, tip_amount, payment_form_id, order_info_id, shipping_option_id, data);
+      get_args(args, input_invoice, tip_amount, payment_form_id, order_info_id, shipping_option_id, data);
       send_request(td_api::make_object<td_api::sendPaymentForm>(
-          chat_id, message_id, payment_form_id, order_info_id, shipping_option_id,
+          input_invoice, payment_form_id, order_info_id, shipping_option_id,
           td_api::make_object<td_api::inputCredentialsNew>(data, true), tip_amount));
     } else if (op == "gpre") {
       ChatId chat_id;

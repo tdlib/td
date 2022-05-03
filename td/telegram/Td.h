@@ -1206,7 +1206,7 @@ class Td final : public Actor {
 
   void on_request(uint64 id, td_api::getBankCardInfo &request);
 
-  void on_request(uint64 id, const td_api::getPaymentForm &request);
+  void on_request(uint64 id, td_api::getPaymentForm &request);
 
   void on_request(uint64 id, td_api::validateOrderInfo &request);
 

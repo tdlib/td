@@ -1556,6 +1556,15 @@ paymentResult success:Bool verification_url:string = PaymentResult;
 paymentReceipt title:string description:string photo:photo date:int32 seller_bot_user_id:int53 payments_provider_user_id:int53 invoice:invoice order_info:orderInfo shipping_option:shippingOption credentials_title:string tip_amount:int53 = PaymentReceipt;
 
 
+//@class InputInvoice @description Describe an invoice to process
+
+//@description An invoice from a message of the type messageInvoice @chat_id Chat identifier of the message @message_id Message identifier
+inputInvoiceMessage chat_id:int53 message_id:int53 = InputInvoice;
+
+//@description An invoice from a link of the type internalLinkTypeInvoice @name Name of the invoice
+inputInvoiceName name:string = InputInvoice;
+
+
 //@description File with the date it was uploaded @file The file @date Point in time (Unix timestamp) when the file was uploaded
 datedFile file:file date:int32 = DatedFile;
 
@@ -5908,22 +5917,20 @@ getChatEventLog chat_id:int53 query:string from_event_id:int64 limit:int32 filte
 
 
 //@description Returns an invoice payment form. This method must be called when the user presses inlineKeyboardButtonBuy
-//@chat_id Chat identifier of the Invoice message
-//@message_id Message identifier
+//@input_invoice The invoice
 //@theme Preferred payment form theme; pass null to use the default theme
-getPaymentForm chat_id:int53 message_id:int53 theme:themeParameters = PaymentForm;
+getPaymentForm input_invoice:InputInvoice theme:themeParameters = PaymentForm;
 
 //@description Validates the order information provided by a user and returns the available shipping options for a flexible invoice
-//@chat_id Chat identifier of the Invoice message
-//@message_id Message identifier
+//@input_invoice The invoice
 //@order_info The order information, provided by the user; pass null if empty
 //@allow_save Pass true to save the order information
-validateOrderInfo chat_id:int53 message_id:int53 order_info:orderInfo allow_save:Bool = ValidatedOrderInfo;
+validateOrderInfo input_invoice:InputInvoice order_info:orderInfo allow_save:Bool = ValidatedOrderInfo;
 
-//@description Sends a filled-out payment form to the bot for final verification @chat_id Chat identifier of the Invoice message @message_id Message identifier
+//@description Sends a filled-out payment form to the bot for final verification @input_invoice The invoice
 //@payment_form_id Payment form identifier returned by getPaymentForm @order_info_id Identifier returned by validateOrderInfo, or an empty string @shipping_option_id Identifier of a chosen shipping option, if applicable
 //@credentials The credentials chosen by user for payment @tip_amount Chosen by the user amount of tip in the smallest units of the currency
-sendPaymentForm chat_id:int53 message_id:int53 payment_form_id:int64 order_info_id:string shipping_option_id:string credentials:InputCredentials tip_amount:int53 = PaymentResult;
+sendPaymentForm input_invoice:InputInvoice payment_form_id:int64 order_info_id:string shipping_option_id:string credentials:InputCredentials tip_amount:int53 = PaymentResult;
 
 //@description Returns information about a successful payment @chat_id Chat identifier of the PaymentSuccessful message @message_id Message identifier
 getPaymentReceipt chat_id:int53 message_id:int53 = PaymentReceipt;
