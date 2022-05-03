@@ -319,7 +319,7 @@ void Session::on_bind_result(NetQueryPtr query) {
   if (status.is_ok()) {
     LOG(INFO) << "Bound temp auth key " << auth_data_.get_tmp_auth_key().id();
     auth_data_.on_bind();
-    last_bind_success_timestamp_ = td::Time::now();
+    last_bind_success_timestamp_ = Time::now();
     on_tmp_auth_key_updated();
   } else if (status.error().message() == "DispatchTtlError") {
     LOG(INFO) << "Resend bind auth key " << auth_data_.get_tmp_auth_key().id() << " request after DispatchTtlError";
@@ -741,7 +741,9 @@ Status Session::on_update(BufferSlice packet) {
     return Status::Error("Receive at update from CDN connection");
   }
 
-  last_success_timestamp_ = Time::now();
+  if (!use_pfs_) {
+    last_success_timestamp_ = Time::now();
+  }
   last_activity_timestamp_ = Time::now();
   callback_->on_update(std::move(packet));
   return Status::OK();
