@@ -4668,7 +4668,7 @@ void ContactsManager::apply_pending_user_photo(User *u, UserId user_id) {
 
   auto it = pending_user_photos_.find(user_id);
   if (it != pending_user_photos_.end()) {
-    do_update_user_photo(u, user_id, std::move(it->second), "get_user_dialog_photo");
+    do_update_user_photo(u, user_id, std::move(it->second), "apply_pending_user_photo");
     pending_user_photos_.erase(it);
     update_user(u, user_id);
   }
@@ -10618,6 +10618,9 @@ void ContactsManager::on_get_user_full(tl_object_ptr<telegram_api::userFull> &&u
   }
 
   auto photo = get_photo(td_->file_manager_.get(), std::move(user->profile_photo_), DialogId(user_id));
+  // do_update_user_photo should be a no-op if server sent consistent data
+  do_update_user_photo(u, user_id, as_profile_photo(td_->file_manager_.get(), user_id, u->access_hash, photo), false,
+                       "on_get_user_full");
   if (photo != user_full->photo) {
     user_full->photo = std::move(photo);
     user_full->is_changed = true;
@@ -10628,6 +10631,7 @@ void ContactsManager::on_get_user_full(tl_object_ptr<telegram_api::userFull> &&u
     register_user_photo(u, user_id, user_full->photo);
   }
 
+  update_user(u, user_id);
   user_full->is_update_user_full_sent = true;
   update_user_full(user_full, user_id, "on_get_user_full");
 
@@ -11156,7 +11160,7 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
     update_channel_full(channel_full, channel_id, "on_get_channel_full");
 
     if (linked_channel_id.is_valid()) {
-      auto linked_channel_full = get_channel_full_force(linked_channel_id, true, "on_get_chat_full");
+      auto linked_channel_full = get_channel_full_force(linked_channel_id, true, "on_get_channel_full");
       on_update_channel_full_linked_channel_id(linked_channel_full, linked_channel_id, channel_id);
       if (linked_channel_full != nullptr) {
         update_channel_full(linked_channel_full, linked_channel_id, "on_get_channel_full 2");
