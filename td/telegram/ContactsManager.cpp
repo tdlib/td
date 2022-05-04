@@ -10631,7 +10631,11 @@ void ContactsManager::on_get_user_full(tl_object_ptr<telegram_api::userFull> &&u
     register_user_photo(u, user_id, user_full->photo);
   }
 
-  update_user(u, user_id);
+  if (u->is_changed) {
+    LOG(WARNING) << "Receive inconsistent chatPhoto and chatPhotoInfo for " << user_id;
+    update_user(u, user_id);
+  }
+
   user_full->is_update_user_full_sent = true;
   update_user_full(user_full, user_id, "on_get_user_full");
 
@@ -10885,8 +10889,12 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
       chat_full->is_changed = true;
     }
 
+    if (c->is_changed) {
+      LOG(WARNING) << "Receive inconsistent chatPhoto and chatPhotoInfo for " << chat_id;
+      update_chat(c, chat_id);
+    }
+
     chat_full->is_update_chat_full_sent = true;
-    update_chat(c, chat_id);
     update_chat_full(chat_full, chat_id, "on_get_chat_full");
   } else {
     CHECK(chat_full_ptr->get_id() == telegram_api::channelFull::ID);
@@ -11155,8 +11163,12 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
       channel_full->is_changed = true;
     }
 
+    if (c->is_changed) {
+      LOG(WARNING) << "Receive inconsistent chatPhoto and chatPhotoInfo for " << channel_id;
+      update_channel(c, channel_id);
+    }
+
     channel_full->is_update_channel_full_sent = true;
-    update_channel(c, channel_id);
     update_channel_full(channel_full, channel_id, "on_get_channel_full");
 
     if (linked_channel_id.is_valid()) {
