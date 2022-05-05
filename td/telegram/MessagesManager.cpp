@@ -15048,7 +15048,7 @@ void MessagesManager::remove_dialog_mention_notifications(Dialog *d) {
     CHECK(m != nullptr);
     CHECK(m->message_id.is_valid());
     if (m->notification_id.is_valid() && is_message_notification_active(d, m) &&
-        is_from_mention_notification_group(d, m)) {
+        is_from_mention_notification_group(m)) {
       removed_notification_ids_set.insert(m->notification_id);
     }
   }
@@ -15060,7 +15060,7 @@ void MessagesManager::remove_dialog_mention_notifications(Dialog *d) {
     if (message_id != d->pinned_message_notification_message_id) {
       auto m = get_message_force(d, message_id, "remove_dialog_mention_notifications");
       if (m != nullptr && m->notification_id.is_valid() && is_message_notification_active(d, m)) {
-        CHECK(is_from_mention_notification_group(d, m));
+        CHECK(is_from_mention_notification_group(m));
         removed_notification_ids_set.insert(m->notification_id);
       }
     }
@@ -15755,7 +15755,7 @@ void MessagesManager::remove_message_notification_id(Dialog *d, Message *m, bool
     return;
   }
 
-  auto from_mentions = is_from_mention_notification_group(d, m);
+  auto from_mentions = is_from_mention_notification_group(m);
   auto &group_info = get_notification_group_info(d, m);
   if (!group_info.group_id.is_valid()) {
     return;
@@ -15822,7 +15822,7 @@ void MessagesManager::fix_dialog_last_notification_id(Dialog *d, bool from_menti
   if (*it != nullptr && ((*it)->message_id == message_id || (*it)->have_next)) {
     while (*it != nullptr) {
       const Message *m = *it;
-      if (is_from_mention_notification_group(d, m) == from_mentions && m->notification_id.is_valid() &&
+      if (is_from_mention_notification_group(m) == from_mentions && m->notification_id.is_valid() &&
           is_message_notification_active(d, m) && m->message_id != message_id) {
         bool is_fixed = set_dialog_last_notification(d->dialog_id, group_info, m->date, m->notification_id,
                                                      "fix_dialog_last_notification_id");
@@ -28744,7 +28744,7 @@ void MessagesManager::send_update_new_message(const Dialog *d, const Message *m)
 MessagesManager::NotificationGroupInfo &MessagesManager::get_notification_group_info(Dialog *d, const Message *m) {
   CHECK(d != nullptr);
   CHECK(m != nullptr);
-  return is_from_mention_notification_group(d, m) ? d->mention_notification_group : d->message_notification_group;
+  return is_from_mention_notification_group(m) ? d->mention_notification_group : d->message_notification_group;
 }
 
 NotificationGroupId MessagesManager::get_dialog_notification_group_id(DialogId dialog_id,
@@ -29014,13 +29014,13 @@ MessagesManager::MessageNotificationGroup MessagesManager::get_message_notificat
   return result;
 }
 
-bool MessagesManager::is_from_mention_notification_group(const Dialog *d, const Message *m) {
+bool MessagesManager::is_from_mention_notification_group(const Message *m) {
   return m->contains_mention && !m->is_mention_notification_disabled;
 }
 
 bool MessagesManager::is_message_notification_active(const Dialog *d, const Message *m) {
   CHECK(!m->message_id.is_scheduled());
-  if (is_from_mention_notification_group(d, m)) {
+  if (is_from_mention_notification_group(m)) {
     return m->notification_id.get() > d->mention_notification_group.max_removed_notification_id.get() &&
            m->message_id > d->mention_notification_group.max_removed_message_id &&
            (m->contains_unread_mention || m->message_id == d->pinned_message_notification_message_id);
@@ -29151,7 +29151,7 @@ vector<Notification> MessagesManager::get_message_notifications_from_database_fo
         continue;
       }
 
-      if (is_from_mention_notification_group(d, m) != from_mentions) {
+      if (is_from_mention_notification_group(m) != from_mentions) {
         VLOG(notifications) << "Receive from database " << m->message_id << " with " << m->notification_id
                             << " from another group";
         continue;
@@ -29409,7 +29409,7 @@ void MessagesManager::on_get_message_notifications_from_database(DialogId dialog
       continue;
     }
 
-    if (is_from_mention_notification_group(d, m) != from_mentions) {
+    if (is_from_mention_notification_group(m) != from_mentions) {
       VLOG(notifications) << "Receive from database " << m->message_id << " with " << m->notification_id
                           << " from another category";
       continue;
@@ -29476,7 +29476,7 @@ void MessagesManager::remove_message_notification(DialogId dialog_id, Notificati
     CHECK(m != nullptr);
     CHECK(m->notification_id == notification_id);
     CHECK(!m->message_id.is_scheduled());
-    if (is_from_mention_notification_group(d, m) == from_mentions && is_message_notification_active(d, m)) {
+    if (is_from_mention_notification_group(m) == from_mentions && is_message_notification_active(d, m)) {
       remove_message_notification_id(d, m, false, false);
     }
     return;
@@ -29539,8 +29539,8 @@ void MessagesManager::do_remove_message_notification(DialogId dialog_id, bool fr
   CHECK(d != nullptr);
 
   auto m = on_get_message_from_database(d, result[0], false, "do_remove_message_notification");
-  if (m != nullptr && m->notification_id == notification_id &&
-      is_from_mention_notification_group(d, m) == from_mentions && is_message_notification_active(d, m)) {
+  if (m != nullptr && m->notification_id == notification_id && is_from_mention_notification_group(m) == from_mentions &&
+      is_message_notification_active(d, m)) {
     remove_message_notification_id(d, m, false, false);
   }
 }
@@ -29706,7 +29706,7 @@ bool MessagesManager::may_need_message_notification(const Dialog *d, const Messa
     return false;
   }
 
-  if (is_from_mention_notification_group(d, m)) {
+  if (is_from_mention_notification_group(m)) {
     return true;
   }
 
@@ -29737,7 +29737,7 @@ bool MessagesManager::add_new_message_notification(Dialog *d, Message *m, bool f
     return false;
   }
 
-  auto from_mentions = is_from_mention_notification_group(d, m);
+  auto from_mentions = is_from_mention_notification_group(m);
   bool is_pinned = m->content->get_type() == MessageContentType::PinMessage;
   bool is_active =
       from_mentions ? m->contains_unread_mention || is_pinned : m->message_id > d->last_read_inbox_message_id;
@@ -29761,7 +29761,7 @@ bool MessagesManager::add_new_message_notification(Dialog *d, Message *m, bool f
 
   DialogId settings_dialog_id = d->dialog_id;
   Dialog *settings_dialog = d;
-  if (is_from_mention_notification_group(d, m)) {
+  if (is_from_mention_notification_group(m)) {
     // have a mention, so use notification settings from the dialog with the sender
     auto sender_dialog_id = get_message_sender(m);
     if (sender_dialog_id.is_valid()) {
@@ -34245,7 +34245,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
       add_new_message_notification(d, message.get(), false);
     } else {
       if (message->from_database && message->notification_id.is_valid() &&
-          is_from_mention_notification_group(d, message.get()) && is_message_notification_active(d, message.get()) &&
+          is_from_mention_notification_group(message.get()) && is_message_notification_active(d, message.get()) &&
           is_dialog_mention_notifications_disabled(d) && message_id != d->pinned_message_notification_message_id) {
         auto notification_id = message->notification_id;
         VLOG(notifications) << "Remove mention " << notification_id << " in " << message_id << " in " << dialog_id;
@@ -34937,7 +34937,7 @@ void MessagesManager::delete_message_from_database(Dialog *d, MessageId message_
 
   if (m != nullptr && m->notification_id.is_valid()) {
     CHECK(!message_id.is_scheduled());
-    auto from_mentions = is_from_mention_notification_group(d, m);
+    auto from_mentions = is_from_mention_notification_group(m);
     auto &group_info = from_mentions ? d->mention_notification_group : d->message_notification_group;
 
     if (group_info.group_id.is_valid()) {

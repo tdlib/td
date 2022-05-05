@@ -2366,7 +2366,7 @@ class MessagesManager final : public Actor {
 
   void send_update_new_message(const Dialog *d, const Message *m);
 
-  static bool is_from_mention_notification_group(const Dialog *d, const Message *m);
+  static bool is_from_mention_notification_group(const Message *m);
 
   static bool is_message_notification_active(const Dialog *d, const Message *m);
 
