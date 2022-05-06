@@ -5949,6 +5949,10 @@ deleteSavedOrderInfo = Ok;
 deleteSavedCredentials = Ok;
 
 
+//@description Creates a link for the given invoice; for bots only @invoice Information about the invoice of the type inputMessageInvoice
+createInvoiceLink invoice:InputMessageContent = HttpUrl;
+
+
 //@description Returns a user that can be contacted to get support
 getSupportUser = User;
 

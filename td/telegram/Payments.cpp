@@ -593,6 +593,32 @@ class ClearSavedInfoQuery final : public Td::ResultHandler {
   }
 };
 
+class ExportInvoiceQuery final : public Td::ResultHandler {
+  Promise<string> promise_;
+
+ public:
+  explicit ExportInvoiceQuery(Promise<string> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(tl_object_ptr<telegram_api::inputMediaInvoice> &&input_media_invoice) {
+    send_query(G()->net_query_creator().create(telegram_api::payments_exportInvoice(std::move(input_media_invoice))));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::payments_exportInvoice>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto link = result_ptr.move_as_ok();
+    promise_.set_value(std::move(link->url_));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class GetBankCardInfoQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::bankCardInfo>> promise_;
 
@@ -1311,6 +1337,14 @@ void delete_saved_order_info(Td *td, Promise<Unit> &&promise) {
 
 void delete_saved_credentials(Td *td, Promise<Unit> &&promise) {
   td->create_handler<ClearSavedInfoQuery>(std::move(promise))->send(true, false);
+}
+
+void export_invoice(Td *td, td_api::object_ptr<td_api::InputMessageContent> &&invoice, Promise<string> &&promise) {
+  if (invoice == nullptr) {
+    return promise.set_error(Status::Error(400, "Invoice must be non-empty"));
+  }
+  TRY_RESULT_PROMISE(promise, input_invoice, process_input_message_invoice(std::move(invoice), td));
+  td->create_handler<ExportInvoiceQuery>(std::move(promise))->send(get_input_media_invoice(input_invoice, td));
 }
 
 void get_bank_card_info(Td *td, const string &bank_card_number,

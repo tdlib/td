@@ -7539,6 +7539,19 @@ void Td::on_request(uint64 id, const td_api::deleteSavedCredentials &request) {
   delete_saved_credentials(this, std::move(promise));
 }
 
+void Td::on_request(uint64 id, td_api::createInvoiceLink &request) {
+  CHECK_IS_BOT();
+  CREATE_REQUEST_PROMISE();
+  auto query_promise = PromiseCreator::lambda([promise = std::move(promise)](Result<string> result) mutable {
+    if (result.is_error()) {
+      promise.set_error(result.move_as_error());
+    } else {
+      promise.set_value(td_api::make_object<td_api::httpUrl>(result.move_as_ok()));
+    }
+  });
+  export_invoice(this, std::move(request.invoice_), std::move(query_promise));
+}
+
 void Td::on_request(uint64 id, td_api::getPassportElement &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.password_);
