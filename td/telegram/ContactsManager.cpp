@@ -10859,7 +10859,7 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
     on_update_chat_full_invite_link(chat_full, std::move(chat->exported_invite_));
     auto photo = get_photo(td_->file_manager_.get(), std::move(chat->chat_photo_), DialogId(chat_id));
     // on_update_chat_photo should be a no-op if server sent consistent data
-    on_update_chat_photo(c, as_dialog_photo(td_->file_manager_.get(), DialogId(chat_id), 0, photo));
+    on_update_chat_photo(c, chat_id, as_dialog_photo(td_->file_manager_.get(), DialogId(chat_id), 0, photo), false);
     on_update_chat_full_photo(chat_full, chat_id, std::move(photo));
     if (chat_full->description != chat->about_) {
       chat_full->description = std::move(chat->about_);
@@ -11032,7 +11032,8 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
 
     auto photo = get_photo(td_->file_manager_.get(), std::move(channel->chat_photo_), DialogId(channel_id));
     // on_update_channel_photo should be a no-op if server sent consistent data
-    on_update_channel_photo(c, as_dialog_photo(td_->file_manager_.get(), DialogId(channel_id), c->access_hash, photo));
+    on_update_channel_photo(
+        c, channel_id, as_dialog_photo(td_->file_manager_.get(), DialogId(channel_id), c->access_hash, photo), false);
     on_update_channel_full_photo(channel_full, channel_id, std::move(photo));
 
     td_->messages_manager_->on_read_channel_outbox(channel_id,
@@ -11366,7 +11367,7 @@ void ContactsManager::do_update_user_photo(User *u, UserId user_id, ProfilePhoto
     u->is_changed = true;
 
     if (invalidate_photo_cache) {
-      drop_user_photos(user_id, u->photo.id <= 0, true, "do_update_user_photo");
+      drop_user_photos(user_id, !u->photo.small_file_id.is_valid(), true, "do_update_user_photo");
     }
   }
 }
@@ -11857,7 +11858,7 @@ void ContactsManager::drop_user_photos(UserId user_id, bool is_empty, bool drop_
         user_full->expires_at = 0.0;
         user_full->need_save_to_database = true;
       }
-      load_user_full(user_id, true, Auto(), "drop_user_photos");
+      reload_user_full(user_id);
     }
     update_user_full(user_full, user_id, "drop_user_photos");
   }
@@ -13484,10 +13485,11 @@ void ContactsManager::on_update_chat_participant_count(Chat *c, ChatId chat_id, 
 
 void ContactsManager::on_update_chat_photo(Chat *c, ChatId chat_id,
                                            tl_object_ptr<telegram_api::ChatPhoto> &&chat_photo_ptr) {
-  on_update_chat_photo(c, get_dialog_photo(td_->file_manager_.get(), DialogId(chat_id), 0, std::move(chat_photo_ptr)));
+  on_update_chat_photo(
+      c, chat_id, get_dialog_photo(td_->file_manager_.get(), DialogId(chat_id), 0, std::move(chat_photo_ptr)), true);
 }
 
-void ContactsManager::on_update_chat_photo(Chat *c, DialogPhoto &&photo) {
+void ContactsManager::on_update_chat_photo(Chat *c, ChatId chat_id, DialogPhoto &&photo, bool invalidate_photo_cache) {
   if (td_->auth_manager_->is_bot()) {
     photo.minithumbnail.clear();
   }
@@ -13496,6 +13498,20 @@ void ContactsManager::on_update_chat_photo(Chat *c, DialogPhoto &&photo) {
     c->photo = std::move(photo);
     c->is_photo_changed = true;
     c->need_save_to_database = true;
+
+    if (invalidate_photo_cache) {
+      auto chat_full = get_chat_full(chat_id);  // must not load ChatFull
+      if (chat_full != nullptr) {
+        if (!chat_full->photo.is_empty()) {
+          chat_full->photo = Photo();
+          chat_full->is_changed = true;
+        }
+        if (c->photo.small_file_id.is_valid()) {
+          reload_chat_full(chat_id, Auto());
+        }
+        update_chat_full(chat_full, chat_id, "on_update_chat_photo");
+      }
+    }
   }
 }
 
@@ -13613,10 +13629,13 @@ void ContactsManager::drop_chat_full(ChatId chat_id) {
 void ContactsManager::on_update_channel_photo(Channel *c, ChannelId channel_id,
                                               tl_object_ptr<telegram_api::ChatPhoto> &&chat_photo_ptr) {
   on_update_channel_photo(
-      c, get_dialog_photo(td_->file_manager_.get(), DialogId(channel_id), c->access_hash, std::move(chat_photo_ptr)));
+      c, channel_id,
+      get_dialog_photo(td_->file_manager_.get(), DialogId(channel_id), c->access_hash, std::move(chat_photo_ptr)),
+      true);
 }
 
-void ContactsManager::on_update_channel_photo(Channel *c, DialogPhoto &&photo) {
+void ContactsManager::on_update_channel_photo(Channel *c, ChannelId channel_id, DialogPhoto &&photo,
+                                              bool invalidate_photo_cache) {
   if (td_->auth_manager_->is_bot()) {
     photo.minithumbnail.clear();
   }
@@ -13625,6 +13644,24 @@ void ContactsManager::on_update_channel_photo(Channel *c, DialogPhoto &&photo) {
     c->photo = std::move(photo);
     c->is_photo_changed = true;
     c->need_save_to_database = true;
+
+    if (invalidate_photo_cache) {
+      auto channel_full = get_channel_full(channel_id, true, "on_update_channel_photo");  // must not load ChannelFull
+      if (channel_full != nullptr) {
+        if (!channel_full->photo.is_empty()) {
+          channel_full->photo = Photo();
+          channel_full->is_changed = true;
+        }
+        if (c->photo.small_file_id.is_valid()) {
+          if (channel_full->expires_at > 0.0) {
+            channel_full->expires_at = 0.0;
+            channel_full->need_save_to_database = true;
+          }
+          reload_channel_full(channel_id, Auto(), "on_update_channel_photo");
+        }
+        update_channel_full(channel_full, channel_id, "on_update_channel_photo");
+      }
+    }
   }
 }
 
