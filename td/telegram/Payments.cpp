@@ -347,13 +347,15 @@ class GetPaymentFormQuery final : public Td::ResultHandler {
     }
     bool can_save_credentials = payment_form->can_save_credentials_;
     bool need_password = payment_form->password_missing_;
+    auto photo = get_web_document_photo(td_->file_manager_.get(), std::move(payment_form->photo_), dialog_id_);
     promise_.set_value(make_tl_object<td_api::paymentForm>(
         payment_form->form_id_, convert_invoice(std::move(payment_form->invoice_)), std::move(payment_form->url_),
         td_->contacts_manager_->get_user_id_object(seller_bot_user_id, "paymentForm seller"),
         td_->contacts_manager_->get_user_id_object(payments_provider_user_id, "paymentForm provider"),
         convert_payment_provider(payment_form->native_provider_, std::move(payment_form->native_params_)),
         convert_order_info(std::move(payment_form->saved_info_)),
-        convert_saved_credentials(std::move(payment_form->saved_credentials_)), can_save_credentials, need_password));
+        convert_saved_credentials(std::move(payment_form->saved_credentials_)), can_save_credentials, need_password,
+        payment_form->title_, payment_form->description_, get_photo_object(td_->file_manager_.get(), photo)));
   }
 
   void on_error(Status status) final {

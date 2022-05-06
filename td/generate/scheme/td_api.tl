@@ -1482,7 +1482,8 @@ themeParameters background_color:int32 text_color:int32 hint_color:int32 link_co
 //@description Portion of the price of a product (e.g., "delivery cost", "tax amount") @label Label for this portion of the product price @amount Currency amount in the smallest units of the currency
 labeledPricePart label:string amount:int53 = LabeledPricePart;
 
-//@description Product invoice @currency ISO 4217 currency code
+//@description Product invoice
+//@currency ISO 4217 currency code
 //@price_parts A list of objects used to calculate the total price of the product
 //@max_tip_amount The maximum allowed amount of tip in the smallest units of the currency
 //@suggested_tip_amounts Suggested amounts of tip in the smallest units of the currency
@@ -1524,7 +1525,7 @@ paymentsProviderStripe publishable_key:string need_country:Bool need_postal_code
 
 //@description Contains information about an invoice payment form
 //@id The payment form identifier
-//@invoice Full information of the invoice
+//@invoice Full information about the invoice
 //@url Payment form URL
 //@seller_bot_user_id User identifier of the seller bot
 //@payments_provider_user_id User identifier of the payment provider bot
@@ -1533,7 +1534,10 @@ paymentsProviderStripe publishable_key:string need_country:Bool need_postal_code
 //@saved_credentials Information about saved card credentials; may be null
 //@can_save_credentials True, if the user can choose to save credentials
 //@need_password True, if the user will be able to save credentials protected by a password they set up
-paymentForm id:int64 invoice:invoice url:string seller_bot_user_id:int53 payments_provider_user_id:int53 payments_provider:paymentsProviderStripe saved_order_info:orderInfo saved_credentials:savedCredentials can_save_credentials:Bool need_password:Bool = PaymentForm;
+//@product_title Product title
+//@product_description Product description
+//@product_photo Product photo; may be null
+paymentForm id:int64 invoice:invoice url:string seller_bot_user_id:int53 payments_provider_user_id:int53 payments_provider:paymentsProviderStripe saved_order_info:orderInfo saved_credentials:savedCredentials can_save_credentials:Bool need_password:Bool product_title:string product_description:string product_photo:photo = PaymentForm;
 
 //@description Contains a temporary identifier of validated order information, which is stored for one hour. Also contains the available shipping options @order_info_id Temporary identifier of the order information @shipping_options Available shipping options
 validatedOrderInfo order_info_id:string shipping_options:vector<shippingOption> = ValidatedOrderInfo;
