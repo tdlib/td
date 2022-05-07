@@ -10778,7 +10778,7 @@ void ContactsManager::on_get_user_full(tl_object_ptr<telegram_api::userFull> &&u
   if (user_full->description != description || user_full->description_photo != description_photo ||
       user_full->description_animation_file_id != description_animation_file_id) {
     user_full->description = std::move(description);
-    user_full->description_photo == std::move(description_photo);
+    user_full->description_photo = std::move(description_photo);
     user_full->description_animation_file_id = description_animation_file_id;
     user_full->is_changed = true;
   }
