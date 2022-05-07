@@ -1242,6 +1242,11 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_t_me_link_query(Slice q
       // /invoice/<name>
       return td::make_unique<InternalLinkInvoice>(path[1]);
     }
+  } else if (path[0][0] == '$') {
+    if (path[0].size() >= 2) {
+      // /$<invoice_name>
+      return td::make_unique<InternalLinkInvoice>(path[0].substr(1));
+    }
   } else if (path[0] == "share" || path[0] == "msg") {
     if (!(path.size() > 1 && (path[1] == "bookmarklet" || path[1] == "embed"))) {
       // /share?url=<url>

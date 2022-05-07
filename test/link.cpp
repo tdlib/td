@@ -385,6 +385,20 @@ TEST(Link, parse_internal_link) {
   parse_internal_link("t.me/invoice/123456", invoice("123456"));
   parse_internal_link("t.me/invoice/123456/123123/12/31/a/s//21w/?asdas#test", invoice("123456"));
 
+  parse_internal_link("t.me/$?slug=abcdef", nullptr);
+  parse_internal_link("t.me/$", nullptr);
+  parse_internal_link("t.me/$/abcdef", nullptr);
+  parse_internal_link("t.me/$?/abcdef", nullptr);
+  parse_internal_link("t.me/$?abcdef", nullptr);
+  parse_internal_link("t.me/$#abcdef", nullptr);
+  parse_internal_link("t.me/$abacaba", invoice("abacaba"));
+  parse_internal_link("t.me/$aba%20aba", invoice("aba aba"));
+  parse_internal_link("t.me/$123456a", invoice("123456a"));
+  parse_internal_link("t.me/$12345678901", invoice("12345678901"));
+  parse_internal_link("t.me/$123456", invoice("123456"));
+  parse_internal_link("t.me/%24123456", invoice("123456"));
+  parse_internal_link("t.me/$123456/123123/12/31/a/s//21w/?asdas#test", invoice("123456"));
+
   parse_internal_link("tg:invoice?slug=abcdef", invoice("abcdef"));
   parse_internal_link("tg:invoice?slug=abc%30ef", invoice("abc0ef"));
   parse_internal_link("tg://invoice?slug=", unknown_deep_link("tg://invoice?slug="));
