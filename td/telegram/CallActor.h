@@ -55,6 +55,7 @@ struct CallConnection {
 
   // Telegram
   string peer_tag;
+  bool is_tcp = false;
 
   // WebRTC
   string username;

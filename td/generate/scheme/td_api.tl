@@ -2326,8 +2326,8 @@ callProtocol udp_p2p:Bool udp_reflector:Bool min_layer:int32 max_layer:int32 lib
 
 //@class CallServerType @description Describes the type of a call server
 
-//@description A Telegram call reflector @peer_tag A peer tag to be used with the reflector
-callServerTypeTelegramReflector peer_tag:bytes = CallServerType;
+//@description A Telegram call reflector @peer_tag A peer tag to be used with the reflector @is_tcp True, if the server uses TCP instead of UDP
+callServerTypeTelegramReflector peer_tag:bytes is_tcp:Bool = CallServerType;
 
 //@description A WebRTC server @username Username to be used for authentication @password Authentication password @supports_turn True, if the server supports TURN @supports_stun True, if the server supports STUN
 callServerTypeWebrtc username:string password:string supports_turn:Bool supports_stun:Bool = CallServerType;

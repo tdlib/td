@@ -74,6 +74,7 @@ CallConnection::CallConnection(const telegram_api::PhoneConnection &connection) 
       ipv6 = conn.ipv6_;
       port = conn.port_;
       peer_tag = conn.peer_tag_.as_slice().str();
+      is_tcp = conn.tcp_;
       break;
     }
     case telegram_api::phoneConnectionWebrtc::ID: {
@@ -103,7 +104,7 @@ tl_object_ptr<td_api::callServer> CallConnection::get_call_server_object() const
   auto server_type = [&]() -> tl_object_ptr<td_api::CallServerType> {
     switch (type) {
       case Type::Telegram:
-        return make_tl_object<td_api::callServerTypeTelegramReflector>(peer_tag);
+        return make_tl_object<td_api::callServerTypeTelegramReflector>(peer_tag, is_tcp);
       case Type::Webrtc:
         return make_tl_object<td_api::callServerTypeWebrtc>(username, password, supports_turn, supports_stun);
       default:
