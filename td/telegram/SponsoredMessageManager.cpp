@@ -90,6 +90,7 @@ class ViewSponsoredMessageQuery final : public Td::ResultHandler {
 
 struct SponsoredMessageManager::SponsoredMessage {
   int64 local_id = 0;
+  bool is_recommended = false;
   DialogId sponsor_dialog_id;
   ServerMessageId server_message_id;
   string start_param;
@@ -97,9 +98,10 @@ struct SponsoredMessageManager::SponsoredMessage {
   unique_ptr<MessageContent> content;
 
   SponsoredMessage() = default;
-  SponsoredMessage(int64 local_id, DialogId sponsor_dialog_id, ServerMessageId server_message_id, string start_param,
-                   string invite_hash, unique_ptr<MessageContent> content)
+  SponsoredMessage(int64 local_id, bool is_recommended, DialogId sponsor_dialog_id, ServerMessageId server_message_id,
+                   string start_param, string invite_hash, unique_ptr<MessageContent> content)
       : local_id(local_id)
+      , is_recommended(is_recommended)
       , sponsor_dialog_id(sponsor_dialog_id)
       , server_message_id(server_message_id)
       , start_param(std::move(start_param))
@@ -187,8 +189,9 @@ td_api::object_ptr<td_api::sponsoredMessage> SponsoredMessageManager::get_sponso
       break;
   }
   return td_api::make_object<td_api::sponsoredMessage>(
-      sponsored_message.local_id, sponsored_message.sponsor_dialog_id.get(), std::move(chat_invite_link_info),
-      std::move(link), get_message_content_object(sponsored_message.content.get(), td_, dialog_id, 0, false, true, -1));
+      sponsored_message.local_id, sponsored_message.is_recommended, sponsored_message.sponsor_dialog_id.get(),
+      std::move(chat_invite_link_info), std::move(link),
+      get_message_content_object(sponsored_message.content.get(), td_, dialog_id, 0, false, true, -1));
 }
 
 td_api::object_ptr<td_api::sponsoredMessage> SponsoredMessageManager::get_sponsored_message_object(
@@ -312,7 +315,7 @@ void SponsoredMessageManager::on_get_dialog_sponsored_messages(
     CHECK(!current_sponsored_message_id_.is_scheduled());
     CHECK(messages->message_random_ids.count(local_id) == 0);
     messages->message_random_ids[local_id] = sponsored_message->random_id_.as_slice().str();
-    messages->messages.emplace_back(local_id, sponsor_dialog_id, server_message_id,
+    messages->messages.emplace_back(local_id, sponsored_message->recommended_, sponsor_dialog_id, server_message_id,
                                     std::move(sponsored_message->start_param_), std::move(invite_hash),
                                     std::move(content));
   }
