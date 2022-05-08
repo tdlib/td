@@ -238,6 +238,9 @@ PollManager::PollManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::m
 
   close_poll_timeout_.set_callback(on_close_poll_timeout_callback);
   close_poll_timeout_.set_callback_data(static_cast<void *>(this));
+
+  unload_poll_timeout_.set_callback(on_unload_poll_timeout_callback);
+  unload_poll_timeout_.set_callback_data(static_cast<void *>(this));
 }
 
 void PollManager::start_up() {
@@ -282,6 +285,15 @@ void PollManager::on_close_poll_timeout_callback(void *poll_manager_ptr, int64 p
   send_closure_later(poll_manager->actor_id(poll_manager), &PollManager::on_close_poll_timeout, PollId(poll_id_int));
 }
 
+void PollManager::on_unload_poll_timeout_callback(void *poll_manager_ptr, int64 poll_id_int) {
+  if (G()->close_flag()) {
+    return;
+  }
+
+  auto poll_manager = static_cast<PollManager *>(poll_manager_ptr);
+  send_closure_later(poll_manager->actor_id(poll_manager), &PollManager::on_unload_poll_timeout, PollId(poll_id_int));
+}
+
 bool PollManager::is_local_poll_id(PollId poll_id) {
   return poll_id.get() < 0 && poll_id.get() > std::numeric_limits<int32>::min();
 }
@@ -295,11 +307,22 @@ const PollManager::Poll *PollManager::get_poll(PollId poll_id) const {
   }
 }
 
+const PollManager::Poll *PollManager::get_poll(PollId poll_id) {
+  auto p = polls_.find(poll_id);
+  if (p == polls_.end()) {
+    return nullptr;
+  } else {
+    schedule_poll_unload(poll_id);
+    return p->second.get();
+  }
+}
+
 PollManager::Poll *PollManager::get_poll_editable(PollId poll_id) {
   auto p = polls_.find(poll_id);
   if (p == polls_.end()) {
     return nullptr;
   } else {
+    schedule_poll_unload(poll_id);
     return p->second.get();
   }
 }
@@ -637,6 +660,7 @@ void PollManager::register_poll(PollId poll_id, FullMessageId full_message_id, c
       !(poll->is_closed && poll->is_updated_after_close)) {
     update_poll_timeout_.add_timeout_in(poll_id.get(), 0);
   }
+  unload_poll_timeout_.cancel_timeout(poll_id.get());
 }
 
 void PollManager::unregister_poll(PollId poll_id, FullMessageId full_message_id, const char *source) {
@@ -654,6 +678,32 @@ void PollManager::unregister_poll(PollId poll_id, FullMessageId full_message_id,
   if (message_ids.empty()) {
     poll_messages_.erase(poll_id);
     update_poll_timeout_.cancel_timeout(poll_id.get());
+
+    schedule_poll_unload(poll_id);
+  }
+}
+
+bool PollManager::can_unload_poll(PollId poll_id) {
+  if (is_local_poll_id(poll_id) || poll_messages_.count(poll_id) != 0 || pending_answers_.count(poll_id) != 0 ||
+      being_closed_polls_.count(poll_id) != 0) {
+    return false;
+  }
+
+  auto it = poll_voters_.find(poll_id);
+  if (it != poll_voters_.end() && !it->second.empty()) {
+    for (auto &voters : it->second) {
+      if (!voters.pending_queries.empty()) {
+        return false;
+      }
+    }
+  }
+
+  return true;
+}
+
+void PollManager::schedule_poll_unload(PollId poll_id) {
+  if (can_unload_poll(poll_id)) {
+    unload_poll_timeout_.set_timeout_in(poll_id.get(), UNLOAD_POLL_DELAY);
   }
 }
 
@@ -763,6 +813,7 @@ void PollManager::do_set_poll_answer(PollId poll_id, FullMessageId full_message_
     binlog_erase(G()->td_db()->get_binlog(), log_event_id);
     return;
   }
+  unload_poll_timeout_.cancel_timeout(poll_id.get());
 
   auto &pending_answer = pending_answers_[poll_id];
   if (!pending_answer.promises_.empty() && pending_answer.options_ == options) {
@@ -986,6 +1037,8 @@ void PollManager::get_poll_voters(PollId poll_id, FullMessageId full_message_id,
     return;
   }
 
+  unload_poll_timeout_.cancel_timeout(poll_id.get());
+
   auto query_promise =
       PromiseCreator::lambda([actor_id = actor_id(this), poll_id, option_id, offset = voters.next_offset,
                               limit](Result<tl_object_ptr<telegram_api::messages_votesList>> &&result) mutable {
@@ -1135,6 +1188,8 @@ void PollManager::do_stop_poll(PollId poll_id, FullMessageId full_message_id, un
         binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::StopPoll, get_log_event_storer(log_event));
   }
 
+  unload_poll_timeout_.cancel_timeout(poll_id.get());
+
   bool is_inserted = being_closed_polls_.insert(poll_id).second;
   CHECK(is_inserted);
   auto new_promise = get_erase_log_event_promise(log_event_id, std::move(promise));
@@ -1167,8 +1222,7 @@ void PollManager::on_update_poll_timeout(PollId poll_id) {
   CHECK(!is_local_poll_id(poll_id));
 
   auto poll = get_poll(poll_id);
-  CHECK(poll != nullptr);
-  if (poll->is_closed && poll->is_updated_after_close) {
+  if (poll == nullptr || (poll->is_closed && poll->is_updated_after_close)) {
     return;
   }
   if (pending_answers_.count(poll_id) > 0) {
@@ -1197,8 +1251,7 @@ void PollManager::on_close_poll_timeout(PollId poll_id) {
   CHECK(!is_local_poll_id(poll_id));
 
   auto poll = get_poll_editable(poll_id);
-  CHECK(poll != nullptr);
-  if (poll->is_closed || poll->close_date == 0) {
+  if (poll == nullptr || poll->is_closed || poll->close_date == 0) {
     return;
   }
 
@@ -1218,10 +1271,34 @@ void PollManager::on_close_poll_timeout(PollId poll_id) {
   }
 }
 
+void PollManager::on_unload_poll_timeout(PollId poll_id) {
+  if (G()->close_flag()) {
+    return;
+  }
+  CHECK(!is_local_poll_id(poll_id));
+
+  if (!can_unload_poll(poll_id)) {
+    return;
+  }
+
+  LOG(INFO) << "Unload " << poll_id;
+
+  update_poll_timeout_.cancel_timeout(poll_id.get());
+  close_poll_timeout_.cancel_timeout(poll_id.get());
+
+  auto is_deleted = polls_.erase(poll_id) > 0;
+  CHECK(is_deleted);
+
+  poll_voters_.erase(poll_id);
+  loaded_from_database_polls_.erase(poll_id);
+}
+
 void PollManager::on_get_poll_results(PollId poll_id, uint64 generation,
                                       Result<tl_object_ptr<telegram_api::Updates>> result) {
   auto poll = get_poll(poll_id);
-  CHECK(poll != nullptr);
+  if (poll == nullptr) {
+    return;
+  }
   if (result.is_error()) {
     if (!(poll->is_closed && poll->is_updated_after_close) && !G()->close_flag() && !td_->auth_manager_->is_bot()) {
       auto timeout = get_polling_timeout();
@@ -1642,6 +1719,8 @@ PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll
   }
   if (need_update_poll && (is_changed || (poll->is_closed && being_closed_polls_.erase(poll_id) != 0))) {
     send_closure(G()->td(), &Td::send_update, td_api::make_object<td_api::updatePoll>(get_poll_object(poll_id, poll)));
+
+    schedule_poll_unload(poll_id);
   }
   return poll_id;
 }

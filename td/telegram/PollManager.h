@@ -136,6 +136,7 @@ class PollManager final : public Actor {
   };
 
   static constexpr int32 MAX_GET_POLL_VOTERS = 50;  // server side limit
+  static constexpr int32 UNLOAD_POLL_DELAY = 600;   // some reasonable value
 
   class SetPollAnswerLogEvent;
   class StopPollLogEvent;
@@ -146,6 +147,8 @@ class PollManager final : public Actor {
   static void on_update_poll_timeout_callback(void *poll_manager_ptr, int64 poll_id_int);
 
   static void on_close_poll_timeout_callback(void *poll_manager_ptr, int64 poll_id_int);
+
+  static void on_unload_poll_timeout_callback(void *poll_manager_ptr, int64 poll_id_int);
 
   static td_api::object_ptr<td_api::pollOption> get_poll_option_object(const PollOption &poll_option);
 
@@ -159,7 +162,13 @@ class PollManager final : public Actor {
 
   const Poll *get_poll(PollId poll_id) const;
 
+  const Poll *get_poll(PollId poll_id);
+
   Poll *get_poll_editable(PollId poll_id);
+
+  bool can_unload_poll(PollId poll_id);
+
+  void schedule_poll_unload(PollId poll_id);
 
   void notify_on_poll_update(PollId poll_id);
 
@@ -174,6 +183,8 @@ class PollManager final : public Actor {
   void on_update_poll_timeout(PollId poll_id);
 
   void on_close_poll_timeout(PollId poll_id);
+
+  void on_unload_poll_timeout(PollId poll_id);
 
   void on_online();
 
@@ -204,6 +215,7 @@ class PollManager final : public Actor {
 
   MultiTimeout update_poll_timeout_{"UpdatePollTimeout"};
   MultiTimeout close_poll_timeout_{"ClosePollTimeout"};
+  MultiTimeout unload_poll_timeout_{"UnloadPollTimeout"};
 
   Td *td_;
   ActorShared<> parent_;
