@@ -1932,7 +1932,8 @@ class MessagesManager final : public Actor {
   bool update_message_is_pinned(Dialog *d, Message *m, bool is_pin, const char *source);
 
   void do_forward_messages(DialogId to_dialog_id, DialogId from_dialog_id, const vector<Message *> &messages,
-                           const vector<MessageId> &message_ids, uint64 log_event_id);
+                           const vector<MessageId> &message_ids, bool drop_author, bool drop_media_captions,
+                           uint64 log_event_id);
 
   Result<td_api::object_ptr<td_api::message>> forward_message(DialogId to_dialog_id, DialogId from_dialog_id,
                                                               MessageId message_id,
@@ -1943,8 +1944,8 @@ class MessagesManager final : public Actor {
   unique_ptr<MessageForwardInfo> create_message_forward_info(DialogId from_dialog_id, DialogId to_dialog_id,
                                                              const Message *forwarded_message) const;
 
-  void fix_forwarded_message(Message *m, DialogId to_dialog_id, const Message *forwarded_message,
-                             int64 media_album_id) const;
+  void fix_forwarded_message(Message *m, DialogId to_dialog_id, const Message *forwarded_message, int64 media_album_id,
+                             bool drop_author) const;
 
   struct ForwardedMessages {
     struct CopiedMessage {
@@ -1964,6 +1965,8 @@ class MessagesManager final : public Actor {
       size_t index;
     };
     vector<ForwardedMessageContent> forwarded_message_contents;
+    bool drop_author = false;
+    bool drop_media_captions = false;
 
     Dialog *from_dialog;
     Dialog *to_dialog;
@@ -3249,8 +3252,8 @@ class MessagesManager final : public Actor {
   static uint64 save_reget_dialog_log_event(DialogId dialog_id);
 
   static uint64 save_forward_messages_log_event(DialogId to_dialog_id, DialogId from_dialog_id,
-                                                const vector<Message *> &messages,
-                                                const vector<MessageId> &message_ids);
+                                                const vector<Message *> &messages, const vector<MessageId> &message_ids,
+                                                bool drop_author, bool drop_media_captions);
 
   static uint64 save_unpin_all_dialog_messages_on_server_log_event(DialogId dialog_id);
 

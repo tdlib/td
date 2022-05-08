@@ -26474,7 +26474,7 @@ bool MessagesManager::can_resend_message(const Message *m) const {
   auto content_type = m->content->get_type();
   if (m->via_bot_user_id.is_valid() || m->hide_via_bot) {
     // via bot message
-    if (!can_have_input_media(td_, m->content.get())) {
+    if (!can_have_input_media(td_, m->content.get(), false)) {
       return false;
     }
 
@@ -27644,10 +27644,16 @@ class MessagesManager::ForwardMessagesLogEvent {
   DialogId from_dialog_id;
   vector<MessageId> message_ids;
   vector<Message *> messages_in;
+  bool drop_author;
+  bool drop_media_captions;
   vector<unique_ptr<Message>> messages_out;
 
   template <class StorerT>
   void store(StorerT &storer) const {
+    BEGIN_STORE_FLAGS();
+    STORE_FLAG(drop_author);
+    STORE_FLAG(drop_media_captions);
+    END_STORE_FLAGS();
     td::store(to_dialog_id, storer);
     td::store(from_dialog_id, storer);
     td::store(message_ids, storer);
@@ -27656,6 +27662,12 @@ class MessagesManager::ForwardMessagesLogEvent {
 
   template <class ParserT>
   void parse(ParserT &parser) {
+    if (parser.version() >= static_cast<int32>(Version::UseServerForwardAsCopy)) {
+      BEGIN_PARSE_FLAGS();
+      PARSE_FLAG(drop_author);
+      PARSE_FLAG(drop_media_captions);
+      END_PARSE_FLAGS();
+    }
     td::parse(to_dialog_id, parser);
     td::parse(from_dialog_id, parser);
     td::parse(message_ids, parser);
@@ -27665,15 +27677,17 @@ class MessagesManager::ForwardMessagesLogEvent {
 
 uint64 MessagesManager::save_forward_messages_log_event(DialogId to_dialog_id, DialogId from_dialog_id,
                                                         const vector<Message *> &messages,
-                                                        const vector<MessageId> &message_ids) {
-  ForwardMessagesLogEvent log_event{to_dialog_id, from_dialog_id, message_ids, messages, Auto()};
+                                                        const vector<MessageId> &message_ids, bool drop_author,
+                                                        bool drop_media_captions) {
+  ForwardMessagesLogEvent log_event{to_dialog_id, from_dialog_id,      message_ids, messages,
+                                    drop_author,  drop_media_captions, Auto()};
   return binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::ForwardMessages,
                     get_log_event_storer(log_event));
 }
 
 void MessagesManager::do_forward_messages(DialogId to_dialog_id, DialogId from_dialog_id,
                                           const vector<Message *> &messages, const vector<MessageId> &message_ids,
-                                          uint64 log_event_id) {
+                                          bool drop_author, bool drop_media_captions, uint64 log_event_id) {
   CHECK(messages.size() == message_ids.size());
   if (messages.empty()) {
     return;
@@ -27683,7 +27697,8 @@ void MessagesManager::do_forward_messages(DialogId to_dialog_id, DialogId from_d
   }
 
   if (log_event_id == 0 && G()->parameters().use_message_db) {
-    log_event_id = save_forward_messages_log_event(to_dialog_id, from_dialog_id, messages, message_ids);
+    log_event_id = save_forward_messages_log_event(to_dialog_id, from_dialog_id, messages, message_ids, drop_author,
+                                                   drop_media_captions);
   }
 
   auto schedule_date = get_message_schedule_date(messages[0]);
@@ -27707,6 +27722,12 @@ void MessagesManager::do_forward_messages(DialogId to_dialog_id, DialogId from_d
   }
   if (messages[0]->noforwards) {
     flags |= SEND_MESSAGE_FLAG_NOFORWARDS;
+  }
+  if (drop_author) {
+    flags |= telegram_api::messages_forwardMessages::DROP_AUTHOR_MASK;
+  }
+  if (drop_media_captions) {
+    flags |= telegram_api::messages_forwardMessages::DROP_MEDIA_CAPTIONS_MASK;
   }
 
   vector<int64> random_ids =
@@ -27780,10 +27801,13 @@ unique_ptr<MessagesManager::MessageForwardInfo> MessagesManager::create_message_
 }
 
 void MessagesManager::fix_forwarded_message(Message *m, DialogId to_dialog_id, const Message *forwarded_message,
-                                            int64 media_album_id) const {
-  m->via_bot_user_id = forwarded_message->via_bot_user_id;
+                                            int64 media_album_id, bool drop_author) const {
+  bool is_game = m->content->get_type() == MessageContentType::Game;
+  if (!drop_author || is_game) {
+    m->via_bot_user_id = forwarded_message->via_bot_user_id;
+  }
   m->media_album_id = media_album_id;
-  if (forwarded_message->view_count > 0 && m->forward_info != nullptr && m->view_count == 0 &&
+  if (!drop_author && forwarded_message->view_count > 0 && m->forward_info != nullptr && m->view_count == 0 &&
       !(m->message_id.is_scheduled() && is_broadcast_channel(to_dialog_id))) {
     m->view_count = forwarded_message->view_count;
     m->forward_count = forwarded_message->forward_count;
@@ -27894,12 +27918,23 @@ Result<MessagesManager::ForwardedMessages> MessagesManager::get_forwarded_messag
 
   bool to_secret = to_dialog_id.get_type() == DialogType::SecretChat;
 
+  bool can_use_server_forward = !to_secret;
+  for (auto &copy_option : copy_options) {
+    if (!copy_option.is_supported_server_side()) {
+      can_use_server_forward = false;
+      break;
+    }
+  }
+  CHECK(can_use_server_forward || copy_options.size() == 1);
+
   ForwardedMessages result;
   result.to_dialog = to_dialog;
   result.from_dialog = from_dialog;
   result.message_send_options = message_send_options;
   auto &copied_messages = result.copied_messages;
   auto &forwarded_message_contents = result.forwarded_message_contents;
+  result.drop_author = can_use_server_forward && copy_options[0].send_copy;
+  result.drop_media_captions = can_use_server_forward && copy_options[0].replace_caption;
 
   std::unordered_map<int64, std::pair<int64, int32>> new_copied_media_album_ids;
   std::unordered_map<int64, std::pair<int64, int32>> new_forwarded_media_album_ids;
@@ -27921,25 +27956,28 @@ Result<MessagesManager::ForwardedMessages> MessagesManager::get_forwarded_messag
     }
 
     bool need_copy = !message_id.is_server() || to_secret || copy_options[i].send_copy;
+    bool is_local_copy = need_copy && !(message_id.is_server() && can_use_server_forward &&
+                                        forwarded_message->content->get_type() != MessageContentType::Dice);
     if (!(need_copy && td_->auth_manager_->is_bot()) && !can_save_message(from_dialog_id, forwarded_message)) {
       LOG(INFO) << "Forward of " << message_id << " is restricted";
       continue;
     }
 
-    auto type = need_copy ? MessageContentDupType::Copy : MessageContentDupType::Forward;
+    auto type = need_copy ? (is_local_copy ? MessageContentDupType::Copy : MessageContentDupType::ServerCopy)
+                          : MessageContentDupType::Forward;
     auto top_thread_message_id = copy_options[i].top_thread_message_id;
     auto reply_to_message_id = copy_options[i].reply_to_message_id;
     auto reply_markup = std::move(copy_options[i].reply_markup);
     unique_ptr<MessageContent> content =
         dup_message_content(td_, to_dialog_id, forwarded_message->content.get(), type, std::move(copy_options[i]));
     if (content == nullptr) {
-      LOG(INFO) << "Can't forward " << message_id;
+      LOG(INFO) << "Can't forward content of " << message_id;
       continue;
     }
 
     reply_to_message_id = get_reply_to_message_id(to_dialog, top_thread_message_id, reply_to_message_id, false);
 
-    auto can_send_status = can_send_message_content(to_dialog_id, content.get(), !need_copy, td_);
+    auto can_send_status = can_send_message_content(to_dialog_id, content.get(), !is_local_copy, td_);
     if (can_send_status.is_error()) {
       LOG(INFO) << "Can't forward " << message_id << ": " << can_send_status.message();
       continue;
@@ -27957,8 +27995,8 @@ Result<MessagesManager::ForwardedMessages> MessagesManager::get_forwarded_messag
     }
 
     if (forwarded_message->media_album_id != 0) {
-      auto &new_media_album_id = need_copy ? new_copied_media_album_ids[forwarded_message->media_album_id]
-                                           : new_forwarded_media_album_ids[forwarded_message->media_album_id];
+      auto &new_media_album_id = is_local_copy ? new_copied_media_album_ids[forwarded_message->media_album_id]
+                                               : new_forwarded_media_album_ids[forwarded_message->media_album_id];
       new_media_album_id.second++;
       if (new_media_album_id.second == 2) {  // have at least 2 messages in the new album
         CHECK(new_media_album_id.first == 0);
@@ -27970,7 +28008,7 @@ Result<MessagesManager::ForwardedMessages> MessagesManager::get_forwarded_messag
       }
     }
 
-    if (need_copy) {
+    if (is_local_copy) {
       copied_messages.push_back({std::move(content), top_thread_message_id, reply_to_message_id,
                                  std::move(reply_markup), forwarded_message->media_album_id,
                                  get_message_disable_web_page_preview(forwarded_message), i});
@@ -28030,6 +28068,8 @@ Result<td_api::object_ptr<td_api::messages>> MessagesManager::forward_messages(
   auto message_send_options = forwarded_messages_info.message_send_options;
   auto &copied_messages = forwarded_messages_info.copied_messages;
   auto &forwarded_message_contents = forwarded_messages_info.forwarded_message_contents;
+  auto drop_author = forwarded_messages_info.drop_author;
+  auto drop_media_captions = forwarded_messages_info.drop_media_captions;
 
   vector<td_api::object_ptr<td_api::message>> result(message_ids.size());
   vector<Message *> forwarded_messages;
@@ -28041,7 +28081,8 @@ Result<td_api::object_ptr<td_api::messages>> MessagesManager::forward_messages(
     CHECK(forwarded_message != nullptr);
 
     auto content = std::move(forwarded_message_contents[j].content);
-    auto forward_info = create_message_forward_info(from_dialog_id, to_dialog_id, forwarded_message);
+    auto forward_info =
+        drop_author ? nullptr : create_message_forward_info(from_dialog_id, to_dialog_id, forwarded_message);
     if (forward_info != nullptr && !forward_info->is_imported && !is_forward_info_sender_hidden(forward_info.get()) &&
         !forward_info->message_id.is_valid() && !forward_info->sender_dialog_id.is_valid() &&
         forward_info->sender_user_id.is_valid()) {
@@ -28069,7 +28110,8 @@ Result<td_api::object_ptr<td_api::messages>> MessagesManager::forward_messages(
                               &need_update_dialog_pos, j + 1 != forwarded_message_contents.size(),
                               std::move(forward_info));
     }
-    fix_forwarded_message(m, to_dialog_id, forwarded_message, forwarded_message_contents[j].media_album_id);
+    fix_forwarded_message(m, to_dialog_id, forwarded_message, forwarded_message_contents[j].media_album_id,
+                          drop_author);
     m->in_game_share = in_game_share;
     m->real_forward_from_dialog_id = from_dialog_id;
     m->real_forward_from_message_id = message_id;
@@ -28085,7 +28127,8 @@ Result<td_api::object_ptr<td_api::messages>> MessagesManager::forward_messages(
 
   if (!forwarded_messages.empty()) {
     CHECK(!only_preview);
-    do_forward_messages(to_dialog_id, from_dialog_id, forwarded_messages, forwarded_message_ids, 0);
+    do_forward_messages(to_dialog_id, from_dialog_id, forwarded_messages, forwarded_message_ids, drop_author,
+                        drop_media_captions, 0);
   }
 
   for (auto &copied_message : copied_messages) {
@@ -38653,7 +38696,8 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
           send_update_chat_last_message(to_dialog, "on_reforward_message");
         }
 
-        do_forward_messages(to_dialog_id, from_dialog_id, forwarded_messages, log_event.message_ids, event.id_);
+        do_forward_messages(to_dialog_id, from_dialog_id, forwarded_messages, log_event.message_ids,
+                            log_event.drop_author, log_event.drop_media_captions, event.id_);
         break;
       }
       case LogEvent::HandlerType::DeleteMessage: {

@@ -26,6 +26,17 @@ struct MessageCopyOptions {
   MessageCopyOptions() = default;
   MessageCopyOptions(bool send_copy, bool remove_caption) : send_copy(send_copy), replace_caption(remove_caption) {
   }
+
+  bool is_supported_server_side() const {
+    if (!send_copy) {
+      return true;
+    }
+    if ((replace_caption && !new_caption.text.empty()) || top_thread_message_id.is_valid() ||
+        reply_to_message_id.is_valid() || reply_markup != nullptr) {
+      return false;
+    }
+    return true;
+  }
 };
 
 inline StringBuilder &operator<<(StringBuilder &string_builder, MessageCopyOptions copy_options) {

@@ -50,6 +50,7 @@ enum class Version : int32 {
   AddInviteLinksRequiringApproval,
   AddKeyboardButtonFlags,  // 35
   AddAudioFlags,
+  UseServerForwardAsCopy,
   Next
 };
 

@@ -105,7 +105,7 @@ unique_ptr<MessageContent> create_chat_set_ttl_message_content(int32 ttl);
 Result<InputMessageContent> get_input_message_content(
     DialogId dialog_id, tl_object_ptr<td_api::InputMessageContent> &&input_message_content, Td *td);
 
-bool can_have_input_media(const Td *td, const MessageContent *content);
+bool can_have_input_media(const Td *td, const MessageContent *content, bool is_server);
 
 SecretInputMedia get_secret_input_media(const MessageContent *content, Td *td,
                                         tl_object_ptr<telegram_api::InputEncryptedFile> input_file,
@@ -192,7 +192,7 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message_tex
                                                DialogId owner_dialog_id, bool is_content_read, UserId via_bot_user_id,
                                                int32 *ttl, bool *disable_web_page_preview);
 
-enum class MessageContentDupType : int32 { Send, SendViaBot, Forward, Copy };
+enum class MessageContentDupType : int32 { Send, SendViaBot, Forward, Copy, ServerCopy };
 
 unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const MessageContent *content,
                                                MessageContentDupType type, MessageCopyOptions &&copy_options);
