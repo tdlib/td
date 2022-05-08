@@ -332,13 +332,18 @@ bool PollManager::have_poll(PollId poll_id) const {
 }
 
 void PollManager::notify_on_poll_update(PollId poll_id) {
-  auto it = poll_messages_.find(poll_id);
-  if (it == poll_messages_.end()) {
-    return;
+  auto server_it = server_poll_messages_.find(poll_id);
+  if (server_it != server_poll_messages_.end()) {
+    for (const auto &full_message_id : server_it->second) {
+      td_->messages_manager_->on_external_update_message_content(full_message_id);
+    }
   }
 
-  for (const auto &full_message_id : it->second) {
-    td_->messages_manager_->on_external_update_message_content(full_message_id);
+  auto other_it = other_poll_messages_.find(poll_id);
+  if (other_it != other_poll_messages_.end()) {
+    for (const auto &full_message_id : other_it->second) {
+      td_->messages_manager_->on_external_update_message_content(full_message_id);
+    }
   }
 }
 
@@ -645,15 +650,15 @@ PollId PollManager::create_poll(string &&question, vector<string> &&options, boo
 
 void PollManager::register_poll(PollId poll_id, FullMessageId full_message_id, const char *source) {
   CHECK(have_poll(poll_id));
-  if (full_message_id.get_message_id().is_scheduled()) {
-    return;
-  }
-  if (!full_message_id.get_message_id().is_server()) {
+  if (full_message_id.get_message_id().is_scheduled() || !full_message_id.get_message_id().is_server()) {
+    bool is_inserted = other_poll_messages_[poll_id].insert(full_message_id).second;
+    LOG_CHECK(is_inserted) << source << ' ' << poll_id << ' ' << full_message_id;
+    unload_poll_timeout_.cancel_timeout(poll_id.get());
     return;
   }
   LOG(INFO) << "Register " << poll_id << " from " << full_message_id << " from " << source;
-  bool is_inserted = poll_messages_[poll_id].insert(full_message_id).second;
-  LOG_CHECK(is_inserted) << source << " " << poll_id << " " << full_message_id;
+  bool is_inserted = server_poll_messages_[poll_id].insert(full_message_id).second;
+  LOG_CHECK(is_inserted) << source << ' ' << poll_id << ' ' << full_message_id;
   auto poll = get_poll(poll_id);
   CHECK(poll != nullptr);
   if (!td_->auth_manager_->is_bot() && !is_local_poll_id(poll_id) &&
@@ -665,18 +670,23 @@ void PollManager::register_poll(PollId poll_id, FullMessageId full_message_id, c
 
 void PollManager::unregister_poll(PollId poll_id, FullMessageId full_message_id, const char *source) {
   CHECK(have_poll(poll_id));
-  if (full_message_id.get_message_id().is_scheduled()) {
-    return;
-  }
-  if (!full_message_id.get_message_id().is_server()) {
+  if (full_message_id.get_message_id().is_scheduled() || !full_message_id.get_message_id().is_server()) {
+    auto &message_ids = other_poll_messages_[poll_id];
+    auto is_deleted = message_ids.erase(full_message_id) > 0;
+    LOG_CHECK(is_deleted) << source << ' ' << poll_id << ' ' << full_message_id;
+    if (message_ids.empty()) {
+      other_poll_messages_.erase(poll_id);
+
+      schedule_poll_unload(poll_id);
+    }
     return;
   }
   LOG(INFO) << "Unregister " << poll_id << " from " << full_message_id << " from " << source;
-  auto &message_ids = poll_messages_[poll_id];
+  auto &message_ids = server_poll_messages_[poll_id];
   auto is_deleted = message_ids.erase(full_message_id) > 0;
-  LOG_CHECK(is_deleted) << source << " " << poll_id << " " << full_message_id;
+  LOG_CHECK(is_deleted) << source << ' ' << poll_id << ' ' << full_message_id;
   if (message_ids.empty()) {
-    poll_messages_.erase(poll_id);
+    server_poll_messages_.erase(poll_id);
     update_poll_timeout_.cancel_timeout(poll_id.get());
 
     schedule_poll_unload(poll_id);
@@ -684,7 +694,8 @@ void PollManager::unregister_poll(PollId poll_id, FullMessageId full_message_id,
 }
 
 bool PollManager::can_unload_poll(PollId poll_id) {
-  if (is_local_poll_id(poll_id) || poll_messages_.count(poll_id) != 0 || pending_answers_.count(poll_id) != 0 ||
+  if (is_local_poll_id(poll_id) || server_poll_messages_.count(poll_id) != 0 ||
+      other_poll_messages_.count(poll_id) != 0 || pending_answers_.count(poll_id) != 0 ||
       being_closed_polls_.count(poll_id) != 0) {
     return false;
   }
@@ -1230,8 +1241,8 @@ void PollManager::on_update_poll_timeout(PollId poll_id) {
     return;
   }
 
-  auto it = poll_messages_.find(poll_id);
-  if (it == poll_messages_.end()) {
+  auto it = server_poll_messages_.find(poll_id);
+  if (it == server_poll_messages_.end()) {
     return;
   }
 
@@ -1326,7 +1337,7 @@ void PollManager::on_online() {
     return;
   }
 
-  for (auto &it : poll_messages_) {
+  for (auto &it : server_poll_messages_) {
     auto poll_id = it.first;
     if (update_poll_timeout_.has_timeout(poll_id.get())) {
       auto timeout = Random::fast(3, 30);

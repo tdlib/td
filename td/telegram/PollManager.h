@@ -221,7 +221,8 @@ class PollManager final : public Actor {
   ActorShared<> parent_;
   FlatHashMap<PollId, unique_ptr<Poll>, PollIdHash> polls_;
 
-  FlatHashMap<PollId, FlatHashSet<FullMessageId, FullMessageIdHash>, PollIdHash> poll_messages_;
+  FlatHashMap<PollId, FlatHashSet<FullMessageId, FullMessageIdHash>, PollIdHash> server_poll_messages_;
+  FlatHashMap<PollId, FlatHashSet<FullMessageId, FullMessageIdHash>, PollIdHash> other_poll_messages_;
 
   struct PendingPollAnswer {
     vector<string> options_;
