@@ -78,7 +78,9 @@ struct GroupCallParticipant {
 
   bool set_pending_is_muted(bool is_muted, bool can_manage, bool is_admin);
 
-  GroupCallParticipantOrder get_real_order(bool can_self_unmute, bool joined_date_asc, bool keep_active_date) const;
+  GroupCallParticipantOrder get_real_order(bool can_self_unmute, bool joined_date_asc) const;
+
+  GroupCallParticipantOrder get_server_order(bool can_self_unmute, bool joined_date_asc) const;
 
   bool is_valid() const {
     return dialog_id.is_valid();

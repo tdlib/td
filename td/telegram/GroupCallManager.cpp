@@ -2026,7 +2026,7 @@ void GroupCallManager::on_sync_group_call_participants(InputGroupCallId input_gr
 GroupCallParticipantOrder GroupCallManager::get_real_participant_order(bool can_self_unmute,
                                                                        const GroupCallParticipant &participant,
                                                                        const GroupCallParticipants *participants) {
-  auto real_order = participant.get_real_order(can_self_unmute, participants->joined_date_asc, false);
+  auto real_order = participant.get_real_order(can_self_unmute, participants->joined_date_asc);
   if (real_order >= participants->min_order) {
     return real_order;
   }
@@ -2096,7 +2096,7 @@ void GroupCallManager::process_group_call_participants(
     }
 
     if (is_load) {
-      auto real_order = participant.get_real_order(can_self_unmute, joined_date_asc, true);
+      auto real_order = participant.get_server_order(can_self_unmute, joined_date_asc);
       if (real_order > min_order) {
         LOG(ERROR) << "Receive group call participant " << participant.dialog_id << " with order " << real_order
                    << " after group call participant " << debug_min_order_dialog_id << " with order " << min_order;
