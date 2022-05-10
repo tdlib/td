@@ -1226,6 +1226,15 @@ Result<FileId> FileManager::register_file(FileData &&data, FileLocationSource fi
     return Status::Error(400, "No location");
   }
 
+  if (data.size_ < 0) {
+    LOG(ERROR) << "Receive file of size " << data.size_;
+    data.size_ = 0;
+  }
+  if (data.expected_size_ < 0) {
+    LOG(ERROR) << "Receive file of expected size " << data.expected_size_;
+    data.expected_size_ = 0;
+  }
+
   FileId file_id = next_file_id();
 
   LOG(INFO) << "Register file data " << data << " as " << file_id << " from " << source;

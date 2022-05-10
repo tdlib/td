@@ -25,9 +25,13 @@ static td_api::object_ptr<td_api::autoDownloadSettings> convert_auto_download_se
   auto video_preload_large = (flags & telegram_api::autoDownloadSettings::VIDEO_PRELOAD_LARGE_MASK) != 0;
   auto audio_preload_next = (flags & telegram_api::autoDownloadSettings::AUDIO_PRELOAD_NEXT_MASK) != 0;
   auto phonecalls_less_data = (flags & telegram_api::autoDownloadSettings::PHONECALLS_LESS_DATA_MASK) != 0;
+  constexpr int32 MAX_PHOTO_SIZE = 10 * (1 << 20) /* 10 MB */;
+  constexpr int64 MAX_DOCUMENT_SIZE = (1ll << 52);
   return td_api::make_object<td_api::autoDownloadSettings>(
-      !disabled, settings->photo_size_max_, settings->video_size_max_, settings->file_size_max_,
-      settings->video_upload_maxbitrate_, video_preload_large, audio_preload_next, phonecalls_less_data);
+      !disabled, clamp(settings->photo_size_max_, static_cast<int32>(0), MAX_PHOTO_SIZE),
+      clamp(settings->video_size_max_, static_cast<int64>(0), MAX_DOCUMENT_SIZE),
+      clamp(settings->file_size_max_, static_cast<int64>(0), MAX_DOCUMENT_SIZE), settings->video_upload_maxbitrate_,
+      video_preload_large, audio_preload_next, phonecalls_less_data);
 }
 
 class GetAutoDownloadSettingsQuery final : public Td::ResultHandler {

@@ -238,7 +238,7 @@ Document DocumentsManager::on_get_document(RemoteDocument remote_document, Dialo
   int64 id;
   int64 access_hash;
   int32 dc_id;
-  int32 size;
+  int64 size;
   int32 date = 0;
   string mime_type;
   string file_reference;

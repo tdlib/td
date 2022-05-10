@@ -20,8 +20,8 @@ class Td;
 class AutoDownloadSettings {
  public:
   int32 max_photo_file_size = 0;
-  int32 max_video_file_size = 0;
-  int32 max_other_file_size = 0;
+  int64 max_video_file_size = 0;
+  int64 max_other_file_size = 0;
   int32 video_upload_bitrate = 0;
   bool is_enabled = false;
   bool preload_large_videos = false;

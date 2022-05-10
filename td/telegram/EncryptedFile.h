@@ -16,16 +16,16 @@
 namespace td {
 
 struct EncryptedFile {
-  static constexpr int32 MAGIC = 0x473d738a;
   int64 id_ = 0;
   int64 access_hash_ = 0;
-  int32 size_ = 0;
+  int64 size_ = 0;
   int32 dc_id_ = 0;
   int32 key_fingerprint_ = 0;
 
   EncryptedFile() = default;
-  EncryptedFile(int64 id, int64 access_hash, int32 size, int32 dc_id, int32 key_fingerprint)
+  EncryptedFile(int64 id, int64 access_hash, int64 size, int32 dc_id, int32 key_fingerprint)
       : id_(id), access_hash_(access_hash), size_(size), dc_id_(dc_id), key_fingerprint_(key_fingerprint) {
+    CHECK(size_ >= 0);
   }
 
   static unique_ptr<EncryptedFile> get_encrypted_file(tl_object_ptr<telegram_api::EncryptedFile> file_ptr) {
@@ -33,17 +33,26 @@ struct EncryptedFile {
       return nullptr;
     }
     auto file = move_tl_object_as<telegram_api::encryptedFile>(file_ptr);
-    return make_unique<EncryptedFile>(file->id_, file->access_hash_, static_cast<int32>(file->size_), file->dc_id_,
-                                      file->key_fingerprint_);
+    if (file->size_ < 0) {
+      return nullptr;
+    }
+    return make_unique<EncryptedFile>(file->id_, file->access_hash_, file->size_, file->dc_id_, file->key_fingerprint_);
   }
 
   template <class StorerT>
   void store(StorerT &storer) const {
     using td::store;
-    store(MAGIC, storer);
+    bool has_64bit_size = (size_ >= (1ll << 31));
+    BEGIN_STORE_FLAGS();
+    STORE_FLAG(has_64bit_size);
+    END_STORE_FLAGS();
     store(id_, storer);
     store(access_hash_, storer);
-    store(size_, storer);
+    if (has_64bit_size) {
+      store(size_, storer);
+    } else {
+      store(narrow_cast<int32>(size_), storer);
+    }
     store(dc_id_, storer);
     store(key_fingerprint_, storer);
   }
@@ -51,18 +60,25 @@ struct EncryptedFile {
   template <class ParserT>
   void parse(ParserT &parser) {
     using td::parse;
-    int32 got_magic;
-
-    parse(got_magic, parser);
+    bool has_64bit_size;
+    BEGIN_PARSE_FLAGS();
+    constexpr int32 OLD_MAGIC = 0x473d738a;
+    if (flags_parse == OLD_MAGIC) {
+      flags_parse = 0;
+    }
+    PARSE_FLAG(has_64bit_size);
+    END_PARSE_FLAGS();
     parse(id_, parser);
     parse(access_hash_, parser);
-    parse(size_, parser);
+    if (has_64bit_size) {
+      parse(size_, parser);
+    } else {
+      int32 int_size;
+      parse(int_size, parser);
+      size_ = int_size;
+    }
     parse(dc_id_, parser);
     parse(key_fingerprint_, parser);
-
-    if (got_magic != MAGIC) {
-      parser.set_error("EncryptedFile magic mismatch");
-    }
   }
 };
 
