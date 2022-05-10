@@ -1632,7 +1632,11 @@ void GroupCallManager::on_get_group_call_participants(
   if (is_load) {
     auto *group_call_participants = add_group_call_participants(input_group_call_id);
     if (group_call_participants->next_offset == offset) {
-      group_call_participants->next_offset = std::move(participants->next_offset_);
+      if (!offset.empty() && participants->next_offset_.empty() && group_call_participants->joined_date_asc) {
+        LOG(INFO) << "Ignore empty next_offset";
+      } else {
+        group_call_participants->next_offset = std::move(participants->next_offset_);
+      }
     }
 
     if (is_empty || is_sync) {
