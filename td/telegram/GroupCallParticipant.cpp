@@ -78,6 +78,13 @@ bool GroupCallParticipant::is_versioned_update(const tl_object_ptr<telegram_api:
 GroupCallParticipantOrder GroupCallParticipant::get_real_order(bool can_self_unmute, bool joined_date_asc,
                                                                bool keep_active_date) const {
   auto sort_active_date = td::max(active_date, local_active_date);
+  if (sort_active_date == 0 && !get_is_muted_by_admin()) {  // if the participant isn't muted by admin
+    if (get_is_muted_by_themselves()) {
+      sort_active_date = joined_date;
+    } else {
+      sort_active_date = G()->unix_time();
+    }
+  }
   if (!keep_active_date && sort_active_date < G()->unix_time() - 300) {
     sort_active_date = 0;
   }
