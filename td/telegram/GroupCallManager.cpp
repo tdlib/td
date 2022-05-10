@@ -1811,6 +1811,8 @@ void GroupCallManager::on_update_group_call_participants(
 
   auto &pending_version_updates = group_call_participants->pending_version_updates_[version].updates;
   auto &pending_mute_updates = group_call_participants->pending_mute_updates_[version].updates;
+  LOG(INFO) << "Have " << pending_version_updates.size() << " versioned and " << pending_mute_updates.size()
+            << " mute pending updates for " << input_group_call_id;
   for (auto &group_call_participant : participants) {
     GroupCallParticipant participant(group_call_participant, version);
     if (!participant.is_valid()) {
@@ -1863,6 +1865,9 @@ bool GroupCallManager::process_pending_group_call_participant_updates(InputGroup
   bool need_rejoin = true;
   auto &pending_version_updates = participants_it->second->pending_version_updates_;
   auto &pending_mute_updates = participants_it->second->pending_mute_updates_;
+
+  LOG(INFO) << "Process " << pending_version_updates.size() << " versioned and " << pending_mute_updates.size()
+            << " mute updates for " << input_group_call_id;
 
   auto process_mute_updates = [&] {
     while (!pending_mute_updates.empty()) {
