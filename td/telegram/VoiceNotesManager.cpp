@@ -133,8 +133,7 @@ SecretInputMedia VoiceNotesManager::get_secret_input_media(FileId voice_file_id,
   auto *voice_note = get_voice_note(voice_file_id);
   CHECK(voice_note != nullptr);
   auto file_view = td_->file_manager_->get_file_view(voice_file_id);
-  auto &encryption_key = file_view.encryption_key();
-  if (!file_view.is_encrypted_secret() || encryption_key.empty()) {
+  if (!file_view.is_encrypted_secret() || file_view.encryption_key().empty()) {
     return SecretInputMedia{};
   }
   if (file_view.has_remote_location()) {
@@ -147,11 +146,9 @@ SecretInputMedia VoiceNotesManager::get_secret_input_media(FileId voice_file_id,
   attributes.push_back(make_tl_object<secret_api::documentAttributeAudio>(
       secret_api::documentAttributeAudio::VOICE_MASK | secret_api::documentAttributeAudio::WAVEFORM_MASK,
       false /*ignored*/, voice_note->duration, "", "", BufferSlice(voice_note->waveform)));
-  return SecretInputMedia{std::move(input_file),
-                          make_tl_object<secret_api::decryptedMessageMediaDocument>(
-                              BufferSlice(), 0, 0, voice_note->mime_type, narrow_cast<int32>(file_view.size()),
-                              BufferSlice(encryption_key.key_slice()), BufferSlice(encryption_key.iv_slice()),
-                              std::move(attributes), caption)};
+
+  return {std::move(input_file), BufferSlice(), Dimensions(), voice_note->mime_type, file_view,
+          std::move(attributes), caption};
 }
 
 tl_object_ptr<telegram_api::InputMedia> VoiceNotesManager::get_input_media(

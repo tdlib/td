@@ -6,10 +6,16 @@
 //
 #pragma once
 
+#include "td/telegram/PhotoSize.h"
 #include "td/telegram/secret_api.h"
 #include "td/telegram/telegram_api.h"
 
+#include "td/utils/buffer.h"
+#include "td/utils/common.h"
+
 namespace td {
+
+class FileView;
 
 struct SecretInputMedia {
   tl_object_ptr<telegram_api::InputEncryptedFile> input_file_;
@@ -21,6 +27,10 @@ struct SecretInputMedia {
                    tl_object_ptr<secret_api::DecryptedMessageMedia> decrypted_media)
       : input_file_(std::move(input_file)), decrypted_media_(std::move(decrypted_media)) {
   }
+
+  SecretInputMedia(tl_object_ptr<telegram_api::InputEncryptedFile> input_file, BufferSlice &&thumbnail,
+                   Dimensions thumbnail_dimensions, const string &mime_type, const FileView &file_view,
+                   vector<tl_object_ptr<secret_api::DocumentAttribute>> &&attributes, const string &caption);
 
   bool empty() const {
     return decrypted_media_ == nullptr;

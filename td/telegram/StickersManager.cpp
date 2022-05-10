@@ -2748,13 +2748,13 @@ SecretInputMedia StickersManager::get_secret_input_media(FileId sticker_file_id,
   }
 
   if (file_view.is_encrypted_secret()) {
-    auto &encryption_key = file_view.encryption_key();
-    return SecretInputMedia{std::move(input_file),
-                            make_tl_object<secret_api::decryptedMessageMediaDocument>(
-                                std::move(thumbnail), sticker->s_thumbnail.dimensions.width,
-                                sticker->s_thumbnail.dimensions.height, get_sticker_format_mime_type(sticker->format),
-                                narrow_cast<int32>(file_view.size()), BufferSlice(encryption_key.key_slice()),
-                                BufferSlice(encryption_key.iv_slice()), std::move(attributes), "")};
+    return {std::move(input_file),
+            std::move(thumbnail),
+            sticker->s_thumbnail.dimensions,
+            get_sticker_format_mime_type(sticker->format),
+            file_view,
+            std::move(attributes),
+            string()};
   } else {
     CHECK(!file_view.is_encrypted());
     auto &remote_location = file_view.remote_location();

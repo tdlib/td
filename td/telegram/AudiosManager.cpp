@@ -210,8 +210,7 @@ SecretInputMedia AudiosManager::get_secret_input_media(FileId audio_file_id,
   auto *audio = get_audio(audio_file_id);
   CHECK(audio != nullptr);
   auto file_view = td_->file_manager_->get_file_view(audio_file_id);
-  auto &encryption_key = file_view.encryption_key();
-  if (!file_view.is_encrypted_secret() || encryption_key.empty()) {
+  if (!file_view.is_encrypted_secret() || file_view.encryption_key().empty()) {
     return SecretInputMedia{};
   }
   if (file_view.has_remote_location()) {
@@ -231,12 +230,13 @@ SecretInputMedia AudiosManager::get_secret_input_media(FileId audio_file_id,
       secret_api::documentAttributeAudio::TITLE_MASK | secret_api::documentAttributeAudio::PERFORMER_MASK,
       false /*ignored*/, audio->duration, audio->title, audio->performer, BufferSlice()));
 
-  return SecretInputMedia{
-      std::move(input_file),
-      make_tl_object<secret_api::decryptedMessageMediaDocument>(
-          std::move(thumbnail), audio->thumbnail.dimensions.width, audio->thumbnail.dimensions.height, audio->mime_type,
-          narrow_cast<int32>(file_view.size()), BufferSlice(encryption_key.key_slice()),
-          BufferSlice(encryption_key.iv_slice()), std::move(attributes), caption)};
+  return {std::move(input_file),
+          std::move(thumbnail),
+          audio->thumbnail.dimensions,
+          audio->mime_type,
+          file_view,
+          std::move(attributes),
+          caption};
 }
 
 tl_object_ptr<telegram_api::InputMedia> AudiosManager::get_input_media(
