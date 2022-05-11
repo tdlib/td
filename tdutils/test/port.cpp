@@ -122,6 +122,30 @@ TEST(Port, SparseFiles) {
   td::unlink(path).ensure();
 }
 
+TEST(Port, LargeFiles) {
+  td::CSlice path = "large.txt";
+  td::unlink(path).ignore();
+  auto fd = td::FileFd::open(path, td::FileFd::Write | td::FileFd::CreateNew).move_as_ok();
+  ASSERT_EQ(0, fd.get_size().move_as_ok());
+  td::int64 offset = static_cast<td::int64>(3) << 30;
+  if (fd.pwrite("abcd", offset).is_error()) {
+    LOG(ERROR) << "Writing to large files isn't supported";
+    td::unlink(path).ensure();
+    return;
+  }
+  fd = td::FileFd::open(path, td::FileFd::Read).move_as_ok();
+  ASSERT_EQ(offset + 4, fd.get_size().move_as_ok());
+  td::string res(4, '\0');
+  if (fd.pread(res, offset).is_error()) {
+    LOG(ERROR) << "Reading of large files isn't supported";
+    td::unlink(path).ensure();
+    return;
+  }
+  ASSERT_STREQ(res, "abcd");
+  fd.close();
+  td::unlink(path).ensure();
+}
+
 TEST(Port, Writev) {
   td::vector<td::IoSlice> vec;
   td::CSlice test_file_path = "test.txt";
