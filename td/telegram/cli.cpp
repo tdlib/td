@@ -4878,7 +4878,7 @@ class CliClient final : public Actor {
       if (it->part_size > left_size) {
         it->part_size = left_size;
       }
-      BufferSlice block(it->part_size);
+      BufferSlice block(narrow_cast<size_t>(it->part_size));
       FileFd::open(it->source, FileFd::Flags::Read).move_as_ok().pread(block.as_slice(), it->local_size).ensure();
       if (rand_bool()) {
         auto open_flags = FileFd::Flags::Write | (it->local_size ? 0 : FileFd::Flags::Truncate | FileFd::Flags::Create);
