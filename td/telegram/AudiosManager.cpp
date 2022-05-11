@@ -206,7 +206,8 @@ void AudiosManager::create_audio(FileId file_id, string minithumbnail, PhotoSize
 
 SecretInputMedia AudiosManager::get_secret_input_media(FileId audio_file_id,
                                                        tl_object_ptr<telegram_api::InputEncryptedFile> input_file,
-                                                       const string &caption, BufferSlice thumbnail) const {
+                                                       const string &caption, BufferSlice thumbnail,
+                                                       int32 layer) const {
   auto *audio = get_audio(audio_file_id);
   CHECK(audio != nullptr);
   auto file_view = td_->file_manager_->get_file_view(audio_file_id);
@@ -236,7 +237,8 @@ SecretInputMedia AudiosManager::get_secret_input_media(FileId audio_file_id,
           audio->mime_type,
           file_view,
           std::move(attributes),
-          caption};
+          caption,
+          layer};
 }
 
 tl_object_ptr<telegram_api::InputMedia> AudiosManager::get_input_media(

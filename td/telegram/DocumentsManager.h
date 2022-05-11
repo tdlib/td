@@ -89,7 +89,7 @@ class DocumentsManager {
 
   SecretInputMedia get_secret_input_media(FileId document_file_id,
                                           tl_object_ptr<telegram_api::InputEncryptedFile> input_file,
-                                          const string &caption, BufferSlice thumbnail) const;
+                                          const string &caption, BufferSlice thumbnail, int32 layer) const;
 
   tl_object_ptr<telegram_api::InputMedia> get_input_media(FileId file_id,
                                                           tl_object_ptr<telegram_api::InputFile> input_file,

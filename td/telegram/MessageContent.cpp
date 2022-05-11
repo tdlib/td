@@ -2167,17 +2167,17 @@ bool can_have_input_media(const Td *td, const MessageContent *content, bool is_s
 
 SecretInputMedia get_secret_input_media(const MessageContent *content, Td *td,
                                         tl_object_ptr<telegram_api::InputEncryptedFile> input_file,
-                                        BufferSlice thumbnail) {
+                                        BufferSlice thumbnail, int32 layer) {
   switch (content->get_type()) {
     case MessageContentType::Animation: {
       const auto *m = static_cast<const MessageAnimation *>(content);
       return td->animations_manager_->get_secret_input_media(m->file_id, std::move(input_file), m->caption.text,
-                                                             std::move(thumbnail));
+                                                             std::move(thumbnail), layer);
     }
     case MessageContentType::Audio: {
       const auto *m = static_cast<const MessageAudio *>(content);
       return td->audios_manager_->get_secret_input_media(m->file_id, std::move(input_file), m->caption.text,
-                                                         std::move(thumbnail));
+                                                         std::move(thumbnail), layer);
     }
     case MessageContentType::Contact: {
       const auto *m = static_cast<const MessageContact *>(content);
@@ -2186,7 +2186,7 @@ SecretInputMedia get_secret_input_media(const MessageContent *content, Td *td,
     case MessageContentType::Document: {
       const auto *m = static_cast<const MessageDocument *>(content);
       return td->documents_manager_->get_secret_input_media(m->file_id, std::move(input_file), m->caption.text,
-                                                            std::move(thumbnail));
+                                                            std::move(thumbnail), layer);
     }
     case MessageContentType::Location: {
       const auto *m = static_cast<const MessageLocation *>(content);
@@ -2199,7 +2199,8 @@ SecretInputMedia get_secret_input_media(const MessageContent *content, Td *td,
     }
     case MessageContentType::Sticker: {
       const auto *m = static_cast<const MessageSticker *>(content);
-      return td->stickers_manager_->get_secret_input_media(m->file_id, std::move(input_file), std::move(thumbnail));
+      return td->stickers_manager_->get_secret_input_media(m->file_id, std::move(input_file), std::move(thumbnail),
+                                                           layer);
     }
     case MessageContentType::Text: {
       CHECK(input_file == nullptr);
@@ -2214,15 +2215,17 @@ SecretInputMedia get_secret_input_media(const MessageContent *content, Td *td,
     case MessageContentType::Video: {
       const auto *m = static_cast<const MessageVideo *>(content);
       return td->videos_manager_->get_secret_input_media(m->file_id, std::move(input_file), m->caption.text,
-                                                         std::move(thumbnail));
+                                                         std::move(thumbnail), layer);
     }
     case MessageContentType::VideoNote: {
       const auto *m = static_cast<const MessageVideoNote *>(content);
-      return td->video_notes_manager_->get_secret_input_media(m->file_id, std::move(input_file), std::move(thumbnail));
+      return td->video_notes_manager_->get_secret_input_media(m->file_id, std::move(input_file), std::move(thumbnail),
+                                                              layer);
     }
     case MessageContentType::VoiceNote: {
       const auto *m = static_cast<const MessageVoiceNote *>(content);
-      return td->voice_notes_manager_->get_secret_input_media(m->file_id, std::move(input_file), m->caption.text);
+      return td->voice_notes_manager_->get_secret_input_media(m->file_id, std::move(input_file), m->caption.text,
+                                                              layer);
     }
     case MessageContentType::Call:
     case MessageContentType::Dice:
@@ -4003,6 +4006,10 @@ unique_ptr<MessageContent> get_secret_message_content(
         auto photo = static_cast<secret_api::decryptedMessageMediaPhoto *>(media.get());
         return std::move(photo->caption_);
       }
+      case secret_api::decryptedMessageMediaDocument46::ID: {
+        auto document = static_cast<secret_api::decryptedMessageMediaDocument46 *>(media.get());
+        return std::move(document->caption_);
+      }
       case secret_api::decryptedMessageMediaDocument::ID: {
         auto document = static_cast<secret_api::decryptedMessageMediaDocument *>(media.get());
         return std::move(document->caption_);
@@ -4034,9 +4041,18 @@ unique_ptr<MessageContent> get_secret_message_content(
 
   // support of old layer and old constructions
   switch (constructor_id) {
+    case secret_api::decryptedMessageMediaDocument46::ID: {
+      auto document = move_tl_object_as<secret_api::decryptedMessageMediaDocument46>(media);
+      media = make_tl_object<secret_api::decryptedMessageMediaDocument>(
+          std::move(document->thumb_), document->thumb_w_, document->thumb_h_, document->mime_type_, document->size_,
+          std::move(document->key_), std::move(document->iv_), std::move(document->attributes_), string());
+
+      constructor_id = secret_api::decryptedMessageMediaDocument::ID;
+      break;
+    }
     case secret_api::decryptedMessageMediaVideo::ID: {
       auto video = move_tl_object_as<secret_api::decryptedMessageMediaVideo>(media);
-      std::vector<tl_object_ptr<secret_api::DocumentAttribute>> attributes;
+      vector<tl_object_ptr<secret_api::DocumentAttribute>> attributes;
       attributes.emplace_back(
           make_tl_object<secret_api::documentAttributeVideo>(video->duration_, video->w_, video->h_));
       media = make_tl_object<secret_api::decryptedMessageMediaDocument>(

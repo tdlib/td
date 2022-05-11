@@ -130,7 +130,7 @@ void VoiceNotesManager::create_voice_note(FileId file_id, string mime_type, int3
 
 SecretInputMedia VoiceNotesManager::get_secret_input_media(FileId voice_file_id,
                                                            tl_object_ptr<telegram_api::InputEncryptedFile> input_file,
-                                                           const string &caption) const {
+                                                           const string &caption, int32 layer) const {
   auto *voice_note = get_voice_note(voice_file_id);
   CHECK(voice_note != nullptr);
   auto file_view = td_->file_manager_->get_file_view(voice_file_id);
@@ -149,7 +149,7 @@ SecretInputMedia VoiceNotesManager::get_secret_input_media(FileId voice_file_id,
       false /*ignored*/, voice_note->duration, "", "", BufferSlice(voice_note->waveform)));
 
   return {std::move(input_file), BufferSlice(), Dimensions(), voice_note->mime_type, file_view,
-          std::move(attributes), caption};
+          std::move(attributes), caption,       layer};
 }
 
 tl_object_ptr<telegram_api::InputMedia> VoiceNotesManager::get_input_media(

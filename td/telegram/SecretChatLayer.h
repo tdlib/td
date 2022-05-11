@@ -13,7 +13,8 @@ enum class SecretChatLayer : int32 {
   Mtproto2 = 73,
   NewEntities = 101,
   DeleteMessagesOnClose = 123,
-  Current = DeleteMessagesOnClose
+  SupportBigFiles = 143,
+  Current = SupportBigFiles
 };
 
 }  // namespace td

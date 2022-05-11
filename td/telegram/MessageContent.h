@@ -109,7 +109,7 @@ bool can_have_input_media(const Td *td, const MessageContent *content, bool is_s
 
 SecretInputMedia get_secret_input_media(const MessageContent *content, Td *td,
                                         tl_object_ptr<telegram_api::InputEncryptedFile> input_file,
-                                        BufferSlice thumbnail);
+                                        BufferSlice thumbnail, int32 layer);
 
 tl_object_ptr<telegram_api::InputMedia> get_input_media(const MessageContent *content, Td *td,
                                                         tl_object_ptr<telegram_api::InputFile> input_file,

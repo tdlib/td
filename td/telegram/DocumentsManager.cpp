@@ -598,7 +598,8 @@ bool DocumentsManager::has_input_media(FileId file_id, FileId thumbnail_file_id,
 
 SecretInputMedia DocumentsManager::get_secret_input_media(FileId document_file_id,
                                                           tl_object_ptr<telegram_api::InputEncryptedFile> input_file,
-                                                          const string &caption, BufferSlice thumbnail) const {
+                                                          const string &caption, BufferSlice thumbnail,
+                                                          int32 layer) const {
   const GeneralDocument *document = get_document(document_file_id);
   CHECK(document != nullptr);
   auto file_view = td_->file_manager_->get_file_view(document_file_id);
@@ -624,7 +625,8 @@ SecretInputMedia DocumentsManager::get_secret_input_media(FileId document_file_i
           document->mime_type,
           file_view,
           std::move(attributes),
-          caption};
+          caption,
+          layer};
 }
 
 tl_object_ptr<telegram_api::InputMedia> DocumentsManager::get_input_media(

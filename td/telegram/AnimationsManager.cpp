@@ -384,7 +384,8 @@ tl_object_ptr<telegram_api::InputMedia> AnimationsManager::get_input_media(
 
 SecretInputMedia AnimationsManager::get_secret_input_media(FileId animation_file_id,
                                                            tl_object_ptr<telegram_api::InputEncryptedFile> input_file,
-                                                           const string &caption, BufferSlice thumbnail) const {
+                                                           const string &caption, BufferSlice thumbnail,
+                                                           int32 layer) const {
   auto *animation = get_animation(animation_file_id);
   CHECK(animation != nullptr);
   auto file_view = td_->file_manager_->get_file_view(animation_file_id);
@@ -420,7 +421,8 @@ SecretInputMedia AnimationsManager::get_secret_input_media(FileId animation_file
           animation->mime_type,
           file_view,
           std::move(attributes),
-          caption};
+          caption,
+          layer};
 }
 
 void AnimationsManager::on_update_animation_search_emojis(string animation_search_emojis) {

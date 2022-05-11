@@ -2730,7 +2730,7 @@ bool StickersManager::has_input_media(FileId sticker_file_id, bool is_secret) co
 
 SecretInputMedia StickersManager::get_secret_input_media(FileId sticker_file_id,
                                                          tl_object_ptr<telegram_api::InputEncryptedFile> input_file,
-                                                         BufferSlice thumbnail) const {
+                                                         BufferSlice thumbnail, int32 layer) const {
   const Sticker *sticker = get_sticker(sticker_file_id);
   CHECK(sticker != nullptr);
   auto file_view = td_->file_manager_->get_file_view(sticker_file_id);
@@ -2779,7 +2779,8 @@ SecretInputMedia StickersManager::get_secret_input_media(FileId sticker_file_id,
             get_sticker_format_mime_type(sticker->format),
             file_view,
             std::move(attributes),
-            string()};
+            string(),
+            layer};
   } else {
     CHECK(!file_view.is_encrypted());
     auto &remote_location = file_view.remote_location();

@@ -107,7 +107,7 @@ class StickersManager final : public Actor {
 
   SecretInputMedia get_secret_input_media(FileId sticker_file_id,
                                           tl_object_ptr<telegram_api::InputEncryptedFile> input_file,
-                                          BufferSlice thumbnail) const;
+                                          BufferSlice thumbnail, int32 layer) const;
 
   vector<FileId> get_stickers(string emoji, int32 limit, bool force, Promise<Unit> &&promise);
 

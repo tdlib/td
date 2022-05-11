@@ -10,6 +10,7 @@
 #include "td/telegram/files/FileManager.h"
 #include "td/telegram/PhotoFormat.h"
 #include "td/telegram/secret_api.h"
+#include "td/telegram/SecretChatLayer.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
@@ -201,7 +202,8 @@ void VideosManager::create_video(FileId file_id, string minithumbnail, PhotoSize
 
 SecretInputMedia VideosManager::get_secret_input_media(FileId video_file_id,
                                                        tl_object_ptr<telegram_api::InputEncryptedFile> input_file,
-                                                       const string &caption, BufferSlice thumbnail) const {
+                                                       const string &caption, BufferSlice thumbnail,
+                                                       int32 layer) const {
   const Video *video = get_video(video_file_id);
   CHECK(video != nullptr);
   auto file_view = td_->file_manager_->get_file_view(video_file_id);
@@ -212,7 +214,7 @@ SecretInputMedia VideosManager::get_secret_input_media(FileId video_file_id,
     input_file = file_view.main_remote_location().as_input_encrypted_file();
   }
   if (!input_file) {
-    return SecretInputMedia{};
+    return {};
   }
   if (video->thumbnail.file_id.is_valid() && thumbnail.empty()) {
     return {};
@@ -227,7 +229,8 @@ SecretInputMedia VideosManager::get_secret_input_media(FileId video_file_id,
           video->mime_type,
           file_view,
           std::move(attributes),
-          caption};
+          caption,
+          layer};
 }
 
 tl_object_ptr<telegram_api::InputMedia> VideosManager::get_input_media(

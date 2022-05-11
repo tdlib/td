@@ -33,7 +33,7 @@ class VoiceNotesManager {
 
   SecretInputMedia get_secret_input_media(FileId voice_file_id,
                                           tl_object_ptr<telegram_api::InputEncryptedFile> input_file,
-                                          const string &caption) const;
+                                          const string &caption, int32 layer) const;
 
   FileId dup_voice_note(FileId new_id, FileId old_id);
 
