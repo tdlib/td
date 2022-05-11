@@ -670,6 +670,7 @@ class ContactsManager final : public Actor {
     bool is_mutual_contact = false;
     bool need_apply_min_photo = false;
     bool can_be_added_to_attach_menu = false;
+    bool attach_menu_enabled = false;
 
     bool is_photo_inited = false;
 
@@ -1056,6 +1057,7 @@ class ContactsManager final : public Actor {
   static constexpr int32 USER_FLAG_IS_FAKE = 1 << 26;
   static constexpr int32 USER_FLAG_IS_ATTACH_MENU_BOT = 1 << 27;
   static constexpr int32 USER_FLAG_IS_PREMIUM = 1 << 28;
+  static constexpr int32 USER_FLAG_ATTACH_MENU_ENABLED = 1 << 29;
 
   static constexpr int32 USER_FULL_FLAG_IS_BLOCKED = 1 << 0;
   static constexpr int32 USER_FULL_FLAG_HAS_ABOUT = 1 << 1;

@@ -3630,6 +3630,7 @@ void ContactsManager::User::store(StorerT &storer) const {
   STORE_FLAG(is_fake);
   STORE_FLAG(can_be_added_to_attach_menu);
   STORE_FLAG(is_premium);  // 25
+  STORE_FLAG(attach_menu_enabled);
   END_STORE_FLAGS();
   store(first_name, storer);
   if (has_last_name) {
@@ -3702,6 +3703,7 @@ void ContactsManager::User::parse(ParserT &parser) {
   PARSE_FLAG(is_fake);
   PARSE_FLAG(can_be_added_to_attach_menu);
   PARSE_FLAG(is_premium);
+  PARSE_FLAG(attach_menu_enabled);
   END_PARSE_FLAGS();
   parse(first_name, parser);
   if (has_last_name) {
@@ -8638,6 +8640,7 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
   bool can_join_groups = (flags & USER_FLAG_IS_PRIVATE_BOT) == 0;
   bool can_read_all_group_messages = (flags & USER_FLAG_IS_BOT_WITH_PRIVACY_DISABLED) != 0;
   bool can_be_added_to_attach_menu = (flags & USER_FLAG_IS_ATTACH_MENU_BOT) != 0;
+  bool attach_menu_enabled = (flags & USER_FLAG_ATTACH_MENU_ENABLED) != 0;
   auto restriction_reasons = get_restriction_reasons(std::move(user->restriction_reason_));
   bool is_scam = (flags & USER_FLAG_IS_SCAM) != 0;
   bool is_inline_bot = (flags & USER_FLAG_IS_INLINE_BOT) != 0;
@@ -8682,7 +8685,7 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
       can_read_all_group_messages != u->can_read_all_group_messages || restriction_reasons != u->restriction_reasons ||
       is_scam != u->is_scam || is_fake != u->is_fake || is_inline_bot != u->is_inline_bot ||
       inline_query_placeholder != u->inline_query_placeholder || need_location_bot != u->need_location_bot ||
-      can_be_added_to_attach_menu != u->can_be_added_to_attach_menu) {
+      can_be_added_to_attach_menu != u->can_be_added_to_attach_menu || attach_menu_enabled != u->attach_menu_enabled) {
     LOG_IF(ERROR, is_bot != u->is_bot && !is_deleted && !u->is_deleted && u->is_received)
         << "User.is_bot has changed for " << user_id << "/" << u->username << " from " << source << " from "
         << u->is_bot << " to " << is_bot;
@@ -8699,6 +8702,7 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
     u->inline_query_placeholder = std::move(inline_query_placeholder);
     u->need_location_bot = need_location_bot;
     u->can_be_added_to_attach_menu = can_be_added_to_attach_menu;
+    u->attach_menu_enabled = attach_menu_enabled;
 
     LOG(DEBUG) << "Info has changed for " << user_id;
     u->is_changed = true;
@@ -16589,7 +16593,7 @@ td_api::object_ptr<td_api::UserStatus> ContactsManager::get_user_status_object(U
 td_api::object_ptr<td_api::updateUser> ContactsManager::get_update_unknown_user_object(UserId user_id) {
   return td_api::make_object<td_api::updateUser>(td_api::make_object<td_api::user>(
       user_id.get(), "", "", "", "", td_api::make_object<td_api::userStatusEmpty>(), nullptr, false, false, false,
-      false, false, "", false, false, false, td_api::make_object<td_api::userTypeUnknown>(), ""));
+      false, false, "", false, false, false, td_api::make_object<td_api::userTypeUnknown>(), "", false));
 }
 
 int64 ContactsManager::get_user_id_object(UserId user_id, const char *source) const {
@@ -16624,7 +16628,7 @@ tl_object_ptr<td_api::user> ContactsManager::get_user_object(UserId user_id, con
       user_id.get(), u->first_name, u->last_name, u->username, u->phone_number, get_user_status_object(user_id, u),
       get_profile_photo_object(td_->file_manager_.get(), u->photo), u->is_contact, u->is_mutual_contact, u->is_verified,
       u->is_premium, u->is_support, get_restriction_reason_description(u->restriction_reasons), u->is_scam, u->is_fake,
-      u->is_received, std::move(type), u->language_code);
+      u->is_received, std::move(type), u->language_code, u->attach_menu_enabled);
 }
 
 vector<int64> ContactsManager::get_user_ids_object(const vector<UserId> &user_ids, const char *source) const {
