@@ -85,9 +85,8 @@ function(td_set_up_compiler)
     add_definitions(-D_DEFAULT_SOURCE=1 -DFD_SETSIZE=4096)
   endif()
 
-  if (NOT ANDROID) # _FILE_OFFSET_BITS is broken in NDK r15, r15b and r17 and doesn't work prior to Android 7.0
-    add_definitions(-D_FILE_OFFSET_BITS=64)
-  endif()
+  # _FILE_OFFSET_BITS is broken in Android NDK r15, r15b and r17 and doesn't work prior to Android 7.0
+  add_definitions(-D_FILE_OFFSET_BITS=64)
 
   if (CMAKE_SYSTEM_NAME STREQUAL "SunOS")
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lsocket -lnsl")
