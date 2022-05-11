@@ -81,7 +81,10 @@ Result<FileLoader::FileInfo> FileDownloader::init() {
         next_part_ = narrow_cast<int32>(bitmask.get_ready_parts(0));
       }
       fd_ = result_fd.move_as_ok();
-      part_size = partial.part_size_;
+      CHECK(partial.part_size_ <= (1 << 20));
+      CHECK(0 <= partial.part_size_);
+      part_size = static_cast<int32>(partial.part_size_);
+      CHECK((part_size & (part_size - 1)) == 0);
     }
   }
   if (search_file_ && fd_.empty() && size_ > 0 && size_ < 1000 * (1 << 20) && encryption_key_.empty() &&
@@ -251,13 +254,13 @@ Result<std::pair<NetQueryPtr, bool>> FileDownloader::start_part(Part part, int32
         remote_.is_web()
             ? G()->net_query_creator().create(
                   id,
-                  telegram_api::upload_getWebFile(remote_.as_input_web_file_location(), static_cast<int32>(part.offset),
-                                                  static_cast<int32>(size)),
+                  telegram_api::upload_getWebFile(remote_.as_input_web_file_location(), narrow_cast<int32>(part.offset),
+                                                  narrow_cast<int32>(size)),
                   {}, dc_id, net_query_type, NetQuery::AuthFlag::On)
             : G()->net_query_creator().create(
                   id,
                   telegram_api::upload_getFile(flags, false /*ignored*/, false /*ignored*/,
-                                               remote_.as_input_file_location(), part.offset, static_cast<int32>(size)),
+                                               remote_.as_input_file_location(), part.offset, narrow_cast<int32>(size)),
                   {}, dc_id, net_query_type, NetQuery::AuthFlag::On);
   } else {
     if (remote_.is_web()) {

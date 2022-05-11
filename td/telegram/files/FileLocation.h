@@ -684,7 +684,7 @@ inline bool operator!=(const EmptyLocalFileLocation &lhs, const EmptyLocalFileLo
 
 struct PartialLocalFileLocation {
   FileType file_type_;
-  int32 part_size_;
+  int64 part_size_;
   string path_;
   string iv_;
   string ready_bitmask_;

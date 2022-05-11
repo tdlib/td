@@ -105,7 +105,7 @@ class HttpReader {
   static constexpr size_t MAX_TOTAL_PARAMETERS_LENGTH = 1 << 20;                 // Some reasonable limit
   static constexpr size_t MAX_TOTAL_HEADERS_LENGTH = 1 << 18;                    // Some reasonable limit
   static constexpr size_t MAX_BOUNDARY_LENGTH = 70;                              // As defined by RFC1341
-  static constexpr int64 MAX_FILE_SIZE = 2000 << 20;                             // Telegram server file size limit
+  static constexpr int64 MAX_FILE_SIZE = static_cast<int64>(4000) << 20;         // Telegram server file size limit
   static constexpr const char TEMP_DIRECTORY_PREFIX[] = "tdlib-server-tmp";
 };
 

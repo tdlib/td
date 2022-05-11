@@ -483,12 +483,15 @@ SecretInputMedia photo_get_secret_input_media(FileManager *file_manager, const P
   if (thumbnail_file_id.is_valid() && thumbnail.empty()) {
     return {};
   }
+  auto size = file_view.size();
+  if (size < 0 || size >= 1000000000) {
+    size = 0;
+  }
 
-  return SecretInputMedia{
-      std::move(input_file),
-      make_tl_object<secret_api::decryptedMessageMediaPhoto>(
-          std::move(thumbnail), thumbnail_width, thumbnail_height, width, height, narrow_cast<int32>(file_view.size()),
-          BufferSlice(encryption_key.key_slice()), BufferSlice(encryption_key.iv_slice()), caption)};
+  return SecretInputMedia{std::move(input_file), make_tl_object<secret_api::decryptedMessageMediaPhoto>(
+                                                     std::move(thumbnail), thumbnail_width, thumbnail_height, width,
+                                                     height, static_cast<int32>(size), BufferSlice(encryption_key.key_slice()),
+                                                     BufferSlice(encryption_key.iv_slice()), caption)};
 }
 
 vector<FileId> photo_get_file_ids(const Photo &photo) {

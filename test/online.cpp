@@ -4,26 +4,31 @@
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
-#include <iostream>
-#include <map>
-#include <tdutils/td/utils/FileLog.h>
-#include <tdutils/td/utils/OptionParser.h>
-#include <tdutils/td/utils/port/path.h>
-#include <td/telegram/ClientActor.h>
-#include <tdutils/td/utils/filesystem.h>
-#include "td/telegram/TdCallback.h"
-#include "td/utils/port/signals.h"
+#include "td/telegram/ClientActor.h"
 #include "td/telegram/Log.h"
-#include "td/utils/crypto.h"
-#include "td/utils/misc.h"
-#include "td/utils/Random.h"
+#include "td/telegram/td_api_json.h"
+#include "td/telegram/TdCallback.h"
+
 #include "td/actor/actor.h"
 #include "td/actor/ConcurrentScheduler.h"
-#include "td/actor/PromiseFuture.h"
 #include "td/actor/MultiPromise.h"
-#include "td/telegram/td_api_json.h"
+#include "td/actor/PromiseFuture.h"
+
+#include "td/utils/crypto.h"
+#include "td/utils/FileLog.h"
+#include "td/utils/filesystem.h"
+#include "td/utils/misc.h"
+#include "td/utils/OptionParser.h"
+#include "td/utils/port/path.h"
+#include "td/utils/port/signals.h"
+#include "td/utils/Random.h"
+
+#include <iostream>
+#include <map>
+#include <memory>
 
 namespace td {
+
 template <class T>
 static void check_td_error(T &result) {
   LOG_CHECK(result->get_id() != td::td_api::error::ID) << to_string(result);
@@ -454,8 +459,9 @@ class TestDownloadFile : public Task {
   }
 
   void start_chunk() {
-    send_query(td::make_tl_object<td::td_api::downloadFile>(file_id_, 1, int(ranges_.back().begin),
-                                                            int(ranges_.back().end - ranges_.back().begin), true),
+    send_query(td::make_tl_object<td::td_api::downloadFile>(
+                   file_id_, 1, static_cast<int64>(ranges_.back().begin),
+                   static_cast<int64>(ranges_.back().end - ranges_.back().begin), true),
                [this](auto res) { got_chunk(*res.ok()); });
   }
 };

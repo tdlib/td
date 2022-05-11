@@ -459,13 +459,13 @@ class FileManager final : public FileLoadManager::Callback {
 
   Result<string> get_suggested_file_name(FileId file_id, const string &directory);
 
-  void read_file_part(FileId file_id, int32 offset, int32 count, int left_tries,
+  void read_file_part(FileId file_id, int64 offset, int64 count, int left_tries,
                       Promise<td_api::object_ptr<td_api::filePart>> promise);
 
   void delete_file(FileId file_id, Promise<Unit> promise, const char *source);
 
-  void external_file_generate_write_part(int64 id, int32 offset, string data, Promise<> promise);
-  void external_file_generate_progress(int64 id, int32 expected_size, int32 local_prefix_size, Promise<> promise);
+  void external_file_generate_write_part(int64 id, int64 offset, string data, Promise<> promise);
+  void external_file_generate_progress(int64 id, int64 expected_size, int64 local_prefix_size, Promise<> promise);
   void external_file_generate_finish(int64 id, Status status, Promise<> promise);
 
   Result<FileId> from_persistent_id(CSlice persistent_id, FileType file_type) TD_WARN_UNUSED_RESULT;
@@ -656,7 +656,7 @@ class FileManager final : public FileLoadManager::Callback {
 
   void on_error_impl(FileNodePtr node, Query::Type type, bool was_active, Status status);
 
-  void on_partial_generate(QueryId, PartialLocalFileLocation partial_local, int32 expected_size);
+  void on_partial_generate(QueryId, PartialLocalFileLocation partial_local, int64 expected_size);
   void on_generate_ok(QueryId, FullLocalFileLocation local);
 
   std::pair<Query, bool> finish_query(QueryId query_id);

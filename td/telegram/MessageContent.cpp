@@ -1801,7 +1801,11 @@ static Result<InputMessageContent> create_input_message_content(
       PhotoSize s;
       s.type = type;
       s.dimensions = get_dimensions(input_photo->width_, input_photo->height_, nullptr);
-      s.size = static_cast<int32>(file_view.size());
+      auto size = file_view.size();
+      if (size < 0 || size >= 1000000000) {
+        return Status::Error(400, "Wrong photo size");
+      }
+      s.size = static_cast<int32>(size);
       s.file_id = file_id;
 
       if (thumbnail.file_id.is_valid()) {

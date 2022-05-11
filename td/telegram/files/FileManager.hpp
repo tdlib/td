@@ -20,6 +20,8 @@
 #include "td/utils/SliceBuilder.h"
 #include "td/utils/tl_helpers.h"
 
+#include <limits>
+
 namespace td {
 
 enum class FileStoreType : int32 { Empty, Url, Generate, Local, Remote };
@@ -45,13 +47,21 @@ void FileManager::store_file(FileId file_id, StorerT &storer, int32 ttl) const {
   bool has_expected_size =
       file_store_type == FileStoreType::Remote && file_view.size() == 0 && file_view.expected_size() != 0;
   bool has_secure_key = false;
+  int64 size = 0;
+  bool has_64bit_size = false;
   if (file_store_type != FileStoreType::Empty) {
     has_encryption_key = !file_view.empty() && file_view.is_encrypted_secret();
     has_secure_key = !file_view.empty() && file_view.is_encrypted_secure();
+    if (file_store_type != FileStoreType::Url) {
+      size = has_expected_size || file_store_type == FileStoreType::Generate ? file_view.expected_size()
+                                                                             : file_view.size();
+      has_64bit_size = (size > std::numeric_limits<int32>::max());
+    }
     BEGIN_STORE_FLAGS();
     STORE_FLAG(has_encryption_key);
     STORE_FLAG(has_expected_size);
     STORE_FLAG(has_secure_key);
+    STORE_FLAG(has_64bit_size);
     END_STORE_FLAGS();
   }
 
@@ -65,10 +75,10 @@ void FileManager::store_file(FileId file_id, StorerT &storer, int32 ttl) const {
       break;
     case FileStoreType::Remote: {
       store(file_view.remote_location(), storer);
-      if (has_expected_size) {
-        store(narrow_cast<int32>(file_view.expected_size()), storer);
+      if (has_64bit_size) {
+        store(size, storer);
       } else {
-        store(narrow_cast<int32>(file_view.size()), storer);
+        store(narrow_cast<int32>(size), storer);
       }
       store(file_view.remote_name(), storer);
       store(file_view.owner_dialog_id(), storer);
@@ -76,7 +86,11 @@ void FileManager::store_file(FileId file_id, StorerT &storer, int32 ttl) const {
     }
     case FileStoreType::Local: {
       store(file_view.local_location(), storer);
-      store(narrow_cast<int32>(file_view.size()), storer);
+      if (has_64bit_size) {
+        store(size, storer);
+      } else {
+        store(narrow_cast<int32>(size), storer);
+      }
       store(static_cast<int32>(file_view.get_by_hash()), storer);
       store(file_view.owner_dialog_id(), storer);
       break;
@@ -95,8 +109,12 @@ void FileManager::store_file(FileId file_id, StorerT &storer, int32 ttl) const {
         have_file_id = true;
       }
       store(generate_location, storer);
-      store(static_cast<int32>(file_view.expected_size()), storer);
-      store(static_cast<int32>(0), storer);
+      if (has_64bit_size) {
+        store(size, storer);
+      } else {
+        store(narrow_cast<int32>(size), storer);
+        store(static_cast<int32>(0), storer);  // legacy
+      }
       store(file_view.owner_dialog_id(), storer);
 
       if (have_file_id) {
@@ -124,12 +142,14 @@ FileId FileManager::parse_file(ParserT &parser) {
   bool has_encryption_key = false;
   bool has_expected_size = false;
   bool has_secure_key = false;
+  bool has_64bit_size = false;
   if (file_store_type != FileStoreType::Empty) {
     if (parser.version() >= static_cast<int32>(Version::StoreFileEncryptionKey)) {
       BEGIN_PARSE_FLAGS();
       PARSE_FLAG(has_encryption_key);
       PARSE_FLAG(has_expected_size);
       PARSE_FLAG(has_secure_key);
+      PARSE_FLAG(has_64bit_size);
       END_PARSE_FLAGS();
     }
   }
@@ -141,13 +161,16 @@ FileId FileManager::parse_file(ParserT &parser) {
       case FileStoreType::Remote: {
         FullRemoteFileLocation full_remote_location;
         parse(full_remote_location, parser);
-        int32 size = 0;
-        int32 expected_size = 0;
-        if (has_expected_size) {
-          parse(expected_size, parser);
+        int64 stored_size;
+        if (has_64bit_size) {
+          parse(stored_size, parser);
         } else {
-          parse(size, parser);
+          int32 int_size;
+          parse(int_size, parser);
+          stored_size = int_size;
         }
+        int64 size = has_expected_size ? 0 : stored_size;
+        int64 expected_size = has_expected_size ? stored_size : 0;
         string name;
         parse(name, parser);
         DialogId owner_dialog_id;
@@ -160,8 +183,14 @@ FileId FileManager::parse_file(ParserT &parser) {
       case FileStoreType::Local: {
         FullLocalFileLocation full_local_location;
         parse(full_local_location, parser);
-        int32 size;
-        parse(size, parser);
+        int64 size;
+        if (has_64bit_size) {
+          parse(size, parser);
+        } else {
+          int32 int_size;
+          parse(int_size, parser);
+          size = int_size;
+        }
         int32 get_by_hash;
         parse(get_by_hash, parser);
         DialogId owner_dialog_id;
@@ -179,8 +208,14 @@ FileId FileManager::parse_file(ParserT &parser) {
       case FileStoreType::Generate: {
         FullGenerateFileLocation full_generated_location;
         parse(full_generated_location, parser);
-        int32 expected_size;
-        parse(expected_size, parser);
+        int64 expected_size;
+        if (has_64bit_size) {
+          parse(expected_size, parser);
+        } else {
+          int32 int_size;
+          parse(int_size, parser);
+          expected_size = int_size;
+        }
         int32 zero;
         parse(zero, parser);
         DialogId owner_dialog_id;

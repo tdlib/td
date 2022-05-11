@@ -55,8 +55,9 @@ class PartsManager {
 
  private:
   static constexpr int MAX_PART_COUNT = 4000;
-  static constexpr size_t MAX_PART_SIZE = 512 * (1 << 10);
-  static constexpr int64 MAX_FILE_SIZE = static_cast<int64>(MAX_PART_SIZE) * MAX_PART_COUNT;
+  static constexpr int MAX_PART_COUNT_PREMIUM = 8000;
+  static constexpr size_t MAX_PART_SIZE = 512 << 10;
+  static constexpr int64 MAX_FILE_SIZE = static_cast<int64>(MAX_PART_SIZE) * MAX_PART_COUNT_PREMIUM;
 
   enum class PartStatus : int32 { Empty, Pending, Ready };
 

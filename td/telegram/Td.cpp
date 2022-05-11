@@ -6491,7 +6491,7 @@ void Td::on_file_download_finished(FileId file_id) {
     auto file_size = file_object->size_;
     auto limit = it->second.limit;
     if (limit == 0) {
-      limit = std::numeric_limits<int32>::max();
+      limit = std::numeric_limits<int64>::max();
     }
     if (file_object->local_->is_downloading_completed_ ||
         (download_offset <= it->second.offset && download_offset + downloaded_size >= it->second.offset &&
@@ -6514,7 +6514,7 @@ void Td::on_request(uint64 id, const td_api::getFileDownloadedPrefixSize &reques
     return send_closure(actor_id(this), &Td::send_error, id, Status::Error(400, "Unknown file ID"));
   }
   send_closure(actor_id(this), &Td::send_result, id,
-               td_api::make_object<td_api::count>(narrow_cast<int32>(file_view.downloaded_prefix(request.offset_))));
+               td_api::make_object<td_api::fileDownloadedPrefixSize>(file_view.downloaded_prefix(request.offset_)));
 }
 
 void Td::on_request(uint64 id, const td_api::cancelDownloadFile &request) {

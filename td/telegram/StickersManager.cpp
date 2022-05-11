@@ -2789,6 +2789,10 @@ SecretInputMedia StickersManager::get_secret_input_media(FileId sticker_file_id,
       LOG(ERROR) << "Have a web sticker in " << sticker->set_id;
       return {};
     }
+    if (file_view.size() > 1000000000) {
+      LOG(ERROR) << "Have a sticker of size " << file_view.size() << " in " << sticker->set_id;
+      return {};
+    }
     return SecretInputMedia{
         nullptr, make_tl_object<secret_api::decryptedMessageMediaExternalDocument>(
                      remote_location.get_id(), remote_location.get_access_hash(), 0 /*date*/,

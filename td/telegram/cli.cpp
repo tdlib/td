@@ -352,9 +352,9 @@ class CliClient final : public Actor {
     int64 id = 0;
     string destination;
     string source;
-    int32 part_size = 0;
-    int32 local_size = 0;
-    int32 size = 0;
+    int64 part_size = 0;
+    int64 local_size = 0;
+    int64 size = 0;
     bool test_local_size_decrease = false;
   };
 
@@ -372,14 +372,14 @@ class CliClient final : public Actor {
       return;
     } else {
       file_generation.source = update.original_path_;
-      file_generation.part_size = to_integer<int32>(update.conversion_);
+      file_generation.part_size = to_integer<int64>(update.conversion_);
       file_generation.test_local_size_decrease = !update.conversion_.empty() && update.conversion_.back() == 't';
     }
 
     auto r_stat = stat(file_generation.source);
     if (r_stat.is_ok()) {
       auto size = r_stat.ok().size_;
-      if (size <= 0 || size > (2000 << 20)) {
+      if (size <= 0 || size > (static_cast<int64>(4000) << 20)) {
         r_stat = Status::Error(400, size == 0 ? Slice("File is empty") : Slice("File is too big"));
       }
     }
@@ -635,7 +635,7 @@ class CliClient final : public Actor {
   }
 
   static td_api::object_ptr<td_api::InputFile> as_generated_file(string original_path, string conversion,
-                                                                 int32 expected_size = 0) {
+                                                                 int64 expected_size = 0) {
     return td_api::make_object<td_api::inputFileGenerated>(trim(std::move(original_path)), trim(std::move(conversion)),
                                                            expected_size);
   }
@@ -2881,13 +2881,13 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::getFile>(file_id));
     } else if (op == "gfdps") {
       FileId file_id;
-      int32 offset;
+      int64 offset;
       get_args(args, file_id, offset);
       send_request(td_api::make_object<td_api::getFileDownloadedPrefixSize>(file_id, offset));
     } else if (op == "rfp") {
       FileId file_id;
-      int32 offset;
-      int32 count;
+      int64 offset;
+      int64 count;
       get_args(args, file_id, offset, count);
       send_request(td_api::make_object<td_api::readFilePart>(file_id, offset, count));
     } else if (op == "grf") {
@@ -2905,8 +2905,8 @@ class CliClient final : public Actor {
                                                                     width, height, scale, chat_id));
     } else if (op == "df" || op == "DownloadFile" || op == "dff" || op == "dfs") {
       FileId file_id;
-      int32 offset;
-      int32 limit;
+      int64 offset;
+      int64 limit;
       int32 priority;
       get_args(args, file_id, offset, limit, priority);
       if (priority <= 0) {
@@ -3940,7 +3940,7 @@ class CliClient final : public Actor {
       ChatId chat_id;
       string photo_path;
       string conversion;
-      int32 expected_size;
+      int64 expected_size;
       get_args(args, chat_id, photo_path, conversion, expected_size);
       send_message(chat_id, td_api::make_object<td_api::inputMessagePhoto>(
                                 as_generated_file(photo_path, conversion, expected_size), nullptr, vector<int32>(), 0,

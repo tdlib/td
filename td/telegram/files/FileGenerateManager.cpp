@@ -36,10 +36,10 @@ namespace td {
 
 class FileGenerateActor : public Actor {
  public:
-  virtual void file_generate_write_part(int32 offset, string data, Promise<> promise) {
+  virtual void file_generate_write_part(int64 offset, string data, Promise<> promise) {
     LOG(ERROR) << "Receive unexpected file_generate_write_part";
   }
-  virtual void file_generate_progress(int32 expected_size, int32 local_prefix_size, Promise<> promise) = 0;
+  virtual void file_generate_progress(int64 expected_size, int64 local_prefix_size, Promise<> promise) = 0;
   virtual void file_generate_finish(Status status, Promise<> promise) = 0;
 };
 
@@ -49,7 +49,7 @@ class FileDownloadGenerateActor final : public FileGenerateActor {
                             ActorShared<> parent)
       : file_type_(file_type), file_id_(file_id), callback_(std::move(callback)), parent_(std::move(parent)) {
   }
-  void file_generate_progress(int32 expected_size, int32 local_prefix_size, Promise<> promise) final {
+  void file_generate_progress(int64 expected_size, int64 local_prefix_size, Promise<> promise) final {
     UNREACHABLE();
   }
   void file_generate_finish(Status status, Promise<> promise) final {
@@ -118,7 +118,7 @@ class MapDownloadGenerateActor final : public FileGenerateActor {
   MapDownloadGenerateActor(string conversion, unique_ptr<FileGenerateCallback> callback, ActorShared<> parent)
       : conversion_(std::move(conversion)), callback_(std::move(callback)), parent_(std::move(parent)) {
   }
-  void file_generate_progress(int32 expected_size, int32 local_prefix_size, Promise<> promise) final {
+  void file_generate_progress(int64 expected_size, int64 local_prefix_size, Promise<> promise) final {
     UNREACHABLE();
   }
   void file_generate_finish(Status status, Promise<> promise) final {
@@ -250,11 +250,11 @@ class FileExternalGenerateActor final : public FileGenerateActor {
       , parent_(std::move(parent)) {
   }
 
-  void file_generate_write_part(int32 offset, string data, Promise<> promise) final {
+  void file_generate_write_part(int64 offset, string data, Promise<> promise) final {
     check_status(do_file_generate_write_part(offset, data), std::move(promise));
   }
 
-  void file_generate_progress(int32 expected_size, int32 local_prefix_size, Promise<> promise) final {
+  void file_generate_progress(int64 expected_size, int64 local_prefix_size, Promise<> promise) final {
     check_status(do_file_generate_progress(expected_size, local_prefix_size), std::move(promise));
   }
 
@@ -306,7 +306,7 @@ class FileExternalGenerateActor final : public FileGenerateActor {
     check_status(Status::Error(1, "Canceled"));
   }
 
-  Status do_file_generate_write_part(int32 offset, const string &data) {
+  Status do_file_generate_write_part(int64 offset, const string &data) {
     if (offset < 0) {
       return Status::Error("Wrong offset specified");
     }
@@ -320,9 +320,9 @@ class FileExternalGenerateActor final : public FileGenerateActor {
     return Status::OK();
   }
 
-  Status do_file_generate_progress(int32 expected_size, int32 local_prefix_size) {
+  Status do_file_generate_progress(int64 expected_size, int64 local_prefix_size) {
     if (local_prefix_size < 0) {
-      return Status::Error(1, "Invalid local prefix size");
+      return Status::Error(400, "Invalid local prefix size");
     }
     callback_->on_partial_generate(PartialLocalFileLocation{generate_location_.file_type_, local_prefix_size, path_, "",
                                                             Bitmask(Bitmask::Ones{}, 1).encode()},
@@ -438,7 +438,7 @@ void FileGenerateManager::cancel(uint64 query_id) {
   it->second.worker_.reset();
 }
 
-void FileGenerateManager::external_file_generate_write_part(uint64 query_id, int32 offset, string data,
+void FileGenerateManager::external_file_generate_write_part(uint64 query_id, int64 offset, string data,
                                                             Promise<> promise) {
   auto it = query_id_to_query_.find(query_id);
   if (it == query_id_to_query_.end()) {
@@ -448,7 +448,7 @@ void FileGenerateManager::external_file_generate_write_part(uint64 query_id, int
                std::move(promise));
 }
 
-void FileGenerateManager::external_file_generate_progress(uint64 query_id, int32 expected_size, int32 local_prefix_size,
+void FileGenerateManager::external_file_generate_progress(uint64 query_id, int64 expected_size, int64 local_prefix_size,
                                                           Promise<> promise) {
   auto it = query_id_to_query_.find(query_id);
   if (it == query_id_to_query_.end()) {

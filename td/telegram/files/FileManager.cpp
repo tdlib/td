@@ -53,7 +53,7 @@
 
 namespace td {
 namespace {
-constexpr int64 MAX_FILE_SIZE = 2000 * (1 << 20) /* 2000MB */;
+constexpr int64 MAX_FILE_SIZE = static_cast<int64>(4000) << 20; // 4000MB
 }  // namespace
 
 int VERBOSITY_NAME(update_file) = VERBOSITY_NAME(INFO);
@@ -221,6 +221,9 @@ void FileNode::set_download_limit(int64 download_limit) {
   if (download_limit < 0) {
     // KEEP_DOWNLOAD_LIMIT is handled here
     return;
+  }
+  if (download_limit > MAX_FILE_SIZE) {
+    download_limit = MAX_FILE_SIZE;
   }
   auto old_download_limit = get_download_limit();
   private_download_limit_ = download_limit;
@@ -691,7 +694,7 @@ string FileView::path() const {
     case LocalFileLocation::Type::Partial:
       return node_->local_.partial().path_;
     default:
-      return "";
+      return string();
   }
 }
 
@@ -1056,11 +1059,11 @@ bool FileManager::try_fix_partial_local_location(FileNodePtr node) {
     LOG(INFO) << "   failed - partial location has nonempty iv";
     return false;
   }
-  if (partial.part_size_ >= 512 * (1 << 10)) {
+  if (partial.part_size_ >= 512 * (1 << 10) || (partial.part_size_ & (partial.part_size_ - 1)) != 0) {
     LOG(INFO) << "   failed - too big part_size already: " << partial.part_size_;
     return false;
   }
-  auto old_part_size = partial.part_size_;
+  auto old_part_size = narrow_cast<int32>(partial.part_size_);
   int new_part_size = 512 * (1 << 10);
   auto k = new_part_size / old_part_size;
   Bitmask mask(Bitmask::Decode(), partial.ready_bitmask_);
@@ -2077,7 +2080,7 @@ void FileManager::get_content(FileId file_id, Promise<BufferSlice> promise) {
   send_closure(file_load_manager_, &FileLoadManager::get_content, node->local_.full(), std::move(promise));
 }
 
-void FileManager::read_file_part(FileId file_id, int32 offset, int32 count, int left_tries,
+void FileManager::read_file_part(FileId file_id, int64 offset, int64 count, int left_tries,
                                  Promise<td_api::object_ptr<td_api::filePart>> promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
 
@@ -2098,13 +2101,16 @@ void FileManager::read_file_part(FileId file_id, int32 offset, int32 count, int 
   auto file_view = FileView(node);
 
   if (count == 0) {
-    count = narrow_cast<int32>(file_view.downloaded_prefix(offset));
+    count = file_view.downloaded_prefix(offset);
     if (count == 0) {
       return promise.set_value(td_api::make_object<td_api::filePart>());
     }
-  } else if (file_view.downloaded_prefix(offset) < static_cast<int64>(count)) {
+  } else if (file_view.downloaded_prefix(offset) < count) {
     // TODO this check is safer to do in another thread
     return promise.set_error(Status::Error(400, "There is not enough downloaded bytes in the file to read"));
+  }
+  if (count >= static_cast<int64>(std::numeric_limits<size_t>::max() / 2 - 1)) {
+    return promise.set_error(Status::Error(400, "Part length is too big"));
   }
 
   const string *path = nullptr;
@@ -2124,7 +2130,7 @@ void FileManager::read_file_part(FileId file_id, int32 offset, int32 count, int 
   auto r_bytes = [&]() -> Result<string> {
     TRY_RESULT(fd, FileFd::open(*path, FileFd::Read));
     string data;
-    data.resize(count);
+    data.resize(narrow_cast<size_t>(count));
     TRY_RESULT(read_bytes, fd.pread(data, offset));
     if (read_bytes != static_cast<size_t>(count)) {
       return Status::Error("Read less bytes than expected");
@@ -2318,7 +2324,7 @@ void FileManager::run_download(FileNodePtr node, bool force_update_priority) {
       auto download_limit = node->get_download_limit();
       if (file_view.is_encrypted_any()) {
         CHECK(download_offset <= MAX_FILE_SIZE);
-        CHECK(download_limit <= std::numeric_limits<int32>::max());
+        CHECK(download_limit <= MAX_FILE_SIZE);
         download_limit += download_offset;
         download_offset = 0;
       }
@@ -2387,7 +2393,7 @@ void FileManager::run_download(FileNodePtr node, bool force_update_priority) {
   auto download_limit = node->get_download_limit();
   if (file_view.is_encrypted_any()) {
     CHECK(download_offset <= MAX_FILE_SIZE);
-    CHECK(download_limit <= std::numeric_limits<int32>::max());
+    CHECK(download_limit <= MAX_FILE_SIZE);
     download_limit += download_offset;
     download_offset = 0;
   }
@@ -2672,12 +2678,12 @@ void FileManager::delete_file_reference(FileId file_id, Slice file_reference) {
   try_flush_node_pmc(node, "delete_file_reference");
 }
 
-void FileManager::external_file_generate_write_part(int64 id, int32 offset, string data, Promise<> promise) {
+void FileManager::external_file_generate_write_part(int64 id, int64 offset, string data, Promise<> promise) {
   send_closure(file_generate_manager_, &FileGenerateManager::external_file_generate_write_part, id, offset,
                std::move(data), std::move(promise));
 }
 
-void FileManager::external_file_generate_progress(int64 id, int32 expected_size, int32 local_prefix_size,
+void FileManager::external_file_generate_progress(int64 id, int64 expected_size, int64 local_prefix_size,
                                                   Promise<> promise) {
   send_closure(file_generate_manager_, &FileGenerateManager::external_file_generate_progress, id, expected_size,
                local_prefix_size, std::move(promise));
@@ -2753,7 +2759,7 @@ void FileManager::run_generate(FileNodePtr node) {
                   public:
                    Callback(ActorId<FileManager> actor, QueryId id) : actor_(std::move(actor)), query_id_(id) {
                    }
-                   void on_partial_generate(PartialLocalFileLocation partial_local, int32 expected_size) final {
+                   void on_partial_generate(PartialLocalFileLocation partial_local, int64 expected_size) final {
                      send_closure(actor_, &FileManager::on_partial_generate, query_id_, std::move(partial_local),
                                   expected_size);
                    }
@@ -3023,12 +3029,12 @@ td_api::object_ptr<td_api::file> FileManager::get_file_object(FileId file_id, bo
   string persistent_file_id = file_view.get_persistent_file_id();
   string unique_file_id = file_view.get_unique_file_id();
   bool is_uploading_completed = !persistent_file_id.empty();
-  auto size = narrow_cast<int32>(file_view.size());
-  auto expected_size = narrow_cast<int32>(file_view.expected_size());
-  auto download_offset = narrow_cast<int32>(file_view.download_offset());
-  auto local_prefix_size = narrow_cast<int32>(file_view.local_prefix_size());
-  auto local_total_size = narrow_cast<int32>(file_view.local_total_size());
-  auto remote_size = narrow_cast<int32>(file_view.remote_size());
+  auto size = file_view.size();
+  auto expected_size = file_view.expected_size();
+  auto download_offset = file_view.download_offset();
+  auto local_prefix_size = file_view.local_prefix_size();
+  auto local_total_size = file_view.local_total_size();
+  auto remote_size = file_view.remote_size();
   string path = file_view.path();
   bool can_be_downloaded = file_view.can_download_from_server() || file_view.can_generate();
   bool can_be_deleted = file_view.can_delete();
@@ -3624,7 +3630,7 @@ void FileManager::on_upload_full_ok(QueryId query_id, FullRemoteFileLocation rem
   LOG_STATUS(merge(new_file_id, file_id));
 }
 
-void FileManager::on_partial_generate(QueryId query_id, PartialLocalFileLocation partial_local, int32 expected_size) {
+void FileManager::on_partial_generate(QueryId query_id, PartialLocalFileLocation partial_local, int64 expected_size) {
   if (is_closed_) {
     return;
   }

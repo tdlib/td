@@ -312,8 +312,8 @@ class Td final : public Actor {
   TermsOfService pending_terms_of_service_;
 
   struct DownloadInfo {
-    int32 offset = -1;
-    int32 limit = -1;
+    int64 offset = -1;
+    int64 limit = -1;
     vector<uint64> request_ids;
   };
   FlatHashMap<FileId, DownloadInfo, FileIdHash> pending_file_downloads_;
