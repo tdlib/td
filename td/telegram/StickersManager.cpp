@@ -1462,6 +1462,10 @@ void StickersManager::reload_special_sticker_set_by_type(SpecialStickerSetType t
   if (G()->close_flag()) {
     return;
   }
+  if (disable_animated_emojis_ &&
+      (type == SpecialStickerSetType::animated_emoji() || type == SpecialStickerSetType::animated_emoji_click())) {
+    return;
+  }
 
   auto &sticker_set = add_special_sticker_set(type);
   if (sticker_set.is_being_reloaded_) {
@@ -7625,26 +7629,6 @@ td_api::object_ptr<td_api::httpUrl> StickersManager::get_emoji_suggestions_url_r
   auto result = td_api::make_object<td_api::httpUrl>(it->second);
   emoji_suggestions_urls_.erase(it);
   return result;
-}
-
-void StickersManager::after_get_difference() {
-  if (td_->auth_manager_->is_bot()) {
-    return;
-  }
-  reload_reactions();
-  if (td_->is_online()) {
-    get_installed_sticker_sets(false, Auto());
-    get_installed_sticker_sets(true, Auto());
-    get_featured_sticker_sets(0, 1000, Auto());
-    get_recent_stickers(false, Auto());
-    get_recent_stickers(true, Auto());
-    get_favorite_stickers(Auto());
-
-    if (!disable_animated_emojis_) {
-      reload_special_sticker_set_by_type(SpecialStickerSetType::animated_emoji());
-      reload_special_sticker_set_by_type(SpecialStickerSetType::animated_emoji_click());
-    }
-  }
 }
 
 void StickersManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const {

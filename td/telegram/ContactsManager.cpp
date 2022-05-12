@@ -16715,18 +16715,6 @@ UserId ContactsManager::get_support_user(Promise<Unit> &&promise) {
   return UserId();
 }
 
-void ContactsManager::after_get_difference() {
-  if (td_->auth_manager_->is_bot()) {
-    return;
-  }
-  get_user(get_my_id(), 3, Promise<Unit>());
-
-  if (td_->is_online()) {
-    reload_created_public_dialogs(PublicDialogType::HasUsername, Promise<td_api::object_ptr<td_api::chats>>());
-    reload_created_public_dialogs(PublicDialogType::IsLocationBased, Promise<td_api::object_ptr<td_api::chats>>());
-  }
-}
-
 void ContactsManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const {
   for (auto user_id : unknown_users_) {
     if (!have_min_user(user_id)) {

@@ -89,8 +89,6 @@ class AnimationsManager final : public Actor {
 
   string get_animation_search_text(FileId file_id) const;
 
-  void after_get_difference();
-
   void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
 
  private:

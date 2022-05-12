@@ -38,10 +38,12 @@
 #include "td/telegram/PollId.h"
 #include "td/telegram/PollManager.h"
 #include "td/telegram/PrivacyManager.h"
+#include "td/telegram/PublicDialogType.h"
 #include "td/telegram/ScheduledServerMessageId.h"
 #include "td/telegram/SecretChatId.h"
 #include "td/telegram/SecretChatsManager.h"
 #include "td/telegram/ServerMessageId.h"
+#include "td/telegram/SpecialStickerSetType.h"
 #include "td/telegram/StateManager.h"
 #include "td/telegram/StickerSetId.h"
 #include "td/telegram/StickersManager.h"
@@ -1557,15 +1559,34 @@ void UpdatesManager::after_get_difference() {
                          << postponed_pts_updates_.size() << " pending pts updates";
   }
 
-  td_->animations_manager_->after_get_difference();
-  td_->contacts_manager_->after_get_difference();
   td_->download_manager_->after_get_difference();
   td_->inline_queries_manager_->after_get_difference();
   td_->messages_manager_->after_get_difference();
   td_->notification_settings_manager_->after_get_difference();
-  td_->stickers_manager_->after_get_difference();
   send_closure_later(td_->notification_manager_actor_, &NotificationManager::after_get_difference);
   send_closure(G()->state_manager(), &StateManager::on_synchronized, true);
+
+  try_reload_data();
+}
+
+void UpdatesManager::try_reload_data() {
+  if (td_->auth_manager_->is_bot() || running_get_difference_ || !td_->is_online()) {
+    return;
+  }
+
+  td_->animations_manager_->get_saved_animations(Auto());
+  td_->contacts_manager_->reload_created_public_dialogs(PublicDialogType::HasUsername, Auto());
+  td_->contacts_manager_->reload_created_public_dialogs(PublicDialogType::IsLocationBased, Auto());
+  td_->notification_settings_manager_->reload_saved_ringtones(Auto());
+  td_->stickers_manager_->reload_reactions();
+  td_->stickers_manager_->get_installed_sticker_sets(false, Auto());
+  td_->stickers_manager_->get_installed_sticker_sets(true, Auto());
+  td_->stickers_manager_->get_featured_sticker_sets(0, 1000, Auto());
+  td_->stickers_manager_->get_recent_stickers(false, Auto());
+  td_->stickers_manager_->get_recent_stickers(true, Auto());
+  td_->stickers_manager_->get_favorite_stickers(Auto());
+  td_->stickers_manager_->reload_special_sticker_set_by_type(SpecialStickerSetType::animated_emoji());
+  td_->stickers_manager_->reload_special_sticker_set_by_type(SpecialStickerSetType::animated_emoji_click());
 }
 
 void UpdatesManager::on_pending_updates(vector<tl_object_ptr<telegram_api::Update>> &&updates, int32 seq_begin,

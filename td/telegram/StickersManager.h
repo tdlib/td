@@ -133,6 +133,10 @@ class StickersManager final : public Actor {
 
   void view_featured_sticker_sets(const vector<StickerSetId> &sticker_set_ids);
 
+  void reload_reactions();
+
+  void reload_special_sticker_set_by_type(SpecialStickerSetType type, bool is_recursive = false);
+
   void on_get_available_reactions(tl_object_ptr<telegram_api::messages_AvailableReactions> &&available_reactions_ptr);
 
   void on_get_installed_sticker_sets(bool is_masks, tl_object_ptr<telegram_api::messages_AllStickers> &&stickers_ptr);
@@ -318,8 +322,6 @@ class StickersManager final : public Actor {
   void on_find_sticker_sets_fail(const string &query, Status &&error);
 
   void send_get_attached_stickers_query(FileId file_id, Promise<Unit> &&promise);
-
-  void after_get_difference();
 
   void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
 
@@ -702,8 +704,6 @@ class StickersManager final : public Actor {
 
   void load_reactions();
 
-  void reload_reactions();
-
   void update_active_reactions();
 
   td_api::object_ptr<td_api::updateReactions> get_update_reactions_object() const;
@@ -718,8 +718,6 @@ class StickersManager final : public Actor {
   void load_special_sticker_set_by_type(SpecialStickerSetType type);
 
   void load_special_sticker_set(SpecialStickerSet &sticker_set);
-
-  void reload_special_sticker_set_by_type(SpecialStickerSetType type, bool is_recursive = false);
 
   void reload_special_sticker_set(SpecialStickerSet &sticker_set, int32 hash);
 

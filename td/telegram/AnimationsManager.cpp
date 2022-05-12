@@ -880,12 +880,6 @@ string AnimationsManager::get_animation_search_text(FileId file_id) const {
   return animation->file_name;
 }
 
-void AnimationsManager::after_get_difference() {
-  if (td_->is_online() && !td_->auth_manager_->is_bot()) {
-    get_saved_animations(Auto());
-  }
-}
-
 void AnimationsManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const {
   if (td_->auth_manager_->is_bot()) {
     return;

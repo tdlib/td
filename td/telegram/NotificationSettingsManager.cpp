@@ -1472,10 +1472,6 @@ void NotificationSettingsManager::after_get_difference() {
   if (!channels_notification_settings_.is_synchronized) {
     send_get_scope_notification_settings_query(NotificationSettingsScope::Channel, Promise<>());
   }
-
-  if (td_->is_online() && !are_saved_ringtones_reloaded_) {
-    reload_saved_ringtones(Auto());
-  }
 }
 
 void NotificationSettingsManager::on_binlog_events(vector<BinlogEvent> &&events) {

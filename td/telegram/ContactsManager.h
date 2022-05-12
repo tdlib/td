@@ -439,6 +439,8 @@ class ContactsManager final : public Actor {
 
   void check_created_public_dialogs_limit(PublicDialogType type, Promise<Unit> &&promise);
 
+  void reload_created_public_dialogs(PublicDialogType type, Promise<td_api::object_ptr<td_api::chats>> &&promise);
+
   vector<DialogId> get_dialogs_for_discussion(Promise<Unit> &&promise);
 
   vector<DialogId> get_inactive_channels(Promise<Unit> &&promise);
@@ -600,8 +602,6 @@ class ContactsManager final : public Actor {
   UserId get_support_user(Promise<Unit> &&promise);
 
   void repair_chat_participants(ChatId chat_id);
-
-  void after_get_difference();
 
   void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
 
@@ -1454,8 +1454,6 @@ class ContactsManager final : public Actor {
 
   static void return_created_public_dialogs(Promise<td_api::object_ptr<td_api::chats>> &&promise,
                                             const vector<ChannelId> &channel_ids);
-
-  void reload_created_public_dialogs(PublicDialogType type, Promise<td_api::object_ptr<td_api::chats>> &&promise);
 
   void finish_get_created_public_dialogs(PublicDialogType type, Result<Unit> &&result);
 
