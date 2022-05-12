@@ -4116,7 +4116,11 @@ void GroupCallManager::on_group_call_left_impl(GroupCall *group_call, bool need_
   auto input_group_call_id = get_input_group_call_id(group_call->group_call_id).ok();
   try_clear_group_call_participants(input_group_call_id);
   if (!group_call->need_rejoin) {
-    process_group_call_after_join_requests(input_group_call_id, "on_group_call_left_impl");
+    if (is_group_call_being_joined(input_group_call_id)) {
+      LOG(ERROR) << "Left a being joined group call. Did you change audio_source_id without leaving the group call?";
+    } else {
+      process_group_call_after_join_requests(input_group_call_id, "on_group_call_left_impl");
+    }
   }
 }
 
