@@ -623,10 +623,10 @@ void OptionManager::set_option(const string &name, td_api::object_ptr<td_api::Op
         }
         bool is_online = value_constructor_id == td_api::optionValueEmpty::ID ||
                          static_cast<const td_api::optionValueBoolean *>(value.get())->value_;
+        td_->set_is_online(is_online);
         if (!is_bot) {
           send_closure(td_->state_manager_, &StateManager::on_online, is_online);
         }
-        td_->set_is_online(is_online);
         return promise.set_value(Unit());
       }
       break;

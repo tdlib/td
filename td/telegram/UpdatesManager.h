@@ -227,6 +227,8 @@ class UpdatesManager final : public Actor {
   int32 min_postponed_update_pts_ = 0;
   int32 min_postponed_update_qts_ = 0;
 
+  void start_up() final;
+
   void tear_down() final;
 
   void hangup_shared() final;

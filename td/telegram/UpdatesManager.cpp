@@ -183,6 +183,24 @@ void UpdatesManager::tear_down() {
   LOG(DEBUG) << "Have " << being_processed_updates_ << " unprocessed updates to apply";
 }
 
+void UpdatesManager::start_up() {
+  class StateCallback final : public StateManager::Callback {
+   public:
+    explicit StateCallback(ActorId<UpdatesManager> parent) : parent_(std::move(parent)) {
+    }
+    bool on_online(bool is_online) final {
+      if (is_online) {
+        send_closure(parent_, &UpdatesManager::try_reload_data);
+      }
+      return parent_.is_alive();
+    }
+
+   private:
+    ActorId<UpdatesManager> parent_;
+  };
+  send_closure(G()->state_manager(), &StateManager::add_callback, make_unique<StateCallback>(actor_id(this)));
+}
+
 void UpdatesManager::hangup_shared() {
   ref_cnt_--;
   if (ref_cnt_ == 0) {
