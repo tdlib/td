@@ -15330,6 +15330,7 @@ void ContactsManager::ban_dialog_participant(DialogId dialog_id, DialogId partic
       return delete_chat_participant(dialog_id.get_chat_id(), participant_dialog_id.get_user_id(), revoke_messages,
                                      std::move(promise));
     case DialogType::Channel:
+      // must use td_api::chatMemberStatusBanned to properly fix banned_until_date
       return set_channel_participant_status(dialog_id.get_channel_id(), participant_dialog_id,
                                             td_api::make_object<td_api::chatMemberStatusBanned>(banned_until_date),
                                             std::move(promise));
