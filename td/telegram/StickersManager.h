@@ -87,9 +87,9 @@ class StickersManager final : public Actor {
 
   void on_send_animated_emoji_clicks(DialogId dialog_id, const string &emoji);
 
-  bool is_sent_animated_emoji_click(DialogId dialog_id, Slice emoji);
+  bool is_sent_animated_emoji_click(DialogId dialog_id, const string &emoji);
 
-  Status on_animated_emoji_message_clicked(Slice emoji, FullMessageId full_message_id, string data);
+  Status on_animated_emoji_message_clicked(string &&emoji, FullMessageId full_message_id, string data);
 
   bool is_active_reaction(const string &reaction) const;
 
@@ -676,7 +676,7 @@ class StickersManager final : public Actor {
 
   vector<FileId> get_animated_emoji_click_stickers(const StickerSet *sticker_set, Slice emoji) const;
 
-  void choose_animated_emoji_click_sticker(const StickerSet *sticker_set, Slice message_text,
+  void choose_animated_emoji_click_sticker(const StickerSet *sticker_set, string message_text,
                                            FullMessageId full_message_id, double start_time,
                                            Promise<td_api::object_ptr<td_api::sticker>> &&promise);
 

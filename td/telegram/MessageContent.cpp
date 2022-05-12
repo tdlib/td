@@ -667,7 +667,7 @@ class MessageDice final : public MessageContent {
 
   MessageDice() = default;
   MessageDice(const string &emoji, int32 dice_value)
-      : emoji(emoji.empty() ? string(DEFAULT_EMOJI) : remove_emoji_modifiers(emoji).str()), dice_value(dice_value) {
+      : emoji(emoji.empty() ? string(DEFAULT_EMOJI) : remove_emoji_modifiers(emoji)), dice_value(dice_value) {
   }
 
   MessageContentType get_type() const final {
@@ -5502,17 +5502,17 @@ void get_message_content_animated_emoji_click_sticker(const MessageContent *cont
 }
 
 void on_message_content_animated_emoji_clicked(const MessageContent *content, FullMessageId full_message_id, Td *td,
-                                               Slice emoji, string data) {
+                                               string &&emoji, string &&data) {
   if (content->get_type() != MessageContentType::Text) {
     return;
   }
 
-  emoji = remove_emoji_modifiers(emoji);
+  remove_emoji_modifiers_in_place(emoji);
   auto &text = static_cast<const MessageText *>(content)->text;
   if (!text.entities.empty() || remove_emoji_modifiers(text.text) != emoji) {
     return;
   }
-  auto error = td->stickers_manager_->on_animated_emoji_message_clicked(emoji, full_message_id, data);
+  auto error = td->stickers_manager_->on_animated_emoji_message_clicked(std::move(emoji), full_message_id, data);
   if (error.is_error()) {
     LOG(WARNING) << "Failed to process animated emoji click with data \"" << data << "\": " << error;
   }

@@ -7369,8 +7369,8 @@ void MessagesManager::on_dialog_action(DialogId dialog_id, MessageId top_thread_
         FullMessageId full_message_id{dialog_id, MessageId(ServerMessageId(clicking_info.message_id))};
         auto *m = get_message_force(full_message_id, "on_dialog_action");
         if (m != nullptr) {
-          on_message_content_animated_emoji_clicked(m->content.get(), full_message_id, td_, clicking_info.emoji,
-                                                    std::move(clicking_info.data));
+          on_message_content_animated_emoji_clicked(m->content.get(), full_message_id, td_,
+                                                    std::move(clicking_info.emoji), std::move(clicking_info.data));
         }
       }
       return;

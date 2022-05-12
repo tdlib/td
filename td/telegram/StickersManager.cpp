@@ -1538,8 +1538,9 @@ void StickersManager::on_load_special_sticker_set(const SpecialStickerSetType &t
     auto pending_get_requests = std::move(pending_get_animated_emoji_click_stickers_);
     reset_to_empty(pending_get_animated_emoji_click_stickers_);
     for (auto &pending_request : pending_get_requests) {
-      choose_animated_emoji_click_sticker(sticker_set, pending_request.message_text_, pending_request.full_message_id_,
-                                          pending_request.start_time_, std::move(pending_request.promise_));
+      choose_animated_emoji_click_sticker(sticker_set, std::move(pending_request.message_text_),
+                                          pending_request.full_message_id_, pending_request.start_time_,
+                                          std::move(pending_request.promise_));
     }
     auto pending_click_requests = std::move(pending_on_animated_emoji_message_clicked_);
     reset_to_empty(pending_on_animated_emoji_message_clicked_);
@@ -2083,7 +2084,7 @@ std::pair<FileId, int> StickersManager::get_animated_emoji_sticker(const Sticker
     return {};
   }
 
-  auto emoji_without_modifiers = remove_emoji_modifiers(emoji).str();
+  auto emoji_without_modifiers = remove_emoji_modifiers(emoji);
   auto it = sticker_set->emoji_stickers_map_.find(emoji_without_modifiers);
   if (it == sticker_set->emoji_stickers_map_.end()) {
     return {};
@@ -3088,7 +3089,7 @@ StickerSetId StickersManager::on_get_messages_sticker_set(StickerSetId sticker_s
     s->emoji_stickers_map_.clear();
     s->sticker_emojis_map_.clear();
     for (auto &pack : packs) {
-      auto cleaned_emoji = remove_emoji_modifiers(pack->emoticon_).str();
+      auto cleaned_emoji = remove_emoji_modifiers(pack->emoticon_);
       if (cleaned_emoji.empty()) {
         LOG(ERROR) << "Receive empty emoji in " << set_id << "/" << s->short_name << " from " << source;
         continue;
@@ -4644,11 +4645,11 @@ vector<FileId> StickersManager::get_animated_emoji_click_stickers(const StickerS
   return result;
 }
 
-void StickersManager::choose_animated_emoji_click_sticker(const StickerSet *sticker_set, Slice message_text,
+void StickersManager::choose_animated_emoji_click_sticker(const StickerSet *sticker_set, string message_text,
                                                           FullMessageId full_message_id, double start_time,
                                                           Promise<td_api::object_ptr<td_api::sticker>> &&promise) {
   CHECK(sticker_set->was_loaded);
-  message_text = remove_emoji_modifiers(message_text);
+  remove_emoji_modifiers_in_place(message_text);
   if (message_text.empty()) {
     return promise.set_error(Status::Error(400, "Message is not an animated emoji message"));
   }
@@ -4686,7 +4687,7 @@ void StickersManager::choose_animated_emoji_click_sticker(const StickerSet *stic
   }
   if (last_clicked_animated_emoji_ != message_text) {
     pending_animated_emoji_clicks_.clear();
-    last_clicked_animated_emoji_ = message_text.str();
+    last_clicked_animated_emoji_ = std::move(message_text);
   }
 
   if (!pending_animated_emoji_clicks_.empty() && found_stickers.size() >= 2) {
@@ -4802,7 +4803,7 @@ void StickersManager::flush_sent_animated_emoji_clicks() {
   sent_animated_emoji_clicks_.erase(sent_animated_emoji_clicks_.begin(), it);
 }
 
-bool StickersManager::is_sent_animated_emoji_click(DialogId dialog_id, Slice emoji) {
+bool StickersManager::is_sent_animated_emoji_click(DialogId dialog_id, const string &emoji) {
   flush_sent_animated_emoji_clicks();
   for (const auto &click : sent_animated_emoji_clicks_) {
     if (click.dialog_id == dialog_id && click.emoji == emoji) {
@@ -4812,7 +4813,7 @@ bool StickersManager::is_sent_animated_emoji_click(DialogId dialog_id, Slice emo
   return false;
 }
 
-Status StickersManager::on_animated_emoji_message_clicked(Slice emoji, FullMessageId full_message_id, string data) {
+Status StickersManager::on_animated_emoji_message_clicked(string &&emoji, FullMessageId full_message_id, string data) {
   if (td_->auth_manager_->is_bot() || disable_animated_emojis_) {
     return Status::OK();
   }
@@ -4875,7 +4876,7 @@ Status StickersManager::on_animated_emoji_message_clicked(Slice emoji, FullMessa
   load_special_sticker_set(special_sticker_set);
 
   PendingOnAnimatedEmojiClicked pending_request;
-  pending_request.emoji_ = emoji.str();
+  pending_request.emoji_ = std::move(emoji);
   pending_request.full_message_id_ = full_message_id;
   pending_request.clicks_ = std::move(clicks);
   pending_on_animated_emoji_message_clicked_.push_back(std::move(pending_request));

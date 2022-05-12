@@ -20,10 +20,10 @@ int get_fitzpatrick_modifier(Slice emoji);
 // removes all Fitzpatrick modifier from the end of the string
 Slice remove_fitzpatrick_modifier(Slice emoji);
 
-// removes all emoji modifiers from the end of the string
-Slice remove_emoji_modifiers(Slice emoji);
+// removes all emoji modifiers from the string
+string remove_emoji_modifiers(Slice emoji);
 
-// removes all emoji modifiers from the end of the string in place
+// removes all emoji modifiers from the string in-place
 void remove_emoji_modifiers_in_place(string &emoji);
 
 // removes all emoji selectors from the string if it is an emoji

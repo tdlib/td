@@ -243,7 +243,13 @@ Slice remove_fitzpatrick_modifier(Slice emoji) {
   return emoji;
 }
 
-Slice remove_emoji_modifiers(Slice emoji) {
+string remove_emoji_modifiers(Slice emoji) {
+  string result = emoji.str();
+  remove_emoji_modifiers_in_place(result);
+  return result;
+}
+
+void remove_emoji_modifiers_in_place(string &emoji) {
   static const Slice modifiers[] = {u8"\uFE0F" /* variation selector-16 */,
                                     u8"\u200D\u2640" /* zero width joiner + female sign */,
                                     u8"\u200D\u2642" /* zero width joiner + male sign */,
@@ -252,21 +258,23 @@ Slice remove_emoji_modifiers(Slice emoji) {
                                     u8"\U0001F3FD" /* emoji modifier fitzpatrick type-4 */,
                                     u8"\U0001F3FE" /* emoji modifier fitzpatrick type-5 */,
                                     u8"\U0001F3FF" /* emoji modifier fitzpatrick type-6 */};
-  bool found = true;
-  while (found) {
-    found = false;
+  size_t j = 0;
+  for (size_t i = 0; i < emoji.size();) {
+    bool is_found = false;
     for (auto &modifier : modifiers) {
-      if (ends_with(emoji, modifier) && emoji.size() > modifier.size()) {
-        emoji.remove_suffix(modifier.size());
-        found = true;
+      auto length = modifier.size();
+      if (i + length <= emoji.size() && Slice(&emoji[i], length) == modifier) {
+        // skip modifier
+        i += length;
+        is_found = true;
+        break;
       }
     }
+    if (!is_found) {
+      emoji[j++] = emoji[i++];
+    }
   }
-  return emoji;
-}
-
-void remove_emoji_modifiers_in_place(string &emoji) {
-  emoji.resize(remove_emoji_modifiers(emoji).size());
+  emoji.resize(j);
 }
 
 string remove_emoji_selectors(Slice emoji) {
