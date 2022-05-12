@@ -92,3 +92,34 @@ TEST(Emoji, remove_emoji_modifiers) {
   test_remove_emoji_modifiers("🎄", "🎄");
   test_remove_emoji_modifiers("🧑‍🎄", "🧑‍🎄");
 }
+
+static void test_remove_emoji_selectors(td::string emoji, const td::string &result) {
+  ASSERT_STREQ(result, td::remove_emoji_selectors(result));
+  ASSERT_STREQ(result, td::remove_emoji_selectors(emoji));
+}
+
+TEST(Emoji, remove_emoji_selectors) {
+  test_remove_emoji_selectors("", "");
+  test_remove_emoji_selectors("👩🏼‍❤‍💋‍👩🏻", "👩🏼‍❤‍💋‍👩🏻");
+  test_remove_emoji_selectors("👩🏼‍❤️‍💋‍👩🏻", "👩🏼‍❤‍💋‍👩🏻");
+  test_remove_emoji_selectors("👋🏻", "👋🏻");
+  test_remove_emoji_selectors("👋🏼", "👋🏼");
+  test_remove_emoji_selectors("👋🏽", "👋🏽");
+  test_remove_emoji_selectors("👋🏾", "👋🏾");
+  test_remove_emoji_selectors("👋🏿", "👋🏿");
+  test_remove_emoji_selectors("🏻", "🏻");
+  test_remove_emoji_selectors("🏼", "🏼");
+  test_remove_emoji_selectors("🏽", "🏽");
+  test_remove_emoji_selectors("🏾", "🏾");
+  test_remove_emoji_selectors("🏿", "🏿");
+  test_remove_emoji_selectors("⌚", "⌚");
+  test_remove_emoji_selectors("↔", "↔");
+  test_remove_emoji_selectors("🪗", "🪗");
+  test_remove_emoji_selectors("2️⃣", "2⃣");
+  test_remove_emoji_selectors("2⃣", "2⃣");
+  test_remove_emoji_selectors("❤️", "❤");
+  test_remove_emoji_selectors("❤", "❤");
+  test_remove_emoji_selectors("⌚", "⌚");
+  test_remove_emoji_selectors("🎄", "🎄");
+  test_remove_emoji_selectors("🧑‍🎄", "🧑‍🎄");
+}
