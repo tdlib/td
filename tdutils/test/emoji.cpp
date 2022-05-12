@@ -8,6 +8,7 @@
 #include "td/utils/tests.h"
 
 TEST(Emoji, is_emoji) {
+  ASSERT_TRUE(!td::is_emoji(""));
   ASSERT_TRUE(td::is_emoji("👩🏼‍❤‍💋‍👩🏻"));
   ASSERT_TRUE(td::is_emoji("👩🏼‍❤️‍💋‍👩🏻"));
   ASSERT_TRUE(!td::is_emoji("👩🏼‍❤️️‍💋‍👩🏻"));
@@ -28,6 +29,37 @@ TEST(Emoji, is_emoji) {
   ASSERT_TRUE(td::is_emoji("🧑‍🎄"));
 }
 
+static void test_get_fitzpatrick_modifier(td::string emoji, int result) {
+  ASSERT_EQ(result, td::get_fitzpatrick_modifier(emoji));
+}
+
+TEST(Emoji, get_fitzpatrick_modifier) {
+  test_get_fitzpatrick_modifier("", 0);
+  test_get_fitzpatrick_modifier("👩🏼‍❤‍💋‍👩🏻", 2);
+  test_get_fitzpatrick_modifier("👩🏼‍❤️‍💋‍👩🏻", 2);
+  test_get_fitzpatrick_modifier("👋", 0);
+  test_get_fitzpatrick_modifier("👋🏻", 2);
+  test_get_fitzpatrick_modifier("👋🏼", 3);
+  test_get_fitzpatrick_modifier("👋🏽", 4);
+  test_get_fitzpatrick_modifier("👋🏾", 5);
+  test_get_fitzpatrick_modifier("👋🏿", 6);
+  test_get_fitzpatrick_modifier("🏻", 2);
+  test_get_fitzpatrick_modifier("🏼", 3);
+  test_get_fitzpatrick_modifier("🏽", 4);
+  test_get_fitzpatrick_modifier("🏾", 5);
+  test_get_fitzpatrick_modifier("🏿", 6);
+  test_get_fitzpatrick_modifier("⌚", 0);
+  test_get_fitzpatrick_modifier("↔", 0);
+  test_get_fitzpatrick_modifier("🪗", 0);
+  test_get_fitzpatrick_modifier("2️⃣", 0);
+  test_get_fitzpatrick_modifier("2⃣", 0);
+  test_get_fitzpatrick_modifier("❤️", 0);
+  test_get_fitzpatrick_modifier("❤", 0);
+  test_get_fitzpatrick_modifier("⌚", 0);
+  test_get_fitzpatrick_modifier("🎄", 0);
+  test_get_fitzpatrick_modifier("🧑‍🎄", 0);
+}
+
 static void test_remove_emoji_modifiers(td::string emoji, const td::string &result) {
   ASSERT_STREQ(result, td::remove_emoji_modifiers(emoji));
   td::remove_emoji_modifiers_in_place(emoji);
@@ -39,6 +71,16 @@ TEST(Emoji, remove_emoji_modifiers) {
   test_remove_emoji_modifiers("", "");
   test_remove_emoji_modifiers("👩🏼‍❤‍💋‍👩🏻", "👩‍❤‍💋‍👩");
   test_remove_emoji_modifiers("👩🏼‍❤️‍💋‍👩🏻", "👩‍❤‍💋‍👩");
+  test_remove_emoji_modifiers("👋🏻", "👋");
+  test_remove_emoji_modifiers("👋🏼", "👋");
+  test_remove_emoji_modifiers("👋🏽", "👋");
+  test_remove_emoji_modifiers("👋🏾", "👋");
+  test_remove_emoji_modifiers("👋🏿", "👋");
+  test_remove_emoji_modifiers("🏻", "");
+  test_remove_emoji_modifiers("🏼", "");
+  test_remove_emoji_modifiers("🏽", "");
+  test_remove_emoji_modifiers("🏾", "");
+  test_remove_emoji_modifiers("🏿", "");
   test_remove_emoji_modifiers("⌚", "⌚");
   test_remove_emoji_modifiers("↔", "↔");
   test_remove_emoji_modifiers("🪗", "🪗");
