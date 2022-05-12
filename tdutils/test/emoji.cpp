@@ -7,7 +7,7 @@
 #include "td/utils/emoji.h"
 #include "td/utils/tests.h"
 
-TEST(Misc, is_emoji) {
+TEST(Emoji, is_emoji) {
   ASSERT_TRUE(td::is_emoji("👩🏼‍❤‍💋‍👩🏻"));
   ASSERT_TRUE(td::is_emoji("👩🏼‍❤️‍💋‍👩🏻"));
   ASSERT_TRUE(!td::is_emoji("👩🏼‍❤️️‍💋‍👩🏻"));
@@ -26,4 +26,27 @@ TEST(Misc, is_emoji) {
   ASSERT_TRUE(td::is_emoji("⌚"));
   ASSERT_TRUE(td::is_emoji("🎄"));
   ASSERT_TRUE(td::is_emoji("🧑‍🎄"));
+}
+
+static void test_remove_emoji_modifiers(td::string emoji, const td::string &result) {
+  ASSERT_STREQ(result, td::remove_emoji_modifiers(emoji));
+  td::remove_emoji_modifiers_in_place(emoji);
+  ASSERT_STREQ(result, emoji);
+  ASSERT_STREQ(emoji, td::remove_emoji_modifiers(emoji));
+}
+
+TEST(Emoji, remove_emoji_modifiers) {
+  test_remove_emoji_modifiers("", "");
+  test_remove_emoji_modifiers("👩🏼‍❤‍💋‍👩🏻", "👩‍❤‍💋‍👩");
+  test_remove_emoji_modifiers("👩🏼‍❤️‍💋‍👩🏻", "👩‍❤‍💋‍👩");
+  test_remove_emoji_modifiers("⌚", "⌚");
+  test_remove_emoji_modifiers("↔", "↔");
+  test_remove_emoji_modifiers("🪗", "🪗");
+  test_remove_emoji_modifiers("2️⃣", "2⃣");
+  test_remove_emoji_modifiers("2⃣", "2⃣");
+  test_remove_emoji_modifiers("❤️", "❤");
+  test_remove_emoji_modifiers("❤", "❤");
+  test_remove_emoji_modifiers("⌚", "⌚");
+  test_remove_emoji_modifiers("🎄", "🎄");
+  test_remove_emoji_modifiers("🧑‍🎄", "🧑‍🎄");
 }
