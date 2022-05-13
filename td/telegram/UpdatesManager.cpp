@@ -199,6 +199,8 @@ void UpdatesManager::start_up() {
     ActorId<UpdatesManager> parent_;
   };
   send_closure(G()->state_manager(), &StateManager::add_callback, make_unique<StateCallback>(actor_id(this)));
+
+  next_data_reload_time_ = Time::now() - 1;
 }
 
 void UpdatesManager::hangup_shared() {
@@ -1587,11 +1589,40 @@ void UpdatesManager::after_get_difference() {
   try_reload_data();
 }
 
+void UpdatesManager::schedule_data_reload() {
+  if (data_reload_timeout_.has_timeout()) {
+    return;
+  }
+
+  auto timeout = next_data_reload_time_ - Time::now();
+  LOG(INFO) << "Schedule data reload in " << timeout;
+  data_reload_timeout_.set_callback(std::move(try_reload_data_static));
+  data_reload_timeout_.set_callback_data(static_cast<void *>(td_));
+  data_reload_timeout_.set_timeout_in(timeout);
+}
+
+void UpdatesManager::try_reload_data_static(void *td) {
+  CHECK(td != nullptr);
+  if (G()->close_flag()) {
+    return;
+  }
+
+  static_cast<Td *>(td)->updates_manager_->try_reload_data();
+}
+
 void UpdatesManager::try_reload_data() {
   if (td_->auth_manager_->is_bot() || running_get_difference_ || !td_->is_online()) {
     return;
   }
 
+  auto now = Time::now();
+  if (now < next_data_reload_time_) {
+    schedule_data_reload();
+    return;
+  }
+  next_data_reload_time_ = now + Random::fast(3000, 4200);
+
+  LOG(INFO) << "Reload data";
   td_->animations_manager_->get_saved_animations(Auto());
   td_->contacts_manager_->reload_created_public_dialogs(PublicDialogType::HasUsername, Auto());
   td_->contacts_manager_->reload_created_public_dialogs(PublicDialogType::IsLocationBased, Auto());
@@ -1605,6 +1636,8 @@ void UpdatesManager::try_reload_data() {
   td_->stickers_manager_->get_favorite_stickers(Auto());
   td_->stickers_manager_->reload_special_sticker_set_by_type(SpecialStickerSetType::animated_emoji());
   td_->stickers_manager_->reload_special_sticker_set_by_type(SpecialStickerSetType::animated_emoji_click());
+
+  schedule_data_reload();
 }
 
 void UpdatesManager::on_pending_updates(vector<tl_object_ptr<telegram_api::Update>> &&updates, int32 seq_begin,
