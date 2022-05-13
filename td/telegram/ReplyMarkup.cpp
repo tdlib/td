@@ -537,7 +537,7 @@ static Result<InlineKeyboardButton> get_inline_keyboard_button(tl_object_ptr<td_
       if (user_id.is_valid()) {
         return Status::Error(400, "Link to a user can't be used in login URL buttons");
       }
-      auto r_url = LinkManager::check_link(button_type->url_, true);
+      auto r_url = LinkManager::check_link(button_type->url_, true, !G()->is_test_dc());
       if (r_url.is_error()) {
         return Status::Error(400, PSLICE() << "Inline keyboard button login " << r_url.error().message());
       }
