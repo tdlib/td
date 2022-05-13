@@ -890,7 +890,7 @@ messageCalendar total_count:int32 days:vector<messageCalendarDay> = MessageCalen
 
 //@description Describes a sponsored message
 //@message_id Message identifier; unique for the chat to which the sponsored message belongs among both ordinary and sponsored messages
-//@is_recommended True, if the message is recommended
+//@is_recommended True, if the message needs to be labeled as "recommended" instead of "sponsored"
 //@sponsor_chat_id Sponsor chat identifier; 0 if the sponsor chat is accessible through an invite link
 //@sponsor_chat_info Information about the sponsor chat; may be null unless sponsor_chat_id == 0
 //@link An internal link to be opened when the sponsored message is clicked; may be null if the sponsor chat needs to be opened instead
