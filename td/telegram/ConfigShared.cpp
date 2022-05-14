@@ -39,13 +39,13 @@ void ConfigShared::set_option_empty(Slice name) {
 }
 
 void ConfigShared::set_option_integer(Slice name, int64 value) {
-  if (set_option(name, PSLICE() << "I" << value)) {
+  if (set_option(name, PSLICE() << 'I' << value)) {
     on_option_updated(name);
   }
 }
 
 void ConfigShared::set_option_string(Slice name, Slice value) {
-  if (set_option(name, PSLICE() << "S" << value)) {
+  if (set_option(name, PSLICE() << 'S' << value)) {
     on_option_updated(name);
   }
 }
@@ -73,32 +73,32 @@ bool ConfigShared::get_option_boolean(Slice name, bool default_value) const {
   if (value == "Bfalse") {
     return false;
   }
-  LOG(ERROR) << "Found \"" << value << "\" instead of boolean option";
+  LOG(ERROR) << "Found \"" << value << "\" instead of boolean option " << name;
   return default_value;
 }
 
 int64 ConfigShared::get_option_integer(Slice name, int64 default_value) const {
-  auto str_value = get_option(name);
-  if (str_value.empty()) {
+  auto value = get_option(name);
+  if (value.empty()) {
     return default_value;
   }
-  if (str_value[0] != 'I') {
-    LOG(ERROR) << "Found \"" << str_value << "\" instead of integer option";
+  if (value[0] != 'I') {
+    LOG(ERROR) << "Found \"" << value << "\" instead of integer option " << name;
     return default_value;
   }
-  return to_integer<int64>(str_value.substr(1));
+  return to_integer<int64>(value.substr(1));
 }
 
 string ConfigShared::get_option_string(Slice name, string default_value) const {
-  auto str_value = get_option(name);
-  if (str_value.empty()) {
+  auto value = get_option(name);
+  if (value.empty()) {
     return default_value;
   }
-  if (str_value[0] != 'S') {
-    LOG(ERROR) << "Found \"" << str_value << "\" instead of string option";
+  if (value[0] != 'S') {
+    LOG(ERROR) << "Found \"" << value << "\" instead of string option " << name;
     return default_value;
   }
-  return str_value.substr(1);
+  return value.substr(1);
 }
 
 bool ConfigShared::set_option(Slice name, Slice value) {
