@@ -371,9 +371,6 @@ class FileManager final : public FileLoadManager::Callback {
     UploadCallback &operator=(const UploadCallback &) = delete;
     virtual ~UploadCallback() = default;
 
-    virtual void on_progress(FileId file_id) {
-    }
-
     // After on_upload_ok all uploads of this file will be paused till merge, delete_partial_remote_location or
     // explicit upload request with the same file_id.
     // Also upload may be resumed after some other merges.

@@ -3651,9 +3651,6 @@ void Td::close_impl(bool destroy_flag) {
 
 class Td::DownloadFileCallback final : public FileManager::DownloadCallback {
  public:
-  void on_progress(FileId file_id) final {
-  }
-
   void on_download_ok(FileId file_id) final {
     send_closure(G()->td(), &Td::on_file_download_finished, file_id);
   }
@@ -3665,9 +3662,6 @@ class Td::DownloadFileCallback final : public FileManager::DownloadCallback {
 
 class Td::UploadFileCallback final : public FileManager::UploadCallback {
  public:
-  void on_progress(FileId file_id) final {
-  }
-
   void on_upload_ok(FileId file_id, tl_object_ptr<telegram_api::InputFile> input_file) final {
     // cancel file upload of the file to allow next upload with the same file to succeed
     send_closure(G()->file_manager(), &FileManager::cancel_upload, file_id);
