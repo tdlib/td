@@ -35,6 +35,7 @@
 #include "td/utils/Status.h"
 
 #include <cmath>
+#include <functional>
 #include <limits>
 
 namespace td {
@@ -418,14 +419,14 @@ void OptionManager::set_option(const string &name, td_api::object_ptr<td_api::Op
     if (name != option_name) {
       return false;
     }
-    if (value_constructor_id != td_api::optionValueInteger::ID &&
-        value_constructor_id != td_api::optionValueEmpty::ID) {
-      promise.set_error(Status::Error(400, PSLICE() << "Option \"" << name << "\" must have integer value"));
-      return false;
-    }
     if (value_constructor_id == td_api::optionValueEmpty::ID) {
       G()->shared_config().set_option_empty(option_name);
     } else {
+      if (value_constructor_id != td_api::optionValueInteger::ID) {
+        promise.set_error(Status::Error(400, PSLICE() << "Option \"" << name << "\" must have integer value"));
+        return false;
+      }
+
       int64 int_value = static_cast<td_api::optionValueInteger *>(value.get())->value_;
       if (int_value < min_value || int_value > max_value) {
         promise.set_error(Status::Error(400, PSLICE() << "Option's \"" << name << "\" value " << int_value
@@ -443,14 +444,14 @@ void OptionManager::set_option(const string &name, td_api::object_ptr<td_api::Op
     if (name != option_name) {
       return false;
     }
-    if (value_constructor_id != td_api::optionValueBoolean::ID &&
-        value_constructor_id != td_api::optionValueEmpty::ID) {
-      promise.set_error(Status::Error(400, PSLICE() << "Option \"" << name << "\" must have boolean value"));
-      return false;
-    }
     if (value_constructor_id == td_api::optionValueEmpty::ID) {
       G()->shared_config().set_option_empty(name);
     } else {
+      if (value_constructor_id != td_api::optionValueBoolean::ID) {
+        promise.set_error(Status::Error(400, PSLICE() << "Option \"" << name << "\" must have boolean value"));
+        return false;
+      }
+
       bool bool_value = static_cast<td_api::optionValueBoolean *>(value.get())->value_;
       G()->shared_config().set_option_boolean(name, bool_value);
     }
@@ -458,17 +459,18 @@ void OptionManager::set_option(const string &name, td_api::object_ptr<td_api::Op
     return true;
   };
 
-  auto set_string_option = [&](Slice option_name, auto check_value) {
+  auto set_string_option = [&](Slice option_name, std::function<bool(Slice)> check_value) {
     if (name != option_name) {
-      return false;
-    }
-    if (value_constructor_id != td_api::optionValueString::ID && value_constructor_id != td_api::optionValueEmpty::ID) {
-      promise.set_error(Status::Error(400, PSLICE() << "Option \"" << name << "\" must have string value"));
       return false;
     }
     if (value_constructor_id == td_api::optionValueEmpty::ID) {
       G()->shared_config().set_option_empty(name);
     } else {
+      if (value_constructor_id != td_api::optionValueString::ID) {
+        promise.set_error(Status::Error(400, PSLICE() << "Option \"" << name << "\" must have string value"));
+        return false;
+      }
+
       const string &str_value = static_cast<td_api::optionValueString *>(value.get())->value_;
       if (str_value.empty()) {
         G()->shared_config().set_option_empty(name);
