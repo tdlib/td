@@ -2923,10 +2923,10 @@ class GetChannelAdministratorsQuery final : public Td::ResultHandler {
 };
 
 class GetSupportUserQuery final : public Td::ResultHandler {
-  Promise<Unit> promise_;
+  Promise<UserId> promise_;
 
  public:
-  explicit GetSupportUserQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  explicit GetSupportUserQuery(Promise<UserId> &&promise) : promise_(std::move(promise)) {
   }
 
   void send() {
@@ -2942,9 +2942,10 @@ class GetSupportUserQuery final : public Td::ResultHandler {
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for GetSupportUserQuery: " << to_string(ptr);
 
-    td_->contacts_manager_->on_get_user(std::move(ptr->user_), "GetSupportUserQuery", false, true);
+    auto user_id = ContactsManager::get_user_id(ptr->user_);
+    td_->contacts_manager_->on_get_user(std::move(ptr->user_), "GetSupportUserQuery", false);
 
-    promise_.set_value(Unit());
+    promise_.set_value(std::move(user_id));
   }
 
   void on_error(Status status) final {
@@ -8396,8 +8397,7 @@ DialogId ContactsManager::get_dialog_id(const tl_object_ptr<telegram_api::Chat> 
   return DialogId(get_chat_id(chat));
 }
 
-void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, const char *source, bool is_me,
-                                  bool expect_support) {
+void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, const char *source, bool is_me) {
   LOG(DEBUG) << "Receive from " << source << ' ' << to_string(user_ptr);
   int32 constructor_id = user_ptr->get_id();
   if (constructor_id == telegram_api::userEmpty::ID) {
@@ -8437,10 +8437,6 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
     if (!is_bot) {
       G()->shared_config().set_option_string("my_phone_number", user->phone_);
     }
-  }
-
-  if (expect_support) {
-    support_user_id_ = user_id;
   }
 
   bool have_access_hash = (flags & USER_FLAG_HAS_ACCESS_HASH) != 0;
@@ -8508,7 +8504,6 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
   bool need_apply_min_photo = (flags & USER_FLAG_NEED_APPLY_MIN_PHOTO) != 0;
   bool is_fake = (flags & USER_FLAG_IS_FAKE) != 0;
 
-  LOG_IF(ERROR, !is_support && expect_support) << "Receive non-support " << user_id << ", but expected a support user";
   LOG_IF(ERROR, !can_join_groups && !is_bot)
       << "Receive not bot " << user_id << " which can't join groups from " << source;
   LOG_IF(ERROR, can_read_all_group_messages && !is_bot)
@@ -16711,8 +16706,31 @@ UserId ContactsManager::get_support_user(Promise<Unit> &&promise) {
     return support_user_id_;
   }
 
-  td_->create_handler<GetSupportUserQuery>(std::move(promise))->send();
+  auto query_promise = PromiseCreator::lambda(
+      [actor_id = actor_id(this), promise = std::move(promise)](Result<UserId> &&result) mutable {
+        if (result.is_error()) {
+          promise.set_error(result.move_as_error());
+        } else {
+          send_closure(actor_id, &ContactsManager::on_get_support_user, result.move_as_ok(), std::move(promise));
+        }
+      });
+  td_->create_handler<GetSupportUserQuery>(std::move(query_promise))->send();
   return UserId();
+}
+
+void ContactsManager::on_get_support_user(UserId user_id, Promise<Unit> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+
+  const User *u = get_user(user_id);
+  if (u == nullptr) {
+    return promise.set_error(Status::Error(500, "Can't find support user"));
+  }
+  if (!u->is_support) {
+    LOG(ERROR) << "Receive non-support " << user_id << ", but expected a support user";
+  }
+
+  support_user_id_ = user_id;
+  promise.set_value(Unit());
 }
 
 void ContactsManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const {

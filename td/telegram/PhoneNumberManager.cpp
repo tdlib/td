@@ -166,7 +166,7 @@ void PhoneNumberManager::process_check_code_result(Result<tl_object_ptr<telegram
     return on_query_error(result.move_as_error());
   }
   send_closure(G()->contacts_manager(), &ContactsManager::on_get_user, result.move_as_ok(), "process_check_code_result",
-               true, false);
+               true);
   state_ = State::Ok;
   on_query_ok();
 }
