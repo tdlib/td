@@ -598,7 +598,7 @@ class ContactsManager final : public Actor {
 
   tl_object_ptr<td_api::chatInviteLinkInfo> get_chat_invite_link_info_object(const string &invite_link);
 
-  UserId get_support_user(Promise<Unit> &&promise);
+  void get_support_user(Promise<td_api::object_ptr<td_api::user>> &&promise);
 
   void repair_chat_participants(ChatId chat_id);
 
@@ -1631,7 +1631,7 @@ class ContactsManager final : public Actor {
   void send_load_async_graph_query(DcId dc_id, string token, int64 x,
                                    Promise<td_api::object_ptr<td_api::StatisticalGraph>> &&promise);
 
-  void on_get_support_user(UserId user_id, Promise<Unit> &&promise);
+  void on_get_support_user(UserId user_id, Promise<td_api::object_ptr<td_api::user>> &&promise);
 
   static void on_user_online_timeout_callback(void *contacts_manager_ptr, int64 user_id_long);
 

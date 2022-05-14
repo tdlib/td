@@ -16700,10 +16700,9 @@ tl_object_ptr<td_api::chatInviteLinkInfo> ContactsManager::get_chat_invite_link_
                                                     creates_join_request, is_public);
 }
 
-UserId ContactsManager::get_support_user(Promise<Unit> &&promise) {
+void ContactsManager::get_support_user(Promise<td_api::object_ptr<td_api::user>> &&promise) {
   if (support_user_id_.is_valid()) {
-    promise.set_value(Unit());
-    return support_user_id_;
+    return promise.set_value(get_user_object(support_user_id_));
   }
 
   auto query_promise = PromiseCreator::lambda(
@@ -16715,10 +16714,9 @@ UserId ContactsManager::get_support_user(Promise<Unit> &&promise) {
         }
       });
   td_->create_handler<GetSupportUserQuery>(std::move(query_promise))->send();
-  return UserId();
 }
 
-void ContactsManager::on_get_support_user(UserId user_id, Promise<Unit> &&promise) {
+void ContactsManager::on_get_support_user(UserId user_id, Promise<td_api::object_ptr<td_api::user>> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
 
   const User *u = get_user(user_id);
@@ -16730,7 +16728,7 @@ void ContactsManager::on_get_support_user(UserId user_id, Promise<Unit> &&promis
   }
 
   support_user_id_ = user_id;
-  promise.set_value(Unit());
+  promise.set_value(get_user_object(user_id, u));
 }
 
 void ContactsManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const {
