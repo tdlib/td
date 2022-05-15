@@ -9526,8 +9526,8 @@ void MessagesManager::on_get_messages(vector<tl_object_ptr<telegram_api::Message
                                       bool is_scheduled, Promise<Unit> &&promise, const char *source) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
 
-  LOG(DEBUG) << "Receive " << messages.size() << " messages";
   for (auto &message : messages) {
+    LOG(INFO) << "Receive " << to_string(message);
     on_get_message(std::move(message), false, is_channel_message, is_scheduled, false, false, source);
   }
   promise.set_value(Unit());
