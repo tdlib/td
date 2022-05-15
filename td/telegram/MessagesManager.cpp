@@ -35953,6 +35953,9 @@ MessagesManager::Dialog *MessagesManager::add_new_dialog(unique_ptr<Dialog> &&d,
 
   auto dialog_it = dialogs_.emplace(dialog_id, std::move(d)).first;
 
+  CHECK(!being_added_new_dialog_id_.is_valid());
+  being_added_new_dialog_id_ = dialog_id;
+
   loaded_dialogs_.erase(dialog_id);
 
   Dialog *dialog = dialog_it->second.get();
@@ -35960,6 +35963,8 @@ MessagesManager::Dialog *MessagesManager::add_new_dialog(unique_ptr<Dialog> &&d,
   fix_dialog_action_bar(dialog, dialog->action_bar.get());
 
   send_update_new_chat(dialog);
+
+  being_added_new_dialog_id_ = DialogId();
 
   fix_new_dialog(dialog, std::move(last_database_message), last_database_message_id, order, last_clear_history_date,
                  last_clear_history_message_id, default_join_group_call_as_dialog_id, default_send_message_as_dialog_id,
@@ -36094,6 +36099,7 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
         CHECK(counter_message.first > 0);
         counter_message.first--;
         if (counter_message.first == 0) {
+          LOG(INFO) << "Add postponed last database message in " << pending_dialog_id;
           add_dialog_last_database_message(get_dialog(pending_dialog_id), std::move(counter_message.second));
           pending_add_dialog_last_database_message_.erase(pending_dialog_id);
         }

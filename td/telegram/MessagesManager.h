@@ -3679,6 +3679,7 @@ class MessagesManager final : public Actor {
 
   DialogId being_added_dialog_id_;
   DialogId being_added_by_new_message_dialog_id_;
+  DialogId being_added_new_dialog_id_;
 
   DialogId debug_channel_difference_dialog_;
 
