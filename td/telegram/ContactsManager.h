@@ -534,9 +534,9 @@ class ContactsManager final : public Actor {
   int32 get_channel_participant_count(ChannelId channel_id) const;
   bool get_channel_sign_messages(ChannelId channel_id) const;
   bool get_channel_has_linked_channel(ChannelId channel_id) const;
+  bool get_channel_can_be_deleted(ChannelId channel_id) const;
   ChannelId get_channel_linked_channel_id(ChannelId channel_id);
   int32 get_channel_slow_mode_delay(ChannelId channel_id);
-  bool get_channel_can_be_deleted(ChannelId channel_id);
 
   void add_dialog_participant(DialogId dialog_id, UserId user_id, int32 forward_limit, Promise<Unit> &&promise);
 
@@ -832,6 +832,7 @@ class ContactsManager final : public Actor {
     bool sign_messages = false;
     bool is_slow_mode_enabled = false;
     bool noforwards = false;
+    bool can_be_deleted = false;
 
     bool is_megagroup = false;
     bool is_gigagroup = false;
@@ -1210,6 +1211,7 @@ class ContactsManager final : public Actor {
   DialogParticipantStatus get_channel_permissions(const Channel *c) const;
   static bool get_channel_sign_messages(const Channel *c);
   static bool get_channel_has_linked_channel(const Channel *c);
+  static bool get_channel_can_be_deleted(const Channel *c);
 
   void set_my_id(UserId my_id);
 

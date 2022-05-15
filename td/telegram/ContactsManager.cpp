@@ -4040,6 +4040,7 @@ void ContactsManager::Channel::store(StorerT &storer) const {
   STORE_FLAG(is_fake);
   STORE_FLAG(is_gigagroup);
   STORE_FLAG(noforwards);
+  STORE_FLAG(can_be_deleted);  // 25
   END_STORE_FLAGS();
 
   store(status, storer);
@@ -4110,6 +4111,7 @@ void ContactsManager::Channel::parse(ParserT &parser) {
   PARSE_FLAG(is_fake);
   PARSE_FLAG(is_gigagroup);
   PARSE_FLAG(noforwards);
+  PARSE_FLAG(can_be_deleted);
   END_PARSE_FLAGS();
 
   if (use_new_rights) {
@@ -6881,7 +6883,7 @@ void ContactsManager::delete_channel(ChannelId channel_id, Promise<Unit> &&promi
   if (c == nullptr) {
     return promise.set_error(Status::Error(400, "Chat info not found"));
   }
-  if (!get_channel_can_be_deleted(channel_id)) {
+  if (!get_channel_can_be_deleted(c)) {
     return promise.set_error(Status::Error(400, "The chat can't be deleted"));
   }
 
@@ -9938,8 +9940,11 @@ void ContactsManager::on_load_channel_full_from_database(ChannelId channel_id, s
 
       c->participant_count = channel_full->participant_count;
       c->is_changed = true;
-      update_channel(c, channel_id);
     }
+  }
+  if (c->can_be_deleted != channel_full->can_be_deleted) {
+    c->can_be_deleted = channel_full->can_be_deleted;
+    c->need_save_to_database = true;
   }
 
   if (invalidated_channels_full_.erase(channel_id) > 0 ||
@@ -9951,6 +9956,8 @@ void ContactsManager::on_load_channel_full_from_database(ChannelId channel_id, s
 
   send_closure_later(G()->messages_manager(), &MessagesManager::on_dialog_bots_updated, DialogId(channel_id),
                      channel_full->bot_user_ids, true);
+
+  update_channel(c, channel_id);
 
   channel_full->is_update_channel_full_sent = true;
   update_channel_full(channel_full, channel_id, "on_load_channel_full_from_database", true);
@@ -11142,6 +11149,10 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
     if (channel_full->can_be_deleted != channel->can_delete_channel_) {
       channel_full->can_be_deleted = channel->can_delete_channel_;
       channel_full->need_save_to_database = true;
+    }
+    if (c->can_be_deleted != channel_full->can_be_deleted) {
+      c->can_be_deleted = channel_full->can_be_deleted;
+      c->need_save_to_database = true;
     }
 
     ChatId migrated_from_chat_id;
@@ -14868,6 +14879,18 @@ bool ContactsManager::get_channel_has_linked_channel(const Channel *c) {
   return c->has_linked_channel;
 }
 
+bool ContactsManager::get_channel_can_be_deleted(ChannelId channel_id) const {
+  auto c = get_channel(channel_id);
+  if (c == nullptr) {
+    return false;
+  }
+  return get_channel_can_be_deleted(c);
+}
+
+bool ContactsManager::get_channel_can_be_deleted(const Channel *c) {
+  return c->can_be_deleted;
+}
+
 ChannelId ContactsManager::get_channel_linked_channel_id(ChannelId channel_id) {
   auto channel_full = get_channel_full_const(channel_id);
   if (channel_full == nullptr) {
@@ -14888,17 +14911,6 @@ int32 ContactsManager::get_channel_slow_mode_delay(ChannelId channel_id) {
     }
   }
   return channel_full->slow_mode_delay;
-}
-
-bool ContactsManager::get_channel_can_be_deleted(ChannelId channel_id) {
-  auto channel_full = get_channel_full_const(channel_id);
-  if (channel_full == nullptr) {
-    channel_full = get_channel_full_force(channel_id, true, "get_channel_can_be_deleted");
-    if (channel_full == nullptr) {
-      return get_channel_status(channel_id).is_creator();
-    }
-  }
-  return channel_full->can_be_deleted;
 }
 
 bool ContactsManager::have_channel(ChannelId channel_id) const {
