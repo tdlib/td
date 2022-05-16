@@ -1952,6 +1952,8 @@ class MessagesManager final : public Actor {
       unique_ptr<MessageContent> content;
       MessageId top_thread_message_id;
       MessageId reply_to_message_id;
+      MessageId original_message_id;
+      MessageId original_reply_to_message_id;
       unique_ptr<ReplyMarkup> reply_markup;
       int64 media_album_id;
       bool disable_web_page_preview;

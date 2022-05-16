@@ -13613,7 +13613,7 @@ void MessagesManager::on_send_secret_message_success(int64 random_id, MessageId 
     }
   }
 
-  on_send_message_success(random_id, message_id, date, 0, new_file_id, "process send_secret_message_success");
+  on_send_message_success(random_id, message_id, date, 0, new_file_id, "on_send_secret_message_success");
 }
 
 void MessagesManager::delete_secret_messages(SecretChatId secret_chat_id, std::vector<int64> random_ids,
@@ -13646,7 +13646,7 @@ void MessagesManager::finish_delete_secret_messages(DialogId dialog_id, std::vec
   CHECK(d != nullptr);
   vector<MessageId> to_delete_message_ids;
   for (auto &random_id : random_ids) {
-    auto message_id = get_message_id_by_random_id(d, random_id, "delete_secret_messages");
+    auto message_id = get_message_id_by_random_id(d, random_id, "finish_delete_secret_messages");
     if (!message_id.is_valid()) {
       LOG(INFO) << "Can't find message with random_id " << random_id;
       continue;
@@ -28029,6 +28029,7 @@ Result<MessagesManager::ForwardedMessages> MessagesManager::get_forwarded_messag
 
     if (is_local_copy) {
       copied_messages.push_back({std::move(content), top_thread_message_id, reply_to_message_id,
+                                 forwarded_message->message_id, forwarded_message->reply_to_message_id,
                                  std::move(reply_markup), forwarded_message->media_album_id,
                                  get_message_disable_web_page_preview(forwarded_message), i});
     } else {
@@ -28159,14 +28160,30 @@ Result<td_api::object_ptr<td_api::messages>> MessagesManager::forward_messages(
                         drop_media_captions, 0);
   }
 
+  bool is_secret = to_dialog_id.get_type() == DialogType::SecretChat;
+  bool is_copy = !is_secret;
+  for (const auto &copied_message : copied_messages) {
+    if (forwarded_message_id_to_new_message_id.count(copied_message.original_reply_to_message_id) > 0) {
+      is_copy = true;
+      break;
+    }
+    forwarded_message_id_to_new_message_id.emplace(copied_message.original_message_id, MessageId());
+  }
   for (auto &copied_message : copied_messages) {
+    MessageId reply_to_message_id = copied_message.reply_to_message_id;
+    if (!reply_to_message_id.is_valid() && copied_message.original_reply_to_message_id.is_valid() && is_secret) {
+      auto it = forwarded_message_id_to_new_message_id.find(copied_message.original_reply_to_message_id);
+      if (it != forwarded_message_id_to_new_message_id.end()) {
+        reply_to_message_id = it->second;
+      }
+    }
+
     unique_ptr<Message> message;
     Message *m;
-    bool is_copy = to_dialog_id.get_type() != DialogType::SecretChat;
     if (only_preview) {
-      message = create_message_to_send(to_dialog, copied_message.top_thread_message_id,
-                                       copied_message.reply_to_message_id, message_send_options,
-                                       std::move(copied_message.content), false, nullptr, is_copy, DialogId());
+      message = create_message_to_send(to_dialog, copied_message.top_thread_message_id, reply_to_message_id,
+                                       message_send_options, std::move(copied_message.content), false, nullptr, is_copy,
+                                       DialogId());
       MessageId new_message_id =
           message_send_options.schedule_date != 0
               ? get_next_yet_unsent_scheduled_message_id(to_dialog, message_send_options.schedule_date)
@@ -28174,13 +28191,14 @@ Result<td_api::object_ptr<td_api::messages>> MessagesManager::forward_messages(
       set_message_id(message, new_message_id);
       m = message.get();
     } else {
-      m = get_message_to_send(to_dialog, copied_message.top_thread_message_id, copied_message.reply_to_message_id,
+      m = get_message_to_send(to_dialog, copied_message.top_thread_message_id, reply_to_message_id,
                               message_send_options, std::move(copied_message.content), &need_update_dialog_pos, false,
                               nullptr, is_copy);
     }
     m->disable_web_page_preview = copied_message.disable_web_page_preview;
     m->media_album_id = copied_message.media_album_id;
     m->reply_markup = std::move(copied_message.reply_markup);
+    forwarded_message_id_to_new_message_id[copied_message.original_message_id] = m->message_id;
 
     if (!only_preview) {
       save_send_message_log_event(to_dialog_id, m);
