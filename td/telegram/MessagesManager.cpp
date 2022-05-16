@@ -15696,8 +15696,7 @@ unique_ptr<MessagesManager::Message> MessagesManager::delete_message(Dialog *d, 
 
 void MessagesManager::add_random_id_to_message_id_correspondence(Dialog *d, int64 random_id, MessageId message_id) {
   CHECK(d != nullptr);
-  CHECK(d->dialog_id.get_type() == DialogType::SecretChat);
-  CHECK(message_id.is_valid());
+  CHECK(d->dialog_id.get_type() == DialogType::SecretChat || message_id.is_yet_unsent());
   auto it = d->random_id_to_message_id.find(random_id);
   if (it == d->random_id_to_message_id.end() || it->second < message_id) {
     LOG(INFO) << "Add correspondence from random_id " << random_id << " to " << message_id << " in " << d->dialog_id;
@@ -15707,8 +15706,7 @@ void MessagesManager::add_random_id_to_message_id_correspondence(Dialog *d, int6
 
 void MessagesManager::delete_random_id_to_message_id_correspondence(Dialog *d, int64 random_id, MessageId message_id) {
   CHECK(d != nullptr);
-  CHECK(d->dialog_id.get_type() == DialogType::SecretChat);
-  CHECK(message_id.is_valid());
+  CHECK(d->dialog_id.get_type() == DialogType::SecretChat || message_id.is_yet_unsent());
   auto it = d->random_id_to_message_id.find(random_id);
   if (it != d->random_id_to_message_id.end() && it->second == message_id) {
     LOG(INFO) << "Delete correspondence from random_id " << random_id << " to " << message_id << " in " << d->dialog_id;
@@ -16168,7 +16166,8 @@ void MessagesManager::on_message_deleted(Dialog *d, Message *m, bool is_permanen
 
   cancel_send_deleted_message(d->dialog_id, m, is_permanently_deleted);
 
-  switch (d->dialog_id.get_type()) {
+  auto dialog_type = d->dialog_id.get_type();
+  switch (dialog_type) {
     case DialogType::User:
     case DialogType::Chat:
       if (m->message_id.is_server()) {
@@ -16176,10 +16175,8 @@ void MessagesManager::on_message_deleted(Dialog *d, Message *m, bool is_permanen
       }
       break;
     case DialogType::Channel:
-      // nothing to do
-      break;
     case DialogType::SecretChat:
-      delete_random_id_to_message_id_correspondence(d, m->random_id, m->message_id);
+      // nothing to do
       break;
     case DialogType::None:
     default:
@@ -16192,6 +16189,9 @@ void MessagesManager::on_message_deleted(Dialog *d, Message *m, bool is_permanen
   unregister_message_reply(d->dialog_id, m);
   if (m->notification_id.is_valid()) {
     delete_notification_id_to_message_id_correspondence(d, m->notification_id, m->message_id);
+  }
+  if (m->message_id.is_yet_unsent() || dialog_type == DialogType::SecretChat) {
+    delete_random_id_to_message_id_correspondence(d, m->random_id, m->message_id);
   }
 
   added_message_count_--;
@@ -24476,11 +24476,12 @@ bool MessagesManager::get_dialog_silent_send_message(DialogId dialog_id) const {
   return d->notification_settings.silent_send_message;
 }
 
-int64 MessagesManager::generate_new_random_id() {
+int64 MessagesManager::generate_new_random_id(const Dialog *d) {
   int64 random_id;
   do {
     random_id = Random::secure_int64();
-  } while (random_id == 0 || being_sent_messages_.count(random_id) > 0);
+  } while (random_id == 0 || being_sent_messages_.count(random_id) > 0 ||
+           d->random_id_to_message_id.count(random_id) > 0);
   return random_id;
 }
 
@@ -24590,16 +24591,18 @@ unique_ptr<MessagesManager::Message> MessagesManager::create_message_to_send(
       m->ttl = 0;
     }
     m->is_content_secret = is_secret_message_content(m->ttl, m->content->get_type());
-    if (reply_to_message_id.is_valid()) {
-      // the message was forcely preloaded in get_reply_to_message_id
-      auto *reply_to_message = get_message(d, reply_to_message_id);
-      if (reply_to_message != nullptr) {
-        m->reply_to_random_id = reply_to_message->random_id;
-      } else {
-        m->reply_to_message_id = MessageId();
-      }
+  }
+  if ((reply_to_message_id.is_valid() || reply_to_message_id.is_valid_scheduled()) &&
+      (dialog_type == DialogType::SecretChat || reply_to_message_id.is_yet_unsent())) {
+    // the message was forcely preloaded in get_reply_to_message_id
+    auto *reply_to_message = get_message(d, reply_to_message_id);
+    if (reply_to_message == nullptr || (reply_to_message->message_id.is_yet_unsent() && is_scheduled)) {
+      m->reply_to_message_id = MessageId();
+    } else {
+      m->reply_to_random_id = reply_to_message->random_id;
     }
   }
+
   return m;
 }
 
@@ -24619,7 +24622,7 @@ MessagesManager::Message *MessagesManager::get_message_to_send(
   message->have_previous = true;
   message->have_next = true;
 
-  message->random_id = generate_new_random_id();
+  message->random_id = generate_new_random_id(d);
 
   bool need_update = false;
   CHECK(have_input_peer(d->dialog_id, AccessRights::Read));
@@ -30797,10 +30800,11 @@ void MessagesManager::on_send_message_file_part_missing(int64 random_id, int bad
     Dialog *d = get_dialog(dialog_id);
     CHECK(d != nullptr);
 
-    // need to change message random_id before resending
-    m->random_id = generate_new_random_id();
+    delete_random_id_to_message_id_correspondence(d, m->random_id, m->message_id);
 
-    delete_random_id_to_message_id_correspondence(d, random_id, m->message_id);
+    // need to change message random_id before resending
+    m->random_id = generate_new_random_id(d);
+
     add_random_id_to_message_id_correspondence(d, m->random_id, m->message_id);
 
     auto log_event = SendMessageLogEvent(dialog_id, m);
@@ -30846,10 +30850,11 @@ void MessagesManager::on_send_message_file_reference_error(int64 random_id) {
     Dialog *d = get_dialog(dialog_id);
     CHECK(d != nullptr);
 
-    // need to change message random_id before resending
-    m->random_id = generate_new_random_id();
+    delete_random_id_to_message_id_correspondence(d, m->random_id, m->message_id);
 
-    delete_random_id_to_message_id_correspondence(d, random_id, m->message_id);
+    // need to change message random_id before resending
+    m->random_id = generate_new_random_id(d);
+
     add_random_id_to_message_id_correspondence(d, m->random_id, m->message_id);
 
     auto log_event = SendMessageLogEvent(dialog_id, m);
@@ -34551,7 +34556,6 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
       // nothing to do
       break;
     case DialogType::SecretChat:
-      add_random_id_to_message_id_correspondence(d, m->random_id, m->message_id);
       break;
     case DialogType::None:
     default:
@@ -34560,6 +34564,9 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
 
   if (m->notification_id.is_valid()) {
     add_notification_id_to_message_id_correspondence(d, m->notification_id, m->message_id);
+  }
+  if (m->message_id.is_yet_unsent() || dialog_type == DialogType::SecretChat) {
+    add_random_id_to_message_id_correspondence(d, m->random_id, m->message_id);
   }
 
   try_add_bot_command_message_id(dialog_id, m);
