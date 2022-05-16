@@ -27934,7 +27934,7 @@ Result<MessagesManager::ForwardedMessages> MessagesManager::get_forwarded_messag
 
   bool to_secret = to_dialog_id.get_type() == DialogType::SecretChat;
 
-  bool can_use_server_forward = !to_secret;
+  bool can_use_server_forward = true;
   for (auto &copy_option : copy_options) {
     if (!copy_option.is_supported_server_side()) {
       can_use_server_forward = false;
@@ -27942,6 +27942,9 @@ Result<MessagesManager::ForwardedMessages> MessagesManager::get_forwarded_messag
     }
   }
   CHECK(can_use_server_forward || copy_options.size() == 1);
+  if (to_secret) {
+    can_use_server_forward = false;
+  }
 
   ForwardedMessages result;
   result.to_dialog = to_dialog;
