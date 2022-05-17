@@ -13814,6 +13814,8 @@ void MessagesManager::on_get_secret_message(SecretChatId secret_chat_id, UserId 
     return;
   }
 
+  pending_secret_message_ids_[message_info.dialog_id][message_info.random_id] = message_id;
+
   pending_secret_message->load_data_multipromise.add_promise(Auto());
   auto lock_promise = pending_secret_message->load_data_multipromise.get_promise();
 
@@ -13821,6 +13823,15 @@ void MessagesManager::on_get_secret_message(SecretChatId secret_chat_id, UserId 
   if ((message->flags_ & secret_api::decryptedMessage::REPLY_TO_RANDOM_ID_MASK) != 0) {
     message_info.reply_to_message_id =
         get_message_id_by_random_id(d, message->reply_to_random_id_, "on_get_secret_message");
+    if (!message_info.reply_to_message_id.is_valid()) {
+      auto dialog_it = pending_secret_message_ids_.find(message_info.dialog_id);
+      if (dialog_it != pending_secret_message_ids_.end()) {
+        auto message_it = dialog_it->second.find(message->reply_to_random_id_);
+        if (message_it != dialog_it->second.end()) {
+          message_info.reply_to_message_id = message_it->second;
+        }
+      }
+    }
   }
   if ((message->flags_ & secret_api::decryptedMessage::SILENT_MASK) != 0) {
     flags |= MESSAGE_FLAG_IS_SILENT;
@@ -13997,6 +14008,17 @@ void MessagesManager::finish_add_secret_message(unique_ptr<PendingSecretMessage>
     on_get_message(std::move(pending_secret_message->message_info), true, false, true, true,
                    "finish add secret message");
   }
+  auto dialog_it = pending_secret_message_ids_.find(d->dialog_id);
+  if (dialog_it != pending_secret_message_ids_.end()) {
+    auto message_it = dialog_it->second.find(random_id);
+    if (message_it != dialog_it->second.end() && message_it->second == message_id) {
+      dialog_it->second.erase(message_it);
+      if (dialog_it->second.empty()) {
+        pending_secret_message_ids_.erase(dialog_it);
+      }
+    }
+  }
+
   pending_secret_message->success_promise.set_value(Unit());  // TODO: set after message is saved
 }
 

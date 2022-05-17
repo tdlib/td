@@ -3600,6 +3600,9 @@ class MessagesManager final : public Actor {
 
   ChangesProcessor<unique_ptr<PendingSecretMessage>> pending_secret_messages_;
 
+  FlatHashMap<DialogId, FlatHashMap<int64, MessageId>, DialogIdHash>
+      pending_secret_message_ids_;  // random_id -> message_id
+
   FlatHashMap<DialogId, vector<DialogId>, DialogIdHash> pending_add_dialog_last_database_message_dependent_dialogs_;
   FlatHashMap<DialogId, std::pair<int32, unique_ptr<Message>>, DialogIdHash>
       pending_add_dialog_last_database_message_;  // dialog -> dependency counter + message
