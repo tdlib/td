@@ -14533,6 +14533,11 @@ FullMessageId MessagesManager::on_get_message(MessageInfo &&message_info, bool f
     update_message(d, old_message.get(), std::move(new_message), &need_update_dialog_pos, false);
     new_message = std::move(old_message);
 
+    if (new_message->reply_to_message_id != MessageId() && new_message->reply_to_message_id.is_yet_unsent()) {
+      LOG(INFO) << "Drop reply to " << new_message->reply_to_message_id;
+      new_message->reply_to_message_id = MessageId();
+    }
+
     set_message_id(new_message, message_id);
     send_update_message_send_succeeded(d, old_message_id, new_message.get());
 
@@ -30830,6 +30835,11 @@ FullMessageId MessagesManager::on_send_message_success(int64 random_id, MessageI
   sent_message->from_database = false;
   sent_message->have_previous = true;
   sent_message->have_next = true;
+
+  if (sent_message->reply_to_message_id != MessageId() && sent_message->reply_to_message_id.is_yet_unsent()) {
+    LOG(INFO) << "Drop reply to " << sent_message->reply_to_message_id;
+    sent_message->reply_to_message_id = MessageId();
+  }
 
   send_update_message_send_succeeded(d, old_message_id, sent_message.get());
 
