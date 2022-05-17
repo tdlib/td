@@ -13819,17 +13819,8 @@ void MessagesManager::on_get_secret_message(SecretChatId secret_chat_id, UserId 
 
   int32 flags = MESSAGE_FLAG_HAS_UNREAD_CONTENT | MESSAGE_FLAG_HAS_FROM_ID;
   if ((message->flags_ & secret_api::decryptedMessage::REPLY_TO_RANDOM_ID_MASK) != 0) {
-    message_info.reply_to_message_id = get_message_id_by_random_id(
-        get_dialog(message_info.dialog_id), message->reply_to_random_id_, "on_get_secret_message");
-    if (message_info.reply_to_message_id.is_valid()) {
-      flags |= MESSAGE_FLAG_IS_REPLY;
-    }
-  }
-  if ((message->flags_ & secret_api::decryptedMessage::ENTITIES_MASK) != 0) {
-    flags |= MESSAGE_FLAG_HAS_ENTITIES;
-  }
-  if ((message->flags_ & secret_api::decryptedMessage::MEDIA_MASK) != 0) {
-    flags |= MESSAGE_FLAG_HAS_MEDIA;
+    message_info.reply_to_message_id =
+        get_message_id_by_random_id(d, message->reply_to_random_id_, "on_get_secret_message");
   }
   if ((message->flags_ & secret_api::decryptedMessage::SILENT_MASK) != 0) {
     flags |= MESSAGE_FLAG_IS_SILENT;
@@ -13850,7 +13841,6 @@ void MessagesManager::on_get_secret_message(SecretChatId secret_chat_id, UserId 
   }
   if ((message->flags_ & secret_api::decryptedMessage::GROUPED_ID_MASK) != 0 && message->grouped_id_ != 0) {
     message_info.media_album_id = message->grouped_id_;
-    flags |= MESSAGE_FLAG_HAS_MEDIA_ALBUM_ID;
   }
 
   message_info.flags = flags;
@@ -35817,14 +35807,19 @@ MessageId MessagesManager::get_message_id_by_random_id(Dialog *d, int64 random_i
               << source << " " << random_id << " " << d->random_id_to_message_id[random_id] << " " << m->message_id
               << " " << m->is_failed_to_send << " " << m->is_outgoing << " " << m->from_database << " "
               << get_message(d, m->message_id) << " " << m << " " << debug_add_message_to_dialog_fail_reason_;
+          LOG(INFO) << "Found " << FullMessageId{d->dialog_id, m->message_id} << " by random_id " << random_id
+                    << " from " << source;
           return m->message_id;
         }
       }
     }
 
+    LOG(INFO) << "Found no message by random_id " << random_id << " from " << source;
     return MessageId();
   }
 
+  LOG(INFO) << "Found " << FullMessageId{d->dialog_id, it->second} << " by random_id " << random_id << " from "
+            << source;
   return it->second;
 }
 
