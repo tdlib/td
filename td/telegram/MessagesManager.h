@@ -2322,6 +2322,8 @@ class MessagesManager final : public Actor {
 
   void delete_message_from_database(Dialog *d, MessageId message_id, const Message *m, bool is_permanently_deleted);
 
+  void update_reply_to_message_id(DialogId dialog_id, MessageId old_message_id, MessageId new_message_id);
+
   void delete_message_files(DialogId dialog_id, const Message *m) const;
 
   static void add_random_id_to_message_id_correspondence(Dialog *d, int64 random_id, MessageId message_id);
@@ -3486,6 +3488,7 @@ class MessagesManager final : public Actor {
   FlatHashMap<DialogId, uint64, DialogIdHash> get_dialog_query_log_event_id_;
 
   FlatHashMap<FullMessageId, int32, FullMessageIdHash> replied_by_yet_unsent_messages_;
+  FlatHashMap<FullMessageId, FlatHashSet<MessageId, MessageIdHash>, FullMessageIdHash> replied_yet_unsent_messages_;
 
   // full_message_id -> replies with media timestamps
   FlatHashMap<FullMessageId, FlatHashSet<MessageId, MessageIdHash>, FullMessageIdHash>

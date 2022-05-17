@@ -12993,6 +12993,7 @@ void MessagesManager::on_message_ttl_expired_impl(Dialog *d, Message *m) {
   CHECK(d != nullptr);
   CHECK(m != nullptr);
   CHECK(m->message_id.is_valid());
+  CHECK(!m->message_id.is_yet_unsent());
   CHECK(m->ttl > 0);
   CHECK(d->dialog_id.get_type() != DialogType::SecretChat);
   delete_message_files(d->dialog_id, m);
@@ -14493,11 +14494,14 @@ FullMessageId MessagesManager::on_get_message(MessageInfo &&message_info, bool f
       return FullMessageId();
     }
 
+    // must be called before delete_message
+    update_reply_to_message_id(dialog_id, old_message_id, message_id);
+
     being_readded_message_id_ = {dialog_id, old_message_id};
     unique_ptr<Message> old_message =
         delete_message(d, old_message_id, false, &need_update_dialog_pos, "add sent message");
     if (old_message == nullptr) {
-      delete_sent_message_on_server(dialog_id, new_message->message_id);
+      delete_sent_message_on_server(dialog_id, message_id);
       being_readded_message_id_ = FullMessageId();
       return FullMessageId();
     }
@@ -24794,13 +24798,38 @@ void MessagesManager::cancel_send_message_query(DialogId dialog_id, Message *m) 
     m->send_message_log_event_id = 0;
   }
 
-  if (m->reply_to_message_id.is_valid() && !m->reply_to_message_id.is_yet_unsent()) {
-    auto it = replied_by_yet_unsent_messages_.find({dialog_id, m->reply_to_message_id});
-    CHECK(it != replied_by_yet_unsent_messages_.end());
-    it->second--;
-    CHECK(it->second >= 0);
-    if (it->second == 0) {
-      replied_by_yet_unsent_messages_.erase(it);
+  if (m->reply_to_message_id.is_valid()) {
+    if (!m->reply_to_message_id.is_yet_unsent()) {
+      auto it = replied_by_yet_unsent_messages_.find({dialog_id, m->reply_to_message_id});
+      CHECK(it != replied_by_yet_unsent_messages_.end());
+      it->second--;
+      CHECK(it->second >= 0);
+      if (it->second == 0) {
+        replied_by_yet_unsent_messages_.erase(it);
+      }
+    } else {
+      auto it = replied_yet_unsent_messages_.find({dialog_id, m->reply_to_message_id});
+      CHECK(it != replied_yet_unsent_messages_.end());
+      size_t erased_count = it->second.erase(m->message_id);
+      CHECK(erased_count > 0);
+      if (it->second.empty()) {
+        replied_yet_unsent_messages_.erase(it);
+      }
+    }
+  }
+  {
+    auto it = replied_yet_unsent_messages_.find({dialog_id, m->message_id});
+    if (it != replied_yet_unsent_messages_.end()) {
+      for (auto message_id : it->second) {
+        auto replied_m = get_message({dialog_id, message_id});
+        CHECK(replied_m != nullptr);
+        CHECK(replied_m->reply_to_message_id == m->message_id);
+        unregister_message_reply(dialog_id, replied_m);
+        replied_m->reply_to_message_id = replied_m->top_thread_message_id;
+        replied_m->reply_to_random_id = 0;
+        register_message_reply(dialog_id, replied_m);
+      }
+      replied_yet_unsent_messages_.erase(it);
     }
   }
 
@@ -30670,6 +30699,34 @@ void MessagesManager::check_send_message_result(int64 random_id, DialogId dialog
   }
 }
 
+void MessagesManager::update_reply_to_message_id(DialogId dialog_id, MessageId old_message_id,
+                                                 MessageId new_message_id) {
+  auto it = replied_yet_unsent_messages_.find({dialog_id, old_message_id});
+  if (it == replied_yet_unsent_messages_.end()) {
+    return;
+  }
+  CHECK(old_message_id.is_yet_unsent());
+
+  for (auto message_id : it->second) {
+    CHECK(message_id.is_yet_unsent());
+    FullMessageId full_message_id{dialog_id, message_id};
+    auto replied_m = get_message(full_message_id);
+    CHECK(replied_m != nullptr);
+    CHECK(replied_m->reply_to_message_id == old_message_id);
+    LOG(INFO) << "Update replied message in " << full_message_id << " from " << old_message_id << " to "
+              << new_message_id;
+    unregister_message_reply(dialog_id, replied_m);
+    replied_m->reply_to_message_id = new_message_id;
+    // TODO rewrite send message log event
+    register_message_reply(dialog_id, replied_m);
+  }
+  if (new_message_id.is_valid()) {
+    CHECK(!new_message_id.is_yet_unsent());
+    replied_by_yet_unsent_messages_[FullMessageId{dialog_id, new_message_id}] = static_cast<int32>(it->second.size());
+  }
+  replied_yet_unsent_messages_.erase(it);
+}
+
 FullMessageId MessagesManager::on_send_message_success(int64 random_id, MessageId new_message_id, int32 date,
                                                        int32 ttl_period, FileId new_file_id, const char *source) {
   CHECK(source != nullptr);
@@ -30708,6 +30765,9 @@ FullMessageId MessagesManager::on_send_message_success(int64 random_id, MessageI
   }
 
   being_sent_messages_.erase(it);
+
+  // must be called before delete_message
+  update_reply_to_message_id(dialog_id, old_message_id, new_message_id);
 
   Dialog *d = get_dialog(dialog_id);
   CHECK(d != nullptr);
@@ -31161,6 +31221,8 @@ void MessagesManager::fail_send_message(FullMessageId full_message_id, int error
   MessageId old_message_id = full_message_id.get_message_id();
   CHECK(old_message_id.is_valid() || old_message_id.is_valid_scheduled());
   CHECK(old_message_id.is_yet_unsent());
+
+  update_reply_to_message_id(dialog_id, old_message_id, MessageId());
 
   bool need_update_dialog_pos = false;
   being_readded_message_id_ = full_message_id;
@@ -34407,9 +34469,12 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
   }
 
   const Message *m = message.get();
-  if (m->message_id.is_yet_unsent() && m->reply_to_message_id.is_valid() && !m->reply_to_message_id.is_yet_unsent() &&
-      !m->reply_to_message_id.is_scheduled()) {
-    replied_by_yet_unsent_messages_[FullMessageId{dialog_id, m->reply_to_message_id}]++;
+  if (m->message_id.is_yet_unsent() && m->reply_to_message_id.is_valid() && !m->reply_to_message_id.is_scheduled()) {
+    if (!m->reply_to_message_id.is_yet_unsent()) {
+      replied_by_yet_unsent_messages_[FullMessageId{dialog_id, m->reply_to_message_id}]++;
+    } else {
+      replied_yet_unsent_messages_[FullMessageId{dialog_id, m->reply_to_message_id}].insert(m->message_id);
+    }
   }
 
   if (!m->from_database && !m->message_id.is_yet_unsent()) {
@@ -35347,18 +35412,9 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
       update_message_max_reply_media_timestamp(d, old_message, is_message_in_dialog);
       need_send_update = true;
     } else if (is_new_available) {
-      if (message_id.is_yet_unsent() &&
-          (old_message->reply_to_message_id == MessageId() || old_message->reply_to_message_id.is_yet_unsent())) {
-        CHECK(!is_message_in_dialog);
-        CHECK(new_message->reply_to_message_id.is_any_server());
-        old_message->reply_to_message_id = new_message->reply_to_message_id;
-        update_message_max_reply_media_timestamp(d, old_message, is_message_in_dialog);
-        need_send_update = true;
-      } else {
-        LOG(ERROR) << message_id << " in " << dialog_id << " has changed message it is replied message from "
-                   << old_message->reply_to_message_id << " to " << new_message->reply_to_message_id
-                   << ", message content type is " << old_content_type << '/' << new_content_type;
-      }
+      LOG(ERROR) << message_id << " in " << dialog_id << " has changed message it is replied message from "
+                 << old_message->reply_to_message_id << " to " << new_message->reply_to_message_id
+                 << ", message content type is " << old_content_type << '/' << new_content_type;
     }
   }
   if (old_message->reply_in_dialog_id != new_message->reply_in_dialog_id) {
