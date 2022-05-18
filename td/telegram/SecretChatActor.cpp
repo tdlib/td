@@ -1516,7 +1516,7 @@ Status SecretChatActor::outbound_rewrite_with_empty(uint64 state_id) {
   state->message->is_external = false;
   state->message->need_notify_user = false;
   state->message->is_silent = true;
-  state->message->file = log_event::EncryptedInputFile::from_input_encrypted_file(nullptr);
+  state->message->file = log_event::EncryptedInputFile();
   binlog_rewrite(context_->binlog(), state->message->log_event_id(), LogEvent::HandlerType::SecretChats,
                  create_storer(*state->message));
   return Status::OK();
@@ -1606,15 +1606,14 @@ void SecretChatActor::on_outbound_send_message_result(NetQueryPtr query, Promise
         auto sent = move_tl_object_as<telegram_api::messages_sentEncryptedFile>(result);
         auto file = EncryptedFile::get_encrypted_file(std::move(sent->file_));
         if (file == nullptr) {
-          state->message->file = log_event::EncryptedInputFile::from_input_encrypted_file(nullptr);
+          state->message->file = log_event::EncryptedInputFile();
           state->send_result_ = [this, random_id = state->message->random_id,
                                  message_id = MessageId(ServerMessageId(state->message->message_id)),
                                  date = sent->date_](Promise<> promise) {
             context_->on_send_message_ok(random_id, message_id, date, nullptr, std::move(promise));
           };
         } else {
-          state->message->file = log_event::EncryptedInputFile::from_input_encrypted_file(
-              make_tl_object<telegram_api::inputEncryptedFile>(file->id_, file->access_hash_));
+          state->message->file = {log_event::EncryptedInputFile::Location, file->id_, file->access_hash_, 0, 0};
           state->send_result_ = [this, random_id = state->message->random_id,
                                  message_id = MessageId(ServerMessageId(state->message->message_id)),
                                  date = sent->date_, file = *file](Promise<> promise) {
