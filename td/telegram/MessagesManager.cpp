@@ -10455,7 +10455,7 @@ void MessagesManager::delete_dialog_messages(DialogId dialog_id, const vector<Me
       CHECK(message_id.is_valid());
     }
 
-    bool was_already_deleted = d->deleted_message_ids.count(message_id) != 0;
+    bool was_already_deleted = is_deleted_message(d, message_id);
     auto message = delete_message(d, message_id, true, &need_update_dialog_pos, source);
     if (message == nullptr) {
       if (!skip_update_for_not_found_messages && !was_already_deleted) {
@@ -16218,6 +16218,14 @@ void MessagesManager::on_message_deleted(Dialog *d, Message *m, bool is_permanen
   added_message_count_--;
 }
 
+bool MessagesManager::is_deleted_message(const Dialog *d, MessageId message_id) {
+  if (message_id.is_scheduled() && message_id.is_valid_scheduled() && message_id.is_scheduled_server()) {
+    return d->deleted_scheduled_server_message_ids.count(message_id.get_scheduled_server_message_id()) > 0;
+  } else {
+    return d->deleted_message_ids.count(message_id) > 0;
+  }
+}
+
 unique_ptr<MessagesManager::Message> MessagesManager::do_delete_scheduled_message(Dialog *d, MessageId message_id,
                                                                                   bool is_permanently_deleted,
                                                                                   const char *source) {
@@ -17746,7 +17754,7 @@ void MessagesManager::get_message_force_from_server(Dialog *d, MessageId message
   LOG(INFO) << "Get " << message_id << " in " << d->dialog_id << " using " << to_string(input_message);
   auto dialog_type = d->dialog_id.get_type();
   auto m = get_message_force(d, message_id, "get_message_force_from_server");
-  if (m == nullptr) {
+  if (m == nullptr && !is_deleted_message(d, message_id) && dialog_type != DialogType::SecretChat) {
     if (message_id.is_valid() && message_id.is_server()) {
       if (d->last_new_message_id != MessageId() && message_id > d->last_new_message_id &&
           dialog_type != DialogType::Channel) {
@@ -17754,15 +17762,11 @@ void MessagesManager::get_message_force_from_server(Dialog *d, MessageId message
         return promise.set_value(Unit());
       }
 
-      if (d->deleted_message_ids.count(message_id) == 0 && dialog_type != DialogType::SecretChat) {
-        return get_message_from_server({d->dialog_id, message_id}, std::move(promise), "get_message_force_from_server",
-                                       std::move(input_message));
-      }
-    } else if (message_id.is_valid_scheduled() && message_id.is_scheduled_server()) {
-      if (d->deleted_scheduled_server_message_ids.count(message_id.get_scheduled_server_message_id()) == 0 &&
-          dialog_type != DialogType::SecretChat && input_message == nullptr) {
-        return get_message_from_server({d->dialog_id, message_id}, std::move(promise), "get_message_force_from_server");
-      }
+      return get_message_from_server({d->dialog_id, message_id}, std::move(promise), "get_message_force_from_server",
+                                     std::move(input_message));
+    }
+    if (message_id.is_valid_scheduled() && message_id.is_scheduled_server() && input_message == nullptr) {
+      return get_message_from_server({d->dialog_id, message_id}, std::move(promise), "get_message_force_from_server");
     }
   }
 
@@ -18524,7 +18528,7 @@ Result<std::pair<string, bool>> MessagesManager::get_message_link(FullMessageId 
   if (!m->top_thread_message_id.is_valid() || !m->top_thread_message_id.is_server()) {
     for_comment = false;
   }
-  if (d->deleted_message_ids.count(m->top_thread_message_id) != 0) {
+  if (is_deleted_message(d, m->top_thread_message_id)) {
     for_comment = false;
   }
   if (for_comment && is_broadcast_channel(dialog_id)) {
@@ -27296,7 +27300,7 @@ void MessagesManager::update_message_max_reply_media_timestamp(const Dialog *d, 
     auto replied_m = get_message(d, m->reply_to_message_id);
     if (replied_m != nullptr) {
       new_max_reply_media_timestamp = get_message_own_max_media_timestamp(replied_m);
-    } else if (!d->deleted_message_ids.count(m->reply_to_message_id) &&
+    } else if (!is_deleted_message(d, m->reply_to_message_id) &&
                m->reply_to_message_id > d->last_clear_history_message_id &&
                m->reply_to_message_id > d->max_unavailable_message_id) {
       // replied message isn't deleted and isn't loaded yet
@@ -28959,7 +28963,7 @@ Result<MessagesManager::MessagePushNotificationInfo> MessagesManager::get_messag
     if (message_id <= d->last_clear_history_message_id) {
       return Status::Error("Ignore notification about message from cleared chat history");
     }
-    if (d->deleted_message_ids.count(message_id)) {
+    if (is_deleted_message(d, message_id)) {
       return Status::Error("Ignore notification about deleted message");
     }
     if (message_id <= d->max_unavailable_message_id) {
@@ -30816,12 +30820,6 @@ FullMessageId MessagesManager::on_send_message_success(int64 random_id, MessageI
 
   sent_message->ttl_period = ttl_period;
 
-  // reply_to message may be already deleted
-  // but can't use get_message_force for check, because the message can be already unloaded from the memory
-  // if (get_message_force(d, sent_message->reply_to_message_id, "on_send_message_success 2") == nullptr) {
-  //   sent_message->reply_to_message_id = MessageId();
-  // }
-
   if (merge_message_content_file_id(td_, sent_message->content.get(), new_file_id)) {
     send_update_message_content(d, sent_message.get(), false, source);
   }
@@ -31262,19 +31260,17 @@ void MessagesManager::fail_send_message(FullMessageId full_message_id, int error
     // dump_debug_message_op(d, 5);
   }
 
-  MessageId new_message_id =
-      old_message_id.get_next_message_id(MessageType::Local);  // trying to not change message place
+  MessageId new_message_id = old_message_id.get_next_message_id(MessageType::Local);  // trying to keep message position
   if (!old_message_id.is_scheduled()) {
-    if (get_message_force(d, new_message_id, "fail_send_message") != nullptr ||
-        d->deleted_message_ids.count(new_message_id) || new_message_id <= d->last_clear_history_message_id) {
+    if (get_message_force(d, new_message_id, "fail_send_message") != nullptr || is_deleted_message(d, new_message_id) ||
+        new_message_id <= d->last_clear_history_message_id) {
       new_message_id = get_next_local_message_id(d);
     } else if (new_message_id > d->last_assigned_message_id) {
       d->last_assigned_message_id = new_message_id;
     }
   } else {
-    // check deleted_message_ids, because the new_message_id is not a server scheduled
     while (get_message_force(d, new_message_id, "fail_send_message") != nullptr ||
-           d->deleted_message_ids.count(new_message_id)) {
+           is_deleted_message(d, new_message_id)) {
       new_message_id = new_message_id.get_next_message_id(MessageType::Local);
     }
   }
@@ -33717,22 +33713,12 @@ MessagesManager::Message *MessagesManager::get_message_force(Dialog *d, MessageI
     return result;
   }
 
-  if (!G()->parameters().use_message_db || message_id.is_yet_unsent()) {
+  if (!G()->parameters().use_message_db || message_id.is_yet_unsent() || is_deleted_message(d, message_id)) {
     return nullptr;
   }
 
-  if (d->deleted_message_ids.count(message_id)) {
+  if (message_id.is_scheduled() && d->has_loaded_scheduled_messages_from_database) {
     return nullptr;
-  }
-
-  if (message_id.is_scheduled()) {
-    if (d->has_loaded_scheduled_messages_from_database) {
-      return nullptr;
-    }
-    if (message_id.is_scheduled_server() &&
-        d->deleted_scheduled_server_message_ids.count(message_id.get_scheduled_server_message_id())) {
-      return nullptr;
-    }
   }
 
   LOG(INFO) << "Trying to load " << FullMessageId{d->dialog_id, message_id} << " from database from " << source;
@@ -33939,11 +33925,6 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     debug_add_message_to_dialog_fail_reason_ = "cleared full history";
     return nullptr;
   }
-  if (d->deleted_message_ids.count(message->reply_to_message_id)) {
-    // LOG(INFO) << "Remove reply to deleted " << message->reply_to_message_id << " in " << message_id << " from " << dialog_id << " from " << source;
-    // we don't want to lose information that the message was a reply
-    // message->reply_to_message_id = MessageId();
-  }
 
   LOG(INFO) << "Adding " << message_id << " of type " << message->content->get_type() << " to " << dialog_id << " from "
             << source << ". Last new is " << d->last_new_message_id << ", last is " << d->last_message_id
@@ -33964,7 +33945,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     CHECK(from_update);
   }
 
-  if (d->deleted_message_ids.count(message_id)) {
+  if (is_deleted_message(d, message_id)) {
     LOG(INFO) << "Skip adding deleted " << message_id << " to " << dialog_id << " from " << source;
     debug_add_message_to_dialog_fail_reason_ = "adding deleted message";
     return nullptr;
@@ -34719,16 +34700,9 @@ MessagesManager::Message *MessagesManager::add_scheduled_message_to_dialog(Dialo
 
   message->top_thread_message_id = MessageId();
 
-  if (d->deleted_message_ids.count(message_id)) {
+  if (is_deleted_message(d, message_id)) {
     LOG(INFO) << "Skip adding deleted " << message_id << " to " << dialog_id << " from " << source;
     debug_add_message_to_dialog_fail_reason_ = "adding deleted scheduled message";
-    return nullptr;
-  }
-
-  if (message_id.is_scheduled_server() &&
-      d->deleted_scheduled_server_message_ids.count(message_id.get_scheduled_server_message_id())) {
-    LOG(INFO) << "Skip adding deleted " << message_id << " to " << dialog_id << " from " << source;
-    debug_add_message_to_dialog_fail_reason_ = "adding deleted scheduled server message";
     return nullptr;
   }
 

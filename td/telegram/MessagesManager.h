@@ -2068,6 +2068,8 @@ class MessagesManager final : public Actor {
 
   void on_message_deleted(Dialog *d, Message *m, bool is_permanently_deleted, const char *source);
 
+  static bool is_deleted_message(const Dialog *d, MessageId message_id);
+
   int32 get_unload_dialog_delay() const;
 
   int32 get_next_unload_dialog_delay() const;
