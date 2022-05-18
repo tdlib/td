@@ -10800,7 +10800,11 @@ void MessagesManager::erase_delete_messages_log_event(uint64 log_event_id) {
   }
 }
 
-void MessagesManager::delete_sent_message_on_server(DialogId dialog_id, MessageId message_id) {
+void MessagesManager::delete_sent_message_on_server(DialogId dialog_id, MessageId message_id,
+                                                    MessageId old_message_id) {
+  // this would be a no-op, because replies have already been removed in cancel_send_message_query
+  // update_reply_to_message_id(dialog_id, old_message_id, message_id, false, "delete_sent_message_on_server");
+
   // being sent message was deleted by the user or is in an inaccessible channel
   // don't need to send an update to the user, because the message has already been deleted
   if (!have_input_peer(dialog_id, AccessRights::Read)) {
@@ -14227,10 +14231,10 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
     is_outgoing = supposed_to_be_outgoing;
 
     /*
-    // it is useless to call getChannelsDifference, because the channel pts will be increased already
+    // it is useless to call getChannelDifference, because the channel pts will be increased already
     if (dialog_type == DialogType::Channel && !running_get_difference_ && !running_get_channel_difference(dialog_id) &&
         get_channel_difference_to_log_event_id_.count(dialog_id) == 0) {
-      // it is safer to completely ignore the message and re-get it through getChannelsDifference
+      // it is safer to completely ignore the message and re-get it through getChannelDifference
       Dialog *d = get_dialog(dialog_id);
       if (d != nullptr) {
         channel_get_difference_retry_timeout_.add_timeout_in(dialog_id.get(), 0.001);
@@ -14515,13 +14519,13 @@ FullMessageId MessagesManager::on_get_message(MessageInfo &&message_info, bool f
     }
 
     // must be called before delete_message
-    update_reply_to_message_id(dialog_id, old_message_id, message_id);
+    update_reply_to_message_id(dialog_id, old_message_id, message_id, true, "on_get_message");
 
     being_readded_message_id_ = {dialog_id, old_message_id};
     unique_ptr<Message> old_message =
         delete_message(d, old_message_id, false, &need_update_dialog_pos, "add sent message");
     if (old_message == nullptr) {
-      delete_sent_message_on_server(dialog_id, message_id);
+      delete_sent_message_on_server(dialog_id, message_id, old_message_id);
       being_readded_message_id_ = FullMessageId();
       return FullMessageId();
     }
@@ -28830,7 +28834,7 @@ bool MessagesManager::on_update_message_id(int64 random_id, MessageId new_messag
   being_sent_messages_.erase(it);
 
   if (!have_message_force({dialog_id, old_message_id}, "on_update_message_id")) {
-    delete_sent_message_on_server(dialog_id, new_message_id);
+    delete_sent_message_on_server(dialog_id, new_message_id, old_message_id);
     return true;
   }
 
@@ -28860,7 +28864,8 @@ bool MessagesManager::on_update_scheduled_message_id(int64 random_id, ScheduledS
   being_sent_messages_.erase(it);
 
   if (!have_message_force({dialog_id, old_message_id}, "on_update_scheduled_message_id")) {
-    delete_sent_message_on_server(dialog_id, MessageId(new_message_id, std::numeric_limits<int32>::max()));
+    delete_sent_message_on_server(dialog_id, MessageId(new_message_id, std::numeric_limits<int32>::max()),
+                                  old_message_id);
     return true;
   }
 
@@ -30756,8 +30761,10 @@ void MessagesManager::check_send_message_result(int64 random_id, DialogId dialog
   }
 }
 
-void MessagesManager::update_reply_to_message_id(DialogId dialog_id, MessageId old_message_id,
-                                                 MessageId new_message_id) {
+void MessagesManager::update_reply_to_message_id(DialogId dialog_id, MessageId old_message_id, MessageId new_message_id,
+                                                 bool have_new_message, const char *source) {
+  LOG(INFO) << "Update replies of " << FullMessageId{dialog_id, old_message_id} << " to " << new_message_id << " from "
+            << source;
   auto it = replied_yet_unsent_messages_.find({dialog_id, old_message_id});
   if (it == replied_yet_unsent_messages_.end()) {
     return;
@@ -30777,9 +30784,11 @@ void MessagesManager::update_reply_to_message_id(DialogId dialog_id, MessageId o
     // TODO rewrite send message log event
     register_message_reply(dialog_id, replied_m);
   }
-  if (new_message_id.is_valid()) {
+  if (have_new_message) {
     CHECK(!new_message_id.is_yet_unsent());
     replied_by_yet_unsent_messages_[FullMessageId{dialog_id, new_message_id}] = static_cast<int32>(it->second.size());
+  } else {
+    replied_by_yet_unsent_messages_.erase(FullMessageId{dialog_id, new_message_id});
   }
   replied_yet_unsent_messages_.erase(it);
 }
@@ -30824,7 +30833,7 @@ FullMessageId MessagesManager::on_send_message_success(int64 random_id, MessageI
   being_sent_messages_.erase(it);
 
   // must be called before delete_message
-  update_reply_to_message_id(dialog_id, old_message_id, new_message_id);
+  update_reply_to_message_id(dialog_id, old_message_id, new_message_id, true, "on_send_message_success");
 
   Dialog *d = get_dialog(dialog_id);
   CHECK(d != nullptr);
@@ -30833,7 +30842,7 @@ FullMessageId MessagesManager::on_send_message_success(int64 random_id, MessageI
   being_readded_message_id_ = {dialog_id, old_message_id};
   unique_ptr<Message> sent_message = delete_message(d, old_message_id, false, &need_update_dialog_pos, source);
   if (sent_message == nullptr) {
-    delete_sent_message_on_server(dialog_id, new_message_id);
+    delete_sent_message_on_server(dialog_id, new_message_id, old_message_id);
     being_readded_message_id_ = FullMessageId();
     return {};
   }
@@ -31283,7 +31292,7 @@ void MessagesManager::fail_send_message(FullMessageId full_message_id, int error
   CHECK(old_message_id.is_valid() || old_message_id.is_valid_scheduled());
   CHECK(old_message_id.is_yet_unsent());
 
-  update_reply_to_message_id(dialog_id, old_message_id, MessageId());
+  update_reply_to_message_id(dialog_id, old_message_id, MessageId(), false, "fail_send_message");
 
   bool need_update_dialog_pos = false;
   being_readded_message_id_ = full_message_id;
@@ -35449,9 +35458,19 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
       update_message_max_reply_media_timestamp(d, old_message, is_message_in_dialog);
       need_send_update = true;
     } else if (is_new_available) {
-      LOG(ERROR) << message_id << " in " << dialog_id << " has changed message it is replied message from "
-                 << old_message->reply_to_message_id << " to " << new_message->reply_to_message_id
-                 << ", message content type is " << old_content_type << '/' << new_content_type;
+      if (message_id.is_yet_unsent() && old_message->reply_to_message_id == MessageId() &&
+          is_deleted_message(d, new_message->reply_to_message_id) &&
+          get_message(d, new_message->reply_to_message_id) == nullptr && !is_message_in_dialog) {
+        LOG(INFO) << "Update replied message from " << old_message->reply_to_message_id << " to deleted "
+                  << new_message->reply_to_message_id;
+        old_message->reply_to_message_id = new_message->reply_to_message_id;
+        update_message_max_reply_media_timestamp(d, old_message, is_message_in_dialog);
+        need_send_update = true;
+      } else {
+        LOG(ERROR) << message_id << " in " << dialog_id << " has changed message it is replied message from "
+                   << old_message->reply_to_message_id << " to " << new_message->reply_to_message_id
+                   << ", message content type is " << old_content_type << '/' << new_content_type;
+      }
     }
   }
   if (old_message->reply_in_dialog_id != new_message->reply_in_dialog_id) {

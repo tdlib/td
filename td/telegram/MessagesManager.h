@@ -2086,7 +2086,7 @@ class MessagesManager final : public Actor {
 
   void erase_delete_messages_log_event(uint64 log_event_id);
 
-  void delete_sent_message_on_server(DialogId dialog_id, MessageId message_id);
+  void delete_sent_message_on_server(DialogId dialog_id, MessageId message_id, MessageId old_message_id);
 
   void delete_messages_on_server(DialogId dialog_id, vector<MessageId> message_ids, bool revoke, uint64 log_event_id,
                                  Promise<Unit> &&promise);
@@ -2328,7 +2328,8 @@ class MessagesManager final : public Actor {
 
   void delete_message_from_database(Dialog *d, MessageId message_id, const Message *m, bool is_permanently_deleted);
 
-  void update_reply_to_message_id(DialogId dialog_id, MessageId old_message_id, MessageId new_message_id);
+  void update_reply_to_message_id(DialogId dialog_id, MessageId old_message_id, MessageId new_message_id,
+                                  bool have_new_message, const char *source);
 
   void delete_message_files(DialogId dialog_id, const Message *m) const;
 
