@@ -35499,6 +35499,15 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
         old_message->reply_to_message_id = new_message->reply_to_message_id;
         update_message_max_reply_media_timestamp(d, old_message, is_message_in_dialog);
         need_send_update = true;
+      } else if (old_message->reply_to_message_id.is_valid_scheduled() &&
+                 old_message->reply_to_message_id.is_scheduled_server() &&
+                 new_message->reply_to_message_id.is_valid_scheduled() &&
+                 new_message->reply_to_message_id.is_scheduled_server() &&
+                 old_message->reply_to_message_id.get_scheduled_server_message_id() ==
+                     new_message->reply_to_message_id.get_scheduled_server_message_id()) {
+        // schedule date has changed
+        old_message->reply_to_message_id = new_message->reply_to_message_id;
+        need_send_update = true;
       } else {
         LOG(ERROR) << message_id << " in " << dialog_id << " has changed message it is replied message from "
                    << old_message->reply_to_message_id << " to " << new_message->reply_to_message_id

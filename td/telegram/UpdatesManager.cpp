@@ -1236,20 +1236,35 @@ int32 UpdatesManager::get_update_edit_message_pts(const telegram_api::Updates *u
   int32 pts = 0;
   auto updates = get_updates(updates_ptr);
   if (updates != nullptr) {
-    for (auto &update : *updates) {
+    for (auto &update_ptr : *updates) {
       int32 update_pts = [&] {
-        switch (update->get_id()) {
+        switch (update_ptr->get_id()) {
           case telegram_api::updateEditMessage::ID: {
-            auto update_ptr = static_cast<const telegram_api::updateEditMessage *>(update.get());
-            if (MessagesManager::get_full_message_id(update_ptr->message_, false) == full_message_id) {
-              return update_ptr->pts_;
+            auto update = static_cast<const telegram_api::updateEditMessage *>(update_ptr.get());
+            if (MessagesManager::get_full_message_id(update->message_, false) == full_message_id) {
+              return update->pts_;
             }
             return 0;
           }
           case telegram_api::updateEditChannelMessage::ID: {
-            auto update_ptr = static_cast<const telegram_api::updateEditChannelMessage *>(update.get());
-            if (MessagesManager::get_full_message_id(update_ptr->message_, false) == full_message_id) {
-              return update_ptr->pts_;
+            auto update = static_cast<const telegram_api::updateEditChannelMessage *>(update_ptr.get());
+            if (MessagesManager::get_full_message_id(update->message_, false) == full_message_id) {
+              return update->pts_;
+            }
+            return 0;
+          }
+          case telegram_api::updateNewScheduledMessage::ID: {
+            auto update = static_cast<const telegram_api::updateNewScheduledMessage *>(update_ptr.get());
+            auto new_full_message_id = MessagesManager::get_full_message_id(update->message_, true);
+            if (new_full_message_id.get_dialog_id() == full_message_id.get_dialog_id()) {
+              auto new_message_id = new_full_message_id.get_message_id();
+              auto old_message_id = full_message_id.get_message_id();
+              if (new_message_id.is_valid_scheduled() && new_message_id.is_scheduled_server() &&
+                  old_message_id.is_valid_scheduled() && old_message_id.is_scheduled_server() &&
+                  old_message_id.get_scheduled_server_message_id() ==
+                      new_message_id.get_scheduled_server_message_id()) {
+                return -2;
+              }
             }
             return 0;
           }
