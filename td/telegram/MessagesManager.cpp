@@ -4644,7 +4644,7 @@ void MessagesManager::Message::store(StorerT &storer) const {
   bool has_edit_date = edit_date > 0;
   bool has_random_id = random_id != 0;
   bool is_forwarded = forward_info != nullptr;
-  bool is_reply = reply_to_message_id.is_valid();
+  bool is_reply = reply_to_message_id.is_valid() || reply_to_message_id.is_valid_scheduled();
   bool is_reply_to_random_id = reply_to_random_id != 0;
   bool is_via_bot = via_bot_user_id.is_valid();
   bool has_view_count = view_count > 0;
@@ -14124,7 +14124,7 @@ MessagesManager::MessageInfo MessagesManager::parse_telegram_api_message(
 
       DialogId reply_in_dialog_id;
       MessageId reply_to_message_id;
-      if (message->reply_to_ != nullptr) {
+      if (message->reply_to_ != nullptr && !message->reply_to_->reply_to_scheduled_) {
         reply_to_message_id = MessageId(ServerMessageId(message->reply_to_->reply_to_msg_id_));
         auto reply_to_peer_id = std::move(message->reply_to_->reply_to_peer_id_);
         if (reply_to_peer_id != nullptr) {
@@ -14244,29 +14244,52 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
     */
   }
 
+  int32 date = message_info.date;
+  if (date <= 0) {
+    LOG(ERROR) << "Wrong date = " << date << " received in " << message_id << " in " << dialog_id;
+    date = 1;
+  }
+
   MessageId reply_to_message_id = message_info.reply_to_message_id;  // for secret messages
   DialogId reply_in_dialog_id;
   MessageId top_thread_message_id;
-  if (message_info.reply_header != nullptr && !message_info.reply_header->reply_to_scheduled_) {
-    reply_to_message_id = MessageId(ServerMessageId(message_info.reply_header->reply_to_msg_id_));
-    auto reply_to_peer_id = std::move(message_info.reply_header->reply_to_peer_id_);
-    if (reply_to_peer_id != nullptr) {
-      reply_in_dialog_id = DialogId(reply_to_peer_id);
-      if (!reply_in_dialog_id.is_valid()) {
-        LOG(ERROR) << "Receive reply in invalid " << to_string(reply_to_peer_id);
+  if (message_info.reply_header != nullptr) {
+    if (message_info.reply_header->reply_to_scheduled_) {
+      reply_to_message_id = MessageId(ScheduledServerMessageId(message_info.reply_header->reply_to_msg_id_), date);
+      if (message_id.is_scheduled()) {
+        auto reply_to_peer_id = std::move(message_info.reply_header->reply_to_peer_id_);
+        if (reply_to_peer_id != nullptr) {
+          reply_in_dialog_id = DialogId(reply_to_peer_id);
+          LOG(ERROR) << "Receive reply to " << FullMessageId{reply_in_dialog_id, reply_to_message_id} << " in "
+                     << FullMessageId{dialog_id, message_id};
+          reply_to_message_id = MessageId();
+          reply_in_dialog_id = DialogId();
+        }
+      } else {
+        LOG(ERROR) << "Receive reply to " << reply_to_message_id << " in " << FullMessageId{dialog_id, message_id};
         reply_to_message_id = MessageId();
-        reply_in_dialog_id = DialogId();
       }
-      if (reply_in_dialog_id == dialog_id) {
-        reply_in_dialog_id = DialogId();  // just in case
+    } else {
+      reply_to_message_id = MessageId(ServerMessageId(message_info.reply_header->reply_to_msg_id_));
+      auto reply_to_peer_id = std::move(message_info.reply_header->reply_to_peer_id_);
+      if (reply_to_peer_id != nullptr) {
+        reply_in_dialog_id = DialogId(reply_to_peer_id);
+        if (!reply_in_dialog_id.is_valid()) {
+          LOG(ERROR) << "Receive reply in invalid " << to_string(reply_to_peer_id);
+          reply_to_message_id = MessageId();
+          reply_in_dialog_id = DialogId();
+        }
+        if (reply_in_dialog_id == dialog_id) {
+          reply_in_dialog_id = DialogId();  // just in case
+        }
       }
-    }
-    if (reply_to_message_id.is_valid() && !td_->auth_manager_->is_bot() && !message_id.is_scheduled() &&
-        !reply_in_dialog_id.is_valid()) {
-      if ((message_info.reply_header->flags_ & telegram_api::messageReplyHeader::REPLY_TO_TOP_ID_MASK) != 0) {
-        top_thread_message_id = MessageId(ServerMessageId(message_info.reply_header->reply_to_top_id_));
-      } else if (!is_broadcast_channel(dialog_id)) {
-        top_thread_message_id = reply_to_message_id;
+      if (reply_to_message_id.is_valid() && !td_->auth_manager_->is_bot() && !message_id.is_scheduled() &&
+          !reply_in_dialog_id.is_valid()) {
+        if ((message_info.reply_header->flags_ & telegram_api::messageReplyHeader::REPLY_TO_TOP_ID_MASK) != 0) {
+          top_thread_message_id = MessageId(ServerMessageId(message_info.reply_header->reply_to_top_id_));
+        } else if (!is_broadcast_channel(dialog_id)) {
+          top_thread_message_id = reply_to_message_id;
+        }
       }
     }
   }
@@ -14276,12 +14299,6 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
   UserId via_bot_user_id = message_info.via_bot_user_id;
   if (!via_bot_user_id.is_valid()) {
     via_bot_user_id = UserId();
-  }
-
-  int32 date = message_info.date;
-  if (date <= 0) {
-    LOG(ERROR) << "Wrong date = " << date << " received in " << message_id << " in " << dialog_id;
-    date = 1;
   }
 
   int32 edit_date = message_info.edit_date;
@@ -15731,7 +15748,7 @@ void MessagesManager::add_random_id_to_message_id_correspondence(Dialog *d, int6
   CHECK(d != nullptr);
   CHECK(d->dialog_id.get_type() == DialogType::SecretChat || message_id.is_yet_unsent());
   auto it = d->random_id_to_message_id.find(random_id);
-  if (it == d->random_id_to_message_id.end() || it->second < message_id) {
+  if (it == d->random_id_to_message_id.end() || it->second.get() < message_id.get()) {
     LOG(INFO) << "Add correspondence from random_id " << random_id << " to " << message_id << " in " << d->dialog_id;
     d->random_id_to_message_id[random_id] = message_id;
   }
@@ -16280,6 +16297,9 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_scheduled_messag
 
   unregister_message_content(td_, result->content.get(), {d->dialog_id, message_id}, "do_delete_scheduled_message");
   unregister_message_reply(d->dialog_id, m);
+  if (message_id.is_yet_unsent()) {
+    delete_random_id_to_message_id_correspondence(d, result->random_id, result->message_id);
+  }
 
   return result;
 }
@@ -17754,10 +17774,10 @@ MessagesManager::Message *MessagesManager::get_message_force(FullMessageId full_
 FullMessageId MessagesManager::get_replied_message_id(DialogId dialog_id, const Message *m) {
   auto full_message_id = get_message_content_replied_message_id(dialog_id, m->content.get());
   if (full_message_id.get_message_id().is_valid()) {
-    CHECK(!m->reply_to_message_id.is_valid());
+    CHECK(m->reply_to_message_id == MessageId());
     return full_message_id;
   }
-  if (!m->reply_to_message_id.is_valid()) {
+  if (m->reply_to_message_id == MessageId()) {
     return {};
   }
   return {m->reply_in_dialog_id.is_valid() ? m->reply_in_dialog_id : dialog_id, m->reply_to_message_id};
@@ -24659,7 +24679,7 @@ unique_ptr<MessagesManager::Message> MessagesManager::create_message_to_send(
       (dialog_type == DialogType::SecretChat || reply_to_message_id.is_yet_unsent())) {
     // the message was forcely preloaded in get_reply_to_message_id
     auto *reply_to_message = get_message(d, reply_to_message_id);
-    if (reply_to_message == nullptr || (reply_to_message->message_id.is_yet_unsent() && is_scheduled)) {
+    if (reply_to_message == nullptr) {
       m->reply_to_message_id = MessageId();
     } else {
       m->reply_to_random_id = reply_to_message->random_id;
@@ -24788,8 +24808,10 @@ MessageId MessagesManager::get_reply_to_message_id(Dialog *d, MessageId top_thre
 void MessagesManager::fix_server_reply_to_message_id(DialogId dialog_id, MessageId message_id,
                                                      DialogId reply_in_dialog_id, MessageId &reply_to_message_id) {
   if (!reply_to_message_id.is_valid()) {
-    if (reply_to_message_id.is_scheduled()) {
-      if (!message_id.is_scheduled() || message_id == reply_to_message_id) {
+    if (reply_to_message_id.is_valid_scheduled()) {
+      CHECK(message_id.is_scheduled());
+      CHECK(reply_in_dialog_id == DialogId());
+      if (message_id == reply_to_message_id) {
         LOG(ERROR) << "Receive reply to " << reply_to_message_id << " for " << message_id << " in " << dialog_id;
         reply_to_message_id = MessageId();
       }
@@ -24857,23 +24879,23 @@ void MessagesManager::cancel_send_message_query(DialogId dialog_id, Message *m) 
     m->send_message_log_event_id = 0;
   }
 
-  if (m->reply_to_message_id.is_valid()) {
-    if (!m->reply_to_message_id.is_yet_unsent()) {
-      auto it = replied_by_yet_unsent_messages_.find({dialog_id, m->reply_to_message_id});
-      CHECK(it != replied_by_yet_unsent_messages_.end());
-      it->second--;
-      CHECK(it->second >= 0);
-      if (it->second == 0) {
-        replied_by_yet_unsent_messages_.erase(it);
-      }
-    } else {
-      auto it = replied_yet_unsent_messages_.find({dialog_id, m->reply_to_message_id});
-      CHECK(it != replied_yet_unsent_messages_.end());
-      size_t erased_count = it->second.erase(m->message_id);
-      CHECK(erased_count > 0);
-      if (it->second.empty()) {
-        replied_yet_unsent_messages_.erase(it);
-      }
+  if (m->reply_to_message_id.is_valid() && !m->reply_to_message_id.is_yet_unsent()) {
+    auto it = replied_by_yet_unsent_messages_.find({dialog_id, m->reply_to_message_id});
+    CHECK(it != replied_by_yet_unsent_messages_.end());
+    it->second--;
+    CHECK(it->second >= 0);
+    if (it->second == 0) {
+      replied_by_yet_unsent_messages_.erase(it);
+    }
+  }
+  if ((m->reply_to_message_id.is_valid() || m->reply_to_message_id.is_valid_scheduled()) &&
+      m->reply_to_message_id.is_yet_unsent()) {
+    auto it = replied_yet_unsent_messages_.find({dialog_id, m->reply_to_message_id});
+    CHECK(it != replied_yet_unsent_messages_.end());
+    size_t erased_count = it->second.erase(m->message_id);
+    CHECK(erased_count > 0);
+    if (it->second.empty()) {
+      replied_yet_unsent_messages_.erase(it);
     }
   }
   {
@@ -28204,7 +28226,7 @@ Result<td_api::object_ptr<td_api::messages>> MessagesManager::forward_messages(
       }
     }
     MessageId reply_to_message_id;
-    if (forwarded_message->reply_to_message_id.is_valid() && message_send_options.schedule_date == 0) {
+    if (forwarded_message->reply_to_message_id.is_valid()) {
       auto it = forwarded_message_id_to_new_message_id.find(forwarded_message->reply_to_message_id);
       if (it != forwarded_message_id_to_new_message_id.end()) {
         reply_to_message_id = it->second;
@@ -34522,9 +34544,11 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
   }
 
   const Message *m = message.get();
-  if (m->message_id.is_yet_unsent() && m->reply_to_message_id.is_valid() && !m->reply_to_message_id.is_scheduled()) {
+  if (m->message_id.is_yet_unsent() && m->reply_to_message_id != MessageId()) {
     if (!m->reply_to_message_id.is_yet_unsent()) {
-      replied_by_yet_unsent_messages_[FullMessageId{dialog_id, m->reply_to_message_id}]++;
+      if (!m->reply_to_message_id.is_scheduled()) {
+        replied_by_yet_unsent_messages_[FullMessageId{dialog_id, m->reply_to_message_id}]++;
+      }
     } else {
       replied_yet_unsent_messages_[FullMessageId{dialog_id, m->reply_to_message_id}].insert(m->message_id);
     }
@@ -34820,9 +34844,14 @@ MessagesManager::Message *MessagesManager::add_scheduled_message_to_dialog(Dialo
   LOG(INFO) << "Adding not found " << message_id << " to " << dialog_id << " from " << source;
 
   const Message *m = message.get();
-  if (m->message_id.is_yet_unsent() && m->reply_to_message_id.is_valid() && !m->reply_to_message_id.is_yet_unsent() &&
-      !m->reply_to_message_id.is_scheduled()) {
-    replied_by_yet_unsent_messages_[FullMessageId{dialog_id, m->reply_to_message_id}]++;
+  if (m->message_id.is_yet_unsent() && m->reply_to_message_id != MessageId()) {
+    if (!m->reply_to_message_id.is_yet_unsent()) {
+      if (!m->reply_to_message_id.is_scheduled()) {
+        replied_by_yet_unsent_messages_[FullMessageId{dialog_id, m->reply_to_message_id}]++;
+      }
+    } else {
+      replied_yet_unsent_messages_[FullMessageId{dialog_id, m->reply_to_message_id}].insert(m->message_id);
+    }
   }
 
   if (!m->from_database && !m->message_id.is_yet_unsent()) {
@@ -34834,6 +34863,10 @@ MessagesManager::Message *MessagesManager::add_scheduled_message_to_dialog(Dialo
   add_message_file_sources(dialog_id, m);
 
   register_message_content(td_, m->content.get(), {dialog_id, m->message_id}, "add_scheduled_message_to_dialog");
+
+  if (m->message_id.is_yet_unsent()) {
+    add_random_id_to_message_id_correspondence(d, m->random_id, m->message_id);
+  }
 
   // must be called after register_message_content, which loads web page
   update_message_max_reply_media_timestamp(d, message.get(), false);
@@ -38614,12 +38647,12 @@ void MessagesManager::update_has_outgoing_messages(DialogId dialog_id, const Mes
 }
 
 void MessagesManager::restore_message_reply_to_message_id(Dialog *d, Message *m) {
-  if (!m->reply_to_message_id.is_valid() || !m->reply_to_message_id.is_yet_unsent()) {
+  if (m->reply_to_message_id == MessageId() || !m->reply_to_message_id.is_yet_unsent()) {
     return;
   }
 
   auto message_id = get_message_id_by_random_id(d, m->reply_to_random_id, "restore_message_reply_to_message_id");
-  if (!message_id.is_valid()) {
+  if (!message_id.is_valid() && !message_id.is_valid_scheduled()) {
     LOG(INFO) << "Failed to find replied " << m->reply_to_message_id << " with random_id = " << m->reply_to_random_id;
     m->reply_to_message_id = m->top_thread_message_id;
     m->reply_to_random_id = 0;
