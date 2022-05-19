@@ -289,6 +289,7 @@ set(TDUTILS_SOURCE
   td/utils/utf8.h
   td/utils/Variant.h
   td/utils/VectorQueue.h
+  td/utils/WaitFreeHashMap.h
 )
 
 if (TDUTILS_MIME_TYPE)
@@ -329,6 +330,7 @@ set(TDUTILS_TEST_SOURCE
   ${CMAKE_CURRENT_SOURCE_DIR}/test/SharedSlice.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/test/StealingQueue.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/test/variant.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/test/WaitFreeHashMap.cpp
   PARENT_SCOPE
 )
 
