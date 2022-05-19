@@ -5144,8 +5144,8 @@ editChatFilter chat_filter_id:int32 filter:chatFilter = ChatFilterInfo;
 //@description Deletes existing chat filter @chat_filter_id Chat filter identifier
 deleteChatFilter chat_filter_id:int32 = Ok;
 
-//@description Changes the order of chat filters @chat_filter_ids Identifiers of chat filters in the new correct order
-reorderChatFilters chat_filter_ids:vector<int32> = Ok;
+//@description Changes the order of chat filters @chat_filter_ids Identifiers of chat filters in the new correct order @main_chat_list_position Position of the main chat list among chat filters, 0-based. Can be non-zero only for premium users
+reorderChatFilters chat_filter_ids:vector<int32> main_chat_list_position:int32 = Ok;
 
 //@description Returns recommended chat filters for the current user
 getRecommendedChatFilters = RecommendedChatFilters;

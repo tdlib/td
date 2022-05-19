@@ -157,9 +157,12 @@ class UpdateDialogFiltersOrderQuery final : public Td::ResultHandler {
   explicit UpdateDialogFiltersOrderQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(const vector<DialogFilterId> &dialog_filter_ids) {
-    send_query(G()->net_query_creator().create(telegram_api::messages_updateDialogFiltersOrder(
-        transform(dialog_filter_ids, [](auto dialog_filter_id) { return dialog_filter_id.get(); }))));
+  void send(const vector<DialogFilterId> &dialog_filter_ids, int32 main_dialog_list_position) {
+    auto filter_ids = transform(dialog_filter_ids, [](auto dialog_filter_id) { return dialog_filter_id.get(); });
+    CHECK(0 <= main_dialog_list_position);
+    CHECK(main_dialog_list_position <= static_cast<int32>(filter_ids.size()));
+    filter_ids.insert(filter_ids.begin() + main_dialog_list_position, 0);
+    send_query(G()->net_query_creator().create(telegram_api::messages_updateDialogFiltersOrder(std::move(filter_ids))));
   }
 
   void on_result(BufferSlice packet) final {
@@ -13049,6 +13052,7 @@ void MessagesManager::loop() {
 
 class MessagesManager::DialogFiltersLogEvent {
  public:
+  int32 server_main_dialog_list_position = 0;
   int32 main_dialog_list_position = 0;
   int32 updated_date = 0;
   const vector<unique_ptr<DialogFilter>> *server_dialog_filters_in;
@@ -13058,13 +13062,15 @@ class MessagesManager::DialogFiltersLogEvent {
 
   template <class StorerT>
   void store(StorerT &storer) const {
-    bool has_main_dialog_list_position = main_dialog_list_position != 0;
     bool has_server_dialog_filters = !server_dialog_filters_in->empty();
     bool has_dialog_filters = !dialog_filters_in->empty();
+    bool has_server_main_dialog_list_position = server_main_dialog_list_position != 0;
+    bool has_main_dialog_list_position = main_dialog_list_position != 0;
     BEGIN_STORE_FLAGS();
-    STORE_FLAG(has_main_dialog_list_position);
     STORE_FLAG(has_server_dialog_filters);
     STORE_FLAG(has_dialog_filters);
+    STORE_FLAG(has_server_main_dialog_list_position);
+    STORE_FLAG(has_main_dialog_list_position);
     END_STORE_FLAGS();
     td::store(updated_date, storer);
     if (has_server_dialog_filters) {
@@ -13073,6 +13079,9 @@ class MessagesManager::DialogFiltersLogEvent {
     if (has_dialog_filters) {
       td::store(*dialog_filters_in, storer);
     }
+    if (has_server_main_dialog_list_position) {
+      td::store(server_main_dialog_list_position, storer);
+    }
     if (has_main_dialog_list_position) {
       td::store(main_dialog_list_position, storer);
     }
@@ -13080,14 +13089,16 @@ class MessagesManager::DialogFiltersLogEvent {
 
   template <class ParserT>
   void parse(ParserT &parser) {
-    bool has_main_dialog_list_position = false;
     bool has_server_dialog_filters = true;
     bool has_dialog_filters = true;
+    bool has_server_main_dialog_list_position = false;
+    bool has_main_dialog_list_position = false;
     if (parser.version() >= static_cast<int32>(Version::AddMainDialogListPosition)) {
       BEGIN_PARSE_FLAGS();
-      PARSE_FLAG(has_main_dialog_list_position);
       PARSE_FLAG(has_server_dialog_filters);
       PARSE_FLAG(has_dialog_filters);
+      PARSE_FLAG(has_server_main_dialog_list_position);
+      PARSE_FLAG(has_main_dialog_list_position);
       END_PARSE_FLAGS();
     }
     td::parse(updated_date, parser);
@@ -13096,6 +13107,9 @@ class MessagesManager::DialogFiltersLogEvent {
     }
     if (has_dialog_filters) {
       td::parse(dialog_filters_out, parser);
+    }
+    if (has_server_main_dialog_list_position) {
+      td::parse(server_main_dialog_list_position, parser);
     }
     if (has_main_dialog_list_position) {
       td::parse(main_dialog_list_position, parser);
@@ -13157,9 +13171,13 @@ void MessagesManager::init() {
     if (!dialog_filters.empty()) {
       DialogFiltersLogEvent log_event;
       if (log_event_parse(log_event, dialog_filters).is_ok()) {
+        server_main_dialog_list_position_ = log_event.server_main_dialog_list_position;
         main_dialog_list_position_ = log_event.main_dialog_list_position;
-        if (main_dialog_list_position_ != 0 && !G()->shared_config().get_option_boolean("is_premium")) {
-          LOG(INFO) << "Ignore main chat list position " << main_dialog_list_position_;
+        if (!G()->shared_config().get_option_boolean("is_premium") &&
+            (server_main_dialog_list_position_ != 0 || main_dialog_list_position_ != 0)) {
+          LOG(INFO) << "Ignore main chat list position " << server_main_dialog_list_position_ << '/'
+                    << main_dialog_list_position_;
+          server_main_dialog_list_position_ = 0;
           main_dialog_list_position_ = 0;
         }
 
@@ -17195,7 +17213,6 @@ void MessagesManager::on_get_dialog_filters(Result<vector<tl_object_ptr<telegram
 
   bool is_changed = false;
   dialog_filters_updated_date_ = G()->unix_time();
-  auto old_server_main_dialog_list_position = get_server_main_dialog_list_position();
   if (server_dialog_filters_ != new_server_dialog_filters) {
     LOG(INFO) << "Change server chat filters from " << get_dialog_filter_ids(server_dialog_filters_) << " to "
               << get_dialog_filter_ids(new_server_dialog_filters);
@@ -17284,7 +17301,9 @@ void MessagesManager::on_get_dialog_filters(Result<vector<tl_object_ptr<telegram
 
     server_dialog_filters_ = std::move(new_server_dialog_filters);
   }
-  if (old_server_main_dialog_list_position != server_main_dialog_list_position) {
+  if (server_main_dialog_list_position_ != server_main_dialog_list_position) {
+    server_main_dialog_list_position_ = server_main_dialog_list_position;
+
     int32 main_dialog_list_position = -1;
     if (server_main_dialog_list_position == 0) {
       main_dialog_list_position = 0;
@@ -17350,6 +17369,10 @@ bool MessagesManager::need_synchronize_dialog_filters() const {
     // need reorder dialog filters on server
     return true;
   }
+  if (get_server_main_dialog_list_position() != server_main_dialog_list_position_) {
+    // need reorder main chat list on server
+    return true;
+  }
   return false;
 }
 
@@ -17390,8 +17413,10 @@ void MessagesManager::synchronize_dialog_filters() {
     dialog_filter_ids.push_back(dialog_filter->dialog_filter_id);
   }
 
-  if (dialog_filter_ids != get_dialog_filter_ids(server_dialog_filters_)) {
-    return reorder_dialog_filters_on_server(std::move(dialog_filter_ids));
+  auto server_main_dialog_list_position = get_server_main_dialog_list_position();
+  if (dialog_filter_ids != get_dialog_filter_ids(server_dialog_filters_) ||
+      server_main_dialog_list_position != server_main_dialog_list_position_) {
+    return reorder_dialog_filters_on_server(std::move(dialog_filter_ids), server_main_dialog_list_position);
   }
 
   UNREACHABLE();
@@ -19196,7 +19221,8 @@ void MessagesManager::on_delete_dialog_filter(DialogFilterId dialog_filter_id, S
   synchronize_dialog_filters();
 }
 
-void MessagesManager::reorder_dialog_filters(vector<DialogFilterId> dialog_filter_ids, Promise<Unit> &&promise) {
+void MessagesManager::reorder_dialog_filters(vector<DialogFilterId> dialog_filter_ids, int32 main_dialog_list_position,
+                                             Promise<Unit> &&promise) {
   CHECK(!td_->auth_manager_->is_bot());
 
   for (auto dialog_filter_id : dialog_filter_ids) {
@@ -19210,8 +19236,17 @@ void MessagesManager::reorder_dialog_filters(vector<DialogFilterId> dialog_filte
   if (new_dialog_filter_ids_set.size() != dialog_filter_ids.size()) {
     return promise.set_error(Status::Error(400, "Duplicate chat filters in the new list"));
   }
+  if (main_dialog_list_position < 0 || main_dialog_list_position > static_cast<int32>(dialog_filters_.size())) {
+    return promise.set_error(Status::Error(400, "Invalid main chat list position specified"));
+  }
+  if (!G()->shared_config().get_option_boolean("is_premium")) {
+    main_dialog_list_position = 0;
+  }
 
-  if (set_dialog_filters_order(dialog_filters_, dialog_filter_ids)) {
+  if (set_dialog_filters_order(dialog_filters_, dialog_filter_ids) ||
+      main_dialog_list_position != main_dialog_list_position_) {
+    main_dialog_list_position_ = main_dialog_list_position;
+
     save_dialog_filters();
     send_update_chat_filters();
 
@@ -19220,22 +19255,28 @@ void MessagesManager::reorder_dialog_filters(vector<DialogFilterId> dialog_filte
   promise.set_value(Unit());
 }
 
-void MessagesManager::reorder_dialog_filters_on_server(vector<DialogFilterId> dialog_filter_ids) {
+void MessagesManager::reorder_dialog_filters_on_server(vector<DialogFilterId> dialog_filter_ids,
+                                                       int32 main_dialog_list_position) {
   CHECK(!td_->auth_manager_->is_bot());
   are_dialog_filters_being_synchronized_ = true;
-  auto promise = PromiseCreator::lambda([actor_id = actor_id(this), dialog_filter_ids](Result<Unit> result) mutable {
-    send_closure(actor_id, &MessagesManager::on_reorder_dialog_filters, std::move(dialog_filter_ids),
-                 result.is_error() ? result.move_as_error() : Status::OK());
-  });
-  td_->create_handler<UpdateDialogFiltersOrderQuery>(std::move(promise))->send(dialog_filter_ids);
+  auto promise = PromiseCreator::lambda(
+      [actor_id = actor_id(this), dialog_filter_ids, main_dialog_list_position](Result<Unit> result) mutable {
+        send_closure(actor_id, &MessagesManager::on_reorder_dialog_filters, std::move(dialog_filter_ids),
+                     main_dialog_list_position, result.is_error() ? result.move_as_error() : Status::OK());
+      });
+  td_->create_handler<UpdateDialogFiltersOrderQuery>(std::move(promise))
+      ->send(dialog_filter_ids, main_dialog_list_position);
 }
 
-void MessagesManager::on_reorder_dialog_filters(vector<DialogFilterId> dialog_filter_ids, Status result) {
+void MessagesManager::on_reorder_dialog_filters(vector<DialogFilterId> dialog_filter_ids,
+                                                int32 main_dialog_list_position, Status result) {
   CHECK(!td_->auth_manager_->is_bot());
   if (result.is_error()) {
     // TODO rollback dialog_filters_ changes if error isn't 429
   } else {
-    if (set_dialog_filters_order(server_dialog_filters_, std::move(dialog_filter_ids))) {
+    if (set_dialog_filters_order(server_dialog_filters_, std::move(dialog_filter_ids)) ||
+        server_main_dialog_list_position_ != main_dialog_list_position) {
+      server_main_dialog_list_position_ = main_dialog_list_position;
       save_dialog_filters();
     }
   }
@@ -30453,6 +30494,7 @@ void MessagesManager::save_dialog_filters() {
   }
 
   DialogFiltersLogEvent log_event;
+  log_event.server_main_dialog_list_position = server_main_dialog_list_position_;
   log_event.main_dialog_list_position = main_dialog_list_position_;
   log_event.updated_date = dialog_filters_updated_date_;
   log_event.server_dialog_filters_in = &server_dialog_filters_;

@@ -660,7 +660,8 @@ class MessagesManager final : public Actor {
 
   void delete_dialog_filter(DialogFilterId dialog_filter_id, Promise<Unit> &&promise);
 
-  void reorder_dialog_filters(vector<DialogFilterId> dialog_filter_ids, Promise<Unit> &&promise);
+  void reorder_dialog_filters(vector<DialogFilterId> dialog_filter_ids, int32 main_dialog_list_position,
+                              Promise<Unit> &&promise);
 
   Status delete_dialog_reply_markup(DialogId dialog_id, MessageId message_id) TD_WARN_UNUSED_RESULT;
 
@@ -2774,9 +2775,10 @@ class MessagesManager final : public Actor {
 
   void on_delete_dialog_filter(DialogFilterId dialog_filter_id, Status result);
 
-  void reorder_dialog_filters_on_server(vector<DialogFilterId> dialog_filter_ids);
+  void reorder_dialog_filters_on_server(vector<DialogFilterId> dialog_filter_ids, int32 main_dialog_list_position);
 
-  void on_reorder_dialog_filters(vector<DialogFilterId> dialog_filter_ids, Status result);
+  void on_reorder_dialog_filters(vector<DialogFilterId> dialog_filter_ids, int32 main_dialog_list_position,
+                                 Status result);
 
   void save_dialog_filters();
 
@@ -3542,7 +3544,8 @@ class MessagesManager final : public Actor {
   vector<unique_ptr<DialogFilter>> dialog_filters_;
   vector<RecommendedDialogFilter> recommended_dialog_filters_;
   vector<Promise<Unit>> dialog_filter_reload_queries_;
-  int32 main_dialog_list_position_ = 0;
+  int32 server_main_dialog_list_position_ = 0;  // position of the main dialog list stored on the server
+  int32 main_dialog_list_position_ = 0;         // local position of the main dialog list stored on the server
 
   FlatHashMap<DialogId, string, DialogIdHash> active_get_channel_differencies_;
   FlatHashMap<DialogId, uint64, DialogIdHash> get_channel_difference_to_log_event_id_;

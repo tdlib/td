@@ -4146,7 +4146,11 @@ class CliClient final : public Actor {
     } else if (op == "dcf") {
       send_request(td_api::make_object<td_api::deleteChatFilter>(as_chat_filter_id(args)));
     } else if (op == "rcf") {
-      send_request(td_api::make_object<td_api::reorderChatFilters>(as_chat_filter_ids(args)));
+      int32 main_chat_list_position;
+      string chat_filter_ids;
+      get_args(args, main_chat_list_position, chat_filter_ids);
+      send_request(td_api::make_object<td_api::reorderChatFilters>(as_chat_filter_ids(chat_filter_ids),
+                                                                   main_chat_list_position));
     } else if (op == "grcf") {
       send_request(td_api::make_object<td_api::getRecommendedChatFilters>());
     } else if (op == "gcfdin") {

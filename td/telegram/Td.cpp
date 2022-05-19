@@ -6056,7 +6056,8 @@ void Td::on_request(uint64 id, const td_api::reorderChatFilters &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
   messages_manager_->reorder_dialog_filters(
-      transform(request.chat_filter_ids_, [](int32 id) { return DialogFilterId(id); }), std::move(promise));
+      transform(request.chat_filter_ids_, [](int32 id) { return DialogFilterId(id); }),
+      request.main_chat_list_position_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::setChatTitle &request) {
