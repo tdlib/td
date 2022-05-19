@@ -11029,11 +11029,9 @@ MessagesManager::CanDeleteDialog MessagesManager::can_delete_dialog(const Dialog
       if (td_->contacts_manager_->get_secret_chat_state(d->dialog_id.get_secret_chat_id()) == SecretChatState::Closed) {
         // in a closed secret chats there is no way to delete messages for both users
         return {true, false};
-      } else {
-        // active secret chats can be deleted only for both users
-        return {false, true};
       }
-      break;
+      // active secret chats can be deleted only for both users
+      return {false, true};
     case DialogType::None:
     default:
       UNREACHABLE();
