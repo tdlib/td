@@ -10149,6 +10149,9 @@ void ContactsManager::for_each_secret_chat_with_user(UserId user_id, const std::
 
 void ContactsManager::update_user(User *u, UserId user_id, bool from_binlog, bool from_database) {
   CHECK(u != nullptr);
+  if (user_id == get_my_id()) {
+    G()->shared_config().set_option_boolean("is_premium", u->is_premium);
+  }
   if (u->is_name_changed || u->is_username_changed || u->is_is_contact_changed) {
     update_contacts_hints(u, user_id, from_database);
     u->is_username_changed = false;
