@@ -34638,7 +34638,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     case DialogType::User:
     case DialogType::Chat:
       if (m->message_id.is_server()) {
-        message_id_to_dialog_id_[m->message_id] = dialog_id;
+        message_id_to_dialog_id_.set(m->message_id, dialog_id);
       }
       break;
     case DialogType::Channel:
@@ -35760,18 +35760,18 @@ bool MessagesManager::update_message_content(DialogId dialog_id, Message *old_me
 
 MessagesManager::Dialog *MessagesManager::get_dialog_by_message_id(MessageId message_id) {
   CHECK(message_id.is_valid() && message_id.is_server());
-  auto it = message_id_to_dialog_id_.find(message_id);
-  if (it == message_id_to_dialog_id_.end()) {
+  auto dialog_id = message_id_to_dialog_id_.get(message_id);
+  if (dialog_id == DialogId()) {
     if (G()->parameters().use_message_db) {
       auto r_value =
           G()->td_db()->get_messages_db_sync()->get_message_by_unique_message_id(message_id.get_server_message_id());
       if (r_value.is_ok()) {
         Message *m = on_get_message_from_database(r_value.ok(), false, "get_dialog_by_message_id");
         if (m != nullptr) {
-          auto dialog_id = r_value.ok().dialog_id;
+          dialog_id = r_value.ok().dialog_id;
           CHECK(m->message_id == message_id);
-          LOG_CHECK(message_id_to_dialog_id_[message_id] == dialog_id)
-              << message_id << ' ' << dialog_id << ' ' << message_id_to_dialog_id_[message_id] << ' '
+          LOG_CHECK(message_id_to_dialog_id_.get(message_id) == dialog_id)
+              << message_id << ' ' << dialog_id << ' ' << message_id_to_dialog_id_.get(message_id) << ' '
               << m->debug_source;
           Dialog *d = get_dialog(dialog_id);
           CHECK(d != nullptr);
@@ -35784,7 +35784,7 @@ MessagesManager::Dialog *MessagesManager::get_dialog_by_message_id(MessageId mes
     return nullptr;
   }
 
-  return get_dialog(it->second);
+  return get_dialog(dialog_id);
 }
 
 MessageId MessagesManager::get_message_id_by_random_id(Dialog *d, int64 random_id, const char *source) {
