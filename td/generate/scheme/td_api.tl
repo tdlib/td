@@ -4073,8 +4073,8 @@ updateChatIsBlocked chat_id:int53 is_blocked:Bool = Update;
 //@description A chat was marked as unread or was read @chat_id Chat identifier @is_marked_as_unread New value of is_marked_as_unread
 updateChatIsMarkedAsUnread chat_id:int53 is_marked_as_unread:Bool = Update;
 
-//@description The list of chat filters or a chat filter has changed @chat_filters The new list of chat filters
-updateChatFilters chat_filters:vector<chatFilterInfo> = Update;
+//@description The list of chat filters or a chat filter has changed @chat_filters The new list of chat filters @main_chat_list_position Position of the main chat list among chat filters, 0-based
+updateChatFilters chat_filters:vector<chatFilterInfo> main_chat_list_position:int32 = Update;
 
 //@description The number of online group members has changed. This update with non-zero number of online group members is sent only for currently opened chats. There is no guarantee that it will be sent just after the number of online users has changed @chat_id Identifier of the chat @online_member_count New number of online members in the chat, or 0 if unknown
 updateChatOnlineMemberCount chat_id:int53 online_member_count:int32 = Update;
@@ -6213,7 +6213,7 @@ addStickerToSet user_id:int53 name:string sticker:inputSticker = StickerSet;
 setStickerSetThumbnail user_id:int53 name:string thumbnail:InputFile = StickerSet;
 
 //@description Changes the position of a sticker in the set to which it belongs; for bots only. The sticker set must have been created by the bot
-//@sticker Sticker @position New position of the sticker in the set, zero-based
+//@sticker Sticker @position New position of the sticker in the set, 0-based
 setStickerPositionInSet sticker:InputFile position:int32 = Ok;
 
 //@description Removes a sticker from the set to which it belongs; for bots only. The sticker set must have been created by the bot @sticker Sticker

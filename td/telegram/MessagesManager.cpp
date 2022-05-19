@@ -13049,6 +13049,7 @@ void MessagesManager::loop() {
 
 class MessagesManager::DialogFiltersLogEvent {
  public:
+  int32 main_dialog_list_position = 0;
   int32 updated_date = 0;
   const vector<unique_ptr<DialogFilter>> *server_dialog_filters_in;
   const vector<unique_ptr<DialogFilter>> *dialog_filters_in;
@@ -13057,16 +13058,48 @@ class MessagesManager::DialogFiltersLogEvent {
 
   template <class StorerT>
   void store(StorerT &storer) const {
+    bool has_main_dialog_list_position = main_dialog_list_position != 0;
+    bool has_server_dialog_filters = !server_dialog_filters_in->empty();
+    bool has_dialog_filters = !dialog_filters_in->empty();
+    BEGIN_STORE_FLAGS();
+    STORE_FLAG(has_main_dialog_list_position);
+    STORE_FLAG(has_server_dialog_filters);
+    STORE_FLAG(has_dialog_filters);
+    END_STORE_FLAGS();
     td::store(updated_date, storer);
-    td::store(*server_dialog_filters_in, storer);
-    td::store(*dialog_filters_in, storer);
+    if (has_server_dialog_filters) {
+      td::store(*server_dialog_filters_in, storer);
+    }
+    if (has_dialog_filters) {
+      td::store(*dialog_filters_in, storer);
+    }
+    if (has_main_dialog_list_position) {
+      td::store(main_dialog_list_position, storer);
+    }
   }
 
   template <class ParserT>
   void parse(ParserT &parser) {
+    bool has_main_dialog_list_position = false;
+    bool has_server_dialog_filters = true;
+    bool has_dialog_filters = true;
+    if (parser.version() >= static_cast<int32>(Version::AddMainDialogListPosition)) {
+      BEGIN_PARSE_FLAGS();
+      PARSE_FLAG(has_main_dialog_list_position);
+      PARSE_FLAG(has_server_dialog_filters);
+      PARSE_FLAG(has_dialog_filters);
+      END_PARSE_FLAGS();
+    }
     td::parse(updated_date, parser);
-    td::parse(server_dialog_filters_out, parser);
-    td::parse(dialog_filters_out, parser);
+    if (has_server_dialog_filters) {
+      td::parse(server_dialog_filters_out, parser);
+    }
+    if (has_dialog_filters) {
+      td::parse(dialog_filters_out, parser);
+    }
+    if (has_main_dialog_list_position) {
+      td::parse(main_dialog_list_position, parser);
+    }
   }
 };
 
@@ -13124,6 +13157,12 @@ void MessagesManager::init() {
     if (!dialog_filters.empty()) {
       DialogFiltersLogEvent log_event;
       if (log_event_parse(log_event, dialog_filters).is_ok()) {
+        main_dialog_list_position_ = log_event.main_dialog_list_position;
+        if (main_dialog_list_position_ != 0 && !G()->shared_config().get_option_boolean("is_premium")) {
+          LOG(INFO) << "Ignore main chat list position " << main_dialog_list_position_;
+          main_dialog_list_position_ = 0;
+        }
+
         dialog_filters_updated_date_ = G()->ignore_background_updates() ? 0 : log_event.updated_date;
         std::unordered_set<DialogFilterId, DialogFilterIdHash> server_dialog_filter_ids;
         for (auto &dialog_filter : log_event.server_dialog_filters_out) {
@@ -17121,7 +17160,17 @@ void MessagesManager::on_get_dialog_filters(Result<vector<tl_object_ptr<telegram
   vector<unique_ptr<DialogFilter>> new_server_dialog_filters;
   LOG(INFO) << "Receive " << filters.size() << " chat filters from server";
   std::unordered_set<DialogFilterId, DialogFilterIdHash> new_dialog_filter_ids;
+  int32 server_main_dialog_list_position = -1;
+  int32 position = 0;
   for (auto &filter : filters) {
+    if (filter->get_id() == telegram_api::dialogFilterDefault::ID) {
+      if (server_main_dialog_list_position == -1) {
+        server_main_dialog_list_position = position;
+      } else {
+        LOG(ERROR) << "Receive duplicate dialogFilterDefault";
+      }
+      continue;
+    }
     auto dialog_filter = DialogFilter::get_dialog_filter(std::move(filter), true);
     if (dialog_filter == nullptr) {
       continue;
@@ -17133,10 +17182,20 @@ void MessagesManager::on_get_dialog_filters(Result<vector<tl_object_ptr<telegram
 
     sort_dialog_filter_input_dialog_ids(dialog_filter.get(), "on_get_dialog_filters 1");
     new_server_dialog_filters.push_back(std::move(dialog_filter));
+    position++;
+  }
+  if (server_main_dialog_list_position == -1) {
+    LOG(ERROR) << "Receive no dialogFilterDefault";
+    server_main_dialog_list_position = 0;
+  }
+  if (server_main_dialog_list_position != 0 && !G()->shared_config().get_option_boolean("is_premium")) {
+    LOG(INFO) << "Ignore server main chat list position " << server_main_dialog_list_position;
+    server_main_dialog_list_position = 0;
   }
 
   bool is_changed = false;
   dialog_filters_updated_date_ = G()->unix_time();
+  auto old_server_main_dialog_list_position = get_server_main_dialog_list_position();
   if (server_dialog_filters_ != new_server_dialog_filters) {
     LOG(INFO) << "Change server chat filters from " << get_dialog_filter_ids(server_dialog_filters_) << " to "
               << get_dialog_filter_ids(new_server_dialog_filters);
@@ -17224,6 +17283,35 @@ void MessagesManager::on_get_dialog_filters(Result<vector<tl_object_ptr<telegram
     }
 
     server_dialog_filters_ = std::move(new_server_dialog_filters);
+  }
+  if (old_server_main_dialog_list_position != server_main_dialog_list_position) {
+    int32 main_dialog_list_position = -1;
+    if (server_main_dialog_list_position == 0) {
+      main_dialog_list_position = 0;
+    } else {
+      int32 current_position = 0;
+      int32 current_server_position = 0;
+      for (const auto &dialog_filter : dialog_filters_) {
+        current_position++;
+        if (!dialog_filter->is_empty(true)) {
+          current_server_position++;
+        }
+        if (current_server_position == server_main_dialog_list_position) {
+          main_dialog_list_position = current_position;
+        }
+      }
+      if (main_dialog_list_position == -1) {
+        LOG(INFO) << "Failed to find server position " << server_main_dialog_list_position << " in chat filters";
+        main_dialog_list_position = static_cast<int32>(dialog_filters_.size());
+      }
+    }
+
+    if (main_dialog_list_position != main_dialog_list_position_) {
+      LOG(INFO) << "Change main chat list position from " << main_dialog_list_position_ << " to "
+                << main_dialog_list_position;
+      main_dialog_list_position_ = main_dialog_list_position;
+      is_changed = true;
+    }
   }
   if (is_changed || !is_update_chat_filters_sent_) {
     send_update_chat_filters();
@@ -30365,6 +30453,7 @@ void MessagesManager::save_dialog_filters() {
   }
 
   DialogFiltersLogEvent log_event;
+  log_event.main_dialog_list_position = main_dialog_list_position_;
   log_event.updated_date = dialog_filters_updated_date_;
   log_event.server_dialog_filters_in = &server_dialog_filters_;
   log_event.dialog_filters_in = &dialog_filters_;
@@ -37351,6 +37440,25 @@ const DialogFilter *MessagesManager::get_dialog_filter(DialogFilterId dialog_fil
   return nullptr;
 }
 
+int32 MessagesManager::get_server_main_dialog_list_position() const {
+  int32 current_position = 0;
+  int32 current_server_position = 0;
+  if (current_position == main_dialog_list_position_) {
+    return current_server_position;
+  }
+  for (const auto &dialog_filter : dialog_filters_) {
+    current_position++;
+    if (!dialog_filter->is_empty(true)) {
+      current_server_position++;
+    }
+    if (current_position == main_dialog_list_position_) {
+      return current_server_position;
+    }
+  }
+  LOG(WARNING) << "Failed to find server position for " << main_dialog_list_position_ << " in chat filters";
+  return current_server_position;
+}
+
 vector<DialogFilterId> MessagesManager::get_dialog_filter_ids(const vector<unique_ptr<DialogFilter>> &dialog_filters) {
   return transform(dialog_filters, [](const auto &dialog_filter) { return dialog_filter->dialog_filter_id; });
 }
@@ -39823,6 +39931,7 @@ td_api::object_ptr<td_api::updateChatFilters> MessagesManager::get_update_chat_f
   for (const auto &filter : dialog_filters_) {
     update->chat_filters_.push_back(filter->get_chat_filter_info_object());
   }
+  update->main_chat_list_position_ = main_dialog_list_position_;
   return update;
 }
 

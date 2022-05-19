@@ -2794,6 +2794,8 @@ class MessagesManager final : public Actor {
   DialogFilter *get_dialog_filter(DialogFilterId dialog_filter_id);
   const DialogFilter *get_dialog_filter(DialogFilterId dialog_filter_id) const;
 
+  int32 get_server_main_dialog_list_position() const;
+
   static vector<DialogFilterId> get_dialog_filter_ids(const vector<unique_ptr<DialogFilter>> &dialog_filters);
 
   static vector<FolderId> get_dialog_filter_folder_ids(const DialogFilter *filter);
@@ -3540,6 +3542,7 @@ class MessagesManager final : public Actor {
   vector<unique_ptr<DialogFilter>> dialog_filters_;
   vector<RecommendedDialogFilter> recommended_dialog_filters_;
   vector<Promise<Unit>> dialog_filter_reload_queries_;
+  int32 main_dialog_list_position_ = 0;
 
   FlatHashMap<DialogId, string, DialogIdHash> active_get_channel_differencies_;
   FlatHashMap<DialogId, uint64, DialogIdHash> get_channel_difference_to_log_event_id_;

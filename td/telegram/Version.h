@@ -51,6 +51,7 @@ enum class Version : int32 {
   AddKeyboardButtonFlags,  // 35
   AddAudioFlags,
   UseServerForwardAsCopy,
+  AddMainDialogListPosition,
   Next
 };
 
