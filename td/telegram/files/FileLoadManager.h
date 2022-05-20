@@ -75,6 +75,7 @@ class FileLoadManager final : public Actor {
   ActorShared<Callback> callback_;
   ActorShared<> parent_;
   std::map<QueryId, NodeId> query_id_to_node_id_;
+  int64 max_resource_limit_ = 1 << 21;
   bool stop_flag_ = false;
 
   void start_up() final;

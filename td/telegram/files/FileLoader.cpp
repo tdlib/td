@@ -72,12 +72,12 @@ void FileLoader::update_local_file_location(const LocalFileLocation &local) {
   loop();
 }
 
-void FileLoader::update_downloaded_part(int64 offset, int64 limit) {
+void FileLoader::update_downloaded_part(int64 offset, int64 limit, int64 max_resource_limit) {
   if (parts_manager_.get_streaming_offset() != offset) {
     auto begin_part_id = parts_manager_.set_streaming_offset(offset, limit);
     auto new_end_part_id = limit <= 0 ? parts_manager_.get_part_count()
                                       : narrow_cast<int32>((offset + limit - 1) / parts_manager_.get_part_size()) + 1;
-    auto max_parts = narrow_cast<int32>(ResourceManager::MAX_RESOURCE_LIMIT / parts_manager_.get_part_size());
+    auto max_parts = narrow_cast<int32>(max_resource_limit / parts_manager_.get_part_size());
     auto end_part_id = begin_part_id + td::min(max_parts, new_end_part_id - begin_part_id);
     VLOG(file_loader) << "Protect parts " << begin_part_id << " ... " << end_part_id - 1;
     for (auto &it : part_map_) {
