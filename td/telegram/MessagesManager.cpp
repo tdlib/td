@@ -25793,10 +25793,17 @@ void MessagesManager::on_secret_message_media_uploaded(DialogId dialog_id, const
                                                        FileId thumbnail_file_id) {
   CHECK(m != nullptr);
   CHECK(m->message_id.is_valid());
-  CHECK(!secret_input_media.empty());
   if (G()->close_flag()) {
     return;
   }
+  if (secret_input_media.empty()) {
+    // the media can't be sent to the chat
+    LOG(INFO) << "Can't send a media message to " << dialog_id;
+
+    fail_send_message({dialog_id, m->message_id}, Status::Error(400, "The file can't be sent to the secret chat"));
+    return;
+  }
+
   /*
   if (m->media_album_id != 0) {
     switch (secret_input_media->input_file_->get_id()) {
