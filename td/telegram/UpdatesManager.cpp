@@ -1611,7 +1611,8 @@ void UpdatesManager::try_reload_data_static(void *td) {
 }
 
 void UpdatesManager::try_reload_data() {
-  if (td_->auth_manager_->is_bot() || running_get_difference_ || !td_->is_online()) {
+  if (!td_->auth_manager_->is_authorized() || td_->auth_manager_->is_bot() || running_get_difference_ ||
+      !td_->is_online()) {
     return;
   }
 
