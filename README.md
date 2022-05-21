@@ -108,6 +108,20 @@ target_link_libraries(YourTarget PRIVATE Td::TdStatic)
 ```
 See [example/cpp/CMakeLists.txt](https://github.com/tdlib/td/tree/master/example/cpp/CMakeLists.txt).
 
+The other choice is using `FetchContent` like this:
+```
+include(FetchContent)
+...
+FetchContent_Declare(
+  tdlib_td
+  GIT_REPOSITORY https://github.com/tdlib/td.git 
+  GIT_TAG TargetVersion 
+  GIT_PROGRESS TRUE
+)
+FetchContent_MakeAvailable(tdlib_td)
+...
+target_link_libraries(YourTarget PRIVATE Td::TdStatic)
+```
 <a name="using-java"></a>
 ## Using in Java projects
 `TDLib` provides native Java interface through JNI. To enable it, specify option `-DTD_ENABLE_JNI=ON` to CMake.
