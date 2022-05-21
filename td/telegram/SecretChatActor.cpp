@@ -1773,7 +1773,7 @@ Status SecretChatActor::save_common_info(T &update) {
 
 Status SecretChatActor::on_update_chat(telegram_api::encryptedChatRequested &update) {
   if (auth_state_.state != State::Empty) {
-    LOG(WARNING) << "Unexpected ChatRequested ignored: " << to_string(update);
+    LOG(INFO) << "Unexpected encryptedChatRequested ignored: " << to_string(update);
     return Status::OK();
   }
   auth_state_.state = State::SendAccept;
@@ -1794,7 +1794,7 @@ Status SecretChatActor::on_update_chat(telegram_api::encryptedChatEmpty &update)
 }
 Status SecretChatActor::on_update_chat(telegram_api::encryptedChatWaiting &update) {
   if (auth_state_.state != State::WaitRequestResponse && auth_state_.state != State::WaitAcceptResponse) {
-    LOG(WARNING) << "Unexpected ChatWaiting ignored";
+    LOG(INFO) << "Unexpected encryptedChatWaiting ignored";
     return Status::OK();
   }
   TRY_STATUS(save_common_info(update));
@@ -1803,7 +1803,7 @@ Status SecretChatActor::on_update_chat(telegram_api::encryptedChatWaiting &updat
 }
 Status SecretChatActor::on_update_chat(telegram_api::encryptedChat &update) {
   if (auth_state_.state != State::WaitRequestResponse && auth_state_.state != State::WaitAcceptResponse) {
-    LOG(WARNING) << "Unexpected Chat ignored";
+    LOG(INFO) << "Unexpected encryptedChat ignored";
     return Status::OK();
   }
   TRY_STATUS(save_common_info(update));
