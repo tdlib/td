@@ -657,7 +657,7 @@ void Binlog::do_reindex() {
     event.realloc();
     do_event(std::move(event));  // NB: no move is actually happens
   });
-  need_sync_ = true;  // must sync creation of the file
+  need_sync_ = start_size != 0;  // must sync creation of the file if it is non-empty
   sync();
 
   // finish_reindex
