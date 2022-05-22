@@ -361,6 +361,10 @@ void UpdatesManager::before_get_difference(bool is_initial) {
   drop_all_pending_pts_updates();
 
   send_closure_later(td_->notification_manager_actor_, &NotificationManager::before_get_difference);
+
+  if (get_difference_start_time_ <= 0) {
+    get_difference_start_time_ = Time::now();
+  }
 }
 
 Promise<> UpdatesManager::add_pts(int32 pts) {
@@ -1537,7 +1541,9 @@ void UpdatesManager::after_get_difference() {
   }
 
   if (!postponed_updates_.empty()) {
-    VLOG(get_difference) << "Begin to apply " << postponed_updates_.size() << " postponed update chunks";
+    auto begin_time = Time::now();
+    auto chunk_count = postponed_updates_.size();
+    VLOG(get_difference) << "Begin to apply " << chunk_count << " postponed update chunks";
     size_t total_update_count = 0;
     while (!postponed_updates_.empty()) {
       auto it = postponed_updates_.begin();
@@ -1559,13 +1565,21 @@ void UpdatesManager::after_get_difference() {
       }
       total_update_count += update_count;
     }
-    VLOG(get_difference) << "Finish to apply " << total_update_count << " postponed updates";
+    VLOG(get_difference) << "Finished to apply " << total_update_count << " postponed updates";
+    auto passed_time = Time::now() - begin_time;
+    if (passed_time >= 1.0) {
+      LOG(WARNING) << "Applied " << total_update_count << " postponed for "
+                   << (Time::now() - get_difference_start_time_) << " updates in " << chunk_count << " chunks in "
+                   << passed_time;
+    }
   }
 
   if (!postponed_pts_updates_.empty()) {  // must be before td_->messages_manager_->after_get_difference()
     auto postponed_updates = std::move(postponed_pts_updates_);
     postponed_pts_updates_.clear();
 
+    auto begin_time = Time::now();
+    auto update_count = postponed_updates.size();
     VLOG(get_difference) << "Begin to apply " << postponed_updates.size()
                          << " postponed pts updates with pts = " << get_pts();
     for (auto &postponed_update : postponed_updates) {
@@ -1577,6 +1591,11 @@ void UpdatesManager::after_get_difference() {
     VLOG(get_difference) << "After applying postponed pts updates have pts = " << get_pts()
                          << ", max_pts = " << accumulated_pts_ << " and " << pending_pts_updates_.size() << " + "
                          << postponed_pts_updates_.size() << " pending pts updates";
+    auto passed_time = Time::now() - begin_time;
+    if (passed_time >= 1.0) {
+      LOG(WARNING) << "Applied " << update_count << " postponed for " << (Time::now() - get_difference_start_time_)
+                   << " pts updates in " << passed_time;
+    }
   }
 
   td_->download_manager_->after_get_difference();
@@ -1585,6 +1604,7 @@ void UpdatesManager::after_get_difference() {
   td_->notification_settings_manager_->after_get_difference();
   send_closure_later(td_->notification_manager_actor_, &NotificationManager::after_get_difference);
   send_closure(G()->state_manager(), &StateManager::on_synchronized, true);
+  get_difference_start_time_ = 0.0;
 
   try_reload_data();
 }

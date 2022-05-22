@@ -229,6 +229,7 @@ class UpdatesManager final : public Actor {
   int32 last_get_difference_qts_ = 0;
   int32 min_postponed_update_pts_ = 0;
   int32 min_postponed_update_qts_ = 0;
+  double get_difference_start_time_ = 0;  // time from which we started to get difference without success
 
   void start_up() final;
 
