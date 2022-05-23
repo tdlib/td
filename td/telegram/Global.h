@@ -8,6 +8,7 @@
 
 #include "td/telegram/DhConfig.h"
 #include "td/telegram/net/DcId.h"
+#include "td/telegram/net/MtprotoHeader.h"
 #include "td/telegram/net/NetQueryCreator.h"
 #include "td/telegram/TdParameters.h"
 
@@ -45,7 +46,6 @@ class GroupCallManager;
 class LanguagePackManager;
 class LinkManager;
 class MessagesManager;
-class MtprotoHeader;
 class NetQueryDispatcher;
 class NotificationManager;
 class NotificationSettingsManager;

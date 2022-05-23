@@ -1209,7 +1209,7 @@ void ConfigManager::get_premium_features(Promise<td_api::object_ptr<td_api::prem
           return td_api::make_object<td_api::premiumLimitTypeChatFilterCount>();
         }
         if (key == "dialog_filters_chats_limit") {
-          return td_api::make_object<td_api::premiumLimitTypeChatFilterSpecificChatCount>();
+          return td_api::make_object<td_api::premiumLimitTypeChatFilterChosenChatCount>();
         }
         if (key == "dialogs_pinned_limit") {
           return td_api::make_object<td_api::premiumLimitTypePinnedChatCount>();
@@ -1969,6 +1969,12 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
   auto chat_filter_count_max = shared_config.get_option_integer(
       is_premium ? Slice("dialog_filters_limit_premium") : Slice("dialog_filters_limit_default"), is_premium ? 20 : 10);
   shared_config.set_option_integer("chat_filter_count_max", static_cast<int32>(chat_filter_count_max));
+
+  auto chat_filter_chosen_chat_count_max = shared_config.get_option_integer(
+      is_premium ? Slice("dialog_filters_chats_limit_premium") : Slice("dialog_filters_chats_limit_default"),
+      is_premium ? 200 : 100);
+  shared_config.set_option_integer("chat_filter_chosen_chat_count_max",
+                                   static_cast<int32>(chat_filter_chosen_chat_count_max));
 
   shared_config.set_option_string("premium_features", implode(premium_features, ','));
 

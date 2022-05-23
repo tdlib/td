@@ -8,7 +8,6 @@
 
 #include "td/telegram/ConfigShared.h"
 #include "td/telegram/net/ConnectionCreator.h"
-#include "td/telegram/net/MtprotoHeader.h"
 #include "td/telegram/net/NetQueryDispatcher.h"
 #include "td/telegram/net/TempAuthKeyWatchdog.h"
 #include "td/telegram/OptionManager.h"

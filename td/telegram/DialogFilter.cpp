@@ -6,18 +6,21 @@
 //
 #include "td/telegram/DialogFilter.h"
 
+#include "td/telegram/ConfigShared.h"
 #include "td/telegram/DialogId.h"
+#include "td/telegram/Global.h"
 
 #include "td/utils/algorithm.h"
 #include "td/utils/emoji.h"
 #include "td/utils/FlatHashSet.h"
 #include "td/utils/format.h"
 #include "td/utils/logging.h"
+#include "td/utils/misc.h"
 
 namespace td {
 
 int32 DialogFilter::get_max_filter_dialogs() {
-  return 100;  // server side limit
+  return narrow_cast<int32>(G()->shared_config().get_option_integer("chat_filter_chosen_chat_count_max", 100));
 }
 
 unique_ptr<DialogFilter> DialogFilter::get_dialog_filter(
