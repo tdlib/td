@@ -2543,7 +2543,10 @@ class CliClient final : public Actor {
       execute(td_api::make_object<td_api::getPhoneNumberInfoSync>(rand_bool() ? "en" : "", args));
     } else if (op == "gadl") {
       send_request(td_api::make_object<td_api::getApplicationDownloadLink>());
-    } else if (op == "gpfs") {
+    } else if (op == "gprl") {
+      auto limit_type = td_api::make_object<td_api::premiumLimitTypeChatFilterCount>();
+      send_request(td_api::make_object<td_api::getPremiumLimit>(std::move(limit_type)));
+    } else if (op == "gprf") {
       auto source = td_api::make_object<td_api::premiumSourceLink>("ref");
       send_request(td_api::make_object<td_api::getPremiumFeatures>(std::move(source)));
     } else if (op == "atos") {

@@ -1288,6 +1288,8 @@ class Td final : public Actor {
 
   void on_request(uint64 id, td_api::removeRecentHashtag &request);
 
+  void on_request(uint64 id, const td_api::getPremiumLimit &request);
+
   void on_request(uint64 id, const td_api::getPremiumFeatures &request);
 
   void on_request(uint64 id, td_api::acceptTermsOfService &request);

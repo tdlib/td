@@ -9,6 +9,7 @@
 #include "td/telegram/ConfigShared.h"
 #include "td/telegram/Global.h"
 
+#include "td/utils/algorithm.h"
 #include "td/utils/SliceBuilder.h"
 
 namespace td {
@@ -26,37 +27,39 @@ const vector<Slice> &get_premium_limit_keys() {
   return limit_keys;
 }
 
+static Slice get_limit_type_key(const td_api::PremiumLimitType *limit_type) {
+  CHECK(limit_type != nullptr);
+  switch (limit_type->get_id()) {
+    case td_api::premiumLimitTypeSupergroupCount::ID:
+      return Slice("channels");
+    case td_api::premiumLimitTypeSavedAnimationCount::ID:
+      return Slice("saved_gifs");
+    case td_api::premiumLimitTypeFavoriteStickerCount::ID:
+      return Slice("stickers_faved");
+    case td_api::premiumLimitTypeChatFilterCount::ID:
+      return Slice("dialog_filters");
+    case td_api::premiumLimitTypeChatFilterChosenChatCount::ID:
+      return Slice("dialog_filters_chats");
+    case td_api::premiumLimitTypePinnedChatCount::ID:
+      return Slice("dialogs_pinned");
+    case td_api::premiumLimitTypePinnedArchivedChatCount::ID:
+      return Slice("dialogs_folder_pinned");
+    case td_api::premiumLimitTypeCreatedPublicChatCount::ID:
+      return Slice("channels_public");
+    case td_api::premiumLimitTypeCaptionLength::ID:
+      return Slice("caption_length");
+    default:
+      UNREACHABLE();
+      return Slice();
+  }
+}
+
 static string get_premium_source(const td_api::PremiumLimitType *limit_type) {
   if (limit_type == nullptr) {
     return string();
   }
 
-  auto key = [&]() {
-    switch (limit_type->get_id()) {
-      case td_api::premiumLimitTypeSupergroupCount::ID:
-        return "channels";
-      case td_api::premiumLimitTypeSavedAnimationCount::ID:
-        return "saved_gifs";
-      case td_api::premiumLimitTypeFavoriteStickerCount::ID:
-        return "stickers_faved";
-      case td_api::premiumLimitTypeChatFilterCount::ID:
-        return "dialog_filters";
-      case td_api::premiumLimitTypeChatFilterChosenChatCount::ID:
-        return "dialog_filters_chats";
-      case td_api::premiumLimitTypePinnedChatCount::ID:
-        return "dialogs_pinned";
-      case td_api::premiumLimitTypePinnedArchivedChatCount::ID:
-        return "dialogs_folder_pinned";
-      case td_api::premiumLimitTypeCreatedPublicChatCount::ID:
-        return "channels_public";
-      case td_api::premiumLimitTypeCaptionLength::ID:
-        return "caption_length";
-      default:
-        UNREACHABLE();
-        return "";
-    }
-  }();
-  return PSTRING() << "double_limits__" << key;
+  return PSTRING() << "double_limits__" << get_limit_type_key(limit_type);
 }
 
 static string get_premium_source(const td_api::PremiumFeature *feature) {
@@ -119,6 +122,55 @@ static string get_premium_source(const td_api::object_ptr<td_api::PremiumSource>
   }
 }
 
+static td_api::object_ptr<td_api::premiumLimit> get_premium_limit_object(Slice key) {
+  int32 default_limit = static_cast<int32>(G()->shared_config().get_option_integer(PSLICE() << key << "_default"));
+  int32 premium_limit = static_cast<int32>(G()->shared_config().get_option_integer(PSLICE() << key << "_premium"));
+  if (default_limit <= 0 || premium_limit <= default_limit) {
+    return nullptr;
+  }
+  auto type = [&]() -> td_api::object_ptr<td_api::PremiumLimitType> {
+    if (key == "channels_limit") {
+      return td_api::make_object<td_api::premiumLimitTypeSupergroupCount>();
+    }
+    if (key == "saved_gifs_limit") {
+      return td_api::make_object<td_api::premiumLimitTypeSavedAnimationCount>();
+    }
+    if (key == "stickers_faved_limit") {
+      return td_api::make_object<td_api::premiumLimitTypeFavoriteStickerCount>();
+    }
+    if (key == "dialog_filters_limit") {
+      return td_api::make_object<td_api::premiumLimitTypeChatFilterCount>();
+    }
+    if (key == "dialog_filters_chats_limit") {
+      return td_api::make_object<td_api::premiumLimitTypeChatFilterChosenChatCount>();
+    }
+    if (key == "dialogs_pinned_limit") {
+      return td_api::make_object<td_api::premiumLimitTypePinnedChatCount>();
+    }
+    if (key == "dialogs_folder_pinned_limit") {
+      return td_api::make_object<td_api::premiumLimitTypePinnedArchivedChatCount>();
+    }
+    if (key == "channels_public_limit") {
+      return td_api::make_object<td_api::premiumLimitTypeCreatedPublicChatCount>();
+    }
+    if (key == "caption_length_limit") {
+      return td_api::make_object<td_api::premiumLimitTypeCaptionLength>();
+    }
+    UNREACHABLE();
+    return nullptr;
+  }();
+  return td_api::make_object<td_api::premiumLimit>(std::move(type), default_limit, premium_limit);
+}
+
+void get_premium_limit(const td_api::object_ptr<td_api::PremiumLimitType> &limit_type,
+                       Promise<td_api::object_ptr<td_api::premiumLimit>> &&promise) {
+  if (limit_type == nullptr) {
+    return promise.set_error(Status::Error(400, "Limit type must be non-empty"));
+  }
+
+  promise.set_value(get_premium_limit_object(PSLICE() << get_limit_type_key(limit_type.get()) << "_limit"));
+}
+
 void get_premium_features(const td_api::object_ptr<td_api::PremiumSource> &source,
                           Promise<td_api::object_ptr<td_api::premiumFeatures>> &&promise) {
   auto premium_features =
@@ -167,46 +219,8 @@ void get_premium_features(const td_api::object_ptr<td_api::PremiumSource> &sourc
     }
   }
 
-  auto &limit_keys = get_premium_limit_keys();
-  vector<td_api::object_ptr<td_api::premiumLimit>> limits;
-  for (auto key : limit_keys) {
-    int32 default_limit = static_cast<int32>(G()->shared_config().get_option_integer(PSLICE() << key << "_default"));
-    int32 premium_limit = static_cast<int32>(G()->shared_config().get_option_integer(PSLICE() << key << "_premium"));
-    if (default_limit > 0 && premium_limit > 0) {
-      auto type = [&]() -> td_api::object_ptr<td_api::PremiumLimitType> {
-        if (key == "channels_limit") {
-          return td_api::make_object<td_api::premiumLimitTypeSupergroupCount>();
-        }
-        if (key == "saved_gifs_limit") {
-          return td_api::make_object<td_api::premiumLimitTypeSavedAnimationCount>();
-        }
-        if (key == "stickers_faved_limit") {
-          return td_api::make_object<td_api::premiumLimitTypeFavoriteStickerCount>();
-        }
-        if (key == "dialog_filters_limit") {
-          return td_api::make_object<td_api::premiumLimitTypeChatFilterCount>();
-        }
-        if (key == "dialog_filters_chats_limit") {
-          return td_api::make_object<td_api::premiumLimitTypeChatFilterChosenChatCount>();
-        }
-        if (key == "dialogs_pinned_limit") {
-          return td_api::make_object<td_api::premiumLimitTypePinnedChatCount>();
-        }
-        if (key == "dialogs_folder_pinned_limit") {
-          return td_api::make_object<td_api::premiumLimitTypePinnedArchivedChatCount>();
-        }
-        if (key == "channels_public_limit") {
-          return td_api::make_object<td_api::premiumLimitTypeCreatedPublicChatCount>();
-        }
-        if (key == "caption_length_limit") {
-          return td_api::make_object<td_api::premiumLimitTypeCaptionLength>();
-        }
-        UNREACHABLE();
-        return nullptr;
-      }();
-      limits.push_back(td_api::make_object<td_api::premiumLimit>(std::move(type), default_limit, premium_limit));
-    }
-  }
+  auto limits = transform(get_premium_limit_keys(), get_premium_limit_object);
+  td::remove_if(limits, [](auto &limit) { return limit == nullptr; });
 
   auto source_str = get_premium_source(source);
   // TODO use source_str

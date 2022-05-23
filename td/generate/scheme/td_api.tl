@@ -6315,6 +6315,9 @@ removeStickerFromSet sticker:InputFile = Ok;
 getMapThumbnailFile location:location zoom:int32 width:int32 height:int32 scale:int32 chat_id:int53 = File;
 
 
+//@description Returns information about a limit, increased for Premium users. Returns a 404 error if the limit is unknown @limit_type Type of the limit
+getPremiumLimit limit_type:PremiumLimitType = PremiumLimit;
+
 //@description Returns information about features, available to Premium users @source Source of the request; pass null if the method is called from some non-standard source
 getPremiumFeatures source:PremiumSource = PremiumFeatures;
 

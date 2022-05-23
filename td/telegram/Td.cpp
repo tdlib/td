@@ -7826,6 +7826,12 @@ void Td::on_request(uint64 id, td_api::removeRecentHashtag &request) {
   send_closure(hashtag_hints_, &HashtagHints::remove_hashtag, std::move(request.hashtag_), std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::getPremiumLimit &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  get_premium_limit(request.limit_type_, std::move(promise));
+}
+
 void Td::on_request(uint64 id, const td_api::getPremiumFeatures &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
