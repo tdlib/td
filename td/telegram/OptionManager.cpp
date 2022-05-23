@@ -156,11 +156,18 @@ bool OptionManager::is_internal_option(Slice name) {
       return name == "base_language_pack_version";
     case 'c':
       return name == "call_receive_timeout_ms" || name == "call_ring_timeout_ms" ||
+             name == "caption_length_limit_default" || name == "caption_length_limit_premium" ||
+             name == "channels_limit_default" || name == "channels_limit_premium" ||
+             name == "channels_public_limit_default" || name == "channels_public_limit_premium" ||
              name == "channels_read_media_period" || name == "chat_read_mark_expire_period" ||
              name == "chat_read_mark_size_threshold";
     case 'd':
-      return name == "dc_txt_domain_name" || name == "default_reaction_needs_sync" || name == "dice_emojis" ||
-             name == "dice_success_values";
+      return name == "dc_txt_domain_name" || name == "default_reaction_needs_sync" ||
+             name == "dialog_filters_chats_limit_default" || name == "dialog_filters_chats_limit_premium" ||
+             name == "dialog_filters_limit_default" || name == "dialog_filters_limit_premium" ||
+             name == "dialogs_folder_pinned_limit_default" || name == "dialogs_folder_pinned_limit_premium" ||
+             name == "dialogs_pinned_limit_default" || name == "dialogs_pinned_limit_premium" ||
+             name == "dice_emojis" || name == "dice_success_values";
     case 'e':
       return name == "edit_time_limit" || name == "emoji_sounds";
     case 'i':
@@ -179,7 +186,9 @@ bool OptionManager::is_internal_option(Slice name) {
       return name == "rating_e_decay" || name == "reactions_uniq_max" || name == "recent_stickers_limit" ||
              name == "revoke_pm_inbox" || name == "revoke_time_limit" || name == "revoke_pm_time_limit";
     case 's':
-      return name == "saved_animations_limit" || name == "session_count";
+      return name == "saved_animations_limit" || name == "saved_gifs_limit_default" ||
+             name == "saved_gifs_limit_premium" || name == "session_count" || name == "stickers_faved_limit_default" ||
+             name == "stickers_faved_limit_premium";
     case 'v':
       return name == "video_note_size_max";
     case 'w':

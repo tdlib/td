@@ -1180,7 +1180,56 @@ void ConfigManager::get_premium_features(Promise<td_api::object_ptr<td_api::prem
       features.push_back(std::move(feature));
     }
   }
-  promise.set_value(td_api::make_object<td_api::premiumFeatures>(std::move(features)));
+
+  const vector<Slice> limit_keys{"channels_limit",
+                                 "saved_gifs_limit",
+                                 "stickers_faved_limit",
+                                 "dialog_filters_limit",
+                                 "dialog_filters_chats_limit",
+                                 "dialogs_pinned_limit",
+                                 "dialogs_folder_pinned_limit",
+                                 "channels_public_limit",
+                                 "caption_length_limit"};
+  vector<td_api::object_ptr<td_api::premiumLimit>> limits;
+  for (auto key : limit_keys) {
+    int32 default_limit = static_cast<int32>(G()->shared_config().get_option_integer(PSLICE() << key << "_default"));
+    int32 premium_limit = static_cast<int32>(G()->shared_config().get_option_integer(PSLICE() << key << "_premium"));
+    if (default_limit > 0 && premium_limit > 0) {
+      auto type = [&]() -> td_api::object_ptr<td_api::PremiumLimitType> {
+        if (key == "channels_limit") {
+          return td_api::make_object<td_api::premiumLimitTypeSupergroupCount>();
+        }
+        if (key == "saved_gifs_limit") {
+          return td_api::make_object<td_api::premiumLimitTypeSavedAnimationCount>();
+        }
+        if (key == "stickers_faved_limit") {
+          return td_api::make_object<td_api::premiumLimitTypeFavoriteStickerCount>();
+        }
+        if (key == "dialog_filters_limit") {
+          return td_api::make_object<td_api::premiumLimitTypeChatFilterCount>();
+        }
+        if (key == "dialog_filters_chats_limit") {
+          return td_api::make_object<td_api::premiumLimitTypeChatFilterSpecificChatCount>();
+        }
+        if (key == "dialogs_pinned_limit") {
+          return td_api::make_object<td_api::premiumLimitTypePinnedChatCount>();
+        }
+        if (key == "dialogs_folder_pinned_limit") {
+          return td_api::make_object<td_api::premiumLimitTypePinnedArchivedChatCount>();
+        }
+        if (key == "channels_public_limit") {
+          return td_api::make_object<td_api::premiumLimitTypeCreatedPublicChatCount>();
+        }
+        if (key == "caption_length_limit") {
+          return td_api::make_object<td_api::premiumLimitTypeCaptionLength>();
+        }
+        UNREACHABLE();
+        return nullptr;
+      }();
+      limits.push_back(td_api::make_object<td_api::premiumLimit>(std::move(type), default_limit, premium_limit));
+    }
+  }
+  promise.set_value(td_api::make_object<td_api::premiumFeatures>(std::move(features), std::move(limits)));
 }
 
 void ConfigManager::on_result(NetQueryPtr res) {
@@ -1522,12 +1571,31 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
   string default_reaction;
   int64 reactions_uniq_max = 0;
   vector<string> premium_features;
+  const vector<Slice> premium_limit_keys{"channels_limit_default",
+                                         "channels_limit_premium",
+                                         "saved_gifs_limit_default",
+                                         "saved_gifs_limit_premium",
+                                         "stickers_faved_limit_default",
+                                         "stickers_faved_limit_premium",
+                                         "dialog_filters_limit_default",
+                                         "dialog_filters_limit_premium",
+                                         "dialog_filters_chats_limit_default",
+                                         "dialog_filters_chats_limit_premium",
+                                         "dialogs_pinned_limit_default",
+                                         "dialogs_pinned_limit_premium",
+                                         "dialogs_folder_pinned_limit_default",
+                                         "dialogs_folder_pinned_limit_premium",
+                                         "channels_public_limit_default",
+                                         "channels_public_limit_premium",
+                                         "caption_length_limit_default",
+                                         "caption_length_limit_premium"};
   if (config->get_id() == telegram_api::jsonObject::ID) {
     for (auto &key_value : static_cast<telegram_api::jsonObject *>(config.get())->value_) {
       Slice key = key_value->key_;
       telegram_api::JSONValue *value = key_value->value_.get();
       if (key == "test" || key == "wallet_enabled" || key == "wallet_blockchain_name" || key == "wallet_config" ||
-          key == "stickers_emoji_cache_time") {
+          key == "stickers_emoji_cache_time" || key == "upload_max_fileparts_default" ||
+          key == "upload_max_fileparts_premium") {
         continue;
       }
       if (key == "ignore_restriction_reasons") {
@@ -1795,6 +1863,22 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
         } else {
           LOG(ERROR) << "Receive unexpected premium_promo_order " << to_string(*value);
         }
+        continue;
+      }
+      bool is_premium_limit_key = false;
+      for (auto premium_limit_key : premium_limit_keys) {
+        if (key == premium_limit_key) {
+          auto setting_value = get_json_value_int(std::move(key_value->value_), key);
+          if (setting_value > 0) {
+            G()->shared_config().set_option_integer(key, setting_value);
+          } else {
+            LOG(ERROR) << "Receive invalid value " << setting_value << " for " << key;
+          }
+          is_premium_limit_key = true;
+          break;
+        }
+      }
+      if (is_premium_limit_key) {
         continue;
       }
 

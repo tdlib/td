@@ -2877,6 +2877,36 @@ languagePackInfo id:string base_language_pack_id:string name:string native_name:
 localizationTargetInfo language_packs:vector<languagePackInfo> = LocalizationTargetInfo;
 
 
+//@class PremiumLimitType @description Describes type of a limit, increased for Premium users
+
+//@description The maximum number of joined supergroups and channels
+premiumLimitTypeSupergroupCount = PremiumLimitType;
+
+//@description The maximum number of saved animations
+premiumLimitTypeSavedAnimationCount = PremiumLimitType;
+
+//@description The maximum number of favorite stickers
+premiumLimitTypeFavoriteStickerCount = PremiumLimitType;
+
+//@description The maximum number of chat filters
+premiumLimitTypeChatFilterCount = PremiumLimitType;
+
+//@description The maximum number of pinned and always included, or always excluded chats in a chat list
+premiumLimitTypeChatFilterSpecificChatCount = PremiumLimitType;
+
+//@description The maximum number of pinned chats in the main chat list
+premiumLimitTypePinnedChatCount = PremiumLimitType;
+
+//@description The maximum number of pinned chats in the archive chat list
+premiumLimitTypePinnedArchivedChatCount = PremiumLimitType;
+
+//@description The maximum number of created public chats
+premiumLimitTypeCreatedPublicChatCount = PremiumLimitType;
+
+//@description The maximum length of sent media caption
+premiumLimitTypeCaptionLength = PremiumLimitType;
+
+
 //@class PremiumFeature @description Describes a feature available to Premium users
 
 //@description Increased limits
@@ -2910,8 +2940,11 @@ premiumFeatureProfileBadge = PremiumFeature;
 premiumFeatureAnimatedProfilePhoto = PremiumFeature;
 
 
-//@description Contains information about features, available to Premium users @features The list of available features
-premiumFeatures features:vector<PremiumFeature> = PremiumFeatures;
+//@description Contains information about a limit, increased for Premium users @type The type of the limit @default_value Default value of the limit @premium_value Value of the limit for Premium users
+premiumLimit type:PremiumLimitType default_value:int32 premium_value:int32 = PremiumLimit;
+
+//@description Contains information about features, available to Premium users @features The list of available features @limits The list of limits, increased for Premium users
+premiumFeatures features:vector<PremiumFeature> limits:vector<premiumLimit> = PremiumFeatures;
 
 
 //@class DeviceToken @description Represents a data needed to subscribe for push notifications through registerDevice method. To use specific push notification service, the correct application platform must be specified and a valid server authentication data must be uploaded at https://my.telegram.org
