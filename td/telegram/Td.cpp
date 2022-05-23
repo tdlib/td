@@ -7829,7 +7829,7 @@ void Td::on_request(uint64 id, td_api::removeRecentHashtag &request) {
 void Td::on_request(uint64 id, const td_api::getPremiumFeatures &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
-  get_premium_features(std::move(promise));
+  get_premium_features(request.source_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::acceptTermsOfService &request) {

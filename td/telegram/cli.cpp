@@ -2544,7 +2544,8 @@ class CliClient final : public Actor {
     } else if (op == "gadl") {
       send_request(td_api::make_object<td_api::getApplicationDownloadLink>());
     } else if (op == "gpfs") {
-      send_request(td_api::make_object<td_api::getPremiumFeatures>());
+      auto source = td_api::make_object<td_api::premiumSourceLink>("ref");
+      send_request(td_api::make_object<td_api::getPremiumFeatures>(std::move(source)));
     } else if (op == "atos") {
       send_request(td_api::make_object<td_api::acceptTermsOfService>(args));
     } else if (op == "gdli") {

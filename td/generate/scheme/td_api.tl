@@ -2947,6 +2947,21 @@ premiumLimit type:PremiumLimitType default_value:int32 premium_value:int32 = Pre
 premiumFeatures features:vector<PremiumFeature> limits:vector<premiumLimit> = PremiumFeatures;
 
 
+//@class PremiumSource @description Describes a source, from which the Premium features screen is opened
+
+//@description A limit was exceeded @limit_type Type of the exceeded limit
+premiumSourceLimitExceeded limit_type:PremiumLimitType = PremiumSource;
+
+//@description A user tried to use a Premium feature @feature The used feature
+premiumSourceFeature feature:PremiumFeature = PremiumSource;
+
+//@description A user opened an internal link of the type internalLinkTypePremiumFeatures @referrer The referrer from the link
+premiumSourceLink referrer:string = PremiumSource;
+
+//@description A user opened the Premium features screen from settings
+premiumSourceSettings = PremiumSource;
+
+
 //@class DeviceToken @description Represents a data needed to subscribe for push notifications through registerDevice method. To use specific push notification service, the correct application platform must be specified and a valid server authentication data must be uploaded at https://my.telegram.org
 
 //@description A token for Firebase Cloud Messaging @token Device registration token; may be empty to deregister a device @encrypt True, if push notifications must be additionally encrypted
@@ -6300,8 +6315,8 @@ removeStickerFromSet sticker:InputFile = Ok;
 getMapThumbnailFile location:location zoom:int32 width:int32 height:int32 scale:int32 chat_id:int53 = File;
 
 
-//@description Returns information about features, available to Premium users
-getPremiumFeatures = PremiumFeatures;
+//@description Returns information about features, available to Premium users @source Source of the request; pass null if the method is called from some non-standard source
+getPremiumFeatures source:PremiumSource = PremiumFeatures;
 
 
 //@description Accepts Telegram terms of services @terms_of_service_id Terms of service identifier

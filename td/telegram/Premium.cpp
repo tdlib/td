@@ -26,7 +26,101 @@ const vector<Slice> &get_premium_limit_keys() {
   return limit_keys;
 }
 
-void get_premium_features(Promise<td_api::object_ptr<td_api::premiumFeatures>> &&promise) {
+static string get_premium_source(const td_api::PremiumLimitType *limit_type) {
+  if (limit_type == nullptr) {
+    return string();
+  }
+
+  auto key = [&]() {
+    switch (limit_type->get_id()) {
+      case td_api::premiumLimitTypeSupergroupCount::ID:
+        return "channels";
+      case td_api::premiumLimitTypeSavedAnimationCount::ID:
+        return "saved_gifs";
+      case td_api::premiumLimitTypeFavoriteStickerCount::ID:
+        return "stickers_faved";
+      case td_api::premiumLimitTypeChatFilterCount::ID:
+        return "dialog_filters";
+      case td_api::premiumLimitTypeChatFilterChosenChatCount::ID:
+        return "dialog_filters_chats";
+      case td_api::premiumLimitTypePinnedChatCount::ID:
+        return "dialogs_pinned";
+      case td_api::premiumLimitTypePinnedArchivedChatCount::ID:
+        return "dialogs_folder_pinned";
+      case td_api::premiumLimitTypeCreatedPublicChatCount::ID:
+        return "channels_public";
+      case td_api::premiumLimitTypeCaptionLength::ID:
+        return "caption_length";
+      default:
+        UNREACHABLE();
+        return "";
+    }
+  }();
+  return PSTRING() << "double_limits__" << key;
+}
+
+static string get_premium_source(const td_api::PremiumFeature *feature) {
+  if (feature == nullptr) {
+    return string();
+  }
+
+  switch (feature->get_id()) {
+    case td_api::premiumFeatureIncreasedLimits::ID:
+      return "double_limits";
+    case td_api::premiumFeatureIncreasedFileSize::ID:
+      return "more_upload";
+    case td_api::premiumFeatureImprovedDownloadSpeed::ID:
+      return "faster_download";
+    case td_api::premiumFeatureVoiceRecognition::ID:
+      return "voice_to_text";
+    case td_api::premiumFeatureDisabledAds::ID:
+      return "no_ads";
+    case td_api::premiumFeatureUniqueReactions::ID:
+      return "unique_reactions";
+    case td_api::premiumFeatureUniqueStickers::ID:
+      return "premium_stickers";
+    case td_api::premiumFeatureAdvancedChatManagement::ID:
+      return "advanced_chat_management";
+    case td_api::premiumFeatureProfileBadge::ID:
+      return "profile_badge";
+    case td_api::premiumFeatureAnimatedProfilePhoto::ID:
+      return "animated_userpics";
+    default:
+      UNREACHABLE();
+  }
+  return string();
+}
+
+static string get_premium_source(const td_api::object_ptr<td_api::PremiumSource> &source) {
+  if (source == nullptr) {
+    return string();
+  }
+  switch (source->get_id()) {
+    case td_api::premiumSourceLimitExceeded::ID: {
+      auto *limit_type = static_cast<const td_api::premiumSourceLimitExceeded *>(source.get())->limit_type_.get();
+      return get_premium_source(limit_type);
+    }
+    case td_api::premiumSourceFeature::ID: {
+      auto *feature = static_cast<const td_api::premiumSourceFeature *>(source.get())->feature_.get();
+      return get_premium_source(feature);
+    }
+    case td_api::premiumSourceLink::ID: {
+      auto &referrer = static_cast<const td_api::premiumSourceLink *>(source.get())->referrer_;
+      if (referrer.empty()) {
+        return "deeplink";
+      }
+      return PSTRING() << "deeplink_" << referrer;
+    }
+    case td_api::premiumSourceSettings::ID:
+      return "settings";
+    default:
+      UNREACHABLE();
+      return string();
+  }
+}
+
+void get_premium_features(const td_api::object_ptr<td_api::PremiumSource> &source,
+                          Promise<td_api::object_ptr<td_api::premiumFeatures>> &&promise) {
   auto premium_features =
       full_split(G()->shared_config().get_option_string(
                      "premium_features",
@@ -113,6 +207,10 @@ void get_premium_features(Promise<td_api::object_ptr<td_api::premiumFeatures>> &
       limits.push_back(td_api::make_object<td_api::premiumLimit>(std::move(type), default_limit, premium_limit));
     }
   }
+
+  auto source_str = get_premium_source(source);
+  // TODO use source_str
+
   promise.set_value(td_api::make_object<td_api::premiumFeatures>(std::move(features), std::move(limits)));
 }
 
