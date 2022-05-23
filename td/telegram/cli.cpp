@@ -2737,6 +2737,8 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::searchEmojis>(args, false, vector<string>{"ru_RU"}));
     } else if (op == "gae") {
       send_request(td_api::make_object<td_api::getAnimatedEmoji>(args));
+    } else if (op == "gaae") {
+      send_request(td_api::make_object<td_api::getAllAnimatedEmojis>());
     } else if (op == "gesu") {
       send_request(td_api::make_object<td_api::getEmojiSuggestionsUrl>(args));
     } else if (op == "gsan") {

@@ -5764,6 +5764,9 @@ searchEmojis text:string exact_match:Bool input_language_codes:vector<string> = 
 //@description Returns an animated emoji corresponding to a given emoji. Returns a 404 error if the emoji has no animated emoji @emoji The emoji
 getAnimatedEmoji emoji:string = AnimatedEmoji;
 
+//@description Returns all emojis, which has a corresponding animated emoji
+getAllAnimatedEmojis = Emojis;
+
 //@description Returns an HTTP URL which can be used to automatically log in to the translation platform and suggest new emoji replacements. The URL will be valid for 30 seconds after generation @language_code Language code for which the emoji replacements will be suggested
 getEmojiSuggestionsUrl language_code:string = HttpUrl;
 

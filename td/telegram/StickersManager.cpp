@@ -4614,6 +4614,37 @@ void StickersManager::get_animated_emoji(string emoji, bool is_recursive,
                                               get_animated_emoji_sound_file_id(emoji)));
 }
 
+void StickersManager::get_all_animated_emojis(bool is_recursive,
+                                              Promise<td_api::object_ptr<td_api::emojis>> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+
+  auto &special_sticker_set = add_special_sticker_set(SpecialStickerSetType::animated_emoji());
+  auto sticker_set = get_sticker_set(special_sticker_set.id_);
+  if (sticker_set == nullptr || !sticker_set->was_loaded) {
+    if (is_recursive) {
+      return promise.set_value(td_api::make_object<td_api::emojis>());
+    }
+
+    pending_get_animated_emoji_queries_.push_back(PromiseCreator::lambda(
+        [actor_id = actor_id(this), promise = std::move(promise)](Result<Unit> &&result) mutable {
+          if (result.is_error()) {
+            promise.set_error(result.move_as_error());
+          } else {
+            send_closure(actor_id, &StickersManager::get_all_animated_emojis, true, std::move(promise));
+          }
+        }));
+    load_special_sticker_set(special_sticker_set);
+    return;
+  }
+
+  auto emojis = transform(sticker_set->sticker_ids, [&](FileId sticker_id) {
+    auto s = get_sticker(sticker_id);
+    CHECK(s != nullptr);
+    return s->alt;
+  });
+  promise.set_value(td_api::make_object<td_api::emojis>(std::move(emojis)));
+}
+
 void StickersManager::get_animated_emoji_click_sticker(const string &message_text, FullMessageId full_message_id,
                                                        Promise<td_api::object_ptr<td_api::sticker>> &&promise) {
   if (disable_animated_emojis_ || td_->auth_manager_->is_bot()) {

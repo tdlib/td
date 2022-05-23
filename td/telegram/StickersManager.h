@@ -83,6 +83,8 @@ class StickersManager final : public Actor {
   void get_animated_emoji(string emoji, bool is_recursive,
                           Promise<td_api::object_ptr<td_api::animatedEmoji>> &&promise);
 
+  void get_all_animated_emojis(bool is_recursive, Promise<td_api::object_ptr<td_api::emojis>> &&promise);
+
   void get_animated_emoji_click_sticker(const string &message_text, FullMessageId full_message_id,
                                         Promise<td_api::object_ptr<td_api::sticker>> &&promise);
 
