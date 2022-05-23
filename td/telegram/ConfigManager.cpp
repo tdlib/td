@@ -1755,7 +1755,7 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
       for (auto premium_limit_key : premium_limit_keys) {
         if (begins_with(key, premium_limit_key)) {
           auto suffix = key.substr(premium_limit_key.size());
-          if (suffix == "_default" || suffix == "_premium") {
+          if (suffix == "_limit_default" || suffix == "_limit_premium") {
             auto setting_value = get_json_value_int(std::move(key_value->value_), key);
             if (setting_value > 0) {
               G()->shared_config().set_option_integer(key, setting_value);
