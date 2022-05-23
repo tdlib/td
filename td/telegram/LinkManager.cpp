@@ -377,6 +377,18 @@ class LinkManager::InternalLinkPassportDataRequest final : public InternalLink {
   }
 };
 
+class LinkManager::InternalLinkPremiumFeatures final : public InternalLink {
+  string referrer_;
+
+  td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
+    return td_api::make_object<td_api::internalLinkTypePremiumFeatures>(referrer_);
+  }
+
+ public:
+  explicit InternalLinkPremiumFeatures(string referrer) : referrer_(std::move(referrer)) {
+  }
+};
+
 class LinkManager::InternalLinkPrivacyAndSecuritySettings final : public InternalLink {
   td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
     return td_api::make_object<td_api::internalLinkTypePrivacyAndSecuritySettings>();
@@ -1012,6 +1024,9 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
   } else if (path.size() == 1 && path[0] == "passport") {
     // passport?bot_id=<bot_user_id>&scope=<scope>&public_key=<public_key>&nonce=<nonce>
     return get_internal_link_passport(query, url_query.args_);
+  } else if (path.size() == 1 && path[0] == "premium_offer") {
+    // premium_offer?ref=<referrer>
+    return td::make_unique<InternalLinkPremiumFeatures>(get_arg("ref"));
   } else if (!path.empty() && path[0] == "settings") {
     if (path.size() == 2 && path[1] == "change_number") {
       // settings/change_number

@@ -159,6 +159,9 @@ TEST(Link, parse_internal_link) {
   auto phone_number_confirmation = [](const td::string &hash, const td::string &phone_number) {
     return td::td_api::make_object<td::td_api::internalLinkTypePhoneNumberConfirmation>(hash, phone_number);
   };
+  auto premium_features = [](const td::string &referrer) {
+    return td::td_api::make_object<td::td_api::internalLinkTypePremiumFeatures>(referrer);
+  };
   auto privacy_and_security_settings = [] {
     return td::td_api::make_object<td::td_api::internalLinkTypePrivacyAndSecuritySettings>();
   };
@@ -822,6 +825,10 @@ TEST(Link, parse_internal_link) {
                       unknown_deep_link("tg://passport?bot_id=12345&public_key=key&scope=asd&payload="));
   parse_internal_link("t.me/telegrampassport?bot_id=12345&public_key=key&scope=asd&payload=nonce",
                       public_chat("telegrampassport"));
+
+  parse_internal_link("tg:premium_offer?ref=abcdef", premium_features("abcdef"));
+  parse_internal_link("tg:premium_offer?ref=abc%30ef", premium_features("abc0ef"));
+  parse_internal_link("tg://premium_offer?ref=", premium_features(""));
 
   parse_internal_link("tg://settings", settings());
   parse_internal_link("tg://setting", unknown_deep_link("tg://setting"));

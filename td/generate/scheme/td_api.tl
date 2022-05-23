@@ -3575,6 +3575,9 @@ internalLinkTypePassportDataRequest bot_user_id:int53 scope:string public_key:st
 //@hash Hash value from the link @phone_number Phone number value from the link
 internalLinkTypePhoneNumberConfirmation hash:string phone_number:string = InternalLinkType;
 
+//@description The link is a link to the Premium features screen of the app, from which the user can subscribe to Telegram Premium. Call getPremiumFeatures with the given referrer to process the link @referrer Referrer specified in the link
+internalLinkTypePremiumFeatures referrer:string = InternalLinkType;
+
 //@description The link is a link to the privacy and security settings section of the app
 internalLinkTypePrivacyAndSecuritySettings = InternalLinkType;
 
