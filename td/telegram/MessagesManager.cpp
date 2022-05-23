@@ -19824,6 +19824,9 @@ int32 MessagesManager::get_pinned_dialogs_limit(DialogListId dialog_list_id) {
   }
   int32 limit = clamp(narrow_cast<int32>(G()->shared_config().get_option_integer(key)), 0, 1000);
   if (limit <= 0) {
+    if (G()->shared_config().get_option_boolean("is_premium")) {
+      default_limit *= 2;
+    }
     return default_limit;
   }
   return limit;

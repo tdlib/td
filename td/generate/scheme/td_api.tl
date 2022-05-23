@@ -4640,13 +4640,13 @@ checkChatUsername chat_id:int53 username:string = CheckChatUsernameResult;
 //@description Returns a list of public chats of the specified type, owned by the user @type Type of the public chats to return
 getCreatedPublicChats type:PublicChatType = Chats;
 
-//@description Checks whether the maximum number of owned public chats has been reached. Returns corresponding error if the limit was reached @type Type of the public chats, for which to check the limit
+//@description Checks whether the maximum number of owned public chats has been reached. Returns corresponding error if the limit was reached. The limit can be increased with Telegram Premium @type Type of the public chats, for which to check the limit
 checkCreatedPublicChatsLimit type:PublicChatType = Ok;
 
 //@description Returns a list of basic group and supergroup chats, which can be used as a discussion group for a channel. Returned basic group chats must be first upgraded to supergroups before they can be set as a discussion group. To set a returned supergroup as a discussion group, access to its old messages must be enabled using toggleSupergroupIsAllHistoryAvailable first
 getSuitableDiscussionChats = Chats;
 
-//@description Returns a list of recently inactive supergroups and channels. Can be used when user reaches limit on the number of joined supergroups and channels and receives CHANNELS_TOO_MUCH error
+//@description Returns a list of recently inactive supergroups and channels. Can be used when user reaches limit on the number of joined supergroups and channels and receives CHANNELS_TOO_MUCH error. Also, the limit can be increased with Telegram Premium
 getInactiveSupergroupChats = Chats;
 
 
@@ -5205,7 +5205,7 @@ addChatToList chat_id:int53 chat_list:ChatList = Ok;
 //@description Returns information about a chat filter by its identifier @chat_filter_id Chat filter identifier
 getChatFilter chat_filter_id:int32 = ChatFilter;
 
-//@description Creates new chat filter. Returns information about the created chat filter. User can have up to GetOption("chat_filter_count_max") chat filters, but can increase the number with Teegram Premium @filter Chat filter
+//@description Creates new chat filter. Returns information about the created chat filter. There can be up to GetOption("chat_filter_count_max") chat filters, but the limit can be increased with Telegram Premium @filter Chat filter
 createChatFilter filter:chatFilter = ChatFilterInfo;
 
 //@description Edits existing chat filter. Returns information about the edited chat filter @chat_filter_id Chat filter identifier @filter The edited chat filter
@@ -5372,7 +5372,7 @@ setScopeNotificationSettings scope:NotificationSettingsScope notification_settin
 resetAllNotificationSettings = Ok;
 
 
-//@description Changes the pinned state of a chat. There can be up to GetOption("pinned_chat_count_max")/GetOption("pinned_archived_chat_count_max") pinned non-secret chats and the same number of secret chats in the main/archive chat list
+//@description Changes the pinned state of a chat. There can be up to GetOption("pinned_chat_count_max")/GetOption("pinned_archived_chat_count_max") pinned non-secret chats and the same number of secret chats in the main/archive chat list. The limit can be increased with Telegram Premium
 //@chat_list Chat list in which to change the pinned state of the chat @chat_id Chat identifier @is_pinned Pass true to pin the chat; pass false to unpin it
 toggleChatIsPinned chat_list:ChatList chat_id:int53 is_pinned:Bool = Ok;
 
