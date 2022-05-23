@@ -16,6 +16,10 @@
 
 namespace td {
 
+int32 DialogFilter::get_max_filter_dialogs() {
+  return 100;  // server side limit
+}
+
 unique_ptr<DialogFilter> DialogFilter::get_dialog_filter(
     telegram_api::object_ptr<telegram_api::DialogFilter> filter_ptr, bool with_id) {
   if (filter_ptr->get_id() != telegram_api::dialogFilter::ID) {
@@ -92,16 +96,15 @@ Status DialogFilter::check_limits() const {
   auto included_secret_dialog_count = static_cast<int32>(included_dialog_ids.size()) - included_server_dialog_count;
   auto pinned_secret_dialog_count = static_cast<int32>(pinned_dialog_ids.size()) - pinned_server_dialog_count;
 
-  if (excluded_server_dialog_count > MAX_INCLUDED_FILTER_DIALOGS ||
-      excluded_secret_dialog_count > MAX_INCLUDED_FILTER_DIALOGS) {
+  auto limit = get_max_filter_dialogs();
+  if (excluded_server_dialog_count > limit || excluded_secret_dialog_count > limit) {
     return Status::Error(400, "The maximum number of excluded chats exceeded");
   }
-  if (included_server_dialog_count > MAX_INCLUDED_FILTER_DIALOGS ||
-      included_secret_dialog_count > MAX_INCLUDED_FILTER_DIALOGS) {
+  if (included_server_dialog_count > limit || included_secret_dialog_count > limit) {
     return Status::Error(400, "The maximum number of included chats exceeded");
   }
-  if (included_server_dialog_count + pinned_server_dialog_count > MAX_INCLUDED_FILTER_DIALOGS ||
-      included_secret_dialog_count + pinned_secret_dialog_count > MAX_INCLUDED_FILTER_DIALOGS) {
+  if (included_server_dialog_count + pinned_server_dialog_count > limit ||
+      included_secret_dialog_count + pinned_secret_dialog_count > limit) {
     return Status::Error(400, "The maximum number of pinned chats exceeded");
   }
 

@@ -20,8 +20,6 @@ namespace td {
 
 class DialogFilter {
  public:
-  static constexpr int32 MAX_INCLUDED_FILTER_DIALOGS = 100;  // server side limit
-
   DialogFilterId dialog_filter_id;
   string title;
   string emoji;
@@ -42,6 +40,8 @@ class DialogFilter {
 
   template <class ParserT>
   void parse(ParserT &parser);
+
+  static int32 get_max_filter_dialogs();
 
   static unique_ptr<DialogFilter> get_dialog_filter(telegram_api::object_ptr<telegram_api::DialogFilter> filter_ptr,
                                                     bool with_id);

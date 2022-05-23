@@ -19069,8 +19069,9 @@ Result<unique_ptr<DialogFilter>> MessagesManager::create_dialog_filter(DialogFil
 void MessagesManager::create_dialog_filter(td_api::object_ptr<td_api::chatFilter> filter,
                                            Promise<td_api::object_ptr<td_api::chatFilterInfo>> &&promise) {
   CHECK(!td_->auth_manager_->is_bot());
-  auto max_dialog_filters = G()->shared_config().get_option_integer("chat_filter_count_max");
-  if (dialog_filters_.size() >= max_dialog_filters) {
+  auto max_dialog_filters = clamp(G()->shared_config().get_option_integer("chat_filter_count_max"),
+                                  static_cast<int64>(0), static_cast<int64>(100));
+  if (dialog_filters_.size() >= narrow_cast<size_t>(max_dialog_filters)) {
     return promise.set_error(Status::Error(400, "The maximum number of chat folders exceeded"));
   }
   if (!is_update_chat_filters_sent_) {
@@ -19813,7 +19814,7 @@ void MessagesManager::clear_all_draft_messages(bool exclude_secret_chats, Promis
 
 int32 MessagesManager::get_pinned_dialogs_limit(DialogListId dialog_list_id) {
   if (dialog_list_id.is_filter()) {
-    return DialogFilter::MAX_INCLUDED_FILTER_DIALOGS;
+    return DialogFilter::get_max_filter_dialogs();
   }
 
   Slice key{"pinned_chat_count_max"};
@@ -33111,7 +33112,7 @@ vector<DialogListId> MessagesManager::get_dialog_lists_to_add_dialog(DialogId di
       // the dialog isn't added yet to the dialog list
       // check that it can be actually added
       if (dialog_filter->included_dialog_ids.size() + dialog_filter->pinned_dialog_ids.size() <
-          DialogFilter::MAX_INCLUDED_FILTER_DIALOGS) {
+          narrow_cast<size_t>(DialogFilter::get_max_filter_dialogs())) {
         // fast path
         result.push_back(DialogListId(dialog_filter_id));
         continue;
