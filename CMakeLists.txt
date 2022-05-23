@@ -406,6 +406,7 @@ set(TDLIB_SOURCE
   td/telegram/PhotoSize.cpp
   td/telegram/PhotoSizeSource.cpp
   td/telegram/PollManager.cpp
+  td/telegram/Premium.cpp
   td/telegram/QueryCombiner.cpp
   td/telegram/RecentDialogList.cpp
   td/telegram/ReplyMarkup.cpp
@@ -639,6 +640,7 @@ set(TDLIB_SOURCE
   td/telegram/PhotoSizeSource.h
   td/telegram/PollId.h
   td/telegram/PollManager.h
+  td/telegram/Premium.h
   td/telegram/PrivacyManager.h
   td/telegram/PtsManager.h
   td/telegram/PublicDialogType.h

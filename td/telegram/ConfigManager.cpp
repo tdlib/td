@@ -22,6 +22,7 @@
 #include "td/telegram/net/NetType.h"
 #include "td/telegram/net/PublicRsaKeyShared.h"
 #include "td/telegram/net/Session.h"
+#include "td/telegram/Premium.h"
 #include "td/telegram/StateManager.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"
@@ -1181,15 +1182,7 @@ void ConfigManager::get_premium_features(Promise<td_api::object_ptr<td_api::prem
     }
   }
 
-  const vector<Slice> limit_keys{"channels_limit",
-                                 "saved_gifs_limit",
-                                 "stickers_faved_limit",
-                                 "dialog_filters_limit",
-                                 "dialog_filters_chats_limit",
-                                 "dialogs_pinned_limit",
-                                 "dialogs_folder_pinned_limit",
-                                 "channels_public_limit",
-                                 "caption_length_limit"};
+  auto &limit_keys = get_premium_limit_keys();
   vector<td_api::object_ptr<td_api::premiumLimit>> limits;
   for (auto key : limit_keys) {
     int32 default_limit = static_cast<int32>(G()->shared_config().get_option_integer(PSLICE() << key << "_default"));
