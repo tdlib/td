@@ -19069,7 +19069,8 @@ Result<unique_ptr<DialogFilter>> MessagesManager::create_dialog_filter(DialogFil
 void MessagesManager::create_dialog_filter(td_api::object_ptr<td_api::chatFilter> filter,
                                            Promise<td_api::object_ptr<td_api::chatFilterInfo>> &&promise) {
   CHECK(!td_->auth_manager_->is_bot());
-  if (dialog_filters_.size() >= MAX_DIALOG_FILTERS) {
+  auto max_dialog_filters = G()->shared_config().get_option_integer("chat_filter_count_max");
+  if (dialog_filters_.size() >= max_dialog_filters) {
     return promise.set_error(Status::Error(400, "The maximum number of chat folders exceeded"));
   }
   if (!is_update_chat_filters_sent_) {

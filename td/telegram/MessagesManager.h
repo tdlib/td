@@ -1757,7 +1757,6 @@ class MessagesManager final : public Actor {
   static constexpr size_t MAX_DESCRIPTION_LENGTH = 255;         // server side limit for chat description
   static constexpr size_t MAX_DIALOG_FILTER_TITLE_LENGTH = 12;  // server side limit for dialog filter title
   static constexpr int32 MAX_PRIVATE_MESSAGE_TTL = 60;          // server side limit
-  static constexpr int32 MAX_DIALOG_FILTERS = 10;               // server side limit
   static constexpr int32 DIALOG_FILTERS_CACHE_TIME = 86400;
 
   static constexpr int64 SPONSORED_DIALOG_ORDER = static_cast<int64>(2147483647) << 32;

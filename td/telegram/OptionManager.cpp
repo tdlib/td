@@ -111,6 +111,9 @@ OptionManager::OptionManager(Td *td, ActorShared<> parent) : td_(td), parent_(st
   if (!G()->shared_config().have_option("notification_sound_count_max")) {
     G()->shared_config().set_option_integer("notification_sound_count_max", G()->is_test_dc() ? 5 : 100);
   }
+  if (!G()->shared_config().have_option("chat_filter_count_max")) {
+    G()->shared_config().set_option_integer("chat_filter_count_max", G()->is_test_dc() ? 3 : 10);
+  }
   G()->shared_config().set_option_integer("utc_time_offset", Clocks::tz_offset());
 }
 

@@ -1964,6 +1964,12 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
     shared_config.set_option_integer("reactions_uniq_max", reactions_uniq_max);
   }
 
+  bool is_premium = shared_config.get_option_boolean("is_premium");
+
+  auto chat_filter_count_max = shared_config.get_option_integer(
+      is_premium ? Slice("dialog_filters_limit_premium") : Slice("dialog_filters_limit_default"), is_premium ? 20 : 10);
+  shared_config.set_option_integer("chat_filter_count_max", static_cast<int32>(chat_filter_count_max));
+
   shared_config.set_option_string("premium_features", implode(premium_features, ','));
 
   shared_config.set_option_empty("default_ton_blockchain_config");
