@@ -95,6 +95,7 @@
 #include "td/telegram/Photo.h"
 #include "td/telegram/PhotoSizeSource.h"
 #include "td/telegram/PollManager.h"
+#include "td/telegram/Premium.h"
 #include "td/telegram/PrivacyManager.h"
 #include "td/telegram/PublicDialogType.h"
 #include "td/telegram/ReportReason.h"
@@ -7828,7 +7829,7 @@ void Td::on_request(uint64 id, td_api::removeRecentHashtag &request) {
 void Td::on_request(uint64 id, const td_api::getPremiumFeatures &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
-  send_closure(G()->config_manager(), &ConfigManager::get_premium_features, std::move(promise));
+  get_premium_features(std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::acceptTermsOfService &request) {
