@@ -1564,24 +1564,7 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
   string default_reaction;
   int64 reactions_uniq_max = 0;
   vector<string> premium_features;
-  const vector<Slice> premium_limit_keys{"channels_limit_default",
-                                         "channels_limit_premium",
-                                         "saved_gifs_limit_default",
-                                         "saved_gifs_limit_premium",
-                                         "stickers_faved_limit_default",
-                                         "stickers_faved_limit_premium",
-                                         "dialog_filters_limit_default",
-                                         "dialog_filters_limit_premium",
-                                         "dialog_filters_chats_limit_default",
-                                         "dialog_filters_chats_limit_premium",
-                                         "dialogs_pinned_limit_default",
-                                         "dialogs_pinned_limit_premium",
-                                         "dialogs_folder_pinned_limit_default",
-                                         "dialogs_folder_pinned_limit_premium",
-                                         "channels_public_limit_default",
-                                         "channels_public_limit_premium",
-                                         "caption_length_limit_default",
-                                         "caption_length_limit_premium"};
+  auto &premium_limit_keys = get_premium_limit_keys();
   if (config->get_id() == telegram_api::jsonObject::ID) {
     for (auto &key_value : static_cast<telegram_api::jsonObject *>(config.get())->value_) {
       Slice key = key_value->key_;
@@ -1860,15 +1843,18 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
       }
       bool is_premium_limit_key = false;
       for (auto premium_limit_key : premium_limit_keys) {
-        if (key == premium_limit_key) {
-          auto setting_value = get_json_value_int(std::move(key_value->value_), key);
-          if (setting_value > 0) {
-            G()->shared_config().set_option_integer(key, setting_value);
-          } else {
-            LOG(ERROR) << "Receive invalid value " << setting_value << " for " << key;
+        if (begins_with(key, premium_limit_key)) {
+          auto suffix = key.substr(premium_limit_key.size());
+          if (suffix == "_default" || suffix == "_premium") {
+            auto setting_value = get_json_value_int(std::move(key_value->value_), key);
+            if (setting_value > 0) {
+              G()->shared_config().set_option_integer(key, setting_value);
+            } else {
+              LOG(ERROR) << "Receive invalid value " << setting_value << " for " << key;
+            }
+            is_premium_limit_key = true;
+            break;
           }
-          is_premium_limit_key = true;
-          break;
         }
       }
       if (is_premium_limit_key) {
