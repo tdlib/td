@@ -103,6 +103,8 @@ class ConfigManager final : public NetQueryCallback {
 
   void on_dc_options_update(DcOptions dc_options);
 
+  void get_premium_features(Promise<td_api::object_ptr<td_api::premiumFeatures>> &&promise);
+
   void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
 
  private:

@@ -2543,6 +2543,8 @@ class CliClient final : public Actor {
       execute(td_api::make_object<td_api::getPhoneNumberInfoSync>(rand_bool() ? "en" : "", args));
     } else if (op == "gadl") {
       send_request(td_api::make_object<td_api::getApplicationDownloadLink>());
+    } else if (op == "gpfs") {
+      send_request(td_api::make_object<td_api::getPremiumFeatures>());
     } else if (op == "atos") {
       send_request(td_api::make_object<td_api::acceptTermsOfService>(args));
     } else if (op == "gdli") {

@@ -173,6 +173,8 @@ bool OptionManager::is_internal_option(Slice name) {
       return name == "notification_cloud_delay_ms" || name == "notification_default_delay_ms";
     case 'o':
       return name == "online_cloud_timeout_ms" || name == "online_update_period_ms" || name == "otherwise_relogin_days";
+    case 'p':
+      return name == "premium_features";
     case 'r':
       return name == "rating_e_decay" || name == "reactions_uniq_max" || name == "recent_stickers_limit" ||
              name == "revoke_pm_inbox" || name == "revoke_time_limit" || name == "revoke_pm_time_limit";

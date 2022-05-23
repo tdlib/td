@@ -1134,6 +1134,55 @@ void ConfigManager::dismiss_suggested_action(SuggestedAction suggested_action, P
   }
 }
 
+void ConfigManager::get_premium_features(Promise<td_api::object_ptr<td_api::premiumFeatures>> &&promise) {
+  auto premium_features =
+      full_split(G()->shared_config().get_option_string(
+                     "premium_features",
+                     "double_limits,more_upload,faster_download,voice_to_text,no_ads,unique_reactions,premium_stickers,"
+                     "advanced_chat_management,profile_badge,animated_userpics"),
+                 ',');
+  vector<td_api::object_ptr<td_api::PremiumFeature>> features;
+  for (const auto &premium_feature : premium_features) {
+    auto feature = [&]() -> td_api::object_ptr<td_api::PremiumFeature> {
+      if (premium_feature == "double_limits") {
+        return td_api::make_object<td_api::premiumFeatureIncreasedLimits>();
+      }
+      if (premium_feature == "more_upload") {
+        return td_api::make_object<td_api::premiumFeatureIncreasedFileSize>();
+      }
+      if (premium_feature == "faster_download") {
+        return td_api::make_object<td_api::premiumFeatureImprovedDownloadSpeed>();
+      }
+      if (premium_feature == "voice_to_text") {
+        return td_api::make_object<td_api::premiumFeatureVoiceRecognition>();
+      }
+      if (premium_feature == "no_ads") {
+        return td_api::make_object<td_api::premiumFeatureDisabledAds>();
+      }
+      if (premium_feature == "unique_reactions") {
+        return td_api::make_object<td_api::premiumFeatureUniqueReactions>();
+      }
+      if (premium_feature == "premium_stickers") {
+        return td_api::make_object<td_api::premiumFeatureUniqueStickers>();
+      }
+      if (premium_feature == "advanced_chat_management") {
+        return td_api::make_object<td_api::premiumFeatureAdvancedChatManagement>();
+      }
+      if (premium_feature == "profile_badge") {
+        return td_api::make_object<td_api::premiumFeatureProfileBadge>();
+      }
+      if (premium_feature == "animated_userpics") {
+        return td_api::make_object<td_api::premiumFeatureAnimatedProfilePhoto>();
+      }
+      return nullptr;
+    }();
+    if (feature != nullptr) {
+      features.push_back(std::move(feature));
+    }
+  }
+  promise.set_value(td_api::make_object<td_api::premiumFeatures>(std::move(features)));
+}
+
 void ConfigManager::on_result(NetQueryPtr res) {
   auto token = get_link_token();
   if (token >= 100 && token <= 200) {
@@ -1472,6 +1521,7 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
   double animated_emoji_zoom = 0.0;
   string default_reaction;
   int64 reactions_uniq_max = 0;
+  vector<string> premium_features;
   if (config->get_id() == telegram_api::jsonObject::ID) {
     for (auto &key_value : static_cast<telegram_api::jsonObject *>(config.get())->value_) {
       Slice key = key_value->key_;
@@ -1733,6 +1783,20 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
         G()->shared_config().set_option_integer("notification_sound_count_max", setting_value);
         continue;
       }
+      if (key == "premium_promo_order") {
+        if (value->get_id() == telegram_api::jsonArray::ID) {
+          auto features = std::move(static_cast<telegram_api::jsonArray *>(value)->value_);
+          for (auto &feature : features) {
+            auto premium_feature = get_json_value_string(std::move(feature), key);
+            if (!td::contains(premium_feature, ',')) {
+              premium_features.push_back(std::move(premium_feature));
+            }
+          }
+        } else {
+          LOG(ERROR) << "Receive unexpected premium_promo_order " << to_string(*value);
+        }
+        continue;
+      }
 
       new_values.push_back(std::move(key_value));
     }
@@ -1815,6 +1879,8 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
   } else {
     shared_config.set_option_integer("reactions_uniq_max", reactions_uniq_max);
   }
+
+  shared_config.set_option_string("premium_features", implode(premium_features, ','));
 
   shared_config.set_option_empty("default_ton_blockchain_config");
   shared_config.set_option_empty("default_ton_blockchain_name");

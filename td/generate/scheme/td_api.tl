@@ -2505,7 +2505,7 @@ availableReactions reactions:vector<string> = AvailableReactions;
 //@reaction Text representation of the reaction
 //@title Reaction title
 //@is_active True, if the reaction can be added to new messages and enabled in chats
-//@is_premium True, if the reaction is available only for premium users
+//@is_premium True, if the reaction is available only for Premium users
 //@static_icon Static icon for the reaction
 //@appear_animation Appear animation for the reaction
 //@select_animation Select animation for the reaction
@@ -2875,6 +2875,43 @@ languagePackInfo id:string base_language_pack_id:string name:string native_name:
 
 //@description Contains information about the current localization target @language_packs List of available language packs for this application
 localizationTargetInfo language_packs:vector<languagePackInfo> = LocalizationTargetInfo;
+
+
+//@class PremiumFeature @description Describes a feature available to Premium users
+
+//@description Increased limits
+premiumFeatureIncreasedLimits = PremiumFeature;
+
+//@description Increased maximum uploaded file size
+premiumFeatureIncreasedFileSize = PremiumFeature;
+
+//@description Improved download speed
+premiumFeatureImprovedDownloadSpeed = PremiumFeature;
+
+//@description The ability to convert voice notes to text
+premiumFeatureVoiceRecognition = PremiumFeature;
+
+//@description Disabled ads
+premiumFeatureDisabledAds = PremiumFeature;
+
+//@description Allowed to use more reactions
+premiumFeatureUniqueReactions = PremiumFeature;
+
+//@description Allowed to use premium stickers with unique effects
+premiumFeatureUniqueStickers = PremiumFeature;
+
+//@description Ability to change position of the main chat list, archive and mute all new chats from non-contacts, and completely disable notifications about the user's contacts joined Telegram
+premiumFeatureAdvancedChatManagement = PremiumFeature;
+
+//@description A badge in the user's profile
+premiumFeatureProfileBadge = PremiumFeature;
+
+//@description Profile photo animation on message and chat screens
+premiumFeatureAnimatedProfilePhoto = PremiumFeature;
+
+
+//@description Contains information about features, available to Premium users @features The list of available features
+premiumFeatures features:vector<PremiumFeature> = PremiumFeatures;
 
 
 //@class DeviceToken @description Represents a data needed to subscribe for push notifications through registerDevice method. To use specific push notification service, the correct application platform must be specified and a valid server authentication data must be uploaded at https://my.telegram.org
@@ -5144,7 +5181,7 @@ editChatFilter chat_filter_id:int32 filter:chatFilter = ChatFilterInfo;
 //@description Deletes existing chat filter @chat_filter_id Chat filter identifier
 deleteChatFilter chat_filter_id:int32 = Ok;
 
-//@description Changes the order of chat filters @chat_filter_ids Identifiers of chat filters in the new correct order @main_chat_list_position Position of the main chat list among chat filters, 0-based. Can be non-zero only for premium users
+//@description Changes the order of chat filters @chat_filter_ids Identifiers of chat filters in the new correct order @main_chat_list_position Position of the main chat list among chat filters, 0-based. Can be non-zero only for Premium users
 reorderChatFilters chat_filter_ids:vector<int32> main_chat_list_position:int32 = Ok;
 
 //@description Returns recommended chat filters for the current user
@@ -6225,6 +6262,10 @@ removeStickerFromSet sticker:InputFile = Ok;
 
 //@description Returns information about a file with a map thumbnail in PNG format. Only map thumbnail files with size less than 1MB can be downloaded @location Location of the map center @zoom Map zoom level; 13-20 @width Map width in pixels before applying scale; 16-1024 @height Map height in pixels before applying scale; 16-1024 @scale Map scale; 1-3 @chat_id Identifier of a chat in which the thumbnail will be shown. Use 0 if unknown
 getMapThumbnailFile location:location zoom:int32 width:int32 height:int32 scale:int32 chat_id:int53 = File;
+
+
+//@description Returns information about features, available to Premium users
+getPremiumFeatures = PremiumFeatures;
 
 
 //@description Accepts Telegram terms of services @terms_of_service_id Terms of service identifier
