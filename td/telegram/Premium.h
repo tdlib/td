@@ -25,4 +25,6 @@ void get_premium_limit(const td_api::object_ptr<td_api::PremiumLimitType> &limit
 void get_premium_features(Td *td, const td_api::object_ptr<td_api::PremiumSource> &source,
                           Promise<td_api::object_ptr<td_api::premiumFeatures>> &&promise);
 
+void view_premium_feature(Td *td, const td_api::object_ptr<td_api::PremiumFeature> &feature, Promise<Unit> &&promise);
+
 }  // namespace td

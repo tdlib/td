@@ -6322,6 +6322,9 @@ getPremiumLimit limit_type:PremiumLimitType = PremiumLimit;
 //@description Returns information about features, available to Premium users @source Source of the request; pass null if the method is called from some non-standard source
 getPremiumFeatures source:PremiumSource = PremiumFeatures;
 
+//@description Informs TDLib that the user viewed detailed information about a Premium feature on the Premium features screen @feature The viewed premium feature
+viewPremiumFeature feature:PremiumFeature = Ok;
+
 
 //@description Accepts Telegram terms of services @terms_of_service_id Terms of service identifier
 acceptTermsOfService terms_of_service_id:string = Ok;

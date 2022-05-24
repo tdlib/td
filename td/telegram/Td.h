@@ -1292,6 +1292,8 @@ class Td final : public Actor {
 
   void on_request(uint64 id, const td_api::getPremiumFeatures &request);
 
+  void on_request(uint64 id, const td_api::viewPremiumFeature &request);
+
   void on_request(uint64 id, td_api::acceptTermsOfService &request);
 
   void on_request(uint64 id, const td_api::getCountries &request);

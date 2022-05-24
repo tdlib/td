@@ -255,4 +255,17 @@ void get_premium_features(Td *td, const td_api::object_ptr<td_api::PremiumSource
       td_api::make_object<td_api::premiumFeatures>(std::move(features), std::move(limits), std::move(payment_link)));
 }
 
+void view_premium_feature(Td *td, const td_api::object_ptr<td_api::PremiumFeature> &feature, Promise<Unit> &&promise) {
+  auto source = get_premium_source(feature.get());
+  if (source.empty()) {
+    return promise.set_error(Status::Error(400, "Feature must be non-empty"));
+  }
+
+  vector<tl_object_ptr<telegram_api::jsonObjectValue>> data;
+  data.push_back(
+      make_tl_object<telegram_api::jsonObjectValue>("item", make_tl_object<telegram_api::jsonString>(source)));
+  save_app_log(td, "premium.promo_screen_tap", DialogId(), make_tl_object<telegram_api::jsonObject>(std::move(data)),
+               std::move(promise));
+}
+
 }  // namespace td
