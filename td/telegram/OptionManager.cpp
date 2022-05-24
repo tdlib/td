@@ -187,7 +187,7 @@ bool OptionManager::is_internal_option(Slice name) {
     case 'o':
       return name == "online_cloud_timeout_ms" || name == "online_update_period_ms" || name == "otherwise_relogin_days";
     case 'p':
-      return name == "premium_features";
+      return name == "premium_bot_username" || name == "premium_features" || name == "premium_invoice_slug";
     case 'r':
       return name == "rating_e_decay" || name == "reactions_uniq_max" || name == "recent_stickers_limit" ||
              name == "revoke_pm_inbox" || name == "revoke_time_limit" || name == "revoke_pm_time_limit";

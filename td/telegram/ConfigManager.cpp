@@ -1475,6 +1475,8 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
   int64 reactions_uniq_max = 0;
   vector<string> premium_features;
   auto &premium_limit_keys = get_premium_limit_keys();
+  string premium_bot_username;
+  string premium_invoice_slug;
   if (config->get_id() == telegram_api::jsonObject::ID) {
     for (auto &key_value : static_cast<telegram_api::jsonObject *>(config.get())->value_) {
       Slice key = key_value->key_;
@@ -1770,6 +1772,14 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
       if (is_premium_limit_key) {
         continue;
       }
+      if (key == "premium_bot_username") {
+        premium_bot_username = get_json_value_string(std::move(key_value->value_), key);
+        continue;
+      }
+      if (key == "premium_invoice_slug") {
+        premium_invoice_slug = get_json_value_string(std::move(key_value->value_), key);
+        continue;
+      }
 
       new_values.push_back(std::move(key_value));
     }
@@ -1866,6 +1876,16 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
                                    static_cast<int32>(chat_filter_chosen_chat_count_max));
 
   shared_config.set_option_string("premium_features", implode(premium_features, ','));
+  if (premium_bot_username.empty()) {
+    shared_config.set_option_empty("premium_bot_username");
+  } else {
+    shared_config.set_option_string("premium_bot_username", premium_bot_username);
+  }
+  if (premium_invoice_slug.empty()) {
+    shared_config.set_option_empty("premium_invoice_slug");
+  } else {
+    shared_config.set_option_string("premium_invoice_slug", premium_invoice_slug);
+  }
 
   shared_config.set_option_empty("default_ton_blockchain_config");
   shared_config.set_option_empty("default_ton_blockchain_name");
