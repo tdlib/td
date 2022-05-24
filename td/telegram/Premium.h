@@ -15,12 +15,14 @@
 
 namespace td {
 
+class Td;
+
 const vector<Slice> &get_premium_limit_keys();
 
 void get_premium_limit(const td_api::object_ptr<td_api::PremiumLimitType> &limit_type,
                        Promise<td_api::object_ptr<td_api::premiumLimit>> &&promise);
 
-void get_premium_features(const td_api::object_ptr<td_api::PremiumSource> &source,
+void get_premium_features(Td *td, const td_api::object_ptr<td_api::PremiumSource> &source,
                           Promise<td_api::object_ptr<td_api::premiumFeatures>> &&promise);
 
 }  // namespace td

@@ -2547,7 +2547,8 @@ class CliClient final : public Actor {
       auto limit_type = td_api::make_object<td_api::premiumLimitTypeChatFilterCount>();
       send_request(td_api::make_object<td_api::getPremiumLimit>(std::move(limit_type)));
     } else if (op == "gprf") {
-      auto source = td_api::make_object<td_api::premiumSourceLink>("ref");
+      auto source = td_api::make_object<td_api::premiumSourceLimitExceeded>(
+          td_api::make_object<td_api::premiumLimitTypeChatFilterCount>());
       send_request(td_api::make_object<td_api::getPremiumFeatures>(std::move(source)));
     } else if (op == "atos") {
       send_request(td_api::make_object<td_api::acceptTermsOfService>(args));

@@ -6,6 +6,7 @@
 //
 #include "td/telegram/Premium.h"
 
+#include "td/telegram/Application.h"
 #include "td/telegram/ConfigShared.h"
 #include "td/telegram/Global.h"
 
@@ -173,7 +174,7 @@ void get_premium_limit(const td_api::object_ptr<td_api::PremiumLimitType> &limit
   promise.set_value(get_premium_limit_object(get_limit_type_key(limit_type.get())));
 }
 
-void get_premium_features(const td_api::object_ptr<td_api::PremiumSource> &source,
+void get_premium_features(Td *td, const td_api::object_ptr<td_api::PremiumSource> &source,
                           Promise<td_api::object_ptr<td_api::premiumFeatures>> &&promise) {
   auto premium_features =
       full_split(G()->shared_config().get_option_string(
@@ -225,7 +226,19 @@ void get_premium_features(const td_api::object_ptr<td_api::PremiumSource> &sourc
   td::remove_if(limits, [](auto &limit) { return limit == nullptr; });
 
   auto source_str = get_premium_source(source);
-  // TODO use source_str
+  if (!source_str.empty()) {
+    vector<tl_object_ptr<telegram_api::jsonObjectValue>> data;
+    vector<tl_object_ptr<telegram_api::JSONValue>> promo_order;
+    for (const auto &premium_feature : premium_features) {
+      promo_order.push_back(make_tl_object<telegram_api::jsonString>(premium_feature));
+    }
+    data.push_back(make_tl_object<telegram_api::jsonObjectValue>(
+        "premium_promo_order", make_tl_object<telegram_api::jsonArray>(std::move(promo_order))));
+    data.push_back(
+        make_tl_object<telegram_api::jsonObjectValue>("source", make_tl_object<telegram_api::jsonString>(source_str)));
+    save_app_log(td, "premium.promo_screen_show", DialogId(), make_tl_object<telegram_api::jsonObject>(std::move(data)),
+                 Promise<Unit>());
+  }
 
   promise.set_value(td_api::make_object<td_api::premiumFeatures>(std::move(features), std::move(limits)));
 }
