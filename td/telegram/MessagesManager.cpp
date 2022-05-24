@@ -10996,14 +10996,16 @@ void MessagesManager::on_failed_scheduled_message_deletion(DialogId dialog_id, c
 }
 
 MessagesManager::CanDeleteDialog MessagesManager::can_delete_dialog(const Dialog *d) const {
-  auto chat_source = sponsored_dialog_source_.get_chat_source_object();
-  if (chat_source != nullptr) {
-    switch (chat_source->get_id()) {
-      case td_api::chatSourcePublicServiceAnnouncement::ID:
-        // can delete for self (but only while removing from dialog list)
-        return {true, false};
-      default:
-        return {false, false};
+  if (is_dialog_sponsored(d)) {
+    auto chat_source = sponsored_dialog_source_.get_chat_source_object();
+    if (chat_source != nullptr) {
+      switch (chat_source->get_id()) {
+        case td_api::chatSourcePublicServiceAnnouncement::ID:
+          // can delete for self (but only while removing from dialog list)
+          return {true, false};
+        default:
+          return {false, false};
+      }
     }
   }
   if (td_->auth_manager_->is_bot() || !have_input_peer(d->dialog_id, AccessRights::Read)) {
