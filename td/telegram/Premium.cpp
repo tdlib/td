@@ -240,7 +240,19 @@ void get_premium_features(Td *td, const td_api::object_ptr<td_api::PremiumSource
                  Promise<Unit>());
   }
 
-  promise.set_value(td_api::make_object<td_api::premiumFeatures>(std::move(features), std::move(limits)));
+  td_api::object_ptr<td_api::InternalLinkType> payment_link;
+  auto premium_bot_username = G()->shared_config().get_option_string("premium_bot_username");
+  if (!premium_bot_username.empty()) {
+    payment_link = td_api::make_object<td_api::internalLinkTypeBotStart>(premium_bot_username, source_str);
+  } else {
+    auto premium_invoice_slug = G()->shared_config().get_option_string("premium_invoice_slug");
+    if (!premium_invoice_slug.empty()) {
+      payment_link = td_api::make_object<td_api::internalLinkTypeInvoice>(premium_invoice_slug);
+    }
+  }
+
+  promise.set_value(
+      td_api::make_object<td_api::premiumFeatures>(std::move(features), std::move(limits), std::move(payment_link)));
 }
 
 }  // namespace td

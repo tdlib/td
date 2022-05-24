@@ -2944,7 +2944,8 @@ premiumFeatureAnimatedProfilePhoto = PremiumFeature;
 premiumLimit type:PremiumLimitType default_value:int32 premium_value:int32 = PremiumLimit;
 
 //@description Contains information about features, available to Premium users @features The list of available features @limits The list of limits, increased for Premium users
-premiumFeatures features:vector<PremiumFeature> limits:vector<premiumLimit> = PremiumFeatures;
+//@payment_link An internal link to be opened to pay for Telegram Premium if store payment isn't possible; may be null if direct payment isn't available. If the link has type internalLinkTypeBotStart, then sendBotStartMessage must be called automatically
+premiumFeatures features:vector<PremiumFeature> limits:vector<premiumLimit> payment_link:InternalLinkType = PremiumFeatures;
 
 
 //@class PremiumSource @description Describes a source, from which the Premium features screen is opened
