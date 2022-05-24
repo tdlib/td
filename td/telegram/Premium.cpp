@@ -71,7 +71,7 @@ static string get_premium_source(const td_api::PremiumFeature *feature) {
   switch (feature->get_id()) {
     case td_api::premiumFeatureIncreasedLimits::ID:
       return "double_limits";
-    case td_api::premiumFeatureIncreasedFileSize::ID:
+    case td_api::premiumFeatureIncreasedUploadFileSize::ID:
       return "more_upload";
     case td_api::premiumFeatureImprovedDownloadSpeed::ID:
       return "faster_download";
@@ -189,7 +189,7 @@ void get_premium_features(Td *td, const td_api::object_ptr<td_api::PremiumSource
         return td_api::make_object<td_api::premiumFeatureIncreasedLimits>();
       }
       if (premium_feature == "more_upload") {
-        return td_api::make_object<td_api::premiumFeatureIncreasedFileSize>();
+        return td_api::make_object<td_api::premiumFeatureIncreasedUploadFileSize>();
       }
       if (premium_feature == "faster_download") {
         return td_api::make_object<td_api::premiumFeatureImprovedDownloadSpeed>();

@@ -2882,6 +2882,12 @@ localizationTargetInfo language_packs:vector<languagePackInfo> = LocalizationTar
 //@description The maximum number of joined supergroups and channels
 premiumLimitTypeSupergroupCount = PremiumLimitType;
 
+//@description The maximum number of pinned chats in the main chat list
+premiumLimitTypePinnedChatCount = PremiumLimitType;
+
+//@description The maximum number of created public chats
+premiumLimitTypeCreatedPublicChatCount = PremiumLimitType;
+
 //@description The maximum number of saved animations
 premiumLimitTypeSavedAnimationCount = PremiumLimitType;
 
@@ -2891,17 +2897,11 @@ premiumLimitTypeFavoriteStickerCount = PremiumLimitType;
 //@description The maximum number of chat filters
 premiumLimitTypeChatFilterCount = PremiumLimitType;
 
-//@description The maximum number of pinned and always included, or always excluded chats in a chat list
+//@description The maximum number of pinned and always included, or always excluded chats in a chat filter
 premiumLimitTypeChatFilterChosenChatCount = PremiumLimitType;
-
-//@description The maximum number of pinned chats in the main chat list
-premiumLimitTypePinnedChatCount = PremiumLimitType;
 
 //@description The maximum number of pinned chats in the archive chat list
 premiumLimitTypePinnedArchivedChatCount = PremiumLimitType;
-
-//@description The maximum number of created public chats
-premiumLimitTypeCreatedPublicChatCount = PremiumLimitType;
 
 //@description The maximum length of sent media caption
 premiumLimitTypeCaptionLength = PremiumLimitType;
@@ -2912,8 +2912,8 @@ premiumLimitTypeCaptionLength = PremiumLimitType;
 //@description Increased limits
 premiumFeatureIncreasedLimits = PremiumFeature;
 
-//@description Increased maximum uploaded file size
-premiumFeatureIncreasedFileSize = PremiumFeature;
+//@description Increased maximum upload file size
+premiumFeatureIncreasedUploadFileSize = PremiumFeature;
 
 //@description Improved download speed
 premiumFeatureImprovedDownloadSpeed = PremiumFeature;
