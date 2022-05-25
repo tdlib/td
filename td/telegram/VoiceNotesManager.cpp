@@ -129,12 +129,36 @@ void VoiceNotesManager::create_voice_note(FileId file_id, string mime_type, int3
   on_get_voice_note(std::move(v), replace);
 }
 
-SecretInputMedia VoiceNotesManager::get_secret_input_media(FileId voice_file_id,
+void VoiceNotesManager::register_voice_note(FileId voice_note_file_id, FullMessageId full_message_id,
+                                            const char *source) {
+  if (full_message_id.get_message_id().is_scheduled() || !full_message_id.get_message_id().is_server()) {
+    return;
+  }
+  LOG(INFO) << "Register voice note " << voice_note_file_id << " from " << full_message_id << " from " << source;
+  bool is_inserted = voice_note_messages_[voice_note_file_id].insert(full_message_id).second;
+  LOG_CHECK(is_inserted) << source << ' ' << voice_note_file_id << ' ' << full_message_id;
+  auto voice_note = get_voice_note(voice_note_file_id);
+  CHECK(voice_note != nullptr);
+}
+
+void VoiceNotesManager::unregister_voice_note(FileId voice_note_file_id, FullMessageId full_message_id,
+                                              const char *source) {
+  if (full_message_id.get_message_id().is_scheduled() || !full_message_id.get_message_id().is_server()) {
+    return;
+  }
+  LOG(INFO) << "Unregister voice note " << voice_note_file_id << " from " << full_message_id << " from " << source;
+  auto &message_ids = voice_note_messages_[voice_note_file_id];
+  auto is_deleted = message_ids.erase(full_message_id) > 0;
+  LOG_CHECK(is_deleted) << source << ' ' << voice_note_file_id << ' ' << full_message_id;
+  if (message_ids.empty()) {
+    voice_note_messages_.erase(voice_note_file_id);
+  }
+}
+
+SecretInputMedia VoiceNotesManager::get_secret_input_media(FileId voice_note_file_id,
                                                            tl_object_ptr<telegram_api::InputEncryptedFile> input_file,
                                                            const string &caption, int32 layer) const {
-  auto *voice_note = get_voice_note(voice_file_id);
-  CHECK(voice_note != nullptr);
-  auto file_view = td_->file_manager_->get_file_view(voice_file_id);
+  auto file_view = td_->file_manager_->get_file_view(voice_note_file_id);
   if (!file_view.is_encrypted_secret() || file_view.encryption_key().empty()) {
     return SecretInputMedia{};
   }
@@ -144,6 +168,9 @@ SecretInputMedia VoiceNotesManager::get_secret_input_media(FileId voice_file_id,
   if (!input_file) {
     return SecretInputMedia{};
   }
+
+  auto *voice_note = get_voice_note(voice_note_file_id);
+  CHECK(voice_note != nullptr);
   vector<tl_object_ptr<secret_api::DocumentAttribute>> attributes;
   attributes.push_back(make_tl_object<secret_api::documentAttributeAudio>(
       secret_api::documentAttributeAudio::VOICE_MASK | secret_api::documentAttributeAudio::WAVEFORM_MASK,
