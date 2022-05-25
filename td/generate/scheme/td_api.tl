@@ -311,9 +311,11 @@ video duration:int32 width:int32 height:int32 file_name:string mime_type:string 
 //@thumbnail Video thumbnail in JPEG format; as defined by the sender; may be null @video File containing the video
 videoNote duration:int32 length:int32 minithumbnail:minithumbnail thumbnail:thumbnail video:file = VideoNote;
 
-//@description Describes a voice note. The voice note must be encoded with the Opus codec, and stored inside an OGG container. Voice notes can have only a single audio channel @duration Duration of the voice note, in seconds; as defined by the sender
-//@waveform A waveform representation of the voice note in 5-bit format @mime_type MIME type of the file; as defined by the sender @voice File containing the voice note
-voiceNote duration:int32 waveform:bytes mime_type:string voice:file = VoiceNote;
+//@description Describes a voice note. The voice note must be encoded with the Opus codec, and stored inside an OGG container. Voice notes can have only a single audio channel
+//@duration Duration of the voice note, in seconds; as defined by the sender @waveform A waveform representation of the voice note in 5-bit format
+//@mime_type MIME type of the file; as defined by the sender @is_recognized True, if speech recognition is completed; Premium users only
+//@recognized_text Recognized text of the voice note; Premium users only. Call recognizeSpeech to get recognized text of the voice note @voice File containing the voice note
+voiceNote duration:int32 waveform:bytes mime_type:string is_recognized:Bool recognized_text:string voice:file = VoiceNote;
 
 //@description Describes an animated representation of an emoji
 //@sticker Animated sticker for the emoji

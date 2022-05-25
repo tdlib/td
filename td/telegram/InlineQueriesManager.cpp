@@ -1246,7 +1246,8 @@ tl_object_ptr<td_api::video> copy(const td_api::video &obj) {
 
 template <>
 tl_object_ptr<td_api::voiceNote> copy(const td_api::voiceNote &obj) {
-  return td_api::make_object<td_api::voiceNote>(obj.duration_, obj.waveform_, obj.mime_type_, copy(obj.voice_));
+  return td_api::make_object<td_api::voiceNote>(obj.duration_, obj.waveform_, obj.mime_type_, obj.is_recognized_,
+                                                obj.recognized_text_, copy(obj.voice_));
 }
 
 template <>

@@ -10,6 +10,7 @@
 #include "td/telegram/SecretInputMedia.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
+#include "td/telegram/Version.h"
 
 #include "td/utils/common.h"
 #include "td/utils/FlatHashMap.h"
@@ -50,7 +51,10 @@ class VoiceNotesManager {
    public:
     string mime_type;
     int32 duration = 0;
+    bool is_transcribed = false;
     string waveform;
+    int64 transcription_id = 0;
+    string text;
 
     FileId file_id;
   };

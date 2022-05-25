@@ -52,6 +52,7 @@ enum class Version : int32 {
   AddAudioFlags,
   UseServerForwardAsCopy,
   AddMainDialogListPosition,
+  AddVoiceNoteFlags,
   Next
 };
 

@@ -41,6 +41,7 @@ tl_object_ptr<td_api::voiceNote> VoiceNotesManager::get_voice_note_object(FileId
   auto voice_note = it->second.get();
   CHECK(voice_note != nullptr);
   return make_tl_object<td_api::voiceNote>(voice_note->duration, voice_note->waveform, voice_note->mime_type,
+                                           voice_note->is_transcribed, voice_note->text,
                                            td_->file_manager_->get_file_object(file_id));
 }
 
