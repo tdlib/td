@@ -2889,6 +2889,11 @@ class CliClient final : public Actor {
       string to_language_code;
       get_args(args, text, from_language_code, to_language_code);
       send_request(td_api::make_object<td_api::translateText>(text, from_language_code, to_language_code));
+    } else if (op == "rs") {
+      ChatId chat_id;
+      MessageId message_id;
+      get_args(args, chat_id, message_id);
+      send_request(td_api::make_object<td_api::recognizeSpeech>(chat_id, message_id));
     } else if (op == "gf" || op == "GetFile") {
       FileId file_id;
       get_args(args, file_id);

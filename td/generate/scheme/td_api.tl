@@ -4818,6 +4818,11 @@ getMessageLinkInfo url:string = MessageLinkInfo;
 //@to_language_code A two-letter ISO 639-1 language code of the language to which the message is translated
 translateText text:string from_language_code:string to_language_code:string = Text;
 
+//@description Recognizes speech in a voice note message. The message must be successfully sent and must not be scheduled
+//@chat_id Identifier of the chat to which the message belongs
+//@message_id Identifier of the message
+recognizeSpeech chat_id:int53 message_id:int53 = Ok;
+
 
 //@description Returns list of message sender identifiers, which can be used to send messages in a chat @chat_id Chat identifier
 getChatAvailableMessageSenders chat_id:int53 = MessageSenders;

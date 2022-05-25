@@ -4797,6 +4797,13 @@ void Td::on_request(uint64 id, td_api::translateText &request) {
                                     std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::recognizeSpeech &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  voice_notes_manager_->recognize_speech({DialogId(request.chat_id_), MessageId(request.message_id_)},
+                                         std::move(promise));
+}
+
 void Td::on_request(uint64 id, const td_api::getFile &request) {
   send_closure(actor_id(this), &Td::send_result, id, file_manager_->get_file_object(FileId(request.file_id_, 0)));
 }
