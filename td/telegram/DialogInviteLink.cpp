@@ -19,7 +19,12 @@ DialogInviteLink::DialogInviteLink(tl_object_ptr<telegram_api::ExportedChatInvit
     return;
   }
   if (exported_invite_ptr->get_id() != telegram_api::chatInviteExported::ID) {
-    LOG(ERROR) << "Receive from " << source << ' ' << to_string(exported_invite_ptr);
+    CHECK(exported_invite_ptr->get_id() == telegram_api::chatInvitePublicJoinRequests::ID)
+    Slice slice(source);
+    if (slice != "channelAdminLogEventActionParticipantJoinByRequest" && slice != "updateChatParticipant" &&
+        slice != "updateChannelParticipant" && slice != "updateBotChatInviteRequester") {
+      LOG(ERROR) << "Receive from " << source << ' ' << to_string(exported_invite_ptr);
+    }
     return;
   }
 

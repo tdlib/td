@@ -50,10 +50,6 @@ static td_api::object_ptr<td_api::ChatEventAction> get_chat_event_action_object(
     case telegram_api::channelAdminLogEventActionParticipantJoinByRequest::ID: {
       auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionParticipantJoinByRequest>(action_ptr);
       DialogInviteLink invite_link(std::move(action->invite_), "channelAdminLogEventActionParticipantJoinByRequest");
-      if (!invite_link.is_valid()) {
-        LOG(ERROR) << "Wrong invite link: " << invite_link;
-        return nullptr;
-      }
       UserId approver_user_id(action->approved_by_);
       if (!approver_user_id.is_valid()) {
         return nullptr;
