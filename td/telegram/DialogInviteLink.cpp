@@ -13,12 +13,13 @@
 
 namespace td {
 
-DialogInviteLink::DialogInviteLink(tl_object_ptr<telegram_api::ExportedChatInvite> exported_invite_ptr) {
+DialogInviteLink::DialogInviteLink(tl_object_ptr<telegram_api::ExportedChatInvite> exported_invite_ptr,
+                                   const char *source) {
   if (exported_invite_ptr == nullptr) {
     return;
   }
   if (exported_invite_ptr->get_id() != telegram_api::chatInviteExported::ID) {
-    LOG(ERROR) << "Receive " << to_string(exported_invite_ptr);
+    LOG(ERROR) << "Receive from " << source << ' ' << to_string(exported_invite_ptr);
     return;
   }
 
@@ -36,39 +37,40 @@ DialogInviteLink::DialogInviteLink(tl_object_ptr<telegram_api::ExportedChatInvit
   is_revoked_ = exported_invite->revoked_;
   is_permanent_ = exported_invite->permanent_;
 
-  LOG_IF(ERROR, !is_valid_invite_link(invite_link_)) << "Unsupported invite link " << invite_link_;
+  string full_source = PSTRING() << "invite link " << invite_link_ << " from " << source;
+  LOG_IF(ERROR, !is_valid_invite_link(invite_link_)) << "Unsupported " << full_source;
   if (!creator_user_id_.is_valid()) {
-    LOG(ERROR) << "Receive invalid " << creator_user_id_ << " as creator of a link " << invite_link_;
+    LOG(ERROR) << "Receive invalid " << creator_user_id_ << " as creator of " << full_source;
     creator_user_id_ = UserId();
   }
   if (date_ != 0 && date_ < 1000000000) {
-    LOG(ERROR) << "Receive wrong date " << date_ << " as a creation date of a link " << invite_link_;
+    LOG(ERROR) << "Receive wrong date " << date_ << " as a creation date of " << full_source;
     date_ = 0;
   }
   if (expire_date_ != 0 && expire_date_ < 1000000000) {
-    LOG(ERROR) << "Receive wrong date " << expire_date_ << " as an expire date of a link " << invite_link_;
+    LOG(ERROR) << "Receive wrong date " << expire_date_ << " as an expire date of " << full_source;
     expire_date_ = 0;
   }
   if (usage_limit_ < 0) {
-    LOG(ERROR) << "Receive wrong usage limit " << usage_limit_ << " for a link " << invite_link_;
+    LOG(ERROR) << "Receive wrong usage limit " << usage_limit_ << " for " << full_source;
     usage_limit_ = 0;
   }
   if (usage_count_ < 0) {
-    LOG(ERROR) << "Receive wrong usage count " << usage_count_ << " for a link " << invite_link_;
+    LOG(ERROR) << "Receive wrong usage count " << usage_count_ << " for " << full_source;
     usage_count_ = 0;
   }
   if (edit_date_ != 0 && edit_date_ < 1000000000) {
-    LOG(ERROR) << "Receive wrong date " << edit_date_ << " as an edit date of a link " << invite_link_;
+    LOG(ERROR) << "Receive wrong date " << edit_date_ << " as an edit date of " << full_source;
     edit_date_ = 0;
   }
   if (request_count_ < 0) {
-    LOG(ERROR) << "Receive wrong pending join request count " << request_count_ << " for a link " << invite_link_;
+    LOG(ERROR) << "Receive wrong pending join request count " << request_count_ << " for " << full_source;
     request_count_ = 0;
   }
 
   if (is_permanent_ && (!title_.empty() || expire_date_ > 0 || usage_limit_ > 0 || edit_date_ > 0 ||
                         request_count_ > 0 || creates_join_request_)) {
-    LOG(ERROR) << "Receive wrong permanent " << *this;
+    LOG(ERROR) << "Receive wrong permanent " << full_source << ' ' << *this;
     title_.clear();
     expire_date_ = 0;
     usage_limit_ = 0;
@@ -77,7 +79,7 @@ DialogInviteLink::DialogInviteLink(tl_object_ptr<telegram_api::ExportedChatInvit
     creates_join_request_ = false;
   }
   if (creates_join_request_ && usage_limit_ > 0) {
-    LOG(ERROR) << "Receive wrong permanent " << *this;
+    LOG(ERROR) << "Receive wrong permanent " << full_source << ' ' << *this;
     usage_limit_ = 0;
   }
 }

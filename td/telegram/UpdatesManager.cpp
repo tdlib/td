@@ -2282,27 +2282,27 @@ void UpdatesManager::process_qts_update(tl_object_ptr<telegram_api::Update> &&up
     }
     case telegram_api::updateChatParticipant::ID: {
       auto update = move_tl_object_as<telegram_api::updateChatParticipant>(update_ptr);
-      td_->contacts_manager_->on_update_chat_participant(ChatId(update->chat_id_), UserId(update->actor_id_),
-                                                         update->date_, DialogInviteLink(std::move(update->invite_)),
-                                                         std::move(update->prev_participant_),
-                                                         std::move(update->new_participant_));
+      td_->contacts_manager_->on_update_chat_participant(
+          ChatId(update->chat_id_), UserId(update->actor_id_), update->date_,
+          DialogInviteLink(std::move(update->invite_), "updateChatParticipant"), std::move(update->prev_participant_),
+          std::move(update->new_participant_));
       add_qts(qts).set_value(Unit());
       break;
     }
     case telegram_api::updateChannelParticipant::ID: {
       auto update = move_tl_object_as<telegram_api::updateChannelParticipant>(update_ptr);
-      td_->contacts_manager_->on_update_channel_participant(ChannelId(update->channel_id_), UserId(update->actor_id_),
-                                                            update->date_, DialogInviteLink(std::move(update->invite_)),
-                                                            std::move(update->prev_participant_),
-                                                            std::move(update->new_participant_));
+      td_->contacts_manager_->on_update_channel_participant(
+          ChannelId(update->channel_id_), UserId(update->actor_id_), update->date_,
+          DialogInviteLink(std::move(update->invite_), "updateChannelParticipant"),
+          std::move(update->prev_participant_), std::move(update->new_participant_));
       add_qts(qts).set_value(Unit());
       break;
     }
     case telegram_api::updateBotChatInviteRequester::ID: {
       auto update = move_tl_object_as<telegram_api::updateBotChatInviteRequester>(update_ptr);
-      td_->contacts_manager_->on_update_chat_invite_requester(DialogId(update->peer_), UserId(update->user_id_),
-                                                              std::move(update->about_), update->date_,
-                                                              DialogInviteLink(std::move(update->invite_)));
+      td_->contacts_manager_->on_update_chat_invite_requester(
+          DialogId(update->peer_), UserId(update->user_id_), std::move(update->about_), update->date_,
+          DialogInviteLink(std::move(update->invite_), "updateBotChatInviteRequester"));
       add_qts(qts).set_value(Unit());
       break;
     }
