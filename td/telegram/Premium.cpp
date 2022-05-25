@@ -268,4 +268,10 @@ void view_premium_feature(Td *td, const td_api::object_ptr<td_api::PremiumFeatur
                std::move(promise));
 }
 
+void click_premium_subscription_button(Td *td, Promise<Unit> &&promise) {
+  vector<tl_object_ptr<telegram_api::jsonObjectValue>> data;
+  save_app_log(td, "premium.promo_screen_accept", DialogId(), make_tl_object<telegram_api::jsonObject>(std::move(data)),
+               std::move(promise));
+}
+
 }  // namespace td

@@ -6325,6 +6325,9 @@ getPremiumFeatures source:PremiumSource = PremiumFeatures;
 //@description Informs TDLib that the user viewed detailed information about a Premium feature on the Premium features screen @feature The viewed premium feature
 viewPremiumFeature feature:PremiumFeature = Ok;
 
+//@description Informs TDLib that the user clicked Premium subscription button on the Premium features screen
+clickPremiumSubscriptionButton = Ok;
+
 
 //@description Accepts Telegram terms of services @terms_of_service_id Terms of service identifier
 acceptTermsOfService terms_of_service_id:string = Ok;

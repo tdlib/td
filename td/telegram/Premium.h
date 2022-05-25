@@ -27,4 +27,6 @@ void get_premium_features(Td *td, const td_api::object_ptr<td_api::PremiumSource
 
 void view_premium_feature(Td *td, const td_api::object_ptr<td_api::PremiumFeature> &feature, Promise<Unit> &&promise);
 
+void click_premium_subscription_button(Td *td, Promise<Unit> &&promise);
+
 }  // namespace td

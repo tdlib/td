@@ -2553,6 +2553,8 @@ class CliClient final : public Actor {
     } else if (op == "vprf") {
       auto feature = td_api::make_object<td_api::premiumFeatureProfileBadge>();
       send_request(td_api::make_object<td_api::viewPremiumFeature>(std::move(feature)));
+    } else if (op == "cprsb") {
+      send_request(td_api::make_object<td_api::clickPremiumSubscriptionButton>());
     } else if (op == "atos") {
       send_request(td_api::make_object<td_api::acceptTermsOfService>(args));
     } else if (op == "gdli") {
