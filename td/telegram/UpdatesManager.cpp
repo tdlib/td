@@ -53,6 +53,7 @@
 #include "td/telegram/TdDb.h"
 #include "td/telegram/telegram_api.hpp"
 #include "td/telegram/ThemeManager.h"
+#include "td/telegram/VoiceNotesManager.h"
 #include "td/telegram/WebPagesManager.h"
 
 #include "td/actor/MultiPromise.h"
@@ -3431,9 +3432,12 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateSavedRingtones>
   td_->notification_settings_manager_->reload_saved_ringtones(std::move(promise));
 }
 
-// unsupported updates
-
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateTranscribedAudio> update, Promise<Unit> &&promise) {
+  td_->voice_notes_manager_->on_update_transcribed_audio(std::move(update->text_), update->transcription_id_,
+                                                         !update->pending_);
+  promise.set_value(Unit());
 }
+
+// unsupported updates
 
 }  // namespace td

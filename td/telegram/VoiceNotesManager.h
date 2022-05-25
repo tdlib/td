@@ -40,6 +40,8 @@ class VoiceNotesManager {
 
   void recognize_speech(FullMessageId full_message_id, Promise<Unit> &&promise);
 
+  void on_update_transcribed_audio(string &&text, int64 transcription_id, bool is_final);
+
   void on_voice_note_transcribed(FileId file_id, string &&text, int64 transcription_id, bool is_final);
 
   void on_voice_note_transcription_failed(FileId file_id, Status &&error);
@@ -80,12 +82,15 @@ class VoiceNotesManager {
 
   FileId on_get_voice_note(unique_ptr<VoiceNote> new_voice_note, bool replace);
 
+  void on_pending_voice_note_transcription_failed(int64 transcription_id, Status &&error);
+
   void on_voice_note_transcription_updated(FileId file_id);
 
   Td *td_;
   FlatHashMap<FileId, unique_ptr<VoiceNote>, FileIdHash> voice_notes_;
 
   FlatHashMap<FileId, vector<Promise<Unit>>, FileIdHash> speech_recognition_queries_;
+  FlatHashMap<int64, FileId> pending_voice_note_transcription_queries_;
 
   FlatHashMap<FileId, FlatHashSet<FullMessageId, FullMessageIdHash>, FileIdHash> voice_note_messages_;
   FlatHashMap<FullMessageId, FileId, FullMessageIdHash> message_voice_notes_;
