@@ -23680,7 +23680,9 @@ void MessagesManager::on_get_history_from_database(DialogId dialog_id, MessageId
         if (last_received_message_id == MessageId::max()) {
           LOG(ERROR) << "Receive no usable messages in " << dialog_id
                      << " from database from the end, but expected messages from " << d->last_database_message_id
-                     << " up to " << d->first_database_message_id;
+                     << " up to " << d->first_database_message_id
+                     << ". Have old last_database_message_id = " << old_last_database_message_id << " and "
+                     << messages.size() << " received messages";
         } else {
           LOG(ERROR) << "Receive " << messages.size() << " unusable messages up to " << last_received_message_id
                      << " in " << dialog_id << " from database from the end, but expected messages from "
