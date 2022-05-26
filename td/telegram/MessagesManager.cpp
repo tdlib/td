@@ -870,6 +870,9 @@ class SearchPublicDialogsQuery final : public Td::ResultHandler {
 
   void on_error(Status status) final {
     if (!G()->is_expected_error(status)) {
+      if (status.message() == "QUERY_TOO_SHORT") {
+        return td_->messages_manager_->on_get_public_dialogs_search_result(query_, {}, {});
+      }
       LOG(ERROR) << "Receive error for SearchPublicDialogsQuery: " << status;
     }
     td_->messages_manager_->on_failed_public_dialogs_search(query_, std::move(status));
