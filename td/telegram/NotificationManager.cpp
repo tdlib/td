@@ -3201,7 +3201,7 @@ Status NotificationManager::process_push_notification_payload(string payload, bo
       return Status::Error("Receive wrong chat type");
     }
 
-    if (begins_with(loc_key, "CHAT_MESSAGE") || loc_key == "CHAT_ALBUM") {
+    if (begins_with(loc_key, "CHAT_MESSAGE") || begins_with(loc_key, "CHAT_REACT") || loc_key == "CHAT_ALBUM") {
       loc_key = loc_key.substr(5);
     }
     if (loc_args.empty()) {
@@ -3230,6 +3230,11 @@ Status NotificationManager::process_push_notification_payload(string payload, bo
   if (begins_with(loc_key, "PHONE_CALL_") || begins_with(loc_key, "VIDEO_CALL_")) {
     // TODO PHONE_CALL_REQUEST/PHONE_CALL_DECLINE/PHONE_CALL_MISSED/VIDEO_CALL_REQUEST/VIDEO_CALL_MISSED notifications
     return Status::Error(406, "Phone call notification is not supported");
+  }
+
+  if (begins_with(loc_key, "REACT_")) {
+    // TODO REACT_* notifications
+    return Status::Error(406, "Reaction notifications are unsupported");
   }
 
   loc_key = convert_loc_key(loc_key);
