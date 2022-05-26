@@ -38099,10 +38099,13 @@ void MessagesManager::on_get_channel_difference(
       }
 
       // bots can receive channelDifferenceEmpty with pts bigger than known pts
-      LOG_IF(ERROR, request_pts != difference->pts_ && !td_->auth_manager_->is_bot())
-          << "Receive channelDifferenceEmpty as result of getChannelDifference with pts = " << request_pts
-          << " and limit = " << request_limit << " in " << dialog_id << ", but pts has changed from " << request_pts
-          << " to " << difference->pts_;
+      // also, this can happen for deleted channels
+      if (request_pts != difference->pts_ && !td_->auth_manager_->is_bot() &&
+          have_input_peer(dialog_id, AccessRights::Read)) {
+        LOG(ERROR) << "Receive channelDifferenceEmpty as result of getChannelDifference with pts = " << request_pts
+                   << " and limit = " << request_limit << " in " << dialog_id << ", but pts has changed to "
+                   << difference->pts_;
+      }
       set_channel_pts(d, difference->pts_, "channel difference empty");
       break;
     }
