@@ -1113,7 +1113,10 @@ Status create_openssl_error(int code, Slice message) {
 
 void clear_openssl_errors(Slice source) {
   if (ERR_peek_error() != 0) {
-    LOG(ERROR) << source << ": " << create_openssl_error(0, "Unprocessed OPENSSL_ERROR");
+    auto error = create_openssl_error(0, "Unprocessed OPENSSL_ERROR");
+    if (!ends_with(error.message(), ":def_load:system lib}]")) {
+      LOG(ERROR) << source << ": " << error;
+    }
   }
 #if TD_PORT_WINDOWS
   WSASetLastError(0);
