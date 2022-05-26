@@ -12579,7 +12579,7 @@ void MessagesManager::set_dialog_max_unavailable_message_id(DialogId dialog_id, 
     }
 
     if (max_unavailable_message_id.is_valid() && max_unavailable_message_id.is_yet_unsent()) {
-      LOG(ERROR) << "Tried to update " << dialog_id << " last read outbox message with " << max_unavailable_message_id
+      LOG(ERROR) << "Tried to update " << dialog_id << " max unavailable message with " << max_unavailable_message_id
                  << " from " << source;
       return;
     }
@@ -36287,7 +36287,8 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
     d->last_new_message_id = MessageId();
   }
   if (last_message_id.is_valid()) {
-    if ((last_message_id.is_server() || dialog_type == DialogType::SecretChat) && !d->last_new_message_id.is_valid()) {
+    if ((last_message_id.is_server() || dialog_type == DialogType::SecretChat) && !last_message_id.is_yet_unsent() &&
+        !d->last_new_message_id.is_valid()) {
       LOG(ERROR) << "Bugfixing wrong last_new_message_id to " << last_message_id << " in " << dialog_id;
       // must be called before set_dialog_first_database_message_id and set_dialog_last_database_message_id
       set_dialog_last_new_message_id(d, last_message_id, "fix_new_dialog 1");
