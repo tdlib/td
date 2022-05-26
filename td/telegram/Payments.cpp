@@ -734,8 +734,7 @@ Result<InputInvoice> process_input_message_invoice(
 
       PhotoSize s;
       s.type = 'n';
-      s.dimensions =
-          get_dimensions(input_invoice->photo_width_, input_invoice->photo_height_, "process_input_message_invoice");
+      s.dimensions = get_dimensions(input_invoice->photo_width_, input_invoice->photo_height_, nullptr);
       s.size = input_invoice->photo_size_;  // TODO use invoice_file_id size
       s.file_id = invoice_file_id;
 

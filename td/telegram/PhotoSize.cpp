@@ -24,7 +24,9 @@ namespace td {
 
 static uint16 get_dimension(int32 size, const char *source) {
   if (size < 0 || size > 65535) {
-    LOG(ERROR) << "Wrong image dimension = " << size << " from " << source;
+    if (source != nullptr) {
+      LOG(ERROR) << "Wrong image dimension = " << size << " from " << source;
+    }
     return 0;
   }
   return narrow_cast<uint16>(size);
@@ -175,7 +177,7 @@ PhotoSize get_secret_thumbnail_photo_size(FileManager *file_manager, BufferSlice
   }
   PhotoSize res;
   res.type = 't';
-  res.dimensions = get_dimensions(width, height, "get_secret_thumbnail_photo_size");
+  res.dimensions = get_dimensions(width, height, nullptr);
   res.size = narrow_cast<int32>(bytes.size());
 
   // generate some random remote location to save

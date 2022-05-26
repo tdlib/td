@@ -1723,7 +1723,7 @@ static Result<InputMessageContent> create_input_message_content(
       td->animations_manager_->create_animation(
           file_id, string(), thumbnail, AnimationSize(), has_stickers, std::move(sticker_file_ids),
           std::move(file_name), std::move(mime_type), input_animation->duration_,
-          get_dimensions(input_animation->width_, input_animation->height_, "inputMessageAnimation"), false);
+          get_dimensions(input_animation->width_, input_animation->height_, nullptr), false);
 
       content = make_unique<MessageAnimation>(file_id, std::move(caption));
       break;
@@ -1792,7 +1792,7 @@ static Result<InputMessageContent> create_input_message_content(
 
       PhotoSize s;
       s.type = type;
-      s.dimensions = get_dimensions(input_photo->width_, input_photo->height_, "inputMessagePhoto");
+      s.dimensions = get_dimensions(input_photo->width_, input_photo->height_, nullptr);
       s.size = static_cast<int32>(file_view.size());
       s.file_id = file_id;
 
@@ -1815,10 +1815,9 @@ static Result<InputMessageContent> create_input_message_content(
 
       emoji = std::move(input_sticker->emoji_);
 
-      td->stickers_manager_->create_sticker(
-          file_id, string(), thumbnail,
-          get_dimensions(input_sticker->width_, input_sticker->height_, "inputMessageSticker"), nullptr,
-          StickerFormat::Unknown, nullptr);
+      td->stickers_manager_->create_sticker(file_id, string(), thumbnail,
+                                            get_dimensions(input_sticker->width_, input_sticker->height_, nullptr),
+                                            nullptr, StickerFormat::Unknown, nullptr);
 
       content = make_unique<MessageSticker>(file_id);
       break;
@@ -1829,11 +1828,10 @@ static Result<InputMessageContent> create_input_message_content(
       ttl = input_video->ttl_;
 
       bool has_stickers = !sticker_file_ids.empty();
-      td->videos_manager_->create_video(file_id, string(), thumbnail, AnimationSize(), has_stickers,
-                                        std::move(sticker_file_ids), std::move(file_name), std::move(mime_type),
-                                        input_video->duration_,
-                                        get_dimensions(input_video->width_, input_video->height_, "inputMessageVideo"),
-                                        input_video->supports_streaming_, false);
+      td->videos_manager_->create_video(
+          file_id, string(), thumbnail, AnimationSize(), has_stickers, std::move(sticker_file_ids),
+          std::move(file_name), std::move(mime_type), input_video->duration_,
+          get_dimensions(input_video->width_, input_video->height_, nullptr), input_video->supports_streaming_, false);
 
       content = make_unique<MessageVideo>(file_id, std::move(caption));
       break;
@@ -1847,7 +1845,7 @@ static Result<InputMessageContent> create_input_message_content(
       }
 
       td->video_notes_manager_->create_video_note(file_id, string(), thumbnail, input_video_note->duration_,
-                                                  get_dimensions(length, length, "inputMessageVideoNote"), false);
+                                                  get_dimensions(length, length, nullptr), false);
 
       content = make_unique<MessageVideoNote>(file_id, false);
       break;
@@ -2083,7 +2081,7 @@ Result<InputMessageContent> get_input_message_content(
       LOG(WARNING) << "Ignore thumbnail file: " << r_thumbnail_file_id.error().message();
     } else {
       thumbnail.type = 't';
-      thumbnail.dimensions = get_dimensions(input_thumbnail->width_, input_thumbnail->height_, "inputThumbnail");
+      thumbnail.dimensions = get_dimensions(input_thumbnail->width_, input_thumbnail->height_, nullptr);
       thumbnail.file_id = r_thumbnail_file_id.ok();
       CHECK(thumbnail.file_id.is_valid());
 

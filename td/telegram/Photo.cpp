@@ -267,7 +267,7 @@ Photo get_encrypted_file_photo(FileManager *file_manager, unique_ptr<EncryptedFi
 
   PhotoSize s;
   s.type = 'i';
-  s.dimensions = get_dimensions(photo->w_, photo->h_, "get_encrypted_file_photo");
+  s.dimensions = get_dimensions(photo->w_, photo->h_, nullptr);
   s.size = photo->size_;
   s.file_id = file_id;
   res.photos.push_back(s);

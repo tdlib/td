@@ -5647,8 +5647,7 @@ Result<std::tuple<FileId, bool, bool, StickerFormat>> StickersManager::prepare_i
 
   if (format == StickerFormat::Tgs) {
     int32 width = for_thumbnail ? 100 : 512;
-    create_sticker(file_id, string(), PhotoSize(), get_dimensions(width, width, "prepare_input_file"), nullptr, format,
-                   nullptr);
+    create_sticker(file_id, string(), PhotoSize(), get_dimensions(width, width, nullptr), nullptr, format, nullptr);
   } else if (format == StickerFormat::Webm) {
     td_->documents_manager_->create_document(file_id, string(), PhotoSize(), "sticker.webm", "video/webm", false);
   } else {
