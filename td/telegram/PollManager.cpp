@@ -1291,6 +1291,9 @@ void PollManager::on_unload_poll_timeout(PollId poll_id) {
   if (!can_unload_poll(poll_id)) {
     return;
   }
+  if (!have_poll(poll_id)) {
+    return;
+  }
 
   LOG(INFO) << "Unload " << poll_id;
 
@@ -1302,6 +1305,7 @@ void PollManager::on_unload_poll_timeout(PollId poll_id) {
 
   poll_voters_.erase(poll_id);
   loaded_from_database_polls_.erase(poll_id);
+  unload_poll_timeout_.cancel_timeout(poll_id.get());
 }
 
 void PollManager::on_get_poll_results(PollId poll_id, uint64 generation,
