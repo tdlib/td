@@ -4660,14 +4660,15 @@ bool GroupCallManager::set_group_call_participant_count(GroupCall *group_call, i
   }
 
   LOG(DEBUG) << "Set " << group_call->group_call_id << " participant count to " << count << " from " << source;
+  auto input_group_call_id = get_input_group_call_id(group_call->group_call_id).ok();
   if (count < 0) {
     LOG(ERROR) << "Participant count became negative in " << group_call->group_call_id << " in "
                << group_call->dialog_id << " from " << source;
     count = 0;
+    reload_group_call(input_group_call_id, Auto());
   }
 
   bool result = false;
-  auto input_group_call_id = get_input_group_call_id(group_call->group_call_id).ok();
   if (need_group_call_participants(input_group_call_id, group_call)) {
     auto known_participant_count =
         static_cast<int32>(add_group_call_participants(input_group_call_id)->participants.size());
@@ -4723,6 +4724,8 @@ bool GroupCallManager::set_group_call_unmuted_video_count(GroupCall *group_call,
     LOG(ERROR) << "Video participant count became negative in " << group_call->group_call_id << " in "
                << group_call->dialog_id << " from " << source;
     count = 0;
+    auto input_group_call_id = get_input_group_call_id(group_call->group_call_id).ok();
+    reload_group_call(input_group_call_id, Auto());
   }
 
   if (group_call->unmuted_video_count == count) {
