@@ -32813,7 +32813,7 @@ void MessagesManager::on_send_dialog_action_timeout(DialogId dialog_id) {
     return;
   }
   CHECK(m->message_id.is_yet_unsent());
-  if (m->forward_info != nullptr || m->had_forward_info || m->message_id.is_scheduled() ||
+  if (m->forward_info != nullptr || m->had_forward_info || m->is_copy || m->message_id.is_scheduled() ||
       m->sender_dialog_id.is_valid()) {
     return;
   }
