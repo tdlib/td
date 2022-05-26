@@ -15791,6 +15791,10 @@ void ContactsManager::on_update_dialog_administrators(DialogId dialog_id, vector
 void ContactsManager::reload_dialog_administrators(DialogId dialog_id,
                                                    const vector<DialogAdministrator> &dialog_administrators,
                                                    Promise<td_api::object_ptr<td_api::chatAdministrators>> &&promise) {
+  auto dialog_type = dialog_id.get_type();
+  if (dialog_type == DialogType::Chat && !get_chat_permissions(dialog_id.get_chat_id()).is_member()) {
+    return promise.set_value(td_api::object_ptr<td_api::chatAdministrators>());
+  }
   auto query_promise = PromiseCreator::lambda(
       [actor_id = actor_id(this), dialog_id, promise = std::move(promise)](Result<Unit> &&result) mutable {
         if (promise) {
@@ -15801,7 +15805,7 @@ void ContactsManager::reload_dialog_administrators(DialogId dialog_id,
           }
         }
       });
-  switch (dialog_id.get_type()) {
+  switch (dialog_type) {
     case DialogType::Chat:
       load_chat_full(dialog_id.get_chat_id(), false, std::move(query_promise), "reload_dialog_administrators");
       break;
