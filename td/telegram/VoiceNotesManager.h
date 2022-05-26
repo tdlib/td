@@ -40,6 +40,8 @@ class VoiceNotesManager {
 
   void recognize_speech(FullMessageId full_message_id, Promise<Unit> &&promise);
 
+  void rate_speech_recognition(FullMessageId full_message_id, bool is_good, Promise<Unit> &&promise);
+
   void on_update_transcribed_audio(string &&text, int64 transcription_id, bool is_final);
 
   void on_voice_note_transcribed(FileId file_id, string &&text, int64 transcription_id, bool is_final);

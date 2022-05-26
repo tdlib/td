@@ -58,6 +58,42 @@ class TranscribeAudioQuery final : public Td::ResultHandler {
   }
 };
 
+class RateTranscribedAudioQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  DialogId dialog_id_;
+
+ public:
+  explicit RateTranscribedAudioQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(FullMessageId full_message_id, int64 transcription_id, bool is_good) {
+    dialog_id_ = full_message_id.get_dialog_id();
+    auto input_peer = td_->messages_manager_->get_input_peer(dialog_id_, AccessRights::Read);
+    if (input_peer == nullptr) {
+      return on_error(Status::Error(400, "Can't access the chat"));
+    }
+    send_query(G()->net_query_creator().create(telegram_api::messages_rateTranscribedAudio(
+        std::move(input_peer), full_message_id.get_message_id().get_server_message_id().get(), transcription_id,
+        is_good)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_rateTranscribedAudio>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    bool result = result_ptr.ok();
+    LOG(INFO) << "Receive result for RateTranscribedAudioQuery: " << result;
+    promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "RateTranscribedAudioQuery");
+    promise_.set_error(std::move(status));
+  }
+};
+
 VoiceNotesManager::VoiceNotesManager(Td *td) : td_(td) {
 }
 
@@ -320,6 +356,27 @@ void VoiceNotesManager::on_voice_note_transcription_updated(FileId file_id) {
       td_->messages_manager_->on_external_update_message_content(full_message_id);
     }
   }
+}
+
+void VoiceNotesManager::rate_speech_recognition(FullMessageId full_message_id, bool is_good, Promise<Unit> &&promise) {
+  if (!td_->messages_manager_->have_message_force(full_message_id, "rate_speech_recognition")) {
+    return promise.set_error(Status::Error(400, "Message not found"));
+  }
+
+  auto it = message_voice_notes_.find(full_message_id);
+  if (it == message_voice_notes_.end()) {
+    return promise.set_error(Status::Error(400, "Invalid message specified"));
+  }
+
+  auto file_id = it->second;
+  auto voice_note = get_voice_note(file_id);
+  CHECK(voice_note != nullptr);
+  if (!voice_note->is_transcribed) {
+    return promise.set_value(Unit());
+  }
+  CHECK(voice_note->transcription_id != 0);
+  td_->create_handler<RateTranscribedAudioQuery>(std::move(promise))
+      ->send(full_message_id, voice_note->transcription_id, is_good);
 }
 
 SecretInputMedia VoiceNotesManager::get_secret_input_media(FileId voice_note_file_id,

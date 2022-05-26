@@ -4823,6 +4823,9 @@ translateText text:string from_language_code:string to_language_code:string = Te
 //@message_id Identifier of the message
 recognizeSpeech chat_id:int53 message_id:int53 = Ok;
 
+//@description Rates recognized speech in a voice note message @chat_id Identifier of the chat to which the message belongs @message_id Identifier of the message @is_good Pass true if the speech recognition is good
+rateSpeechRecognition chat_id:int53 message_id:int53 is_good:Bool = Ok;
+
 
 //@description Returns list of message sender identifiers, which can be used to send messages in a chat @chat_id Chat identifier
 getChatAvailableMessageSenders chat_id:int53 = MessageSenders;
