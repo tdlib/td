@@ -17283,7 +17283,9 @@ void MessagesManager::synchronize_dialog_filters() {
 vector<DialogId> MessagesManager::search_public_dialogs(const string &query, Promise<Unit> &&promise) {
   LOG(INFO) << "Search public chats with query = \"" << query << '"';
 
-  if (utf8_length(query) < MIN_SEARCH_PUBLIC_DIALOG_PREFIX_LEN) {
+  auto query_length = utf8_length(query);
+  if (query_length < MIN_SEARCH_PUBLIC_DIALOG_PREFIX_LEN ||
+      (query_length == MIN_SEARCH_PUBLIC_DIALOG_PREFIX_LEN && query[0] == '@')) {
     string username = clean_username(query);
     if (username[0] == '@') {
       username = username.substr(1);
