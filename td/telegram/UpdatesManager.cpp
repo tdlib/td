@@ -1773,6 +1773,7 @@ void UpdatesManager::on_pending_updates(vector<tl_object_ptr<telegram_api::Updat
 
   size_t ordinary_new_message_count = 0;
   size_t scheduled_new_message_count = 0;
+  size_t update_message_id_count = 0;
   for (auto &update : updates) {
     if (update != nullptr) {
       auto constructor_id = update->get_id();
@@ -1781,11 +1782,13 @@ void UpdatesManager::on_pending_updates(vector<tl_object_ptr<telegram_api::Updat
         ordinary_new_message_count++;
       } else if (constructor_id == telegram_api::updateNewScheduledMessage::ID) {
         scheduled_new_message_count++;
+      } else if (constructor_id == telegram_api::updateMessageID::ID) {
+        update_message_id_count++;
       }
     }
   }
 
-  if (ordinary_new_message_count != 0 && scheduled_new_message_count != 0) {
+  if (update_message_id_count != 0 && ordinary_new_message_count != 0 && scheduled_new_message_count != 0) {
     LOG(ERROR) << "Receive mixed message types in updates:";
     for (auto &update : updates) {
       LOG(ERROR) << "Update: " << oneline(to_string(update));
