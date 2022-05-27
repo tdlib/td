@@ -13,7 +13,9 @@
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/Version.h"
 
+#include "td/actor/actor.h"
 #include "td/actor/PromiseFuture.h"
+#include "td/actor/Timeout.h"
 
 #include "td/utils/common.h"
 #include "td/utils/FlatHashMap.h"
@@ -24,9 +26,9 @@ namespace td {
 
 class Td;
 
-class VoiceNotesManager {
+class VoiceNotesManager final : public Actor {
  public:
-  explicit VoiceNotesManager(Td *td);
+  VoiceNotesManager(Td *td, ActorShared<> parent);
 
   int32 get_voice_note_duration(FileId file_id) const;
 
@@ -66,6 +68,8 @@ class VoiceNotesManager {
   FileId parse_voice_note(ParserT &parser);
 
  private:
+  static constexpr int32 TRANSCRIPTION_TIMEOUT = 60;
+
   class VoiceNote {
    public:
     string mime_type;
@@ -78,6 +82,8 @@ class VoiceNotesManager {
     FileId file_id;
   };
 
+  static void on_voice_note_transcription_timeout_callback(void *voice_notes_manager_ptr, int64 transcription_id);
+
   VoiceNote *get_voice_note(FileId file_id);
 
   const VoiceNote *get_voice_note(FileId file_id) const;
@@ -88,11 +94,16 @@ class VoiceNotesManager {
 
   void on_voice_note_transcription_updated(FileId file_id);
 
+  void tear_down() final;
+
   Td *td_;
+  ActorShared<> parent_;
+
   FlatHashMap<FileId, unique_ptr<VoiceNote>, FileIdHash> voice_notes_;
 
   FlatHashMap<FileId, vector<Promise<Unit>>, FileIdHash> speech_recognition_queries_;
   FlatHashMap<int64, FileId> pending_voice_note_transcription_queries_;
+  MultiTimeout voice_note_transcription_timeout_{"VoiceNoteTranscriptionTimeout"};
 
   FlatHashMap<FileId, FlatHashSet<FullMessageId, FullMessageIdHash>, FileIdHash> voice_note_messages_;
   FlatHashMap<FullMessageId, FileId, FullMessageIdHash> message_voice_notes_;

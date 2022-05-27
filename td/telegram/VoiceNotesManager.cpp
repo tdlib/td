@@ -94,7 +94,25 @@ class RateTranscribedAudioQuery final : public Td::ResultHandler {
   }
 };
 
-VoiceNotesManager::VoiceNotesManager(Td *td) : td_(td) {
+VoiceNotesManager::VoiceNotesManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
+  voice_note_transcription_timeout_.set_callback(on_voice_note_transcription_timeout_callback);
+  voice_note_transcription_timeout_.set_callback_data(static_cast<void *>(this));
+}
+
+void VoiceNotesManager::tear_down() {
+  parent_.reset();
+}
+
+void VoiceNotesManager::on_voice_note_transcription_timeout_callback(void *voice_notes_manager_ptr,
+                                                                     int64 transcription_id) {
+  if (G()->close_flag()) {
+    return;
+  }
+
+  auto voice_notes_manager = static_cast<VoiceNotesManager *>(voice_notes_manager_ptr);
+  send_closure_later(voice_notes_manager->actor_id(voice_notes_manager),
+                     &VoiceNotesManager::on_pending_voice_note_transcription_failed, transcription_id,
+                     Status::Error(500, "Timeout expired"));
 }
 
 int32 VoiceNotesManager::get_voice_note_duration(FileId file_id) const {
@@ -302,6 +320,7 @@ void VoiceNotesManager::on_voice_note_transcribed(FileId file_id, string &&text,
     }
     bool is_inserted = pending_voice_note_transcription_queries_.emplace(transcription_id, file_id).second;
     CHECK(is_inserted);
+    voice_note_transcription_timeout_.set_timeout_in(transcription_id, TRANSCRIPTION_TIMEOUT);
   }
 }
 
@@ -335,6 +354,7 @@ void VoiceNotesManager::on_update_transcribed_audio(string &&text, int64 transcr
   }
   auto file_id = it->second;
   pending_voice_note_transcription_queries_.erase(it);
+  voice_note_transcription_timeout_.cancel_timeout(transcription_id);
 
   on_voice_note_transcribed(file_id, std::move(text), transcription_id, is_final);
 }
@@ -346,6 +366,8 @@ void VoiceNotesManager::on_pending_voice_note_transcription_failed(int64 transcr
   }
   auto file_id = it->second;
   pending_voice_note_transcription_queries_.erase(it);
+  voice_note_transcription_timeout_.cancel_timeout(transcription_id);
+
   on_voice_note_transcription_failed(file_id, std::move(error));
 }
 

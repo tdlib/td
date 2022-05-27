@@ -424,7 +424,7 @@ class TestDownloadFile : public Task {
       unlink(file.local_->path_).ignore();
     }
 
-    size_t size = file.size_;
+    size_t size = narrow_cast<size_t>(file.size_);
     Random::Xorshift128plus rnd(123);
 
     size_t begin = 0;
