@@ -950,6 +950,9 @@ Status SecretChatActor::do_inbound_message_decrypted_unchecked(unique_ptr<log_ev
     return status;
   }
 
+  LOG(INFO) << "Receive message encrypted with MTProto " << mtproto_version << ": "
+            << to_string(message->decrypted_message_layer);
+
   if (message->decrypted_message_layer->message_->get_id() == secret_api::decryptedMessageService8::ID) {
     auto old = move_tl_object_as<secret_api::decryptedMessageService8>(message->decrypted_message_layer->message_);
     message->decrypted_message_layer->message_ =
@@ -984,9 +987,6 @@ Status SecretChatActor::do_inbound_message_decrypted_unchecked(unique_ptr<log_ev
       decrypted_message_service->action_ = secret_api::make_object<secret_api::decryptedMessageActionNoop>();
     }
   }
-
-  LOG(INFO) << "Receive message encrypted with MTProto " << mtproto_version << ": "
-            << to_string(message->decrypted_message_layer);
 
   if (status.is_error()) {
     CHECK(status.code() == 2);  // gap found
