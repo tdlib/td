@@ -156,7 +156,8 @@ void OptionManager::clear_options() {
 bool OptionManager::is_internal_option(Slice name) {
   switch (name[0]) {
     case 'a':
-      return name == "animated_emoji_zoom" || name == "animation_search_emojis" ||
+      return name == "about_length_limit_default" || name == "about_length_limit_premium" ||
+             name == "animated_emoji_zoom" || name == "animation_search_emojis" ||
              name == "animation_search_provider" || name == "auth";
     case 'b':
       return name == "base_language_pack_version";

@@ -2908,6 +2908,9 @@ premiumLimitTypePinnedArchivedChatCount = PremiumLimitType;
 //@description The maximum length of sent media caption
 premiumLimitTypeCaptionLength = PremiumLimitType;
 
+//@description The maximum length of the user's bio
+premiumLimitTypeBioLength = PremiumLimitType;
+
 
 //@class PremiumFeature @description Describes a feature available to Premium users
 
