@@ -4330,8 +4330,8 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
     }
     case telegram_api::messageMediaPoll::ID: {
       auto media_poll = move_tl_object_as<telegram_api::messageMediaPoll>(media);
-      auto poll_id =
-          td->poll_manager_->on_get_poll(PollId(), std::move(media_poll->poll_), std::move(media_poll->results_));
+      auto poll_id = td->poll_manager_->on_get_poll(PollId(), std::move(media_poll->poll_),
+                                                    std::move(media_poll->results_), "messageMediaPoll");
       if (!poll_id.is_valid()) {
         break;
       }

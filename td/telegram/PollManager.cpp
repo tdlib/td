@@ -1425,38 +1425,41 @@ vector<PollManager::PollOption> PollManager::get_poll_options(
 }
 
 PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll> &&poll_server,
-                                tl_object_ptr<telegram_api::pollResults> &&poll_results) {
+                                tl_object_ptr<telegram_api::pollResults> &&poll_results, const char *source) {
   bool is_bot = td_->auth_manager_->is_bot();
   bool need_update_poll = poll_id.is_valid() && is_bot;
   if (!poll_id.is_valid() && poll_server != nullptr) {
     poll_id = PollId(poll_server->id_);
   }
   if (!poll_id.is_valid() || is_local_poll_id(poll_id)) {
-    LOG(ERROR) << "Receive " << poll_id << " from server: " << oneline(to_string(poll_server)) << " "
+    LOG(ERROR) << "Receive " << poll_id << " from " << source << ": " << oneline(to_string(poll_server)) << " "
                << oneline(to_string(poll_results));
     return PollId();
   }
   if (poll_server != nullptr && poll_server->id_ != poll_id.get()) {
-    LOG(ERROR) << "Receive poll " << poll_server->id_ << " instead of " << poll_id;
+    LOG(ERROR) << "Receive poll " << poll_server->id_ << " instead of " << poll_id << " from " << source;
     return PollId();
   }
   constexpr size_t MAX_POLL_OPTIONS = 10;  // server-side limit
   if (poll_server != nullptr &&
       (poll_server->answers_.size() <= 1 || poll_server->answers_.size() > 10 * MAX_POLL_OPTIONS)) {
-    LOG(ERROR) << "Receive " << poll_id << " with wrong number of answers: " << to_string(poll_server);
+    LOG(ERROR) << "Receive " << poll_id << " from " << source
+               << " with wrong number of answers: " << to_string(poll_server);
     return PollId();
   }
   if (poll_server != nullptr) {
     FlatHashSet<Slice, SliceHash> option_data;
     for (auto &answer : poll_server->answers_) {
       if (answer->option_.empty()) {
-        LOG(ERROR) << "Receive " << poll_id << " with an empty option data: " << to_string(poll_server);
+        LOG(ERROR) << "Receive " << poll_id << " from " << source
+                   << " with an empty option data: " << to_string(poll_server);
         return PollId();
       }
       option_data.insert(answer->option_.as_slice());
     }
     if (option_data.size() != poll_server->answers_.size()) {
-      LOG(ERROR) << "Receive " << poll_id << " with duplicate options: " << to_string(poll_server);
+      LOG(ERROR) << "Receive " << poll_id << " from " << source
+                 << " with duplicate options: " << to_string(poll_server);
       return PollId();
     }
   }
@@ -1574,7 +1577,7 @@ PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll
     bool allow_multiple_answers = (poll_server->flags_ & telegram_api::poll::MULTIPLE_CHOICE_MASK) != 0;
     bool is_quiz = (poll_server->flags_ & telegram_api::poll::QUIZ_MASK) != 0;
     if (is_quiz && allow_multiple_answers) {
-      LOG(ERROR) << "Receive quiz " << poll_id << " allowing multiple answers";
+      LOG(ERROR) << "Receive quiz " << poll_id << " from " << source << " allowing multiple answers";
       allow_multiple_answers = false;
     }
     if (allow_multiple_answers != poll->allow_multiple_answers) {
@@ -1593,7 +1596,7 @@ PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll
   if (has_total_voters && poll_results->total_voters_ != poll->total_voter_count) {
     poll->total_voter_count = poll_results->total_voters_;
     if (poll->total_voter_count < 0) {
-      LOG(ERROR) << "Receive " << poll->total_voter_count << " voters in " << poll_id;
+      LOG(ERROR) << "Receive " << poll->total_voter_count << " voters in " << poll_id << " from " << source;
       poll->total_voter_count = 0;
     }
     is_changed = true;
@@ -1617,7 +1620,8 @@ PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll
         bool is_correct = poll_result->correct_;
         if (is_correct) {
           if (correct_option_id != -1) {
-            LOG(ERROR) << "Receive more than 1 correct answers " << correct_option_id << " and " << option_index;
+            LOG(ERROR) << "Receive more than 1 correct answers " << correct_option_id << " and " << option_index
+                       << " in " << poll_id << " from " << source;
           }
           correct_option_id = static_cast<int32>(option_index);
         }
@@ -1626,21 +1630,23 @@ PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll
       }
 
       if (poll_result->voters_ < 0) {
-        LOG(ERROR) << "Receive " << poll_result->voters_ << " voters for an option in " << poll_id;
+        LOG(ERROR) << "Receive " << poll_result->voters_ << " voters for an option in " << poll_id << " from "
+                   << source;
         poll_result->voters_ = 0;
       }
       if (option.is_chosen && poll_result->voters_ == 0) {
-        LOG(ERROR) << "Receive 0 voters for the chosen option in " << poll_id;
+        LOG(ERROR) << "Receive 0 voters for the chosen option in " << poll_id << " from " << source;
         poll_result->voters_ = 1;
       }
       if (poll_result->voters_ > poll->total_voter_count) {
         LOG(ERROR) << "Have only " << poll->total_voter_count << " poll voters, but there are " << poll_result->voters_
-                   << " voters for an option in " << poll_id;
+                   << " voters for an option in " << poll_id << " from " << source;
         poll->total_voter_count = poll_result->voters_;
       }
       auto max_voter_count = std::numeric_limits<int32>::max() / narrow_cast<int32>(poll->options.size()) - 2;
       if (poll_result->voters_ > max_voter_count) {
-        LOG(ERROR) << "Have too many " << poll_result->voters_ << " poll voters for an option in " << poll_id;
+        LOG(ERROR) << "Have too many " << poll_result->voters_ << " poll voters for an option in " << poll_id
+                   << " from " << source;
         poll_result->voters_ = max_voter_count;
       }
       if (poll_result->voters_ != option.voter_count) {
@@ -1657,13 +1663,13 @@ PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll
     }
     if (poll->total_voter_count > max_total_voter_count && max_total_voter_count != 0) {
       LOG(ERROR) << "Have only " << max_total_voter_count << " total poll voters, but there are "
-                 << poll->total_voter_count << " voters in " << poll_id;
+                 << poll->total_voter_count << " voters in " << poll_id << " from " << source;
       poll->total_voter_count = max_total_voter_count;
     }
   }
 
   auto entities =
-      get_message_entities(td_->contacts_manager_.get(), std::move(poll_results->solution_entities_), "on_get_poll");
+      get_message_entities(td_->contacts_manager_.get(), std::move(poll_results->solution_entities_), source);
   auto status = fix_formatted_text(poll_results->solution_, entities, true, true, true, true, false);
   if (status.is_error()) {
     if (!clean_input_string(poll_results->solution_)) {
@@ -1677,7 +1683,7 @@ PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll
     if (poll->correct_option_id != correct_option_id) {
       if (correct_option_id == -1 && poll->correct_option_id != -1) {
         LOG(ERROR) << "Can't change correct option of " << poll_id << " from " << poll->correct_option_id << " to "
-                   << correct_option_id;
+                   << correct_option_id << " from " << source;
       } else {
         poll->correct_option_id = correct_option_id;
         is_changed = true;
@@ -1685,7 +1691,7 @@ PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll
     }
     if (poll->explanation != explanation && (!is_min || poll_server_is_closed)) {
       if (explanation.text.empty() && !poll->explanation.text.empty()) {
-        LOG(ERROR) << "Can't change known " << poll_id << " explanation to empty";
+        LOG(ERROR) << "Can't change known " << poll_id << " explanation to empty from " << source ;
       } else {
         poll->explanation = std::move(explanation);
         is_changed = true;
@@ -1693,10 +1699,10 @@ PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll
     }
   } else {
     if (correct_option_id != -1) {
-      LOG(ERROR) << "Receive correct option " << correct_option_id << " in non-quiz " << poll_id;
+      LOG(ERROR) << "Receive correct option " << correct_option_id << " in non-quiz " << poll_id << " from " << source;
     }
     if (!explanation.text.empty()) {
-      LOG(ERROR) << "Receive explanation " << explanation << " in non-quiz " << poll_id;
+      LOG(ERROR) << "Receive explanation " << explanation << " in non-quiz " << poll_id << " from " << source;
     }
   }
 
@@ -1707,12 +1713,13 @@ PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll
       if (user_id.is_valid()) {
         recent_voter_user_ids.push_back(user_id);
       } else {
-        LOG(ERROR) << "Receive " << user_id << " as recent voter in " << poll_id;
+        LOG(ERROR) << "Receive " << user_id << " as recent voter in " << poll_id << " from " << source;
       }
     }
   }
   if (poll->is_anonymous && !recent_voter_user_ids.empty()) {
-    LOG(ERROR) << "Receive anonymous " << poll_id << " with recent voters " << recent_voter_user_ids;
+    LOG(ERROR) << "Receive anonymous " << poll_id << " with recent voters " << recent_voter_user_ids << " from "
+               << source;
     recent_voter_user_ids.clear();
   }
   if (recent_voter_user_ids != poll->recent_voter_user_ids) {

@@ -3344,7 +3344,8 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateGeoLiveViewed> 
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateMessagePoll> update, Promise<Unit> &&promise) {
-  td_->poll_manager_->on_get_poll(PollId(update->poll_id_), std::move(update->poll_), std::move(update->results_));
+  td_->poll_manager_->on_get_poll(PollId(update->poll_id_), std::move(update->poll_), std::move(update->results_),
+                                  "updateMessagePoll");
   promise.set_value(Unit());
 }
 

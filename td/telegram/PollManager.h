@@ -77,7 +77,7 @@ class PollManager final : public Actor {
   tl_object_ptr<telegram_api::InputMedia> get_input_media(PollId poll_id) const;
 
   PollId on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll> &&poll_server,
-                     tl_object_ptr<telegram_api::pollResults> &&poll_results);
+                     tl_object_ptr<telegram_api::pollResults> &&poll_results, const char *source);
 
   void on_get_poll_vote(PollId poll_id, UserId user_id, vector<BufferSlice> &&options);
 
