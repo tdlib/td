@@ -1876,9 +1876,9 @@ Result<vector<MessageEntity>> parse_markdown(string &text) {
           if (user_id.is_valid()) {
             entities.emplace_back(entity_offset, entity_length, user_id);
           } else {
-            auto r_url = LinkManager::check_link(url);
-            if (r_url.is_ok()) {
-              entities.emplace_back(MessageEntity::Type::TextUrl, entity_offset, entity_length, r_url.move_as_ok());
+            url = LinkManager::get_checked_link(url);
+            if (!url.empty()) {
+              entities.emplace_back(MessageEntity::Type::TextUrl, entity_offset, entity_length, std::move(url));
             }
           }
           break;
@@ -2092,11 +2092,11 @@ static Result<vector<MessageEntity>> do_parse_markdown_v2(CSlice text, string &r
           }
           user_id = LinkManager::get_link_user_id(url);
           if (!user_id.is_valid()) {
-            auto r_url = LinkManager::check_link(url);
-            if (r_url.is_error()) {
+            url = LinkManager::get_checked_link(url);
+            if (url.empty()) {
               skip_entity = true;
             } else {
-              argument = r_url.move_as_ok();
+              argument = std::move(url);
             }
           }
           break;
@@ -2169,7 +2169,7 @@ static vector<Slice> find_text_url_entities_v3(Slice text) {
 
     if (url_end < size) {
       Slice url = text.substr(url_begin + 1, url_end - url_begin - 1);
-      if (LinkManager::check_link(url).is_ok()) {
+      if (!LinkManager::get_checked_link(url).empty()) {
         result.push_back(text.substr(text_begin, text_end - text_begin + 1));
         result.push_back(text.substr(url_begin, url_end - url_begin + 1));
       }
@@ -2241,7 +2241,7 @@ static FormattedText parse_text_url_entities_v3(Slice text, const vector<Message
         Slice url = parsed_part_text.substr(url_begin_pos + 1, url_end_pos - url_begin_pos - 1);
         auto url_utf16_length = text_length(url);
         result.entities.emplace_back(MessageEntity::Type::TextUrl, result_text_utf16_length, text_url_utf16_length,
-                                     LinkManager::check_link(url).move_as_ok());
+                                     LinkManager::get_checked_link(url));
         result.text.append(text_url.begin(), text_url.size());
         result_text_utf16_length += text_url_utf16_length;
 
@@ -3075,9 +3075,9 @@ static Result<vector<MessageEntity>> do_parse_html(CSlice text, string &result) 
           if (user_id.is_valid()) {
             entities.emplace_back(entity_offset, entity_length, user_id);
           } else {
-            auto r_url = LinkManager::check_link(url);
-            if (r_url.is_ok()) {
-              entities.emplace_back(MessageEntity::Type::TextUrl, entity_offset, entity_length, r_url.move_as_ok());
+            url = LinkManager::get_checked_link(url);
+            if (!url.empty()) {
+              entities.emplace_back(MessageEntity::Type::TextUrl, entity_offset, entity_length, std::move(url));
             }
           }
         } else if (tag_name == "pre") {
@@ -3284,7 +3284,7 @@ Result<vector<MessageEntity>> get_message_entities(const ContactsManager *contac
         }
         auto r_url = LinkManager::check_link(entity->url_);
         if (r_url.is_error()) {
-          return Status::Error(400, PSTRING() << "Wrong URL entity specified: " << r_url.error().message());
+          return Status::Error(400, PSTRING() << "Entity " << r_url.error().message());
         }
         entities.emplace_back(MessageEntity::Type::TextUrl, offset, length, r_url.move_as_ok());
         break;
@@ -3418,8 +3418,7 @@ vector<MessageEntity> get_message_entities(const ContactsManager *contacts_manag
         auto entity = static_cast<const telegram_api::messageEntityTextUrl *>(server_entity.get());
         auto r_url = LinkManager::check_link(entity->url_);
         if (r_url.is_error()) {
-          LOG(ERROR) << "Wrong URL entity: \"" << entity->url_ << "\": " << r_url.error().message() << " from "
-                     << source;
+          LOG(ERROR) << "Entity " << r_url.error().message() << " from " << source;
           continue;
         }
         entities.emplace_back(MessageEntity::Type::TextUrl, entity->offset_, entity->length_, r_url.move_as_ok());
@@ -3540,7 +3539,7 @@ vector<MessageEntity> get_message_entities(vector<tl_object_ptr<secret_api::Mess
         }
         auto r_url = LinkManager::check_link(entity->url_);
         if (r_url.is_error()) {
-          LOG(WARNING) << "Wrong URL entity: \"" << entity->url_ << "\": " << r_url.error().message();
+          LOG(WARNING) << "Entity " << r_url.error().message();
           continue;
         }
         entities.emplace_back(MessageEntity::Type::TextUrl, entity->offset_, entity->length_, r_url.move_as_ok());

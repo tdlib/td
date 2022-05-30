@@ -143,8 +143,7 @@ void set_menu_button(Td *td, UserId user_id, td_api::object_ptr<td_api::botMenuB
     }
     auto r_url = LinkManager::check_link(menu_button->url_, true, !G()->is_test_dc());
     if (r_url.is_error()) {
-      return promise.set_error(Status::Error(400, PSLICE() << "Menu button web app URL '" << menu_button->url_
-                                                           << "' is invalid: " << r_url.error().message()));
+      return promise.set_error(Status::Error(400, PSLICE() << "Menu button Web App " << r_url.error().message()));
     }
     input_bot_menu_button = telegram_api::make_object<telegram_api::botMenuButton>(menu_button->text_, r_url.ok());
   }

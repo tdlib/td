@@ -47,7 +47,10 @@ class LinkManager final : public Actor {
   };
 
   // checks whether the link is a valid tg, ton or HTTP(S) URL and returns it in a canonical form
-  static Result<string> check_link(Slice link, bool http_only = false, bool https_only = false);
+  static Result<string> check_link(CSlice link, bool http_only = false, bool https_only = false);
+
+  // same as check_link, but returns an empty string instead of an error
+  static string get_checked_link(Slice link, bool http_only = false, bool https_only = false);
 
   // checks whether the link is a supported tg or t.me link and parses it
   static unique_ptr<InternalLink> parse_internal_link(Slice link);
@@ -127,6 +130,8 @@ class LinkManager final : public Actor {
                                                              const vector<std::pair<string, string>> &args);
 
   static unique_ptr<InternalLink> get_internal_link_message_draft(Slice url, Slice text);
+
+  static Result<string> check_link_impl(Slice link, bool http_only, bool https_only);
 
   Td *td_;
   ActorShared<> parent_;

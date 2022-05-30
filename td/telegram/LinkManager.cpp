@@ -708,7 +708,28 @@ static bool tolower_begins_with(Slice str, Slice prefix) {
   return true;
 }
 
-Result<string> LinkManager::check_link(Slice link, bool http_only, bool https_only) {
+Result<string> LinkManager::check_link(CSlice link, bool http_only, bool https_only) {
+  auto result = check_link_impl(link, http_only, https_only);
+  if (result.is_ok()) {
+    return std::move(result);
+  }
+  auto error = result.move_as_error();
+  if (check_utf8(link)) {
+    return Status::Error(400, PSLICE() << "URL '" << link << "' is invalid: " << error.message());
+  } else {
+    return Status::Error(400, PSLICE() << "URL is invalid: " << error.message());
+  }
+}
+
+string LinkManager::get_checked_link(Slice link, bool http_only, bool https_only) {
+  auto result = check_link_impl(link, http_only, https_only);
+  if (result.is_ok()) {
+    return result.move_as_ok();
+  }
+  return string();
+}
+
+Result<string> LinkManager::check_link_impl(Slice link, bool http_only, bool https_only) {
   bool is_tg = false;
   bool is_ton = false;
   if (tolower_begins_with(link, "tg:")) {
