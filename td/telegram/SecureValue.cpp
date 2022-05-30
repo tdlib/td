@@ -713,7 +713,7 @@ static Result<int32> to_int32(Slice str) {
   int32 integer_value = 0;
   for (auto c : str) {
     if (!is_digit(c)) {
-      return Status::Error(PSLICE() << "Can't parse \"" << str << "\" as number");
+      return Status::Error(400, PSLICE() << "Can't parse \"" << str << "\" as number");
     }
     integer_value = integer_value * 10 + c - '0';
   }
@@ -1196,7 +1196,7 @@ Result<SecureValueWithCredentials> decrypt_secure_value(FileManager *file_manage
   res_credentials.hash = encrypted_secure_value.hash;
   switch (encrypted_secure_value.type) {
     case SecureValueType::None:
-      return Status::Error("Receive invalid Telegram Passport element");
+      return Status::Error(400, "Receive invalid Telegram Passport element");
     case SecureValueType::EmailAddress:
     case SecureValueType::PhoneNumber:
       res.data = encrypted_secure_value.data.data;
