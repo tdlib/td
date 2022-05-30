@@ -180,10 +180,11 @@ static tl_object_ptr<td_api::invoice> convert_invoice(tl_object_ptr<telegram_api
     need_shipping_address = true;
   }
 
-  return make_tl_object<td_api::invoice>(
-      std::move(invoice->currency_), std::move(labeled_prices), invoice->max_tip_amount_,
-      vector<int64>(invoice->suggested_tip_amounts_), is_test, need_name, need_phone_number, need_email_address,
-      need_shipping_address, send_phone_number_to_provider, send_email_address_to_provider, is_flexible);
+  return make_tl_object<td_api::invoice>(std::move(invoice->currency_), std::move(labeled_prices),
+                                         invoice->max_tip_amount_, vector<int64>(invoice->suggested_tip_amounts_),
+                                         std::move(invoice->recurring_terms_url_), is_test, need_name,
+                                         need_phone_number, need_email_address, need_shipping_address,
+                                         send_phone_number_to_provider, send_email_address_to_provider, is_flexible);
 }
 
 static tl_object_ptr<td_api::paymentsProviderStripe> convert_payment_provider(
@@ -669,7 +670,8 @@ bool operator==(const Invoice &lhs, const Invoice &rhs) {
          lhs.send_phone_number_to_provider == rhs.send_phone_number_to_provider &&
          lhs.send_email_address_to_provider == rhs.send_email_address_to_provider &&
          lhs.is_flexible == rhs.is_flexible && lhs.currency == rhs.currency && lhs.price_parts == rhs.price_parts &&
-         lhs.max_tip_amount == rhs.max_tip_amount && lhs.suggested_tip_amounts == rhs.suggested_tip_amounts;
+         lhs.max_tip_amount == rhs.max_tip_amount && lhs.suggested_tip_amounts == rhs.suggested_tip_amounts &&
+         lhs.recurring_payment_terms_of_service_url == rhs.recurring_payment_terms_of_service_url;
 }
 
 bool operator!=(const Invoice &lhs, const Invoice &rhs) {
@@ -683,8 +685,11 @@ StringBuilder &operator<<(StringBuilder &string_builder, const Invoice &invoice)
                         << (invoice.need_email_address ? ", needs email address" : "")
                         << (invoice.need_shipping_address ? ", needs shipping address" : "")
                         << (invoice.send_phone_number_to_provider ? ", sends phone number to provider" : "")
-                        << (invoice.send_email_address_to_provider ? ", sends email address to provider" : "") << " in "
-                        << invoice.currency << " with price parts " << format::as_array(invoice.price_parts)
+                        << (invoice.send_email_address_to_provider ? ", sends email address to provider" : "")
+                        << (invoice.recurring_payment_terms_of_service_url.empty()
+                                ? string()
+                                : ", recurring payments terms of service at " + invoice.recurring_payment_terms_of_service_url)
+                        << " in " << invoice.currency << " with price parts " << format::as_array(invoice.price_parts)
                         << " and suggested tip amounts " << invoice.suggested_tip_amounts << " up to "
                         << invoice.max_tip_amount << "]";
 }
@@ -842,6 +847,8 @@ Result<InputInvoice> process_input_message_invoice(
 
   result.invoice.max_tip_amount = input_invoice->invoice_->max_tip_amount_;
   result.invoice.suggested_tip_amounts = std::move(input_invoice->invoice_->suggested_tip_amounts_);
+  result.invoice.recurring_payment_terms_of_service_url =
+      std::move(input_invoice->invoice_->recurring_payment_terms_of_service_url_);
   result.invoice.is_test = input_invoice->invoice_->is_test_;
   result.invoice.need_name = input_invoice->invoice_->need_name_;
   result.invoice.need_phone_number = input_invoice->invoice_->need_phone_number_;
@@ -903,6 +910,9 @@ static tl_object_ptr<telegram_api::invoice> get_input_invoice(const Invoice &inv
   if (invoice.max_tip_amount != 0) {
     flags |= telegram_api::invoice::MAX_TIP_AMOUNT_MASK;
   }
+  if (!invoice.recurring_payment_terms_of_service_url.empty()) {
+    flags |= telegram_api::invoice::RECURRING_TERMS_URL_MASK;
+  }
 
   auto prices = transform(invoice.price_parts, [](const LabeledPricePart &price) {
     return telegram_api::make_object<telegram_api::labeledPrice>(price.label, price.amount);
@@ -910,7 +920,8 @@ static tl_object_ptr<telegram_api::invoice> get_input_invoice(const Invoice &inv
   return make_tl_object<telegram_api::invoice>(
       flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
       false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, invoice.currency, std::move(prices),
-      invoice.max_tip_amount, vector<int64>(invoice.suggested_tip_amounts), string());
+      invoice.max_tip_amount, vector<int64>(invoice.suggested_tip_amounts),
+      invoice.recurring_payment_terms_of_service_url);
 }
 
 static tl_object_ptr<telegram_api::inputWebDocument> get_input_web_document(const FileManager *file_manager,

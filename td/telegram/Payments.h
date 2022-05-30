@@ -39,6 +39,7 @@ struct Invoice {
   vector<LabeledPricePart> price_parts;
   int64 max_tip_amount = 0;
   vector<int64> suggested_tip_amounts;
+  string recurring_payment_terms_of_service_url;
   bool is_test = false;
   bool need_name = false;
   bool need_phone_number = false;
