@@ -93,6 +93,9 @@ OptionManager::OptionManager(Td *td, ActorShared<> parent) : td_(td), parent_(st
   if (!G()->shared_config().have_option("message_caption_length_max")) {
     G()->shared_config().set_option_integer("message_caption_length_max", 1024);
   }
+  if (!G()->shared_config().have_option("bio_length_max")) {
+    G()->shared_config().set_option_integer("bio_length_max", 70);
+  }
   if (!G()->shared_config().have_option("suggested_video_note_length")) {
     G()->shared_config().set_option_integer("suggested_video_note_length", 384);
   }

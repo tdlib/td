@@ -1024,7 +1024,6 @@ class ContactsManager final : public Actor {
   static constexpr int32 MAX_GET_PROFILE_PHOTOS = 100;        // server side limit
   static constexpr size_t MAX_NAME_LENGTH = 64;               // server side limit for first/last name
   static constexpr size_t MAX_DESCRIPTION_LENGTH = 255;       // server side limit for chat/channel description
-  static constexpr size_t MAX_BIO_LENGTH = 70;                // server side limit
   static constexpr size_t MAX_INVITE_LINK_TITLE_LENGTH = 32;  // server side limit
   static constexpr int32 MAX_GET_CHANNEL_PARTICIPANTS = 200;  // server side limit
 

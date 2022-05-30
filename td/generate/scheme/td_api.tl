@@ -5911,7 +5911,7 @@ deleteProfilePhoto profile_photo_id:int64 = Ok;
 //@description Changes the first and last name of the current user @first_name The new value of the first name for the current user; 1-64 characters @last_name The new value of the optional last name for the current user; 0-64 characters
 setName first_name:string last_name:string = Ok;
 
-//@description Changes the bio of the current user @bio The new value of the user bio; 0-70 characters without line feeds
+//@description Changes the bio of the current user @bio The new value of the user bio; 0-GetOption("bio_length_max") characters without line feeds
 setBio bio:string = Ok;
 
 //@description Changes the username of the current user @username The new value of the username. Use an empty string to remove the username

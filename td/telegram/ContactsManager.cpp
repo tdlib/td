@@ -6456,7 +6456,8 @@ void ContactsManager::set_name(const string &first_name, const string &last_name
 }
 
 void ContactsManager::set_bio(const string &bio, Promise<Unit> &&promise) {
-  auto new_bio = strip_empty_characters(bio, MAX_BIO_LENGTH);
+  auto max_bio_length = static_cast<size_t>(G()->shared_config().get_option_integer("bio_length_max"));
+  auto new_bio = strip_empty_characters(bio, max_bio_length);
   for (auto &c : new_bio) {
     if (c == '\n') {
       c = ' ';

@@ -1875,6 +1875,10 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
   shared_config.set_option_integer("chat_filter_chosen_chat_count_max",
                                    static_cast<int32>(chat_filter_chosen_chat_count_max));
 
+  auto bio_length_max = shared_config.get_option_integer(
+      is_premium ? Slice("about_length_limit_premium") : Slice("about_length_limit_default"), is_premium ? 140 : 70);
+  shared_config.set_option_integer("bio_length_max", bio_length_max);
+
   shared_config.set_option_string("premium_features", implode(premium_features, ','));
   if (premium_bot_username.empty()) {
     shared_config.set_option_empty("premium_bot_username");
