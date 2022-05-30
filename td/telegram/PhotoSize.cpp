@@ -263,8 +263,8 @@ AnimationSize get_animation_size(FileManager *file_manager, PhotoSizeSource sour
                                  tl_object_ptr<telegram_api::videoSize> &&size) {
   CHECK(size != nullptr);
   AnimationSize res;
-  if (size->type_ != "v" && size->type_ != "u") {
-    LOG(ERROR) << "Wrong videoSize \"" << size->type_ << "\" in " << to_string(size);
+  if (size->type_ != "p" && size->type_ != "u" && size->type_ != "v") {
+    LOG(ERROR) << "Unsupported videoSize \"" << size->type_ << "\" in " << to_string(size);
   }
   res.type = static_cast<uint8>(size->type_[0]);
   if (res.type >= 128) {
