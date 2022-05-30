@@ -501,6 +501,8 @@ class MessagePaymentSuccessful final : public MessageContent {
   string currency;
   int64 total_amount = 0;
   string invoice_payload;  // or invoice_slug for users
+  bool is_recurring = false;
+  bool is_first_recurring = false;
 
   // bots only part
   string shipping_option_id;
@@ -510,12 +512,14 @@ class MessagePaymentSuccessful final : public MessageContent {
 
   MessagePaymentSuccessful() = default;
   MessagePaymentSuccessful(DialogId invoice_dialog_id, MessageId invoice_message_id, string &&currency,
-                           int64 total_amount, string &&invoice_payload)
+                           int64 total_amount, string &&invoice_payload, bool is_recurring, bool is_first_recurring)
       : invoice_dialog_id(invoice_dialog_id)
       , invoice_message_id(invoice_message_id)
       , currency(std::move(currency))
       , total_amount(total_amount)
-      , invoice_payload(std::move(invoice_payload)) {
+      , invoice_payload(std::move(invoice_payload))
+      , is_recurring(is_recurring || is_first_recurring)
+      , is_first_recurring(is_first_recurring) {
   }
 
   MessageContentType get_type() const final {
@@ -981,6 +985,8 @@ static void store(const MessageContent *content, StorerT &storer) {
       STORE_FLAG(has_invoice_message_id);
       STORE_FLAG(is_correctly_stored);
       STORE_FLAG(has_invoice_dialog_id);
+      STORE_FLAG(m->is_recurring);
+      STORE_FLAG(m->is_first_recurring);
       END_STORE_FLAGS();
       store(m->currency, storer);
       store(m->total_amount, storer);
@@ -1384,6 +1390,8 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
       PARSE_FLAG(has_invoice_message_id);
       PARSE_FLAG(is_correctly_stored);
       PARSE_FLAG(has_invoice_dialog_id);
+      PARSE_FLAG(m->is_recurring);
+      PARSE_FLAG(m->is_first_recurring);
       END_PARSE_FLAGS();
       parse(m->currency, parser);
       parse(m->total_amount, parser);
@@ -3444,7 +3452,8 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
           old_->telegram_payment_charge_id != new_->telegram_payment_charge_id ||
           old_->provider_payment_charge_id != new_->provider_payment_charge_id ||
           ((old_->order_info != nullptr || new_->order_info != nullptr) &&
-           (old_->order_info == nullptr || new_->order_info == nullptr || *old_->order_info != *new_->order_info))) {
+           (old_->order_info == nullptr || new_->order_info == nullptr || *old_->order_info != *new_->order_info ||
+            old_->is_recurring != new_->is_recurring || old_->is_first_recurring != new_->is_first_recurring))) {
         need_update = true;
       }
       break;
@@ -4792,9 +4801,9 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
         }
         reply_to_message_id = MessageId();
       }
-      return td::make_unique<MessagePaymentSuccessful>(reply_in_dialog_id, reply_to_message_id,
-                                                       std::move(payment_sent->currency_), payment_sent->total_amount_,
-                                                       std::move(payment_sent->invoice_slug_));
+      return td::make_unique<MessagePaymentSuccessful>(
+          reply_in_dialog_id, reply_to_message_id, std::move(payment_sent->currency_), payment_sent->total_amount_,
+          std::move(payment_sent->invoice_slug_), payment_sent->recurring_used_, payment_sent->recurring_init_);
     }
     case telegram_api::messageActionPaymentSentMe::ID: {
       if (!td->auth_manager_->is_bot()) {
@@ -4804,7 +4813,7 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       auto payment_sent = move_tl_object_as<telegram_api::messageActionPaymentSentMe>(action);
       auto result = td::make_unique<MessagePaymentSuccessful>(
           DialogId(), MessageId(), std::move(payment_sent->currency_), payment_sent->total_amount_,
-          payment_sent->payload_.as_slice().str());
+          payment_sent->payload_.as_slice().str(), payment_sent->recurring_used_, payment_sent->recurring_init_);
       result->shipping_option_id = std::move(payment_sent->shipping_option_id_);
       result->order_info = get_order_info(std::move(payment_sent->info_));
       result->telegram_payment_charge_id = std::move(payment_sent->charge_->id_);
@@ -5100,12 +5109,14 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
       const auto *m = static_cast<const MessagePaymentSuccessful *>(content);
       if (td->auth_manager_->is_bot()) {
         return make_tl_object<td_api::messagePaymentSuccessfulBot>(
-            m->currency, m->total_amount, m->invoice_payload, m->shipping_option_id,
-            get_order_info_object(m->order_info), m->telegram_payment_charge_id, m->provider_payment_charge_id);
+            m->currency, m->total_amount, m->is_recurring, m->is_first_recurring, m->invoice_payload,
+            m->shipping_option_id, get_order_info_object(m->order_info), m->telegram_payment_charge_id,
+            m->provider_payment_charge_id);
       } else {
         auto invoice_dialog_id = m->invoice_dialog_id.is_valid() ? m->invoice_dialog_id : dialog_id;
         return make_tl_object<td_api::messagePaymentSuccessful>(invoice_dialog_id.get(), m->invoice_message_id.get(),
-                                                                m->currency, m->total_amount, m->invoice_payload);
+                                                                m->currency, m->total_amount, m->is_recurring,
+                                                                m->is_first_recurring, m->invoice_payload);
       }
     }
     case MessageContentType::ContactRegistered:

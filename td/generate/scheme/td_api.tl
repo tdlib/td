@@ -1960,13 +1960,16 @@ messageCustomServiceAction text:string = MessageContent;
 //@description A new high score was achieved in a game @game_message_id Identifier of the message with the game, can be an identifier of a deleted message @game_id Identifier of the game; may be different from the games presented in the message with the game @score New score
 messageGameScore game_message_id:int53 game_id:int64 score:int32 = MessageContent;
 
-//@description A payment has been completed @invoice_chat_id Identifier of the chat, containing the corresponding invoice message; 0 if unknown @invoice_message_id Identifier of the message with the corresponding invoice; can be an identifier of a deleted message @currency Currency for the price of the product @total_amount Total price for the product, in the smallest units of the currency @invoice_name Name of the invoice; may be empty if unknown
-messagePaymentSuccessful invoice_chat_id:int53 invoice_message_id:int53 currency:string total_amount:int53 invoice_name:string = MessageContent;
+//@description A payment has been completed @invoice_chat_id Identifier of the chat, containing the corresponding invoice message; 0 if unknown @invoice_message_id Identifier of the message with the corresponding invoice; can be an identifier of a deleted message
+//@currency Currency for the price of the product @total_amount Total price for the product, in the smallest units of the currency
+//@is_recurring True, if this is a recurring payment @is_first_recurring True, if this is the first recurring payment @invoice_name Name of the invoice; may be empty if unknown
+messagePaymentSuccessful invoice_chat_id:int53 invoice_message_id:int53 currency:string total_amount:int53 is_recurring:Bool is_first_recurring:Bool invoice_name:string = MessageContent;
 
-//@description A payment has been completed; for bots only @currency Currency for price of the product
-//@total_amount Total price for the product, in the smallest units of the currency @invoice_payload Invoice payload @shipping_option_id Identifier of the shipping option chosen by the user; may be empty if not applicable @order_info Information about the order; may be null
+//@description A payment has been completed; for bots only @currency Currency for price of the product @total_amount Total price for the product, in the smallest units of the currency
+//@is_recurring True, if this is a recurring payment @is_first_recurring True, if this is the first recurring payment
+//@invoice_payload Invoice payload @shipping_option_id Identifier of the shipping option chosen by the user; may be empty if not applicable @order_info Information about the order; may be null
 //@telegram_payment_charge_id Telegram payment identifier @provider_payment_charge_id Provider payment identifier
-messagePaymentSuccessfulBot currency:string total_amount:int53 invoice_payload:bytes shipping_option_id:string order_info:orderInfo telegram_payment_charge_id:string provider_payment_charge_id:string = MessageContent;
+messagePaymentSuccessfulBot currency:string total_amount:int53 is_recurring:Bool is_first_recurring:Bool invoice_payload:bytes shipping_option_id:string order_info:orderInfo telegram_payment_charge_id:string provider_payment_charge_id:string = MessageContent;
 
 //@description A contact has registered with Telegram
 messageContactRegistered = MessageContent;
