@@ -118,4 +118,7 @@ T utf8_utf16_substr(T str, size_t offset, size_t length) {
 /// Returns UTF-8 string converted to lower case.
 string utf8_to_lower(Slice str);
 
+/// Returns valid UTF-8 representation of the string.
+string utf8_encode(CSlice data);
+
 }  // namespace td

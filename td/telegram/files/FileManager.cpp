@@ -42,6 +42,7 @@
 #include "td/utils/Time.h"
 #include "td/utils/tl_helpers.h"
 #include "td/utils/tl_parsers.h"
+#include "td/utils/utf8.h"
 
 #include <algorithm>
 #include <cmath>
@@ -989,27 +990,28 @@ Status FileManager::check_local_location(FullLocalFileLocation &location, int64 
   } else if (!are_modification_times_equal(location.mtime_nsec_, stat.mtime_nsec_)) {
     VLOG(file_loader) << "File \"" << location.path_ << "\" was modified: old mtime = " << location.mtime_nsec_
                       << ", new mtime = " << stat.mtime_nsec_;
-    return Status::Error(400, PSLICE() << "File \"" << location.path_ << "\" was modified");
+    return Status::Error(400, PSLICE() << "File \"" << utf8_encode(location.path_) << "\" was modified");
   }
   if (skip_file_size_checks) {
     return Status::OK();
   }
   if ((location.file_type_ == FileType::Thumbnail || location.file_type_ == FileType::EncryptedThumbnail) &&
       size > MAX_THUMBNAIL_SIZE && !begins_with(PathView(location.path_).file_name(), "map")) {
-    return Status::Error(400, PSLICE() << "File \"" << location.path_ << "\" is too big for a thumbnail "
-                                       << tag("size", format::as_size(size)));
+    return Status::Error(400, PSLICE() << "File \"" << utf8_encode(location.path_) << "\" of size " << size
+                                       << " is too big for a thumbnail");
   }
   if (size > MAX_FILE_SIZE) {
-    return Status::Error(400, PSLICE() << "File \"" << location.path_ << "\" of size " << size << " bytes is too big");
+    return Status::Error(
+        400, PSLICE() << "File \"" << utf8_encode(location.path_) << "\" of size " << size << " bytes is too big");
   }
   if (location.file_type_ == FileType::Photo && size > MAX_PHOTO_SIZE) {
-    return Status::Error(
-        400, PSLICE() << "File \"" << location.path_ << "\" of size " << size << " bytes is too big for a photo");
+    return Status::Error(400, PSLICE() << "File \"" << utf8_encode(location.path_) << "\" of size " << size
+                                       << " bytes is too big for a photo");
   }
   if (location.file_type_ == FileType::VideoNote &&
       size > G()->shared_config().get_option_integer("video_note_size_max", DEFAULT_VIDEO_NOTE_SIZE_MAX)) {
-    return Status::Error(
-        400, PSLICE() << "File \"" << location.path_ << "\" of size " << size << " bytes is too big for a video note");
+    return Status::Error(400, PSLICE() << "File \"" << utf8_encode(location.path_) << "\" of size " << size
+                                       << " bytes is too big for a video note");
   }
   return Status::OK();
 }

@@ -713,7 +713,7 @@ static Result<int32> to_int32(Slice str) {
   int32 integer_value = 0;
   for (auto c : str) {
     if (!is_digit(c)) {
-      return Status::Error(400, PSLICE() << "Can't parse \"" << str << "\" as number");
+      return Status::Error(400, PSLICE() << "Can't parse \"" << utf8_encode(str.str()) << "\" as number");
     }
     integer_value = integer_value * 10 + c - '0';
   }
@@ -725,12 +725,12 @@ static Result<td_api::object_ptr<td_api::date>> get_date_object(Slice date) {
     return nullptr;
   }
   if (date.size() > 10u || date.size() < 8u) {
-    return Status::Error(400, PSLICE() << "Date \"" << date << "\" has wrong length");
+    return Status::Error(400, PSLICE() << "Date \"" << utf8_encode(date.str()) << "\" has wrong length");
   }
   auto parts = full_split(date, '.');
   if (parts.size() != 3 || parts[0].size() > 2 || parts[1].size() > 2 || parts[2].size() != 4 || parts[0].empty() ||
       parts[1].empty()) {
-    return Status::Error(400, PSLICE() << "Date \"" << date << "\" has wrong parts");
+    return Status::Error(400, PSLICE() << "Date \"" << utf8_encode(date.str()) << "\" has wrong parts");
   }
   TRY_RESULT(day, to_int32(parts[0]));
   TRY_RESULT(month, to_int32(parts[1]));
