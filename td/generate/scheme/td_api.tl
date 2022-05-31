@@ -1140,7 +1140,7 @@ keyboardButtonTypeRequestLocation = KeyboardButtonType;
 //@description A button that allows the user to create and send a poll when pressed; available only in private chats @force_regular If true, only regular polls must be allowed to create @force_quiz If true, only polls in quiz mode must be allowed to create
 keyboardButtonTypeRequestPoll force_regular:Bool force_quiz:Bool = KeyboardButtonType;
 
-//@description A button that opens a web app by calling getWebAppUrl @url An HTTP URL to pass to getWebAppUrl
+//@description A button that opens a Web App by calling getWebAppUrl @url An HTTP URL to pass to getWebAppUrl
 keyboardButtonTypeWebApp url:string = KeyboardButtonType;
 
 
@@ -1156,7 +1156,7 @@ inlineKeyboardButtonTypeUrl url:string = InlineKeyboardButtonType;
 //@description A button that opens a specified URL and automatically authorize the current user by calling getLoginUrlInfo @url An HTTP URL to pass to getLoginUrlInfo @id Unique button identifier @forward_text If non-empty, new text of the button in forwarded messages
 inlineKeyboardButtonTypeLoginUrl url:string id:int53 forward_text:string = InlineKeyboardButtonType;
 
-//@description A button that opens a web app by calling openWebApp @url An HTTP URL to pass to openWebApp
+//@description A button that opens a Web App by calling openWebApp @url An HTTP URL to pass to openWebApp
 inlineKeyboardButtonTypeWebApp url:string = InlineKeyboardButtonType;
 
 //@description A button that sends a callback query to a bot @data Data to be sent to the bot via a callback query
@@ -1216,7 +1216,7 @@ loginUrlInfoOpen url:string skip_confirm:Bool = LoginUrlInfo;
 loginUrlInfoRequestConfirmation url:string domain:string bot_user_id:int53 request_write_access:Bool = LoginUrlInfo;
 
 
-//@description Contains information about a web app @launch_id Unique identifier for the web app launch @url A web app URL to open in a web view
+//@description Contains information about a Web App @launch_id Unique identifier for the Web App launch @url A Web App URL to open in a web view
 webAppInfo launch_id:int64 url:string = WebAppInfo;
 
 
@@ -1977,10 +1977,10 @@ messageContactRegistered = MessageContent;
 //@description The current user has connected a website by logging in using Telegram Login Widget on it @domain_name Domain name of the connected website
 messageWebsiteConnected domain_name:string = MessageContent;
 
-//@description Data from a web app has been sent to a bot @button_text Text of the keyboardButtonTypeWebApp button, which opened the web app
+//@description Data from a Web App has been sent to a bot @button_text Text of the keyboardButtonTypeWebApp button, which opened the Web App
 messageWebAppDataSent button_text:string = MessageContent;
 
-//@description Data from a web app has been received; for bots only @button_text Text of the keyboardButtonTypeWebApp button, which opened the web app @data Received data
+//@description Data from a Web App has been received; for bots only @button_text Text of the keyboardButtonTypeWebApp button, which opened the Web App @data Received data
 messageWebAppDataReceived button_text:string data:string = MessageContent;
 
 //@description Telegram Passport data has been sent to a bot @types List of Telegram Passport element types sent
@@ -4343,7 +4343,7 @@ updateUsersNearby users_nearby:vector<chatNearby> = Update;
 //@description The list of bots added to attachment menu has changed @bots The new list of bots added to attachment menu. The bots must not be shown on scheduled messages screen
 updateAttachmentMenuBots bots:vector<attachmentMenuBot> = Update;
 
-//@description A message was sent by an opened web app, so the web app needs to be closed @web_app_launch_id Identifier of web app launch
+//@description A message was sent by an opened Web App, so the Web App needs to be closed @web_app_launch_id Identifier of Web App launch
 updateWebAppMessageSent web_app_launch_id:int64 = Update;
 
 //@description The list of supported reactions has changed @reactions The new list of supported reactions
@@ -5098,30 +5098,30 @@ getInlineQueryResults bot_user_id:int53 chat_id:int53 user_location:location que
 answerInlineQuery inline_query_id:int64 is_personal:Bool results:vector<InputInlineQueryResult> cache_time:int32 next_offset:string switch_pm_text:string switch_pm_parameter:string = Ok;
 
 
-//@description Returns an HTTPS URL of a web app to open after keyboardButtonTypeWebApp button is pressed
+//@description Returns an HTTPS URL of a Web App to open after keyboardButtonTypeWebApp button is pressed
 //@bot_user_id Identifier of the target bot
 //@url The URL from the keyboardButtonTypeWebApp button
-//@theme Preferred web app theme; pass null to use the default theme
+//@theme Preferred Web App theme; pass null to use the default theme
 getWebAppUrl bot_user_id:int53 url:string theme:themeParameters = HttpUrl;
 
-//@description Sends data received from a keyboardButtonTypeWebApp web app to a bot
-//@bot_user_id Identifier of the target bot @button_text Text of the keyboardButtonTypeWebApp button, which opened the web app @data Received data
+//@description Sends data received from a keyboardButtonTypeWebApp Web App to a bot
+//@bot_user_id Identifier of the target bot @button_text Text of the keyboardButtonTypeWebApp button, which opened the Web App @data Received data
 sendWebAppData bot_user_id:int53 button_text:string data:string = Ok;
 
-//@description Informs TDLib that a web app is being opened from attachment menu, a botMenuButton button, an internalLinkTypeAttachmentMenuBot link, or an inlineKeyboardButtonTypeWebApp button.
+//@description Informs TDLib that a Web App is being opened from attachment menu, a botMenuButton button, an internalLinkTypeAttachmentMenuBot link, or an inlineKeyboardButtonTypeWebApp button.
 //-For each bot, a confirmation alert about data sent to the bot must be shown once
-//@chat_id Identifier of the chat in which the web app is opened. Web apps can be opened only in private chats for now
-//@bot_user_id Identifier of the bot, providing the web app
+//@chat_id Identifier of the chat in which the Web App is opened
+//@bot_user_id Identifier of the bot, providing the Web App
 //@url The URL from an inlineKeyboardButtonTypeWebApp button, a botMenuButton button, or an internalLinkTypeAttachmentMenuBot link, or an empty string otherwise
-//@theme Preferred web app theme; pass null to use the default theme
-//@reply_to_message_id Identifier of the replied message for the message sent by the web app; 0 if none
+//@theme Preferred Web App theme; pass null to use the default theme
+//@reply_to_message_id Identifier of the replied message for the message sent by the Web App; 0 if none
 openWebApp chat_id:int53 bot_user_id:int53 url:string theme:themeParameters reply_to_message_id:int53 = WebAppInfo;
 
-//@description Informs TDLib that a previously opened web app was closed @web_app_launch_id Identifier of web app launch, received from openWebApp
+//@description Informs TDLib that a previously opened Web App was closed @web_app_launch_id Identifier of Web App launch, received from openWebApp
 closeWebApp web_app_launch_id:int64 = Ok;
 
-//@description Sets the result of interaction with a web app and sends corresponding message on behalf of the user to the chat from which the query originated; for bots only
-//@web_app_query_id Identifier of the web app query
+//@description Sets the result of interaction with a Web App and sends corresponding message on behalf of the user to the chat from which the query originated; for bots only
+//@web_app_query_id Identifier of the Web App query
 //@result The result of the query
 answerWebAppQuery web_app_query_id:string result:InputInlineQueryResult = SentWebAppMessage;
 

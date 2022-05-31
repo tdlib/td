@@ -572,7 +572,7 @@ void AttachMenuManager::request_web_view(DialogId dialog_id, UserId bot_user_id,
       // ok
       break;
     case DialogType::SecretChat:
-      return promise.set_error(Status::Error(400, "Web apps can't be opened in secret chats"));
+      return promise.set_error(Status::Error(400, "Web Apps can't be opened in secret chats"));
     case DialogType::None:
     default:
       UNREACHABLE();
@@ -598,7 +598,7 @@ void AttachMenuManager::request_web_view(DialogId dialog_id, UserId bot_user_id,
 void AttachMenuManager::open_web_view(int64 query_id, DialogId dialog_id, UserId bot_user_id,
                                       MessageId reply_to_message_id, DialogId as_dialog_id) {
   if (query_id == 0) {
-    LOG(ERROR) << "Receive web app query identifier == 0";
+    LOG(ERROR) << "Receive Web App query identifier == 0";
     return;
   }
 
