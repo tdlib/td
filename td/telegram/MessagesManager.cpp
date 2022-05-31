@@ -9705,14 +9705,15 @@ void MessagesManager::on_get_history(DialogId dialog_id, MessageId from_message_
   }
 
   for (auto &message : messages) {
-    if (!have_next && from_the_end && get_message_id(message, false) < d->last_message_id) {
+    auto expected_message_id = get_message_id(message, false);
+    if (!have_next && from_the_end && expected_message_id < d->last_message_id) {
       // last message in the dialog should be attached to the next message if there is some
       have_next = true;
     }
 
     auto message_dialog_id = get_message_dialog_id(message);
     if (message_dialog_id != dialog_id) {
-      LOG(ERROR) << "Receive " << get_message_id(message, false) << " in wrong " << message_dialog_id << " instead of "
+      LOG(ERROR) << "Receive " << expected_message_id << " in wrong " << message_dialog_id << " instead of "
                  << dialog_id << ": " << oneline(to_string(message));
       continue;
     }
@@ -9721,6 +9722,7 @@ void MessagesManager::on_get_history(DialogId dialog_id, MessageId from_message_
         on_get_message(std::move(message), false, is_channel_message, false, false, have_next, "get history");
     auto message_id = full_message_id.get_message_id();
     if (message_id.is_valid()) {
+      CHECK(message_id == expected_message_id);
       if (!last_added_message_id.is_valid()) {
         last_added_message_id = message_id;
       }
