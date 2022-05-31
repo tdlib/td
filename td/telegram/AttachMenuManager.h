@@ -80,6 +80,7 @@ class AttachMenuManager final : public Actor {
     bool supports_bot_dialogs_ = false;
     bool supports_group_dialogs_ = false;
     bool supports_broadcast_dialogs_ = false;
+    bool supports_settings_ = false;
     string name_;
     AttachMenuBotColor name_color_;
     FileId default_icon_file_id_;

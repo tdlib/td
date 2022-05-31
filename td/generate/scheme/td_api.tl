@@ -2556,6 +2556,7 @@ attachmentMenuBotColor light_color:int32 dark_color:int32 = AttachmentMenuBotCol
 //@supports_bot_chats  True, if the bot supports opening from attachment menu in private chats with other bots
 //@supports_group_chats True, if the bot supports opening from attachment menu in basic group and supergroup chats
 //@supports_channel_chats True, if the bot supports opening from attachment menu in channel chats
+//@supports_settings True, if the bot supports "settings_button_pressed" event
 //@name Name for the bot in attachment menu
 //@name_color Color to highlight selected name of the bot if appropriate; may be null
 //@default_icon Default attachment menu icon for the bot in SVG format; may be null
@@ -2564,7 +2565,7 @@ attachmentMenuBotColor light_color:int32 dark_color:int32 = AttachmentMenuBotCol
 //@android_icon Attachment menu icon for the bot in TGS format for the official Android app; may be null
 //@macos_icon Attachment menu icon for the bot in TGS format for the official native macOS app; may be null
 //@icon_color Color to highlight selected icon of the bot if appropriate; may be null
-attachmentMenuBot bot_user_id:int53 supports_self_chat:Bool supports_user_chats:Bool supports_bot_chats:Bool supports_group_chats:Bool supports_channel_chats:Bool name:string name_color:attachmentMenuBotColor default_icon:file ios_static_icon:file ios_animated_icon:file android_icon:file macos_icon:file icon_color:attachmentMenuBotColor = AttachmentMenuBot;
+attachmentMenuBot bot_user_id:int53 supports_self_chat:Bool supports_user_chats:Bool supports_bot_chats:Bool supports_group_chats:Bool supports_channel_chats:Bool supports_settings:Bool name:string name_color:attachmentMenuBotColor default_icon:file ios_static_icon:file ios_animated_icon:file android_icon:file macos_icon:file icon_color:attachmentMenuBotColor = AttachmentMenuBot;
 
 //@description Information about the message sent by answerWebAppQuery @inline_message_id Identifier of the sent inline message, if known
 sentWebAppMessage inline_message_id:string = SentWebAppMessage;
