@@ -9602,7 +9602,7 @@ void MessagesManager::on_get_history(DialogId dialog_id, MessageId from_message_
     // new server messages were added to the dialog since the request was sent, but weren't received
     // they should have been received, so we must repeat the request to get them
     if (from_the_end) {
-      get_history_from_the_end_impl(d, false, false, std::move(promise));
+      get_history_from_the_end_impl(d, false, false, std::move(promise), "on_get_history");
     } else {
       get_history_impl(d, from_message_id, offset, limit, false, false, std::move(promise));
     }
@@ -23545,7 +23545,7 @@ void MessagesManager::on_get_history_from_database(DialogId dialog_id, MessageId
     // new messages where added to the database since the request was sent
     // they should have been received from the database, so we must repeat the request to get them
     if (from_the_end) {
-      get_history_from_the_end_impl(d, true, only_local, std::move(promise));
+      get_history_from_the_end_impl(d, true, only_local, std::move(promise), "on_get_history_from_database 20");
     } else {
       get_history_impl(d, from_message_id, offset, limit, true, only_local, std::move(promise));
     }
@@ -23675,7 +23675,7 @@ void MessagesManager::on_get_history_from_database(DialogId dialog_id, MessageId
       if (first_received_message_id < d->last_database_message_id) {
         set_dialog_last_database_message_id(d, first_received_message_id, "on_get_history_from_database 12");
 
-        get_history_from_the_end_impl(d, true, only_local, std::move(promise));
+        get_history_from_the_end_impl(d, true, only_local, std::move(promise), "on_get_history_from_database 21");
         return;
       }
 
@@ -23762,11 +23762,12 @@ void MessagesManager::on_get_history_from_database(DialogId dialog_id, MessageId
 
 void MessagesManager::get_history_from_the_end(DialogId dialog_id, bool from_database, bool only_local,
                                                Promise<Unit> &&promise) {
-  get_history_from_the_end_impl(get_dialog(dialog_id), from_database, only_local, std::move(promise));
+  get_history_from_the_end_impl(get_dialog(dialog_id), from_database, only_local, std::move(promise),
+                                "get_history_from_the_end");
 }
 
 void MessagesManager::get_history_from_the_end_impl(const Dialog *d, bool from_database, bool only_local,
-                                                    Promise<Unit> &&promise) {
+                                                    Promise<Unit> &&promise, const char *source) {
   CHECK(d != nullptr);
   TRY_STATUS_PROMISE(promise, G()->close_status());
 
@@ -23784,7 +23785,7 @@ void MessagesManager::get_history_from_the_end_impl(const Dialog *d, bool from_d
       // repair last database message ID
       limit = 10;
     }
-    LOG(INFO) << "Get history from the end of " << dialog_id << " from database";
+    LOG(INFO) << "Get history from the end of " << dialog_id << " from database from " << source;
     MessagesDbMessagesQuery db_query;
     db_query.dialog_id = dialog_id;
     db_query.from_message_id = MessageId::max();
@@ -23808,7 +23809,7 @@ void MessagesManager::get_history_from_the_end_impl(const Dialog *d, bool from_d
       limit = 10;
     }
 
-    LOG(INFO) << "Get history from the end of " << dialog_id << " from server";
+    LOG(INFO) << "Get history from the end of " << dialog_id << " from server from " << source;
     td_->create_handler<GetHistoryQuery>(std::move(promise))
         ->send_get_from_the_end(dialog_id, d->last_new_message_id, limit);
   }
@@ -23885,7 +23886,7 @@ void MessagesManager::load_messages_impl(const Dialog *d, MessageId from_message
   bool from_database = (left_tries > 2 || only_local) && G()->parameters().use_message_db;
 
   if (from_message_id == MessageId()) {
-    get_history_from_the_end_impl(d, from_database, only_local, std::move(promise));
+    get_history_from_the_end_impl(d, from_database, only_local, std::move(promise), "load_messages_impl");
     return;
   }
   if ((!d->first_database_message_id.is_valid() || from_message_id <= d->first_database_message_id) &&
@@ -36480,7 +36481,7 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
   if (need_get_history && !td_->auth_manager_->is_bot() && dialog_id != being_added_dialog_id_ &&
       dialog_id != being_added_by_new_message_dialog_id_ && have_input_peer(dialog_id, AccessRights::Read) &&
       (d->order != DEFAULT_ORDER || is_dialog_sponsored(d))) {
-    get_history_from_the_end_impl(d, true, false, Auto());
+    get_history_from_the_end_impl(d, true, false, Auto(), "fix_new_dialog");
   }
   if (d->need_repair_server_unread_count && need_unread_counter(d->order)) {
     CHECK(dialog_type != DialogType::SecretChat);
@@ -36530,12 +36531,12 @@ bool MessagesManager::add_dialog_last_database_message(Dialog *d, unique_ptr<Mes
     if (!td_->auth_manager_->is_bot() && dialog_id != being_added_dialog_id_ &&
         dialog_id != being_added_by_new_message_dialog_id_ && have_input_peer(dialog_id, AccessRights::Read) &&
         (d->order != DEFAULT_ORDER || is_dialog_sponsored(d))) {
-      get_history_from_the_end_impl(d, true, false, Auto());
+      get_history_from_the_end_impl(d, true, false, Auto(), "add_dialog_last_database_message 5");
     }
   }
 
   if (need_update_dialog_pos) {
-    update_dialog_pos(d, "add_dialog_last_database_message 5");
+    update_dialog_pos(d, "add_dialog_last_database_message 6");
   }
   return m != nullptr;
 }
@@ -38355,7 +38356,7 @@ void MessagesManager::after_get_channel_difference(DialogId dialog_id, bool succ
 
   if (d != nullptr && !td_->auth_manager_->is_bot() && have_access && !d->last_message_id.is_valid() && !d->is_empty &&
       (d->order != DEFAULT_ORDER || is_dialog_sponsored(d))) {
-    get_history_from_the_end_impl(d, true, false, Auto());
+    get_history_from_the_end_impl(d, true, false, Auto(), "after_get_channel_difference");
   }
 }
 
@@ -39427,7 +39428,7 @@ void MessagesManager::suffix_load_loop(Dialog *d) {
     get_history_impl(d, from_message_id, -1, 100, true, true, std::move(promise));
   } else {
     CHECK(from_message_id == MessageId());
-    get_history_from_the_end_impl(d, true, true, std::move(promise));
+    get_history_from_the_end_impl(d, true, true, std::move(promise), "suffix_load_loop");
   }
 }
 
