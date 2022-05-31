@@ -36326,19 +36326,24 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
       }
     };
 
+    auto last_message_date = last_database_message->date;
     if (dependent_dialog_count == 0) {
-      add_dialog_last_database_message(d, std::move(last_database_message));
+      if (!add_dialog_last_database_message(d, std::move(last_database_message))) {
+        // failed to add last message; keep the current position and get history from the database
+        d->pending_last_message_date = last_message_date;
+        d->pending_last_message_id = last_message_id;
+      }
     } else {
       // can't add message immediately, because need to notify first about adding of dependent dialogs
-      d->pending_last_message_date = last_database_message->date;
-      d->pending_last_message_id = last_database_message->message_id;
+      d->pending_last_message_date = last_message_date;
+      d->pending_last_message_id = last_message_id;
       pending_add_dialog_last_database_message_[dialog_id] = {dependent_dialog_count, std::move(last_database_message)};
     }
   } else if (last_database_message_id.is_valid()) {
     auto date = DialogDate(order, dialog_id).get_date();
     if (date < MIN_PINNED_DIALOG_DATE) {
       d->pending_last_message_date = date;
-      d->pending_last_message_id = last_database_message_id;
+      d->pending_last_message_id = last_message_id;
     }
   }
 
@@ -36477,7 +36482,7 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
   }
 }
 
-void MessagesManager::add_dialog_last_database_message(Dialog *d, unique_ptr<Message> &&last_database_message) {
+bool MessagesManager::add_dialog_last_database_message(Dialog *d, unique_ptr<Message> &&last_database_message) {
   CHECK(d != nullptr);
   CHECK(last_database_message != nullptr);
   CHECK(last_database_message->left == nullptr);
@@ -36523,6 +36528,7 @@ void MessagesManager::add_dialog_last_database_message(Dialog *d, unique_ptr<Mes
   if (need_update_dialog_pos) {
     update_dialog_pos(d, "add_dialog_last_database_message 5");
   }
+  return m != nullptr;
 }
 
 void MessagesManager::update_dialogs_hints(const Dialog *d) {

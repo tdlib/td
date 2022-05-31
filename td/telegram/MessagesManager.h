@@ -2692,7 +2692,7 @@ class MessagesManager final : public Actor {
                       DialogId default_join_group_call_as_dialog_id, DialogId default_send_message_as_dialog_id,
                       bool need_drop_default_send_message_as_dialog_id, bool is_loaded_from_database);
 
-  void add_dialog_last_database_message(Dialog *d, unique_ptr<Message> &&last_database_message);
+  bool add_dialog_last_database_message(Dialog *d, unique_ptr<Message> &&last_database_message);
 
   void fix_dialog_action_bar(const Dialog *d, DialogActionBar *action_bar);
 
