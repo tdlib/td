@@ -1458,22 +1458,6 @@ void NotificationSettingsManager::get_notify_settings_exceptions(NotificationSet
   td_->create_handler<GetNotifySettingsExceptionsQuery>(std::move(promise))->send(scope, filter_scope, compare_sound);
 }
 
-void NotificationSettingsManager::after_get_difference() {
-  if (td_->auth_manager_->is_bot()) {
-    return;
-  }
-
-  if (!users_notification_settings_.is_synchronized) {
-    send_get_scope_notification_settings_query(NotificationSettingsScope::Private, Promise<>());
-  }
-  if (!chats_notification_settings_.is_synchronized) {
-    send_get_scope_notification_settings_query(NotificationSettingsScope::Group, Promise<>());
-  }
-  if (!channels_notification_settings_.is_synchronized) {
-    send_get_scope_notification_settings_query(NotificationSettingsScope::Channel, Promise<>());
-  }
-}
-
 void NotificationSettingsManager::on_binlog_events(vector<BinlogEvent> &&events) {
   if (G()->close_flag()) {
     return;

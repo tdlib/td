@@ -95,8 +95,6 @@ class NotificationSettingsManager final : public Actor {
 
   void init();
 
-  void after_get_difference();
-
   void on_binlog_events(vector<BinlogEvent> &&events);
 
   void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;

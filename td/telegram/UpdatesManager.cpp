@@ -33,6 +33,7 @@
 #include "td/telegram/net/DcOptions.h"
 #include "td/telegram/net/NetQuery.h"
 #include "td/telegram/NotificationManager.h"
+#include "td/telegram/NotificationSettings.h"
 #include "td/telegram/NotificationSettingsManager.h"
 #include "td/telegram/Payments.h"
 #include "td/telegram/PollId.h"
@@ -1601,7 +1602,6 @@ void UpdatesManager::after_get_difference() {
   td_->download_manager_->after_get_difference();
   td_->inline_queries_manager_->after_get_difference();
   td_->messages_manager_->after_get_difference();
-  td_->notification_settings_manager_->after_get_difference();
   send_closure_later(td_->notification_manager_actor_, &NotificationManager::after_get_difference);
   send_closure(G()->state_manager(), &StateManager::on_synchronized, true);
   get_difference_start_time_ = 0.0;
@@ -1648,6 +1648,12 @@ void UpdatesManager::try_reload_data() {
   td_->contacts_manager_->reload_created_public_dialogs(PublicDialogType::HasUsername, Auto());
   td_->contacts_manager_->reload_created_public_dialogs(PublicDialogType::IsLocationBased, Auto());
   td_->notification_settings_manager_->reload_saved_ringtones(Auto());
+  td_->notification_settings_manager_->send_get_scope_notification_settings_query(NotificationSettingsScope::Private,
+                                                                                  Auto());
+  td_->notification_settings_manager_->send_get_scope_notification_settings_query(NotificationSettingsScope::Group,
+                                                                                  Auto());
+  td_->notification_settings_manager_->send_get_scope_notification_settings_query(NotificationSettingsScope::Channel,
+                                                                                  Auto());
   td_->stickers_manager_->reload_reactions();
   td_->stickers_manager_->get_installed_sticker_sets(false, Auto());
   td_->stickers_manager_->get_installed_sticker_sets(true, Auto());
