@@ -995,23 +995,24 @@ Status FileManager::check_local_location(FullLocalFileLocation &location, int64 
   if (skip_file_size_checks) {
     return Status::OK();
   }
+
+  auto get_file_size_error = [&](Slice reason) {
+    return Status::Error(400, PSLICE() << "File \"" << utf8_encode(location.path_) << "\" of size " << size
+                                       << " bytes is too big" << reason);
+  };
   if ((location.file_type_ == FileType::Thumbnail || location.file_type_ == FileType::EncryptedThumbnail) &&
       size > MAX_THUMBNAIL_SIZE && !begins_with(PathView(location.path_).file_name(), "map")) {
-    return Status::Error(400, PSLICE() << "File \"" << utf8_encode(location.path_) << "\" of size " << size
-                                       << " is too big for a thumbnail");
+    return get_file_size_error(" for a thumbnail");
   }
   if (size > MAX_FILE_SIZE) {
-    return Status::Error(
-        400, PSLICE() << "File \"" << utf8_encode(location.path_) << "\" of size " << size << " bytes is too big");
+    return get_file_size_error("");
   }
   if (location.file_type_ == FileType::Photo && size > MAX_PHOTO_SIZE) {
-    return Status::Error(400, PSLICE() << "File \"" << utf8_encode(location.path_) << "\" of size " << size
-                                       << " bytes is too big for a photo");
+    return get_file_size_error(" for a photo");
   }
   if (location.file_type_ == FileType::VideoNote &&
       size > G()->shared_config().get_option_integer("video_note_size_max", DEFAULT_VIDEO_NOTE_SIZE_MAX)) {
-    return Status::Error(400, PSLICE() << "File \"" << utf8_encode(location.path_) << "\" of size " << size
-                                       << " bytes is too big for a video note");
+    return get_file_size_error(" for a video note");
   }
   return Status::OK();
 }
