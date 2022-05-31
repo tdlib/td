@@ -23574,7 +23574,8 @@ void MessagesManager::on_get_history_from_database(DialogId dialog_id, MessageId
   auto debug_first_database_message_id = d->first_database_message_id;
   auto debug_last_message_id = d->last_message_id;
   auto debug_last_new_message_id = d->last_new_message_id;
-  auto last_received_message_id = MessageId::max();
+  auto first_received_message_id = MessageId::max();
+  MessageId last_received_message_id;
   size_t pos = 0;
   for (auto &message_slice : messages) {
     if (!d->first_database_message_id.is_valid() && !d->have_full_history) {
@@ -23589,13 +23590,16 @@ void MessagesManager::on_get_history_from_database(DialogId dialog_id, MessageId
       }
       break;
     }
-    if (message->message_id >= last_received_message_id) {
-      LOG(ERROR) << "Receive " << message->message_id << " after " << last_received_message_id
+    if (message->message_id >= first_received_message_id) {
+      LOG(ERROR) << "Receive " << message->message_id << " after " << first_received_message_id
                  << " from database in the history of " << dialog_id << " from " << from_message_id << " with offset "
                  << offset << ", limit " << limit << ", from_the_end = " << from_the_end;
       break;
     }
-    last_received_message_id = message->message_id;
+    first_received_message_id = message->message_id;
+    if (!last_received_message_id.is_valid()) {
+      last_received_message_id = message->message_id;
+    }
 
     if (message->message_id < d->first_database_message_id) {
       if (d->have_full_history) {
@@ -23632,10 +23636,11 @@ void MessagesManager::on_get_history_from_database(DialogId dialog_id, MessageId
       }
       if (next_message != nullptr && !next_message->have_previous) {
         LOG_CHECK(m->message_id < next_message->message_id)
-            << m->message_id << ' ' << next_message->message_id << ' ' << last_received_message_id << ' ' << dialog_id
-            << ' ' << from_message_id << ' ' << offset << ' ' << limit << ' ' << from_the_end << ' ' << only_local
-            << ' ' << messages.size() << ' ' << debug_first_database_message_id << ' ' << last_added_message_id << ' '
-            << added_new_message << ' ' << pos << ' ' << m << ' ' << next_message << ' ' << old_message << ' '
+            << m->message_id << ' ' << next_message->message_id << ' ' << first_received_message_id << ' '
+            << last_received_message_id << ' ' << dialog_id << ' ' << from_message_id << ' ' << offset << ' ' << limit
+            << ' ' << from_the_end << ' ' << only_local << ' ' << messages.size() << ' '
+            << debug_first_database_message_id << ' ' << last_added_message_id << ' ' << added_new_message << ' ' << pos
+            << ' ' << m << ' ' << next_message << ' ' << old_message << ' '
             << to_string(get_message_object(dialog_id, m, "on_get_history_from_database"))
             << to_string(get_message_object(dialog_id, next_message, "on_get_history_from_database"));
         LOG(INFO) << "Fix have_previous for " << next_message->message_id;
@@ -23658,17 +23663,17 @@ void MessagesManager::on_get_history_from_database(DialogId dialog_id, MessageId
 
   if (from_the_end && !last_added_message_id.is_valid() && d->first_database_message_id.is_valid() &&
       !d->have_full_history) {
-    if (last_received_message_id <= d->first_database_message_id) {
+    if (first_received_message_id <= d->first_database_message_id) {
       // database definitely has no messages from first_database_message_id to last_database_message_id; drop them
       set_dialog_first_database_message_id(d, MessageId(), "on_get_history_from_database 8");
       set_dialog_last_database_message_id(d, MessageId(), "on_get_history_from_database 9");
     } else {
-      CHECK(last_received_message_id.is_valid());
+      CHECK(first_received_message_id.is_valid());
       // if a message was received, but wasn't added, then it is likely to be already deleted
       // if it is less than d->last_database_message_id, then we can adjust d->last_database_message_id and
       // try again database search without chance to loop
-      if (last_received_message_id < d->last_database_message_id) {
-        set_dialog_last_database_message_id(d, last_received_message_id, "on_get_history_from_database 12");
+      if (first_received_message_id < d->last_database_message_id) {
+        set_dialog_last_database_message_id(d, first_received_message_id, "on_get_history_from_database 12");
 
         get_history_from_the_end_impl(d, true, only_local, std::move(promise));
         return;
@@ -23676,19 +23681,21 @@ void MessagesManager::on_get_history_from_database(DialogId dialog_id, MessageId
 
       if (limit > 1) {
         // we expected to have messages [first_database_message_id, last_database_message_id] in the database, but
-        // received no messages or newer messages [last_received_message_id, ...], none of which can be added
+        // received messages [first_received_message_id, last_received_message_id], none of which can be added
         // first_database_message_id and last_database_message_id are very wrong, so it is better to drop them,
         // pretending that the database has no usable messages
-        if (last_received_message_id == MessageId::max()) {
+        if (first_received_message_id == MessageId::max()) {
+          CHECK(last_received_message_id == MessageId());
           LOG(ERROR) << "Receive no usable messages in " << dialog_id
-                     << " from database from the end, but expected messages from " << d->last_database_message_id
-                     << " up to " << d->first_database_message_id
+                     << " from database from the end, but expected messages from " << d->first_database_message_id
+                     << " up to " << d->last_database_message_id
                      << ". Have old last_database_message_id = " << old_last_database_message_id << " and "
                      << messages.size() << " received messages";
         } else {
-          LOG(ERROR) << "Receive " << messages.size() << " unusable messages up to " << last_received_message_id
-                     << " in " << dialog_id << " from database from the end, but expected messages from "
-                     << d->last_database_message_id << " up to " << d->first_database_message_id;
+          LOG(ERROR) << "Receive " << messages.size() << " unusable messages [" << first_received_message_id << " ... "
+                     << last_received_message_id << "] in " << dialog_id
+                     << " from database from the end, but expected messages from " << d->first_database_message_id
+                     << " up to " << d->last_database_message_id;
         }
         set_dialog_first_database_message_id(d, MessageId(), "on_get_history_from_database 13");
         set_dialog_last_database_message_id(d, MessageId(), "on_get_history_from_database 14");
@@ -23737,7 +23744,7 @@ void MessagesManager::on_get_history_from_database(DialogId dialog_id, MessageId
     }
   }
   if (first_added_message_id.is_valid() && first_added_message_id != d->first_database_message_id &&
-      last_received_message_id < d->first_database_message_id && d->last_new_message_id.is_valid() &&
+      first_received_message_id < d->first_database_message_id && d->last_new_message_id.is_valid() &&
       !d->have_full_history) {
     CHECK(first_added_message_id > d->first_database_message_id);
     set_dialog_first_database_message_id(d, first_added_message_id, "on_get_history_from_database 10");
