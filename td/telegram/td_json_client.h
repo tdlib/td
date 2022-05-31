@@ -91,7 +91,7 @@ TDJSON_EXPORT const char *td_execute(const char *request);
  * \param verbosity_level Log verbosity level with which the message was added (-1 - 1024).
  *                        If 0, then TDLib will crash as soon as the callback returns.
  *                        None of the TDLib methods can be called from the callback.
- * \param message Null-terminated string with the logged message.
+ * \param message Null-terminated string with the logged message. The string isn't guaranteed to be encoded in UTF-8.
  */
 typedef void (*td_log_message_callback_ptr)(int verbosity_level, const char *message);
 
