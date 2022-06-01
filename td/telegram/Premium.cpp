@@ -51,6 +51,9 @@ static td_api::object_ptr<td_api::PremiumFeature> get_premium_feature_object(Sli
   if (premium_feature == "animated_userpics") {
     return td_api::make_object<td_api::premiumFeatureAnimatedProfilePhoto>();
   }
+  if (premium_feature == "app_icons") {
+    return td_api::make_object<td_api::premiumFeatureAppIcons>();
+  }
   return nullptr;
 }
 
@@ -203,6 +206,8 @@ static string get_premium_source(const td_api::PremiumFeature *feature) {
       return "profile_badge";
     case td_api::premiumFeatureAnimatedProfilePhoto::ID:
       return "animated_userpics";
+    case td_api::premiumFeatureAppIcons::ID:
+      return "app_icons";
     default:
       UNREACHABLE();
   }
@@ -297,7 +302,7 @@ void get_premium_features(Td *td, const td_api::object_ptr<td_api::PremiumSource
       full_split(G()->shared_config().get_option_string(
                      "premium_features",
                      "double_limits,more_upload,faster_download,voice_to_text,no_ads,unique_reactions,premium_stickers,"
-                     "advanced_chat_management,profile_badge,animated_userpics"),
+                     "advanced_chat_management,profile_badge,animated_userpics,app_icons"),
                  ',');
   vector<td_api::object_ptr<td_api::PremiumFeature>> features;
   for (const auto &premium_feature : premium_features) {
