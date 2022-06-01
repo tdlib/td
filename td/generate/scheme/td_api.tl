@@ -1478,7 +1478,7 @@ bankCardInfo title:string actions:vector<bankCardActionOpenUrl> = BankCardInfo;
 address country_code:string state:string city:string street_line1:string street_line2:string postal_code:string = Address;
 
 
-//@description Contains parameters of the app theme @background_color A color of the background in the RGB24 format @text_color A color of text in the RGB24 format
+//@description Contains parameters of the application theme @background_color A color of the background in the RGB24 format @text_color A color of text in the RGB24 format
 //@hint_color A color of hints in the RGB24 format @link_color A color of links in the RGB24 format @button_color A color of the buttons in the RGB24 format
 //@button_text_color A color of text on the buttons in the RGB24 format
 themeParameters background_color:int32 text_color:int32 hint_color:int32 link_color:int32 button_color:int32 button_text_color:int32 = ThemeParameters;
@@ -3537,17 +3537,25 @@ chatReportReasonPersonalDetails = ChatReportReason;
 chatReportReasonCustom = ChatReportReason;
 
 
-//@class InternalLinkType @description Describes an internal https://t.me or tg: link, which must be processed by the app in a special way
+//@description Describes supported chat types
+//@supports_user_chats True, if private chats with ordinary users are supported
+//@supports_bot_chats  True, if private chats with other bots are supported
+//@supports_group_chats True, if basic group and supergroup chats are supported
+//@supports_channel_chats True, if channel chats are supported
+supportedChatTypes supports_user_chats:Bool supports_bot_chats:Bool supports_group_chats:Bool supports_channel_chats:Bool = SupportedChatTypes;
 
-//@description The link is a link to the active sessions section of the app. Use getActiveSessions to handle the link
+
+//@class InternalLinkType @description Describes an internal https://t.me or tg: link, which must be processed by the application in a special way
+
+//@description The link is a link to the active sessions section of the application. Use getActiveSessions to handle the link
 internalLinkTypeActiveSessions = InternalLinkType;
 
-//@description The link is a link to an attachment menu bot to be opened in the specified chat. Process given chat_link to open corresponding chat.
+//@description The link is a link to an attachment menu bot to be opened in the specified or a chosen chat. Process given chat_types and chat_link to choose and open the corresponding chat.
 //-Then call searchPublicChat with the given bot username, check that the user is a bot and can be added to attachment menu. Then use getAttachmentMenuBot to receive information about the bot.
 //-If the bot isn't added to attachment menu, then user needs to confirm adding the bot to attachment menu. If user confirms adding, then use toggleBotIsAddedToAttachmentMenu to add it.
 //-If the attachment menu bot can't be used in the opened chat, show an error to the user. If the bot is added to attachment menu, then use openWebApp with the given URL
-//@chat_link An internal link pointing to a chat; may be null if the current chat needs to be kept @bot_username Username of the bot @url URL to be passed to openWebApp
-internalLinkTypeAttachmentMenuBot chat_link:InternalLinkType bot_username:string url:string = InternalLinkType;
+//@chat_types List of chat types, supported by the link; may be null if chat_link must be processed instead @chat_link An internal link pointing to a chat; may be null if the current chat needs to be kept @bot_username Username of the bot @url URL to be passed to openWebApp
+internalLinkTypeAttachmentMenuBot chat_types:supportedChatTypes chat_link:InternalLinkType bot_username:string url:string = InternalLinkType;
 
 //@description The link contains an authentication code. Call checkAuthenticationCode with the code if the current authorization state is authorizationStateWaitCode @code The authentication code
 internalLinkTypeAuthenticationCode code:string = InternalLinkType;
@@ -3604,7 +3612,7 @@ internalLinkTypeMessage url:string = InternalLinkType;
 //@text Message draft text @contains_link True, if the first line of the text contains a link. If true, the input field needs to be focused and the text after the link must be selected
 internalLinkTypeMessageDraft text:formattedText contains_link:Bool = InternalLinkType;
 
-//@description The link contains a request of Telegram passport data. Call getPassportAuthorizationForm with the given parameters to process the link if the link was received from outside of the app, otherwise ignore it
+//@description The link contains a request of Telegram passport data. Call getPassportAuthorizationForm with the given parameters to process the link if the link was received from outside of the application, otherwise ignore it
 //@bot_user_id User identifier of the service's bot @scope Telegram Passport element types requested by the service @public_key Service's public key @nonce Unique request identifier provided by the service
 //@callback_url An HTTP URL to open once the request is finished or canceled with the parameter tg_passport=success or tg_passport=cancel respectively. If empty, then the link tgbot{bot_user_id}://passport/success or tgbot{bot_user_id}://passport/cancel needs to be opened instead
 internalLinkTypePassportDataRequest bot_user_id:int53 scope:string public_key:string nonce:string callback_url:string = InternalLinkType;
@@ -3613,7 +3621,7 @@ internalLinkTypePassportDataRequest bot_user_id:int53 scope:string public_key:st
 //@hash Hash value from the link @phone_number Phone number value from the link
 internalLinkTypePhoneNumberConfirmation hash:string phone_number:string = InternalLinkType;
 
-//@description The link is a link to the Premium features screen of the app, from which the user can subscribe to Telegram Premium. Call getPremiumFeatures with the given referrer to process the link @referrer Referrer specified in the link
+//@description The link is a link to the Premium features screen of the applcation, from which the user can subscribe to Telegram Premium. Call getPremiumFeatures with the given referrer to process the link @referrer Referrer specified in the link
 internalLinkTypePremiumFeatures referrer:string = InternalLinkType;
 
 //@description The link is a link to the privacy and security settings section of the app
@@ -3630,7 +3638,7 @@ internalLinkTypePublicChat chat_username:string = InternalLinkType;
 //-"This code can be used to allow someone to log in to your Telegram account. To confirm Telegram login, please go to Settings > Devices > Scan QR and scan the code" needs to be shown
 internalLinkTypeQrCodeAuthentication = InternalLinkType;
 
-//@description The link is a link to app settings
+//@description The link is a link to application settings
 internalLinkTypeSettings = InternalLinkType;
 
 //@description The link is a link to a sticker set. Call searchStickerSet with the given sticker set name to process the link and show the sticker set @sticker_set_name Name of the sticker set
@@ -5520,7 +5528,7 @@ removeAllFilesFromDownloads only_active:Bool only_completed:Bool delete_from_cac
 searchFileDownloads query:string only_active:Bool only_completed:Bool offset:string limit:int32 = FoundFileDownloads;
 
 
-//@description Returns information about a file with messages exported from another app @message_file_head Beginning of the message file; up to 100 first lines
+//@description Returns information about a file with messages exported from another application @message_file_head Beginning of the message file; up to 100 first lines
 getMessageFileType message_file_head:string = MessageFileType;
 
 //@description Returns a confirmation text to be shown to the user before starting message import

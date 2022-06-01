@@ -154,18 +154,29 @@ class LinkManager::InternalLinkActiveSessions final : public InternalLink {
 };
 
 class LinkManager::InternalLinkAttachMenuBot final : public InternalLink {
+  td_api::object_ptr<td_api::supportedChatTypes> dialog_types_;
   unique_ptr<InternalLink> dialog_link_;
   string bot_username_;
   string url_;
 
   td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
+    td_api::object_ptr<td_api::supportedChatTypes> dialog_types;
+    if (dialog_types_ != nullptr) {
+      dialog_types = td_api::make_object<td_api::supportedChatTypes>(
+          dialog_types_->supports_user_chats_, dialog_types_->supports_bot_chats_, dialog_types_->supports_group_chats_,
+          dialog_types_->supports_channel_chats_);
+    }
     return td_api::make_object<td_api::internalLinkTypeAttachmentMenuBot>(
-        dialog_link_ == nullptr ? nullptr : dialog_link_->get_internal_link_type_object(), bot_username_, url_);
+        std::move(dialog_types), dialog_link_ == nullptr ? nullptr : dialog_link_->get_internal_link_type_object(),
+        bot_username_, url_);
   }
 
  public:
-  InternalLinkAttachMenuBot(unique_ptr<InternalLink> dialog_link, string bot_username, Slice start_parameter)
-      : dialog_link_(std::move(dialog_link)), bot_username_(std::move(bot_username)) {
+  InternalLinkAttachMenuBot(td_api::object_ptr<td_api::supportedChatTypes> dialog_types,
+                            unique_ptr<InternalLink> dialog_link, string bot_username, Slice start_parameter)
+      : dialog_types_(std::move(dialog_types))
+      , dialog_link_(std::move(dialog_link))
+      , bot_username_(std::move(bot_username)) {
     if (!start_parameter.empty()) {
       url_ = PSTRING() << "start://" << start_parameter;
     }
@@ -987,12 +998,12 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
         // resolve?domain=<username>&attach=<bot_username>
         // resolve?domain=<username>&attach=<bot_username>&startattach=<start_parameter>
         return td::make_unique<InternalLinkAttachMenuBot>(
-            td::make_unique<InternalLinkPublicDialog>(std::move(username)), url_query.get_arg("attach").str(),
+            nullptr, td::make_unique<InternalLinkPublicDialog>(std::move(username)), url_query.get_arg("attach").str(),
             url_query.get_arg("startattach"));
       } else if (url_query.has_arg("startattach")) {
         // resolve?domain=<bot_username>&startattach
         // resolve?domain=<bot_username>&startattach=<start_parameter>
-        return td::make_unique<InternalLinkAttachMenuBot>(nullptr, std::move(username),
+        return td::make_unique<InternalLinkAttachMenuBot>(nullptr, nullptr, std::move(username),
                                                           url_query.get_arg("startattach"));
       }
       if (username == "telegrampassport") {
@@ -1006,8 +1017,8 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
       if (!url_query.get_arg("attach").empty()) {
         // resolve?phone=<phone_number>&attach=<bot_username>
         // resolve?phone=<phone_number>&attach=<bot_username>&startattach=<start_parameter>
-        return td::make_unique<InternalLinkAttachMenuBot>(std::move(user_link), url_query.get_arg("attach").str(),
-                                                          url_query.get_arg("startattach"));
+        return td::make_unique<InternalLinkAttachMenuBot>(
+            nullptr, std::move(user_link), url_query.get_arg("attach").str(), url_query.get_arg("startattach"));
       }
       // resolve?phone=12345
       return user_link;
@@ -1188,8 +1199,8 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_t_me_link_query(Slice q
         if (!url_query.get_arg("attach").empty()) {
           // /+<phone_number>?attach=<bot_username>
           // /+<phone_number>?attach=<bot_username>&startattach=<start_parameter>
-          return td::make_unique<InternalLinkAttachMenuBot>(std::move(user_link), url_query.get_arg("attach").str(),
-                                                            url_query.get_arg("startattach"));
+          return td::make_unique<InternalLinkAttachMenuBot>(
+              nullptr, std::move(user_link), url_query.get_arg("attach").str(), url_query.get_arg("startattach"));
         }
         // /+<phone_number>
         return user_link;
@@ -1313,13 +1324,14 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_t_me_link_query(Slice q
     if (!url_query.get_arg("attach").empty()) {
       // /<username>?attach=<bot_username>
       // /<username>?attach=<bot_username>&startattach=<start_parameter>
-      return td::make_unique<InternalLinkAttachMenuBot>(td::make_unique<InternalLinkPublicDialog>(std::move(username)),
-                                                        url_query.get_arg("attach").str(),
-                                                        url_query.get_arg("startattach"));
+      return td::make_unique<InternalLinkAttachMenuBot>(
+          nullptr, td::make_unique<InternalLinkPublicDialog>(std::move(username)), url_query.get_arg("attach").str(),
+          url_query.get_arg("startattach"));
     } else if (url_query.has_arg("startattach")) {
       // /<bot_username>?startattach
       // /<bot_username>?startattach=<start_parameter>
-      return td::make_unique<InternalLinkAttachMenuBot>(nullptr, std::move(username), url_query.get_arg("startattach"));
+      return td::make_unique<InternalLinkAttachMenuBot>(nullptr, nullptr, std::move(username),
+                                                        url_query.get_arg("startattach"));
     }
 
     // /<username>
