@@ -8,12 +8,123 @@
 
 #include "td/telegram/Application.h"
 #include "td/telegram/ConfigShared.h"
+#include "td/telegram/DocumentsManager.h"
 #include "td/telegram/Global.h"
+#include "td/telegram/MessageEntity.h"
+#include "td/telegram/Td.h"
+#include "td/telegram/VideosManager.h"
 
 #include "td/utils/algorithm.h"
+#include "td/utils/buffer.h"
 #include "td/utils/SliceBuilder.h"
 
 namespace td {
+
+static td_api::object_ptr<td_api::PremiumFeature> get_premium_feature_object(Slice premium_feature) {
+  if (premium_feature == "double_limits") {
+    return td_api::make_object<td_api::premiumFeatureIncreasedLimits>();
+  }
+  if (premium_feature == "more_upload") {
+    return td_api::make_object<td_api::premiumFeatureIncreasedUploadFileSize>();
+  }
+  if (premium_feature == "faster_download") {
+    return td_api::make_object<td_api::premiumFeatureImprovedDownloadSpeed>();
+  }
+  if (premium_feature == "voice_to_text") {
+    return td_api::make_object<td_api::premiumFeatureVoiceRecognition>();
+  }
+  if (premium_feature == "no_ads") {
+    return td_api::make_object<td_api::premiumFeatureDisabledAds>();
+  }
+  if (premium_feature == "unique_reactions") {
+    return td_api::make_object<td_api::premiumFeatureUniqueReactions>();
+  }
+  if (premium_feature == "premium_stickers") {
+    return td_api::make_object<td_api::premiumFeatureUniqueStickers>();
+  }
+  if (premium_feature == "advanced_chat_management") {
+    return td_api::make_object<td_api::premiumFeatureAdvancedChatManagement>();
+  }
+  if (premium_feature == "profile_badge") {
+    return td_api::make_object<td_api::premiumFeatureProfileBadge>();
+  }
+  if (premium_feature == "animated_userpics") {
+    return td_api::make_object<td_api::premiumFeatureAnimatedProfilePhoto>();
+  }
+  return nullptr;
+}
+
+class GetPremiumPromoQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::premiumState>> promise_;
+
+ public:
+  explicit GetPremiumPromoQuery(Promise<td_api::object_ptr<td_api::premiumState>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send() {
+    send_query(G()->net_query_creator().create(telegram_api::help_getPremiumPromo()));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::help_getPremiumPromo>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto promo = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for GetPremiumPromoQuery: " << to_string(promo);
+
+    auto state = get_message_text(td_->contacts_manager_.get(), std::move(promo->status_text_),
+                                  std::move(promo->status_entities_), true, true, 0, false, "GetPremiumPromoQuery");
+
+    if (promo->video_sections_.size() != promo->videos_.size()) {
+      return on_error(Status::Error(500, "Receive wrong number of videos"));
+    }
+
+    if (promo->monthly_amount_ < 0 || promo->monthly_amount_ > 9999'9999'9999) {
+      return on_error(Status::Error(500, "Receive invalid monthly amount"));
+    }
+
+    if (promo->currency_.size() != 3) {
+      return on_error(Status::Error(500, "Receive invalid currency"));
+    }
+
+    vector<td_api::object_ptr<td_api::premiumFeaturePromotionVideo>> videos;
+    for (size_t i = 0; i < promo->video_sections_.size(); i++) {
+      auto feature = get_premium_feature_object(promo->video_sections_[i]);
+      if (feature == nullptr) {
+        continue;
+      }
+
+      auto video = std::move(promo->videos_[i]);
+      if (video->get_id() != telegram_api::document::ID) {
+        LOG(ERROR) << "Receive " << to_string(video) << " for " << promo->video_sections_[i];
+        continue;
+      }
+
+      auto parsed_document = td_->documents_manager_->on_get_document(move_tl_object_as<telegram_api::document>(video),
+                                                                      DialogId(), nullptr, Document::Type::Video);
+
+      if (parsed_document.type != Document::Type::Video) {
+        LOG(ERROR) << "Receive " << parsed_document.type << " for " << promo->video_sections_[i];
+        continue;
+      }
+
+      auto video_object = td_->videos_manager_->get_video_object(parsed_document.file_id);
+      videos.push_back(
+          td_api::make_object<td_api::premiumFeaturePromotionVideo>(std::move(feature), std::move(video_object)));
+    }
+
+    promise_.set_value(td_api::make_object<td_api::premiumState>(get_formatted_text_object(state, true, 0),
+                                                                 std::move(promo->currency_), promo->monthly_amount_,
+                                                                 std::move(videos)));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
 
 const vector<Slice> &get_premium_limit_keys() {
   static const vector<Slice> limit_keys{"channels",
@@ -190,39 +301,7 @@ void get_premium_features(Td *td, const td_api::object_ptr<td_api::PremiumSource
                  ',');
   vector<td_api::object_ptr<td_api::PremiumFeature>> features;
   for (const auto &premium_feature : premium_features) {
-    auto feature = [&]() -> td_api::object_ptr<td_api::PremiumFeature> {
-      if (premium_feature == "double_limits") {
-        return td_api::make_object<td_api::premiumFeatureIncreasedLimits>();
-      }
-      if (premium_feature == "more_upload") {
-        return td_api::make_object<td_api::premiumFeatureIncreasedUploadFileSize>();
-      }
-      if (premium_feature == "faster_download") {
-        return td_api::make_object<td_api::premiumFeatureImprovedDownloadSpeed>();
-      }
-      if (premium_feature == "voice_to_text") {
-        return td_api::make_object<td_api::premiumFeatureVoiceRecognition>();
-      }
-      if (premium_feature == "no_ads") {
-        return td_api::make_object<td_api::premiumFeatureDisabledAds>();
-      }
-      if (premium_feature == "unique_reactions") {
-        return td_api::make_object<td_api::premiumFeatureUniqueReactions>();
-      }
-      if (premium_feature == "premium_stickers") {
-        return td_api::make_object<td_api::premiumFeatureUniqueStickers>();
-      }
-      if (premium_feature == "advanced_chat_management") {
-        return td_api::make_object<td_api::premiumFeatureAdvancedChatManagement>();
-      }
-      if (premium_feature == "profile_badge") {
-        return td_api::make_object<td_api::premiumFeatureProfileBadge>();
-      }
-      if (premium_feature == "animated_userpics") {
-        return td_api::make_object<td_api::premiumFeatureAnimatedProfilePhoto>();
-      }
-      return nullptr;
-    }();
+    auto feature = get_premium_feature_object(premium_feature);
     if (feature != nullptr) {
       features.push_back(std::move(feature));
     }
@@ -278,6 +357,10 @@ void click_premium_subscription_button(Td *td, Promise<Unit> &&promise) {
   vector<tl_object_ptr<telegram_api::jsonObjectValue>> data;
   save_app_log(td, "premium.promo_screen_accept", DialogId(), make_tl_object<telegram_api::jsonObject>(std::move(data)),
                std::move(promise));
+}
+
+void get_premium_state(Td *td, Promise<td_api::object_ptr<td_api::premiumState>> &&promise) {
+  td->create_handler<GetPremiumPromoQuery>(std::move(promise))->send();
 }
 
 }  // namespace td

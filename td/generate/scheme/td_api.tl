@@ -2974,6 +2974,17 @@ premiumSourceLink referrer:string = PremiumSource;
 premiumSourceSettings = PremiumSource;
 
 
+//@description Describes a promotion video for a Premium feature @feature Premium feature @video Promotion video for the feature
+premiumFeaturePromotionVideo feature:PremiumFeature video:video = PremiumFeaturePromotionVideo;
+
+//@description Contains state of Telegram Premium subscription and promotion videos for Premium features
+//@state Text description of the state of the current Premium subscription; may be empty if the current user has no Telegram Premium subscription
+//@currency ISO 4217 currency code for Telegram Premium subscription payment
+//@monthly_amount Monthly subscription payment for Telegram Premium subscription, in the smallest units of the currency
+//@videos The list of available promotion videos for Premium features
+premiumState state:formattedText currency:string monthly_amount:int53 videos:vector<premiumFeaturePromotionVideo> = PremiumState;
+
+
 //@class DeviceToken @description Represents a data needed to subscribe for push notifications through registerDevice method. To use specific push notification service, the correct application platform must be specified and a valid server authentication data must be uploaded at https://my.telegram.org
 
 //@description A token for Firebase Cloud Messaging @token Device registration token; may be empty to deregister a device @encrypt True, if push notifications must be additionally encrypted
@@ -4986,7 +4997,7 @@ editInlineMessageReplyMarkup inline_message_id:string reply_markup:ReplyMarkup =
 editMessageSchedulingState chat_id:int53 message_id:int53 scheduling_state:MessageSchedulingState = Ok;
 
 
-//@description Returns reactions, which can be added to a message. The list can change after updateReactions, updateChatAvailableReactions for the chat, or updateMessageInteractionInfo for the message. The method will return Premium reactions, even the current user has no Premium account
+//@description Returns reactions, which can be added to a message. The list can change after updateReactions, updateChatAvailableReactions for the chat, or updateMessageInteractionInfo for the message. The method will return Premium reactions, even the current user has no Premium subscription
 //@chat_id Identifier of the chat to which the message belongs
 //@message_id Identifier of the message
 getMessageAvailableReactions chat_id:int53 message_id:int53 = AvailableReactions;
@@ -6346,6 +6357,9 @@ viewPremiumFeature feature:PremiumFeature = Ok;
 
 //@description Informs TDLib that the user clicked Premium subscription button on the Premium features screen
 clickPremiumSubscriptionButton = Ok;
+
+//@description Returns state of Telegram Premium subscription and promotion videos for Premium features
+getPremiumState = PremiumState;
 
 
 //@description Accepts Telegram terms of services @terms_of_service_id Terms of service identifier

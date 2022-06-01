@@ -7867,6 +7867,12 @@ void Td::on_request(uint64 id, const td_api::clickPremiumSubscriptionButton &req
   click_premium_subscription_button(this, std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::getPremiumState &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  get_premium_state(this, std::move(promise));
+}
+
 void Td::on_request(uint64 id, td_api::acceptTermsOfService &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.terms_of_service_id_);
