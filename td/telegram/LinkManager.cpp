@@ -147,6 +147,28 @@ static AdministratorRights get_administrator_rights(Slice rights, bool for_chann
                              for_channel ? ChannelType::Broadcast : ChannelType::Megagroup);
 }
 
+td_api::object_ptr<td_api::targetChatChosen> get_target_chat_chosen(Slice chat_types) {
+  bool allow_users = false;
+  bool allow_bots = false;
+  bool allow_groups = false;
+  bool allow_channels = false;
+  for (auto chat_type : full_split(chat_types, ' ')) {
+    if (chat_type == "users") {
+      allow_users = true;
+    } else if (chat_type == "bots") {
+      allow_bots = true;
+    } else if (chat_type == "groups") {
+      allow_groups = true;
+    } else if (chat_type == "channels") {
+      allow_channels = true;
+    }
+  }
+  if (!allow_users && !allow_bots && !allow_groups && !allow_channels) {
+    return nullptr;
+  }
+  return td_api::make_object<td_api::targetChatChosen>(allow_users, allow_bots, allow_groups, allow_channels);
+}
+
 class LinkManager::InternalLinkActiveSessions final : public InternalLink {
   td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
     return td_api::make_object<td_api::internalLinkTypeActiveSessions>();
@@ -1003,10 +1025,10 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
             nullptr, td::make_unique<InternalLinkPublicDialog>(std::move(username)), url_query.get_arg("attach").str(),
             url_query.get_arg("startattach"));
       } else if (url_query.has_arg("startattach")) {
-        // resolve?domain=<bot_username>&startattach
-        // resolve?domain=<bot_username>&startattach=<start_parameter>
-        return td::make_unique<InternalLinkAttachMenuBot>(nullptr, nullptr, std::move(username),
-                                                          url_query.get_arg("startattach"));
+        // resolve?domain=<bot_username>&startattach&choose=users+bots+groups+channels
+        // resolve?domain=<bot_username>&startattach=<start_parameter>&choose=users+bots+groups+channels
+        return td::make_unique<InternalLinkAttachMenuBot>(get_target_chat_chosen(url_query.get_arg("choose")), nullptr,
+                                                          std::move(username), url_query.get_arg("startattach"));
       }
       if (username == "telegrampassport") {
         // resolve?domain=telegrampassport&bot_id=<bot_user_id>&scope=<scope>&public_key=<public_key>&nonce=<nonce>
@@ -1330,10 +1352,10 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_t_me_link_query(Slice q
           nullptr, td::make_unique<InternalLinkPublicDialog>(std::move(username)), url_query.get_arg("attach").str(),
           url_query.get_arg("startattach"));
     } else if (url_query.has_arg("startattach")) {
-      // /<bot_username>?startattach
-      // /<bot_username>?startattach=<start_parameter>
-      return td::make_unique<InternalLinkAttachMenuBot>(nullptr, nullptr, std::move(username),
-                                                        url_query.get_arg("startattach"));
+      // /<bot_username>?startattach&choose=users+bots+groups+channels
+      // /<bot_username>?startattach=<start_parameter>&choose=users+bots+groups+channels
+      return td::make_unique<InternalLinkAttachMenuBot>(get_target_chat_chosen(url_query.get_arg("choose")), nullptr,
+                                                        std::move(username), url_query.get_arg("startattach"));
     }
 
     // /<username>
