@@ -154,27 +154,29 @@ class LinkManager::InternalLinkActiveSessions final : public InternalLink {
 };
 
 class LinkManager::InternalLinkAttachMenuBot final : public InternalLink {
-  td_api::object_ptr<td_api::supportedChatTypes> dialog_types_;
+  td_api::object_ptr<td_api::targetChatChosen> allowed_chat_types_;
   unique_ptr<InternalLink> dialog_link_;
   string bot_username_;
   string url_;
 
   td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
-    td_api::object_ptr<td_api::supportedChatTypes> dialog_types;
-    if (dialog_types_ != nullptr) {
-      dialog_types = td_api::make_object<td_api::supportedChatTypes>(
-          dialog_types_->supports_user_chats_, dialog_types_->supports_bot_chats_, dialog_types_->supports_group_chats_,
-          dialog_types_->supports_channel_chats_);
+    td_api::object_ptr<td_api::TargetChat> target_chat;
+    if (dialog_link_ != nullptr) {
+      target_chat = td_api::make_object<td_api::targetChatInternalLink>(dialog_link_->get_internal_link_type_object());
+    } else if (allowed_chat_types_ != nullptr) {
+      target_chat = td_api::make_object<td_api::targetChatChosen>(
+          allowed_chat_types_->allow_user_chats_, allowed_chat_types_->allow_bot_chats_,
+          allowed_chat_types_->allow_group_chats_, allowed_chat_types_->allow_channel_chats_);
+    } else {
+      target_chat = td_api::make_object<td_api::targetChatCurrent>();
     }
-    return td_api::make_object<td_api::internalLinkTypeAttachmentMenuBot>(
-        std::move(dialog_types), dialog_link_ == nullptr ? nullptr : dialog_link_->get_internal_link_type_object(),
-        bot_username_, url_);
+    return td_api::make_object<td_api::internalLinkTypeAttachmentMenuBot>(std::move(target_chat), bot_username_, url_);
   }
 
  public:
-  InternalLinkAttachMenuBot(td_api::object_ptr<td_api::supportedChatTypes> dialog_types,
+  InternalLinkAttachMenuBot(td_api::object_ptr<td_api::targetChatChosen> allowed_chat_types,
                             unique_ptr<InternalLink> dialog_link, string bot_username, Slice start_parameter)
-      : dialog_types_(std::move(dialog_types))
+      : allowed_chat_types_(std::move(allowed_chat_types))
       , dialog_link_(std::move(dialog_link))
       , bot_username_(std::move(bot_username)) {
     if (!start_parameter.empty()) {

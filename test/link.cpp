@@ -98,12 +98,19 @@ TEST(Link, parse_internal_link) {
   auto active_sessions = [] {
     return td::td_api::make_object<td::td_api::internalLinkTypeActiveSessions>();
   };
-  auto attachment_menu_bot = [](td::td_api::object_ptr<td::td_api::supportedChatTypes> chat_types,
+  auto attachment_menu_bot = [](td::td_api::object_ptr<td::td_api::targetChatChosen> chat_types,
                                 td::td_api::object_ptr<td::td_api::InternalLinkType> chat_link,
                                 const td::string &bot_username, const td::string &start_parameter) {
+    td::td_api::object_ptr<td::td_api::TargetChat> target_chat;
+    if (chat_link != nullptr) {
+      target_chat = td::td_api::make_object<td::td_api::targetChatInternalLink>(std::move(chat_link));
+    } else if (chat_types != nullptr) {
+      target_chat = std::move(chat_types);
+    } else {
+      target_chat = td::td_api::make_object<td::td_api::targetChatCurrent>();
+    }
     return td::td_api::make_object<td::td_api::internalLinkTypeAttachmentMenuBot>(
-        std::move(chat_types), std::move(chat_link), bot_username,
-        start_parameter.empty() ? td::string() : "start://" + start_parameter);
+        std::move(target_chat), bot_username, start_parameter.empty() ? td::string() : "start://" + start_parameter);
   };
   auto authentication_code = [](const td::string &code) {
     return td::td_api::make_object<td::td_api::internalLinkTypeAuthenticationCode>(code);

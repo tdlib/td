@@ -3540,12 +3540,20 @@ chatReportReasonPersonalDetails = ChatReportReason;
 chatReportReasonCustom = ChatReportReason;
 
 
-//@description Describes supported chat types
-//@supports_user_chats True, if private chats with ordinary users are supported
-//@supports_bot_chats  True, if private chats with other bots are supported
-//@supports_group_chats True, if basic group and supergroup chats are supported
-//@supports_channel_chats True, if channel chats are supported
-supportedChatTypes supports_user_chats:Bool supports_bot_chats:Bool supports_group_chats:Bool supports_channel_chats:Bool = SupportedChatTypes;
+//@class TargetChat @description Describes the target chat to be opened
+
+//@description The currently opened chat needs to be kept
+targetChatCurrent = TargetChat;
+
+//@description The chat needs to be chosen by the user among chats of the specified types
+//@allow_user_chats True, if private chats with ordinary users are allowed
+//@allow_bot_chats  True, if private chats with other bots are allowed
+//@allow_group_chats True, if basic group and supergroup chats are allowed
+//@allow_channel_chats True, if channel chats are allowed
+targetChatChosen allow_user_chats:Bool allow_bot_chats:Bool allow_group_chats:Bool allow_channel_chats:Bool = TargetChat;
+
+//@description The chat needs to be open with the provided internal link @link An internal link pointing to the chat
+targetChatInternalLink link:InternalLinkType = TargetChat;
 
 
 //@class InternalLinkType @description Describes an internal https://t.me or tg: link, which must be processed by the application in a special way
@@ -3553,12 +3561,12 @@ supportedChatTypes supports_user_chats:Bool supports_bot_chats:Bool supports_gro
 //@description The link is a link to the active sessions section of the application. Use getActiveSessions to handle the link
 internalLinkTypeActiveSessions = InternalLinkType;
 
-//@description The link is a link to an attachment menu bot to be opened in the specified or a chosen chat. Process given chat_types and chat_link to choose and open the corresponding chat.
+//@description The link is a link to an attachment menu bot to be opened in the specified or a chosen chat. Process given target_chat to open the chat.
 //-Then call searchPublicChat with the given bot username, check that the user is a bot and can be added to attachment menu. Then use getAttachmentMenuBot to receive information about the bot.
 //-If the bot isn't added to attachment menu, then user needs to confirm adding the bot to attachment menu. If user confirms adding, then use toggleBotIsAddedToAttachmentMenu to add it.
-//-If the attachment menu bot can't be used in the opened chat, show an error to the user. If the bot is added to attachment menu, then use openWebApp with the given URL
-//@chat_types List of chat types, supported by the link; may be null if chat_link must be processed instead @chat_link An internal link pointing to a chat; may be null if the current chat needs to be kept @bot_username Username of the bot @url URL to be passed to openWebApp
-internalLinkTypeAttachmentMenuBot chat_types:supportedChatTypes chat_link:InternalLinkType bot_username:string url:string = InternalLinkType;
+//-If the attachment menu bot can't be used in the opened chat, show an error to the user. If the bot is added to attachment menu and can be used in the chat, then use openWebApp with the given URL
+//@target_chat Description of the chat to be opened @bot_username Username of the bot @url URL to be passed to openWebApp
+internalLinkTypeAttachmentMenuBot target_chat:TargetChat bot_username:string url:string = InternalLinkType;
 
 //@description The link contains an authentication code. Call checkAuthenticationCode with the code if the current authorization state is authorizationStateWaitCode @code The authentication code
 internalLinkTypeAuthenticationCode code:string = InternalLinkType;
