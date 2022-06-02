@@ -319,7 +319,7 @@ void PartialLocalFileLocation::store(StorerT &storer) const {
   store(iv_, storer);
   store(ready_bitmask_, storer);
   if (deprecated_ready_part_count == -2) {
-    CHECK(part_size_ < (1ll << 62));
+    CHECK(part_size_ < (static_cast<int64>(1) << 62));
     store(static_cast<int32>(part_size_ >> 31), storer);
   }
 }

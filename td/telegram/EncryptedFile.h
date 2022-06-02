@@ -10,6 +10,7 @@
 
 #include "td/utils/common.h"
 #include "td/utils/format.h"
+#include "td/utils/misc.h"
 #include "td/utils/StringBuilder.h"
 #include "td/utils/tl_helpers.h"
 
@@ -42,7 +43,7 @@ struct EncryptedFile {
   template <class StorerT>
   void store(StorerT &storer) const {
     using td::store;
-    bool has_64bit_size = (size_ >= (1ll << 31));
+    bool has_64bit_size = (size_ >= (static_cast<int64>(1) << 31));
     BEGIN_STORE_FLAGS();
     STORE_FLAG(has_64bit_size);
     END_STORE_FLAGS();

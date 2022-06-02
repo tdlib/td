@@ -8,15 +8,21 @@
 
 #include "td/telegram/Application.h"
 #include "td/telegram/ConfigShared.h"
+#include "td/telegram/DialogId.h"
+#include "td/telegram/Document.h"
 #include "td/telegram/DocumentsManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/MessageEntity.h"
 #include "td/telegram/Td.h"
+#include "td/telegram/telegram_api.h"
 #include "td/telegram/VideosManager.h"
 
 #include "td/utils/algorithm.h"
 #include "td/utils/buffer.h"
+#include "td/utils/logging.h"
+#include "td/utils/misc.h"
 #include "td/utils/SliceBuilder.h"
+#include "td/utils/Status.h"
 
 namespace td {
 

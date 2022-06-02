@@ -6,6 +6,7 @@
 //
 #include "td/telegram/NotificationSound.h"
 
+#include "td/utils/logging.h"
 #include "td/utils/tl_helpers.h"
 
 namespace td {
@@ -239,7 +240,7 @@ unique_ptr<NotificationSound> get_notification_sound(telegram_api::NotificationS
     case telegram_api::notificationSoundRingtone::ID: {
       const auto *sound = static_cast<telegram_api::notificationSoundRingtone *>(notification_sound);
       if (sound->id_ == 0 || sound->id_ == -1) {
-        LOG(ERROR) << "Receive ringtone with id = " << sound->id_;
+        LOG(ERROR) << "Receive ringtone with ID = " << sound->id_;
         return make_unique<NotificationSoundNone>();
       }
       return td::make_unique<NotificationSoundRingtone>(sound->id_);

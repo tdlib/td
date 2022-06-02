@@ -6,6 +6,8 @@
 //
 #include "td/telegram/VoiceNotesManager.h"
 
+#include "td/telegram/AccessRights.h"
+#include "td/telegram/DialogId.h"
 #include "td/telegram/Dimensions.h"
 #include "td/telegram/files/FileManager.h"
 #include "td/telegram/Global.h"
@@ -17,7 +19,6 @@
 
 #include "td/utils/buffer.h"
 #include "td/utils/logging.h"
-#include "td/utils/misc.h"
 
 namespace td {
 
@@ -263,7 +264,7 @@ void VoiceNotesManager::unregister_voice_note(FileId voice_note_file_id, FullMes
   if (message_ids.empty()) {
     voice_note_messages_.erase(voice_note_file_id);
   }
-  is_deleted = message_voice_notes_.erase(full_message_id);
+  is_deleted = message_voice_notes_.erase(full_message_id) > 0;
   CHECK(is_deleted);
 }
 

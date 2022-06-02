@@ -35,6 +35,8 @@
 #include "td/utils/SliceBuilder.h"
 #include "td/utils/tl_helpers.h"
 
+#include <algorithm>
+
 namespace td {
 
 class GetBackgroundQuery final : public Td::ResultHandler {

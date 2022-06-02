@@ -2553,7 +2553,7 @@ attachmentMenuBotColor light_color:int32 dark_color:int32 = AttachmentMenuBotCol
 //@bot_user_id User identifier of the bot added to attachment menu
 //@supports_self_chat True, if the bot supports opening from attachment menu in the chat with the bot
 //@supports_user_chats True, if the bot supports opening from attachment menu in private chats with ordinary users
-//@supports_bot_chats  True, if the bot supports opening from attachment menu in private chats with other bots
+//@supports_bot_chats True, if the bot supports opening from attachment menu in private chats with other bots
 //@supports_group_chats True, if the bot supports opening from attachment menu in basic group and supergroup chats
 //@supports_channel_chats True, if the bot supports opening from attachment menu in channel chats
 //@supports_settings True, if the bot supports "settings_button_pressed" event
@@ -2962,7 +2962,7 @@ premiumLimit type:PremiumLimitType default_value:int32 premium_value:int32 = Pre
 premiumFeatures features:vector<PremiumFeature> limits:vector<premiumLimit> payment_link:InternalLinkType = PremiumFeatures;
 
 
-//@class PremiumSource @description Describes a source, from which the Premium features screen is opened
+//@class PremiumSource @description Describes a source from which the Premium features screen is opened
 
 //@description A limit was exceeded @limit_type Type of the exceeded limit
 premiumSourceLimitExceeded limit_type:PremiumLimitType = PremiumSource;
@@ -3547,7 +3547,7 @@ targetChatCurrent = TargetChat;
 
 //@description The chat needs to be chosen by the user among chats of the specified types
 //@allow_user_chats True, if private chats with ordinary users are allowed
-//@allow_bot_chats  True, if private chats with other bots are allowed
+//@allow_bot_chats True, if private chats with other bots are allowed
 //@allow_group_chats True, if basic group and supergroup chats are allowed
 //@allow_channel_chats True, if channel chats are allowed
 targetChatChosen allow_user_chats:Bool allow_bot_chats:Bool allow_group_chats:Bool allow_channel_chats:Bool = TargetChat;
@@ -3565,7 +3565,7 @@ internalLinkTypeActiveSessions = InternalLinkType;
 //-Then call searchPublicChat with the given bot username, check that the user is a bot and can be added to attachment menu. Then use getAttachmentMenuBot to receive information about the bot.
 //-If the bot isn't added to attachment menu, then user needs to confirm adding the bot to attachment menu. If user confirms adding, then use toggleBotIsAddedToAttachmentMenu to add it.
 //-If the attachment menu bot can't be used in the opened chat, show an error to the user. If the bot is added to attachment menu and can be used in the chat, then use openWebApp with the given URL
-//@target_chat Description of the chat to be opened @bot_username Username of the bot @url URL to be passed to openWebApp
+//@target_chat Target chat to be opened @bot_username Username of the bot @url URL to be passed to openWebApp
 internalLinkTypeAttachmentMenuBot target_chat:TargetChat bot_username:string url:string = InternalLinkType;
 
 //@description The link contains an authentication code. Call checkAuthenticationCode with the code if the current authorization state is authorizationStateWaitCode @code The authentication code
@@ -3632,7 +3632,7 @@ internalLinkTypePassportDataRequest bot_user_id:int53 scope:string public_key:st
 //@hash Hash value from the link @phone_number Phone number value from the link
 internalLinkTypePhoneNumberConfirmation hash:string phone_number:string = InternalLinkType;
 
-//@description The link is a link to the Premium features screen of the applcation, from which the user can subscribe to Telegram Premium. Call getPremiumFeatures with the given referrer to process the link @referrer Referrer specified in the link
+//@description The link is a link to the Premium features screen of the applcation from which the user can subscribe to Telegram Premium. Call getPremiumFeatures with the given referrer to process the link @referrer Referrer specified in the link
 internalLinkTypePremiumFeatures referrer:string = InternalLinkType;
 
 //@description The link is a link to the privacy and security settings section of the app
@@ -3913,7 +3913,7 @@ text text:string = Text;
 //@description Contains a value representing a number of seconds @seconds Number of seconds
 seconds seconds:double = Seconds;
 
-//@description Contains size of downloaded prefix of a file @size The prefix size
+//@description Contains size of downloaded prefix of a file @size The prefix size, in bytes
 fileDownloadedPrefixSize size:int53 = FileDownloadedPrefixSize;
 
 

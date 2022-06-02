@@ -13,6 +13,7 @@
 
 #include "td/utils/buffer.h"
 #include "td/utils/logging.h"
+#include "td/utils/misc.h"
 #include "td/utils/Status.h"
 
 namespace td {
@@ -26,7 +27,7 @@ static td_api::object_ptr<td_api::autoDownloadSettings> convert_auto_download_se
   auto audio_preload_next = (flags & telegram_api::autoDownloadSettings::AUDIO_PRELOAD_NEXT_MASK) != 0;
   auto phonecalls_less_data = (flags & telegram_api::autoDownloadSettings::PHONECALLS_LESS_DATA_MASK) != 0;
   constexpr int32 MAX_PHOTO_SIZE = 10 * (1 << 20) /* 10 MB */;
-  constexpr int64 MAX_DOCUMENT_SIZE = (1ll << 52);
+  constexpr int64 MAX_DOCUMENT_SIZE = (static_cast<int64>(1) << 52);
   return td_api::make_object<td_api::autoDownloadSettings>(
       !disabled, clamp(settings->photo_size_max_, static_cast<int32>(0), MAX_PHOTO_SIZE),
       clamp(settings->video_size_max_, static_cast<int64>(0), MAX_DOCUMENT_SIZE),

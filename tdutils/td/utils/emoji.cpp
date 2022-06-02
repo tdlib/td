@@ -9,7 +9,6 @@
 #include "td/utils/base64.h"
 #include "td/utils/FlatHashSet.h"
 #include "td/utils/Gzip.h"
-#include "td/utils/misc.h"
 
 namespace td {
 

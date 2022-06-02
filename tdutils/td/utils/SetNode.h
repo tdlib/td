@@ -9,6 +9,9 @@
 #include "td/utils/common.h"
 #include "td/utils/HashTableUtils.h"
 
+#include <type_traits>
+#include <utility>
+
 namespace td {
 
 template <class KeyT, class Enable = void>
@@ -71,7 +74,7 @@ struct SetNode<KeyT, typename std::enable_if_t<(sizeof(KeyT) > 28 * sizeof(void 
     KeyT first{};
 
     template <class InputKeyT>
-    Impl(InputKeyT &&key) : first(std::forward<InputKeyT>(key)) {
+    explicit Impl(InputKeyT &&key) : first(std::forward<InputKeyT>(key)) {
       DCHECK(!is_hash_table_key_empty(first));
     }
     Impl(const Impl &other) = delete;

@@ -9,6 +9,8 @@
 #include "td/telegram/files/FileManager.h"
 #include "td/telegram/SecretChatLayer.h"
 
+#include "td/utils/misc.h"
+
 namespace td {
 
 SecretInputMedia::SecretInputMedia(tl_object_ptr<telegram_api::InputEncryptedFile> input_file, BufferSlice &&thumbnail,

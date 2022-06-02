@@ -11,7 +11,6 @@
 #include "td/telegram/SecretInputMedia.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
-#include "td/telegram/Version.h"
 
 #include "td/actor/actor.h"
 #include "td/actor/PromiseFuture.h"

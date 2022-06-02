@@ -313,8 +313,9 @@ void SponsoredMessageManager::on_get_dialog_sponsored_messages(
     auto local_id = current_sponsored_message_id_.get();
     CHECK(!current_sponsored_message_id_.is_valid());
     CHECK(!current_sponsored_message_id_.is_scheduled());
-    CHECK(messages->message_random_ids.count(local_id) == 0);
-    messages->message_random_ids[local_id] = sponsored_message->random_id_.as_slice().str();
+    auto is_inserted =
+        messages->message_random_ids.emplace(local_id, sponsored_message->random_id_.as_slice().str()).second;
+    CHECK(is_inserted);
     messages->messages.emplace_back(local_id, sponsored_message->recommended_, sponsor_dialog_id, server_message_id,
                                     std::move(sponsored_message->start_param_), std::move(invite_hash),
                                     std::move(content));

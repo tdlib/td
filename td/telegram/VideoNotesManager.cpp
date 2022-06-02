@@ -15,7 +15,6 @@
 #include "td/telegram/telegram_api.h"
 
 #include "td/utils/logging.h"
-#include "td/utils/misc.h"
 #include "td/utils/Status.h"
 
 namespace td {
