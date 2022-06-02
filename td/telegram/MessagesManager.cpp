@@ -23712,6 +23712,7 @@ void MessagesManager::on_get_history_from_database(DialogId dialog_id, MessageId
   }
 
   if (from_the_end && last_added_message_id.is_valid()) {
+    CHECK(next_message != nullptr);
     // CHECK(d->first_database_message_id.is_valid());
     // CHECK(last_added_message_id >= d->first_database_message_id);
     if ((had_full_history || d->have_full_history) && !d->last_new_message_id.is_valid() &&
@@ -23728,6 +23729,9 @@ void MessagesManager::on_get_history_from_database(DialogId dialog_id, MessageId
     if (last_added_message_id != d->last_database_message_id && d->last_new_message_id.is_valid()) {
       auto debug_last_database_message_id = d->last_database_message_id;
       auto debug_set_dialog_last_database_message_id = d->debug_set_dialog_last_database_message_id;
+      if (!d->first_database_message_id.is_valid() && !d->last_database_message_id.is_valid()) {
+        set_dialog_first_database_message_id(d, next_message->message_id, "on_get_history_from_database 5");
+      }
       set_dialog_last_database_message_id(d, last_added_message_id, "on_get_history_from_database 5");
       if (last_added_message_id < d->first_database_message_id || !d->first_database_message_id.is_valid()) {
         CHECK(next_message != nullptr);
