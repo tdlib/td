@@ -7,6 +7,7 @@
 #pragma once
 
 #include "td/telegram/DialogId.h"
+#include "td/telegram/Dimensions.h"
 #include "td/telegram/files/FileId.h"
 #include "td/telegram/files/FileType.h"
 #include "td/telegram/net/DcId.h"
@@ -24,11 +25,6 @@ namespace td {
 
 class FileManager;
 
-struct Dimensions {
-  uint16 width = 0;
-  uint16 height = 0;
-};
-
 struct PhotoSize {
   int32 type = 0;
   Dimensions dimensions;
@@ -40,13 +36,6 @@ struct PhotoSize {
 struct AnimationSize final : public PhotoSize {
   double main_frame_timestamp = 0.0;
 };
-
-Dimensions get_dimensions(int32 width, int32 height, const char *source);
-
-bool operator==(const Dimensions &lhs, const Dimensions &rhs);
-bool operator!=(const Dimensions &lhs, const Dimensions &rhs);
-
-StringBuilder &operator<<(StringBuilder &string_builder, const Dimensions &dimensions);
 
 bool need_update_dialog_photo_minithumbnail(const string &from, const string &to);
 

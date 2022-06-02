@@ -6,6 +6,7 @@
 //
 #pragma once
 
+#include "td/telegram/Dimensions.h"
 #include "td/telegram/files/FileId.h"
 #include "td/telegram/PhotoSize.h"
 #include "td/telegram/SecretInputMedia.h"

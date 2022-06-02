@@ -6,6 +6,7 @@
 //
 #pragma once
 
+#include "td/telegram/Dimensions.hpp"
 #include "td/telegram/files/FileId.hpp"
 #include "td/telegram/PhotoSize.h"
 #include "td/telegram/Version.h"
@@ -14,19 +15,6 @@
 #include "td/utils/tl_helpers.h"
 
 namespace td {
-
-template <class StorerT>
-void store(Dimensions dimensions, StorerT &storer) {
-  store(static_cast<uint32>((static_cast<uint32>(dimensions.width) << 16) | dimensions.height), storer);
-}
-
-template <class ParserT>
-void parse(Dimensions &dimensions, ParserT &parser) {
-  uint32 width_height;
-  parse(width_height, parser);
-  dimensions.width = static_cast<uint16>(width_height >> 16);
-  dimensions.height = static_cast<uint16>(width_height & 0xFFFF);
-}
 
 template <class StorerT>
 void store(const PhotoSize &photo_size, StorerT &storer) {

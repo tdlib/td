@@ -19,6 +19,7 @@
 #include "td/telegram/Dependencies.h"
 #include "td/telegram/DialogAction.h"
 #include "td/telegram/DialogParticipant.h"
+#include "td/telegram/Dimensions.h"
 #include "td/telegram/Document.h"
 #include "td/telegram/DocumentsManager.h"
 #include "td/telegram/DocumentsManager.hpp"

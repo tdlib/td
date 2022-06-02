@@ -22,43 +22,6 @@
 
 namespace td {
 
-static uint16 get_dimension(int32 size, const char *source) {
-  if (size < 0 || size > 65535) {
-    if (source != nullptr) {
-      LOG(ERROR) << "Wrong image dimension = " << size << " from " << source;
-    }
-    return 0;
-  }
-  return narrow_cast<uint16>(size);
-}
-
-Dimensions get_dimensions(int32 width, int32 height, const char *source) {
-  Dimensions result;
-  result.width = get_dimension(width, source);
-  result.height = get_dimension(height, source);
-  if (result.width == 0 || result.height == 0) {
-    result.width = 0;
-    result.height = 0;
-  }
-  return result;
-}
-
-static uint32 get_pixel_count(const Dimensions &dimensions) {
-  return static_cast<uint32>(dimensions.width) * static_cast<uint32>(dimensions.height);
-}
-
-bool operator==(const Dimensions &lhs, const Dimensions &rhs) {
-  return lhs.width == rhs.width && lhs.height == rhs.height;
-}
-
-bool operator!=(const Dimensions &lhs, const Dimensions &rhs) {
-  return !(lhs == rhs);
-}
-
-StringBuilder &operator<<(StringBuilder &string_builder, const Dimensions &dimensions) {
-  return string_builder << "(" << dimensions.width << ", " << dimensions.height << ")";
-}
-
 static int32 get_minithumbnail_size(const string &packed) {
   if (packed.size() < 3) {
     return 0;
@@ -431,8 +394,8 @@ bool operator<(const PhotoSize &lhs, const PhotoSize &rhs) {
   if (lhs.size != rhs.size) {
     return lhs.size < rhs.size;
   }
-  auto lhs_pixels = get_pixel_count(lhs.dimensions);
-  auto rhs_pixels = get_pixel_count(rhs.dimensions);
+  auto lhs_pixels = get_dimensions_pixel_count(lhs.dimensions);
+  auto rhs_pixels = get_dimensions_pixel_count(rhs.dimensions);
   if (lhs_pixels != rhs_pixels) {
     return lhs_pixels < rhs_pixels;
   }

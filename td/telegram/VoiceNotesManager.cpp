@@ -6,6 +6,7 @@
 //
 #include "td/telegram/VoiceNotesManager.h"
 
+#include "td/telegram/Dimensions.h"
 #include "td/telegram/files/FileManager.h"
 #include "td/telegram/secret_api.h"
 #include "td/telegram/Td.h"
