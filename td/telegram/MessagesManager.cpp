@@ -23727,6 +23727,7 @@ void MessagesManager::on_get_history_from_database(DialogId dialog_id, MessageId
     }
     if (last_added_message_id != d->last_database_message_id && d->last_new_message_id.is_valid()) {
       auto debug_last_database_message_id = d->last_database_message_id;
+      auto debug_set_dialog_last_database_message_id = d->debug_set_dialog_last_database_message_id;
       set_dialog_last_database_message_id(d, last_added_message_id, "on_get_history_from_database 5");
       if (last_added_message_id < d->first_database_message_id || !d->first_database_message_id.is_valid()) {
         CHECK(next_message != nullptr);
@@ -23735,7 +23736,10 @@ void MessagesManager::on_get_history_from_database(DialogId dialog_id, MessageId
             << last_added_message_id << ' ' << d->first_database_message_id << ' ' << debug_first_database_message_id
             << ' ' << d->last_database_message_id << ' ' << debug_last_database_message_id << ' ' << dialog_id << ' '
             << d->last_new_message_id << ' ' << debug_last_new_message_id << ' ' << d->last_message_id << ' '
-            << debug_last_message_id;
+            << debug_last_message_id << ' ' << debug_set_dialog_last_database_message_id << ' '
+            << d->debug_set_dialog_last_database_message_id << ' ' << first_received_message_id << ' '
+            << last_received_message_id << ' ' << d->debug_first_database_message_id << ' '
+            << d->debug_last_database_message_id << ' ' << d->debug_last_new_message_id;
         CHECK(next_message->message_id <= d->last_database_message_id);
         LOG(ERROR) << "Fix first database message in " << dialog_id << " from " << d->first_database_message_id
                    << " to " << next_message->message_id;
