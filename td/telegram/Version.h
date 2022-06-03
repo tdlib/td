@@ -53,6 +53,7 @@ enum class Version : int32 {
   UseServerForwardAsCopy,
   AddMainDialogListPosition,
   AddVoiceNoteFlags,
+  AddMessageStickerFlags,  // 40
   Next
 };
 

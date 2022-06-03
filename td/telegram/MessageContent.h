@@ -102,7 +102,7 @@ unique_ptr<MessageContent> create_screenshot_taken_message_content();
 unique_ptr<MessageContent> create_chat_set_ttl_message_content(int32 ttl);
 
 Result<InputMessageContent> get_input_message_content(
-    DialogId dialog_id, tl_object_ptr<td_api::InputMessageContent> &&input_message_content, Td *td);
+    DialogId dialog_id, tl_object_ptr<td_api::InputMessageContent> &&input_message_content, Td *td, bool is_premium);
 
 bool can_have_input_media(const Td *td, const MessageContent *content, bool is_server);
 

@@ -25405,7 +25405,8 @@ Result<InputMessageContent> MessagesManager::process_input_message_content(
                                UserId(), copied_message->send_emoji);
   }
 
-  TRY_RESULT(content, get_input_message_content(dialog_id, std::move(input_message_content), td_));
+  bool is_premium = G()->shared_config().get_option_boolean("is_premium");
+  TRY_RESULT(content, get_input_message_content(dialog_id, std::move(input_message_content), td_, is_premium));
 
   if (content.ttl < 0 || content.ttl > MAX_PRIVATE_MESSAGE_TTL) {
     return Status::Error(400, "Invalid message content TTL specified");

@@ -1845,8 +1845,8 @@ messagePhoto photo:photo caption:formattedText is_secret:Bool = MessageContent;
 //@description An expired photo message (self-destructed after TTL has elapsed)
 messageExpiredPhoto = MessageContent;
 
-//@description A sticker message @sticker The sticker description
-messageSticker sticker:sticker = MessageContent;
+//@description A sticker message @sticker The sticker description @is_premium True, if premium animation of the sticker must be played
+messageSticker sticker:sticker is_premium:Bool = MessageContent;
 
 //@description A video message @video The video description @caption Video caption @is_secret True, if the video thumbnail must be blurred and the video must be shown only while tapped
 messageVideo video:video caption:formattedText is_secret:Bool = MessageContent;
