@@ -2550,6 +2550,8 @@ class CliClient final : public Actor {
       auto source = td_api::make_object<td_api::premiumSourceLimitExceeded>(
           td_api::make_object<td_api::premiumLimitTypeChatFilterCount>());
       send_request(td_api::make_object<td_api::getPremiumFeatures>(std::move(source)));
+    } else if (op == "gprst") {
+      send_request(td_api::make_object<td_api::getPremiumStickers>());
     } else if (op == "vprf") {
       auto feature = td_api::make_object<td_api::premiumFeatureProfileBadge>();
       send_request(td_api::make_object<td_api::viewPremiumFeature>(std::move(feature)));

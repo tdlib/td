@@ -6371,6 +6371,9 @@ getPremiumLimit limit_type:PremiumLimitType = PremiumLimit;
 //@description Returns information about features, available to Premium users @source Source of the request; pass null if the method is called from some non-standard source
 getPremiumFeatures source:PremiumSource = PremiumFeatures;
 
+//@description Returns examples of premium stickers for demonstration purposes
+getPremiumStickers = Stickers;
+
 //@description Informs TDLib that the user viewed detailed information about a Premium feature on the Premium features screen @feature The viewed premium feature
 viewPremiumFeature feature:PremiumFeature = Ok;
 
