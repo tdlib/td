@@ -17168,8 +17168,10 @@ void MessagesManager::on_get_dialog_filters(Result<vector<tl_object_ptr<telegram
   auto promises = std::move(dialog_filter_reload_queries_);
   dialog_filter_reload_queries_.clear();
   if (r_filters.is_error()) {
+    if (!G()->is_expected_error(r_filters.error())) {
+      LOG(WARNING) << "Receive error " << r_filters.error() << " for GetDialogFiltersQuery";
+    }
     fail_promises(promises, r_filters.move_as_error());
-    LOG(WARNING) << "Receive error " << r_filters.error() << " for GetDialogFiltersQuery";
     need_dialog_filters_reload_ = false;
     schedule_dialog_filters_reload(Random::fast(60, 5 * 60));
     return;
