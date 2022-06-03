@@ -4033,7 +4033,7 @@ unique_ptr<MessageContent> get_secret_message_content(
     Td *td, string message_text, unique_ptr<EncryptedFile> file,
     tl_object_ptr<secret_api::DecryptedMessageMedia> &&media,
     vector<tl_object_ptr<secret_api::MessageEntity>> &&secret_entities, DialogId owner_dialog_id,
-    MultiPromiseActor &load_data_multipromise) {
+    MultiPromiseActor &load_data_multipromise, bool is_premium) {
   int32 constructor_id = media == nullptr ? secret_api::decryptedMessageMediaEmpty::ID : media->get_id();
   auto caption = [&] {
     switch (constructor_id) {
@@ -4194,8 +4194,8 @@ unique_ptr<MessageContent> get_secret_message_content(
       auto external_document = move_tl_object_as<secret_api::decryptedMessageMediaExternalDocument>(media);
       auto document = secret_to_telegram_document(*external_document);
       return get_document_message_content(td, std::move(document), owner_dialog_id,
-                                          FormattedText{std::move(message_text), std::move(entities)}, false, false,
-                                          &load_data_multipromise);
+                                          FormattedText{std::move(message_text), std::move(entities)}, false,
+                                          is_premium, &load_data_multipromise);
     }
     default:
       break;

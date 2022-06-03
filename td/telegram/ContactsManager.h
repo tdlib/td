@@ -452,6 +452,8 @@ class ContactsManager final : public Actor {
 
   bool is_user_contact(UserId user_id, bool is_mutual = false) const;
 
+  bool is_user_premium(UserId user_id) const;
+
   bool is_user_deleted(UserId user_id) const;
 
   bool is_user_support(UserId user_id) const;

@@ -13926,7 +13926,8 @@ void MessagesManager::on_get_secret_message(SecretChatId secret_chat_id, UserId 
   message_info.flags = flags;
   message_info.content = get_secret_message_content(
       td_, std::move(message->message_), std::move(file), std::move(message->media_), std::move(message->entities_),
-      message_info.dialog_id, pending_secret_message->load_data_multipromise);
+      message_info.dialog_id, pending_secret_message->load_data_multipromise,
+      td_->contacts_manager_->is_user_premium(user_id));
 
   add_secret_message(std::move(pending_secret_message), std::move(lock_promise));
 }

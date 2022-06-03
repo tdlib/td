@@ -2691,7 +2691,7 @@ void StickersManager::create_sticker(FileId file_id, FileId premium_animation_fi
     }
   }
   s->format = format;
-  on_get_sticker(std::move(s), sticker != nullptr);
+  on_get_sticker(std::move(s), sticker != nullptr && load_data_multipromise_ptr == nullptr);
 }
 
 bool StickersManager::has_input_media(FileId sticker_file_id, bool is_secret) const {

@@ -14312,6 +14312,11 @@ bool ContactsManager::have_min_user(UserId user_id) const {
   return users_.count(user_id) > 0;
 }
 
+bool ContactsManager::is_user_premium(UserId user_id) const {
+  auto u = get_user(user_id);
+  return u != nullptr && u->is_premium;
+}
+
 bool ContactsManager::is_user_deleted(UserId user_id) const {
   auto u = get_user(user_id);
   return u == nullptr || u->is_deleted;
