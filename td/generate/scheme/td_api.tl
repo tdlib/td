@@ -1960,7 +1960,7 @@ messageCustomServiceAction text:string = MessageContent;
 //@description A new high score was achieved in a game @game_message_id Identifier of the message with the game, can be an identifier of a deleted message @game_id Identifier of the game; may be different from the games presented in the message with the game @score New score
 messageGameScore game_message_id:int53 game_id:int64 score:int32 = MessageContent;
 
-//@description A payment has been completed @invoice_chat_id Identifier of the chat, containing the corresponding invoice message; 0 if unknown @invoice_message_id Identifier of the message with the corresponding invoice; can be an identifier of a deleted message
+//@description A payment has been completed @invoice_chat_id Identifier of the chat, containing the corresponding invoice message; 0 if unknown @invoice_message_id Identifier of the message with the corresponding invoice; can be 0 or an identifier of a deleted message
 //@currency Currency for the price of the product @total_amount Total price for the product, in the smallest units of the currency
 //@is_recurring True, if this is a recurring payment @is_first_recurring True, if this is the first recurring payment @invoice_name Name of the invoice; may be empty if unknown
 messagePaymentSuccessful invoice_chat_id:int53 invoice_message_id:int53 currency:string total_amount:int53 is_recurring:Bool is_first_recurring:Bool invoice_name:string = MessageContent;
