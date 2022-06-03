@@ -711,7 +711,7 @@ static bool tolower_begins_with(Slice str, Slice prefix) {
 Result<string> LinkManager::check_link(CSlice link, bool http_only, bool https_only) {
   auto result = check_link_impl(link, http_only, https_only);
   if (result.is_ok()) {
-    return std::move(result);
+    return result;
   }
   auto error = result.move_as_error();
   if (check_utf8(link)) {
