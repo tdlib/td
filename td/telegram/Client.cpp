@@ -24,6 +24,8 @@
 #include "td/utils/port/RwMutex.h"
 #include "td/utils/port/thread.h"
 #include "td/utils/Slice.h"
+#include "td/utils/StringBuilder.h"
+#include "td/utils/utf8.h"
 
 #include <algorithm>
 #include <atomic>
@@ -679,7 +681,18 @@ static std::atomic<ClientManager::LogMessageCallbackPtr> log_message_callback;
 static void log_message_callback_wrapper(int verbosity_level, CSlice message) {
   auto callback = log_message_callback.load(std::memory_order_relaxed);
   if (callback != nullptr) {
-    callback(verbosity_level, message.c_str());
+    if (check_utf8(message)) {
+      callback(verbosity_level, message.c_str());
+    } else {
+      size_t pos = 0;
+      while (1 <= message[pos] && message[pos] <= 126) {
+        pos++;
+      }
+      CHECK(pos + 1 < message.size());
+      auto utf8_message = PSTRING() << message.substr(0, pos)
+                                    << url_encode(message.substr(pos, message.size() - pos - 1)) << '\n';
+      callback(verbosity_level, utf8_message.c_str());
+    }
   }
 }
 
