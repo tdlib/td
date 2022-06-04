@@ -532,6 +532,9 @@ StringBuilder &operator<<(StringBuilder &string_builder, const DialogParticipant
       return string_builder;
     case DialogParticipantStatus::Type::Administrator:
       string_builder << status.get_administrator_rights();
+      if (status.can_be_edited()) {
+        string_builder << "(can_be_edited)";
+      }
       if (!status.rank_.empty()) {
         string_builder << " [" << status.rank_ << "]";
       }
