@@ -1271,6 +1271,9 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
     case MessageContentType::ChatChangePhoto: {
       auto m = make_unique<MessageChatChangePhoto>();
       parse(m->photo, parser);
+      if (m->photo.is_empty()) {
+        is_bad = true;
+      }
       content = std::move(m);
       break;
     }
@@ -4995,7 +4998,12 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
     }
     case MessageContentType::ChatChangePhoto: {
       const auto *m = static_cast<const MessageChatChangePhoto *>(content);
-      return make_tl_object<td_api::messageChatChangePhoto>(get_chat_photo_object(td->file_manager_.get(), m->photo));
+      auto photo = get_chat_photo_object(td->file_manager_.get(), m->photo);
+      if (photo == nullptr) {
+        LOG(ERROR) << "Have empty chat " << m->photo;
+        return make_tl_object<td_api::messageChatDeletePhoto>();
+      }
+      return make_tl_object<td_api::messageChatChangePhoto>(std::move(photo));
     }
     case MessageContentType::ChatDeletePhoto:
       return make_tl_object<td_api::messageChatDeletePhoto>();
