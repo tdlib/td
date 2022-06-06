@@ -1691,7 +1691,7 @@ PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll
     }
     if (poll->explanation != explanation && (!is_min || poll_server_is_closed)) {
       if (explanation.text.empty() && !poll->explanation.text.empty()) {
-        LOG(ERROR) << "Can't change known " << poll_id << " explanation to empty from " << source ;
+        LOG(ERROR) << "Can't change known " << poll_id << " explanation to empty from " << source;
       } else {
         poll->explanation = std::move(explanation);
         is_changed = true;

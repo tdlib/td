@@ -53,7 +53,7 @@
 
 namespace td {
 namespace {
-constexpr int64 MAX_FILE_SIZE = static_cast<int64>(4000) << 20; // 4000MB
+constexpr int64 MAX_FILE_SIZE = static_cast<int64>(4000) << 20;  // 4000MB
 }  // namespace
 
 int VERBOSITY_NAME(update_file) = VERBOSITY_NAME(INFO);
@@ -3836,6 +3836,10 @@ void FileManager::on_error_impl(FileNodePtr node, Query::Type type, bool was_act
       run_download(node, true);
       return;
     }
+  }
+  if (status.message() == "MTPROTO_CLUSTER_INVALID") {
+    run_download(node, true);
+    return;
   }
 
   if (!was_active) {

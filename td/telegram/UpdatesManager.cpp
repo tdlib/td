@@ -3199,7 +3199,7 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateSavedGifs> upda
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateConfig> update, Promise<Unit> &&promise) {
-  send_closure(td_->config_manager_, &ConfigManager::request_config);
+  send_closure(td_->config_manager_, &ConfigManager::request_config, false);
   promise.set_value(Unit());
 }
 

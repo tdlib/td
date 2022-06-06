@@ -909,7 +909,7 @@ void ConfigManager::start_up() {
 
   auto expire_time = load_config_expire_time();
   if (expire_time.is_in_past() || true) {
-    request_config();
+    request_config(false);
   } else {
     expire_time_ = expire_time;
     set_timeout_in(expire_time_.in());
@@ -935,7 +935,7 @@ void ConfigManager::hangup() {
 
 void ConfigManager::loop() {
   if (expire_time_ && expire_time_.is_in_past()) {
-    request_config();
+    request_config(reopen_sessions_after_get_config_);
     expire_time_ = {};
   }
 }
@@ -946,17 +946,17 @@ void ConfigManager::try_stop() {
   }
 }
 
-void ConfigManager::request_config() {
+void ConfigManager::request_config(bool reopen_sessions) {
   if (G()->close_flag()) {
     return;
   }
 
-  if (config_sent_cnt_ != 0) {
+  if (config_sent_cnt_ != 0 && !reopen_sessions) {
     return;
   }
 
   lazy_request_flood_control_.add_event(static_cast<int32>(Timestamp::now().at()));
-  request_config_from_dc_impl(DcId::main());
+  request_config_from_dc_impl(DcId::main(), reopen_sessions);
 }
 
 void ConfigManager::lazy_request_config() {
@@ -1086,11 +1086,13 @@ void ConfigManager::on_dc_options_update(DcOptions dc_options) {
   send_closure(config_recoverer_, &ConfigRecoverer::on_dc_options_update, std::move(dc_options));
 }
 
-void ConfigManager::request_config_from_dc_impl(DcId dc_id) {
+void ConfigManager::request_config_from_dc_impl(DcId dc_id, bool reopen_sessions) {
   config_sent_cnt_++;
+  reopen_sessions_after_get_config_ |= reopen_sessions;
   auto query = G()->net_query_creator().create_unauth(telegram_api::help_getConfig(), dc_id);
   query->total_timeout_limit_ = 60 * 60 * 24;
-  G()->net_query_dispatcher().dispatch_with_callback(std::move(query), actor_shared(this, 8));
+  G()->net_query_dispatcher().dispatch_with_callback(std::move(query),
+                                                     actor_shared(this, 8 + static_cast<uint64>(reopen_sessions)));
 }
 
 void ConfigManager::do_set_ignore_sensitive_content_restrictions(bool ignore_sensitive_content_restrictions) {
@@ -1257,7 +1259,7 @@ void ConfigManager::on_result(NetQueryPtr res) {
     return;
   }
 
-  CHECK(token == 8);
+  CHECK(token == 8 || token == 9);
   CHECK(config_sent_cnt_ > 0);
   config_sent_cnt_--;
   auto r_config = fetch_result<telegram_api::help_getConfig>(std::move(res));
@@ -1270,6 +1272,9 @@ void ConfigManager::on_result(NetQueryPtr res) {
   } else {
     on_dc_options_update(DcOptions());
     process_config(r_config.move_as_ok());
+    if (token == 9) {
+      G()->net_query_dispatcher().update_mtproto_header();
+    }
   }
 }
 
@@ -1482,9 +1487,9 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
     for (auto &key_value : static_cast<telegram_api::jsonObject *>(config.get())->value_) {
       Slice key = key_value->key_;
       telegram_api::JSONValue *value = key_value->value_.get();
-      if (key == "test" || key == "wallet_enabled" || key == "wallet_blockchain_name" || key == "wallet_config" ||
-          key == "stickers_emoji_cache_time" || key == "upload_max_fileparts_default" ||
-          key == "upload_max_fileparts_premium") {
+      if (key == "message_animated_emoji_max" || key == "stickers_emoji_cache_time" || key == "test" ||
+          key == "upload_max_fileparts_default" || key == "upload_max_fileparts_premium" ||
+          key == "wallet_blockchain_name" || key == "wallet_config" || key == "wallet_enabled") {
         continue;
       }
       if (key == "ignore_restriction_reasons") {

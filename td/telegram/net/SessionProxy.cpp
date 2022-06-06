@@ -173,6 +173,7 @@ void SessionProxy::close_session() {
   send_closure(std::move(session_), &Session::close);
   session_generation_++;
 }
+
 void SessionProxy::open_session(bool force) {
   if (!session_.empty()) {
     return;

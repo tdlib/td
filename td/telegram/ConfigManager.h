@@ -81,7 +81,7 @@ class ConfigManager final : public NetQueryCallback {
  public:
   explicit ConfigManager(ActorShared<> parent);
 
-  void request_config();
+  void request_config(bool reopen_sessions);
 
   void lazy_request_config();
 
@@ -108,6 +108,7 @@ class ConfigManager final : public NetQueryCallback {
  private:
   ActorShared<> parent_;
   int32 config_sent_cnt_{0};
+  bool reopen_sessions_after_get_config_{false};
   ActorOwn<ConfigRecoverer> config_recoverer_;
   int ref_cnt_{1};
   Timestamp expire_time_;
@@ -141,7 +142,7 @@ class ConfigManager final : public NetQueryCallback {
 
   void on_result(NetQueryPtr res) final;
 
-  void request_config_from_dc_impl(DcId dc_id);
+  void request_config_from_dc_impl(DcId dc_id, bool reopen_sessions);
   void process_config(tl_object_ptr<telegram_api::config> config);
 
   void try_request_app_config();

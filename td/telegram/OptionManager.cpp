@@ -284,7 +284,7 @@ void OptionManager::on_option_updated(const string &name) {
         }
       }
       if (name == "is_premium") {
-        send_closure(td_->config_manager_, &ConfigManager::request_config);
+        send_closure(td_->config_manager_, &ConfigManager::request_config, true);
       }
       break;
     case 'l':

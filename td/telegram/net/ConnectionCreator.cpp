@@ -420,7 +420,7 @@ void ConnectionCreator::set_active_proxy_id(int32 proxy_id, bool from_binlog) {
   if (!from_binlog) {
     if (proxy_id == 0) {
       G()->td_db()->get_binlog_pmc()->erase("proxy_active_id");
-      send_closure(G()->config_manager(), &ConfigManager::request_config);
+      send_closure(G()->config_manager(), &ConfigManager::request_config, false);
     } else {
       G()->td_db()->get_binlog_pmc()->set("proxy_active_id", to_string(proxy_id));
     }

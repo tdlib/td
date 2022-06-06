@@ -688,7 +688,8 @@ StringBuilder &operator<<(StringBuilder &string_builder, const Invoice &invoice)
                         << (invoice.send_email_address_to_provider ? ", sends email address to provider" : "")
                         << (invoice.recurring_payment_terms_of_service_url.empty()
                                 ? string()
-                                : ", recurring payments terms of service at " + invoice.recurring_payment_terms_of_service_url)
+                                : ", recurring payments terms of service at " +
+                                      invoice.recurring_payment_terms_of_service_url)
                         << " in " << invoice.currency << " with price parts " << format::as_array(invoice.price_parts)
                         << " and suggested tip amounts " << invoice.suggested_tip_amounts << " up to "
                         << invoice.max_tip_amount << "]";
