@@ -29,9 +29,14 @@
 namespace td {
 
 int MessageEntity::get_type_priority(Type type) {
-  static const int types[] = {50, 50, 50, 50, 50, 90, 91, 20, 11, 10, 49, 49, 50, 50, 92, 93, 0, 50, 50, 94};
-  static_assert(sizeof(types) / sizeof(types[0]) == static_cast<size_t>(MessageEntity::Type::Size), "");
-  return types[static_cast<int32>(type)];
+  static const int priorities[] = {
+      50 /*Mention*/,      50 /*Hashtag*/,        50 /*BotCommand*/,     50 /*Url*/,
+      50 /*EmailAddress*/, 90 /*Bold*/,           91 /*Italic*/,         20 /*Code*/,
+      11 /*Pre*/,          10 /*PreCode*/,        49 /*TextUrl*/,        49 /*MentionName*/,
+      50 /*Cashtag*/,      50 /*PhoneNumber*/,    92 /*Underline*/,      93 /*Strikethrough*/,
+      0 /*BlockQuote*/,    50 /*BankCardNumber*/, 50 /*MediaTimestamp*/, 94 /*Spoiler*/};
+  static_assert(sizeof(priorities) / sizeof(priorities[0]) == static_cast<size_t>(MessageEntity::Type::Size), "");
+  return priorities[static_cast<int32>(type)];
 }
 
 StringBuilder &operator<<(StringBuilder &string_builder, const MessageEntity::Type &message_entity_type) {
