@@ -1477,6 +1477,7 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
   auto &premium_limit_keys = get_premium_limit_keys();
   string premium_bot_username;
   string premium_invoice_slug;
+  bool is_premium_available = true;
   if (config->get_id() == telegram_api::jsonObject::ID) {
     for (auto &key_value : static_cast<telegram_api::jsonObject *>(config.get())->value_) {
       Slice key = key_value->key_;
@@ -1780,6 +1781,10 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
         premium_invoice_slug = get_json_value_string(std::move(key_value->value_), key);
         continue;
       }
+      if (key == "premium_purchase_blocked") {
+        is_premium_available = false;
+        continue;
+      }
 
       new_values.push_back(std::move(key_value));
     }
@@ -1879,6 +1884,14 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
       is_premium ? Slice("about_length_limit_premium") : Slice("about_length_limit_default"), is_premium ? 140 : 70);
   shared_config.set_option_integer("bio_length_max", bio_length_max);
 
+  if (!is_premium_available) {
+    premium_bot_username.clear();  // just in case
+    premium_invoice_slug.clear();  // just in case
+    premium_features.clear();      // just in case
+    shared_config.set_option_empty("is_premium_available");
+  } else {
+    shared_config.set_option_boolean("is_premium_available", is_premium_available);
+  }
   shared_config.set_option_string("premium_features", implode(premium_features, ','));
   if (premium_bot_username.empty()) {
     shared_config.set_option_empty("premium_bot_username");
