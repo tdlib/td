@@ -6,6 +6,7 @@
 //
 #include "td/telegram/Premium.h"
 
+#include "td/telegram/AnimationsManager.h"
 #include "td/telegram/Application.h"
 #include "td/telegram/ConfigShared.h"
 #include "td/telegram/DialogId.h"
@@ -15,7 +16,6 @@
 #include "td/telegram/MessageEntity.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/telegram_api.h"
-#include "td/telegram/VideosManager.h"
 
 #include "td/utils/algorithm.h"
 #include "td/utils/buffer.h"
@@ -99,7 +99,7 @@ class GetPremiumPromoQuery final : public Td::ResultHandler {
       return on_error(Status::Error(500, "Receive invalid currency"));
     }
 
-    vector<td_api::object_ptr<td_api::premiumFeaturePromotionVideo>> videos;
+    vector<td_api::object_ptr<td_api::premiumFeaturePromotionAnimation>> animations;
     for (size_t i = 0; i < promo->video_sections_.size(); i++) {
       auto feature = get_premium_feature_object(promo->video_sections_[i]);
       if (feature == nullptr) {
@@ -113,21 +113,21 @@ class GetPremiumPromoQuery final : public Td::ResultHandler {
       }
 
       auto parsed_document = td_->documents_manager_->on_get_document(move_tl_object_as<telegram_api::document>(video),
-                                                                      DialogId(), nullptr, Document::Type::Video);
+                                                                      DialogId(), nullptr, Document::Type::Animation);
 
-      if (parsed_document.type != Document::Type::Video) {
+      if (parsed_document.type != Document::Type::Animation) {
         LOG(ERROR) << "Receive " << parsed_document.type << " for " << promo->video_sections_[i];
         continue;
       }
 
-      auto video_object = td_->videos_manager_->get_video_object(parsed_document.file_id);
-      videos.push_back(
-          td_api::make_object<td_api::premiumFeaturePromotionVideo>(std::move(feature), std::move(video_object)));
+      auto animation_object = td_->animations_manager_->get_animation_object(parsed_document.file_id);
+      animations.push_back(td_api::make_object<td_api::premiumFeaturePromotionAnimation>(std::move(feature),
+                                                                                         std::move(animation_object)));
     }
 
     promise_.set_value(td_api::make_object<td_api::premiumState>(get_formatted_text_object(state, true, 0),
                                                                  std::move(promo->currency_), promo->monthly_amount_,
-                                                                 std::move(videos)));
+                                                                 std::move(animations)));
   }
 
   void on_error(Status status) final {

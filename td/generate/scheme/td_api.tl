@@ -2977,15 +2977,15 @@ premiumSourceLink referrer:string = PremiumSource;
 premiumSourceSettings = PremiumSource;
 
 
-//@description Describes a promotion video for a Premium feature @feature Premium feature @video Promotion video for the feature
-premiumFeaturePromotionVideo feature:PremiumFeature video:video = PremiumFeaturePromotionVideo;
+//@description Describes a promotion animation for a Premium feature @feature Premium feature @animation Promotion animation for the feature
+premiumFeaturePromotionAnimation feature:PremiumFeature animation:animation = PremiumFeaturePromotionAnimation;
 
 //@description Contains state of Telegram Premium subscription and promotion videos for Premium features
 //@state Text description of the state of the current Premium subscription; may be empty if the current user has no Telegram Premium subscription
 //@currency ISO 4217 currency code for Telegram Premium subscription payment
 //@monthly_amount Monthly subscription payment for Telegram Premium subscription, in the smallest units of the currency
-//@videos The list of available promotion videos for Premium features
-premiumState state:formattedText currency:string monthly_amount:int53 videos:vector<premiumFeaturePromotionVideo> = PremiumState;
+//@animations The list of available promotion animations for Premium features
+premiumState state:formattedText currency:string monthly_amount:int53 animations:vector<premiumFeaturePromotionAnimation> = PremiumState;
 
 
 //@class DeviceToken @description Represents a data needed to subscribe for push notifications through registerDevice method. To use specific push notification service, the correct application platform must be specified and a valid server authentication data must be uploaded at https://my.telegram.org
