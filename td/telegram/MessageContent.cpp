@@ -4818,6 +4818,7 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
         if (reply_to_message_id != MessageId()) {
           LOG(ERROR) << "Receive succesful payment message with " << reply_to_message_id << " in " << owner_dialog_id;
         }
+        reply_in_dialog_id = DialogId();
         reply_to_message_id = MessageId();
       }
       return td::make_unique<MessagePaymentSuccessful>(
