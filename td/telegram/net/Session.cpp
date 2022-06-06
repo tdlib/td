@@ -575,10 +575,10 @@ void Session::on_closed(Status status) {
   raw_connection->close();
 
   if (status.is_error()) {
-    LOG(WARNING) << "Session with " << sent_queries_.size() << " pending requests was closed: " << status << " "
-                 << current_info_->connection_->get_name();
+    LOG(WARNING) << "Session connection with " << sent_queries_.size() << " pending requests was closed: " << status
+                 << ' ' << current_info_->connection_->get_name();
   } else {
-    LOG(INFO) << "Session with " << sent_queries_.size() << " pending requests was closed: " << status << " "
+    LOG(INFO) << "Session connection with " << sent_queries_.size() << " pending requests was closed: " << status << ' '
               << current_info_->connection_->get_name();
   }
 
