@@ -4815,7 +4815,7 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       }
       auto payment_sent = move_tl_object_as<telegram_api::messageActionPaymentSent>(action);
       if (!reply_to_message_id.is_valid()) {
-        if (reply_to_message_id != MessageId() || payment_sent->invoice_slug_.empty()) {
+        if (reply_to_message_id != MessageId()) {
           LOG(ERROR) << "Receive succesful payment message with " << reply_to_message_id << " in " << owner_dialog_id;
         }
         reply_to_message_id = MessageId();
