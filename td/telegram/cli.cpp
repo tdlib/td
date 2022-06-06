@@ -823,8 +823,8 @@ class CliClient final : public Actor {
       string chat_id;
       string message_id;
       std::tie(chat_id, message_id) = split(args, get_delimiter(args));
-      arg.chat_id = as_chat_id(args);
-      arg.message_id = as_message_id(args);
+      arg.chat_id = as_chat_id(chat_id);
+      arg.message_id = as_message_id(message_id);
     }
   }
 
