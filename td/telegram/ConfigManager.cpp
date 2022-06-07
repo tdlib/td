@@ -1482,7 +1482,7 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
   auto &premium_limit_keys = get_premium_limit_keys();
   string premium_bot_username;
   string premium_invoice_slug;
-  bool is_premium_available = true;
+  bool is_premium_available = false;
   if (config->get_id() == telegram_api::jsonObject::ID) {
     for (auto &key_value : static_cast<telegram_api::jsonObject *>(config.get())->value_) {
       Slice key = key_value->key_;
@@ -1787,7 +1787,7 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
         continue;
       }
       if (key == "premium_purchase_blocked") {
-        is_premium_available = false;
+        is_premium_available = get_json_value_bool(std::move(key_value->value_), key);
         continue;
       }
 
