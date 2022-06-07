@@ -4857,7 +4857,7 @@ getMessageLinkInfo url:string = MessageLinkInfo;
 //@to_language_code A two-letter ISO 639-1 language code of the language to which the message is translated
 translateText text:string from_language_code:string to_language_code:string = Text;
 
-//@description Recognizes speech in a voice note message. The message must be successfully sent and must not be scheduled
+//@description Recognizes speech in a voice note message. The message must be successfully sent and must not be scheduled. May return an error with a message "MSG_VOICE_TOO_LONG" if the voice note is too long to be recognized
 //@chat_id Identifier of the chat to which the message belongs
 //@message_id Identifier of the message
 recognizeSpeech chat_id:int53 message_id:int53 = Ok;
