@@ -1636,7 +1636,7 @@ static void fix_entity_offsets(Slice text, vector<MessageEntity> &entities) {
   }
 }
 
-vector<MessageEntity> find_entities(Slice text, bool skip_bot_commands, bool skip_media_timestamps) {
+vector<MessageEntity> find_entities(Slice text, bool skip_bot_commands, bool skip_media_timestamps, bool skip_urls) {
   vector<MessageEntity> entities;
 
   auto add_entities = [&entities, &text](MessageEntity::Type type, vector<Slice> (*find_entities_f)(Slice)) mutable {
@@ -1655,16 +1655,16 @@ vector<MessageEntity> find_entities(Slice text, bool skip_bot_commands, bool ski
   add_entities(MessageEntity::Type::Cashtag, find_cashtags);
   // TODO find_phone_numbers
   add_entities(MessageEntity::Type::BankCardNumber, find_bank_card_numbers);
-  add_entities(MessageEntity::Type::Url, find_tg_urls);
-
-  auto urls = find_urls(text);
-  for (auto &url : urls) {
-    auto type = url.second ? MessageEntity::Type::EmailAddress : MessageEntity::Type::Url;
-    auto offset = narrow_cast<int32>(url.first.begin() - text.begin());
-    auto length = narrow_cast<int32>(url.first.size());
-    entities.emplace_back(type, offset, length);
+  if (!skip_urls) {
+    add_entities(MessageEntity::Type::Url, find_tg_urls);
+    auto urls = find_urls(text);
+    for (auto &url : urls) {
+      auto type = url.second ? MessageEntity::Type::EmailAddress : MessageEntity::Type::Url;
+      auto offset = narrow_cast<int32>(url.first.begin() - text.begin());
+      auto length = narrow_cast<int32>(url.first.size());
+      entities.emplace_back(type, offset, length);
+    }
   }
-
   if (!skip_media_timestamps) {
     auto media_timestamps = find_media_timestamps(text);
     for (auto &entity : media_timestamps) {

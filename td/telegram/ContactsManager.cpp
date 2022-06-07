@@ -16663,6 +16663,7 @@ tl_object_ptr<td_api::userFullInfo> ContactsManager::get_user_full_info_object(U
   CHECK(user_full != nullptr);
   td_api::object_ptr<td_api::botInfo> bot_info;
   bool is_bot = is_user_bot(user_id);
+  td_api::object_ptr<td_api::formattedText> bio_object;
   if (is_bot) {
     auto menu_button = get_bot_menu_button_object(td_, user_full->menu_button.get());
     auto commands =
@@ -16678,12 +16679,17 @@ tl_object_ptr<td_api::userFullInfo> ContactsManager::get_user_full_info_object(U
         user_full->broadcast_administrator_rights == AdministratorRights()
             ? nullptr
             : user_full->broadcast_administrator_rights.get_chat_administrator_rights_object());
+  } else {
+    FormattedText bio;
+    bio.text = user_full->about;
+    bio.entities = find_entities(bio.text, true, true, !is_user_premium(user_id));
+    bio_object = get_formatted_text_object(bio, true, 0);
   }
   return make_tl_object<td_api::userFullInfo>(
       get_chat_photo_object(td_->file_manager_.get(), user_full->photo), user_full->is_blocked,
       user_full->can_be_called, user_full->supports_video_calls, user_full->has_private_calls,
-      !user_full->private_forward_name.empty(), user_full->need_phone_number_privacy_exception,
-      is_bot ? string() : user_full->about, user_full->common_chat_count, std::move(bot_info));
+      !user_full->private_forward_name.empty(), user_full->need_phone_number_privacy_exception, std::move(bio_object),
+      user_full->common_chat_count, std::move(bot_info));
 }
 
 td_api::object_ptr<td_api::updateBasicGroup> ContactsManager::get_update_unknown_basic_group_object(ChatId chat_id) {
