@@ -4581,16 +4581,12 @@ unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const
       }
     case MessageContentType::Sticker: {
       auto result = make_unique<MessageSticker>(*static_cast<const MessageSticker *>(content));
+      result->is_premium = G()->shared_config().get_option_boolean("is_premium");
       if (td->stickers_manager_->has_input_media(result->file_id, to_secret)) {
         return std::move(result);
       }
       result->file_id = td->stickers_manager_->dup_sticker(fix_file_id(result->file_id), result->file_id);
       CHECK(result->file_id.is_valid());
-      if (type == MessageContentDupType::SendViaBot || type == MessageContentDupType::Forward) {
-        result->is_premium = false;
-      } else {
-        result->is_premium = G()->shared_config().get_option_boolean("is_premium");
-      }
       return std::move(result);
     }
     case MessageContentType::Text:
