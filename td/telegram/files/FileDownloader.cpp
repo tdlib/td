@@ -87,8 +87,7 @@ Result<FileLoader::FileInfo> FileDownloader::init() {
       CHECK((part_size & (part_size - 1)) == 0);
     }
   }
-  if (search_file_ && fd_.empty() && size_ > 0 && size_ < 1000 * (1 << 20) && encryption_key_.empty() &&
-      !remote_.is_web()) {
+  if (search_file_ && fd_.empty() && size_ > 0 && encryption_key_.empty() && !remote_.is_web()) {
     [&] {
       TRY_RESULT(path, search_file(get_files_dir(remote_.file_type_), name_, size_));
       TRY_RESULT(fd, FileFd::open(path, FileFd::Read));
@@ -97,7 +96,7 @@ Result<FileLoader::FileInfo> FileDownloader::init() {
       fd_ = std::move(fd);
       need_check_ = true;
       only_check_ = true;
-      part_size = 32 * (1 << 10);
+      part_size = 128 * (1 << 10);
       bitmask = Bitmask{Bitmask::Ones{}, (size_ + part_size - 1) / part_size};
       return Status::OK();
     }();
