@@ -9,6 +9,7 @@
 #include "td/telegram/AnimationsManager.h"
 #include "td/telegram/Application.h"
 #include "td/telegram/ConfigShared.h"
+#include "td/telegram/ContactsManager.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/Document.h"
 #include "td/telegram/DocumentsManager.h"
@@ -83,6 +84,8 @@ class GetPremiumPromoQuery final : public Td::ResultHandler {
 
     auto promo = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for GetPremiumPromoQuery: " << to_string(promo);
+
+    td_->contacts_manager_->on_get_users(std::move(promo->users_), "GetPremiumPromoQuery");
 
     auto state = get_message_text(td_->contacts_manager_.get(), std::move(promo->status_text_),
                                   std::move(promo->status_entities_), true, true, 0, false, "GetPremiumPromoQuery");
