@@ -168,6 +168,9 @@ FileId FileManager::parse_file(ParserT &parser) {
           int32 int_size;
           parse(int_size, parser);
           stored_size = int_size;
+          if (stored_size < 0) {
+            stored_size += static_cast<int64>(1) << 32;
+          }
         }
         int64 size = has_expected_size ? 0 : stored_size;
         int64 expected_size = has_expected_size ? stored_size : 0;
@@ -190,6 +193,9 @@ FileId FileManager::parse_file(ParserT &parser) {
           int32 int_size;
           parse(int_size, parser);
           size = int_size;
+          if (size < 0) {
+            size += static_cast<int64>(1) << 32;
+          }
         }
         int32 get_by_hash;
         parse(get_by_hash, parser);
@@ -215,6 +221,9 @@ FileId FileManager::parse_file(ParserT &parser) {
           int32 int_size;
           parse(int_size, parser);
           expected_size = int_size;
+          if (expected_size < 0) {
+            expected_size += static_cast<int64>(1) << 32;
+          }
         }
         int32 zero;
         parse(zero, parser);
