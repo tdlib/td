@@ -65,6 +65,7 @@
 #include <cmath>
 #include <limits>
 #include <type_traits>
+#include <utility>
 
 namespace td {
 
@@ -3277,10 +3278,10 @@ void StickersManager::load_reactions() {
 }
 
 void StickersManager::update_active_reactions() {
-  vector<string> active_reactions;
+  vector<std::pair<string, bool>> active_reactions;
   for (auto &reaction : reactions_.reactions_) {
     if (reaction.is_active_) {
-      active_reactions.push_back(reaction.reaction_);
+      active_reactions.emplace_back(reaction.reaction_, reaction.is_premium_);
     }
   }
   td_->messages_manager_->set_active_reactions(std::move(active_reactions));

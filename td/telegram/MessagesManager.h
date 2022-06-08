@@ -535,7 +535,7 @@ class MessagesManager final : public Actor {
 
   void set_dialog_description(DialogId dialog_id, const string &description, Promise<Unit> &&promise);
 
-  void set_active_reactions(vector<string> active_reactions);
+  void set_active_reactions(vector<std::pair<string, bool>> active_reactions);
 
   void set_dialog_available_reactions(DialogId dialog_id, vector<string> available_reactions, Promise<Unit> &&promise);
 
@@ -801,7 +801,7 @@ class MessagesManager final : public Actor {
   vector<MessageId> get_dialog_scheduled_messages(DialogId dialog_id, bool force, bool ignore_result,
                                                   Promise<Unit> &&promise);
 
-  Result<vector<string>> get_message_available_reactions(FullMessageId full_message_id);
+  Result<vector<std::pair<string, bool>>> get_message_available_reactions(FullMessageId full_message_id);
 
   void set_message_reaction(FullMessageId full_message_id, string reaction, bool is_big, Promise<Unit> &&promise);
 
@@ -2646,7 +2646,7 @@ class MessagesManager final : public Actor {
 
   bool update_dialog_silent_send_message(Dialog *d, bool silent_send_message);
 
-  vector<string> get_message_available_reactions(const Dialog *d, const Message *m);
+  vector<std::pair<string, bool>> get_message_available_reactions(const Dialog *d, const Message *m);
 
   void on_set_message_reaction(FullMessageId full_message_id, Result<Unit> result, Promise<Unit> promise);
 
@@ -2659,7 +2659,11 @@ class MessagesManager final : public Actor {
   vector<string> get_active_reactions(const vector<string> &available_reactions) const;
 
   static vector<string> get_active_reactions(const vector<string> &available_reactions,
-                                             const vector<string> &active_reactions);
+                                             const vector<std::pair<string, bool>> &active_reactions);
+
+  enum class AvailableReactionType { Unavailable, Available, NeedsPremium };
+  static AvailableReactionType get_reaction_type(const vector<std::pair<string, bool>> &reactions,
+                                                 const string &reaction);
 
   vector<string> get_dialog_active_reactions(const Dialog *d) const;
 
@@ -3686,7 +3690,7 @@ class MessagesManager final : public Actor {
   };
   FlatHashMap<FullMessageId, PendingReaction, FullMessageIdHash> pending_reactions_;
 
-  vector<string> active_reactions_;
+  vector<std::pair<string, bool>> active_reactions_;
   FlatHashMap<string, size_t> active_reaction_pos_;
 
   uint32 scheduled_messages_sync_generation_ = 1;

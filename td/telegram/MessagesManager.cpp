@@ -8199,22 +8199,29 @@ void MessagesManager::hide_dialog_message_reactions(Dialog *d) {
   }
 }
 
-void MessagesManager::set_active_reactions(vector<string> active_reactions) {
+void MessagesManager::set_active_reactions(vector<std::pair<string, bool>> active_reactions) {
   if (active_reactions == active_reactions_) {
     return;
   }
 
   auto old_active_reactions = std::move(active_reactions_);
   active_reactions_ = std::move(active_reactions);
+  active_reaction_pos_.clear();
+  bool is_changed = old_active_reactions.size() != active_reactions_.size();
   for (size_t i = 0; i < active_reactions_.size(); i++) {
-    active_reaction_pos_[active_reactions_[i]] = i;
+    active_reaction_pos_[active_reactions_[i].first] = i;
+    if (!is_changed && active_reactions_[i].first != old_active_reactions[i].first) {
+      is_changed = true;
+    }
   }
 
   for (auto &dialog : dialogs_) {
     Dialog *d = dialog.second.get();
     switch (d->dialog_id.get_type()) {
       case DialogType::User:
-        send_update_chat_available_reactions(d);
+        if (is_changed) {
+          send_update_chat_available_reactions(d);
+        }
         break;
       case DialogType::Chat:
       case DialogType::Channel: {
@@ -8246,25 +8253,51 @@ vector<string> MessagesManager::get_active_reactions(const vector<string> &avail
 }
 
 vector<string> MessagesManager::get_active_reactions(const vector<string> &available_reactions,
-                                                     const vector<string> &active_reactions) {
-  if (available_reactions.empty() || available_reactions == active_reactions) {
+                                                     const vector<std::pair<string, bool>> &active_reactions) {
+  if (available_reactions.empty()) {
     // fast path
     return available_reactions;
   }
+  if (available_reactions.size() == active_reactions.size()) {
+    size_t i;
+    for (i = 0; i < available_reactions.size(); i++) {
+      if (available_reactions[i] != active_reactions[i].first) {
+        break;
+      }
+    }
+    if (i == available_reactions.size()) {
+      // fast path
+      return available_reactions;
+    }
+  }
+
   vector<string> result;
   for (const auto &active_reaction : active_reactions) {
-    if (td::contains(available_reactions, active_reaction)) {
-      result.push_back(active_reaction);
+    if (td::contains(available_reactions, active_reaction.first)) {
+      result.push_back(active_reaction.first);
     }
   }
   return result;
+}
+
+MessagesManager::AvailableReactionType MessagesManager::get_reaction_type(
+    const vector<std::pair<string, bool>> &reactions, const string &reaction) {
+  for (auto &reaction_premium : reactions) {
+    if (reaction_premium.first == reaction) {
+      if (reaction_premium.second) {
+        return AvailableReactionType::NeedsPremium;
+      }
+      return AvailableReactionType::Available;
+    }
+  }
+  return AvailableReactionType::Unavailable;
 }
 
 vector<string> MessagesManager::get_dialog_active_reactions(const Dialog *d) const {
   CHECK(d != nullptr);
   switch (d->dialog_id.get_type()) {
     case DialogType::User:
-      return active_reactions_;
+      return transform(active_reactions_, [](auto &reaction) { return reaction.first; });
     case DialogType::Chat:
     case DialogType::Channel:
       return get_active_reactions(d->available_reactions);
@@ -24231,7 +24264,8 @@ void MessagesManager::on_get_scheduled_messages_from_database(DialogId dialog_id
   set_promises(promises);
 }
 
-Result<vector<string>> MessagesManager::get_message_available_reactions(FullMessageId full_message_id) {
+Result<vector<std::pair<string, bool>>> MessagesManager::get_message_available_reactions(
+    FullMessageId full_message_id) {
   auto dialog_id = full_message_id.get_dialog_id();
   Dialog *d = get_dialog_force(dialog_id, "get_message_available_reactions");
   if (d == nullptr) {
@@ -24245,31 +24279,33 @@ Result<vector<string>> MessagesManager::get_message_available_reactions(FullMess
   return get_message_available_reactions(d, m);
 }
 
-vector<string> MessagesManager::get_message_available_reactions(const Dialog *d, const Message *m) {
+vector<std::pair<string, bool>> MessagesManager::get_message_available_reactions(const Dialog *d, const Message *m) {
   CHECK(d != nullptr);
   CHECK(m != nullptr);
   auto active_reactions = get_message_active_reactions(d, m);
   if (!m->message_id.is_valid() || !m->message_id.is_server() || active_reactions.empty()) {
-    return vector<string>();
+    return {};
   }
 
-  vector<string> result;
+  bool is_premium = G()->shared_config().get_option_boolean("is_premium");
+  vector<std::pair<string, bool>> result;
   int64 reactions_uniq_max = G()->shared_config().get_option_integer("reactions_uniq_max", 11);
   bool can_add_new_reactions =
       m->reactions == nullptr || static_cast<int64>(m->reactions->reactions_.size()) < reactions_uniq_max;
   // can add only active available reactions or remove previously set reaction
   for (const auto &active_reaction : active_reactions_) {
     // can add the reaction if it has already been used for the message or is available in the chat
-    if ((m->reactions != nullptr && m->reactions->get_reaction(active_reaction) != nullptr) ||
-        (can_add_new_reactions && td::contains(active_reactions, active_reaction))) {
-      result.push_back(active_reaction);
+    bool is_set = (m->reactions != nullptr && m->reactions->get_reaction(active_reaction.first) != nullptr);
+    if (is_set || (can_add_new_reactions && td::contains(active_reactions, active_reaction.first))) {
+      result.emplace_back(active_reaction.first, !is_premium && active_reaction.second && !is_set);
     }
   }
   if (m->reactions != nullptr) {
     for (const auto &reaction : m->reactions->reactions_) {
-      if (reaction.is_chosen() && !td::contains(result, reaction.get_reaction())) {
-        CHECK(!td::contains(active_reactions_, reaction.get_reaction()));
-        result.push_back(reaction.get_reaction());
+      if (reaction.is_chosen() &&
+          get_reaction_type(result, reaction.get_reaction()) == AvailableReactionType::Unavailable) {
+        CHECK(get_reaction_type(active_reactions_, reaction.get_reaction()) == AvailableReactionType::Unavailable);
+        result.emplace_back(reaction.get_reaction(), false);
       }
     }
   }
@@ -24289,8 +24325,14 @@ void MessagesManager::set_message_reaction(FullMessageId full_message_id, string
     return promise.set_error(Status::Error(400, "Message not found"));
   }
 
-  if (!reaction.empty() && !td::contains(get_message_available_reactions(d, m), reaction)) {
-    return promise.set_error(Status::Error(400, "The reaction isn't available for the message"));
+  if (!reaction.empty()) {
+    auto reaction_type = get_reaction_type(get_message_available_reactions(d, m), reaction);
+    if (reaction_type == AvailableReactionType::Unavailable) {
+      return promise.set_error(Status::Error(400, "The reaction isn't available for the message"));
+    }
+    if (reaction_type == AvailableReactionType::NeedsPremium) {
+      return promise.set_error(Status::Error(400, "The reaction is available only for Telegram Premium users"));
+    }
   }
 
   bool can_get_added_reactions = !is_broadcast_channel(dialog_id) && dialog_id.get_type() != DialogType::User &&

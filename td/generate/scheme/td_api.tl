@@ -2504,8 +2504,11 @@ addedReaction reaction:string sender_id:MessageSender = AddedReaction;
 //@description Represents a list of reactions added to a message @total_count The total number of found reactions @reactions The list of added reactions @next_offset The offset for the next request. If empty, there are no more results
 addedReactions total_count:int32 reactions:vector<addedReaction> next_offset:string = AddedReactions;
 
+//@description Represents an available reaction @reaction Text representation of the reaction @needs_premium True, if Telegram Premium is needed to send the reaction
+availableReaction reaction:string needs_premium:Bool = AvailableReaction;
+
 //@description Represents a list of available reactions @reactions List of reactions
-availableReactions reactions:vector<string> = AvailableReactions;
+availableReactions reactions:vector<availableReaction> = AvailableReactions;
 
 
 //@description Contains stickers which must be used for reaction animation rendering
