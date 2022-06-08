@@ -8225,8 +8225,8 @@ void MessagesManager::set_active_reactions(vector<AvailableReaction> active_reac
         break;
       case DialogType::Chat:
       case DialogType::Channel: {
-        auto old_reactions = get_active_reactions(d->available_reactions, old_active_reactions);
-        auto new_reactions = get_active_reactions(d->available_reactions, active_reactions_);
+        auto old_reactions = ::td::get_active_reactions(d->available_reactions, old_active_reactions);
+        auto new_reactions = ::td::get_active_reactions(d->available_reactions, active_reactions_);
         if (old_reactions != new_reactions) {
           if (old_reactions.empty() != new_reactions.empty()) {
             if (!old_reactions.empty()) {
@@ -8249,48 +8249,7 @@ void MessagesManager::set_active_reactions(vector<AvailableReaction> active_reac
 }
 
 vector<string> MessagesManager::get_active_reactions(const vector<string> &available_reactions) const {
-  return get_active_reactions(available_reactions, active_reactions_);
-}
-
-vector<string> MessagesManager::get_active_reactions(const vector<string> &available_reactions,
-                                                     const vector<AvailableReaction> &active_reactions) {
-  if (available_reactions.empty()) {
-    // fast path
-    return available_reactions;
-  }
-  if (available_reactions.size() == active_reactions.size()) {
-    size_t i;
-    for (i = 0; i < available_reactions.size(); i++) {
-      if (available_reactions[i] != active_reactions[i].reaction_) {
-        break;
-      }
-    }
-    if (i == available_reactions.size()) {
-      // fast path
-      return available_reactions;
-    }
-  }
-
-  vector<string> result;
-  for (const auto &active_reaction : active_reactions) {
-    if (td::contains(available_reactions, active_reaction.reaction_)) {
-      result.push_back(active_reaction.reaction_);
-    }
-  }
-  return result;
-}
-
-MessagesManager::AvailableReactionType MessagesManager::get_reaction_type(
-    const vector<AvailableReaction> &available_reactions, const string &reaction) {
-  for (auto &available_reaction : available_reactions) {
-    if (available_reaction.reaction_ == reaction) {
-      if (available_reaction.is_premium_) {
-        return AvailableReactionType::NeedsPremium;
-      }
-      return AvailableReactionType::Available;
-    }
-  }
-  return AvailableReactionType::Unavailable;
+  return ::td::get_active_reactions(available_reactions, active_reactions_);
 }
 
 vector<string> MessagesManager::get_dialog_active_reactions(const Dialog *d) const {

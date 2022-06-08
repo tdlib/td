@@ -2659,12 +2659,6 @@ class MessagesManager final : public Actor {
 
   vector<string> get_active_reactions(const vector<string> &available_reactions) const;
 
-  static vector<string> get_active_reactions(const vector<string> &available_reactions,
-                                             const vector<AvailableReaction> &active_reactions);
-
-  enum class AvailableReactionType { Unavailable, Available, NeedsPremium };
-  static AvailableReactionType get_reaction_type(const vector<AvailableReaction> &reactions, const string &reaction);
-
   vector<string> get_dialog_active_reactions(const Dialog *d) const;
 
   vector<string> get_message_active_reactions(const Dialog *d, const Message *m) const;

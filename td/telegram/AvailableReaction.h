@@ -28,4 +28,11 @@ inline bool operator!=(const AvailableReaction &lhs, const AvailableReaction &rh
   return !(lhs == rhs);
 }
 
+enum class AvailableReactionType { Unavailable, Available, NeedsPremium };
+
+AvailableReactionType get_reaction_type(const vector<AvailableReaction> &reactions, const string &reaction);
+
+vector<string> get_active_reactions(const vector<string> &available_reactions,
+                                    const vector<AvailableReaction> &active_reactions);
+
 }  // namespace td
