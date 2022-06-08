@@ -8,6 +8,7 @@
 
 #include "td/telegram/AccessRights.h"
 #include "td/telegram/AuthManager.h"
+#include "td/telegram/AvailableReaction.h"
 #include "td/telegram/ConfigManager.h"
 #include "td/telegram/ConfigShared.h"
 #include "td/telegram/ContactsManager.h"
@@ -65,7 +66,6 @@
 #include <cmath>
 #include <limits>
 #include <type_traits>
-#include <utility>
 
 namespace td {
 
@@ -3278,7 +3278,7 @@ void StickersManager::load_reactions() {
 }
 
 void StickersManager::update_active_reactions() {
-  vector<std::pair<string, bool>> active_reactions;
+  vector<AvailableReaction> active_reactions;
   for (auto &reaction : reactions_.reactions_) {
     if (reaction.is_active_) {
       active_reactions.emplace_back(reaction.reaction_, reaction.is_premium_);
