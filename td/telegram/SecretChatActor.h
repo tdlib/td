@@ -637,7 +637,7 @@ class SecretChatActor final : public NetQueryCallback {
   void outbound_loop(OutboundMessageState *state, uint64 state_id);
 
   // DiscardEncryption
-  void on_fatal_error(Status status);
+  void on_fatal_error(Status status, bool is_expected);
   void do_close_chat_impl(bool delete_history, bool is_already_discarded, uint64 log_event_id, Promise<Unit> &&promise);
   void on_closed(uint64 log_event_id, Promise<Unit> &&promise);
 

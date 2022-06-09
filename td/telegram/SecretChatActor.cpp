@@ -633,13 +633,15 @@ void SecretChatActor::check_status(Status status) {
     if (status.code() == 1) {
       LOG(WARNING) << "Non-fatal error: " << status;
     } else {
-      on_fatal_error(std::move(status));
+      on_fatal_error(std::move(status), false);
     }
   }
 }
 
-void SecretChatActor::on_fatal_error(Status status) {
-  LOG(ERROR) << "Fatal error: " << status;
+void SecretChatActor::on_fatal_error(Status status, bool is_expected) {
+  if (!is_expected) {
+    LOG(ERROR) << "Fatal error: " << status;
+  }
   cancel_chat(false, false, Promise<>());
 }
 
@@ -1650,19 +1652,9 @@ void SecretChatActor::on_outbound_send_message_error(uint64 state_id, Status err
       state = outbound_message_states_.get(state_id);
       need_sync = true;
     }
-  } else {
-    bool should_fail = false;
-    if (error.code() == 429) {
-      should_fail = false;
-    } else if (error.code() == 400 && error.message() == "ENCRYPTION_DECLINED") {
-      should_fail = true;
-    } else {
-      LOG(ERROR) << "Got unknown error for encrypted service message: " << error;
-      should_fail = true;
-    }
-    if (should_fail) {
-      return on_fatal_error(std::move(error));
-    }
+  } else if (error.code() != 429) {
+    return on_fatal_error(std::move(error),
+                          (error.code() == 400 && error.message() == "ENCRYPTION_DECLINED") || error.code() == 403);
   }
   auto query = create_net_query(*state->message);
   state->net_query_id = query->id();
