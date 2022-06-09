@@ -28,6 +28,7 @@
 
 #include "td/utils/algorithm.h"
 #include "td/utils/as.h"
+#include "td/utils/FloodControlGlobal.h"
 #include "td/utils/format.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
@@ -79,7 +80,13 @@ class GenAuthKeyActor final : public Actor {
   CancellationTokenSource cancellation_token_source_;
 
   ActorOwn<mtproto::HandshakeActor> child_;
-  Status alarm_error_;
+  FloodControlGlobal::Guard guard_;
+
+  FloodControlGlobal *get_handshake_flood() {
+    constexpr uint64 MAX_CONCURRENT_HANDSHAKES = 500;
+    static FloodControlGlobal flood{MAX_CONCURRENT_HANDSHAKES};
+    return &flood;
+  }
 
   void start_up() final {
     // Bug in Android clang and MSVC
@@ -89,13 +96,12 @@ class GenAuthKeyActor final : public Actor {
     //
     // TODO: we may want to use a blocking wait - semaphore but for actors.
     // (problem is - multiple schedulers may want to uses this semaphore)
-    auto status = context_->try_start();
-    if (status.is_error()) {
-      alarm_error_ = std::move(status);
+    guard_ = get_handshake_flood()->try_start();
+    if (guard_ == nullptr) {
       // Set timeout because otherwise this actor will be recreated immediately.
       // Sadly, it is still O(clients_count^2) time, because all clients will keep waking up.
       // Still much better than creating new connection each time.
-      set_timeout_in(5);
+      set_timeout_in(1);
       return;
     }
 
@@ -134,8 +140,8 @@ class GenAuthKeyActor final : public Actor {
   }
 
   void timeout_expired() override {
-    CHECK(alarm_error_.is_error());
-    connection_promise_.set_error(std::move(alarm_error_));
+    CHECK(guard_ == nullptr);
+    connection_promise_.set_error(Status::Error(1, "Handshake limit reached"));
     handshake_promise_.set_value(std::move(handshake_));
   }
 };
@@ -1315,7 +1321,7 @@ void Session::on_handshake_ready(Result<unique_ptr<mtproto::AuthKeyHandshake>> r
   } else {
     auto handshake = r_handshake.move_as_ok();
     if (!handshake->is_ready_for_finish()) {
-      LOG(WARNING) << "Handshake is not yet ready";
+      LOG(INFO) << "Handshake is not yet ready";
       info.handshake_ = std::move(handshake);
     } else {
       if (is_main) {
@@ -1372,15 +1378,9 @@ void Session::create_gen_auth_key_actor(HandshakeId handshake_id) {
       return public_rsa_key_.get();
     }
 
-    Status try_start() final {
-      TRY_RESULT_ASSIGN(guard_, mtproto::GlobalFloodControl::get_handshake_flood()->try_start());
-      return Status::OK();
-    }
-
    private:
     mtproto::DhCallback *dh_callback_;
     std::shared_ptr<mtproto::PublicRsaKeyInterface> public_rsa_key_;
-    mtproto::GlobalFloodControl::Guard guard_;
   };
 
   info.actor_ = create_actor<detail::GenAuthKeyActor>(

@@ -99,6 +99,7 @@ set(TDUTILS_SOURCE
   td/utils/filesystem.cpp
   td/utils/find_boundary.cpp
   td/utils/FlatHashTable.cpp
+  td/utils/FloodControlGlobal.cpp
   td/utils/Gzip.cpp
   td/utils/GzipByteFlow.cpp
   td/utils/Hints.cpp
@@ -213,6 +214,7 @@ set(TDUTILS_SOURCE
   td/utils/FlatHashSet.h
   td/utils/FlatHashTable.h
   td/utils/FloodControlFast.h
+  td/utils/FloodControlGlobal.h
   td/utils/FloodControlStrict.h
   td/utils/format.h
   td/utils/Gzip.h

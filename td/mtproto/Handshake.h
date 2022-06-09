@@ -16,9 +16,6 @@
 #include "td/utils/StorerBase.h"
 #include "td/utils/UInt.h"
 
-#include <atomic>
-#include <memory>
-
 namespace td {
 
 namespace mtproto_api {
@@ -29,31 +26,11 @@ namespace mtproto {
 
 class DhCallback;
 
-class GlobalFloodControl {
- public:
-  explicit GlobalFloodControl(uint64 limit);
-
-  struct Finish {
-    void operator()(GlobalFloodControl *ctrl) const;
-  };
-  using Guard = std::unique_ptr<GlobalFloodControl, Finish>;
-  Result<Guard> try_start();
-
-  static GlobalFloodControl *get_handshake_flood();
-
- private:
-  std::atomic<uint64> active_count_{0};
-  uint64 limit_{0};
-
-  void finish();
-};
-
 class AuthKeyHandshakeContext {
  public:
   virtual ~AuthKeyHandshakeContext() = default;
   virtual DhCallback *get_dh_callback() = 0;
   virtual PublicRsaKeyInterface *get_public_rsa_key_interface() = 0;
-  virtual Status try_start() = 0;
 };
 
 class AuthKeyHandshake {

@@ -346,33 +346,5 @@ Status AuthKeyHandshake::on_message(Slice message, Callback *connection, AuthKey
   return status;
 }
 
-GlobalFloodControl::GlobalFloodControl(uint64 limit) : limit_(limit) {
-}
-
-void GlobalFloodControl::finish() {
-  // TODO: instead of decrementing count, we can wake up some pending request
-  auto old_value = active_count_.fetch_sub(1, std::memory_order_relaxed);
-  CHECK(old_value > 0);
-}
-
-Result<GlobalFloodControl::Guard> GlobalFloodControl::try_start() {
-  auto old_value = active_count_.fetch_add(1, std::memory_order_relaxed);
-  if (old_value >= limit_) {
-    finish();
-    return Status::Error("Handshake limit reached");
-  }
-  return Guard(this);
-}
-
-GlobalFloodControl *GlobalFloodControl::get_handshake_flood() {
-  constexpr uint64 MAX_CONCURRENT_HANDSHAKES = 250;
-  static GlobalFloodControl flood{MAX_CONCURRENT_HANDSHAKES};
-  return &flood;
-}
-
-void GlobalFloodControl::Finish::operator()(GlobalFloodControl *ctrl) const {
-  ctrl->finish();
-}
-
 }  // namespace mtproto
 }  // namespace td

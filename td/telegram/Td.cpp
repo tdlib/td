@@ -500,9 +500,6 @@ class TestProxyRequest final : public RequestOnceActor {
       mtproto::PublicRsaKeyInterface *get_public_rsa_key_interface() final {
         return &public_rsa_key;
       }
-      Status try_start() final {
-        return Status::OK();
-      }
 
      private:
       PublicRsaKeyShared public_rsa_key{DcId::empty(), false};

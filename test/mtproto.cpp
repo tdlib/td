@@ -305,9 +305,6 @@ class HandshakeContext final : public td::mtproto::AuthKeyHandshakeContext {
   td::mtproto::PublicRsaKeyInterface *get_public_rsa_key_interface() final {
     return &public_rsa_key;
   }
-  td::Status try_start() final {
-    return td::Status::OK();
-  }
 
  private:
   td::PublicRsaKeyShared public_rsa_key{td::DcId::empty(), true};
