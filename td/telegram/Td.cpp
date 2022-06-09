@@ -500,8 +500,8 @@ class TestProxyRequest final : public RequestOnceActor {
       mtproto::PublicRsaKeyInterface *get_public_rsa_key_interface() final {
         return &public_rsa_key;
       }
-      td::Status try_start() final {
-        return td::Status::OK();
+      Status try_start() final {
+        return Status::OK();
       }
 
      private:

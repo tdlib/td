@@ -79,13 +79,13 @@ class GenAuthKeyActor final : public Actor {
   CancellationTokenSource cancellation_token_source_;
 
   ActorOwn<mtproto::HandshakeActor> child_;
-  td::Status alarm_error_;
+  Status alarm_error_;
 
   void start_up() final {
     // Bug in Android clang and MSVC
     // std::tuple<Result<int>> b(std::forward_as_tuple(Result<int>()));
 
-    // Will sleep a little it there are too much active handshakes now
+    // Will sleep a little if there are too many active handshakes now
     //
     // TODO: we may want to use a blocking wait - semaphore but for actors.
     // (problem is - multiple schedulers may want to uses this semaphore)
@@ -1372,9 +1372,9 @@ void Session::create_gen_auth_key_actor(HandshakeId handshake_id) {
       return public_rsa_key_.get();
     }
 
-    td::Status try_start() {
+    Status try_start() final {
       TRY_RESULT_ASSIGN(guard_, mtproto::GlobalFloodControl::get_handshake_flood()->try_start());
-      return td::Status::OK();
+      return Status::OK();
     }
 
    private:
