@@ -79,10 +79,25 @@ class GenAuthKeyActor final : public Actor {
   CancellationTokenSource cancellation_token_source_;
 
   ActorOwn<mtproto::HandshakeActor> child_;
+  td::Status alarm_error_;
 
   void start_up() final {
     // Bug in Android clang and MSVC
     // std::tuple<Result<int>> b(std::forward_as_tuple(Result<int>()));
+
+    // Will sleep a little it there are too much active handshakes now
+    //
+    // TODO: we may want to use a blocking wait - semaphore but for actors.
+    // (problem is - multiple schedulers may want to uses this semaphore)
+    auto status = context_->try_start();
+    if (status.is_error()) {
+      alarm_error_ = std::move(status);
+      // Set timeout because otherwise this actor will be recreated immediately.
+      // Sadly, it is still O(clients_count^2) time, because all clients will keep waking up.
+      // Still much better than creating new connection each time.
+      set_timeout_in(5);
+      return;
+    }
 
     callback_->request_raw_connection(
         nullptr, PromiseCreator::cancellable_lambda(
@@ -116,6 +131,12 @@ class GenAuthKeyActor final : public Actor {
         PSLICE() << name_ + "::HandshakeActor", G()->get_slow_net_scheduler_id(), std::move(handshake_),
         std::move(raw_connection), std::move(context_), 10, std::move(connection_promise_),
         std::move(handshake_promise_));
+  }
+
+  void timeout_expired() override {
+    CHECK(alarm_error_.is_error());
+    connection_promise_.set_error(std::move(alarm_error_));
+    handshake_promise_.set_value(std::move(handshake_));
   }
 };
 
@@ -1351,10 +1372,17 @@ void Session::create_gen_auth_key_actor(HandshakeId handshake_id) {
       return public_rsa_key_.get();
     }
 
+    td::Status try_start() {
+      TRY_RESULT_ASSIGN(guard_, mtproto::GlobalFloodControl::get_handshake_flood()->try_start());
+      return td::Status::OK();
+    }
+
    private:
     mtproto::DhCallback *dh_callback_;
     std::shared_ptr<mtproto::PublicRsaKeyInterface> public_rsa_key_;
+    mtproto::GlobalFloodControl::Guard guard_;
   };
+
   info.actor_ = create_actor<detail::GenAuthKeyActor>(
       PSLICE() << get_name() << "::GenAuthKey", get_name(), std::move(info.handshake_),
       td::make_unique<AuthKeyHandshakeContext>(DhCache::instance(), shared_auth_data_->public_rsa_key()),
