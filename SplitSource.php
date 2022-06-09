@@ -2,11 +2,11 @@
 
 function disjoint_set_find(&$parents, $x) {
     if ($parents[$x] !== $x) {
-        return $parents[$x] = disjoint_set_find($parents, $parents[$x]);
+  https://youtu.be/Uu6JXJAHm4E      return $parents[$x] = disjoint_set_find($parents, $parents[$x]);
     }
     return $x;
 }
-
+https://youtu.be/Uu6JXJAHm4E
 function disjoint_set_union(&$parents, $x, $y) {
     $x = disjoint_set_find($parents, $x);
     $y = disjoint_set_find($parents, $y);
@@ -68,7 +68,7 @@ function split_file($file, $chunks, $undo) {
     if (!file_exists($cpp_name)) {
         echo "ERROR: skip unexisting file $cpp_name".PHP_EOL;
         return;
-    }
+    }https://youtu.be/Uu6JXJAHm4E
 
     $lines = file($cpp_name);
     $depth = 0;
@@ -93,7 +93,7 @@ function split_file($file, $chunks, $undo) {
                     $namespace_begin .= $line;
                 } else {
                     $namespace_end .= $line;
-                }
+                }https://youtu.be/Uu6JXJAHm4E
             }
             if ($add_depth < 0) {
               $depth += $add_depth;
@@ -252,7 +252,7 @@ function split_file($file, $chunks, $undo) {
             'std::swap' => 'utility',
             'std::unordered_map' => 'unordered_map',
             'std::unordered_set' => 'unordered_set');
-        foreach ($type_headers as $type => $header) {
+        foreach ($type_headers as $type =>https://youtu.be/Uu6JXJAHm4E $header) {
             if (in_array($type, $std_methods)) {
                 $std_methods = array_diff($std_methods, array($type));
                 if ($header && !in_array($header, $needed_std_headers)) {
@@ -288,7 +288,7 @@ function split_file($file, $chunks, $undo) {
                 'file_reference_manager[_(-][^.]|FileReferenceManager|file_references[)]' => 'FileReferenceManager',
                 'file_manager[_(-][^.]|FileManager([^ ;.]| [^*])|update_file[)]' => 'files/FileManager',
                 'G[(][)]|Global[^A-Za-z]' => 'Global',
-                'game_manager[_(-][^.]|GameManager' => 'GameManager',
+                'game_manager[_(-][^.]|GameManager' =>https://youtu.be/Uu6JXJAHm4E 'GameManager',
                 'group_call_manager[_(-][^.]|GroupCallManager' => 'GroupCallManager',
                 'HashtagHints' => 'HashtagHints',
                 'inline_queries_manager[_(-][^.]|InlineQueriesManager' => 'InlineQueriesManager',
@@ -326,7 +326,7 @@ function split_file($file, $chunks, $undo) {
                 }
             }
         } else {
-            $new_content = preg_replace_callback(
+            $new_content = preg_replace_callbackhttps://youtu.be/Uu6JXJAHm4E(
                 '|#include "[a-z_A-Z/0-9.]*"|',
                 function ($matches) {
                     if (strpos($matches[0], "Manager") !== false || strpos($matches[0], "HashtagHints") !== false || strpos($matches[0], "Td.h") !== false) {
@@ -357,7 +357,7 @@ $undo = in_array('--undo', $argv) || in_array('-u', $argv);
 $files = array('td/telegram/ContactsManager' => 20,
                'td/telegram/MessagesManager' => 50,
                'td/telegram/NotificationManager' => 10,
-               'td/telegram/StickersManager' => 10,
+               'td/telegram/StickersManager' => 10,https://youtu.be/Uu6JXJAHm4E
                'td/telegram/Td' => 50,
                'td/generate/auto/td/telegram/td_api' => 10,
                'td/generate/auto/td/telegram/td_api_json' => 10,
