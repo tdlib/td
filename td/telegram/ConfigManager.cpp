@@ -1483,6 +1483,8 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
   string premium_bot_username;
   string premium_invoice_slug;
   bool is_premium_available = false;
+  int32 stickers_premium_by_emoji_num = 0;
+  int32 stickers_normal_by_emoji_per_premium_num = 2;
   if (config->get_id() == telegram_api::jsonObject::ID) {
     for (auto &key_value : static_cast<telegram_api::jsonObject *>(config.get())->value_) {
       Slice key = key_value->key_;
@@ -1790,6 +1792,14 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
         is_premium_available = get_json_value_bool(std::move(key_value->value_), key);
         continue;
       }
+      if (key == "stickers_premium_by_emoji_num") {
+        stickers_premium_by_emoji_num = get_json_value_int(std::move(key_value->value_), key);
+        continue;
+      }
+      if (key == "stickers_normal_by_emoji_per_premium_num") {
+        stickers_normal_by_emoji_per_premium_num = get_json_value_int(std::move(key_value->value_), key);
+        continue;
+      }
 
       new_values.push_back(std::move(key_value));
     }
@@ -1908,6 +1918,10 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
   } else {
     shared_config.set_option_string("premium_invoice_slug", premium_invoice_slug);
   }
+
+  shared_config.set_option_integer("stickers_premium_by_emoji_num", stickers_premium_by_emoji_num);
+  shared_config.set_option_integer("stickers_normal_by_emoji_per_premium_num",
+                                   stickers_normal_by_emoji_per_premium_num);
 
   shared_config.set_option_empty("default_ton_blockchain_config");
   shared_config.set_option_empty("default_ton_blockchain_name");
