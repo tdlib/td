@@ -28,7 +28,6 @@
 
 #include "td/utils/algorithm.h"
 #include "td/utils/as.h"
-#include "td/utils/FloodControlGlobal.h"
 #include "td/utils/format.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"

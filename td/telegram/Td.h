@@ -13,6 +13,7 @@
 #include "td/telegram/net/NetQueryStats.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/TdCallback.h"
+#include "td/telegram/TdDb.h"
 #include "td/telegram/TdParameters.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/TermsOfService.h"
@@ -255,6 +256,8 @@ class Td final : public Actor {
 
   void on_connection_state_changed(ConnectionState new_state);
 
+  void run_request(uint64 id, tl_object_ptr<td_api::Function> function);
+
   void send_result(uint64 id, tl_object_ptr<td_api::Object> object);
   void send_error(uint64 id, Status error);
   void send_error_impl(uint64 id, tl_object_ptr<td_api::error> error);
@@ -291,6 +294,7 @@ class Td final : public Actor {
   int close_flag_ = 0;
 
   enum class State : int32 { WaitParameters, Decrypt, Run, Close } state_ = State::WaitParameters;
+  uint64 init_request_id_ = 0;
   bool is_database_encrypted_ = false;
 
   FlatHashMap<uint64, std::shared_ptr<ResultHandler>> result_handlers_;
@@ -315,6 +319,8 @@ class Td final : public Actor {
   FlatHashMap<FileId, DownloadInfo, FileIdHash> pending_file_downloads_;
 
   vector<std::pair<uint64, td_api::object_ptr<td_api::Function>>> pending_preauthentication_requests_;
+
+  vector<std::pair<uint64, td_api::object_ptr<td_api::Function>>> pending_init_requests_;
 
   template <class T>
   void complete_pending_preauthentication_requests(const T &func);
@@ -1394,14 +1400,27 @@ class Td final : public Actor {
   static td_api::object_ptr<td_api::Object> do_static_request(td_api::testReturnError &request);
 
   static DbKey as_db_key(string key);
-  Status init(DbKey key) TD_WARN_UNUSED_RESULT;
+
+  void start_init(uint64 id, string &&key);
+
+  void init(Result<TdDb::OpenedDatabase> r_opened_database);
+
   void init_options_and_network();
+
   void init_connection_creator();
+
   void init_file_manager();
+
   void init_managers();
+
+  void finish_init();
+
   void clear();
+
   void close_impl(bool destroy_flag);
+
   static Status fix_parameters(TdParameters &parameters) TD_WARN_UNUSED_RESULT;
+
   Status set_parameters(td_api::object_ptr<td_api::tdlibParameters> parameters) TD_WARN_UNUSED_RESULT;
 
   static td_api::object_ptr<td_api::error> make_error(int32 code, CSlice error) {

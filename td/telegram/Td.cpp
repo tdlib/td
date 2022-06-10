@@ -3033,11 +3033,21 @@ void Td::request(uint64 id, tl_object_ptr<td_api::Function> function) {
   }
 
   VLOG(td_requests) << "Receive request " << id << ": " << to_string(function);
-  int32 function_id = function->get_id();
-  if (is_synchronous_request(function_id)) {
+  if (is_synchronous_request(function->get_id())) {
     // send response synchronously
     return send_result(id, static_request(std::move(function)));
   }
+
+  run_request(id, std::move(function));
+}
+
+void Td::run_request(uint64 id, tl_object_ptr<td_api::Function> function) {
+  if (init_request_id_ > 0) {
+    pending_init_requests_.emplace_back(id, std::move(function));
+    return;
+  }
+
+  int32 function_id = function->get_id();
   if (state_ != State::Run) {
     switch (function_id) {
       case td_api::getAuthorizationState::ID:
@@ -3083,11 +3093,11 @@ void Td::request(uint64 id, tl_object_ptr<td_api::Function> function) {
       switch (function_id) {
         case td_api::checkDatabaseEncryptionKey::ID: {
           auto check_key = move_tl_object_as<td_api::checkDatabaseEncryptionKey>(function);
-          return answer_ok_query(id, init(as_db_key(std::move(check_key->encryption_key_))));
+          return start_init(id, std::move(check_key->encryption_key_));
         }
         case td_api::setDatabaseEncryptionKey::ID: {
           auto set_key = move_tl_object_as<td_api::setDatabaseEncryptionKey>(function);
-          return answer_ok_query(id, init(as_db_key(std::move(set_key->new_encryption_key_))));
+          return start_init(id, std::move(set_key->new_encryption_key_));
         }
         case td_api::destroy::ID:
           // need to send response synchronously before actual destroying
@@ -3635,22 +3645,34 @@ void Td::complete_pending_preauthentication_requests(const T &func) {
   }
 }
 
-Status Td::init(DbKey key) {
+void Td::start_init(uint64 id, string &&key) {
+  VLOG(td_init) << "Begin to init database";
+  init_request_id_ = id;
+
+  auto promise = PromiseCreator::lambda([actor_id = actor_id(this)](Result<TdDb::OpenedDatabase> r_opened_database) {
+    send_closure(actor_id, &Td::init, std::move(r_opened_database));
+  });
   auto current_scheduler_id = Scheduler::instance()->sched_id();
   auto scheduler_count = Scheduler::instance()->sched_count();
+  TdDb::open(min(current_scheduler_id + 1, scheduler_count - 1), parameters_, as_db_key(std::move(key)),
+             std::move(promise));
+}
 
-  VLOG(td_init) << "Begin to init database";
-  TdDb::Events events;
-  auto r_td_db = TdDb::open(min(current_scheduler_id + 1, scheduler_count - 1), parameters_, std::move(key), events);
-  if (r_td_db.is_error()) {
-    LOG(WARNING) << "Failed to open database: " << r_td_db.error();
-    return Status::Error(400, r_td_db.error().message());
+void Td::init(Result<TdDb::OpenedDatabase> r_opened_database) {
+  CHECK(init_request_id_ != 0);
+  if (r_opened_database.is_error()) {
+    LOG(WARNING) << "Failed to open database: " << r_opened_database.error();
+    send_closure(actor_id(this), &Td::send_error, init_request_id_,
+                 Status::Error(400, r_opened_database.error().message()));
+    return finish_init();
   }
+
   LOG(INFO) << "Successfully inited database in " << tag("database_directory", parameters_.database_directory)
             << " and " << tag("files_directory", parameters_.files_directory);
   VLOG(td_init) << "Successfully inited database";
 
-  G()->init(parameters_, actor_id(this), r_td_db.move_as_ok()).ensure();
+  auto events = r_opened_database.move_as_ok();
+  G()->init(parameters_, actor_id(this), std::move(events.database)).ensure();
 
   init_options_and_network();
 
@@ -3692,6 +3714,9 @@ Status Td::init(DbKey key) {
   init_managers();
 
   G()->set_my_id(G()->shared_config().get_option_integer("my_id"));
+
+  auto current_scheduler_id = Scheduler::instance()->sched_id();
+  auto scheduler_count = Scheduler::instance()->sched_count();
 
   storage_manager_ = create_actor<StorageManager>("StorageManager", create_reference(),
                                                   min(current_scheduler_id + 2, scheduler_count - 1));
@@ -3774,7 +3799,24 @@ Status Td::init(DbKey key) {
   VLOG(td_init) << "Finish initialization";
 
   state_ = State::Run;
-  return Status::OK();
+
+  send_closure(actor_id(this), &Td::send_result, init_request_id_, td_api::make_object<td_api::ok>());
+  return finish_init();
+}
+
+void Td::finish_init() {
+  CHECK(init_request_id_ > 0);
+  init_request_id_ = 0;
+
+  if (pending_init_requests_.empty()) {
+    return;
+  }
+
+  auto requests = std::move(pending_init_requests_);
+  for (auto &request : requests) {
+    run_request(request.first, std::move(request.second));
+  }
+  CHECK(pending_init_requests_.size() < requests.size());
 }
 
 void Td::init_options_and_network() {
