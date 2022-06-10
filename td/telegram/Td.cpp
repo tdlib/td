@@ -3812,6 +3812,7 @@ void Td::finish_init() {
     return;
   }
 
+  VLOG(td_init) << "Continue to execute " << pending_init_requests_.size() << " pending requests";
   auto requests = std::move(pending_init_requests_);
   for (auto &request : requests) {
     run_request(request.first, std::move(request.second));

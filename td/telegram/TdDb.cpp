@@ -394,6 +394,7 @@ void TdDb::open(int32 scheduler_id, TdParameters parameters, DbKey key, Promise<
      public:
       void open(TdParameters &&parameters, DbKey &&key, Promise<OpenedDatabase> &&promise) {
         TdDb::open(-1, std::move(parameters), std::move(key), std::move(promise));
+        stop();
       }
     };
     send_closure(create_actor_on_scheduler<Worker>("worker", scheduler_id), &Worker::open, std::move(parameters),
