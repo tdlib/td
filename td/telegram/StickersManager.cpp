@@ -3606,15 +3606,65 @@ vector<FileId> StickersManager::get_stickers(string emoji, int32 limit, bool for
       }
     }
     if (sorted.size() != limit_size_t) {
+      vector<FileId> normal_sticker_ids;
+      vector<FileId> premium_sticker_ids;
       for (const auto &sticker_id : result) {
         if (sticker_id.is_valid()) {
-          LOG(INFO) << "Add sticker " << sticker_id << " from installed sticker set";
+          const Sticker *s = get_sticker(sticker_id);
+          CHECK(s != nullptr);
+          if (s->premium_animation_file_id.is_valid()) {
+            premium_sticker_ids.push_back(sticker_id);
+          } else {
+            normal_sticker_ids.push_back(sticker_id);
+          }
+        }
+      }
+      if (G()->shared_config().get_option_boolean("is_premium")) {
+        auto normal_count = G()->shared_config().get_option_integer("stickers_normal_by_emoji_per_premium_num", 2);
+        if (normal_count < 0) {
+          normal_count = 2;
+        }
+        if (normal_count > 10) {
+          normal_count = 10;
+        }
+        // premium users have normal_count normal stickers per each premium
+        size_t normal_pos = 0;
+        size_t premium_pos = 0;
+        normal_count++;
+        for (size_t pos = 1; normal_pos < normal_sticker_ids.size() || premium_pos < premium_sticker_ids.size();
+             pos++) {
+          if (pos % normal_count == 0 && premium_pos < premium_sticker_ids.size()) {
+            auto sticker_id = premium_sticker_ids[premium_pos++];
+            LOG(INFO) << "Add premium sticker " << sticker_id << " from installed sticker set";
+            sorted.push_back(sticker_id);
+          } else if (normal_pos < normal_sticker_ids.size()) {
+            auto sticker_id = normal_sticker_ids[normal_pos++];
+            LOG(INFO) << "Add normal sticker " << sticker_id << " from installed sticker set";
+            sorted.push_back(sticker_id);
+          }
+          if (sorted.size() == limit_size_t) {
+            break;
+          }
+        }
+      } else {
+        for (const auto &sticker_id : normal_sticker_ids) {
+          LOG(INFO) << "Add normal sticker " << sticker_id << " from installed sticker set";
           sorted.push_back(sticker_id);
           if (sorted.size() == limit_size_t) {
             break;
           }
-        } else {
-          LOG(INFO) << "Skip already added sticker";
+        }
+        if (sorted.size() < limit_size_t) {
+          auto premium_count = G()->shared_config().get_option_integer("stickers_premium_by_emoji_num", 0);
+          if (premium_count > 0) {
+            for (const auto &sticker_id : premium_sticker_ids) {
+              LOG(INFO) << "Add premium sticker " << sticker_id << " from installed sticker set";
+              sorted.push_back(sticker_id);
+              if (sorted.size() == limit_size_t || --premium_count == 0) {
+                break;
+              }
+            }
+          }
         }
       }
     }
