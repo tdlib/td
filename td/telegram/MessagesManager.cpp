@@ -10824,7 +10824,9 @@ void MessagesManager::delete_sent_message_on_server(DialogId dialog_id, MessageI
     bool need_update_dialog_pos = false;
     auto m = delete_message(d, message_id, true, &need_update_dialog_pos, "delete_sent_message_on_server");
     CHECK(m == nullptr);
-    CHECK(need_update_dialog_pos == false);
+    if (need_update_dialog_pos) {  // last_clear_history_message_id might be removed
+      update_dialog_pos(d, "delete_sent_message_on_server");
+    }
   }
 }
 
