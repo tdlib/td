@@ -1789,7 +1789,7 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
         continue;
       }
       if (key == "premium_purchase_blocked") {
-        is_premium_available = get_json_value_bool(std::move(key_value->value_), key);
+        is_premium_available = !get_json_value_bool(std::move(key_value->value_), key);
         continue;
       }
       if (key == "stickers_premium_by_emoji_num") {
