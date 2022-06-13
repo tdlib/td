@@ -1536,14 +1536,16 @@ paymentProviderSmartGlocal public_token:string = PaymentProvider;
 //@description Stripe payment provider @publishable_key Stripe API publishable key @need_country True, if the user country must be provided @need_postal_code True, if the user ZIP/postal code must be provided @need_cardholder_name True, if the cardholder name must be provided
 paymentProviderStripe publishable_key:string need_country:Bool need_postal_code:Bool need_cardholder_name:Bool = PaymentProvider;
 
+//@description Some other payment provider, for which a web payment form must be shown @url Payment form URL
+paymentProviderOther url:string = PaymentProvider;
+
 
 //@description Contains information about an invoice payment form
 //@id The payment form identifier
 //@invoice Full information about the invoice
-//@url Payment form URL
 //@seller_bot_user_id User identifier of the seller bot
 //@payment_provider_user_id User identifier of the payment provider bot
-//@payment_provider Information about the payment provider, if available, to support it natively without the need for opening the URL; may be null
+//@payment_provider Information about the payment provider
 //@saved_order_info Saved server-side order information; may be null
 //@saved_credentials Information about saved card credentials; may be null
 //@can_save_credentials True, if the user can choose to save credentials
@@ -1551,7 +1553,7 @@ paymentProviderStripe publishable_key:string need_country:Bool need_postal_code:
 //@product_title Product title
 //@product_description Product description
 //@product_photo Product photo; may be null
-paymentForm id:int64 invoice:invoice url:string seller_bot_user_id:int53 payment_provider_user_id:int53 payment_provider:PaymentProvider saved_order_info:orderInfo saved_credentials:savedCredentials can_save_credentials:Bool need_password:Bool product_title:string product_description:string product_photo:photo = PaymentForm;
+paymentForm id:int64 invoice:invoice seller_bot_user_id:int53 payment_provider_user_id:int53 payment_provider:PaymentProvider saved_order_info:orderInfo saved_credentials:savedCredentials can_save_credentials:Bool need_password:Bool product_title:string product_description:string product_photo:photo = PaymentForm;
 
 //@description Contains a temporary identifier of validated order information, which is stored for one hour. Also contains the available shipping options @order_info_id Temporary identifier of the order information @shipping_options Available shipping options
 validatedOrderInfo order_info_id:string shipping_options:vector<shippingOption> = ValidatedOrderInfo;
