@@ -187,12 +187,38 @@ static tl_object_ptr<td_api::invoice> convert_invoice(tl_object_ptr<telegram_api
                                          send_phone_number_to_provider, send_email_address_to_provider, is_flexible);
 }
 
-static tl_object_ptr<td_api::paymentsProviderStripe> convert_payment_provider(
+static tl_object_ptr<td_api::PaymentProvider> convert_payment_provider(
     const string &native_provider_name, tl_object_ptr<telegram_api::dataJSON> native_parameters) {
   if (native_parameters == nullptr) {
     return nullptr;
   }
 
+  if (native_provider_name == "smartglocal") {
+    string data = native_parameters->data_;
+    auto r_value = json_decode(data);
+    if (r_value.is_error()) {
+      LOG(ERROR) << "Can't parse JSON object \"" << native_parameters->data_ << "\": " << r_value.error();
+      return nullptr;
+    }
+
+    auto value = r_value.move_as_ok();
+    if (value.type() != JsonValue::Type::Object) {
+      LOG(ERROR) << "Wrong JSON data \"" << native_parameters->data_ << '"';
+      return nullptr;
+    }
+
+    auto r_public_token = get_json_object_string_field(value.get_object(), "public_token", false);
+
+    if (r_public_token.is_error()) {
+      LOG(ERROR) << "Unsupported JSON data \"" << native_parameters->data_ << '"';
+      return nullptr;
+    }
+    if (value.get_object().size() != 1) {
+      LOG(ERROR) << "Unsupported JSON data \"" << native_parameters->data_ << '"';
+    }
+
+    return make_tl_object<td_api::paymentProviderSmartGlocal>(r_public_token.move_as_ok());
+  }
   if (native_provider_name == "stripe") {
     string data = native_parameters->data_;
     auto r_value = json_decode(data);
@@ -222,9 +248,9 @@ static tl_object_ptr<td_api::paymentsProviderStripe> convert_payment_provider(
       LOG(ERROR) << "Unsupported JSON data \"" << native_parameters->data_ << '"';
     }
 
-    return make_tl_object<td_api::paymentsProviderStripe>(r_publishable_key.move_as_ok(), r_need_country.move_as_ok(),
-                                                          r_need_postal_code.move_as_ok(),
-                                                          r_need_cardholder_name.move_as_ok());
+    return make_tl_object<td_api::paymentProviderStripe>(r_publishable_key.move_as_ok(), r_need_country.move_as_ok(),
+                                                         r_need_postal_code.move_as_ok(),
+                                                         r_need_cardholder_name.move_as_ok());
   }
 
   return nullptr;

@@ -1512,6 +1512,7 @@ shippingOption id:string title:string price_parts:vector<labeledPricePart> = Shi
 //@description Contains information about saved card credentials @id Unique identifier of the saved credentials @title Title of the saved credentials
 savedCredentials id:string title:string = SavedCredentials;
 
+
 //@class InputCredentials @description Contains information about the payment method chosen by the user
 
 //@description Applies if a user chooses some previously saved payment credentials. To use their previously saved credentials, the user must have a valid temporary password @saved_credentials_id Identifier of the saved credentials
@@ -1526,16 +1527,23 @@ inputCredentialsApplePay data:string = InputCredentials;
 //@description Applies if a user enters new credentials using Google Pay @data JSON-encoded data with the credential identifier
 inputCredentialsGooglePay data:string = InputCredentials;
 
+
+//@class PaymentProvider @description Contains information about a payment provider
+
+//@description Smart Glocal payment provider @public_token Public payment token
+paymentProviderSmartGlocal public_token:string = PaymentProvider;
+
 //@description Stripe payment provider @publishable_key Stripe API publishable key @need_country True, if the user country must be provided @need_postal_code True, if the user ZIP/postal code must be provided @need_cardholder_name True, if the cardholder name must be provided
-paymentsProviderStripe publishable_key:string need_country:Bool need_postal_code:Bool need_cardholder_name:Bool = PaymentsProviderStripe;
+paymentProviderStripe publishable_key:string need_country:Bool need_postal_code:Bool need_cardholder_name:Bool = PaymentProvider;
+
 
 //@description Contains information about an invoice payment form
 //@id The payment form identifier
 //@invoice Full information about the invoice
 //@url Payment form URL
 //@seller_bot_user_id User identifier of the seller bot
-//@payments_provider_user_id User identifier of the payment provider bot
-//@payments_provider Information about the payment provider, if available, to support it natively without the need for opening the URL; may be null
+//@payment_provider_user_id User identifier of the payment provider bot
+//@payment_provider Information about the payment provider, if available, to support it natively without the need for opening the URL; may be null
 //@saved_order_info Saved server-side order information; may be null
 //@saved_credentials Information about saved card credentials; may be null
 //@can_save_credentials True, if the user can choose to save credentials
@@ -1543,7 +1551,7 @@ paymentsProviderStripe publishable_key:string need_country:Bool need_postal_code
 //@product_title Product title
 //@product_description Product description
 //@product_photo Product photo; may be null
-paymentForm id:int64 invoice:invoice url:string seller_bot_user_id:int53 payments_provider_user_id:int53 payments_provider:paymentsProviderStripe saved_order_info:orderInfo saved_credentials:savedCredentials can_save_credentials:Bool need_password:Bool product_title:string product_description:string product_photo:photo = PaymentForm;
+paymentForm id:int64 invoice:invoice url:string seller_bot_user_id:int53 payment_provider_user_id:int53 payment_provider:PaymentProvider saved_order_info:orderInfo saved_credentials:savedCredentials can_save_credentials:Bool need_password:Bool product_title:string product_description:string product_photo:photo = PaymentForm;
 
 //@description Contains a temporary identifier of validated order information, which is stored for one hour. Also contains the available shipping options @order_info_id Temporary identifier of the order information @shipping_options Available shipping options
 validatedOrderInfo order_info_id:string shipping_options:vector<shippingOption> = ValidatedOrderInfo;
@@ -1557,13 +1565,13 @@ paymentResult success:Bool verification_url:string = PaymentResult;
 //@photo Product photo; may be null
 //@date Point in time (Unix timestamp) when the payment was made
 //@seller_bot_user_id User identifier of the seller bot
-//@payments_provider_user_id User identifier of the payment provider bot
+//@payment_provider_user_id User identifier of the payment provider bot
 //@invoice Information about the invoice
 //@order_info Order information; may be null
 //@shipping_option Chosen shipping option; may be null
 //@credentials_title Title of the saved credentials chosen by the buyer
 //@tip_amount The amount of tip chosen by the buyer in the smallest units of the currency
-paymentReceipt title:string description:string photo:photo date:int32 seller_bot_user_id:int53 payments_provider_user_id:int53 invoice:invoice order_info:orderInfo shipping_option:shippingOption credentials_title:string tip_amount:int53 = PaymentReceipt;
+paymentReceipt title:string description:string photo:photo date:int32 seller_bot_user_id:int53 payment_provider_user_id:int53 invoice:invoice order_info:orderInfo shipping_option:shippingOption credentials_title:string tip_amount:int53 = PaymentReceipt;
 
 
 //@class InputInvoice @description Describe an invoice to process
