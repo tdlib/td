@@ -104,9 +104,10 @@ bool for_suggested_file_name(CSlice name, bool use_pmc, bool use_random, F &&cal
   return active;
 }
 
-Result<string> create_from_temp(CSlice temp_path, CSlice dir, CSlice name) {
-  LOG(INFO) << "Create file in directory " << dir << " with suggested name " << name << " from temporary file "
-            << temp_path;
+Result<string> create_from_temp(FileType file_type, CSlice temp_path, CSlice name) {
+  auto dir = get_files_dir(file_type);
+  LOG(INFO) << "Create file of type " << file_type << " in directory " << dir << " with suggested name " << name
+            << " from temporary file " << temp_path;
   Result<std::pair<FileFd, string>> res = Status::Error(500, "Can't find suitable file name");
   for_suggested_file_name(name, true, true, [&](CSlice suggested_name) {
     res = try_create_new_file(PSLICE() << dir << suggested_name);
@@ -119,15 +120,16 @@ Result<string> create_from_temp(CSlice temp_path, CSlice dir, CSlice name) {
   return perm_path;
 }
 
-Result<string> search_file(CSlice dir, CSlice name, int64 expected_size) {
-  Result<std::string> res = Status::Error(500, "Can't find suitable file name");
+Result<string> search_file(FileType file_type, CSlice name, int64 expected_size) {
+  Result<string> res = Status::Error(500, "Can't find suitable file name");
+  auto dir = get_files_dir(file_type);
   for_suggested_file_name(name, false, false, [&](CSlice suggested_name) {
     auto r_pair = try_open_file(PSLICE() << dir << suggested_name);
     if (r_pair.is_error()) {
       return false;
     }
     FileFd fd;
-    std::string path;
+    string path;
     std::tie(fd, path) = r_pair.move_as_ok();
     auto r_size = fd.get_size();
     if (r_size.is_error() || r_size.ok() != expected_size) {
@@ -185,17 +187,17 @@ Result<string> get_suggested_file_name(CSlice directory, Slice file_name) {
   return PSTRING() << stem << " - " << StringBuilder::FixedDouble(Clocks::system(), 3) << Ext{ext};
 }
 
-Result<FullLocalFileLocation> save_file_bytes(FileType type, BufferSlice bytes, CSlice file_name) {
-  auto r_old_path = search_file(get_files_dir(type), file_name, bytes.size());
+Result<FullLocalFileLocation> save_file_bytes(FileType file_type, BufferSlice bytes, CSlice file_name) {
+  auto r_old_path = search_file(file_type, file_name, bytes.size());
   if (r_old_path.is_ok()) {
     auto r_old_bytes = read_file(r_old_path.ok());
     if (r_old_bytes.is_ok() && r_old_bytes.ok().as_slice() == bytes.as_slice()) {
       LOG(INFO) << "Found previous file with the same name " << r_old_path.ok();
-      return FullLocalFileLocation(type, r_old_path.ok(), 0);
+      return FullLocalFileLocation(file_type, r_old_path.ok(), 0);
     }
   }
 
-  TRY_RESULT(fd_path, open_temp_file(type));
+  TRY_RESULT(fd_path, open_temp_file(file_type));
   FileFd fd = std::move(fd_path.first);
   string path = std::move(fd_path.second);
 
@@ -206,10 +208,9 @@ Result<FullLocalFileLocation> save_file_bytes(FileType type, BufferSlice bytes, 
     return Status::Error("Failed to write bytes to the file");
   }
 
-  auto dir = get_files_dir(type);
-  TRY_RESULT(perm_path, create_from_temp(path, dir, file_name));
+  TRY_RESULT(perm_path, create_from_temp(file_type, path, file_name));
 
-  return FullLocalFileLocation(type, std::move(perm_path), 0);
+  return FullLocalFileLocation(file_type, std::move(perm_path), 0);
 }
 
 static Slice get_file_base_dir(const FileDirType &file_dir_type) {

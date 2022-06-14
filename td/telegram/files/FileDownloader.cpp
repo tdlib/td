@@ -89,7 +89,7 @@ Result<FileLoader::FileInfo> FileDownloader::init() {
   }
   if (search_file_ && fd_.empty() && size_ > 0 && encryption_key_.empty() && !remote_.is_web()) {
     [&] {
-      TRY_RESULT(path, search_file(get_files_dir(remote_.file_type_), name_, size_));
+      TRY_RESULT(path, search_file(remote_.file_type_, name_, size_));
       TRY_RESULT(fd, FileFd::open(path, FileFd::Read));
       LOG(INFO) << "Check hash of local file " << path;
       path_ = std::move(path);
@@ -121,8 +121,6 @@ Result<FileLoader::FileInfo> FileDownloader::init() {
 }
 
 Status FileDownloader::on_ok(int64 size) {
-  auto dir = get_files_dir(remote_.file_type_);
-
   std::string path;
   fd_.close();
   if (encryption_key_.is_secure()) {
@@ -138,7 +136,7 @@ Status FileDownloader::on_ok(int64 size) {
   if (only_check_) {
     path = path_;
   } else {
-    TRY_RESULT_ASSIGN(path, create_from_temp(path_, dir, name_));
+    TRY_RESULT_ASSIGN(path, create_from_temp(remote_.file_type_, path_, name_));
   }
   callback_->on_ok(FullLocalFileLocation(remote_.file_type_, std::move(path), 0), size, !only_check_);
   return Status::OK();

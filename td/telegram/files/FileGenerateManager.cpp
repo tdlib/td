@@ -331,9 +331,7 @@ class FileExternalGenerateActor final : public FileGenerateActor {
   }
 
   Status do_file_generate_finish() {
-    auto dir = get_files_dir(generate_location_.file_type_);
-
-    TRY_RESULT(perm_path, create_from_temp(path_, dir, name_));
+    TRY_RESULT(perm_path, create_from_temp(generate_location_.file_type_, path_, name_));
     callback_->on_ok(FullLocalFileLocation(generate_location_.file_type_, std::move(perm_path), 0));
     callback_.reset();
     stop();
