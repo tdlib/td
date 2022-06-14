@@ -329,7 +329,7 @@ class MasterActor final : public MsgActor {
  public:
   void loop() final {
     alive_ = true;
-    slave = td::create_actor<Slave>("slave", static_cast<td::ActorId<MsgActor>>(actor_id(this)));
+    slave = td::create_actor<Slave>("Slave", static_cast<td::ActorId<MsgActor>>(actor_id(this)));
     stop();
   }
   td::ActorOwn<Slave> slave;

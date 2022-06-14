@@ -31,6 +31,7 @@
 #include "td/utils/format.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
+#include "td/utils/port/thread_local.h"
 #include "td/utils/Random.h"
 #include "td/utils/Slice.h"
 #include "td/utils/SliceBuilder.h"
@@ -80,9 +81,8 @@ class SemaphoreActor final : public Actor {
 };
 
 struct Semaphore {
- public:
   explicit Semaphore(size_t capacity) {
-    semaphore_ = create_actor<SemaphoreActor>("semaphore", capacity).release();
+    semaphore_ = create_actor<SemaphoreActor>("Semaphore", capacity).release();
   }
 
   void execute(Promise<Promise<Unit>> promise) {

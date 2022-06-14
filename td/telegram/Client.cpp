@@ -24,6 +24,7 @@
 #include "td/utils/port/RwMutex.h"
 #include "td/utils/port/thread.h"
 #include "td/utils/Slice.h"
+#include "td/utils/SliceBuilder.h"
 #include "td/utils/StringBuilder.h"
 #include "td/utils/utf8.h"
 

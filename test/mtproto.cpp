@@ -470,7 +470,7 @@ class Socks5TestActor final : public td::Actor {
     if (r_socket.is_error()) {
       return promise.set_error(td::Status::Error(PSTRING() << "Failed to open socket: " << r_socket.error()));
     }
-    td::create_actor<td::Socks5>("socks5", r_socket.move_as_ok(), mtproto_ip_address, "", "",
+    td::create_actor<td::Socks5>("Socks5", r_socket.move_as_ok(), mtproto_ip_address, "", "",
                                  td::make_unique<Callback>(std::move(promise)), actor_shared(this))
         .release();
   }

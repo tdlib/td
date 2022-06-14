@@ -264,7 +264,7 @@ void MultiSequenceDispatcherOld::send(NetQueryPtr query) {
   auto &data = it_ok.first->second;
   if (it_ok.second) {
     LOG(DEBUG) << "Create SequenceDispatcher" << sequence_id;
-    data.dispatcher_ = create_actor<SequenceDispatcher>("sequence dispatcher", actor_shared(this, sequence_id));
+    data.dispatcher_ = create_actor<SequenceDispatcher>("SequenceDispatcher", actor_shared(this, sequence_id));
   }
   data.cnt_++;
   query->debug(PSTRING() << "send to SequenceDispatcher " << tag("sequence_id", sequence_id));

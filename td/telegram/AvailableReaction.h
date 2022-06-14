@@ -28,7 +28,7 @@ inline bool operator!=(const AvailableReaction &lhs, const AvailableReaction &rh
   return !(lhs == rhs);
 }
 
-enum class AvailableReactionType { Unavailable, Available, NeedsPremium };
+enum class AvailableReactionType : int32 { Unavailable, Available, NeedsPremium };
 
 AvailableReactionType get_reaction_type(const vector<AvailableReaction> &reactions, const string &reaction);
 

@@ -24,6 +24,7 @@
 #include "td/db/SqliteKeyValueAsync.h"
 #include "td/db/SqliteKeyValueSafe.h"
 
+#include "td/actor/actor.h"
 #include "td/actor/MultiPromise.h"
 
 #include "td/utils/common.h"
@@ -397,7 +398,7 @@ void TdDb::open(int32 scheduler_id, TdParameters parameters, DbKey key, Promise<
         stop();
       }
     };
-    send_closure(create_actor_on_scheduler<Worker>("worker", scheduler_id), &Worker::open, std::move(parameters),
+    send_closure(create_actor_on_scheduler<Worker>("Worker", scheduler_id), &Worker::open, std::move(parameters),
                  std::move(key), std::move(promise));
     return;
   }

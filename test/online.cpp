@@ -288,7 +288,7 @@ class GetMe : public Task {
     int64 user_id;
     int64 chat_id;
   };
-  GetMe(Promise<Result> promise) : promise_(std::move(promise)) {
+  explicit GetMe(Promise<Result> promise) : promise_(std::move(promise)) {
   }
   void start_up() override {
     send_query(td::make_tl_object<td::td_api::getMe>(), [this](auto res) { with_user_id(res.move_as_ok()->id_); });
@@ -424,7 +424,7 @@ class TestDownloadFile : public Task {
       unlink(file.local_->path_).ignore();
     }
 
-    size_t size = narrow_cast<size_t>(file.size_);
+    auto size = narrow_cast<size_t>(file.size_);
     Random::Xorshift128plus rnd(123);
 
     size_t begin = 0;
@@ -440,7 +440,7 @@ class TestDownloadFile : public Task {
       begin = end;
     }
 
-    random_shuffle(as_mutable_span(ranges_), rnd);
+    std::random_shuffle(as_mutable_span(ranges_), rnd);
     start_chunk();
   }
 
@@ -466,7 +466,7 @@ class TestDownloadFile : public Task {
   }
 };
 
-std::string gen_readable_file(size_t block_size, size_t block_count) {
+static std::string gen_readable_file(size_t block_size, size_t block_count) {
   std::string content;
   for (size_t block_id = 0; block_id < block_count; block_id++) {
     std::string block;
@@ -488,7 +488,7 @@ class TestTd : public Actor {
     string api_hash;
   };
 
-  TestTd(Options options) : options_(std::move(options)) {
+  explicit TestTd(Options options) : options_(std::move(options)) {
   }
 
  private:
