@@ -42,6 +42,7 @@
 #include "td/utils/utf8.h"
 #include "td/utils/VectorQueue.h"
 
+#include <memory>
 #include <tuple>
 #include <utility>
 
@@ -65,6 +66,11 @@ class SemaphoreActor final : public Actor {
  private:
   size_t capacity_;
   VectorQueue<Promise<Promise<Unit>>> pending_;
+
+  void start_up() final {
+    set_context(std::make_shared<ActorContext>());
+    set_tag(string());
+  }
 
   void finish(Result<Unit>) {
     capacity_++;
