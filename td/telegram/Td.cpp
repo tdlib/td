@@ -3717,11 +3717,7 @@ void Td::init(Result<TdDb::OpenedDatabase> r_opened_database) {
 
   G()->set_my_id(G()->shared_config().get_option_integer("my_id"));
 
-  auto current_scheduler_id = Scheduler::instance()->sched_id();
-  auto scheduler_count = Scheduler::instance()->sched_count();
-
-  storage_manager_ = create_actor<StorageManager>("StorageManager", create_reference(),
-                                                  min(current_scheduler_id + 2, scheduler_count - 1));
+  storage_manager_ = create_actor<StorageManager>("StorageManager", create_reference(), G()->get_gc_scheduler_id());
   G()->set_storage_manager(storage_manager_.get());
 
   VLOG(td_init) << "Send binlog events";
