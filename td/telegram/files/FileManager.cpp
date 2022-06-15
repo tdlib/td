@@ -2103,38 +2103,32 @@ void FileManager::read_file_part(FileId file_id, int64 offset, int64 count, int 
     is_partial = true;
   }
 
-  // TODO move file reading to another thread
-  auto r_bytes = [&]() -> Result<string> {
-    TRY_RESULT(fd, FileFd::open(*path, FileFd::Read));
-    string data;
-    data.resize(narrow_cast<size_t>(count));
-    TRY_RESULT(read_bytes, fd.pread(data, offset));
-    if (read_bytes != static_cast<size_t>(count)) {
-      return Status::Error("Read less bytes than expected");
-    }
-    return std::move(data);
-  }();
-  if (r_bytes.is_error()) {
-    LOG(INFO) << "Failed to read file bytes: " << r_bytes.error();
-    if (--left_tries == 0 || !is_partial) {
-      return promise.set_error(Status::Error(400, "Failed to read the file"));
-    }
+  auto read_file_part_promise =
+      PromiseCreator::lambda([actor_id = actor_id(this), file_id, offset, count, left_tries, is_partial,
+                              promise = std::move(promise)](Result<string> r_bytes) mutable {
+        if (r_bytes.is_error()) {
+          LOG(INFO) << "Failed to read file bytes: " << r_bytes.error();
+          if (left_tries == 1 || !is_partial) {
+            return promise.set_error(Status::Error(400, "Failed to read the file"));
+          }
 
-    // the temporary file could be moved from temp to persistent folder
-    // we need to wait for the corresponding update and repeat the reading
-    create_actor<SleepActor>("RepeatReadFilePartActor", 0.01,
-                             PromiseCreator::lambda([actor_id = actor_id(this), file_id, offset, count, left_tries,
-                                                     promise = std::move(promise)](Result<Unit> result) mutable {
-                               send_closure(actor_id, &FileManager::read_file_part, file_id, offset, count, left_tries,
-                                            std::move(promise));
-                             }))
-        .release();
-    return;
-  }
-
-  auto result = td_api::make_object<td_api::filePart>();
-  result->data_ = r_bytes.move_as_ok();
-  promise.set_value(std::move(result));
+          // the temporary file could be moved from temp to persistent directory
+          // we need to wait for the corresponding update and repeat the reading
+          create_actor<SleepActor>("RepeatReadFilePartActor", 0.01,
+                                   PromiseCreator::lambda([actor_id, file_id, offset, count, left_tries,
+                                                           promise = std::move(promise)](Result<Unit> result) mutable {
+                                     send_closure(actor_id, &FileManager::read_file_part, file_id, offset, count,
+                                                  left_tries - 1, std::move(promise));
+                                   }))
+              .release();
+        } else {
+          auto result = td_api::make_object<td_api::filePart>();
+          result->data_ = r_bytes.move_as_ok();
+          promise.set_value(std::move(result));
+        }
+      });
+  send_closure(file_load_manager_, &FileLoadManager::read_file_part, *path, offset, count,
+               std::move(read_file_part_promise));
 }
 
 void FileManager::delete_file(FileId file_id, Promise<Unit> promise, const char *source) {

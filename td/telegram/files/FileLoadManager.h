@@ -59,6 +59,8 @@ class FileLoadManager final : public Actor {
 
   void get_content(string file_path, Promise<BufferSlice> promise);
 
+  void read_file_part(string file_path, int64 offset, int64 count, Promise<string> promise);
+
  private:
   struct Node {
     QueryId query_id_;
