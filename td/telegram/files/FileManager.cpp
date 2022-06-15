@@ -830,29 +830,6 @@ FileManager::FileManager(unique_ptr<Context> context) : context_(std::move(conte
   next_file_id();
   next_file_node_id();
 
-  FlatHashSet<string> dir_paths;
-  for (int32 i = 0; i < MAX_FILE_TYPE; i++) {
-    dir_paths.insert(get_files_dir(static_cast<FileType>(i)));
-  }
-  // add both temp dirs
-  dir_paths.insert(get_files_temp_dir(FileType::Encrypted));
-  dir_paths.insert(get_files_temp_dir(FileType::Video));
-
-  for (const auto &path : dir_paths) {
-    auto status = mkdir(path, 0750);
-    if (status.is_error()) {
-      auto r_stat = stat(path);
-      if (r_stat.is_ok() && r_stat.ok().is_dir_) {
-        LOG(ERROR) << "Creation of directory \"" << path << "\" failed with " << status << ", but directory exists";
-      } else {
-        LOG(ERROR) << "Creation of directory \"" << path << "\" failed with " << status;
-      }
-    }
-#if TD_ANDROID
-    FileFd::open(path + ".nomedia", FileFd::Create | FileFd::Read).ignore();
-#endif
-  };
-
   G()->td_db()->with_db_path([bad_paths = &bad_paths_](CSlice path) { bad_paths->insert(path.str()); });
 }
 

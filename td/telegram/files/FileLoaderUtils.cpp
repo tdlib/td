@@ -6,7 +6,6 @@
 //
 #include "td/telegram/files/FileLoaderUtils.h"
 
-#include "td/telegram/files/FileLocation.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/TdDb.h"
 #include "td/telegram/TdParameters.h"
@@ -14,11 +13,9 @@
 #include "td/utils/common.h"
 #include "td/utils/filesystem.h"
 #include "td/utils/format.h"
-#include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/PathView.h"
 #include "td/utils/port/Clocks.h"
-#include "td/utils/port/FileFd.h"
 #include "td/utils/port/path.h"
 #include "td/utils/port/Stat.h"
 #include "td/utils/Random.h"
@@ -32,11 +29,33 @@ namespace td {
 int VERBOSITY_NAME(file_loader) = VERBOSITY_NAME(DEBUG) + 2;
 
 namespace {
-Result<std::pair<FileFd, string>> try_create_new_file(CSlice name) {
-  LOG(DEBUG) << "Trying to create new file " << name;
-  TRY_RESULT(fd, FileFd::open(name, FileFd::Read | FileFd::Write | FileFd::CreateNew, 0640));
-  return std::make_pair(std::move(fd), name.str());
+
+Result<std::pair<FileFd, string>> try_create_new_file(CSlice path, CSlice file_name) {
+  LOG(DEBUG) << "Trying to create new file " << file_name << " in the directory \"" << path << '"';
+  auto name = PSTRING() << path << file_name;
+  auto r_fd = FileFd::open(name, FileFd::Read | FileFd::Write | FileFd::CreateNew, 0640);
+  if (r_fd.is_error()) {
+    auto status = mkdir(path, 0750);
+    if (status.is_error()) {
+      auto r_stat = stat(path);
+      if (r_stat.is_ok() && r_stat.ok().is_dir_) {
+        LOG(ERROR) << "Creation of directory \"" << path << "\" failed with " << status << ", but directory exists";
+      } else {
+        LOG(ERROR) << "Creation of directory \"" << path << "\" failed with " << status;
+      }
+      return r_fd.move_as_error();
+    }
+#if TD_ANDROID
+    FileFd::open(PSLICE() << path << ".nomedia", FileFd::Create | FileFd::Read).ignore();
+#endif
+    r_fd = FileFd::open(name, FileFd::Read | FileFd::Write | FileFd::CreateNew, 0640);
+    if (r_fd.is_error()) {
+      return r_fd.move_as_error();
+    }
+  }
+  return std::make_pair(r_fd.move_as_ok(), std::move(name));
 }
+
 Result<std::pair<FileFd, string>> try_open_file(CSlice name) {
   LOG(DEBUG) << "Trying to open file " << name;
   TRY_RESULT(fd, FileFd::open(name, FileFd::Read, 0640));
@@ -52,6 +71,7 @@ StringBuilder &operator<<(StringBuilder &sb, const RandSuff &) {
   }
   return sb;
 }
+
 struct Ext {
   Slice ext;
 };
@@ -66,13 +86,13 @@ StringBuilder &operator<<(StringBuilder &sb, const Ext &ext) {
 Result<std::pair<FileFd, string>> open_temp_file(FileType file_type) {
   auto pmc = G()->td_db()->get_binlog_pmc();
   // TODO: CAS?
-  auto file_id = to_integer<int32>(pmc->get("tmp_file_id"));
-  pmc->set("tmp_file_id", to_string(file_id + 1));
+  auto file_id = pmc->get("tmp_file_id");
+  pmc->set("tmp_file_id", to_string(to_integer<int32>(file_id) + 1));
 
   auto temp_dir = get_files_temp_dir(file_type);
-  auto res = try_create_new_file(PSLICE() << temp_dir << file_id);
+  auto res = try_create_new_file(temp_dir, file_id);
   if (res.is_error()) {
-    res = try_create_new_file(PSLICE() << temp_dir << file_id << "_" << RandSuff{6});
+    res = try_create_new_file(temp_dir, PSLICE() << file_id << '_' << RandSuff{6});
   }
   return res;
 }
@@ -110,7 +130,7 @@ Result<string> create_from_temp(FileType file_type, CSlice temp_path, CSlice nam
             << " from temporary file " << temp_path;
   Result<std::pair<FileFd, string>> res = Status::Error(500, "Can't find suitable file name");
   for_suggested_file_name(name, true, true, [&](CSlice suggested_name) {
-    res = try_create_new_file(PSLICE() << dir << suggested_name);
+    res = try_create_new_file(dir, suggested_name);
     return res.is_error();
   });
   TRY_RESULT(tmp, std::move(res));
@@ -228,9 +248,11 @@ static Slice get_file_base_dir(const FileDirType &file_dir_type) {
 Slice get_files_base_dir(FileType file_type) {
   return get_file_base_dir(get_file_dir_type(file_type));
 }
+
 string get_files_temp_dir(FileType file_type) {
   return PSTRING() << get_files_base_dir(file_type) << "temp" << TD_DIR_SLASH;
 }
+
 string get_files_dir(FileType file_type) {
   return PSTRING() << get_files_base_dir(file_type) << get_file_type_name(file_type) << TD_DIR_SLASH;
 }
