@@ -132,9 +132,8 @@ void FileLoadManager::from_bytes(QueryId id, FileType type, BufferSlice bytes, s
   CHECK(is_inserted);
 }
 
-void FileLoadManager::get_content(const FullLocalFileLocation &local_location, Promise<BufferSlice> promise) {
-  // TODO: send query to other thread
-  promise.set_result(read_file(local_location.path_));
+void FileLoadManager::get_content(string file_path, Promise<BufferSlice> promise) {
+  promise.set_result(read_file(file_path));
 }
 
 // void upload_reload_parts(QueryId id, vector<int32> parts);

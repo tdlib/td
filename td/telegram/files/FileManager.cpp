@@ -2054,7 +2054,7 @@ void FileManager::get_content(FileId file_id, Promise<BufferSlice> promise) {
     return promise.set_error(Status::Error("No local location"));
   }
 
-  send_closure(file_load_manager_, &FileLoadManager::get_content, node->local_.full(), std::move(promise));
+  send_closure(file_load_manager_, &FileLoadManager::get_content, node->local_.full().path_, std::move(promise));
 }
 
 void FileManager::read_file_part(FileId file_id, int64 offset, int64 count, int left_tries,

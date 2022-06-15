@@ -57,7 +57,7 @@ class FileLoadManager final : public Actor {
   void update_local_file_location(QueryId id, const LocalFileLocation &local);
   void update_downloaded_part(QueryId id, int64 offset, int64 limit);
 
-  void get_content(const FullLocalFileLocation &local_location, Promise<BufferSlice> promise);
+  void get_content(string file_path, Promise<BufferSlice> promise);
 
  private:
   struct Node {
