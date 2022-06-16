@@ -3713,28 +3713,6 @@ void FileManager::on_error_impl(FileNodePtr node, Query::Type type, bool was_act
   SCOPE_EXIT {
     try_flush_node(node, "on_error");
   };
-  if (status.code() != 1 && !G()->close_flag()) {
-    LOG(WARNING) << "Failed to " << type << " file " << node->main_file_id_ << " of type " << FileView(node).get_type()
-                 << ": " << status;
-    if (status.code() == 0) {
-      // Remove partial locations
-      if (node->local_.type() == LocalFileLocation::Type::Partial &&
-          !begins_with(status.message(), "FILE_UPLOAD_RESTART") &&
-          !begins_with(status.message(), "FILE_DOWNLOAD_RESTART") &&
-          !begins_with(status.message(), "FILE_DOWNLOAD_ID_INVALID") &&
-          !begins_with(status.message(), "FILE_DOWNLOAD_LIMIT")) {
-        CSlice path = node->local_.partial().path_;
-        if (begins_with(path, get_files_temp_dir(FileType::Encrypted)) ||
-            begins_with(path, get_files_temp_dir(FileType::Video))) {
-          LOG(INFO) << "Unlink file " << path;
-          unlink(path).ignore();
-          node->drop_local_location();
-        }
-      }
-      node->delete_partial_remote_location();
-      status = Status::Error(400, status.message());
-    }
-  }
 
   if (status.message() == "FILE_PART_INVALID") {
     bool has_partial_small_location = node->remote_.partial && !node->remote_.partial->is_big_;
@@ -3748,9 +3726,9 @@ void FileManager::on_error_impl(FileNodePtr node, Query::Type type, bool was_act
       return;
     }
 
-    LOG(WARNING) << "Failed to upload file " << node->main_file_id_ << ": unexpected " << status
-                 << ", is_small = " << has_partial_small_location << ", should_be_big = " << should_be_big_location
-                 << ", expected size = " << expected_size;
+    LOG(ERROR) << "Failed to upload file " << node->main_file_id_ << ": unexpected " << status
+               << ", is_small = " << has_partial_small_location << ", should_be_big = " << should_be_big_location
+               << ", expected size = " << expected_size;
   }
 
   if (begins_with(status.message(), "FILE_GENERATE_LOCATION_INVALID")) {
@@ -3792,6 +3770,7 @@ void FileManager::on_error_impl(FileNodePtr node, Query::Type type, bool was_act
     run_upload(node, {});
     return;
   }
+
   if (begins_with(status.message(), "FILE_DOWNLOAD_RESTART")) {
     if (ends_with(status.message(), "WITH_FILE_REFERENCE")) {
       node->download_was_update_file_reference_ = true;
@@ -3808,6 +3787,7 @@ void FileManager::on_error_impl(FileNodePtr node, Query::Type type, bool was_act
       return;
     }
   }
+
   if (status.message() == "MTPROTO_CLUSTER_INVALID") {
     run_download(node, true);
     return;
@@ -3815,6 +3795,27 @@ void FileManager::on_error_impl(FileNodePtr node, Query::Type type, bool was_act
 
   if (!was_active) {
     return;
+  }
+
+  if (status.code() != 1 && !G()->close_flag()) {
+    LOG(WARNING) << "Failed to " << type << " file " << node->main_file_id_ << " of type " << FileView(node).get_type()
+                 << ": " << status;
+    if (status.code() == 0) {
+      // Remove partial locations
+      if (node->local_.type() == LocalFileLocation::Type::Partial &&
+          !begins_with(status.message(), "FILE_DOWNLOAD_ID_INVALID") &&
+          !begins_with(status.message(), "FILE_DOWNLOAD_LIMIT")) {
+        CSlice path = node->local_.partial().path_;
+        if (begins_with(path, get_files_temp_dir(FileType::Encrypted)) ||
+            begins_with(path, get_files_temp_dir(FileType::Video))) {
+          LOG(INFO) << "Unlink file " << path;
+          unlink(path).ignore();
+          node->drop_local_location();
+        }
+      }
+      node->delete_partial_remote_location();
+      status = Status::Error(400, status.message());
+    }
   }
 
   // Stop everything on error
