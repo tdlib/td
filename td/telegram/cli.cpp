@@ -410,6 +410,8 @@ class CliClient final : public Actor {
         parameters->system_language_code_ = "en";
         parameters->device_model_ = "Desktop";
         parameters->application_version_ = "1.0";
+        send_request(
+            td_api::make_object<td_api::setOption>("use_pfs", td_api::make_object<td_api::optionValueBoolean>(true)));
         send_request(td_api::make_object<td_api::setTdlibParameters>(std::move(parameters)));
         break;
       }

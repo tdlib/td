@@ -12,6 +12,7 @@
 #include "td/telegram/files/FileManager.h"
 #include "td/telegram/files/FileType.h"
 #include "td/telegram/Global.h"
+#include "td/telegram/MessageEntity.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/misc.h"
 #include "td/telegram/PasswordManager.h"
@@ -35,6 +36,13 @@
 namespace td {
 
 namespace {
+
+static tl_object_ptr<td_api::formattedText> get_product_description_object(const string &description) {
+  FormattedText result;
+  result.text = description;
+  result.entities = find_entities(result.text, true, true);
+  return get_formatted_text_object(result, true, 0);
+}
 
 struct InputInvoiceInfo {
   DialogId dialog_id_;
@@ -386,7 +394,8 @@ class GetPaymentFormQuery final : public Td::ResultHandler {
         td_->contacts_manager_->get_user_id_object(payments_provider_user_id, "paymentForm provider"),
         std::move(payment_provider), convert_order_info(std::move(payment_form->saved_info_)),
         convert_saved_credentials(std::move(payment_form->saved_credentials_)), can_save_credentials, need_password,
-        payment_form->title_, payment_form->description_, get_photo_object(td_->file_manager_.get(), photo)));
+        payment_form->title_, get_product_description_object(payment_form->description_),
+        get_photo_object(td_->file_manager_.get(), photo)));
   }
 
   void on_error(Status status) final {
@@ -549,8 +558,9 @@ class GetPaymentReceiptQuery final : public Td::ResultHandler {
     auto photo = get_web_document_photo(td_->file_manager_.get(), std::move(payment_receipt->photo_), dialog_id_);
 
     promise_.set_value(make_tl_object<td_api::paymentReceipt>(
-        payment_receipt->title_, payment_receipt->description_, get_photo_object(td_->file_manager_.get(), photo),
-        payment_receipt->date_, td_->contacts_manager_->get_user_id_object(seller_bot_user_id, "paymentReceipt seller"),
+        payment_receipt->title_, get_product_description_object(payment_receipt->description_),
+        get_photo_object(td_->file_manager_.get(), photo), payment_receipt->date_,
+        td_->contacts_manager_->get_user_id_object(seller_bot_user_id, "paymentReceipt seller"),
         td_->contacts_manager_->get_user_id_object(payments_provider_user_id, "paymentReceipt provider"),
         convert_invoice(std::move(payment_receipt->invoice_)), convert_order_info(std::move(payment_receipt->info_)),
         convert_shipping_option(std::move(payment_receipt->shipping_)), std::move(payment_receipt->credentials_title_),
@@ -906,10 +916,10 @@ Result<InputInvoice> process_input_message_invoice(
 
 tl_object_ptr<td_api::messageInvoice> get_message_invoice_object(const InputInvoice &input_invoice, Td *td) {
   return make_tl_object<td_api::messageInvoice>(
-      input_invoice.title, input_invoice.description, get_photo_object(td->file_manager_.get(), input_invoice.photo),
-      input_invoice.invoice.currency, input_invoice.total_amount, input_invoice.start_parameter,
-      input_invoice.invoice.is_test, input_invoice.invoice.need_shipping_address,
-      input_invoice.receipt_message_id.get());
+      input_invoice.title, get_product_description_object(input_invoice.description),
+      get_photo_object(td->file_manager_.get(), input_invoice.photo), input_invoice.invoice.currency,
+      input_invoice.total_amount, input_invoice.start_parameter, input_invoice.invoice.is_test,
+      input_invoice.invoice.need_shipping_address, input_invoice.receipt_message_id.get());
 }
 
 static tl_object_ptr<telegram_api::invoice> get_input_invoice(const Invoice &invoice) {
