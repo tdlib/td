@@ -2383,6 +2383,10 @@ class MessagesManager final : public Actor {
 
   void send_update_new_message(const Dialog *d, const Message *m);
 
+  bool get_dialog_show_preview(const Dialog *d) const;
+
+  bool is_message_preview_enabled(const Dialog *d, const Message *m, bool from_mentions);
+
   static bool is_from_mention_notification_group(const Message *m);
 
   static bool is_message_notification_active(const Dialog *d, const Message *m);

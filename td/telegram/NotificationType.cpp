@@ -49,7 +49,7 @@ class NotificationTypeMessage final : public NotificationType {
     if (message_object == nullptr) {
       return nullptr;
     }
-    return td_api::make_object<td_api::notificationTypeNewMessage>(std::move(message_object));
+    return td_api::make_object<td_api::notificationTypeNewMessage>(std::move(message_object), show_preview_);
   }
 
   StringBuilder &to_string_builder(StringBuilder &string_builder) const final {
@@ -57,9 +57,11 @@ class NotificationTypeMessage final : public NotificationType {
   }
 
   MessageId message_id_;
+  bool show_preview_;
 
  public:
-  explicit NotificationTypeMessage(MessageId message_id) : message_id_(message_id) {
+  NotificationTypeMessage(MessageId message_id, bool show_preview)
+      : message_id_(message_id), show_preview_(show_preview) {
   }
 };
 
@@ -380,8 +382,8 @@ class NotificationTypePushMessage final : public NotificationType {
   }
 };
 
-unique_ptr<NotificationType> create_new_message_notification(MessageId message_id) {
-  return make_unique<NotificationTypeMessage>(message_id);
+unique_ptr<NotificationType> create_new_message_notification(MessageId message_id, bool show_preview) {
+  return make_unique<NotificationTypeMessage>(message_id, show_preview);
 }
 
 unique_ptr<NotificationType> create_new_secret_chat_notification() {

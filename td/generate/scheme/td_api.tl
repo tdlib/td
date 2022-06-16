@@ -3280,8 +3280,8 @@ pushMessageContentMediaAlbum total_count:int32 has_photos:Bool has_videos:Bool h
 
 //@class NotificationType @description Contains detailed information about a notification
 
-//@description New message was received @message The message
-notificationTypeNewMessage message:message = NotificationType;
+//@description New message was received @message The message @show_preview True, if message content must be displayed in notifications
+notificationTypeNewMessage message:message show_preview:Bool = NotificationType;
 
 //@description New secret chat was created
 notificationTypeNewSecretChat = NotificationType;

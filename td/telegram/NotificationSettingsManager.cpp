@@ -582,6 +582,10 @@ const unique_ptr<NotificationSound> &NotificationSettingsManager::get_scope_noti
   return get_scope_notification_settings(scope)->sound;
 }
 
+bool NotificationSettingsManager::get_scope_show_preview(NotificationSettingsScope scope) const {
+  return get_scope_notification_settings(scope)->show_preview;
+}
+
 bool NotificationSettingsManager::get_scope_disable_pinned_message_notifications(
     NotificationSettingsScope scope) const {
   return get_scope_notification_settings(scope)->disable_pinned_message_notifications;

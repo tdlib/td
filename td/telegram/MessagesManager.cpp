@@ -29361,6 +29361,36 @@ MessagesManager::MessageNotificationGroup MessagesManager::get_message_notificat
   return result;
 }
 
+bool MessagesManager::get_dialog_show_preview(const Dialog *d) const {
+  CHECK(!td_->auth_manager_->is_bot());
+  CHECK(d != nullptr);
+  if (d->notification_settings.use_default_show_preview) {
+    auto scope = get_dialog_notification_setting_scope(d->dialog_id);
+    return td_->notification_settings_manager_->get_scope_show_preview(scope);
+  } else {
+    return d->notification_settings.show_preview;
+  }
+}
+
+bool MessagesManager::is_message_preview_enabled(const Dialog *d, const Message *m, bool from_mentions) {
+  if (!get_dialog_show_preview(d)) {
+    return false;
+  }
+  if (!from_mentions) {
+    return true;
+  }
+  auto sender_dialog_id = get_message_sender(m);
+  if (!sender_dialog_id.is_valid()) {
+    return true;
+  }
+  d = get_dialog_force(sender_dialog_id, "is_message_preview_enabled");
+  if (d == nullptr) {
+    auto scope = get_dialog_notification_setting_scope(sender_dialog_id);
+    return td_->notification_settings_manager_->get_scope_show_preview(scope);
+  }
+  return get_dialog_show_preview(d);
+}
+
 bool MessagesManager::is_from_mention_notification_group(const Message *m) {
   return m->contains_mention && !m->is_mention_notification_disabled;
 }
@@ -29400,7 +29430,7 @@ void MessagesManager::try_add_pinned_message_notification(Dialog *d, vector<Noti
 
       auto pos = res.size();
       res.emplace_back(m->notification_id, m->date, m->disable_notification,
-                       create_new_message_notification(message_id));
+                       create_new_message_notification(message_id, is_message_preview_enabled(d, m, true)));
       while (pos > 0 && res[pos - 1].type->get_message_id() < message_id) {
         std::swap(res[pos - 1], res[pos]);
         pos--;
@@ -29514,8 +29544,9 @@ vector<Notification> MessagesManager::get_message_notifications_from_database_fo
 
       if (is_correct) {
         // skip mention messages returned among unread messages
-        res.emplace_back(m->notification_id, m->date, m->disable_notification,
-                         create_new_message_notification(m->message_id));
+        res.emplace_back(
+            m->notification_id, m->date, m->disable_notification,
+            create_new_message_notification(m->message_id, is_message_preview_enabled(d, m, from_mentions)));
       } else {
         remove_message_notification_id(d, m, true, false);
         on_message_changed(d, m, false, "get_message_notifications_from_database_force");
@@ -29774,7 +29805,7 @@ void MessagesManager::on_get_message_notifications_from_database(DialogId dialog
       // skip mention messages returned among unread messages
       CHECK(m->date > 0);
       res.emplace_back(m->notification_id, m->date, m->disable_notification,
-                       create_new_message_notification(m->message_id));
+                       create_new_message_notification(m->message_id, is_message_preview_enabled(d, m, from_mentions)));
     } else {
       remove_message_notification_id(d, m, true, false);
       on_message_changed(d, m, false, "on_get_message_notifications_from_database");
@@ -30225,7 +30256,8 @@ bool MessagesManager::add_new_message_notification(Dialog *d, Message *m, bool f
   send_closure_later(G()->notification_manager(), &NotificationManager::add_notification, notification_group_id,
                      from_mentions ? NotificationGroupType::Mentions : NotificationGroupType::Messages, d->dialog_id,
                      m->date, settings_dialog_id, m->disable_notification, is_silent ? 0 : ringtone_id, min_delay_ms,
-                     m->notification_id, create_new_message_notification(m->message_id),
+                     m->notification_id,
+                     create_new_message_notification(m->message_id, is_message_preview_enabled(d, m, from_mentions)),
                      "add_new_message_notification");
   return true;
 }
@@ -34343,8 +34375,11 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
         if (need_send_update && m->notification_id.is_valid() && is_message_notification_active(d, m)) {
           auto &group_info = get_notification_group_info(d, m);
           if (group_info.group_id.is_valid()) {
-            send_closure_later(G()->notification_manager(), &NotificationManager::edit_notification,
-                               group_info.group_id, m->notification_id, create_new_message_notification(m->message_id));
+            send_closure_later(
+                G()->notification_manager(), &NotificationManager::edit_notification, group_info.group_id,
+                m->notification_id,
+                create_new_message_notification(
+                    m->message_id, is_message_preview_enabled(d, m, is_from_mention_notification_group(m))));
           }
         }
         if (need_send_update && m->is_pinned && d->pinned_message_notification_message_id.is_valid() &&
@@ -34353,9 +34388,10 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
           if (pinned_message != nullptr && pinned_message->notification_id.is_valid() &&
               is_message_notification_active(d, pinned_message) &&
               get_message_content_pinned_message_id(pinned_message->content.get()) == message_id) {
-            send_closure_later(G()->notification_manager(), &NotificationManager::edit_notification,
-                               d->mention_notification_group.group_id, pinned_message->notification_id,
-                               create_new_message_notification(pinned_message->message_id));
+            send_closure_later(
+                G()->notification_manager(), &NotificationManager::edit_notification,
+                d->mention_notification_group.group_id, pinned_message->notification_id,
+                create_new_message_notification(pinned_message->message_id, is_message_preview_enabled(d, m, true)));
           }
         }
         update_message_count_by_index(d, -1, old_index_mask & ~new_index_mask);
