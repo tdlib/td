@@ -61,6 +61,8 @@ class FileLoadManager final : public Actor {
 
   void read_file_part(string file_path, int64 offset, int64 count, Promise<string> promise);
 
+  void unlink_file(string file_path, Promise<Unit> promise);
+
  private:
   struct Node {
     QueryId query_id_;

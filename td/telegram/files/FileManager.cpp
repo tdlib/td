@@ -2141,30 +2141,30 @@ void FileManager::delete_file(FileId file_id, Promise<Unit> promise, const char 
   auto file_view = FileView(node);
 
   send_closure(G()->download_manager(), &DownloadManager::remove_file_if_finished, file_view.file_id());
-  // TODO review delete condition
+  string path;
   if (file_view.has_local_location()) {
     if (begins_with(file_view.local_location().path_, get_files_dir(file_view.get_type()))) {
-      LOG(INFO) << "Unlink file " << file_id << " at " << file_view.local_location().path_;
       clear_from_pmc(node);
-
       context_->on_new_file(-file_view.size(), -file_view.get_allocated_local_size(), -1);
-      unlink(file_view.local_location().path_).ignore();
-      node->drop_local_location();
-      try_flush_node(node, "delete_file 1");
+      path = std::move(node->local_.full().path_);
     }
   } else {
     if (file_view.get_type() == FileType::Encrypted) {
       clear_from_pmc(node);
     }
     if (node->local_.type() == LocalFileLocation::Type::Partial) {
-      LOG(INFO) << "Unlink partial file " << file_id << " at " << node->local_.partial().path_;
-      unlink(node->local_.partial().path_).ignore();
-      node->drop_local_location();
-      try_flush_node(node, "delete_file 2");
+      path = std::move(node->local_.partial().path_);
     }
   }
 
-  promise.set_value(Unit());
+  if (path.empty()) {
+    return promise.set_value(Unit());
+  }
+
+  LOG(INFO) << "Unlink file " << file_id << " at " << path;
+  node->drop_local_location();
+  try_flush_node(node, "delete_file");
+  send_closure(file_load_manager_, &FileLoadManager::unlink_file, path, std::move(promise));
 }
 
 void FileManager::download(FileId file_id, std::shared_ptr<DownloadCallback> callback, int32 new_priority, int64 offset,
@@ -3809,7 +3809,8 @@ void FileManager::on_error_impl(FileNodePtr node, Query::Type type, bool was_act
         if (begins_with(path, get_files_temp_dir(FileType::Encrypted)) ||
             begins_with(path, get_files_temp_dir(FileType::Video))) {
           LOG(INFO) << "Unlink file " << path;
-          unlink(path).ignore();
+          send_closure(file_load_manager_, &FileLoadManager::unlink_file, std::move(node->local_.partial().path_),
+                       Promise<Unit>());
           node->drop_local_location();
         }
       }

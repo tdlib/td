@@ -15,6 +15,7 @@
 #include "td/utils/filesystem.h"
 #include "td/utils/format.h"
 #include "td/utils/misc.h"
+#include "td/utils/port/path.h"
 #include "td/utils/SliceBuilder.h"
 
 namespace td {
@@ -139,6 +140,11 @@ void FileLoadManager::get_content(string file_path, Promise<BufferSlice> promise
 
 void FileLoadManager::read_file_part(string file_path, int64 offset, int64 count, Promise<string> promise) {
   promise.set_result(read_file_str(file_path, count, offset));
+}
+
+void FileLoadManager::unlink_file(string file_path, Promise<Unit> promise) {
+  unlink(file_path).ignore();
+  promise.set_value(Unit());
 }
 
 // void upload_reload_parts(QueryId id, vector<int32> parts);
