@@ -3425,6 +3425,23 @@ void StickersManager::on_get_installed_sticker_sets_failed(bool is_masks, Status
   fail_promises(load_installed_sticker_sets_queries_[is_masks], std::move(error));
 }
 
+std::pair<vector<FileId>, vector<FileId>> StickersManager::split_stickers_by_premium(const vector<FileId> &sticker_ids) const {
+  vector<FileId> regular_sticker_ids;
+  vector<FileId> premium_sticker_ids;
+  for (const auto &sticker_id : sticker_ids) {
+    if (sticker_id.is_valid()) {
+      const Sticker *s = get_sticker(sticker_id);
+      CHECK(s != nullptr);
+      if (s->premium_animation_file_id.is_valid()) {
+        premium_sticker_ids.push_back(sticker_id);
+      } else {
+        regular_sticker_ids.push_back(sticker_id);
+      }
+    }
+  }
+  return {std::move(regular_sticker_ids), std::move(premium_sticker_ids)};
+}
+
 vector<FileId> StickersManager::get_stickers(string emoji, int32 limit, bool force, Promise<Unit> &&promise) {
   if (limit <= 0) {
     promise.set_error(Status::Error(400, "Parameter limit must be positive"));
@@ -3606,19 +3623,9 @@ vector<FileId> StickersManager::get_stickers(string emoji, int32 limit, bool for
       }
     }
     if (sorted.size() != limit_size_t) {
-      vector<FileId> normal_sticker_ids;
+      vector<FileId> regular_sticker_ids;
       vector<FileId> premium_sticker_ids;
-      for (const auto &sticker_id : result) {
-        if (sticker_id.is_valid()) {
-          const Sticker *s = get_sticker(sticker_id);
-          CHECK(s != nullptr);
-          if (s->premium_animation_file_id.is_valid()) {
-            premium_sticker_ids.push_back(sticker_id);
-          } else {
-            normal_sticker_ids.push_back(sticker_id);
-          }
-        }
-      }
+      std::tie(regular_sticker_ids, premium_sticker_ids) = split_stickers_by_premium(result);
       if (G()->shared_config().get_option_boolean("is_premium")) {
         auto normal_count = G()->shared_config().get_option_integer("stickers_normal_by_emoji_per_premium_num", 2);
         if (normal_count < 0) {
@@ -3631,14 +3638,14 @@ vector<FileId> StickersManager::get_stickers(string emoji, int32 limit, bool for
         size_t normal_pos = 0;
         size_t premium_pos = 0;
         normal_count++;
-        for (size_t pos = 1; normal_pos < normal_sticker_ids.size() || premium_pos < premium_sticker_ids.size();
+        for (size_t pos = 1; normal_pos < regular_sticker_ids.size() || premium_pos < premium_sticker_ids.size();
              pos++) {
           if (pos % normal_count == 0 && premium_pos < premium_sticker_ids.size()) {
             auto sticker_id = premium_sticker_ids[premium_pos++];
             LOG(INFO) << "Add premium sticker " << sticker_id << " from installed sticker set";
             sorted.push_back(sticker_id);
-          } else if (normal_pos < normal_sticker_ids.size()) {
-            auto sticker_id = normal_sticker_ids[normal_pos++];
+          } else if (normal_pos < regular_sticker_ids.size()) {
+            auto sticker_id = regular_sticker_ids[normal_pos++];
             LOG(INFO) << "Add normal sticker " << sticker_id << " from installed sticker set";
             sorted.push_back(sticker_id);
           }
@@ -3647,7 +3654,7 @@ vector<FileId> StickersManager::get_stickers(string emoji, int32 limit, bool for
           }
         }
       } else {
-        for (const auto &sticker_id : normal_sticker_ids) {
+        for (const auto &sticker_id : regular_sticker_ids) {
           LOG(INFO) << "Add normal sticker " << sticker_id << " from installed sticker set";
           sorted.push_back(sticker_id);
           if (sorted.size() == limit_size_t) {
