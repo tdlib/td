@@ -288,6 +288,11 @@ class NotificationTypePushMessage final : public NotificationType {
           return td_api::make_object<td_api::pushMessageContentPoll>(arg, false, is_pinned);
         }
         break;
+      case 'R':
+        if (key == "MESSAGE_RECURRING_PAYMENT") {
+          return td_api::make_object<td_api::pushMessageContentRecurringPayment>(arg);
+        }
+        break;
       case 'S':
         if (key == "MESSAGE_SECRET_PHOTO") {
           return td_api::make_object<td_api::pushMessageContentPhoto>(nullptr, arg, true, false);

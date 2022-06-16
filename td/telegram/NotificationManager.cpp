@@ -2865,6 +2865,9 @@ string NotificationManager::convert_loc_key(const string &loc_key) {
       if (loc_key == "MESSAGE_ROUND") {
         return "MESSAGE_VIDEO_NOTE";
       }
+      if (loc_key == "MESSAGE_RECURRING_PAY") {
+        return "MESSAGE_RECURRING_PAYMENT";
+      }
       break;
     case 'S':
       if (loc_key == "MESSAGE_SCREENSHOT") {
