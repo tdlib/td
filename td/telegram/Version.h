@@ -54,6 +54,7 @@ enum class Version : int32 {
   AddMainDialogListPosition,
   AddVoiceNoteFlags,
   AddMessageStickerFlags,  // 40
+  AddStickerSetListFlags,
   Next
 };
 

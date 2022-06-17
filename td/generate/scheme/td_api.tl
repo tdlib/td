@@ -2315,6 +2315,9 @@ stickerSetInfo id:int64 title:string name:string thumbnail:thumbnail thumbnail_o
 //@description Represents a list of sticker sets @total_count Approximate total number of sticker sets found @sets List of sticker sets
 stickerSets total_count:int32 sets:vector<stickerSetInfo> = StickerSets;
 
+//@description Represents a list of trending sticker sets @total_count Approximate total number of trending sticker sets @sets List of trending sticker sets @is_premium True, if the list contains sticker sets with premium stickers
+trendingStickerSets total_count:int32 sets:vector<stickerSetInfo> is_premium:Bool = TrendingStickerSets;
+
 
 //@class CallDiscardReason @description Describes the reason why a call was discarded
 
@@ -4354,7 +4357,7 @@ updateStickerSet sticker_set:stickerSet = Update;
 updateInstalledStickerSets is_masks:Bool sticker_set_ids:vector<int64> = Update;
 
 //@description The list of trending sticker sets was updated or some of them were viewed @sticker_sets The prefix of the list of trending sticker sets with the newest trending sticker sets
-updateTrendingStickerSets sticker_sets:stickerSets = Update;
+updateTrendingStickerSets sticker_sets:trendingStickerSets = Update;
 
 //@description The list of recently used stickers was updated @is_attached True, if the list of stickers attached to photo or video files was updated, otherwise the list of sent stickers is updated @sticker_ids The new list of file identifiers of recently used stickers
 updateRecentStickers is_attached:Bool sticker_ids:vector<int32> = Update;
@@ -5860,7 +5863,7 @@ getArchivedStickerSets is_masks:Bool offset_sticker_set_id:int64 limit:int32 = S
 //@description Returns a list of trending sticker sets. For optimal performance, the number of returned sticker sets is chosen by TDLib
 //@offset The offset from which to return the sticker sets; must be non-negative
 //@limit The maximum number of sticker sets to be returned; up to 100. For optimal performance, the number of returned sticker sets is chosen by TDLib and can be smaller than the specified limit, even if the end of the list has not been reached
-getTrendingStickerSets offset:int32 limit:int32 = StickerSets;
+getTrendingStickerSets offset:int32 limit:int32 = TrendingStickerSets;
 
 //@description Returns a list of sticker sets attached to a file. Currently, only photos and videos can have attached sticker sets @file_id File identifier
 getAttachedStickerSets file_id:int32 = StickerSets;

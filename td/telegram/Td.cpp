@@ -2071,16 +2071,16 @@ class GetArchivedStickerSetsRequest final : public RequestActor<> {
 };
 
 class GetTrendingStickerSetsRequest final : public RequestActor<> {
-  std::pair<int32, vector<StickerSetId>> sticker_set_ids_;
+  td_api::object_ptr<td_api::trendingStickerSets> result_;
   int32 offset_;
   int32 limit_;
 
   void do_run(Promise<Unit> &&promise) final {
-    sticker_set_ids_ = td_->stickers_manager_->get_featured_sticker_sets(offset_, limit_, std::move(promise));
+    result_ = td_->stickers_manager_->get_featured_sticker_sets(offset_, limit_, std::move(promise));
   }
 
   void do_send_result() final {
-    send_result(td_->stickers_manager_->get_sticker_sets_object(sticker_set_ids_.first, sticker_set_ids_.second, 5));
+    send_result(std::move(result_));
   }
 
  public:

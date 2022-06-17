@@ -187,7 +187,8 @@ class StickersManager final : public Actor {
                                     vector<tl_object_ptr<telegram_api::StickerSetCovered>> &&sticker_sets,
                                     int32 total_count);
 
-  std::pair<int32, vector<StickerSetId>> get_featured_sticker_sets(int32 offset, int32 limit, Promise<Unit> &&promise);
+  td_api::object_ptr<td_api::trendingStickerSets> get_featured_sticker_sets(int32 offset, int32 limit,
+                                                                            Promise<Unit> &&promise);
 
   void on_get_featured_sticker_sets(int32 offset, int32 limit, uint32 generation,
                                     tl_object_ptr<telegram_api::messages_FeaturedStickers> &&sticker_sets_ptr);
@@ -574,7 +575,7 @@ class StickersManager final : public Actor {
 
   void on_load_featured_sticker_sets_from_database(string value);
 
-  void on_load_featured_sticker_sets_finished(vector<StickerSetId> &&featured_sticker_set_ids);
+  void on_load_featured_sticker_sets_finished(vector<StickerSetId> &&featured_sticker_set_ids, bool is_premium);
 
   void on_load_old_featured_sticker_sets_from_database(uint32 generation, string value);
 
@@ -601,6 +602,9 @@ class StickersManager final : public Actor {
   // must be called after every call to set_old_featured_sticker_set_count or
   // any change of old_featured_sticker_set_ids_ size
   void fix_old_featured_sticker_set_count();
+
+  td_api::object_ptr<td_api::trendingStickerSets> get_trending_sticker_sets_object(
+      const vector<StickerSetId> &sticker_set_ids) const;
 
   td_api::object_ptr<td_api::updateTrendingStickerSets> get_update_trending_sticker_sets_object() const;
 
@@ -802,6 +806,7 @@ class StickersManager final : public Actor {
   bool are_recent_stickers_loaded_[2] = {false, false};
   bool are_favorite_stickers_loaded_ = false;
 
+  bool are_featured_sticker_sets_premium_ = false;
   bool are_old_featured_sticker_sets_invalidated_ = false;
 
   vector<Promise<Unit>> load_installed_sticker_sets_queries_[2];
