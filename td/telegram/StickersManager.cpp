@@ -2059,12 +2059,17 @@ tl_object_ptr<td_api::stickerSetInfo> StickersManager::get_sticker_set_info_obje
     vector<FileId> regular_sticker_ids;
     vector<FileId> premium_sticker_ids;
     std::tie(regular_sticker_ids, premium_sticker_ids) = split_stickers_by_premium(sticker_set->sticker_ids);
-    size_t max_premium_stickers = 3;
-    if (regular_sticker_ids.size() + max_premium_stickers < covers_limit) {
-      max_premium_stickers = covers_limit - regular_sticker_ids.size();
-    }
+    auto is_premium = G()->shared_config().get_option_boolean("is_premium");
+    size_t max_premium_stickers = is_premium ? covers_limit : 1;
     if (premium_sticker_ids.size() > max_premium_stickers) {
       premium_sticker_ids.resize(max_premium_stickers);
+    }
+    CHECK(premium_sticker_ids.size() <= covers_limit);
+    if (regular_sticker_ids.size() > covers_limit - premium_sticker_ids.size()) {
+      regular_sticker_ids.resize(covers_limit - premium_sticker_ids.size());
+    }
+    if (!is_premium) {
+      std::swap(premium_sticker_ids, regular_sticker_ids);
     }
 
     append(premium_sticker_ids, regular_sticker_ids);
