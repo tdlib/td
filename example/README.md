@@ -164,6 +164,8 @@ See [tdlib-lazarus](https://github.com/dieletro/tdlib-lazarus) for an example of
 
 TDLib can be used from the Dart programming language through the [JSON](https://github.com/tdlib/td#using-json) interface and a Dart Native Extension or Dart FFI.
 
+See [Telegram Client](https://github.com/azkadev/telegram_client) [AzkaGram](https://github.com/azkadev/azkagram) for an example library and example application telegram based flutter 
+
 See [dart_tdlib](https://github.com/periodicaidan/dart_tdlib) or [Dart wrapper for TDLib](https://github.com/tdlib/td/pull/708/commits/237060abd4c205768153180e9f814298d1aa9d49) for an example of a TDLib Dart bindings through FFI.
 
 See [project.scarlet](https://github.com/aaugmentum/project.scarlet), [tdlib](https://github.com/i-Naji/tdlib), [tdlib](https://github.com/pqhaz/tdlib),
