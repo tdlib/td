@@ -166,8 +166,7 @@ TDLib can be used from the Dart programming language through the [JSON](https://
 
 See [dart_tdlib](https://github.com/periodicaidan/dart_tdlib) or [Dart wrapper for TDLib](https://github.com/tdlib/td/pull/708/commits/237060abd4c205768153180e9f814298d1aa9d49) for an example of a TDLib Dart bindings through FFI.
 
-See [project.scarlet](https://github.com/aaugmentum/project.scarlet), [tdlib](https://github.com/i-Naji/tdlib), [tdlib](https://github.com/pqhaz/tdlib),
-[tdlib-dart](https://github.com/drewpayment/tdlib-dart), [tdlib-dart](https://github.com/triedcatched/tdlib-dart), or [telegram-service](https://github.com/igorder-dev/telegram-service) for examples of using TDLib from Dart.
+See [project.scarlet](https://github.com/aaugmentum/project.scarlet), [tdlib](https://github.com/i-Naji/tdlib),[tdlib-dart](https://github.com/drewpayment/tdlib-dart), [tdlib-dart](https://github.com/triedcatched/tdlib-dart), or [telegram-service](https://github.com/igorder-dev/telegram-service) for examples of using TDLib from Dart.
 
 <a name="rust"></a>
 ## Using TDLib in Rust projects
