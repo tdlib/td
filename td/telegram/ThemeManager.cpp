@@ -270,6 +270,7 @@ string get_theme_parameters_json_string_impl(const td_api::object_ptr<td_api::th
   return json_encode<string>(json_object([&theme](auto &o) {
     auto get_color = &get_color_json<for_web_view>;
     o("bg_color", get_color(theme->background_color_));
+    o("secondary_bg_color", get_color(theme->secondary_background_color_));
     o("text_color", get_color(theme->text_color_));
     o("hint_color", get_color(theme->hint_color_));
     o("link_color", get_color(theme->link_color_));

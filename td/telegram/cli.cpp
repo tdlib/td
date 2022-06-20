@@ -1688,7 +1688,7 @@ class CliClient final : public Actor {
   }
 
   static td_api::object_ptr<td_api::themeParameters> get_theme_parameters() {
-    return td_api::make_object<td_api::themeParameters>(0, -1, 256, 65536, 123456789, 65535);
+    return td_api::make_object<td_api::themeParameters>(0, 1, -1, 256, 65536, 123456789, 65535);
   }
 
   static td_api::object_ptr<td_api::BackgroundFill> get_background_fill(int32 color) {
