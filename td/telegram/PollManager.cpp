@@ -674,6 +674,10 @@ void PollManager::unregister_poll(PollId poll_id, FullMessageId full_message_id,
     auto &message_ids = other_poll_messages_[poll_id];
     auto is_deleted = message_ids.erase(full_message_id) > 0;
     LOG_CHECK(is_deleted) << source << ' ' << poll_id << ' ' << full_message_id;
+    if (is_local_poll_id(poll_id)) {
+      CHECK(message_ids.empty());
+      forget_local_poll(poll_id);
+    }
     if (message_ids.empty()) {
       other_poll_messages_.erase(poll_id);
 
@@ -685,6 +689,10 @@ void PollManager::unregister_poll(PollId poll_id, FullMessageId full_message_id,
   auto &message_ids = server_poll_messages_[poll_id];
   auto is_deleted = message_ids.erase(full_message_id) > 0;
   LOG_CHECK(is_deleted) << source << ' ' << poll_id << ' ' << full_message_id;
+  if (is_local_poll_id(poll_id)) {
+    CHECK(message_ids.empty());
+    forget_local_poll(poll_id);
+  }
   if (message_ids.empty()) {
     server_poll_messages_.erase(poll_id);
     update_poll_timeout_.cancel_timeout(poll_id.get());
@@ -1306,6 +1314,18 @@ void PollManager::on_unload_poll_timeout(PollId poll_id) {
   poll_voters_.erase(poll_id);
   loaded_from_database_polls_.erase(poll_id);
   unload_poll_timeout_.cancel_timeout(poll_id.get());
+}
+
+void PollManager::forget_local_poll(PollId poll_id) {
+  CHECK(is_local_poll_id(poll_id));
+
+  LOG(INFO) << "Forget " << poll_id;
+
+  auto is_deleted = polls_.erase(poll_id) > 0;
+  CHECK(is_deleted);
+
+  CHECK(poll_voters_.count(poll_id) == 0);
+  CHECK(loaded_from_database_polls_.count(poll_id) == 0);
 }
 
 void PollManager::on_get_poll_results(PollId poll_id, uint64 generation,
