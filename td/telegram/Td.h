@@ -1426,6 +1426,8 @@ class Td final : public Actor {
 
   static DbKey as_db_key(string key);
 
+  static int32 get_database_scheduler_id();
+
   void start_init(uint64 id, string &&key);
 
   void init(Result<TdDb::OpenedDatabase> r_opened_database);

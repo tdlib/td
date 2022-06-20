@@ -3647,6 +3647,12 @@ void Td::complete_pending_preauthentication_requests(const T &func) {
   }
 }
 
+int32 Td::get_database_scheduler_id() {
+  auto current_scheduler_id = Scheduler::instance()->sched_id();
+  auto scheduler_count = Scheduler::instance()->sched_count();
+  return min(current_scheduler_id + 1, scheduler_count - 1);
+}
+
 void Td::start_init(uint64 id, string &&key) {
   VLOG(td_init) << "Begin to init database";
   init_request_id_ = id;
@@ -3654,10 +3660,7 @@ void Td::start_init(uint64 id, string &&key) {
   auto promise = PromiseCreator::lambda([actor_id = actor_id(this)](Result<TdDb::OpenedDatabase> r_opened_database) {
     send_closure(actor_id, &Td::init, std::move(r_opened_database));
   });
-  auto current_scheduler_id = Scheduler::instance()->sched_id();
-  auto scheduler_count = Scheduler::instance()->sched_count();
-  TdDb::open(min(current_scheduler_id + 1, scheduler_count - 1), parameters_, as_db_key(std::move(key)),
-             std::move(promise));
+  TdDb::open(get_database_scheduler_id(), parameters_, as_db_key(std::move(key)), std::move(promise));
 }
 
 void Td::init(Result<TdDb::OpenedDatabase> r_opened_database) {
