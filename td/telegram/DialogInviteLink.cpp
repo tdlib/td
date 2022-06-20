@@ -126,7 +126,7 @@ StringBuilder &operator<<(StringBuilder &string_builder, const DialogInviteLink 
                         << invite_link.creator_user_id_ << " created at " << invite_link.date_ << " edited at "
                         << invite_link.edit_date_ << " expiring at " << invite_link.expire_date_ << " used by "
                         << invite_link.usage_count_ << " with usage limit " << invite_link.usage_limit_ << " and "
-                        << invite_link.request_count_ << "pending join requests]";
+                        << invite_link.request_count_ << " pending join requests]";
 }
 
 }  // namespace td
