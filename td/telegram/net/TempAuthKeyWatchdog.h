@@ -63,6 +63,7 @@ class TempAuthKeyWatchdog final : public NetQueryCallback {
   bool run_sync_ = false;
 
   void register_auth_key_id_impl(int64 id) {
+    LOG(INFO) << "Register key " << id;
     if (!++id_count_[id]) {
       id_count_.erase(id);
     }
@@ -70,6 +71,7 @@ class TempAuthKeyWatchdog final : public NetQueryCallback {
   }
 
   void unregister_auth_key_id_impl(int64 id) {
+    LOG(INFO) << "Unregister key " << id;
     if (!--id_count_[id]) {
       id_count_.erase(id);
     }
