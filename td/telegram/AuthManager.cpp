@@ -685,7 +685,7 @@ void AuthManager::on_log_out_result(NetQueryPtr &result) {
   } else {
     status = std::move(result->error());
   }
-  LOG_IF(ERROR, status.is_error()) << "Receive error for auth.logOut: " << status;
+  LOG_IF(ERROR, status.is_error() && status.error().code() != 401) << "Receive error for auth.logOut: " << status;
   // state_ will stay LoggingOut, so no queries will work.
   destroy_auth_keys();
   if (query_id_ != 0) {
@@ -693,6 +693,10 @@ void AuthManager::on_log_out_result(NetQueryPtr &result) {
   }
 }
 void AuthManager::on_authorization_lost(string source) {
+  if (state_ == State::LoggingOut && net_query_type_ == NetQueryType::LogOut) {
+    LOG(INFO) << "Ignore authorization loss because of " << source << ", while logging out";
+    return;
+  }
   LOG(WARNING) << "Lost authorization because of " << source;
   destroy_auth_keys();
 }
