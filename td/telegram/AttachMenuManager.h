@@ -91,6 +91,9 @@ class AttachMenuManager final : public Actor {
     AttachMenuBotColor icon_color_;
     FileId placeholder_file_id_;
 
+    static constexpr uint32 CACHE_VERSION = 1;
+    uint32 cache_version_ = 0;
+
     template <class StorerT>
     void store(StorerT &storer) const;
 

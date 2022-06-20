@@ -318,6 +318,7 @@ void AttachMenuManager::AttachMenuBot::store(StorerT &storer) const {
   bool has_icon_color = icon_color_ != AttachMenuBotColor();
   bool has_support_flags = true;
   bool has_placeholder_file_id = placeholder_file_id_.is_valid();
+  bool has_cache_version = cache_version_ != 0;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_ios_static_icon_file_id);
   STORE_FLAG(has_ios_animated_icon_file_id);
@@ -334,6 +335,7 @@ void AttachMenuManager::AttachMenuBot::store(StorerT &storer) const {
   STORE_FLAG(supports_broadcast_dialogs_);
   STORE_FLAG(supports_settings_);
   STORE_FLAG(has_placeholder_file_id);
+  STORE_FLAG(has_cache_version);
   END_STORE_FLAGS();
   td::store(user_id_, storer);
   td::store(name_, storer);
@@ -359,6 +361,9 @@ void AttachMenuManager::AttachMenuBot::store(StorerT &storer) const {
   if (has_placeholder_file_id) {
     td::store(placeholder_file_id_, storer);
   }
+  if (has_cache_version) {
+    td::store(cache_version_, storer);
+  }
 }
 
 template <class ParserT>
@@ -371,6 +376,7 @@ void AttachMenuManager::AttachMenuBot::parse(ParserT &parser) {
   bool has_icon_color;
   bool has_support_flags;
   bool has_placeholder_file_id;
+  bool has_cache_version;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(has_ios_static_icon_file_id);
   PARSE_FLAG(has_ios_animated_icon_file_id);
@@ -387,6 +393,7 @@ void AttachMenuManager::AttachMenuBot::parse(ParserT &parser) {
   PARSE_FLAG(supports_broadcast_dialogs_);
   PARSE_FLAG(supports_settings_);
   PARSE_FLAG(has_placeholder_file_id);
+  PARSE_FLAG(has_cache_version);
   END_PARSE_FLAGS();
   td::parse(user_id_, parser);
   td::parse(name_, parser);
@@ -411,6 +418,9 @@ void AttachMenuManager::AttachMenuBot::parse(ParserT &parser) {
   }
   if (has_placeholder_file_id) {
     td::parse(placeholder_file_id_, parser);
+  }
+  if (has_cache_version) {
+    td::parse(cache_version_, parser);
   }
 
   if (!has_support_flags) {
@@ -485,7 +495,13 @@ void AttachMenuManager::init() {
         dependencies.add(attach_menu_bot.user_id_);
       }
       if (is_valid && dependencies.resolve_force(td_, "AttachMenuBotsLogEvent")) {
-        hash_ = attach_menu_bots_log_event.hash_;
+        bool is_cache_outdated = false;
+        for (auto &bot : attach_menu_bots_log_event.attach_menu_bots_) {
+          if (bot.cache_version_ != AttachMenuBot::CACHE_VERSION) {
+            is_cache_outdated = true;
+          }
+        }
+        hash_ = is_cache_outdated ? 0 : attach_menu_bots_log_event.hash_;
         attach_menu_bots_ = std::move(attach_menu_bots_log_event.attach_menu_bots_);
       } else {
         LOG(ERROR) << "Ignore invalid attachment menu bots log event";
@@ -761,6 +777,7 @@ Result<AttachMenuManager::AttachMenuBot> AttachMenuManager::get_attach_menu_bot(
   if (!attach_menu_bot.default_icon_file_id_.is_valid()) {
     return Status::Error(PSLICE() << "Have no default icon for " << user_id);
   }
+  attach_menu_bot.cache_version_ = AttachMenuBot::CACHE_VERSION;
 
   return std::move(attach_menu_bot);
 }
