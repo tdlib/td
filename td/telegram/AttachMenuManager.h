@@ -89,6 +89,7 @@ class AttachMenuManager final : public Actor {
     FileId android_icon_file_id_;
     FileId macos_icon_file_id_;
     AttachMenuBotColor icon_color_;
+    FileId placeholder_file_id_;
 
     template <class StorerT>
     void store(StorerT &storer) const;

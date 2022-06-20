@@ -300,7 +300,8 @@ bool operator==(const AttachMenuManager::AttachMenuBot &lhs, const AttachMenuMan
          lhs.ios_static_icon_file_id_ == rhs.ios_static_icon_file_id_ &&
          lhs.ios_animated_icon_file_id_ == rhs.ios_animated_icon_file_id_ &&
          lhs.android_icon_file_id_ == rhs.android_icon_file_id_ && lhs.macos_icon_file_id_ == rhs.macos_icon_file_id_ &&
-         lhs.is_added_ == rhs.is_added_ && lhs.name_color_ == rhs.name_color_ && lhs.icon_color_ == rhs.icon_color_;
+         lhs.is_added_ == rhs.is_added_ && lhs.name_color_ == rhs.name_color_ && lhs.icon_color_ == rhs.icon_color_ &&
+         lhs.placeholder_file_id_ == rhs.placeholder_file_id_;
 }
 
 bool operator!=(const AttachMenuManager::AttachMenuBot &lhs, const AttachMenuManager::AttachMenuBot &rhs) {
@@ -316,6 +317,7 @@ void AttachMenuManager::AttachMenuBot::store(StorerT &storer) const {
   bool has_name_color = name_color_ != AttachMenuBotColor();
   bool has_icon_color = icon_color_ != AttachMenuBotColor();
   bool has_support_flags = true;
+  bool has_placeholder_file_id = placeholder_file_id_.is_valid();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_ios_static_icon_file_id);
   STORE_FLAG(has_ios_animated_icon_file_id);
@@ -331,6 +333,7 @@ void AttachMenuManager::AttachMenuBot::store(StorerT &storer) const {
   STORE_FLAG(supports_group_dialogs_);
   STORE_FLAG(supports_broadcast_dialogs_);
   STORE_FLAG(supports_settings_);
+  STORE_FLAG(has_placeholder_file_id);
   END_STORE_FLAGS();
   td::store(user_id_, storer);
   td::store(name_, storer);
@@ -353,6 +356,9 @@ void AttachMenuManager::AttachMenuBot::store(StorerT &storer) const {
   if (has_icon_color) {
     td::store(icon_color_, storer);
   }
+  if (has_placeholder_file_id) {
+    td::store(placeholder_file_id_, storer);
+  }
 }
 
 template <class ParserT>
@@ -364,6 +370,7 @@ void AttachMenuManager::AttachMenuBot::parse(ParserT &parser) {
   bool has_name_color;
   bool has_icon_color;
   bool has_support_flags;
+  bool has_placeholder_file_id;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(has_ios_static_icon_file_id);
   PARSE_FLAG(has_ios_animated_icon_file_id);
@@ -379,6 +386,7 @@ void AttachMenuManager::AttachMenuBot::parse(ParserT &parser) {
   PARSE_FLAG(supports_group_dialogs_);
   PARSE_FLAG(supports_broadcast_dialogs_);
   PARSE_FLAG(supports_settings_);
+  PARSE_FLAG(has_placeholder_file_id);
   END_PARSE_FLAGS();
   td::parse(user_id_, parser);
   td::parse(name_, parser);
@@ -400,6 +408,9 @@ void AttachMenuManager::AttachMenuBot::parse(ParserT &parser) {
   }
   if (has_icon_color) {
     td::parse(icon_color_, parser);
+  }
+  if (has_placeholder_file_id) {
+    td::parse(placeholder_file_id_, parser);
   }
 
   if (!has_support_flags) {
@@ -641,7 +652,7 @@ Result<AttachMenuManager::AttachMenuBot> AttachMenuManager::get_attach_menu_bot(
     CHECK(document_id == telegram_api::document::ID);
 
     if (name != "default_static" && name != "ios_static" && name != "ios_animated" && name != "android_animated" &&
-        name != "macos_animated") {
+        name != "macos_animated" && name != "placeholder_static") {
       LOG(ERROR) << "Have icon for " << user_id << " with name " << name;
       continue;
     }
@@ -650,9 +661,7 @@ Result<AttachMenuManager::AttachMenuBot> AttachMenuManager::get_attach_menu_bot(
     auto parsed_document =
         td_->documents_manager_->on_get_document(move_tl_object_as<telegram_api::document>(icon->icon_), DialogId());
     if (parsed_document.type != expected_document_type) {
-      if (user_id != UserId(static_cast<int64>(5000860301)) || !G()->is_test_dc() || name != "macos_animated") {
-        LOG(ERROR) << "Receive wrong attachment menu bot icon \"" << name << "\" for " << user_id;
-      }
+      LOG(ERROR) << "Receive wrong attachment menu bot icon \"" << name << "\" for " << user_id;
       continue;
     }
     bool expect_colors = false;
@@ -672,6 +681,9 @@ Result<AttachMenuManager::AttachMenuBot> AttachMenuManager::get_attach_menu_bot(
         break;
       case '_':
         attach_menu_bot.macos_icon_file_id_ = parsed_document.file_id;
+        break;
+      case 'h':
+        attach_menu_bot.placeholder_file_id_ = parsed_document.file_id;
         break;
       default:
         UNREACHABLE();
@@ -952,7 +964,7 @@ td_api::object_ptr<td_api::attachmentMenuBot> AttachMenuManager::get_attachment_
       get_attach_menu_bot_color_object(bot.name_color_), get_file(bot.default_icon_file_id_),
       get_file(bot.ios_static_icon_file_id_), get_file(bot.ios_animated_icon_file_id_),
       get_file(bot.android_icon_file_id_), get_file(bot.macos_icon_file_id_),
-      get_attach_menu_bot_color_object(bot.icon_color_));
+      get_attach_menu_bot_color_object(bot.icon_color_), get_file(bot.placeholder_file_id_));
 }
 
 td_api::object_ptr<td_api::updateAttachmentMenuBots> AttachMenuManager::get_update_attachment_menu_bots_object() const {
