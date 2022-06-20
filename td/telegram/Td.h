@@ -296,6 +296,7 @@ class Td final : public Actor {
 
   enum class State : int32 { WaitParameters, Decrypt, Run, Close } state_ = State::WaitParameters;
   uint64 init_request_id_ = 0;
+  uint64 set_parameters_request_id_ = 0;
   bool is_database_encrypted_ = false;
 
   FlatHashMap<uint64, std::shared_ptr<ResultHandler>> result_handlers_;
@@ -321,6 +322,7 @@ class Td final : public Actor {
 
   vector<std::pair<uint64, td_api::object_ptr<td_api::Function>>> pending_preauthentication_requests_;
 
+  vector<std::pair<uint64, td_api::object_ptr<td_api::Function>>> pending_set_parameters_requests_;
   vector<std::pair<uint64, td_api::object_ptr<td_api::Function>>> pending_init_requests_;
 
   template <class T>
@@ -1427,6 +1429,10 @@ class Td final : public Actor {
   static DbKey as_db_key(string key);
 
   static int32 get_database_scheduler_id();
+
+  void on_parameters_checked(Result<TdDb::CheckedParameters> r_checked_parameters);
+
+  void finish_set_parameters();
 
   void start_init(uint64 id, string &&key);
 

@@ -51,19 +51,6 @@ std::string get_sqlite_path(const TdParameters &parameters) {
   return parameters.database_directory + db_name + ".sqlite";
 }
 
-Result<TdDb::EncryptionInfo> check_encryption(string path) {
-  Binlog binlog;
-  auto status = binlog.init(std::move(path), Binlog::Callback());
-  if (status.is_error() && status.code() != Binlog::Error::WrongPassword) {
-    LOG(WARNING) << "Failed to check binlog: " << status;
-    return Status::Error(400, status.message());
-  }
-  TdDb::EncryptionInfo info;
-  info.is_encrypted = binlog.get_info().wrong_password;
-  binlog.close(false /*need_sync*/).ensure();
-  return info;
-}
-
 Status init_binlog(Binlog &binlog, string path, BinlogKeyValue<Binlog> &binlog_pmc, BinlogKeyValue<Binlog> &config_pmc,
                    TdDb::OpenedDatabase &events, DbKey key) {
   auto callback = [&](const BinlogEvent &event) {
@@ -495,8 +482,62 @@ void TdDb::open(int32 scheduler_id, TdParameters parameters, DbKey key, Promise<
 TdDb::TdDb() = default;
 TdDb::~TdDb() = default;
 
-Result<TdDb::EncryptionInfo> TdDb::check_encryption(const TdParameters &parameters) {
-  return ::td::check_encryption(get_binlog_path(parameters));
+void TdDb::check_parameters(int32 scheduler_id, TdParameters parameters, Promise<CheckedParameters> promise) {
+  if (scheduler_id >= 0 && Scheduler::instance()->sched_id() != scheduler_id) {
+    class Worker final : public Actor {
+     public:
+      void run(TdParameters parameters, Promise<CheckedParameters> promise) {
+        TdDb::check_parameters(-1, std::move(parameters), std::move(promise));
+        stop();
+      }
+    };
+    send_closure(create_actor_on_scheduler<Worker>("Worker", scheduler_id), &Worker::run, std::move(parameters),
+                 std::move(promise));
+    return;
+  }
+  CheckedParameters result;
+
+  auto prepare_dir = [](string dir) -> Result<string> {
+    CHECK(!dir.empty());
+    if (dir.back() != TD_DIR_SLASH) {
+      dir += TD_DIR_SLASH;
+    }
+    TRY_STATUS(mkpath(dir, 0750));
+    TRY_RESULT(real_dir, realpath(dir, true));
+    if (dir.back() != TD_DIR_SLASH) {
+      dir += TD_DIR_SLASH;
+    }
+    return real_dir;
+  };
+
+  auto r_database_directory = prepare_dir(parameters.database_directory);
+  if (r_database_directory.is_error()) {
+    VLOG(td_init) << "Invalid database_directory";
+    return promise.set_error(Status::Error(PSLICE()
+                                           << "Can't init database in the directory \"" << parameters.database_directory
+                                           << "\": " << r_database_directory.error()));
+  }
+  result.database_directory = r_database_directory.move_as_ok();
+  parameters.database_directory = result.database_directory;
+
+  auto r_files_directory = prepare_dir(parameters.files_directory);
+  if (r_files_directory.is_error()) {
+    VLOG(td_init) << "Invalid files_directory";
+    return promise.set_error(Status::Error(PSLICE() << "Can't init files directory \"" << parameters.files_directory
+                                                    << "\": " << r_files_directory.error()));
+  }
+  result.files_directory = r_files_directory.move_as_ok();
+
+  Binlog binlog;
+  auto status = binlog.init(get_binlog_path(parameters), Binlog::Callback());
+  if (status.is_error() && status.code() != Binlog::Error::WrongPassword) {
+    LOG(WARNING) << "Failed to check binlog: " << status;
+    return promise.set_error(std::move(status));
+  }
+  result.is_database_encrypted = binlog.get_info().wrong_password;
+  binlog.close(false /*need_sync*/).ensure();
+
+  promise.set_value(std::move(result));
 }
 
 void TdDb::change_key(DbKey key, Promise<> promise) {

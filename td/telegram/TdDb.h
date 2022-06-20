@@ -48,6 +48,13 @@ class TdDb {
   TdDb &operator=(TdDb &&) = delete;
   ~TdDb();
 
+  struct CheckedParameters {
+    string database_directory;
+    string files_directory;
+    bool is_database_encrypted{false};
+  };
+  static void check_parameters(int32 scheduler_id, TdParameters parameters, Promise<CheckedParameters> promise);
+
   struct OpenedDatabase {
     unique_ptr<TdDb> database;
 
@@ -63,11 +70,6 @@ class TdDb {
     vector<BinlogEvent> to_notification_settings_manager;
   };
   static void open(int32 scheduler_id, TdParameters parameters, DbKey key, Promise<OpenedDatabase> &&promise);
-
-  struct EncryptionInfo {
-    bool is_encrypted{false};
-  };
-  static Result<EncryptionInfo> check_encryption(const TdParameters &parameters);
 
   static Status destroy(const TdParameters &parameters);
 

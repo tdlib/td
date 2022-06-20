@@ -440,7 +440,7 @@ class TestDownloadFile : public Task {
       begin = end;
     }
 
-    std::random_shuffle(as_mutable_span(ranges_), rnd);
+    random_shuffle(as_mutable_span(ranges_), rnd);
     start_chunk();
   }
 
