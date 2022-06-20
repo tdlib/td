@@ -10,6 +10,7 @@
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/BotMenuButton.h"
 #include "td/telegram/ChannelParticipantFilter.h"
+#include "td/telegram/ConfigManager.h"
 #include "td/telegram/ConfigShared.h"
 #include "td/telegram/Dependencies.h"
 #include "td/telegram/DialogInviteLink.h"
@@ -10152,7 +10153,10 @@ void ContactsManager::for_each_secret_chat_with_user(UserId user_id, const std::
 void ContactsManager::update_user(User *u, UserId user_id, bool from_binlog, bool from_database) {
   CHECK(u != nullptr);
   if (user_id == get_my_id()) {
-    G()->shared_config().set_option_boolean("is_premium", u->is_premium);
+    if (G()->shared_config().get_option_boolean("is_premium") != u->is_premium) {
+      G()->shared_config().set_option_boolean("is_premium", u->is_premium);
+      send_closure(td_->config_manager_, &ConfigManager::request_config, true);
+    }
   }
   if (u->is_name_changed || u->is_username_changed || u->is_is_contact_changed) {
     update_contacts_hints(u, user_id, from_database);

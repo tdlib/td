@@ -284,9 +284,6 @@ void OptionManager::on_option_updated(const string &name) {
           G()->net_query_dispatcher().update_mtproto_header();
         }
       }
-      if (name == "is_premium") {
-        send_closure(td_->config_manager_, &ConfigManager::request_config, true);
-      }
       break;
     case 'l':
       if (name == "language_pack_id") {
