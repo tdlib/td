@@ -14824,7 +14824,8 @@ ContactsManager::ChatFull *ContactsManager::add_chat_full(ChatId chat_id) {
   return chat_full_ptr.get();
 }
 
-bool ContactsManager::is_chat_full_outdated(const ChatFull *chat_full, const Chat *c, ChatId chat_id) {
+bool ContactsManager::is_chat_full_outdated(const ChatFull *chat_full, const Chat *c, ChatId chat_id,
+                                            bool only_participants) const {
   CHECK(c != nullptr);
   CHECK(chat_full != nullptr);
   if (!c->is_active && chat_full->version == -1) {
@@ -14837,8 +14838,14 @@ bool ContactsManager::is_chat_full_outdated(const ChatFull *chat_full, const Cha
     return true;
   }
 
-  if (c->is_active && c->status.can_manage_invite_links() && !chat_full->invite_link.is_valid()) {
+  if (!only_participants && c->is_active && c->status.can_manage_invite_links() && !chat_full->invite_link.is_valid()) {
     LOG(INFO) << "Have outdated invite link in " << chat_id;
+    return true;
+  }
+
+  if (!only_participants &&
+      !is_same_dialog_photo(td_->file_manager_.get(), DialogId(chat_id), chat_full->photo, c->photo)) {
+    LOG(INFO) << "Have outdated chat photo in " << chat_id;
     return true;
   }
 
@@ -14858,7 +14865,7 @@ void ContactsManager::load_chat_full(ChatId chat_id, bool force, Promise<Unit> &
     return send_get_chat_full_query(chat_id, std::move(promise), source);
   }
 
-  if (is_chat_full_outdated(chat_full, c, chat_id)) {
+  if (is_chat_full_outdated(chat_full, c, chat_id, false)) {
     LOG(INFO) << "Have outdated full " << chat_id;
     if (td_->auth_manager_->is_bot() && !force) {
       return send_get_chat_full_query(chat_id, std::move(promise), source);
@@ -15680,7 +15687,7 @@ void ContactsManager::get_chat_participant(ChatId chat_id, UserId user_id, Promi
   }
 
   auto chat_full = get_chat_full_force(chat_id, "get_chat_participant");
-  if (chat_full == nullptr || (td_->auth_manager_->is_bot() && is_chat_full_outdated(chat_full, c, chat_id))) {
+  if (chat_full == nullptr || (td_->auth_manager_->is_bot() && is_chat_full_outdated(chat_full, c, chat_id, true))) {
     auto query_promise = PromiseCreator::lambda(
         [actor_id = actor_id(this), chat_id, user_id, promise = std::move(promise)](Result<Unit> &&result) mutable {
           TRY_STATUS_PROMISE(promise, std::move(result));
@@ -15690,7 +15697,7 @@ void ContactsManager::get_chat_participant(ChatId chat_id, UserId user_id, Promi
     return;
   }
 
-  if (is_chat_full_outdated(chat_full, c, chat_id)) {
+  if (is_chat_full_outdated(chat_full, c, chat_id, true)) {
     send_get_chat_full_query(chat_id, Auto(), "get_chat_participant lazy");
   }
 

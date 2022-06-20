@@ -1412,7 +1412,7 @@ class ContactsManager final : public Actor {
   void update_channel_full(ChannelFull *channel_full, ChannelId channel_id, const char *source,
                            bool from_database = false);
 
-  static bool is_chat_full_outdated(const ChatFull *chat_full, const Chat *c, ChatId chat_id);
+  bool is_chat_full_outdated(const ChatFull *chat_full, const Chat *c, ChatId chat_id, bool only_participants) const;
 
   bool is_user_contact(const User *u, UserId user_id, bool is_mutual) const;
 
