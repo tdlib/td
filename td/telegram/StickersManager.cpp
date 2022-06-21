@@ -747,10 +747,14 @@ class ReloadSpecialStickerSetQuery final : public Td::ResultHandler {
 
     auto set_ptr = result_ptr.move_as_ok();
     if (set_ptr->get_id() == telegram_api::messages_stickerSet::ID) {
-      // sticker_set_id_ needs to be replaced always
+      // sticker_set_id_ must be replaced always, because it could have been changed
+      // we must not pass sticker_set_id_ in order to allow its change
       sticker_set_id_ = td_->stickers_manager_->on_get_messages_sticker_set(StickerSetId(), std::move(set_ptr), true,
                                                                             "ReloadSpecialStickerSetQuery");
-    } else if (sticker_set_id_.is_valid()) {
+    } else {
+      CHECK(set_ptr->get_id() == telegram_api::messages_stickerSetNotModified::ID);
+      // we received telegram_api::messages_stickerSetNotModified, and must pass sticker_set_id_ to handle it
+      // sticker_set_id_ can't be changed by this call
       td_->stickers_manager_->on_get_messages_sticker_set(sticker_set_id_, std::move(set_ptr), false,
                                                           "ReloadSpecialStickerSetQuery");
     }
@@ -3092,6 +3096,7 @@ StickerSetId StickersManager::on_get_messages_sticker_set(StickerSetId sticker_s
       CHECK(s->is_inited);
       CHECK(s->was_loaded);
 
+      s->is_loaded = true;
       s->expires_at = G()->unix_time() +
                       (td_->auth_manager_->is_bot() ? Random::fast(10 * 60, 15 * 60) : Random::fast(30 * 60, 50 * 60));
     }
@@ -3101,7 +3106,7 @@ StickerSetId StickersManager::on_get_messages_sticker_set(StickerSetId sticker_s
 
   auto set_id = on_get_sticker_set(std::move(set->set_), is_changed, source);
   if (!set_id.is_valid()) {
-    return set_id;
+    return StickerSetId();
   }
   if (sticker_set_id.is_valid() && sticker_set_id != set_id) {
     LOG(ERROR) << "Expected " << sticker_set_id << ", but receive " << set_id << " from " << source;
