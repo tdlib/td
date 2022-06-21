@@ -1294,7 +1294,16 @@ void PollManager::on_unload_poll_timeout(PollId poll_id) {
   if (G()->close_flag()) {
     return;
   }
-  CHECK(!is_local_poll_id(poll_id));
+  if (is_local_poll_id(poll_id)) {
+    LOG(INFO) << "Forget " << poll_id;
+
+    auto is_deleted = polls_.erase(poll_id) > 0;
+    CHECK(is_deleted);
+
+    CHECK(poll_voters_.count(poll_id) == 0);
+    CHECK(loaded_from_database_polls_.count(poll_id) == 0);
+    return;
+  }
 
   if (!can_unload_poll(poll_id)) {
     return;
@@ -1318,14 +1327,7 @@ void PollManager::on_unload_poll_timeout(PollId poll_id) {
 
 void PollManager::forget_local_poll(PollId poll_id) {
   CHECK(is_local_poll_id(poll_id));
-
-  LOG(INFO) << "Forget " << poll_id;
-
-  auto is_deleted = polls_.erase(poll_id) > 0;
-  CHECK(is_deleted);
-
-  CHECK(poll_voters_.count(poll_id) == 0);
-  CHECK(loaded_from_database_polls_.count(poll_id) == 0);
+  unload_poll_timeout_.set_timeout_in(poll_id.get(), UNLOAD_POLL_DELAY);
 }
 
 void PollManager::on_get_poll_results(PollId poll_id, uint64 generation,
