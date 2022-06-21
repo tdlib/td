@@ -18,7 +18,7 @@ template <class StatT>
 class TimedStat {
  public:
   TimedStat(double duration, double now)
-      : duration_(duration), current_(), current_timestamp_(now), next_(), next_timestamp_(now) {
+      : duration_(duration), current_(), current_timestamp_(now - 1), next_(), next_timestamp_(now) {
   }
   TimedStat() : TimedStat(0, 0) {
   }
