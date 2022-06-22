@@ -4248,7 +4248,7 @@ vector<tl_object_ptr<telegram_api::MessageEntity>> get_input_message_entities(co
         break;
       case MessageEntity::Type::MentionName: {
         auto r_input_user = contacts_manager->get_input_user(entity.user_id);
-        LOG_CHECK(r_input_user.is_ok()) << source << ' ' << r_input_user.error();
+        LOG_CHECK(r_input_user.is_ok()) << source << ' ' << entity.user_id << ' ' << r_input_user.error();
         result.push_back(make_tl_object<telegram_api::inputMessageEntityMentionName>(entity.offset, entity.length,
                                                                                      r_input_user.move_as_ok()));
         break;
