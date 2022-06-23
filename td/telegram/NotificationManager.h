@@ -273,7 +273,7 @@ class NotificationManager final : public Actor {
   void send_remove_group_update(const NotificationGroupKey &group_key, const NotificationGroup &group,
                                 vector<int32> &&removed_notification_ids);
 
-  void send_add_group_update(const NotificationGroupKey &group_key, const NotificationGroup &group);
+  void send_add_group_update(const NotificationGroupKey &group_key, const NotificationGroup &group, const char *source);
 
   int32 get_notification_delay_ms(DialogId dialog_id, const PendingNotification &notification,
                                   int32 min_delay_ms) const;
