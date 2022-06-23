@@ -1719,7 +1719,7 @@ void UpdatesManager::on_pending_updates(vector<tl_object_ptr<telegram_api::Updat
         case telegram_api::updateServiceNotification::ID:
         case telegram_api::updateLangPackTooLong::ID:
         case telegram_api::updateLangPack::ID:
-          short_update_date_ = date;
+          short_update_date_ = date == 0 ? G()->unix_time() : date;
           LOG(INFO) << "Process short " << oneline(to_string(update));
           // don't need promise for short update
           downcast_call(*update, OnUpdate(this, update, Promise<Unit>()));
