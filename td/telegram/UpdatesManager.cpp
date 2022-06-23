@@ -1796,16 +1796,20 @@ void UpdatesManager::on_pending_updates(vector<tl_object_ptr<telegram_api::Updat
   size_t ordinary_new_message_count = 0;
   size_t scheduled_new_message_count = 0;
   size_t update_message_id_count = 0;
+  size_t update_count = 0;
   for (auto &update : updates) {
     if (update != nullptr) {
       auto constructor_id = update->get_id();
-      if (constructor_id == telegram_api::updateNewMessage::ID ||
-          constructor_id == telegram_api::updateNewChannelMessage::ID) {
-        ordinary_new_message_count++;
-      } else if (constructor_id == telegram_api::updateNewScheduledMessage::ID) {
-        scheduled_new_message_count++;
-      } else if (constructor_id == telegram_api::updateMessageID::ID) {
+      if (constructor_id == telegram_api::updateMessageID::ID) {
         update_message_id_count++;
+      } else {
+        update_count++;
+        if (constructor_id == telegram_api::updateNewMessage::ID ||
+            constructor_id == telegram_api::updateNewChannelMessage::ID) {
+          ordinary_new_message_count++;
+        } else if (constructor_id == telegram_api::updateNewScheduledMessage::ID) {
+          scheduled_new_message_count++;
+        }
       }
     }
   }
@@ -1835,15 +1839,13 @@ void UpdatesManager::on_pending_updates(vector<tl_object_ptr<telegram_api::Updat
       if (id == telegram_api::updateMessageID::ID) {
         LOG(INFO) << "Receive from " << source << " " << to_string(update);
         auto sent_message_update = move_tl_object_as<telegram_api::updateMessageID>(update);
-        bool success = false;
+        MessageId message_id;
         if (ordinary_new_message_count != 0) {
-          success = td_->messages_manager_->on_update_message_id(
-              sent_message_update->random_id_, MessageId(ServerMessageId(sent_message_update->id_)), source);
+          message_id = MessageId(ServerMessageId(sent_message_update->id_));
         } else if (scheduled_new_message_count != 0) {
-          success = td_->messages_manager_->on_update_scheduled_message_id(
-              sent_message_update->random_id_, ScheduledServerMessageId(sent_message_update->id_), source);
+          message_id = MessageId(ScheduledServerMessageId(sent_message_update->id_), std::numeric_limits<int32>::max());
         }
-        if (!success) {
+        if (!td_->messages_manager_->on_update_message_id(sent_message_update->random_id_, message_id, source)) {
           for (auto &debug_update : updates) {
             LOG(ERROR) << "Update: " << oneline(to_string(debug_update));
           }

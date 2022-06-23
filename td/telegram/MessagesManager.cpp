@@ -28982,16 +28982,17 @@ void MessagesManager::on_imported_message_attachments_uploaded(int64 random_id, 
 }
 
 bool MessagesManager::on_update_message_id(int64 random_id, MessageId new_message_id, const string &source) {
-  if (!new_message_id.is_valid() || !new_message_id.is_server()) {
+  if (!new_message_id.is_valid() && !new_message_id.is_valid_scheduled()) {
     LOG(ERROR) << "Receive " << new_message_id << " in updateMessageId with random_id " << random_id << " from "
                << source;
     return false;
   }
+  CHECK(new_message_id.is_any_server());
 
   auto it = being_sent_messages_.find(random_id);
   if (it == being_sent_messages_.end()) {
     // update about a new message sent from other device or a service message
-    LOG(INFO) << "Receive not send outgoing " << new_message_id << " with random_id = " << random_id;
+    LOG(INFO) << "Receive not sent outgoing " << new_message_id << " with random_id = " << random_id;
     return true;
   }
 
@@ -29007,38 +29008,11 @@ bool MessagesManager::on_update_message_id(int64 random_id, MessageId new_messag
 
   LOG(INFO) << "Save correspondence from " << new_message_id << " in " << dialog_id << " to " << old_message_id;
   CHECK(old_message_id.is_yet_unsent());
-  update_message_ids_[FullMessageId(dialog_id, new_message_id)] = old_message_id;
-  return true;
-}
-
-bool MessagesManager::on_update_scheduled_message_id(int64 random_id, ScheduledServerMessageId new_message_id,
-                                                     const string &source) {
-  if (!new_message_id.is_valid()) {
-    LOG(ERROR) << "Receive " << new_message_id << " in updateMessageId with random_id " << random_id << " from "
-               << source;
-    return false;
+  if (new_message_id.is_scheduled()) {
+    update_scheduled_message_ids_[dialog_id][new_message_id.get_scheduled_server_message_id()] = old_message_id;
+  } else {
+    update_message_ids_[FullMessageId(dialog_id, new_message_id)] = old_message_id;
   }
-
-  auto it = being_sent_messages_.find(random_id);
-  if (it == being_sent_messages_.end()) {
-    LOG(ERROR) << "Receive not send outgoing " << new_message_id << " with random_id = " << random_id;
-    return false;
-  }
-
-  auto dialog_id = it->second.get_dialog_id();
-  auto old_message_id = it->second.get_message_id();
-
-  being_sent_messages_.erase(it);
-
-  if (!have_message_force({dialog_id, old_message_id}, "on_update_scheduled_message_id")) {
-    delete_sent_message_on_server(dialog_id, MessageId(new_message_id, std::numeric_limits<int32>::max()),
-                                  old_message_id);
-    return true;
-  }
-
-  LOG(INFO) << "Save correspondence from " << new_message_id << " in " << dialog_id << " to " << old_message_id;
-  CHECK(old_message_id.is_yet_unsent());
-  update_scheduled_message_ids_[dialog_id][new_message_id] = old_message_id;
   return true;
 }
 
