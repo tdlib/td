@@ -449,7 +449,7 @@ void DialogFilter::init_icon_names() {
                           "\xE2\x9D\xA4\xEF\xB8\x8F", "\xF0\x9F\x8E\xAD", "\xF0\x9F\x8D\xB8",
                           "\xE2\x9A\xBD\xEF\xB8\x8F", "\xF0\x9F\x8E\x93", "\xF0\x9F\x93\x88",
                           "\xE2\x9C\x88\xEF\xB8\x8F", "\xF0\x9F\x92\xBC", "\xF0\x9F\x9B\xAB",
-                          "\xF0\x9F\x93\x95",         "\xF0\x9F\x92\xA1", "\xF0\x9F\x91\x8C",
+                          "\xF0\x9F\x93\x95",         "\xF0\x9F\x92\xA1", "\xF0\x9F\x91\x8D",
                           "\xF0\x9F\x92\xB0",         "\xF0\x9F\x8E\xB5", "\xF0\x9F\x8E\xA8"};
     vector<string> icon_names{"All",   "Unread", "Unmuted", "Bots",     "Channels", "Groups", "Private", "Custom",
                               "Setup", "Cat",    "Crown",   "Favorite", "Flower",   "Game",   "Home",    "Love",
