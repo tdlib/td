@@ -31,4 +31,6 @@ void click_premium_subscription_button(Td *td, Promise<Unit> &&promise);
 
 void get_premium_state(Td *td, Promise<td_api::object_ptr<td_api::premiumState>> &&promise);
 
+void can_purchase_premium(Td *td, Promise<Unit> &&promise);
+
 }  // namespace td

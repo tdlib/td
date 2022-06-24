@@ -6403,6 +6403,9 @@ clickPremiumSubscriptionButton = Ok;
 //@description Returns state of Telegram Premium subscription and promotion videos for Premium features
 getPremiumState = PremiumState;
 
+//@description Checks whether Telegram Premium purchase is possible. Must be called before in-store Premium purchase
+canPurchasePremium = Ok;
+
 
 //@description Accepts Telegram terms of services @terms_of_service_id Terms of service identifier
 acceptTermsOfService terms_of_service_id:string = Ok;

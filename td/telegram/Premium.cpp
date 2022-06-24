@@ -138,6 +138,35 @@ class GetPremiumPromoQuery final : public Td::ResultHandler {
   }
 };
 
+class CanPurchasePremiumQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit CanPurchasePremiumQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send() {
+    send_query(G()->net_query_creator().create(telegram_api::payments_canPurchasePremium()));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::payments_canPurchasePremium>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    bool result = result_ptr.ok();
+    if (result) {
+      return promise_.set_value(Unit());
+    }
+    on_error(Status::Error(400, "Premium can't be purchased"));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 const vector<Slice> &get_premium_limit_keys() {
   static const vector<Slice> limit_keys{"channels",
                                         "saved_gifs",
@@ -375,6 +404,10 @@ void click_premium_subscription_button(Td *td, Promise<Unit> &&promise) {
 
 void get_premium_state(Td *td, Promise<td_api::object_ptr<td_api::premiumState>> &&promise) {
   td->create_handler<GetPremiumPromoQuery>(std::move(promise))->send();
+}
+
+void can_purchase_premium(Td *td, Promise<Unit> &&promise) {
+  td->create_handler<CanPurchasePremiumQuery>(std::move(promise))->send();
 }
 
 }  // namespace td
