@@ -6406,6 +6406,9 @@ getPremiumState = PremiumState;
 //@description Checks whether Telegram Premium purchase is possible. Must be called before in-store Premium purchase
 canPurchasePremium = Ok;
 
+//@description Informs server about a Telegram Premium purchase through App Store. For official applications only @receipt App Store receipt @is_restore True, if this is restore of Premium purchase
+assignAppStoreTransaction receipt:bytes is_restore:Bool = Ok;
+
 //@description Informs server about a Telegram Premium purchase through Google Play. For official applications only @purchase_token Google Play purchase token
 assignGooglePlayTransaction purchase_token:string = Ok;
 

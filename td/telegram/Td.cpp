@@ -7898,6 +7898,12 @@ void Td::on_request(uint64 id, const td_api::canPurchasePremium &request) {
   can_purchase_premium(this, std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::assignAppStoreTransaction &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  assign_app_store_transaction(this, request.receipt_, request.is_restore_, std::move(promise));
+}
+
 void Td::on_request(uint64 id, td_api::assignGooglePlayTransaction &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.purchase_token_);
