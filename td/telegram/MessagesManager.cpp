@@ -36695,9 +36695,15 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
                       << ", max_notification_message_id = " << d->max_notification_message_id;
 
   if (d->messages != nullptr) {
-    LOG_CHECK(d->messages->message_id == last_message_id) << d->debug_set_dialog_last_database_message_id;
-    CHECK(d->messages->left == nullptr);
-    CHECK(d->messages->right == nullptr);
+    LOG_CHECK(d->messages->message_id == last_message_id)
+        << d->messages->message_id << ' ' << last_message_id << ' ' << d->debug_set_dialog_last_database_message_id
+        << ' ' << d->messages->debug_source;
+    LOG_CHECK(d->messages->left == nullptr)
+        << d->messages->left->message_id << ' ' << d->messages->message_id << ' ' << last_message_id << ' '
+        << d->debug_set_dialog_last_database_message_id << ' ' << d->messages->debug_source;
+    LOG_CHECK(d->messages->right == nullptr)
+        << d->messages->right->message_id << ' ' << d->messages->message_id << ' ' << last_message_id << ' '
+        << d->debug_set_dialog_last_database_message_id << ' ' << d->messages->debug_source;
   }
 
   // must be after update_dialog_pos, because uses d->order
