@@ -448,15 +448,20 @@ void DialogFilter::init_icon_names() {
                           "\xF0\x9F\x8C\xB9",         "\xF0\x9F\x8E\xAE", "\xF0\x9F\x8F\xA0",
                           "\xE2\x9D\xA4\xEF\xB8\x8F", "\xF0\x9F\x8E\xAD", "\xF0\x9F\x8D\xB8",
                           "\xE2\x9A\xBD\xEF\xB8\x8F", "\xF0\x9F\x8E\x93", "\xF0\x9F\x93\x88",
-                          "\xE2\x9C\x88\xEF\xB8\x8F", "\xF0\x9F\x92\xBC"};
+                          "\xE2\x9C\x88\xEF\xB8\x8F", "\xF0\x9F\x92\xBC", "\xF0\x9F\x9B\xAB",
+                          "\xF0\x9F\x93\x95",         "\xF0\x9F\x92\xA1", "\xF0\x9F\x91\x8C",
+                          "\xF0\x9F\x92\xB0",         "\xF0\x9F\x8E\xB5", "\xF0\x9F\x8E\xA8"};
     vector<string> icon_names{"All",   "Unread", "Unmuted", "Bots",     "Channels", "Groups", "Private", "Custom",
                               "Setup", "Cat",    "Crown",   "Favorite", "Flower",   "Game",   "Home",    "Love",
-                              "Mask",  "Party",  "Sport",   "Study",    "Trade",    "Travel", "Work"};
+                              "Mask",  "Party",  "Sport",   "Study",    "Trade",    "Travel", "Work",    "Airplane",
+                              "Book",  "Light",  "Like",    "Money",    "Note",     "Palette"};
+
     CHECK(emojis.size() == icon_names.size());
     for (size_t i = 0; i < emojis.size(); i++) {
       remove_emoji_modifiers_in_place(emojis[i]);
-      emoji_to_icon_name_[emojis[i]] = icon_names[i];
-      icon_name_to_emoji_[icon_names[i]] = emojis[i];
+      bool is_inserted = emoji_to_icon_name_.emplace(emojis[i], icon_names[i]).second &&
+                         icon_name_to_emoji_.emplace(icon_names[i], emojis[i]).second;
+      CHECK(is_inserted);
     }
     return true;
   }();
