@@ -17,6 +17,7 @@
 #include "td/telegram/MessageEntity.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/telegram_api.h"
+#include "td/telegram/UpdatesManager.h"
 
 #include "td/utils/algorithm.h"
 #include "td/utils/buffer.h"
@@ -160,6 +161,33 @@ class CanPurchasePremiumQuery final : public Td::ResultHandler {
       return promise_.set_value(Unit());
     }
     on_error(Status::Error(400, "Premium can't be purchased"));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
+class AssignPlayMarketTransactionQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit AssignPlayMarketTransactionQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(const string &purchase_token) {
+    send_query(G()->net_query_creator().create(telegram_api::payments_assignPlayMarketTransaction(purchase_token)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::payments_assignPlayMarketTransaction>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for AssignPlayMarketTransactionQuery: " << to_string(ptr);
+    td_->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
   }
 
   void on_error(Status status) final {
@@ -408,6 +436,10 @@ void get_premium_state(Td *td, Promise<td_api::object_ptr<td_api::premiumState>>
 
 void can_purchase_premium(Td *td, Promise<Unit> &&promise) {
   td->create_handler<CanPurchasePremiumQuery>(std::move(promise))->send();
+}
+
+void assign_play_market_transaction(Td *td, const string &purchase_token, Promise<Unit> &&promise) {
+  td->create_handler<AssignPlayMarketTransactionQuery>(std::move(promise))->send(purchase_token);
 }
 
 }  // namespace td

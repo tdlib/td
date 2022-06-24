@@ -33,4 +33,6 @@ void get_premium_state(Td *td, Promise<td_api::object_ptr<td_api::premiumState>>
 
 void can_purchase_premium(Td *td, Promise<Unit> &&promise);
 
+void assign_play_market_transaction(Td *td, const string &purchase_token, Promise<Unit> &&promise);
+
 }  // namespace td

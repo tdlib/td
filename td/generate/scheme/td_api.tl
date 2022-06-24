@@ -6406,6 +6406,9 @@ getPremiumState = PremiumState;
 //@description Checks whether Telegram Premium purchase is possible. Must be called before in-store Premium purchase
 canPurchasePremium = Ok;
 
+//@description Informs server about a Telegram Premium purchase through Google Play. For official applications only @purchase_token Google Play purchase token
+assignGooglePlayTransaction purchase_token:string = Ok;
+
 
 //@description Accepts Telegram terms of services @terms_of_service_id Terms of service identifier
 acceptTermsOfService terms_of_service_id:string = Ok;
