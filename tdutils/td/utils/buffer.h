@@ -74,7 +74,8 @@ class BufferAllocator {
  private:
   friend class BufferSlice;
 
-  static void track_buffer_slice(int64 size);
+  static void track_buffer_slice(int64 size) {
+  }
 
   static ReaderPtr create_reader_fast(size_t size);
 

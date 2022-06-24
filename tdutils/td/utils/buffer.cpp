@@ -29,9 +29,6 @@ int64 BufferAllocator::get_buffer_slice_size() {
   return 0;
 }
 
-void BufferAllocator::track_buffer_slice(int64 size) {
-}
-
 size_t BufferAllocator::get_buffer_mem() {
   return buffer_mem;
 }
