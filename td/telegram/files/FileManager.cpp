@@ -1177,8 +1177,9 @@ Result<FileId> FileManager::register_file(FileData &&data, FileLocationSource fi
   bool has_remote = data.remote_.type() == RemoteFileLocation::Type::Full;
   bool has_generate = data.generate_ != nullptr;
   if (data.local_.type() == LocalFileLocation::Type::Full && !force) {
-    if (file_location_source == FileLocationSource::FromBinlog ||
-        file_location_source == FileLocationSource::FromDatabase) {
+    bool is_from_database = file_location_source == FileLocationSource::FromBinlog ||
+                            file_location_source == FileLocationSource::FromDatabase;
+    if (is_from_database) {
       PathView path_view(data.local_.full().path_);
       if (path_view.is_relative()) {
         data.local_.full().path_ = PSTRING()
@@ -1186,16 +1187,18 @@ Result<FileId> FileManager::register_file(FileData &&data, FileLocationSource fi
       }
     }
 
-    auto status = check_local_location(data.local_.full(), data.size_, skip_file_size_checks);
-    if (status.is_error()) {
-      LOG(INFO) << "Invalid " << data.local_.full() << ": " << status << " from " << source;
-      data.local_ = LocalFileLocation();
-      if (data.remote_.type() == RemoteFileLocation::Type::Partial) {
-        data.remote_ = {};
-      }
+    if (!is_from_database) {
+      auto status = check_local_location(data.local_.full(), data.size_, skip_file_size_checks);
+      if (status.is_error()) {
+        LOG(INFO) << "Invalid " << data.local_.full() << ": " << status << " from " << source;
+        data.local_ = LocalFileLocation();
+        if (data.remote_.type() == RemoteFileLocation::Type::Partial) {
+          data.remote_ = {};
+        }
 
-      if (!has_remote && !has_generate) {
-        return std::move(status);
+        if (!has_remote && !has_generate) {
+          return std::move(status);
+        }
       }
     }
   }
