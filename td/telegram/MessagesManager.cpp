@@ -36695,7 +36695,7 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
                       << ", max_notification_message_id = " << d->max_notification_message_id;
 
   if (d->messages != nullptr) {
-    CHECK(d->messages->message_id == last_message_id);
+    LOG_CHECK(d->messages->message_id == last_message_id) << d->debug_set_dialog_last_database_message_id;
     CHECK(d->messages->left == nullptr);
     CHECK(d->messages->right == nullptr);
   }
