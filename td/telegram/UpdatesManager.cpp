@@ -1921,6 +1921,7 @@ void UpdatesManager::on_pending_updates(vector<tl_object_ptr<telegram_api::Updat
     }
   }
 
+  CHECK(use_mpas || update_count == 0);  // we can use lock as the last promise
   if (need_postpone || running_get_difference_) {
     LOG(INFO) << "Postpone " << updates.size() << " updates [" << seq_begin << ", " << seq_end
               << "] with date = " << date << " from " << source;
@@ -1928,16 +1929,16 @@ void UpdatesManager::on_pending_updates(vector<tl_object_ptr<telegram_api::Updat
       LOG(ERROR) << "Run get difference while applying updates from " << source;
     }
     postponed_updates_.emplace(
-        seq_begin, PendingSeqUpdates(seq_begin, seq_end, date, receive_time, std::move(updates), get_promise()));
-    return lock.set_value(Unit());
+        seq_begin, PendingSeqUpdates(seq_begin, seq_end, date, receive_time, std::move(updates), std::move(lock)));
+    return;
   }
 
   if (seq_begin == 0 || seq_begin == seq_ + 1) {
     LOG(INFO) << "Process " << updates.size() << " updates [" << seq_begin << ", " << seq_end
               << "] with date = " << date << " from " << source;
-    process_seq_updates(seq_end, date, std::move(updates), get_promise());
+    process_seq_updates(seq_end, date, std::move(updates), std::move(lock));
     process_pending_seq_updates();
-    return lock.set_value(Unit());
+    return;
   }
 
   if (seq_begin <= seq_) {
@@ -1960,9 +1961,8 @@ void UpdatesManager::on_pending_updates(vector<tl_object_ptr<telegram_api::Updat
       << "Already have pending updates with seq = " << seq_begin << ", but receive it again from " << source;
 
   pending_seq_updates_.emplace(
-      seq_begin, PendingSeqUpdates(seq_begin, seq_end, date, receive_time, std::move(updates), get_promise()));
+      seq_begin, PendingSeqUpdates(seq_begin, seq_end, date, receive_time, std::move(updates), std::move(lock)));
   set_seq_gap_timeout(receive_time + MAX_UNFILLED_GAP_TIME - Time::now());
-  lock.set_value(Unit());
 }
 
 void UpdatesManager::on_pending_updates_processed(Result<Unit> result, Promise<Unit> promise) {
