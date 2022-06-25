@@ -1921,7 +1921,11 @@ void UpdatesManager::on_pending_updates(vector<tl_object_ptr<telegram_api::Updat
     }
   }
 
-  CHECK(use_mpas || update_count == 0);  // we can use lock as the last promise
+  if (!use_mpas && update_count == 1) {
+    // still need to process the only update
+    lock = std::move(promise); // now we can use lock as the last promise
+    update_count = 0;
+  }
   if (need_postpone || running_get_difference_) {
     LOG(INFO) << "Postpone " << updates.size() << " updates [" << seq_begin << ", " << seq_end
               << "] with date = " << date << " from " << source;
