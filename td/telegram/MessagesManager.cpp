@@ -37139,7 +37139,7 @@ void MessagesManager::update_dialog_lists(
         if (total_count != -1) {
           total_count += delta;
           if (total_count < 0) {
-            LOG(ERROR) << "Total chat count became negative after leaving " << dialog_id;
+            LOG(ERROR) << "Total chat count in " << dialog_list_id << " became negative after removing " << dialog_id;
             total_count = 0;
           }
         }
@@ -37149,7 +37149,7 @@ void MessagesManager::update_dialog_lists(
         need_update_unread_chat_count =
             list.is_dialog_unread_count_inited_ && old_position.total_dialog_count != get_dialog_total_count(list);
         auto unread_count = d->server_unread_count + d->local_unread_count;
-        const char *change_source = was_in_list ? "on_dialog_leave" : "on_dialog_join";
+        const char *change_source = was_in_list ? "on_dialog_remove" : "on_dialog_add";
         if (unread_count != 0 && list.is_message_unread_count_inited_) {
           unread_count *= delta;
 
