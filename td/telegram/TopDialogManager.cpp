@@ -587,7 +587,7 @@ void TopDialogManager::try_start() {
   db_sync_state_ = SyncState::Ok;
 
   send_closure(G()->state_manager(), &StateManager::wait_first_sync,
-               PromiseCreator::event(self_closure(this, &TopDialogManager::on_first_sync)));
+               create_event_promise(self_closure(this, &TopDialogManager::on_first_sync)));
 }
 
 void TopDialogManager::on_first_sync() {

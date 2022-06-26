@@ -128,7 +128,7 @@ void StateManager::on_network_soft() {
 }
 
 void StateManager::start_up() {
-  create_actor<SleepActor>("SleepActor", 1, PromiseCreator::event(self_closure(this, &StateManager::on_network_soft)))
+  create_actor<SleepActor>("SleepActor", 1, create_event_promise(self_closure(this, &StateManager::on_network_soft)))
       .release();
   loop();
 }

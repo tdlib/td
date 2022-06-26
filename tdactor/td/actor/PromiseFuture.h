@@ -399,6 +399,14 @@ class JoinPromise final : public PromiseInterface<Unit> {
 };
 }  // namespace detail
 
+inline Promise<Unit> create_event_promise(EventFull &&ok) {
+  return Promise<Unit>(td::make_unique<detail::EventPromise>(std::move(ok)));
+}
+
+inline Promise<Unit> create_event_promise(EventFull ok, EventFull fail) {
+  return Promise<Unit>(td::make_unique<detail::EventPromise>(std::move(ok), std::move(fail)));
+}
+
 class SendClosure {
  public:
   template <class... ArgsT>
@@ -661,14 +669,6 @@ class PromiseCreator {
   static auto cancellable_lambda(CancellationToken cancellation_token, OkT &&ok) {
     return Promise<ArgT>(td::make_unique<detail::CancellablePromise<detail::LambdaPromise<ArgT, std::decay_t<OkT>>>>(
         std::move(cancellation_token), std::forward<OkT>(ok)));
-  }
-
-  static Promise<> event(EventFull &&ok) {
-    return Promise<>(td::make_unique<detail::EventPromise>(std::move(ok)));
-  }
-
-  static Promise<> event(EventFull ok, EventFull fail) {
-    return Promise<>(td::make_unique<detail::EventPromise>(std::move(ok), std::move(fail)));
   }
 
   template <class... ArgsT>

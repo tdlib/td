@@ -691,12 +691,12 @@ class LoginTestActor final : public td::Actor {
     td::send_closure(alice_, &TestClient::add_listener,
                      td::make_unique<DoAuthentication>(
                          "alice", alice_phone_, "33333",
-                         td::PromiseCreator::event(self_closure(this, &LoginTestActor::start_up_fence_dec))));
+                         td::create_event_promise(self_closure(this, &LoginTestActor::start_up_fence_dec))));
 
     td::send_closure(bob_, &TestClient::add_listener,
                      td::make_unique<DoAuthentication>(
                          "bob", bob_phone_, "33333",
-                         td::PromiseCreator::event(self_closure(this, &LoginTestActor::start_up_fence_dec))));
+                         td::create_event_promise(self_closure(this, &LoginTestActor::start_up_fence_dec))));
   }
 
   int start_up_fence_ = 3;
@@ -722,18 +722,18 @@ class LoginTestActor final : public td::Actor {
         td::Promise<> promise_;
       };
       td::create_actor<WaitActor>("WaitActor", 2,
-                                  td::PromiseCreator::event(self_closure(this, &LoginTestActor::start_up_fence_dec)))
+                                  td::create_event_promise(self_closure(this, &LoginTestActor::start_up_fence_dec)))
           .release();
     }
   }
 
   void init() {
     td::send_closure(alice_, &TestClient::add_listener,
-                     td::make_unique<SetUsername>(alice_username_, td::PromiseCreator::event(self_closure(
+                     td::make_unique<SetUsername>(alice_username_, td::create_event_promise(self_closure(
                                                                        this, &LoginTestActor::init_fence_dec))));
     td::send_closure(bob_, &TestClient::add_listener,
-                     td::make_unique<SetUsername>(bob_username_, td::PromiseCreator::event(self_closure(
-                                                                     this, &LoginTestActor::init_fence_dec))));
+                     td::make_unique<SetUsername>(
+                         bob_username_, td::create_event_promise(self_closure(this, &LoginTestActor::init_fence_dec))));
   }
 
   int init_fence_ = 2;
@@ -757,10 +757,10 @@ class LoginTestActor final : public td::Actor {
 
     td::send_closure(bob_, &TestClient::add_listener,
                      td::make_unique<CheckTestA>(
-                         alice_tag, td::PromiseCreator::event(self_closure(this, &LoginTestActor::test_a_fence))));
+                         alice_tag, td::create_event_promise(self_closure(this, &LoginTestActor::test_a_fence))));
     td::send_closure(alice_, &TestClient::add_listener,
                      td::make_unique<CheckTestA>(
-                         bob_tag, td::PromiseCreator::event(self_closure(this, &LoginTestActor::test_a_fence))));
+                         bob_tag, td::create_event_promise(self_closure(this, &LoginTestActor::test_a_fence))));
 
     td::send_closure(alice_, &TestClient::add_listener, td::make_unique<TestA>(alice_tag, bob_username_));
     td::send_closure(bob_, &TestClient::add_listener, td::make_unique<TestA>(bob_tag, alice_username_));
@@ -791,7 +791,7 @@ class LoginTestActor final : public td::Actor {
 
     td::send_closure(
         bob_, &TestClient::add_listener,
-        td::make_unique<CheckTestA>(tag, td::PromiseCreator::event(self_closure(this, &LoginTestActor::test_b_fence))));
+        td::make_unique<CheckTestA>(tag, td::create_event_promise(self_closure(this, &LoginTestActor::test_b_fence))));
     td::send_closure(alice_, &TestClient::add_listener, td::make_unique<TestSecretChat>(tag, bob_username_));
   }
 
@@ -802,7 +802,7 @@ class LoginTestActor final : public td::Actor {
     td::send_closure(
         bob_, &TestClient::add_listener,
         td::make_unique<CheckTestC>(alice_username_, tag,
-                                    td::PromiseCreator::event(self_closure(this, &LoginTestActor::test_c_fence))));
+                                    td::create_event_promise(self_closure(this, &LoginTestActor::test_c_fence))));
     td::send_closure(alice_, &TestClient::add_listener, td::make_unique<TestFileGenerated>(tag, bob_username_));
   }
 
@@ -817,9 +817,9 @@ class LoginTestActor final : public td::Actor {
 
   void finish() {
     td::send_closure(alice_, &TestClient::close,
-                     td::PromiseCreator::event(self_closure(this, &LoginTestActor::finish_fence)));
+                     td::create_event_promise(self_closure(this, &LoginTestActor::finish_fence)));
     td::send_closure(bob_, &TestClient::close,
-                     td::PromiseCreator::event(self_closure(this, &LoginTestActor::finish_fence)));
+                     td::create_event_promise(self_closure(this, &LoginTestActor::finish_fence)));
   }
 };
 

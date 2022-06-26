@@ -372,12 +372,12 @@ void UpdatesManager::before_get_difference(bool is_initial) {
 
 Promise<> UpdatesManager::add_pts(int32 pts) {
   auto id = pts_manager_.add_pts(pts);
-  return PromiseCreator::event(self_closure(this, &UpdatesManager::on_pts_ack, id));
+  return create_event_promise(self_closure(this, &UpdatesManager::on_pts_ack, id));
 }
 
 Promise<> UpdatesManager::add_qts(int32 qts) {
   auto id = qts_manager_.add_pts(qts);
-  return PromiseCreator::event(self_closure(this, &UpdatesManager::on_qts_ack, id));
+  return create_event_promise(self_closure(this, &UpdatesManager::on_qts_ack, id));
 }
 
 void UpdatesManager::on_pts_ack(PtsManager::PtsId ack_token) {
@@ -1923,7 +1923,7 @@ void UpdatesManager::on_pending_updates(vector<tl_object_ptr<telegram_api::Updat
 
   if (!use_mpas && update_count == 1) {
     // still need to process the only update
-    lock = std::move(promise); // now we can use lock as the last promise
+    lock = std::move(promise);  // now we can use lock as the last promise
     update_count = 0;
   }
   if (need_postpone || running_get_difference_) {
