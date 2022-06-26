@@ -99,12 +99,6 @@ struct DropResult<Result<T>> {
 template <class T>
 using drop_result_t = typename DropResult<T>::type;
 
-struct Ignore {
-  void operator()(Status &&error) {
-    error.ignore();
-  }
-};
-
 template <class ValueT, class FunctionT>
 class LambdaPromise : public PromiseInterface<ValueT> {
   enum class State : int32 { Empty, Ready, Complete };
@@ -658,8 +652,6 @@ FutureActor<T> send_promise(ActorId<ActorAT> actor_id, ResultT (ActorBT::*func)(
 
 class PromiseCreator {
  public:
-  using Ignore = detail::Ignore;
-
   template <class OkT, class ArgT = detail::drop_result_t<detail::get_arg_t<OkT>>>
   static Promise<ArgT> lambda(OkT &&ok) {
     return Promise<ArgT>(td::make_unique<detail::LambdaPromise<ArgT, std::decay_t<OkT>>>(std::forward<OkT>(ok)));
