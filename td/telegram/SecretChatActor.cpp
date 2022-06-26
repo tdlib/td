@@ -1436,9 +1436,11 @@ NetQueryPtr SecretChatActor::create_net_query(const log_event::OutboundSecretMes
   }
   if (message.is_external && context_->get_config_option_boolean("use_quick_ack")) {
     query->quick_ack_promise_ =
-        PromiseCreator::lambda([actor_id = actor_id(this), random_id = message.random_id](
-                                   Unit) { send_closure(actor_id, &SecretChatActor::on_send_message_ack, random_id); },
-                               PromiseCreator::Ignore());
+        PromiseCreator::lambda([actor_id = actor_id(this), random_id = message.random_id](Result<Unit> result) {
+          if (result.is_ok()) {
+            send_closure(actor_id, &SecretChatActor::on_send_message_ack, random_id);
+          }
+        });
   }
 
   return query;

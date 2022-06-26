@@ -443,12 +443,12 @@ class DialogDbAsync final : public DialogDbAsyncInterface {
 
     //NB: order is important, destructor of pending_writes_ will change pending_write_results_
     std::vector<std::pair<Promise<>, Status>> pending_write_results_;
-    vector<Promise<>> pending_writes_;
+    vector<Promise<>> pending_writes_;  // TODO use Action
     double wakeup_at_ = 0;
 
     template <class F>
     void add_write_query(F &&f) {
-      pending_writes_.push_back(PromiseCreator::lambda(std::forward<F>(f), PromiseCreator::Ignore()));
+      pending_writes_.push_back(PromiseCreator::lambda(std::forward<F>(f)));
       if (pending_writes_.size() > MAX_PENDING_QUERIES_COUNT) {
         do_flush();
         wakeup_at_ = 0;

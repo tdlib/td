@@ -692,12 +692,6 @@ class PromiseCreator {
     return Promise<ArgT>(td::make_unique<detail::LambdaPromise<ArgT, std::decay_t<OkT>>>(std::forward<OkT>(ok)));
   }
 
-  template <class OkT, class FailT, class ArgT = detail::get_arg_t<OkT>>
-  static Promise<ArgT> lambda(OkT &&ok, FailT &&fail) {
-    return Promise<ArgT>(td::make_unique<detail::LambdaPromise<ArgT, std::decay_t<OkT>, std::decay_t<FailT>>>(
-        std::forward<OkT>(ok), std::forward<FailT>(fail), false));
-  }
-
   template <class OkT, class ArgT = detail::drop_result_t<detail::get_arg_t<OkT>>>
   static auto cancellable_lambda(CancellationToken cancellation_token, OkT &&ok) {
     return Promise<ArgT>(td::make_unique<detail::CancellablePromise<detail::LambdaPromise<ArgT, std::decay_t<OkT>>>>(

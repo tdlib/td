@@ -3212,11 +3212,11 @@ class SendMessageQuery final : public Td::ResultHandler {
         {{dialog_id, MessageContentType::Text},
          {dialog_id, is_copy ? MessageContentType::Photo : MessageContentType::Text}});
     if (G()->shared_config().get_option_boolean("use_quick_ack")) {
-      query->quick_ack_promise_ = PromiseCreator::lambda(
-          [random_id](Unit) {
-            send_closure(G()->messages_manager(), &MessagesManager::on_send_message_get_quick_ack, random_id);
-          },
-          PromiseCreator::Ignore());
+      query->quick_ack_promise_ = PromiseCreator::lambda([random_id](Result<Unit> result) {
+        if (result.is_ok()) {
+          send_closure(G()->messages_manager(), &MessagesManager::on_send_message_get_quick_ack, random_id);
+        }
+      });
     }
     *send_query_ref = query.get_weak();
     send_query(std::move(query));
@@ -3283,11 +3283,11 @@ class StartBotQuery final : public Td::ResultHandler {
         telegram_api::messages_startBot(std::move(bot_input_user), std::move(input_peer), random_id, parameter),
         {{dialog_id, MessageContentType::Text}, {dialog_id, MessageContentType::Photo}});
     if (G()->shared_config().get_option_boolean("use_quick_ack")) {
-      query->quick_ack_promise_ = PromiseCreator::lambda(
-          [random_id](Unit) {
-            send_closure(G()->messages_manager(), &MessagesManager::on_send_message_get_quick_ack, random_id);
-          },
-          PromiseCreator::Ignore());
+      query->quick_ack_promise_ = PromiseCreator::lambda([random_id](Result<Unit> result) {
+        if (result.is_ok()) {
+          send_closure(G()->messages_manager(), &MessagesManager::on_send_message_get_quick_ack, random_id);
+        }
+      });
     }
     auto send_query_ref = query.get_weak();
     send_query(std::move(query));
@@ -3525,11 +3525,11 @@ class SendMediaQuery final : public Td::ResultHandler {
             std::move(reply_markup), std::move(entities), schedule_date, std::move(as_input_peer)),
         {{dialog_id, content_type}, {dialog_id, is_copy ? MessageContentType::Text : content_type}});
     if (G()->shared_config().get_option_boolean("use_quick_ack") && was_uploaded_) {
-      query->quick_ack_promise_ = PromiseCreator::lambda(
-          [random_id](Unit) {
-            send_closure(G()->messages_manager(), &MessagesManager::on_send_message_get_quick_ack, random_id);
-          },
-          PromiseCreator::Ignore());
+      query->quick_ack_promise_ = PromiseCreator::lambda([random_id](Result<Unit> result) {
+        if (result.is_ok()) {
+          send_closure(G()->messages_manager(), &MessagesManager::on_send_message_get_quick_ack, random_id);
+        }
+      });
     }
     *send_query_ref = query.get_weak();
     send_query(std::move(query));
@@ -3889,13 +3889,13 @@ class ForwardMessagesQuery final : public Td::ResultHandler {
             std::move(random_ids), std::move(to_input_peer), schedule_date, std::move(as_input_peer)),
         {{to_dialog_id, MessageContentType::Text}, {to_dialog_id, MessageContentType::Photo}});
     if (G()->shared_config().get_option_boolean("use_quick_ack")) {
-      query->quick_ack_promise_ = PromiseCreator::lambda(
-          [random_ids = random_ids_](Unit) {
-            for (auto random_id : random_ids) {
-              send_closure(G()->messages_manager(), &MessagesManager::on_send_message_get_quick_ack, random_id);
-            }
-          },
-          PromiseCreator::Ignore());
+      query->quick_ack_promise_ = PromiseCreator::lambda([random_ids = random_ids_](Result<Unit> result) {
+        if (result.is_ok()) {
+          for (auto random_id : random_ids) {
+            send_closure(G()->messages_manager(), &MessagesManager::on_send_message_get_quick_ack, random_id);
+          }
+        }
+      });
     }
     send_query(std::move(query));
   }
