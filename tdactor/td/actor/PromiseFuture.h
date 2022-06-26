@@ -12,6 +12,7 @@
 #include "td/utils/Closure.h"
 #include "td/utils/common.h"
 #include "td/utils/invoke.h"
+#include "td/utils/logging.h"
 #include "td/utils/MovableValue.h"
 #include "td/utils/ScopeGuard.h"
 #include "td/utils/Status.h"
@@ -104,76 +105,48 @@ struct Ignore {
   }
 };
 
-template <class ValueT, class FunctionOkT, class FunctionFailT = Ignore>
+template <class ValueT, class FunctionT>
 class LambdaPromise : public PromiseInterface<ValueT> {
-  enum class OnFail { None, Ok, Fail };
+  enum class State : int32 { Empty, Ready, Complete };
 
  public:
   void set_value(ValueT &&value) override {
-    CHECK(has_lambda_.get());
-    do_ok(ok_, std::move(value));
-    on_fail_ = OnFail::None;
+    CHECK(state_.get() == State::Ready);
+    func_(std::move(value));
+    state_ = State::Complete;
   }
+
   void set_error(Status &&error) override {
-    CHECK(has_lambda_.get());
-    do_error(std::move(error));
+    if (state_.get() == State::Ready) {
+      do_error(std::move(error));
+      state_ = State::Complete;
+    }
   }
   LambdaPromise(const LambdaPromise &other) = delete;
   LambdaPromise &operator=(const LambdaPromise &other) = delete;
   LambdaPromise(LambdaPromise &&other) = default;
   LambdaPromise &operator=(LambdaPromise &&other) = default;
   ~LambdaPromise() override {
-    if (has_lambda_.get()) {
+    if (state_.get() == State::Ready) {
       do_error(Status::Error("Lost promise"));
     }
   }
 
-  template <class FromOkT, class FromFailT>
-  LambdaPromise(FromOkT &&ok, FromFailT &&fail, bool use_ok_as_fail)
-      : ok_(std::forward<FromOkT>(ok))
-      , fail_(std::forward<FromFailT>(fail))
-      , on_fail_(use_ok_as_fail ? OnFail::Ok : OnFail::Fail)
-      , has_lambda_(true) {
-  }
-  template <class FromOkT, std::enable_if_t<!std::is_same<std::decay_t<FromOkT>, LambdaPromise>::value, int> = 0>
-  LambdaPromise(FromOkT &&ok) : LambdaPromise(std::forward<FromOkT>(ok), Ignore(), true) {
+  template <class FromT>
+  explicit LambdaPromise(FromT &&func) : func_(std::forward<FromT>(func)), state_(State::Ready) {
   }
 
  private:
-  FunctionOkT ok_;
-  FunctionFailT fail_;
-  OnFail on_fail_ = OnFail::None;
-  MovableValue<bool> has_lambda_{false};
+  FunctionT func_;
+  MovableValue<State> state_{State::Empty};
 
-  void do_error(Status &&error) {
-    switch (on_fail_) {
-      case OnFail::None:
-        break;
-      case OnFail::Ok:
-        do_error(ok_, std::move(error));
-        break;
-      case OnFail::Fail:
-        do_error(fail_, std::move(error));
-        break;
-    }
-    on_fail_ = OnFail::None;
+  template <class F = FunctionT>
+  std::enable_if_t<is_callable<F, Result<ValueT>>::value, void> do_error(Status &&status) {
+    func_(Result<ValueT>(std::move(status)));
   }
-
-  template <class F>
-  std::enable_if_t<is_callable<F, Result<ValueT>>::value, void> do_error(F &&f, Status &&status) {
-    f(Result<ValueT>(std::move(status)));
-  }
-  template <class Y, class F>
-  std::enable_if_t<!is_callable<F, Result<ValueT>>::value, void> do_error(F &&f, Y &&status) {
-    f(Auto());
-  }
-  template <class F>
-  std::enable_if_t<is_callable<F, Result<ValueT>>::value, void> do_ok(F &&f, ValueT &&result) {
-    f(Result<ValueT>(std::move(result)));
-  }
-  template <class F>
-  std::enable_if_t<!is_callable<F, Result<ValueT>>::value, void> do_ok(F &&f, ValueT &&result) {
-    f(std::move(result));
+  template <class Y, class F = FunctionT>
+  std::enable_if_t<!is_callable<F, Result<ValueT>>::value, void> do_error(Y &&status) {
+    func_(Auto());
   }
 };
 }  // namespace detail
