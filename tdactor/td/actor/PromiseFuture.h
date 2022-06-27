@@ -32,6 +32,7 @@ class PromiseInterface {
   PromiseInterface(PromiseInterface &&) = default;
   PromiseInterface &operator=(PromiseInterface &&) = default;
   virtual ~PromiseInterface() = default;
+
   virtual void set_value(T &&value) {
     set_result(std::move(value));
   }
@@ -45,15 +46,7 @@ class PromiseInterface {
       set_error(result.move_as_error());
     }
   }
-  void operator()(T &&value) {
-    set_value(std::move(value));
-  }
-  void operator()(Status &&error) {
-    set_error(std::move(error));
-  }
-  void operator()(Result<T> &&result) {
-    set_result(std::move(result));
-  }
+
   virtual bool is_cancellable() const {
     return false;
   }
@@ -218,14 +211,6 @@ class Promise {
       return;
     }
     promise_->set_result(std::move(result));
-    promise_.reset();
-  }
-  template <class S>
-  void operator()(S &&result) {
-    if (!promise_) {
-      return;
-    }
-    promise_->operator()(std::forward<S>(result));
     promise_.reset();
   }
   void reset() {

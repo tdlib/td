@@ -160,7 +160,7 @@ class Task : public TestClient::Listener {
   void on_update(std::shared_ptr<TestClient::Update> update) override {
     auto it = sent_queries_.find(update->id);
     if (it != sent_queries_.end()) {
-      it->second(std::move(update->object));
+      it->second.set_value(std::move(update->object));
       sent_queries_.erase(it);
     }
     process_update(update);
