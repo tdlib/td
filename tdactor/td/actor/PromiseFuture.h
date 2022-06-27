@@ -60,11 +60,6 @@ class PromiseInterface {
   virtual bool is_canceled() const {
     return false;
   }
-
-  virtual void start_migrate(int32 sched_id) {
-  }
-  virtual void finish_migrate() {
-  }
 };
 
 namespace detail {
@@ -236,18 +231,6 @@ class Promise {
   void reset() {
     promise_.reset();
   }
-  void start_migrate(int32 sched_id) {
-    if (!promise_) {
-      return;
-    }
-    promise_->start_migrate(sched_id);
-  }
-  void finish_migrate() {
-    if (!promise_) {
-      return;
-    }
-    promise_->finish_migrate();
-  }
   bool is_cancellable() const {
     if (!promise_) {
       return false;
@@ -283,14 +266,6 @@ class Promise {
   unique_ptr<PromiseInterface<T>> promise_;
 };
 
-template <class T>
-void start_migrate(Promise<T> &promise, int32 sched_id) {
-  // promise.start_migrate(sched_id);
-}
-template <class T>
-void finish_migrate(Promise<T> &promise) {
-  // promise.finish_migrate();
-}
 
 template <class T = Unit>
 class SafePromise {
