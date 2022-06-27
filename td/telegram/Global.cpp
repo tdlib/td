@@ -14,8 +14,6 @@
 #include "td/telegram/StateManager.h"
 #include "td/telegram/TdDb.h"
 
-#include "td/actor/PromiseFuture.h"
-
 #include "td/utils/format.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"

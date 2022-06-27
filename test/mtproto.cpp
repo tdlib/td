@@ -29,7 +29,6 @@
 
 #include "td/actor/actor.h"
 #include "td/actor/ConcurrentScheduler.h"
-#include "td/actor/PromiseFuture.h"
 
 #include "td/utils/base64.h"
 #include "td/utils/BufferedFd.h"
@@ -39,6 +38,7 @@
 #include "td/utils/port/Clocks.h"
 #include "td/utils/port/IPAddress.h"
 #include "td/utils/port/SocketFd.h"
+#include "td/utils/Promise.h"
 #include "td/utils/Random.h"
 #include "td/utils/Slice.h"
 #include "td/utils/SliceBuilder.h"

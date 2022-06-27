@@ -250,6 +250,7 @@ set(TDUTILS_SOURCE
   td/utils/overloaded.h
   td/utils/Parser.h
   td/utils/PathView.h
+  td/utils/Promise.h
   td/utils/queue.h
   td/utils/Random.h
   td/utils/ScopeGuard.h

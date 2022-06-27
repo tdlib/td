@@ -28,8 +28,6 @@
 #include "td/db/binlog/BinlogHelper.h"
 #include "td/db/binlog/BinlogInterface.h"
 
-#include "td/actor/PromiseFuture.h"
-
 #include "td/utils/common.h"
 #include "td/utils/format.h"
 #include "td/utils/logging.h"

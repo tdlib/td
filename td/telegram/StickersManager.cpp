@@ -41,8 +41,6 @@
 #include "td/db/SqliteKeyValue.h"
 #include "td/db/SqliteKeyValueAsync.h"
 
-#include "td/actor/MultiPromise.h"
-#include "td/actor/PromiseFuture.h"
 #include "td/actor/SleepActor.h"
 
 #include "td/utils/algorithm.h"

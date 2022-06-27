@@ -13,11 +13,10 @@
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/UserId.h"
 
-#include "td/actor/PromiseFuture.h"
-
 #include "td/utils/buffer.h"
 #include "td/utils/common.h"
 #include "td/utils/format.h"
+#include "td/utils/Promise.h"
 #include "td/utils/SliceBuilder.h"
 #include "td/utils/Status.h"
 #include "td/utils/StorerBase.h"

@@ -12,7 +12,6 @@
 #include "td/actor/actor.h"
 #include "td/actor/ConcurrentScheduler.h"
 #include "td/actor/MultiPromise.h"
-#include "td/actor/PromiseFuture.h"
 
 #include "td/utils/crypto.h"
 #include "td/utils/FileLog.h"
@@ -21,6 +20,7 @@
 #include "td/utils/OptionParser.h"
 #include "td/utils/port/path.h"
 #include "td/utils/port/signals.h"
+#include "td/utils/Promise.h"
 #include "td/utils/Random.h"
 
 #include <iostream>

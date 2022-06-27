@@ -21,13 +21,13 @@
 #include "td/telegram/td_api.h"
 
 #include "td/actor/actor.h"
-#include "td/actor/PromiseFuture.h"
 #include "td/actor/Timeout.h"
 
 #include "td/utils/common.h"
 #include "td/utils/FlatHashMap.h"
 #include "td/utils/FlatHashSet.h"
 #include "td/utils/logging.h"
+#include "td/utils/Promise.h"
 #include "td/utils/Status.h"
 #include "td/utils/StringBuilder.h"
 #include "td/utils/Time.h"

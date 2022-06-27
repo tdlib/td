@@ -11,9 +11,8 @@
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 
-#include "td/actor/PromiseFuture.h"
-
 #include "td/utils/common.h"
+#include "td/utils/Promise.h"
 #include "td/utils/Slice.h"
 #include "td/utils/tl_helpers.h"
 

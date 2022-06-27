@@ -10,9 +10,8 @@
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/UserId.h"
 
-#include "td/actor/PromiseFuture.h"
-
 #include "td/utils/common.h"
+#include "td/utils/Promise.h"
 #include "td/utils/tl_helpers.h"
 
 namespace td {

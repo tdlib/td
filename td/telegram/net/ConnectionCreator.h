@@ -21,7 +21,6 @@
 #include "td/net/NetStats.h"
 
 #include "td/actor/actor.h"
-#include "td/actor/PromiseFuture.h"
 #include "td/actor/SignalSlot.h"
 
 #include "td/utils/BufferedFd.h"
@@ -31,6 +30,7 @@
 #include "td/utils/logging.h"
 #include "td/utils/port/IPAddress.h"
 #include "td/utils/port/SocketFd.h"
+#include "td/utils/Promise.h"
 #include "td/utils/Slice.h"
 #include "td/utils/Status.h"
 #include "td/utils/Time.h"

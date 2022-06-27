@@ -7,10 +7,10 @@
 #pragma once
 
 #include "td/actor/actor.h"
-#include "td/actor/PromiseFuture.h"
 
 #include "td/utils/common.h"
 #include "td/utils/Hints.h"
+#include "td/utils/Promise.h"
 #include "td/utils/Status.h"
 
 namespace td {

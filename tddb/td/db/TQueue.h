@@ -6,9 +6,8 @@
 //
 #pragma once
 
-#include "td/actor/PromiseFuture.h"
-
 #include "td/utils/common.h"
+#include "td/utils/Promise.h"
 #include "td/utils/Slice.h"
 #include "td/utils/Span.h"
 #include "td/utils/Status.h"

@@ -9,9 +9,8 @@
 #include "td/telegram/net/NetType.h"
 #include "td/telegram/td_api.h"
 
-#include "td/actor/PromiseFuture.h"
-
 #include "td/utils/common.h"
+#include "td/utils/Promise.h"
 
 namespace td {
 

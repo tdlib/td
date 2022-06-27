@@ -7,9 +7,9 @@
 #pragma once
 
 #include "td/actor/actor.h"
-#include "td/actor/PromiseFuture.h"
 
 #include "td/utils/common.h"
+#include "td/utils/Promise.h"
 
 namespace td {
 

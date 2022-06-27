@@ -22,6 +22,8 @@
 #include "td/telegram/TdDb.h"
 #include "td/telegram/TdParameters.h"
 
+#include "td/actor/PromiseFuture.h"
+
 #include "td/utils/algorithm.h"
 #include "td/utils/buffer.h"
 #include "td/utils/logging.h"

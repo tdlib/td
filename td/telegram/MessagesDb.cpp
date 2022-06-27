@@ -14,7 +14,6 @@
 #include "td/db/SqliteStatement.h"
 
 #include "td/actor/actor.h"
-#include "td/actor/PromiseFuture.h"
 #include "td/actor/SchedulerLocalStorage.h"
 
 #include "td/utils/format.h"

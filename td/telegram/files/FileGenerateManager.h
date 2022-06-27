@@ -9,8 +9,8 @@
 #include "td/telegram/files/FileLocation.h"
 
 #include "td/actor/actor.h"
-#include "td/actor/PromiseFuture.h"
 
+#include "td/utils/Promise.h"
 #include "td/utils/Status.h"
 
 #include <map>

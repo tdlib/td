@@ -61,7 +61,6 @@
 
 #include "td/actor/actor.h"
 #include "td/actor/MultiPromise.h"
-#include "td/actor/PromiseFuture.h"
 #include "td/actor/SignalSlot.h"
 #include "td/actor/Timeout.h"
 
@@ -73,6 +72,7 @@
 #include "td/utils/Heap.h"
 #include "td/utils/Hints.h"
 #include "td/utils/logging.h"
+#include "td/utils/Promise.h"
 #include "td/utils/Slice.h"
 #include "td/utils/Status.h"
 #include "td/utils/StringBuilder.h"

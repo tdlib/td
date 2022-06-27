@@ -17,7 +17,6 @@
 #include "td/mtproto/SessionConnection.h"
 
 #include "td/actor/actor.h"
-#include "td/actor/PromiseFuture.h"
 
 #include "td/utils/buffer.h"
 #include "td/utils/CancellationToken.h"
@@ -25,6 +24,7 @@
 #include "td/utils/FlatHashMap.h"
 #include "td/utils/FlatHashSet.h"
 #include "td/utils/List.h"
+#include "td/utils/Promise.h"
 #include "td/utils/Status.h"
 #include "td/utils/StringBuilder.h"
 #include "td/utils/VectorQueue.h"

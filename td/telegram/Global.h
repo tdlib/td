@@ -15,12 +15,12 @@
 #include "td/net/NetStats.h"
 
 #include "td/actor/actor.h"
-#include "td/actor/PromiseFuture.h"
 #include "td/actor/SchedulerLocalStorage.h"
 
 #include "td/utils/common.h"
 #include "td/utils/FlatHashMap.h"
 #include "td/utils/logging.h"
+#include "td/utils/Promise.h"
 #include "td/utils/Slice.h"
 #include "td/utils/Status.h"
 #include "td/utils/Time.h"

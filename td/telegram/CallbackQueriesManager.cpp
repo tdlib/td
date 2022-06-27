@@ -18,7 +18,6 @@
 #include "td/telegram/telegram_api.h"
 
 #include "td/actor/actor.h"
-#include "td/actor/PromiseFuture.h"
 
 #include "td/utils/common.h"
 #include "td/utils/logging.h"

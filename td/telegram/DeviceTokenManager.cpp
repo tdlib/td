@@ -16,6 +16,8 @@
 
 #include "td/mtproto/DhHandshake.h"
 
+#include "td/actor/PromiseFuture.h"
+
 #include "td/utils/algorithm.h"
 #include "td/utils/base64.h"
 #include "td/utils/buffer.h"

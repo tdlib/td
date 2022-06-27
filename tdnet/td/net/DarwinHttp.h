@@ -6,9 +6,8 @@
 //
 #pragma once
 
-#include "td/actor/PromiseFuture.h"
-
 #include "td/utils/buffer.h"
+#include "td/utils/Promise.h"
 #include "td/utils/Slice.h"
 
 namespace td {

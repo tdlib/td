@@ -9,9 +9,8 @@
 #include "td/db/binlog/BinlogEvent.h"
 #include "td/db/binlog/BinlogInterface.h"
 
-#include "td/actor/PromiseFuture.h"
-
 #include "td/utils/common.h"
+#include "td/utils/Promise.h"
 #include "td/utils/StorerBase.h"
 
 namespace td {

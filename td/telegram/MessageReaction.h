@@ -14,10 +14,9 @@
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 
-#include "td/actor/PromiseFuture.h"
-
 #include "td/utils/common.h"
 #include "td/utils/FlatHashMap.h"
+#include "td/utils/Promise.h"
 #include "td/utils/StringBuilder.h"
 
 #include <utility>

@@ -9,9 +9,9 @@
 #include "td/telegram/files/FileStats.h"
 
 #include "td/actor/actor.h"
-#include "td/actor/PromiseFuture.h"
 
 #include "td/utils/CancellationToken.h"
+#include "td/utils/Promise.h"
 
 namespace td {
 

@@ -19,11 +19,11 @@
 
 #include "td/actor/actor.h"
 #include "td/actor/MultiPromise.h"
-#include "td/actor/PromiseFuture.h"
 #include "td/actor/Timeout.h"
 
 #include "td/utils/common.h"
 #include "td/utils/FlatHashMap.h"
+#include "td/utils/Promise.h"
 #include "td/utils/Status.h"
 
 #include <utility>

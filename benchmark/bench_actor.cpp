@@ -12,6 +12,7 @@
 #include "td/utils/common.h"
 #include "td/utils/crypto.h"
 #include "td/utils/logging.h"
+#include "td/utils/Promise.h"
 #include "td/utils/SliceBuilder.h"
 
 #if TD_MSVC

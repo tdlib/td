@@ -16,6 +16,7 @@
 #include "td/utils/Observer.h"
 #include "td/utils/port/FileFd.h"
 #include "td/utils/port/thread.h"
+#include "td/utils/Promise.h"
 #include "td/utils/Slice.h"
 #include "td/utils/Status.h"
 #include "td/utils/StringBuilder.h"

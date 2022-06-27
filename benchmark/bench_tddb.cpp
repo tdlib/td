@@ -16,12 +16,12 @@
 #include "td/db/SqliteDb.h"
 
 #include "td/actor/ConcurrentScheduler.h"
-#include "td/actor/PromiseFuture.h"
 
 #include "td/utils/benchmark.h"
 #include "td/utils/buffer.h"
 #include "td/utils/common.h"
 #include "td/utils/logging.h"
+#include "td/utils/Promise.h"
 #include "td/utils/Random.h"
 #include "td/utils/Status.h"
 

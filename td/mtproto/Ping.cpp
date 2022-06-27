@@ -10,9 +10,6 @@
 #include "td/mtproto/PingConnection.h"
 #include "td/mtproto/RawConnection.h"
 
-#include "td/actor/actor.h"
-#include "td/actor/PromiseFuture.h"
-
 #include "td/utils/SliceBuilder.h"
 #include "td/utils/Status.h"
 

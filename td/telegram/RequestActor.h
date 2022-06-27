@@ -15,6 +15,7 @@
 
 #include "td/utils/common.h"
 #include "td/utils/logging.h"
+#include "td/utils/Promise.h"
 #include "td/utils/Status.h"
 
 #include <type_traits>
@@ -37,7 +38,7 @@ class RequestActor : public Actor {
     FutureActor<T> future;
     init_promise_future(&promise_actor, &future);
 
-    auto promise = PromiseCreator::from_promise_actor(std::move(promise_actor));
+    auto promise = create_promise_from_promise_actor(std::move(promise_actor));
     do_run(std::move(promise));
 
     if (future.is_ready()) {

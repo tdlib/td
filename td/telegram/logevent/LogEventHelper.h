@@ -8,9 +8,8 @@
 
 #include "td/telegram/Global.h"
 
-#include "td/actor/PromiseFuture.h"
-
 #include "td/utils/common.h"
+#include "td/utils/Promise.h"
 #include "td/utils/Slice.h"
 #include "td/utils/StorerBase.h"
 #include "td/utils/Time.h"
