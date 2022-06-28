@@ -2293,11 +2293,14 @@ void UpdatesManager::postpone_pts_update(tl_object_ptr<telegram_api::Update> &&u
 void UpdatesManager::process_seq_updates(int32 seq_end, int32 date,
                                          vector<tl_object_ptr<telegram_api::Update>> &&updates,
                                          Promise<Unit> &&promise) {
-  string serialized_updates = PSTRING() << "process_seq_updates [seq_ = " << seq_ << ", seq_end = " << seq_end << "]: ";
-  // TODO remove after bugs will be fixed
-  for (auto &update : updates) {
-    if (update != nullptr) {
-      serialized_updates += oneline(to_string(update));
+  string serialized_updates;
+  if (date && seq_end) {
+    serialized_updates = PSTRING() << "process_seq_updates [seq_ = " << seq_ << ", seq_end = " << seq_end << "]: ";
+    // TODO remove after bugs will be fixed
+    for (auto &update : updates) {
+      if (update != nullptr) {
+        serialized_updates += oneline(to_string(update));
+      }
     }
   }
   process_updates(std::move(updates), false, std::move(promise));
