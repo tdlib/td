@@ -26,6 +26,8 @@
 #include "td/mtproto/SessionConnection.h"
 #include "td/mtproto/TransportType.h"
 
+#include "td/actor/PromiseFuture.h"
+
 #include "td/utils/algorithm.h"
 #include "td/utils/as.h"
 #include "td/utils/format.h"

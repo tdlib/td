@@ -51,6 +51,14 @@ class EventPromise final : public PromiseInterface<Unit> {
     }
   }
 };
+
+class SendClosure {
+ public:
+  template <class... ArgsT>
+  void operator()(ArgsT &&...args) const {
+    send_closure(std::forward<ArgsT>(args)...);
+  }
+};
 }  // namespace detail
 
 inline Promise<Unit> create_event_promise(EventFull &&ok) {
@@ -285,6 +293,13 @@ FutureActor<T> send_promise(ActorId<ActorAT> actor_id, ResultT (ActorBT::*func)(
   Scheduler::instance()->send_closure<send_type>(
       std::move(actor_id), create_immediate_closure(func, pf.move_promise(), std::forward<ArgsT>(args)...));
   return pf.move_future();
+}
+
+template <class... ArgsT>
+auto promise_send_closure(ArgsT &&...args) {
+  return [t = std::make_tuple(std::forward<ArgsT>(args)...)](auto &&res) mutable {
+    call_tuple(detail::SendClosure(), std::tuple_cat(std::move(t), std::make_tuple(std::forward<decltype(res)>(res))));
+  };
 }
 
 template <class T>

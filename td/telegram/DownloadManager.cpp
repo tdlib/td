@@ -15,6 +15,7 @@
 #include "td/telegram/TdParameters.h"
 
 #include "td/actor/MultiPromise.h"
+#include "td/actor/PromiseFuture.h"
 
 #include "td/utils/algorithm.h"
 #include "td/utils/FlatHashMap.h"

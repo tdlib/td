@@ -10,6 +10,8 @@
 #include "td/telegram/net/NetQueryDispatcher.h"
 #include "td/telegram/Td.h"
 
+#include "td/actor/PromiseFuture.h"
+
 #include "td/utils/algorithm.h"
 #include "td/utils/ChainScheduler.h"
 #include "td/utils/format.h"

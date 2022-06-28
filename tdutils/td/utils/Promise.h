@@ -323,31 +323,7 @@ class JoinPromise final : public PromiseInterface<Unit> {
  private:
   std::tuple<std::decay_t<ArgsT>...> promises_;
 };
-
-class SendClosure {
- public:
-  template <class... ArgsT>
-  void operator()(ArgsT &&...args) const {
-    send_closure(std::forward<ArgsT>(args)...);
-  }
-};
 }  // namespace detail
-
-//template <class T>
-//template <class... ArgsT>
-//auto Promise<T>::send_closure(ArgsT &&... args) {
-//  return [promise = std::move(*this), t = std::make_tuple(std::forward<ArgsT>(args)...)](auto &&r_res) mutable {
-//    TRY_RESULT_PROMISE(promise, res, std::move(r_res));
-//    call_tuple(detail::SendClosure(), std::tuple_cat(std::move(t), std::make_tuple(std::move(res), std::move(promise))));
-//  };
-//}
-
-template <class... ArgsT>
-auto promise_send_closure(ArgsT &&...args) {
-  return [t = std::make_tuple(std::forward<ArgsT>(args)...)](auto &&res) mutable {
-    call_tuple(detail::SendClosure(), std::tuple_cat(std::move(t), std::make_tuple(std::forward<decltype(res)>(res))));
-  };
-}
 
 class PromiseCreator {
  public:
