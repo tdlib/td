@@ -2027,13 +2027,14 @@ void UpdatesManager::add_pending_qts_update(tl_object_ptr<telegram_api::Update> 
 
 void UpdatesManager::process_updates(vector<tl_object_ptr<telegram_api::Update>> &&updates, bool force_apply,
                                      Promise<Unit> &&promise) {
-  tl_object_ptr<telegram_api::updatePtsChanged> update_pts_changed;
-
   int32 update_count = 0;
   for (auto &update : updates) {
     if (update != nullptr) {
       update_count++;
     }
+  }
+  if (update_count == 0) {
+    return promise.set_value(Unit());
   }
 
   MultiPromiseActorSafe mpas{"OnProcessUpdatesMultiPromiseActor"};
@@ -2070,6 +2071,8 @@ void UpdatesManager::process_updates(vector<tl_object_ptr<telegram_api::Update>>
       }
     }
   */
+
+  tl_object_ptr<telegram_api::updatePtsChanged> update_pts_changed;
   for (auto &update : updates) {
     if (update != nullptr) {
       // process updateNewChannelMessage first
