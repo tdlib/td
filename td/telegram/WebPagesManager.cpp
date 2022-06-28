@@ -422,6 +422,9 @@ WebPagesManager::~WebPagesManager() = default;
 WebPageId WebPagesManager::on_get_web_page(tl_object_ptr<telegram_api::WebPage> &&web_page_ptr,
                                            DialogId owner_dialog_id) {
   CHECK(web_page_ptr != nullptr);
+  if (td_->auth_manager_->is_bot()) {
+    return WebPageId();
+  }
   LOG(DEBUG) << "Got " << to_string(web_page_ptr);
   switch (web_page_ptr->get_id()) {
     case telegram_api::webPageEmpty::ID: {
