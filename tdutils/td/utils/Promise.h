@@ -53,6 +53,12 @@ class PromiseInterface {
   }
 };
 
+template <class T>
+class SafePromise;
+
+template <class T = Unit>
+class Promise;
+
 namespace detail {
 
 template <typename T>
@@ -137,13 +143,6 @@ class LambdaPromise : public PromiseInterface<ValueT> {
     func_(std::move(value));
   }
 };
-}  // namespace detail
-
-template <class T>
-class SafePromise;
-
-template <class T = Unit>
-class Promise;
 
 template <class T>
 struct is_promise_interface : std::false_type {};
@@ -162,12 +161,11 @@ struct is_promise_interface_ptr<unique_ptr<U>> : std::true_type {};
 
 template <class T = void, class F = void, std::enable_if_t<std::is_same<T, void>::value, bool> has_t = false>
 auto lambda_promise(F &&f) {
-  return detail::LambdaPromise<detail::drop_result_t<detail::get_arg_t<std::decay_t<F>>>, std::decay_t<F>>(
-      std::forward<F>(f));
+  return LambdaPromise<drop_result_t<get_arg_t<std::decay_t<F>>>, std::decay_t<F>>(std::forward<F>(f));
 }
 template <class T = void, class F = void, std::enable_if_t<!std::is_same<T, void>::value, bool> has_t = true>
 auto lambda_promise(F &&f) {
-  return detail::LambdaPromise<T, std::decay_t<F>>(std::forward<F>(f));
+  return LambdaPromise<T, std::decay_t<F>>(std::forward<F>(f));
 }
 
 template <class T, class F,
@@ -194,6 +192,7 @@ auto promise_interface_ptr(F &&f) {
   return td::make_unique<std::decay_t<decltype(promise_interface<T>(std::forward<F>(f)))>>(
       promise_interface<T>(std::forward<F>(f)));
 }
+}  // namespace detail
 
 template <class T>
 class Promise {
@@ -246,7 +245,7 @@ class Promise {
   Promise(SafePromise<T> &&other);
   Promise &operator=(SafePromise<T> &&other);
   template <class F, std::enable_if_t<!std::is_same<std::decay_t<F>, Promise>::value, int> = 0>
-  Promise(F &&f) : promise_(promise_interface_ptr<T>(std::forward<F>(f))) {
+  Promise(F &&f) : promise_(detail::promise_interface_ptr<T>(std::forward<F>(f))) {
   }
 
   explicit operator bool() {
@@ -324,7 +323,6 @@ class JoinPromise final : public PromiseInterface<Unit> {
  private:
   std::tuple<std::decay_t<ArgsT>...> promises_;
 };
-}  // namespace detail
 
 class SendClosure {
  public:
@@ -333,20 +331,21 @@ class SendClosure {
     send_closure(std::forward<ArgsT>(args)...);
   }
 };
+}  // namespace detail
 
 //template <class T>
 //template <class... ArgsT>
 //auto Promise<T>::send_closure(ArgsT &&... args) {
 //  return [promise = std::move(*this), t = std::make_tuple(std::forward<ArgsT>(args)...)](auto &&r_res) mutable {
 //    TRY_RESULT_PROMISE(promise, res, std::move(r_res));
-//    call_tuple(SendClosure(), std::tuple_cat(std::move(t), std::make_tuple(std::move(res), std::move(promise))));
+//    call_tuple(detail::SendClosure(), std::tuple_cat(std::move(t), std::make_tuple(std::move(res), std::move(promise))));
 //  };
 //}
 
 template <class... ArgsT>
 auto promise_send_closure(ArgsT &&...args) {
   return [t = std::make_tuple(std::forward<ArgsT>(args)...)](auto &&res) mutable {
-    call_tuple(SendClosure(), std::tuple_cat(std::move(t), std::make_tuple(std::forward<decltype(res)>(res))));
+    call_tuple(detail::SendClosure(), std::tuple_cat(std::move(t), std::make_tuple(std::forward<decltype(res)>(res))));
   };
 }
 
