@@ -198,7 +198,7 @@ Status log_event_parse(T &data, Slice slice) {
 }
 
 template <class T>
-BufferSlice log_event_store(const T &data) {
+BufferSlice log_event_store_impl(const T &data, const char *file, int line) {
   LogEventStorerCalcLength storer_calc_length;
   store(data, storer_calc_length);
 
@@ -211,10 +211,15 @@ BufferSlice log_event_store(const T &data) {
 
 #ifdef TD_DEBUG
   T check_result;
-  log_event_parse(check_result, value_buffer.as_slice()).ensure();
+  auto status = log_event_parse(check_result, value_buffer.as_slice());
+  if (status.is_error()) {
+    LOG(FATAL) << status << ' ' << file << ' ' << line;
+  }
 #endif
   return value_buffer;
 }
+
+#define log_event_store(data) log_event_store_impl((data), __FILE__, __LINE__)
 
 template <class T>
 log_event::LogEventStorerImpl<T> get_log_event_storer(const T &event) {
