@@ -1390,12 +1390,12 @@ static void sort_entities(vector<MessageEntity> &entities) {
   std::sort(entities.begin(), entities.end());
 }
 
-#define check_is_sorted(entities) check_is_sorted_impl(entities, __LINE__)
+#define check_is_sorted(entities) check_is_sorted_impl((entities), __LINE__)
 static void check_is_sorted_impl(const vector<MessageEntity> &entities, int line) {
   LOG_CHECK(std::is_sorted(entities.begin(), entities.end())) << line << " " << entities;
 }
 
-#define check_non_intersecting(entities) check_non_intersecting_impl(entities, __LINE__)
+#define check_non_intersecting(entities) check_non_intersecting_impl((entities), __LINE__)
 static void check_non_intersecting_impl(const vector<MessageEntity> &entities, int line) {
   for (size_t i = 0; i + 1 < entities.size(); i++) {
     LOG_CHECK(entities[i].offset + entities[i].length <= entities[i + 1].offset) << line << " " << entities;

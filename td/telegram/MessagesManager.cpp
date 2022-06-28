@@ -27916,8 +27916,8 @@ class MessagesManager::ForwardMessagesLogEvent {
   DialogId from_dialog_id;
   vector<MessageId> message_ids;
   vector<Message *> messages_in;
-  bool drop_author;
-  bool drop_media_captions;
+  bool drop_author = false;
+  bool drop_media_captions = false;
   vector<unique_ptr<Message>> messages_out;
 
   template <class StorerT>
