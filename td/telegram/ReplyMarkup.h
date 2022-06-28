@@ -16,6 +16,7 @@
 
 namespace td {
 
+class ContactsManager;
 class Dependencies;
 
 struct KeyboardButton {
@@ -72,9 +73,9 @@ struct ReplyMarkup {
 
   StringBuilder &print(StringBuilder &string_builder) const;
 
-  tl_object_ptr<telegram_api::ReplyMarkup> get_input_reply_markup() const;
+  tl_object_ptr<telegram_api::ReplyMarkup> get_input_reply_markup(ContactsManager *contacts_manager) const;
 
-  tl_object_ptr<td_api::ReplyMarkup> get_reply_markup_object() const;
+  tl_object_ptr<td_api::ReplyMarkup> get_reply_markup_object(ContactsManager *contacts_manager) const;
 };
 
 bool operator==(const ReplyMarkup &lhs, const ReplyMarkup &rhs);
@@ -89,9 +90,11 @@ Result<unique_ptr<ReplyMarkup>> get_reply_markup(tl_object_ptr<td_api::ReplyMark
                                                  bool only_inline_keyboard, bool request_buttons_allowed,
                                                  bool switch_inline_buttons_allowed) TD_WARN_UNUSED_RESULT;
 
-tl_object_ptr<telegram_api::ReplyMarkup> get_input_reply_markup(const unique_ptr<ReplyMarkup> &reply_markup);
+tl_object_ptr<telegram_api::ReplyMarkup> get_input_reply_markup(ContactsManager *contacts_manager,
+                                                                const unique_ptr<ReplyMarkup> &reply_markup);
 
-tl_object_ptr<td_api::ReplyMarkup> get_reply_markup_object(const unique_ptr<ReplyMarkup> &reply_markup);
+tl_object_ptr<td_api::ReplyMarkup> get_reply_markup_object(ContactsManager *contacts_manager,
+                                                           const unique_ptr<ReplyMarkup> &reply_markup);
 
 void add_reply_markup_dependencies(Dependencies &dependencies, const ReplyMarkup *reply_markup);
 

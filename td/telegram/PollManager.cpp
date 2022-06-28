@@ -195,7 +195,7 @@ class StopPollQuery final : public Td::ResultHandler {
     }
 
     int32 flags = telegram_api::messages_editMessage::MEDIA_MASK;
-    auto input_reply_markup = get_input_reply_markup(reply_markup);
+    auto input_reply_markup = get_input_reply_markup(td_->contacts_manager_.get(), reply_markup);
     if (input_reply_markup != nullptr) {
       flags |= telegram_api::messages_editMessage::REPLY_MARKUP_MASK;
     }
