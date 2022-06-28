@@ -92,7 +92,7 @@ class LambdaPromise : public PromiseInterface<ValueT> {
  public:
   void set_value(ValueT &&value) override {
     CHECK(state_.get() == State::Ready);
-    func_(std::move(value));
+    do_ok(std::move(value));
     state_ = State::Complete;
   }
 
@@ -127,6 +127,14 @@ class LambdaPromise : public PromiseInterface<ValueT> {
   template <class Y, class F = FunctionT>
   std::enable_if_t<!is_callable<F, Result<ValueT>>::value, void> do_error(Y &&status) {
     func_(Auto());
+  }
+  template <class F = FunctionT>
+  std::enable_if_t<is_callable<F, Result<ValueT>>::value, void> do_ok(ValueT &&value) {
+    func_(Result<ValueT>(std::move(value)));
+  }
+  template <class F = FunctionT>
+  std::enable_if_t<!is_callable<F, Result<ValueT>>::value, void> do_ok(ValueT &&value) {
+    func_(std::move(value));
   }
 };
 }  // namespace detail
