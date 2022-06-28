@@ -1786,7 +1786,7 @@ void PollManager::on_get_poll_vote(PollId poll_id, UserId user_id, vector<Buffer
   for (auto &option : options) {
     auto slice = option.as_slice();
     if (slice.size() != 1 || slice[0] < '0' || slice[0] > '9') {
-      LOG(ERROR) << "Receive updateMessagePollVote with unexpected option \"" << format::escaped(slice) << '"';
+      LOG(INFO) << "Receive updateMessagePollVote with unexpected option \"" << format::escaped(slice) << '"';
       return;
     }
     option_ids.push_back(static_cast<int32>(slice[0] - '0'));
