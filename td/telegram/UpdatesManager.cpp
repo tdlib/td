@@ -1904,6 +1904,9 @@ void UpdatesManager::on_pending_updates(vector<tl_object_ptr<telegram_api::Updat
         }
         downcast_call(*update, OnUpdate(this, update, get_promise()));
         update = nullptr;
+      } else if (is_channel_pts_update(update.get())) {
+        downcast_call(*update, OnUpdate(this, update, get_promise()));
+        update = nullptr;
       }
     }
   }
@@ -3048,6 +3051,18 @@ int32 UpdatesManager::get_update_qts(const telegram_api::Update *update) {
       return static_cast<const telegram_api::updateBotChatInviteRequester *>(update)->qts_;
     default:
       return 0;
+  }
+}
+
+bool UpdatesManager::is_channel_pts_update(const telegram_api::Update *update) {
+  switch (update->get_id()) {
+    case telegram_api::updateNewChannelMessage::ID:
+    case telegram_api::updateEditChannelMessage::ID:
+    case telegram_api::updateDeleteChannelMessages::ID:
+    case telegram_api::updatePinnedChannelMessages::ID:
+      return true;
+    default:
+      return false;
   }
 }
 
