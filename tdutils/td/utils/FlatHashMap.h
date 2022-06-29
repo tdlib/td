@@ -7,17 +7,17 @@
 #pragma once
 
 //#include "td/utils/FlatHashMapChunks.h"
-//#include "td/utils/FlatHashTable.h"
-//#include "td/utils/MapNode.h"
+#include "td/utils/FlatHashTable.h"
+#include "td/utils/MapNode.h"
 
 #include <functional>
-#include <unordered_map>
+//#include <unordered_map>
 
 namespace td {
 
 template <class KeyT, class ValueT, class HashT = std::hash<KeyT>, class EqT = std::equal_to<KeyT>>
-//using FlatHashMap = FlatHashTable<MapNode<KeyT, ValueT>, HashT, EqT>;
+using FlatHashMap = FlatHashTable<MapNode<KeyT, ValueT>, HashT, EqT>;
 //using FlatHashMap = FlatHashMapChunks<KeyT, ValueT, HashT, EqT>;
-using FlatHashMap = std::unordered_map<KeyT, ValueT, HashT, EqT>;
+//using FlatHashMap = std::unordered_map<KeyT, ValueT, HashT, EqT>;
 
 }  // namespace td
