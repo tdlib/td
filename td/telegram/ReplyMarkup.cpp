@@ -895,10 +895,13 @@ static tl_object_ptr<td_api::inlineKeyboardButton> get_inline_keyboard_button_ob
     case InlineKeyboardButton::Type::CallbackWithPassword:
       type = make_tl_object<td_api::inlineKeyboardButtonTypeCallbackWithPassword>(keyboard_button.data);
       break;
-    case InlineKeyboardButton::Type::User:
-      type = make_tl_object<td_api::inlineKeyboardButtonTypeUser>(
-          contacts_manager->get_user_id_object(keyboard_button.user_id, "get_inline_keyboard_button_object"));
+    case InlineKeyboardButton::Type::User: {
+      auto user_id = contacts_manager == nullptr ? keyboard_button.user_id.get()
+                                                 : contacts_manager->get_user_id_object(
+                                                       keyboard_button.user_id, "get_inline_keyboard_button_object");
+      type = make_tl_object<td_api::inlineKeyboardButtonTypeUser>(user_id);
       break;
+    }
     case InlineKeyboardButton::Type::WebView:
       type = make_tl_object<td_api::inlineKeyboardButtonTypeWebApp>(keyboard_button.data);
       break;
