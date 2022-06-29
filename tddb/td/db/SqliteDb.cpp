@@ -76,7 +76,9 @@ Status SqliteDb::init(CSlice path, bool allow_creation) {
   auto database_stat = stat(path);
   if (database_stat.is_error()) {
     if (!allow_creation) {
-      LOG(FATAL) << "Database was deleted during execution and can't be recreated: " << database_stat.error();
+      bool was_destroyed = detail::RawSqliteDb::was_any_database_destroyed();
+      auto reason = was_destroyed ? Slice("was corrupted and deleted") : Slice("disappeared");
+      LOG(FATAL) << "Database " << reason << " during execution and can't be recreated: " << database_stat.error();
     }
     TRY_STATUS(destroy(path));
   }

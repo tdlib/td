@@ -14,8 +14,12 @@
 #include "td/utils/port/path.h"
 #include "td/utils/port/Stat.h"
 
+#include <atomic>
+
 namespace td {
 namespace detail {
+
+static std::atomic<bool> was_database_destroyed{false};
 
 Status RawSqliteDb::last_error(sqlite3 *db, CSlice path) {
   return Status::Error(PSLICE() << Slice(sqlite3_errmsg(db)) << " for database \"" << path << '"');
@@ -36,10 +40,15 @@ Status RawSqliteDb::last_error() {
   //If database was corrupted, try to delete it.
   auto code = sqlite3_errcode(db_);
   if (code == SQLITE_CORRUPT) {
+    was_database_destroyed.store(true, std::memory_order_relaxed);
     destroy(path_).ignore();
   }
 
   return last_error(db_, path());
+}
+
+bool RawSqliteDb::was_any_database_destroyed() {
+  return was_database_destroyed.load(std::memory_order_relaxed);
 }
 
 RawSqliteDb::~RawSqliteDb() {

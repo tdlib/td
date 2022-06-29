@@ -45,6 +45,8 @@ class RawSqliteDb {
   Status last_error();
   static Status last_error(sqlite3 *db, CSlice path);
 
+  static bool was_any_database_destroyed();
+
   bool on_begin() {
     begin_cnt_++;
     return begin_cnt_ == 1;
