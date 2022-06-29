@@ -339,6 +339,28 @@ void Scheduler::send_to_other_scheduler(int32 sched_id, const ActorId<> &actor_i
   }
 }
 
+void Scheduler::run_on_scheduler(int32 sched_id, Promise<Unit> action) {
+  if (sched_id >= 0 && sched_id_ != sched_id) {
+    class Worker final : public Actor {
+     public:
+      explicit Worker(Promise<Unit> action) : action_(std::move(action)) {
+      }
+
+     private:
+      Promise<Unit> action_;
+
+      void start_up() final {
+        action_.set_value(Unit());
+        stop();
+      }
+    };
+    create_actor_on_scheduler<Worker>("RunOnSchedulerWorker", sched_id, std::move(action)).release();
+    return;
+  }
+
+  action.set_value(Unit());
+}
+
 void Scheduler::add_to_mailbox(ActorInfo *actor_info, Event &&event) {
   if (!actor_info->is_running()) {
     auto node = actor_info->get_list_node();

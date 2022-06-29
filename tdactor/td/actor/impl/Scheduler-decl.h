@@ -22,6 +22,7 @@
 #include "td/utils/port/Poll.h"
 #include "td/utils/port/PollFlags.h"
 #include "td/utils/port/thread_local.h"
+#include "td/utils/Promise.h"
 #include "td/utils/Slice.h"
 #include "td/utils/Time.h"
 #include "td/utils/type_traits.h"
@@ -97,6 +98,8 @@ class Scheduler {
 
   void send_to_scheduler(int32 sched_id, const ActorId<> &actor_id, Event &&event);
   void send_to_other_scheduler(int32 sched_id, const ActorId<> &actor_id, Event &&event);
+
+  void run_on_scheduler(int32 sched_id, Promise<Unit> action);  // TODO Action
 
   template <ActorSendType send_type, class EventT>
   void send_lambda(ActorRef actor_ref, EventT &&lambda);

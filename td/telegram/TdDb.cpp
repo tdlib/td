@@ -377,18 +377,13 @@ Status TdDb::init_sqlite(int32 scheduler_id, const TdParameters &parameters, con
 }
 
 void TdDb::open(int32 scheduler_id, TdParameters parameters, DbKey key, Promise<OpenedDatabase> &&promise) {
-  if (scheduler_id >= 0 && Scheduler::instance()->sched_id() != scheduler_id) {
-    class Worker final : public Actor {
-     public:
-      void open(TdParameters &&parameters, DbKey &&key, Promise<OpenedDatabase> &&promise) {
-        TdDb::open(-1, std::move(parameters), std::move(key), std::move(promise));
-        stop();
-      }
-    };
-    send_closure(create_actor_on_scheduler<Worker>("Worker", scheduler_id), &Worker::open, std::move(parameters),
-                 std::move(key), std::move(promise));
-    return;
-  }
+  Scheduler::instance()->run_on_scheduler(scheduler_id, [parameters = std::move(parameters), key = std::move(key),
+                                                         promise = std::move(promise)](Unit) mutable {
+    TdDb::open_impl(-1, std::move(parameters), std::move(key), std::move(promise));
+  });
+}
+
+void TdDb::open_impl(int32 scheduler_id, TdParameters parameters, DbKey key, Promise<OpenedDatabase> &&promise) {
   OpenedDatabase result;
 
   // Init pmc
@@ -483,18 +478,13 @@ TdDb::TdDb() = default;
 TdDb::~TdDb() = default;
 
 void TdDb::check_parameters(int32 scheduler_id, TdParameters parameters, Promise<CheckedParameters> promise) {
-  if (scheduler_id >= 0 && Scheduler::instance()->sched_id() != scheduler_id) {
-    class Worker final : public Actor {
-     public:
-      void run(TdParameters parameters, Promise<CheckedParameters> promise) {
-        TdDb::check_parameters(-1, std::move(parameters), std::move(promise));
-        stop();
-      }
-    };
-    send_closure(create_actor_on_scheduler<Worker>("Worker", scheduler_id), &Worker::run, std::move(parameters),
-                 std::move(promise));
-    return;
-  }
+  Scheduler::instance()->run_on_scheduler(
+      scheduler_id, [parameters = std::move(parameters), promise = std::move(promise)](Unit) mutable {
+        TdDb::check_parameters_impl(std::move(parameters), std::move(promise));
+      });
+}
+
+void TdDb::check_parameters_impl(TdParameters parameters, Promise<CheckedParameters> promise) {
   CheckedParameters result;
 
   auto prepare_dir = [](string dir) -> Result<string> {
