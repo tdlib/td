@@ -7,6 +7,7 @@
 #include "td/net/DarwinHttp.h"
 
 #include "td/utils/logging.h"
+#include "td/utils/SliceBuilder.h"
 
 #import <Foundation/Foundation.h>
 
@@ -47,9 +48,9 @@ void http_send(NSURLRequest *request, Promise<BufferSlice> promise) {
       completionHandler:
         ^(NSData *data, NSURLResponse *response, NSError *error) {
           if (error == nil) {
-            callback(BufferSlice(Slice((const char *)([data bytes]), [data length])));
+            callback.set_value(BufferSlice(Slice((const char *)([data bytes]), [data length])));
           } else {
-            callback(Status::Error(static_cast<int32>([error code]), "HTTP request failed"));
+            callback.set_error(Status::Error(static_cast<int32>([error code]), "HTTP request failed"));
           }
         }];
   [dataTask resume];
