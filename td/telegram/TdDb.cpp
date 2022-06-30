@@ -284,7 +284,6 @@ Status TdDb::init_sqlite(const TdParameters &parameters, const DbKey &key, const
   bool use_file_db = parameters.use_file_db;
   bool use_dialog_db = parameters.use_message_db;
   bool use_message_db = parameters.use_message_db;
-  bool use_downloads_db = parameters.use_file_db;
   if (!use_sqlite) {
     unlink(sql_database_path).ignore();
     return Status::OK();
@@ -368,7 +367,7 @@ Status TdDb::init_sqlite(const TdParameters &parameters, const DbKey &key, const
     dialog_db_async_ = create_dialog_db_async(dialog_db_sync_safe_);
   }
 
-  if (use_downloads_db) {
+  if (use_message_db) {
     messages_db_sync_safe_ = create_messages_db_sync(sql_connection_);
     messages_db_async_ = create_messages_db_async(messages_db_sync_safe_);
   }
