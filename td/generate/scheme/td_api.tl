@@ -455,6 +455,15 @@ chatPermissions can_send_messages:Bool can_send_media_messages:Bool can_send_pol
 chatAdministratorRights can_manage_chat:Bool can_change_info:Bool can_post_messages:Bool can_edit_messages:Bool can_delete_messages:Bool can_invite_users:Bool can_restrict_members:Bool can_pin_messages:Bool can_promote_members:Bool can_manage_video_chats:Bool is_anonymous:Bool = ChatAdministratorRights;
 
 
+//@description Describes an option for gifting Telegram Premium to a user
+//@currency ISO 4217 currency code for Telegram Premium subscription payment
+//@amount The amount to pay, in the smallest units of the currency
+//@month_count Number of month the Telegram Premium subscription will be active
+//@store_product Name of the store product associated with the option
+//@payment_link An internal link to be opened for gifting Telegram Premium to the user if store payment isn't possible; may be null if direct payment isn't available
+premiumGiftOption currency:string amount:int53 month_count:int32 store_product:string payment_link:InternalLinkType = PremiumGiftOption;
+
+
 //@description Represents a user
 //@id User identifier
 //@first_name First name of the user
@@ -477,6 +486,7 @@ chatAdministratorRights can_manage_chat:Bool can_change_info:Bool can_post_messa
 //@added_to_attachment_menu True, if the user added the current bot to attachment menu; only available to bots
 user id:int53 first_name:string last_name:string username:string phone_number:string status:UserStatus profile_photo:profilePhoto is_contact:Bool is_mutual_contact:Bool is_verified:Bool is_premium:Bool is_support:Bool restriction_reason:string is_scam:Bool is_fake:Bool have_access:Bool type:UserType language_code:string added_to_attachment_menu:Bool = User;
 
+
 //@description Contains information about a bot
 //@share_text The text that is shown on the bot's profile page and is sent together with the link when users share the bot
 //@param_description The text shown in the chat with the bot if the chat is empty
@@ -488,7 +498,6 @@ user id:int53 first_name:string last_name:string username:string phone_number:st
 //@default_channel_administrator_rights Default administrator rights for adding the bot to channels; may be null
 botInfo share_text:string description:string photo:photo animation:animation menu_button:botMenuButton commands:vector<botCommand> default_group_administrator_rights:chatAdministratorRights default_channel_administrator_rights:chatAdministratorRights = BotInfo;
 
-
 //@description Contains full information about a user
 //@photo User profile photo; may be null
 //@is_blocked True, if the user is blocked by the current user
@@ -498,9 +507,10 @@ botInfo share_text:string description:string photo:photo animation:animation men
 //@has_private_forwards True, if the user can't be linked in forwarded messages due to their privacy settings
 //@need_phone_number_privacy_exception True, if the current user needs to explicitly allow to share their phone number with the user when the method addContact is used
 //@bio A short user bio; may be null for bots
+//@premium_gift_options The list of available options for gifting Telegram Premium to the user
 //@group_in_common_count Number of group chats where both the other user and the current user are a member; 0 for the current user
 //@bot_info For bots, information about the bot; may be null
-userFullInfo photo:chatPhoto is_blocked:Bool can_be_called:Bool supports_video_calls:Bool has_private_calls:Bool has_private_forwards:Bool need_phone_number_privacy_exception:Bool bio:formattedText group_in_common_count:int32 bot_info:botInfo = UserFullInfo;
+userFullInfo photo:chatPhoto is_blocked:Bool can_be_called:Bool supports_video_calls:Bool has_private_calls:Bool has_private_forwards:Bool need_phone_number_privacy_exception:Bool bio:formattedText premium_gift_options:vector<premiumGiftOption> group_in_common_count:int32 bot_info:botInfo = UserFullInfo;
 
 //@description Represents a list of users @total_count Approximate total number of users found @user_ids A list of user identifiers
 users total_count:int32 user_ids:vector<int53> = Users;

@@ -27,6 +27,7 @@
 #include "td/telegram/MessageId.h"
 #include "td/telegram/net/DcId.h"
 #include "td/telegram/Photo.h"
+#include "td/telegram/PremiumGiftOption.h"
 #include "td/telegram/PublicDialogType.h"
 #include "td/telegram/QueryCombiner.h"
 #include "td/telegram/RestrictionReason.h"
@@ -714,6 +715,8 @@ class ContactsManager final : public Actor {
     string description;
     Photo description_photo;
     FileId description_animation_file_id;
+
+    vector<PremiumGiftOption> premium_gift_options;
 
     unique_ptr<BotMenuButton> menu_button;
     vector<BotCommand> commands;

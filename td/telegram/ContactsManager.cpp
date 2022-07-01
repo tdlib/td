@@ -38,6 +38,7 @@
 #include "td/telegram/PasswordManager.h"
 #include "td/telegram/Photo.h"
 #include "td/telegram/Photo.hpp"
+#include "td/telegram/PremiumGiftOption.hpp"
 #include "td/telegram/SecretChatLayer.h"
 #include "td/telegram/SecretChatsManager.h"
 #include "td/telegram/ServerMessageId.h"
@@ -3808,6 +3809,7 @@ void ContactsManager::UserFull::store(StorerT &storer) const {
   bool has_menu_button = menu_button != nullptr;
   bool has_description_photo = !description_photo.is_empty();
   bool has_description_animation = description_animation_file_id.is_valid();
+  bool has_premium_gift_options = !premium_gift_options.empty();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_about);
   STORE_FLAG(is_blocked);
@@ -3825,6 +3827,7 @@ void ContactsManager::UserFull::store(StorerT &storer) const {
   STORE_FLAG(has_menu_button);
   STORE_FLAG(has_description_photo);
   STORE_FLAG(has_description_animation);
+  STORE_FLAG(has_premium_gift_options);
   END_STORE_FLAGS();
   if (has_about) {
     store(about, storer);
@@ -3859,6 +3862,9 @@ void ContactsManager::UserFull::store(StorerT &storer) const {
     storer.context()->td().get_actor_unsafe()->animations_manager_->store_animation(description_animation_file_id,
                                                                                     storer);
   }
+  if (has_premium_gift_options) {
+    store(premium_gift_options, storer);
+  }
 }
 
 template <class ParserT>
@@ -3874,6 +3880,7 @@ void ContactsManager::UserFull::parse(ParserT &parser) {
   bool has_menu_button;
   bool has_description_photo;
   bool has_description_animation;
+  bool has_premium_gift_options;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(has_about);
   PARSE_FLAG(is_blocked);
@@ -3891,6 +3898,7 @@ void ContactsManager::UserFull::parse(ParserT &parser) {
   PARSE_FLAG(has_menu_button);
   PARSE_FLAG(has_description_photo);
   PARSE_FLAG(has_description_animation);
+  PARSE_FLAG(has_premium_gift_options);
   END_PARSE_FLAGS();
   if (has_about) {
     parse(about, parser);
@@ -3924,6 +3932,9 @@ void ContactsManager::UserFull::parse(ParserT &parser) {
   if (has_description_animation) {
     description_animation_file_id =
         parser.context()->td().get_actor_unsafe()->animations_manager_->parse_animation(parser);
+  }
+  if (has_premium_gift_options) {
+    parse(premium_gift_options, parser);
   }
 }
 
@@ -10757,19 +10768,24 @@ void ContactsManager::on_get_user_full(tl_object_ptr<telegram_api::userFull> &&u
   bool can_be_called = user->phone_calls_available_ && !user->phone_calls_private_;
   bool supports_video_calls = user->video_calls_available_ && !user->phone_calls_private_;
   bool has_private_calls = user->phone_calls_private_;
+  auto premium_gift_options = transform(std::move(user->premium_gifts_), [](auto &&premium_gift_option) {
+    return PremiumGiftOption(std::move(premium_gift_option));
+  });
   AdministratorRights group_administrator_rights(user->bot_group_admin_rights_, ChannelType::Megagroup);
   AdministratorRights broadcast_administrator_rights(user->bot_broadcast_admin_rights_, ChannelType::Broadcast);
   if (user_full->can_be_called != can_be_called || user_full->supports_video_calls != supports_video_calls ||
       user_full->has_private_calls != has_private_calls ||
       user_full->private_forward_name != user->private_forward_name_ ||
       user_full->group_administrator_rights != group_administrator_rights ||
-      user_full->broadcast_administrator_rights != broadcast_administrator_rights) {
+      user_full->broadcast_administrator_rights != broadcast_administrator_rights ||
+      user_full->premium_gift_options != premium_gift_options) {
     user_full->can_be_called = can_be_called;
     user_full->supports_video_calls = supports_video_calls;
     user_full->has_private_calls = has_private_calls;
     user_full->private_forward_name = std::move(user->private_forward_name_);
     user_full->group_administrator_rights = group_administrator_rights;
     user_full->broadcast_administrator_rights = broadcast_administrator_rights;
+    user_full->premium_gift_options = std::move(premium_gift_options);
 
     user_full->is_changed = true;
   }
@@ -12087,6 +12103,7 @@ void ContactsManager::drop_user_full(UserId user_id) {
   user_full->private_forward_name.clear();
   user_full->group_administrator_rights = {};
   user_full->broadcast_administrator_rights = {};
+  user_full->premium_gift_options.clear();
   user_full->is_changed = true;
 
   update_user_full(user_full, user_id, "drop_user_full");
@@ -16722,11 +16739,15 @@ tl_object_ptr<td_api::userFullInfo> ContactsManager::get_user_full_info_object(U
     }
     bio_object = get_formatted_text_object(bio, true, 0);
   }
+  auto premium_gift_options = transform(user_full->premium_gift_options, [](const auto &option) {
+    return option.get_premium_gift_option_object();
+  });
   return make_tl_object<td_api::userFullInfo>(
       get_chat_photo_object(td_->file_manager_.get(), user_full->photo), user_full->is_blocked,
       user_full->can_be_called, user_full->supports_video_calls, user_full->has_private_calls,
       !user_full->private_forward_name.empty(), user_full->need_phone_number_privacy_exception, std::move(bio_object),
-      user_full->common_chat_count, std::move(bot_info));
+      std::move(premium_gift_options), user_full->common_chat_count,
+      std::move(bot_info));
 }
 
 td_api::object_ptr<td_api::updateBasicGroup> ContactsManager::get_update_unknown_basic_group_object(ChatId chat_id) {
