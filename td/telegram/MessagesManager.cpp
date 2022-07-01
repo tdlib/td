@@ -32973,6 +32973,7 @@ void MessagesManager::send_dialog_action(DialogId dialog_id, MessageId top_threa
     }
 
     if (is_dialog_action_unneeded(dialog_id)) {
+      LOG(INFO) << "Skip unneeded " << action << " in " << dialog_id;
       return promise.set_value(Unit());
     }
 
