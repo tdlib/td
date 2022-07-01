@@ -1856,7 +1856,10 @@ class CliClient final : public Actor {
       // send_request(td_api::make_object<td_api::getCurrentState>());
       // send_request(td_api::make_object<td_api::close>());
     } else if (op == "DeleteAccountYesIReallyWantToDeleteMyAccount") {
-      send_request(td_api::make_object<td_api::deleteAccount>(args));
+      string password;
+      string reason;
+      get_args(args, password, reason);
+      send_request(td_api::make_object<td_api::deleteAccount>(reason, password));
     } else if (op == "gps" || op == "GetPasswordState") {
       send_request(td_api::make_object<td_api::getPasswordState>());
     } else if (op == "spass" || op == "SetPassword") {

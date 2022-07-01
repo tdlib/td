@@ -45,7 +45,7 @@ class AuthManager final : public NetActor {
   void check_password_recovery_code(uint64 query_id, string code);
   void recover_password(uint64 query_id, string code, string new_password, string new_hint);
   void log_out(uint64 query_id);
-  void delete_account(uint64 query_id, const string &reason);
+  void delete_account(uint64 query_id, string reason, string password);
 
   void on_update_login_token();
 
@@ -223,6 +223,9 @@ class AuthManager final : public NetActor {
   static void on_update_login_token_static(void *td);
   void send_export_login_token_query();
   void set_login_token_expires_at(double login_token_expires_at);
+
+  void do_delete_account(uint64 query_id, string reason,
+                         Result<tl_object_ptr<telegram_api::InputCheckPasswordSRP>> r_input_password);
 
   void send_log_out_query();
   void destroy_auth_keys();

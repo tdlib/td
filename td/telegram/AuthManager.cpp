@@ -394,14 +394,37 @@ void AuthManager::send_log_out_query() {
   start_net_query(NetQueryType::LogOut, std::move(query));
 }
 
-void AuthManager::delete_account(uint64 query_id, const string &reason) {
+void AuthManager::delete_account(uint64 query_id, string reason, string password) {
   if (state_ != State::Ok && state_ != State::WaitPassword) {
     return on_query_error(query_id, Status::Error(400, "Need to log in first"));
   }
+  if (password.empty() || state_ != State::Ok) {
+    on_new_query(query_id);
+    LOG(INFO) << "Deleting account";
+    start_net_query(NetQueryType::DeleteAccount,
+                    G()->net_query_creator().create_unauth(telegram_api::account_deleteAccount(0, reason, nullptr)));
+  } else {
+    send_closure(G()->password_manager(), &PasswordManager::get_input_check_password_srp, password,
+                 PromiseCreator::lambda(
+                     [actor_id = actor_id(this), query_id, reason = std::move(reason)](
+                         Result<tl_object_ptr<telegram_api::InputCheckPasswordSRP>> r_input_password) mutable {
+                       send_closure(actor_id, &AuthManager::do_delete_account, query_id, std::move(reason),
+                                    std::move(r_input_password));
+                     }));
+  }
+}
+
+void AuthManager::do_delete_account(uint64 query_id, string reason,
+                                    Result<tl_object_ptr<telegram_api::InputCheckPasswordSRP>> r_input_password) {
+  if (r_input_password.is_error()) {
+    return on_query_error(query_id, r_input_password.move_as_error());
+  }
+
   on_new_query(query_id);
-  LOG(INFO) << "Deleting account";
-  start_net_query(NetQueryType::DeleteAccount,
-                  G()->net_query_creator().create_unauth(telegram_api::account_deleteAccount(0, reason, nullptr)));
+  LOG(INFO) << "Deleting account with password";
+  int32 flags = telegram_api::account_deleteAccount::PASSWORD_MASK;
+  start_net_query(NetQueryType::DeleteAccount, G()->net_query_creator().create(telegram_api::account_deleteAccount(
+                                                   flags, reason, r_input_password.move_as_ok())));
 }
 
 void AuthManager::on_closing(bool destroy_flag) {

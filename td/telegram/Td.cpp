@@ -4639,7 +4639,7 @@ void Td::on_request(uint64 id, const td_api::setAccountTtl &request) {
 void Td::on_request(uint64 id, td_api::deleteAccount &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.reason_);
-  send_closure(auth_manager_actor_, &AuthManager::delete_account, id, request.reason_);
+  send_closure(auth_manager_actor_, &AuthManager::delete_account, id, request.reason_, request.password_);
 }
 
 void Td::on_request(uint64 id, td_api::changePhoneNumber &request) {
