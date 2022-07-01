@@ -4931,6 +4931,8 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       auto action = move_tl_object_as<telegram_api::messageActionWebViewDataSentMe>(action_ptr);
       return td::make_unique<MessageWebViewDataReceived>(std::move(action->text_), std::move(action->data_));
     }
+    case telegram_api::messageActionGiftPremium::ID:
+      break;
     default:
       UNREACHABLE();
   }

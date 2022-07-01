@@ -14,6 +14,7 @@
 #include "td/telegram/Document.h"
 #include "td/telegram/DocumentsManager.h"
 #include "td/telegram/Global.h"
+#include "td/telegram/JsonValue.h"
 #include "td/telegram/MessageEntity.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/telegram_api.h"
@@ -21,6 +22,7 @@
 
 #include "td/utils/algorithm.h"
 #include "td/utils/buffer.h"
+#include "td/utils/JsonBuilder.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/SliceBuilder.h"
@@ -147,7 +149,8 @@ class CanPurchasePremiumQuery final : public Td::ResultHandler {
   }
 
   void send() {
-    send_query(G()->net_query_creator().create(telegram_api::payments_canPurchasePremium()));
+    send_query(G()->net_query_creator().create(telegram_api::payments_canPurchasePremium(
+        make_tl_object<telegram_api::inputStorePaymentPremiumSubscription>(0, false /*ignored*/))));
   }
 
   void on_result(BufferSlice packet) final {
@@ -178,10 +181,11 @@ class AssignAppStoreTransactionQuery final : public Td::ResultHandler {
   void send(const string &receipt, bool is_restore) {
     int32 flags = 0;
     if (is_restore) {
-      flags |= telegram_api::payments_assignAppStoreTransaction::RESTORE_MASK;
+      flags |= telegram_api::inputStorePaymentPremiumSubscription::RESTORE_MASK;
     }
-    send_query(G()->net_query_creator().create(
-        telegram_api::payments_assignAppStoreTransaction(flags, false /*ignored*/, BufferSlice(receipt))));
+    send_query(G()->net_query_creator().create(telegram_api::payments_assignAppStoreTransaction(
+        BufferSlice(receipt),
+        make_tl_object<telegram_api::inputStorePaymentPremiumSubscription>(flags, false /*ignored*/))));
   }
 
   void on_result(BufferSlice packet) final {
@@ -208,7 +212,11 @@ class AssignPlayMarketTransactionQuery final : public Td::ResultHandler {
   }
 
   void send(const string &purchase_token) {
-    send_query(G()->net_query_creator().create(telegram_api::payments_assignPlayMarketTransaction(purchase_token)));
+    auto receipt = make_tl_object<telegram_api::dataJSON>(string());
+    receipt->data_ =
+        json_encode<string>(json_object([&purchase_token](auto &o) { o("purchase_token", purchase_token); }));
+    send_query(G()->net_query_creator().create(telegram_api::payments_assignPlayMarketTransaction(
+        std::move(receipt), make_tl_object<telegram_api::inputStorePaymentPremiumSubscription>(0, false /*ignored*/))));
   }
 
   void on_result(BufferSlice packet) final {

@@ -278,8 +278,8 @@ class GetArchivedStickerSetsQuery final : public Td::ResultHandler {
     if (is_masks_) {
       flags |= telegram_api::messages_getArchivedStickers::MASKS_MASK;
     }
-    send_query(G()->net_query_creator().create(
-        telegram_api::messages_getArchivedStickers(flags, is_masks /*ignored*/, offset_sticker_set_id.get(), limit)));
+    send_query(G()->net_query_creator().create(telegram_api::messages_getArchivedStickers(
+        flags, false /*ignored*/, false /*ignored*/, offset_sticker_set_id.get(), limit)));
   }
 
   void on_result(BufferSlice packet) final {
@@ -650,7 +650,7 @@ class ReorderStickerSetsQuery final : public Td::ResultHandler {
       flags |= telegram_api::messages_reorderStickerSets::MASKS_MASK;
     }
     send_query(G()->net_query_creator().create(telegram_api::messages_reorderStickerSets(
-        flags, is_masks /*ignored*/, StickersManager::convert_sticker_set_ids(sticker_set_ids))));
+        flags, false /*ignored*/, false /*ignored*/, StickersManager::convert_sticker_set_ids(sticker_set_ids))));
   }
 
   void on_result(BufferSlice packet) final {
@@ -3091,6 +3091,8 @@ StickerSetId StickersManager::on_get_sticker_set_covered(tl_object_ptr<telegram_
 
       break;
     }
+    case telegram_api::stickerSetFullCovered::ID:
+      return StickerSetId();
     default:
       UNREACHABLE();
   }

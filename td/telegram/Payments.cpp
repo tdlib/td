@@ -332,12 +332,12 @@ static tl_object_ptr<telegram_api::paymentRequestedInfo> convert_order_info(
 }
 
 static tl_object_ptr<td_api::savedCredentials> convert_saved_credentials(
-    tl_object_ptr<telegram_api::paymentSavedCredentialsCard> saved_credentials) {
-  if (saved_credentials == nullptr) {
+    vector<tl_object_ptr<telegram_api::paymentSavedCredentialsCard>> saved_credentials) {
+  if (saved_credentials.empty()) {
     return nullptr;
   }
-  return make_tl_object<td_api::savedCredentials>(std::move(saved_credentials->id_),
-                                                  std::move(saved_credentials->title_));
+  return make_tl_object<td_api::savedCredentials>(std::move(saved_credentials[0]->id_),
+                                                  std::move(saved_credentials[0]->title_));
 }
 
 class GetPaymentFormQuery final : public Td::ResultHandler {

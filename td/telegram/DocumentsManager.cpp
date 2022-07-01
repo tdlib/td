@@ -110,6 +110,9 @@ Document DocumentsManager::on_get_document(RemoteDocument remote_document, Dialo
       case telegram_api::documentAttributeHasStickers::ID:
         has_stickers = true;
         break;
+      case telegram_api::documentAttributeCustomEmoji::ID:
+        // TODO
+        break;
       default:
         UNREACHABLE();
     }

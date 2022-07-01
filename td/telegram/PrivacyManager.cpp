@@ -58,6 +58,9 @@ PrivacyManager::UserPrivacySetting::UserPrivacySetting(const telegram_api::Priva
     case telegram_api::privacyKeyAddedByPhone::ID:
       type_ = Type::FindByPhoneNumber;
       break;
+    case telegram_api::privacyKeyVoiceMessages::ID:
+      type_ = Type::UserStatus;  // TODO
+      break;
     default:
       UNREACHABLE();
       type_ = Type::UserStatus;

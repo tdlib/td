@@ -401,7 +401,7 @@ void AuthManager::delete_account(uint64 query_id, const string &reason) {
   on_new_query(query_id);
   LOG(INFO) << "Deleting account";
   start_net_query(NetQueryType::DeleteAccount,
-                  G()->net_query_creator().create_unauth(telegram_api::account_deleteAccount(reason)));
+                  G()->net_query_creator().create_unauth(telegram_api::account_deleteAccount(0, reason, nullptr)));
 }
 
 void AuthManager::on_closing(bool destroy_flag) {

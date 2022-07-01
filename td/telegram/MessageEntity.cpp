@@ -3446,6 +3446,8 @@ vector<MessageEntity> get_message_entities(const ContactsManager *contacts_manag
         entities.emplace_back(entity->offset_, entity->length_, user_id);
         break;
       }
+      case telegram_api::messageEntityCustomEmoji::ID:
+        break;
       default:
         UNREACHABLE();
     }
