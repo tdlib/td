@@ -3018,6 +3018,15 @@ premiumFeaturePromotionAnimation feature:PremiumFeature animation:animation = Pr
 premiumState state:formattedText currency:string monthly_amount:int53 animations:vector<premiumFeaturePromotionAnimation> = PremiumState;
 
 
+//@class StorePaymentPurpose @description Describes a purpose of an in-store payment
+
+//@description The user subscribed to Telegram Premium @is_restore Pass true if this is a restore of a Telegram Premium purchase; only for App Store
+storePaymentPurposePremiumSubscription is_restore:Bool = StorePaymentPurpose;
+
+//@description The user gifted Telegram Premium to another user @user_id Identifier of the user for which Premium was gifted @currency ISO 4217 currency code of the payment currency @amount Paid amount, in the smallest units of the currency
+storePaymentPurposeGiftedPremium user_id:int53 currency:string amount:int64 = StorePaymentPurpose;
+
+
 //@class DeviceToken @description Represents a data needed to subscribe for push notifications through registerDevice method. To use specific push notification service, the correct application platform must be specified and a valid server authentication data must be uploaded at https://my.telegram.org
 
 //@description A token for Firebase Cloud Messaging @token Device registration token; may be empty to deregister a device @encrypt True, if push notifications must be additionally encrypted
@@ -6420,11 +6429,11 @@ getPremiumState = PremiumState;
 //@description Checks whether Telegram Premium purchase is possible. Must be called before in-store Premium purchase
 canPurchasePremium = Ok;
 
-//@description Informs server about a Telegram Premium purchase through App Store. For official applications only @receipt App Store receipt @is_restore Pass true if this is a restore of a Telegram Premium purchase
-assignAppStoreTransaction receipt:bytes is_restore:Bool = Ok;
+//@description Informs server about a purchase through App Store. For official applications only @receipt App Store receipt @purpose Transaction purpose
+assignAppStoreTransaction receipt:bytes purpose:StorePaymentPurpose = Ok;
 
-//@description Informs server about a Telegram Premium purchase through Google Play. For official applications only @purchase_token Google Play purchase token
-assignGooglePlayTransaction purchase_token:string = Ok;
+//@description Informs server about a purchase through Google Play. For official applications only @purchase_token Google Play purchase token @purpose Transaction purpose
+assignGooglePlayTransaction purchase_token:string purpose:StorePaymentPurpose = Ok;
 
 
 //@description Accepts Telegram terms of services @terms_of_service_id Terms of service identifier

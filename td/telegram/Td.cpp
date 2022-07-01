@@ -5196,7 +5196,7 @@ void Td::on_request(uint64 id, const td_api::clickAnimatedEmojiMessage &request)
 }
 
 void Td::on_request(uint64 id, const td_api::getInternalLinkType &request) {
-  auto type = link_manager_->parse_internal_link(request.link_);
+  auto type = LinkManager::parse_internal_link(request.link_);
   send_closure(actor_id(this), &Td::send_result, id, type == nullptr ? nullptr : type->get_internal_link_type_object());
 }
 
@@ -7918,17 +7918,17 @@ void Td::on_request(uint64 id, const td_api::canPurchasePremium &request) {
   can_purchase_premium(this, std::move(promise));
 }
 
-void Td::on_request(uint64 id, const td_api::assignAppStoreTransaction &request) {
+void Td::on_request(uint64 id, td_api::assignAppStoreTransaction &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  assign_app_store_transaction(this, request.receipt_, request.is_restore_, std::move(promise));
+  assign_app_store_transaction(this, request.receipt_, std::move(request.purpose_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::assignGooglePlayTransaction &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.purchase_token_);
   CREATE_OK_REQUEST_PROMISE();
-  assign_play_market_transaction(this, request.purchase_token_, std::move(promise));
+  assign_play_market_transaction(this, request.purchase_token_, std::move(request.purpose_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::acceptTermsOfService &request) {
