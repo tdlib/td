@@ -181,12 +181,12 @@ void unregister_message_content(Td *td, const MessageContent *content, FullMessa
 
 unique_ptr<MessageContent> get_secret_message_content(
     Td *td, string message_text, unique_ptr<EncryptedFile> file,
-    tl_object_ptr<secret_api::DecryptedMessageMedia> &&media,
+    tl_object_ptr<secret_api::DecryptedMessageMedia> &&media_ptr,
     vector<tl_object_ptr<secret_api::MessageEntity>> &&secret_entities, DialogId owner_dialog_id,
     MultiPromiseActor &load_data_multipromise, bool is_premium);
 
 unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message_text,
-                                               tl_object_ptr<telegram_api::MessageMedia> &&media,
+                                               tl_object_ptr<telegram_api::MessageMedia> &&media_ptr,
                                                DialogId owner_dialog_id, bool is_content_read, UserId via_bot_user_id,
                                                int32 *ttl, bool *disable_web_page_preview);
 
@@ -195,7 +195,7 @@ enum class MessageContentDupType : int32 { Send, SendViaBot, Forward, Copy, Serv
 unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const MessageContent *content,
                                                MessageContentDupType type, MessageCopyOptions &&copy_options);
 
-unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<telegram_api::MessageAction> &&action,
+unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<telegram_api::MessageAction> &&action_ptr,
                                                       DialogId owner_dialog_id, DialogId reply_in_dialog_id,
                                                       MessageId reply_to_message_id);
 
