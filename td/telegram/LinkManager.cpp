@@ -253,7 +253,12 @@ class LinkManager::InternalLinkBotStart final : public InternalLink {
   bool autostart_;
 
   td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
-    return td_api::make_object<td_api::internalLinkTypeBotStart>(bot_username_, start_parameter_, autostart_);
+    bool autostart = autostart_;
+    if (Scheduler::context() != nullptr &&
+        bot_username_ == G()->shared_config().get_option_string("premium_bot_username")) {
+      autostart = true;
+    }
+    return td_api::make_object<td_api::internalLinkTypeBotStart>(bot_username_, start_parameter_, autostart);
   }
 
  public:
