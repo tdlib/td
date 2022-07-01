@@ -250,14 +250,15 @@ class LinkManager::InternalLinkBotAddToChannel final : public InternalLink {
 class LinkManager::InternalLinkBotStart final : public InternalLink {
   string bot_username_;
   string start_parameter_;
+  bool autostart_;
 
   td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
-    return td_api::make_object<td_api::internalLinkTypeBotStart>(bot_username_, start_parameter_);
+    return td_api::make_object<td_api::internalLinkTypeBotStart>(bot_username_, start_parameter_, autostart_);
   }
 
  public:
-  InternalLinkBotStart(string bot_username, string start_parameter)
-      : bot_username_(std::move(bot_username)), start_parameter_(std::move(start_parameter)) {
+  InternalLinkBotStart(string bot_username, string start_parameter, bool autostart)
+      : bot_username_(std::move(bot_username)), start_parameter_(std::move(start_parameter)), autostart_(autostart) {
   }
 };
 
@@ -918,15 +919,15 @@ LinkManager::LinkInfo LinkManager::get_link_info(Slice link) {
   return result;
 }
 
-unique_ptr<LinkManager::InternalLink> LinkManager::parse_internal_link(Slice link) {
+unique_ptr<LinkManager::InternalLink> LinkManager::parse_internal_link(Slice link, bool is_trusted) {
   auto info = get_link_info(link);
   if (!info.is_internal_) {
     return nullptr;
   }
   if (info.is_tg_) {
-    return parse_tg_link_query(info.query_);
+    return parse_tg_link_query(info.query_, is_trusted);
   } else {
-    return parse_t_me_link_query(info.query_);
+    return parse_t_me_link_query(info.query_, is_trusted);
   }
 }
 
@@ -959,7 +960,7 @@ StringBuilder &operator<<(StringBuilder &string_builder, const CopyArg &copy_arg
 }
 }  // namespace
 
-unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice query) {
+unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice query, bool is_trusted) {
   const auto url_query = parse_url_query(query);
   const auto &path = url_query.path_;
 
@@ -997,7 +998,7 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
         }
         if (arg.first == "start" && is_valid_start_parameter(arg.second)) {
           // resolve?domain=<bot_username>&start=<parameter>
-          return td::make_unique<InternalLinkBotStart>(std::move(username), arg.second);
+          return td::make_unique<InternalLinkBotStart>(std::move(username), arg.second, is_trusted);
         }
         if (arg.first == "startgroup" && is_valid_start_parameter(arg.second)) {
           // resolve?domain=<bot_username>&startgroup=<parameter>
@@ -1178,7 +1179,7 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
   return nullptr;
 }
 
-unique_ptr<LinkManager::InternalLink> LinkManager::parse_t_me_link_query(Slice query) {
+unique_ptr<LinkManager::InternalLink> LinkManager::parse_t_me_link_query(Slice query, bool is_trusted) {
   CHECK(query[0] == '/');
   const auto url_query = parse_url_query(query);
   const auto &path = url_query.path_;
@@ -1324,7 +1325,7 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_t_me_link_query(Slice q
       }
       if (arg.first == "start" && is_valid_start_parameter(arg.second)) {
         // /<bot_username>?start=<parameter>
-        return td::make_unique<InternalLinkBotStart>(std::move(username), arg.second);
+        return td::make_unique<InternalLinkBotStart>(std::move(username), arg.second, is_trusted);
       }
       if (arg.first == "startgroup" && is_valid_start_parameter(arg.second)) {
         // /<bot_username>?startgroup=<parameter>

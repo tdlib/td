@@ -431,7 +431,7 @@ void get_premium_features(Td *td, const td_api::object_ptr<td_api::PremiumSource
   td_api::object_ptr<td_api::InternalLinkType> payment_link;
   auto premium_bot_username = G()->shared_config().get_option_string("premium_bot_username");
   if (!premium_bot_username.empty()) {
-    payment_link = td_api::make_object<td_api::internalLinkTypeBotStart>(premium_bot_username, source_str);
+    payment_link = td_api::make_object<td_api::internalLinkTypeBotStart>(premium_bot_username, source_str, true);
   } else {
     auto premium_invoice_slug = G()->shared_config().get_option_string("premium_invoice_slug");
     if (!premium_invoice_slug.empty()) {

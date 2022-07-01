@@ -2975,7 +2975,7 @@ premiumFeatureAppIcons = PremiumFeature;
 premiumLimit type:PremiumLimitType default_value:int32 premium_value:int32 = PremiumLimit;
 
 //@description Contains information about features, available to Premium users @features The list of available features @limits The list of limits, increased for Premium users
-//@payment_link An internal link to be opened to pay for Telegram Premium if store payment isn't possible; may be null if direct payment isn't available. If the link has type internalLinkTypeBotStart, then sendBotStartMessage must be called automatically
+//@payment_link An internal link to be opened to pay for Telegram Premium if store payment isn't possible; may be null if direct payment isn't available
 premiumFeatures features:vector<PremiumFeature> limits:vector<premiumLimit> payment_link:InternalLinkType = PremiumFeatures;
 
 
@@ -3597,7 +3597,8 @@ internalLinkTypeBackground background_name:string = InternalLinkType;
 //@description The link is a link to a chat with a Telegram bot. Call searchPublicChat with the given bot username, check that the user is a bot, show START button in the chat with the bot,
 //-and then call sendBotStartMessage with the given start parameter after the button is pressed
 //@bot_username Username of the bot @start_parameter The parameter to be passed to sendBotStartMessage
-internalLinkTypeBotStart bot_username:string start_parameter:string = InternalLinkType;
+//@autostart True, if sendBotStartMessage must be called automatically without showing the START button
+internalLinkTypeBotStart bot_username:string start_parameter:string autostart:Bool = InternalLinkType;
 
 //@description The link is a link to a Telegram bot, which is supposed to be added to a group chat. Call searchPublicChat with the given bot username, check that the user is a bot and can be added to groups,
 //-ask the current user to select a basic group or a supergroup chat to add the bot to, taking into account that bots can be added to a public supergroup only by administrators of the supergroup.

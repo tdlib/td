@@ -128,7 +128,7 @@ TEST(Link, parse_internal_link) {
                                                                                 std::move(administrator_rights));
   };
   auto bot_start = [](const td::string &bot_username, const td::string &start_parameter) {
-    return td::td_api::make_object<td::td_api::internalLinkTypeBotStart>(bot_username, start_parameter);
+    return td::td_api::make_object<td::td_api::internalLinkTypeBotStart>(bot_username, start_parameter, false);
   };
   auto bot_start_in_group = [](const td::string &bot_username, const td::string &start_parameter,
                                td::td_api::object_ptr<td::td_api::chatAdministratorRights> &&administrator_rights) {
