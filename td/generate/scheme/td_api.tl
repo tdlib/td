@@ -1981,6 +1981,9 @@ messagePaymentSuccessful invoice_chat_id:int53 invoice_message_id:int53 currency
 //@telegram_payment_charge_id Telegram payment identifier @provider_payment_charge_id Provider payment identifier
 messagePaymentSuccessfulBot currency:string total_amount:int53 is_recurring:Bool is_first_recurring:Bool invoice_payload:bytes shipping_option_id:string order_info:orderInfo telegram_payment_charge_id:string provider_payment_charge_id:string = MessageContent;
 
+//@description Telegram Premium was gifted to the user @currency Currency for the paid amount @amount The paid amount, in the smallest units of the currency @month_count Number of month the Telegram Premium subscription will be active
+messageGiftedPremium currency:string amount:int53 month_count:int32 = MessageContent;
+
 //@description A contact has registered with Telegram
 messageContactRegistered = MessageContent;
 

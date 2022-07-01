@@ -782,6 +782,22 @@ class MessageWebViewDataReceived final : public MessageContent {
   }
 };
 
+class MessageGiftPremium final : public MessageContent {
+ public:
+  string currency;
+  int64 amount = 0;
+  int32 months = 0;
+
+  MessageGiftPremium() = default;
+  MessageGiftPremium(string &&currency, int64 amount, int32 months)
+      : currency(std::move(currency)), amount(amount), months(months) {
+  }
+
+  MessageContentType get_type() const final {
+    return MessageContentType::GiftPremium;
+  }
+};
+
 template <class StorerT>
 static void store(const MessageContent *content, StorerT &storer) {
   CHECK(content != nullptr);
@@ -1099,6 +1115,15 @@ static void store(const MessageContent *content, StorerT &storer) {
       const auto *m = static_cast<const MessageWebViewDataReceived *>(content);
       store(m->button_text, storer);
       store(m->data, storer);
+      break;
+    }
+    case MessageContentType::GiftPremium: {
+      const auto *m = static_cast<const MessageGiftPremium *>(content);
+      BEGIN_STORE_FLAGS();
+      END_STORE_FLAGS();
+      store(m->currency, storer);
+      store(m->amount, storer);
+      store(m->months, storer);
       break;
     }
     default:
@@ -1544,6 +1569,16 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
       auto m = make_unique<MessageWebViewDataReceived>();
       parse(m->button_text, parser);
       parse(m->data, parser);
+      content = std::move(m);
+      break;
+    }
+    case MessageContentType::GiftPremium: {
+      auto m = make_unique<MessageGiftPremium>();
+      BEGIN_PARSE_FLAGS();
+      END_PARSE_FLAGS();
+      parse(m->currency, parser);
+      parse(m->amount, parser);
+      parse(m->months, parser);
       content = std::move(m);
       break;
     }
@@ -2165,6 +2200,7 @@ bool can_have_input_media(const Td *td, const MessageContent *content, bool is_s
     case MessageContentType::ChatSetTheme:
     case MessageContentType::WebViewDataSent:
     case MessageContentType::WebViewDataReceived:
+    case MessageContentType::GiftPremium:
       return false;
     case MessageContentType::Animation:
     case MessageContentType::Audio:
@@ -2285,6 +2321,7 @@ SecretInputMedia get_secret_input_media(const MessageContent *content, Td *td,
     case MessageContentType::ChatSetTheme:
     case MessageContentType::WebViewDataSent:
     case MessageContentType::WebViewDataReceived:
+    case MessageContentType::GiftPremium:
       break;
     default:
       UNREACHABLE();
@@ -2403,6 +2440,7 @@ static tl_object_ptr<telegram_api::InputMedia> get_input_media_impl(
     case MessageContentType::ChatSetTheme:
     case MessageContentType::WebViewDataSent:
     case MessageContentType::WebViewDataReceived:
+    case MessageContentType::GiftPremium:
       break;
     default:
       UNREACHABLE();
@@ -2563,6 +2601,7 @@ void delete_message_content_thumbnail(MessageContent *content, Td *td) {
     case MessageContentType::ChatSetTheme:
     case MessageContentType::WebViewDataSent:
     case MessageContentType::WebViewDataReceived:
+    case MessageContentType::GiftPremium:
       break;
     default:
       UNREACHABLE();
@@ -2733,6 +2772,7 @@ Status can_send_message_content(DialogId dialog_id, const MessageContent *conten
     case MessageContentType::ChatSetTheme:
     case MessageContentType::WebViewDataSent:
     case MessageContentType::WebViewDataReceived:
+    case MessageContentType::GiftPremium:
       UNREACHABLE();
   }
   return Status::OK();
@@ -2861,6 +2901,7 @@ static int32 get_message_content_media_index_mask(const MessageContent *content,
     case MessageContentType::ChatSetTheme:
     case MessageContentType::WebViewDataSent:
     case MessageContentType::WebViewDataReceived:
+    case MessageContentType::GiftPremium:
       return 0;
     default:
       UNREACHABLE();
@@ -3580,6 +3621,14 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
       }
       break;
     }
+    case MessageContentType::GiftPremium: {
+      const auto *old_ = static_cast<const MessageGiftPremium *>(old_content);
+      const auto *new_ = static_cast<const MessageGiftPremium *>(new_content);
+      if (old_->currency != new_->currency || old_->amount != new_->amount || old_->months != new_->months) {
+        need_update = true;
+      }
+      break;
+    }
     case MessageContentType::Unsupported: {
       const auto *old_ = static_cast<const MessageUnsupported *>(old_content);
       const auto *new_ = static_cast<const MessageUnsupported *>(new_content);
@@ -3718,6 +3767,7 @@ bool merge_message_content_file_id(Td *td, MessageContent *message_content, File
     case MessageContentType::ChatSetTheme:
     case MessageContentType::WebViewDataSent:
     case MessageContentType::WebViewDataReceived:
+    case MessageContentType::GiftPremium:
       LOG(ERROR) << "Receive new file " << new_file_id << " in a sent message of the type " << content_type;
       break;
     default:
@@ -4650,6 +4700,7 @@ unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const
     case MessageContentType::ChatSetTheme:
     case MessageContentType::WebViewDataSent:
     case MessageContentType::WebViewDataReceived:
+    case MessageContentType::GiftPremium:
       return nullptr;
     default:
       UNREACHABLE();
@@ -4931,8 +4982,10 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       auto action = move_tl_object_as<telegram_api::messageActionWebViewDataSentMe>(action_ptr);
       return td::make_unique<MessageWebViewDataReceived>(std::move(action->text_), std::move(action->data_));
     }
-    case telegram_api::messageActionGiftPremium::ID:
-      break;
+    case telegram_api::messageActionGiftPremium::ID: {
+      auto action = move_tl_object_as<telegram_api::messageActionGiftPremium>(action_ptr);
+      return td::make_unique<MessageGiftPremium>(std::move(action->currency_), action->amount_, action->months_);
+    }
     default:
       UNREACHABLE();
   }
@@ -5202,6 +5255,10 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
     case MessageContentType::WebViewDataReceived: {
       const auto *m = static_cast<const MessageWebViewDataReceived *>(content);
       return make_tl_object<td_api::messageWebAppDataReceived>(m->button_text, m->data);
+    }
+    case MessageContentType::GiftPremium: {
+      const auto *m = static_cast<const MessageGiftPremium *>(content);
+      return make_tl_object<td_api::messageGiftedPremium>(m->currency, m->amount, m->months);
     }
     default:
       UNREACHABLE();
@@ -5552,6 +5609,7 @@ string get_message_content_search_text(const Td *td, const MessageContent *conte
     case MessageContentType::ChatSetTheme:
     case MessageContentType::WebViewDataSent:
     case MessageContentType::WebViewDataReceived:
+    case MessageContentType::GiftPremium:
       return string();
     default:
       UNREACHABLE();
@@ -5802,6 +5860,8 @@ void add_message_content_dependencies(Dependencies &dependencies, const MessageC
     case MessageContentType::WebViewDataSent:
       break;
     case MessageContentType::WebViewDataReceived:
+      break;
+    case MessageContentType::GiftPremium:
       break;
     default:
       UNREACHABLE();

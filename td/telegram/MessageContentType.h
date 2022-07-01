@@ -63,7 +63,8 @@ enum class MessageContentType : int32 {
   InviteToGroupCall,
   ChatSetTheme,
   WebViewDataSent,
-  WebViewDataReceived
+  WebViewDataReceived,
+  GiftPremium
 };
 
 StringBuilder &operator<<(StringBuilder &string_builder, MessageContentType content_type);
