@@ -21,7 +21,7 @@
 #include "td/db/DbKey.h"
 
 #include "td/actor/actor.h"
-#include "td/actor/Timeout.h"
+#include "td/actor/MultiTimeout.h"
 
 #include "td/utils/buffer.h"
 #include "td/utils/common.h"

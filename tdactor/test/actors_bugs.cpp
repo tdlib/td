@@ -6,7 +6,7 @@
 //
 #include "td/actor/actor.h"
 #include "td/actor/ConcurrentScheduler.h"
-#include "td/actor/Timeout.h"
+#include "td/actor/MultiTimeout.h"
 
 #include "td/utils/common.h"
 #include "td/utils/logging.h"

@@ -11,7 +11,7 @@ set(TDACTOR_SOURCE
   td/actor/ConcurrentScheduler.cpp
   td/actor/impl/Scheduler.cpp
   td/actor/MultiPromise.cpp
-  td/actor/Timeout.cpp
+  td/actor/MultiTimeout.cpp
 
   td/actor/actor.h
   td/actor/ConcurrentScheduler.h
@@ -27,6 +27,7 @@ set(TDACTOR_SOURCE
   td/actor/impl/Scheduler-decl.h
   td/actor/impl/Scheduler.h
   td/actor/MultiPromise.h
+  td/actor/MultiTimeout.h
   td/actor/PromiseFuture.h
   td/actor/SchedulerLocalStorage.h
   td/actor/SignalSlot.h

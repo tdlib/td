@@ -16,7 +16,7 @@
 #include "td/telegram/WebPageId.h"
 
 #include "td/actor/actor.h"
-#include "td/actor/Timeout.h"
+#include "td/actor/MultiTimeout.h"
 
 #include "td/utils/common.h"
 #include "td/utils/FlatHashMap.h"
