@@ -268,7 +268,7 @@ class FileView {
 
   bool get_by_hash() const;
 
-  FileId file_id() const {
+  FileId get_main_file_id() const {
     return node_->main_file_id_;
   }
 

@@ -1911,9 +1911,9 @@ void FileManager::flush_to_pmc(FileNodePtr node, bool new_remote, bool new_local
   data.encryption_key_ = node->encryption_key_;
   data.url_ = node->url_;
   data.owner_dialog_id_ = node->owner_dialog_id_;
-  data.file_source_ids_ = context_->get_some_file_sources(view.file_id());
-  VLOG(file_references) << "Save file " << view.file_id() << " to database with " << data.file_source_ids_ << " from "
-                        << source;
+  data.file_source_ids_ = context_->get_some_file_sources(view.get_main_file_id());
+  VLOG(file_references) << "Save file " << view.get_main_file_id() << " to database with " << data.file_source_ids_
+                        << " from " << source;
 
   file_db_->set_file_data(node->pmc_id_, data, (create_flag || new_remote), (create_flag || new_local),
                           (create_flag || new_generate));
@@ -1971,7 +1971,7 @@ void FileManager::load_from_pmc(FileNodePtr node, bool new_remote, bool new_loca
     generate = file_view.generate_location();
   }
 
-  LOG(DEBUG) << "Load from pmc " << file_id << "/" << file_view.file_id() << ", new_remote = " << new_remote
+  LOG(DEBUG) << "Load from pmc " << file_id << "/" << file_view.get_main_file_id() << ", new_remote = " << new_remote
              << ", new_local = " << new_local << ", new_generate = " << new_generate;
   auto load = [&](auto location) {
     TRY_RESULT(file_data, file_db_->get_file_data_sync(location));
@@ -2142,7 +2142,7 @@ void FileManager::delete_file(FileId file_id, Promise<Unit> promise, const char 
 
   auto file_view = FileView(node);
 
-  send_closure(G()->download_manager(), &DownloadManager::remove_file_if_finished, file_view.file_id());
+  send_closure(G()->download_manager(), &DownloadManager::remove_file_if_finished, file_view.get_main_file_id());
   string path;
   if (file_view.has_local_location()) {
     if (begins_with(file_view.local_location().path_, get_files_dir(file_view.get_type()))) {
@@ -3016,13 +3016,13 @@ td_api::object_ptr<td_api::file> FileManager::get_file_object(FileId file_id, bo
   auto *file_info = get_file_id_info(result_file_id);
   if (with_main_file_id) {
     if (!file_info->send_updates_flag_) {
-      result_file_id = file_view.file_id();
+      result_file_id = file_view.get_main_file_id();
     }
-    file_info = get_file_id_info(file_view.file_id());
+    file_info = get_file_id_info(file_view.get_main_file_id());
   }
   file_info->send_updates_flag_ = true;
   VLOG(update_file) << "Send file " << file_id << " as " << result_file_id << " and update send_updates_flag_ for file "
-                    << (with_main_file_id ? file_view.file_id() : result_file_id);
+                    << (with_main_file_id ? file_view.get_main_file_id() : result_file_id);
 
   return td_api::make_object<td_api::file>(
       result_file_id.get(), size, expected_size,
@@ -3040,9 +3040,9 @@ vector<int32> FileManager::get_file_ids_object(const vector<FileId> &file_ids, b
     auto *file_info = get_file_id_info(result_file_id);
     if (with_main_file_id) {
       if (!file_info->sent_file_id_flag_ && !file_info->send_updates_flag_) {
-        result_file_id = file_view.file_id();
+        result_file_id = file_view.get_main_file_id();
       }
-      file_info = get_file_id_info(file_view.file_id());
+      file_info = get_file_id_info(file_view.get_main_file_id());
     }
     file_info->sent_file_id_flag_ = true;
 

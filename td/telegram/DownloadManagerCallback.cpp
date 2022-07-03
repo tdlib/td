@@ -74,7 +74,7 @@ FileView DownloadManagerCallback::get_sync_file_view(FileId file_id) {
 
 td_api::object_ptr<td_api::fileDownload> DownloadManagerCallback::get_file_download_object(
     FileId file_id, FileSourceId file_source_id, int32 add_date, int32 complete_date, bool is_paused) {
-  return td_api::make_object<td_api::fileDownload>(td_->file_manager_->get_file_view(file_id).file_id().get(),
+  return td_api::make_object<td_api::fileDownload>(td_->file_manager_->get_file_view(file_id).get_main_file_id().get(),
                                                    td_->file_reference_manager_->get_message_object(file_source_id),
                                                    add_date, complete_date, is_paused);
 }

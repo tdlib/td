@@ -412,12 +412,12 @@ void SetSecureValue::start_up() {
   // Remove duplicate files
   FileId front_side_file_id;
   if (secure_value_.front_side.file_id.is_valid()) {
-    front_side_file_id = file_manager->get_file_view(secure_value_.front_side.file_id).file_id();
+    front_side_file_id = file_manager->get_file_view(secure_value_.front_side.file_id).get_main_file_id();
     front_side_ = SecureInputFile();
   }
   FileId reverse_side_file_id;
   if (secure_value_.reverse_side.file_id.is_valid()) {
-    reverse_side_file_id = file_manager->get_file_view(secure_value_.reverse_side.file_id).file_id();
+    reverse_side_file_id = file_manager->get_file_view(secure_value_.reverse_side.file_id).get_main_file_id();
     reverse_side_ = SecureInputFile();
     if (front_side_file_id == reverse_side_file_id) {
       return on_error(Status::Error(400, "Front side and reverse side must be different"));
@@ -425,7 +425,7 @@ void SetSecureValue::start_up() {
   }
   FileId selfie_file_id;
   if (secure_value_.selfie.file_id.is_valid()) {
-    selfie_file_id = file_manager->get_file_view(secure_value_.selfie.file_id).file_id();
+    selfie_file_id = file_manager->get_file_view(secure_value_.selfie.file_id).get_main_file_id();
     selfie_ = SecureInputFile();
     if (front_side_file_id == selfie_file_id) {
       return on_error(Status::Error(400, "Front side and selfie must be different"));
@@ -440,10 +440,10 @@ void SetSecureValue::start_up() {
     CHECK(!reverse_side_file_id.is_valid());
     CHECK(!selfie_file_id.is_valid());
     for (auto it = secure_value_.files.begin(); it != secure_value_.files.end();) {
-      auto file_id = file_manager->get_file_view(it->file_id).file_id();
+      auto file_id = file_manager->get_file_view(it->file_id).get_main_file_id();
       bool is_duplicate = false;
       for (auto other_it = secure_value_.files.begin(); other_it != it; ++other_it) {
-        if (file_id == file_manager->get_file_view(other_it->file_id).file_id()) {
+        if (file_id == file_manager->get_file_view(other_it->file_id).get_main_file_id()) {
           is_duplicate = true;
           break;
         }
@@ -457,16 +457,16 @@ void SetSecureValue::start_up() {
   }
   if (!secure_value_.translations.empty()) {
     for (auto it = secure_value_.translations.begin(); it != secure_value_.translations.end();) {
-      auto file_id = file_manager->get_file_view(it->file_id).file_id();
+      auto file_id = file_manager->get_file_view(it->file_id).get_main_file_id();
       bool is_duplicate = file_id == front_side_file_id || file_id == reverse_side_file_id || file_id == selfie_file_id;
       for (auto other_it = secure_value_.translations.begin(); other_it != it; ++other_it) {
-        if (file_id == file_manager->get_file_view(other_it->file_id).file_id()) {
+        if (file_id == file_manager->get_file_view(other_it->file_id).get_main_file_id()) {
           is_duplicate = true;
           break;
         }
       }
       for (auto &dated_file : secure_value_.files) {
-        if (file_id == file_manager->get_file_view(dated_file.file_id).file_id()) {
+        if (file_id == file_manager->get_file_view(dated_file.file_id).get_main_file_id()) {
           is_duplicate = true;
           break;
         }

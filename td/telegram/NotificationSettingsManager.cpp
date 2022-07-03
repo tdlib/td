@@ -818,7 +818,7 @@ FileId NotificationSettingsManager::get_saved_ringtone(int64 ringtone_id, Promis
     CHECK(file_view.get_type() == FileType::Ringtone);
     CHECK(file_view.has_remote_location());
     if (file_view.remote_location().get_id() == ringtone_id) {
-      return file_view.file_id();
+      return file_view.get_main_file_id();
     }
   }
   return {};
@@ -898,7 +898,7 @@ void NotificationSettingsManager::add_saved_ringtone(td_api::object_ptr<td_api::
       return promise.set_error(Status::Error(400, "Can't use web document as notification sound"));
     }
 
-    FileId ringtone_file_id = file_view.file_id();
+    FileId ringtone_file_id = file_view.get_main_file_id();
     if (file_type != FileType::Ringtone) {
       if (file_type != FileType::Audio && file_type != FileType::VoiceNote) {
         return promise.set_error(Status::Error(400, "Unsupported file specified"));
@@ -920,7 +920,7 @@ void NotificationSettingsManager::add_saved_ringtone(td_api::object_ptr<td_api::
     }
 
     send_save_ringtone_query(
-        file_view.file_id(), false,
+        file_view.get_main_file_id(), false,
         PromiseCreator::lambda(
             [actor_id = actor_id(this), file_id = ringtone_file_id, promise = std::move(promise)](
                 Result<telegram_api::object_ptr<telegram_api::account_SavedRingtone>> &&result) mutable {
@@ -982,9 +982,9 @@ void NotificationSettingsManager::on_upload_ringtone(FileId file_id,
     }
 
     send_save_ringtone_query(
-        file_view.file_id(), false,
+        file_view.get_main_file_id(), false,
         PromiseCreator::lambda(
-            [actor_id = actor_id(this), file_id = file_view.file_id(), promise = std::move(promise)](
+            [actor_id = actor_id(this), file_id = file_view.get_main_file_id(), promise = std::move(promise)](
                 Result<telegram_api::object_ptr<telegram_api::account_SavedRingtone>> &&result) mutable {
               if (result.is_error()) {
                 promise.set_error(result.move_as_error());
@@ -1091,7 +1091,7 @@ void NotificationSettingsManager::remove_saved_ringtone(int64 ringtone_id, Promi
     CHECK(file_view.has_remote_location());
     if (file_view.remote_location().get_id() == ringtone_id) {
       send_save_ringtone_query(
-          file_view.file_id(), true,
+          file_view.get_main_file_id(), true,
           PromiseCreator::lambda(
               [actor_id = actor_id(this), ringtone_id, promise = std::move(promise)](
                   Result<telegram_api::object_ptr<telegram_api::account_SavedRingtone>> &&result) mutable {
