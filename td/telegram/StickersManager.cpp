@@ -7236,7 +7236,10 @@ void StickersManager::remove_favorite_sticker(const tl_object_ptr<td_api::InputF
   }
 
   FileId file_id = r_file_id.ok();
-  if (!td::remove(favorite_sticker_ids_, file_id)) {
+  auto is_equal = [sticker_id = file_id](FileId file_id) {
+    return file_id == sticker_id || (file_id.get_remote() == sticker_id.get_remote() && sticker_id.get_remote() != 0);
+  };
+  if (!td::remove_if(favorite_sticker_ids_, is_equal)) {
     return promise.set_value(Unit());
   }
 
