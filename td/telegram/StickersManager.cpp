@@ -2758,6 +2758,12 @@ bool StickersManager::has_input_media(FileId sticker_file_id, bool is_secret) co
     if (td_->auth_manager_->is_bot() && file_view.has_remote_location()) {
       return true;
     }
+    const Sticker *sticker = get_sticker(sticker_file_id);
+    CHECK(sticker != nullptr);
+    if (sticker->set_id.is_valid()) {
+      // stickers within a set doesn't need to be duped
+      return true;
+    }
     // having remote location is not enough to have InputMedia, because the file may not have valid file_reference
     // also file_id needs to be duped, because upload can be called to repair the file_reference and every upload
     // request must have unique file_id
