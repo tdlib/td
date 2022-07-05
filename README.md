@@ -106,7 +106,7 @@ Or you could install `TDLib` and then reference it in your CMakeLists.txt like t
 find_package(Td 1.8.4 REQUIRED)
 target_link_libraries(YourTarget PRIVATE Td::TdStatic)
 ```
-See [example/cpp/CMakeLists.txt](https://github.com/tdlib/td/tree/master/example/cpp/CMakeLists.txt).
+See [example/cpp/CMakeLists.txt](https://github.com/tdlib/td/blob/master/example/cpp/CMakeLists.txt).
 
 <a name="using-java"></a>
 ## Using in Java projects
@@ -138,7 +138,7 @@ all available `TDLib` [methods](https://core.telegram.org/tdlib/docs/classtd_1_1
 `TDLib` JSON interface adheres to semantic versioning and versions with the same major version number are binary and backward compatible, but the underlying `TDLib` API can be different for different minor and even patch versions.
 If you need to support different `TDLib` versions, then you can use a value of the `version` option to find exact `TDLib` version to use appropriate API methods.
 
-See [example/python/tdjson_example.py](https://github.com/tdlib/td/tree/master/example/python/tdjson_example.py) for an example of such usage.
+See [example/python/tdjson_example.py](https://github.com/tdlib/td/blob/master/example/python/tdjson_example.py) for an example of such usage.
 
 <a name="license"></a>
 ## License
