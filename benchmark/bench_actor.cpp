@@ -260,6 +260,7 @@ class QueryBench final : public td::Benchmark {
         } else if (type == 4) {
           int val = 0;
           send_lambda(client_, [&] { val = n_ * n_; });
+          CHECK(val == n_ * n_);
         } else if (type == 5) {
           send_closure(client_, &ClientActor::f_promise,
                        td::PromiseCreator::lambda([actor_id = actor_id(this), n = n_](td::Unit) {
