@@ -3,7 +3,7 @@ if ((CMAKE_MAJOR_VERSION LESS 3) OR (CMAKE_VERSION VERSION_LESS "3.0.2"))
 endif()
 
 # Generates files for MIME type <-> extension conversions
-# DEPENDS ON: gperf grep bash/powershell
+# DEPENDS ON: gperf grep
 
 if (NOT TDUTILS_MIME_TYPE)
   return()
