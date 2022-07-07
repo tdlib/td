@@ -8,11 +8,20 @@
 
 #include "auto/git_info.h"
 
+#if !defined(GIT_COMMIT)
+#define GIT_COMMIT "unknown"
+#endif
+
+#if !defined(GIT_DIRTY)
+#define GIT_DIRTY false
+#endif
+
 namespace td {
 
-CSlice GitInfo::commit() {
+const char *GitInfo::commit() {
   return GIT_COMMIT;
 }
+
 bool GitInfo::is_dirty() {
   return GIT_DIRTY;
 }
