@@ -88,7 +88,7 @@ TDJSON_EXPORT const char *td_execute(const char *request);
 /**
  * A type of callback function that will be called when a message is added to the internal TDLib log.
  *
- * \param verbosity_level Log verbosity level with which the message was added (-1 - 1024).
+ * \param verbosity_level Log verbosity level with which the message was added from -1 up to 1024.
  *                        If 0, then TDLib will crash as soon as the callback returns.
  *                        None of the TDLib methods can be called from the callback.
  * \param message Null-terminated UTF-8-encoded string with the message added to the log.
