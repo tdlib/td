@@ -9,9 +9,9 @@ package org.drinkless.tdlib.example;
 import org.drinkless.tdlib.Client;
 import org.drinkless.tdlib.TdApi;
 
+import java.io.BufferedReader;
 import java.io.IOError;
 import java.io.IOException;
-import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.util.NavigableSet;
 import java.util.TreeSet;
@@ -380,7 +380,7 @@ public final class Example {
                     TdApi.UpdateUser updateUser = (TdApi.UpdateUser) object;
                     users.put(updateUser.user.id, updateUser.user);
                     break;
-                case TdApi.UpdateUserStatus.CONSTRUCTOR:  {
+                case TdApi.UpdateUserStatus.CONSTRUCTOR: {
                     TdApi.UpdateUserStatus updateUserStatus = (TdApi.UpdateUserStatus) object;
                     TdApi.User user = users.get(updateUserStatus.userId);
                     synchronized (user) {
@@ -441,7 +441,7 @@ public final class Example {
                 case TdApi.UpdateChatPosition.CONSTRUCTOR: {
                     TdApi.UpdateChatPosition updateChat = (TdApi.UpdateChatPosition) object;
                     if (updateChat.position.list.getConstructor() != TdApi.ChatListMain.CONSTRUCTOR) {
-                      break;
+                        break;
                     }
 
                     TdApi.Chat chat = chats.get(updateChat.chatId);
@@ -455,7 +455,7 @@ public final class Example {
                         TdApi.ChatPosition[] new_positions = new TdApi.ChatPosition[chat.positions.length + (updateChat.position.order == 0 ? 0 : 1) - (i < chat.positions.length ? 1 : 0)];
                         int pos = 0;
                         if (updateChat.position.order != 0) {
-                          new_positions[pos++] = updateChat.position;
+                            new_positions[pos++] = updateChat.position;
                         }
                         for (int j = 0; j < chat.positions.length; j++) {
                             if (j != i) {
@@ -606,7 +606,7 @@ public final class Example {
         @Override
         public void onLogMessage(int verbosityLevel, String message) {
             if (verbosityLevel == 0) {
-              // a fatal error, the app will crash right after the function returns
+                // a fatal error, the app will crash right after the function returns
             }
             System.err.println(message);
         }
