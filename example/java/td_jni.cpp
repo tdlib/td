@@ -5,7 +5,6 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 #include <td/telegram/Client.h>
-#include <td/telegram/Log.h>
 #include <td/telegram/td_api.h>
 
 #include <td/tl/tl_jni_object.h>
@@ -75,18 +74,6 @@ static jobject Client_nativeClientExecute(JNIEnv *env, jclass clazz, jobject fun
   jobject result;
   td::ClientManager::execute(fetch_function(env, function))->store(env, result);
   return result;
-}
-
-static void Log_setVerbosityLevel(JNIEnv *env, jclass clazz, jint new_log_verbosity_level) {
-  td::Log::set_verbosity_level(static_cast<int>(new_log_verbosity_level));
-}
-
-static jboolean Log_setFilePath(JNIEnv *env, jclass clazz, jstring file_path) {
-  return td::Log::set_file_path(td::jni::from_jstring(env, file_path)) ? JNI_TRUE : JNI_FALSE;
-}
-
-static void Log_setMaxFileSize(JNIEnv *env, jclass clazz, jlong max_file_size) {
-  td::Log::set_max_file_size(max_file_size);
 }
 
 static jstring Object_toString(JNIEnv *env, jobject object) {
@@ -162,7 +149,6 @@ static jint register_native(JavaVM *vm) {
   };
 
   auto client_class = td::jni::get_jclass(env, PACKAGE_NAME "/Client");
-  auto log_class = td::jni::get_jclass(env, PACKAGE_NAME "/Log");
   auto object_class = td::jni::get_jclass(env, PACKAGE_NAME "/TdApi$Object");
   auto function_class = td::jni::get_jclass(env, PACKAGE_NAME "/TdApi$Function");
 
@@ -174,10 +160,6 @@ static jint register_native(JavaVM *vm) {
   register_method(client_class, "nativeClientExecute", "(" TD_FUNCTION ")" TD_OBJECT, Client_nativeClientExecute);
   register_method(client_class, "nativeClientSetLogMessageHandler", "(IL" PACKAGE_NAME "/Client$LogMessageHandler;)V",
                   Client_nativeClientSetLogMessageHandler);
-
-  register_method(log_class, "setVerbosityLevel", "(I)V", Log_setVerbosityLevel);
-  register_method(log_class, "setFilePath", "(Ljava/lang/String;)Z", Log_setFilePath);
-  register_method(log_class, "setMaxFileSize", "(J)V", Log_setMaxFileSize);
 
   register_method(object_class, "toString", "()Ljava/lang/String;", Object_toString);
 

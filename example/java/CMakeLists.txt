@@ -59,7 +59,7 @@ set(JAVA_SOURCE_PATH "${TD_API_JAVA_PATH}/${TD_API_JAVA_PACKAGE}")
 get_filename_component(JAVA_OUTPUT_DIRECTORY ${CMAKE_INSTALL_PREFIX}/bin REALPATH BASE_DIR "${CMAKE_CURRENT_BINARY_DIR}")
 file(MAKE_DIRECTORY ${JAVA_OUTPUT_DIRECTORY})
 add_custom_target(build_java
-  COMMAND ${Java_JAVAC_EXECUTABLE} -encoding UTF-8 -d ${JAVA_OUTPUT_DIRECTORY} ${JAVA_SOURCE_PATH}/example/Example.java ${JAVA_SOURCE_PATH}/Client.java ${JAVA_SOURCE_PATH}/Log.java ${JAVA_SOURCE_PATH}/TdApi.java
+  COMMAND ${Java_JAVAC_EXECUTABLE} -encoding UTF-8 -d ${JAVA_OUTPUT_DIRECTORY} ${JAVA_SOURCE_PATH}/example/Example.java ${JAVA_SOURCE_PATH}/Client.java ${JAVA_SOURCE_PATH}/TdApi.java
   COMMENT "Building Java code"
   DEPENDS td_generate_java_api
 )
