@@ -100,6 +100,7 @@ set(TDUTILS_SOURCE
   td/utils/find_boundary.cpp
   td/utils/FlatHashTable.cpp
   td/utils/FloodControlGlobal.cpp
+  td/utils/GitInfo.cpp
   td/utils/Gzip.cpp
   td/utils/GzipByteFlow.cpp
   td/utils/Hints.cpp
@@ -217,6 +218,7 @@ set(TDUTILS_SOURCE
   td/utils/FloodControlGlobal.h
   td/utils/FloodControlStrict.h
   td/utils/format.h
+  td/utils/GitInfo.h
   td/utils/Gzip.h
   td/utils/GzipByteFlow.h
   td/utils/Hash.h
@@ -337,9 +339,15 @@ set(TDUTILS_TEST_SOURCE
   PARENT_SCOPE
 )
 
-#RULES
 #LIBRARIES
 add_library(tdutils STATIC ${TDUTILS_SOURCE})
+
+if (DEFINED TD_GIT_COMMIT)
+  set_property(SOURCE td/utils/GitInfo.cpp APPEND PROPERTY COMPILE_DEFINITIONS "GIT_COMMIT=\"${TD_GIT_COMMIT}\"")
+endif()
+if (DEFINED TD_GIT_DIRTY)
+  set_property(SOURCE td/utils/GitInfo.cpp APPEND PROPERTY COMPILE_DEFINITIONS "GIT_DIRTY=true")
+endif()
 
 if (NOT CMAKE_CROSSCOMPILING AND TDUTILS_MIME_TYPE)
   add_dependencies(tdutils tdmime_auto)

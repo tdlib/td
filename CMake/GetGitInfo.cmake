@@ -1,0 +1,29 @@
+# sets GIT_COMMIT and GIT_DIRTY CMake variables
+function(get_git_info)
+  find_program(GIT_EXECUTABLE git)
+
+  unset(TD_GIT_COMMIT PARENT_SCOPE)
+  unset(TD_GIT_DIRTY PARENT_SCOPE)
+
+  execute_process(
+      COMMAND "${GIT_EXECUTABLE}" rev-parse HEAD
+      WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+      OUTPUT_VARIABLE GIT_COMMIT
+      ERROR_QUIET OUTPUT_STRIP_TRAILING_WHITESPACE)
+
+  if (NOT GIT_COMMIT)
+    return()
+  endif()
+
+  set(TD_GIT_COMMIT "${GIT_COMMIT}" PARENT_SCOPE)
+
+  execute_process(
+      COMMAND "${GIT_EXECUTABLE}" diff-index --quiet HEAD
+      WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+      RESULT_VARIABLE GIT_DIRTY_RESULT
+      ERROR_QUIET OUTPUT_STRIP_TRAILING_WHITESPACE)
+
+  if (GIT_DIRTY_RESULT)
+    set(TD_GIT_DIRTY "true" PARENT_SCOPE)
+  endif()
+endfunction()

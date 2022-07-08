@@ -6,8 +6,6 @@
 //
 #include "td/utils/GitInfo.h"
 
-#include "auto/git_info.h"
-
 #if !defined(GIT_COMMIT)
 #define GIT_COMMIT "unknown"
 #endif

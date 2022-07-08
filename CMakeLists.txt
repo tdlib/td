@@ -152,6 +152,11 @@ if (CLANG OR GCC)
   endif()
 endif()
 
+if (NOT DEFINED TD_GIT_COMMIT)
+  include(GetGitInfo)
+  get_git_info()
+endif()
+
 add_subdirectory(tdtl)
 
 add_subdirectory(tdutils)
@@ -742,22 +747,6 @@ set(MEMPROF_SOURCE
 set(MEMPROF_STAT_SOURCE
   memprof/memprof_stat.cpp
   memprof/memprof_stat.h
-)
-
-#RULES
-
-file(MAKE_DIRECTORY auto)
-
-if (CMAKE_HOST_WIN32)
-  set(GIT_COMMIT_CMD powershell -ExecutionPolicy ByPass ./gen_git_commit_h.ps1)
-else()
-  set(GIT_COMMIT_CMD ./gen_git_commit_h.sh)
-endif()
-
-add_custom_target(git_commit ALL
-  WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
-  COMMAND ${GIT_COMMIT_CMD}
-  COMMENT "Generate git_commit.h"
 )
 
 #LIBRARIES
