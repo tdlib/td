@@ -4183,6 +4183,9 @@ void Td::send_error_impl(uint64 id, tl_object_ptr<td_api::error> error) {
   if (it != request_set_.end()) {
     request_set_.erase(it);
     VLOG(td_requests) << "Sending error for request " << id << ": " << oneline(to_string(error));
+    if (error->code_ == 0 && error->message_ == "Lost promise") {
+      LOG(FATAL) << "Lost promise for query " << id;
+    }
     callback_->on_error(id, std::move(error));
   }
 }
