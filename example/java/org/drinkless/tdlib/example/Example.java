@@ -298,7 +298,10 @@ public final class Example {
     }
 
     public static void main(String[] args) throws InterruptedException {
-        // disable TDLib log
+        // set log message handler to handle only fatal errors (0) and plain log messages (-1)
+        Client.setLogMessageHandler(0, new LogMessageHandler());
+
+        // disable TDLib log and redirect fatal errors and plain log messages to a file
         Client.execute(new TdApi.SetLogVerbosityLevel(0));
         if (Client.execute(new TdApi.SetLogStream(new TdApi.LogStreamFile("tdlib.log", 1 << 27, false))) instanceof TdApi.Error) {
             throw new IOError(new IOException("Write access to the current directory is required"));
@@ -596,6 +599,16 @@ public final class Example {
                 default:
                     System.err.println("Receive wrong response from TDLib:" + newLine + object);
             }
+        }
+    }
+
+    private static class LogMessageHandler implements Client.LogMessageHandler {
+        @Override
+        public void onLogMessage(int verbosityLevel, String message) {
+            if (verbosityLevel == 0) {
+              // a fatal error, the app will crash right after the function returns
+            }
+            System.err.println(message);
         }
     }
 }

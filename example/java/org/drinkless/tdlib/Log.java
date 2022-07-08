@@ -49,34 +49,4 @@ public final class Log {
      */
     @Deprecated
     public static native void setMaxFileSize(long maxFileSize);
-
-    /**
-     * This function is called from the JNI when a fatal error happens to provide a better error message.
-     * The function does not return.
-     *
-     * @param errorMessage Error message.
-     */
-    private static void onFatalError(String errorMessage) {
-        class ThrowError implements Runnable {
-            private ThrowError(String errorMessage) {
-                this.errorMessage = errorMessage;
-            }
-
-            @Override
-            public void run() {
-                throw new RuntimeException("TDLib fatal error: " + errorMessage);
-            }
-
-            private final String errorMessage;
-        }
-
-        new Thread(new ThrowError(errorMessage), "TDLib fatal error thread").start();
-        while (true) {
-            try {
-                Thread.sleep(1000);     // milliseconds
-            } catch (InterruptedException ex) {
-                Thread.currentThread().interrupt();
-            }
-        }
-    }
 }

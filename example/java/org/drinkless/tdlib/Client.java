@@ -40,6 +40,21 @@ public final class Client {
     }
 
     /**
+     * Interface for handler of messages that are added to the internal TDLib log.
+     */
+    public interface LogMessageHandler {
+        /**
+         * Callback called on messages that are added to the internal TDLib log.
+         *
+         * @param verbosityLevel Log verbosity level with which the message was added from -1 up to 1024.
+         *                       If 0, then TDLib will crash as soon as the callback returns.
+         *                       None of the TDLib methods can be called from the callback.
+         * @param message        The message added to the internal TDLib log.
+         */
+        void onLogMessage(int verbosityLevel, String message);
+    }
+
+    /**
      * Sends a request to the TDLib.
      *
      * @param query            Object representing a query to the TDLib.
@@ -103,6 +118,17 @@ public final class Client {
             }
         }
         return client;
+    }
+
+    /**
+     * Sets the handler for messages that are added to the internal TDLib log.
+     * None of the TDLib methods can be called from the callback.
+     *
+     * @param maxVerbosityLevel The maximum verbosity level of messages for which the callback will be called.
+     * @param logMessageHandler Handler for messages that are added to the internal TDLib log. Pass null to remove the handler.
+     */
+    public static void setLogMessageHandler(int maxVerbosityLevel, Client.LogMessageHandler logMessageHandler) {
+        nativeClientSetLogMessageHandler(maxVerbosityLevel, logMessageHandler);
     }
 
     private static class ResponseReceiver implements Runnable {
@@ -203,4 +229,6 @@ public final class Client {
     private static native int nativeClientReceive(int[] clientIds, long[] eventIds, TdApi.Object[] events, double timeout);
 
     private static native TdApi.Object nativeClientExecute(TdApi.Function function);
+
+    private static native void nativeClientSetLogMessageHandler(int maxVerbosityLevel, LogMessageHandler logMessageHandler);
 }
