@@ -64,6 +64,18 @@ function(generate_pkgconfig TARGET DESCRIPTION)
     set(LIBRARIES "Libs.private:${LIBRARIES}\n")
   endif()
 
+  if (IS_ABSOLUTE "${CMAKE_INSTALL_INCLUDEDIR}")
+    set(PKGCONFIG_INCLUDEDIR "${CMAKE_INSTALL_INCLUDEDIR}")
+  else()
+    set(PKGCONFIG_INCLUDEDIR "\${prefix}/${CMAKE_INSTALL_INCLUDEDIR}")
+  endif()
+
+  if (IS_ABSOLUTE "${CMAKE_INSTALL_LIBDIR}")
+    set(PKGCONFIG_LIBDIR "${CMAKE_INSTALL_LIBDIR}")
+  else()
+    set(PKGCONFIG_LIBDIR "\${prefix}/${CMAKE_INSTALL_LIBDIR}")
+  endif()
+
   file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/pkgconfig")
   file(GENERATE OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/pkgconfig/${TARGET}.pc" CONTENT
 "prefix=${PREFIX}
@@ -72,8 +84,8 @@ Name: ${TARGET}
 Description: ${DESCRIPTION}
 Version: ${PROJECT_VERSION}
 
-CFlags: -I\"\${prefix}/${CMAKE_INSTALL_INCLUDEDIR}\"
-Libs: -L\"\${prefix}/${CMAKE_INSTALL_LIBDIR}\" -l${TARGET}
+CFlags: -I\"${PKGCONFIG_INCLUDEDIR}\"
+Libs: -L\"${PKGCONFIG_LIBDIR}\" -l${TARGET}
 ${REQUIRES}${LIBRARIES}")
 
   install(FILES "${CMAKE_CURRENT_BINARY_DIR}/pkgconfig/${TARGET}.pc" DESTINATION "${CMAKE_INSTALL_LIBDIR}/pkgconfig")
