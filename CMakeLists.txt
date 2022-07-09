@@ -152,11 +152,6 @@ if (CLANG OR GCC)
   endif()
 endif()
 
-if (NOT DEFINED TD_GIT_COMMIT)
-  include(GetGitInfo)
-  get_git_info()
-endif()
-
 add_subdirectory(tdtl)
 
 add_subdirectory(tdutils)

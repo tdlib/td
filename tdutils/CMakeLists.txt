@@ -343,6 +343,9 @@ set(TDUTILS_TEST_SOURCE
 add_library(tdutils STATIC ${TDUTILS_SOURCE})
 
 if (DEFINED TD_GIT_COMMIT)
+  # this forces the whole tdutils to be recompiled after each commit with Makefile generator as explained at
+  # https://cmake.org/pipermail/cmake-developers/2012-October/005411.html,
+  # so this can't be improved for production-ready state
   set_property(SOURCE td/utils/GitInfo.cpp APPEND PROPERTY COMPILE_DEFINITIONS "GIT_COMMIT=\"${TD_GIT_COMMIT}\"")
 endif()
 if (DEFINED TD_GIT_DIRTY)
