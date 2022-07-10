@@ -154,11 +154,7 @@ endif()
 
 include(GetGitRevisionDescription)
 get_git_head_revision(TD_GIT_REFSPEC TD_GIT_COMMIT)
-git_local_changes(TD_GIT_DIRTY)
-message(STATUS "Git state: ${TD_GIT_COMMIT} ${TD_GIT_DIRTY}")
-if (NOT TD_GIT_DIRTY STREQUAL "DIRTY")
-  unset(TD_GIT_DIRTY)
-endif()
+message(STATUS "Git state: ${TD_GIT_COMMIT}")
 
 add_subdirectory(tdtl)
 
