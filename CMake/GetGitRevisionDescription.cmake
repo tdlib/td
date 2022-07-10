@@ -3,17 +3,7 @@
 # These functions force a re-configure on each git commit so that you can
 # trust the values of the variables in your build system.
 #
-#  get_git_head_revision(<refspecvar> <hashvar> [ALLOW_LOOKING_ABOVE_CMAKE_SOURCE_DIR])
-#
-# Returns the results of git describe --exact-match on the source tree,
-# and adjusting the output so that it tests false if there was no exact
-# matching tag.
-#
-#  git_local_changes(<var>)
-#
-# Returns either "CLEAN" or "DIRTY" with respect to uncommitted changes.
-# Uses the return code of "git diff-index --quiet HEAD --".
-# Does not regard untracked files.
+#  get_git_head_revision(<refspecvar> <hashvar>)
 #
 # Requires CMake 2.6 or newer (uses the 'function' command)
 #
@@ -68,17 +58,10 @@ endfunction()
 function(get_git_head_revision _refspecvar _hashvar)
   _git_find_closest_git_dir("${CMAKE_CURRENT_SOURCE_DIR}" GIT_DIR)
 
-  if ("${ARGN}" STREQUAL "ALLOW_LOOKING_ABOVE_CMAKE_SOURCE_DIR")
-    set(ALLOW_LOOKING_ABOVE_CMAKE_SOURCE_DIR TRUE)
-  else()
-    set(ALLOW_LOOKING_ABOVE_CMAKE_SOURCE_DIR FALSE)
-  endif()
-  if (NOT "${GIT_DIR}" STREQUAL "")
-    file(RELATIVE_PATH _relative_to_source_dir "${CMAKE_SOURCE_DIR}" "${GIT_DIR}")
-    if ("${_relative_to_source_dir}" MATCHES "[.][.]" AND NOT ALLOW_LOOKING_ABOVE_CMAKE_SOURCE_DIR)
-      # We've gone above the CMake root dir.
-      set(GIT_DIR "")
-    endif()
+  file(RELATIVE_PATH _relative_to_source_dir "${CMAKE_CURRENT_SOURCE_DIR}" "${GIT_DIR}")
+  if ("${_relative_to_source_dir}" MATCHES "^[.][.]")
+    # We've gone above the CMake root dir.
+    set(GIT_DIR "")
   endif()
   if ("${GIT_DIR}" STREQUAL "")
     set(${_refspecvar} "GITDIR-NOTFOUND" PARENT_SCOPE)
@@ -101,7 +84,7 @@ function(get_git_head_revision _refspecvar _hashvar)
       OUTPUT_VARIABLE out
       ERROR_QUIET OUTPUT_STRIP_TRAILING_WHITESPACE)
     if (NOT "${out}" STREQUAL "")
-      # If out is empty, GIT_DIR/CMAKE_CURRENT_SOURCE_DIR is in a submodule
+      # If out is non-empty, GIT_DIR/CMAKE_CURRENT_SOURCE_DIR is in a submodule
       file(READ ${GIT_DIR} submodule)
       string(REGEX REPLACE "gitdir: (.*)$" "\\1" GIT_DIR_RELATIVE ${submodule})
       string(STRIP ${GIT_DIR_RELATIVE} GIT_DIR_RELATIVE)
@@ -121,13 +104,13 @@ function(get_git_head_revision _refspecvar _hashvar)
   else()
     set(HEAD_SOURCE_FILE "${GIT_DIR}/HEAD")
   endif()
+  if (NOT EXISTS "${HEAD_SOURCE_FILE}")
+    return()
+  endif()
+
   set(GIT_DATA "${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/git-data")
   if (NOT EXISTS "${GIT_DATA}")
     file(MAKE_DIRECTORY "${GIT_DATA}")
-  endif()
-
-  if (NOT EXISTS "${HEAD_SOURCE_FILE}")
-    return()
   endif()
   set(HEAD_FILE "${GIT_DATA}/HEAD")
   configure_file("${HEAD_SOURCE_FILE}" "${HEAD_FILE}" COPYONLY)
