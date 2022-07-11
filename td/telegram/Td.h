@@ -248,6 +248,8 @@ class Td final : public Actor {
 
   static td_api::object_ptr<td_api::OptionValue> get_version_option_value_object();
 
+  static td_api::object_ptr<td_api::OptionValue> get_commit_hash_option_value_object();
+
  private:
   static constexpr int64 ONLINE_ALARM_ID = 0;
   static constexpr int64 PING_SERVER_ALARM_ID = -1;

@@ -398,6 +398,9 @@ void OptionManager::get_option(const string &name, Promise<td_api::object_ptr<td
       if (!is_bot && name == "can_ignore_sensitive_content_restrictions") {
         return send_closure_later(td_->config_manager_, &ConfigManager::get_content_settings, wrap_promise());
       }
+      if (name == "commit_hash") {
+        return promise.set_value(Td::get_commit_hash_option_value_object());
+      }
       break;
     case 'd':
       if (!is_bot && name == "disable_contact_registered_notifications") {
@@ -761,6 +764,7 @@ td_api::object_ptr<td_api::OptionValue> OptionManager::get_option_value_object(S
 
 void OptionManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const {
   updates.push_back(td_api::make_object<td_api::updateOption>("version", Td::get_version_option_value_object()));
+  updates.push_back(td_api::make_object<td_api::updateOption>("commit_hash", Td::get_commit_hash_option_value_object()));
 
   updates.push_back(td_api::make_object<td_api::updateOption>(
       "online", td_api::make_object<td_api::optionValueBoolean>(td_->is_online())));

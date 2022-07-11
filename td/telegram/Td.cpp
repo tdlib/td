@@ -52,6 +52,7 @@
 #include "td/telegram/FolderId.h"
 #include "td/telegram/FullMessageId.h"
 #include "td/telegram/GameManager.h"
+#include "td/telegram/GitCommitHash.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/GroupCallId.h"
 #include "td/telegram/GroupCallManager.h"
@@ -3058,6 +3059,7 @@ void Td::run_request(uint64 id, tl_object_ptr<td_api::Function> function) {
       case td_api::getCurrentState::ID: {
         vector<td_api::object_ptr<td_api::Update>> updates;
         updates.push_back(td_api::make_object<td_api::updateOption>("version", get_version_option_value_object()));
+        updates.push_back(td_api::make_object<td_api::updateOption>("commit_hash", get_commit_hash_option_value_object()));
         updates.push_back(td_api::make_object<td_api::updateAuthorizationState>(get_fake_authorization_state_object()));
         // send response synchronously to prevent "Request aborted"
         return send_result(id, td_api::make_object<td_api::updates>(std::move(updates)));
@@ -3258,6 +3260,10 @@ td_api::object_ptr<td_api::OptionValue> Td::get_version_option_value_object() {
   return td_api::make_object<td_api::optionValueString>(TDLIB_VERSION);
 }
 
+td_api::object_ptr<td_api::OptionValue> Td::get_commit_hash_option_value_object() {
+  return td_api::make_object<td_api::optionValueString>(get_git_commit_hash());
+}
+
 void Td::start_up() {
   always_wait_for_mailbox();
 
@@ -3279,6 +3285,7 @@ void Td::start_up() {
 
   CHECK(state_ == State::WaitParameters);
   send_update(td_api::make_object<td_api::updateOption>("version", get_version_option_value_object()));
+  send_update(td_api::make_object<td_api::updateOption>("commit_hash", get_commit_hash_option_value_object()));
   send_update(td_api::make_object<td_api::updateAuthorizationState>(
       td_api::make_object<td_api::authorizationStateWaitTdlibParameters>()));
 }
