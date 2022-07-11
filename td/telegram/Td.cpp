@@ -3057,8 +3057,7 @@ void Td::run_request(uint64 id, tl_object_ptr<td_api::Function> function) {
         return send_result(id, get_fake_authorization_state_object());
       case td_api::getCurrentState::ID: {
         vector<td_api::object_ptr<td_api::Update>> updates;
-        updates.push_back(td_api::make_object<td_api::updateOption>(
-            "version", td_api::make_object<td_api::optionValueString>(TDLIB_VERSION)));
+        updates.push_back(td_api::make_object<td_api::updateOption>("version", get_version_option_value_object()));
         updates.push_back(td_api::make_object<td_api::updateAuthorizationState>(get_fake_authorization_state_object()));
         // send response synchronously to prevent "Request aborted"
         return send_result(id, td_api::make_object<td_api::updates>(std::move(updates)));
@@ -3255,6 +3254,10 @@ void Td::on_connection_state_changed(ConnectionState new_state) {
   send_closure(actor_id(this), &Td::send_update, get_update_connection_state_object(connection_state_));
 }
 
+td_api::object_ptr<td_api::OptionValue> Td::get_version_option_value_object() {
+  return td_api::make_object<td_api::optionValueString>(TDLIB_VERSION);
+}
+
 void Td::start_up() {
   always_wait_for_mailbox();
 
@@ -3275,8 +3278,7 @@ void Td::start_up() {
   alarm_timeout_.set_callback_data(static_cast<void *>(this));
 
   CHECK(state_ == State::WaitParameters);
-  send_update(td_api::make_object<td_api::updateOption>("version",
-                                                        td_api::make_object<td_api::optionValueString>(TDLIB_VERSION)));
+  send_update(td_api::make_object<td_api::updateOption>("version", get_version_option_value_object()));
   send_update(td_api::make_object<td_api::updateAuthorizationState>(
       td_api::make_object<td_api::authorizationStateWaitTdlibParameters>()));
 }

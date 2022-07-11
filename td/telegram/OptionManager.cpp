@@ -426,7 +426,7 @@ void OptionManager::get_option(const string &name, Promise<td_api::object_ptr<td
       break;
     case 'v':
       if (name == "version") {
-        return promise.set_value(td_api::make_object<td_api::optionValueString>(Td::TDLIB_VERSION));
+        return promise.set_value(Td::get_version_option_value_object());
       }
       break;
   }
@@ -760,8 +760,7 @@ td_api::object_ptr<td_api::OptionValue> OptionManager::get_option_value_object(S
 }
 
 void OptionManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const {
-  updates.push_back(td_api::make_object<td_api::updateOption>(
-      "version", td_api::make_object<td_api::optionValueString>(Td::TDLIB_VERSION)));
+  updates.push_back(td_api::make_object<td_api::updateOption>("version", Td::get_version_option_value_object()));
 
   updates.push_back(td_api::make_object<td_api::updateOption>(
       "online", td_api::make_object<td_api::optionValueBoolean>(td_->is_online())));
