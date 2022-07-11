@@ -2400,6 +2400,8 @@ class CliClient final : public Actor {
                                                           td_api::make_object<td_api::optionValueBoolean>(op == "on")));
     } else if (op == "go") {
       send_request(td_api::make_object<td_api::getOption>(args));
+    } else if (op == "gos") {
+      execute(td_api::make_object<td_api::getOption>(args));
     } else if (op == "sob") {
       string name;
       bool value;

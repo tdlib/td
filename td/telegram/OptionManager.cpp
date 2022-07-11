@@ -210,6 +210,10 @@ bool OptionManager::is_internal_option(Slice name) {
   }
 }
 
+bool OptionManager::is_synchronous_option(Slice name) {
+  return name == "version" || name == "commit_hash";
+}
+
 void OptionManager::on_option_updated(const string &name) {
   if (G()->close_flag()) {
     return;
@@ -398,9 +402,6 @@ void OptionManager::get_option(const string &name, Promise<td_api::object_ptr<td
       if (!is_bot && name == "can_ignore_sensitive_content_restrictions") {
         return send_closure_later(td_->config_manager_, &ConfigManager::get_content_settings, wrap_promise());
       }
-      if (name == "commit_hash") {
-        return promise.set_value(Td::get_commit_hash_option_value_object());
-      }
       break;
     case 'd':
       if (!is_bot && name == "disable_contact_registered_notifications") {
@@ -427,13 +428,24 @@ void OptionManager::get_option(const string &name, Promise<td_api::object_ptr<td
         return promise.set_value(get_unix_time_option_value_object());
       }
       break;
+  }
+  wrap_promise().set_value(Unit());
+}
+
+td_api::object_ptr<td_api::OptionValue> OptionManager::get_option_synchronously(const string &name) {
+  switch (name[0]) {
+    case 'c':
+      if (name == "commit_hash") {
+        return Td::get_commit_hash_option_value_object();
+      }
+      break;
     case 'v':
       if (name == "version") {
-        return promise.set_value(Td::get_version_option_value_object());
+        return Td::get_version_option_value_object();
       }
       break;
   }
-  wrap_promise().set_value(Unit());
+  UNREACHABLE();
 }
 
 void OptionManager::set_option(const string &name, td_api::object_ptr<td_api::OptionValue> &&value,
@@ -764,7 +776,8 @@ td_api::object_ptr<td_api::OptionValue> OptionManager::get_option_value_object(S
 
 void OptionManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const {
   updates.push_back(td_api::make_object<td_api::updateOption>("version", Td::get_version_option_value_object()));
-  updates.push_back(td_api::make_object<td_api::updateOption>("commit_hash", Td::get_commit_hash_option_value_object()));
+  updates.push_back(
+      td_api::make_object<td_api::updateOption>("commit_hash", Td::get_commit_hash_option_value_object()));
 
   updates.push_back(td_api::make_object<td_api::updateOption>(
       "online", td_api::make_object<td_api::optionValueBoolean>(td_->is_online())));

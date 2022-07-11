@@ -384,7 +384,7 @@ class Td final : public Actor {
 
   static bool is_authentication_request(int32 id);
 
-  static bool is_synchronous_request(int32 id);
+  static bool is_synchronous_request(const td_api::Function *function);
 
   static bool is_preinitialization_request(int32 id);
 
@@ -1412,6 +1412,7 @@ class Td final : public Actor {
   static td_api::object_ptr<td_api::Object> do_static_request(const T &request) {
     return td_api::make_object<td_api::error>(400, "The method can't be executed synchronously");
   }
+  static td_api::object_ptr<td_api::Object> do_static_request(const td_api::getOption &request);
   static td_api::object_ptr<td_api::Object> do_static_request(const td_api::getTextEntities &request);
   static td_api::object_ptr<td_api::Object> do_static_request(td_api::parseTextEntities &request);
   static td_api::object_ptr<td_api::Object> do_static_request(td_api::parseMarkdown &request);

@@ -2894,8 +2894,8 @@ bool Td::is_authentication_request(int32 id) {
   }
 }
 
-bool Td::is_synchronous_request(int32 id) {
-  switch (id) {
+bool Td::is_synchronous_request(const td_api::Function *function) {
+  switch (function->get_id()) {
     case td_api::getTextEntities::ID:
     case td_api::parseTextEntities::ID:
     case td_api::parseMarkdown::ID:
@@ -2920,6 +2920,8 @@ bool Td::is_synchronous_request(int32 id) {
     case td_api::addLogMessage::ID:
     case td_api::testReturnError::ID:
       return true;
+    case td_api::getOption::ID:
+      return OptionManager::is_synchronous_option(static_cast<const td_api::getOption *>(function)->name_);
     default:
       return false;
   }
@@ -3032,7 +3034,7 @@ void Td::request(uint64 id, tl_object_ptr<td_api::Function> function) {
   }
 
   VLOG(td_requests) << "Receive request " << id << ": " << to_string(function);
-  if (is_synchronous_request(function->get_id())) {
+  if (is_synchronous_request(function.get())) {
     // send response synchronously
     return send_result(id, static_request(std::move(function)));
   }
@@ -3059,7 +3061,8 @@ void Td::run_request(uint64 id, tl_object_ptr<td_api::Function> function) {
       case td_api::getCurrentState::ID: {
         vector<td_api::object_ptr<td_api::Update>> updates;
         updates.push_back(td_api::make_object<td_api::updateOption>("version", get_version_option_value_object()));
-        updates.push_back(td_api::make_object<td_api::updateOption>("commit_hash", get_commit_hash_option_value_object()));
+        updates.push_back(
+            td_api::make_object<td_api::updateOption>("commit_hash", get_commit_hash_option_value_object()));
         updates.push_back(td_api::make_object<td_api::updateAuthorizationState>(get_fake_authorization_state_object()));
         // send response synchronously to prevent "Request aborted"
         return send_result(id, td_api::make_object<td_api::updates>(std::move(updates)));
@@ -8206,6 +8209,13 @@ td_api::object_ptr<td_api::Object> Td::do_static_request(td_api::parseMarkdown &
   auto parsed_text = parse_markdown_v3({std::move(request.text_->text_), std::move(entities)});
   fix_formatted_text(parsed_text.text, parsed_text.entities, true, true, true, true, true).ensure();
   return get_formatted_text_object(parsed_text, false, std::numeric_limits<int32>::max());
+}
+
+td_api::object_ptr<td_api::Object> Td::do_static_request(const td_api::getOption &request) {
+  if (!is_synchronous_request(&request)) {
+    return make_error(400, "The option can't be get synchronously");
+  }
+  return OptionManager::get_option_synchronously(request.name_);
 }
 
 td_api::object_ptr<td_api::Object> Td::do_static_request(td_api::getMarkdownText &request) {
