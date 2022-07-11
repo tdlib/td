@@ -13,6 +13,7 @@
 #include "td/telegram/ConfigShared.h"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/DialogId.h"
+#include "td/telegram/GitCommitHash.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/JsonValue.h"
 #include "td/telegram/LanguagePackManager.h"
@@ -436,12 +437,12 @@ td_api::object_ptr<td_api::OptionValue> OptionManager::get_option_synchronously(
   switch (name[0]) {
     case 'c':
       if (name == "commit_hash") {
-        return Td::get_commit_hash_option_value_object();
+        return td_api::make_object<td_api::optionValueString>(get_git_commit_hash());
       }
       break;
     case 'v':
       if (name == "version") {
-        return Td::get_version_option_value_object();
+        return td_api::make_object<td_api::optionValueString>("1.8.4");
       }
       break;
   }
@@ -775,9 +776,8 @@ td_api::object_ptr<td_api::OptionValue> OptionManager::get_option_value_object(S
 }
 
 void OptionManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const {
-  updates.push_back(td_api::make_object<td_api::updateOption>("version", Td::get_version_option_value_object()));
-  updates.push_back(
-      td_api::make_object<td_api::updateOption>("commit_hash", Td::get_commit_hash_option_value_object()));
+  updates.push_back(td_api::make_object<td_api::updateOption>("version", get_option_synchronously("version")));
+  updates.push_back(td_api::make_object<td_api::updateOption>("commit_hash", get_option_synchronously("commit_hash")));
 
   updates.push_back(td_api::make_object<td_api::updateOption>(
       "online", td_api::make_object<td_api::optionValueBoolean>(td_->is_online())));

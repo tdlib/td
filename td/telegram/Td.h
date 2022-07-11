@@ -246,18 +246,12 @@ class Td final : public Actor {
 
   static td_api::object_ptr<td_api::Object> static_request(td_api::object_ptr<td_api::Function> function);
 
-  static td_api::object_ptr<td_api::OptionValue> get_version_option_value_object();
-
-  static td_api::object_ptr<td_api::OptionValue> get_commit_hash_option_value_object();
-
  private:
   static constexpr int64 ONLINE_ALARM_ID = 0;
   static constexpr int64 PING_SERVER_ALARM_ID = -1;
   static constexpr int32 PING_SERVER_TIMEOUT = 300;
   static constexpr int64 TERMS_OF_SERVICE_ALARM_ID = -2;
   static constexpr int64 PROMO_DATA_ALARM_ID = -3;
-
-  static constexpr const char *TDLIB_VERSION = "1.8.4";
 
   void on_connection_state_changed(ConnectionState new_state);
 
