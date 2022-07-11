@@ -3010,6 +3010,14 @@ td_api::object_ptr<td_api::AuthorizationState> Td::get_fake_authorization_state_
   }
 }
 
+vector<td_api::object_ptr<td_api::Update>> Td::get_fake_current_state() const {
+  CHECK(state_ != State::Run);
+  vector<td_api::object_ptr<td_api::Update>> updates;
+  OptionManager::get_common_state(updates);
+  updates.push_back(td_api::make_object<td_api::updateAuthorizationState>(get_fake_authorization_state_object()));
+  return updates;
+}
+
 DbKey Td::as_db_key(string key) {
   // Database will still be effectively not encrypted, but
   // 1. SQLite database will be protected from corruption, because that's how sqlcipher works
@@ -3057,16 +3065,9 @@ void Td::run_request(uint64 id, tl_object_ptr<td_api::Function> function) {
       case td_api::getAuthorizationState::ID:
         // send response synchronously to prevent "Request aborted"
         return send_result(id, get_fake_authorization_state_object());
-      case td_api::getCurrentState::ID: {
-        vector<td_api::object_ptr<td_api::Update>> updates;
-        updates.push_back(
-            td_api::make_object<td_api::updateOption>("version", OptionManager::get_option_synchronously("version")));
-        updates.push_back(td_api::make_object<td_api::updateOption>(
-            "commit_hash", OptionManager::get_option_synchronously("commit_hash")));
-        updates.push_back(td_api::make_object<td_api::updateAuthorizationState>(get_fake_authorization_state_object()));
+      case td_api::getCurrentState::ID:
         // send response synchronously to prevent "Request aborted"
-        return send_result(id, td_api::make_object<td_api::updates>(std::move(updates)));
-      }
+        return send_result(id, td_api::make_object<td_api::updates>(get_fake_current_state()));
       case td_api::close::ID:
         // need to send response before actual closing
         send_closure(actor_id(this), &Td::send_result, id, td_api::make_object<td_api::ok>());
@@ -3279,11 +3280,9 @@ void Td::start_up() {
   alarm_timeout_.set_callback_data(static_cast<void *>(this));
 
   CHECK(state_ == State::WaitParameters);
-  send_update(td_api::make_object<td_api::updateOption>("version", OptionManager::get_option_synchronously("version")));
-  send_update(
-      td_api::make_object<td_api::updateOption>("commit_hash", OptionManager::get_option_synchronously("commit_hash")));
-  send_update(td_api::make_object<td_api::updateAuthorizationState>(
-      td_api::make_object<td_api::authorizationStateWaitTdlibParameters>()));
+  for (auto &update : get_fake_current_state()) {
+    send_update(std::move(update));
+  }
 }
 
 void Td::tear_down() {

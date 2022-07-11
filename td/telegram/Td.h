@@ -328,6 +328,8 @@ class Td final : public Actor {
 
   td_api::object_ptr<td_api::AuthorizationState> get_fake_authorization_state_object() const;
 
+  vector<td_api::object_ptr<td_api::Update>> get_fake_current_state() const;
+
   static void on_alarm_timeout_callback(void *td_ptr, int64 alarm_id);
   void on_alarm_timeout(int64 alarm_id);
 

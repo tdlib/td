@@ -29,6 +29,7 @@
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/TopDialogManager.h"
 
+#include "td/utils/algorithm.h"
 #include "td/utils/buffer.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
@@ -211,8 +212,13 @@ bool OptionManager::is_internal_option(Slice name) {
   }
 }
 
+const vector<Slice> &OptionManager::get_synchronous_options() {
+  static const vector<Slice> options{"version", "commit_hash"};
+  return options;
+}
+
 bool OptionManager::is_synchronous_option(Slice name) {
-  return name == "version" || name == "commit_hash";
+  return td::contains(get_synchronous_options(), name);
 }
 
 void OptionManager::on_option_updated(const string &name) {
@@ -433,7 +439,8 @@ void OptionManager::get_option(const string &name, Promise<td_api::object_ptr<td
   wrap_promise().set_value(Unit());
 }
 
-td_api::object_ptr<td_api::OptionValue> OptionManager::get_option_synchronously(const string &name) {
+td_api::object_ptr<td_api::OptionValue> OptionManager::get_option_synchronously(Slice name) {
+  CHECK(!name.empty());
   switch (name[0]) {
     case 'c':
       if (name == "commit_hash") {
@@ -775,9 +782,15 @@ td_api::object_ptr<td_api::OptionValue> OptionManager::get_option_value_object(S
   return td_api::make_object<td_api::optionValueString>(value.str());
 }
 
+void OptionManager::get_common_state(vector<td_api::object_ptr<td_api::Update>> &updates) {
+  for (auto option_name : get_synchronous_options()) {
+    updates.push_back(
+        td_api::make_object<td_api::updateOption>(option_name.str(), get_option_synchronously(option_name)));
+  }
+}
+
 void OptionManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const {
-  updates.push_back(td_api::make_object<td_api::updateOption>("version", get_option_synchronously("version")));
-  updates.push_back(td_api::make_object<td_api::updateOption>("commit_hash", get_option_synchronously("commit_hash")));
+  get_common_state(updates);
 
   updates.push_back(td_api::make_object<td_api::updateOption>(
       "online", td_api::make_object<td_api::optionValueBoolean>(td_->is_online())));

@@ -40,7 +40,9 @@ class OptionManager final : public Actor {
 
   static bool is_synchronous_option(Slice name);
 
-  static td_api::object_ptr<td_api::OptionValue> get_option_synchronously(const string &name);
+  static td_api::object_ptr<td_api::OptionValue> get_option_synchronously(Slice name);
+
+  static void get_common_state(vector<td_api::object_ptr<td_api::Update>> &updates);
 
   void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
 
@@ -48,6 +50,8 @@ class OptionManager final : public Actor {
   void tear_down() final;
 
   static bool is_internal_option(Slice name);
+
+  static const vector<Slice> &get_synchronous_options();
 
   static td_api::object_ptr<td_api::OptionValue> get_unix_time_option_value_object();
 
