@@ -153,8 +153,10 @@ if (CLANG OR GCC)
 endif()
 
 include(GetGitRevisionDescription)
-get_git_head_revision(TD_GIT_REFSPEC TD_GIT_COMMIT)
-message(STATUS "Git state: ${TD_GIT_COMMIT}")
+get_git_head_revision(TD_GIT_REFSPEC TD_GIT_COMMIT_HASH)
+message(STATUS "Git state: ${TD_GIT_COMMIT_HASH}")
+
+configure_file("${CMAKE_CURRENT_SOURCE_DIR}/td/telegram/GitCommitHash.cpp.in" "${CMAKE_CURRENT_BINARY_DIR}/td/telegram/GitCommitHash.cpp" @ONLY)
 
 add_subdirectory(tdtl)
 
@@ -566,6 +568,7 @@ set(TDLIB_SOURCE
   td/telegram/FullMessageId.h
   td/telegram/Game.h
   td/telegram/GameManager.h
+  td/telegram/GitCommitHash.h
   td/telegram/Global.h
   td/telegram/GroupCallId.h
   td/telegram/GroupCallManager.h
@@ -736,6 +739,8 @@ set(TDLIB_SOURCE
   td/telegram/VoiceNotesManager.hpp
 
   ${TL_TD_SCHEME_SOURCE}
+
+  ${CMAKE_CURRENT_BINARY_DIR}/td/telegram/GitCommitHash.cpp
 )
 
 set(MEMPROF_SOURCE

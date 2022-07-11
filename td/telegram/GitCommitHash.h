@@ -4,24 +4,10 @@
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
-#include "td/utils/GitInfo.h"
-
-#if !defined(GIT_COMMIT)
-#define GIT_COMMIT "unknown"
-#endif
-
-#if !defined(GIT_DIRTY)
-#define GIT_DIRTY false
-#endif
+#pragma once
 
 namespace td {
 
-const char *GitInfo::commit() {
-  return GIT_COMMIT;
-}
-
-bool GitInfo::is_dirty() {
-  return GIT_DIRTY;
-}
+const char *get_git_commit_hash();
 
 }  // namespace td
