@@ -246,6 +246,7 @@
       <option>Ubuntu 16</option>
       <option>Ubuntu 18</option>
       <option>Ubuntu 20</option>
+      <option>Ubuntu 22</option>
       <option>Other</option>
     </select>
     <p></p>
@@ -638,7 +639,7 @@ function onOptionsChanged() {
   var use_vcpkg = os_windows;
 
   var use_lto = false;
-  if (!use_msvc && language !== 'Java' && language !== 'Kotlin' && (os_mac || (os_linux && (linux_distro === 'Ubuntu 18' || linux_distro === 'Ubuntu 20' || linux_distro === 'Other')))) {
+  if (!use_msvc && language !== 'Java' && language !== 'Kotlin' && (os_mac || (os_linux && (linux_distro === 'Ubuntu 18' || linux_distro === 'Ubuntu 20' || linux_distro === 'Ubuntu 22' || linux_distro === 'Other')))) {
     document.getElementById('buildLtoDiv').style.display = 'block';
     use_lto = document.getElementById('buildLtoCheckbox').checked;
   } else {
@@ -797,6 +798,8 @@ function onOptionsChanged() {
         return '-6.0';
       case 'Ubuntu 20':
         return '-10';
+      case 'Ubuntu 22':
+        return '-14';
       default:
         return ''; // use default version
     }
@@ -849,6 +852,7 @@ function onOptionsChanged() {
       case 'Ubuntu 16':
       case 'Ubuntu 18':
       case 'Ubuntu 20':
+      case 'Ubuntu 22':
         if (linux_distro.includes('Debian') && !use_root) {
           commands.push('su -');
         }
@@ -873,7 +877,7 @@ function onOptionsChanged() {
         }
         if (use_clang) {
           packages += ' clang' + getClangVersionSuffix() + ' libc++-dev';
-          if (linux_distro === 'Debian 10+' || linux_distro === 'Ubuntu 18' || linux_distro === 'Ubuntu 20') {
+          if (linux_distro === 'Debian 10+' || linux_distro === 'Ubuntu 18' || linux_distro === 'Ubuntu 20' || linux_distro === 'Ubuntu 22') {
             packages += ' libc++abi-dev';
           }
         } else {
