@@ -5413,7 +5413,7 @@ std::pair<vector<UserId>, vector<int32>> ContactsManager::import_contacts(const 
 
   do {
     random_id = Random::secure_int64();
-  } while (random_id == 0 || imported_contacts_.count(random_id) > 0);
+  } while (random_id == 0 || random_id == 1 || imported_contacts_.count(random_id) > 0);
   imported_contacts_[random_id];  // reserve place for result
 
   do_import_contacts(contacts, random_id, std::move(promise));
@@ -5758,7 +5758,7 @@ void ContactsManager::on_clear_imported_contacts(vector<Contact> &&contacts, vec
   imported_contacts_unique_id_ = std::move(contacts_unique_id);
   imported_contacts_pos_ = std::move(to_add.first);
 
-  do_import_contacts(std::move(to_add.second), 0, std::move(promise));
+  do_import_contacts(std::move(to_add.second), 1, std::move(promise));
 }
 
 void ContactsManager::clear_imported_contacts(Promise<Unit> &&promise) {
@@ -8249,7 +8249,7 @@ void ContactsManager::on_import_contacts_finished(int64 random_id, vector<UserId
                                                   vector<int32> unimported_contact_invites) {
   LOG(INFO) << "Contacts import with random_id " << random_id
             << " has finished: " << format::as_array(imported_contact_user_ids);
-  if (random_id == 0) {
+  if (random_id == 1) {
     // import from change_imported_contacts
     all_imported_contacts_ = std::move(next_all_imported_contacts_);
     next_all_imported_contacts_.clear();
