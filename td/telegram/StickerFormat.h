@@ -18,6 +18,8 @@ namespace td {
 // update store_sticker/store_sticker_set when this type changes
 enum class StickerFormat : int32 { Unknown, Webp, Tgs, Webm };
 
+StickerFormat get_sticker_format(const td_api::object_ptr<td_api::StickerType> &type);
+
 StickerFormat get_sticker_format_by_mime_type(Slice mime_type);
 
 StickerFormat get_sticker_format_by_extension(Slice extension);

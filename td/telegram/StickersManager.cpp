@@ -5794,19 +5794,7 @@ Result<std::tuple<FileId, bool, bool, StickerFormat>> StickersManager::prepare_i
     return Status::Error(400, "Sticker type must be non-empty");
   }
 
-  switch (sticker->type_->get_id()) {
-    case td_api::stickerTypeStatic::ID:
-      return prepare_input_file(sticker->sticker_, StickerFormat::Webp, false);
-    case td_api::stickerTypeAnimated::ID:
-      return prepare_input_file(sticker->sticker_, StickerFormat::Tgs, false);
-    case td_api::stickerTypeVideo::ID:
-      return prepare_input_file(sticker->sticker_, StickerFormat::Webm, false);
-    case td_api::stickerTypeMask::ID:
-      return prepare_input_file(sticker->sticker_, StickerFormat::Webp, false);
-    default:
-      UNREACHABLE();
-      return {};
-  }
+  return prepare_input_file(sticker->sticker_, get_sticker_format(sticker->type_), false);
 }
 
 Result<std::tuple<FileId, bool, bool, StickerFormat>> StickersManager::prepare_input_file(
