@@ -1897,8 +1897,7 @@ tl_object_ptr<td_api::sticker> StickersManager::get_sticker_object(FileId file_i
                                       ? td_->file_manager_->get_file_object(sticker->premium_animation_file_id)
                                       : nullptr;
   return td_api::make_object<td_api::sticker>(
-      sticker->set_id.get(), width, height, sticker->alt,
-      get_sticker_type_object(sticker->format, sticker->is_mask, std::move(mask_position)),
+      sticker->set_id.get(), width, height, sticker->alt, get_sticker_format_object(sticker->format), nullptr,
       get_sticker_minithumbnail(sticker->minithumbnail, sticker->set_id, document_id, zoom),
       std::move(thumbnail_object), std::move(premium_animation_object), td_->file_manager_->get_file_object(file_id));
 }
@@ -2035,8 +2034,8 @@ tl_object_ptr<td_api::stickerSet> StickersManager::get_sticker_set_object(Sticke
       get_sticker_minithumbnail(sticker_set->minithumbnail, sticker_set->id, -2,
                                 get_sticker_set_minithumbnail_zoom(sticker_set)),
       sticker_set->is_installed && !sticker_set->is_archived, sticker_set->is_archived, sticker_set->is_official,
-      get_sticker_type_object(sticker_set->sticker_format, sticker_set->is_masks, nullptr), sticker_set->is_viewed,
-      std::move(stickers), std::move(emojis));
+      get_sticker_format_object(sticker_set->sticker_format), nullptr, sticker_set->is_viewed, std::move(stickers),
+      std::move(emojis));
 }
 
 tl_object_ptr<td_api::stickerSets> StickersManager::get_sticker_sets_object(int32 total_count,
@@ -2109,7 +2108,7 @@ tl_object_ptr<td_api::stickerSetInfo> StickersManager::get_sticker_set_info_obje
       get_sticker_minithumbnail(sticker_set->minithumbnail, sticker_set->id, -3,
                                 get_sticker_set_minithumbnail_zoom(sticker_set)),
       sticker_set->is_installed && !sticker_set->is_archived, sticker_set->is_archived, sticker_set->is_official,
-      get_sticker_type_object(sticker_set->sticker_format, sticker_set->is_masks, nullptr), sticker_set->is_viewed,
+      get_sticker_format_object(sticker_set->sticker_format), nullptr, sticker_set->is_viewed,
       sticker_set->was_loaded ? actual_count : max(actual_count, sticker_set->sticker_count), std::move(stickers));
 }
 
@@ -5802,11 +5801,11 @@ Result<std::tuple<FileId, bool, bool, StickerFormat>> StickersManager::prepare_i
     return Status::Error(400, "Emojis must be encoded in UTF-8");
   }
 
-  if (sticker->type_ == nullptr) {
-    return Status::Error(400, "Sticker type must be non-empty");
+  if (sticker->format_ == nullptr) {
+    return Status::Error(400, "Sticker format must be non-empty");
   }
 
-  return prepare_input_file(sticker->sticker_, get_sticker_format(sticker->type_), false);
+  return prepare_input_file(sticker->sticker_, get_sticker_format(sticker->format_), false);
 }
 
 Result<std::tuple<FileId, bool, bool, StickerFormat>> StickersManager::prepare_input_file(
@@ -5898,9 +5897,9 @@ tl_object_ptr<telegram_api::inputStickerSetItem> StickersManager::get_input_stic
   auto input_document = file_view.main_remote_location().as_input_document();
 
   tl_object_ptr<telegram_api::maskCoords> mask_coords;
-  if (sticker->type_->get_id() == td_api::stickerTypeMask::ID) {
-    auto sticker_format = static_cast<const td_api::stickerTypeMask *>(sticker->type_.get());
-    auto mask_position = sticker_format->mask_position_.get();
+  if (sticker->type_ != nullptr && sticker->type_->get_id() == td_api::stickerTypeMask::ID) {
+    auto sticker_type = static_cast<const td_api::stickerTypeMask *>(sticker->type_.get());
+    auto mask_position = sticker_type->mask_position_.get();
     if (mask_position != nullptr && mask_position->point_ != nullptr) {
       auto point = [mask_point_id = mask_position->point_->get_id()] {
         switch (mask_point_id) {
@@ -6007,6 +6006,7 @@ void StickersManager::create_new_sticker_set(UserId user_id, string &title, stri
   vector<FileId> local_file_ids;
   vector<FileId> url_file_ids;
   FlatHashSet<int32> sticker_formats;
+  FlatHashSet<int32> sticker_types;
   StickerFormat sticker_format = StickerFormat::Unknown;
   for (auto &sticker : stickers) {
     auto r_file_id = prepare_input_sticker(sticker.get());
@@ -6020,7 +6020,8 @@ void StickersManager::create_new_sticker_set(UserId user_id, string &title, stri
     if (is_sticker_format_animated(sticker_format) && is_url) {
       return promise.set_error(Status::Error(400, "Animated stickers can't be uploaded by URL"));
     }
-    sticker_formats.insert(sticker->type_->get_id());
+    sticker_formats.insert(sticker->format_->get_id());
+    sticker_types.insert(sticker->type_ == nullptr ? td_api::stickerTypeRegular::ID : sticker->type_->get_id());
 
     file_ids.push_back(file_id);
     if (is_url) {
@@ -6031,6 +6032,9 @@ void StickersManager::create_new_sticker_set(UserId user_id, string &title, stri
   }
   if (sticker_formats.size() != 1) {
     return promise.set_error(Status::Error(400, "All stickers must be of the same format"));
+  }
+  if (sticker_types.size() != 1) {
+    return promise.set_error(Status::Error(400, "All stickers must be of the same type"));
   }
 
   auto pending_new_sticker_set = make_unique<PendingNewStickerSet>();
@@ -6205,7 +6209,8 @@ void StickersManager::on_new_stickers_uploaded(int64 random_id, Result<Unit> res
   auto &promise = pending_new_sticker_set->promise;
   TRY_RESULT_PROMISE(promise, input_user, td_->contacts_manager_->get_input_user(pending_new_sticker_set->user_id));
 
-  bool is_masks = pending_new_sticker_set->stickers[0]->type_->get_id() == td_api::stickerTypeMask::ID;
+  bool is_masks = pending_new_sticker_set->stickers[0]->type_ != nullptr &&
+                  pending_new_sticker_set->stickers[0]->type_->get_id() == td_api::stickerTypeMask::ID;
   StickerFormat sticker_format = pending_new_sticker_set->sticker_format;
 
   auto sticker_count = pending_new_sticker_set->stickers.size();
