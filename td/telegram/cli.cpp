@@ -548,11 +548,18 @@ class CliClient final : public Actor {
 
   static td_api::object_ptr<td_api::StickerType> as_sticker_type(string sticker_type) {
     if (!sticker_type.empty() && sticker_type.back() == 'm') {
-      auto position = td_api::make_object<td_api::maskPosition>(td_api::make_object<td_api::maskPointEyes>(),
-                                                                Random::fast(-5, 5), Random::fast(-5, 5), 1.0);
-      return td_api::make_object<td_api::stickerTypeMask>(Random::fast_bool() ? nullptr : std::move(position));
+      return td_api::make_object<td_api::stickerTypeMask>();
     }
     return Random::fast_bool() ? nullptr : td_api::make_object<td_api::stickerTypeRegular>();
+  }
+
+  static td_api::object_ptr<td_api::maskPosition> as_mask_position(string sticker_type) {
+    if (!sticker_type.empty() && sticker_type.back() == 'm') {
+      auto position = td_api::make_object<td_api::maskPosition>(td_api::make_object<td_api::maskPointEyes>(),
+                                                                Random::fast(-5, 5), Random::fast(-5, 5), 1.0);
+      return Random::fast_bool() ? nullptr : std::move(position);
+    }
+    return nullptr;
   }
 
   static int32 as_limit(Slice str, int32 default_limit = 10) {
@@ -2717,7 +2724,7 @@ class CliClient final : public Actor {
     } else if (op == "usf" || op == "usfa" || op == "usfv" || op == "usfm") {
       send_request(td_api::make_object<td_api::uploadStickerFile>(
           -1, td_api::make_object<td_api::inputSticker>(as_input_file(args), "😀", as_sticker_format(op),
-                                                        as_sticker_type(op))));
+                                                        as_sticker_type(op), as_mask_position(op))));
     } else if (op == "cnss" || op == "cnssa" || op == "cnssv" || op == "cnssm") {
       string title;
       string name;
@@ -2726,7 +2733,7 @@ class CliClient final : public Actor {
       auto input_stickers =
           transform(autosplit(stickers), [op](Slice sticker) -> td_api::object_ptr<td_api::inputSticker> {
             return td_api::make_object<td_api::inputSticker>(as_input_file(sticker), "😀", as_sticker_format(op),
-                                                             as_sticker_type(op));
+                                                             as_sticker_type(op), as_mask_position(op));
           });
       send_request(
           td_api::make_object<td_api::createNewStickerSet>(my_id_, title, name, std::move(input_stickers), "tg_cli"));

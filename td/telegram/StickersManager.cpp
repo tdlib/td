@@ -1898,7 +1898,7 @@ tl_object_ptr<td_api::sticker> StickersManager::get_sticker_object(FileId file_i
                                       : nullptr;
   return td_api::make_object<td_api::sticker>(
       sticker->set_id.get(), width, height, sticker->alt, get_sticker_format_object(sticker->format), nullptr,
-      get_sticker_minithumbnail(sticker->minithumbnail, sticker->set_id, document_id, zoom),
+      std::move(mask_position), get_sticker_minithumbnail(sticker->minithumbnail, sticker->set_id, document_id, zoom),
       std::move(thumbnail_object), std::move(premium_animation_object), td_->file_manager_->get_file_object(file_id));
 }
 
@@ -5898,8 +5898,7 @@ tl_object_ptr<telegram_api::inputStickerSetItem> StickersManager::get_input_stic
 
   tl_object_ptr<telegram_api::maskCoords> mask_coords;
   if (sticker->type_ != nullptr && sticker->type_->get_id() == td_api::stickerTypeMask::ID) {
-    auto sticker_type = static_cast<const td_api::stickerTypeMask *>(sticker->type_.get());
-    auto mask_position = sticker_type->mask_position_.get();
+    auto mask_position = sticker->mask_position_.get();
     if (mask_position != nullptr && mask_position->point_ != nullptr) {
       auto point = [mask_point_id = mask_position->point_->get_id()] {
         switch (mask_point_id) {

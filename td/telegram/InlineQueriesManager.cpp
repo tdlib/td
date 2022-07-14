@@ -1167,10 +1167,8 @@ tl_object_ptr<td_api::StickerType> copy(const td_api::StickerType &obj) {
   switch (obj.get_id()) {
     case td_api::stickerTypeRegular::ID:
       return td_api::make_object<td_api::stickerTypeRegular>();
-    case td_api::stickerTypeMask::ID: {
-      auto &mask_position = static_cast<const td_api::stickerTypeMask &>(obj).mask_position_;
-      return td_api::make_object<td_api::stickerTypeMask>(copy(mask_position));
-    }
+    case td_api::stickerTypeMask::ID:
+      return td_api::make_object<td_api::stickerTypeMask>();
     default:
       UNREACHABLE();
   }
@@ -1244,8 +1242,9 @@ tl_object_ptr<td_api::photo> copy(const td_api::photo &obj) {
 template <>
 tl_object_ptr<td_api::sticker> copy(const td_api::sticker &obj) {
   return td_api::make_object<td_api::sticker>(obj.set_id_, obj.width_, obj.height_, obj.emoji_, copy(obj.format_),
-                                              copy(obj.type_), transform(obj.outline_, copy_closed_vector_path),
-                                              copy(obj.thumbnail_), copy(obj.premium_animation_), copy(obj.sticker_));
+                                              copy(obj.type_), copy(obj.mask_position_),
+                                              transform(obj.outline_, copy_closed_vector_path), copy(obj.thumbnail_),
+                                              copy(obj.premium_animation_), copy(obj.sticker_));
 }
 
 template <>

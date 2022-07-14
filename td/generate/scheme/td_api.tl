@@ -257,8 +257,8 @@ stickerFormatWebm = StickerFormat;
 //@description The sticker is a regular sticker
 stickerTypeRegular = StickerType;
 
-//@description The sticker is a mask in WEBP format to be placed on photos or videos @mask_position Position where the mask is placed; may be null
-stickerTypeMask mask_position:maskPosition = StickerType;
+//@description The sticker is a mask in WEBP format to be placed on photos or videos
+stickerTypeMask = StickerType;
 
 
 //@description Represents a closed vector path. The path begins at the end point of the last command @commands List of vector path commands
@@ -301,9 +301,10 @@ document file_name:string mime_type:string minithumbnail:minithumbnail thumbnail
 photo has_stickers:Bool minithumbnail:minithumbnail sizes:vector<photoSize> = Photo;
 
 //@description Describes a sticker @set_id The identifier of the sticker set to which the sticker belongs; 0 if none @width Sticker width; as defined by the sender @height Sticker height; as defined by the sender
-//@emoji Emoji corresponding to the sticker @format Sticker format @type Sticker type @outline Sticker's outline represented as a list of closed vector paths; may be empty. The coordinate system origin is in the upper-left corner
+//@emoji Emoji corresponding to the sticker @format Sticker format @type Sticker type @mask_position Position where the mask is placed; may be null even sticker is a mask
+//@outline Sticker's outline represented as a list of closed vector paths; may be empty. The coordinate system origin is in the upper-left corner
 //@thumbnail Sticker thumbnail in WEBP or JPEG format; may be null @premium_animation Premium animation of the sticker; may be null. If present, only Premium users can send the sticker @sticker File containing the sticker
-sticker set_id:int64 width:int32 height:int32 emoji:string format:StickerFormat type:StickerType outline:vector<closedVectorPath> thumbnail:thumbnail premium_animation:file sticker:file = Sticker;
+sticker set_id:int64 width:int32 height:int32 emoji:string format:StickerFormat type:StickerType mask_position:maskPosition outline:vector<closedVectorPath> thumbnail:thumbnail premium_animation:file sticker:file = Sticker;
 
 //@description Describes a video file @duration Duration of the video, in seconds; as defined by the sender @width Video width; as defined by the sender @height Video height; as defined by the sender
 //@file_name Original name of the file; as defined by the sender @mime_type MIME type of the file; as defined by the sender
@@ -4004,7 +4005,8 @@ proxies proxies:vector<proxy> = Proxies;
 //@emojis Emojis corresponding to the sticker
 //@format Sticker format
 //@type Sticker type
-inputSticker sticker:InputFile emojis:string format:StickerFormat type:StickerType = InputSticker;
+//@mask_position Position where the mask is placed; pass null if not specified
+inputSticker sticker:InputFile emojis:string format:StickerFormat type:StickerType mask_position:maskPosition = InputSticker;
 
 
 //@description Represents a date range @start_date Point in time (Unix timestamp) at which the date range begins @end_date Point in time (Unix timestamp) at which the date range ends
