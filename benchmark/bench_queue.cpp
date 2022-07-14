@@ -51,7 +51,7 @@ class Backoff {
     if (cnt < 50) {
       return true;
     } else {
-      td::this_thread::yield();
+      td::usleep_for(1);
       return cnt < 500;
     }
   }

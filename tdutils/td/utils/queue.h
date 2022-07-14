@@ -32,7 +32,7 @@ class Backoff {
     if (cnt < 1) {  // 50
       return true;
     } else {
-      td::this_thread::yield();
+      td::usleep_for(1);
       return cnt < 3;  // 500
     }
   }
@@ -47,7 +47,7 @@ class InfBackoff {
     if (cnt < 50) {
       return true;
     } else {
-      td::this_thread::yield();
+      td::usleep_for(1);
       return true;
     }
   }

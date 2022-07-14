@@ -88,9 +88,6 @@ int ThreadPthread::do_pthread_create(pthread_t *thread, const pthread_attr_t *at
 }
 
 namespace this_thread_pthread {
-void yield() {
-  sched_yield();
-}
 ThreadPthread::id get_id() {
   return pthread_self();
 }

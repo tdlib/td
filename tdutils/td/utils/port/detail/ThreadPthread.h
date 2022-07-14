@@ -83,7 +83,6 @@ class ThreadPthread {
 };
 
 namespace this_thread_pthread {
-void yield();
 ThreadPthread::id get_id();
 }  // namespace this_thread_pthread
 }  // namespace detail

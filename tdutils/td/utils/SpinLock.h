@@ -6,6 +6,7 @@
 //
 #pragma once
 
+#include "td/utils/port/sleep.h"
 #include "td/utils/port/thread.h"
 
 #include <atomic>
@@ -30,7 +31,7 @@ class SpinLock {
         //TODO pause
         return true;
       } else {
-        td::this_thread::yield();
+        usleep_for(1);
         return true;
       }
     }

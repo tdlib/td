@@ -7,6 +7,7 @@
 #pragma once
 
 #include "td/utils/common.h"
+#include "td/utils/port/sleep.h"
 #include "td/utils/port/thread.h"
 #include "td/utils/type_traits.h"
 
@@ -20,6 +21,15 @@ template <class T>
 class AtomicRead {
  public:
   void read(T &dest) const {
+    int it = 0;
+    const int wait_each_it = 4;
+    auto wait = [&]() {
+      it++;
+      if (it % wait_each_it == 0) {
+        usleep_for(1);
+      }
+    };
+
     while (true) {
       static_assert(TD_IS_TRIVIALLY_COPYABLE(T), "T must be trivially copyable");
       auto version_before = version.load();
@@ -30,7 +40,7 @@ class AtomicRead {
           break;
         }
       }
-      td::this_thread::yield();
+      wait();
     }
   }
 

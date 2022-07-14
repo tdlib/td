@@ -194,7 +194,7 @@ Status NetQueryDispatcher::wait_dc_init(DcId dc_id, bool force) {
         return Status::Error("Closing");
       }
 #if !TD_THREAD_UNSUPPORTED
-      td::this_thread::yield();
+      td::usleep_for(1);
 #endif
     }
   }

@@ -70,7 +70,9 @@ class ThreadStl {
     return std::forward<T>(v);
   }
 };
-namespace this_thread_stl = std::this_thread;
+namespace this_thread_stl {
+using std::this_thread::get_id;
+}  // namespace this_thread_stl
 }  // namespace detail
 }  // namespace td
 
