@@ -2320,6 +2320,7 @@ std::pair<int64, FileId> StickersManager::on_get_sticker_document(tl_object_ptr<
 
   Dimensions dimensions;
   tl_object_ptr<telegram_api::documentAttributeSticker> sticker;
+  tl_object_ptr<telegram_api::documentAttributeCustomEmoji> custom_emoji;
   for (auto &attribute : document->attributes_) {
     switch (attribute->get_id()) {
       case telegram_api::documentAttributeVideo::ID: {
@@ -2335,11 +2336,14 @@ std::pair<int64, FileId> StickersManager::on_get_sticker_document(tl_object_ptr<
       case telegram_api::documentAttributeSticker::ID:
         sticker = move_tl_object_as<telegram_api::documentAttributeSticker>(attribute);
         break;
+      case telegram_api::documentAttributeCustomEmoji::ID:
+        custom_emoji = move_tl_object_as<telegram_api::documentAttributeCustomEmoji>(attribute);
+        break;
       default:
         continue;
     }
   }
-  if (sticker == nullptr) {
+  if (sticker == nullptr && custom_emoji == nullptr) {
     if (document->mime_type_ != "application/x-bad-tgsticker") {
       LOG(ERROR) << "Have no attributeSticker in sticker " << to_string(document);
     }
@@ -2389,7 +2393,7 @@ std::pair<int64, FileId> StickersManager::on_get_sticker_document(tl_object_ptr<
   }
 
   create_sticker(sticker_id, premium_animation_file_id, std::move(minithumbnail), std::move(thumbnail), dimensions,
-                 std::move(sticker), format, nullptr);
+                 std::move(sticker), std::move(custom_emoji), format, nullptr);
   return {document_id, sticker_id};
 }
 
@@ -2713,6 +2717,7 @@ void StickersManager::add_sticker_thumbnail(Sticker *s, PhotoSize thumbnail) {
 void StickersManager::create_sticker(FileId file_id, FileId premium_animation_file_id, string minithumbnail,
                                      PhotoSize thumbnail, Dimensions dimensions,
                                      tl_object_ptr<telegram_api::documentAttributeSticker> sticker,
+                                     tl_object_ptr<telegram_api::documentAttributeCustomEmoji> custom_emoji,
                                      StickerFormat format, MultiPromiseActor *load_data_multipromise_ptr) {
   if (format == StickerFormat::Unknown && sticker == nullptr) {
     auto old_sticker = get_sticker(file_id);
@@ -2730,8 +2735,8 @@ void StickersManager::create_sticker(FileId file_id, FileId premium_animation_fi
     }
   }
   if (is_sticker_format_vector(format) && dimensions.width == 0) {
-    dimensions.width = 512;
-    dimensions.height = 512;
+    dimensions.width = custom_emoji != nullptr ? 100 : 512;
+    dimensions.height = custom_emoji != nullptr ? 100 : 512;
   }
 
   auto s = make_unique<Sticker>();
@@ -2759,9 +2764,14 @@ void StickersManager::create_sticker(FileId file_id, FileId premium_animation_fi
         s->scale = sticker->mask_coords_->zoom_;
       }
     }
+  } else if (custom_emoji != nullptr) {
+    s->set_id = on_get_input_sticker_set(file_id, std::move(custom_emoji->stickerset_), load_data_multipromise_ptr);
+    s->alt = std::move(custom_emoji->alt_);
+    s->type = StickerType::Emoji;
   }
   s->format = format;
-  on_get_sticker(std::move(s), sticker != nullptr && load_data_multipromise_ptr == nullptr);
+  on_get_sticker(std::move(s),
+                 (sticker != nullptr || custom_emoji != nullptr) && load_data_multipromise_ptr == nullptr);
 }
 
 bool StickersManager::has_input_media(FileId sticker_file_id, bool is_secret) const {
@@ -5857,7 +5867,7 @@ Result<std::tuple<FileId, bool, bool, StickerFormat>> StickersManager::prepare_i
   if (format == StickerFormat::Tgs) {
     int32 width = for_thumbnail ? 100 : 512;
     create_sticker(file_id, FileId(), string(), PhotoSize(), get_dimensions(width, width, "prepare_input_file"),
-                   nullptr, format, nullptr);
+                   nullptr, nullptr, format, nullptr);
   } else if (format == StickerFormat::Webm) {
     td_->documents_manager_->create_document(file_id, string(), PhotoSize(), "sticker.webm", "video/webm", false);
   } else {

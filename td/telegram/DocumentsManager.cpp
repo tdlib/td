@@ -76,6 +76,7 @@ Document DocumentsManager::on_get_document(RemoteDocument remote_document, Dialo
   tl_object_ptr<telegram_api::documentAttributeVideo> video;
   tl_object_ptr<telegram_api::documentAttributeAudio> audio;
   tl_object_ptr<telegram_api::documentAttributeSticker> sticker;
+  tl_object_ptr<telegram_api::documentAttributeCustomEmoji> custom_emoji;
   Dimensions dimensions;
   string file_name;
   bool has_stickers = false;
@@ -111,7 +112,8 @@ Document DocumentsManager::on_get_document(RemoteDocument remote_document, Dialo
         has_stickers = true;
         break;
       case telegram_api::documentAttributeCustomEmoji::ID:
-        // TODO
+        custom_emoji = move_tl_object_as<telegram_api::documentAttributeCustomEmoji>(attribute);
+        type_attributes++;
         break;
       default:
         UNREACHABLE();
@@ -133,7 +135,7 @@ Document DocumentsManager::on_get_document(RemoteDocument remote_document, Dialo
       if ((video->flags_ & telegram_api::documentAttributeVideo::ROUND_MESSAGE_MASK) != 0) {
         // video note without sound
         animated = nullptr;
-      } else if (sticker != nullptr) {
+      } else if (sticker != nullptr || custom_emoji != nullptr) {
         // sticker
         type_attributes--;
         animated = nullptr;
@@ -142,7 +144,7 @@ Document DocumentsManager::on_get_document(RemoteDocument remote_document, Dialo
         // video animation
         video = nullptr;
       }
-    } else if (sticker != nullptr) {
+    } else if (sticker != nullptr || custom_emoji != nullptr) {
       // some stickers uploaded before release
       type_attributes--;
       video = nullptr;
@@ -157,6 +159,11 @@ Document DocumentsManager::on_get_document(RemoteDocument remote_document, Dialo
     // animation send as sticker
     type_attributes--;
     sticker = nullptr;
+  }
+  if (animated != nullptr && custom_emoji != nullptr) {
+    // just in case
+    type_attributes--;
+    custom_emoji = nullptr;
   }
 
   auto document_type = default_document_type;
@@ -186,7 +193,7 @@ Document DocumentsManager::on_get_document(RemoteDocument remote_document, Dialo
         file_type = FileType::Audio;
         default_extension = Slice("mp3");
       }
-    } else if (sticker != nullptr || default_document_type == Document::Type::Sticker) {
+    } else if (sticker != nullptr || custom_emoji != nullptr || default_document_type == Document::Type::Sticker) {
       document_type = Document::Type::Sticker;
       file_type = FileType::Sticker;
       sticker_format = StickerFormat::Webp;
@@ -214,8 +221,9 @@ Document DocumentsManager::on_get_document(RemoteDocument remote_document, Dialo
     }
   } else if (type_attributes >= 2) {
     LOG(WARNING) << "Receive document with more than 1 type attribute: animated = " << to_string(animated)
-                 << ", sticker = " << to_string(sticker) << ", video = " << to_string(video)
-                 << ", audio = " << to_string(audio) << ", file_name = " << file_name << ", dimensions = " << dimensions
+                 << ", sticker = " << to_string(sticker) << ", custom_emoji = " << to_string(custom_emoji)
+                 << ", video = " << to_string(video) << ", audio = " << to_string(audio)
+                 << ", file_name = " << file_name << ", dimensions = " << dimensions
                  << ", has_stickers = " << has_stickers;
   }
 
@@ -493,8 +501,8 @@ Document DocumentsManager::on_get_document(RemoteDocument remote_document, Dialo
         minithumbnail = string();
       }
       td_->stickers_manager_->create_sticker(file_id, premium_animation_file_id, std::move(minithumbnail),
-                                             std::move(thumbnail), dimensions, std::move(sticker), sticker_format,
-                                             load_data_multipromise_ptr);
+                                             std::move(thumbnail), dimensions, std::move(sticker),
+                                             std::move(custom_emoji), sticker_format, load_data_multipromise_ptr);
       break;
     case Document::Type::Video:
       td_->videos_manager_->create_video(file_id, std::move(minithumbnail), std::move(thumbnail),

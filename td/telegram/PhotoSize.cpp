@@ -357,6 +357,7 @@ PhotoSize get_web_document_photo_size(FileManager *file_manager, FileType file_t
       case telegram_api::documentAttributeSticker::ID:
       case telegram_api::documentAttributeVideo::ID:
       case telegram_api::documentAttributeAudio::ID:
+      case telegram_api::documentAttributeCustomEmoji::ID:
         LOG(ERROR) << "Unexpected web document attribute " << to_string(attribute);
         break;
       case telegram_api::documentAttributeFilename::ID:

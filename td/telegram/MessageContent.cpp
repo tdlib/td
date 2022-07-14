@@ -1882,7 +1882,7 @@ static Result<InputMessageContent> create_input_message_content(
 
       td->stickers_manager_->create_sticker(file_id, FileId(), string(), thumbnail,
                                             get_dimensions(input_sticker->width_, input_sticker->height_, nullptr),
-                                            nullptr, StickerFormat::Unknown, nullptr);
+                                            nullptr, nullptr, StickerFormat::Unknown, nullptr);
 
       content = make_unique<MessageSticker>(file_id, is_premium);
       break;
