@@ -21,7 +21,7 @@ Status check_message_id_duplicates(int64 *saved_message_ids, size_t max_size, si
   // In addition, the identifiers (msg_id) of the last N messages received from the other side must be stored, and if
   // a message comes in with msg_id lower than all or equal to any of the stored values, that message is to be
   // ignored. Otherwise, the new message msg_id is added to the set, and, if the number of stored msg_id values is
-  // greater than N, the oldest (i. e. the lowest) is forgotten.
+  // greater than N, the oldest (i.e. the lowest) is forgotten.
   if (end_pos == 2 * max_size) {
     std::copy_n(&saved_message_ids[max_size], max_size, &saved_message_ids[0]);
     end_pos = max_size;

@@ -13,7 +13,6 @@
 #include "td/utils/tests.h"
 
 #include <atomic>
-#include <mutex>
 
 #if !TD_THREAD_UNSUPPORTED
 

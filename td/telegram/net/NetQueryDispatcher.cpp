@@ -25,7 +25,6 @@
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/port/sleep.h"
-#include "td/utils/port/thread.h"
 #include "td/utils/Slice.h"
 #include "td/utils/SliceBuilder.h"
 
@@ -195,7 +194,7 @@ Status NetQueryDispatcher::wait_dc_init(DcId dc_id, bool force) {
         return Status::Error("Closing");
       }
 #if !TD_THREAD_UNSUPPORTED
-      td::usleep_for(1);
+      usleep_for(1);
 #endif
     }
   }
@@ -332,7 +331,7 @@ void NetQueryDispatcher::set_main_dc_id(int32 new_main_dc_id) {
     return;
   }
 
-  // Very rare event. Mutex is ok.
+  // Very rare event; mutex is ok.
   std::lock_guard<std::mutex> guard(main_dc_id_mutex_);
   if (new_main_dc_id == main_dc_id_) {
     return;

@@ -8,7 +8,6 @@
 
 #include "td/utils/common.h"
 #include "td/utils/port/sleep.h"
-#include "td/utils/port/thread.h"
 #include "td/utils/type_traits.h"
 
 #include <atomic>
@@ -21,11 +20,11 @@ template <class T>
 class AtomicRead {
  public:
   void read(T &dest) const {
-    int it = 0;
-    const int wait_each_it = 4;
-    auto wait = [&]() {
-      it++;
-      if (it % wait_each_it == 0) {
+    uint32 counter = 0;
+    auto wait = [&] {
+      counter++;
+      const int wait_each_count = 4;
+      if (counter % wait_each_count == 0) {
         usleep_for(1);
       }
     };

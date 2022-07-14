@@ -11,11 +11,11 @@
 #include "td/utils/format.h"
 #include "td/utils/logging.h"
 #include "td/utils/port/sleep.h"
-#include "td/utils/port/thread.h"
 #include "td/utils/Slice.h"
 #include "td/utils/Status.h"
 
 #include <atomic>
+#include <condition_variable>
 #include <functional>
 #include <mutex>
 #include <utility>

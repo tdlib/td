@@ -7,7 +7,7 @@
 #pragma once
 
 #include "td/utils/port/EventFd.h"
-#include "td/utils/port/thread.h"
+#include "td/utils/port/sleep.h"
 
 #if !TD_THREAD_UNSUPPORTED && !TD_EVENTFD_UNSUPPORTED
 
@@ -32,7 +32,7 @@ class Backoff {
     if (cnt < 1) {  // 50
       return true;
     } else {
-      td::usleep_for(1);
+      usleep_for(1);
       return cnt < 3;  // 500
     }
   }
@@ -47,7 +47,7 @@ class InfBackoff {
     if (cnt < 50) {
       return true;
     } else {
-      td::usleep_for(1);
+      usleep_for(1);
       return true;
     }
   }

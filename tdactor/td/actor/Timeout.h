@@ -8,6 +8,8 @@
 
 #include "td/actor/actor.h"
 
+#include "td/utils/common.h"
+
 namespace td {
 
 class Timeout final : public Actor {
