@@ -260,6 +260,9 @@ stickerTypeRegular = StickerType;
 //@description The sticker is a mask in WEBP format to be placed on photos or videos
 stickerTypeMask = StickerType;
 
+//@description The sticker is an emoji to be used inside message text and caption
+stickerTypeEmoji = StickerType;
+
 
 //@description Represents a closed vector path. The path begins at the end point of the last command @commands List of vector path commands
 closedVectorPath commands:vector<VectorPathCommand> = ClosedVectorPath;

@@ -17,6 +17,8 @@ StickerType get_sticker_type(const td_api::object_ptr<td_api::StickerType> &type
       return StickerType::Regular;
     case td_api::stickerTypeMask::ID:
       return StickerType::Mask;
+    case td_api::stickerTypeEmoji::ID:
+      return StickerType::Emoji;
     default:
       UNREACHABLE();
       return StickerType::Regular;
@@ -29,6 +31,8 @@ td_api::object_ptr<td_api::StickerType> get_sticker_type_object(StickerType stic
       return td_api::make_object<td_api::stickerTypeRegular>();
     case StickerType::Mask:
       return td_api::make_object<td_api::stickerTypeMask>();
+    case StickerType::Emoji:
+      return td_api::make_object<td_api::stickerTypeEmoji>();
     default:
       UNREACHABLE();
       return nullptr;
@@ -41,6 +45,8 @@ StringBuilder &operator<<(StringBuilder &string_builder, StickerType sticker_typ
       return string_builder << "Regular";
     case StickerType::Mask:
       return string_builder << "Mask";
+    case StickerType::Emoji:
+      return string_builder << "Emoji";
     default:
       UNREACHABLE();
       return string_builder;

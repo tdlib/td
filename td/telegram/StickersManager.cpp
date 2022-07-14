@@ -97,10 +97,15 @@ class GetAllStickersQuery final : public Td::ResultHandler {
  public:
   void send(StickerType sticker_type, int64 hash) {
     sticker_type_ = sticker_type;
-    if (sticker_type == StickerType::Mask) {
-      send_query(G()->net_query_creator().create(telegram_api::messages_getMaskStickers(hash)));
-    } else {
-      send_query(G()->net_query_creator().create(telegram_api::messages_getAllStickers(hash)));
+    switch (sticker_type) {
+      case StickerType::Regular:
+        return send_query(G()->net_query_creator().create(telegram_api::messages_getAllStickers(hash)));
+      case StickerType::Mask:
+        return send_query(G()->net_query_creator().create(telegram_api::messages_getMaskStickers(hash)));
+      case StickerType::Emoji:
+        return send_query(G()->net_query_creator().create(telegram_api::messages_getEmojiStickers(hash)));
+      default:
+        UNREACHABLE();
     }
   }
 
@@ -277,6 +282,9 @@ class GetArchivedStickerSetsQuery final : public Td::ResultHandler {
     int32 flags = 0;
     if (sticker_type_ == StickerType::Mask) {
       flags |= telegram_api::messages_getArchivedStickers::MASKS_MASK;
+    }
+    if (sticker_type_ == StickerType::Emoji) {
+      flags |= telegram_api::messages_getArchivedStickers::EMOJIS_MASK;
     }
     send_query(G()->net_query_creator().create(telegram_api::messages_getArchivedStickers(
         flags, false /*ignored*/, false /*ignored*/, offset_sticker_set_id.get(), limit)));
@@ -649,6 +657,9 @@ class ReorderStickerSetsQuery final : public Td::ResultHandler {
     if (sticker_type == StickerType::Mask) {
       flags |= telegram_api::messages_reorderStickerSets::MASKS_MASK;
     }
+    if (sticker_type == StickerType::Emoji) {
+      flags |= telegram_api::messages_reorderStickerSets::EMOJIS_MASK;
+    }
     send_query(G()->net_query_creator().create(telegram_api::messages_reorderStickerSets(
         flags, false /*ignored*/, false /*ignored*/, StickersManager::convert_sticker_set_ids(sticker_set_ids))));
   }
@@ -1007,6 +1018,10 @@ class CreateNewStickerSetQuery final : public Td::ResultHandler {
     int32 flags = 0;
     if (sticker_type == StickerType::Mask) {
       flags |= telegram_api::stickers_createStickerSet::MASKS_MASK;
+    }
+    if (sticker_type == StickerType::Emoji) {
+      // flags |= telegram_api::stickers_createStickerSet::EMOJIS_MASK;
+      return on_error(Status::Error(400, "Can't create emoji sets"));
     }
     if (sticker_format == StickerFormat::Tgs) {
       flags |= telegram_api::stickers_createStickerSet::ANIMATED_MASK;
@@ -2923,7 +2938,8 @@ StickerSetId StickersManager::on_get_sticker_set(tl_object_ptr<telegram_api::sti
   bool is_official = set->official_;
   StickerFormat sticker_format =
       set->videos_ ? StickerFormat::Webm : (set->animated_ ? StickerFormat::Tgs : StickerFormat::Webp);
-  StickerType sticker_type = set->masks_ ? StickerType::Mask : StickerType::Regular;
+  StickerType sticker_type =
+      set->emojis_ ? StickerType::Emoji : (set->masks_ ? StickerType::Mask : StickerType::Regular);
 
   PhotoSize thumbnail;
   string minithumbnail;

@@ -547,6 +547,9 @@ class CliClient final : public Actor {
   }
 
   static td_api::object_ptr<td_api::StickerType> as_sticker_type(string sticker_type) {
+    if (!sticker_type.empty() && sticker_type.back() == 'e') {
+      return td_api::make_object<td_api::stickerTypeEmoji>();
+    }
     if (!sticker_type.empty() && sticker_type.back() == 'm') {
       return td_api::make_object<td_api::stickerTypeMask>();
     }
@@ -2619,9 +2622,9 @@ class CliClient final : public Actor {
       int64 sticker_set_id;
       get_args(args, sticker_set_id);
       send_request(td_api::make_object<td_api::getStickerSet>(sticker_set_id));
-    } else if (op == "giss" || op == "gissm") {
+    } else if (op == "giss" || op == "gissm" || op == "gisse") {
       send_request(td_api::make_object<td_api::getInstalledStickerSets>(as_sticker_type(args)));
-    } else if (op == "gass" || op == "gassm") {
+    } else if (op == "gass" || op == "gassm" || op == "gasse") {
       int64 offset_sticker_set_id;
       string limit;
       get_args(args, offset_sticker_set_id, limit);
@@ -2720,11 +2723,11 @@ class CliClient final : public Actor {
     } else if (op == "cssn") {
       const string &name = args;
       send_request(td_api::make_object<td_api::checkStickerSetName>(name));
-    } else if (op == "usf" || op == "usfa" || op == "usfv" || op == "usfm") {
+    } else if (op == "usf" || op == "usfa" || op == "usfv" || op == "usfm" || op == "usfe") {
       send_request(td_api::make_object<td_api::uploadStickerFile>(
           -1, td_api::make_object<td_api::inputSticker>(as_input_file(args), "😀", as_sticker_format(op),
                                                         as_sticker_type(op), as_mask_position(op))));
-    } else if (op == "cnss" || op == "cnssa" || op == "cnssv" || op == "cnssm") {
+    } else if (op == "cnss" || op == "cnssa" || op == "cnssv" || op == "cnssm" || op == "cnsse") {
       string title;
       string name;
       string stickers;
@@ -2750,7 +2753,7 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::changeStickerSet>(set_id, is_installed, is_archived));
     } else if (op == "vtss") {
       send_request(td_api::make_object<td_api::viewTrendingStickerSets>(to_integers<int64>(args)));
-    } else if (op == "riss" || op == "rissm") {
+    } else if (op == "riss" || op == "rissm" || op == "risse") {
       string new_order;
       get_args(args, new_order);
       send_request(

@@ -1676,6 +1676,7 @@ void UpdatesManager::try_reload_data() {
   td_->stickers_manager_->reload_reactions();
   td_->stickers_manager_->get_installed_sticker_sets(StickerType::Regular, Auto());
   td_->stickers_manager_->get_installed_sticker_sets(StickerType::Mask, Auto());
+  td_->stickers_manager_->get_installed_sticker_sets(StickerType::Emoji, Auto());
   td_->stickers_manager_->get_featured_sticker_sets(0, 1000, Auto());
   td_->stickers_manager_->get_recent_stickers(false, Auto());
   td_->stickers_manager_->get_recent_stickers(true, Auto());
@@ -3315,7 +3316,9 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateStickerSets> up
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateStickerSetsOrder> update, Promise<Unit> &&promise) {
   StickerType sticker_type = StickerType::Regular;
-  if (update->masks_) {
+  if (update->emojis_) {
+    sticker_type = StickerType::Emoji;
+  } else if (update->masks_) {
     sticker_type = StickerType::Mask;
   }
   td_->stickers_manager_->on_update_sticker_sets_order(sticker_type,

@@ -798,22 +798,22 @@ class StickersManager final : public Actor {
   vector<FileId> recent_sticker_ids_[2];
   vector<FileId> favorite_sticker_ids_;
 
-  double next_installed_sticker_sets_load_time_[MAX_STICKER_TYPE] = {0, 0};
+  double next_installed_sticker_sets_load_time_[MAX_STICKER_TYPE] = {0, 0, 0};
   double next_featured_sticker_sets_load_time_ = 0;
   double next_recent_stickers_load_time_[2] = {0, 0};
   double next_favorite_stickers_load_time_ = 0;
 
-  int64 installed_sticker_sets_hash_[MAX_STICKER_TYPE] = {0, 0};
+  int64 installed_sticker_sets_hash_[MAX_STICKER_TYPE] = {0, 0, 0};
   int64 featured_sticker_sets_hash_ = 0;
   int64 recent_stickers_hash_[2] = {0, 0};
 
   int32 old_featured_sticker_set_count_ = -1;
   uint32 old_featured_sticker_set_generation_ = 1;
 
-  bool need_update_installed_sticker_sets_[MAX_STICKER_TYPE] = {false, false};
+  bool need_update_installed_sticker_sets_[MAX_STICKER_TYPE] = {false, false, false};
   bool need_update_featured_sticker_sets_ = false;
 
-  bool are_installed_sticker_sets_loaded_[MAX_STICKER_TYPE] = {false, false};
+  bool are_installed_sticker_sets_loaded_[MAX_STICKER_TYPE] = {false, false, false};
   bool are_featured_sticker_sets_loaded_ = false;
   bool are_recent_stickers_loaded_[2] = {false, false};
   bool are_favorite_stickers_loaded_ = false;
@@ -837,7 +837,7 @@ class StickersManager final : public Actor {
   FileSourceId app_config_file_source_id_;
 
   vector<StickerSetId> archived_sticker_set_ids_[MAX_STICKER_TYPE];
-  int32 total_archived_sticker_set_count_[MAX_STICKER_TYPE] = {-1, -1};
+  int32 total_archived_sticker_set_count_[MAX_STICKER_TYPE] = {-1, -1, -1};
 
   FlatHashMap<FileId, vector<StickerSetId>, FileIdHash> attached_sticker_sets_;
 
