@@ -18,7 +18,7 @@
 
 #if TD_PORT_WINDOWS
 #include "td/utils/port/detail/Iocp.h"
-#include "td/utils/SpinLock.h"
+#include "td/utils/port/Mutex.h"
 #endif
 
 #if TD_PORT_POSIX
@@ -154,7 +154,7 @@ class UdpSocketFdImpl final : private Iocp::Callback {
 
  private:
   PollableFdInfo info_;
-  SpinLock lock_;
+  Mutex lock_;
 
   std::atomic<int> refcnt_{1};
   bool is_connected_{false};

@@ -12,8 +12,8 @@
 #include "td/utils/logging.h"
 #include "td/utils/Observer.h"
 #include "td/utils/port/detail/NativeFd.h"
+#include "td/utils/port/Mutex.h"
 #include "td/utils/port/PollFlags.h"
-#include "td/utils/SpinLock.h"
 
 #include <atomic>
 #include <memory>
@@ -140,7 +140,7 @@ class PollableFdInfo final : private ListNode {
   std::atomic_flag lock_ = ATOMIC_FLAG_INIT;
   PollFlagsSet flags_;
 #if TD_PORT_WINDOWS
-  SpinLock observer_lock_;
+  Mutex observer_lock_;
 #endif
   ObserverBase *observer_{nullptr};
 

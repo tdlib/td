@@ -17,7 +17,7 @@
 #if TD_PORT_WINDOWS
 #include "td/utils/buffer.h"
 #include "td/utils/port/detail/Iocp.h"
-#include "td/utils/SpinLock.h"
+#include "td/utils/port/Mutex.h"
 #include "td/utils/VectorQueue.h"
 
 #include <limits>
@@ -164,7 +164,7 @@ class SocketFdImpl final : private Iocp::Callback {
 
  private:
   PollableFdInfo info_;
-  SpinLock lock_;
+  Mutex lock_;
 
   std::atomic<int> refcnt_{1};
   bool close_flag_{false};

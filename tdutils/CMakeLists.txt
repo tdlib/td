@@ -138,6 +138,7 @@ set(TDUTILS_SOURCE
   td/utils/port/IPAddress.h
   td/utils/port/IoSlice.h
   td/utils/port/MemoryMapping.h
+  td/utils/port/Mutex.h
   td/utils/port/path.h
   td/utils/port/platform.h
   td/utils/port/Poll.h

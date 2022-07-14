@@ -12,7 +12,7 @@
 
 #if !TD_EVENTFD_UNSUPPORTED
 
-#include "td/utils/SpinLock.h"
+#include "td/utils/port/Mutex.h"
 
 #include <utility>
 
@@ -91,7 +91,7 @@ class MpscPollableQueue {
   }
 
  private:
-  SpinLock lock_;
+  Mutex lock_;
   bool wait_event_fd_{false};
   EventFd event_fd_;
   std::vector<ValueType> writer_vector_;
