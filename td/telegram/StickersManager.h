@@ -17,6 +17,7 @@
 #include "td/telegram/SpecialStickerSetType.h"
 #include "td/telegram/StickerFormat.h"
 #include "td/telegram/StickerSetId.h"
+#include "td/telegram/StickerType.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 
@@ -362,7 +363,7 @@ class StickersManager final : public Actor {
     FileId premium_animation_file_id;
     FileId file_id;
     StickerFormat format = StickerFormat::Unknown;
-    bool is_mask = false;
+    StickerType type = StickerType::Regular;
     int32 point = -1;
     double x_shift = 0;
     double y_shift = 0;
@@ -594,7 +595,7 @@ class StickersManager final : public Actor {
   void on_load_recent_stickers_finished(bool is_attached, vector<FileId> &&recent_sticker_ids,
                                         bool from_database = false);
 
-  td_api::object_ptr<td_api::updateInstalledStickerSets> get_update_installed_sticker_sets_object(int is_mask) const;
+  td_api::object_ptr<td_api::updateInstalledStickerSets> get_update_installed_sticker_sets_object(int is_masks) const;
 
   void send_update_installed_sticker_sets(bool from_database = false);
 

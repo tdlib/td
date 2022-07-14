@@ -434,6 +434,7 @@ set(TDLIB_SOURCE
   td/telegram/StateManager.cpp
   td/telegram/StickerFormat.cpp
   td/telegram/StickersManager.cpp
+  td/telegram/StickerType.cpp
   td/telegram/StorageManager.cpp
   td/telegram/SuggestedAction.cpp
   td/telegram/Td.cpp
@@ -681,6 +682,7 @@ set(TDLIB_SOURCE
   td/telegram/StickerFormat.h
   td/telegram/StickerSetId.h
   td/telegram/StickersManager.h
+  td/telegram/StickerType.h
   td/telegram/StorageManager.h
   td/telegram/SuggestedAction.h
   td/telegram/Td.h

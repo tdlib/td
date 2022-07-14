@@ -34,8 +34,9 @@ void StickersManager::store_sticker(FileId file_id, bool in_sticker_set, StorerT
   bool is_tgs = sticker->format == StickerFormat::Tgs;
   bool is_webm = sticker->format == StickerFormat::Webm;
   bool has_premium_animation = sticker->premium_animation_file_id.is_valid();
+  bool is_mask = sticker->type == StickerType::Mask;
   BEGIN_STORE_FLAGS();
-  STORE_FLAG(sticker->is_mask);
+  STORE_FLAG(is_mask);
   STORE_FLAG(has_sticker_set_access_hash);
   STORE_FLAG(in_sticker_set);
   STORE_FLAG(is_tgs);
@@ -56,7 +57,7 @@ void StickersManager::store_sticker(FileId file_id, bool in_sticker_set, StorerT
   store(sticker->s_thumbnail, storer);
   store(sticker->m_thumbnail, storer);
   store(file_id, storer);
-  if (sticker->is_mask) {
+  if (is_mask) {
     store(sticker->point, storer);
     store(sticker->x_shift, storer);
     store(sticker->y_shift, storer);
@@ -83,8 +84,9 @@ FileId StickersManager::parse_sticker(bool in_sticker_set, ParserT &parser) {
   bool is_tgs;
   bool is_webm;
   bool has_premium_animation;
+  bool is_mask;
   BEGIN_PARSE_FLAGS();
-  PARSE_FLAG(sticker->is_mask);
+  PARSE_FLAG(is_mask);
   PARSE_FLAG(has_sticker_set_access_hash);
   PARSE_FLAG(in_sticker_set_stored);
   PARSE_FLAG(is_tgs);
@@ -98,6 +100,11 @@ FileId StickersManager::parse_sticker(bool in_sticker_set, ParserT &parser) {
     sticker->format = StickerFormat::Tgs;
   } else {
     sticker->format = StickerFormat::Webp;
+  }
+  if (is_mask) {
+    sticker->type = StickerType::Mask;
+  } else {
+    sticker->type = StickerType::Regular;
   }
   if (in_sticker_set_stored != in_sticker_set) {
     Slice data = parser.template fetch_string_raw<Slice>(parser.get_left_len());
@@ -131,7 +138,7 @@ FileId StickersManager::parse_sticker(bool in_sticker_set, ParserT &parser) {
   parse(thumbnail, parser);
   add_sticker_thumbnail(sticker.get(), thumbnail);
   parse(sticker->file_id, parser);
-  if (sticker->is_mask) {
+  if (is_mask) {
     parse(sticker->point, parser);
     parse(sticker->x_shift, parser);
     parse(sticker->y_shift, parser);
