@@ -121,7 +121,7 @@ class StickersManager final : public Actor {
 
   vector<FileId> search_stickers(string emoji, int32 limit, Promise<Unit> &&promise);
 
-  vector<StickerSetId> get_installed_sticker_sets(bool is_masks, Promise<Unit> &&promise);
+  vector<StickerSetId> get_installed_sticker_sets(StickerType sticker_type, Promise<Unit> &&promise);
 
   static bool has_webp_thumbnail(const vector<tl_object_ptr<telegram_api::PhotoSize>> &thumbnails);
 
@@ -133,8 +133,8 @@ class StickersManager final : public Actor {
 
   StickerSetId search_sticker_set(const string &short_name_to_search, Promise<Unit> &&promise);
 
-  std::pair<int32, vector<StickerSetId>> search_installed_sticker_sets(bool is_masks, const string &query, int32 limit,
-                                                                       Promise<Unit> &&promise);
+  std::pair<int32, vector<StickerSetId>> search_installed_sticker_sets(StickerType sticker_type, const string &query,
+                                                                       int32 limit, Promise<Unit> &&promise);
 
   vector<StickerSetId> search_sticker_sets(const string &query, Promise<Unit> &&promise);
 
@@ -148,9 +148,10 @@ class StickersManager final : public Actor {
 
   void on_get_available_reactions(tl_object_ptr<telegram_api::messages_AvailableReactions> &&available_reactions_ptr);
 
-  void on_get_installed_sticker_sets(bool is_masks, tl_object_ptr<telegram_api::messages_AllStickers> &&stickers_ptr);
+  void on_get_installed_sticker_sets(StickerType sticker_type,
+                                     tl_object_ptr<telegram_api::messages_AllStickers> &&stickers_ptr);
 
-  void on_get_installed_sticker_sets_failed(bool is_masks, Status error);
+  void on_get_installed_sticker_sets_failed(StickerType sticker_type, Status error);
 
   StickerSetId on_get_messages_sticker_set(StickerSetId sticker_set_id,
                                            tl_object_ptr<telegram_api::messages_StickerSet> &&set_ptr, bool is_changed,
@@ -184,12 +185,13 @@ class StickersManager final : public Actor {
 
   void on_update_sticker_sets();
 
-  void on_update_sticker_sets_order(bool is_masks, const vector<StickerSetId> &sticker_set_ids);
+  void on_update_sticker_sets_order(StickerType sticker_type, const vector<StickerSetId> &sticker_set_ids);
 
-  std::pair<int32, vector<StickerSetId>> get_archived_sticker_sets(bool is_masks, StickerSetId offset_sticker_set_id,
-                                                                   int32 limit, bool force, Promise<Unit> &&promise);
+  std::pair<int32, vector<StickerSetId>> get_archived_sticker_sets(StickerType sticker_type,
+                                                                   StickerSetId offset_sticker_set_id, int32 limit,
+                                                                   bool force, Promise<Unit> &&promise);
 
-  void on_get_archived_sticker_sets(bool is_masks, StickerSetId offset_sticker_set_id,
+  void on_get_archived_sticker_sets(StickerType sticker_type, StickerSetId offset_sticker_set_id,
                                     vector<tl_object_ptr<telegram_api::StickerSetCovered>> &&sticker_sets,
                                     int32 total_count);
 
@@ -206,7 +208,7 @@ class StickersManager final : public Actor {
   void on_get_attached_sticker_sets(FileId file_id,
                                     vector<tl_object_ptr<telegram_api::StickerSetCovered>> &&sticker_sets);
 
-  void reorder_installed_sticker_sets(bool is_masks, const vector<StickerSetId> &sticker_set_ids,
+  void reorder_installed_sticker_sets(StickerType sticker_type, const vector<StickerSetId> &sticker_set_ids,
                                       Promise<Unit> &&promise);
 
   FileId upload_sticker_file(UserId user_id, tl_object_ptr<td_api::inputSticker> &&sticker, Promise<Unit> &&promise);
@@ -295,7 +297,7 @@ class StickersManager final : public Actor {
 
   void reload_sticker_set(StickerSetId sticker_set_id, int64 access_hash, Promise<Unit> &&promise);
 
-  void reload_installed_sticker_sets(bool is_masks, bool force);
+  void reload_installed_sticker_sets(StickerType sticker_type, bool force);
 
   void reload_featured_sticker_sets(bool force);
 
@@ -381,6 +383,7 @@ class StickersManager final : public Actor {
     string title;
     string short_name;
     StickerFormat sticker_format = StickerFormat::Unknown;
+    StickerType sticker_type = StickerType::Regular;
     int32 sticker_count = 0;
     int32 hash = 0;
     int32 expires_at = 0;
@@ -395,7 +398,6 @@ class StickersManager final : public Actor {
     bool is_installed = false;
     bool is_archived = false;
     bool is_official = false;
-    bool is_masks = false;
     bool is_viewed = true;
     bool is_thumbnail_reloaded = false;
     bool are_legacy_sticker_thumbnails_reloaded = false;
@@ -533,7 +535,7 @@ class StickersManager final : public Actor {
 
   void on_resolve_sticker_set_short_name(FileId sticker_file_id, const string &short_name);
 
-  int apply_installed_sticker_sets_order(bool is_masks, const vector<StickerSetId> &sticker_set_ids);
+  int apply_installed_sticker_sets_order(StickerType sticker_type, const vector<StickerSetId> &sticker_set_ids);
 
   void on_update_sticker_set(StickerSet *sticker_set, bool is_installed, bool is_archived, bool is_changed,
                              bool from_database = false);
@@ -568,7 +570,7 @@ class StickersManager final : public Actor {
 
   int64 get_recent_stickers_hash(const vector<FileId> &sticker_ids) const;
 
-  void load_installed_sticker_sets(bool is_masks, Promise<Unit> &&promise);
+  void load_installed_sticker_sets(StickerType sticker_type, Promise<Unit> &&promise);
 
   void load_featured_sticker_sets(Promise<Unit> &&promise);
 
@@ -576,9 +578,10 @@ class StickersManager final : public Actor {
 
   void load_recent_stickers(bool is_attached, Promise<Unit> &&promise);
 
-  void on_load_installed_sticker_sets_from_database(bool is_masks, string value);
+  void on_load_installed_sticker_sets_from_database(StickerType sticker_type, string value);
 
-  void on_load_installed_sticker_sets_finished(bool is_masks, vector<StickerSetId> &&installed_sticker_set_ids,
+  void on_load_installed_sticker_sets_finished(StickerType sticker_type,
+                                               vector<StickerSetId> &&installed_sticker_set_ids,
                                                bool from_database = false);
 
   void on_load_featured_sticker_sets_from_database(string value);
@@ -595,7 +598,8 @@ class StickersManager final : public Actor {
   void on_load_recent_stickers_finished(bool is_attached, vector<FileId> &&recent_sticker_ids,
                                         bool from_database = false);
 
-  td_api::object_ptr<td_api::updateInstalledStickerSets> get_update_installed_sticker_sets_object(int is_masks) const;
+  td_api::object_ptr<td_api::updateInstalledStickerSets> get_update_installed_sticker_sets_object(
+      StickerType sticker_type) const;
 
   void send_update_installed_sticker_sets(bool from_database = false);
 
@@ -788,28 +792,28 @@ class StickersManager final : public Actor {
   FlatHashMap<StickerSetId, unique_ptr<StickerSet>, StickerSetIdHash> sticker_sets_;  // id -> StickerSet
   FlatHashMap<string, StickerSetId> short_name_to_sticker_set_id_;
 
-  vector<StickerSetId> installed_sticker_set_ids_[2];
+  vector<StickerSetId> installed_sticker_set_ids_[MAX_STICKER_TYPE];
   vector<StickerSetId> featured_sticker_set_ids_;
   vector<StickerSetId> old_featured_sticker_set_ids_;
   vector<FileId> recent_sticker_ids_[2];
   vector<FileId> favorite_sticker_ids_;
 
-  double next_installed_sticker_sets_load_time_[2] = {0, 0};
+  double next_installed_sticker_sets_load_time_[MAX_STICKER_TYPE] = {0, 0};
   double next_featured_sticker_sets_load_time_ = 0;
   double next_recent_stickers_load_time_[2] = {0, 0};
   double next_favorite_stickers_load_time_ = 0;
 
-  int64 installed_sticker_sets_hash_[2] = {0, 0};
+  int64 installed_sticker_sets_hash_[MAX_STICKER_TYPE] = {0, 0};
   int64 featured_sticker_sets_hash_ = 0;
   int64 recent_stickers_hash_[2] = {0, 0};
 
   int32 old_featured_sticker_set_count_ = -1;
   uint32 old_featured_sticker_set_generation_ = 1;
 
-  bool need_update_installed_sticker_sets_[2] = {false, false};
+  bool need_update_installed_sticker_sets_[MAX_STICKER_TYPE] = {false, false};
   bool need_update_featured_sticker_sets_ = false;
 
-  bool are_installed_sticker_sets_loaded_[2] = {false, false};
+  bool are_installed_sticker_sets_loaded_[MAX_STICKER_TYPE] = {false, false};
   bool are_featured_sticker_sets_loaded_ = false;
   bool are_recent_stickers_loaded_[2] = {false, false};
   bool are_favorite_stickers_loaded_ = false;
@@ -817,7 +821,7 @@ class StickersManager final : public Actor {
   bool are_featured_sticker_sets_premium_ = false;
   bool are_old_featured_sticker_sets_invalidated_ = false;
 
-  vector<Promise<Unit>> load_installed_sticker_sets_queries_[2];
+  vector<Promise<Unit>> load_installed_sticker_sets_queries_[MAX_STICKER_TYPE];
   vector<Promise<Unit>> load_featured_sticker_sets_queries_;
   vector<Promise<Unit>> load_old_featured_sticker_sets_queries_;
   vector<Promise<Unit>> load_recent_stickers_queries_[2];
@@ -832,12 +836,12 @@ class StickersManager final : public Actor {
 
   FileSourceId app_config_file_source_id_;
 
-  vector<StickerSetId> archived_sticker_set_ids_[2];
-  int32 total_archived_sticker_set_count_[2] = {-1, -1};
+  vector<StickerSetId> archived_sticker_set_ids_[MAX_STICKER_TYPE];
+  int32 total_archived_sticker_set_count_[MAX_STICKER_TYPE] = {-1, -1};
 
   FlatHashMap<FileId, vector<StickerSetId>, FileIdHash> attached_sticker_sets_;
 
-  Hints installed_sticker_sets_hints_[2];  // search installed sticker sets by their title and name
+  Hints installed_sticker_sets_hints_[MAX_STICKER_TYPE];  // search installed sticker sets by their title and name
 
   struct FoundStickers {
     vector<FileId> sticker_ids_;

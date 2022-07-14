@@ -1674,8 +1674,8 @@ void UpdatesManager::try_reload_data() {
   td_->notification_settings_manager_->send_get_scope_notification_settings_query(NotificationSettingsScope::Channel,
                                                                                   Auto());
   td_->stickers_manager_->reload_reactions();
-  td_->stickers_manager_->get_installed_sticker_sets(false, Auto());
-  td_->stickers_manager_->get_installed_sticker_sets(true, Auto());
+  td_->stickers_manager_->get_installed_sticker_sets(StickerType::Regular, Auto());
+  td_->stickers_manager_->get_installed_sticker_sets(StickerType::Mask, Auto());
   td_->stickers_manager_->get_featured_sticker_sets(0, 1000, Auto());
   td_->stickers_manager_->get_recent_stickers(false, Auto());
   td_->stickers_manager_->get_recent_stickers(true, Auto());
@@ -3314,7 +3314,11 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateStickerSets> up
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateStickerSetsOrder> update, Promise<Unit> &&promise) {
-  td_->stickers_manager_->on_update_sticker_sets_order(update->masks_,
+  StickerType sticker_type = StickerType::Regular;
+  if (update->masks_) {
+    sticker_type = StickerType::Mask;
+  }
+  td_->stickers_manager_->on_update_sticker_sets_order(sticker_type,
                                                        StickersManager::convert_sticker_set_ids(update->order_));
   promise.set_value(Unit());
 }

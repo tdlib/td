@@ -108,6 +108,7 @@
 #include "td/telegram/StateManager.h"
 #include "td/telegram/StickerSetId.h"
 #include "td/telegram/StickersManager.h"
+#include "td/telegram/StickerType.h"
 #include "td/telegram/StorageManager.h"
 #include "td/telegram/SuggestedAction.h"
 #include "td/telegram/td_api.hpp"
@@ -2023,12 +2024,12 @@ class SearchStickersRequest final : public RequestActor<> {
 };
 
 class GetInstalledStickerSetsRequest final : public RequestActor<> {
-  bool is_masks_;
+  StickerType sticker_type_;
 
   vector<StickerSetId> sticker_set_ids_;
 
   void do_run(Promise<Unit> &&promise) final {
-    sticker_set_ids_ = td_->stickers_manager_->get_installed_sticker_sets(is_masks_, std::move(promise));
+    sticker_set_ids_ = td_->stickers_manager_->get_installed_sticker_sets(sticker_type_, std::move(promise));
   }
 
   void do_send_result() final {
@@ -2036,13 +2037,13 @@ class GetInstalledStickerSetsRequest final : public RequestActor<> {
   }
 
  public:
-  GetInstalledStickerSetsRequest(ActorShared<Td> td, uint64 request_id, bool is_masks)
-      : RequestActor(std::move(td), request_id), is_masks_(is_masks) {
+  GetInstalledStickerSetsRequest(ActorShared<Td> td, uint64 request_id, StickerType sticker_type)
+      : RequestActor(std::move(td), request_id), sticker_type_(sticker_type) {
   }
 };
 
 class GetArchivedStickerSetsRequest final : public RequestActor<> {
-  bool is_masks_;
+  StickerType sticker_type_;
   StickerSetId offset_sticker_set_id_;
   int32 limit_;
 
@@ -2051,7 +2052,7 @@ class GetArchivedStickerSetsRequest final : public RequestActor<> {
 
   void do_run(Promise<Unit> &&promise) final {
     std::tie(total_count_, sticker_set_ids_) = td_->stickers_manager_->get_archived_sticker_sets(
-        is_masks_, offset_sticker_set_id_, limit_, get_tries() < 2, std::move(promise));
+        sticker_type_, offset_sticker_set_id_, limit_, get_tries() < 2, std::move(promise));
   }
 
   void do_send_result() final {
@@ -2059,10 +2060,10 @@ class GetArchivedStickerSetsRequest final : public RequestActor<> {
   }
 
  public:
-  GetArchivedStickerSetsRequest(ActorShared<Td> td, uint64 request_id, bool is_masks, int64 offset_sticker_set_id,
-                                int32 limit)
+  GetArchivedStickerSetsRequest(ActorShared<Td> td, uint64 request_id, StickerType sticker_type,
+                                int64 offset_sticker_set_id, int32 limit)
       : RequestActor(std::move(td), request_id)
-      , is_masks_(is_masks)
+      , sticker_type_(sticker_type)
       , offset_sticker_set_id_(offset_sticker_set_id)
       , limit_(limit) {
   }
@@ -2148,7 +2149,7 @@ class SearchStickerSetRequest final : public RequestActor<> {
 };
 
 class SearchInstalledStickerSetsRequest final : public RequestActor<> {
-  bool is_masks_;
+  StickerType sticker_type_;
   string query_;
   int32 limit_;
 
@@ -2156,7 +2157,7 @@ class SearchInstalledStickerSetsRequest final : public RequestActor<> {
 
   void do_run(Promise<Unit> &&promise) final {
     sticker_set_ids_ =
-        td_->stickers_manager_->search_installed_sticker_sets(is_masks_, query_, limit_, std::move(promise));
+        td_->stickers_manager_->search_installed_sticker_sets(sticker_type_, query_, limit_, std::move(promise));
   }
 
   void do_send_result() final {
@@ -2164,8 +2165,9 @@ class SearchInstalledStickerSetsRequest final : public RequestActor<> {
   }
 
  public:
-  SearchInstalledStickerSetsRequest(ActorShared<Td> td, uint64 request_id, bool is_masks, string &&query, int32 limit)
-      : RequestActor(std::move(td), request_id), is_masks_(is_masks), query_(std::move(query)), limit_(limit) {
+  SearchInstalledStickerSetsRequest(ActorShared<Td> td, uint64 request_id, StickerType sticker_type, string &&query,
+                                    int32 limit)
+      : RequestActor(std::move(td), request_id), sticker_type_(sticker_type), query_(std::move(query)), limit_(limit) {
   }
 };
 
@@ -6989,12 +6991,13 @@ void Td::on_request(uint64 id, td_api::searchStickers &request) {
 
 void Td::on_request(uint64 id, const td_api::getInstalledStickerSets &request) {
   CHECK_IS_USER();
-  CREATE_REQUEST(GetInstalledStickerSetsRequest, request.is_masks_);
+  CREATE_REQUEST(GetInstalledStickerSetsRequest, get_sticker_type(request.sticker_type_));
 }
 
 void Td::on_request(uint64 id, const td_api::getArchivedStickerSets &request) {
   CHECK_IS_USER();
-  CREATE_REQUEST(GetArchivedStickerSetsRequest, request.is_masks_, request.offset_sticker_set_id_, request.limit_);
+  CREATE_REQUEST(GetArchivedStickerSetsRequest, get_sticker_type(request.sticker_type_), request.offset_sticker_set_id_,
+                 request.limit_);
 }
 
 void Td::on_request(uint64 id, const td_api::getTrendingStickerSets &request) {
@@ -7018,7 +7021,8 @@ void Td::on_request(uint64 id, td_api::searchStickerSet &request) {
 
 void Td::on_request(uint64 id, td_api::searchInstalledStickerSets &request) {
   CLEAN_INPUT_STRING(request.query_);
-  CREATE_REQUEST(SearchInstalledStickerSetsRequest, request.is_masks_, std::move(request.query_), request.limit_);
+  CREATE_REQUEST(SearchInstalledStickerSetsRequest, get_sticker_type(request.sticker_type_), std::move(request.query_),
+                 request.limit_);
 }
 
 void Td::on_request(uint64 id, td_api::searchStickerSets &request) {
@@ -7040,8 +7044,9 @@ void Td::on_request(uint64 id, const td_api::viewTrendingStickerSets &request) {
 void Td::on_request(uint64 id, td_api::reorderInstalledStickerSets &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  stickers_manager_->reorder_installed_sticker_sets(
-      request.is_masks_, StickersManager::convert_sticker_set_ids(request.sticker_set_ids_), std::move(promise));
+  stickers_manager_->reorder_installed_sticker_sets(get_sticker_type(request.sticker_type_),
+                                                    StickersManager::convert_sticker_set_ids(request.sticker_set_ids_),
+                                                    std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::uploadStickerFile &request) {

@@ -168,6 +168,7 @@ void StickersManager::store_sticker_set(const StickerSet *sticker_set, bool with
   bool has_minithumbnail = !sticker_set->minithumbnail.empty();
   bool is_tgs = sticker_set->sticker_format == StickerFormat::Tgs;
   bool is_webm = sticker_set->sticker_format == StickerFormat::Webm;
+  bool is_masks = sticker_set->sticker_type == StickerType::Mask;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(sticker_set->is_inited);
   STORE_FLAG(was_loaded);
@@ -175,7 +176,7 @@ void StickersManager::store_sticker_set(const StickerSet *sticker_set, bool with
   STORE_FLAG(sticker_set->is_installed);
   STORE_FLAG(sticker_set->is_archived);
   STORE_FLAG(sticker_set->is_official);
-  STORE_FLAG(sticker_set->is_masks);
+  STORE_FLAG(is_masks);
   STORE_FLAG(sticker_set->is_viewed);
   STORE_FLAG(has_expires_at);
   STORE_FLAG(has_thumbnail);
@@ -269,6 +270,10 @@ void StickersManager::parse_sticker_set(StickerSet *sticker_set, ParserT &parser
   } else {
     sticker_format = StickerFormat::Webp;
   }
+  StickerType sticker_type = StickerType::Regular;
+  if (is_masks) {
+    sticker_type = StickerType::Regular;
+  }
 
   if (sticker_set->is_inited) {
     string title;
@@ -301,7 +306,7 @@ void StickersManager::parse_sticker_set(StickerSet *sticker_set, ParserT &parser
       sticker_set->hash = hash;
       sticker_set->expires_at = expires_at;
       sticker_set->is_official = is_official;
-      sticker_set->is_masks = is_masks;
+      sticker_set->sticker_type = sticker_type;
       sticker_set->sticker_format = sticker_format;
 
       auto cleaned_username = clean_username(sticker_set->short_name);
@@ -324,9 +329,9 @@ void StickersManager::parse_sticker_set(StickerSet *sticker_set, ParserT &parser
         LOG(ERROR) << "Sticker format of " << sticker_set->id << " has changed from \"" << sticker_format << "\" to \""
                    << sticker_set->sticker_format << "\"";
       }
-      if (sticker_set->is_masks != is_masks) {
-        LOG(ERROR) << "Is masks of " << sticker_set->id << " has changed from \"" << is_masks << "\" to \""
-                   << sticker_set->is_masks << "\"";
+      if (sticker_set->sticker_type != sticker_type) {
+        LOG(ERROR) << "Type of " << sticker_set->id << " has changed from \"" << sticker_type << "\" to \""
+                   << sticker_set->sticker_type << "\"";
       }
     }
 

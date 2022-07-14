@@ -16,6 +16,8 @@ namespace td {
 // update store_sticker/store_sticker_set when this type changes
 enum class StickerType : int32 { Regular, Mask };
 
+static constexpr int32 MAX_STICKER_TYPE = 2;
+
 StickerType get_sticker_type(const td_api::object_ptr<td_api::StickerType> &type);
 
 td_api::object_ptr<td_api::StickerType> get_sticker_type_object(StickerType sticker_type);

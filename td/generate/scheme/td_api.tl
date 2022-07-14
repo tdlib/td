@@ -4386,8 +4386,8 @@ updateOption name:string value:OptionValue = Update;
 //@description A sticker set has changed @sticker_set The sticker set
 updateStickerSet sticker_set:stickerSet = Update;
 
-//@description The list of installed sticker sets was updated @is_masks True, if the list of installed mask sticker sets was updated @sticker_set_ids The new list of installed ordinary sticker sets
-updateInstalledStickerSets is_masks:Bool sticker_set_ids:vector<int64> = Update;
+//@description The list of installed sticker sets was updated @sticker_type Type of the affected stickers @sticker_set_ids The new list of installed ordinary sticker sets
+updateInstalledStickerSets sticker_type:StickerType sticker_set_ids:vector<int64> = Update;
 
 //@description The list of trending sticker sets was updated or some of them were viewed @sticker_sets The prefix of the list of trending sticker sets with the newest trending sticker sets
 updateTrendingStickerSets sticker_sets:trendingStickerSets = Update;
@@ -5887,11 +5887,11 @@ getStickers emoji:string limit:int32 = Stickers;
 //@description Searches for stickers from public sticker sets that correspond to a given emoji @emoji String representation of emoji; must be non-empty @limit The maximum number of stickers to be returned
 searchStickers emoji:string limit:int32 = Stickers;
 
-//@description Returns a list of installed sticker sets @is_masks Pass true to return mask sticker sets; pass false to return ordinary sticker sets
-getInstalledStickerSets is_masks:Bool = StickerSets;
+//@description Returns a list of installed sticker sets @sticker_type Type of the sticker sets to return
+getInstalledStickerSets sticker_type:StickerType = StickerSets;
 
-//@description Returns a list of archived sticker sets @is_masks Pass true to return mask stickers sets; pass false to return ordinary sticker sets @offset_sticker_set_id Identifier of the sticker set from which to return the result @limit The maximum number of sticker sets to return; up to 100
-getArchivedStickerSets is_masks:Bool offset_sticker_set_id:int64 limit:int32 = StickerSets;
+//@description Returns a list of archived sticker sets @sticker_type Type of the sticker sets to return @offset_sticker_set_id Identifier of the sticker set from which to return the result @limit The maximum number of sticker sets to return; up to 100
+getArchivedStickerSets sticker_type:StickerType offset_sticker_set_id:int64 limit:int32 = StickerSets;
 
 //@description Returns a list of trending sticker sets. For optimal performance, the number of returned sticker sets is chosen by TDLib
 //@offset The offset from which to return the sticker sets; must be non-negative
@@ -5907,8 +5907,8 @@ getStickerSet set_id:int64 = StickerSet;
 //@description Searches for a sticker set by its name @name Name of the sticker set
 searchStickerSet name:string = StickerSet;
 
-//@description Searches for installed sticker sets by looking for specified query in their title and name @is_masks Pass true to return mask sticker sets; pass false to return ordinary sticker sets @query Query to search for @limit The maximum number of sticker sets to return
-searchInstalledStickerSets is_masks:Bool query:string limit:int32 = StickerSets;
+//@description Searches for installed sticker sets by looking for specified query in their title and name @sticker_type Type of the sticker sets to search for @query Query to search for @limit The maximum number of sticker sets to return
+searchInstalledStickerSets sticker_type:StickerType query:string limit:int32 = StickerSets;
 
 //@description Searches for ordinary sticker sets by looking for specified query in their title and name. Excludes installed sticker sets from the results @query Query to search for
 searchStickerSets query:string = StickerSets;
@@ -5919,8 +5919,8 @@ changeStickerSet set_id:int64 is_installed:Bool is_archived:Bool = Ok;
 //@description Informs the server that some trending sticker sets have been viewed by the user @sticker_set_ids Identifiers of viewed trending sticker sets
 viewTrendingStickerSets sticker_set_ids:vector<int64> = Ok;
 
-//@description Changes the order of installed sticker sets @is_masks Pass true to change the order of mask sticker sets; pass false to change the order of ordinary sticker sets @sticker_set_ids Identifiers of installed sticker sets in the new correct order
-reorderInstalledStickerSets is_masks:Bool sticker_set_ids:vector<int64> = Ok;
+//@description Changes the order of installed sticker sets @sticker_type Type of the sticker sets to reorder @sticker_set_ids Identifiers of installed sticker sets in the new correct order
+reorderInstalledStickerSets sticker_type:StickerType sticker_set_ids:vector<int64> = Ok;
 
 //@description Returns a list of recently used stickers @is_attached Pass true to return stickers and masks that were recently attached to photos or video files; pass false to return recently sent stickers
 getRecentStickers is_attached:Bool = Stickers;

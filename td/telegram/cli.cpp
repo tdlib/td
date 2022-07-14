@@ -2619,15 +2619,14 @@ class CliClient final : public Actor {
       int64 sticker_set_id;
       get_args(args, sticker_set_id);
       send_request(td_api::make_object<td_api::getStickerSet>(sticker_set_id));
-    } else if (op == "giss") {
-      send_request(td_api::make_object<td_api::getInstalledStickerSets>(as_bool(args)));
-    } else if (op == "gass") {
-      bool is_masks;
+    } else if (op == "giss" || op == "gissm") {
+      send_request(td_api::make_object<td_api::getInstalledStickerSets>(as_sticker_type(args)));
+    } else if (op == "gass" || op == "gassm") {
       int64 offset_sticker_set_id;
       string limit;
-      get_args(args, is_masks, offset_sticker_set_id, limit);
-      send_request(
-          td_api::make_object<td_api::getArchivedStickerSets>(is_masks, offset_sticker_set_id, as_limit(limit)));
+      get_args(args, offset_sticker_set_id, limit);
+      send_request(td_api::make_object<td_api::getArchivedStickerSets>(as_sticker_type(op), offset_sticker_set_id,
+                                                                       as_limit(limit)));
     } else if (op == "gtss") {
       int32 offset;
       string limit;
@@ -2740,7 +2739,7 @@ class CliClient final : public Actor {
     } else if (op == "sss") {
       send_request(td_api::make_object<td_api::searchStickerSet>(args));
     } else if (op == "siss") {
-      send_request(td_api::make_object<td_api::searchInstalledStickerSets>(false, args, 2));
+      send_request(td_api::make_object<td_api::searchInstalledStickerSets>(nullptr, args, 2));
     } else if (op == "ssss") {
       send_request(td_api::make_object<td_api::searchStickerSets>(args));
     } else if (op == "css") {
@@ -2751,11 +2750,11 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::changeStickerSet>(set_id, is_installed, is_archived));
     } else if (op == "vtss") {
       send_request(td_api::make_object<td_api::viewTrendingStickerSets>(to_integers<int64>(args)));
-    } else if (op == "riss") {
-      bool is_masks;
+    } else if (op == "riss" || op == "rissm") {
       string new_order;
-      get_args(args, is_masks, new_order);
-      send_request(td_api::make_object<td_api::reorderInstalledStickerSets>(is_masks, to_integers<int64>(new_order)));
+      get_args(args, new_order);
+      send_request(
+          td_api::make_object<td_api::reorderInstalledStickerSets>(as_sticker_type(op), to_integers<int64>(new_order)));
     } else if (op == "grs") {
       send_request(td_api::make_object<td_api::getRecentStickers>(as_bool(args)));
     } else if (op == "ars") {
