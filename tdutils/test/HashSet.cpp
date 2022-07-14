@@ -265,8 +265,7 @@ TEST(FlatHashMap, stress_test) {
 
   td::vector<td::RandomSteps::Step> steps;
   auto add_step = [&](td::Slice step_name, td::uint32 weight, auto f) {
-    auto g = [&, step_name, f = std::move(f)] {
-      //LOG(ERROR) << step_name;
+    auto g = [&, f = std::move(f)] {
       //ASSERT_EQ(ref.size(), tbl.size());
       f();
       ASSERT_EQ(ref.size(), tbl.size());
