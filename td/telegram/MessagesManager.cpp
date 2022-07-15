@@ -35544,7 +35544,8 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
   auto new_content_type = new_message->content->get_type();
   bool is_scheduled = message_id.is_scheduled();
   bool need_send_update = false;
-  bool is_new_available = new_content_type != MessageContentType::ChatDeleteHistory;
+  bool is_new_available =
+      new_content_type != MessageContentType::ChatDeleteHistory && new_message->restriction_reasons.empty();
   bool replace_legacy = (old_message->legacy_layer != 0 &&
                          (new_message->legacy_layer == 0 || old_message->legacy_layer < new_message->legacy_layer)) ||
                         old_content_type == MessageContentType::Unsupported;
@@ -35922,7 +35923,7 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
           old_message->had_reply_markup = false;
           old_message->reply_markup = std::move(new_message->reply_markup);
           need_send_update = true;
-        } else if (need_message_changed_warning(old_message)) {
+        } else if (need_message_changed_warning(old_message) && is_new_available) {
           LOG_IF(WARNING, *old_message->reply_markup != *new_message->reply_markup)
               << message_id << " in " << dialog_id << " has changed reply_markup from " << *old_message->reply_markup
               << " to " << *new_message->reply_markup;
@@ -35993,6 +35994,9 @@ bool MessagesManager::need_message_changed_warning(const Message *old_message) {
   }
   if (old_message->ttl > 0) {
     // message can expire
+    return false;
+  }
+  if (!old_message->restriction_reasons.empty()) {
     return false;
   }
   return true;
