@@ -5204,6 +5204,7 @@ void MessagesManager::Dialog::store(StorerT &storer) const {
   bool has_default_send_message_as_dialog_id = default_send_message_as_dialog_id.is_valid();
   bool has_available_reactions = !available_reactions.empty();
   bool has_available_reactions_generation = available_reactions_generation != 0;
+  bool has_have_full_history_source = have_full_history && have_full_history_source != 0;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_draft_message);
   STORE_FLAG(has_last_database_message);
@@ -5283,6 +5284,7 @@ void MessagesManager::Dialog::store(StorerT &storer) const {
     STORE_FLAG(has_available_reactions);
     STORE_FLAG(is_available_reactions_inited);
     STORE_FLAG(has_available_reactions_generation);
+    STORE_FLAG(has_have_full_history_source);
     END_STORE_FLAGS();
   }
 
@@ -5392,6 +5394,9 @@ void MessagesManager::Dialog::store(StorerT &storer) const {
   if (has_available_reactions_generation) {
     store(available_reactions_generation, storer);
   }
+  if (has_have_full_history_source) {
+    store(have_full_history_source, storer);
+  }
 }
 
 // do not forget to resolve dialog dependencies including dependencies of last_message
@@ -5439,6 +5444,7 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
   bool has_default_send_message_as_dialog_id = false;
   bool has_available_reactions = false;
   bool has_available_reactions_generation = false;
+  bool has_have_full_history_source = false;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(has_draft_message);
   PARSE_FLAG(has_last_database_message);
@@ -5533,6 +5539,7 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
     PARSE_FLAG(has_available_reactions);
     PARSE_FLAG(is_available_reactions_inited);
     PARSE_FLAG(has_available_reactions_generation);
+    PARSE_FLAG(has_have_full_history_source);
     END_PARSE_FLAGS();
   } else {
     need_repair_action_bar = false;
@@ -5686,6 +5693,9 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
   }
   if (has_available_reactions_generation) {
     parse(available_reactions_generation, parser);
+  }
+  if (has_have_full_history_source) {
+    parse(have_full_history_source, parser);
   }
 
   (void)legacy_know_can_report_spam;
@@ -9617,6 +9627,7 @@ void MessagesManager::on_get_history(DialogId dialog_id, MessageId from_message_
   if (messages.empty()) {
     if (have_full_history) {
       d->have_full_history = true;
+      d->have_full_history_source = 1;
       on_dialog_updated(dialog_id, "set have_full_history");
     }
 
@@ -9754,6 +9765,7 @@ void MessagesManager::on_get_history(DialogId dialog_id, MessageId from_message_
 
   if (have_full_history) {
     d->have_full_history = true;
+    d->have_full_history_source = 2;
     on_dialog_updated(dialog_id, "set have_full_history 2");
   }
 
@@ -11611,6 +11623,7 @@ void MessagesManager::unload_dialog(DialogId dialog_id) {
   if (!unloaded_message_ids.empty()) {
     if (!G()->parameters().use_message_db && !d->is_empty) {
       d->have_full_history = false;
+      d->have_full_history_source = 0;
     }
 
     send_closure_later(
@@ -11722,8 +11735,10 @@ void MessagesManager::on_dialog_deleted(DialogId dialog_id, Promise<Unit> &&prom
   delete_all_dialog_messages(d, true, false);
   if (dialog_id.get_type() != DialogType::SecretChat) {
     d->have_full_history = false;
+    d->have_full_history_source = 0;
     d->is_empty = false;
     d->need_restore_reply_markup = true;
+    on_dialog_updated(dialog_id, "on_dialog_deleted");
   }
   recently_found_dialogs_.remove_dialog(dialog_id);
   recently_opened_dialogs_.remove_dialog(dialog_id);
@@ -14769,6 +14784,7 @@ void MessagesManager::remove_dialog_newer_messages(Dialog *d, MessageId from_mes
   set_dialog_last_database_message_id(d, MessageId(), source);
   if (d->dialog_id.get_type() != DialogType::SecretChat && !d->is_empty) {
     d->have_full_history = false;
+    d->have_full_history_source = 0;
   }
   invalidate_message_indexes(d);
 
@@ -21539,7 +21555,8 @@ tl_object_ptr<td_api::messages> MessagesManager::get_dialog_history(DialogId dia
             << " with offset " << offset << " and limit " << limit << ", " << left_tries
             << " tries left. Last read inbox message is " << d->last_read_inbox_message_id
             << ", last read outbox message is " << d->last_read_outbox_message_id
-            << ", have_full_history = " << d->have_full_history;
+            << ", have_full_history = " << d->have_full_history
+            << ", have_full_history_source = " << d->have_full_history_source;
 
   MessagesConstIterator p(d, from_message_id);
   LOG(DEBUG) << "Iterator points to " << (*p ? (*p)->message_id : MessageId());
@@ -23701,7 +23718,8 @@ void MessagesManager::on_get_history_from_database(DialogId dialog_id, MessageId
             << (from_the_end ? "from the end " : "") << "in " << dialog_id << " from " << from_message_id
             << " with offset " << offset << " and limit " << limit << ". First database message is "
             << d->first_database_message_id << ", last database message is " << d->last_database_message_id
-            << ", have_full_history = " << d->have_full_history;
+            << ", have_full_history = " << d->have_full_history
+            << ", have_full_history_source = " << d->have_full_history_source;
 
   if (old_last_database_message_id < d->last_database_message_id && old_last_database_message_id < from_message_id) {
     // new messages where added to the database since the request was sent
@@ -23747,6 +23765,7 @@ void MessagesManager::on_get_history_from_database(DialogId dialog_id, MessageId
     if (message == nullptr) {
       if (d->have_full_history) {
         d->have_full_history = false;
+        d->have_full_history_source = 0;
         d->is_empty = false;  // just in case
         on_dialog_updated(dialog_id, "drop have_full_history in on_get_history_from_database");
       }
@@ -23905,7 +23924,8 @@ void MessagesManager::on_get_history_from_database(DialogId dialog_id, MessageId
             << debug_last_message_id << ' ' << debug_set_dialog_last_database_message_id << ' '
             << d->debug_set_dialog_last_database_message_id << ' ' << first_received_message_id << ' '
             << last_received_message_id << ' ' << d->debug_first_database_message_id << ' '
-            << d->debug_last_database_message_id << ' ' << d->debug_last_new_message_id;
+            << d->debug_last_database_message_id << ' ' << d->debug_last_new_message_id << ' '
+            << d->have_full_history_source;
         CHECK(next_message->message_id <= d->last_database_message_id);
         LOG(ERROR) << "Fix first database message in " << dialog_id << " from " << d->first_database_message_id
                    << " to " << next_message->message_id;
@@ -34505,8 +34525,12 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
                << ", last read inbox is " << d->last_read_inbox_message_id << ", last read outbox is "
                << d->last_read_inbox_message_id << ", last read all mentions is "
                << d->last_read_all_mentions_message_id << ", max unavailable is " << d->max_unavailable_message_id
-               << ", last assigned is " << d->last_assigned_message_id;
+               << ", last assigned is " << d->last_assigned_message_id << ", last clear history date is "
+               << d->last_clear_history_date << ", last clear history is " << d->last_clear_history_message_id
+               << ", last delete is " << d->deleted_last_message_id << ", delete last message date is "
+               << d->delete_last_message_date << ", have_full_history source = " << d->have_full_history_source;
     d->have_full_history = false;
+    d->have_full_history_source = 0;
     on_dialog_updated(dialog_id, "drop have_full_history");
   }
 
@@ -34593,6 +34617,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     set_dialog_first_database_message_id(d, MessageId(), "add_message_to_dialog");
     set_dialog_last_database_message_id(d, MessageId(), source);
     d->have_full_history = false;
+    d->have_full_history_source = 0;
     invalidate_message_indexes(d);
     d->local_unread_count = 0;  // read all local messages. They will not be reachable anymore
 
@@ -34818,6 +34843,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
       set_dialog_first_database_message_id(d, MessageId(), source);
       set_dialog_last_database_message_id(d, MessageId(), source);
       d->have_full_history = false;
+      d->have_full_history_source = 0;
       invalidate_message_indexes(d);
 
       on_dialog_updated(dialog_id, source);
@@ -36289,6 +36315,7 @@ MessagesManager::Dialog *MessagesManager::add_new_dialog(unique_ptr<Dialog> &&d,
       }
 
       d->have_full_history = true;
+      d->have_full_history_source = 4;
       d->need_restore_reply_markup = false;
       d->is_last_read_inbox_message_id_inited = true;
       d->is_last_read_outbox_message_id_inited = true;
@@ -38292,6 +38319,7 @@ void MessagesManager::on_get_channel_dialog(DialogId dialog_id, MessageId last_m
     set_dialog_first_database_message_id(d, MessageId(), "on_get_channel_dialog 6");
     set_dialog_last_database_message_id(d, MessageId(), "on_get_channel_dialog 7");
     d->have_full_history = false;
+    d->have_full_history_source = 0;
     d->is_empty = false;
   }
   invalidate_message_indexes(d);

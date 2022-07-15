@@ -1266,6 +1266,7 @@ class MessagesManager final : public Actor {
     string theme_name;
     int32 pending_join_request_count = 0;
     vector<UserId> pending_join_request_user_ids;
+    int32 have_full_history_source = 0;
 
     FolderId folder_id;
     vector<DialogListId> dialog_list_ids;  // TODO replace with mask
