@@ -615,7 +615,7 @@ public final class Example {
     }
 
     private static void onFatalError(String errorMessage) {
-        final class ThrowError implements Runnable {
+        final static class ThrowError implements Runnable {
             private final String errorMessage;
             private final AtomicLong errorThrowTime;
 
