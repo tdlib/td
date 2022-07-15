@@ -176,9 +176,14 @@ class CanPurchasePremiumQuery final : public Td::ResultHandler {
   explicit CanPurchasePremiumQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send() {
-    send_query(G()->net_query_creator().create(telegram_api::payments_canPurchasePremium(
-        make_tl_object<telegram_api::inputStorePaymentPremiumSubscription>(0, false /*ignored*/))));
+  void send(td_api::object_ptr<td_api::StorePaymentPurpose> &&purpose) {
+    auto r_input_purpose = get_input_store_payment_purpose(td_, purpose);
+    if (r_input_purpose.is_error()) {
+      return on_error(r_input_purpose.move_as_error());
+    }
+
+    send_query(
+        G()->net_query_creator().create(telegram_api::payments_canPurchasePremium(r_input_purpose.move_as_ok())));
   }
 
   void on_result(BufferSlice packet) final {
@@ -506,8 +511,8 @@ void get_premium_state(Td *td, Promise<td_api::object_ptr<td_api::premiumState>>
   td->create_handler<GetPremiumPromoQuery>(std::move(promise))->send();
 }
 
-void can_purchase_premium(Td *td, Promise<Unit> &&promise) {
-  td->create_handler<CanPurchasePremiumQuery>(std::move(promise))->send();
+void can_purchase_premium(Td *td, td_api::object_ptr<td_api::StorePaymentPurpose> &&purpose, Promise<Unit> &&promise) {
+  td->create_handler<CanPurchasePremiumQuery>(std::move(promise))->send(std::move(purpose));
 }
 
 void assign_app_store_transaction(Td *td, const string &receipt,

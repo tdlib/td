@@ -7917,10 +7917,10 @@ void Td::on_request(uint64 id, const td_api::getPremiumState &request) {
   get_premium_state(this, std::move(promise));
 }
 
-void Td::on_request(uint64 id, const td_api::canPurchasePremium &request) {
+void Td::on_request(uint64 id, td_api::canPurchasePremium &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  can_purchase_premium(this, std::move(promise));
+  can_purchase_premium(this, std::move(request.purpose_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::assignAppStoreTransaction &request) {
