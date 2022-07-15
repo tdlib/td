@@ -25,6 +25,10 @@ SpecialStickerSetType SpecialStickerSetType::animated_dice(const string &emoji) 
   return SpecialStickerSetType(PSTRING() << "animated_dice_sticker_set#" << emoji);
 }
 
+SpecialStickerSetType SpecialStickerSetType::premium_gifts() {
+  return SpecialStickerSetType("premium_gifts_sticker_set");
+}
+
 SpecialStickerSetType::SpecialStickerSetType(
     const telegram_api::object_ptr<telegram_api::InputStickerSet> &input_sticker_set) {
   CHECK(input_sticker_set != nullptr);
@@ -37,6 +41,9 @@ SpecialStickerSetType::SpecialStickerSetType(
       break;
     case telegram_api::inputStickerSetDice::ID:
       *this = animated_dice(static_cast<const telegram_api::inputStickerSetDice *>(input_sticker_set.get())->emoticon_);
+      break;
+    case telegram_api::inputStickerSetPremiumGifts::ID:
+      *this = premium_gifts();
       break;
     default:
       UNREACHABLE();
@@ -58,6 +65,9 @@ telegram_api::object_ptr<telegram_api::InputStickerSet> SpecialStickerSetType::g
   }
   if (*this == animated_emoji_click()) {
     return telegram_api::make_object<telegram_api::inputStickerSetAnimatedEmojiAnimations>();
+  }
+  if (*this == premium_gifts()) {
+    return telegram_api::make_object<telegram_api::inputStickerSetPremiumGifts>();
   }
   auto emoji = get_dice_emoji();
   if (!emoji.empty()) {

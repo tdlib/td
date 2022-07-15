@@ -1683,6 +1683,7 @@ void UpdatesManager::try_reload_data() {
   td_->stickers_manager_->get_favorite_stickers(Auto());
   td_->stickers_manager_->reload_special_sticker_set_by_type(SpecialStickerSetType::animated_emoji());
   td_->stickers_manager_->reload_special_sticker_set_by_type(SpecialStickerSetType::animated_emoji_click());
+  td_->stickers_manager_->reload_special_sticker_set_by_type(SpecialStickerSetType::premium_gifts());
 
   schedule_data_reload();
 }
