@@ -7170,12 +7170,6 @@ void Td::on_request(uint64 id, td_api::getAnimatedEmoji &request) {
   stickers_manager_->get_animated_emoji(std::move(request.emoji_), false, std::move(promise));
 }
 
-void Td::on_request(uint64 id, const td_api::getAllAnimatedEmojis &request) {
-  CHECK_IS_USER();
-  CREATE_REQUEST_PROMISE();
-  stickers_manager_->get_all_animated_emojis(false, std::move(promise));
-}
-
 void Td::on_request(uint64 id, td_api::getEmojiSuggestionsUrl &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.language_code_);
