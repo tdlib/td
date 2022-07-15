@@ -15189,6 +15189,7 @@ ContactsManager::Channel *ContactsManager::add_channel(ChannelId channel_id, con
   auto &channel_ptr = channels_[channel_id];
   if (channel_ptr == nullptr) {
     channel_ptr = make_unique<Channel>();
+    min_channels_.erase(channel_id);
   }
   return channel_ptr.get();
 }
@@ -16353,9 +16354,6 @@ void ContactsManager::on_chat_update(telegram_api::channel &channel, const char 
   }
 
   Channel *c = add_channel(channel_id, "on_channel");
-  if (c->status.is_banned()) {  // possibly uninited channel
-    min_channels_.erase(channel_id);
-  }
   auto old_join_to_send = get_channel_join_to_send(c);
   auto old_join_request = get_channel_join_request(c);
   if (c->access_hash != access_hash) {
@@ -16457,9 +16455,6 @@ void ContactsManager::on_chat_update(telegram_api::channelForbidden &channel, co
   }
 
   Channel *c = add_channel(channel_id, "on_channel_forbidden");
-  if (c->status.is_banned()) {  // possibly uninited channel
-    min_channels_.erase(channel_id);
-  }
   auto old_join_to_send = get_channel_join_to_send(c);
   auto old_join_request = get_channel_join_request(c);
   if (c->access_hash != channel.access_hash_) {
@@ -16739,15 +16734,13 @@ tl_object_ptr<td_api::userFullInfo> ContactsManager::get_user_full_info_object(U
     }
     bio_object = get_formatted_text_object(bio, true, 0);
   }
-  auto premium_gift_options = transform(user_full->premium_gift_options, [](const auto &option) {
-    return option.get_premium_gift_option_object();
-  });
+  auto premium_gift_options = transform(user_full->premium_gift_options,
+                                        [](const auto &option) { return option.get_premium_gift_option_object(); });
   return make_tl_object<td_api::userFullInfo>(
       get_chat_photo_object(td_->file_manager_.get(), user_full->photo), user_full->is_blocked,
       user_full->can_be_called, user_full->supports_video_calls, user_full->has_private_calls,
       !user_full->private_forward_name.empty(), user_full->need_phone_number_privacy_exception, std::move(bio_object),
-      std::move(premium_gift_options), user_full->common_chat_count,
-      std::move(bot_info));
+      std::move(premium_gift_options), user_full->common_chat_count, std::move(bot_info));
 }
 
 td_api::object_ptr<td_api::updateBasicGroup> ContactsManager::get_update_unknown_basic_group_object(ChatId chat_id) {
