@@ -1352,11 +1352,9 @@ void StickersManager::init() {
     auto &sticker_set = add_special_sticker_set(SpecialStickerSetType::animated_emoji_click());
     load_special_sticker_set_info_from_binlog(sticker_set);
   }
-  if (!G()->is_test_dc()) {
-    // add premium gifts sticker set
-    auto &sticker_set = add_special_sticker_set(SpecialStickerSetType::premium_gifts());
-    load_special_sticker_set_info_from_binlog(sticker_set);
-  }
+  // add premium gifts sticker set
+  auto &sticker_set = add_special_sticker_set(SpecialStickerSetType::premium_gifts());
+  load_special_sticker_set_info_from_binlog(sticker_set);
 
   dice_emojis_str_ =
       G()->shared_config().get_option_string("dice_emojis", "🎲\x01🎯\x01🏀\x01⚽\x01⚽️\x01🎰\x01🎳");
@@ -1570,6 +1568,7 @@ void StickersManager::on_load_special_sticker_set(const SpecialStickerSetType &t
     return;
   }
   if (type == SpecialStickerSetType::premium_gifts()) {
+    set_promises(pending_get_premium_gift_option_sticker_queries_);
     return;
   }
 
@@ -2136,6 +2135,43 @@ tl_object_ptr<td_api::stickerSetInfo> StickersManager::get_sticker_set_info_obje
       get_sticker_format_object(sticker_set->sticker_format), get_sticker_type_object(sticker_set->sticker_type),
       sticker_set->is_viewed, sticker_set->was_loaded ? actual_count : max(actual_count, sticker_set->sticker_count),
       std::move(stickers));
+}
+
+FileId StickersManager::get_premium_gift_option_sticker_id(const StickerSet *sticker_set, int32 month_count) {
+  if (sticker_set == nullptr || sticker_set->sticker_ids.empty() || month_count <= 0) {
+    return {};
+  }
+
+  int32 number = [month_count] {
+    switch (month_count) {
+      case 1:
+        return 1;
+      case 3:
+        return 2;
+      case 6:
+        return 3;
+      case 12:
+        return 4;
+      case 24:
+        return 5;
+      default:
+        return -1;
+    }
+  }();
+
+  for (auto sticker_id : sticker_set->sticker_ids) {
+    auto it = sticker_set->sticker_emojis_map_.find(sticker_id);
+    if (it != sticker_set->sticker_emojis_map_.end()) {
+      for (auto &emoji : it->second) {
+        if (get_emoji_number(emoji) == number) {
+          return sticker_id;
+        }
+      }
+    }
+  }
+
+  // there is no match; return the first sticker
+  return sticker_set->sticker_ids[0];
 }
 
 const StickersManager::StickerSet *StickersManager::get_animated_emoji_sticker_set() {
@@ -4817,6 +4853,33 @@ void StickersManager::get_all_animated_emojis(bool is_recursive,
     return s->alt;
   });
   promise.set_value(td_api::make_object<td_api::emojis>(std::move(emojis)));
+}
+
+void StickersManager::get_premium_gift_option_sticker(int32 month_count, bool is_recursive,
+                                                      Promise<td_api::object_ptr<td_api::sticker>> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+
+  auto &special_sticker_set = add_special_sticker_set(SpecialStickerSetType::premium_gifts());
+  auto sticker_set = get_sticker_set(special_sticker_set.id_);
+  if (sticker_set == nullptr || !sticker_set->was_loaded) {
+    if (is_recursive) {
+      return promise.set_value(nullptr);
+    }
+
+    pending_get_premium_gift_option_sticker_queries_.push_back(PromiseCreator::lambda(
+        [actor_id = actor_id(this), month_count, promise = std::move(promise)](Result<Unit> &&result) mutable {
+          if (result.is_error()) {
+            promise.set_error(result.move_as_error());
+          } else {
+            send_closure(actor_id, &StickersManager::get_premium_gift_option_sticker, month_count, true,
+                         std::move(promise));
+          }
+        }));
+    load_special_sticker_set(special_sticker_set);
+    return;
+  }
+
+  promise.set_value(get_sticker_object(get_premium_gift_option_sticker_id(sticker_set, month_count)));
 }
 
 void StickersManager::get_animated_emoji_click_sticker(const string &message_text, FullMessageId full_message_id,

@@ -6426,6 +6426,9 @@ getPremiumFeatures source:PremiumSource = PremiumFeatures;
 //@description Returns examples of premium stickers for demonstration purposes
 getPremiumStickers = Stickers;
 
+//@description Returns a Premium gift option sticker by its position among Premium options @month_count Number of month the Telegram Premium subscription will be active
+getPremiumGiftOptionSticker month_count:int32 = Sticker;
+
 //@description Informs TDLib that the user viewed detailed information about a Premium feature on the Premium features screen @feature The viewed premium feature
 viewPremiumFeature feature:PremiumFeature = Ok;
 
