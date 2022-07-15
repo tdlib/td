@@ -1246,7 +1246,7 @@ tl_object_ptr<td_api::sticker> copy(const td_api::sticker &obj) {
   return td_api::make_object<td_api::sticker>(obj.set_id_, obj.width_, obj.height_, obj.emoji_, copy(obj.format_),
                                               copy(obj.type_), copy(obj.mask_position_),
                                               transform(obj.outline_, copy_closed_vector_path), copy(obj.thumbnail_),
-                                              copy(obj.premium_animation_), copy(obj.sticker_));
+                                              obj.is_premium_, copy(obj.premium_animation_), copy(obj.sticker_));
 }
 
 template <>

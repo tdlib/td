@@ -367,6 +367,7 @@ class StickersManager final : public Actor {
     FileId file_id;
     StickerFormat format = StickerFormat::Unknown;
     StickerType type = StickerType::Regular;
+    bool is_premium = false;
     int32 point = -1;
     double x_shift = 0;
     double y_shift = 0;

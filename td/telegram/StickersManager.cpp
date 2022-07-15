@@ -1915,7 +1915,8 @@ tl_object_ptr<td_api::sticker> StickersManager::get_sticker_object(FileId file_i
       sticker->set_id.get(), width, height, sticker->alt, get_sticker_format_object(sticker->format),
       get_sticker_type_object(sticker->type), std::move(mask_position),
       get_sticker_minithumbnail(sticker->minithumbnail, sticker->set_id, document_id, zoom),
-      std::move(thumbnail_object), std::move(premium_animation_object), td_->file_manager_->get_file_object(file_id));
+      std::move(thumbnail_object), sticker->is_premium, std::move(premium_animation_object),
+      td_->file_manager_->get_file_object(file_id));
 }
 
 tl_object_ptr<td_api::stickers> StickersManager::get_stickers_object(const vector<FileId> &sticker_ids) const {
@@ -2265,6 +2266,7 @@ FileId StickersManager::on_get_sticker(unique_ptr<Sticker> new_sticker, bool rep
                                                       << s->m_thumbnail << " to " << new_sticker->m_thumbnail;
       s->m_thumbnail = std::move(new_sticker->m_thumbnail);
     }
+    s->is_premium = new_sticker->is_premium;
     s->premium_animation_file_id = new_sticker->premium_animation_file_id;
     if (s->format != new_sticker->format && new_sticker->format != StickerFormat::Unknown) {
       s->format = new_sticker->format;
@@ -2746,6 +2748,9 @@ void StickersManager::create_sticker(FileId file_id, FileId premium_animation_fi
     s->minithumbnail = std::move(minithumbnail);
   }
   add_sticker_thumbnail(s.get(), std::move(thumbnail));
+  if (premium_animation_file_id.is_valid()) {
+    s->is_premium = true;
+  }
   s->premium_animation_file_id = premium_animation_file_id;
   if (sticker != nullptr) {
     s->set_id = on_get_input_sticker_set(file_id, std::move(sticker->stickerset_), load_data_multipromise_ptr);
@@ -2768,6 +2773,7 @@ void StickersManager::create_sticker(FileId file_id, FileId premium_animation_fi
     s->set_id = on_get_input_sticker_set(file_id, std::move(custom_emoji->stickerset_), load_data_multipromise_ptr);
     s->alt = std::move(custom_emoji->alt_);
     s->type = StickerType::Emoji;
+    s->is_premium = !custom_emoji->free_;
   }
   s->format = format;
   on_get_sticker(std::move(s),
@@ -3527,7 +3533,7 @@ std::pair<vector<FileId>, vector<FileId>> StickersManager::split_stickers_by_pre
     if (sticker_id.is_valid()) {
       const Sticker *s = get_sticker(sticker_id);
       CHECK(s != nullptr);
-      if (s->premium_animation_file_id.is_valid()) {
+      if (s->is_premium) {
         premium_sticker_ids.push_back(sticker_id);
       } else {
         regular_sticker_ids.push_back(sticker_id);

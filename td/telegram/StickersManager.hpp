@@ -45,6 +45,7 @@ void StickersManager::store_sticker(FileId file_id, bool in_sticker_set, StorerT
   STORE_FLAG(is_webm);
   STORE_FLAG(has_premium_animation);
   STORE_FLAG(is_emoji);
+  STORE_FLAG(sticker->is_premium);
   END_STORE_FLAGS();
   if (!in_sticker_set) {
     store(sticker->set_id.get(), storer);
@@ -97,6 +98,7 @@ FileId StickersManager::parse_sticker(bool in_sticker_set, ParserT &parser) {
   PARSE_FLAG(is_webm);
   PARSE_FLAG(has_premium_animation);
   PARSE_FLAG(is_emoji);
+  PARSE_FLAG(sticker->is_premium);
   END_PARSE_FLAGS();
   if (is_webm) {
     sticker->format = StickerFormat::Webm;
@@ -154,6 +156,7 @@ FileId StickersManager::parse_sticker(bool in_sticker_set, ParserT &parser) {
     parse(sticker->minithumbnail, parser);
   }
   if (has_premium_animation) {
+    sticker->is_premium = true;
     parse(sticker->premium_animation_file_id, parser);
   }
   if (parser.get_error() != nullptr || !sticker->file_id.is_valid()) {
