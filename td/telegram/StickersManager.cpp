@@ -1998,6 +1998,13 @@ double StickersManager::get_sticker_set_minithumbnail_zoom(const StickerSet *sti
   return 1.0;
 }
 
+td_api::object_ptr<td_api::thumbnail> StickersManager::get_sticker_set_thumbnail_object(
+    const StickerSet *sticker_set) const {
+  CHECK(sticker_set != nullptr);
+  auto thumbnail_format = get_sticker_set_thumbnail_format(sticker_set->sticker_format);
+  return get_thumbnail_object(td_->file_manager_.get(), sticker_set->thumbnail, thumbnail_format);
+}
+
 tl_object_ptr<td_api::stickerSet> StickersManager::get_sticker_set_object(StickerSetId sticker_set_id) const {
   const StickerSet *sticker_set = get_sticker_set(sticker_set_id);
   CHECK(sticker_set != nullptr);
@@ -2016,10 +2023,8 @@ tl_object_ptr<td_api::stickerSet> StickersManager::get_sticker_set_object(Sticke
     }
     emojis.push_back(make_tl_object<td_api::emojis>(std::move(sticker_emojis)));
   }
-  auto thumbnail_format = get_sticker_set_thumbnail_format(sticker_set->sticker_format);
-  auto thumbnail = get_thumbnail_object(td_->file_manager_.get(), sticker_set->thumbnail, thumbnail_format);
   return make_tl_object<td_api::stickerSet>(
-      sticker_set->id.get(), sticker_set->title, sticker_set->short_name, std::move(thumbnail),
+      sticker_set->id.get(), sticker_set->title, sticker_set->short_name, get_sticker_set_thumbnail_object(sticker_set),
       get_sticker_minithumbnail(sticker_set->minithumbnail, sticker_set->id, -2,
                                 get_sticker_set_minithumbnail_zoom(sticker_set)),
       sticker_set->is_installed && !sticker_set->is_archived, sticker_set->is_archived, sticker_set->is_official,
@@ -2091,11 +2096,9 @@ tl_object_ptr<td_api::stickerSetInfo> StickersManager::get_sticker_set_info_obje
     }
   }
 
-  auto thumbnail_format = get_sticker_set_thumbnail_format(sticker_set->sticker_format);
-  auto thumbnail = get_thumbnail_object(td_->file_manager_.get(), sticker_set->thumbnail, thumbnail_format);
   auto actual_count = narrow_cast<int32>(sticker_set->sticker_ids.size());
   return make_tl_object<td_api::stickerSetInfo>(
-      sticker_set->id.get(), sticker_set->title, sticker_set->short_name, std::move(thumbnail),
+      sticker_set->id.get(), sticker_set->title, sticker_set->short_name, get_sticker_set_thumbnail_object(sticker_set),
       get_sticker_minithumbnail(sticker_set->minithumbnail, sticker_set->id, -3,
                                 get_sticker_set_minithumbnail_zoom(sticker_set)),
       sticker_set->is_installed && !sticker_set->is_archived, sticker_set->is_archived, sticker_set->is_official,

@@ -498,6 +498,8 @@ class StickersManager final : public Actor {
 
   static tl_object_ptr<td_api::MaskPoint> get_mask_point_object(int32 point);
 
+  td_api::object_ptr<td_api::thumbnail> get_sticker_set_thumbnail_object(const StickerSet *sticker_set) const;
+
   tl_object_ptr<td_api::stickerSetInfo> get_sticker_set_info_object(StickerSetId sticker_set_id, size_t covers_limit,
                                                                     bool prefer_premium) const;
 
