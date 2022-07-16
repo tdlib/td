@@ -52,6 +52,9 @@ class LinkManager final : public Actor {
   // same as check_link, but returns an empty string instead of an error
   static string get_checked_link(Slice link, bool http_only = false, bool https_only = false);
 
+  // returns whether a link is an internal link, supported or not
+  static bool is_internal_link(Slice link);
+
   // checks whether the link is a supported tg or t.me link and parses it
   static unique_ptr<InternalLink> parse_internal_link(Slice link, bool is_trusted = false);
 

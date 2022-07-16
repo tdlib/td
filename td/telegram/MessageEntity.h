@@ -143,8 +143,7 @@ vector<tl_object_ptr<td_api::textEntity>> get_text_entities_object(const vector<
 td_api::object_ptr<td_api::formattedText> get_formatted_text_object(const FormattedText &text, bool skip_bot_commands,
                                                                     int32 max_media_timestamp);
 
-vector<MessageEntity> find_entities(Slice text, bool skip_bot_commands, bool skip_media_timestamps,
-                                    bool skip_urls = false);
+vector<MessageEntity> find_entities(Slice text, bool skip_bot_commands, bool skip_media_timestamps);
 
 vector<Slice> find_mentions(Slice str);
 vector<Slice> find_bot_commands(Slice str);

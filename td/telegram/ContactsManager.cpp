@@ -16692,7 +16692,19 @@ tl_object_ptr<td_api::userFullInfo> ContactsManager::get_user_full_info_object(U
   } else {
     FormattedText bio;
     bio.text = user_full->about;
-    bio.entities = find_entities(bio.text, true, true, !is_user_premium(user_id));
+    bio.entities = find_entities(bio.text, true, true);
+    if (!is_user_premium(user_id)) {
+      td::remove_if(bio.entities, [&](const MessageEntity &entity) {
+        if (entity.type == MessageEntity::Type::EmailAddress) {
+          return true;
+        }
+        if (entity.type == MessageEntity::Type::Url &&
+            !LinkManager::is_internal_link(utf8_utf16_substr(Slice(bio.text), entity.offset, entity.length))) {
+          return true;
+        }
+        return false;
+      });
+    }
     bio_object = get_formatted_text_object(bio, true, 0);
   }
   return make_tl_object<td_api::userFullInfo>(

@@ -924,6 +924,11 @@ LinkManager::LinkInfo LinkManager::get_link_info(Slice link) {
   return result;
 }
 
+bool LinkManager::is_internal_link(Slice link) {
+  auto info = get_link_info(link);
+  return info.is_internal_;
+}
+
 unique_ptr<LinkManager::InternalLink> LinkManager::parse_internal_link(Slice link, bool is_trusted) {
   auto info = get_link_info(link);
   if (!info.is_internal_) {
