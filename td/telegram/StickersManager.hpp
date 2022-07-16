@@ -179,6 +179,7 @@ void StickersManager::store_sticker_set(const StickerSet *sticker_set, bool with
   bool is_webm = sticker_set->sticker_format == StickerFormat::Webm;
   bool is_masks = sticker_set->sticker_type == StickerType::Mask;
   bool is_emojis = sticker_set->sticker_type == StickerType::Emoji;
+  bool has_thumbnail_document_id = sticker_set->thumbnail_document_id != 0;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(sticker_set->is_inited);
   STORE_FLAG(was_loaded);
@@ -196,6 +197,7 @@ void StickersManager::store_sticker_set(const StickerSet *sticker_set, bool with
   STORE_FLAG(has_minithumbnail);
   STORE_FLAG(is_webm);
   STORE_FLAG(is_emojis);
+  STORE_FLAG(has_thumbnail_document_id);
   END_STORE_FLAGS();
   store(sticker_set->id.get(), storer);
   store(sticker_set->access_hash, storer);
@@ -212,6 +214,9 @@ void StickersManager::store_sticker_set(const StickerSet *sticker_set, bool with
     }
     if (has_minithumbnail) {
       store(sticker_set->minithumbnail, storer);
+    }
+    if (has_thumbnail_document_id) {
+      store(sticker_set->thumbnail_document_id, storer);
     }
 
     auto stored_sticker_count = narrow_cast<uint32>(is_full ? sticker_set->sticker_ids.size() : stickers_limit);
@@ -247,6 +252,7 @@ void StickersManager::parse_sticker_set(StickerSet *sticker_set, ParserT &parser
   bool has_minithumbnail;
   bool is_webm;
   bool is_emojis;
+  bool has_thumbnail_document_id;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(sticker_set->is_inited);
   PARSE_FLAG(sticker_set->was_loaded);
@@ -264,6 +270,7 @@ void StickersManager::parse_sticker_set(StickerSet *sticker_set, ParserT &parser
   PARSE_FLAG(has_minithumbnail);
   PARSE_FLAG(is_webm);
   PARSE_FLAG(is_emojis);
+  PARSE_FLAG(has_thumbnail_document_id);
   END_PARSE_FLAGS();
   int64 sticker_set_id;
   int64 access_hash;
@@ -295,6 +302,7 @@ void StickersManager::parse_sticker_set(StickerSet *sticker_set, ParserT &parser
     string short_name;
     string minithumbnail;
     PhotoSize thumbnail;
+    int64 thumbnail_document_id = 0;
     int32 sticker_count;
     int32 hash;
     int32 expires_at = 0;
@@ -311,12 +319,16 @@ void StickersManager::parse_sticker_set(StickerSet *sticker_set, ParserT &parser
     if (has_minithumbnail) {
       parse(minithumbnail, parser);
     }
+    if (has_thumbnail_document_id) {
+      parse(thumbnail_document_id, parser);
+    }
 
     if (!was_inited) {
       sticker_set->title = std::move(title);
       sticker_set->short_name = std::move(short_name);
       sticker_set->minithumbnail = std::move(minithumbnail);
       sticker_set->thumbnail = std::move(thumbnail);
+      sticker_set->thumbnail_document_id = thumbnail_document_id;
       sticker_set->sticker_count = sticker_count;
       sticker_set->hash = hash;
       sticker_set->expires_at = expires_at;

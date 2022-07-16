@@ -2031,6 +2031,22 @@ double StickersManager::get_sticker_set_minithumbnail_zoom(const StickerSet *sti
 td_api::object_ptr<td_api::thumbnail> StickersManager::get_sticker_set_thumbnail_object(
     const StickerSet *sticker_set) const {
   CHECK(sticker_set != nullptr);
+  if (sticker_set->thumbnail_document_id != 0 && sticker_set->sticker_type == StickerType::Emoji) {
+    for (auto sticker_id : sticker_set->sticker_ids) {
+      auto file_view = td_->file_manager_->get_file_view(sticker_id);
+      if (file_view.has_remote_location() && !file_view.remote_location().is_web() &&
+          file_view.remote_location().get_id() == sticker_set->thumbnail_document_id) {
+        const Sticker *s = get_sticker(sticker_id);
+        auto thumbnail_format = get_sticker_set_thumbnail_format(s->format);
+        PhotoSize thumbnail;
+        thumbnail.type = 't';
+        thumbnail.size = static_cast<int32>(file_view.size());
+        thumbnail.dimensions = s->dimensions;
+        thumbnail.file_id = s->file_id;
+        return get_thumbnail_object(td_->file_manager_.get(), thumbnail, thumbnail_format);
+      }
+    }
+  }
   auto thumbnail_format = get_sticker_set_thumbnail_format(sticker_set->sticker_format);
   return get_thumbnail_object(td_->file_manager_.get(), sticker_set->thumbnail, thumbnail_format);
 }
@@ -3006,6 +3022,7 @@ StickerSetId StickersManager::on_get_sticker_set(tl_object_ptr<telegram_api::sti
 
   PhotoSize thumbnail;
   string minithumbnail;
+  int64 thumbnail_document_id = 0;
   for (auto &thumb : set->thumbs_) {
     auto photo_size =
         get_photo_size(td_->file_manager_.get(),
@@ -3020,6 +3037,9 @@ StickerSetId StickersManager::on_get_sticker_set(tl_object_ptr<telegram_api::sti
       minithumbnail = std::move(photo_size.get<1>());
     }
   }
+  if ((set->flags_ & telegram_api::stickerSet::THUMB_DOCUMENT_ID_MASK) != 0) {
+    thumbnail_document_id = set->thumb_document_id_;
+  }
   if (!s->is_inited) {
     LOG(INFO) << "Init " << set_id;
     s->is_inited = true;
@@ -3029,6 +3049,7 @@ StickerSetId StickersManager::on_get_sticker_set(tl_object_ptr<telegram_api::sti
       s->minithumbnail = std::move(minithumbnail);
     }
     s->thumbnail = std::move(thumbnail);
+    s->thumbnail_document_id = thumbnail_document_id;
     s->is_thumbnail_reloaded = true;
     s->are_legacy_sticker_thumbnails_reloaded = true;
     s->sticker_count = set->count_;
@@ -3074,6 +3095,12 @@ StickerSetId StickersManager::on_get_sticker_set(tl_object_ptr<telegram_api::sti
     if (s->thumbnail != thumbnail) {
       LOG(INFO) << "Thumbnail of " << set_id << " has changed from " << s->thumbnail << " to " << thumbnail;
       s->thumbnail = std::move(thumbnail);
+      s->is_changed = true;
+    }
+    if (s->thumbnail_document_id != thumbnail_document_id) {
+      LOG(INFO) << "Thumbnail of " << set_id << " has changed from " << s->thumbnail_document_id << " to "
+                << thumbnail_document_id;
+      s->thumbnail_document_id = thumbnail_document_id;
       s->is_changed = true;
     }
     if (!s->is_thumbnail_reloaded || !s->are_legacy_sticker_thumbnails_reloaded) {

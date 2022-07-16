@@ -395,6 +395,7 @@ class StickersManager final : public Actor {
 
     string minithumbnail;
     PhotoSize thumbnail;
+    int64 thumbnail_document_id = 0;
 
     vector<FileId> sticker_ids;
     FlatHashMap<string, vector<FileId>> emoji_stickers_map_;              // emoji -> stickers
