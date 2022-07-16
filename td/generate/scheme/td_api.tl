@@ -2981,6 +2981,9 @@ premiumFeatureUniqueReactions = PremiumFeature;
 //@description Allowed to use premium stickers with unique effects
 premiumFeatureUniqueStickers = PremiumFeature;
 
+//@description Allowed to use custom emoji stickers in message texts and captions
+premiumFeatureCustomEmoji = PremiumFeature;
+
 //@description Ability to change position of the main chat list, archive and mute all new chats from non-contacts, and completely disable notifications about the user's contacts joined Telegram
 premiumFeatureAdvancedChatManagement = PremiumFeature;
 

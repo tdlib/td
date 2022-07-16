@@ -52,6 +52,9 @@ static td_api::object_ptr<td_api::PremiumFeature> get_premium_feature_object(Sli
   if (premium_feature == "premium_stickers") {
     return td_api::make_object<td_api::premiumFeatureUniqueStickers>();
   }
+  if (premium_feature == "animated_emoji") {
+    return td_api::make_object<td_api::premiumFeatureCustomEmoji>();
+  }
   if (premium_feature == "advanced_chat_management") {
     return td_api::make_object<td_api::premiumFeatureAdvancedChatManagement>();
   }
@@ -343,6 +346,8 @@ static string get_premium_source(const td_api::PremiumFeature *feature) {
       return "unique_reactions";
     case td_api::premiumFeatureUniqueStickers::ID:
       return "premium_stickers";
+    case td_api::premiumFeatureCustomEmoji::ID:
+      return "animated_emoji";
     case td_api::premiumFeatureAdvancedChatManagement::ID:
       return "advanced_chat_management";
     case td_api::premiumFeatureProfileBadge::ID:
@@ -445,7 +450,7 @@ void get_premium_features(Td *td, const td_api::object_ptr<td_api::PremiumSource
       full_split(G()->shared_config().get_option_string(
                      "premium_features",
                      "double_limits,more_upload,faster_download,voice_to_text,no_ads,unique_reactions,premium_stickers,"
-                     "advanced_chat_management,profile_badge,animated_userpics,app_icons"),
+                     "animated_emoji,advanced_chat_management,profile_badge,animated_userpics,app_icons"),
                  ',');
   vector<td_api::object_ptr<td_api::PremiumFeature>> features;
   for (const auto &premium_feature : premium_features) {
