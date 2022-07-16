@@ -3469,6 +3469,9 @@ userPrivacySettingAllowPeerToPeerCalls = UserPrivacySetting;
 //@description A privacy setting for managing whether the user can be found by their phone number. Checked only if the phone number is not known to the other user. Can be set only to "Allow contacts" or "Allow all"
 userPrivacySettingAllowFindingByPhoneNumber = UserPrivacySetting;
 
+//@description A privacy setting for managing whether the user can receive voice and video messages in private chats
+userPrivacySettingAllowPrivateVoiceAndVideoNoteMessages = UserPrivacySetting;
+
 
 //@description Contains information about the period of inactivity after which the current user's account will automatically be deleted @days Number of days of inactivity before the account will be flagged for deletion; 30-366 days
 accountTtl days:int32 = AccountTtl;
