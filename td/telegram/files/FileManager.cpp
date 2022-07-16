@@ -1099,7 +1099,6 @@ FileId FileManager::register_empty(FileType type) {
 }
 
 void FileManager::on_file_unlink(const FullLocalFileLocation &location) {
-  // TODO: remove file from the database too
   auto it = local_location_to_file_id_.find(location);
   if (it == local_location_to_file_id_.end()) {
     return;
@@ -1107,6 +1106,7 @@ void FileManager::on_file_unlink(const FullLocalFileLocation &location) {
   auto file_id = it->second;
   auto file_node = get_sync_file_node(file_id);
   CHECK(file_node);
+  clear_from_pmc(file_node);
   send_closure(G()->download_manager(), &DownloadManager::remove_file_if_finished, file_node->main_file_id_);
   file_node->drop_local_location();
   try_flush_node_info(file_node, "on_file_unlink");
