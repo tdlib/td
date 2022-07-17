@@ -3828,6 +3828,7 @@ void ContactsManager::UserFull::store(StorerT &storer) const {
   STORE_FLAG(has_description_photo);
   STORE_FLAG(has_description_animation);
   STORE_FLAG(has_premium_gift_options);
+  STORE_FLAG(voice_messages_forbidden);
   END_STORE_FLAGS();
   if (has_about) {
     store(about, storer);
@@ -3899,6 +3900,7 @@ void ContactsManager::UserFull::parse(ParserT &parser) {
   PARSE_FLAG(has_description_photo);
   PARSE_FLAG(has_description_animation);
   PARSE_FLAG(has_premium_gift_options);
+  PARSE_FLAG(voice_messages_forbidden);
   END_PARSE_FLAGS();
   if (has_about) {
     parse(about, parser);
@@ -4946,6 +4948,14 @@ string ContactsManager::get_user_private_forward_name(UserId user_id) {
     return user_full->private_forward_name;
   }
   return string();
+}
+
+bool ContactsManager::get_user_voice_messages_forbidden(UserId user_id) {
+  auto user_full = get_user_full_force(user_id);
+  if (user_full != nullptr) {
+    return user_full->voice_messages_forbidden;
+  }
+  return false;
 }
 
 string ContactsManager::get_dialog_about(DialogId dialog_id) {
@@ -10775,19 +10785,26 @@ void ContactsManager::on_get_user_full(tl_object_ptr<telegram_api::userFull> &&u
   AdministratorRights broadcast_administrator_rights(user->bot_broadcast_admin_rights_, ChannelType::Broadcast);
   if (user_full->can_be_called != can_be_called || user_full->supports_video_calls != supports_video_calls ||
       user_full->has_private_calls != has_private_calls ||
-      user_full->private_forward_name != user->private_forward_name_ ||
       user_full->group_administrator_rights != group_administrator_rights ||
       user_full->broadcast_administrator_rights != broadcast_administrator_rights ||
-      user_full->premium_gift_options != premium_gift_options) {
+      user_full->premium_gift_options != premium_gift_options ||
+      user_full->voice_messages_forbidden != user->voice_messages_forbidden_) {
     user_full->can_be_called = can_be_called;
     user_full->supports_video_calls = supports_video_calls;
     user_full->has_private_calls = has_private_calls;
-    user_full->private_forward_name = std::move(user->private_forward_name_);
     user_full->group_administrator_rights = group_administrator_rights;
     user_full->broadcast_administrator_rights = broadcast_administrator_rights;
     user_full->premium_gift_options = std::move(premium_gift_options);
+    user_full->voice_messages_forbidden = user->voice_messages_forbidden_;
 
     user_full->is_changed = true;
+  }
+  if (user_full->private_forward_name != user->private_forward_name_) {
+    if (user_full->private_forward_name.empty() != user->private_forward_name_.empty()) {
+      user_full->is_changed = true;
+    }
+    user_full->private_forward_name = std::move(user->private_forward_name_);
+    user_full->need_save_to_database = true;
   }
   if (user_full->about != user->about_) {
     user_full->about = std::move(user->about_);
@@ -12104,6 +12121,7 @@ void ContactsManager::drop_user_full(UserId user_id) {
   user_full->group_administrator_rights = {};
   user_full->broadcast_administrator_rights = {};
   user_full->premium_gift_options.clear();
+  user_full->voice_messages_forbidden = false;
   user_full->is_changed = true;
 
   update_user_full(user_full, user_id, "drop_user_full");
@@ -16739,8 +16757,9 @@ tl_object_ptr<td_api::userFullInfo> ContactsManager::get_user_full_info_object(U
   return make_tl_object<td_api::userFullInfo>(
       get_chat_photo_object(td_->file_manager_.get(), user_full->photo), user_full->is_blocked,
       user_full->can_be_called, user_full->supports_video_calls, user_full->has_private_calls,
-      !user_full->private_forward_name.empty(), user_full->need_phone_number_privacy_exception, std::move(bio_object),
-      std::move(premium_gift_options), user_full->common_chat_count, std::move(bot_info));
+      !user_full->private_forward_name.empty(), user_full->voice_messages_forbidden,
+      user_full->need_phone_number_privacy_exception, std::move(bio_object), std::move(premium_gift_options),
+      user_full->common_chat_count, std::move(bot_info));
 }
 
 td_api::object_ptr<td_api::updateBasicGroup> ContactsManager::get_update_unknown_basic_group_object(ChatId chat_id) {

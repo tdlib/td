@@ -119,6 +119,7 @@ class ContactsManager final : public Actor {
   bool get_channel_has_protected_content(ChannelId channel_id) const;
 
   string get_user_private_forward_name(UserId user_id);
+  bool get_user_voice_messages_forbidden(UserId user_id);
 
   string get_dialog_about(DialogId dialog_id);
 
@@ -731,6 +732,7 @@ class ContactsManager final : public Actor {
     bool has_private_calls = false;
     bool can_pin_messages = true;
     bool need_phone_number_privacy_exception = false;
+    bool voice_messages_forbidden = false;
 
     bool is_common_chat_count_changed = true;
     bool is_changed = true;             // have new changes that need to be sent to the client and database
@@ -1075,6 +1077,7 @@ class ContactsManager final : public Actor {
   static constexpr int32 USER_FULL_FLAG_HAS_PRIVATE_FORWARD_NAME = 1 << 16;
   static constexpr int32 USER_FULL_FLAG_HAS_GROUP_ADMINISTRATOR_RIGHTS = 1 << 17;
   static constexpr int32 USER_FULL_FLAG_HAS_BROADCAST_ADMINISTRATOR_RIGHTS = 1 << 18;
+  static constexpr int32 USER_FULL_FLAG_HAS_VOICE_MESSAGES_FORBIDDEN = 1 << 20;
 
   static constexpr int32 CHAT_FLAG_USER_IS_CREATOR = 1 << 0;
   static constexpr int32 CHAT_FLAG_USER_HAS_LEFT = 1 << 2;
