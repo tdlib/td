@@ -55,7 +55,6 @@
 //
 //
 // create_immediate_closure(&ActorT::func, arg1, arg2, ..., argn).run(actor)
-// to_delayed_closure(std::move(immediate)).run(actor)
 
 namespace td {
 template <class ActorT, class FunctionT, class... ArgsT>
@@ -92,7 +91,6 @@ template <class ActorT, class FunctionT, class... ArgsT>
 class DelayedClosure {
  public:
   using ActorType = ActorT;
-  using Delayed = DelayedClosure<ActorT, FunctionT, ArgsT...>;
 
   explicit DelayedClosure(ImmediateClosure<ActorT, FunctionT, ArgsT...> &&other) : args(std::move(other.args)) {
   }
@@ -129,16 +127,6 @@ class DelayedClosure {
     return mem_call_tuple(actor, std::move(args));
   }
 };
-
-template <class... ArgsT>
-typename ImmediateClosure<ArgsT...>::Delayed to_delayed_closure(ImmediateClosure<ArgsT...> &&other) {
-  return typename ImmediateClosure<ArgsT...>::Delayed(std::move(other));
-}
-
-template <class... ArgsT>
-DelayedClosure<ArgsT...> to_delayed_closure(DelayedClosure<ArgsT...> &&other) {
-  return std::move(other);
-}
 
 template <class ActorT, class ResultT, class... DestArgsT, class... SrcArgsT>
 auto create_delayed_closure(ResultT (ActorT::*func)(DestArgsT...), SrcArgsT &&...args) {
