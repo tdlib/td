@@ -29,12 +29,27 @@
 namespace td {
 
 int MessageEntity::get_type_priority(Type type) {
-  static const int priorities[] = {
-      50 /*Mention*/,      50 /*Hashtag*/,        50 /*BotCommand*/,     50 /*Url*/,
-      50 /*EmailAddress*/, 90 /*Bold*/,           91 /*Italic*/,         20 /*Code*/,
-      11 /*Pre*/,          10 /*PreCode*/,        49 /*TextUrl*/,        49 /*MentionName*/,
-      50 /*Cashtag*/,      50 /*PhoneNumber*/,    92 /*Underline*/,      93 /*Strikethrough*/,
-      0 /*BlockQuote*/,    50 /*BankCardNumber*/, 50 /*MediaTimestamp*/, 94 /*Spoiler*/};
+  static const int priorities[] = {50 /*Mention*/,
+                                   50 /*Hashtag*/,
+                                   50 /*BotCommand*/,
+                                   50 /*Url*/,
+                                   50 /*EmailAddress*/,
+                                   90 /*Bold*/,
+                                   91 /*Italic*/,
+                                   20 /*Code*/,
+                                   11 /*Pre*/,
+                                   10 /*PreCode*/,
+                                   49 /*TextUrl*/,
+                                   49 /*MentionName*/,
+                                   50 /*Cashtag*/,
+                                   50 /*PhoneNumber*/,
+                                   92 /*Underline*/,
+                                   93 /*Strikethrough*/,
+                                   0 /*BlockQuote*/,
+                                   50 /*BankCardNumber*/,
+                                   50 /*MediaTimestamp*/,
+                                   94 /*Spoiler*/,
+                                   99 /*CustomEmoji*/};
   static_assert(sizeof(priorities) / sizeof(priorities[0]) == static_cast<size_t>(MessageEntity::Type::Size), "");
   return priorities[static_cast<int32>(type)];
 }
@@ -81,6 +96,8 @@ StringBuilder &operator<<(StringBuilder &string_builder, const MessageEntity::Ty
       return string_builder << "MediaTimestamp";
     case MessageEntity::Type::Spoiler:
       return string_builder << "Spoiler";
+    case MessageEntity::Type::CustomEmoji:
+      return string_builder << "CustomEmoji";
     default:
       UNREACHABLE();
       return string_builder << "Impossible";
@@ -146,6 +163,8 @@ tl_object_ptr<td_api::TextEntityType> MessageEntity::get_text_entity_type_object
       return make_tl_object<td_api::textEntityTypeMediaTimestamp>(media_timestamp);
     case MessageEntity::Type::Spoiler:
       return make_tl_object<td_api::textEntityTypeSpoiler>();
+    case MessageEntity::Type::CustomEmoji:
+      return make_tl_object<td_api::textEntityTypeCustomEmoji>(document_id);
     default:
       UNREACHABLE();
       return nullptr;
@@ -1423,7 +1442,8 @@ static constexpr int32 get_continuous_entities_mask() {
          get_entity_type_mask(MessageEntity::Type::MentionName) | get_entity_type_mask(MessageEntity::Type::Cashtag) |
          get_entity_type_mask(MessageEntity::Type::PhoneNumber) |
          get_entity_type_mask(MessageEntity::Type::BankCardNumber) |
-         get_entity_type_mask(MessageEntity::Type::MediaTimestamp);
+         get_entity_type_mask(MessageEntity::Type::MediaTimestamp) |
+         get_entity_type_mask(MessageEntity::Type::CustomEmoji);
 }
 
 static constexpr int32 get_pre_entities_mask() {
@@ -1434,7 +1454,7 @@ static constexpr int32 get_pre_entities_mask() {
 static constexpr int32 get_user_entities_mask() {
   return get_splittable_entities_mask() | get_blockquote_entities_mask() |
          get_entity_type_mask(MessageEntity::Type::TextUrl) | get_entity_type_mask(MessageEntity::Type::MentionName) |
-         get_pre_entities_mask();
+         get_entity_type_mask(MessageEntity::Type::CustomEmoji) | get_pre_entities_mask();
 }
 
 static int32 is_splittable_entity(MessageEntity::Type type) {
@@ -1781,6 +1801,8 @@ string get_first_url(Slice text, const vector<MessageEntity> &entities) {
       case MessageEntity::Type::MediaTimestamp:
         break;
       case MessageEntity::Type::Spoiler:
+        break;
+      case MessageEntity::Type::CustomEmoji:
         break;
       default:
         UNREACHABLE();
@@ -3312,6 +3334,11 @@ Result<vector<MessageEntity>> get_message_entities(const ContactsManager *contac
       case td_api::textEntityTypeSpoiler::ID:
         entities.emplace_back(MessageEntity::Type::Spoiler, offset, length);
         break;
+      case td_api::textEntityTypeCustomEmoji::ID: {
+        auto entity = static_cast<td_api::textEntityTypeCustomEmoji *>(input_entity->type_.get());
+        entities.emplace_back(MessageEntity::Type::CustomEmoji, offset, length, entity->custom_emoji_id_);
+        break;
+      }
       default:
         UNREACHABLE();
     }
@@ -3446,8 +3473,11 @@ vector<MessageEntity> get_message_entities(const ContactsManager *contacts_manag
         entities.emplace_back(entity->offset_, entity->length_, user_id);
         break;
       }
-      case telegram_api::messageEntityCustomEmoji::ID:
+      case telegram_api::messageEntityCustomEmoji::ID: {
+        auto entity = static_cast<const telegram_api::messageEntityCustomEmoji *>(server_entity.get());
+        entities.emplace_back(MessageEntity::Type::CustomEmoji, entity->offset_, entity->length_, entity->document_id_);
         break;
+      }
       default:
         UNREACHABLE();
     }
@@ -4253,6 +4283,10 @@ vector<tl_object_ptr<telegram_api::MessageEntity>> get_input_message_entities(co
                                                                                      r_input_user.move_as_ok()));
         break;
       }
+      case MessageEntity::Type::CustomEmoji:
+        result.push_back(
+            make_tl_object<telegram_api::messageEntityCustomEmoji>(entity.offset, entity.length, entity.document_id));
+        break;
       default:
         UNREACHABLE();
     }

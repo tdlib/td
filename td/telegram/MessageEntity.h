@@ -49,6 +49,7 @@ class MessageEntity {
     BankCardNumber,
     MediaTimestamp,
     Spoiler,
+    CustomEmoji,
     Size
   };
   Type type = Type::Size;
@@ -57,6 +58,7 @@ class MessageEntity {
   int32 media_timestamp = -1;
   string argument;
   UserId user_id;
+  int64 document_id = 0;
 
   MessageEntity() = default;
 
@@ -69,6 +71,10 @@ class MessageEntity {
   MessageEntity(Type type, int32 offset, int32 length, int32 media_timestamp)
       : type(type), offset(offset), length(length), media_timestamp(media_timestamp) {
     CHECK(type == Type::MediaTimestamp);
+  }
+  MessageEntity(Type type, int32 offset, int32 length, int64 document_id)
+      : type(type), offset(offset), length(length), document_id(document_id) {
+    CHECK(type == Type::CustomEmoji);
   }
 
   tl_object_ptr<td_api::textEntity> get_text_entity_object() const;

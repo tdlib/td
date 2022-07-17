@@ -2086,6 +2086,9 @@ textEntityTypeTextUrl url:string = TextEntityType;
 //@description A text shows instead of a raw mention of the user (e.g., when the user has no username) @user_id Identifier of the mentioned user
 textEntityTypeMentionName user_id:int53 = TextEntityType;
 
+//@description A custom emoji. The text behind a custom emoji must be an emoji. Only premium users can use premium custom emoji @custom_emoji_id Unique identifier of the custom emoji
+textEntityTypeCustomEmoji custom_emoji_id:int64 = TextEntityType;
+
 //@description A media timestamp @media_timestamp Timestamp from which a video/audio/video note/voice note playing must start, in seconds. The media can be in the content or the web page preview of the current message, or in the same places in the replied message
 textEntityTypeMediaTimestamp media_timestamp:int32 = TextEntityType;
 

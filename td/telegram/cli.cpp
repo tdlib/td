@@ -3628,6 +3628,19 @@ class CliClient final : public Actor {
       }
       send_message(chat_id, td_api::make_object<td_api::inputMessageText>(as_formatted_text(message), false, true),
                    op == "sms", false, reply_to_message_id);
+    } else if (op == "smce") {
+      ChatId chat_id;
+      get_args(args, chat_id);
+      vector<td_api::object_ptr<td_api::textEntity>> entities;
+      entities.push_back(
+          td_api::make_object<td_api::textEntity>(0, 2, td_api::make_object<td_api::textEntityTypeCustomEmoji>(1)));
+      entities.push_back(
+          td_api::make_object<td_api::textEntity>(3, 2, td_api::make_object<td_api::textEntityTypeCustomEmoji>(2)));
+      entities.push_back(
+          td_api::make_object<td_api::textEntity>(6, 5, td_api::make_object<td_api::textEntityTypeCustomEmoji>(3)));
+      auto text = as_formatted_text("👍 😉 🧑‍🚒", std::move(entities));
+      send_message(chat_id, td_api::make_object<td_api::inputMessageText>(std::move(text), false, true), false, false,
+                   0);
     } else if (op == "alm" || op == "almr") {
       ChatId chat_id;
       string sender_id;

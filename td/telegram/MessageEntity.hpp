@@ -27,6 +27,9 @@ void MessageEntity::store(StorerT &storer) const {
   if (type == Type::MediaTimestamp) {
     store(media_timestamp, storer);
   }
+  if (type == Type::CustomEmoji) {
+    store(document_id, storer);
+  }
 }
 
 template <class ParserT>
@@ -43,6 +46,9 @@ void MessageEntity::parse(ParserT &parser) {
   }
   if (type == Type::MediaTimestamp) {
     parse(media_timestamp, parser);
+  }
+  if (type == Type::CustomEmoji) {
+    parse(document_id, parser);
   }
 }
 
