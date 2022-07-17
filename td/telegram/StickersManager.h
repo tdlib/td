@@ -199,13 +199,14 @@ class StickersManager final : public Actor {
                                     vector<tl_object_ptr<telegram_api::StickerSetCovered>> &&sticker_sets,
                                     int32 total_count);
 
-  td_api::object_ptr<td_api::trendingStickerSets> get_featured_sticker_sets(int32 offset, int32 limit,
-                                                                            Promise<Unit> &&promise);
+  td_api::object_ptr<td_api::trendingStickerSets> get_featured_sticker_sets(StickerType sticker_type, int32 offset,
+                                                                            int32 limit, Promise<Unit> &&promise);
 
-  void on_get_featured_sticker_sets(int32 offset, int32 limit, uint32 generation,
+  void on_get_featured_sticker_sets(StickerType sticker_type, int32 offset, int32 limit, uint32 generation,
                                     tl_object_ptr<telegram_api::messages_FeaturedStickers> &&sticker_sets_ptr);
 
-  void on_get_featured_sticker_sets_failed(int32 offset, int32 limit, uint32 generation, Status error);
+  void on_get_featured_sticker_sets_failed(StickerType sticker_type, int32 offset, int32 limit, uint32 generation,
+                                           Status error);
 
   vector<StickerSetId> get_attached_sticker_sets(FileId file_id, Promise<Unit> &&promise);
 
@@ -303,7 +304,7 @@ class StickersManager final : public Actor {
 
   void reload_installed_sticker_sets(StickerType sticker_type, bool force);
 
-  void reload_featured_sticker_sets(bool force);
+  void reload_featured_sticker_sets(StickerType sticker_type, bool force);
 
   void reload_recent_stickers(bool is_attached, bool force);
 
@@ -572,15 +573,15 @@ class StickersManager final : public Actor {
 
   int64 get_sticker_sets_hash(const vector<StickerSetId> &sticker_set_ids) const;
 
-  int64 get_featured_sticker_sets_hash() const;
+  int64 get_featured_sticker_sets_hash(StickerType sticker_type) const;
 
   int64 get_recent_stickers_hash(const vector<FileId> &sticker_ids) const;
 
   void load_installed_sticker_sets(StickerType sticker_type, Promise<Unit> &&promise);
 
-  void load_featured_sticker_sets(Promise<Unit> &&promise);
+  void load_featured_sticker_sets(StickerType sticker_type, Promise<Unit> &&promise);
 
-  void load_old_featured_sticker_sets(Promise<Unit> &&promise);
+  void load_old_featured_sticker_sets(StickerType sticker_type, Promise<Unit> &&promise);
 
   void load_recent_stickers(bool is_attached, Promise<Unit> &&promise);
 
@@ -590,13 +591,14 @@ class StickersManager final : public Actor {
                                                vector<StickerSetId> &&installed_sticker_set_ids,
                                                bool from_database = false);
 
-  void on_load_featured_sticker_sets_from_database(string value);
+  void on_load_featured_sticker_sets_from_database(StickerType sticker_type, string value);
 
-  void on_load_featured_sticker_sets_finished(vector<StickerSetId> &&featured_sticker_set_ids, bool is_premium);
+  void on_load_featured_sticker_sets_finished(StickerType sticker_type, vector<StickerSetId> &&featured_sticker_set_ids,
+                                              bool is_premium);
 
-  void on_load_old_featured_sticker_sets_from_database(uint32 generation, string value);
+  void on_load_old_featured_sticker_sets_from_database(StickerType sticker_type, uint32 generation, string value);
 
-  void on_load_old_featured_sticker_sets_finished(uint32 generation,
+  void on_load_old_featured_sticker_sets_finished(StickerType sticker_type, uint32 generation,
                                                   vector<StickerSetId> &&old_featured_sticker_set_ids);
 
   void on_load_recent_stickers_from_database(bool is_attached, string value);
@@ -609,24 +611,29 @@ class StickersManager final : public Actor {
 
   void send_update_installed_sticker_sets(bool from_database = false);
 
-  void reload_old_featured_sticker_sets(uint32 generation = 0);
+  void reload_old_featured_sticker_sets(StickerType sticker_type, uint32 generation = 0);
 
-  void on_old_featured_sticker_sets_invalidated();
+  void on_old_featured_sticker_sets_invalidated(StickerType sticker_type);
 
-  void invalidate_old_featured_sticker_sets();
+  void invalidate_old_featured_sticker_sets(StickerType sticker_type);
 
-  void set_old_featured_sticker_set_count(int32 count);
+  void set_old_featured_sticker_set_count(StickerType sticker_type, int32 count);
 
   // must be called after every call to set_old_featured_sticker_set_count or
   // any change of old_featured_sticker_set_ids_ size
-  void fix_old_featured_sticker_set_count();
+  void fix_old_featured_sticker_set_count(StickerType sticker_type);
+
+  static size_t get_max_featured_sticker_count(StickerType sticker_type);
+
+  static Slice get_featured_sticker_suffix(StickerType sticker_type);
 
   td_api::object_ptr<td_api::trendingStickerSets> get_trending_sticker_sets_object(
-      const vector<StickerSetId> &sticker_set_ids) const;
+      StickerType sticker_type, const vector<StickerSetId> &sticker_set_ids) const;
 
-  td_api::object_ptr<td_api::updateTrendingStickerSets> get_update_trending_sticker_sets_object() const;
+  td_api::object_ptr<td_api::updateTrendingStickerSets> get_update_trending_sticker_sets_object(
+      StickerType sticker_type) const;
 
-  void send_update_featured_sticker_sets();
+  void send_update_featured_sticker_sets(StickerType sticker_type);
 
   td_api::object_ptr<td_api::updateRecentStickers> get_update_recent_stickers_object(int is_attached) const;
 
@@ -801,36 +808,36 @@ class StickersManager final : public Actor {
   FlatHashMap<string, StickerSetId> short_name_to_sticker_set_id_;
 
   vector<StickerSetId> installed_sticker_set_ids_[MAX_STICKER_TYPE];
-  vector<StickerSetId> featured_sticker_set_ids_;
-  vector<StickerSetId> old_featured_sticker_set_ids_;
+  vector<StickerSetId> featured_sticker_set_ids_[MAX_STICKER_TYPE];
+  vector<StickerSetId> old_featured_sticker_set_ids_[MAX_STICKER_TYPE];
   vector<FileId> recent_sticker_ids_[2];
   vector<FileId> favorite_sticker_ids_;
 
   double next_installed_sticker_sets_load_time_[MAX_STICKER_TYPE] = {0, 0, 0};
-  double next_featured_sticker_sets_load_time_ = 0;
+  double next_featured_sticker_sets_load_time_[MAX_STICKER_TYPE] = {0, 0, 0};
   double next_recent_stickers_load_time_[2] = {0, 0};
   double next_favorite_stickers_load_time_ = 0;
 
   int64 installed_sticker_sets_hash_[MAX_STICKER_TYPE] = {0, 0, 0};
-  int64 featured_sticker_sets_hash_ = 0;
+  int64 featured_sticker_sets_hash_[MAX_STICKER_TYPE] = {0, 0, 0};
   int64 recent_stickers_hash_[2] = {0, 0};
 
-  int32 old_featured_sticker_set_count_ = -1;
-  uint32 old_featured_sticker_set_generation_ = 1;
+  int32 old_featured_sticker_set_count_[MAX_STICKER_TYPE] = {-1, 0, 0};
+  uint32 old_featured_sticker_set_generation_[MAX_STICKER_TYPE] = {1, 0, 0};
 
   bool need_update_installed_sticker_sets_[MAX_STICKER_TYPE] = {false, false, false};
-  bool need_update_featured_sticker_sets_ = false;
+  bool need_update_featured_sticker_sets_[MAX_STICKER_TYPE] = {false, false, false};
 
   bool are_installed_sticker_sets_loaded_[MAX_STICKER_TYPE] = {false, false, false};
-  bool are_featured_sticker_sets_loaded_ = false;
+  bool are_featured_sticker_sets_loaded_[MAX_STICKER_TYPE] = {false, true, false};
   bool are_recent_stickers_loaded_[2] = {false, false};
   bool are_favorite_stickers_loaded_ = false;
 
-  bool are_featured_sticker_sets_premium_ = false;
-  bool are_old_featured_sticker_sets_invalidated_ = false;
+  bool are_featured_sticker_sets_premium_[MAX_STICKER_TYPE] = {false, false, false};
+  bool are_old_featured_sticker_sets_invalidated_[MAX_STICKER_TYPE] = {false, false, false};
 
   vector<Promise<Unit>> load_installed_sticker_sets_queries_[MAX_STICKER_TYPE];
-  vector<Promise<Unit>> load_featured_sticker_sets_queries_;
+  vector<Promise<Unit>> load_featured_sticker_sets_queries_[MAX_STICKER_TYPE];
   vector<Promise<Unit>> load_old_featured_sticker_sets_queries_;
   vector<Promise<Unit>> load_recent_stickers_queries_[2];
   vector<Promise<Unit>> repair_recent_stickers_queries_[2];

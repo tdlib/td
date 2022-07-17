@@ -48,6 +48,7 @@
 #include "td/telegram/StateManager.h"
 #include "td/telegram/StickerSetId.h"
 #include "td/telegram/StickersManager.h"
+#include "td/telegram/StickerType.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/TdDb.h"
@@ -1674,10 +1675,11 @@ void UpdatesManager::try_reload_data() {
   td_->notification_settings_manager_->send_get_scope_notification_settings_query(NotificationSettingsScope::Channel,
                                                                                   Auto());
   td_->stickers_manager_->reload_reactions();
-  td_->stickers_manager_->get_installed_sticker_sets(StickerType::Regular, Auto());
-  td_->stickers_manager_->get_installed_sticker_sets(StickerType::Mask, Auto());
-  td_->stickers_manager_->get_installed_sticker_sets(StickerType::Emoji, Auto());
-  td_->stickers_manager_->get_featured_sticker_sets(0, 1000, Auto());
+  for (int32 type = 0; type < MAX_STICKER_TYPE; type++) {
+    auto sticker_type = static_cast<StickerType>(type);
+    td_->stickers_manager_->get_installed_sticker_sets(sticker_type, Auto());
+    td_->stickers_manager_->get_featured_sticker_sets(sticker_type, 0, 1000, Auto());
+  }
   td_->stickers_manager_->get_recent_stickers(false, Auto());
   td_->stickers_manager_->get_recent_stickers(true, Auto());
   td_->stickers_manager_->get_favorite_stickers(Auto());
@@ -3329,7 +3331,13 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateStickerSetsOrde
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateReadFeaturedStickers> update,
                                Promise<Unit> &&promise) {
-  td_->stickers_manager_->reload_featured_sticker_sets(true);
+  td_->stickers_manager_->reload_featured_sticker_sets(StickerType::Regular, true);
+  promise.set_value(Unit());
+}
+
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateReadFeaturedEmojiStickers> update,
+                               Promise<Unit> &&promise) {
+  td_->stickers_manager_->reload_featured_sticker_sets(StickerType::Emoji, true);
   promise.set_value(Unit());
 }
 
@@ -3520,10 +3528,5 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateTranscribedAudi
 }
 
 // unsupported updates
-
-void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateReadFeaturedEmojiStickers> update,
-                               Promise<Unit> &&promise) {
-  promise.set_value(Unit());
-}
 
 }  // namespace td

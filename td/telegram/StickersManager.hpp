@@ -168,7 +168,8 @@ FileId StickersManager::parse_sticker(bool in_sticker_set, ParserT &parser) {
 template <class StorerT>
 void StickersManager::store_sticker_set(const StickerSet *sticker_set, bool with_stickers, StorerT &storer,
                                         const char *source) const {
-  size_t stickers_limit = with_stickers ? sticker_set->sticker_ids.size() : 5;
+  size_t stickers_limit =
+      with_stickers ? sticker_set->sticker_ids.size() : get_max_featured_sticker_count(sticker_set->sticker_type);
   bool is_full = sticker_set->sticker_ids.size() <= stickers_limit;
   bool was_loaded = sticker_set->was_loaded && is_full;
   bool is_loaded = sticker_set->is_loaded && is_full;

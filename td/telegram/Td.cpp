@@ -2071,11 +2071,12 @@ class GetArchivedStickerSetsRequest final : public RequestActor<> {
 
 class GetTrendingStickerSetsRequest final : public RequestActor<> {
   td_api::object_ptr<td_api::trendingStickerSets> result_;
+  StickerType sticker_type_;
   int32 offset_;
   int32 limit_;
 
   void do_run(Promise<Unit> &&promise) final {
-    result_ = td_->stickers_manager_->get_featured_sticker_sets(offset_, limit_, std::move(promise));
+    result_ = td_->stickers_manager_->get_featured_sticker_sets(sticker_type_, offset_, limit_, std::move(promise));
   }
 
   void do_send_result() final {
@@ -2083,8 +2084,9 @@ class GetTrendingStickerSetsRequest final : public RequestActor<> {
   }
 
  public:
-  GetTrendingStickerSetsRequest(ActorShared<Td> td, uint64 request_id, int32 offset, int32 limit)
-      : RequestActor(std::move(td), request_id), offset_(offset), limit_(limit) {
+  GetTrendingStickerSetsRequest(ActorShared<Td> td, uint64 request_id, StickerType sticker_type, int32 offset,
+                                int32 limit)
+      : RequestActor(std::move(td), request_id), sticker_type_(sticker_type), offset_(offset), limit_(limit) {
     set_tries(3);
   }
 };
@@ -4147,8 +4149,10 @@ void Td::send_update(tl_object_ptr<td_api::Update> &&object) {
       VLOG(td_requests) << "Sending update: " << oneline(to_string(object));
       break;
     case td_api::updateTrendingStickerSets::ID: {
-      auto sticker_sets = static_cast<const td_api::updateTrendingStickerSets *>(object.get())->sticker_sets_.get();
-      VLOG(td_requests) << "Sending update: updateTrendingStickerSets { total_count = " << sticker_sets->total_count_
+      auto update = static_cast<const td_api::updateTrendingStickerSets *>(object.get());
+      auto sticker_sets = update->sticker_sets_.get();
+      VLOG(td_requests) << "Sending update: updateTrendingStickerSets { " << oneline(to_string(update->sticker_type_))
+                        << ", total_count = " << sticker_sets->total_count_
                         << ", count = " << sticker_sets->sets_.size() << " }";
       break;
     }
@@ -7002,7 +7006,8 @@ void Td::on_request(uint64 id, const td_api::getArchivedStickerSets &request) {
 
 void Td::on_request(uint64 id, const td_api::getTrendingStickerSets &request) {
   CHECK_IS_USER();
-  CREATE_REQUEST(GetTrendingStickerSetsRequest, request.offset_, request.limit_);
+  CREATE_REQUEST(GetTrendingStickerSetsRequest, get_sticker_type(request.sticker_type_), request.offset_,
+                 request.limit_);
 }
 
 void Td::on_request(uint64 id, const td_api::getAttachedStickerSets &request) {

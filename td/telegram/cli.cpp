@@ -2630,11 +2630,12 @@ class CliClient final : public Actor {
       get_args(args, offset_sticker_set_id, limit);
       send_request(td_api::make_object<td_api::getArchivedStickerSets>(as_sticker_type(op), offset_sticker_set_id,
                                                                        as_limit(limit)));
-    } else if (op == "gtss") {
+    } else if (op == "gtss" || op == "gtssm" || op == "gtsse") {
       int32 offset;
       string limit;
       get_args(args, offset, limit);
-      send_request(td_api::make_object<td_api::getTrendingStickerSets>(offset, as_limit(limit, 1000)));
+      send_request(
+          td_api::make_object<td_api::getTrendingStickerSets>(as_sticker_type(op), offset, as_limit(limit, 1000)));
     } else if (op == "gatss") {
       FileId file_id;
       get_args(args, file_id);
