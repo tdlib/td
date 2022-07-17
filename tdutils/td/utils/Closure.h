@@ -94,10 +94,6 @@ class DelayedClosure {
   using ActorType = ActorT;
   using Delayed = DelayedClosure<ActorT, FunctionT, ArgsT...>;
 
-  DelayedClosure clone() const {
-    return do_clone(*this);
-  }
-
   explicit DelayedClosure(ImmediateClosure<ActorT, FunctionT, ArgsT...> &&other) : args(std::move(other.args)) {
   }
 
@@ -126,21 +122,6 @@ class DelayedClosure {
       std::enable_if_t<!LogicAnd<std::is_copy_constructible<FromArgsT>::value...>::value, int> = 0) {
     LOG(FATAL) << "Deleted constructor";
     std::abort();
-  }
-
-  template <class FromActorT, class FromFunctionT, class... FromArgsT>
-  std::enable_if_t<!LogicAnd<std::is_copy_constructible<FromArgsT>::value...>::value,
-                   DelayedClosure<FromActorT, FromFunctionT, FromArgsT...>>
-  do_clone(const DelayedClosure<FromActorT, FromFunctionT, FromArgsT...> &value) const {
-    LOG(FATAL) << "Trying to clone DelayedClosure that contains noncopyable elements";
-    std::abort();
-  }
-
-  template <class FromActorT, class FromFunctionT, class... FromArgsT>
-  std::enable_if_t<LogicAnd<std::is_copy_constructible<FromArgsT>::value...>::value,
-                   DelayedClosure<FromActorT, FromFunctionT, FromArgsT...>>
-  do_clone(const DelayedClosure<FromActorT, FromFunctionT, FromArgsT...> &value) const {
-    return DelayedClosure<FromActorT, FromFunctionT, FromArgsT...>(value);
   }
 
  public:

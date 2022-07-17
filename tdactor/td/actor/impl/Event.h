@@ -49,7 +49,6 @@ class CustomEvent {
   virtual ~CustomEvent() = default;
 
   virtual void run(Actor *actor) = 0;
-  virtual CustomEvent *clone() const = 0;
   virtual void start_migrate(int32 sched_id) {
   }
   virtual void finish_migrate() {
@@ -61,9 +60,6 @@ class ClosureEvent final : public CustomEvent {
  public:
   void run(Actor *actor) final {
     closure_.run(static_cast<typename ClosureT::ActorType *>(actor));
-  }
-  CustomEvent *clone() const final {
-    return new ClosureEvent<ClosureT>(closure_.clone());
   }
   template <class... ArgsT>
   explicit ClosureEvent(ArgsT &&...args) : closure_(std::forward<ArgsT>(args)...) {
@@ -92,10 +88,6 @@ class LambdaEvent final : public CustomEvent {
  public:
   void run(Actor *actor) final {
     f_();
-  }
-  CustomEvent *clone() const final {
-    LOG(FATAL) << "Not supported";
-    return nullptr;
   }
   template <class FromLambdaT, std::enable_if_t<!std::is_same<std::decay_t<FromLambdaT>, LambdaEvent>::value, int> = 0>
   explicit LambdaEvent(FromLambdaT &&lambda) : f_(std::forward<FromLambdaT>(lambda)) {
@@ -179,17 +171,6 @@ class Event {
   }
   ~Event() {
     destroy();
-  }
-
-  Event clone() const {
-    Event res;
-    res.type = type;
-    if (type == Type::Custom) {
-      res.data.custom_event = data.custom_event->clone();
-    } else {
-      res.data = data;
-    }
-    return res;
   }
 
   bool empty() const {
