@@ -8,9 +8,7 @@
 
 #include "td/utils/common.h"
 #include "td/utils/invoke.h"
-#include "td/utils/logging.h"
 
-#include <cstdlib>
 #include <tuple>
 #include <type_traits>
 #include <utility>
@@ -104,23 +102,7 @@ class DelayedClosure {
   }
 
  private:
-  using ArgsStorageT = std::tuple<FunctionT, typename std::decay<ArgsT>::type...>;
-
-  ArgsStorageT args;
-
-  template <class FromActorT, class FromFunctionT, class... FromArgsT>
-  explicit DelayedClosure(const DelayedClosure<FromActorT, FromFunctionT, FromArgsT...> &other,
-                          std::enable_if_t<LogicAnd<std::is_copy_constructible<FromArgsT>::value...>::value, int> = 0)
-      : args(other.args) {
-  }
-
-  template <class FromActorT, class FromFunctionT, class... FromArgsT>
-  explicit DelayedClosure(
-      const DelayedClosure<FromActorT, FromFunctionT, FromArgsT...> &other,
-      std::enable_if_t<!LogicAnd<std::is_copy_constructible<FromArgsT>::value...>::value, int> = 0) {
-    LOG(FATAL) << "Deleted constructor";
-    std::abort();
-  }
+  std::tuple<FunctionT, typename std::decay<ArgsT>::type...> args;
 
  public:
   auto run(ActorT *actor) -> decltype(mem_call_tuple(actor, std::move(args))) {
