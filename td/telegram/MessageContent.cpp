@@ -2734,10 +2734,18 @@ Status can_send_message_content(DialogId dialog_id, const MessageContent *conten
       if (!permissions.can_send_media()) {
         return Status::Error(400, "Not enough rights to send video notes to the chat");
       }
+      if (dialog_type == DialogType::User &&
+          td->contacts_manager_->get_user_voice_messages_forbidden(dialog_id.get_user_id())) {
+        return Status::Error(400, "User restricted receiving of voice messages");
+      }
       break;
     case MessageContentType::VoiceNote:
       if (!permissions.can_send_media()) {
         return Status::Error(400, "Not enough rights to send voice notes to the chat");
+      }
+      if (dialog_type == DialogType::User &&
+          td->contacts_manager_->get_user_voice_messages_forbidden(dialog_id.get_user_id())) {
+        return Status::Error(400, "User restricted receiving of video messages");
       }
       break;
     case MessageContentType::None:
