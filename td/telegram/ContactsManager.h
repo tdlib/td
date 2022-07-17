@@ -119,7 +119,7 @@ class ContactsManager final : public Actor {
   bool get_channel_has_protected_content(ChannelId channel_id) const;
 
   string get_user_private_forward_name(UserId user_id);
-  bool get_user_voice_messages_forbidden(UserId user_id);
+  bool get_user_voice_messages_forbidden(UserId user_id) const;
 
   string get_dialog_about(DialogId dialog_id);
 

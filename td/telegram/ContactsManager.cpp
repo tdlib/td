@@ -4950,8 +4950,11 @@ string ContactsManager::get_user_private_forward_name(UserId user_id) {
   return string();
 }
 
-bool ContactsManager::get_user_voice_messages_forbidden(UserId user_id) {
-  auto user_full = get_user_full_force(user_id);
+bool ContactsManager::get_user_voice_messages_forbidden(UserId user_id) const {
+  if (!is_user_premium(user_id)) {
+    return false;
+  }
+  auto user_full = get_user_full(user_id);
   if (user_full != nullptr) {
     return user_full->voice_messages_forbidden;
   }
@@ -10778,6 +10781,7 @@ void ContactsManager::on_get_user_full(tl_object_ptr<telegram_api::userFull> &&u
   bool can_be_called = user->phone_calls_available_ && !user->phone_calls_private_;
   bool supports_video_calls = user->video_calls_available_ && !user->phone_calls_private_;
   bool has_private_calls = user->phone_calls_private_;
+  bool voice_messages_forbidden = u->is_premium ? user->voice_messages_forbidden_ : false;
   auto premium_gift_options = transform(std::move(user->premium_gifts_), [](auto &&premium_gift_option) {
     return PremiumGiftOption(std::move(premium_gift_option));
   });
@@ -10788,14 +10792,14 @@ void ContactsManager::on_get_user_full(tl_object_ptr<telegram_api::userFull> &&u
       user_full->group_administrator_rights != group_administrator_rights ||
       user_full->broadcast_administrator_rights != broadcast_administrator_rights ||
       user_full->premium_gift_options != premium_gift_options ||
-      user_full->voice_messages_forbidden != user->voice_messages_forbidden_) {
+      user_full->voice_messages_forbidden != voice_messages_forbidden) {
     user_full->can_be_called = can_be_called;
     user_full->supports_video_calls = supports_video_calls;
     user_full->has_private_calls = has_private_calls;
     user_full->group_administrator_rights = group_administrator_rights;
     user_full->broadcast_administrator_rights = broadcast_administrator_rights;
     user_full->premium_gift_options = std::move(premium_gift_options);
-    user_full->voice_messages_forbidden = user->voice_messages_forbidden_;
+    user_full->voice_messages_forbidden = voice_messages_forbidden;
 
     user_full->is_changed = true;
   }
@@ -16718,6 +16722,7 @@ tl_object_ptr<td_api::userFullInfo> ContactsManager::get_user_full_info_object(U
   CHECK(user_full != nullptr);
   td_api::object_ptr<td_api::botInfo> bot_info;
   bool is_bot = is_user_bot(user_id);
+  bool is_premium = is_user_premium(user_id);
   td_api::object_ptr<td_api::formattedText> bio_object;
   if (is_bot) {
     auto menu_button = get_bot_menu_button_object(td_, user_full->menu_button.get());
@@ -16754,10 +16759,11 @@ tl_object_ptr<td_api::userFullInfo> ContactsManager::get_user_full_info_object(U
   }
   auto premium_gift_options = transform(user_full->premium_gift_options,
                                         [](const auto &option) { return option.get_premium_gift_option_object(); });
+  auto voice_messages_forbidden = is_premium ? user_full->voice_messages_forbidden : false;
   return make_tl_object<td_api::userFullInfo>(
       get_chat_photo_object(td_->file_manager_.get(), user_full->photo), user_full->is_blocked,
       user_full->can_be_called, user_full->supports_video_calls, user_full->has_private_calls,
-      !user_full->private_forward_name.empty(), user_full->voice_messages_forbidden,
+      !user_full->private_forward_name.empty(), voice_messages_forbidden,
       user_full->need_phone_number_privacy_exception, std::move(bio_object), std::move(premium_gift_options),
       user_full->common_chat_count, std::move(bot_info));
 }
