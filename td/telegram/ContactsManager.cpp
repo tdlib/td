@@ -11922,6 +11922,15 @@ void ContactsManager::on_set_profile_photo(tl_object_ptr<telegram_api::photos_ph
   add_profile_photo_to_cache(my_user_id,
                              get_photo(td_->file_manager_.get(), std::move(photo->photo_), DialogId(my_user_id)));
 
+  User *u = get_user(my_user_id);
+  if (u != nullptr) {
+    update_user(u, my_user_id);
+  }
+  auto *user_full = get_user_full(my_user_id);
+  if (user_full != nullptr) {
+    update_user_full(user_full, my_user_id, "on_set_profile_photo");
+  }
+
   // if cache was correctly updated, this should produce no updates
   on_get_users(std::move(photo->users_), "on_set_profile_photo");
 }
