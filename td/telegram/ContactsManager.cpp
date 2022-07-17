@@ -12076,33 +12076,30 @@ void ContactsManager::drop_user_photos(UserId user_id, bool is_empty, bool drop_
     if (user_photos->count == new_count) {
       CHECK(user_photos->photos.empty());
       CHECK(user_photos->offset == user_photos->count);
-      return;
+    } else {
+      LOG(INFO) << "Drop photos of " << user_id << " to " << (is_empty ? "empty" : "unknown") << " from " << source;
+      user_photos->photos.clear();
+      user_photos->count = new_count;
+      user_photos->offset = user_photos->count;
     }
-
-    LOG(INFO) << "Drop photos of " << user_id << " to " << (is_empty ? "empty" : "unknown") << " from " << source;
-    user_photos->photos.clear();
-    user_photos->count = new_count;
-    user_photos->offset = user_photos->count;
   }
 
   if (drop_user_full_photo) {
     auto user_full = get_user_full(user_id);  // must not load UserFull
-    if (user_full == nullptr) {
-      return;
-    }
-
-    if (!user_full->photo.is_empty()) {
-      user_full->photo = Photo();
-      user_full->is_changed = true;
-    }
-    if (!is_empty) {
-      if (user_full->expires_at > 0.0) {
-        user_full->expires_at = 0.0;
-        user_full->need_save_to_database = true;
+    if (user_full != nullptr) {
+      if (!user_full->photo.is_empty()) {
+        user_full->photo = Photo();
+        user_full->is_changed = true;
       }
-      reload_user_full(user_id);
+      if (!is_empty) {
+        if (user_full->expires_at > 0.0) {
+          user_full->expires_at = 0.0;
+          user_full->need_save_to_database = true;
+        }
+        reload_user_full(user_id);
+      }
+      update_user_full(user_full, user_id, "drop_user_photos");
     }
-    update_user_full(user_full, user_id, "drop_user_photos");
   }
 }
 
