@@ -980,6 +980,17 @@ void NotificationManager::add_update_notification_group(td_api::object_ptr<td_ap
   if (update->notification_settings_chat_id_ == 0) {
     update->notification_settings_chat_id_ = update->chat_id_;
   }
+  if (!update->added_notifications_.empty() && !update->removed_notification_ids_.empty()) {
+    // just in case
+    td::remove_if(update->added_notifications_, [&](const td_api::object_ptr<td_api::notification> &notification) {
+      CHECK(notification != nullptr);
+      if (td::contains(update->removed_notification_ids_, notification->id_)) {
+        LOG(ERROR) << "Have the same notification as added and removed";
+        return true;
+      }
+      return false;
+    });
+  }
   add_update(group_id, std::move(update));
 }
 
