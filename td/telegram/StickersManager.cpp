@@ -6028,11 +6028,12 @@ Result<std::tuple<FileId, bool, bool, StickerFormat>> StickersManager::prepare_i
     return Status::Error(400, "Sticker format must be non-empty");
   }
 
-  return prepare_input_file(sticker->sticker_, get_sticker_format(sticker->format_), false);
+  return prepare_input_file(sticker->sticker_, get_sticker_format(sticker->format_), get_sticker_type(sticker->type_),
+                            false);
 }
 
 Result<std::tuple<FileId, bool, bool, StickerFormat>> StickersManager::prepare_input_file(
-    const tl_object_ptr<td_api::InputFile> &input_file, StickerFormat format, bool for_thumbnail) {
+    const tl_object_ptr<td_api::InputFile> &input_file, StickerFormat format, StickerType type, bool for_thumbnail) {
   auto file_type = format == StickerFormat::Tgs ? FileType::Sticker : FileType::Document;
   auto r_file_id = td_->file_manager_->get_input_file_id(file_type, input_file, DialogId(), for_thumbnail, false);
   if (r_file_id.is_error()) {
@@ -6070,7 +6071,7 @@ Result<std::tuple<FileId, bool, bool, StickerFormat>> StickersManager::prepare_i
       is_url = true;
     } else {
       if (file_view.has_local_location() &&
-          file_view.expected_size() > get_max_sticker_file_size(format, for_thumbnail)) {
+          file_view.expected_size() > get_max_sticker_file_size(format, type, for_thumbnail)) {
         return Status::Error(400, "File is too big");
       }
       is_local = true;
@@ -6547,7 +6548,7 @@ void StickersManager::do_set_sticker_set_thumbnail(UserId user_id, string short_
     return promise.set_error(Status::Error(400, "Sticker set not found"));
   }
 
-  auto r_file_id = prepare_input_file(thumbnail, sticker_set->sticker_format, true);
+  auto r_file_id = prepare_input_file(thumbnail, sticker_set->sticker_format, sticker_set->sticker_type, true);
   if (r_file_id.is_error()) {
     return promise.set_error(r_file_id.move_as_error());
   }

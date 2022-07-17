@@ -668,7 +668,7 @@ class StickersManager final : public Actor {
   std::pair<vector<FileId>, vector<FileId>> split_stickers_by_premium(const vector<FileId> &sticker_ids) const;
 
   Result<std::tuple<FileId, bool, bool, StickerFormat>> prepare_input_file(
-      const tl_object_ptr<td_api::InputFile> &input_file, StickerFormat format, bool for_thumbnail);
+      const tl_object_ptr<td_api::InputFile> &input_file, StickerFormat format, StickerType type, bool for_thumbnail);
 
   Result<std::tuple<FileId, bool, bool, StickerFormat>> prepare_input_sticker(td_api::inputSticker *sticker);
 

@@ -21,6 +21,7 @@
 #include "td/telegram/secret_api.h"
 #include "td/telegram/StickerFormat.h"
 #include "td/telegram/StickersManager.h"
+#include "td/telegram/StickerType.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
@@ -422,7 +423,7 @@ Document DocumentsManager::on_get_document(RemoteDocument remote_document, Dialo
     default_extension = Slice("webm");
   }
   if (file_type == FileType::Encrypted && document_type == Document::Type::Sticker &&
-      size > get_max_sticker_file_size(sticker_format, false)) {
+      size > get_max_sticker_file_size(sticker_format, StickerType::Regular, false)) {
     document_type = Document::Type::General;
   }
 
