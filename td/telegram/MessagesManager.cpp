@@ -14799,9 +14799,9 @@ void MessagesManager::set_dialog_last_new_message_id(Dialog *d, MessageId last_n
 
     auto last_new_message = get_message(d, last_new_message_id);
     if (last_new_message != nullptr) {
-      add_message_to_database(d, last_new_message, "set_dialog_last_new_message_id");
-      set_dialog_first_database_message_id(d, last_new_message_id, "set_dialog_last_new_message_id");
-      set_dialog_last_database_message_id(d, last_new_message_id, "set_dialog_last_new_message_id");
+      add_message_to_database(d, last_new_message, source);
+      set_dialog_first_database_message_id(d, last_new_message_id, source);
+      set_dialog_last_database_message_id(d, last_new_message_id, source);
       try_restore_dialog_reply_markup(d, last_new_message);
     }
   }
@@ -36198,6 +36198,7 @@ MessagesManager::Dialog *MessagesManager::add_new_dialog(unique_ptr<Dialog> &&d,
                                                          const char *source) {
   auto dialog_id = d->dialog_id;
   LOG_CHECK(is_inited_) << dialog_id << ' ' << is_loaded_from_database << ' ' << source;
+  LOG_CHECK(!have_dialog(dialog_id)) << dialog_id << ' ' << is_loaded_from_database << ' ' << source;
   switch (dialog_id.get_type()) {
     case DialogType::User:
       if (dialog_id == get_my_dialog_id() && d->last_read_inbox_message_id == MessageId::max() &&
@@ -36339,6 +36340,11 @@ MessagesManager::Dialog *MessagesManager::add_new_dialog(unique_ptr<Dialog> &&d,
   send_update_new_chat(dialog);
 
   being_added_new_dialog_id_ = DialogId();
+
+  LOG_CHECK(dialog->messages == nullptr) << dialog->messages->message_id << ' ' << dialog->last_message_id << ' '
+                                         << dialog->last_database_message_id << ' '
+                                         << dialog->debug_set_dialog_last_database_message_id << ' '
+                                         << dialog->messages->debug_source;
 
   fix_new_dialog(dialog, std::move(last_database_message), last_database_message_id, order, last_clear_history_date,
                  last_clear_history_message_id, default_join_group_call_as_dialog_id, default_send_message_as_dialog_id,
@@ -36699,13 +36705,16 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
 
   if (d->messages != nullptr) {
     LOG_CHECK(d->messages->message_id == last_message_id)
-        << d->messages->message_id << ' ' << last_message_id << ' ' << d->debug_set_dialog_last_database_message_id
-        << ' ' << d->messages->debug_source;
+        << d->messages->message_id << ' ' << last_message_id << ' ' << d->last_message_id << ' '
+        << d->last_database_message_id << ' ' << d->debug_set_dialog_last_database_message_id << ' '
+        << d->messages->debug_source;
     LOG_CHECK(d->messages->left == nullptr)
-        << d->messages->left->message_id << ' ' << d->messages->message_id << ' ' << last_message_id << ' '
+        << d->messages->left->message_id << ' ' << d->messages->message_id << ' ' << d->messages->left->message_id
+        << ' ' << last_message_id << ' ' << d->last_message_id << ' ' << d->last_database_message_id << ' '
         << d->debug_set_dialog_last_database_message_id << ' ' << d->messages->debug_source;
     LOG_CHECK(d->messages->right == nullptr)
-        << d->messages->right->message_id << ' ' << d->messages->message_id << ' ' << last_message_id << ' '
+        << d->messages->right->message_id << ' ' << d->messages->message_id << ' ' << d->messages->right->message_id
+        << ' ' << last_message_id << ' ' << d->last_message_id << ' ' << d->last_database_message_id << ' '
         << d->debug_set_dialog_last_database_message_id << ' ' << d->messages->debug_source;
   }
 
