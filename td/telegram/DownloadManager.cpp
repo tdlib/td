@@ -352,7 +352,7 @@ class DownloadManagerImpl final : public DownloadManager {
     FileId file_id;
     FileId internal_file_id;
     FileSourceId file_source_id;
-    int8 priority;
+    int8 priority{};
     bool is_paused{};
     bool is_counted{};
     mutable bool is_registered{};
@@ -567,8 +567,11 @@ class DownloadManagerImpl final : public DownloadManager {
               << file_info->size << '/' << file_info->expected_size
               << " with downloaded_size = " << file_info->downloaded_size
               << " and is_paused = " << file_info->is_paused;
-    auto it = files_.emplace(download_id, std::move(file_info)).first;
+    auto res = files_.emplace(download_id, std::move(file_info));
+    auto it = res.first;
     bool was_completed = is_completed(*it->second);
+    LOG_CHECK(!it->second->is_registered)
+        << res.second << ' ' << download_id << ' ' << max_download_id_ << ' ' << it->second->need_save_to_database;
     register_file_info(*it->second);  // must be called before start_file, which can call update_file_download_state
     if (is_completed(*it->second)) {
       bool is_inserted = completed_download_ids_.insert(it->second->download_id).second;
