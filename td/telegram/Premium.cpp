@@ -247,14 +247,18 @@ class AssignPlayMarketTransactionQuery final : public Td::ResultHandler {
   explicit AssignPlayMarketTransactionQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(const string &purchase_token, td_api::object_ptr<td_api::StorePaymentPurpose> &&purpose) {
+  void send(const string &package_name, const string &store_product_id, const string &purchase_token,
+            td_api::object_ptr<td_api::StorePaymentPurpose> &&purpose) {
     auto r_input_purpose = get_input_store_payment_purpose(td_, purpose);
     if (r_input_purpose.is_error()) {
       return on_error(r_input_purpose.move_as_error());
     }
     auto receipt = make_tl_object<telegram_api::dataJSON>(string());
-    receipt->data_ =
-        json_encode<string>(json_object([&purchase_token](auto &o) { o("purchase_token", purchase_token); }));
+    receipt->data_ = json_encode<string>(json_object([&](auto &o) {
+      o("packageName", package_name);
+      o("purchaseToken", purchase_token);
+      o("productId", store_product_id);
+    }));
     send_query(G()->net_query_creator().create(
         telegram_api::payments_assignPlayMarketTransaction(std::move(receipt), r_input_purpose.move_as_ok())));
   }
@@ -525,10 +529,12 @@ void assign_app_store_transaction(Td *td, const string &receipt,
   td->create_handler<AssignAppStoreTransactionQuery>(std::move(promise))->send(receipt, std::move(purpose));
 }
 
-void assign_play_market_transaction(Td *td, const string &purchase_token,
+void assign_play_market_transaction(Td *td, const string &package_name, const string &store_product_id,
+                                    const string &purchase_token,
                                     td_api::object_ptr<td_api::StorePaymentPurpose> &&purpose,
                                     Promise<Unit> &&promise) {
-  td->create_handler<AssignPlayMarketTransactionQuery>(std::move(promise))->send(purchase_token, std::move(purpose));
+  td->create_handler<AssignPlayMarketTransactionQuery>(std::move(promise))
+      ->send(package_name, store_product_id, purchase_token, std::move(purpose));
 }
 
 }  // namespace td

@@ -7936,9 +7936,12 @@ void Td::on_request(uint64 id, td_api::assignAppStoreTransaction &request) {
 
 void Td::on_request(uint64 id, td_api::assignGooglePlayTransaction &request) {
   CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.package_name_);
+  CLEAN_INPUT_STRING(request.store_product_id_);
   CLEAN_INPUT_STRING(request.purchase_token_);
   CREATE_OK_REQUEST_PROMISE();
-  assign_play_market_transaction(this, request.purchase_token_, std::move(request.purpose_), std::move(promise));
+  assign_play_market_transaction(this, request.package_name_, request.store_product_id_, request.purchase_token_,
+                                 std::move(request.purpose_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::acceptTermsOfService &request) {

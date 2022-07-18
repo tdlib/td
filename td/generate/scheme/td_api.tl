@@ -469,9 +469,9 @@ chatAdministratorRights can_manage_chat:Bool can_change_info:Bool can_post_messa
 //@currency ISO 4217 currency code for Telegram Premium subscription payment
 //@amount The amount to pay, in the smallest units of the currency
 //@month_count Number of month the Telegram Premium subscription will be active
-//@store_product Name of the store product associated with the option
+//@store_product_id Identifier of the store product associated with the option
 //@payment_link An internal link to be opened for gifting Telegram Premium to the user if store payment isn't possible; may be null if direct payment isn't available
-premiumGiftOption currency:string amount:int53 month_count:int32 store_product:string payment_link:InternalLinkType = PremiumGiftOption;
+premiumGiftOption currency:string amount:int53 month_count:int32 store_product_id:string payment_link:InternalLinkType = PremiumGiftOption;
 
 
 //@description Represents a user
@@ -6455,8 +6455,8 @@ canPurchasePremium purpose:StorePaymentPurpose = Ok;
 //@description Informs server about a purchase through App Store. For official applications only @receipt App Store receipt @purpose Transaction purpose
 assignAppStoreTransaction receipt:bytes purpose:StorePaymentPurpose = Ok;
 
-//@description Informs server about a purchase through Google Play. For official applications only @purchase_token Google Play purchase token @purpose Transaction purpose
-assignGooglePlayTransaction purchase_token:string purpose:StorePaymentPurpose = Ok;
+//@description Informs server about a purchase through Google Play. For official applications only @package_name Application package name @store_product_id Identifier of the purchased store product @purchase_token Google Play purchase token @purpose Transaction purpose
+assignGooglePlayTransaction package_name:string store_product_id:string purchase_token:string purpose:StorePaymentPurpose = Ok;
 
 
 //@description Accepts Telegram terms of services @terms_of_service_id Terms of service identifier
