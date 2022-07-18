@@ -80,6 +80,8 @@ class LinkManager final : public Actor {
 
   static UserId get_link_user_id(Slice url);
 
+  static Result<int64> get_link_custom_emoji_document_id(Slice url);
+
   static Result<MessageLinkInfo> get_message_link_info(Slice url);
 
  private:

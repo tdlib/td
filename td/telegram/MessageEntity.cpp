@@ -116,6 +116,9 @@ StringBuilder &operator<<(StringBuilder &string_builder, const MessageEntity &me
   if (message_entity.user_id.is_valid()) {
     string_builder << ", " << message_entity.user_id;
   }
+  if (message_entity.document_id != 0) {
+    string_builder << ", emoji = " << message_entity.document_id;
+  }
   string_builder << ']';
   return string_builder;
 }
@@ -2004,6 +2007,8 @@ static Result<vector<MessageEntity>> do_parse_markdown_v2(CSlice text, string &r
             return c == '~';
           case MessageEntity::Type::Spoiler:
             return c == '|' && text[i + 1] == '|';
+          case MessageEntity::Type::CustomEmoji:
+            return c == ']';
           default:
             UNREACHABLE();
             return false;
@@ -2070,6 +2075,15 @@ static Result<vector<MessageEntity>> do_parse_markdown_v2(CSlice text, string &r
             type = MessageEntity::Type::Code;
           }
           break;
+        case '!':
+          if (text[i + 1] == '[') {
+            i++;
+            type = MessageEntity::Type::CustomEmoji;
+          } else {
+            return Status::Error(400, PSLICE() << "Character '" << text[i]
+                                               << "' is reserved and must be escaped with the preceding '\\'");
+          }
+          break;
         default:
           return Status::Error(
               400, PSLICE() << "Character '" << text[i] << "' is reserved and must be escaped with the preceding '\\'");
@@ -2080,6 +2094,7 @@ static Result<vector<MessageEntity>> do_parse_markdown_v2(CSlice text, string &r
       auto type = nested_entities.back().type;
       auto argument = std::move(nested_entities.back().argument);
       UserId user_id;
+      int64 document_id = 0;
       bool skip_entity = utf16_offset == nested_entities.back().entity_offset;
       switch (type) {
         case MessageEntity::Type::Bold:
@@ -2126,6 +2141,28 @@ static Result<vector<MessageEntity>> do_parse_markdown_v2(CSlice text, string &r
           }
           break;
         }
+        case MessageEntity::Type::CustomEmoji: {
+          if (text[i + 1] != '(') {
+            return Status::Error(400, "Custom emoji entity must contain a tg://emoji URL");
+          }
+          i += 2;
+          string url;
+          auto url_begin_pos = i;
+          while (i < text.size() && text[i] != ')') {
+            if (text[i] == '\\' && text[i + 1] > 0 && text[i + 1] <= 126) {
+              url += text[i + 1];
+              i += 2;
+              continue;
+            }
+            url += text[i++];
+          }
+          if (text[i] != ')') {
+            return Status::Error(400, PSLICE()
+                                          << "Can't find end of a custom emoji URL at byte offset " << url_begin_pos);
+          }
+          TRY_RESULT_ASSIGN(document_id, LinkManager::get_link_custom_emoji_document_id(url));
+          break;
+        }
         default:
           UNREACHABLE();
           return false;
@@ -2136,6 +2173,8 @@ static Result<vector<MessageEntity>> do_parse_markdown_v2(CSlice text, string &r
         auto entity_length = utf16_offset - entity_offset;
         if (user_id.is_valid()) {
           entities.emplace_back(entity_offset, entity_length, user_id);
+        } else if (document_id != 0) {
+          entities.emplace_back(type, entity_offset, entity_length, document_id);
         } else {
           entities.emplace_back(type, entity_offset, entity_length, std::move(argument));
         }

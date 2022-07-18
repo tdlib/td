@@ -81,7 +81,8 @@ class MessageEntity {
 
   bool operator==(const MessageEntity &other) const {
     return offset == other.offset && length == other.length && type == other.type &&
-           media_timestamp == other.media_timestamp && argument == other.argument && user_id == other.user_id;
+           media_timestamp == other.media_timestamp && argument == other.argument && user_id == other.user_id &&
+           document_id == other.document_id;
   }
 
   bool operator<(const MessageEntity &other) const {

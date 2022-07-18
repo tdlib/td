@@ -1577,7 +1577,7 @@ UserId LinkManager::get_link_user_id(Slice url) {
   }
 
   Slice host("user");
-  if (!begins_with(url, host)) {
+  if (!begins_with(url, host) || (url.size() > host.size() && Slice("/?#").find(url[host.size()]) == Slice::npos)) {
     return UserId();
   }
   url.remove_prefix(host.size());
@@ -1603,6 +1603,48 @@ UserId LinkManager::get_link_user_id(Slice url) {
     }
   }
   return UserId();
+}
+
+Result<int64> LinkManager::get_link_custom_emoji_document_id(Slice url) {
+  string lower_cased_url = to_lower(url);
+  url = lower_cased_url;
+
+  Slice link_scheme("tg:");
+  if (!begins_with(url, link_scheme)) {
+    return Status::Error(400, "Custom emoji URL must have scheme tg");
+  }
+  url.remove_prefix(link_scheme.size());
+  if (begins_with(url, "//")) {
+    url.remove_prefix(2);
+  }
+
+  Slice host("emoji");
+  if (!begins_with(url, host) || (url.size() > host.size() && Slice("/?#").find(url[host.size()]) == Slice::npos)) {
+    return Status::Error(400, PSLICE() << "Custom emoji URL must have host \"" << host << '"');
+  }
+  url.remove_prefix(host.size());
+  if (begins_with(url, "/")) {
+    url.remove_prefix(1);
+  }
+  if (!begins_with(url, "?")) {
+    return Status::Error(400, "Custom emoji URL must have an emoji identifier");
+  }
+  url.remove_prefix(1);
+  url.truncate(url.find('#'));
+
+  for (auto parameter : full_split(url, '&')) {
+    Slice key;
+    Slice value;
+    std::tie(key, value) = split(parameter, '=');
+    if (key == Slice("id")) {
+      auto r_document_id = to_integer_safe<int64>(value);
+      if (r_document_id.is_error() || r_document_id.ok() == 0) {
+        return Status::Error(400, "Invalid custom emoji identifier specified");
+      }
+      return r_document_id.ok();
+    }
+  }
+  return Status::Error(400, "Custom emoji URL must have an emoji identifier");
 }
 
 Result<MessageLinkInfo> LinkManager::get_message_link_info(Slice url) {

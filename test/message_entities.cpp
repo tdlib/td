@@ -1384,6 +1384,16 @@ TEST(MessageEntities, parse_markdown) {
   check_parse_markdown("🏟 🏟__🏟 _🏟___", "Can't find end of Italic entity at byte offset 23");
   check_parse_markdown("🏟 🏟__", "Can't find end of Underline entity at byte offset 9");
   check_parse_markdown("🏟 🏟||test\\|", "Can't find end of Spoiler entity at byte offset 9");
+  check_parse_markdown("🏟 🏟!", "Character '!' is reserved and must be escaped with the preceding '\\'");
+  check_parse_markdown("🏟 🏟![", "Can't find end of CustomEmoji entity at byte offset 9");
+  check_parse_markdown("🏟 🏟![👍", "Can't find end of CustomEmoji entity at byte offset 9");
+  check_parse_markdown("🏟 🏟![👍]", "Custom emoji entity must contain a tg://emoji URL");
+  check_parse_markdown("🏟 🏟![👍](tg://emoji?id=1234", "Can't find end of a custom emoji URL at byte offset 17");
+  check_parse_markdown("🏟 🏟![👍](t://emoji?id=1234)", "Custom emoji URL must have scheme tg");
+  check_parse_markdown("🏟 🏟![👍](tg:emojis?id=1234)", "Custom emoji URL must have host \"emoji\"");
+  check_parse_markdown("🏟 🏟![👍](tg://emoji#test)", "Custom emoji URL must have an emoji identifier");
+  check_parse_markdown("🏟 🏟![👍](tg://emoji?test=1#&id=25)", "Custom emoji URL must have an emoji identifier");
+  check_parse_markdown("🏟 🏟![👍](tg://emoji?test=1231&id=025)", "Invalid custom emoji identifier specified");
 
   check_parse_markdown("", "", {});
   check_parse_markdown("\\\\", "\\", {});
@@ -1455,6 +1465,8 @@ TEST(MessageEntities, parse_markdown) {
   check_parse_markdown("[telegram\\.org](asdasd)", "telegram.org", {});
   check_parse_markdown("[telegram\\.org](tg:user?id=123456)", "telegram.org",
                        {{0, 12, td::UserId(static_cast<td::int64>(123456))}});
+  check_parse_markdown("🏟 🏟![👍](TG://EMoJI/?test=1231&id=25#id=32)a", "🏟 🏟👍a",
+                       {{td::MessageEntity::Type::CustomEmoji, 5, 2, static_cast<td::int64>(25)}});
 }
 
 static void check_parse_markdown_v3(td::string text, td::vector<td::MessageEntity> entities,
