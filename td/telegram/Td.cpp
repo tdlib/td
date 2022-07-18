@@ -3801,6 +3801,10 @@ void Td::init(Result<TdDb::OpenedDatabase> r_opened_database) {
     web_pages_manager_->on_binlog_web_page_event(std::move(event));
   }
 
+  for (auto &event : events.save_app_log_events) {
+    on_save_app_log_binlog_event(this, std::move(event));
+  }
+
   if (is_online_) {
     on_online_updated(true, true);
   }

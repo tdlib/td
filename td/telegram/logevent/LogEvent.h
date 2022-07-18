@@ -104,6 +104,7 @@ class LogEvent {
     GetChannelDifference = 0x140,
     AddMessagePushNotification = 0x200,
     EditMessagePushNotification = 0x201,
+    SaveAppLog = 0x300,
     ConfigPmcMagic = 0x1f18,
     BinlogPmcMagic = 0x4327
   };

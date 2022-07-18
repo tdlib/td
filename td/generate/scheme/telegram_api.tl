@@ -26,6 +26,7 @@ inputStickerSetThumbLegacy#dbaeae9 stickerset:InputStickerSet volume_id:long loc
 
 test.useError = Error;
 test.useConfigSimple = help.ConfigSimple;
+test.parseInputAppEvent = InputAppEvent;
 
 ---types---
 
