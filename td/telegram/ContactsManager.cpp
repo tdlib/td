@@ -14297,6 +14297,12 @@ void ContactsManager::on_update_channel_participant(ChannelId channel_id, UserId
                << new_dialog_participant;
     return;
   }
+  if (new_dialog_participant.status_.is_administrator() && user_id == get_my_id() &&
+      !new_dialog_participant.status_.can_be_edited()) {
+    LOG(ERROR) << "Fix wrong can_be_edited in " << new_dialog_participant << " from " << channel_id << " changed from "
+               << old_dialog_participant;
+    new_dialog_participant.status_.toggle_can_be_edited();
+  }
 
   if (old_dialog_participant.dialog_id_ == DialogId(get_my_id()) && old_dialog_participant.status_.is_administrator() &&
       !new_dialog_participant.status_.is_administrator()) {

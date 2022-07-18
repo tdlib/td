@@ -360,6 +360,10 @@ class DialogParticipantStatus {
     return (flags_ & CAN_BE_EDITED) != 0;
   }
 
+  void toggle_can_be_edited() {
+    flags_ ^= CAN_BE_EDITED;
+  }
+
   bool can_send_messages() const {
     return get_restricted_rights().can_send_messages();
   }
