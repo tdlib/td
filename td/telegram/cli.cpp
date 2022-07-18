@@ -3005,17 +3005,18 @@ class CliClient final : public Actor {
       if (op == "ufse") {
         type = td_api::make_object<td_api::fileTypeSecure>();
       }
-      send_request(td_api::make_object<td_api::uploadFile>(as_input_file(file_path), std::move(type), priority));
+      send_request(
+          td_api::make_object<td_api::preliminaryUploadFile>(as_input_file(file_path), std::move(type), priority));
     } else if (op == "ufg") {
       string file_path;
       string conversion;
       get_args(args, file_path, conversion);
-      send_request(td_api::make_object<td_api::uploadFile>(as_generated_file(file_path, conversion),
-                                                           td_api::make_object<td_api::fileTypePhoto>(), 1));
+      send_request(td_api::make_object<td_api::preliminaryUploadFile>(as_generated_file(file_path, conversion),
+                                                                      td_api::make_object<td_api::fileTypePhoto>(), 1));
     } else if (op == "cuf") {
       FileId file_id;
       get_args(args, file_id);
-      send_request(td_api::make_object<td_api::cancelUploadFile>(file_id));
+      send_request(td_api::make_object<td_api::cancelPreliminaryUploadFile>(file_id));
     } else if (op == "delf" || op == "DeleteFile") {
       FileId file_id;
       get_args(args, file_id);
@@ -3928,8 +3929,8 @@ class CliClient final : public Actor {
       string document_conversion;
       get_args(args, chat_id, document_path, document_conversion);
       if (op == "sdgu") {
-        send_request(
-            td_api::make_object<td_api::uploadFile>(as_generated_file(document_path, document_conversion), nullptr, 1));
+        send_request(td_api::make_object<td_api::preliminaryUploadFile>(
+            as_generated_file(document_path, document_conversion), nullptr, 1));
       }
       send_message(chat_id, td_api::make_object<td_api::inputMessageDocument>(
                                 as_generated_file(document_path, document_conversion), nullptr, false,

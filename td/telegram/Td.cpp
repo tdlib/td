@@ -6588,7 +6588,7 @@ void Td::on_request(uint64 id, const td_api::getSuggestedFileName &request) {
   send_closure(actor_id(this), &Td::send_result, id, td_api::make_object<td_api::text>(r_file_name.ok()));
 }
 
-void Td::on_request(uint64 id, td_api::uploadFile &request) {
+void Td::on_request(uint64 id, td_api::preliminaryUploadFile &request) {
   auto priority = request.priority_;
   if (!(1 <= priority && priority <= 32)) {
     return send_error_raw(id, 400, "Upload priority must be between 1 and 32");
@@ -6610,7 +6610,7 @@ void Td::on_request(uint64 id, td_api::uploadFile &request) {
   send_closure(actor_id(this), &Td::send_result, id, file_manager_->get_file_object(upload_file_id, false));
 }
 
-void Td::on_request(uint64 id, const td_api::cancelUploadFile &request) {
+void Td::on_request(uint64 id, const td_api::cancelPreliminaryUploadFile &request) {
   file_manager_->cancel_upload(FileId(request.file_id_, 0));
 
   send_closure(actor_id(this), &Td::send_result, id, make_tl_object<td_api::ok>());

@@ -947,9 +947,9 @@ class Td final : public Actor {
 
   void on_request(uint64 id, const td_api::getSuggestedFileName &request);
 
-  void on_request(uint64 id, td_api::uploadFile &request);
+  void on_request(uint64 id, td_api::preliminaryUploadFile &request);
 
-  void on_request(uint64 id, const td_api::cancelUploadFile &request);
+  void on_request(uint64 id, const td_api::cancelPreliminaryUploadFile &request);
 
   void on_request(uint64 id, td_api::writeGeneratedFilePart &request);
 
