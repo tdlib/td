@@ -60,6 +60,7 @@
 #include "td/telegram/StickerFormat.h"
 #include "td/telegram/StickersManager.h"
 #include "td/telegram/StickersManager.hpp"
+#include "td/telegram/StickerType.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/TopDialogManager.h"
 #include "td/telegram/UserId.h"
@@ -2713,6 +2714,10 @@ Status can_send_message_content(DialogId dialog_id, const MessageContent *conten
     case MessageContentType::Sticker:
       if (!permissions.can_send_stickers()) {
         return Status::Error(400, "Not enough rights to send stickers to the chat");
+      }
+      if (td->stickers_manager_->get_sticker_type(static_cast<const MessageSticker *>(content)->file_id) ==
+          StickerType::Emoji) {
+        return Status::Error(400, "Can't send emoji stickers in messages");
       }
       break;
     case MessageContentType::Text:

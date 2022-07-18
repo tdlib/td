@@ -59,6 +59,8 @@ class StickersManager final : public Actor {
 
   void init();
 
+  StickerType get_sticker_type(FileId file_id) const;
+
   tl_object_ptr<td_api::sticker> get_sticker_object(FileId file_id, bool for_animated_emoji = false,
                                                     bool for_clicked_animated_emoji = false) const;
 

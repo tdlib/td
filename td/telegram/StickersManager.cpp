@@ -1653,6 +1653,14 @@ tl_object_ptr<td_api::MaskPoint> StickersManager::get_mask_point_object(int32 po
   }
 }
 
+StickerType StickersManager::get_sticker_type(FileId file_id) const {
+  auto it = stickers_.find(file_id);
+  CHECK(it != stickers_.end());
+  auto sticker = it->second.get();
+  CHECK(sticker != nullptr);
+  return sticker->type;
+}
+
 vector<td_api::object_ptr<td_api::closedVectorPath>> StickersManager::get_sticker_minithumbnail(
     CSlice path, StickerSetId sticker_set_id, int64 document_id, double zoom) {
   if (path.empty()) {
@@ -6028,8 +6036,8 @@ Result<std::tuple<FileId, bool, bool, StickerFormat>> StickersManager::prepare_i
     return Status::Error(400, "Sticker format must be non-empty");
   }
 
-  return prepare_input_file(sticker->sticker_, get_sticker_format(sticker->format_), get_sticker_type(sticker->type_),
-                            false);
+  return prepare_input_file(sticker->sticker_, get_sticker_format(sticker->format_),
+                            ::td::get_sticker_type(sticker->type_), false);
 }
 
 Result<std::tuple<FileId, bool, bool, StickerFormat>> StickersManager::prepare_input_file(
@@ -6121,7 +6129,7 @@ tl_object_ptr<telegram_api::inputStickerSetItem> StickersManager::get_input_stic
   auto input_document = file_view.main_remote_location().as_input_document();
 
   tl_object_ptr<telegram_api::maskCoords> mask_coords;
-  if (get_sticker_type(sticker->type_) == StickerType::Mask) {
+  if (::td::get_sticker_type(sticker->type_) == StickerType::Mask) {
     auto mask_position = sticker->mask_position_.get();
     if (mask_position != nullptr && mask_position->point_ != nullptr) {
       auto point = [mask_point_id = mask_position->point_->get_id()] {
@@ -6244,7 +6252,7 @@ void StickersManager::create_new_sticker_set(UserId user_id, string &title, stri
       return promise.set_error(Status::Error(400, "Animated stickers can't be uploaded by URL"));
     }
     sticker_formats.insert(static_cast<int32>(get_sticker_format(sticker->format_)) + 1);
-    sticker_types.insert(static_cast<int32>(get_sticker_type(sticker->type_)) + 1);
+    sticker_types.insert(static_cast<int32>(::td::get_sticker_type(sticker->type_)) + 1);
 
     file_ids.push_back(file_id);
     if (is_url) {
@@ -6432,7 +6440,7 @@ void StickersManager::on_new_stickers_uploaded(int64 random_id, Result<Unit> res
   auto &promise = pending_new_sticker_set->promise;
   TRY_RESULT_PROMISE(promise, input_user, td_->contacts_manager_->get_input_user(pending_new_sticker_set->user_id));
 
-  StickerType sticker_type = get_sticker_type(pending_new_sticker_set->stickers[0]->type_);
+  StickerType sticker_type = ::td::get_sticker_type(pending_new_sticker_set->stickers[0]->type_);
   StickerFormat sticker_format = pending_new_sticker_set->sticker_format;
 
   auto sticker_count = pending_new_sticker_set->stickers.size();
@@ -6675,6 +6683,10 @@ vector<FileId> StickersManager::get_attached_sticker_file_ids(const vector<int32
     }
     if (!s->set_id.is_valid()) {
       // only stickers from sticker sets can be attached to files
+      continue;
+    }
+    if (s->type == StickerType::Emoji) {
+      // emoji stickers can't can be attached to files
       continue;
     }
 
@@ -7073,6 +7085,9 @@ void StickersManager::add_recent_sticker_impl(bool is_attached, FileId sticker_i
   if (!sticker->set_id.is_valid()) {
     return promise.set_error(Status::Error(400, "Stickers without sticker set can't be added to recent"));
   }
+  if (sticker->type == StickerType::Emoji) {
+    return promise.set_error(Status::Error(400, "Emoji stickers can't be added to recent"));
+  }
 
   auto file_view = td_->file_manager_->get_file_view(sticker_id);
   if (!file_view.has_remote_location()) {
@@ -7453,7 +7468,10 @@ void StickersManager::add_favorite_sticker_impl(FileId sticker_id, bool add_on_s
     return promise.set_error(Status::Error(400, "Sticker not found"));
   }
   if (!sticker->set_id.is_valid()) {
-    return promise.set_error(Status::Error(400, "Stickers without sticker set can't be favorite"));
+    return promise.set_error(Status::Error(400, "Stickers without sticker set can't be added to favorite"));
+  }
+  if (sticker->type == StickerType::Emoji) {
+    return promise.set_error(Status::Error(400, "Emoji stickers can't be added to favorite"));
   }
 
   auto file_view = td_->file_manager_->get_file_view(sticker_id);
