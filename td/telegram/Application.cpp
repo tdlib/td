@@ -93,7 +93,7 @@ class SaveAppLogLogEvent {
 
   template <class ParserT>
   void parse(ParserT &parser) {
-    auto buffer = parser.fetch_string_raw<BufferSlice>(parser.get_left_len());
+    auto buffer = parser.template fetch_string_raw<BufferSlice>(parser.get_left_len());
     TlBufferParser buffer_parser{&buffer};
     input_app_event_out_ = telegram_api::make_object<telegram_api::inputAppEvent>(buffer_parser);
   }
