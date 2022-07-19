@@ -1329,6 +1329,15 @@ TEST(MessageEntities, parse_html) {
                    {{td::MessageEntity::Type::Pre, 6, 7}, {td::MessageEntity::Type::Code, 6, 6}});
   check_parse_html("🏟 🏟&lt;<pre> <code class=\"language-fift\">🏟 🏟&lt;</></>", "🏟 🏟< 🏟 🏟<",
                    {{td::MessageEntity::Type::Pre, 6, 7}, {td::MessageEntity::Type::Code, 7, 6}});
+  check_parse_html("➡️ ➡️<tg-emoji emoji-id = \"12345\">➡️ ➡️</tg-emoji><b>➡️ ➡️</b>",
+                   "➡️ ➡️➡️ ➡️➡️ ➡️",
+                   {{td::MessageEntity::Type::CustomEmoji, 5, 5, static_cast<td::int64>(12345)},
+                    {td::MessageEntity::Type::Bold, 10, 5}});
+  check_parse_html("🏟 🏟<tg-emoji emoji-id=\"54321\">🏟 &lt🏟</tg-emoji>", "🏟 🏟🏟 <🏟",
+                   {{td::MessageEntity::Type::CustomEmoji, 5, 6, static_cast<td::int64>(54321)}});
+  check_parse_html(
+      "🏟 🏟<b aba   =   caba><tg-emoji emoji-id=\"1\">🏟</tg-emoji>1</b>", "🏟 🏟🏟1",
+      {{td::MessageEntity::Type::Bold, 5, 3}, {td::MessageEntity::Type::CustomEmoji, 5, 2, static_cast<td::int64>(1)}});
 }
 
 static void check_parse_markdown(td::string text, const td::string &result,

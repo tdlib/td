@@ -3007,7 +3007,8 @@ static Result<vector<MessageEntity>> do_parse_html(CSlice text, string &result) 
       string tag_name = to_lower(text.substr(begin_pos + 1, i - begin_pos - 1));
       if (tag_name != "a" && tag_name != "b" && tag_name != "strong" && tag_name != "i" && tag_name != "em" &&
           tag_name != "s" && tag_name != "strike" && tag_name != "del" && tag_name != "u" && tag_name != "ins" &&
-          tag_name != "tg-spoiler" && tag_name != "span" && tag_name != "pre" && tag_name != "code") {
+          tag_name != "tg-spoiler" && tag_name != "tg-emoji" && tag_name != "span" && tag_name != "pre" &&
+          tag_name != "code") {
         return Status::Error(400, PSLICE()
                                       << "Unsupported start tag \"" << tag_name << "\" at byte offset " << begin_pos);
       }
@@ -3085,6 +3086,8 @@ static Result<vector<MessageEntity>> do_parse_html(CSlice text, string &result) 
           argument = attribute_value.substr(9);
         } else if (tag_name == "span" && attribute_name == Slice("class") && begins_with(attribute_value, "tg-")) {
           argument = attribute_value.substr(3);
+        } else if (tag_name == "tg-emoji" && attribute_name == Slice("emoji-id")) {
+          argument = std::move(attribute_value);
         }
       }
 
@@ -3130,6 +3133,12 @@ static Result<vector<MessageEntity>> do_parse_html(CSlice text, string &result) 
           entities.emplace_back(MessageEntity::Type::Underline, entity_offset, entity_length);
         } else if (tag_name == "tg-spoiler" || (tag_name == "span" && nested_entities.back().argument == "spoiler")) {
           entities.emplace_back(MessageEntity::Type::Spoiler, entity_offset, entity_length);
+        } else if (tag_name == "tg-emoji") {
+          auto r_document_id = to_integer_safe<int64>(nested_entities.back().argument);
+          if (r_document_id.is_error() || r_document_id.ok() == 0) {
+            return Status::Error(400, "Invalid custom emoji identifier specified");
+          }
+          entities.emplace_back(MessageEntity::Type::CustomEmoji, entity_offset, entity_length, r_document_id.ok());
         } else if (tag_name == "a") {
           auto url = std::move(nested_entities.back().argument);
           if (url.empty()) {
