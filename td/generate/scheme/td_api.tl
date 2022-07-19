@@ -260,7 +260,7 @@ stickerTypeRegular = StickerType;
 //@description The sticker is a mask in WEBP format to be placed on photos or videos
 stickerTypeMask = StickerType;
 
-//@description The sticker is an emoji to be used inside message text and caption
+//@description The sticker is a custom emoji to be used inside message text and caption
 stickerTypeEmoji = StickerType;
 
 
@@ -304,10 +304,11 @@ document file_name:string mime_type:string minithumbnail:minithumbnail thumbnail
 photo has_stickers:Bool minithumbnail:minithumbnail sizes:vector<photoSize> = Photo;
 
 //@description Describes a sticker @set_id The identifier of the sticker set to which the sticker belongs; 0 if none @width Sticker width; as defined by the sender @height Sticker height; as defined by the sender
-//@emoji Emoji corresponding to the sticker @format Sticker format @type Sticker type @mask_position Position where the mask is placed; may be null even sticker is a mask
+//@emoji Emoji corresponding to the sticker @format Sticker format @type Sticker type @mask_position Position where the mask is placed; may be null even the sticker is a mask
+//@custom_emoji_id Identifier of the emoji if the sticker is a custom emoji
 //@outline Sticker's outline represented as a list of closed vector paths; may be empty. The coordinate system origin is in the upper-left corner
 //@thumbnail Sticker thumbnail in WEBP or JPEG format; may be null @is_premium True, if only Premium users can use the sticker @premium_animation Premium animation of the sticker; may be null @sticker File containing the sticker
-sticker set_id:int64 width:int32 height:int32 emoji:string format:StickerFormat type:StickerType mask_position:maskPosition outline:vector<closedVectorPath> thumbnail:thumbnail is_premium:Bool premium_animation:file sticker:file = Sticker;
+sticker set_id:int64 width:int32 height:int32 emoji:string format:StickerFormat type:StickerType mask_position:maskPosition custom_emoji_id:int64 outline:vector<closedVectorPath> thumbnail:thumbnail is_premium:Bool premium_animation:file sticker:file = Sticker;
 
 //@description Describes a video file @duration Duration of the video, in seconds; as defined by the sender @width Video width; as defined by the sender @height Video height; as defined by the sender
 //@file_name Original name of the file; as defined by the sender @mime_type MIME type of the file; as defined by the sender

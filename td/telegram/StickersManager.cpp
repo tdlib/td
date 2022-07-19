@@ -1916,7 +1916,8 @@ tl_object_ptr<td_api::sticker> StickersManager::get_sticker_object(FileId file_i
 
   const PhotoSize &thumbnail = sticker->m_thumbnail.file_id.is_valid() ? sticker->m_thumbnail : sticker->s_thumbnail;
   auto thumbnail_format = PhotoFormat::Webp;
-  int64 document_id = -1;
+  int64 document_id = 0;
+  int64 emoji_document_id = 0;
   if (!sticker->set_id.is_valid()) {
     auto sticker_file_view = td_->file_manager_->get_file_view(sticker->file_id);
     if (sticker_file_view.is_encrypted()) {
@@ -1934,6 +1935,12 @@ tl_object_ptr<td_api::sticker> StickersManager::get_sticker_object(FileId file_i
         }
       }
     }
+  } else if (sticker->type == StickerType::Emoji) {
+    auto sticker_file_view = td_->file_manager_->get_file_view(sticker->file_id);
+    if (!sticker_file_view.is_encrypted() && sticker_file_view.has_remote_location() &&
+        sticker_file_view.remote_location().is_document()) {
+      emoji_document_id = sticker_file_view.remote_location().get_id();
+    }
   }
   auto thumbnail_object = get_thumbnail_object(td_->file_manager_.get(), thumbnail, thumbnail_format);
   int32 width = sticker->dimensions.width;
@@ -1949,7 +1956,7 @@ tl_object_ptr<td_api::sticker> StickersManager::get_sticker_object(FileId file_i
                                       : nullptr;
   return td_api::make_object<td_api::sticker>(
       sticker->set_id.get(), width, height, sticker->alt, get_sticker_format_object(sticker->format),
-      get_sticker_type_object(sticker->type), std::move(mask_position),
+      get_sticker_type_object(sticker->type), std::move(mask_position), emoji_document_id,
       get_sticker_minithumbnail(sticker->minithumbnail, sticker->set_id, document_id, zoom),
       std::move(thumbnail_object), sticker->is_premium, std::move(premium_animation_object),
       td_->file_manager_->get_file_object(file_id));
