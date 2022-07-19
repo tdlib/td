@@ -93,6 +93,8 @@ class StickersManager final : public Actor {
 
   void get_all_animated_emojis(bool is_recursive, Promise<td_api::object_ptr<td_api::emojis>> &&promise);
 
+  void get_custom_emoji_stickers(vector<int64> &&document_ids, Promise<td_api::object_ptr<td_api::stickers>> &&promise);
+
   void get_premium_gift_option_sticker(int32 month_count, bool is_recursive,
                                        Promise<td_api::object_ptr<td_api::sticker>> &&promise);
 
@@ -762,6 +764,9 @@ class StickersManager final : public Actor {
   void reload_special_sticker_set(SpecialStickerSet &sticker_set, int32 hash);
 
   static void add_sticker_thumbnail(Sticker *s, PhotoSize thumbnail);
+
+  void on_get_custom_emoji_documents(Result<vector<telegram_api::object_ptr<telegram_api::Document>>> r_documents,
+                                     Promise<td_api::object_ptr<td_api::stickers>> &&promise);
 
   static string get_emoji_language_code_version_database_key(const string &language_code);
 

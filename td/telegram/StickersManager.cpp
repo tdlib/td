@@ -1210,6 +1210,33 @@ class DeleteStickerFromSetQuery final : public Td::ResultHandler {
   }
 };
 
+class GetCustomEmojiDocumentsQuery final : public Td::ResultHandler {
+  Promise<vector<telegram_api::object_ptr<telegram_api::Document>>> promise_;
+
+ public:
+  explicit GetCustomEmojiDocumentsQuery(Promise<vector<telegram_api::object_ptr<telegram_api::Document>>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(vector<int64> &&document_ids) {
+    send_query(
+        G()->net_query_creator().create(telegram_api::messages_getCustomEmojiDocuments(std::move(document_ids))));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_getCustomEmojiDocuments>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    promise_.set_value(result_ptr.move_as_ok());
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class SendAnimatedEmojiClicksQuery final : public Td::ResultHandler {
   DialogId dialog_id_;
   string emoji_;
@@ -4926,6 +4953,41 @@ void StickersManager::get_all_animated_emojis(bool is_recursive,
     return s->alt;
   });
   promise.set_value(td_api::make_object<td_api::emojis>(std::move(emojis)));
+}
+
+void StickersManager::get_custom_emoji_stickers(vector<int64> &&document_ids,
+                                                Promise<td_api::object_ptr<td_api::stickers>> &&promise) {
+  auto query_promise =
+      PromiseCreator::lambda([actor_id = actor_id(this), promise = std::move(promise)](
+                                 Result<vector<telegram_api::object_ptr<telegram_api::Document>>> r_documents) mutable {
+        send_closure(actor_id, &StickersManager::on_get_custom_emoji_documents, std::move(r_documents),
+                     std::move(promise));
+      });
+  td_->create_handler<GetCustomEmojiDocumentsQuery>(std::move(query_promise))->send(std::move(document_ids));
+}
+
+void StickersManager::on_get_custom_emoji_documents(
+    Result<vector<telegram_api::object_ptr<telegram_api::Document>>> r_documents,
+    Promise<td_api::object_ptr<td_api::stickers>> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+  if (r_documents.is_error()) {
+    return promise.set_error(r_documents.move_as_error());
+  }
+  auto documents = r_documents.move_as_ok();
+
+  vector<td_api::object_ptr<td_api::sticker>> stickers;
+  for (auto &document : documents) {
+    std::pair<int64, FileId> sticker_info = on_get_sticker_document(std::move(document), StickerFormat::Unknown);
+    auto sticker = get_sticker_object(sticker_info.second);
+    if (sticker == nullptr) {
+      LOG(ERROR) << "Receive an invalid custom emoji sticker";
+      continue;
+    }
+
+    stickers.push_back(std::move(sticker));
+  }
+
+  promise.set_value(td_api::make_object<td_api::stickers>(std::move(stickers)));
 }
 
 void StickersManager::get_premium_gift_option_sticker(int32 month_count, bool is_recursive,
