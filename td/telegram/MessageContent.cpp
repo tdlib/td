@@ -2716,7 +2716,7 @@ Status can_send_message_content(DialogId dialog_id, const MessageContent *conten
         return Status::Error(400, "Not enough rights to send stickers to the chat");
       }
       if (td->stickers_manager_->get_sticker_type(static_cast<const MessageSticker *>(content)->file_id) ==
-          StickerType::Emoji) {
+          StickerType::CustomEmoji) {
         return Status::Error(400, "Can't send emoji stickers in messages");
       }
       break;

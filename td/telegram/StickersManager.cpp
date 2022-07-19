@@ -102,7 +102,7 @@ class GetAllStickersQuery final : public Td::ResultHandler {
         return send_query(G()->net_query_creator().create(telegram_api::messages_getAllStickers(hash)));
       case StickerType::Mask:
         return send_query(G()->net_query_creator().create(telegram_api::messages_getMaskStickers(hash)));
-      case StickerType::Emoji:
+      case StickerType::CustomEmoji:
         return send_query(G()->net_query_creator().create(telegram_api::messages_getEmojiStickers(hash)));
       default:
         UNREACHABLE();
@@ -283,7 +283,7 @@ class GetArchivedStickerSetsQuery final : public Td::ResultHandler {
     if (sticker_type_ == StickerType::Mask) {
       flags |= telegram_api::messages_getArchivedStickers::MASKS_MASK;
     }
-    if (sticker_type_ == StickerType::Emoji) {
+    if (sticker_type_ == StickerType::CustomEmoji) {
       flags |= telegram_api::messages_getArchivedStickers::EMOJIS_MASK;
     }
     send_query(G()->net_query_creator().create(telegram_api::messages_getArchivedStickers(
@@ -319,7 +319,7 @@ class GetFeaturedStickerSetsQuery final : public Td::ResultHandler {
       case StickerType::Regular:
         send_query(G()->net_query_creator().create(telegram_api::messages_getFeaturedStickers(hash)));
         break;
-      case StickerType::Emoji:
+      case StickerType::CustomEmoji:
         send_query(G()->net_query_creator().create(telegram_api::messages_getFeaturedEmojiStickers(hash)));
         break;
       default:
@@ -675,7 +675,7 @@ class ReorderStickerSetsQuery final : public Td::ResultHandler {
     if (sticker_type == StickerType::Mask) {
       flags |= telegram_api::messages_reorderStickerSets::MASKS_MASK;
     }
-    if (sticker_type == StickerType::Emoji) {
+    if (sticker_type == StickerType::CustomEmoji) {
       flags |= telegram_api::messages_reorderStickerSets::EMOJIS_MASK;
     }
     send_query(G()->net_query_creator().create(telegram_api::messages_reorderStickerSets(
@@ -1039,9 +1039,9 @@ class CreateNewStickerSetQuery final : public Td::ResultHandler {
     if (sticker_type == StickerType::Mask) {
       flags |= telegram_api::stickers_createStickerSet::MASKS_MASK;
     }
-    if (sticker_type == StickerType::Emoji) {
+    if (sticker_type == StickerType::CustomEmoji) {
       // flags |= telegram_api::stickers_createStickerSet::EMOJIS_MASK;
-      return on_error(Status::Error(400, "Can't create emoji sets"));
+      return on_error(Status::Error(400, "Can't create custom emoji sets"));
     }
     if (sticker_format == StickerFormat::Tgs) {
       flags |= telegram_api::stickers_createStickerSet::ANIMATED_MASK;
@@ -1935,7 +1935,7 @@ tl_object_ptr<td_api::sticker> StickersManager::get_sticker_object(FileId file_i
         }
       }
     }
-  } else if (sticker->type == StickerType::Emoji) {
+  } else if (sticker->type == StickerType::CustomEmoji) {
     auto sticker_file_view = td_->file_manager_->get_file_view(sticker->file_id);
     if (!sticker_file_view.is_encrypted() && sticker_file_view.has_remote_location() &&
         sticker_file_view.remote_location().is_document()) {
@@ -2067,7 +2067,7 @@ double StickersManager::get_sticker_set_minithumbnail_zoom(const StickerSet *sti
 td_api::object_ptr<td_api::thumbnail> StickersManager::get_sticker_set_thumbnail_object(
     const StickerSet *sticker_set) const {
   CHECK(sticker_set != nullptr);
-  if (sticker_set->thumbnail_document_id != 0 && sticker_set->sticker_type == StickerType::Emoji) {
+  if (sticker_set->thumbnail_document_id != 0 && sticker_set->sticker_type == StickerType::CustomEmoji) {
     for (auto sticker_id : sticker_set->sticker_ids) {
       auto file_view = td_->file_manager_->get_file_view(sticker_id);
       if (file_view.has_remote_location() && !file_view.remote_location().is_web() &&
@@ -2876,7 +2876,7 @@ void StickersManager::create_sticker(FileId file_id, FileId premium_animation_fi
   } else if (custom_emoji != nullptr) {
     s->set_id = on_get_input_sticker_set(file_id, std::move(custom_emoji->stickerset_), load_data_multipromise_ptr);
     s->alt = std::move(custom_emoji->alt_);
-    s->type = StickerType::Emoji;
+    s->type = StickerType::CustomEmoji;
     s->is_premium = !custom_emoji->free_;
   }
   s->format = format;
@@ -3059,7 +3059,7 @@ StickerSetId StickersManager::on_get_sticker_set(tl_object_ptr<telegram_api::sti
   StickerFormat sticker_format =
       set->videos_ ? StickerFormat::Webm : (set->animated_ ? StickerFormat::Tgs : StickerFormat::Webp);
   StickerType sticker_type =
-      set->emojis_ ? StickerType::Emoji : (set->masks_ ? StickerType::Mask : StickerType::Regular);
+      set->emojis_ ? StickerType::CustomEmoji : (set->masks_ ? StickerType::Mask : StickerType::Regular);
 
   PhotoSize thumbnail;
   string minithumbnail;
@@ -6696,8 +6696,8 @@ vector<FileId> StickersManager::get_attached_sticker_file_ids(const vector<int32
       // only stickers from sticker sets can be attached to files
       continue;
     }
-    if (s->type == StickerType::Emoji) {
-      // emoji stickers can't can be attached to files
+    if (s->type == StickerType::CustomEmoji) {
+      // custom emoji stickers can't can be attached to files
       continue;
     }
 
@@ -6796,7 +6796,7 @@ size_t StickersManager::get_max_featured_sticker_count(StickerType sticker_type)
       return 5;
     case StickerType::Mask:
       return 5;
-    case StickerType::Emoji:
+    case StickerType::CustomEmoji:
       return 16;
     default:
       UNREACHABLE();
@@ -6810,7 +6810,7 @@ Slice StickersManager::get_featured_sticker_suffix(StickerType sticker_type) {
       return Slice();
     case StickerType::Mask:
       return Slice("1");
-    case StickerType::Emoji:
+    case StickerType::CustomEmoji:
       return Slice("2");
     default:
       UNREACHABLE();
@@ -7096,8 +7096,8 @@ void StickersManager::add_recent_sticker_impl(bool is_attached, FileId sticker_i
   if (!sticker->set_id.is_valid()) {
     return promise.set_error(Status::Error(400, "Stickers without sticker set can't be added to recent"));
   }
-  if (sticker->type == StickerType::Emoji) {
-    return promise.set_error(Status::Error(400, "Emoji stickers can't be added to recent"));
+  if (sticker->type == StickerType::CustomEmoji) {
+    return promise.set_error(Status::Error(400, "Custom emoji stickers can't be added to recent"));
   }
 
   auto file_view = td_->file_manager_->get_file_view(sticker_id);
@@ -7481,8 +7481,8 @@ void StickersManager::add_favorite_sticker_impl(FileId sticker_id, bool add_on_s
   if (!sticker->set_id.is_valid()) {
     return promise.set_error(Status::Error(400, "Stickers without sticker set can't be added to favorite"));
   }
-  if (sticker->type == StickerType::Emoji) {
-    return promise.set_error(Status::Error(400, "Emoji stickers can't be added to favorite"));
+  if (sticker->type == StickerType::CustomEmoji) {
+    return promise.set_error(Status::Error(400, "Custom emoji stickers can't be added to favorite"));
   }
 
   auto file_view = td_->file_manager_->get_file_view(sticker_id);

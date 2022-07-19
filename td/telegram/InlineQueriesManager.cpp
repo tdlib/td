@@ -1169,8 +1169,8 @@ tl_object_ptr<td_api::StickerType> copy(const td_api::StickerType &obj) {
       return td_api::make_object<td_api::stickerTypeRegular>();
     case td_api::stickerTypeMask::ID:
       return td_api::make_object<td_api::stickerTypeMask>();
-    case td_api::stickerTypeEmoji::ID:
-      return td_api::make_object<td_api::stickerTypeEmoji>();
+    case td_api::stickerTypeCustomEmoji::ID:
+      return td_api::make_object<td_api::stickerTypeCustomEmoji>();
     default:
       UNREACHABLE();
   }

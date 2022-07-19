@@ -548,7 +548,7 @@ class CliClient final : public Actor {
 
   static td_api::object_ptr<td_api::StickerType> as_sticker_type(string sticker_type) {
     if (!sticker_type.empty() && sticker_type.back() == 'e') {
-      return td_api::make_object<td_api::stickerTypeEmoji>();
+      return td_api::make_object<td_api::stickerTypeCustomEmoji>();
     }
     if (!sticker_type.empty() && sticker_type.back() == 'm') {
       return td_api::make_object<td_api::stickerTypeMask>();

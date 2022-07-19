@@ -35,7 +35,7 @@ void StickersManager::store_sticker(FileId file_id, bool in_sticker_set, StorerT
   bool is_webm = sticker->format == StickerFormat::Webm;
   bool has_premium_animation = sticker->premium_animation_file_id.is_valid();
   bool is_mask = sticker->type == StickerType::Mask;
-  bool is_emoji = sticker->type == StickerType::Emoji;
+  bool is_emoji = sticker->type == StickerType::CustomEmoji;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(is_mask);
   STORE_FLAG(has_sticker_set_access_hash);
@@ -108,7 +108,7 @@ FileId StickersManager::parse_sticker(bool in_sticker_set, ParserT &parser) {
     sticker->format = StickerFormat::Webp;
   }
   if (is_emoji) {
-    sticker->type = StickerType::Emoji;
+    sticker->type = StickerType::CustomEmoji;
   } else if (is_mask) {
     sticker->type = StickerType::Mask;
   } else {
@@ -179,7 +179,7 @@ void StickersManager::store_sticker_set(const StickerSet *sticker_set, bool with
   bool is_tgs = sticker_set->sticker_format == StickerFormat::Tgs;
   bool is_webm = sticker_set->sticker_format == StickerFormat::Webm;
   bool is_masks = sticker_set->sticker_type == StickerType::Mask;
-  bool is_emojis = sticker_set->sticker_type == StickerType::Emoji;
+  bool is_emojis = sticker_set->sticker_type == StickerType::CustomEmoji;
   bool has_thumbnail_document_id = sticker_set->thumbnail_document_id != 0;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(sticker_set->is_inited);
@@ -293,7 +293,7 @@ void StickersManager::parse_sticker_set(StickerSet *sticker_set, ParserT &parser
   }
   StickerType sticker_type = StickerType::Regular;
   if (is_emojis) {
-    sticker_type = StickerType::Emoji;
+    sticker_type = StickerType::CustomEmoji;
   } else if (is_masks) {
     sticker_type = StickerType::Mask;
   }

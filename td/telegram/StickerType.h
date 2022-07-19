@@ -14,7 +14,7 @@
 namespace td {
 
 // update store_sticker/store_sticker_set when this type changes
-enum class StickerType : int32 { Regular, Mask, Emoji };
+enum class StickerType : int32 { Regular, Mask, CustomEmoji };
 
 static constexpr int32 MAX_STICKER_TYPE = 3;
 

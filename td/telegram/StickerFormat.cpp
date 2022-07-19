@@ -147,7 +147,7 @@ bool is_sticker_format_vector(StickerFormat sticker_format) {
 }
 
 int64 get_max_sticker_file_size(StickerFormat sticker_format, StickerType sticker_type, bool for_thumbnail) {
-  bool is_emoji = sticker_type == StickerType::Emoji;
+  bool is_emoji = sticker_type == StickerType::CustomEmoji;
   switch (sticker_format) {
     case StickerFormat::Unknown:
     case StickerFormat::Webp:
