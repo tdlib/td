@@ -61,6 +61,31 @@ class WaitFreeHashMap {
   size_t erase(const KeyT &key) {
     return get_storage(key).erase(key);
   }
+
+  size_t size() const {
+    if (wait_free_storage_ == nullptr) {
+      return default_map_.size();
+    }
+
+    size_t result = 0;
+    for (size_t i = 0; i < MAX_STORAGE_COUNT; i++) {
+      result += wait_free_storage_->maps_[i].size();
+    }
+    return result;
+  }
+
+  bool empty() const {
+    if (wait_free_storage_ == nullptr) {
+      return default_map_.empty();
+    }
+
+    for (size_t i = 0; i < MAX_STORAGE_COUNT; i++) {
+      if (!wait_free_storage_->maps_[i].empty()) {
+        return false;
+      }
+    }
+    return true;
+  }
 };
 
 }  // namespace td
