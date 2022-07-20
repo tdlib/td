@@ -24,6 +24,10 @@ namespace td {
 AudiosManager::AudiosManager(Td *td) : td_(td) {
 }
 
+AudiosManager::~AudiosManager() {
+  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), audios_);
+}
+
 int32 AudiosManager::get_audio_duration(FileId file_id) const {
   auto it = audios_.find(file_id);
   if (it == audios_.end()) {

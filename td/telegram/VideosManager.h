@@ -24,6 +24,11 @@ class Td;
 class VideosManager {
  public:
   explicit VideosManager(Td *td);
+  VideosManager(const VideosManager &) = delete;
+  VideosManager &operator=(const VideosManager &) = delete;
+  VideosManager(VideosManager &&) = delete;
+  VideosManager &operator=(VideosManager &&) = delete;
+  ~VideosManager();
 
   int32 get_video_duration(FileId file_id) const;
 

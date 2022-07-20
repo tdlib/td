@@ -1304,6 +1304,21 @@ StickersManager::StickersManager(Td *td, ActorShared<> parent) : td_(td), parent
   next_update_animated_emoji_clicked_time_ = Time::now();
 }
 
+StickersManager::~StickersManager() {
+  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), stickers_);
+  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), sticker_sets_);
+  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), short_name_to_sticker_set_id_);
+  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), attached_sticker_sets_);
+  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), found_stickers_);
+  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), found_sticker_sets_);
+  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), emoji_language_codes_);
+  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), emoji_language_code_versions_);
+  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), emoji_language_code_last_difference_times_);
+  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), reloaded_emoji_keywords_);
+  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), dice_messages_);
+  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), emoji_messages_);
+}
+
 void StickersManager::start_up() {
   init();
 }

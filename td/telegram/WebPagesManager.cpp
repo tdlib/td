@@ -417,7 +417,13 @@ void WebPagesManager::tear_down() {
   LOG(DEBUG) << "Have " << web_pages_.size() << " web pages to free";
 }
 
-WebPagesManager::~WebPagesManager() = default;
+WebPagesManager::~WebPagesManager() {
+  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), web_pages_);
+  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), web_page_messages_);
+  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), got_web_page_previews_);
+  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), url_to_web_page_id_);
+  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), url_to_file_source_id_);
+}
 
 WebPageId WebPagesManager::on_get_web_page(tl_object_ptr<telegram_api::WebPage> &&web_page_ptr,
                                            DialogId owner_dialog_id) {

@@ -139,6 +139,10 @@ AnimationsManager::AnimationsManager(Td *td, ActorShared<> parent) : td_(td), pa
   next_saved_animations_load_time_ = Time::now();
 }
 
+AnimationsManager::~AnimationsManager() {
+  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), animations_);
+}
+
 void AnimationsManager::tear_down() {
   parent_.reset();
 }

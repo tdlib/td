@@ -31,6 +31,11 @@ class Td;
 class DocumentsManager {
  public:
   explicit DocumentsManager(Td *td);
+  DocumentsManager(const DocumentsManager &) = delete;
+  DocumentsManager &operator=(const DocumentsManager &) = delete;
+  DocumentsManager(DocumentsManager &&) = delete;
+  DocumentsManager &operator=(DocumentsManager &&) = delete;
+  ~DocumentsManager();
 
   class RemoteDocument {
    public:

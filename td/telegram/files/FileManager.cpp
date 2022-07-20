@@ -840,6 +840,14 @@ void FileManager::init_actor() {
 }
 
 FileManager::~FileManager() {
+  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), remote_location_info_);
+  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), file_hash_to_file_id_);
+  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), local_location_to_file_id_);
+  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), generate_location_to_file_id_);
+  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), pmc_id_to_file_node_id_);
+  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), file_id_info_);
+  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), empty_file_ids_);
+  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), file_nodes_);
 }
 
 string FileManager::fix_file_extension(Slice file_name, Slice file_type, Slice file_extension) {

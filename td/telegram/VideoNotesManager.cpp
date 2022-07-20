@@ -22,6 +22,10 @@ namespace td {
 VideoNotesManager::VideoNotesManager(Td *td) : td_(td) {
 }
 
+VideoNotesManager::~VideoNotesManager() {
+  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), video_notes_);
+}
+
 int32 VideoNotesManager::get_video_note_duration(FileId file_id) const {
   auto it = video_notes_.find(file_id);
   CHECK(it != video_notes_.end());

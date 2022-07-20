@@ -48,6 +48,10 @@ namespace td {
 DocumentsManager::DocumentsManager(Td *td) : td_(td) {
 }
 
+DocumentsManager::~DocumentsManager() {
+  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), documents_);
+}
+
 tl_object_ptr<td_api::document> DocumentsManager::get_document_object(FileId file_id,
                                                                       PhotoFormat thumbnail_format) const {
   if (!file_id.is_valid()) {

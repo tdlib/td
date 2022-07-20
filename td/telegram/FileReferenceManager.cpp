@@ -32,6 +32,10 @@ namespace td {
 
 int VERBOSITY_NAME(file_references) = VERBOSITY_NAME(INFO);
 
+FileReferenceManager::~FileReferenceManager() {
+  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), file_sources_);
+}
+
 bool FileReferenceManager::is_file_reference_error(const Status &error) {
   return error.is_error() && error.code() == 400 && begins_with(error.message(), "FILE_REFERENCE_");
 }

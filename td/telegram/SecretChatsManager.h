@@ -30,7 +30,7 @@ class SecretChatsManager final : public Actor {
  public:
   explicit SecretChatsManager(ActorShared<> parent);
 
-  // proxy query to corrensponding SecretChatActor
+  // proxy query to corresponding SecretChatActor
   void on_update_chat(tl_object_ptr<telegram_api::updateEncryption> update);
   void on_new_message(tl_object_ptr<telegram_api::EncryptedMessage> &&message_ptr, Promise<Unit> &&promise);
 

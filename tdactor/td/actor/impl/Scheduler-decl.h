@@ -102,6 +102,9 @@ class Scheduler {
 
   void run_on_scheduler(int32 sched_id, Promise<Unit> action);  // TODO Action
 
+  template <class T>
+  void destroy_on_scheduler(int32 sched_id, T &value);
+
   template <ActorSendType send_type, class EventT>
   void send_lambda(ActorRef actor_ref, EventT &&lambda);
 

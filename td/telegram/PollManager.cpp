@@ -265,7 +265,13 @@ void PollManager::tear_down() {
   parent_.reset();
 }
 
-PollManager::~PollManager() = default;
+PollManager::~PollManager() {
+  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), polls_);
+  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), server_poll_messages_);
+  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), other_poll_messages_);
+  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), poll_voters_);
+  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), loaded_from_database_polls_);
+}
 
 void PollManager::on_update_poll_timeout_callback(void *poll_manager_ptr, int64 poll_id_int) {
   if (G()->close_flag()) {

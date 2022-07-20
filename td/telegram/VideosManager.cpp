@@ -23,6 +23,10 @@ namespace td {
 VideosManager::VideosManager(Td *td) : td_(td) {
 }
 
+VideosManager::~VideosManager() {
+  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), videos_);
+}
+
 int32 VideosManager::get_video_duration(FileId file_id) const {
   auto it = videos_.find(file_id);
   CHECK(it != videos_.end());

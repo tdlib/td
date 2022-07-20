@@ -50,6 +50,11 @@ class StickersManager final : public Actor {
   static vector<int64> convert_sticker_set_ids(const vector<StickerSetId> &sticker_set_ids);
 
   StickersManager(Td *td, ActorShared<> parent);
+  StickersManager(const StickersManager &) = delete;
+  StickersManager &operator=(const StickersManager &) = delete;
+  StickersManager(StickersManager &&) = delete;
+  StickersManager &operator=(StickersManager &&) = delete;
+  ~StickersManager() final;
 
   void init();
 

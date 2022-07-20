@@ -1431,7 +1431,7 @@ class MessagesManager final : public Actor {
     Dialog &operator=(const Dialog &) = delete;
     Dialog(Dialog &&other) = delete;
     Dialog &operator=(Dialog &&other) = delete;
-    ~Dialog();
+    ~Dialog() = default;
 
     template <class StorerT>
     void store(StorerT &storer) const;

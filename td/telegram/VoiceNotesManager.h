@@ -28,6 +28,11 @@ class Td;
 class VoiceNotesManager final : public Actor {
  public:
   VoiceNotesManager(Td *td, ActorShared<> parent);
+  VoiceNotesManager(const VoiceNotesManager &) = delete;
+  VoiceNotesManager &operator=(const VoiceNotesManager &) = delete;
+  VoiceNotesManager(VoiceNotesManager &&) = delete;
+  VoiceNotesManager &operator=(VoiceNotesManager &&) = delete;
+  ~VoiceNotesManager() final;
 
   int32 get_voice_note_duration(FileId file_id) const;
 

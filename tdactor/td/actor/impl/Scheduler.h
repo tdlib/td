@@ -161,13 +161,35 @@ void Scheduler::flush_mailbox(ActorInfo *actor_info, const RunFuncT &run_func, c
   mailbox.erase(mailbox.begin(), mailbox.begin() + i);
 }
 
-inline void Scheduler::send_to_scheduler(int32 sched_id, const ActorId<> &actor_id, Event &&event) {
+inline void Scheduler::send_to_scheduler(int32 sched_id, const ActorId<Actor> &actor_id, Event &&event) {
   if (sched_id == sched_id_) {
     ActorInfo *actor_info = actor_id.get_actor_info();
     pending_events_[actor_info].push_back(std::move(event));
   } else {
     send_to_other_scheduler(sched_id, actor_id, std::move(event));
   }
+}
+
+template <class T>
+inline void Scheduler::destroy_on_scheduler(int32 sched_id, T &value) {
+  if (sched_id < 0 || sched_id_ == sched_id || value.empty()) {
+    return;
+  }
+
+  auto empty_context = std::make_shared<ActorContext>();
+  empty_context->this_ptr_ = empty_context;
+  ActorContext *current_context = context_;
+  context_ = empty_context.get();
+
+  const char *current_tag = LOG_TAG;
+  LOG_TAG = nullptr;
+
+  run_on_scheduler(sched_id, PromiseCreator::lambda([value = std::move(value)](Unit) {
+                     // destroy value
+                   }));
+
+  context_ = current_context;
+  LOG_TAG = current_tag;
 }
 
 inline void Scheduler::before_tail_send(const ActorId<> &actor_id) {
