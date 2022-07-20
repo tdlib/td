@@ -249,8 +249,8 @@ class MultiTd final : public Actor {
     auto old_context = set_context(context);
     auto old_tag = set_tag(to_string(td_id));
     td = create_actor<Td>("Td", std::move(callback), options_);
-    set_context(old_context);
-    set_tag(old_tag);
+    set_context(std::move(old_context));
+    set_tag(std::move(old_tag));
   }
 
   void send(ClientManager::ClientId client_id, ClientManager::RequestId request_id,
