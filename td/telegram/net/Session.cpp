@@ -69,11 +69,6 @@ class SemaphoreActor final : public Actor {
   size_t capacity_;
   VectorQueue<Promise<Promise<Unit>>> pending_;
 
-  void start_up() final {
-    set_context(std::make_shared<ActorContext>());
-    set_tag(string());
-  }
-
   void finish(Result<Unit>) {
     capacity_++;
     if (!pending_.empty()) {
@@ -137,7 +132,11 @@ class GenAuthKeyActor final : public Actor {
 
   static TD_THREAD_LOCAL Semaphore *semaphore_;
   Semaphore &get_handshake_semaphore() {
+    auto old_context = set_context(std::make_shared<ActorContext>());
+    auto old_tag = set_tag(string());
     init_thread_local<Semaphore>(semaphore_, 50);
+    set_context(std::move(old_context));
+    set_tag(std::move(old_tag));
     return *semaphore_;
   }
 
