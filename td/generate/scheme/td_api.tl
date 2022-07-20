@@ -1562,12 +1562,17 @@ paymentProviderStripe publishable_key:string need_country:Bool need_postal_code:
 paymentProviderOther url:string = PaymentProvider;
 
 
+//@description Describes an additional payment option @title Title for the payment option @url Payment form URL to be opened in a web view
+paymentOption title:string url:string = PaymentOption;
+
+
 //@description Contains information about an invoice payment form
 //@id The payment form identifier
 //@invoice Full information about the invoice
 //@seller_bot_user_id User identifier of the seller bot
 //@payment_provider_user_id User identifier of the payment provider bot
 //@payment_provider Information about the payment provider
+//@additional_payment_options The list of additional payment options
 //@saved_order_info Saved server-side order information; may be null
 //@saved_credentials Information about saved card credentials; may be null
 //@can_save_credentials True, if the user can choose to save credentials
@@ -1575,7 +1580,7 @@ paymentProviderOther url:string = PaymentProvider;
 //@product_title Product title
 //@product_description Product description
 //@product_photo Product photo; may be null
-paymentForm id:int64 invoice:invoice seller_bot_user_id:int53 payment_provider_user_id:int53 payment_provider:PaymentProvider saved_order_info:orderInfo saved_credentials:savedCredentials can_save_credentials:Bool need_password:Bool product_title:string product_description:formattedText product_photo:photo = PaymentForm;
+paymentForm id:int64 invoice:invoice seller_bot_user_id:int53 payment_provider_user_id:int53 payment_provider:PaymentProvider additional_payment_options:vector<paymentOption> saved_order_info:orderInfo saved_credentials:savedCredentials can_save_credentials:Bool need_password:Bool product_title:string product_description:formattedText product_photo:photo = PaymentForm;
 
 //@description Contains a temporary identifier of validated order information, which is stored for one hour. Also contains the available shipping options @order_info_id Temporary identifier of the order information @shipping_options Available shipping options
 validatedOrderInfo order_info_id:string shipping_options:vector<shippingOption> = ValidatedOrderInfo;

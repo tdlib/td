@@ -388,11 +388,16 @@ class GetPaymentFormQuery final : public Td::ResultHandler {
     if (payment_provider == nullptr) {
       payment_provider = td_api::make_object<td_api::paymentProviderOther>(std::move(payment_form->url_));
     }
+    auto additional_payment_options = transform(
+        payment_form->additional_methods_, [](const telegram_api::object_ptr<telegram_api::paymentFormMethod> &method) {
+          return td_api::make_object<td_api::paymentOption>(method->title_, method->url_);
+        });
     promise_.set_value(make_tl_object<td_api::paymentForm>(
         payment_form->form_id_, convert_invoice(std::move(payment_form->invoice_)),
         td_->contacts_manager_->get_user_id_object(seller_bot_user_id, "paymentForm seller"),
         td_->contacts_manager_->get_user_id_object(payments_provider_user_id, "paymentForm provider"),
-        std::move(payment_provider), convert_order_info(std::move(payment_form->saved_info_)),
+        std::move(payment_provider), std::move(additional_payment_options),
+        convert_order_info(std::move(payment_form->saved_info_)),
         convert_saved_credentials(std::move(payment_form->saved_credentials_)), can_save_credentials, need_password,
         payment_form->title_, get_product_description_object(payment_form->description_),
         get_photo_object(td_->file_manager_.get(), photo)));
