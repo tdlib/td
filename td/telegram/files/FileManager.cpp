@@ -1464,8 +1464,6 @@ void FileManager::do_cancel_generate(FileNodePtr node) {
 }
 
 Result<FileId> FileManager::merge(FileId x_file_id, FileId y_file_id, bool no_sync) {
-  LOG(DEBUG) << "Merge new file " << x_file_id << " and old file " << y_file_id;
-
   if (!x_file_id.is_valid()) {
     return Status::Error("First file_id is invalid");
   }
@@ -1489,13 +1487,16 @@ Result<FileId> FileManager::merge(FileId x_file_id, FileId y_file_id, bool no_sy
     x_node->set_upload_pause(FileId());
   }
   if (x_node.get() == y_node.get()) {
-    LOG(DEBUG) << "Files are already merged";
+    if (x_file_id != y_file_id) {
+      LOG(DEBUG) << "New file " << x_file_id << " and old file " << y_file_id << " are already merged";
+    }
     return x_node->main_file_id_;
   }
   if (y_file_id == y_node->upload_pause_) {
     y_node->set_upload_pause(FileId());
   }
 
+  LOG(DEBUG) << "Merge new file " << x_file_id << " and old file " << y_file_id;
   if (x_node->remote_.full && y_node->remote_.full && !x_node->remote_.full.value().is_web() &&
       !y_node->remote_.full.value().is_web() && y_node->remote_.is_full_alive &&
       x_node->remote_.full_source == FileLocationSource::FromServer &&

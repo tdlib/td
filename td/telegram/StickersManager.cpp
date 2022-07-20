@@ -2357,7 +2357,6 @@ tl_object_ptr<telegram_api::InputStickerSet> StickersManager::get_input_sticker_
 FileId StickersManager::on_get_sticker(unique_ptr<Sticker> new_sticker, bool replace) {
   auto file_id = new_sticker->file_id;
   CHECK(file_id.is_valid());
-  LOG(INFO) << "Receive sticker " << file_id;
   auto &s = stickers_[file_id];
   if (s == nullptr) {
     s = std::move(new_sticker);
