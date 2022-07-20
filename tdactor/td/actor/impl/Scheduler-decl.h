@@ -153,6 +153,8 @@ class Scheduler {
  private:
   static void set_scheduler(Scheduler *scheduler);
 
+  void destroy_on_scheduler_impl(int32 sched_id, Promise<Unit> action);
+
   class ServiceActor final : public Actor {
    public:
     void set_queue(std::shared_ptr<MpscPollableQueue<EventFull>> queues);

@@ -362,6 +362,21 @@ void Scheduler::run_on_scheduler(int32 sched_id, Promise<Unit> action) {
   action.set_value(Unit());
 }
 
+void Scheduler::destroy_on_scheduler_impl(int32 sched_id, Promise<Unit> action) {
+  auto empty_context = std::make_shared<ActorContext>();
+  empty_context->this_ptr_ = empty_context;
+  ActorContext *current_context = context_;
+  context_ = empty_context.get();
+
+  const char *current_tag = LOG_TAG;
+  LOG_TAG = nullptr;
+
+  run_on_scheduler(sched_id, std::move(action));
+
+  context_ = current_context;
+  LOG_TAG = current_tag;
+}
+
 void Scheduler::add_to_mailbox(ActorInfo *actor_info, Event &&event) {
   if (!actor_info->is_running()) {
     auto node = actor_info->get_list_node();

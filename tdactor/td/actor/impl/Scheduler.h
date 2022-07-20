@@ -172,24 +172,11 @@ inline void Scheduler::send_to_scheduler(int32 sched_id, const ActorId<Actor> &a
 
 template <class T>
 inline void Scheduler::destroy_on_scheduler(int32 sched_id, T &value) {
-  if (sched_id < 0 || sched_id_ == sched_id || value.empty()) {
-    return;
+  if (!value.empty()) {
+    destroy_on_scheduler_impl(sched_id, PromiseCreator::lambda([value = std::move(value)](Unit) {
+                                // destroy value
+                              }));
   }
-
-  auto empty_context = std::make_shared<ActorContext>();
-  empty_context->this_ptr_ = empty_context;
-  ActorContext *current_context = context_;
-  context_ = empty_context.get();
-
-  const char *current_tag = LOG_TAG;
-  LOG_TAG = nullptr;
-
-  run_on_scheduler(sched_id, PromiseCreator::lambda([value = std::move(value)](Unit) {
-                     // destroy value
-                   }));
-
-  context_ = current_context;
-  LOG_TAG = current_tag;
 }
 
 inline void Scheduler::before_tail_send(const ActorId<> &actor_id) {
