@@ -1016,6 +1016,13 @@ static Status check_partial_local_location(const PartialLocalFileLocation &locat
   return Status::OK();
 }
 
+void FileManager::check_local_location(FileId file_id) {
+  auto node = get_sync_file_node(file_id);
+  if (node) {
+    check_local_location(node).ignore();
+  }
+}
+
 Status FileManager::check_local_location(FileNodePtr node) {
   Status status;
   if (node->local_.type() == LocalFileLocation::Type::Full) {

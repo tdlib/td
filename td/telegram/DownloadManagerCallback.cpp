@@ -69,7 +69,8 @@ FileView DownloadManagerCallback::get_file_view(FileId file_id) {
 }
 
 FileView DownloadManagerCallback::get_sync_file_view(FileId file_id) {
-  return td_->file_manager_->get_sync_file_view(file_id);
+  td_->file_manager_->check_local_location(file_id);
+  return get_file_view(file_id);
 }
 
 td_api::object_ptr<td_api::fileDownload> DownloadManagerCallback::get_file_download_object(
