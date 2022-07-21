@@ -224,9 +224,9 @@ FileId FileManager::parse_file(ParserT &parser) {
           if (expected_size < 0) {
             expected_size += static_cast<int64>(1) << 32;
           }
+          int32 zero;
+          parse(zero, parser);
         }
-        int32 zero;
-        parse(zero, parser);
         DialogId owner_dialog_id;
         if (parser.version() >= static_cast<int32>(Version::StoreFileOwnerId)) {
           parse(owner_dialog_id, parser);
