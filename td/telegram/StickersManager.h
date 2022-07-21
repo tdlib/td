@@ -230,8 +230,8 @@ class StickersManager final : public Actor {
   static td_api::object_ptr<td_api::CheckStickerSetNameResult> get_check_sticker_set_name_result_object(
       CheckStickerSetNameResult result);
 
-  void create_new_sticker_set(UserId user_id, string &title, string &short_name,
-                              vector<tl_object_ptr<td_api::inputSticker>> &&stickers, string software,
+  void create_new_sticker_set(UserId user_id, string &title, string &short_name, StickerType sticker_type,
+                              vector<td_api::object_ptr<td_api::inputSticker>> &&stickers, string software,
                               Promise<Unit> &&promise);
 
   void add_sticker_to_set(UserId user_id, string &short_name, tl_object_ptr<td_api::inputSticker> &&sticker,
@@ -425,6 +425,7 @@ class StickersManager final : public Actor {
     UserId user_id;
     string title;
     string short_name;
+    StickerType sticker_type = StickerType::Regular;
     StickerFormat sticker_format = StickerFormat::Unknown;
     vector<FileId> file_ids;
     vector<tl_object_ptr<td_api::inputSticker>> stickers;
@@ -674,7 +675,8 @@ class StickersManager final : public Actor {
   Result<std::tuple<FileId, bool, bool, StickerFormat>> prepare_input_file(
       const tl_object_ptr<td_api::InputFile> &input_file, StickerFormat format, StickerType type, bool for_thumbnail);
 
-  Result<std::tuple<FileId, bool, bool, StickerFormat>> prepare_input_sticker(td_api::inputSticker *sticker);
+  Result<std::tuple<FileId, bool, bool, StickerFormat>> prepare_input_sticker(td_api::inputSticker *sticker,
+                                                                              StickerType sticker_type);
 
   tl_object_ptr<telegram_api::inputStickerSetItem> get_input_sticker(const td_api::inputSticker *sticker,
                                                                      FileId file_id) const;

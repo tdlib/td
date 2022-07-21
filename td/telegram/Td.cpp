@@ -2236,12 +2236,13 @@ class CreateNewStickerSetRequest final : public RequestOnceActor {
   UserId user_id_;
   string title_;
   string name_;
-  vector<tl_object_ptr<td_api::inputSticker>> stickers_;
+  StickerType sticker_type_;
+  vector<td_api::object_ptr<td_api::inputSticker>> stickers_;
   string software_;
 
   void do_run(Promise<Unit> &&promise) final {
-    td_->stickers_manager_->create_new_sticker_set(user_id_, title_, name_, std::move(stickers_), std::move(software_),
-                                                   std::move(promise));
+    td_->stickers_manager_->create_new_sticker_set(user_id_, title_, name_, sticker_type_, std::move(stickers_),
+                                                   std::move(software_), std::move(promise));
   }
 
   void do_send_result() final {
@@ -2254,11 +2255,13 @@ class CreateNewStickerSetRequest final : public RequestOnceActor {
 
  public:
   CreateNewStickerSetRequest(ActorShared<Td> td, uint64 request_id, int64 user_id, string &&title, string &&name,
-                             vector<tl_object_ptr<td_api::inputSticker>> &&stickers, string &&software)
+                             StickerType sticker_type, vector<td_api::object_ptr<td_api::inputSticker>> &&stickers,
+                             string &&software)
       : RequestOnceActor(std::move(td), request_id)
       , user_id_(user_id)
       , title_(std::move(title))
       , name_(std::move(name))
+      , sticker_type_(sticker_type)
       , stickers_(std::move(stickers))
       , software_(std::move(software)) {
   }
@@ -7090,7 +7093,7 @@ void Td::on_request(uint64 id, td_api::createNewStickerSet &request) {
   CLEAN_INPUT_STRING(request.name_);
   CLEAN_INPUT_STRING(request.source_);
   CREATE_REQUEST(CreateNewStickerSetRequest, request.user_id_, std::move(request.title_), std::move(request.name_),
-                 std::move(request.stickers_), std::move(request.source_));
+                 get_sticker_type(request.sticker_type_), std::move(request.stickers_), std::move(request.source_));
 }
 
 void Td::on_request(uint64 id, td_api::addStickerToSet &request) {

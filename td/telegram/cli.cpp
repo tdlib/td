@@ -2724,10 +2724,10 @@ class CliClient final : public Actor {
     } else if (op == "cssn") {
       const string &name = args;
       send_request(td_api::make_object<td_api::checkStickerSetName>(name));
-    } else if (op == "usf" || op == "usfa" || op == "usfv" || op == "usfm" || op == "usfe") {
+    } else if (op == "usf" || op == "usfa" || op == "usfv") {
       send_request(td_api::make_object<td_api::uploadStickerFile>(
           -1, td_api::make_object<td_api::inputSticker>(as_input_file(args), "😀", as_sticker_format(op),
-                                                        as_sticker_type(op), as_mask_position(op))));
+                                                        as_mask_position(op))));
     } else if (op == "cnss" || op == "cnssa" || op == "cnssv" || op == "cnssm" || op == "cnsse") {
       string title;
       string name;
@@ -2736,10 +2736,10 @@ class CliClient final : public Actor {
       auto input_stickers =
           transform(autosplit(stickers), [op](Slice sticker) -> td_api::object_ptr<td_api::inputSticker> {
             return td_api::make_object<td_api::inputSticker>(as_input_file(sticker), "😀", as_sticker_format(op),
-                                                             as_sticker_type(op), as_mask_position(op));
+                                                             as_mask_position(op));
           });
-      send_request(
-          td_api::make_object<td_api::createNewStickerSet>(my_id_, title, name, std::move(input_stickers), "tg_cli"));
+      send_request(td_api::make_object<td_api::createNewStickerSet>(my_id_, title, name, as_sticker_type(op),
+                                                                    std::move(input_stickers), "tg_cli"));
     } else if (op == "sss") {
       send_request(td_api::make_object<td_api::searchStickerSet>(args));
     } else if (op == "siss") {

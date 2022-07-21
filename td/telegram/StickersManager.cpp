@@ -6095,7 +6095,7 @@ void StickersManager::reorder_installed_sticker_sets(StickerType sticker_type,
 }
 
 Result<std::tuple<FileId, bool, bool, StickerFormat>> StickersManager::prepare_input_sticker(
-    td_api::inputSticker *sticker) {
+    td_api::inputSticker *sticker, StickerType sticker_type) {
   if (sticker == nullptr) {
     return Status::Error(400, "Input sticker must be non-empty");
   }
@@ -6108,8 +6108,7 @@ Result<std::tuple<FileId, bool, bool, StickerFormat>> StickersManager::prepare_i
     return Status::Error(400, "Sticker format must be non-empty");
   }
 
-  return prepare_input_file(sticker->sticker_, get_sticker_format(sticker->format_),
-                            ::td::get_sticker_type(sticker->type_), false);
+  return prepare_input_file(sticker->sticker_, get_sticker_format(sticker->format_), sticker_type, false);
 }
 
 Result<std::tuple<FileId, bool, bool, StickerFormat>> StickersManager::prepare_input_file(
@@ -6173,7 +6172,8 @@ FileId StickersManager::upload_sticker_file(UserId user_id, tl_object_ptr<td_api
     return FileId();
   }
 
-  auto r_file_id = prepare_input_sticker(sticker.get());
+  // StickerType::Regular has less restrictions
+  auto r_file_id = prepare_input_sticker(sticker.get(), StickerType::Regular);
   if (r_file_id.is_error()) {
     promise.set_error(r_file_id.move_as_error());
     return FileId();
@@ -6279,8 +6279,9 @@ td_api::object_ptr<td_api::CheckStickerSetNameResult> StickersManager::get_check
 }
 
 void StickersManager::create_new_sticker_set(UserId user_id, string &title, string &short_name,
-                                             vector<tl_object_ptr<td_api::inputSticker>> &&stickers, string software,
-                                             Promise<Unit> &&promise) {
+                                             StickerType sticker_type,
+                                             vector<td_api::object_ptr<td_api::inputSticker>> &&stickers,
+                                             string software, Promise<Unit> &&promise) {
   bool is_bot = td_->auth_manager_->is_bot();
   if (!is_bot) {
     user_id = td_->contacts_manager_->get_my_id();
@@ -6307,10 +6308,9 @@ void StickersManager::create_new_sticker_set(UserId user_id, string &title, stri
   vector<FileId> local_file_ids;
   vector<FileId> url_file_ids;
   FlatHashSet<int32> sticker_formats;
-  FlatHashSet<int32> sticker_types;
   StickerFormat sticker_format = StickerFormat::Unknown;
   for (auto &sticker : stickers) {
-    auto r_file_id = prepare_input_sticker(sticker.get());
+    auto r_file_id = prepare_input_sticker(sticker.get(), sticker_type);
     if (r_file_id.is_error()) {
       return promise.set_error(r_file_id.move_as_error());
     }
@@ -6322,7 +6322,6 @@ void StickersManager::create_new_sticker_set(UserId user_id, string &title, stri
       return promise.set_error(Status::Error(400, "Animated stickers can't be uploaded by URL"));
     }
     sticker_formats.insert(static_cast<int32>(get_sticker_format(sticker->format_)) + 1);
-    sticker_types.insert(static_cast<int32>(::td::get_sticker_type(sticker->type_)) + 1);
 
     file_ids.push_back(file_id);
     if (is_url) {
@@ -6334,15 +6333,13 @@ void StickersManager::create_new_sticker_set(UserId user_id, string &title, stri
   if (sticker_formats.size() != 1) {
     return promise.set_error(Status::Error(400, "All stickers must be of the same format"));
   }
-  if (sticker_types.size() != 1) {
-    return promise.set_error(Status::Error(400, "All stickers must be of the same type"));
-  }
 
   auto pending_new_sticker_set = make_unique<PendingNewStickerSet>();
   pending_new_sticker_set->user_id = user_id;
   pending_new_sticker_set->title = std::move(title);
   pending_new_sticker_set->short_name = short_name;
   pending_new_sticker_set->sticker_format = sticker_format;
+  pending_new_sticker_set->sticker_type = sticker_type;
   pending_new_sticker_set->file_ids = std::move(file_ids);
   pending_new_sticker_set->stickers = std::move(stickers);
   pending_new_sticker_set->software = std::move(software);
@@ -6510,8 +6507,8 @@ void StickersManager::on_new_stickers_uploaded(int64 random_id, Result<Unit> res
   auto &promise = pending_new_sticker_set->promise;
   TRY_RESULT_PROMISE(promise, input_user, td_->contacts_manager_->get_input_user(pending_new_sticker_set->user_id));
 
-  StickerType sticker_type = ::td::get_sticker_type(pending_new_sticker_set->stickers[0]->type_);
   StickerFormat sticker_format = pending_new_sticker_set->sticker_format;
+  StickerType sticker_type = pending_new_sticker_set->sticker_type;
 
   auto sticker_count = pending_new_sticker_set->stickers.size();
   vector<tl_object_ptr<telegram_api::inputStickerSetItem>> input_stickers;
@@ -6564,7 +6561,7 @@ void StickersManager::do_add_sticker_to_set(UserId user_id, string short_name,
     return promise.set_error(Status::Error(400, "Sticker set not found"));
   }
 
-  auto r_file_id = prepare_input_sticker(sticker.get());
+  auto r_file_id = prepare_input_sticker(sticker.get(), sticker_set->sticker_type);
   if (r_file_id.is_error()) {
     return promise.set_error(r_file_id.move_as_error());
   }
