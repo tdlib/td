@@ -6201,27 +6201,25 @@ tl_object_ptr<telegram_api::inputStickerSetItem> StickersManager::get_input_stic
   auto input_document = file_view.main_remote_location().as_input_document();
 
   tl_object_ptr<telegram_api::maskCoords> mask_coords;
-  if (::td::get_sticker_type(sticker->type_) == StickerType::Mask) {
-    auto mask_position = sticker->mask_position_.get();
-    if (mask_position != nullptr && mask_position->point_ != nullptr) {
-      auto point = [mask_point_id = mask_position->point_->get_id()] {
-        switch (mask_point_id) {
-          case td_api::maskPointForehead::ID:
-            return 0;
-          case td_api::maskPointEyes::ID:
-            return 1;
-          case td_api::maskPointMouth::ID:
-            return 2;
-          case td_api::maskPointChin::ID:
-            return 3;
-          default:
-            UNREACHABLE();
-            return -1;
-        }
-      }();
-      mask_coords = make_tl_object<telegram_api::maskCoords>(point, mask_position->x_shift_, mask_position->y_shift_,
-                                                             mask_position->scale_);
-    }
+  auto mask_position = sticker->mask_position_.get();
+  if (mask_position != nullptr && mask_position->point_ != nullptr) {
+    auto point = [mask_point_id = mask_position->point_->get_id()] {
+      switch (mask_point_id) {
+        case td_api::maskPointForehead::ID:
+          return 0;
+        case td_api::maskPointEyes::ID:
+          return 1;
+        case td_api::maskPointMouth::ID:
+          return 2;
+        case td_api::maskPointChin::ID:
+          return 3;
+        default:
+          UNREACHABLE();
+          return -1;
+      }
+    }();
+    mask_coords = make_tl_object<telegram_api::maskCoords>(point, mask_position->x_shift_, mask_position->y_shift_,
+                                                           mask_position->scale_);
   }
 
   int32 flags = 0;
