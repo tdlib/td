@@ -3101,7 +3101,8 @@ static bool need_message_entities_changed_warning(const vector<MessageEntity> &o
       continue;
     }
 
-    if (old_pos < old_entities.size() && old_entities[old_pos].type == MessageEntity::Type::MentionName) {
+    if (old_pos < old_entities.size() && (old_entities[old_pos].type == MessageEntity::Type::MentionName ||
+                                          old_entities[old_pos].type == MessageEntity::Type::CustomEmoji)) {
       // server could delete sime MentionName entities
       old_pos++;
       continue;
