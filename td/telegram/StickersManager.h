@@ -692,6 +692,9 @@ class StickersManager final : public Actor {
 
   void on_added_sticker_uploaded(int64 random_id, Result<Unit> result);
 
+  void do_add_sticker_to_set(UserId user_id, string short_name, tl_object_ptr<td_api::inputSticker> &&sticker,
+                             Promise<Unit> &&promise);
+
   void on_sticker_set_thumbnail_uploaded(int64 random_id, Result<Unit> result);
 
   void do_set_sticker_set_thumbnail(UserId user_id, string short_name, tl_object_ptr<td_api::InputFile> &&thumbnail,

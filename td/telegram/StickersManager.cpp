@@ -6535,6 +6535,35 @@ void StickersManager::add_sticker_to_set(UserId user_id, string &short_name,
     return promise.set_error(Status::Error(400, "Sticker set name can't be empty"));
   }
 
+  auto it = short_name_to_sticker_set_id_.find(short_name);
+  const StickerSet *sticker_set = it == short_name_to_sticker_set_id_.end() ? nullptr : get_sticker_set(it->second);
+  if (sticker_set != nullptr && sticker_set->was_loaded) {
+    return do_add_sticker_to_set(user_id, short_name, std::move(sticker), std::move(promise));
+  }
+
+  do_reload_sticker_set(
+      StickerSetId(), make_tl_object<telegram_api::inputStickerSetShortName>(short_name), 0,
+      PromiseCreator::lambda([actor_id = actor_id(this), user_id, short_name, sticker = std::move(sticker),
+                              promise = std::move(promise)](Result<Unit> result) mutable {
+        if (result.is_error()) {
+          promise.set_error(result.move_as_error());
+        } else {
+          send_closure(actor_id, &StickersManager::do_add_sticker_to_set, user_id, std::move(short_name),
+                       std::move(sticker), std::move(promise));
+        }
+      }));
+}
+
+void StickersManager::do_add_sticker_to_set(UserId user_id, string short_name,
+                                            tl_object_ptr<td_api::inputSticker> &&sticker, Promise<Unit> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+
+  auto it = short_name_to_sticker_set_id_.find(short_name);
+  const StickerSet *sticker_set = it == short_name_to_sticker_set_id_.end() ? nullptr : get_sticker_set(it->second);
+  if (sticker_set == nullptr || !sticker_set->was_loaded) {
+    return promise.set_error(Status::Error(400, "Sticker set not found"));
+  }
+
   auto r_file_id = prepare_input_sticker(sticker.get());
   if (r_file_id.is_error()) {
     return promise.set_error(r_file_id.move_as_error());
