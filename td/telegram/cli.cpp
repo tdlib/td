@@ -3635,12 +3635,12 @@ class CliClient final : public Actor {
       ChatId chat_id;
       get_args(args, chat_id);
       vector<td_api::object_ptr<td_api::textEntity>> entities;
-      entities.push_back(
-          td_api::make_object<td_api::textEntity>(0, 2, td_api::make_object<td_api::textEntityTypeCustomEmoji>(1)));
-      entities.push_back(
-          td_api::make_object<td_api::textEntity>(3, 2, td_api::make_object<td_api::textEntityTypeCustomEmoji>(2)));
-      entities.push_back(
-          td_api::make_object<td_api::textEntity>(6, 5, td_api::make_object<td_api::textEntityTypeCustomEmoji>(3)));
+      entities.push_back(td_api::make_object<td_api::textEntity>(
+          0, 2, td_api::make_object<td_api::textEntityTypeCustomEmoji>(5368324170671202286)));
+      entities.push_back(td_api::make_object<td_api::textEntity>(
+          3, 2, td_api::make_object<td_api::textEntityTypeCustomEmoji>(5377637695583426942)));
+      entities.push_back(td_api::make_object<td_api::textEntity>(
+          6, 5, td_api::make_object<td_api::textEntityTypeCustomEmoji>(5368324170671202286)));
       auto text = as_formatted_text("👍 😉 🧑‍🚒", std::move(entities));
       send_message(chat_id, td_api::make_object<td_api::inputMessageText>(std::move(text), false, true), false, false,
                    0);
