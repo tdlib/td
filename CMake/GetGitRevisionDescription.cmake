@@ -69,10 +69,12 @@ function(get_git_head_revision _refspecvar _hashvar)
     return()
   endif()
 
+  find_package(Git)
+
   # Check if the current source dir is a git submodule or a worktree.
   # In both cases .git is a file instead of a directory.
   #
-  if (NOT IS_DIRECTORY ${GIT_DIR})
+  if ((NOT IS_DIRECTORY ${GIT_DIR}) AND Git_FOUND)
     # The following git command will return a non empty string that
     # points to the super project working tree if the current
     # source dir is inside a git submodule.
