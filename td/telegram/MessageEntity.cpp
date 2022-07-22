@@ -209,6 +209,14 @@ td_api::object_ptr<td_api::formattedText> get_formatted_text_object(const Format
       text.text, get_text_entities_object(text.entities, skip_bot_commands, max_media_timestamp));
 }
 
+void remove_unallowed_entities(FormattedText &text, bool to_secret) {
+  if (to_secret) {
+    td::remove_if(text.entities, [](const MessageEntity &entity) {
+      return entity.type == MessageEntity::Type::Spoiler || entity.type == MessageEntity::Type::CustomEmoji;
+    });
+  }
+}
+
 static bool is_word_character(uint32 code) {
   switch (get_unicode_simple_category(code)) {
     case UnicodeSimpleCategory::Letter:
@@ -3270,6 +3278,8 @@ vector<tl_object_ptr<secret_api::MessageEntity>> get_input_secret_message_entiti
       case MessageEntity::Type::MediaTimestamp:
         break;
       case MessageEntity::Type::Spoiler:
+        break;
+      case MessageEntity::Type::CustomEmoji:
         break;
       default:
         UNREACHABLE();

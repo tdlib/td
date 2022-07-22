@@ -4660,8 +4660,13 @@ unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const
       CHECK(result->file_id.is_valid());
       return std::move(result);
     }
-    case MessageContentType::Text:
-      return make_unique<MessageText>(*static_cast<const MessageText *>(content));
+    case MessageContentType::Text: {
+      auto result = make_unique<MessageText>(*static_cast<const MessageText *>(content));
+      if (type == MessageContentDupType::Copy || type == MessageContentDupType::ServerCopy) {
+        remove_unallowed_entities(result->text, to_secret);
+      }
+      return result;
+    }
     case MessageContentType::Venue:
       return make_unique<MessageVenue>(*static_cast<const MessageVenue *>(content));
     case MessageContentType::Video: {
