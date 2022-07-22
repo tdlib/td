@@ -1423,6 +1423,7 @@ void StickersManager::init() {
   if (!disable_animated_emojis_) {
     load_special_sticker_set(add_special_sticker_set(SpecialStickerSetType::animated_emoji()));
   }
+  load_special_sticker_set(add_special_sticker_set(SpecialStickerSetType::premium_gifts()));
 
   if (G()->parameters().use_file_db) {
     auto old_featured_sticker_set_count_str = G()->td_db()->get_binlog_pmc()->get("old_featured_sticker_set_count");
@@ -1614,10 +1615,12 @@ void StickersManager::on_load_special_sticker_set(const SpecialStickerSetType &t
 
   if (type == SpecialStickerSetType::animated_emoji()) {
     set_promises(pending_get_animated_emoji_queries_);
+    try_update_animated_emoji_messages();
     return;
   }
   if (type == SpecialStickerSetType::premium_gifts()) {
     set_promises(pending_get_premium_gift_option_sticker_queries_);
+    try_update_premium_gift_messages();
     return;
   }
 
@@ -3505,13 +3508,7 @@ void StickersManager::on_get_special_sticker_set(const SpecialStickerSetType &ty
 
   G()->td_db()->get_binlog_pmc()->set(type.type_, PSTRING() << sticker_set.id_.get() << ' ' << sticker_set.access_hash_
                                                             << ' ' << sticker_set.short_name_);
-  if (type == SpecialStickerSetType::animated_emoji()) {
-    try_update_animated_emoji_messages();
-  } else if (type == SpecialStickerSetType::premium_gifts()) {
-    try_update_premium_gift_messages();
-  } else if (!type.get_dice_emoji().empty()) {
-    sticker_set.is_being_loaded_ = true;
-  }
+  sticker_set.is_being_loaded_ = true;
   on_load_special_sticker_set(type, Status::OK());
 }
 
