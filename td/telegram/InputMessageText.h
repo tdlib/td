@@ -14,7 +14,7 @@
 
 namespace td {
 
-class ContactsManager;
+class Td;
 
 class InputMessageText {
  public:
@@ -30,7 +30,7 @@ class InputMessageText {
 bool operator==(const InputMessageText &lhs, const InputMessageText &rhs);
 bool operator!=(const InputMessageText &lhs, const InputMessageText &rhs);
 
-Result<InputMessageText> process_input_message_text(const ContactsManager *contacts_manager, DialogId dialog_id,
+Result<InputMessageText> process_input_message_text(const Td *td, DialogId dialog_id,
                                                     tl_object_ptr<td_api::InputMessageContent> &&input_message_content,
                                                     bool is_bot, bool for_draft = false) TD_WARN_UNUSED_RESULT;
 

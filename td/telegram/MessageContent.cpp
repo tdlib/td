@@ -1761,8 +1761,8 @@ static Result<InputMessageContent> create_input_message_content(
   bool is_bot = td->auth_manager_->is_bot();
   switch (input_message_content->get_id()) {
     case td_api::inputMessageText::ID: {
-      TRY_RESULT(input_message_text, process_input_message_text(td->contacts_manager_.get(), dialog_id,
-                                                                std::move(input_message_content), is_bot));
+      TRY_RESULT(input_message_text,
+                 process_input_message_text(td, dialog_id, std::move(input_message_content), is_bot));
       disable_web_page_preview = input_message_text.disable_web_page_preview;
       clear_draft = input_message_text.clear_draft;
 
@@ -4663,7 +4663,7 @@ unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const
     case MessageContentType::Text: {
       auto result = make_unique<MessageText>(*static_cast<const MessageText *>(content));
       if (type == MessageContentDupType::Copy || type == MessageContentDupType::ServerCopy) {
-        remove_unallowed_entities(result->text, to_secret);
+        remove_unallowed_entities(td->stickers_manager_.get(), result->text, to_secret);
       }
       return result;
     }

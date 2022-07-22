@@ -353,8 +353,7 @@ Result<tl_object_ptr<telegram_api::InputBotInlineMessage>> InlineQueriesManager:
 
   auto constructor_id = input_message_content->get_id();
   if (constructor_id == td_api::inputMessageText::ID) {
-    TRY_RESULT(input_message_text, process_input_message_text(td_->contacts_manager_.get(), DialogId(),
-                                                              std::move(input_message_content), true));
+    TRY_RESULT(input_message_text, process_input_message_text(td_, DialogId(), std::move(input_message_content), true));
     int32 flags = 0;
     if (input_reply_markup != nullptr) {
       flags |= telegram_api::inputBotInlineMessageText::REPLY_MARKUP_MASK;

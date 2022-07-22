@@ -1692,6 +1692,11 @@ StickerType StickersManager::get_sticker_type(FileId file_id) const {
   return sticker->type;
 }
 
+bool StickersManager::is_premium_custom_emoji(int64 custom_emoji_id) const {
+  // TODO
+  return false;
+}
+
 vector<td_api::object_ptr<td_api::closedVectorPath>> StickersManager::get_sticker_minithumbnail(
     CSlice path, StickerSetId sticker_set_id, int64 document_id, double zoom) {
   if (path.empty()) {

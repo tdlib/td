@@ -66,7 +66,7 @@ unique_ptr<DraftMessage> get_draft_message(ContactsManager *contacts_manager,
   }
 }
 
-Result<unique_ptr<DraftMessage>> get_draft_message(ContactsManager *contacts_manager, DialogId dialog_id,
+Result<unique_ptr<DraftMessage>> get_draft_message(Td *td, DialogId dialog_id,
                                                    td_api::object_ptr<td_api::draftMessage> &&draft_message) {
   if (draft_message == nullptr) {
     return nullptr;
@@ -85,7 +85,7 @@ Result<unique_ptr<DraftMessage>> get_draft_message(ContactsManager *contacts_man
       return Status::Error(400, "Input message content type must be InputMessageText");
     }
     TRY_RESULT(message_content,
-               process_input_message_text(contacts_manager, dialog_id, std::move(input_message_content), false, true));
+               process_input_message_text(td, dialog_id, std::move(input_message_content), false, true));
     result->input_message_text = std::move(message_content);
   }
 

@@ -6,11 +6,13 @@
 //
 #include "td/telegram/MessageEntity.h"
 
+#include "td/telegram/ConfigShared.h"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/Dependencies.h"
 #include "td/telegram/LinkManager.h"
 #include "td/telegram/misc.h"
 #include "td/telegram/SecretChatLayer.h"
+#include "td/telegram/StickersManager.h"
 
 #include "td/utils/algorithm.h"
 #include "td/utils/format.h"
@@ -209,10 +211,16 @@ td_api::object_ptr<td_api::formattedText> get_formatted_text_object(const Format
       text.text, get_text_entities_object(text.entities, skip_bot_commands, max_media_timestamp));
 }
 
-void remove_unallowed_entities(FormattedText &text, bool to_secret) {
+void remove_unallowed_entities(const StickersManager *stickers_manager, FormattedText &text, bool to_secret) {
   if (to_secret) {
     td::remove_if(text.entities, [](const MessageEntity &entity) {
       return entity.type == MessageEntity::Type::Spoiler || entity.type == MessageEntity::Type::CustomEmoji;
+    });
+  } else if (!G()->shared_config().get_option_boolean("is_premium")) {
+    // remove premium custom emoji
+    td::remove_if(text.entities, [stickers_manager](const MessageEntity &entity) {
+      return entity.type == MessageEntity::Type::CustomEmoji &&
+             stickers_manager->is_premium_custom_emoji(entity.document_id);
     });
   }
 }

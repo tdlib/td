@@ -9,6 +9,7 @@
 #include "td/telegram/ConfigShared.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/MessageEntity.h"
+#include "td/telegram/Td.h"
 
 #include "td/utils/common.h"
 
@@ -23,7 +24,7 @@ bool operator!=(const InputMessageText &lhs, const InputMessageText &rhs) {
   return !(lhs == rhs);
 }
 
-Result<InputMessageText> process_input_message_text(const ContactsManager *contacts_manager, DialogId dialog_id,
+Result<InputMessageText> process_input_message_text(const Td *td, DialogId dialog_id,
                                                     tl_object_ptr<td_api::InputMessageContent> &&input_message_content,
                                                     bool is_bot, bool for_draft) {
   CHECK(input_message_content != nullptr);
@@ -38,8 +39,9 @@ Result<InputMessageText> process_input_message_text(const ContactsManager *conta
     return Status::Error(400, "Message text can't be empty");
   }
 
-  TRY_RESULT(entities, get_message_entities(contacts_manager, std::move(input_message_text->text_->entities_)));
-  auto need_skip_bot_commands = need_always_skip_bot_commands(contacts_manager, dialog_id, is_bot);
+  TRY_RESULT(entities,
+             get_message_entities(td->contacts_manager_.get(), std::move(input_message_text->text_->entities_)));
+  auto need_skip_bot_commands = need_always_skip_bot_commands(td->contacts_manager_.get(), dialog_id, is_bot);
   bool parse_markdown = G()->shared_config().get_option_boolean("always_parse_markdown");
   TRY_STATUS(fix_formatted_text(input_message_text->text_->text_, entities, for_draft, parse_markdown,
                                 need_skip_bot_commands, is_bot || for_draft || parse_markdown, for_draft));
@@ -51,7 +53,7 @@ Result<InputMessageText> process_input_message_text(const ContactsManager *conta
                        is_bot || for_draft, for_draft)
         .ensure();
   }
-  remove_unallowed_entities(result.text, dialog_id.get_type() == DialogType::SecretChat);
+  remove_unallowed_entities(td->stickers_manager_.get(), result.text, dialog_id.get_type() == DialogType::SecretChat);
   return std::move(result);
 }
 

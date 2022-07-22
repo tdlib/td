@@ -18,6 +18,7 @@
 namespace td {
 
 class ContactsManager;
+class Td;
 
 class DraftMessage {
  public:
@@ -31,7 +32,7 @@ td_api::object_ptr<td_api::draftMessage> get_draft_message_object(const unique_p
 unique_ptr<DraftMessage> get_draft_message(ContactsManager *contacts_manager,
                                            telegram_api::object_ptr<telegram_api::DraftMessage> &&draft_message_ptr);
 
-Result<unique_ptr<DraftMessage>> get_draft_message(ContactsManager *contacts_manager, DialogId dialog_id,
+Result<unique_ptr<DraftMessage>> get_draft_message(Td *td, DialogId dialog_id,
                                                    td_api::object_ptr<td_api::draftMessage> &&draft_message);
 
 }  // namespace td

@@ -61,6 +61,8 @@ class StickersManager final : public Actor {
 
   StickerType get_sticker_type(FileId file_id) const;
 
+  bool is_premium_custom_emoji(int64 custom_emoji_id) const;
+
   tl_object_ptr<td_api::sticker> get_sticker_object(FileId file_id, bool for_animated_emoji = false,
                                                     bool for_clicked_animated_emoji = false) const;
 

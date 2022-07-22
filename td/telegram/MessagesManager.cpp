@@ -19748,7 +19748,7 @@ Status MessagesManager::set_dialog_draft_message(DialogId dialog_id, MessageId t
   }
   TRY_STATUS(can_send_message(dialog_id));
 
-  TRY_RESULT(new_draft_message, get_draft_message(td_->contacts_manager_.get(), dialog_id, std::move(draft_message)));
+  TRY_RESULT(new_draft_message, get_draft_message(td_, dialog_id, std::move(draft_message)));
   if (new_draft_message != nullptr) {
     new_draft_message->reply_to_message_id =
         get_reply_to_message_id(d, top_thread_message_id, new_draft_message->reply_to_message_id, true);
@@ -26906,8 +26906,8 @@ void MessagesManager::edit_message_text(FullMessageId full_message_id,
     return promise.set_error(Status::Error(400, "There is no text in the message to edit"));
   }
 
-  auto r_input_message_text = process_input_message_text(
-      td_->contacts_manager_.get(), dialog_id, std::move(input_message_content), td_->auth_manager_->is_bot());
+  auto r_input_message_text =
+      process_input_message_text(td_, dialog_id, std::move(input_message_content), td_->auth_manager_->is_bot());
   if (r_input_message_text.is_error()) {
     return promise.set_error(r_input_message_text.move_as_error());
   }
@@ -27272,8 +27272,8 @@ void MessagesManager::edit_inline_message_text(const string &inline_message_id,
     return promise.set_error(Status::Error(400, "Input message content type must be InputMessageText"));
   }
 
-  auto r_input_message_text = process_input_message_text(
-      td_->contacts_manager_.get(), DialogId(), std::move(input_message_content), td_->auth_manager_->is_bot());
+  auto r_input_message_text =
+      process_input_message_text(td_, DialogId(), std::move(input_message_content), td_->auth_manager_->is_bot());
   if (r_input_message_text.is_error()) {
     return promise.set_error(r_input_message_text.move_as_error());
   }
