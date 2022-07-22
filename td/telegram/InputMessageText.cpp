@@ -51,6 +51,7 @@ Result<InputMessageText> process_input_message_text(const ContactsManager *conta
                        is_bot || for_draft, for_draft)
         .ensure();
   }
+  remove_unallowed_entities(result.text, dialog_id.get_type() == DialogType::SecretChat);
   return std::move(result);
 }
 
