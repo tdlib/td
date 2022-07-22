@@ -5809,34 +5809,16 @@ MessagesManager::MessagesManager(Td *td, ActorShared<> parent)
 }
 
 MessagesManager::~MessagesManager() {
-  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), ttl_nodes_);
-  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), ttl_heap_);
-  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), being_sent_messages_);
-  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), update_message_ids_);
-  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), update_scheduled_message_ids_);
-  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), message_id_to_dialog_id_);
-  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), last_clear_history_message_id_to_dialog_id_);
-  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), dialogs_);
-  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), postponed_chat_read_inbox_updates_);
-  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), found_public_dialogs_);
-  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), found_on_server_dialogs_);
-  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), found_common_dialogs_);
-  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), message_embedding_codes_[0]);
-  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), message_embedding_codes_[1]);
-  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), replied_by_media_timestamp_messages_);
-  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), notification_group_id_to_dialog_id_);
-  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), active_get_channel_differencies_);
-  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), get_channel_difference_to_log_event_id_);
-  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), channel_get_difference_retry_timeouts_);
-  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), is_channel_difference_finished_);
-  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), resolved_usernames_);
-  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), inaccessible_resolved_usernames_);
-  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), dialog_bot_command_message_ids_);
-  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), full_message_id_to_file_source_id_);
-  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), last_outgoing_forwarded_message_date_);
-  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), dialog_viewed_messages_);
-  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), dialog_online_member_counts_);
-  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), previous_repaired_read_inbox_max_message_id_);
+  Scheduler::instance()->destroy_on_scheduler(
+      G()->get_gc_scheduler_id(), ttl_nodes_, ttl_heap_, being_sent_messages_, update_message_ids_,
+      update_scheduled_message_ids_, message_id_to_dialog_id_, last_clear_history_message_id_to_dialog_id_, dialogs_,
+      postponed_chat_read_inbox_updates_, found_public_dialogs_, found_on_server_dialogs_, found_common_dialogs_,
+      message_embedding_codes_[0], message_embedding_codes_[1], replied_by_media_timestamp_messages_,
+      notification_group_id_to_dialog_id_, active_get_channel_differencies_, get_channel_difference_to_log_event_id_,
+      channel_get_difference_retry_timeouts_, is_channel_difference_finished_, resolved_usernames_,
+      inaccessible_resolved_usernames_, dialog_bot_command_message_ids_, full_message_id_to_file_source_id_,
+      last_outgoing_forwarded_message_date_, dialog_viewed_messages_, dialog_online_member_counts_,
+      previous_repaired_read_inbox_max_message_id_);
 }
 
 void MessagesManager::on_channel_get_difference_timeout_callback(void *messages_manager_ptr, int64 dialog_id_int) {

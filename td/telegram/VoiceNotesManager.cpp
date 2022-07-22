@@ -101,9 +101,8 @@ VoiceNotesManager::VoiceNotesManager(Td *td, ActorShared<> parent) : td_(td), pa
 }
 
 VoiceNotesManager::~VoiceNotesManager() {
-  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), voice_notes_);
-  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), voice_note_messages_);
-  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), message_voice_notes_);
+  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), voice_notes_, voice_note_messages_,
+                                              message_voice_notes_);
 }
 
 void VoiceNotesManager::tear_down() {

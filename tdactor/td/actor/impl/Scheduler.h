@@ -179,6 +179,13 @@ inline void Scheduler::destroy_on_scheduler(int32 sched_id, T &value) {
   }
 }
 
+template <class... ArgsT>
+inline void Scheduler::destroy_on_scheduler(int32 sched_id, ArgsT &...values) {
+  destroy_on_scheduler_impl(sched_id, PromiseCreator::lambda([values = std::make_tuple(std::move(values)...)](Unit) {
+                              // destroy values
+                            }));
+}
+
 inline void Scheduler::before_tail_send(const ActorId<> &actor_id) {
   // TODO
 }

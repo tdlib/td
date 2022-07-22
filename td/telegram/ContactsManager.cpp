@@ -3398,43 +3398,16 @@ ContactsManager::ContactsManager(Td *td, ActorShared<> parent) : td_(td), parent
 }
 
 ContactsManager::~ContactsManager() {
-  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), users_);
-  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), users_full_);
-  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), user_photos_);
-  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), unknown_users_);
-  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), pending_user_photos_);
-  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), user_profile_photo_file_source_ids_);
-  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), my_photo_file_id_);
-  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), chats_);
-  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), chats_full_);
-  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), unknown_chats_);
-  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), chat_full_file_source_ids_);
-  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), min_channels_);
-  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), channels_);
-  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), channels_full_);
-  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), unknown_channels_);
-  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), invalidated_channels_full_);
-  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), channel_full_file_source_ids_);
-  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), secret_chats_);
-  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), unknown_secret_chats_);
-  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), secret_chats_with_user_);
-  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), invite_link_infos_);
-  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), dialog_access_by_invite_link_);
-  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), loaded_from_database_users_);
-  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), unavailable_user_fulls_);
-  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), loaded_from_database_chats_);
-  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), unavailable_chat_fulls_);
-  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), loaded_from_database_channels_);
-  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), unavailable_channel_fulls_);
-  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), loaded_from_database_secret_chats_);
-  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), dialog_administrators_);
-  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), cached_channel_participants_);
-  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), resolved_phone_numbers_);
-  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), channel_participants_);
-  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), all_imported_contacts_);
-  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), linked_channel_ids_);
-  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), restricted_user_ids_);
-  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), restricted_channel_ids_);
+  Scheduler::instance()->destroy_on_scheduler(
+      G()->get_gc_scheduler_id(), users_, users_full_, user_photos_, unknown_users_, pending_user_photos_,
+      user_profile_photo_file_source_ids_, my_photo_file_id_, chats_, chats_full_, unknown_chats_,
+      chat_full_file_source_ids_, min_channels_, channels_, channels_full_, unknown_channels_,
+      invalidated_channels_full_, channel_full_file_source_ids_, secret_chats_, unknown_secret_chats_,
+      secret_chats_with_user_, invite_link_infos_, dialog_access_by_invite_link_, loaded_from_database_users_,
+      unavailable_user_fulls_, loaded_from_database_chats_, unavailable_chat_fulls_, loaded_from_database_channels_,
+      unavailable_channel_fulls_, loaded_from_database_secret_chats_, dialog_administrators_,
+      cached_channel_participants_, resolved_phone_numbers_, channel_participants_, all_imported_contacts_,
+      linked_channel_ids_, restricted_user_ids_, restricted_channel_ids_);
 }
 
 void ContactsManager::tear_down() {
