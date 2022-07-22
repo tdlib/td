@@ -20,6 +20,7 @@
 #include "td/telegram/ReplyMarkup.h"
 #include "td/telegram/secret_api.h"
 #include "td/telegram/SecretInputMedia.h"
+#include "td/telegram/StickerType.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/TopDialogCategory.h"
@@ -130,6 +131,8 @@ bool can_forward_message_content(const MessageContent *content);
 bool update_opened_message_content(MessageContent *content);
 
 int32 get_message_content_index_mask(const MessageContent *content, const Td *td, bool is_outgoing);
+
+StickerType get_message_content_sticker_type(const Td *td, const MessageContent *content);
 
 MessageId get_message_content_pinned_message_id(const MessageContent *content);
 

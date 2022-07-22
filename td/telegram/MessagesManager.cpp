@@ -56,6 +56,7 @@
 #include "td/telegram/ReplyMarkup.hpp"
 #include "td/telegram/SecretChatsManager.h"
 #include "td/telegram/SponsoredMessageManager.h"
+#include "td/telegram/StickerType.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"
 #include "td/telegram/TdParameters.h"
@@ -14378,6 +14379,13 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
   }
 
   auto content_type = message_info.content->get_type();
+  if (content_type == MessageContentType::Sticker &&
+      get_message_content_sticker_type(td_, message_info.content.get()) == StickerType::CustomEmoji) {
+    LOG(INFO) << "Replace emoji sticker with an empty message";
+    message_info.content = create_text_message_content("Invalid sticker", {}, WebPageId());
+    content_type = message_info.content->get_type();
+  }
+
   if (hide_edit_date && td_->auth_manager_->is_bot()) {
     hide_edit_date = false;
   }

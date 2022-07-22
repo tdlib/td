@@ -2715,8 +2715,7 @@ Status can_send_message_content(DialogId dialog_id, const MessageContent *conten
       if (!permissions.can_send_stickers()) {
         return Status::Error(400, "Not enough rights to send stickers to the chat");
       }
-      if (td->stickers_manager_->get_sticker_type(static_cast<const MessageSticker *>(content)->file_id) ==
-          StickerType::CustomEmoji) {
+      if (get_message_content_sticker_type(td, content) == StickerType::CustomEmoji) {
         return Status::Error(400, "Can't send emoji stickers in messages");
       }
       break;
@@ -2925,6 +2924,11 @@ static int32 get_message_content_media_index_mask(const MessageContent *content,
 
 int32 get_message_content_index_mask(const MessageContent *content, const Td *td, bool is_outgoing) {
   return get_message_content_text_index_mask(content) | get_message_content_media_index_mask(content, td, is_outgoing);
+}
+
+StickerType get_message_content_sticker_type(const Td *td, const MessageContent *content) {
+  CHECK(content->get_type() == MessageContentType::Sticker);
+  return td->stickers_manager_->get_sticker_type(static_cast<const MessageSticker *>(content)->file_id);
 }
 
 MessageId get_message_content_pinned_message_id(const MessageContent *content) {
