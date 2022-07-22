@@ -518,6 +518,8 @@ class StickersManager final : public Actor {
 
   class UploadStickerFileCallback;
 
+  int64 get_custom_emoji_id(FileId sticker_id) const;
+
   static vector<td_api::object_ptr<td_api::closedVectorPath>> get_sticker_minithumbnail(CSlice path,
                                                                                         StickerSetId sticker_set_id,
                                                                                         int64 document_id, double zoom);
