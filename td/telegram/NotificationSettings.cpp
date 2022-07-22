@@ -119,7 +119,7 @@ static int32 get_mute_until(int32 mute_for) {
     return 0;
   }
 
-  const int32 MAX_PRECISE_MUTE_FOR = 7 * 86400;
+  const int32 MAX_PRECISE_MUTE_FOR = 366 * 86400;
   int32 current_time = G()->unix_time();
   if (mute_for > MAX_PRECISE_MUTE_FOR || mute_for >= std::numeric_limits<int32>::max() - current_time) {
     return std::numeric_limits<int32>::max();
