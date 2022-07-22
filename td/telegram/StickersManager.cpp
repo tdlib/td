@@ -1367,10 +1367,11 @@ StickersManager::StickersManager(Td *td, ActorShared<> parent) : td_(td), parent
 }
 
 StickersManager::~StickersManager() {
-  Scheduler::instance()->destroy_on_scheduler(
-      G()->get_gc_scheduler_id(), stickers_, sticker_sets_, short_name_to_sticker_set_id_, attached_sticker_sets_,
-      found_stickers_, found_sticker_sets_, emoji_language_codes_, emoji_language_code_versions_,
-      emoji_language_code_last_difference_times_, reloaded_emoji_keywords_, dice_messages_, emoji_messages_);
+  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), stickers_, sticker_sets_,
+                                              short_name_to_sticker_set_id_, attached_sticker_sets_, found_stickers_,
+                                              found_sticker_sets_, emoji_language_codes_, emoji_language_code_versions_,
+                                              emoji_language_code_last_difference_times_, reloaded_emoji_keywords_,
+                                              gift_premium_messages_, dice_messages_, emoji_messages_);
 }
 
 void StickersManager::start_up() {
@@ -4796,6 +4797,50 @@ void StickersManager::try_update_animated_emoji_messages() {
   }
   for (const auto &full_message_id : full_message_ids) {
     td_->messages_manager_->on_external_update_message_content(full_message_id);
+  }
+}
+
+void StickersManager::register_gift_premium(int32 months, FullMessageId full_message_id, const char *source) {
+  if (td_->auth_manager_->is_bot() || months == 0) {
+    return;
+  }
+
+  LOG(INFO) << "Register premium gift for " << months << " months from " << full_message_id << " from " << source;
+  bool is_inserted = gift_premium_messages_[months].insert(full_message_id).second;
+  LOG_CHECK(is_inserted) << source << " " << months << " " << full_message_id;
+
+  auto &special_sticker_set = add_special_sticker_set(SpecialStickerSetType::premium_gifts());
+  bool need_load = false;
+  StickerSet *sticker_set = nullptr;
+  if (!special_sticker_set.id_.is_valid()) {
+    need_load = true;
+  } else {
+    sticker_set = get_sticker_set(special_sticker_set.id_);
+    CHECK(sticker_set != nullptr);
+    need_load = !sticker_set->was_loaded;
+  }
+
+  if (need_load) {
+    LOG(INFO) << "Waiting for a premium gifts sticker set needed in " << full_message_id;
+    load_special_sticker_set(special_sticker_set);
+  } else {
+    // TODO reload once in a while
+    // reload_special_sticker_set(special_sticker_set, sticker_set->is_loaded ? sticker_set->hash : 0);
+  }
+}
+
+void StickersManager::unregister_gift_premium(int32 months, FullMessageId full_message_id, const char *source) {
+  if (td_->auth_manager_->is_bot() || months == 0) {
+    return;
+  }
+
+  LOG(INFO) << "Unregister premium gift for " << months << " months from " << full_message_id << " from " << source;
+  auto &message_ids = gift_premium_messages_[months];
+  auto is_deleted = message_ids.erase(full_message_id) > 0;
+  LOG_CHECK(is_deleted) << source << " " << months << " " << full_message_id;
+
+  if (message_ids.empty()) {
+    gift_premium_messages_.erase(months);
   }
 }
 

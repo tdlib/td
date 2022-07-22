@@ -3817,6 +3817,9 @@ void register_message_content(Td *td, const MessageContent *content, FullMessage
       auto dice = static_cast<const MessageDice *>(content);
       return td->stickers_manager_->register_dice(dice->emoji, dice->dice_value, full_message_id, source);
     }
+    case MessageContentType::GiftPremium:
+      return td->stickers_manager_->register_gift_premium(static_cast<const MessageGiftPremium *>(content)->months,
+                                                          full_message_id, source);
     default:
       return;
   }
@@ -3858,6 +3861,12 @@ void reregister_message_content(Td *td, const MessageContent *old_content, const
           return;
         }
         break;
+      case MessageContentType::GiftPremium:
+        if (static_cast<const MessageGiftPremium *>(old_content)->months ==
+            static_cast<const MessageGiftPremium *>(new_content)->months) {
+          return;
+        }
+        break;
       default:
         return;
     }
@@ -3888,6 +3897,9 @@ void unregister_message_content(Td *td, const MessageContent *content, FullMessa
       auto dice = static_cast<const MessageDice *>(content);
       return td->stickers_manager_->unregister_dice(dice->emoji, dice->dice_value, full_message_id, source);
     }
+    case MessageContentType::GiftPremium:
+      return td->stickers_manager_->unregister_gift_premium(static_cast<const MessageGiftPremium *>(content)->months,
+                                                            full_message_id, source);
     default:
       return;
   }

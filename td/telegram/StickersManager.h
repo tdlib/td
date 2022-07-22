@@ -80,6 +80,10 @@ class StickersManager final : public Actor {
 
   tl_object_ptr<telegram_api::InputStickerSet> get_input_sticker_set(StickerSetId sticker_set_id) const;
 
+  void register_gift_premium(int32 months, FullMessageId full_message_id, const char *source);
+
+  void unregister_gift_premium(int32 months, FullMessageId full_message_id, const char *source);
+
   void register_dice(const string &emoji, int32 value, FullMessageId full_message_id, const char *source);
 
   void unregister_dice(const string &emoji, int32 value, FullMessageId full_message_id, const char *source);
@@ -936,6 +940,8 @@ class StickersManager final : public Actor {
   FlatHashMap<string, vector<Promise<Unit>>> load_emoji_keywords_queries_;
   FlatHashMap<string, vector<Promise<Unit>>> load_language_codes_queries_;
   FlatHashMap<int64, string> emoji_suggestions_urls_;
+
+  FlatHashMap<int32, FlatHashSet<FullMessageId, FullMessageIdHash>> gift_premium_messages_;
 
   FlatHashMap<string, FlatHashSet<FullMessageId, FullMessageIdHash>> dice_messages_;
 
