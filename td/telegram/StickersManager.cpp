@@ -1693,8 +1693,17 @@ StickerType StickersManager::get_sticker_type(FileId file_id) const {
 }
 
 bool StickersManager::is_premium_custom_emoji(int64 custom_emoji_id) const {
-  // TODO
-  return false;
+  auto it = custom_emoji_to_sticker_id_.find(custom_emoji_id);
+  if (it == custom_emoji_to_sticker_id_.end()) {
+    // pretend that unknown custom emoji isn't premium
+    return false;
+  }
+  const Sticker *s = get_sticker(it->second);
+  if (s == nullptr) {
+    LOG(ERROR) << "Failed to find custom emoji sticker " << it->second;
+    return false;
+  }
+  return s->is_premium;
 }
 
 int64 StickersManager::get_custom_emoji_id(FileId sticker_id) const {
@@ -2409,6 +2418,17 @@ FileId StickersManager::on_get_sticker(unique_ptr<Sticker> new_sticker, bool rep
     s = std::move(new_sticker);
   } else if (replace) {
     CHECK(s->file_id == file_id);
+
+    if (s->type == StickerType::CustomEmoji) {
+      auto custom_emoji_id = get_custom_emoji_id(file_id);
+      if (custom_emoji_id != 0) {
+        auto it = custom_emoji_to_sticker_id_.find(custom_emoji_id);
+        if (it != custom_emoji_to_sticker_id_.end() && it->second == file_id) {
+          custom_emoji_to_sticker_id_.erase(it);
+        }
+      }
+    }
+
     if (s->dimensions != new_sticker->dimensions && new_sticker->dimensions.width != 0) {
       LOG(DEBUG) << "Sticker " << file_id << " dimensions have changed";
       s->dimensions = new_sticker->dimensions;
@@ -2451,6 +2471,12 @@ FileId StickersManager::on_get_sticker(unique_ptr<Sticker> new_sticker, bool rep
     }
   }
 
+  if (s->type == StickerType::CustomEmoji) {
+    auto custom_emoji_id = get_custom_emoji_id(file_id);
+    if (custom_emoji_id != 0) {
+      custom_emoji_to_sticker_id_[custom_emoji_id] = file_id;
+    }
+  }
   return file_id;
 }
 
