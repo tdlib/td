@@ -76,13 +76,15 @@ class StickersManager final : public Actor {
                                                              const vector<StickerSetId> &sticker_set_ids,
                                                              size_t covers_limit) const;
 
+  td_api::object_ptr<td_api::sticker> get_premium_gift_sticker_object(int32 month_count);
+
   td_api::object_ptr<td_api::animatedEmoji> get_animated_emoji_object(const string &emoji);
 
   tl_object_ptr<telegram_api::InputStickerSet> get_input_sticker_set(StickerSetId sticker_set_id) const;
 
-  void register_gift_premium(int32 months, FullMessageId full_message_id, const char *source);
+  void register_premium_gift(int32 months, FullMessageId full_message_id, const char *source);
 
-  void unregister_gift_premium(int32 months, FullMessageId full_message_id, const char *source);
+  void unregister_premium_gift(int32 months, FullMessageId full_message_id, const char *source);
 
   void register_dice(const string &emoji, int32 value, FullMessageId full_message_id, const char *source);
 
@@ -708,7 +710,13 @@ class StickersManager final : public Actor {
 
   bool update_sticker_set_cache(const StickerSet *sticker_set, Promise<Unit> &promise);
 
-  static FileId get_premium_gift_option_sticker_id(const StickerSet *sticker_set, int32 position);
+  const StickerSet *get_premium_gift_sticker_set();
+
+  static FileId get_premium_gift_option_sticker_id(const StickerSet *sticker_set, int32 month_count);
+
+  FileId get_premium_gift_option_sticker_id(int32 month_count);
+
+  void try_update_premium_gift_messages();
 
   const StickerSet *get_animated_emoji_sticker_set();
 
@@ -941,7 +949,11 @@ class StickersManager final : public Actor {
   FlatHashMap<string, vector<Promise<Unit>>> load_language_codes_queries_;
   FlatHashMap<int64, string> emoji_suggestions_urls_;
 
-  FlatHashMap<int32, FlatHashSet<FullMessageId, FullMessageIdHash>> gift_premium_messages_;
+  struct GiftPremiumMessages {
+    FlatHashSet<FullMessageId, FullMessageIdHash> full_message_ids;
+    FileId sticker_id;
+  };
+  FlatHashMap<int32, unique_ptr<GiftPremiumMessages>> premium_gift_messages_;
 
   FlatHashMap<string, FlatHashSet<FullMessageId, FullMessageIdHash>> dice_messages_;
 

@@ -7906,12 +7906,6 @@ void Td::on_request(uint64 id, const td_api::getPremiumStickers &request) {
   CREATE_REQUEST(SearchStickersRequest, "⭐️⭐️", 100);
 }
 
-void Td::on_request(uint64 id, const td_api::getPremiumGiftOptionSticker &request) {
-  CHECK_IS_USER();
-  CREATE_REQUEST_PROMISE();
-  stickers_manager_->get_premium_gift_option_sticker(request.month_count_, false, std::move(promise));
-}
-
 void Td::on_request(uint64 id, const td_api::viewPremiumFeature &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();

@@ -3818,7 +3818,7 @@ void register_message_content(Td *td, const MessageContent *content, FullMessage
       return td->stickers_manager_->register_dice(dice->emoji, dice->dice_value, full_message_id, source);
     }
     case MessageContentType::GiftPremium:
-      return td->stickers_manager_->register_gift_premium(static_cast<const MessageGiftPremium *>(content)->months,
+      return td->stickers_manager_->register_premium_gift(static_cast<const MessageGiftPremium *>(content)->months,
                                                           full_message_id, source);
     default:
       return;
@@ -3898,7 +3898,7 @@ void unregister_message_content(Td *td, const MessageContent *content, FullMessa
       return td->stickers_manager_->unregister_dice(dice->emoji, dice->dice_value, full_message_id, source);
     }
     case MessageContentType::GiftPremium:
-      return td->stickers_manager_->unregister_gift_premium(static_cast<const MessageGiftPremium *>(content)->months,
+      return td->stickers_manager_->unregister_premium_gift(static_cast<const MessageGiftPremium *>(content)->months,
                                                             full_message_id, source);
     default:
       return;
@@ -5284,7 +5284,8 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
     }
     case MessageContentType::GiftPremium: {
       const auto *m = static_cast<const MessageGiftPremium *>(content);
-      return make_tl_object<td_api::messageGiftedPremium>(m->currency, m->amount, m->months);
+      return make_tl_object<td_api::messageGiftedPremium>(
+          m->currency, m->amount, m->months, td->stickers_manager_->get_premium_gift_sticker_object(m->months));
     }
     default:
       UNREACHABLE();

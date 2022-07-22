@@ -2793,8 +2793,6 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::getEmojiSuggestionsUrl>(args));
     } else if (op == "gces") {
       send_request(td_api::make_object<td_api::getCustomEmojiStickers>(to_integers<int64>(args)));
-    } else if (op == "gpgos") {
-      send_request(td_api::make_object<td_api::getPremiumGiftOptionSticker>(to_integer<int32>(args)));
     } else if (op == "gsan") {
       send_request(td_api::make_object<td_api::getSavedAnimations>());
     } else if (op == "asan") {

@@ -2009,7 +2009,8 @@ messagePaymentSuccessful invoice_chat_id:int53 invoice_message_id:int53 currency
 messagePaymentSuccessfulBot currency:string total_amount:int53 is_recurring:Bool is_first_recurring:Bool invoice_payload:bytes shipping_option_id:string order_info:orderInfo telegram_payment_charge_id:string provider_payment_charge_id:string = MessageContent;
 
 //@description Telegram Premium was gifted to the user @currency Currency for the paid amount @amount The paid amount, in the smallest units of the currency @month_count Number of month the Telegram Premium subscription will be active
-messageGiftedPremium currency:string amount:int53 month_count:int32 = MessageContent;
+//@sticker A sticker to be shown in the message; may be null if unknown
+messageGiftedPremium currency:string amount:int53 month_count:int32 sticker:sticker = MessageContent;
 
 //@description A contact has registered with Telegram
 messageContactRegistered = MessageContent;
@@ -6445,9 +6446,6 @@ getPremiumFeatures source:PremiumSource = PremiumFeatures;
 
 //@description Returns examples of premium stickers for demonstration purposes
 getPremiumStickers = Stickers;
-
-//@description Returns a Premium gift option sticker by its position among Premium options @month_count Number of month the Telegram Premium subscription will be active
-getPremiumGiftOptionSticker month_count:int32 = Sticker;
 
 //@description Informs TDLib that the user viewed detailed information about a Premium feature on the Premium features screen @feature The viewed premium feature
 viewPremiumFeature feature:PremiumFeature = Ok;

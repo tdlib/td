@@ -1371,7 +1371,7 @@ StickersManager::~StickersManager() {
                                               short_name_to_sticker_set_id_, attached_sticker_sets_, found_stickers_,
                                               found_sticker_sets_, emoji_language_codes_, emoji_language_code_versions_,
                                               emoji_language_code_last_difference_times_, reloaded_emoji_keywords_,
-                                              gift_premium_messages_, dice_messages_, emoji_messages_);
+                                              premium_gift_messages_, dice_messages_, emoji_messages_);
 }
 
 void StickersManager::start_up() {
@@ -2217,6 +2217,35 @@ tl_object_ptr<td_api::stickerSetInfo> StickersManager::get_sticker_set_info_obje
       std::move(stickers));
 }
 
+td_api::object_ptr<td_api::sticker> StickersManager::get_premium_gift_sticker_object(int32 month_count) {
+  auto it = premium_gift_messages_.find(month_count);
+  if (it == premium_gift_messages_.end()) {
+    return get_sticker_object(get_premium_gift_option_sticker_id(month_count));
+  } else {
+    return get_sticker_object(it->second->sticker_id);
+  }
+}
+
+const StickersManager::StickerSet *StickersManager::get_premium_gift_sticker_set() {
+  if (td_->auth_manager_->is_bot()) {
+    return nullptr;
+  }
+  auto &special_sticker_set = add_special_sticker_set(SpecialStickerSetType::premium_gifts());
+  if (!special_sticker_set.id_.is_valid()) {
+    load_special_sticker_set(special_sticker_set);
+    return nullptr;
+  }
+
+  auto sticker_set = get_sticker_set(special_sticker_set.id_);
+  CHECK(sticker_set != nullptr);
+  if (!sticker_set->was_loaded) {
+    load_special_sticker_set(special_sticker_set);
+    return nullptr;
+  }
+
+  return sticker_set;
+}
+
 FileId StickersManager::get_premium_gift_option_sticker_id(const StickerSet *sticker_set, int32 month_count) {
   if (sticker_set == nullptr || sticker_set->sticker_ids.empty() || month_count <= 0) {
     return {};
@@ -2252,6 +2281,10 @@ FileId StickersManager::get_premium_gift_option_sticker_id(const StickerSet *sti
 
   // there is no match; return the first sticker
   return sticker_set->sticker_ids[0];
+}
+
+FileId StickersManager::get_premium_gift_option_sticker_id(int32 month_count) {
+  return get_premium_gift_option_sticker_id(get_premium_gift_sticker_set(), month_count);
 }
 
 const StickersManager::StickerSet *StickersManager::get_animated_emoji_sticker_set() {
@@ -3395,6 +3428,9 @@ StickerSetId StickersManager::on_get_messages_sticker_set(StickerSetId sticker_s
   if (set_id == add_special_sticker_set(SpecialStickerSetType::animated_emoji()).id_) {
     try_update_animated_emoji_messages();
   }
+  if (set_id == add_special_sticker_set(SpecialStickerSetType::premium_gifts()).id_) {
+    try_update_premium_gift_messages();
+  }
 
   return set_id;
 }
@@ -3471,6 +3507,8 @@ void StickersManager::on_get_special_sticker_set(const SpecialStickerSetType &ty
                                                             << ' ' << sticker_set.short_name_);
   if (type == SpecialStickerSetType::animated_emoji()) {
     try_update_animated_emoji_messages();
+  } else if (type == SpecialStickerSetType::premium_gifts()) {
+    try_update_premium_gift_messages();
   } else if (!type.get_dice_emoji().empty()) {
     sticker_set.is_being_loaded_ = true;
   }
@@ -4800,47 +4838,57 @@ void StickersManager::try_update_animated_emoji_messages() {
   }
 }
 
-void StickersManager::register_gift_premium(int32 months, FullMessageId full_message_id, const char *source) {
+void StickersManager::try_update_premium_gift_messages() {
+  auto sticker_set = get_premium_gift_sticker_set();
+  vector<FullMessageId> full_message_ids;
+  for (auto &it : premium_gift_messages_) {
+    auto new_sticker_id = get_premium_gift_option_sticker_id(sticker_set, it.first);
+    if (new_sticker_id != it.second->sticker_id) {
+      it.second->sticker_id = new_sticker_id;
+      for (const auto &full_message_id : it.second->full_message_ids) {
+        full_message_ids.push_back(full_message_id);
+      }
+    }
+  }
+  for (const auto &full_message_id : full_message_ids) {
+    td_->messages_manager_->on_external_update_message_content(full_message_id);
+  }
+}
+
+void StickersManager::register_premium_gift(int32 months, FullMessageId full_message_id, const char *source) {
   if (td_->auth_manager_->is_bot() || months == 0) {
     return;
   }
 
   LOG(INFO) << "Register premium gift for " << months << " months from " << full_message_id << " from " << source;
-  bool is_inserted = gift_premium_messages_[months].insert(full_message_id).second;
+  auto &premium_gift_messages_ptr = premium_gift_messages_[months];
+  if (premium_gift_messages_ptr == nullptr) {
+    premium_gift_messages_ptr = make_unique<GiftPremiumMessages>();
+  }
+  auto &premium_gift_messages = *premium_gift_messages_ptr;
+
+  if (premium_gift_messages.full_message_ids.empty()) {
+    premium_gift_messages.sticker_id = get_premium_gift_option_sticker_id(months);
+  }
+
+  bool is_inserted = premium_gift_messages.full_message_ids.insert(full_message_id).second;
   LOG_CHECK(is_inserted) << source << " " << months << " " << full_message_id;
-
-  auto &special_sticker_set = add_special_sticker_set(SpecialStickerSetType::premium_gifts());
-  bool need_load = false;
-  StickerSet *sticker_set = nullptr;
-  if (!special_sticker_set.id_.is_valid()) {
-    need_load = true;
-  } else {
-    sticker_set = get_sticker_set(special_sticker_set.id_);
-    CHECK(sticker_set != nullptr);
-    need_load = !sticker_set->was_loaded;
-  }
-
-  if (need_load) {
-    LOG(INFO) << "Waiting for a premium gifts sticker set needed in " << full_message_id;
-    load_special_sticker_set(special_sticker_set);
-  } else {
-    // TODO reload once in a while
-    // reload_special_sticker_set(special_sticker_set, sticker_set->is_loaded ? sticker_set->hash : 0);
-  }
 }
 
-void StickersManager::unregister_gift_premium(int32 months, FullMessageId full_message_id, const char *source) {
+void StickersManager::unregister_premium_gift(int32 months, FullMessageId full_message_id, const char *source) {
   if (td_->auth_manager_->is_bot() || months == 0) {
     return;
   }
 
   LOG(INFO) << "Unregister premium gift for " << months << " months from " << full_message_id << " from " << source;
-  auto &message_ids = gift_premium_messages_[months];
+  auto it = premium_gift_messages_.find(months);
+  CHECK(it != premium_gift_messages_.end());
+  auto &message_ids = it->second->full_message_ids;
   auto is_deleted = message_ids.erase(full_message_id) > 0;
   LOG_CHECK(is_deleted) << source << " " << months << " " << full_message_id;
 
   if (message_ids.empty()) {
-    gift_premium_messages_.erase(months);
+    premium_gift_messages_.erase(it);
   }
 }
 
