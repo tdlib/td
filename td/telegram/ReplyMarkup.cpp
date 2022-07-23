@@ -221,13 +221,14 @@ static KeyboardButton get_keyboard_button(tl_object_ptr<telegram_api::KeyboardBu
     }
     case telegram_api::keyboardButtonSimpleWebView::ID: {
       auto keyboard_button = move_tl_object_as<telegram_api::keyboardButtonSimpleWebView>(keyboard_button_ptr);
-      button.type = KeyboardButton::Type::WebView;
-      button.text = std::move(keyboard_button->text_);
       auto r_url = LinkManager::check_link(keyboard_button->url_);
       if (r_url.is_error()) {
         LOG(ERROR) << "Keyboard Web App " << r_url.error().message();
-        return {};
+        break;
       }
+
+      button.type = KeyboardButton::Type::WebView;
+      button.text = std::move(keyboard_button->text_);
       button.url = r_url.move_as_ok();
       break;
     }
