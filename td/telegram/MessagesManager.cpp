@@ -20698,7 +20698,8 @@ Status MessagesManager::view_messages(DialogId dialog_id, MessageId top_thread_m
         for (auto file_id : get_message_file_ids(m)) {
           auto file_view = td_->file_manager_->get_file_view(file_id);
           CHECK(!file_view.empty());
-          td_->download_manager_->update_file_viewed(file_view.get_main_file_id(), file_source_id);
+          send_closure(td_->download_manager_actor_, &DownloadManager::update_file_viewed, file_view.get_main_file_id(),
+                       file_source_id);
         }
       }
 
@@ -22867,7 +22868,7 @@ void MessagesManager::remove_message_file_sources(DialogId dialog_id, const Mess
     for (auto file_id : file_ids) {
       auto file_view = td_->file_manager_->get_file_view(file_id);
       send_closure(td_->download_manager_actor_, &DownloadManager::remove_file, file_view.get_main_file_id(),
-                   file_source_id, false);
+                   file_source_id, false, Promise<Unit>());
       td_->file_manager_->remove_file_source(file_id, file_source_id);
     }
   }
@@ -22894,7 +22895,7 @@ void MessagesManager::change_message_files(DialogId dialog_id, const Message *m,
       if (file_source_id.is_valid()) {
         auto file_view = td_->file_manager_->get_file_view(file_id);
         send_closure(td_->download_manager_actor_, &DownloadManager::remove_file, file_view.get_main_file_id(),
-                     file_source_id, false);
+                     file_source_id, false, Promise<Unit>());
       }
     }
   }

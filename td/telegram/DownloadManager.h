@@ -88,14 +88,16 @@ class DownloadManager : public Actor {
   //
   virtual void after_get_difference() = 0;
   virtual Status add_file(FileId file_id, FileSourceId file_source_id, string search_text, int8 priority) = 0;
-  virtual Status change_search_text(FileId file_id, FileSourceId file_source_id, string search_text) = 0;
-  virtual Status toggle_is_paused(FileId file_id, bool is_paused) = 0;
-  virtual Status toggle_all_is_paused(bool is_paused) = 0;
+  virtual void change_search_text(FileId file_id, FileSourceId file_source_id, string search_text) = 0;
+  virtual void remove_file_if_finished(FileId file_id) = 0;
+  virtual void toggle_is_paused(FileId file_id, bool is_paused, Promise<Unit> promise) = 0;
+  virtual void toggle_all_is_paused(bool is_paused, Promise<Unit> promise) = 0;
   virtual void search(string query, bool only_active, bool only_completed, string offset, int32 limit,
                       Promise<td_api::object_ptr<td_api::foundFileDownloads>> promise) = 0;
-  virtual Status remove_file(FileId file_id, FileSourceId file_source_id, bool delete_from_cache) = 0;
-  virtual Status remove_file_if_finished(FileId file_id) = 0;
-  virtual Status remove_all_files(bool only_active, bool only_completed, bool delete_from_cache) = 0;
+  virtual void remove_file(FileId file_id, FileSourceId file_source_id, bool delete_from_cache,
+                           Promise<Unit> promise) = 0;
+  virtual void remove_all_files(bool only_active, bool only_completed, bool delete_from_cache,
+                                Promise<Unit> promise) = 0;
 
   //
   // private interface to handle all kinds of updates

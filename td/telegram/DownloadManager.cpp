@@ -83,15 +83,15 @@ class DownloadManagerImpl final : public DownloadManager {
     load_database_files();
   }
 
-  Status toggle_is_paused(FileId file_id, bool is_paused) final {
-    TRY_STATUS(check_is_active());
-    TRY_RESULT(file_info_ptr, get_file_info(file_id));
+  void toggle_is_paused(FileId file_id, bool is_paused, Promise<Unit> promise) final {
+    TRY_STATUS_PROMISE(promise, check_is_active());
+    TRY_RESULT_PROMISE(promise, file_info_ptr, get_file_info(file_id));
     toggle_is_paused(*file_info_ptr, is_paused);
-    return Status::OK();
+    promise.set_value(Unit());
   }
 
-  Status toggle_all_is_paused(bool is_paused) final {
-    TRY_STATUS(check_is_active());
+  void toggle_all_is_paused(bool is_paused, Promise<Unit> promise) final {
+    TRY_STATUS_PROMISE(promise, check_is_active());
 
     vector<FileId> to_toggle;
     for (auto &it : files_) {
@@ -107,10 +107,14 @@ class DownloadManagerImpl final : public DownloadManager {
       }
     }
 
-    return Status::OK();
+    promise.set_value(Unit());
   }
 
-  Status remove_file(FileId file_id, FileSourceId file_source_id, bool delete_from_cache) final {
+  void remove_file(FileId file_id, FileSourceId file_source_id, bool delete_from_cache, Promise<Unit> promise) final {
+    promise.set_result(remove_file_impl(file_id, file_source_id, delete_from_cache));
+  }
+
+  Status remove_file_impl(FileId file_id, FileSourceId file_source_id, bool delete_from_cache) {
     LOG(INFO) << "Remove from downloads file " << file_id << " from " << file_source_id;
     TRY_STATUS(check_is_active());
     TRY_RESULT(file_info_ptr, get_file_info(file_id, file_source_id));
@@ -140,17 +144,21 @@ class DownloadManagerImpl final : public DownloadManager {
     return Status::OK();
   }
 
-  Status remove_file_if_finished(FileId file_id) {
+  void remove_file_if_finished(FileId file_id) final {
+    remove_file_if_finished_impl(file_id).ignore();
+  }
+
+  Status remove_file_if_finished_impl(FileId file_id) {
     TRY_STATUS(check_is_active());
     TRY_RESULT(file_info_ptr, get_file_info(file_id, {}));
     if (!is_completed(*file_info_ptr)) {
       return Status::Error("File is active");
     }
-    return remove_file(file_id, {}, false);
+    return remove_file_impl(file_id, {}, false);
   }
 
-  Status remove_all_files(bool only_active, bool only_completed, bool delete_from_cache) final {
-    TRY_STATUS(check_is_active());
+  void remove_all_files(bool only_active, bool only_completed, bool delete_from_cache, Promise<Unit> promise) final {
+    TRY_STATUS_PROMISE(promise, check_is_active());
     vector<FileId> to_remove;
     for (auto &it : files_) {
       FileInfo &file_info = *it.second;
@@ -163,15 +171,15 @@ class DownloadManagerImpl final : public DownloadManager {
       to_remove.push_back(file_info.file_id);
     }
     for (auto file_id : to_remove) {
-      remove_file(file_id, {}, delete_from_cache);
+      remove_file_impl(file_id, {}, delete_from_cache);
     }
-    return Status::OK();
+    promise.set_value(Unit());
   }
 
   Status add_file(FileId file_id, FileSourceId file_source_id, string search_text, int8 priority) final {
     TRY_STATUS(check_is_active());
 
-    remove_file(file_id, {}, false);
+    remove_file_impl(file_id, {}, false);
 
     auto download_id = next_download_id();
 
@@ -189,16 +197,20 @@ class DownloadManagerImpl final : public DownloadManager {
     return Status::OK();
   }
 
-  Status change_search_text(FileId file_id, FileSourceId file_source_id, string search_text) final {
+  void change_search_text(FileId file_id, FileSourceId file_source_id, string search_text) final {
     if (!is_search_inited_) {
-      return Status::OK();
+      return;
     }
 
-    TRY_STATUS(check_is_active());
-    TRY_RESULT(file_info_ptr, get_file_info(file_id, file_source_id));
-    auto &file_info = *file_info_ptr;
+    if (check_is_active().is_error()) {
+      return;
+    }
+    auto r_file_info_ptr = get_file_info(file_id, file_source_id);
+    if (r_file_info_ptr.is_error()) {
+      return;
+    }
+    auto &file_info = *r_file_info_ptr.ok();
     hints_.add(file_info.download_id, search_text.empty() ? string(" ") : search_text);
-    return Status::OK();
   }
 
   void hints_synchronized(Result<Unit>) {
@@ -338,7 +350,7 @@ class DownloadManagerImpl final : public DownloadManager {
       return;
     }
     auto &file_info = *r_file_info_ptr.ok();
-    remove_file(file_info.file_id, {}, false);
+    remove_file_impl(file_info.file_id, {}, false);
   }
 
   void update_file_viewed(FileId file_id, FileSourceId file_source_id) final {
@@ -540,7 +552,7 @@ class DownloadManagerImpl final : public DownloadManager {
 
     if (r_search_text.is_error()) {
       if (!G()->close_flag()) {
-        remove_file(it->second->file_id, {}, false);
+        remove_file_impl(it->second->file_id, {}, false);
       }
     } else {
       auto search_text = r_search_text.move_as_ok();
@@ -766,7 +778,7 @@ class DownloadManagerImpl final : public DownloadManager {
     while (completed_download_ids_.size() > MAX_COMPLETED_DOWNLOADS) {
       auto download_id = *completed_download_ids_.begin();
       auto file_info = get_file_info(download_id).move_as_ok();
-      remove_file(file_info->file_id, FileSourceId(), false);
+      remove_file_impl(file_info->file_id, FileSourceId(), false);
     }
   }
 

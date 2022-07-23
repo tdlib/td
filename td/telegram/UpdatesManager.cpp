@@ -1617,7 +1617,7 @@ void UpdatesManager::after_get_difference() {
     }
   }
 
-  td_->download_manager_->after_get_difference();
+  send_closure(td_->download_manager_actor_, &DownloadManager::after_get_difference);
   td_->inline_queries_manager_->after_get_difference();
   td_->messages_manager_->after_get_difference();
   send_closure_later(td_->notification_manager_actor_, &NotificationManager::after_get_difference);
