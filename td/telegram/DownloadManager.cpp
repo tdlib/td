@@ -113,47 +113,8 @@ class DownloadManagerImpl final : public DownloadManager {
     promise.set_result(remove_file_impl(file_id, file_source_id, delete_from_cache));
   }
 
-  Status remove_file_impl(FileId file_id, FileSourceId file_source_id, bool delete_from_cache) {
-    LOG(INFO) << "Remove from downloads file " << file_id << " from " << file_source_id;
-    TRY_STATUS(check_is_active());
-    TRY_RESULT(file_info_ptr, get_file_info(file_id, file_source_id));
-    auto &file_info = *file_info_ptr;
-    auto download_id = file_info.download_id;
-    if (!is_completed(file_info) && !file_info.is_paused) {
-      callback_->pause_file(file_info.internal_file_id);
-    }
-    unregister_file_info(file_info);
-    if (delete_from_cache) {
-      callback_->delete_file(file_info.internal_file_id);
-    }
-    by_internal_file_id_.erase(file_info.internal_file_id);
-    by_file_id_.erase(file_info.file_id);
-    hints_.remove(download_id);
-    completed_download_ids_.erase(download_id);
-
-    remove_from_database(file_info);
-    files_.erase(download_id);
-    if (is_search_inited_) {
-      callback_->update_file_removed(file_id, file_counters_);
-    }
-
-    update_counters();
-    on_file_viewed(download_id);
-
-    return Status::OK();
-  }
-
   void remove_file_if_finished(FileId file_id) final {
     remove_file_if_finished_impl(file_id).ignore();
-  }
-
-  Status remove_file_if_finished_impl(FileId file_id) {
-    TRY_STATUS(check_is_active());
-    TRY_RESULT(file_info_ptr, get_file_info(file_id, {}));
-    if (!is_completed(*file_info_ptr)) {
-      return Status::Error("File is active");
-    }
-    return remove_file_impl(file_id, {}, false);
   }
 
   void remove_all_files(bool only_active, bool only_completed, bool delete_from_cache, Promise<Unit> promise) final {
@@ -609,6 +570,45 @@ class DownloadManagerImpl final : public DownloadManager {
       callback_->update_file_added(it->second->file_id, it->second->file_source_id, it->second->created_at,
                                    it->second->completed_at, it->second->is_paused, file_counters_);
     }
+  }
+
+  Status remove_file_impl(FileId file_id, FileSourceId file_source_id, bool delete_from_cache) {
+    LOG(INFO) << "Remove from downloads file " << file_id << " from " << file_source_id;
+    TRY_STATUS(check_is_active());
+    TRY_RESULT(file_info_ptr, get_file_info(file_id, file_source_id));
+    auto &file_info = *file_info_ptr;
+    auto download_id = file_info.download_id;
+    if (!is_completed(file_info) && !file_info.is_paused) {
+      callback_->pause_file(file_info.internal_file_id);
+    }
+    unregister_file_info(file_info);
+    if (delete_from_cache) {
+      callback_->delete_file(file_info.internal_file_id);
+    }
+    by_internal_file_id_.erase(file_info.internal_file_id);
+    by_file_id_.erase(file_info.file_id);
+    hints_.remove(download_id);
+    completed_download_ids_.erase(download_id);
+
+    remove_from_database(file_info);
+    files_.erase(download_id);
+    if (is_search_inited_) {
+      callback_->update_file_removed(file_id, file_counters_);
+    }
+
+    update_counters();
+    on_file_viewed(download_id);
+
+    return Status::OK();
+  }
+
+  Status remove_file_if_finished_impl(FileId file_id) {
+    TRY_STATUS(check_is_active());
+    TRY_RESULT(file_info_ptr, get_file_info(file_id, {}));
+    if (!is_completed(*file_info_ptr)) {
+      return Status::Error("File is active");
+    }
+    return remove_file_impl(file_id, {}, false);
   }
 
   void timeout_expired() final {
