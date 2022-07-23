@@ -93,8 +93,18 @@ class DownloadManagerImpl final : public DownloadManager {
   Status toggle_all_is_paused(bool is_paused) final {
     TRY_STATUS(check_is_active());
 
+    vector<FileId> to_toggle;
     for (auto &it : files_) {
-      toggle_is_paused(*it.second, is_paused);
+      FileInfo &file_info = *it.second;
+      if (!is_completed(file_info) && is_paused != file_info.is_paused) {
+        to_toggle.push_back(file_info.file_id);
+      }
+    }
+    for (auto file_id : to_toggle) {
+      auto r_file_info_ptr = get_file_info(file_id);
+      if (r_file_info_ptr.is_ok()) {
+        toggle_is_paused(*r_file_info_ptr.ok(), is_paused);
+      }
     }
 
     return Status::OK();
