@@ -54,7 +54,7 @@ struct MapNode {
     DCHECK(empty());
     DCHECK(!other.empty());
     first = std::move(other.first);
-    other.first = KeyT{};
+    other.first = KeyT();
     new (&second) ValueT(std::move(other.second));
     other.second.~ValueT();
   }

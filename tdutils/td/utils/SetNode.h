@@ -20,7 +20,7 @@ struct SetNode {
   using public_type = const KeyT;
   using second_type = KeyT;  // TODO: remove second_type?
 
-  KeyT first{};
+  KeyT first;
 
   const KeyT &key() const {
     return first;
@@ -30,7 +30,8 @@ struct SetNode {
     return first;
   }
 
-  SetNode() = default;
+  SetNode(): first() {
+  }
   explicit SetNode(KeyT key) : first(std::move(key)) {
   }
   SetNode(const SetNode &other) = delete;
@@ -42,7 +43,7 @@ struct SetNode {
     DCHECK(empty());
     DCHECK(!other.empty());
     first = std::move(other.first);
-    other.first = KeyT{};
+    other.first = KeyT();
   }
   ~SetNode() = default;
 
@@ -71,7 +72,7 @@ struct SetNode<KeyT, typename std::enable_if_t<(sizeof(KeyT) > 28 * sizeof(void 
   struct Impl {
     using second_type = KeyT;
 
-    KeyT first{};
+    KeyT first;
 
     template <class InputKeyT>
     explicit Impl(InputKeyT &&key) : first(std::forward<InputKeyT>(key)) {
@@ -99,7 +100,7 @@ struct SetNode<KeyT, typename std::enable_if_t<(sizeof(KeyT) > 28 * sizeof(void 
     return impl_->first;
   }
 
-  SetNode() {
+  SetNode(): impl_() {
   }
   explicit SetNode(KeyT key) : impl_(td::make_unique<Impl>(std::move(key))) {
   }
