@@ -1057,7 +1057,7 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
             nullptr, std::move(user_link), url_query.get_arg("attach").str(), url_query.get_arg("startattach"));
       }
       // resolve?phone=12345
-      return user_link;
+      return std::move(user_link);
     }
   } else if (path.size() == 1 && path[0] == "login") {
     // login?code=123456
