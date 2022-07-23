@@ -6,7 +6,6 @@
 //
 #include "td/telegram/DownloadManager.h"
 
-#include "td/telegram/FileReferenceManager.h"
 #include "td/telegram/files/FileId.hpp"
 #include "td/telegram/files/FileSourceId.hpp"
 #include "td/telegram/Global.h"
@@ -534,13 +533,13 @@ class DownloadManagerImpl final : public DownloadManager {
   void prepare_hints() {
     for (auto &it : files_) {
       const auto &file_info = *it.second;
-      send_closure(G()->file_reference_manager(), &FileReferenceManager::get_file_search_text, file_info.file_source_id,
-                   callback_->get_file_view(file_info.file_id).get_unique_file_id(),
-                   [actor_id = actor_id(this), promise = load_search_text_multipromise_.get_promise(),
-                    download_id = it.first](Result<string> r_search_text) mutable {
-                     send_closure(actor_id, &DownloadManagerImpl::add_download_to_hints, download_id,
-                                  std::move(r_search_text), std::move(promise));
-                   });
+      auto promise =
+          PromiseCreator::lambda([actor_id = actor_id(this), promise = load_search_text_multipromise_.get_promise(),
+                                  download_id = it.first](Result<string> r_search_text) mutable {
+            send_closure(actor_id, &DownloadManagerImpl::add_download_to_hints, download_id, std::move(r_search_text),
+                         std::move(promise));
+          });
+      callback_->get_file_search_text(file_info.file_id, file_info.file_source_id, std::move(promise));
     }
   }
 

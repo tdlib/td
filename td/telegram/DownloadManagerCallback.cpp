@@ -64,6 +64,12 @@ FileId DownloadManagerCallback::dup_file_id(FileId file_id) {
   return td_->file_manager_->dup_file_id(file_id);
 }
 
+void DownloadManagerCallback::get_file_search_text(FileId file_id, FileSourceId file_source_id,
+                                                   Promise<string> &&promise) {
+  send_closure(td_->file_reference_manager_actor_, &FileReferenceManager::get_file_search_text, file_source_id,
+               get_file_view(file_id).get_unique_file_id(), std::move(promise));
+}
+
 FileView DownloadManagerCallback::get_file_view(FileId file_id) {
   return td_->file_manager_->get_file_view(file_id);
 }
