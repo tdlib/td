@@ -50,6 +50,7 @@
 #include "td/telegram/NotificationSettingsManager.h"
 #include "td/telegram/NotificationSound.h"
 #include "td/telegram/NotificationType.h"
+#include "td/telegram/PollId.h"
 #include "td/telegram/PublicDialogType.h"
 #include "td/telegram/ReplyMarkup.h"
 #include "td/telegram/ReplyMarkup.hpp"
@@ -30928,8 +30929,29 @@ void MessagesManager::check_send_message_result(int64 random_id, DialogId dialog
   CHECK(source != nullptr);
   auto sent_messages = UpdatesManager::get_new_messages(updates_ptr);
   auto sent_messages_random_ids = UpdatesManager::get_sent_messages_random_ids(updates_ptr);
+
+  auto is_invalid_poll_message = [](const telegram_api::Message *message) {
+    CHECK(message != nullptr);
+    auto constructor_id = message->get_id();
+    if (constructor_id == telegram_api::messageEmpty::ID) {
+      return true;
+    }
+    if (constructor_id != telegram_api::message::ID) {
+      return false;
+    }
+
+    auto media = static_cast<const telegram_api::message *>(message)->media_.get();
+    if (media == nullptr || media->get_id() != telegram_api::messageMediaPoll::ID) {
+      return false;
+    }
+
+    auto poll = static_cast<const telegram_api::messageMediaPoll *>(media)->poll_.get();
+    return !PollId(poll->id_).is_valid();
+  };
+
   if (sent_messages.size() != 1u || sent_messages_random_ids.size() != 1u ||
-      *sent_messages_random_ids.begin() != random_id || get_message_dialog_id(*sent_messages[0]) != dialog_id) {
+      *sent_messages_random_ids.begin() != random_id || get_message_dialog_id(*sent_messages[0]) != dialog_id ||
+      is_invalid_poll_message(sent_messages[0]->get())) {
     LOG(ERROR) << "Receive wrong result for sending message with random_id " << random_id << " from " << source
                << " to " << dialog_id << ": " << oneline(to_string(*updates_ptr));
     Dialog *d = get_dialog(dialog_id);
