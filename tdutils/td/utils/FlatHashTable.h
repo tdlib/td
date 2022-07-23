@@ -198,13 +198,8 @@ class FlatHashTable {
   };
 
   FlatHashTable() = default;
-  FlatHashTable(const FlatHashTable &other) {
-    assign(other);
-  }
-  void operator=(const FlatHashTable &other) {
-    clear();
-    assign(other);
-  }
+  FlatHashTable(const FlatHashTable &other) = delete;
+  FlatHashTable &operator=(const FlatHashTable &other) = delete;
 
   FlatHashTable(std::initializer_list<NodeT> nodes) {
     if (nodes.size() == 0) {
@@ -249,9 +244,7 @@ class FlatHashTable {
     other.drop();
   }
   ~FlatHashTable() {
-    if (nodes_ != nullptr) {
-      clear_nodes(nodes_);
-    }
+    clear_nodes(nodes_);
   }
 
   void swap(FlatHashTable &other) noexcept {
@@ -431,30 +424,6 @@ class FlatHashTable {
     bucket_count_mask_ = 0;
     bucket_count_ = 0;
     begin_bucket_ = 0;
-  }
-
-  void assign(const FlatHashTable &other) {
-    if (other.size() == 0) {
-      return;
-    }
-    resize(other.bucket_count());
-    auto other_nodes_end = other.nodes_ + other.bucket_count_;
-    for (const NodeT *other_node = other.nodes_; other_node != other_nodes_end; ++other_node) {
-      if (other_node->empty()) {
-        continue;
-      }
-
-      auto bucket = calc_bucket(other_node->key());
-      while (true) {
-        auto &node = nodes_[bucket];
-        if (node.empty()) {
-          node.copy_from(*other_node);
-          break;
-        }
-        next_bucket(bucket);
-      }
-    }
-    used_node_count_ = other.used_node_count_;
   }
 
   NodeT *begin_impl() {

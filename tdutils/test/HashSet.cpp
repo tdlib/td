@@ -124,7 +124,6 @@ TEST(FlatHashMap, basic) {
       ASSERT_EQ(2, kv.second);
     }
     map.erase(map.find(1));
-    auto map_copy = map;
   }
 
   td::FlatHashMap<int, std::array<td::unique_ptr<td::string>, 10>> x;
@@ -159,19 +158,12 @@ TEST(FlatHashMap, basic) {
     }
     ASSERT_EQ(data, extract_kv(kv));
 
-    KV copied_kv(kv);
-    ASSERT_EQ(data, extract_kv(copied_kv));
-
     KV moved_kv(std::move(kv));
     ASSERT_EQ(data, extract_kv(moved_kv));
     ASSERT_EQ(Data{}, extract_kv(kv));
     ASSERT_TRUE(kv.empty());
     kv = std::move(moved_kv);
     ASSERT_EQ(data, extract_kv(kv));
-
-    KV assign_copied_kv;
-    assign_copied_kv = kv;
-    ASSERT_EQ(data, extract_kv(assign_copied_kv));
 
     KV assign_moved_kv;
     assign_moved_kv = std::move(kv);
