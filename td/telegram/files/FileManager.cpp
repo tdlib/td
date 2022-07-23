@@ -2157,7 +2157,9 @@ void FileManager::delete_file(FileId file_id, Promise<Unit> promise, const char 
   if (file_view.has_local_location()) {
     if (begins_with(file_view.local_location().path_, get_files_dir(file_view.get_type()))) {
       clear_from_pmc(node);
-      context_->on_new_file(-file_view.size(), -file_view.get_allocated_local_size(), -1);
+      if (context_->need_notify_on_new_files()) {
+        context_->on_new_file(-file_view.size(), -file_view.get_allocated_local_size(), -1);
+      }
       path = std::move(node->local_.full().path_);
     }
   } else {
@@ -3511,7 +3513,7 @@ void FileManager::on_download_ok(QueryId query_id, FullLocalFileLocation local, 
   if (r_new_file_id.is_error()) {
     status = Status::Error(PSLICE() << "Can't register local file after download: " << r_new_file_id.error().message());
   } else {
-    if (is_new) {
+    if (is_new && context_->need_notify_on_new_files()) {
       context_->on_new_file(size, get_file_view(r_new_file_id.ok()).get_allocated_local_size(), 1);
     }
     auto r_file_id = merge(r_new_file_id.ok(), file_id);
@@ -3684,8 +3686,10 @@ void FileManager::on_generate_ok(QueryId query_id, FullLocalFileLocation local) 
   CHECK(file_node);
 
   FileView file_view(file_node);
-  if (!file_view.has_generate_location() || !begins_with(file_view.generate_location().conversion_, "#file_id#")) {
-    context_->on_new_file(file_view.size(), file_view.get_allocated_local_size(), 1);
+  if (context_->need_notify_on_new_files()) {
+    if (!file_view.has_generate_location() || !begins_with(file_view.generate_location().conversion_, "#file_id#")) {
+      context_->on_new_file(file_view.size(), file_view.get_allocated_local_size(), 1);
+    }
   }
 
   run_upload(file_node, {});

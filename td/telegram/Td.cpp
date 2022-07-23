@@ -3982,6 +3982,10 @@ void Td::init_file_manager() {
     explicit FileManagerContext(Td *td) : td_(td) {
     }
 
+    bool need_notify_on_new_files() final {
+      return !td_->auth_manager_->is_bot();
+    }
+
     void on_new_file(int64 size, int64 real_size, int32 cnt) final {
       send_closure(G()->storage_manager(), &StorageManager::on_new_file, size, real_size, cnt);
     }
@@ -4867,6 +4871,7 @@ void Td::on_request(uint64 id, td_api::getStorageStatistics &request) {
 }
 
 void Td::on_request(uint64 id, td_api::getStorageStatisticsFast &request) {
+  CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
   auto query_promise = PromiseCreator::lambda([promise = std::move(promise)](Result<FileStatsFast> result) mutable {
     if (result.is_error()) {

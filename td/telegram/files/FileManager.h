@@ -382,6 +382,8 @@ class FileManager final : public FileLoadManager::Callback {
 
   class Context {
    public:
+    virtual bool need_notify_on_new_files() = 0;
+
     virtual void on_new_file(int64 size, int64 real_size, int32 cnt) = 0;
 
     virtual void on_file_updated(FileId size) = 0;
