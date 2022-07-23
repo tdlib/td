@@ -76,6 +76,7 @@ class DownloadManager : public Actor {
     virtual void get_file_search_text(FileId file_id, FileSourceId file_source_id, Promise<string> &&promise) = 0;
 
     virtual FileView get_sync_file_view(FileId file_id) = 0;
+    virtual td_api::object_ptr<td_api::file> get_file_object(FileId file_id) = 0;
     virtual td_api::object_ptr<td_api::fileDownload> get_file_download_object(FileId file_id,
                                                                               FileSourceId file_source_id,
                                                                               int32 add_date, int32 complete_date,
@@ -87,10 +88,8 @@ class DownloadManager : public Actor {
   //
   // public interface for user
   //
-  virtual void after_get_difference() = 0;
-  virtual Status add_file(FileId file_id, FileSourceId file_source_id, string search_text, int8 priority) = 0;
-  virtual void change_search_text(FileId file_id, FileSourceId file_source_id, string search_text) = 0;
-  virtual void remove_file_if_finished(FileId file_id) = 0;
+  virtual void add_file(FileId file_id, FileSourceId file_source_id, string search_text, int8 priority,
+                        Promise<td_api::object_ptr<td_api::file>> promise) = 0;
   virtual void toggle_is_paused(FileId file_id, bool is_paused, Promise<Unit> promise) = 0;
   virtual void toggle_all_is_paused(bool is_paused, Promise<Unit> promise) = 0;
   virtual void search(string query, bool only_active, bool only_completed, string offset, int32 limit,
@@ -103,6 +102,9 @@ class DownloadManager : public Actor {
   //
   // private interface to handle all kinds of updates
   //
+  virtual void after_get_difference() = 0;
+  virtual void change_search_text(FileId file_id, FileSourceId file_source_id, string search_text) = 0;
+  virtual void remove_file_if_finished(FileId file_id) = 0;
   virtual void update_file_download_state(FileId internal_file_id, int64 downloaded_size, int64 size,
                                           int64 expected_size, bool is_paused) = 0;
   virtual void update_file_deleted(FileId internal_file_id) = 0;

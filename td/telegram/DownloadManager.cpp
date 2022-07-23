@@ -175,8 +175,9 @@ class DownloadManagerImpl final : public DownloadManager {
     promise.set_value(Unit());
   }
 
-  Status add_file(FileId file_id, FileSourceId file_source_id, string search_text, int8 priority) final {
-    TRY_STATUS(check_is_active());
+  void add_file(FileId file_id, FileSourceId file_source_id, string search_text, int8 priority,
+                Promise<td_api::object_ptr<td_api::file>> promise) final {
+    TRY_STATUS_PROMISE(promise, check_is_active());
 
     remove_file_impl(file_id, {}, false);
 
@@ -193,7 +194,7 @@ class DownloadManagerImpl final : public DownloadManager {
 
     add_file_info(std::move(file_info), search_text);
 
-    return Status::OK();
+    promise.set_value(callback_->get_file_object(file_id));
   }
 
   void change_search_text(FileId file_id, FileSourceId file_source_id, string search_text) final {
