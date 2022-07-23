@@ -1239,7 +1239,7 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_t_me_link_query(Slice q
               nullptr, std::move(user_link), url_query.get_arg("attach").str(), url_query.get_arg("startattach"));
         }
         // /+<phone_number>
-        return user_link;
+        return std::move(user_link);
       } else {
         // /+<link>
         return td::make_unique<InternalLinkDialogInvite>(PSTRING() << "tg:join?invite="
