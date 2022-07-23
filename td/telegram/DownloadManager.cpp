@@ -398,6 +398,7 @@ class DownloadManagerImpl final : public DownloadManager {
   Counters sent_counters_;
   FileCounters file_counters_;
   bool is_inited_{false};
+  bool is_database_being_loaded_{false};
   bool is_database_loaded_{false};
   bool is_search_inited_{false};
   int64 max_download_id_{0};
@@ -510,6 +511,8 @@ class DownloadManagerImpl final : public DownloadManager {
       return;
     }
     CHECK(is_inited_);
+    CHECK(!is_database_being_loaded_);
+    is_database_being_loaded_ = true;
 
     LOG(INFO) << "Start Download Manager database loading";
 
@@ -525,6 +528,7 @@ class DownloadManagerImpl final : public DownloadManager {
     }
 
     is_database_loaded_ = true;
+    is_database_being_loaded_ = false;
     update_counters();
     check_completed_downloads_size();
 
@@ -589,11 +593,8 @@ class DownloadManagerImpl final : public DownloadManager {
               << file_info->size << '/' << file_info->expected_size
               << " with downloaded_size = " << file_info->downloaded_size
               << " and is_paused = " << file_info->is_paused;
-    auto res = files_.emplace(download_id, std::move(file_info));
-    auto it = res.first;
+    auto it = files_.emplace(download_id, std::move(file_info)).first;
     bool was_completed = is_completed(*it->second);
-    LOG_CHECK(!it->second->is_registered)
-        << res.second << ' ' << download_id << ' ' << max_download_id_ << ' ' << it->second->need_save_to_database;
     register_file_info(*it->second);  // must be called before start_file, which can call update_file_download_state
     if (is_completed(*it->second)) {
       bool is_inserted = completed_download_ids_.insert(it->second->download_id).second;
