@@ -27924,8 +27924,8 @@ class MessagesManager::ForwardMessagesLogEvent {
   DialogId from_dialog_id;
   vector<MessageId> message_ids;
   vector<Message *> messages_in;
-  bool drop_author = false;
-  bool drop_media_captions = false;
+  bool drop_author;
+  bool drop_media_captions;
   vector<unique_ptr<Message>> messages_out;
 
   template <class StorerT>
@@ -27947,6 +27947,9 @@ class MessagesManager::ForwardMessagesLogEvent {
       PARSE_FLAG(drop_author);
       PARSE_FLAG(drop_media_captions);
       END_PARSE_FLAGS();
+    } else {
+      drop_author = false;
+      drop_media_captions = false;
     }
     td::parse(to_dialog_id, parser);
     td::parse(from_dialog_id, parser);
