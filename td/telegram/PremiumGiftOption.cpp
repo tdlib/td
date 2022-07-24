@@ -10,6 +10,9 @@
 
 #include "td/utils/common.h"
 
+#include <limits>
+#include <tuple>
+
 namespace td {
 
 PremiumGiftOption::PremiumGiftOption(telegram_api::object_ptr<telegram_api::premiumGiftOption> &&option)
@@ -20,11 +23,28 @@ PremiumGiftOption::PremiumGiftOption(telegram_api::object_ptr<telegram_api::prem
     , store_product_(std::move(option->store_product_)) {
 }
 
-td_api::object_ptr<td_api::premiumGiftOption> PremiumGiftOption::get_premium_gift_option_object() const {
+double PremiumGiftOption::get_monthly_price() const {
+  return static_cast<double>(amount_) / static_cast<double>(months_);
+}
+
+td_api::object_ptr<td_api::premiumGiftOption> PremiumGiftOption::get_premium_gift_option_object(
+    const PremiumGiftOption &base_option) const {
   auto link_type = LinkManager::parse_internal_link(bot_url_, true);
+  int32 discount_percentage = 0;
+  if (base_option.months_ > 0 && months_ > 0 && base_option.amount_ > 0 && amount_ > 0) {
+    double relative_price = get_monthly_price() / base_option.get_monthly_price();
+    if (relative_price < 1.0) {
+      discount_percentage = static_cast<int32>(100 * (1.0 - relative_price));
+    }
+  }
   return td_api::make_object<td_api::premiumGiftOption>(
-      currency_, amount_, months_, store_product_,
+      currency_, amount_, discount_percentage, months_, store_product_,
       link_type == nullptr ? nullptr : link_type->get_internal_link_type_object());
+}
+
+bool operator<(const PremiumGiftOption &lhs, const PremiumGiftOption &rhs) {
+  return std::tie(lhs.months_, lhs.amount_, lhs.currency_, lhs.store_product_, lhs.bot_url_) <
+         std::tie(rhs.months_, rhs.amount_, rhs.currency_, rhs.store_product_, rhs.bot_url_);
 }
 
 bool operator==(const PremiumGiftOption &lhs, const PremiumGiftOption &rhs) {

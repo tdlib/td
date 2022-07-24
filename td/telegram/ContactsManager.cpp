@@ -16769,8 +16769,11 @@ tl_object_ptr<td_api::userFullInfo> ContactsManager::get_user_full_info_object(U
     }
     bio_object = get_formatted_text_object(bio, true, 0);
   }
-  auto premium_gift_options = transform(user_full->premium_gift_options,
-                                        [](const auto &option) { return option.get_premium_gift_option_object(); });
+  auto base_premium_gift_it =
+      std::min_element(user_full->premium_gift_options.begin(), user_full->premium_gift_options.end());
+  auto premium_gift_options = transform(user_full->premium_gift_options, [&base_premium_gift_it](const auto &option) {
+    return option.get_premium_gift_option_object(*base_premium_gift_it);
+  });
   auto voice_messages_forbidden = is_premium ? user_full->voice_messages_forbidden : false;
   return make_tl_object<td_api::userFullInfo>(
       get_chat_photo_object(td_->file_manager_.get(), user_full->photo), user_full->is_blocked,

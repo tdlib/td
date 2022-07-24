@@ -469,10 +469,11 @@ chatAdministratorRights can_manage_chat:Bool can_change_info:Bool can_post_messa
 //@description Describes an option for gifting Telegram Premium to a user
 //@currency ISO 4217 currency code for Telegram Premium subscription payment
 //@amount The amount to pay, in the smallest units of the currency
+//@discount_percentage The discount associated with this gift option, as a percentage
 //@month_count Number of month the Telegram Premium subscription will be active
 //@store_product_id Identifier of the store product associated with the option
 //@payment_link An internal link to be opened for gifting Telegram Premium to the user if store payment isn't possible; may be null if direct payment isn't available
-premiumGiftOption currency:string amount:int53 month_count:int32 store_product_id:string payment_link:InternalLinkType = PremiumGiftOption;
+premiumGiftOption currency:string amount:int53 discount_percentage:int32 month_count:int32 store_product_id:string payment_link:InternalLinkType = PremiumGiftOption;
 
 
 //@description Represents a user
