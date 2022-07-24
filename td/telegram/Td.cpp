@@ -1983,13 +1983,15 @@ class GetScopeNotificationSettingsRequest final : public RequestActor<> {
 };
 
 class GetStickersRequest final : public RequestActor<> {
+  StickerType sticker_type_;
   string emoji_;
   int32 limit_;
 
   vector<FileId> sticker_ids_;
 
   void do_run(Promise<Unit> &&promise) final {
-    sticker_ids_ = td_->stickers_manager_->get_stickers(emoji_, limit_, get_tries() < 2, std::move(promise));
+    sticker_ids_ =
+        td_->stickers_manager_->get_stickers(sticker_type_, emoji_, limit_, get_tries() < 2, std::move(promise));
   }
 
   void do_send_result() final {
@@ -1997,8 +1999,8 @@ class GetStickersRequest final : public RequestActor<> {
   }
 
  public:
-  GetStickersRequest(ActorShared<Td> td, uint64 request_id, string &&emoji, int32 limit)
-      : RequestActor(std::move(td), request_id), emoji_(std::move(emoji)), limit_(limit) {
+  GetStickersRequest(ActorShared<Td> td, uint64 request_id, StickerType sticker_type, string &&emoji, int32 limit)
+      : RequestActor(std::move(td), request_id), sticker_type_(sticker_type), emoji_(std::move(emoji)), limit_(limit) {
     set_tries(5);
   }
 };
@@ -6987,7 +6989,8 @@ void Td::on_request(uint64 id, td_api::closeSecretChat &request) {
 void Td::on_request(uint64 id, td_api::getStickers &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.emoji_);
-  CREATE_REQUEST(GetStickersRequest, std::move(request.emoji_), request.limit_);
+  CREATE_REQUEST(GetStickersRequest, get_sticker_type(request.sticker_type_), std::move(request.emoji_),
+                 request.limit_);
 }
 
 void Td::on_request(uint64 id, td_api::searchStickers &request) {

@@ -3759,20 +3759,21 @@ std::pair<vector<FileId>, vector<FileId>> StickersManager::split_stickers_by_pre
   return {std::move(regular_sticker_ids), std::move(premium_sticker_ids)};
 }
 
-vector<FileId> StickersManager::get_stickers(string emoji, int32 limit, bool force, Promise<Unit> &&promise) {
+vector<FileId> StickersManager::get_stickers(StickerType sticker_type, string emoji, int32 limit, bool force,
+                                             Promise<Unit> &&promise) {
   if (limit <= 0) {
     promise.set_error(Status::Error(400, "Parameter limit must be positive"));
     return {};
   }
-  auto type = static_cast<int32>(StickerType::Regular);
+  auto type = static_cast<int32>(sticker_type);
   if (!are_installed_sticker_sets_loaded_[type]) {
-    load_installed_sticker_sets(StickerType::Regular, std::move(promise));
+    load_installed_sticker_sets(sticker_type, std::move(promise));
     return {};
   }
 
   remove_emoji_modifiers_in_place(emoji);
-  if (!emoji.empty()) {
-    if (!are_recent_stickers_loaded_[0]) {
+  if (!emoji.empty() && sticker_type == StickerType::Regular) {
+    if (!are_recent_stickers_loaded_[0 /*is_attached*/]) {
       load_recent_stickers(false, std::move(promise));
       return {};
     }
@@ -3782,7 +3783,7 @@ vector<FileId> StickersManager::get_stickers(string emoji, int32 limit, bool for
     }
     /*
     if (!are_featured_sticker_sets_loaded_[type]) {
-      load_featured_sticker_sets(StickerType::Regular, std::move(promise));
+      load_featured_sticker_sets(sticker_type, std::move(promise));
       return {};
     }
     */
@@ -3804,7 +3805,7 @@ vector<FileId> StickersManager::get_stickers(string emoji, int32 limit, bool for
   }
 
   vector<FileId> prepend_sticker_ids;
-  if (!emoji.empty()) {
+  if (!emoji.empty() && sticker_type == StickerType::Regular) {
     prepend_sticker_ids.reserve(favorite_sticker_ids_.size() + recent_sticker_ids_[0].size());
     append(prepend_sticker_ids, recent_sticker_ids_[0]);
     for (auto sticker_id : favorite_sticker_ids_) {
@@ -3979,7 +3980,7 @@ vector<FileId> StickersManager::get_stickers(string emoji, int32 limit, bool for
             break;
           }
         }
-        if (sorted.size() < limit_size_t) {
+        if (sorted.size() < limit_size_t && sticker_type == StickerType::Regular) {
           auto premium_count = G()->shared_config().get_option_integer("stickers_premium_by_emoji_num", 0);
           if (premium_count > 0) {
             for (const auto &sticker_id : premium_sticker_ids) {

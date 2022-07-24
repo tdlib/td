@@ -133,7 +133,7 @@ class StickersManager final : public Actor {
                                           tl_object_ptr<telegram_api::InputEncryptedFile> input_file,
                                           BufferSlice thumbnail, int32 layer) const;
 
-  vector<FileId> get_stickers(string emoji, int32 limit, bool force, Promise<Unit> &&promise);
+  vector<FileId> get_stickers(StickerType sticker_type, string emoji, int32 limit, bool force, Promise<Unit> &&promise);
 
   vector<FileId> search_stickers(string emoji, int32 limit, Promise<Unit> &&promise);
 

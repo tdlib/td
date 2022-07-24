@@ -2610,10 +2610,10 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::getUser>(user_id));
     } else if (op == "gsu") {
       send_request(td_api::make_object<td_api::getSupportUser>());
-    } else if (op == "gs") {
+    } else if (op == "gs" || op == "gsmm" || op == "gsee") {
       SearchQuery query;
       get_args(args, query);
-      send_request(td_api::make_object<td_api::getStickers>(query.query, query.limit));
+      send_request(td_api::make_object<td_api::getStickers>(as_sticker_type(op), query.query, query.limit));
     } else if (op == "sst") {
       SearchQuery query;
       get_args(args, query);
@@ -2623,7 +2623,7 @@ class CliClient final : public Actor {
       get_args(args, sticker_set_id);
       send_request(td_api::make_object<td_api::getStickerSet>(sticker_set_id));
     } else if (op == "giss" || op == "gissm" || op == "gisse") {
-      send_request(td_api::make_object<td_api::getInstalledStickerSets>(as_sticker_type(args)));
+      send_request(td_api::make_object<td_api::getInstalledStickerSets>(as_sticker_type(op)));
     } else if (op == "gass" || op == "gassm" || op == "gasse") {
       int64 offset_sticker_set_id;
       string limit;
@@ -2902,7 +2902,7 @@ class CliClient final : public Actor {
       string message_ids;
       get_args(args, chat_id, message_ids);
       send_request(td_api::make_object<td_api::getMessages>(chat_id, as_message_ids(message_ids)));
-    } else if (op == "gsm") {
+    } else if (op == "gcspm") {
       ChatId chat_id;
       get_args(args, chat_id);
       send_request(td_api::make_object<td_api::getChatSponsoredMessage>(chat_id));
