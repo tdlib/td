@@ -28242,9 +28242,20 @@ Result<MessagesManager::ForwardedMessages> MessagesManager::get_forwarded_messag
       continue;
     }
 
+    bool is_broken_server_copy = [&] {
+      switch (forwarded_message->content->get_type()) {
+        case MessageContentType::Poll:
+          return get_message_content_poll_is_closed(td_, forwarded_message->content.get()) ||
+                 td_->auth_manager_->is_bot();
+        case MessageContentType::Dice:
+          return true;
+        default:
+          return false;
+      }
+    }();
+
     bool need_copy = !message_id.is_server() || to_secret || copy_options[i].send_copy;
-    bool is_local_copy = need_copy && !(message_id.is_server() && can_use_server_forward &&
-                                        forwarded_message->content->get_type() != MessageContentType::Dice);
+    bool is_local_copy = need_copy && !(message_id.is_server() && can_use_server_forward && !is_broken_server_copy);
     if (!(need_copy && td_->auth_manager_->is_bot()) && !can_save_message(from_dialog_id, forwarded_message)) {
       LOG(INFO) << "Forward of " << message_id << " is restricted";
       continue;
