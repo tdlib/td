@@ -4449,8 +4449,7 @@ void StickersManager::on_load_installed_sticker_sets_finished(StickerType sticke
     auto sticker_set = get_sticker_set(set_id);
     CHECK(sticker_set != nullptr);
     CHECK(sticker_set->is_inited);
-    CHECK(sticker_set->sticker_type == sticker_type);
-    if (sticker_set->is_installed && !sticker_set->is_archived) {
+    if (sticker_set->is_installed && !sticker_set->is_archived && sticker_set->sticker_type == sticker_type) {
       installed_sticker_set_ids_[type].push_back(set_id);
     } else {
       need_reload = true;
