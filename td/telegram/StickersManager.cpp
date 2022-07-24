@@ -5083,6 +5083,23 @@ void StickersManager::get_all_animated_emojis(bool is_recursive,
 
 void StickersManager::get_custom_emoji_stickers(vector<int64> &&document_ids,
                                                 Promise<td_api::object_ptr<td_api::stickers>> &&promise) {
+  vector<int64> unknown_document_ids;
+  for (auto document_id : document_ids) {
+    if (custom_emoji_to_sticker_id_.count(document_id) == 0) {
+      unknown_document_ids.push_back(document_id);
+    }
+  }
+
+  if (unknown_document_ids.empty()) {
+    vector<td_api::object_ptr<td_api::sticker>> stickers;
+    for (auto document_id : document_ids) {
+      auto sticker = get_sticker_object(custom_emoji_to_sticker_id_[document_id]);
+      CHECK(sticker != nullptr);
+      stickers.push_back(std::move(sticker));
+    }
+    return promise.set_value(td_api::make_object<td_api::stickers>(std::move(stickers)));
+  }
+
   auto query_promise =
       PromiseCreator::lambda([actor_id = actor_id(this), promise = std::move(promise)](
                                  Result<vector<telegram_api::object_ptr<telegram_api::Document>>> r_documents) mutable {
@@ -5105,8 +5122,8 @@ void StickersManager::on_get_custom_emoji_documents(
   for (auto &document : documents) {
     std::pair<int64, FileId> sticker_info = on_get_sticker_document(std::move(document), StickerFormat::Unknown);
     auto sticker = get_sticker_object(sticker_info.second);
-    if (sticker == nullptr) {
-      LOG(ERROR) << "Receive an invalid custom emoji sticker";
+    if (sticker == nullptr || sticker->type_->get_id() != td_api::stickerTypeCustomEmoji::ID) {
+      LOG(ERROR) << "Receive an invalid custom emoji sticker " << to_string(sticker);
       continue;
     }
 
