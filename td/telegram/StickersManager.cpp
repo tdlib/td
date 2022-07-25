@@ -1695,7 +1695,7 @@ StickerType StickersManager::get_sticker_type(FileId file_id) const {
 bool StickersManager::is_premium_custom_emoji(int64 custom_emoji_id) const {
   auto it = custom_emoji_to_sticker_id_.find(custom_emoji_id);
   if (it == custom_emoji_to_sticker_id_.end()) {
-    // pretend that unknown custom emoji isn't premium
+    // pretend that the unknown custom emoji isn't a premium
     return false;
   }
   const Sticker *s = get_sticker(it->second);
@@ -2410,6 +2410,36 @@ tl_object_ptr<telegram_api::InputStickerSet> StickersManager::get_input_sticker_
   return get_input_sticker_set(sticker_set);
 }
 
+class StickersManager::CustomEmojiLogEvent {
+ public:
+  FileId sticker_id;
+
+  CustomEmojiLogEvent() = default;
+
+  explicit CustomEmojiLogEvent(FileId sticker_id) : sticker_id(sticker_id) {
+  }
+
+  template <class StorerT>
+  void store(StorerT &storer) const {
+    BEGIN_STORE_FLAGS();
+    END_STORE_FLAGS();
+    StickersManager *stickers_manager = storer.context()->td().get_actor_unsafe()->stickers_manager_.get();
+    stickers_manager->store_sticker(sticker_id, false, storer, "CustomEmoji");
+  }
+
+  template <class ParserT>
+  void parse(ParserT &parser) {
+    BEGIN_PARSE_FLAGS();
+    END_PARSE_FLAGS();
+    StickersManager *stickers_manager = parser.context()->td().get_actor_unsafe()->stickers_manager_.get();
+    sticker_id = stickers_manager->parse_sticker(false, parser);
+  }
+};
+
+string StickersManager::get_custom_emoji_database_key(int64 custom_emoji_id) {
+  return PSTRING() << "emoji" << custom_emoji_id;
+}
+
 FileId StickersManager::on_get_sticker(unique_ptr<Sticker> new_sticker, bool replace) {
   auto file_id = new_sticker->file_id;
   CHECK(file_id.is_valid());
@@ -2429,45 +2459,63 @@ FileId StickersManager::on_get_sticker(unique_ptr<Sticker> new_sticker, bool rep
       }
     }
 
+    bool is_changed = false;
     if (s->dimensions != new_sticker->dimensions && new_sticker->dimensions.width != 0) {
       LOG(DEBUG) << "Sticker " << file_id << " dimensions have changed";
       s->dimensions = new_sticker->dimensions;
+      is_changed = true;
     }
     if (s->set_id != new_sticker->set_id && new_sticker->set_id.is_valid()) {
       LOG_IF(ERROR, s->set_id.is_valid()) << "Sticker " << file_id << " set_id has changed";
       s->set_id = new_sticker->set_id;
+      is_changed = true;
     }
     if (s->alt != new_sticker->alt && !new_sticker->alt.empty()) {
       LOG(DEBUG) << "Sticker " << file_id << " emoji has changed";
       s->alt = std::move(new_sticker->alt);
+      is_changed = true;
     }
     if (s->minithumbnail != new_sticker->minithumbnail) {
       LOG(DEBUG) << "Sticker " << file_id << " minithumbnail has changed";
       s->minithumbnail = std::move(new_sticker->minithumbnail);
+      is_changed = true;
     }
     if (s->s_thumbnail != new_sticker->s_thumbnail && new_sticker->s_thumbnail.file_id.is_valid()) {
       LOG_IF(INFO, s->s_thumbnail.file_id.is_valid()) << "Sticker " << file_id << " s thumbnail has changed from "
                                                       << s->s_thumbnail << " to " << new_sticker->s_thumbnail;
       s->s_thumbnail = std::move(new_sticker->s_thumbnail);
+      is_changed = true;
     }
     if (s->m_thumbnail != new_sticker->m_thumbnail && new_sticker->m_thumbnail.file_id.is_valid()) {
       LOG_IF(INFO, s->m_thumbnail.file_id.is_valid()) << "Sticker " << file_id << " m thumbnail has changed from "
                                                       << s->m_thumbnail << " to " << new_sticker->m_thumbnail;
       s->m_thumbnail = std::move(new_sticker->m_thumbnail);
+      is_changed = true;
     }
     s->is_premium = new_sticker->is_premium;
     s->premium_animation_file_id = new_sticker->premium_animation_file_id;
     if (s->format != new_sticker->format && new_sticker->format != StickerFormat::Unknown) {
       s->format = new_sticker->format;
+      is_changed = true;
     }
     if (s->type != new_sticker->type && new_sticker->type != StickerType::Regular) {
       s->type = new_sticker->type;
+      is_changed = true;
     }
     if (s->point != new_sticker->point && new_sticker->point != -1) {
       s->point = new_sticker->point;
       s->x_shift = new_sticker->x_shift;
       s->y_shift = new_sticker->y_shift;
       s->scale = new_sticker->scale;
+      is_changed = true;
+    }
+    if (s->emoji_receive_date < new_sticker->emoji_receive_date) {
+      s->emoji_receive_date = new_sticker->emoji_receive_date;
+      is_changed = true;
+    }
+
+    if (is_changed) {
+      s->is_from_database = false;
     }
   }
 
@@ -2475,6 +2523,14 @@ FileId StickersManager::on_get_sticker(unique_ptr<Sticker> new_sticker, bool rep
     auto custom_emoji_id = get_custom_emoji_id(file_id);
     if (custom_emoji_id != 0) {
       custom_emoji_to_sticker_id_[custom_emoji_id] = file_id;
+      if (!s->is_from_database && G()->parameters().use_file_db && !G()->close_flag()) {
+        LOG(INFO) << "Save custom emoji " << custom_emoji_id << " to database";
+        s->is_from_database = true;
+
+        CustomEmojiLogEvent log_event(file_id);
+        G()->td_db()->get_sqlite_pmc()->set(get_custom_emoji_database_key(custom_emoji_id),
+                                            log_event_store(log_event).as_slice().str(), Auto());
+      }
     }
   }
   return file_id;
@@ -2977,6 +3033,7 @@ void StickersManager::create_sticker(FileId file_id, FileId premium_animation_fi
     s->alt = std::move(custom_emoji->alt_);
     s->type = StickerType::CustomEmoji;
     s->is_premium = !custom_emoji->free_;
+    s->emoji_receive_date = G()->unix_time();
   }
   s->format = format;
   on_get_sticker(std::move(s),

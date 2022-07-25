@@ -36,6 +36,7 @@ void StickersManager::store_sticker(FileId file_id, bool in_sticker_set, StorerT
   bool has_premium_animation = sticker->premium_animation_file_id.is_valid();
   bool is_mask = sticker->type == StickerType::Mask;
   bool is_emoji = sticker->type == StickerType::CustomEmoji;
+  bool has_emoji_receive_date = is_emoji && sticker->emoji_receive_date != 0;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(is_mask);
   STORE_FLAG(has_sticker_set_access_hash);
@@ -46,6 +47,7 @@ void StickersManager::store_sticker(FileId file_id, bool in_sticker_set, StorerT
   STORE_FLAG(has_premium_animation);
   STORE_FLAG(is_emoji);
   STORE_FLAG(sticker->is_premium);
+  STORE_FLAG(has_emoji_receive_date);
   END_STORE_FLAGS();
   if (!in_sticker_set) {
     store(sticker->set_id.get(), storer);
@@ -72,6 +74,9 @@ void StickersManager::store_sticker(FileId file_id, bool in_sticker_set, StorerT
   if (has_premium_animation) {
     store(sticker->premium_animation_file_id, storer);
   }
+  if (has_emoji_receive_date) {
+    store(sticker->emoji_receive_date, storer);
+  }
 }
 
 template <class ParserT>
@@ -89,6 +94,7 @@ FileId StickersManager::parse_sticker(bool in_sticker_set, ParserT &parser) {
   bool has_premium_animation;
   bool is_mask;
   bool is_emoji;
+  bool has_emoji_receive_date;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(is_mask);
   PARSE_FLAG(has_sticker_set_access_hash);
@@ -99,6 +105,7 @@ FileId StickersManager::parse_sticker(bool in_sticker_set, ParserT &parser) {
   PARSE_FLAG(has_premium_animation);
   PARSE_FLAG(is_emoji);
   PARSE_FLAG(sticker->is_premium);
+  PARSE_FLAG(has_emoji_receive_date);
   END_PARSE_FLAGS();
   if (is_webm) {
     sticker->format = StickerFormat::Webm;
@@ -159,9 +166,14 @@ FileId StickersManager::parse_sticker(bool in_sticker_set, ParserT &parser) {
     sticker->is_premium = true;
     parse(sticker->premium_animation_file_id, parser);
   }
+  if (has_emoji_receive_date) {
+    parse(sticker->emoji_receive_date, parser);
+  }
+
   if (parser.get_error() != nullptr || !sticker->file_id.is_valid()) {
     return FileId();
   }
+  sticker->is_from_database = true;
   return on_get_sticker(std::move(sticker), false);  // data in the database is always outdated
 }
 

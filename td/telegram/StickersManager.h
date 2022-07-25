@@ -384,10 +384,12 @@ class StickersManager final : public Actor {
     StickerFormat format = StickerFormat::Unknown;
     StickerType type = StickerType::Regular;
     bool is_premium = false;
+    bool is_from_database = false;
     int32 point = -1;
     double x_shift = 0;
     double y_shift = 0;
     double scale = 0;
+    int32 emoji_receive_date = 0;
   };
 
   class StickerSet {
@@ -513,6 +515,7 @@ class StickersManager final : public Actor {
     void parse(ParserT &parser);
   };
 
+  class CustomEmojiLogEvent;
   class StickerListLogEvent;
   class StickerSetListLogEvent;
 
@@ -535,6 +538,8 @@ class StickersManager final : public Actor {
 
   Sticker *get_sticker(FileId file_id);
   const Sticker *get_sticker(FileId file_id) const;
+
+  string get_custom_emoji_database_key(int64 custom_emoji_id);
 
   FileId on_get_sticker(unique_ptr<Sticker> new_sticker, bool replace);
 
