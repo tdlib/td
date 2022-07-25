@@ -1531,7 +1531,7 @@ orderInfo name:string phone_number:string email_address:string shipping_address:
 //@description One shipping option @id Shipping option identifier @title Option title @price_parts A list of objects used to calculate the total shipping costs
 shippingOption id:string title:string price_parts:vector<labeledPricePart> = ShippingOption;
 
-//@description Contains information about saved card credentials @id Unique identifier of the saved credentials @title Title of the saved credentials
+//@description Contains information about saved payment credentials @id Unique identifier of the saved credentials @title Title of the saved credentials
 savedCredentials id:string title:string = SavedCredentials;
 
 
@@ -1574,13 +1574,13 @@ paymentOption title:string url:string = PaymentOption;
 //@payment_provider Information about the payment provider
 //@additional_payment_options The list of additional payment options
 //@saved_order_info Saved server-side order information; may be null
-//@saved_credentials Information about saved card credentials; may be null
+//@saved_credentials The list of saved payment credentials
 //@can_save_credentials True, if the user can choose to save credentials
 //@need_password True, if the user will be able to save credentials protected by a password they set up
 //@product_title Product title
 //@product_description Product description
 //@product_photo Product photo; may be null
-paymentForm id:int64 invoice:invoice seller_bot_user_id:int53 payment_provider_user_id:int53 payment_provider:PaymentProvider additional_payment_options:vector<paymentOption> saved_order_info:orderInfo saved_credentials:savedCredentials can_save_credentials:Bool need_password:Bool product_title:string product_description:formattedText product_photo:photo = PaymentForm;
+paymentForm id:int64 invoice:invoice seller_bot_user_id:int53 payment_provider_user_id:int53 payment_provider:PaymentProvider additional_payment_options:vector<paymentOption> saved_order_info:orderInfo saved_credentials:vector<savedCredentials> can_save_credentials:Bool need_password:Bool product_title:string product_description:formattedText product_photo:photo = PaymentForm;
 
 //@description Contains a temporary identifier of validated order information, which is stored for one hour. Also contains the available shipping options @order_info_id Temporary identifier of the order information @shipping_options Available shipping options
 validatedOrderInfo order_info_id:string shipping_options:vector<shippingOption> = ValidatedOrderInfo;
