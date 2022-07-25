@@ -28086,6 +28086,9 @@ unique_ptr<MessagesManager::MessageForwardInfo> MessagesManager::create_message_
 
 void MessagesManager::fix_forwarded_message(Message *m, DialogId to_dialog_id, const Message *forwarded_message,
                                             int64 media_album_id, bool drop_author) const {
+  if (m->content->get_type() == MessageContentType::Audio) {
+    drop_author = true;
+  }
   bool is_game = m->content->get_type() == MessageContentType::Game;
   if (!drop_author || is_game) {
     m->via_bot_user_id = forwarded_message->via_bot_user_id;
