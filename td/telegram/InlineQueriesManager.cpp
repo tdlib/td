@@ -1215,6 +1215,26 @@ static tl_object_ptr<td_api::closedVectorPath> copy_closed_vector_path(
 }
 
 template <>
+tl_object_ptr<td_api::SpeechRecognitionResult> copy(const td_api::SpeechRecognitionResult &obj) {
+  switch (obj.get_id()) {
+    case td_api::speechRecognitionResultPending::ID:
+      return td_api::make_object<td_api::speechRecognitionResultPending>(
+          static_cast<const td_api::speechRecognitionResultPending &>(obj).partial_text_);
+    case td_api::speechRecognitionResultText::ID:
+      return td_api::make_object<td_api::speechRecognitionResultText>(
+          static_cast<const td_api::speechRecognitionResultText &>(obj).text_);
+    case td_api::speechRecognitionResultError::ID: {
+      auto *error = static_cast<const td_api::speechRecognitionResultError &>(obj).error_.get();
+      return td_api::make_object<td_api::speechRecognitionResultError>(
+          td_api::make_object<td_api::error>(error->code_, error->message_));
+    }
+    default:
+      UNREACHABLE();
+  }
+  return nullptr;
+}
+
+template <>
 tl_object_ptr<td_api::animation> copy(const td_api::animation &obj) {
   return td_api::make_object<td_api::animation>(obj.duration_, obj.width_, obj.height_, obj.file_name_, obj.mime_type_,
                                                 obj.has_stickers_, copy(obj.minithumbnail_), copy(obj.thumbnail_),
@@ -1257,8 +1277,8 @@ tl_object_ptr<td_api::video> copy(const td_api::video &obj) {
 
 template <>
 tl_object_ptr<td_api::voiceNote> copy(const td_api::voiceNote &obj) {
-  return td_api::make_object<td_api::voiceNote>(obj.duration_, obj.waveform_, obj.mime_type_, obj.is_recognized_,
-                                                obj.recognized_text_, copy(obj.voice_));
+  return td_api::make_object<td_api::voiceNote>(obj.duration_, obj.waveform_, obj.mime_type_,
+                                                copy(obj.speech_recognition_result_), copy(obj.voice_));
 }
 
 template <>

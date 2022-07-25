@@ -82,6 +82,7 @@ class VoiceNotesManager final : public Actor {
     string waveform;
     int64 transcription_id = 0;
     string text;
+    Status last_transcription_error;
 
     FileId file_id;
   };

@@ -324,9 +324,8 @@ videoNote duration:int32 length:int32 minithumbnail:minithumbnail thumbnail:thum
 
 //@description Describes a voice note. The voice note must be encoded with the Opus codec, and stored inside an OGG container. Voice notes can have only a single audio channel
 //@duration Duration of the voice note, in seconds; as defined by the sender @waveform A waveform representation of the voice note in 5-bit format
-//@mime_type MIME type of the file; as defined by the sender @is_recognized True, if speech recognition is completed; Premium users only
-//@recognized_text Recognized text of the voice note; Premium users only. Call recognizeSpeech to get recognized text of the voice note @voice File containing the voice note
-voiceNote duration:int32 waveform:bytes mime_type:string is_recognized:Bool recognized_text:string voice:file = VoiceNote;
+//@mime_type MIME type of the file; as defined by the sender @speech_recognition_result Result of speech recognition in the voice note; may be null @voice File containing the voice note
+voiceNote duration:int32 waveform:bytes mime_type:string speech_recognition_result:SpeechRecognitionResult voice:file = VoiceNote;
 
 //@description Describes an animated representation of an emoji
 //@sticker Animated sticker for the emoji
@@ -2595,6 +2594,18 @@ diceStickersSlotMachine background:sticker lever:sticker left_reel:sticker cente
 //@description Represents the result of an ImportContacts request @user_ids User identifiers of the imported contacts in the same order as they were specified in the request; 0 if the contact is not yet a registered user
 //@importer_count The number of users that imported the corresponding contact; 0 for already registered users or if unavailable
 importedContacts user_ids:vector<int53> importer_count:vector<int32> = ImportedContacts;
+
+
+//@class SpeechRecognitionResult @description Describes result of speech recognition in a voice note
+
+//@description The speech recognition is ongoing @partial_text Partially recognized text
+speechRecognitionResultPending partial_text:string = SpeechRecognitionResult;
+
+//@description The speech recognition successfully finished @text Recognized text
+speechRecognitionResultText text:string = SpeechRecognitionResult;
+
+//@description The speech recognition failed @error Received error
+speechRecognitionResultError error:error = SpeechRecognitionResult;
 
 
 //@description Describes a color to highlight a bot added to attachment menu @light_color Color in the RGB24 format for light themes @dark_color Color in the RGB24 format for dark themes
