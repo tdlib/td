@@ -7189,7 +7189,7 @@ void Td::on_request(uint64 id, td_api::getEmojiSuggestionsUrl &request) {
 
 void Td::on_request(uint64 id, td_api::getCustomEmojiStickers &request) {
   CREATE_REQUEST_PROMISE();
-  stickers_manager_->get_custom_emoji_stickers(std::move(request.custom_emoji_ids_), std::move(promise));
+  stickers_manager_->get_custom_emoji_stickers(std::move(request.custom_emoji_ids_), true, std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::getSavedAnimations &request) {

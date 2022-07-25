@@ -101,7 +101,8 @@ class StickersManager final : public Actor {
 
   void get_all_animated_emojis(bool is_recursive, Promise<td_api::object_ptr<td_api::emojis>> &&promise);
 
-  void get_custom_emoji_stickers(vector<int64> &&document_ids, Promise<td_api::object_ptr<td_api::stickers>> &&promise);
+  void get_custom_emoji_stickers(vector<int64> &&document_ids, bool use_database,
+                                 Promise<td_api::object_ptr<td_api::stickers>> &&promise);
 
   void get_premium_gift_option_sticker(int32 month_count, bool is_recursive,
                                        Promise<td_api::object_ptr<td_api::sticker>> &&promise);
@@ -541,6 +542,10 @@ class StickersManager final : public Actor {
 
   string get_custom_emoji_database_key(int64 custom_emoji_id);
 
+  void load_custom_emoji_sticker_from_database(int64 custom_emoji_id, Promise<Unit> &&promise);
+
+  void on_load_custom_emoji_from_database(int64 custom_emoji_id, string value);
+
   FileId on_get_sticker(unique_ptr<Sticker> new_sticker, bool replace);
 
   StickerSet *get_sticker_set(StickerSetId sticker_set_id);
@@ -918,6 +923,8 @@ class StickersManager final : public Actor {
 
   FlatHashMap<uint32, StickerSetLoadRequest> sticker_set_load_requests_;
   uint32 current_sticker_set_load_request_ = 0;
+
+  FlatHashMap<int64, vector<Promise<Unit>>> custom_emoji_load_queries_;
 
   FlatHashMap<int64, unique_ptr<PendingNewStickerSet>> pending_new_sticker_sets_;
 

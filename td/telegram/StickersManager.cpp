@@ -2510,6 +2510,7 @@ FileId StickersManager::on_get_sticker(unique_ptr<Sticker> new_sticker, bool rep
       is_changed = true;
     }
     if (s->emoji_receive_date < new_sticker->emoji_receive_date) {
+      LOG(DEBUG) << "Update custom emoji file " << file_id << " receive date";
       s->emoji_receive_date = new_sticker->emoji_receive_date;
       is_changed = true;
     }
@@ -5138,8 +5139,49 @@ void StickersManager::get_all_animated_emojis(bool is_recursive,
   promise.set_value(td_api::make_object<td_api::emojis>(std::move(emojis)));
 }
 
-void StickersManager::get_custom_emoji_stickers(vector<int64> &&document_ids,
+void StickersManager::load_custom_emoji_sticker_from_database(int64 custom_emoji_id, Promise<Unit> &&promise) {
+  auto &queries = custom_emoji_load_queries_[custom_emoji_id];
+  queries.push_back(std::move(promise));
+  if (queries.size() == 1) {
+    LOG(INFO) << "Trying to load custom emoji " << custom_emoji_id << " from database";
+    G()->td_db()->get_sqlite_pmc()->get(
+        get_custom_emoji_database_key(custom_emoji_id), PromiseCreator::lambda([custom_emoji_id](string value) {
+          send_closure(G()->stickers_manager(), &StickersManager::on_load_custom_emoji_from_database, custom_emoji_id,
+                       std::move(value));
+        }));
+  }
+}
+
+void StickersManager::on_load_custom_emoji_from_database(int64 custom_emoji_id, string value) {
+  if (G()->close_flag()) {
+    return;
+  }
+
+  if (!value.empty()) {
+    LOG(INFO) << "Successfully loaded custom emoji " << custom_emoji_id << " of size " << value.size()
+              << " from database";
+    CustomEmojiLogEvent log_event;
+    if (log_event_parse(log_event, value).is_error()) {
+      LOG(ERROR) << "Delete invalid custom emoji " << custom_emoji_id << " value from database";
+      G()->td_db()->get_sqlite_pmc()->erase(get_custom_emoji_database_key(custom_emoji_id), Auto());
+    }
+  } else {
+    LOG(INFO) << "Failed to load custom emoji " << custom_emoji_id << " from database";
+  }
+
+  auto it = custom_emoji_load_queries_.find(custom_emoji_id);
+  CHECK(it != custom_emoji_load_queries_.end());
+  CHECK(!it->second.empty());
+  auto promises = std::move(it->second);
+  custom_emoji_load_queries_.erase(it);
+
+  set_promises(promises);
+}
+
+void StickersManager::get_custom_emoji_stickers(vector<int64> &&document_ids, bool use_database,
                                                 Promise<td_api::object_ptr<td_api::stickers>> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+
   vector<int64> unknown_document_ids;
   for (auto document_id : document_ids) {
     if (custom_emoji_to_sticker_id_.count(document_id) == 0) {
@@ -5155,6 +5197,22 @@ void StickersManager::get_custom_emoji_stickers(vector<int64> &&document_ids,
       stickers.push_back(std::move(sticker));
     }
     return promise.set_value(td_api::make_object<td_api::stickers>(std::move(stickers)));
+  }
+
+  if (use_database && G()->parameters().use_file_db) {
+    MultiPromiseActorSafe mpas{"LoadCustomEmojiMultiPromiseActor"};
+    mpas.add_promise(
+        PromiseCreator::lambda([actor_id = actor_id(this), document_ids, promise = std::move(promise)](Unit) mutable {
+          send_closure(actor_id, &StickersManager::get_custom_emoji_stickers, std::move(document_ids), false,
+                       std::move(promise));
+        }));
+
+    auto lock = mpas.get_promise();
+    for (auto document_id : unknown_document_ids) {
+      load_custom_emoji_sticker_from_database(document_id, mpas.get_promise());
+    }
+
+    return lock.set_value(Unit());
   }
 
   auto query_promise =
