@@ -3720,6 +3720,9 @@ internalLinkTypePublicChat chat_username:string = InternalLinkType;
 //-"This code can be used to allow someone to log in to your Telegram account. To confirm Telegram login, please go to Settings > Devices > Scan QR and scan the code" needs to be shown
 internalLinkTypeQrCodeAuthentication = InternalLinkType;
 
+//@description The link forces restore of App Store purchases when opened. For official iOS application only
+internalLinkTypeRestorePurchases = InternalLinkType;
+
 //@description The link is a link to application settings
 internalLinkTypeSettings = InternalLinkType;
 

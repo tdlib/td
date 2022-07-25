@@ -112,6 +112,7 @@ class LinkManager final : public Actor {
   class InternalLinkProxy;
   class InternalLinkPublicDialog;
   class InternalLinkQrCodeAuthentication;
+  class InternalLinkRestorePurchases;
   class InternalLinkSettings;
   class InternalLinkStickerSet;
   class InternalLinkTheme;

@@ -201,6 +201,9 @@ TEST(Link, parse_internal_link) {
   auto qr_code_authentication = [] {
     return td::td_api::make_object<td::td_api::internalLinkTypeQrCodeAuthentication>();
   };
+  auto restore_purchases = [] {
+    return td::td_api::make_object<td::td_api::internalLinkTypeRestorePurchases>();
+  };
   auto settings = [] {
     return td::td_api::make_object<td::td_api::internalLinkTypeSettings>();
   };
@@ -509,6 +512,14 @@ TEST(Link, parse_internal_link) {
 
   parse_internal_link("tg:login?token=abacaba", qr_code_authentication());
   parse_internal_link("tg:login?token=", unknown_deep_link("tg://login?token="));
+
+  parse_internal_link("tg:restore_purchases?token=abacaba", restore_purchases());
+  parse_internal_link("tg:restore_purchases?#", restore_purchases());
+  parse_internal_link("tg:restore_purchases/?#", restore_purchases());
+  parse_internal_link("tg:restore_purchases", restore_purchases());
+  parse_internal_link("tg:restore_purchase", unknown_deep_link("tg://restore_purchase"));
+  parse_internal_link("tg:restore_purchasess", unknown_deep_link("tg://restore_purchasess"));
+  parse_internal_link("tg:restore_purchases/test?#", unknown_deep_link("tg://restore_purchases/test?"));
 
   parse_internal_link("t.me/joinchat?invite=abcdef", nullptr);
   parse_internal_link("t.me/joinchat", nullptr);
