@@ -5216,6 +5216,11 @@ void StickersManager::get_custom_emoji_stickers(vector<int64> &&document_ids, bo
                                                 Promise<td_api::object_ptr<td_api::stickers>> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
 
+  constexpr size_t MAX_CUSTOME_EMOJI_IDS = 200;  // server-side limit
+  if (document_ids.size() > MAX_CUSTOME_EMOJI_IDS) {
+    return promise.set_error(Status::Error(400, "Too many custom emoji identifiers specified"));
+  }
+
   td::unique(document_ids);
 
   vector<int64> unknown_document_ids;
