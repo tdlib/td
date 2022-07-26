@@ -796,7 +796,10 @@ class StickersManager final : public Actor {
 
   static void add_sticker_thumbnail(Sticker *s, PhotoSize thumbnail);
 
-  void on_get_custom_emoji_documents(Result<vector<telegram_api::object_ptr<telegram_api::Document>>> r_documents,
+  td_api::object_ptr<td_api::stickers> get_custom_emoji_stickers_object(const vector<int64> &document_ids) const;
+
+  void on_get_custom_emoji_documents(Result<vector<telegram_api::object_ptr<telegram_api::Document>>> &&r_documents,
+                                     vector<int64> &&document_ids,
                                      Promise<td_api::object_ptr<td_api::stickers>> &&promise);
 
   static string get_emoji_language_code_version_database_key(const string &language_code);
