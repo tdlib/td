@@ -88,6 +88,9 @@ function(td_set_up_compiler)
   # _FILE_OFFSET_BITS is broken in Android NDK r15, r15b and r17 and doesn't work prior to Android 7.0
   add_definitions(-D_FILE_OFFSET_BITS=64)
 
+  # _GNU_SOURCE might not be defined by g++
+  add_definitions(-D_GNU_SOURCE)
+
   if (CMAKE_SYSTEM_NAME STREQUAL "SunOS")
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lsocket -lnsl")
     if (ILLUMOS)
