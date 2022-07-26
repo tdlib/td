@@ -386,6 +386,7 @@ class StickersManager final : public Actor {
     StickerType type = StickerType::Regular;
     bool is_premium = false;
     bool is_from_database = false;
+    bool is_being_reloaded = false;
     int32 point = -1;
     double x_shift = 0;
     double y_shift = 0;
@@ -796,7 +797,7 @@ class StickersManager final : public Actor {
 
   static void add_sticker_thumbnail(Sticker *s, PhotoSize thumbnail);
 
-  td_api::object_ptr<td_api::stickers> get_custom_emoji_stickers_object(const vector<int64> &document_ids) const;
+  td_api::object_ptr<td_api::stickers> get_custom_emoji_stickers_object(const vector<int64> &document_ids);
 
   void on_get_custom_emoji_documents(Result<vector<telegram_api::object_ptr<telegram_api::Document>>> &&r_documents,
                                      vector<int64> &&document_ids,

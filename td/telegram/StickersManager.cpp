@@ -2521,6 +2521,7 @@ FileId StickersManager::on_get_sticker(unique_ptr<Sticker> new_sticker, bool rep
   }
 
   if (s->type == StickerType::CustomEmoji) {
+    s->is_being_reloaded = false;
     auto custom_emoji_id = get_custom_emoji_id(file_id);
     if (custom_emoji_id != 0) {
       custom_emoji_to_sticker_id_[custom_emoji_id] = file_id;
@@ -5179,8 +5180,10 @@ void StickersManager::on_load_custom_emoji_from_database(int64 custom_emoji_id, 
 }
 
 td_api::object_ptr<td_api::stickers> StickersManager::get_custom_emoji_stickers_object(
-    const vector<int64> &document_ids) const {
+    const vector<int64> &document_ids) {
   vector<td_api::object_ptr<td_api::sticker>> stickers;
+  auto update_before_date = G()->unix_time() - 86400;
+  vector<int64> reload_document_ids;
   for (auto document_id : document_ids) {
     auto it = custom_emoji_to_sticker_id_.find(document_id);
     if (it == custom_emoji_to_sticker_id_.end()) {
@@ -5188,8 +5191,23 @@ td_api::object_ptr<td_api::stickers> StickersManager::get_custom_emoji_stickers_
     }
     auto sticker = get_sticker_object(it->second);
     if (sticker != nullptr && sticker->type_->get_id() == td_api::stickerTypeCustomEmoji::ID) {
+      auto s = get_sticker(it->second);
+      if (s->emoji_receive_date < update_before_date && !s->is_being_reloaded) {
+        s->is_being_reloaded = true;
+        reload_document_ids.push_back(document_id);
+      }
       stickers.push_back(std::move(sticker));
     }
+  }
+  if (!reload_document_ids.empty()) {
+    LOG(INFO) << "Reload documents " << reload_document_ids;
+    auto promise = PromiseCreator::lambda(
+        [actor_id =
+             actor_id(this)](Result<vector<telegram_api::object_ptr<telegram_api::Document>>> r_documents) mutable {
+          send_closure(actor_id, &StickersManager::on_get_custom_emoji_documents, std::move(r_documents),
+                       vector<int64>(), Promise<td_api::object_ptr<td_api::stickers>>());
+        });
+    td_->create_handler<GetCustomEmojiDocumentsQuery>(std::move(promise))->send(std::move(reload_document_ids));
   }
   return td_api::make_object<td_api::stickers>(std::move(stickers));
 }
