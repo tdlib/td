@@ -1116,8 +1116,9 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
       return td::make_unique<InternalLinkDialogInvite>(PSTRING() << "tg:join?invite="
                                                                  << url_encode(get_url_query_hash(true, url_query)));
     }
-  } else if (path.size() == 1 && path[0] == "addstickers") {
+  } else if (path.size() == 1 && (path[0] == "addstickers" || path[0] == "addemoji")) {
     // addstickers?set=<name>
+    // addemoji?set=<name>
     if (has_arg("set")) {
       return td::make_unique<InternalLinkStickerSet>(get_arg("set"));
     }
@@ -1255,9 +1256,10 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_t_me_link_query(Slice q
                                                                    << url_encode(get_url_query_hash(false, url_query)));
       }
     }
-  } else if (path[0] == "addstickers") {
+  } else if (path[0] == "addstickers" || path[0] == "addemoji") {
     if (path.size() >= 2 && !path[1].empty()) {
       // /addstickers/<name>
+      // /addemoji/<name>
       return td::make_unique<InternalLinkStickerSet>(path[1]);
     }
   } else if (path[0] == "setlanguage") {

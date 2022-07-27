@@ -585,6 +585,24 @@ TEST(Link, parse_internal_link) {
   parse_internal_link("tg:addstickers?set=abc%30ef", sticker_set("abc0ef"));
   parse_internal_link("tg://addstickers?set=", unknown_deep_link("tg://addstickers?set="));
 
+  parse_internal_link("t.me/addemoji?set=abcdef", nullptr);
+  parse_internal_link("t.me/addemoji", nullptr);
+  parse_internal_link("t.me/addemoji/", nullptr);
+  parse_internal_link("t.me/addemoji//abcdef", nullptr);
+  parse_internal_link("t.me/addemoji?/abcdef", nullptr);
+  parse_internal_link("t.me/addemoji/?abcdef", nullptr);
+  parse_internal_link("t.me/addemoji/#abcdef", nullptr);
+  parse_internal_link("t.me/addemoji/abacaba", sticker_set("abacaba"));
+  parse_internal_link("t.me/addemoji/aba%20aba", sticker_set("aba aba"));
+  parse_internal_link("t.me/addemoji/123456a", sticker_set("123456a"));
+  parse_internal_link("t.me/addemoji/12345678901", sticker_set("12345678901"));
+  parse_internal_link("t.me/addemoji/123456", sticker_set("123456"));
+  parse_internal_link("t.me/addemoji/123456/123123/12/31/a/s//21w/?asdas#test", sticker_set("123456"));
+
+  parse_internal_link("tg:addemoji?set=abcdef", sticker_set("abcdef"));
+  parse_internal_link("tg:addemoji?set=abc%30ef", sticker_set("abc0ef"));
+  parse_internal_link("tg://addemoji?set=", unknown_deep_link("tg://addemoji?set="));
+
   parse_internal_link("t.me/confirmphone?hash=abc%30ef&phone=", nullptr);
   parse_internal_link("t.me/confirmphone/123456/123123/12/31/a/s//21w/?hash=abc%30ef&phone=123456789",
                       phone_number_confirmation("abc0ef", "123456789"));
