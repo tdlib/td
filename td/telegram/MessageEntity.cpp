@@ -3545,7 +3545,9 @@ vector<MessageEntity> get_message_entities(const ContactsManager *contacts_manag
   return entities;
 }
 
-vector<MessageEntity> get_message_entities(vector<tl_object_ptr<secret_api::MessageEntity>> &&secret_entities) {
+vector<MessageEntity> get_message_entities(const Td *td,
+                                           vector<tl_object_ptr<secret_api::MessageEntity>> &&secret_entities,
+                                           bool is_premium) {
   vector<MessageEntity> entities;
   entities.reserve(secret_entities.size());
   for (auto &secret_entity : secret_entities) {
@@ -3650,7 +3652,10 @@ vector<MessageEntity> get_message_entities(vector<tl_object_ptr<secret_api::Mess
       }
       case secret_api::messageEntityCustomEmoji::ID: {
         auto entity = static_cast<const secret_api::messageEntityCustomEmoji *>(secret_entity.get());
-        entities.emplace_back(MessageEntity::Type::CustomEmoji, entity->offset_, entity->length_, entity->document_id_);
+        if (is_premium || !td->stickers_manager_->is_premium_custom_emoji(entity->document_id_)) {
+          entities.emplace_back(MessageEntity::Type::CustomEmoji, entity->offset_, entity->length_,
+                                entity->document_id_);
+        }
         break;
       }
       default:
@@ -4425,7 +4430,8 @@ void remove_unallowed_entities(const Td *td, FormattedText &text, DialogId dialo
       sort_entities(text.entities);
       remove_intersecting_entities(text.entities);
     }
-  } else if (!G()->shared_config().get_option_boolean("is_premium")) {
+  }
+  if (!G()->shared_config().get_option_boolean("is_premium")) {
     // remove premium custom emoji
     td::remove_if(text.entities, [td](const MessageEntity &entity) {
       return entity.type == MessageEntity::Type::CustomEmoji &&
