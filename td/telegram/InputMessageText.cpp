@@ -53,7 +53,7 @@ Result<InputMessageText> process_input_message_text(const Td *td, DialogId dialo
                        is_bot || for_draft, for_draft)
         .ensure();
   }
-  remove_unallowed_entities(td->stickers_manager_.get(), result.text, dialog_id.get_type() == DialogType::SecretChat);
+  remove_unallowed_entities(td, result.text, dialog_id);
   return std::move(result);
 }
 

@@ -4663,7 +4663,7 @@ unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const
     case MessageContentType::Text: {
       auto result = make_unique<MessageText>(*static_cast<const MessageText *>(content));
       if (type == MessageContentDupType::Copy || type == MessageContentDupType::ServerCopy) {
-        remove_unallowed_entities(td->stickers_manager_.get(), result->text, to_secret);
+        remove_unallowed_entities(td, result->text, dialog_id);
       }
       return result;
     }

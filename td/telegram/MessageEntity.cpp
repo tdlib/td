@@ -13,6 +13,7 @@
 #include "td/telegram/misc.h"
 #include "td/telegram/SecretChatLayer.h"
 #include "td/telegram/StickersManager.h"
+#include "td/telegram/Td.h"
 
 #include "td/utils/algorithm.h"
 #include "td/utils/format.h"
@@ -209,20 +210,6 @@ td_api::object_ptr<td_api::formattedText> get_formatted_text_object(const Format
                                                                     int32 max_media_timestamp) {
   return td_api::make_object<td_api::formattedText>(
       text.text, get_text_entities_object(text.entities, skip_bot_commands, max_media_timestamp));
-}
-
-void remove_unallowed_entities(const StickersManager *stickers_manager, FormattedText &text, bool to_secret) {
-  if (to_secret) {
-    td::remove_if(text.entities, [](const MessageEntity &entity) {
-      return entity.type == MessageEntity::Type::Spoiler || entity.type == MessageEntity::Type::CustomEmoji;
-    });
-  } else if (!G()->shared_config().get_option_boolean("is_premium")) {
-    // remove premium custom emoji
-    td::remove_if(text.entities, [stickers_manager](const MessageEntity &entity) {
-      return entity.type == MessageEntity::Type::CustomEmoji &&
-             stickers_manager->is_premium_custom_emoji(entity.document_id);
-    });
-  }
 }
 
 static bool is_word_character(uint32 code) {
@@ -4390,6 +4377,38 @@ vector<tl_object_ptr<telegram_api::MessageEntity>> get_input_message_entities(co
     return get_input_message_entities(contacts_manager, text->entities, source);
   }
   return {};
+}
+
+void remove_unallowed_entities(const Td *td, FormattedText &text, DialogId dialog_id) {
+  if (text.entities.empty()) {
+    return;
+  }
+
+  if (dialog_id.get_type() == DialogType::SecretChat) {
+    auto layer = td->contacts_manager_->get_secret_chat_layer(dialog_id.get_secret_chat_id());
+    td::remove_if(text.entities, [layer](const MessageEntity &entity) {
+      if (layer < static_cast<int32>(SecretChatLayer::NewEntities) &&
+          (entity.type == MessageEntity::Type::Underline || entity.type == MessageEntity::Type::Strikethrough ||
+           entity.type == MessageEntity::Type::BlockQuote)) {
+        return true;
+      }
+      if (entity.type == MessageEntity::Type::Spoiler || entity.type == MessageEntity::Type::CustomEmoji) {
+        return true;
+      }
+      return false;
+    });
+
+    if (layer < static_cast<int32>(SecretChatLayer::NewEntities)) {
+      sort_entities(text.entities);
+      remove_intersecting_entities(text.entities);
+    }
+  } else if (!G()->shared_config().get_option_boolean("is_premium")) {
+    // remove premium custom emoji
+    td::remove_if(text.entities, [td](const MessageEntity &entity) {
+      return entity.type == MessageEntity::Type::CustomEmoji &&
+             td->stickers_manager_->is_premium_custom_emoji(entity.document_id);
+    });
+  }
 }
 
 }  // namespace td
