@@ -1692,16 +1692,15 @@ StickerType StickersManager::get_sticker_type(FileId file_id) const {
   return sticker->type;
 }
 
-bool StickersManager::is_premium_custom_emoji(int64 custom_emoji_id) const {
+bool StickersManager::is_premium_custom_emoji(int64 custom_emoji_id, bool default_result) const {
   auto it = custom_emoji_to_sticker_id_.find(custom_emoji_id);
   if (it == custom_emoji_to_sticker_id_.end()) {
-    // pretend that the unknown custom emoji isn't a premium
-    return false;
+    return default_result;
   }
   const Sticker *s = get_sticker(it->second);
   if (s == nullptr) {
     LOG(ERROR) << "Failed to find custom emoji sticker " << it->second;
-    return false;
+    return default_result;
   }
   return s->is_premium;
 }

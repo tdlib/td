@@ -151,6 +151,8 @@ vector<tl_object_ptr<td_api::textEntity>> get_text_entities_object(const vector<
 td_api::object_ptr<td_api::formattedText> get_formatted_text_object(const FormattedText &text, bool skip_bot_commands,
                                                                     int32 max_media_timestamp);
 
+void remove_premium_custom_emoji_entities(const Td *td, vector<MessageEntity> &entities, bool remove_unknown);
+
 void remove_unallowed_entities(const Td *td, FormattedText &text, DialogId dialog_id);
 
 vector<MessageEntity> find_entities(Slice text, bool skip_bot_commands, bool skip_media_timestamps);

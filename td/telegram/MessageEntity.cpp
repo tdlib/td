@@ -3652,7 +3652,7 @@ vector<MessageEntity> get_message_entities(const Td *td,
       }
       case secret_api::messageEntityCustomEmoji::ID: {
         auto entity = static_cast<const secret_api::messageEntityCustomEmoji *>(secret_entity.get());
-        if (is_premium || !td->stickers_manager_->is_premium_custom_emoji(entity->document_id_)) {
+        if (is_premium || !td->stickers_manager_->is_premium_custom_emoji(entity->document_id_, false)) {
           entities.emplace_back(MessageEntity::Type::CustomEmoji, entity->offset_, entity->length_,
                                 entity->document_id_);
         }
@@ -4406,6 +4406,13 @@ vector<tl_object_ptr<telegram_api::MessageEntity>> get_input_message_entities(co
   return {};
 }
 
+void remove_premium_custom_emoji_entities(const Td *td, vector<MessageEntity> &entities, bool remove_unknown) {
+  td::remove_if(entities, [&](const MessageEntity &entity) {
+    return entity.type == MessageEntity::Type::CustomEmoji &&
+           td->stickers_manager_->is_premium_custom_emoji(entity.document_id, remove_unknown);
+  });
+}
+
 void remove_unallowed_entities(const Td *td, FormattedText &text, DialogId dialog_id) {
   if (text.entities.empty()) {
     return;
@@ -4432,11 +4439,7 @@ void remove_unallowed_entities(const Td *td, FormattedText &text, DialogId dialo
     }
   }
   if (!G()->shared_config().get_option_boolean("is_premium")) {
-    // remove premium custom emoji
-    td::remove_if(text.entities, [td](const MessageEntity &entity) {
-      return entity.type == MessageEntity::Type::CustomEmoji &&
-             td->stickers_manager_->is_premium_custom_emoji(entity.document_id);
-    });
+    remove_premium_custom_emoji_entities(td, text.entities, false);
   }
 }
 
