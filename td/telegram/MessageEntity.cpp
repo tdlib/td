@@ -3657,6 +3657,11 @@ vector<MessageEntity> get_message_entities(vector<tl_object_ptr<secret_api::Mess
         UNREACHABLE();
     }
   }
+
+  constexpr size_t MAX_SECRET_CHAT_ENTITIES = 1000;
+  if (entities.size() >= MAX_SECRET_CHAT_ENTITIES) {
+    entities.resize(MAX_SECRET_CHAT_ENTITIES);
+  }
   return entities;
 }
 

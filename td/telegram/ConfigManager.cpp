@@ -1387,8 +1387,8 @@ void ConfigManager::process_config(tl_object_ptr<telegram_api::config> config) {
   shared_config.set_option_integer("call_packet_timeout_ms", config->call_packet_timeout_ms_);
   shared_config.set_option_integer("call_receive_timeout_ms", config->call_receive_timeout_ms_);
 
-  shared_config.set_option_integer("message_text_length_max", config->message_length_max_);
-  shared_config.set_option_integer("message_caption_length_max", config->caption_length_max_);
+  shared_config.set_option_integer("message_text_length_max", clamp(config->message_length_max_, 4096, 1000000));
+  shared_config.set_option_integer("message_caption_length_max", clamp(config->caption_length_max_, 1024, 1000000));
 
   if (config->gif_search_username_.empty()) {
     shared_config.set_option_empty("animation_search_bot_username");
