@@ -138,13 +138,13 @@ TEST(Actors, workers_big_query_nine_threads) {
 }
 
 TEST(Actors, workers_small_query_one_thread) {
-  test_workers(0, 10, 1000000, 1);
+  test_workers(0, 10, 100000, 1);
 }
 
 TEST(Actors, workers_small_query_two_threads) {
-  test_workers(2, 10, 1000000, 1);
+  test_workers(2, 10, 100000, 1);
 }
 
 TEST(Actors, workers_small_query_nine_threads) {
-  test_workers(9, 10, 1000000, 1);
+  test_workers(9, 10, 10000, 1);
 }

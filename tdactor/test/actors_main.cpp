@@ -253,7 +253,7 @@ class MainQueryActor final : public td::Actor {
   }
 
   void wakeup() final {
-    int cnt = 100000;
+    int cnt = 10000;
     while (out_cnt_ < in_cnt_ + 100 && out_cnt_ < cnt) {
       if (td::Random::fast_bool()) {
         send_closure(rand_elem(actors_), &QueryActor::query, create_query());
@@ -294,7 +294,7 @@ class SimpleActor final : public td::Actor {
   }
 
   void wakeup() final {
-    if (q_ == 100000) {
+    if (q_ == 10000) {
       td::Scheduler::instance()->finish();
       stop();
       return;
