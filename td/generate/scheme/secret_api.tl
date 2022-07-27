@@ -121,6 +121,11 @@ messageEntityBlockquote#20df5d0 offset:int length:int = MessageEntity;
 
 decryptedMessageMediaDocument#6abd9782 thumb:bytes thumb_w:int thumb_h:int mime_type:string size:long key:bytes iv:bytes attributes:Vector<DocumentAttribute> caption:string = DecryptedMessageMedia;
 
+// layer 144
+
+messageEntitySpoiler#32ca960f offset:int length:int = MessageEntity;
+messageEntityCustomEmoji#c8cf05f8 offset:int length:int document_id:long = MessageEntity;
+
 ---functions---
 
 test.dummyFunction = Bool;

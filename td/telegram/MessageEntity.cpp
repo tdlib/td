@@ -3273,8 +3273,15 @@ vector<tl_object_ptr<secret_api::MessageEntity>> get_input_secret_message_entiti
       case MessageEntity::Type::MediaTimestamp:
         break;
       case MessageEntity::Type::Spoiler:
+        if (layer >= static_cast<int32>(SecretChatLayer::SpoilerAndCustomEmojiEntities)) {
+          result.push_back(make_tl_object<secret_api::messageEntitySpoiler>(entity.offset, entity.length));
+        }
         break;
       case MessageEntity::Type::CustomEmoji:
+        if (layer >= static_cast<int32>(SecretChatLayer::SpoilerAndCustomEmojiEntities)) {
+          result.push_back(
+              make_tl_object<secret_api::messageEntityCustomEmoji>(entity.offset, entity.length, entity.document_id));
+        }
         break;
       default:
         UNREACHABLE();
@@ -3636,6 +3643,16 @@ vector<MessageEntity> get_message_entities(vector<tl_object_ptr<secret_api::Mess
       case secret_api::messageEntityMentionName::ID:
         // skip all name mentions in secret chats
         break;
+      case secret_api::messageEntitySpoiler::ID: {
+        auto entity = static_cast<const secret_api::messageEntitySpoiler *>(secret_entity.get());
+        entities.emplace_back(MessageEntity::Type::Spoiler, entity->offset_, entity->length_);
+        break;
+      }
+      case secret_api::messageEntityCustomEmoji::ID: {
+        auto entity = static_cast<const secret_api::messageEntityCustomEmoji *>(secret_entity.get());
+        entities.emplace_back(MessageEntity::Type::CustomEmoji, entity->offset_, entity->length_, entity->document_id_);
+        break;
+      }
       default:
         UNREACHABLE();
     }
@@ -4392,7 +4409,8 @@ void remove_unallowed_entities(const Td *td, FormattedText &text, DialogId dialo
            entity.type == MessageEntity::Type::BlockQuote)) {
         return true;
       }
-      if (entity.type == MessageEntity::Type::Spoiler || entity.type == MessageEntity::Type::CustomEmoji) {
+      if (layer < static_cast<int32>(SecretChatLayer::SpoilerAndCustomEmojiEntities) &&
+          (entity.type == MessageEntity::Type::Spoiler || entity.type == MessageEntity::Type::CustomEmoji)) {
         return true;
       }
       return false;

@@ -766,7 +766,7 @@ secretChatStateClosed = SecretChatState;
 //@is_outbound True, if the chat was created by the current user; otherwise false
 //@key_hash Hash of the currently used key for comparison with the hash of the chat partner's key. This is a string of 36 little-endian bytes, which must be split into groups of 2 bits, each denoting a pixel of one of 4 colors FFFFFF, D5E6F3, 2D5775, and 2F99C9.
 //-The pixels must be used to make a 12x12 square image filled from left to right, top to bottom. Alternatively, the first 32 bytes of the hash can be converted to the hexadecimal format and printed as 32 2-digit hex numbers
-//@layer Secret chat layer; determines features supported by the chat partner's application. Nested text entities and underline and strikethrough entities are supported if the layer >= 101, files bigger than 2000MB are supported if the layer >= 143
+//@layer Secret chat layer; determines features supported by the chat partner's application. Nested text entities and underline and strikethrough entities are supported if the layer >= 101, files bigger than 2000MB are supported if the layer >= 143, spoiler and custom emoji text entities are supported if the layer >= 144
 secretChat id:int32 user_id:int53 state:SecretChatState is_outbound:Bool key_hash:bytes layer:int32 = SecretChat;
 
 
@@ -2075,7 +2075,7 @@ textEntityTypeUnderline = TextEntityType;
 //@description A strikethrough text
 textEntityTypeStrikethrough = TextEntityType;
 
-//@description A spoiler text. Not supported in secret chats
+//@description A spoiler text
 textEntityTypeSpoiler = TextEntityType;
 
 //@description Text that must be formatted as if inside a code HTML tag
@@ -2093,7 +2093,7 @@ textEntityTypeTextUrl url:string = TextEntityType;
 //@description A text shows instead of a raw mention of the user (e.g., when the user has no username) @user_id Identifier of the mentioned user
 textEntityTypeMentionName user_id:int53 = TextEntityType;
 
-//@description A custom emoji. Not supported in secret chats. The text behind a custom emoji must be an emoji. Only premium users can use premium custom emoji @custom_emoji_id Unique identifier of the custom emoji
+//@description A custom emoji. The text behind a custom emoji must be an emoji. Only premium users can use premium custom emoji @custom_emoji_id Unique identifier of the custom emoji
 textEntityTypeCustomEmoji custom_emoji_id:int64 = TextEntityType;
 
 //@description A media timestamp @media_timestamp Timestamp from which a video/audio/video note/voice note playing must start, in seconds. The media can be in the content or the web page preview of the current message, or in the same places in the replied message

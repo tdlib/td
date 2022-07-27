@@ -14,7 +14,8 @@ enum class SecretChatLayer : int32 {
   NewEntities = 101,
   DeleteMessagesOnClose = 123,
   SupportBigFiles = 143,
-  Current = SupportBigFiles
+  SpoilerAndCustomEmojiEntities = 144,
+  Current = SpoilerAndCustomEmojiEntities
 };
 
 }  // namespace td
