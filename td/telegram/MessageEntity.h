@@ -24,6 +24,7 @@ namespace td {
 
 class ContactsManager;
 class Dependencies;
+class MultiPromiseActor;
 class Td;
 
 class MessageEntity {
@@ -194,9 +195,8 @@ vector<MessageEntity> get_message_entities(const ContactsManager *contacts_manag
                                            vector<tl_object_ptr<telegram_api::MessageEntity>> &&server_entities,
                                            const char *source);
 
-vector<MessageEntity> get_message_entities(const Td *td,
-                                           vector<tl_object_ptr<secret_api::MessageEntity>> &&secret_entities,
-                                           bool is_premium);
+vector<MessageEntity> get_message_entities(Td *td, vector<tl_object_ptr<secret_api::MessageEntity>> &&secret_entities,
+                                           bool is_premium, MultiPromiseActor &load_data_multipromise);
 
 // like clean_input_string but also validates entities
 Status fix_formatted_text(string &text, vector<MessageEntity> &entities, bool allow_empty, bool skip_new_entities,

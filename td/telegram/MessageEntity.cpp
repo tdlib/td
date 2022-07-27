@@ -15,6 +15,8 @@
 #include "td/telegram/StickersManager.h"
 #include "td/telegram/Td.h"
 
+#include "td/actor/MultiPromise.h"
+
 #include "td/utils/algorithm.h"
 #include "td/utils/format.h"
 #include "td/utils/logging.h"
@@ -3545,11 +3547,13 @@ vector<MessageEntity> get_message_entities(const ContactsManager *contacts_manag
   return entities;
 }
 
-vector<MessageEntity> get_message_entities(const Td *td,
-                                           vector<tl_object_ptr<secret_api::MessageEntity>> &&secret_entities,
-                                           bool is_premium) {
+vector<MessageEntity> get_message_entities(Td *td, vector<tl_object_ptr<secret_api::MessageEntity>> &&secret_entities,
+                                           bool is_premium, MultiPromiseActor &load_data_multipromise) {
+  constexpr size_t MAX_SECRET_CHAT_ENTITIES = 1000;
+  constexpr size_t MAX_CUSTOM_EMOJI_ENTITIES = 100;
   vector<MessageEntity> entities;
   entities.reserve(secret_entities.size());
+  vector<int64> document_ids;
   for (auto &secret_entity : secret_entities) {
     switch (secret_entity->get_id()) {
       case secret_api::messageEntityUnknown::ID:
@@ -3653,20 +3657,33 @@ vector<MessageEntity> get_message_entities(const Td *td,
       case secret_api::messageEntityCustomEmoji::ID: {
         auto entity = static_cast<const secret_api::messageEntityCustomEmoji *>(secret_entity.get());
         if (is_premium || !td->stickers_manager_->is_premium_custom_emoji(entity->document_id_, false)) {
-          entities.emplace_back(MessageEntity::Type::CustomEmoji, entity->offset_, entity->length_,
-                                entity->document_id_);
+          if (document_ids.size() < MAX_CUSTOM_EMOJI_ENTITIES) {
+            entities.emplace_back(MessageEntity::Type::CustomEmoji, entity->offset_, entity->length_,
+                                  entity->document_id_);
+            document_ids.push_back(entity->document_id_);
+          }
         }
         break;
       }
       default:
         UNREACHABLE();
     }
+
+    if (entities.size() >= MAX_SECRET_CHAT_ENTITIES) {
+      break;
+    }
   }
 
-  constexpr size_t MAX_SECRET_CHAT_ENTITIES = 1000;
-  if (entities.size() >= MAX_SECRET_CHAT_ENTITIES) {
-    entities.resize(MAX_SECRET_CHAT_ENTITIES);
+  if (!document_ids.empty() && !is_premium) {
+    // preload custom emoji to check that they aren't premium
+    td->stickers_manager_->get_custom_emoji_stickers(
+        std::move(document_ids), true,
+        PromiseCreator::lambda(
+            [promise = load_data_multipromise.get_promise()](td_api::object_ptr<td_api::stickers> result) mutable {
+              promise.set_value(Unit());
+            }));
   }
+
   return entities;
 }
 

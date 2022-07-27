@@ -14088,6 +14088,13 @@ void MessagesManager::finish_add_secret_message(unique_ptr<PendingSecretMessage>
                    << " received earlier with " << message_id << " and random_id " << random_id;
     }
   } else {
+    if (!td_->contacts_manager_->is_user_premium(pending_secret_message->message_info.sender_user_id)) {
+      auto message_text = get_message_content_text_mutable(pending_secret_message->message_info.content.get());
+      if (message_text != nullptr) {
+        remove_premium_custom_emoji_entities(td_, message_text->entities, true);
+      }
+    }
+
     on_get_message(std::move(pending_secret_message->message_info), true, false, true, true,
                    "finish add secret message");
   }

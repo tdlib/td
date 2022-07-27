@@ -39,10 +39,9 @@ namespace td {
 class Dependencies;
 class DialogAction;
 class Game;
+class MultiPromiseActor;
 struct Photo;
 class Td;
-
-class MultiPromiseActor;
 
 // Do not forget to update merge_message_contents when one of the inheritors of this class changes
 class MessageContent {
