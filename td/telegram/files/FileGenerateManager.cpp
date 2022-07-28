@@ -148,9 +148,25 @@ class WebFileDownloadGenerateActor final : public FileGenerateActor {
   };
   ActorOwn<NetQueryCallback> net_callback_;
 
-  Result<tl_object_ptr<telegram_api::inputWebFileGeoPointLocation>> parse_conversion() {
+  Result<tl_object_ptr<telegram_api::InputWebFileLocation>> parse_conversion() {
     auto parts = full_split(Slice(conversion_), '#');
-    if (parts.size() != 9 || !parts[0].empty() || parts[1] != "map" || !parts[8].empty()) {
+    if (parts.size() <= 2 || !parts[0].empty() || !parts.back().empty()) {
+      return Status::Error("Wrong conversion");
+    }
+
+    if (parts.size() == 5 && parts[1] == "audio_t") {
+      // music thumbnail
+      if (parts[2].empty() && parts[3].empty()) {
+        return Status::Error("Title or performer must be non-empty");
+      }
+
+      file_name_ = PSTRING() << "music_thumbnail_" << parts[3] << " - " << parts[2] << ".jpg";
+
+      auto flags = telegram_api::inputWebFileAudioAlbumThumbLocation::TITLE_MASK;
+      return make_tl_object<telegram_api::inputWebFileAudioAlbumThumbLocation>(flags, nullptr, parts[2].str(), parts[3].str());
+    }
+
+    if (parts.size() != 9 || parts[1] != "map") {
       return Status::Error("Wrong conversion");
     }
 

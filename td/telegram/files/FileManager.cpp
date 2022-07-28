@@ -932,7 +932,7 @@ bool FileManager::are_modification_times_equal(int64 old_mtime, int64 new_mtime)
 }
 
 bool FileManager::is_remotely_generated_file(Slice conversion) {
-  return begins_with(conversion, "#map#");
+  return begins_with(conversion, "#map#") || begins_with(conversion, "#audio_t#");
 }
 
 Status FileManager::check_local_location(FullLocalFileLocation &location, int64 &size, bool skip_file_size_checks) {
@@ -987,7 +987,8 @@ Status FileManager::check_local_location(FullLocalFileLocation &location, int64 
                                        << " bytes is too big" << reason);
   };
   if ((location.file_type_ == FileType::Thumbnail || location.file_type_ == FileType::EncryptedThumbnail) &&
-      size > MAX_THUMBNAIL_SIZE && !begins_with(PathView(location.path_).file_name(), "map")) {
+      size > MAX_THUMBNAIL_SIZE && !begins_with(PathView(location.path_).file_name(), "map") &&
+      !begins_with(PathView(location.path_).file_name(), "music_thumbnail")) {
     return get_file_size_error(" for a thumbnail");
   }
   if (size > MAX_FILE_SIZE) {
@@ -3245,6 +3246,35 @@ Result<FileId> FileManager::get_map_thumbnail_file_id(Location location, int32 z
 
   string conversion = PSTRING() << "#map#" << zoom << '#' << x << '#' << y << '#' << width << '#' << height << '#'
                                 << scale << '#';
+  return register_generate(
+      owner_dialog_id.get_type() == DialogType::SecretChat ? FileType::EncryptedThumbnail : FileType::Thumbnail,
+      FileLocationSource::FromUser, string(), std::move(conversion), owner_dialog_id, 0);
+}
+
+Result<FileId> FileManager::get_audio_thumbnail_file_id(string title, string performer, DialogId owner_dialog_id) {
+  if (!clean_input_string(title)) {
+    return Status::Error(400, "Title must be encoded in UTF-8");
+  }
+  if (!clean_input_string(performer)) {
+    return Status::Error(400, "Performer must be encoded in UTF-8");
+  }
+  for (auto &c : title) {
+    if (c == '\n' || c == '#') {
+      c = ' ';
+    }
+  }
+  for (auto &c : performer) {
+    if (c == '\n' || c == '#') {
+      c = ' ';
+    }
+  }
+  title = trim(title);
+  performer = trim(performer);
+  if (title.empty() && performer.empty()) {
+    return Status::Error(400, "Title or performer must be non-empty");
+  }
+
+  string conversion = PSTRING() << "#audio_t#" << title << '#' << performer << '#';
   return register_generate(
       owner_dialog_id.get_type() == DialogType::SecretChat ? FileType::EncryptedThumbnail : FileType::Thumbnail,
       FileLocationSource::FromUser, string(), std::move(conversion), owner_dialog_id, 0);
