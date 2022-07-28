@@ -1245,7 +1245,7 @@ template <>
 tl_object_ptr<td_api::audio> copy(const td_api::audio &obj) {
   return td_api::make_object<td_api::audio>(obj.duration_, obj.title_, obj.performer_, obj.file_name_, obj.mime_type_,
                                             copy(obj.album_cover_minithumbnail_), copy(obj.album_cover_thumbnail_),
-                                            copy(obj.audio_));
+                                            copy(obj.album_cover_), copy(obj.audio_));
 }
 
 template <>

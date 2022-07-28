@@ -160,10 +160,11 @@ class WebFileDownloadGenerateActor final : public FileGenerateActor {
         return Status::Error("Title or performer must be non-empty");
       }
 
-      file_name_ = PSTRING() << "music_thumbnail_" << parts[3] << " - " << parts[2] << ".jpg";
+      file_name_ = PSTRING() << "Album cover for " << parts[3] << " - " << parts[2] << ".jpg";
 
       auto flags = telegram_api::inputWebFileAudioAlbumThumbLocation::TITLE_MASK;
-      return make_tl_object<telegram_api::inputWebFileAudioAlbumThumbLocation>(flags, nullptr, parts[2].str(), parts[3].str());
+      return make_tl_object<telegram_api::inputWebFileAudioAlbumThumbLocation>(flags, nullptr, parts[2].str(),
+                                                                               parts[3].str());
     }
 
     if (parts.size() != 9 || parts[1] != "map") {

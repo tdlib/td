@@ -988,7 +988,7 @@ Status FileManager::check_local_location(FullLocalFileLocation &location, int64 
   };
   if ((location.file_type_ == FileType::Thumbnail || location.file_type_ == FileType::EncryptedThumbnail) &&
       size > MAX_THUMBNAIL_SIZE && !begins_with(PathView(location.path_).file_name(), "map") &&
-      !begins_with(PathView(location.path_).file_name(), "music_thumbnail")) {
+      !begins_with(PathView(location.path_).file_name(), "Album cover for ")) {
     return get_file_size_error(" for a thumbnail");
   }
   if (size > MAX_FILE_SIZE) {
