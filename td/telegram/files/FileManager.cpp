@@ -771,7 +771,7 @@ string FileView::get_persistent_id(const FullGenerateFileLocation &location) {
   auto binary = serialize(location);
 
   binary = zero_encode(binary);
-  binary.push_back(FileNode::PERSISTENT_ID_VERSION_MAP);
+  binary.push_back(FileNode::PERSISTENT_ID_VERSION_GENERATED);
   return base64url_encode(binary);
 }
 
@@ -790,7 +790,7 @@ string FileView::get_persistent_file_id() const {
       return get_persistent_id(remote_location());
     } else if (has_url()) {
       return url();
-    } else if (has_generate_location() && begins_with(generate_location().conversion_, "#map#")) {
+    } else if (has_generate_location() && FileManager::is_remotely_generated_file(generate_location().conversion_)) {
       return get_persistent_id(generate_location());
     }
   }
@@ -803,7 +803,7 @@ string FileView::get_unique_file_id() const {
       if (!remote_location().is_web()) {
         return get_unique_id(remote_location());
       }
-    } else if (has_generate_location() && begins_with(generate_location().conversion_, "#map#")) {
+    } else if (has_generate_location() && FileManager::is_remotely_generated_file(generate_location().conversion_)) {
       return get_unique_id(generate_location());
     }
   }
@@ -929,6 +929,10 @@ bool FileManager::are_modification_times_equal(int64 old_mtime, int64 new_mtime)
     return true;
   }
   return false;
+}
+
+bool FileManager::is_remotely_generated_file(Slice conversion) {
+  return begins_with(conversion, "#map#");
 }
 
 Status FileManager::check_local_location(FullLocalFileLocation &location, int64 &size, bool skip_file_size_checks) {
@@ -2917,13 +2921,13 @@ Result<FileId> FileManager::from_persistent_id(CSlice persistent_id, FileType fi
   if (binary.back() == FileNode::PERSISTENT_ID_VERSION) {
     return from_persistent_id_v3(binary, file_type);
   }
-  if (binary.back() == FileNode::PERSISTENT_ID_VERSION_MAP) {
-    return from_persistent_id_map(binary, file_type);
+  if (binary.back() == FileNode::PERSISTENT_ID_VERSION_GENERATED) {
+    return from_persistent_id_generated(binary, file_type);
   }
   return Status::Error(400, "Wrong remote file identifier specified: can't unserialize it. Wrong last symbol");
 }
 
-Result<FileId> FileManager::from_persistent_id_map(Slice binary, FileType file_type) {
+Result<FileId> FileManager::from_persistent_id_generated(Slice binary, FileType file_type) {
   binary.remove_suffix(1);
   auto decoded_binary = zero_decode(binary);
   FullGenerateFileLocation generate_location;
@@ -2936,12 +2940,13 @@ Result<FileId> FileManager::from_persistent_id_map(Slice binary, FileType file_t
       (real_file_type != FileType::Thumbnail && real_file_type != FileType::EncryptedThumbnail)) {
     return Status::Error(400, "Type of file mismatch");
   }
-  if (!begins_with(generate_location.conversion_, "#map#")) {
+  if (!is_remotely_generated_file(generate_location.conversion_)) {
     return Status::Error(400, "Unexpected conversion type");
   }
   FileData data;
   data.generate_ = make_unique<FullGenerateFileLocation>(std::move(generate_location));
-  return register_file(std::move(data), FileLocationSource::FromUser, "from_persistent_id_map", false).move_as_ok();
+  return register_file(std::move(data), FileLocationSource::FromUser, "from_persistent_id_generated", false)
+      .move_as_ok();
 }
 
 Result<FileId> FileManager::from_persistent_id_v23(Slice binary, FileType file_type, int32 version) {

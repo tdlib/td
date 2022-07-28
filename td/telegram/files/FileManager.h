@@ -126,7 +126,7 @@ class FileNode {
   friend class FileManager;
 
   static constexpr char PERSISTENT_ID_VERSION_OLD = 2;
-  static constexpr char PERSISTENT_ID_VERSION_MAP = 3;
+  static constexpr char PERSISTENT_ID_VERSION_GENERATED = 3;
   static constexpr char PERSISTENT_ID_VERSION = 4;
 
   LocalFileLocation local_;
@@ -417,6 +417,8 @@ class FileManager final : public FileLoadManager::Callback {
 
   static bool are_modification_times_equal(int64 old_mtime, int64 new_mtime);
 
+  static bool is_remotely_generated_file(Slice conversion);
+
   void init_actor();
 
   FileId dup_file_id(FileId file_id);
@@ -620,7 +622,7 @@ class FileManager final : public FileLoadManager::Callback {
   void flush_to_pmc(FileNodePtr node, bool new_remote, bool new_local, bool new_generate, const char *source);
   void load_from_pmc(FileNodePtr node, bool new_remote, bool new_local, bool new_generate);
 
-  Result<FileId> from_persistent_id_map(Slice binary, FileType file_type);
+  Result<FileId> from_persistent_id_generated(Slice binary, FileType file_type);
   Result<FileId> from_persistent_id_v2(Slice binary, FileType file_type);
   Result<FileId> from_persistent_id_v3(Slice binary, FileType file_type);
   Result<FileId> from_persistent_id_v23(Slice binary, FileType file_type, int32 version);
