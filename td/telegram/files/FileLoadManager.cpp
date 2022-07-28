@@ -24,21 +24,22 @@ FileLoadManager::FileLoadManager(ActorShared<Callback> callback, ActorShared<> p
 }
 
 void FileLoadManager::start_up() {
-  if (G()->shared_config().get_option_boolean("is_premium")) {
-    max_resource_limit_ *= 8;
-  }
-  upload_resource_manager_ = create_actor<ResourceManager>("UploadResourceManager", max_resource_limit_,
+  constexpr int64 MAX_UPLOAD_RESOURCE_LIMIT = 4 << 20;
+  upload_resource_manager_ = create_actor<ResourceManager>("UploadResourceManager", MAX_UPLOAD_RESOURCE_LIMIT,
                                                            !G()->parameters().use_file_db /*tdlib_engine*/
                                                                ? ResourceManager::Mode::Greedy
                                                                : ResourceManager::Mode::Baseline);
+  if (G()->shared_config().get_option_boolean("is_premium")) {
+    max_download_resource_limit_ *= 8;
+  }
 }
 
 ActorOwn<ResourceManager> &FileLoadManager::get_download_resource_manager(bool is_small, DcId dc_id) {
   auto &actor = is_small ? download_small_resource_manager_map_[dc_id] : download_resource_manager_map_[dc_id];
   if (actor.empty()) {
     actor = create_actor<ResourceManager>(
-        PSLICE() << "DownloadResourceManager " << tag("is_small", is_small) << tag("dc_id", dc_id), max_resource_limit_,
-        ResourceManager::Mode::Baseline);
+        PSLICE() << "DownloadResourceManager " << tag("is_small", is_small) << tag("dc_id", dc_id),
+        max_download_resource_limit_, ResourceManager::Mode::Baseline);
   }
   return actor;
 }
@@ -185,7 +186,7 @@ void FileLoadManager::update_downloaded_part(QueryId id, int64 offset, int64 lim
   if (node == nullptr) {
     return;
   }
-  send_closure(node->loader_, &FileLoaderActor::update_downloaded_part, offset, limit, max_resource_limit_);
+  send_closure(node->loader_, &FileLoaderActor::update_downloaded_part, offset, limit, max_download_resource_limit_);
 }
 
 void FileLoadManager::hangup() {
