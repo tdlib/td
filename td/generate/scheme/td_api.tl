@@ -870,7 +870,7 @@ messageSendingStateFailed error_code:int32 error_message:string can_retry:Bool n
 //@can_be_deleted_for_all_users True, if the message can be deleted for all users
 //@can_get_added_reactions True, if the list of added reactions is available through getMessageAddedReactions
 //@can_get_statistics True, if the message statistics are available through getMessageStatistics
-//@can_get_message_thread True, if information about the message thread is available through getMessageThread
+//@can_get_message_thread True, if information about the message thread is available through getMessageThread and getMessageThreadHistory
 //@can_get_viewers True, if chat members already viewed the message can be received through getMessageViewers
 //@can_get_media_timestamp_links True, if media timestamp links can be generated for media timestamp entities in the message text, caption or web page description through getMessageLink
 //@has_timestamped_media True, if media timestamp entities refers to a media in this message as opposed to a media in the replied message

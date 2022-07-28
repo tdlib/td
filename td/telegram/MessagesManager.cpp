@@ -18030,10 +18030,6 @@ Result<FullMessageId> MessagesManager::get_top_thread_full_message_id(DialogId d
     if (!m->message_id.is_server()) {
       return Status::Error(400, "Message thread is unavailable for the message");
     }
-    if (m->top_thread_message_id != m->message_id &&
-        !td_->contacts_manager_->get_channel_has_linked_channel(dialog_id.get_channel_id())) {
-      return Status::Error(400, "Root message must be used to get the message thread");
-    }
     return FullMessageId{dialog_id, m->top_thread_message_id};
   }
 }
@@ -18061,6 +18057,13 @@ void MessagesManager::get_message_thread(DialogId dialog_id, MessageId message_i
   }
 
   TRY_RESULT_PROMISE(promise, top_thread_full_message_id, get_top_thread_full_message_id(dialog_id, m));
+  if ((m->reply_info.is_empty() || !m->reply_info.is_comment) &&
+      top_thread_full_message_id.get_message_id() != m->message_id) {
+    CHECK(dialog_id == top_thread_full_message_id.get_dialog_id());
+    // get information about the thread from the top message
+    message_id = top_thread_full_message_id.get_message_id();
+    CHECK(message_id.is_valid());
+  }
 
   auto query_promise = PromiseCreator::lambda([actor_id = actor_id(this), dialog_id, message_id,
                                                promise = std::move(promise)](Result<MessageThreadInfo> result) mutable {
@@ -22025,6 +22028,13 @@ std::pair<DialogId, vector<MessageId>> MessagesManager::get_message_thread_histo
       return {};
     }
     top_thread_full_message_id = r_top_thread_full_message_id.move_as_ok();
+    if ((m->reply_info.is_empty() || !m->reply_info.is_comment) &&
+        top_thread_full_message_id.get_message_id() != m->message_id) {
+      CHECK(dialog_id == top_thread_full_message_id.get_dialog_id());
+      // get information about the thread from the top message
+      message_id = top_thread_full_message_id.get_message_id();
+      CHECK(message_id.is_valid());
+    }
 
     if (!top_thread_full_message_id.get_message_id().is_valid()) {
       CHECK(m->reply_info.is_comment);
