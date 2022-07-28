@@ -5268,6 +5268,11 @@ void StickersManager::on_get_custom_emoji_documents(
   auto documents = r_documents.move_as_ok();
 
   for (auto &document : documents) {
+    LOG(INFO) << "Receive " << to_string(document);
+    if (document->get_id() == telegram_api::documentEmpty::ID) {
+      continue;
+    }
+
     on_get_sticker_document(std::move(document), StickerFormat::Unknown);
   }
 
