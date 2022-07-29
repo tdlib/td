@@ -160,16 +160,16 @@ class SetBotPreCheckoutAnswerQuery final : public Td::ResultHandler {
   }
 };
 
+static tl_object_ptr<td_api::labeledPricePart> convert_labeled_price(
+    tl_object_ptr<telegram_api::labeledPrice> labeled_price) {
+  CHECK(labeled_price != nullptr);
+  return make_tl_object<td_api::labeledPricePart>(std::move(labeled_price->label_), labeled_price->amount_);
+}
+
 static tl_object_ptr<td_api::invoice> convert_invoice(tl_object_ptr<telegram_api::invoice> invoice) {
   CHECK(invoice != nullptr);
 
-  vector<tl_object_ptr<td_api::labeledPricePart>> labeled_prices;
-  labeled_prices.reserve(invoice->prices_.size());
-  for (auto &labeled_price : invoice->prices_) {
-    labeled_prices.push_back(
-        make_tl_object<td_api::labeledPricePart>(std::move(labeled_price->label_), labeled_price->amount_));
-  }
-
+  auto labeled_prices = transform(std::move(invoice->prices_), convert_labeled_price);
   bool is_test = (invoice->flags_ & telegram_api::invoice::TEST_MASK) != 0;
   bool need_name = (invoice->flags_ & telegram_api::invoice::NAME_REQUESTED_MASK) != 0;
   bool need_phone_number = (invoice->flags_ & telegram_api::invoice::PHONE_REQUESTED_MASK) != 0;
@@ -290,12 +290,6 @@ static tl_object_ptr<td_api::orderInfo> convert_order_info(
   return make_tl_object<td_api::orderInfo>(std::move(order_info->name_), std::move(order_info->phone_),
                                            std::move(order_info->email_),
                                            convert_address(std::move(order_info->shipping_address_)));
-}
-
-static tl_object_ptr<td_api::labeledPricePart> convert_labeled_price(
-    tl_object_ptr<telegram_api::labeledPrice> labeled_price) {
-  CHECK(labeled_price != nullptr);
-  return make_tl_object<td_api::labeledPricePart>(std::move(labeled_price->label_), labeled_price->amount_);
 }
 
 static tl_object_ptr<td_api::shippingOption> convert_shipping_option(
@@ -874,7 +868,8 @@ Result<InputInvoice> process_input_message_invoice(
   }
   result.total_amount = total_amount;
 
-  if (input_invoice->invoice_->max_tip_amount_ < 0 || !check_currency_amount(input_invoice->invoice_->max_tip_amount_)) {
+  if (input_invoice->invoice_->max_tip_amount_ < 0 ||
+      !check_currency_amount(input_invoice->invoice_->max_tip_amount_)) {
     return Status::Error(400, "Invalid max_tip_amount of the currency specified");
   }
   for (auto tip_amount : input_invoice->invoice_->suggested_tip_amounts_) {
