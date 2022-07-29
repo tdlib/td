@@ -856,13 +856,12 @@ Result<InputInvoice> process_input_message_invoice(
   result.invoice.currency = std::move(input_invoice->invoice_->currency_);
   result.invoice.price_parts.reserve(input_invoice->invoice_->price_parts_.size());
   int64 total_amount = 0;
-  const int64 MAX_AMOUNT = 9999'9999'9999;
   for (auto &price : input_invoice->invoice_->price_parts_) {
     if (!clean_input_string(price->label_)) {
       return Status::Error(400, "Invoice price label must be encoded in UTF-8");
     }
     result.invoice.price_parts.emplace_back(std::move(price->label_), price->amount_);
-    if (price->amount_ < -MAX_AMOUNT || price->amount_ > MAX_AMOUNT) {
+    if (!check_currency_amount(price->amount_)) {
       return Status::Error(400, "Too big amount of the currency specified");
     }
     total_amount += price->amount_;
@@ -870,12 +869,12 @@ Result<InputInvoice> process_input_message_invoice(
   if (total_amount <= 0) {
     return Status::Error(400, "Total price must be positive");
   }
-  if (total_amount > MAX_AMOUNT) {
+  if (!check_currency_amount(total_amount)) {
     return Status::Error(400, "Total price is too big");
   }
   result.total_amount = total_amount;
 
-  if (input_invoice->invoice_->max_tip_amount_ < 0 || input_invoice->invoice_->max_tip_amount_ > MAX_AMOUNT) {
+  if (input_invoice->invoice_->max_tip_amount_ < 0 || !check_currency_amount(input_invoice->invoice_->max_tip_amount_)) {
     return Status::Error(400, "Invalid max_tip_amount of the currency specified");
   }
   for (auto tip_amount : input_invoice->invoice_->suggested_tip_amounts_) {
@@ -1219,6 +1218,11 @@ bool operator!=(const ShippingOption &lhs, const ShippingOption &rhs) {
 StringBuilder &operator<<(StringBuilder &string_builder, const ShippingOption &shipping_option) {
   return string_builder << "[ShippingOption " << shipping_option.id << " " << shipping_option.title
                         << " with price parts " << format::as_array(shipping_option.price_parts) << "]";
+}
+
+bool check_currency_amount(int64 amount) {
+  constexpr int64 MAX_AMOUNT = 9999'9999'9999;
+  return -MAX_AMOUNT <= amount && amount <= MAX_AMOUNT;
 }
 
 void answer_shipping_query(Td *td, int64 shipping_query_id,

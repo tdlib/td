@@ -173,6 +173,8 @@ bool operator!=(const ShippingOption &lhs, const ShippingOption &rhs);
 
 StringBuilder &operator<<(StringBuilder &string_builder, const ShippingOption &shipping_option);
 
+bool check_currency_amount(int64 amount);
+
 void answer_shipping_query(Td *td, int64 shipping_query_id,
                            vector<tl_object_ptr<td_api::shippingOption>> &&shipping_options,
                            const string &error_message, Promise<Unit> &&promise);
