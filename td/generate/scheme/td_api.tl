@@ -3061,7 +3061,7 @@ premiumState state:formattedText currency:string monthly_amount:int53 animations
 storePaymentPurposePremiumSubscription is_restore:Bool = StorePaymentPurpose;
 
 //@description The user gifted Telegram Premium to another user @user_id Identifier of the user for which Premium was gifted @currency ISO 4217 currency code of the payment currency @amount Paid amount, in the smallest units of the currency
-storePaymentPurposeGiftedPremium user_id:int53 currency:string amount:int64 = StorePaymentPurpose;
+storePaymentPurposeGiftedPremium user_id:int53 currency:string amount:int53 = StorePaymentPurpose;
 
 
 //@class DeviceToken @description Represents a data needed to subscribe for push notifications through registerDevice method. To use specific push notification service, the correct application platform must be specified and a valid server authentication data must be uploaded at https://my.telegram.org
