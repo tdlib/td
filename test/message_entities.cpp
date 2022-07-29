@@ -114,6 +114,8 @@ TEST(MessageEntities, hashtag) {
                     "ООО" + td::string(200, '2'),
                 {"#" + td::string(200, '1') + "ООО" + td::string(53, '2')});
   check_hashtag(u8"#a\u2122", {"#a"});
+  check_hashtag("#a൹", {"#a"});
+  check_hashtag("#aඁං෴ก฿", {"#aඁං෴ก"});
 }
 
 static void check_cashtag(const td::string &str, const td::vector<td::string> &expected) {
@@ -173,6 +175,12 @@ TEST(MessageEntities, cashtag) {
   check_cashtag(u8"$ABC\u2122", {"$ABC"});
   check_cashtag(u8"\u2122$ABC", {"$ABC"});
   check_cashtag(u8"\u2122$ABC\u2122", {"$ABC"});
+  check_cashtag("$ABC൹", {"$ABC"});
+  check_cashtag("$ABCඁ", {});
+  check_cashtag("$ABCං", {});
+  check_cashtag("$ABC෴", {});
+  check_cashtag("$ABCก", {});
+  check_cashtag("$ABC฿", {"$ABC"});
 }
 
 static void check_media_timestamp(const td::string &str, const td::vector<std::pair<td::string, td::int32>> &expected) {

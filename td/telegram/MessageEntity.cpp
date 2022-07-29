@@ -350,7 +350,7 @@ static vector<Slice> match_bot_commands(Slice str) {
 
 static bool is_hashtag_letter(uint32 c, UnicodeSimpleCategory &category) {
   category = get_unicode_simple_category(c);
-  if (c == '_' || c == 0x200c || c == 0xb7) {
+  if (c == '_' || c == 0x200c || c == 0xb7 || (0xd80 <= c && c <= 0xdff)) {
     return true;
   }
   switch (category) {
@@ -368,7 +368,7 @@ static vector<Slice> match_hashtags(Slice str) {
   const unsigned char *end = str.uend();
   const unsigned char *ptr = begin;
 
-  // '/(?<=^|[^\d_\pL\x{200c}])#([\d_\pL\x{200c}]{1,256})(?![\d_\pL\x{200c}]*#)/u'
+  // '/(?<=^|[^\d_\pL\x{200c}\x{0d80}-\x{0dff}])#([\d_\pL\x{200c}\x{0d80}-\x{0dff}]{1,256})(?![\d_\pL\x{200c}\x{0d80}-\x{0dff}]*#)/u'
   // and at least one letter
 
   UnicodeSimpleCategory category;
@@ -431,7 +431,7 @@ static vector<Slice> match_cashtags(Slice str) {
   const unsigned char *end = str.uend();
   const unsigned char *ptr = begin;
 
-  // '/(?<=^|[^$\d_\pL\x{200c}])\$(1INCH|[A-Z]{1,8})(?![$\d_\pL\x{200c}])/u'
+  // '/(?<=^|[^$\d_\pL\x{200c}\x{0d80}-\x{0dff}])\$(1INCH|[A-Z]{1,8})(?![$\d_\pL\x{200c}\x{0d80}-\x{0dff}])/u'
 
   UnicodeSimpleCategory category;
   while (true) {
