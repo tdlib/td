@@ -28293,9 +28293,6 @@ Result<MessagesManager::ForwardedMessages> MessagesManager::get_forwarded_messag
 
     bool is_broken_server_copy = [&] {
       switch (forwarded_message->content->get_type()) {
-        case MessageContentType::Poll:
-          return get_message_content_poll_is_closed(td_, forwarded_message->content.get()) ||
-                 td_->auth_manager_->is_bot();
         case MessageContentType::Dice:
           return true;
         default:
