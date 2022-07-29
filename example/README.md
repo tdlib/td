@@ -145,7 +145,7 @@ See [example/ios](https://github.com/tdlib/td/tree/master/example/ios) for an ex
 
 See [TDLibKit](https://github.com/Swiftgram/TDLibKit), [tdlib-swift](https://github.com/modestman/tdlib-swift), or [TDLib-iOS](https://github.com/leoMehlig/TDLib-iOS), which provide convenient TDLib clients with automatically generated and fully-documented classes for all TDLib API methods and objects.
 
-See also the source code of [Moc](https://github.com/ggoraa/moc) - a native and powerful macOS and iPadOS Telegram client, optimized for moderating large communities and personal use.
+See also the source code of [Moc](https://github.com/mock-foundation/moc) - a native and powerful macOS and iPadOS Telegram client, optimized for moderating large communities and personal use.
 
 See [example/swift](https://github.com/tdlib/td/tree/master/example/swift) for an example of a macOS Swift application.
 
