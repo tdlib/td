@@ -5140,6 +5140,7 @@ void StickersManager::get_all_animated_emojis(bool is_recursive,
 }
 
 void StickersManager::load_custom_emoji_sticker_from_database(int64 custom_emoji_id, Promise<Unit> &&promise) {
+  CHECK(custom_emoji_id != 0);
   auto &queries = custom_emoji_load_queries_[custom_emoji_id];
   queries.push_back(std::move(promise));
   if (queries.size() == 1) {
@@ -5221,6 +5222,7 @@ void StickersManager::get_custom_emoji_stickers(vector<int64> &&document_ids, bo
   }
 
   td::unique(document_ids);
+  td::remove(document_ids, 0);
 
   vector<int64> unknown_document_ids;
   for (auto document_id : document_ids) {

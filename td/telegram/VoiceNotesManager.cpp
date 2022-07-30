@@ -328,6 +328,7 @@ void VoiceNotesManager::on_voice_note_transcribed(FileId file_id, string &&text,
   CHECK(voice_note != nullptr);
   CHECK(!voice_note->is_transcribed);
   CHECK(voice_note->transcription_id == 0 || voice_note->transcription_id == transcription_id);
+  CHECK(transcription_id != 0);
   bool is_changed = voice_note->is_transcribed != is_final || voice_note->text != text;
   voice_note->transcription_id = transcription_id;
   voice_note->is_transcribed = is_final;

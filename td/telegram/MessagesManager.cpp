@@ -13875,6 +13875,12 @@ void MessagesManager::on_get_secret_message(SecretChatId secret_chat_id, UserId 
   CHECK(message_id.is_valid());
   CHECK(date > 0);
 
+  if (message->random_id_ == 0) {
+    LOG(ERROR) << "Ignore secret message with random_id == 0";
+    promise.set_error(Status::Error(400, "Invalid random_id"));
+    return;
+  }
+
   auto pending_secret_message = make_unique<PendingSecretMessage>();
   pending_secret_message->success_promise = std::move(promise);
   MessageInfo &message_info = pending_secret_message->message_info;
