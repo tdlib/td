@@ -1406,7 +1406,21 @@ vector<std::pair<Slice, int32>> find_media_timestamps(Slice str) {
 }
 
 void remove_empty_entities(vector<MessageEntity> &entities) {
-  td::remove_if(entities, [](const auto &entity) { return entity.length == 0; });
+  td::remove_if(entities, [](const auto &entity) {
+    if (entity.length <= 0) {
+      return true;
+    }
+    switch (entity.type) {
+      case MessageEntity::Type::TextUrl:
+        return entity.argument.empty();
+      case MessageEntity::Type::MentionName:
+        return !entity.user_id.is_valid();
+      case MessageEntity::Type::CustomEmoji:
+        return entity.document_id == 0;
+      default:
+        return false;
+    }
+  });
 }
 
 static int32 text_length(Slice text) {
