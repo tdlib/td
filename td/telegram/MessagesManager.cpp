@@ -23894,18 +23894,21 @@ void MessagesManager::on_get_history_from_database(DialogId dialog_id, MessageId
         // received messages [first_received_message_id, last_received_message_id], none of which can be added
         // first_database_message_id and last_database_message_id are very wrong, so it is better to drop them,
         // pretending that the database has no usable messages
-        if (first_received_message_id == MessageId::max()) {
-          CHECK(last_received_message_id == MessageId());
-          LOG(ERROR) << "Receive no usable messages in " << dialog_id
-                     << " from database from the end, but expected messages from " << d->first_database_message_id
-                     << " up to " << d->last_database_message_id
-                     << ". Have old last_database_message_id = " << old_last_database_message_id << " and "
-                     << messages.size() << " received messages";
-        } else {
-          LOG(ERROR) << "Receive " << messages.size() << " unusable messages [" << first_received_message_id << " ... "
-                     << last_received_message_id << "] in " << dialog_id
-                     << " from database from the end, but expected messages from " << d->first_database_message_id
-                     << " up to " << d->last_database_message_id;
+        if (!is_deleted_message(d, d->first_database_message_id) ||
+            !is_deleted_message(d, d->last_database_message_id)) {
+          if (first_received_message_id == MessageId::max()) {
+            CHECK(last_received_message_id == MessageId());
+            LOG(ERROR) << "Receive no usable messages in " << dialog_id
+                       << " from database from the end, but expected messages from " << d->first_database_message_id
+                       << " up to " << d->last_database_message_id
+                       << ". Have old last_database_message_id = " << old_last_database_message_id << " and "
+                       << messages.size() << " received messages";
+          } else {
+            LOG(ERROR) << "Receive " << messages.size() << " unusable messages [" << first_received_message_id
+                       << " ... " << last_received_message_id << "] in " << dialog_id
+                       << " from database from the end, but expected messages from " << d->first_database_message_id
+                       << " up to " << d->last_database_message_id;
+          }
         }
         set_dialog_first_database_message_id(d, MessageId(), "on_get_history_from_database 13");
         set_dialog_last_database_message_id(d, MessageId(), "on_get_history_from_database 14");
