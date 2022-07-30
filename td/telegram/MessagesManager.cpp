@@ -16137,16 +16137,20 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
         if (!(*it)->message_id.is_yet_unsent() && (*it)->message_id != d->last_database_message_id) {
           if ((*it)->message_id < d->first_database_message_id && d->dialog_id.get_type() == DialogType::Channel) {
             // possible if messages was deleted from database, but not from memory after updateChannelTooLong
-            set_dialog_last_database_message_id(d, MessageId(), "do_delete_message");
+            set_dialog_last_database_message_id(d, MessageId(), "do_delete_message 1");
           } else {
-            set_dialog_last_database_message_id(d, (*it)->message_id, "do_delete_message");
+            set_dialog_last_database_message_id(d, (*it)->message_id, "do_delete_message 2");
             if (d->last_database_message_id < d->first_database_message_id) {
               LOG(ERROR) << "Last database " << d->last_database_message_id << " became less than first database "
                          << d->first_database_message_id << " after deletion of " << full_message_id;
               set_dialog_first_database_message_id(d, d->last_database_message_id, "do_delete_message 2");
             }
           }
+        } else if (d->first_database_message_id == d->last_database_message_id) {
+          // database definitely has no more messages
+          set_dialog_last_database_message_id(d, MessageId(), "do_delete_message 3");
         } else {
+          LOG(INFO) << "Need to get history to repair last_database_message_id in " << d->dialog_id;
           need_get_history = true;
         }
       } else {
