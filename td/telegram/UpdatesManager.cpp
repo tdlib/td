@@ -3368,6 +3368,8 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateBotPrecheckoutQ
   UserId user_id(update->user_id_);
   if (!user_id.is_valid()) {
     LOG(ERROR) << "Receive pre-checkout query from invalid " << user_id;
+  } else if (update->total_amount_ <= 0 || !check_currency_amount(update->total_amount_)) {
+    LOG(ERROR) << "Receive pre-checkout query with invalid total amount " << update->total_amount_;
   } else {
     send_closure(
         G()->td(), &Td::send_update,

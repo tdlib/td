@@ -7,6 +7,7 @@
 #include "td/telegram/PremiumGiftOption.h"
 
 #include "td/telegram/LinkManager.h"
+#include "td/telegram/Payments.h"
 
 #include "td/utils/common.h"
 
@@ -21,6 +22,10 @@ PremiumGiftOption::PremiumGiftOption(telegram_api::object_ptr<telegram_api::prem
     , amount_(option->amount_)
     , bot_url_(std::move(option->bot_url_))
     , store_product_(std::move(option->store_product_)) {
+  if (amount_ <= 0 || !check_currency_amount(amount_)) {
+    LOG(ERROR) << "Receive invalid premium gift option amount " << amount_;
+    amount_ = static_cast<int64>(1) << 40;
+  }
 }
 
 double PremiumGiftOption::get_monthly_price() const {

@@ -16,6 +16,7 @@
 #include "td/telegram/Global.h"
 #include "td/telegram/JsonValue.h"
 #include "td/telegram/MessageEntity.h"
+#include "td/telegram/Payments.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/UpdatesManager.h"
@@ -89,6 +90,9 @@ static Result<tl_object_ptr<telegram_api::InputStorePaymentPurpose>> get_input_s
       auto p = static_cast<const td_api::storePaymentPurposeGiftedPremium *>(purpose.get());
       UserId user_id(p->user_id_);
       TRY_RESULT(input_user, td->contacts_manager_->get_input_user(user_id));
+      if (p->amount_ <= 0 || !check_currency_amount(p->amount_)) {
+        return Status::Error(400, "Invalid amount of the currency specified");
+      }
       return make_tl_object<telegram_api::inputStorePaymentGiftPremium>(std::move(input_user), p->currency_,
                                                                         p->amount_);
     }
@@ -128,7 +132,7 @@ class GetPremiumPromoQuery final : public Td::ResultHandler {
       return on_error(Status::Error(500, "Receive wrong number of videos"));
     }
 
-    if (promo->monthly_amount_ < 0 || promo->monthly_amount_ > 9999'9999'9999) {
+    if (promo->monthly_amount_ < 0 || !check_currency_amount(promo->monthly_amount_)) {
       return on_error(Status::Error(500, "Receive invalid monthly amount"));
     }
 

@@ -4893,6 +4893,10 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
         reply_in_dialog_id = DialogId();
         reply_to_message_id = MessageId();
       }
+      if (action->total_amount_ <= 0 || !check_currency_amount(action->total_amount_)) {
+        LOG(ERROR) << "Receive invalid total amount " << action->total_amount_;
+        action->total_amount_ = 0;
+      }
       return td::make_unique<MessagePaymentSuccessful>(
           reply_in_dialog_id, reply_to_message_id, std::move(action->currency_), action->total_amount_,
           std::move(action->invoice_slug_), action->recurring_used_, action->recurring_init_);
@@ -4903,6 +4907,10 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
         break;
       }
       auto action = move_tl_object_as<telegram_api::messageActionPaymentSentMe>(action_ptr);
+      if (action->total_amount_ <= 0 || !check_currency_amount(action->total_amount_)) {
+        LOG(ERROR) << "Receive invalid total amount " << action->total_amount_;
+        action->total_amount_ = 0;
+      }
       auto result = td::make_unique<MessagePaymentSuccessful>(DialogId(), MessageId(), std::move(action->currency_),
                                                               action->total_amount_, action->payload_.as_slice().str(),
                                                               action->recurring_used_, action->recurring_init_);
@@ -5019,6 +5027,10 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
     }
     case telegram_api::messageActionGiftPremium::ID: {
       auto action = move_tl_object_as<telegram_api::messageActionGiftPremium>(action_ptr);
+      if (action->amount_ <= 0 || !check_currency_amount(action->amount_)) {
+        LOG(ERROR) << "Receive invalid premium gift price " << action->amount_;
+        action->amount_ = 0;
+      }
       return td::make_unique<MessageGiftPremium>(std::move(action->currency_), action->amount_, action->months_);
     }
     default:
