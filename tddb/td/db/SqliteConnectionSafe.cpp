@@ -14,10 +14,11 @@ namespace td {
 
 SqliteConnectionSafe::SqliteConnectionSafe(string path, DbKey key, optional<int32> cipher_version)
     : path_(std::move(path))
-    , lsls_connection_([path = path_, key = std::move(key), cipher_version = std::move(cipher_version)] {
+    , lsls_connection_([path = path_, close_state_ptr = &close_state_, key = std::move(key),
+                        cipher_version = std::move(cipher_version)] {
       auto r_db = SqliteDb::open_with_key(path, false, key, cipher_version.copy());
       if (r_db.is_error()) {
-        LOG(FATAL) << "Can't open database: " << r_db.error().message();
+        LOG(FATAL) << "Can't open database in state " << *close_state_ptr << ": " << r_db.error().message();
       }
       auto db = r_db.move_as_ok();
       db.exec("PRAGMA journal_mode=WAL").ensure();
@@ -36,12 +37,14 @@ SqliteDb &SqliteConnectionSafe::get() {
 
 void SqliteConnectionSafe::close() {
   LOG(INFO) << "Close SQLite database " << tag("path", path_);
+  close_state_++;
   lsls_connection_.clear_values();
 }
 
 void SqliteConnectionSafe::close_and_destroy() {
   close();
   LOG(INFO) << "Destroy SQLite database " << tag("path", path_);
+  close_state_ += 65536;
   SqliteDb::destroy(path_).ignore();
 }
 

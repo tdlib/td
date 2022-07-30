@@ -30,6 +30,7 @@ class SqliteConnectionSafe {
 
  private:
   string path_;
+  uint32 close_state_ = 0;
   LazySchedulerLocalStorage<SqliteDb> lsls_connection_;
 };
 
