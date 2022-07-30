@@ -1405,6 +1405,10 @@ vector<std::pair<Slice, int32>> find_media_timestamps(Slice str) {
   return result;
 }
 
+void remove_empty_entities(vector<MessageEntity> &entities) {
+  td::remove_if(entities, [](const auto &entity) { return entity.length == 0; });
+}
+
 static int32 text_length(Slice text) {
   return narrow_cast<int32>(utf8_utf16_length(text));
 }
@@ -2566,7 +2570,7 @@ static FormattedText parse_markdown_v3_without_pre(Slice text, vector<MessageEnt
     CHECK(entity.offset + entity.length <= utf16_offset);
   }
 
-  td::remove_if(entities, [](const auto &entity) { return entity.length == 0; });
+  remove_empty_entities(entities);
 
   sort_entities(entities);
   return {std::move(new_text), std::move(entities)};
@@ -3859,7 +3863,7 @@ static std::pair<size_t, int32> remove_invalid_entities(const string &text, vect
   int32 utf16_offset = 0;
   int32 last_non_whitespace_utf16_offset = -1;
 
-  td::remove_if(entities, [](const auto &entity) { return entity.length == 0; });
+  remove_empty_entities(entities);
 
   for (size_t pos = 0; pos <= text.size(); pos++) {
     while (!nested_entities_stack.empty()) {
@@ -3924,7 +3928,7 @@ static std::pair<size_t, int32> remove_invalid_entities(const string &text, vect
   CHECK(nested_entities_stack.empty());
   CHECK(current_entity == entities.size());
 
-  td::remove_if(entities, [](const auto &entity) { return entity.length == 0; });
+  remove_empty_entities(entities);
 
   return {last_non_whitespace_pos, last_non_whitespace_utf16_offset};
 }
@@ -4114,7 +4118,7 @@ Status fix_formatted_text(string &text, vector<MessageEntity> &entities, bool al
         return Status::Error(400, PSLICE() << "Receive an entity with incorrect length " << entity.length);
       }
     }
-    td::remove_if(entities, [](const MessageEntity &entity) { return entity.length == 0; });
+    remove_empty_entities(entities);
 
     fix_entities(entities);
 

@@ -1137,6 +1137,7 @@ static void parse_caption(FormattedText &caption, ParserT &parser) {
   parse(caption.text, parser);
   if (parser.version() >= static_cast<int32>(Version::AddCaptionEntities)) {
     parse(caption.entities, parser);
+    remove_empty_entities(caption.entities);
   } else {
     if (!check_utf8(caption.text)) {
       caption.text.clear();

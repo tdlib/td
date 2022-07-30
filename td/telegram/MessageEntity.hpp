@@ -62,6 +62,7 @@ template <class ParserT>
 void FormattedText::parse(ParserT &parser) {
   td::parse(text, parser);
   td::parse(entities, parser);
+  remove_empty_entities(entities);
 }
 
 }  // namespace td
