@@ -1504,8 +1504,9 @@ void StickersManager::load_special_sticker_set_info_from_binlog(SpecialStickerSe
   }
 
   add_sticker_set(sticker_set.id_, sticker_set.access_hash_);
-  if (!sticker_set.short_name_.empty()) {
-    short_name_to_sticker_set_id_.emplace(sticker_set.short_name_, sticker_set.id_);
+  auto cleaned_username = clean_username(sticker_set.short_name_);
+  if (!cleaned_username.empty()) {
+    short_name_to_sticker_set_id_.emplace(cleaned_username, sticker_set.id_);
   }
 }
 
@@ -6822,7 +6823,7 @@ void StickersManager::add_sticker_to_set(UserId user_id, string &short_name,
                                          tl_object_ptr<td_api::inputSticker> &&sticker, Promise<Unit> &&promise) {
   TRY_RESULT_PROMISE(promise, input_user, td_->contacts_manager_->get_input_user(user_id));
 
-  short_name = strip_empty_characters(short_name, MAX_STICKER_SET_SHORT_NAME_LENGTH);
+  short_name = clean_username(strip_empty_characters(short_name, MAX_STICKER_SET_SHORT_NAME_LENGTH));
   if (short_name.empty()) {
     return promise.set_error(Status::Error(400, "Sticker set name can't be empty"));
   }
