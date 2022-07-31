@@ -6460,6 +6460,10 @@ void MessagesManager::save_auth_notification_ids() {
 
 void MessagesManager::on_update_service_notification(tl_object_ptr<telegram_api::updateServiceNotification> &&update,
                                                      bool skip_new_entities, Promise<Unit> &&promise) {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+
   bool has_date = (update->flags_ & telegram_api::updateServiceNotification::INBOX_DATE_MASK) != 0;
   auto date = has_date ? update->inbox_date_ : G()->unix_time();
   if (date <= 0) {
