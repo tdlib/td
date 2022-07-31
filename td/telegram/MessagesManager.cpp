@@ -6474,6 +6474,19 @@ void MessagesManager::on_update_service_notification(tl_object_ptr<telegram_api:
       return;
     }
     old_date = date;
+
+    if (auth_notification_id_date_.size() > MAX_SAVED_AUTH_NOTIFICATION_IDS) {
+      auto min_date = date + 1;
+      const string *min_key = nullptr;
+      for (const auto &it : auth_notification_id_date_) {
+        if (it.second < min_date) {
+          min_date = it.second;
+          min_key = &it.first;
+        }
+      }
+      CHECK(min_key != nullptr);
+      auth_notification_id_date_.erase(*min_key);
+    }
   }
 
   bool is_authorized = td_->auth_manager_->is_authorized();
@@ -13418,6 +13431,10 @@ void MessagesManager::init() {
       if (date < min_date || ids[i].empty()) {
         is_changed = true;
         continue;
+      }
+      if (auth_notification_id_date_.size() == MAX_SAVED_AUTH_NOTIFICATION_IDS) {
+        is_changed = true;
+        break;
       }
       auth_notification_id_date_.emplace(std::move(ids[i]), date);
     }

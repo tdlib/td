@@ -1786,6 +1786,7 @@ class MessagesManager final : public Actor {
   static constexpr int32 USERNAME_CACHE_EXPIRE_TIME = 3 * 86400;
   static constexpr int32 USERNAME_CACHE_EXPIRE_TIME_SHORT = 900;
   static constexpr int32 AUTH_NOTIFICATION_ID_CACHE_TIME = 7 * 86400;
+  static constexpr size_t MAX_SAVED_AUTH_NOTIFICATION_IDS = 100;
 
   static constexpr int32 ONLINE_MEMBER_COUNT_UPDATE_TIME = 5 * 60;
 
