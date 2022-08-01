@@ -14623,10 +14623,12 @@ FullMessageId MessagesManager::on_get_message(MessageInfo &&message_info, bool f
         }
         // if there is no message yet, then it is likely was missed because of a server bug and is being repaired via
         // get_message_from_server from after_get_difference
-        // TODO move to INFO
-        LOG(ERROR) << "Receive " << old_message_id << "/" << message_id << " in " << dialog_id << " from " << source
-                   << " with identifier less than last_new_message_id = " << d->last_new_message_id
-                   << " and trying to add it anyway";
+        if (!has_qts_messages(dialog_id)) {
+          // TODO move to INFO
+          LOG(ERROR) << "Receive " << old_message_id << "/" << message_id << " in " << dialog_id << " from " << source
+                     << " with identifier less than last_new_message_id = " << d->last_new_message_id
+                     << " and trying to add it anyway";
+        }
       } else {
         // TODO move to INFO
         LOG(ERROR) << "Ignore " << old_message_id << "/" << message_id << " received not through update from " << source
@@ -34348,12 +34350,14 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     }
     if (max_message_id != MessageId() && message_id > max_message_id) {
       if (!message->from_database) {
-        LOG(ERROR) << "Ignore " << message_id << " in " << dialog_id << " received not through update from " << source
-                   << ". The maximum allowed is " << max_message_id << ", last is " << d->last_message_id
-                   << ", being added message is " << d->being_added_message_id << ", channel difference "
-                   << debug_channel_difference_dialog_ << " "
-                   << to_string(get_message_object(dialog_id, message.get(), "add_message_to_dialog"));
-        dump_debug_message_op(d, 3);
+        if (!has_qts_messages(dialog_id)) {
+          LOG(ERROR) << "Ignore " << message_id << " in " << dialog_id << " received not through update from " << source
+                     << ". The maximum allowed is " << max_message_id << ", last is " << d->last_message_id
+                     << ", being added message is " << d->being_added_message_id << ", channel difference "
+                     << debug_channel_difference_dialog_ << " "
+                     << to_string(get_message_object(dialog_id, message.get(), "add_message_to_dialog"));
+          dump_debug_message_op(d, 3);
+        }
 
         if (need_channel_difference_to_add_message(dialog_id, nullptr)) {
           LOG(INFO) << "Schedule getDifference in " << dialog_id.get_channel_id();
@@ -34736,7 +34740,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
       if (next_message != nullptr) {
         CHECK(!next_message->have_previous);
         LOG(INFO) << "Attach " << message_id << " to the next " << next_message->message_id << " in " << dialog_id;
-        if (from_update && !next_message->message_id.is_yet_unsent()) {
+        if (from_update && !next_message->message_id.is_yet_unsent() && !has_qts_messages(dialog_id)) {
           LOG(ERROR) << "Attach " << message_id << " from " << source << " to the next " << next_message->message_id
                      << " in " << dialog_id;
         }
