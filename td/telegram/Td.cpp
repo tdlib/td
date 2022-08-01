@@ -7904,7 +7904,7 @@ void Td::on_request(uint64 id, const td_api::getPremiumFeatures &request) {
   get_premium_features(this, request.source_, std::move(promise));
 }
 
-void Td::on_request(uint64 id, const td_api::getPremiumStickers &request) {
+void Td::on_request(uint64 id, const td_api::getPremiumStickerExamples &request) {
   CHECK_IS_USER();
   CREATE_REQUEST(SearchStickersRequest, "⭐️⭐️", 100);
 }

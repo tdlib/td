@@ -6461,7 +6461,7 @@ getPremiumLimit limit_type:PremiumLimitType = PremiumLimit;
 getPremiumFeatures source:PremiumSource = PremiumFeatures;
 
 //@description Returns examples of premium stickers for demonstration purposes
-getPremiumStickers = Stickers;
+getPremiumStickerExamples = Stickers;
 
 //@description Informs TDLib that the user viewed detailed information about a Premium feature on the Premium features screen @feature The viewed premium feature
 viewPremiumFeature feature:PremiumFeature = Ok;
