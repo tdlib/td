@@ -136,7 +136,7 @@ class StickersManager final : public Actor {
 
   vector<FileId> get_stickers(StickerType sticker_type, string emoji, int32 limit, bool force, Promise<Unit> &&promise);
 
-  vector<FileId> search_stickers(string emoji, int32 limit, Promise<Unit> &&promise);
+  void search_stickers(string emoji, int32 limit, Promise<td_api::object_ptr<td_api::stickers>> &&promise);
 
   vector<StickerSetId> get_installed_sticker_sets(StickerType sticker_type, Promise<Unit> &&promise);
 
@@ -906,7 +906,7 @@ class StickersManager final : public Actor {
     double next_reload_time_ = 0;
   };
   FlatHashMap<string, FoundStickers> found_stickers_;
-  FlatHashMap<string, vector<Promise<Unit>>> search_stickers_queries_;
+  FlatHashMap<string, vector<std::pair<int32, Promise<td_api::object_ptr<td_api::stickers>>>>> search_stickers_queries_;
 
   std::unordered_map<string, vector<StickerSetId>> found_sticker_sets_;
   std::unordered_map<string, vector<Promise<Unit>>> search_sticker_sets_queries_;

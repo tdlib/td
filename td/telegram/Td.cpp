@@ -2005,26 +2005,6 @@ class GetStickersRequest final : public RequestActor<> {
   }
 };
 
-class SearchStickersRequest final : public RequestActor<> {
-  string emoji_;
-  int32 limit_;
-
-  vector<FileId> sticker_ids_;
-
-  void do_run(Promise<Unit> &&promise) final {
-    sticker_ids_ = td_->stickers_manager_->search_stickers(emoji_, limit_, std::move(promise));
-  }
-
-  void do_send_result() final {
-    send_result(td_->stickers_manager_->get_stickers_object(sticker_ids_));
-  }
-
- public:
-  SearchStickersRequest(ActorShared<Td> td, uint64 request_id, string &&emoji, int32 limit)
-      : RequestActor(std::move(td), request_id), emoji_(std::move(emoji)), limit_(limit) {
-  }
-};
-
 class GetInstalledStickerSetsRequest final : public RequestActor<> {
   StickerType sticker_type_;
 
@@ -6996,7 +6976,8 @@ void Td::on_request(uint64 id, td_api::getStickers &request) {
 void Td::on_request(uint64 id, td_api::searchStickers &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.emoji_);
-  CREATE_REQUEST(SearchStickersRequest, std::move(request.emoji_), request.limit_);
+  CREATE_REQUEST_PROMISE();
+  stickers_manager_->search_stickers(std::move(request.emoji_), request.limit_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::getInstalledStickerSets &request) {
@@ -7906,7 +7887,8 @@ void Td::on_request(uint64 id, const td_api::getPremiumFeatures &request) {
 
 void Td::on_request(uint64 id, const td_api::getPremiumStickerExamples &request) {
   CHECK_IS_USER();
-  CREATE_REQUEST(SearchStickersRequest, "⭐️⭐️", 100);
+  CREATE_REQUEST_PROMISE();
+  stickers_manager_->search_stickers("⭐️⭐️", 100, std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::viewPremiumFeature &request) {

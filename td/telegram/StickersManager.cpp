@@ -4072,35 +4072,31 @@ vector<FileId> StickersManager::get_stickers(StickerType sticker_type, string em
   return result;
 }
 
-vector<FileId> StickersManager::search_stickers(string emoji, int32 limit, Promise<Unit> &&promise) {
+void StickersManager::search_stickers(string emoji, int32 limit, Promise<td_api::object_ptr<td_api::stickers>> &&promise) {
   if (limit <= 0) {
-    promise.set_error(Status::Error(400, "Parameter limit must be positive"));
-    return {};
+    return promise.set_error(Status::Error(400, "Parameter limit must be positive"));
   }
   if (limit > MAX_FOUND_STICKERS) {
     limit = MAX_FOUND_STICKERS;
   }
   if (emoji.empty()) {
-    promise.set_error(Status::Error(400, "Emoji must be non-empty"));
-    return {};
+    return promise.set_error(Status::Error(400, "Emoji must be non-empty"));
   }
 
   remove_emoji_modifiers_in_place(emoji);
   if (emoji.empty()) {
-    promise.set_value(Unit());
-    return {};
+    return promise.set_value(get_stickers_object({}));
   }
 
   auto it = found_stickers_.find(emoji);
   if (it != found_stickers_.end() && Time::now() < it->second.next_reload_time_) {
-    promise.set_value(Unit());
     const auto &sticker_ids = it->second.sticker_ids_;
     auto result_size = min(static_cast<size_t>(limit), sticker_ids.size());
-    return vector<FileId>(sticker_ids.begin(), sticker_ids.begin() + result_size);
+    return promise.set_value(get_stickers_object({sticker_ids.begin(), sticker_ids.begin() + result_size}));
   }
 
   auto &promises = search_stickers_queries_[emoji];
-  promises.push_back(std::move(promise));
+  promises.emplace_back(limit, std::move(promise));
   if (promises.size() == 1u) {
     int64 hash = 0;
     if (it != found_stickers_.end()) {
@@ -4108,8 +4104,6 @@ vector<FileId> StickersManager::search_stickers(string emoji, int32 limit, Promi
     }
     td_->create_handler<SearchStickersQuery>()->send(std::move(emoji), hash);
   }
-
-  return {};
 }
 
 void StickersManager::on_find_stickers_success(const string &emoji,
@@ -4148,10 +4142,16 @@ void StickersManager::on_find_stickers_success(const string &emoji,
   auto it = search_stickers_queries_.find(emoji);
   CHECK(it != search_stickers_queries_.end());
   CHECK(!it->second.empty());
-  auto promises = std::move(it->second);
+  auto queries = std::move(it->second);
   search_stickers_queries_.erase(it);
 
-  set_promises(promises);
+  auto result_it = found_stickers_.find(emoji);
+  CHECK(result_it != found_stickers_.end());
+  const auto &sticker_ids = result_it->second.sticker_ids_;
+  for (auto &query : queries) {
+    auto result_size = min(static_cast<size_t>(query.first), sticker_ids.size());
+    query.second.set_value(get_stickers_object({sticker_ids.begin(), sticker_ids.begin() + result_size}));
+  }
 }
 
 void StickersManager::on_find_stickers_fail(const string &emoji, Status &&error) {
@@ -4163,10 +4163,12 @@ void StickersManager::on_find_stickers_fail(const string &emoji, Status &&error)
   auto it = search_stickers_queries_.find(emoji);
   CHECK(it != search_stickers_queries_.end());
   CHECK(!it->second.empty());
-  auto promises = std::move(it->second);
+  auto queries = std::move(it->second);
   search_stickers_queries_.erase(it);
 
-  fail_promises(promises, std::move(error));
+  for (auto &query : queries) {
+    query.second.set_error(error.clone());
+  }
 }
 
 vector<StickerSetId> StickersManager::get_installed_sticker_sets(StickerType sticker_type, Promise<Unit> &&promise) {
