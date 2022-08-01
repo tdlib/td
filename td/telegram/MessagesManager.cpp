@@ -6502,7 +6502,7 @@ void MessagesManager::on_update_service_notification(tl_object_ptr<telegram_api:
   int32 ttl = 0;
   bool disable_web_page_preview = false;
   auto content = get_message_content(td_, std::move(message_text), std::move(update->media_), owner_dialog_id, false,
-                                     UserId(), &ttl, &disable_web_page_preview);
+                                     UserId(), &ttl, &disable_web_page_preview, "updateServiceNotification");
   bool is_content_secret = is_secret_message_content(ttl, content->get_type());
 
   if (update->popup_) {
@@ -14205,7 +14205,7 @@ MessagesManager::MessageInfo MessagesManager::parse_telegram_api_message(
                            message_info.forward_header ? message_info.forward_header->date_ : message_info.date,
                            message_info.media_album_id != 0, new_source.c_str()),
           std::move(message->media_), message_info.dialog_id, is_content_read, message_info.via_bot_user_id,
-          &message_info.ttl, &message_info.disable_web_page_preview);
+          &message_info.ttl, &message_info.disable_web_page_preview, new_source.c_str());
       message_info.reply_markup =
           message->flags_ & MESSAGE_FLAG_HAS_REPLY_MARKUP ? std::move(message->reply_markup_) : nullptr;
       message_info.restriction_reasons = get_restriction_reasons(std::move(message->restriction_reason_));
@@ -15295,9 +15295,9 @@ void MessagesManager::on_update_sent_text_message(int64 random_id,
   FormattedText new_message_text = get_message_text(
       td_->contacts_manager_.get(), old_message_text->text, std::move(entities), true, td_->auth_manager_->is_bot(),
       m->forward_info ? m->forward_info->date : m->date, m->media_album_id != 0, "on_update_sent_text_message");
-  auto new_content =
-      get_message_content(td_, std::move(new_message_text), std::move(message_media), dialog_id,
-                          true /*likely ignored*/, UserId() /*likely ignored*/, nullptr /*ignored*/, nullptr);
+  auto new_content = get_message_content(td_, std::move(new_message_text), std::move(message_media), dialog_id,
+                                         true /*likely ignored*/, UserId() /*likely ignored*/, nullptr /*ignored*/,
+                                         nullptr, "on_update_sent_text_message");
   if (new_content->get_type() != MessageContentType::Text) {
     LOG(ERROR) << "Text message content has changed to " << new_content->get_type();
     return;
@@ -25997,7 +25997,7 @@ void MessagesManager::on_upload_message_media_success(DialogId dialog_id, Messag
 
   auto caption = get_message_content_caption(m->content.get());
   auto content = get_message_content(td_, caption == nullptr ? FormattedText() : *caption, std::move(media), dialog_id,
-                                     false, UserId(), nullptr, nullptr);
+                                     false, UserId(), nullptr, nullptr, "on_upload_message_media_success");
 
   if (update_message_content(dialog_id, m, std::move(content), true, true, true) &&
       m->message_id == d->last_message_id) {

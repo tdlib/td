@@ -297,7 +297,7 @@ void SponsoredMessageManager::on_get_dialog_sponsored_messages(
     int32 ttl = 0;
     bool disable_web_page_preview = false;
     auto content = get_message_content(td_, std::move(message_text), nullptr, sponsor_dialog_id, true, UserId(), &ttl,
-                                       &disable_web_page_preview);
+                                       &disable_web_page_preview, "on_get_dialog_sponsored_messages");
     if (ttl != 0) {
       LOG(ERROR) << "Receive sponsored message with TTL " << ttl;
       continue;

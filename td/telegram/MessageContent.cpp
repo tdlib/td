@@ -4323,10 +4323,10 @@ unique_ptr<MessageContent> get_secret_message_content(
 unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
                                                tl_object_ptr<telegram_api::MessageMedia> &&media_ptr,
                                                DialogId owner_dialog_id, bool is_content_read, UserId via_bot_user_id,
-                                               int32 *ttl, bool *disable_web_page_preview) {
+                                               int32 *ttl, bool *disable_web_page_preview, const char *source) {
   if (!td->auth_manager_->was_authorized() && !G()->close_flag() && media_ptr != nullptr &&
       media_ptr->get_id() != telegram_api::messageMediaEmpty::ID) {
-    LOG(ERROR) << "Receive without authorization " << to_string(media_ptr);
+    LOG(ERROR) << "Receive without authorization from " << source << ": " << to_string(media_ptr);
     media_ptr = nullptr;
   }
   if (disable_web_page_preview != nullptr) {
@@ -4337,7 +4337,7 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
   switch (constructor_id) {
     case telegram_api::messageMediaEmpty::ID:
       if (message.text.empty()) {
-        LOG(ERROR) << "Receive empty message text and media for message from " << owner_dialog_id;
+        LOG(ERROR) << "Receive empty message text and media from " << source;
       }
       if (disable_web_page_preview != nullptr) {
         *disable_web_page_preview = true;
@@ -4347,7 +4347,8 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
       auto media = move_tl_object_as<telegram_api::messageMediaPhoto>(media_ptr);
       if (media->photo_ == nullptr) {
         if ((media->flags_ & telegram_api::messageMediaPhoto::TTL_SECONDS_MASK) == 0) {
-          LOG(ERROR) << "Receive messageMediaPhoto without photo and TTL: " << oneline(to_string(media));
+          LOG(ERROR) << "Receive messageMediaPhoto without photo and TTL from " << source << ": "
+                     << oneline(to_string(media));
           break;
         }
 
@@ -4393,7 +4394,7 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
 
       int32 period = media->period_;
       if (period <= 0) {
-        LOG(ERROR) << "Receive wrong live location period = " << period;
+        LOG(ERROR) << "Receive wrong live location period = " << period << " from " << source;
         return make_unique<MessageLocation>(std::move(location));
       }
       return make_unique<MessageLiveLocation>(std::move(location), period, media->heading_,
@@ -4424,7 +4425,8 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
       auto media = move_tl_object_as<telegram_api::messageMediaDocument>(media_ptr);
       if (media->document_ == nullptr) {
         if ((media->flags_ & telegram_api::messageMediaDocument::TTL_SECONDS_MASK) == 0) {
-          LOG(ERROR) << "Receive messageMediaDocument without document and TTL: " << oneline(to_string(media));
+          LOG(ERROR) << "Receive messageMediaDocument without document and TTL from " << source << ": "
+                     << oneline(to_string(media));
           break;
         }
 
@@ -4466,8 +4468,8 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
     }
     case telegram_api::messageMediaPoll::ID: {
       auto media = move_tl_object_as<telegram_api::messageMediaPoll>(media_ptr);
-      auto poll_id = td->poll_manager_->on_get_poll(PollId(), std::move(media->poll_), std::move(media->results_),
-                                                    "messageMediaPoll");
+      auto poll_id =
+          td->poll_manager_->on_get_poll(PollId(), std::move(media->poll_), std::move(media->results_), source);
       if (!poll_id.is_valid()) {
         break;
       }

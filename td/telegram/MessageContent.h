@@ -190,7 +190,7 @@ unique_ptr<MessageContent> get_secret_message_content(
 unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message_text,
                                                tl_object_ptr<telegram_api::MessageMedia> &&media_ptr,
                                                DialogId owner_dialog_id, bool is_content_read, UserId via_bot_user_id,
-                                               int32 *ttl, bool *disable_web_page_preview);
+                                               int32 *ttl, bool *disable_web_page_preview, const char *source);
 
 enum class MessageContentDupType : int32 { Send, SendViaBot, Forward, Copy, ServerCopy };
 
