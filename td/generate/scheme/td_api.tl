@@ -5922,6 +5922,9 @@ getStickers sticker_type:StickerType emoji:string limit:int32 = Stickers;
 //@description Searches for stickers from public sticker sets that correspond to a given emoji @emoji String representation of emoji; must be non-empty @limit The maximum number of stickers to be returned
 searchStickers emoji:string limit:int32 = Stickers;
 
+//@description Returns premium stickers from regular sticker sets @limit The maximum number of stickers to be returned
+getPremiumStickers limit:int32 = Stickers;
+
 //@description Returns a list of installed sticker sets @sticker_type Type of the sticker sets to return
 getInstalledStickerSets sticker_type:StickerType = StickerSets;
 

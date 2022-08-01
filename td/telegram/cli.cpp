@@ -2618,6 +2618,10 @@ class CliClient final : public Actor {
       SearchQuery query;
       get_args(args, query);
       send_request(td_api::make_object<td_api::searchStickers>(query.query, query.limit));
+    } else if (op == "gprst") {
+      string limit;
+      get_args(args, limit);
+      send_request(td_api::make_object<td_api::getPremiumStickers>(as_limit(limit)));
     } else if (op == "gss") {
       int64 sticker_set_id;
       get_args(args, sticker_set_id);
