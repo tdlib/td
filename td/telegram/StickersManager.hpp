@@ -290,10 +290,7 @@ void StickersManager::parse_sticker_set(StickerSet *sticker_set, ParserT &parser
   parse(sticker_set_id, parser);
   parse(access_hash, parser);
   CHECK(sticker_set->id.get() == sticker_set_id);
-  if (sticker_set->access_hash != access_hash) {
-    LOG(ERROR) << "Access hash of " << sticker_set->id << " has changed from " << access_hash << " to "
-               << sticker_set->access_hash;
-  }
+  (void)access_hash;  // unused, because only known sticker sets with access hash can be loaded from database
 
   StickerFormat sticker_format = StickerFormat::Unknown;
   if (is_webm) {
