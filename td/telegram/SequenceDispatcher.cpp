@@ -146,6 +146,7 @@ void SequenceDispatcher::on_result(NetQueryPtr query) {
       data_[i].last_timeout_ = query->last_timeout_;
       check_timeout(data_[i]);
     }
+    query->last_timeout_ = 0;
   }
 
   if (query->is_error() && (query->error().code() == NetQuery::ResendInvokeAfter ||
@@ -323,14 +324,18 @@ class MultiSequenceDispatcherImpl final : public MultiSequenceDispatcher {
     if (net_query.empty() || net_query->is_ready()) {
       return false;
     }
-    net_query->total_timeout_ += node.total_timeout;
-    node.total_timeout = 0;
-    if (net_query->total_timeout_ > net_query->total_timeout_limit_) {
-      LOG(WARNING) << "Fail " << net_query << " to " << net_query->source_ << " because total_timeout "
-                   << net_query->total_timeout_ << " is greater than total_timeout_limit "
-                   << net_query->total_timeout_limit_;
-      net_query->set_error(Status::Error(429, PSLICE() << "Too Many Requests: retry after " << node.last_timeout));
-      return true;
+    if (node.total_timeout > 0) {
+      net_query->total_timeout_ += node.total_timeout;
+      LOG(INFO) << "Set total_timeout to " << net_query->total_timeout_ << " for " << net_query->id();
+      node.total_timeout = 0;
+
+      if (net_query->total_timeout_ > net_query->total_timeout_limit_) {
+        LOG(WARNING) << "Fail " << net_query << " to " << net_query->source_ << " because total_timeout "
+                     << net_query->total_timeout_ << " is greater than total_timeout_limit "
+                     << net_query->total_timeout_limit_;
+        net_query->set_error(Status::Error(429, PSLICE() << "Too Many Requests: retry after " << node.last_timeout));
+        return true;
+      }
     }
     return false;
   }
@@ -345,15 +350,17 @@ class MultiSequenceDispatcherImpl final : public MultiSequenceDispatcher {
       auto tl_constructor = query->tl_constructor();
       scheduler_.for_each_dependent(task_id, [&](TaskId child_task_id) {
         auto &child_node = *scheduler_.get_task_extra(child_task_id);
-        if (child_node.net_query_ref->tl_constructor() == tl_constructor) {
+        if (child_node.net_query_ref->tl_constructor() == tl_constructor && child_task_id != task_id) {
           child_node.total_timeout += query->last_timeout_;
           child_node.last_timeout = query->last_timeout_;
           to_check_timeout.push_back(child_task_id);
         }
       });
+      query->last_timeout_ = 0;
 
       for (auto dependent_task_id : to_check_timeout) {
-        if (check_timeout(*scheduler_.get_task_extra(dependent_task_id))) {
+        auto &child_node = *scheduler_.get_task_extra(dependent_task_id);
+        if (check_timeout(child_node)) {
           scheduler_.pause_task(dependent_task_id);
           try_resend(dependent_task_id);
         }

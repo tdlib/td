@@ -56,6 +56,7 @@ void NetQueryDelayer::delay(NetQueryPtr query) {
   }
   query->total_timeout_ += timeout;
   query->last_timeout_ = timeout;
+  LOG(INGO) << "Set total_timeout to " << query->total_timeout_ << " for " << query->id();
 
   auto error = query->error().move_as_error();
   query->resend();
