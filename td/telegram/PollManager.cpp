@@ -1047,7 +1047,7 @@ void PollManager::get_poll_voters(PollId poll_id, FullMessageId full_message_id,
     for (int32 i = offset; i != cur_offset && i - offset < limit; i++) {
       result.push_back(voters.voter_user_ids[i]);
     }
-    return promise.set_value({poll->options[option_id].voter_count, std::move(result)});
+    return promise.set_value({max(poll->options[option_id].voter_count, cur_offset), std::move(result)});
   }
 
   if (poll->options[option_id].voter_count == 0 || (voters.next_offset.empty() && cur_offset > 0)) {
@@ -1147,13 +1147,14 @@ void PollManager::on_get_poll_voters(PollId poll_id, int32 option_id, string off
   if (static_cast<int32>(user_ids.size()) > limit) {
     user_ids.resize(limit);
   }
-  if (voters.next_offset.empty() && narrow_cast<int32>(voters.voter_user_ids.size()) != vote_list->count_) {
+  auto known_voter_count = narrow_cast<int32>(voters.voter_user_ids.size());
+  if (voters.next_offset.empty() && known_voter_count != vote_list->count_) {
     // invalidate_poll_option_voters(poll, poll_id, option_id);
     voters.was_invalidated = true;
   }
 
   for (auto &promise : promises) {
-    promise.set_value({vote_list->count_, vector<UserId>(user_ids)});
+    promise.set_value({max(vote_list->count_, known_voter_count), vector<UserId>(user_ids)});
   }
 }
 
