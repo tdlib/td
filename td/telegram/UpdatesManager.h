@@ -343,6 +343,8 @@ class UpdatesManager final : public Actor {
 
   void try_reload_data();
 
+  static vector<int32> get_update_ids(const telegram_api::Updates *updates_ptr);
+
   static bool have_update_pts_changed(const vector<tl_object_ptr<telegram_api::Update>> &updates);
 
   static bool check_pts_update_dialog_id(DialogId dialog_id);

@@ -869,14 +869,15 @@ bool UpdatesManager::is_acceptable_update(const telegram_api::Update *update) co
 }
 
 void UpdatesManager::on_get_updates(tl_object_ptr<telegram_api::Updates> &&updates_ptr, Promise<Unit> &&promise) {
-  promise = PromiseCreator::lambda([promise = std::move(promise)](Result<Unit> result) mutable {
-    if (!G()->close_flag() && result.is_error()) {
-      LOG(ERROR) << "Failed to process updates: " << result.error();
-    }
-    promise.set_value(Unit());
-  });
-
   CHECK(updates_ptr != nullptr);
+  promise = PromiseCreator::lambda(
+      [promise = std::move(promise), update_ids = get_update_ids(updates_ptr.get())](Result<Unit> result) mutable {
+        if (!G()->close_flag() && result.is_error()) {
+          LOG(ERROR) << "Failed to process updates " << update_ids << ": " << result.error();
+        }
+        promise.set_value(Unit());
+      });
+
   auto updates_type = updates_ptr->get_id();
   if (updates_type != telegram_api::updateShort::ID) {
     LOG(INFO) << "Receive " << to_string(updates_ptr);
@@ -1197,6 +1198,30 @@ vector<DialogId> UpdatesManager::get_update_notify_settings_dialog_ids(const tel
   return dialog_ids;
 }
 
+vector<int32> UpdatesManager::get_update_ids(const telegram_api::Updates *updates_ptr) {
+  const vector<tl_object_ptr<telegram_api::Update>> *updates = nullptr;
+  auto updates_type = updates_ptr->get_id();
+  switch (updates_type) {
+    case telegram_api::updatesTooLong::ID:
+    case telegram_api::updateShortMessage::ID:
+    case telegram_api::updateShortChatMessage::ID:
+    case telegram_api::updateShortSentMessage::ID:
+      return {updates_type};
+    case telegram_api::updateShort::ID:
+      return {static_cast<const telegram_api::updateShort *>(updates_ptr)->update_->get_id()};
+    case telegram_api::updatesCombined::ID:
+      updates = &static_cast<const telegram_api::updatesCombined *>(updates_ptr)->updates_;
+      break;
+    case telegram_api::updates::ID:
+      updates = &static_cast<const telegram_api::updates *>(updates_ptr)->updates_;
+      break;
+    default:
+      UNREACHABLE();
+  }
+
+  return transform(*updates, [](const tl_object_ptr<telegram_api::Update> &update) { return update->get_id(); });
+}
+
 vector<DialogId> UpdatesManager::get_chat_dialog_ids(const telegram_api::Updates *updates_ptr) {
   const vector<tl_object_ptr<telegram_api::Chat>> *chats = nullptr;
   switch (updates_ptr->get_id()) {
@@ -1207,14 +1232,12 @@ vector<DialogId> UpdatesManager::get_chat_dialog_ids(const telegram_api::Updates
     case telegram_api::updateShortSentMessage::ID:
       LOG(ERROR) << "Receive " << oneline(to_string(*updates_ptr)) << " instead of updates";
       break;
-    case telegram_api::updatesCombined::ID: {
+    case telegram_api::updatesCombined::ID:
       chats = &static_cast<const telegram_api::updatesCombined *>(updates_ptr)->chats_;
       break;
-    }
-    case telegram_api::updates::ID: {
+    case telegram_api::updates::ID:
       chats = &static_cast<const telegram_api::updates *>(updates_ptr)->chats_;
       break;
-    }
     default:
       UNREACHABLE();
   }
