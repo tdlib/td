@@ -14481,7 +14481,7 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
   message->disable_web_page_preview = message_info.disable_web_page_preview;
   message->edit_date = edit_date;
   message->random_id = message_info.random_id;
-  message->forward_info = get_message_forward_info(std::move(message_info.forward_header));
+  message->forward_info = get_message_forward_info(std::move(message_info.forward_header), {dialog_id, message_id});
   message->reply_to_message_id = reply_to_message_id;
   message->reply_in_dialog_id = reply_in_dialog_id;
   message->top_thread_message_id = top_thread_message_id;
@@ -27851,7 +27851,7 @@ bool MessagesManager::is_forward_info_sender_hidden(const MessageForwardInfo *fo
 }
 
 unique_ptr<MessagesManager::MessageForwardInfo> MessagesManager::get_message_forward_info(
-    tl_object_ptr<telegram_api::messageFwdHeader> &&forward_header) {
+    tl_object_ptr<telegram_api::messageFwdHeader> &&forward_header, FullMessageId full_message_id) {
   if (forward_header == nullptr) {
     return nullptr;
   }
@@ -27917,7 +27917,11 @@ unique_ptr<MessagesManager::MessageForwardInfo> MessagesManager::get_message_for
     return nullptr;
   } else {
     auto channel_id = sender_dialog_id.get_channel_id();
-    LOG_IF(ERROR, td_->contacts_manager_->have_min_channel(channel_id)) << "Receive forward from min " << channel_id;
+    if (!td_->contacts_manager_->have_channel(channel_id)) {
+      LOG(ERROR) << "Receive forward from "
+                 << (td_->contacts_manager_->have_min_channel(channel_id) ? "min" : "unknown") << ' ' << channel_id
+                 << " in " << full_message_id;
+    }
     force_create_dialog(sender_dialog_id, "message forward info", true);
     CHECK(!sender_user_id.is_valid());
   }

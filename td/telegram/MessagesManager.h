@@ -2907,7 +2907,7 @@ class MessagesManager final : public Actor {
   static bool is_forward_info_sender_hidden(const MessageForwardInfo *forward_info);
 
   unique_ptr<MessageForwardInfo> get_message_forward_info(
-      tl_object_ptr<telegram_api::messageFwdHeader> &&forward_header);
+      tl_object_ptr<telegram_api::messageFwdHeader> &&forward_header, FullMessageId full_message_id);
 
   td_api::object_ptr<td_api::messageForwardInfo> get_message_forward_info_object(
       const unique_ptr<MessageForwardInfo> &forward_info) const;
