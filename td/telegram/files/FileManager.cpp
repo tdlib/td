@@ -1248,7 +1248,7 @@ Result<FileId> FileManager::register_file(FileData &&data, FileLocationSource fi
 
   FileView file_view(get_file_node(file_id));
 
-  std::vector<FileId> to_merge;
+  vector<FileId> to_merge;
   auto register_location = [&](const auto &location, auto &mp) {
     auto &other_id = mp[location];
     if (other_id.empty()) {
@@ -2512,7 +2512,7 @@ class FileManager::ForceUploadActor final : public Actor {
 
     is_active_ = true;
     attempt_++;
-    send_closure(G()->file_manager(), &FileManager::resume_upload, file_id_, std::vector<int>(), create_callback(),
+    send_closure(G()->file_manager(), &FileManager::resume_upload, file_id_, vector<int>(), create_callback(),
                  new_priority_, upload_order_, attempt_ == 2, prefer_small_);
   }
 
@@ -2531,7 +2531,7 @@ void FileManager::on_force_reupload_success(FileId file_id) {
   }
 }
 
-void FileManager::resume_upload(FileId file_id, std::vector<int> bad_parts, std::shared_ptr<UploadCallback> callback,
+void FileManager::resume_upload(FileId file_id, vector<int> bad_parts, std::shared_ptr<UploadCallback> callback,
                                 int32 new_priority, uint64 upload_order, bool force, bool prefer_small) {
   auto node = get_sync_file_node(file_id);
   if (!node) {
@@ -2642,7 +2642,7 @@ bool FileManager::delete_partial_remote_location(FileId file_id) {
     return false;
   }
 
-  run_upload(node, std::vector<int>());
+  run_upload(node, vector<int>());
   try_flush_node(node, "delete_partial_remote_location");
   return true;
 }
@@ -2767,7 +2767,7 @@ void FileManager::run_generate(FileNodePtr node) {
   LOG(INFO) << "File " << file_id << " generate request has sent to FileGenerateManager";
 }
 
-void FileManager::run_upload(FileNodePtr node, std::vector<int> bad_parts) {
+void FileManager::run_upload(FileNodePtr node, vector<int> bad_parts) {
   int8 priority = 0;
   FileId file_id = node->main_file_id_;
   for (auto id : node->file_ids_) {
@@ -2884,11 +2884,11 @@ void FileManager::run_upload(FileNodePtr node, std::vector<int> bad_parts) {
 
 void FileManager::upload(FileId file_id, std::shared_ptr<UploadCallback> callback, int32 new_priority,
                          uint64 upload_order) {
-  return resume_upload(file_id, std::vector<int>(), std::move(callback), new_priority, upload_order);
+  return resume_upload(file_id, vector<int>(), std::move(callback), new_priority, upload_order);
 }
 
 void FileManager::cancel_upload(FileId file_id) {
-  return resume_upload(file_id, std::vector<int>(), nullptr, 0, 0);
+  return resume_upload(file_id, vector<int>(), nullptr, 0, 0);
 }
 
 static bool is_background_type(FileType type) {

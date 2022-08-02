@@ -34,6 +34,7 @@
 #include "td/utils/Slice.h"
 #include "td/utils/Status.h"
 #include "td/utils/StringBuilder.h"
+#include "td/utils/WaitFreeVector.h"
 
 #include <map>
 #include <memory>
@@ -150,7 +151,7 @@ class FileNode {
   DialogId owner_dialog_id_;
   FileEncryptionKey encryption_key_;
   FileDbId pmc_id_;
-  std::vector<FileId> file_ids_;
+  vector<FileId> file_ids_;
 
   FileId main_file_id_;
 
@@ -588,9 +589,9 @@ class FileManager final : public FileLoadManager::Callback {
   std::map<FullGenerateFileLocation, FileId> generate_location_to_file_id_;
   std::map<FileDbId, int32> pmc_id_to_file_node_id_;
 
-  vector<FileIdInfo> file_id_info_;
-  vector<int32> empty_file_ids_;
-  vector<unique_ptr<FileNode>> file_nodes_;
+  WaitFreeVector<FileIdInfo> file_id_info_;
+  WaitFreeVector<int32> empty_file_ids_;
+  WaitFreeVector<unique_ptr<FileNode>> file_nodes_;
   ActorOwn<FileLoadManager> file_load_manager_;
   ActorOwn<FileGenerateManager> file_generate_manager_;
 
@@ -649,7 +650,7 @@ class FileManager final : public FileLoadManager::Callback {
   void do_cancel_download(FileNodePtr node);
   void do_cancel_upload(FileNodePtr node);
   void do_cancel_generate(FileNodePtr node);
-  void run_upload(FileNodePtr node, std::vector<int> bad_parts);
+  void run_upload(FileNodePtr node, vector<int> bad_parts);
   void run_download(FileNodePtr node, bool force_update_priority);
   void run_generate(FileNodePtr node);
 
