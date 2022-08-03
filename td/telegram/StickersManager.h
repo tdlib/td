@@ -33,6 +33,7 @@
 #include "td/utils/Promise.h"
 #include "td/utils/Slice.h"
 #include "td/utils/Status.h"
+#include "td/utils/WaitFreeHashMap.h"
 
 #include <memory>
 #include <tuple>
@@ -845,9 +846,9 @@ class StickersManager final : public Actor {
 
   bool is_inited_ = false;
 
-  FlatHashMap<FileId, unique_ptr<Sticker>, FileIdHash> stickers_;                     // file_id -> Sticker
-  FlatHashMap<StickerSetId, unique_ptr<StickerSet>, StickerSetIdHash> sticker_sets_;  // id -> StickerSet
-  FlatHashMap<string, StickerSetId> short_name_to_sticker_set_id_;
+  WaitFreeHashMap<FileId, unique_ptr<Sticker>, FileIdHash> stickers_;                     // file_id -> Sticker
+  WaitFreeHashMap<StickerSetId, unique_ptr<StickerSet>, StickerSetIdHash> sticker_sets_;  // id -> StickerSet
+  WaitFreeHashMap<string, StickerSetId> short_name_to_sticker_set_id_;
 
   vector<StickerSetId> installed_sticker_set_ids_[MAX_STICKER_TYPE];
   vector<StickerSetId> featured_sticker_set_ids_[MAX_STICKER_TYPE];

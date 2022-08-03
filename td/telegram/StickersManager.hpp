@@ -26,9 +26,8 @@ namespace td {
 
 template <class StorerT>
 void StickersManager::store_sticker(FileId file_id, bool in_sticker_set, StorerT &storer, const char *source) const {
-  auto it = stickers_.find(file_id);
-  LOG_CHECK(it != stickers_.end()) << file_id << ' ' << in_sticker_set << ' ' << source;
-  const Sticker *sticker = it->second.get();
+  const Sticker *sticker = get_sticker(file_id);
+  LOG_CHECK(sticker != nullptr) << file_id << ' ' << in_sticker_set << ' ' << source;
   bool has_sticker_set_access_hash = sticker->set_id.is_valid() && !in_sticker_set;
   bool has_minithumbnail = !sticker->minithumbnail.empty();
   bool is_tgs = sticker->format == StickerFormat::Tgs;
@@ -348,7 +347,7 @@ void StickersManager::parse_sticker_set(StickerSet *sticker_set, ParserT &parser
 
       auto cleaned_username = clean_username(sticker_set->short_name);
       if (!cleaned_username.empty()) {
-        short_name_to_sticker_set_id_.emplace(cleaned_username, sticker_set->id);
+        short_name_to_sticker_set_id_.set(cleaned_username, sticker_set->id);
       }
       on_update_sticker_set(sticker_set, is_installed, is_archived, false, true);
     } else {
