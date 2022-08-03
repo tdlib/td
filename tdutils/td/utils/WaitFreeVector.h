@@ -53,15 +53,14 @@ class WaitFreeVector {
   }
 
   size_t size() const {
-    size_t result = 0;
-    for (auto &storage : storage_) {
-      result += storage.size();
+    if (storage_.empty()) {
+      return 0;
     }
-    return result;
+    return (storage_.size() - 1) * MAX_VECTOR_SIZE + storage_.back().size();
   }
 
   bool empty() const {
-    return storage_.empty() || storage_[0].empty();
+    return storage_.empty();
   }
 };
 
