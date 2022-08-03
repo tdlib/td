@@ -28,9 +28,9 @@ VideosManager::~VideosManager() {
 }
 
 int32 VideosManager::get_video_duration(FileId file_id) const {
-  auto it = videos_.find(file_id);
-  CHECK(it != videos_.end());
-  return it->second->duration;
+  auto video = get_video(file_id);
+  CHECK(video != nullptr);
+  return video->duration;
 }
 
 tl_object_ptr<td_api::video> VideosManager::get_video_object(FileId file_id) const {
@@ -38,9 +38,7 @@ tl_object_ptr<td_api::video> VideosManager::get_video_object(FileId file_id) con
     return nullptr;
   }
 
-  auto it = videos_.find(file_id);
-  CHECK(it != videos_.end());
-  auto video = it->second.get();
+  auto video = get_video(file_id);
   CHECK(video != nullptr);
   auto thumbnail = video->animated_thumbnail.file_id.is_valid()
                        ? get_thumbnail_object(td_->file_manager_.get(), video->animated_thumbnail, PhotoFormat::Mpeg4)

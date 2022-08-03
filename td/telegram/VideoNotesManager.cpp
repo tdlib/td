@@ -27,9 +27,9 @@ VideoNotesManager::~VideoNotesManager() {
 }
 
 int32 VideoNotesManager::get_video_note_duration(FileId file_id) const {
-  auto it = video_notes_.find(file_id);
-  CHECK(it != video_notes_.end());
-  return it->second->duration;
+  auto video_note = get_video_note(file_id);
+  CHECK(video_note != nullptr);
+  return video_note->duration;
 }
 
 tl_object_ptr<td_api::videoNote> VideoNotesManager::get_video_note_object(FileId file_id) const {
@@ -37,9 +37,7 @@ tl_object_ptr<td_api::videoNote> VideoNotesManager::get_video_note_object(FileId
     return nullptr;
   }
 
-  auto it = video_notes_.find(file_id);
-  CHECK(it != video_notes_.end());
-  auto video_note = it->second.get();
+  auto video_note = get_video_note(file_id);
   return make_tl_object<td_api::videoNote>(
       video_note->duration, video_note->dimensions.width, get_minithumbnail_object(video_note->minithumbnail),
       get_thumbnail_object(td_->file_manager_.get(), video_note->thumbnail, PhotoFormat::Jpeg),

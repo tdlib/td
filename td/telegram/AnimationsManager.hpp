@@ -19,9 +19,8 @@ namespace td {
 
 template <class StorerT>
 void AnimationsManager::store_animation(FileId file_id, StorerT &storer) const {
-  auto it = animations_.find(file_id);
-  CHECK(it != animations_.end());
-  const Animation *animation = it->second.get();
+  const Animation *animation = get_animation(file_id);
+  CHECK(animation != nullptr);
   bool has_animated_thumbnail = animation->animated_thumbnail.file_id.is_valid();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(animation->has_stickers);

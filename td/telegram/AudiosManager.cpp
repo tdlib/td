@@ -29,11 +29,11 @@ AudiosManager::~AudiosManager() {
 }
 
 int32 AudiosManager::get_audio_duration(FileId file_id) const {
-  auto it = audios_.find(file_id);
-  if (it == audios_.end()) {
+  const auto *audio = get_audio(file_id);
+  if (audio == nullptr) {
     return 0;
   }
-  return it->second->duration;
+  return audio->duration;
 }
 
 tl_object_ptr<td_api::audio> AudiosManager::get_audio_object(FileId file_id) const {
@@ -41,9 +41,7 @@ tl_object_ptr<td_api::audio> AudiosManager::get_audio_object(FileId file_id) con
     return nullptr;
   }
 
-  auto it = audios_.find(file_id);
-  CHECK(it != audios_.end());
-  auto audio = it->second.get();
+  auto audio = get_audio(file_id);
   CHECK(audio != nullptr);
 
   td_api::object_ptr<td_api::file> album_cover_file;
@@ -65,9 +63,7 @@ td_api::object_ptr<td_api::notificationSound> AudiosManager::get_notification_so
     return nullptr;
   }
 
-  auto it = audios_.find(file_id);
-  CHECK(it != audios_.end());
-  auto audio = it->second.get();
+  auto audio = get_audio(file_id);
   CHECK(audio != nullptr);
   auto file_view = td_->file_manager_->get_file_view(file_id);
   CHECK(!file_view.empty());

@@ -148,9 +148,9 @@ void AnimationsManager::tear_down() {
 }
 
 int32 AnimationsManager::get_animation_duration(FileId file_id) const {
-  auto it = animations_.find(file_id);
-  CHECK(it != animations_.end());
-  return it->second->duration;
+  const auto *animation = get_animation(file_id);
+  CHECK(animation != nullptr);
+  return animation->duration;
 }
 
 tl_object_ptr<td_api::animation> AnimationsManager::get_animation_object(FileId file_id) const {
@@ -158,9 +158,7 @@ tl_object_ptr<td_api::animation> AnimationsManager::get_animation_object(FileId 
     return nullptr;
   }
 
-  auto it = animations_.find(file_id);
-  CHECK(it != animations_.end());
-  auto animation = it->second.get();
+  auto animation = get_animation(file_id);
   CHECK(animation != nullptr);
   auto thumbnail =
       animation->animated_thumbnail.file_id.is_valid()

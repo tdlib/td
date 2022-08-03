@@ -19,9 +19,8 @@ namespace td {
 
 template <class StorerT>
 void VideoNotesManager::store_video_note(FileId file_id, StorerT &storer) const {
-  auto it = video_notes_.find(file_id);
-  CHECK(it != video_notes_.end());
-  const VideoNote *video_note = it->second.get();
+  const VideoNote *video_note = get_video_note(file_id);
+  CHECK(video_note != nullptr);
   store(video_note->duration, storer);
   store(video_note->dimensions, storer);
   store(video_note->minithumbnail, storer);

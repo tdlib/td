@@ -122,11 +122,11 @@ void VoiceNotesManager::on_voice_note_transcription_timeout_callback(void *voice
 }
 
 int32 VoiceNotesManager::get_voice_note_duration(FileId file_id) const {
-  auto it = voice_notes_.find(file_id);
-  if (it == voice_notes_.end()) {
+  auto voice_note = get_voice_note(file_id);
+  if (voice_note == nullptr) {
     return 0;
   }
-  return it->second->duration;
+  return voice_note->duration;
 }
 
 tl_object_ptr<td_api::voiceNote> VoiceNotesManager::get_voice_note_object(FileId file_id) const {
@@ -134,9 +134,7 @@ tl_object_ptr<td_api::voiceNote> VoiceNotesManager::get_voice_note_object(FileId
     return nullptr;
   }
 
-  auto it = voice_notes_.find(file_id);
-  CHECK(it != voice_notes_.end());
-  auto voice_note = it->second.get();
+  auto voice_note = get_voice_note(file_id);
   CHECK(voice_note != nullptr);
 
   auto speech_recognition_result = [this, voice_note]() -> td_api::object_ptr<td_api::SpeechRecognitionResult> {

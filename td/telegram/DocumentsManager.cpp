@@ -59,9 +59,7 @@ tl_object_ptr<td_api::document> DocumentsManager::get_document_object(FileId fil
     return nullptr;
   }
 
-  auto it = documents_.find(file_id);
-  CHECK(it != documents_.end());
-  auto document = it->second.get();
+  auto document = get_document(file_id);
   CHECK(document != nullptr);
   return make_tl_object<td_api::document>(
       document->file_name, document->mime_type, get_minithumbnail_object(document->minithumbnail),

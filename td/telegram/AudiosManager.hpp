@@ -19,9 +19,8 @@ namespace td {
 
 template <class StorerT>
 void AudiosManager::store_audio(FileId file_id, StorerT &storer) const {
-  auto it = audios_.find(file_id);
-  CHECK(it != audios_.end());
-  const Audio *audio = it->second.get();
+  const Audio *audio = get_audio(file_id);
+  CHECK(audio != nullptr);
   bool has_file_name = !audio->file_name.empty();
   bool has_mime_type = !audio->mime_type.empty();
   bool has_duration = audio->duration != 0;
