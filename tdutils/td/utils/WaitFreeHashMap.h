@@ -27,16 +27,29 @@ class WaitFreeHashMap {
   };
   unique_ptr<WaitFreeStorage> wait_free_storage_;
 
-  const Storage &get_storage(const KeyT &key) const {
-    if (wait_free_storage_ == nullptr) {
-      return default_map_;
-    }
-
+  Storage &get_wait_free_storage(const KeyT &key) {
     return wait_free_storage_->maps_[randomize_hash(HashT()(key)) & (MAX_STORAGE_COUNT - 1)];
   }
 
   Storage &get_storage(const KeyT &key) {
-    return const_cast<Storage &>(static_cast<const WaitFreeHashMap *>(this)->get_storage(key));
+    if (wait_free_storage_ == nullptr) {
+      return default_map_;
+    }
+
+    return get_wait_free_storage(key);
+  }
+
+  const Storage &get_storage(const KeyT &key) const {
+    return const_cast<WaitFreeHashMap *>(this)->get_storage(key);
+  }
+
+  void split() {
+    CHECK(wait_free_storage_ == nullptr);
+    wait_free_storage_ = make_unique<WaitFreeStorage>();
+    for (auto &it : default_map_) {
+      get_wait_free_storage(it.first).emplace(it.first, std::move(it.second));
+    }
+    default_map_.clear();
   }
 
  public:
@@ -44,12 +57,7 @@ class WaitFreeHashMap {
     auto &storage = get_storage(key);
     storage[key] = std::move(value);
     if (default_map_.size() == MAX_STORAGE_SIZE) {
-      CHECK(wait_free_storage_ == nullptr);
-      wait_free_storage_ = make_unique<WaitFreeStorage>();
-      for (auto &it : default_map_) {
-        get_storage(it.first).emplace(it.first, std::move(it.second));
-      }
-      default_map_.clear();
+      split();
     }
   }
 
@@ -81,6 +89,19 @@ class WaitFreeHashMap {
       return nullptr;
     }
     return it->second.get();
+  }
+
+  ValueT &operator[](const KeyT &key) {
+    if (wait_free_storage_ == nullptr) {
+      ValueT &result = default_map_[key];
+      if (default_map_.size() != MAX_STORAGE_SIZE) {
+        return result;
+      }
+
+      split();
+    }
+
+    return get_wait_free_storage(key)[key];
   }
 
   size_t erase(const KeyT &key) {

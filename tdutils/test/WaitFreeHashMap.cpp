@@ -28,8 +28,19 @@ TEST(WaitFreeHashMap, stress_test) {
     auto key = gen_key();
     auto value = rnd();
     reference[key] = value;
-    map.set(key, value);
+    if (td::Random::fast_bool()) {
+      map.set(key, value);
+    } else {
+      map[key] = value;
+    }
     ASSERT_EQ(reference[key], map.get(key));
+    ASSERT_EQ(reference.size(), map.size());
+    ASSERT_EQ(reference.empty(), map.empty());
+  });
+
+  add_step(200, [&] {
+    auto key = gen_key();
+    ASSERT_EQ(reference[key], map[key]);
     ASSERT_EQ(reference.size(), map.size());
     ASSERT_EQ(reference.empty(), map.empty());
   });
@@ -55,5 +66,14 @@ TEST(WaitFreeHashMap, stress_test) {
   td::RandomSteps runner(std::move(steps));
   for (size_t i = 0; i < 1000000; i++) {
     runner.step(rnd);
+  }
+
+  for (size_t test = 0; test < 1000; test++) {
+    reference = {};
+    map = {};
+
+    for (size_t i = 0; i < 100; i++) {
+      runner.step(rnd);
+    }
   }
 }
