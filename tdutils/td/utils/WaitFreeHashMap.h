@@ -27,12 +27,16 @@ class WaitFreeHashMap {
   };
   unique_ptr<WaitFreeStorage> wait_free_storage_;
 
-  Storage &get_storage(const KeyT &key) {
+  const Storage &get_storage(const KeyT &key) const {
     if (wait_free_storage_ == nullptr) {
       return default_map_;
     }
 
     return wait_free_storage_->maps_[randomize_hash(HashT()(key)) & (MAX_STORAGE_COUNT - 1)];
+  }
+
+  Storage &get_storage(const KeyT &key) {
+    return const_cast<Storage &>(static_cast<const WaitFreeHashMap *>(this)->get_storage(key));
   }
 
  public:
@@ -49,13 +53,34 @@ class WaitFreeHashMap {
     }
   }
 
-  ValueT get(const KeyT &key) {
-    auto &storage = get_storage(key);
+  ValueT get(const KeyT &key) const {
+    const auto &storage = get_storage(key);
     auto it = storage.find(key);
     if (it == storage.end()) {
       return {};
     }
     return it->second;
+  }
+
+  // specialization for WaitFreeHashMap<..., unique_ptr<T>>
+  template <typename ReturnT = decltype(ValueT().get())>
+  ReturnT get_pointer(const KeyT &key) {
+    auto &storage = get_storage(key);
+    auto it = storage.find(key);
+    if (it == storage.end()) {
+      return nullptr;
+    }
+    return it->second.get();
+  }
+
+  template <typename ReturnT = decltype(static_cast<const ValueT &>(ValueT()).get())>
+  ReturnT get_pointer(const KeyT &key) const {
+    auto &storage = get_storage(key);
+    auto it = storage.find(key);
+    if (it == storage.end()) {
+      return nullptr;
+    }
+    return it->second.get();
   }
 
   size_t erase(const KeyT &key) {
