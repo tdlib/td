@@ -716,13 +716,10 @@ void DocumentsManager::merge_documents(FileId new_id, FileId old_id) {
   const GeneralDocument *old_ = get_document(old_id);
   CHECK(old_ != nullptr);
 
-  auto new_it = documents_.find(new_id);
-  if (new_it == documents_.end()) {
+  const auto *new_ = get_document(new_id);
+  if (new_ == nullptr) {
     dup_document(new_id, old_id);
   } else {
-    GeneralDocument *new_ = new_it->second.get();
-    CHECK(new_ != nullptr);
-
     if (old_->thumbnail != new_->thumbnail) {
       // LOG_STATUS(td_->file_manager_->merge(new_->thumbnail.file_id, old_->thumbnail.file_id));
     }

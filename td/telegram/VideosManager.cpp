@@ -155,13 +155,10 @@ void VideosManager::merge_videos(FileId new_id, FileId old_id) {
   const Video *old_ = get_video(old_id);
   CHECK(old_ != nullptr);
 
-  auto new_it = videos_.find(new_id);
-  if (new_it == videos_.end()) {
+  const auto *new_ = get_video(new_id);
+  if (new_ == nullptr) {
     dup_video(new_id, old_id);
   } else {
-    Video *new_ = new_it->second.get();
-    CHECK(new_ != nullptr);
-
     if (!old_->mime_type.empty() && old_->mime_type != new_->mime_type) {
       LOG(INFO) << "Video has changed: mime_type = (" << old_->mime_type << ", " << new_->mime_type << ")";
     }

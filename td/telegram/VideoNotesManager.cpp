@@ -117,12 +117,10 @@ void VideoNotesManager::merge_video_notes(FileId new_id, FileId old_id) {
   const VideoNote *old_ = get_video_note(old_id);
   CHECK(old_ != nullptr);
 
-  auto new_it = video_notes_.find(new_id);
-  if (new_it == video_notes_.end()) {
+  const auto *new_ = get_video_note(new_id);
+  if (new_ == nullptr) {
     dup_video_note(new_id, old_id);
   } else {
-    VideoNote *new_ = new_it->second.get();
-    CHECK(new_ != nullptr);
     if (old_->thumbnail != new_->thumbnail) {
       //    LOG_STATUS(td_->file_manager_->merge(new_->thumbnail.file_id, old_->thumbnail.file_id));
     }

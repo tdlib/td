@@ -154,13 +154,10 @@ void AudiosManager::merge_audios(FileId new_id, FileId old_id) {
   const Audio *old_ = get_audio(old_id);
   CHECK(old_ != nullptr);
 
-  auto new_it = audios_.find(new_id);
-  if (new_it == audios_.end()) {
+  const auto *new_ = get_audio(new_id);
+  if (new_ == nullptr) {
     dup_audio(new_id, old_id);
   } else {
-    Audio *new_ = new_it->second.get();
-    CHECK(new_ != nullptr);
-
     if (!old_->mime_type.empty() && old_->mime_type != new_->mime_type) {
       LOG(INFO) << "Audio has changed: mime_type = (" << old_->mime_type << ", " << new_->mime_type << ")";
     }

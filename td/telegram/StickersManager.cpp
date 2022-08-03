@@ -2817,13 +2817,10 @@ void StickersManager::merge_stickers(FileId new_id, FileId old_id) {
   const Sticker *old_ = get_sticker(old_id);
   CHECK(old_ != nullptr);
 
-  auto new_it = stickers_.find(new_id);
-  if (new_it == stickers_.end()) {
+  const auto *new_ = get_sticker(new_id);
+  if (new_ == nullptr) {
     dup_sticker(new_id, old_id);
   } else {
-    Sticker *new_ = new_it->second.get();
-    CHECK(new_ != nullptr);
-
     if (old_->set_id == new_->set_id &&
         (old_->alt != new_->alt || old_->set_id != new_->set_id ||
          (!is_sticker_format_vector(old_->format) && !is_sticker_format_vector(new_->format) &&

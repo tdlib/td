@@ -282,13 +282,10 @@ void AnimationsManager::merge_animations(FileId new_id, FileId old_id) {
   CHECK(old_ != nullptr);
 
   bool need_merge = true;
-  auto new_it = animations_.find(new_id);
-  if (new_it == animations_.end()) {
+  const auto *new_ = get_animation(new_id);
+  if (new_ == nullptr) {
     dup_animation(new_id, old_id);
   } else {
-    Animation *new_ = new_it->second.get();
-    CHECK(new_ != nullptr);
-
     if (old_->thumbnail != new_->thumbnail) {
       //    LOG_STATUS(td_->file_manager_->merge(new_->thumbnail.file_id, old_->thumbnail.file_id));
     }

@@ -236,13 +236,10 @@ void VoiceNotesManager::merge_voice_notes(FileId new_id, FileId old_id) {
   const VoiceNote *old_ = get_voice_note(old_id);
   CHECK(old_ != nullptr);
 
-  auto new_it = voice_notes_.find(new_id);
-  if (new_it == voice_notes_.end()) {
+  const auto *new_ = get_voice_note(new_id);
+  if (new_ == nullptr) {
     dup_voice_note(new_id, old_id);
   } else {
-    VoiceNote *new_ = new_it->second.get();
-    CHECK(new_ != nullptr);
-
     if (!old_->mime_type.empty() && old_->mime_type != new_->mime_type) {
       LOG(INFO) << "Voice note has changed: mime_type = (" << old_->mime_type << ", " << new_->mime_type << ")";
     }
