@@ -147,7 +147,7 @@ FileId VideosManager::dup_video(FileId new_id, FileId old_id) {
   return new_id;
 }
 
-void VideosManager::merge_videos(FileId new_id, FileId old_id, bool can_delete_old) {
+void VideosManager::merge_videos(FileId new_id, FileId old_id) {
   CHECK(old_id.is_valid() && new_id.is_valid());
   CHECK(new_id != old_id);
 
@@ -157,13 +157,7 @@ void VideosManager::merge_videos(FileId new_id, FileId old_id, bool can_delete_o
 
   auto new_it = videos_.find(new_id);
   if (new_it == videos_.end()) {
-    auto &old = videos_[old_id];
-    if (!can_delete_old) {
-      dup_video(new_id, old_id);
-    } else {
-      old->file_id = new_id;
-      videos_.emplace(new_id, std::move(old));
-    }
+    dup_video(new_id, old_id);
   } else {
     Video *new_ = new_it->second.get();
     CHECK(new_ != nullptr);
@@ -177,9 +171,6 @@ void VideosManager::merge_videos(FileId new_id, FileId old_id, bool can_delete_o
     }
   }
   LOG_STATUS(td_->file_manager_->merge(new_id, old_id));
-  if (can_delete_old) {
-    videos_.erase(old_id);
-  }
 }
 
 void VideosManager::create_video(FileId file_id, string minithumbnail, PhotoSize thumbnail,

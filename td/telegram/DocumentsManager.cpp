@@ -708,7 +708,7 @@ FileId DocumentsManager::dup_document(FileId new_id, FileId old_id) {
   return new_id;
 }
 
-void DocumentsManager::merge_documents(FileId new_id, FileId old_id, bool can_delete_old) {
+void DocumentsManager::merge_documents(FileId new_id, FileId old_id) {
   CHECK(old_id.is_valid() && new_id.is_valid());
   CHECK(new_id != old_id);
 
@@ -718,13 +718,7 @@ void DocumentsManager::merge_documents(FileId new_id, FileId old_id, bool can_de
 
   auto new_it = documents_.find(new_id);
   if (new_it == documents_.end()) {
-    auto &old = documents_[old_id];
-    if (!can_delete_old) {
-      dup_document(new_id, old_id);
-    } else {
-      old->file_id = new_id;
-      documents_.emplace(new_id, std::move(old));
-    }
+    dup_document(new_id, old_id);
   } else {
     GeneralDocument *new_ = new_it->second.get();
     CHECK(new_ != nullptr);
@@ -734,9 +728,6 @@ void DocumentsManager::merge_documents(FileId new_id, FileId old_id, bool can_de
     }
   }
   LOG_STATUS(td_->file_manager_->merge(new_id, old_id));
-  if (can_delete_old) {
-    documents_.erase(old_id);
-  }
 }
 
 string DocumentsManager::get_document_search_text(FileId file_id) const {

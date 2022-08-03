@@ -228,7 +228,7 @@ FileId VoiceNotesManager::dup_voice_note(FileId new_id, FileId old_id) {
   return new_id;
 }
 
-void VoiceNotesManager::merge_voice_notes(FileId new_id, FileId old_id, bool can_delete_old) {
+void VoiceNotesManager::merge_voice_notes(FileId new_id, FileId old_id) {
   CHECK(old_id.is_valid() && new_id.is_valid());
   CHECK(new_id != old_id);
 
@@ -238,13 +238,7 @@ void VoiceNotesManager::merge_voice_notes(FileId new_id, FileId old_id, bool can
 
   auto new_it = voice_notes_.find(new_id);
   if (new_it == voice_notes_.end()) {
-    auto &old = voice_notes_[old_id];
-    if (!can_delete_old) {
-      dup_voice_note(new_id, old_id);
-    } else {
-      old->file_id = new_id;
-      voice_notes_.emplace(new_id, std::move(old));
-    }
+    dup_voice_note(new_id, old_id);
   } else {
     VoiceNote *new_ = new_it->second.get();
     CHECK(new_ != nullptr);
@@ -254,9 +248,6 @@ void VoiceNotesManager::merge_voice_notes(FileId new_id, FileId old_id, bool can
     }
   }
   LOG_STATUS(td_->file_manager_->merge(new_id, old_id));
-  if (can_delete_old) {
-    voice_notes_.erase(old_id);
-  }
 }
 
 void VoiceNotesManager::create_voice_note(FileId file_id, string mime_type, int32 duration, string waveform,

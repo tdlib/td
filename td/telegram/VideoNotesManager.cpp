@@ -109,7 +109,7 @@ FileId VideoNotesManager::dup_video_note(FileId new_id, FileId old_id) {
   return new_id;
 }
 
-void VideoNotesManager::merge_video_notes(FileId new_id, FileId old_id, bool can_delete_old) {
+void VideoNotesManager::merge_video_notes(FileId new_id, FileId old_id) {
   CHECK(old_id.is_valid() && new_id.is_valid());
   CHECK(new_id != old_id);
 
@@ -119,13 +119,7 @@ void VideoNotesManager::merge_video_notes(FileId new_id, FileId old_id, bool can
 
   auto new_it = video_notes_.find(new_id);
   if (new_it == video_notes_.end()) {
-    auto &old = video_notes_[old_id];
-    if (!can_delete_old) {
-      dup_video_note(new_id, old_id);
-    } else {
-      old->file_id = new_id;
-      video_notes_.emplace(new_id, std::move(old));
-    }
+    dup_video_note(new_id, old_id);
   } else {
     VideoNote *new_ = new_it->second.get();
     CHECK(new_ != nullptr);
@@ -134,9 +128,6 @@ void VideoNotesManager::merge_video_notes(FileId new_id, FileId old_id, bool can
     }
   }
   LOG_STATUS(td_->file_manager_->merge(new_id, old_id));
-  if (can_delete_old) {
-    video_notes_.erase(old_id);
-  }
 }
 
 void VideoNotesManager::create_video_note(FileId file_id, string minithumbnail, PhotoSize thumbnail, int32 duration,

@@ -146,7 +146,7 @@ FileId AudiosManager::dup_audio(FileId new_id, FileId old_id) {
   return new_id;
 }
 
-void AudiosManager::merge_audios(FileId new_id, FileId old_id, bool can_delete_old) {
+void AudiosManager::merge_audios(FileId new_id, FileId old_id) {
   CHECK(old_id.is_valid() && new_id.is_valid());
   CHECK(new_id != old_id);
 
@@ -156,13 +156,7 @@ void AudiosManager::merge_audios(FileId new_id, FileId old_id, bool can_delete_o
 
   auto new_it = audios_.find(new_id);
   if (new_it == audios_.end()) {
-    auto &old = audios_[old_id];
-    if (!can_delete_old) {
-      dup_audio(new_id, old_id);
-    } else {
-      old->file_id = new_id;
-      audios_.emplace(new_id, std::move(old));
-    }
+    dup_audio(new_id, old_id);
   } else {
     Audio *new_ = new_it->second.get();
     CHECK(new_ != nullptr);
@@ -176,9 +170,6 @@ void AudiosManager::merge_audios(FileId new_id, FileId old_id, bool can_delete_o
     }
   }
   LOG_STATUS(td_->file_manager_->merge(new_id, old_id));
-  if (can_delete_old) {
-    audios_.erase(old_id);
-  }
 }
 
 string AudiosManager::get_audio_search_text(FileId file_id) const {

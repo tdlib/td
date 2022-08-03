@@ -51,7 +51,7 @@ class VideoNotesManager {
 
   FileId dup_video_note(FileId new_id, FileId old_id);
 
-  void merge_video_notes(FileId new_id, FileId old_id, bool can_delete_old);
+  void merge_video_notes(FileId new_id, FileId old_id);
 
   template <class StorerT>
   void store_video_note(FileId file_id, StorerT &storer) const;

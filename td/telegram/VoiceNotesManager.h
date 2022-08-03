@@ -63,7 +63,7 @@ class VoiceNotesManager final : public Actor {
 
   FileId dup_voice_note(FileId new_id, FileId old_id);
 
-  void merge_voice_notes(FileId new_id, FileId old_id, bool can_delete_old);
+  void merge_voice_notes(FileId new_id, FileId old_id);
 
   template <class StorerT>
   void store_voice_note(FileId file_id, StorerT &storer) const;

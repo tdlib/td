@@ -3165,7 +3165,7 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
       const auto *new_ = static_cast<const MessageAnimation *>(new_content);
       if (old_->file_id != new_->file_id) {
         if (need_merge_files) {
-          td->animations_manager_->merge_animations(new_->file_id, old_->file_id, false);
+          td->animations_manager_->merge_animations(new_->file_id, old_->file_id);
         }
         need_update = true;
       }
@@ -3179,7 +3179,7 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
       const auto *new_ = static_cast<const MessageAudio *>(new_content);
       if (old_->file_id != new_->file_id) {
         if (need_merge_files) {
-          td->audios_manager_->merge_audios(new_->file_id, old_->file_id, false);
+          td->audios_manager_->merge_audios(new_->file_id, old_->file_id);
         }
         need_update = true;
       }
@@ -3201,7 +3201,7 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
       const auto *new_ = static_cast<const MessageDocument *>(new_content);
       if (old_->file_id != new_->file_id) {
         if (need_merge_files) {
-          td->documents_manager_->merge_documents(new_->file_id, old_->file_id, false);
+          td->documents_manager_->merge_documents(new_->file_id, old_->file_id);
         }
         need_update = true;
       }
@@ -3337,7 +3337,7 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
       const auto *new_ = static_cast<const MessageSticker *>(new_content);
       if (old_->file_id != new_->file_id) {
         if (need_merge_files) {
-          td->stickers_manager_->merge_stickers(new_->file_id, old_->file_id, false);
+          td->stickers_manager_->merge_stickers(new_->file_id, old_->file_id);
         }
         need_update = true;
       }
@@ -3363,7 +3363,7 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
       const auto *new_ = static_cast<const MessageVideo *>(new_content);
       if (old_->file_id != new_->file_id) {
         if (need_merge_files) {
-          td->videos_manager_->merge_videos(new_->file_id, old_->file_id, false);
+          td->videos_manager_->merge_videos(new_->file_id, old_->file_id);
         }
         need_update = true;
       }
@@ -3377,7 +3377,7 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
       const auto *new_ = static_cast<const MessageVideoNote *>(new_content);
       if (old_->file_id != new_->file_id) {
         if (need_merge_files) {
-          td->video_notes_manager_->merge_video_notes(new_->file_id, old_->file_id, false);
+          td->video_notes_manager_->merge_video_notes(new_->file_id, old_->file_id);
         }
         need_update = true;
       }
@@ -3391,7 +3391,7 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
       const auto *new_ = static_cast<const MessageVoiceNote *>(new_content);
       if (old_->file_id != new_->file_id) {
         if (need_merge_files) {
-          td->voice_notes_manager_->merge_voice_notes(new_->file_id, old_->file_id, false);
+          td->voice_notes_manager_->merge_voice_notes(new_->file_id, old_->file_id);
         }
         need_update = true;
       }
@@ -3673,7 +3673,7 @@ bool merge_message_content_file_id(Td *td, MessageContent *message_content, File
     case MessageContentType::Animation: {
       auto content = static_cast<MessageAnimation *>(message_content);
       if (new_file_id != content->file_id) {
-        td->animations_manager_->merge_animations(new_file_id, content->file_id, false);
+        td->animations_manager_->merge_animations(new_file_id, content->file_id);
         content->file_id = new_file_id;
         return true;
       }
@@ -3682,7 +3682,7 @@ bool merge_message_content_file_id(Td *td, MessageContent *message_content, File
     case MessageContentType::Audio: {
       auto content = static_cast<MessageAudio *>(message_content);
       if (new_file_id != content->file_id) {
-        td->audios_manager_->merge_audios(new_file_id, content->file_id, false);
+        td->audios_manager_->merge_audios(new_file_id, content->file_id);
         content->file_id = new_file_id;
         return true;
       }
@@ -3691,7 +3691,7 @@ bool merge_message_content_file_id(Td *td, MessageContent *message_content, File
     case MessageContentType::Document: {
       auto content = static_cast<MessageDocument *>(message_content);
       if (new_file_id != content->file_id) {
-        td->documents_manager_->merge_documents(new_file_id, content->file_id, false);
+        td->documents_manager_->merge_documents(new_file_id, content->file_id);
         content->file_id = new_file_id;
         return true;
       }
@@ -3713,7 +3713,7 @@ bool merge_message_content_file_id(Td *td, MessageContent *message_content, File
     case MessageContentType::Sticker: {
       auto content = static_cast<MessageSticker *>(message_content);
       if (new_file_id != content->file_id) {
-        td->stickers_manager_->merge_stickers(new_file_id, content->file_id, false);
+        td->stickers_manager_->merge_stickers(new_file_id, content->file_id);
         content->file_id = new_file_id;
         return true;
       }
@@ -3722,7 +3722,7 @@ bool merge_message_content_file_id(Td *td, MessageContent *message_content, File
     case MessageContentType::Video: {
       auto content = static_cast<MessageVideo *>(message_content);
       if (new_file_id != content->file_id) {
-        td->videos_manager_->merge_videos(new_file_id, content->file_id, false);
+        td->videos_manager_->merge_videos(new_file_id, content->file_id);
         content->file_id = new_file_id;
         return true;
       }
@@ -3731,7 +3731,7 @@ bool merge_message_content_file_id(Td *td, MessageContent *message_content, File
     case MessageContentType::VideoNote: {
       auto content = static_cast<MessageVideoNote *>(message_content);
       if (new_file_id != content->file_id) {
-        td->video_notes_manager_->merge_video_notes(new_file_id, content->file_id, false);
+        td->video_notes_manager_->merge_video_notes(new_file_id, content->file_id);
         content->file_id = new_file_id;
         return true;
       }
@@ -3740,7 +3740,7 @@ bool merge_message_content_file_id(Td *td, MessageContent *message_content, File
     case MessageContentType::VoiceNote: {
       auto content = static_cast<MessageVoiceNote *>(message_content);
       if (new_file_id != content->file_id) {
-        td->voice_notes_manager_->merge_voice_notes(new_file_id, content->file_id, false);
+        td->voice_notes_manager_->merge_voice_notes(new_file_id, content->file_id);
         content->file_id = new_file_id;
         return true;
       }

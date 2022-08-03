@@ -331,7 +331,7 @@ class StickersManager final : public Actor {
 
   FileId dup_sticker(FileId new_id, FileId old_id);
 
-  void merge_stickers(FileId new_id, FileId old_id, bool can_delete_old);
+  void merge_stickers(FileId new_id, FileId old_id);
 
   template <class StorerT>
   void store_sticker(FileId file_id, bool in_sticker_set, StorerT &storer, const char *source) const;

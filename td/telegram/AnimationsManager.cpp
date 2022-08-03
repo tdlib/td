@@ -273,7 +273,7 @@ FileId AnimationsManager::dup_animation(FileId new_id, FileId old_id) {
   return new_id;
 }
 
-void AnimationsManager::merge_animations(FileId new_id, FileId old_id, bool can_delete_old) {
+void AnimationsManager::merge_animations(FileId new_id, FileId old_id) {
   CHECK(old_id.is_valid() && new_id.is_valid());
   CHECK(new_id != old_id);
 
@@ -284,13 +284,7 @@ void AnimationsManager::merge_animations(FileId new_id, FileId old_id, bool can_
   bool need_merge = true;
   auto new_it = animations_.find(new_id);
   if (new_it == animations_.end()) {
-    auto &old = animations_[old_id];
-    if (!can_delete_old) {
-      dup_animation(new_id, old_id);
-    } else {
-      old->file_id = new_id;
-      animations_.emplace(new_id, std::move(old));
-    }
+    dup_animation(new_id, old_id);
   } else {
     Animation *new_ = new_it->second.get();
     CHECK(new_ != nullptr);
@@ -304,9 +298,6 @@ void AnimationsManager::merge_animations(FileId new_id, FileId old_id, bool can_
   }
   if (need_merge) {
     LOG_STATUS(td_->file_manager_->merge(new_id, old_id));
-  }
-  if (can_delete_old) {
-    animations_.erase(old_id);
   }
 }
 

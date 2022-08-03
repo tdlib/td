@@ -2809,7 +2809,7 @@ FileId StickersManager::dup_sticker(FileId new_id, FileId old_id) {
   return new_id;
 }
 
-void StickersManager::merge_stickers(FileId new_id, FileId old_id, bool can_delete_old) {
+void StickersManager::merge_stickers(FileId new_id, FileId old_id) {
   CHECK(old_id.is_valid() && new_id.is_valid());
   CHECK(new_id != old_id);
 
@@ -2819,13 +2819,7 @@ void StickersManager::merge_stickers(FileId new_id, FileId old_id, bool can_dele
 
   auto new_it = stickers_.find(new_id);
   if (new_it == stickers_.end()) {
-    auto &old = stickers_[old_id];
-    if (!can_delete_old) {
-      dup_sticker(new_id, old_id);
-    } else {
-      old->file_id = new_id;
-      stickers_.emplace(new_id, std::move(old));
-    }
+    dup_sticker(new_id, old_id);
   } else {
     Sticker *new_ = new_it->second.get();
     CHECK(new_ != nullptr);
@@ -2846,9 +2840,6 @@ void StickersManager::merge_stickers(FileId new_id, FileId old_id, bool can_dele
     }
   }
   LOG_STATUS(td_->file_manager_->merge(new_id, old_id));
-  if (can_delete_old) {
-    stickers_.erase(old_id);
-  }
 }
 
 tl_object_ptr<telegram_api::InputStickerSet> StickersManager::get_input_sticker_set(const StickerSet *set) {
@@ -4072,7 +4063,8 @@ vector<FileId> StickersManager::get_stickers(StickerType sticker_type, string em
   return result;
 }
 
-void StickersManager::search_stickers(string emoji, int32 limit, Promise<td_api::object_ptr<td_api::stickers>> &&promise) {
+void StickersManager::search_stickers(string emoji, int32 limit,
+                                      Promise<td_api::object_ptr<td_api::stickers>> &&promise) {
   if (limit <= 0) {
     return promise.set_error(Status::Error(400, "Parameter limit must be positive"));
   }
@@ -6785,10 +6777,10 @@ void StickersManager::on_uploaded_sticker_file(FileId file_id, tl_object_ptr<tel
 
   if (parsed_document.file_id != file_id) {
     if (file_type == FileType::Sticker) {
-      merge_stickers(parsed_document.file_id, file_id, false);
+      merge_stickers(parsed_document.file_id, file_id);
     } else {
       // must not delete the old document, because the file_id could be used for simultaneous URL uploads
-      td_->documents_manager_->merge_documents(parsed_document.file_id, file_id, false);
+      td_->documents_manager_->merge_documents(parsed_document.file_id, file_id);
     }
   }
   promise.set_value(Unit());

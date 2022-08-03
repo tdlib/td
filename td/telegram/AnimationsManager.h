@@ -59,7 +59,7 @@ class AnimationsManager final : public Actor {
 
   FileId dup_animation(FileId new_id, FileId old_id);
 
-  void merge_animations(FileId new_id, FileId old_id, bool can_delete_old);
+  void merge_animations(FileId new_id, FileId old_id);
 
   void on_update_animation_search_emojis(string animation_search_emojis);
 

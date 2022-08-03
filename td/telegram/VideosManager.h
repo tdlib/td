@@ -55,7 +55,7 @@ class VideosManager {
 
   FileId dup_video(FileId new_id, FileId old_id);
 
-  void merge_videos(FileId new_id, FileId old_id, bool can_delete_old);
+  void merge_videos(FileId new_id, FileId old_id);
 
   template <class StorerT>
   void store_video(FileId file_id, StorerT &storer) const;
