@@ -8003,8 +8003,8 @@ void MessagesManager::on_update_notification_scope_is_muted(NotificationSettings
     std::unordered_map<DialogListId, int32, DialogListIdHash> total_count;
     std::unordered_map<DialogListId, int32, DialogListIdHash> marked_count;
     std::unordered_set<DialogListId, DialogListIdHash> dialog_list_ids;
-    for (auto &dialog : dialogs_) {
-      Dialog *d = dialog.second.get();
+    dialogs_.foreach([&](const DialogId &dialog_id, unique_ptr<Dialog> &dialog) {
+      Dialog *d = dialog.get();
       if (need_unread_counter(d->order) && d->notification_settings.use_default_mute_until &&
           get_dialog_notification_setting_scope(d->dialog_id) == scope) {
         int32 unread_count = d->server_unread_count + d->local_unread_count;
@@ -8022,7 +8022,7 @@ void MessagesManager::on_update_notification_scope_is_muted(NotificationSettings
           }
         }
       }
-    }
+    });
     for (auto dialog_list_id : dialog_list_ids) {
       auto *list = get_dialog_list(dialog_list_id);
       CHECK(list != nullptr);
@@ -8048,23 +8048,23 @@ void MessagesManager::on_update_notification_scope_is_muted(NotificationSettings
   }
 
   if (!dialog_filters_.empty()) {
-    for (auto &dialog : dialogs_) {
-      Dialog *d = dialog.second.get();
+    dialogs_.foreach([&](const DialogId &dialog_id, unique_ptr<Dialog> &dialog) {
+      Dialog *d = dialog.get();
       if (d->order != DEFAULT_ORDER && d->notification_settings.use_default_mute_until &&
           get_dialog_notification_setting_scope(d->dialog_id) == scope) {
         update_dialog_lists(d, get_dialog_positions(d), true, false, "on_update_notification_scope_is_muted");
       }
-    }
+    });
   }
 
   if (is_muted) {
-    for (auto &dialog : dialogs_) {
-      Dialog *d = dialog.second.get();
+    dialogs_.foreach([&](const DialogId &dialog_id, unique_ptr<Dialog> &dialog) {
+      Dialog *d = dialog.get();
       if (d->order != DEFAULT_ORDER && d->notification_settings.use_default_mute_until &&
           get_dialog_notification_setting_scope(d->dialog_id) == scope) {
         remove_all_dialog_notifications(d, false, "on_update_notification_scope_is_muted");
       }
-    }
+    });
   }
 }
 
@@ -8248,9 +8248,9 @@ void MessagesManager::set_active_reactions(vector<AvailableReaction> active_reac
     }
   }
 
-  for (auto &dialog : dialogs_) {
-    Dialog *d = dialog.second.get();
-    switch (d->dialog_id.get_type()) {
+  dialogs_.foreach([&](const DialogId &dialog_id, unique_ptr<Dialog> &dialog) {
+    Dialog *d = dialog.get();
+    switch (dialog_id.get_type()) {
       case DialogType::User:
         if (is_changed) {
           send_update_chat_available_reactions(d);
@@ -8278,7 +8278,7 @@ void MessagesManager::set_active_reactions(vector<AvailableReaction> active_reac
         UNREACHABLE();
         break;
     }
-  }
+  });
 }
 
 vector<string> MessagesManager::get_active_reactions(const vector<string> &available_reactions) const {
@@ -15170,30 +15170,30 @@ void MessagesManager::remove_dialog_pinned_message_notification(Dialog *d, const
 
 void MessagesManager::remove_scope_pinned_message_notifications(NotificationSettingsScope scope) {
   VLOG(notifications) << "Remove pinned message notifications in " << scope;
-  for (auto &dialog : dialogs_) {
-    Dialog *d = dialog.second.get();
+  dialogs_.foreach([&](const DialogId &dialog_id, unique_ptr<Dialog> &dialog) {
+    Dialog *d = dialog.get();
     if (d->notification_settings.use_default_disable_pinned_message_notifications &&
         d->mention_notification_group.group_id.is_valid() && d->pinned_message_notification_message_id.is_valid() &&
-        get_dialog_notification_setting_scope(d->dialog_id) == scope) {
+        get_dialog_notification_setting_scope(dialog_id) == scope) {
       remove_dialog_pinned_message_notification(d, "remove_scope_pinned_message_notifications");
     }
-  }
+  });
 }
 
 void MessagesManager::on_update_scope_mention_notifications(NotificationSettingsScope scope,
                                                             bool disable_mention_notifications) {
   VLOG(notifications) << "Remove mention notifications in " << scope;
-  for (auto &dialog : dialogs_) {
-    Dialog *d = dialog.second.get();
+  dialogs_.foreach([&](const DialogId &dialog_id, unique_ptr<Dialog> &dialog) {
+    Dialog *d = dialog.get();
     if (d->notification_settings.use_default_disable_mention_notifications &&
-        get_dialog_notification_setting_scope(d->dialog_id) == scope) {
+        get_dialog_notification_setting_scope(dialog_id) == scope) {
       if (!disable_mention_notifications) {
         update_dialog_mention_notification_count(d);
       } else {
         remove_dialog_mention_notifications(d);
       }
     }
-  }
+  });
 }
 
 void MessagesManager::remove_dialog_mention_notifications(Dialog *d) {
@@ -19869,12 +19869,12 @@ void MessagesManager::on_saved_dialog_draft_message(DialogId dialog_id, uint64 g
 
 void MessagesManager::clear_all_draft_messages(bool exclude_secret_chats, Promise<Unit> &&promise) {
   if (!exclude_secret_chats) {
-    for (auto &dialog : dialogs_) {
-      Dialog *d = dialog.second.get();
-      if (d->dialog_id.get_type() == DialogType::SecretChat) {
+    dialogs_.foreach([&](const DialogId &dialog_id, unique_ptr<Dialog> &dialog) {
+      Dialog *d = dialog.get();
+      if (dialog_id.get_type() == DialogType::SecretChat) {
         update_dialog_draft_message(d, nullptr, false, true);
       }
-    }
+    });
   }
   td_->create_handler<ClearAllDraftsQuery>(std::move(promise))->send();
 }
@@ -20757,9 +20757,8 @@ Status MessagesManager::view_messages(DialogId dialog_id, MessageId top_thread_m
         on_message_changed(d, m, true, "view_messages");
       }
 
-      auto it = full_message_id_to_file_source_id_.find({dialog_id, m->message_id});
-      if (it != full_message_id_to_file_source_id_.end()) {
-        auto file_source_id = it->second;
+      auto file_source_id = full_message_id_to_file_source_id_.get({dialog_id, m->message_id});
+      if (file_source_id.is_valid()) {
         LOG(INFO) << "Have " << file_source_id << " for " << m->message_id;
         CHECK(file_source_id.is_valid());
         for (auto file_id : get_message_file_ids(m)) {
@@ -21515,12 +21514,12 @@ Status MessagesManager::set_dialog_notification_settings(
 void MessagesManager::reset_all_notification_settings() {
   CHECK(!td_->auth_manager_->is_bot());
 
-  for (auto &dialog : dialogs_) {
+  dialogs_.foreach([&](const DialogId &dialog_id, unique_ptr<Dialog> &dialog) {
     DialogNotificationSettings new_dialog_settings;
     new_dialog_settings.is_synchronized = true;
-    Dialog *d = dialog.second.get();
-    update_dialog_notification_settings(d->dialog_id, &d->notification_settings, std::move(new_dialog_settings));
-  }
+    Dialog *d = dialog.get();
+    update_dialog_notification_settings(dialog_id, &d->notification_settings, std::move(new_dialog_settings));
+  });
 
   td_->notification_settings_manager_->reset_scope_notification_settings();
 
@@ -36469,7 +36468,7 @@ MessagesManager::Dialog *MessagesManager::add_new_dialog(unique_ptr<Dialog> &&di
   }
 
   CHECK(!have_dialog(dialog_id));
-  dialogs_.emplace(dialog_id, std::move(dialog));
+  dialogs_.set(dialog_id, std::move(dialog));
 
   CHECK(!being_added_new_dialog_id_.is_valid());
   being_added_new_dialog_id_ = dialog_id;
@@ -37497,13 +37496,11 @@ void MessagesManager::update_list_last_dialog_date(DialogList &list) {
 }
 
 MessagesManager::Dialog *MessagesManager::get_dialog(DialogId dialog_id) {
-  auto it = dialogs_.find(dialog_id);
-  return it == dialogs_.end() ? nullptr : it->second.get();
+  return dialogs_.get_pointer(dialog_id);
 }
 
 const MessagesManager::Dialog *MessagesManager::get_dialog(DialogId dialog_id) const {
-  auto it = dialogs_.find(dialog_id);
-  return it == dialogs_.end() ? nullptr : it->second.get();
+  return dialogs_.get_pointer(dialog_id);
 }
 
 bool MessagesManager::have_dialog_force(DialogId dialog_id, const char *source) {
@@ -37513,9 +37510,8 @@ bool MessagesManager::have_dialog_force(DialogId dialog_id, const char *source) 
 MessagesManager::Dialog *MessagesManager::get_dialog_force(DialogId dialog_id, const char *source) {
   init();
 
-  auto it = dialogs_.find(dialog_id);
-  if (it != dialogs_.end()) {
-    Dialog *d = it->second.get();
+  Dialog *d = get_dialog(dialog_id);
+  if (d != nullptr) {
     LOG_CHECK(d->dialog_id == dialog_id) << d->dialog_id << ' ' << dialog_id;
     return d;
   }
@@ -37527,14 +37523,13 @@ MessagesManager::Dialog *MessagesManager::get_dialog_force(DialogId dialog_id, c
   auto r_value = G()->td_db()->get_dialog_db_sync()->get_dialog(dialog_id);
   if (r_value.is_ok()) {
     LOG(INFO) << "Loaded " << dialog_id << " from database from " << source;
-    auto d = on_load_dialog_from_database(dialog_id, r_value.move_as_ok(), source);
+    d = on_load_dialog_from_database(dialog_id, r_value.move_as_ok(), source);
     LOG_CHECK(d == nullptr || d->dialog_id == dialog_id) << d->dialog_id << ' ' << dialog_id;
-    return d;
   } else {
     LOG(INFO) << "Failed to load " << dialog_id << " from database from " << source << ": "
               << r_value.error().message();
-    return nullptr;
   }
+  return d;
 }
 
 unique_ptr<MessagesManager::Dialog> MessagesManager::parse_dialog(DialogId dialog_id, const BufferSlice &value,
@@ -40212,23 +40207,23 @@ void MessagesManager::get_current_state(vector<td_api::object_ptr<td_api::Update
   }
 
   vector<td_api::object_ptr<td_api::Update>> last_message_updates;
-  for (const auto &it : dialogs_) {
-    const Dialog *d = it.second.get();
+  dialogs_.foreach([&](const DialogId &dialog_id, const unique_ptr<Dialog> &dialog) {
+    const Dialog *d = dialog.get();
     auto update = td_api::make_object<td_api::updateNewChat>(get_chat_object(d));
     if (update->chat_->last_message_ != nullptr && update->chat_->last_message_->forward_info_ != nullptr) {
       last_message_updates.push_back(td_api::make_object<td_api::updateChatLastMessage>(
-          d->dialog_id.get(), std::move(update->chat_->last_message_), get_chat_positions_object(d)));
+          dialog_id.get(), std::move(update->chat_->last_message_), get_chat_positions_object(d)));
     }
     updates.push_back(std::move(update));
 
     if (d->is_opened) {
-      auto info_it = dialog_online_member_counts_.find(d->dialog_id);
+      auto info_it = dialog_online_member_counts_.find(dialog_id);
       if (info_it != dialog_online_member_counts_.end() && info_it->second.is_update_sent) {
         updates.push_back(td_api::make_object<td_api::updateChatOnlineMemberCount>(
-            d->dialog_id.get(), info_it->second.online_member_count));
+            dialog_id.get(), info_it->second.online_member_count));
       }
     }
-  }
+  });
   append(updates, std::move(last_message_updates));
 }
 

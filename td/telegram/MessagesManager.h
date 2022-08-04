@@ -3449,7 +3449,7 @@ class MessagesManager final : public Actor {
 
   bool running_get_difference_ = false;  // true after before_get_difference and false after after_get_difference
 
-  FlatHashMap<DialogId, unique_ptr<Dialog>, DialogIdHash> dialogs_;
+  WaitFreeHashMap<DialogId, unique_ptr<Dialog>, DialogIdHash> dialogs_;
   int64 added_message_count_ = 0;
 
   FlatHashSet<DialogId, DialogIdHash> loaded_dialogs_;  // dialogs loaded from database, but not added to dialogs_
@@ -3653,7 +3653,7 @@ class MessagesManager final : public Actor {
 
   FlatHashMap<DialogId, NetQueryRef, DialogIdHash> set_typing_query_;
 
-  FlatHashMap<FullMessageId, FileSourceId, FullMessageIdHash> full_message_id_to_file_source_id_;
+  WaitFreeHashMap<FullMessageId, FileSourceId, FullMessageIdHash> full_message_id_to_file_source_id_;
 
   FlatHashMap<DialogId, int32, DialogIdHash> last_outgoing_forwarded_message_date_;
 
