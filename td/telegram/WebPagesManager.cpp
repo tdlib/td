@@ -952,8 +952,8 @@ void WebPagesManager::on_load_web_page_instant_view_from_database(WebPageId web_
   //  G()->td_db()->get_sqlite_pmc()->erase(get_web_page_instant_view_database_key(web_page_id), Auto());
   //  value.clear();
 
-  auto web_page_it = web_pages_.find(web_page_id);
-  if (web_page_it == web_pages_.end() || web_page_it->second->instant_view.is_empty) {
+  WebPage *web_page = web_pages_.get_pointer(web_page_id);
+  if (web_page == nullptr || web_page->instant_view.is_empty) {
     // possible if web page loses preview/instant view
     LOG(WARNING) << "There is no instant view in " << web_page_id;
     if (!value.empty()) {
@@ -962,7 +962,6 @@ void WebPagesManager::on_load_web_page_instant_view_from_database(WebPageId web_
     update_web_page_instant_view_load_requests(web_page_id, true, web_page_id);
     return;
   }
-  WebPage *web_page = web_page_it->second.get();
   auto &web_page_instant_view = web_page->instant_view;
   if (web_page_instant_view.was_loaded_from_database) {
     return;
@@ -1361,12 +1360,7 @@ void WebPagesManager::on_web_page_changed(WebPageId web_page_id, bool have_web_p
 }
 
 const WebPagesManager::WebPage *WebPagesManager::get_web_page(WebPageId web_page_id) const {
-  auto p = web_pages_.find(web_page_id);
-  if (p == web_pages_.end()) {
-    return nullptr;
-  } else {
-    return p->second.get();
-  }
+  return web_pages_.get_pointer(web_page_id);
 }
 
 const WebPagesManager::WebPageInstantView *WebPagesManager::get_web_page_instant_view(WebPageId web_page_id) const {

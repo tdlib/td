@@ -1692,13 +1692,12 @@ StickerType StickersManager::get_sticker_type(FileId file_id) const {
 }
 
 bool StickersManager::is_premium_custom_emoji(int64 custom_emoji_id, bool default_result) const {
-  auto it = custom_emoji_to_sticker_id_.find(custom_emoji_id);
-  if (it == custom_emoji_to_sticker_id_.end()) {
-    return default_result;
-  }
-  const Sticker *s = get_sticker(it->second);
+  auto sticker_id = custom_emoji_to_sticker_id_.get(custom_emoji_id);
+  const Sticker *s = get_sticker(sticker_id);
   if (s == nullptr) {
-    LOG(ERROR) << "Failed to find custom emoji sticker " << it->second;
+    if (sticker_id.is_valid()) {
+      LOG(ERROR) << "Failed to find custom emoji sticker " << sticker_id;
+    }
     return default_result;
   }
   return s->is_premium;
@@ -2448,11 +2447,8 @@ FileId StickersManager::on_get_sticker(unique_ptr<Sticker> new_sticker, bool rep
 
     if (s->type == StickerType::CustomEmoji) {
       auto custom_emoji_id = get_custom_emoji_id(file_id);
-      if (custom_emoji_id != 0) {
-        auto it = custom_emoji_to_sticker_id_.find(custom_emoji_id);
-        if (it != custom_emoji_to_sticker_id_.end() && it->second == file_id) {
-          custom_emoji_to_sticker_id_.erase(it);
-        }
+      if (custom_emoji_id != 0 && custom_emoji_to_sticker_id_.get(custom_emoji_id) == file_id) {
+        custom_emoji_to_sticker_id_.erase(custom_emoji_id);
       }
     }
 
@@ -5165,13 +5161,10 @@ td_api::object_ptr<td_api::stickers> StickersManager::get_custom_emoji_stickers_
   auto update_before_date = G()->unix_time() - 86400;
   vector<int64> reload_document_ids;
   for (auto document_id : document_ids) {
-    auto it = custom_emoji_to_sticker_id_.find(document_id);
-    if (it == custom_emoji_to_sticker_id_.end()) {
-      continue;
-    }
-    auto sticker = get_sticker_object(it->second);
+    auto file_id = custom_emoji_to_sticker_id_.get(document_id);
+    auto sticker = get_sticker_object(file_id);
     if (sticker != nullptr && sticker->type_->get_id() == td_api::stickerTypeCustomEmoji::ID) {
-      auto s = get_sticker(it->second);
+      auto s = get_sticker(file_id);
       if (s->emoji_receive_date < update_before_date && !s->is_being_reloaded) {
         s->is_being_reloaded = true;
         reload_document_ids.push_back(document_id);
@@ -5206,7 +5199,7 @@ void StickersManager::get_custom_emoji_stickers(vector<int64> &&document_ids, bo
 
   vector<int64> unknown_document_ids;
   for (auto document_id : document_ids) {
-    if (custom_emoji_to_sticker_id_.count(document_id) == 0) {
+    if (custom_emoji_to_sticker_id_.get(document_id).is_valid()) {
       unknown_document_ids.push_back(document_id);
     }
   }

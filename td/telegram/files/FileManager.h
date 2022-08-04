@@ -34,6 +34,7 @@
 #include "td/utils/Slice.h"
 #include "td/utils/Status.h"
 #include "td/utils/StringBuilder.h"
+#include "td/utils/WaitFreeHashMap.h"
 #include "td/utils/WaitFreeVector.h"
 
 #include <map>
@@ -583,7 +584,7 @@ class FileManager final : public FileLoadManager::Callback {
   };
   Enumerator<RemoteInfo> remote_location_info_;
 
-  FlatHashMap<string, FileId> file_hash_to_file_id_;
+  WaitFreeHashMap<string, FileId> file_hash_to_file_id_;
 
   std::map<FullLocalFileLocation, FileId> local_location_to_file_id_;
   std::map<FullGenerateFileLocation, FileId> generate_location_to_file_id_;

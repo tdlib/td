@@ -3174,11 +3174,11 @@ Result<FileId> FileManager::get_input_file_id(FileType type, const tl_object_ptr
             auto r_file_content = read_file_str(path, r_stat.ok().size_);
             if (r_file_content.is_ok()) {
               hash = sha256(r_file_content.ok());
-              auto it = file_hash_to_file_id_.find(hash);
-              if (it != file_hash_to_file_id_.end()) {
-                auto file_view = get_file_view(it->second);
+              auto file_id = file_hash_to_file_id_.get(hash);
+              if (file_id.is_valid()) {
+                auto file_view = get_file_view(file_id);
                 if (!file_view.empty() && file_view.has_remote_location() && !file_view.remote_location().is_web()) {
-                  return it->second;
+                  return file_id;
                 }
               }
             }
@@ -3186,7 +3186,7 @@ Result<FileId> FileManager::get_input_file_id(FileType type, const tl_object_ptr
         }
         TRY_RESULT(file_id, register_local(FullLocalFileLocation(new_type, path, 0), owner_dialog_id, 0, get_by_hash));
         if (!hash.empty()) {
-          file_hash_to_file_id_[hash] = file_id;
+          file_hash_to_file_id_.set(hash, file_id);
         }
         return file_id;
       }

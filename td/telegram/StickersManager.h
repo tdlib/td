@@ -994,7 +994,7 @@ class StickersManager final : public Actor {
   string emoji_sounds_str_;
   FlatHashMap<string, FileId> emoji_sounds_;
 
-  FlatHashMap<int64, FileId> custom_emoji_to_sticker_id_;
+  WaitFreeHashMap<int64, FileId> custom_emoji_to_sticker_id_;
 
   double animated_emoji_zoom_ = 0.0;
 

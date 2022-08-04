@@ -26,6 +26,7 @@
 #include "td/utils/Slice.h"
 #include "td/utils/Status.h"
 #include "td/utils/Variant.h"
+#include "td/utils/WaitFreeVector.h"
 
 namespace td {
 
@@ -161,7 +162,7 @@ class FileReferenceManager final : public Actor {
                              FileSourceWallpapers, FileSourceWebPage, FileSourceSavedAnimations,
                              FileSourceRecentStickers, FileSourceFavoriteStickers, FileSourceBackground,
                              FileSourceChatFull, FileSourceChannelFull, FileSourceAppConfig, FileSourceSavedRingtones>;
-  vector<FileSource> file_sources_;
+  WaitFreeVector<FileSource> file_sources_;
 
   int64 query_generation_{0};
 
