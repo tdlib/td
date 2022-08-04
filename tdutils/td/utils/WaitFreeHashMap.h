@@ -108,6 +108,21 @@ class WaitFreeHashMap {
     return get_storage(key).erase(key);
   }
 
+  void foreach(std::function<void(const KeyT &key, ValueT &value)> callback) {
+    if (wait_free_storage_ == nullptr) {
+      for (auto &it : default_map_) {
+        callback(it.first, it.second);
+      }
+      return;
+    }
+
+    for (size_t i = 0; i < MAX_STORAGE_COUNT; i++) {
+      for (auto &it : wait_free_storage_->maps_[i]) {
+        callback(it.first, it.second);
+      }
+    }
+  }
+
   size_t size() const {
     if (wait_free_storage_ == nullptr) {
       return default_map_.size();

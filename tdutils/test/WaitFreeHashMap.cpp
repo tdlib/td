@@ -24,6 +24,24 @@ TEST(WaitFreeHashMap, stress_test) {
     return rnd() % 100000 + 1;
   };
 
+  auto check = [&] {
+    ASSERT_EQ(reference.size(), map.size());
+    ASSERT_EQ(reference.empty(), map.empty());
+
+    if (reference.size() < 100) {
+      td::uint64 result = 0;
+      for (auto &it : reference) {
+        result += it.first * 101;
+        result += it.second;
+      }
+      map.foreach([&](const td::uint64 &key, td::uint64 &value) {
+        result -= key * 101;
+        result -= value;
+      });
+      ASSERT_EQ(0, result);
+    }
+  };
+
   add_step(2000, [&] {
     auto key = gen_key();
     auto value = rnd();
@@ -34,15 +52,13 @@ TEST(WaitFreeHashMap, stress_test) {
       map[key] = value;
     }
     ASSERT_EQ(reference[key], map.get(key));
-    ASSERT_EQ(reference.size(), map.size());
-    ASSERT_EQ(reference.empty(), map.empty());
+    check();
   });
 
   add_step(200, [&] {
     auto key = gen_key();
     ASSERT_EQ(reference[key], map[key]);
-    ASSERT_EQ(reference.size(), map.size());
-    ASSERT_EQ(reference.empty(), map.empty());
+    check();
   });
 
   add_step(2000, [&] {
@@ -50,8 +66,7 @@ TEST(WaitFreeHashMap, stress_test) {
     auto ref_it = reference.find(key);
     auto ref_value = ref_it == reference.end() ? 0 : ref_it->second;
     ASSERT_EQ(ref_value, map.get(key));
-    ASSERT_EQ(reference.size(), map.size());
-    ASSERT_EQ(reference.empty(), map.empty());
+    check();
   });
 
   add_step(500, [&] {
@@ -59,8 +74,7 @@ TEST(WaitFreeHashMap, stress_test) {
     size_t reference_erased_count = reference.erase(key);
     size_t map_erased_count = map.erase(key);
     ASSERT_EQ(reference_erased_count, map_erased_count);
-    ASSERT_EQ(reference.size(), map.size());
-    ASSERT_EQ(reference.empty(), map.empty());
+    check();
   });
 
   td::RandomSteps runner(std::move(steps));
