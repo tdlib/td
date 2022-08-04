@@ -14,7 +14,7 @@
 
 #include "td/utils/buffer.h"
 #include "td/utils/common.h"
-#include "td/utils/FlatHashMap.h"
+#include "td/utils/WaitFreeHashMap.h"
 
 namespace td {
 
@@ -82,7 +82,7 @@ class AudiosManager {
   FileId on_get_audio(unique_ptr<Audio> new_audio, bool replace);
 
   Td *td_;
-  FlatHashMap<FileId, unique_ptr<Audio>, FileIdHash> audios_;
+  WaitFreeHashMap<FileId, unique_ptr<Audio>, FileIdHash> audios_;
 };
 
 }  // namespace td

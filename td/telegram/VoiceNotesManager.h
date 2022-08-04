@@ -20,6 +20,7 @@
 #include "td/utils/FlatHashSet.h"
 #include "td/utils/Promise.h"
 #include "td/utils/Status.h"
+#include "td/utils/WaitFreeHashMap.h"
 
 namespace td {
 
@@ -104,7 +105,7 @@ class VoiceNotesManager final : public Actor {
   Td *td_;
   ActorShared<> parent_;
 
-  FlatHashMap<FileId, unique_ptr<VoiceNote>, FileIdHash> voice_notes_;
+  WaitFreeHashMap<FileId, unique_ptr<VoiceNote>, FileIdHash> voice_notes_;
 
   FlatHashMap<FileId, vector<Promise<Unit>>, FileIdHash> speech_recognition_queries_;
   FlatHashMap<int64, FileId> pending_voice_note_transcription_queries_;

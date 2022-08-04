@@ -75,13 +75,7 @@ FileId VideoNotesManager::on_get_video_note(unique_ptr<VideoNote> new_video_note
 }
 
 const VideoNotesManager::VideoNote *VideoNotesManager::get_video_note(FileId file_id) const {
-  auto video_note = video_notes_.find(file_id);
-  if (video_note == video_notes_.end()) {
-    return nullptr;
-  }
-
-  CHECK(video_note->second->file_id == file_id);
-  return video_note->second.get();
+  return video_notes_.get_pointer(file_id);
 }
 
 FileId VideoNotesManager::get_video_note_thumbnail_file_id(FileId file_id) const {

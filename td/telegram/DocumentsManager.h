@@ -19,7 +19,7 @@
 
 #include "td/utils/buffer.h"
 #include "td/utils/common.h"
-#include "td/utils/FlatHashMap.h"
+#include "td/utils/WaitFreeHashMap.h"
 
 #include <utility>
 
@@ -131,7 +131,7 @@ class DocumentsManager {
   FileId on_get_document(unique_ptr<GeneralDocument> new_document, bool replace);
 
   Td *td_;
-  FlatHashMap<FileId, unique_ptr<GeneralDocument>, FileIdHash> documents_;  // file_id -> GeneralDocument
+  WaitFreeHashMap<FileId, unique_ptr<GeneralDocument>, FileIdHash> documents_;  // file_id -> GeneralDocument
 };
 
 }  // namespace td

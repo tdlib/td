@@ -15,7 +15,7 @@
 
 #include "td/utils/buffer.h"
 #include "td/utils/common.h"
-#include "td/utils/FlatHashMap.h"
+#include "td/utils/WaitFreeHashMap.h"
 
 namespace td {
 
@@ -75,7 +75,7 @@ class VideoNotesManager {
   FileId on_get_video_note(unique_ptr<VideoNote> new_video_note, bool replace);
 
   Td *td_;
-  FlatHashMap<FileId, unique_ptr<VideoNote>, FileIdHash> video_notes_;
+  WaitFreeHashMap<FileId, unique_ptr<VideoNote>, FileIdHash> video_notes_;
 };
 
 }  // namespace td

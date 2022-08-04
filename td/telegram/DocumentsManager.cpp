@@ -579,13 +579,7 @@ void DocumentsManager::create_document(FileId file_id, string minithumbnail, Pho
 }
 
 const DocumentsManager::GeneralDocument *DocumentsManager::get_document(FileId file_id) const {
-  auto document = documents_.find(file_id);
-  if (document == documents_.end()) {
-    return nullptr;
-  }
-
-  CHECK(document->second->file_id == file_id);
-  return document->second.get();
+  return documents_.get_pointer(file_id);
 }
 
 bool DocumentsManager::has_input_media(FileId file_id, FileId thumbnail_file_id, bool is_secret) const {

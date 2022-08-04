@@ -190,23 +190,11 @@ FileId VoiceNotesManager::on_get_voice_note(unique_ptr<VoiceNote> new_voice_note
 }
 
 VoiceNotesManager::VoiceNote *VoiceNotesManager::get_voice_note(FileId file_id) {
-  auto voice_note = voice_notes_.find(file_id);
-  if (voice_note == voice_notes_.end()) {
-    return nullptr;
-  }
-
-  CHECK(voice_note->second->file_id == file_id);
-  return voice_note->second.get();
+  return voice_notes_.get_pointer(file_id);
 }
 
 const VoiceNotesManager::VoiceNote *VoiceNotesManager::get_voice_note(FileId file_id) const {
-  auto voice_note = voice_notes_.find(file_id);
-  if (voice_note == voice_notes_.end()) {
-    return nullptr;
-  }
-
-  CHECK(voice_note->second->file_id == file_id);
-  return voice_note->second.get();
+  return voice_notes_.get_pointer(file_id);
 }
 
 FileId VoiceNotesManager::dup_voice_note(FileId new_id, FileId old_id) {

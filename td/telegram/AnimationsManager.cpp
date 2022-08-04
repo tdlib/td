@@ -229,13 +229,7 @@ FileId AnimationsManager::on_get_animation(unique_ptr<Animation> new_animation, 
 }
 
 const AnimationsManager::Animation *AnimationsManager::get_animation(FileId file_id) const {
-  auto animation = animations_.find(file_id);
-  if (animation == animations_.end()) {
-    return nullptr;
-  }
-
-  CHECK(animation->second->file_id == file_id);
-  return animation->second.get();
+  return animations_.get_pointer(file_id);
 }
 
 FileId AnimationsManager::get_animation_thumbnail_file_id(FileId file_id) const {

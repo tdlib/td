@@ -15,7 +15,7 @@
 
 #include "td/utils/buffer.h"
 #include "td/utils/common.h"
-#include "td/utils/FlatHashMap.h"
+#include "td/utils/WaitFreeHashMap.h"
 
 namespace td {
 
@@ -89,7 +89,7 @@ class VideosManager {
   FileId on_get_video(unique_ptr<Video> new_video, bool replace);
 
   Td *td_;
-  FlatHashMap<FileId, unique_ptr<Video>, FileIdHash> videos_;
+  WaitFreeHashMap<FileId, unique_ptr<Video>, FileIdHash> videos_;
 };
 
 }  // namespace td

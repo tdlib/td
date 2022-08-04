@@ -105,13 +105,7 @@ FileId VideosManager::on_get_video(unique_ptr<Video> new_video, bool replace) {
 }
 
 const VideosManager::Video *VideosManager::get_video(FileId file_id) const {
-  auto video = videos_.find(file_id);
-  if (video == videos_.end()) {
-    return nullptr;
-  }
-
-  CHECK(video->second->file_id == file_id);
-  return video->second.get();
+  return videos_.get_pointer(file_id);
 }
 
 FileId VideosManager::get_video_thumbnail_file_id(FileId file_id) const {

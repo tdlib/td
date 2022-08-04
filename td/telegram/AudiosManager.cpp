@@ -122,13 +122,7 @@ FileId AudiosManager::on_get_audio(unique_ptr<Audio> new_audio, bool replace) {
 }
 
 const AudiosManager::Audio *AudiosManager::get_audio(FileId file_id) const {
-  auto audio = audios_.find(file_id);
-  if (audio == audios_.end()) {
-    return nullptr;
-  }
-
-  CHECK(audio->second->file_id == file_id);
-  return audio->second.get();
+  return audios_.get_pointer(file_id);
 }
 
 FileId AudiosManager::dup_audio(FileId new_id, FileId old_id) {
