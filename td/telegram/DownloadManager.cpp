@@ -79,18 +79,18 @@ class DownloadManagerImpl final : public DownloadManager {
   }
 
   void after_get_difference() final {
-    load_database_files();
+    load_database_files("after_get_difference");
   }
 
   void toggle_is_paused(FileId file_id, bool is_paused, Promise<Unit> promise) final {
-    TRY_STATUS_PROMISE(promise, check_is_active());
+    TRY_STATUS_PROMISE(promise, check_is_active("toggle_is_paused"));
     TRY_RESULT_PROMISE(promise, file_info_ptr, get_file_info(file_id));
     toggle_is_paused(*file_info_ptr, is_paused);
     promise.set_value(Unit());
   }
 
   void toggle_all_is_paused(bool is_paused, Promise<Unit> promise) final {
-    TRY_STATUS_PROMISE(promise, check_is_active());
+    TRY_STATUS_PROMISE(promise, check_is_active("toggle_all_is_paused"));
 
     vector<FileId> to_toggle;
     for (auto &it : files_) {
@@ -118,7 +118,7 @@ class DownloadManagerImpl final : public DownloadManager {
   }
 
   void remove_all_files(bool only_active, bool only_completed, bool delete_from_cache, Promise<Unit> promise) final {
-    TRY_STATUS_PROMISE(promise, check_is_active());
+    TRY_STATUS_PROMISE(promise, check_is_active("remove_all_files"));
     vector<FileId> to_remove;
     for (auto &it : files_) {
       FileInfo &file_info = *it.second;
@@ -138,7 +138,7 @@ class DownloadManagerImpl final : public DownloadManager {
 
   void add_file(FileId file_id, FileSourceId file_source_id, string search_text, int8 priority,
                 Promise<td_api::object_ptr<td_api::file>> promise) final {
-    TRY_STATUS_PROMISE(promise, check_is_active());
+    TRY_STATUS_PROMISE(promise, check_is_active("add_file"));
 
     remove_file_impl(file_id, {}, false);
 
@@ -163,7 +163,7 @@ class DownloadManagerImpl final : public DownloadManager {
       return;
     }
 
-    if (check_is_active().is_error()) {
+    if (check_is_active("change_search_text").is_error()) {
       return;
     }
     auto r_file_info_ptr = get_file_info(file_id, file_source_id);
@@ -192,7 +192,7 @@ class DownloadManagerImpl final : public DownloadManager {
   void do_search(string query, bool only_active, bool only_completed, string offset, int32 limit,
                  Promise<td_api::object_ptr<td_api::foundFileDownloads>> promise, Result<Unit>) {
     TRY_STATUS_PROMISE(promise, G()->close_status());
-    TRY_STATUS_PROMISE(promise, check_is_active());
+    TRY_STATUS_PROMISE(promise, check_is_active("do_search"));
 
     if (!is_search_inited_) {
       Promise<Unit> lock;
@@ -358,8 +358,8 @@ class DownloadManagerImpl final : public DownloadManager {
   Counters counters_;
   Counters sent_counters_;
   FileCounters file_counters_;
+  const char *database_loading_source_ = nullptr;
   bool is_inited_{false};
-  bool is_database_being_loaded_{false};
   bool is_database_loaded_{false};
   bool is_search_inited_{false};
   int64 max_download_id_{0};
@@ -462,7 +462,7 @@ class DownloadManagerImpl final : public DownloadManager {
     add_file_info(std::move(file_info), "");
   }
 
-  void load_database_files() {
+  void load_database_files(const char *source) {
     if (is_database_loaded_) {
       return;
     }
@@ -472,8 +472,8 @@ class DownloadManagerImpl final : public DownloadManager {
       return;
     }
     CHECK(is_inited_);
-    CHECK(!is_database_being_loaded_);
-    is_database_being_loaded_ = true;
+    LOG_CHECK(database_loading_source_ == nullptr) << database_loading_source_ << ' ' << source;
+    database_loading_source_ = source;
 
     LOG(INFO) << "Start Download Manager database loading";
 
@@ -489,7 +489,7 @@ class DownloadManagerImpl final : public DownloadManager {
     }
 
     is_database_loaded_ = true;
-    is_database_being_loaded_ = false;
+    database_loading_source_ = nullptr;
     update_counters();
     check_completed_downloads_size();
 
@@ -574,7 +574,7 @@ class DownloadManagerImpl final : public DownloadManager {
 
   Status remove_file_impl(FileId file_id, FileSourceId file_source_id, bool delete_from_cache) {
     LOG(INFO) << "Remove from downloads file " << file_id << " from " << file_source_id;
-    TRY_STATUS(check_is_active());
+    TRY_STATUS(check_is_active("remove_file_impl"));
     TRY_RESULT(file_info_ptr, get_file_info(file_id, file_source_id));
     auto &file_info = *file_info_ptr;
     auto download_id = file_info.download_id;
@@ -603,7 +603,7 @@ class DownloadManagerImpl final : public DownloadManager {
   }
 
   Status remove_file_if_finished_impl(FileId file_id) {
-    TRY_STATUS(check_is_active());
+    TRY_STATUS(check_is_active("remove_file_if_finished_impl"));
     TRY_RESULT(file_info_ptr, get_file_info(file_id, {}));
     if (!is_completed(*file_info_ptr)) {
       return Status::Error("File is active");
@@ -803,13 +803,13 @@ class DownloadManagerImpl final : public DownloadManager {
     register_file_info(file_info);
   }
 
-  Status check_is_active() {
+  Status check_is_active(const char *source) {
     if (!callback_) {
-      LOG(ERROR) << "DownloadManager is closed";
+      LOG(ERROR) << "DownloadManager is closed in " << source;
       return Status::Error(500, "DownloadManager is closed");
     }
     CHECK(is_inited_);
-    load_database_files();
+    load_database_files(source);
     return Status::OK();
   }
 };
