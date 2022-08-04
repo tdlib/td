@@ -19,6 +19,8 @@ set(SQLITE_SOURCE
   sqlite/sqlite3session.h
 )
 
+# all SQLite functions are moved to namespace tdsqlite3 by `sed -Ebi 's/sqlite3([^.]|$)/td&/g' *`
+
 add_library(tdsqlite STATIC ${SQLITE_SOURCE})
 target_include_directories(tdsqlite PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
 target_include_directories(tdsqlite SYSTEM PRIVATE ${OPENSSL_INCLUDE_DIR})

@@ -84,16 +84,16 @@ Status SqliteDb::init(CSlice path, bool allow_creation) {
     TRY_STATUS(destroy(path));
   }
 
-  sqlite3 *db;
-  CHECK(sqlite3_threadsafe() != 0);
+  tdsqlite3 *db;
+  CHECK(tdsqlite3_threadsafe() != 0);
   int rc =
-      sqlite3_open_v2(path.c_str(), &db, SQLITE_OPEN_READWRITE | (allow_creation ? SQLITE_OPEN_CREATE : 0), nullptr);
+      tdsqlite3_open_v2(path.c_str(), &db, SQLITE_OPEN_READWRITE | (allow_creation ? SQLITE_OPEN_CREATE : 0), nullptr);
   if (rc != SQLITE_OK) {
     auto res = detail::RawSqliteDb::last_error(db, path);
-    sqlite3_close(db);
+    tdsqlite3_close(db);
     return res;
   }
-  sqlite3_busy_timeout(db, 1000 * 5 /* 5 seconds */);
+  tdsqlite3_busy_timeout(db, 1000 * 5 /* 5 seconds */);
   raw_ = std::make_shared<detail::RawSqliteDb>(db, path.str());
   return Status::OK();
 }
@@ -108,14 +108,14 @@ static int trace_v2_callback(unsigned code, void *ctx, void *p_raw, void *x_raw)
   if (x[0] == '-' && x[1] == '-') {
     trace_callback(ctx, x);
   } else {
-    trace_callback(ctx, sqlite3_expanded_sql(static_cast<sqlite3_stmt *>(p_raw)));
+    trace_callback(ctx, tdsqlite3_expanded_sql(static_cast<tdsqlite3_stmt *>(p_raw)));
   }
 
   return 0;
 }
 
 void SqliteDb::trace(bool flag) {
-  sqlite3_trace_v2(raw_->db(), SQLITE_TRACE_STMT, flag ? trace_v2_callback : nullptr, nullptr);
+  tdsqlite3_trace_v2(raw_->db(), SQLITE_TRACE_STMT, flag ? trace_v2_callback : nullptr, nullptr);
 }
 
 Status SqliteDb::exec(CSlice cmd) {
@@ -124,7 +124,7 @@ Status SqliteDb::exec(CSlice cmd) {
   if (enable_logging_) {
     VLOG(sqlite) << "Start exec " << tag("query", cmd) << tag("database", raw_->db());
   }
-  auto rc = sqlite3_exec(raw_->db(), cmd.c_str(), nullptr, nullptr, &msg);
+  auto rc = tdsqlite3_exec(raw_->db(), cmd.c_str(), nullptr, nullptr, &msg);
   if (enable_logging_) {
     VLOG(sqlite) << "Finish exec " << tag("query", cmd) << tag("database", raw_->db());
   }
@@ -307,8 +307,9 @@ Status SqliteDb::destroy(Slice path) {
 }
 
 Result<SqliteStatement> SqliteDb::get_statement(CSlice statement) {
-  sqlite3_stmt *stmt = nullptr;
-  auto rc = sqlite3_prepare_v2(get_native(), statement.c_str(), static_cast<int>(statement.size()) + 1, &stmt, nullptr);
+  tdsqlite3_stmt *stmt = nullptr;
+  auto rc =
+      tdsqlite3_prepare_v2(get_native(), statement.c_str(), static_cast<int>(statement.size()) + 1, &stmt, nullptr);
   if (rc != SQLITE_OK) {
     return Status::Error(PSLICE() << "Failed to prepare SQLite " << tag("statement", statement) << raw_->last_error());
   }

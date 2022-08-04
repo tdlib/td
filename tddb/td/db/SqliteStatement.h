@@ -16,8 +16,8 @@
 
 #include <memory>
 
-struct sqlite3;
-struct sqlite3_stmt;
+struct tdsqlite3;
+struct tdsqlite3_stmt;
 
 namespace td {
 
@@ -69,17 +69,17 @@ class SqliteStatement {
 
  private:
   friend class SqliteDb;
-  SqliteStatement(sqlite3_stmt *stmt, std::shared_ptr<detail::RawSqliteDb> db);
+  SqliteStatement(tdsqlite3_stmt *stmt, std::shared_ptr<detail::RawSqliteDb> db);
 
   class StmtDeleter {
    public:
-    void operator()(sqlite3_stmt *stmt);
+    void operator()(tdsqlite3_stmt *stmt);
   };
 
   enum class State { Start, GotRow, Finish };
   State state_ = State::Start;
 
-  std::unique_ptr<sqlite3_stmt, StmtDeleter> stmt_;
+  std::unique_ptr<tdsqlite3_stmt, StmtDeleter> stmt_;
   std::shared_ptr<detail::RawSqliteDb> db_;
 
   Status last_error();

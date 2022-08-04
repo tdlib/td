@@ -18,39 +18,39 @@ namespace td {
 int VERBOSITY_NAME(sqlite) = VERBOSITY_NAME(DEBUG) + 10;
 
 namespace {
-int printExplainQueryPlan(StringBuilder &sb, sqlite3_stmt *pStmt) {
-  const char *zSql = sqlite3_sql(pStmt);
+int printExplainQueryPlan(StringBuilder &sb, tdsqlite3_stmt *pStmt) {
+  const char *zSql = tdsqlite3_sql(pStmt);
   if (zSql == nullptr) {
     return SQLITE_ERROR;
   }
 
   sb << "Explain query " << zSql;
-  char *zExplain = sqlite3_mprintf("EXPLAIN QUERY PLAN %s", zSql);
+  char *zExplain = tdsqlite3_mprintf("EXPLAIN QUERY PLAN %s", zSql);
   if (zExplain == nullptr) {
     return SQLITE_NOMEM;
   }
 
-  sqlite3_stmt *pExplain; /* Compiled EXPLAIN QUERY PLAN command */
-  int rc = sqlite3_prepare_v2(sqlite3_db_handle(pStmt), zExplain, -1, &pExplain, nullptr);
-  sqlite3_free(zExplain);
+  tdsqlite3_stmt *pExplain; /* Compiled EXPLAIN QUERY PLAN command */
+  int rc = tdsqlite3_prepare_v2(tdsqlite3_db_handle(pStmt), zExplain, -1, &pExplain, nullptr);
+  tdsqlite3_free(zExplain);
   if (rc != SQLITE_OK) {
     return rc;
   }
 
-  while (SQLITE_ROW == sqlite3_step(pExplain)) {
-    int iSelectid = sqlite3_column_int(pExplain, 0);
-    int iOrder = sqlite3_column_int(pExplain, 1);
-    int iFrom = sqlite3_column_int(pExplain, 2);
-    const char *zDetail = reinterpret_cast<const char *>(sqlite3_column_text(pExplain, 3));
+  while (SQLITE_ROW == tdsqlite3_step(pExplain)) {
+    int iSelectid = tdsqlite3_column_int(pExplain, 0);
+    int iOrder = tdsqlite3_column_int(pExplain, 1);
+    int iFrom = tdsqlite3_column_int(pExplain, 2);
+    const char *zDetail = reinterpret_cast<const char *>(tdsqlite3_column_text(pExplain, 3));
 
     sb << '\n' << iSelectid << ' ' << iOrder << ' ' << iFrom << ' ' << zDetail;
   }
 
-  return sqlite3_finalize(pExplain);
+  return tdsqlite3_finalize(pExplain);
 }
 }  // namespace
 
-SqliteStatement::SqliteStatement(sqlite3_stmt *stmt, std::shared_ptr<detail::RawSqliteDb> db)
+SqliteStatement::SqliteStatement(tdsqlite3_stmt *stmt, std::shared_ptr<detail::RawSqliteDb> db)
     : stmt_(stmt), db_(std::move(db)) {
   CHECK(stmt != nullptr);
 }
@@ -72,14 +72,14 @@ Result<string> SqliteStatement::explain() {
   return sb.as_cslice().str();
 }
 Status SqliteStatement::bind_blob(int id, Slice blob) {
-  auto rc = sqlite3_bind_blob(stmt_.get(), id, blob.data(), static_cast<int>(blob.size()), nullptr);
+  auto rc = tdsqlite3_bind_blob(stmt_.get(), id, blob.data(), static_cast<int>(blob.size()), nullptr);
   if (rc != SQLITE_OK) {
     return last_error();
   }
   return Status::OK();
 }
 Status SqliteStatement::bind_string(int id, Slice str) {
-  auto rc = sqlite3_bind_text(stmt_.get(), id, str.data(), static_cast<int>(str.size()), nullptr);
+  auto rc = tdsqlite3_bind_text(stmt_.get(), id, str.data(), static_cast<int>(str.size()), nullptr);
   if (rc != SQLITE_OK) {
     return last_error();
   }
@@ -87,21 +87,21 @@ Status SqliteStatement::bind_string(int id, Slice str) {
 }
 
 Status SqliteStatement::bind_int32(int id, int32 value) {
-  auto rc = sqlite3_bind_int(stmt_.get(), id, value);
+  auto rc = tdsqlite3_bind_int(stmt_.get(), id, value);
   if (rc != SQLITE_OK) {
     return last_error();
   }
   return Status::OK();
 }
 Status SqliteStatement::bind_int64(int id, int64 value) {
-  auto rc = sqlite3_bind_int64(stmt_.get(), id, value);
+  auto rc = tdsqlite3_bind_int64(stmt_.get(), id, value);
   if (rc != SQLITE_OK) {
     return last_error();
   }
   return Status::OK();
 }
 Status SqliteStatement::bind_null(int id) {
-  auto rc = sqlite3_bind_null(stmt_.get(), id);
+  auto rc = tdsqlite3_bind_null(stmt_.get(), id);
   if (rc != SQLITE_OK) {
     return last_error();
   }
@@ -127,8 +127,8 @@ StringBuilder &operator<<(StringBuilder &sb, SqliteStatement::Datatype type) {
 }
 Slice SqliteStatement::view_blob(int id) {
   LOG_IF(ERROR, view_datatype(id) != Datatype::Blob) << view_datatype(id);
-  auto *data = sqlite3_column_blob(stmt_.get(), id);
-  auto size = sqlite3_column_bytes(stmt_.get(), id);
+  auto *data = tdsqlite3_column_blob(stmt_.get(), id);
+  auto size = tdsqlite3_column_bytes(stmt_.get(), id);
   if (data == nullptr) {
     return Slice();
   }
@@ -136,8 +136,8 @@ Slice SqliteStatement::view_blob(int id) {
 }
 Slice SqliteStatement::view_string(int id) {
   LOG_IF(ERROR, view_datatype(id) != Datatype::Text) << view_datatype(id);
-  auto *data = sqlite3_column_text(stmt_.get(), id);
-  auto size = sqlite3_column_bytes(stmt_.get(), id);
+  auto *data = tdsqlite3_column_text(stmt_.get(), id);
+  auto size = tdsqlite3_column_bytes(stmt_.get(), id);
   if (data == nullptr) {
     return Slice();
   }
@@ -145,14 +145,14 @@ Slice SqliteStatement::view_string(int id) {
 }
 int32 SqliteStatement::view_int32(int id) {
   LOG_IF(ERROR, view_datatype(id) != Datatype::Integer) << view_datatype(id);
-  return sqlite3_column_int(stmt_.get(), id);
+  return tdsqlite3_column_int(stmt_.get(), id);
 }
 int64 SqliteStatement::view_int64(int id) {
   LOG_IF(ERROR, view_datatype(id) != Datatype::Integer) << view_datatype(id);
-  return sqlite3_column_int64(stmt_.get(), id);
+  return tdsqlite3_column_int64(stmt_.get(), id);
 }
 SqliteStatement::Datatype SqliteStatement::view_datatype(int id) {
-  auto type = sqlite3_column_type(stmt_.get(), id);
+  auto type = tdsqlite3_column_type(stmt_.get(), id);
   switch (type) {
     case SQLITE_INTEGER:
       return Datatype::Integer;
@@ -170,7 +170,7 @@ SqliteStatement::Datatype SqliteStatement::view_datatype(int id) {
 }
 
 void SqliteStatement::reset() {
-  sqlite3_reset(stmt_.get());
+  tdsqlite3_reset(stmt_.get());
   state_ = State::Start;
 }
 
@@ -178,10 +178,10 @@ Status SqliteStatement::step() {
   if (state_ == State::Finish) {
     return Status::Error("One has to reset statement");
   }
-  VLOG(sqlite) << "Start step " << tag("query", sqlite3_sql(stmt_.get())) << tag("statement", stmt_.get())
+  VLOG(sqlite) << "Start step " << tag("query", tdsqlite3_sql(stmt_.get())) << tag("statement", stmt_.get())
                << tag("database", db_.get());
-  auto rc = sqlite3_step(stmt_.get());
-  VLOG(sqlite) << "Finish step " << tag("query", sqlite3_sql(stmt_.get())) << tag("statement", stmt_.get())
+  auto rc = tdsqlite3_step(stmt_.get());
+  VLOG(sqlite) << "Finish step " << tag("query", tdsqlite3_sql(stmt_.get())) << tag("statement", stmt_.get())
                << tag("database", db_.get());
   if (rc == SQLITE_ROW) {
     state_ = State::GotRow;
@@ -195,8 +195,8 @@ Status SqliteStatement::step() {
   return last_error();
 }
 
-void SqliteStatement::StmtDeleter::operator()(sqlite3_stmt *stmt) {
-  sqlite3_finalize(stmt);
+void SqliteStatement::StmtDeleter::operator()(tdsqlite3_stmt *stmt) {
+  tdsqlite3_finalize(stmt);
 }
 
 Status SqliteStatement::last_error() {

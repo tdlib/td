@@ -17,7 +17,7 @@
 
 #include <memory>
 
-struct sqlite3;
+struct tdsqlite3;
 
 namespace td {
 
@@ -63,7 +63,7 @@ class SqliteDb {
   static Result<SqliteDb> change_key(CSlice path, bool allow_creation, const DbKey &new_db_key,
                                      const DbKey &old_db_key);
 
-  sqlite3 *get_native() const {
+  tdsqlite3 *get_native() const {
     return raw_->db();
   }
 
