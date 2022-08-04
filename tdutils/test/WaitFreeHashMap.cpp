@@ -38,7 +38,7 @@ TEST(WaitFreeHashMap, stress_test) {
         result -= key * 101;
         result -= value;
       });
-      ASSERT_EQ(0, result);
+      ASSERT_EQ(0u, result);
     }
   };
 

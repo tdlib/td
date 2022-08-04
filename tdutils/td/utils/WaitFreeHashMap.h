@@ -76,8 +76,8 @@ class WaitFreeHashMap {
   }
 
   // specialization for WaitFreeHashMap<..., unique_ptr<T>>
-  template <typename ReturnT = decltype(ValueT().get())>
-  ReturnT get_pointer(const KeyT &key) {
+  template <class T = ValueT>
+  typename T::element_type *get_pointer(const KeyT &key) {
     auto &storage = get_storage(key);
     auto it = storage.find(key);
     if (it == storage.end()) {
@@ -86,8 +86,8 @@ class WaitFreeHashMap {
     return it->second.get();
   }
 
-  template <typename ReturnT = decltype(static_cast<const ValueT &>(ValueT()).get())>
-  ReturnT get_pointer(const KeyT &key) const {
+  template <class T = ValueT>
+  const typename T::element_type *get_pointer(const KeyT &key) const {
     auto &storage = get_storage(key);
     auto it = storage.find(key);
     if (it == storage.end()) {
