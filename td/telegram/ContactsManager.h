@@ -50,6 +50,7 @@
 #include "td/utils/Status.h"
 #include "td/utils/StringBuilder.h"
 #include "td/utils/Time.h"
+#include "td/utils/WaitFreeHashMap.h"
 
 #include <functional>
 #include <memory>
@@ -1690,8 +1691,8 @@ class ContactsManager final : public Actor {
   UserId support_user_id_;
   int32 my_was_online_local_ = 0;
 
-  FlatHashMap<UserId, unique_ptr<User>, UserIdHash> users_;
-  FlatHashMap<UserId, unique_ptr<UserFull>, UserIdHash> users_full_;
+  WaitFreeHashMap<UserId, unique_ptr<User>, UserIdHash> users_;
+  WaitFreeHashMap<UserId, unique_ptr<UserFull>, UserIdHash> users_full_;
   FlatHashMap<UserId, UserPhotos, UserIdHash> user_photos_;
   mutable FlatHashSet<UserId, UserIdHash> unknown_users_;
   FlatHashMap<UserId, tl_object_ptr<telegram_api::UserProfilePhoto>, UserIdHash> pending_user_photos_;
@@ -1700,22 +1701,22 @@ class ContactsManager final : public Actor {
       return UserIdHash()(pair.first) * 2023654985u + std::hash<int64>()(pair.second);
     }
   };
-  FlatHashMap<std::pair<UserId, int64>, FileSourceId, UserIdPhotoIdHash> user_profile_photo_file_source_ids_;
+  WaitFreeHashMap<std::pair<UserId, int64>, FileSourceId, UserIdPhotoIdHash> user_profile_photo_file_source_ids_;
   FlatHashMap<int64, FileId> my_photo_file_id_;
 
-  FlatHashMap<ChatId, unique_ptr<Chat>, ChatIdHash> chats_;
-  FlatHashMap<ChatId, unique_ptr<ChatFull>, ChatIdHash> chats_full_;
+  WaitFreeHashMap<ChatId, unique_ptr<Chat>, ChatIdHash> chats_;
+  WaitFreeHashMap<ChatId, unique_ptr<ChatFull>, ChatIdHash> chats_full_;
   mutable FlatHashSet<ChatId, ChatIdHash> unknown_chats_;
-  FlatHashMap<ChatId, FileSourceId, ChatIdHash> chat_full_file_source_ids_;
+  WaitFreeHashMap<ChatId, FileSourceId, ChatIdHash> chat_full_file_source_ids_;
 
-  FlatHashMap<ChannelId, unique_ptr<MinChannel>, ChannelIdHash> min_channels_;
-  FlatHashMap<ChannelId, unique_ptr<Channel>, ChannelIdHash> channels_;
-  FlatHashMap<ChannelId, unique_ptr<ChannelFull>, ChannelIdHash> channels_full_;
+  WaitFreeHashMap<ChannelId, unique_ptr<MinChannel>, ChannelIdHash> min_channels_;
+  WaitFreeHashMap<ChannelId, unique_ptr<Channel>, ChannelIdHash> channels_;
+  WaitFreeHashMap<ChannelId, unique_ptr<ChannelFull>, ChannelIdHash> channels_full_;
   mutable FlatHashSet<ChannelId, ChannelIdHash> unknown_channels_;
   FlatHashSet<ChannelId, ChannelIdHash> invalidated_channels_full_;
-  FlatHashMap<ChannelId, FileSourceId, ChannelIdHash> channel_full_file_source_ids_;
+  WaitFreeHashMap<ChannelId, FileSourceId, ChannelIdHash> channel_full_file_source_ids_;
 
-  FlatHashMap<SecretChatId, unique_ptr<SecretChat>, SecretChatIdHash> secret_chats_;
+  WaitFreeHashMap<SecretChatId, unique_ptr<SecretChat>, SecretChatIdHash> secret_chats_;
   mutable FlatHashSet<SecretChatId, SecretChatIdHash> unknown_secret_chats_;
 
   FlatHashMap<UserId, vector<SecretChatId>, UserIdHash> secret_chats_with_user_;
@@ -1829,7 +1830,7 @@ class ContactsManager final : public Actor {
   bool is_set_location_visibility_request_sent_ = false;
   Location last_user_location_;
 
-  FlatHashMap<ChannelId, ChannelId, ChannelIdHash> linked_channel_ids_;
+  WaitFreeHashMap<ChannelId, ChannelId, ChannelIdHash> linked_channel_ids_;
 
   FlatHashSet<UserId, UserIdHash> restricted_user_ids_;
   FlatHashSet<ChannelId, ChannelIdHash> restricted_channel_ids_;

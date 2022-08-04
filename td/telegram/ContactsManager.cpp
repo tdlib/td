@@ -5810,9 +5810,7 @@ void ContactsManager::clear_imported_contacts(Promise<Unit> &&promise) {
 void ContactsManager::on_update_contacts_reset() {
   /*
   UserId my_id = get_my_id();
-  for (auto &p : users_) {
-    UserId user_id = p.first;
-    User u = &p.second;
+  users_.foreach([&](const UserId &user_id, unique_ptr<User> &u) {
     if (u->is_contact) {
       LOG(INFO) << "Drop contact with " << user_id;
       if (user_id != my_id) {
@@ -5828,7 +5826,7 @@ void ContactsManager::on_update_contacts_reset() {
         CHECK(!contacts_hints_.has_key(user_id.get()));
       }
     }
-  }
+  });
   */
 
   saved_contact_count_ = 0;
@@ -8396,9 +8394,8 @@ void ContactsManager::on_get_contacts(tl_object_ptr<telegram_api::contacts_Conta
   on_get_users(std::move(contacts->users_), "on_get_contacts");
 
   UserId my_id = get_my_id();
-  for (auto &p : users_) {
-    UserId user_id = p.first;
-    User *u = p.second.get();
+  users_.foreach([&](const UserId &user_id, unique_ptr<User> &user) {
+    User *u = user.get();
     bool should_be_contact = contact_user_ids.count(user_id) == 1;
     if (u->is_contact != should_be_contact) {
       if (u->is_contact) {
@@ -8420,7 +8417,7 @@ void ContactsManager::on_get_contacts(tl_object_ptr<telegram_api::contacts_Conta
         LOG(ERROR) << "Receive non-contact " << user_id << " in the list of contacts";
       }
     }
-  }
+  });
 
   saved_contact_count_ = contacts->saved_count_;
   on_get_contacts_finished(std::numeric_limits<size_t>::max());
@@ -8512,9 +8509,7 @@ void ContactsManager::on_update_online_status_privacy() {
 void ContactsManager::on_update_phone_number_privacy() {
   // all UserFull.need_phone_number_privacy_exception can be outdated now,
   // so mark all of them as expired
-  for (auto &it : users_full_) {
-    it.second->expires_at = 0.0;
-  }
+  users_full_.foreach([&](const UserId &user_id, unique_ptr<UserFull> &user_full) { user_full->expires_at = 0.0; });
 }
 
 void ContactsManager::invalidate_user_full(UserId user_id) {
@@ -8849,9 +8844,10 @@ void ContactsManager::on_binlog_user_event(BinlogEvent &&event) {
   }
 
   LOG(INFO) << "Add " << user_id << " from binlog";
-  User *u = users_.emplace(user_id, std::move(log_event.u_out)).first->second.get();
-  CHECK(u != nullptr);
+  users_.set(user_id, std::move(log_event.u_out));
 
+  User *u = get_user(user_id);
+  CHECK(u != nullptr);
   u->log_event_id = event.id_;
 
   update_user(u, user_id, true, false);
@@ -9157,9 +9153,10 @@ void ContactsManager::on_binlog_chat_event(BinlogEvent &&event) {
   }
 
   LOG(INFO) << "Add " << chat_id << " from binlog";
-  Chat *c = chats_.emplace(chat_id, std::move(log_event.c_out)).first->second.get();
-  CHECK(c != nullptr);
+  chats_.set(chat_id, std::move(log_event.c_out));
 
+  Chat *c = get_chat(chat_id);
+  CHECK(c != nullptr);
   c->log_event_id = event.id_;
 
   update_chat(c, chat_id, true, false);
@@ -9395,9 +9392,10 @@ void ContactsManager::on_binlog_channel_event(BinlogEvent &&event) {
   }
 
   LOG(INFO) << "Add " << channel_id << " from binlog";
-  Channel *c = channels_.emplace(channel_id, std::move(log_event.c_out)).first->second.get();
-  CHECK(c != nullptr);
+  channels_.set(channel_id, std::move(log_event.c_out));
 
+  Channel *c = get_channel(channel_id);
+  CHECK(c != nullptr);
   c->log_event_id = event.id_;
 
   update_channel(c, channel_id, true, false);
@@ -9649,9 +9647,10 @@ void ContactsManager::on_binlog_secret_chat_event(BinlogEvent &&event) {
   }
 
   LOG(INFO) << "Add " << secret_chat_id << " from binlog";
-  SecretChat *c = secret_chats_.emplace(secret_chat_id, std::move(log_event.c_out)).first->second.get();
-  CHECK(c != nullptr);
+  secret_chats_.set(secret_chat_id, std::move(log_event.c_out));
 
+  SecretChat *c = get_secret_chat(secret_chat_id);
+  CHECK(c != nullptr);
   c->log_event_id = event.id_;
 
   update_secret_chat(c, secret_chat_id, true, false);
@@ -11624,12 +11623,10 @@ void ContactsManager::register_user_photo(User *u, UserId user_id, const Photo &
     if (user_id == get_my_id()) {
       my_photo_file_id_[photo_id] = first_file_id;
     }
-    FileSourceId file_source_id;
-    auto it = user_profile_photo_file_source_ids_.find(std::make_pair(user_id, photo_id));
-    if (it != user_profile_photo_file_source_ids_.end()) {
-      VLOG(file_references) << "Move " << it->second << " inside of " << user_id;
-      file_source_id = it->second;
-      user_profile_photo_file_source_ids_.erase(it);
+    auto file_source_id = user_profile_photo_file_source_ids_.get(std::make_pair(user_id, photo_id));
+    if (file_source_id.is_valid()) {
+      VLOG(file_references) << "Move " << file_source_id << " inside of " << user_id;
+      user_profile_photo_file_source_ids_.erase(std::make_pair(user_id, photo_id));
     } else {
       VLOG(file_references) << "Need to create new file source for photo " << photo_id << " of " << user_id;
       file_source_id = td_->file_reference_manager_->create_user_photo_file_source(user_id, photo_id);
@@ -12925,11 +12922,10 @@ void ContactsManager::on_update_chat_full_photo(ChatFull *chat_full, ChatId chat
 
   auto &file_source_id = chat_full->file_source_id;
   if (!file_source_id.is_valid()) {
-    auto it = chat_full_file_source_ids_.find(chat_id);
-    if (it != chat_full_file_source_ids_.end()) {
-      VLOG(file_references) << "Move " << it->second << " inside of " << chat_id;
-      file_source_id = it->second;
-      chat_full_file_source_ids_.erase(it);
+    file_source_id = chat_full_file_source_ids_.get(chat_id);
+    if (file_source_id.is_valid()) {
+      VLOG(file_references) << "Move " << file_source_id << " inside of " << chat_id;
+      chat_full_file_source_ids_.erase(chat_id);
     } else {
       VLOG(file_references) << "Need to create new file source for full " << chat_id;
       file_source_id = td_->file_reference_manager_->create_chat_full_file_source(chat_id);
@@ -12959,11 +12955,10 @@ void ContactsManager::on_update_channel_full_photo(ChannelFull *channel_full, Ch
 
   auto &file_source_id = channel_full->file_source_id;
   if (!file_source_id.is_valid()) {
-    auto it = channel_full_file_source_ids_.find(channel_id);
-    if (it != channel_full_file_source_ids_.end()) {
-      VLOG(file_references) << "Move " << it->second << " inside of " << channel_id;
-      file_source_id = it->second;
-      channel_full_file_source_ids_.erase(it);
+    file_source_id = channel_full_file_source_ids_.get(channel_id);
+    if (file_source_id.is_valid()) {
+      VLOG(file_references) << "Move " << file_source_id << " inside of " << channel_id;
+      channel_full_file_source_ids_.erase(channel_id);
     } else {
       VLOG(file_references) << "Need to create new file source for full " << channel_id;
       file_source_id = td_->file_reference_manager_->create_channel_full_file_source(channel_id);
@@ -13029,10 +13024,9 @@ void ContactsManager::remove_linked_channel_id(ChannelId channel_id) {
     return;
   }
 
-  auto it = linked_channel_ids_.find(channel_id);
-  if (it != linked_channel_ids_.end()) {
-    auto linked_channel_id = it->second;
-    linked_channel_ids_.erase(it);
+  auto linked_channel_id = linked_channel_ids_.get(channel_id);
+  if (linked_channel_id.is_valid()) {
+    linked_channel_ids_.erase(channel_id);
     linked_channel_ids_.erase(linked_channel_id);
   }
 }
@@ -13043,12 +13037,7 @@ ChannelId ContactsManager::get_linked_channel_id(ChannelId channel_id) const {
     return channel_full->linked_channel_id;
   }
 
-  auto it = linked_channel_ids_.find(channel_id);
-  if (it != linked_channel_ids_.end()) {
-    return it->second;
-  }
-
-  return ChannelId();
+  return linked_channel_ids_.get(channel_id);
 }
 
 void ContactsManager::on_update_channel_full_linked_channel_id(ChannelFull *channel_full, ChannelId channel_id,
@@ -13067,8 +13056,8 @@ void ContactsManager::on_update_channel_full_linked_channel_id(ChannelFull *chan
   remove_linked_channel_id(channel_id);
   remove_linked_channel_id(linked_channel_id);
   if (channel_id.is_valid() && linked_channel_id.is_valid()) {
-    linked_channel_ids_[channel_id] = linked_channel_id;
-    linked_channel_ids_[linked_channel_id] = channel_id;
+    linked_channel_ids_.set(channel_id, linked_channel_id);
+    linked_channel_ids_.set(linked_channel_id, channel_id);
   }
 
   if (channel_full != nullptr && channel_full->linked_channel_id != linked_channel_id) {
@@ -14402,12 +14391,10 @@ bool ContactsManager::is_user_bot(UserId user_id) const {
 }
 
 Result<ContactsManager::BotData> ContactsManager::get_bot_data(UserId user_id) const {
-  auto p = users_.find(user_id);
-  if (p == users_.end()) {
+  auto u = get_user(user_id);
+  if (u == nullptr) {
     return Status::Error(400, "Bot not found");
   }
-
-  auto u = p->second.get();
   if (!u->is_bot) {
     return Status::Error(400, "User is not a bot");
   }
@@ -14444,21 +14431,11 @@ bool ContactsManager::can_report_user(UserId user_id) const {
 }
 
 const ContactsManager::User *ContactsManager::get_user(UserId user_id) const {
-  auto p = users_.find(user_id);
-  if (p == users_.end()) {
-    return nullptr;
-  } else {
-    return p->second.get();
-  }
+  return users_.get_pointer(user_id);
 }
 
 ContactsManager::User *ContactsManager::get_user(UserId user_id) {
-  auto p = users_.find(user_id);
-  if (p == users_.end()) {
-    return nullptr;
-  } else {
-    return p->second.get();
-  }
+  return users_.get_pointer(user_id);
 }
 
 bool ContactsManager::is_dialog_info_received_from_server(DialogId dialog_id) const {
@@ -14558,21 +14535,11 @@ ContactsManager::User *ContactsManager::add_user(UserId user_id, const char *sou
 }
 
 const ContactsManager::UserFull *ContactsManager::get_user_full(UserId user_id) const {
-  auto p = users_full_.find(user_id);
-  if (p == users_full_.end()) {
-    return nullptr;
-  } else {
-    return p->second.get();
-  }
+  return users_full_.get_pointer(user_id);
 }
 
 ContactsManager::UserFull *ContactsManager::get_user_full(UserId user_id) {
-  auto p = users_full_.find(user_id);
-  if (p == users_full_.end()) {
-    return nullptr;
-  } else {
-    return p->second.get();
-  }
+  return users_full_.get_pointer(user_id);
 }
 
 ContactsManager::UserFull *ContactsManager::add_user_full(UserId user_id) {
@@ -14801,21 +14768,11 @@ bool ContactsManager::have_chat(ChatId chat_id) const {
 }
 
 const ContactsManager::Chat *ContactsManager::get_chat(ChatId chat_id) const {
-  auto p = chats_.find(chat_id);
-  if (p == chats_.end()) {
-    return nullptr;
-  } else {
-    return p->second.get();
-  }
+  return chats_.get_pointer(chat_id);
 }
 
 ContactsManager::Chat *ContactsManager::get_chat(ChatId chat_id) {
-  auto p = chats_.find(chat_id);
-  if (p == chats_.end()) {
-    return nullptr;
-  } else {
-    return p->second.get();
-  }
+  return chats_.get_pointer(chat_id);
 }
 
 ContactsManager::Chat *ContactsManager::add_chat(ChatId chat_id) {
@@ -14863,21 +14820,11 @@ void ContactsManager::reload_chat(ChatId chat_id, Promise<Unit> &&promise) {
 }
 
 const ContactsManager::ChatFull *ContactsManager::get_chat_full(ChatId chat_id) const {
-  auto p = chats_full_.find(chat_id);
-  if (p == chats_full_.end()) {
-    return nullptr;
-  } else {
-    return p->second.get();
-  }
+  return chats_full_.get_pointer(chat_id);
 }
 
 ContactsManager::ChatFull *ContactsManager::get_chat_full(ChatId chat_id) {
-  auto p = chats_full_.find(chat_id);
-  if (p == chats_full_.end()) {
-    return nullptr;
-  } else {
-    return p->second.get();
-  }
+  return chats_full_.get_pointer(chat_id);
 }
 
 ContactsManager::ChatFull *ContactsManager::add_chat_full(ChatId chat_id) {
@@ -15186,36 +15133,22 @@ bool ContactsManager::have_min_channel(ChannelId channel_id) const {
 }
 
 const MinChannel *ContactsManager::get_min_channel(ChannelId channel_id) const {
-  auto it = min_channels_.find(channel_id);
-  if (it == min_channels_.end()) {
-    return nullptr;
-  }
-  return it->second.get();
+  return min_channels_.get_pointer(channel_id);
 }
 
 void ContactsManager::add_min_channel(ChannelId channel_id, const MinChannel &min_channel) {
   if (have_channel(channel_id) || have_min_channel(channel_id) || !channel_id.is_valid()) {
     return;
   }
-  min_channels_[channel_id] = td::make_unique<MinChannel>(min_channel);
+  min_channels_.set(channel_id, td::make_unique<MinChannel>(min_channel));
 }
 
 const ContactsManager::Channel *ContactsManager::get_channel(ChannelId channel_id) const {
-  auto p = channels_.find(channel_id);
-  if (p == channels_.end()) {
-    return nullptr;
-  } else {
-    return p->second.get();
-  }
+  return channels_.get_pointer(channel_id);
 }
 
 ContactsManager::Channel *ContactsManager::get_channel(ChannelId channel_id) {
-  auto p = channels_.find(channel_id);
-  if (p == channels_.end()) {
-    return nullptr;
-  } else {
-    return p->second.get();
-  }
+  return channels_.get_pointer(channel_id);
 }
 
 ContactsManager::Channel *ContactsManager::add_channel(ChannelId channel_id, const char *source) {
@@ -15271,26 +15204,20 @@ void ContactsManager::reload_channel(ChannelId channel_id, Promise<Unit> &&promi
 }
 
 const ContactsManager::ChannelFull *ContactsManager::get_channel_full_const(ChannelId channel_id) const {
-  auto p = channels_full_.find(channel_id);
-  if (p == channels_full_.end()) {
-    return nullptr;
-  } else {
-    return p->second.get();
-  }
+  return channels_full_.get_pointer(channel_id);
 }
 
 const ContactsManager::ChannelFull *ContactsManager::get_channel_full(ChannelId channel_id) const {
-  return get_channel_full_const(channel_id);
+  return channels_full_.get_pointer(channel_id);
 }
 
 ContactsManager::ChannelFull *ContactsManager::get_channel_full(ChannelId channel_id, bool only_local,
                                                                 const char *source) {
-  auto p = channels_full_.find(channel_id);
-  if (p == channels_full_.end()) {
+  auto channel_full = channels_full_.get_pointer(channel_id);
+  if (channel_full == nullptr) {
     return nullptr;
   }
 
-  auto channel_full = p->second.get();
   if (!only_local && channel_full->is_expired() && !td_->auth_manager_->is_bot()) {
     send_get_channel_full_query(channel_full, channel_id, Auto(), source);
   }
@@ -15385,19 +15312,11 @@ ContactsManager::SecretChat *ContactsManager::add_secret_chat(SecretChatId secre
 }
 
 const ContactsManager::SecretChat *ContactsManager::get_secret_chat(SecretChatId secret_chat_id) const {
-  auto it = secret_chats_.find(secret_chat_id);
-  if (it == secret_chats_.end()) {
-    return nullptr;
-  }
-  return it->second.get();
+  return secret_chats_.get_pointer(secret_chat_id);
 }
 
 ContactsManager::SecretChat *ContactsManager::get_secret_chat(SecretChatId secret_chat_id) {
-  auto it = secret_chats_.find(secret_chat_id);
-  if (it == secret_chats_.end()) {
-    return nullptr;
-  }
-  return it->second.get();
+  return secret_chats_.get_pointer(secret_chat_id);
 }
 
 bool ContactsManager::get_secret_chat(SecretChatId secret_chat_id, bool force, Promise<Unit> &&promise) {
@@ -16248,7 +16167,7 @@ void ContactsManager::on_chat_update(telegram_api::channel &channel, const char 
     LOG(ERROR) << "Receive empty " << to_string(channel) << " from " << source << ", have "
                << to_string(get_supergroup_object(channel_id, c));
     if (c == nullptr && !have_min_channel(channel_id)) {
-      min_channels_[channel_id] = td::make_unique<MinChannel>();
+      min_channels_.set(channel_id, td::make_unique<MinChannel>());
     }
     return;
   }
@@ -16373,7 +16292,7 @@ void ContactsManager::on_chat_update(telegram_api::channel &channel, const char 
       min_channel->title_ = std::move(channel.title_);
       min_channel->is_megagroup_ = is_megagroup;
 
-      min_channels_[channel_id] = std::move(min_channel);
+      min_channels_.set(channel_id, std::move(min_channel));
     }
     return;
   }
@@ -16483,7 +16402,7 @@ void ContactsManager::on_chat_update(telegram_api::channelForbidden &channel, co
     LOG(ERROR) << "Receive empty " << to_string(channel) << " from " << source << ", have "
                << to_string(get_supergroup_object(channel_id, c));
     if (c == nullptr && !have_min_channel(channel_id)) {
-      min_channels_[channel_id] = td::make_unique<MinChannel>();
+      min_channels_.set(channel_id, td::make_unique<MinChannel>());
     }
     return;
   }
@@ -17100,33 +17019,34 @@ void ContactsManager::get_current_state(vector<td_api::object_ptr<td_api::Update
     }
   }
 
-  for (const auto &it : users_) {
-    updates.push_back(td_api::make_object<td_api::updateUser>(get_user_object(it.first, it.second.get())));
-  }
-  for (const auto &it : channels_) {
-    updates.push_back(td_api::make_object<td_api::updateSupergroup>(get_supergroup_object(it.first, it.second.get())));
-  }
-  for (const auto &it : chats_) {  // chat object can contain channel_id, so it must be sent after channels
+  users_.foreach([&](const UserId &user_id, const unique_ptr<User> &user) {
+    updates.push_back(td_api::make_object<td_api::updateUser>(get_user_object(user_id, user.get())));
+  });
+  channels_.foreach([&](const ChannelId &channel_id, const unique_ptr<Channel> &channel) {
+    updates.push_back(td_api::make_object<td_api::updateSupergroup>(get_supergroup_object(channel_id, channel.get())));
+  });
+  // chat objects can contain channel_id, so they must be sent after channels
+  chats_.foreach([&](const ChatId &chat_id, const unique_ptr<Chat> &chat) {
+    updates.push_back(td_api::make_object<td_api::updateBasicGroup>(get_basic_group_object_const(chat_id, chat.get())));
+  });
+  // secret chat objects contain user_id, so they must be sent after users
+  secret_chats_.foreach([&](const SecretChatId &secret_chat_id, const unique_ptr<SecretChat> &secret_chat) {
     updates.push_back(
-        td_api::make_object<td_api::updateBasicGroup>(get_basic_group_object_const(it.first, it.second.get())));
-  }
-  for (const auto &it : secret_chats_) {  // secret chat object contains user_id, so it must be sent after users
-    updates.push_back(
-        td_api::make_object<td_api::updateSecretChat>(get_secret_chat_object_const(it.first, it.second.get())));
-  }
+        td_api::make_object<td_api::updateSecretChat>(get_secret_chat_object_const(secret_chat_id, secret_chat.get())));
+  });
 
-  for (const auto &it : users_full_) {
+  users_full_.foreach([&](const UserId &user_id, const unique_ptr<UserFull> &user_full) {
     updates.push_back(td_api::make_object<td_api::updateUserFullInfo>(
-        it.first.get(), get_user_full_info_object(it.first, it.second.get())));
-  }
-  for (const auto &it : channels_full_) {
+        user_id.get(), get_user_full_info_object(user_id, user_full.get())));
+  });
+  channels_full_.foreach([&](const ChannelId &channel_id, const unique_ptr<ChannelFull> &channel_full) {
     updates.push_back(td_api::make_object<td_api::updateSupergroupFullInfo>(
-        it.first.get(), get_supergroup_full_info_object(it.second.get(), it.first)));
-  }
-  for (const auto &it : chats_full_) {
+        channel_id.get(), get_supergroup_full_info_object(channel_full.get(), channel_id)));
+  });
+  chats_full_.foreach([&](const ChatId &chat_id, const unique_ptr<ChatFull> &chat_full) {
     updates.push_back(td_api::make_object<td_api::updateBasicGroupFullInfo>(
-        it.first.get(), get_basic_group_full_info_object(it.second.get())));
-  }
+        chat_id.get(), get_basic_group_full_info_object(chat_full.get())));
+  });
 }
 
 }  // namespace td
