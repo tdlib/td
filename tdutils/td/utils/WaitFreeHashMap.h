@@ -70,6 +70,11 @@ class WaitFreeHashMap {
     return it->second;
   }
 
+  size_t count(const KeyT &key) const {
+    const auto &storage = get_storage(key);
+    return storage.count(key);
+  }
+
   // specialization for WaitFreeHashMap<..., unique_ptr<T>>
   template <typename ReturnT = decltype(ValueT().get())>
   ReturnT get_pointer(const KeyT &key) {
@@ -109,6 +114,21 @@ class WaitFreeHashMap {
   }
 
   void foreach(std::function<void(const KeyT &key, ValueT &value)> callback) {
+    if (wait_free_storage_ == nullptr) {
+      for (auto &it : default_map_) {
+        callback(it.first, it.second);
+      }
+      return;
+    }
+
+    for (size_t i = 0; i < MAX_STORAGE_COUNT; i++) {
+      for (auto &it : wait_free_storage_->maps_[i]) {
+        callback(it.first, it.second);
+      }
+    }
+  }
+
+  void foreach(std::function<void(const KeyT &key, const ValueT &value)> callback) const {
     if (wait_free_storage_ == nullptr) {
       for (auto &it : default_map_) {
         callback(it.first, it.second);
