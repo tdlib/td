@@ -2692,7 +2692,7 @@ class MessagesManager final : public Actor {
 
   Dialog *add_dialog(DialogId dialog_id, const char *source);
 
-  Dialog *add_new_dialog(unique_ptr<Dialog> &&d, bool is_loaded_from_database, const char *source);
+  Dialog *add_new_dialog(unique_ptr<Dialog> &&dialog, bool is_loaded_from_database, const char *source);
 
   void fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_database_message, MessageId last_database_message_id,
                       int64 order, int32 last_clear_history_date, MessageId last_clear_history_message_id,

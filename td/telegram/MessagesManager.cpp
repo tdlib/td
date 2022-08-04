@@ -36327,15 +36327,16 @@ MessagesManager::Dialog *MessagesManager::add_dialog(DialogId dialog_id, const c
     }
   }
 
-  auto d = make_unique<Dialog>();
-  d->dialog_id = dialog_id;
-  invalidate_message_indexes(d.get());
+  auto dialog = make_unique<Dialog>();
+  dialog->dialog_id = dialog_id;
+  invalidate_message_indexes(dialog.get());
 
-  return add_new_dialog(std::move(d), false, source);
+  return add_new_dialog(std::move(dialog), false, source);
 }
 
-MessagesManager::Dialog *MessagesManager::add_new_dialog(unique_ptr<Dialog> &&d, bool is_loaded_from_database,
+MessagesManager::Dialog *MessagesManager::add_new_dialog(unique_ptr<Dialog> &&dialog, bool is_loaded_from_database,
                                                          const char *source) {
+  Dialog *d = dialog.get();
   auto dialog_id = d->dialog_id;
   LOG_CHECK(is_inited_) << dialog_id << ' ' << is_loaded_from_database << ' ' << source;
   LOG_CHECK(!have_dialog(dialog_id)) << dialog_id << ' ' << is_loaded_from_database << ' ' << source;
@@ -36392,7 +36393,7 @@ MessagesManager::Dialog *MessagesManager::add_new_dialog(unique_ptr<Dialog> &&d,
       d->is_is_blocked_inited = true;
       if (!d->is_folder_id_inited && !td_->auth_manager_->is_bot()) {
         do_set_dialog_folder_id(
-            d.get(), td_->contacts_manager_->get_secret_chat_initial_folder_id(dialog_id.get_secret_chat_id()));
+            d, td_->contacts_manager_->get_secret_chat_initial_folder_id(dialog_id.get_secret_chat_id()));
       }
       d->message_ttl = MessageTtl(td_->contacts_manager_->get_secret_chat_ttl(dialog_id.get_secret_chat_id()));
       d->is_message_ttl_inited = true;
@@ -36467,31 +36468,29 @@ MessagesManager::Dialog *MessagesManager::add_new_dialog(unique_ptr<Dialog> &&d,
     CHECK(last_database_message == nullptr);
   }
 
-  auto dialog_it = dialogs_.emplace(dialog_id, std::move(d)).first;
+  CHECK(!have_dialog(dialog_id));
+  dialogs_.emplace(dialog_id, std::move(dialog));
 
   CHECK(!being_added_new_dialog_id_.is_valid());
   being_added_new_dialog_id_ = dialog_id;
 
   loaded_dialogs_.erase(dialog_id);
 
-  Dialog *dialog = dialog_it->second.get();
+  fix_dialog_action_bar(d, d->action_bar.get());
 
-  fix_dialog_action_bar(dialog, dialog->action_bar.get());
-
-  send_update_new_chat(dialog);
+  send_update_new_chat(d);
 
   being_added_new_dialog_id_ = DialogId();
 
-  LOG_CHECK(dialog->messages == nullptr) << dialog->messages->message_id << ' ' << dialog->last_message_id << ' '
-                                         << dialog->last_database_message_id << ' '
-                                         << dialog->debug_set_dialog_last_database_message_id << ' '
-                                         << dialog->messages->debug_source;
+  LOG_CHECK(d->messages == nullptr) << d->messages->message_id << ' ' << d->last_message_id << ' '
+                                    << d->last_database_message_id << ' '
+                                    << d->debug_set_dialog_last_database_message_id << ' ' << d->messages->debug_source;
 
-  fix_new_dialog(dialog, std::move(last_database_message), last_database_message_id, order, last_clear_history_date,
+  fix_new_dialog(d, std::move(last_database_message), last_database_message_id, order, last_clear_history_date,
                  last_clear_history_message_id, default_join_group_call_as_dialog_id, default_send_message_as_dialog_id,
                  need_drop_default_send_message_as_dialog_id, is_loaded_from_database);
 
-  return dialog;
+  return d;
 }
 
 void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_database_message,
@@ -37542,9 +37541,10 @@ unique_ptr<MessagesManager::Dialog> MessagesManager::parse_dialog(DialogId dialo
                                                                   const char *source) {
   LOG(INFO) << "Loaded " << dialog_id << " of size " << value.size() << " from database from " << source;
   CHECK(dialog_id.is_valid());
-  auto d = make_unique<Dialog>();
+  auto dialog = make_unique<Dialog>();
+  Dialog *d = dialog.get();
   d->dialog_id = dialog_id;
-  invalidate_message_indexes(d.get());  // must initialize indexes, because some of them could be not parsed
+  invalidate_message_indexes(d);  // must initialize indexes, because some of them could be not parsed
 
   loaded_dialogs_.insert(dialog_id);
 
@@ -37558,9 +37558,10 @@ unique_ptr<MessagesManager::Dialog> MessagesManager::parse_dialog(DialogId dialo
     LOG(ERROR) << "Repair broken " << dialog_id << ": " << status << ' ' << format::as_hex_dump<4>(value.as_slice());
 
     // just clean all known data about the dialog
-    d = make_unique<Dialog>();
+    dialog = make_unique<Dialog>();
+    d = dialog.get();
     d->dialog_id = dialog_id;
-    invalidate_message_indexes(d.get());
+    invalidate_message_indexes(d);
 
     // and try to reget it from the server if possible
     have_dialog_info_force(dialog_id);
@@ -37599,7 +37600,7 @@ unique_ptr<MessagesManager::Dialog> MessagesManager::parse_dialog(DialogId dialo
     case DialogType::Chat:
     case DialogType::Channel:
       if (get_active_reactions(d->available_reactions).empty() != ((d->available_reactions_generation & 1) == 1)) {
-        set_dialog_next_available_reactions_generation(d.get(), d->available_reactions_generation);
+        set_dialog_next_available_reactions_generation(d, d->available_reactions_generation);
       }
       break;
     case DialogType::User:
@@ -37608,7 +37609,7 @@ unique_ptr<MessagesManager::Dialog> MessagesManager::parse_dialog(DialogId dialo
       break;
   }
 
-  return d;
+  return dialog;
 }
 
 MessagesManager::Dialog *MessagesManager::on_load_dialog_from_database(DialogId dialog_id, BufferSlice &&value,
