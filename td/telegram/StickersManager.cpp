@@ -2382,12 +2382,24 @@ FileId StickersManager::get_animated_emoji_sound_file_id(const string &emoji) co
   return it->second;
 }
 
+FileId StickersManager::get_custom_animated_emoji_sticker_id(int64 custom_emoji_id) const {
+  if (disable_animated_emojis_) {
+    return {};
+  }
+
+  return custom_emoji_to_sticker_id_.get(custom_emoji_id);
+}
+
 td_api::object_ptr<td_api::animatedEmoji> StickersManager::get_animated_emoji_object(const string &emoji,
                                                                                      int64 custom_emoji_id) {
+  if (disable_animated_emojis_) {
+    return nullptr;
+  }
+
   if (custom_emoji_id != 0) {
     auto it = custom_emoji_messages_.find(custom_emoji_id);
-    auto sticker_id =
-        it == custom_emoji_messages_.end() ? custom_emoji_to_sticker_id_.get(custom_emoji_id) : it->second->sticker_id;
+    auto sticker_id = it == custom_emoji_messages_.end() ? get_custom_animated_emoji_sticker_id(custom_emoji_id)
+                                                         : it->second->sticker_id;
     return td_api::make_object<td_api::animatedEmoji>(get_sticker_object(sticker_id, true), 0, nullptr);
   }
 
@@ -4915,6 +4927,22 @@ void StickersManager::on_update_disable_animated_emojis() {
     reload_special_sticker_set_by_type(SpecialStickerSetType::animated_emoji_click());
   }
   try_update_animated_emoji_messages();
+
+  vector<int64> custom_emoji_ids;
+  for (auto &it : custom_emoji_messages_) {
+    custom_emoji_ids.push_back(it.first);
+  }
+  for (auto custom_emoji_id : custom_emoji_ids) {
+    try_update_custom_emoji_messages(custom_emoji_id);
+  }
+
+  if (!disable_animated_emojis_) {
+    for (size_t i = 0; i < custom_emoji_ids.size(); i += MAX_GET_CUSTOM_EMOJI_STICKERS) {
+      auto end_i = i + MAX_GET_CUSTOM_EMOJI_STICKERS;
+      auto end = end_i < custom_emoji_ids.size() ? custom_emoji_ids.begin() + end_i : custom_emoji_ids.end();
+      get_custom_emoji_stickers({custom_emoji_ids.begin() + i, end}, true, Auto());
+    }
+  }
 }
 
 void StickersManager::on_update_sticker_sets() {
@@ -4953,7 +4981,7 @@ void StickersManager::try_update_custom_emoji_messages(int64 custom_emoji_id) {
   }
 
   vector<FullMessageId> full_message_ids;
-  auto new_sticker_id = custom_emoji_to_sticker_id_.get(custom_emoji_id);
+  auto new_sticker_id = get_custom_animated_emoji_sticker_id(custom_emoji_id);
   if (new_sticker_id != it->second->sticker_id) {
     it->second->sticker_id = new_sticker_id;
     for (const auto &full_message_id : it->second->full_message_ids) {
@@ -5093,8 +5121,10 @@ void StickersManager::register_emoji(const string &emoji, int64 custom_emoji_id,
     }
     auto &emoji_messages = *emoji_messages_ptr;
     if (emoji_messages.full_message_ids.empty()) {
-      emoji_messages.sticker_id = custom_emoji_to_sticker_id_.get(custom_emoji_id);
-      get_custom_emoji_stickers({custom_emoji_id}, true, Promise<td_api::object_ptr<td_api::stickers>>());
+      emoji_messages.sticker_id = get_custom_animated_emoji_sticker_id(custom_emoji_id);
+      if (!disable_animated_emojis_) {
+        get_custom_emoji_stickers({custom_emoji_id}, true, Promise<td_api::object_ptr<td_api::stickers>>());
+      }
     }
     bool is_inserted = emoji_messages.full_message_ids.insert(full_message_id).second;
     LOG_CHECK(is_inserted) << source << ' ' << custom_emoji_id << ' ' << full_message_id;
@@ -5280,8 +5310,7 @@ void StickersManager::get_custom_emoji_stickers(vector<int64> &&document_ids, bo
                                                 Promise<td_api::object_ptr<td_api::stickers>> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
 
-  constexpr size_t MAX_CUSTOME_EMOJI_IDS = 200;  // server-side limit
-  if (document_ids.size() > MAX_CUSTOME_EMOJI_IDS) {
+  if (document_ids.size() > MAX_GET_CUSTOM_EMOJI_STICKERS) {
     return promise.set_error(Status::Error(400, "Too many custom emoji identifiers specified"));
   }
 
@@ -5463,6 +5492,7 @@ void StickersManager::choose_animated_emoji_click_sticker(const StickerSet *stic
     }
   }
   if (found_stickers.empty()) {
+    LOG(INFO) << "There is no click effect for " << message_text << " from " << full_message_id;
     return promise.set_value(nullptr);
   }
 

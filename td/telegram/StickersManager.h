@@ -370,6 +370,7 @@ class StickersManager final : public Actor {
   static constexpr int32 MAX_FOUND_STICKERS = 100;                 // server side limit
   static constexpr size_t MAX_STICKER_SET_TITLE_LENGTH = 64;       // server side limit
   static constexpr size_t MAX_STICKER_SET_SHORT_NAME_LENGTH = 64;  // server side limit
+  static constexpr size_t MAX_GET_CUSTOM_EMOJI_STICKERS = 200;     // server-side limit
 
   static constexpr int32 EMOJI_KEYWORDS_UPDATE_DELAY = 3600;
   static constexpr double MIN_ANIMATED_EMOJI_CLICK_DELAY = 0.2;
@@ -742,6 +743,8 @@ class StickersManager final : public Actor {
   std::pair<FileId, int> get_animated_emoji_sticker(const string &emoji);
 
   FileId get_animated_emoji_sound_file_id(const string &emoji) const;
+
+  FileId get_custom_animated_emoji_sticker_id(int64 custom_emoji_id) const;
 
   td_api::object_ptr<td_api::animatedEmoji> get_animated_emoji_object(std::pair<FileId, int> animated_sticker,
                                                                       FileId sound_file_id) const;
