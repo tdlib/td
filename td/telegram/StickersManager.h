@@ -748,6 +748,8 @@ class StickersManager final : public Actor {
 
   void try_update_animated_emoji_messages();
 
+  void try_update_custom_emoji_messages(int64 custom_emoji_id);
+
   static int get_emoji_number(Slice emoji);
 
   vector<FileId> get_animated_emoji_click_stickers(const StickerSet *sticker_set, Slice emoji) const;
@@ -985,6 +987,12 @@ class StickersManager final : public Actor {
     FileId sound_file_id;
   };
   FlatHashMap<string, unique_ptr<EmojiMessages>> emoji_messages_;
+
+  struct CustomEmojiMessages {
+    FlatHashSet<FullMessageId, FullMessageIdHash> full_message_ids;
+    FileId sticker_id;
+  };
+  FlatHashMap<int64, unique_ptr<CustomEmojiMessages>> custom_emoji_messages_;
 
   string dice_emojis_str_;
   vector<string> dice_emojis_;
