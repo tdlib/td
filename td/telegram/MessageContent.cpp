@@ -5529,20 +5529,6 @@ FileId get_message_content_thumbnail_file_id(const MessageContent *content, cons
   return FileId();
 }
 
-static FileId get_message_content_animated_thumbnail_file_id(const MessageContent *content, const Td *td) {
-  switch (content->get_type()) {
-    case MessageContentType::Animation:
-      return td->animations_manager_->get_animation_animated_thumbnail_file_id(
-          static_cast<const MessageAnimation *>(content)->file_id);
-    case MessageContentType::Video:
-      return td->videos_manager_->get_video_animated_thumbnail_file_id(
-          static_cast<const MessageVideo *>(content)->file_id);
-    default:
-      break;
-  }
-  return FileId();
-}
-
 vector<FileId> get_message_content_file_ids(const MessageContent *content, const Td *td) {
   switch (content->get_type()) {
     case MessageContentType::Photo:
@@ -5550,27 +5536,33 @@ vector<FileId> get_message_content_file_ids(const MessageContent *content, const
     case MessageContentType::Animation:
     case MessageContentType::Audio:
     case MessageContentType::Document:
+    case MessageContentType::Sticker:
     case MessageContentType::Video:
     case MessageContentType::VideoNote:
     case MessageContentType::VoiceNote: {
-      vector<FileId> result;
-      result.reserve(2);
-      FileId file_id = get_message_content_upload_file_id(content);
-      if (file_id.is_valid()) {
-        result.push_back(file_id);
-      }
-      FileId thumbnail_file_id = get_message_content_thumbnail_file_id(content, td);
-      if (thumbnail_file_id.is_valid()) {
-        result.push_back(thumbnail_file_id);
-      }
-      FileId animated_thumbnail_file_id = get_message_content_animated_thumbnail_file_id(content, td);
-      if (animated_thumbnail_file_id.is_valid()) {
-        result.push_back(animated_thumbnail_file_id);
-      }
-      return result;
+      auto document_type = [&] {
+        switch (content->get_type()) {
+          case MessageContentType::Animation:
+            return Document::Type::Animation;
+          case MessageContentType::Audio:
+            return Document::Type::Audio;
+          case MessageContentType::Document:
+            return Document::Type::General;
+          case MessageContentType::Sticker:
+            return Document::Type::Sticker;
+          case MessageContentType::Video:
+            return Document::Type::Video;
+          case MessageContentType::VideoNote:
+            return Document::Type::VideoNote;
+          case MessageContentType::VoiceNote:
+            return Document::Type::VoiceNote;
+          default:
+            UNREACHABLE();
+            return Document::Type::Unknown;
+        }
+      }();
+      return Document(document_type, get_message_content_upload_file_id(content)).get_file_ids(td);
     }
-    case MessageContentType::Sticker:
-      return td->stickers_manager_->get_sticker_file_ids(static_cast<const MessageSticker *>(content)->file_id);
     case MessageContentType::Game:
       return static_cast<const MessageGame *>(content)->game.get_file_ids(td);
     case MessageContentType::Invoice:
