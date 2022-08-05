@@ -5916,8 +5916,12 @@ sharePhoneNumber user_id:int53 = Ok;
 getUserProfilePhotos user_id:int53 offset:int32 limit:int32 = ChatPhotos;
 
 
-//@description Returns stickers from the installed sticker sets that correspond to a given emoji. If the emoji is non-empty, then favorite, recently used or trending stickers may also be returned @sticker_type Type of the sticker sets to return @emoji String representation of emoji. If empty, returns all known installed stickers @limit The maximum number of stickers to be returned
-getStickers sticker_type:StickerType emoji:string limit:int32 = Stickers;
+//@description Returns stickers from the installed sticker sets that correspond to a given emoji. If the emoji is non-empty, then favorite, recently used or trending stickers may also be returned
+//@sticker_type Type of the sticker sets to return
+//@emoji String representation of emoji. If empty, returns all known installed stickers
+//@limit The maximum number of stickers to be returned
+//@chat_id Chat identifier for which to return stickers. Available custom emoji may be different for different chats
+getStickers sticker_type:StickerType emoji:string limit:int32 chat_id:int53 = Stickers;
 
 //@description Searches for stickers from public sticker sets that correspond to a given emoji @emoji String representation of emoji; must be non-empty @limit The maximum number of stickers to be returned
 searchStickers emoji:string limit:int32 = Stickers;

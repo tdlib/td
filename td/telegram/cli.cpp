@@ -2610,10 +2610,11 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::getUser>(user_id));
     } else if (op == "gsu") {
       send_request(td_api::make_object<td_api::getSupportUser>());
-    } else if (op == "gs" || op == "gsmm" || op == "gsee") {
+    } else if (op == "gs" || op == "gsmm" || op == "gsee" || op == "gseeme") {
       SearchQuery query;
       get_args(args, query);
-      send_request(td_api::make_object<td_api::getStickers>(as_sticker_type(op), query.query, query.limit));
+      send_request(td_api::make_object<td_api::getStickers>(as_sticker_type(op), query.query, query.limit,
+                                                            op == "gseeme" ? my_id_ : 0));
     } else if (op == "sst") {
       SearchQuery query;
       get_args(args, query);

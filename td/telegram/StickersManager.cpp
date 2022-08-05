@@ -29,6 +29,7 @@
 #include "td/telegram/net/NetQueryDispatcher.h"
 #include "td/telegram/PhotoSizeSource.h"
 #include "td/telegram/secret_api.h"
+#include "td/telegram/SecretChatLayer.h"
 #include "td/telegram/StickerSetId.hpp"
 #include "td/telegram/StickersManager.hpp"
 #include "td/telegram/Td.h"
@@ -3780,8 +3781,8 @@ std::pair<vector<FileId>, vector<FileId>> StickersManager::split_stickers_by_pre
   return {std::move(regular_sticker_ids), std::move(premium_sticker_ids)};
 }
 
-vector<FileId> StickersManager::get_stickers(StickerType sticker_type, string emoji, int32 limit, bool force,
-                                             Promise<Unit> &&promise) {
+vector<FileId> StickersManager::get_stickers(StickerType sticker_type, string emoji, int32 limit, DialogId dialog_id,
+                                             bool force, Promise<Unit> &&promise) {
   if (limit <= 0) {
     promise.set_error(Status::Error(400, "Parameter limit must be positive"));
     return {};
@@ -3883,6 +3884,26 @@ vector<FileId> StickersManager::get_stickers(StickerType sticker_type, string em
     }
   }
 
+  bool allow_premium = false;
+  if (sticker_type == StickerType::CustomEmoji) {
+    switch (dialog_id.get_type()) {
+      case DialogType::User:
+        if (dialog_id.get_user_id() == td_->contacts_manager_->get_my_id()) {
+          allow_premium = true;
+        }
+        break;
+      case DialogType::SecretChat:
+        if (td_->contacts_manager_->get_secret_chat_layer(dialog_id.get_secret_chat_id()) <
+            static_cast<int32>(SecretChatLayer::SpoilerAndCustomEmojiEntities)) {
+          promise.set_value(Unit());
+          return {};
+        }
+        break;
+      default:
+        break;
+    }
+  }
+
   vector<FileId> result;
   auto limit_size_t = static_cast<size_t>(limit);
   if (emoji.empty()) {
@@ -3977,7 +3998,7 @@ vector<FileId> StickersManager::get_stickers(StickerType sticker_type, string em
       vector<FileId> regular_sticker_ids;
       vector<FileId> premium_sticker_ids;
       std::tie(regular_sticker_ids, premium_sticker_ids) = split_stickers_by_premium(result);
-      if (G()->shared_config().get_option_boolean("is_premium")) {
+      if (G()->shared_config().get_option_boolean("is_premium") || allow_premium) {
         auto normal_count = G()->shared_config().get_option_integer("stickers_normal_by_emoji_per_premium_num", 2);
         if (normal_count < 0) {
           normal_count = 2;
