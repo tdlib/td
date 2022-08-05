@@ -1124,6 +1124,10 @@ tl_object_ptr<td_api::thumbnail> copy(const td_api::thumbnail &obj) {
   return td_api::make_object<td_api::thumbnail>(std::move(format), obj.width_, obj.height_, copy(obj.file_));
 }
 
+static tl_object_ptr<td_api::thumbnail> copy_thumbnail(const tl_object_ptr<td_api::thumbnail> &obj) {
+  return copy(obj);
+}
+
 template <>
 tl_object_ptr<td_api::StickerFormat> copy(const td_api::StickerFormat &obj) {
   switch (obj.get_id()) {
@@ -1245,7 +1249,7 @@ template <>
 tl_object_ptr<td_api::audio> copy(const td_api::audio &obj) {
   return td_api::make_object<td_api::audio>(obj.duration_, obj.title_, obj.performer_, obj.file_name_, obj.mime_type_,
                                             copy(obj.album_cover_minithumbnail_), copy(obj.album_cover_thumbnail_),
-                                            copy(obj.album_cover_), copy(obj.audio_));
+                                            transform(obj.external_album_covers_, copy_thumbnail), copy(obj.audio_));
 }
 
 template <>

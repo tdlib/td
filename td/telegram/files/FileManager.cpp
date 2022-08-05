@@ -3251,7 +3251,8 @@ Result<FileId> FileManager::get_map_thumbnail_file_id(Location location, int32 z
       FileLocationSource::FromUser, string(), std::move(conversion), owner_dialog_id, 0);
 }
 
-Result<FileId> FileManager::get_audio_thumbnail_file_id(string title, string performer, DialogId owner_dialog_id) {
+Result<FileId> FileManager::get_audio_thumbnail_file_id(string title, string performer, bool is_small,
+                                                        DialogId owner_dialog_id) {
   if (!clean_input_string(title)) {
     return Status::Error(400, "Title must be encoded in UTF-8");
   }
@@ -3274,7 +3275,7 @@ Result<FileId> FileManager::get_audio_thumbnail_file_id(string title, string per
     return Status::Error(400, "Title or performer must be non-empty");
   }
 
-  string conversion = PSTRING() << "#audio_t#" << title << '#' << performer << '#';
+  string conversion = PSTRING() << "#audio_t#" << title << '#' << performer << '#' << (is_small ? '1' : '0') << '#';
   return register_generate(
       owner_dialog_id.get_type() == DialogType::SecretChat ? FileType::EncryptedThumbnail : FileType::Thumbnail,
       FileLocationSource::FromUser, string(), std::move(conversion), owner_dialog_id, 0);

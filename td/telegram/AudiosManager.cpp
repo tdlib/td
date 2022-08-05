@@ -44,17 +44,25 @@ tl_object_ptr<td_api::audio> AudiosManager::get_audio_object(FileId file_id) con
   auto audio = get_audio(file_id);
   CHECK(audio != nullptr);
 
-  td_api::object_ptr<td_api::file> album_cover_file;
+  vector<td_api::object_ptr<td_api::thumbnail>> album_covers;
   if (!td_->auth_manager_->is_bot()) {
-    auto r_file_id = td_->file_manager_->get_audio_thumbnail_file_id(audio->title, audio->performer, DialogId());
-    if (r_file_id.is_ok()) {
-      album_cover_file = td_->file_manager_->get_file_object(r_file_id.move_as_ok());
-    }
+    auto add_album_cover = [&](bool is_small, int32 width, int32 height) {
+      auto r_file_id =
+          td_->file_manager_->get_audio_thumbnail_file_id(audio->title, audio->performer, is_small, DialogId());
+      if (r_file_id.is_ok()) {
+        album_covers.emplace_back(
+            td_api::make_object<td_api::thumbnail>(td_api::make_object<td_api::thumbnailFormatJpeg>(), width, height,
+                                                   td_->file_manager_->get_file_object(r_file_id.move_as_ok())));
+      }
+    };
+
+    add_album_cover(true, 100, 100);
+    add_album_cover(false, 600, 600);
   }
   return make_tl_object<td_api::audio>(
       audio->duration, audio->title, audio->performer, audio->file_name, audio->mime_type,
       get_minithumbnail_object(audio->minithumbnail),
-      get_thumbnail_object(td_->file_manager_.get(), audio->thumbnail, PhotoFormat::Jpeg), std::move(album_cover_file),
+      get_thumbnail_object(td_->file_manager_.get(), audio->thumbnail, PhotoFormat::Jpeg), std::move(album_covers),
       td_->file_manager_->get_file_object(file_id));
 }
 

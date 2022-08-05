@@ -491,7 +491,7 @@ class FileManager final : public FileLoadManager::Callback {
   Result<FileId> get_map_thumbnail_file_id(Location location, int32 zoom, int32 width, int32 height, int32 scale,
                                            DialogId owner_dialog_id) TD_WARN_UNUSED_RESULT;
 
-  Result<FileId> get_audio_thumbnail_file_id(string title, string performer,
+  Result<FileId> get_audio_thumbnail_file_id(string title, string performer, bool is_small,
                                              DialogId owner_dialog_id) TD_WARN_UNUSED_RESULT;
 
   FileType guess_file_type(const tl_object_ptr<td_api::InputFile> &file);

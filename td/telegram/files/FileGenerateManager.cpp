@@ -154,17 +154,25 @@ class WebFileDownloadGenerateActor final : public FileGenerateActor {
       return Status::Error("Wrong conversion");
     }
 
-    if (parts.size() == 5 && parts[1] == "audio_t") {
+    if (parts.size() == 6 && parts[1] == "audio_t") {
       // music thumbnail
       if (parts[2].empty() && parts[3].empty()) {
         return Status::Error("Title or performer must be non-empty");
       }
+      if (parts[4] != "0" && parts[4] != "1") {
+        return Status::Error("Invalid conversion");
+      }
 
-      file_name_ = PSTRING() << "Album cover for " << parts[3] << " - " << parts[2] << ".jpg";
+      bool is_small = parts[4][0] == '1';
+      file_name_ = PSTRING() << "Album cover " << (is_small ? "thumbnail " : "") << "for " << parts[3] << " - "
+                             << parts[2] << ".jpg";
 
-      auto flags = telegram_api::inputWebFileAudioAlbumThumbLocation::TITLE_MASK;
-      return make_tl_object<telegram_api::inputWebFileAudioAlbumThumbLocation>(flags, nullptr, parts[2].str(),
-                                                                               parts[3].str());
+      int32 flags = telegram_api::inputWebFileAudioAlbumThumbLocation::TITLE_MASK;
+      if (is_small) {
+        flags |= telegram_api::inputWebFileAudioAlbumThumbLocation::SMALL_MASK;
+      }
+      return make_tl_object<telegram_api::inputWebFileAudioAlbumThumbLocation>(flags, false /*ignored*/, nullptr,
+                                                                               parts[2].str(), parts[3].str());
     }
 
     if (parts.size() != 9 || parts[1] != "map") {
