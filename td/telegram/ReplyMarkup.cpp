@@ -922,9 +922,10 @@ static tl_object_ptr<td_api::inlineKeyboardButton> get_inline_keyboard_button_ob
       type = make_tl_object<td_api::inlineKeyboardButtonTypeCallbackWithPassword>(keyboard_button.data);
       break;
     case InlineKeyboardButton::Type::User: {
-      auto user_id = contacts_manager == nullptr ? keyboard_button.user_id.get()
-                                                 : contacts_manager->get_user_id_object(
-                                                       keyboard_button.user_id, "get_inline_keyboard_button_object");
+      bool need_user = contacts_manager != nullptr && !contacts_manager->is_user_bot(contacts_manager->get_my_id());
+      auto user_id =
+          need_user ? contacts_manager->get_user_id_object(keyboard_button.user_id, "get_inline_keyboard_button_object")
+                    : keyboard_button.user_id.get();
       type = make_tl_object<td_api::inlineKeyboardButtonTypeUser>(user_id);
       break;
     }

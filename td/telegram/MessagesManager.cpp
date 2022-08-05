@@ -24689,8 +24689,7 @@ tl_object_ptr<td_api::message> MessagesManager::get_message_object(DialogId dial
   auto edit_date = m->hide_edit_date ? 0 : m->edit_date;
   auto is_pinned = is_scheduled ? false : m->is_pinned;
   auto has_timestamped_media = for_event_log || reply_to_message_id == 0 || m->max_own_media_timestamp >= 0;
-  auto reply_markup =
-      get_reply_markup_object(m->message_id.is_any_server() ? td_->contacts_manager_.get() : nullptr, m->reply_markup);
+  auto reply_markup = get_reply_markup_object(td_->contacts_manager_.get(), m->reply_markup);
 
   auto live_location_date = m->is_failed_to_send ? 0 : m->date;
   auto skip_bot_commands = for_event_log ? true : need_skip_bot_commands(dialog_id, m);
