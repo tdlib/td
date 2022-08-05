@@ -1992,8 +1992,12 @@ tl_object_ptr<td_api::sticker> StickersManager::get_sticker_object(FileId file_i
   int32 width = sticker->dimensions.width;
   int32 height = sticker->dimensions.height;
   double zoom = 1.0;
-  if (is_sticker_format_vector(sticker->format) && (for_animated_emoji || for_clicked_animated_emoji)) {
+  if ((is_sticker_format_vector(sticker->format) || sticker->type == StickerType::CustomEmoji) &&
+      (for_animated_emoji || for_clicked_animated_emoji)) {
     zoom = for_clicked_animated_emoji ? 3 * animated_emoji_zoom_ : animated_emoji_zoom_;
+    if (sticker->type == StickerType::CustomEmoji) {
+      zoom *= 5.12;
+    }
     width = static_cast<int32>(width * zoom + 0.5);
     height = static_cast<int32>(height * zoom + 0.5);
   }
@@ -2378,7 +2382,13 @@ FileId StickersManager::get_animated_emoji_sound_file_id(const string &emoji) co
   return it->second;
 }
 
-td_api::object_ptr<td_api::animatedEmoji> StickersManager::get_animated_emoji_object(const string &emoji) {
+td_api::object_ptr<td_api::animatedEmoji> StickersManager::get_animated_emoji_object(const string &emoji,
+                                                                                     int64 custom_emoji_id) {
+  if (custom_emoji_id != 0) {
+    auto sticker_id = custom_emoji_to_sticker_id_.get(custom_emoji_id);
+    return td_api::make_object<td_api::animatedEmoji>(get_sticker_object(sticker_id, true), 0, nullptr);
+  }
+
   auto it = emoji_messages_.find(emoji);
   if (it == emoji_messages_.end()) {
     return get_animated_emoji_object(get_animated_emoji_sticker(emoji), get_animated_emoji_sound_file_id(emoji));
@@ -5039,13 +5049,19 @@ void StickersManager::unregister_dice(const string &emoji, int32 value, FullMess
   }
 }
 
-void StickersManager::register_emoji(const string &emoji, FullMessageId full_message_id, const char *source) {
+void StickersManager::register_emoji(const string &emoji, int64 custom_emoji_id, FullMessageId full_message_id,
+                                     const char *source) {
   CHECK(!emoji.empty());
   if (td_->auth_manager_->is_bot()) {
     return;
   }
 
-  LOG(INFO) << "Register emoji " << emoji << " from " << full_message_id << " from " << source;
+  LOG(INFO) << "Register emoji " << emoji << " with custom emoji " << custom_emoji_id << " from " << full_message_id
+            << " from " << source;
+  if (custom_emoji_id != 0) {
+    return;
+  }
+
   auto &emoji_messages_ptr = emoji_messages_[emoji];
   if (emoji_messages_ptr == nullptr) {
     emoji_messages_ptr = make_unique<EmojiMessages>();
@@ -5059,13 +5075,19 @@ void StickersManager::register_emoji(const string &emoji, FullMessageId full_mes
   LOG_CHECK(is_inserted) << source << ' ' << emoji << ' ' << full_message_id;
 }
 
-void StickersManager::unregister_emoji(const string &emoji, FullMessageId full_message_id, const char *source) {
+void StickersManager::unregister_emoji(const string &emoji, int64 custom_emoji_id, FullMessageId full_message_id,
+                                       const char *source) {
   CHECK(!emoji.empty());
   if (td_->auth_manager_->is_bot()) {
     return;
   }
 
-  LOG(INFO) << "Unregister emoji " << emoji << " from " << full_message_id << " from " << source;
+  LOG(INFO) << "Unregister emoji " << emoji << " with custom emoji " << custom_emoji_id << " from " << full_message_id
+            << " from " << source;
+  if (custom_emoji_id != 0) {
+    return;
+  }
+
   auto it = emoji_messages_.find(emoji);
   CHECK(it != emoji_messages_.end());
   auto &full_message_ids = it->second->full_message_ids;

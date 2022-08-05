@@ -3797,7 +3797,22 @@ bool merge_message_content_file_id(Td *td, MessageContent *message_content, File
 }
 
 static bool can_be_animated_emoji(const FormattedText &text) {
-  return text.entities.empty() && is_emoji(text.text);
+  if (!is_emoji(text.text)) {
+    return false;
+  }
+  if (text.entities.empty()) {
+    return true;
+  }
+  if (text.entities.size() == 1 && text.entities[0].type == MessageEntity::Type::CustomEmoji &&
+      text.entities[0].offset == 0 && static_cast<size_t>(text.entities[0].length) == utf8_utf16_length(text.text) &&
+      text.entities[0].document_id != 0) {
+    return true;
+  }
+  return false;
+}
+
+static int64 get_custom_emoji_id(const FormattedText &text) {
+  return text.entities.empty() ? 0 : text.entities[0].document_id;
 }
 
 void register_message_content(Td *td, const MessageContent *content, FullMessageId full_message_id,
@@ -3808,7 +3823,8 @@ void register_message_content(Td *td, const MessageContent *content, FullMessage
       if (text->web_page_id.is_valid()) {
         td->web_pages_manager_->register_web_page(text->web_page_id, full_message_id, source);
       } else if (can_be_animated_emoji(text->text)) {
-        td->stickers_manager_->register_emoji(text->text.text, full_message_id, source);
+        td->stickers_manager_->register_emoji(text->text.text, get_custom_emoji_id(text->text), full_message_id,
+                                              source);
       }
       return;
     }
@@ -3888,7 +3904,8 @@ void unregister_message_content(Td *td, const MessageContent *content, FullMessa
       if (text->web_page_id.is_valid()) {
         td->web_pages_manager_->unregister_web_page(text->web_page_id, full_message_id, source);
       } else if (can_be_animated_emoji(text->text)) {
-        td->stickers_manager_->unregister_emoji(text->text.text, full_message_id, source);
+        td->stickers_manager_->unregister_emoji(text->text.text, get_custom_emoji_id(text->text), full_message_id,
+                                                source);
       }
       return;
     }
@@ -5112,7 +5129,8 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
     case MessageContentType::Text: {
       const auto *m = static_cast<const MessageText *>(content);
       if (can_be_animated_emoji(m->text) && !m->web_page_id.is_valid()) {
-        auto animated_emoji = td->stickers_manager_->get_animated_emoji_object(m->text.text);
+        auto animated_emoji =
+            td->stickers_manager_->get_animated_emoji_object(m->text.text, get_custom_emoji_id(m->text));
         if (animated_emoji != nullptr) {
           return td_api::make_object<td_api::messageAnimatedEmoji>(std::move(animated_emoji), m->text.text);
         }

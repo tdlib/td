@@ -81,7 +81,7 @@ class StickersManager final : public Actor {
 
   td_api::object_ptr<td_api::sticker> get_premium_gift_sticker_object(int32 month_count);
 
-  td_api::object_ptr<td_api::animatedEmoji> get_animated_emoji_object(const string &emoji);
+  td_api::object_ptr<td_api::animatedEmoji> get_animated_emoji_object(const string &emoji, int64 custom_emoji_id);
 
   tl_object_ptr<telegram_api::InputStickerSet> get_input_sticker_set(StickerSetId sticker_set_id) const;
 
@@ -93,9 +93,9 @@ class StickersManager final : public Actor {
 
   void unregister_dice(const string &emoji, int32 value, FullMessageId full_message_id, const char *source);
 
-  void register_emoji(const string &emoji, FullMessageId full_message_id, const char *source);
+  void register_emoji(const string &emoji, int64 custom_emoji_id, FullMessageId full_message_id, const char *source);
 
-  void unregister_emoji(const string &emoji, FullMessageId full_message_id, const char *source);
+  void unregister_emoji(const string &emoji, int64 custom_emoji_id, FullMessageId full_message_id, const char *source);
 
   void get_animated_emoji(string emoji, bool is_recursive,
                           Promise<td_api::object_ptr<td_api::animatedEmoji>> &&promise);

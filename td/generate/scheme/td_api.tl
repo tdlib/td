@@ -329,7 +329,7 @@ videoNote duration:int32 length:int32 minithumbnail:minithumbnail thumbnail:thum
 voiceNote duration:int32 waveform:bytes mime_type:string speech_recognition_result:SpeechRecognitionResult voice:file = VoiceNote;
 
 //@description Describes an animated representation of an emoji
-//@sticker Animated sticker for the emoji
+//@sticker Animated sticker for the emoji; may be null if yet unknown for a custom emoji
 //@fitzpatrick_type Emoji modifier fitzpatrick type; 0-6; 0 if none
 //@sound File containing the sound to be played when the animated emoji is clicked; may be null. The sound is encoded with the Opus codec, and stored inside an OGG container
 animatedEmoji sticker:sticker fitzpatrick_type:int32 sound:file = AnimatedEmoji;
