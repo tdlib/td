@@ -206,7 +206,52 @@ bool is_document_file_type(FileType file_type) {
 }
 
 StringBuilder &operator<<(StringBuilder &string_builder, FileType file_type) {
-  return string_builder << get_file_type_name(file_type);
+  switch (file_type) {
+    case FileType::Thumbnail:
+      return string_builder << "Thumbnail";
+    case FileType::ProfilePhoto:
+      return string_builder << "ChatPhoto";
+    case FileType::Photo:
+      return string_builder << "Photo";
+    case FileType::VoiceNote:
+      return string_builder << "VoiceNote";
+    case FileType::Video:
+      return string_builder << "Video";
+    case FileType::Document:
+      return string_builder << "Document";
+    case FileType::Encrypted:
+      return string_builder << "Secret";
+    case FileType::Temp:
+      return string_builder << "Temp";
+    case FileType::Sticker:
+      return string_builder << "Sticker";
+    case FileType::Audio:
+      return string_builder << "Audio";
+    case FileType::Animation:
+      return string_builder << "Animation";
+    case FileType::EncryptedThumbnail:
+      return string_builder << "SecretThumbnail";
+    case FileType::Wallpaper:
+      return string_builder << "Wallpaper";
+    case FileType::VideoNote:
+      return string_builder << "VideoNote";
+    case FileType::SecureDecrypted:
+      return string_builder << "Passport";
+    case FileType::SecureEncrypted:
+      return string_builder << "Passport";
+    case FileType::Background:
+      return string_builder << "Background";
+    case FileType::DocumentAsFile:
+      return string_builder << "DocumentAsFile";
+    case FileType::Ringtone:
+      return string_builder << "NotificationSound";
+    case FileType::CallLog:
+      return string_builder << "CallLog";
+    case FileType::Size:
+    case FileType::None:
+    default:
+      return string_builder << "<invalid>";
+  }
 }
 
 FileDirType get_file_dir_type(FileType file_type) {
