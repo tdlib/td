@@ -2013,7 +2013,7 @@ tl_object_ptr<td_api::sticker> StickersManager::get_sticker_object(FileId file_i
 }
 
 tl_object_ptr<td_api::stickers> StickersManager::get_stickers_object(const vector<FileId> &sticker_ids) const {
-  auto result = make_tl_object<td_api::stickers>();
+  auto result = td_api::make_object<td_api::stickers>();
   result->stickers_.reserve(sticker_ids.size());
   for (auto sticker_id : sticker_ids) {
     result->stickers_.push_back(get_sticker_object(sticker_id));
@@ -4105,7 +4105,10 @@ vector<FileId> StickersManager::get_stickers(StickerType sticker_type, string em
 
 void StickersManager::search_stickers(string emoji, int32 limit,
                                       Promise<td_api::object_ptr<td_api::stickers>> &&promise) {
-  if (limit <= 0) {
+  if (limit == 0) {
+    return promise.set_value(get_stickers_object({}));
+  }
+  if (limit < 0) {
     return promise.set_error(Status::Error(400, "Parameter limit must be positive"));
   }
   if (limit > MAX_FOUND_STICKERS) {
@@ -4201,6 +4204,78 @@ void StickersManager::on_find_stickers_fail(const string &emoji, Status &&error)
   for (auto &query : queries) {
     query.second.set_error(error.clone());
   }
+}
+
+void StickersManager::get_premium_stickers(int32 limit, Promise<td_api::object_ptr<td_api::stickers>> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+
+  if (limit == 0) {
+    return promise.set_value(get_stickers_object({}));
+  }
+  if (limit > MAX_FOUND_STICKERS) {
+    limit = MAX_FOUND_STICKERS;
+  }
+
+  MultiPromiseActorSafe mpas{"GetPremiumStickersMultiPromiseActor"};
+  mpas.add_promise(PromiseCreator::lambda(
+      [actor_id = actor_id(this), limit, promise = std::move(promise)](Result<Unit> result) mutable {
+        if (result.is_error()) {
+          promise.set_error(result.move_as_error());
+        } else {
+          send_closure(actor_id, &StickersManager::do_get_premium_stickers, limit, std::move(promise));
+        }
+      }));
+
+  auto lock = mpas.get_promise();
+  search_stickers("📂⭐️", limit,
+                  PromiseCreator::lambda(
+                      [promise = mpas.get_promise()](Result<td_api::object_ptr<td_api::stickers>> result) mutable {
+                        if (result.is_error()) {
+                          promise.set_error(result.move_as_error());
+                        } else {
+                          promise.set_value(Unit());
+                        }
+                      }));
+  get_stickers(StickerType::Regular, string(), 1, DialogId(), false, mpas.get_promise());
+  lock.set_value(Unit());
+}
+
+void StickersManager::do_get_premium_stickers(int32 limit, Promise<td_api::object_ptr<td_api::stickers>> &&promise) {
+  auto type = static_cast<int32>(StickerType::Regular);
+  CHECK(are_installed_sticker_sets_loaded_[type]);
+
+  vector<FileId> sticker_ids;
+  auto limit_size_t = static_cast<size_t>(limit);
+  for (const auto &sticker_set_id : installed_sticker_set_ids_[type]) {
+    const StickerSet *sticker_set = get_sticker_set(sticker_set_id);
+    if (sticker_set == nullptr || !sticker_set->was_loaded) {
+      continue;
+    }
+
+    for (auto sticker_id : sticker_set->sticker_ids) {
+      const Sticker *s = get_sticker(sticker_id);
+      if (!s->is_premium) {
+        continue;
+      }
+      sticker_ids.push_back(sticker_id);
+      if (sticker_ids.size() == limit_size_t) {
+        return promise.set_value(get_stickers_object(sticker_ids));
+      }
+    }
+  }
+
+  auto it = found_stickers_.find(remove_emoji_modifiers("📂⭐️"));
+  CHECK(it != found_stickers_.end());
+  for (auto sticker_id : it->second.sticker_ids_) {
+    if (td::contains(sticker_ids, sticker_id)) {
+      continue;
+    }
+    sticker_ids.push_back(sticker_id);
+    if (sticker_ids.size() == limit_size_t) {
+      break;
+    }
+  }
+  promise.set_value(get_stickers_object(sticker_ids));
 }
 
 vector<StickerSetId> StickersManager::get_installed_sticker_sets(StickerType sticker_type, Promise<Unit> &&promise) {

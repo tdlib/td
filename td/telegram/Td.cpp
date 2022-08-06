@@ -6989,7 +6989,7 @@ void Td::on_request(uint64 id, td_api::searchStickers &request) {
 void Td::on_request(uint64 id, const td_api::getPremiumStickers &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
-  stickers_manager_->search_stickers("📂⭐️", request.limit_, std::move(promise));
+  stickers_manager_->get_premium_stickers(request.limit_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::getInstalledStickerSets &request) {

@@ -140,6 +140,8 @@ class StickersManager final : public Actor {
 
   void search_stickers(string emoji, int32 limit, Promise<td_api::object_ptr<td_api::stickers>> &&promise);
 
+  void get_premium_stickers(int32 limit, Promise<td_api::object_ptr<td_api::stickers>> &&promise);
+
   vector<StickerSetId> get_installed_sticker_sets(StickerType sticker_type, Promise<Unit> &&promise);
 
   static bool has_webp_thumbnail(const vector<tl_object_ptr<telegram_api::PhotoSize>> &thumbnails);
@@ -597,6 +599,8 @@ class StickersManager final : public Actor {
   void do_reload_sticker_set(StickerSetId sticker_set_id,
                              tl_object_ptr<telegram_api::InputStickerSet> &&input_sticker_set, int32 hash,
                              Promise<Unit> &&promise) const;
+
+  void do_get_premium_stickers(int32 limit, Promise<td_api::object_ptr<td_api::stickers>> &&promise);
 
   static void read_featured_sticker_sets(void *td_void);
 
