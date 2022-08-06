@@ -2007,7 +2007,7 @@ class GetStickersRequest final : public RequestActor<> {
       , emoji_(std::move(emoji))
       , limit_(limit)
       , dialog_id_(dialog_id) {
-    set_tries(5);
+    set_tries(4);
   }
 };
 

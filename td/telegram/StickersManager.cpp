@@ -3814,13 +3814,30 @@ std::pair<vector<FileId>, vector<FileId>> StickersManager::split_stickers_by_pre
 
 vector<FileId> StickersManager::get_stickers(StickerType sticker_type, string emoji, int32 limit, DialogId dialog_id,
                                              bool force, Promise<Unit> &&promise) {
+  if (G()->close_flag()) {
+    promise.set_error(G()->close_status());
+    return {};
+  }
+
   if (limit <= 0) {
     promise.set_error(Status::Error(400, "Parameter limit must be positive"));
     return {};
   }
+
   auto type = static_cast<int32>(sticker_type);
   if (!are_installed_sticker_sets_loaded_[type]) {
-    load_installed_sticker_sets(sticker_type, std::move(promise));
+    CHECK(force == false);
+    load_installed_sticker_sets(
+        sticker_type,
+        PromiseCreator::lambda([actor_id = actor_id(this), sticker_type, emoji = std::move(emoji), limit, dialog_id,
+                                force, promise = std::move(promise)](Result<Unit> result) mutable {
+          if (result.is_error()) {
+            promise.set_error(result.move_as_error());
+          } else {
+            send_closure(actor_id, &StickersManager::get_stickers, sticker_type, std::move(emoji), limit, dialog_id,
+                         false, std::move(promise));
+          }
+        }));
     return {};
   }
 
