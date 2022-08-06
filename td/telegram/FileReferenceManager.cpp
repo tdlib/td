@@ -115,6 +115,11 @@ FileSourceId FileReferenceManager::create_background_file_source(BackgroundId ba
   return add_file_source_id(source, PSLICE() << background_id);
 }
 
+FileSourceId FileReferenceManager::create_user_full_file_source(UserId user_id) {
+  FileSourceUserFull source{user_id};
+  return add_file_source_id(source, PSLICE() << "full " << user_id);
+}
+
 FileSourceId FileReferenceManager::create_chat_full_file_source(ChatId chat_id) {
   FileSourceChatFull source{chat_id};
   return add_file_source_id(source, PSLICE() << "full " << chat_id);
@@ -319,6 +324,10 @@ void FileReferenceManager::send_query(Destination dest, FileSourceId file_source
       },
       [&](const FileSourceSavedRingtones &source) {
         send_closure_later(G()->notification_settings_manager(), &NotificationSettingsManager::repair_saved_ringtones,
+                           std::move(promise));
+      },
+      [&](const FileSourceUserFull &source) {
+        send_closure_later(G()->contacts_manager(), &ContactsManager::reload_user_full, source.user_id,
                            std::move(promise));
       }));
 }

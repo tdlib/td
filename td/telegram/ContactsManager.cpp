@@ -3401,8 +3401,8 @@ ContactsManager::ContactsManager(Td *td, ActorShared<> parent) : td_(td), parent
 ContactsManager::~ContactsManager() {
   Scheduler::instance()->destroy_on_scheduler(
       G()->get_gc_scheduler_id(), users_, users_full_, user_photos_, unknown_users_, pending_user_photos_,
-      user_profile_photo_file_source_ids_, my_photo_file_id_, chats_, chats_full_, unknown_chats_,
-      chat_full_file_source_ids_, min_channels_, channels_, channels_full_, unknown_channels_,
+      user_profile_photo_file_source_ids_, my_photo_file_id_, user_full_file_source_ids_, chats_, chats_full_,
+      unknown_chats_, chat_full_file_source_ids_, min_channels_, channels_, channels_full_, unknown_channels_,
       invalidated_channels_full_, channel_full_file_source_ids_, secret_chats_, unknown_secret_chats_,
       secret_chats_with_user_, invite_link_infos_, dialog_access_by_invite_link_, loaded_from_database_users_,
       unavailable_user_fulls_, loaded_from_database_chats_, unavailable_chat_fulls_, loaded_from_database_channels_,
@@ -10562,6 +10562,33 @@ void ContactsManager::update_user_full(UserFull *user_full, UserId user_id, cons
     td_->messages_manager_->drop_common_dialogs_cache(user_id);
     user_full->is_common_chat_count_changed = false;
   }
+  if (user_full->are_files_changed) {
+    auto file_ids = photo_get_file_ids(user_full->description_photo);
+    if (user_full->description_animation_file_id.is_valid()) {
+      file_ids.push_back(user_full->description_animation_file_id);
+    }
+    if (user_full->registered_file_ids != file_ids) {
+      auto &file_source_id = user_full->file_source_id;
+      if (!file_source_id.is_valid()) {
+        file_source_id = user_full_file_source_ids_.get(user_id);
+        if (file_source_id.is_valid()) {
+          VLOG(file_references) << "Move " << file_source_id << " inside of " << user_id;
+          user_full_file_source_ids_.erase(user_id);
+        } else {
+          VLOG(file_references) << "Need to create new file source for full " << user_id;
+          file_source_id = td_->file_reference_manager_->create_user_full_file_source(user_id);
+        }
+      }
+
+      for (auto &file_id : user_full->registered_file_ids) {
+        td_->file_manager_->remove_file_source(file_id, file_source_id);
+      }
+      user_full->registered_file_ids = std::move(file_ids);
+      for (auto &file_id : user_full->registered_file_ids) {
+        td_->file_manager_->add_file_source(file_id, file_source_id);
+      }
+    }
+  }
 
   user_full->need_send_update |= user_full->is_changed;
   user_full->need_save_to_database |= user_full->is_changed;
@@ -10838,11 +10865,15 @@ void ContactsManager::on_get_user_full(tl_object_ptr<telegram_api::userFull> &&u
     on_update_user_full_commands(user_full, user_id, std::move(user->bot_info_->commands_));
     on_update_user_full_menu_button(user_full, user_id, std::move(user->bot_info_->menu_button_));
   }
-  if (user_full->description != description || user_full->description_photo != description_photo ||
-      user_full->description_animation_file_id != description_animation_file_id) {
+  if (user_full->description != description) {
     user_full->description = std::move(description);
+    user_full->is_changed = true;
+  }
+  if (user_full->description_photo != description_photo ||
+      user_full->description_animation_file_id != description_animation_file_id) {
     user_full->description_photo = std::move(description_photo);
     user_full->description_animation_file_id = description_animation_file_id;
+    user_full->are_files_changed = true;
     user_full->is_changed = true;
   }
 
@@ -12093,7 +12124,7 @@ void ContactsManager::drop_user_photos(UserId user_id, bool is_empty, bool drop_
           user_full->expires_at = 0.0;
           user_full->need_save_to_database = true;
         }
-        reload_user_full(user_id);
+        reload_user_full(user_id, Auto());
       }
       update_user_full(user_full, user_id, "drop_user_photos");
     }
@@ -12129,6 +12160,7 @@ void ContactsManager::drop_user_full(UserId user_id) {
   user_full->broadcast_administrator_rights = {};
   user_full->premium_gift_options.clear();
   user_full->voice_messages_forbidden = false;
+  user_full->are_files_changed = true;
   user_full->is_changed = true;
 
   update_user_full(user_full, user_id, "drop_user_full");
@@ -14596,11 +14628,9 @@ void ContactsManager::load_user_full(UserId user_id, bool force, Promise<Unit> &
   promise.set_value(Unit());
 }
 
-void ContactsManager::reload_user_full(UserId user_id) {
-  auto r_input_user = get_input_user(user_id);
-  if (r_input_user.is_ok()) {
-    send_get_user_full_query(user_id, r_input_user.move_as_ok(), Auto(), "reload_user_full");
-  }
+void ContactsManager::reload_user_full(UserId user_id, Promise<Unit> &&promise) {
+  TRY_RESULT_PROMISE(promise, input_user, get_input_user(user_id));
+  send_get_user_full_query(user_id, std::move(input_user), std::move(promise), "reload_user_full");
 }
 
 void ContactsManager::send_get_user_full_query(UserId user_id, tl_object_ptr<telegram_api::InputUser> &&input_user,
@@ -14722,6 +14752,25 @@ FileSourceId ContactsManager::get_user_profile_photo_file_source_id(UserId user_
     source_id = td_->file_reference_manager_->create_user_photo_file_source(user_id, photo_id);
   }
   VLOG(file_references) << "Return " << source_id << " for photo " << photo_id << " of " << user_id;
+  return source_id;
+}
+
+FileSourceId ContactsManager::get_user_full_file_source_id(UserId user_id) {
+  if (!user_id.is_valid()) {
+    return FileSourceId();
+  }
+
+  if (get_user_full(user_id) != nullptr) {
+    VLOG(file_references) << "Don't need to create file source for full " << user_id;
+    // user full was already added, source ID was registered and shouldn't be needed
+    return FileSourceId();
+  }
+
+  auto &source_id = user_full_file_source_ids_[user_id];
+  if (!source_id.is_valid()) {
+    source_id = td_->file_reference_manager_->create_user_full_file_source(user_id);
+  }
+  VLOG(file_references) << "Return " << source_id << " for full " << user_id;
   return source_id;
 }
 

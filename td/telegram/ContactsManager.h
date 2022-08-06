@@ -492,7 +492,8 @@ class ContactsManager final : public Actor {
   bool get_user(UserId user_id, int left_tries, Promise<Unit> &&promise);
   void reload_user(UserId user_id, Promise<Unit> &&promise);
   void load_user_full(UserId user_id, bool force, Promise<Unit> &&promise, const char *source);
-  void reload_user_full(UserId user_id);
+  FileSourceId get_user_full_file_source_id(UserId user_id);
+  void reload_user_full(UserId user_id, Promise<Unit> &&promise);
 
   std::pair<int32, vector<const Photo *>> get_user_profile_photos(UserId user_id, int32 offset, int32 limit,
                                                                   Promise<Unit> &&promise);
@@ -717,6 +718,8 @@ class ContactsManager final : public Actor {
     string description;
     Photo description_photo;
     FileId description_animation_file_id;
+    vector<FileId> registered_file_ids;
+    FileSourceId file_source_id;
 
     vector<PremiumGiftOption> premium_gift_options;
 
@@ -736,6 +739,7 @@ class ContactsManager final : public Actor {
     bool voice_messages_forbidden = false;
 
     bool is_common_chat_count_changed = true;
+    bool are_files_changed = true;
     bool is_changed = true;             // have new changes that need to be sent to the client and database
     bool need_send_update = true;       // have new changes that need only to be sent to the client
     bool need_save_to_database = true;  // have new changes that need only to be saved to the database
@@ -1703,6 +1707,7 @@ class ContactsManager final : public Actor {
   };
   WaitFreeHashMap<std::pair<UserId, int64>, FileSourceId, UserIdPhotoIdHash> user_profile_photo_file_source_ids_;
   FlatHashMap<int64, FileId> my_photo_file_id_;
+  WaitFreeHashMap<UserId, FileSourceId, UserIdHash> user_full_file_source_ids_;
 
   WaitFreeHashMap<ChatId, unique_ptr<Chat>, ChatIdHash> chats_;
   WaitFreeHashMap<ChatId, unique_ptr<ChatFull>, ChatIdHash> chats_full_;

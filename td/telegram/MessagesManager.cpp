@@ -8451,7 +8451,7 @@ void MessagesManager::reget_dialog_action_bar(DialogId dialog_id, const char *so
   LOG(INFO) << "Reget action bar in " << dialog_id << " from " << source;
   switch (dialog_id.get_type()) {
     case DialogType::User:
-      td_->contacts_manager_->reload_user_full(dialog_id.get_user_id());
+      td_->contacts_manager_->reload_user_full(dialog_id.get_user_id(), Auto());
       return;
     case DialogType::Chat:
     case DialogType::Channel:
@@ -18453,7 +18453,8 @@ void MessagesManager::reload_dialog_info_full(DialogId dialog_id, const char *so
   LOG(INFO) << "Reload full info about " << dialog_id << " from " << source;
   switch (dialog_id.get_type()) {
     case DialogType::User:
-      send_closure_later(td_->contacts_manager_actor_, &ContactsManager::reload_user_full, dialog_id.get_user_id());
+      send_closure_later(td_->contacts_manager_actor_, &ContactsManager::reload_user_full, dialog_id.get_user_id(),
+                         Promise<Unit>());
       return;
     case DialogType::Chat:
       send_closure_later(td_->contacts_manager_actor_, &ContactsManager::reload_chat_full, dialog_id.get_chat_id(),
@@ -21106,7 +21107,7 @@ void MessagesManager::open_dialog(Dialog *d) {
       // to repair dialog action bar
       auto user_id = td_->contacts_manager_->get_secret_chat_user_id(dialog_id.get_secret_chat_id());
       if (user_id.is_valid()) {
-        td_->contacts_manager_->reload_user_full(user_id);
+        td_->contacts_manager_->reload_user_full(user_id, Promise<Unit>());
       }
       break;
     }
@@ -34958,7 +34959,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
       switch (dialog_type) {
         case DialogType::User:
           td_->contacts_manager_->invalidate_user_full(dialog_id.get_user_id());
-          td_->contacts_manager_->reload_user_full(dialog_id.get_user_id());
+          td_->contacts_manager_->reload_user_full(dialog_id.get_user_id(), Promise<Unit>());
           break;
         case DialogType::Chat:
         case DialogType::Channel:
@@ -34968,7 +34969,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
           auto user_id = td_->contacts_manager_->get_secret_chat_user_id(dialog_id.get_secret_chat_id());
           if (user_id.is_valid()) {
             td_->contacts_manager_->invalidate_user_full(user_id);
-            td_->contacts_manager_->reload_user_full(user_id);
+            td_->contacts_manager_->reload_user_full(user_id, Promise<Unit>());
           }
           break;
         }

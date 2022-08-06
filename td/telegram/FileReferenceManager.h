@@ -57,6 +57,7 @@ class FileReferenceManager final : public Actor {
   FileSourceId create_recent_stickers_file_source(bool is_attached);
   FileSourceId create_favorite_stickers_file_source();
   FileSourceId create_background_file_source(BackgroundId background_id, int64 access_hash);
+  FileSourceId create_user_full_file_source(UserId user_id);
   FileSourceId create_chat_full_file_source(ChatId chat_id);
   FileSourceId create_channel_full_file_source(ChannelId channel_id);
   FileSourceId create_app_config_file_source();
@@ -156,12 +157,16 @@ class FileReferenceManager final : public Actor {
   struct FileSourceSavedRingtones {
     // empty
   };
+  struct FileSourceUserFull {
+    UserId user_id;
+  };
 
   // append only
-  using FileSource = Variant<FileSourceMessage, FileSourceUserPhoto, FileSourceChatPhoto, FileSourceChannelPhoto,
-                             FileSourceWallpapers, FileSourceWebPage, FileSourceSavedAnimations,
-                             FileSourceRecentStickers, FileSourceFavoriteStickers, FileSourceBackground,
-                             FileSourceChatFull, FileSourceChannelFull, FileSourceAppConfig, FileSourceSavedRingtones>;
+  using FileSource =
+      Variant<FileSourceMessage, FileSourceUserPhoto, FileSourceChatPhoto, FileSourceChannelPhoto, FileSourceWallpapers,
+              FileSourceWebPage, FileSourceSavedAnimations, FileSourceRecentStickers, FileSourceFavoriteStickers,
+              FileSourceBackground, FileSourceChatFull, FileSourceChannelFull, FileSourceAppConfig,
+              FileSourceSavedRingtones, FileSourceUserFull>;
   WaitFreeVector<FileSource> file_sources_;
 
   int64 query_generation_{0};

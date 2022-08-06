@@ -51,7 +51,8 @@ void FileReferenceManager::store_file_source(FileSourceId file_source_id, Storer
                           },
                           [&](const FileSourceChatFull &source) { td::store(source.chat_id, storer); },
                           [&](const FileSourceChannelFull &source) { td::store(source.channel_id, storer); },
-                          [&](const FileSourceAppConfig &source) {}, [&](const FileSourceSavedRingtones &source) {}));
+                          [&](const FileSourceAppConfig &source) {}, [&](const FileSourceSavedRingtones &source) {},
+                          [&](const FileSourceUserFull &source) { td::store(source.user_id, storer); }));
 }
 
 template <class ParserT>
@@ -117,6 +118,11 @@ FileSourceId FileReferenceManager::parse_file_source(Td *td, ParserT &parser) {
       return td->stickers_manager_->get_app_config_file_source_id();
     case 13:
       return td->notification_settings_manager_->get_saved_ringtones_file_source_id();
+    case 14: {
+      UserId user_id;
+      td::parse(user_id, parser);
+      return td->contacts_manager_->get_user_full_file_source_id(user_id);
+    }
     default:
       parser.set_error("Invalid type in FileSource");
       return FileSourceId();
