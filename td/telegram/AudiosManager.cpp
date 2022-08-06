@@ -179,6 +179,25 @@ FileId AudiosManager::get_audio_thumbnail_file_id(FileId file_id) const {
   return audio->thumbnail.file_id;
 }
 
+void AudiosManager::append_audio_album_cover_file_ids(FileId file_id, vector<FileId> &file_ids) const {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+  auto audio = get_audio(file_id);
+  CHECK(audio != nullptr);
+
+  auto append_album_cover = [&](bool is_small) {
+    auto r_file_id =
+        td_->file_manager_->get_audio_thumbnail_file_id(audio->title, audio->performer, is_small, DialogId());
+    if (r_file_id.is_ok()) {
+      file_ids.push_back(r_file_id.ok());
+    }
+  };
+
+  append_album_cover(true);
+  append_album_cover(false);
+}
+
 void AudiosManager::delete_audio_thumbnail(FileId file_id) {
   auto &audio = audios_[file_id];
   CHECK(audio != nullptr);

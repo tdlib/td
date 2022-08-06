@@ -69,6 +69,10 @@ void Document::append_file_ids(const Td *td, vector<FileId> &file_ids) const {
   if (animated_thumbnail_file_id.is_valid()) {
     file_ids.push_back(animated_thumbnail_file_id);
   }
+
+  if (type == Type::Audio) {
+    td->audios_manager_->append_audio_album_cover_file_ids(file_id, file_ids);
+  }
 }
 
 bool operator==(const Document &lhs, const Document &rhs) {

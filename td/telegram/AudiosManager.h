@@ -48,6 +48,8 @@ class AudiosManager {
 
   FileId get_audio_thumbnail_file_id(FileId file_id) const;
 
+  void append_audio_album_cover_file_ids(FileId file_id, vector<FileId> &file_ids) const;
+
   void delete_audio_thumbnail(FileId file_id);
 
   FileId dup_audio(FileId new_id, FileId old_id);
