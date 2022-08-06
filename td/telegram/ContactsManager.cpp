@@ -10580,13 +10580,8 @@ void ContactsManager::update_user_full(UserFull *user_full, UserId user_id, cons
         }
       }
 
-      for (auto &file_id : user_full->registered_file_ids) {
-        td_->file_manager_->remove_file_source(file_id, file_source_id);
-      }
+      td_->file_manager_->change_files_source(file_source_id, user_full->registered_file_ids, file_ids);
       user_full->registered_file_ids = std::move(file_ids);
-      for (auto &file_id : user_full->registered_file_ids) {
-        td_->file_manager_->add_file_source(file_id, file_source_id);
-      }
     }
   }
 
@@ -12964,13 +12959,8 @@ void ContactsManager::on_update_chat_full_photo(ChatFull *chat_full, ChatId chat
     }
   }
 
-  for (auto &file_id : chat_full->registered_photo_file_ids) {
-    td_->file_manager_->remove_file_source(file_id, file_source_id);
-  }
+  td_->file_manager_->change_files_source(file_source_id, chat_full->registered_photo_file_ids, photo_file_ids);
   chat_full->registered_photo_file_ids = std::move(photo_file_ids);
-  for (auto &file_id : chat_full->registered_photo_file_ids) {
-    td_->file_manager_->add_file_source(file_id, file_source_id);
-  }
 }
 
 void ContactsManager::on_update_channel_full_photo(ChannelFull *channel_full, ChannelId channel_id, Photo photo) {
@@ -12997,13 +12987,8 @@ void ContactsManager::on_update_channel_full_photo(ChannelFull *channel_full, Ch
     }
   }
 
-  for (auto &file_id : channel_full->registered_photo_file_ids) {
-    td_->file_manager_->remove_file_source(file_id, file_source_id);
-  }
+  td_->file_manager_->change_files_source(file_source_id, channel_full->registered_photo_file_ids, photo_file_ids);
   channel_full->registered_photo_file_ids = std::move(photo_file_ids);
-  for (auto &file_id : channel_full->registered_photo_file_ids) {
-    td_->file_manager_->add_file_source(file_id, file_source_id);
-  }
 }
 
 void ContactsManager::on_get_permanent_dialog_invite_link(DialogId dialog_id, const DialogInviteLink &invite_link) {
