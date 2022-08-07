@@ -1273,6 +1273,29 @@ class SendAnimatedEmojiClicksQuery final : public Td::ResultHandler {
   }
 };
 
+template <class StorerT>
+void StickersManager::FoundStickers::store(StorerT &storer) const {
+  StickersManager *stickers_manager = storer.context()->td().get_actor_unsafe()->stickers_manager_.get();
+  td::store(narrow_cast<int32>(sticker_ids_.size()), storer);
+  for (auto sticker_id : sticker_ids_) {
+    stickers_manager->store_sticker(sticker_id, false, storer, "FoundStickers");
+  }
+  td::store(cache_time_, storer);
+  store_time(next_reload_time_, storer);
+}
+
+template <class ParserT>
+void StickersManager::FoundStickers::parse(ParserT &parser) {
+  StickersManager *stickers_manager = parser.context()->td().get_actor_unsafe()->stickers_manager_.get();
+  int32 size = parser.fetch_int();
+  sticker_ids_.resize(size);
+  for (auto &sticker_id : sticker_ids_) {
+    sticker_id = stickers_manager->parse_sticker(false, parser);
+  }
+  td::parse(cache_time_, parser);
+  parse_time(next_reload_time_, parser);
+}
+
 class StickersManager::StickerListLogEvent {
  public:
   vector<FileId> sticker_ids;
@@ -4134,6 +4157,10 @@ vector<FileId> StickersManager::get_stickers(StickerType sticker_type, string em
   return result;
 }
 
+string StickersManager::get_found_stickers_database_key(const string &emoji) {
+  return PSTRING() << "found_stickers" << emoji;
+}
+
 void StickersManager::search_stickers(string emoji, int32 limit,
                                       Promise<td_api::object_ptr<td_api::stickers>> &&promise) {
   if (limit == 0) {
@@ -4167,8 +4194,59 @@ void StickersManager::search_stickers(string emoji, int32 limit,
     int64 hash = 0;
     if (it != found_stickers_.end()) {
       hash = get_recent_stickers_hash(it->second.sticker_ids_);
+      td_->create_handler<SearchStickersQuery>()->send(std::move(emoji), hash);
+      return;
     }
-    td_->create_handler<SearchStickersQuery>()->send(std::move(emoji), hash);
+
+    if (G()->parameters().use_file_db) {
+      LOG(INFO) << "Trying to load stickers for " << emoji << " from database";
+      G()->td_db()->get_sqlite_pmc()->get(
+          get_found_stickers_database_key(emoji), PromiseCreator::lambda([emoji](string value) mutable {
+            send_closure(G()->stickers_manager(), &StickersManager::on_load_found_stickers_from_database,
+                         std::move(emoji), std::move(value));
+          }));
+    } else {
+      td_->create_handler<SearchStickersQuery>()->send(std::move(emoji), 0);
+    }
+  }
+}
+
+void StickersManager::on_load_found_stickers_from_database(string emoji, string value) {
+  if (G()->close_flag()) {
+    return;
+  }
+  if (value.empty()) {
+    LOG(INFO) << "Stickers for " << emoji << " aren't found in database";
+    td_->create_handler<SearchStickersQuery>()->send(std::move(emoji), 0);
+    return;
+  }
+
+  LOG(INFO) << "Successfully loaded stickers for " << emoji << " from database";
+
+  auto &found_stickers = found_stickers_[emoji];
+  CHECK(found_stickers.next_reload_time_ == 0);
+  auto status = log_event_parse(found_stickers, value);
+  if (status.is_error()) {
+    LOG(ERROR) << "Can't load stickers for emoji: " << status << ' ' << format::as_hex_dump<4>(Slice(value));
+    found_stickers_.erase(emoji);
+    td_->create_handler<SearchStickersQuery>()->send(std::move(emoji), 0);
+    return;
+  }
+
+  on_search_stickers_finished(emoji, found_stickers);
+}
+
+void StickersManager::on_search_stickers_finished(const string &emoji, const FoundStickers &found_stickers) {
+  auto it = search_stickers_queries_.find(emoji);
+  CHECK(it != search_stickers_queries_.end());
+  CHECK(!it->second.empty());
+  auto queries = std::move(it->second);
+  search_stickers_queries_.erase(it);
+
+  const auto &sticker_ids = found_stickers.sticker_ids_;
+  for (auto &query : queries) {
+    auto result_size = min(static_cast<size_t>(query.first), sticker_ids.size());
+    query.second.set_value(get_stickers_object({sticker_ids.begin(), sticker_ids.begin() + result_size}));
   }
 }
 
@@ -4183,7 +4261,7 @@ void StickersManager::on_find_stickers_success(const string &emoji,
       }
       auto &found_stickers = it->second;
       found_stickers.next_reload_time_ = Time::now() + found_stickers.cache_time_;
-      break;
+      return on_search_stickers_finished(emoji, found_stickers);
     }
     case telegram_api::messages_stickers::ID: {
       auto received_stickers = move_tl_object_as<telegram_api::messages_stickers>(stickers);
@@ -4199,24 +4277,17 @@ void StickersManager::on_find_stickers_success(const string &emoji,
           found_stickers.sticker_ids_.push_back(sticker_id);
         }
       }
-      break;
+
+      if (G()->parameters().use_file_db && !G()->close_flag()) {
+        LOG(INFO) << "Save stickers for " << emoji << " to database";
+        G()->td_db()->get_sqlite_pmc()->set(get_found_stickers_database_key(emoji),
+                                            log_event_store(found_stickers).as_slice().str(), Auto());
+      }
+
+      return on_search_stickers_finished(emoji, found_stickers);
     }
     default:
       UNREACHABLE();
-  }
-
-  auto it = search_stickers_queries_.find(emoji);
-  CHECK(it != search_stickers_queries_.end());
-  CHECK(!it->second.empty());
-  auto queries = std::move(it->second);
-  search_stickers_queries_.erase(it);
-
-  auto result_it = found_stickers_.find(emoji);
-  CHECK(result_it != found_stickers_.end());
-  const auto &sticker_ids = result_it->second.sticker_ids_;
-  for (auto &query : queries) {
-    auto result_size = min(static_cast<size_t>(query.first), sticker_ids.size());
-    query.second.set_value(get_stickers_object({sticker_ids.begin(), sticker_ids.begin() + result_size}));
   }
 }
 

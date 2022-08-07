@@ -486,6 +486,18 @@ class StickersManager final : public Actor {
     bool is_being_reloaded_ = false;
   };
 
+  struct FoundStickers {
+    vector<FileId> sticker_ids_;
+    int32 cache_time_ = 300;
+    double next_reload_time_ = 0;
+
+    template <class StorerT>
+    void store(StorerT &storer) const;
+
+    template <class ParserT>
+    void parse(ParserT &parser);
+  };
+
   struct Reaction {
     string reaction_;
     string title_;
@@ -547,7 +559,13 @@ class StickersManager final : public Actor {
   Sticker *get_sticker(FileId file_id);
   const Sticker *get_sticker(FileId file_id) const;
 
-  string get_custom_emoji_database_key(int64 custom_emoji_id);
+  static string get_found_stickers_database_key(const string &emoji);
+
+  void on_load_found_stickers_from_database(string emoji, string value);
+
+  void on_search_stickers_finished(const string &emoji, const FoundStickers &found_stickers);
+
+  static string get_custom_emoji_database_key(int64 custom_emoji_id);
 
   void load_custom_emoji_sticker_from_database(int64 custom_emoji_id, Promise<Unit> &&promise);
 
@@ -914,11 +932,6 @@ class StickersManager final : public Actor {
 
   Hints installed_sticker_sets_hints_[MAX_STICKER_TYPE];  // search installed sticker sets by their title and name
 
-  struct FoundStickers {
-    vector<FileId> sticker_ids_;
-    int32 cache_time_ = 300;
-    double next_reload_time_ = 0;
-  };
   FlatHashMap<string, FoundStickers> found_stickers_;
   FlatHashMap<string, vector<std::pair<int32, Promise<td_api::object_ptr<td_api::stickers>>>>> search_stickers_queries_;
 
