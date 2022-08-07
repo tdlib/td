@@ -81,6 +81,8 @@ class MessageReaction {
 
   bool remove_recent_chooser_dialog_id(DialogId dialog_id);
 
+  void update_recent_chooser_dialog_ids(const MessageReaction &old_reaction);
+
   td_api::object_ptr<td_api::messageReaction> get_message_reaction_object(Td *td) const;
 
   template <class StorerT>

@@ -219,13 +219,30 @@ class GetMessageReactionsListQuery final : public Td::ResultHandler {
 
 void MessageReaction::add_recent_chooser_dialog_id(DialogId dialog_id) {
   recent_chooser_dialog_ids_.insert(recent_chooser_dialog_ids_.begin(), dialog_id);
-  if (recent_chooser_dialog_ids_.size() > MAX_RECENT_CHOOSERS) {
-    recent_chooser_dialog_ids_.resize(MAX_RECENT_CHOOSERS);
+  if (recent_chooser_dialog_ids_.size() > MAX_RECENT_CHOOSERS + 1) {
+    LOG(ERROR) << "Have " << recent_chooser_dialog_ids_.size() << " recent reaction choosers";
+    recent_chooser_dialog_ids_.resize(MAX_RECENT_CHOOSERS + 1);
   }
 }
 
 bool MessageReaction::remove_recent_chooser_dialog_id(DialogId dialog_id) {
   return td::remove(recent_chooser_dialog_ids_, dialog_id);
+}
+
+void MessageReaction::update_recent_chooser_dialog_ids(const MessageReaction &old_reaction) {
+  if (recent_chooser_dialog_ids_.size() != MAX_RECENT_CHOOSERS) {
+    return;
+  }
+  CHECK(is_chosen_ && old_reaction.is_chosen_);
+  CHECK(reaction_ == old_reaction.reaction_);
+  CHECK(old_reaction.recent_chooser_dialog_ids_.size() == MAX_RECENT_CHOOSERS + 1);
+  for (size_t i = 0; i < MAX_RECENT_CHOOSERS; i++) {
+    if (recent_chooser_dialog_ids_[i] != old_reaction.recent_chooser_dialog_ids_[i]) {
+      return;
+    }
+  }
+  recent_chooser_dialog_ids_ = old_reaction.recent_chooser_dialog_ids_;
+  recent_chooser_min_channels_ = old_reaction.recent_chooser_min_channels_;
 }
 
 void MessageReaction::set_is_chosen(bool is_chosen, DialogId chooser_dialog_id, bool can_get_added_reactions) {
@@ -254,6 +271,9 @@ td_api::object_ptr<td_api::messageReaction> MessageReaction::get_message_reactio
     auto recent_chooser = get_min_message_sender_object(td, dialog_id, "get_message_reaction_object");
     if (recent_chooser != nullptr) {
       recent_choosers.push_back(std::move(recent_chooser));
+      if (recent_choosers.size() == MAX_RECENT_CHOOSERS) {
+        break;
+      }
     }
   }
   return td_api::make_object<td_api::messageReaction>(reaction_, choose_count_, is_chosen_, std::move(recent_choosers));
@@ -397,6 +417,15 @@ void MessageReactions::update_from(const MessageReactions &old_reactions) {
       }
     }
     unread_reactions_ = old_reactions.unread_reactions_;
+  }
+  for (const auto &old_reaction : old_reactions.reactions_) {
+    if (old_reaction.is_chosen() &&
+        old_reaction.get_recent_chooser_dialog_ids().size() == MessageReaction::MAX_RECENT_CHOOSERS + 1) {
+      auto *reaction = get_reaction(old_reaction.get_reaction());
+      if (reaction != nullptr && reaction->is_chosen()) {
+        reaction->update_recent_chooser_dialog_ids(old_reaction);
+      }
+    }
   }
 }
 
