@@ -2199,7 +2199,7 @@ tl_object_ptr<td_api::stickerSetInfo> StickersManager::get_sticker_set_info_obje
   if (prefer_premium) {
     vector<FileId> regular_sticker_ids;
     vector<FileId> premium_sticker_ids;
-    std::tie(regular_sticker_ids, premium_sticker_ids) = split_stickers_by_premium(sticker_set->sticker_ids_);
+    std::tie(regular_sticker_ids, premium_sticker_ids) = split_stickers_by_premium(sticker_set);
     auto is_premium = G()->shared_config().get_option_boolean("is_premium");
     size_t max_premium_stickers = is_premium ? covers_limit : 1;
     if (premium_sticker_ids.size() > max_premium_stickers) {
@@ -3816,6 +3816,30 @@ std::pair<vector<FileId>, vector<FileId>> StickersManager::split_stickers_by_pre
       }
     }
   }
+  return {std::move(regular_sticker_ids), std::move(premium_sticker_ids)};
+}
+
+std::pair<vector<FileId>, vector<FileId>> StickersManager::split_stickers_by_premium(
+    const StickerSet *sticker_set) const {
+  if (!sticker_set->was_loaded_) {
+    return split_stickers_by_premium(sticker_set->sticker_ids_);
+  }
+  if (sticker_set->premium_sticker_positions_.empty()) {
+    return {sticker_set->sticker_ids_, {}};
+  }
+  vector<FileId> regular_sticker_ids;
+  vector<FileId> premium_sticker_ids;
+  size_t premium_pos = 0;
+  for (size_t i = 0; i < sticker_set->sticker_ids_.size(); i++) {
+    if (premium_pos < sticker_set->premium_sticker_positions_.size() &&
+        static_cast<size_t>(sticker_set->premium_sticker_positions_[premium_pos]) == i) {
+      premium_sticker_ids.push_back(sticker_set->sticker_ids_[i]);
+      premium_pos++;
+    } else {
+      regular_sticker_ids.push_back(sticker_set->sticker_ids_[i]);
+    }
+  }
+  CHECK(premium_pos == sticker_set->premium_sticker_positions_.size());
   return {std::move(regular_sticker_ids), std::move(premium_sticker_ids)};
 }
 
