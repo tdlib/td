@@ -2939,7 +2939,7 @@ Result<FileId> FileManager::from_persistent_id_generated(Slice binary, FileType 
   auto real_file_type = generate_location.file_type_;
   if ((real_file_type != file_type && file_type != FileType::Temp) ||
       (real_file_type != FileType::Thumbnail && real_file_type != FileType::EncryptedThumbnail)) {
-    return Status::Error(400, "Type of file mismatch");
+    return Status::Error(400, PSLICE() << "Can't use file of type " << real_file_type << " as " << file_type);
   }
   if (!is_remotely_generated_file(generate_location.conversion_)) {
     return Status::Error(400, "Unexpected conversion type");
@@ -2970,7 +2970,7 @@ Result<FileId> FileManager::from_persistent_id_v23(Slice binary, FileType file_t
   } else if (is_background_type(real_file_type) && is_background_type(file_type)) {
     // type of file matches, but real type is in the stored remote location
   } else if (real_file_type != file_type && file_type != FileType::Temp) {
-    return Status::Error(400, "Type of file mismatch");
+    return Status::Error(400, PSLICE() << "Can't use file of type " << real_file_type << " as " << file_type);
   }
   FileData data;
   data.remote_ = RemoteFileLocation(std::move(remote_location));
@@ -3089,7 +3089,7 @@ Result<FileId> FileManager::check_input_file_id(FileType type, Result<FileId> re
         !(is_background_type(real_type) && is_background_type(type)) &&
         !(file_view.is_encrypted() && type == FileType::Ringtone)) {
       // TODO: send encrypted file to unencrypted chat
-      return Status::Error(400, "Type of file mismatch");
+      return Status::Error(400, PSLICE() << "Can't use file of type " << real_type << " as " << type);
     }
   }
 
