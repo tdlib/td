@@ -379,88 +379,88 @@ class StickersManager final : public Actor {
 
   class Sticker {
    public:
-    StickerSetId set_id;
-    string alt;
-    Dimensions dimensions;
-    string minithumbnail;
-    PhotoSize s_thumbnail;
-    PhotoSize m_thumbnail;
-    FileId premium_animation_file_id;
-    FileId file_id;
-    StickerFormat format = StickerFormat::Unknown;
-    StickerType type = StickerType::Regular;
-    bool is_premium = false;
-    bool is_from_database = false;
-    bool is_being_reloaded = false;
-    int32 point = -1;
-    double x_shift = 0;
-    double y_shift = 0;
-    double scale = 0;
-    int32 emoji_receive_date = 0;
+    StickerSetId set_id_;
+    string alt_;
+    Dimensions dimensions_;
+    string minithumbnail_;
+    PhotoSize s_thumbnail_;
+    PhotoSize m_thumbnail_;
+    FileId premium_animation_file_id_;
+    FileId file_id_;
+    StickerFormat format_ = StickerFormat::Unknown;
+    StickerType type_ = StickerType::Regular;
+    bool is_premium_ = false;
+    bool is_from_database_ = false;
+    bool is_being_reloaded_ = false;
+    int32 point_ = -1;
+    double x_shift_ = 0;
+    double y_shift_ = 0;
+    double scale_ = 0;
+    int32 emoji_receive_date_ = 0;
   };
 
   class StickerSet {
    public:
-    bool is_inited = false;  // basic information about the set
-    bool was_loaded = false;
-    bool is_loaded = false;
+    bool is_inited_ = false;  // basic information about the set
+    bool was_loaded_ = false;
+    bool is_loaded_ = false;
 
-    StickerSetId id;
-    int64 access_hash = 0;
-    string title;
-    string short_name;
-    StickerFormat sticker_format = StickerFormat::Unknown;
-    StickerType sticker_type = StickerType::Regular;
-    int32 sticker_count = 0;
-    int32 hash = 0;
-    int32 expires_at = 0;
+    StickerSetId id_;
+    int64 access_hash_ = 0;
+    string title_;
+    string short_name_;
+    StickerFormat sticker_format_ = StickerFormat::Unknown;
+    StickerType sticker_type_ = StickerType::Regular;
+    int32 sticker_count_ = 0;
+    int32 hash_ = 0;
+    int32 expires_at_ = 0;
 
-    string minithumbnail;
-    PhotoSize thumbnail;
-    int64 thumbnail_document_id = 0;
+    string minithumbnail_;
+    PhotoSize thumbnail_;
+    int64 thumbnail_document_id_ = 0;
 
-    vector<FileId> sticker_ids;
+    vector<FileId> sticker_ids_;
     FlatHashMap<string, vector<FileId>> emoji_stickers_map_;              // emoji -> stickers
     FlatHashMap<FileId, vector<string>, FileIdHash> sticker_emojis_map_;  // sticker -> emojis
 
-    bool is_installed = false;
-    bool is_archived = false;
-    bool is_official = false;
-    bool is_viewed = true;
-    bool is_thumbnail_reloaded = false;
-    bool are_legacy_sticker_thumbnails_reloaded = false;
-    mutable bool was_update_sent = false;  // does the sticker set is known to the client
-    bool is_changed = true;                // have new changes that need to be sent to the client and database
-    bool need_save_to_database = true;     // have new changes that need only to be saved to the database
+    bool is_installed_ = false;
+    bool is_archived_ = false;
+    bool is_official_ = false;
+    bool is_viewed_ = true;
+    bool is_thumbnail_reloaded_ = false;
+    bool are_legacy_sticker_thumbnails_reloaded_ = false;
+    mutable bool was_update_sent_ = false;  // does the sticker set is known to the client
+    bool is_changed_ = true;                // have new changes that need to be sent to the client and database
+    bool need_save_to_database_ = true;     // have new changes that need only to be saved to the database
 
-    vector<uint32> load_requests;
-    vector<uint32> load_without_stickers_requests;
+    vector<uint32> load_requests_;
+    vector<uint32> load_without_stickers_requests_;
   };
 
   struct PendingNewStickerSet {
-    MultiPromiseActor upload_files_multipromise{"UploadNewStickerSetFilesMultiPromiseActor"};
-    UserId user_id;
-    string title;
-    string short_name;
-    StickerType sticker_type = StickerType::Regular;
-    StickerFormat sticker_format = StickerFormat::Unknown;
-    vector<FileId> file_ids;
-    vector<tl_object_ptr<td_api::inputSticker>> stickers;
-    string software;
-    Promise<> promise;
+    MultiPromiseActor upload_files_multipromise_{"UploadNewStickerSetFilesMultiPromiseActor"};
+    UserId user_id_;
+    string title_;
+    string short_name_;
+    StickerType sticker_type_ = StickerType::Regular;
+    StickerFormat sticker_format_ = StickerFormat::Unknown;
+    vector<FileId> file_ids_;
+    vector<tl_object_ptr<td_api::inputSticker>> stickers_;
+    string software_;
+    Promise<> promise_;
   };
 
   struct PendingAddStickerToSet {
-    string short_name;
-    FileId file_id;
-    tl_object_ptr<td_api::inputSticker> sticker;
-    Promise<> promise;
+    string short_name_;
+    FileId file_id_;
+    tl_object_ptr<td_api::inputSticker> sticker_;
+    Promise<> promise_;
   };
 
   struct PendingSetStickerSetThumbnail {
-    string short_name;
-    FileId file_id;
-    Promise<> promise;
+    string short_name_;
+    FileId file_id_;
+    Promise<> promise_;
   };
 
   struct PendingGetAnimatedEmojiClickSticker {
@@ -931,9 +931,9 @@ class StickersManager final : public Actor {
   FlatHashMap<SpecialStickerSetType, unique_ptr<SpecialStickerSet>, SpecialStickerSetTypeHash> special_sticker_sets_;
 
   struct StickerSetLoadRequest {
-    Promise<Unit> promise;
-    Status error;
-    size_t left_queries = 0;
+    Promise<Unit> promise_;
+    Status error_;
+    size_t left_queries_ = 0;
   };
 
   FlatHashMap<uint32, StickerSetLoadRequest> sticker_set_load_requests_;
@@ -960,9 +960,9 @@ class StickersManager final : public Actor {
   std::vector<std::pair<int, double>> pending_animated_emoji_clicks_;
 
   struct SentAnimatedEmojiClicks {
-    double send_time = 0.0;
-    DialogId dialog_id;
-    string emoji;
+    double send_time_ = 0.0;
+    DialogId dialog_id_;
+    string emoji_;
   };
   std::vector<SentAnimatedEmojiClicks> sent_animated_emoji_clicks_;
 
@@ -981,23 +981,23 @@ class StickersManager final : public Actor {
   FlatHashMap<int64, string> emoji_suggestions_urls_;
 
   struct GiftPremiumMessages {
-    FlatHashSet<FullMessageId, FullMessageIdHash> full_message_ids;
-    FileId sticker_id;
+    FlatHashSet<FullMessageId, FullMessageIdHash> full_message_ids_;
+    FileId sticker_id_;
   };
   FlatHashMap<int32, unique_ptr<GiftPremiumMessages>> premium_gift_messages_;
 
   FlatHashMap<string, FlatHashSet<FullMessageId, FullMessageIdHash>> dice_messages_;
 
   struct EmojiMessages {
-    FlatHashSet<FullMessageId, FullMessageIdHash> full_message_ids;
-    std::pair<FileId, int> animated_emoji_sticker;
-    FileId sound_file_id;
+    FlatHashSet<FullMessageId, FullMessageIdHash> full_message_ids_;
+    std::pair<FileId, int> animated_emoji_sticker_;
+    FileId sound_file_id_;
   };
   FlatHashMap<string, unique_ptr<EmojiMessages>> emoji_messages_;
 
   struct CustomEmojiMessages {
-    FlatHashSet<FullMessageId, FullMessageIdHash> full_message_ids;
-    FileId sticker_id;
+    FlatHashSet<FullMessageId, FullMessageIdHash> full_message_ids_;
+    FileId sticker_id_;
   };
   FlatHashMap<int64, unique_ptr<CustomEmojiMessages>> custom_emoji_messages_;
 
