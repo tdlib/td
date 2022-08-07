@@ -3471,6 +3471,9 @@ StickerSetId StickersManager::on_get_messages_sticker_set(StickerSetId sticker_s
       continue;
     }
 
+    if (!is_bot && get_sticker(sticker_id.second)->is_premium_) {
+      s->premium_sticker_positions_.push_back(static_cast<int32>(s->sticker_ids_.size()));
+    }
     s->sticker_ids_.push_back(sticker_id.second);
     if (!is_bot) {
       document_id_to_sticker_id.emplace(sticker_id.first, sticker_id.second);
@@ -4256,12 +4259,8 @@ void StickersManager::do_get_premium_stickers(int32 limit, Promise<td_api::objec
       continue;
     }
 
-    for (auto sticker_id : sticker_set->sticker_ids_) {
-      const Sticker *s = get_sticker(sticker_id);
-      if (!s->is_premium_) {
-        continue;
-      }
-      sticker_ids.push_back(sticker_id);
+    for (auto premium_sticker_position : sticker_set->premium_sticker_positions_) {
+      sticker_ids.push_back(sticker_set->sticker_ids_[premium_sticker_position]);
       if (sticker_ids.size() == limit_size_t) {
         return promise.set_value(get_stickers_object(sticker_ids));
       }

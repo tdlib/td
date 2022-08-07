@@ -420,6 +420,7 @@ class StickersManager final : public Actor {
     int64 thumbnail_document_id_ = 0;
 
     vector<FileId> sticker_ids_;
+    vector<int32> premium_sticker_positions_;
     FlatHashMap<string, vector<FileId>> emoji_stickers_map_;              // emoji -> stickers
     FlatHashMap<FileId, vector<string>, FileIdHash> sticker_emojis_map_;  // sticker -> emojis
 
