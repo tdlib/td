@@ -24332,24 +24332,37 @@ vector<AvailableReaction> MessagesManager::get_message_available_reactions(const
     return {};
   }
 
-  bool is_premium = G()->shared_config().get_option_boolean("is_premium");
+  bool can_use_reactions = true;
+  if (d->dialog_id.get_type() == DialogType::Channel) {
+    auto channel_id = d->dialog_id.get_channel_id();
+    if (td_->contacts_manager_->is_megagroup_channel(channel_id) &&
+        !td_->contacts_manager_->get_channel_status(channel_id).is_member() &&
+        can_send_message(d->dialog_id).is_error()) {
+      can_use_reactions = false;
+    }
+  }
+
   vector<AvailableReaction> result;
-  int64 reactions_uniq_max = G()->shared_config().get_option_integer("reactions_uniq_max", 11);
-  bool can_add_new_reactions =
-      m->reactions == nullptr || static_cast<int64>(m->reactions->reactions_.size()) < reactions_uniq_max;
-  // can add only active available reactions or remove previously set reaction
-  for (const auto &active_reaction : active_reactions_) {
-    // can add the reaction if it has already been used for the message or is available in the chat
-    bool is_set = (m->reactions != nullptr && m->reactions->get_reaction(active_reaction.reaction_) != nullptr);
-    if (is_set || (can_add_new_reactions && td::contains(active_reactions, active_reaction.reaction_))) {
-      result.emplace_back(active_reaction.reaction_, !is_premium && active_reaction.is_premium_ && !is_set);
+  if (can_use_reactions) {
+    bool is_premium = G()->shared_config().get_option_boolean("is_premium");
+    int64 reactions_uniq_max = G()->shared_config().get_option_integer("reactions_uniq_max", 11);
+    bool can_add_new_reactions =
+        m->reactions == nullptr || static_cast<int64>(m->reactions->reactions_.size()) < reactions_uniq_max;
+    // can add only active available reactions or remove previously set reaction
+    for (const auto &active_reaction : active_reactions_) {
+      // can add the reaction if it has already been used for the message or is available in the chat
+      bool is_set = (m->reactions != nullptr && m->reactions->get_reaction(active_reaction.reaction_) != nullptr);
+      if (is_set || (can_add_new_reactions && td::contains(active_reactions, active_reaction.reaction_))) {
+        result.emplace_back(active_reaction.reaction_, !is_premium && active_reaction.is_premium_ && !is_set);
+      }
     }
   }
   if (m->reactions != nullptr) {
     for (const auto &reaction : m->reactions->reactions_) {
       if (reaction.is_chosen() &&
           get_reaction_type(result, reaction.get_reaction()) == AvailableReactionType::Unavailable) {
-        CHECK(get_reaction_type(active_reactions_, reaction.get_reaction()) == AvailableReactionType::Unavailable);
+        CHECK(!can_use_reactions ||
+              get_reaction_type(active_reactions_, reaction.get_reaction()) == AvailableReactionType::Unavailable);
         result.emplace_back(reaction.get_reaction(), false);
       }
     }
