@@ -7612,18 +7612,6 @@ void MessagesManager::add_pending_channel_update(DialogId dialog_id, tl_object_p
   } else {
     int32 old_pts = d->pts;
     if (new_pts <= old_pts) {  // very old or unuseful update
-      if (new_pts < old_pts - 19999 && !is_postponed_update) {
-        // restore channel pts after delete_first_messages
-        auto now = Time::now();
-        if (now > last_channel_pts_jump_warning_time_ + 1) {
-          LOG(ERROR) << "Restore pts in " << d->dialog_id << " from " << source << " after delete_first_messages from "
-                     << old_pts << " to " << new_pts << " is temporarily disabled, pts_count = " << pts_count
-                     << ", update is from " << source << ": " << oneline(to_string(update));
-          last_channel_pts_jump_warning_time_ = now;
-        }
-        get_channel_difference(dialog_id, old_pts, true, "add_pending_channel_update old");
-      }
-
       if (update->get_id() == telegram_api::updateNewChannelMessage::ID) {
         auto update_new_channel_message = static_cast<telegram_api::updateNewChannelMessage *>(update.get());
         auto message_id = get_message_id(update_new_channel_message->message_, false);
