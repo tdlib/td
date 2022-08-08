@@ -16131,6 +16131,8 @@ void ContactsManager::on_chat_update(telegram_api::chat &chat, const char *sourc
   on_update_chat_title(c, chat_id, std::move(chat.title_));
   if (!status.is_left()) {
     on_update_chat_participant_count(c, chat_id, chat.participants_count_, chat.version_, debug_str);
+  } else {
+    chat.photo_ = nullptr;
   }
   if (c->date != chat.date_) {
     LOG_IF(ERROR, c->date != 0) << "Chat creation date has changed from " << c->date << " to " << chat.date_
