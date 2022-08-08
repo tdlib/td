@@ -1080,10 +1080,11 @@ class CreateNewStickerSetQuery final : public Td::ResultHandler {
 };
 
 class AddStickerToSetQuery final : public Td::ResultHandler {
-  Promise<Unit> promise_;
+  Promise<td_api::object_ptr<td_api::stickerSet>> promise_;
 
  public:
-  explicit AddStickerToSetQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  explicit AddStickerToSetQuery(Promise<td_api::object_ptr<td_api::stickerSet>> &&promise)
+      : promise_(std::move(promise)) {
   }
 
   void send(const string &short_name, tl_object_ptr<telegram_api::inputStickerSetItem> &&input_sticker) {
@@ -1099,10 +1100,10 @@ class AddStickerToSetQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
-    td_->stickers_manager_->on_get_messages_sticker_set(StickerSetId(), result_ptr.move_as_ok(), true,
-                                                        "AddStickerToSetQuery");
+    auto sticker_set_id = td_->stickers_manager_->on_get_messages_sticker_set(StickerSetId(), result_ptr.move_as_ok(),
+                                                                              true, "AddStickerToSetQuery");
 
-    promise_.set_value(Unit());
+    promise_.set_value(td_->stickers_manager_->get_sticker_set_object(sticker_set_id));
   }
 
   void on_error(Status status) final {
@@ -7108,8 +7109,9 @@ void StickersManager::on_new_stickers_uploaded(int64 random_id, Result<Unit> res
              sticker_format, std::move(input_stickers), pending_new_sticker_set->software_);
 }
 
-void StickersManager::add_sticker_to_set(UserId user_id, string &short_name,
-                                         tl_object_ptr<td_api::inputSticker> &&sticker, Promise<Unit> &&promise) {
+void StickersManager::add_sticker_to_set(UserId user_id, string short_name,
+                                         tl_object_ptr<td_api::inputSticker> &&sticker,
+                                         Promise<td_api::object_ptr<td_api::stickerSet>> &&promise) {
   TRY_RESULT_PROMISE(promise, input_user, td_->contacts_manager_->get_input_user(user_id));
 
   short_name = clean_username(strip_empty_characters(short_name, MAX_STICKER_SET_SHORT_NAME_LENGTH));
@@ -7136,7 +7138,8 @@ void StickersManager::add_sticker_to_set(UserId user_id, string &short_name,
 }
 
 void StickersManager::do_add_sticker_to_set(UserId user_id, string short_name,
-                                            tl_object_ptr<td_api::inputSticker> &&sticker, Promise<Unit> &&promise) {
+                                            tl_object_ptr<td_api::inputSticker> &&sticker,
+                                            Promise<td_api::object_ptr<td_api::stickerSet>> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
 
   const StickerSet *sticker_set = get_sticker_set(short_name_to_sticker_set_id_.get(short_name));
@@ -7185,6 +7188,8 @@ void StickersManager::on_added_sticker_uploaded(int64 random_id, Result<Unit> re
   CHECK(pending_add_sticker_to_set != nullptr);
 
   pending_add_sticker_to_sets_.erase(it);
+
+  TRY_STATUS_PROMISE(pending_add_sticker_to_set->promise_, G()->close_status());
 
   if (result.is_error()) {
     pending_add_sticker_to_set->promise_.set_error(result.move_as_error());

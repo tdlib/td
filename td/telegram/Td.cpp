@@ -2255,33 +2255,6 @@ class CreateNewStickerSetRequest final : public RequestOnceActor {
   }
 };
 
-class AddStickerToSetRequest final : public RequestOnceActor {
-  UserId user_id_;
-  string name_;
-  tl_object_ptr<td_api::inputSticker> sticker_;
-
-  void do_run(Promise<Unit> &&promise) final {
-    td_->stickers_manager_->add_sticker_to_set(user_id_, name_, std::move(sticker_), std::move(promise));
-  }
-
-  void do_send_result() final {
-    auto set_id = td_->stickers_manager_->search_sticker_set(name_, Auto());
-    if (!set_id.is_valid()) {
-      return send_error(Status::Error(500, "Sticker set not found"));
-    }
-    send_result(td_->stickers_manager_->get_sticker_set_object(set_id));
-  }
-
- public:
-  AddStickerToSetRequest(ActorShared<Td> td, uint64 request_id, int64 user_id, string &&name,
-                         tl_object_ptr<td_api::inputSticker> &&sticker)
-      : RequestOnceActor(std::move(td), request_id)
-      , user_id_(user_id)
-      , name_(std::move(name))
-      , sticker_(std::move(sticker)) {
-  }
-};
-
 class SetStickerSetThumbnailRequest final : public RequestOnceActor {
   UserId user_id_;
   string name_;
@@ -7095,7 +7068,9 @@ void Td::on_request(uint64 id, td_api::createNewStickerSet &request) {
 void Td::on_request(uint64 id, td_api::addStickerToSet &request) {
   CHECK_IS_BOT();
   CLEAN_INPUT_STRING(request.name_);
-  CREATE_REQUEST(AddStickerToSetRequest, request.user_id_, std::move(request.name_), std::move(request.sticker_));
+  CREATE_REQUEST_PROMISE();
+  stickers_manager_->add_sticker_to_set(UserId(request.user_id_), std::move(request.name_), std::move(request.sticker_),
+                                        std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::setStickerSetThumbnail &request) {
