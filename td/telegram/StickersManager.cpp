@@ -2229,6 +2229,7 @@ tl_object_ptr<td_api::stickerSetInfo> StickersManager::get_sticker_set_info_obje
 
   vector<td_api::object_ptr<td_api::sticker>> stickers;
   if (prefer_premium) {
+    CHECK(!td_->auth_manager_->is_bot());
     vector<FileId> regular_sticker_ids;
     vector<FileId> premium_sticker_ids;
     std::tie(regular_sticker_ids, premium_sticker_ids) = split_stickers_by_premium(sticker_set);
@@ -3496,6 +3497,7 @@ StickerSetId StickersManager::on_get_messages_sticker_set(StickerSetId sticker_s
   FlatHashMap<int64, FileId> document_id_to_sticker_id;
 
   s->sticker_ids_.clear();
+  s->premium_sticker_positions_.clear();
   bool is_bot = td_->auth_manager_->is_bot();
   for (auto &document_ptr : documents) {
     auto sticker_id = on_get_sticker_document(std::move(document_ptr), s->sticker_format_);
@@ -3835,6 +3837,7 @@ void StickersManager::on_get_installed_sticker_sets_failed(StickerType sticker_t
 
 std::pair<vector<FileId>, vector<FileId>> StickersManager::split_stickers_by_premium(
     const vector<FileId> &sticker_ids) const {
+  CHECK(!td_->auth_manager_->is_bot());
   vector<FileId> regular_sticker_ids;
   vector<FileId> premium_sticker_ids;
   for (const auto &sticker_id : sticker_ids) {
@@ -3853,6 +3856,7 @@ std::pair<vector<FileId>, vector<FileId>> StickersManager::split_stickers_by_pre
 
 std::pair<vector<FileId>, vector<FileId>> StickersManager::split_stickers_by_premium(
     const StickerSet *sticker_set) const {
+  CHECK(!td_->auth_manager_->is_bot());
   if (!sticker_set->was_loaded_) {
     return split_stickers_by_premium(sticker_set->sticker_ids_);
   }

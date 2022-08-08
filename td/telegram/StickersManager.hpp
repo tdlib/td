@@ -374,6 +374,7 @@ void StickersManager::parse_sticker_set(StickerSet *sticker_set, ParserT &parser
     uint32 stored_sticker_count;
     parse(stored_sticker_count, parser);
     sticker_set->sticker_ids_.clear();
+    sticker_set->premium_sticker_positions_.clear();
     if (sticker_set->was_loaded_) {
       sticker_set->emoji_stickers_map_.clear();
       sticker_set->sticker_emojis_map_.clear();
