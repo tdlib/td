@@ -243,9 +243,9 @@ class StickersManager final : public Actor {
   static td_api::object_ptr<td_api::CheckStickerSetNameResult> get_check_sticker_set_name_result_object(
       CheckStickerSetNameResult result);
 
-  void create_new_sticker_set(UserId user_id, string &title, string &short_name, StickerType sticker_type,
+  void create_new_sticker_set(UserId user_id, string title, string short_name, StickerType sticker_type,
                               vector<td_api::object_ptr<td_api::inputSticker>> &&stickers, string software,
-                              Promise<Unit> &&promise);
+                              Promise<td_api::object_ptr<td_api::stickerSet>> &&promise);
 
   void add_sticker_to_set(UserId user_id, string short_name, tl_object_ptr<td_api::inputSticker> &&sticker,
                           Promise<td_api::object_ptr<td_api::stickerSet>> &&promise);
@@ -448,7 +448,7 @@ class StickersManager final : public Actor {
     vector<FileId> file_ids_;
     vector<tl_object_ptr<td_api::inputSticker>> stickers_;
     string software_;
-    Promise<> promise_;
+    Promise<td_api::object_ptr<td_api::stickerSet>> promise_;
   };
 
   struct PendingAddStickerToSet {

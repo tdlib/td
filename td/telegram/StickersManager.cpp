@@ -1025,10 +1025,11 @@ class CheckStickerSetShortNameQuery final : public Td::ResultHandler {
 };
 
 class CreateNewStickerSetQuery final : public Td::ResultHandler {
-  Promise<Unit> promise_;
+  Promise<td_api::object_ptr<td_api::stickerSet>> promise_;
 
  public:
-  explicit CreateNewStickerSetQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  explicit CreateNewStickerSetQuery(Promise<td_api::object_ptr<td_api::stickerSet>> &&promise)
+      : promise_(std::move(promise)) {
   }
 
   void send(tl_object_ptr<telegram_api::InputUser> &&input_user, const string &title, const string &short_name,
@@ -1067,10 +1068,12 @@ class CreateNewStickerSetQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
-    td_->stickers_manager_->on_get_messages_sticker_set(StickerSetId(), result_ptr.move_as_ok(), true,
-                                                        "CreateNewStickerSetQuery");
-
-    promise_.set_value(Unit());
+    auto sticker_set_id = td_->stickers_manager_->on_get_messages_sticker_set(StickerSetId(), result_ptr.move_as_ok(),
+                                                                              true, "CreateNewStickerSetQuery");
+    if (!sticker_set_id.is_valid()) {
+      return on_error(Status::Error(500, "Created sticker set not found"));
+    }
+    promise_.set_value(td_->stickers_manager_->get_sticker_set_object(sticker_set_id));
   }
 
   void on_error(Status status) final {
@@ -1102,7 +1105,9 @@ class AddStickerToSetQuery final : public Td::ResultHandler {
 
     auto sticker_set_id = td_->stickers_manager_->on_get_messages_sticker_set(StickerSetId(), result_ptr.move_as_ok(),
                                                                               true, "AddStickerToSetQuery");
-
+    if (!sticker_set_id.is_valid()) {
+      return on_error(Status::Error(500, "Sticker set not found"));
+    }
     promise_.set_value(td_->stickers_manager_->get_sticker_set_object(sticker_set_id));
   }
 
@@ -6864,10 +6869,10 @@ td_api::object_ptr<td_api::CheckStickerSetNameResult> StickersManager::get_check
   }
 }
 
-void StickersManager::create_new_sticker_set(UserId user_id, string &title, string &short_name,
-                                             StickerType sticker_type,
+void StickersManager::create_new_sticker_set(UserId user_id, string title, string short_name, StickerType sticker_type,
                                              vector<td_api::object_ptr<td_api::inputSticker>> &&stickers,
-                                             string software, Promise<Unit> &&promise) {
+                                             string software,
+                                             Promise<td_api::object_ptr<td_api::stickerSet>> &&promise) {
   bool is_bot = td_->auth_manager_->is_bot();
   if (!is_bot) {
     user_id = td_->contacts_manager_->get_my_id();
@@ -7104,7 +7109,7 @@ void StickersManager::on_new_stickers_uploaded(int64 random_id, Result<Unit> res
         get_input_sticker(pending_new_sticker_set->stickers_[i].get(), pending_new_sticker_set->file_ids_[i]));
   }
 
-  td_->create_handler<CreateNewStickerSetQuery>(std::move(pending_new_sticker_set->promise_))
+  td_->create_handler<CreateNewStickerSetQuery>(std::move(promise))
       ->send(std::move(input_user), pending_new_sticker_set->title_, pending_new_sticker_set->short_name_, sticker_type,
              sticker_format, std::move(input_stickers), pending_new_sticker_set->software_);
 }
@@ -7189,8 +7194,9 @@ void StickersManager::on_added_sticker_uploaded(int64 random_id, Result<Unit> re
 
   pending_add_sticker_to_sets_.erase(it);
 
-  TRY_STATUS_PROMISE(pending_add_sticker_to_set->promise_, G()->close_status());
-
+  if (G()->close_flag()) {
+    result = Global::request_aborted_error();
+  }
   if (result.is_error()) {
     pending_add_sticker_to_set->promise_.set_error(result.move_as_error());
     return;
