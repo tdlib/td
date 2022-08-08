@@ -144,6 +144,7 @@ class MessagesManager final : public Actor {
   static constexpr int32 SEND_MESSAGE_FLAG_HAS_MESSAGE = 1 << 11;
   static constexpr int32 SEND_MESSAGE_FLAG_HAS_SEND_AS = 1 << 13;
   static constexpr int32 SEND_MESSAGE_FLAG_NOFORWARDS = 1 << 14;
+  static constexpr int32 SEND_MESSAGE_FLAG_UPDATE_STICKER_SETS_ORDER = 1 << 15;
 
   static constexpr int32 ONLINE_MEMBER_COUNT_CACHE_EXPIRE_TIME = 30 * 60;
 
@@ -861,7 +862,8 @@ class MessagesManager final : public Actor {
                                         tl_object_ptr<telegram_api::peerNotifySettings> &&peer_notify_settings,
                                         const char *source);
 
-  void on_update_dialog_available_reactions(DialogId dialog_id, vector<string> &&available_reactions);
+  void on_update_dialog_available_reactions(
+      DialogId dialog_id, telegram_api::object_ptr<telegram_api::ChatReactions> &&available_reactions);
 
   void hide_dialog_action_bar(DialogId dialog_id);
 

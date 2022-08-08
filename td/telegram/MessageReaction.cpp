@@ -31,6 +31,30 @@
 
 namespace td {
 
+static telegram_api::object_ptr<telegram_api::Reaction> get_input_reaction(const string &reaction) {
+  if (reaction.empty()) {
+    return telegram_api::make_object<telegram_api::reactionEmpty>();
+  }
+  return telegram_api::make_object<telegram_api::reactionEmoji>(reaction);
+}
+
+static string get_reaction_string(const telegram_api::object_ptr<telegram_api::Reaction> &reaction) {
+  if (reaction == nullptr) {
+    return string();
+  }
+  switch (reaction->get_id()) {
+    case telegram_api::reactionEmpty::ID:
+      return string();
+    case telegram_api::reactionEmoji::ID:
+      return static_cast<const telegram_api::reactionEmoji *>(reaction.get())->emoticon_;
+    case telegram_api::reactionCustomEmoji::ID:
+      return string();
+    default:
+      UNREACHABLE();
+      return string();
+  }
+}
+
 class GetMessagesReactionsQuery final : public Td::ResultHandler {
   DialogId dialog_id_;
   vector<MessageId> message_ids_;
@@ -108,9 +132,15 @@ class SendReactionQuery final : public Td::ResultHandler {
       }
     }
 
+    vector<telegram_api::object_ptr<telegram_api::Reaction>> reactions;
+    if (!reaction.empty()) {
+      reactions.push_back(get_input_reaction(reaction));
+    }
+
     send_query(G()->net_query_creator().create(
-        telegram_api::messages_sendReaction(flags, false /*ignored*/, std::move(input_peer),
-                                            full_message_id.get_message_id().get_server_message_id().get(), reaction),
+        telegram_api::messages_sendReaction(flags, false /*ignored*/, false /*ignored*/, std::move(input_peer),
+                                            full_message_id.get_message_id().get_server_message_id().get(),
+                                            std::move(reactions)),
         {{dialog_id_}, {full_message_id}}));
   }
 
@@ -163,8 +193,9 @@ class GetMessageReactionsListQuery final : public Td::ResultHandler {
     }
 
     send_query(G()->net_query_creator().create(
-        telegram_api::messages_getMessageReactionsList(
-            flags, std::move(input_peer), message_id_.get_server_message_id().get(), reaction_, offset_, limit),
+        telegram_api::messages_getMessageReactionsList(flags, std::move(input_peer),
+                                                       message_id_.get_server_message_id().get(),
+                                                       get_input_reaction(reaction_), offset_, limit),
         {{full_message_id}}));
   }
 
@@ -191,19 +222,19 @@ class GetMessageReactionsListQuery final : public Td::ResultHandler {
     FlatHashMap<string, vector<DialogId>> recent_reactions;
     for (const auto &reaction : ptr->reactions_) {
       DialogId dialog_id(reaction->peer_id_);
-      if (!dialog_id.is_valid() ||
-          (reaction_.empty() ? reaction->reaction_.empty() : reaction_ != reaction->reaction_)) {
+      auto reaction_str = get_reaction_string(reaction->reaction_);
+      if (!dialog_id.is_valid() || (reaction_.empty() ? reaction_str.empty() : reaction_ != reaction_str)) {
         LOG(ERROR) << "Receive unexpected " << to_string(reaction);
         continue;
       }
 
       if (offset_.empty()) {
-        recent_reactions[reaction->reaction_].push_back(dialog_id);
+        recent_reactions[reaction_str].push_back(dialog_id);
       }
 
       auto message_sender = get_min_message_sender_object(td_, dialog_id, "GetMessageReactionsListQuery");
       if (message_sender != nullptr) {
-        reactions.push_back(td_api::make_object<td_api::addedReaction>(reaction->reaction_, std::move(message_sender)));
+        reactions.push_back(td_api::make_object<td_api::addedReaction>(reaction_str, std::move(message_sender)));
       }
     }
 
@@ -228,7 +259,8 @@ class SetDefaultReactionQuery final : public Td::ResultHandler {
  public:
   void send(const string &reaction) {
     reaction_ = reaction;
-    send_query(G()->net_query_creator().create(telegram_api::messages_setDefaultReaction(reaction)));
+    send_query(
+        G()->net_query_creator().create(telegram_api::messages_setDefaultReaction(get_input_reaction(reaction))));
   }
 
   void on_result(BufferSlice packet) final {
@@ -367,22 +399,23 @@ unique_ptr<MessageReactions> MessageReactions::get_message_reactions(
   FlatHashSet<string> reaction_strings;
   FlatHashSet<DialogId, DialogIdHash> recent_choosers;
   for (auto &reaction_count : reactions->results_) {
+    auto reaction_str = get_reaction_string(reaction_count->reaction_);
     if (reaction_count->count_ <= 0 || reaction_count->count_ >= MessageReaction::MAX_CHOOSE_COUNT ||
-        reaction_count->reaction_.empty()) {
-      LOG(ERROR) << "Receive reaction " << reaction_count->reaction_ << " with invalid count "
-                 << reaction_count->count_;
+        reaction_str.empty()) {
+      LOG(ERROR) << "Receive reaction " << reaction_str << " with invalid count " << reaction_count->count_;
       continue;
     }
 
-    if (!reaction_strings.insert(reaction_count->reaction_).second) {
-      LOG(ERROR) << "Receive duplicate reaction " << reaction_count->reaction_;
+    if (!reaction_strings.insert(reaction_str).second) {
+      LOG(ERROR) << "Receive duplicate reaction " << reaction_str;
       continue;
     }
 
     vector<DialogId> recent_chooser_dialog_ids;
     vector<std::pair<ChannelId, MinChannel>> recent_chooser_min_channels;
     for (auto &peer_reaction : reactions->recent_reactions_) {
-      if (peer_reaction->reaction_ == reaction_count->reaction_) {
+      auto peer_reaction_str = get_reaction_string(peer_reaction->reaction_);
+      if (peer_reaction_str == reaction_str) {
         DialogId dialog_id(peer_reaction->peer_id_);
         if (!dialog_id.is_valid()) {
           LOG(ERROR) << "Receive invalid " << dialog_id << " as a recent chooser";
@@ -416,7 +449,7 @@ unique_ptr<MessageReactions> MessageReactions::get_message_reactions(
 
         recent_chooser_dialog_ids.push_back(dialog_id);
         if (peer_reaction->unread_) {
-          result->unread_reactions_.emplace_back(std::move(peer_reaction->reaction_), dialog_id, peer_reaction->big_);
+          result->unread_reactions_.emplace_back(std::move(peer_reaction_str), dialog_id, peer_reaction->big_);
         }
         if (recent_chooser_dialog_ids.size() == MessageReaction::MAX_RECENT_CHOOSERS) {
           break;
@@ -424,9 +457,8 @@ unique_ptr<MessageReactions> MessageReactions::get_message_reactions(
       }
     }
 
-    result->reactions_.emplace_back(std::move(reaction_count->reaction_), reaction_count->count_,
-                                    reaction_count->chosen_, std::move(recent_chooser_dialog_ids),
-                                    std::move(recent_chooser_min_channels));
+    result->reactions_.emplace_back(std::move(reaction_str), reaction_count->count_, reaction_count->chosen_order_ != 0,
+                                    std::move(recent_chooser_dialog_ids), std::move(recent_chooser_min_channels));
   }
   return result;
 }

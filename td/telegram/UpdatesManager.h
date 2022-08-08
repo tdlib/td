@@ -535,6 +535,14 @@ class UpdatesManager final : public Actor {
   void on_update(tl_object_ptr<telegram_api::updateTranscribedAudio> update, Promise<Unit> &&promise);
 
   // unsupported updates
+
+  void on_update(tl_object_ptr<telegram_api::updateRecentEmojiStatuses> update, Promise<Unit> &&promise);
+
+  void on_update(tl_object_ptr<telegram_api::updateRecentReactions> update, Promise<Unit> &&promise);
+
+  void on_update(tl_object_ptr<telegram_api::updateUserEmojiStatus> update, Promise<Unit> &&promise);
+
+  void on_update(tl_object_ptr<telegram_api::updateMoveStickerSetToTop> update, Promise<Unit> &&promise);
 };
 
 }  // namespace td

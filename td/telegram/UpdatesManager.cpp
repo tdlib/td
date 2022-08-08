@@ -3570,4 +3570,20 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateTranscribedAudi
 
 // unsupported updates
 
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateRecentEmojiStatuses> update, Promise<Unit> &&promise) {
+  promise.set_value(Unit());
+}
+
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateRecentReactions> update, Promise<Unit> &&promise) {
+  promise.set_value(Unit());
+}
+
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateUserEmojiStatus> update, Promise<Unit> &&promise) {
+  promise.set_value(Unit());
+}
+
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateMoveStickerSetToTop> update, Promise<Unit> &&promise) {
+  promise.set_value(Unit());
+}
+
 }  // namespace td

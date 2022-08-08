@@ -289,10 +289,11 @@ void AuthManager::check_code(uint64 query_id, string code) {
   }
 
   code_ = std::move(code);
+  int32 flags = telegram_api::auth_signIn::PHONE_CODE_MASK;
   on_new_query(query_id);
-  start_net_query(NetQueryType::SignIn,
-                  G()->net_query_creator().create_unauth(telegram_api::auth_signIn(
-                      send_code_helper_.phone_number().str(), send_code_helper_.phone_code_hash().str(), code_)));
+  start_net_query(NetQueryType::SignIn, G()->net_query_creator().create_unauth(telegram_api::auth_signIn(
+                                            flags, send_code_helper_.phone_number().str(),
+                                            send_code_helper_.phone_code_hash().str(), code_, nullptr)));
 }
 
 void AuthManager::register_user(uint64 query_id, string first_name, string last_name) {
@@ -615,9 +616,10 @@ void AuthManager::on_get_password_result(NetQueryPtr &result) {
     set_login_token_expires_at(Time::now() + login_code_retry_delay_);
     return;
   } else {
-    start_net_query(NetQueryType::SignIn,
-                    G()->net_query_creator().create_unauth(telegram_api::auth_signIn(
-                        send_code_helper_.phone_number().str(), send_code_helper_.phone_code_hash().str(), code_)));
+    int32 flags = telegram_api::auth_signIn::PHONE_CODE_MASK;
+    start_net_query(NetQueryType::SignIn, G()->net_query_creator().create_unauth(telegram_api::auth_signIn(
+                                              flags, send_code_helper_.phone_number().str(),
+                                              send_code_helper_.phone_code_hash().str(), code_, nullptr)));
     return;
   }
 

@@ -183,8 +183,8 @@ class RequestSimpleWebViewQuery final : public Td::ResultHandler {
       theme_parameters = make_tl_object<telegram_api::dataJSON>(string());
       theme_parameters->data_ = ThemeManager::get_theme_parameters_json_string(theme, false);
     }
-    send_query(G()->net_query_creator().create(
-        telegram_api::messages_requestSimpleWebView(flags, std::move(input_user), url, std::move(theme_parameters))));
+    send_query(G()->net_query_creator().create(telegram_api::messages_requestSimpleWebView(
+        flags, std::move(input_user), url, std::move(theme_parameters), string())));
   }
 
   void on_result(BufferSlice packet) final {

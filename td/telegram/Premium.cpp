@@ -130,14 +130,6 @@ class GetPremiumPromoQuery final : public Td::ResultHandler {
       return on_error(Status::Error(500, "Receive wrong number of videos"));
     }
 
-    if (promo->monthly_amount_ < 0 || !check_currency_amount(promo->monthly_amount_)) {
-      return on_error(Status::Error(500, "Receive invalid monthly amount"));
-    }
-
-    if (promo->currency_.size() != 3) {
-      return on_error(Status::Error(500, "Receive invalid currency"));
-    }
-
     vector<td_api::object_ptr<td_api::premiumFeaturePromotionAnimation>> animations;
     for (size_t i = 0; i < promo->video_sections_.size(); i++) {
       auto feature = get_premium_feature_object(promo->video_sections_[i]);
@@ -164,8 +156,7 @@ class GetPremiumPromoQuery final : public Td::ResultHandler {
                                                                                          std::move(animation_object)));
     }
 
-    promise_.set_value(td_api::make_object<td_api::premiumState>(get_formatted_text_object(state, true, 0),
-                                                                 std::move(promo->currency_), promo->monthly_amount_,
+    promise_.set_value(td_api::make_object<td_api::premiumState>(get_formatted_text_object(state, true, 0), "USD", 499,
                                                                  std::move(animations)));
   }
 

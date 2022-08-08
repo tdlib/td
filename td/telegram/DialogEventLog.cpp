@@ -346,8 +346,7 @@ static td_api::object_ptr<td_api::ChatEventAction> get_chat_event_action_object(
     }
     case telegram_api::channelAdminLogEventActionChangeAvailableReactions::ID: {
       auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionChangeAvailableReactions>(action_ptr);
-      return td_api::make_object<td_api::chatEventAvailableReactionsChanged>(std::move(action->prev_value_),
-                                                                             std::move(action->new_value_));
+      return nullptr;
     }
     default:
       UNREACHABLE();

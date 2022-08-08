@@ -1428,8 +1428,8 @@ class SetChatAvailableReactionsQuery final : public Td::ResultHandler {
     if (input_peer == nullptr) {
       return on_error(Status::Error(400, "Can't access the chat"));
     }
-    send_query(G()->net_query_creator().create(
-        telegram_api::messages_setChatAvailableReactions(std::move(input_peer), std::move(available_reactions))));
+    send_query(G()->net_query_creator().create(telegram_api::messages_setChatAvailableReactions(
+        std::move(input_peer), make_tl_object<telegram_api::chatReactionsNone>())));
   }
 
   void on_result(BufferSlice packet) final {
@@ -3208,8 +3208,8 @@ class SendMessageQuery final : public Td::ResultHandler {
     auto query = G()->net_query_creator().create(
         telegram_api::messages_sendMessage(
             flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-            std::move(input_peer), reply_to_message_id.get_server_message_id().get(), text, random_id,
-            std::move(reply_markup), std::move(entities), schedule_date, std::move(as_input_peer)),
+            false /*ignored*/, std::move(input_peer), reply_to_message_id.get_server_message_id().get(), text,
+            random_id, std::move(reply_markup), std::move(entities), schedule_date, std::move(as_input_peer)),
         {{dialog_id, MessageContentType::Text},
          {dialog_id, is_copy ? MessageContentType::Photo : MessageContentType::Text}});
     if (td_->option_manager_->get_option_boolean("use_quick_ack")) {
@@ -3404,7 +3404,7 @@ class SendMultiMediaQuery final : public Td::ResultHandler {
     CHECK(reply_to_message_id == MessageId() || reply_to_message_id.is_server());
     send_query(G()->net_query_creator().create(
         telegram_api::messages_sendMultiMedia(flags, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-                                              false /*ignored*/, std::move(input_peer),
+                                              false /*ignored*/, false /*ignored*/, std::move(input_peer),
                                               reply_to_message_id.get_server_message_id().get(),
                                               std::move(input_single_media), schedule_date, std::move(as_input_peer)),
         {{dialog_id, is_copy ? MessageContentType::Text : MessageContentType::Photo},
@@ -3521,9 +3521,9 @@ class SendMediaQuery final : public Td::ResultHandler {
     CHECK(reply_to_message_id == MessageId() || reply_to_message_id.is_server());
     auto query = G()->net_query_creator().create(
         telegram_api::messages_sendMedia(
-            flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, std::move(input_peer),
-            reply_to_message_id.get_server_message_id().get(), std::move(input_media), text, random_id,
-            std::move(reply_markup), std::move(entities), schedule_date, std::move(as_input_peer)),
+            flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
+            std::move(input_peer), reply_to_message_id.get_server_message_id().get(), std::move(input_media), text,
+            random_id, std::move(reply_markup), std::move(entities), schedule_date, std::move(as_input_peer)),
         {{dialog_id, content_type}, {dialog_id, is_copy ? MessageContentType::Text : content_type}});
     if (td_->option_manager_->get_option_boolean("use_quick_ack") && was_uploaded_) {
       query->quick_ack_promise_ = PromiseCreator::lambda([random_id](Result<Unit> result) {
@@ -8114,7 +8114,8 @@ void MessagesManager::on_update_dialog_notify_settings(
   update_dialog_notification_settings(dialog_id, current_settings, std::move(notification_settings));
 }
 
-void MessagesManager::on_update_dialog_available_reactions(DialogId dialog_id, vector<string> &&available_reactions) {
+void MessagesManager::on_update_dialog_available_reactions(
+    DialogId dialog_id, telegram_api::object_ptr<telegram_api::ChatReactions> &&available_reactions) {
   if (td_->auth_manager_->is_bot()) {
     return;
   }
@@ -8124,7 +8125,8 @@ void MessagesManager::on_update_dialog_available_reactions(DialogId dialog_id, v
     return;
   }
 
-  set_dialog_available_reactions(d, std::move(available_reactions));
+  vector<string> legacy_available_reactions;
+  set_dialog_available_reactions(d, std::move(legacy_available_reactions));
 }
 
 void MessagesManager::set_dialog_available_reactions(Dialog *d, vector<string> &&available_reactions) {

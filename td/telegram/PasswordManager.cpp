@@ -423,7 +423,8 @@ void PasswordManager::resend_recovery_email_address_code(Promise<State> promise)
 void PasswordManager::send_email_address_verification_code(
     string email, Promise<td_api::object_ptr<td_api::emailAddressAuthenticationCodeInfo>> promise) {
   last_verified_email_address_ = email;
-  auto query = G()->net_query_creator().create(telegram_api::account_sendVerifyEmailCode(std::move(email)));
+  auto query = G()->net_query_creator().create(telegram_api::account_sendVerifyEmailCode(
+      make_tl_object<telegram_api::emailVerifyPurposePassport>(), std::move(email)));
   send_with_promise(
       std::move(query), PromiseCreator::lambda([promise = std::move(promise)](Result<NetQueryPtr> r_query) mutable {
         auto r_result = fetch_result<telegram_api::account_sendVerifyEmailCode>(std::move(r_query));
@@ -452,8 +453,9 @@ void PasswordManager::check_email_address_verification_code(string code, Promise
   if (last_verified_email_address_.empty()) {
     return promise.set_error(Status::Error(400, "No email address verification was sent"));
   }
-  auto query =
-      G()->net_query_creator().create(telegram_api::account_verifyEmail(last_verified_email_address_, std::move(code)));
+  auto verification_code = make_tl_object<telegram_api::emailVerificationCode>(std::move(code));
+  auto query = G()->net_query_creator().create(telegram_api::account_verifyEmail(
+      make_tl_object<telegram_api::emailVerifyPurposePassport>(), std::move(verification_code)));
   send_with_promise(std::move(query),
                     PromiseCreator::lambda([promise = std::move(promise)](Result<NetQueryPtr> r_query) mutable {
                       auto r_result = fetch_result<telegram_api::account_verifyEmail>(std::move(r_query));

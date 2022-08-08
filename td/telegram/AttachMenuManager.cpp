@@ -104,7 +104,8 @@ class RequestWebViewQuery final : public Td::ResultHandler {
 
     send_query(G()->net_query_creator().create(telegram_api::messages_requestWebView(
         flags, false /*ignored*/, false /*ignored*/, std::move(input_peer), std::move(input_user), url, start_parameter,
-        std::move(theme_parameters), reply_to_message_id.get_server_message_id().get(), std::move(as_input_peer))));
+        std::move(theme_parameters), string(), reply_to_message_id.get_server_message_id().get(),
+        std::move(as_input_peer))));
   }
 
   void on_result(BufferSlice packet) final {
