@@ -641,6 +641,7 @@ class ContactsManager final : public Actor {
     string username;
     string phone_number;
     int64 access_hash = -1;
+    int64 emoji_status = 0;
 
     ProfilePhoto photo;
 
@@ -1070,6 +1071,7 @@ class ContactsManager final : public Actor {
   static constexpr int32 USER_FLAG_IS_ATTACH_MENU_BOT = 1 << 27;
   static constexpr int32 USER_FLAG_IS_PREMIUM = 1 << 28;
   static constexpr int32 USER_FLAG_ATTACH_MENU_ENABLED = 1 << 29;
+  static constexpr int32 USER_FLAG_HAS_EMOJI_STATUS = 1 << 30;
 
   static constexpr int32 USER_FULL_FLAG_IS_BLOCKED = 1 << 0;
   static constexpr int32 USER_FULL_FLAG_HAS_ABOUT = 1 << 1;

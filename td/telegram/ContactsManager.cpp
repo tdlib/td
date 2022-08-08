@@ -3621,6 +3621,7 @@ void ContactsManager::User::store(StorerT &storer) const {
   bool has_cache_version = cache_version != 0;
   bool has_is_contact = true;
   bool has_restriction_reasons = !restriction_reasons.empty();
+  bool has_emoji_status = emoji_status != 0;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(is_received);
   STORE_FLAG(is_verified);
@@ -3649,6 +3650,7 @@ void ContactsManager::User::store(StorerT &storer) const {
   STORE_FLAG(can_be_added_to_attach_menu);
   STORE_FLAG(is_premium);  // 25
   STORE_FLAG(attach_menu_enabled);
+  STORE_FLAG(has_emoji_status);
   END_STORE_FLAGS();
   store(first_name, storer);
   if (has_last_name) {
@@ -3680,6 +3682,9 @@ void ContactsManager::User::store(StorerT &storer) const {
   if (has_cache_version) {
     store(cache_version, storer);
   }
+  if (has_emoji_status) {
+    store(emoji_status, storer);
+  }
 }
 
 template <class ParserT>
@@ -3694,6 +3699,7 @@ void ContactsManager::User::parse(ParserT &parser) {
   bool has_cache_version;
   bool has_is_contact;
   bool has_restriction_reasons;
+  bool has_emoji_status;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(is_received);
   PARSE_FLAG(is_verified);
@@ -3722,6 +3728,7 @@ void ContactsManager::User::parse(ParserT &parser) {
   PARSE_FLAG(can_be_added_to_attach_menu);
   PARSE_FLAG(is_premium);
   PARSE_FLAG(attach_menu_enabled);
+  PARSE_FLAG(has_emoji_status);
   END_PARSE_FLAGS();
   parse(first_name, parser);
   if (has_last_name) {
@@ -3772,6 +3779,9 @@ void ContactsManager::User::parse(ParserT &parser) {
   }
   if (has_cache_version) {
     parse(cache_version, parser);
+  }
+  if (has_emoji_status) {
+    parse(emoji_status, parser);
   }
 
   if (!check_utf8(first_name)) {
@@ -8692,6 +8702,10 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
   bool has_bot_info_version = (flags & USER_FLAG_HAS_BOT_INFO_VERSION) != 0;
   bool need_apply_min_photo = (flags & USER_FLAG_NEED_APPLY_MIN_PHOTO) != 0;
   bool is_fake = (flags & USER_FLAG_IS_FAKE) != 0;
+  int64 emoji_status = 0;
+  if (user->emoji_status_ != nullptr && user->emoji_status_->get_id() == telegram_api::emojiStatus::ID) {
+    emoji_status = static_cast<const telegram_api::emojiStatus *>(user->emoji_status_.get())->document_id_;
+  }
 
   LOG_IF(ERROR, !can_join_groups && !is_bot)
       << "Receive not bot " << user_id << " which can't join groups from " << source;
@@ -8723,6 +8737,13 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
       << "Receive not bot " << user_id << " which has bot info version from " << source;
 
   int32 bot_info_version = has_bot_info_version ? user->bot_info_version_ : -1;
+  if (u->emoji_status != emoji_status) {
+    if ((u->is_premium ? u->emoji_status : 0) != (is_premium ? emoji_status : 0)) {
+      u->is_changed = true;
+    }
+    u->emoji_status = emoji_status;
+    u->need_save_to_database = true;
+  }
   if (is_verified != u->is_verified || is_premium != u->is_premium || is_support != u->is_support ||
       is_bot != u->is_bot || can_join_groups != u->can_join_groups ||
       can_read_all_group_messages != u->can_read_all_group_messages || restriction_reasons != u->restriction_reasons ||
@@ -16641,7 +16662,7 @@ td_api::object_ptr<td_api::UserStatus> ContactsManager::get_user_status_object(U
 
 td_api::object_ptr<td_api::updateUser> ContactsManager::get_update_unknown_user_object(UserId user_id) {
   return td_api::make_object<td_api::updateUser>(td_api::make_object<td_api::user>(
-      user_id.get(), "", "", "", "", td_api::make_object<td_api::userStatusEmpty>(), nullptr, false, false, false,
+      user_id.get(), "", "", "", "", td_api::make_object<td_api::userStatusEmpty>(), nullptr, 0, false, false, false,
       false, false, "", false, false, false, td_api::make_object<td_api::userTypeUnknown>(), "", false));
 }
 
@@ -16673,11 +16694,12 @@ tl_object_ptr<td_api::user> ContactsManager::get_user_object(UserId user_id, con
     type = make_tl_object<td_api::userTypeRegular>();
   }
 
+  int64 emoji_status = u->is_premium ? u->emoji_status : 0;
   return make_tl_object<td_api::user>(
       user_id.get(), u->first_name, u->last_name, u->username, u->phone_number, get_user_status_object(user_id, u),
-      get_profile_photo_object(td_->file_manager_.get(), u->photo), u->is_contact, u->is_mutual_contact, u->is_verified,
-      u->is_premium, u->is_support, get_restriction_reason_description(u->restriction_reasons), u->is_scam, u->is_fake,
-      u->is_received, std::move(type), u->language_code, u->attach_menu_enabled);
+      get_profile_photo_object(td_->file_manager_.get(), u->photo), emoji_status, u->is_contact, u->is_mutual_contact,
+      u->is_verified, u->is_premium, u->is_support, get_restriction_reason_description(u->restriction_reasons),
+      u->is_scam, u->is_fake, u->is_received, std::move(type), u->language_code, u->attach_menu_enabled);
 }
 
 vector<int64> ContactsManager::get_user_ids_object(const vector<UserId> &user_ids, const char *source) const {
