@@ -1550,7 +1550,9 @@ void UpdatesManager::on_get_difference(tl_object_ptr<telegram_api::updates_Diffe
       break;
     }
     case telegram_api::updates_differenceTooLong::ID: {
-      LOG(ERROR) << "Receive differenceTooLong";
+      if (G()->shared_config().get_option_integer("session_count") <= 1) {
+        LOG(ERROR) << "Receive differenceTooLong";
+      }
       // TODO
       auto difference = move_tl_object_as<telegram_api::updates_differenceTooLong>(difference_ptr);
       set_pts(difference->pts_, "differenceTooLong").set_value(Unit());
