@@ -14895,7 +14895,8 @@ bool ContactsManager::is_chat_full_outdated(const ChatFull *chat_full, const Cha
     return true;
   }
 
-  LOG(DEBUG) << "Full " << chat_id << " is up-to-date with version " << chat_full->version;
+  LOG(DEBUG) << "Full " << chat_id << " is up-to-date with version " << chat_full->version << " and photos " << c->photo
+             << '/' << chat_full->photo;
   return false;
 }
 
