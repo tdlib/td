@@ -1629,7 +1629,7 @@ void UpdatesManager::after_get_difference() {
     for (auto &postponed_update : postponed_updates) {
       auto &update = postponed_update.second;
       add_pending_pts_update(std::move(update.update), update.pts, update.pts_count, update.receive_time,
-                             std::move(update.promise), "after get difference");
+                             std::move(update.promise), AFTER_GET_DIFFERENCE_SOURCE);
       CHECK(!running_get_difference_);
     }
     VLOG(get_difference) << "After applying postponed pts updates have pts = " << get_pts()
@@ -2214,7 +2214,7 @@ void UpdatesManager::add_pending_pts_update(tl_object_ptr<telegram_api::Update> 
   }
 
   int32 old_pts = get_pts();
-  if (new_pts < old_pts - 99 && Slice(source) != "after get difference") {
+  if (new_pts < old_pts - 99 && source != AFTER_GET_DIFFERENCE_SOURCE) {
     bool need_restore_pts = new_pts < old_pts - 19999;
     auto now = Time::now();
     if (now > last_pts_jump_warning_time_ + 1 && (need_restore_pts || now < last_pts_jump_warning_time_ + 5)) {
@@ -2247,7 +2247,7 @@ void UpdatesManager::add_pending_pts_update(tl_object_ptr<telegram_api::Update> 
   }
 
   // is_acceptable_update check was skipped for postponed pts updates
-  if (Slice(source) == "after get difference" && !is_acceptable_update(update.get())) {
+  if (source == AFTER_GET_DIFFERENCE_SOURCE && !is_acceptable_update(update.get())) {
     LOG(INFO) << "Postpone again unacceptable pending update";
     postpone_pts_update(std::move(update), new_pts, pts_count, receive_time, std::move(promise));
     set_pts_gap_timeout(0.001);

@@ -132,6 +132,7 @@ class UpdatesManager final : public Actor {
   static const double MAX_UNFILLED_GAP_TIME;
   static const double MAX_PTS_SAVE_DELAY;
   static constexpr bool DROP_PTS_UPDATES = false;
+  static constexpr const char *AFTER_GET_DIFFERENCE_SOURCE = "after get difference";
 
   friend class OnUpdate;
 
