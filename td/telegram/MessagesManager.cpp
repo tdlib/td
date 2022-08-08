@@ -8304,7 +8304,7 @@ vector<string> MessagesManager::get_dialog_active_reactions(const Dialog *d) con
 vector<string> MessagesManager::get_message_active_reactions(const Dialog *d, const Message *m) const {
   CHECK(d != nullptr);
   CHECK(m != nullptr);
-  if (is_service_message_content(m->content->get_type())) {
+  if (is_service_message_content(m->content->get_type()) || m->ttl > 0) {
     return vector<string>();
   }
   if (is_discussion_message(d->dialog_id, m)) {
