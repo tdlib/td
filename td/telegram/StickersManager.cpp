@@ -4182,10 +4182,16 @@ void StickersManager::search_stickers(string emoji, int32 limit,
   }
 
   auto it = found_stickers_.find(emoji);
-  if (it != found_stickers_.end() && Time::now() < it->second.next_reload_time_) {
+  if (it != found_stickers_.end()) {
     const auto &sticker_ids = it->second.sticker_ids_;
     auto result_size = min(static_cast<size_t>(limit), sticker_ids.size());
-    return promise.set_value(get_stickers_object({sticker_ids.begin(), sticker_ids.begin() + result_size}));
+    promise.set_value(get_stickers_object({sticker_ids.begin(), sticker_ids.begin() + result_size}));
+    if (Time::now() < it->second.next_reload_time_) {
+      return;
+    }
+
+    promise = Promise<td_api::object_ptr<td_api::stickers>>();
+    limit = 0;
   }
 
   auto &promises = search_stickers_queries_[emoji];
