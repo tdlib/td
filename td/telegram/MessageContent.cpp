@@ -3075,14 +3075,14 @@ static void merge_location_access_hash(const Location &first, const Location &se
 static bool need_message_text_changed_warning(const MessageText *old_content, const MessageText *new_content) {
   if (new_content->text.text == "Unsupported characters" ||
       new_content->text.text == "This channel is blocked because it was used to spread pornographic content.") {
-    // message contained unsupported characters, text is replaced
+    // message contained unsupported characters or is restricted, text is replaced
     return false;
   }
   if (/* old_message->message_id.is_yet_unsent() && */ !old_content->text.entities.empty() &&
       old_content->text.entities[0].offset == 0 &&
-      (new_content->text.entities.empty() || new_content->text.entities[0].offset != 0) &&
+      (new_content->text.entities.empty() || new_content->text.entities[0] != old_content->text.entities[0]) &&
       old_content->text.text != new_content->text.text && ends_with(old_content->text.text, new_content->text.text)) {
-    // server has deleted first entity and ltrim the message
+    // server has deleted first entity and left-trimed the message
     return false;
   }
   return true;
@@ -3108,7 +3108,7 @@ static bool need_message_entities_changed_warning(const vector<MessageEntity> &o
 
     if (old_pos < old_entities.size() && (old_entities[old_pos].type == MessageEntity::Type::MentionName ||
                                           old_entities[old_pos].type == MessageEntity::Type::CustomEmoji)) {
-      // server could delete sime MentionName entities
+      // server can delete some MentionName and CustomEmoji entities
       old_pos++;
       continue;
     }
