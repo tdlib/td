@@ -1345,6 +1345,7 @@ class MessagesManager final : public Actor {
     bool increment_view_counter = false;
 
     bool is_update_new_chat_sent = false;
+    bool is_update_new_chat_being_sent = false;
     bool has_unload_timeout = false;
     bool is_channel_difference_finished = false;
 

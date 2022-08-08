@@ -30557,12 +30557,14 @@ void MessagesManager::send_update_delete_messages(DialogId dialog_id, vector<int
 void MessagesManager::send_update_new_chat(Dialog *d) {
   CHECK(d != nullptr);
   CHECK(d->messages == nullptr);
+  d->is_update_new_chat_being_sent = true;
   auto chat_object = get_chat_object(d);
   bool has_action_bar = chat_object->action_bar_ != nullptr;
   bool has_theme = !chat_object->theme_name_.empty();
   d->last_sent_has_scheduled_messages = chat_object->has_scheduled_messages_;
   send_closure(G()->td(), &Td::send_update, make_tl_object<td_api::updateNewChat>(std::move(chat_object)));
   d->is_update_new_chat_sent = true;
+  d->is_update_new_chat_being_sent = false;
 
   if (has_action_bar) {
     send_update_secret_chats_with_user_action_bar(d);
@@ -32572,6 +32574,8 @@ void MessagesManager::on_dialog_photo_updated(DialogId dialog_id) {
         G()->td(), &Td::send_update,
         make_tl_object<td_api::updateChatPhoto>(
             dialog_id.get(), get_chat_photo_info_object(td_->file_manager_.get(), get_dialog_photo(dialog_id))));
+  } else if (d != nullptr && d->is_update_new_chat_being_sent) {
+    LOG(ERROR) << "Changed photo of " << dialog_id << " while the chat is being added: " << get_dialog_photo(dialog_id);
   }
 }
 
