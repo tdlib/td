@@ -14665,7 +14665,7 @@ FullMessageId MessagesManager::on_get_message(MessageInfo &&message_info, bool f
     need_update = false;
 
     if (old_message_id.is_valid() && message_id.is_valid() && message_id < old_message_id &&
-        !has_qts_messages(dialog_id)) {
+        !has_qts_messages(dialog_id) && !d->had_yet_unsent_message_id_overflow) {
       LOG(ERROR) << "Sent " << old_message_id << " to " << dialog_id << " as " << message_id;
     }
 
@@ -31186,7 +31186,8 @@ FullMessageId MessagesManager::on_send_message_success(int64 random_id, MessageI
     send_update_message_content(d, sent_message.get(), false, source);
   }
 
-  if (old_message_id.is_valid() && new_message_id < old_message_id && !has_qts_messages(dialog_id)) {
+  if (old_message_id.is_valid() && new_message_id < old_message_id && !has_qts_messages(dialog_id) &&
+      !d->had_yet_unsent_message_id_overflow) {
     LOG(ERROR) << "Sent " << old_message_id << " to " << dialog_id << " as " << new_message_id;
   }
 
@@ -31571,6 +31572,9 @@ MessageId MessagesManager::get_next_message_id(Dialog *d, MessageType type) {
     LOG(FATAL) << "Force restart because of message_id overflow: " << d->last_assigned_message_id;
   }
   CHECK(d->last_assigned_message_id.is_valid());
+  if (d->last_assigned_message_id.get_prev_server_message_id() != last_message_id.get_prev_server_message_id()) {
+    d->had_yet_unsent_message_id_overflow = true;
+  }
   return d->last_assigned_message_id;
 }
 

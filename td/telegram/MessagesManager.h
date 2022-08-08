@@ -1340,6 +1340,7 @@ class MessagesManager final : public Actor {
     bool is_has_bots_inited = false;
     bool is_theme_name_inited = false;
     bool is_available_reactions_inited = false;
+    bool had_yet_unsent_message_id_overflow = false;
 
     bool increment_view_counter = false;
 
