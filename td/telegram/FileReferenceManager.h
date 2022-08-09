@@ -36,7 +36,7 @@ extern int VERBOSITY_NAME(file_references);
 
 class FileReferenceManager final : public Actor {
  public:
-  FileReferenceManager() = default;
+  explicit FileReferenceManager(ActorShared<> parent);
   FileReferenceManager(const FileReferenceManager &) = delete;
   FileReferenceManager &operator=(const FileReferenceManager &) = delete;
   FileReferenceManager(FileReferenceManager &&) = delete;
@@ -173,6 +173,8 @@ class FileReferenceManager final : public Actor {
 
   FlatHashMap<NodeId, Node, FileIdHash> nodes_;
 
+  ActorShared<> parent_;
+
   void run_node(NodeId node);
   void send_query(Destination dest, FileSourceId file_source_id);
   Destination on_query_result(Destination dest, FileSourceId file_source_id, Status status, int32 sub = 0);
@@ -181,6 +183,8 @@ class FileReferenceManager final : public Actor {
   FileSourceId add_file_source_id(T source, Slice source_str);
 
   FileSourceId get_current_file_source_id() const;
+
+  void tear_down() override;
 };
 
 }  // namespace td

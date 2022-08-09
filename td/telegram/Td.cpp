@@ -3939,7 +3939,7 @@ void Td::init_file_manager() {
   file_manager_->init_actor();
   G()->set_file_manager(file_manager_actor_.get());
 
-  file_reference_manager_ = make_unique<FileReferenceManager>();
+  file_reference_manager_ = make_unique<FileReferenceManager>(create_reference());
   file_reference_manager_actor_ = register_actor("FileReferenceManager", file_reference_manager_.get());
   G()->set_file_reference_manager(file_reference_manager_actor_.get());
 }

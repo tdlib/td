@@ -489,6 +489,7 @@ void SetSecureValue::load_secret() {
                  send_closure(actor_id, &SetSecureValue::on_secret, std::move(r_secret), true);
                }));
 }
+
 void SetSecureValue::cancel_upload() {
   upload_generation_++;
   auto *file_manager = G()->td().get_actor_unsafe()->file_manager_.get();

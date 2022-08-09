@@ -32,8 +32,15 @@ namespace td {
 
 int VERBOSITY_NAME(file_references) = VERBOSITY_NAME(INFO);
 
+FileReferenceManager::FileReferenceManager(ActorShared<> parent) : parent_(std::move(parent)) {
+}
+
 FileReferenceManager::~FileReferenceManager() {
   Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), file_sources_);
+}
+
+void FileReferenceManager::tear_down() {
+  parent_.reset();
 }
 
 bool FileReferenceManager::is_file_reference_error(const Status &error) {
