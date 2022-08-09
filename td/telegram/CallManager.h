@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -8,21 +8,21 @@
 
 #include "td/telegram/CallActor.h"
 #include "td/telegram/CallId.h"
-
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 
 #include "td/actor/actor.h"
-#include "td/actor/PromiseFuture.h"
 
+#include "td/utils/common.h"
+#include "td/utils/FlatHashMap.h"
+#include "td/utils/Promise.h"
 #include "td/utils/Status.h"
 
 #include <map>
-#include <unordered_map>
 
 namespace td {
 
-class CallManager : public Actor {
+class CallManager final : public Actor {
  public:
   using Update = telegram_api::object_ptr<telegram_api::updatePhoneCall>;
   explicit CallManager(ActorShared<> parent);
@@ -31,12 +31,20 @@ class CallManager : public Actor {
 
   void create_call(UserId user_id, tl_object_ptr<telegram_api::InputUser> &&input_user, CallProtocol &&protocol,
                    bool is_video, Promise<CallId> promise);
+
+  void accept_call(CallId call_id, CallProtocol &&protocol, Promise<Unit> promise);
+
+  void send_call_signaling_data(CallId call_id, string &&data, Promise<Unit> promise);
+
   void discard_call(CallId call_id, bool is_disconnected, int32 duration, bool is_video, int64 connection_id,
-                    Promise<> promise);
-  void accept_call(CallId call_id, CallProtocol &&protocol, Promise<> promise);
+                    Promise<Unit> promise);
+
   void rate_call(CallId call_id, int32 rating, string comment,
-                 vector<td_api::object_ptr<td_api::CallProblem>> &&problems, Promise<> promise);
-  void send_call_debug_information(CallId call_id, string data, Promise<> promise);
+                 vector<td_api::object_ptr<td_api::CallProblem>> &&problems, Promise<Unit> promise);
+
+  void send_call_debug_information(CallId call_id, string data, Promise<Unit> promise);
+
+  void send_call_log(CallId call_id, td_api::object_ptr<td_api::InputFile> log_file, Promise<Unit> promise);
 
  private:
   bool close_flag_ = false;
@@ -48,13 +56,13 @@ class CallManager : public Actor {
   };
   std::map<int64, CallInfo> call_info_;
   int32 next_call_id_{1};
-  std::unordered_map<CallId, ActorOwn<CallActor>, CallIdHash> id_to_actor_;
+  FlatHashMap<CallId, ActorOwn<CallActor>, CallIdHash> id_to_actor_;
 
   ActorId<CallActor> get_call_actor(CallId call_id);
   CallId create_call_actor();
   void set_call_id(CallId call_id, Result<int64> r_server_call_id);
 
-  void hangup() override;
-  void hangup_shared() override;
+  void hangup() final;
+  void hangup_shared() final;
 };
 }  // namespace td

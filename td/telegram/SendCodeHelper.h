@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -19,13 +19,16 @@ namespace td {
 class SendCodeHelper {
  public:
   void on_sent_code(telegram_api::object_ptr<telegram_api::auth_sentCode> sent_code);
+
   td_api::object_ptr<td_api::authorizationStateWaitCode> get_authorization_state_wait_code() const;
+
   td_api::object_ptr<td_api::authenticationCodeInfo> get_authentication_code_info_object() const;
-  Result<telegram_api::auth_resendCode> resend_code();
+
+  Result<telegram_api::auth_resendCode> resend_code() const;
 
   using Settings = td_api::object_ptr<td_api::phoneNumberAuthenticationSettings>;
 
-  telegram_api::auth_sendCode send_code(Slice phone_number, const Settings &settings, int32 api_id,
+  telegram_api::auth_sendCode send_code(string phone_number, const Settings &settings, int32 api_id,
                                         const string &api_hash);
 
   telegram_api::account_sendChangePhoneCode send_change_phone_code(Slice phone_number, const Settings &settings);
@@ -53,7 +56,7 @@ class SendCodeHelper {
   static constexpr int32 SENT_CODE_FLAG_HAS_TIMEOUT = 1 << 2;
 
   struct AuthenticationCodeInfo {
-    enum class Type : int32 { None, Message, Sms, Call, FlashCall };
+    enum class Type : int32 { None, Message, Sms, Call, FlashCall, MissedCall };
     Type type = Type::None;
     int32 length = 0;
     string pattern;

@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -10,18 +10,15 @@
 #include "td/mtproto/PingConnection.h"
 #include "td/mtproto/RawConnection.h"
 
-#include "td/actor/actor.h"
-#include "td/actor/PromiseFuture.h"
-
-#include "td/utils/logging.h"
+#include "td/utils/SliceBuilder.h"
 #include "td/utils/Status.h"
 
 namespace td {
 namespace mtproto {
 
-ActorOwn<> create_ping_actor(string debug, unique_ptr<RawConnection> raw_connection, unique_ptr<AuthData> auth_data,
+ActorOwn<> create_ping_actor(Slice actor_name, unique_ptr<RawConnection> raw_connection, unique_ptr<AuthData> auth_data,
                              Promise<unique_ptr<RawConnection>> promise, ActorShared<> parent) {
-  class PingActor : public Actor {
+  class PingActor final : public Actor {
    public:
     PingActor(unique_ptr<RawConnection> raw_connection, unique_ptr<AuthData> auth_data,
               Promise<unique_ptr<RawConnection>> promise, ActorShared<> parent)
@@ -38,22 +35,22 @@ ActorOwn<> create_ping_actor(string debug, unique_ptr<RawConnection> raw_connect
     Promise<unique_ptr<RawConnection>> promise_;
     ActorShared<> parent_;
 
-    void start_up() override {
+    void start_up() final {
       Scheduler::subscribe(ping_connection_->get_poll_info().extract_pollable_fd(this));
       set_timeout_in(10);
       yield();
     }
 
-    void hangup() override {
-      finish(Status::Error("Cancelled"));
+    void hangup() final {
+      finish(Status::Error("Canceled"));
       stop();
     }
 
-    void tear_down() override {
+    void tear_down() final {
       finish(Status::OK());
     }
 
-    void loop() override {
+    void loop() final {
       auto status = ping_connection_->flush();
       if (status.is_error()) {
         finish(std::move(status));
@@ -65,7 +62,7 @@ ActorOwn<> create_ping_actor(string debug, unique_ptr<RawConnection> raw_connect
       }
     }
 
-    void timeout_expired() override {
+    void timeout_expired() final {
       finish(Status::Error("Pong timeout expired"));
       stop();
     }
@@ -85,7 +82,7 @@ ActorOwn<> create_ping_actor(string debug, unique_ptr<RawConnection> raw_connect
           raw_connection->close();
           promise_.set_error(std::move(status));
         } else {
-          raw_connection->rtt_ = ping_connection_->rtt();
+          raw_connection->extra().rtt = ping_connection_->rtt();
           if (raw_connection->stats_callback()) {
             raw_connection->stats_callback()->on_pong();
           }
@@ -99,7 +96,7 @@ ActorOwn<> create_ping_actor(string debug, unique_ptr<RawConnection> raw_connect
       }
     }
   };
-  return ActorOwn<>(create_actor<PingActor>(PSLICE() << "PingActor<" << debug << ">", std::move(raw_connection),
+  return ActorOwn<>(create_actor<PingActor>(PSLICE() << "PingActor<" << actor_name << ">", std::move(raw_connection),
                                             std::move(auth_data), std::move(promise), std::move(parent)));
 }
 

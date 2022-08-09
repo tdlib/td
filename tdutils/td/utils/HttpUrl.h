@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -10,6 +10,8 @@
 #include "td/utils/Slice.h"
 #include "td/utils/Status.h"
 #include "td/utils/StringBuilder.h"
+
+#include <utility>
 
 namespace td {
 
@@ -40,6 +42,18 @@ Result<HttpUrl> parse_url(Slice url,
                           HttpUrl::Protocol default_protocol = HttpUrl::Protocol::Http) TD_WARN_UNUSED_RESULT;
 
 StringBuilder &operator<<(StringBuilder &sb, const HttpUrl &url);
+
+class HttpUrlQuery {
+ public:
+  vector<string> path_;
+  vector<std::pair<string, string>> args_;
+
+  bool has_arg(Slice key) const;
+
+  Slice get_arg(Slice key) const;
+};
+
+HttpUrlQuery parse_url_query(Slice query);
 
 string get_url_query_file_name(const string &query);
 

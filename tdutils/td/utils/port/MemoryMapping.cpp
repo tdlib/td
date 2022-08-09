@@ -1,13 +1,13 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 #include "td/utils/port/MemoryMapping.h"
 
-#include "td/utils/logging.h"
 #include "td/utils/misc.h"
+#include "td/utils/SliceBuilder.h"
 
 // TODO:
 // windows,
@@ -38,10 +38,8 @@ class MemoryMapping::Impl {
   int64 offset_;
 };
 
+#if !TD_WINDOWS
 static Result<int64> get_page_size() {
-#if TD_WINDOWS
-  return Status::Error("Unimplemented");
-#else
   static Result<int64> page_size = []() -> Result<int64> {
     auto page_size = sysconf(_SC_PAGESIZE);
     if (page_size < 0) {
@@ -50,8 +48,8 @@ static Result<int64> get_page_size() {
     return page_size;
   }();
   return page_size.clone();
-#endif
 }
+#endif
 
 Result<MemoryMapping> MemoryMapping::create_anonymous(const MemoryMapping::Options &options) {
   return Status::Error("Unsupported yet");
@@ -82,7 +80,7 @@ Result<MemoryMapping> MemoryMapping::create_from_file(const FileFd &file_fd, con
   auto fixed_begin = begin / page_size * page_size;
 
   auto data_offset = begin - fixed_begin;
-  auto data_size = narrow_cast<size_t>(end - fixed_begin);
+  TRY_RESULT(data_size, narrow_cast_safe<size_t>(end - fixed_begin));
 
   void *data = mmap(nullptr, data_size, PROT_READ, MAP_PRIVATE, fd, narrow_cast<off_t>(fixed_begin));
   if (data == MAP_FAILED) {
@@ -93,8 +91,8 @@ Result<MemoryMapping> MemoryMapping::create_from_file(const FileFd &file_fd, con
 #endif
 }
 
-MemoryMapping::MemoryMapping(MemoryMapping &&other) = default;
-MemoryMapping &MemoryMapping::operator=(MemoryMapping &&other) = default;
+MemoryMapping::MemoryMapping(MemoryMapping &&other) noexcept = default;
+MemoryMapping &MemoryMapping::operator=(MemoryMapping &&other) noexcept = default;
 MemoryMapping::~MemoryMapping() = default;
 
 MemoryMapping::MemoryMapping(unique_ptr<Impl> impl) : impl_(std::move(impl)) {

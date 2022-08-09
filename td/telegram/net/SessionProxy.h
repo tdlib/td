@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -20,7 +20,7 @@ namespace td {
 
 class Session;
 
-class SessionProxy : public Actor {
+class SessionProxy final : public Actor {
  public:
   friend class SessionCallback;
   class Callback {
@@ -40,7 +40,7 @@ class SessionProxy : public Actor {
  private:
   unique_ptr<Callback> callback_;
   std::shared_ptr<AuthDataShared> auth_data_;
-  AuthKeyState auth_key_state_;
+  AuthKeyState auth_key_state_ = AuthKeyState::Empty;
   bool is_main_;
   bool allow_media_only_;
   bool is_media_;
@@ -64,8 +64,8 @@ class SessionProxy : public Actor {
 
   void on_query_finished();
 
-  void start_up() override;
-  void tear_down() override;
+  void start_up() final;
+  void tear_down() final;
 };
 
 }  // namespace td

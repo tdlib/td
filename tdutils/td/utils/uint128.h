@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -30,11 +30,17 @@ class uint128_emulated {
   uint64 lo() const {
     return lo_;
   }
+  uint64 rounded_hi() const {
+    return hi_ + (lo_ >> 63);
+  }
   static uint128 from_signed(int64 x) {
     if (x >= 0) {
       return uint128(0, x);
     }
     return uint128(std::numeric_limits<uint64>::max(), static_cast<uint64>(x));
+  }
+  static uint128 from_unsigned(uint64 x) {
+    return uint128(0, x);
   }
 
   uint128 add(uint128 other) const {
@@ -122,12 +128,14 @@ class uint128_emulated {
     *mod_res = from;
   }
   uint128 div(uint128 other) const {
-    uint128 a, b;
+    uint128 a;
+    uint128 b;
     divmod(other, &a, &b);
     return a;
   }
   uint128 mod(uint128 other) const {
-    uint128 a, b;
+    uint128 a;
+    uint128 b;
     divmod(other, &a, &b);
     return b;
   }
@@ -145,7 +153,8 @@ class uint128_emulated {
       uy = uy.negate();
     }
 
-    uint128 t_quot, t_mod;
+    uint128 t_quot;
+    uint128 t_mod;
     x.divmod(uy, &t_quot, &t_mod);
     *quot = t_quot.lo();
     *rem = t_mod.lo();
@@ -200,13 +209,18 @@ class uint128_intrinsic {
   static uint128 from_signed(int64 x) {
     return uint128(static_cast<ValueT>(x));
   }
+  static uint128 from_unsigned(uint64 x) {
+    return uint128(static_cast<ValueT>(x));
+  }
   uint64 hi() const {
     return uint64(value() >> 64);
   }
   uint64 lo() const {
     return uint64(value() & std::numeric_limits<uint64>::max());
   }
-
+  uint64 rounded_hi() const {
+    return uint64((value() + (1ULL << 63)) >> 64);
+  }
   uint128 add(uint128 other) const {
     return uint128(value() + other.value());
   }
@@ -255,8 +269,8 @@ class uint128_intrinsic {
   }
   void divmod_signed(int64 y, int64 *quot, int64 *rem) const {
     CHECK(y != 0);
-    *quot = (int64)(signed_value() / y);
-    *rem = (int64)(signed_value() % y);
+    *quot = static_cast<int64>(signed_value() / y);
+    *rem = static_cast<int64>(signed_value() % y);
   }
 
  private:

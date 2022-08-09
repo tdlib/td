@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -12,7 +12,7 @@
 #include "td/utils/Slice.h"
 #include "td/utils/Status.h"
 
-#include <set>
+#include <array>
 
 namespace td {
 namespace mtproto {
@@ -37,13 +37,18 @@ void parse(ServerSalt &salt, ParserT &parser) {
   salt.valid_until = parser.fetch_double();
 }
 
+Status check_message_id_duplicates(int64 *saved_message_ids, size_t max_size, size_t &end_pos, int64 message_id);
+
+template <size_t max_size>
 class MessageIdDuplicateChecker {
  public:
-  Status check(int64 message_id);
+  Status check(int64 message_id) {
+    return check_message_id_duplicates(&saved_message_ids_[0], max_size, end_pos_, message_id);
+  }
 
  private:
-  static constexpr size_t MAX_SAVED_MESSAGE_IDS = 1000;
-  std::set<int64> saved_message_ids_;
+  std::array<int64, 2 * max_size> saved_message_ids_;
+  size_t end_pos_ = 0;
 };
 
 class AuthData {
@@ -157,18 +162,24 @@ class AuthData {
       return main_auth_key_.need_header() ? Slice(header_) : Slice();
     }
   }
+
   void set_header(std::string header) {
     header_ = std::move(header);
   }
+
   void on_api_response() {
     if (use_pfs()) {
-      if (tmp_auth_key_.auth_flag()) {
-        tmp_auth_key_.set_need_header(false);
-      }
+      tmp_auth_key_.remove_header();
     } else {
-      if (main_auth_key_.auth_flag()) {
-        main_auth_key_.set_need_header(false);
-      }
+      main_auth_key_.remove_header();
+    }
+  }
+
+  void on_connection_not_inited() {
+    if (use_pfs()) {
+      tmp_auth_key_.restore_header();
+    } else {
+      main_auth_key_.restore_header();
     }
   }
 
@@ -240,6 +251,10 @@ class AuthData {
     return updates_duplicate_checker_.check(message_id);
   }
 
+  Status recheck_update(int64 message_id) {
+    return updates_duplicate_rechecker_.check(message_id);
+  }
+
   int32 next_seq_no(bool is_content_related) {
     int32 res = seq_no_;
     if (is_content_related) {
@@ -274,8 +289,9 @@ class AuthData {
 
   std::vector<ServerSalt> future_salts_;
 
-  MessageIdDuplicateChecker duplicate_checker_;
-  MessageIdDuplicateChecker updates_duplicate_checker_;
+  MessageIdDuplicateChecker<1000> duplicate_checker_;
+  MessageIdDuplicateChecker<1000> updates_duplicate_checker_;
+  MessageIdDuplicateChecker<100> updates_duplicate_rechecker_;
 
   void update_salt(double now);
 };

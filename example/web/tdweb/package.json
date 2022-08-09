@@ -1,7 +1,7 @@
 {
   "name": "tdweb",
-  "version": "1.6.6",
-  "description": "Javascript interface for TDLib (telegram library)",
+  "version": "1.8.1",
+  "description": "JavaScript interface for TDLib (Telegram library)",
   "main": "dist/tdweb.js",
   "repository": {
     "type": "git",
@@ -26,7 +26,7 @@
     "@babel/plugin-transform-runtime": "^7.4.3",
     "@babel/preset-env": "^7.4.3",
     "@typescript-eslint/eslint-plugin": "^1.7.0",
-    "acorn": "^6.1.1",
+    "acorn": "^6.4.1",
     "babel-eslint": "^10.0.1",
     "babel-loader": "^8.0.5",
     "clean-webpack-plugin": "^2.0.1",
@@ -43,8 +43,8 @@
     "lint-staged": "^8.1.5",
     "prettier": "^1.17.0",
     "typescript": "^3.4.5",
-    "webpack": "4.28.2",
-    "webpack-cli": "^3.3.1",
+    "webpack": "^4.44.1",
+    "webpack-cli": "^3.3.12",
     "worker-loader": "^2.0.0"
   },
   "husky": {

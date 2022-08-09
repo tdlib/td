@@ -1,18 +1,17 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 #pragma once
 
-#include "td/telegram/telegram_api.h"
-
 #include "td/telegram/files/FileEncryptionKey.h"
 #include "td/telegram/files/FileLoader.h"
 #include "td/telegram/files/FileLocation.h"
 #include "td/telegram/net/DcId.h"
 #include "td/telegram/net/NetQuery.h"
+#include "td/telegram/telegram_api.h"
 
 #include "td/utils/common.h"
 #include "td/utils/port/FileFd.h"
@@ -23,13 +22,13 @@
 #include <utility>
 
 namespace td {
-class FileDownloader : public FileLoader {
+class FileDownloader final : public FileLoader {
  public:
   class Callback : public FileLoader::Callback {
    public:
     virtual void on_start_download() = 0;
-    virtual void on_partial_download(const PartialLocalFileLocation &partial_local, int64 ready_size, int64 size) = 0;
-    virtual void on_ok(const FullLocalFileLocation &full_local, int64 size, bool is_new) = 0;
+    virtual void on_partial_download(PartialLocalFileLocation partial_local, int64 ready_size, int64 size) = 0;
+    virtual void on_ok(FullLocalFileLocation full_local, int64 size, bool is_new) = 0;
     virtual void on_error(Status status) = 0;
   };
 
@@ -81,21 +80,21 @@ class FileDownloader : public FileLoader {
   std::set<HashInfo> hash_info_;
   bool has_hash_query_ = false;
 
-  Result<FileInfo> init() override TD_WARN_UNUSED_RESULT;
-  Status on_ok(int64 size) override TD_WARN_UNUSED_RESULT;
-  void on_error(Status status) override;
-  Result<bool> should_restart_part(Part part, NetQueryPtr &net_query) override TD_WARN_UNUSED_RESULT;
+  Result<FileInfo> init() final TD_WARN_UNUSED_RESULT;
+  Status on_ok(int64 size) final TD_WARN_UNUSED_RESULT;
+  void on_error(Status status) final;
+  Result<bool> should_restart_part(Part part, NetQueryPtr &net_query) final TD_WARN_UNUSED_RESULT;
   Result<std::pair<NetQueryPtr, bool>> start_part(Part part, int32 part_count,
-                                                  int64 streaming_offset) override TD_WARN_UNUSED_RESULT;
-  Result<size_t> process_part(Part part, NetQueryPtr net_query) override TD_WARN_UNUSED_RESULT;
-  void on_progress(Progress progress) override;
-  FileLoader::Callback *get_callback() override;
-  Status process_check_query(NetQueryPtr net_query) override;
-  Result<CheckInfo> check_loop(int64 checked_prefix_size, int64 ready_prefix_size, bool is_ready) override;
+                                                  int64 streaming_offset) final TD_WARN_UNUSED_RESULT;
+  Result<size_t> process_part(Part part, NetQueryPtr net_query) final TD_WARN_UNUSED_RESULT;
+  void on_progress(Progress progress) final;
+  FileLoader::Callback *get_callback() final;
+  Status process_check_query(NetQueryPtr net_query) final;
+  Result<CheckInfo> check_loop(int64 checked_prefix_size, int64 ready_prefix_size, bool is_ready) final;
   void add_hash_info(const std::vector<telegram_api::object_ptr<telegram_api::fileHash>> &hashes);
 
   bool keep_fd_ = false;
-  void keep_fd_flag(bool keep_fd) override;
+  void keep_fd_flag(bool keep_fd) final;
   void try_release_fd();
   Status acquire_fd() TD_WARN_UNUSED_RESULT;
 

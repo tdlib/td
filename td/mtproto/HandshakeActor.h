@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -11,15 +11,15 @@
 #include "td/mtproto/RawConnection.h"
 
 #include "td/actor/actor.h"
-#include "td/actor/PromiseFuture.h"
 
+#include "td/utils/Promise.h"
 #include "td/utils/Status.h"
 
 namespace td {
 namespace mtproto {
 
-// Has Raw connection. Generates new auth key. And returns it and raw_connection. Or error...
-class HandshakeActor : public Actor {
+// Owns RawConnection. Generates new auth key. And returns it and RawConnection. Or error...
+class HandshakeActor final : public Actor {
  public:
   HandshakeActor(unique_ptr<AuthKeyHandshake> handshake, unique_ptr<RawConnection> raw_connection,
                  unique_ptr<AuthKeyHandshakeContext> context, double timeout,
@@ -35,27 +35,20 @@ class HandshakeActor : public Actor {
   Promise<unique_ptr<RawConnection>> raw_connection_promise_;
   Promise<unique_ptr<AuthKeyHandshake>> handshake_promise_;
 
-  void start_up() override;
-  void tear_down() override {
-    finish(Status::OK());
-  }
-  void hangup() override {
-    finish(Status::Error(1, "Cancelled"));
-    stop();
-  }
-  void timeout_expired() override {
-    finish(Status::Error("Timeout expired"));
-    stop();
-  }
-  void loop() override;
+  void start_up() final;
 
-  void finish(Status status) {
-    // NB: order may be important for parent
-    return_connection(std::move(status));
-    return_handshake();
-  }
+  void tear_down() final;
+
+  void hangup() final;
+
+  void timeout_expired() final;
+
+  void loop() final;
+
+  void finish(Status status);
 
   void return_connection(Status status);
+
   void return_handshake();
 };
 

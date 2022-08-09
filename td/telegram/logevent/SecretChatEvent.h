@@ -1,28 +1,69 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 #pragma once
 
+#include "td/telegram/EncryptedFile.h"
+#include "td/telegram/Global.h"
 #include "td/telegram/logevent/LogEvent.h"
-
-#include "td/actor/PromiseFuture.h"
+#include "td/telegram/secret_api.h"
+#include "td/telegram/telegram_api.h"
+#include "td/telegram/UserId.h"
 
 #include "td/utils/buffer.h"
 #include "td/utils/common.h"
 #include "td/utils/format.h"
+#include "td/utils/Promise.h"
+#include "td/utils/SliceBuilder.h"
+#include "td/utils/Status.h"
+#include "td/utils/StorerBase.h"
 #include "td/utils/StringBuilder.h"
 #include "td/utils/tl_helpers.h"
+#include "td/utils/tl_parsers.h"
+#include "td/utils/tl_storers.h"
 
-#include "td/telegram/secret_api.h"
-#include "td/telegram/telegram_api.h"
+#include <type_traits>
 
 namespace td {
-namespace logevent {
+namespace log_event {
 
-class SecretChatEvent : public LogEventBase<SecretChatEvent> {
+namespace detail {
+
+template <class T>
+class StorerImpl final : public Storer {
+ public:
+  explicit StorerImpl(const T &event) : event_(event) {
+  }
+
+  size_t size() const final {
+    WithContext<TlStorerCalcLength, Global *> storer;
+    storer.set_context(G());
+
+    storer.store_int(T::version());
+    td::store(static_cast<int32>(event_.get_type()), storer);
+    td::store(event_, storer);
+    return storer.get_length();
+  }
+  size_t store(uint8 *ptr) const final {
+    WithContext<TlStorerUnsafe, Global *> storer(ptr);
+    storer.set_context(G());
+
+    storer.store_int(T::version());
+    td::store(static_cast<int32>(event_.get_type()), storer);
+    td::store(event_, storer);
+    return static_cast<size_t>(storer.get_buf() - ptr);
+  }
+
+ private:
+  const T &event_;
+};
+
+}  // namespace detail
+
+class SecretChatEvent : public LogEvent {
  public:
   // append only enum
   enum class Type : int32 {
@@ -34,22 +75,45 @@ class SecretChatEvent : public LogEventBase<SecretChatEvent> {
 
   virtual Type get_type() const = 0;
 
-  static constexpr LogEvent::HandlerType get_handler_type() {
-    return LogEvent::HandlerType::SecretChats;
-  }
-
   static constexpr int32 version() {
-    return 2;
+    return 4;
   }
 
   template <class F>
   static void downcast_call(Type type, F &&f);
+
+  template <class StorerT>
+  void store(StorerT &storer) const {
+    downcast_call(get_type(),
+                  [&](auto *ptr) { static_cast<const std::decay_t<decltype(*ptr)> *>(this)->store(storer); });
+  }
+
+  static Result<unique_ptr<SecretChatEvent>> from_buffer_slice(BufferSlice slice) {
+    WithVersion<WithContext<TlBufferParser, Global *>> parser{&slice};
+    auto version = parser.fetch_int();
+    parser.set_version(version);
+    parser.set_context(G());
+    auto magic = static_cast<Type>(parser.fetch_int());
+
+    unique_ptr<SecretChatEvent> event;
+    downcast_call(magic, [&](auto *ptr) {
+      auto tmp = make_unique<std::decay_t<decltype(*ptr)>>();
+      tmp->parse(parser);
+      event = std::move(tmp);
+    });
+    parser.fetch_end();
+    TRY_STATUS(parser.get_status());
+    if (event != nullptr) {
+      return std::move(event);
+    }
+    return Status::Error(PSLICE() << "Unknown SecretChatEvent type: " << format::as_hex(magic));
+  }
 };
 
 template <class ChildT>
 class SecretChatLogEventBase : public SecretChatEvent {
  public:
-  typename SecretChatEvent::Type get_type() const override {
+  typename SecretChatEvent::Type get_type() const final {
     return ChildT::type;
   }
 
@@ -110,31 +174,30 @@ struct EncryptedInputFile {
     }
   }
   static EncryptedInputFile from_input_encrypted_file(const tl_object_ptr<telegram_api::InputEncryptedFile> &from) {
-    if (!from) {
-      return EncryptedInputFile{Empty, 0, 0, 0, 0};
+    if (from == nullptr) {
+      return EncryptedInputFile();
     }
-    return from_input_encrypted_file(*from);
-  }
-  static EncryptedInputFile from_input_encrypted_file(const telegram_api::InputEncryptedFile &from) {
-    switch (from.get_id()) {
+    switch (from->get_id()) {
       case telegram_api::inputEncryptedFileEmpty::ID:
         return EncryptedInputFile{Empty, 0, 0, 0, 0};
       case telegram_api::inputEncryptedFileUploaded::ID: {
-        auto &uploaded = static_cast<const telegram_api::inputEncryptedFileUploaded &>(from);
+        auto &uploaded = static_cast<const telegram_api::inputEncryptedFileUploaded &>(*from);
         return EncryptedInputFile{Uploaded, uploaded.id_, 0, uploaded.parts_, uploaded.key_fingerprint_};
       }
       case telegram_api::inputEncryptedFileBigUploaded::ID: {
-        auto &uploaded = static_cast<const telegram_api::inputEncryptedFileBigUploaded &>(from);
+        auto &uploaded = static_cast<const telegram_api::inputEncryptedFileBigUploaded &>(*from);
         return EncryptedInputFile{BigUploaded, uploaded.id_, 0, uploaded.parts_, uploaded.key_fingerprint_};
       }
       case telegram_api::inputEncryptedFile::ID: {
-        auto &uploaded = static_cast<const telegram_api::inputEncryptedFile &>(from);
+        auto &uploaded = static_cast<const telegram_api::inputEncryptedFile &>(*from);
         return EncryptedInputFile{Location, uploaded.id_, uploaded.access_hash_, 0, 0};
       }
       default:
         UNREACHABLE();
+        return EncryptedInputFile();
     }
   }
+
   tl_object_ptr<telegram_api::InputEncryptedFile> as_input_encrypted_file() const {
     switch (type) {
       case Empty:
@@ -147,6 +210,7 @@ struct EncryptedInputFile {
         return make_tl_object<telegram_api::inputEncryptedFile>(id, access_hash);
     }
     UNREACHABLE();
+    return nullptr;
   }
 };
 
@@ -154,65 +218,17 @@ inline StringBuilder &operator<<(StringBuilder &sb, const EncryptedInputFile &fi
   return sb << to_string(file.as_input_encrypted_file());
 }
 
-// encryptedFile#4a70994c id:long access_hash:long size:int dc_id:int key_fingerprint:int = EncryptedFile;
-struct EncryptedFileLocation {
-  static constexpr int32 MAGIC = 0x473d738a;
-  int64 id = 0;
-  int64 access_hash = 0;
-  int32 size = 0;
-  int32 dc_id = 0;
-  int32 key_fingerprint = 0;
-
-  tl_object_ptr<telegram_api::encryptedFile> as_encrypted_file() {
-    return make_tl_object<telegram_api::encryptedFile>(id, access_hash, size, dc_id, key_fingerprint);
-  }
-  template <class StorerT>
-  void store(StorerT &storer) const {
-    using td::store;
-    store(MAGIC, storer);
-    store(id, storer);
-    store(access_hash, storer);
-    store(size, storer);
-    store(dc_id, storer);
-    store(key_fingerprint, storer);
-  }
-
-  template <class ParserT>
-  void parse(ParserT &parser) {
-    using td::parse;
-    int32 got_magic;
-
-    parse(got_magic, parser);
-    parse(id, parser);
-    parse(access_hash, parser);
-    parse(size, parser);
-    parse(dc_id, parser);
-    parse(key_fingerprint, parser);
-
-    if (got_magic != MAGIC) {
-      parser.set_error("EncryptedFileLocation magic mismatch");
-      return;
-    }
-  }
-};
-
-inline StringBuilder &operator<<(StringBuilder &sb, const EncryptedFileLocation &file) {
-  return sb << "[" << tag("id", file.id) << tag("access_hash", file.access_hash) << tag("size", file.size)
-            << tag("dc_id", file.dc_id) << tag("key_fingerprint", file.key_fingerprint) << "]";
-}
-
 // LogEvents
 // TODO: Qts and SeqNoState could be just Logevents that are updated during regenerate
-class InboundSecretMessage : public SecretChatLogEventBase<InboundSecretMessage> {
+class InboundSecretMessage final : public SecretChatLogEventBase<InboundSecretMessage> {
  public:
   static constexpr Type type = SecretChatEvent::Type::InboundSecretMessage;
-  int32 qts = 0;
 
   int32 chat_id = 0;
   int32 date = 0;
 
   BufferSlice encrypted_message;  // empty when we store event to binlog
-  Promise<Unit> qts_ack;
+  Promise<Unit> promise;
 
   bool is_checked = false;
   // after decrypted and checked
@@ -228,25 +244,25 @@ class InboundSecretMessage : public SecretChatLogEventBase<InboundSecretMessage>
     return decrypted_message_layer->layer_;
   }
 
-  EncryptedFileLocation file;
+  unique_ptr<EncryptedFile> file;
 
-  bool has_encrypted_file = false;
   bool is_pending = false;
 
   template <class StorerT>
   void store(StorerT &storer) const {
     using td::store;
 
+    bool has_encrypted_file = file != nullptr;
     BEGIN_STORE_FLAGS();
     STORE_FLAG(has_encrypted_file);
     STORE_FLAG(is_pending);
+    STORE_FLAG(true);
     END_STORE_FLAGS();
 
-    store(qts, storer);
     store(chat_id, storer);
     store(date, storer);
     // skip encrypted_message
-    // skip qts_ack
+    // skip promise
 
     // TODO
     decrypted_message_layer->store(storer);
@@ -265,16 +281,22 @@ class InboundSecretMessage : public SecretChatLogEventBase<InboundSecretMessage>
   void parse(ParserT &parser) {
     using td::parse;
 
+    bool has_encrypted_file;
+    bool no_qts;
     BEGIN_PARSE_FLAGS();
     PARSE_FLAG(has_encrypted_file);
     PARSE_FLAG(is_pending);
+    PARSE_FLAG(no_qts);
     END_PARSE_FLAGS();
 
-    parse(qts, parser);
+    if (!no_qts) {
+      int32 legacy_qts;
+      parse(legacy_qts, parser);
+    }
     parse(chat_id, parser);
     parse(date, parser);
     // skip encrypted_message
-    // skip qts_ack
+    // skip promise
 
     // TODO
     decrypted_message_layer = secret_api::decryptedMessageLayer::fetch(parser);
@@ -291,17 +313,16 @@ class InboundSecretMessage : public SecretChatLogEventBase<InboundSecretMessage>
     is_checked = true;
   }
 
-  StringBuilder &print(StringBuilder &sb) const override {
-    return sb << "[Logevent InboundSecretMessage " << tag("id", logevent_id()) << tag("qts", qts)
-              << tag("chat_id", chat_id) << tag("date", date) << tag("auth_key_id", format::as_hex(auth_key_id))
-              << tag("message_id", message_id) << tag("my_in_seq_no", my_in_seq_no)
-              << tag("my_out_seq_no", my_out_seq_no) << tag("his_in_seq_no", his_in_seq_no)
-              << tag("message", to_string(decrypted_message_layer)) << tag("is_pending", is_pending)
-              << format::cond(has_encrypted_file, tag("file", file)) << "]";
+  StringBuilder &print(StringBuilder &sb) const final {
+    return sb << "[Logevent InboundSecretMessage " << tag("id", log_event_id()) << tag("chat_id", chat_id)
+              << tag("date", date) << tag("auth_key_id", format::as_hex(auth_key_id)) << tag("message_id", message_id)
+              << tag("my_in_seq_no", my_in_seq_no) << tag("my_out_seq_no", my_out_seq_no)
+              << tag("his_in_seq_no", his_in_seq_no) << tag("message", to_string(decrypted_message_layer))
+              << tag("is_pending", is_pending) << format::cond(file != nullptr, tag("file", *file)) << "]";
   }
 };
 
-class OutboundSecretMessage : public SecretChatLogEventBase<OutboundSecretMessage> {
+class OutboundSecretMessage final : public SecretChatLogEventBase<OutboundSecretMessage> {
  public:
   static constexpr Type type = SecretChatEvent::Type::OutboundSecretMessage;
 
@@ -327,6 +348,7 @@ class OutboundSecretMessage : public SecretChatLogEventBase<OutboundSecretMessag
   bool is_rewritable = false;
   // should notify our parent about state of this message (using context and random_id)
   bool is_external = false;
+  bool is_silent = false;
 
   tl_object_ptr<secret_api::DecryptedMessageAction> action;
   uint64 crc = 0;  // DEBUG;
@@ -350,13 +372,14 @@ class OutboundSecretMessage : public SecretChatLogEventBase<OutboundSecretMessag
     store(my_out_seq_no, storer);
     store(his_in_seq_no, storer);
 
-    bool has_action = static_cast<bool>(action);
+    bool has_action = action != nullptr;
     BEGIN_STORE_FLAGS();
     STORE_FLAG(is_sent);
     STORE_FLAG(need_notify_user);
     STORE_FLAG(has_action);
     STORE_FLAG(is_rewritable);
     STORE_FLAG(is_external);
+    STORE_FLAG(is_silent);
     END_STORE_FLAGS();
 
     if (has_action) {
@@ -387,6 +410,7 @@ class OutboundSecretMessage : public SecretChatLogEventBase<OutboundSecretMessag
     PARSE_FLAG(has_action);
     PARSE_FLAG(is_rewritable);
     PARSE_FLAG(is_external);
+    PARSE_FLAG(is_silent);
     END_PARSE_FLAGS();
 
     if (has_action) {
@@ -395,8 +419,8 @@ class OutboundSecretMessage : public SecretChatLogEventBase<OutboundSecretMessag
     }
   }
 
-  StringBuilder &print(StringBuilder &sb) const override {
-    return sb << "[Logevent OutboundSecretMessage " << tag("id", logevent_id()) << tag("chat_id", chat_id)
+  StringBuilder &print(StringBuilder &sb) const final {
+    return sb << "[Logevent OutboundSecretMessage " << tag("id", log_event_id()) << tag("chat_id", chat_id)
               << tag("is_sent", is_sent) << tag("need_notify_user", need_notify_user)
               << tag("is_rewritable", is_rewritable) << tag("is_external", is_external) << tag("message_id", message_id)
               << tag("random_id", random_id) << tag("my_in_seq_no", my_in_seq_no) << tag("my_out_seq_no", my_out_seq_no)
@@ -404,33 +428,46 @@ class OutboundSecretMessage : public SecretChatLogEventBase<OutboundSecretMessag
   }
 };
 
-class CloseSecretChat : public SecretChatLogEventBase<CloseSecretChat> {
+class CloseSecretChat final : public SecretChatLogEventBase<CloseSecretChat> {
  public:
   static constexpr Type type = SecretChatEvent::Type::CloseSecretChat;
   int32 chat_id = 0;
+  bool delete_history = false;
+  bool is_already_discarded = false;
 
   template <class StorerT>
   void store(StorerT &storer) const {
     using td::store;
+    BEGIN_STORE_FLAGS();
+    STORE_FLAG(delete_history);
+    STORE_FLAG(is_already_discarded);
+    END_STORE_FLAGS();
     store(chat_id, storer);
   }
 
   template <class ParserT>
   void parse(ParserT &parser) {
     using td::parse;
+    if (parser.version() >= 3) {
+      BEGIN_PARSE_FLAGS();
+      PARSE_FLAG(delete_history);
+      PARSE_FLAG(is_already_discarded);
+      END_PARSE_FLAGS();
+    }
     parse(chat_id, parser);
   }
 
-  StringBuilder &print(StringBuilder &sb) const override {
-    return sb << "[Logevent CloseSecretChat " << tag("id", logevent_id()) << tag("chat_id", chat_id) << "]";
+  StringBuilder &print(StringBuilder &sb) const final {
+    return sb << "[Logevent CloseSecretChat " << tag("id", log_event_id()) << tag("chat_id", chat_id)
+              << tag("delete_history", delete_history) << tag("is_already_discarded", is_already_discarded) << "]";
   }
 };
 
-class CreateSecretChat : public SecretChatLogEventBase<CreateSecretChat> {
+class CreateSecretChat final : public SecretChatLogEventBase<CreateSecretChat> {
  public:
   static constexpr Type type = SecretChatEvent::Type::CreateSecretChat;
   int32 random_id = 0;
-  int32 user_id = 0;
+  UserId user_id;
   int64 user_access_hash = 0;
 
   template <class StorerT>
@@ -445,13 +482,13 @@ class CreateSecretChat : public SecretChatLogEventBase<CreateSecretChat> {
   void parse(ParserT &parser) {
     using td::parse;
     parse(random_id, parser);
-    parse(user_id, parser);
+    user_id = UserId(parser.version() >= 4 ? parser.fetch_long() : static_cast<int64>(parser.fetch_int()));
     parse(user_access_hash, parser);
   }
 
-  StringBuilder &print(StringBuilder &sb) const override {
-    return sb << "[Logevent CreateSecretChat " << tag("id", logevent_id()) << tag("chat_id", random_id)
-              << tag("user_id", user_id) << "]";
+  StringBuilder &print(StringBuilder &sb) const final {
+    return sb << "[Logevent CreateSecretChat " << tag("id", log_event_id()) << tag("chat_id", random_id) << user_id
+              << "]";
   }
 };
 
@@ -474,10 +511,10 @@ void SecretChatEvent::downcast_call(Type type, F &&f) {
       break;
   }
 }
-}  // namespace logevent
+}  // namespace log_event
 
-inline auto create_storer(logevent::SecretChatEvent &event) {
-  return logevent::detail::StorerImpl<logevent::SecretChatEvent>(event);
+inline auto create_storer(log_event::SecretChatEvent &event) {
+  return log_event::detail::StorerImpl<log_event::SecretChatEvent>(event);
 }
 
 }  // namespace td

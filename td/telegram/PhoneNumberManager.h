@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -10,6 +10,7 @@
 #include "td/telegram/net/NetQuery.h"
 #include "td/telegram/SendCodeHelper.h"
 #include "td/telegram/td_api.h"
+#include "td/telegram/telegram_api.h"
 
 #include "td/actor/actor.h"
 
@@ -18,7 +19,7 @@
 
 namespace td {
 
-class PhoneNumberManager : public NetActor {
+class PhoneNumberManager final : public NetActor {
  public:
   enum class Type : int32 { ChangePhone, VerifyPhone, ConfirmPhone };
   PhoneNumberManager(Type type, ActorShared<> parent);
@@ -41,29 +42,35 @@ class PhoneNumberManager : public NetActor {
   ActorShared<> parent_;
   uint64 query_id_ = 0;
   uint64 net_query_id_ = 0;
-  NetQueryType net_query_type_;
+  NetQueryType net_query_type_ = NetQueryType::None;
 
   SendCodeHelper send_code_helper_;
 
   void on_new_query(uint64 query_id);
-  void on_query_error(Status status);
-  void on_query_error(uint64 id, Status status);
+
   void on_query_ok();
+
+  void on_query_error(Status status);
+
+  static void on_query_error(uint64 id, Status status);
+
   void start_net_query(NetQueryType net_query_type, NetQueryPtr net_query);
 
-  template <class T>
-  void process_send_code_result(uint64 query_id, const T &send_code);
+  void send_new_send_code_query(uint64 query_id, const telegram_api::Function &send_code);
 
-  template <class T>
-  void send_new_check_code_query(const T &query);
+  void send_new_check_code_query(const telegram_api::Function &check_code);
 
-  template <class T>
-  void process_check_code_result(T result);
+  void process_check_code_result(Result<tl_object_ptr<telegram_api::User>> &&result);
+
+  void process_check_code_result(Result<bool> &&result);
+
+  void on_result(NetQueryPtr result) final;
+
+  void on_send_code_result(NetQueryPtr &result);
 
   void on_check_code_result(NetQueryPtr &result);
-  void on_send_code_result(NetQueryPtr &result);
-  void on_result(NetQueryPtr result) override;
-  void tear_down() override;
+
+  void tear_down() final;
 };
 
 }  // namespace td

@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -16,7 +16,7 @@
 
 namespace td {
 
-class TlWriterCCommon : public tl::TL_writer {
+class TlWriterCCommon final : public tl::TL_writer {
  public:
   int is_header_;
   std::string prefix_;
@@ -24,47 +24,47 @@ class TlWriterCCommon : public tl::TL_writer {
       : TL_writer(name), is_header_(is_header), prefix_(prefix) {
   }
 
-  int get_max_arity() const override {
+  int get_max_arity() const final {
     return 0;
   }
 
-  bool is_built_in_simple_type(const std::string &name) const override {
+  bool is_built_in_simple_type(const std::string &name) const final {
     return name == "Bool" || name == "Int32" || name == "Int53" || name == "Int64" || name == "Double" ||
            name == "String" || name == "Bytes";
   }
-  bool is_built_in_complex_type(const std::string &name) const override {
+  bool is_built_in_complex_type(const std::string &name) const final {
     return name == "Vector";
   }
-  bool is_type_bare(const tl::tl_type *t) const override {
+  bool is_type_bare(const tl::tl_type *t) const final {
     return t->simple_constructors <= 1 || (is_built_in_simple_type(t->name) && t->name != "Bool") ||
            is_built_in_complex_type(t->name);
   }
 
-  std::vector<std::string> get_parsers() const override {
+  std::vector<std::string> get_parsers() const final {
     return {};
   }
-  int get_parser_type(const tl::tl_combinator *t, const std::string &name) const override {
+  int get_parser_type(const tl::tl_combinator *t, const std::string &name) const final {
     return 0;
   }
-  std::vector<std::string> get_storers() const override {
+  std::vector<std::string> get_storers() const final {
     return {};
   }
-  std::vector<std::string> get_additional_functions() const override {
+  std::vector<std::string> get_additional_functions() const final {
     return {"TdConvertToInternal", "TdConvertFromInternal", "TdSerialize",    "TdToString",
             "TdDestroyObject",     "TdStackStorer",         "TdStackFetcher", "enum"};
   }
-  int get_storer_type(const tl::tl_combinator *t, const std::string &name) const override {
+  int get_storer_type(const tl::tl_combinator *t, const std::string &name) const final {
     return name == "to_string" || name == "to_cpp_string";
   }
 
-  std::string gen_base_tl_class_name() const override {
+  std::string gen_base_tl_class_name() const final {
     return "Object";
   }
-  std::string gen_base_type_class_name(int arity) const override {
+  std::string gen_base_type_class_name(int arity) const final {
     assert(arity == 0);
     return "Object";
   }
-  std::string gen_base_function_class_name() const override {
+  std::string gen_base_function_class_name() const final {
     return "Function";
   }
 
@@ -118,13 +118,13 @@ class TlWriterCCommon : public tl::TL_writer {
     return name;
   }
 
-  std::string gen_class_name(std::string name) const override {
+  std::string gen_class_name(std::string name) const final {
     if (name == "Object" || name == "#") {
       assert(false);
     }
     return to_CamelCase(name);
   }
-  std::string gen_field_name(std::string name) const override {
+  std::string gen_field_name(std::string name) const final {
     return gen_native_field_name(name);
   }
 
@@ -220,10 +220,10 @@ class TlWriterCCommon : public tl::TL_writer {
 
     return !force ? ("struct Td" + gen_main_class_name(t) + " *") : gen_main_class_name(t);
   }
-  std::string gen_type_name(const tl::tl_tree_type *tree_type) const override {
+  std::string gen_type_name(const tl::tl_tree_type *tree_type) const final {
     return gen_type_name(tree_type, false);
   }
-  std::string gen_output_begin() const override {
+  std::string gen_output_begin() const final {
     if (is_header_ == 1) {
       return "#pragma once\n"
              "#ifdef __cplusplus\n"
@@ -242,7 +242,7 @@ class TlWriterCCommon : public tl::TL_writer {
              "TDC_VECTOR(Int,int)\n"
              "TDC_VECTOR(Long,long long)\n"
              "TDC_VECTOR(String,char *)\n"
-             "TDC_VECTOR(Bytes,TdBytes)\n"
+             "TDC_VECTOR(Bytes,struct TdBytes)\n"
              "struct TdStackStorerMethods {\n"
              "  void (*pack_string)(const char *s);\n"
              "  void (*pack_bytes)(const unsigned char *s, int len);\n"
@@ -276,10 +276,9 @@ class TlWriterCCommon : public tl::TL_writer {
            "#include \"td/utils/logging.h\"\n"
            "#include \"td/utils/misc.h\"\n"
            "#include \"td/utils/Slice.h\"\n"
-           "#include \"td/utils/tl_storers.h\"\n"
            "\n";
   }
-  std::string gen_output_end() const override {
+  std::string gen_output_end() const final {
     if (is_header_ == 1) {
       return "#ifdef __cplusplus\n"
              "}\n"
@@ -290,7 +289,7 @@ class TlWriterCCommon : public tl::TL_writer {
     return "";
   }
 
-  std::string gen_forward_class_declaration(const std::string &class_name, bool is_proxy) const override {
+  std::string gen_forward_class_declaration(const std::string &class_name, bool is_proxy) const final {
     if (is_header_ != 1 || class_name == "") {
       return "";
     }
@@ -303,8 +302,8 @@ class TlWriterCCommon : public tl::TL_writer {
            class_name + ", struct TdVector" + class_name + " *);\n";
   }
 
-  std::string gen_class_begin(const std::string &class_name, const std::string &base_class_name,
-                              bool is_proxy) const override {
+  std::string gen_class_begin(const std::string &class_name, const std::string &base_class_name, bool is_proxy,
+                              const tl::tl_tree *result) const final {
     if (is_header_ != 1 || class_name == "") {
       return "";
     }
@@ -315,12 +314,12 @@ class TlWriterCCommon : public tl::TL_writer {
     }
     return "struct Td" + class_name + " {\n" + "  int ID;\n  int refcnt;\n" + tail;
   }
-  std::string gen_class_end() const override {
+  std::string gen_class_end() const final {
     return "";
   }
 
   std::string gen_field_definition(const std::string &class_name, const std::string &type_name,
-                                   const std::string &field_name) const override {
+                                   const std::string &field_name) const final {
     if (is_header_ != 1 || class_name == "") {
       return "";
     }
@@ -328,14 +327,14 @@ class TlWriterCCommon : public tl::TL_writer {
   }
 
   std::string gen_store_function_begin(const std::string &storer_name, const std::string &class_name, int arity,
-                                       std::vector<tl::var_description> &vars, int storer_type) const override {
+                                       std::vector<tl::var_description> &vars, int storer_type) const final {
     return "";
   }
-  std::string gen_store_function_end(const std::vector<tl::var_description> &vars, int storer_type) const override {
+  std::string gen_store_function_end(const std::vector<tl::var_description> &vars, int storer_type) const final {
     return "";
   }
 
-  std::string gen_constructor_begin(int field_count, const std::string &class_name, bool is_default) const override {
+  std::string gen_constructor_begin(int field_count, const std::string &class_name, bool is_default) const final {
     if (!is_default || is_header_ == -1 || class_name == "") {
       return "";
     }
@@ -348,7 +347,7 @@ class TlWriterCCommon : public tl::TL_writer {
     return ss.str();
   }
   std::string gen_constructor_parameter(int field_num, const std::string &class_name, const tl::arg &a,
-                                        bool is_default) const override {
+                                        bool is_default) const final {
     if (!is_default || is_header_ == -1) {
       return "";
     }
@@ -359,10 +358,10 @@ class TlWriterCCommon : public tl::TL_writer {
     return ss.str();
   }
   std::string gen_constructor_field_init(int field_num, const std::string &class_name, const tl::arg &a,
-                                         bool is_default) const override {
+                                         bool is_default) const final {
     return "";
   }
-  std::string gen_constructor_end(const tl::tl_combinator *t, int field_count, bool is_default) const override {
+  std::string gen_constructor_end(const tl::tl_combinator *t, int field_count, bool is_default) const final {
     if (!is_default || is_header_ == -1) {
       return "";
     }
@@ -389,7 +388,7 @@ class TlWriterCCommon : public tl::TL_writer {
     return ss.str();
   }
   std::string gen_additional_function(const std::string &function_name, const tl::tl_combinator *t,
-                                      bool is_function) const override {
+                                      bool is_function) const final {
     std::stringstream ss;
     if (function_name == "enum") {
       return ss.str();
@@ -547,11 +546,11 @@ class TlWriterCCommon : public tl::TL_writer {
     }
   };
 
-  struct file_store_methods_to_td : public file_store_methods {
+  struct file_store_methods_to_td final : public file_store_methods {
     explicit file_store_methods_to_td(const class TlWriterCCommon *cl) : cl(cl) {
     }
     void store_simple_type(std::stringstream &ss, std::string offset, std::string res_var, std::string var,
-                           std::string type_name) const override {
+                           std::string type_name) const final {
       if (type_name == "String") {
         ss << offset << res_var << " = (" << var << ") ? " << var << ": \"\";\n";
       } else if (type_name == "Bytes") {
@@ -563,35 +562,35 @@ class TlWriterCCommon : public tl::TL_writer {
       }
     }
     void store_common_type(std::stringstream &ss, std::string offset, std::string res_var, std::string var,
-                           std::string type_name) const override {
+                           std::string type_name) const final {
       ss << offset << res_var << " = TdConvertToInternal (" << var << ");\n";
     }
     void store_array_start(std::stringstream &ss, std::string offset, std::string res_var, std::string var,
-                           const tl::tl_tree_type *tree_type) const override {
+                           const tl::tl_tree_type *tree_type) const final {
     }
     void store_array_el(std::stringstream &ss, std::string offset, std::string res_var, std::string var,
-                        std::string idx) const override {
+                        std::string idx) const final {
       ss << offset << res_var << ".push_back (std::move (" << var << "));\n";
     }
     void store_array_finish(std::stringstream &ss, std::string offset, std::string res_var, std::string var,
-                            const tl::tl_tree_type *tree_type) const override {
+                            const tl::tl_tree_type *tree_type) const final {
     }
-    void store_nil(std::stringstream &ss, std::string offset) const override {
+    void store_nil(std::stringstream &ss, std::string offset) const final {
       ss << offset << "return nullptr;\n";
     }
     std::string store_field_start(std::stringstream &ss, std::string offset, int depth,
-                                  const tl::tl_tree_type *tree_type) const override {
+                                  const tl::tl_tree_type *tree_type) const final {
       std::string res_var = "v" + int_to_string(depth);
       ss << offset << cl->gen_native_type_name(tree_type, true) << " " << res_var << ";\n";
       return res_var;
     }
-    void store_field_finish(std::stringstream &ss, std::string offset, std::string res_var) const override {
+    void store_field_finish(std::stringstream &ss, std::string offset, std::string res_var) const final {
     }
     void store_arg_finish(std::stringstream &ss, std::string offset, std::string arg_name,
-                          std::string res_var) const override {
+                          std::string res_var) const final {
     }
     void store_constructor_finish(std::stringstream &ss, std::string offset, const tl::tl_combinator *t,
-                                  std::vector<std::string> res_var) const override {
+                                  std::vector<std::string> res_var) const final {
       auto native_class_name = cl->gen_native_class_name(t->name);
       ss << offset << "return td::td_api::make_object<td::td_api::" << native_class_name << ">(";
       bool is_first = true;
@@ -609,11 +608,11 @@ class TlWriterCCommon : public tl::TL_writer {
     const class TlWriterCCommon *cl;
   };
 
-  struct file_store_methods_destroy : public file_store_methods {
+  struct file_store_methods_destroy final : public file_store_methods {
     explicit file_store_methods_destroy(const class TlWriterCCommon *cl) : cl(cl) {
     }
     void store_simple_type(std::stringstream &ss, std::string offset, std::string res_var, std::string var,
-                           std::string type_name) const override {
+                           std::string type_name) const final {
       if (type_name == "String") {
         ss << offset << "free (" << var << ");\n";
       } else if (type_name == "Bytes") {
@@ -621,32 +620,32 @@ class TlWriterCCommon : public tl::TL_writer {
       }
     }
     void store_common_type(std::stringstream &ss, std::string offset, std::string res_var, std::string var,
-                           std::string type_name) const override {
+                           std::string type_name) const final {
       ss << offset << "TdDestroyObject (" << var << ");\n";
     }
     void store_array_start(std::stringstream &ss, std::string offset, std::string res_var, std::string var,
-                           const tl::tl_tree_type *tree_type) const override {
+                           const tl::tl_tree_type *tree_type) const final {
     }
     void store_array_el(std::stringstream &ss, std::string offset, std::string res_var, std::string var,
-                        std::string idx) const override {
+                        std::string idx) const final {
     }
     void store_array_finish(std::stringstream &ss, std::string offset, std::string res_var, std::string var,
-                            const tl::tl_tree_type *tree_type) const override {
+                            const tl::tl_tree_type *tree_type) const final {
       ss << offset << "delete[] " << var << "->data;\n" << offset << "delete " << var << ";\n";
     }
-    void store_nil(std::stringstream &ss, std::string offset) const override {
+    void store_nil(std::stringstream &ss, std::string offset) const final {
       ss << offset << "return;\n";
     }
     std::string store_field_start(std::stringstream &ss, std::string offset, int depth,
-                                  const tl::tl_tree_type *tree_type) const override {
+                                  const tl::tl_tree_type *tree_type) const final {
       return "";
     }
-    void store_field_finish(std::stringstream &ss, std::string offset, std::string res_var) const override {
+    void store_field_finish(std::stringstream &ss, std::string offset, std::string res_var) const final {
     }
     void store_arg_finish(std::stringstream &ss, std::string offset, std::string arg_name,
-                          std::string res_var) const override {
+                          std::string res_var) const final {
     }
-    void store_constructor_start(std::stringstream &ss, std::string offset, const tl::tl_combinator *t) const override {
+    void store_constructor_start(std::stringstream &ss, std::string offset, const tl::tl_combinator *t) const final {
       ss << "#if TD_MSVC\n";
       ss << offset << "static_assert (sizeof (long) == sizeof (var->refcnt), \"Illegal InterlockedDecrement\");\n";
       ss << offset << "int ref = InterlockedDecrement (reinterpret_cast<long *>(&var->refcnt));\n";
@@ -661,16 +660,16 @@ class TlWriterCCommon : public tl::TL_writer {
       ss << offset << "}\n";
     }
     void store_constructor_finish(std::stringstream &ss, std::string offset, const tl::tl_combinator *t,
-                                  std::vector<std::string> res_var) const override {
+                                  std::vector<std::string> res_var) const final {
       ss << offset << "delete var;\n";
     }
     const class TlWriterCCommon *cl;
   };
-  struct file_store_methods_stack : public file_store_methods {
+  struct file_store_methods_stack final : public file_store_methods {
     explicit file_store_methods_stack(const class TlWriterCCommon *cl) : cl(cl) {
     }
     void store_simple_type(std::stringstream &ss, std::string offset, std::string res_var, std::string var,
-                           std::string type_name) const override {
+                           std::string type_name) const final {
       if (type_name == "String") {
         ss << offset << "M->pack_string (" << var << ");\n";
       } else if (type_name == "Bytes") {
@@ -686,41 +685,41 @@ class TlWriterCCommon : public tl::TL_writer {
       }
     }
     void store_common_type(std::stringstream &ss, std::string offset, std::string res_var, std::string var,
-                           std::string type_name) const override {
+                           std::string type_name) const final {
       ss << offset << "TdStackStorer (" << var << ", M);\n";
     }
     void store_array_start(std::stringstream &ss, std::string offset, std::string res_var, std::string var,
-                           const tl::tl_tree_type *tree_type) const override {
+                           const tl::tl_tree_type *tree_type) const final {
       ss << offset << "M->new_array ();\n";
     }
     void store_array_el(std::stringstream &ss, std::string offset, std::string res_var, std::string var,
-                        std::string idx) const override {
+                        std::string idx) const final {
       ss << offset << "M->new_arr_field (" << idx << ");\n";
     }
     void store_array_finish(std::stringstream &ss, std::string offset, std::string res_var, std::string var,
-                            const tl::tl_tree_type *tree_type) const override {
+                            const tl::tl_tree_type *tree_type) const final {
     }
-    void store_nil(std::stringstream &ss, std::string offset) const override {
+    void store_nil(std::stringstream &ss, std::string offset) const final {
       ss << offset << "M->pack_bool (0);\n" << offset << "return;\n";
     }
     std::string store_field_start(std::stringstream &ss, std::string offset, int depth,
-                                  const tl::tl_tree_type *tree_type) const override {
+                                  const tl::tl_tree_type *tree_type) const final {
       return "";
     }
-    void store_field_finish(std::stringstream &ss, std::string offset, std::string res_var) const override {
+    void store_field_finish(std::stringstream &ss, std::string offset, std::string res_var) const final {
     }
     void store_arg_finish(std::stringstream &ss, std::string offset, std::string arg_name,
-                          std::string res_var) const override {
+                          std::string res_var) const final {
       ss << offset << "M->new_field (\"" << arg_name << "\");\n";
     }
-    void store_constructor_start(std::stringstream &ss, std::string offset, const tl::tl_combinator *t) const override {
+    void store_constructor_start(std::stringstream &ss, std::string offset, const tl::tl_combinator *t) const final {
       ss << offset << "M->new_table ();\n";
       auto class_name = cl->gen_class_name(t->name);
       ss << offset << "M->pack_string (\"" << class_name << "\");\n";
       ss << offset << "M->new_field (\"ID\");\n";
     }
     void store_constructor_finish(std::stringstream &ss, std::string offset, const tl::tl_combinator *t,
-                                  std::vector<std::string> res_var) const override {
+                                  std::vector<std::string> res_var) const final {
     }
     const class TlWriterCCommon *cl;
   };
@@ -767,15 +766,15 @@ class TlWriterCCommon : public tl::TL_writer {
     }
   };
 
-  struct file_fetch_methods_from_td : public file_fetch_methods {
+  struct file_fetch_methods_from_td final : public file_fetch_methods {
     explicit file_fetch_methods_from_td(const class TlWriterCCommon *cl) : cl(cl) {
     }
     std::string fetch_field_start(std::stringstream &ss, std::string offset, int depth,
-                                  const tl::tl_tree_type *tree_type) const override {
+                                  const tl::tl_tree_type *tree_type) const final {
       return "";
     }
     void fetch_simple_type(std::stringstream &ss, std::string offset, std::string res_var, std::string var,
-                           std::string type_name) const override {
+                           std::string type_name) const final {
       if (type_name == "String") {
         ss << offset << res_var << " = (" << var << ".length ()) ? td::str_dup (" << var << ") : nullptr;\n";
       } else if (type_name == "Bytes") {
@@ -791,7 +790,7 @@ class TlWriterCCommon : public tl::TL_writer {
       }
     }
     void fetch_common_type(std::stringstream &ss, std::string offset, std::string res_var, std::string var,
-                           const tl::tl_tree_type *tree_type) const override {
+                           const tl::tl_tree_type *tree_type) const final {
       auto native_type_name = cl->gen_native_type_name(tree_type, false);
       ss << offset << "if (!" << var << ") {\n"
          << offset << "  " << res_var << " = nullptr;\n"
@@ -801,32 +800,32 @@ class TlWriterCCommon : public tl::TL_writer {
          << offset << "}\n";
     }
     void fetch_array_size(std::stringstream &ss, std::string offset, std::string res_var, std::string var,
-                          const tl::tl_tree_type *tree_type) const override {
+                          const tl::tl_tree_type *tree_type) const final {
       ss << offset << res_var << " = (int)" << var << ".size ();\n";
     }
     std::string fetch_array_field_start(std::stringstream &ss, std::string offset, std::string res_var, std::string var,
-                                        std::string idx, const tl::tl_tree_type *tree_type) const override {
+                                        std::string idx, const tl::tl_tree_type *tree_type) const final {
       return var + "[" + idx + "]";
     }
     std::string fetch_dict_field_start(std::stringstream &ss, std::string offset, std::string res_var, std::string var,
-                                       std::string key, const tl::tl_tree_type *tree_type) const override {
+                                       std::string key, const tl::tl_tree_type *tree_type) const final {
       return var + "." + key;
     }
     void fetch_field_finish(std::stringstream &ss, std::string offset, std::string res_var, std::string var,
-                            const tl::tl_tree_type *tree_type) const override {
+                            const tl::tl_tree_type *tree_type) const final {
     }
     const class TlWriterCCommon *cl;
   };
 
-  struct file_fetch_methods_stack : public file_fetch_methods {
+  struct file_fetch_methods_stack final : public file_fetch_methods {
     explicit file_fetch_methods_stack(const class TlWriterCCommon *cl) : cl(cl) {
     }
     std::string fetch_field_start(std::stringstream &ss, std::string offset, int depth,
-                                  const tl::tl_tree_type *tree_type) const override {
+                                  const tl::tl_tree_type *tree_type) const final {
       return "";
     }
     void fetch_simple_type(std::stringstream &ss, std::string offset, std::string res_var, std::string var,
-                           std::string type_name) const override {
+                           std::string type_name) const final {
       if (type_name == "String") {
         ss << offset << res_var << " = M->get_string ();\n";
       } else if (type_name == "Bytes") {
@@ -842,7 +841,7 @@ class TlWriterCCommon : public tl::TL_writer {
       }
     }
     void fetch_common_type(std::stringstream &ss, std::string offset, std::string res_var, std::string var,
-                           const tl::tl_tree_type *tree_type) const override {
+                           const tl::tl_tree_type *tree_type) const final {
       auto class_name = cl->gen_main_class_name(tree_type->type);
       ss << offset << "if (M->is_nil ()) {\n"
          << offset << "  " << res_var << " = nullptr;\n"
@@ -851,21 +850,21 @@ class TlWriterCCommon : public tl::TL_writer {
          << offset << "}\n";
     }
     void fetch_array_size(std::stringstream &ss, std::string offset, std::string res_var, std::string var,
-                          const tl::tl_tree_type *tree_type) const override {
+                          const tl::tl_tree_type *tree_type) const final {
       ss << offset << res_var << " = M->get_arr_size ();\n";
     }
     std::string fetch_array_field_start(std::stringstream &ss, std::string offset, std::string res_var, std::string var,
-                                        std::string idx, const tl::tl_tree_type *tree_type) const override {
+                                        std::string idx, const tl::tl_tree_type *tree_type) const final {
       ss << offset << "  M->get_arr_field (" << idx << ");\n";
       return "";
     }
     std::string fetch_dict_field_start(std::stringstream &ss, std::string offset, std::string res_var, std::string var,
-                                       std::string key, const tl::tl_tree_type *tree_type) const override {
+                                       std::string key, const tl::tl_tree_type *tree_type) const final {
       ss << offset << "M->get_field (\"" << key << "\");\n";
       return "";
     }
     void fetch_field_finish(std::stringstream &ss, std::string offset, std::string res_var, std::string var,
-                            const tl::tl_tree_type *tree_type) const override {
+                            const tl::tl_tree_type *tree_type) const final {
       ss << offset << "M->pop ();\n";
     }
     const class TlWriterCCommon *cl;
@@ -949,74 +948,74 @@ class TlWriterCCommon : public tl::TL_writer {
        << "}\n";
   }
 
-  std::string gen_array_type_name(const tl::tl_tree_array *arr, const std::string &field_name) const override {
+  std::string gen_array_type_name(const tl::tl_tree_array *arr, const std::string &field_name) const final {
     assert(false);
     return std::string();
   }
-  std::string gen_var_type_name() const override {
-    assert(false);
-    return std::string();
-  }
-
-  std::string gen_int_const(const tl::tl_tree *tree_c, const std::vector<tl::var_description> &vars) const override {
+  std::string gen_var_type_name() const final {
     assert(false);
     return std::string();
   }
 
-  std::string gen_var_name(const tl::var_description &desc) const override {
+  std::string gen_int_const(const tl::tl_tree *tree_c, const std::vector<tl::var_description> &vars) const final {
+    assert(false);
+    return std::string();
+  }
+
+  std::string gen_var_name(const tl::var_description &desc) const final {
     assert(false);
     return "";
   }
-  std::string gen_parameter_name(int index) const override {
+  std::string gen_parameter_name(int index) const final {
     assert(false);
     return "";
   }
 
-  std::string gen_class_alias(const std::string &class_name, const std::string &alias_name) const override {
+  std::string gen_class_alias(const std::string &class_name, const std::string &alias_name) const final {
     return "";
   }
 
   std::string gen_vars(const tl::tl_combinator *t, const tl::tl_tree_type *result_type,
-                       std::vector<tl::var_description> &vars) const override {
+                       std::vector<tl::var_description> &vars) const final {
     assert(vars.empty());
     return "";
   }
-  std::string gen_function_vars(const tl::tl_combinator *t, std::vector<tl::var_description> &vars) const override {
+  std::string gen_function_vars(const tl::tl_combinator *t, std::vector<tl::var_description> &vars) const final {
     assert(vars.empty());
     return "";
   }
   std::string gen_uni(const tl::tl_tree_type *result_type, std::vector<tl::var_description> &vars,
-                      bool check_negative) const override {
+                      bool check_negative) const final {
     assert(result_type->children.empty());
     return "";
   }
-  std::string gen_constructor_id_store(std::int32_t id, int storer_type) const override {
+  std::string gen_constructor_id_store(std::int32_t id, int storer_type) const final {
     return "";
   }
   std::string gen_field_fetch(int field_num, const tl::arg &a, std::vector<tl::var_description> &vars, bool flat,
-                              int parser_type) const override {
+                              int parser_type) const final {
     return "";
   }
   std::string gen_field_store(const tl::arg &a, std::vector<tl::var_description> &vars, bool flat,
-                              int storer_type) const override {
+                              int storer_type) const final {
     return "";
   }
   std::string gen_type_fetch(const std::string &field_name, const tl::tl_tree_type *tree_type,
-                             const std::vector<tl::var_description> &vars, int parser_type) const override {
+                             const std::vector<tl::var_description> &vars, int parser_type) const final {
     assert(vars.empty());
     return "";
   }
 
   std::string gen_type_store(const std::string &field_name, const tl::tl_tree_type *tree_type,
-                             const std::vector<tl::var_description> &vars, int storer_type) const override {
+                             const std::vector<tl::var_description> &vars, int storer_type) const final {
     return "";
   }
-  std::string gen_var_type_fetch(const tl::arg &a) const override {
+  std::string gen_var_type_fetch(const tl::arg &a) const final {
     assert(false);
     return "";
   }
 
-  std::string gen_get_id(const std::string &class_name, std::int32_t id, bool is_proxy) const override {
+  std::string gen_get_id(const std::string &class_name, std::int32_t id, bool is_proxy) const final {
     if (is_proxy || is_header_ != 1) {
       return "";
     }
@@ -1024,47 +1023,47 @@ class TlWriterCCommon : public tl::TL_writer {
     return "";
   }
 
-  std::string gen_function_result_type(const tl::tl_tree *result) const override {
+  std::string gen_function_result_type(const tl::tl_tree *result) const final {
     return "";
   }
 
   std::string gen_fetch_function_begin(const std::string &parser_name, const std::string &class_name,
                                        const std::string &parent_class_name, int arity, int field_count,
-                                       std::vector<tl::var_description> &vars, int parser_type) const override {
+                                       std::vector<tl::var_description> &vars, int parser_type) const final {
     return "";
   }
   std::string gen_fetch_function_end(bool has_parent, int field_count, const std::vector<tl::var_description> &vars,
-                                     int parser_type) const override {
+                                     int parser_type) const final {
     return "";
   }
 
   std::string gen_fetch_function_result_begin(const std::string &parser_name, const std::string &class_name,
-                                              const tl::tl_tree *result) const override {
+                                              const tl::tl_tree *result) const final {
     return "";
   }
-  std::string gen_fetch_function_result_end() const override {
+  std::string gen_fetch_function_result_end() const final {
     return "";
   }
   std::string gen_fetch_function_result_any_begin(const std::string &parser_name, const std::string &class_name,
-                                                  bool is_proxy) const override {
+                                                  bool is_proxy) const final {
     return "";
   }
-  std::string gen_fetch_function_result_any_end(bool is_proxy) const override {
+  std::string gen_fetch_function_result_any_end(bool is_proxy) const final {
     return "";
   }
 
-  std::string gen_fetch_switch_begin() const override {
+  std::string gen_fetch_switch_begin() const final {
     return "";
   }
-  std::string gen_fetch_switch_case(const tl::tl_combinator *t, int arity) const override {
+  std::string gen_fetch_switch_case(const tl::tl_combinator *t, int arity) const final {
     return "";
   }
-  std::string gen_fetch_switch_end() const override {
+  std::string gen_fetch_switch_end() const final {
     return "";
   }
 
   std::string gen_additional_proxy_function_begin(const std::string &function_name, const tl::tl_type *type,
-                                                  const std::string &name, int arity, bool is_function) const override {
+                                                  const std::string &name, int arity, bool is_function) const final {
     std::stringstream ss;
     std::string class_name;
     std::string native_class_name;
@@ -1208,7 +1207,7 @@ class TlWriterCCommon : public tl::TL_writer {
   }
 
   std::string gen_additional_proxy_function_case(const std::string &function_name, const tl::tl_type *type,
-                                                 const std::string &class_name, int arity) const override {
+                                                 const std::string &class_name, int arity) const final {
     if (is_header_ != (function_name == "enum" ? 1 : 0)) {
       return "";
     }
@@ -1243,8 +1242,7 @@ class TlWriterCCommon : public tl::TL_writer {
   }
 
   std::string gen_additional_proxy_function_case(const std::string &function_name, const tl::tl_type *type,
-                                                 const tl::tl_combinator *t, int arity,
-                                                 bool is_function) const override {
+                                                 const tl::tl_combinator *t, int arity, bool is_function) const final {
     if (is_header_ != (function_name == "enum" ? 1 : 0)) {
       return "";
     }
@@ -1321,7 +1319,7 @@ class TlWriterCCommon : public tl::TL_writer {
     }
   }
   std::string gen_additional_proxy_function_end(const std::string &function_name, const tl::tl_type *type,
-                                                bool is_function) const override {
+                                                bool is_function) const final {
     if (is_header_ != (function_name == "enum" ? 1 : 0)) {
       return "";
     }
@@ -1352,7 +1350,7 @@ class TlWriterCCommon : public tl::TL_writer {
     }
   }
 
-  int get_additional_function_type(const std::string &additional_function_name) const override {
+  int get_additional_function_type(const std::string &additional_function_name) const final {
     return 2;
   }
 };

@@ -1,10 +1,10 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
-#include "tl_config.h"
+#include "td/tl/tl_config.h"
 
 #include <cassert>
 #include <cstdio>
@@ -40,7 +40,7 @@ void tl_config::add_type(tl_type *type) {
 }
 
 tl_type *tl_config::get_type(std::int32_t type_id) const {
-  auto it = id_to_type.find(type_id);
+  std::map<std::int32_t, tl_type *>::const_iterator it = id_to_type.find(type_id);
   assert(it != id_to_type.end());
   return it->second;
 }

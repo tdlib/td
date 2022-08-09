@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -36,7 +36,7 @@ class UdpWriter {
     }
 
     size_t cnt;
-    auto status = fd.send_messages(::td::Span<UdpSocketFd::OutboundMessage>(messages).truncate(to_send_n), cnt);
+    auto status = fd.send_messages(Span<UdpSocketFd::OutboundMessage>(messages).truncate(to_send_n), cnt);
     queue.pop_n(cnt);
     return status;
   }
@@ -51,7 +51,7 @@ class UdpReaderHelper {
       buffer_ = BufferSlice(RESERVED_SIZE);
     }
     CHECK(buffer_.size() >= MAX_PACKET_SIZE);
-    message.data = buffer_.as_slice().truncate(MAX_PACKET_SIZE);
+    message.data = buffer_.as_slice().substr(0, MAX_PACKET_SIZE);
   }
 
   UdpMessage extract_udp_message(UdpSocketFd::InboundMessage &message) {
@@ -79,8 +79,8 @@ class UdpReader {
     }
   }
   Status read_once(UdpSocketFd &fd, VectorQueue<UdpMessage> &queue) TD_WARN_UNUSED_RESULT {
-    for (size_t i = 0; i < messages_.size(); i++) {
-      CHECK(messages_[i].data.size() == 2048);
+    for (auto &message : messages_) {
+      CHECK(message.data.size() == 2048);
     }
     size_t cnt = 0;
     auto status = fd.receive_messages(messages_, cnt);
@@ -94,6 +94,7 @@ class UdpReader {
     }
     if (status.is_error() && !UdpSocketFd::is_critical_read_error(status)) {
       queue.push(UdpMessage{{}, {}, std::move(status)});
+      status = Status::OK();
     }
     return status;
   }
@@ -108,14 +109,17 @@ class UdpReader {
 
 #endif
 
-class BufferedUdp : public UdpSocketFd {
+class BufferedUdp final : public UdpSocketFd {
  public:
   explicit BufferedUdp(UdpSocketFd fd) : UdpSocketFd(std::move(fd)) {
   }
 
 #if TD_PORT_POSIX
+  void sync_with_poll() {
+    ::td::sync_with_poll(*this);
+  }
   Result<optional<UdpMessage>> receive() {
-    if (input_.empty() && can_read(*this)) {
+    if (input_.empty() && can_read_local(*this)) {
       TRY_STATUS(flush_read_once());
     }
     if (input_.empty()) {
@@ -130,7 +134,7 @@ class BufferedUdp : public UdpSocketFd {
 
   Status flush_send() {
     Status status;
-    while (status.is_ok() && can_write(*this) && !output_.empty()) {
+    while (status.is_ok() && can_write_local(*this) && !output_.empty()) {
       status = flush_send_once();
     }
     return status;

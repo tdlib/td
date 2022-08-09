@@ -1,6 +1,6 @@
 #
 # Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com),
-# Pellegrino Prevete (pellegrinoprevete@gmail.com)  2014-2020
+# Pellegrino Prevete (pellegrinoprevete@gmail.com)  2014-2022
 #
 # Distributed under the Boost Software License, Version 1.0. (See accompanying
 # file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -13,73 +13,69 @@ import sys
 # load shared library
 tdjson_path = find_library('tdjson') or 'tdjson.dll'
 if tdjson_path is None:
-    print('can\'t find tdjson library')
-    quit()
+    sys.exit("Can't find 'tdjson' library")
 tdjson = CDLL(tdjson_path)
 
 # load TDLib functions from shared library
-td_json_client_create = tdjson.td_json_client_create
-td_json_client_create.restype = c_void_p
-td_json_client_create.argtypes = []
+_td_create_client_id = tdjson.td_create_client_id
+_td_create_client_id.restype = c_int
+_td_create_client_id.argtypes = []
 
-td_json_client_receive = tdjson.td_json_client_receive
-td_json_client_receive.restype = c_char_p
-td_json_client_receive.argtypes = [c_void_p, c_double]
+_td_receive = tdjson.td_receive
+_td_receive.restype = c_char_p
+_td_receive.argtypes = [c_double]
 
-td_json_client_send = tdjson.td_json_client_send
-td_json_client_send.restype = None
-td_json_client_send.argtypes = [c_void_p, c_char_p]
+_td_send = tdjson.td_send
+_td_send.restype = None
+_td_send.argtypes = [c_int, c_char_p]
 
-td_json_client_execute = tdjson.td_json_client_execute
-td_json_client_execute.restype = c_char_p
-td_json_client_execute.argtypes = [c_void_p, c_char_p]
+_td_execute = tdjson.td_execute
+_td_execute.restype = c_char_p
+_td_execute.argtypes = [c_char_p]
 
-td_json_client_destroy = tdjson.td_json_client_destroy
-td_json_client_destroy.restype = None
-td_json_client_destroy.argtypes = [c_void_p]
+log_message_callback_type = CFUNCTYPE(None, c_int, c_char_p)
 
-fatal_error_callback_type = CFUNCTYPE(None, c_char_p)
-
-td_set_log_fatal_error_callback = tdjson.td_set_log_fatal_error_callback
-td_set_log_fatal_error_callback.restype = None
-td_set_log_fatal_error_callback.argtypes = [fatal_error_callback_type]
+_td_set_log_message_callback = tdjson.td_set_log_message_callback
+_td_set_log_message_callback.restype = None
+_td_set_log_message_callback.argtypes = [c_int, log_message_callback_type]
 
 # initialize TDLib log with desired parameters
-def on_fatal_error_callback(error_message):
-    print('TDLib fatal error: ', error_message)
+@log_message_callback_type
+def on_log_message_callback(verbosity_level, message):
+    if verbosity_level == 0:
+        sys.exit('TDLib fatal error: %r' % message)
 
 def td_execute(query):
     query = json.dumps(query).encode('utf-8')
-    result = td_json_client_execute(None, query)
+    result = _td_execute(query)
     if result:
         result = json.loads(result.decode('utf-8'))
     return result
 
-c_on_fatal_error_callback = fatal_error_callback_type(on_fatal_error_callback)
-td_set_log_fatal_error_callback(c_on_fatal_error_callback)
+_td_set_log_message_callback(2, on_log_message_callback)
 
 # setting TDLib log verbosity level to 1 (errors)
-print(td_execute({'@type': 'setLogVerbosityLevel', 'new_verbosity_level': 1, '@extra': 1.01234}))
+print(str(td_execute({'@type': 'setLogVerbosityLevel', 'new_verbosity_level': 1, '@extra': 1.01234})).encode('utf-8'))
 
 
 # create client
-client = td_json_client_create()
+client_id = _td_create_client_id()
 
 # simple wrappers for client usage
 def td_send(query):
     query = json.dumps(query).encode('utf-8')
-    td_json_client_send(client, query)
+    _td_send(client_id, query)
 
 def td_receive():
-    result = td_json_client_receive(client, 1.0)
+    result = _td_receive(1.0)
     if result:
         result = json.loads(result.decode('utf-8'))
     return result
 
 # another test for TDLib execute method
-print(td_execute({'@type': 'getTextEntities', 'text': '@telegram /test_command https://telegram.org telegram.me', '@extra': ['5', 7.0]}))
+print(str(td_execute({'@type': 'getTextEntities', 'text': '@telegram /test_command https://telegram.org telegram.me', '@extra': ['5', 7.0, 'a']})).encode('utf-8'))
 
-# testing TDLib send method
+# start the client by sending request to it
 td_send({'@type': 'getAuthorizationState', '@extra': 1.01234})
 
 # main events cycle
@@ -106,7 +102,6 @@ while True:
                                                        'api_hash': 'a3406de8d171bb422bb6ddf3bbd800e2',
                                                        'system_language_code': 'en',
                                                        'device_model': 'Desktop',
-                                                       'system_version': 'Linux',
                                                        'application_version': '1.0',
                                                        'enable_storage_optimizer': True}})
 
@@ -136,8 +131,5 @@ while True:
                 td_send({'@type': 'checkAuthenticationPassword', 'password': password})
 
         # handle an incoming update or an answer to a previously sent request
-        print(event)
+        print(str(event).encode('utf-8'))
         sys.stdout.flush()
-
-# destroy client when it is closed and isn't needed anymore
-td_json_client_destroy(client)

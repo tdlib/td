@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -136,6 +136,7 @@ inline uint64 bswap64(uint64 x) {
 }
 
 inline int32 count_bits32(uint32 x) {
+  // Do not use __popcnt because it will fail on some platforms.
   x -= (x >> 1) & 0x55555555;
   x = (x & 0x33333333) + ((x >> 2) & 0x33333333);
   x = (x + (x >> 4)) & 0x0F0F0F0F;
@@ -268,5 +269,42 @@ inline int32 count_bits64(uint64 x) {
 }
 
 #endif
+
+struct BitsRange {
+  explicit BitsRange(uint64 bits = 0) : bits{bits}, pos{-1} {
+  }
+
+  BitsRange begin() const {
+    return *this;
+  }
+
+  BitsRange end() const {
+    return BitsRange{};
+  }
+
+  int32 operator*() const {
+    if (pos == -1) {
+      pos = count_trailing_zeroes64(bits);
+    }
+    return pos;
+  }
+
+  bool operator!=(const BitsRange &other) const {
+    return bits != other.bits;
+  }
+
+  BitsRange &operator++() {
+    auto i = **this;
+    if (i != 64) {
+      bits ^= 1ull << i;
+    }
+    pos = -1;
+    return *this;
+  }
+
+ private:
+  uint64 bits{0};
+  mutable int32 pos{-1};
+};
 
 }  // namespace td

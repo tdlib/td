@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -15,6 +15,7 @@
 #include "td/utils/port/thread_local.h"
 #include "td/utils/ScopeGuard.h"
 #include "td/utils/Slice.h"
+#include "td/utils/SliceBuilder.h"
 #include "td/utils/utf8.h"
 
 #if TD_WINDOWS
@@ -85,7 +86,7 @@ static void punycode(string &result, Slice part) {
 
       if (code == next_n) {
         // found next symbol, encode delta
-        int left = static_cast<int>(delta);
+        auto left = static_cast<int>(delta);
         while (true) {
           bias += 36;
           auto t = clamp(bias, 1, 26);
@@ -244,7 +245,7 @@ size_t IPAddress::get_sockaddr_len() const {
     case AF_INET:
       return sizeof(ipv4_addr_);
     default:
-      LOG(FATAL) << "Unknown address family";
+      UNREACHABLE();
       return 0;
   }
 }
@@ -284,7 +285,8 @@ IPAddress IPAddress::get_any_addr() const {
       res.init_ipv4_any();
       break;
     default:
-      LOG(FATAL) << "Unknown address family";
+      UNREACHABLE();
+      break;
   }
   return res;
 }
@@ -359,7 +361,7 @@ Result<IPAddress> IPAddress::get_ip_address(CSlice host) {
   if (r_address.is_ok()) {
     return r_address.move_as_ok();
   }
-  return Status::Error("Not a valid IP address");
+  return Status::Error(PSLICE() << '"' << host << "\" is not a valid IP address");
 }
 
 Result<IPAddress> IPAddress::get_ipv4_address(CSlice host) {
@@ -367,7 +369,7 @@ Result<IPAddress> IPAddress::get_ipv4_address(CSlice host) {
   // like 0x12.0x34.0x56.0x78, or 0x12345678, or 0x7f.001
   auto ipv4_numeric_addr = inet_addr(host.c_str());
   if (ipv4_numeric_addr == INADDR_NONE) {
-    return Status::Error("Host is not valid IPv4 address");
+    return Status::Error(PSLICE() << '"' << host << "\" is not a valid IPv4 address");
   }
 
   host = ::td::get_ip_str(AF_INET, &ipv4_numeric_addr);
@@ -383,7 +385,7 @@ Result<IPAddress> IPAddress::get_ipv6_address(CSlice host) {
   IPAddress result;
   auto status = result.init_ipv6_port(host, 1);
   if (status.is_error()) {
-    return std::move(status);
+    return Status::Error(PSLICE() << '"' << host << "\" is not a valid IPv6 address");
   }
   return std::move(result);
 }
@@ -427,7 +429,7 @@ Status IPAddress::init_host_port(CSlice host, CSlice port, bool prefer_ipv6) {
   hints.ai_family = AF_UNSPEC;
   hints.ai_socktype = SOCK_STREAM;
   hints.ai_protocol = IPPROTO_TCP;
-  LOG(DEBUG + 10) << "Try to init IP address of " << host << " with port " << port;
+  LOG(DEBUG + 10) << "Trying to init IP address of " << host << " with port " << port;
   auto err = getaddrinfo(host.c_str(), port.c_str(), &hints, &info);
   if (err != 0) {
 #if TD_WINDOWS
@@ -498,6 +500,9 @@ Status IPAddress::init_sockaddr(sockaddr *addr, socklen_t len) {
 
 Status IPAddress::init_socket_address(const SocketFd &socket_fd) {
   is_valid_ = false;
+  if (socket_fd.empty()) {
+    return Status::Error("Socket is empty");
+  }
   auto socket = socket_fd.get_native_fd().socket();
   socklen_t len = storage_size();
   int ret = getsockname(socket, &sockaddr_, &len);
@@ -510,6 +515,9 @@ Status IPAddress::init_socket_address(const SocketFd &socket_fd) {
 
 Status IPAddress::init_peer_address(const SocketFd &socket_fd) {
   is_valid_ = false;
+  if (socket_fd.empty()) {
+    return Status::Error("Socket is empty");
+  }
   auto socket = socket_fd.get_native_fd().socket();
   socklen_t len = storage_size();
   int ret = getpeername(socket, &sockaddr_, &len);
@@ -518,6 +526,17 @@ Status IPAddress::init_peer_address(const SocketFd &socket_fd) {
   }
   is_valid_ = true;
   return Status::OK();
+}
+
+void IPAddress::clear_ipv6_interface() {
+  if (!is_valid() || get_address_family() != AF_INET6) {
+    return;
+  }
+
+  auto *begin = ipv6_addr_.sin6_addr.s6_addr;
+  static_assert(sizeof(ipv6_addr_.sin6_addr.s6_addr) == 16, "expected 16 bytes buffer for ipv6");
+  static_assert(sizeof(*begin) == 1, "expected array of bytes");
+  std::memset(begin + 8, 0, 8 * sizeof(*begin));
 }
 
 string IPAddress::ipv4_to_str(uint32 ipv4) {
@@ -609,7 +628,7 @@ bool operator==(const IPAddress &a, const IPAddress &b) {
            std::memcmp(&a.ipv6_addr_.sin6_addr, &b.ipv6_addr_.sin6_addr, sizeof(a.ipv6_addr_.sin6_addr)) == 0;
   }
 
-  LOG(FATAL) << "Unknown address family";
+  UNREACHABLE();
   return false;
 }
 
@@ -633,7 +652,7 @@ bool operator<(const IPAddress &a, const IPAddress &b) {
     return std::memcmp(&a.ipv6_addr_.sin6_addr, &b.ipv6_addr_.sin6_addr, sizeof(a.ipv6_addr_.sin6_addr)) < 0;
   }
 
-  LOG(FATAL) << "Unknown address family";
+  UNREACHABLE();
   return false;
 }
 

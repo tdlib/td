@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -11,14 +11,15 @@
 #include "td/actor/actor.h"
 
 #include "td/utils/common.h"
+#include "td/utils/FlatHashMap.h"
 #include "td/utils/Random.h"
+#include "td/utils/Slice.h"
 
 #include <limits>
-#include <unordered_map>
 
 namespace td {
 
-class SequenceDispatcher : public NetQueryCallback {
+class SequenceDispatcher final : public NetQueryCallback {
  public:
   class Parent : public Actor {
    public:
@@ -29,7 +30,7 @@ class SequenceDispatcher : public NetQueryCallback {
   explicit SequenceDispatcher(ActorShared<Parent> parent) : parent_(std::move(parent)) {
   }
   void send_with_callback(NetQueryPtr query, ActorShared<NetQueryCallback> callback);
-  void on_result(NetQueryPtr query) override;
+  void on_result(NetQueryPtr query) final;
   void close_silent();
 
  private:
@@ -40,13 +41,13 @@ class SequenceDispatcher : public NetQueryCallback {
     NetQueryPtr query_;
     ActorShared<NetQueryCallback> callback_;
     uint64 generation_;
-    double total_timeout_;
-    double last_timeout_;
+    int32 total_timeout_;
+    int32 last_timeout_;
   };
 
   ActorShared<Parent> parent_;
   size_t id_offset_ = 1;
-  std::vector<Data> data_;
+  vector<Data> data_;
   size_t finish_i_ = 0;  // skip state_ == State::Finish
   size_t next_i_ = 0;
   size_t last_sent_i_ = std::numeric_limits<size_t>::max();
@@ -65,26 +66,35 @@ class SequenceDispatcher : public NetQueryCallback {
   void do_resend(Data &data);
   void do_finish(Data &data);
 
-  void loop() override;
+  void loop() final;
   void try_shrink();
 
-  void timeout_expired() override;
-  void hangup() override;
-  void tear_down() override;
+  void timeout_expired() final;
+  void hangup() final;
+  void tear_down() final;
 };
 
-class MultiSequenceDispatcher : public SequenceDispatcher::Parent {
+class MultiSequenceDispatcherOld final : public SequenceDispatcher::Parent {
  public:
-  void send_with_callback(NetQueryPtr query, ActorShared<NetQueryCallback> callback, uint64 sequence_id);
+  void send(NetQueryPtr query);
+  static ActorOwn<MultiSequenceDispatcherOld> create(Slice name) {
+    return create_actor<MultiSequenceDispatcherOld>(name);
+  }
 
  private:
   struct Data {
     int32 cnt_;
     ActorOwn<SequenceDispatcher> dispatcher_;
   };
-  std::unordered_map<uint64, Data> dispatchers_;
-  void on_result() override;
-  void ready_to_close() override;
+  FlatHashMap<uint64, Data> dispatchers_;
+  void on_result() final;
+  void ready_to_close() final;
+};
+
+class MultiSequenceDispatcher : public NetQueryCallback {
+ public:
+  virtual void send(NetQueryPtr query) = 0;
+  static ActorOwn<MultiSequenceDispatcher> create(Slice name);
 };
 
 }  // namespace td

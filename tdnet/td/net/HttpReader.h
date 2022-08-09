@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -27,7 +27,7 @@ class HttpReader {
  public:
   void init(ChainBufferReader *input, size_t max_post_size = std::numeric_limits<size_t>::max(),
             size_t max_files = 100);
-  Result<size_t> read_next(HttpQuery *query) TD_WARN_UNUSED_RESULT;  // TODO move query to init
+  Result<size_t> read_next(HttpQuery *query, bool can_be_slow = true) TD_WARN_UNUSED_RESULT;  // TODO move query to init
 
   HttpReader() = default;
   HttpReader(const HttpReader &other) = delete;
@@ -36,7 +36,7 @@ class HttpReader {
   HttpReader &operator=(HttpReader &&other) = delete;
   ~HttpReader() {
     if (!temp_file_.empty()) {
-      temp_file_.close();
+      clean_temporary_file();
     }
   }
 
@@ -89,7 +89,7 @@ class HttpReader {
 
   Result<size_t> split_header() TD_WARN_UNUSED_RESULT;
   void process_header(MutableSlice header_name, MutableSlice header_value);
-  Result<bool> parse_multipart_form_data() TD_WARN_UNUSED_RESULT;
+  Result<bool> parse_multipart_form_data(bool can_be_slow) TD_WARN_UNUSED_RESULT;
   Status parse_url(MutableSlice url) TD_WARN_UNUSED_RESULT;
   Status parse_parameters(MutableSlice parameters) TD_WARN_UNUSED_RESULT;
   Status parse_json_parameters(MutableSlice parameters) TD_WARN_UNUSED_RESULT;
@@ -101,11 +101,11 @@ class HttpReader {
   void close_temp_file();
   void clean_temporary_file();
 
-  static constexpr size_t MAX_CONTENT_SIZE = 150 << 20;           // Some reasonable limit
-  static constexpr size_t MAX_TOTAL_PARAMETERS_LENGTH = 1 << 16;  // Some reasonable limit
-  static constexpr size_t MAX_TOTAL_HEADERS_LENGTH = 1 << 18;     // Some reasonable limit
-  static constexpr size_t MAX_BOUNDARY_LENGTH = 70;               // As defined by RFC1341
-  static constexpr int64 MAX_FILE_SIZE = 1500 << 20;              // Telegram server file size limit
+  static constexpr size_t MAX_CONTENT_SIZE = std::numeric_limits<int32>::max();  // Some reasonable limit
+  static constexpr size_t MAX_TOTAL_PARAMETERS_LENGTH = 1 << 20;                 // Some reasonable limit
+  static constexpr size_t MAX_TOTAL_HEADERS_LENGTH = 1 << 18;                    // Some reasonable limit
+  static constexpr size_t MAX_BOUNDARY_LENGTH = 70;                              // As defined by RFC1341
+  static constexpr int64 MAX_FILE_SIZE = static_cast<int64>(4000) << 20;         // Telegram server file size limit
   static constexpr const char TEMP_DIRECTORY_PREFIX[] = "tdlib-server-tmp";
 };
 

@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -156,6 +156,9 @@ Result<SecureString> base64_decode_secure(Slice base64) {
 Result<string> base64url_decode(Slice base64) {
   return base64_decode_impl<true, string>(base64);
 }
+Result<SecureString> base64url_decode_secure(Slice base64) {
+  return base64_decode_impl<true, SecureString>(base64);
+}
 
 template <bool is_url>
 static bool is_base64_impl(Slice input) {
@@ -182,13 +185,13 @@ static bool is_base64_impl(Slice input) {
   }
 
   if ((input.size() & 3) == 2) {
-    auto value = table[static_cast<int>(input.back())];
+    auto value = table[static_cast<unsigned char>(input.back())];
     if ((value & 15) != 0) {
       return false;
     }
   }
   if ((input.size() & 3) == 3) {
-    auto value = table[static_cast<int>(input.back())];
+    auto value = table[static_cast<unsigned char>(input.back())];
     if ((value & 3) != 0) {
       return false;
     }
@@ -233,6 +236,72 @@ string base64_filter(Slice input) {
       res += c;
     }
   }
+  return res;
+}
+
+static const char *get_base32_characters(bool upper_case) {
+  return upper_case ? "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567" : "abcdefghijklmnopqrstuvwxyz234567";
+}
+
+static const unsigned char *get_base32_character_table() {
+  static unsigned char char_to_value[256];
+  static bool is_inited = [] {
+    std::fill(std::begin(char_to_value), std::end(char_to_value), static_cast<unsigned char>(32));
+    auto characters_lc = get_base32_characters(false);
+    auto characters_uc = get_base32_characters(true);
+    for (unsigned char i = 0; i < 32; i++) {
+      char_to_value[static_cast<size_t>(characters_lc[i])] = i;
+      char_to_value[static_cast<size_t>(characters_uc[i])] = i;
+    }
+    return true;
+  }();
+  CHECK(is_inited);
+  return char_to_value;
+}
+
+string base32_encode(Slice input, bool upper_case) {
+  auto *characters = get_base32_characters(upper_case);
+  string base32;
+  base32.reserve((input.size() * 8 + 4) / 5);
+  uint32 c = 0;
+  uint32 length = 0;
+  for (size_t i = 0; i < input.size(); i++) {
+    c = (c << 8) | input.ubegin()[i];
+    length += 8;
+    while (length >= 5) {
+      length -= 5;
+      base32.push_back(characters[(c >> length) & 31]);
+    }
+  }
+  if (length != 0) {
+    base32.push_back(characters[(c << (5 - length)) & 31]);
+  }
+  //TODO: optional padding
+  return base32;
+}
+
+Result<string> base32_decode(Slice base32) {
+  string res;
+  res.reserve(base32.size() * 5 / 8);
+  uint32 c = 0;
+  uint32 length = 0;
+  auto *table = get_base32_character_table();
+  for (size_t i = 0; i < base32.size(); i++) {
+    auto value = table[base32.ubegin()[i]];
+    if (value == 32) {
+      return Status::Error("Wrong character in the string");
+    }
+    c = (c << 5) | value;
+    length += 5;
+    if (length >= 8) {
+      length -= 8;
+      res.push_back(static_cast<char>((c >> length) & 255));
+    }
+  }
+  if ((c & ((1 << length) - 1)) != 0) {
+    return Status::Error("Nonzero padding");
+  }
+  //TODO: check padding
   return res;
 }
 

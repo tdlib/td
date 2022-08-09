@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -46,6 +46,7 @@ class unique_ptr final {
     return *this;
   }
   void reset(T *new_ptr = nullptr) noexcept {
+    static_assert(sizeof(T) > 0, "Can't destroy unique_ptr with incomplete type");
     delete ptr_;
     ptr_ = new_ptr;
   }
@@ -98,7 +99,7 @@ bool operator!=(const unique_ptr<T> &p, std::nullptr_t) {
 }
 
 template <class Type, class... Args>
-unique_ptr<Type> make_unique(Args &&... args) {
+unique_ptr<Type> make_unique(Args &&...args) {
   return unique_ptr<Type>(new Type(std::forward<Args>(args)...));
 }
 

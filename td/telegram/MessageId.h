@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -41,6 +41,10 @@ class MessageId {
   // |-------30-------|----18---|1|--2-|
   // |send_date-2**30 |server_id|1|type|
 
+  // sponsored message ID layout
+  // |-------31--------|---17---|1|-2|
+  // |11111111111111111|local_id|0|10|
+
   ServerMessageId get_server_message_id_force() const;
 
   ScheduledServerMessageId get_scheduled_server_message_id_force() const {
@@ -72,6 +76,8 @@ class MessageId {
   bool is_valid() const;
 
   bool is_valid_scheduled() const;
+
+  bool is_valid_sponsored() const;
 
   int64 get() const {
     return id;

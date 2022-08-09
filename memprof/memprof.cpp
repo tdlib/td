@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -11,7 +11,6 @@
 #if (TD_DARWIN || TD_LINUX) && defined(USE_MEMPROF)
 #include <algorithm>
 #include <atomic>
-#include <cassert>
 #include <cstddef>
 #include <cstdint>
 #include <cstdlib>
@@ -28,6 +27,11 @@ bool is_memprof_on() {
   return true;
 }
 
+#define my_assert(f) \
+  if (!(f)) {        \
+    std::abort();    \
+  }
+
 #if USE_MEMPROF_SAFE
 double get_fast_backtrace_success_rate() {
   return 0;
@@ -41,9 +45,9 @@ extern void *__libc_stack_end;
 static void *get_bp() {
   void *bp;
 #if defined(__i386__)
-  __asm__ volatile("movl %%ebp, %[r]" : [ r ] "=r"(bp));
+  __asm__ volatile("movl %%ebp, %[r]" : [r] "=r"(bp));
 #elif defined(__x86_64__)
-  __asm__ volatile("movq %%rbp, %[r]" : [ r ] "=r"(bp));
+  __asm__ volatile("movq %%rbp, %[r]" : [r] "=r"(bp));
 #endif
   return bp;
 }
@@ -54,7 +58,7 @@ static int fast_backtrace(void **buffer, int size) {
     void *ip;
   };
 
-  stack_frame *bp = reinterpret_cast<stack_frame *>(get_bp());
+  auto *bp = reinterpret_cast<stack_frame *>(get_bp());
   int i = 0;
   while (i < size &&
 #if TD_LINUX
@@ -149,14 +153,14 @@ std::size_t get_ht_size() {
 
 std::int32_t get_ht_pos(const Backtrace &bt, bool force = false) {
   auto hash = get_hash(bt);
-  std::int32_t pos = static_cast<std::int32_t>(hash % ht.size());
+  auto pos = static_cast<std::int32_t>(hash % ht.size());
   bool was_overflow = false;
   while (true) {
     auto pos_hash = ht[pos].hash.load();
     if (pos_hash == 0) {
       if (ht_size > HT_MAX_SIZE / 2) {
         if (force) {
-          assert(ht_size * 10 < HT_MAX_SIZE * 7);
+          my_assert(ht_size * 10 < HT_MAX_SIZE * 7);
         } else {
           Backtrace unknown_bt{{nullptr}};
           unknown_bt[0] = reinterpret_cast<void *>(1);
@@ -188,18 +192,21 @@ std::int32_t get_ht_pos(const Backtrace &bt, bool force = false) {
 
 void dump_alloc(const std::function<void(const AllocInfo &)> &func) {
   for (auto &node : ht) {
-    if (node.size == 0) {
+    auto size = node.size.load(std::memory_order_relaxed);
+    if (size == 0) {
       continue;
     }
-    func(AllocInfo{node.backtrace, node.size.load()});
+    func(AllocInfo{node.backtrace, size});
   }
 }
 
 void register_xalloc(malloc_info *info, std::int32_t diff) {
+  my_assert(info->size >= 0);
   if (diff > 0) {
-    ht[info->ht_pos].size += info->size;
+    ht[info->ht_pos].size.fetch_add(info->size, std::memory_order_relaxed);
   } else {
-    ht[info->ht_pos].size -= info->size;
+    auto old_value = ht[info->ht_pos].size.fetch_sub(info->size, std::memory_order_relaxed);
+    my_assert(old_value >= static_cast<std::size_t>(info->size));
   }
 }
 
@@ -230,11 +237,11 @@ static void *malloc_with_frame(std::size_t size, const Backtrace &frame) {
 }
 
 static malloc_info *get_info(void *data_void) {
-  char *data = static_cast<char *>(data_void);
+  auto *data = static_cast<char *>(data_void);
   auto *buf = data - RESERVED_SIZE;
 
   auto *info = reinterpret_cast<malloc_info *>(buf);
-  assert(info->magic == MALLOC_INFO_MAGIC);
+  my_assert(info->magic == MALLOC_INFO_MAGIC);
   return info;
 }
 
@@ -258,12 +265,14 @@ void free(void *data_void) {
 #endif
   return free_old(info);
 }
+
 void *calloc(std::size_t size_a, std::size_t size_b) {
   auto size = size_a * size_b;
   void *res = malloc_with_frame(size, get_backtrace());
   std::memset(res, 0, size);
   return res;
 }
+
 void *realloc(void *ptr, std::size_t size) {
   if (ptr == nullptr) {
     return malloc_with_frame(size, get_backtrace());
@@ -275,8 +284,9 @@ void *realloc(void *ptr, std::size_t size) {
   free(ptr);
   return new_ptr;
 }
+
 void *memalign(std::size_t aligment, std::size_t size) {
-  assert(false && "Memalign is unsupported");
+  my_assert(false && "Memalign is unsupported");
   return nullptr;
 }
 }

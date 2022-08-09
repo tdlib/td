@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -15,7 +15,9 @@
 #include "td/utils/ByteFlow.h"
 #include "td/utils/common.h"
 #include "td/utils/crypto.h"
+#include "td/utils/logging.h"
 #include "td/utils/port/FileFd.h"
+#include "td/utils/Promise.h"
 #include "td/utils/Slice.h"
 #include "td/utils/Status.h"
 #include "td/utils/StorerBase.h"
@@ -24,6 +26,8 @@
 #include <functional>
 
 namespace td {
+
+extern int32 VERBOSITY_NAME(binlog);
 
 struct BinlogInfo {
   bool was_created{false};
@@ -70,20 +74,20 @@ class Binlog {
   }
 
   uint64 add(int32 type, const Storer &storer) {
-    auto logevent_id = next_id();
-    add_raw_event(BinlogEvent::create_raw(logevent_id, type, 0, storer), {});
-    return logevent_id;
+    auto log_event_id = next_id();
+    add_raw_event(BinlogEvent::create_raw(log_event_id, type, 0, storer), {});
+    return log_event_id;
   }
 
-  uint64 rewrite(uint64 logevent_id, int32 type, const Storer &storer) {
+  uint64 rewrite(uint64 log_event_id, int32 type, const Storer &storer) {
     auto seq_no = next_id();
-    add_raw_event(BinlogEvent::create_raw(logevent_id, type, BinlogEvent::Flags::Rewrite, storer), {});
+    add_raw_event(BinlogEvent::create_raw(log_event_id, type, BinlogEvent::Flags::Rewrite, storer), {});
     return seq_no;
   }
 
-  uint64 erase(uint64 logevent_id) {
+  uint64 erase(uint64 log_event_id) {
     auto seq_no = next_id();
-    add_raw_event(BinlogEvent::create_raw(logevent_id, BinlogEvent::ServiceTypes::Empty, BinlogEvent::Flags::Rewrite,
+    add_raw_event(BinlogEvent::create_raw(log_event_id, BinlogEvent::ServiceTypes::Empty, BinlogEvent::Flags::Rewrite,
                                           EmptyStorer()),
                   {});
     return seq_no;
@@ -103,6 +107,7 @@ class Binlog {
   void change_key(DbKey new_db_key);
 
   Status close(bool need_sync = true) TD_WARN_UNUSED_RESULT;
+  void close(Promise<> promise);
   Status close_and_destroy() TD_WARN_UNUSED_RESULT;
   static Status destroy(Slice path) TD_WARN_UNUSED_RESULT;
 
@@ -148,7 +153,7 @@ class Binlog {
   bool need_sync_{false};
   enum class State { Empty, Load, Reindex, Run } state_{State::Empty};
 
-  Result<FileFd> open_binlog(const string &path, int32 flags);
+  static Result<FileFd> open_binlog(const string &path, int32 flags);
   size_t flush_events_buffer(bool force);
   void do_add_event(BinlogEvent &&event);
   void do_event(BinlogEvent &&event);

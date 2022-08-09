@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -47,7 +47,7 @@ void store(const Document &document, StorerT &storer) {
       td->documents_manager_->store_document(document.file_id, storer);
       break;
     case Document::Type::Sticker:
-      td->stickers_manager_->store_sticker(document.file_id, false, storer);
+      td->stickers_manager_->store_sticker(document.file_id, false, storer, "Document");
       break;
     case Document::Type::Video:
       td->videos_manager_->store_video(document.file_id, storer);
@@ -94,7 +94,9 @@ void parse(Document &document, ParserT &parser) {
       break;
     case Document::Type::Unknown:
     default:
-      UNREACHABLE();
+      LOG(ERROR) << "Have invalid Document type " << static_cast<int32>(document.type);
+      document = Document();
+      return;
   }
   if (!document.file_id.is_valid()) {
     LOG(ERROR) << "Parse invalid document.file_id";

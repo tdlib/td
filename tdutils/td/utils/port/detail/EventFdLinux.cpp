@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -17,6 +17,7 @@ char disable_linker_warning_about_empty_file_event_fd_linux_cpp TD_UNUSED;
 #include "td/utils/port/PollFlags.h"
 #include "td/utils/ScopeGuard.h"
 #include "td/utils/Slice.h"
+#include "td/utils/SliceBuilder.h"
 
 #include <cerrno>
 
@@ -28,12 +29,12 @@ namespace td {
 namespace detail {
 class EventFdLinuxImpl {
  public:
-  PollableFdInfo info;
+  PollableFdInfo info_;
 };
 
 EventFdLinux::EventFdLinux() = default;
-EventFdLinux::EventFdLinux(EventFdLinux &&) = default;
-EventFdLinux &EventFdLinux::operator=(EventFdLinux &&) = default;
+EventFdLinux::EventFdLinux(EventFdLinux &&) noexcept = default;
+EventFdLinux &EventFdLinux::operator=(EventFdLinux &&) noexcept = default;
 EventFdLinux::~EventFdLinux() = default;
 
 void EventFdLinux::init() {
@@ -41,7 +42,7 @@ void EventFdLinux::init() {
   auto eventfd_errno = errno;
   LOG_IF(FATAL, !fd) << Status::PosixError(eventfd_errno, "eventfd call failed");
   impl_ = make_unique<EventFdLinuxImpl>();
-  impl_->info.set_native_fd(std::move(fd));
+  impl_->info_.set_native_fd(std::move(fd));
 }
 
 bool EventFdLinux::empty() {
@@ -57,17 +58,17 @@ Status EventFdLinux::get_pending_error() {
 }
 
 PollableFdInfo &EventFdLinux::get_poll_info() {
-  return impl_->info;
+  return impl_->info_;
 }
 
 // NB: will be called from multiple threads
 void EventFdLinux::release() {
   const uint64 value = 1;
   auto slice = Slice(reinterpret_cast<const char *>(&value), sizeof(value));
-  auto native_fd = impl_->info.native_fd().fd();
+  auto native_fd = impl_->info_.native_fd().fd();
 
   auto result = [&]() -> Result<size_t> {
-    auto write_res = detail::skip_eintr([&] { return ::write(native_fd, slice.begin(), slice.size()); });
+    auto write_res = detail::skip_eintr([&] { return write(native_fd, slice.begin(), slice.size()); });
     auto write_errno = errno;
     if (write_res >= 0) {
       return narrow_cast<size_t>(write_res);
@@ -85,7 +86,7 @@ void EventFdLinux::release() {
 }
 
 void EventFdLinux::acquire() {
-  impl_->info.get_flags();
+  impl_->info_.sync_with_poll();
   SCOPE_EXIT {
     // Clear flags without EAGAIN and EWOULDBLOCK
     // Looks like it is safe thing to do with eventfd
@@ -93,9 +94,9 @@ void EventFdLinux::acquire() {
   };
   uint64 res;
   auto slice = MutableSlice(reinterpret_cast<char *>(&res), sizeof(res));
-  auto native_fd = impl_->info.native_fd().fd();
+  auto native_fd = impl_->info_.native_fd().fd();
   auto result = [&]() -> Result<size_t> {
-    CHECK(slice.size() > 0);
+    CHECK(!slice.empty());
     auto read_res = detail::skip_eintr([&] { return ::read(native_fd, slice.begin(), slice.size()); });
     auto read_errno = errno;
     if (read_res >= 0) {
@@ -117,10 +118,14 @@ void EventFdLinux::acquire() {
 }
 
 void EventFdLinux::wait(int timeout_ms) {
-  pollfd fd;
-  fd.fd = get_poll_info().native_fd().fd();
-  fd.events = POLLIN;
-  poll(&fd, 1, timeout_ms);
+  detail::skip_eintr_timeout(
+      [this](int timeout_ms) {
+        pollfd fd;
+        fd.fd = get_poll_info().native_fd().fd();
+        fd.events = POLLIN;
+        return poll(&fd, 1, timeout_ms);
+      },
+      timeout_ms);
 }
 
 }  // namespace detail

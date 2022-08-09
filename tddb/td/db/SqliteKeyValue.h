@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -9,11 +9,11 @@
 #include "td/db/SqliteDb.h"
 #include "td/db/SqliteStatement.h"
 
-#include "td/utils/logging.h"
+#include "td/utils/common.h"
+#include "td/utils/FlatHashMap.h"
 #include "td/utils/Slice.h"
+#include "td/utils/SliceBuilder.h"
 #include "td/utils/Status.h"
-
-#include <unordered_map>
 
 namespace td {
 
@@ -27,19 +27,11 @@ class SqliteKeyValue {
     return connection.exec(PSLICE() << "CREATE TABLE IF NOT EXISTS " << table_name << " (k BLOB PRIMARY KEY, v BLOB)");
   }
 
-  using SeqNo = uint64;
-
   bool empty() const {
     return db_.empty();
   }
 
-  Result<bool> init(string path) TD_WARN_UNUSED_RESULT;
-
   Status init_with_connection(SqliteDb connection, string table_name) TD_WARN_UNUSED_RESULT;
-
-  Result<bool> try_regenerate_index() TD_WARN_UNUSED_RESULT {
-    return false;
-  }
 
   void close() {
     *this = SqliteKeyValue();
@@ -47,24 +39,32 @@ class SqliteKeyValue {
 
   Status drop();
 
-  SeqNo set(Slice key, Slice value);
+  void set(Slice key, Slice value);
+
+  void set_all(const FlatHashMap<string, string> &key_values);
 
   string get(Slice key);
 
-  SeqNo erase(Slice key);
+  void erase(Slice key);
 
-  Status begin_transaction() TD_WARN_UNUSED_RESULT {
-    return db_.begin_transaction();
+  Status begin_read_transaction() TD_WARN_UNUSED_RESULT {
+    return db_.begin_read_transaction();
   }
+
+  Status begin_write_transaction() TD_WARN_UNUSED_RESULT {
+    return db_.begin_write_transaction();
+  }
+
   Status commit_transaction() TD_WARN_UNUSED_RESULT {
     return db_.commit_transaction();
   }
 
   void erase_by_prefix(Slice prefix);
 
-  std::unordered_map<string, string> get_all() {
-    std::unordered_map<string, string> res;
+  FlatHashMap<string, string> get_all() {
+    FlatHashMap<string, string> res;
     get_by_prefix("", [&](Slice key, Slice value) {
+      CHECK(!key.empty());
       res.emplace(key.str(), value.str());
       return true;
     });
@@ -106,7 +106,6 @@ class SqliteKeyValue {
   }
 
  private:
-  string path_;
   string table_name_;
   SqliteDb db_;
   SqliteStatement get_stmt_;
@@ -118,7 +117,7 @@ class SqliteKeyValue {
   SqliteStatement get_by_prefix_stmt_;
   SqliteStatement get_by_prefix_rare_stmt_;
 
-  string next_prefix(Slice prefix);
+  static string next_prefix(Slice prefix);
 };
 
 }  // namespace td

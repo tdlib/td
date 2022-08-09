@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -9,7 +9,7 @@
 char disable_linker_warning_about_empty_file_gzip_cpp TD_UNUSED;
 
 #if TD_HAVE_ZLIB
-#include "td/utils/logging.h"
+#include "td/utils/SliceBuilder.h"
 
 #include <cstring>
 #include <limits>
@@ -130,11 +130,11 @@ void Gzip::clear() {
 Gzip::Gzip() : impl_(make_unique<Impl>()) {
 }
 
-Gzip::Gzip(Gzip &&other) : Gzip() {
+Gzip::Gzip(Gzip &&other) noexcept : Gzip() {
   swap(other);
 }
 
-Gzip &Gzip::operator=(Gzip &&other) {
+Gzip &Gzip::operator=(Gzip &&other) noexcept {
   CHECK(this != &other);
   clear();
   swap(other);
@@ -189,7 +189,7 @@ BufferSlice gzencode(Slice s, double max_compression_ratio) {
   gzip.init_encode().ensure();
   gzip.set_input(s);
   gzip.close_input();
-  size_t max_size = static_cast<size_t>(static_cast<double>(s.size()) * max_compression_ratio);
+  auto max_size = static_cast<size_t>(static_cast<double>(s.size()) * max_compression_ratio);
   BufferWriter message{max_size};
   gzip.set_output(message.prepare_append());
   auto r_state = gzip.run();

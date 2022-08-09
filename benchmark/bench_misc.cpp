@@ -1,11 +1,15 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
+#include "td/telegram/telegram_api.h"
+#include "td/telegram/telegram_api.hpp"
+
 #include "td/utils/benchmark.h"
 #include "td/utils/common.h"
+#include "td/utils/format.h"
 #include "td/utils/logging.h"
 #include "td/utils/port/Clocks.h"
 #include "td/utils/port/EventFd.h"
@@ -15,9 +19,9 @@
 #include "td/utils/port/Stat.h"
 #include "td/utils/port/thread.h"
 #include "td/utils/Slice.h"
-
-#include "td/telegram/telegram_api.h"
-#include "td/telegram/telegram_api.hpp"
+#include "td/utils/SliceBuilder.h"
+#include "td/utils/Status.h"
+#include "td/utils/ThreadSafeCounter.h"
 
 #if !TD_WINDOWS
 #include <unistd.h>
@@ -28,37 +32,38 @@
 #include <semaphore.h>
 #endif
 
+#include <algorithm>
+#include <array>
 #include <atomic>
 #include <cstdint>
-
-namespace td {
+#include <set>
 
 class F {
-  uint32 &sum;
+  td::uint32 &sum;
 
  public:
-  explicit F(uint32 &sum) : sum(sum) {
+  explicit F(td::uint32 &sum) : sum(sum) {
   }
 
   template <class T>
   void operator()(const T &x) const {
-    sum += static_cast<uint32>(x.get_id());
+    sum += static_cast<td::uint32>(x.get_id());
   }
 };
 
 BENCH(Call, "TL Call") {
-  tl_object_ptr<telegram_api::Function> x = make_tl_object<telegram_api::account_getWallPapers>(0);
-  uint32 res = 0;
+  td::tl_object_ptr<td::telegram_api::Function> x = td::make_tl_object<td::telegram_api::account_getWallPapers>(0);
+  td::uint32 res = 0;
   F f(res);
   for (int i = 0; i < n; i++) {
     downcast_call(*x, f);
   }
-  do_not_optimize_away(res);
+  td::do_not_optimize_away(res);
 }
 
 #if !TD_EVENTFD_UNSUPPORTED
 BENCH(EventFd, "EventFd") {
-  EventFd fd;
+  td::EventFd fd;
   fd.init();
   for (int i = 0; i < n; i++) {
     fd.release();
@@ -75,15 +80,15 @@ BENCH(NewInt, "new int + delete") {
     res += reinterpret_cast<std::uintptr_t>(x);
     delete x;
   }
-  do_not_optimize_away(res);
+  td::do_not_optimize_away(res);
 }
 
 BENCH(NewObj, "new struct, then delete") {
   struct A {
-    int32 a = 0;
-    int32 b = 0;
-    int32 c = 0;
-    int32 d = 0;
+    td::int32 a = 0;
+    td::int32 b = 0;
+    td::int32 c = 0;
+    td::int32 d = 0;
   };
   std::uintptr_t res = 0;
   A **ptr = new A *[n];
@@ -95,14 +100,15 @@ BENCH(NewObj, "new struct, then delete") {
     delete ptr[i];
   }
   delete[] ptr;
-  do_not_optimize_away(res);
+  td::do_not_optimize_away(res);
 }
 
 #if !TD_THREAD_UNSUPPORTED
-BENCH(ThreadNew, "new struct, then delete in several threads") {
-  td::NewObjBench a, b;
-  thread ta([&] { a.run(n / 2); });
-  thread tb([&] { b.run(n - n / 2); });
+BENCH(ThreadNew, "new struct, then delete in 2 threads") {
+  NewObjBench a;
+  NewObjBench b;
+  td::thread ta([&] { a.run(n / 2); });
+  td::thread tb([&] { b.run(n - n / 2); });
   ta.join();
   tb.join();
 }
@@ -112,26 +118,26 @@ BENCH(ThreadNew, "new struct, then delete in several threads") {
 BENCH(Time, "Clocks::monotonic") {
   double res = 0;
   for (int i = 0; i < n; i++) {
-    res += Clocks::monotonic();
+    res += td::Clocks::monotonic();
   }
-  do_not_optimize_away(res);
+  td::do_not_optimize_away(res);
 }
 */
 #if !TD_WINDOWS
-class PipeBench : public Benchmark {
+class PipeBench final : public td::Benchmark {
  public:
   int p[2];
 
-  string get_description() const override {
+  td::string get_description() const final {
     return "pipe write + read int32";
   }
 
-  void start_up() override {
+  void start_up() final {
     int res = pipe(p);
     CHECK(res == 0);
   }
 
-  void run(int n) override {
+  void run(int n) final {
     int res = 0;
     for (int i = 0; i < n; i++) {
       int val = 1;
@@ -141,10 +147,10 @@ class PipeBench : public Benchmark {
       CHECK(read_len == sizeof(val));
       res += val;
     }
-    do_not_optimize_away(res);
+    td::do_not_optimize_away(res);
   }
 
-  void tear_down() override {
+  void tear_down() final {
     close(p[0]);
     close(p[1]);
   }
@@ -152,42 +158,42 @@ class PipeBench : public Benchmark {
 #endif
 
 #if TD_LINUX || TD_ANDROID || TD_TIZEN
-class SemBench : public Benchmark {
+class SemBench final : public td::Benchmark {
   sem_t sem;
 
  public:
-  string get_description() const override {
+  td::string get_description() const final {
     return "sem post + wait";
   }
 
-  void start_up() override {
+  void start_up() final {
     int err = sem_init(&sem, 0, 0);
     CHECK(err != -1);
   }
 
-  void run(int n) override {
+  void run(int n) final {
     for (int i = 0; i < n; i++) {
       sem_post(&sem);
       sem_wait(&sem);
     }
   }
 
-  void tear_down() override {
+  void tear_down() final {
     sem_destroy(&sem);
   }
 };
 #endif
 
 #if !TD_WINDOWS
-class UtimeBench : public Benchmark {
+class UtimeBench final : public td::Benchmark {
  public:
-  void start_up() override {
-    FileFd::open("test", FileFd::Flags::Create | FileFd::Flags::Write).move_as_ok().close();
+  void start_up() final {
+    td::FileFd::open("test", td::FileFd::Create | td::FileFd::Write).move_as_ok().close();
   }
-  string get_description() const override {
+  td::string get_description() const final {
     return "utime";
   }
-  void run(int n) override {
+  void run(int n) final {
     for (int i = 0; i < n; i++) {
       int err = utime("test", nullptr);
       CHECK(err >= 0);
@@ -202,62 +208,62 @@ class UtimeBench : public Benchmark {
 #endif
 
 BENCH(Pwrite, "pwrite") {
-  auto fd = FileFd::open("test", FileFd::Flags::Create | FileFd::Flags::Write).move_as_ok();
+  auto fd = td::FileFd::open("test", td::FileFd::Create | td::FileFd::Write).move_as_ok();
   for (int i = 0; i < n; i++) {
     fd.pwrite("a", 0).ok();
   }
   fd.close();
 }
 
-class CreateFileBench : public Benchmark {
-  string get_description() const override {
+class CreateFileBench final : public td::Benchmark {
+  td::string get_description() const final {
     return "create_file";
   }
-  void start_up() override {
-    mkdir("A").ensure();
+  void start_up() final {
+    td::mkdir("A").ensure();
   }
-  void run(int n) override {
+  void run(int n) final {
     for (int i = 0; i < n; i++) {
-      FileFd::open(PSLICE() << "A/" << i, FileFd::Flags::Write | FileFd::Flags::Create).move_as_ok().close();
+      td::FileFd::open(PSLICE() << "A/" << i, td::FileFd::Write | td::FileFd::Create).move_as_ok().close();
     }
   }
-  void tear_down() override {
-    td::walk_path("A/", [&](CSlice path, auto type) {
+  void tear_down() final {
+    td::walk_path("A/", [&](td::CSlice path, auto type) {
       if (type == td::WalkPath::Type::ExitDir) {
-        rmdir(path).ignore();
+        td::rmdir(path).ignore();
       } else if (type == td::WalkPath::Type::NotDir) {
-        unlink(path).ignore();
+        td::unlink(path).ignore();
       }
     }).ignore();
   }
 };
 
-class WalkPathBench : public Benchmark {
-  string get_description() const override {
+class WalkPathBench final : public td::Benchmark {
+  td::string get_description() const final {
     return "walk_path";
   }
-  void start_up_n(int n) override {
-    mkdir("A").ensure();
+  void start_up_n(int n) final {
+    td::mkdir("A").ensure();
     for (int i = 0; i < n; i++) {
-      FileFd::open(PSLICE() << "A/" << i, FileFd::Flags::Write | FileFd::Flags::Create).move_as_ok().close();
+      td::FileFd::open(PSLICE() << "A/" << i, td::FileFd::Write | td::FileFd::Create).move_as_ok().close();
     }
   }
-  void run(int n) override {
+  void run(int n) final {
     int cnt = 0;
-    td::walk_path("A/", [&](CSlice path, auto type) {
+    td::walk_path("A/", [&](td::CSlice path, auto type) {
       if (type == td::WalkPath::Type::EnterDir) {
         return;
       }
-      stat(path).ok();
+      td::stat(path).ok();
       cnt++;
     }).ignore();
   }
-  void tear_down() override {
-    td::walk_path("A/", [&](CSlice path, auto type) {
+  void tear_down() final {
+    td::walk_path("A/", [&](td::CSlice path, auto type) {
       if (type == td::WalkPath::Type::ExitDir) {
-        rmdir(path).ignore();
+        td::rmdir(path).ignore();
       } else if (type == td::WalkPath::Type::NotDir) {
-        unlink(path).ignore();
+        td::unlink(path).ignore();
       }
     }).ignore();
   }
@@ -265,14 +271,14 @@ class WalkPathBench : public Benchmark {
 
 #if !TD_THREAD_UNSUPPORTED
 template <int ThreadN = 2>
-class AtomicReleaseIncBench : public Benchmark {
-  string get_description() const override {
+class AtomicReleaseIncBench final : public td::Benchmark {
+  td::string get_description() const final {
     return PSTRING() << "AtomicReleaseInc" << ThreadN;
   }
 
-  static std::atomic<uint64> a_;
-  void run(int n) override {
-    std::vector<thread> threads;
+  static std::atomic<td::uint64> a_;
+  void run(int n) final {
+    td::vector<td::thread> threads;
     for (int i = 0; i < ThreadN; i++) {
       threads.emplace_back([&] {
         for (int i = 0; i < n / ThreadN; i++) {
@@ -286,17 +292,17 @@ class AtomicReleaseIncBench : public Benchmark {
   }
 };
 template <int ThreadN>
-std::atomic<uint64> AtomicReleaseIncBench<ThreadN>::a_;
+std::atomic<td::uint64> AtomicReleaseIncBench<ThreadN>::a_;
 
 template <int ThreadN = 2>
-class AtomicReleaseCasIncBench : public Benchmark {
-  string get_description() const override {
+class AtomicReleaseCasIncBench final : public td::Benchmark {
+  td::string get_description() const final {
     return PSTRING() << "AtomicReleaseCasInc" << ThreadN;
   }
 
-  static std::atomic<uint64> a_;
-  void run(int n) override {
-    std::vector<thread> threads;
+  static std::atomic<td::uint64> a_;
+  void run(int n) final {
+    td::vector<td::thread> threads;
     for (int i = 0; i < ThreadN; i++) {
       threads.emplace_back([&] {
         for (int i = 0; i < n / ThreadN; i++) {
@@ -312,16 +318,16 @@ class AtomicReleaseCasIncBench : public Benchmark {
   }
 };
 template <int ThreadN>
-std::atomic<uint64> AtomicReleaseCasIncBench<ThreadN>::a_;
+std::atomic<td::uint64> AtomicReleaseCasIncBench<ThreadN>::a_;
 
-template <int ThreadN = 2>
-class RwMutexReadBench : public Benchmark {
-  string get_description() const override {
+template <int ThreadN>
+class RwMutexReadBench final : public td::Benchmark {
+  td::string get_description() const final {
     return PSTRING() << "RwMutexRead" << ThreadN;
   }
-  RwMutex mutex_;
-  void run(int n) override {
-    std::vector<thread> threads;
+  td::RwMutex mutex_;
+  void run(int n) final {
+    td::vector<td::thread> threads;
     for (int i = 0; i < ThreadN; i++) {
       threads.emplace_back([&] {
         for (int i = 0; i < n / ThreadN; i++) {
@@ -334,14 +340,15 @@ class RwMutexReadBench : public Benchmark {
     }
   }
 };
-template <int ThreadN = 2>
-class RwMutexWriteBench : public Benchmark {
-  string get_description() const override {
+
+template <int ThreadN>
+class RwMutexWriteBench final : public td::Benchmark {
+  td::string get_description() const final {
     return PSTRING() << "RwMutexWrite" << ThreadN;
   }
-  RwMutex mutex_;
-  void run(int n) override {
-    std::vector<thread> threads;
+  td::RwMutex mutex_;
+  void run(int n) final {
+    td::vector<td::thread> threads;
     for (int i = 0; i < ThreadN; i++) {
       threads.emplace_back([&] {
         for (int i = 0; i < n / ThreadN; i++) {
@@ -354,42 +361,366 @@ class RwMutexWriteBench : public Benchmark {
     }
   }
 };
+
+class ThreadSafeCounterBench final : public td::Benchmark {
+  static td::ThreadSafeCounter counter_;
+  int thread_count_;
+
+  td::string get_description() const final {
+    return PSTRING() << "ThreadSafeCounter" << thread_count_;
+  }
+  void run(int n) final {
+    counter_.clear();
+    td::vector<td::thread> threads;
+    for (int i = 0; i < thread_count_; i++) {
+      threads.emplace_back([n] {
+        for (int i = 0; i < n; i++) {
+          counter_.add(1);
+        }
+      });
+    }
+    for (auto &thread : threads) {
+      thread.join();
+    }
+    CHECK(counter_.sum() == n * thread_count_);
+  }
+
+ public:
+  explicit ThreadSafeCounterBench(int thread_count) : thread_count_(thread_count) {
+  }
+};
+td::ThreadSafeCounter ThreadSafeCounterBench::counter_;
+
+template <bool StrictOrder>
+class AtomicCounterBench final : public td::Benchmark {
+  static std::atomic<td::int64> counter_;
+  int thread_count_;
+
+  td::string get_description() const final {
+    return PSTRING() << "AtomicCounter" << thread_count_;
+  }
+  void run(int n) final {
+    counter_.store(0);
+    td::vector<td::thread> threads;
+    for (int i = 0; i < thread_count_; i++) {
+      threads.emplace_back([n] {
+        for (int i = 0; i < n; i++) {
+          counter_.fetch_add(1, StrictOrder ? std::memory_order_seq_cst : std::memory_order_relaxed);
+        }
+      });
+    }
+    for (auto &thread : threads) {
+      thread.join();
+    }
+    CHECK(counter_.load() == n * thread_count_);
+  }
+
+ public:
+  explicit AtomicCounterBench(int thread_count) : thread_count_(thread_count) {
+  }
+};
+template <bool StrictOrder>
+std::atomic<td::int64> AtomicCounterBench<StrictOrder>::counter_;
+
 #endif
-}  // namespace td
+
+class IdDuplicateCheckerOld {
+ public:
+  static td::string get_description() {
+    return "Old";
+  }
+  td::Status check(td::int64 message_id) {
+    if (saved_message_ids_.size() == MAX_SAVED_MESSAGE_IDS) {
+      auto oldest_message_id = *saved_message_ids_.begin();
+      if (message_id < oldest_message_id) {
+        return td::Status::Error(2, PSLICE() << "Ignore very old message_id "
+                                             << td::tag("oldest message_id", oldest_message_id)
+                                             << td::tag("got message_id", message_id));
+      }
+    }
+    if (saved_message_ids_.count(message_id) != 0) {
+      return td::Status::Error(1, PSLICE() << "Ignore duplicated message_id " << td::tag("message_id", message_id));
+    }
+
+    saved_message_ids_.insert(message_id);
+    if (saved_message_ids_.size() > MAX_SAVED_MESSAGE_IDS) {
+      saved_message_ids_.erase(saved_message_ids_.begin());
+    }
+    return td::Status::OK();
+  }
+
+ private:
+  static constexpr size_t MAX_SAVED_MESSAGE_IDS = 1000;
+  std::set<td::int64> saved_message_ids_;
+};
+
+template <size_t MAX_SAVED_MESSAGE_IDS>
+class IdDuplicateCheckerNew {
+ public:
+  static td::string get_description() {
+    return PSTRING() << "New" << MAX_SAVED_MESSAGE_IDS;
+  }
+  td::Status check(td::int64 message_id) {
+    auto insert_result = saved_message_ids_.insert(message_id);
+    if (!insert_result.second) {
+      return td::Status::Error(1, PSLICE() << "Ignore duplicated message_id " << td::tag("message_id", message_id));
+    }
+    if (saved_message_ids_.size() == MAX_SAVED_MESSAGE_IDS + 1) {
+      auto begin_it = saved_message_ids_.begin();
+      bool is_very_old = begin_it == insert_result.first;
+      saved_message_ids_.erase(begin_it);
+      if (is_very_old) {
+        return td::Status::Error(2, PSLICE() << "Ignore very old message_id "
+                                             << td::tag("oldest message_id", *saved_message_ids_.begin())
+                                             << td::tag("got message_id", message_id));
+      }
+    }
+    return td::Status::OK();
+  }
+
+ private:
+  std::set<td::int64> saved_message_ids_;
+};
+
+class IdDuplicateCheckerNewOther {
+ public:
+  static td::string get_description() {
+    return "NewOther";
+  }
+  td::Status check(td::int64 message_id) {
+    if (!saved_message_ids_.insert(message_id).second) {
+      return td::Status::Error(1, PSLICE() << "Ignore duplicated message_id " << td::tag("message_id", message_id));
+    }
+    if (saved_message_ids_.size() == MAX_SAVED_MESSAGE_IDS + 1) {
+      auto begin_it = saved_message_ids_.begin();
+      bool is_very_old = *begin_it == message_id;
+      saved_message_ids_.erase(begin_it);
+      if (is_very_old) {
+        return td::Status::Error(2, PSLICE() << "Ignore very old message_id "
+                                             << td::tag("oldest message_id", *saved_message_ids_.begin())
+                                             << td::tag("got message_id", message_id));
+      }
+    }
+    return td::Status::OK();
+  }
+
+ private:
+  static constexpr size_t MAX_SAVED_MESSAGE_IDS = 1000;
+  std::set<td::int64> saved_message_ids_;
+};
+
+class IdDuplicateCheckerNewSimple {
+ public:
+  static td::string get_description() {
+    return "NewSimple";
+  }
+  td::Status check(td::int64 message_id) {
+    auto insert_result = saved_message_ids_.insert(message_id);
+    if (!insert_result.second) {
+      return td::Status::Error(1, "Ignore duplicated message_id");
+    }
+    if (saved_message_ids_.size() == MAX_SAVED_MESSAGE_IDS + 1) {
+      auto begin_it = saved_message_ids_.begin();
+      bool is_very_old = begin_it == insert_result.first;
+      saved_message_ids_.erase(begin_it);
+      if (is_very_old) {
+        return td::Status::Error(2, "Ignore very old message_id");
+      }
+    }
+    return td::Status::OK();
+  }
+
+ private:
+  static constexpr size_t MAX_SAVED_MESSAGE_IDS = 1000;
+  std::set<td::int64> saved_message_ids_;
+};
+
+template <size_t max_size>
+class IdDuplicateCheckerArray {
+ public:
+  static td::string get_description() {
+    return PSTRING() << "Array" << max_size;
+  }
+  td::Status check(td::int64 message_id) {
+    if (end_pos_ == 2 * max_size) {
+      std::copy_n(&saved_message_ids_[max_size], max_size, &saved_message_ids_[0]);
+      end_pos_ = max_size;
+    }
+    if (end_pos_ == 0 || message_id > saved_message_ids_[end_pos_ - 1]) {
+      // fast path
+      saved_message_ids_[end_pos_++] = message_id;
+      return td::Status::OK();
+    }
+    if (end_pos_ >= max_size && message_id < saved_message_ids_[0]) {
+      return td::Status::Error(2, PSLICE() << "Ignore very old message_id "
+                                           << td::tag("oldest message_id", saved_message_ids_[0])
+                                           << td::tag("got message_id", message_id));
+    }
+    auto it = std::lower_bound(&saved_message_ids_[0], &saved_message_ids_[end_pos_], message_id);
+    if (*it == message_id) {
+      return td::Status::Error(1, PSLICE() << "Ignore duplicated message_id " << td::tag("message_id", message_id));
+    }
+    std::copy_backward(it, &saved_message_ids_[end_pos_], &saved_message_ids_[end_pos_ + 1]);
+    *it = message_id;
+    ++end_pos_;
+    return td::Status::OK();
+  }
+
+ private:
+  std::array<td::int64, 2 * max_size> saved_message_ids_;
+  std::size_t end_pos_ = 0;
+};
+
+template <class T>
+class DuplicateCheckerBench final : public td::Benchmark {
+  td::string get_description() const final {
+    return PSTRING() << "DuplicateCheckerBench" << T::get_description();
+  }
+  void run(int n) final {
+    T checker_;
+    for (int i = 0; i < n; i++) {
+      checker_.check(i).ensure();
+    }
+  }
+};
+
+template <class T>
+class DuplicateCheckerBenchRepeat final : public td::Benchmark {
+  td::string get_description() const final {
+    return PSTRING() << "DuplicateCheckerBenchRepeat" << T::get_description();
+  }
+  void run(int n) final {
+    T checker_;
+    for (int i = 0; i < n; i++) {
+      auto iter = i >> 10;
+      auto pos = i - (iter << 10);
+      if (pos < 768) {
+        if (iter >= 3 && pos == 0) {
+          auto error = checker_.check((iter - 3) * 768 + pos);
+          CHECK(error.error().code() == 2);
+        }
+        checker_.check(iter * 768 + pos).ensure();
+      } else {
+        checker_.check(iter * 768 + pos - 256).ensure_error();
+      }
+    }
+  }
+};
+
+template <class T>
+class DuplicateCheckerBenchRepeatOnly final : public td::Benchmark {
+  td::string get_description() const final {
+    return PSTRING() << "DuplicateCheckerBenchRepeatOnly" << T::get_description();
+  }
+  void run(int n) final {
+    T checker_;
+    for (int i = 0; i < n; i++) {
+      auto result = checker_.check(i & 255);
+      CHECK(result.is_error() == (i >= 256));
+    }
+  }
+};
+
+template <class T>
+class DuplicateCheckerBenchReverse final : public td::Benchmark {
+  td::string get_description() const final {
+    return PSTRING() << "DuplicateCheckerBenchReverseAdd" << T::get_description();
+  }
+  void run(int n) final {
+    T checker_;
+    for (int i = 0; i < n; i++) {
+      auto pos = i & 255;
+      checker_.check(i - pos + (255 - pos)).ensure();
+    }
+  }
+};
+
+template <class T>
+class DuplicateCheckerBenchEvenOdd final : public td::Benchmark {
+  td::string get_description() const final {
+    return PSTRING() << "DuplicateCheckerBenchEvenOdd" << T::get_description();
+  }
+  void run(int n) final {
+    T checker_;
+    for (int i = 0; i < n; i++) {
+      auto pos = i & 255;
+      checker_.check(i - pos + (pos * 2) % 256 + (pos * 2) / 256).ensure();
+    }
+  }
+};
 
 int main() {
   SET_VERBOSITY_LEVEL(VERBOSITY_NAME(DEBUG));
+
+  td::bench(DuplicateCheckerBenchEvenOdd<IdDuplicateCheckerNew<1000>>());
+  td::bench(DuplicateCheckerBenchEvenOdd<IdDuplicateCheckerNew<300>>());
+  td::bench(DuplicateCheckerBenchEvenOdd<IdDuplicateCheckerArray<1000>>());
+  td::bench(DuplicateCheckerBenchEvenOdd<IdDuplicateCheckerArray<300>>());
+
+  td::bench(DuplicateCheckerBenchReverse<IdDuplicateCheckerNew<1000>>());
+  td::bench(DuplicateCheckerBenchReverse<IdDuplicateCheckerNew<300>>());
+  td::bench(DuplicateCheckerBenchReverse<IdDuplicateCheckerArray<1000>>());
+  td::bench(DuplicateCheckerBenchReverse<IdDuplicateCheckerArray<300>>());
+
+  td::bench(DuplicateCheckerBenchRepeatOnly<IdDuplicateCheckerNew<1000>>());
+  td::bench(DuplicateCheckerBenchRepeatOnly<IdDuplicateCheckerNew<300>>());
+  td::bench(DuplicateCheckerBenchRepeatOnly<IdDuplicateCheckerArray<1000>>());
+  td::bench(DuplicateCheckerBenchRepeatOnly<IdDuplicateCheckerArray<300>>());
+
+  td::bench(DuplicateCheckerBenchRepeat<IdDuplicateCheckerOld>());
+  td::bench(DuplicateCheckerBenchRepeat<IdDuplicateCheckerNew<1000>>());
+  td::bench(DuplicateCheckerBenchRepeat<IdDuplicateCheckerNewOther>());
+  td::bench(DuplicateCheckerBenchRepeat<IdDuplicateCheckerNewSimple>());
+  td::bench(DuplicateCheckerBenchRepeat<IdDuplicateCheckerNew<300>>());
+  td::bench(DuplicateCheckerBenchRepeat<IdDuplicateCheckerArray<1000>>());
+  td::bench(DuplicateCheckerBenchRepeat<IdDuplicateCheckerArray<300>>());
+
+  td::bench(DuplicateCheckerBench<IdDuplicateCheckerOld>());
+  td::bench(DuplicateCheckerBench<IdDuplicateCheckerNew<1000>>());
+  td::bench(DuplicateCheckerBench<IdDuplicateCheckerNewOther>());
+  td::bench(DuplicateCheckerBench<IdDuplicateCheckerNewSimple>());
+  td::bench(DuplicateCheckerBench<IdDuplicateCheckerNew<300>>());
+  td::bench(DuplicateCheckerBench<IdDuplicateCheckerNew<100>>());
+  td::bench(DuplicateCheckerBench<IdDuplicateCheckerNew<10>>());
+  td::bench(DuplicateCheckerBench<IdDuplicateCheckerArray<1000>>());
+  td::bench(DuplicateCheckerBench<IdDuplicateCheckerArray<300>>());
+
 #if !TD_THREAD_UNSUPPORTED
-  td::bench(td::AtomicReleaseIncBench<1>());
-  td::bench(td::AtomicReleaseIncBench<2>());
-  td::bench(td::AtomicReleaseCasIncBench<1>());
-  td::bench(td::AtomicReleaseCasIncBench<2>());
-  td::bench(td::RwMutexWriteBench<1>());
-  td::bench(td::RwMutexReadBench<1>());
-  td::bench(td::RwMutexWriteBench<>());
-  td::bench(td::RwMutexReadBench<>());
+  for (int i = 1; i <= 16; i *= 2) {
+    td::bench(ThreadSafeCounterBench(i));
+    td::bench(AtomicCounterBench<false>(i));
+    td::bench(AtomicCounterBench<true>(i));
+  }
+
+  td::bench(AtomicReleaseIncBench<1>());
+  td::bench(AtomicReleaseIncBench<2>());
+  td::bench(AtomicReleaseCasIncBench<1>());
+  td::bench(AtomicReleaseCasIncBench<2>());
+  td::bench(RwMutexWriteBench<1>());
+  td::bench(RwMutexReadBench<1>());
+  td::bench(RwMutexWriteBench<2>());
+  td::bench(RwMutexReadBench<2>());
 #endif
 #if !TD_WINDOWS
-  td::bench(td::UtimeBench());
+  td::bench(UtimeBench());
 #endif
-  td::bench(td::WalkPathBench());
-  td::bench(td::CreateFileBench());
-  td::bench(td::PwriteBench());
+  td::bench(WalkPathBench());
+  td::bench(CreateFileBench());
+  td::bench(PwriteBench());
 
-  td::bench(td::CallBench());
+  td::bench(CallBench());
 #if !TD_THREAD_UNSUPPORTED
-  td::bench(td::ThreadNewBench());
+  td::bench(ThreadNewBench());
 #endif
 #if !TD_EVENTFD_UNSUPPORTED
-  td::bench(td::EventFdBench());
+  td::bench(EventFdBench());
 #endif
-  td::bench(td::NewObjBench());
-  td::bench(td::NewIntBench());
+  td::bench(NewObjBench());
+  td::bench(NewIntBench());
 #if !TD_WINDOWS
-  td::bench(td::PipeBench());
+  td::bench(PipeBench());
 #endif
 #if TD_LINUX || TD_ANDROID || TD_TIZEN
-  td::bench(td::SemBench());
+  td::bench(SemBench());
 #endif
-  return 0;
 }

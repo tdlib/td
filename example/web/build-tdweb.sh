@@ -1,4 +1,5 @@
 #!/bin/sh
+cd $(dirname $0)
 
 cd tdweb || exit 1
 npm install --no-save || exit 1

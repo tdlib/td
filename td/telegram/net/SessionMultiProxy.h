@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -17,12 +17,12 @@ namespace td {
 
 class SessionProxy;
 
-class SessionMultiProxy : public Actor {
+class SessionMultiProxy final : public Actor {
  public:
   SessionMultiProxy();
   SessionMultiProxy(const SessionMultiProxy &other) = delete;
   SessionMultiProxy &operator=(const SessionMultiProxy &other) = delete;
-  ~SessionMultiProxy() override;
+  ~SessionMultiProxy() final;
   SessionMultiProxy(int32 session_count, std::shared_ptr<AuthDataShared> shared_auth_data, bool is_main, bool use_pfs,
                     bool allow_media_only, bool is_media, bool is_cdn, bool need_destroy_auth_key);
 
@@ -52,7 +52,7 @@ class SessionMultiProxy : public Actor {
   uint32 sessions_generation_{0};
   std::vector<SessionInfo> sessions_;
 
-  void start_up() override;
+  void start_up() final;
   void init();
 
   bool get_pfs_flag() const;

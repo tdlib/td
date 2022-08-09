@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -13,18 +13,26 @@
 #include "td/actor/impl/EventFull.h"
 
 #include "td/utils/common.h"
+#include "td/utils/ExitGuard.h"
 #include "td/utils/format.h"
 #include "td/utils/List.h"
 #include "td/utils/logging.h"
+#include "td/utils/misc.h"
+#include "td/utils/MpscPollableQueue.h"
 #include "td/utils/ObjectPool.h"
 #include "td/utils/port/thread_local.h"
+#include "td/utils/Promise.h"
 #include "td/utils/ScopeGuard.h"
 #include "td/utils/Time.h"
 
 #include <functional>
+#include <iterator>
+#include <memory>
 #include <utility>
 
 namespace td {
+
+int VERBOSITY_NAME(actor) = VERBOSITY_NAME(DEBUG) + 10;
 
 TD_THREAD_LOCAL Scheduler *Scheduler::scheduler_;   // static zero-initialized
 TD_THREAD_LOCAL ActorContext *Scheduler::context_;  // static zero-initialized
@@ -47,6 +55,10 @@ void Scheduler::on_context_updated() {
 
 void Scheduler::set_scheduler(Scheduler *scheduler) {
   scheduler_ = scheduler;
+}
+
+void Scheduler::ServiceActor::set_queue(std::shared_ptr<MpscPollableQueue<EventFull>> queues) {
+  inbound_ = std::move(queues);
 }
 
 void Scheduler::ServiceActor::start_up() {
@@ -108,6 +120,7 @@ void Scheduler::ServiceActor::tear_down() {
 /*** SchedlerGuard ***/
 SchedulerGuard::SchedulerGuard(Scheduler *scheduler, bool lock) : scheduler_(scheduler) {
   if (lock) {
+    // the next check can fail if OS killed the scheduler's thread without releasing the guard
     CHECK(!scheduler_->has_guard_);
     scheduler_->has_guard_ = true;
   }
@@ -158,10 +171,10 @@ EventGuard::~EventGuard() {
   }
   info->finish_run();
   swap_context(info);
-  CHECK(info->is_lite() || save_context_ == info->get_context());
+  CHECK(!info->need_context() || save_context_ == info->get_context());
 #ifdef TD_DEBUG
-  LOG_CHECK(info->is_lite() || save_log_tag2_ == info->get_name().c_str())
-      << info->is_lite() << " " << info->empty() << " " << info->is_migrating() << " " << save_log_tag2_ << " "
+  LOG_CHECK(!info->need_context() || save_log_tag2_ == info->get_name().c_str())
+      << info->need_context() << " " << info->empty() << " " << info->is_migrating() << " " << save_log_tag2_ << " "
       << info->get_name() << " " << scheduler_->close_flag_;
 #endif
   if (event_context_.flags & Scheduler::EventContext::Stop) {
@@ -176,7 +189,7 @@ EventGuard::~EventGuard() {
 void EventGuard::swap_context(ActorInfo *info) {
   std::swap(scheduler_->event_context_ptr_, event_context_ptr_);
 
-  if (info->is_lite()) {
+  if (!info->need_context()) {
     return;
   }
 
@@ -237,11 +250,9 @@ void Scheduler::clear() {
     auto actor_info = ActorInfo::from_list_node(ready_actors_list_.get());
     do_stop_actor(actor_info);
   }
-  LOG_IF(FATAL, !ready_actors_list_.empty()) << ActorInfo::from_list_node(ready_actors_list_.next)->get_name();
-  CHECK(ready_actors_list_.empty());
   poll_.clear();
 
-  if (callback_) {
+  if (callback_ && !ExitGuard::is_exited()) {
     // can't move lambda with unique_ptr inside into std::function
     auto ptr = actor_info_pool_.release();
     callback_->register_at_finish([ptr] { delete ptr; });
@@ -253,62 +264,48 @@ void Scheduler::clear() {
 void Scheduler::do_event(ActorInfo *actor_info, Event &&event) {
   event_context_ptr_->link_token = event.link_token;
   auto actor = actor_info->get_actor_unsafe();
+  VLOG(actor) << *actor_info << ' ' << event;
   switch (event.type) {
-    case Event::Type::Start: {
-      VLOG(actor) << *actor_info << " Event::Start";
+    case Event::Type::Start:
       actor->start_up();
       break;
-    }
-    case Event::Type::Stop: {
-      VLOG(actor) << *actor_info << " Event::Stop";
+    case Event::Type::Stop:
       actor->tear_down();
       break;
-    }
-    case Event::Type::Yield: {
-      VLOG(actor) << *actor_info << " Event::Yield";
+    case Event::Type::Yield:
       actor->wakeup();
       break;
-    }
-    case Event::Type::Hangup: {
-      auto token = get_link_token(actor);
-      VLOG(actor) << *actor_info << " Event::Hangup " << tag("token", format::as_hex(token));
-      if (token != 0) {
+    case Event::Type::Hangup:
+      if (get_link_token(actor) != 0) {
         actor->hangup_shared();
       } else {
         actor->hangup();
       }
       break;
-    }
-    case Event::Type::Timeout: {
-      VLOG(actor) << *actor_info << " Event::Timeout";
+    case Event::Type::Timeout:
       actor->timeout_expired();
       break;
-    }
-    case Event::Type::Raw: {
-      VLOG(actor) << *actor_info << " Event::Raw";
+    case Event::Type::Raw:
       actor->raw_event(event.data);
       break;
-    }
-    case Event::Type::Custom: {
-      do_custom_event(actor_info, *event.data.custom_event);
+    case Event::Type::Custom:
+      event.data.custom_event->run(actor);
       break;
-    }
-    case Event::Type::NoType: {
-      UNREACHABLE();
-      break;
-    }
+    case Event::Type::NoType:
     default:
       UNREACHABLE();
+      break;
   }
-  // can't clear event here. It may be already destroyed during destory_actor
+  // can't clear event here. It may be already destroyed during destroy_actor
 }
 
 void Scheduler::register_migrated_actor(ActorInfo *actor_info) {
   VLOG(actor) << "Register migrated actor: " << tag("name", *actor_info) << tag("ptr", actor_info)
               << tag("actor_count", actor_count_);
   actor_count_++;
-  LOG_CHECK(actor_info->is_migrating()) << *actor_info << " " << actor_count_ << " " << sched_id_ << " "
-                                        << actor_info->migrate_dest() << " " << actor_info->is_running() << close_flag_;
+  LOG_CHECK(actor_info->is_migrating()) << *actor_info << ' ' << actor_count_ << ' ' << sched_id_ << ' '
+                                        << actor_info->migrate_dest() << ' ' << actor_info->is_running() << ' '
+                                        << close_flag_;
   CHECK(sched_id_ == actor_info->migrate_dest());
   // CHECK(!actor_info->is_running());
   actor_info->finish_migrate();
@@ -317,8 +314,8 @@ void Scheduler::register_migrated_actor(ActorInfo *actor_info) {
   }
   auto it = pending_events_.find(actor_info);
   if (it != pending_events_.end()) {
-    actor_info->mailbox_.insert(actor_info->mailbox_.end(), make_move_iterator(begin(it->second)),
-                                make_move_iterator(end(it->second)));
+    actor_info->mailbox_.insert(actor_info->mailbox_.end(), std::make_move_iterator(it->second.begin()),
+                                std::make_move_iterator(it->second.end()));
     pending_events_.erase(it);
   }
   if (actor_info->mailbox_.empty()) {
@@ -343,6 +340,43 @@ void Scheduler::send_to_other_scheduler(int32 sched_id, const ActorId<> &actor_i
   }
 }
 
+void Scheduler::run_on_scheduler(int32 sched_id, Promise<Unit> action) {
+  if (sched_id >= 0 && sched_id_ != sched_id) {
+    class Worker final : public Actor {
+     public:
+      explicit Worker(Promise<Unit> action) : action_(std::move(action)) {
+      }
+
+     private:
+      Promise<Unit> action_;
+
+      void start_up() final {
+        action_.set_value(Unit());
+        stop();
+      }
+    };
+    create_actor_on_scheduler<Worker>("RunOnSchedulerWorker", sched_id, std::move(action)).release();
+    return;
+  }
+
+  action.set_value(Unit());
+}
+
+void Scheduler::destroy_on_scheduler_impl(int32 sched_id, Promise<Unit> action) {
+  auto empty_context = std::make_shared<ActorContext>();
+  empty_context->this_ptr_ = empty_context;
+  ActorContext *current_context = context_;
+  context_ = empty_context.get();
+
+  const char *current_tag = LOG_TAG;
+  LOG_TAG = nullptr;
+
+  run_on_scheduler(sched_id, std::move(action));
+
+  context_ = current_context;
+  LOG_TAG = current_tag;
+}
+
 void Scheduler::add_to_mailbox(ActorInfo *actor_info, Event &&event) {
   if (!actor_info->is_running()) {
     auto node = actor_info->get_list_node();
@@ -360,7 +394,7 @@ void Scheduler::do_stop_actor(ActorInfo *actor_info) {
   CHECK(!actor_info->is_migrating());
   LOG_CHECK(actor_info->migrate_dest() == sched_id_) << actor_info->migrate_dest() << " " << sched_id_;
   ObjectPool<ActorInfo>::OwnerPtr owner_ptr;
-  if (!actor_info->is_lite()) {
+  if (actor_info->need_start_up()) {
     EventGuard guard(this, actor_info);
     do_event(actor_info, Event::stop());
     owner_ptr = actor_info->get_actor_unsafe()->clear();
@@ -403,6 +437,7 @@ void Scheduler::do_migrate_actor(ActorInfo *actor_info, int32 dest_sched_id) {
 void Scheduler::start_migrate_actor(Actor *actor, int32 dest_sched_id) {
   start_migrate_actor(actor->get_info(), dest_sched_id);
 }
+
 void Scheduler::start_migrate_actor(ActorInfo *actor_info, int32 dest_sched_id) {
   VLOG(actor) << "Start migrate actor: " << tag("name", actor_info) << tag("ptr", actor_info)
               << tag("actor_count", actor_count_);
@@ -415,6 +450,11 @@ void Scheduler::start_migrate_actor(ActorInfo *actor_info, int32 dest_sched_id) 
   actor_info->start_migrate(dest_sched_id);
   actor_info->get_list_node()->remove();
   cancel_actor_timeout(actor_info);
+}
+
+double Scheduler::get_actor_timeout(const ActorInfo *actor_info) const {
+  const HeapNode *heap_node = actor_info->get_heap_node();
+  return heap_node->in_heap() ? timeout_queue_.get_key(heap_node) - Time::now() : 0.0;
 }
 
 void Scheduler::set_actor_timeout_in(ActorInfo *actor_info, double timeout) {
@@ -440,7 +480,7 @@ void Scheduler::set_actor_timeout_at(ActorInfo *actor_info, double timeout_at) {
 
 void Scheduler::run_poll(Timestamp timeout) {
   // we can't wait for less than 1ms
-  int timeout_ms = static_cast<int32>(td::max(timeout.in(), 0.0) * 1000 + 1);
+  auto timeout_ms = static_cast<int>(clamp(timeout.in(), 0.0, 1000000.0) * 1000 + 1);
 #if TD_PORT_WINDOWS
   CHECK(inbound_queue_);
   inbound_queue_->reader_get_event_fd().wait(timeout_ms);
@@ -492,21 +532,35 @@ Timestamp Scheduler::run_timeout() {
   return get_timeout();
 }
 
+Timestamp Scheduler::run_events(Timestamp timeout) {
+  Timestamp res;
+  VLOG(actor) << "Run events " << sched_id_ << " " << tag("pending", pending_events_.size())
+              << tag("actors", actor_count_);
+  do {
+    run_mailbox();
+    res = run_timeout();
+  } while (!ready_actors_list_.empty() && !timeout.is_in_past());
+  return res;
+}
+
 void Scheduler::run_no_guard(Timestamp timeout) {
   CHECK(has_guard_);
   SCOPE_EXIT {
     yield_flag_ = false;
   };
 
-  timeout.relax(run_events());
+  timeout.relax(run_events(timeout));
   if (yield_flag_) {
     return;
   }
   run_poll(timeout);
-  run_events();
+  run_events(timeout);
 }
 
 Timestamp Scheduler::get_timeout() {
+  if (!ready_actors_list_.empty()) {
+    return Timestamp::in(0);
+  }
   if (timeout_queue_.empty()) {
     return Timestamp::in(10000);
   }

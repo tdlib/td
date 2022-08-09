@@ -6,8 +6,8 @@ You need a Unix shell with `sed`, `tar` and `wget` utilities to run the provided
 
 ## Building tdweb NPM package
 
-* Install the 1.39.5 [emsdk](https://kripken.github.io/emscripten-site/docs/getting_started/downloads.html), which is known to work. Do not use the system-provided `emscripten` package, because it contains a version that is too old.
-* Install all `TDLib` build dependencies as described in [Building](https://github.com/tdlib/td#building).
+* Install the 3.1.1 [emsdk](https://kripken.github.io/emscripten-site/docs/getting_started/downloads.html), which is known to work. Do not use the system-provided `emscripten` package, because it contains a too old emsdk version.
+* Install all `TDLib` build dependencies described in [Building](https://github.com/tdlib/td#building) and `sed`, `tar` and `wget` utilities.
 * Run `source ./emsdk_env.sh` from `emsdk` directory to set up the correct build environment.
 * On `macOS`, install the `coreutils` [Homebrew](https://brew.sh) package and replace `realpath` in scripts with `grealpath`:
 ```

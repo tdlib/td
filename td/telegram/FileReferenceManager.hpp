@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -15,6 +15,7 @@
 #include "td/telegram/files/FileSourceId.h"
 #include "td/telegram/FullMessageId.h"
 #include "td/telegram/MessagesManager.h"
+#include "td/telegram/NotificationSettingsManager.h"
 #include "td/telegram/StickersManager.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/UserId.h"
@@ -47,7 +48,10 @@ void FileReferenceManager::store_file_source(FileSourceId file_source_id, Storer
                           [&](const FileSourceBackground &source) {
                             td::store(source.background_id, storer);
                             td::store(source.access_hash, storer);
-                          }));
+                          },
+                          [&](const FileSourceChatFull &source) { td::store(source.chat_id, storer); },
+                          [&](const FileSourceChannelFull &source) { td::store(source.channel_id, storer); },
+                          [&](const FileSourceAppConfig &source) {}, [&](const FileSourceSavedRingtones &source) {}));
 }
 
 template <class ParserT>
@@ -69,12 +73,12 @@ FileSourceId FileReferenceManager::parse_file_source(Td *td, ParserT &parser) {
     case 2: {
       ChatId chat_id;
       td::parse(chat_id, parser);
-      return td->contacts_manager_->get_chat_photo_file_source_id(chat_id);
+      return FileSourceId();  // there is no need to repair chat photos
     }
     case 3: {
       ChannelId channel_id;
       td::parse(channel_id, parser);
-      return td->contacts_manager_->get_channel_photo_file_source_id(channel_id);
+      return FileSourceId();  // there is no need to repair channel photos
     }
     case 4:
       return FileSourceId();  // there is no way to repair old wallpapers
@@ -99,6 +103,20 @@ FileSourceId FileReferenceManager::parse_file_source(Td *td, ParserT &parser) {
       td::parse(access_hash, parser);
       return td->background_manager_->get_background_file_source_id(background_id, access_hash);
     }
+    case 10: {
+      ChatId chat_id;
+      td::parse(chat_id, parser);
+      return td->contacts_manager_->get_chat_full_file_source_id(chat_id);
+    }
+    case 11: {
+      ChannelId channel_id;
+      td::parse(channel_id, parser);
+      return td->contacts_manager_->get_channel_full_file_source_id(channel_id);
+    }
+    case 12:
+      return td->stickers_manager_->get_app_config_file_source_id();
+    case 13:
+      return td->notification_settings_manager_->get_saved_ringtones_file_source_id();
     default:
       parser.set_error("Invalid type in FileSource");
       return FileSourceId();

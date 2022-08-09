@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -55,7 +55,7 @@ class IthTypeImpl<pos, Skip, Args...> : public IthTypeImpl<pos - 1, Args...> {};
 class Dummy {};
 
 template <size_t pos, class... Args>
-class IthType : public IthTypeImpl<pos, Args..., Dummy> {};
+class IthType final : public IthTypeImpl<pos, Args..., Dummy> {};
 
 template <bool ok, int offset, class... Types>
 class FindTypeOffsetImpl {};
@@ -69,7 +69,7 @@ template <int offset, class T, class S, class... Types>
 class FindTypeOffsetImpl<false, offset, T, S, Types...>
     : public FindTypeOffsetImpl<std::is_same<T, S>::value, offset + 1, T, Types...> {};
 template <class T, class... Types>
-class FindTypeOffset : public FindTypeOffsetImpl<false, -1, T, Types...> {};
+class FindTypeOffset final : public FindTypeOffsetImpl<false, -1, T, Types...> {};
 
 template <int offset, class... Types>
 class ForEachTypeImpl {};
@@ -115,12 +115,15 @@ class Variant {
   Variant(const Variant &other) {
     other.visit([&](auto &&value) { this->init_empty(std::forward<decltype(value)>(value)); });
   }
-  Variant &operator=(Variant &&other) {
+  Variant &operator=(Variant &&other) noexcept {
     clear();
     other.visit([&](auto &&value) { this->init_empty(std::forward<decltype(value)>(value)); });
     return *this;
   }
   Variant &operator=(const Variant &other) {
+    if (this == &other) {
+      return *this;
+    }
     clear();
     other.visit([&](auto &&value) { this->init_empty(std::forward<decltype(value)>(value)); });
     return *this;
@@ -239,6 +242,10 @@ class Variant {
 
   int32 get_offset() const {
     return offset_;
+  }
+
+  bool empty() const {
+    return offset_ == npos;
   }
 
  private:

@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -18,17 +18,17 @@ namespace td {
 
 namespace td_api {
 class ProxyType;
-}
+}  // namespace td_api
 
 class Proxy {
  public:
-  static Result<Proxy> from_td_api(string server, int port, td_api::ProxyType *proxy_type);
+  static Result<Proxy> create_proxy(string server, int port, td_api::ProxyType *proxy_type);
 
   static Proxy socks5(string server, int32 port, string user, string password) {
     Proxy proxy;
     proxy.type_ = Type::Socks5;
     proxy.server_ = std::move(server);
-    proxy.port_ = std::move(port);
+    proxy.port_ = port;
     proxy.user_ = std::move(user);
     proxy.password_ = std::move(password);
     return proxy;
@@ -38,7 +38,7 @@ class Proxy {
     Proxy proxy;
     proxy.type_ = Type::HttpTcp;
     proxy.server_ = std::move(server);
-    proxy.port_ = std::move(port);
+    proxy.port_ = port;
     proxy.user_ = std::move(user);
     proxy.password_ = std::move(password);
     return proxy;
@@ -48,7 +48,7 @@ class Proxy {
     Proxy proxy;
     proxy.type_ = Type::HttpCaching;
     proxy.server_ = std::move(server);
-    proxy.port_ = std::move(port);
+    proxy.port_ = port;
     proxy.user_ = std::move(user);
     proxy.password_ = std::move(password);
     return proxy;
@@ -58,7 +58,7 @@ class Proxy {
     Proxy proxy;
     proxy.type_ = Type::Mtproto;
     proxy.server_ = std::move(server);
-    proxy.port_ = std::move(port);
+    proxy.port_ = port;
     proxy.secret_ = std::move(secret);
     return proxy;
   }

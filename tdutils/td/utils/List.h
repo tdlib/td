@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -24,7 +24,7 @@ struct ListNode {
   ListNode(const ListNode &) = delete;
   ListNode &operator=(const ListNode &) = delete;
 
-  ListNode(ListNode &&other) {
+  ListNode(ListNode &&other) noexcept {
     if (other.empty()) {
       clear();
     } else {
@@ -32,7 +32,7 @@ struct ListNode {
     }
   }
 
-  ListNode &operator=(ListNode &&other) {
+  ListNode &operator=(ListNode &&other) noexcept {
     if (this == &other) {
       return *this;
     }
@@ -89,10 +89,22 @@ struct ListNode {
   ListNode *end() {
     return this;
   }
+  const ListNode *begin() const {
+    return next;
+  }
+  const ListNode *end() const {
+    return this;
+  }
   ListNode *get_next() {
     return next;
   }
   ListNode *get_prev() {
+    return prev;
+  }
+  const ListNode *get_next() const {
+    return next;
+  }
+  const ListNode *get_prev() const {
     return prev;
   }
 

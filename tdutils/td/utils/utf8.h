@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -78,7 +78,7 @@ T utf8_utf16_truncate(T str, size_t length) {
         return str.substr(0, i);
       } else {
         length--;
-        if (c >= 0xf0) {  // >= 4 bytes in symbol => surrogaite pair
+        if (c >= 0xf0) {  // >= 4 bytes in symbol => surrogate pair
           length--;
         }
       }
@@ -117,5 +117,8 @@ T utf8_utf16_substr(T str, size_t offset, size_t length) {
 
 /// Returns UTF-8 string converted to lower case.
 string utf8_to_lower(Slice str);
+
+/// Returns valid UTF-8 representation of the string.
+string utf8_encode(CSlice data);
 
 }  // namespace td

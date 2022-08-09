@@ -1,18 +1,17 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 #pragma once
 
-#include "td/actor/actor.h"
-
 #include "td/telegram/Global.h"
 #include "td/telegram/net/NetQueryCreator.h"
 #include "td/telegram/net/NetQueryDispatcher.h"
-
 #include "td/telegram/telegram_api.h"
+
+#include "td/actor/actor.h"
 
 #include "td/utils/common.h"
 #include "td/utils/format.h"
@@ -23,7 +22,7 @@
 
 namespace td {
 
-class TempAuthKeyWatchdog : public NetQueryCallback {
+class TempAuthKeyWatchdog final : public NetQueryCallback {
   class RegisteredAuthKeyImpl {
    public:
     explicit RegisteredAuthKeyImpl(int64 auth_key_id)
@@ -43,6 +42,9 @@ class TempAuthKeyWatchdog : public NetQueryCallback {
   };
 
  public:
+  explicit TempAuthKeyWatchdog(ActorShared<> parent) : parent_(std::move(parent)) {
+  }
+
   using RegisteredAuthKey = unique_ptr<RegisteredAuthKeyImpl>;
 
   static RegisteredAuthKey register_auth_key_id(int64 id) {
@@ -54,12 +56,14 @@ class TempAuthKeyWatchdog : public NetQueryCallback {
   static constexpr double SYNC_WAIT = 0.1;
   static constexpr double SYNC_WAIT_MAX = 1.0;
 
+  ActorShared<> parent_;
   std::map<uint64, uint32> id_count_;
   double sync_at_ = 0;
   bool need_sync_ = false;
   bool run_sync_ = false;
 
   void register_auth_key_id_impl(int64 id) {
+    LOG(INFO) << "Register key " << id;
     if (!++id_count_[id]) {
       id_count_.erase(id);
     }
@@ -67,6 +71,7 @@ class TempAuthKeyWatchdog : public NetQueryCallback {
   }
 
   void unregister_auth_key_id_impl(int64 id) {
+    LOG(INFO) << "Unregister key " << id;
     if (!--id_count_[id]) {
       id_count_.erase(id);
     }
@@ -92,7 +97,7 @@ class TempAuthKeyWatchdog : public NetQueryCallback {
     set_timeout_at(min(sync_at_, now + SYNC_WAIT));
   }
 
-  void timeout_expired() override {
+  void timeout_expired() final {
     LOG(DEBUG) << "Sync timeout expired";
     CHECK(!run_sync_);
     if (!need_sync_) {

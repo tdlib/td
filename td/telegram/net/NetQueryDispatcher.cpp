@@ -1,11 +1,13 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 #include "td/telegram/net/NetQueryDispatcher.h"
 
+#include "td/telegram/ConfigShared.h"
+#include "td/telegram/Global.h"
 #include "td/telegram/net/AuthDataShared.h"
 #include "td/telegram/net/DcAuthManager.h"
 #include "td/telegram/net/NetQuery.h"
@@ -13,9 +15,7 @@
 #include "td/telegram/net/PublicRsaKeyShared.h"
 #include "td/telegram/net/PublicRsaKeyWatchdog.h"
 #include "td/telegram/net/SessionMultiProxy.h"
-
-#include "td/telegram/ConfigShared.h"
-#include "td/telegram/Global.h"
+#include "td/telegram/SequenceDispatcher.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"
 #include "td/telegram/telegram_api.h"
@@ -24,8 +24,9 @@
 #include "td/utils/format.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
-#include "td/utils/port/thread.h"
+#include "td/utils/port/sleep.h"
 #include "td/utils/Slice.h"
+#include "td/utils/SliceBuilder.h"
 
 namespace td {
 
@@ -33,28 +34,35 @@ void NetQueryDispatcher::complete_net_query(NetQueryPtr net_query) {
   auto callback = net_query->move_callback();
   if (callback.empty()) {
     net_query->debug("sent to td (no callback)");
-    send_closure(G()->td(), &NetQueryCallback::on_result, std::move(net_query));
+    send_closure_later(G()->td(), &Td::on_result, std::move(net_query));
   } else {
     net_query->debug("sent to callback", true);
-    send_closure(std::move(callback), &NetQueryCallback::on_result, std::move(net_query));
+    send_closure_later(std::move(callback), &NetQueryCallback::on_result, std::move(net_query));
   }
 }
 
 void NetQueryDispatcher::dispatch(NetQueryPtr net_query) {
   // net_query->debug("dispatch");
   if (stop_flag_.load(std::memory_order_relaxed)) {
-    if (net_query->id() != 0) {
-      net_query->set_error(Status::Error(500, "Request aborted"));
-    }
+    net_query->set_error(Global::request_aborted_error());
     return complete_net_query(std::move(net_query));
   }
-  if (net_query->id() != 0 && G()->shared_config().get_option_boolean("test_flood_wait")) {
+  if (G()->shared_config().get_option_boolean("test_flood_wait")) {
     net_query->set_error(Status::Error(429, "Too Many Requests: retry after 10"));
     return complete_net_query(std::move(net_query));
+    //    if (net_query->is_ok() && net_query->tl_constructor() == 0x0d9d75a4) {
+    //      net_query->set_error(Status::Error(420, "FLOOD_WAIT_10"));
+    //    }
   }
   if (net_query->tl_constructor() == telegram_api::account_getPassword::ID && false) {
     net_query->set_error(Status::Error(429, "Too Many Requests: retry after 10"));
     return complete_net_query(std::move(net_query));
+  }
+
+  if (!net_query->in_sequence_dispatcher() && !net_query->get_chain_ids().empty()) {
+    net_query->debug("sent to main sequence dispatcher");
+    send_closure(sequence_dispatcher_, &MultiSequenceDispatcher::send, std::move(net_query));
+    return;
   }
 
   if (net_query->is_ready()) {
@@ -93,7 +101,7 @@ void NetQueryDispatcher::dispatch(NetQueryPtr net_query) {
     net_query->dispatch_ttl_--;
   }
 
-  size_t dc_pos = static_cast<size_t>(dest_dc_id.get_raw_id() - 1);
+  auto dc_pos = static_cast<size_t>(dest_dc_id.get_raw_id() - 1);
   CHECK(dc_pos < dcs_.size());
   switch (net_query->type()) {
     case NetQuery::Type::Common:
@@ -120,7 +128,7 @@ Status NetQueryDispatcher::wait_dc_init(DcId dc_id, bool force) {
   if (!dc_id.is_exact()) {
     return Status::Error("Not exact DC");
   }
-  size_t pos = static_cast<size_t>(dc_id.get_raw_id() - 1);
+  auto pos = static_cast<size_t>(dc_id.get_raw_id() - 1);
   if (pos >= dcs_.size()) {
     return Status::Error("Too big DC ID");
   }
@@ -160,9 +168,10 @@ Status NetQueryDispatcher::wait_dc_init(DcId dc_id, bool force) {
     int32 slow_net_scheduler_id = G()->get_slow_net_scheduler_id();
 
     auto raw_dc_id = dc_id.get_raw_id();
-    int32 upload_session_count = raw_dc_id != 2 && raw_dc_id != 4 ? 8 : 4;
-    int32 download_session_count = 2;
-    int32 download_small_session_count = 2;
+    bool is_premium = G()->shared_config().get_option_boolean("is_premium");
+    int32 upload_session_count = (raw_dc_id != 2 && raw_dc_id != 4) || is_premium ? 8 : 4;
+    int32 download_session_count = is_premium ? 8 : 2;
+    int32 download_small_session_count = is_premium ? 8 : 2;
     dc.main_session_ = create_actor<SessionMultiProxy>(PSLICE() << "SessionMultiProxy:" << raw_dc_id << ":main",
                                                        session_count, auth_data, raw_dc_id == main_dc_id_, use_pfs,
                                                        false, false, is_cdn, need_destroy_key);
@@ -185,7 +194,7 @@ Status NetQueryDispatcher::wait_dc_init(DcId dc_id, bool force) {
         return Status::Error("Closing");
       }
 #if !TD_THREAD_UNSUPPORTED
-      td::this_thread::yield();
+      usleep_for(1);
 #endif
     }
   }
@@ -210,6 +219,7 @@ void NetQueryDispatcher::stop() {
   }
   public_rsa_key_watchdog_.reset();
   dc_auth_manager_.reset();
+  sequence_dispatcher_.reset();
 }
 
 void NetQueryDispatcher::update_session_count() {
@@ -227,7 +237,7 @@ void NetQueryDispatcher::update_session_count() {
 }
 void NetQueryDispatcher::destroy_auth_keys(Promise<> promise) {
   std::lock_guard<std::mutex> guard(main_dc_id_mutex_);
-  LOG(INFO) << "Destory auth keys";
+  LOG(INFO) << "Destroy auth keys";
   need_destroy_auth_key_ = true;
   for (size_t i = 1; i < MAX_DC_COUNT; i++) {
     if (is_dc_inited(narrow_cast<int32>(i)) && dcs_[i - 1].id_.is_internal()) {
@@ -263,22 +273,19 @@ void NetQueryDispatcher::update_mtproto_header() {
   }
 }
 
-void NetQueryDispatcher::update_valid_dc(DcId dc_id) {
-  wait_dc_init(dc_id, true).ignore();
-}
-
 bool NetQueryDispatcher::is_dc_inited(int32 raw_dc_id) {
   return dcs_[raw_dc_id - 1].is_valid_.load(std::memory_order_relaxed);
 }
+
 int32 NetQueryDispatcher::get_session_count() {
-  return max(G()->shared_config().get_option_integer("session_count"), 1);
+  return max(narrow_cast<int32>(G()->shared_config().get_option_integer("session_count")), 1);
 }
 
 bool NetQueryDispatcher::get_use_pfs() {
   return G()->shared_config().get_option_boolean("use_pfs") || get_session_count() > 1;
 }
 
-NetQueryDispatcher::NetQueryDispatcher(std::function<ActorShared<>()> create_reference) {
+NetQueryDispatcher::NetQueryDispatcher(const std::function<ActorShared<>()> &create_reference) {
   auto s_main_dc_id = G()->td_db()->get_binlog_pmc()->get("main_dc_id");
   if (!s_main_dc_id.empty()) {
     main_dc_id_ = to_integer<int32>(s_main_dc_id);
@@ -288,6 +295,7 @@ NetQueryDispatcher::NetQueryDispatcher(std::function<ActorShared<>()> create_ref
   dc_auth_manager_ = create_actor<DcAuthManager>("DcAuthManager", create_reference());
   common_public_rsa_key_ = std::make_shared<PublicRsaKeyShared>(DcId::empty(), G()->is_test_dc());
   public_rsa_key_watchdog_ = create_actor<PublicRsaKeyWatchdog>("PublicRsaKeyWatchdog", create_reference());
+  sequence_dispatcher_ = MultiSequenceDispatcher::create("MultiSequenceDispatcher");
 
   td_guard_ = create_shared_lambda_guard([actor = create_reference()] {});
 }
@@ -296,15 +304,15 @@ NetQueryDispatcher::NetQueryDispatcher() = default;
 NetQueryDispatcher::~NetQueryDispatcher() = default;
 
 void NetQueryDispatcher::try_fix_migrate(NetQueryPtr &net_query) {
-  auto msg = net_query->error().message();
+  auto error_message = net_query->error().message();
   static constexpr CSlice prefixes[] = {"PHONE_MIGRATE_", "NETWORK_MIGRATE_", "USER_MIGRATE_"};
   for (auto &prefix : prefixes) {
-    if (msg.substr(0, prefix.size()) == prefix) {
-      int32 new_main_dc_id = to_integer<int32>(msg.substr(prefix.size()));
+    if (error_message.substr(0, prefix.size()) == prefix) {
+      auto new_main_dc_id = to_integer<int32>(error_message.substr(prefix.size()));
       set_main_dc_id(new_main_dc_id);
 
       if (!net_query->dc_id().is_main()) {
-        LOG(ERROR) << msg << " from query to non-main dc " << net_query->dc_id();
+        LOG(ERROR) << "Receive " << error_message << " for query to non-main DC" << net_query->dc_id();
         net_query->resend(DcId::internal(new_main_dc_id));
       } else {
         net_query->resend();
@@ -323,7 +331,7 @@ void NetQueryDispatcher::set_main_dc_id(int32 new_main_dc_id) {
     return;
   }
 
-  // Very rare event. Mutex is ok.
+  // Very rare event; mutex is ok.
   std::lock_guard<std::mutex> guard(main_dc_id_mutex_);
   if (new_main_dc_id == main_dc_id_) {
     return;
@@ -340,6 +348,10 @@ void NetQueryDispatcher::set_main_dc_id(int32 new_main_dc_id) {
   send_closure_later(dc_auth_manager_, &DcAuthManager::update_main_dc,
                      DcId::internal(main_dc_id_.load(std::memory_order_relaxed)));
   G()->td_db()->get_binlog_pmc()->set("main_dc_id", to_string(main_dc_id_.load(std::memory_order_relaxed)));
+}
+
+void NetQueryDispatcher::check_authorization_is_ok() {
+  send_closure(dc_auth_manager_, &DcAuthManager::check_authorization_is_ok);
 }
 
 }  // namespace td

@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -24,8 +24,8 @@ MutableSlice HttpQuery::get_arg(Slice key) const {
   return it == args_.end() ? MutableSlice() : it->second;
 }
 
-td::vector<std::pair<string, string>> HttpQuery::get_args() const {
-  td::vector<std::pair<string, string>> res;
+vector<std::pair<string, string>> HttpQuery::get_args() const {
+  vector<std::pair<string, string>> res;
   res.reserve(args_.size());
   for (auto &it : args_) {
     res.emplace_back(it.first.str(), it.second.str());

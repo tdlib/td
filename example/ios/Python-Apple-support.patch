@@ -1,0 +1,82 @@
+diff --git a/Makefile b/Makefile
+index 695be54..4efe5e5 100644
+--- a/Makefile
++++ b/Makefile
+@@ -5,10 +5,13 @@
+ # - iOS                       - build everything for iOS
+ # - tvOS                      - build everything for tvOS
+ # - watchOS                   - build everything for watchOS
+ # - OpenSSL-macOS   - build OpenSSL for macOS
+ # - OpenSSL-iOS     - build OpenSSL for iOS
++# - OpenSSL-iOS-simulator     - build OpenSSL for iOS-simulator
+ # - OpenSSL-tvOS    - build OpenSSL for tvOS
++# - OpenSSL-tvOS-simulator    - build OpenSSL for tvOS-simulator
+ # - OpenSSL-watchOS - build OpenSSL for watchOS
++# - OpenSSL-watchOS-simulator - build OpenSSL for watchOS-simulator
+ # - BZip2-macOS     - build BZip2 for macOS
+ # - BZip2-iOS       - build BZip2 for iOS
+ # - BZip2-tvOS      - build BZip2 for tvOS
+@@ -36,31 +39,45 @@ OPENSSL_VERSION=$(OPENSSL_VERSION_NUMBER)$(OPENSSL_REVISION)
+ BZIP2_VERSION=1.0.6
+ 
+ # Supported OS
+-OS=macOS iOS tvOS watchOS
++OS=macOS iOS iOS-simulator tvOS tvOS-simulator watchOS watchOS-simulator
+ 
+ # macOS targets
+-TARGETS-macOS=macosx.x86_64
++TARGETS-macOS=macosx.arm64 macosx.x86_64
++PYTHON_TARGETS-macOS=macOS
+ CFLAGS-macOS=-mmacosx-version-min=$(MACOSX_DEPLOYMENT_TARGET)
+ 
+ # iOS targets
+-TARGETS-iOS=iphonesimulator.x86_64 iphonesimulator.i386 iphoneos.armv7 iphoneos.armv7s iphoneos.arm64
++TARGETS-iOS=iphoneos.armv7 iphoneos.armv7s iphoneos.arm64
+ CFLAGS-iOS=-mios-version-min=7.0
+ CFLAGS-iphoneos.armv7=-fembed-bitcode
+ CFLAGS-iphoneos.armv7s=-fembed-bitcode
+ CFLAGS-iphoneos.arm64=-fembed-bitcode
+ 
++# iOS-simulator targets
++TARGETS-iOS-simulator=iphonesimulator.x86_64 iphonesimulator.i386 iphonesimulator.arm64
++CFLAGS-iOS-simulator=-mios-simulator-version-min=7.0
++
+ # tvOS targets
+-TARGETS-tvOS=appletvsimulator.x86_64 appletvos.arm64
++TARGETS-tvOS=appletvos.arm64
+ CFLAGS-tvOS=-mtvos-version-min=9.0
+ CFLAGS-appletvos.arm64=-fembed-bitcode
+ PYTHON_CONFIGURE-tvOS=ac_cv_func_sigaltstack=no
+ 
++# tvOS-simulator targets
++TARGETS-tvOS-simulator=appletvsimulator.x86_64 appletvsimulator.arm64
++CFLAGS-tvOS-simulator=-mtvos-simulator-version-min=9.0
++
+ # watchOS targets
+-TARGETS-watchOS=watchsimulator.i386 watchos.armv7k
++TARGETS-watchOS=watchos.armv7k watchos.arm64_32
+ CFLAGS-watchOS=-mwatchos-version-min=4.0
+ CFLAGS-watchos.armv7k=-fembed-bitcode
++CFLAGS-watchos.arm64_32=-fembed-bitcode
+ PYTHON_CONFIGURE-watchOS=ac_cv_func_sigaltstack=no
+ 
++# watchOS-simulator targets
++TARGETS-watchOS-simulator=watchsimulator.i386 watchsimulator.x86_64 watchsimulator.arm64
++CFLAGS-watchOS-simulator=-mwatchos-simulator-version-min=4.0
++
+ # override machine types for arm64
+ MACHINE_DETAILED-arm64=aarch64
+ MACHINE_SIMPLE-arm64=arm
+@@ -194,9 +211,11 @@ endif
+ 
+ 	# Configure the build
+ ifeq ($2,macOS)
++	# Patch openssl-darwin-arm64
++	cd $$(OPENSSL_DIR-$1) && git apply ../../../../openssl-1.0.2n-darwin-arm64.patch
+ 	cd $$(OPENSSL_DIR-$1) && \
+ 	CC="$$(CC-$1)" MACOSX_DEPLOYMENT_TARGET=$$(MACOSX_DEPLOYMENT_TARGET) \
+-		./Configure darwin64-x86_64-cc --openssldir=$(PROJECT_DIR)/build/$2/openssl
++		./Configure darwin64-$$(ARCH-$1)-cc --openssldir=$(PROJECT_DIR)/build/$2/openssl
+ else
+ 	cd $$(OPENSSL_DIR-$1) && \
+ 		CC="$$(CC-$1)" \

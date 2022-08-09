@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -28,7 +28,7 @@ Promise<Unit> MultiPromiseActor::get_promise() {
   future.set_event(EventCreator::raw(actor_id(), nullptr));
   futures_.emplace_back(std::move(future));
   LOG(DEBUG) << "Get promise #" << futures_.size() << " for " << name_;
-  return PromiseCreator::from_promise_actor(std::move(promise));
+  return create_promise_from_promise_actor(std::move(promise));
 }
 
 void MultiPromiseActor::raw_event(const Event::Raw &event) {

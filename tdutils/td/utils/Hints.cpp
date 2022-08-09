@@ -1,11 +1,12 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 #include "td/utils/Hints.h"
 
+#include "td/utils/algorithm.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/Slice.h"
@@ -149,12 +150,11 @@ void Hints::add_search_results(vector<KeyT> &results, const string &word,
 vector<Hints::KeyT> Hints::search_word(const string &word) const {
   vector<KeyT> results;
   add_search_results(results, word, translit_word_to_keys_);
-  for (auto w : get_word_transliterations(word, true)) {
+  for (const auto &w : get_word_transliterations(word, true)) {
     add_search_results(results, w, word_to_keys_);
   }
 
-  std::sort(results.begin(), results.end());
-  results.erase(std::unique(results.begin(), results.end()), results.end());
+  td::unique(results);
   return results;
 }
 
@@ -211,7 +211,7 @@ std::pair<size_t, vector<Hints::KeyT>> Hints::search(Slice query, int32 limit, b
 }
 
 bool Hints::has_key(KeyT key) const {
-  return key_to_name_.find(key) != key_to_name_.end();
+  return key_to_name_.count(key) > 0;
 }
 
 string Hints::key_to_string(KeyT key) const {

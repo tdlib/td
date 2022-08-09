@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -33,11 +33,20 @@
     #define _CRT_SECURE_NO_WARNINGS
   #endif
 
-  #include <WinSock2.h>
-  #include <WS2tcpip.h>
+  #ifdef __MINGW32__
+    #include <winsock2.h>
+    #include <ws2tcpip.h>
 
-  #include <MSWSock.h>
-  #include <Windows.h>
+    #include <mswsock.h>
+    #include <windows.h>
+  #else
+    #include <WinSock2.h>
+    #include <WS2tcpip.h>
+
+    #include <MSWSock.h>
+    #include <Windows.h>
+  #endif
+
   #undef ERROR
 #endif
 // clang-format on

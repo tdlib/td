@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -8,27 +8,30 @@
 
 #include "td/utils/logging.h"
 #include "td/utils/OrderedEventsProcessor.h"
+#include "td/utils/SliceBuilder.h"
 #include "td/utils/Time.h"
 
 #include <map>
 
 namespace td {
 namespace detail {
-class BinlogActor : public Actor {
+class BinlogActor final : public Actor {
  public:
   BinlogActor(unique_ptr<Binlog> binlog, uint64 seq_no) : binlog_(std::move(binlog)), processor_(seq_no) {
   }
   void close(Promise<> promise) {
     binlog_->close().ensure();
-    promise.set_value(Unit());
-    LOG(INFO) << "Finished closing binlog";
+    LOG(INFO) << "Finished to close binlog";
     stop();
+
+    promise.set_value(Unit());  // setting promise can complete closing and destroy the current actor context
   }
   void close_and_destroy(Promise<> promise) {
     binlog_->close_and_destroy().ensure();
-    promise.set_value(Unit());
-    LOG(INFO) << "Finished closing and destroying binlog";
+    LOG(INFO) << "Finished to destroy binlog";
     stop();
+
+    promise.set_value(Unit());  // setting promise can complete closing and destroy the current actor context
   }
 
   struct Event {
@@ -139,7 +142,7 @@ class BinlogActor : public Actor {
     }
   }
 
-  void timeout_expired() override {
+  void timeout_expired() final {
     bool need_sync = lazy_sync_flag_ || force_sync_flag_;
     lazy_sync_flag_ = false;
     force_sync_flag_ = false;
@@ -149,10 +152,7 @@ class BinlogActor : public Actor {
     if (need_sync) {
       binlog_->sync();
       // LOG(ERROR) << "BINLOG SYNC";
-      for (auto &promise : sync_promises_) {
-        promise.set_value(Unit());
-      }
-      sync_promises_.clear();
+      set_promises(sync_promises_);
     } else if (need_flush) {
       try_flush();
       // LOG(ERROR) << "BINLOG FLUSH";

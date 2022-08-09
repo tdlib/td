@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -7,9 +7,8 @@
 #pragma once
 
 #include "td/telegram/Global.h"
-#include "td/telegram/SecretInputMedia.h"
-
 #include "td/telegram/secret_api.h"
+#include "td/telegram/SecretInputMedia.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 
@@ -18,14 +17,13 @@
 #include "td/utils/StringBuilder.h"
 #include "td/utils/tl_helpers.h"
 
-#include <utility>
-
 namespace td {
 
 class Location {
   bool is_empty_ = true;
   double latitude_ = 0.0;
   double longitude_ = 0.0;
+  double horizontal_accuracy_ = 0.0;
   mutable int64 access_hash_ = 0;
 
   friend bool operator==(const Location &lhs, const Location &rhs);
@@ -33,12 +31,14 @@ class Location {
 
   friend StringBuilder &operator<<(StringBuilder &string_builder, const Location &location);
 
-  void init(double latitude, double longitude, int64 access_hash);
+  void init(double latitude, double longitude, double horizontal_accuracy, int64 access_hash);
+
+  static double fix_accuracy(double accuracy);
 
  public:
   Location() = default;
 
-  Location(double latitude, double longitude, int64 access_hash);
+  Location(double latitude, double longitude, double horizontal_accuracy, int64 access_hash);
 
   explicit Location(const tl_object_ptr<secret_api::decryptedMessageMediaGeoPoint> &geo_point);
 
@@ -78,14 +78,19 @@ class Location {
   void store(StorerT &storer) const {
     using td::store;
     bool has_access_hash = access_hash_ != 0;
+    bool has_horizontal_accuracy = horizontal_accuracy_ > 0.0;
     BEGIN_STORE_FLAGS();
     STORE_FLAG(is_empty_);
     STORE_FLAG(has_access_hash);
+    STORE_FLAG(has_horizontal_accuracy);
     END_STORE_FLAGS();
     store(latitude_, storer);
     store(longitude_, storer);
     if (has_access_hash) {
       store(access_hash_, storer);
+    }
+    if (has_horizontal_accuracy) {
+      store(horizontal_accuracy_, storer);
     }
   }
 
@@ -93,15 +98,20 @@ class Location {
   void parse(ParserT &parser) {
     using td::parse;
     bool has_access_hash;
+    bool has_horizontal_accuracy;
     BEGIN_PARSE_FLAGS();
     PARSE_FLAG(is_empty_);
     PARSE_FLAG(has_access_hash);
+    PARSE_FLAG(has_horizontal_accuracy);
     END_PARSE_FLAGS();
     parse(latitude_, parser);
     parse(longitude_, parser);
     if (has_access_hash) {
       parse(access_hash_, parser);
       G()->add_location_access_hash(latitude_, longitude_, access_hash_);
+    }
+    if (has_horizontal_accuracy) {
+      parse(horizontal_accuracy_, parser);
     }
   }
 };
@@ -111,7 +121,20 @@ bool operator!=(const Location &lhs, const Location &rhs);
 
 StringBuilder &operator<<(StringBuilder &string_builder, const Location &location);
 
-Result<std::pair<Location, int32>> process_input_message_location(
+struct InputMessageLocation {
+  Location location;
+  int32 live_period;
+  int32 heading;
+  int32 proximity_alert_radius;
+
+  InputMessageLocation(Location &&location, int32 live_period, int32 heading, int32 proximity_alert_radius)
+      : location(std::move(location))
+      , live_period(live_period)
+      , heading(heading)
+      , proximity_alert_radius(proximity_alert_radius) {
+  }
+};
+Result<InputMessageLocation> process_input_message_location(
     td_api::object_ptr<td_api::InputMessageContent> &&input_message_content) TD_WARN_UNUSED_RESULT;
 
 }  // namespace td

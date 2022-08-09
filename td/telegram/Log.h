@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -21,7 +21,7 @@ namespace td {
  * Interface for managing the internal logging of TDLib.
  * By default TDLib writes logs to stderr or an OS specific log and uses a verbosity level of 5.
  * These functions are deprecated since TDLib 1.4.0 in favor of the td::td_api::setLogVerbosityLevel,
- * td::td_api::setLogStream and other synchronous requests for managing the intrenal TDLib logging.
+ * td::td_api::setLogStream and other synchronous requests for managing the internal TDLib logging.
  */
 class Log {
  public:
@@ -76,6 +76,7 @@ class Log {
    * The TDLib will crash as soon as callback returns.
    * By default the callback is not set.
    *
+   * \deprecated Use ClientManager::set_log_message_callback instead.
    * \param[in]  callback Callback that will be called when a fatal error happens.
    *                      Pass nullptr to remove the callback.
    */

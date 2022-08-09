@@ -1,24 +1,28 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 #include "td/telegram/SpecialStickerSetType.h"
 
-#include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/Slice.h"
+#include "td/utils/SliceBuilder.h"
 
 namespace td {
 
-string SpecialStickerSetType::animated_emoji() {
-  return "animated_emoji_sticker_set";
+SpecialStickerSetType SpecialStickerSetType::animated_emoji() {
+  return SpecialStickerSetType("animated_emoji_sticker_set");
 }
 
-string SpecialStickerSetType::animated_dice(const string &emoji) {
+SpecialStickerSetType SpecialStickerSetType::animated_emoji_click() {
+  return SpecialStickerSetType("animated_emoji_click_sticker_set");
+}
+
+SpecialStickerSetType SpecialStickerSetType::animated_dice(const string &emoji) {
   CHECK(!emoji.empty());
-  return PSTRING() << "animated_dice_sticker_set#" << emoji;
+  return SpecialStickerSetType(PSTRING() << "animated_dice_sticker_set#" << emoji);
 }
 
 SpecialStickerSetType::SpecialStickerSetType(
@@ -26,10 +30,13 @@ SpecialStickerSetType::SpecialStickerSetType(
   CHECK(input_sticker_set != nullptr);
   switch (input_sticker_set->get_id()) {
     case telegram_api::inputStickerSetAnimatedEmoji::ID:
-      type_ = animated_emoji();
+      *this = animated_emoji();
+      break;
+    case telegram_api::inputStickerSetAnimatedEmojiAnimations::ID:
+      *this = animated_emoji_click();
       break;
     case telegram_api::inputStickerSetDice::ID:
-      type_ = animated_dice(static_cast<const telegram_api::inputStickerSetDice *>(input_sticker_set.get())->emoticon_);
+      *this = animated_dice(static_cast<const telegram_api::inputStickerSetDice *>(input_sticker_set.get())->emoticon_);
       break;
     default:
       UNREACHABLE();
@@ -38,15 +45,19 @@ SpecialStickerSetType::SpecialStickerSetType(
 }
 
 string SpecialStickerSetType::get_dice_emoji() const {
-  if (begins_with(type_, "animated_dice_sticker_set#")) {
-    return type_.substr(Slice("animated_dice_sticker_set#").size());
+  auto prefix = Slice("animated_dice_sticker_set#");
+  if (begins_with(type_, prefix)) {
+    return type_.substr(prefix.size());
   }
   return string();
 }
 
 telegram_api::object_ptr<telegram_api::InputStickerSet> SpecialStickerSetType::get_input_sticker_set() const {
-  if (type_ == "animated_emoji_sticker_set") {
+  if (*this == animated_emoji()) {
     return telegram_api::make_object<telegram_api::inputStickerSetAnimatedEmoji>();
+  }
+  if (*this == animated_emoji_click()) {
+    return telegram_api::make_object<telegram_api::inputStickerSetAnimatedEmojiAnimations>();
   }
   auto emoji = get_dice_emoji();
   if (!emoji.empty()) {

@@ -1,12 +1,14 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 #include "td/utils/utf8.h"
 
-#include "td/utils/logging.h"  // for UNREACHABLE
+#include "td/utils/logging.h"
+#include "td/utils/misc.h"
+#include "td/utils/SliceBuilder.h"
 #include "td/utils/unicode.h"
 
 namespace td {
@@ -15,7 +17,7 @@ bool check_utf8(CSlice str) {
   const char *data = str.data();
   const char *data_end = data + str.size();
   do {
-    unsigned int a = static_cast<unsigned char>(*data++);
+    uint32 a = static_cast<unsigned char>(*data++);
     if ((a & 0x80) == 0) {
       if (data == data_end + 1) {
         return true;
@@ -30,25 +32,25 @@ bool check_utf8(CSlice str) {
 
     ENSURE((a & 0x40) != 0);
 
-    unsigned int b = static_cast<unsigned char>(*data++);
+    uint32 b = static_cast<unsigned char>(*data++);
     ENSURE((b & 0xc0) == 0x80);
     if ((a & 0x20) == 0) {
       ENSURE((a & 0x1e) > 0);
       continue;
     }
 
-    unsigned int c = static_cast<unsigned char>(*data++);
+    uint32 c = static_cast<unsigned char>(*data++);
     ENSURE((c & 0xc0) == 0x80);
     if ((a & 0x10) == 0) {
-      int x = (((a & 0x0f) << 6) | (b & 0x20));
+      uint32 x = (((a & 0x0f) << 6) | (b & 0x20));
       ENSURE(x != 0 && x != 0x360);  // surrogates
       continue;
     }
 
-    unsigned int d = static_cast<unsigned char>(*data++);
+    uint32 d = static_cast<unsigned char>(*data++);
     ENSURE((d & 0xc0) == 0x80);
     if ((a & 0x08) == 0) {
-      int t = (((a & 0x07) << 6) | (b & 0x30));
+      uint32 t = (((a & 0x07) << 6) | (b & 0x30));
       ENSURE(0 < t && t < 0x110);  // end of unicode
       continue;
     }
@@ -119,6 +121,13 @@ string utf8_to_lower(Slice str) {
     append_utf8_character(result, unicode_to_lower(code));
   }
   return result;
+}
+
+string utf8_encode(CSlice data) {
+  if (check_utf8(data)) {
+    return data.str();
+  }
+  return PSTRING() << "url_decode(" << url_encode(data) << ')';
 }
 
 }  // namespace td

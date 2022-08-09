@@ -1,22 +1,23 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 #include "td/utils/translit.h"
 
+#include "td/utils/algorithm.h"
+#include "td/utils/FlatHashMap.h"
 #include "td/utils/misc.h"
 #include "td/utils/utf8.h"
 
 #include <algorithm>
-#include <unordered_map>
 #include <utility>
 
 namespace td {
 
-static const std::unordered_map<uint32, string> &get_en_to_ru_simple_rules() {
-  static const std::unordered_map<uint32, string> rules{
+static const FlatHashMap<uint32, string> &get_en_to_ru_simple_rules() {
+  static const FlatHashMap<uint32, string> rules{
       {'a', "а"}, {'b', "б"}, {'c', "к"}, {'d', "д"}, {'e', "е"}, {'f', "ф"},  {'g', "г"}, {'h', "х"}, {'i', "и"},
       {'j', "й"}, {'k', "к"}, {'l', "л"}, {'m', "м"}, {'n', "н"}, {'o', "о"},  {'p', "п"}, {'q', "к"}, {'r', "р"},
       {'s', "с"}, {'t', "т"}, {'u', "у"}, {'v', "в"}, {'w', "в"}, {'x', "кс"}, {'y', "и"}, {'z', "з"}};
@@ -31,8 +32,8 @@ static const std::vector<std::pair<string, string>> &get_en_to_ru_complex_rules(
   return rules;
 }
 
-static const std::unordered_map<uint32, string> &get_ru_to_en_simple_rules() {
-  static const std::unordered_map<uint32, string> rules{
+static const FlatHashMap<uint32, string> &get_ru_to_en_simple_rules() {
+  static const FlatHashMap<uint32, string> rules{
       {0x430, "a"},  {0x431, "b"},  {0x432, "v"},  {0x433, "g"},  {0x434, "d"},  {0x435, "e"},   {0x451, "e"},
       {0x436, "zh"}, {0x437, "z"},  {0x438, "i"},  {0x439, "y"},  {0x43a, "k"},  {0x43b, "l"},   {0x43c, "m"},
       {0x43d, "n"},  {0x43e, "o"},  {0x43f, "p"},  {0x440, "r"},  {0x441, "s"},  {0x442, "t"},   {0x443, "u"},
@@ -48,8 +49,8 @@ static const std::vector<std::pair<string, string>> &get_ru_to_en_complex_rules(
 }
 
 static void add_word_transliterations(vector<string> &result, Slice word, bool allow_partial,
-                                      const std::unordered_map<uint32, string> &simple_rules,
-                                      const std::vector<std::pair<string, string>> &complex_rules) {
+                                      const FlatHashMap<uint32, string> &simple_rules,
+                                      const vector<std::pair<string, string>> &complex_rules) {
   string s;
   auto pos = word.ubegin();
   auto end = word.uend();
@@ -107,8 +108,7 @@ vector<string> get_word_transliterations(Slice word, bool allow_partial) {
   add_word_transliterations(result, word, allow_partial, get_en_to_ru_simple_rules(), get_en_to_ru_complex_rules());
   add_word_transliterations(result, word, allow_partial, get_ru_to_en_simple_rules(), get_ru_to_en_complex_rules());
 
-  std::sort(result.begin(), result.end());
-  result.erase(std::unique(result.begin(), result.end()), result.end());
+  td::unique(result);
   return result;
 }
 

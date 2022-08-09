@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -34,8 +34,8 @@ class BufferedStdin {
   BufferedStdin();
   BufferedStdin(const BufferedStdin &) = delete;
   BufferedStdin &operator=(const BufferedStdin &) = delete;
-  BufferedStdin(BufferedStdin &&);
-  BufferedStdin &operator=(BufferedStdin &&);
+  BufferedStdin(BufferedStdin &&) noexcept;
+  BufferedStdin &operator=(BufferedStdin &&) noexcept;
   ~BufferedStdin();
   ChainBufferReader &input_buffer();
   PollableFdInfo &get_poll_info();

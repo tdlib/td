@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -49,8 +49,21 @@ bool TD_TL_writer::is_combinator_supported(const tl::tl_combinator *constructor)
   return true;
 }
 
-bool TD_TL_writer::is_default_constructor_generated(const tl::tl_combinator *t, bool is_function) const {
-  return tl_name == "td_api" || tl_name == "TdApi" || (t->var_count > 0 && !is_function);
+bool TD_TL_writer::is_default_constructor_generated(const tl::tl_combinator *t, bool can_be_parsed,
+                                                    bool can_be_stored) const {
+  return tl_name == "td_api" || tl_name == "TdApi" || (t->var_count > 0 && can_be_parsed) || t->name == "updates";
+}
+
+bool TD_TL_writer::is_full_constructor_generated(const tl::tl_combinator *t, bool can_be_parsed,
+                                                 bool can_be_stored) const {
+  return tl_name == "td_api" || tl_name == "TdApi" || can_be_stored || t->name == "phone.groupParticipants" ||
+         t->name == "user" || t->name == "userProfilePhoto" || t->name == "channelForbidden" ||
+         t->name == "photoSizeEmpty" || t->name == "photoSize" || t->name == "photoCachedSize" ||
+         t->name == "document" || t->name == "updateDeleteMessages" || t->name == "updateEditChannelMessage" ||
+         t->name == "encryptedChatWaiting" || t->name == "encryptedChatRequested" || t->name == "encryptedChat" ||
+         t->name == "langPackString" || t->name == "langPackStringPluralized" || t->name == "langPackStringDeleted" ||
+         t->name == "peerUser" || t->name == "peerChat" || t->name == "updateServiceNotification" ||
+         t->name == "updateNewMessage" || t->name == "message" || t->name == "updateChannelTooLong";
 }
 
 int TD_TL_writer::get_storer_type(const tl::tl_combinator *t, const std::string &storer_name) const {
@@ -137,9 +150,9 @@ std::string TD_TL_writer::gen_field_name(std::string name) const {
       name[i] = '_';
     }
   }
-  assert(name.size() > 0);
+  assert(!name.empty());
   assert(name[name.size() - 1] != '_');
-  return name + "_";
+  return name + '_';
 }
 
 std::string TD_TL_writer::gen_var_name(const tl::var_description &desc) const {
@@ -200,7 +213,7 @@ std::string TD_TL_writer::gen_type_name(const tl::tl_tree_type *tree_type) const
     assert(tree_type->children[0]->get_type() == tl::NODE_TYPE_TYPE);
     const tl::tl_tree_type *child = static_cast<const tl::tl_tree_type *>(tree_type->children[0]);
 
-    return "std::vector<" + gen_type_name(child) + ">";
+    return "array<" + gen_type_name(child) + ">";
   }
 
   assert(!is_built_in_simple_type(name) && !is_built_in_complex_type(name));
@@ -248,9 +261,8 @@ std::string TD_TL_writer::gen_constructor_parameter(int field_num, const std::st
   } else if (field_type == "UInt128 " || field_type == "UInt256 " || field_type == "string " ||
              (string_type == bytes_type && field_type == "bytes ")) {
     res += field_type + "const &";
-  } else if (field_type.compare(0, 11, "std::vector") == 0 || field_type == "bytes ") {
-    res += field_type + "&&";
-  } else if (field_type.compare(0, 10, "object_ptr") == 0) {
+  } else if (field_type.compare(0, 5, "array") == 0 || field_type == "bytes " ||
+             field_type.compare(0, 10, "object_ptr") == 0) {
     res += field_type + "&&";
   } else {
     assert(false && "unreachable");

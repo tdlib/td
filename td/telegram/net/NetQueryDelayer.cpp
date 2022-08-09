@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -14,6 +14,7 @@
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/Slice.h"
+#include "td/utils/SliceBuilder.h"
 #include "td/utils/Status.h"
 
 namespace td {
@@ -23,20 +24,20 @@ void NetQueryDelayer::delay(NetQueryPtr query) {
   query->is_ready();
   CHECK(query->is_error());
   auto code = query->error().code();
-  double timeout = 0;
+  int32 timeout = 0;
   if (code < 0) {
     // skip
   } else if (code == 500) {
-    auto msg = query->error().message();
-    if (msg == "WORKER_BUSY_TOO_LONG_RETRY") {
+    auto error_message = query->error().message();
+    if (error_message == "WORKER_BUSY_TOO_LONG_RETRY") {
       timeout = 1;  // it is dangerous to resend query without timeout, so use 1
     }
   } else if (code == 420) {
-    auto msg = query->error().message();
+    auto error_message = query->error().message();
     for (auto prefix :
          {Slice("FLOOD_WAIT_"), Slice("SLOWMODE_WAIT_"), Slice("2FA_CONFIRM_WAIT_"), Slice("TAKEOUT_INIT_DELAY_")}) {
-      if (begins_with(msg, prefix)) {
-        timeout = clamp(to_integer<int>(msg.substr(prefix.size())), 1, 14 * 24 * 60 * 60);
+      if (begins_with(error_message, prefix)) {
+        timeout = clamp(to_integer<int>(error_message.substr(prefix.size())), 1, 14 * 24 * 60 * 60);
         break;
       }
     }
@@ -72,8 +73,7 @@ void NetQueryDelayer::delay(NetQueryPtr query) {
     LOG(WARNING) << "Failed: " << query << " " << tag("timeout", timeout) << tag("total_timeout", query->total_timeout_)
                  << " because of " << error << " from " << query->source_;
     // NB: code must differ from tdapi FLOOD_WAIT code
-    query->set_error(
-        Status::Error(429, PSLICE() << "Too Many Requests: retry after " << static_cast<int32>(timeout + 0.999)));
+    query->set_error(Status::Error(429, PSLICE() << "Too Many Requests: retry after " << timeout));
     query->debug("DcManager: send to DcManager");
     G()->net_query_dispatcher().dispatch(std::move(query));
     return;
@@ -115,7 +115,7 @@ void NetQueryDelayer::on_slot_event(uint64 id) {
 
 void NetQueryDelayer::tear_down() {
   container_.for_each([](auto id, auto &query_slot) {
-    query_slot.query_->set_error(Status::Error(500, "Request aborted"));
+    query_slot.query_->set_error(Global::request_aborted_error());
     G()->net_query_dispatcher().dispatch(std::move(query_slot.query_));
   });
 }

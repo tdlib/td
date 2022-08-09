@@ -1,11 +1,12 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 #include "td/telegram/files/FileLoader.h"
 
+#include "td/telegram/files/FileLoaderUtils.h"
 #include "td/telegram/files/ResourceManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/net/NetQueryDispatcher.h"
@@ -18,7 +19,6 @@
 #include "td/utils/ScopeGuard.h"
 
 #include <tuple>
-#include <utility>
 
 namespace td {
 
@@ -31,7 +31,7 @@ void FileLoader::update_priority(int8 priority) {
 }
 void FileLoader::update_resources(const ResourceState &other) {
   resource_state_.update_slave(other);
-  VLOG(files) << "Update resources " << resource_state_;
+  VLOG(file_loader) << "Update resources " << resource_state_;
   loop();
 }
 void FileLoader::set_ordered_flag(bool flag) {
@@ -40,12 +40,19 @@ void FileLoader::set_ordered_flag(bool flag) {
 size_t FileLoader::get_part_size() const {
   return parts_manager_.get_part_size();
 }
+
 void FileLoader::hangup() {
-  // if (!stop_flag_) {
-  // stop_flag_ = true;
-  // on_error(Status::Error("Cancelled"));
-  //}
-  stop();
+  if (delay_dispatcher_.empty()) {
+    stop();
+  } else {
+    delay_dispatcher_.reset();
+  }
+}
+
+void FileLoader::hangup_shared() {
+  if (get_link_token() == 1) {
+    stop();
+  }
 }
 
 void FileLoader::update_local_file_location(const LocalFileLocation &local) {
@@ -65,20 +72,23 @@ void FileLoader::update_local_file_location(const LocalFileLocation &local) {
   loop();
 }
 
-void FileLoader::update_download_offset(int64 offset) {
+void FileLoader::update_downloaded_part(int64 offset, int64 limit, int64 max_resource_limit) {
   if (parts_manager_.get_streaming_offset() != offset) {
-    parts_manager_.set_streaming_offset(offset);
-    //TODO: cancel only some queries
+    auto begin_part_id = parts_manager_.set_streaming_offset(offset, limit);
+    auto new_end_part_id = limit <= 0 ? parts_manager_.get_part_count()
+                                      : narrow_cast<int32>((offset + limit - 1) / parts_manager_.get_part_size()) + 1;
+    auto max_parts = narrow_cast<int32>(max_resource_limit / parts_manager_.get_part_size());
+    auto end_part_id = begin_part_id + td::min(max_parts, new_end_part_id - begin_part_id);
+    VLOG(file_loader) << "Protect parts " << begin_part_id << " ... " << end_part_id - 1;
     for (auto &it : part_map_) {
-      it.second.second.reset();  // cancel_query(it.second.second);
+      if (!it.second.second.empty() && !(begin_part_id <= it.second.first.id && it.second.first.id < end_part_id)) {
+        VLOG(file_loader) << "Cancel part " << it.second.first.id;
+        it.second.second.reset();  // cancel_query(it.second.second);
+      }
     }
+  } else {
+    parts_manager_.set_streaming_limit(limit);
   }
-  update_estimated_limit();
-  loop();
-}
-
-void FileLoader::update_download_limit(int64 limit) {
-  parts_manager_.set_streaming_limit(limit);
   update_estimated_limit();
   loop();
 }
@@ -100,18 +110,21 @@ void FileLoader::start_up() {
   bool is_upload = file_info.is_upload;
 
   // Two cases when FILE_UPLOAD_RESTART will happen
-  // 1. File is ready, size is final. But there are more uploaded parts, than size of a file
-  //pm.init(1, 100000, true, 10, {0, 1, 2}, false, true).ensure_error();
-  // This error is definitely ok, because we are using actual size of file on disk (mtime is checked by somebody
-  // else). And actual size could change arbitrarily.
+  // 1. File is ready, size is final. But there are more uploaded parts than size of the file
+  // pm.init(1, 100000, true, 10, {0, 1, 2}, false, true).ensure_error();
+  // This error is definitely ok, because we are using actual size of the file on disk (mtime is checked by
+  // somebody else). And actual size could change arbitrarily.
   //
   // 2. size is unknown/zero, size is not final, some parts of file are already uploaded
   // pm.init(0, 100000, false, 10, {0, 1, 2}, false, true).ensure_error();
   // This case is more complicated
   // It means that at some point we got inconsistent state. Like deleted local location, but left partial remote
-  // locaiton untouched. This is completely possible at this point, but probably should be fixed.
+  // location untouched. This is completely possible at this point, but probably should be fixed.
   auto status =
       parts_manager_.init(size, expected_size, is_size_final, part_size, ready_parts, use_part_count_limit, is_upload);
+  LOG(DEBUG) << "Start " << (is_upload ? "up" : "down") << "loading a file of size " << size << " with expected "
+             << (is_size_final ? "exact" : "approximate") << " size " << expected_size << ", part size " << part_size
+             << " and " << ready_parts.size() << " ready parts: " << status;
   if (status.is_error()) {
     on_error(std::move(status));
     stop_flag_ = true;
@@ -120,13 +133,12 @@ void FileLoader::start_up() {
   if (file_info.only_check) {
     parts_manager_.set_checked_prefix_size(0);
   }
-  parts_manager_.set_streaming_offset(file_info.offset);
-  parts_manager_.set_streaming_limit(file_info.limit);
+  parts_manager_.set_streaming_offset(file_info.offset, file_info.limit);
   if (ordered_flag_) {
     ordered_parts_ = OrderedEventsProcessor<std::pair<Part, NetQueryPtr>>(parts_manager_.get_ready_prefix_count());
   }
   if (file_info.need_delay) {
-    delay_dispatcher_ = create_actor<DelayDispatcher>("DelayDispatcher", 0.003);
+    delay_dispatcher_ = create_actor<DelayDispatcher>("DelayDispatcher", 0.003, actor_shared(this, 1));
     next_delay_ = 0.05;
   }
   resource_state_.set_unit_size(parts_manager_.get_part_size());
@@ -149,6 +161,7 @@ void FileLoader::loop() {
     return;
   }
 }
+
 Status FileLoader::do_loop() {
   TRY_RESULT(check_info,
              check_loop(parts_manager_.get_checked_prefix_size(), parts_manager_.get_unchecked_ready_prefix_size(),
@@ -183,15 +196,15 @@ Status FileLoader::do_loop() {
     if (blocking_id_ != 0) {
       break;
     }
-    if (resource_state_.unused() < static_cast<int64>(parts_manager_.get_part_size())) {
-      VLOG(files) << "Got only " << resource_state_.unused() << " resource";
+    if (resource_state_.unused() < narrow_cast<int64>(parts_manager_.get_part_size())) {
+      VLOG(file_loader) << "Got only " << resource_state_.unused() << " resource";
       break;
     }
     TRY_RESULT(part, parts_manager_.start_part());
     if (part.size == 0) {
       break;
     }
-    VLOG(files) << "Start part " << tag("id", part.id) << tag("size", part.size);
+    VLOG(file_loader) << "Start part " << tag("id", part.id) << tag("size", part.size);
     resource_state_.start_use(static_cast<int64>(part.size));
 
     TRY_RESULT(query_flag, start_part(part, parts_manager_.get_part_count(), parts_manager_.get_streaming_offset()));
@@ -210,6 +223,7 @@ Status FileLoader::do_loop() {
     if (delay_dispatcher_.empty()) {
       G()->net_query_dispatcher().dispatch_with_callback(std::move(query), std::move(callback));
     } else {
+      query->debug("sent to DelayDispatcher");
       send_closure(delay_dispatcher_, &DelayDispatcher::send_with_callback_and_delay, std::move(query),
                    std::move(callback), next_delay_);
       next_delay_ = max(next_delay_ * 0.8, 0.003);
@@ -223,15 +237,18 @@ void FileLoader::tear_down() {
     it.second.second.reset();  // cancel_query(it.second.second);
   }
   ordered_parts_.clear([](auto &&part) { part.second->clear(); });
-  send_closure(std::move(delay_dispatcher_), &DelayDispatcher::close_silent);
+  if (!delay_dispatcher_.empty()) {
+    send_closure(std::move(delay_dispatcher_), &DelayDispatcher::close_silent);
+  }
 }
+
 void FileLoader::update_estimated_limit() {
   if (stop_flag_) {
     return;
   }
   auto estimated_extra = parts_manager_.get_estimated_extra();
   resource_state_.update_estimated_limit(estimated_extra);
-  VLOG(files) << "Update estimated limit " << estimated_extra;
+  VLOG(file_loader) << "Update estimated limit " << estimated_extra;
   if (!resource_manager_.empty()) {
     keep_fd_flag(narrow_cast<uint64>(resource_state_.active_limit()) >= parts_manager_.get_part_size());
     send_closure(resource_manager_, &ResourceManager::update_resources, resource_state_);
@@ -259,15 +276,16 @@ void FileLoader::on_result(NetQueryPtr query) {
   Part part = it->second.first;
   it->second.second.release();
   CHECK(query->is_ready());
+  part_map_.erase(it);
 
   bool next = false;
   auto status = [&] {
     TRY_RESULT(should_restart, should_restart_part(part, query));
-    if (query->is_error() && query->error().code() == NetQuery::Error::Cancelled) {
+    if (query->is_error() && query->error().code() == NetQuery::Error::Canceled) {
       should_restart = true;
     }
     if (should_restart) {
-      VLOG(files) << "Restart part " << tag("id", part.id) << tag("size", part.size);
+      VLOG(file_loader) << "Restart part " << tag("id", part.id) << tag("size", part.size);
       resource_state_.stop_use(static_cast<int64>(part.size));
       parts_manager_.on_part_failed(part.id);
     } else {
@@ -284,8 +302,9 @@ void FileLoader::on_result(NetQueryPtr query) {
   if (next) {
     if (ordered_flag_) {
       auto seq_no = part.id;
-      ordered_parts_.add(seq_no, std::make_pair(part, std::move(query)),
-                         [this](auto seq_no, auto &&p) { this->on_part_query(p.first, std::move(p.second)); });
+      ordered_parts_.add(
+          seq_no, std::make_pair(part, std::move(query)),
+          [this](uint64 seq_no, std::pair<Part, NetQueryPtr> &&p) { on_part_query(p.first, std::move(p.second)); });
     } else {
       on_part_query(part, std::move(query));
     }
@@ -316,7 +335,7 @@ void FileLoader::on_common_query(NetQueryPtr query) {
 
 Status FileLoader::try_on_part_query(Part part, NetQueryPtr query) {
   TRY_RESULT(size, process_part(part, std::move(query)));
-  VLOG(files) << "Ok part " << tag("id", part.id) << tag("size", part.size);
+  VLOG(file_loader) << "Ok part " << tag("id", part.id) << tag("size", part.size);
   resource_state_.stop_use(static_cast<int64>(part.size));
   auto old_ready_prefix_count = parts_manager_.get_unchecked_ready_prefix_count();
   TRY_STATUS(parts_manager_.on_part_ok(part.id, part.size, size));

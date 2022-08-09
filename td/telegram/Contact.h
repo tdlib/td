@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -40,13 +40,17 @@ class Contact {
  public:
   Contact() = default;
 
-  Contact(string phone_number, string first_name, string last_name, string vcard, int32 user_id);
+  Contact(string phone_number, string first_name, string last_name, string vcard, UserId user_id);
 
   void set_user_id(UserId user_id);
 
   UserId get_user_id() const;
 
-  string get_phone_number() const;
+  const string &get_phone_number() const;
+
+  const string &get_first_name() const;
+
+  const string &get_last_name() const;
 
   tl_object_ptr<td_api::contact> get_contact_object() const;
 
@@ -57,7 +61,7 @@ class Contact {
   tl_object_ptr<telegram_api::inputPhoneContact> get_input_phone_contact(int64 client_id) const;
 
   tl_object_ptr<telegram_api::inputBotInlineMessageMediaContact> get_input_bot_inline_message_media_contact(
-      int32 flags, tl_object_ptr<telegram_api::ReplyMarkup> &&reply_markup) const;
+      tl_object_ptr<telegram_api::ReplyMarkup> &&reply_markup) const;
 
   template <class StorerT>
   void store(StorerT &storer) const {
@@ -138,6 +142,8 @@ struct ContactHash {
            std::hash<std::string>()(contact.last_name_);
   }
 };
+
+Result<Contact> get_contact(td_api::object_ptr<td_api::contact> &&contact) TD_WARN_UNUSED_RESULT;
 
 Result<Contact> process_input_message_contact(tl_object_ptr<td_api::InputMessageContent> &&input_message_content)
     TD_WARN_UNUSED_RESULT;

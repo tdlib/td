@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -11,13 +11,15 @@
 #include "td/telegram/net/DcId.h"
 #include "td/telegram/net/NetQueryDispatcher.h"
 #include "td/telegram/net/Session.h"
+#include "td/telegram/Td.h"
 #include "td/telegram/UniqueId.h"
 
-#include "td/actor/PromiseFuture.h"
-
+#include "td/utils/buffer.h"
 #include "td/utils/common.h"
 #include "td/utils/logging.h"
+#include "td/utils/Promise.h"
 #include "td/utils/Slice.h"
+#include "td/utils/SliceBuilder.h"
 
 #include <functional>
 
@@ -27,7 +29,7 @@ namespace mtproto {
 class RawConnection;
 }  // namespace mtproto
 
-class SessionCallback : public Session::Callback {
+class SessionCallback final : public Session::Callback {
  public:
   SessionCallback(ActorShared<SessionProxy> parent, DcId dc_id, bool allow_media_only, bool is_media, size_t hash)
       : parent_(std::move(parent))
@@ -37,29 +39,32 @@ class SessionCallback : public Session::Callback {
       , hash_(hash) {
   }
 
-  void on_failed() override {
+  void on_failed() final {
     send_closure(parent_, &SessionProxy::on_failed);
   }
-  void on_closed() override {
+  void on_closed() final {
     send_closure(parent_, &SessionProxy::on_closed);
   }
   void request_raw_connection(unique_ptr<mtproto::AuthData> auth_data,
-                              Promise<unique_ptr<mtproto::RawConnection>> promise) override {
+                              Promise<unique_ptr<mtproto::RawConnection>> promise) final {
     send_closure(G()->connection_creator(), &ConnectionCreator::request_raw_connection, dc_id_, allow_media_only_,
                  is_media_, std::move(promise), hash_, std::move(auth_data));
   }
 
-  void on_tmp_auth_key_updated(mtproto::AuthKey auth_key) override {
+  void on_tmp_auth_key_updated(mtproto::AuthKey auth_key) final {
     send_closure(parent_, &SessionProxy::on_tmp_auth_key_updated, std::move(auth_key));
   }
 
-  void on_server_salt_updated(std::vector<mtproto::ServerSalt> server_salts) override {
+  void on_server_salt_updated(std::vector<mtproto::ServerSalt> server_salts) final {
     send_closure(parent_, &SessionProxy::on_server_salt_updated, std::move(server_salts));
   }
 
-  void on_result(NetQueryPtr query) override {
-    if (UniqueId::extract_type(query->id()) != UniqueId::BindKey &&
-        query->id() != 0) {  // not bind key query and not an update
+  void on_update(BufferSlice &&update) final {
+    send_closure_later(G()->td(), &Td::on_update, std::move(update));
+  }
+
+  void on_result(NetQueryPtr query) final {
+    if (UniqueId::extract_type(query->id()) != UniqueId::BindKey) {
       send_closure(parent_, &SessionProxy::on_query_finished);
     }
     G()->net_query_dispatcher().dispatch(std::move(query));
@@ -87,11 +92,11 @@ SessionProxy::SessionProxy(unique_ptr<Callback> callback, std::shared_ptr<AuthDa
 }
 
 void SessionProxy::start_up() {
-  class Listener : public AuthDataShared::Listener {
+  class Listener final : public AuthDataShared::Listener {
    public:
     explicit Listener(ActorShared<SessionProxy> session_proxy) : session_proxy_(std::move(session_proxy)) {
     }
-    bool notify() override {
+    bool notify() final {
       if (!session_proxy_.is_alive()) {
         return false;
       }
@@ -102,7 +107,7 @@ void SessionProxy::start_up() {
    private:
     ActorShared<SessionProxy> session_proxy_;
   };
-  auth_key_state_ = auth_data_->get_auth_key_state().first;
+  auth_key_state_ = auth_data_->get_auth_key_state();
   auth_data_->add_auth_key_listener(make_unique<Listener>(actor_shared(this)));
   open_session();
 }
@@ -138,6 +143,10 @@ void SessionProxy::update_main_flag(bool is_main) {
 }
 
 void SessionProxy::update_destroy(bool need_destroy) {
+  if (need_destroy_ == need_destroy) {
+    LOG(INFO) << "Ignore reduntant update_destroy(" << need_destroy << ")";
+    return;
+  }
   need_destroy_ = need_destroy;
   close_session();
   open_session();
@@ -163,6 +172,7 @@ void SessionProxy::close_session() {
   send_closure(std::move(session_), &Session::close);
   session_generation_++;
 }
+
 void SessionProxy::open_session(bool force) {
   if (!session_.empty()) {
     return;
@@ -208,7 +218,7 @@ void SessionProxy::open_session(bool force) {
 
 void SessionProxy::update_auth_key_state() {
   auto old_auth_key_state = auth_key_state_;
-  auth_key_state_ = auth_data_->get_auth_key_state().first;
+  auth_key_state_ = auth_data_->get_auth_key_state();
   if (auth_key_state_ != old_auth_key_state && old_auth_key_state == AuthKeyState::OK) {
     close_session();
   }
@@ -235,6 +245,7 @@ void SessionProxy::on_tmp_auth_key_updated(mtproto::AuthKey auth_key) {
   LOG(WARNING) << "Have tmp_auth_key " << auth_key.id() << ": " << state;
   tmp_auth_key_ = std::move(auth_key);
 }
+
 void SessionProxy::on_server_salt_updated(std::vector<mtproto::ServerSalt> server_salts) {
   server_salts_ = std::move(server_salts);
 }

@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -14,7 +14,7 @@
 #include "td/utils/format.h"
 #include "td/utils/HazardPointers.h"
 #include "td/utils/logging.h"
-#include "td/utils/port/thread.h"
+#include "td/utils/port/sleep.h"
 #include "td/utils/ScopeGuard.h"
 
 #include <array>
@@ -105,24 +105,28 @@ template <class T>
 class OneValue<T *> {
  public:
   bool set_value(T *value) {
-    T *was = nullptr;
+    T *was = Empty();
     return state_.compare_exchange_strong(was, value, std::memory_order_acq_rel);
   }
   bool get_value(T *&value) {
     value = state_.exchange(Taken(), std::memory_order_acq_rel);
-    return value != nullptr;
+    return value != Empty();
   }
   void reset() {
-    state_ = nullptr;
+    state_ = Empty();
   }
   OneValue() {
   }
 
  private:
-  std::atomic<T *> state_{nullptr};
-  T *Taken() {
-    static T xxx;
-    return &xxx;
+  std::atomic<T *> state_{Empty()};
+  static T *Empty() {
+    static int64 xxx;
+    return reinterpret_cast<T *>(&xxx);
+  }
+  static T *Taken() {
+    static int64 xxx;
+    return reinterpret_cast<T *>(&xxx);
   }
 };
 
@@ -301,7 +305,7 @@ class MpmcQueueOld {
       if (try_pop(value, thread_id)) {
         return value;
       }
-      td::this_thread::yield();
+      usleep_for(1);
     }
   }
 
@@ -425,7 +429,7 @@ class MpmcQueue {
       if (try_pop(value, thread_id)) {
         return value;
       }
-      td::this_thread::yield();
+      usleep_for(1);
     }
   }
 

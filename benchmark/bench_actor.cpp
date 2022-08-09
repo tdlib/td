@@ -1,40 +1,96 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
-#include "td/utils/benchmark.h"
-
 #include "td/actor/actor.h"
+#include "td/actor/ConcurrentScheduler.h"
 #include "td/actor/PromiseFuture.h"
 
+#include "td/utils/benchmark.h"
 #include "td/utils/common.h"
+#include "td/utils/crypto.h"
 #include "td/utils/logging.h"
+#include "td/utils/Promise.h"
+#include "td/utils/SliceBuilder.h"
 
 #if TD_MSVC
 #pragma comment(linker, "/STACK:16777216")
 #endif
 
+struct TestActor final : public td::Actor {
+  static td::int32 actor_count_;
+
+  void start_up() final {
+    actor_count_++;
+    stop();
+  }
+
+  void tear_down() final {
+    if (--actor_count_ == 0) {
+      td::Scheduler::instance()->finish();
+    }
+  }
+};
+
+td::int32 TestActor::actor_count_;
+
+namespace td {
+template <>
+class ActorTraits<TestActor> {
+ public:
+  static constexpr bool need_context = false;
+  static constexpr bool need_start_up = true;
+};
+}  // namespace td
+
+class CreateActorBench final : public td::Benchmark {
+  td::ConcurrentScheduler scheduler_;
+
+  void start_up() final {
+    scheduler_.init(0);
+    scheduler_.start();
+  }
+
+  void tear_down() final {
+    scheduler_.finish();
+  }
+
+ public:
+  td::string get_description() const final {
+    return "CreateActor";
+  }
+
+  void run(int n) final {
+    for (int i = 0; i < n; i++) {
+      scheduler_.create_actor_unsafe<TestActor>(0, "TestActor").release();
+    }
+    while (scheduler_.run_main(10)) {
+      // empty
+    }
+  }
+};
+
 template <int type>
-class RingBench : public td::Benchmark {
+class RingBench final : public td::Benchmark {
  public:
   struct PassActor;
 
  private:
   int actor_n_ = -1;
   int thread_n_ = -1;
-  std::vector<td::ActorId<PassActor>> actor_array_;
+  td::vector<td::ActorId<PassActor>> actor_array_;
   td::ConcurrentScheduler *scheduler_ = nullptr;
 
  public:
-  std::string get_description() const override {
+  td::string get_description() const final {
     static const char *types[] = {"later", "immediate", "raw", "tail", "lambda"};
     static_assert(0 <= type && type < 5, "");
     return PSTRING() << "Ring (send_" << types[type] << ") (threads_n = " << thread_n_ << ")";
   }
 
-  struct PassActor : public td::Actor {
+  struct PassActor final : public td::Actor {
     int id = -1;
     td::ActorId<PassActor> next_actor;
     int start_n = 0;
@@ -55,24 +111,23 @@ class RingBench : public td::Benchmark {
             send_closure_later(next_actor, &PassActor::pass, n - 1);
           } else {
             // TODO: it is three times faster than send_event
-            // may be send event could be further optimized?
-            ::td::Scheduler::instance()->hack(static_cast<td::ActorId<Actor>>(next_actor),
-                                              td::Event::raw(static_cast<td::uint32>(n - 1)));
+            // maybe send event could be further optimized?
+            next_actor.get_actor_unsafe()->raw_event(td::Event::raw(static_cast<td::uint32>(n - 1)).data);
           }
         } else if (type == 4) {
-          send_lambda(next_actor, [=, ptr = next_actor.get_actor_unsafe()] { ptr->pass(n - 1); });
+          send_lambda(next_actor, [n, ptr = next_actor.get_actor_unsafe()] { ptr->pass(n - 1); });
         }
       }
     }
 
-    void raw_event(const td::Event::Raw &raw) override {
+    void raw_event(const td::Event::Raw &raw) final {
       pass(static_cast<int>(raw.u32));
     }
 
-    void start_up() override {
+    void start_up() final {
       yield();
     }
-    void wakeup() override {
+    void wakeup() final {
       if (start_n != 0) {
         int n = start_n;
         start_n = 0;
@@ -84,11 +139,11 @@ class RingBench : public td::Benchmark {
   RingBench(int actor_n, int thread_n) : actor_n_(actor_n), thread_n_(thread_n) {
   }
 
-  void start_up() override {
+  void start_up() final {
     scheduler_ = new td::ConcurrentScheduler();
     scheduler_->init(thread_n_);
 
-    actor_array_ = std::vector<td::ActorId<PassActor>>(actor_n_);
+    actor_array_ = td::vector<td::ActorId<PassActor>>(actor_n_);
     for (int i = 0; i < actor_n_; i++) {
       actor_array_[i] =
           scheduler_->create_actor_unsafe<PassActor>(thread_n_ ? i % thread_n_ : 0, "PassActor").release();
@@ -100,7 +155,7 @@ class RingBench : public td::Benchmark {
     scheduler_->start();
   }
 
-  void run(int n) override {
+  void run(int n) final {
     // first actor is on main_thread
     actor_array_[0].get_actor_unsafe()->start_n = td::max(n, 100);
     while (scheduler_->run_main(10)) {
@@ -108,22 +163,22 @@ class RingBench : public td::Benchmark {
     }
   }
 
-  void tear_down() override {
+  void tear_down() final {
     scheduler_->finish();
     delete scheduler_;
   }
 };
 
 template <int type>
-class QueryBench : public td::Benchmark {
+class QueryBench final : public td::Benchmark {
  public:
-  std::string get_description() const override {
+  td::string get_description() const final {
     static const char *types[] = {"callback", "immediate future", "delayed future", "dummy", "lambda", "lambda_future"};
     static_assert(0 <= type && type < 6, "");
     return PSTRING() << "QueryBench: " << types[type];
   }
 
-  class ClientActor : public td::Actor {
+  class ClientActor final : public td::Actor {
    public:
     class Callback {
      public:
@@ -154,20 +209,20 @@ class QueryBench : public td::Benchmark {
     td::unique_ptr<Callback> callback_;
   };
 
-  class ServerActor : public td::Actor {
+  class ServerActor final : public td::Actor {
    public:
-    class ClientCallback : public ClientActor::Callback {
+    class ClientCallback final : public ClientActor::Callback {
      public:
       explicit ClientCallback(td::ActorId<ServerActor> server) : server_(server) {
       }
-      void on_result(int x) override {
+      void on_result(int x) final {
         send_closure(server_, &ServerActor::on_result, x);
       }
 
      private:
       td::ActorId<ServerActor> server_;
     };
-    void start_up() override {
+    void start_up() final {
       client_ = td::create_actor<ClientActor>("Client", td::make_unique<ClientCallback>(actor_id(this))).release();
     }
 
@@ -176,7 +231,7 @@ class QueryBench : public td::Benchmark {
       wakeup();
     }
 
-    void wakeup() override {
+    void wakeup() final {
       while (true) {
         if (n_ < 0) {
           td::Scheduler::instance()->finish();
@@ -205,10 +260,12 @@ class QueryBench : public td::Benchmark {
         } else if (type == 4) {
           int val = 0;
           send_lambda(client_, [&] { val = n_ * n_; });
+          CHECK(val == n_ * n_);
         } else if (type == 5) {
           send_closure(client_, &ClientActor::f_promise,
-                       td::PromiseCreator::lambda(
-                           [id = actor_id(this), n = n_](td::Unit) { send_closure(id, &ServerActor::result, n * n); }));
+                       td::PromiseCreator::lambda([actor_id = actor_id(this), n = n_](td::Unit) {
+                         send_closure(actor_id, &ServerActor::result, n * n);
+                       }));
           return;
         }
       }
@@ -219,7 +276,7 @@ class QueryBench : public td::Benchmark {
       wakeup();
     }
 
-    void raw_event(const td::Event::Raw &event) override {
+    void raw_event(const td::Event::Raw &event) final {
       int val = future_.move_as_ok();
       CHECK(val == n_ * n_);
       wakeup();
@@ -235,7 +292,7 @@ class QueryBench : public td::Benchmark {
     td::FutureActor<int> future_;
   };
 
-  void start_up() override {
+  void start_up() final {
     scheduler_ = new td::ConcurrentScheduler();
     scheduler_->init(0);
 
@@ -243,7 +300,7 @@ class QueryBench : public td::Benchmark {
     scheduler_->start();
   }
 
-  void run(int n) override {
+  void run(int n) final {
     // first actor is on main_thread
     {
       auto guard = scheduler_->get_main_guard();
@@ -254,7 +311,7 @@ class QueryBench : public td::Benchmark {
     }
   }
 
-  void tear_down() override {
+  void tear_down() final {
     server_.release();
     scheduler_->finish();
     delete scheduler_;
@@ -266,7 +323,9 @@ class QueryBench : public td::Benchmark {
 };
 
 int main() {
-  SET_VERBOSITY_LEVEL(VERBOSITY_NAME(DEBUG));
+  td::init_openssl_threads();
+
+  bench(CreateActorBench());
   bench(RingBench<4>(504, 0));
   bench(RingBench<3>(504, 0));
   bench(RingBench<0>(504, 0));
@@ -285,5 +344,4 @@ int main() {
   bench(RingBench<0>(504, 2));
   bench(RingBench<1>(504, 2));
   bench(RingBench<2>(504, 2));
-  return 0;
 }

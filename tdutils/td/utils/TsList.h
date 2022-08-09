@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -35,7 +35,7 @@ class TsListNode : protected ListNode {
   TsListNode(const TsListNode &) = delete;
   TsListNode &operator=(const TsListNode &) = delete;
 
-  TsListNode(TsListNode &&other) {
+  TsListNode(TsListNode &&other) noexcept {
     other.validate();
     if (other.empty()) {
       data_ = std::move(other.data_);
@@ -48,7 +48,7 @@ class TsListNode : protected ListNode {
     other.validate();
   }
 
-  TsListNode &operator=(TsListNode &&other) {
+  TsListNode &operator=(TsListNode &&other) noexcept {
     validate();
     if (this == &other) {
       return *this;
@@ -69,8 +69,12 @@ class TsListNode : protected ListNode {
   }
 
   void validate() {
-    CHECK(empty() || !ListNode::empty() || is_root);
-    CHECK(!empty() || ListNode::empty());
+    if (empty()) {
+      CHECK(ListNode::empty());
+    } else {
+      auto guard = lock();
+      CHECK(!ListNode::empty() || is_root);
+    }
   }
 
   void remove() {
@@ -155,7 +159,7 @@ class TsListNode : protected ListNode {
 };
 
 template <class DataT>
-class TsList : public TsListNode<DataT> {
+class TsList final : public TsListNode<DataT> {
  public:
   TsList() {
     this->parent = this;
@@ -166,7 +170,14 @@ class TsList : public TsListNode<DataT> {
   TsList(TsList &&) = delete;
   TsList &operator=(TsList &&) = delete;
   ~TsList() {
-    CHECK(ListNode::empty());
+    auto guard = lock();
+    while (true) {
+      auto res = static_cast<TsListNode<DataT> *>(ListNode::get());
+      if (!res) {
+        break;
+      }
+      res->parent = nullptr;
+    }
     this->parent = nullptr;
   }
   std::unique_lock<std::mutex> lock() TD_WARN_UNUSED_RESULT {
@@ -193,6 +204,9 @@ class TsList : public TsListNode<DataT> {
 
 template <class DataT>
 std::unique_lock<std::mutex> TsListNode<DataT>::lock() {
+  if (parent == nullptr) {
+    return {};
+  }
   CHECK(parent != nullptr);
   return parent->lock();
 }

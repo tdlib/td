@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -11,7 +11,8 @@
 
 namespace td {
 
-TcpListener::TcpListener(int port, ActorShared<Callback> callback) : port_(port), callback_(std::move(callback)) {
+TcpListener::TcpListener(int port, ActorShared<Callback> callback, Slice server_address)
+    : port_(port), callback_(std::move(callback)), server_address_(server_address.str()) {
 }
 
 void TcpListener::hangup() {
@@ -19,7 +20,7 @@ void TcpListener::hangup() {
 }
 
 void TcpListener::start_up() {
-  auto r_socket = ServerSocketFd::open(port_);
+  auto r_socket = ServerSocketFd::open(port_, server_address_);
   if (r_socket.is_error()) {
     LOG(ERROR) << "Can't open server socket: " << r_socket.error();
     set_timeout_in(5);
@@ -39,8 +40,12 @@ void TcpListener::tear_down() {
 void TcpListener::loop() {
   if (server_fd_.empty()) {
     start_up();
+    if (server_fd_.empty()) {
+      return;
+    }
   }
-  while (can_read(server_fd_)) {
+  sync_with_poll(server_fd_);
+  while (can_read_local(server_fd_)) {
     auto r_socket_fd = server_fd_.accept();
     if (r_socket_fd.is_error()) {
       if (r_socket_fd.error().code() != -1) {
@@ -51,7 +56,7 @@ void TcpListener::loop() {
     send_closure(callback_, &Callback::accept, r_socket_fd.move_as_ok());
   }
 
-  if (can_close(server_fd_)) {
+  if (can_close_local(server_fd_)) {
     stop();
   }
 }

@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -7,11 +7,14 @@
 #include "td/utils/port/FileFd.h"
 
 #if TD_PORT_WINDOWS
+#include "td/utils/port/FromApp.h"
 #include "td/utils/port/Stat.h"
 #include "td/utils/port/wstring_convert.h"
 #endif
 
 #include "td/utils/common.h"
+#include "td/utils/ExitGuard.h"
+#include "td/utils/FlatHashSet.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/port/detail/PollableFd.h"
@@ -19,11 +22,11 @@
 #include "td/utils/port/PollFlags.h"
 #include "td/utils/port/sleep.h"
 #include "td/utils/ScopeGuard.h"
+#include "td/utils/SliceBuilder.h"
 #include "td/utils/StringBuilder.h"
 
 #include <cstring>
 #include <mutex>
-#include <unordered_set>
 #include <utility>
 
 #if TD_PORT_POSIX
@@ -34,6 +37,8 @@
 #include <sys/types.h>
 #include <sys/uio.h>
 #include <unistd.h>
+#else
+#include <limits>
 #endif
 
 #if TD_PORT_WINDOWS && defined(WIN32_LEAN_AND_MEAN)
@@ -98,13 +103,13 @@ StringBuilder &operator<<(StringBuilder &sb, const PrintFlags &print_flags) {
 namespace detail {
 class FileFdImpl {
  public:
-  PollableFdInfo info;
+  PollableFdInfo info_;
 };
 }  // namespace detail
 
 FileFd::FileFd() = default;
-FileFd::FileFd(FileFd &&) = default;
-FileFd &FileFd::operator=(FileFd &&) = default;
+FileFd::FileFd(FileFd &&) noexcept = default;
+FileFd &FileFd::operator=(FileFd &&) noexcept = default;
 FileFd::~FileFd() = default;
 
 FileFd::FileFd(unique_ptr<detail::FileFdImpl> impl) : impl_(std::move(impl)) {
@@ -210,7 +215,8 @@ Result<FileFd> FileFd::open(CSlice filepath, int32 flags, int32 mode) {
   extended_parameters.dwSize = sizeof(extended_parameters);
   extended_parameters.dwFileAttributes = FILE_ATTRIBUTE_NORMAL;
   extended_parameters.dwFileFlags = native_flags;
-  auto handle = CreateFile2(w_filepath.c_str(), desired_access, share_mode, creation_disposition, &extended_parameters);
+  auto handle = td::CreateFile2FromAppW(w_filepath.c_str(), desired_access, share_mode, creation_disposition,
+                                        &extended_parameters);
 #endif
   if (handle == INVALID_HANDLE_VALUE) {
     return OS_ERROR(PSLICE() << "File \"" << filepath << "\" can't be " << PrintFlags{flags});
@@ -236,8 +242,8 @@ Result<FileFd> FileFd::open(CSlice filepath, int32 flags, int32 mode) {
 
 FileFd FileFd::from_native_fd(NativeFd native_fd) {
   auto impl = make_unique<detail::FileFdImpl>();
-  impl->info.set_native_fd(std::move(native_fd));
-  impl->info.add_flags(PollFlags::Write());
+  impl->info_.set_native_fd(std::move(native_fd));
+  impl->info_.add_flags(PollFlags::Write());
   return FileFd(std::move(impl));
 }
 
@@ -251,7 +257,9 @@ Result<size_t> FileFd::write(Slice slice) {
   BOOL success = WriteFile(native_fd, slice.data(), narrow_cast<DWORD>(slice.size()), &bytes_written, nullptr);
 #endif
   if (success) {
-    return narrow_cast<size_t>(bytes_written);
+    auto result = narrow_cast<size_t>(bytes_written);
+    CHECK(result <= slice.size());
+    return result;
   }
   return OS_ERROR(PSLICE() << "Write to " << get_native_fd() << " has failed");
 }
@@ -263,14 +271,29 @@ Result<size_t> FileFd::writev(Span<IoSlice> slices) {
   auto bytes_written = detail::skip_eintr([&] { return ::writev(native_fd, slices.begin(), slices_size); });
   bool success = bytes_written >= 0;
   if (success) {
-    return narrow_cast<size_t>(bytes_written);
+    auto result = narrow_cast<size_t>(bytes_written);
+    auto left = result;
+    for (const auto &slice : slices) {
+      if (left <= slice.iov_len) {
+        return result;
+      }
+      left -= slice.iov_len;
+    }
+    UNREACHABLE();
   }
   return OS_ERROR(PSLICE() << "Writev to " << get_native_fd() << " has failed");
 #else
   size_t res = 0;
-  for (auto slice : slices) {
+  for (const auto &slice : slices) {
+    if (slice.size() > std::numeric_limits<size_t>::max() - res) {
+      break;
+    }
     TRY_RESULT(size, write(slice));
     res += size;
+    if (size != slice.size()) {
+      CHECK(size < slice.size());
+      break;
+    }
   }
   return res;
 #endif
@@ -281,6 +304,17 @@ Result<size_t> FileFd::read(MutableSlice slice) {
 #if TD_PORT_POSIX
   auto bytes_read = detail::skip_eintr([&] { return ::read(native_fd, slice.begin(), slice.size()); });
   bool success = bytes_read >= 0;
+  if (!success) {
+    auto read_errno = errno;
+    if (read_errno == EAGAIN
+#if EAGAIN != EWOULDBLOCK
+        || read_errno == EWOULDBLOCK
+#endif
+    ) {
+      success = true;
+      bytes_read = 0;
+    }
+  }
   bool is_eof = success && narrow_cast<size_t>(bytes_read) < slice.size();
 #elif TD_PORT_WINDOWS
   DWORD bytes_read = 0;
@@ -291,7 +325,9 @@ Result<size_t> FileFd::read(MutableSlice slice) {
     if (is_eof) {
       get_poll_info().clear_flags(PollFlags::Read());
     }
-    return static_cast<size_t>(bytes_read);
+    auto result = narrow_cast<size_t>(bytes_read);
+    CHECK(result <= slice.size());
+    return result;
   }
   return OS_ERROR(PSLICE() << "Read from " << get_native_fd() << " has failed");
 }
@@ -315,7 +351,9 @@ Result<size_t> FileFd::pwrite(Slice slice, int64 offset) {
   BOOL success = WriteFile(native_fd, slice.data(), narrow_cast<DWORD>(slice.size()), &bytes_written, &overlapped);
 #endif
   if (success) {
-    return narrow_cast<size_t>(bytes_written);
+    auto result = narrow_cast<size_t>(bytes_written);
+    CHECK(result <= slice.size());
+    return result;
   }
   return OS_ERROR(PSLICE() << "Pwrite to " << get_native_fd() << " at offset " << offset << " has failed");
 }
@@ -338,19 +376,22 @@ Result<size_t> FileFd::pread(MutableSlice slice, int64 offset) const {
   BOOL success = ReadFile(native_fd, slice.data(), narrow_cast<DWORD>(slice.size()), &bytes_read, &overlapped);
 #endif
   if (success) {
-    return narrow_cast<size_t>(bytes_read);
+    auto result = narrow_cast<size_t>(bytes_read);
+    CHECK(result <= slice.size());
+    return result;
   }
   return OS_ERROR(PSLICE() << "Pread from " << get_native_fd() << " at offset " << offset << " has failed");
 }
 
 static std::mutex in_process_lock_mutex;
-static std::unordered_set<string> locked_files;
+static FlatHashSet<string> locked_files;
+static ExitGuard exit_guard;
 
 static Status create_local_lock(const string &path, int32 &max_tries) {
   while (true) {
     {  // mutex lock scope
       std::lock_guard<std::mutex> lock(in_process_lock_mutex);
-      if (locked_files.find(path) == locked_files.end()) {
+      if (!path.empty() && locked_files.count(path) == 0) {
         VLOG(fd) << "Lock file \"" << path << '"';
         locked_files.insert(path);
         return Status::OK();
@@ -366,9 +407,9 @@ static Status create_local_lock(const string &path, int32 &max_tries) {
   }
 }
 
-Status FileFd::lock(const LockFlags flags, const string &path, int32 max_tries) {
+Status FileFd::lock(LockFlags flags, const string &path, int32 max_tries) {
   if (max_tries <= 0) {
-    return Status::Error(0, "Can't lock file: wrong max_tries");
+    return Status::Error("Can't lock file: wrong max_tries");
   }
 
   bool need_local_unlock = false;
@@ -458,12 +499,13 @@ Status FileFd::lock(const LockFlags flags, const string &path, int32 max_tries) 
 }
 
 void FileFd::remove_local_lock(const string &path) {
-  if (!path.empty()) {
-    VLOG(fd) << "Unlock file \"" << path << '"';
-    std::unique_lock<std::mutex> lock(in_process_lock_mutex);
-    auto erased = locked_files.erase(path);
-    CHECK(erased > 0);
+  if (path.empty() || ExitGuard::is_exited()) {
+    return;
   }
+  VLOG(fd) << "Unlock file \"" << path << '"';
+  std::unique_lock<std::mutex> lock(in_process_lock_mutex);
+  auto erased_count = locked_files.erase(path);
+  CHECK(erased_count > 0 || path.empty() || ExitGuard::is_exited());
 }
 
 void FileFd::close() {
@@ -606,11 +648,11 @@ Status FileFd::truncate_to_current_position(int64 current_position) {
 }
 PollableFdInfo &FileFd::get_poll_info() {
   CHECK(!empty());
-  return impl_->info;
+  return impl_->info_;
 }
 const PollableFdInfo &FileFd::get_poll_info() const {
   CHECK(!empty());
-  return impl_->info;
+  return impl_->info_;
 }
 
 }  // namespace td

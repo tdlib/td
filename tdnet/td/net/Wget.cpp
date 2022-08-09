@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -11,12 +11,14 @@
 #include "td/net/SslStream.h"
 
 #include "td/utils/buffer.h"
+#include "td/utils/BufferedFd.h"
 #include "td/utils/HttpUrl.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/port/IPAddress.h"
 #include "td/utils/port/SocketFd.h"
 #include "td/utils/Slice.h"
+#include "td/utils/SliceBuilder.h"
 
 #include <limits>
 
@@ -74,15 +76,18 @@ Status Wget::try_init() {
   TRY_STATUS(addr.init_host_port(url.host_, url.port_, prefer_ipv6_));
 
   TRY_RESULT(fd, SocketFd::open(addr));
+  if (fd.empty()) {
+    return Status::Error("Sockets are not supported");
+  }
   if (url.protocol_ == HttpUrl::Protocol::Http) {
-    connection_ = create_actor<HttpOutboundConnection>("Connect", std::move(fd), SslStream{},
+    connection_ = create_actor<HttpOutboundConnection>("Connect", BufferedFd<SocketFd>(std::move(fd)), SslStream{},
                                                        std::numeric_limits<std::size_t>::max(), 0, 0,
                                                        ActorOwn<HttpOutboundConnection::Callback>(actor_id(this)));
   } else {
     TRY_RESULT(ssl_stream, SslStream::create(url.host_, CSlice() /* certificate */, verify_peer_));
-    connection_ = create_actor<HttpOutboundConnection>("Connect", std::move(fd), std::move(ssl_stream),
-                                                       std::numeric_limits<std::size_t>::max(), 0, 0,
-                                                       ActorOwn<HttpOutboundConnection::Callback>(actor_id(this)));
+    connection_ = create_actor<HttpOutboundConnection>(
+        "Connect", BufferedFd<SocketFd>(std::move(fd)), std::move(ssl_stream), std::numeric_limits<std::size_t>::max(),
+        0, 0, ActorOwn<HttpOutboundConnection::Callback>(actor_id(this)));
   }
 
   send_closure(connection_, &HttpOutboundConnection::write_next, BufferSlice(header));
@@ -145,7 +150,7 @@ void Wget::timeout_expired() {
 
 void Wget::tear_down() {
   if (promise_) {
-    on_error(Status::Error("Cancelled"));
+    on_error(Status::Error("Canceled"));
   }
 }
 

@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -7,10 +7,11 @@
 #pragma once
 
 #include "td/utils/common.h"
-#include "td/utils/logging.h"
+#include "td/utils/FlatHashSet.h"
 #include "td/utils/misc.h"
 #include "td/utils/SharedSlice.h"
 #include "td/utils/Slice.h"
+#include "td/utils/SliceBuilder.h"
 #include "td/utils/StackAllocator.h"
 #include "td/utils/Status.h"
 #include "td/utils/tl_parsers.h"
@@ -18,32 +19,33 @@
 #include "td/utils/Variant.h"
 
 #include <type_traits>
-#include <unordered_set>
 #include <utility>
 
-#define BEGIN_STORE_FLAGS() \
-  do {                      \
-    uint32 flags_store = 0; \
-  uint32 bit_offset_store = 0
+#define BEGIN_STORE_FLAGS()       \
+  do {                            \
+    ::td::uint32 flags_store = 0; \
+  ::td::uint32 bit_offset_store = 0
 
-#define STORE_FLAG(flag)                     \
-  flags_store |= (flag) << bit_offset_store; \
+#define STORE_FLAG(flag)                                                         \
+  static_assert(std::is_same<decltype(flag), bool>::value, "flag must be bool"); \
+  flags_store |= (flag) << bit_offset_store;                                     \
   bit_offset_store++
 
-#define END_STORE_FLAGS()         \
-  CHECK(bit_offset_store < 31);   \
-  td::store(flags_store, storer); \
-  }                               \
+#define END_STORE_FLAGS()           \
+  CHECK(bit_offset_store < 31);     \
+  ::td::store(flags_store, storer); \
+  }                                 \
   while (false)
 
-#define BEGIN_PARSE_FLAGS()      \
-  do {                           \
-    uint32 flags_parse;          \
-    uint32 bit_offset_parse = 0; \
-  td::parse(flags_parse, parser)
+#define BEGIN_PARSE_FLAGS()            \
+  do {                                 \
+    ::td::uint32 flags_parse;          \
+    ::td::uint32 bit_offset_parse = 0; \
+  ::td::parse(flags_parse, parser)
 
-#define PARSE_FLAG(flag)                               \
-  flag = ((flags_parse >> bit_offset_parse) & 1) != 0; \
+#define PARSE_FLAG(flag)                                                         \
+  static_assert(std::is_same<decltype(flag), bool>::value, "flag must be bool"); \
+  flag = ((flags_parse >> bit_offset_parse) & 1) != 0;                           \
   bit_offset_parse++
 
 #define END_PARSE_FLAGS()                                                                                           \
@@ -170,15 +172,15 @@ void parse(unique_ptr<T> &ptr, ParserT &parser) {
   parse(*ptr, parser);
 }
 
-template <class Key, class Hash, class KeyEqual, class Allocator, class StorerT>
-void store(const std::unordered_set<Key, Hash, KeyEqual, Allocator> &s, StorerT &storer) {
+template <class Key, class Hash, class KeyEqual, class StorerT>
+void store(const FlatHashSet<Key, Hash, KeyEqual> &s, StorerT &storer) {
   storer.store_binary(narrow_cast<int32>(s.size()));
   for (auto &val : s) {
     store(val, storer);
   }
 }
-template <class Key, class Hash, class KeyEqual, class Allocator, class ParserT>
-void parse(std::unordered_set<Key, Hash, KeyEqual, Allocator> &s, ParserT &parser) {
+template <class Key, class Hash, class KeyEqual, class ParserT>
+void parse(FlatHashSet<Key, Hash, KeyEqual> &s, ParserT &parser) {
   uint32 size = parser.fetch_int();
   if (parser.get_left_len() < size) {
     parser.set_error("Wrong set length");

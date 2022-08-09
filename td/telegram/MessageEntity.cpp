@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -7,12 +7,16 @@
 #include "td/telegram/MessageEntity.h"
 
 #include "td/telegram/ContactsManager.h"
+#include "td/telegram/Dependencies.h"
+#include "td/telegram/LinkManager.h"
 #include "td/telegram/misc.h"
-#include "td/telegram/SecretChatActor.h"
+#include "td/telegram/SecretChatLayer.h"
 
+#include "td/utils/algorithm.h"
 #include "td/utils/format.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
+#include "td/utils/SliceBuilder.h"
 #include "td/utils/unicode.h"
 #include "td/utils/utf8.h"
 
@@ -25,8 +29,14 @@
 namespace td {
 
 int MessageEntity::get_type_priority(Type type) {
-  static const int types[] = {50, 50, 50, 50, 50, 90, 91, 20, 11, 10, 49, 49, 50, 50, 92, 93, 0};
-  return types[static_cast<int32>(type)];
+  static const int priorities[] = {
+      50 /*Mention*/,      50 /*Hashtag*/,        50 /*BotCommand*/,     50 /*Url*/,
+      50 /*EmailAddress*/, 90 /*Bold*/,           91 /*Italic*/,         20 /*Code*/,
+      11 /*Pre*/,          10 /*PreCode*/,        49 /*TextUrl*/,        49 /*MentionName*/,
+      50 /*Cashtag*/,      50 /*PhoneNumber*/,    92 /*Underline*/,      93 /*Strikethrough*/,
+      0 /*BlockQuote*/,    50 /*BankCardNumber*/, 50 /*MediaTimestamp*/, 94 /*Spoiler*/};
+  static_assert(sizeof(priorities) / sizeof(priorities[0]) == static_cast<size_t>(MessageEntity::Type::Size), "");
+  return priorities[static_cast<int32>(type)];
 }
 
 StringBuilder &operator<<(StringBuilder &string_builder, const MessageEntity::Type &message_entity_type) {
@@ -67,6 +77,10 @@ StringBuilder &operator<<(StringBuilder &string_builder, const MessageEntity::Ty
       return string_builder << "PhoneNumber";
     case MessageEntity::Type::BankCardNumber:
       return string_builder << "BankCardNumber";
+    case MessageEntity::Type::MediaTimestamp:
+      return string_builder << "MediaTimestamp";
+    case MessageEntity::Type::Spoiler:
+      return string_builder << "Spoiler";
     default:
       UNREACHABLE();
       return string_builder << "Impossible";
@@ -76,6 +90,9 @@ StringBuilder &operator<<(StringBuilder &string_builder, const MessageEntity::Ty
 StringBuilder &operator<<(StringBuilder &string_builder, const MessageEntity &message_entity) {
   string_builder << '[' << message_entity.type << ", offset = " << message_entity.offset
                  << ", length = " << message_entity.length;
+  if (message_entity.media_timestamp >= 0) {
+    string_builder << ", media_timestamp = \"" << message_entity.media_timestamp << "\"";
+  }
   if (!message_entity.argument.empty()) {
     string_builder << ", argument = \"" << message_entity.argument << "\"";
   }
@@ -125,6 +142,10 @@ tl_object_ptr<td_api::TextEntityType> MessageEntity::get_text_entity_type_object
       return make_tl_object<td_api::textEntityTypePhoneNumber>();
     case MessageEntity::Type::BankCardNumber:
       return make_tl_object<td_api::textEntityTypeBankCardNumber>();
+    case MessageEntity::Type::MediaTimestamp:
+      return make_tl_object<td_api::textEntityTypeMediaTimestamp>(media_timestamp);
+    case MessageEntity::Type::Spoiler:
+      return make_tl_object<td_api::textEntityTypeSpoiler>();
     default:
       UNREACHABLE();
       return nullptr;
@@ -135,11 +156,18 @@ tl_object_ptr<td_api::textEntity> MessageEntity::get_text_entity_object() const 
   return make_tl_object<td_api::textEntity>(offset, length, get_text_entity_type_object());
 }
 
-vector<tl_object_ptr<td_api::textEntity>> get_text_entities_object(const vector<MessageEntity> &entities) {
+vector<tl_object_ptr<td_api::textEntity>> get_text_entities_object(const vector<MessageEntity> &entities,
+                                                                   bool skip_bot_commands, int32 max_media_timestamp) {
   vector<tl_object_ptr<td_api::textEntity>> result;
   result.reserve(entities.size());
 
   for (auto &entity : entities) {
+    if (skip_bot_commands && entity.type == MessageEntity::Type::BotCommand) {
+      continue;
+    }
+    if (entity.type == MessageEntity::Type::MediaTimestamp && max_media_timestamp < entity.media_timestamp) {
+      continue;
+    }
     auto entity_object = entity.get_text_entity_object();
     if (entity_object->type_ != nullptr) {
       result.push_back(std::move(entity_object));
@@ -153,8 +181,10 @@ StringBuilder &operator<<(StringBuilder &string_builder, const FormattedText &te
   return string_builder << '"' << text.text << "\" with entities " << text.entities;
 }
 
-td_api::object_ptr<td_api::formattedText> get_formatted_text_object(const FormattedText &text) {
-  return td_api::make_object<td_api::formattedText>(text.text, get_text_entities_object(text.entities));
+td_api::object_ptr<td_api::formattedText> get_formatted_text_object(const FormattedText &text, bool skip_bot_commands,
+                                                                    int32 max_media_timestamp) {
+  return td_api::make_object<td_api::formattedText>(
+      text.text, get_text_entities_object(text.entities, skip_bot_commands, max_media_timestamp));
 }
 
 static bool is_word_character(uint32 code) {
@@ -293,7 +323,7 @@ static vector<Slice> match_bot_commands(Slice str) {
 
 static bool is_hashtag_letter(uint32 c, UnicodeSimpleCategory &category) {
   category = get_unicode_simple_category(c);
-  if (c == '_' || c == 0x200c) {
+  if (c == '_' || c == 0x200c || c == 0xb7) {
     return true;
   }
   switch (category) {
@@ -374,7 +404,7 @@ static vector<Slice> match_cashtags(Slice str) {
   const unsigned char *end = str.uend();
   const unsigned char *ptr = begin;
 
-  // '/(?<=^|[^$\d_\pL\x{200c}])\$([A-Z]{3,8})(?![$\d_\pL\x{200c}])/u'
+  // '/(?<=^|[^$\d_\pL\x{200c}])\$(1INCH|[A-Z]{1,8})(?![$\d_\pL\x{200c}])/u'
 
   UnicodeSimpleCategory category;
   while (true) {
@@ -394,12 +424,16 @@ static vector<Slice> match_cashtags(Slice str) {
     }
 
     auto cashtag_begin = ++ptr;
-    while (ptr != end && 'Z' >= *ptr && *ptr >= 'A') {
-      ptr++;
+    if (end - ptr >= 5 && Slice(ptr, ptr + 5) == Slice("1INCH")) {
+      ptr += 5;
+    } else {
+      while (ptr != end && 'Z' >= *ptr && *ptr >= 'A') {
+        ptr++;
+      }
     }
     auto cashtag_end = ptr;
     auto cashtag_size = cashtag_end - cashtag_begin;
-    if (cashtag_size < 3 || cashtag_size > 8) {
+    if (cashtag_size < 1 || cashtag_size > 8) {
       continue;
     }
 
@@ -412,6 +446,57 @@ static vector<Slice> match_cashtags(Slice str) {
     }
 
     result.emplace_back(cashtag_begin - 1, cashtag_end);
+  }
+  return result;
+}
+
+static vector<Slice> match_media_timestamps(Slice str) {
+  vector<Slice> result;
+  const unsigned char *begin = str.ubegin();
+  const unsigned char *end = str.uend();
+  const unsigned char *ptr = begin;
+
+  while (true) {
+    ptr = static_cast<const unsigned char *>(std::memchr(ptr, ':', narrow_cast<int32>(end - ptr)));
+    if (ptr == nullptr) {
+      break;
+    }
+
+    auto media_timestamp_begin = ptr;
+    while (media_timestamp_begin != begin &&
+           (media_timestamp_begin[-1] == ':' || is_digit(media_timestamp_begin[-1]))) {
+      media_timestamp_begin--;
+    }
+    auto media_timestamp_end = ptr;
+    while (media_timestamp_end + 1 != end && (media_timestamp_end[1] == ':' || is_digit(media_timestamp_end[1]))) {
+      media_timestamp_end++;
+    }
+    media_timestamp_end++;
+
+    if (media_timestamp_begin != ptr && media_timestamp_end != ptr + 1 && is_digit(ptr[1])) {
+      ptr = media_timestamp_end;
+
+      if (media_timestamp_begin != begin) {
+        uint32 prev;
+        next_utf8_unsafe(prev_utf8_unsafe(media_timestamp_begin), &prev, "match_media_timestamps 1");
+
+        if (is_word_character(prev)) {
+          continue;
+        }
+      }
+      if (media_timestamp_end != end) {
+        uint32 next;
+        next_utf8_unsafe(media_timestamp_end, &next, "match_media_timestamps 2");
+
+        if (is_word_character(next)) {
+          continue;
+        }
+      }
+
+      result.emplace_back(media_timestamp_begin, media_timestamp_end);
+    } else {
+      ptr = media_timestamp_end;
+    }
   }
   return result;
 }
@@ -480,6 +565,89 @@ static vector<Slice> match_bank_card_numbers(Slice str) {
   return result;
 }
 
+static bool is_url_unicode_symbol(uint32 c) {
+  if (0x2000 <= c && c <= 0x206f) {  // General Punctuation
+    // Zero Width Non-Joiner/Joiner and various dashes
+    return c == 0x200c || c == 0x200d || (0x2010 <= c && c <= 0x2015);
+  }
+  return get_unicode_simple_category(c) != UnicodeSimpleCategory::Separator;
+}
+
+static bool is_url_path_symbol(uint32 c) {
+  switch (c) {
+    case '\n':
+    case '<':
+    case '>':
+    case '"':
+    case 0xab:  // «
+    case 0xbb:  // »
+      return false;
+    default:
+      return is_url_unicode_symbol(c);
+  }
+}
+
+static vector<Slice> match_tg_urls(Slice str) {
+  vector<Slice> result;
+  const unsigned char *begin = str.ubegin();
+  const unsigned char *end = str.uend();
+  const unsigned char *ptr = begin;
+
+  // '(tg|ton)://[a-z0-9_-]{1,253}([/?#][^\s\x{2000}-\x{200b}\x{200e}-\x{200f}\x{2016}-\x{206f}<>«»"]*)?'
+
+  Slice bad_path_end_chars(".:;,('?!`");
+
+  while (end - ptr > 5) {
+    ptr = static_cast<const unsigned char *>(std::memchr(ptr, ':', narrow_cast<int32>(end - ptr)));
+    if (ptr == nullptr) {
+      break;
+    }
+
+    const unsigned char *url_begin = nullptr;
+    if (end - ptr >= 3 && ptr[1] == '/' && ptr[2] == '/') {
+      if (ptr - begin >= 2 && to_lower(ptr[-2]) == 't' && to_lower(ptr[-1]) == 'g') {
+        url_begin = ptr - 2;
+      } else if (ptr - begin >= 3 && to_lower(ptr[-3]) == 't' && to_lower(ptr[-2]) == 'o' && to_lower(ptr[-1]) == 'n') {
+        url_begin = ptr - 3;
+      }
+    }
+    if (url_begin == nullptr) {
+      ++ptr;
+      continue;
+    }
+
+    ptr += 3;
+    auto domain_begin = ptr;
+    while (ptr != end && ptr - domain_begin != 253 && is_alpha_digit_or_underscore_or_minus(*ptr)) {
+      ptr++;
+    }
+    if (ptr == domain_begin) {
+      continue;
+    }
+
+    if (ptr != end && (*ptr == '/' || *ptr == '?' || *ptr == '#')) {
+      auto path_end_ptr = ptr + 1;
+      while (path_end_ptr != end) {
+        uint32 code = 0;
+        auto next_ptr = next_utf8_unsafe(path_end_ptr, &code, "match_tg_urls");
+        if (!is_url_path_symbol(code)) {
+          break;
+        }
+        path_end_ptr = next_ptr;
+      }
+      while (path_end_ptr > ptr + 1 && bad_path_end_chars.find(path_end_ptr[-1]) < bad_path_end_chars.size()) {
+        path_end_ptr--;
+      }
+      if (ptr[0] == '/' || path_end_ptr > ptr + 1) {
+        ptr = path_end_ptr;
+      }
+    }
+
+    result.emplace_back(url_begin, ptr);
+  }
+  return result;
+}
+
 static vector<Slice> match_urls(Slice str) {
   vector<Slice> result;
   const unsigned char *begin = str.ubegin();
@@ -509,14 +677,12 @@ static vector<Slice> match_urls(Slice str) {
       case '<':
       case '>':
       case '"':
+      case '@':
       case 0xab:  // «
       case 0xbb:  // »
         return false;
       default:
-        if (0x2000 <= c && c <= 0x206f) {     // General Punctuation
-          return c == 0x200c || c == 0x200d;  // Zero Width Non-Joiner/Joiner
-        }
-        return get_unicode_simple_category(c) != UnicodeSimpleCategory::Separator;
+        return is_url_unicode_symbol(c);
     }
   };
 
@@ -524,27 +690,7 @@ static vector<Slice> match_urls(Slice str) {
     if (c < 0xc0) {
       return c == '.' || is_alpha_digit_or_underscore_or_minus(c) || c == '~';
     }
-    if (0x2000 <= c && c <= 0x206f) {     // General Punctuation
-      return c == 0x200c || c == 0x200d;  // Zero Width Non-Joiner/Joiner
-    }
-    return get_unicode_simple_category(c) != UnicodeSimpleCategory::Separator;
-  };
-
-  const auto &is_path_symbol = [](uint32 c) {
-    switch (c) {
-      case '\n':
-      case '<':
-      case '>':
-      case '"':
-      case 0xab:  // «
-      case 0xbb:  // »
-        return false;
-      default:
-        if (0x2000 <= c && c <= 0x206f) {     // General Punctuation
-          return c == 0x200c || c == 0x200d;  // Zero Width Non-Joiner/Joiner
-        }
-        return get_unicode_simple_category(c) != UnicodeSimpleCategory::Separator;
-    }
+    return is_url_unicode_symbol(c);
   };
 
   Slice bad_path_end_chars(".:;,('?!`");
@@ -561,20 +707,34 @@ static vector<Slice> match_urls(Slice str) {
       continue;
     }
 
-    const unsigned char *last_at_ptr = nullptr;
-    const unsigned char *domain_end_ptr = begin + dot_pos;
-    while (domain_end_ptr != end) {
+    const unsigned char *domain_begin_ptr = begin + dot_pos;
+    while (domain_begin_ptr != begin) {
+      domain_begin_ptr = prev_utf8_unsafe(domain_begin_ptr);
       uint32 code = 0;
-      auto next_ptr = next_utf8_unsafe(domain_end_ptr, &code, "match_urls");
-      if (code == '@') {
-        last_at_ptr = domain_end_ptr;
-      }
-      if (!is_user_data_symbol(code)) {
+      auto next_ptr = next_utf8_unsafe(domain_begin_ptr, &code, "match_urls 0");
+      if (!is_domain_symbol(code)) {
+        domain_begin_ptr = next_ptr;
         break;
       }
-      domain_end_ptr = next_ptr;
     }
-    domain_end_ptr = last_at_ptr == nullptr ? begin + dot_pos : last_at_ptr + 1;
+
+    const unsigned char *last_at_ptr = nullptr;
+    const unsigned char *domain_end_ptr = begin + dot_pos;
+    if (domain_begin_ptr == begin || domain_begin_ptr[-1] != '@') {
+      // try to find '@' to the right if there is no '@' to the left
+      while (domain_end_ptr != end) {
+        uint32 code = 0;
+        auto next_ptr = next_utf8_unsafe(domain_end_ptr, &code, "match_urls");
+        if (code == '@') {
+          last_at_ptr = domain_end_ptr;
+        }
+        if (!is_user_data_symbol(code)) {
+          break;
+        }
+        domain_end_ptr = next_ptr;
+      }
+      domain_end_ptr = last_at_ptr == nullptr ? begin + dot_pos : last_at_ptr + 1;
+    }
     while (domain_end_ptr != end) {
       uint32 code = 0;
       auto next_ptr = next_utf8_unsafe(domain_end_ptr, &code, "match_urls 2");
@@ -584,14 +744,15 @@ static vector<Slice> match_urls(Slice str) {
       domain_end_ptr = next_ptr;
     }
 
-    const unsigned char *domain_begin_ptr = begin + dot_pos;
-    while (domain_begin_ptr != begin) {
-      domain_begin_ptr = prev_utf8_unsafe(domain_begin_ptr);
-      uint32 code = 0;
-      auto next_ptr = next_utf8_unsafe(domain_begin_ptr, &code, "match_urls 3");
-      if (last_at_ptr == nullptr ? !is_domain_symbol(code) : !is_user_data_symbol(code)) {
-        domain_begin_ptr = next_ptr;
-        break;
+    if (last_at_ptr != nullptr) {
+      while (domain_begin_ptr != begin) {
+        domain_begin_ptr = prev_utf8_unsafe(domain_begin_ptr);
+        uint32 code = 0;
+        auto next_ptr = next_utf8_unsafe(domain_begin_ptr, &code, "match_urls 3");
+        if (!is_user_data_symbol(code)) {
+          domain_begin_ptr = next_ptr;
+          break;
+        }
       }
     }
     // LOG(ERROR) << "Domain: " << Slice(domain_begin_ptr, domain_end_ptr);
@@ -620,12 +781,12 @@ static vector<Slice> match_urls(Slice str) {
       while (path_end_ptr != end) {
         uint32 code = 0;
         auto next_ptr = next_utf8_unsafe(path_end_ptr, &code, "match_urls 4");
-        if (!is_path_symbol(code)) {
+        if (!is_url_path_symbol(code)) {
           break;
         }
         path_end_ptr = next_ptr;
       }
-      while (bad_path_end_chars.find(path_end_ptr[-1]) < bad_path_end_chars.size()) {
+      while (path_end_ptr > url_end_ptr + 1 && bad_path_end_chars.find(path_end_ptr[-1]) < bad_path_end_chars.size()) {
         path_end_ptr--;
       }
       if (url_end_ptr[0] == '/' || path_end_ptr > url_end_ptr + 1) {
@@ -640,6 +801,9 @@ static vector<Slice> match_urls(Slice str) {
     bool is_bad = false;
     const unsigned char *url_begin_ptr = domain_begin_ptr;
     if (url_begin_ptr != begin && url_begin_ptr[-1] == '@') {
+      if (last_at_ptr != nullptr) {
+        is_bad = true;
+      }
       auto user_data_begin_ptr = url_begin_ptr - 1;
       while (user_data_begin_ptr != begin) {
         user_data_begin_ptr = prev_utf8_unsafe(user_data_begin_ptr);
@@ -675,9 +839,7 @@ static vector<Slice> match_urls(Slice str) {
           url_begin_ptr = url_begin_ptr - 7;
         } else if (ends_with(protocol, "https")) {
           url_begin_ptr = url_begin_ptr - 8;
-        } else if (ends_with(protocol, "sftp")) {
-          url_begin_ptr = url_begin_ptr - 7;
-        } else if (ends_with(protocol, "ftp") && protocol != "tftp") {
+        } else if (ends_with(protocol, "ftp") && protocol != "tftp" && protocol != "sftp") {
           url_begin_ptr = url_begin_ptr - 6;
         } else {
           is_bad = true;
@@ -772,7 +934,7 @@ static bool is_valid_bank_card(Slice str) {
 }
 
 bool is_email_address(Slice str) {
-  // /^([a-z0-9_-]{0,26}[.+]){0,10}[a-z0-9_-]{1,35}@(([a-z0-9][a-z0-9_-]{0,28})?[a-z0-9][.]){1,6}[a-z]{2,6}$/i
+  // /^([a-z0-9_-]{0,26}[.+]){0,10}[a-z0-9_-]{1,35}@(([a-z0-9][a-z0-9_-]{0,28})?[a-z0-9][.]){1,6}[a-z]{2,8}$/i
   Slice userdata;
   Slice domain;
   std::tie(userdata, domain) = split(str, '@');
@@ -809,7 +971,7 @@ bool is_email_address(Slice str) {
   if (domain_parts.size() <= 1 || domain_parts.size() > 7) {
     return false;
   }
-  if (domain_parts.back().size() <= 1 || domain_parts.back().size() >= 7) {
+  if (domain_parts.back().size() <= 1 || domain_parts.back().size() >= 9) {
     return false;
   }
   for (auto c : domain_parts.back()) {
@@ -967,7 +1129,7 @@ static bool is_common_tld(Slice str) {
        "இந்தியா", "հայ", "新加坡", "فلسطين", "政务", "xperia", "xxx", "xyz", "yachts", "yahoo", "yamaxun", "yandex",
        "ye", "yodobashi", "yoga", "yokohama", "you", "youtube", "yt", "yun", "za", "zappos", "zara", "zero", "zip",
        "zippo", "zm", "zone", "zuerich",
-       // comment for clang-format to prevent him from placing all strings on separate lines
+       // comment for clang-format to prevent it from placing all strings on separate lines
        "zw"});
   string str_lower = utf8_to_lower(str);
   if (str_lower != str && utf8_substr(Slice(str_lower), 1) == utf8_substr(str, 1)) {
@@ -976,13 +1138,12 @@ static bool is_common_tld(Slice str) {
   return tlds.count(str_lower) > 0;
 }
 
-Slice fix_url(Slice str) {
+static Slice fix_url(Slice str) {
   auto full_url = str;
 
   bool has_protocol = false;
   auto str_begin = to_lower(str.substr(0, 8));
-  if (begins_with(str_begin, "http://") || begins_with(str_begin, "https://") || begins_with(str_begin, "sftp://") ||
-      begins_with(str_begin, "ftp://")) {
+  if (begins_with(str_begin, "http://") || begins_with(str_begin, "https://") || begins_with(str_begin, "ftp://")) {
     auto pos = str.find(':');
     str = str.substr(pos + 3);
     has_protocol = true;
@@ -1114,9 +1275,14 @@ Slice fix_url(Slice str) {
   return full_url;
 }
 
-const std::unordered_set<Slice, SliceHash> &get_valid_short_usernames() {
-  static const std::unordered_set<Slice, SliceHash> valid_usernames{"gif",  "wiki", "vid",  "bing", "pic",
-                                                                    "bold", "imdb", "coub", "like", "vote"};
+const FlatHashSet<Slice, SliceHash> &get_valid_short_usernames() {
+  static const FlatHashSet<Slice, SliceHash> valid_usernames = [] {
+    FlatHashSet<Slice, SliceHash> result;
+    for (auto username : {"gif", "wiki", "vid", "bing", "pic", "bold", "imdb", "coub", "like", "vote"}) {
+      result.insert(Slice(username));
+    }
+    return result;
+  }();
   return valid_usernames;
 }
 
@@ -1127,7 +1293,8 @@ vector<Slice> find_mentions(Slice str) {
     if (mention.size() >= 5) {
       return false;
     }
-    return get_valid_short_usernames().count(mention) == 0;
+    auto lowered_mention = to_lower(mention);
+    return get_valid_short_usernames().count(lowered_mention) == 0;
   });
   return mentions;
 }
@@ -1154,6 +1321,10 @@ vector<Slice> find_bank_card_numbers(Slice str) {
   return result;
 }
 
+vector<Slice> find_tg_urls(Slice str) {
+  return match_tg_urls(str);
+}
+
 vector<std::pair<Slice, bool>> find_urls(Slice str) {
   vector<std::pair<Slice, bool>> result;
   for (auto url : match_urls(str)) {
@@ -1171,6 +1342,42 @@ vector<std::pair<Slice, bool>> find_urls(Slice str) {
   return result;
 }
 
+vector<std::pair<Slice, int32>> find_media_timestamps(Slice str) {
+  vector<std::pair<Slice, int32>> result;
+  for (auto media_timestamp : match_media_timestamps(str)) {
+    vector<Slice> parts = full_split(media_timestamp, ':');
+    CHECK(parts.size() >= 2);
+    if (parts.size() > 3 || parts.back().size() != 2) {
+      continue;
+    }
+    auto seconds = to_integer<int32>(parts.back());
+    if (seconds >= 60) {
+      continue;
+    }
+    if (parts.size() == 2) {
+      if (parts[0].size() > 4 || parts[0].empty()) {
+        continue;
+      }
+
+      auto minutes = to_integer<int32>(parts[0]);
+      result.emplace_back(media_timestamp, minutes * 60 + seconds);
+      continue;
+    } else {
+      if (parts[0].size() > 2 || parts[1].size() > 2 || parts[0].empty() || parts[1].empty()) {
+        continue;
+      }
+
+      auto minutes = to_integer<int32>(parts[1]);
+      if (minutes >= 60) {
+        continue;
+      }
+      auto hours = to_integer<int32>(parts[0]);
+      result.emplace_back(media_timestamp, hours * 3600 + minutes * 60 + seconds);
+    }
+  }
+  return result;
+}
+
 static int32 text_length(Slice text) {
   return narrow_cast<int32>(utf8_utf16_length(text));
 }
@@ -1183,12 +1390,12 @@ static void sort_entities(vector<MessageEntity> &entities) {
   std::sort(entities.begin(), entities.end());
 }
 
-#define check_is_sorted(entities) check_is_sorted_impl(entities, __LINE__)
+#define check_is_sorted(entities) check_is_sorted_impl((entities), __LINE__)
 static void check_is_sorted_impl(const vector<MessageEntity> &entities, int line) {
   LOG_CHECK(std::is_sorted(entities.begin(), entities.end())) << line << " " << entities;
 }
 
-#define check_non_intersecting(entities) check_non_intersecting_impl(entities, __LINE__)
+#define check_non_intersecting(entities) check_non_intersecting_impl((entities), __LINE__)
 static void check_non_intersecting_impl(const vector<MessageEntity> &entities, int line) {
   for (size_t i = 0; i + 1 < entities.size(); i++) {
     LOG_CHECK(entities[i].offset + entities[i].length <= entities[i + 1].offset) << line << " " << entities;
@@ -1202,7 +1409,7 @@ static constexpr int32 get_entity_type_mask(MessageEntity::Type type) {
 static constexpr int32 get_splittable_entities_mask() {
   return get_entity_type_mask(MessageEntity::Type::Bold) | get_entity_type_mask(MessageEntity::Type::Italic) |
          get_entity_type_mask(MessageEntity::Type::Underline) |
-         get_entity_type_mask(MessageEntity::Type::Strikethrough);
+         get_entity_type_mask(MessageEntity::Type::Strikethrough) | get_entity_type_mask(MessageEntity::Type::Spoiler);
 }
 
 static constexpr int32 get_blockquote_entities_mask() {
@@ -1215,7 +1422,8 @@ static constexpr int32 get_continuous_entities_mask() {
          get_entity_type_mask(MessageEntity::Type::EmailAddress) | get_entity_type_mask(MessageEntity::Type::TextUrl) |
          get_entity_type_mask(MessageEntity::Type::MentionName) | get_entity_type_mask(MessageEntity::Type::Cashtag) |
          get_entity_type_mask(MessageEntity::Type::PhoneNumber) |
-         get_entity_type_mask(MessageEntity::Type::BankCardNumber);
+         get_entity_type_mask(MessageEntity::Type::BankCardNumber) |
+         get_entity_type_mask(MessageEntity::Type::MediaTimestamp);
 }
 
 static constexpr int32 get_pre_entities_mask() {
@@ -1249,15 +1457,24 @@ static int32 is_user_entity(MessageEntity::Type type) {
   return (get_entity_type_mask(type) & get_user_entities_mask()) != 0;
 }
 
-static constexpr size_t SPLITTABLE_ENTITY_TYPE_COUNT = 4;
+static int32 is_hidden_data_entity(MessageEntity::Type type) {
+  return (get_entity_type_mask(type) &
+          (get_entity_type_mask(MessageEntity::Type::TextUrl) | get_entity_type_mask(MessageEntity::Type::MentionName) |
+           get_pre_entities_mask())) != 0;
+}
+
+static constexpr size_t SPLITTABLE_ENTITY_TYPE_COUNT = 5;
 
 static size_t get_splittable_entity_type_index(MessageEntity::Type type) {
   if (static_cast<int32>(type) <= static_cast<int32>(MessageEntity::Type::Bold) + 1) {
     // Bold or Italic
     return static_cast<int32>(type) - static_cast<int32>(MessageEntity::Type::Bold);
-  } else {
+  } else if (static_cast<int32>(type) <= static_cast<int32>(MessageEntity::Type::Underline) + 1) {
     // Underline or Strikethrough
     return static_cast<int32>(type) - static_cast<int32>(MessageEntity::Type::Underline) + 2;
+  } else {
+    CHECK(type == MessageEntity::Type::Spoiler);
+    return 4;
   }
 }
 
@@ -1304,7 +1521,7 @@ static bool are_entities_valid(const vector<MessageEntity> &entities) {
         return false;
       }
       if ((nested_entity_type_mask & get_splittable_entities_mask()) != 0) {
-        // the previous nested entity may be needed to splitted for consistency
+        // the previous nested entity may be needed to split for consistency
         // alternatively, better entity merging needs to be implemented
         return false;
       }
@@ -1358,7 +1575,7 @@ static void remove_entities_intersecting_blockquote(vector<MessageEntity> &entit
     while (blockquote_it != blockquote_entities.end() &&
            (blockquote_it->type != MessageEntity::Type::BlockQuote ||
             blockquote_it->offset + blockquote_it->length <= entities[i].offset)) {
-      blockquote_it++;
+      ++blockquote_it;
     }
     if (blockquote_it != blockquote_entities.end() &&
         (blockquote_it->offset + blockquote_it->length < entities[i].offset + entities[i].length ||
@@ -1374,48 +1591,17 @@ static void remove_entities_intersecting_blockquote(vector<MessageEntity> &entit
   entities.erase(entities.begin() + left_entities, entities.end());
 }
 
-vector<MessageEntity> find_entities(Slice text, bool skip_bot_commands, bool only_urls) {
-  vector<MessageEntity> entities;
-
-  if (!only_urls) {
-    auto add_entities = [&entities, &text](MessageEntity::Type type, vector<Slice> (*find_entities_f)(Slice)) mutable {
-      auto new_entities = find_entities_f(text);
-      for (auto &entity : new_entities) {
-        auto offset = narrow_cast<int32>(entity.begin() - text.begin());
-        auto length = narrow_cast<int32>(entity.size());
-        entities.emplace_back(type, offset, length);
-      }
-    };
-    add_entities(MessageEntity::Type::Mention, find_mentions);
-    if (!skip_bot_commands) {
-      add_entities(MessageEntity::Type::BotCommand, find_bot_commands);
-    }
-    add_entities(MessageEntity::Type::Hashtag, find_hashtags);
-    add_entities(MessageEntity::Type::Cashtag, find_cashtags);
-    // TODO find_phone_numbers
-    add_entities(MessageEntity::Type::BankCardNumber, find_bank_card_numbers);
-  }
-
-  auto urls = find_urls(text);
-  for (auto &url : urls) {
-    auto type = url.second ? MessageEntity::Type::EmailAddress : MessageEntity::Type::Url;
-    if (only_urls && type != MessageEntity::Type::Url) {
-      continue;
-    }
-    auto offset = narrow_cast<int32>(url.first.begin() - text.begin());
-    auto length = narrow_cast<int32>(url.first.size());
-    entities.emplace_back(type, offset, length);
-  }
-
+// keeps only non-intersecting entities
+// fixes entity offsets from UTF-8 to UTF-16 offsets
+static void fix_entity_offsets(Slice text, vector<MessageEntity> &entities) {
   if (entities.empty()) {
-    return entities;
+    return;
   }
 
   sort_entities(entities);
 
   remove_intersecting_entities(entities);
 
-  // fix offsets to UTF-16 offsets
   const unsigned char *begin = text.ubegin();
   const unsigned char *ptr = begin;
   const unsigned char *end = text.uend();
@@ -1426,7 +1612,7 @@ vector<MessageEntity> find_entities(Slice text, bool skip_bot_commands, bool onl
     auto entity_begin = entity.offset;
     auto entity_end = entity.offset + entity.length;
 
-    int32 pos = static_cast<int32>(ptr - begin);
+    auto pos = static_cast<int32>(ptr - begin);
     if (entity_begin == pos) {
       cnt--;
       entity.offset = utf16_pos;
@@ -1435,7 +1621,7 @@ vector<MessageEntity> find_entities(Slice text, bool skip_bot_commands, bool onl
     while (ptr != end && cnt > 0) {
       unsigned char c = ptr[0];
       utf16_pos += 1 + (c >= 0xf0);
-      ptr = next_utf8_unsafe(ptr, nullptr, "find_entities");
+      ptr = next_utf8_unsafe(ptr, nullptr, "fix_entity_offsets");
 
       pos = static_cast<int32>(ptr - begin);
       if (entity_begin == pos) {
@@ -1448,6 +1634,60 @@ vector<MessageEntity> find_entities(Slice text, bool skip_bot_commands, bool onl
     }
     CHECK(cnt == 0);
   }
+}
+
+vector<MessageEntity> find_entities(Slice text, bool skip_bot_commands, bool skip_media_timestamps) {
+  vector<MessageEntity> entities;
+
+  auto add_entities = [&entities, &text](MessageEntity::Type type, vector<Slice> (*find_entities_f)(Slice)) mutable {
+    auto new_entities = find_entities_f(text);
+    for (auto &entity : new_entities) {
+      auto offset = narrow_cast<int32>(entity.begin() - text.begin());
+      auto length = narrow_cast<int32>(entity.size());
+      entities.emplace_back(type, offset, length);
+    }
+  };
+  add_entities(MessageEntity::Type::Mention, find_mentions);
+  if (!skip_bot_commands) {
+    add_entities(MessageEntity::Type::BotCommand, find_bot_commands);
+  }
+  add_entities(MessageEntity::Type::Hashtag, find_hashtags);
+  add_entities(MessageEntity::Type::Cashtag, find_cashtags);
+  // TODO find_phone_numbers
+  add_entities(MessageEntity::Type::BankCardNumber, find_bank_card_numbers);
+  add_entities(MessageEntity::Type::Url, find_tg_urls);
+  auto urls = find_urls(text);
+  for (auto &url : urls) {
+    auto type = url.second ? MessageEntity::Type::EmailAddress : MessageEntity::Type::Url;
+    auto offset = narrow_cast<int32>(url.first.begin() - text.begin());
+    auto length = narrow_cast<int32>(url.first.size());
+    entities.emplace_back(type, offset, length);
+  }
+  if (!skip_media_timestamps) {
+    auto media_timestamps = find_media_timestamps(text);
+    for (auto &entity : media_timestamps) {
+      auto offset = narrow_cast<int32>(entity.first.begin() - text.begin());
+      auto length = narrow_cast<int32>(entity.first.size());
+      entities.emplace_back(MessageEntity::Type::MediaTimestamp, offset, length, entity.second);
+    }
+  }
+
+  fix_entity_offsets(text, entities);
+
+  return entities;
+}
+
+static vector<MessageEntity> find_media_timestamp_entities(Slice text) {
+  vector<MessageEntity> entities;
+
+  auto media_timestamps = find_media_timestamps(text);
+  for (auto &entity : media_timestamps) {
+    auto offset = narrow_cast<int32>(entity.first.begin() - text.begin());
+    auto length = narrow_cast<int32>(entity.first.size());
+    entities.emplace_back(MessageEntity::Type::MediaTimestamp, offset, length, entity.second);
+  }
+
+  fix_entity_offsets(text, entities);
 
   return entities;
 }
@@ -1468,17 +1708,17 @@ static vector<MessageEntity> merge_entities(vector<MessageEntity> old_entities, 
   for (auto &old_entity : old_entities) {
     while (new_it != new_end && new_it->offset + new_it->length <= old_entity.offset) {
       result.push_back(std::move(*new_it));
-      new_it++;
+      ++new_it;
     }
     auto old_entity_end = old_entity.offset + old_entity.length;
     result.push_back(std::move(old_entity));
     while (new_it != new_end && new_it->offset < old_entity_end) {
-      new_it++;
+      ++new_it;
     }
   }
   while (new_it != new_end) {
     result.push_back(std::move(*new_it));
-    new_it++;
+    ++new_it;
   }
 
   return result;
@@ -1499,7 +1739,8 @@ string get_first_url(Slice text, const vector<MessageEntity> &entities) {
         break;
       case MessageEntity::Type::Url: {
         Slice url = utf8_utf16_substr(text, entity.offset, entity.length);
-        if (begins_with(url, "ton:") || begins_with(url, "tg:") || is_plain_domain(url)) {
+        string scheme = to_lower(url.substr(0, 4));
+        if (scheme == "ton:" || begins_with(scheme, "tg:") || scheme == "ftp:" || is_plain_domain(url)) {
           continue;
         }
         return url.str();
@@ -1522,11 +1763,13 @@ string get_first_url(Slice text, const vector<MessageEntity> &entities) {
         break;
       case MessageEntity::Type::PreCode:
         break;
-      case MessageEntity::Type::TextUrl:
-        if (begins_with(entity.argument, "ton:") || begins_with(entity.argument, "tg:")) {
+      case MessageEntity::Type::TextUrl: {
+        Slice url = entity.argument;
+        if (begins_with(url, "ton:") || begins_with(url, "tg:") || begins_with(url, "ftp:")) {
           continue;
         }
-        return entity.argument;
+        return url.str();
+      }
       case MessageEntity::Type::MentionName:
         break;
       case MessageEntity::Type::Cashtag:
@@ -1535,54 +1778,16 @@ string get_first_url(Slice text, const vector<MessageEntity> &entities) {
         break;
       case MessageEntity::Type::BankCardNumber:
         break;
+      case MessageEntity::Type::MediaTimestamp:
+        break;
+      case MessageEntity::Type::Spoiler:
+        break;
       default:
         UNREACHABLE();
     }
   }
 
   return string();
-}
-
-static UserId get_link_user_id(Slice url) {
-  string lower_cased_url = to_lower(url);
-  url = lower_cased_url;
-
-  Slice link_scheme("tg:");
-  if (!begins_with(url, link_scheme)) {
-    return UserId();
-  }
-  url.remove_prefix(link_scheme.size());
-  if (begins_with(url, "//")) {
-    url.remove_prefix(2);
-  }
-
-  Slice host("user");
-  if (!begins_with(url, host)) {
-    return UserId();
-  }
-  url.remove_prefix(host.size());
-  if (begins_with(url, "/")) {
-    url.remove_prefix(1);
-  }
-  if (!begins_with(url, "?")) {
-    return UserId();
-  }
-  url.remove_prefix(1);
-  url.truncate(url.find('#'));
-
-  for (auto parameter : full_split(url, '&')) {
-    Slice key;
-    Slice value;
-    std::tie(key, value) = split(parameter, '=');
-    if (key == Slice("id")) {
-      auto r_user_id = to_integer_safe<int32>(value);
-      if (r_user_id.is_error()) {
-        return UserId();
-      }
-      return UserId(r_user_id.ok());
-    }
-  }
-  return UserId();
 }
 
 Result<vector<MessageEntity>> parse_markdown(string &text) {
@@ -1600,7 +1805,7 @@ Result<vector<MessageEntity>> parse_markdown(string &text) {
     }
     if (c != '_' && c != '*' && c != '`' && c != '[') {
       if (is_utf8_character_first_code_unit(c)) {
-        utf16_offset += 1 + (c >= 0xf0);  // >= 4 bytes in symbol => surrogaite pair
+        utf16_offset += 1 + (c >= 0xf0);  // >= 4 bytes in symbol => surrogate pair
       }
       result.push_back(text[i]);
       continue;
@@ -1642,7 +1847,7 @@ Result<vector<MessageEntity>> parse_markdown(string &text) {
     while (i < size && (text[i] != end_character || (is_pre && !(text[i + 1] == '`' && text[i + 2] == '`')))) {
       auto cur_ch = static_cast<unsigned char>(text[i]);
       if (is_utf8_character_first_code_unit(cur_ch)) {
-        utf16_offset += 1 + (cur_ch >= 0xf0);  // >= 4 bytes in symbol => surrogaite pair
+        utf16_offset += 1 + (cur_ch >= 0xf0);  // >= 4 bytes in symbol => surrogate pair
       }
       result.push_back(text[i++]);
     }
@@ -1662,7 +1867,7 @@ Result<vector<MessageEntity>> parse_markdown(string &text) {
         case '[': {
           string url;
           if (text[i + 1] != '(') {
-            // use text as a url
+            // use text as a URL
             url.assign(text, begin_pos + 1, i - begin_pos - 1);
           } else {
             i += 2;
@@ -1670,13 +1875,13 @@ Result<vector<MessageEntity>> parse_markdown(string &text) {
               url.push_back(text[i++]);
             }
           }
-          auto user_id = get_link_user_id(url);
+          auto user_id = LinkManager::get_link_user_id(url);
           if (user_id.is_valid()) {
             entities.emplace_back(entity_offset, entity_length, user_id);
           } else {
-            auto r_url = check_url(url);
-            if (r_url.is_ok()) {
-              entities.emplace_back(MessageEntity::Type::TextUrl, entity_offset, entity_length, r_url.move_as_ok());
+            url = LinkManager::get_checked_link(url);
+            if (!url.empty()) {
+              entities.emplace_back(MessageEntity::Type::TextUrl, entity_offset, entity_length, std::move(url));
             }
           }
           break;
@@ -1750,7 +1955,7 @@ static Result<vector<MessageEntity>> do_parse_markdown_v2(CSlice text, string &r
 
     if (reserved_characters.find(text[i]) == Slice::npos) {
       if (is_utf8_character_first_code_unit(c)) {
-        utf16_offset += 1 + (c >= 0xf0);  // >= 4 bytes in symbol => surrogaite pair
+        utf16_offset += 1 + (c >= 0xf0);  // >= 4 bytes in symbol => surrogate pair
       }
       result.push_back(text[i]);
       continue;
@@ -1775,6 +1980,8 @@ static Result<vector<MessageEntity>> do_parse_markdown_v2(CSlice text, string &r
             return c == '_' && text[i + 1] == '_';
           case MessageEntity::Type::Strikethrough:
             return c == '~';
+          case MessageEntity::Type::Spoiler:
+            return c == '|' && text[i + 1] == '|';
           default:
             UNREACHABLE();
             return false;
@@ -1801,6 +2008,15 @@ static Result<vector<MessageEntity>> do_parse_markdown_v2(CSlice text, string &r
           break;
         case '~':
           type = MessageEntity::Type::Strikethrough;
+          break;
+        case '|':
+          if (text[i + 1] == '|') {
+            i++;
+            type = MessageEntity::Type::Spoiler;
+          } else {
+            return Status::Error(400, PSLICE() << "Character '" << text[i]
+                                               << "' is reserved and must be escaped with the preceding '\\'");
+          }
           break;
         case '[':
           type = MessageEntity::Type::TextUrl;
@@ -1850,6 +2066,7 @@ static Result<vector<MessageEntity>> do_parse_markdown_v2(CSlice text, string &r
         case MessageEntity::Type::Strikethrough:
           break;
         case MessageEntity::Type::Underline:
+        case MessageEntity::Type::Spoiler:
           i++;
           break;
         case MessageEntity::Type::Pre:
@@ -1859,7 +2076,7 @@ static Result<vector<MessageEntity>> do_parse_markdown_v2(CSlice text, string &r
         case MessageEntity::Type::TextUrl: {
           string url;
           if (text[i + 1] != '(') {
-            // use text as a url
+            // use text as a URL
             url = result.substr(nested_entities.back().entity_begin_pos);
           } else {
             i += 2;
@@ -1876,13 +2093,13 @@ static Result<vector<MessageEntity>> do_parse_markdown_v2(CSlice text, string &r
               return Status::Error(400, PSLICE() << "Can't find end of a URL at byte offset " << url_begin_pos);
             }
           }
-          user_id = get_link_user_id(url);
+          user_id = LinkManager::get_link_user_id(url);
           if (!user_id.is_valid()) {
-            auto r_url = check_url(url);
-            if (r_url.is_error()) {
+            url = LinkManager::get_checked_link(url);
+            if (url.empty()) {
               skip_entity = true;
             } else {
-              argument = r_url.move_as_ok();
+              argument = std::move(url);
             }
           }
           break;
@@ -1955,7 +2172,7 @@ static vector<Slice> find_text_url_entities_v3(Slice text) {
 
     if (url_end < size) {
       Slice url = text.substr(url_begin + 1, url_end - url_begin - 1);
-      if (check_url(url).is_ok()) {
+      if (!LinkManager::get_checked_link(url).empty()) {
         result.push_back(text.substr(text_begin, text_end - text_begin + 1));
         result.push_back(text.substr(url_begin, url_end - url_begin + 1));
       }
@@ -1993,8 +2210,8 @@ static FormattedText parse_text_url_entities_v3(Slice text, const vector<Message
     }
 
     size_t splittable_entity_pos[SPLITTABLE_ENTITY_TYPE_COUNT] = {};
-    for (size_t index = 0; index < SPLITTABLE_ENTITY_TYPE_COUNT; index++) {
-      check_non_intersecting(part_splittable_entities[index]);
+    for (const auto &splittable_entities : part_splittable_entities) {
+      check_non_intersecting(splittable_entities);
     }
     if (part_end != max_end) {
       // try to find text_url entities in the left part
@@ -2027,7 +2244,7 @@ static FormattedText parse_text_url_entities_v3(Slice text, const vector<Message
         Slice url = parsed_part_text.substr(url_begin_pos + 1, url_end_pos - url_begin_pos - 1);
         auto url_utf16_length = text_length(url);
         result.entities.emplace_back(MessageEntity::Type::TextUrl, result_text_utf16_length, text_url_utf16_length,
-                                     check_url(url).move_as_ok());
+                                     LinkManager::get_checked_link(url));
         result.text.append(text_url.begin(), text_url.size());
         result_text_utf16_length += text_url_utf16_length;
 
@@ -2158,7 +2375,7 @@ static vector<MessageEntity> find_splittable_entities_v3(Slice text, const vecto
     }
   }
 
-  auto found_entities = find_entities(text, false, false);
+  auto found_entities = find_entities(text, false, true);
   td::remove_if(found_entities, [](const auto &entity) {
     return entity.type == MessageEntity::Type::EmailAddress || entity.type == MessageEntity::Type::Url;
   });
@@ -2174,16 +2391,30 @@ static vector<MessageEntity> find_splittable_entities_v3(Slice text, const vecto
   for (size_t i = 0; i + 1 < text.size(); i++) {
     auto c = static_cast<unsigned char>(text[i]);
     if (is_utf8_character_first_code_unit(c)) {
-      utf16_offset += 1 + (c >= 0xf0);  // >= 4 bytes in symbol => surrogaite pair
+      utf16_offset += 1 + (c >= 0xf0);  // >= 4 bytes in symbol => surrogate pair
     }
-    if ((c == '_' || c == '*' || c == '~') && text[i] == text[i + 1] && unallowed_boundaries.count(utf16_offset) == 0) {
+    if ((c == '_' || c == '*' || c == '~' || c == '|') && text[i] == text[i + 1] &&
+        unallowed_boundaries.count(utf16_offset) == 0) {
       auto j = i + 2;
       while (j != text.size() && text[j] == text[i] && unallowed_boundaries.count(utf16_offset + j - i - 1) == 0) {
         j++;
       }
       if (j == i + 2) {
-        auto type = c == '_' ? MessageEntity::Type::Italic
-                             : (c == '*' ? MessageEntity::Type::Bold : MessageEntity::Type::Strikethrough);
+        auto type = [c] {
+          switch (c) {
+            case '_':
+              return MessageEntity::Type::Italic;
+            case '*':
+              return MessageEntity::Type::Bold;
+            case '~':
+              return MessageEntity::Type::Strikethrough;
+            case '|':
+              return MessageEntity::Type::Spoiler;
+            default:
+              UNREACHABLE();
+              return MessageEntity::Type::Size;
+          }
+        }();
         auto index = get_splittable_entity_type_index(type);
         if (splittable_entity_offset[index] != 0) {
           auto length = utf16_offset - splittable_entity_offset[index] - 1;
@@ -2203,7 +2434,7 @@ static vector<MessageEntity> find_splittable_entities_v3(Slice text, const vecto
 }
 
 // entities must be valid and can contain only splittable and continuous entities
-// __italic__ ~~strikethrough~~ **bold** and [text_url](telegram.org) entities are left to be parsed
+// __italic__ ~~strikethrough~~ **bold** ||spoiler|| and [text_url](telegram.org) entities are left to be parsed
 static FormattedText parse_markdown_v3_without_pre(Slice text, vector<MessageEntity> entities) {
   check_is_sorted(entities);
 
@@ -2217,7 +2448,7 @@ static FormattedText parse_markdown_v3_without_pre(Slice text, vector<MessageEnt
 
   bool have_splittable_entities = false;
   for (size_t i = 0; i + 1 < text.size(); i++) {
-    if ((text[i] == '_' || text[i] == '*' || text[i] == '~') && text[i] == text[i + 1]) {
+    if ((text[i] == '_' || text[i] == '*' || text[i] == '~' || text[i] == '|') && text[i] == text[i + 1]) {
       have_splittable_entities = true;
       break;
     }
@@ -2244,7 +2475,7 @@ static FormattedText parse_markdown_v3_without_pre(Slice text, vector<MessageEnt
   for (size_t i = 0; i < text.size(); i++) {
     auto c = static_cast<unsigned char>(text[i]);
     if (is_utf8_character_first_code_unit(c)) {
-      utf16_offset += 1 + (c >= 0xf0);  // >= 4 bytes in symbol => surrogaite pair
+      utf16_offset += 1 + (c >= 0xf0);  // >= 4 bytes in symbol => surrogate pair
     }
     if (j < removed_pos.size() && utf16_offset == removed_pos[j]) {
       i++;
@@ -2284,7 +2515,7 @@ static FormattedText parse_pre_entities_v3(Slice text) {
     auto c = static_cast<unsigned char>(text[i]);
     if (c != '`') {
       if (is_utf8_character_first_code_unit(c)) {
-        utf16_offset += 1 + (c >= 0xf0);  // >= 4 bytes in symbol => surrogaite pair
+        utf16_offset += 1 + (c >= 0xf0);  // >= 4 bytes in symbol => surrogate pair
       }
       result.push_back(text[i]);
       continue;
@@ -2323,7 +2554,7 @@ static FormattedText parse_pre_entities_v3(Slice text) {
             end_tag_begin = end_tag_end - 1;
           }
         } else if (is_utf8_character_first_code_unit(cur_c)) {
-          entity_length += 1 + (cur_c >= 0xf0);  // >= 4 bytes in symbol => surrogaite pair
+          entity_length += 1 + (cur_c >= 0xf0);  // >= 4 bytes in symbol => surrogate pair
         }
       }
       if (is_found) {
@@ -2407,7 +2638,7 @@ static FormattedText parse_pre_entities_v3(Slice text, vector<MessageEntity> ent
 }
 
 // text entities must be valid
-// returned entities must be resplitted and fixed
+// returned entities must be resplit and fixed
 FormattedText parse_markdown_v3(FormattedText text) {
   if (text.text.find('`') != string::npos) {
     text = parse_pre_entities_v3(text.text, std::move(text.entities));
@@ -2531,6 +2762,10 @@ FormattedText get_markdown_v3(FormattedText text) {
             result.text += "~~";
             utf16_added += 2;
             break;
+          case MessageEntity::Type::Spoiler:
+            result.text += "||";
+            utf16_added += 2;
+            break;
           case MessageEntity::Type::TextUrl:
             result.text += "](";
             result.text += entity->argument;
@@ -2569,6 +2804,10 @@ FormattedText get_markdown_v3(FormattedText text) {
             result.text += "~~";
             utf16_added += 2;
             break;
+          case MessageEntity::Type::Spoiler:
+            result.text += "||";
+            utf16_added += 2;
+            break;
           case MessageEntity::Type::TextUrl:
             result.text += '[';
             utf16_added++;
@@ -2587,7 +2826,7 @@ FormattedText get_markdown_v3(FormattedText text) {
         }
         nested_entities_stack.emplace_back(&text.entities[current_entity++], utf16_added);
       }
-      utf16_offset += 1 + (c >= 0xf0);  // >= 4 bytes in symbol => surrogaite pair
+      utf16_offset += 1 + (c >= 0xf0);  // >= 4 bytes in symbol => surrogate pair
     }
     if (pos == text.text.size()) {
       break;
@@ -2688,7 +2927,7 @@ static Result<vector<MessageEntity>> do_parse_html(CSlice text, string &result) 
     }
     if (c != '<') {
       if (is_utf8_character_first_code_unit(c)) {
-        utf16_offset += 1 + (c >= 0xf0);  // >= 4 bytes in symbol => surrogaite pair
+        utf16_offset += 1 + (c >= 0xf0);  // >= 4 bytes in symbol => surrogate pair
       }
       result.push_back(text[i]);
       continue;
@@ -2707,7 +2946,7 @@ static Result<vector<MessageEntity>> do_parse_html(CSlice text, string &result) 
       string tag_name = to_lower(text.substr(begin_pos + 1, i - begin_pos - 1));
       if (tag_name != "a" && tag_name != "b" && tag_name != "strong" && tag_name != "i" && tag_name != "em" &&
           tag_name != "s" && tag_name != "strike" && tag_name != "del" && tag_name != "u" && tag_name != "ins" &&
-          tag_name != "pre" && tag_name != "code") {
+          tag_name != "tg-spoiler" && tag_name != "span" && tag_name != "pre" && tag_name != "code") {
         return Status::Error(400, PSLICE()
                                       << "Unsupported start tag \"" << tag_name << "\" at byte offset " << begin_pos);
       }
@@ -2780,10 +3019,17 @@ static Result<vector<MessageEntity>> do_parse_html(CSlice text, string &result) 
 
         if (tag_name == "a" && attribute_name == Slice("href")) {
           argument = std::move(attribute_value);
-        }
-        if (tag_name == "code" && attribute_name == Slice("class") && begins_with(attribute_value, "language-")) {
+        } else if (tag_name == "code" && attribute_name == Slice("class") &&
+                   begins_with(attribute_value, "language-")) {
           argument = attribute_value.substr(9);
+        } else if (tag_name == "span" && attribute_name == Slice("class") && begins_with(attribute_value, "tg-")) {
+          argument = attribute_value.substr(3);
         }
+      }
+
+      if (tag_name == "span" && argument != "spoiler") {
+        return Status::Error(400, PSLICE()
+                                      << "Tag \"span\" must have class \"tg-spoiler\" at byte offset " << begin_pos);
       }
 
       nested_entities.emplace_back(std::move(tag_name), std::move(argument), utf16_offset, result.size());
@@ -2796,7 +3042,7 @@ static Result<vector<MessageEntity>> do_parse_html(CSlice text, string &result) 
       while (!is_space(text[i]) && text[i] != '>') {
         i++;
       }
-      Slice end_tag_name = text.substr(begin_pos + 2, i - begin_pos - 2);
+      string end_tag_name = to_lower(text.substr(begin_pos + 2, i - begin_pos - 2));
       while (is_space(text[i]) && text[i] != 0) {
         i++;
       }
@@ -2821,18 +3067,20 @@ static Result<vector<MessageEntity>> do_parse_html(CSlice text, string &result) 
           entities.emplace_back(MessageEntity::Type::Strikethrough, entity_offset, entity_length);
         } else if (tag_name == "u" || tag_name == "ins") {
           entities.emplace_back(MessageEntity::Type::Underline, entity_offset, entity_length);
+        } else if (tag_name == "tg-spoiler" || (tag_name == "span" && nested_entities.back().argument == "spoiler")) {
+          entities.emplace_back(MessageEntity::Type::Spoiler, entity_offset, entity_length);
         } else if (tag_name == "a") {
           auto url = std::move(nested_entities.back().argument);
           if (url.empty()) {
             url = result.substr(nested_entities.back().entity_begin_pos);
           }
-          auto user_id = get_link_user_id(url);
+          auto user_id = LinkManager::get_link_user_id(url);
           if (user_id.is_valid()) {
             entities.emplace_back(entity_offset, entity_length, user_id);
           } else {
-            auto r_url = check_url(url);
-            if (r_url.is_ok()) {
-              entities.emplace_back(MessageEntity::Type::TextUrl, entity_offset, entity_length, r_url.move_as_ok());
+            url = LinkManager::get_checked_link(url);
+            if (!url.empty()) {
+              entities.emplace_back(MessageEntity::Type::TextUrl, entity_offset, entity_length, std::move(url));
             }
           }
         } else if (tag_name == "pre") {
@@ -2888,75 +3136,6 @@ Result<vector<MessageEntity>> parse_html(string &text) {
   return entities;
 }
 
-vector<tl_object_ptr<telegram_api::MessageEntity>> get_input_message_entities(const ContactsManager *contacts_manager,
-                                                                              const vector<MessageEntity> &entities,
-                                                                              const char *source) {
-  vector<tl_object_ptr<telegram_api::MessageEntity>> result;
-  for (auto &entity : entities) {
-    if (!is_user_entity(entity.type)) {
-      continue;
-    }
-    switch (entity.type) {
-      case MessageEntity::Type::Bold:
-        result.push_back(make_tl_object<telegram_api::messageEntityBold>(entity.offset, entity.length));
-        break;
-      case MessageEntity::Type::Italic:
-        result.push_back(make_tl_object<telegram_api::messageEntityItalic>(entity.offset, entity.length));
-        break;
-      case MessageEntity::Type::Underline:
-        result.push_back(make_tl_object<telegram_api::messageEntityUnderline>(entity.offset, entity.length));
-        break;
-      case MessageEntity::Type::Strikethrough:
-        result.push_back(make_tl_object<telegram_api::messageEntityStrike>(entity.offset, entity.length));
-        break;
-      case MessageEntity::Type::BlockQuote:
-        result.push_back(make_tl_object<telegram_api::messageEntityBlockquote>(entity.offset, entity.length));
-        break;
-      case MessageEntity::Type::Code:
-        result.push_back(make_tl_object<telegram_api::messageEntityCode>(entity.offset, entity.length));
-        break;
-      case MessageEntity::Type::Pre:
-        result.push_back(make_tl_object<telegram_api::messageEntityPre>(entity.offset, entity.length, string()));
-        break;
-      case MessageEntity::Type::PreCode:
-        result.push_back(make_tl_object<telegram_api::messageEntityPre>(entity.offset, entity.length, entity.argument));
-        break;
-      case MessageEntity::Type::TextUrl:
-        result.push_back(
-            make_tl_object<telegram_api::messageEntityTextUrl>(entity.offset, entity.length, entity.argument));
-        break;
-      case MessageEntity::Type::MentionName: {
-        auto input_user = contacts_manager->get_input_user(entity.user_id);
-        LOG_CHECK(input_user != nullptr) << source;
-        result.push_back(make_tl_object<telegram_api::inputMessageEntityMentionName>(entity.offset, entity.length,
-                                                                                     std::move(input_user)));
-        break;
-      }
-      case MessageEntity::Type::Mention:
-      case MessageEntity::Type::Hashtag:
-      case MessageEntity::Type::BotCommand:
-      case MessageEntity::Type::Url:
-      case MessageEntity::Type::EmailAddress:
-      case MessageEntity::Type::Cashtag:
-      case MessageEntity::Type::PhoneNumber:
-      case MessageEntity::Type::BankCardNumber:
-      default:
-        UNREACHABLE();
-    }
-  }
-
-  return result;
-}
-
-vector<tl_object_ptr<telegram_api::MessageEntity>> get_input_message_entities(const ContactsManager *contacts_manager,
-                                                                              const FormattedText *text,
-                                                                              const char *source) {
-  if (text != nullptr && !text->entities.empty()) {
-    return get_input_message_entities(contacts_manager, text->entities, source);
-  }
-  return {};
-}
-
 vector<tl_object_ptr<secret_api::MessageEntity>> get_input_secret_message_entities(
     const vector<MessageEntity> &entities, int32 layer) {
   vector<tl_object_ptr<secret_api::MessageEntity>> result;
@@ -2989,17 +3168,17 @@ vector<tl_object_ptr<secret_api::MessageEntity>> get_input_secret_message_entiti
         result.push_back(make_tl_object<secret_api::messageEntityItalic>(entity.offset, entity.length));
         break;
       case MessageEntity::Type::Underline:
-        if (layer >= SecretChatActor::NEW_ENTITIES_LAYER) {
+        if (layer >= static_cast<int32>(SecretChatLayer::NewEntities)) {
           result.push_back(make_tl_object<secret_api::messageEntityUnderline>(entity.offset, entity.length));
         }
         break;
       case MessageEntity::Type::Strikethrough:
-        if (layer >= SecretChatActor::NEW_ENTITIES_LAYER) {
+        if (layer >= static_cast<int32>(SecretChatLayer::NewEntities)) {
           result.push_back(make_tl_object<secret_api::messageEntityStrike>(entity.offset, entity.length));
         }
         break;
       case MessageEntity::Type::BlockQuote:
-        if (layer >= SecretChatActor::NEW_ENTITIES_LAYER) {
+        if (layer >= static_cast<int32>(SecretChatLayer::NewEntities)) {
           result.push_back(make_tl_object<secret_api::messageEntityBlockquote>(entity.offset, entity.length));
         }
         break;
@@ -3018,6 +3197,10 @@ vector<tl_object_ptr<secret_api::MessageEntity>> get_input_secret_message_entiti
         break;
       case MessageEntity::Type::MentionName:
         break;
+      case MessageEntity::Type::MediaTimestamp:
+        break;
+      case MessageEntity::Type::Spoiler:
+        break;
       default:
         UNREACHABLE();
     }
@@ -3030,84 +3213,105 @@ Result<vector<MessageEntity>> get_message_entities(const ContactsManager *contac
                                                    vector<tl_object_ptr<td_api::textEntity>> &&input_entities,
                                                    bool allow_all) {
   vector<MessageEntity> entities;
-  for (auto &entity : input_entities) {
-    if (entity == nullptr || entity->type_ == nullptr) {
+  entities.reserve(input_entities.size());
+  for (auto &input_entity : input_entities) {
+    if (input_entity == nullptr || input_entity->type_ == nullptr) {
       continue;
     }
 
-    switch (entity->type_->get_id()) {
+    auto offset = input_entity->offset_;
+    auto length = input_entity->length_;
+    switch (input_entity->type_->get_id()) {
       case td_api::textEntityTypeMention::ID:
-        entities.emplace_back(MessageEntity::Type::Mention, entity->offset_, entity->length_);
+        entities.emplace_back(MessageEntity::Type::Mention, offset, length);
         break;
       case td_api::textEntityTypeHashtag::ID:
-        entities.emplace_back(MessageEntity::Type::Hashtag, entity->offset_, entity->length_);
+        entities.emplace_back(MessageEntity::Type::Hashtag, offset, length);
         break;
       case td_api::textEntityTypeBotCommand::ID:
-        entities.emplace_back(MessageEntity::Type::BotCommand, entity->offset_, entity->length_);
+        entities.emplace_back(MessageEntity::Type::BotCommand, offset, length);
         break;
       case td_api::textEntityTypeUrl::ID:
-        entities.emplace_back(MessageEntity::Type::Url, entity->offset_, entity->length_);
+        entities.emplace_back(MessageEntity::Type::Url, offset, length);
         break;
       case td_api::textEntityTypeEmailAddress::ID:
-        entities.emplace_back(MessageEntity::Type::EmailAddress, entity->offset_, entity->length_);
+        entities.emplace_back(MessageEntity::Type::EmailAddress, offset, length);
         break;
       case td_api::textEntityTypeCashtag::ID:
-        entities.emplace_back(MessageEntity::Type::Cashtag, entity->offset_, entity->length_);
+        entities.emplace_back(MessageEntity::Type::Cashtag, offset, length);
         break;
       case td_api::textEntityTypePhoneNumber::ID:
-        entities.emplace_back(MessageEntity::Type::PhoneNumber, entity->offset_, entity->length_);
+        entities.emplace_back(MessageEntity::Type::PhoneNumber, offset, length);
         break;
       case td_api::textEntityTypeBankCardNumber::ID:
-        entities.emplace_back(MessageEntity::Type::BankCardNumber, entity->offset_, entity->length_);
+        entities.emplace_back(MessageEntity::Type::BankCardNumber, offset, length);
         break;
       case td_api::textEntityTypeBold::ID:
-        entities.emplace_back(MessageEntity::Type::Bold, entity->offset_, entity->length_);
+        entities.emplace_back(MessageEntity::Type::Bold, offset, length);
         break;
       case td_api::textEntityTypeItalic::ID:
-        entities.emplace_back(MessageEntity::Type::Italic, entity->offset_, entity->length_);
+        entities.emplace_back(MessageEntity::Type::Italic, offset, length);
         break;
       case td_api::textEntityTypeUnderline::ID:
-        entities.emplace_back(MessageEntity::Type::Underline, entity->offset_, entity->length_);
+        entities.emplace_back(MessageEntity::Type::Underline, offset, length);
         break;
       case td_api::textEntityTypeStrikethrough::ID:
-        entities.emplace_back(MessageEntity::Type::Strikethrough, entity->offset_, entity->length_);
+        entities.emplace_back(MessageEntity::Type::Strikethrough, offset, length);
         break;
       case td_api::textEntityTypeCode::ID:
-        entities.emplace_back(MessageEntity::Type::Code, entity->offset_, entity->length_);
+        entities.emplace_back(MessageEntity::Type::Code, offset, length);
         break;
       case td_api::textEntityTypePre::ID:
-        entities.emplace_back(MessageEntity::Type::Pre, entity->offset_, entity->length_);
+        entities.emplace_back(MessageEntity::Type::Pre, offset, length);
         break;
       case td_api::textEntityTypePreCode::ID: {
-        auto entity_pre_code = static_cast<td_api::textEntityTypePreCode *>(entity->type_.get());
-        if (!clean_input_string(entity_pre_code->language_)) {
+        auto entity = static_cast<td_api::textEntityTypePreCode *>(input_entity->type_.get());
+        if (!clean_input_string(entity->language_)) {
           return Status::Error(400, "MessageEntityPreCode.language must be encoded in UTF-8");
         }
-        entities.emplace_back(MessageEntity::Type::PreCode, entity->offset_, entity->length_,
-                              entity_pre_code->language_);
+        entities.emplace_back(MessageEntity::Type::PreCode, offset, length, entity->language_);
         break;
       }
       case td_api::textEntityTypeTextUrl::ID: {
-        auto entity_text_url = static_cast<td_api::textEntityTypeTextUrl *>(entity->type_.get());
-        if (!clean_input_string(entity_text_url->url_)) {
+        auto entity = static_cast<td_api::textEntityTypeTextUrl *>(input_entity->type_.get());
+        if (!clean_input_string(entity->url_)) {
           return Status::Error(400, "MessageEntityTextUrl.url must be encoded in UTF-8");
         }
-        auto r_url = check_url(entity_text_url->url_);
-        if (r_url.is_error()) {
-          return Status::Error(400, PSTRING() << "Wrong message entity: " << r_url.error().message());
+        auto user_id = LinkManager::get_link_user_id(entity->url_);
+        if (user_id.is_valid()) {
+          if (contacts_manager != nullptr) {
+            TRY_STATUS(contacts_manager->get_input_user(user_id));
+          }
+          entities.emplace_back(offset, length, user_id);
+          break;
         }
-        entities.emplace_back(MessageEntity::Type::TextUrl, entity->offset_, entity->length_, r_url.move_as_ok());
+        auto r_url = LinkManager::check_link(entity->url_);
+        if (r_url.is_error()) {
+          return Status::Error(400, PSTRING() << "Entity " << r_url.error().message());
+        }
+        entities.emplace_back(MessageEntity::Type::TextUrl, offset, length, r_url.move_as_ok());
         break;
       }
       case td_api::textEntityTypeMentionName::ID: {
-        auto entity_mention_name = static_cast<td_api::textEntityTypeMentionName *>(entity->type_.get());
-        UserId user_id(entity_mention_name->user_id_);
-        if (contacts_manager != nullptr && !contacts_manager->have_input_user(user_id)) {
-          return Status::Error(7, "Have no access to the user");
+        auto entity = static_cast<td_api::textEntityTypeMentionName *>(input_entity->type_.get());
+        UserId user_id(entity->user_id_);
+        if (contacts_manager != nullptr) {
+          TRY_STATUS(contacts_manager->get_input_user(user_id));
         }
-        entities.emplace_back(entity->offset_, entity->length_, user_id);
+        entities.emplace_back(offset, length, user_id);
         break;
       }
+      case td_api::textEntityTypeMediaTimestamp::ID: {
+        auto entity = static_cast<td_api::textEntityTypeMediaTimestamp *>(input_entity->type_.get());
+        if (entity->media_timestamp_ < 0) {
+          return Status::Error(400, "Invalid media timestamp specified");
+        }
+        entities.emplace_back(MessageEntity::Type::MediaTimestamp, offset, length, entity->media_timestamp_);
+        break;
+      }
+      case td_api::textEntityTypeSpoiler::ID:
+        entities.emplace_back(MessageEntity::Type::Spoiler, offset, length);
+        break;
       default:
         UNREACHABLE();
     }
@@ -3124,120 +3328,122 @@ vector<MessageEntity> get_message_entities(const ContactsManager *contacts_manag
                                            const char *source) {
   vector<MessageEntity> entities;
   entities.reserve(server_entities.size());
-  for (auto &entity : server_entities) {
-    switch (entity->get_id()) {
+  for (auto &server_entity : server_entities) {
+    switch (server_entity->get_id()) {
       case telegram_api::messageEntityUnknown::ID:
         break;
       case telegram_api::messageEntityMention::ID: {
-        auto entity_mention = static_cast<const telegram_api::messageEntityMention *>(entity.get());
-        entities.emplace_back(MessageEntity::Type::Mention, entity_mention->offset_, entity_mention->length_);
+        auto entity = static_cast<const telegram_api::messageEntityMention *>(server_entity.get());
+        entities.emplace_back(MessageEntity::Type::Mention, entity->offset_, entity->length_);
         break;
       }
       case telegram_api::messageEntityHashtag::ID: {
-        auto entity_hashtag = static_cast<const telegram_api::messageEntityHashtag *>(entity.get());
-        entities.emplace_back(MessageEntity::Type::Hashtag, entity_hashtag->offset_, entity_hashtag->length_);
+        auto entity = static_cast<const telegram_api::messageEntityHashtag *>(server_entity.get());
+        entities.emplace_back(MessageEntity::Type::Hashtag, entity->offset_, entity->length_);
         break;
       }
       case telegram_api::messageEntityCashtag::ID: {
-        auto entity_cashtag = static_cast<const telegram_api::messageEntityCashtag *>(entity.get());
-        entities.emplace_back(MessageEntity::Type::Cashtag, entity_cashtag->offset_, entity_cashtag->length_);
+        auto entity = static_cast<const telegram_api::messageEntityCashtag *>(server_entity.get());
+        entities.emplace_back(MessageEntity::Type::Cashtag, entity->offset_, entity->length_);
         break;
       }
       case telegram_api::messageEntityPhone::ID: {
-        auto entity_phone = static_cast<const telegram_api::messageEntityPhone *>(entity.get());
-        entities.emplace_back(MessageEntity::Type::PhoneNumber, entity_phone->offset_, entity_phone->length_);
+        auto entity = static_cast<const telegram_api::messageEntityPhone *>(server_entity.get());
+        entities.emplace_back(MessageEntity::Type::PhoneNumber, entity->offset_, entity->length_);
         break;
       }
       case telegram_api::messageEntityBotCommand::ID: {
-        auto entity_bot_command = static_cast<const telegram_api::messageEntityBotCommand *>(entity.get());
-        entities.emplace_back(MessageEntity::Type::BotCommand, entity_bot_command->offset_,
-                              entity_bot_command->length_);
+        auto entity = static_cast<const telegram_api::messageEntityBotCommand *>(server_entity.get());
+        entities.emplace_back(MessageEntity::Type::BotCommand, entity->offset_, entity->length_);
         break;
       }
       case telegram_api::messageEntityBankCard::ID: {
-        auto entity_bank_card = static_cast<const telegram_api::messageEntityBankCard *>(entity.get());
-        entities.emplace_back(MessageEntity::Type::BankCardNumber, entity_bank_card->offset_,
-                              entity_bank_card->length_);
+        auto entity = static_cast<const telegram_api::messageEntityBankCard *>(server_entity.get());
+        entities.emplace_back(MessageEntity::Type::BankCardNumber, entity->offset_, entity->length_);
         break;
       }
       case telegram_api::messageEntityUrl::ID: {
-        auto entity_url = static_cast<const telegram_api::messageEntityUrl *>(entity.get());
-        entities.emplace_back(MessageEntity::Type::Url, entity_url->offset_, entity_url->length_);
+        auto entity = static_cast<const telegram_api::messageEntityUrl *>(server_entity.get());
+        entities.emplace_back(MessageEntity::Type::Url, entity->offset_, entity->length_);
         break;
       }
       case telegram_api::messageEntityEmail::ID: {
-        auto entity_email = static_cast<const telegram_api::messageEntityEmail *>(entity.get());
-        entities.emplace_back(MessageEntity::Type::EmailAddress, entity_email->offset_, entity_email->length_);
+        auto entity = static_cast<const telegram_api::messageEntityEmail *>(server_entity.get());
+        entities.emplace_back(MessageEntity::Type::EmailAddress, entity->offset_, entity->length_);
         break;
       }
       case telegram_api::messageEntityBold::ID: {
-        auto entity_bold = static_cast<const telegram_api::messageEntityBold *>(entity.get());
-        entities.emplace_back(MessageEntity::Type::Bold, entity_bold->offset_, entity_bold->length_);
+        auto entity = static_cast<const telegram_api::messageEntityBold *>(server_entity.get());
+        entities.emplace_back(MessageEntity::Type::Bold, entity->offset_, entity->length_);
         break;
       }
       case telegram_api::messageEntityItalic::ID: {
-        auto entity_italic = static_cast<const telegram_api::messageEntityItalic *>(entity.get());
-        entities.emplace_back(MessageEntity::Type::Italic, entity_italic->offset_, entity_italic->length_);
+        auto entity = static_cast<const telegram_api::messageEntityItalic *>(server_entity.get());
+        entities.emplace_back(MessageEntity::Type::Italic, entity->offset_, entity->length_);
         break;
       }
       case telegram_api::messageEntityUnderline::ID: {
-        auto entity_bold = static_cast<const telegram_api::messageEntityUnderline *>(entity.get());
-        entities.emplace_back(MessageEntity::Type::Underline, entity_bold->offset_, entity_bold->length_);
+        auto entity = static_cast<const telegram_api::messageEntityUnderline *>(server_entity.get());
+        entities.emplace_back(MessageEntity::Type::Underline, entity->offset_, entity->length_);
         break;
       }
       case telegram_api::messageEntityStrike::ID: {
-        auto entity_bold = static_cast<const telegram_api::messageEntityStrike *>(entity.get());
-        entities.emplace_back(MessageEntity::Type::Strikethrough, entity_bold->offset_, entity_bold->length_);
+        auto entity = static_cast<const telegram_api::messageEntityStrike *>(server_entity.get());
+        entities.emplace_back(MessageEntity::Type::Strikethrough, entity->offset_, entity->length_);
+        break;
+      }
+      case telegram_api::messageEntitySpoiler::ID: {
+        auto entity = static_cast<const telegram_api::messageEntitySpoiler *>(server_entity.get());
+        entities.emplace_back(MessageEntity::Type::Spoiler, entity->offset_, entity->length_);
         break;
       }
       case telegram_api::messageEntityBlockquote::ID: {
-        auto entity_bold = static_cast<const telegram_api::messageEntityBlockquote *>(entity.get());
-        entities.emplace_back(MessageEntity::Type::BlockQuote, entity_bold->offset_, entity_bold->length_);
+        auto entity = static_cast<const telegram_api::messageEntityBlockquote *>(server_entity.get());
+        entities.emplace_back(MessageEntity::Type::BlockQuote, entity->offset_, entity->length_);
         break;
       }
       case telegram_api::messageEntityCode::ID: {
-        auto entity_code = static_cast<const telegram_api::messageEntityCode *>(entity.get());
-        entities.emplace_back(MessageEntity::Type::Code, entity_code->offset_, entity_code->length_);
+        auto entity = static_cast<const telegram_api::messageEntityCode *>(server_entity.get());
+        entities.emplace_back(MessageEntity::Type::Code, entity->offset_, entity->length_);
         break;
       }
       case telegram_api::messageEntityPre::ID: {
-        auto entity_pre = static_cast<telegram_api::messageEntityPre *>(entity.get());
-        if (entity_pre->language_.empty()) {
-          entities.emplace_back(MessageEntity::Type::Pre, entity_pre->offset_, entity_pre->length_);
+        auto entity = static_cast<telegram_api::messageEntityPre *>(server_entity.get());
+        if (entity->language_.empty()) {
+          entities.emplace_back(MessageEntity::Type::Pre, entity->offset_, entity->length_);
         } else {
-          entities.emplace_back(MessageEntity::Type::PreCode, entity_pre->offset_, entity_pre->length_,
-                                std::move(entity_pre->language_));
+          entities.emplace_back(MessageEntity::Type::PreCode, entity->offset_, entity->length_,
+                                std::move(entity->language_));
         }
         break;
       }
       case telegram_api::messageEntityTextUrl::ID: {
-        auto entity_text_url = static_cast<const telegram_api::messageEntityTextUrl *>(entity.get());
-        auto r_url = check_url(entity_text_url->url_);
+        auto entity = static_cast<const telegram_api::messageEntityTextUrl *>(server_entity.get());
+        auto r_url = LinkManager::check_link(entity->url_);
         if (r_url.is_error()) {
-          LOG(ERROR) << "Wrong URL entity: \"" << entity_text_url->url_ << "\": " << r_url.error().message() << " from "
-                     << source;
+          LOG(ERROR) << "Entity " << r_url.error().message() << " from " << source;
           continue;
         }
-        entities.emplace_back(MessageEntity::Type::TextUrl, entity_text_url->offset_, entity_text_url->length_,
-                              r_url.move_as_ok());
+        entities.emplace_back(MessageEntity::Type::TextUrl, entity->offset_, entity->length_, r_url.move_as_ok());
         break;
       }
       case telegram_api::messageEntityMentionName::ID: {
-        auto entity_mention_name = static_cast<const telegram_api::messageEntityMentionName *>(entity.get());
-        UserId user_id(entity_mention_name->user_id_);
+        auto entity = static_cast<const telegram_api::messageEntityMentionName *>(server_entity.get());
+        UserId user_id(entity->user_id_);
         if (!user_id.is_valid()) {
           LOG(ERROR) << "Receive invalid " << user_id << " in MentionName from " << source;
           continue;
         }
-        if (contacts_manager == nullptr || !contacts_manager->have_user(user_id)) {
+        if (contacts_manager == nullptr) {
           LOG(ERROR) << "Receive unknown " << user_id << " in MentionName from " << source;
           continue;
         }
-        if (!contacts_manager->have_input_user(user_id)) {
-          LOG(ERROR) << "Receive inaccessible " << user_id << " in MentionName from " << source;
+        auto r_input_user = contacts_manager->get_input_user(user_id);
+        if (r_input_user.is_error()) {
+          LOG(ERROR) << "Receive wrong " << user_id << ": " << r_input_user.error() << " from " << source;
           continue;
         }
-        entities.emplace_back(entity_mention_name->offset_, entity_mention_name->length_, user_id);
+        entities.emplace_back(entity->offset_, entity->length_, user_id);
         break;
       }
       default:
@@ -3250,8 +3456,8 @@ vector<MessageEntity> get_message_entities(const ContactsManager *contacts_manag
 vector<MessageEntity> get_message_entities(vector<tl_object_ptr<secret_api::MessageEntity>> &&secret_entities) {
   vector<MessageEntity> entities;
   entities.reserve(secret_entities.size());
-  for (auto &entity : secret_entities) {
-    switch (entity->get_id()) {
+  for (auto &secret_entity : secret_entities) {
+    switch (secret_entity->get_id()) {
       case secret_api::messageEntityUnknown::ID:
         break;
       case secret_api::messageEntityMention::ID:
@@ -3273,74 +3479,73 @@ vector<MessageEntity> get_message_entities(vector<tl_object_ptr<secret_api::Mess
         // skip, will find it ourselves
         break;
       case secret_api::messageEntityUrl::ID: {
-        auto entity_url = static_cast<const secret_api::messageEntityUrl *>(entity.get());
+        auto entity = static_cast<const secret_api::messageEntityUrl *>(secret_entity.get());
         // TODO skip URL when find_urls will be better
-        entities.emplace_back(MessageEntity::Type::Url, entity_url->offset_, entity_url->length_);
+        entities.emplace_back(MessageEntity::Type::Url, entity->offset_, entity->length_);
         break;
       }
       case secret_api::messageEntityEmail::ID: {
-        auto entity_email = static_cast<const secret_api::messageEntityEmail *>(entity.get());
+        auto entity = static_cast<const secret_api::messageEntityEmail *>(secret_entity.get());
         // TODO skip emails when find_urls will be better
-        entities.emplace_back(MessageEntity::Type::EmailAddress, entity_email->offset_, entity_email->length_);
+        entities.emplace_back(MessageEntity::Type::EmailAddress, entity->offset_, entity->length_);
         break;
       }
       case secret_api::messageEntityBold::ID: {
-        auto entity_bold = static_cast<const secret_api::messageEntityBold *>(entity.get());
-        entities.emplace_back(MessageEntity::Type::Bold, entity_bold->offset_, entity_bold->length_);
+        auto entity = static_cast<const secret_api::messageEntityBold *>(secret_entity.get());
+        entities.emplace_back(MessageEntity::Type::Bold, entity->offset_, entity->length_);
         break;
       }
       case secret_api::messageEntityItalic::ID: {
-        auto entity_italic = static_cast<const secret_api::messageEntityItalic *>(entity.get());
-        entities.emplace_back(MessageEntity::Type::Italic, entity_italic->offset_, entity_italic->length_);
+        auto entity = static_cast<const secret_api::messageEntityItalic *>(secret_entity.get());
+        entities.emplace_back(MessageEntity::Type::Italic, entity->offset_, entity->length_);
         break;
       }
       case secret_api::messageEntityUnderline::ID: {
-        auto entity_bold = static_cast<const secret_api::messageEntityUnderline *>(entity.get());
-        entities.emplace_back(MessageEntity::Type::Underline, entity_bold->offset_, entity_bold->length_);
+        auto entity = static_cast<const secret_api::messageEntityUnderline *>(secret_entity.get());
+        entities.emplace_back(MessageEntity::Type::Underline, entity->offset_, entity->length_);
         break;
       }
       case secret_api::messageEntityStrike::ID: {
-        auto entity_bold = static_cast<const secret_api::messageEntityStrike *>(entity.get());
-        entities.emplace_back(MessageEntity::Type::Strikethrough, entity_bold->offset_, entity_bold->length_);
+        auto entity = static_cast<const secret_api::messageEntityStrike *>(secret_entity.get());
+        entities.emplace_back(MessageEntity::Type::Strikethrough, entity->offset_, entity->length_);
         break;
       }
       case secret_api::messageEntityBlockquote::ID: {
-        auto entity_bold = static_cast<const secret_api::messageEntityBlockquote *>(entity.get());
-        entities.emplace_back(MessageEntity::Type::BlockQuote, entity_bold->offset_, entity_bold->length_);
+        auto entity = static_cast<const secret_api::messageEntityBlockquote *>(secret_entity.get());
+        entities.emplace_back(MessageEntity::Type::BlockQuote, entity->offset_, entity->length_);
         break;
       }
       case secret_api::messageEntityCode::ID: {
-        auto entity_code = static_cast<const secret_api::messageEntityCode *>(entity.get());
-        entities.emplace_back(MessageEntity::Type::Code, entity_code->offset_, entity_code->length_);
+        auto entity = static_cast<const secret_api::messageEntityCode *>(secret_entity.get());
+        entities.emplace_back(MessageEntity::Type::Code, entity->offset_, entity->length_);
         break;
       }
       case secret_api::messageEntityPre::ID: {
-        auto entity_pre = static_cast<secret_api::messageEntityPre *>(entity.get());
-        if (!clean_input_string(entity_pre->language_)) {
-          LOG(WARNING) << "Wrong language in entity: \"" << entity_pre->language_ << '"';
-          entity_pre->language_.clear();
+        auto entity = static_cast<secret_api::messageEntityPre *>(secret_entity.get());
+        if (!clean_input_string(entity->language_)) {
+          LOG(WARNING) << "Wrong language in entity: \"" << entity->language_ << '"';
+          entity->language_.clear();
         }
-        if (entity_pre->language_.empty()) {
-          entities.emplace_back(MessageEntity::Type::Pre, entity_pre->offset_, entity_pre->length_);
+        if (entity->language_.empty()) {
+          entities.emplace_back(MessageEntity::Type::Pre, entity->offset_, entity->length_);
         } else {
-          entities.emplace_back(MessageEntity::Type::PreCode, entity_pre->offset_, entity_pre->length_,
-                                std::move(entity_pre->language_));
+          entities.emplace_back(MessageEntity::Type::PreCode, entity->offset_, entity->length_,
+                                std::move(entity->language_));
         }
         break;
       }
       case secret_api::messageEntityTextUrl::ID: {
-        auto entity_text_url = static_cast<secret_api::messageEntityTextUrl *>(entity.get());
-        if (!clean_input_string(entity_text_url->url_)) {
-          LOG(WARNING) << "Wrong URL entity: \"" << entity_text_url->url_ << '"';
+        auto entity = static_cast<secret_api::messageEntityTextUrl *>(secret_entity.get());
+        if (!clean_input_string(entity->url_)) {
+          LOG(WARNING) << "Wrong URL entity: \"" << entity->url_ << '"';
           continue;
         }
-        auto r_url = check_url(entity_text_url->url_);
+        auto r_url = LinkManager::check_link(entity->url_);
         if (r_url.is_error()) {
-          LOG(WARNING) << "Wrong URL entity: \"" << entity_text_url->url_ << "\": " << r_url.error().message();
+          LOG(WARNING) << "Entity " << r_url.error().message();
           continue;
         }
-        entities.emplace_back(MessageEntity::Type::TextUrl, entity_text_url->offset_, entity_text_url->length_,
-                              r_url.move_as_ok());
+        entities.emplace_back(MessageEntity::Type::TextUrl, entity->offset_, entity->length_, r_url.move_as_ok());
         break;
       }
       case secret_api::messageEntityMentionName::ID:
@@ -3455,10 +3660,10 @@ static Result<string> clean_input_string_with_entities(const string &text, vecto
         break;
       default:
         if (is_utf8_character_begin) {
-          utf16_offset += 1 + (c >= 0xf0);  // >= 4 bytes in symbol => surrogaite pair
+          utf16_offset += 1 + (c >= 0xf0);  // >= 4 bytes in symbol => surrogate pair
         }
         if (c == 0xe2 && pos + 2 < text_size) {
-          unsigned char next = static_cast<unsigned char>(text[pos + 1]);
+          auto next = static_cast<unsigned char>(text[pos + 1]);
           if (next == 0x80) {
             next = static_cast<unsigned char>(text[pos + 2]);
             if (0xa8 <= next && next <= 0xae) {
@@ -3469,7 +3674,7 @@ static Result<string> clean_input_string_with_entities(const string &text, vecto
           }
         }
         if (c == 0xcc && pos + 1 < text_size) {
-          unsigned char next = static_cast<unsigned char>(text[pos + 1]);
+          auto next = static_cast<unsigned char>(text[pos + 1]);
           // remove vertical lines
           if (next == 0xb3 || next == 0xbf || next == 0x8a) {
             pos++;
@@ -3503,6 +3708,19 @@ static Result<string> clean_input_string_with_entities(const string &text, vecto
 // entities must be sorted by offset and length, but not necessary by type
 // returns {last_non_whitespace_pos, last_non_whitespace_utf16_offset}
 static std::pair<size_t, int32> remove_invalid_entities(const string &text, vector<MessageEntity> &entities) {
+  if (entities.empty()) {
+    // fast path
+    for (size_t pos = 0; pos < text.size(); pos++) {
+      auto back_pos = text.size() - pos - 1;
+      auto c = text[back_pos];
+      if (c != '\n' && c != ' ') {
+        return {back_pos, 0 /*unused*/};
+      }
+    }
+
+    return {text.size(), -1};
+  }
+
   // check_is_sorted(entities);
   vector<MessageEntity *> nested_entities_stack;
   size_t current_entity = 0;
@@ -3510,14 +3728,11 @@ static std::pair<size_t, int32> remove_invalid_entities(const string &text, vect
   size_t last_non_whitespace_pos = text.size();
 
   int32 utf16_offset = 0;
-  int32 last_space_utf16_offset = -1;
   int32 last_non_whitespace_utf16_offset = -1;
 
+  td::remove_if(entities, [](const auto &entity) { return entity.length == 0; });
+
   for (size_t pos = 0; pos <= text.size(); pos++) {
-    while (current_entity < entities.size() && utf16_offset >= entities[current_entity].offset &&
-           entities[current_entity].length == 0) {
-      nested_entities_stack.push_back(&entities[current_entity++]);
-    }
     while (!nested_entities_stack.empty()) {
       auto *entity = nested_entities_stack.back();
       auto entity_end = entity->offset + entity->length;
@@ -3525,12 +3740,9 @@ static std::pair<size_t, int32> remove_invalid_entities(const string &text, vect
         break;
       }
 
-      auto have_hidden_data = entity->type == MessageEntity::Type::TextUrl ||
-                              entity->type == MessageEntity::Type::MentionName || is_pre_entity(entity->type);
-      if (last_non_whitespace_utf16_offset >= entity->offset ||
-          (last_space_utf16_offset >= entity->offset && have_hidden_data)) {
-        // TODO check entity for validness, for example, that mentions, hashtags, cashtags and URLs are valid
+      if (last_non_whitespace_utf16_offset >= entity->offset || is_hidden_data_entity(entity->type)) {
         // keep entity
+        // TODO check entity for validness, for example, that mentions, hashtags, cashtags and URLs are valid
       } else {
         entity->length = 0;
       }
@@ -3551,8 +3763,7 @@ static std::pair<size_t, int32> remove_invalid_entities(const string &text, vect
       // one continuous entity for the given offset
       for (size_t i = nested_entities_stack.size(); i > 0; i--) {
         auto *entity = nested_entities_stack[i - 1];
-        if (entity->offset != utf16_offset || entity->type == MessageEntity::Type::TextUrl ||
-            entity->type == MessageEntity::Type::MentionName || is_pre_entity(entity->type)) {
+        if (entity->offset != utf16_offset || is_hidden_data_entity(entity->type)) {
           break;
         }
         entity->offset++;
@@ -3567,15 +3778,13 @@ static std::pair<size_t, int32> remove_invalid_entities(const string &text, vect
     auto c = static_cast<unsigned char>(text[pos]);
     switch (c) {
       case '\n':
-        break;
       case 32:
-        last_space_utf16_offset = utf16_offset;
         break;
       default:
         while (!is_utf8_character_first_code_unit(static_cast<unsigned char>(text[pos + 1]))) {
           pos++;
         }
-        utf16_offset += (c >= 0xf0);  // >= 4 bytes in symbol => surrogaite pair
+        utf16_offset += (c >= 0xf0);  // >= 4 bytes in symbol => surrogate pair
         last_non_whitespace_pos = pos;
         last_non_whitespace_utf16_offset = utf16_offset;
         break;
@@ -3592,7 +3801,7 @@ static std::pair<size_t, int32> remove_invalid_entities(const string &text, vect
 }
 
 // enitities must contain only splittable entities
-void split_entities(vector<MessageEntity> &entities, const vector<MessageEntity> &other_entities) {
+static void split_entities(vector<MessageEntity> &entities, const vector<MessageEntity> &other_entities) {
   check_is_sorted(entities);
   check_is_sorted(other_entities);
 
@@ -3603,7 +3812,7 @@ void split_entities(vector<MessageEntity> &entities, const vector<MessageEntity>
   auto add_entities = [&](int32 end_offset) {
     auto flush_entities = [&](int32 offset) {
       for (auto type : {MessageEntity::Type::Bold, MessageEntity::Type::Italic, MessageEntity::Type::Underline,
-                        MessageEntity::Type::Strikethrough}) {
+                        MessageEntity::Type::Strikethrough, MessageEntity::Type::Spoiler}) {
         auto index = get_splittable_entity_type_index(type);
         if (end_pos[index] != 0 && begin_pos[index] < offset) {
           if (end_pos[index] <= offset) {
@@ -3755,24 +3964,33 @@ static void merge_new_entities(vector<MessageEntity> &entities, vector<MessageEn
 }
 
 Status fix_formatted_text(string &text, vector<MessageEntity> &entities, bool allow_empty, bool skip_new_entities,
-                          bool skip_bot_commands, bool for_draft) {
-  if (!check_utf8(text)) {
-    return Status::Error(400, "Strings must be encoded in UTF-8");
-  }
-
-  for (auto &entity : entities) {
-    if (entity.offset < 0 || entity.offset > 1000000) {
-      return Status::Error(400, PSLICE() << "Receive an entity with incorrect offset " << entity.offset);
+                          bool skip_bot_commands, bool skip_media_timestamps, bool for_draft) {
+  string result;
+  if (entities.empty()) {
+    // fast path
+    if (!clean_input_string(text)) {
+      return Status::Error(400, "Strings must be encoded in UTF-8");
     }
-    if (entity.length < 0 || entity.length > 1000000) {
-      return Status::Error(400, PSLICE() << "Receive an entity with incorrect length " << entity.length);
+    result = std::move(text);
+  } else {
+    if (!check_utf8(text)) {
+      return Status::Error(400, "Strings must be encoded in UTF-8");
     }
+
+    for (auto &entity : entities) {
+      if (entity.offset < 0 || entity.offset > 1000000) {
+        return Status::Error(400, PSLICE() << "Receive an entity with incorrect offset " << entity.offset);
+      }
+      if (entity.length < 0 || entity.length > 1000000) {
+        return Status::Error(400, PSLICE() << "Receive an entity with incorrect length " << entity.length);
+      }
+    }
+    td::remove_if(entities, [](const MessageEntity &entity) { return entity.length == 0; });
+
+    fix_entities(entities);
+
+    TRY_RESULT_ASSIGN(result, clean_input_string_with_entities(text, entities));
   }
-  td::remove_if(entities, [](const MessageEntity &entity) { return entity.length == 0; });
-
-  fix_entities(entities);
-
-  TRY_RESULT(result, clean_input_string_with_entities(text, entities));
 
   // now entities are still sorted by offset and length, but not type,
   // because some characters could be deleted and after that some entities begin to share a common end
@@ -3786,7 +4004,7 @@ Status fix_formatted_text(string &text, vector<MessageEntity> &entities, bool al
       entities.clear();
       return Status::OK();
     }
-    return Status::Error(3, "Message must be non-empty");
+    return Status::Error(400, "Message must be non-empty");
   }
 
   // re-fix entities if needed after removal of some characters
@@ -3801,8 +4019,7 @@ Status fix_formatted_text(string &text, vector<MessageEntity> &entities, bool al
     CHECK(last_non_whitespace_pos < result.size());
     result.resize(last_non_whitespace_pos + 1);
     while (!entities.empty() && entities.back().offset > last_non_whitespace_utf16_offset) {
-      CHECK(entities.back().type == MessageEntity::Type::TextUrl ||
-            entities.back().type == MessageEntity::Type::MentionName || is_pre_entity(entities.back().type));
+      CHECK(is_hidden_data_entity(entities.back().type));
       entities.pop_back();
     }
     bool need_sort = false;
@@ -3825,7 +4042,7 @@ Status fix_formatted_text(string &text, vector<MessageEntity> &entities, bool al
       first_non_whitespaces_pos++;
     }
     if (first_non_whitespaces_pos > 0) {
-      int32 offset = narrow_cast<int32>(first_non_whitespaces_pos);
+      auto offset = narrow_cast<int32>(first_non_whitespaces_pos);
       text = result.substr(first_non_whitespaces_pos);
       for (auto &entity : entities) {
         entity.offset -= offset;
@@ -3838,7 +4055,7 @@ Status fix_formatted_text(string &text, vector<MessageEntity> &entities, bool al
   LOG_CHECK(check_utf8(text)) << text;
 
   if (!allow_empty && is_empty_string(text)) {
-    return Status::Error(3, "Message must be non-empty");
+    return Status::Error(400, "Message must be non-empty");
   }
 
   constexpr size_t LENGTH_LIMIT = 35000;  // server side limit
@@ -3855,7 +4072,9 @@ Status fix_formatted_text(string &text, vector<MessageEntity> &entities, bool al
   }
 
   if (!skip_new_entities) {
-    merge_new_entities(entities, find_entities(text, skip_bot_commands));
+    merge_new_entities(entities, find_entities(text, skip_bot_commands, skip_media_timestamps));
+  } else if (!skip_media_timestamps) {
+    merge_new_entities(entities, find_media_timestamp_entities(text));
   }
 
   // new whitespace-only entities could be added after splitting of entities
@@ -3868,21 +4087,23 @@ Status fix_formatted_text(string &text, vector<MessageEntity> &entities, bool al
 
 FormattedText get_message_text(const ContactsManager *contacts_manager, string message_text,
                                vector<tl_object_ptr<telegram_api::MessageEntity>> &&server_entities,
-                               bool skip_new_entities, int32 send_date, bool from_album, const char *source) {
+                               bool skip_new_entities, bool skip_media_timestamps, int32 send_date, bool from_album,
+                               const char *source) {
   auto entities = get_message_entities(contacts_manager, std::move(server_entities), source);
   auto debug_message_text = message_text;
   auto debug_entities = entities;
-  auto status = fix_formatted_text(message_text, entities, true, skip_new_entities, true, false);
+  auto status = fix_formatted_text(message_text, entities, true, skip_new_entities, true, skip_media_timestamps, false);
   if (status.is_error()) {
-    if (!from_album && (send_date == 0 || send_date > 1579219200)) {  // approximate fix date
-      LOG(ERROR) << "Receive error " << status << " while parsing message text from " << source << " with content \""
-                 << debug_message_text << "\" -> \"" << message_text << "\" sent at " << send_date << " with entities "
-                 << format::as_array(debug_entities) << " -> " << format::as_array(entities);
+    // message entities in media albums can be wrong because of a long time ago fixed server-side bug
+    if (!from_album && (send_date == 0 || send_date > 1600340000)) {  // approximate fix date
+      LOG(ERROR) << "Receive error " << status << " while parsing message text from " << source << " sent at "
+                 << send_date << " with content \"" << debug_message_text << "\" -> \"" << message_text
+                 << "\" with entities " << format::as_array(debug_entities) << " -> " << format::as_array(entities);
     }
     if (!clean_input_string(message_text)) {
       message_text.clear();
     }
-    entities = find_entities(message_text, false);
+    entities = find_entities(message_text, false, skip_media_timestamps);
   }
   return FormattedText{std::move(message_text), std::move(entities)};
 }
@@ -3926,7 +4147,7 @@ Result<FormattedText> process_input_caption(const ContactsManager *contacts_mana
   }
   TRY_RESULT(entities, get_message_entities(contacts_manager, std::move(caption->entities_)));
   TRY_STATUS(fix_formatted_text(caption->text_, entities, true, false,
-                                need_skip_bot_commands(contacts_manager, dialog_id, is_bot), false));
+                                need_always_skip_bot_commands(contacts_manager, dialog_id, is_bot), is_bot, false));
   return FormattedText{std::move(caption->text_), std::move(entities)};
 }
 
@@ -3936,12 +4157,37 @@ void add_formatted_text_dependencies(Dependencies &dependencies, const Formatted
   }
   for (auto &entity : text->entities) {
     if (entity.user_id.is_valid()) {
-      dependencies.user_ids.insert(entity.user_id);
+      dependencies.add(entity.user_id);
     }
   }
 }
 
-bool need_skip_bot_commands(const ContactsManager *contacts_manager, DialogId dialog_id, bool is_bot) {
+bool has_media_timestamps(const FormattedText *text, int32 min_media_timestamp, int32 max_media_timestamp) {
+  if (text == nullptr) {
+    return false;
+  }
+  for (auto &entity : text->entities) {
+    if (entity.type == MessageEntity::Type::MediaTimestamp && min_media_timestamp <= entity.media_timestamp &&
+        entity.media_timestamp <= max_media_timestamp) {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool has_bot_commands(const FormattedText *text) {
+  if (text == nullptr) {
+    return false;
+  }
+  for (auto &entity : text->entities) {
+    if (entity.type == MessageEntity::Type::BotCommand) {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool need_always_skip_bot_commands(const ContactsManager *contacts_manager, DialogId dialog_id, bool is_bot) {
   if (!dialog_id.is_valid()) {
     return true;
   }
@@ -3950,8 +4196,10 @@ bool need_skip_bot_commands(const ContactsManager *contacts_manager, DialogId di
   }
 
   switch (dialog_id.get_type()) {
-    case DialogType::User:
-      return !contacts_manager->is_user_bot(dialog_id.get_user_id());
+    case DialogType::User: {
+      auto user_id = dialog_id.get_user_id();
+      return user_id == ContactsManager::get_replies_bot_user_id() || !contacts_manager->is_user_bot(user_id);
+    }
     case DialogType::SecretChat: {
       auto user_id = contacts_manager->get_secret_chat_user_id(dialog_id.get_secret_chat_id());
       return !user_id.is_valid() || !contacts_manager->is_user_bot(user_id);
@@ -3964,6 +4212,82 @@ bool need_skip_bot_commands(const ContactsManager *contacts_manager, DialogId di
       UNREACHABLE();
       return false;
   }
+}
+
+vector<tl_object_ptr<telegram_api::MessageEntity>> get_input_message_entities(const ContactsManager *contacts_manager,
+                                                                              const vector<MessageEntity> &entities,
+                                                                              const char *source) {
+  vector<tl_object_ptr<telegram_api::MessageEntity>> result;
+  vector<MessageEntity> splittable_entities;
+  for (auto &entity : entities) {
+    if (!is_user_entity(entity.type)) {
+      continue;
+    }
+    if (is_splittable_entity(entity.type)) {
+      splittable_entities.push_back(entity);
+      continue;
+    }
+    switch (entity.type) {
+      case MessageEntity::Type::BlockQuote:
+        result.push_back(make_tl_object<telegram_api::messageEntityBlockquote>(entity.offset, entity.length));
+        break;
+      case MessageEntity::Type::Code:
+        result.push_back(make_tl_object<telegram_api::messageEntityCode>(entity.offset, entity.length));
+        break;
+      case MessageEntity::Type::Pre:
+        result.push_back(make_tl_object<telegram_api::messageEntityPre>(entity.offset, entity.length, string()));
+        break;
+      case MessageEntity::Type::PreCode:
+        result.push_back(make_tl_object<telegram_api::messageEntityPre>(entity.offset, entity.length, entity.argument));
+        break;
+      case MessageEntity::Type::TextUrl:
+        result.push_back(
+            make_tl_object<telegram_api::messageEntityTextUrl>(entity.offset, entity.length, entity.argument));
+        break;
+      case MessageEntity::Type::MentionName: {
+        auto r_input_user = contacts_manager->get_input_user(entity.user_id);
+        LOG_CHECK(r_input_user.is_ok()) << source << ' ' << entity.user_id << ' ' << r_input_user.error();
+        result.push_back(make_tl_object<telegram_api::inputMessageEntityMentionName>(entity.offset, entity.length,
+                                                                                     r_input_user.move_as_ok()));
+        break;
+      }
+      default:
+        UNREACHABLE();
+    }
+  }
+  split_entities(splittable_entities, vector<MessageEntity>());
+  for (auto &entity : splittable_entities) {
+    switch (entity.type) {
+      case MessageEntity::Type::Bold:
+        result.push_back(make_tl_object<telegram_api::messageEntityBold>(entity.offset, entity.length));
+        break;
+      case MessageEntity::Type::Italic:
+        result.push_back(make_tl_object<telegram_api::messageEntityItalic>(entity.offset, entity.length));
+        break;
+      case MessageEntity::Type::Underline:
+        result.push_back(make_tl_object<telegram_api::messageEntityUnderline>(entity.offset, entity.length));
+        break;
+      case MessageEntity::Type::Strikethrough:
+        result.push_back(make_tl_object<telegram_api::messageEntityStrike>(entity.offset, entity.length));
+        break;
+      case MessageEntity::Type::Spoiler:
+        result.push_back(make_tl_object<telegram_api::messageEntitySpoiler>(entity.offset, entity.length));
+        break;
+      default:
+        UNREACHABLE();
+    }
+  }
+
+  return result;
+}
+
+vector<tl_object_ptr<telegram_api::MessageEntity>> get_input_message_entities(const ContactsManager *contacts_manager,
+                                                                              const FormattedText *text,
+                                                                              const char *source) {
+  if (text != nullptr && !text->entities.empty()) {
+    return get_input_message_entities(contacts_manager, text->entities, source);
+  }
+  return {};
 }
 
 }  // namespace td

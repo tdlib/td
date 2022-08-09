@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -85,6 +85,16 @@ class SpanImpl {
     return data_[size() - 1];
   }
 
+  InnerT &front() {
+    DCHECK(!empty());
+    return data_[0];
+  }
+
+  const InnerT &front() const {
+    DCHECK(!empty());
+    return data_[0];
+  }
+
   InnerT *data() const {
     return data_;
   }
@@ -111,8 +121,9 @@ class SpanImpl {
   }
 
   SpanImpl &truncate(size_t size) {
-    CHECK(size <= size_);
-    size_ = size;
+    if (size < size_) {
+      size_ = size;
+    }
     return *this;
   }
 
@@ -135,12 +146,13 @@ template <class T>
 using MutableSpan = detail::SpanImpl<T, T>;
 
 template <class T>
-Span<T> span(const T *ptr, size_t size) {
-  return Span<T>(ptr, size);
+Span<T> as_span(const std::vector<T> &vec) {
+  return Span<T>(vec);
 }
+
 template <class T>
-MutableSpan<T> mutable_span(T *ptr, size_t size) {
-  return MutableSpan<T>(ptr, size);
+MutableSpan<T> as_mutable_span(std::vector<T> &vec) {
+  return MutableSpan<T>(vec);
 }
 
 }  // namespace td

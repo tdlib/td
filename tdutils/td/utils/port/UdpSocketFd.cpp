@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -13,11 +13,12 @@
 #include "td/utils/port/detail/skip_eintr.h"
 #include "td/utils/port/PollFlags.h"
 #include "td/utils/port/SocketFd.h"
+#include "td/utils/SliceBuilder.h"
 #include "td/utils/VectorQueue.h"
 
 #if TD_PORT_WINDOWS
 #include "td/utils/port/detail/Iocp.h"
-#include "td/utils/SpinLock.h"
+#include "td/utils/port/Mutex.h"
 #endif
 
 #if TD_PORT_POSIX
@@ -34,7 +35,7 @@
 #if TD_LINUX
 #include <linux/errqueue.h>
 #endif
-#endif  // TD_PORT_POSIX
+#endif
 
 #include <array>
 #include <atomic>
@@ -47,7 +48,7 @@ class UdpSocketReceiveHelper {
  public:
   void to_native(const UdpMessage &message, WSAMSG &message_header) {
     socklen_t addr_len{narrow_cast<socklen_t>(sizeof(addr_))};
-    message_header.name = reinterpret_cast<struct sockaddr *>(&addr_);
+    message_header.name = reinterpret_cast<sockaddr *>(&addr_);
     message_header.namelen = addr_len;
     buf_.buf = const_cast<char *>(message.data.as_slice().begin());
     buf_.len = narrow_cast<DWORD>(message.data.size());
@@ -58,13 +59,12 @@ class UdpSocketReceiveHelper {
     message_header.dwFlags = 0;
   }
 
-  void from_native(WSAMSG &message_header, size_t message_size, UdpMessage &message) {
-    message.address.init_sockaddr(reinterpret_cast<struct sockaddr *>(message_header.name), message_header.namelen)
-        .ignore();
+  static void from_native(WSAMSG &message_header, size_t message_size, UdpMessage &message) {
+    message.address.init_sockaddr(reinterpret_cast<sockaddr *>(message_header.name), message_header.namelen).ignore();
     message.error = Status::OK();
 
     if ((message_header.dwFlags & (MSG_TRUNC | MSG_CTRUNC)) != 0) {
-      message.error = Status::Error(501, "message too long");
+      message.error = Status::Error(501, "Message too long");
       message.data = BufferSlice();
       return;
     }
@@ -79,10 +79,11 @@ class UdpSocketReceiveHelper {
   sockaddr_storage addr_;
   WSABUF buf_;
 };
+
 class UdpSocketSendHelper {
  public:
   void to_native(const UdpMessage &message, WSAMSG &message_header) {
-    message_header.name = const_cast<struct sockaddr *>(message.address.get_sockaddr());
+    message_header.name = const_cast<sockaddr *>(message.address.get_sockaddr());
     message_header.namelen = narrow_cast<socklen_t>(message.address.get_sockaddr_len());
     buf_.buf = const_cast<char *>(message.data.as_slice().begin());
     buf_.len = narrow_cast<DWORD>(message.data.size());
@@ -98,7 +99,7 @@ class UdpSocketSendHelper {
   WSABUF buf_;
 };
 
-class UdpSocketFdImpl : private Iocp::Callback {
+class UdpSocketFdImpl final : private Iocp::Callback {
  public:
   explicit UdpSocketFdImpl(NativeFd fd) : info_(std::move(fd)) {
     get_poll_info().add_flags(PollFlags::Write());
@@ -153,7 +154,7 @@ class UdpSocketFdImpl : private Iocp::Callback {
 
  private:
   PollableFdInfo info_;
-  SpinLock lock_;
+  Mutex lock_;
 
   std::atomic<int> refcnt_{1};
   bool is_connected_{false};
@@ -240,7 +241,7 @@ class UdpSocketFdImpl : private Iocp::Callback {
     }
   }
 
-  void on_iocp(Result<size_t> r_size, WSAOVERLAPPED *overlapped) override {
+  void on_iocp(Result<size_t> r_size, WSAOVERLAPPED *overlapped) final {
     // called from other thread
     if (dec_refcnt() || close_flag_) {
       VLOG(fd) << "Ignore IOCP (UDP socket is closing)";
@@ -295,7 +296,7 @@ class UdpSocketFdImpl : private Iocp::Callback {
     VLOG(fd) << get_native_fd() << " on receive " << size;
     CHECK(is_receive_active_);
     is_receive_active_ = false;
-    receive_helper_.from_native(receive_message_, size, to_receive_);
+    UdpSocketReceiveHelper::from_native(receive_message_, size, to_receive_);
     receive_buffer_.confirm_read((to_receive_.data.size() + 7) & ~7);
     {
       auto lock = lock_.lock();
@@ -373,7 +374,7 @@ void UdpSocketFdImplDeleter::operator()(UdpSocketFdImpl *impl) {
 
 class UdpSocketReceiveHelper {
  public:
-  void to_native(const UdpSocketFd::InboundMessage &message, struct msghdr &message_header) {
+  void to_native(const UdpSocketFd::InboundMessage &message, msghdr &message_header) {
     socklen_t addr_len{narrow_cast<socklen_t>(sizeof(addr_))};
 
     message_header.msg_name = &addr_;
@@ -387,22 +388,22 @@ class UdpSocketReceiveHelper {
     message_header.msg_flags = 0;
   }
 
-  void from_native(struct msghdr &message_header, size_t message_size, UdpSocketFd::InboundMessage &message) {
+  static void from_native(msghdr &message_header, size_t message_size, UdpSocketFd::InboundMessage &message) {
 #if TD_LINUX
-    struct cmsghdr *cmsg;
-    struct sock_extended_err *ee = nullptr;
+    cmsghdr *cmsg;
+    sock_extended_err *ee = nullptr;
     for (cmsg = CMSG_FIRSTHDR(&message_header); cmsg != nullptr; cmsg = CMSG_NXTHDR(&message_header, cmsg)) {
       if (cmsg->cmsg_type == IP_PKTINFO && cmsg->cmsg_level == IPPROTO_IP) {
-        //auto *pi = reinterpret_cast<struct in_pktinfo *>(CMSG_DATA(cmsg));
+        //auto *pi = reinterpret_cast<in_pktinfo *>(CMSG_DATA(cmsg));
       } else if (cmsg->cmsg_type == IPV6_PKTINFO && cmsg->cmsg_level == IPPROTO_IPV6) {
-        //auto *pi = reinterpret_cast<struct in6_pktinfo *>(CMSG_DATA(cmsg));
+        //auto *pi = reinterpret_cast<in6_pktinfo *>(CMSG_DATA(cmsg));
       } else if ((cmsg->cmsg_type == IP_RECVERR && cmsg->cmsg_level == IPPROTO_IP) ||
                  (cmsg->cmsg_type == IPV6_RECVERR && cmsg->cmsg_level == IPPROTO_IPV6)) {
-        ee = reinterpret_cast<struct sock_extended_err *>(CMSG_DATA(cmsg));
+        ee = reinterpret_cast<sock_extended_err *>(CMSG_DATA(cmsg));
       }
     }
     if (ee != nullptr) {
-      auto *addr = reinterpret_cast<struct sockaddr *>(SO_EE_OFFENDER(ee));
+      auto *addr = reinterpret_cast<sockaddr *>(SO_EE_OFFENDER(ee));
       IPAddress address;
       address.init_sockaddr(addr).ignore();
       if (message.from != nullptr) {
@@ -417,8 +418,7 @@ class UdpSocketReceiveHelper {
     }
 #endif
     if (message.from != nullptr) {
-      message.from
-          ->init_sockaddr(reinterpret_cast<struct sockaddr *>(message_header.msg_name), message_header.msg_namelen)
+      message.from->init_sockaddr(reinterpret_cast<sockaddr *>(message_header.msg_name), message_header.msg_namelen)
           .ignore();
     }
     if (message.error) {
@@ -426,7 +426,7 @@ class UdpSocketReceiveHelper {
     }
     if (message_header.msg_flags & MSG_TRUNC) {
       if (message.error) {
-        *message.error = Status::Error(501, "message too long");
+        *message.error = Status::Error(501, "Message too long");
       }
       message.data.truncate(0);
       return;
@@ -439,14 +439,14 @@ class UdpSocketReceiveHelper {
  private:
   std::array<char, 1024> control_buf_;
   sockaddr_storage addr_;
-  struct iovec io_vec_;
+  iovec io_vec_;
 };
 
 class UdpSocketSendHelper {
  public:
-  void to_native(const UdpSocketFd::OutboundMessage &message, struct msghdr &message_header) {
+  void to_native(const UdpSocketFd::OutboundMessage &message, msghdr &message_header) {
     CHECK(message.to != nullptr && message.to->is_valid());
-    message_header.msg_name = const_cast<struct sockaddr *>(message.to->get_sockaddr());
+    message_header.msg_name = const_cast<sockaddr *>(message.to->get_sockaddr());
     message_header.msg_namelen = narrow_cast<socklen_t>(message.to->get_sockaddr_len());
     io_vec_.iov_base = const_cast<char *>(message.data.begin());
     io_vec_.iov_len = message.data.size();
@@ -459,7 +459,7 @@ class UdpSocketSendHelper {
   }
 
  private:
-  struct iovec io_vec_;
+  iovec io_vec_;
 };
 
 class UdpSocketFdImpl {
@@ -477,7 +477,7 @@ class UdpSocketFdImpl {
     return info_.native_fd();
   }
   Status get_pending_error() {
-    if (!get_poll_info().get_flags().has_pending_error()) {
+    if (!get_poll_info().get_flags_local().has_pending_error()) {
       return Status::OK();
     }
     TRY_STATUS(detail::get_socket_pending_error(get_native_fd()));
@@ -487,7 +487,7 @@ class UdpSocketFdImpl {
   Status receive_message(UdpSocketFd::InboundMessage &message, bool &is_received) {
     is_received = false;
     int flags = 0;
-    if (get_poll_info().get_flags().has_pending_error()) {
+    if (get_poll_info().get_flags_local().has_pending_error()) {
 #ifdef MSG_ERRQUEUE
       flags = MSG_ERRQUEUE;
 #else
@@ -495,7 +495,7 @@ class UdpSocketFdImpl {
 #endif
     }
 
-    struct msghdr message_header;
+    msghdr message_header;
     detail::UdpSocketReceiveHelper helper;
     helper.to_native(message, message_header);
 
@@ -503,7 +503,7 @@ class UdpSocketFdImpl {
     auto recvmsg_res = detail::skip_eintr([&] { return recvmsg(native_fd, &message_header, flags); });
     auto recvmsg_errno = errno;
     if (recvmsg_res >= 0) {
-      helper.from_native(message_header, recvmsg_res, message);
+      UdpSocketReceiveHelper::from_native(message_header, recvmsg_res, message);
       is_received = true;
       return Status::OK();
     }
@@ -549,7 +549,7 @@ class UdpSocketFdImpl {
 
   Status send_message(const UdpSocketFd::OutboundMessage &message, bool &is_sent) {
     is_sent = false;
-    struct msghdr message_header;
+    msghdr message_header;
     detail::UdpSocketSendHelper helper;
     helper.to_native(message, message_header);
 
@@ -651,11 +651,11 @@ class UdpSocketFdImpl {
 #if TD_HAS_MMSG
   Status send_messages_fast(Span<UdpSocketFd::OutboundMessage> messages, size_t &cnt) {
     //struct mmsghdr {
-    //  struct msghdr msg_hdr; [> Message header <]
+    //  msghdr msg_hdr;        [> Message header <]
     //  unsigned int msg_len;  [> Number of bytes transmitted <]
     //};
-    struct std::array<detail::UdpSocketSendHelper, 16> helpers;
-    struct std::array<struct mmsghdr, 16> headers;
+    std::array<detail::UdpSocketSendHelper, 16> helpers;
+    std::array<mmsghdr, 16> headers;
     size_t to_send = min(messages.size(), headers.size());
     for (size_t i = 0; i < to_send; i++) {
       helpers[i].to_native(messages[i], headers[i].msg_hdr);
@@ -679,7 +679,7 @@ class UdpSocketFdImpl {
 #endif
   Status receive_messages_slow(MutableSpan<UdpSocketFd::InboundMessage> messages, size_t &cnt) {
     cnt = 0;
-    while (cnt < messages.size() && get_poll_info().get_flags().can_read()) {
+    while (cnt < messages.size() && get_poll_info().get_flags_local().can_read()) {
       auto &message = messages[cnt];
       CHECK(!message.data.empty());
       bool is_received;
@@ -694,7 +694,7 @@ class UdpSocketFdImpl {
   Status receive_messages_fast(MutableSpan<UdpSocketFd::InboundMessage> messages, size_t &cnt) {
     int flags = 0;
     cnt = 0;
-    if (get_poll_info().get_flags().has_pending_error()) {
+    if (get_poll_info().get_flags_local().has_pending_error()) {
 #ifdef MSG_ERRQUEUE
       flags = MSG_ERRQUEUE;
 #else
@@ -702,11 +702,11 @@ class UdpSocketFdImpl {
 #endif
     }
     //struct mmsghdr {
-    //  struct msghdr msg_hdr; [> Message header <]
+    //  msghdr msg_hdr;        [> Message header <]
     //  unsigned int msg_len;  [> Number of bytes transmitted <]
     //};
-    struct std::array<detail::UdpSocketReceiveHelper, 16> helpers;
-    struct std::array<struct mmsghdr, 16> headers;
+    std::array<detail::UdpSocketReceiveHelper, 16> helpers;
+    std::array<mmsghdr, 16> headers;
     size_t to_receive = min(messages.size(), headers.size());
     for (size_t i = 0; i < to_receive; i++) {
       helpers[i].to_native(messages[i], headers[i].msg_hdr);
@@ -720,7 +720,7 @@ class UdpSocketFdImpl {
     if (recvmmsg_res >= 0) {
       cnt = narrow_cast<size_t>(recvmmsg_res);
       for (size_t i = 0; i < cnt; i++) {
-        helpers[i].from_native(headers[i].msg_hdr, headers[i].msg_len, messages[i]);
+        UdpSocketReceiveHelper::from_native(headers[i].msg_hdr, headers[i].msg_len, messages[i]);
       }
       return Status::OK();
     }
@@ -739,8 +739,8 @@ void UdpSocketFdImplDeleter::operator()(UdpSocketFdImpl *impl) {
 }  // namespace detail
 
 UdpSocketFd::UdpSocketFd() = default;
-UdpSocketFd::UdpSocketFd(UdpSocketFd &&) = default;
-UdpSocketFd &UdpSocketFd::operator=(UdpSocketFd &&) = default;
+UdpSocketFd::UdpSocketFd(UdpSocketFd &&) noexcept = default;
+UdpSocketFd &UdpSocketFd::operator=(UdpSocketFd &&) noexcept = default;
 UdpSocketFd::~UdpSocketFd() = default;
 PollableFdInfo &UdpSocketFd::get_poll_info() {
   return impl_->get_poll_info();
@@ -790,41 +790,49 @@ const NativeFd &UdpSocketFd::get_native_fd() const {
 }
 
 #if TD_PORT_POSIX
-static Result<uint32> maximize_buffer(int socket_fd, int optname, uint32 max) {
+static Result<uint32> maximize_buffer(int socket_fd, int optname, uint32 max_size) {
+  if (setsockopt(socket_fd, SOL_SOCKET, optname, &max_size, sizeof(max_size)) == 0) {
+    // fast path
+    return max_size;
+  }
+
   /* Start with the default size. */
-  uint32 old_size;
+  uint32 old_size = 0;
   socklen_t intsize = sizeof(old_size);
   if (getsockopt(socket_fd, SOL_SOCKET, optname, &old_size, &intsize)) {
     return OS_ERROR("getsockopt() failed");
   }
+#if TD_LINUX
+  old_size /= 2;
+#endif
 
   /* Binary-search for the real maximum. */
-  uint32 last_good = old_size;
-  uint32 min = old_size;
-  while (min <= max) {
-    uint32 avg = min + (max - min) / 2;
-    if (setsockopt(socket_fd, SOL_SOCKET, optname, &avg, intsize) == 0) {
-      last_good = avg;
-      min = avg + 1;
+  uint32 last_good_size = old_size;
+  uint32 min_size = old_size;
+  while (min_size <= max_size) {
+    uint32 avg_size = min_size + (max_size - min_size) / 2;
+    if (setsockopt(socket_fd, SOL_SOCKET, optname, &avg_size, sizeof(avg_size)) == 0) {
+      last_good_size = avg_size;
+      min_size = avg_size + 1;
     } else {
-      max = avg - 1;
+      max_size = avg_size - 1;
     }
   }
-  return last_good;
+  return last_good_size;
 }
 
-Result<uint32> UdpSocketFd::maximize_snd_buffer(uint32 max) {
-  return maximize_buffer(get_native_fd().fd(), SO_SNDBUF, max == 0 ? DEFAULT_UDP_MAX_SND_BUFFER_SIZE : max);
+Result<uint32> UdpSocketFd::maximize_snd_buffer(uint32 max_size) {
+  return maximize_buffer(get_native_fd().fd(), SO_SNDBUF, max_size == 0 ? DEFAULT_UDP_MAX_SND_BUFFER_SIZE : max_size);
 }
 
-Result<uint32> UdpSocketFd::maximize_rcv_buffer(uint32 max) {
-  return maximize_buffer(get_native_fd().fd(), SO_RCVBUF, max == 0 ? DEFAULT_UDP_MAX_RCV_BUFFER_SIZE : max);
+Result<uint32> UdpSocketFd::maximize_rcv_buffer(uint32 max_size) {
+  return maximize_buffer(get_native_fd().fd(), SO_RCVBUF, max_size == 0 ? DEFAULT_UDP_MAX_RCV_BUFFER_SIZE : max_size);
 }
 #else
-Result<uint32> UdpSocketFd::maximize_snd_buffer(uint32 max) {
+Result<uint32> UdpSocketFd::maximize_snd_buffer(uint32 max_size) {
   return 0;
 }
-Result<uint32> UdpSocketFd::maximize_rcv_buffer(uint32 max) {
+Result<uint32> UdpSocketFd::maximize_rcv_buffer(uint32 max_size) {
   return 0;
 }
 #endif

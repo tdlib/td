@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -115,10 +115,10 @@ void FileData::parse(ParserT &parser, bool register_file_sources) {
                         parser);
   if (has_sources && register_file_sources) {
     Td *td = G()->td().get_actor_unsafe();
-    int32 size;
-    parse(size, parser);
-    if (0 < size && size < 5) {
-      for (int i = 0; i < size; i++) {
+    int32 file_source_count;
+    parse(file_source_count, parser);
+    if (0 < file_source_count && file_source_count < 5) {
+      for (int i = 0; i < file_source_count; i++) {
         if (parser.get_error()) {
           return;
         }

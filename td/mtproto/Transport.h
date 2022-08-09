@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -9,6 +9,7 @@
 #include "td/mtproto/PacketInfo.h"
 
 #include "td/utils/common.h"
+#include "td/utils/logging.h"
 #include "td/utils/Slice.h"
 #include "td/utils/Status.h"
 #include "td/utils/StorerBase.h"
@@ -17,6 +18,9 @@
 #include <utility>
 
 namespace td {
+
+extern int VERBOSITY_NAME(raw_mtproto);
+
 namespace mtproto {
 
 class AuthKey;
@@ -76,10 +80,10 @@ class Transport {
 
   static Result<uint64> read_auth_key_id(Slice message);
 
-  // Reads mtproto packet from [message] and saves into [data].
+  // Reads MTProto packet from [message] and saves it into [data].
   // If message is encrypted, [auth_key] is used.
   // Decryption and unpacking is made inplace, so [data] will be subslice of [message].
-  // Returns size of mtproto packet.
+  // Returns size of MTProto packet.
   // If dest.size() >= size, the packet is also written into [dest].
   // If auth_key is nonempty, encryption will be used.
   static Result<ReadResult> read(MutableSlice message, const AuthKey &auth_key, PacketInfo *info) TD_WARN_UNUSED_RESULT;
@@ -87,11 +91,11 @@ class Transport {
   static size_t write(const Storer &storer, const AuthKey &auth_key, PacketInfo *info,
                       MutableSlice dest = MutableSlice());
 
+  static std::pair<uint32, UInt128> calc_message_key2(const AuthKey &auth_key, int X, Slice to_encrypt);
+
  private:
   template <class HeaderT>
   static std::pair<uint32, UInt128> calc_message_ack_and_key(const HeaderT &head, size_t data_size);
-
-  static std::pair<uint32, UInt128> calc_message_key2(const AuthKey &auth_key, int X, Slice to_encrypt);
 
   template <class HeaderT>
   static size_t calc_crypto_size(size_t data_size);

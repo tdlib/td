@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -11,7 +11,7 @@
 #include "td/utils/port/thread.h"
 #include "td/utils/tests.h"
 
-class NodeX : public td::MpscLinkQueueImpl::Node {
+class NodeX final : public td::MpscLinkQueueImpl::Node {
  public:
   explicit NodeX(int value) : value_(value) {
   }
@@ -30,7 +30,7 @@ class NodeX : public td::MpscLinkQueueImpl::Node {
 };
 using QueueNode = td::MpscLinkQueueUniquePtrNode<NodeX>;
 
-QueueNode create_node(int value) {
+static QueueNode create_node(int value) {
   return QueueNode(td::make_unique<NodeX>(value));
 }
 
@@ -113,4 +113,4 @@ TEST(MpscLinkQueue, multi_thread) {
     thread.join();
   }
 }
-#endif  //!TD_THREAD_UNSUPPORTED
+#endif

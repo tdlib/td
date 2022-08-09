@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -8,6 +8,7 @@
 
 #include "td/utils/misc.h"
 #include "td/utils/ScopeGuard.h"
+#include "td/utils/SliceBuilder.h"
 
 #include <cstring>
 
@@ -95,11 +96,11 @@ StringBuilder &operator<<(StringBuilder &sb, const JsonString &val) {
           break;
         }
         if (128 <= ch) {
-          int a = s[pos];
+          uint32 a = ch;
           CHECK((a & 0x40) != 0);
 
           CHECK(pos + 1 < len);
-          int b = s[++pos];
+          uint32 b = static_cast<unsigned char>(s[++pos]);
           CHECK((b & 0xc0) == 0x80);
           if ((a & 0x20) == 0) {
             CHECK((a & 0x1e) > 0);
@@ -108,7 +109,7 @@ StringBuilder &operator<<(StringBuilder &sb, const JsonString &val) {
           }
 
           CHECK(pos + 1 < len);
-          int c = s[++pos];
+          uint32 c = static_cast<unsigned char>(s[++pos]);
           CHECK((c & 0xc0) == 0x80);
           if ((a & 0x10) == 0) {
             CHECK(((a & 0x0f) | (b & 0x20)) > 0);
@@ -117,7 +118,7 @@ StringBuilder &operator<<(StringBuilder &sb, const JsonString &val) {
           }
 
           CHECK(pos + 1 < len);
-          int d = s[++pos];
+          uint32 d = static_cast<unsigned char>(s[++pos]);
           CHECK((d & 0xc0) == 0x80);
           if ((a & 0x08) == 0) {
             CHECK(((a & 0x07) | (b & 0x30)) > 0);
@@ -343,17 +344,17 @@ Result<JsonValue> do_json_decode(Parser &parser, int32 max_depth) {
   parser.skip_whitespaces();
   switch (parser.peek_char()) {
     case 'f':
-      if (parser.skip_start_with("false")) {
+      if (parser.try_skip("false")) {
         return JsonValue::create_boolean(false);
       }
       return Status::Error("Token starts with 'f' -- false expected");
     case 't':
-      if (parser.skip_start_with("true")) {
+      if (parser.try_skip("true")) {
         return JsonValue::create_boolean(true);
       }
       return Status::Error("Token starts with 't' -- true expected");
     case 'n':
-      if (parser.skip_start_with("null")) {
+      if (parser.try_skip("null")) {
         return JsonValue();
       }
       return Status::Error("Token starts with 'n' -- null expected");
@@ -393,7 +394,7 @@ Result<JsonValue> do_json_decode(Parser &parser, int32 max_depth) {
     case '{': {
       parser.skip('{');
       parser.skip_whitespaces();
-      std::vector<std::pair<MutableSlice, JsonValue> > res;
+      std::vector<std::pair<MutableSlice, JsonValue>> res;
       if (parser.try_skip('}')) {
         return JsonValue::make_object(std::move(res));
       }
@@ -407,7 +408,7 @@ Result<JsonValue> do_json_decode(Parser &parser, int32 max_depth) {
           return Status::Error("':' expected");
         }
         TRY_RESULT(value, do_json_decode(parser, max_depth - 1));
-        res.emplace_back(std::move(key), std::move(value));
+        res.emplace_back(key, std::move(value));
 
         parser.skip_whitespaces();
         if (parser.try_skip('}')) {
@@ -463,17 +464,17 @@ Status do_json_skip(Parser &parser, int32 max_depth) {
   parser.skip_whitespaces();
   switch (parser.peek_char()) {
     case 'f':
-      if (parser.skip_start_with("false")) {
+      if (parser.try_skip("false")) {
         return Status::OK();
       }
       return Status::Error("Starts with 'f' -- false expected");
     case 't':
-      if (parser.skip_start_with("true")) {
+      if (parser.try_skip("true")) {
         return Status::OK();
       }
       return Status::Error("Starts with 't' -- true expected");
     case 'n':
-      if (parser.skip_start_with("null")) {
+      if (parser.try_skip("null")) {
         return Status::OK();
       }
       return Status::Error("Starts with 'n' -- null expected");

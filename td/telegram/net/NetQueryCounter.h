@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -9,48 +9,32 @@
 #include "td/utils/common.h"
 
 #include <atomic>
+#include <memory>
 
 namespace td {
 
 class NetQueryCounter {
-  static std::atomic<uint64> net_query_cnt_;
-
  public:
-  static uint64 get_count() {
-    return net_query_cnt_.load();
+  using Counter = std::atomic<uint64>;
+
+  NetQueryCounter() = default;
+
+  explicit NetQueryCounter(Counter *counter) : ptr_(counter) {
+    CHECK(counter != nullptr);
+    counter->fetch_add(1, std::memory_order_relaxed);
   }
 
-  bool empty() const {
-    return !is_alive_;
-  }
-
-  explicit NetQueryCounter(bool is_alive = false) : is_alive_(is_alive) {
-    if (is_alive) {
-      net_query_cnt_++;
-    }
-  }
-
-  NetQueryCounter(const NetQueryCounter &other) = delete;
-  NetQueryCounter &operator=(const NetQueryCounter &other) = delete;
-  NetQueryCounter(NetQueryCounter &&other) : is_alive_(other.is_alive_) {
-    other.is_alive_ = false;
-  }
-  NetQueryCounter &operator=(NetQueryCounter &&other) {
-    if (is_alive_) {
-      net_query_cnt_--;
-    }
-    is_alive_ = other.is_alive_;
-    other.is_alive_ = false;
-    return *this;
-  }
-  ~NetQueryCounter() {
-    if (is_alive_) {
-      net_query_cnt_--;
-    }
+  explicit operator bool() const {
+    return static_cast<bool>(ptr_);
   }
 
  private:
-  bool is_alive_;
+  struct Deleter {
+    void operator()(Counter *ptr) {
+      ptr->fetch_sub(1, std::memory_order_relaxed);
+    }
+  };
+  std::unique_ptr<Counter, Deleter> ptr_;
 };
 
 }  // namespace td

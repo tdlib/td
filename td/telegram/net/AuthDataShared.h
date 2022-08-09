@@ -1,16 +1,16 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 #pragma once
 
-#include "td/mtproto/AuthData.h"
-#include "td/mtproto/AuthKey.h"
-
 #include "td/telegram/net/DcId.h"
 #include "td/telegram/net/PublicRsaKeyShared.h"
+
+#include "td/mtproto/AuthData.h"
+#include "td/mtproto/AuthKey.h"
 
 #include "td/utils/common.h"
 #include "td/utils/ScopeGuard.h"
@@ -51,7 +51,7 @@ class AuthDataShared {
   virtual DcId dc_id() const = 0;
   virtual const std::shared_ptr<PublicRsaKeyShared> &public_rsa_key() = 0;
   virtual mtproto::AuthKey get_auth_key() = 0;
-  virtual std::pair<AuthKeyState, bool> get_auth_key_state() = 0;
+  virtual AuthKeyState get_auth_key_state() = 0;
   virtual void set_auth_key(const mtproto::AuthKey &auth_key) = 0;
   virtual void update_server_time_difference(double diff) = 0;
   virtual double get_server_time_difference() = 0;

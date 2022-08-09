@@ -1,13 +1,13 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 #pragma once
 
+#include "td/utils/algorithm.h"
 #include "td/utils/common.h"
-#include "td/utils/misc.h"
 
 #include <algorithm>
 #include <set>
@@ -29,8 +29,7 @@ class FastSetWithPosition {
       res.push_back(*not_checked_.begin());
       res.push_back(*not_checked_.rbegin());
     }
-    std::sort(res.begin(), res.end());
-    res.erase(std::unique(res.begin(), res.end()), res.end());
+    td::unique(res);
     if (res.size() > 2) {
       res.erase(res.begin() + 1, res.end() - 1);
     }

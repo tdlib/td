@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -20,8 +20,8 @@ class Gzip {
   Gzip();
   Gzip(const Gzip &) = delete;
   Gzip &operator=(const Gzip &) = delete;
-  Gzip(Gzip &&other);
-  Gzip &operator=(Gzip &&other);
+  Gzip(Gzip &&other) noexcept;
+  Gzip &operator=(Gzip &&other) noexcept;
   ~Gzip();
 
   enum class Mode { Empty, Encode, Decode };

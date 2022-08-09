@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -14,11 +14,9 @@
 #include "td/utils/port/RwMutex.h"
 #include "td/utils/Status.h"
 
-#include <utility>
-
 namespace td {
 
-class PublicRsaKeyShared : public PublicRsaKeyInterface {
+class PublicRsaKeyShared final : public mtproto::PublicRsaKeyInterface {
  public:
   PublicRsaKeyShared(DcId dc_id, bool is_test);
 
@@ -33,9 +31,9 @@ class PublicRsaKeyShared : public PublicRsaKeyInterface {
     virtual bool notify() = 0;
   };
 
-  void add_rsa(RSA rsa);
-  Result<std::pair<RSA, int64>> get_rsa(const vector<int64> &fingerprints) override;
-  void drop_keys() override;
+  void add_rsa(mtproto::RSA rsa);
+  Result<RsaKey> get_rsa_key(const vector<int64> &fingerprints) final;
+  void drop_keys() final;
   bool has_keys();
 
   void add_listener(unique_ptr<Listener> listener);
@@ -46,15 +44,11 @@ class PublicRsaKeyShared : public PublicRsaKeyInterface {
 
  private:
   DcId dc_id_;
-  struct RsaOption {
-    int64 fingerprint;
-    RSA rsa;
-  };
-  std::vector<RsaOption> options_;
+  std::vector<RsaKey> keys_;
   std::vector<unique_ptr<Listener>> listeners_;
   RwMutex rw_mutex_;
 
-  RSA *get_rsa_locked(int64 fingerprint);
+  RsaKey *get_rsa_key_unsafe(int64 fingerprint);
 
   void notify();
 };

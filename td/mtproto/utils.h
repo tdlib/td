@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -18,7 +18,7 @@ template <class T>
 using TLStorer = DefaultStorer<T>;
 
 template <class T>
-class TLObjectStorer : public Storer {
+class TLObjectStorer final : public Storer {
   mutable size_t size_ = std::numeric_limits<size_t>::max();
   const T &object_;
 
@@ -26,7 +26,7 @@ class TLObjectStorer : public Storer {
   explicit TLObjectStorer(const T &object) : object_(object) {
   }
 
-  size_t size() const override {
+  size_t size() const final {
     if (size_ == std::numeric_limits<size_t>::max()) {
       TlStorerCalcLength storer;
       storer.store_binary(object_.get_id());
@@ -35,7 +35,7 @@ class TLObjectStorer : public Storer {
     }
     return size_;
   }
-  size_t store(uint8 *ptr) const override {
+  size_t store(uint8 *ptr) const final {
     TlStorerUnsafe storer(ptr);
     storer.store_binary(object_.get_id());
     object_.store(storer);
@@ -48,8 +48,11 @@ class Object;
 class Function;
 }  // namespace mtproto_api
 
+namespace mtproto {
+
 TLStorer<mtproto_api::Function> create_storer(const mtproto_api::Function &function);
 
 TLObjectStorer<mtproto_api::Object> create_storer(const mtproto_api::Object &object);
 
+}  // namespace mtproto
 }  // namespace td

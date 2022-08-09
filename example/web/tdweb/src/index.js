@@ -35,7 +35,7 @@ class TdClient {
    * @param {Object} options - Options for TDLib instance creation.
    * @param {TdClient~updateCallback} options.onUpdate - Callback for all incoming updates.
    * @param {string} [options.instanceName=tdlib] - Name of the TDLib instance. Currently only one instance of TdClient with a given name is allowed. All but one instances with the same name will be automatically closed. Usually, the newest non-background instance is kept alive. Files will be stored in an IndexedDb table with the same name.
-   * @param {boolean} [options.isBackground=false] - Pass true, if the instance is opened from the background.
+   * @param {boolean} [options.isBackground=false] - Pass true if the instance is opened from the background.
    * @param {string} [options.jsLogVerbosityLevel=info] - The initial verbosity level of the JavaScript part of the code (one of 'error', 'warning', 'info', 'log', 'debug').
    * @param {number} [options.logVerbosityLevel=2] - The initial verbosity level for the TDLib internal logging (0-1023).
    * @param {boolean} [options.useDatabase=true] - Pass false to use TDLib without database and secret chats. It will significantly improve loading time, but some functionality will be unavailable.
@@ -169,7 +169,7 @@ class TdClient {
       'receive from worker: ',
       JSON.parse(
         JSON.stringify(response, (key, value) => {
-          if (key === 'arr') {
+          if (key === 'arr' || key === 'data') {
             return undefined;
           }
           return value;
@@ -233,7 +233,12 @@ class TdClient {
     }
     for (const key in response) {
       const field = response[key];
-      if (field && typeof field === 'object') {
+      if (
+        field &&
+        typeof field === 'object' &&
+        key !== 'data' &&
+        key !== 'arr'
+      ) {
         response[key] = this.prepareResponse(field);
       }
     }
@@ -579,7 +584,7 @@ class FileManager {
           file_id: info.file.id,
           offset: offset
         });
-        log.error(count, size);
+        //log.error(count, size);
         if (!size) {
           size = count.count;
         } else if (size > count.count) {
@@ -593,7 +598,7 @@ class FileManager {
         });
         res.data = new Blob([res.data]);
         res.transaction_id = -2;
-        log.error(res);
+        //log.error(res);
         return res;
       } catch (e) {
         log.info('readFilePart failed', info, offset, size, e);

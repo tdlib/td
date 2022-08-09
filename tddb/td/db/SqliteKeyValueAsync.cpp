@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -14,41 +14,44 @@
 #include "td/utils/optional.h"
 #include "td/utils/Time.h"
 
-#include <unordered_map>
-
 namespace td {
 
-class SqliteKeyValueAsync : public SqliteKeyValueAsyncInterface {
+class SqliteKeyValueAsync final : public SqliteKeyValueAsyncInterface {
  public:
   explicit SqliteKeyValueAsync(std::shared_ptr<SqliteKeyValueSafe> kv_safe, int32 scheduler_id = -1) {
     impl_ = create_actor_on_scheduler<Impl>("KV", scheduler_id, std::move(kv_safe));
   }
-  void set(string key, string value, Promise<> promise) override {
+  void set(string key, string value, Promise<Unit> promise) final {
     send_closure_later(impl_, &Impl::set, std::move(key), std::move(value), std::move(promise));
   }
-  void erase(string key, Promise<> promise) override {
+  void set_all(FlatHashMap<string, string> key_values, Promise<Unit> promise) final {
+    send_closure_later(impl_, &Impl::set_all, std::move(key_values), std::move(promise));
+  }
+  void erase(string key, Promise<Unit> promise) final {
     send_closure_later(impl_, &Impl::erase, std::move(key), std::move(promise));
   }
-  void erase_by_prefix(string key_prefix, Promise<> promise) override {
+  void erase_by_prefix(string key_prefix, Promise<Unit> promise) final {
     send_closure_later(impl_, &Impl::erase_by_prefix, std::move(key_prefix), std::move(promise));
   }
-  void get(string key, Promise<string> promise) override {
+  void get(string key, Promise<string> promise) final {
     send_closure_later(impl_, &Impl::get, std::move(key), std::move(promise));
   }
-  void close(Promise<> promise) override {
+  void close(Promise<Unit> promise) final {
     send_closure_later(impl_, &Impl::close, std::move(promise));
   }
 
  private:
-  class Impl : public Actor {
+  class Impl final : public Actor {
    public:
     explicit Impl(std::shared_ptr<SqliteKeyValueSafe> kv_safe) : kv_safe_(std::move(kv_safe)) {
     }
-    void set(string key, string value, Promise<> promise) {
+
+    void set(string key, string value, Promise<Unit> promise) {
       auto it = buffer_.find(key);
       if (it != buffer_.end()) {
         it->second = std::move(value);
       } else {
+        CHECK(!key.empty());
         buffer_.emplace(std::move(key), std::move(value));
       }
       if (promise) {
@@ -57,11 +60,19 @@ class SqliteKeyValueAsync : public SqliteKeyValueAsyncInterface {
       cnt_++;
       do_flush(false /*force*/);
     }
-    void erase(string key, Promise<> promise) {
+
+    void set_all(FlatHashMap<string, string> key_values, Promise<Unit> promise) {
+      do_flush(true /*force*/);
+      kv_->set_all(key_values);
+      promise.set_value(Unit());
+    }
+
+    void erase(string key, Promise<Unit> promise) {
       auto it = buffer_.find(key);
       if (it != buffer_.end()) {
         it->second = optional<string>();
       } else {
+        CHECK(!key.empty());
         buffer_.emplace(std::move(key), optional<string>());
       }
       if (promise) {
@@ -70,7 +81,8 @@ class SqliteKeyValueAsync : public SqliteKeyValueAsyncInterface {
       cnt_++;
       do_flush(false /*force*/);
     }
-    void erase_by_prefix(string key_prefix, Promise<> promise) {
+
+    void erase_by_prefix(string key_prefix, Promise<Unit> promise) {
       do_flush(true /*force*/);
       kv_->erase_by_prefix(key_prefix);
       promise.set_value(Unit());
@@ -83,7 +95,8 @@ class SqliteKeyValueAsync : public SqliteKeyValueAsyncInterface {
       }
       promise.set_value(kv_->get(key));
     }
-    void close(Promise<> promise) {
+
+    void close(Promise<Unit> promise) {
       do_flush(true /*force*/);
       kv_safe_.reset();
       kv_ = nullptr;
@@ -97,8 +110,8 @@ class SqliteKeyValueAsync : public SqliteKeyValueAsyncInterface {
 
     static constexpr double MAX_PENDING_QUERIES_DELAY = 0.01;
     static constexpr size_t MAX_PENDING_QUERIES_COUNT = 100;
-    std::unordered_map<string, optional<string>> buffer_;
-    std::vector<Promise<>> buffer_promises_;
+    FlatHashMap<string, optional<string>> buffer_;
+    vector<Promise<Unit>> buffer_promises_;
     size_t cnt_ = 0;
 
     double wakeup_at_ = 0;
@@ -121,7 +134,7 @@ class SqliteKeyValueAsync : public SqliteKeyValueAsyncInterface {
       wakeup_at_ = 0;
       cnt_ = 0;
 
-      kv_->begin_transaction().ensure();
+      kv_->begin_write_transaction().ensure();
       for (auto &it : buffer_) {
         if (it.second) {
           kv_->set(it.first, it.second.value());
@@ -131,17 +144,14 @@ class SqliteKeyValueAsync : public SqliteKeyValueAsyncInterface {
       }
       kv_->commit_transaction().ensure();
       buffer_.clear();
-      for (auto &promise : buffer_promises_) {
-        promise.set_value(Unit());
-      }
-      buffer_promises_.clear();
+      set_promises(buffer_promises_);
     }
 
-    void timeout_expired() override {
+    void timeout_expired() final {
       do_flush(false /*force*/);
     }
 
-    void start_up() override {
+    void start_up() final {
       kv_ = &kv_safe_->get();
     }
   };

@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -88,9 +88,6 @@ int ThreadPthread::do_pthread_create(pthread_t *thread, const pthread_attr_t *at
 }
 
 namespace this_thread_pthread {
-void yield() {
-  sched_yield();
-}
 ThreadPthread::id get_id() {
   return pthread_self();
 }

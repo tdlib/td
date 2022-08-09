@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -7,7 +7,7 @@
 #pragma once
 
 #include "td/utils/common.h"
-#include "td/utils/invoke.h"  // for tuple_for_each
+#include "td/utils/invoke.h"
 #include "td/utils/Slice.h"
 #include "td/utils/StringBuilder.h"
 
@@ -173,7 +173,7 @@ inline StringBuilder &operator<<(StringBuilder &logger, Time t) {
   while (i + 1 < durations_n && t.seconds_ > 10 * durations[i + 1].value) {
     i++;
   }
-  logger << StringBuilder::FixedDouble(t.seconds_ / durations[i].value, 1) << durations[i].name;
+  logger << StringBuilder::FixedDouble(t.seconds_ / durations[i].value, 1) << Slice(durations[i].name);
   return logger;
 }
 
@@ -199,7 +199,7 @@ inline StringBuilder &operator<<(StringBuilder &logger, Size t) {
   while (i + 1 < sizes_n && t.size_ > 10 * sizes[i + 1].value) {
     i++;
   }
-  logger << t.size_ / sizes[i].value << sizes[i].name;
+  logger << t.size_ / sizes[i].value << Slice(sizes[i].name);
   return logger;
 }
 
@@ -301,7 +301,7 @@ StringBuilder &operator<<(StringBuilder &sb, const Concat<T> &concat) {
 }
 
 template <class... ArgsT>
-auto concat(const ArgsT &... args) {
+auto concat(const ArgsT &...args) {
   return Concat<decltype(std::tie(args...))>{std::tie(args...)};
 }
 

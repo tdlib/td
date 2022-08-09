@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -11,7 +11,7 @@
  * C interface for managing the internal logging of TDLib.
  * By default TDLib writes logs to stderr or an OS specific log and uses a verbosity level of 5.
  * These functions are deprecated since TDLib 1.4.0 in favor of the setLogVerbosityLevel, setLogStream and
- * other synchronous requests for managing the intrenal TDLib logging.
+ * other synchronous requests for managing the internal TDLib logging.
  */
 
 #include "td/telegram/tdjson_export.h"
@@ -71,10 +71,11 @@ typedef void (*td_log_fatal_error_callback_ptr)(const char *error_message);
  * The TDLib will crash as soon as callback returns.
  * By default the callback is not set.
  *
+ * \deprecated Use td_set_log_message_callback instead.
  * \param[in]  callback Callback that will be called when a fatal error happens.
  *                      Pass NULL to remove the callback.
  */
-TDJSON_EXPORT void td_set_log_fatal_error_callback(td_log_fatal_error_callback_ptr callback);
+TDJSON_DEPRECATED_EXPORT void td_set_log_fatal_error_callback(td_log_fatal_error_callback_ptr callback);
 
 #ifdef __cplusplus
 }  // extern "C"

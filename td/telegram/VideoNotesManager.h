@@ -1,22 +1,21 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 #pragma once
 
+#include "td/telegram/Dimensions.h"
+#include "td/telegram/files/FileId.h"
+#include "td/telegram/PhotoSize.h"
+#include "td/telegram/SecretInputMedia.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 
-#include "td/telegram/files/FileId.h"
-#include "td/telegram/Photo.h"
-#include "td/telegram/SecretInputMedia.h"
-
 #include "td/utils/buffer.h"
 #include "td/utils/common.h"
-
-#include <unordered_map>
+#include "td/utils/FlatHashMap.h"
 
 namespace td {
 
@@ -25,10 +24,15 @@ class Td;
 class VideoNotesManager {
  public:
   explicit VideoNotesManager(Td *td);
+  VideoNotesManager(const VideoNotesManager &) = delete;
+  VideoNotesManager &operator=(const VideoNotesManager &) = delete;
+  VideoNotesManager(VideoNotesManager &&) = delete;
+  VideoNotesManager &operator=(VideoNotesManager &&) = delete;
+  ~VideoNotesManager();
 
   int32 get_video_note_duration(FileId file_id) const;
 
-  tl_object_ptr<td_api::videoNote> get_video_note_object(FileId file_id);
+  tl_object_ptr<td_api::videoNote> get_video_note_object(FileId file_id) const;
 
   void create_video_note(FileId file_id, string minithumbnail, PhotoSize thumbnail, int32 duration,
                          Dimensions dimensions, bool replace);
@@ -47,7 +51,7 @@ class VideoNotesManager {
 
   FileId dup_video_note(FileId new_id, FileId old_id);
 
-  bool merge_video_notes(FileId new_id, FileId old_id, bool can_delete_old);
+  void merge_video_notes(FileId new_id, FileId old_id, bool can_delete_old);
 
   template <class StorerT>
   void store_video_note(FileId file_id, StorerT &storer) const;
@@ -64,8 +68,6 @@ class VideoNotesManager {
     PhotoSize thumbnail;
 
     FileId file_id;
-
-    bool is_changed = true;
   };
 
   const VideoNote *get_video_note(FileId file_id) const;
@@ -73,7 +75,7 @@ class VideoNotesManager {
   FileId on_get_video_note(unique_ptr<VideoNote> new_video_note, bool replace);
 
   Td *td_;
-  std::unordered_map<FileId, unique_ptr<VideoNote>, FileIdHash> video_notes_;
+  FlatHashMap<FileId, unique_ptr<VideoNote>, FileIdHash> video_notes_;
 };
 
 }  // namespace td

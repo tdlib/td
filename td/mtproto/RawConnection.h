@@ -1,12 +1,12 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 #pragma once
 
-#include "td/mtproto/IStreamTransport.h"
+#include "td/mtproto/ConnectionManager.h"
 #include "td/mtproto/PacketInfo.h"
 #include "td/mtproto/TransportType.h"
 
@@ -14,13 +14,10 @@
 #include "td/utils/BufferedFd.h"
 #include "td/utils/common.h"
 #include "td/utils/port/detail/PollableFd.h"
+#include "td/utils/port/IPAddress.h"
 #include "td/utils/port/SocketFd.h"
 #include "td/utils/Status.h"
 #include "td/utils/StorerBase.h"
-
-#include "td/telegram/StateManager.h"
-
-#include <map>
 
 namespace td {
 namespace mtproto {
@@ -40,33 +37,23 @@ class RawConnection {
     virtual void on_mtproto_error() = 0;
   };
   RawConnection() = default;
-  RawConnection(SocketFd socket_fd, TransportType transport_type, unique_ptr<StatsCallback> stats_callback)
-      : socket_fd_(std::move(socket_fd))
-      , transport_(create_transport(transport_type))
-      , stats_callback_(std::move(stats_callback)) {
-    transport_->init(&socket_fd_.input_buffer(), &socket_fd_.output_buffer());
-  }
+  RawConnection(const RawConnection &) = delete;
+  RawConnection &operator=(const RawConnection &) = delete;
+  virtual ~RawConnection() = default;
 
-  void set_connection_token(StateManager::ConnectionToken connection_token) {
-    connection_token_ = std::move(connection_token);
-  }
+  static unique_ptr<RawConnection> create(IPAddress ip_address, BufferedFd<SocketFd> buffered_socket_fd,
+                                          TransportType transport_type, unique_ptr<StatsCallback> stats_callback);
 
-  bool can_send() const {
-    return transport_->can_write();
-  }
-  TransportType get_transport_type() const {
-    return transport_->get_type();
-  }
-  void send_crypto(const Storer &storer, int64 session_id, int64 salt, const AuthKey &auth_key,
-                   uint64 quick_ack_token = 0);
-  uint64 send_no_crypto(const Storer &storer);
+  virtual void set_connection_token(ConnectionManager::ConnectionToken connection_token) = 0;
 
-  PollableFdInfo &get_poll_info() {
-    return socket_fd_.get_poll_info();
-  }
-  StatsCallback *stats_callback() {
-    return stats_callback_.get();
-  }
+  virtual bool can_send() const = 0;
+  virtual TransportType get_transport_type() const = 0;
+  virtual void send_crypto(const Storer &storer, int64 session_id, int64 salt, const AuthKey &auth_key,
+                           uint64 quick_ack_token) = 0;
+  virtual uint64 send_no_crypto(const Storer &storer) = 0;
+
+  virtual PollableFdInfo &get_poll_info() = 0;
+  virtual StatsCallback *stats_callback() = 0;
 
   class Callback {
    public:
@@ -76,7 +63,7 @@ class RawConnection {
     virtual ~Callback() = default;
     virtual Status on_raw_packet(const PacketInfo &info, BufferSlice packet) = 0;
     virtual Status on_quick_ack(uint64 quick_ack_token) {
-      return Status::Error("Quick acks unsupported fully, but still used");
+      return Status::Error("Quick acknowledgements are unsupported by the callback");
     }
     virtual Status before_write() {
       return Status::OK();
@@ -86,64 +73,19 @@ class RawConnection {
   };
 
   // NB: After first returned error, all subsequent calls will return error too.
-  Status flush(const AuthKey &auth_key, Callback &callback) TD_WARN_UNUSED_RESULT {
-    auto status = do_flush(auth_key, callback);
-    if (status.is_error()) {
-      if (stats_callback_ && status.code() != 2) {
-        stats_callback_->on_error();
-      }
-      has_error_ = true;
-    }
-    return status;
-  }
+  virtual Status flush(const AuthKey &auth_key, Callback &callback) TD_WARN_UNUSED_RESULT = 0;
+  virtual bool has_error() const = 0;
 
-  bool has_error() const {
-    return has_error_;
-  }
+  virtual void close() = 0;
 
-  void close() {
-    transport_.reset();
-    socket_fd_.close();
-  }
+  struct PublicFields {
+    uint32 extra{0};
+    string debug_str;
+    double rtt{0};
+  };
 
-  uint32 extra_{0};
-  string debug_str_;
-  double rtt_{0};
-
- private:
-  BufferedFd<SocketFd> socket_fd_;
-  unique_ptr<IStreamTransport> transport_;
-  std::map<uint32, uint64> quick_ack_to_token_;
-  bool has_error_{false};
-
-  unique_ptr<StatsCallback> stats_callback_;
-
-  StateManager::ConnectionToken connection_token_;
-
-  Status flush_read(const AuthKey &auth_key, Callback &callback);
-  Status flush_write();
-
-  Status on_quick_ack(uint32 quick_ack, Callback &callback);
-  Status on_read_mtproto_error(int32 error_code);
-
-  Status do_flush(const AuthKey &auth_key, Callback &callback) TD_WARN_UNUSED_RESULT {
-    if (has_error_) {
-      return Status::Error("Connection has already failed");
-    }
-
-    // read/write
-    // EINVAL may be returned in linux kernel < 2.6.28. And on some new kernels too.
-    // just close connection and hope that read or write will not return this error too.
-    TRY_STATUS(socket_fd_.get_pending_error());
-
-    TRY_STATUS(flush_read(auth_key, callback));
-    TRY_STATUS(callback.before_write());
-    TRY_STATUS(flush_write());
-    if (can_close(socket_fd_)) {
-      return Status::Error("Connection closed");
-    }
-    return Status::OK();
-  }
+  virtual PublicFields &extra() = 0;
+  virtual const PublicFields &extra() const = 0;
 };
 
 }  // namespace mtproto

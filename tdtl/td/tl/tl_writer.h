@@ -1,12 +1,12 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 #pragma once
 
-#include "tl_core.h"
+#include "td/tl/tl_core.h"
 
 #include <cstdint>
 #include <string>
@@ -56,7 +56,8 @@ class TL_writer {
   virtual bool is_type_bare(const tl_type *t) const = 0;
   virtual bool is_combinator_supported(const tl_combinator *constructor) const;
   virtual bool is_documentation_generated() const;
-  virtual bool is_default_constructor_generated(const tl_combinator *t, bool is_function) const;
+  virtual bool is_default_constructor_generated(const tl_combinator *t, bool can_be_parsed, bool can_be_stored) const;
+  virtual bool is_full_constructor_generated(const tl_combinator *t, bool can_be_parsed, bool can_be_stored) const;
 
   virtual int get_parser_type(const tl_combinator *t, const std::string &parser_name) const;
   virtual int get_storer_type(const tl_combinator *t, const std::string &storer_name) const;
@@ -87,15 +88,15 @@ class TL_writer {
 
   virtual std::string gen_forward_class_declaration(const std::string &class_name, bool is_proxy) const = 0;
 
-  virtual std::string gen_class_begin(const std::string &class_name, const std::string &base_class_name,
-                                      bool is_proxy) const = 0;
+  virtual std::string gen_class_begin(const std::string &class_name, const std::string &base_class_name, bool is_proxy,
+                                      const tl_tree *result) const = 0;
   virtual std::string gen_class_end() const = 0;
 
   virtual std::string gen_class_alias(const std::string &class_name, const std::string &alias_name) const = 0;
 
   virtual std::string gen_field_definition(const std::string &class_name, const std::string &type_name,
                                            const std::string &field_name) const = 0;
-  virtual std::string gen_flags_definitions(const tl_combinator *t) const {
+  virtual std::string gen_flags_definitions(const tl_combinator *t, bool can_be_stored) const {
     return "";
   }
 

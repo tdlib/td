@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -7,7 +7,6 @@
 #include "td/telegram/NotificationSettings.h"
 
 #include "td/telegram/Global.h"
-#include "td/telegram/misc.h"
 
 #include "td/utils/common.h"
 
@@ -21,7 +20,6 @@ StringBuilder &operator<<(StringBuilder &string_builder, const DialogNotificatio
                         << ", " << notification_settings.disable_pinned_message_notifications << ", "
                         << notification_settings.disable_mention_notifications << ", "
                         << notification_settings.use_default_mute_until << ", "
-                        << notification_settings.use_default_sound << ", "
                         << notification_settings.use_default_show_preview << ", "
                         << notification_settings.use_default_disable_pinned_message_notifications << ", "
                         << notification_settings.use_default_disable_mention_notifications << ", "
@@ -69,9 +67,9 @@ td_api::object_ptr<td_api::chatNotificationSettings> get_chat_notification_setti
   CHECK(notification_settings != nullptr);
   return td_api::make_object<td_api::chatNotificationSettings>(
       notification_settings->use_default_mute_until, max(0, notification_settings->mute_until - G()->unix_time()),
-      notification_settings->use_default_sound, notification_settings->sound,
-      notification_settings->use_default_show_preview, notification_settings->show_preview,
-      notification_settings->use_default_disable_pinned_message_notifications,
+      is_notification_sound_default(notification_settings->sound),
+      get_notification_sound_ringtone_id(notification_settings->sound), notification_settings->use_default_show_preview,
+      notification_settings->show_preview, notification_settings->use_default_disable_pinned_message_notifications,
       notification_settings->disable_pinned_message_notifications,
       notification_settings->use_default_disable_mention_notifications,
       notification_settings->disable_mention_notifications);
@@ -81,8 +79,9 @@ td_api::object_ptr<td_api::scopeNotificationSettings> get_scope_notification_set
     const ScopeNotificationSettings *notification_settings) {
   CHECK(notification_settings != nullptr);
   return td_api::make_object<td_api::scopeNotificationSettings>(
-      max(0, notification_settings->mute_until - G()->unix_time()), notification_settings->sound,
-      notification_settings->show_preview, notification_settings->disable_pinned_message_notifications,
+      max(0, notification_settings->mute_until - G()->unix_time()),
+      get_notification_sound_ringtone_id(notification_settings->sound), notification_settings->show_preview,
+      notification_settings->disable_pinned_message_notifications,
       notification_settings->disable_mention_notifications);
 }
 
@@ -133,23 +132,17 @@ Result<DialogNotificationSettings> get_dialog_notification_settings(
   if (notification_settings == nullptr) {
     return Status::Error(400, "New notification settings must be non-empty");
   }
-  if (!clean_input_string(notification_settings->sound_)) {
-    return Status::Error(400, "Notification settings sound must be encoded in UTF-8");
-  }
-  if (notification_settings->sound_.empty()) {
-    notification_settings->sound_ = "default";
-  }
 
   int32 mute_until =
       notification_settings->use_default_mute_for_ ? 0 : get_mute_until(notification_settings->mute_for_);
-  return DialogNotificationSettings(notification_settings->use_default_mute_for_, mute_until,
-                                    notification_settings->use_default_sound_, std::move(notification_settings->sound_),
-                                    notification_settings->use_default_show_preview_,
-                                    notification_settings->show_preview_, old_silent_send_message,
-                                    notification_settings->use_default_disable_pinned_message_notifications_,
-                                    notification_settings->disable_pinned_message_notifications_,
-                                    notification_settings->use_default_disable_mention_notifications_,
-                                    notification_settings->disable_mention_notifications_);
+  return DialogNotificationSettings(
+      notification_settings->use_default_mute_for_, mute_until,
+      get_notification_sound(notification_settings->use_default_sound_, notification_settings->sound_id_),
+      notification_settings->use_default_show_preview_, notification_settings->show_preview_, old_silent_send_message,
+      notification_settings->use_default_disable_pinned_message_notifications_,
+      notification_settings->disable_pinned_message_notifications_,
+      notification_settings->use_default_disable_mention_notifications_,
+      notification_settings->disable_mention_notifications_);
 }
 
 Result<ScopeNotificationSettings> get_scope_notification_settings(
@@ -157,18 +150,25 @@ Result<ScopeNotificationSettings> get_scope_notification_settings(
   if (notification_settings == nullptr) {
     return Status::Error(400, "New notification settings must be non-empty");
   }
-  if (!clean_input_string(notification_settings->sound_)) {
-    return Status::Error(400, "Notification settings sound must be encoded in UTF-8");
-  }
-  if (notification_settings->sound_.empty()) {
-    notification_settings->sound_ = "default";
-  }
 
   auto mute_until = get_mute_until(notification_settings->mute_for_);
-  return ScopeNotificationSettings(mute_until, std::move(notification_settings->sound_),
+  return ScopeNotificationSettings(mute_until, get_notification_sound(false, notification_settings->sound_id_),
                                    notification_settings->show_preview_,
                                    notification_settings->disable_pinned_message_notifications_,
                                    notification_settings->disable_mention_notifications_);
+}
+
+static unique_ptr<NotificationSound> get_peer_notification_sound(
+    tl_object_ptr<telegram_api::peerNotifySettings> &settings) {
+  telegram_api::NotificationSound *sound =
+#if TD_ANDROID
+      settings->android_sound_.get();
+#elif TD_DARWIN_IOS || TD_DARWIN_TV_OS || TD_DARWIN_WATCH_OS
+      settings->ios_sound_.get();
+#else
+      settings->other_sound_.get();
+#endif
+  return get_notification_sound(sound);
 }
 
 DialogNotificationSettings get_dialog_notification_settings(tl_object_ptr<telegram_api::peerNotifySettings> &&settings,
@@ -176,20 +176,17 @@ DialogNotificationSettings get_dialog_notification_settings(tl_object_ptr<telegr
                                                             bool old_disable_pinned_message_notifications,
                                                             bool old_use_default_disable_mention_notifications,
                                                             bool old_disable_mention_notifications) {
+  if (settings == nullptr) {
+    return DialogNotificationSettings();
+  }
   bool use_default_mute_until = (settings->flags_ & telegram_api::peerNotifySettings::MUTE_UNTIL_MASK) == 0;
-  bool use_default_sound = (settings->flags_ & telegram_api::peerNotifySettings::SOUND_MASK) == 0;
   bool use_default_show_preview = (settings->flags_ & telegram_api::peerNotifySettings::SHOW_PREVIEWS_MASK) == 0;
   auto mute_until = use_default_mute_until || settings->mute_until_ <= G()->unix_time() ? 0 : settings->mute_until_;
-  auto sound = std::move(settings->sound_);
-  if (sound.empty()) {
-    sound = "default";
-  }
   bool silent_send_message =
       (settings->flags_ & telegram_api::peerNotifySettings::SILENT_MASK) == 0 ? false : settings->silent_;
   return {use_default_mute_until,
           mute_until,
-          use_default_sound,
-          std::move(sound),
+          get_peer_notification_sound(settings),
           use_default_show_preview,
           settings->show_previews_,
           silent_send_message,
@@ -202,22 +199,21 @@ DialogNotificationSettings get_dialog_notification_settings(tl_object_ptr<telegr
 ScopeNotificationSettings get_scope_notification_settings(tl_object_ptr<telegram_api::peerNotifySettings> &&settings,
                                                           bool old_disable_pinned_message_notifications,
                                                           bool old_disable_mention_notifications) {
+  if (settings == nullptr) {
+    return ScopeNotificationSettings();
+  }
   auto mute_until = (settings->flags_ & telegram_api::peerNotifySettings::MUTE_UNTIL_MASK) == 0 ||
                             settings->mute_until_ <= G()->unix_time()
                         ? 0
                         : settings->mute_until_;
-  auto sound = std::move(settings->sound_);
-  if (sound.empty()) {
-    sound = "default";
-  }
   auto show_preview =
       (settings->flags_ & telegram_api::peerNotifySettings::SHOW_PREVIEWS_MASK) == 0 ? false : settings->show_previews_;
-  return {mute_until, std::move(sound), show_preview, old_disable_pinned_message_notifications,
+  return {mute_until, get_peer_notification_sound(settings), show_preview, old_disable_pinned_message_notifications,
           old_disable_mention_notifications};
 }
 
 bool are_default_dialog_notification_settings(const DialogNotificationSettings &settings, bool compare_sound) {
-  return settings.use_default_mute_until && (!compare_sound || settings.use_default_sound) &&
+  return settings.use_default_mute_until && (!compare_sound || is_notification_sound_default(settings.sound)) &&
          settings.use_default_show_preview && settings.use_default_disable_pinned_message_notifications &&
          settings.use_default_disable_mention_notifications;
 }

@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -13,7 +13,6 @@
 
 #include "td/tl/tl_object_store.h"
 
-#include "td/utils/port/Clocks.h"
 #include "td/utils/tl_helpers.h"
 
 namespace td {
@@ -89,12 +88,12 @@ class HeaderStorer {
         for (auto &value : values) {
           if (value->key_ == "tz_offset") {
             has_tz_offset = true;
-            break;
+            value->value_ = make_tl_object<telegram_api::jsonNumber>(options.tz_offset);
           }
         }
         if (!has_tz_offset) {
           values.push_back(make_tl_object<telegram_api::jsonObjectValue>(
-              "tz_offset", make_tl_object<telegram_api::jsonNumber>(Clocks::tz_offset())));
+              "tz_offset", make_tl_object<telegram_api::jsonNumber>(options.tz_offset)));
         }
       }
       TlStoreBoxedUnknown<TlStoreObject>::store(json_value, storer);

@@ -1,17 +1,17 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
-#include "tl_generate.h"
+#include "td/tl/tl_generate.h"
 
-#include "tl_config.h"
-#include "tl_core.h"
-#include "tl_file_utils.h"
-#include "tl_outputer.h"
-#include "tl_string_outputer.h"
-#include "tl_writer.h"
+#include "td/tl/tl_config.h"
+#include "td/tl/tl_core.h"
+#include "td/tl/tl_file_utils.h"
+#include "td/tl/tl_outputer.h"
+#include "td/tl/tl_string_outputer.h"
+#include "td/tl/tl_writer.h"
 
 #include <cassert>
 #include <cstdint>
@@ -245,18 +245,18 @@ static void write_function(tl_outputer &out, const tl_combinator *t, const std::
 
   std::string class_name = w.gen_class_name(t->name);
 
-  out.append(w.gen_class_begin(class_name, w.gen_base_function_class_name(), false));
+  out.append(w.gen_class_begin(class_name, w.gen_base_function_class_name(), false, t->result));
 
   int required_args = gen_field_definitions(out, t, class_name, w);
-  out.append(w.gen_flags_definitions(t));
+  out.append(w.gen_flags_definitions(t, true));
 
   std::vector<var_description> vars(t->var_count);
   out.append(w.gen_function_vars(t, vars));
 
-  if (w.is_default_constructor_generated(t, true)) {
+  if (w.is_default_constructor_generated(t, false, true)) {
     write_class_constructor(out, t, class_name, true, w);
   }
-  if (required_args) {
+  if (required_args && w.is_full_constructor_generated(t, false, true)) {
     write_class_constructor(out, t, class_name, false, w);
   }
 
@@ -302,14 +302,42 @@ static void write_constructor(tl_outputer &out, const tl_combinator *t, const st
 
   std::string class_name = w.gen_class_name(t->name);
 
-  out.append(w.gen_class_begin(class_name, base_class, is_proxy));
+  out.append(w.gen_class_begin(class_name, base_class, is_proxy, t->result));
   int required_args = gen_field_definitions(out, t, class_name, w);
-  out.append(w.gen_flags_definitions(t));
 
-  if (w.is_default_constructor_generated(t, false)) {
+  bool can_be_parsed = false;
+  bool is_can_be_parsed_inited = false;
+  std::vector<std::string> parsers = w.get_parsers();
+  for (std::size_t i = 0; i < parsers.size(); i++) {
+    int parser_type = w.get_parser_type(t, parsers[i]);
+    if (w.get_parser_mode(parser_type) != TL_writer::All) {
+      can_be_parsed |= is_reachable_for_parser(parser_type, t->name, request_types, result_types, w);
+      is_can_be_parsed_inited = true;
+    }
+  }
+  if (!is_can_be_parsed_inited) {
+    can_be_parsed = true;
+  }
+
+  bool can_be_stored = false;
+  bool is_can_be_stored_inited = false;
+  std::vector<std::string> storers = w.get_storers();
+  for (std::size_t i = 0; i < storers.size(); i++) {
+    int storer_type = w.get_storer_type(t, storers[i]);
+    if (w.get_storer_mode(storer_type) != TL_writer::All) {
+      can_be_stored |= is_reachable_for_storer(storer_type, t->name, request_types, result_types, w);
+      is_can_be_stored_inited = true;
+    }
+  }
+  if (!is_can_be_stored_inited) {
+    can_be_stored = true;
+  }
+
+  out.append(w.gen_flags_definitions(t, can_be_stored));
+  if (w.is_default_constructor_generated(t, can_be_parsed, can_be_stored)) {
     write_class_constructor(out, t, class_name, true, w);
   }
-  if (required_args) {
+  if (required_args && w.is_full_constructor_generated(t, can_be_parsed, can_be_stored)) {
     write_class_constructor(out, t, class_name, false, w);
   }
 
@@ -319,7 +347,6 @@ static void write_constructor(tl_outputer &out, const tl_combinator *t, const st
   assert(t->result->get_type() == NODE_TYPE_TYPE);
   const tl_tree_type *result_type = static_cast<const tl_tree_type *>(t->result);
 
-  std::vector<std::string> parsers = w.get_parsers();
   for (std::size_t i = 0; i < parsers.size(); i++) {
     write_constructor_fetch(out, parsers[i], t, class_name, parent_class, result_type,
                             required_args == 1 && result_type->type->simple_constructors == 1, request_types,
@@ -327,7 +354,6 @@ static void write_constructor(tl_outputer &out, const tl_combinator *t, const st
   }
 
   //  STORER
-  std::vector<std::string> storers = w.get_storers();
   for (std::size_t i = 0; i < storers.size(); i++) {
     write_constructor_store(out, storers[i], t, class_name, result_type,
                             required_args == 1 && result_type->type->simple_constructors == 1, request_types,
@@ -360,7 +386,7 @@ void write_class(tl_outputer &out, const tl_type *t, const std::set<std::string>
   std::vector<var_description> empty_vars;
   bool optimize_one_constructor = (t->simple_constructors == 1);
   if (!optimize_one_constructor) {
-    out.append(w.gen_class_begin(class_name, base_class, true));
+    out.append(w.gen_class_begin(class_name, base_class, true, nullptr));
 
     out.append(w.gen_get_id(class_name, 0, true));
 
@@ -483,7 +509,6 @@ void write_tl(const tl_config &config, tl_outputer &out, const TL_writer &w) {
   std::size_t types_n = config.get_type_count();
   std::size_t functions_n = config.get_function_count();
 
-  bool found_complex = false;
   for (std::size_t type = 0; type < types_n; type++) {
     tl_type *t = config.get_type_by_num(type);
     assert(t->constructors_num == t->constructors.size());
@@ -491,7 +516,6 @@ void write_tl(const tl_config &config, tl_outputer &out, const TL_writer &w) {
       if (t->name == "Type") {
         assert(t->id == ID_VAR_TYPE);
         t->flags |= FLAG_COMPLEX;
-        found_complex = true;
       }
       continue;
     }
@@ -529,7 +553,6 @@ void write_tl(const tl_config &config, tl_outputer &out, const TL_writer &w) {
                 b.exist_var_num != -1) {
               if (!w.is_built_in_complex_type(t->name)) {
                 t->flags |= FLAG_COMPLEX;
-                found_complex = true;
               }
             } else {
               assert(b_arg_type == NODE_TYPE_TYPE);
@@ -549,14 +572,13 @@ void write_tl(const tl_config &config, tl_outputer &out, const TL_writer &w) {
       if (main_type == NODE_TYPE_VAR_TYPE) {
         if (!w.is_built_in_complex_type(t->name)) {
           t->flags |= FLAG_COMPLEX;
-          found_complex = true;
         }
       }
     }
   }
 
-  while (found_complex) {
-    found_complex = false;
+  while (true) {
+    bool found_complex = false;
     for (std::size_t type = 0; type < types_n; type++) {
       tl_type *t = config.get_type_by_num(type);
       if (t->constructors_num == 0 || w.is_built_in_complex_type(t->name)) {  // built-in dummy or complex types
@@ -575,6 +597,9 @@ void write_tl(const tl_config &config, tl_outputer &out, const TL_writer &w) {
         found_complex = true;
         //  std::fprintf(stderr, "Found complex %s\n", t->name.c_str());
       }
+    }
+    if (!found_complex) {
+      break;
     }
   }
 
@@ -623,7 +648,7 @@ void write_tl(const tl_config &config, tl_outputer &out, const TL_writer &w) {
   // write base classes
   std::vector<var_description> empty_vars;
   for (int i = 0; i <= w.get_max_arity(); i++) {
-    out.append(w.gen_class_begin(w.gen_base_type_class_name(i), w.gen_base_tl_class_name(), true));
+    out.append(w.gen_class_begin(w.gen_base_type_class_name(i), w.gen_base_tl_class_name(), true, nullptr));
 
     out.append(w.gen_get_id(w.gen_base_type_class_name(i), 0, true));
 
@@ -717,7 +742,7 @@ void write_tl(const tl_config &config, tl_outputer &out, const TL_writer &w) {
   }
 
   {
-    out.append(w.gen_class_begin(w.gen_base_function_class_name(), w.gen_base_tl_class_name(), true));
+    out.append(w.gen_class_begin(w.gen_base_function_class_name(), w.gen_base_tl_class_name(), true, nullptr));
 
     out.append(w.gen_get_id(w.gen_base_function_class_name(), 0, true));
 
@@ -832,7 +857,7 @@ bool write_tl_to_file(const tl_config &config, const std::string &file_name, con
   tl_string_outputer out;
   write_tl(config, out, w);
 
-  auto old_file_contents = get_file_contents(file_name, "rb");
+  std::string old_file_contents = get_file_contents(file_name, "rb");
   if (!w.is_documentation_generated()) {
     old_file_contents = remove_documentation(old_file_contents);
   }

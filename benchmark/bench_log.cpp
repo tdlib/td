@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -11,7 +11,6 @@
 #include <cstdio>
 #include <fstream>
 #include <iostream>
-#include <mutex>
 #include <ostream>
 #include <streambuf>
 #include <string>
@@ -36,7 +35,7 @@ std::string create_tmp_file() {
 #endif
 }
 
-class IostreamWriteBench : public td::Benchmark {
+class IostreamWriteBench final : public td::Benchmark {
  protected:
   std::string file_name_;
   std::ofstream stream;
@@ -44,30 +43,30 @@ class IostreamWriteBench : public td::Benchmark {
   char buffer[BUFFER_SIZE];
 
  public:
-  std::string get_description() const override {
+  std::string get_description() const final {
     return "ostream (to file, no buf, no flush)";
   }
 
-  void start_up() override {
+  void start_up() final {
     file_name_ = create_tmp_file();
     stream.open(file_name_.c_str());
     CHECK(stream.is_open());
     //    stream.rdbuf()->pubsetbuf(buffer, BUFFER_SIZE);
   }
 
-  void run(int n) override {
+  void run(int n) final {
     for (int i = 0; i < n; i++) {
       stream << "This is just for test" << 987654321 << '\n';
     }
   }
 
-  void tear_down() override {
+  void tear_down() final {
     stream.close();
     unlink(file_name_.c_str());
   }
 };
 
-class FILEWriteBench : public td::Benchmark {
+class FILEWriteBench final : public td::Benchmark {
  protected:
   std::string file_name_;
   FILE *file;
@@ -75,24 +74,24 @@ class FILEWriteBench : public td::Benchmark {
   char buffer[BUFFER_SIZE];
 
  public:
-  std::string get_description() const override {
+  std::string get_description() const final {
     return "std::fprintf (to file, no buf, no flush)";
   }
 
-  void start_up() override {
+  void start_up() final {
     file_name_ = create_tmp_file();
     file = fopen(file_name_.c_str(), "w");
     //    setvbuf(file, buffer, _IOFBF, BUFFER_SIZE);
   }
 
-  void run(int n) override {
+  void run(int n) final {
     for (int i = 0; i < n; i++) {
       std::fprintf(file, "This is just for test%d\n", 987654321);
       //      std::fflush(file);
     }
   }
 
-  void tear_down() override {
+  void tear_down() final {
     std::fclose(file);
     unlink(file_name_.c_str());
   }
@@ -101,24 +100,24 @@ class FILEWriteBench : public td::Benchmark {
 #if TD_ANDROID
 #include <android/log.h>
 #define ALOG(...) __android_log_print(ANDROID_LOG_VERBOSE, "XXX", __VA_ARGS__)
-class ALogWriteBench : public td::Benchmark {
+class ALogWriteBench final : public td::Benchmark {
  public:
-  std::string get_description() const override {
+  std::string get_description() const final {
     return "android_log";
   }
-  void start_up() override {
+  void start_up() final {
   }
-  void run(int n) override {
+  void run(int n) final {
     for (int i = 0; i < n; i++) {
       ALOG("This is just for test%d\n", 987654321);
     }
   }
-  void tear_down() override {
+  void tear_down() final {
   }
 };
 #endif
 
-class LogWriteBench : public td::Benchmark {
+class LogWriteBench final : public td::Benchmark {
  protected:
   std::string file_name_;
   std::ofstream stream;
@@ -127,31 +126,29 @@ class LogWriteBench : public td::Benchmark {
   char buffer[BUFFER_SIZE];
 
  public:
-  std::string get_description() const override {
+  std::string get_description() const final {
     return "td_log (slow in debug mode)";
   }
 
-  void start_up() override {
+  void start_up() final {
     file_name_ = create_tmp_file();
     stream.open(file_name_.c_str());
     CHECK(stream.is_open());
     old_buf = std::cerr.rdbuf(stream.rdbuf());
   }
 
-  void run(int n) override {
+  void run(int n) final {
     for (int i = 0; i < n; i++) {
       LOG(DEBUG) << "This is just for test" << 987654321;
     }
   }
 
-  void tear_down() override {
+  void tear_down() final {
     stream.close();
     unlink(file_name_.c_str());
     std::cerr.rdbuf(old_buf);
   }
 };
-
-std::mutex mutex;
 
 int main() {
   td::bench(LogWriteBench());
@@ -160,5 +157,4 @@ int main() {
 #endif
   td::bench(IostreamWriteBench());
   td::bench(FILEWriteBench());
-  return 0;
 }

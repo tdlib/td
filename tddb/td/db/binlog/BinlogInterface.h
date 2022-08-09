@@ -1,18 +1,17 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 #pragma once
 
-#include "td/actor/PromiseFuture.h"
-
 #include "td/db/binlog/BinlogEvent.h"
 #include "td/db/DbKey.h"
 
 #include "td/utils/buffer.h"
 #include "td/utils/common.h"
+#include "td/utils/Promise.h"
 #include "td/utils/StorerBase.h"
 
 namespace td {
@@ -43,22 +42,22 @@ class BinlogInterface {
   }
 
   uint64 add(int32 type, const Storer &storer, Promise<> promise = Promise<>()) {
-    auto logevent_id = next_id();
-    add_raw_event_impl(logevent_id, BinlogEvent::create_raw(logevent_id, type, 0, storer), std::move(promise), {});
-    return logevent_id;
+    auto log_event_id = next_id();
+    add_raw_event_impl(log_event_id, BinlogEvent::create_raw(log_event_id, type, 0, storer), std::move(promise), {});
+    return log_event_id;
   }
 
-  uint64 rewrite(uint64 logevent_id, int32 type, const Storer &storer, Promise<> promise = Promise<>()) {
+  uint64 rewrite(uint64 log_event_id, int32 type, const Storer &storer, Promise<> promise = Promise<>()) {
     auto seq_no = next_id();
-    add_raw_event_impl(seq_no, BinlogEvent::create_raw(logevent_id, type, BinlogEvent::Flags::Rewrite, storer),
+    add_raw_event_impl(seq_no, BinlogEvent::create_raw(log_event_id, type, BinlogEvent::Flags::Rewrite, storer),
                        std::move(promise), {});
     return seq_no;
   }
 
-  uint64 erase(uint64 logevent_id, Promise<> promise = Promise<>()) {
+  uint64 erase(uint64 log_event_id, Promise<> promise = Promise<>()) {
     auto seq_no = next_id();
     add_raw_event_impl(seq_no,
-                       BinlogEvent::create_raw(logevent_id, BinlogEvent::ServiceTypes::Empty,
+                       BinlogEvent::create_raw(log_event_id, BinlogEvent::ServiceTypes::Empty,
                                                BinlogEvent::Flags::Rewrite, EmptyStorer()),
                        std::move(promise), {});
     return seq_no;
@@ -66,7 +65,7 @@ class BinlogInterface {
 
   virtual void force_sync(Promise<> promise) = 0;
   virtual void force_flush() = 0;
-  virtual void change_key(DbKey db_key, Promise<> promise = Promise<>()) = 0;
+  virtual void change_key(DbKey db_key, Promise<> promise) = 0;
 
   virtual uint64 next_id() = 0;
   virtual uint64 next_id(int32 shift) = 0;

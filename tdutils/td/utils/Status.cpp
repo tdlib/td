@@ -1,10 +1,12 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 #include "td/utils/Status.h"
+
+#include "td/utils/SliceBuilder.h"
 
 #if TD_PORT_WINDOWS
 #include "td/utils/port/wstring_convert.h"
@@ -42,13 +44,45 @@ string winerror_to_string(int code) {
   wchar_t wbuf[size];
   auto res_size = FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM, nullptr, code, 0, wbuf, size - 1, nullptr);
   if (res_size == 0) {
-    return "Unknown windows error";
+    return "Unknown Windows error";
   }
   while (res_size != 0 && (wbuf[res_size - 1] == '\n' || wbuf[res_size - 1] == '\r')) {
     res_size--;
   }
-  return from_wstring(wbuf, res_size).ok();
+  auto error_message = from_wstring(wbuf, res_size);
+  if (error_message.is_error()) {
+    return "Invalid Windows error";
+  }
+  return error_message.move_as_ok();
 }
 #endif
+
+Status Status::move_as_error_prefix(Slice prefix) const {
+  CHECK(is_error());
+  Info info = get_info();
+  switch (info.error_type) {
+    case ErrorType::General:
+      return Error(code(), PSLICE() << prefix << message());
+    case ErrorType::Os:
+      return Status(false, ErrorType::Os, code(), PSLICE() << prefix << message());
+    default:
+      UNREACHABLE();
+      return {};
+  }
+}
+
+Status Status::move_as_error_suffix(Slice suffix) const {
+  CHECK(is_error());
+  Info info = get_info();
+  switch (info.error_type) {
+    case ErrorType::General:
+      return Error(code(), PSLICE() << message() << suffix);
+    case ErrorType::Os:
+      return Status(false, ErrorType::Os, code(), PSLICE() << message() << suffix);
+    default:
+      UNREACHABLE();
+      return {};
+  }
+}
 
 }  // namespace td

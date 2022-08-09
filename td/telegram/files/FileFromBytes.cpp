@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -18,8 +18,8 @@ FileFromBytes::FileFromBytes(FileType type, BufferSlice bytes, string name, uniq
 }
 
 void FileFromBytes::wakeup() {
-  int64 size = narrow_cast<int64>(bytes_.size());
-  auto r_result = save_file_bytes(type_, std::move(bytes_), std::move(name_));
+  auto size = narrow_cast<int64>(bytes_.size());
+  auto r_result = save_file_bytes(type_, std::move(bytes_), name_);
   if (r_result.is_error()) {
     callback_->on_error(r_result.move_as_error());
   } else {

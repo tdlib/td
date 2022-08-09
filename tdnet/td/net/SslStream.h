@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -19,13 +19,14 @@ class SslStreamImpl;
 class SslStream {
  public:
   SslStream();
-  SslStream(SslStream &&);
-  SslStream &operator=(SslStream &&);
+  SslStream(SslStream &&) noexcept;
+  SslStream &operator=(SslStream &&) noexcept;
   ~SslStream();
 
   enum class VerifyPeer { On, Off };
 
-  static Result<SslStream> create(CSlice host, CSlice cert_file = CSlice(), VerifyPeer verify_peer = VerifyPeer::On);
+  static Result<SslStream> create(CSlice host, CSlice cert_file = CSlice(), VerifyPeer verify_peer = VerifyPeer::On,
+                                  bool use_ip_address_as_host = false);
 
   ByteFlowInterface &read_byte_flow();
   ByteFlowInterface &write_byte_flow();

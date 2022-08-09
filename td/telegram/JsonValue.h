@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -25,5 +25,13 @@ td_api::object_ptr<td_api::JsonValue> convert_json_value_object(
 tl_object_ptr<telegram_api::JSONValue> convert_json_value(td_api::object_ptr<td_api::JsonValue> &&json_value);
 
 string get_json_string(const td_api::JsonValue *json_value);
+
+bool get_json_value_bool(telegram_api::object_ptr<telegram_api::JSONValue> &&json_value, Slice name);
+
+int32 get_json_value_int(telegram_api::object_ptr<telegram_api::JSONValue> &&json_value, Slice name);
+
+double get_json_value_double(telegram_api::object_ptr<telegram_api::JSONValue> &&json_value, Slice name);
+
+string get_json_value_string(telegram_api::object_ptr<telegram_api::JSONValue> &&json_value, Slice name);
 
 }  // namespace td

@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -13,7 +13,6 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <memory>
 #include <string>
 #include <type_traits>
 #include <utility>
@@ -88,9 +87,7 @@ class TlObject {
   virtual ~TlObject() = default;
 };
 
-/**
- * A smart wrapper to store a pointer to a TL-object.
- */
+/// @cond UNDOCUMENTED
 namespace tl {
 
 template <class T>
@@ -116,15 +113,16 @@ class unique_ptr {
   }
   explicit unique_ptr(T *ptr) noexcept : ptr_(ptr) {
   }
-  template <class S, class = std::enable_if_t<std::is_base_of<T, S>::value>>
+  template <class S, class = typename std::enable_if<std::is_base_of<T, S>::value>::type>
   unique_ptr(unique_ptr<S> &&other) noexcept : ptr_(static_cast<S *>(other.release())) {
   }
-  template <class S, class = std::enable_if_t<std::is_base_of<T, S>::value>>
+  template <class S, class = typename std::enable_if<std::is_base_of<T, S>::value>::type>
   unique_ptr &operator=(unique_ptr<S> &&other) noexcept {
     reset(static_cast<T *>(other.release()));
     return *this;
   }
   void reset(T *new_ptr = nullptr) noexcept {
+    static_assert(sizeof(T) > 0, "Can't destroy unique_ptr with incomplete type");
     delete ptr_;
     ptr_ = new_ptr;
   }
@@ -177,6 +175,11 @@ bool operator!=(const unique_ptr<T> &p, std::nullptr_t) {
 }
 
 }  // namespace tl
+/// @endcond
+
+/**
+ * A smart wrapper to store a pointer to a TL-object.
+ */
 template <class Type>
 using tl_object_ptr = tl::unique_ptr<Type>;
 
@@ -186,8 +189,8 @@ using tl_object_ptr = tl::unique_ptr<Type>;
  * \code
  * auto get_authorization_state_request = td::make_tl_object<td::td_api::getAuthorizationState>();
  * auto message_text = td::make_tl_object<td::td_api::formattedText>("Hello, world!!!",
- *                     std::vector<td::tl_object_ptr<td::td_api::textEntity>>());
- * auto send_message_request = td::make_tl_object<td::td_api::sendMessage>(chat_id, 0, nullptr, nullptr,
+ *                     td::td_api::array<td::tl_object_ptr<td::td_api::textEntity>>());
+ * auto send_message_request = td::make_tl_object<td::td_api::sendMessage>(chat_id, 0, 0, nullptr, nullptr,
  *      td::make_tl_object<td::td_api::inputMessageText>(std::move(message_text), false, true));
  * \endcode
  *
@@ -196,7 +199,7 @@ using tl_object_ptr = tl::unique_ptr<Type>;
  * \return Wrapped pointer to the created TL-object.
  */
 template <class Type, class... Args>
-tl_object_ptr<Type> make_tl_object(Args &&... args) {
+tl_object_ptr<Type> make_tl_object(Args &&...args) {
   return tl_object_ptr<Type>(new Type(std::forward<Args>(args)...));
 }
 

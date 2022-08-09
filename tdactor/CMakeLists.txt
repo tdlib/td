@@ -1,4 +1,6 @@
-cmake_minimum_required(VERSION 3.0.2 FATAL_ERROR)
+if ((CMAKE_MAJOR_VERSION LESS 3) OR (CMAKE_VERSION VERSION_LESS "3.0.2"))
+  message(FATAL_ERROR "CMake >= 3.0.2 is required")
+endif()
 
 if (NOT DEFINED CMAKE_INSTALL_LIBDIR)
   set(CMAKE_INSTALL_LIBDIR "lib")
@@ -6,11 +8,13 @@ endif()
 
 #SOURCE SETS
 set(TDACTOR_SOURCE
-  td/actor/impl/ConcurrentScheduler.cpp
+  td/actor/ConcurrentScheduler.cpp
   td/actor/impl/Scheduler.cpp
   td/actor/MultiPromise.cpp
-  td/actor/Timeout.cpp
+  td/actor/MultiTimeout.cpp
 
+  td/actor/actor.h
+  td/actor/ConcurrentScheduler.h
   td/actor/impl/Actor-decl.h
   td/actor/impl/Actor.h
   td/actor/impl/ActorId-decl.h
@@ -19,17 +23,16 @@ set(TDACTOR_SOURCE
   td/actor/impl/ActorInfo.h
   td/actor/impl/EventFull-decl.h
   td/actor/impl/EventFull.h
-  td/actor/impl/ConcurrentScheduler.h
   td/actor/impl/Event.h
   td/actor/impl/Scheduler-decl.h
   td/actor/impl/Scheduler.h
   td/actor/MultiPromise.h
+  td/actor/MultiTimeout.h
   td/actor/PromiseFuture.h
   td/actor/SchedulerLocalStorage.h
   td/actor/SignalSlot.h
   td/actor/SleepActor.h
   td/actor/Timeout.h
-  td/actor/actor.h
 )
 
 set(TDACTOR_TEST_SOURCE

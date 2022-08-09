@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -12,6 +12,7 @@
 #include "td/utils/filesystem.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
+#include "td/utils/TsCerr.h"
 
 #include <algorithm>
 #include <cstdlib>
@@ -25,7 +26,7 @@ static void usage() {
   td::TsCerr() << "Options:\n";
   td::TsCerr() << "  -v<N>\tSet verbosity level to N\n";
   td::TsCerr() << "  -h/--help\tDisplay this information\n";
-  td::TsCerr() << "  -d/--dc-id\tIdentifier of a datacenter, to which try to connect (default is 2)\n";
+  td::TsCerr() << "  -d/--dc-id\tIdentifier of a datacenter to which try to connect (default is 2)\n";
   td::TsCerr() << "  -l/--proxy-list\tName of a file with proxies to check; one proxy per line\n";
   td::TsCerr() << "  -t/--timeout\tMaximum overall timeout for the request (default is 10 seconds)\n";
   std::exit(2);
@@ -160,20 +161,22 @@ int main(int argc, char **argv) {
 
   SET_VERBOSITY_LEVEL(new_verbosity_level);
 
-  td::Client client;
+  td::ClientManager client_manager;
+  auto client_id = client_manager.create_client_id();
   for (size_t i = 0; i < requests.size(); i++) {
     auto &request = requests[i].second;
     request->dc_id_ = dc_id;
     request->timeout_ = timeout;
-    client.send({i + 1, std::move(request)});
+    client_manager.send(client_id, i + 1, std::move(request));
   }
   size_t successful_requests = 0;
   size_t failed_requests = 0;
 
   while (successful_requests + failed_requests != requests.size()) {
-    auto response = client.receive(100.0);
-    if (1 <= response.id && response.id <= requests.size()) {
-      auto &proxy = requests[static_cast<size_t>(response.id - 1)].first;
+    auto response = client_manager.receive(100.0);
+    CHECK(client_id == response.client_id);
+    if (1 <= response.request_id && response.request_id <= requests.size()) {
+      auto &proxy = requests[static_cast<size_t>(response.request_id - 1)].first;
       if (response.object->get_id() == td::td_api::error::ID) {
         LOG(ERROR) << proxy << ": " << to_string(response.object);
         failed_requests++;

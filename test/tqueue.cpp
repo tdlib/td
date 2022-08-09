@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -9,17 +9,18 @@
 #include "td/db/binlog/BinlogHelper.h"
 #include "td/db/TQueue.h"
 
+#include "td/utils/buffer.h"
+#include "td/utils/common.h"
 #include "td/utils/int_types.h"
-#include "td/utils/misc.h"
-#include "td/utils/port/path.h"
+#include "td/utils/logging.h"
+#include "td/utils/Random.h"
 #include "td/utils/Slice.h"
+#include "td/utils/SliceBuilder.h"
 #include "td/utils/Span.h"
-#include "td/utils/Status.h"
 #include "td/utils/tests.h"
-#include "td/utils/VectorQueue.h"
 
-#include <map>
-#include <set>
+#include <memory>
+#include <utility>
 
 TEST(TQueue, hands) {
   td::TQueue::Event events[100];
@@ -29,13 +30,13 @@ TEST(TQueue, hands) {
   auto qid = 12;
   ASSERT_EQ(true, tqueue->get_head(qid).empty());
   ASSERT_EQ(true, tqueue->get_tail(qid).empty());
-  tqueue->push(qid, "hello", 0, 0, td::TQueue::EventId());
+  tqueue->push(qid, "hello", 1, 0, td::TQueue::EventId());
   auto head = tqueue->get_head(qid);
   auto tail = tqueue->get_tail(qid);
   ASSERT_EQ(head.next().ok(), tail);
   ASSERT_EQ(1u, tqueue->get(qid, head, true, 0, events_span).move_as_ok());
   ASSERT_EQ(1u, tqueue->get(qid, head, true, 0, events_span).move_as_ok());
-  ASSERT_EQ(0u, tqueue->get(qid, tail, false, 0, events_span).move_as_ok());
+  ASSERT_EQ(1u, tqueue->get(qid, tail, false, 0, events_span).move_as_ok());
   ASSERT_EQ(1u, tqueue->get(qid, head, true, 0, events_span).move_as_ok());
   ASSERT_EQ(0u, tqueue->get(qid, tail, true, 0, events_span).move_as_ok());
   ASSERT_EQ(0u, tqueue->get(qid, head, true, 0, events_span).move_as_ok());
@@ -66,7 +67,7 @@ class TestTQueue {
     binlog_->set_callback(std::move(tqueue_binlog));
   }
 
-  void restart(td::Random::Xorshift128plus &rnd, double now) {
+  void restart(td::Random::Xorshift128plus &rnd, td::int32 now) {
     if (rnd.fast(0, 10) == 0) {
       baseline_->run_gc(now);
     }
@@ -88,7 +89,9 @@ class TestTQueue {
     binlog_ = td::TQueue::create();
     auto tqueue_binlog = td::make_unique<td::TQueueBinlog<td::Binlog>>();
     auto binlog = std::make_shared<td::Binlog>();
-    binlog->init(binlog_path().str(), [&](const td::BinlogEvent &event) { tqueue_binlog->replay(event, *binlog_); })
+    binlog
+        ->init(binlog_path().str(),
+               [&](const td::BinlogEvent &event) { tqueue_binlog->replay(event, *binlog_).ignore(); })
         .ensure();
     tqueue_binlog->set_binlog(std::move(binlog));
     binlog_->set_callback(std::move(tqueue_binlog));
@@ -97,7 +100,7 @@ class TestTQueue {
     }
   }
 
-  EventId push(td::TQueue::QueueId queue_id, td::string data, double expires_at, EventId new_id = EventId()) {
+  EventId push(td::TQueue::QueueId queue_id, const td::string &data, td::int32 expires_at, EventId new_id = EventId()) {
     auto a_id = baseline_->push(queue_id, data, expires_at, 0, new_id).move_as_ok();
     auto b_id = memory_->push(queue_id, data, expires_at, 0, new_id).move_as_ok();
     auto c_id = binlog_->push(queue_id, data, expires_at, 0, new_id).move_as_ok();
@@ -106,14 +109,14 @@ class TestTQueue {
     return a_id;
   }
 
-  void check_head_tail(td::TQueue::QueueId qid, double now) {
+  void check_head_tail(td::TQueue::QueueId qid) {
     //ASSERT_EQ(baseline_->get_head(qid), memory_->get_head(qid));
     //ASSERT_EQ(baseline_->get_head(qid), binlog_->get_head(qid));
     ASSERT_EQ(baseline_->get_tail(qid), memory_->get_tail(qid));
     ASSERT_EQ(baseline_->get_tail(qid), binlog_->get_tail(qid));
   }
 
-  void check_get(td::TQueue::QueueId qid, td::Random::Xorshift128plus &rnd, double now) {
+  void check_get(td::TQueue::QueueId qid, td::Random::Xorshift128plus &rnd, td::int32 now) {
     td::TQueue::Event a[10];
     td::MutableSpan<td::TQueue::Event> a_span(a, 10);
     td::TQueue::Event b[10];
@@ -165,7 +168,7 @@ TEST(TQueue, random) {
   };
 
   TestTQueue q;
-  double now = 0;
+  td::int32 now = 1000;
   auto push_event = [&] {
     auto data = PSTRING() << rnd();
     if (rnd.fast(0, 10000) == 0) {
@@ -177,7 +180,7 @@ TEST(TQueue, random) {
     now += 10;
   };
   auto check_head_tail = [&] {
-    q.check_head_tail(next_queue_id(), now);
+    q.check_head_tail(next_queue_id());
   };
   auto restart = [&] {
     q.restart(rnd, now);
@@ -188,5 +191,37 @@ TEST(TQueue, random) {
   td::RandomSteps steps({{push_event, 100}, {check_head_tail, 10}, {get, 40}, {inc_now, 5}, {restart, 1}});
   for (int i = 0; i < 100000; i++) {
     steps.step(rnd);
+  }
+}
+
+TEST(TQueue, memory_leak) {
+  return;
+  auto tqueue = td::TQueue::create();
+  auto tqueue_binlog = td::make_unique<td::TQueueBinlog<td::Binlog>>();
+  std::string binlog_path = "test_tqueue.binlog";
+  td::Binlog::destroy(binlog_path).ensure();
+  auto binlog = std::make_shared<td::Binlog>();
+  binlog->init(binlog_path, [&](const td::BinlogEvent &event) { UNREACHABLE(); }).ensure();
+  tqueue_binlog->set_binlog(std::move(binlog));
+  tqueue->set_callback(std::move(tqueue_binlog));
+
+  td::int32 now = 0;
+  std::vector<td::TQueue::EventId> ids;
+  td::Random::Xorshift128plus rnd(123);
+  int i = 0;
+  while (true) {
+    auto id = tqueue->push(1, "a", now + 600000, 0, {}).move_as_ok();
+    ids.push_back(id);
+    if (ids.size() > static_cast<std::size_t>(rnd()) % 100000) {
+      auto it = static_cast<std::size_t>(rnd()) % ids.size();
+      std::swap(ids.back(), ids[it]);
+      tqueue->forget(1, ids.back());
+      ids.pop_back();
+    }
+    now++;
+    if (i++ % 100000 == 0) {
+      LOG(ERROR) << td::BufferAllocator::get_buffer_mem() << " " << tqueue->get_size(1) << " "
+                 << td::BufferAllocator::get_buffer_slice_size();
+    }
   }
 }

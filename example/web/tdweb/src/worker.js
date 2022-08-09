@@ -63,18 +63,20 @@ async function initLocalForage() {
 
 async function loadTdlibWasm(onFS, wasmUrl) {
   console.log('loadTdlibWasm');
-  const Module = await import('./prebuilt/release/td_wasm.js');
-  log.info('got td_wasm.js');
+  const td_module = await import('./prebuilt/release/td_wasm.js');
+  const createTdwebModule = td_module.default;
+  log.info('got td_wasm.js', td_module, createTdwebModule);
   let td_wasm = td_wasm_release;
   if (wasmUrl) {
     td_wasm = wasmUrl;
   }
-  const module = Module.default({
+  let module = createTdwebModule({
     onRuntimeInitialized: () => {
       log.info('runtime intialized');
+      onFS(module.FS);
     },
     instantiateWasm: (imports, successCallback) => {
-      log.info('start instantiateWasm', td_wasm);
+      log.info('start instantiateWasm', td_wasm, imports);
       const next = instance => {
         log.info('finish instantiateWasm');
         successCallback(instance);
@@ -84,27 +86,24 @@ async function loadTdlibWasm(onFS, wasmUrl) {
     },
     ENVIROMENT: 'WORKER'
   });
+  log.info('Wait module');
+  module = await module;
   log.info('Got module', module);
-  onFS(module.FS);
-  const TdModule = new Promise((resolve, reject) =>
-    module.then(m => {
-      delete m.then;
-      resolve(m);
-    })
-  );
-
-  return TdModule;
+  //onFS(module.FS);
+  return module;
 }
 
 async function loadTdlibAsmjs(onFS) {
   console.log('loadTdlibAsmjs');
-  const Module = await import('./prebuilt/release/td_asmjs.js');
-  console.log('got td_asm.js');
+  const createTdwebModule = (await import('./prebuilt/release/td_asmjs.js'))
+    .default;
+  console.log('got td_asm.js', createTdwebModule);
   const fromFile = 'td_asmjs.js.mem';
   const toFile = td_asmjs_mem_release;
-  const module = Module.default({
+  let module = createTdwebModule({
     onRuntimeInitialized: () => {
       console.log('runtime intialized');
+      onFS(module.FS);
     },
     locateFile: name => {
       if (name === fromFile) {
@@ -114,15 +113,11 @@ async function loadTdlibAsmjs(onFS) {
     },
     ENVIROMENT: 'WORKER'
   });
-  onFS(module.FS);
-  const TdModule = new Promise((resolve, reject) =>
-    module.then(m => {
-      delete m.then;
-      resolve(m);
-    })
-  );
-
-  return TdModule;
+  log.info('Wait module');
+  module = await module;
+  log.info('Got module', module);
+  //onFS(module.FS);
+  return module;
 }
 
 async function loadTdlib(mode, onFS, wasmUrl) {
@@ -619,24 +614,32 @@ class TdClient {
     this.TdModule = await loadTdlib(mode, this.onFS, options.wasmUrl);
     log.info('got TdModule');
     this.td_functions = {
-      td_create: this.TdModule.cwrap('td_create', 'number', []),
-      td_destroy: this.TdModule.cwrap('td_destroy', null, ['number']),
-      td_send: this.TdModule.cwrap('td_send', null, ['number', 'string']),
-      td_execute: this.TdModule.cwrap('td_execute', 'string', [
+      td_create: this.TdModule.cwrap(
+        'td_emscripten_create_client_id',
+        'number',
+        []
+      ),
+      td_send: this.TdModule.cwrap('td_emscripten_send', null, [
         'number',
         'string'
       ]),
-      td_receive: this.TdModule.cwrap('td_receive', 'string', ['number']),
+      td_execute: this.TdModule.cwrap('td_emscripten_execute', 'string', [
+        'string'
+      ]),
+      td_receive: this.TdModule.cwrap('td_emscripten_receive', 'string', []),
       td_set_verbosity: verbosity => {
         this.td_functions.td_execute(
-          0,
           JSON.stringify({
             '@type': 'setLogVerbosityLevel',
             new_verbosity_level: verbosity
           })
         );
       },
-      td_get_timeout: this.TdModule.cwrap('td_get_timeout', 'number', [])
+      td_get_timeout: this.TdModule.cwrap(
+        'td_emscripten_get_timeout',
+        'number',
+        []
+      )
     };
     //this.onFS(this.TdModule.FS);
     this.FS = this.TdModule.FS;
@@ -680,7 +683,7 @@ class TdClient {
       options.logVerbosityLevel = 2;
     }
     this.td_functions.td_set_verbosity(options.logVerbosityLevel);
-    this.client = this.td_functions.td_create();
+    this.client_id = this.td_functions.td_create();
 
     this.savingFiles = new Map();
     this.send({
@@ -843,13 +846,13 @@ class TdClient {
       return;
     }
     query = this.prepareQuery(query);
-    this.td_functions.td_send(this.client, JSON.stringify(query));
+    this.td_functions.td_send(this.client_id, JSON.stringify(query));
     this.scheduleReceiveSoon();
   }
 
   execute(query) {
     try {
-      const res = this.td_functions.td_execute(0, JSON.stringify(query));
+      const res = this.td_functions.td_execute(JSON.stringify(query));
       const response = JSON.parse(res);
       this.callback(response);
     } catch (error) {
@@ -863,7 +866,7 @@ class TdClient {
     }
     try {
       while (true) {
-        const msg = this.td_functions.td_receive(this.client);
+        const msg = this.td_functions.td_receive();
         if (!msg) {
           break;
         }

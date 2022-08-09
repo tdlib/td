@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -8,9 +8,9 @@
 #include "td/utils/benchmark.h"
 #include "td/utils/common.h"
 #include "td/utils/crypto.h"
-#include "td/utils/logging.h"
 #include "td/utils/Random.h"
 #include "td/utils/Slice.h"
+#include "td/utils/SliceBuilder.h"
 #include "td/utils/tests.h"
 #include "td/utils/UInt.h"
 
@@ -71,17 +71,32 @@ TEST(Crypto, AesCtrState) {
     td::AesCtrState state;
     state.init(as_slice(key), as_slice(iv));
     td::string t(length, '\0');
-    state.encrypt(s, t);
+    std::size_t pos = 0;
+    for (const auto &str : td::rand_split(td::string(length, '\0'))) {
+      auto len = str.size();
+      state.encrypt(td::Slice(s).substr(pos, len), td::MutableSlice(t).substr(pos, len));
+      pos += len;
+    }
     ASSERT_EQ(answers1[i], td::crc32(t));
     state.init(as_slice(key), as_slice(iv));
-    state.decrypt(t, t);
+    pos = 0;
+    for (const auto &str : td::rand_split(td::string(length, '\0'))) {
+      auto len = str.size();
+      state.decrypt(td::Slice(t).substr(pos, len), td::MutableSlice(t).substr(pos, len));
+      pos += len;
+    }
     ASSERT_STREQ(td::base64_encode(s), td::base64_encode(t));
 
     for (auto &c : iv.raw) {
       c = 0xFF;
     }
     state.init(as_slice(key), as_slice(iv));
-    state.encrypt(s, t);
+    pos = 0;
+    for (const auto &str : td::rand_split(td::string(length, '\0'))) {
+      auto len = str.size();
+      state.encrypt(td::Slice(s).substr(pos, len), td::MutableSlice(t).substr(pos, len));
+      pos += len;
+    }
     ASSERT_EQ(answers2[i], td::crc32(t));
 
     i++;
@@ -89,10 +104,10 @@ TEST(Crypto, AesCtrState) {
 }
 
 TEST(Crypto, AesIgeState) {
-  td::vector<td::uint32> answers1{0u, 2045698207u, 2423540300u, 525522475u, 1545267325u};
+  td::vector<td::uint32> answers1{0u, 2045698207u, 2423540300u, 525522475u, 1545267325u, 724143417u};
 
   std::size_t i = 0;
-  for (auto length : {0, 16, 32, 256, 1024}) {
+  for (auto length : {0, 16, 32, 256, 1024, 65536}) {
     td::uint32 seed = length;
     td::string s(length, '\0');
     for (auto &c : s) {
@@ -114,22 +129,42 @@ TEST(Crypto, AesIgeState) {
     td::AesIgeState state;
     state.init(as_slice(key), as_slice(iv), true);
     td::string t(length, '\0');
-    state.encrypt(s, t);
+    td::UInt256 iv_copy = iv;
+    td::string u(length, '\0');
+    std::size_t pos = 0;
+    for (const auto &str : td::rand_split(td::string(length / 16, '\0'))) {
+      auto len = 16 * str.size();
+      state.encrypt(td::Slice(s).substr(pos, len), td::MutableSlice(t).substr(pos, len));
+      td::aes_ige_encrypt(as_slice(key), as_slice(iv_copy), td::Slice(s).substr(pos, len),
+                          td::MutableSlice(u).substr(pos, len));
+      pos += len;
+    }
 
     ASSERT_EQ(answers1[i], td::crc32(t));
+    ASSERT_EQ(answers1[i], td::crc32(u));
 
     state.init(as_slice(key), as_slice(iv), false);
-    state.decrypt(t, t);
+    iv_copy = iv;
+    pos = 0;
+    for (const auto &str : td::rand_split(td::string(length / 16, '\0'))) {
+      auto len = 16 * str.size();
+      state.decrypt(td::Slice(t).substr(pos, len), td::MutableSlice(t).substr(pos, len));
+      td::aes_ige_decrypt(as_slice(key), as_slice(iv_copy), td::Slice(u).substr(pos, len),
+                          td::MutableSlice(u).substr(pos, len));
+      pos += len;
+    }
     ASSERT_STREQ(td::base64_encode(s), td::base64_encode(t));
+    ASSERT_STREQ(td::base64_encode(s), td::base64_encode(u));
+
     i++;
   }
 }
 
 TEST(Crypto, AesCbcState) {
-  td::vector<td::uint32> answers1{0u, 3617355989u, 3449188102u, 186999968u, 4244808847u};
+  td::vector<td::uint32> answers1{0u, 3617355989u, 3449188102u, 186999968u, 4244808847u, 2626031206u};
 
   std::size_t i = 0;
-  for (auto length : {0, 16, 32, 256, 1024}) {
+  for (auto length : {0, 16, 32, 256, 1024, 65536}) {
     td::uint32 seed = length;
     td::string s(length, '\0');
     for (auto &c : s) {
@@ -149,16 +184,34 @@ TEST(Crypto, AesCbcState) {
     }
 
     td::AesCbcState state(as_slice(key), as_slice(iv));
-    //state.init(as_slice(key), as_slice(iv), true);
     td::string t(length, '\0');
-    state.encrypt(s, t);
+    td::UInt128 iv_copy = iv;
+    td::string u(length, '\0');
+    std::size_t pos = 0;
+    for (const auto &str : td::rand_split(td::string(length / 16, '\0'))) {
+      auto len = 16 * str.size();
+      state.encrypt(td::Slice(s).substr(pos, len), td::MutableSlice(t).substr(pos, len));
+      td::aes_cbc_encrypt(as_slice(key), as_slice(iv_copy), td::Slice(s).substr(pos, len),
+                          td::MutableSlice(u).substr(pos, len));
+      pos += len;
+    }
 
     ASSERT_EQ(answers1[i], td::crc32(t));
+    ASSERT_EQ(answers1[i], td::crc32(u));
 
-    //state.init(as_slice(key), as_slice(iv), false);
     state = td::AesCbcState(as_slice(key), as_slice(iv));
-    state.decrypt(t, t);
+    iv_copy = iv;
+    pos = 0;
+    for (const auto &str : td::rand_split(td::string(length / 16, '\0'))) {
+      auto len = 16 * str.size();
+      state.decrypt(td::Slice(t).substr(pos, len), td::MutableSlice(t).substr(pos, len));
+      td::aes_cbc_decrypt(as_slice(key), as_slice(iv_copy), td::Slice(u).substr(pos, len),
+                          td::MutableSlice(u).substr(pos, len));
+      pos += len;
+    }
     ASSERT_STREQ(td::base64_encode(s), td::base64_encode(t));
+    ASSERT_STREQ(td::base64_encode(s), td::base64_encode(u));
+
     i++;
   }
 }
@@ -250,6 +303,32 @@ TEST(Crypto, md5) {
     ASSERT_STREQ(answers[i], td::base64_encode(output));
   }
 }
+
+TEST(Crypto, hmac_sha256) {
+  td::vector<td::Slice> answers{
+      "t33rfT85UOe6N00BhsNwobE+f2TnW331HhdvQ4GdJp8=", "BQl5HF2jqhCz4JTqhAs+H364oxboh7QlluOMHuuRVh8=",
+      "NCCPuZBsAPBd/qr3SyeYE+e1RNgzkKJCS/+eXDBw8zU=", "mo3ahTkyLKfoQoYA0s7vRZULuH++vqwFJD0U5n9HHw0="};
+
+  for (std::size_t i = 0; i < strings.size(); i++) {
+    td::string output(32, '\0');
+    td::hmac_sha256("cucumber", strings[i], output);
+    ASSERT_STREQ(answers[i], td::base64_encode(output));
+  }
+}
+
+TEST(Crypto, hmac_sha512) {
+  td::vector<td::Slice> answers{
+      "o28hTN1m/TGlm/VYxDIzOdUE4wMpQzO8hVcTkiP2ezEJXtrOvCjRnl20aOV1S8axA5Te0TzIjfIoEAtpzamIsA==",
+      "32X3GslSz0HDznSrCNt++ePRcFVSUSD+tfOVannyxS+yLt/om11qILCE64RFTS8/B84gByMzC3FuAlfcIam/KA==",
+      "BVqe5rK1Fg1i+C7xXTAzT9vDPcf3kQQpTtse6rT/EVDzKo9AUo4ZwyUyJ0KcLHoffIjul/TuJoBg+wLz7Z7r7g==",
+      "WASmeku5Pcfz7N0Kp4Q3I9sxtO2MiaBXA418CY0HvjdtmAo7QY+K3E0o9UemgGzz41KqeypzRC92MwOAOnXJLA=="};
+
+  for (std::size_t i = 0; i < strings.size(); i++) {
+    td::string output(64, '\0');
+    td::hmac_sha512("cucumber", strings[i], output);
+    ASSERT_STREQ(answers[i], td::base64_encode(output));
+  }
+}
 #endif
 
 #if TD_HAVE_ZLIB
@@ -283,14 +362,14 @@ TEST(Crypto, crc32c) {
 }
 
 TEST(Crypto, crc32c_benchmark) {
-  class Crc32cExtendBenchmark : public td::Benchmark {
+  class Crc32cExtendBenchmark final : public td::Benchmark {
    public:
     explicit Crc32cExtendBenchmark(size_t chunk_size) : chunk_size_(chunk_size) {
     }
-    td::string get_description() const override {
+    td::string get_description() const final {
       return PSTRING() << "Crc32c with chunk_size=" << chunk_size_;
     }
-    void start_up_n(int n) override {
+    void start_up_n(int n) final {
       if (n > (1 << 20)) {
         cnt_ = n / (1 << 20);
         n = (1 << 20);
@@ -299,7 +378,7 @@ TEST(Crypto, crc32c_benchmark) {
       }
       data_ = td::string(n, 'a');
     }
-    void run(int n) override {
+    void run(int n) final {
       td::uint32 res = 0;
       for (int i = 0; i < cnt_; i++) {
         td::Slice data(data_);

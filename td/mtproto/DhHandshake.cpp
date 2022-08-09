@@ -1,10 +1,12 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 #include "td/mtproto/DhHandshake.h"
+
+#include "td/mtproto/DhCallback.h"
 
 #include "td/utils/as.h"
 #include "td/utils/crypto.h"
@@ -14,6 +16,7 @@
 #include "td/utils/UInt.h"
 
 namespace td {
+namespace mtproto {
 
 Status DhHandshake::check_config(Slice prime_str, const BigNum &prime, int32 g_int, BigNumContext &ctx,
                                  DhCallback *callback) {
@@ -225,4 +228,5 @@ int64 DhHandshake::calc_key_id(Slice auth_key) {
   return as<int64>(auth_key_sha1.raw + 12);
 }
 
+}  // namespace mtproto
 }  // namespace td

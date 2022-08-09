@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -16,9 +16,10 @@
 
 namespace td {
 
-class DelayDispatcher : public Actor {
+class DelayDispatcher final : public Actor {
  public:
-  explicit DelayDispatcher(double default_delay) : default_delay_(default_delay) {
+  DelayDispatcher(double default_delay, ActorShared<> parent)
+      : default_delay_(default_delay), parent_(std::move(parent)) {
   }
 
   void send_with_callback(NetQueryPtr query, ActorShared<NetQueryCallback> callback);
@@ -35,9 +36,10 @@ class DelayDispatcher : public Actor {
   std::queue<Query> queue_;
   Timestamp wakeup_at_;
   double default_delay_;
+  ActorShared<> parent_;
 
-  void loop() override;
-  void tear_down() override;
+  void loop() final;
+  void tear_down() final;
 };
 
 }  // namespace td

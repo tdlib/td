@@ -7,3 +7,8 @@ _td_set_log_file_path
 _td_set_log_max_file_size
 _td_set_log_verbosity_level
 _td_set_log_fatal_error_callback
+_td_create_client_id
+_td_send
+_td_receive
+_td_execute
+_td_set_log_message_callback

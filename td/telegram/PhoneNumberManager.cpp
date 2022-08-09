@@ -1,13 +1,16 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 #include "td/telegram/PhoneNumberManager.h"
 
+#include "td/telegram/ConfigManager.h"
+#include "td/telegram/ContactsManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/net/NetQueryDispatcher.h"
+#include "td/telegram/SuggestedAction.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
@@ -35,22 +38,23 @@ PhoneNumberManager::PhoneNumberManager(PhoneNumberManager::Type type, ActorShare
     : type_(type), parent_(std::move(parent)) {
 }
 
-template <class T>
-void PhoneNumberManager::process_send_code_result(uint64 query_id, const T &send_code) {
+void PhoneNumberManager::send_new_send_code_query(uint64 query_id, const telegram_api::Function &send_code) {
   on_new_query(query_id);
   start_net_query(NetQueryType::SendCode, G()->net_query_creator().create(send_code));
 }
 
 void PhoneNumberManager::set_phone_number(uint64 query_id, string phone_number, Settings settings) {
   if (phone_number.empty()) {
-    return on_query_error(query_id, Status::Error(8, "Phone number can't be empty"));
+    return on_query_error(query_id, Status::Error(400, "Phone number can't be empty"));
   }
 
   switch (type_) {
     case Type::ChangePhone:
-      return process_send_code_result(query_id, send_code_helper_.send_change_phone_code(phone_number, settings));
+      send_closure(G()->config_manager(), &ConfigManager::hide_suggested_action,
+                   SuggestedAction{SuggestedAction::Type::CheckPhoneNumber});
+      return send_new_send_code_query(query_id, send_code_helper_.send_change_phone_code(phone_number, settings));
     case Type::VerifyPhone:
-      return process_send_code_result(query_id, send_code_helper_.send_verify_phone_code(phone_number, settings));
+      return send_new_send_code_query(query_id, send_code_helper_.send_verify_phone_code(phone_number, settings));
     case Type::ConfirmPhone:
     default:
       UNREACHABLE();
@@ -60,15 +64,15 @@ void PhoneNumberManager::set_phone_number(uint64 query_id, string phone_number, 
 void PhoneNumberManager::set_phone_number_and_hash(uint64 query_id, string hash, string phone_number,
                                                    Settings settings) {
   if (phone_number.empty()) {
-    return on_query_error(query_id, Status::Error(8, "Phone number can't be empty"));
+    return on_query_error(query_id, Status::Error(400, "Phone number can't be empty"));
   }
   if (hash.empty()) {
-    return on_query_error(query_id, Status::Error(8, "Hash can't be empty"));
+    return on_query_error(query_id, Status::Error(400, "Hash can't be empty"));
   }
 
   switch (type_) {
     case Type::ConfirmPhone:
-      return process_send_code_result(query_id,
+      return send_new_send_code_query(query_id,
                                       send_code_helper_.send_confirm_phone_code(hash, phone_number, settings));
     case Type::ChangePhone:
     case Type::VerifyPhone:
@@ -79,7 +83,7 @@ void PhoneNumberManager::set_phone_number_and_hash(uint64 query_id, string hash,
 
 void PhoneNumberManager::resend_authentication_code(uint64 query_id) {
   if (state_ != State::WaitCode) {
-    return on_query_error(query_id, Status::Error(8, "resendAuthenticationCode unexpected"));
+    return on_query_error(query_id, Status::Error(400, "resendAuthenticationCode unexpected"));
   }
 
   auto r_resend_code = send_code_helper_.resend_code();
@@ -92,14 +96,13 @@ void PhoneNumberManager::resend_authentication_code(uint64 query_id) {
   start_net_query(NetQueryType::SendCode, G()->net_query_creator().create_unauth(r_resend_code.move_as_ok()));
 }
 
-template <class T>
-void PhoneNumberManager::send_new_check_code_query(const T &query) {
-  start_net_query(NetQueryType::CheckCode, G()->net_query_creator().create(query));
+void PhoneNumberManager::send_new_check_code_query(const telegram_api::Function &check_code) {
+  start_net_query(NetQueryType::CheckCode, G()->net_query_creator().create(check_code));
 }
 
 void PhoneNumberManager::check_code(uint64 query_id, string code) {
   if (state_ != State::WaitCode) {
-    return on_query_error(query_id, Status::Error(8, "checkAuthenticationCode unexpected"));
+    return on_query_error(query_id, Status::Error(400, "checkAuthenticationCode unexpected"));
   }
 
   on_new_query(query_id);
@@ -121,7 +124,7 @@ void PhoneNumberManager::check_code(uint64 query_id, string code) {
 
 void PhoneNumberManager::on_new_query(uint64 query_id) {
   if (query_id_ != 0) {
-    on_query_error(Status::Error(9, "Another authorization query has started"));
+    on_query_error(Status::Error(400, "Another authorization query has started"));
   }
   net_query_id_ = 0;
   net_query_type_ = NetQueryType::None;
@@ -158,8 +161,17 @@ void PhoneNumberManager::start_net_query(NetQueryType net_query_type, NetQueryPt
   G()->net_query_dispatcher().dispatch_with_callback(std::move(net_query), actor_shared(this));
 }
 
-template <class T>
-void PhoneNumberManager::process_check_code_result(T result) {
+void PhoneNumberManager::process_check_code_result(Result<tl_object_ptr<telegram_api::User>> &&result) {
+  if (result.is_error()) {
+    return on_query_error(result.move_as_error());
+  }
+  send_closure(G()->contacts_manager(), &ContactsManager::on_get_user, result.move_as_ok(), "process_check_code_result",
+               true);
+  state_ = State::Ok;
+  on_query_ok();
+}
+
+void PhoneNumberManager::process_check_code_result(Result<bool> &&result) {
   if (result.is_error()) {
     return on_query_error(result.move_as_error());
   }

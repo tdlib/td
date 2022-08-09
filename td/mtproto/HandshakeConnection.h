@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -24,7 +24,7 @@
 namespace td {
 namespace mtproto {
 
-class HandshakeConnection
+class HandshakeConnection final
     : private RawConnection::Callback
     , private AuthKeyHandshake::Callback {
  public:
@@ -60,12 +60,12 @@ class HandshakeConnection
   AuthKeyHandshake *handshake_;
   unique_ptr<AuthKeyHandshakeContext> context_;
 
-  void send_no_crypto(const Storer &storer) override {
+  void send_no_crypto(const Storer &storer) final {
     raw_connection_->send_no_crypto(PacketStorer<NoCryptoImpl>(0, storer));
   }
 
-  Status on_raw_packet(const PacketInfo &packet_info, BufferSlice packet) override {
-    if (packet_info.no_crypto_flag == false) {
+  Status on_raw_packet(const PacketInfo &packet_info, BufferSlice packet) final {
+    if (!packet_info.no_crypto_flag) {
       return Status::Error("Expected not encrypted packet");
     }
 

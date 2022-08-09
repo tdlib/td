@@ -1,10 +1,13 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 #include "td/telegram/SendCodeHelper.h"
+
+#include "td/utils/base64.h"
+#include "td/utils/buffer.h"
 
 namespace td {
 
@@ -26,21 +29,22 @@ td_api::object_ptr<td_api::authenticationCodeInfo> SendCodeHelper::get_authentic
       max(static_cast<int32>(next_code_timestamp_.in() + 1 - 1e-9), 0));
 }
 
-Result<telegram_api::auth_resendCode> SendCodeHelper::resend_code() {
+Result<telegram_api::auth_resendCode> SendCodeHelper::resend_code() const {
   if (next_code_info_.type == AuthenticationCodeInfo::Type::None) {
-    return Status::Error(8, "Authentication code can't be resend");
+    return Status::Error(400, "Authentication code can't be resend");
   }
-  sent_code_info_ = next_code_info_;
-  next_code_info_ = {};
-  next_code_timestamp_ = {};
   return telegram_api::auth_resendCode(phone_number_, phone_code_hash_);
 }
 
 telegram_api::object_ptr<telegram_api::codeSettings> SendCodeHelper::get_input_code_settings(const Settings &settings) {
   int32 flags = 0;
+  vector<BufferSlice> logout_tokens;
   if (settings != nullptr) {
     if (settings->allow_flash_call_) {
       flags |= telegram_api::codeSettings::ALLOW_FLASHCALL_MASK;
+    }
+    if (settings->allow_missed_call_) {
+      flags |= telegram_api::codeSettings::ALLOW_MISSED_CALL_MASK;
     }
     if (settings->is_current_phone_number_) {
       flags |= telegram_api::codeSettings::CURRENT_NUMBER_MASK;
@@ -48,14 +52,27 @@ telegram_api::object_ptr<telegram_api::codeSettings> SendCodeHelper::get_input_c
     if (settings->allow_sms_retriever_api_) {
       flags |= telegram_api::codeSettings::ALLOW_APP_HASH_MASK;
     }
+    constexpr size_t MAX_LOGOUT_TOKENS = 20;  // server-side limit
+    for (const auto &token : settings->authentication_tokens_) {
+      auto r_logout_token = base64url_decode(token);
+      if (r_logout_token.is_ok()) {
+        logout_tokens.push_back(BufferSlice(r_logout_token.ok()));
+        if (logout_tokens.size() >= MAX_LOGOUT_TOKENS) {
+          break;
+        }
+      }
+    }
+    if (!logout_tokens.empty()) {
+      flags |= telegram_api::codeSettings::LOGOUT_TOKENS_MASK;
+    }
   }
-  return telegram_api::make_object<telegram_api::codeSettings>(flags, false /*ignored*/, false /*ignored*/,
-                                                               false /*ignored*/);
+  return telegram_api::make_object<telegram_api::codeSettings>(
+      flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, std::move(logout_tokens));
 }
 
-telegram_api::auth_sendCode SendCodeHelper::send_code(Slice phone_number, const Settings &settings, int32 api_id,
+telegram_api::auth_sendCode SendCodeHelper::send_code(string phone_number, const Settings &settings, int32 api_id,
                                                       const string &api_hash) {
-  phone_number_ = phone_number.str();
+  phone_number_ = std::move(phone_number);
   return telegram_api::auth_sendCode(phone_number_, api_id, api_hash, get_input_code_settings(settings));
 }
 
@@ -86,11 +103,13 @@ SendCodeHelper::AuthenticationCodeInfo SendCodeHelper::get_authentication_code_i
 
   switch (code_type_ptr->get_id()) {
     case telegram_api::auth_codeTypeSms::ID:
-      return {AuthenticationCodeInfo::Type::Sms, 0, ""};
+      return {AuthenticationCodeInfo::Type::Sms, 0, string()};
     case telegram_api::auth_codeTypeCall::ID:
-      return {AuthenticationCodeInfo::Type::Call, 0, ""};
+      return {AuthenticationCodeInfo::Type::Call, 0, string()};
     case telegram_api::auth_codeTypeFlashCall::ID:
-      return {AuthenticationCodeInfo::Type::FlashCall, 0, ""};
+      return {AuthenticationCodeInfo::Type::FlashCall, 0, string()};
+    case telegram_api::auth_codeTypeMissedCall::ID:
+      return {AuthenticationCodeInfo::Type::MissedCall, 0, string()};
     default:
       UNREACHABLE();
       return AuthenticationCodeInfo();
@@ -115,7 +134,12 @@ SendCodeHelper::AuthenticationCodeInfo SendCodeHelper::get_authentication_code_i
     }
     case telegram_api::auth_sentCodeTypeFlashCall::ID: {
       auto code_type = move_tl_object_as<telegram_api::auth_sentCodeTypeFlashCall>(sent_code_type_ptr);
-      return AuthenticationCodeInfo{AuthenticationCodeInfo::Type::FlashCall, 0, code_type->pattern_};
+      return AuthenticationCodeInfo{AuthenticationCodeInfo::Type::FlashCall, 0, std::move(code_type->pattern_)};
+    }
+    case telegram_api::auth_sentCodeTypeMissedCall::ID: {
+      auto code_type = move_tl_object_as<telegram_api::auth_sentCodeTypeMissedCall>(sent_code_type_ptr);
+      return AuthenticationCodeInfo{AuthenticationCodeInfo::Type::MissedCall, code_type->length_,
+                                    std::move(code_type->prefix_)};
     }
     default:
       UNREACHABLE();
@@ -136,6 +160,9 @@ td_api::object_ptr<td_api::AuthenticationCodeType> SendCodeHelper::get_authentic
       return td_api::make_object<td_api::authenticationCodeTypeCall>(authentication_code_info.length);
     case AuthenticationCodeInfo::Type::FlashCall:
       return td_api::make_object<td_api::authenticationCodeTypeFlashCall>(authentication_code_info.pattern);
+    case AuthenticationCodeInfo::Type::MissedCall:
+      return td_api::make_object<td_api::authenticationCodeTypeMissedCall>(authentication_code_info.pattern,
+                                                                           authentication_code_info.length);
     default:
       UNREACHABLE();
       return nullptr;

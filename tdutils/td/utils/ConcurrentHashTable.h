@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -57,8 +57,8 @@ class AtomicHashArray {
   template <class F>
   bool with_value(KeyT key, bool should_create, F &&f) {
     DCHECK(key != empty_key());
-    size_t pos = static_cast<size_t>(key) % nodes_.size();
-    size_t n = td::min(td::max(static_cast<size_t>(300), nodes_.size() / 16 + 2), nodes_.size());
+    auto pos = static_cast<size_t>(key) % nodes_.size();
+    auto n = td::min(td::max(static_cast<size_t>(300), nodes_.size() / 16 + 2), nodes_.size());
 
     for (size_t i = 0; i < n; i++) {
       pos++;
@@ -317,6 +317,6 @@ class ConcurrentHashMap {
 };
 
 template <class KeyT, class ValueT>
-td::HazardPointers<typename ConcurrentHashMap<KeyT, ValueT>::HashMap> ConcurrentHashMap<KeyT, ValueT>::hp_(64);
+HazardPointers<typename ConcurrentHashMap<KeyT, ValueT>::HashMap> ConcurrentHashMap<KeyT, ValueT>::hp_(64);
 
 }  // namespace td

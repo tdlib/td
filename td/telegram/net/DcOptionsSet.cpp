@@ -1,14 +1,20 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 #include "td/telegram/net/DcOptionsSet.h"
 
+#include "td/telegram/ConfigManager.h"
+#include "td/telegram/Global.h"
+
+#include "td/actor/actor.h"
+
+#include "td/utils/algorithm.h"
 #include "td/utils/format.h"
 #include "td/utils/logging.h"
-#include "td/utils/misc.h"
+#include "td/utils/SliceBuilder.h"
 
 #include <algorithm>
 #include <set>
@@ -130,6 +136,7 @@ Result<DcOptionsSet::ConnectionInfo> DcOptionsSet::find_connection(DcId dc_id, b
   auto options = find_all_connections(dc_id, allow_media_only, use_static, prefer_ipv6, only_http);
 
   if (options.empty()) {
+    send_closure(G()->config_manager(), &ConfigManager::lazy_request_config);
     return Status::Error(PSLICE() << "No such connection: " << tag("dc_id", dc_id)
                                   << tag("allow_media_only", allow_media_only) << tag("use_static", use_static)
                                   << tag("prefer_ipv6", prefer_ipv6));
@@ -176,7 +183,7 @@ DcOptionsSet::DcOptionInfo *DcOptionsSet::register_dc_option(DcOption &&option) 
 
 void DcOptionsSet::init_option_stat(DcOptionInfo *option_info) {
   const auto &ip_address = option_info->option.get_ip_address();
-  auto it_ok = option_to_stat_id_.insert(std::make_pair(ip_address, 0));
+  auto it_ok = option_to_stat_id_.emplace(ip_address, 0);
   if (it_ok.second) {
     it_ok.first->second = option_stats_.create(make_unique<OptionStat>());
   }

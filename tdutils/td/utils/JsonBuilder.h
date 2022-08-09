@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -95,7 +95,7 @@ class JsonFloat {
 
 class JsonOneChar {
  public:
-  explicit JsonOneChar(unsigned int c) : c_(c) {
+  explicit JsonOneChar(uint32 c) : c_(c) {
   }
 
   friend StringBuilder &operator<<(StringBuilder &sb, const JsonOneChar &val) {
@@ -105,12 +105,12 @@ class JsonOneChar {
   }
 
  private:
-  unsigned int c_;
+  uint32 c_;
 };
 
 class JsonChar {
  public:
-  explicit JsonChar(unsigned int c) : c_(c) {
+  explicit JsonChar(uint32 c) : c_(c) {
   }
   friend StringBuilder &operator<<(StringBuilder &sb, const JsonChar &val) {
     auto c = val.c_;
@@ -129,7 +129,7 @@ class JsonChar {
   }
 
  private:
-  unsigned int c_;
+  uint32 c_;
 };
 
 class JsonRaw {
@@ -172,7 +172,7 @@ class JsonObjectScope;
 
 class JsonBuilder {
  public:
-  explicit JsonBuilder(StringBuilder &&sb, int32 offset = -1) : sb_(std::move(sb)), offset_(offset) {
+  explicit JsonBuilder(StringBuilder &&sb = {}, int32 offset = -1) : sb_(std::move(sb)), offset_(offset) {
   }
   StringBuilder &string_builder() {
     return sb_;
@@ -223,7 +223,7 @@ class JsonScope {
     CHECK(is_active());
   }
   JsonScope(const JsonScope &other) = delete;
-  JsonScope(JsonScope &&other) : sb_(other.sb_), jb_(other.jb_), save_scope_(other.save_scope_) {
+  JsonScope(JsonScope &&other) noexcept : sb_(other.sb_), jb_(other.jb_), save_scope_(other.save_scope_) {
     other.jb_ = nullptr;
   }
   JsonScope &operator=(const JsonScope &) = delete;
@@ -311,7 +311,7 @@ class JsonScope {
   }
 };
 
-class JsonValueScope : public JsonScope {
+class JsonValueScope final : public JsonScope {
  public:
   using JsonScope::JsonScope;
   template <class T>
@@ -336,7 +336,7 @@ class JsonValueScope : public JsonScope {
   bool was_ = false;
 };
 
-class JsonArrayScope : public JsonScope {
+class JsonArrayScope final : public JsonScope {
  public:
   explicit JsonArrayScope(JsonBuilder *jb) : JsonScope(jb) {
     jb->inc_offset();
@@ -377,7 +377,7 @@ class JsonArrayScope : public JsonScope {
   bool is_first_ = false;
 };
 
-class JsonObjectScope : public JsonScope {
+class JsonObjectScope final : public JsonScope {
  public:
   explicit JsonObjectScope(JsonBuilder *jb) : JsonScope(jb) {
     jb->inc_offset();
@@ -448,7 +448,7 @@ class JsonValue;
 using JsonObject = vector<std::pair<MutableSlice, JsonValue>>;
 using JsonArray = vector<JsonValue>;
 
-class JsonValue : public Jsonable {
+class JsonValue final : private Jsonable {
  public:
   enum class Type { Null, Number, Boolean, String, Array, Object };
 
@@ -459,10 +459,10 @@ class JsonValue : public Jsonable {
   ~JsonValue() {
     destroy();
   }
-  JsonValue(JsonValue &&other) : JsonValue() {
+  JsonValue(JsonValue &&other) noexcept : JsonValue() {
     init(std::move(other));
   }
-  JsonValue &operator=(JsonValue &&other) {
+  JsonValue &operator=(JsonValue &&other) noexcept {
     if (&other == this) {
       return *this;
     }
@@ -685,7 +685,7 @@ inline StringBuilder &operator<<(StringBuilder &sb, JsonValue::Type type) {
   }
 }
 
-class VirtuallyJsonable : public Jsonable {
+class VirtuallyJsonable : private Jsonable {
  public:
   virtual void store(JsonValueScope *scope) const = 0;
   VirtuallyJsonable() = default;
@@ -696,11 +696,11 @@ class VirtuallyJsonable : public Jsonable {
   virtual ~VirtuallyJsonable() = default;
 };
 
-class VirtuallyJsonableInt : public VirtuallyJsonable {
+class VirtuallyJsonableInt final : public VirtuallyJsonable {
  public:
   explicit VirtuallyJsonableInt(int32 value) : value_(value) {
   }
-  void store(JsonValueScope *scope) const override {
+  void store(JsonValueScope *scope) const final {
     *scope << JsonInt(value_);
   }
 
@@ -708,11 +708,11 @@ class VirtuallyJsonableInt : public VirtuallyJsonable {
   int32 value_;
 };
 
-class VirtuallyJsonableLong : public VirtuallyJsonable {
+class VirtuallyJsonableLong final : public VirtuallyJsonable {
  public:
   explicit VirtuallyJsonableLong(int64 value) : value_(value) {
   }
-  void store(JsonValueScope *scope) const override {
+  void store(JsonValueScope *scope) const final {
     *scope << JsonLong(value_);
   }
 
@@ -720,11 +720,11 @@ class VirtuallyJsonableLong : public VirtuallyJsonable {
   int64 value_;
 };
 
-class VirtuallyJsonableString : public VirtuallyJsonable {
+class VirtuallyJsonableString final : public VirtuallyJsonable {
  public:
   explicit VirtuallyJsonableString(Slice value) : value_(value) {
   }
-  void store(JsonValueScope *scope) const override {
+  void store(JsonValueScope *scope) const final {
     *scope << JsonString(value_);
   }
 
@@ -766,7 +766,7 @@ StrT json_encode(const ValT &val, bool pretty = false) {
 }
 
 template <class T>
-class ToJsonImpl : public Jsonable {
+class ToJsonImpl final : private Jsonable {
  public:
   explicit ToJsonImpl(const T &value) : value_(value) {
   }
@@ -789,7 +789,7 @@ void to_json(JsonValueScope &jv, const T &value) {
 }
 
 template <class F>
-class JsonObjectImpl : Jsonable {
+class JsonObjectImpl : private Jsonable {
  public:
   explicit JsonObjectImpl(F &&f) : f_(std::forward<F>(f)) {
   }
@@ -808,7 +808,7 @@ auto json_object(F &&f) {
 }
 
 template <class F>
-class JsonArrayImpl : Jsonable {
+class JsonArrayImpl : private Jsonable {
  public:
   explicit JsonArrayImpl(F &&f) : f_(std::forward<F>(f)) {
   }

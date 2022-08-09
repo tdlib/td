@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -32,27 +32,21 @@
 #include <atomic>
 #include <type_traits>
 
-#define PSTR_IMPL() ::td::Logger(::td::NullLog().ref(), ::td::LogOptions::plain(), 0)
-#define PSLICE() ::td::detail::Slicify() & PSTR_IMPL()
-#define PSTRING() ::td::detail::Stringify() & PSTR_IMPL()
-#define PSLICE_SAFE() ::td::detail::SlicifySafe() & PSTR_IMPL()
-#define PSTRING_SAFE() ::td::detail::StringifySafe() & PSTR_IMPL()
-
 #define VERBOSITY_NAME(x) verbosity_##x
 
-#define GET_VERBOSITY_LEVEL() (::td::log_options.level)
-#define SET_VERBOSITY_LEVEL(new_level) (::td::log_options.level = (new_level))
+#define GET_VERBOSITY_LEVEL() (::td::get_verbosity_level())
+#define SET_VERBOSITY_LEVEL(new_level) (::td::set_verbosity_level(new_level))
 
 #ifndef STRIP_LOG
 #define STRIP_LOG VERBOSITY_NAME(DEBUG)
 #endif
 #define LOG_IS_STRIPPED(strip_level) \
-  (std::integral_constant<int, VERBOSITY_NAME(strip_level)>() > std::integral_constant<int, STRIP_LOG>())
+  (::std::integral_constant<int, VERBOSITY_NAME(strip_level)>() > ::std::integral_constant<int, STRIP_LOG>())
 
 #define LOGGER(interface, options, level, comment) ::td::Logger(interface, options, level, __FILE__, __LINE__, comment)
 
 #define LOG_IMPL_FULL(interface, options, strip_level, runtime_level, condition, comment) \
-  LOG_IS_STRIPPED(strip_level) || runtime_level > options.level || !(condition)           \
+  LOG_IS_STRIPPED(strip_level) || runtime_level > options.get_level() || !(condition)     \
       ? (void)0                                                                           \
       : ::td::detail::Voidify() & LOGGER(interface, options, runtime_level, comment)
 
@@ -64,8 +58,6 @@
 
 #define VLOG(level) LOG_IMPL(DEBUG, level, true, TD_DEFINE_STR(level))
 #define VLOG_IF(level, condition) LOG_IMPL(DEBUG, level, condition, TD_DEFINE_STR(level) " " #condition)
-
-#define LOG_ROTATE() ::td::log_interface->rotate()
 
 #define LOG_TAG ::td::Logger::tag_
 #define LOG_TAG2 ::td::Logger::tag2_
@@ -109,33 +101,53 @@ constexpr int VERBOSITY_NAME(DEBUG) = 4;
 constexpr int VERBOSITY_NAME(NEVER) = 1024;
 
 namespace td {
-// TODO Not part of utils. Should be in some separate file
-extern int VERBOSITY_NAME(mtproto);
-extern int VERBOSITY_NAME(raw_mtproto);
-extern int VERBOSITY_NAME(dc);
-extern int VERBOSITY_NAME(fd);
-extern int VERBOSITY_NAME(net_query);
-extern int VERBOSITY_NAME(td_requests);
-extern int VERBOSITY_NAME(actor);
-extern int VERBOSITY_NAME(files);
-extern int VERBOSITY_NAME(sqlite);
 
 struct LogOptions {
-  int level{VERBOSITY_NAME(DEBUG) + 1};
+  std::atomic<int> level{VERBOSITY_NAME(DEBUG) + 1};
   bool fix_newlines{true};
   bool add_info{true};
 
-  static constexpr LogOptions plain() {
-    return LogOptions{0, false, false};
+  int get_level() const {
+    return level.load(std::memory_order_relaxed);
+  }
+  int set_level(int new_level) {
+    return level.exchange(new_level);
+  }
+
+  static const LogOptions &plain() {
+    static LogOptions plain_options{0, false, false};
+    return plain_options;
   }
 
   constexpr LogOptions() = default;
   constexpr LogOptions(int level, bool fix_newlines, bool add_info)
       : level(level), fix_newlines(fix_newlines), add_info(add_info) {
   }
+
+  LogOptions(const LogOptions &other) : LogOptions(other.level.load(), other.fix_newlines, other.add_info) {
+  }
+
+  LogOptions &operator=(const LogOptions &other) {
+    if (this == &other) {
+      return *this;
+    }
+    level = other.level.load();
+    fix_newlines = other.fix_newlines;
+    add_info = other.add_info;
+    return *this;
+  }
+  LogOptions(LogOptions &&) = delete;
+  LogOptions &operator=(LogOptions &&) = delete;
+  ~LogOptions() = default;
 };
 
 extern LogOptions log_options;
+inline int set_verbosity_level(int level) {
+  return log_options.set_level(level);
+}
+inline int get_verbosity_level() {
+  return log_options.get_level();
+}
 
 class LogInterface {
  public:
@@ -145,66 +157,31 @@ class LogInterface {
   LogInterface(LogInterface &&) = delete;
   LogInterface &operator=(LogInterface &&) = delete;
   virtual ~LogInterface() = default;
-  virtual void append(CSlice slice) {
-    append(slice, -1);
+
+  void append(int log_level, CSlice slice);
+
+  virtual void after_rotation() {
   }
-  virtual void append(CSlice slice, int /*log_level*/) {
-    append(slice);
-  }
-  virtual void rotate() {
-  }
+
   virtual vector<string> get_file_paths() {
     return {};
   }
-};
 
-class NullLog : public LogInterface {
- public:
-  void append(CSlice /*slice*/, int /*log_level*/) override {
-  }
-  void rotate() override {
-  }
-  NullLog &ref() {
-    return *this;
-  }
+  virtual void do_append(int log_level, CSlice slice) = 0;
 };
 
 extern LogInterface *const default_log_interface;
 extern LogInterface *log_interface;
 
-using OnFatalErrorCallback = void (*)(CSlice message);
-void set_log_fatal_error_callback(OnFatalErrorCallback callback);
-
 [[noreturn]] void process_fatal_error(CSlice message);
 
-#define TC_RED "\x1b[1;31m"
-#define TC_BLUE "\x1b[1;34m"
-#define TC_CYAN "\x1b[1;36m"
-#define TC_GREEN "\x1b[1;32m"
-#define TC_YELLOW "\x1b[1;33m"
-#define TC_EMPTY "\x1b[0m"
-
-class TsCerr {
- public:
-  TsCerr();
-  TsCerr(const TsCerr &) = delete;
-  TsCerr &operator=(const TsCerr &) = delete;
-  TsCerr(TsCerr &&) = delete;
-  TsCerr &operator=(TsCerr &&) = delete;
-  ~TsCerr();
-  TsCerr &operator<<(Slice slice);
-
- private:
-  using Lock = std::atomic_flag;
-  static Lock lock_;
-
-  void enterCritical();
-  void exitCritical();
-};
+using OnLogMessageCallback = void (*)(int verbosity_level, CSlice message);
+void set_log_message_callback(int max_verbosity_level, OnLogMessageCallback callback);
 
 class Logger {
+  static const size_t BUFFER_SIZE = 128 * 1024;
+
  public:
-  static const int BUFFER_SIZE = 128 * 1024;
   Logger(LogInterface &log, const LogOptions &options, int log_level)
       : buffer_(StackAllocator::alloc(BUFFER_SIZE))
       , log_(log)
@@ -216,7 +193,7 @@ class Logger {
   Logger(LogInterface &log, const LogOptions &options, int log_level, Slice file_name, int line_num, Slice comment);
 
   template <class T>
-  Logger &operator<<(const T &other) {
+  Logger &operator<<(T &&other) {
     sb_ << other;
     return *this;
   }
@@ -244,6 +221,16 @@ class Logger {
   int log_level_;
 };
 
+class ScopedDisableLog {
+ public:
+  ScopedDisableLog();
+  ScopedDisableLog(const ScopedDisableLog &) = delete;
+  ScopedDisableLog &operator=(const ScopedDisableLog &) = delete;
+  ScopedDisableLog(ScopedDisableLog &&) = delete;
+  ScopedDisableLog &operator=(ScopedDisableLog &&) = delete;
+  ~ScopedDisableLog();
+};
+
 namespace detail {
 class Voidify {
  public:
@@ -251,59 +238,6 @@ class Voidify {
   void operator&(const T &) {
   }
 };
-
-class Slicify {
- public:
-  CSlice operator&(Logger &logger) {
-    return logger.as_cslice();
-  }
-};
-
-class Stringify {
- public:
-  string operator&(Logger &logger) {
-    return logger.as_cslice().str();
-  }
-};
 }  // namespace detail
-
-class TsLog : public LogInterface {
- public:
-  explicit TsLog(LogInterface *log) : log_(log) {
-  }
-  void init(LogInterface *log) {
-    enter_critical();
-    log_ = log;
-    exit_critical();
-  }
-  void append(CSlice slice, int level) override {
-    enter_critical();
-    log_->append(slice, level);
-    exit_critical();
-  }
-  void rotate() override {
-    enter_critical();
-    log_->rotate();
-    exit_critical();
-  }
-  vector<string> get_file_paths() override {
-    enter_critical();
-    auto result = log_->get_file_paths();
-    exit_critical();
-    return result;
-  }
-
- private:
-  LogInterface *log_ = nullptr;
-  std::atomic_flag lock_ = ATOMIC_FLAG_INIT;
-  void enter_critical() {
-    while (lock_.test_and_set(std::memory_order_acquire)) {
-      // spin
-    }
-  }
-  void exit_critical() {
-    lock_.clear(std::memory_order_release);
-  }
-};
 
 }  // namespace td

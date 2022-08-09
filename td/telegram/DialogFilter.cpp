@@ -1,24 +1,35 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 #include "td/telegram/DialogFilter.h"
 
+#include "td/telegram/ConfigShared.h"
 #include "td/telegram/DialogId.h"
-#include "td/telegram/misc.h"
+#include "td/telegram/Global.h"
 
+#include "td/utils/algorithm.h"
+#include "td/utils/emoji.h"
+#include "td/utils/FlatHashSet.h"
 #include "td/utils/format.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
 
-#include <unordered_set>
-
 namespace td {
 
-unique_ptr<DialogFilter> DialogFilter::get_dialog_filter(telegram_api::object_ptr<telegram_api::dialogFilter> filter,
-                                                         bool with_id) {
+int32 DialogFilter::get_max_filter_dialogs() {
+  return narrow_cast<int32>(G()->shared_config().get_option_integer("chat_filter_chosen_chat_count_max", 100));
+}
+
+unique_ptr<DialogFilter> DialogFilter::get_dialog_filter(
+    telegram_api::object_ptr<telegram_api::DialogFilter> filter_ptr, bool with_id) {
+  if (filter_ptr->get_id() != telegram_api::dialogFilter::ID) {
+    LOG(ERROR) << "Ignore " << to_string(filter_ptr);
+    return nullptr;
+  }
+  auto filter = telegram_api::move_object_as<telegram_api::dialogFilter>(filter_ptr);
   DialogFilterId dialog_filter_id(filter->id_);
   if (with_id && !dialog_filter_id.is_valid()) {
     LOG(ERROR) << "Receive invalid " << to_string(filter);
@@ -28,7 +39,7 @@ unique_ptr<DialogFilter> DialogFilter::get_dialog_filter(telegram_api::object_pt
   dialog_filter->dialog_filter_id = dialog_filter_id;
   dialog_filter->title = std::move(filter->title_);
   dialog_filter->emoji = std::move(filter->emoticon_);
-  std::unordered_set<DialogId, DialogIdHash> added_dialog_ids;
+  FlatHashSet<DialogId, DialogIdHash> added_dialog_ids;
   dialog_filter->pinned_dialog_ids = InputDialogId::get_input_dialog_ids(filter->pinned_peers_, &added_dialog_ids);
   dialog_filter->included_dialog_ids = InputDialogId::get_input_dialog_ids(filter->include_peers_, &added_dialog_ids);
   dialog_filter->excluded_dialog_ids = InputDialogId::get_input_dialog_ids(filter->exclude_peers_, &added_dialog_ids);
@@ -88,17 +99,16 @@ Status DialogFilter::check_limits() const {
   auto included_secret_dialog_count = static_cast<int32>(included_dialog_ids.size()) - included_server_dialog_count;
   auto pinned_secret_dialog_count = static_cast<int32>(pinned_dialog_ids.size()) - pinned_server_dialog_count;
 
-  if (excluded_server_dialog_count > MAX_INCLUDED_FILTER_DIALOGS ||
-      excluded_secret_dialog_count > MAX_INCLUDED_FILTER_DIALOGS) {
-    return Status::Error(400, "Maximum number of excluded chats exceeded");
+  auto limit = get_max_filter_dialogs();
+  if (excluded_server_dialog_count > limit || excluded_secret_dialog_count > limit) {
+    return Status::Error(400, "The maximum number of excluded chats exceeded");
   }
-  if (included_server_dialog_count > MAX_INCLUDED_FILTER_DIALOGS ||
-      included_secret_dialog_count > MAX_INCLUDED_FILTER_DIALOGS) {
-    return Status::Error(400, "Maximum number of included chats exceeded");
+  if (included_server_dialog_count > limit || included_secret_dialog_count > limit) {
+    return Status::Error(400, "The maximum number of included chats exceeded");
   }
-  if (included_server_dialog_count + pinned_server_dialog_count > MAX_INCLUDED_FILTER_DIALOGS ||
-      included_secret_dialog_count + pinned_secret_dialog_count > MAX_INCLUDED_FILTER_DIALOGS) {
-    return Status::Error(400, "Maximum number of pinned chats exceeded");
+  if (included_server_dialog_count + pinned_server_dialog_count > limit ||
+      included_secret_dialog_count + pinned_secret_dialog_count > limit) {
+    return Status::Error(400, "The maximum number of pinned chats exceeded");
   }
 
   if (is_empty(false)) {
@@ -129,6 +139,44 @@ string DialogFilter::get_icon_name() const {
     return it->second;
   }
   return string();
+}
+
+string DialogFilter::get_chosen_or_default_icon_name() const {
+  auto icon_name = get_icon_name();
+  if (!icon_name.empty()) {
+    return icon_name;
+  }
+
+  if (!pinned_dialog_ids.empty() || !included_dialog_ids.empty() || !excluded_dialog_ids.empty()) {
+    return "Custom";
+  }
+
+  if (include_contacts || include_non_contacts) {
+    if (!include_bots && !include_groups && !include_channels) {
+      return "Private";
+    }
+  } else {
+    if (!include_bots && !include_channels) {
+      if (!include_groups) {
+        // just in case
+        return "Custom";
+      }
+      return "Groups";
+    }
+    if (!include_bots && !include_groups) {
+      return "Channels";
+    }
+    if (!include_groups && !include_channels) {
+      return "Bots";
+    }
+  }
+  if (exclude_read && !exclude_muted) {
+    return "Unread";
+  }
+  if (exclude_muted && !exclude_read) {
+    return "Unmuted";
+  }
+  return "Custom";
 }
 
 string DialogFilter::get_default_icon_name(const td_api::chatFilter *filter) {
@@ -168,7 +216,7 @@ string DialogFilter::get_default_icon_name(const td_api::chatFilter *filter) {
   return "Custom";
 }
 
-telegram_api::object_ptr<telegram_api::dialogFilter> DialogFilter::get_input_dialog_filter() const {
+telegram_api::object_ptr<telegram_api::DialogFilter> DialogFilter::get_input_dialog_filter() const {
   int32 flags = 0;
   if (!emoji.empty()) {
     flags |= telegram_api::dialogFilter::EMOTICON_MASK;
@@ -206,7 +254,7 @@ telegram_api::object_ptr<telegram_api::dialogFilter> DialogFilter::get_input_dia
 }
 
 td_api::object_ptr<td_api::chatFilterInfo> DialogFilter::get_chat_filter_info_object() const {
-  return td_api::make_object<td_api::chatFilterInfo>(dialog_filter_id.get(), title, get_icon_name());
+  return td_api::make_object<td_api::chatFilterInfo>(dialog_filter_id.get(), title, get_chosen_or_default_icon_name());
 }
 
 // merges changes from old_server_filter to new_server_filter in old_filter
@@ -233,7 +281,7 @@ unique_ptr<DialogFilter> DialogFilter::merge_dialog_filter_changes(const DialogF
       LOG(INFO) << "Pinned chats was not changed locally in " << dialog_filter_id << ", keep remote changes";
 
       size_t kept_server_dialogs = 0;
-      std::unordered_set<DialogId, DialogIdHash> removed_dialog_ids;
+      FlatHashSet<DialogId, DialogIdHash> removed_dialog_ids;
       auto old_it = old_server_dialog_ids.rbegin();
       for (auto &input_dialog_id : reversed(new_server_dialog_ids)) {
         auto dialog_id = input_dialog_id.get_dialog_id();
@@ -245,12 +293,14 @@ unique_ptr<DialogFilter> DialogFilter::merge_dialog_filter_changes(const DialogF
           }
 
           // remove the dialog, it could be added back later
+          CHECK(old_it->get_dialog_id().is_valid());
           removed_dialog_ids.insert(old_it->get_dialog_id());
           ++old_it;
         }
       }
       while (old_it < old_server_dialog_ids.rend()) {
         // remove the dialog, it could be added back later
+        CHECK(old_it->get_dialog_id().is_valid());
         removed_dialog_ids.insert(old_it->get_dialog_id());
         ++old_it;
       }
@@ -272,28 +322,29 @@ unique_ptr<DialogFilter> DialogFilter::merge_dialog_filter_changes(const DialogF
     }
 
     // merge additions and deletions from other clients to the local changes
-    std::unordered_set<DialogId, DialogIdHash> deleted_dialog_ids;
-    for (auto old_dialog_id : old_server_dialog_ids) {
+    FlatHashSet<DialogId, DialogIdHash> deleted_dialog_ids;
+    for (const auto &old_dialog_id : old_server_dialog_ids) {
+      CHECK(old_dialog_id.get_dialog_id().is_valid());
       deleted_dialog_ids.insert(old_dialog_id.get_dialog_id());
     }
-    std::unordered_set<DialogId, DialogIdHash> added_dialog_ids;
-    for (auto new_dialog_id : new_server_dialog_ids) {
+    FlatHashSet<DialogId, DialogIdHash> added_dialog_ids;
+    for (const auto &new_dialog_id : new_server_dialog_ids) {
       auto dialog_id = new_dialog_id.get_dialog_id();
       if (deleted_dialog_ids.erase(dialog_id) == 0) {
         added_dialog_ids.insert(dialog_id);
       }
     }
     vector<InputDialogId> result;
-    for (auto input_dialog_id : new_dialog_ids) {
+    for (const auto &input_dialog_id : new_dialog_ids) {
       // do not add dialog twice
       added_dialog_ids.erase(input_dialog_id.get_dialog_id());
     }
-    for (auto new_dialog_id : new_server_dialog_ids) {
+    for (const auto &new_dialog_id : new_server_dialog_ids) {
       if (added_dialog_ids.count(new_dialog_id.get_dialog_id()) == 1) {
         result.push_back(new_dialog_id);
       }
     }
-    for (auto input_dialog_id : new_dialog_ids) {
+    for (const auto &input_dialog_id : new_dialog_ids) {
       if (deleted_dialog_ids.count(input_dialog_id.get_dialog_id()) == 0) {
         result.push_back(input_dialog_id);
       }
@@ -309,10 +360,12 @@ unique_ptr<DialogFilter> DialogFilter::merge_dialog_filter_changes(const DialogF
                 new_server_filter->excluded_dialog_ids);
 
   {
-    std::unordered_set<DialogId, DialogIdHash> added_dialog_ids;
+    FlatHashSet<DialogId, DialogIdHash> added_dialog_ids;
     auto remove_duplicates = [&added_dialog_ids](auto &input_dialog_ids) {
       td::remove_if(input_dialog_ids, [&added_dialog_ids](auto input_dialog_id) {
-        return !added_dialog_ids.insert(input_dialog_id.get_dialog_id()).second;
+        auto dialog_id = input_dialog_id.get_dialog_id();
+        CHECK(dialog_id.is_valid());
+        return !added_dialog_ids.insert(dialog_id).second;
       });
     };
     remove_duplicates(new_filter->pinned_dialog_ids);
@@ -395,14 +448,20 @@ void DialogFilter::init_icon_names() {
                           "\xF0\x9F\x8C\xB9",         "\xF0\x9F\x8E\xAE", "\xF0\x9F\x8F\xA0",
                           "\xE2\x9D\xA4\xEF\xB8\x8F", "\xF0\x9F\x8E\xAD", "\xF0\x9F\x8D\xB8",
                           "\xE2\x9A\xBD\xEF\xB8\x8F", "\xF0\x9F\x8E\x93", "\xF0\x9F\x93\x88",
-                          "\xE2\x9C\x88\xEF\xB8\x8F", "\xF0\x9F\x92\xBC"};
+                          "\xE2\x9C\x88\xEF\xB8\x8F", "\xF0\x9F\x92\xBC", "\xF0\x9F\x9B\xAB",
+                          "\xF0\x9F\x93\x95",         "\xF0\x9F\x92\xA1", "\xF0\x9F\x91\x8D",
+                          "\xF0\x9F\x92\xB0",         "\xF0\x9F\x8E\xB5", "\xF0\x9F\x8E\xA8"};
     vector<string> icon_names{"All",   "Unread", "Unmuted", "Bots",     "Channels", "Groups", "Private", "Custom",
                               "Setup", "Cat",    "Crown",   "Favorite", "Flower",   "Game",   "Home",    "Love",
-                              "Mask",  "Party",  "Sport",   "Study",    "Trade",    "Travel", "Work"};
+                              "Mask",  "Party",  "Sport",   "Study",    "Trade",    "Travel", "Work",    "Airplane",
+                              "Book",  "Light",  "Like",    "Money",    "Note",     "Palette"};
+
     CHECK(emojis.size() == icon_names.size());
     for (size_t i = 0; i < emojis.size(); i++) {
-      emoji_to_icon_name_[remove_emoji_modifiers(emojis[i])] = icon_names[i];
-      icon_name_to_emoji_[icon_names[i]] = remove_emoji_modifiers(emojis[i]);
+      remove_emoji_modifiers_in_place(emojis[i]);
+      bool is_inserted = emoji_to_icon_name_.emplace(emojis[i], icon_names[i]).second &&
+                         icon_name_to_emoji_.emplace(icon_names[i], emojis[i]).second;
+      CHECK(is_inserted);
     }
     return true;
   }();
@@ -416,7 +475,7 @@ bool DialogFilter::are_flags_equal(const DialogFilter &lhs, const DialogFilter &
          lhs.include_groups == rhs.include_groups && lhs.include_channels == rhs.include_channels;
 }
 
-std::unordered_map<string, string> DialogFilter::emoji_to_icon_name_;
-std::unordered_map<string, string> DialogFilter::icon_name_to_emoji_;
+FlatHashMap<string, string> DialogFilter::emoji_to_icon_name_;
+FlatHashMap<string, string> DialogFilter::icon_name_to_emoji_;
 
 }  // namespace td

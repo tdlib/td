@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -11,15 +11,16 @@
 
 #include "td/utils/buffer.h"
 #include "td/utils/format.h"
-#include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/port/Clocks.h"
 #include "td/utils/port/FileFd.h"
 #include "td/utils/port/path.h"
 #include "td/utils/port/PollFlags.h"
+#include "td/utils/port/sleep.h"
 #include "td/utils/port/Stat.h"
 #include "td/utils/Random.h"
 #include "td/utils/ScopeGuard.h"
+#include "td/utils/SliceBuilder.h"
 #include "td/utils/Status.h"
 #include "td/utils/Time.h"
 #include "td/utils/tl_helpers.h"
@@ -54,7 +55,7 @@ struct AesCtrEncryptionEvent {
   BufferSlice iv_;
   BufferSlice key_hash_;
 
-  BufferSlice generate_key(const DbKey &db_key) {
+  BufferSlice generate_key(const DbKey &db_key) const {
     CHECK(!db_key.is_empty());
     BufferSlice key(key_size());
     size_t iteration_count = kdf_iteration_count();
@@ -64,7 +65,8 @@ struct AesCtrEncryptionEvent {
     pbkdf2_sha256(db_key.data(), key_salt_.as_slice(), narrow_cast<int>(iteration_count), key.as_slice());
     return key;
   }
-  BufferSlice generate_hash(Slice key) {
+
+  static BufferSlice generate_hash(Slice key) {
     BufferSlice hash(hash_size());
     hmac_sha256(key, "cucumbers everywhere", hash.as_slice());
     return hash;
@@ -163,6 +165,8 @@ static int64 file_size(CSlice path) {
 }
 }  // namespace detail
 
+int32 VERBOSITY_NAME(binlog) = VERBOSITY_NAME(DEBUG) + 8;
+
 Binlog::Binlog() = default;
 
 Binlog::~Binlog() {
@@ -240,7 +244,7 @@ void Binlog::add_event(BinlogEvent &&event) {
     auto need_reindex = [&](int64 min_size, int rate) {
       return fd_size > min_size && fd_size / rate > processor_->total_raw_events_size();
     };
-    if (need_reindex(100000, 5) || need_reindex(500000, 2)) {
+    if (need_reindex(50000, 5) || need_reindex(100000, 4) || need_reindex(300000, 3) || need_reindex(500000, 2)) {
       LOG(INFO) << tag("fd_size", format::as_size(fd_size))
                 << tag("total events size", format::as_size(processor_->total_raw_events_size()));
       do_reindex();
@@ -293,6 +297,11 @@ Status Binlog::close(bool need_sync) {
   return Status::OK();
 }
 
+void Binlog::close(Promise<> promise) {
+  TRY_STATUS_PROMISE(promise, close());
+  promise.set_value({});
+}
+
 void Binlog::change_key(DbKey new_db_key) {
   db_key_ = std::move(new_db_key);
   aes_ctr_key_salt_ = BufferSlice();
@@ -307,8 +316,8 @@ Status Binlog::close_and_destroy() {
 }
 
 Status Binlog::destroy(Slice path) {
+  unlink(PSLICE() << path << ".new").ignore();  // delete regenerated version first to avoid it becoming main version
   unlink(PSLICE() << path).ignore();
-  unlink(PSLICE() << path << ".new").ignore();
   return Status::OK();
 }
 
@@ -316,12 +325,13 @@ void Binlog::do_event(BinlogEvent &&event) {
   auto event_size = event.raw_event_.size();
 
   if (state_ == State::Run || state_ == State::Reindex) {
-    VLOG(binlog) << "Write binlog event: " << format::cond(state_ == State::Reindex, "[reindex] ");
     auto validate_status = event.validate();
     if (validate_status.is_error()) {
       LOG(FATAL) << "Failed to validate binlog event " << validate_status << " "
                  << format::as_hex_dump<4>(Slice(event.raw_event_.as_slice().truncate(28)));
     }
+    VLOG(binlog) << "Write binlog event: " << format::cond(state_ == State::Reindex, "[reindex] ")
+                 << event.public_to_string();
     switch (encryption_type_) {
       case EncryptionType::None: {
         buffer_writer_.append(event.raw_event_.clone());
@@ -346,11 +356,13 @@ void Binlog::do_event(BinlogEvent &&event) {
         key = encryption_event.generate_key(db_key_);
       }
 
-      if (encryption_event.generate_hash(key.as_slice()).as_slice() != encryption_event.key_hash_.as_slice()) {
+      if (detail::AesCtrEncryptionEvent::generate_hash(key.as_slice()).as_slice() !=
+          encryption_event.key_hash_.as_slice()) {
         CHECK(state_ == State::Load);
         if (!old_db_key_.is_empty()) {
           key = encryption_event.generate_key(old_db_key_);
-          if (encryption_event.generate_hash(key.as_slice()).as_slice() != encryption_event.key_hash_.as_slice()) {
+          if (detail::AesCtrEncryptionEvent::generate_hash(key.as_slice()).as_slice() !=
+              encryption_event.key_hash_.as_slice()) {
             info_.wrong_password = true;
           }
         } else {
@@ -602,7 +614,7 @@ void Binlog::reset_encryption() {
     key = event.generate_key(db_key_);
   }
 
-  event.key_hash_ = event.generate_hash(key.as_slice());
+  event.key_hash_ = EncryptionEvent::generate_hash(key.as_slice());
 
   do_event(BinlogEvent(
       BinlogEvent::create_raw(0, BinlogEvent::ServiceTypes::AesCtrEncryption, 0, create_default_storer(event)),
@@ -642,9 +654,10 @@ void Binlog::do_reindex() {
   fd_events_ = 0;
   reset_encryption();
   processor_->for_each([&](BinlogEvent &event) {
+    event.realloc();
     do_event(std::move(event));  // NB: no move is actually happens
   });
-  need_sync_ = true;  // must sync creation of the file
+  need_sync_ = start_size != 0;  // must sync creation of the file if it is non-empty
   sync();
 
   // finish_reindex
@@ -658,13 +671,32 @@ void Binlog::do_reindex() {
   auto finish_time = Clocks::monotonic();
   auto finish_size = fd_size_;
   auto finish_events = fd_events_;
-  LOG_CHECK(fd_size_ == detail::file_size(path_))
-      << fd_size_ << ' ' << detail::file_size(path_) << ' ' << fd_events_ << ' ' << path_;
+  for (int left_tries = 10; left_tries > 0; left_tries--) {
+    auto r_stat = stat(path_);
+    if (r_stat.is_error()) {
+      if (left_tries != 1) {
+        usleep_for(200000 / left_tries);
+        continue;
+      }
+      LOG(FATAL) << "Failed to rename binlog of size " << fd_size_ << " to " << path_ << ": " << r_stat.error()
+                 << ". Temp file size is " << detail::file_size(new_path) << ", new size " << detail::file_size(path_);
+    }
+    LOG_CHECK(fd_size_ == r_stat.ok().size_) << fd_size_ << ' ' << r_stat.ok().size_ << ' '
+                                             << detail::file_size(new_path) << ' ' << fd_events_ << ' ' << path_;
+    break;
+  }
 
-  double ratio = static_cast<double>(start_size) / static_cast<double>(finish_size + 1);
-  LOG(INFO) << "Regenerate index " << tag("name", path_) << tag("time", format::as_time(finish_time - start_time))
-            << tag("before_size", format::as_size(start_size)) << tag("after_size", format::as_size(finish_size))
-            << tag("ratio", ratio) << tag("before_events", start_events) << tag("after_events", finish_events);
+  auto ratio = static_cast<double>(start_size) / static_cast<double>(finish_size + 1);
+
+  [&](Slice msg) {
+    if (start_size > (10 << 20) || finish_time - start_time > 1) {
+      LOG(WARNING) << "Slow " << msg;
+    } else {
+      LOG(INFO) << msg;
+    }
+  }(PSLICE() << "Regenerate index " << tag("name", path_) << tag("time", format::as_time(finish_time - start_time))
+             << tag("before_size", format::as_size(start_size)) << tag("after_size", format::as_size(finish_size))
+             << tag("ratio", ratio) << tag("before_events", start_events) << tag("after_events", finish_events));
 
   buffer_writer_ = ChainBufferWriter();
   buffer_reader_ = buffer_writer_.extract_reader();
@@ -699,7 +731,7 @@ string Binlog::debug_get_binlog_data(int64 begin_offset, int64 end_offset) {
   SCOPE_EXIT {
     fd_.lock(FileFd::LockFlags::Write, path_, 1).ensure();
   };
-  size_t expected_data_length = narrow_cast<size_t>(end_offset - begin_offset);
+  auto expected_data_length = narrow_cast<size_t>(end_offset - begin_offset);
   string data(expected_data_length, '\0');
   auto r_data_size = fd.pread(data, begin_offset);
   if (r_data_size.is_error()) {

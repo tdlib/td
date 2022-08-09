@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -10,6 +10,8 @@
 #include "td/utils/common.h"
 #include "td/utils/Status.h"
 
+#include <limits>
+
 namespace td {
 
 class ByteFlowInterface {
@@ -19,6 +21,10 @@ class ByteFlowInterface {
   virtual void set_parent(ByteFlowInterface &other) = 0;
   virtual void set_input(ChainBufferReader *input) = 0;
   virtual size_t get_need_size() = 0;
+  virtual size_t get_read_size() = 0;
+  virtual size_t get_write_size() = 0;
+  virtual void reset_need_size() {
+  }
   ByteFlowInterface() = default;
   ByteFlowInterface(const ByteFlowInterface &) = delete;
   ByteFlowInterface &operator=(const ByteFlowInterface &) = delete;
@@ -41,36 +47,98 @@ class ByteFlowBaseCommon : public ByteFlowInterface {
   }
 
   void wakeup() final {
-    if (stop_flag_) {
+    if (stop_flag_ || !input_) {
       return;
     }
     input_->sync_with_writer();
+
     if (waiting_flag_) {
       if (!is_input_active_) {
         finish(Status::OK());
       }
       return;
     }
-    if (is_input_active_) {
-      if (need_size_ != 0 && input_->size() < need_size_) {
-        return;
+    while (true) {
+      if (stop_flag_) {
+        break;
+      }
+
+      // update can_read
+      if (is_input_active_) {
+        auto read_size = get_read_size();
+        if (read_size < min(need_size_, options_.read_watermark.low)) {
+          can_read = false;
+        }
+        if (read_size >= max(need_size_, options_.read_watermark.high)) {
+          can_read = true;
+        }
+      } else {
+        // always can read when input is closed
+        can_read = true;
+      }
+
+      // update can_write
+      {
+        auto write_size = get_write_size();
+        if (write_size > options_.write_watermark.high) {
+          can_write = false;
+        }
+        if (write_size <= options_.write_watermark.low) {
+          can_write = true;
+        }
+      }
+
+      if (!can_read || !can_write) {
+        break;
+      }
+      need_size_ = 0;
+
+      if (!loop()) {
+        if (need_size_ <= get_read_size()) {
+          need_size_ = get_read_size() + 1;
+        }
       }
     }
-    need_size_ = 0;
-    loop();
+    on_output_updated();
   }
 
   size_t get_need_size() final {
     return need_size_;
   }
+  void reset_need_size() override {
+    need_size_ = 0;
+  }
+  size_t get_read_size() override {
+    input_->sync_with_writer();
+    return input_->size();
+  }
+  size_t get_write_size() override {
+    CHECK(parent_);
+    return parent_->get_read_size();
+  }
 
-  virtual void loop() = 0;
+  struct Watermark {
+    size_t low{std::numeric_limits<size_t>::max()};
+    size_t high{0};
+  };
+  struct Options {
+    Watermark write_watermark;
+    Watermark read_watermark;
+  };
+  void set_options(Options options) {
+    options_ = options;
+  }
+
+  virtual bool loop() = 0;
 
  protected:
   bool waiting_flag_ = false;
   ChainBufferReader *input_ = nullptr;
   bool is_input_active_ = true;
   size_t need_size_ = 0;
+  bool can_read{true};
+  bool can_write{true};
+  Options options_;
   void finish(Status status) {
     stop_flag_ = true;
     need_size_ = 0;
@@ -114,7 +182,7 @@ class ByteFlowBase : public ByteFlowBaseCommon {
     parent_ = &other;
     parent_->set_input(&output_reader_);
   }
-  void loop() override = 0;
+  bool loop() override = 0;
 
   // ChainBufferWriter &get_output() {
   // return output_;
@@ -137,7 +205,7 @@ class ByteFlowInplaceBase : public ByteFlowBaseCommon {
     parent_ = &other;
     parent_->set_input(&output_);
   }
-  void loop() override = 0;
+  bool loop() override = 0;
 
   ChainBufferReader &get_output() {
     return output_;
@@ -152,16 +220,16 @@ inline ByteFlowInterface &operator>>(ByteFlowInterface &from, ByteFlowInterface 
   return to;
 }
 
-class ByteFlowSource : public ByteFlowInterface {
+class ByteFlowSource final : public ByteFlowInterface {
  public:
   ByteFlowSource() = default;
   explicit ByteFlowSource(ChainBufferReader *buffer) : buffer_(buffer) {
   }
-  ByteFlowSource(ByteFlowSource &&other) : buffer_(other.buffer_), parent_(other.parent_) {
+  ByteFlowSource(ByteFlowSource &&other) noexcept : buffer_(other.buffer_), parent_(other.parent_) {
     other.buffer_ = nullptr;
     other.parent_ = nullptr;
   }
-  ByteFlowSource &operator=(ByteFlowSource &&other) {
+  ByteFlowSource &operator=(ByteFlowSource &&other) noexcept {
     buffer_ = other.buffer_;
     parent_ = other.parent_;
     other.buffer_ = nullptr;
@@ -186,7 +254,9 @@ class ByteFlowSource : public ByteFlowInterface {
     parent_ = nullptr;
   }
   void wakeup() final {
-    CHECK(parent_);
+    if (!parent_) {
+      return;
+    }
     parent_->wakeup();
   }
   size_t get_need_size() final {
@@ -195,13 +265,21 @@ class ByteFlowSource : public ByteFlowInterface {
     }
     return parent_->get_need_size();
   }
+  size_t get_read_size() final {
+    UNREACHABLE();
+    return 0;
+  }
+  size_t get_write_size() final {
+    CHECK(parent_);
+    return parent_->get_read_size();
+  }
 
  private:
   ChainBufferReader *buffer_ = nullptr;
   ByteFlowInterface *parent_ = nullptr;
 };
 
-class ByteFlowSink : public ByteFlowInterface {
+class ByteFlowSink final : public ByteFlowInterface {
  public:
   void set_input(ChainBufferReader *input) final {
     CHECK(buffer_ == nullptr);
@@ -220,6 +298,14 @@ class ByteFlowSink : public ByteFlowInterface {
     buffer_->sync_with_writer();
   }
   size_t get_need_size() final {
+    UNREACHABLE();
+    return 0;
+  }
+  size_t get_read_size() final {
+    buffer_->sync_with_writer();
+    return buffer_->size();
+  }
+  size_t get_write_size() final {
     UNREACHABLE();
     return 0;
   }
@@ -243,7 +329,7 @@ class ByteFlowSink : public ByteFlowInterface {
   ChainBufferReader *buffer_ = nullptr;
 };
 
-class ByteFlowMoveSink : public ByteFlowInterface {
+class ByteFlowMoveSink final : public ByteFlowInterface {
  public:
   ByteFlowMoveSink() = default;
   explicit ByteFlowMoveSink(ChainBufferWriter *output) {
@@ -270,6 +356,15 @@ class ByteFlowMoveSink : public ByteFlowInterface {
     UNREACHABLE();
     return 0;
   }
+  size_t get_read_size() final {
+    input_->sync_with_writer();
+    //TODO: must be input_->size() + output_->size()
+    return input_->size();
+  }
+  size_t get_write_size() final {
+    UNREACHABLE();
+    return 0;
+  }
   void set_output(ChainBufferWriter *output) {
     CHECK(!output_);
     output_ = output;
@@ -288,4 +383,5 @@ class ByteFlowMoveSink : public ByteFlowInterface {
   ChainBufferReader *input_ = nullptr;
   ChainBufferWriter *output_ = nullptr;
 };
+
 }  // namespace td

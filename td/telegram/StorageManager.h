@@ -1,21 +1,21 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 #pragma once
 
-#include "td/actor/actor.h"
-#include "td/actor/PromiseFuture.h"
-
 #include "td/telegram/files/FileGcWorker.h"
 #include "td/telegram/files/FileStats.h"
 #include "td/telegram/files/FileStatsWorker.h"
 #include "td/telegram/td_api.h"
 
+#include "td/actor/actor.h"
+
 #include "td/utils/CancellationToken.h"
 #include "td/utils/common.h"
+#include "td/utils/Promise.h"
 #include "td/utils/Slice.h"
 #include "td/utils/Status.h"
 
@@ -24,12 +24,12 @@ namespace td {
 struct DatabaseStats {
   string debug;
   DatabaseStats() = default;
-  explicit DatabaseStats(string debug) : debug(debug) {
+  explicit DatabaseStats(string debug) : debug(std::move(debug)) {
   }
-  tl_object_ptr<td_api::databaseStatistics> as_td_api() const;
+  tl_object_ptr<td_api::databaseStatistics> get_database_statistics_object() const;
 };
 
-class StorageManager : public Actor {
+class StorageManager final : public Actor {
  public:
   StorageManager(ActorShared<> parent, int32 scheduler_id);
   void get_storage_stats(bool need_all_files, int32 dialog_limit, Promise<FileStats> promise);
@@ -41,9 +41,9 @@ class StorageManager : public Actor {
   void on_new_file(int64 size, int64 real_size, int32 cnt);
 
  private:
-  static constexpr uint32 GC_EACH = 60 * 60 * 24;  // 1 day
-  static constexpr uint32 GC_DELAY = 60;
-  static constexpr uint32 GC_RAND_DELAY = 60 * 15;
+  static constexpr int GC_EACH = 60 * 60 * 24;  // 1 day
+  static constexpr int GC_DELAY = 60;
+  static constexpr int GC_RAND_DELAY = 60 * 15;
 
   ActorShared<> parent_;
 
@@ -64,7 +64,7 @@ class StorageManager : public Actor {
   void on_file_stats(Result<FileStats> r_file_stats, uint32 generation);
   void create_stats_worker();
   void update_fast_stats(const FileStats &stats);
-  void send_stats(FileStats &&stats, int32 dialog_limit, std::vector<Promise<FileStats>> &&promises);
+  static void send_stats(FileStats &&stats, int32 dialog_limit, std::vector<Promise<FileStats>> &&promises);
 
   void save_fast_stat();
   void load_fast_stat();
@@ -77,9 +77,9 @@ class StorageManager : public Actor {
   int32 ref_cnt_{1};
   bool is_closed_{false};
   ActorShared<> create_reference();
-  void start_up() override;
-  void hangup_shared() override;
-  void hangup() override;
+  void start_up() final;
+  void hangup_shared() final;
+  void hangup() final;
 
   // Gc
   ActorOwn<FileGcWorker> gc_worker_;
@@ -99,7 +99,7 @@ class StorageManager : public Actor {
   void save_last_gc_timestamp();
   void schedule_next_gc();
 
-  void timeout_expired() override;
+  void timeout_expired() final;
 };
 
 }  // namespace td

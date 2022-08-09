@@ -1,13 +1,10 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 #include "td/telegram/PrivacyManager.h"
-
-#include "td/telegram/td_api.h"
-#include "td/telegram/telegram_api.h"
 
 #include "td/telegram/ChannelId.h"
 #include "td/telegram/ChatId.h"
@@ -19,18 +16,18 @@
 #include "td/telegram/net/NetQueryDispatcher.h"
 #include "td/telegram/Td.h"
 
+#include "td/utils/algorithm.h"
 #include "td/utils/logging.h"
-#include "td/utils/misc.h"
 
 #include <algorithm>
 #include <iterator>
 
 namespace td {
 
-Result<PrivacyManager::UserPrivacySetting> PrivacyManager::UserPrivacySetting::from_td_api(
+Result<PrivacyManager::UserPrivacySetting> PrivacyManager::UserPrivacySetting::get_user_privacy_setting(
     tl_object_ptr<td_api::UserPrivacySetting> key) {
-  if (!key) {
-    return Status::Error(5, "UserPrivacySetting must be non-empty");
+  if (key == nullptr) {
+    return Status::Error(400, "UserPrivacySetting must be non-empty");
   }
   return UserPrivacySetting(*key);
 }
@@ -67,7 +64,7 @@ PrivacyManager::UserPrivacySetting::UserPrivacySetting(const telegram_api::Priva
   }
 }
 
-tl_object_ptr<td_api::UserPrivacySetting> PrivacyManager::UserPrivacySetting::as_td_api() const {
+tl_object_ptr<td_api::UserPrivacySetting> PrivacyManager::UserPrivacySetting::get_user_privacy_setting_object() const {
   switch (type_) {
     case Type::UserStatus:
       return make_tl_object<td_api::userPrivacySettingShowStatus>();
@@ -90,7 +87,7 @@ tl_object_ptr<td_api::UserPrivacySetting> PrivacyManager::UserPrivacySetting::as
       return nullptr;
   }
 }
-tl_object_ptr<telegram_api::InputPrivacyKey> PrivacyManager::UserPrivacySetting::as_telegram_api() const {
+tl_object_ptr<telegram_api::InputPrivacyKey> PrivacyManager::UserPrivacySetting::get_input_privacy_key() const {
   switch (type_) {
     case Type::UserStatus:
       return make_tl_object<telegram_api::inputPrivacyKeyStatusTimestamp>();
@@ -151,7 +148,7 @@ void PrivacyManager::UserPrivacySettingRule::set_chat_ids(const vector<int64> &d
   auto td = G()->td().get_actor_unsafe();
   for (auto dialog_id_int : dialog_ids) {
     DialogId dialog_id(dialog_id_int);
-    if (!td->messages_manager_->have_dialog_force(dialog_id)) {
+    if (!td->messages_manager_->have_dialog_force(dialog_id, "UserPrivacySettingRule::set_chat_ids")) {
       LOG(ERROR) << "Ignore not found " << dialog_id;
       continue;
     }
@@ -162,7 +159,7 @@ void PrivacyManager::UserPrivacySettingRule::set_chat_ids(const vector<int64> &d
         break;
       case DialogType::Channel: {
         auto channel_id = dialog_id.get_channel_id();
-        if (td->contacts_manager_->get_channel_type(channel_id) != ChannelType::Megagroup) {
+        if (!td->contacts_manager_->is_megagroup_channel(channel_id)) {
           LOG(ERROR) << "Ignore broadcast " << channel_id;
           break;
         }
@@ -185,7 +182,7 @@ PrivacyManager::UserPrivacySettingRule::UserPrivacySettingRule(const td_api::Use
       break;
     case td_api::userPrivacySettingRuleAllowUsers::ID:
       type_ = Type::AllowUsers;
-      user_ids_ = static_cast<const td_api::userPrivacySettingRuleAllowUsers &>(rule).user_ids_;
+      user_ids_ = UserId::get_user_ids(static_cast<const td_api::userPrivacySettingRuleAllowUsers &>(rule).user_ids_);
       break;
     case td_api::userPrivacySettingRuleAllowChatMembers::ID:
       type_ = Type::AllowChatParticipants;
@@ -199,7 +196,8 @@ PrivacyManager::UserPrivacySettingRule::UserPrivacySettingRule(const td_api::Use
       break;
     case td_api::userPrivacySettingRuleRestrictUsers::ID:
       type_ = Type::RestrictUsers;
-      user_ids_ = static_cast<const td_api::userPrivacySettingRuleRestrictUsers &>(rule).user_ids_;
+      user_ids_ =
+          UserId::get_user_ids(static_cast<const td_api::userPrivacySettingRuleRestrictUsers &>(rule).user_ids_);
       break;
     case td_api::userPrivacySettingRuleRestrictChatMembers::ID:
       type_ = Type::RestrictChatParticipants;
@@ -220,7 +218,7 @@ PrivacyManager::UserPrivacySettingRule::UserPrivacySettingRule(const telegram_ap
       break;
     case telegram_api::privacyValueAllowUsers::ID:
       type_ = Type::AllowUsers;
-      user_ids_ = static_cast<const telegram_api::privacyValueAllowUsers &>(rule).users_;
+      user_ids_ = UserId::get_user_ids(static_cast<const telegram_api::privacyValueAllowUsers &>(rule).users_);
       break;
     case telegram_api::privacyValueAllowChatParticipants::ID:
       type_ = Type::AllowChatParticipants;
@@ -234,7 +232,7 @@ PrivacyManager::UserPrivacySettingRule::UserPrivacySettingRule(const telegram_ap
       break;
     case telegram_api::privacyValueDisallowUsers::ID:
       type_ = Type::RestrictUsers;
-      user_ids_ = static_cast<const telegram_api::privacyValueDisallowUsers &>(rule).users_;
+      user_ids_ = UserId::get_user_ids(static_cast<const telegram_api::privacyValueDisallowUsers &>(rule).users_);
       break;
     case telegram_api::privacyValueDisallowChatParticipants::ID:
       type_ = Type::RestrictChatParticipants;
@@ -245,14 +243,15 @@ PrivacyManager::UserPrivacySettingRule::UserPrivacySettingRule(const telegram_ap
   }
 }
 
-tl_object_ptr<td_api::UserPrivacySettingRule> PrivacyManager::UserPrivacySettingRule::as_td_api() const {
+tl_object_ptr<td_api::UserPrivacySettingRule>
+PrivacyManager::UserPrivacySettingRule::get_user_privacy_setting_rule_object() const {
   switch (type_) {
     case Type::AllowContacts:
       return make_tl_object<td_api::userPrivacySettingRuleAllowContacts>();
     case Type::AllowAll:
       return make_tl_object<td_api::userPrivacySettingRuleAllowAll>();
     case Type::AllowUsers:
-      return make_tl_object<td_api::userPrivacySettingRuleAllowUsers>(vector<int32>{user_ids_});
+      return make_tl_object<td_api::userPrivacySettingRuleAllowUsers>(UserId::get_input_user_ids(user_ids_));
     case Type::AllowChatParticipants:
       return make_tl_object<td_api::userPrivacySettingRuleAllowChatMembers>(chat_ids_as_dialog_ids());
     case Type::RestrictContacts:
@@ -260,7 +259,7 @@ tl_object_ptr<td_api::UserPrivacySettingRule> PrivacyManager::UserPrivacySetting
     case Type::RestrictAll:
       return make_tl_object<td_api::userPrivacySettingRuleRestrictAll>();
     case Type::RestrictUsers:
-      return make_tl_object<td_api::userPrivacySettingRuleRestrictUsers>(vector<int32>{user_ids_});
+      return make_tl_object<td_api::userPrivacySettingRuleRestrictUsers>(UserId::get_input_user_ids(user_ids_));
     case Type::RestrictChatParticipants:
       return make_tl_object<td_api::userPrivacySettingRuleRestrictChatMembers>(chat_ids_as_dialog_ids());
     default:
@@ -268,36 +267,36 @@ tl_object_ptr<td_api::UserPrivacySettingRule> PrivacyManager::UserPrivacySetting
   }
 }
 
-tl_object_ptr<telegram_api::InputPrivacyRule> PrivacyManager::UserPrivacySettingRule::as_telegram_api() const {
+tl_object_ptr<telegram_api::InputPrivacyRule> PrivacyManager::UserPrivacySettingRule::get_input_privacy_rule() const {
   switch (type_) {
     case Type::AllowContacts:
       return make_tl_object<telegram_api::inputPrivacyValueAllowContacts>();
     case Type::AllowAll:
       return make_tl_object<telegram_api::inputPrivacyValueAllowAll>();
     case Type::AllowUsers:
-      return make_tl_object<telegram_api::inputPrivacyValueAllowUsers>(user_ids_as_telegram_api());
+      return make_tl_object<telegram_api::inputPrivacyValueAllowUsers>(get_input_users());
     case Type::AllowChatParticipants:
-      return make_tl_object<telegram_api::inputPrivacyValueAllowChatParticipants>(vector<int32>{chat_ids_});
+      return make_tl_object<telegram_api::inputPrivacyValueAllowChatParticipants>(vector<int64>{chat_ids_});
     case Type::RestrictContacts:
       return make_tl_object<telegram_api::inputPrivacyValueDisallowContacts>();
     case Type::RestrictAll:
       return make_tl_object<telegram_api::inputPrivacyValueDisallowAll>();
     case Type::RestrictUsers:
-      return make_tl_object<telegram_api::inputPrivacyValueDisallowUsers>(user_ids_as_telegram_api());
+      return make_tl_object<telegram_api::inputPrivacyValueDisallowUsers>(get_input_users());
     case Type::RestrictChatParticipants:
-      return make_tl_object<telegram_api::inputPrivacyValueDisallowChatParticipants>(vector<int32>{chat_ids_});
+      return make_tl_object<telegram_api::inputPrivacyValueDisallowChatParticipants>(vector<int64>{chat_ids_});
     default:
       UNREACHABLE();
   }
 }
 
-Result<PrivacyManager::UserPrivacySettingRule> PrivacyManager::UserPrivacySettingRule::from_telegram_api(
+Result<PrivacyManager::UserPrivacySettingRule> PrivacyManager::UserPrivacySettingRule::get_user_privacy_setting_rule(
     tl_object_ptr<telegram_api::PrivacyRule> rule) {
   CHECK(rule != nullptr);
   UserPrivacySettingRule result(*rule);
   auto td = G()->td().get_actor_unsafe();
   for (auto user_id : result.user_ids_) {
-    if (!td->contacts_manager_->have_user(UserId(user_id))) {
+    if (!td->contacts_manager_->have_user(user_id)) {
       return Status::Error(500, "Got inaccessible user from the server");
     }
   }
@@ -316,13 +315,12 @@ Result<PrivacyManager::UserPrivacySettingRule> PrivacyManager::UserPrivacySettin
   return result;
 }
 
-vector<tl_object_ptr<telegram_api::InputUser>> PrivacyManager::UserPrivacySettingRule::user_ids_as_telegram_api()
-    const {
+vector<tl_object_ptr<telegram_api::InputUser>> PrivacyManager::UserPrivacySettingRule::get_input_users() const {
   vector<tl_object_ptr<telegram_api::InputUser>> result;
   for (auto user_id : user_ids_) {
-    auto input_user = G()->td().get_actor_unsafe()->contacts_manager_->get_input_user(UserId(user_id));
-    if (input_user != nullptr) {
-      result.push_back(std::move(input_user));
+    auto r_input_user = G()->td().get_actor_unsafe()->contacts_manager_->get_input_user(user_id);
+    if (r_input_user.is_ok()) {
+      result.push_back(r_input_user.move_as_ok());
     } else {
       LOG(ERROR) << "Have no access to " << user_id;
     }
@@ -347,82 +345,84 @@ vector<int64> PrivacyManager::UserPrivacySettingRule::chat_ids_as_dialog_ids() c
   return result;
 }
 
-vector<int32> PrivacyManager::UserPrivacySettingRule::get_restricted_user_ids() const {
+vector<UserId> PrivacyManager::UserPrivacySettingRule::get_restricted_user_ids() const {
   if (type_ == Type::RestrictUsers) {
     return user_ids_;
   }
   return {};
 }
 
-Result<PrivacyManager::UserPrivacySettingRules> PrivacyManager::UserPrivacySettingRules::from_telegram_api(
+Result<PrivacyManager::UserPrivacySettingRules> PrivacyManager::UserPrivacySettingRules::get_user_privacy_setting_rules(
     tl_object_ptr<telegram_api::account_privacyRules> rules) {
   G()->td().get_actor_unsafe()->contacts_manager_->on_get_users(std::move(rules->users_), "on get privacy rules");
   G()->td().get_actor_unsafe()->contacts_manager_->on_get_chats(std::move(rules->chats_), "on get privacy rules");
-  return from_telegram_api(std::move(rules->rules_));
+  return get_user_privacy_setting_rules(std::move(rules->rules_));
 }
 
-Result<PrivacyManager::UserPrivacySettingRules> PrivacyManager::UserPrivacySettingRules::from_telegram_api(
+Result<PrivacyManager::UserPrivacySettingRules> PrivacyManager::UserPrivacySettingRules::get_user_privacy_setting_rules(
     vector<tl_object_ptr<telegram_api::PrivacyRule>> rules) {
   UserPrivacySettingRules result;
   for (auto &rule : rules) {
-    TRY_RESULT(new_rule, UserPrivacySettingRule::from_telegram_api(std::move(rule)));
+    TRY_RESULT(new_rule, UserPrivacySettingRule::get_user_privacy_setting_rule(std::move(rule)));
     result.rules_.push_back(new_rule);
   }
-  if (!result.rules_.empty() &&
-      result.rules_.back().as_td_api()->get_id() == td_api::userPrivacySettingRuleRestrictAll::ID) {
+  if (!result.rules_.empty() && result.rules_.back().get_user_privacy_setting_rule_object()->get_id() ==
+                                    td_api::userPrivacySettingRuleRestrictAll::ID) {
     result.rules_.pop_back();
   }
   return result;
 }
 
-Result<PrivacyManager::UserPrivacySettingRules> PrivacyManager::UserPrivacySettingRules::from_td_api(
+Result<PrivacyManager::UserPrivacySettingRules> PrivacyManager::UserPrivacySettingRules::get_user_privacy_setting_rules(
     tl_object_ptr<td_api::userPrivacySettingRules> rules) {
-  if (!rules) {
-    return Status::Error(5, "UserPrivacySettingRules must be non-empty");
+  if (rules == nullptr) {
+    return Status::Error(400, "UserPrivacySettingRules must be non-empty");
   }
   UserPrivacySettingRules result;
   for (auto &rule : rules->rules_) {
-    if (!rule) {
-      return Status::Error(5, "UserPrivacySettingRule must be non-empty");
+    if (rule == nullptr) {
+      return Status::Error(400, "UserPrivacySettingRule must be non-empty");
     }
     result.rules_.emplace_back(*rule);
   }
   return result;
 }
 
-tl_object_ptr<td_api::userPrivacySettingRules> PrivacyManager::UserPrivacySettingRules::as_td_api() const {
+tl_object_ptr<td_api::userPrivacySettingRules>
+PrivacyManager::UserPrivacySettingRules::get_user_privacy_setting_rules_object() const {
   return make_tl_object<td_api::userPrivacySettingRules>(
-      transform(rules_, [](const auto &rule) { return rule.as_td_api(); }));
+      transform(rules_, [](const auto &rule) { return rule.get_user_privacy_setting_rule_object(); }));
 }
 
-vector<tl_object_ptr<telegram_api::InputPrivacyRule>> PrivacyManager::UserPrivacySettingRules::as_telegram_api() const {
-  auto result = transform(rules_, [](const auto &rule) { return rule.as_telegram_api(); });
+vector<tl_object_ptr<telegram_api::InputPrivacyRule>> PrivacyManager::UserPrivacySettingRules::get_input_privacy_rules()
+    const {
+  auto result = transform(rules_, [](const auto &rule) { return rule.get_input_privacy_rule(); });
   if (!result.empty() && result.back()->get_id() == telegram_api::inputPrivacyValueDisallowAll::ID) {
     result.pop_back();
   }
   return result;
 }
 
-vector<int32> PrivacyManager::UserPrivacySettingRules::get_restricted_user_ids() const {
-  vector<int32> result;
+vector<UserId> PrivacyManager::UserPrivacySettingRules::get_restricted_user_ids() const {
+  vector<UserId> result;
   for (auto &rule : rules_) {
     combine(result, rule.get_restricted_user_ids());
   }
-  std::sort(result.begin(), result.end());
+  std::sort(result.begin(), result.end(), [](UserId lhs, UserId rhs) { return lhs.get() < rhs.get(); });
   result.erase(std::unique(result.begin(), result.end()), result.end());
   return result;
 }
 
 void PrivacyManager::get_privacy(tl_object_ptr<td_api::UserPrivacySetting> key,
                                  Promise<tl_object_ptr<td_api::userPrivacySettingRules>> promise) {
-  auto r_user_privacy_setting = UserPrivacySetting::from_td_api(std::move(key));
+  auto r_user_privacy_setting = UserPrivacySetting::get_user_privacy_setting(std::move(key));
   if (r_user_privacy_setting.is_error()) {
     return promise.set_error(r_user_privacy_setting.move_as_error());
   }
   auto user_privacy_setting = r_user_privacy_setting.move_as_ok();
   auto &info = get_info(user_privacy_setting);
   if (info.is_synchronized) {
-    return promise.set_value(info.rules.as_td_api());
+    return promise.set_value(info.rules.get_user_privacy_setting_rules_object());
   }
   info.get_promises.push_back(std::move(promise));
   if (info.get_promises.size() > 1u) {
@@ -430,7 +430,7 @@ void PrivacyManager::get_privacy(tl_object_ptr<td_api::UserPrivacySetting> key,
     return;
   }
   auto net_query =
-      G()->net_query_creator().create(telegram_api::account_getPrivacy(user_privacy_setting.as_telegram_api()));
+      G()->net_query_creator().create(telegram_api::account_getPrivacy(user_privacy_setting.get_input_privacy_key()));
 
   send_with_promise(std::move(net_query),
                     PromiseCreator::lambda([this, user_privacy_setting](Result<NetQueryPtr> x_net_query) {
@@ -438,54 +438,45 @@ void PrivacyManager::get_privacy(tl_object_ptr<td_api::UserPrivacySetting> key,
                         TRY_RESULT(net_query, std::move(x_net_query));
                         TRY_RESULT(rules, fetch_result<telegram_api::account_getPrivacy>(std::move(net_query)));
                         LOG(INFO) << "Receive " << to_string(rules);
-                        return UserPrivacySettingRules::from_telegram_api(std::move(rules));
+                        return UserPrivacySettingRules::get_user_privacy_setting_rules(std::move(rules));
                       }());
                     }));
 }
 
 void PrivacyManager::set_privacy(tl_object_ptr<td_api::UserPrivacySetting> key,
                                  tl_object_ptr<td_api::userPrivacySettingRules> rules, Promise<Unit> promise) {
-  auto r_user_privacy_setting = UserPrivacySetting::from_td_api(std::move(key));
-  if (r_user_privacy_setting.is_error()) {
-    return promise.set_error(r_user_privacy_setting.move_as_error());
-  }
-  auto user_privacy_setting = r_user_privacy_setting.move_as_ok();
-
-  auto r_privacy_rules = UserPrivacySettingRules::from_td_api(std::move(rules));
-  if (r_privacy_rules.is_error()) {
-    return promise.set_error(r_privacy_rules.move_as_error());
-  }
-  auto privacy_rules = r_privacy_rules.move_as_ok();
+  TRY_RESULT_PROMISE(promise, user_privacy_setting, UserPrivacySetting::get_user_privacy_setting(std::move(key)));
+  TRY_RESULT_PROMISE(promise, privacy_rules, UserPrivacySettingRules::get_user_privacy_setting_rules(std::move(rules)));
 
   auto &info = get_info(user_privacy_setting);
   if (info.has_set_query) {
     // TODO cancel previous query
-    return promise.set_error(Status::Error(5, "Another set_privacy query is active"));
+    return promise.set_error(Status::Error(400, "Another set_privacy query is active"));
   }
-  auto net_query = G()->net_query_creator().create(
-      telegram_api::account_setPrivacy(user_privacy_setting.as_telegram_api(), privacy_rules.as_telegram_api()));
+  auto net_query = G()->net_query_creator().create(telegram_api::account_setPrivacy(
+      user_privacy_setting.get_input_privacy_key(), privacy_rules.get_input_privacy_rules()));
 
   info.has_set_query = true;
-  send_with_promise(std::move(net_query),
-                    PromiseCreator::lambda([this, user_privacy_setting,
-                                            promise = std::move(promise)](Result<NetQueryPtr> x_net_query) mutable {
-                      promise.set_result([&]() -> Result<Unit> {
-                        get_info(user_privacy_setting).has_set_query = false;
-                        TRY_RESULT(net_query, std::move(x_net_query));
-                        TRY_RESULT(rules, fetch_result<telegram_api::account_setPrivacy>(std::move(net_query)));
-                        LOG(INFO) << "Receive " << to_string(rules);
-                        TRY_RESULT(privacy_rules, UserPrivacySettingRules::from_telegram_api(std::move(rules)));
-                        do_update_privacy(user_privacy_setting, std::move(privacy_rules), true);
-                        return Unit();
-                      }());
-                    }));
+  send_with_promise(
+      std::move(net_query), PromiseCreator::lambda([this, user_privacy_setting, promise = std::move(promise)](
+                                                       Result<NetQueryPtr> x_net_query) mutable {
+        promise.set_result([&]() -> Result<Unit> {
+          get_info(user_privacy_setting).has_set_query = false;
+          TRY_RESULT(net_query, std::move(x_net_query));
+          TRY_RESULT(rules, fetch_result<telegram_api::account_setPrivacy>(std::move(net_query)));
+          LOG(INFO) << "Receive " << to_string(rules);
+          TRY_RESULT(privacy_rules, UserPrivacySettingRules::get_user_privacy_setting_rules(std::move(rules)));
+          do_update_privacy(user_privacy_setting, std::move(privacy_rules), true);
+          return Unit();
+        }());
+      }));
 }
 
 void PrivacyManager::update_privacy(tl_object_ptr<telegram_api::updatePrivacy> update) {
   CHECK(update != nullptr);
   CHECK(update->key_ != nullptr);
   UserPrivacySetting user_privacy_setting(*update->key_);
-  auto r_privacy_rules = UserPrivacySettingRules::from_telegram_api(std::move(update->rules_));
+  auto r_privacy_rules = UserPrivacySettingRules::get_user_privacy_setting_rules(std::move(update->rules_));
   if (r_privacy_rules.is_error()) {
     LOG(INFO) << "Skip updatePrivacy: " << r_privacy_rules.error().message();
     auto &info = get_info(user_privacy_setting);
@@ -496,19 +487,19 @@ void PrivacyManager::update_privacy(tl_object_ptr<telegram_api::updatePrivacy> u
 }
 
 void PrivacyManager::on_get_result(UserPrivacySetting user_privacy_setting,
-                                   Result<UserPrivacySettingRules> privacy_rules) {
+                                   Result<UserPrivacySettingRules> r_privacy_rules) {
   auto &info = get_info(user_privacy_setting);
   auto promises = std::move(info.get_promises);
   reset_to_empty(info.get_promises);
   for (auto &promise : promises) {
-    if (privacy_rules.is_error()) {
-      promise.set_error(privacy_rules.error().clone());
+    if (r_privacy_rules.is_error()) {
+      promise.set_error(r_privacy_rules.error().clone());
     } else {
-      promise.set_value(privacy_rules.ok().as_td_api());
+      promise.set_value(r_privacy_rules.ok().get_user_privacy_setting_rules_object());
     }
   }
-  if (privacy_rules.is_ok()) {
-    do_update_privacy(user_privacy_setting, privacy_rules.move_as_ok(), false);
+  if (r_privacy_rules.is_ok()) {
+    do_update_privacy(user_privacy_setting, r_privacy_rules.move_as_ok(), false);
   }
 }
 
@@ -529,12 +520,12 @@ void PrivacyManager::do_update_privacy(UserPrivacySetting user_privacy_setting, 
           if (old_restricted != new_restricted) {
             // if a user was unrestricted, it is not received from the server anymore
             // we need to reget their online status manually
-            std::vector<int32> unrestricted;
+            std::vector<UserId> unrestricted;
             std::set_difference(old_restricted.begin(), old_restricted.end(), new_restricted.begin(),
-                                new_restricted.end(), std::back_inserter(unrestricted));
+                                new_restricted.end(), std::back_inserter(unrestricted),
+                                [](UserId lhs, UserId rhs) { return lhs.get() < rhs.get(); });
             for (auto &user_id : unrestricted) {
-              send_closure_later(G()->contacts_manager(), &ContactsManager::reload_user, UserId(user_id),
-                                 Promise<Unit>());
+              send_closure_later(G()->contacts_manager(), &ContactsManager::reload_user, user_id, Promise<Unit>());
             }
           }
           break;
@@ -548,9 +539,10 @@ void PrivacyManager::do_update_privacy(UserPrivacySetting user_privacy_setting, 
     }
 
     info.rules = std::move(privacy_rules);
-    send_closure(G()->td(), &Td::send_update,
-                 make_tl_object<td_api::updateUserPrivacySettingRules>(user_privacy_setting.as_td_api(),
-                                                                       info.rules.as_td_api()));
+    send_closure(
+        G()->td(), &Td::send_update,
+        make_tl_object<td_api::updateUserPrivacySettingRules>(user_privacy_setting.get_user_privacy_setting_object(),
+                                                              info.rules.get_user_privacy_setting_rules_object()));
   }
 }
 
@@ -566,7 +558,7 @@ void PrivacyManager::send_with_promise(NetQueryPtr query, Promise<NetQueryPtr> p
 
 void PrivacyManager::hangup() {
   container_.for_each(
-      [](auto id, Promise<NetQueryPtr> &promise) { promise.set_error(Status::Error(500, "Request aborted")); });
+      [](auto id, Promise<NetQueryPtr> &promise) { promise.set_error(Global::request_aborted_error()); });
   stop();
 }
 

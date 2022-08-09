@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -14,21 +14,18 @@
 
 namespace td {
 
-class LocalFileLocation;
 class ResourceManager;
 
 class FileLoaderActor : public NetQueryCallback {
  public:
-  virtual void set_resource_manager(ActorShared<ResourceManager>) = 0;
+  virtual void set_resource_manager(ActorShared<ResourceManager> resource_manager) = 0;
   virtual void update_priority(int8 priority) = 0;
   virtual void update_resources(const ResourceState &other) = 0;
 
-  // TODO: existence of these three functions is a dirty hack. Refactoring is highly appreciated
+  // TODO: existence of these two functions is a dirty hack. Refactoring is highly appreciated
   virtual void update_local_file_location(const LocalFileLocation &local) {
   }
-  virtual void update_download_offset(int64 offset) {
-  }
-  virtual void update_download_limit(int64 limit) {
+  virtual void update_downloaded_part(int64 offset, int64 limit, int64 max_resource_limit) {
   }
 };
 

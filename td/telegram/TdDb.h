@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -13,8 +13,7 @@
 #include "td/db/DbKey.h"
 #include "td/db/KeyValueSyncInterface.h"
 
-#include "td/actor/PromiseFuture.h"
-
+#include "td/utils/Promise.h"
 #include "td/utils/Slice.h"
 #include "td/utils/Status.h"
 
@@ -48,23 +47,29 @@ class TdDb {
   TdDb &operator=(TdDb &&) = delete;
   ~TdDb();
 
-  struct Events {
+  struct CheckedParameters {
+    string database_directory;
+    string files_directory;
+    bool is_database_encrypted{false};
+  };
+  static void check_parameters(int32 scheduler_id, TdParameters parameters, Promise<CheckedParameters> promise);
+
+  struct OpenedDatabase {
+    unique_ptr<TdDb> database;
+
     vector<BinlogEvent> to_secret_chats_manager;
     vector<BinlogEvent> user_events;
     vector<BinlogEvent> chat_events;
     vector<BinlogEvent> channel_events;
     vector<BinlogEvent> secret_chat_events;
     vector<BinlogEvent> web_page_events;
+    vector<BinlogEvent> save_app_log_events;
     vector<BinlogEvent> to_poll_manager;
     vector<BinlogEvent> to_messages_manager;
     vector<BinlogEvent> to_notification_manager;
+    vector<BinlogEvent> to_notification_settings_manager;
   };
-  static Result<unique_ptr<TdDb>> open(int32 scheduler_id, const TdParameters &parameters, DbKey key, Events &events);
-
-  struct EncryptionInfo {
-    bool is_encrypted{false};
-  };
-  static Result<EncryptionInfo> check_encryption(const TdParameters &parameters);
+  static void open(int32 scheduler_id, TdParameters parameters, DbKey key, Promise<OpenedDatabase> &&promise);
 
   static Status destroy(const TdParameters &parameters);
 
@@ -97,7 +102,7 @@ class TdDb {
 
   void change_key(DbKey key, Promise<> promise);
 
-  void with_db_path(std::function<void(CSlice)> callback);
+  void with_db_path(const std::function<void(CSlice)> &callback);
 
   Result<string> get_stats();
 
@@ -120,8 +125,11 @@ class TdDb {
   std::shared_ptr<BinlogKeyValue<ConcurrentBinlog>> config_pmc_;
   std::shared_ptr<ConcurrentBinlog> binlog_;
 
-  Status init(int32 scheduler_id, const TdParameters &parameters, DbKey key, Events &events);
-  Status init_sqlite(int32 scheduler_id, const TdParameters &parameters, DbKey key, DbKey old_key,
+  static void open_impl(TdParameters parameters, DbKey key, Promise<OpenedDatabase> &&promise);
+
+  static void check_parameters_impl(TdParameters parameters, Promise<CheckedParameters> promise);
+
+  Status init_sqlite(const TdParameters &parameters, const DbKey &key, const DbKey &old_key,
                      BinlogKeyValue<Binlog> &binlog_pmc);
 
   void do_close(Promise<> on_finished, bool destroy_flag);

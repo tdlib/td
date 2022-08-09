@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -9,12 +9,11 @@
 #include "td/utils/common.h"
 #include "td/utils/Heap.h"
 #include "td/utils/Random.h"
+#include "td/utils/Span.h"
 
 #include <cstdio>
 #include <set>
 #include <utility>
-
-REGISTER_TESTS(heap)
 
 TEST(Heap, sort_random_perm) {
   int n = 1000000;
@@ -23,12 +22,8 @@ TEST(Heap, sort_random_perm) {
   for (int i = 0; i < n; i++) {
     v[i] = i;
   }
-
-  // random shuffle
-  for (int i = 1; i < n; i++) {
-    std::swap(v[td::Random::fast(0, i)], v[i]);
-  }
-
+  td::Random::Xorshift128plus rnd(123);
+  td::random_shuffle(td::as_mutable_span(v), rnd);
   td::vector<td::HeapNode> nodes(n);
   td::KHeap<int> kheap;
   for (int i = 0; i < n; i++) {
@@ -38,7 +33,7 @@ TEST(Heap, sort_random_perm) {
     ASSERT_EQ(i, kheap.top_key());
     kheap.pop();
   }
-};
+}
 
 class CheckedHeap {
  public:
@@ -140,7 +135,7 @@ class CheckedHeap {
   }
 
  private:
-  struct Node : public td::HeapNode {
+  struct Node final : public td::HeapNode {
     Node() = default;
     Node(int key, int value) : key(key), value(value) {
     }

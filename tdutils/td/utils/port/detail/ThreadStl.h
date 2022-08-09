@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -34,7 +34,7 @@ class ThreadStl {
     join();
   }
   template <class Function, class... Args>
-  explicit ThreadStl(Function &&f, Args &&... args) {
+  explicit ThreadStl(Function &&f, Args &&...args) {
     thread_ = std::thread([args = std::make_tuple(decay_copy(std::forward<Function>(f)),
                                                   decay_copy(std::forward<Args>(args))...)]() mutable {
       ThreadIdGuard thread_id_guard;
@@ -70,7 +70,9 @@ class ThreadStl {
     return std::forward<T>(v);
   }
 };
-namespace this_thread_stl = std::this_thread;
+namespace this_thread_stl {
+using std::this_thread::get_id;
+}  // namespace this_thread_stl
 }  // namespace detail
 }  // namespace td
 

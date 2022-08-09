@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -13,54 +13,71 @@
 namespace td {
 
 template <class StorerT>
-void store(const BackgroundType &type, StorerT &storer) {
-  bool has_fill = type.fill.top_color != 0 || type.fill.bottom_color != 0;
-  bool has_intensity = type.intensity != 0;
-  bool is_gradient = !type.fill.is_solid();
+void BackgroundType::store(StorerT &storer) const {
+  using td::store;
+  bool has_fill = fill_.top_color_ != 0 || fill_.bottom_color_ != 0;
+  bool has_intensity = intensity_ != 0;
+  auto fill_type = fill_.get_type();
+  bool is_gradient = fill_type == BackgroundFill::Type::Gradient;
+  bool is_freeform_gradient = fill_type == BackgroundFill::Type::FreeformGradient;
   BEGIN_STORE_FLAGS();
-  STORE_FLAG(type.is_blurred);
-  STORE_FLAG(type.is_moving);
+  STORE_FLAG(is_blurred_);
+  STORE_FLAG(is_moving_);
   STORE_FLAG(has_fill);
   STORE_FLAG(has_intensity);
   STORE_FLAG(is_gradient);
+  STORE_FLAG(is_freeform_gradient);
   END_STORE_FLAGS();
-  store(type.type, storer);
-  if (has_fill) {
-    store(type.fill.top_color, storer);
+  store(type_, storer);
+  if (is_freeform_gradient) {
+    store(fill_.top_color_, storer);
+    store(fill_.bottom_color_, storer);
+    store(fill_.third_color_, storer);
+    store(fill_.fourth_color_, storer);
+  } else if (has_fill) {
+    store(fill_.top_color_, storer);
     if (is_gradient) {
-      store(type.fill.bottom_color, storer);
-      store(type.fill.rotation_angle, storer);
+      store(fill_.bottom_color_, storer);
+      store(fill_.rotation_angle_, storer);
     }
   }
   if (has_intensity) {
-    store(type.intensity, storer);
+    store(intensity_, storer);
   }
 }
 
 template <class ParserT>
-void parse(BackgroundType &type, ParserT &parser) {
+void BackgroundType::parse(ParserT &parser) {
+  using td::parse;
   bool has_fill;
   bool has_intensity;
   bool is_gradient;
+  bool is_freeform_gradient;
   BEGIN_PARSE_FLAGS();
-  PARSE_FLAG(type.is_blurred);
-  PARSE_FLAG(type.is_moving);
+  PARSE_FLAG(is_blurred_);
+  PARSE_FLAG(is_moving_);
   PARSE_FLAG(has_fill);
   PARSE_FLAG(has_intensity);
   PARSE_FLAG(is_gradient);
+  PARSE_FLAG(is_freeform_gradient);
   END_PARSE_FLAGS();
-  parse(type.type, parser);
-  if (has_fill) {
-    parse(type.fill.top_color, parser);
+  parse(type_, parser);
+  if (is_freeform_gradient) {
+    parse(fill_.top_color_, parser);
+    parse(fill_.bottom_color_, parser);
+    parse(fill_.third_color_, parser);
+    parse(fill_.fourth_color_, parser);
+  } else if (has_fill) {
+    parse(fill_.top_color_, parser);
     if (is_gradient) {
-      parse(type.fill.bottom_color, parser);
-      parse(type.fill.rotation_angle, parser);
+      parse(fill_.bottom_color_, parser);
+      parse(fill_.rotation_angle_, parser);
     } else {
-      type.fill.bottom_color = type.fill.top_color;
+      fill_.bottom_color_ = fill_.top_color_;
     }
   }
   if (has_intensity) {
-    parse(type.intensity, parser);
+    parse(intensity_, parser);
   }
 }
 

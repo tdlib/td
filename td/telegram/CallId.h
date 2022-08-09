@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -34,8 +34,8 @@ class CallId {
     return id;
   }
 
-  auto as_td_api() const {
-    return make_tl_object<td_api::callId>(id);
+  auto get_call_id_object() const {
+    return td_api::make_object<td_api::callId>(id);
   }
 
   bool operator==(const CallId &other) const {

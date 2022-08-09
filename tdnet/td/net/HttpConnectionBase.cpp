@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -16,14 +16,15 @@
 namespace td {
 namespace detail {
 
-HttpConnectionBase::HttpConnectionBase(State state, SocketFd fd, SslStream ssl_stream, size_t max_post_size,
-                                       size_t max_files, int32 idle_timeout)
+HttpConnectionBase::HttpConnectionBase(State state, BufferedFd<SocketFd> fd, SslStream ssl_stream, size_t max_post_size,
+                                       size_t max_files, int32 idle_timeout, int32 slow_scheduler_id)
     : state_(state)
     , fd_(std::move(fd))
     , ssl_stream_(std::move(ssl_stream))
     , max_post_size_(max_post_size)
     , max_files_(max_files)
-    , idle_timeout_(idle_timeout) {
+    , idle_timeout_(idle_timeout)
+    , slow_scheduler_id_(slow_scheduler_id) {
   CHECK(state_ != State::Close);
 
   if (ssl_stream_) {
@@ -33,6 +34,7 @@ HttpConnectionBase::HttpConnectionBase(State state, SocketFd fd, SslStream ssl_s
     read_source_ >> read_sink_;
     write_source_ >> write_sink_;
   }
+  peer_address_.init_peer_address(fd_).ignore();
 }
 
 void HttpConnectionBase::live_event() {
@@ -55,9 +57,12 @@ void HttpConnectionBase::tear_down() {
   fd_.close();
 }
 
-void HttpConnectionBase::write_next(BufferSlice buffer) {
+void HttpConnectionBase::write_next_noflush(BufferSlice buffer) {
   CHECK(state_ == State::Write);
   write_buffer_.append(std::move(buffer));
+}
+void HttpConnectionBase::write_next(BufferSlice buffer) {
+  write_next_noflush(std::move(buffer));
   loop();
 }
 
@@ -88,7 +93,12 @@ void HttpConnectionBase::timeout_expired() {
   stop();
 }
 void HttpConnectionBase::loop() {
-  if (can_read(fd_)) {
+  if (ssl_stream_) {
+    //ssl_stream_.read_byte_flow().set_need_size(0);
+    ssl_stream_.write_byte_flow().reset_need_size();
+  }
+  sync_with_poll(fd_);
+  if (can_read_local(fd_)) {
     LOG(DEBUG) << "Can read from the connection";
     auto r = fd_.flush_read();
     if (r.is_error()) {
@@ -104,12 +114,25 @@ void HttpConnectionBase::loop() {
   // TODO: read_next even when state_ == State::Write
 
   bool want_read = false;
+  bool can_be_slow = slow_scheduler_id_ == -1;
   if (state_ == State::Read) {
-    auto res = reader_.read_next(current_query_.get());
+    auto res = reader_.read_next(current_query_.get(), can_be_slow);
     if (res.is_error()) {
+      if (res.error().message() == "SLOW") {
+        LOG(INFO) << "Slow HTTP connection: migrate to " << slow_scheduler_id_;
+        CHECK(!can_be_slow);
+        yield();
+        migrate(slow_scheduler_id_);
+        slow_scheduler_id_ = -1;
+        return;
+      }
       live_event();
       state_ = State::Write;
-      LOG(INFO) << res.error();
+      if (res.error().code() == 500) {
+        LOG(WARNING) << "Failed to process an HTTP query: " << res.error();
+      } else {
+        LOG(INFO) << res.error();
+      }
       HttpHeaderCreator hc;
       hc.init_status_line(res.error().code());
       hc.set_content_size(0);
@@ -120,6 +143,7 @@ void HttpConnectionBase::loop() {
       state_ = State::Write;
       LOG(DEBUG) << "Send query to handler";
       live_event();
+      current_query_->peer_address_ = peer_address_;
       on_query(std::move(current_query_));
     } else {
       want_read = true;
@@ -128,7 +152,7 @@ void HttpConnectionBase::loop() {
 
   write_source_.wakeup();
 
-  if (can_write(fd_)) {
+  if (can_write_local(fd_)) {
     LOG(DEBUG) << "Can write to the connection";
     auto r = fd_.flush_write();
     if (r.is_error()) {
@@ -141,7 +165,7 @@ void HttpConnectionBase::loop() {
   }
 
   Status pending_error;
-  if (fd_.get_poll_info().get_flags().has_pending_error()) {
+  if (fd_.get_poll_info().get_flags_local().has_pending_error()) {
     pending_error = fd_.get_pending_error();
   }
   if (pending_error.is_ok() && write_sink_.status().is_error()) {
@@ -158,16 +182,28 @@ void HttpConnectionBase::loop() {
     state_ = State::Close;
   }
 
-  if (can_close(fd_)) {
+  if (can_close_local(fd_)) {
     LOG(DEBUG) << "Can close the connection";
     state_ = State::Close;
   }
   if (state_ == State::Close) {
-    LOG_IF(INFO, fd_.need_flush_write()) << "Close nonempty connection";
-    LOG_IF(INFO, want_read && (fd_.input_buffer().size() > 0 || current_query_->type_ != HttpQuery::Type::Empty))
-        << "Close connection while reading request/response";
+    if (fd_.need_flush_write()) {
+      LOG(INFO) << "Close nonempty connection";
+    }
+    if (want_read && (!fd_.input_buffer().empty() || current_query_->type_ != HttpQuery::Type::Empty)) {
+      LOG(INFO) << "Close connection while reading request/response";
+    }
     return stop();
   }
+}
+
+void HttpConnectionBase::on_start_migrate(int32 sched_id) {
+  Scheduler::unsubscribe(fd_.get_poll_info().get_pollable_fd_ref());
+}
+
+void HttpConnectionBase::on_finish_migrate() {
+  Scheduler::subscribe(fd_.get_poll_info().extract_pollable_fd(this));
+  live_event();
 }
 
 }  // namespace detail

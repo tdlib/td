@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -53,14 +53,15 @@ inline StringBuilder &operator<<(StringBuilder &string_builder, const unique_ptr
   return string_builder << *notification_type;
 }
 
-unique_ptr<NotificationType> create_new_message_notification(MessageId message_id);
+unique_ptr<NotificationType> create_new_message_notification(MessageId message_id, bool show_preview);
 
 unique_ptr<NotificationType> create_new_secret_chat_notification();
 
 unique_ptr<NotificationType> create_new_call_notification(CallId call_id);
 
-unique_ptr<NotificationType> create_new_push_message_notification(UserId sender_user_id, string sender_name,
-                                                                  bool is_outgoing, MessageId message_id, string key,
-                                                                  string arg, Photo photo, Document document);
+unique_ptr<NotificationType> create_new_push_message_notification(UserId sender_user_id, DialogId sender_dialog_id,
+                                                                  string sender_name, bool is_outgoing,
+                                                                  MessageId message_id, string key, string arg,
+                                                                  Photo photo, Document document);
 
 }  // namespace td

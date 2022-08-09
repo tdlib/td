@@ -1,10 +1,24 @@
 cmake_minimum_required(VERSION 3.0.2 FATAL_ERROR)
 
+if (POLICY CMP0065)
+  # do not export symbols from executables
+  # affects compiler checks in project(), so must be set before it
+  cmake_policy(SET CMP0065 NEW)
+endif()
+
 project(TdJavaExample VERSION 1.0 LANGUAGES CXX)
 
 if (POLICY CMP0054)
   # do not expand quoted arguments
   cmake_policy(SET CMP0054 NEW)
+endif()
+if (POLICY CMP0060)
+  # link libraries by full path
+  cmake_policy(SET CMP0060 NEW)
+endif()
+if (POLICY CMP0074)
+  # use environment variables to find libraries
+  cmake_policy(SET CMP0074 NEW)
 endif()
 
 find_package(Td REQUIRED)
@@ -15,7 +29,7 @@ endif()
 message(STATUS "Found JNI: ${JNI_INCLUDE_DIRS} ${JNI_LIBRARIES}")
 
 if (NOT Java_FOUND)
-  find_package(Java 1.6 REQUIRED)
+  find_package(Java REQUIRED)
 endif()
 message(STATUS "Found Java: ${Java_JAVAC_EXECUTABLE} ${Java_JAVADOC_EXECUTABLE}")
 
@@ -45,13 +59,13 @@ set(JAVA_SOURCE_PATH "${TD_API_JAVA_PATH}/${TD_API_JAVA_PACKAGE}")
 get_filename_component(JAVA_OUTPUT_DIRECTORY ${CMAKE_INSTALL_PREFIX}/bin REALPATH BASE_DIR "${CMAKE_CURRENT_BINARY_DIR}")
 file(MAKE_DIRECTORY ${JAVA_OUTPUT_DIRECTORY})
 add_custom_target(build_java
-  COMMAND ${Java_JAVAC_EXECUTABLE} -d ${JAVA_OUTPUT_DIRECTORY} ${JAVA_SOURCE_PATH}/example/Example.java ${JAVA_SOURCE_PATH}/Client.java ${JAVA_SOURCE_PATH}/Log.java ${JAVA_SOURCE_PATH}/TdApi.java
+  COMMAND ${Java_JAVAC_EXECUTABLE} -encoding UTF-8 -d ${JAVA_OUTPUT_DIRECTORY} ${JAVA_SOURCE_PATH}/example/Example.java ${JAVA_SOURCE_PATH}/Client.java ${JAVA_SOURCE_PATH}/TdApi.java
   COMMENT "Building Java code"
   DEPENDS td_generate_java_api
 )
 
 add_custom_target(generate_javadoc
-  COMMAND ${Java_JAVADOC_EXECUTABLE} -d ${JAVA_OUTPUT_DIRECTORY}/../docs org.drinkless.tdlib
+  COMMAND ${Java_JAVADOC_EXECUTABLE} -encoding UTF-8 -charset UTF-8 -d ${JAVA_OUTPUT_DIRECTORY}/../docs org.drinkless.tdlib
   WORKING_DIRECTORY ${TD_API_JAVA_PATH}
   COMMENT "Generating Javadoc documentation"
   DEPENDS td_generate_java_api
@@ -105,3 +119,6 @@ install(TARGETS tdjni
   LIBRARY DESTINATION bin
   RUNTIME DESTINATION bin
 )
+if (MSVC AND VCPKG_TOOLCHAIN)
+  install(DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/$<CONFIG>/" DESTINATION bin FILES_MATCHING PATTERN "*.dll" PATTERN "*.pdb")
+endif()

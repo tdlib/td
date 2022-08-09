@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -14,8 +14,9 @@
 #include "td/utils/JsonBuilder.h"
 #include "td/utils/misc.h"
 #include "td/utils/Slice.h"
+#include "td/utils/SliceBuilder.h"
 #include "td/utils/Status.h"
-#include "td/utils/tl_storers.h"
+#include "td/utils/TlDowncastHelper.h"
 
 #include <type_traits>
 
@@ -70,8 +71,9 @@ inline Status from_json(int32 &to, JsonValue from) {
 }
 
 inline Status from_json(bool &to, JsonValue from) {
-  if (from.type() != JsonValue::Type::Boolean) {
-    if (from.type() == JsonValue::Type::Null) {
+  auto from_type = from.type();
+  if (from_type != JsonValue::Type::Boolean) {
+    if (from_type == JsonValue::Type::Null) {
       return Status::OK();
     }
     int32 x = 0;
@@ -80,7 +82,7 @@ inline Status from_json(bool &to, JsonValue from) {
       to = x != 0;
       return Status::OK();
     }
-    return Status::Error(PSLICE() << "Expected Boolean, got " << from.type());
+    return Status::Error(PSLICE() << "Expected Boolean, got " << from_type);
   }
   to = from.get_boolean();
   return Status::OK();
@@ -149,21 +151,6 @@ Status from_json(std::vector<T> &to, JsonValue from) {
 }
 
 template <class T>
-class DowncastHelper : public T {
- public:
-  explicit DowncastHelper(int32 constructor) : constructor_(constructor) {
-  }
-  int32 get_id() const override {
-    return constructor_;
-  }
-  void store(TlStorerToString &s, const char *field_name) const override {
-  }
-
- private:
-  int32 constructor_{0};
-};
-
-template <class T>
 std::enable_if_t<!std::is_constructible<T>::value, Status> from_json(tl_object_ptr<T> &to, JsonValue from) {
   if (from.type() != JsonValue::Type::Object) {
     if (from.type() == JsonValue::Type::Null) {
@@ -184,7 +171,7 @@ std::enable_if_t<!std::is_constructible<T>::value, Status> from_json(tl_object_p
     return Status::Error(PSLICE() << "Expected String or Integer, got " << constructor_value.type());
   }
 
-  DowncastHelper<T> helper(constructor);
+  TlDowncastHelper<T> helper(constructor);
   Status status;
   bool ok = downcast_call(static_cast<T &>(helper), [&](auto &dummy) {
     auto result = make_tl_object<std::decay_t<decltype(dummy)>>();

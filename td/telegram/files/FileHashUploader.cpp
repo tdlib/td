@@ -1,17 +1,16 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 #include "td/telegram/files/FileHashUploader.h"
 
-#include "td/telegram/telegram_api.h"
-
 #include "td/telegram/files/FileType.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/net/DcId.h"
 #include "td/telegram/net/NetQueryDispatcher.h"
+#include "td/telegram/telegram_api.h"
 
 #include "td/utils/buffer.h"
 #include "td/utils/common.h"
@@ -67,12 +66,11 @@ Status FileHashUploader::loop_impl() {
     TRY_STATUS(loop_sha());
   }
   if (state_ == State::NetRequest) {
-    // messages.getDocumentByHash#338e2464 sha256:bytes size:int mime_type:string = Document;
+    // messages.getDocumentByHash#338e2464 sha256:bytes size:long mime_type:string = Document;
     auto hash = BufferSlice(32);
     sha256_state_.extract(hash.as_slice(), true);
     auto mime_type = MimeType::from_extension(PathView(local_.path_).extension(), "image/gif");
-    auto query =
-        telegram_api::messages_getDocumentByHash(std::move(hash), static_cast<int32>(size_), std::move(mime_type));
+    auto query = telegram_api::messages_getDocumentByHash(std::move(hash), size_, std::move(mime_type));
     LOG(INFO) << "Send getDocumentByHash request: " << to_string(query);
     auto ptr = G()->net_query_creator().create(query);
     G()->net_query_dispatcher().dispatch_with_callback(std::move(ptr), actor_shared(this));

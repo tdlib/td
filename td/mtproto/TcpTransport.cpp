@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -63,7 +63,7 @@ void IntermediateTransport::write_prepare_inplace(BufferWriter *message, bool qu
   size_t append_size = 0;
   if (with_padding()) {
     append_size = Random::secure_uint32() % 16;
-    MutableSlice append = message->prepare_append().truncate(append_size);
+    MutableSlice append = message->prepare_append().substr(0, append_size);
     CHECK(append.size() == append_size);
     Random::secure_bytes(append);
     message->confirm_append(append.size());
@@ -272,8 +272,8 @@ void ObfuscatedTransport::do_write_tls(BufferBuilder &&builder) {
   do_write(builder.extract());
 }
 
-void ObfuscatedTransport::do_write(BufferSlice &&slice) {
-  output_->append(std::move(slice));
+void ObfuscatedTransport::do_write(BufferSlice &&message) {
+  output_->append(std::move(message));
 }
 
 }  // namespace tcp

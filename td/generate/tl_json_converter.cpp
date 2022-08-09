@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -11,8 +11,8 @@
 #include "td/utils/buffer.h"
 #include "td/utils/common.h"
 #include "td/utils/filesystem.h"
-#include "td/utils/logging.h"
 #include "td/utils/Slice.h"
+#include "td/utils/SliceBuilder.h"
 #include "td/utils/StringBuilder.h"
 
 #include <utility>
@@ -136,7 +136,7 @@ void gen_tl_constructor_from_string(StringBuilder &sb, Slice name, const Vec &ve
     return;
   }
   sb << " {\n";
-  sb << "  static const std::unordered_map<Slice, int32, SliceHash> m = {\n";
+  sb << "  static const FlatHashMap<Slice, int32, SliceHash> m = {\n";
 
   bool is_first = true;
   for (auto &p : vec) {
@@ -164,7 +164,7 @@ void gen_tl_constructor_from_string(StringBuilder &sb, const tl::simple::Schema 
     }
     Vec vec;
     for (auto *constructor : custom_type->constructors) {
-      vec.push_back(std::make_pair(constructor->id, constructor->name));
+      vec.emplace_back(constructor->id, constructor->name);
       vec_for_nullary.push_back(vec.back());
     }
 
@@ -179,7 +179,7 @@ void gen_tl_constructor_from_string(StringBuilder &sb, const tl::simple::Schema 
   }
   Vec vec_for_function;
   for (auto *function : schema.functions) {
-    vec_for_function.push_back(std::make_pair(function->id, function->name));
+    vec_for_function.emplace_back(function->id, function->name);
   }
   gen_tl_constructor_from_string(sb, "Function", vec_for_function, is_header);
 }
@@ -216,10 +216,10 @@ void gen_json_converter_file(const tl::simple::Schema &schema, const std::string
 
     sb << "#include \"td/utils/base64.h\"\n";
     sb << "#include \"td/utils/common.h\"\n";
+    sb << "#include \"td/utils/FlatHashMap.h\"\n";
     sb << "#include \"td/utils/Slice.h\"\n\n";
 
-    sb << "#include <functional>\n";
-    sb << "#include <unordered_map>\n\n";
+    sb << "#include <functional>\n\n";
   }
   sb << "namespace td {\n";
   sb << "namespace td_api {\n";

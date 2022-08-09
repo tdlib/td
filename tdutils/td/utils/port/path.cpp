@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -12,8 +12,10 @@
 #include "td/utils/logging.h"
 #include "td/utils/port/detail/skip_eintr.h"
 #include "td/utils/ScopeGuard.h"
+#include "td/utils/SliceBuilder.h"
 
 #if TD_PORT_WINDOWS
+#include "td/utils/port/FromApp.h"
 #include "td/utils/port/wstring_convert.h"
 #include "td/utils/Random.h"
 #endif
@@ -73,7 +75,10 @@ Status mkpath(CSlice path, int32 mode) {
     }
   }
   if (last_error.is_error()) {
-    return first_error;
+    if (last_error.message() == first_error.message() && last_error.code() == first_error.code()) {
+      return first_error;
+    }
+    return last_error.move_as_error_suffix(PSLICE() << ": " << first_error);
   }
   return Status::OK();
 }
@@ -293,7 +298,9 @@ Result<bool> walk_path_subdir(string &path, DIR *dir, const WalkFunction &func) 
       status = walk_path_file(path, func);
     }
 #else
+#if !TD_SOLARIS
 #warning "Slow walk_path"
+#endif
     status = walk_path(path, func);
 #endif
     if (status.is_error() || !status.ok()) {
@@ -390,7 +397,10 @@ Status WalkPath::do_run(CSlice path, const detail::WalkFunction &func) {
 
 Status mkdir(CSlice dir, int32 mode) {
   TRY_RESULT(wdir, to_wstring(dir));
-  auto status = CreateDirectoryW(wdir.c_str(), nullptr);
+  while (!wdir.empty() && (wdir.back() == L'/' || wdir.back() == L'\\')) {
+    wdir.pop_back();
+  }
+  auto status = td::CreateDirectoryFromAppW(wdir.c_str(), nullptr);
   if (status == 0 && GetLastError() != ERROR_ALREADY_EXISTS) {
     return OS_ERROR(PSLICE() << "Can't create directory \"" << dir << '"');
   }
@@ -400,7 +410,7 @@ Status mkdir(CSlice dir, int32 mode) {
 Status rename(CSlice from, CSlice to) {
   TRY_RESULT(wfrom, to_wstring(from));
   TRY_RESULT(wto, to_wstring(to));
-  auto status = MoveFileExW(wfrom.c_str(), wto.c_str(), MOVEFILE_REPLACE_EXISTING);
+  auto status = td::MoveFileExFromAppW(wfrom.c_str(), wto.c_str(), MOVEFILE_REPLACE_EXISTING);
   if (status == 0) {
     return OS_ERROR(PSLICE() << "Can't rename \"" << from << "\" to \"" << to << '\"');
   }
@@ -443,7 +453,7 @@ Status chdir(CSlice dir) {
 
 Status rmdir(CSlice dir) {
   TRY_RESULT(wdir, to_wstring(dir));
-  int status = RemoveDirectoryW(wdir.c_str());
+  int status = td::RemoveDirectoryFromAppW(wdir.c_str());
   if (!status) {
     return OS_ERROR(PSLICE() << "Can't delete directory \"" << dir << '"');
   }
@@ -452,7 +462,7 @@ Status rmdir(CSlice dir) {
 
 Status unlink(CSlice path) {
   TRY_RESULT(wpath, to_wstring(path));
-  int status = DeleteFileW(wpath.c_str());
+  int status = td::DeleteFileFromAppW(wpath.c_str());
   if (!status) {
     return OS_ERROR(PSLICE() << "Can't unlink \"" << path << '"');
   }
@@ -469,7 +479,7 @@ CSlice get_temporary_dir() {
       }
       auto rs = from_wstring(buf);
       LOG_IF(FATAL, rs.is_error()) << "GetTempPathW failed: " << rs.error();
-      temporary_dir = rs.ok();
+      temporary_dir = rs.move_as_ok();
     }
     if (temporary_dir.size() > 1 && temporary_dir.back() == TD_DIR_SLASH) {
       temporary_dir.pop_back();
@@ -549,7 +559,8 @@ static Result<bool> walk_path_dir(const std::wstring &dir_name,
                                   const std::function<WalkPath::Action(CSlice name, WalkPath::Type type)> &func) {
   std::wstring name = dir_name + L"\\*";
   WIN32_FIND_DATA file_data;
-  auto handle = FindFirstFileExW(name.c_str(), FindExInfoStandard, &file_data, FindExSearchNameMatch, nullptr, 0);
+  auto handle =
+      td::FindFirstFileExFromAppW(name.c_str(), FindExInfoStandard, &file_data, FindExSearchNameMatch, nullptr, 0);
   if (handle == INVALID_HANDLE_VALUE) {
     return OS_ERROR(PSLICE() << "FindFirstFileEx" << tag("name", from_wstring(name).ok()));
   }

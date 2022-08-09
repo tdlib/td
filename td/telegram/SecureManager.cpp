@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -17,17 +17,20 @@
 #include "td/telegram/PasswordManager.h"
 #include "td/telegram/Td.h"
 
+#include "td/utils/algorithm.h"
 #include "td/utils/buffer.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/optional.h"
 #include "td/utils/Slice.h"
+#include "td/utils/SliceBuilder.h"
 
+#include <limits>
 #include <memory>
 
 namespace td {
 
-class GetSecureValue : public NetQueryCallback {
+class GetSecureValue final : public NetQueryCallback {
  public:
   GetSecureValue(ActorShared<SecureManager> parent, std::string password, SecureValueType type,
                  Promise<SecureValueWithCredentials> promise);
@@ -42,13 +45,13 @@ class GetSecureValue : public NetQueryCallback {
 
   void on_error(Status error);
   void on_secret(Result<secure_storage::Secret> r_secret, bool dummy);
-  void loop() override;
-  void start_up() override;
+  void loop() final;
+  void start_up() final;
 
-  void on_result(NetQueryPtr query) override;
+  void on_result(NetQueryPtr query) final;
 };
 
-class GetAllSecureValues : public NetQueryCallback {
+class GetAllSecureValues final : public NetQueryCallback {
  public:
   GetAllSecureValues(ActorShared<SecureManager> parent, std::string password, Promise<TdApiSecureValues> promise);
 
@@ -61,13 +64,13 @@ class GetAllSecureValues : public NetQueryCallback {
 
   void on_error(Status error);
   void on_secret(Result<secure_storage::Secret> r_secret, bool dummy);
-  void loop() override;
-  void start_up() override;
+  void loop() final;
+  void start_up() final;
 
-  void on_result(NetQueryPtr query) override;
+  void on_result(NetQueryPtr query) final;
 };
 
-class SetSecureValue : public NetQueryCallback {
+class SetSecureValue final : public NetQueryCallback {
  public:
   SetSecureValue(ActorShared<SecureManager> parent, string password, SecureValue secure_value,
                  Promise<SecureValueWithCredentials> promise);
@@ -92,41 +95,41 @@ class SetSecureValue : public NetQueryCallback {
 
   enum class State : int32 { WaitSecret, WaitSetValue } state_ = State::WaitSecret;
 
-  class UploadCallback : public FileManager::UploadCallback {
+  class UploadCallback final : public FileManager::UploadCallback {
    public:
     UploadCallback(ActorId<SetSecureValue> actor_id, uint32 upload_generation);
 
    private:
     ActorId<SetSecureValue> actor_id_;
     uint32 upload_generation_;
-    void on_upload_ok(FileId file_id, tl_object_ptr<telegram_api::InputFile> input_file) override;
-    void on_upload_encrypted_ok(FileId file_id, tl_object_ptr<telegram_api::InputEncryptedFile> input_file) override;
-    void on_upload_secure_ok(FileId file_id, tl_object_ptr<telegram_api::InputSecureFile> input_file) override;
-    void on_upload_error(FileId file_id, Status status) override;
+    void on_upload_ok(FileId file_id, tl_object_ptr<telegram_api::InputFile> input_file) final;
+    void on_upload_encrypted_ok(FileId file_id, tl_object_ptr<telegram_api::InputEncryptedFile> input_file) final;
+    void on_upload_secure_ok(FileId file_id, tl_object_ptr<telegram_api::InputSecureFile> input_file) final;
+    void on_upload_error(FileId file_id, Status error) final;
   };
 
   void on_upload_ok(FileId file_id, tl_object_ptr<telegram_api::InputSecureFile> input_file, uint32 upload_generation);
-  void on_upload_error(FileId file_id, Status status, uint32 upload_generation);
+  void on_upload_error(FileId file_id, Status error, uint32 upload_generation);
 
   void on_error(Status error);
 
   void on_secret(Result<secure_storage::Secret> r_secret, bool x);
 
-  void start_up() override;
-  void hangup() override;
-  void tear_down() override;
+  void start_up() final;
+  void hangup() final;
+  void tear_down() final;
 
-  void loop() override;
-  void on_result(NetQueryPtr query) override;
+  void loop() final;
+  void on_result(NetQueryPtr query) final;
 
   void load_secret();
   void cancel_upload();
   void start_upload_all();
   void start_upload(FileManager *file_manager, FileId &file_id, SecureInputFile &info);
-  void merge(FileManager *file_manager, FileId file_id, EncryptedSecureFile &encrypted_file);
+  static void merge(FileManager *file_manager, FileId file_id, EncryptedSecureFile &encrypted_file);
 };
 
-class SetSecureValueErrorsQuery : public Td::ResultHandler {
+class SetSecureValueErrorsQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
  public:
@@ -139,18 +142,18 @@ class SetSecureValueErrorsQuery : public Td::ResultHandler {
         telegram_api::users_setSecureValueErrors(std::move(input_user), std::move(input_errors))));
   }
 
-  void on_result(uint64 id, BufferSlice packet) override {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::users_setSecureValueErrors>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     bool ptr = result_ptr.move_as_ok();
-    LOG(DEBUG) << "Receive result for SetSecureValueErrorsQuery " << ptr;
+    LOG(DEBUG) << "Receive result for SetSecureValueErrorsQuery: " << ptr;
     promise_.set_value(Unit());
   }
 
-  void on_error(uint64 id, Status status) override {
+  void on_error(Status status) final {
     if (status.code() != 0) {
       promise_.set_error(std::move(status));
     } else {
@@ -283,7 +286,7 @@ void GetAllSecureValues::loop() {
 
   auto secure_values = transform(r_secure_values.move_as_ok(),
                                  [](SecureValueWithCredentials &&value) { return std::move(value.value); });
-  promise_.set_value(get_passport_elements_object(file_manager, std::move(secure_values)));
+  promise_.set_value(get_passport_elements_object(file_manager, secure_values));
   stop();
 }
 
@@ -409,12 +412,12 @@ void SetSecureValue::start_up() {
   // Remove duplicate files
   FileId front_side_file_id;
   if (secure_value_.front_side.file_id.is_valid()) {
-    front_side_file_id = file_manager->get_file_view(secure_value_.front_side.file_id).file_id();
+    front_side_file_id = file_manager->get_file_view(secure_value_.front_side.file_id).get_main_file_id();
     front_side_ = SecureInputFile();
   }
   FileId reverse_side_file_id;
   if (secure_value_.reverse_side.file_id.is_valid()) {
-    reverse_side_file_id = file_manager->get_file_view(secure_value_.reverse_side.file_id).file_id();
+    reverse_side_file_id = file_manager->get_file_view(secure_value_.reverse_side.file_id).get_main_file_id();
     reverse_side_ = SecureInputFile();
     if (front_side_file_id == reverse_side_file_id) {
       return on_error(Status::Error(400, "Front side and reverse side must be different"));
@@ -422,7 +425,7 @@ void SetSecureValue::start_up() {
   }
   FileId selfie_file_id;
   if (secure_value_.selfie.file_id.is_valid()) {
-    selfie_file_id = file_manager->get_file_view(secure_value_.selfie.file_id).file_id();
+    selfie_file_id = file_manager->get_file_view(secure_value_.selfie.file_id).get_main_file_id();
     selfie_ = SecureInputFile();
     if (front_side_file_id == selfie_file_id) {
       return on_error(Status::Error(400, "Front side and selfie must be different"));
@@ -437,10 +440,10 @@ void SetSecureValue::start_up() {
     CHECK(!reverse_side_file_id.is_valid());
     CHECK(!selfie_file_id.is_valid());
     for (auto it = secure_value_.files.begin(); it != secure_value_.files.end();) {
-      auto file_id = file_manager->get_file_view(it->file_id).file_id();
+      auto file_id = file_manager->get_file_view(it->file_id).get_main_file_id();
       bool is_duplicate = false;
-      for (auto pit = secure_value_.files.begin(); pit != it; pit++) {
-        if (file_id == file_manager->get_file_view(pit->file_id).file_id()) {
+      for (auto other_it = secure_value_.files.begin(); other_it != it; ++other_it) {
+        if (file_id == file_manager->get_file_view(other_it->file_id).get_main_file_id()) {
           is_duplicate = true;
           break;
         }
@@ -454,16 +457,16 @@ void SetSecureValue::start_up() {
   }
   if (!secure_value_.translations.empty()) {
     for (auto it = secure_value_.translations.begin(); it != secure_value_.translations.end();) {
-      auto file_id = file_manager->get_file_view(it->file_id).file_id();
+      auto file_id = file_manager->get_file_view(it->file_id).get_main_file_id();
       bool is_duplicate = file_id == front_side_file_id || file_id == reverse_side_file_id || file_id == selfie_file_id;
-      for (auto pit = secure_value_.translations.begin(); pit != it; pit++) {
-        if (file_id == file_manager->get_file_view(pit->file_id).file_id()) {
+      for (auto other_it = secure_value_.translations.begin(); other_it != it; ++other_it) {
+        if (file_id == file_manager->get_file_view(other_it->file_id).get_main_file_id()) {
           is_duplicate = true;
           break;
         }
       }
       for (auto &dated_file : secure_value_.files) {
-        if (file_id == file_manager->get_file_view(dated_file.file_id).file_id()) {
+        if (file_id == file_manager->get_file_view(dated_file.file_id).get_main_file_id()) {
           is_duplicate = true;
           break;
         }
@@ -545,7 +548,7 @@ void SetSecureValue::start_upload(FileManager *file_manager, FileId &file_id, Se
       auto download_file_id = file_manager->dup_file_id(file_id);
       file_id =
           file_manager
-              ->register_generate(FileType::Secure, FileLocationSource::FromServer, file_view.suggested_name(),
+              ->register_generate(FileType::SecureEncrypted, FileLocationSource::FromServer, file_view.suggested_path(),
                                   PSTRING() << "#file_id#" << download_file_id.get(), DialogId(), file_view.size())
               .ok();
     }
@@ -580,7 +583,7 @@ void SetSecureValue::loop() {
 }
 
 void SetSecureValue::hangup() {
-  on_error(Status::Error(406, "Request aborted"));
+  on_error(Status::Error(406, "Request canceled"));
 }
 
 void SetSecureValue::tear_down() {
@@ -650,7 +653,7 @@ void SetSecureValue::merge(FileManager *file_manager, FileId file_id, EncryptedS
   LOG_IF(ERROR, status.is_error()) << status.error();
 }
 
-class DeleteSecureValue : public NetQueryCallback {
+class DeleteSecureValue final : public NetQueryCallback {
  public:
   DeleteSecureValue(ActorShared<SecureManager> parent, SecureValueType type, Promise<Unit> promise)
       : parent_(std::move(parent)), type_(std::move(type)), promise_(std::move(promise)) {
@@ -661,14 +664,14 @@ class DeleteSecureValue : public NetQueryCallback {
   SecureValueType type_;
   Promise<Unit> promise_;
 
-  void start_up() override {
+  void start_up() final {
     std::vector<telegram_api::object_ptr<telegram_api::SecureValueType>> types;
     types.push_back(get_input_secure_value_type(type_));
     auto query = G()->net_query_creator().create(telegram_api::account_deleteSecureValue(std::move(types)));
     G()->net_query_dispatcher().dispatch_with_callback(std::move(query), actor_shared(this));
   }
 
-  void on_result(NetQueryPtr query) override {
+  void on_result(NetQueryPtr query) final {
     auto r_result = fetch_result<telegram_api::account_deleteSecureValue>(std::move(query));
     if (r_result.is_error()) {
       promise_.set_error(r_result.move_as_error());
@@ -679,7 +682,7 @@ class DeleteSecureValue : public NetQueryCallback {
   }
 };
 
-class GetPassportAuthorizationForm : public NetQueryCallback {
+class GetPassportAuthorizationForm final : public NetQueryCallback {
  public:
   GetPassportAuthorizationForm(ActorShared<SecureManager> parent, UserId bot_user_id, string scope, string public_key,
                                Promise<telegram_api::object_ptr<telegram_api::account_authorizationForm>> promise)
@@ -706,14 +709,14 @@ class GetPassportAuthorizationForm : public NetQueryCallback {
     stop();
   }
 
-  void start_up() override {
+  void start_up() final {
     auto account_get_authorization_form =
         telegram_api::account_getAuthorizationForm(bot_user_id_.get(), std::move(scope_), std::move(public_key_));
     auto query = G()->net_query_creator().create(account_get_authorization_form);
     G()->net_query_dispatcher().dispatch_with_callback(std::move(query), actor_shared(this));
   }
 
-  void on_result(NetQueryPtr query) override {
+  void on_result(NetQueryPtr query) final {
     auto r_result = fetch_result<telegram_api::account_getAuthorizationForm>(std::move(query));
     if (r_result.is_error()) {
       return on_error(r_result.move_as_error());
@@ -750,7 +753,7 @@ void SecureManager::get_secure_value(std::string password, SecureValueType type,
       .release();
 }
 
-class GetPassportConfig : public NetQueryCallback {
+class GetPassportConfig final : public NetQueryCallback {
  public:
   GetPassportConfig(ActorShared<SecureManager> parent, string country_code,
                     Promise<td_api::object_ptr<td_api::text>> promise)
@@ -762,12 +765,12 @@ class GetPassportConfig : public NetQueryCallback {
   string country_code_;
   Promise<td_api::object_ptr<td_api::text>> promise_;
 
-  void start_up() override {
+  void start_up() final {
     auto query = G()->net_query_creator().create(telegram_api::help_getPassportConfig(0));
     G()->net_query_dispatcher().dispatch_with_callback(std::move(query), actor_shared(this));
   }
 
-  void on_result(NetQueryPtr query) override {
+  void on_result(NetQueryPtr query) final {
     auto r_result = fetch_result<telegram_api::help_getPassportConfig>(std::move(query));
     if (r_result.is_error()) {
       promise_.set_error(r_result.move_as_error());
@@ -952,12 +955,17 @@ void SecureManager::set_secure_value_errors(Td *td, tl_object_ptr<telegram_api::
 void SecureManager::get_passport_authorization_form(UserId bot_user_id, string scope, string public_key, string nonce,
                                                     Promise<TdApiAuthorizationForm> promise) {
   refcnt_++;
+  CHECK(max_authorization_form_id_ < std::numeric_limits<int32>::max());
   auto authorization_form_id = ++max_authorization_form_id_;
-  auto &form = authorization_forms_[authorization_form_id];
+  auto &form_ptr = authorization_forms_[authorization_form_id];
+  if (form_ptr == nullptr) {
+    form_ptr = make_unique<AuthorizationForm>();
+  }
+  auto &form = *form_ptr;
   form.bot_user_id = bot_user_id;
   form.scope = scope;
   form.public_key = public_key;
-  form.nonce = nonce;
+  form.nonce = std::move(nonce);
   auto new_promise = PromiseCreator::lambda(
       [actor_id = actor_id(this), authorization_form_id, promise = std::move(promise)](
           Result<telegram_api::object_ptr<telegram_api::account_authorizationForm>> r_authorization_form) mutable {
@@ -974,7 +982,8 @@ void SecureManager::on_get_passport_authorization_form(
     Result<telegram_api::object_ptr<telegram_api::account_authorizationForm>> r_authorization_form) {
   auto it = authorization_forms_.find(authorization_form_id);
   CHECK(it != authorization_forms_.end());
-  CHECK(it->second.is_received == false);
+  CHECK(it->second != nullptr);
+  CHECK(!it->second->is_received);
   if (r_authorization_form.is_error()) {
     authorization_forms_.erase(it);
     return promise.set_error(r_authorization_form.move_as_error());
@@ -1018,10 +1027,10 @@ void SecureManager::on_get_passport_authorization_form(
     }
   }
 
-  it->second.options = std::move(all_types);
-  it->second.values = std::move(authorization_form->values_);
-  it->second.errors = std::move(authorization_form->errors_);
-  it->second.is_received = true;
+  it->second->options = std::move(all_types);
+  it->second->values = std::move(authorization_form->values_);
+  it->second->errors = std::move(authorization_form->errors_);
+  it->second->is_received = true;
 
   promise.set_value(td_api::make_object<td_api::passportAuthorizationForm>(
       authorization_form_id, get_passport_required_elements_object(required_types),
@@ -1034,16 +1043,17 @@ void SecureManager::get_passport_authorization_form_available_elements(int32 aut
   if (it == authorization_forms_.end()) {
     return promise.set_error(Status::Error(400, "Unknown authorization_form_id"));
   }
-  if (!it->second.is_received) {
+  CHECK(it->second != nullptr);
+  if (!it->second->is_received) {
     return promise.set_error(Status::Error(400, "Authorization form isn't received yet"));
   }
 
   refcnt_++;
   send_closure(G()->password_manager(), &PasswordManager::get_secure_secret, password,
-               PromiseCreator::lambda([actor_id = actor_shared(this), authorization_form_id,
+               PromiseCreator::lambda([self = actor_shared(this), authorization_form_id,
                                        promise = std::move(promise)](Result<secure_storage::Secret> r_secret) mutable {
-                 send_closure(actor_id, &SecureManager::on_get_passport_authorization_form_secret,
-                              authorization_form_id, std::move(promise), std::move(r_secret));
+                 send_closure(self, &SecureManager::on_get_passport_authorization_form_secret, authorization_form_id,
+                              std::move(promise), std::move(r_secret));
                }));
 }
 
@@ -1054,8 +1064,9 @@ void SecureManager::on_get_passport_authorization_form_secret(int32 authorizatio
   if (it == authorization_forms_.end()) {
     return promise.set_error(Status::Error(400, "Authorization form has already been sent"));
   }
-  CHECK(it->second.is_received);
-  if (it->second.is_decrypted) {
+  CHECK(it->second != nullptr);
+  CHECK(it->second->is_received);
+  if (it->second->is_decrypted) {
     return promise.set_error(Status::Error(400, "Authorization form has already been decrypted"));
   }
 
@@ -1071,14 +1082,14 @@ void SecureManager::on_get_passport_authorization_form_secret(int32 authorizatio
   }
   auto secret = r_secret.move_as_ok();
 
-  it->second.is_decrypted = true;
+  it->second->is_decrypted = true;
 
   auto *file_manager = G()->td().get_actor_unsafe()->file_manager_.get();
   std::vector<TdApiSecureValue> values;
   std::map<SecureValueType, SecureValueCredentials> all_credentials;
-  for (auto suitable_type : it->second.options) {
+  for (const auto &suitable_type : it->second->options) {
     auto type = suitable_type.first;
-    for (auto &value : it->second.values) {
+    for (auto &value : it->second->values) {
       if (value == nullptr) {
         continue;
       }
@@ -1098,7 +1109,7 @@ void SecureManager::on_get_passport_authorization_form_secret(int32 authorizatio
       on_get_secure_value(r_secure_value.ok());
 
       auto secure_value = r_secure_value.move_as_ok();
-      auto r_passport_element = get_passport_element_object(file_manager, std::move(secure_value.value));
+      auto r_passport_element = get_passport_element_object(file_manager, secure_value.value);
       if (r_passport_element.is_error()) {
         LOG(ERROR) << "Failed to get passport element object: " << r_passport_element.error();
         break;
@@ -1120,7 +1131,7 @@ void SecureManager::on_get_passport_authorization_form_secret(int32 authorizatio
   };
 
   vector<td_api::object_ptr<td_api::passportElementError>> errors;
-  for (auto &error_ptr : it->second.errors) {
+  for (auto &error_ptr : it->second->errors) {
     CHECK(error_ptr != nullptr);
     SecureValueType type = SecureValueType::None;
     td_api::object_ptr<td_api::PassportElementErrorSource> source;
@@ -1223,7 +1234,8 @@ void SecureManager::send_passport_authorization_form(int32 authorization_form_id
   if (it == authorization_forms_.end()) {
     return promise.set_error(Status::Error(400, "Unknown authorization_form_id"));
   }
-  if (!it->second.is_received) {
+  CHECK(it->second != nullptr);
+  if (!it->second->is_received) {
     return promise.set_error(Status::Error(400, "Authorization form isn't received yet"));
   }
   // there is no need to check for is_decrypted
@@ -1245,8 +1257,8 @@ void SecureManager::send_passport_authorization_form(int32 authorization_form_id
   for (auto &c : credentials) {
     hashes.push_back(telegram_api::make_object<telegram_api::secureValueHash>(get_input_secure_value_type(c.type),
                                                                               BufferSlice(c.hash)));
-    auto options_it = it->second.options.find(c.type);
-    if (options_it == it->second.options.end()) {
+    auto options_it = it->second->options.find(c.type);
+    if (options_it == it->second->options.end()) {
       return promise.set_error(Status::Error(400, "Passport Element with the specified type was not requested"));
     }
     auto &options = options_it->second;
@@ -1259,14 +1271,14 @@ void SecureManager::send_passport_authorization_form(int32 authorization_form_id
   }
 
   auto r_encrypted_credentials =
-      get_encrypted_credentials(credentials, it->second.nonce, it->second.public_key,
-                                it->second.scope[0] == '{' && it->second.scope.back() == '}');
+      get_encrypted_credentials(credentials, it->second->nonce, it->second->public_key,
+                                it->second->scope[0] == '{' && it->second->scope.back() == '}');
   if (r_encrypted_credentials.is_error()) {
     return promise.set_error(r_encrypted_credentials.move_as_error());
   }
 
   auto td_query = telegram_api::account_acceptAuthorization(
-      it->second.bot_user_id.get(), it->second.scope, it->second.public_key, std::move(hashes),
+      it->second->bot_user_id.get(), it->second->scope, it->second->public_key, std::move(hashes),
       get_secure_credentials_encrypted_object(r_encrypted_credentials.move_as_ok()));
   auto query = G()->net_query_creator().create(td_query);
   auto new_promise =
@@ -1280,7 +1292,8 @@ void SecureManager::send_passport_authorization_form(int32 authorization_form_id
   send_with_promise(std::move(query), std::move(new_promise));
 }
 
-void SecureManager::get_preferred_country_code(string country_code, Promise<td_api::object_ptr<td_api::text>> promise) {
+void SecureManager::get_preferred_country_language(string country_code,
+                                                   Promise<td_api::object_ptr<td_api::text>> promise) {
   refcnt_++;
   for (auto &c : country_code) {
     c = to_upper(c);
@@ -1291,7 +1304,7 @@ void SecureManager::get_preferred_country_code(string country_code, Promise<td_a
 
 void SecureManager::hangup() {
   container_.for_each(
-      [](auto id, Promise<NetQueryPtr> &promise) { promise.set_error(Status::Error(500, "Request aborted")); });
+      [](auto id, Promise<NetQueryPtr> &promise) { promise.set_error(Global::request_aborted_error()); });
   dec_refcnt();
 }
 

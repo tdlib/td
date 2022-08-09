@@ -1,6 +1,17 @@
 cmake_minimum_required(VERSION 3.0.2 FATAL_ERROR)
 
-project(TDLib VERSION 1.6.6 LANGUAGES CXX C)
+if (POLICY CMP0065)
+  # do not export symbols from executables
+  # affects compiler checks in project(), so must be set before it
+  cmake_policy(SET CMP0065 NEW)
+endif()
+
+project(TDLib VERSION 1.8.4 LANGUAGES CXX C)
+
+if (NOT DEFINED CMAKE_MODULE_PATH)
+  set(CMAKE_MODULE_PATH "")
+endif()
+set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CMake" "${CMAKE_MODULE_PATH}")
 
 if (NOT DEFINED CMAKE_INSTALL_LIBDIR)
   set(CMAKE_INSTALL_LIBDIR "lib")
@@ -16,21 +27,17 @@ if (POLICY CMP0054)
   # do not expand quoted arguments
   cmake_policy(SET CMP0054 NEW)
 endif()
-
-# Prevent in-source build
-get_filename_component(TD_REAL_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}" REALPATH)
-get_filename_component(TD_REAL_BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}" REALPATH)
-
-if (TD_REAL_BINARY_DIR STREQUAL TD_REAL_SOURCE_DIR)
-  message("  Out-of-source build should be used to build TDLib.")
-  message("  You need to remove the files already created by CMake and")
-  message("  rerun CMake from a new directory:")
-  message("  rm -rf CMakeFiles CMakeCache.txt")
-  message("  mkdir build")
-  message("  cd build")
-  message("  cmake ..")
-  message(FATAL_ERROR "In-source build failed.")
+if (POLICY CMP0060)
+  # link libraries by full path
+  cmake_policy(SET CMP0060 NEW)
 endif()
+if (POLICY CMP0074)
+  # use environment variables to find libraries
+  cmake_policy(SET CMP0074 NEW)
+endif()
+
+include(PreventInSourceBuild)
+prevent_in_source_build()
 
 option(TD_ENABLE_JNI "Use \"ON\" to enable JNI-compatible TDLib API.")
 option(TD_ENABLE_DOTNET "Use \"ON\" to enable generation of C++/CLI or C++/CX TDLib API bindings.")
@@ -38,15 +45,6 @@ option(TD_ENABLE_DOTNET "Use \"ON\" to enable generation of C++/CLI or C++/CX TD
 if (TD_ENABLE_DOTNET AND (CMAKE_VERSION VERSION_LESS "3.1.0"))
   message(FATAL_ERROR "CMake 3.1.0 or higher is required. You are running version ${CMAKE_VERSION}.")
 endif()
-
-if (NOT DEFINED CMAKE_MODULE_PATH)
-  set(CMAKE_MODULE_PATH "")
-endif()
-set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CMake" "${CMAKE_MODULE_PATH}")
-
-set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
-
-set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 enable_testing()
 
@@ -61,15 +59,15 @@ if (POLICY CMP0069)
       # set_property(DIRECTORY PROPERTY INTERPROCEDURAL_OPTIMIZATION TRUE) do not work?
       string(REPLACE ";" " " CXX_FLAGS_IPO "${CMAKE_CXX_COMPILE_OPTIONS_IPO}")
       message(STATUS "Use link time optimization CXX options: ${CXX_FLAGS_IPO}")
-      set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} ${CXX_FLAGS_IPO}")
+      set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CXX_FLAGS_IPO}")
 
       string(REPLACE ";" " " C_FLAGS_IPO "${CMAKE_C_COMPILE_OPTIONS_IPO}")
       message(STATUS "Use link time optimization C options: ${C_FLAGS_IPO}")
-      set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} ${C_FLAGS_IPO}")
+      set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${C_FLAGS_IPO}")
 
       string(REPLACE ";" " " LINK_FLAGS_IPO "${CMAKE_CXX_LINK_OPTIONS_IPO}")
       message(STATUS "Use link time optimization linker options: ${LINK_FLAGS_IPO}")
-      set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} ${LINK_FLAGS_IPO}")
+      set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${LINK_FLAGS_IPO}")
     endif()
   endif()
 endif()
@@ -97,8 +95,10 @@ if (EMSCRIPTEN)
   set(ZLIB_LIBRARIES)
   set(ZLIB_INCLUDE_DIR)
 
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -s ALLOW_MEMORY_GROWTH=1 -s MEMFS_APPEND_TO_TYPED_ARRAYS=1 -s USE_ZLIB=1 -s MODULARIZE=1 -s WEBSOCKET_URL=\"'wss:#'\" -s EXTRA_EXPORTED_RUNTIME_METHODS=\"['FS','cwrap']\" -lidbfs.js -lworkerfs.js")
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -s ALLOW_MEMORY_GROWTH=1 -s MEMFS_APPEND_TO_TYPED_ARRAYS=1 -s USE_ZLIB=1 -s MODULARIZE=1 -s WEBSOCKET_URL=\"'wss:#'\" -s EXTRA_EXPORTED_RUNTIME_METHODS=\"['FS','cwrap']\" -lidbfs.js -lworkerfs.js")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -s ALLOW_MEMORY_GROWTH=1 -s MEMFS_APPEND_TO_TYPED_ARRAYS=1 -s USE_ZLIB=1 -s MODULARIZE=1 \
+    -s EXPORT_NAME=\"'createTdwebModule'\" -s WEBSOCKET_URL=\"'wss:#'\" -s EXTRA_EXPORTED_RUNTIME_METHODS=\"['FS','cwrap']\" -lidbfs.js -lworkerfs.js")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -s ALLOW_MEMORY_GROWTH=1 -s MEMFS_APPEND_TO_TYPED_ARRAYS=1 -s USE_ZLIB=1 -s MODULARIZE=1 \
+    -s EXPORT_NAME=\"'createTdwebModule'\" -s WEBSOCKET_URL=\"'wss:#'\" -s EXTRA_EXPORTED_RUNTIME_METHODS=\"['FS','cwrap']\" -lidbfs.js -lworkerfs.js")
   set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -s DEMANGLE_SUPPORT=1 -s ASSERTIONS=1")
   set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -s DEMANGLE_SUPPORT=1 -s ASSERTIONS=1")
 
@@ -111,6 +111,7 @@ if (EMSCRIPTEN)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -s WASM=1")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -s WASM=1")
   endif()
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --post-js ${CMAKE_CURRENT_SOURCE_DIR}/post.js")
 endif()
 
 if (NOT OPENSSL_FOUND)
@@ -118,38 +119,6 @@ if (NOT OPENSSL_FOUND)
 endif()
 if (OPENSSL_FOUND)
   message(STATUS "Found OpenSSL: ${OPENSSL_INCLUDE_DIR} ${OPENSSL_LIBRARIES}")
-endif()
-
-if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-  set(GCC 1)
-elseif (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-  set(CLANG 1)
-elseif (CMAKE_CXX_COMPILER_ID STREQUAL "Intel")
-  set(INTEL 1)
-elseif (NOT MSVC)
-  message(FATAL_ERROR "Compiler isn't supported")
-endif()
-
-include(CheckCXXCompilerFlag)
-
-if (GCC OR CLANG OR INTEL)
-  if (WIN32 AND INTEL)
-    set(STD14_FLAG /Qstd=c++14)
-  else()
-    set(STD14_FLAG -std=c++14)
-  endif()
-  check_cxx_compiler_flag(${STD14_FLAG} HAVE_STD14)
-  if (NOT HAVE_STD14)
-    string(REPLACE "c++14" "c++1y" STD14_FLAG "${STD14_FLAG}")
-    check_cxx_compiler_flag(${STD14_FLAG} HAVE_STD1Y)
-    set(HAVE_STD14 ${HAVE_STD1Y})
-  endif()
-elseif (MSVC)
-  set(HAVE_STD14 MSVC_VERSION>=1900)
-endif()
-
-if (NOT HAVE_STD14)
-  message(FATAL_ERROR "No C++14 support in the compiler. Please upgrade the compiler.")
 endif()
 
 set(CMAKE_THREAD_PREFER_PTHREAD ON)
@@ -160,23 +129,20 @@ if (THREADS_HAVE_PTHREAD_ARG)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
 endif()
 
-if (MSVC)
-  if (CMAKE_CXX_FLAGS_DEBUG MATCHES "/RTC1")
-    string(REPLACE "/RTC1" " " CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}")
-  endif()
-  add_definitions(-D_SCL_SECURE_NO_WARNINGS -D_CRT_SECURE_NO_WARNINGS)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /utf-8 /GR- /W4 /wd4100 /wd4127 /wd4324 /wd4505 /wd4814 /wd4702")
-elseif (CLANG OR GCC)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${STD14_FLAG} -fno-omit-frame-pointer -fno-exceptions -fno-rtti")
-  if (APPLE)
-    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,-dead_strip,-x,-S")
-  else()
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -ffunction-sections -fdata-sections")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ffunction-sections -fdata-sections")
-    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--gc-sections -Wl,--exclude-libs,ALL")
-  endif()
+include(TdSetUpCompiler)
+td_set_up_compiler()
 
+if (MSVC)
+  option(TD_ENABLE_MULTI_PROCESSOR_COMPILATION "Use \"ON\" to enable multi-processor compilation.")
+
+  if (TD_ENABLE_MULTI_PROCESSOR_COMPILATION)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP")
+  endif()
+endif()
+
+if (CLANG OR GCC)
   if (MEMPROF)
+    include(CheckCXXCompilerFlag)
     check_cxx_compiler_flag(-no-pie CXX_NO_PIE_FLAG)
     if (CXX_NO_PIE_FLAG)
       set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -no-pie")
@@ -184,76 +150,13 @@ elseif (CLANG OR GCC)
       set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-no_pie")
     endif()
   endif()
-elseif (INTEL)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${STD14_FLAG}")
 endif()
 
-if (WIN32)
-  add_definitions(-DNTDDI_VERSION=0x06020000 -DWINVER=0x0602 -D_WIN32_WINNT=0x0602 -DPSAPI_VERSION=1 -DNOMINMAX -DUNICODE -D_UNICODE -DWIN32_LEAN_AND_MEAN)
-endif()
-if (CYGWIN)
-  add_definitions(-D_DEFAULT_SOURCE=1 -DFD_SETSIZE=4096)
-endif()
+include(GetGitRevisionDescription)
+get_git_head_revision(TD_GIT_REFSPEC TD_GIT_COMMIT_HASH)
+message(STATUS "Git state: ${TD_GIT_COMMIT_HASH}")
 
-if (NOT ANDROID) # _FILE_OFFSET_BITS is broken in NDK r15, r15b and r17 and doesn't work prior to Android 7.0
-  add_definitions(-D_FILE_OFFSET_BITS=64)
-endif()
-
-include(AddCXXCompilerFlag)
-if (NOT MSVC)
-  add_cxx_compiler_flag("-Wall")
-  add_cxx_compiler_flag("-Wextra")
-  add_cxx_compiler_flag("-Wimplicit-fallthrough=2")
-  add_cxx_compiler_flag("-Wpointer-arith")
-  add_cxx_compiler_flag("-Wcast-qual")
-  add_cxx_compiler_flag("-Wsign-compare")
-  add_cxx_compiler_flag("-Wduplicated-branches")
-  add_cxx_compiler_flag("-Wduplicated-cond")
-  add_cxx_compiler_flag("-Walloc-zero")
-  add_cxx_compiler_flag("-Wlogical-op")
-  add_cxx_compiler_flag("-Wno-tautological-compare")
-  add_cxx_compiler_flag("-Wpointer-arith")
-  add_cxx_compiler_flag("-Wvla")
-  add_cxx_compiler_flag("-Wnon-virtual-dtor")
-  add_cxx_compiler_flag("-Wno-unused-parameter")
-  add_cxx_compiler_flag("-Wconversion")
-  add_cxx_compiler_flag("-Wno-sign-conversion")
-  add_cxx_compiler_flag("-Wc++14-compat-pedantic")
-  add_cxx_compiler_flag("-Wdeprecated")
-  add_cxx_compiler_flag("-Qunused-arguments")
-  add_cxx_compiler_flag("-Wodr")
-  add_cxx_compiler_flag("-flto-odr-type-merging")
-
-#  add_cxx_compiler_flag("-Werror")
-
-#  add_cxx_compiler_flag("-Wcast-align")
-
-#std::int32_t <-> int and off_t <-> std::size_t/std::int64_t
-#  add_cxx_compiler_flag("-Wuseless-cast")
-
-#external headers like openssl
-#  add_cxx_compiler_flag("-Wzero-as-null-pointer-constant")
-endif()
-
-if (GCC AND NOT (CMAKE_CXX_COMPILER_VERSION VERSION_LESS 7.0))
-  add_cxx_compiler_flag("-Wno-maybe-uninitialized")  # too much false positives
-endif()
-if (GCC AND NOT (CMAKE_CXX_COMPILER_VERSION VERSION_LESS 9.0))
-  # warns about a lot of "return std::move", which are not redundant for compilers without fix for DR 1579, i.e. GCC 4.9 or clang 3.8
-  # see http://www.open-std.org/jtc1/sc22/wg21/docs/cwg_defects.html#1579
-  add_cxx_compiler_flag("-Wno-redundant-move")
-endif()
-if (CLANG AND (CMAKE_CXX_COMPILER_VERSION VERSION_LESS 3.5))
-  # https://stackoverflow.com/questions/26744556/warning-returning-a-captured-reference-from-a-lambda
-  add_cxx_compiler_flag("-Wno-return-stack-address")
-endif()
-
-#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem /usr/include/c++/v1")
-#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
-#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=thread")
-#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address")
-#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=undefined")
-#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=leak")
+configure_file("${CMAKE_CURRENT_SOURCE_DIR}/td/telegram/GitCommitHash.cpp.in" "${CMAKE_CURRENT_BINARY_DIR}/td/telegram/GitCommitHash.cpp" @ONLY)
 
 add_subdirectory(tdtl)
 
@@ -276,7 +179,7 @@ if (NOT CMAKE_CROSSCOMPILING)
 endif()
 
 if (NOT OPENSSL_FOUND)
-  message(WARNING "Not found OpenSSL: skip TDLib, tdactor, tdnet, tddb")
+  message(WARNING "Can't find OpenSSL: stop TDLib building")
   return()
 endif()
 
@@ -284,7 +187,12 @@ if (NOT ZLIB_FOUND)
   find_package(ZLIB)
 endif()
 if (NOT ZLIB_FOUND)
-  message(WARNING "Not found zlib: skip TDLib, tdactor, tdnet, tddb")
+  message(WARNING "Can't find zlib: stop TDLib building")
+  return()
+endif()
+
+if (NOT TDUTILS_MIME_TYPE)
+  message(WARNING "Option TDUTILS_MIME_TYPE must not be disabled: stop TDLib building")
   return()
 endif()
 
@@ -309,7 +217,6 @@ endif()
 
 get_directory_property(HAS_PARENT PARENT_DIRECTORY)
 if (HAS_PARENT)
-  set(TL_TD_API_TLO ${TL_TD_API_TLO} PARENT_SCOPE) # was used in standalone binding generators
   set(TL_TD_JSON_AUTO ${TL_TD_JSON_AUTO_SOURCE} PARENT_SCOPE) # used in tdbot
   set(TD_TEST_SOURCE ${TD_TEST_SOURCE} PARENT_SCOPE) # used to build tests
 endif()
@@ -360,6 +267,7 @@ set(TL_DOTNET_SCHEME_SOURCE
 
 set(TDLIB_SOURCE
   td/mtproto/AuthData.cpp
+  td/mtproto/ConnectionManager.cpp
   td/mtproto/DhHandshake.cpp
   td/mtproto/Handshake.cpp
   td/mtproto/HandshakeActor.cpp
@@ -378,34 +286,53 @@ set(TDLIB_SOURCE
   td/mtproto/Transport.cpp
   td/mtproto/utils.cpp
 
+  td/telegram/Account.cpp
   td/telegram/AnimationsManager.cpp
+  td/telegram/Application.cpp
+  td/telegram/AttachMenuManager.cpp
   td/telegram/AudiosManager.cpp
   td/telegram/AuthManager.cpp
   td/telegram/AutoDownloadSettings.cpp
+  td/telegram/AvailableReaction.cpp
   td/telegram/BackgroundManager.cpp
   td/telegram/BackgroundType.cpp
+  td/telegram/BotCommand.cpp
+  td/telegram/BotCommandScope.cpp
+  td/telegram/BotMenuButton.cpp
+  td/telegram/BotMenuButton.h
   td/telegram/CallActor.cpp
   td/telegram/CallDiscardReason.cpp
   td/telegram/CallManager.cpp
   td/telegram/CallbackQueriesManager.cpp
+  td/telegram/ChannelParticipantFilter.cpp
   td/telegram/ClientActor.cpp
   td/telegram/ConfigManager.cpp
   td/telegram/ConfigShared.cpp
+  td/telegram/ConnectionState.cpp
   td/telegram/Contact.cpp
   td/telegram/ContactsManager.cpp
+  td/telegram/CountryInfoManager.cpp
   td/telegram/DelayDispatcher.cpp
   td/telegram/Dependencies.cpp
   td/telegram/DeviceTokenManager.cpp
   td/telegram/DhCache.cpp
+  td/telegram/DialogAction.cpp
+  td/telegram/DialogActionBar.cpp
   td/telegram/DialogAdministrator.cpp
   td/telegram/DialogDb.cpp
+  td/telegram/DialogEventLog.cpp
   td/telegram/DialogFilter.cpp
   td/telegram/DialogId.cpp
+  td/telegram/DialogInviteLink.cpp
   td/telegram/DialogLocation.cpp
   td/telegram/DialogParticipant.cpp
+  td/telegram/DialogParticipantFilter.cpp
   td/telegram/DialogSource.cpp
+  td/telegram/Dimensions.cpp
   td/telegram/Document.cpp
   td/telegram/DocumentsManager.cpp
+  td/telegram/DownloadManager.cpp
+  td/telegram/DownloadManagerCallback.cpp
   td/telegram/DraftMessage.cpp
   td/telegram/FileReferenceManager.cpp
   td/telegram/files/FileBitmask.cpp
@@ -423,25 +350,39 @@ set(TDLIB_SOURCE
   td/telegram/files/FileManager.cpp
   td/telegram/files/FileStats.cpp
   td/telegram/files/FileStatsWorker.cpp
+  td/telegram/files/FileType.cpp
   td/telegram/files/FileUploader.cpp
   td/telegram/files/PartsManager.cpp
   td/telegram/files/ResourceManager.cpp
   td/telegram/Game.cpp
+  td/telegram/GameManager.cpp
   td/telegram/Global.cpp
+  td/telegram/GroupCallManager.cpp
+  td/telegram/GroupCallParticipant.cpp
+  td/telegram/GroupCallParticipantOrder.cpp
+  td/telegram/GroupCallVideoPayload.cpp
   td/telegram/HashtagHints.cpp
   td/telegram/InlineQueriesManager.cpp
   td/telegram/InputDialogId.cpp
+  td/telegram/InputGroupCallId.cpp
   td/telegram/InputMessageText.cpp
   td/telegram/JsonValue.cpp
   td/telegram/LanguagePackManager.cpp
+  td/telegram/LinkManager.cpp
   td/telegram/Location.cpp
+  td/telegram/logevent/LogEventHelper.cpp
   td/telegram/Logging.cpp
   td/telegram/MessageContent.cpp
   td/telegram/MessageContentType.cpp
   td/telegram/MessageEntity.cpp
   td/telegram/MessageId.cpp
+  td/telegram/MessageReaction.cpp
+  td/telegram/MessageReplyInfo.cpp
   td/telegram/MessagesDb.cpp
+  td/telegram/MessageSearchFilter.cpp
+  td/telegram/MessageSender.cpp
   td/telegram/MessagesManager.cpp
+  td/telegram/MessageTtl.cpp
   td/telegram/misc.cpp
   td/telegram/net/AuthDataShared.cpp
   td/telegram/net/ConnectionCreator.cpp
@@ -450,10 +391,10 @@ set(TDLIB_SOURCE
   td/telegram/net/MtprotoHeader.cpp
   td/telegram/net/NetActor.cpp
   td/telegram/net/NetQuery.cpp
-  td/telegram/net/NetQueryCounter.cpp
   td/telegram/net/NetQueryCreator.cpp
   td/telegram/net/NetQueryDelayer.cpp
   td/telegram/net/NetQueryDispatcher.cpp
+  td/telegram/net/NetQueryStats.cpp
   td/telegram/net/NetStatsManager.cpp
   td/telegram/net/Proxy.cpp
   td/telegram/net/PublicRsaKeyShared.cpp
@@ -461,34 +402,48 @@ set(TDLIB_SOURCE
   td/telegram/net/Session.cpp
   td/telegram/net/SessionProxy.cpp
   td/telegram/net/SessionMultiProxy.cpp
+  td/telegram/NewPasswordState.cpp
   td/telegram/NotificationManager.cpp
   td/telegram/NotificationSettings.cpp
+  td/telegram/NotificationSettingsManager.cpp
+  td/telegram/NotificationSound.cpp
   td/telegram/NotificationType.cpp
+  td/telegram/OptionManager.cpp
   td/telegram/Payments.cpp
   td/telegram/PasswordManager.cpp
   td/telegram/PhoneNumberManager.cpp
   td/telegram/PrivacyManager.cpp
   td/telegram/Photo.cpp
+  td/telegram/PhotoSize.cpp
   td/telegram/PhotoSizeSource.cpp
   td/telegram/PollManager.cpp
+  td/telegram/Premium.cpp
   td/telegram/QueryCombiner.cpp
+  td/telegram/RecentDialogList.cpp
   td/telegram/ReplyMarkup.cpp
+  td/telegram/ReportReason.cpp
   td/telegram/RestrictionReason.cpp
   td/telegram/SecretChatActor.cpp
   td/telegram/SecretChatDb.cpp
   td/telegram/SecretChatsManager.cpp
+  td/telegram/SecretInputMedia.cpp
   td/telegram/SecureManager.cpp
   td/telegram/SecureStorage.cpp
   td/telegram/SecureValue.cpp
   td/telegram/SendCodeHelper.cpp
   td/telegram/SequenceDispatcher.cpp
   td/telegram/SpecialStickerSetType.cpp
+  td/telegram/SponsoredMessageManager.cpp
   td/telegram/StateManager.cpp
+  td/telegram/StickerFormat.cpp
   td/telegram/StickersManager.cpp
   td/telegram/StorageManager.cpp
+  td/telegram/SuggestedAction.cpp
   td/telegram/Td.cpp
   td/telegram/TdDb.cpp
   td/telegram/TermsOfService.cpp
+  td/telegram/ThemeManager.cpp
+  td/telegram/TopDialogCategory.cpp
   td/telegram/TopDialogManager.cpp
   td/telegram/UpdatesManager.cpp
   td/telegram/Venue.cpp
@@ -500,7 +455,9 @@ set(TDLIB_SOURCE
 
   td/mtproto/AuthData.h
   td/mtproto/AuthKey.h
+  td/mtproto/ConnectionManager.h
   td/mtproto/CryptoStorer.h
+  td/mtproto/DhCallback.h
   td/mtproto/DhHandshake.h
   td/mtproto/Handshake.h
   td/mtproto/HandshakeActor.h
@@ -508,13 +465,13 @@ set(TDLIB_SOURCE
   td/mtproto/HttpTransport.h
   td/mtproto/IStreamTransport.h
   td/mtproto/KDF.h
+  td/mtproto/MtprotoQuery.h
   td/mtproto/NoCryptoStorer.h
   td/mtproto/PacketInfo.h
   td/mtproto/PacketStorer.h
   td/mtproto/Ping.h
   td/mtproto/PingConnection.h
   td/mtproto/ProxySecret.h
-  td/mtproto/Query.h
   td/mtproto/RawConnection.h
   td/mtproto/RSA.h
   td/mtproto/SessionConnection.h
@@ -526,43 +483,64 @@ set(TDLIB_SOURCE
   td/mtproto/utils.h
 
   td/telegram/AccessRights.h
+  td/telegram/Account.h
+  td/telegram/AffectedHistory.h
   td/telegram/AnimationsManager.h
+  td/telegram/Application.h
+  td/telegram/AttachMenuManager.h
   td/telegram/AudiosManager.h
   td/telegram/AuthManager.h
   td/telegram/AutoDownloadSettings.h
+  td/telegram/AvailableReaction.h
   td/telegram/BackgroundId.h
   td/telegram/BackgroundManager.h
   td/telegram/BackgroundType.h
+  td/telegram/BotCommand.h
+  td/telegram/BotCommandScope.h
   td/telegram/CallActor.h
   td/telegram/CallDiscardReason.h
   td/telegram/CallId.h
   td/telegram/CallManager.h
   td/telegram/CallbackQueriesManager.h
+  td/telegram/ChainId.h
   td/telegram/ChannelId.h
+  td/telegram/ChannelParticipantFilter.h
+  td/telegram/ChannelType.h
   td/telegram/ChatId.h
   td/telegram/ClientActor.h
   td/telegram/ConfigManager.h
   td/telegram/ConfigShared.h
+  td/telegram/ConnectionState.h
   td/telegram/Contact.h
   td/telegram/ContactsManager.h
+  td/telegram/CountryInfoManager.h
   td/telegram/DelayDispatcher.h
   td/telegram/Dependencies.h
   td/telegram/DeviceTokenManager.h
   td/telegram/DhCache.h
   td/telegram/DhConfig.h
+  td/telegram/DialogAction.h
+  td/telegram/DialogActionBar.h
   td/telegram/DialogAdministrator.h
   td/telegram/DialogDate.h
   td/telegram/DialogDb.h
+  td/telegram/DialogEventLog.h
   td/telegram/DialogFilter.h
   td/telegram/DialogFilterId.h
   td/telegram/DialogId.h
+  td/telegram/DialogInviteLink.h
   td/telegram/DialogListId.h
   td/telegram/DialogLocation.h
   td/telegram/DialogParticipant.h
+  td/telegram/DialogParticipantFilter.h
   td/telegram/DialogSource.h
+  td/telegram/Dimensions.h
   td/telegram/Document.h
   td/telegram/DocumentsManager.h
+  td/telegram/DownloadManager.h
+  td/telegram/DownloadManagerCallback.h
   td/telegram/DraftMessage.h
+  td/telegram/EncryptedFile.h
   td/telegram/FileReferenceManager.h
   td/telegram/files/FileBitmask.h
   td/telegram/files/FileData.h
@@ -593,13 +571,22 @@ set(TDLIB_SOURCE
   td/telegram/FolderId.h
   td/telegram/FullMessageId.h
   td/telegram/Game.h
+  td/telegram/GameManager.h
+  td/telegram/GitCommitHash.h
   td/telegram/Global.h
+  td/telegram/GroupCallId.h
+  td/telegram/GroupCallManager.h
+  td/telegram/GroupCallParticipant.h
+  td/telegram/GroupCallParticipantOrder.h
+  td/telegram/GroupCallVideoPayload.h
   td/telegram/HashtagHints.h
   td/telegram/InlineQueriesManager.h
   td/telegram/InputDialogId.h
+  td/telegram/InputGroupCallId.h
   td/telegram/InputMessageText.h
   td/telegram/JsonValue.h
   td/telegram/LanguagePackManager.h
+  td/telegram/LinkManager.h
   td/telegram/Location.h
   td/telegram/logevent/LogEvent.h
   td/telegram/logevent/LogEventHelper.h
@@ -607,10 +594,19 @@ set(TDLIB_SOURCE
   td/telegram/Logging.h
   td/telegram/MessageContent.h
   td/telegram/MessageContentType.h
+  td/telegram/MessageCopyOptions.h
   td/telegram/MessageEntity.h
   td/telegram/MessageId.h
+  td/telegram/MessageLinkInfo.h
+  td/telegram/MessageReaction.h
+  td/telegram/MessageReplyInfo.h
+  td/telegram/MessageThreadInfo.h
   td/telegram/MessagesDb.h
+  td/telegram/MessageSearchFilter.h
+  td/telegram/MessageSender.h
   td/telegram/MessagesManager.h
+  td/telegram/MessageTtl.h
+  td/telegram/MinChannel.h
   td/telegram/misc.h
   td/telegram/net/AuthDataShared.h
   td/telegram/net/ConnectionCreator.h
@@ -625,6 +621,7 @@ set(TDLIB_SOURCE
   td/telegram/net/NetQueryCreator.h
   td/telegram/net/NetQueryDelayer.h
   td/telegram/net/NetQueryDispatcher.h
+  td/telegram/net/NetQueryStats.h
   td/telegram/net/NetStatsManager.h
   td/telegram/net/NetType.h
   td/telegram/net/Proxy.h
@@ -634,6 +631,7 @@ set(TDLIB_SOURCE
   td/telegram/net/SessionProxy.h
   td/telegram/net/SessionMultiProxy.h
   td/telegram/net/TempAuthKeyWatchdog.h
+  td/telegram/NewPasswordState.h
   td/telegram/Notification.h
   td/telegram/NotificationGroupId.h
   td/telegram/NotificationGroupKey.h
@@ -641,25 +639,35 @@ set(TDLIB_SOURCE
   td/telegram/NotificationId.h
   td/telegram/NotificationManager.h
   td/telegram/NotificationSettings.h
+  td/telegram/NotificationSettingsManager.h
+  td/telegram/NotificationSound.h
+  td/telegram/NotificationSoundType.h
   td/telegram/NotificationType.h
+  td/telegram/OptionManager.h
   td/telegram/PasswordManager.h
   td/telegram/Payments.h
   td/telegram/PhoneNumberManager.h
   td/telegram/Photo.h
+  td/telegram/PhotoFormat.h
+  td/telegram/PhotoSize.h
   td/telegram/PhotoSizeSource.h
   td/telegram/PollId.h
   td/telegram/PollManager.h
+  td/telegram/Premium.h
   td/telegram/PrivacyManager.h
   td/telegram/PtsManager.h
   td/telegram/PublicDialogType.h
   td/telegram/QueryCombiner.h
+  td/telegram/RecentDialogList.h
   td/telegram/ReplyMarkup.h
+  td/telegram/ReportReason.h
   td/telegram/RequestActor.h
   td/telegram/RestrictionReason.h
   td/telegram/ScheduledServerMessageId.h
   td/telegram/SecretChatActor.h
   td/telegram/SecretChatId.h
   td/telegram/SecretChatDb.h
+  td/telegram/SecretChatLayer.h
   td/telegram/SecretChatsManager.h
   td/telegram/SecretInputMedia.h
   td/telegram/SecureManager.h
@@ -670,15 +678,19 @@ set(TDLIB_SOURCE
   td/telegram/ServerMessageId.h
   td/telegram/SetWithPosition.h
   td/telegram/SpecialStickerSetType.h
+  td/telegram/SponsoredMessageManager.h
   td/telegram/StateManager.h
+  td/telegram/StickerFormat.h
   td/telegram/StickerSetId.h
   td/telegram/StickersManager.h
   td/telegram/StorageManager.h
+  td/telegram/SuggestedAction.h
   td/telegram/Td.h
   td/telegram/TdCallback.h
   td/telegram/TdDb.h
   td/telegram/TdParameters.h
   td/telegram/TermsOfService.h
+  td/telegram/ThemeManager.h
   td/telegram/TopDialogCategory.h
   td/telegram/TopDialogManager.h
   td/telegram/UniqueId.h
@@ -698,6 +710,7 @@ set(TDLIB_SOURCE
   td/telegram/AuthManager.hpp
   td/telegram/BackgroundType.hpp
   td/telegram/DialogFilter.hpp
+  td/telegram/Dimensions.hpp
   td/telegram/Document.hpp
   td/telegram/DocumentsManager.hpp
   td/telegram/DraftMessage.hpp
@@ -706,12 +719,17 @@ set(TDLIB_SOURCE
   td/telegram/files/FileId.hpp
   td/telegram/files/FileLocation.hpp
   td/telegram/files/FileManager.hpp
+  td/telegram/files/FileSourceId.hpp
   td/telegram/Game.hpp
   td/telegram/InputMessageText.hpp
   td/telegram/MessageEntity.hpp
+  td/telegram/MessageReaction.hpp
+  td/telegram/MessageReplyInfo.hpp
+  td/telegram/MinChannel.hpp
   td/telegram/NotificationSettings.hpp
   td/telegram/Payments.hpp
   td/telegram/Photo.hpp
+  td/telegram/PhotoSize.hpp
   td/telegram/PhotoSizeSource.hpp
   td/telegram/PollId.hpp
   td/telegram/PollManager.hpp
@@ -725,6 +743,8 @@ set(TDLIB_SOURCE
   td/telegram/VoiceNotesManager.hpp
 
   ${TL_TD_SCHEME_SOURCE}
+
+  ${CMAKE_CURRENT_BINARY_DIR}/td/telegram/GitCommitHash.cpp
 )
 
 set(MEMPROF_SOURCE
@@ -732,20 +752,9 @@ set(MEMPROF_SOURCE
   memprof/memprof.h
 )
 
-#RULES
-
-file(MAKE_DIRECTORY auto)
-
-if (WIN32)
-  set(GIT_COMMIT_CMD powershell -ExecutionPolicy ByPass ./gen_git_commit_h.ps1)
-else()
-  set(GIT_COMMIT_CMD ./gen_git_commit_h.sh)
-endif()
-
-add_custom_target(git_commit ALL
-  WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
-  COMMAND ${GIT_COMMIT_CMD}
-  COMMENT "Generate git_commit.h"
+set(MEMPROF_STAT_SOURCE
+  memprof/memprof_stat.cpp
+  memprof/memprof_stat.h
 )
 
 #LIBRARIES
@@ -765,8 +774,12 @@ if (MEMPROF)
   endif()
 endif()
 
+add_library(memprof_stat EXCLUDE_FROM_ALL STATIC ${MEMPROF_STAT_SOURCE})
+target_include_directories(memprof_stat PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
+target_link_libraries(memprof_stat PRIVATE tdutils)
 
-add_library(tdapi STATIC ${TL_TD_API_SOURCE})
+
+add_library(tdapi ${TL_TD_API_SOURCE})
 target_include_directories(tdapi PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}> INTERFACE $<BUILD_INTERFACE:${TL_TD_AUTO_INCLUDE_DIR}>)
 target_link_libraries(tdapi PRIVATE tdutils)
 
@@ -788,6 +801,13 @@ add_library(tdcore STATIC ${TDLIB_SOURCE})
 target_include_directories(tdcore PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}> $<BUILD_INTERFACE:${TL_TD_AUTO_INCLUDE_DIR}>)
 target_include_directories(tdcore SYSTEM PRIVATE ${OPENSSL_INCLUDE_DIR})
 target_link_libraries(tdcore PUBLIC tdapi tdactor tdutils tdnet tddb PRIVATE ${OPENSSL_CRYPTO_LIBRARY} ${CMAKE_DL_LIBS} ${ZLIB_LIBRARIES})
+if (WIN32)
+  if (MINGW)
+    target_link_libraries(tdcore PRIVATE ws2_32 mswsock crypt32)
+  else()
+    target_link_libraries(tdcore PRIVATE ws2_32 Mswsock Crypt32)
+  endif()
+endif()
 
 if (NOT CMAKE_CROSSCOMPILING)
   add_dependencies(tdcore tl_generate_common)
@@ -811,7 +831,6 @@ if (TD_ENABLE_DOTNET)
     td/telegram/LogDotNet.cpp
     ${TL_DOTNET_SCHEME_SOURCE}
   )
-  set(VCPKG_APPLOCAL_LIBRARY_DEPS ON)
   set_target_properties(tddotnet PROPERTIES OUTPUT_NAME Telegram.Td)
   target_link_libraries(tddotnet PRIVATE tdclient tdutils)
   target_include_directories(tddotnet PUBLIC
@@ -875,26 +894,6 @@ target_include_directories(tdjson_static PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
 
-set(BIGOBJ)
-if (WIN32 OR CYGWIN)
-  if (MSVC)
-    set(BIGOBJ "/bigobj")
-  elseif (GCC)
-    set(BIGOBJ "-Wa,-mbig-obj")
-  endif()
-endif()
-if (BIGOBJ)
-  target_compile_options(tdapi PUBLIC ${BIGOBJ})
-  target_compile_options(tdc PUBLIC ${BIGOBJ})
-  target_compile_options(tdcore PUBLIC ${BIGOBJ})
-  target_compile_options(tdclient PUBLIC ${BIGOBJ})
-  target_compile_options(tdjson PUBLIC ${BIGOBJ})
-  target_compile_options(tdjson_static PUBLIC ${BIGOBJ})
-  if (TD_ENABLE_DOTNET)
-    target_compile_options(tddotnet PUBLIC "/bigobj")
-  endif()
-endif()
-
 if (EMSCRIPTEN)
   set(TD_EMSCRIPTEN_SRC td/telegram/td_emscripten.cpp)
   add_executable(${TD_EMSCRIPTEN} ${TD_EMSCRIPTEN_SRC})
@@ -957,6 +956,28 @@ install(TARGETS tdjson TdJson tdjson_static TdJsonStatic tdjson_private tdclient
   INCLUDES DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
 )
 
+# generate pkg-config files
+include(GeneratePkgConfig)
+
+generate_pkgconfig(tdutils "Telegram Library - Utils")
+generate_pkgconfig(tdactor "Telegram Library - Actor")
+generate_pkgconfig(tdnet "Telegram Library - Net")
+generate_pkgconfig(tdsqlite "Telegram Library - SQLite")
+generate_pkgconfig(tddb "Telegram Library - Database")
+if (MEMPROF)
+  # generate_pkgconfig(memprof "memprof - simple library for memory usage profiling")
+endif()
+generate_pkgconfig(tdcore "Telegram Library - Core")
+generate_pkgconfig(tdclient "Telegram Library - C++ Interface")
+if (TD_ENABLE_DOTNET)
+  # generate_pkgconfig(tddotnet "Telegram Library - C# Interface")
+endif()
+# generate_pkgconfig(tdc "Telegram Library - C interface")
+generate_pkgconfig(tdapi "Telegram Library - API")
+generate_pkgconfig(tdjson_private "Telegram Library - JSON interface (private)")
+generate_pkgconfig(tdjson "Telegram Library - JSON interface (shared)")
+generate_pkgconfig(tdjson_static "Telegram Library - JSON interface (static)")
+
 install(EXPORT TdTargets
   FILE TdTargets.cmake
   NAMESPACE Td::
@@ -973,6 +994,9 @@ install(FILES "${TL_TD_AUTO_INCLUDE_DIR}/td/telegram/td_api.h" "${TL_TD_AUTO_INC
 if (TD_ENABLE_JNI)
   install(FILES td/tl/tl_jni_object.h DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/td/tl")
 endif()
+if (MSVC AND VCPKG_TOOLCHAIN)
+  install(DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/$<CONFIG>/" DESTINATION "${CMAKE_INSTALL_BINDIR}" FILES_MATCHING PATTERN "*.dll")
+endif()
 
 include(CMakePackageConfigHelpers)
 write_basic_package_version_file("TdConfigVersion.cmake"
@@ -985,4 +1009,5 @@ install(FILES "TdConfig.cmake" "${CMAKE_CURRENT_BINARY_DIR}/TdConfigVersion.cmak
 
 # Add SOVERSION to shared libraries
 set_property(TARGET tdclient PROPERTY SOVERSION "${TDLib_VERSION}")
+set_property(TARGET tdapi PROPERTY SOVERSION "${TDLib_VERSION}")
 set_property(TARGET tdjson PROPERTY SOVERSION "${TDLib_VERSION}")

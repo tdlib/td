@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -13,6 +13,7 @@
 #include "td/utils/port/FileFd.h"
 #include "td/utils/Random.h"
 #include "td/utils/SharedSlice.h"
+#include "td/utils/SliceBuilder.h"
 
 namespace td {
 namespace secure_storage {
@@ -89,12 +90,12 @@ BufferSlice gen_random_prefix(int64 data_size) {
   return buff;
 }
 
-class FileDataView : public DataView {
+class FileDataView final : public DataView {
  public:
   FileDataView(FileFd &fd, int64 size);
 
-  int64 size() const override;
-  Result<BufferSlice> pread(int64 offset, int64 size) const override;
+  int64 size() const final;
+  Result<BufferSlice> pread(int64 offset, int64 size) const final;
 
  private:
   FileFd &fd_;
@@ -207,7 +208,7 @@ Secret Secret::create_new() {
   auto secret_slice = ::td::as_slice(secret);
   Random::secure_bytes(secret_slice);
   auto checksum_diff = secret_checksum(secret_slice);
-  uint8 new_byte = static_cast<uint8>((static_cast<uint32>(secret_slice.ubegin()[0]) + checksum_diff) % 255);
+  auto new_byte = static_cast<uint8>((static_cast<uint32>(secret_slice.ubegin()[0]) + checksum_diff) % 255);
   secret_slice.ubegin()[0] = new_byte;
   return create(secret_slice).move_as_ok();
 }
@@ -363,7 +364,7 @@ Result<BufferSlice> decrypt_value(const Secret &secret, const ValueHash &hash, S
   return std::move(decrypted_value);
 }
 
-Result<ValueHash> encrypt_file(const Secret &secret, std::string src, std::string dest) {
+Result<ValueHash> encrypt_file(const Secret &secret, const string &src, const string &dest) {
   TRY_RESULT(src_file, FileFd::open(src, FileFd::Flags::Read));
   TRY_RESULT(dest_file, FileFd::open(dest, FileFd::Flags::Truncate | FileFd::Flags::Write | FileFd::Create));
   TRY_RESULT(src_file_size, src_file.get_size());
@@ -381,7 +382,7 @@ Result<ValueHash> encrypt_file(const Secret &secret, std::string src, std::strin
   return std::move(hash);
 }
 
-Status decrypt_file(const Secret &secret, const ValueHash &hash, std::string src, std::string dest) {
+Status decrypt_file(const Secret &secret, const ValueHash &hash, const string &src, const string &dest) {
   TRY_RESULT(src_file, FileFd::open(src, FileFd::Flags::Read));
   TRY_RESULT(dest_file, FileFd::open(dest, FileFd::Flags::Truncate | FileFd::Flags::Write | FileFd::Create));
   TRY_RESULT(src_file_size, src_file.get_size());

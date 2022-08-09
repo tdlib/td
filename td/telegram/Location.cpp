@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -10,22 +10,33 @@
 
 namespace td {
 
-void Location::init(double latitude, double longitude, int64 access_hash) {
+double Location::fix_accuracy(double accuracy) {
+  if (!std::isfinite(accuracy) || accuracy <= 0.0) {
+    return 0.0;
+  }
+  if (accuracy >= 1500.0) {
+    return 1500.0;
+  }
+  return accuracy;
+}
+
+void Location::init(double latitude, double longitude, double horizontal_accuracy, int64 access_hash) {
   if (std::isfinite(latitude) && std::isfinite(longitude) && std::abs(latitude) <= 90 && std::abs(longitude) <= 180) {
     is_empty_ = false;
     latitude_ = latitude;
     longitude_ = longitude;
+    horizontal_accuracy_ = fix_accuracy(horizontal_accuracy);
     access_hash_ = access_hash;
     G()->add_location_access_hash(latitude_, longitude_, access_hash_);
   }
 }
 
-Location::Location(double latitude, double longitude, int64 access_hash) {
-  init(latitude, longitude, access_hash);
+Location::Location(double latitude, double longitude, double horizontal_accuracy, int64 access_hash) {
+  init(latitude, longitude, horizontal_accuracy, access_hash);
 }
 
 Location::Location(const tl_object_ptr<secret_api::decryptedMessageMediaGeoPoint> &geo_point)
-    : Location(geo_point->lat_, geo_point->long_, 0) {
+    : Location(geo_point->lat_, geo_point->long_, 0.0, 0) {
 }
 
 Location::Location(const tl_object_ptr<telegram_api::GeoPoint> &geo_point_ptr) {
@@ -37,7 +48,7 @@ Location::Location(const tl_object_ptr<telegram_api::GeoPoint> &geo_point_ptr) {
       break;
     case telegram_api::geoPoint::ID: {
       auto geo_point = static_cast<const telegram_api::geoPoint *>(geo_point_ptr.get());
-      init(geo_point->lat_, geo_point->long_, geo_point->access_hash_);
+      init(geo_point->lat_, geo_point->long_, geo_point->accuracy_radius_, geo_point->access_hash_);
       break;
     }
     default:
@@ -51,7 +62,7 @@ Location::Location(const tl_object_ptr<td_api::location> &location) {
     return;
   }
 
-  init(location->latitude_, location->longitude_, 0);
+  init(location->latitude_, location->longitude_, location->horizontal_accuracy_, 0);
 }
 
 bool Location::empty() const {
@@ -67,7 +78,7 @@ tl_object_ptr<td_api::location> Location::get_location_object() const {
   if (empty()) {
     return nullptr;
   }
-  return make_tl_object<td_api::location>(latitude_, longitude_);
+  return make_tl_object<td_api::location>(latitude_, longitude_, horizontal_accuracy_);
 }
 
 tl_object_ptr<telegram_api::InputGeoPoint> Location::get_input_geo_point() const {
@@ -75,7 +86,13 @@ tl_object_ptr<telegram_api::InputGeoPoint> Location::get_input_geo_point() const
     return make_tl_object<telegram_api::inputGeoPointEmpty>();
   }
 
-  return make_tl_object<telegram_api::inputGeoPoint>(latitude_, longitude_);
+  int32 flags = 0;
+  if (horizontal_accuracy_ > 0) {
+    flags |= telegram_api::inputGeoPoint::ACCURACY_RADIUS_MASK;
+  }
+
+  return make_tl_object<telegram_api::inputGeoPoint>(flags, latitude_, longitude_,
+                                                     static_cast<int32>(std::ceil(horizontal_accuracy_)));
 }
 
 tl_object_ptr<telegram_api::inputMediaGeoPoint> Location::get_input_media_geo_point() const {
@@ -91,7 +108,8 @@ bool operator==(const Location &lhs, const Location &rhs) {
     return rhs.is_empty_;
   }
   return !rhs.is_empty_ && std::abs(lhs.latitude_ - rhs.latitude_) < 1e-6 &&
-         std::abs(lhs.longitude_ - rhs.longitude_) < 1e-6;
+         std::abs(lhs.longitude_ - rhs.longitude_) < 1e-6 &&
+         std::abs(lhs.horizontal_accuracy_ - rhs.horizontal_accuracy_) < 1e-6;
 }
 
 bool operator!=(const Location &lhs, const Location &rhs) {
@@ -103,10 +121,10 @@ StringBuilder &operator<<(StringBuilder &string_builder, const Location &locatio
     return string_builder << "Location[empty]";
   }
   return string_builder << "Location[latitude = " << location.latitude_ << ", longitude = " << location.longitude_
-                        << "]";
+                        << ", accuracy = " << location.horizontal_accuracy_ << "]";
 }
 
-Result<std::pair<Location, int32>> process_input_message_location(
+Result<InputMessageLocation> process_input_message_location(
     tl_object_ptr<td_api::InputMessageContent> &&input_message_content) {
   CHECK(input_message_content != nullptr);
   CHECK(input_message_content->get_id() == td_api::inputMessageLocation::ID);
@@ -125,7 +143,21 @@ Result<std::pair<Location, int32>> process_input_message_location(
     return Status::Error(400, "Wrong live location period specified");
   }
 
-  return std::make_pair(std::move(location), period);
+  constexpr int32 MIN_LIVE_LOCATION_HEADING = 1;    // degrees, server side limit
+  constexpr int32 MAX_LIVE_LOCATION_HEADING = 360;  // degrees, server side limit
+
+  auto heading = input_location->heading_;
+  if (heading != 0 && (heading < MIN_LIVE_LOCATION_HEADING || heading > MAX_LIVE_LOCATION_HEADING)) {
+    return Status::Error(400, "Wrong live location heading specified");
+  }
+
+  constexpr int32 MAX_PROXIMITY_ALERT_RADIUS = 100000;  // meters, server side limit
+  auto proximity_alert_radius = input_location->proximity_alert_radius_;
+  if (proximity_alert_radius < 0 || proximity_alert_radius > MAX_PROXIMITY_ALERT_RADIUS) {
+    return Status::Error(400, "Wrong live location proximity alert radius specified");
+  }
+
+  return InputMessageLocation(std::move(location), period, heading, proximity_alert_radius);
 }
 
 }  // namespace td

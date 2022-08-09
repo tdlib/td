@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -24,8 +24,8 @@ class Actor : public ObserverBase {
   Actor() = default;
   Actor(const Actor &) = delete;
   Actor &operator=(const Actor &) = delete;
-  Actor(Actor &&other);
-  Actor &operator=(Actor &&other);
+  Actor(Actor &&other) noexcept;
+  Actor &operator=(Actor &&other) noexcept;
   ~Actor() override {
     if (!empty()) {
       do_stop();
@@ -67,6 +67,7 @@ class Actor : public ObserverBase {
   void stop();
   void do_stop();
   bool has_timeout() const;
+  double get_timeout() const;
   void set_timeout_in(double timeout_in);
   void set_timeout_at(double timeout_at);
   void cancel_timeout();
@@ -74,8 +75,9 @@ class Actor : public ObserverBase {
   void do_migrate(int32 sched_id);
 
   uint64 get_link_token();
+  std::weak_ptr<ActorContext> get_context_weak_ptr() const;
   std::shared_ptr<ActorContext> set_context(std::shared_ptr<ActorContext> context);
-  CSlice set_tag(CSlice tag);
+  string set_tag(string tag);
 
   void always_wait_for_mailbox();
 
@@ -88,10 +90,10 @@ class Actor : public ObserverBase {
   bool empty() const;
 
   template <class FuncT, class... ArgsT>
-  auto self_closure(FuncT &&func, ArgsT &&... args);
+  auto self_closure(FuncT &&func, ArgsT &&...args);
 
   template <class SelfT, class FuncT, class... ArgsT>
-  auto self_closure(SelfT *self, FuncT &&func, ArgsT &&... args);
+  auto self_closure(SelfT *self, FuncT &&func, ArgsT &&...args);
 
   template <class LambdaT>
   auto self_lambda(LambdaT &&lambda);
@@ -101,7 +103,6 @@ class Actor : public ObserverBase {
   template <class SelfT>
   ActorId<SelfT> actor_id(SelfT *self);
 
-  ActorShared<> actor_shared();
   template <class SelfT>
   ActorShared<SelfT> actor_shared(SelfT *self, uint64 id = static_cast<uint64>(-1));
 
@@ -114,7 +115,8 @@ class Actor : public ObserverBase {
 template <class ActorT>
 class ActorTraits {
  public:
-  static constexpr bool is_lite = false;
+  static constexpr bool need_context = true;
+  static constexpr bool need_start_up = true;
 };
 
 }  // namespace td

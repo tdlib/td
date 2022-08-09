@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -7,11 +7,12 @@
 #include "td/utils/filesystem.h"
 
 #include "td/utils/buffer.h"
-#include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/PathView.h"
 #include "td/utils/port/FileFd.h"
+#include "td/utils/port/path.h"
 #include "td/utils/Slice.h"
+#include "td/utils/SliceBuilder.h"
 #include "td/utils/Status.h"
 #include "td/utils/unicode.h"
 #include "td/utils/utf8.h"
@@ -41,16 +42,13 @@ SecureString create_empty<SecureString>(size_t size) {
 template <class T>
 Result<T> read_file_impl(CSlice path, int64 size, int64 offset) {
   TRY_RESULT(from_file, FileFd::open(path, FileFd::Read));
-  if (size == -1) {
-    TRY_RESULT_ASSIGN(size, from_file.get_size());
-  }
-  if (size < 0) {
-    return Status::Error("Failed to read file: invalid size");
-  }
-  if (offset < 0 || offset > size) {
+  TRY_RESULT(file_size, from_file.get_size());
+  if (offset < 0 || offset > file_size) {
     return Status::Error("Failed to read file: invalid offset");
   }
-  size -= offset;
+  if (size < 0 || size > file_size - offset) {
+    size = file_size - offset;
+  }
   auto content = create_empty<T>(narrow_cast<size_t>(size));
   TRY_RESULT(got_size, from_file.pread(as_mutable_slice(content), offset));
   if (got_size != static_cast<size_t>(size)) {
@@ -80,12 +78,22 @@ Status copy_file(CSlice from, CSlice to, int64 size) {
   return write_file(to, content.as_slice());
 }
 
-Status write_file(CSlice to, Slice data) {
+Status write_file(CSlice to, Slice data, WriteFileOptions options) {
   auto size = data.size();
   TRY_RESULT(to_file, FileFd::open(to, FileFd::Truncate | FileFd::Create | FileFd::Write));
+  if (options.need_lock) {
+    TRY_STATUS(to_file.lock(FileFd::LockFlags::Write, to.str(), 10));
+    TRY_STATUS(to_file.truncate_to_current_position(0));
+  }
   TRY_RESULT(written, to_file.write(data));
   if (written != size) {
     return Status::Error(PSLICE() << "Failed to write file: written " << written << " bytes instead of " << size);
+  }
+  if (options.need_sync) {
+    TRY_STATUS(to_file.sync());
+  }
+  if (options.need_lock) {
+    to_file.lock(FileFd::LockFlags::Unlock, to.str(), 10).ignore();
   }
   to_file.close();
   return Status::OK();
@@ -151,8 +159,8 @@ string clean_filename(CSlice name) {
   }
 
   PathView path_view(name);
-  auto filename = clean_filename_part(path_view.file_stem(), 60);
-  auto extension = clean_filename_part(path_view.extension(), 20);
+  auto filename = clean_filename_part(path_view.file_stem(), 64);
+  auto extension = clean_filename_part(path_view.extension(), 16);
   if (!extension.empty()) {
     if (filename.empty()) {
       filename = std::move(extension);
@@ -164,6 +172,20 @@ string clean_filename(CSlice name) {
   }
 
   return filename;
+}
+
+Status atomic_write_file(CSlice path, Slice data, CSlice path_tmp) {
+  string path_tmp_buf;
+  if (path_tmp.empty()) {
+    path_tmp_buf = path.str() + ".tmp";
+    path_tmp = path_tmp_buf;
+  }
+
+  WriteFileOptions options;
+  options.need_sync = true;
+  options.need_lock = true;
+  TRY_STATUS(write_file(path_tmp, data, options));
+  return rename(path_tmp, path);
 }
 
 }  // namespace td

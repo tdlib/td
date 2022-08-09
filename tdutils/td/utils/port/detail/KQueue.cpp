@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -55,12 +55,14 @@ int KQueue::update(int nevents, const timespec *timeout, bool may_fail) {
     if (err != -1) {
       return false;
     }
-    if (may_fail) {
-      return kevent_errno != ENOENT;
+    if (may_fail && kevent_errno == ENOENT) {
+      return false;
     }
     return kevent_errno != EINTR;
   }();
-  LOG_IF(FATAL, is_fatal_error) << Status::PosixError(kevent_errno, "kevent failed");
+  if (is_fatal_error) {
+    LOG(FATAL) << Status::PosixError(kevent_errno, "kevent failed");
+  }
 
   changes_n_ = 0;
   if (err < 0) {

@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -36,15 +36,45 @@
     }                                                 \
   }
 
+#define TRY_STATUS_PROMISE(promise_name, status)          \
+  {                                                       \
+    auto try_status = (status);                           \
+    if (try_status.is_error()) {                          \
+      promise_name.set_error(try_status.move_as_error()); \
+      return;                                             \
+    }                                                     \
+  }
+
+#define TRY_STATUS_PROMISE_PREFIX(promise_name, status, prefix)        \
+  {                                                                    \
+    auto try_status = (status);                                        \
+    if (try_status.is_error()) {                                       \
+      promise_name.set_error(try_status.move_as_error_prefix(prefix)); \
+      return;                                                          \
+    }                                                                  \
+  }
+
 #define TRY_RESULT(name, result) TRY_RESULT_IMPL(TD_CONCAT(TD_CONCAT(r_, name), __LINE__), auto name, result)
 
+#define TRY_RESULT_PROMISE(promise_name, name, result) \
+  TRY_RESULT_PROMISE_IMPL(promise_name, TD_CONCAT(TD_CONCAT(r_, name), __LINE__), auto name, result)
+
 #define TRY_RESULT_ASSIGN(name, result) TRY_RESULT_IMPL(TD_CONCAT(r_response, __LINE__), name, result)
+
+#define TRY_RESULT_PROMISE_ASSIGN(promise_name, name, result) \
+  TRY_RESULT_PROMISE_IMPL(promise_name, TD_CONCAT(TD_CONCAT(r_, name), __LINE__), name, result)
 
 #define TRY_RESULT_PREFIX(name, result, prefix) \
   TRY_RESULT_PREFIX_IMPL(TD_CONCAT(TD_CONCAT(r_, name), __LINE__), auto name, result, prefix)
 
 #define TRY_RESULT_PREFIX_ASSIGN(name, result, prefix) \
   TRY_RESULT_PREFIX_IMPL(TD_CONCAT(TD_CONCAT(r_, name), __LINE__), name, result, prefix)
+
+#define TRY_RESULT_PROMISE_PREFIX(promise_name, name, result, prefix) \
+  TRY_RESULT_PROMISE_PREFIX_IMPL(promise_name, TD_CONCAT(TD_CONCAT(r_, name), __LINE__), auto name, result, prefix)
+
+#define TRY_RESULT_PROMISE_PREFIX_ASSIGN(promise_name, name, result, prefix) \
+  TRY_RESULT_PROMISE_PREFIX_IMPL(promise_name, TD_CONCAT(TD_CONCAT(r_, name), __LINE__), name, result, prefix)
 
 #define TRY_RESULT_IMPL(r_name, name, result) \
   auto r_name = (result);                     \
@@ -58,6 +88,22 @@
   if (r_name.is_error()) {                                   \
     return r_name.move_as_error_prefix(prefix);              \
   }                                                          \
+  name = r_name.move_as_ok();
+
+#define TRY_RESULT_PROMISE_IMPL(promise_name, r_name, name, result) \
+  auto r_name = (result);                                           \
+  if (r_name.is_error()) {                                          \
+    promise_name.set_error(r_name.move_as_error());                 \
+    return;                                                         \
+  }                                                                 \
+  name = r_name.move_as_ok();
+
+#define TRY_RESULT_PROMISE_PREFIX_IMPL(promise_name, r_name, name, result, prefix) \
+  auto r_name = (result);                                                          \
+  if (r_name.is_error()) {                                                         \
+    promise_name.set_error(r_name.move_as_error_prefix(prefix));                   \
+    return;                                                                        \
+  }                                                                                \
   name = r_name.move_as_ok();
 
 #define LOG_STATUS(status)                      \
@@ -272,19 +318,15 @@ class Status {
     return std::move(*this);
   }
 
-  Status move_as_error_prefix(Slice prefix) TD_WARN_UNUSED_RESULT {
-    CHECK(is_error());
-    Info info = get_info();
-    switch (info.error_type) {
-      case ErrorType::General:
-        return Error(code(), PSLICE() << prefix << message());
-      case ErrorType::Os:
-        return Status(false, ErrorType::Os, code(), PSLICE() << prefix << message());
-      default:
-        UNREACHABLE();
-        return {};
-    }
+  Status move_as_ok() = delete;
+
+  Status move_as_error_prefix(const Status &status) const TD_WARN_UNUSED_RESULT {
+    return status.move_as_error_suffix(message());
   }
+
+  Status move_as_error_prefix(Slice prefix) const TD_WARN_UNUSED_RESULT;
+
+  Status move_as_error_suffix(Slice suffix) const TD_WARN_UNUSED_RESULT;
 
  private:
   struct Info {
@@ -321,7 +363,7 @@ class Status {
   }
 
   Status clone_static() const TD_WARN_UNUSED_RESULT {
-    CHECK(is_ok() || get_info().static_flag);
+    CHECK(ptr_ != nullptr && get_info().static_flag);
     Status result;
     result.ptr_ = std::unique_ptr<char[], Deleter>(ptr_.get());
     return result;
@@ -366,6 +408,7 @@ class Status {
 template <class T = Unit>
 class Result {
  public:
+  using ValueT = T;
   Result() : status_(Status::Error<-1>()) {
   }
   template <class S, std::enable_if_t<!std::is_same<std::decay_t<S>, Result>::value, int> = 0>
@@ -373,21 +416,21 @@ class Result {
   }
   struct emplace_t {};
   template <class... ArgsT>
-  Result(emplace_t, ArgsT &&... args) : status_(), value_(std::forward<ArgsT>(args)...) {
+  Result(emplace_t, ArgsT &&...args) : status_(), value_(std::forward<ArgsT>(args)...) {
   }
   Result(Status &&status) : status_(std::move(status)) {
     CHECK(status_.is_error());
   }
   Result(const Result &) = delete;
   Result &operator=(const Result &) = delete;
-  Result(Result &&other) : status_(std::move(other.status_)) {
+  Result(Result &&other) noexcept : status_(std::move(other.status_)) {
     if (status_.is_ok()) {
       new (&value_) T(std::move(other.value_));
       other.value_.~T();
     }
     other.status_ = Status::Error<-2>();
   }
-  Result &operator=(Result &&other) {
+  Result &operator=(Result &&other) noexcept {
     CHECK(this != &other);
     if (status_.is_ok()) {
       value_.~T();
@@ -408,7 +451,7 @@ class Result {
     return *this;
   }
   template <class... ArgsT>
-  void emplace(ArgsT &&... args) {
+  void emplace(ArgsT &&...args) {
     if (status_.is_ok()) {
       value_.~T();
     }
@@ -462,6 +505,18 @@ class Result {
     };
     return status_.move_as_error_prefix(prefix);
   }
+  Status move_as_error_prefix(const Status &prefix) TD_WARN_UNUSED_RESULT {
+    SCOPE_EXIT {
+      status_ = Status::Error<-6>();
+    };
+    return status_.move_as_error_prefix(prefix);
+  }
+  Status move_as_error_suffix(Slice suffix) TD_WARN_UNUSED_RESULT {
+    SCOPE_EXIT {
+      status_ = Status::Error<-7>();
+    };
+    return status_.move_as_error_suffix(suffix);
+  }
   const T &ok() const {
     LOG_CHECK(status_.is_ok()) << status_;
     return value_;
@@ -489,6 +544,22 @@ class Result {
     *this = Result<T>();
   }
 
+  template <class F>
+  Result<decltype(std::declval<F>()(std::declval<T>()))> move_map(F &&f) {
+    if (is_error()) {
+      return move_as_error();
+    }
+    return f(move_as_ok());
+  }
+
+  template <class F>
+  decltype(std::declval<F>()(std::declval<T>())) move_fmap(F &&f) {
+    if (is_error()) {
+      return move_as_error();
+    }
+    return f(move_as_ok());
+  }
+
  private:
   Status status_;
   union {
@@ -505,27 +576,4 @@ inline StringBuilder &operator<<(StringBuilder &string_builder, const Status &st
   return status.print(string_builder);
 }
 
-namespace detail {
-
-class SlicifySafe {
- public:
-  Result<CSlice> operator&(Logger &logger) {
-    if (logger.is_error()) {
-      return Status::Error("Buffer overflow");
-    }
-    return logger.as_cslice();
-  }
-};
-
-class StringifySafe {
- public:
-  Result<string> operator&(Logger &logger) {
-    if (logger.is_error()) {
-      return Status::Error("Buffer overflow");
-    }
-    return logger.as_cslice().str();
-  }
-};
-
-}  // namespace detail
 }  // namespace td

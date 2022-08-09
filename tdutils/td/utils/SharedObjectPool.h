@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -49,7 +49,7 @@ class SharedPtrRaw
     CHECK(option_magic_ == Magic);
   }
   template <class... ArgsT>
-  void init_data(ArgsT &&... args) {
+  void init_data(ArgsT &&...args) {
     new (&option_data_) DataT(std::forward<ArgsT>(args)...);
   }
   void destroy_data() {
@@ -88,6 +88,7 @@ template <class T, class DeleterT = std::default_delete<T>>
 class SharedPtr {
  public:
   using Raw = detail::SharedPtrRaw<T, DeleterT>;
+  struct acquire_t {};
   SharedPtr() = default;
   ~SharedPtr() {
     if (!raw_) {
@@ -100,19 +101,24 @@ class SharedPtr {
       raw_->inc();
     }
   }
+  SharedPtr(acquire_t, Raw *raw) : raw_(raw) {
+  }
   SharedPtr(const SharedPtr &other) : SharedPtr(other.raw_) {
   }
   SharedPtr &operator=(const SharedPtr &other) {
+    if (this == &other) {
+      return *this;
+    }
     if (other.raw_) {
       other.raw_->inc();
     }
     reset(other.raw_);
     return *this;
   }
-  SharedPtr(SharedPtr &&other) : raw_(other.raw_) {
+  SharedPtr(SharedPtr &&other) noexcept : raw_(other.raw_) {
     other.raw_ = nullptr;
   }
-  SharedPtr &operator=(SharedPtr &&other) {
+  SharedPtr &operator=(SharedPtr &&other) noexcept {
     reset(other.raw_);
     other.raw_ = nullptr;
     return *this;
@@ -152,13 +158,13 @@ class SharedPtr {
   }
 
   template <class... ArgsT>
-  static SharedPtr<T, DeleterT> create(ArgsT &&... args) {
+  static SharedPtr<T, DeleterT> create(ArgsT &&...args) {
     auto raw = make_unique<Raw>(DeleterT());
     raw->init_data(std::forward<ArgsT>(args)...);
     return SharedPtr<T, DeleterT>(raw.release());
   }
   template <class D, class... ArgsT>
-  static SharedPtr<T, DeleterT> create_with_deleter(D &&d, ArgsT &&... args) {
+  static SharedPtr<T, DeleterT> create_with_deleter(D &&d, ArgsT &&...args) {
     auto raw = make_unique<Raw>(std::forward<D>(d));
     raw->init_data(std::forward<ArgsT>(args)...);
     return SharedPtr<T, DeleterT>(raw.release());
@@ -195,7 +201,7 @@ class SharedObjectPool {
   }
 
   template <class... ArgsT>
-  Ptr alloc(ArgsT &&... args) {
+  Ptr alloc(ArgsT &&...args) {
     auto *raw = alloc_raw();
     raw->init_data(std::forward<ArgsT>(args)...);
     return Ptr(raw);

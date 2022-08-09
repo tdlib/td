@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -74,7 +74,7 @@ static void set_handler(struct sigaction &act, decltype(act.sa_sigaction) handle
   act.sa_flags |= SA_SIGINFO;
 }
 template <class F>
-static Status set_signal_handler_impl(vector<int> signals, F func) {
+static Status set_signal_handler_impl(vector<int> &&signals, F func) {
   struct sigaction act;
   std::memset(&act, '\0', sizeof(act));
 
@@ -113,10 +113,23 @@ static vector<int> get_native_signals(SignalType type) {
       return {};
   }
 }
-#endif
-#if TD_PORT_WINDOWS
-static Status set_signal_handler_impl(vector<int> signals, void (*func)(int sig)) {
+#elif TD_PORT_WINDOWS
+using signal_handler = void (*)(int sig);
+static signal_handler signal_handlers[NSIG] = {};
+
+static void signal_handler_func(int sig) {
+  std::signal(sig, signal_handler_func);
+  auto handler = signal_handlers[sig];
+  handler(sig);
+}
+
+static Status set_signal_handler_impl(vector<int> &&signals, void (*func)(int sig)) {
   for (auto signal : signals) {
+    CHECK(0 <= signal && signal < NSIG);
+    if (func != SIG_IGN && func != SIG_DFL) {
+      signal_handlers[signal] = func;
+      func = signal_handler_func;
+    }
     if (std::signal(signal, func) == SIG_ERR) {
       return Status::Error("Failed to set signal handler");
     }
@@ -146,7 +159,7 @@ static vector<int> get_native_signals(SignalType type) {
 }
 #endif
 
-Status set_signal_handler(SignalType type, void (*func)(int)) {
+Status set_signal_handler(SignalType type, void (*func)(int sig)) {
   return set_signal_handler_impl(get_native_signals(type), func == nullptr ? SIG_DFL : func);
 }
 
@@ -283,7 +296,7 @@ void signal_safe_write_signal_number(int sig, bool add_header) {
 }
 
 void signal_safe_write_pointer(void *p, bool add_header) {
-  std::uintptr_t addr = reinterpret_cast<std::uintptr_t>(p);
+  auto addr = reinterpret_cast<std::uintptr_t>(p);
   char buf[100];
   char *end = buf + sizeof(buf);
   char *ptr = end;
@@ -318,7 +331,10 @@ static void default_failure_signal_handler(int sig) {
 }
 
 Status set_default_failure_signal_handler() {
+#if TD_PORT_POSIX
+  Stdin();  // init static variables before atexit
   std::atexit(block_stdin);
+#endif
   TRY_STATUS(setup_signals_alt_stack());
   TRY_STATUS(set_signal_handler(SignalType::Abort, default_failure_signal_handler));
   TRY_STATUS(set_signal_handler(SignalType::Error, default_failure_signal_handler));

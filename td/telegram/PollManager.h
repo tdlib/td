@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -16,15 +16,15 @@
 #include "td/telegram/UserId.h"
 
 #include "td/actor/actor.h"
-#include "td/actor/PromiseFuture.h"
-#include "td/actor/Timeout.h"
+#include "td/actor/MultiTimeout.h"
 
 #include "td/utils/buffer.h"
 #include "td/utils/common.h"
+#include "td/utils/FlatHashMap.h"
+#include "td/utils/FlatHashSet.h"
+#include "td/utils/Promise.h"
 #include "td/utils/Status.h"
 
-#include <unordered_map>
-#include <unordered_set>
 #include <utility>
 
 namespace td {
@@ -33,7 +33,7 @@ struct BinlogEvent;
 
 class Td;
 
-class PollManager : public Actor {
+class PollManager final : public Actor {
  public:
   PollManager(Td *td, ActorShared<> parent);
 
@@ -41,7 +41,7 @@ class PollManager : public Actor {
   PollManager &operator=(const PollManager &) = delete;
   PollManager(PollManager &&) = delete;
   PollManager &operator=(PollManager &&) = delete;
-  ~PollManager() override;
+  ~PollManager() final;
 
   static bool is_local_poll_id(PollId poll_id);
 
@@ -70,12 +70,14 @@ class PollManager : public Actor {
 
   void stop_local_poll(PollId poll_id);
 
+  PollId dup_poll(PollId poll_id);
+
   bool has_input_media(PollId poll_id) const;
 
   tl_object_ptr<telegram_api::InputMedia> get_input_media(PollId poll_id) const;
 
   PollId on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll> &&poll_server,
-                     tl_object_ptr<telegram_api::pollResults> &&poll_results);
+                     tl_object_ptr<telegram_api::pollResults> &&poll_results, const char *source);
 
   void on_get_poll_vote(PollId poll_id, UserId user_id, vector<BufferSlice> &&options);
 
@@ -134,16 +136,19 @@ class PollManager : public Actor {
   };
 
   static constexpr int32 MAX_GET_POLL_VOTERS = 50;  // server side limit
+  static constexpr int32 UNLOAD_POLL_DELAY = 600;   // some reasonable value
 
   class SetPollAnswerLogEvent;
   class StopPollLogEvent;
 
-  void start_up() override;
-  void tear_down() override;
+  void start_up() final;
+  void tear_down() final;
 
   static void on_update_poll_timeout_callback(void *poll_manager_ptr, int64 poll_id_int);
 
   static void on_close_poll_timeout_callback(void *poll_manager_ptr, int64 poll_id_int);
+
+  static void on_unload_poll_timeout_callback(void *poll_manager_ptr, int64 poll_id_int);
 
   static td_api::object_ptr<td_api::pollOption> get_poll_option_object(const PollOption &poll_option);
 
@@ -157,13 +162,19 @@ class PollManager : public Actor {
 
   const Poll *get_poll(PollId poll_id) const;
 
+  const Poll *get_poll(PollId poll_id);
+
   Poll *get_poll_editable(PollId poll_id);
+
+  bool can_unload_poll(PollId poll_id);
+
+  void schedule_poll_unload(PollId poll_id);
 
   void notify_on_poll_update(PollId poll_id);
 
   static string get_poll_database_key(PollId poll_id);
 
-  void save_poll(const Poll *poll, PollId poll_id);
+  static void save_poll(const Poll *poll, PollId poll_id);
 
   void on_load_poll_from_database(PollId poll_id, string value);
 
@@ -173,6 +184,8 @@ class PollManager : public Actor {
 
   void on_close_poll_timeout(PollId poll_id);
 
+  void on_unload_poll_timeout(PollId poll_id);
+
   void on_online();
 
   Poll *get_poll_force(PollId poll_id);
@@ -181,10 +194,12 @@ class PollManager : public Actor {
 
   void on_get_poll_results(PollId poll_id, uint64 generation, Result<tl_object_ptr<telegram_api::Updates>> result);
 
-  void do_set_poll_answer(PollId poll_id, FullMessageId full_message_id, vector<string> &&options, uint64 logevent_id,
+  void do_set_poll_answer(PollId poll_id, FullMessageId full_message_id, vector<string> &&options, uint64 log_event_id,
                           Promise<Unit> &&promise);
 
   void on_set_poll_answer(PollId poll_id, uint64 generation, Result<tl_object_ptr<telegram_api::Updates>> &&result);
+
+  void on_set_poll_answer_finished(PollId poll_id, Result<Unit> &&result, vector<Promise<Unit>> &&promises);
 
   void invalidate_poll_voters(const Poll *poll, PollId poll_id);
 
@@ -196,35 +211,41 @@ class PollManager : public Actor {
                           Result<tl_object_ptr<telegram_api::messages_votesList>> &&result);
 
   void do_stop_poll(PollId poll_id, FullMessageId full_message_id, unique_ptr<ReplyMarkup> &&reply_markup,
-                    uint64 logevent_id, Promise<Unit> &&promise);
+                    uint64 log_event_id, Promise<Unit> &&promise);
+
+  void on_stop_poll_finished(PollId poll_id, uint64 log_event_id, Result<Unit> &&result, Promise<Unit> &&promise);
+
+  void forget_local_poll(PollId poll_id);
 
   MultiTimeout update_poll_timeout_{"UpdatePollTimeout"};
   MultiTimeout close_poll_timeout_{"ClosePollTimeout"};
+  MultiTimeout unload_poll_timeout_{"UnloadPollTimeout"};
 
   Td *td_;
   ActorShared<> parent_;
-  std::unordered_map<PollId, unique_ptr<Poll>, PollIdHash> polls_;
+  FlatHashMap<PollId, unique_ptr<Poll>, PollIdHash> polls_;
 
-  std::unordered_map<PollId, std::unordered_set<FullMessageId, FullMessageIdHash>, PollIdHash> poll_messages_;
+  FlatHashMap<PollId, FlatHashSet<FullMessageId, FullMessageIdHash>, PollIdHash> server_poll_messages_;
+  FlatHashMap<PollId, FlatHashSet<FullMessageId, FullMessageIdHash>, PollIdHash> other_poll_messages_;
 
   struct PendingPollAnswer {
     vector<string> options_;
     vector<Promise<Unit>> promises_;
     uint64 generation_ = 0;
-    uint64 logevent_id_ = 0;
+    uint64 log_event_id_ = 0;
     NetQueryRef query_ref_;
   };
-  std::unordered_map<PollId, PendingPollAnswer, PollIdHash> pending_answers_;
+  FlatHashMap<PollId, PendingPollAnswer, PollIdHash> pending_answers_;
 
-  std::unordered_map<PollId, vector<PollOptionVoters>, PollIdHash> poll_voters_;
+  FlatHashMap<PollId, vector<PollOptionVoters>, PollIdHash> poll_voters_;
 
   int64 current_local_poll_id_ = 0;
 
   uint64 current_generation_ = 0;
 
-  std::unordered_set<PollId, PollIdHash> loaded_from_database_polls_;
+  FlatHashSet<PollId, PollIdHash> loaded_from_database_polls_;
 
-  std::unordered_set<PollId, PollIdHash> being_closed_polls_;
+  FlatHashSet<PollId, PollIdHash> being_closed_polls_;
 };
 
 }  // namespace td

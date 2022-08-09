@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -45,6 +45,16 @@ class LazySchedulerLocalStorage {
  public:
   LazySchedulerLocalStorage() = default;
   explicit LazySchedulerLocalStorage(std::function<T()> create_func) : create_func_(std::move(create_func)) {
+  }
+  void set_create_func(std::function<T()> create_func) {
+    CHECK(!create_func_);
+    create_func_ = create_func;
+  }
+
+  void set(T &&t) {
+    auto &optional_value_ = sls_optional_value_.get();
+    CHECK(!optional_value_);
+    optional_value_ = std::move(t);
   }
 
   T &get() {

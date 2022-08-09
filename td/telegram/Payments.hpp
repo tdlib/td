@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -9,6 +9,7 @@
 #include "td/telegram/Payments.h"
 
 #include "td/telegram/Photo.hpp"
+#include "td/telegram/Version.h"
 
 #include "td/utils/tl_helpers.h"
 
@@ -28,6 +29,8 @@ void parse(LabeledPricePart &labeled_price_part, ParserT &parser) {
 
 template <class StorerT>
 void store(const Invoice &invoice, StorerT &storer) {
+  bool has_tip = invoice.max_tip_amount != 0;
+  bool is_recurring = !invoice.recurring_payment_terms_of_service_url.empty();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(invoice.is_test);
   STORE_FLAG(invoice.need_name);
@@ -37,13 +40,24 @@ void store(const Invoice &invoice, StorerT &storer) {
   STORE_FLAG(invoice.is_flexible);
   STORE_FLAG(invoice.send_phone_number_to_provider);
   STORE_FLAG(invoice.send_email_address_to_provider);
+  STORE_FLAG(has_tip);
+  STORE_FLAG(is_recurring);
   END_STORE_FLAGS();
   store(invoice.currency, storer);
   store(invoice.price_parts, storer);
+  if (has_tip) {
+    store(invoice.max_tip_amount, storer);
+    store(invoice.suggested_tip_amounts, storer);
+  }
+  if (is_recurring) {
+    store(invoice.recurring_payment_terms_of_service_url, storer);
+  }
 }
 
 template <class ParserT>
 void parse(Invoice &invoice, ParserT &parser) {
+  bool has_tip;
+  bool is_recurring;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(invoice.is_test);
   PARSE_FLAG(invoice.need_name);
@@ -53,9 +67,50 @@ void parse(Invoice &invoice, ParserT &parser) {
   PARSE_FLAG(invoice.is_flexible);
   PARSE_FLAG(invoice.send_phone_number_to_provider);
   PARSE_FLAG(invoice.send_email_address_to_provider);
+  PARSE_FLAG(has_tip);
+  PARSE_FLAG(is_recurring);
   END_PARSE_FLAGS();
   parse(invoice.currency, parser);
   parse(invoice.price_parts, parser);
+  if (has_tip) {
+    parse(invoice.max_tip_amount, parser);
+    parse(invoice.suggested_tip_amounts, parser);
+  }
+  if (is_recurring) {
+    parse(invoice.recurring_payment_terms_of_service_url, parser);
+  }
+}
+
+template <class StorerT>
+void store(const InputInvoice &input_invoice, StorerT &storer) {
+  store(input_invoice.title, storer);
+  store(input_invoice.description, storer);
+  store(input_invoice.photo, storer);
+  store(input_invoice.start_parameter, storer);
+  store(input_invoice.invoice, storer);
+  store(input_invoice.payload, storer);
+  store(input_invoice.provider_token, storer);
+  store(input_invoice.provider_data, storer);
+  store(input_invoice.total_amount, storer);
+  store(input_invoice.receipt_message_id, storer);
+}
+
+template <class ParserT>
+void parse(InputInvoice &input_invoice, ParserT &parser) {
+  parse(input_invoice.title, parser);
+  parse(input_invoice.description, parser);
+  parse(input_invoice.photo, parser);
+  parse(input_invoice.start_parameter, parser);
+  parse(input_invoice.invoice, parser);
+  parse(input_invoice.payload, parser);
+  parse(input_invoice.provider_token, parser);
+  if (parser.version() >= static_cast<int32>(Version::AddMessageInvoiceProviderData)) {
+    parse(input_invoice.provider_data, parser);
+  } else {
+    input_invoice.provider_data.clear();
+  }
+  parse(input_invoice.total_amount, parser);
+  parse(input_invoice.receipt_message_id, parser);
 }
 
 template <class StorerT>

@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -26,21 +26,21 @@ class EventFdBsd final : public EventFdBase {
  public:
   EventFdBsd() = default;
 
-  void init() override;
+  void init() final;
 
-  bool empty() override;
+  bool empty() final;
 
-  void close() override;
+  void close() final;
 
-  Status get_pending_error() override TD_WARN_UNUSED_RESULT;
+  Status get_pending_error() final TD_WARN_UNUSED_RESULT;
 
-  PollableFdInfo &get_poll_info() override;
+  PollableFdInfo &get_poll_info() final;
 
-  void release() override;
+  void release() final;
 
-  void acquire() override;
+  void acquire() final;
 
-  void wait(int timeout_ms) override;
+  void wait(int timeout_ms) final;
 };
 
 }  // namespace detail

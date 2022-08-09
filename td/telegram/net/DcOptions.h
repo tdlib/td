@@ -1,15 +1,15 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 #pragma once
 
-#include "td/mtproto/ProxySecret.h"
-
 #include "td/telegram/net/DcId.h"
 #include "td/telegram/telegram_api.h"
+
+#include "td/mtproto/ProxySecret.h"
 
 #include "td/utils/common.h"
 #include "td/utils/format.h"
@@ -172,7 +172,7 @@ class DcOption {
 
   friend bool operator==(const DcOption &lhs, const DcOption &rhs);
 
-  friend StringBuilder &operator<<(StringBuilder &sb, const DcOption::PrintFlags &flags);
+  friend StringBuilder &operator<<(StringBuilder &sb, const PrintFlags &flags);
 
   friend StringBuilder &operator<<(StringBuilder &sb, const DcOption &dc_option);
 

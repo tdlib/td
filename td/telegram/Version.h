@@ -1,43 +1,60 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 #pragma once
 
+#include "td/utils/common.h"
+
 namespace td {
 
-constexpr int32 MTPROTO_LAYER = 114;
+constexpr int32 MTPROTO_LAYER = 143;
 
 enum class Version : int32 {
-  Initial,
+  Initial,  // 0
   StoreFileId,
   AddKeyHashToSecretChat,
   AddDurationToAnimation,
   FixStoreGameWithoutAnimation,
-  AddAccessHashToSecretChat,
+  AddAccessHashToSecretChat,  // 5
   StoreFileOwnerId,
   StoreFileEncryptionKey,
   NetStatsCountDuration,
   FixWebPageInstantViewDatabase,
-  FixMinUsers,
+  FixMinUsers,  // 10
   FixPageBlockAudioEmptyFile,
   AddMessageInvoiceProviderData,
   AddCaptionEntities,
   AddVenueType,
-  AddTermsOfService,
+  AddTermsOfService,  // 15
   AddContactVcard,
   AddMessageUnsupportedVersion,
   SupportInstantView2_0,
   AddNotificationGroupInfoMaxRemovedMessageId,
-  SupportMinithumbnails,
+  SupportMinithumbnails,  // 20
   AddVideoCallsSupport,
   AddPhotoSizeSource,
   AddFolders,
   SupportPolls2_0,
-  AddDiceEmoji,
+  AddDiceEmoji,  // 25
   AddAnimationStickers,
+  AddDialogPhotoHasAnimation,
+  AddPhotoProgressiveSizes,
+  AddLiveLocationHeading,
+  AddLiveLocationProximityAlertDistance,  // 30
+  SupportBannedChannels,
+  RemovePhotoVolumeAndLocalId,
+  Support64BitIds,
+  AddInviteLinksRequiringApproval,
+  AddKeyboardButtonFlags,  // 35
+  AddAudioFlags,
+  UseServerForwardAsCopy,
+  AddMainDialogListPosition,
+  AddVoiceNoteFlags,
+  AddMessageStickerFlags,  // 40
+  AddStickerSetListFlags,
   Next
 };
 
@@ -52,6 +69,7 @@ enum class DbVersion : int32 {
   AddFolders,
   AddScheduledMessages,
   StorePinnedDialogsInBinlog,
+  AddMessageThreadSupport,
   Next
 };
 

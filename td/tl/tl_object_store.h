@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -44,14 +44,6 @@ class TlStoreBool {
     constexpr std::int32_t ID_BOOL_TRUE = 0x997275b5;
 
     storer.store_binary(x ? ID_BOOL_TRUE : ID_BOOL_FALSE);
-  }
-};
-
-class TlStoreTrue {
- public:
-  template <class StorerT>
-  static void store(const bool &x, StorerT &storer) {
-    // currently nothing to do
   }
 };
 

@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -12,7 +12,6 @@
 #include "td/utils/common.h"
 #include "td/utils/crypto.h"
 #include "td/utils/misc.h"
-#include "td/utils/Random.h"
 #include "td/utils/ScopeGuard.h"
 #include "td/utils/Slice.h"
 #include "td/utils/Status.h"
@@ -20,10 +19,14 @@
 
 #include <openssl/bio.h>
 #include <openssl/bn.h>
+#include <openssl/opensslv.h>
 #include <openssl/pem.h>
+#if OPENSSL_VERSION_NUMBER < 0x30000000L || defined(LIBRESSL_VERSION_NUMBER)
 #include <openssl/rsa.h>
+#endif
 
 namespace td {
+namespace mtproto {
 
 RSA::RSA(BigNum n, BigNum e) : n_(std::move(n)), e_(std::move(e)) {
 }
@@ -44,25 +47,55 @@ Result<RSA> RSA::from_pem_public_key(Slice pem) {
     BIO_free(bio);
   };
 
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L && !defined(LIBRESSL_VERSION_NUMBER)
+  EVP_PKEY *rsa = PEM_read_bio_PUBKEY(bio, nullptr, nullptr, nullptr);
+#else
   auto rsa = PEM_read_bio_RSAPublicKey(bio, nullptr, nullptr, nullptr);
+#endif
   if (rsa == nullptr) {
-    return Status::Error("Error while reading rsa pubkey");
+    return Status::Error("Error while reading RSA public key");
   }
   SCOPE_EXIT {
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L && !defined(LIBRESSL_VERSION_NUMBER)
+    EVP_PKEY_free(rsa);
+#else
     RSA_free(rsa);
+#endif
   };
 
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L && !defined(LIBRESSL_VERSION_NUMBER)
+  if (!EVP_PKEY_is_a(rsa, "RSA")) {
+    return Status::Error("Key is not an RSA key");
+  }
+  if (EVP_PKEY_size(rsa) != 256) {
+    return Status::Error("EVP_PKEY_size != 256");
+  }
+#else
   if (RSA_size(rsa) != 256) {
     return Status::Error("RSA_size != 256");
   }
+#endif
 
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L && !defined(LIBRESSL_VERSION_NUMBER)
+  BIGNUM *n_num = nullptr;
+  BIGNUM *e_num = nullptr;
+
+  int res = EVP_PKEY_get_bn_param(rsa, "n", &n_num);
+  CHECK(res == 1 && n_num != nullptr);
+  res = EVP_PKEY_get_bn_param(rsa, "e", &e_num);
+  CHECK(res == 1 && e_num != nullptr);
+
+  auto n = static_cast<void *>(n_num);
+  auto e = static_cast<void *>(e_num);
+#else
   const BIGNUM *n_num;
   const BIGNUM *e_num;
-#if OPENSSL_VERSION_NUMBER < 0x10100000L
+
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
+  RSA_get0_key(rsa, &n_num, &e_num, nullptr);
+#else
   n_num = rsa->n;
   e_num = rsa->e;
-#else
-  RSA_get0_key(rsa, &n_num, &e_num, nullptr);
 #endif
 
   auto n = static_cast<void *>(BN_dup(n_num));
@@ -70,6 +103,7 @@ Result<RSA> RSA::from_pem_public_key(Slice pem) {
   if (n == nullptr || e == nullptr) {
     return Status::Error("Cannot dup BIGNUM");
   }
+#endif
 
   return RSA(BigNum::from_raw(n), BigNum::from_raw(e));
 }
@@ -93,26 +127,22 @@ size_t RSA::size() const {
   return 256;
 }
 
-size_t RSA::encrypt(unsigned char *from, size_t from_len, size_t max_from_len, unsigned char *to, size_t to_len) const {
-  CHECK(from_len > 0 && from_len <= 2550);
-  size_t pad = (25500 - from_len - 32) % 255 + 32;
-  size_t chunks = (from_len + pad) / 255;
+bool RSA::encrypt(Slice from, MutableSlice to) const {
+  CHECK(from.size() == 256)
+  CHECK(to.size() == 256)
   int bits = n_.get_num_bits();
   CHECK(bits >= 2041 && bits <= 2048);
-  CHECK(chunks * 255 == from_len + pad);
-  CHECK(from_len + pad <= max_from_len);
-  CHECK(chunks * 256 <= to_len);
-  Random::secure_bytes(from + from_len, pad);
+
+  BigNum x = BigNum::from_binary(from);
+  if (BigNum::compare(x, n_) >= 0) {
+    return false;
+  }
 
   BigNumContext ctx;
   BigNum y;
-  while (chunks-- > 0) {
-    BigNum x = BigNum::from_binary(Slice(from, 255));
-    BigNum::mod_exp(y, x, e_, n_, ctx);
-    MutableSlice(to, 256).copy_from(y.to_binary(256));
-    to += 256;
-  }
-  return chunks * 256;
+  BigNum::mod_exp(y, x, e_, n_, ctx);
+  to.copy_from(y.to_binary(256));
+  return true;
 }
 
 void RSA::decrypt_signature(Slice from, MutableSlice to) const {
@@ -124,4 +154,5 @@ void RSA::decrypt_signature(Slice from, MutableSlice to) const {
   to.copy_from(y.to_binary(256));
 }
 
+}  // namespace mtproto
 }  // namespace td

@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2020
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -9,20 +9,34 @@
 #include "td/telegram/ConfigManager.h"
 #include "td/telegram/FileReferenceManager.h"
 #include "td/telegram/files/FileGcWorker.h"
+#include "td/telegram/files/FileLoaderUtils.h"
 #include "td/telegram/files/FileManager.h"
 #include "td/telegram/net/ConnectionCreator.h"
+#include "td/telegram/net/DcAuthManager.h"
+#include "td/telegram/net/NetQuery.h"
 #include "td/telegram/NotificationManager.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/UpdatesManager.h"
 
-#include "td/db/binlog/BinlogEvent.h"
+#include "td/mtproto/SessionConnection.h"
+#include "td/mtproto/Transport.h"
+
+#include "td/db/binlog/Binlog.h"
+#include "td/db/SqliteStatement.h"
 
 #include "td/net/GetHostByNameActor.h"
 #include "td/net/TransparentProxy.h"
 
+#include "td/actor/actor.h"
+
+#include "td/utils/algorithm.h"
+#include "td/utils/ExitGuard.h"
 #include "td/utils/FileLog.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
+#include "td/utils/NullLog.h"
+#include "td/utils/port/detail/NativeFd.h"
+#include "td/utils/TsLog.h"
 
 #include <atomic>
 #include <map>
@@ -34,15 +48,16 @@ static std::mutex logging_mutex;
 static FileLog file_log;
 static TsLog ts_log(&file_log);
 static NullLog null_log;
+static ExitGuard exit_guard;
 
 #define ADD_TAG(tag) \
   { #tag, &VERBOSITY_NAME(tag) }
 static const std::map<Slice, int *> log_tags{
-    ADD_TAG(td_init), ADD_TAG(update_file),      ADD_TAG(connections),   ADD_TAG(binlog),
-    ADD_TAG(proxy),   ADD_TAG(net_query),        ADD_TAG(td_requests),   ADD_TAG(dc),
-    ADD_TAG(files),   ADD_TAG(mtproto),          ADD_TAG(raw_mtproto),   ADD_TAG(fd),
-    ADD_TAG(actor),   ADD_TAG(sqlite),           ADD_TAG(notifications), ADD_TAG(get_difference),
-    ADD_TAG(file_gc), ADD_TAG(config_recoverer), ADD_TAG(dns_resolver),  ADD_TAG(file_references)};
+    ADD_TAG(td_init),     ADD_TAG(update_file),      ADD_TAG(connections),   ADD_TAG(binlog),
+    ADD_TAG(proxy),       ADD_TAG(net_query),        ADD_TAG(td_requests),   ADD_TAG(dc),
+    ADD_TAG(file_loader), ADD_TAG(mtproto),          ADD_TAG(raw_mtproto),   ADD_TAG(fd),
+    ADD_TAG(actor),       ADD_TAG(sqlite),           ADD_TAG(notifications), ADD_TAG(get_difference),
+    ADD_TAG(file_gc),     ADD_TAG(config_recoverer), ADD_TAG(dns_resolver),  ADD_TAG(file_references)};
 #undef ADD_TAG
 
 Status Logging::set_current_stream(td_api::object_ptr<td_api::LogStream> stream) {
@@ -61,8 +76,9 @@ Status Logging::set_current_stream(td_api::object_ptr<td_api::LogStream> stream)
       if (max_log_file_size <= 0) {
         return Status::Error("Max log file size must be positive");
       }
+      auto redirect_stderr = file_stream->redirect_stderr_;
 
-      TRY_STATUS(file_log.init(file_stream->path_, max_log_file_size));
+      TRY_STATUS(file_log.init(file_stream->path_, max_log_file_size, redirect_stderr));
       std::atomic_thread_fence(std::memory_order_release);  // better than nothing
       log_interface = &ts_log;
       return Status::OK();
@@ -85,7 +101,8 @@ Result<td_api::object_ptr<td_api::LogStream>> Logging::get_current_stream() {
     return td_api::make_object<td_api::logStreamEmpty>();
   }
   if (log_interface == &ts_log) {
-    return td_api::make_object<td_api::logStreamFile>(file_log.get_path().str(), file_log.get_rotate_threshold());
+    return td_api::make_object<td_api::logStreamFile>(file_log.get_path().str(), file_log.get_rotate_threshold(),
+                                                      file_log.get_redirect_stderr());
   }
   return Status::Error("Log stream is unrecognized");
 }

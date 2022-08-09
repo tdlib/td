@@ -1,4 +1,5 @@
 #!/bin/sh
+cd $(dirname $0)
 
 DEST=tdweb/src/prebuilt/release/
 mkdir -p $DEST || exit 1
