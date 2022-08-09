@@ -6053,6 +6053,9 @@ setBio bio:string = Ok;
 //@description Changes the username of the current user @username The new value of the username. Use an empty string to remove the username
 setUsername username:string = Ok;
 
+//@description Changes the premium badge of the current user; for Telegram Premium users only @custom_emoji_id Identifier of the custom emoji to use as premium badge; pass 0 to switch to default badge. The custom emoji must have stickerFormatTgs
+setPremiumBadge custom_emoji_id:int64 = Ok;
+
 //@description Changes the location of the current user. Needs to be called if GetOption("is_location_visible") is true and location changes for more than 1 kilometer @location The new location of the user
 setLocation location:location = Ok;
 

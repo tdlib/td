@@ -670,6 +670,42 @@ class UpdateUsernameQuery final : public Td::ResultHandler {
   }
 };
 
+class UpdateEmojiStatusQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit UpdateEmojiStatusQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(int64 custom_emoji_id) {
+    auto emoji_status = [custom_emoji_id]() -> telegram_api::object_ptr<telegram_api::EmojiStatus> {
+      if (custom_emoji_id == 0) {
+        return make_tl_object<telegram_api::emojiStatusEmpty>();
+      }
+      return make_tl_object<telegram_api::emojiStatus>(custom_emoji_id);
+    }();
+    send_query(G()->net_query_creator().create(telegram_api::account_updateEmojiStatus(std::move(emoji_status))));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::account_updateEmojiStatus>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    LOG(DEBUG) << "Receive result for UpdateEmojiStatusQuery: " << result_ptr.ok();
+    if (result_ptr.ok()) {
+      promise_.set_value(Unit());
+    } else {
+      promise_.set_error(Status::Error(400, "Failed to change Premium badge"));
+    }
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class CheckChannelUsernameQuery final : public Td::ResultHandler {
   Promise<bool> promise_;
   ChannelId channel_id_;
@@ -6563,6 +6599,32 @@ void ContactsManager::set_username(const string &username, Promise<Unit> &&promi
     return promise.set_error(Status::Error(400, "Username is invalid"));
   }
   td_->create_handler<UpdateUsernameQuery>(std::move(promise))->send(username);
+}
+
+void ContactsManager::set_emoji_status(int64 custom_emoji_id, Promise<Unit> &&promise) {
+  if (!td_->option_manager_->get_option_boolean("is_premium")) {
+    return promise.set_error(Status::Error(400, "The method is available only for Telegram Premium users"));
+  }
+  auto query_promise = PromiseCreator::lambda(
+      [actor_id = actor_id(this), custom_emoji_id, promise = std::move(promise)](Result<Unit> result) mutable {
+        if (result.is_ok()) {
+          send_closure(actor_id, &ContactsManager::on_set_emoji_status, custom_emoji_id, std::move(promise));
+        } else {
+          promise.set_error(result.move_as_error());
+        }
+      });
+  td_->create_handler<UpdateEmojiStatusQuery>(std::move(query_promise))->send(custom_emoji_id);
+}
+
+void ContactsManager::on_set_emoji_status(int64 custom_emoji_id, Promise<Unit> &&promise) {
+  auto user_id = get_my_id();
+  User *u = get_user(user_id);
+  if (u != nullptr && u->emoji_status != custom_emoji_id) {
+    u->emoji_status = custom_emoji_id;
+    u->is_changed = true;
+    update_user(u, user_id);
+  }
+  promise.set_value(Unit());
 }
 
 void ContactsManager::set_chat_description(ChatId chat_id, const string &description, Promise<Unit> &&promise) {

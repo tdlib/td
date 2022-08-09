@@ -6723,6 +6723,12 @@ void Td::on_request(uint64 id, td_api::setUsername &request) {
   contacts_manager_->set_username(request.username_, std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::setPremiumBadge &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  contacts_manager_->set_emoji_status(request.custom_emoji_id_, std::move(promise));
+}
+
 void Td::on_request(uint64 id, td_api::setCommands &request) {
   CHECK_IS_BOT();
   CREATE_OK_REQUEST_PROMISE();

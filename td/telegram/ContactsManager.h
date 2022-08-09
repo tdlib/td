@@ -343,6 +343,8 @@ class ContactsManager final : public Actor {
 
   void set_username(const string &username, Promise<Unit> &&promise);
 
+  void set_emoji_status(int64 suctom_emoji_id, Promise<Unit> &&promise);
+
   void set_chat_description(ChatId chat_id, const string &description, Promise<Unit> &&promise);
 
   void set_channel_username(ChannelId channel_id, const string &username, Promise<Unit> &&promise);
@@ -1247,6 +1249,8 @@ class ContactsManager final : public Actor {
   void set_my_id(UserId my_id);
 
   static bool is_valid_username(const string &username);
+
+  void on_set_emoji_status(int64 custom_emoji_id, Promise<Unit> &&promise);
 
   void on_update_user_name(User *u, UserId user_id, string &&first_name, string &&last_name, string &&username);
   void on_update_user_phone_number(User *u, UserId user_id, string &&phone_number);
