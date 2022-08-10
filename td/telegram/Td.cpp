@@ -3957,6 +3957,7 @@ void Td::init_managers() {
   G()->set_animations_manager(animations_manager_actor_.get());
   attach_menu_manager_ = make_unique<AttachMenuManager>(this, create_reference());
   attach_menu_manager_actor_ = register_actor("AttachMenuManager", attach_menu_manager_.get());
+  G()->set_attach_menu_manager(attach_menu_manager_actor_.get());
   background_manager_ = make_unique<BackgroundManager>(this, create_reference());
   background_manager_actor_ = register_actor("BackgroundManager", background_manager_.get());
   G()->set_background_manager(background_manager_actor_.get());

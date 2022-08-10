@@ -7,6 +7,7 @@
 #include "td/telegram/FileReferenceManager.h"
 
 #include "td/telegram/AnimationsManager.h"
+#include "td/telegram/AttachMenuManager.h"
 #include "td/telegram/BackgroundManager.h"
 #include "td/telegram/ConfigManager.h"
 #include "td/telegram/ContactsManager.h"
@@ -73,6 +74,8 @@ fileSourceBasicGroupFull basic_group_id:int32 = FileSource;              // repa
 fileSourceSupergroupFull supergroup_id:int32 = FileSource;               // repaired with messages.getFullChannel
 fileSourceAppConfig = FileSource;                                        // repaired with help.getAppConfig, not reliable
 fileSourceSavedRingtones = FileSource;                                   // repaired with account.getSavedRingtones
+fileSourceUserFull = FileSource;                                         // repaired with users.getFullUser
+fileSourceAttachmentMenuBot = FileSource;                                // repaired with messages.getAttachMenuBot
 */
 
 FileSourceId FileReferenceManager::get_current_file_source_id() const {
@@ -122,11 +125,6 @@ FileSourceId FileReferenceManager::create_background_file_source(BackgroundId ba
   return add_file_source_id(source, PSLICE() << background_id);
 }
 
-FileSourceId FileReferenceManager::create_user_full_file_source(UserId user_id) {
-  FileSourceUserFull source{user_id};
-  return add_file_source_id(source, PSLICE() << "full " << user_id);
-}
-
 FileSourceId FileReferenceManager::create_chat_full_file_source(ChatId chat_id) {
   FileSourceChatFull source{chat_id};
   return add_file_source_id(source, PSLICE() << "full " << chat_id);
@@ -142,16 +140,26 @@ FileSourceId FileReferenceManager::create_app_config_file_source() {
   return add_file_source_id(source, "app config");
 }
 
+FileSourceId FileReferenceManager::create_saved_ringtones_file_source() {
+  FileSourceSavedRingtones source;
+  return add_file_source_id(source, "saved notification sounds");
+}
+
+FileSourceId FileReferenceManager::create_user_full_file_source(UserId user_id) {
+  FileSourceUserFull source{user_id};
+  return add_file_source_id(source, PSLICE() << "full " << user_id);
+}
+
+FileSourceId FileReferenceManager::create_attach_menu_bot_file_source(UserId user_id) {
+  FileSourceAttachMenuBot source{user_id};
+  return add_file_source_id(source, PSLICE() << "attachment menu bot " << user_id);
+}
+
 bool FileReferenceManager::add_file_source(NodeId node_id, FileSourceId file_source_id) {
   CHECK(node_id.is_valid());
   bool is_added = nodes_[node_id].file_source_ids.add(file_source_id);
   VLOG(file_references) << "Add " << (is_added ? "new" : "old") << ' ' << file_source_id << " for file " << node_id;
   return is_added;
-}
-
-FileSourceId FileReferenceManager::create_saved_ringtones_file_source() {
-  FileSourceSavedRingtones source;
-  return add_file_source_id(source, "saved notification sounds");
 }
 
 bool FileReferenceManager::remove_file_source(NodeId node_id, FileSourceId file_source_id) {
@@ -335,6 +343,10 @@ void FileReferenceManager::send_query(Destination dest, FileSourceId file_source
       },
       [&](const FileSourceUserFull &source) {
         send_closure_later(G()->contacts_manager(), &ContactsManager::reload_user_full, source.user_id,
+                           std::move(promise));
+      },
+      [&](const FileSourceAttachMenuBot &source) {
+        send_closure_later(G()->attach_menu_manager(), &AttachMenuManager::reload_attach_menu_bot, source.user_id,
                            std::move(promise));
       }));
 }

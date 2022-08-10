@@ -12,6 +12,7 @@
 #include "td/telegram/Dependencies.h"
 #include "td/telegram/Document.h"
 #include "td/telegram/DocumentsManager.h"
+#include "td/telegram/FileReferenceManager.h"
 #include "td/telegram/files/FileId.hpp"
 #include "td/telegram/files/FileManager.h"
 #include "td/telegram/Global.h"
@@ -503,6 +504,21 @@ void AttachMenuManager::init() {
         }
         hash_ = is_cache_outdated ? 0 : attach_menu_bots_log_event.hash_;
         attach_menu_bots_ = std::move(attach_menu_bots_log_event.attach_menu_bots_);
+
+        for (auto attach_menu_bot : attach_menu_bots_) {
+          auto file_source_id = get_attach_menu_bot_file_source_id(attach_menu_bot.user_id_);
+          auto register_file_source = [&](FileId file_id) {
+            if (file_id.is_valid()) {
+              td_->file_manager_->add_file_source(file_id, file_source_id);
+            }
+          };
+          register_file_source(attach_menu_bot.default_icon_file_id_);
+          register_file_source(attach_menu_bot.ios_static_icon_file_id_);
+          register_file_source(attach_menu_bot.ios_animated_icon_file_id_);
+          register_file_source(attach_menu_bot.android_icon_file_id_);
+          register_file_source(attach_menu_bot.macos_icon_file_id_);
+          register_file_source(attach_menu_bot.placeholder_file_id_);
+        }
       } else {
         LOG(ERROR) << "Ignore invalid attachment menu bots log event";
       }
@@ -649,11 +665,13 @@ void AttachMenuManager::close_web_view(int64 query_id, Promise<Unit> &&promise) 
 }
 
 Result<AttachMenuManager::AttachMenuBot> AttachMenuManager::get_attach_menu_bot(
-    tl_object_ptr<telegram_api::attachMenuBot> &&bot) const {
+    tl_object_ptr<telegram_api::attachMenuBot> &&bot) {
   UserId user_id(bot->bot_id_);
   if (!td_->contacts_manager_->have_user(user_id)) {
     return Status::Error(PSLICE() << "Have no information about " << user_id);
   }
+
+  auto file_source_id = get_attach_menu_bot_file_source_id(user_id);
 
   AttachMenuBot attach_menu_bot;
   attach_menu_bot.is_added_ = !bot->inactive_;
@@ -704,6 +722,7 @@ Result<AttachMenuManager::AttachMenuBot> AttachMenuManager::get_attach_menu_bot(
       default:
         UNREACHABLE();
     }
+    td_->file_manager_->add_file_source(parsed_document.file_id, file_source_id);
     if (expect_colors) {
       if (icon->colors_.empty()) {
         LOG(ERROR) << "Have no colors for attachment menu bot icon for " << user_id;
@@ -882,6 +901,26 @@ void AttachMenuManager::get_attach_menu_bot(UserId user_id,
   td_->create_handler<GetAttachMenuBotQuery>(std::move(query_promise))->send(std::move(input_user));
 }
 
+void AttachMenuManager::reload_attach_menu_bot(UserId user_id, Promise<Unit> &&promise) {
+  TRY_RESULT_PROMISE(promise, input_user, td_->contacts_manager_->get_input_user(user_id));
+
+  auto wrapped_promise = PromiseCreator::lambda(
+      [promise = std::move(promise)](Result<td_api::object_ptr<td_api::attachmentMenuBot>> result) mutable {
+        if (result.is_error()) {
+          promise.set_error(result.move_as_error());
+        } else {
+          promise.set_value(Unit());
+        }
+      });
+  auto query_promise =
+      PromiseCreator::lambda([actor_id = actor_id(this), user_id, promise = std::move(wrapped_promise)](
+                                 Result<telegram_api::object_ptr<telegram_api::attachMenuBotsBot>> &&result) mutable {
+        send_closure(actor_id, &AttachMenuManager::on_get_attach_menu_bot, user_id, std::move(result),
+                     std::move(promise));
+      });
+  td_->create_handler<GetAttachMenuBotQuery>(std::move(query_promise))->send(std::move(input_user));
+}
+
 void AttachMenuManager::on_get_attach_menu_bot(
     UserId user_id, Result<telegram_api::object_ptr<telegram_api::attachMenuBotsBot>> &&result,
     Promise<td_api::object_ptr<td_api::attachmentMenuBot>> &&promise) {
@@ -919,6 +958,19 @@ void AttachMenuManager::on_get_attach_menu_bot(
     remove_bot_from_attach_menu(user_id);
   }
   promise.set_value(get_attachment_menu_bot_object(attach_menu_bot));
+}
+
+FileSourceId AttachMenuManager::get_attach_menu_bot_file_source_id(UserId user_id) {
+  if (!user_id.is_valid() || !is_active()) {
+    return FileSourceId();
+  }
+
+  auto &source_id = attach_menu_bot_file_source_ids_[user_id];
+  if (!source_id.is_valid()) {
+    source_id = td_->file_reference_manager_->create_attach_menu_bot_file_source(user_id);
+  }
+  VLOG(file_references) << "Return " << source_id << " for attach menu bot " << user_id;
+  return source_id;
 }
 
 void AttachMenuManager::toggle_bot_is_added_to_attach_menu(UserId user_id, bool is_added, Promise<Unit> &&promise) {

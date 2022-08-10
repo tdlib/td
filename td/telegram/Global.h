@@ -32,6 +32,7 @@
 namespace td {
 
 class AnimationsManager;
+class AttachMenuManager;
 class BackgroundManager;
 class CallManager;
 class ConfigManager;
@@ -180,6 +181,13 @@ class Global final : public ActorContext {
   }
   void set_animations_manager(ActorId<AnimationsManager> animations_manager) {
     animations_manager_ = animations_manager;
+  }
+
+  ActorId<AttachMenuManager> attach_menu_manager() const {
+    return attach_menu_manager_;
+  }
+  void set_attach_menu_manager(ActorId<AttachMenuManager> attach_menu_manager) {
+    attach_menu_manager_ = attach_menu_manager;
   }
 
   ActorId<BackgroundManager> background_manager() const {
@@ -454,6 +462,7 @@ class Global final : public ActorContext {
 
   ActorId<Td> td_;
   ActorId<AnimationsManager> animations_manager_;
+  ActorId<AttachMenuManager> attach_menu_manager_;
   ActorId<BackgroundManager> background_manager_;
   ActorId<CallManager> call_manager_;
   ActorId<ConfigManager> config_manager_;
