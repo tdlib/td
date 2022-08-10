@@ -44,6 +44,7 @@
 #include "td/utils/utf8.h"
 #include "td/utils/VectorQueue.h"
 
+#include <atomic>
 #include <memory>
 #include <tuple>
 #include <utility>
@@ -109,6 +110,22 @@ class GenAuthKeyActor final : public Actor {
       , connection_promise_(std::move(connection_promise))
       , handshake_promise_(std::move(handshake_promise))
       , callback_(std::move(callback)) {
+    if (actor_count_.fetch_add(1, std::memory_order_relaxed) == MIN_HIGH_LOAD_ACTOR_COUNT - 1) {
+      LOG(WARNING) << "Number of GenAuthKeyActor exceeded high-load threshold";
+    }
+  }
+  GenAuthKeyActor(const GenAuthKeyActor &) = delete;
+  GenAuthKeyActor &operator=(const GenAuthKeyActor &) = delete;
+  GenAuthKeyActor(GenAuthKeyActor &&) = delete;
+  GenAuthKeyActor &operator=(GenAuthKeyActor &&) = delete;
+  ~GenAuthKeyActor() final {
+    if (actor_count_.fetch_sub(1, std::memory_order_relaxed) == MIN_HIGH_LOAD_ACTOR_COUNT) {
+      LOG(WARNING) << "Number of GenAuthKeyActor became lower than high-load threshold";
+    }
+  }
+
+  static bool is_high_loaded() {
+    return actor_count_.load(std::memory_order_relaxed) >= MIN_HIGH_LOAD_ACTOR_COUNT;
   }
 
   void on_network(uint32 network_generation) {
@@ -129,6 +146,9 @@ class GenAuthKeyActor final : public Actor {
 
   ActorOwn<mtproto::HandshakeActor> child_;
   Promise<Unit> finish_promise_;
+
+  static constexpr size_t MIN_HIGH_LOAD_ACTOR_COUNT = 100;
+  static std::atomic<size_t> actor_count_;
 
   static TD_THREAD_LOCAL Semaphore *semaphore_;
   Semaphore &get_handshake_semaphore() {
@@ -187,6 +207,7 @@ class GenAuthKeyActor final : public Actor {
   }
 };
 
+std::atomic<size_t> GenAuthKeyActor::actor_count_;
 TD_THREAD_LOCAL Semaphore *GenAuthKeyActor::semaphore_{};
 
 }  // namespace detail
@@ -256,6 +277,10 @@ Session::Session(unique_ptr<Callback> callback, std::shared_ptr<AuthDataShared> 
   last_activity_timestamp_ = Time::now();
   last_success_timestamp_ = Time::now() - 366 * 86400;
   last_bind_success_timestamp_ = Time::now() - 366 * 86400;
+}
+
+bool Session::is_high_loaded() {
+  return detail::GenAuthKeyActor::is_high_loaded();
 }
 
 bool Session::can_destroy_auth_key() const {

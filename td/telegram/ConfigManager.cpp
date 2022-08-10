@@ -781,6 +781,11 @@ class ConfigRecoverer final : public Actor {
     if (close_flag_) {
       return;
     }
+    if (Session::is_high_loaded()) {
+      VLOG(config_recoverer) << "Skip config recoverer under high load";
+      set_timeout_in(Random::fast(200, 300));
+      return;
+    }
 
     if (is_connecting_) {
       VLOG(config_recoverer) << "Failed to connect for " << Time::now() - connecting_since_;

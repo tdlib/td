@@ -74,6 +74,8 @@ class Session final
 
   void close();
 
+  static bool is_high_loaded();
+
  private:
   struct Query final : private ListNode {
     uint64 container_id;
