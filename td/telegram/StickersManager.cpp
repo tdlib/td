@@ -1446,7 +1446,7 @@ void StickersManager::init() {
   }
   send_closure(G()->td(), &Td::send_update, get_update_dice_emojis_object());
 
-  load_reactions();
+  send_closure_later(actor_id(this), &StickersManager::load_reactions);
 
   on_update_dice_success_values();
 
