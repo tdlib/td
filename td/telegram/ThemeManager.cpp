@@ -247,7 +247,7 @@ static auto get_color_json(int32 color);
 
 template <>
 auto get_color_json<false>(int32 color) {
-  return static_cast<int64>(static_cast<uint32>(color) | 0x000000FF);
+  return static_cast<int64>(static_cast<uint32>(color) | 0xFF000000);
 }
 
 template <>
