@@ -26429,7 +26429,8 @@ Result<MessageId> MessagesManager::send_bot_start_message(UserId bot_user_id, Di
     do_send_message(dialog_id, m);
   } else {
     save_send_bot_start_message_log_event(bot_user_id, dialog_id, parameter, m);
-    do_send_bot_start_message(bot_user_id, dialog_id, parameter, m);
+    send_closure_later(actor_id(this), &MessagesManager::do_send_bot_start_message, bot_user_id, dialog_id,
+                       m->message_id, parameter);
   }
   return m->message_id;
 }
@@ -26477,9 +26478,18 @@ void MessagesManager::save_send_bot_start_message_log_event(UserId bot_user_id, 
                                             get_log_event_storer(log_event));
 }
 
-void MessagesManager::do_send_bot_start_message(UserId bot_user_id, DialogId dialog_id, const string &parameter,
-                                                const Message *m) {
-  LOG(INFO) << "Do send bot start " << FullMessageId(dialog_id, m->message_id) << " to bot " << bot_user_id;
+void MessagesManager::do_send_bot_start_message(UserId bot_user_id, DialogId dialog_id, MessageId message_id,
+                                                const string &parameter) {
+  if (G()->close_flag()) {
+    return;
+  }
+
+  LOG(INFO) << "Do send bot start " << FullMessageId(dialog_id, message_id) << " to bot " << bot_user_id;
+
+  auto m = get_message({dialog_id, message_id});
+  if (m == nullptr) {
+    return;
+  }
 
   int64 random_id = begin_send_message(dialog_id, m);
   telegram_api::object_ptr<telegram_api::InputPeer> input_peer = dialog_id.get_type() == DialogType::User
@@ -26576,7 +26586,8 @@ Result<MessageId> MessagesManager::send_inline_query_result_message(DialogId dia
   }
 
   save_send_inline_query_result_message_log_event(dialog_id, m, query_id, result_id);
-  do_send_inline_query_result_message(dialog_id, m, query_id, result_id);
+  send_closure_later(actor_id(this), &MessagesManager::do_send_inline_query_result_message, dialog_id, m->message_id,
+                     query_id, result_id);
   return m->message_id;
 }
 
@@ -26623,9 +26634,18 @@ void MessagesManager::save_send_inline_query_result_message_log_event(DialogId d
       G()->td_db()->get_binlog(), LogEvent::HandlerType::SendInlineQueryResultMessage, get_log_event_storer(log_event));
 }
 
-void MessagesManager::do_send_inline_query_result_message(DialogId dialog_id, const Message *m, int64 query_id,
+void MessagesManager::do_send_inline_query_result_message(DialogId dialog_id, MessageId message_id, int64 query_id,
                                                           const string &result_id) {
-  LOG(INFO) << "Do send inline query result " << FullMessageId(dialog_id, m->message_id);
+  if (G()->close_flag()) {
+    return;
+  }
+
+  LOG(INFO) << "Do send inline query result " << FullMessageId(dialog_id, message_id);
+
+  auto m = get_message({dialog_id, message_id});
+  if (m == nullptr) {
+    return;
+  }
 
   int64 random_id = begin_send_message(dialog_id, m);
   auto flags = get_message_flags(m);
@@ -28107,7 +28127,16 @@ void MessagesManager::do_forward_messages(DialogId to_dialog_id, DialogId from_d
 
   vector<int64> random_ids =
       transform(messages, [this, to_dialog_id](const Message *m) { return begin_send_message(to_dialog_id, m); });
-  td_->create_handler<ForwardMessagesQuery>(get_erase_log_event_promise(log_event_id))
+  send_closure_later(actor_id(this), &MessagesManager::send_forward_message_query, flags, to_dialog_id, from_dialog_id,
+                     std::move(as_input_peer), message_ids, std::move(random_ids), schedule_date,
+                     get_erase_log_event_promise(log_event_id));
+}
+
+void MessagesManager::send_forward_message_query(int32 flags, DialogId to_dialog_id, DialogId from_dialog_id,
+                                                 tl_object_ptr<telegram_api::InputPeer> as_input_peer,
+                                                 vector<MessageId> message_ids, vector<int64> random_ids,
+                                                 int32 schedule_date, Promise<Unit> promise) {
+  td_->create_handler<ForwardMessagesQuery>(std::move(promise))
       ->send(flags, to_dialog_id, from_dialog_id, std::move(as_input_peer), message_ids, std::move(random_ids),
              schedule_date);
 }
@@ -39151,7 +39180,8 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
 
         auto result_message = continue_send_message(dialog_id, std::move(m), event.id_);
         if (result_message != nullptr) {
-          do_send_bot_start_message(bot_user_id, dialog_id, log_event.parameter, result_message);
+          send_closure_later(actor_id(this), &MessagesManager::do_send_bot_start_message, bot_user_id, dialog_id,
+                             result_message->message_id, log_event.parameter);
         }
         break;
       }
@@ -39184,7 +39214,8 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
 
         auto result_message = continue_send_message(dialog_id, std::move(m), event.id_);
         if (result_message != nullptr) {
-          do_send_inline_query_result_message(dialog_id, result_message, log_event.query_id, log_event.result_id);
+          send_closure_later(actor_id(this), &MessagesManager::do_send_inline_query_result_message, dialog_id,
+                             result_message->message_id, log_event.query_id, log_event.result_id);
         }
         break;
       }
