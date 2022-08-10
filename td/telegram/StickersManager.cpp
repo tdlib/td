@@ -3902,7 +3902,7 @@ vector<FileId> StickersManager::get_stickers(StickerType sticker_type, string em
             promise.set_error(result.move_as_error());
           } else {
             send_closure(actor_id, &StickersManager::get_stickers, sticker_type, std::move(emoji), limit, dialog_id,
-                         false, std::move(promise));
+                         force, std::move(promise));
           }
         }));
     return {};
