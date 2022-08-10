@@ -3882,7 +3882,7 @@ std::pair<vector<FileId>, vector<FileId>> StickersManager::split_stickers_by_pre
 vector<FileId> StickersManager::get_stickers(StickerType sticker_type, string emoji, int32 limit, DialogId dialog_id,
                                              bool force, Promise<Unit> &&promise) {
   if (G()->close_flag()) {
-    promise.set_error(G()->close_status());
+    promise.set_error(Global::request_aborted_error());
     return {};
   }
 
@@ -8619,7 +8619,7 @@ void StickersManager::on_get_emoji_keywords_difference(
     const string &language_code, int32 from_version,
     Result<telegram_api::object_ptr<telegram_api::emojiKeywordsDifference>> &&result) {
   if (G()->close_flag()) {
-    result = G()->close_status();
+    result = Global::request_aborted_error();
   }
   if (result.is_error()) {
     if (!G()->is_expected_error(result.error())) {

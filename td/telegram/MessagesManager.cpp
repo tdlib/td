@@ -23747,10 +23747,10 @@ void MessagesManager::on_get_history_from_database(DialogId dialog_id, MessageId
                                                    bool from_the_end, bool only_local,
                                                    vector<MessagesDbDialogMessage> &&messages,
                                                    Promise<Unit> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
   CHECK(-limit < offset && offset <= 0);
   CHECK(offset < 0 || from_the_end);
   CHECK(!from_message_id.is_scheduled());
-  TRY_STATUS_PROMISE(promise, G()->close_status());
 
   if (!have_input_peer(dialog_id, AccessRights::Read)) {
     LOG(WARNING) << "Ignore result of get_history_from_database in " << dialog_id;
@@ -24008,8 +24008,8 @@ void MessagesManager::get_history_from_the_end(DialogId dialog_id, bool from_dat
 
 void MessagesManager::get_history_from_the_end_impl(const Dialog *d, bool from_database, bool only_local,
                                                     Promise<Unit> &&promise, const char *source) {
-  CHECK(d != nullptr);
   TRY_STATUS_PROMISE(promise, G()->close_status());
+  CHECK(d != nullptr);
 
   auto dialog_id = d->dialog_id;
   if (!have_input_peer(dialog_id, AccessRights::Read)) {
@@ -24063,9 +24063,9 @@ void MessagesManager::get_history(DialogId dialog_id, MessageId from_message_id,
 
 void MessagesManager::get_history_impl(const Dialog *d, MessageId from_message_id, int32 offset, int32 limit,
                                        bool from_database, bool only_local, Promise<Unit> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
   CHECK(d != nullptr);
   CHECK(from_message_id.is_valid());
-  TRY_STATUS_PROMISE(promise, G()->close_status());
 
   auto dialog_id = d->dialog_id;
   if (!have_input_peer(dialog_id, AccessRights::Read)) {

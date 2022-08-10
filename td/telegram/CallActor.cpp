@@ -352,10 +352,11 @@ void CallActor::on_save_debug_query_result(Result<NetQueryPtr> r_net_query) {
 }
 
 void CallActor::send_call_log(td_api::object_ptr<td_api::InputFile> log_file, Promise<Unit> promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+
   if (!call_state_.need_log) {
     return promise.set_error(Status::Error(400, "Unexpected sendCallLog"));
   }
-  TRY_STATUS_PROMISE(promise, G()->close_status());
 
   auto *file_manager = G()->td().get_actor_unsafe()->file_manager_.get();
   auto r_file_id = file_manager->get_input_file_id(FileType::CallLog, log_file, DialogId(), false, false);
@@ -418,17 +419,18 @@ void CallActor::upload_log_file(FileId file_id, Promise<Unit> &&promise) {
 
 void CallActor::on_upload_log_file(FileId file_id, Promise<Unit> &&promise,
                                    tl_object_ptr<telegram_api::InputFile> input_file) {
-  LOG(INFO) << "Log file " << file_id << " has been uploaded";
   TRY_STATUS_PROMISE(promise, G()->close_status());
+
+  LOG(INFO) << "Log file " << file_id << " has been uploaded";
 
   do_upload_log_file(file_id, std::move(input_file), std::move(promise));
 }
 
 void CallActor::on_upload_log_file_error(FileId file_id, Promise<Unit> &&promise, Status status) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+
   LOG(WARNING) << "Log file " << file_id << " has upload error " << status;
   CHECK(status.is_error());
-
-  TRY_STATUS_PROMISE(promise, G()->close_status());
 
   promise.set_error(Status::Error(status.code() > 0 ? status.code() : 500,
                                   status.message()));  // TODO CHECK that status has always a code

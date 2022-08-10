@@ -8058,7 +8058,7 @@ void ContactsManager::reload_created_public_dialogs(PublicDialogType type,
 
 void ContactsManager::finish_get_created_public_dialogs(PublicDialogType type, Result<Unit> &&result) {
   if (G()->close_flag()) {
-    result = G()->close_status();
+    result = Global::request_aborted_error();
   }
 
   auto index = static_cast<int32>(type);
