@@ -1438,15 +1438,15 @@ void GroupCallManager::reload_group_call(InputGroupCallId input_group_call_id,
 
 void GroupCallManager::finish_get_group_call(InputGroupCallId input_group_call_id,
                                              Result<tl_object_ptr<telegram_api::phone_groupCall>> &&result) {
+  if (G()->close_flag()) {
+    result = Global::request_aborted_error();
+  }
+
   auto it = load_group_call_queries_.find(input_group_call_id);
   CHECK(it != load_group_call_queries_.end());
   CHECK(!it->second.empty());
   auto promises = std::move(it->second);
   load_group_call_queries_.erase(it);
-
-  if (G()->close_flag()) {
-    result = Global::request_aborted_error();
-  }
 
   if (result.is_ok()) {
     td_->contacts_manager_->on_get_users(std::move(result.ok_ref()->users_), "finish_get_group_call");

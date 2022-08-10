@@ -3154,11 +3154,11 @@ void Td::on_result(NetQueryPtr query) {
 }
 
 void Td::on_connection_state_changed(ConnectionState new_state) {
-  if (new_state == connection_state_) {
-    LOG(ERROR) << "State manager sends update about unchanged state " << static_cast<int32>(new_state);
+  if (G()->close_flag()) {
     return;
   }
-  if (G()->close_flag()) {
+  if (new_state == connection_state_) {
+    LOG(ERROR) << "State manager sends update about unchanged state " << static_cast<int32>(new_state);
     return;
   }
   connection_state_ = new_state;

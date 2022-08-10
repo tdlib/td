@@ -8057,12 +8057,13 @@ void ContactsManager::reload_created_public_dialogs(PublicDialogType type,
 }
 
 void ContactsManager::finish_get_created_public_dialogs(PublicDialogType type, Result<Unit> &&result) {
-  auto index = static_cast<int32>(type);
-  auto promises = std::move(get_created_public_channels_queries_[index]);
-  reset_to_empty(get_created_public_channels_queries_[index]);
   if (G()->close_flag()) {
     result = G()->close_status();
   }
+
+  auto index = static_cast<int32>(type);
+  auto promises = std::move(get_created_public_channels_queries_[index]);
+  reset_to_empty(get_created_public_channels_queries_[index]);
   if (result.is_error()) {
     fail_promises(promises, result.move_as_error());
     return;

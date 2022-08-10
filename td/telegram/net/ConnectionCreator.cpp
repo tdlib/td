@@ -1265,10 +1265,10 @@ DcOptions ConnectionCreator::get_default_dc_options(bool is_test) {
 }
 
 void ConnectionCreator::loop() {
-  if (!is_inited_) {
+  if (G()->close_flag()) {
     return;
   }
-  if (G()->close_flag()) {
+  if (!is_inited_) {
     return;
   }
   if (!network_flag_) {

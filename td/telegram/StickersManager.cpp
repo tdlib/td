@@ -1478,10 +1478,10 @@ void StickersManager::init() {
 }
 
 void StickersManager::reload_reactions() {
-  CHECK(!td_->auth_manager_->is_bot());
-  if (reactions_.are_being_reloaded_ || G()->close_flag()) {
+  if (G()->close_flag() || reactions_.are_being_reloaded_) {
     return;
   }
+  CHECK(!td_->auth_manager_->is_bot());
   reactions_.are_being_reloaded_ = true;
   td_->create_handler<GetAvailableReactionsQuery>()->send(reactions_.hash_);
 }
@@ -6348,14 +6348,12 @@ void StickersManager::on_get_featured_sticker_sets(
 
   LOG_IF(ERROR, featured_sticker_sets_hash_[type] != featured_stickers->hash_) << "Trending sticker sets hash mismatch";
 
-  if (!G()->parameters().use_file_db || G()->close_flag()) {
-    return;
+  if (G()->parameters().use_file_db && !G()->close_flag()) {
+    LOG(INFO) << "Save trending sticker sets to database";
+    StickerSetListLogEvent log_event(featured_sticker_set_ids_[type], are_featured_sticker_sets_premium_[type]);
+    G()->td_db()->get_sqlite_pmc()->set(PSTRING() << "sssfeatured" << get_featured_sticker_suffix(sticker_type),
+                                        log_event_store(log_event).as_slice().str(), Auto());
   }
-
-  LOG(INFO) << "Save trending sticker sets to database";
-  StickerSetListLogEvent log_event(featured_sticker_set_ids_[type], are_featured_sticker_sets_premium_[type]);
-  G()->td_db()->get_sqlite_pmc()->set(PSTRING() << "sssfeatured" << get_featured_sticker_suffix(sticker_type),
-                                      log_event_store(log_event).as_slice().str(), Auto());
 }
 
 void StickersManager::on_get_featured_sticker_sets_failed(StickerType sticker_type, int32 offset, int32 limit,
@@ -7084,6 +7082,10 @@ void StickersManager::on_uploaded_sticker_file(FileId file_id, tl_object_ptr<tel
 }
 
 void StickersManager::on_new_stickers_uploaded(int64 random_id, Result<Unit> result) {
+  if (G()->close_flag()) {
+    result = Global::request_aborted_error();
+  }
+
   auto it = pending_new_sticker_sets_.find(random_id);
   CHECK(it != pending_new_sticker_sets_.end());
 
@@ -7092,9 +7094,6 @@ void StickersManager::on_new_stickers_uploaded(int64 random_id, Result<Unit> res
 
   pending_new_sticker_sets_.erase(it);
 
-  if (G()->close_flag()) {
-    result = Global::request_aborted_error();
-  }
   if (result.is_error()) {
     pending_new_sticker_set->promise_.set_error(result.move_as_error());
     return;
@@ -7193,6 +7192,10 @@ void StickersManager::do_add_sticker_to_set(UserId user_id, string short_name,
 }
 
 void StickersManager::on_added_sticker_uploaded(int64 random_id, Result<Unit> result) {
+  if (G()->close_flag()) {
+    result = Global::request_aborted_error();
+  }
+
   auto it = pending_add_sticker_to_sets_.find(random_id);
   CHECK(it != pending_add_sticker_to_sets_.end());
 
@@ -7201,9 +7204,6 @@ void StickersManager::on_added_sticker_uploaded(int64 random_id, Result<Unit> re
 
   pending_add_sticker_to_sets_.erase(it);
 
-  if (G()->close_flag()) {
-    result = Global::request_aborted_error();
-  }
   if (result.is_error()) {
     pending_add_sticker_to_set->promise_.set_error(result.move_as_error());
     return;
@@ -7292,6 +7292,10 @@ void StickersManager::do_set_sticker_set_thumbnail(UserId user_id, string short_
 }
 
 void StickersManager::on_sticker_set_thumbnail_uploaded(int64 random_id, Result<Unit> result) {
+  if (G()->close_flag()) {
+    result = Global::request_aborted_error();
+  }
+
   auto it = pending_set_sticker_set_thumbnails_.find(random_id);
   CHECK(it != pending_set_sticker_set_thumbnails_.end());
 
@@ -7300,9 +7304,6 @@ void StickersManager::on_sticker_set_thumbnail_uploaded(int64 random_id, Result<
 
   pending_set_sticker_set_thumbnails_.erase(it);
 
-  if (G()->close_flag()) {
-    result = Global::request_aborted_error();
-  }
   if (result.is_error()) {
     pending_set_sticker_set_thumbnail->promise_.set_error(result.move_as_error());
     return;

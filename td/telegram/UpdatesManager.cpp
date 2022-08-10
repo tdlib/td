@@ -231,11 +231,11 @@ ActorShared<UpdatesManager> UpdatesManager::create_reference() {
 }
 
 void UpdatesManager::fill_pts_gap(void *td) {
-  CHECK(td != nullptr);
   if (G()->close_flag()) {
     return;
   }
 
+  CHECK(td != nullptr);
   auto updates_manager = static_cast<Td *>(td)->updates_manager_.get();
   auto min_pts = std::numeric_limits<int32>::max();
   auto max_pts = 0;
@@ -252,11 +252,11 @@ void UpdatesManager::fill_pts_gap(void *td) {
 }
 
 void UpdatesManager::fill_seq_gap(void *td) {
-  CHECK(td != nullptr);
   if (G()->close_flag()) {
     return;
   }
 
+  CHECK(td != nullptr);
   auto updates_manager = static_cast<Td *>(td)->updates_manager_.get();
   auto min_seq = std::numeric_limits<int32>::max();
   auto max_seq = 0;
@@ -269,11 +269,11 @@ void UpdatesManager::fill_seq_gap(void *td) {
 }
 
 void UpdatesManager::fill_qts_gap(void *td) {
-  CHECK(td != nullptr);
   if (G()->close_flag()) {
     return;
   }
 
+  CHECK(td != nullptr);
   auto updates_manager = static_cast<Td *>(td)->updates_manager_.get();
   auto min_qts = std::numeric_limits<int32>::max();
   auto max_qts = 0;
@@ -290,8 +290,11 @@ void UpdatesManager::fill_get_difference_gap(void *td) {
 }
 
 void UpdatesManager::fill_gap(void *td, const char *source) {
+  if (G()->close_flag()) {
+    return;
+  }
   CHECK(td != nullptr);
-  if (G()->close_flag() || !static_cast<Td *>(td)->auth_manager_->is_authorized()) {
+  if (!static_cast<Td *>(td)->auth_manager_->is_authorized()) {
     return;
   }
   auto updates_manager = static_cast<Td *>(td)->updates_manager_.get();
@@ -1667,11 +1670,11 @@ void UpdatesManager::schedule_data_reload() {
 }
 
 void UpdatesManager::try_reload_data_static(void *td) {
-  CHECK(td != nullptr);
   if (G()->close_flag()) {
     return;
   }
 
+  CHECK(td != nullptr);
   static_cast<Td *>(td)->updates_manager_->try_reload_data();
 }
 

@@ -234,6 +234,10 @@ void SponsoredMessageManager::get_dialog_sponsored_message(
 
 void SponsoredMessageManager::on_get_dialog_sponsored_messages(
     DialogId dialog_id, Result<telegram_api::object_ptr<telegram_api::messages_sponsoredMessages>> &&result) {
+  if (result.is_ok() && G()->close_flag()) {
+    result = Global::request_aborted_error();
+  }
+
   auto &messages = dialog_sponsored_messages_[dialog_id];
   CHECK(messages != nullptr);
   auto promises = std::move(messages->promises);
@@ -241,9 +245,6 @@ void SponsoredMessageManager::on_get_dialog_sponsored_messages(
   CHECK(messages->messages.empty());
   CHECK(messages->message_random_ids.empty());
 
-  if (result.is_ok() && G()->close_flag()) {
-    result = Global::request_aborted_error();
-  }
   if (result.is_error()) {
     dialog_sponsored_messages_.erase(dialog_id);
     fail_promises(promises, result.move_as_error());

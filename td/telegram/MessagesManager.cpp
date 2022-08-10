@@ -12288,14 +12288,14 @@ int32 MessagesManager::get_dialog_total_count(const DialogList &list) const {
 }
 
 void MessagesManager::repair_server_dialog_total_count(DialogListId dialog_list_id) {
+  if (G()->close_flag()) {
+    return;
+  }
   if (td_->auth_manager_->is_bot()) {
     return;
   }
   if (!dialog_list_id.is_folder()) {
     // can repair total count only in folders
-    return;
-  }
-  if (G()->close_flag()) {
     return;
   }
 
@@ -17209,10 +17209,11 @@ void MessagesManager::reload_dialog_filters() {
 
 void MessagesManager::on_get_dialog_filters(Result<vector<tl_object_ptr<telegram_api::DialogFilter>>> r_filters,
                                             bool dummy) {
-  are_dialog_filters_being_reloaded_ = false;
   if (G()->close_flag()) {
     return;
   }
+
+  are_dialog_filters_being_reloaded_ = false;
   CHECK(!td_->auth_manager_->is_bot());
   auto promises = std::move(dialog_filter_reload_queries_);
   dialog_filter_reload_queries_.clear();
@@ -23172,7 +23173,6 @@ void MessagesManager::on_messages_db_fts_result(Result<MessagesDbFtsResult> resu
 void MessagesManager::on_messages_db_calls_result(Result<MessagesDbCallsResult> result, int64 random_id,
                                                   MessageId first_db_message_id, MessageSearchFilter filter,
                                                   Promise<> &&promise) {
-  CHECK(!first_db_message_id.is_scheduled());
   if (G()->close_flag()) {
     result = Global::request_aborted_error();
   }
@@ -23186,6 +23186,7 @@ void MessagesManager::on_messages_db_calls_result(Result<MessagesDbCallsResult> 
   CHECK(it != found_call_messages_.end());
   auto &res = it->second.second;
 
+  CHECK(!first_db_message_id.is_scheduled());
   res.reserve(calls_result.messages.size());
   for (auto &message : calls_result.messages) {
     auto m = on_get_message_from_database(message, false, "on_messages_db_calls_result");
@@ -24148,12 +24149,12 @@ void MessagesManager::load_messages_impl(const Dialog *d, MessageId from_message
 
 vector<MessageId> MessagesManager::get_dialog_scheduled_messages(DialogId dialog_id, bool force, bool ignore_result,
                                                                  Promise<Unit> &&promise) {
-  LOG(INFO) << "Get scheduled messages in " << dialog_id;
   if (G()->close_flag()) {
     promise.set_error(Global::request_aborted_error());
     return {};
   }
 
+  LOG(INFO) << "Get scheduled messages in " << dialog_id;
   Dialog *d = get_dialog_force(dialog_id, "get_dialog_scheduled_messages");
   if (d == nullptr) {
     promise.set_error(Status::Error(400, "Chat not found"));
@@ -25805,12 +25806,12 @@ void MessagesManager::do_send_message(DialogId dialog_id, const Message *m, vect
 void MessagesManager::on_message_media_uploaded(DialogId dialog_id, const Message *m,
                                                 tl_object_ptr<telegram_api::InputMedia> &&input_media, FileId file_id,
                                                 FileId thumbnail_file_id) {
-  CHECK(m != nullptr);
-  CHECK(input_media != nullptr);
   if (G()->close_flag()) {
     return;
   }
 
+  CHECK(m != nullptr);
+  CHECK(input_media != nullptr);
   auto message_id = m->message_id;
   if (message_id.is_any_server()) {
     const FormattedText *caption = get_message_content_caption(m->edited_content.get());
@@ -25889,11 +25890,12 @@ void MessagesManager::on_message_media_uploaded(DialogId dialog_id, const Messag
 void MessagesManager::on_secret_message_media_uploaded(DialogId dialog_id, const Message *m,
                                                        SecretInputMedia &&secret_input_media, FileId file_id,
                                                        FileId thumbnail_file_id) {
-  CHECK(m != nullptr);
-  CHECK(m->message_id.is_valid());
   if (G()->close_flag()) {
     return;
   }
+
+  CHECK(m != nullptr);
+  CHECK(m->message_id.is_valid());
   if (secret_input_media.empty()) {
     // the media can't be sent to the chat
     LOG(INFO) << "Can't send a media message to " << dialog_id;
@@ -26129,13 +26131,14 @@ void MessagesManager::on_upload_message_media_finished(int64 media_album_id, Dia
 }
 
 void MessagesManager::do_send_message_group(int64 media_album_id) {
+  if (G()->close_flag()) {
+    return;
+  }
+
   CHECK(media_album_id < 0);
   auto it = pending_message_group_sends_.find(media_album_id);
   if (it == pending_message_group_sends_.end()) {
     // the group may be already sent or failed to be sent
-    return;
-  }
-  if (G()->close_flag()) {
     return;
   }
 
@@ -26235,13 +26238,14 @@ void MessagesManager::do_send_message_group(int64 media_album_id) {
 }
 
 void MessagesManager::on_text_message_ready_to_send(DialogId dialog_id, MessageId message_id) {
+  if (G()->close_flag()) {
+    return;
+  }
+
   LOG(INFO) << "Ready to send " << message_id << " to " << dialog_id;
 
   auto m = get_message({dialog_id, message_id});
   if (m == nullptr) {
-    return;
-  }
-  if (G()->close_flag()) {
     return;
   }
 
@@ -28058,11 +28062,12 @@ uint64 MessagesManager::save_forward_messages_log_event(DialogId to_dialog_id, D
 void MessagesManager::do_forward_messages(DialogId to_dialog_id, DialogId from_dialog_id,
                                           const vector<Message *> &messages, const vector<MessageId> &message_ids,
                                           bool drop_author, bool drop_media_captions, uint64 log_event_id) {
-  CHECK(messages.size() == message_ids.size());
-  if (messages.empty()) {
+  if (G()->close_flag()) {
     return;
   }
-  if (G()->close_flag()) {
+
+  CHECK(messages.size() == message_ids.size());
+  if (messages.empty()) {
     return;
   }
 
@@ -32837,13 +32842,13 @@ void MessagesManager::send_get_dialog_query(DialogId dialog_id, Promise<Unit> &&
     auto result = get_dialog_query_log_event_id_.emplace(dialog_id, log_event_id);
     CHECK(result.second);
   }
-  if (G()->close_flag()) {
-    // request will be sent after restart
-    return;
-  }
 
-  LOG(INFO) << "Send get " << dialog_id << " query from " << source;
-  td_->create_handler<GetDialogQuery>()->send(dialog_id);
+  if (!G()->close_flag()) {
+    LOG(INFO) << "Send get " << dialog_id << " query from " << source;
+    td_->create_handler<GetDialogQuery>()->send(dialog_id);
+  } else {
+    // request will be sent after restart
+  }
 }
 
 void MessagesManager::on_get_dialog_query_finished(DialogId dialog_id, Status &&status) {

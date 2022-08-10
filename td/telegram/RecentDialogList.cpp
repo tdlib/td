@@ -130,8 +130,7 @@ void RecentDialogList::on_load_dialogs(vector<string> &&found_dialogs) {
   CHECK(!promises.empty());
 
   if (G()->close_flag()) {
-    fail_promises(promises, Global::request_aborted_error());
-    return;
+    return fail_promises(promises, Global::request_aborted_error());
   }
 
   auto newly_found_dialogs = std::move(dialog_ids_);
