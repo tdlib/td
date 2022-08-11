@@ -39,6 +39,14 @@ export ANDROID_NDK_ROOT=$ANDROID_SDK_ROOT/ndk/$ANDROID_NDK_VERSION  # for OpenSS
 export ANDROID_NDK_HOME=$ANDROID_NDK_ROOT                           # for OpenSSL 1.1.1
 PATH=$ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/$HOST_ARCH/bin:$PATH
 
+if ! clang --help >/dev/null 2>&1 ; then
+  echo "Error: failed to run clang from Android NDK."
+  if [[ "$OS_NAME" == "linux" ]] ; then
+    echo "Prebuilt Android NDK binaries are linked against glibc, so glibc must be installed."
+  fi
+  exit 1
+fi
+
 for ARCH in arm64 arm x86_64 x86 ; do
   if [[ $ARCH == "x86" ]]; then
     ./Configure android-x86 no-shared -U__ANDROID_API__ -D__ANDROID_API__=16 || exit 1
