@@ -9,7 +9,7 @@ if [ -d "$ANDROID_SDK_ROOT" ] ; then
   exit 1
 fi
 
-source ./check-environment.sh
+source ./check-environment.sh || exit 1
 
 SDKMANAGER="./sdkmanager"
 if [[ "$OS_NAME" == "win" ]] ; then

@@ -4,7 +4,7 @@ cd $(dirname $0)
 ANDROID_SDK_ROOT=${1:-SDK}
 ANDROID_NDK_VERSION=${2:-23.2.8568313}
 
-source ./check-environment.sh
+source ./check-environment.sh || exit 1
 
 echo "Downloading annotation Java package..."
 rm -rf annotation || exit 1
@@ -30,11 +30,11 @@ cp -p {../../example,tdlib}/java/org/drinkless/tdlib/Client.java || exit 1
 mv {,tdlib/java/}org/drinkless/tdlib/TdApi.java || exit 1
 rm -rf org || exit 1
 
-echo "Generating Javadoc documentation..."
-javadoc -d tdlib/javadoc -encoding UTF-8 -charset UTF-8 -bootclasspath $ANDROID_SDK_ROOT/platforms/android-33/android.jar -extdirs annotation -classpath tdlib/java org.drinkless.tdlib || exit 1
-rm -rf annotation || exit 1
-
 ANDROID_SDK_ROOT="$(cd "$(dirname -- "$ANDROID_SDK_ROOT")" >/dev/null; pwd -P)/$(basename -- "$ANDROID_SDK_ROOT")"
+
+echo "Generating Javadoc documentation..."
+javadoc -d tdlib/javadoc -encoding UTF-8 -charset UTF-8 -classpath "\"$ANDROID_SDK_ROOT/platforms/android-33/android.jar\";annotation/annotation-1.4.0.jar" -sourcepath tdlib/java org.drinkless.tdlib || exit 1
+rm -rf annotation || exit 1
 
 echo "Building TDLib..."
 for ABI in arm64-v8a armeabi-v7a x86_64 x86 ; do

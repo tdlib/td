@@ -1,7 +1,7 @@
 # TDLib Android example
 
 This is an example of building `TDLib` for Android.
-You need a Bash shell on Linux, macOS, or Windows with some common tools, cmake, JDK, PHP, and gperf pre-installed.
+You need a Bash shell on Linux, macOS, or Windows with some common tools, a C++ compiler, cmake, JDK, PHP, and gperf pre-installed.
 
 ## Building TDLib for Android
 

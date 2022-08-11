@@ -11,7 +11,7 @@ if [ -d "$OPENSSL_INSTALL_DIR" ] ; then
   exit 1
 fi
 
-source ./check-environment.sh
+source ./check-environment.sh || exit 1
 
 ANDROID_SDK_ROOT="$(cd "$(dirname -- "$ANDROID_SDK_ROOT")" >/dev/null; pwd -P)/$(basename -- "$ANDROID_SDK_ROOT")"
 
