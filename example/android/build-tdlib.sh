@@ -7,12 +7,7 @@ ANDROID_NDK_VERSION=${2:-23.2.8568313}
 source ./check-environment.sh || exit 1
 
 echo "Downloading annotation Java package..."
-rm -rf annotation || exit 1
-mkdir -p annotation || exit 1
-cd annotation
-$WGET https://maven.google.com/androidx/annotation/annotation/1.4.0/annotation-1.4.0.pom || exit 1
 $WGET https://maven.google.com/androidx/annotation/annotation/1.4.0/annotation-1.4.0.jar || exit 1
-cd ..
 
 echo "Generating TDLib source files..."
 mkdir -p build-native || exit 1
@@ -33,8 +28,9 @@ rm -rf org || exit 1
 ANDROID_SDK_ROOT="$(cd "$(dirname -- "$ANDROID_SDK_ROOT")" >/dev/null; pwd -P)/$(basename -- "$ANDROID_SDK_ROOT")"
 
 echo "Generating Javadoc documentation..."
-javadoc -d tdlib/javadoc -encoding UTF-8 -charset UTF-8 -classpath "\"$ANDROID_SDK_ROOT/platforms/android-33/android.jar\";annotation/annotation-1.4.0.jar" -sourcepath tdlib/java org.drinkless.tdlib || exit 1
-rm -rf annotation || exit 1
+cp "$ANDROID_SDK_ROOT/platforms/android-33/android.jar" . || exit 1
+javadoc -d tdlib/javadoc -encoding UTF-8 -charset UTF-8 -classpath "*" -sourcepath tdlib/java org.drinkless.tdlib || exit 1
+rm android.jar annotation-1.4.0.jar || exit 1
 
 echo "Building TDLib..."
 for ABI in arm64-v8a armeabi-v7a x86_64 x86 ; do
