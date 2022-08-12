@@ -1,13 +1,16 @@
 #!/usr/bin/env bash
 
-# The script checks that all needed tools are installed and sets OS_NAME and WGET variables
+# The script checks that all needed tools are installed and sets OS_NAME, HOST_ARCH, and WGET variables
 
 if [[ "$OSTYPE" == "linux"* ]] ; then
   OS_NAME="linux"
+  HOST_ARCH="linux-x86_64"
 elif [[ "$OSTYPE" == "darwin"* ]] ; then
   OS_NAME="mac"
+  HOST_ARCH="darwin-x86_64"
 elif [[ "$OSTYPE" == "msys" ]] ; then
   OS_NAME="win"
+  HOST_ARCH="windows-x86_64"
 else
   echo "Error: this script supports only Bash shell on Linux, macOS, or Windows."
   exit 1

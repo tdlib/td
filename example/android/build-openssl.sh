@@ -20,17 +20,6 @@ source ./check-environment.sh || exit 1
 
 ANDROID_SDK_ROOT="$(cd "$(dirname -- "$ANDROID_SDK_ROOT")" >/dev/null; pwd -P)/$(basename -- "$ANDROID_SDK_ROOT")"
 
-if [[ "$OS_NAME" == "linux" ]] ; then
-  HOST_ARCH="linux-x86_64"
-elif [[ "$OS_NAME" == "mac" ]] ; then
-  HOST_ARCH="darwin-x86_64"
-elif [[ "$OS_NAME" == "win" ]] ; then
-  HOST_ARCH="windows-x86_64"
-else
-  echo "Error: unsupported OS_NAME."
-  exit 1
-fi
-
 if [ ! -f $OPENSSL.tar.gz ] ; then
   echo "Downloading OpenSSL sources..."
   $WGET https://github.com/openssl/openssl/archive/refs/tags/$OPENSSL.tar.gz || exit 1
