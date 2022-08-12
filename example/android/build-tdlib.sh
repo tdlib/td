@@ -3,6 +3,12 @@ cd $(dirname $0)
 
 ANDROID_SDK_ROOT=${1:-SDK}
 ANDROID_NDK_VERSION=${2:-23.2.8568313}
+ANDROID_STL=${3:-c++_static}
+
+if [ "$ANDROID_STL" != "c++_static" ] && [ "$ANDROID_STL" != "c++_shared" ] ; then
+  echo 'Error: ANDROID_STL must be either "c++_static" or "c++_shared".'
+  exit 1
+fi
 
 source ./check-environment.sh || exit 1
 
@@ -37,6 +43,7 @@ mv {,tdlib/java/}org/drinkless/tdlib/TdApi.java || exit 1
 rm -rf org || exit 1
 
 ANDROID_SDK_ROOT="$(cd "$(dirname -- "$ANDROID_SDK_ROOT")" >/dev/null; pwd -P)/$(basename -- "$ANDROID_SDK_ROOT")"
+ANDROID_NDK_ROOT="$ANDROID_SDK_ROOT/ndk/$ANDROID_NDK_VERSION"
 
 echo "Generating Javadoc documentation..."
 cp "$ANDROID_SDK_ROOT/platforms/android-33/android.jar" . || exit 1
@@ -47,12 +54,22 @@ echo "Building TDLib..."
 for ABI in arm64-v8a armeabi-v7a x86_64 x86 ; do
   mkdir -p build-$ABI || exit 1
   cd build-$ABI
-  cmake -DCMAKE_TOOLCHAIN_FILE=${ANDROID_SDK_ROOT}/ndk/${ANDROID_NDK_VERSION}/build/cmake/android.toolchain.cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -GNinja -DANDROID_ABI=${ABI} -DANDROID_PLATFORM=android-16 .. || exit 1
+  cmake -DCMAKE_TOOLCHAIN_FILE="$ANDROID_NDK_ROOT/build/cmake/android.toolchain.cmake" -DCMAKE_BUILD_TYPE=RelWithDebInfo -GNinja -DANDROID_ABI=$ABI -DANDROID_STL=$ANDROID_STL -DANDROID_PLATFORM=android-16 .. || exit 1
   cmake --build . || exit 1
   cd ..
 
   mkdir -p tdlib/libs/$ABI/ || exit 1
   cp -p build-$ABI/libtd*.so* tdlib/libs/$ABI/ || exit 1
+  if [[ "$ANDROID_STL" == "c++_shared" ]] ; then
+    FULL_ABI=$(case $ABI in
+      "arm64-v8a") echo "aarch64-linux-android" ;;
+      "armeabi-v7a") echo "arm-linux-androideabi" ;;
+      "x86_64") echo "x86_64-linux-android" ;;
+      "x86") echo "i686-linux-android" ;;
+    esac)
+    cp "$ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/$HOST_ARCH/sysroot/usr/lib/$FULL_ABI/libc++_shared.so" tdlib/libs/$ABI/ || exit 1
+    "$ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/$HOST_ARCH/bin/llvm-strip" tdlib/libs/$ABI/libc++_shared.so || exit 1
+  fi
 done
 
 echo "Compressing..."
