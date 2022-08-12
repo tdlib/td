@@ -5,9 +5,14 @@ ANDROID_SDK_ROOT=${1:-SDK}
 ANDROID_NDK_VERSION=${2:-23.2.8568313}
 OPENSSL=${3:-OpenSSL_1_1_1q} # openssl-3.0.5
 
+if [ ! -d "$ANDROID_SDK_ROOT" ] ; then
+  echo "Error: directory \"$ANDROID_SDK_ROOT\" doesn't exist. Run ./fetch-sdk.sh first, or provide a valid path to Android SDK."
+  exit 1
+fi
+
 OPENSSL_INSTALL_DIR="third-party/openssl"
 if [ -d "$OPENSSL_INSTALL_DIR" ] ; then
-  echo "Error: directory $OPENSSL_INSTALL_DIR already exists. Delete it manually to proceed."
+  echo "Error: directory \"$OPENSSL_INSTALL_DIR\" already exists. Delete it manually to proceed."
   exit 1
 fi
 

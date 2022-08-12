@@ -6,6 +6,17 @@ ANDROID_NDK_VERSION=${2:-23.2.8568313}
 
 source ./check-environment.sh || exit 1
 
+if [ ! -d "$ANDROID_SDK_ROOT" ] ; then
+  echo "Error: directory \"$ANDROID_SDK_ROOT\" doesn't exist. Run ./fetch-sdk.sh first, or provide a valid path to Android SDK."
+  exit 1
+fi
+
+OPENSSL_INSTALL_DIR="third-party/openssl"
+if [ ! -d "$OPENSSL_INSTALL_DIR" ] ; then
+  echo "Error: directory \"$OPENSSL_INSTALL_DIR\" doesn't exists. Run ./build-openssl.sh first."
+  exit 1
+fi
+
 echo "Downloading annotation Java package..."
 $WGET https://maven.google.com/androidx/annotation/annotation/1.4.0/annotation-1.4.0.jar || exit 1
 
