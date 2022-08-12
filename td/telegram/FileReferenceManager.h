@@ -188,7 +188,7 @@ class FileReferenceManager final : public Actor {
 
   FileSourceId get_current_file_source_id() const;
 
-  void tear_down() override;
+  void tear_down() final;
 };
 
 }  // namespace td

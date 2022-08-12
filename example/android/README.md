@@ -15,6 +15,6 @@ If you already have installed Android SDK and NDK, you can skip the second step 
 
 If you want to update TDLib to a newer version, you need to run only the script `./build-tdlib.sh`.
 
-You can specify different OpenSSL version as the third parameter to the script `./build-openssl.sh`. By default OpenSSL 1.1.1 is used because of much smaller binary footprint then newer OpenSSL versions.
+You can specify different OpenSSL version as the third parameter to the script `./build-openssl.sh`. By default OpenSSL 1.1.1 is used because of much smaller binary footprint than newer OpenSSL versions.
 
 You can build TDLib against shared standard C++ library by specifying "c++_shared" as the third parameter to the script `./build-tdlib.sh`. This can reduce total app size if you have a lot of other C++ code and want it to use the same shared library.

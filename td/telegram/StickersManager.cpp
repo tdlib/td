@@ -22,6 +22,7 @@
 #include "td/telegram/Global.h"
 #include "td/telegram/LanguagePackManager.h"
 #include "td/telegram/logevent/LogEvent.h"
+#include "td/telegram/logevent/LogEventHelper.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/misc.h"
 #include "td/telegram/net/DcId.h"
@@ -3929,7 +3930,7 @@ vector<FileId> StickersManager::get_stickers(StickerType sticker_type, string em
 
   vector<StickerSetId> examined_sticker_set_ids = installed_sticker_set_ids_[type];
   if (!emoji.empty() && sticker_type == StickerType::CustomEmoji) {
-    td::append(examined_sticker_set_ids, featured_sticker_set_ids_[type]);
+    append(examined_sticker_set_ids, featured_sticker_set_ids_[type]);
   }
 
   vector<StickerSetId> sets_to_load;
