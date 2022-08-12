@@ -3,7 +3,7 @@ cd $(dirname $0)
 
 ANDROID_SDK_ROOT=${1:-SDK}
 ANDROID_NDK_VERSION=${2:-23.2.8568313}
-OPENSSL=${3:-OpenSSL_1_1_1q} # openssl-3.0.5
+OPENSSL_VERSION=${3:-OpenSSL_1_1_1q} # openssl-3.0.5
 
 if [ ! -d "$ANDROID_SDK_ROOT" ] ; then
   echo "Error: directory \"$ANDROID_SDK_ROOT\" doesn't exist. Run ./fetch-sdk.sh first, or provide a valid path to Android SDK."
@@ -20,14 +20,14 @@ source ./check-environment.sh || exit 1
 
 ANDROID_SDK_ROOT="$(cd "$(dirname -- "$ANDROID_SDK_ROOT")" >/dev/null; pwd -P)/$(basename -- "$ANDROID_SDK_ROOT")"
 
-if [ ! -f $OPENSSL.tar.gz ] ; then
+if [ ! -f $OPENSSL_VERSION.tar.gz ] ; then
   echo "Downloading OpenSSL sources..."
-  $WGET https://github.com/openssl/openssl/archive/refs/tags/$OPENSSL.tar.gz || exit 1
+  $WGET https://github.com/openssl/openssl/archive/refs/tags/$OPENSSL_VERSION.tar.gz || exit 1
 fi
-rm -rf ./openssl-$OPENSSL || exit 1
-tar xzf $OPENSSL.tar.gz || exit 1
-rm $OPENSSL.tar.gz || exit 1
-cd openssl-$OPENSSL
+rm -rf ./openssl-$OPENSSL_VERSION || exit 1
+tar xzf $OPENSSL_VERSION.tar.gz || exit 1
+rm $OPENSSL_VERSION.tar.gz || exit 1
+cd openssl-$OPENSSL_VERSION
 
 export ANDROID_NDK_ROOT=$ANDROID_SDK_ROOT/ndk/$ANDROID_NDK_VERSION  # for OpenSSL 3.0
 export ANDROID_NDK_HOME=$ANDROID_NDK_ROOT                           # for OpenSSL 1.1.1
@@ -67,4 +67,4 @@ done
 
 cd ..
 
-rm -rf ./openssl-$OPENSSL || exit 1
+rm -rf ./openssl-$OPENSSL_VERSION || exit 1
