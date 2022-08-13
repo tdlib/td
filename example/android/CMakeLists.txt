@@ -13,7 +13,7 @@ if (CMAKE_CROSSCOMPILING)
   td_set_up_compiler()
   string(APPEND CMAKE_CXX_FLAGS_RELWITHDEBINFO " -flto=thin -Oz")
 
-  list(APPEND CMAKE_FIND_ROOT_PATH "${CMAKE_CURRENT_SOURCE_DIR}/third-party/openssl/${ANDROID_ARCH_NAME}")
+  list(APPEND CMAKE_FIND_ROOT_PATH "${OPENSSL_ROOT_DIR}")
   add_subdirectory(${TD_DIR} td)
 
   add_library(tdjni SHARED "${TD_DIR}/example/java/td_jni.cpp")

@@ -3,14 +3,14 @@ cd $(dirname $0)
 
 ANDROID_SDK_ROOT=${1:-SDK}
 ANDROID_NDK_VERSION=${2:-23.2.8568313}
-OPENSSL_VERSION=${3:-OpenSSL_1_1_1q} # openssl-3.0.5
+OPENSSL_INSTALL_DIR=${3:-third-party/openssl}
+OPENSSL_VERSION=${4:-OpenSSL_1_1_1q} # openssl-3.0.5
 
 if [ ! -d "$ANDROID_SDK_ROOT" ] ; then
   echo "Error: directory \"$ANDROID_SDK_ROOT\" doesn't exist. Run ./fetch-sdk.sh first, or provide a valid path to Android SDK."
   exit 1
 fi
 
-OPENSSL_INSTALL_DIR="third-party/openssl"
 if [ -d "$OPENSSL_INSTALL_DIR" ] ; then
   echo "Error: directory \"$OPENSSL_INSTALL_DIR\" already exists. Delete it manually to proceed."
   exit 1
@@ -19,11 +19,11 @@ fi
 source ./check-environment.sh || exit 1
 
 ANDROID_SDK_ROOT="$(cd "$(dirname -- "$ANDROID_SDK_ROOT")" >/dev/null; pwd -P)/$(basename -- "$ANDROID_SDK_ROOT")"
+OPENSSL_INSTALL_DIR="$(cd "$(dirname -- "$OPENSSL_INSTALL_DIR")" >/dev/null; pwd -P)/$(basename -- "$OPENSSL_INSTALL_DIR")"
 
-if [ ! -f $OPENSSL_VERSION.tar.gz ] ; then
-  echo "Downloading OpenSSL sources..."
-  $WGET https://github.com/openssl/openssl/archive/refs/tags/$OPENSSL_VERSION.tar.gz || exit 1
-fi
+echo "Downloading OpenSSL sources..."
+rm -f $OPENSSL_VERSION.tar.gz || exit 1
+$WGET https://github.com/openssl/openssl/archive/refs/tags/$OPENSSL_VERSION.tar.gz || exit 1
 rm -rf ./openssl-$OPENSSL_VERSION || exit 1
 tar xzf $OPENSSL_VERSION.tar.gz || exit 1
 rm $OPENSSL_VERSION.tar.gz || exit 1
@@ -41,14 +41,14 @@ if ! clang --help >/dev/null 2>&1 ; then
   exit 1
 fi
 
-for ARCH in arm64 arm x86_64 x86 ; do
-  if [[ $ARCH == "x86" ]]; then
+for ABI in arm64-v8a armeabi-v7a x86_64 x86 ; do
+  if [[ $ABI == "x86" ]]; then
     ./Configure android-x86 no-shared -U__ANDROID_API__ -D__ANDROID_API__=16 || exit 1
-  elif [[ $ARCH == "x86_64" ]]; then
+  elif [[ $ABI == "x86_64" ]]; then
     ./Configure android-x86_64 no-shared -U__ANDROID_API__ -D__ANDROID_API__=21 || exit 1
-  elif [[ $ARCH == "arm" ]]; then
+  elif [[ $ABI == "armeabi-v7a" ]]; then
     ./Configure android-arm no-shared -U__ANDROID_API__ -D__ANDROID_API__=16 -D__ARM_MAX_ARCH__=8 || exit 1
-  elif [[ $ARCH == "arm64" ]]; then
+  elif [[ $ABI == "arm64-v8a" ]]; then
     ./Configure android-arm64 no-shared -U__ANDROID_API__ -D__ANDROID_API__=21 || exit 1
   fi
 
@@ -57,10 +57,9 @@ for ARCH in arm64 arm x86_64 x86 ; do
   make depend -s || exit 1
   make -j4 -s || exit 1
 
-  rm -rf ../$OPENSSL_INSTALL_DIR/$ARCH/* || exit 1
-  mkdir -p ../$OPENSSL_INSTALL_DIR/$ARCH/lib/ || exit 1
-  cp libcrypto.a libssl.a ../$OPENSSL_INSTALL_DIR/$ARCH/lib/ || exit 1
-  cp -r include ../$OPENSSL_INSTALL_DIR/$ARCH/ || exit 1
+  mkdir -p $OPENSSL_INSTALL_DIR/$ABI/lib/ || exit 1
+  cp libcrypto.a libssl.a $OPENSSL_INSTALL_DIR/$ABI/lib/ || exit 1
+  cp -r include $OPENSSL_INSTALL_DIR/$ABI/ || exit 1
 
   make distclean || exit 1
 done

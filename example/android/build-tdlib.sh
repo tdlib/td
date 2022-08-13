@@ -3,7 +3,8 @@ cd $(dirname $0)
 
 ANDROID_SDK_ROOT=${1:-SDK}
 ANDROID_NDK_VERSION=${2:-23.2.8568313}
-ANDROID_STL=${3:-c++_static}
+OPENSSL_INSTALL_DIR=${3:-third-party/openssl}
+ANDROID_STL=${4:-c++_static}
 
 if [ "$ANDROID_STL" != "c++_static" ] && [ "$ANDROID_STL" != "c++_shared" ] ; then
   echo 'Error: ANDROID_STL must be either "c++_static" or "c++_shared".'
@@ -17,13 +18,13 @@ if [ ! -d "$ANDROID_SDK_ROOT" ] ; then
   exit 1
 fi
 
-OPENSSL_INSTALL_DIR="third-party/openssl"
 if [ ! -d "$OPENSSL_INSTALL_DIR" ] ; then
   echo "Error: directory \"$OPENSSL_INSTALL_DIR\" doesn't exists. Run ./build-openssl.sh first."
   exit 1
 fi
 
 echo "Downloading annotation Java package..."
+rm -f android.jar annotation-1.4.0.jar || exit 1
 $WGET https://maven.google.com/androidx/annotation/annotation/1.4.0/annotation-1.4.0.jar || exit 1
 
 echo "Generating TDLib source files..."
@@ -44,6 +45,7 @@ rm -rf org || exit 1
 
 ANDROID_SDK_ROOT="$(cd "$(dirname -- "$ANDROID_SDK_ROOT")" >/dev/null; pwd -P)/$(basename -- "$ANDROID_SDK_ROOT")"
 ANDROID_NDK_ROOT="$ANDROID_SDK_ROOT/ndk/$ANDROID_NDK_VERSION"
+OPENSSL_INSTALL_DIR="$(cd "$(dirname -- "$OPENSSL_INSTALL_DIR")" >/dev/null; pwd -P)/$(basename -- "$OPENSSL_INSTALL_DIR")"
 
 echo "Generating Javadoc documentation..."
 cp "$ANDROID_SDK_ROOT/platforms/android-33/android.jar" . || exit 1
@@ -54,7 +56,7 @@ echo "Building TDLib..."
 for ABI in arm64-v8a armeabi-v7a x86_64 x86 ; do
   mkdir -p build-$ABI || exit 1
   cd build-$ABI
-  cmake -DCMAKE_TOOLCHAIN_FILE="$ANDROID_NDK_ROOT/build/cmake/android.toolchain.cmake" -DCMAKE_BUILD_TYPE=RelWithDebInfo -GNinja -DANDROID_ABI=$ABI -DANDROID_STL=$ANDROID_STL -DANDROID_PLATFORM=android-16 .. || exit 1
+  cmake -DCMAKE_TOOLCHAIN_FILE="$ANDROID_NDK_ROOT/build/cmake/android.toolchain.cmake" -DOPENSSL_ROOT_DIR="$OPENSSL_INSTALL_DIR/$ABI" -DCMAKE_BUILD_TYPE=RelWithDebInfo -GNinja -DANDROID_ABI=$ABI -DANDROID_STL=$ANDROID_STL -DANDROID_PLATFORM=android-16 .. || exit 1
   cmake --build . || exit 1
   cd ..
 
@@ -73,6 +75,7 @@ for ABI in arm64-v8a armeabi-v7a x86_64 x86 ; do
 done
 
 echo "Compressing..."
+rm -f tdlib.zip tdlib-debug.zip || exit 1
 jar -cMf tdlib-debug.zip tdlib || exit 1
 rm tdlib/libs/*/*.debug || exit 1
 jar -cMf tdlib.zip tdlib || exit 1

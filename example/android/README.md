@@ -13,8 +13,10 @@ You need a Bash shell on Linux, macOS, or Windows with some common tools, a C++ 
 
 If you already have installed Android SDK and NDK, you can skip the second step and specify existing Android SDK root path and Android NDK version as the first and the second parameters to the subsequent scripts. Make sure that the SDK includes android-33 platform.
 
+If you already have prebuilt OpenSSL, you can skip the third step and specify path to the prebuild OpenSSL as the third parameter to the script `./build-tdlib.sh`.
+
 If you want to update TDLib to a newer version, you need to run only the script `./build-tdlib.sh`.
 
-You can specify different OpenSSL version as the third parameter to the script `./build-openssl.sh`. By default OpenSSL 1.1.1 is used because of much smaller binary footprint than newer OpenSSL versions.
+You can specify different OpenSSL version as the fourth parameter to the script `./build-openssl.sh`. By default OpenSSL 1.1.1 is used because of much smaller binary footprint than newer OpenSSL versions.
 
-You can build TDLib against shared standard C++ library by specifying "c++_shared" as the third parameter to the script `./build-tdlib.sh`. This can reduce total app size if you have a lot of other C++ code and want it to use the same shared library.
+You can build TDLib against shared standard C++ library by specifying "c++_shared" as the fourth parameter to the script `./build-tdlib.sh`. This can reduce total application size if you have a lot of other C++ code and want it to use the same shared library.
