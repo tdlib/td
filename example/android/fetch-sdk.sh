@@ -28,4 +28,4 @@ mv cmdline-tools/* cmdline-tools/latest/ || exit 1
 echo "Installing required SDK tools..."
 cd cmdline-tools/latest/bin/ || exit 1
 yes | $SDKMANAGER --licenses >/dev/null || exit 1
-$SDKMANAGER --install "platform-tools" "ndk;$ANDROID_NDK_VERSION" "cmake;3.22.1" "build-tools;33.0.0" "platforms;android-33" > /dev/null || exit 1
+$SDKMANAGER --install "ndk;$ANDROID_NDK_VERSION" "cmake;3.22.1" "build-tools;33.0.0" "platforms;android-33" > /dev/null || exit 1

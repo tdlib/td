@@ -25,7 +25,7 @@ else
   exit 1
 fi
 
-for TOOL_NAME in cmake gperf jar javadoc make perl php sed tar yes unzip ; do
+for TOOL_NAME in gperf jar javadoc make perl php sed tar yes unzip ; do
   if ! which "$TOOL_NAME" >/dev/null 2>&1 ; then
     echo "Error: this script requires $TOOL_NAME tool installed."
     exit 1

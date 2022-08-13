@@ -23,6 +23,11 @@ if [ ! -d "$OPENSSL_INSTALL_DIR" ] ; then
   exit 1
 fi
 
+ANDROID_SDK_ROOT="$(cd "$(dirname -- "$ANDROID_SDK_ROOT")" >/dev/null; pwd -P)/$(basename -- "$ANDROID_SDK_ROOT")"
+ANDROID_NDK_ROOT="$ANDROID_SDK_ROOT/ndk/$ANDROID_NDK_VERSION"
+OPENSSL_INSTALL_DIR="$(cd "$(dirname -- "$OPENSSL_INSTALL_DIR")" >/dev/null; pwd -P)/$(basename -- "$OPENSSL_INSTALL_DIR")"
+PATH=$ANDROID_SDK_ROOT/cmake/3.22.1/bin:$PATH
+
 echo "Downloading annotation Java package..."
 rm -f android.jar annotation-1.4.0.jar || exit 1
 $WGET https://maven.google.com/androidx/annotation/annotation/1.4.0/annotation-1.4.0.jar || exit 1
@@ -42,10 +47,6 @@ mkdir -p tdlib/java/org/drinkless/tdlib || exit 1
 cp -p {../../example,tdlib}/java/org/drinkless/tdlib/Client.java || exit 1
 mv {,tdlib/java/}org/drinkless/tdlib/TdApi.java || exit 1
 rm -rf org || exit 1
-
-ANDROID_SDK_ROOT="$(cd "$(dirname -- "$ANDROID_SDK_ROOT")" >/dev/null; pwd -P)/$(basename -- "$ANDROID_SDK_ROOT")"
-ANDROID_NDK_ROOT="$ANDROID_SDK_ROOT/ndk/$ANDROID_NDK_VERSION"
-OPENSSL_INSTALL_DIR="$(cd "$(dirname -- "$OPENSSL_INSTALL_DIR")" >/dev/null; pwd -P)/$(basename -- "$OPENSSL_INSTALL_DIR")"
 
 echo "Generating Javadoc documentation..."
 cp "$ANDROID_SDK_ROOT/platforms/android-33/android.jar" . || exit 1
