@@ -49,7 +49,7 @@ OPENSSL_INSTALL_DIR="$(cd "$(dirname -- "$OPENSSL_INSTALL_DIR")" >/dev/null; pwd
 
 echo "Generating Javadoc documentation..."
 cp "$ANDROID_SDK_ROOT/platforms/android-33/android.jar" . || exit 1
-javadoc -d tdlib/javadoc -encoding UTF-8 -charset UTF-8 -classpath "*" -sourcepath tdlib/java org.drinkless.tdlib || exit 1
+javadoc -d tdlib/javadoc -encoding UTF-8 -charset UTF-8 -classpath "*" -quiet -sourcepath tdlib/java org.drinkless.tdlib || exit 1
 rm android.jar annotation-1.4.0.jar || exit 1
 
 echo "Building TDLib..."
