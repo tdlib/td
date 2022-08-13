@@ -4,8 +4,8 @@ cd $(dirname $0)
 ANDROID_SDK_ROOT=${1:-SDK}
 ANDROID_NDK_VERSION=${2:-23.2.8568313}
 
-if [ -d "$ANDROID_SDK_ROOT" ] ; then
-  echo "Error: directory \"$ANDROID_SDK_ROOT\" already exists. Delete it manually to proceed."
+if [ -e "$ANDROID_SDK_ROOT" ] ; then
+  echo "Error: file or directory \"$ANDROID_SDK_ROOT\" already exists. Delete it manually to proceed."
   exit 1
 fi
 

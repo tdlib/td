@@ -11,12 +11,14 @@ if [ ! -d "$ANDROID_SDK_ROOT" ] ; then
   exit 1
 fi
 
-if [ -d "$OPENSSL_INSTALL_DIR" ] ; then
-  echo "Error: directory \"$OPENSSL_INSTALL_DIR\" already exists. Delete it manually to proceed."
+if [ -e "$OPENSSL_INSTALL_DIR" ] ; then
+  echo "Error: file or directory \"$OPENSSL_INSTALL_DIR\" already exists. Delete it manually to proceed."
   exit 1
 fi
 
 source ./check-environment.sh || exit 1
+
+mkdir -p $OPENSSL_INSTALL_DIR || exit 1
 
 ANDROID_SDK_ROOT="$(cd "$(dirname -- "$ANDROID_SDK_ROOT")" >/dev/null; pwd -P)/$(basename -- "$ANDROID_SDK_ROOT")"
 OPENSSL_INSTALL_DIR="$(cd "$(dirname -- "$OPENSSL_INSTALL_DIR")" >/dev/null; pwd -P)/$(basename -- "$OPENSSL_INSTALL_DIR")"
