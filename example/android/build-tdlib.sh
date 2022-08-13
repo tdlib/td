@@ -50,7 +50,8 @@ rm -rf org || exit 1
 
 echo "Generating Javadoc documentation..."
 cp "$ANDROID_SDK_ROOT/platforms/android-33/android.jar" . || exit 1
-javadoc -d tdlib/javadoc -encoding UTF-8 -charset UTF-8 -classpath "*" -quiet -sourcepath tdlib/java org.drinkless.tdlib || exit 1
+JAVADOC_SEPARATOR=$([ "$OS_NAME" == "win" ] && echo ";" || echo ":")
+javadoc -d tdlib/javadoc -encoding UTF-8 -charset UTF-8 -classpath "android.jar${JAVADOC_SEPARATOR}annotation-1.4.0.jar" -quiet -sourcepath tdlib/java org.drinkless.tdlib || exit 1
 rm android.jar annotation-1.4.0.jar || exit 1
 
 echo "Building TDLib..."
@@ -80,6 +81,6 @@ rm -f tdlib.zip tdlib-debug.zip || exit 1
 jar -cMf tdlib-debug.zip tdlib || exit 1
 rm tdlib/libs/*/*.debug || exit 1
 jar -cMf tdlib.zip tdlib || exit 1
-mv tdlib.zip tdlib-debug.zip tdlib
+mv tdlib.zip tdlib-debug.zip tdlib || exit 1
 
 echo "Done."
