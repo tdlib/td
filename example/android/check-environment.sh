@@ -25,7 +25,7 @@ else
   exit 1
 fi
 
-for TOOL_NAME in gperf jar javadoc make perl php sed tar yes unzip ; do
+for TOOL_NAME in gperf jar java javadoc make perl php sed tar yes unzip ; do
   if ! which "$TOOL_NAME" >/dev/null 2>&1 ; then
     echo "Error: this script requires $TOOL_NAME tool installed."
     exit 1
@@ -41,5 +41,10 @@ if ! perl -MExtUtils::MakeMaker -MLocale::Maketext::Simple -MPod::Usage -e '' >/
   if [[ "$OSTYPE" == "msys" ]] ; then
     echo "For Git Bash you need to manually copy ExtUtils, Locale and Pod modules to /usr/share/perl5/core_perl from any compatible Perl installation."
   fi
+  exit 1
+fi
+
+if ! java --help >/dev/null 2>&1 ; then
+  echo "Error: Java installation is broken. Install JDK from https://www.oracle.com/java/technologies/downloads/."
   exit 1
 fi
