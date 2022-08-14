@@ -344,6 +344,7 @@ tl_config tl_config_parser::parse_config() {
 
   std::int32_t constructors_n = try_parse_int();
   assert(static_cast<std::size_t>(constructors_n) == constructors_total);
+  (void)constructors_total;
   for (std::int32_t i = 0; i < constructors_n; i++) {
     tl_combinator *constructor = read_combinator();
     config.get_type(constructor->type_id)->add_constructor(constructor);
