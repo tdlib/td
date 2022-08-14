@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-cd $(dirname $0)
 
 ANDROID_SDK_ROOT=${1:-SDK}
 ANDROID_NDK_VERSION=${2:-23.2.8568313}
@@ -22,6 +21,8 @@ mkdir -p $OPENSSL_INSTALL_DIR || exit 1
 
 ANDROID_SDK_ROOT="$(cd "$(dirname -- "$ANDROID_SDK_ROOT")" >/dev/null; pwd -P)/$(basename -- "$ANDROID_SDK_ROOT")"
 OPENSSL_INSTALL_DIR="$(cd "$(dirname -- "$OPENSSL_INSTALL_DIR")" >/dev/null; pwd -P)/$(basename -- "$OPENSSL_INSTALL_DIR")"
+
+cd $(dirname $0)
 
 echo "Downloading OpenSSL sources..."
 rm -f $OPENSSL_VERSION.tar.gz || exit 1

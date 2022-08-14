@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-cd $(dirname $0)
 
 ANDROID_SDK_ROOT=${1:-SDK}
 ANDROID_NDK_VERSION=${2:-23.2.8568313}

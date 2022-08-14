@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-cd $(dirname $0)
 
 ANDROID_SDK_ROOT=${1:-SDK}
 ANDROID_NDK_VERSION=${2:-23.2.8568313}
@@ -27,6 +26,8 @@ ANDROID_SDK_ROOT="$(cd "$(dirname -- "$ANDROID_SDK_ROOT")" >/dev/null; pwd -P)/$
 ANDROID_NDK_ROOT="$ANDROID_SDK_ROOT/ndk/$ANDROID_NDK_VERSION"
 OPENSSL_INSTALL_DIR="$(cd "$(dirname -- "$OPENSSL_INSTALL_DIR")" >/dev/null; pwd -P)/$(basename -- "$OPENSSL_INSTALL_DIR")"
 PATH=$ANDROID_SDK_ROOT/cmake/3.22.1/bin:$PATH
+
+cd $(dirname $0)
 
 echo "Downloading annotation Java package..."
 rm -f android.jar annotation-1.4.0.jar || exit 1
