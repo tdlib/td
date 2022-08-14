@@ -46,12 +46,12 @@ bool HttpChunkedByteFlow::loop() {
       set_need_size(need_size);
       break;
     }
-    total_size_ += ready;
-    uncommited_size_ += ready;
-    if (total_size_ > MAX_SIZE) {
+    if (total_size_ > MAX_SIZE - ready) {
       finish(Status::Error(PSLICE() << "Too big query " << tag("size", input_->size())));
       return false;
     }
+    total_size_ += ready;
+    uncommited_size_ += ready;
 
     output_.append(input_->cut_head(ready));
     result = true;

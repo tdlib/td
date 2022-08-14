@@ -103,7 +103,7 @@ Result<size_t> HttpReader::read_next(HttpQuery *query, bool can_be_slow) {
         *source >> flow_sink_;
         content_ = flow_sink_.get_output();
 
-        if (content_length_ > MAX_CONTENT_SIZE) {
+        if (content_length_ >= MAX_CONTENT_SIZE) {
           return Status::Error(413, PSLICE() << "Request Entity Too Large: content length is " << content_length_);
         }
 
@@ -558,7 +558,11 @@ void HttpReader::process_header(MutableSlice header_name, MutableSlice header_va
   // TODO: check if protocol is HTTP/1.1
   query_->keep_alive_ = true;
   if (header_name == "content-length") {
-    content_length_ = to_integer<size_t>(header_value);
+    auto content_length = to_integer<uint64>(header_value);
+    if (content_length > MAX_CONTENT_SIZE) {
+      content_length = MAX_CONTENT_SIZE;
+    }
+    content_length_ = static_cast<size_t>(content_length);
   } else if (header_name == "connection") {
     to_lower_inplace(header_value);
     if (header_value == "close") {

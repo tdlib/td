@@ -17,8 +17,8 @@ class HttpChunkedByteFlow final : public ByteFlowBase {
   bool loop() final;
 
  private:
-  static constexpr int MAX_CHUNK_SIZE = 15 << 20;                     // some reasonable limit
-  static constexpr int MAX_SIZE = std::numeric_limits<int32>::max();  // some reasonable limit
+  static constexpr size_t MAX_CHUNK_SIZE = 15 << 20;                      // some reasonable limit
+  static constexpr size_t MAX_SIZE = std::numeric_limits<uint32>::max();  // some reasonable limit
   static constexpr size_t MIN_UPDATE_SIZE = 1 << 14;
   enum class State { ReadChunkLength, ReadChunkContent, OK };
   State state_ = State::ReadChunkLength;
