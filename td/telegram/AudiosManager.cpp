@@ -7,11 +7,15 @@
 #include "td/telegram/AudiosManager.h"
 
 #include "td/telegram/AuthManager.h"
+#include "td/telegram/DialogId.h"
 #include "td/telegram/files/FileManager.h"
 #include "td/telegram/files/FileType.h"
+#include "td/telegram/Global.h"
 #include "td/telegram/PhotoFormat.h"
 #include "td/telegram/secret_api.h"
 #include "td/telegram/Td.h"
+
+#include "td/actor/actor.h"
 
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"

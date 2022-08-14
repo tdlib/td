@@ -147,15 +147,15 @@ bool is_sticker_format_vector(StickerFormat sticker_format) {
 }
 
 int64 get_max_sticker_file_size(StickerFormat sticker_format, StickerType sticker_type, bool for_thumbnail) {
-  bool is_emoji = sticker_type == StickerType::CustomEmoji;
+  bool is_custom_emoji = sticker_type == StickerType::CustomEmoji;
   switch (sticker_format) {
     case StickerFormat::Unknown:
     case StickerFormat::Webp:
-      return for_thumbnail ? (1 << 17) : (is_emoji ? (1 << 17) : (1 << 19));
+      return for_thumbnail ? (1 << 17) : (is_custom_emoji ? (1 << 17) : (1 << 19));
     case StickerFormat::Tgs:
       return for_thumbnail ? (1 << 15) : (1 << 16);
     case StickerFormat::Webm:
-      return for_thumbnail ? (1 << 15) : (is_emoji ? (1 << 16) : (1 << 18));
+      return for_thumbnail ? (1 << 15) : (is_custom_emoji ? (1 << 16) : (1 << 18));
     default:
       UNREACHABLE();
       return 0;

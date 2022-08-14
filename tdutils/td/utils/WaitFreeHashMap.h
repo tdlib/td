@@ -43,7 +43,7 @@ class WaitFreeHashMap {
     return const_cast<WaitFreeHashMap *>(this)->get_storage(key);
   }
 
-  void split() {
+  void split_storage() {
     CHECK(wait_free_storage_ == nullptr);
     wait_free_storage_ = make_unique<WaitFreeStorage>();
     for (auto &it : default_map_) {
@@ -57,7 +57,7 @@ class WaitFreeHashMap {
     auto &storage = get_storage(key);
     storage[key] = std::move(value);
     if (default_map_.size() == MAX_STORAGE_SIZE) {
-      split();
+      split_storage();
     }
   }
 
@@ -103,7 +103,7 @@ class WaitFreeHashMap {
         return result;
       }
 
-      split();
+      split_storage();
     }
 
     return get_wait_free_storage(key)[key];

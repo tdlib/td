@@ -12,7 +12,6 @@
 #include "td/telegram/PhotoSize.hpp"
 #include "td/telegram/Version.h"
 
-#include "td/utils/logging.h"
 #include "td/utils/tl_helpers.h"
 
 namespace td {
