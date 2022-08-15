@@ -4300,7 +4300,7 @@ Result<FormattedText> get_formatted_text(const Td *td, DialogId dialog_id,
       return FormattedText();
     }
 
-    return Status::Error(400, "Text can't be empty");
+    return Status::Error(400, "Text must be non-empty");
   }
 
   TRY_RESULT(entities, get_message_entities(td->contacts_manager_.get(), std::move(text->entities_)));

@@ -7999,6 +7999,12 @@ void Td::on_request(uint64 id, const td_api::getUserSupportInfo &request) {
   get_user_info(this, UserId(request.user_id_), std::move(promise));
 }
 
+void Td::on_request(uint64 id, td_api::setUserSupportInfo &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  set_user_info(this, UserId(request.user_id_), std::move(request.message_), std::move(promise));
+}
+
 void Td::on_request(uint64 id, const td_api::getTextEntities &request) {
   UNREACHABLE();
 }
