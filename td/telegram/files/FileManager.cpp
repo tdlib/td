@@ -2576,7 +2576,7 @@ void FileManager::resume_upload(FileId file_id, vector<int> bad_parts, std::shar
     return;
   }
 
-  if (file_view.has_local_location()) {
+  if (file_view.has_local_location() && new_priority != 0) {
     auto status = check_local_location(node);
     if (status.is_error()) {
       LOG(INFO) << "Full local location of file " << file_id << " for upload is invalid: " << status;
