@@ -1630,12 +1630,12 @@ InlineMessageContent create_inline_message_content(Td *td, FileId file_id,
       }
 
       result.disable_web_page_preview = inline_message->no_webpage_;
+      FormattedText text{std::move(inline_message->message_), std::move(entities)};
       WebPageId web_page_id;
       if (!result.disable_web_page_preview) {
-        web_page_id = td->web_pages_manager_->get_web_page_by_url(get_first_url(inline_message->message_, entities));
+        web_page_id = td->web_pages_manager_->get_web_page_by_url(get_first_url(text));
       }
-      result.message_content = make_unique<MessageText>(
-          FormattedText{std::move(inline_message->message_), std::move(entities)}, web_page_id);
+      result.message_content = make_unique<MessageText>(std::move(text), web_page_id);
       reply_markup = std::move(inline_message->reply_markup_);
       break;
     }
@@ -1772,8 +1772,7 @@ static Result<InputMessageContent> create_input_message_content(
           dialog_id.get_type() != DialogType::Channel ||
           td->contacts_manager_->get_channel_permissions(dialog_id.get_channel_id()).can_add_web_page_previews();
       if (!is_bot && !disable_web_page_preview && can_add_web_page_previews) {
-        web_page_id = td->web_pages_manager_->get_web_page_by_url(
-            get_first_url(input_message_text.text.text, input_message_text.text.entities));
+        web_page_id = td->web_pages_manager_->get_web_page_by_url(get_first_url(input_message_text.text));
       }
       content = make_unique<MessageText>(std::move(input_message_text.text), web_page_id);
       break;

@@ -170,7 +170,7 @@ vector<std::pair<Slice, int32>> find_media_timestamps(Slice str);  // slice + me
 
 void remove_empty_entities(vector<MessageEntity> &entities);
 
-string get_first_url(Slice text, const vector<MessageEntity> &entities);
+string get_first_url(const FormattedText &text);
 
 Result<vector<MessageEntity>> parse_markdown(string &text);
 

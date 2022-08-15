@@ -1776,8 +1776,8 @@ static bool is_plain_domain(Slice url) {
   return url.find('/') >= url.size() && url.find('?') >= url.size() && url.find('#') >= url.size();
 }
 
-string get_first_url(Slice text, const vector<MessageEntity> &entities) {
-  for (auto &entity : entities) {
+string get_first_url(const FormattedText &text) {
+  for (auto &entity : text.entities) {
     switch (entity.type) {
       case MessageEntity::Type::Mention:
         break;
@@ -1786,7 +1786,10 @@ string get_first_url(Slice text, const vector<MessageEntity> &entities) {
       case MessageEntity::Type::BotCommand:
         break;
       case MessageEntity::Type::Url: {
-        Slice url = utf8_utf16_substr(text, entity.offset, entity.length);
+        if (entity.length <= 4) {
+          continue;
+        }
+        Slice url = utf8_utf16_substr(text.text, entity.offset, entity.length);
         string scheme = to_lower(url.substr(0, 4));
         if (scheme == "ton:" || begins_with(scheme, "tg:") || scheme == "ftp:" || is_plain_domain(url)) {
           continue;

@@ -814,7 +814,8 @@ int64 WebPagesManager::get_web_page_preview(td_api::object_ptr<td_api::formatted
     return 0;
   }
 
-  auto url = get_first_url(text->text_, entities);
+  FormattedText formatted_text{std::move(text->text_), std::move(entities)};
+  auto url = get_first_url(formatted_text);
   if (url.empty()) {
     promise.set_value(Unit());
     return 0;
@@ -829,8 +830,10 @@ int64 WebPagesManager::get_web_page_preview(td_api::object_ptr<td_api::formatted
     promise.set_value(Unit());
   } else {
     td_->create_handler<GetWebPagePreviewQuery>(std::move(promise))
-        ->send(text->text_, get_input_message_entities(td_->contacts_manager_.get(), entities, "get_web_page_preview"),
-               request_id, std::move(url));
+        ->send(
+            formatted_text.text,
+            get_input_message_entities(td_->contacts_manager_.get(), formatted_text.entities, "get_web_page_preview"),
+            request_id, std::move(url));
   }
   return request_id;
 }
