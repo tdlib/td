@@ -66,12 +66,15 @@ for ABI in arm64-v8a armeabi-v7a x86_64 x86 ; do
   mkdir -p tdlib/libs/$ABI/ || exit 1
   cp -p build-$ABI/libtd*.so* tdlib/libs/$ABI/ || exit 1
   if [[ "$ANDROID_STL" == "c++_shared" ]] ; then
-    FULL_ABI=$(case $ABI in
-      "arm64-v8a") echo "aarch64-linux-android" ;;
-      "armeabi-v7a") echo "arm-linux-androideabi" ;;
-      "x86_64") echo "x86_64-linux-android" ;;
-      "x86") echo "i686-linux-android" ;;
-    esac)
+    if [[ "$ABI" == "arm64-v8a" ]] ; then
+      FULL_ABI="aarch64-linux-android"
+    elif [[ "$ABI" == "armeabi-v7a" ]] ; then
+      FULL_ABI="arm-linux-androideabi"
+    elif [[ "$ABI" == "x86_64" ]] ; then
+      FULL_ABI="x86_64-linux-android"
+    elif [[ "$ABI" == "x86" ]] ; then
+      FULL_ABI="i686-linux-android"
+    fi
     cp "$ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/$HOST_ARCH/sysroot/usr/lib/$FULL_ABI/libc++_shared.so" tdlib/libs/$ABI/ || exit 1
     "$ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/$HOST_ARCH/bin/llvm-strip" tdlib/libs/$ABI/libc++_shared.so || exit 1
   fi
