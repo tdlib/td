@@ -7,13 +7,18 @@
 #include "td/telegram/MessageReaction.h"
 
 #include "td/telegram/AccessRights.h"
+#include "td/telegram/ConfigManager.h"
+#include "td/telegram/ConfigShared.h"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/MessageSender.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/ServerMessageId.h"
+#include "td/telegram/StickersManager.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/UpdatesManager.h"
+
+#include "td/actor/actor.h"
 
 #include "td/utils/algorithm.h"
 #include "td/utils/buffer.h"
@@ -214,6 +219,46 @@ class GetMessageReactionsListQuery final : public Td::ResultHandler {
   void on_error(Status status) final {
     td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "GetMessageReactionsListQuery");
     promise_.set_error(std::move(status));
+  }
+};
+
+class SetDefaultReactionQuery final : public Td::ResultHandler {
+  string reaction_;
+
+ public:
+  void send(const string &reaction) {
+    reaction_ = reaction;
+    send_query(G()->net_query_creator().create(telegram_api::messages_setDefaultReaction(reaction)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_setDefaultReaction>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    if (!result_ptr.ok()) {
+      return on_error(Status::Error(400, "Receive false"));
+    }
+
+    auto default_reaction = G()->shared_config().get_option_string("default_reaction", "-");
+    LOG(INFO) << "Successfully set reaction " << reaction_ << " as default, current default is " << default_reaction;
+
+    if (default_reaction != reaction_) {
+      send_set_default_reaction_query(td_);
+    } else {
+      G()->shared_config().set_option_empty("default_reaction_needs_sync");
+    }
+  }
+
+  void on_error(Status status) final {
+    if (G()->close_flag()) {
+      return;
+    }
+
+    LOG(INFO) << "Failed to set default reaction: " << status;
+    G()->shared_config().set_option_empty("default_reaction_needs_sync");
+    send_closure(G()->config_manager(), &ConfigManager::reget_app_config, Promise<Unit>());
   }
 };
 
@@ -543,6 +588,24 @@ void get_message_added_reactions(Td *td, FullMessageId full_message_id, string r
 
   td->create_handler<GetMessageReactionsListQuery>(std::move(promise))
       ->send(full_message_id, std::move(reaction), std::move(offset), limit);
+}
+
+void set_default_reaction(Td *td, string reaction, Promise<Unit> &&promise) {
+  if (!td->stickers_manager_->is_active_reaction(reaction)) {
+    return promise.set_error(Status::Error(400, "Can't set incative reaction as default"));
+  }
+
+  if (G()->shared_config().get_option_string("default_reaction", "-") != reaction) {
+    G()->shared_config().set_option_string("default_reaction", reaction);
+    if (!G()->shared_config().get_option_boolean("default_reaction_needs_sync")) {
+      G()->shared_config().set_option_boolean("default_reaction_needs_sync", true);
+    }
+  }
+  promise.set_value(Unit());
+}
+
+void send_set_default_reaction_query(Td *td) {
+  td->create_handler<SetDefaultReactionQuery>()->send(G()->shared_config().get_option_string("default_reaction"));
 }
 
 }  // namespace td

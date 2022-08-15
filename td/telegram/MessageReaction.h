@@ -180,4 +180,8 @@ void set_message_reaction(Td *td, FullMessageId full_message_id, string reaction
 void get_message_added_reactions(Td *td, FullMessageId full_message_id, string reaction, string offset, int32 limit,
                                  Promise<td_api::object_ptr<td_api::addedReactions>> &&promise);
 
+void set_default_reaction(Td *td, string reaction, Promise<Unit> &&promise);
+
+void send_set_default_reaction_query(Td *td);
+
 }  // namespace td

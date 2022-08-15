@@ -59,10 +59,6 @@ class OptionManager final : public Actor {
 
   void send_unix_time_update();
 
-  void set_default_reaction();
-
-  void on_set_default_reaction(bool success);
-
   Td *td_;
   ActorShared<> parent_;
 
