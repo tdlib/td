@@ -796,32 +796,20 @@ void WebPagesManager::on_get_web_page_preview_fail(int64 request_id, const strin
 }
 
 int64 WebPagesManager::get_web_page_preview(td_api::object_ptr<td_api::formattedText> &&text, Promise<Unit> &&promise) {
-  if (text == nullptr) {
-    promise.set_value(Unit());
+  auto r_formatted_text = get_formatted_text(td_, DialogId(), std::move(text), false, true);
+  if (r_formatted_text.is_error()) {
+    promise.set_error(r_formatted_text.move_as_error());
     return 0;
   }
+  auto formatted_text = r_formatted_text.move_as_ok();
 
-  auto r_entities = get_message_entities(td_->contacts_manager_.get(), std::move(text->entities_));
-  if (r_entities.is_error()) {
-    promise.set_error(r_entities.move_as_error());
-    return 0;
-  }
-  auto entities = r_entities.move_as_ok();
-
-  auto result = fix_formatted_text(text->text_, entities, true, false, true, true, false);
-  if (result.is_error() || text->text_.empty()) {
-    promise.set_value(Unit());
-    return 0;
-  }
-
-  FormattedText formatted_text{std::move(text->text_), std::move(entities)};
   auto url = get_first_url(formatted_text);
   if (url.empty()) {
     promise.set_value(Unit());
     return 0;
   }
 
-  LOG(INFO) << "Trying to get web page preview for message \"" << text->text_ << '"';
+  LOG(INFO) << "Trying to get web page preview for message \"" << formatted_text.text << '"';
   int64 request_id = get_web_page_preview_request_id_++;
 
   auto web_page_id = get_web_page_by_url(url);
