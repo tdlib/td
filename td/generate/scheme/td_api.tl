@@ -4550,6 +4550,10 @@ logVerbosityLevel verbosity_level:int32 = LogVerbosityLevel;
 logTags tags:vector<string> = LogTags;
 
 
+//@description Contains custom information about the user @message Information message @author Information author @date Information change date
+userSupportInfo message:formattedText author:string date:int32 = UserSupportInfo;
+
+
 //@description A simple object containing a number; for testing only @value Number
 testInt value:int32 = TestInt;
 //@description A simple object containing a string; for testing only @value String
@@ -6582,6 +6586,10 @@ getLogTagVerbosityLevel tag:string = LogVerbosityLevel;
 //@description Adds a message to TDLib internal log. Can be called synchronously
 //@verbosity_level The minimum verbosity level needed for the message to be logged; 0-1023 @text Text of a message to log
 addLogMessage verbosity_level:int32 text:string = Ok;
+
+
+//@description Returns support information for the given user; for Telegram support only @user_id User identifier
+getUserSupportInfo user_id:int53 = UserSupportInfo;
 
 
 //@description Does nothing; for testing only. This is an offline method. Can be called before authorization

@@ -1347,6 +1347,8 @@ class Td final : public Actor {
 
   void on_request(uint64 id, const td_api::pingProxy &request);
 
+  void on_request(uint64 id, const td_api::getUserSupportInfo &request);
+
   void on_request(uint64 id, const td_api::getTextEntities &request);
 
   void on_request(uint64 id, const td_api::parseTextEntities &request);

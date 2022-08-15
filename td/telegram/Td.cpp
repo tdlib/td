@@ -111,6 +111,7 @@
 #include "td/telegram/StickerType.h"
 #include "td/telegram/StorageManager.h"
 #include "td/telegram/SuggestedAction.h"
+#include "td/telegram/Support.h"
 #include "td/telegram/td_api.hpp"
 #include "td/telegram/TdDb.h"
 #include "td/telegram/telegram_api.hpp"
@@ -7990,6 +7991,12 @@ void Td::on_request(uint64 id, const td_api::pingProxy &request) {
     }
   });
   send_closure(G()->connection_creator(), &ConnectionCreator::ping_proxy, request.proxy_id_, std::move(query_promise));
+}
+
+void Td::on_request(uint64 id, const td_api::getUserSupportInfo &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  get_user_info(this, UserId(request.user_id_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::getTextEntities &request) {

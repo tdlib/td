@@ -4820,6 +4820,10 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::getProxyLink>(as_proxy_id(args)));
     } else if (op == "pproxy") {
       send_request(td_api::make_object<td_api::pingProxy>(as_proxy_id(args)));
+    } else if (op == "gusi") {
+      UserId user_id;
+      get_args(args, user_id);
+      send_request(td_api::make_object<td_api::getUserSupportInfo>(user_id));
     } else if (op == "touch") {
       auto r_fd = FileFd::open(args, FileFd::Read | FileFd::Write);
       if (r_fd.is_error()) {
