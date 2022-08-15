@@ -25523,9 +25523,8 @@ Result<MessageCopyOptions> MessagesManager::process_message_copy_options(
   result.send_copy = true;
   result.replace_caption = options->replace_caption_;
   if (result.replace_caption) {
-    TRY_RESULT_ASSIGN(result.new_caption,
-                      process_input_caption(td_->contacts_manager_.get(), dialog_id, std::move(options->new_caption_),
-                                            td_->auth_manager_->is_bot()));
+    TRY_RESULT_ASSIGN(result.new_caption, get_formatted_text(td_, dialog_id, std::move(options->new_caption_),
+                                                             td_->auth_manager_->is_bot(), true, false, false));
   }
   return std::move(result);
 }
@@ -27275,8 +27274,8 @@ void MessagesManager::edit_message_caption(FullMessageId full_message_id,
     return promise.set_error(Status::Error(400, "There is no caption in the message to edit"));
   }
 
-  auto r_caption = process_input_caption(td_->contacts_manager_.get(), dialog_id, std::move(input_caption),
-                                         td_->auth_manager_->is_bot());
+  auto r_caption =
+      get_formatted_text(td_, dialog_id, std::move(input_caption), td_->auth_manager_->is_bot(), true, false, false);
   if (r_caption.is_error()) {
     return promise.set_error(r_caption.move_as_error());
   }
@@ -27475,8 +27474,8 @@ void MessagesManager::edit_inline_message_caption(const string &inline_message_i
     return promise.set_error(Status::Error(400, "Method is available only for bots"));
   }
 
-  auto r_caption = process_input_caption(td_->contacts_manager_.get(), DialogId(), std::move(input_caption),
-                                         td_->auth_manager_->is_bot());
+  auto r_caption =
+      get_formatted_text(td_, DialogId(), std::move(input_caption), td_->auth_manager_->is_bot(), true, false, false);
   if (r_caption.is_error()) {
     return promise.set_error(r_caption.move_as_error());
   }

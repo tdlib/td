@@ -212,9 +212,6 @@ FormattedText get_message_text(const ContactsManager *contacts_manager, string m
 td_api::object_ptr<td_api::formattedText> extract_input_caption(
     tl_object_ptr<td_api::InputMessageContent> &input_message_content);
 
-Result<FormattedText> process_input_caption(const ContactsManager *contacts_manager, DialogId dialog_id,
-                                            tl_object_ptr<td_api::formattedText> &&caption, bool is_bot);
-
 Result<FormattedText> get_formatted_text(const Td *td, DialogId dialog_id,
                                          td_api::object_ptr<td_api::formattedText> &&text, bool is_bot,
                                          bool allow_empty, bool skip_media_timestamps, bool for_draft);

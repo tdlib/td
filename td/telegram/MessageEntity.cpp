@@ -4292,17 +4292,6 @@ td_api::object_ptr<td_api::formattedText> extract_input_caption(
   }
 }
 
-Result<FormattedText> process_input_caption(const ContactsManager *contacts_manager, DialogId dialog_id,
-                                            tl_object_ptr<td_api::formattedText> &&caption, bool is_bot) {
-  if (caption == nullptr) {
-    return FormattedText();
-  }
-  TRY_RESULT(entities, get_message_entities(contacts_manager, std::move(caption->entities_)));
-  TRY_STATUS(fix_formatted_text(caption->text_, entities, true, false,
-                                need_always_skip_bot_commands(contacts_manager, dialog_id, is_bot), is_bot, false));
-  return FormattedText{std::move(caption->text_), std::move(entities)};
-}
-
 Result<FormattedText> get_formatted_text(const Td *td, DialogId dialog_id,
                                          td_api::object_ptr<td_api::formattedText> &&text, bool is_bot,
                                          bool allow_empty, bool skip_media_timestamps, bool for_draft) {

@@ -2017,7 +2017,7 @@ static Result<InputMessageContent> create_input_message_content(
             return Status::Error(400, "Wrong correct option ID specified");
           }
           auto r_explanation =
-              process_input_caption(td->contacts_manager_.get(), dialog_id, std::move(type->explanation_), is_bot);
+              get_formatted_text(td, dialog_id, std::move(type->explanation_), is_bot, true, true, false);
           if (r_explanation.is_error()) {
             return r_explanation.move_as_error();
           }
@@ -2158,8 +2158,8 @@ Result<InputMessageContent> get_input_message_content(
     }
   }
 
-  TRY_RESULT(caption, process_input_caption(td->contacts_manager_.get(), dialog_id,
-                                            extract_input_caption(input_message_content), td->auth_manager_->is_bot()));
+  TRY_RESULT(caption, get_formatted_text(td, dialog_id, extract_input_caption(input_message_content),
+                                         td->auth_manager_->is_bot(), true, false, false));
   return create_input_message_content(dialog_id, std::move(input_message_content), td, std::move(caption), file_id,
                                       std::move(thumbnail), std::move(sticker_file_ids), is_premium);
 }
