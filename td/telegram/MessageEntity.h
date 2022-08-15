@@ -215,6 +215,9 @@ td_api::object_ptr<td_api::formattedText> extract_input_caption(
 Result<FormattedText> process_input_caption(const ContactsManager *contacts_manager, DialogId dialog_id,
                                             tl_object_ptr<td_api::formattedText> &&caption, bool is_bot);
 
+Result<FormattedText> get_formatted_text(const Td *td, DialogId dialog_id,
+                                         td_api::object_ptr<td_api::formattedText> &&text, bool is_bot, bool for_draft);
+
 void add_formatted_text_dependencies(Dependencies &dependencies, const FormattedText *text);
 
 bool has_media_timestamps(const FormattedText *text, int32 min_media_timestamp, int32 max_media_timestamp);

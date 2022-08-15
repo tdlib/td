@@ -4300,6 +4300,34 @@ Result<FormattedText> process_input_caption(const ContactsManager *contacts_mana
   return FormattedText{std::move(caption->text_), std::move(entities)};
 }
 
+Result<FormattedText> get_formatted_text(const Td *td, DialogId dialog_id,
+                                         td_api::object_ptr<td_api::formattedText> &&text, bool is_bot,
+                                         bool for_draft) {
+  if (text == nullptr) {
+    if (for_draft) {
+      return FormattedText();
+    }
+
+    return Status::Error(400, "Text can't be empty");
+  }
+
+  TRY_RESULT(entities, get_message_entities(td->contacts_manager_.get(), std::move(text->entities_)));
+  auto need_skip_bot_commands = need_always_skip_bot_commands(td->contacts_manager_.get(), dialog_id, is_bot);
+  bool parse_markdown = G()->shared_config().get_option_boolean("always_parse_markdown");
+  TRY_STATUS(fix_formatted_text(text->text_, entities, for_draft, parse_markdown, need_skip_bot_commands,
+                                is_bot || for_draft || parse_markdown, for_draft));
+
+  FormattedText result{std::move(text->text_), std::move(entities)};
+  if (parse_markdown) {
+    result = parse_markdown_v3(std::move(result));
+    fix_formatted_text(result.text, result.entities, for_draft, false, need_skip_bot_commands, is_bot || for_draft,
+                       for_draft)
+        .ensure();
+  }
+  remove_unallowed_entities(td, result, dialog_id);
+  return std::move(result);
+}
+
 void add_formatted_text_dependencies(Dependencies &dependencies, const FormattedText *text) {
   if (text == nullptr) {
     return;

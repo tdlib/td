@@ -30,31 +30,9 @@ Result<InputMessageText> process_input_message_text(const Td *td, DialogId dialo
   CHECK(input_message_content != nullptr);
   CHECK(input_message_content->get_id() == td_api::inputMessageText::ID);
   auto input_message_text = static_cast<td_api::inputMessageText *>(input_message_content.get());
-  if (input_message_text->text_ == nullptr) {
-    if (for_draft) {
-      return InputMessageText{FormattedText(), input_message_text->disable_web_page_preview_,
-                              input_message_text->clear_draft_};
-    }
-
-    return Status::Error(400, "Message text can't be empty");
-  }
-
-  TRY_RESULT(entities,
-             get_message_entities(td->contacts_manager_.get(), std::move(input_message_text->text_->entities_)));
-  auto need_skip_bot_commands = need_always_skip_bot_commands(td->contacts_manager_.get(), dialog_id, is_bot);
-  bool parse_markdown = G()->shared_config().get_option_boolean("always_parse_markdown");
-  TRY_STATUS(fix_formatted_text(input_message_text->text_->text_, entities, for_draft, parse_markdown,
-                                need_skip_bot_commands, is_bot || for_draft || parse_markdown, for_draft));
-  InputMessageText result{FormattedText{std::move(input_message_text->text_->text_), std::move(entities)},
-                          input_message_text->disable_web_page_preview_, input_message_text->clear_draft_};
-  if (parse_markdown) {
-    result.text = parse_markdown_v3(std::move(result.text));
-    fix_formatted_text(result.text.text, result.text.entities, for_draft, false, need_skip_bot_commands,
-                       is_bot || for_draft, for_draft)
-        .ensure();
-  }
-  remove_unallowed_entities(td, result.text, dialog_id);
-  return std::move(result);
+  TRY_RESULT(text, get_formatted_text(td, dialog_id, std::move(input_message_text->text_), is_bot, for_draft));
+  return InputMessageText{std::move(text), input_message_text->disable_web_page_preview_,
+                          input_message_text->clear_draft_};
 }
 
 // used only for draft
