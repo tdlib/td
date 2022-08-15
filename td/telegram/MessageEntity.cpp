@@ -4305,9 +4305,9 @@ Result<FormattedText> process_input_caption(const ContactsManager *contacts_mana
 
 Result<FormattedText> get_formatted_text(const Td *td, DialogId dialog_id,
                                          td_api::object_ptr<td_api::formattedText> &&text, bool is_bot,
-                                         bool for_draft) {
+                                         bool allow_empty, bool skip_media_timestamps, bool for_draft) {
   if (text == nullptr) {
-    if (for_draft) {
+    if (allow_empty) {
       return FormattedText();
     }
 
@@ -4317,14 +4317,14 @@ Result<FormattedText> get_formatted_text(const Td *td, DialogId dialog_id,
   TRY_RESULT(entities, get_message_entities(td->contacts_manager_.get(), std::move(text->entities_)));
   auto need_skip_bot_commands = need_always_skip_bot_commands(td->contacts_manager_.get(), dialog_id, is_bot);
   bool parse_markdown = G()->shared_config().get_option_boolean("always_parse_markdown");
-  TRY_STATUS(fix_formatted_text(text->text_, entities, for_draft, parse_markdown, need_skip_bot_commands,
-                                is_bot || for_draft || parse_markdown, for_draft));
+  TRY_STATUS(fix_formatted_text(text->text_, entities, allow_empty, parse_markdown, need_skip_bot_commands,
+                                is_bot || skip_media_timestamps || parse_markdown, for_draft));
 
   FormattedText result{std::move(text->text_), std::move(entities)};
   if (parse_markdown) {
     result = parse_markdown_v3(std::move(result));
-    fix_formatted_text(result.text, result.entities, for_draft, false, need_skip_bot_commands, is_bot || for_draft,
-                       for_draft)
+    fix_formatted_text(result.text, result.entities, allow_empty, false, need_skip_bot_commands,
+                       is_bot || skip_media_timestamps, for_draft)
         .ensure();
   }
   remove_unallowed_entities(td, result, dialog_id);

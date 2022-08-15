@@ -30,7 +30,8 @@ Result<InputMessageText> process_input_message_text(const Td *td, DialogId dialo
   CHECK(input_message_content != nullptr);
   CHECK(input_message_content->get_id() == td_api::inputMessageText::ID);
   auto input_message_text = static_cast<td_api::inputMessageText *>(input_message_content.get());
-  TRY_RESULT(text, get_formatted_text(td, dialog_id, std::move(input_message_text->text_), is_bot, for_draft));
+  TRY_RESULT(text, get_formatted_text(td, dialog_id, std::move(input_message_text->text_), is_bot, for_draft, for_draft,
+                                      for_draft));
   return InputMessageText{std::move(text), input_message_text->disable_web_page_preview_,
                           input_message_text->clear_draft_};
 }

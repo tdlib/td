@@ -796,7 +796,7 @@ void WebPagesManager::on_get_web_page_preview_fail(int64 request_id, const strin
 }
 
 int64 WebPagesManager::get_web_page_preview(td_api::object_ptr<td_api::formattedText> &&text, Promise<Unit> &&promise) {
-  auto r_formatted_text = get_formatted_text(td_, DialogId(), std::move(text), false, true);
+  auto r_formatted_text = get_formatted_text(td_, DialogId(), std::move(text), false, true, true, true);
   if (r_formatted_text.is_error()) {
     promise.set_error(r_formatted_text.move_as_error());
     return 0;
