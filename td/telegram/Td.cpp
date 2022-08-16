@@ -5249,20 +5249,19 @@ void Td::on_request(uint64 id, const td_api::getMessageAvailableReactions &reque
 
 void Td::on_request(uint64 id, td_api::setMessageReaction &request) {
   CHECK_IS_USER();
-  CLEAN_INPUT_STRING(request.reaction_);
   CREATE_OK_REQUEST_PROMISE();
   messages_manager_->set_message_reaction({DialogId(request.chat_id_), MessageId(request.message_id_)},
-                                          std::move(request.reaction_), request.is_big_, std::move(promise));
+                                          get_message_reaction_string(request.reaction_type_), request.is_big_,
+                                          std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::getMessageAddedReactions &request) {
   CHECK_IS_USER();
-  CLEAN_INPUT_STRING(request.reaction_);
   CLEAN_INPUT_STRING(request.offset_);
   CREATE_REQUEST_PROMISE();
   get_message_added_reactions(this, {DialogId(request.chat_id_), MessageId(request.message_id_)},
-                              std::move(request.reaction_), std::move(request.offset_), request.limit_,
-                              std::move(promise));
+                              get_message_reaction_string(request.reaction_type_), std::move(request.offset_),
+                              request.limit_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::getMessagePublicForwards &request) {

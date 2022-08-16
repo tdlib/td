@@ -808,6 +808,15 @@ messageForwardOriginChannel chat_id:int53 message_id:int53 author_signature:stri
 messageForwardOriginMessageImport sender_name:string = MessageForwardOrigin;
 
 
+//@class ReactionType @description Describes type of message reaction
+
+//@description A reaction with an emoji @emoji Text representation of the reaction
+reactionTypeEmoji emoji:string = ReactionType;
+
+//@description A reaction with a custom emoji @custom_emoji_id Unique identifier of the custom emoji
+reactionTypeCustomEmoji custom_emoji_id:int64 = ReactionType;
+
+
 //@description Contains information about a forwarded message
 //@origin Origin of a forwarded message
 //@date Point in time (Unix timestamp) when the message was originally sent
@@ -825,11 +834,11 @@ messageForwardInfo origin:MessageForwardOrigin date:int32 public_service_announc
 messageReplyInfo reply_count:int32 recent_replier_ids:vector<MessageSender> last_read_inbox_message_id:int53 last_read_outbox_message_id:int53 last_message_id:int53 = MessageReplyInfo;
 
 //@description Contains information about a reaction to a message
-//@reaction Text representation of the reaction
+//@type Type of the reaction
 //@total_count Number of times the reaction was added
 //@is_chosen True, if the reaction is chosen by the current user
 //@recent_sender_ids Identifiers of at most 3 recent message senders, added the reaction; available in private, basic group and supergroup chats
-messageReaction reaction:string total_count:int32 is_chosen:Bool recent_sender_ids:vector<MessageSender> = MessageReaction;
+messageReaction type:ReactionType total_count:int32 is_chosen:Bool recent_sender_ids:vector<MessageSender> = MessageReaction;
 
 //@description Contains information about interactions with a message
 //@view_count Number of times the message was viewed
@@ -839,10 +848,10 @@ messageReaction reaction:string total_count:int32 is_chosen:Bool recent_sender_i
 messageInteractionInfo view_count:int32 forward_count:int32 reply_info:messageReplyInfo reactions:vector<messageReaction> = MessageInteractionInfo;
 
 //@description Contains information about an unread reaction to a message
-//@reaction Text representation of the reaction
+//@type Type of the reaction
 //@sender_id Identifier of the sender, added the reaction
 //@is_big True, if the reaction was added with a big animation
-unreadReaction reaction:string sender_id:MessageSender is_big:Bool = UnreadReaction;
+unreadReaction type:ReactionType sender_id:MessageSender is_big:Bool = UnreadReaction;
 
 
 //@class MessageSendingState @description Contains information about the sending state of the message
@@ -2547,8 +2556,8 @@ call id:int32 user_id:int53 is_outgoing:Bool is_video:Bool state:CallState = Cal
 phoneNumberAuthenticationSettings allow_flash_call:Bool allow_missed_call:Bool is_current_phone_number:Bool allow_sms_retriever_api:Bool authentication_tokens:vector<string> = PhoneNumberAuthenticationSettings;
 
 
-//@description Represents a reaction applied to a message @reaction Text representation of the reaction @sender_id Identifier of the chat member, applied the reaction
-addedReaction reaction:string sender_id:MessageSender = AddedReaction;
+//@description Represents a reaction applied to a message @type Type of the reaction @sender_id Identifier of the chat member, applied the reaction
+addedReaction type:ReactionType sender_id:MessageSender = AddedReaction;
 
 //@description Represents a list of reactions added to a message @total_count The total number of found reactions @reactions The list of added reactions @next_offset The offset for the next request. If empty, there are no more results
 addedReactions total_count:int32 reactions:vector<addedReaction> next_offset:string = AddedReactions;
@@ -2560,7 +2569,7 @@ availableReaction reaction:string needs_premium:Bool = AvailableReaction;
 availableReactions reactions:vector<availableReaction> = AvailableReactions;
 
 
-//@description Contains stickers which must be used for reaction animation rendering
+//@description Contains stickers which must be used for emoji reaction animation rendering
 //@reaction Text representation of the reaction
 //@title Reaction title
 //@is_active True, if the reaction can be added to new messages and enabled in chats
@@ -5116,17 +5125,17 @@ getMessageAvailableReactions chat_id:int53 message_id:int53 = AvailableReactions
 //@description Changes chosen reaction for a message
 //@chat_id Identifier of the chat to which the message belongs
 //@message_id Identifier of the message
-//@reaction Text representation of the new chosen reaction. Can be an empty string or the currently chosen non-big reaction to remove the reaction
+//@reaction_type Type of the new chosen reaction; pass null or the currently chosen non-big reaction to remove the reaction
 //@is_big Pass true if the reaction is added with a big animation
-setMessageReaction chat_id:int53 message_id:int53 reaction:string is_big:Bool = Ok;
+setMessageReaction chat_id:int53 message_id:int53 reaction_type:ReactionType is_big:Bool = Ok;
 
 //@description Returns reactions added for a message, along with their sender
 //@chat_id Identifier of the chat to which the message belongs
 //@message_id Identifier of the message
-//@reaction If non-empty, only added reactions with the specified text representation will be returned
+//@reaction_type Type of the reactions to return; pass null to return all added reactions
 //@offset Offset of the first entry to return as received from the previous request; use empty string to get the first chunk of results
 //@limit The maximum number of reactions to be returned; must be positive and can't be greater than 100
-getMessageAddedReactions chat_id:int53 message_id:int53 reaction:string offset:string limit:int32 = AddedReactions;
+getMessageAddedReactions chat_id:int53 message_id:int53 reaction_type:ReactionType offset:string limit:int32 = AddedReactions;
 
 
 //@description Returns all entities (mentions, hashtags, cashtags, bot commands, bank card numbers, URLs, and email addresses) contained in the text. Can be called synchronously @text The text in which to look for entites

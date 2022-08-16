@@ -173,6 +173,8 @@ StringBuilder &operator<<(StringBuilder &string_builder, const MessageReactions 
 
 StringBuilder &operator<<(StringBuilder &string_builder, const unique_ptr<MessageReactions> &reactions);
 
+string get_message_reaction_string(const td_api::object_ptr<td_api::ReactionType> &type);
+
 void reload_message_reactions(Td *td, DialogId dialog_id, vector<MessageId> &&message_ids);
 
 void set_message_reaction(Td *td, FullMessageId full_message_id, string reaction, bool is_big, Promise<Unit> &&promise);

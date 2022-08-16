@@ -21,19 +21,38 @@
 #include "td/actor/actor.h"
 
 #include "td/utils/algorithm.h"
+#include "td/utils/as.h"
+#include "td/utils/base64.h"
 #include "td/utils/buffer.h"
 #include "td/utils/FlatHashSet.h"
 #include "td/utils/logging.h"
 #include "td/utils/Status.h"
+#include "td/utils/utf8.h"
 
 #include <algorithm>
 #include <utility>
 
 namespace td {
 
+static int64 get_custom_emoji_id(const string &reaction) {
+  auto r_decoded = base64_decode(Slice(&reaction[1], reaction.size() - 1));
+  CHECK(r_decoded.is_ok());
+  CHECK(r_decoded.ok().size() == 8);
+  return as<int64>(r_decoded.ok().c_str());
+}
+
+static string get_custom_emoji_string(int64 custom_emoji_id) {
+  char s[8];
+  as<int64>(&s) = custom_emoji_id;
+  return PSTRING() << '#' << base64_encode(Slice(s, 8));
+}
+
 static telegram_api::object_ptr<telegram_api::Reaction> get_input_reaction(const string &reaction) {
   if (reaction.empty()) {
     return telegram_api::make_object<telegram_api::reactionEmpty>();
+  }
+  if (reaction[0] == '#') {
+    return telegram_api::make_object<telegram_api::reactionCustomEmoji>(get_custom_emoji_id(reaction));
   }
   return telegram_api::make_object<telegram_api::reactionEmoji>(reaction);
 }
@@ -48,7 +67,37 @@ static string get_reaction_string(const telegram_api::object_ptr<telegram_api::R
     case telegram_api::reactionEmoji::ID:
       return static_cast<const telegram_api::reactionEmoji *>(reaction.get())->emoticon_;
     case telegram_api::reactionCustomEmoji::ID:
+      return get_custom_emoji_string(
+          static_cast<const telegram_api::reactionCustomEmoji *>(reaction.get())->document_id_);
+    default:
+      UNREACHABLE();
       return string();
+  }
+}
+
+static td_api::object_ptr<td_api::ReactionType> get_reaction_type_object(const string &reaction) {
+  CHECK(!reaction.empty());
+  if (reaction[0] == '#') {
+    return td_api::make_object<td_api::reactionTypeCustomEmoji>(get_custom_emoji_id(reaction));
+  }
+  return td_api::make_object<td_api::reactionTypeEmoji>(reaction);
+}
+
+string get_message_reaction_string(const td_api::object_ptr<td_api::ReactionType> &type) {
+  if (type == nullptr) {
+    return string();
+  }
+  switch (type->get_id()) {
+    case td_api::reactionTypeEmoji::ID: {
+      const string &emoji = static_cast<const td_api::reactionTypeEmoji *>(type.get())->emoji_;
+      if (!check_utf8(emoji)) {
+        return string();
+      }
+      return emoji;
+    }
+    case td_api::reactionTypeCustomEmoji::ID:
+      return get_custom_emoji_string(
+          static_cast<const td_api::reactionTypeCustomEmoji *>(type.get())->custom_emoji_id_);
     default:
       UNREACHABLE();
       return string();
@@ -234,7 +283,8 @@ class GetMessageReactionsListQuery final : public Td::ResultHandler {
 
       auto message_sender = get_min_message_sender_object(td_, dialog_id, "GetMessageReactionsListQuery");
       if (message_sender != nullptr) {
-        reactions.push_back(td_api::make_object<td_api::addedReaction>(reaction_str, std::move(message_sender)));
+        reactions.push_back(td_api::make_object<td_api::addedReaction>(get_reaction_type_object(reaction_str),
+                                                                       std::move(message_sender)));
       }
     }
 
@@ -353,7 +403,8 @@ td_api::object_ptr<td_api::messageReaction> MessageReaction::get_message_reactio
       }
     }
   }
-  return td_api::make_object<td_api::messageReaction>(reaction_, choose_count_, is_chosen_, std::move(recent_choosers));
+  return td_api::make_object<td_api::messageReaction>(get_reaction_type_object(reaction_), choose_count_, is_chosen_,
+                                                      std::move(recent_choosers));
 }
 
 bool operator==(const MessageReaction &lhs, const MessageReaction &rhs) {
@@ -374,7 +425,8 @@ td_api::object_ptr<td_api::unreadReaction> UnreadMessageReaction::get_unread_rea
   if (sender_id == nullptr) {
     return nullptr;
   }
-  return td_api::make_object<td_api::unreadReaction>(reaction_, std::move(sender_id), is_big_);
+  return td_api::make_object<td_api::unreadReaction>(get_reaction_type_object(reaction_), std::move(sender_id),
+                                                     is_big_);
 }
 
 bool operator==(const UnreadMessageReaction &lhs, const UnreadMessageReaction &rhs) {

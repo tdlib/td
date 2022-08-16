@@ -724,6 +724,18 @@ class CliClient final : public Actor {
     return td_api::make_object<td_api::location>(to_double(latitude), to_double(longitude), to_double(accuracy));
   }
 
+  td_api::object_ptr<td_api::ReactionType> as_reaction_type(Slice type) const {
+    type = trim(type);
+    if (type.empty()) {
+      return nullptr;
+    }
+    auto r_custom_emoji_id = to_integer_safe<int64>(type);
+    if (r_custom_emoji_id.is_ok()) {
+      return td_api::make_object<td_api::reactionTypeCustomEmoji>(r_custom_emoji_id.ok());
+    }
+    return td_api::make_object<td_api::reactionTypeEmoji>(type.str());
+  }
+
   static bool as_bool(string str) {
     str = to_lower(trim(str));
     return str == "true" || str == "1";
@@ -2215,7 +2227,8 @@ class CliClient final : public Actor {
       string reaction;
       bool is_big;
       get_args(args, chat_id, message_id, reaction, is_big);
-      send_request(td_api::make_object<td_api::setMessageReaction>(chat_id, message_id, reaction, is_big));
+      send_request(
+          td_api::make_object<td_api::setMessageReaction>(chat_id, message_id, as_reaction_type(reaction), is_big));
     } else if (op == "gmars") {
       ChatId chat_id;
       MessageId message_id;
@@ -2223,8 +2236,8 @@ class CliClient final : public Actor {
       string offset;
       string limit;
       get_args(args, chat_id, message_id, reaction, offset, limit);
-      send_request(td_api::make_object<td_api::getMessageAddedReactions>(chat_id, message_id, reaction, offset,
-                                                                         as_limit(limit)));
+      send_request(td_api::make_object<td_api::getMessageAddedReactions>(
+          chat_id, message_id, as_reaction_type(reaction), offset, as_limit(limit)));
     } else if (op == "gmpf") {
       ChatId chat_id;
       MessageId message_id;
