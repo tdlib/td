@@ -6,10 +6,7 @@
 //
 #include "td/telegram/InputMessageText.h"
 
-#include "td/telegram/ConfigShared.h"
-#include "td/telegram/Global.h"
 #include "td/telegram/MessageEntity.h"
-#include "td/telegram/Td.h"
 
 #include "td/utils/common.h"
 
