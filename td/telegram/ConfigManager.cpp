@@ -1473,7 +1473,6 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
   int64 chat_read_mark_expire_period = 0;
   int64 chat_read_mark_size_threshold = 0;
   double animated_emoji_zoom = 0.0;
-  string default_reaction;
   int64 reactions_uniq_max = 0;
   vector<string> premium_features;
   auto &premium_limit_keys = get_premium_limit_keys();
@@ -1722,10 +1721,6 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
         chat_read_mark_size_threshold = get_json_value_int(std::move(key_value->value_), key);
         continue;
       }
-      if (key == "reactions_default") {
-        default_reaction = get_json_value_string(std::move(key_value->value_), key);
-        continue;
-      }
       if (key == "reactions_uniq_max") {
         reactions_uniq_max = get_json_value_int(std::move(key_value->value_), key);
         continue;
@@ -1871,9 +1866,6 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
     options.set_option_empty("chat_read_mark_size_threshold");
   } else {
     options.set_option_integer("chat_read_mark_size_threshold", chat_read_mark_size_threshold);
-  }
-  if (!options.have_option("default_reaction_need_sync")) {
-    options.set_option_string("default_reaction", default_reaction);
   }
   if (reactions_uniq_max <= 0 || reactions_uniq_max == 11) {
     options.set_option_empty("reactions_uniq_max");

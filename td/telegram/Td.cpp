@@ -5264,6 +5264,12 @@ void Td::on_request(uint64 id, td_api::getMessageAddedReactions &request) {
                               request.limit_, std::move(promise));
 }
 
+void Td::on_request(uint64 id, td_api::setDefaultReactionType &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  set_default_reaction(this, get_message_reaction_string(request.reaction_type_), std::move(promise));
+}
+
 void Td::on_request(uint64 id, td_api::getMessagePublicForwards &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.offset_);

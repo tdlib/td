@@ -5137,6 +5137,9 @@ setMessageReaction chat_id:int53 message_id:int53 reaction_type:ReactionType is_
 //@limit The maximum number of reactions to be returned; must be positive and can't be greater than 100
 getMessageAddedReactions chat_id:int53 message_id:int53 reaction_type:ReactionType offset:string limit:int32 = AddedReactions;
 
+//@description Changes default reaction type for the current user @reaction_type New type of the default reaction
+setDefaultReactionType reaction_type:ReactionType = Ok;
+
 
 //@description Returns all entities (mentions, hashtags, cashtags, bot commands, bank card numbers, URLs, and email addresses) contained in the text. Can be called synchronously @text The text in which to look for entites
 getTextEntities text:string = TextEntities;

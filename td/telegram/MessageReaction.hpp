@@ -51,6 +51,7 @@ void MessageReaction::parse(ParserT &parser) {
     td::parse(recent_chooser_min_channels_, parser);
   }
   CHECK(!is_empty());
+  CHECK(!reaction_.empty());
 }
 
 template <class StorerT>
@@ -69,6 +70,7 @@ void UnreadMessageReaction::parse(ParserT &parser) {
   END_PARSE_FLAGS();
   td::parse(reaction_, parser);
   td::parse(sender_dialog_id_, parser);
+  CHECK(!reaction_.empty());
 }
 
 template <class StorerT>

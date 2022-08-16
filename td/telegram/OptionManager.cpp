@@ -245,7 +245,7 @@ bool OptionManager::is_internal_option(Slice name) {
              name == "channels_read_media_period" || name == "chat_read_mark_expire_period" ||
              name == "chat_read_mark_size_threshold";
     case 'd':
-      return name == "dc_txt_domain_name" || name == "default_reaction_needs_sync" ||
+      return name == "dc_txt_domain_name" || name == "default_reaction" || name == "default_reaction_needs_sync" ||
              name == "dialog_filters_chats_limit_default" || name == "dialog_filters_chats_limit_premium" ||
              name == "dialog_filters_limit_default" || name == "dialog_filters_limit_premium" ||
              name == "dialogs_folder_pinned_limit_default" || name == "dialogs_folder_pinned_limit_premium" ||
@@ -317,9 +317,6 @@ void OptionManager::on_option_updated(Slice name) {
       }
       break;
     case 'd':
-      if (name == "default_reaction_needs_sync" && get_option_boolean(name)) {
-        send_set_default_reaction_query(td_);
-      }
       if (name == "dice_emojis") {
         send_closure(td_->stickers_manager_actor_, &StickersManager::on_update_dice_emojis);
       }
@@ -621,14 +618,6 @@ void OptionManager::set_option(const string &name, td_api::object_ptr<td_api::Op
       }
       break;
     case 'd':
-      if (!is_bot && name == "default_reaction") {
-        string reaction;
-        if (value_constructor_id == td_api::optionValueString::ID) {
-          reaction = static_cast<td_api::optionValueString *>(value.get())->value_;
-        }
-        set_default_reaction(td_, std::move(reaction), std::move(promise));
-        return;
-      }
       if (!is_bot && set_boolean_option("disable_animated_emoji")) {
         return;
       }

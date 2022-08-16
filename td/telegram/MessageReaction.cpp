@@ -340,7 +340,7 @@ class SetDefaultReactionQuery final : public Td::ResultHandler {
 
     LOG(INFO) << "Failed to set default reaction: " << status;
     td_->option_manager_->set_option_empty("default_reaction_needs_sync");
-    send_closure(G()->config_manager(), &ConfigManager::reget_app_config, Promise<Unit>());
+    send_closure(G()->config_manager(), &ConfigManager::request_config, false);
   }
 };
 
@@ -683,6 +683,7 @@ void set_default_reaction(Td *td, string reaction, Promise<Unit> &&promise) {
     td->option_manager_->set_option_string("default_reaction", reaction);
     if (!td->option_manager_->get_option_boolean("default_reaction_needs_sync")) {
       td->option_manager_->set_option_boolean("default_reaction_needs_sync", true);
+      send_set_default_reaction_query(td);
     }
   }
   promise.set_value(Unit());
