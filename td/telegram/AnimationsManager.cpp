@@ -125,17 +125,11 @@ class SaveGifQuery final : public Td::ResultHandler {
 };
 
 AnimationsManager::AnimationsManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
-  auto limit_string = G()->td_db()->get_binlog_pmc()->get("saved_animations_limit");
-  if (!limit_string.empty()) {
-    auto new_limit = to_integer<int32>(limit_string);
-    if (new_limit > 0) {
-      LOG(DEBUG) << "Load saved animations limit = " << new_limit;
-      saved_animations_limit_ = new_limit;
-    } else {
-      LOG(ERROR) << "Wrong saved animations limit = \"" << limit_string << "\" stored in database";
-    }
-  }
+  on_update_saved_animations_limit();
+
   next_saved_animations_load_time_ = Time::now();
+
+  G()->td_db()->get_binlog_pmc()->erase("saved_animations_limit");  // legacy
 }
 
 AnimationsManager::~AnimationsManager() {
@@ -447,7 +441,6 @@ void AnimationsManager::on_update_saved_animations_limit() {
   if (saved_animations_limit != saved_animations_limit_) {
     if (saved_animations_limit > 0) {
       LOG(INFO) << "Update saved animations limit to " << saved_animations_limit;
-      G()->td_db()->get_binlog_pmc()->set("saved_animations_limit", to_string(saved_animations_limit));
       saved_animations_limit_ = saved_animations_limit;
       if (static_cast<int32>(saved_animation_ids_.size()) > saved_animations_limit_) {
         saved_animation_ids_.resize(saved_animations_limit_);
