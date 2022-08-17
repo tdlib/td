@@ -7,7 +7,6 @@
 #include "td/telegram/ConfigManager.h"
 
 #include "td/telegram/AuthManager.h"
-#include "td/telegram/ConfigShared.h"
 #include "td/telegram/ConnectionState.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/JsonValue.h"
@@ -244,7 +243,7 @@ static ActorOwn<> get_simple_config_impl(Promise<SimpleConfigResult> promise, in
 #endif
 }
 
-ActorOwn<> get_simple_config_azure(Promise<SimpleConfigResult> promise, const ConfigShared *shared_config, bool is_test,
+ActorOwn<> get_simple_config_azure(Promise<SimpleConfigResult> promise, const Global *shared_config, bool is_test,
                                    int32 scheduler_id) {
   string url = PSTRING() << "https://software-download.microsoft.com/" << (is_test ? "test" : "prod")
                          << "v2/config.txt";
@@ -255,7 +254,7 @@ ActorOwn<> get_simple_config_azure(Promise<SimpleConfigResult> promise, const Co
 }
 
 static ActorOwn<> get_simple_config_dns(Slice address, Slice host, Promise<SimpleConfigResult> promise,
-                                        const ConfigShared *shared_config, bool is_test, int32 scheduler_id) {
+                                        const Global *shared_config, bool is_test, int32 scheduler_id) {
   string name = shared_config == nullptr ? string() : shared_config->get_option_string("dc_txt_domain_name");
   const bool prefer_ipv6 = shared_config == nullptr ? false : shared_config->get_option_boolean("prefer_ipv6");
   if (name.empty()) {
@@ -307,14 +306,14 @@ static ActorOwn<> get_simple_config_dns(Slice address, Slice host, Promise<Simpl
                                 host.str(), {{"Accept", "application/dns-json"}}, prefer_ipv6, std::move(get_config));
 }
 
-ActorOwn<> get_simple_config_google_dns(Promise<SimpleConfigResult> promise, const ConfigShared *shared_config,
-                                        bool is_test, int32 scheduler_id) {
+ActorOwn<> get_simple_config_google_dns(Promise<SimpleConfigResult> promise, const Global *shared_config, bool is_test,
+                                        int32 scheduler_id) {
   return get_simple_config_dns("dns.google/resolve", "dns.google", std::move(promise), shared_config, is_test,
                                scheduler_id);
 }
 
-ActorOwn<> get_simple_config_mozilla_dns(Promise<SimpleConfigResult> promise, const ConfigShared *shared_config,
-                                         bool is_test, int32 scheduler_id) {
+ActorOwn<> get_simple_config_mozilla_dns(Promise<SimpleConfigResult> promise, const Global *shared_config, bool is_test,
+                                         int32 scheduler_id) {
   return get_simple_config_dns("mozilla.cloudflare-dns.com/dns-query", "mozilla.cloudflare-dns.com", std::move(promise),
                                shared_config, is_test, scheduler_id);
 }
@@ -329,9 +328,8 @@ static string generate_firebase_remote_config_payload() {
                    << app_instance_id << "\"}";
 }
 
-ActorOwn<> get_simple_config_firebase_remote_config(Promise<SimpleConfigResult> promise,
-                                                    const ConfigShared *shared_config, bool is_test,
-                                                    int32 scheduler_id) {
+ActorOwn<> get_simple_config_firebase_remote_config(Promise<SimpleConfigResult> promise, const Global *shared_config,
+                                                    bool is_test, int32 scheduler_id) {
   if (is_test) {
     promise.set_error(Status::Error(400, "Test config is not supported"));
     return ActorOwn<>();
@@ -355,7 +353,7 @@ ActorOwn<> get_simple_config_firebase_remote_config(Promise<SimpleConfigResult> 
                                 {}, prefer_ipv6, std::move(get_config), payload, "application/json");
 }
 
-ActorOwn<> get_simple_config_firebase_realtime(Promise<SimpleConfigResult> promise, const ConfigShared *shared_config,
+ActorOwn<> get_simple_config_firebase_realtime(Promise<SimpleConfigResult> promise, const Global *shared_config,
                                                bool is_test, int32 scheduler_id) {
   if (is_test) {
     promise.set_error(Status::Error(400, "Test config is not supported"));
@@ -371,7 +369,7 @@ ActorOwn<> get_simple_config_firebase_realtime(Promise<SimpleConfigResult> promi
                                 prefer_ipv6, std::move(get_config));
 }
 
-ActorOwn<> get_simple_config_firebase_firestore(Promise<SimpleConfigResult> promise, const ConfigShared *shared_config,
+ActorOwn<> get_simple_config_firebase_firestore(Promise<SimpleConfigResult> promise, const Global *shared_config,
                                                 bool is_test, int32 scheduler_id) {
   if (is_test) {
     promise.set_error(Status::Error(400, "Test config is not supported"));
@@ -661,7 +659,7 @@ class ConfigRecoverer final : public Actor {
       auto config = r_simple_config.move_as_ok();
       VLOG(config_recoverer) << "Receive raw " << to_string(config);
       if (config->expires_ >= G()->unix_time()) {
-        string phone_number = G()->shared_config().get_option_string("my_phone_number");
+        string phone_number = G()->get_option_string("my_phone_number");
         simple_config_.dc_options.clear();
 
         for (auto &rule : config->rules_) {
@@ -708,7 +706,7 @@ class ConfigRecoverer final : public Actor {
   }
 
   static bool expect_blocking() {
-    return G()->shared_config().get_option_boolean("expect_blocking", true);
+    return G()->get_option_boolean("expect_blocking", true);
   }
 
   double get_config_expire_time() const {
@@ -842,8 +840,7 @@ class ConfigRecoverer final : public Actor {
             return get_simple_config_mozilla_dns;
         }
       }();
-      simple_config_query_ =
-          get_simple_config(std::move(promise), &G()->shared_config(), G()->is_test_dc(), G()->get_gc_scheduler_id());
+      simple_config_query_ = get_simple_config(std::move(promise), G(), G()->is_test_dc(), G()->get_gc_scheduler_id());
       simple_config_turn_++;
     }
 
@@ -1101,9 +1098,8 @@ void ConfigManager::request_config_from_dc_impl(DcId dc_id, bool reopen_sessions
 }
 
 void ConfigManager::do_set_ignore_sensitive_content_restrictions(bool ignore_sensitive_content_restrictions) {
-  G()->shared_config().set_option_boolean("ignore_sensitive_content_restrictions",
-                                          ignore_sensitive_content_restrictions);
-  bool have_ignored_restriction_reasons = G()->shared_config().have_option("ignored_restriction_reasons");
+  G()->set_option_boolean("ignore_sensitive_content_restrictions", ignore_sensitive_content_restrictions);
+  bool have_ignored_restriction_reasons = G()->have_option("ignored_restriction_reasons");
   if (have_ignored_restriction_reasons != ignore_sensitive_content_restrictions) {
     reget_app_config(Auto());
   }
@@ -1113,7 +1109,7 @@ void ConfigManager::do_set_archive_and_mute(bool archive_and_mute) {
   if (archive_and_mute) {
     remove_suggested_action(suggested_actions_, SuggestedAction{SuggestedAction::Type::EnableArchiveAndMuteNewChats});
   }
-  G()->shared_config().set_option_boolean("archive_and_mute_new_chats_from_unknown_users", archive_and_mute);
+  G()->set_option_boolean("archive_and_mute_new_chats_from_unknown_users", archive_and_mute);
 }
 
 void ConfigManager::hide_suggested_action(SuggestedAction suggested_action) {
@@ -1211,7 +1207,7 @@ void ConfigManager::on_result(NetQueryPtr res) {
     if (result_ptr.is_error()) {
       fail_promises(set_content_settings_queries_[ignore_sensitive_content_restrictions], result_ptr.move_as_error());
     } else {
-      if (G()->shared_config().get_option_boolean("can_ignore_sensitive_content_restrictions") &&
+      if (G()->get_option_boolean("can_ignore_sensitive_content_restrictions") &&
           last_set_content_settings_ == ignore_sensitive_content_restrictions) {
         do_set_ignore_sensitive_content_restrictions(ignore_sensitive_content_restrictions);
       }
@@ -1237,7 +1233,7 @@ void ConfigManager::on_result(NetQueryPtr res) {
 
     auto result = result_ptr.move_as_ok();
     do_set_ignore_sensitive_content_restrictions(result->sensitive_enabled_);
-    G()->shared_config().set_option_boolean("can_ignore_sensitive_content_restrictions", result->sensitive_can_change_);
+    G()->set_option_boolean("can_ignore_sensitive_content_restrictions", result->sensitive_can_change_);
 
     set_promises(get_content_settings_queries_);
     return;
@@ -1328,7 +1324,7 @@ void ConfigManager::process_config(tl_object_ptr<telegram_api::config> config) {
   set_timeout_at(expire_time_.at());
   LOG_IF(ERROR, config->test_mode_ != G()->is_test_dc()) << "Wrong parameter is_test";
 
-  ConfigShared &shared_config = G()->shared_config();
+  Global &shared_config = *G();
 
   // Do not save dc_options in config, because it will be interpreted and saved by ConnectionCreator.
   send_closure(G()->connection_creator(), &ConnectionCreator::on_dc_options, DcOptions(config->dc_options_));
@@ -1461,8 +1457,7 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
   CHECK(config != nullptr);
   LOG(INFO) << "Receive app config " << to_string(config);
 
-  const bool archive_and_mute =
-      G()->shared_config().get_option_boolean("archive_and_mute_new_chats_from_unknown_users");
+  const bool archive_and_mute = G()->get_option_boolean("archive_and_mute_new_chats_from_unknown_users");
 
   string autologin_token;
   vector<string> autologin_domains;
@@ -1701,16 +1696,16 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
               auto setting_value = get_json_value_int(std::move(video_note_setting->value_), Slice());
               if (setting_value > 0) {
                 if (video_note_setting->key_ == "diameter") {
-                  G()->shared_config().set_option_integer("suggested_video_note_length", setting_value);
+                  G()->set_option_integer("suggested_video_note_length", setting_value);
                 }
                 if (video_note_setting->key_ == "video_bitrate") {
-                  G()->shared_config().set_option_integer("suggested_video_note_video_bitrate", setting_value);
+                  G()->set_option_integer("suggested_video_note_video_bitrate", setting_value);
                 }
                 if (video_note_setting->key_ == "audio_bitrate") {
-                  G()->shared_config().set_option_integer("suggested_video_note_audio_bitrate", setting_value);
+                  G()->set_option_integer("suggested_video_note_audio_bitrate", setting_value);
                 }
                 if (video_note_setting->key_ == "max_size") {
-                  G()->shared_config().set_option_integer("video_note_size_max", setting_value);
+                  G()->set_option_integer("video_note_size_max", setting_value);
                 }
               }
             } else {
@@ -1740,17 +1735,17 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
       }
       if (key == "ringtone_duration_max") {
         auto setting_value = get_json_value_int(std::move(key_value->value_), key);
-        G()->shared_config().set_option_integer("notification_sound_duration_max", setting_value);
+        G()->set_option_integer("notification_sound_duration_max", setting_value);
         continue;
       }
       if (key == "ringtone_size_max") {
         auto setting_value = get_json_value_int(std::move(key_value->value_), key);
-        G()->shared_config().set_option_integer("notification_sound_size_max", setting_value);
+        G()->set_option_integer("notification_sound_size_max", setting_value);
         continue;
       }
       if (key == "ringtone_saved_count_max") {
         auto setting_value = get_json_value_int(std::move(key_value->value_), key);
-        G()->shared_config().set_option_integer("notification_sound_count_max", setting_value);
+        G()->set_option_integer("notification_sound_count_max", setting_value);
         continue;
       }
       if (key == "premium_promo_order") {
@@ -1774,7 +1769,7 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
           if (suffix == "_limit_default" || suffix == "_limit_premium") {
             auto setting_value = get_json_value_int(std::move(key_value->value_), key);
             if (setting_value > 0) {
-              G()->shared_config().set_option_integer(key, setting_value);
+              G()->set_option_integer(key, setting_value);
             } else {
               LOG(ERROR) << "Receive invalid value " << setting_value << " for " << key;
             }
@@ -1817,7 +1812,7 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
   send_closure(G()->link_manager(), &LinkManager::update_autologin_domains, std::move(autologin_token),
                std::move(autologin_domains), std::move(url_auth_domains));
 
-  ConfigShared &shared_config = G()->shared_config();
+  Global &shared_config = *G();
 
   if (ignored_restriction_reasons.empty()) {
     shared_config.set_option_empty("ignored_restriction_reasons");

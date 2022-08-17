@@ -9,7 +9,6 @@
 #include "td/telegram/AttachMenuManager.h"
 #include "td/telegram/AuthManager.hpp"
 #include "td/telegram/ConfigManager.h"
-#include "td/telegram/ConfigShared.h"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/logevent/LogEvent.h"
@@ -51,7 +50,7 @@ AuthManager::AuthManager(int32 api_id, const string &api_hash, ActorShared<> par
     if (my_id.is_valid()) {
       // just in case
       LOG(INFO) << "Logged in as " << my_id;
-      G()->shared_config().set_option_integer("my_id", my_id.get());
+      G()->set_option_integer("my_id", my_id.get());
       update_state(State::Ok);
     } else {
       LOG(ERROR) << "Restore unknown my_id";
@@ -701,8 +700,7 @@ void AuthManager::on_log_out_result(NetQueryPtr &result) {
     if (r_log_out.is_ok()) {
       auto logged_out = r_log_out.move_as_ok();
       if (!logged_out->future_auth_token_.empty()) {
-        G()->shared_config().set_option_string("authentication_token",
-                                               base64url_encode(logged_out->future_auth_token_.as_slice()));
+        G()->set_option_string("authentication_token", base64url_encode(logged_out->future_auth_token_.as_slice()));
       }
     } else {
       status = r_log_out.move_as_error();
@@ -792,7 +790,7 @@ void AuthManager::on_get_authorization(tl_object_ptr<telegram_api::auth_Authoriz
   }
   auto auth = telegram_api::move_object_as<telegram_api::auth_authorization>(auth_ptr);
 
-  G()->shared_config().set_option_integer("authorization_date", G()->unix_time());
+  G()->set_option_integer("authorization_date", G()->unix_time());
   if (was_check_bot_token_) {
     is_bot_ = true;
     G()->td_db()->get_binlog_pmc()->set("auth_is_bot", "true");
@@ -815,10 +813,10 @@ void AuthManager::on_get_authorization(tl_object_ptr<telegram_api::auth_Authoriz
     return;
   }
   if ((auth->flags_ & telegram_api::auth_authorization::TMP_SESSIONS_MASK) != 0) {
-    G()->shared_config().set_option_integer("session_count", auth->tmp_sessions_);
+    G()->set_option_integer("session_count", auth->tmp_sessions_);
   }
   if (auth->setup_password_required_ && auth->otherwise_relogin_days_ > 0) {
-    G()->shared_config().set_option_integer("otherwise_relogin_days", auth->otherwise_relogin_days_);
+    G()->set_option_integer("otherwise_relogin_days", auth->otherwise_relogin_days_);
   }
   td_->attach_menu_manager_->init();
   td_->messages_manager_->on_authorization_success();

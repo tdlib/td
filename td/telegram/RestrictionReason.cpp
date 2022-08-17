@@ -6,7 +6,6 @@
 //
 #include "td/telegram/RestrictionReason.h"
 
-#include "td/telegram/ConfigShared.h"
 #include "td/telegram/Global.h"
 
 #include "td/utils/algorithm.h"
@@ -22,10 +21,9 @@ string get_restriction_reason_description(const vector<RestrictionReason> &restr
     return string();
   }
 
-  auto ignored_restriction_reasons =
-      full_split(G()->shared_config().get_option_string("ignored_restriction_reasons"), ',');
+  auto ignored_restriction_reasons = full_split(G()->get_option_string("ignored_restriction_reasons"), ',');
   auto platform = [] {
-    if (G()->shared_config().get_option_boolean("ignore_platform_restrictions")) {
+    if (G()->get_option_boolean("ignore_platform_restrictions")) {
       return Slice();
     }
 

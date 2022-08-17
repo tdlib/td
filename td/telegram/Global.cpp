@@ -256,6 +256,46 @@ void Global::set_shared_config(unique_ptr<ConfigShared> shared_config) {
   shared_config_ = std::move(shared_config);
 }
 
+void Global::set_option_empty(Slice name) {
+  shared_config_->set_option_empty(name);
+}
+
+void Global::set_option_boolean(Slice name, bool value) {
+  shared_config_->set_option_boolean(name, value);
+}
+
+void Global::set_option_integer(Slice name, int64 value) {
+  shared_config_->set_option_integer(name, value);
+}
+
+void Global::set_option_string(Slice name, Slice value) {
+  shared_config_->set_option_string(name, value);
+}
+
+bool Global::have_option(Slice name) const {
+  return shared_config_->have_option(name);
+}
+
+string Global::get_option(Slice name) const {
+  return shared_config_->get_option(name);
+}
+
+std::unordered_map<string, string> Global::get_options() const {
+  return shared_config_->get_options();
+}
+
+bool Global::get_option_boolean(Slice name, bool default_value) const {
+  return shared_config_->get_option_integer(name, default_value);
+}
+
+int64 Global::get_option_integer(Slice name, int64 default_value) const {
+  return shared_config_->get_option_integer(name, default_value);
+}
+
+string Global::get_option_string(Slice name, string default_value) const {
+  return shared_config_->get_option_string(name, std::move(default_value));
+}
+
 int64 Global::get_location_key(double latitude, double longitude) {
   const double PI = 3.14159265358979323846;
   latitude *= PI / 180;

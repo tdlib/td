@@ -2646,8 +2646,7 @@ void Td::on_online_updated(bool force, bool send_update) {
   }
   if (is_online_) {
     alarm_timeout_.set_timeout_in(
-        ONLINE_ALARM_ID,
-        static_cast<double>(G()->shared_config().get_option_integer("online_update_period_ms", 210000)) * 1e-3);
+        ONLINE_ALARM_ID, static_cast<double>(G()->get_option_integer("online_update_period_ms", 210000)) * 1e-3);
   } else {
     alarm_timeout_.cancel_timeout(ONLINE_ALARM_ID);
   }
@@ -2762,7 +2761,7 @@ void Td::set_is_online(bool is_online) {
 }
 
 void Td::set_is_bot_online(bool is_bot_online) {
-  if (G()->shared_config().get_option_integer("session_count") > 1) {
+  if (G()->get_option_integer("session_count") > 1) {
     is_bot_online = false;
   }
 
@@ -3654,15 +3653,14 @@ void Td::init(Result<TdDb::OpenedDatabase> r_opened_database) {
     }
   });
 
-  options_.language_pack = G()->shared_config().get_option_string("localization_target");
-  options_.language_code = G()->shared_config().get_option_string("language_pack_id");
-  options_.parameters = G()->shared_config().get_option_string("connection_parameters");
-  options_.tz_offset = static_cast<int32>(G()->shared_config().get_option_integer("utc_time_offset"));
-  options_.is_emulator = G()->shared_config().get_option_boolean("is_emulator");
+  options_.language_pack = G()->get_option_string("localization_target");
+  options_.language_code = G()->get_option_string("language_pack_id");
+  options_.parameters = G()->get_option_string("connection_parameters");
+  options_.tz_offset = static_cast<int32>(G()->get_option_integer("utc_time_offset"));
+  options_.is_emulator = G()->get_option_boolean("is_emulator");
   // options_.proxy = Proxy();
   G()->set_mtproto_header(make_unique<MtprotoHeader>(options_));
-  G()->set_store_all_files_in_files_directory(
-      G()->shared_config().get_option_boolean("store_all_files_in_files_directory"));
+  G()->set_store_all_files_in_files_directory(G()->get_option_boolean("store_all_files_in_files_directory"));
 
   VLOG(td_init) << "Create NetQueryDispatcher";
   auto net_query_dispatcher = make_unique<NetQueryDispatcher>([&] { return create_reference(); });
@@ -3681,7 +3679,7 @@ void Td::init(Result<TdDb::OpenedDatabase> r_opened_database) {
 
   init_managers();
 
-  G()->set_my_id(G()->shared_config().get_option_integer("my_id"));
+  G()->set_my_id(G()->get_option_integer("my_id"));
 
   storage_manager_ = create_actor<StorageManager>("StorageManager", create_reference(), G()->get_gc_scheduler_id());
   G()->set_storage_manager(storage_manager_.get());
@@ -3807,7 +3805,9 @@ void Td::init_options_and_network() {
   G()->set_state_manager(state_manager_.get());
 
   VLOG(td_init) << "Create ConfigShared";
-  G()->set_shared_config(td::make_unique<ConfigShared>(G()->td_db()->get_config_pmc_shared()));
+  auto config_shared = td::make_unique<ConfigShared>(G()->td_db()->get_config_pmc_shared());
+  auto config_shared_ptr = config_shared.get();
+  G()->set_shared_config(std::move(config_shared));
 
   init_connection_creator();
 
@@ -3841,7 +3841,7 @@ void Td::init_options_and_network() {
   // we need to process td_api::getOption along with td_api::setOption for consistency
   // we need to process td_api::setOption before managers and MTProto header are created,
   // because their initialiation may be affected by the options
-  G()->shared_config().set_callback(make_unique<ConfigSharedCallback>());
+  config_shared_ptr->set_callback(make_unique<ConfigSharedCallback>());
 }
 
 void Td::init_connection_creator() {
@@ -4846,7 +4846,7 @@ void Td::on_request(uint64 id, td_api::optimizeStorage &request) {
 }
 
 void Td::on_request(uint64 id, td_api::getNetworkStatistics &request) {
-  if (!request.only_current_ && G()->shared_config().get_option_boolean("disable_persistent_network_statistics")) {
+  if (!request.only_current_ && G()->get_option_boolean("disable_persistent_network_statistics")) {
     return send_error_raw(id, 400, "Persistent network statistics is disabled");
   }
   CREATE_REQUEST_PROMISE();
@@ -5632,7 +5632,7 @@ void Td::on_request(uint64 id, const td_api::createCall &request) {
     return send_error_raw(id, r_input_user.error().code(), r_input_user.error().message());
   }
 
-  if (!G()->shared_config().get_option_boolean("calls_enabled")) {
+  if (!G()->get_option_boolean("calls_enabled")) {
     return send_error_raw(id, 400, "Calls are not enabled for the current user");
   }
 

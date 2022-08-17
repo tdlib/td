@@ -6,7 +6,6 @@
 //
 #include "td/telegram/DialogFilter.h"
 
-#include "td/telegram/ConfigShared.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/Global.h"
 
@@ -20,7 +19,7 @@
 namespace td {
 
 int32 DialogFilter::get_max_filter_dialogs() {
-  return narrow_cast<int32>(G()->shared_config().get_option_integer("chat_filter_chosen_chat_count_max", 100));
+  return narrow_cast<int32>(G()->get_option_integer("chat_filter_chosen_chat_count_max", 100));
 }
 
 unique_ptr<DialogFilter> DialogFilter::get_dialog_filter(

@@ -7,7 +7,6 @@
 #include "td/telegram/AnimationsManager.h"
 
 #include "td/telegram/AuthManager.h"
-#include "td/telegram/ConfigShared.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/Document.h"
 #include "td/telegram/DocumentsManager.h"
@@ -412,7 +411,7 @@ void AnimationsManager::on_update_animation_search_emojis(string animation_searc
     return;
   }
   if (td_->auth_manager_->is_bot()) {
-    G()->shared_config().set_option_empty("animation_search_emojis");
+    G()->set_option_empty("animation_search_emojis");
     return;
   }
 
@@ -430,7 +429,7 @@ void AnimationsManager::on_update_animation_search_provider(string animation_sea
     return;
   }
   if (td_->auth_manager_->is_bot()) {
-    G()->shared_config().set_option_empty("animation_search_provider");
+    G()->set_option_empty("animation_search_provider");
     return;
   }
 

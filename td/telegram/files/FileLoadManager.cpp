@@ -6,7 +6,6 @@
 //
 #include "td/telegram/files/FileLoadManager.h"
 
-#include "td/telegram/ConfigShared.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/net/DcId.h"
 #include "td/telegram/TdParameters.h"
@@ -29,7 +28,7 @@ void FileLoadManager::start_up() {
                                                            !G()->parameters().use_file_db /*tdlib_engine*/
                                                                ? ResourceManager::Mode::Greedy
                                                                : ResourceManager::Mode::Baseline);
-  if (G()->shared_config().get_option_boolean("is_premium")) {
+  if (G()->get_option_boolean("is_premium")) {
     max_download_resource_limit_ *= 8;
   }
 }

@@ -6,7 +6,6 @@
 //
 #include "td/telegram/LanguagePackManager.h"
 
-#include "td/telegram/ConfigShared.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/misc.h"
@@ -202,12 +201,12 @@ LanguagePackManager::LanguageDatabase *LanguagePackManager::add_language_databas
 void LanguagePackManager::start_up() {
   std::lock_guard<std::mutex> database_lock(language_database_mutex_);
   manager_count_++;
-  language_pack_ = G()->shared_config().get_option_string("localization_target");
-  language_code_ = G()->shared_config().get_option_string("language_pack_id");
+  language_pack_ = G()->get_option_string("localization_target");
+  language_code_ = G()->get_option_string("language_pack_id");
   CHECK(check_language_pack_name(language_pack_));
   CHECK(check_language_code_name(language_code_));
 
-  database_ = add_language_database(G()->shared_config().get_option_string("language_pack_database_path"));
+  database_ = add_language_database(G()->get_option_string("language_pack_database_path"));
   if (!language_pack_.empty() && !language_code_.empty()) {
     auto language = add_language(database_, language_pack_, language_code_);
     if (language->version_ == -1) {
@@ -339,7 +338,7 @@ vector<string> LanguagePackManager::get_used_language_codes() {
 }
 
 void LanguagePackManager::on_language_pack_changed() {
-  auto new_language_pack = G()->shared_config().get_option_string("localization_target");
+  auto new_language_pack = G()->get_option_string("localization_target");
   if (new_language_pack == language_pack_) {
     return;
   }
@@ -350,7 +349,7 @@ void LanguagePackManager::on_language_pack_changed() {
 }
 
 void LanguagePackManager::on_language_code_changed() {
-  auto new_language_code = G()->shared_config().get_option_string("language_pack_id");
+  auto new_language_code = G()->get_option_string("language_pack_id");
   if (new_language_code == language_code_) {
     return;
   }
@@ -374,7 +373,7 @@ void LanguagePackManager::on_language_pack_version_changed(bool is_base, int32 n
 
   if (new_version < 0) {
     Slice version_key = is_base ? Slice("base_language_pack_version") : Slice("language_pack_version");
-    new_version = narrow_cast<int32>(G()->shared_config().get_option_integer(version_key, -1));
+    new_version = narrow_cast<int32>(G()->get_option_integer(version_key, -1));
   }
   if (new_version <= 0) {
     return;
@@ -495,8 +494,8 @@ void LanguagePackManager::on_update_language_pack(tl_object_ptr<telegram_api::la
 }
 
 void LanguagePackManager::inc_generation() {
-  G()->shared_config().set_option_empty("language_pack_version");
-  G()->shared_config().set_option_empty("base_language_pack_version");
+  G()->set_option_empty("language_pack_version");
+  G()->set_option_empty("base_language_pack_version");
 
   if (!language_pack_.empty() && !language_code_.empty()) {
     LOG(INFO) << "Add main language " << language_code_;
@@ -946,7 +945,7 @@ void LanguagePackManager::on_get_language_info(const string &language_pack,
     }
   }
   if (was_updated_base_language_code) {
-    G()->shared_config().set_option_empty("base_language_pack_version");
+    G()->set_option_empty("base_language_pack_version");
     if (!base_language_code_.empty()) {
       add_language(database_, language_pack_, base_language_code_);
       on_language_pack_version_changed(true, std::numeric_limits<int32>::max());

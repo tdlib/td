@@ -6,7 +6,6 @@
 //
 #include "td/telegram/files/FileGcParameters.h"
 
-#include "td/telegram/ConfigShared.h"
 #include "td/telegram/Global.h"
 
 #include "td/utils/format.h"
@@ -21,17 +20,16 @@ FileGcParameters::FileGcParameters(int64 size, int32 ttl, int32 count, int32 imm
     , owner_dialog_ids_(std::move(owner_dialog_ids))
     , exclude_owner_dialog_ids_(std::move(exclude_owner_dialog_ids))
     , dialog_limit_(dialog_limit) {
-  auto &config = G()->shared_config();
-  max_files_size_ = size >= 0 ? size : config.get_option_integer("storage_max_files_size", 100 << 10) << 10;
+  max_files_size_ = size >= 0 ? size : G()->get_option_integer("storage_max_files_size", 100 << 10) << 10;
 
   max_time_from_last_access_ =
-      ttl >= 0 ? ttl : narrow_cast<int32>(config.get_option_integer("storage_max_time_from_last_access", 60 * 60 * 23));
+      ttl >= 0 ? ttl : narrow_cast<int32>(G()->get_option_integer("storage_max_time_from_last_access", 60 * 60 * 23));
 
-  max_file_count_ = count >= 0 ? count : narrow_cast<int32>(config.get_option_integer("storage_max_file_count", 40000));
+  max_file_count_ = count >= 0 ? count : narrow_cast<int32>(G()->get_option_integer("storage_max_file_count", 40000));
 
   immunity_delay_ = immunity_delay >= 0
                         ? immunity_delay
-                        : narrow_cast<int32>(config.get_option_integer("storage_immunity_delay", 60 * 60));
+                        : narrow_cast<int32>(G()->get_option_integer("storage_immunity_delay", 60 * 60));
 }
 
 StringBuilder &operator<<(StringBuilder &string_builder, const FileGcParameters &parameters) {

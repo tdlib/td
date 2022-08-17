@@ -6,7 +6,6 @@
 //
 #include "td/telegram/MessageEntity.h"
 
-#include "td/telegram/ConfigShared.h"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/Dependencies.h"
 #include "td/telegram/Global.h"
@@ -4305,7 +4304,7 @@ Result<FormattedText> get_formatted_text(const Td *td, DialogId dialog_id,
 
   TRY_RESULT(entities, get_message_entities(td->contacts_manager_.get(), std::move(text->entities_)));
   auto need_skip_bot_commands = need_always_skip_bot_commands(td->contacts_manager_.get(), dialog_id, is_bot);
-  bool parse_markdown = G()->shared_config().get_option_boolean("always_parse_markdown");
+  bool parse_markdown = G()->get_option_boolean("always_parse_markdown");
   TRY_STATUS(fix_formatted_text(text->text_, entities, allow_empty, parse_markdown, need_skip_bot_commands,
                                 is_bot || skip_media_timestamps || parse_markdown, for_draft));
 
@@ -4495,8 +4494,7 @@ void remove_unallowed_entities(const Td *td, FormattedText &text, DialogId dialo
       remove_intersecting_entities(text.entities);
     }
   }
-  if (!G()->shared_config().get_option_boolean("is_premium") &&
-      dialog_id != DialogId(td->contacts_manager_->get_my_id())) {
+  if (!G()->get_option_boolean("is_premium") && dialog_id != DialogId(td->contacts_manager_->get_my_id())) {
     remove_premium_custom_emoji_entities(td, text.entities, false);
   }
 }

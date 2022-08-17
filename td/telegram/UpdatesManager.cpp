@@ -14,7 +14,6 @@
 #include "td/telegram/ChannelId.h"
 #include "td/telegram/ChatId.h"
 #include "td/telegram/ConfigManager.h"
-#include "td/telegram/ConfigShared.h"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/DialogAction.h"
 #include "td/telegram/DialogId.h"
@@ -1553,7 +1552,7 @@ void UpdatesManager::on_get_difference(tl_object_ptr<telegram_api::updates_Diffe
       break;
     }
     case telegram_api::updates_differenceTooLong::ID: {
-      if (G()->shared_config().get_option_integer("session_count") <= 1) {
+      if (G()->get_option_integer("session_count") <= 1) {
         LOG(ERROR) << "Receive differenceTooLong";
       }
       // TODO
@@ -2261,8 +2260,8 @@ void UpdatesManager::add_pending_pts_update(tl_object_ptr<telegram_api::Update> 
 
   if (old_pts > new_pts - pts_count) {
     LOG(WARNING) << "Have old_pts (= " << old_pts << ") + pts_count (= " << pts_count << ") > new_pts (= " << new_pts
-                 << "). Logged in " << G()->shared_config().get_option_integer("authorization_date") << ". Update from "
-                 << source << " = " << oneline(to_string(update));
+                 << "). Logged in " << G()->get_option_integer("authorization_date") << ". Update from " << source
+                 << " = " << oneline(to_string(update));
     postpone_pts_update(std::move(update), new_pts, pts_count, receive_time, std::move(promise));
     set_pts_gap_timeout(0.001);
     return;
@@ -2276,9 +2275,8 @@ void UpdatesManager::add_pending_pts_update(tl_object_ptr<telegram_api::Update> 
   if (old_pts > accumulated_pts_ - accumulated_pts_count_) {
     LOG(WARNING) << "Have old_pts (= " << old_pts << ") + accumulated_pts_count (= " << accumulated_pts_count_
                  << ") > accumulated_pts (= " << accumulated_pts_ << "). new_pts = " << new_pts
-                 << ", pts_count = " << pts_count << ". Logged in "
-                 << G()->shared_config().get_option_integer("authorization_date") << ". Update from " << source << " = "
-                 << oneline(to_string(update));
+                 << ", pts_count = " << pts_count << ". Logged in " << G()->get_option_integer("authorization_date")
+                 << ". Update from " << source << " = " << oneline(to_string(update));
     postpone_pts_update(std::move(update), new_pts, pts_count, receive_time, std::move(promise));
     set_pts_gap_timeout(0.001);
     return;

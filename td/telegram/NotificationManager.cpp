@@ -9,7 +9,6 @@
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/ChannelId.h"
 #include "td/telegram/ChatId.h"
-#include "td/telegram/ConfigShared.h"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/DeviceTokenManager.h"
 #include "td/telegram/Document.h"
@@ -204,8 +203,7 @@ void NotificationManager::init() {
     return;
   }
 
-  disable_contact_registered_notifications_ =
-      G()->shared_config().get_option_boolean("disable_contact_registered_notifications");
+  disable_contact_registered_notifications_ = G()->get_option_boolean("disable_contact_registered_notifications");
   auto sync_state = G()->td_db()->get_binlog_pmc()->get(get_is_contact_registered_notifications_synchronized_key());
   if (sync_state.empty()) {
     sync_state = "00";
@@ -2389,8 +2387,8 @@ void NotificationManager::on_notification_group_count_max_changed(bool send_upda
     return;
   }
 
-  auto new_max_notification_group_count = narrow_cast<int32>(
-      G()->shared_config().get_option_integer("notification_group_count_max", DEFAULT_GROUP_COUNT_MAX));
+  auto new_max_notification_group_count =
+      narrow_cast<int32>(G()->get_option_integer("notification_group_count_max", DEFAULT_GROUP_COUNT_MAX));
   CHECK(MIN_NOTIFICATION_GROUP_COUNT_MAX <= new_max_notification_group_count &&
         new_max_notification_group_count <= MAX_NOTIFICATION_GROUP_COUNT_MAX);
 
@@ -2453,8 +2451,8 @@ void NotificationManager::on_notification_group_size_max_changed() {
     return;
   }
 
-  auto new_max_notification_group_size = narrow_cast<int32>(
-      G()->shared_config().get_option_integer("notification_group_size_max", DEFAULT_GROUP_SIZE_MAX));
+  auto new_max_notification_group_size =
+      narrow_cast<int32>(G()->get_option_integer("notification_group_size_max", DEFAULT_GROUP_SIZE_MAX));
   CHECK(MIN_NOTIFICATION_GROUP_SIZE_MAX <= new_max_notification_group_size &&
         new_max_notification_group_size <= MAX_NOTIFICATION_GROUP_SIZE_MAX);
 
@@ -2536,8 +2534,8 @@ void NotificationManager::on_online_cloud_timeout_changed() {
     return;
   }
 
-  online_cloud_timeout_ms_ = narrow_cast<int32>(
-      G()->shared_config().get_option_integer("online_cloud_timeout_ms", DEFAULT_ONLINE_CLOUD_TIMEOUT_MS));
+  online_cloud_timeout_ms_ =
+      narrow_cast<int32>(G()->get_option_integer("online_cloud_timeout_ms", DEFAULT_ONLINE_CLOUD_TIMEOUT_MS));
   VLOG(notifications) << "Set online_cloud_timeout_ms to " << online_cloud_timeout_ms_;
 }
 
@@ -2546,8 +2544,8 @@ void NotificationManager::on_notification_cloud_delay_changed() {
     return;
   }
 
-  notification_cloud_delay_ms_ = narrow_cast<int32>(
-      G()->shared_config().get_option_integer("notification_cloud_delay_ms", DEFAULT_ONLINE_CLOUD_DELAY_MS));
+  notification_cloud_delay_ms_ =
+      narrow_cast<int32>(G()->get_option_integer("notification_cloud_delay_ms", DEFAULT_ONLINE_CLOUD_DELAY_MS));
   VLOG(notifications) << "Set notification_cloud_delay_ms to " << notification_cloud_delay_ms_;
 }
 
@@ -2556,8 +2554,8 @@ void NotificationManager::on_notification_default_delay_changed() {
     return;
   }
 
-  notification_default_delay_ms_ = narrow_cast<int32>(
-      G()->shared_config().get_option_integer("notification_default_delay_ms", DEFAULT_DEFAULT_DELAY_MS));
+  notification_default_delay_ms_ =
+      narrow_cast<int32>(G()->get_option_integer("notification_default_delay_ms", DEFAULT_DEFAULT_DELAY_MS));
   VLOG(notifications) << "Set notification_default_delay_ms to " << notification_default_delay_ms_;
 }
 
@@ -2566,7 +2564,7 @@ void NotificationManager::on_disable_contact_registered_notifications_changed() 
     return;
   }
 
-  auto is_disabled = G()->shared_config().get_option_boolean("disable_contact_registered_notifications");
+  auto is_disabled = G()->get_option_boolean("disable_contact_registered_notifications");
 
   if (is_disabled == disable_contact_registered_notifications_) {
     return;
@@ -2585,9 +2583,9 @@ void NotificationManager::on_get_disable_contact_registered_notifications(bool i
   disable_contact_registered_notifications_ = is_disabled;
 
   if (is_disabled) {
-    G()->shared_config().set_option_boolean("disable_contact_registered_notifications", is_disabled);
+    G()->set_option_boolean("disable_contact_registered_notifications", is_disabled);
   } else {
-    G()->shared_config().set_option_empty("disable_contact_registered_notifications");
+    G()->set_option_empty("disable_contact_registered_notifications");
   }
 }
 

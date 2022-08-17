@@ -8,7 +8,6 @@
 
 #include "td/telegram/AccessRights.h"
 #include "td/telegram/AuthManager.h"
-#include "td/telegram/ConfigShared.h"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/Global.h"
@@ -296,7 +295,7 @@ void TopDialogManager::update_rating_e_decay() {
   if (!is_active_) {
     return;
   }
-  rating_e_decay_ = narrow_cast<int32>(G()->shared_config().get_option_integer("rating_e_decay", rating_e_decay_));
+  rating_e_decay_ = narrow_cast<int32>(G()->get_option_integer("rating_e_decay", rating_e_decay_));
 }
 
 template <class StorerT>
@@ -463,11 +462,11 @@ void TopDialogManager::on_get_top_peers(Result<telegram_api::object_ptr<telegram
       // nothing to do
       break;
     case telegram_api::contacts_topPeersDisabled::ID:
-      G()->shared_config().set_option_boolean("disable_top_chats", true);
+      G()->set_option_boolean("disable_top_chats", true);
       set_is_enabled(false);  // apply immediately
       break;
     case telegram_api::contacts_topPeers::ID: {
-      G()->shared_config().set_option_empty("disable_top_chats");
+      G()->set_option_empty("disable_top_chats");
       set_is_enabled(true);  // apply immediately
       auto top_peers = move_tl_object_as<telegram_api::contacts_topPeers>(std::move(top_peers_parent));
 
@@ -531,7 +530,7 @@ void TopDialogManager::init() {
   }
 
   is_active_ = G()->parameters().use_chat_info_db && !td_->auth_manager_->is_bot();
-  is_enabled_ = !G()->shared_config().get_option_boolean("disable_top_chats");
+  is_enabled_ = !G()->get_option_boolean("disable_top_chats");
   update_rating_e_decay();
 
   string need_update_top_peers = G()->td_db()->get_binlog_pmc()->get("top_peers_enabled");

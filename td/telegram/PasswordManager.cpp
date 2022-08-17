@@ -7,7 +7,6 @@
 #include "td/telegram/PasswordManager.h"
 
 #include "td/telegram/ConfigManager.h"
-#include "td/telegram/ConfigShared.h"
 #include "td/telegram/DhCache.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/Global.h"
@@ -785,7 +784,7 @@ void PasswordManager::do_get_state(Promise<PasswordState> promise) {
           state.has_recovery_email_address = password->has_recovery_;
           state.has_secure_values = password->has_secure_values_;
 
-          auto days = narrow_cast<int32>(G()->shared_config().get_option_integer("otherwise_relogin_days"));
+          auto days = narrow_cast<int32>(G()->get_option_integer("otherwise_relogin_days"));
           if (days > 0) {
             dismiss_suggested_action(SuggestedAction{SuggestedAction::Type::SetPassword, DialogId(), days},
                                      Promise<Unit>());

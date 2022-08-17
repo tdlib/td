@@ -8,7 +8,6 @@
 
 #include "td/telegram/ChannelId.h"
 #include "td/telegram/ConfigManager.h"
-#include "td/telegram/ConfigShared.h"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/Td.h"
@@ -181,11 +180,11 @@ void dismiss_suggested_action(SuggestedAction action, Promise<Unit> &&promise) {
       if (action.otherwise_relogin_days_ <= 0) {
         return promise.set_error(Status::Error(400, "Invalid authorization_delay specified"));
       }
-      auto days = narrow_cast<int32>(G()->shared_config().get_option_integer("otherwise_relogin_days"));
+      auto days = narrow_cast<int32>(G()->get_option_integer("otherwise_relogin_days"));
       if (days == action.otherwise_relogin_days_) {
         vector<SuggestedAction> removed_actions{SuggestedAction{SuggestedAction::Type::SetPassword, DialogId(), days}};
         send_closure(G()->td(), &Td::send_update, get_update_suggested_actions_object({}, removed_actions));
-        G()->shared_config().set_option_empty("otherwise_relogin_days");
+        G()->set_option_empty("otherwise_relogin_days");
       }
       return promise.set_value(Unit());
     }

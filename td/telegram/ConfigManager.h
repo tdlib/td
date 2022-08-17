@@ -30,7 +30,7 @@ namespace td {
 
 extern int VERBOSITY_NAME(config_recoverer);
 
-class ConfigShared;
+class Global;
 
 using SimpleConfig = tl_object_ptr<telegram_api::help_configSimple>;
 struct SimpleConfigResult {
@@ -40,23 +40,22 @@ struct SimpleConfigResult {
 
 Result<SimpleConfig> decode_config(Slice input);
 
-ActorOwn<> get_simple_config_azure(Promise<SimpleConfigResult> promise, const ConfigShared *shared_config, bool is_test,
+ActorOwn<> get_simple_config_azure(Promise<SimpleConfigResult> promise, const Global *shared_config, bool is_test,
                                    int32 scheduler_id);
 
-ActorOwn<> get_simple_config_google_dns(Promise<SimpleConfigResult> promise, const ConfigShared *shared_config,
-                                        bool is_test, int32 scheduler_id);
+ActorOwn<> get_simple_config_google_dns(Promise<SimpleConfigResult> promise, const Global *shared_config, bool is_test,
+                                        int32 scheduler_id);
 
-ActorOwn<> get_simple_config_mozilla_dns(Promise<SimpleConfigResult> promise, const ConfigShared *shared_config,
-                                         bool is_test, int32 scheduler_id);
+ActorOwn<> get_simple_config_mozilla_dns(Promise<SimpleConfigResult> promise, const Global *shared_config, bool is_test,
+                                         int32 scheduler_id);
 
-ActorOwn<> get_simple_config_firebase_remote_config(Promise<SimpleConfigResult> promise,
-                                                    const ConfigShared *shared_config, bool is_test,
-                                                    int32 scheduler_id);
+ActorOwn<> get_simple_config_firebase_remote_config(Promise<SimpleConfigResult> promise, const Global *shared_config,
+                                                    bool is_test, int32 scheduler_id);
 
-ActorOwn<> get_simple_config_firebase_realtime(Promise<SimpleConfigResult> promise, const ConfigShared *shared_config,
+ActorOwn<> get_simple_config_firebase_realtime(Promise<SimpleConfigResult> promise, const Global *shared_config,
                                                bool is_test, int32 scheduler_id);
 
-ActorOwn<> get_simple_config_firebase_firestore(Promise<SimpleConfigResult> promise, const ConfigShared *shared_config,
+ActorOwn<> get_simple_config_firebase_firestore(Promise<SimpleConfigResult> promise, const Global *shared_config,
                                                 bool is_test, int32 scheduler_id);
 
 class HttpDate {

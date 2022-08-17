@@ -28,6 +28,7 @@
 #include <atomic>
 #include <memory>
 #include <mutex>
+#include <unordered_map>
 
 namespace td {
 
@@ -129,10 +130,25 @@ class Global final : public ActorContext {
 
   void set_shared_config(unique_ptr<ConfigShared> shared_config);
 
-  ConfigShared &shared_config() {
-    CHECK(shared_config_.get() != nullptr);
-    return *shared_config_;
-  }
+  void set_option_empty(Slice name);
+
+  void set_option_boolean(Slice name, bool value);
+
+  void set_option_integer(Slice name, int64 value);
+
+  void set_option_string(Slice name, Slice value);
+
+  bool have_option(Slice name) const;
+
+  string get_option(Slice name) const;
+
+  std::unordered_map<string, string> get_options() const;
+
+  bool get_option_boolean(Slice name, bool default_value = false) const;
+
+  int64 get_option_integer(Slice name, int64 default_value = 0) const;
+
+  string get_option_string(Slice name, string default_value = "") const;
 
   bool is_server_time_reliable() const {
     return server_time_difference_was_updated_;

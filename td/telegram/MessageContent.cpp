@@ -14,7 +14,6 @@
 #include "td/telegram/CallDiscardReason.h"
 #include "td/telegram/ChannelId.h"
 #include "td/telegram/ChatId.h"
-#include "td/telegram/ConfigShared.h"
 #include "td/telegram/Contact.h"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/Dependencies.h"
@@ -4671,7 +4670,7 @@ unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const
       }
     case MessageContentType::Sticker: {
       auto result = make_unique<MessageSticker>(*static_cast<const MessageSticker *>(content));
-      result->is_premium = G()->shared_config().get_option_boolean("is_premium");
+      result->is_premium = G()->get_option_boolean("is_premium");
       if (td->stickers_manager_->has_input_media(result->file_id, to_secret)) {
         return std::move(result);
       }

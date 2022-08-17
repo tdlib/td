@@ -6,7 +6,6 @@
 //
 #include "td/telegram/StorageManager.h"
 
-#include "td/telegram/ConfigShared.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/files/FileGcWorker.h"
 #include "td/telegram/files/FileStatsWorker.h"
@@ -188,7 +187,7 @@ int64 StorageManager::get_database_size() {
 
 int64 StorageManager::get_language_pack_database_size() {
   int64 size = 0;
-  auto path = G()->shared_config().get_option_string("language_pack_database_path");
+  auto path = G()->get_option_string("language_pack_database_path");
   if (!path.empty()) {
     SqliteDb::with_db_path(path, [&size](CSlice path) { size += get_file_size(path); });
   }
@@ -317,8 +316,7 @@ void StorageManager::save_last_gc_timestamp() {
 }
 
 void StorageManager::schedule_next_gc() {
-  if (!G()->shared_config().get_option_boolean("use_storage_optimizer") &&
-      !G()->parameters().enable_storage_optimizer) {
+  if (!G()->get_option_boolean("use_storage_optimizer") && !G()->parameters().enable_storage_optimizer) {
     next_gc_at_ = 0;
     cancel_timeout();
     LOG(INFO) << "No next file clean up is scheduled";

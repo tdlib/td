@@ -8,7 +8,6 @@
 
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/BackgroundType.hpp"
-#include "td/telegram/ConfigShared.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/Document.h"
 #include "td/telegram/DocumentsManager.h"
@@ -453,7 +452,7 @@ void BackgroundManager::get_backgrounds(bool for_dark_theme,
 Result<string> BackgroundManager::get_background_url(const string &name,
                                                      td_api::object_ptr<td_api::BackgroundType> background_type) {
   TRY_RESULT(type, BackgroundType::get_background_type(background_type.get()));
-  auto url = PSTRING() << G()->shared_config().get_option_string("t_me_url", "https://t.me/") << "bg/";
+  auto url = PSTRING() << G()->get_option_string("t_me_url", "https://t.me/") << "bg/";
   auto link = type.get_link();
   if (type.has_file()) {
     url += name;

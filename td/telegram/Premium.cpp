@@ -8,7 +8,6 @@
 
 #include "td/telegram/AnimationsManager.h"
 #include "td/telegram/Application.h"
-#include "td/telegram/ConfigShared.h"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/Document.h"
@@ -398,10 +397,8 @@ static string get_premium_source(const td_api::object_ptr<td_api::PremiumSource>
 }
 
 static td_api::object_ptr<td_api::premiumLimit> get_premium_limit_object(Slice key) {
-  int32 default_limit =
-      static_cast<int32>(G()->shared_config().get_option_integer(PSLICE() << key << "_limit_default"));
-  int32 premium_limit =
-      static_cast<int32>(G()->shared_config().get_option_integer(PSLICE() << key << "_limit_premium"));
+  int32 default_limit = static_cast<int32>(G()->get_option_integer(PSLICE() << key << "_limit_default"));
+  int32 premium_limit = static_cast<int32>(G()->get_option_integer(PSLICE() << key << "_limit_premium"));
   if (default_limit <= 0 || premium_limit <= default_limit) {
     return nullptr;
   }
@@ -454,7 +451,7 @@ void get_premium_limit(const td_api::object_ptr<td_api::PremiumLimitType> &limit
 void get_premium_features(Td *td, const td_api::object_ptr<td_api::PremiumSource> &source,
                           Promise<td_api::object_ptr<td_api::premiumFeatures>> &&promise) {
   auto premium_features =
-      full_split(G()->shared_config().get_option_string(
+      full_split(G()->get_option_string(
                      "premium_features",
                      "double_limits,more_upload,faster_download,voice_to_text,no_ads,unique_reactions,premium_stickers,"
                      "animated_emoji,advanced_chat_management,profile_badge,animated_userpics,app_icons"),
@@ -486,11 +483,11 @@ void get_premium_features(Td *td, const td_api::object_ptr<td_api::PremiumSource
   }
 
   td_api::object_ptr<td_api::InternalLinkType> payment_link;
-  auto premium_bot_username = G()->shared_config().get_option_string("premium_bot_username");
+  auto premium_bot_username = G()->get_option_string("premium_bot_username");
   if (!premium_bot_username.empty()) {
     payment_link = td_api::make_object<td_api::internalLinkTypeBotStart>(premium_bot_username, source_str, true);
   } else {
-    auto premium_invoice_slug = G()->shared_config().get_option_string("premium_invoice_slug");
+    auto premium_invoice_slug = G()->get_option_string("premium_invoice_slug");
     if (!premium_invoice_slug.empty()) {
       payment_link = td_api::make_object<td_api::internalLinkTypeInvoice>(premium_invoice_slug);
     }

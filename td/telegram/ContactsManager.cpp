@@ -11,7 +11,6 @@
 #include "td/telegram/BotMenuButton.h"
 #include "td/telegram/ChannelParticipantFilter.h"
 #include "td/telegram/ConfigManager.h"
-#include "td/telegram/ConfigShared.h"
 #include "td/telegram/Dependencies.h"
 #include "td/telegram/DialogInviteLink.h"
 #include "td/telegram/DialogLocation.h"
@@ -3333,11 +3332,11 @@ ContactsManager::ContactsManager(Td *td, ActorShared<> parent) : td_(td), parent
 
   my_id_ = load_my_id();
 
-  G()->shared_config().set_option_integer("telegram_service_notifications_chat_id",
-                                          DialogId(get_service_notifications_user_id()).get());
-  G()->shared_config().set_option_integer("replies_bot_chat_id", DialogId(get_replies_bot_user_id()).get());
-  G()->shared_config().set_option_integer("group_anonymous_bot_user_id", get_anonymous_bot_user_id().get());
-  G()->shared_config().set_option_integer("channel_bot_user_id", get_channel_bot_user_id().get());
+  G()->set_option_integer("telegram_service_notifications_chat_id",
+                          DialogId(get_service_notifications_user_id()).get());
+  G()->set_option_integer("replies_bot_chat_id", DialogId(get_replies_bot_user_id()).get());
+  G()->set_option_integer("group_anonymous_bot_user_id", get_anonymous_bot_user_id().get());
+  G()->set_option_integer("channel_bot_user_id", get_channel_bot_user_id().get());
 
   if (G()->parameters().use_chat_info_db) {
     auto next_contacts_sync_date_string = G()->td_db()->get_binlog_pmc()->get("next_contacts_sync_date");
@@ -5099,7 +5098,7 @@ void ContactsManager::set_my_id(UserId my_id) {
   if (my_old_id != my_id) {
     my_id_ = my_id;
     G()->td_db()->get_binlog_pmc()->set("my_id", to_string(my_id.get()));
-    G()->shared_config().set_option_integer("my_id", my_id_.get());
+    G()->set_option_integer("my_id", my_id_.get());
     G()->td_db()->get_binlog_pmc()->force_sync(Promise<Unit>());
   }
 }
@@ -6037,7 +6036,7 @@ void ContactsManager::set_location(const Location &location, Promise<Unit> &&pro
 }
 
 void ContactsManager::set_location_visibility() {
-  bool is_location_visible = G()->shared_config().get_option_boolean("is_location_visible");
+  bool is_location_visible = G()->get_option_boolean("is_location_visible");
   auto pending_location_visibility_expire_date = is_location_visible ? std::numeric_limits<int32>::max() : 0;
   if (pending_location_visibility_expire_date_ == -1 &&
       pending_location_visibility_expire_date == location_visibility_expire_date_) {
@@ -6260,7 +6259,7 @@ void ContactsManager::set_location_visibility_expire_date(int32 expire_date) {
 void ContactsManager::update_is_location_visible() {
   auto expire_date = pending_location_visibility_expire_date_ != -1 ? pending_location_visibility_expire_date_
                                                                     : location_visibility_expire_date_;
-  G()->shared_config().set_option_boolean("is_location_visible", expire_date != 0);
+  G()->set_option_boolean("is_location_visible", expire_date != 0);
 }
 
 void ContactsManager::on_update_bot_commands(DialogId dialog_id, UserId bot_user_id,
@@ -6490,7 +6489,7 @@ void ContactsManager::set_name(const string &first_name, const string &last_name
 }
 
 void ContactsManager::set_bio(const string &bio, Promise<Unit> &&promise) {
-  auto max_bio_length = static_cast<size_t>(G()->shared_config().get_option_integer("bio_length_max"));
+  auto max_bio_length = static_cast<size_t>(G()->get_option_integer("bio_length_max"));
   auto new_bio = strip_empty_characters(bio, max_bio_length);
   for (auto &c : new_bio) {
     if (c == '\n') {
@@ -8612,7 +8611,7 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
   if (flags & USER_FLAG_IS_ME) {
     set_my_id(user_id);
     if (!is_bot) {
-      G()->shared_config().set_option_string("my_phone_number", user->phone_);
+      G()->set_option_string("my_phone_number", user->phone_);
     }
   }
 
@@ -10191,8 +10190,8 @@ void ContactsManager::for_each_secret_chat_with_user(UserId user_id, const std::
 void ContactsManager::update_user(User *u, UserId user_id, bool from_binlog, bool from_database) {
   CHECK(u != nullptr);
   if (user_id == get_my_id()) {
-    if (G()->shared_config().get_option_boolean("is_premium") != u->is_premium) {
-      G()->shared_config().set_option_boolean("is_premium", u->is_premium);
+    if (G()->get_option_boolean("is_premium") != u->is_premium) {
+      G()->set_option_boolean("is_premium", u->is_premium);
       send_closure(td_->config_manager_, &ConfigManager::request_config, true);
     }
   }

@@ -10,7 +10,6 @@
 #include "td/telegram/ChannelId.h"
 #include "td/telegram/ChannelType.h"
 #include "td/telegram/ConfigManager.h"
-#include "td/telegram/ConfigShared.h"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/DialogParticipant.h"
@@ -254,8 +253,7 @@ class LinkManager::InternalLinkBotStart final : public InternalLink {
 
   td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
     bool autostart = autostart_;
-    if (Scheduler::context() != nullptr &&
-        bot_username_ == G()->shared_config().get_option_string("premium_bot_username")) {
+    if (Scheduler::context() != nullptr && bot_username_ == G()->get_option_string("premium_bot_username")) {
       autostart = true;
     }
     return td_api::make_object<td_api::internalLinkTypeBotStart>(bot_username_, start_parameter_, autostart);
@@ -889,7 +887,7 @@ LinkManager::LinkInfo LinkManager::get_link_info(Slice link) {
 
     vector<Slice> t_me_urls{Slice("t.me"), Slice("telegram.me"), Slice("telegram.dog")};
     if (Scheduler::context() != nullptr) {  // for tests only
-      string cur_t_me_url = G()->shared_config().get_option_string("t_me_url");
+      string cur_t_me_url = G()->get_option_string("t_me_url");
       if (tolower_begins_with(cur_t_me_url, "http://") || tolower_begins_with(cur_t_me_url, "https://")) {
         Slice t_me_url = cur_t_me_url;
         t_me_url = t_me_url.substr(t_me_url[4] == 's' ? 8 : 7);
@@ -1570,7 +1568,7 @@ string LinkManager::get_dialog_invite_link(Slice hash, bool is_internal) {
   if (is_internal) {
     return PSTRING() << "tg:join?invite=" << hash;
   } else {
-    return PSTRING() << G()->shared_config().get_option_string("t_me_url", "https://t.me/") << '+' << hash;
+    return PSTRING() << G()->get_option_string("t_me_url", "https://t.me/") << '+' << hash;
   }
 }
 
