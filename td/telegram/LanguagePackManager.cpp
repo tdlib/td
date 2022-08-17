@@ -63,7 +63,7 @@ struct LanguagePackManager::Language {
   FlatHashMap<string, string> ordinary_strings_;
   FlatHashMap<string, unique_ptr<PluralizedString>> pluralized_strings_;
   FlatHashSet<string> deleted_strings_;
-  SqliteKeyValue kv_;  // usages should be guarded by database_->mutex_
+  SqliteKeyValue kv_;  // usages must be guarded by database_->mutex_
 };
 
 struct LanguagePackManager::LanguageInfo {
@@ -90,7 +90,7 @@ struct LanguagePackManager::LanguageInfo {
 
 struct LanguagePackManager::LanguagePack {
   std::mutex mutex_;
-  SqliteKeyValue pack_kv_;                                              // usages should be guarded by database_->mutex_
+  SqliteKeyValue pack_kv_;                                              // usages must be guarded by database_->mutex_
   std::map<string, LanguageInfo> custom_language_pack_infos_;           // sorted by language_code
   vector<std::pair<string, LanguageInfo>> server_language_pack_infos_;  // sorted by server
   FlatHashMap<string, unique_ptr<LanguageInfo>> all_server_language_pack_infos_;
@@ -198,7 +198,7 @@ LanguagePackManager::LanguageDatabase *LanguagePackManager::add_language_databas
   return it->second.get();
 }
 
-void LanguagePackManager::start_up() {
+LanguagePackManager::LanguagePackManager(ActorShared<> parent) : parent_(std::move(parent)) {
   std::lock_guard<std::mutex> database_lock(language_database_mutex_);
   manager_count_++;
   language_pack_ = G()->get_option_string("localization_target");
@@ -209,10 +209,6 @@ void LanguagePackManager::start_up() {
   database_ = add_language_database(G()->get_option_string("language_pack_database_path"));
   if (!language_pack_.empty() && !language_code_.empty()) {
     auto language = add_language(database_, language_pack_, language_code_);
-    if (language->version_ == -1) {
-      load_empty_language_pack(language_code_);
-    }
-    repair_chosen_language_info();
 
     std::lock_guard<std::mutex> language_lock(language->mutex_);
     base_language_code_ = language->base_language_code_;
@@ -221,15 +217,33 @@ void LanguagePackManager::start_up() {
       base_language_code_.clear();
     }
     if (!base_language_code_.empty()) {
-      auto base_language = add_language(database_, language_pack_, base_language_code_);
-      if (base_language->version_ == -1) {
-        load_empty_language_pack(base_language_code_);
-      }
+      add_language(database_, language_pack_, base_language_code_);
     }
 
     LOG(INFO) << "Use localization target \"" << language_pack_ << "\" with language pack \"" << language_code_
               << "\" based on \"" << base_language_code_ << "\" of version " << language->version_.load()
               << " with database \"" << database_->path_ << '"';
+  }
+}
+
+void LanguagePackManager::start_up() {
+  if (language_pack_.empty() || language_code_.empty()) {
+    return;
+  }
+
+  auto language = get_language(database_, language_pack_, language_code_);
+  CHECK(language != nullptr);
+  if (language->version_ == -1) {
+    load_empty_language_pack(language_code_);
+  }
+  repair_chosen_language_info();
+
+  if (!base_language_code_.empty()) {
+    auto base_language = get_language(database_, language_pack_, base_language_code_);
+    CHECK(base_language != nullptr);
+    if (base_language->version_ == -1) {
+      load_empty_language_pack(base_language_code_);
+    }
   }
 }
 
@@ -240,7 +254,7 @@ void LanguagePackManager::tear_down() {
   std::lock_guard<std::mutex> lock(language_database_mutex_);
   manager_count_--;
   if (manager_count_ == 0) {
-    // can't clear language packs, because they may be accessed later using synchronous requests
+    // can't clear language packs, because they can be accessed later using synchronous requests
     // LOG(INFO) << "Clear language packs";
     // language_databases_.clear();
   }
@@ -364,9 +378,10 @@ void LanguagePackManager::on_language_pack_version_changed(bool is_base, int32 n
     return;
   }
 
-  LOG(INFO) << (is_base ? "Base" : "Main") << " language pack vesrion has changed to " << new_version;
   Language *language = get_language(database_, language_pack_, language_code_);
   int32 version = language == nullptr ? static_cast<int32>(-1) : language->version_.load();
+  LOG(INFO) << (is_base ? "Base" : "Main") << " language pack vesrion has changed from " << version << " to "
+            << new_version;
   if (version == -1) {
     return load_empty_language_pack(language_code_);
   }

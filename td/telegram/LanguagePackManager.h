@@ -29,8 +29,7 @@ class SqliteKeyValue;
 
 class LanguagePackManager final : public NetQueryCallback {
  public:
-  explicit LanguagePackManager(ActorShared<> parent) : parent_(std::move(parent)) {
-  }
+  explicit LanguagePackManager(ActorShared<> parent);
   LanguagePackManager(const LanguagePackManager &) = delete;
   LanguagePackManager &operator=(const LanguagePackManager &) = delete;
   LanguagePackManager(LanguagePackManager &&) = delete;

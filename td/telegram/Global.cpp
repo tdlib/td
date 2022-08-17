@@ -281,7 +281,7 @@ std::unordered_map<string, string> Global::get_options() const {
 }
 
 bool Global::get_option_boolean(Slice name, bool default_value) const {
-  return shared_config_->get_option_integer(name, default_value);
+  return shared_config_->get_option_boolean(name, default_value);
 }
 
 int64 Global::get_option_integer(Slice name, int64 default_value) const {
