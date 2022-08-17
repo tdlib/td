@@ -29,9 +29,8 @@ Global::Global() = default;
 Global::~Global() = default;
 
 void Global::log_out(Slice reason) {
-  CHECK(shared_config_ != nullptr);
-  if (!shared_config_->have_option("auth")) {
-    shared_config_->set_option_string("auth", reason);
+  if (!have_option("auth")) {
+    set_option_string("auth", reason);
   }
 }
 
@@ -184,7 +183,7 @@ void Global::save_server_time() {
 }
 
 void Global::do_save_server_time_difference() {
-  if (shared_config_ != nullptr && shared_config_->get_option_boolean("disable_time_adjustment_protection")) {
+  if (get_option_boolean("disable_time_adjustment_protection")) {
     td_db()->get_binlog_pmc()->erase("server_time_difference");
     return;
   }
@@ -223,8 +222,7 @@ double Global::get_dns_time_difference() const {
 }
 
 DcId Global::get_webfile_dc_id() const {
-  CHECK(shared_config_ != nullptr);
-  auto dc_id = narrow_cast<int32>(shared_config_->get_option_integer("webfile_dc_id"));
+  auto dc_id = narrow_cast<int32>(get_option_integer("webfile_dc_id"));
   if (!DcId::is_valid(dc_id)) {
     if (is_test_dc()) {
       dc_id = 2;
@@ -239,8 +237,7 @@ DcId Global::get_webfile_dc_id() const {
 }
 
 bool Global::ignore_background_updates() const {
-  return !parameters_.use_file_db && !parameters_.use_secret_chats &&
-         shared_config_->get_option_boolean("ignore_background_updates");
+  return !parameters_.use_file_db && !parameters_.use_secret_chats && get_option_boolean("ignore_background_updates");
 }
 
 void Global::set_net_query_stats(std::shared_ptr<NetQueryStats> net_query_stats) {
