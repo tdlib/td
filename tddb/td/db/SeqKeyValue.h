@@ -51,13 +51,6 @@ class SeqKeyValue {
     return it->second;
   }
 
-  template <class F>
-  void foreach(const F &f) {
-    for (auto &it : map_) {
-      f(it.first, it.second);
-    }
-  }
-
   size_t size() const {
     return map_.size();
   }
