@@ -125,6 +125,8 @@ class SaveGifQuery final : public Td::ResultHandler {
 };
 
 AnimationsManager::AnimationsManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
+  on_update_animation_search_emojis();
+  on_update_animation_search_provider();
   on_update_saved_animations_limit();
 
   next_saved_animations_load_time_ = Time::now();
@@ -400,7 +402,7 @@ SecretInputMedia AnimationsManager::get_secret_input_media(FileId animation_file
           layer};
 }
 
-void AnimationsManager::on_update_animation_search_emojis(string animation_search_emojis) {
+void AnimationsManager::on_update_animation_search_emojis() {
   if (G()->close_flag()) {
     return;
   }
@@ -409,6 +411,7 @@ void AnimationsManager::on_update_animation_search_emojis(string animation_searc
     return;
   }
 
+  auto animation_search_emojis = G()->get_option_string("animation_search_emojis");
   is_animation_search_emojis_inited_ = true;
   if (animation_search_emojis_ == animation_search_emojis) {
     return;
@@ -418,7 +421,7 @@ void AnimationsManager::on_update_animation_search_emojis(string animation_searc
   try_send_update_animation_search_parameters();
 }
 
-void AnimationsManager::on_update_animation_search_provider(string animation_search_provider) {
+void AnimationsManager::on_update_animation_search_provider() {
   if (G()->close_flag()) {
     return;
   }
@@ -427,6 +430,7 @@ void AnimationsManager::on_update_animation_search_provider(string animation_sea
     return;
   }
 
+  string animation_search_provider = G()->get_option_string("animation_search_provider");
   is_animation_search_provider_inited_ = true;
   if (animation_search_provider_ == animation_search_provider) {
     return;

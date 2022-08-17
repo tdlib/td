@@ -61,9 +61,9 @@ class AnimationsManager final : public Actor {
 
   void merge_animations(FileId new_id, FileId old_id);
 
-  void on_update_animation_search_emojis(string animation_search_emojis);
+  void on_update_animation_search_emojis();
 
-  void on_update_animation_search_provider(string animation_search_provider);
+  void on_update_animation_search_provider();
 
   void on_update_saved_animations_limit();
 

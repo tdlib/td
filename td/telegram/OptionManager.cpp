@@ -195,10 +195,10 @@ void OptionManager::on_option_updated(const string &name) {
         // nothing to do: animated emoji zoom is updated only at launch
       }
       if (name == "animation_search_emojis") {
-        td_->animations_manager_->on_update_animation_search_emojis(G()->get_option_string(name));
+        td_->animations_manager_->on_update_animation_search_emojis();
       }
       if (name == "animation_search_provider") {
-        td_->animations_manager_->on_update_animation_search_provider(G()->get_option_string(name));
+        td_->animations_manager_->on_update_animation_search_provider();
       }
       break;
     case 'b':
