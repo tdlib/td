@@ -32,6 +32,7 @@ class SeqKeyValue {
     }
     return next_seq_no();
   }
+
   SeqNo erase(const string &key) {
     auto it = map_.find(key);
     if (it == map_.end()) {
@@ -40,15 +41,25 @@ class SeqKeyValue {
     map_.erase(it);
     return next_seq_no();
   }
+
   SeqNo seq_no() const {
     return current_id_ + 1;
   }
+
   string get(const string &key) const {
     auto it = map_.find(key);
     if (it == map_.end()) {
       return string();
     }
     return it->second;
+  }
+
+  bool isset(const string &key) const {
+    auto it = map_.find(key);
+    if (it == map_.end()) {
+      return false;
+    }
+    return true;
   }
 
   size_t size() const {
