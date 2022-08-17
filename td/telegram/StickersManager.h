@@ -279,9 +279,9 @@ class StickersManager final : public Actor {
 
   void clear_recent_stickers(bool is_attached, Promise<Unit> &&promise);
 
-  void on_update_recent_stickers_limit(int32 recent_stickers_limit);
+  void on_update_recent_stickers_limit();
 
-  void on_update_favorite_stickers_limit(int32 favorite_stickers_limit);
+  void on_update_favorite_stickers_limit();
 
   void reload_favorite_stickers(bool force);
 

@@ -242,7 +242,7 @@ void OptionManager::on_option_updated(const string &name) {
       break;
     case 'f':
       if (name == "favorite_stickers_limit") {
-        td_->stickers_manager_->on_update_favorite_stickers_limit(narrow_cast<int32>(G()->get_option_integer(name)));
+        td_->stickers_manager_->on_update_favorite_stickers_limit();
       }
       break;
     case 'i':
@@ -310,12 +310,12 @@ void OptionManager::on_option_updated(const string &name) {
         send_closure(td_->top_dialog_manager_actor_, &TopDialogManager::update_rating_e_decay);
       }
       if (name == "recent_stickers_limit") {
-        td_->stickers_manager_->on_update_recent_stickers_limit(narrow_cast<int32>(G()->get_option_integer(name)));
+        td_->stickers_manager_->on_update_recent_stickers_limit();
       }
       break;
     case 's':
       if (name == "saved_animations_limit") {
-        td_->animations_manager_->on_update_saved_animations_limit(narrow_cast<int32>(G()->get_option_integer(name)));
+        td_->animations_manager_->on_update_saved_animations_limit();
       }
       if (name == "session_count") {
         G()->net_query_dispatcher().update_session_count();

@@ -1389,9 +1389,8 @@ StickersManager::StickersManager(Td *td, ActorShared<> parent) : td_(td), parent
   upload_sticker_file_callback_ = std::make_shared<UploadStickerFileCallback>();
 
   on_update_animated_emoji_zoom();
-
-  on_update_recent_stickers_limit(narrow_cast<int32>(G()->get_option_integer("recent_stickers_limit", 200)));
-  on_update_favorite_stickers_limit(narrow_cast<int32>(G()->get_option_integer("favorite_stickers_limit", 5)));
+  on_update_recent_stickers_limit();
+  on_update_favorite_stickers_limit();
 
   next_click_animated_emoji_message_time_ = Time::now();
   next_update_animated_emoji_clicked_time_ = Time::now();
@@ -7905,7 +7904,8 @@ void StickersManager::on_update_animated_emoji_zoom() {
   animated_emoji_zoom_ = static_cast<double>(G()->get_option_integer("animated_emoji_zoom", 625000000)) * 1e-9;
 }
 
-void StickersManager::on_update_recent_stickers_limit(int32 recent_stickers_limit) {
+void StickersManager::on_update_recent_stickers_limit() {
+  auto recent_stickers_limit = narrow_cast<int32>(G()->get_option_integer("recent_stickers_limit", 200));
   if (recent_stickers_limit != recent_stickers_limit_) {
     if (recent_stickers_limit > 0) {
       LOG(INFO) << "Update recent stickers limit to " << recent_stickers_limit;
@@ -7922,7 +7922,8 @@ void StickersManager::on_update_recent_stickers_limit(int32 recent_stickers_limi
   }
 }
 
-void StickersManager::on_update_favorite_stickers_limit(int32 favorite_stickers_limit) {
+void StickersManager::on_update_favorite_stickers_limit() {
+  auto favorite_stickers_limit = narrow_cast<int32>(G()->get_option_integer("favorite_stickers_limit", 5));
   if (favorite_stickers_limit != favorite_stickers_limit_) {
     if (favorite_stickers_limit > 0) {
       LOG(INFO) << "Update favorite stickers limit to " << favorite_stickers_limit;

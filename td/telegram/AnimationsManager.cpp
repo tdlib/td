@@ -442,7 +442,8 @@ void AnimationsManager::on_update_animation_search_provider(string animation_sea
   try_send_update_animation_search_parameters();
 }
 
-void AnimationsManager::on_update_saved_animations_limit(int32 saved_animations_limit) {
+void AnimationsManager::on_update_saved_animations_limit() {
+  int32 saved_animations_limit = narrow_cast<int32>(G()->get_option_integer("saved_animations_limit", 200));
   if (saved_animations_limit != saved_animations_limit_) {
     if (saved_animations_limit > 0) {
       LOG(INFO) << "Update saved animations limit to " << saved_animations_limit;
