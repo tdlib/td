@@ -6,6 +6,7 @@
 //
 #include "td/telegram/Global.h"
 
+#include "td/telegram/AuthManager.h"
 #include "td/telegram/ConfigShared.h"
 #include "td/telegram/net/ConnectionCreator.h"
 #include "td/telegram/net/NetQueryDispatcher.h"
@@ -29,9 +30,7 @@ Global::Global() = default;
 Global::~Global() = default;
 
 void Global::log_out(Slice reason) {
-  if (!have_option("auth")) {
-    set_option_string("auth", reason);
-  }
+  send_closure(auth_manager_, &AuthManager::on_authorization_lost, reason.str());
 }
 
 void Global::close_all(Promise<> on_finished) {

@@ -3674,6 +3674,7 @@ void Td::init(Result<TdDb::OpenedDatabase> r_opened_database) {
   VLOG(td_init) << "Create AuthManager";
   auth_manager_ = td::make_unique<AuthManager>(parameters_.api_id, parameters_.api_hash, create_reference());
   auth_manager_actor_ = register_actor("AuthManager", auth_manager_.get());
+  G()->set_auth_manager(auth_manager_actor_.get());
 
   init_file_manager();
 

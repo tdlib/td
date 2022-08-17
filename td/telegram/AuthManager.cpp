@@ -720,6 +720,10 @@ void AuthManager::on_authorization_lost(string source) {
     LOG(INFO) << "Ignore authorization loss because of " << source << ", while logging out";
     return;
   }
+  if (state_ == State::Closing || state_ == State::DestroyingKeys) {
+    LOG(INFO) << "Ignore duplicate authorization loss because of " << source;
+    return;
+  }
   LOG(WARNING) << "Lost authorization because of " << source;
   destroy_auth_keys();
 }

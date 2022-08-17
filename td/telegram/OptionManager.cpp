@@ -128,8 +128,7 @@ bool OptionManager::is_internal_option(Slice name) {
   switch (name[0]) {
     case 'a':
       return name == "about_length_limit_default" || name == "about_length_limit_premium" ||
-             name == "animated_emoji_zoom" || name == "animation_search_emojis" ||
-             name == "animation_search_provider" || name == "auth";
+             name == "animated_emoji_zoom" || name == "animation_search_emojis" || name == "animation_search_provider";
     case 'b':
       return name == "base_language_pack_version";
     case 'c':
@@ -200,9 +199,6 @@ void OptionManager::on_option_updated(const string &name) {
       }
       if (name == "animation_search_provider") {
         td_->animations_manager_->on_update_animation_search_provider(G()->get_option_string(name));
-      }
-      if (name == "auth") {
-        send_closure(td_->auth_manager_actor_, &AuthManager::on_authorization_lost, G()->get_option_string(name));
       }
       break;
     case 'b':
