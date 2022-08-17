@@ -245,6 +245,9 @@ void LanguagePackManager::start_up() {
       load_empty_language_pack(base_language_code_);
     }
   }
+
+  on_language_pack_version_changed(false, -1);
+  on_language_pack_version_changed(true, -1);
 }
 
 void LanguagePackManager::tear_down() {
@@ -380,7 +383,7 @@ void LanguagePackManager::on_language_pack_version_changed(bool is_base, int32 n
 
   Language *language = get_language(database_, language_pack_, language_code_);
   int32 version = language == nullptr ? static_cast<int32>(-1) : language->version_.load();
-  LOG(INFO) << (is_base ? "Base" : "Main") << " language pack vesrion has changed from " << version << " to "
+  LOG(INFO) << (is_base ? "Base" : "Main") << " language pack vesrion has changed from main " << version << " to "
             << new_version;
   if (version == -1) {
     return load_empty_language_pack(language_code_);

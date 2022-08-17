@@ -1445,6 +1445,7 @@ void StickersManager::init() {
   send_closure_later(actor_id(this), &StickersManager::load_reactions);
 
   on_update_dice_success_values();
+  on_update_dice_emojis();
 
   on_update_emoji_sounds();
 

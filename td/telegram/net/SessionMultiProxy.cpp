@@ -65,9 +65,11 @@ void SessionMultiProxy::update_destroy_auth_key(bool need_destroy_auth_key) {
   need_destroy_auth_key_ = need_destroy_auth_key;
   send_closure(sessions_[0].proxy, &SessionProxy::update_destroy, need_destroy_auth_key_);
 }
+
 void SessionMultiProxy::update_session_count(int32 session_count) {
   update_options(session_count, use_pfs_);
 }
+
 void SessionMultiProxy::update_use_pfs(bool use_pfs) {
   update_options(session_count_, use_pfs);
 }

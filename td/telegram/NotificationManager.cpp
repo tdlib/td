@@ -2565,7 +2565,6 @@ void NotificationManager::on_disable_contact_registered_notifications_changed() 
   }
 
   auto is_disabled = G()->get_option_boolean("disable_contact_registered_notifications");
-
   if (is_disabled == disable_contact_registered_notifications_) {
     return;
   }
