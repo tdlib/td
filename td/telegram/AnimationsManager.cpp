@@ -16,6 +16,7 @@
 #include "td/telegram/Global.h"
 #include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/misc.h"
+#include "td/telegram/OptionManager.h"
 #include "td/telegram/PhotoFormat.h"
 #include "td/telegram/secret_api.h"
 #include "td/telegram/Td.h"
@@ -407,11 +408,11 @@ void AnimationsManager::on_update_animation_search_emojis() {
     return;
   }
   if (td_->auth_manager_->is_bot()) {
-    G()->set_option_empty("animation_search_emojis");
+    td_->option_manager_->set_option_empty("animation_search_emojis");
     return;
   }
 
-  auto animation_search_emojis = G()->get_option_string("animation_search_emojis");
+  auto animation_search_emojis = td_->option_manager_->get_option_string("animation_search_emojis");
   is_animation_search_emojis_inited_ = true;
   if (animation_search_emojis_ == animation_search_emojis) {
     return;
@@ -426,11 +427,11 @@ void AnimationsManager::on_update_animation_search_provider() {
     return;
   }
   if (td_->auth_manager_->is_bot()) {
-    G()->set_option_empty("animation_search_provider");
+    td_->option_manager_->set_option_empty("animation_search_provider");
     return;
   }
 
-  string animation_search_provider = G()->get_option_string("animation_search_provider");
+  string animation_search_provider = td_->option_manager_->get_option_string("animation_search_provider");
   is_animation_search_provider_inited_ = true;
   if (animation_search_provider_ == animation_search_provider) {
     return;
@@ -441,7 +442,11 @@ void AnimationsManager::on_update_animation_search_provider() {
 }
 
 void AnimationsManager::on_update_saved_animations_limit() {
-  int32 saved_animations_limit = narrow_cast<int32>(G()->get_option_integer("saved_animations_limit", 200));
+  if (G()->close_flag()) {
+    return;
+  }
+  int32 saved_animations_limit =
+      narrow_cast<int32>(td_->option_manager_->get_option_integer("saved_animations_limit", 200));
   if (saved_animations_limit != saved_animations_limit_) {
     if (saved_animations_limit > 0) {
       LOG(INFO) << "Update saved animations limit to " << saved_animations_limit;

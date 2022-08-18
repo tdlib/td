@@ -43,6 +43,7 @@
 #include "td/telegram/MessageSender.h"
 #include "td/telegram/misc.h"
 #include "td/telegram/net/DcId.h"
+#include "td/telegram/OptionManager.h"
 #include "td/telegram/Payments.h"
 #include "td/telegram/Payments.hpp"
 #include "td/telegram/Photo.h"
@@ -4670,7 +4671,7 @@ unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const
       }
     case MessageContentType::Sticker: {
       auto result = make_unique<MessageSticker>(*static_cast<const MessageSticker *>(content));
-      result->is_premium = G()->get_option_boolean("is_premium");
+      result->is_premium = td->option_manager_->get_option_boolean("is_premium");
       if (td->stickers_manager_->has_input_media(result->file_id, to_secret)) {
         return std::move(result);
       }

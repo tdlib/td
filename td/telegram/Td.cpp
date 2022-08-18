@@ -3273,8 +3273,6 @@ void Td::dec_actor_refcnt() {
       LOG(DEBUG) << "NotificationManager was cleared" << timer;
       notification_settings_manager_.reset();
       LOG(DEBUG) << "NotificationSettingsManager was cleared" << timer;
-      option_manager_.reset();
-      LOG(DEBUG) << "OptionManager was cleared" << timer;
       poll_manager_.reset();
       LOG(DEBUG) << "PollManager was cleared" << timer;
       sponsored_message_manager_.reset();
@@ -3295,8 +3293,11 @@ void Td::dec_actor_refcnt() {
       LOG(DEBUG) << "VoiceNotesManager was cleared" << timer;
       web_pages_manager_.reset();
       LOG(DEBUG) << "WebPagesManager was cleared" << timer;
-      Promise<> promise = PromiseCreator::lambda([actor_id = create_reference()](Unit) mutable { actor_id.reset(); });
 
+      option_manager_.reset();
+      LOG(DEBUG) << "OptionManager was cleared" << timer;
+
+      Promise<> promise = PromiseCreator::lambda([actor_id = create_reference()](Unit) mutable { actor_id.reset(); });
       if (destroy_flag_) {
         G()->close_and_destroy_all(std::move(promise));
       } else {

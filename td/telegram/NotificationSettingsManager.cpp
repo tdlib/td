@@ -24,6 +24,7 @@
 #include "td/telegram/NotificationManager.h"
 #include "td/telegram/NotificationSettings.hpp"
 #include "td/telegram/NotificationSound.h"
+#include "td/telegram/OptionManager.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"
 #include "td/telegram/telegram_api.h"
@@ -873,7 +874,7 @@ void NotificationSettingsManager::add_saved_ringtone(td_api::object_ptr<td_api::
   FileId file_id = r_file_id.ok();
   auto file_view = td_->file_manager_->get_file_view(file_id);
   CHECK(!file_view.empty());
-  if (file_view.size() > G()->get_option_integer("notification_sound_size_max")) {
+  if (file_view.size() > td_->option_manager_->get_option_integer("notification_sound_size_max")) {
     return promise.set_error(Status::Error(400, "Notification sound file is too big"));
   }
   auto file_type = file_view.get_type();
@@ -888,7 +889,7 @@ void NotificationSettingsManager::add_saved_ringtone(td_api::object_ptr<td_api::
     default:
       break;
   }
-  if (duration > G()->get_option_integer("notification_sound_duration_max")) {
+  if (duration > td_->option_manager_->get_option_integer("notification_sound_duration_max")) {
     return promise.set_error(Status::Error(400, "Notification sound is too long"));
   }
   if (file_view.has_remote_location() && !file_view.is_encrypted()) {
@@ -1113,7 +1114,7 @@ void NotificationSettingsManager::on_remove_saved_ringtone(int64 ringtone_id, Pr
 
   CHECK(are_saved_ringtones_loaded_);
 
-  auto max_count = G()->get_option_integer("notification_sound_count_max");
+  auto max_count = td_->option_manager_->get_option_integer("notification_sound_count_max");
   if (saved_ringtone_file_ids_.size() >= static_cast<uint64>(max_count)) {
     // reload all saved ringtones to get ringtones besides the limit
     return reload_saved_ringtones(PromiseCreator::lambda([promise = std::move(promise)](Result<Unit> &&result) mutable {

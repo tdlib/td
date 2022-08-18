@@ -12,6 +12,7 @@
 #include "td/telegram/Global.h"
 #include "td/telegram/MessageSender.h"
 #include "td/telegram/MessagesManager.h"
+#include "td/telegram/OptionManager.h"
 #include "td/telegram/ServerMessageId.h"
 #include "td/telegram/StickersManager.h"
 #include "td/telegram/Td.h"
@@ -240,13 +241,13 @@ class SetDefaultReactionQuery final : public Td::ResultHandler {
       return on_error(Status::Error(400, "Receive false"));
     }
 
-    auto default_reaction = G()->get_option_string("default_reaction", "-");
+    auto default_reaction = td_->option_manager_->get_option_string("default_reaction", "-");
     LOG(INFO) << "Successfully set reaction " << reaction_ << " as default, current default is " << default_reaction;
 
     if (default_reaction != reaction_) {
       send_set_default_reaction_query(td_);
     } else {
-      G()->set_option_empty("default_reaction_needs_sync");
+      td_->option_manager_->set_option_empty("default_reaction_needs_sync");
     }
   }
 
@@ -256,7 +257,7 @@ class SetDefaultReactionQuery final : public Td::ResultHandler {
     }
 
     LOG(INFO) << "Failed to set default reaction: " << status;
-    G()->set_option_empty("default_reaction_needs_sync");
+    td_->option_manager_->set_option_empty("default_reaction_needs_sync");
     send_closure(G()->config_manager(), &ConfigManager::reget_app_config, Promise<Unit>());
   }
 };
@@ -594,17 +595,17 @@ void set_default_reaction(Td *td, string reaction, Promise<Unit> &&promise) {
     return promise.set_error(Status::Error(400, "Can't set incative reaction as default"));
   }
 
-  if (G()->get_option_string("default_reaction", "-") != reaction) {
-    G()->set_option_string("default_reaction", reaction);
-    if (!G()->get_option_boolean("default_reaction_needs_sync")) {
-      G()->set_option_boolean("default_reaction_needs_sync", true);
+  if (td->option_manager_->get_option_string("default_reaction", "-") != reaction) {
+    td->option_manager_->set_option_string("default_reaction", reaction);
+    if (!td->option_manager_->get_option_boolean("default_reaction_needs_sync")) {
+      td->option_manager_->set_option_boolean("default_reaction_needs_sync", true);
     }
   }
   promise.set_value(Unit());
 }
 
 void send_set_default_reaction_query(Td *td) {
-  td->create_handler<SetDefaultReactionQuery>()->send(G()->get_option_string("default_reaction"));
+  td->create_handler<SetDefaultReactionQuery>()->send(td->option_manager_->get_option_string("default_reaction"));
 }
 
 }  // namespace td

@@ -49,6 +49,7 @@
 #include "td/telegram/NotificationSettingsManager.h"
 #include "td/telegram/NotificationSound.h"
 #include "td/telegram/NotificationType.h"
+#include "td/telegram/OptionManager.h"
 #include "td/telegram/PollId.h"
 #include "td/telegram/PublicDialogType.h"
 #include "td/telegram/ReplyMarkup.h"
@@ -3211,7 +3212,7 @@ class SendMessageQuery final : public Td::ResultHandler {
             std::move(reply_markup), std::move(entities), schedule_date, std::move(as_input_peer)),
         {{dialog_id, MessageContentType::Text},
          {dialog_id, is_copy ? MessageContentType::Photo : MessageContentType::Text}});
-    if (G()->get_option_boolean("use_quick_ack")) {
+    if (td_->option_manager_->get_option_boolean("use_quick_ack")) {
       query->quick_ack_promise_ = PromiseCreator::lambda([random_id](Result<Unit> result) {
         if (result.is_ok()) {
           send_closure(G()->messages_manager(), &MessagesManager::on_send_message_get_quick_ack, random_id);
@@ -3282,7 +3283,7 @@ class StartBotQuery final : public Td::ResultHandler {
     auto query = G()->net_query_creator().create(
         telegram_api::messages_startBot(std::move(bot_input_user), std::move(input_peer), random_id, parameter),
         {{dialog_id, MessageContentType::Text}, {dialog_id, MessageContentType::Photo}});
-    if (G()->get_option_boolean("use_quick_ack")) {
+    if (td_->option_manager_->get_option_boolean("use_quick_ack")) {
       query->quick_ack_promise_ = PromiseCreator::lambda([random_id](Result<Unit> result) {
         if (result.is_ok()) {
           send_closure(G()->messages_manager(), &MessagesManager::on_send_message_get_quick_ack, random_id);
@@ -3524,7 +3525,7 @@ class SendMediaQuery final : public Td::ResultHandler {
             reply_to_message_id.get_server_message_id().get(), std::move(input_media), text, random_id,
             std::move(reply_markup), std::move(entities), schedule_date, std::move(as_input_peer)),
         {{dialog_id, content_type}, {dialog_id, is_copy ? MessageContentType::Text : content_type}});
-    if (G()->get_option_boolean("use_quick_ack") && was_uploaded_) {
+    if (td_->option_manager_->get_option_boolean("use_quick_ack") && was_uploaded_) {
       query->quick_ack_promise_ = PromiseCreator::lambda([random_id](Result<Unit> result) {
         if (result.is_ok()) {
           send_closure(G()->messages_manager(), &MessagesManager::on_send_message_get_quick_ack, random_id);
@@ -3888,7 +3889,7 @@ class ForwardMessagesQuery final : public Td::ResultHandler {
             false /*ignored*/, std::move(from_input_peer), MessagesManager::get_server_message_ids(message_ids),
             std::move(random_ids), std::move(to_input_peer), schedule_date, std::move(as_input_peer)),
         {{to_dialog_id, MessageContentType::Text}, {to_dialog_id, MessageContentType::Photo}});
-    if (G()->get_option_boolean("use_quick_ack")) {
+    if (td_->option_manager_->get_option_boolean("use_quick_ack")) {
       query->quick_ack_promise_ = PromiseCreator::lambda([random_ids = random_ids_](Result<Unit> result) {
         if (result.is_ok()) {
           for (auto random_id : random_ids) {
@@ -10695,8 +10696,9 @@ bool MessagesManager::can_revoke_message(DialogId dialog_id, const Message *m) c
   auto content_type = m->content->get_type();
   switch (dialog_id.get_type()) {
     case DialogType::User: {
-      bool can_revoke_incoming = G()->get_option_boolean("revoke_pm_inbox", true);
-      int64 revoke_time_limit = G()->get_option_integer("revoke_pm_time_limit", DEFAULT_REVOKE_TIME_LIMIT);
+      bool can_revoke_incoming = td_->option_manager_->get_option_boolean("revoke_pm_inbox", true);
+      int64 revoke_time_limit =
+          td_->option_manager_->get_option_integer("revoke_pm_time_limit", DEFAULT_REVOKE_TIME_LIMIT);
 
       if (G()->unix_time_cached() - m->date < 86400 && content_type == MessageContentType::Dice) {
         return false;
@@ -10708,7 +10710,8 @@ bool MessagesManager::can_revoke_message(DialogId dialog_id, const Message *m) c
     case DialogType::Chat: {
       bool is_appointed_administrator =
           td_->contacts_manager_->is_appointed_chat_administrator(dialog_id.get_chat_id());
-      int64 revoke_time_limit = G()->get_option_integer("revoke_time_limit", DEFAULT_REVOKE_TIME_LIMIT);
+      int64 revoke_time_limit =
+          td_->option_manager_->get_option_integer("revoke_time_limit", DEFAULT_REVOKE_TIME_LIMIT);
 
       return ((m->is_outgoing && !is_service_message_content(content_type)) || is_appointed_administrator) &&
              G()->unix_time_cached() - m->date <= revoke_time_limit;
@@ -11046,7 +11049,7 @@ MessagesManager::CanDeleteDialog MessagesManager::can_delete_dialog(const Dialog
           td_->contacts_manager_->is_user_bot(d->dialog_id.get_user_id())) {
         return {true, false};
       }
-      return {true, G()->get_option_boolean("revoke_pm_inbox", true)};
+      return {true, td_->option_manager_->get_option_boolean("revoke_pm_inbox", true)};
     case DialogType::Chat:
       // chats can be deleted only for self and can be deleted for everyone by their creator
       return {true, td_->contacts_manager_->get_chat_status(d->dialog_id.get_chat_id()).is_creator()};
@@ -11584,7 +11587,7 @@ int32 MessagesManager::get_unload_dialog_delay() const {
 
   CHECK(is_message_unload_enabled());
   auto default_unload_delay = td_->auth_manager_->is_bot() ? DIALOG_UNLOAD_BOT_DELAY : DIALOG_UNLOAD_DELAY;
-  return narrow_cast<int32>(G()->get_option_integer("message_unload_delay", default_unload_delay));
+  return narrow_cast<int32>(td_->option_manager_->get_option_integer("message_unload_delay", default_unload_delay));
 }
 
 int32 MessagesManager::get_next_unload_dialog_delay() const {
@@ -13180,7 +13183,7 @@ void MessagesManager::init() {
   if (is_authorized && td_->auth_manager_->is_bot()) {
     disable_get_dialog_filter_ = true;
   }
-  authorization_date_ = G()->get_option_integer("authorization_date");
+  authorization_date_ = td_->option_manager_->get_option_integer("authorization_date");
 
   if (was_authorized_user) {
     auto dialog_filters = G()->td_db()->get_binlog_pmc()->get("dialog_filters");
@@ -13189,7 +13192,7 @@ void MessagesManager::init() {
       if (log_event_parse(log_event, dialog_filters).is_ok()) {
         server_main_dialog_list_position_ = log_event.server_main_dialog_list_position;
         main_dialog_list_position_ = log_event.main_dialog_list_position;
-        if (!G()->get_option_boolean("is_premium") &&
+        if (!td_->option_manager_->get_option_boolean("is_premium") &&
             (server_main_dialog_list_position_ != 0 || main_dialog_list_position_ != 0)) {
           LOG(INFO) << "Ignore main chat list position " << server_main_dialog_list_position_ << '/'
                     << main_dialog_list_position_;
@@ -13581,7 +13584,7 @@ void MessagesManager::init() {
 
 void MessagesManager::on_authorization_success() {
   CHECK(td_->auth_manager_->is_authorized());
-  authorization_date_ = G()->get_option_integer("authorization_date");
+  authorization_date_ = td_->option_manager_->get_option_integer("authorization_date");
 
   if (td_->auth_manager_->is_bot()) {
     disable_get_dialog_filter_ = true;
@@ -17257,7 +17260,7 @@ void MessagesManager::on_get_dialog_filters(Result<vector<tl_object_ptr<telegram
     LOG(ERROR) << "Receive no dialogFilterDefault";
     server_main_dialog_list_position = 0;
   }
-  if (server_main_dialog_list_position != 0 && !G()->get_option_boolean("is_premium")) {
+  if (server_main_dialog_list_position != 0 && !td_->option_manager_->get_option_boolean("is_premium")) {
     LOG(INFO) << "Ignore server main chat list position " << server_main_dialog_list_position;
     server_main_dialog_list_position = 0;
   }
@@ -18292,7 +18295,8 @@ Status MessagesManager::can_get_message_viewers(DialogId dialog_id, const Messag
   if (!m->is_outgoing) {
     return Status::Error(400, "Can't get viewers of incoming messages");
   }
-  if (G()->unix_time() - m->date > G()->get_option_integer("chat_read_mark_expire_period", 7 * 86400)) {
+  if (G()->unix_time() - m->date >
+      td_->option_manager_->get_option_integer("chat_read_mark_expire_period", 7 * 86400)) {
     return Status::Error(400, "Message is too old");
   }
 
@@ -18325,7 +18329,7 @@ Status MessagesManager::can_get_message_viewers(DialogId dialog_id, const Messag
   if (participant_count == 0) {
     return Status::Error(400, "Chat is empty or have unknown number of members");
   }
-  if (participant_count > G()->get_option_integer("chat_read_mark_size_threshold", 100)) {
+  if (participant_count > td_->option_manager_->get_option_integer("chat_read_mark_size_threshold", 100)) {
     return Status::Error(400, "Chat is too big");
   }
 
@@ -18743,7 +18747,7 @@ Result<std::pair<string, bool>> MessagesManager::get_message_link(FullMessageId 
   }
 
   SliceBuilder sb;
-  sb << G()->get_option_string("t_me_url", "https://t.me/");
+  sb << td_->option_manager_->get_option_string("t_me_url", "https://t.me/");
 
   if (for_comment) {
     auto *top_m = get_message_force(d, m->top_thread_message_id, "get_public_message_link");
@@ -19124,8 +19128,8 @@ Result<unique_ptr<DialogFilter>> MessagesManager::create_dialog_filter(DialogFil
 void MessagesManager::create_dialog_filter(td_api::object_ptr<td_api::chatFilter> filter,
                                            Promise<td_api::object_ptr<td_api::chatFilterInfo>> &&promise) {
   CHECK(!td_->auth_manager_->is_bot());
-  auto max_dialog_filters =
-      clamp(G()->get_option_integer("chat_filter_count_max"), static_cast<int64>(0), static_cast<int64>(100));
+  auto max_dialog_filters = clamp(td_->option_manager_->get_option_integer("chat_filter_count_max"),
+                                  static_cast<int64>(0), static_cast<int64>(100));
   if (dialog_filters_.size() >= narrow_cast<size_t>(max_dialog_filters)) {
     return promise.set_error(Status::Error(400, "The maximum number of chat folders exceeded"));
   }
@@ -19296,7 +19300,7 @@ void MessagesManager::reorder_dialog_filters(vector<DialogFilterId> dialog_filte
   if (main_dialog_list_position < 0 || main_dialog_list_position > static_cast<int32>(dialog_filters_.size())) {
     return promise.set_error(Status::Error(400, "Invalid main chat list position specified"));
   }
-  if (!G()->get_option_boolean("is_premium")) {
+  if (!td_->option_manager_->get_option_boolean("is_premium")) {
     main_dialog_list_position = 0;
   }
 
@@ -19867,7 +19871,7 @@ void MessagesManager::clear_all_draft_messages(bool exclude_secret_chats, Promis
   td_->create_handler<ClearAllDraftsQuery>(std::move(promise))->send();
 }
 
-int32 MessagesManager::get_pinned_dialogs_limit(DialogListId dialog_list_id) {
+int32 MessagesManager::get_pinned_dialogs_limit(DialogListId dialog_list_id) const {
   if (dialog_list_id.is_filter()) {
     return DialogFilter::get_max_filter_dialogs();
   }
@@ -19878,9 +19882,9 @@ int32 MessagesManager::get_pinned_dialogs_limit(DialogListId dialog_list_id) {
     key = Slice("pinned_archived_chat_count_max");
     default_limit = 100;
   }
-  int32 limit = clamp(narrow_cast<int32>(G()->get_option_integer(key)), 0, 1000);
+  int32 limit = clamp(narrow_cast<int32>(td_->option_manager_->get_option_integer(key)), 0, 1000);
   if (limit <= 0) {
-    if (G()->get_option_boolean("is_premium")) {
+    if (td_->option_manager_->get_option_boolean("is_premium")) {
       default_limit *= 2;
     }
     return default_limit;
@@ -22229,7 +22233,7 @@ td_api::object_ptr<td_api::messageCalendar> MessagesManager::get_dialog_message_
       db_query.dialog_id = dialog_id;
       db_query.filter = filter;
       db_query.from_message_id = fixed_from_message_id;
-      db_query.tz_offset = static_cast<int32>(G()->get_option_integer("utc_time_offset"));
+      db_query.tz_offset = static_cast<int32>(td_->option_manager_->get_option_integer("utc_time_offset"));
       G()->td_db()->get_messages_db_async()->get_dialog_message_calendar(db_query, std::move(new_promise));
       return {};
     }
@@ -24331,8 +24335,8 @@ vector<AvailableReaction> MessagesManager::get_message_available_reactions(const
 
   vector<AvailableReaction> result;
   if (can_use_reactions) {
-    bool is_premium = G()->get_option_boolean("is_premium");
-    int64 reactions_uniq_max = G()->get_option_integer("reactions_uniq_max", 11);
+    bool is_premium = td_->option_manager_->get_option_boolean("is_premium");
+    int64 reactions_uniq_max = td_->option_manager_->get_option_integer("reactions_uniq_max", 11);
     bool can_add_new_reactions =
         m->reactions == nullptr || static_cast<int64>(m->reactions->reactions_.size()) < reactions_uniq_max;
     // can add only active available reactions or remove previously set reaction
@@ -24885,7 +24889,7 @@ unique_ptr<MessagesManager::Message> MessagesManager::create_message_to_send(
   m->is_copy = is_copy || m->forward_info != nullptr;
 
   if (td_->auth_manager_->is_bot() || options.disable_notification ||
-      G()->get_option_boolean("ignore_default_disable_notification")) {
+      td_->option_manager_->get_option_boolean("ignore_default_disable_notification")) {
     m->disable_notification = options.disable_notification;
   } else {
     m->disable_notification = d->notification_settings.silent_send_message;
@@ -25030,7 +25034,8 @@ MessageId MessagesManager::get_reply_to_message_id(Dialog *d, MessageId top_thre
 }
 
 void MessagesManager::fix_server_reply_to_message_id(DialogId dialog_id, MessageId message_id,
-                                                     DialogId reply_in_dialog_id, MessageId &reply_to_message_id) {
+                                                     DialogId reply_in_dialog_id,
+                                                     MessageId &reply_to_message_id) const {
   if (!reply_to_message_id.is_valid()) {
     if (reply_to_message_id.is_valid_scheduled()) {
       CHECK(message_id.is_scheduled());
@@ -25495,7 +25500,7 @@ Result<InputMessageContent> MessagesManager::process_input_message_content(
                                UserId(), copied_message->send_emoji);
   }
 
-  bool is_premium = G()->get_option_boolean("is_premium");
+  bool is_premium = td_->option_manager_->get_option_boolean("is_premium");
   TRY_RESULT(content, get_input_message_content(dialog_id, std::move(input_message_content), td_, is_premium));
 
   if (content.ttl < 0 || content.ttl > MAX_PRIVATE_MESSAGE_TTL) {
@@ -26654,11 +26659,11 @@ void MessagesManager::do_send_inline_query_result_message(DialogId dialog_id, Me
       random_id, query_id, result_id);
 }
 
-bool MessagesManager::has_qts_messages(DialogId dialog_id) {
+bool MessagesManager::has_qts_messages(DialogId dialog_id) const {
   switch (dialog_id.get_type()) {
     case DialogType::User:
     case DialogType::Chat:
-      return G()->get_option_integer("session_count") > 1;
+      return td_->option_manager_->get_option_integer("session_count") > 1;
     case DialogType::Channel:
     case DialogType::SecretChat:
       return false;
@@ -26757,7 +26762,7 @@ bool MessagesManager::can_edit_message(DialogId dialog_id, const Message *m, boo
 
   if (has_edit_time_limit) {
     const int32 DEFAULT_EDIT_TIME_LIMIT = 2 * 86400;
-    int64 edit_time_limit = G()->get_option_integer("edit_time_limit", DEFAULT_EDIT_TIME_LIMIT);
+    int64 edit_time_limit = td_->option_manager_->get_option_integer("edit_time_limit", DEFAULT_EDIT_TIME_LIMIT);
     if (G()->unix_time_cached() - m->date - (is_editing ? 300 : 0) >= edit_time_limit) {
       return false;
     }
@@ -29262,7 +29267,7 @@ Result<MessagesManager::MessagePushNotificationInfo> MessagesManager::get_messag
   }
 
   if (is_from_scheduled && dialog_id != get_my_dialog_id() &&
-      G()->get_option_boolean("disable_sent_scheduled_message_notifications")) {
+      td_->option_manager_->get_option_boolean("disable_sent_scheduled_message_notifications")) {
     return Status::Error("Ignore notification about sent scheduled message");
   }
 
@@ -30125,7 +30130,7 @@ bool MessagesManager::is_message_notification_disabled(const Dialog *d, const Me
     return true;
   }
   if (m->is_from_scheduled && d->dialog_id != get_my_dialog_id() &&
-      G()->get_option_boolean("disable_sent_scheduled_message_notifications")) {
+      td_->option_manager_->get_option_boolean("disable_sent_scheduled_message_notifications")) {
     return true;
   }
   if (m->forward_info != nullptr && m->forward_info->is_imported) {
@@ -34695,7 +34700,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
 
   if (dialog_type == DialogType::Channel && !message->contains_unread_mention) {
     auto channel_read_media_period =
-        G()->get_option_integer("channels_read_media_period", (G()->is_test_dc() ? 300 : 7 * 86400));
+        td_->option_manager_->get_option_integer("channels_read_media_period", (G()->is_test_dc() ? 300 : 7 * 86400));
     if (message->date < G()->unix_time_cached() - channel_read_media_period) {
       update_opened_message_content(message->content.get());
     }

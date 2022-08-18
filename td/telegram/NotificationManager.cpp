@@ -21,6 +21,7 @@
 #include "td/telegram/misc.h"
 #include "td/telegram/net/ConnectionCreator.h"
 #include "td/telegram/net/DcId.h"
+#include "td/telegram/OptionManager.h"
 #include "td/telegram/Photo.h"
 #include "td/telegram/Photo.hpp"
 #include "td/telegram/SecretChatId.h"
@@ -202,7 +203,8 @@ void NotificationManager::init() {
     return;
   }
 
-  disable_contact_registered_notifications_ = G()->get_option_boolean("disable_contact_registered_notifications");
+  disable_contact_registered_notifications_ =
+      td_->option_manager_->get_option_boolean("disable_contact_registered_notifications");
   auto sync_state = G()->td_db()->get_binlog_pmc()->get(get_is_contact_registered_notifications_synchronized_key());
   if (sync_state.empty()) {
     sync_state = "00";
@@ -2386,8 +2388,8 @@ void NotificationManager::on_notification_group_count_max_changed(bool send_upda
     return;
   }
 
-  auto new_max_notification_group_count =
-      narrow_cast<int32>(G()->get_option_integer("notification_group_count_max", DEFAULT_GROUP_COUNT_MAX));
+  auto new_max_notification_group_count = narrow_cast<int32>(
+      td_->option_manager_->get_option_integer("notification_group_count_max", DEFAULT_GROUP_COUNT_MAX));
   CHECK(MIN_NOTIFICATION_GROUP_COUNT_MAX <= new_max_notification_group_count &&
         new_max_notification_group_count <= MAX_NOTIFICATION_GROUP_COUNT_MAX);
 
@@ -2450,8 +2452,8 @@ void NotificationManager::on_notification_group_size_max_changed() {
     return;
   }
 
-  auto new_max_notification_group_size =
-      narrow_cast<int32>(G()->get_option_integer("notification_group_size_max", DEFAULT_GROUP_SIZE_MAX));
+  auto new_max_notification_group_size = narrow_cast<int32>(
+      td_->option_manager_->get_option_integer("notification_group_size_max", DEFAULT_GROUP_SIZE_MAX));
   CHECK(MIN_NOTIFICATION_GROUP_SIZE_MAX <= new_max_notification_group_size &&
         new_max_notification_group_size <= MAX_NOTIFICATION_GROUP_SIZE_MAX);
 
@@ -2533,8 +2535,8 @@ void NotificationManager::on_online_cloud_timeout_changed() {
     return;
   }
 
-  online_cloud_timeout_ms_ =
-      narrow_cast<int32>(G()->get_option_integer("online_cloud_timeout_ms", DEFAULT_ONLINE_CLOUD_TIMEOUT_MS));
+  online_cloud_timeout_ms_ = narrow_cast<int32>(
+      td_->option_manager_->get_option_integer("online_cloud_timeout_ms", DEFAULT_ONLINE_CLOUD_TIMEOUT_MS));
   VLOG(notifications) << "Set online_cloud_timeout_ms to " << online_cloud_timeout_ms_;
 }
 
@@ -2543,8 +2545,8 @@ void NotificationManager::on_notification_cloud_delay_changed() {
     return;
   }
 
-  notification_cloud_delay_ms_ =
-      narrow_cast<int32>(G()->get_option_integer("notification_cloud_delay_ms", DEFAULT_ONLINE_CLOUD_DELAY_MS));
+  notification_cloud_delay_ms_ = narrow_cast<int32>(
+      td_->option_manager_->get_option_integer("notification_cloud_delay_ms", DEFAULT_ONLINE_CLOUD_DELAY_MS));
   VLOG(notifications) << "Set notification_cloud_delay_ms to " << notification_cloud_delay_ms_;
 }
 
@@ -2553,8 +2555,8 @@ void NotificationManager::on_notification_default_delay_changed() {
     return;
   }
 
-  notification_default_delay_ms_ =
-      narrow_cast<int32>(G()->get_option_integer("notification_default_delay_ms", DEFAULT_DEFAULT_DELAY_MS));
+  notification_default_delay_ms_ = narrow_cast<int32>(
+      td_->option_manager_->get_option_integer("notification_default_delay_ms", DEFAULT_DEFAULT_DELAY_MS));
   VLOG(notifications) << "Set notification_default_delay_ms to " << notification_default_delay_ms_;
 }
 
@@ -2563,7 +2565,7 @@ void NotificationManager::on_disable_contact_registered_notifications_changed() 
     return;
   }
 
-  auto is_disabled = G()->get_option_boolean("disable_contact_registered_notifications");
+  auto is_disabled = td_->option_manager_->get_option_boolean("disable_contact_registered_notifications");
   if (is_disabled == disable_contact_registered_notifications_) {
     return;
   }
@@ -2581,9 +2583,9 @@ void NotificationManager::on_get_disable_contact_registered_notifications(bool i
   disable_contact_registered_notifications_ = is_disabled;
 
   if (is_disabled) {
-    G()->set_option_boolean("disable_contact_registered_notifications", is_disabled);
+    td_->option_manager_->set_option_boolean("disable_contact_registered_notifications", is_disabled);
   } else {
-    G()->set_option_empty("disable_contact_registered_notifications");
+    td_->option_manager_->set_option_empty("disable_contact_registered_notifications");
   }
   promise.set_value(Unit());
 }

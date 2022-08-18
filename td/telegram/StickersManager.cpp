@@ -27,6 +27,7 @@
 #include "td/telegram/net/DcId.h"
 #include "td/telegram/net/MtprotoHeader.h"
 #include "td/telegram/net/NetQueryDispatcher.h"
+#include "td/telegram/OptionManager.h"
 #include "td/telegram/PhotoSizeSource.h"
 #include "td/telegram/secret_api.h"
 #include "td/telegram/SecretChatLayer.h"
@@ -1434,7 +1435,8 @@ void StickersManager::init() {
   auto &sticker_set = add_special_sticker_set(SpecialStickerSetType::premium_gifts());
   load_special_sticker_set_info_from_binlog(sticker_set);
 
-  dice_emojis_str_ = G()->get_option_string("dice_emojis", "🎲\x01🎯\x01🏀\x01⚽\x01⚽️\x01🎰\x01🎳");
+  dice_emojis_str_ =
+      td_->option_manager_->get_option_string("dice_emojis", "🎲\x01🎯\x01🏀\x01⚽\x01⚽️\x01🎰\x01🎳");
   dice_emojis_ = full_split(dice_emojis_str_, '\x01');
   for (auto &dice_emoji : dice_emojis_) {
     auto &animated_dice_sticker_set = add_special_sticker_set(SpecialStickerSetType::animated_dice(dice_emoji));
@@ -1469,9 +1471,9 @@ void StickersManager::init() {
     G()->td_db()->get_binlog_pmc()->erase("invalidate_old_featured_sticker_sets");
   }
 
-  G()->td_db()->get_binlog_pmc()->erase("animated_dice_sticker_set");  // legacy
-  G()->set_option_empty("animated_dice_sticker_set_name");             // legacy
-  G()->set_option_empty("animated_emoji_sticker_set_name");            // legacy
+  G()->td_db()->get_binlog_pmc()->erase("animated_dice_sticker_set");         // legacy
+  td_->option_manager_->set_option_empty("animated_dice_sticker_set_name");   // legacy
+  td_->option_manager_->set_option_empty("animated_emoji_sticker_set_name");  // legacy
 }
 
 void StickersManager::reload_reactions() {
@@ -2230,7 +2232,7 @@ tl_object_ptr<td_api::stickerSetInfo> StickersManager::get_sticker_set_info_obje
     vector<FileId> regular_sticker_ids;
     vector<FileId> premium_sticker_ids;
     std::tie(regular_sticker_ids, premium_sticker_ids) = split_stickers_by_premium(sticker_set);
-    auto is_premium = G()->get_option_boolean("is_premium");
+    auto is_premium = td_->option_manager_->get_option_boolean("is_premium");
     size_t max_premium_stickers = is_premium ? covers_limit : 1;
     if (premium_sticker_ids.size() > max_premium_stickers) {
       premium_sticker_ids.resize(max_premium_stickers);
@@ -4110,8 +4112,8 @@ vector<FileId> StickersManager::get_stickers(StickerType sticker_type, string em
       vector<FileId> regular_sticker_ids;
       vector<FileId> premium_sticker_ids;
       std::tie(regular_sticker_ids, premium_sticker_ids) = split_stickers_by_premium(result);
-      if (G()->get_option_boolean("is_premium") || allow_premium) {
-        auto normal_count = G()->get_option_integer("stickers_normal_by_emoji_per_premium_num", 2);
+      if (td_->option_manager_->get_option_boolean("is_premium") || allow_premium) {
+        auto normal_count = td_->option_manager_->get_option_integer("stickers_normal_by_emoji_per_premium_num", 2);
         if (normal_count < 0) {
           normal_count = 2;
         }
@@ -4146,7 +4148,7 @@ vector<FileId> StickersManager::get_stickers(StickerType sticker_type, string em
           }
         }
         if (sorted.size() < limit_size_t) {
-          auto premium_count = G()->get_option_integer("stickers_premium_by_emoji_num", 0);
+          auto premium_count = td_->option_manager_->get_option_integer("stickers_premium_by_emoji_num", 0);
           if (premium_count > 0) {
             for (const auto &sticker_id : premium_sticker_ids) {
               LOG(INFO) << "Add premium sticker " << sticker_id << " from installed sticker set";
@@ -5010,14 +5012,15 @@ void StickersManager::on_update_dice_emojis() {
     return;
   }
   if (td_->auth_manager_->is_bot()) {
-    G()->set_option_empty("dice_emojis");
+    td_->option_manager_->set_option_empty("dice_emojis");
     return;
   }
   if (!is_inited_) {
     return;
   }
 
-  auto dice_emojis_str = G()->get_option_string("dice_emojis", "🎲\x01🎯\x01🏀\x01⚽\x01⚽️\x01🎰\x01🎳");
+  auto dice_emojis_str =
+      td_->option_manager_->get_option_string("dice_emojis", "🎲\x01🎯\x01🏀\x01⚽\x01⚽️\x01🎰\x01🎳");
   if (dice_emojis_str == dice_emojis_str_) {
     return;
   }
@@ -5049,14 +5052,15 @@ void StickersManager::on_update_dice_success_values() {
     return;
   }
   if (td_->auth_manager_->is_bot()) {
-    G()->set_option_empty("dice_success_values");
+    td_->option_manager_->set_option_empty("dice_success_values");
     return;
   }
   if (!is_inited_) {
     return;
   }
 
-  auto dice_success_values_str = G()->get_option_string("dice_success_values", "0,6:62,5:110,5:110,5:110,64:110,6:110");
+  auto dice_success_values_str =
+      td_->option_manager_->get_option_string("dice_success_values", "0,6:62,5:110,5:110,5:110,64:110,6:110");
   if (dice_success_values_str == dice_success_values_str_) {
     return;
   }
@@ -5074,7 +5078,7 @@ void StickersManager::on_update_emoji_sounds() {
     return;
   }
 
-  auto emoji_sounds_str = G()->get_option_string("emoji_sounds");
+  auto emoji_sounds_str = td_->option_manager_->get_option_string("emoji_sounds");
   if (emoji_sounds_str == emoji_sounds_str_) {
     return;
   }
@@ -5121,7 +5125,7 @@ void StickersManager::on_update_disable_animated_emojis() {
     return;
   }
 
-  auto disable_animated_emojis = G()->get_option_boolean("disable_animated_emoji");
+  auto disable_animated_emojis = td_->option_manager_->get_option_boolean("disable_animated_emoji");
   if (disable_animated_emojis == disable_animated_emojis_) {
     return;
   }
@@ -7902,11 +7906,13 @@ void StickersManager::save_recent_stickers_to_database(bool is_attached) {
 }
 
 void StickersManager::on_update_animated_emoji_zoom() {
-  animated_emoji_zoom_ = static_cast<double>(G()->get_option_integer("animated_emoji_zoom", 625000000)) * 1e-9;
+  animated_emoji_zoom_ =
+      static_cast<double>(td_->option_manager_->get_option_integer("animated_emoji_zoom", 625000000)) * 1e-9;
 }
 
 void StickersManager::on_update_recent_stickers_limit() {
-  auto recent_stickers_limit = narrow_cast<int32>(G()->get_option_integer("recent_stickers_limit", 200));
+  auto recent_stickers_limit =
+      narrow_cast<int32>(td_->option_manager_->get_option_integer("recent_stickers_limit", 200));
   if (recent_stickers_limit != recent_stickers_limit_) {
     if (recent_stickers_limit > 0) {
       LOG(INFO) << "Update recent stickers limit to " << recent_stickers_limit;
@@ -7924,7 +7930,8 @@ void StickersManager::on_update_recent_stickers_limit() {
 }
 
 void StickersManager::on_update_favorite_stickers_limit() {
-  auto favorite_stickers_limit = narrow_cast<int32>(G()->get_option_integer("favorite_stickers_limit", 5));
+  auto favorite_stickers_limit =
+      narrow_cast<int32>(td_->option_manager_->get_option_integer("favorite_stickers_limit", 5));
   if (favorite_stickers_limit != favorite_stickers_limit_) {
     if (favorite_stickers_limit > 0) {
       LOG(INFO) << "Update favorite stickers limit to " << favorite_stickers_limit;
