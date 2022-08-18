@@ -108,8 +108,6 @@ class NotificationManager final : public Actor {
 
   void on_disable_contact_registered_notifications_changed();
 
-  void on_get_disable_contact_registered_notifications(bool is_disabled);
-
   void process_push_notification(string payload, Promise<Unit> &&user_promise);
 
   static Result<int64> get_push_receiver_id(string payload);
@@ -336,6 +334,8 @@ class NotificationManager final : public Actor {
   void run_contact_registered_notifications_sync();
 
   void on_contact_registered_notifications_sync(bool is_disabled, Result<Unit> result);
+
+  void on_get_disable_contact_registered_notifications(bool is_disabled, Promise<Unit> &&promise);
 
   void save_announcement_ids();
 

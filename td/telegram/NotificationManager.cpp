@@ -94,10 +94,10 @@ class SetContactSignUpNotificationQuery final : public Td::ResultHandler {
 };
 
 class GetContactSignUpNotificationQuery final : public Td::ResultHandler {
-  Promise<Unit> promise_;
+  Promise<bool> promise_;
 
  public:
-  explicit GetContactSignUpNotificationQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  explicit GetContactSignUpNotificationQuery(Promise<bool> &&promise) : promise_(std::move(promise)) {
   }
 
   void send() {
@@ -110,8 +110,7 @@ class GetContactSignUpNotificationQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
-    td_->notification_manager_->on_get_disable_contact_registered_notifications(result_ptr.ok());
-    promise_.set_value(Unit());
+    promise_.set_value(result_ptr.move_as_ok());
   }
 
   void on_error(Status status) final {
@@ -2575,9 +2574,9 @@ void NotificationManager::on_disable_contact_registered_notifications_changed() 
   }
 }
 
-void NotificationManager::on_get_disable_contact_registered_notifications(bool is_disabled) {
-  if (disable_contact_registered_notifications_ == is_disabled) {
-    return;
+void NotificationManager::on_get_disable_contact_registered_notifications(bool is_disabled, Promise<Unit> &&promise) {
+  if (G()->close_flag() || disable_contact_registered_notifications_ == is_disabled) {
+    return promise.set_value(Unit());
   }
   disable_contact_registered_notifications_ = is_disabled;
 
@@ -2586,6 +2585,7 @@ void NotificationManager::on_get_disable_contact_registered_notifications(bool i
   } else {
     G()->set_option_empty("disable_contact_registered_notifications");
   }
+  promise.set_value(Unit());
 }
 
 void NotificationManager::set_contact_registered_notifications_sync_state(SyncState new_state) {
@@ -2642,7 +2642,16 @@ void NotificationManager::get_disable_contact_registered_notifications(Promise<U
     return;
   }
 
-  td_->create_handler<GetContactSignUpNotificationQuery>(std::move(promise))->send();
+  auto query_promise =
+      PromiseCreator::lambda([actor_id = actor_id(this), promise = std::move(promise)](Result<bool> &&result) mutable {
+        if (result.is_error()) {
+          promise.set_error(result.move_as_error());
+        } else {
+          send_closure(actor_id, &NotificationManager::on_get_disable_contact_registered_notifications, result.ok(),
+                       std::move(promise));
+        }
+      });
+  td_->create_handler<GetContactSignUpNotificationQuery>(std::move(query_promise))->send();
 }
 
 void NotificationManager::process_push_notification(string payload, Promise<Unit> &&user_promise) {
