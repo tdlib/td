@@ -53,15 +53,15 @@ OptionManager::OptionManager(Td *td, ActorShared<> parent)
     , option_pmc_(G()->td_db()->get_config_pmc_shared()) {
   send_unix_time_update();
 
-  for (const auto &name_value : option_pmc_->get_all()) {
+  auto all_options = option_pmc_->get_all();
+  all_options["utc_time_offset"] = PSTRING() << 'I' << Clocks::tz_offset();
+  for (const auto &name_value : all_options) {
     const string &name = name_value.first;
     const string &value = name_value.second;
     options_->set(name, value);
     if (!is_internal_option(name)) {
-      if (name != "utc_time_offset") {
-        send_closure(G()->td(), &Td::send_update,
-                     td_api::make_object<td_api::updateOption>(name, get_option_value_object(value)));
-      }
+      send_closure(G()->td(), &Td::send_update,
+                   td_api::make_object<td_api::updateOption>(name, get_option_value_object(value)));
     } else if (name == "otherwise_relogin_days") {
       auto days = narrow_cast<int32>(get_option_integer(name));
       if (days > 0) {
@@ -116,7 +116,6 @@ OptionManager::OptionManager(Td *td, ActorShared<> parent)
   if (!have_option("chat_filter_chosen_chat_count_max")) {
     set_option_integer("chat_filter_chosen_chat_count_max", G()->is_test_dc() ? 5 : 100);
   }
-  set_option_integer("utc_time_offset", Clocks::tz_offset());
 }
 
 void OptionManager::tear_down() {
