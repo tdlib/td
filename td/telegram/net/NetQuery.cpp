@@ -22,10 +22,6 @@ namespace td {
 
 int VERBOSITY_NAME(net_query) = VERBOSITY_NAME(INFO);
 
-int64 NetQuery::get_my_id() {
-  return G()->get_my_id();
-}
-
 void NetQuery::debug(string state, bool may_be_lost) {
   may_be_lost_ = may_be_lost;
   VLOG(net_query) << *this << " " << tag("state", state);
@@ -57,7 +53,7 @@ NetQuery::NetQuery(State state, uint64 id, BufferSlice &&query, BufferSlice &&an
   td::unique(chain_ids_);
 
   auto &data = get_data_unsafe();
-  data.my_id_ = get_my_id();
+  data.my_id_ = G()->get_option_integer("my_id");
   data.start_timestamp_ = data.state_timestamp_ = Time::now();
   LOG(INFO) << *this;
   if (stats) {

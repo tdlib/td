@@ -2709,7 +2709,7 @@ void NotificationManager::process_push_notification(string payload, Promise<Unit
     send_closure(G()->state_manager(), &StateManager::on_online, false);
   }
 
-  if (receiver_id == 0 || receiver_id == G()->get_my_id()) {
+  if (receiver_id == 0 || receiver_id == td_->option_manager_->get_option_integer("my_id")) {
     auto status = process_push_notification_payload(payload, was_encrypted, promise);
     if (status.is_error()) {
       if (status.code() == 406 || status.code() == 200) {

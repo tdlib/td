@@ -384,13 +384,6 @@ class Global final : public ActorContext {
     return parameters_;
   }
 
-  int64 get_my_id() const {
-    return my_id_;
-  }
-  void set_my_id(int64 my_id) {
-    my_id_ = my_id;
-  }
-
   int32 get_gc_scheduler_id() const {
     return gc_scheduler_id_;
   }
@@ -529,8 +522,6 @@ class Global final : public ActorContext {
 
   LazySchedulerLocalStorage<unique_ptr<NetQueryCreator>> net_query_creator_;
   unique_ptr<NetQueryDispatcher> net_query_dispatcher_;
-
-  int64 my_id_ = 0;  // hack
 
   static int64 get_location_key(double latitude, double longitude);
 

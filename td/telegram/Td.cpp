@@ -3681,8 +3681,6 @@ void Td::init(Result<TdDb::OpenedDatabase> r_opened_database) {
 
   init_managers();
 
-  G()->set_my_id(G()->get_option_integer("my_id"));
-
   storage_manager_ = create_actor<StorageManager>("StorageManager", create_reference(), G()->get_gc_scheduler_id());
   G()->set_storage_manager(storage_manager_.get());
 

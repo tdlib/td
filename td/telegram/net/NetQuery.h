@@ -329,8 +329,6 @@ class NetQuery final : public TsListNode<NetQueryDebug> {
     source_ = std::move(source);
   }
 
-  static int64 get_my_id();
-
   static int32 tl_magic(const BufferSlice &buffer_slice);
 
  public:

@@ -380,11 +380,6 @@ void OptionManager::on_option_updated(Slice name) {
         }
       }
       break;
-    case 'm':
-      if (name == "my_id") {
-        G()->set_my_id(get_option_integer(name));
-      }
-      break;
     case 'n':
       if (name == "notification_cloud_delay_ms") {
         send_closure(td_->notification_manager_actor_, &NotificationManager::on_notification_cloud_delay_changed);
