@@ -112,6 +112,11 @@ void OptionManager::on_td_inited() {
     have_pending_is_location_visible_ = false;
     td_->contacts_manager_->set_location_visibility();
   }
+
+  for (auto &request : pending_get_options_) {
+    get_option(request.first, std::move(request.second));
+  }
+  reset_to_empty(pending_get_options_);
 }
 
 void OptionManager::set_option_boolean(Slice name, bool value) {
@@ -463,8 +468,13 @@ void OptionManager::get_option(const string &name, Promise<td_api::object_ptr<td
       break;
     case 'd':
       if (!is_bot && name == "disable_contact_registered_notifications") {
-        return send_closure_later(td_->notification_manager_actor_,
-                                  &NotificationManager::get_disable_contact_registered_notifications, wrap_promise());
+        if (is_td_inited_) {
+          send_closure_later(td_->notification_manager_actor_,
+                             &NotificationManager::get_disable_contact_registered_notifications, wrap_promise());
+        } else {
+          pending_get_options_.emplace_back(name, std::move(promise));
+        }
+        return;
       }
       break;
     case 'i':
@@ -472,8 +482,12 @@ void OptionManager::get_option(const string &name, Promise<td_api::object_ptr<td
         return send_closure_later(td_->config_manager_, &ConfigManager::get_content_settings, wrap_promise());
       }
       if (!is_bot && name == "is_location_visible") {
-        return send_closure_later(td_->contacts_manager_actor_, &ContactsManager::get_is_location_visible,
-                                  wrap_promise());
+        if (is_td_inited_) {
+          send_closure_later(td_->contacts_manager_actor_, &ContactsManager::get_is_location_visible, wrap_promise());
+        } else {
+          pending_get_options_.emplace_back(name, std::move(promise));
+        }
+        return;
       }
       break;
     case 'o':
