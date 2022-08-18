@@ -30,6 +30,8 @@ class OptionManager {
   OptionManager &operator=(OptionManager &&) = delete;
   ~OptionManager();
 
+  void on_td_inited();
+
   void set_option_boolean(Slice name, bool value);
 
   void set_option_empty(Slice name);
@@ -80,6 +82,7 @@ class OptionManager {
   void send_unix_time_update();
 
   Td *td_;
+  bool is_td_inited_ = false;
 
   unique_ptr<TsSeqKeyValue> options_;
   std::shared_ptr<KeyValueSyncInterface> option_pmc_;

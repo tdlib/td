@@ -3686,6 +3686,8 @@ void Td::init(Result<TdDb::OpenedDatabase> r_opened_database) {
   storage_manager_ = create_actor<StorageManager>("StorageManager", create_reference(), G()->get_gc_scheduler_id());
   G()->set_storage_manager(storage_manager_.get());
 
+  option_manager_->on_td_inited();
+
   VLOG(td_init) << "Send binlog events";
   for (auto &event : events.user_events) {
     contacts_manager_->on_binlog_user_event(std::move(event));

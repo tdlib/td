@@ -105,6 +105,10 @@ OptionManager::OptionManager(Td *td)
 
 OptionManager::~OptionManager() = default;
 
+void OptionManager::on_td_inited() {
+  is_td_inited_ = true;
+}
+
 void OptionManager::set_option_boolean(Slice name, bool value) {
   set_option(name, value ? Slice("Btrue") : Slice("Bfalse"));
 }
@@ -178,7 +182,15 @@ void OptionManager::set_option(Slice name, Slice value) {
     }
     option_pmc_->set(name.str(), value.str());
   }
-  on_option_updated(name);
+
+  if (!G()->close_flag() && is_td_inited_) {
+    on_option_updated(name);
+  }
+
+  if (!is_internal_option(name)) {
+    send_closure(G()->td(), &Td::send_update,
+                 td_api::make_object<td_api::updateOption>(name.str(), get_option_value_object(get_option(name))));
+  }
 }
 
 string OptionManager::get_option(Slice name) const {
@@ -275,9 +287,6 @@ bool OptionManager::is_synchronous_option(Slice name) {
 }
 
 void OptionManager::on_option_updated(Slice name) {
-  if (G()->close_flag()) {
-    return;
-  }
   switch (name[0]) {
     case 'a':
       if (name == "animated_emoji_zoom") {
@@ -425,13 +434,6 @@ void OptionManager::on_option_updated(Slice name) {
     default:
       break;
   }
-
-  if (is_internal_option(name)) {
-    return;
-  }
-
-  send_closure(G()->td(), &Td::send_update,
-               td_api::make_object<td_api::updateOption>(name.str(), get_option_value_object(get_option(name))));
 }
 
 void OptionManager::get_option(const string &name, Promise<td_api::object_ptr<td_api::OptionValue>> &&promise) {
