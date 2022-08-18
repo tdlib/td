@@ -136,8 +136,7 @@ class AttachMenuManager final : public Actor {
 
   void save_attach_menu_bots();
 
-  void on_reload_attach_menu_bots(Result<telegram_api::object_ptr<telegram_api::AttachMenuBots>> &&result,
-                                  Promise<Unit> &&promise);
+  void on_reload_attach_menu_bots(Result<telegram_api::object_ptr<telegram_api::AttachMenuBots>> &&result);
 
   void on_get_attach_menu_bot(UserId user_id,
                               Result<telegram_api::object_ptr<telegram_api::attachMenuBotsBot>> &&result,
@@ -150,6 +149,7 @@ class AttachMenuManager final : public Actor {
   int64 hash_ = 0;
   vector<AttachMenuBot> attach_menu_bots_;
   FlatHashMap<UserId, FileSourceId, UserIdHash> attach_menu_bot_file_source_ids_;
+  vector<Promise<Unit>> reload_attach_menu_bots_queries_;
 
   struct OpenedWebView {
     DialogId dialog_id_;

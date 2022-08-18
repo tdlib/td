@@ -805,22 +805,25 @@ void AttachMenuManager::reload_attach_menu_bots(Promise<Unit> &&promise) {
   if (!is_active()) {
     return;
   }
-  auto query_promise =
-      PromiseCreator::lambda([actor_id = actor_id(this), promise = std::move(promise)](
-                                 Result<telegram_api::object_ptr<telegram_api::AttachMenuBots>> &&result) mutable {
-        send_closure(actor_id, &AttachMenuManager::on_reload_attach_menu_bots, std::move(result), std::move(promise));
-      });
-  td_->create_handler<GetAttachMenuBotsQuery>(std::move(query_promise))->send(hash_);
+
+  reload_attach_menu_bots_queries_.push_back(std::move(promise));
+  if (reload_attach_menu_bots_queries_.size() == 1) {
+    auto query_promise = PromiseCreator::lambda(
+        [actor_id = actor_id(this)](Result<telegram_api::object_ptr<telegram_api::AttachMenuBots>> &&result) {
+          send_closure(actor_id, &AttachMenuManager::on_reload_attach_menu_bots, std::move(result));
+        });
+    td_->create_handler<GetAttachMenuBotsQuery>(std::move(query_promise))->send(hash_);
+  }
 }
 
 void AttachMenuManager::on_reload_attach_menu_bots(
-    Result<telegram_api::object_ptr<telegram_api::AttachMenuBots>> &&result, Promise<Unit> &&promise) {
+    Result<telegram_api::object_ptr<telegram_api::AttachMenuBots>> &&result) {
   if (!is_active()) {
-    return promise.set_value(Unit());
+    return set_promises(reload_attach_menu_bots_queries_);
   }
   if (result.is_error()) {
     set_timeout_in(Random::fast(60, 120));
-    return promise.set_value(Unit());
+    return set_promises(reload_attach_menu_bots_queries_);
   }
 
   is_inited_ = true;
@@ -830,7 +833,7 @@ void AttachMenuManager::on_reload_attach_menu_bots(
   auto attach_menu_bots_ptr = result.move_as_ok();
   auto constructor_id = attach_menu_bots_ptr->get_id();
   if (constructor_id == telegram_api::attachMenuBotsNotModified::ID) {
-    return promise.set_value(Unit());
+    return set_promises(reload_attach_menu_bots_queries_);
   }
   CHECK(constructor_id == telegram_api::attachMenuBots::ID);
   auto attach_menu_bots = move_tl_object_as<telegram_api::attachMenuBots>(attach_menu_bots_ptr);
@@ -867,7 +870,7 @@ void AttachMenuManager::on_reload_attach_menu_bots(
 
     save_attach_menu_bots();
   }
-  promise.set_value(Unit());
+  set_promises(reload_attach_menu_bots_queries_);
 }
 
 void AttachMenuManager::remove_bot_from_attach_menu(UserId user_id) {
