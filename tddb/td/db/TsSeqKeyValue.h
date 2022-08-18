@@ -49,12 +49,12 @@ class TsSeqKeyValue {
     return std::make_pair(kv_.erase(key), std::move(lock));
   }
 
-  string get(const string &key) {
+  string get(const string &key) const {
     auto lock = rw_mutex_.lock_read().move_as_ok();
     return kv_.get(key);
   }
 
-  bool isset(const string &key) {
+  bool isset(const string &key) const {
     auto lock = rw_mutex_.lock_read().move_as_ok();
     return kv_.isset(key);
   }
@@ -63,7 +63,7 @@ class TsSeqKeyValue {
     return kv_.size();
   }
 
-  std::unordered_map<string, string> get_all() {
+  std::unordered_map<string, string> get_all() const {
     auto lock = rw_mutex_.lock_write().move_as_ok();
     return kv_.get_all();
   }
@@ -78,7 +78,7 @@ class TsSeqKeyValue {
   }
 
  private:
-  RwMutex rw_mutex_;
+  mutable RwMutex rw_mutex_;
   SeqKeyValue kv_;
 };
 
