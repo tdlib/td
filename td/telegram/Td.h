@@ -33,7 +33,7 @@
 #include "td/utils/Status.h"
 
 #include <memory>
-#include <unordered_set>
+#include <unordered_map>
 #include <utility>
 
 namespace td {
@@ -284,7 +284,7 @@ class Td final : public Actor {
 
   ConnectionState connection_state_ = ConnectionState::Empty;
 
-  std::unordered_multiset<uint64> request_set_;
+  std::unordered_multimap<uint64, int32> request_set_;
   int actor_refcnt_ = 0;
   int request_actor_refcnt_ = 0;
   int stop_cnt_ = 2;

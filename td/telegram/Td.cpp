@@ -2940,12 +2940,12 @@ void Td::request(uint64 id, tl_object_ptr<td_api::Function> function) {
     return;
   }
 
-  request_set_.insert(id);
   if (function == nullptr) {
-    return send_error_impl(id, make_error(400, "Request is empty"));
+    return callback_->on_error(id, make_error(400, "Request is empty"));
   }
 
   VLOG(td_requests) << "Receive request " << id << ": " << to_string(function);
+  request_set_.emplace(id, function->get_id());
   if (is_synchronous_request(function.get())) {
     // send response synchronously
     return send_result(id, static_request(std::move(function)));
@@ -3352,7 +3352,7 @@ void Td::clear_requests() {
     alarm_timeout_.cancel_timeout(alarm_id);
   }
   while (!request_set_.empty()) {
-    uint64 id = *request_set_.begin();
+    uint64 id = request_set_.begin()->first;
     if (destroy_flag_) {
       send_error_impl(id, make_error(401, "Unauthorized"));
     } else {
@@ -4070,11 +4070,11 @@ void Td::send_result(uint64 id, tl_object_ptr<td_api::Object> object) {
 
   auto it = request_set_.find(id);
   if (it != request_set_.end()) {
-    request_set_.erase(it);
-    VLOG(td_requests) << "Sending result for request " << id << ": " << to_string(object);
     if (object == nullptr) {
       object = make_tl_object<td_api::error>(404, "Not Found");
     }
+    VLOG(td_requests) << "Sending result for request " << id << ": " << to_string(object);
+    request_set_.erase(it);
     callback_->on_result(id, std::move(object));
   }
 }
@@ -4084,11 +4084,11 @@ void Td::send_error_impl(uint64 id, tl_object_ptr<td_api::error> error) {
   CHECK(error != nullptr);
   auto it = request_set_.find(id);
   if (it != request_set_.end()) {
-    request_set_.erase(it);
-    VLOG(td_requests) << "Sending error for request " << id << ": " << oneline(to_string(error));
     if (error->code_ == 0 && error->message_ == "Lost promise") {
-      LOG(FATAL) << "Lost promise for query " << id;
+      LOG(FATAL) << "Lost promise for query " << id << " of type " << it->second;
     }
+    VLOG(td_requests) << "Sending error for request " << id << ": " << oneline(to_string(error));
+    request_set_.erase(it);
     callback_->on_error(id, std::move(error));
   }
 }
