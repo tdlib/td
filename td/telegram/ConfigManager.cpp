@@ -243,22 +243,19 @@ static ActorOwn<> get_simple_config_impl(Promise<SimpleConfigResult> promise, in
 #endif
 }
 
-ActorOwn<> get_simple_config_azure(Promise<SimpleConfigResult> promise, const Global *shared_config, bool is_test,
-                                   int32 scheduler_id) {
+ActorOwn<> get_simple_config_azure(Promise<SimpleConfigResult> promise, bool prefer_ipv6, Slice domain_name,
+                                   bool is_test, int32 scheduler_id) {
   string url = PSTRING() << "https://software-download.microsoft.com/" << (is_test ? "test" : "prod")
                          << "v2/config.txt";
-  const bool prefer_ipv6 = shared_config == nullptr ? false : shared_config->get_option_boolean("prefer_ipv6");
   return get_simple_config_impl(std::move(promise), scheduler_id, std::move(url), "tcdnb.azureedge.net", {},
                                 prefer_ipv6,
                                 [](HttpQuery &http_query) -> Result<string> { return http_query.content_.str(); });
 }
 
 static ActorOwn<> get_simple_config_dns(Slice address, Slice host, Promise<SimpleConfigResult> promise,
-                                        const Global *shared_config, bool is_test, int32 scheduler_id) {
-  string name = shared_config == nullptr ? string() : shared_config->get_option_string("dc_txt_domain_name");
-  const bool prefer_ipv6 = shared_config == nullptr ? false : shared_config->get_option_boolean("prefer_ipv6");
-  if (name.empty()) {
-    name = is_test ? "tapv3.stel.com" : "apv3.stel.com";
+                                        bool prefer_ipv6, Slice domain_name, bool is_test, int32 scheduler_id) {
+  if (domain_name.empty()) {
+    domain_name = is_test ? Slice("tapv3.stel.com") : Slice("apv3.stel.com");
   }
   auto get_config = [](HttpQuery &http_query) -> Result<string> {
     auto get_data = [](JsonValue &answer) -> Result<string> {
@@ -301,21 +298,22 @@ static ActorOwn<> get_simple_config_dns(Slice address, Slice host, Promise<Simpl
       return get_data(answer);
     }
   };
-  return get_simple_config_impl(std::move(promise), scheduler_id,
-                                PSTRING() << "https://" << address << "?name=" << url_encode(name) << "&type=TXT",
-                                host.str(), {{"Accept", "application/dns-json"}}, prefer_ipv6, std::move(get_config));
+  return get_simple_config_impl(
+      std::move(promise), scheduler_id,
+      PSTRING() << "https://" << address << "?name=" << url_encode(domain_name) << "&type=TXT", host.str(),
+      {{"Accept", "application/dns-json"}}, prefer_ipv6, std::move(get_config));
 }
 
-ActorOwn<> get_simple_config_google_dns(Promise<SimpleConfigResult> promise, const Global *shared_config, bool is_test,
-                                        int32 scheduler_id) {
-  return get_simple_config_dns("dns.google/resolve", "dns.google", std::move(promise), shared_config, is_test,
-                               scheduler_id);
+ActorOwn<> get_simple_config_google_dns(Promise<SimpleConfigResult> promise, bool prefer_ipv6, Slice domain_name,
+                                        bool is_test, int32 scheduler_id) {
+  return get_simple_config_dns("dns.google/resolve", "dns.google", std::move(promise), prefer_ipv6, domain_name,
+                               is_test, scheduler_id);
 }
 
-ActorOwn<> get_simple_config_mozilla_dns(Promise<SimpleConfigResult> promise, const Global *shared_config, bool is_test,
-                                         int32 scheduler_id) {
+ActorOwn<> get_simple_config_mozilla_dns(Promise<SimpleConfigResult> promise, bool prefer_ipv6, Slice domain_name,
+                                         bool is_test, int32 scheduler_id) {
   return get_simple_config_dns("mozilla.cloudflare-dns.com/dns-query", "mozilla.cloudflare-dns.com", std::move(promise),
-                               shared_config, is_test, scheduler_id);
+                               prefer_ipv6, domain_name, is_test, scheduler_id);
 }
 
 static string generate_firebase_remote_config_payload() {
@@ -328,8 +326,8 @@ static string generate_firebase_remote_config_payload() {
                    << app_instance_id << "\"}";
 }
 
-ActorOwn<> get_simple_config_firebase_remote_config(Promise<SimpleConfigResult> promise, const Global *shared_config,
-                                                    bool is_test, int32 scheduler_id) {
+ActorOwn<> get_simple_config_firebase_remote_config(Promise<SimpleConfigResult> promise, bool prefer_ipv6,
+                                                    Slice domain_name, bool is_test, int32 scheduler_id) {
   if (is_test) {
     promise.set_error(Status::Error(400, "Test config is not supported"));
     return ActorOwn<>();
@@ -339,7 +337,6 @@ ActorOwn<> get_simple_config_firebase_remote_config(Promise<SimpleConfigResult> 
   string url =
       "https://firebaseremoteconfig.googleapis.com/v1/projects/peak-vista-421/namespaces/"
       "firebase:fetch?key=AIzaSyC2-kAkpDsroixRXw-sTw-Wfqo4NxjMwwM";
-  const bool prefer_ipv6 = shared_config == nullptr ? false : shared_config->get_option_boolean("prefer_ipv6");
   auto get_config = [](HttpQuery &http_query) -> Result<string> {
     TRY_RESULT(json, json_decode(http_query.get_arg("entries")));
     if (json.type() != JsonValue::Type::Object) {
@@ -353,7 +350,7 @@ ActorOwn<> get_simple_config_firebase_remote_config(Promise<SimpleConfigResult> 
                                 {}, prefer_ipv6, std::move(get_config), payload, "application/json");
 }
 
-ActorOwn<> get_simple_config_firebase_realtime(Promise<SimpleConfigResult> promise, const Global *shared_config,
+ActorOwn<> get_simple_config_firebase_realtime(Promise<SimpleConfigResult> promise, bool prefer_ipv6, Slice domain_name,
                                                bool is_test, int32 scheduler_id) {
   if (is_test) {
     promise.set_error(Status::Error(400, "Test config is not supported"));
@@ -361,7 +358,6 @@ ActorOwn<> get_simple_config_firebase_realtime(Promise<SimpleConfigResult> promi
   }
 
   string url = "https://reserve-5a846.firebaseio.com/ipconfigv3.json";
-  const bool prefer_ipv6 = shared_config == nullptr ? false : shared_config->get_option_boolean("prefer_ipv6");
   auto get_config = [](HttpQuery &http_query) -> Result<string> {
     return http_query.get_arg("content").str();
   };
@@ -369,15 +365,14 @@ ActorOwn<> get_simple_config_firebase_realtime(Promise<SimpleConfigResult> promi
                                 prefer_ipv6, std::move(get_config));
 }
 
-ActorOwn<> get_simple_config_firebase_firestore(Promise<SimpleConfigResult> promise, const Global *shared_config,
-                                                bool is_test, int32 scheduler_id) {
+ActorOwn<> get_simple_config_firebase_firestore(Promise<SimpleConfigResult> promise, bool prefer_ipv6,
+                                                Slice domain_name, bool is_test, int32 scheduler_id) {
   if (is_test) {
     promise.set_error(Status::Error(400, "Test config is not supported"));
     return ActorOwn<>();
   }
 
   string url = "https://www.google.com/v1/projects/reserve-5a846/databases/(default)/documents/ipconfig/v3";
-  const bool prefer_ipv6 = shared_config == nullptr ? false : shared_config->get_option_boolean("prefer_ipv6");
   auto get_config = [](HttpQuery &http_query) -> Result<string> {
     TRY_RESULT(json, json_decode(http_query.get_arg("fields")));
     if (json.type() != JsonValue::Type::Object) {
@@ -840,7 +835,9 @@ class ConfigRecoverer final : public Actor {
             return get_simple_config_mozilla_dns;
         }
       }();
-      simple_config_query_ = get_simple_config(std::move(promise), G(), G()->is_test_dc(), G()->get_gc_scheduler_id());
+      simple_config_query_ = get_simple_config(std::move(promise), G()->get_option_boolean("prefer_ipv6"),
+                                               G()->get_option_string("dc_txt_domain_name"), G()->is_test_dc(),
+                                               G()->get_gc_scheduler_id());
       simple_config_turn_++;
     }
 
