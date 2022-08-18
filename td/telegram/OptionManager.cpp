@@ -107,6 +107,11 @@ OptionManager::~OptionManager() = default;
 
 void OptionManager::on_td_inited() {
   is_td_inited_ = true;
+
+  if (have_pending_is_location_visible_) {
+    have_pending_is_location_visible_ = false;
+    td_->contacts_manager_->set_location_visibility();
+  }
 }
 
 void OptionManager::set_option_boolean(Slice name, bool value) {
@@ -679,7 +684,11 @@ void OptionManager::set_option(const string &name, td_api::object_ptr<td_api::Op
         return;
       }
       if (!is_bot && set_boolean_option("is_location_visible")) {
-        td_->contacts_manager_->set_location_visibility();
+        if (is_td_inited_) {
+          td_->contacts_manager_->set_location_visibility();
+        } else {
+          have_pending_is_location_visible_ = true;
+        }
         return;
       }
       break;

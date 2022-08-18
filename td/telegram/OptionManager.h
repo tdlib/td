@@ -83,6 +83,7 @@ class OptionManager {
 
   Td *td_;
   bool is_td_inited_ = false;
+  bool have_pending_is_location_visible_ = false;
 
   unique_ptr<TsSeqKeyValue> options_;
   std::shared_ptr<KeyValueSyncInterface> option_pmc_;
