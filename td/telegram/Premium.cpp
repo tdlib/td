@@ -397,8 +397,8 @@ static string get_premium_source(const td_api::object_ptr<td_api::PremiumSource>
 }
 
 static td_api::object_ptr<td_api::premiumLimit> get_premium_limit_object(Slice key) {
-  int32 default_limit = static_cast<int32>(G()->get_option_integer(PSLICE() << key << "_limit_default"));
-  int32 premium_limit = static_cast<int32>(G()->get_option_integer(PSLICE() << key << "_limit_premium"));
+  auto default_limit = static_cast<int32>(G()->get_option_integer(PSLICE() << key << "_limit_default"));
+  auto premium_limit = static_cast<int32>(G()->get_option_integer(PSLICE() << key << "_limit_premium"));
   if (default_limit <= 0 || premium_limit <= default_limit) {
     return nullptr;
   }

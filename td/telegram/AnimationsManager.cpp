@@ -445,7 +445,7 @@ void AnimationsManager::on_update_saved_animations_limit() {
   if (G()->close_flag()) {
     return;
   }
-  int32 saved_animations_limit =
+  auto saved_animations_limit =
       narrow_cast<int32>(td_->option_manager_->get_option_integer("saved_animations_limit", 200));
   if (saved_animations_limit != saved_animations_limit_) {
     if (saved_animations_limit > 0) {

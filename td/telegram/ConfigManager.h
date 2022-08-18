@@ -30,8 +30,6 @@ namespace td {
 
 extern int VERBOSITY_NAME(config_recoverer);
 
-class Global;
-
 using SimpleConfig = tl_object_ptr<telegram_api::help_configSimple>;
 struct SimpleConfigResult {
   Result<SimpleConfig> r_config;

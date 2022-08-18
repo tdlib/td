@@ -32,7 +32,7 @@ class SqliteConnectionSafe {
 
  private:
   string path_;
-  std::atomic<uint32> close_state_ = 0;
+  std::atomic<uint32> close_state_{0};
   LazySchedulerLocalStorage<SqliteDb> lsls_connection_;
 };
 

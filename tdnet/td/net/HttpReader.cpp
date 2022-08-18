@@ -320,7 +320,7 @@ Result<bool> HttpReader::parse_multipart_form_data(bool can_be_slow) {
               header_value.remove_prefix(10);
               while (true) {
                 header_value = trim(header_value);
-                const char *key_end =
+                const auto *key_end =
                     static_cast<const char *>(std::memchr(header_value.data(), '=', header_value.size()));
                 if (key_end == nullptr) {
                   break;
