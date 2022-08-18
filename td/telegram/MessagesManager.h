@@ -3713,6 +3713,8 @@ class MessagesManager final : public Actor {
   DialogId being_added_new_dialog_id_;
 
   DialogId debug_channel_difference_dialog_;
+  DialogId debug_last_get_channel_difference_dialog_id_;
+  const char *debug_last_get_channel_difference_source_ = "unknown";
 
   double start_time_ = 0;
   bool is_inited_ = false;

@@ -36888,18 +36888,21 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
                       << ", max_notification_message_id = " << d->max_notification_message_id;
 
   if (d->messages != nullptr) {
-    LOG_CHECK(d->messages->message_id == last_message_id)
-        << d->messages->message_id << ' ' << last_message_id << ' ' << d->last_message_id << ' '
-        << d->last_database_message_id << ' ' << d->debug_set_dialog_last_database_message_id << ' '
-        << d->messages->debug_source;
-    LOG_CHECK(d->messages->left == nullptr)
-        << d->messages->left->message_id << ' ' << d->messages->message_id << ' ' << d->messages->left->message_id
-        << ' ' << last_message_id << ' ' << d->last_message_id << ' ' << d->last_database_message_id << ' '
-        << d->debug_set_dialog_last_database_message_id << ' ' << d->messages->debug_source;
-    LOG_CHECK(d->messages->right == nullptr)
-        << d->messages->right->message_id << ' ' << d->messages->message_id << ' ' << d->messages->right->message_id
-        << ' ' << last_message_id << ' ' << d->last_message_id << ' ' << d->last_database_message_id << ' '
-        << d->debug_set_dialog_last_database_message_id << ' ' << d->messages->debug_source;
+    if (d->messages->message_id != last_message_id || d->messages->left != nullptr || d->messages->right != nullptr) {
+      auto common_data =
+          PSTRING() << ' ' << last_message_id << ' ' << d->last_message_id << ' ' << d->last_database_message_id << ' '
+                    << d->debug_set_dialog_last_database_message_id << ' ' << d->messages->debug_source << ' '
+                    << is_loaded_from_database << ' ' << being_added_dialog_id_ << ' ' << being_added_new_dialog_id_
+                    << ' ' << dialog_id << ' ' << d->is_channel_difference_finished << ' '
+                    << debug_last_get_channel_difference_dialog_id_ << ' ' << debug_last_get_channel_difference_source_;
+      LOG_CHECK(d->messages->message_id == last_message_id) << d->messages->message_id << common_data;
+      LOG_CHECK(d->messages->left == nullptr)
+          << d->messages->left->message_id << ' ' << d->messages->message_id << ' ' << d->messages->left->message_id
+          << ' ' << d->messages->left->debug_source << common_data;
+      LOG_CHECK(d->messages->right == nullptr)
+          << d->messages->right->message_id << ' ' << d->messages->message_id << ' ' << d->messages->right->message_id
+          << ' ' << d->messages->right->debug_source << common_data;
+    }
   }
 
   // must be after update_dialog_pos, because uses d->order
@@ -38141,6 +38144,10 @@ void MessagesManager::get_channel_difference(DialogId dialog_id, int32 pts, bool
               << " because it has already been run";
     return;
   }
+
+  debug_last_get_channel_difference_dialog_id_ = dialog_id;
+  debug_last_get_channel_difference_source_ = source;
+
   auto input_channel = td_->contacts_manager_->get_input_channel(dialog_id.get_channel_id());
   if (input_channel == nullptr) {
     LOG(ERROR) << "Skip running channels.getDifference for " << dialog_id << " from " << source
