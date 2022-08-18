@@ -281,7 +281,6 @@ function split_file($file, $chunks, $undo) {
                 'audios_manager[_(-][^.]|AudiosManager' => "AudiosManager",
                 'auth_manager[_(-][^.]|AuthManager' => 'AuthManager',
                 'background_manager[_(-][^.]|BackgroundManager' => "BackgroundManager",
-                'ConfigShared|shared_config[(]' => 'ConfigShared',
                 'contacts_manager[_(-][^.]|ContactsManager([^ ;.]| [^*])' => 'ContactsManager',
                 'country_info_manager[_(-][^.]|CountryInfoManager' => 'CountryInfoManager',
                 'documents_manager[_(-][^.]|DocumentsManager' => "DocumentsManager",

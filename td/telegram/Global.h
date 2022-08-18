@@ -28,7 +28,6 @@
 #include <atomic>
 #include <memory>
 #include <mutex>
-#include <unordered_map>
 
 namespace td {
 
@@ -38,7 +37,6 @@ class AuthManager;
 class BackgroundManager;
 class CallManager;
 class ConfigManager;
-class ConfigShared;
 class ConnectionCreator;
 class ContactsManager;
 class DownloadManager;
@@ -129,8 +127,6 @@ class Global final : public ActorContext {
     return net_query_dispatcher_.get() != nullptr;
   }
 
-  void set_shared_config(unique_ptr<ConfigShared> shared_config);
-
   void set_option_empty(Slice name);
 
   void set_option_boolean(Slice name, bool value);
@@ -140,10 +136,6 @@ class Global final : public ActorContext {
   void set_option_string(Slice name, Slice value);
 
   bool have_option(Slice name) const;
-
-  string get_option(Slice name) const;
-
-  std::unordered_map<string, string> get_options() const;
 
   bool get_option_boolean(Slice name, bool default_value = false) const;
 
@@ -540,8 +532,6 @@ class Global final : public ActorContext {
   LazySchedulerLocalStorage<unique_ptr<NetQueryCreator>> net_query_creator_;
   unique_ptr<NetQueryDispatcher> net_query_dispatcher_;
 
-  unique_ptr<ConfigShared> shared_config_;
-
   int64 my_id_ = 0;  // hack
 
   static int64 get_location_key(double latitude, double longitude);
@@ -549,6 +539,10 @@ class Global final : public ActorContext {
   FlatHashMap<int64, int64> location_access_hashes_;
 
   int32 to_unix_time(double server_time) const;
+
+  const OptionManager *get_option_manager() const;
+
+  OptionManager *get_option_manager();
 
   void do_save_server_time_difference();
 

@@ -1126,6 +1126,12 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::getTextEntities>(
           "@telegram /test_command https://telegram.org telegram.me @gif @test"));
 
+      send_request(
+          td_api::make_object<td_api::setOption>("xxx", td_api::make_object<td_api::optionValueBoolean>(true)));
+      send_request(td_api::make_object<td_api::setOption>("xxx", td_api::make_object<td_api::optionValueInteger>(1)));
+      send_request(td_api::make_object<td_api::setOption>("xxx", td_api::make_object<td_api::optionValueString>("2")));
+      send_request(td_api::make_object<td_api::setOption>("xxx", td_api::make_object<td_api::optionValueEmpty>()));
+
       send_request(td_api::make_object<td_api::getOption>("use_pfs"));
       send_request(td_api::make_object<td_api::setOption>(
           "use_pfs", td_api::make_object<td_api::optionValueBoolean>(std::time(nullptr) / 86400 % 2 == 0)));

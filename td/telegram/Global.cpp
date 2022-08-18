@@ -7,7 +7,6 @@
 #include "td/telegram/Global.h"
 
 #include "td/telegram/AuthManager.h"
-#include "td/telegram/ConfigShared.h"
 #include "td/telegram/net/ConnectionCreator.h"
 #include "td/telegram/net/NetQueryDispatcher.h"
 #include "td/telegram/net/TempAuthKeyWatchdog.h"
@@ -248,48 +247,46 @@ void Global::set_net_query_dispatcher(unique_ptr<NetQueryDispatcher> net_query_d
   net_query_dispatcher_ = std::move(net_query_dispatcher);
 }
 
-void Global::set_shared_config(unique_ptr<ConfigShared> shared_config) {
-  shared_config_ = std::move(shared_config);
+const OptionManager *Global::get_option_manager() const {
+  CHECK(!option_manager_.empty())
+  return option_manager_.get_actor_unsafe();
+}
+
+OptionManager *Global::get_option_manager() {
+  CHECK(!option_manager_.empty())
+  return option_manager_.get_actor_unsafe();
 }
 
 void Global::set_option_empty(Slice name) {
-  shared_config_->set_option_empty(name);
+  get_option_manager()->set_option_empty(name);
 }
 
 void Global::set_option_boolean(Slice name, bool value) {
-  shared_config_->set_option_boolean(name, value);
+  get_option_manager()->set_option_boolean(name, value);
 }
 
 void Global::set_option_integer(Slice name, int64 value) {
-  shared_config_->set_option_integer(name, value);
+  get_option_manager()->set_option_integer(name, value);
 }
 
 void Global::set_option_string(Slice name, Slice value) {
-  shared_config_->set_option_string(name, value);
+  get_option_manager()->set_option_string(name, value);
 }
 
 bool Global::have_option(Slice name) const {
-  return shared_config_->have_option(name);
-}
-
-string Global::get_option(Slice name) const {
-  return shared_config_->get_option(name);
-}
-
-std::unordered_map<string, string> Global::get_options() const {
-  return shared_config_->get_options();
+  return get_option_manager()->have_option(name);
 }
 
 bool Global::get_option_boolean(Slice name, bool default_value) const {
-  return shared_config_->get_option_boolean(name, default_value);
+  return get_option_manager()->get_option_boolean(name, default_value);
 }
 
 int64 Global::get_option_integer(Slice name, int64 default_value) const {
-  return shared_config_->get_option_integer(name, default_value);
+  return get_option_manager()->get_option_integer(name, default_value);
 }
 
 string Global::get_option_string(Slice name, string default_value) const {
-  return shared_config_->get_option_string(name, std::move(default_value));
+  return get_option_manager()->get_option_string(name, std::move(default_value));
 }
 
 int64 Global::get_location_key(double latitude, double longitude) {

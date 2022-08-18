@@ -28,7 +28,13 @@
 #include "td/telegram/TdDb.h"
 #include "td/telegram/TopDialogManager.h"
 
+#include "td/db/KeyValueSyncInterface.h"
+#include "td/db/TsSeqKeyValue.h"
+
+#include "td/actor/actor.h"
+
 #include "td/utils/algorithm.h"
+#include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/port/Clocks.h"
 #include "td/utils/SliceBuilder.h"
@@ -40,55 +46,77 @@
 
 namespace td {
 
-OptionManager::OptionManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
+OptionManager::OptionManager(Td *td, ActorShared<> parent)
+    : td_(td)
+    , parent_(std::move(parent))
+    , options_(td::make_unique<TsSeqKeyValue>())
+    , option_pmc_(G()->td_db()->get_config_pmc_shared()) {
   send_unix_time_update();
 
-  if (G()->have_option("language_database_path")) {
-    G()->set_option_string("language_pack_database_path", G()->get_option_string("language_database_path"));
-    G()->set_option_empty("language_database_path");
+  for (const auto &name_value : option_pmc_->get_all()) {
+    const string &name = name_value.first;
+    const string &value = name_value.second;
+    options_->set(name, value);
+    if (!is_internal_option(name)) {
+      if (name != "utc_time_offset") {
+        send_closure(G()->td(), &Td::send_update,
+                     td_api::make_object<td_api::updateOption>(name, get_option_value_object(value)));
+      }
+    } else if (name == "otherwise_relogin_days") {
+      auto days = narrow_cast<int32>(get_option_integer(name));
+      if (days > 0) {
+        vector<SuggestedAction> added_actions{SuggestedAction{SuggestedAction::Type::SetPassword, DialogId(), days}};
+        send_closure(G()->td(), &Td::send_update, get_update_suggested_actions_object(added_actions, {}));
+      }
+    }
   }
-  if (G()->have_option("language_pack")) {
-    G()->set_option_string("localization_target", G()->get_option_string("language_pack"));
-    G()->set_option_empty("language_pack");
+
+  if (have_option("language_database_path")) {
+    set_option_string("language_pack_database_path", get_option_string("language_database_path"));
+    set_option_empty("language_database_path");
   }
-  if (G()->have_option("language_code")) {
-    G()->set_option_string("language_pack_id", G()->get_option_string("language_code"));
-    G()->set_option_empty("language_code");
+  if (have_option("language_pack")) {
+    set_option_string("localization_target", get_option_string("language_pack"));
+    set_option_empty("language_pack");
   }
-  if (!G()->have_option("message_text_length_max")) {
-    G()->set_option_integer("message_text_length_max", 4096);
+  if (have_option("language_code")) {
+    set_option_string("language_pack_id", get_option_string("language_code"));
+    set_option_empty("language_code");
   }
-  if (!G()->have_option("message_caption_length_max")) {
-    G()->set_option_integer("message_caption_length_max", 1024);
+  if (!have_option("message_text_length_max")) {
+    set_option_integer("message_text_length_max", 4096);
   }
-  if (!G()->have_option("bio_length_max")) {
-    G()->set_option_integer("bio_length_max", 70);
+  if (!have_option("message_caption_length_max")) {
+    set_option_integer("message_caption_length_max", 1024);
   }
-  if (!G()->have_option("suggested_video_note_length")) {
-    G()->set_option_integer("suggested_video_note_length", 384);
+  if (!have_option("bio_length_max")) {
+    set_option_integer("bio_length_max", 70);
   }
-  if (!G()->have_option("suggested_video_note_video_bitrate")) {
-    G()->set_option_integer("suggested_video_note_video_bitrate", 1000);
+  if (!have_option("suggested_video_note_length")) {
+    set_option_integer("suggested_video_note_length", 384);
   }
-  if (!G()->have_option("suggested_video_note_audio_bitrate")) {
-    G()->set_option_integer("suggested_video_note_audio_bitrate", 64);
+  if (!have_option("suggested_video_note_video_bitrate")) {
+    set_option_integer("suggested_video_note_video_bitrate", 1000);
   }
-  if (!G()->have_option("notification_sound_duration_max")) {
-    G()->set_option_integer("notification_sound_duration_max", 5);
+  if (!have_option("suggested_video_note_audio_bitrate")) {
+    set_option_integer("suggested_video_note_audio_bitrate", 64);
   }
-  if (!G()->have_option("notification_sound_size_max")) {
-    G()->set_option_integer("notification_sound_size_max", 307200);
+  if (!have_option("notification_sound_duration_max")) {
+    set_option_integer("notification_sound_duration_max", 5);
   }
-  if (!G()->have_option("notification_sound_count_max")) {
-    G()->set_option_integer("notification_sound_count_max", G()->is_test_dc() ? 5 : 100);
+  if (!have_option("notification_sound_size_max")) {
+    set_option_integer("notification_sound_size_max", 307200);
   }
-  if (!G()->have_option("chat_filter_count_max")) {
-    G()->set_option_integer("chat_filter_count_max", G()->is_test_dc() ? 3 : 10);
+  if (!have_option("notification_sound_count_max")) {
+    set_option_integer("notification_sound_count_max", G()->is_test_dc() ? 5 : 100);
   }
-  if (!G()->have_option("chat_filter_chosen_chat_count_max")) {
-    G()->set_option_integer("chat_filter_chosen_chat_count_max", G()->is_test_dc() ? 5 : 100);
+  if (!have_option("chat_filter_count_max")) {
+    set_option_integer("chat_filter_count_max", G()->is_test_dc() ? 3 : 10);
   }
-  G()->set_option_integer("utc_time_offset", Clocks::tz_offset());
+  if (!have_option("chat_filter_chosen_chat_count_max")) {
+    set_option_integer("chat_filter_chosen_chat_count_max", G()->is_test_dc() ? 5 : 100);
+  }
+  set_option_integer("utc_time_offset", Clocks::tz_offset());
 }
 
 void OptionManager::tear_down() {
@@ -96,6 +124,86 @@ void OptionManager::tear_down() {
 }
 
 OptionManager::~OptionManager() = default;
+
+void OptionManager::set_option_boolean(Slice name, bool value) {
+  set_option(name, value ? Slice("Btrue") : Slice("Bfalse"));
+}
+
+void OptionManager::set_option_empty(Slice name) {
+  set_option(name, Slice());
+}
+
+void OptionManager::set_option_integer(Slice name, int64 value) {
+  set_option(name, PSLICE() << 'I' << value);
+}
+
+void OptionManager::set_option_string(Slice name, Slice value) {
+  set_option(name, PSLICE() << 'S' << value);
+}
+
+bool OptionManager::have_option(Slice name) const {
+  return options_->isset(name.str());
+}
+
+bool OptionManager::get_option_boolean(Slice name, bool default_value) const {
+  auto value = get_option(name);
+  if (value.empty()) {
+    return default_value;
+  }
+  if (value == "Btrue") {
+    return true;
+  }
+  if (value == "Bfalse") {
+    return false;
+  }
+  LOG(ERROR) << "Found \"" << value << "\" instead of boolean option " << name;
+  return default_value;
+}
+
+int64 OptionManager::get_option_integer(Slice name, int64 default_value) const {
+  auto value = get_option(name);
+  if (value.empty()) {
+    return default_value;
+  }
+  if (value[0] != 'I') {
+    LOG(ERROR) << "Found \"" << value << "\" instead of integer option " << name;
+    return default_value;
+  }
+  return to_integer<int64>(value.substr(1));
+}
+
+string OptionManager::get_option_string(Slice name, string default_value) const {
+  auto value = get_option(name);
+  if (value.empty()) {
+    return default_value;
+  }
+  if (value[0] != 'S') {
+    LOG(ERROR) << "Found \"" << value << "\" instead of string option " << name;
+    return default_value;
+  }
+  return value.substr(1);
+}
+
+void OptionManager::set_option(Slice name, Slice value) {
+  CHECK(!name.empty());
+  CHECK(Scheduler::instance()->sched_id() == 0);
+  if (value.empty()) {
+    if (option_pmc_->erase(name.str()) == 0) {
+      return;
+    }
+    option_pmc_->erase(name.str());
+  } else {
+    if (options_->set(name, value) == 0) {
+      return;
+    }
+    option_pmc_->set(name.str(), value.str());
+  }
+  on_option_updated(name);
+}
+
+string OptionManager::get_option(Slice name) const {
+  return options_->get(name.str());
+}
 
 td_api::object_ptr<td_api::OptionValue> OptionManager::get_unix_time_option_value_object() {
   return td_api::make_object<td_api::optionValueInteger>(G()->unix_time());
@@ -115,7 +223,7 @@ void OptionManager::on_update_server_time_difference() {
 }
 
 void OptionManager::clear_options() {
-  for (const auto &option : G()->get_options()) {
+  for (const auto &option : options_->get_all()) {
     if (!is_internal_option(option.first)) {
       send_closure(
           G()->td(), &Td::send_update,
@@ -185,7 +293,7 @@ bool OptionManager::is_synchronous_option(Slice name) {
   return td::contains(get_synchronous_options(), name);
 }
 
-void OptionManager::on_option_updated(const string &name) {
+void OptionManager::on_option_updated(Slice name) {
   if (G()->close_flag()) {
     return;
   }
@@ -208,13 +316,13 @@ void OptionManager::on_option_updated(const string &name) {
       break;
     case 'c':
       if (name == "connection_parameters") {
-        if (G()->mtproto_header().set_parameters(G()->get_option_string(name))) {
+        if (G()->mtproto_header().set_parameters(get_option_string(name))) {
           G()->net_query_dispatcher().update_mtproto_header();
         }
       }
       break;
     case 'd':
-      if (name == "default_reaction_needs_sync" && G()->get_option_boolean(name)) {
+      if (name == "default_reaction_needs_sync" && get_option_boolean(name)) {
         send_set_default_reaction_query(td_);
       }
       if (name == "dice_emojis") {
@@ -231,8 +339,7 @@ void OptionManager::on_option_updated(const string &name) {
                      &NotificationManager::on_disable_contact_registered_notifications_changed);
       }
       if (name == "disable_top_chats") {
-        send_closure(td_->top_dialog_manager_actor_, &TopDialogManager::update_is_enabled,
-                     !G()->get_option_boolean(name));
+        send_closure(td_->top_dialog_manager_actor_, &TopDialogManager::update_is_enabled, !get_option_boolean(name));
       }
       break;
     case 'e':
@@ -250,7 +357,7 @@ void OptionManager::on_option_updated(const string &name) {
         send_closure(td_->contacts_manager_actor_, &ContactsManager::on_ignored_restriction_reasons_changed);
       }
       if (name == "is_emulator") {
-        if (G()->mtproto_header().set_is_emulator(G()->get_option_boolean(name))) {
+        if (G()->mtproto_header().set_is_emulator(get_option_boolean(name))) {
           G()->net_query_dispatcher().update_mtproto_header();
         }
       }
@@ -258,7 +365,7 @@ void OptionManager::on_option_updated(const string &name) {
     case 'l':
       if (name == "language_pack_id") {
         send_closure(td_->language_pack_manager_, &LanguagePackManager::on_language_code_changed);
-        if (G()->mtproto_header().set_language_code(G()->get_option_string(name))) {
+        if (G()->mtproto_header().set_language_code(get_option_string(name))) {
           G()->net_query_dispatcher().update_mtproto_header();
         }
         send_closure(td_->attach_menu_manager_actor_, &AttachMenuManager::reload_attach_menu_bots, Promise<Unit>());
@@ -268,14 +375,14 @@ void OptionManager::on_option_updated(const string &name) {
       }
       if (name == "localization_target") {
         send_closure(td_->language_pack_manager_, &LanguagePackManager::on_language_pack_changed);
-        if (G()->mtproto_header().set_language_pack(G()->get_option_string(name))) {
+        if (G()->mtproto_header().set_language_pack(get_option_string(name))) {
           G()->net_query_dispatcher().update_mtproto_header();
         }
       }
       break;
     case 'm':
       if (name == "my_id") {
-        G()->set_my_id(G()->get_option_integer(name));
+        G()->set_my_id(get_option_integer(name));
       }
       break;
     case 'n':
@@ -298,7 +405,7 @@ void OptionManager::on_option_updated(const string &name) {
         send_closure(td_->notification_manager_actor_, &NotificationManager::on_online_cloud_timeout_changed);
       }
       if (name == "otherwise_relogin_days") {
-        auto days = narrow_cast<int32>(G()->get_option_integer(name));
+        auto days = narrow_cast<int32>(get_option_integer(name));
         if (days > 0) {
           vector<SuggestedAction> added_actions{SuggestedAction{SuggestedAction::Type::SetPassword, DialogId(), days}};
           send_closure(G()->td(), &Td::send_update, get_update_suggested_actions_object(added_actions, {}));
@@ -329,7 +436,7 @@ void OptionManager::on_option_updated(const string &name) {
         send_closure(td_->storage_manager_, &StorageManager::update_use_storage_optimizer);
       }
       if (name == "utc_time_offset") {
-        if (G()->mtproto_header().set_tz_offset(static_cast<int32>(G()->get_option_integer(name)))) {
+        if (G()->mtproto_header().set_tz_offset(static_cast<int32>(get_option_integer(name)))) {
           G()->net_query_dispatcher().update_mtproto_header();
         }
       }
@@ -342,16 +449,16 @@ void OptionManager::on_option_updated(const string &name) {
     return;
   }
 
-  // send_closure was already used in the callback
-  td_->send_update(td_api::make_object<td_api::updateOption>(name, get_option_value_object(G()->get_option(name))));
+  send_closure(G()->td(), &Td::send_update,
+               td_api::make_object<td_api::updateOption>(name.str(), get_option_value_object(get_option(name))));
 }
 
 void OptionManager::get_option(const string &name, Promise<td_api::object_ptr<td_api::OptionValue>> &&promise) {
   bool is_bot = td_->auth_manager_ != nullptr && td_->auth_manager_->is_authorized() && td_->auth_manager_->is_bot();
-  auto wrap_promise = [&] {
-    return PromiseCreator::lambda([promise = std::move(promise), name](Unit result) mutable {
+  auto wrap_promise = [this, &promise, &name] {
+    return PromiseCreator::lambda([this, promise = std::move(promise), name](Unit result) mutable {
       // the option is already updated on success, ignore errors
-      promise.set_value(get_option_value_object(G()->get_option(name)));
+      promise.set_value(get_option_value_object(get_option(name)));
     });
   };
   switch (name[0]) {
@@ -422,7 +529,7 @@ void OptionManager::set_option(const string &name, td_api::object_ptr<td_api::Op
       return false;
     }
     if (value_constructor_id == td_api::optionValueEmpty::ID) {
-      G()->set_option_empty(option_name);
+      set_option_empty(option_name);
     } else {
       if (value_constructor_id != td_api::optionValueInteger::ID) {
         promise.set_error(Status::Error(400, PSLICE() << "Option \"" << name << "\" must have integer value"));
@@ -436,7 +543,7 @@ void OptionManager::set_option(const string &name, td_api::object_ptr<td_api::Op
                                                       << max_value << "]"));
         return false;
       }
-      G()->set_option_integer(name, int_value);
+      set_option_integer(name, int_value);
     }
     promise.set_value(Unit());
     return true;
@@ -447,7 +554,7 @@ void OptionManager::set_option(const string &name, td_api::object_ptr<td_api::Op
       return false;
     }
     if (value_constructor_id == td_api::optionValueEmpty::ID) {
-      G()->set_option_empty(name);
+      set_option_empty(name);
     } else {
       if (value_constructor_id != td_api::optionValueBoolean::ID) {
         promise.set_error(Status::Error(400, PSLICE() << "Option \"" << name << "\" must have boolean value"));
@@ -455,7 +562,7 @@ void OptionManager::set_option(const string &name, td_api::object_ptr<td_api::Op
       }
 
       bool bool_value = static_cast<td_api::optionValueBoolean *>(value.get())->value_;
-      G()->set_option_boolean(name, bool_value);
+      set_option_boolean(name, bool_value);
     }
     promise.set_value(Unit());
     return true;
@@ -466,7 +573,7 @@ void OptionManager::set_option(const string &name, td_api::object_ptr<td_api::Op
       return false;
     }
     if (value_constructor_id == td_api::optionValueEmpty::ID) {
-      G()->set_option_empty(name);
+      set_option_empty(name);
     } else {
       if (value_constructor_id != td_api::optionValueString::ID) {
         promise.set_error(Status::Error(400, PSLICE() << "Option \"" << name << "\" must have string value"));
@@ -475,10 +582,10 @@ void OptionManager::set_option(const string &name, td_api::object_ptr<td_api::Op
 
       const string &str_value = static_cast<td_api::optionValueString *>(value.get())->value_;
       if (str_value.empty()) {
-        G()->set_option_empty(name);
+        set_option_empty(name);
       } else {
         if (check_value(str_value)) {
-          G()->set_option_string(name, str_value);
+          set_option_string(name, str_value);
         } else {
           promise.set_error(Status::Error(400, PSLICE() << "Option \"" << name << "\" can't have specified value"));
           return false;
@@ -571,7 +678,7 @@ void OptionManager::set_option(const string &name, td_api::object_ptr<td_api::Op
         return;
       }
       if (!is_bot && name == "ignore_sensitive_content_restrictions") {
-        if (!G()->get_option_boolean("can_ignore_sensitive_content_restrictions")) {
+        if (!get_option_boolean("can_ignore_sensitive_content_restrictions")) {
           return promise.set_error(
               Status::Error(400, "Option \"ignore_sensitive_content_restrictions\" can't be changed by the user"));
         }
@@ -691,16 +798,16 @@ void OptionManager::set_option(const string &name, td_api::object_ptr<td_api::Op
       }
       switch (value_constructor_id) {
         case td_api::optionValueBoolean::ID:
-          G()->set_option_boolean(name, static_cast<const td_api::optionValueBoolean *>(value.get())->value_);
+          set_option_boolean(name, static_cast<const td_api::optionValueBoolean *>(value.get())->value_);
           break;
         case td_api::optionValueEmpty::ID:
-          G()->set_option_empty(name);
+          set_option_empty(name);
           break;
         case td_api::optionValueInteger::ID:
-          G()->set_option_integer(name, static_cast<const td_api::optionValueInteger *>(value.get())->value_);
+          set_option_integer(name, static_cast<const td_api::optionValueInteger *>(value.get())->value_);
           break;
         case td_api::optionValueString::ID:
-          G()->set_option_string(name, static_cast<const td_api::optionValueString *>(value.get())->value_);
+          set_option_string(name, static_cast<const td_api::optionValueString *>(value.get())->value_);
           break;
         default:
           UNREACHABLE();
@@ -752,7 +859,7 @@ void OptionManager::get_current_state(vector<td_api::object_ptr<td_api::Update>>
 
   updates.push_back(td_api::make_object<td_api::updateOption>("unix_time", get_unix_time_option_value_object()));
 
-  for (const auto &option : G()->get_options()) {
+  for (const auto &option : options_->get_all()) {
     if (!is_internal_option(option.first)) {
       updates.push_back(
           td_api::make_object<td_api::updateOption>(option.first, get_option_value_object(option.second)));

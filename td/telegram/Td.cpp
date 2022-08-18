@@ -25,7 +25,6 @@
 #include "td/telegram/ChannelType.h"
 #include "td/telegram/ChatId.h"
 #include "td/telegram/ConfigManager.h"
-#include "td/telegram/ConfigShared.h"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/CountryInfoManager.h"
 #include "td/telegram/DeviceTokenManager.h"
@@ -3298,7 +3297,6 @@ void Td::dec_actor_refcnt() {
       LOG(DEBUG) << "WebPagesManager was cleared" << timer;
       Promise<> promise = PromiseCreator::lambda([actor_id = create_reference()](Unit) mutable { actor_id.reset(); });
 
-      G()->set_shared_config(nullptr);
       if (destroy_flag_) {
         G()->close_and_destroy_all(std::move(promise));
       } else {
@@ -3371,7 +3369,7 @@ void Td::clear() {
 
   Timer timer;
   if (destroy_flag_) {
-    OptionManager::clear_options();
+    option_manager_->clear_options();
     if (!auth_manager_->is_bot()) {
       notification_manager_->destroy_all_notifications();
     }
@@ -3643,6 +3641,9 @@ void Td::init(Result<TdDb::OpenedDatabase> r_opened_database) {
 
   init_options_and_network();
 
+  // we need to process td_api::getOption along with td_api::setOption for consistency
+  // we need to process td_api::setOption before managers and MTProto header are created,
+  // because their initialiation may be affected by the options
   complete_pending_preauthentication_requests([](int32 id) {
     switch (id) {
       case td_api::getOption::ID:
@@ -3709,6 +3710,10 @@ void Td::init(Result<TdDb::OpenedDatabase> r_opened_database) {
 
   for (auto &event : events.save_app_log_events) {
     on_save_app_log_binlog_event(this, std::move(event));
+  }
+
+  if (option_manager_->get_option_boolean("default_reaction_needs_sync")) {
+    send_set_default_reaction_query(this);
   }
 
   if (is_online_) {
@@ -3805,10 +3810,10 @@ void Td::init_options_and_network() {
   send_closure(state_manager_, &StateManager::add_callback, make_unique<StateManagerCallback>(create_reference()));
   G()->set_state_manager(state_manager_.get());
 
-  VLOG(td_init) << "Create ConfigShared";
-  auto config_shared = td::make_unique<ConfigShared>(G()->td_db()->get_config_pmc_shared());
-  auto config_shared_ptr = config_shared.get();
-  G()->set_shared_config(std::move(config_shared));
+  VLOG(td_init) << "Create OptionManager";
+  option_manager_ = make_unique<OptionManager>(this, create_reference());
+  option_manager_actor_ = register_actor("OptionManager", option_manager_.get());
+  G()->set_option_manager(option_manager_actor_.get());
 
   init_connection_creator();
 
@@ -3819,30 +3824,6 @@ void Td::init_options_and_network() {
   VLOG(td_init) << "Create ConfigManager";
   config_manager_ = create_actor<ConfigManager>("ConfigManager", create_reference());
   G()->set_config_manager(config_manager_.get());
-
-  VLOG(td_init) << "Create OptionManager";
-  option_manager_ = make_unique<OptionManager>(this, create_reference());
-  option_manager_actor_ = register_actor("OptionManager", option_manager_.get());
-  G()->set_option_manager(option_manager_actor_.get());
-
-  VLOG(td_init) << "Set ConfigShared callback";
-  class ConfigSharedCallback final : public ConfigShared::Callback {
-   public:
-    void on_option_updated(const string &name, const string &value) const final {
-      send_closure_later(G()->option_manager(), &OptionManager::on_option_updated, name);
-    }
-    ~ConfigSharedCallback() final {
-      LOG(INFO) << "Destroy ConfigSharedCallback";
-    }
-  };
-  // we need to set ConfigShared callback before td_api::getOption requests are processed for consistency
-  // TODO currently they will be inconsistent anyway, because td_api::getOption returns current value,
-  // but in td_api::updateOption there will be a newer value, obtained at the time of update creation
-  // so, there can be even two succesive updateOption with the same value
-  // we need to process td_api::getOption along with td_api::setOption for consistency
-  // we need to process td_api::setOption before managers and MTProto header are created,
-  // because their initialiation may be affected by the options
-  config_shared_ptr->set_callback(make_unique<ConfigSharedCallback>());
 }
 
 void Td::init_connection_creator() {
