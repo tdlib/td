@@ -133,6 +133,7 @@ class Td final : public Actor {
   unique_ptr<AudiosManager> audios_manager_;
   unique_ptr<CallbackQueriesManager> callback_queries_manager_;
   unique_ptr<DocumentsManager> documents_manager_;
+  unique_ptr<OptionManager> option_manager_;
   unique_ptr<VideoNotesManager> video_notes_manager_;
   unique_ptr<VideosManager> videos_manager_;
 
@@ -168,8 +169,6 @@ class Td final : public Actor {
   ActorOwn<NotificationManager> notification_manager_actor_;
   unique_ptr<NotificationSettingsManager> notification_settings_manager_;
   ActorOwn<NotificationSettingsManager> notification_settings_manager_actor_;
-  unique_ptr<OptionManager> option_manager_;
-  ActorOwn<OptionManager> option_manager_actor_;
   unique_ptr<PollManager> poll_manager_;
   ActorOwn<PollManager> poll_manager_actor_;
   unique_ptr<SponsoredMessageManager> sponsored_message_manager_;

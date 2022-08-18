@@ -301,10 +301,7 @@ class Global final : public ActorContext {
     notification_settings_manager_ = notification_settings_manager;
   }
 
-  ActorId<OptionManager> option_manager() const {
-    return option_manager_;
-  }
-  void set_option_manager(ActorId<OptionManager> option_manager) {
+  void set_option_manager(OptionManager *option_manager) {
     option_manager_ = option_manager;
   }
 
@@ -491,7 +488,6 @@ class Global final : public ActorContext {
   ActorId<MessagesManager> messages_manager_;
   ActorId<NotificationManager> notification_manager_;
   ActorId<NotificationSettingsManager> notification_settings_manager_;
-  ActorId<OptionManager> option_manager_;
   ActorId<PasswordManager> password_manager_;
   ActorId<SecretChatsManager> secret_chats_manager_;
   ActorId<SponsoredMessageManager> sponsored_message_manager_;
@@ -505,6 +501,8 @@ class Global final : public ActorContext {
   ActorOwn<TempAuthKeyWatchdog> temp_auth_key_watchdog_;
 
   unique_ptr<MtprotoHeader> mtproto_header_;
+
+  OptionManager *option_manager_ = nullptr;
 
   TdParameters parameters_;
   int32 gc_scheduler_id_ = 0;

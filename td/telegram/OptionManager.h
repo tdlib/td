@@ -8,12 +8,11 @@
 
 #include "td/telegram/td_api.h"
 
-#include "td/actor/actor.h"
-
 #include "td/utils/common.h"
 #include "td/utils/Promise.h"
 #include "td/utils/Slice.h"
 
+#include <atomic>
 #include <memory>
 
 namespace td {
@@ -22,15 +21,14 @@ class KeyValueSyncInterface;
 class Td;
 class TsSeqKeyValue;
 
-class OptionManager final : public Actor {
+class OptionManager {
  public:
-  OptionManager(Td *td, ActorShared<> parent);
-
+  explicit OptionManager(Td *td);
   OptionManager(const OptionManager &) = delete;
   OptionManager &operator=(const OptionManager &) = delete;
   OptionManager(OptionManager &&) = delete;
   OptionManager &operator=(OptionManager &&) = delete;
-  ~OptionManager() final;
+  ~OptionManager();
 
   void set_option_boolean(Slice name, bool value);
 
@@ -65,8 +63,6 @@ class OptionManager final : public Actor {
   void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
 
  private:
-  void tear_down() final;
-
   void set_option(Slice name, Slice value);
 
   void on_option_updated(Slice name);
@@ -84,12 +80,11 @@ class OptionManager final : public Actor {
   void send_unix_time_update();
 
   Td *td_;
-  ActorShared<> parent_;
 
   unique_ptr<TsSeqKeyValue> options_;
   std::shared_ptr<KeyValueSyncInterface> option_pmc_;
 
-  double last_sent_server_time_difference_ = 1e100;
+  std::atomic<double> last_sent_server_time_difference_{1e100};
 };
 
 }  // namespace td

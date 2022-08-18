@@ -3294,6 +3294,7 @@ void Td::dec_actor_refcnt() {
       web_pages_manager_.reset();
       LOG(DEBUG) << "WebPagesManager was cleared" << timer;
 
+      G()->set_option_manager(nullptr);
       option_manager_.reset();
       LOG(DEBUG) << "OptionManager was cleared" << timer;
 
@@ -3465,8 +3466,6 @@ void Td::clear() {
   LOG(DEBUG) << "NotificationManager actor was cleared" << timer;
   notification_settings_manager_actor_.reset();
   LOG(DEBUG) << "NotificationSettingsManager actor was cleared" << timer;
-  option_manager_actor_.reset();
-  LOG(DEBUG) << "OptionManager actor was cleared" << timer;
   poll_manager_actor_.reset();
   LOG(DEBUG) << "PollManager actor was cleared" << timer;
   sponsored_message_manager_actor_.reset();
@@ -3812,9 +3811,8 @@ void Td::init_options_and_network() {
   G()->set_state_manager(state_manager_.get());
 
   VLOG(td_init) << "Create OptionManager";
-  option_manager_ = make_unique<OptionManager>(this, create_reference());
-  option_manager_actor_ = register_actor("OptionManager", option_manager_.get());
-  G()->set_option_manager(option_manager_actor_.get());
+  option_manager_ = make_unique<OptionManager>(this);
+  G()->set_option_manager(option_manager_.get());
 
   init_connection_creator();
 

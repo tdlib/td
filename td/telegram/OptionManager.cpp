@@ -46,11 +46,8 @@
 
 namespace td {
 
-OptionManager::OptionManager(Td *td, ActorShared<> parent)
-    : td_(td)
-    , parent_(std::move(parent))
-    , options_(td::make_unique<TsSeqKeyValue>())
-    , option_pmc_(G()->td_db()->get_config_pmc_shared()) {
+OptionManager::OptionManager(Td *td)
+    : td_(td), options_(td::make_unique<TsSeqKeyValue>()), option_pmc_(G()->td_db()->get_config_pmc_shared()) {
   send_unix_time_update();
 
   auto all_options = option_pmc_->get_all();
@@ -104,10 +101,6 @@ OptionManager::OptionManager(Td *td, ActorShared<> parent)
   if (!have_option("chat_filter_chosen_chat_count_max")) {
     set_option_integer("chat_filter_chosen_chat_count_max", G()->is_test_dc() ? 5 : 100);
   }
-}
-
-void OptionManager::tear_down() {
-  parent_.reset();
 }
 
 OptionManager::~OptionManager() = default;
@@ -202,6 +195,7 @@ void OptionManager::send_unix_time_update() {
 }
 
 void OptionManager::on_update_server_time_difference() {
+  // can be called from any thread
   if (std::abs(G()->get_server_time_difference() - last_sent_server_time_difference_) < 0.5) {
     return;
   }

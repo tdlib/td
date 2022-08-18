@@ -167,8 +167,7 @@ void Global::update_server_time_difference(double diff) {
     server_time_difference_was_updated_ = true;
     do_save_server_time_difference();
 
-    CHECK(Scheduler::instance());
-    send_closure(option_manager(), &OptionManager::on_update_server_time_difference);
+    get_option_manager()->on_update_server_time_difference();
   }
 }
 
@@ -248,13 +247,13 @@ void Global::set_net_query_dispatcher(unique_ptr<NetQueryDispatcher> net_query_d
 }
 
 const OptionManager *Global::get_option_manager() const {
-  CHECK(!option_manager_.empty())
-  return option_manager_.get_actor_unsafe();
+  CHECK(option_manager_ != nullptr);
+  return option_manager_;
 }
 
 OptionManager *Global::get_option_manager() {
-  CHECK(!option_manager_.empty())
-  return option_manager_.get_actor_unsafe();
+  CHECK(option_manager_ != nullptr);
+  return option_manager_;
 }
 
 void Global::set_option_empty(Slice name) {
