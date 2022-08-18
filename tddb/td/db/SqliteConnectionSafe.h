@@ -14,6 +14,8 @@
 #include "td/utils/common.h"
 #include "td/utils/optional.h"
 
+#include <atomic>
+
 namespace td {
 
 class SqliteConnectionSafe {
@@ -30,7 +32,7 @@ class SqliteConnectionSafe {
 
  private:
   string path_;
-  uint32 close_state_ = 0;
+  std::atomic<uint32> close_state_ = 0;
   LazySchedulerLocalStorage<SqliteDb> lsls_connection_;
 };
 

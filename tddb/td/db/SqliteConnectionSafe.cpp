@@ -18,7 +18,7 @@ SqliteConnectionSafe::SqliteConnectionSafe(string path, DbKey key, optional<int3
                         cipher_version = std::move(cipher_version)] {
       auto r_db = SqliteDb::open_with_key(path, false, key, cipher_version.copy());
       if (r_db.is_error()) {
-        LOG(FATAL) << "Can't open database in state " << *close_state_ptr << ": " << r_db.error().message();
+        LOG(FATAL) << "Can't open database in state " << close_state_ptr->load() << ": " << r_db.error().message();
       }
       auto db = r_db.move_as_ok();
       db.exec("PRAGMA journal_mode=WAL").ensure();
