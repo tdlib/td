@@ -1321,130 +1321,130 @@ void ConfigManager::process_config(tl_object_ptr<telegram_api::config> config) {
   set_timeout_at(expire_time_.at());
   LOG_IF(ERROR, config->test_mode_ != G()->is_test_dc()) << "Wrong parameter is_test";
 
-  Global &shared_config = *G();
+  Global &options = *G();
 
   // Do not save dc_options in config, because it will be interpreted and saved by ConnectionCreator.
   send_closure(G()->connection_creator(), &ConnectionCreator::on_dc_options, DcOptions(config->dc_options_));
 
-  shared_config.set_option_integer("recent_stickers_limit", config->stickers_recent_limit_);
-  shared_config.set_option_integer("favorite_stickers_limit", config->stickers_faved_limit_);
-  shared_config.set_option_integer("saved_animations_limit", config->saved_gifs_limit_);
-  shared_config.set_option_integer("channels_read_media_period", config->channels_read_media_period_);
+  options.set_option_integer("recent_stickers_limit", config->stickers_recent_limit_);
+  options.set_option_integer("favorite_stickers_limit", config->stickers_faved_limit_);
+  options.set_option_integer("saved_animations_limit", config->saved_gifs_limit_);
+  options.set_option_integer("channels_read_media_period", config->channels_read_media_period_);
 
-  shared_config.set_option_boolean("test_mode", config->test_mode_);
-  shared_config.set_option_integer("forwarded_message_count_max", config->forwarded_count_max_);
-  shared_config.set_option_integer("basic_group_size_max", config->chat_size_max_);
-  shared_config.set_option_integer("supergroup_size_max", config->megagroup_size_max_);
-  shared_config.set_option_integer("pinned_chat_count_max", config->pinned_dialogs_count_max_);
-  shared_config.set_option_integer("pinned_archived_chat_count_max", config->pinned_infolder_count_max_);
-  if (is_from_main_dc || !shared_config.have_option("expect_blocking")) {
-    shared_config.set_option_boolean("expect_blocking", config->blocked_mode_);
+  options.set_option_boolean("test_mode", config->test_mode_);
+  options.set_option_integer("forwarded_message_count_max", config->forwarded_count_max_);
+  options.set_option_integer("basic_group_size_max", config->chat_size_max_);
+  options.set_option_integer("supergroup_size_max", config->megagroup_size_max_);
+  options.set_option_integer("pinned_chat_count_max", config->pinned_dialogs_count_max_);
+  options.set_option_integer("pinned_archived_chat_count_max", config->pinned_infolder_count_max_);
+  if (is_from_main_dc || !options.have_option("expect_blocking")) {
+    options.set_option_boolean("expect_blocking", config->blocked_mode_);
   }
-  if (is_from_main_dc || !shared_config.have_option("dc_txt_domain_name")) {
-    shared_config.set_option_string("dc_txt_domain_name", config->dc_txt_domain_name_);
+  if (is_from_main_dc || !options.have_option("dc_txt_domain_name")) {
+    options.set_option_string("dc_txt_domain_name", config->dc_txt_domain_name_);
   }
-  if (is_from_main_dc || !shared_config.have_option("t_me_url")) {
+  if (is_from_main_dc || !options.have_option("t_me_url")) {
     auto url = config->me_url_prefix_;
     if (!url.empty()) {
       if (url.back() != '/') {
         url.push_back('/');
       }
-      shared_config.set_option_string("t_me_url", url);
+      options.set_option_string("t_me_url", url);
     }
   }
   if (is_from_main_dc) {
-    shared_config.set_option_integer("webfile_dc_id", config->webfile_dc_id_);
+    options.set_option_integer("webfile_dc_id", config->webfile_dc_id_);
     if ((config->flags_ & telegram_api::config::TMP_SESSIONS_MASK) != 0) {
-      shared_config.set_option_integer("session_count", config->tmp_sessions_);
+      options.set_option_integer("session_count", config->tmp_sessions_);
     } else {
-      shared_config.set_option_empty("session_count");
+      options.set_option_empty("session_count");
     }
     if ((config->flags_ & telegram_api::config::SUGGESTED_LANG_CODE_MASK) != 0) {
-      shared_config.set_option_string("suggested_language_pack_id", config->suggested_lang_code_);
-      shared_config.set_option_integer("language_pack_version", config->lang_pack_version_);
-      shared_config.set_option_integer("base_language_pack_version", config->base_lang_pack_version_);
+      options.set_option_string("suggested_language_pack_id", config->suggested_lang_code_);
+      options.set_option_integer("language_pack_version", config->lang_pack_version_);
+      options.set_option_integer("base_language_pack_version", config->base_lang_pack_version_);
     } else {
-      shared_config.set_option_empty("suggested_language_pack_id");
-      shared_config.set_option_empty("language_pack_version");
-      shared_config.set_option_empty("base_language_pack_version");
+      options.set_option_empty("suggested_language_pack_id");
+      options.set_option_empty("language_pack_version");
+      options.set_option_empty("base_language_pack_version");
     }
   }
 
   if (is_from_main_dc) {
-    shared_config.set_option_integer("edit_time_limit", config->edit_time_limit_);
-    shared_config.set_option_boolean("revoke_pm_inbox", config->revoke_pm_inbox_);
-    shared_config.set_option_integer("revoke_time_limit", config->revoke_time_limit_);
-    shared_config.set_option_integer("revoke_pm_time_limit", config->revoke_pm_time_limit_);
+    options.set_option_integer("edit_time_limit", config->edit_time_limit_);
+    options.set_option_boolean("revoke_pm_inbox", config->revoke_pm_inbox_);
+    options.set_option_integer("revoke_time_limit", config->revoke_time_limit_);
+    options.set_option_integer("revoke_pm_time_limit", config->revoke_pm_time_limit_);
 
-    shared_config.set_option_integer("rating_e_decay", config->rating_e_decay_);
+    options.set_option_integer("rating_e_decay", config->rating_e_decay_);
 
-    shared_config.set_option_boolean("calls_enabled", config->phonecalls_enabled_);
+    options.set_option_boolean("calls_enabled", config->phonecalls_enabled_);
   }
-  shared_config.set_option_integer("call_ring_timeout_ms", config->call_ring_timeout_ms_);
-  shared_config.set_option_integer("call_connect_timeout_ms", config->call_connect_timeout_ms_);
-  shared_config.set_option_integer("call_packet_timeout_ms", config->call_packet_timeout_ms_);
-  shared_config.set_option_integer("call_receive_timeout_ms", config->call_receive_timeout_ms_);
+  options.set_option_integer("call_ring_timeout_ms", config->call_ring_timeout_ms_);
+  options.set_option_integer("call_connect_timeout_ms", config->call_connect_timeout_ms_);
+  options.set_option_integer("call_packet_timeout_ms", config->call_packet_timeout_ms_);
+  options.set_option_integer("call_receive_timeout_ms", config->call_receive_timeout_ms_);
 
-  shared_config.set_option_integer("message_text_length_max", clamp(config->message_length_max_, 4096, 1000000));
-  shared_config.set_option_integer("message_caption_length_max", clamp(config->caption_length_max_, 1024, 1000000));
+  options.set_option_integer("message_text_length_max", clamp(config->message_length_max_, 4096, 1000000));
+  options.set_option_integer("message_caption_length_max", clamp(config->caption_length_max_, 1024, 1000000));
 
   if (config->gif_search_username_.empty()) {
-    shared_config.set_option_empty("animation_search_bot_username");
+    options.set_option_empty("animation_search_bot_username");
   } else {
-    shared_config.set_option_string("animation_search_bot_username", config->gif_search_username_);
+    options.set_option_string("animation_search_bot_username", config->gif_search_username_);
   }
   if (config->venue_search_username_.empty()) {
-    shared_config.set_option_empty("venue_search_bot_username");
+    options.set_option_empty("venue_search_bot_username");
   } else {
-    shared_config.set_option_string("venue_search_bot_username", config->venue_search_username_);
+    options.set_option_string("venue_search_bot_username", config->venue_search_username_);
   }
   if (config->img_search_username_.empty()) {
-    shared_config.set_option_empty("photo_search_bot_username");
+    options.set_option_empty("photo_search_bot_username");
   } else {
-    shared_config.set_option_string("photo_search_bot_username", config->img_search_username_);
+    options.set_option_string("photo_search_bot_username", config->img_search_username_);
   }
 
   auto fix_timeout_ms = [](int32 timeout_ms) {
     return clamp(timeout_ms, 1000, 86400 * 1000);
   };
 
-  shared_config.set_option_integer("online_update_period_ms", fix_timeout_ms(config->online_update_period_ms_));
+  options.set_option_integer("online_update_period_ms", fix_timeout_ms(config->online_update_period_ms_));
 
-  shared_config.set_option_integer("online_cloud_timeout_ms", fix_timeout_ms(config->online_cloud_timeout_ms_));
-  shared_config.set_option_integer("notification_cloud_delay_ms", fix_timeout_ms(config->notify_cloud_delay_ms_));
-  shared_config.set_option_integer("notification_default_delay_ms", fix_timeout_ms(config->notify_default_delay_ms_));
+  options.set_option_integer("online_cloud_timeout_ms", fix_timeout_ms(config->online_cloud_timeout_ms_));
+  options.set_option_integer("notification_cloud_delay_ms", fix_timeout_ms(config->notify_cloud_delay_ms_));
+  options.set_option_integer("notification_default_delay_ms", fix_timeout_ms(config->notify_default_delay_ms_));
 
   // delete outdated options
-  shared_config.set_option_empty("suggested_language_code");
-  shared_config.set_option_empty("chat_big_size");
-  shared_config.set_option_empty("group_size_max");
-  shared_config.set_option_empty("saved_gifs_limit");
-  shared_config.set_option_empty("sessions_count");
-  shared_config.set_option_empty("forwarded_messages_count_max");
-  shared_config.set_option_empty("broadcast_size_max");
-  shared_config.set_option_empty("group_chat_size_max");
-  shared_config.set_option_empty("chat_size_max");
-  shared_config.set_option_empty("megagroup_size_max");
-  shared_config.set_option_empty("offline_blur_timeout_ms");
-  shared_config.set_option_empty("offline_idle_timeout_ms");
-  shared_config.set_option_empty("notify_cloud_delay_ms");
-  shared_config.set_option_empty("notify_default_delay_ms");
-  shared_config.set_option_empty("large_chat_size");
+  options.set_option_empty("suggested_language_code");
+  options.set_option_empty("chat_big_size");
+  options.set_option_empty("group_size_max");
+  options.set_option_empty("saved_gifs_limit");
+  options.set_option_empty("sessions_count");
+  options.set_option_empty("forwarded_messages_count_max");
+  options.set_option_empty("broadcast_size_max");
+  options.set_option_empty("group_chat_size_max");
+  options.set_option_empty("chat_size_max");
+  options.set_option_empty("megagroup_size_max");
+  options.set_option_empty("offline_blur_timeout_ms");
+  options.set_option_empty("offline_idle_timeout_ms");
+  options.set_option_empty("notify_cloud_delay_ms");
+  options.set_option_empty("notify_default_delay_ms");
+  options.set_option_empty("large_chat_size");
 
   // TODO implement online status updates
-  //  shared_config.set_option_integer("offline_blur_timeout_ms", config->offline_blur_timeout_ms_);
-  //  shared_config.set_option_integer("offline_idle_timeout_ms", config->offline_idle_timeout_ms_);
+  //  options.set_option_integer("offline_blur_timeout_ms", config->offline_blur_timeout_ms_);
+  //  options.set_option_integer("offline_idle_timeout_ms", config->offline_idle_timeout_ms_);
 
-  //  shared_config.set_option_integer("push_chat_period_ms", config->push_chat_period_ms_);
-  //  shared_config.set_option_integer("push_chat_limit", config->push_chat_limit_);
+  //  options.set_option_integer("push_chat_period_ms", config->push_chat_period_ms_);
+  //  options.set_option_integer("push_chat_limit", config->push_chat_limit_);
 
   if (is_from_main_dc) {
     reget_app_config(Auto());
-    if (!shared_config.have_option("can_ignore_sensitive_content_restrictions") ||
-        !shared_config.have_option("ignore_sensitive_content_restrictions")) {
+    if (!options.have_option("can_ignore_sensitive_content_restrictions") ||
+        !options.have_option("ignore_sensitive_content_restrictions")) {
       get_content_settings(Auto());
     }
-    if (!shared_config.have_option("archive_and_mute_new_chats_from_unknown_users")) {
+    if (!options.have_option("archive_and_mute_new_chats_from_unknown_users")) {
       get_global_privacy_settings(Auto());
     }
   }
@@ -1809,18 +1809,18 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
   send_closure(G()->link_manager(), &LinkManager::update_autologin_domains, std::move(autologin_token),
                std::move(autologin_domains), std::move(url_auth_domains));
 
-  Global &shared_config = *G();
+  Global &options = *G();
 
   if (ignored_restriction_reasons.empty()) {
-    shared_config.set_option_empty("ignored_restriction_reasons");
+    options.set_option_empty("ignored_restriction_reasons");
 
-    if (shared_config.get_option_boolean("ignore_sensitive_content_restrictions", true)) {
+    if (options.get_option_boolean("ignore_sensitive_content_restrictions", true)) {
       get_content_settings(Auto());
     }
   } else {
-    shared_config.set_option_string("ignored_restriction_reasons", ignored_restriction_reasons);
+    options.set_option_string("ignored_restriction_reasons", ignored_restriction_reasons);
 
-    if (!shared_config.get_option_boolean("can_ignore_sensitive_content_restrictions")) {
+    if (!options.get_option_boolean("can_ignore_sensitive_content_restrictions")) {
       get_content_settings(Auto());
     }
   }
@@ -1835,94 +1835,93 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
       }
       dice_success_values[dice_emoji_it->second] = it.second;
     }
-    shared_config.set_option_string("dice_success_values", implode(dice_success_values, ','));
-    shared_config.set_option_string("dice_emojis", implode(dice_emojis, '\x01'));
+    options.set_option_string("dice_success_values", implode(dice_success_values, ','));
+    options.set_option_string("dice_emojis", implode(dice_emojis, '\x01'));
   }
 
-  shared_config.set_option_string("emoji_sounds", implode(emoji_sounds, ','));
+  options.set_option_string("emoji_sounds", implode(emoji_sounds, ','));
 
   if (animated_emoji_zoom <= 0 || animated_emoji_zoom > 2.0) {
-    shared_config.set_option_empty("animated_emoji_zoom");
+    options.set_option_empty("animated_emoji_zoom");
   } else {
-    shared_config.set_option_integer("animated_emoji_zoom", static_cast<int64>(animated_emoji_zoom * 1e9));
+    options.set_option_integer("animated_emoji_zoom", static_cast<int64>(animated_emoji_zoom * 1e9));
   }
   if (animation_search_provider.empty()) {
-    shared_config.set_option_empty("animation_search_provider");
+    options.set_option_empty("animation_search_provider");
   } else {
-    shared_config.set_option_string("animation_search_provider", animation_search_provider);
+    options.set_option_string("animation_search_provider", animation_search_provider);
   }
   if (animation_search_emojis.empty()) {
-    shared_config.set_option_empty("animation_search_emojis");
+    options.set_option_empty("animation_search_emojis");
   } else {
-    shared_config.set_option_string("animation_search_emojis", animation_search_emojis);
+    options.set_option_string("animation_search_emojis", animation_search_emojis);
   }
   if (!can_archive_and_mute_new_chats_from_unknown_users) {
-    shared_config.set_option_empty("can_archive_and_mute_new_chats_from_unknown_users");
+    options.set_option_empty("can_archive_and_mute_new_chats_from_unknown_users");
   } else {
-    shared_config.set_option_boolean("can_archive_and_mute_new_chats_from_unknown_users",
-                                     can_archive_and_mute_new_chats_from_unknown_users);
+    options.set_option_boolean("can_archive_and_mute_new_chats_from_unknown_users",
+                               can_archive_and_mute_new_chats_from_unknown_users);
   }
   if (chat_read_mark_expire_period <= 0) {
-    shared_config.set_option_empty("chat_read_mark_expire_period");
+    options.set_option_empty("chat_read_mark_expire_period");
   } else {
-    shared_config.set_option_integer("chat_read_mark_expire_period", chat_read_mark_expire_period);
+    options.set_option_integer("chat_read_mark_expire_period", chat_read_mark_expire_period);
   }
   if (chat_read_mark_size_threshold <= 0) {
-    shared_config.set_option_empty("chat_read_mark_size_threshold");
+    options.set_option_empty("chat_read_mark_size_threshold");
   } else {
-    shared_config.set_option_integer("chat_read_mark_size_threshold", chat_read_mark_size_threshold);
+    options.set_option_integer("chat_read_mark_size_threshold", chat_read_mark_size_threshold);
   }
-  if (!shared_config.have_option("default_reaction_need_sync")) {
-    shared_config.set_option_string("default_reaction", default_reaction);
+  if (!options.have_option("default_reaction_need_sync")) {
+    options.set_option_string("default_reaction", default_reaction);
   }
   if (reactions_uniq_max <= 0 || reactions_uniq_max == 11) {
-    shared_config.set_option_empty("reactions_uniq_max");
+    options.set_option_empty("reactions_uniq_max");
   } else {
-    shared_config.set_option_integer("reactions_uniq_max", reactions_uniq_max);
+    options.set_option_integer("reactions_uniq_max", reactions_uniq_max);
   }
 
-  bool is_premium = shared_config.get_option_boolean("is_premium");
+  bool is_premium = options.get_option_boolean("is_premium");
 
-  auto chat_filter_count_max = shared_config.get_option_integer(
+  auto chat_filter_count_max = options.get_option_integer(
       is_premium ? Slice("dialog_filters_limit_premium") : Slice("dialog_filters_limit_default"), is_premium ? 20 : 10);
-  shared_config.set_option_integer("chat_filter_count_max", static_cast<int32>(chat_filter_count_max));
+  options.set_option_integer("chat_filter_count_max", static_cast<int32>(chat_filter_count_max));
 
-  auto chat_filter_chosen_chat_count_max = shared_config.get_option_integer(
+  auto chat_filter_chosen_chat_count_max = options.get_option_integer(
       is_premium ? Slice("dialog_filters_chats_limit_premium") : Slice("dialog_filters_chats_limit_default"),
       is_premium ? 200 : 100);
-  shared_config.set_option_integer("chat_filter_chosen_chat_count_max",
-                                   static_cast<int32>(chat_filter_chosen_chat_count_max));
+  options.set_option_integer("chat_filter_chosen_chat_count_max",
+                             static_cast<int32>(chat_filter_chosen_chat_count_max));
 
-  auto bio_length_max = shared_config.get_option_integer(
+  auto bio_length_max = options.get_option_integer(
       is_premium ? Slice("about_length_limit_premium") : Slice("about_length_limit_default"), is_premium ? 140 : 70);
-  shared_config.set_option_integer("bio_length_max", bio_length_max);
+  options.set_option_integer("bio_length_max", bio_length_max);
 
   if (!is_premium_available) {
     premium_bot_username.clear();  // just in case
     premium_invoice_slug.clear();  // just in case
     premium_features.clear();      // just in case
-    shared_config.set_option_empty("is_premium_available");
+    options.set_option_empty("is_premium_available");
   } else {
-    shared_config.set_option_boolean("is_premium_available", is_premium_available);
+    options.set_option_boolean("is_premium_available", is_premium_available);
   }
-  shared_config.set_option_string("premium_features", implode(premium_features, ','));
+  options.set_option_string("premium_features", implode(premium_features, ','));
   if (premium_bot_username.empty()) {
-    shared_config.set_option_empty("premium_bot_username");
+    options.set_option_empty("premium_bot_username");
   } else {
-    shared_config.set_option_string("premium_bot_username", premium_bot_username);
+    options.set_option_string("premium_bot_username", premium_bot_username);
   }
   if (premium_invoice_slug.empty()) {
-    shared_config.set_option_empty("premium_invoice_slug");
+    options.set_option_empty("premium_invoice_slug");
   } else {
-    shared_config.set_option_string("premium_invoice_slug", premium_invoice_slug);
+    options.set_option_string("premium_invoice_slug", premium_invoice_slug);
   }
 
-  shared_config.set_option_integer("stickers_premium_by_emoji_num", stickers_premium_by_emoji_num);
-  shared_config.set_option_integer("stickers_normal_by_emoji_per_premium_num",
-                                   stickers_normal_by_emoji_per_premium_num);
+  options.set_option_integer("stickers_premium_by_emoji_num", stickers_premium_by_emoji_num);
+  options.set_option_integer("stickers_normal_by_emoji_per_premium_num", stickers_normal_by_emoji_per_premium_num);
 
-  shared_config.set_option_empty("default_ton_blockchain_config");
-  shared_config.set_option_empty("default_ton_blockchain_name");
+  options.set_option_empty("default_ton_blockchain_config");
+  options.set_option_empty("default_ton_blockchain_name");
 
   // do not update suggested actions while changing content settings or dismissing an action
   if (!is_set_content_settings_request_sent_ && dismiss_suggested_action_request_count_ == 0) {
