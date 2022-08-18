@@ -71,18 +71,6 @@ OptionManager::OptionManager(Td *td, ActorShared<> parent)
     }
   }
 
-  if (have_option("language_database_path")) {
-    set_option_string("language_pack_database_path", get_option_string("language_database_path"));
-    set_option_empty("language_database_path");
-  }
-  if (have_option("language_pack")) {
-    set_option_string("localization_target", get_option_string("language_pack"));
-    set_option_empty("language_pack");
-  }
-  if (have_option("language_code")) {
-    set_option_string("language_pack_id", get_option_string("language_code"));
-    set_option_empty("language_code");
-  }
   if (!have_option("message_text_length_max")) {
     set_option_integer("message_text_length_max", 4096);
   }
