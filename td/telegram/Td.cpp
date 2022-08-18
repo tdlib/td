@@ -4951,15 +4951,15 @@ void Td::on_request(uint64 id, const td_api::getTopChats &request) {
       promise.set_value(MessagesManager::get_chats_object(-1, result.ok()));
     }
   });
-  top_dialog_manager_->get_top_dialogs(get_top_dialog_category(request.category_), request.limit_,
-                                       std::move(query_promise));
+  send_closure(top_dialog_manager_actor_, &TopDialogManager::get_top_dialogs,
+               get_top_dialog_category(request.category_), request.limit_, std::move(query_promise));
 }
 
 void Td::on_request(uint64 id, const td_api::removeTopChat &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  top_dialog_manager_->remove_dialog(get_top_dialog_category(request.category_), DialogId(request.chat_id_),
-                                     std::move(promise));
+  send_closure(top_dialog_manager_actor_, &TopDialogManager::remove_dialog, get_top_dialog_category(request.category_),
+               DialogId(request.chat_id_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::loadChats &request) {
@@ -5296,17 +5296,17 @@ void Td::on_request(uint64 id, td_api::getMessagePublicForwards &request) {
 void Td::on_request(uint64 id, const td_api::removeNotification &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  notification_manager_->remove_notification(NotificationGroupId(request.notification_group_id_),
-                                             NotificationId(request.notification_id_), false, true, std::move(promise),
-                                             "td_api::removeNotification");
+  send_closure(notification_manager_actor_, &NotificationManager::remove_notification,
+               NotificationGroupId(request.notification_group_id_), NotificationId(request.notification_id_), false,
+               true, std::move(promise), "td_api::removeNotification");
 }
 
 void Td::on_request(uint64 id, const td_api::removeNotificationGroup &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  notification_manager_->remove_notification_group(NotificationGroupId(request.notification_group_id_),
-                                                   NotificationId(request.max_notification_id_), MessageId(), -1, true,
-                                                   std::move(promise));
+  send_closure(notification_manager_actor_, &NotificationManager::remove_notification_group,
+               NotificationGroupId(request.notification_group_id_), NotificationId(request.max_notification_id_),
+               MessageId(), -1, true, std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::deleteMessages &request) {
