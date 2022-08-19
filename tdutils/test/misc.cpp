@@ -623,6 +623,16 @@ TEST(Misc, unicode) {
   test_unicode(td::remove_diacritics);
 }
 
+TEST(Misc, get_unicode_simple_category) {
+  td::uint32 result = 0;
+  for (size_t t = 0; t < 100; t++) {
+    for (td::uint32 i = 0; i <= 0x10ffff; i++) {
+      result = result * 123 + static_cast<td::uint32>(static_cast<int>(td::get_unicode_simple_category(i)));
+    }
+  }
+  LOG(INFO) << result;
+}
+
 TEST(BigNum, from_decimal) {
   ASSERT_TRUE(td::BigNum::from_decimal("").is_error());
   ASSERT_TRUE(td::BigNum::from_decimal("a").is_error());
