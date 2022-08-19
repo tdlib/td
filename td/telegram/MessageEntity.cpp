@@ -1665,10 +1665,11 @@ static void fix_entity_offsets(Slice text, vector<MessageEntity> &entities) {
       entity.offset = utf16_pos;
     }
 
+    uint32 skipped_code = 0;
     while (ptr != end && cnt > 0) {
       unsigned char c = ptr[0];
       utf16_pos += 1 + (c >= 0xf0);
-      ptr = next_utf8_unsafe(ptr, nullptr, "fix_entity_offsets");
+      ptr = next_utf8_unsafe(ptr, &skipped_code, "fix_entity_offsets");
 
       pos = static_cast<int32>(ptr - begin);
       if (entity_begin == pos) {

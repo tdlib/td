@@ -84,30 +84,20 @@ void append_utf8_character(string &str, uint32 ch) {
 const unsigned char *next_utf8_unsafe(const unsigned char *ptr, uint32 *code, const char *source) {
   uint32 a = ptr[0];
   if ((a & 0x80) == 0) {
-    if (code) {
-      *code = a;
-    }
+    *code = a;
     return ptr + 1;
   } else if ((a & 0x20) == 0) {
-    if (code) {
-      *code = ((a & 0x1f) << 6) | (ptr[1] & 0x3f);
-    }
+    *code = ((a & 0x1f) << 6) | (ptr[1] & 0x3f);
     return ptr + 2;
   } else if ((a & 0x10) == 0) {
-    if (code) {
-      *code = ((a & 0x0f) << 12) | ((ptr[1] & 0x3f) << 6) | (ptr[2] & 0x3f);
-    }
+    *code = ((a & 0x0f) << 12) | ((ptr[1] & 0x3f) << 6) | (ptr[2] & 0x3f);
     return ptr + 3;
   } else if ((a & 0x08) == 0) {
-    if (code) {
-      *code = ((a & 0x07) << 18) | ((ptr[1] & 0x3f) << 12) | ((ptr[2] & 0x3f) << 6) | (ptr[3] & 0x3f);
-    }
+    *code = ((a & 0x07) << 18) | ((ptr[1] & 0x3f) << 12) | ((ptr[2] & 0x3f) << 6) | (ptr[3] & 0x3f);
     return ptr + 4;
   }
   LOG(FATAL) << a << " " << source;
-  if (code) {
-    *code = 0;
-  }
+  *code = 0;
   return ptr;
 }
 

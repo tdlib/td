@@ -5968,20 +5968,21 @@ void update_used_hashtags(Td *td, const MessageContent *content) {
   const unsigned char *ptr = Slice(text->text).ubegin();
   const unsigned char *end = Slice(text->text).uend();
   int32 utf16_pos = 0;
+  uint32 skipped_code = 0;
   for (auto &entity : text->entities) {
     if (entity.type != MessageEntity::Type::Hashtag) {
       continue;
     }
     while (utf16_pos < entity.offset && ptr < end) {
       utf16_pos += 1 + (ptr[0] >= 0xf0);
-      ptr = next_utf8_unsafe(ptr, nullptr, "update_used_hashtags");
+      ptr = next_utf8_unsafe(ptr, &skipped_code, "update_used_hashtags");
     }
     CHECK(utf16_pos == entity.offset);
     auto from = ptr;
 
     while (utf16_pos < entity.offset + entity.length && ptr < end) {
       utf16_pos += 1 + (ptr[0] >= 0xf0);
-      ptr = next_utf8_unsafe(ptr, nullptr, "update_used_hashtags 2");
+      ptr = next_utf8_unsafe(ptr, &skipped_code, "update_used_hashtags 2");
     }
     CHECK(utf16_pos == entity.offset + entity.length);
     auto to = ptr;
