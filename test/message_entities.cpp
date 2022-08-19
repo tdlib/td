@@ -655,11 +655,11 @@ TEST(MessageEntities, url) {
   check_url("https://a.de}bc@c.com", {"https://a.de"}, {"bc@c.com"});
   check_url("https://a.de(bc@c.com", {"https://a.de"}, {"bc@c.com"});
   check_url("https://a.de)bc@c.com", {"https://a.de"}, {"bc@c.com"});
-  check_url("https://a.de\\bc@c.com", {"https://a.de\\bc@c.com"});
+  check_url("https://a.debc@c.com", {"https://a.debc@c.com"});
   check_url("https://a.de'bc@c.com", {"https://a.de"}, {"bc@c.com"});
   check_url("https://a.de`bc@c.com", {"https://a.de"}, {"bc@c.com"});
-  check_url("https://a.bc:de.fg@c.com", {"https://a.bc:de.fg@c.com"});
-  check_url("https://a:h.bc:de.fg@c.com", {"https://a:h.bc:de.fg@c.com"});
+  check_url("https://a.bcde.fg@c.com", {"https://a.bcde.fg@c.com"});
+  check_url("https://a:h.bcde.fg@c.com", {"https://a:h.bcde.fg@c.com"});
   check_url("https://abc@c.com", {"https://abc@c.com"});
   check_url("https://de[bc@c.com", {}, {"bc@c.com"});
   check_url("https://de/bc@c.com", {});

@@ -755,13 +755,11 @@ static vector<Slice> match_urls(Slice str) {
         auto next_ptr = next_utf8_unsafe(domain_end_ptr, &code);
         if (code == '@') {
           last_at_ptr = domain_end_ptr;
-        }
-        if (!is_user_data_symbol(code)) {
+        } else if (!is_domain_symbol(code)) {
           break;
         }
         domain_end_ptr = next_ptr;
       }
-      domain_end_ptr = last_at_ptr == nullptr ? begin + dot_pos : last_at_ptr + 1;
     }
     while (domain_end_ptr != end) {
       uint32 code = 0;
