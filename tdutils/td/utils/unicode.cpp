@@ -8,9 +8,6 @@
 
 #include "td/utils/logging.h"
 
-#include <algorithm>
-#include <iterator>
-
 namespace td {
 
 // list of [(range_begin << 5) + range_type]
@@ -1246,11 +1243,11 @@ static const int32 without_diacritics_ranges[] = {
     918000, -918001, 2147483647, 0};
 
 UnicodeSimpleCategory get_unicode_simple_category(uint32 code) {
-  // CHECK((code >> 10) + 1 < sizeof(unicode_simple_category_jump_pos) / sizeof(unicode_simple_category_jump_pos[0]));
-  auto *jump_pos = &unicode_simple_category_jump_pos[code >> 10];
-  // CHECK(jump_pos[1] < sizeof(unicode_simple_category_ranges) / sizeof(unicode_simple_category_ranges[0]));
-  auto it = std::upper_bound(&unicode_simple_category_ranges[jump_pos[0]], &unicode_simple_category_ranges[jump_pos[1]],
-                             (code << 5) + 30);
+  auto it = unicode_simple_category_ranges + unicode_simple_category_jump_pos[code >> 10];
+  code = (code << 5) + 30;
+  while (*it <= code) {
+    ++it;
+  }
   return static_cast<UnicodeSimpleCategory>(*(it - 1) & 31);
 }
 
