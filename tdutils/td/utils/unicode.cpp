@@ -199,6 +199,13 @@ static const uint16 unicode_simple_category_jump_pos[] = {
     1522, 1522, 1522, 1522, 1522, 1522, 1522, 1522, 1522, 1524, 1524, 1524, 1524, 1524, 1524, 1524, 1524, 1525, 1537,
     1538, 1538, 1538, 1538, 1538, 1538, 1538, 1538, 1538, 1538, 1538, 1538, 1538, 1538};
 
+static const char *unicode_simple_category_table =
+    "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+    "\x00\x00\x00\x00\x04\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x02\x02\x02\x02\x02\x02\x02\x02"
+    "\x02\x02\x00\x00\x00\x00\x00\x00\x00\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01"
+    "\x01\x01\x01\x01\x01\x01\x01\x00\x00\x00\x00\x00\x00\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01"
+    "\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x00\x00\x00\x00\x00";
+
 static constexpr uint32 TABLE_SIZE = 1280;
 
 static const int16 prepare_search_character_table[TABLE_SIZE] = {
@@ -1240,6 +1247,9 @@ static const int32 without_diacritics_ranges[] = {
     918000, -918001, 2147483647, 0};
 
 UnicodeSimpleCategory get_unicode_simple_category(uint32 code) {
+  if (code < 128) {
+    return static_cast<UnicodeSimpleCategory>(unicode_simple_category_table[code]);
+  }
   auto jump_pos_index = code <= 0x20000 ? code >> 7 : (0x20000 >> 7) - (0x20000 >> 16) + (code >> 16);
   // CHECK(jump_pos_index < sizeof(unicode_simple_category_ranges) / sizeof(unicode_simple_category_ranges[0]));
   auto it = unicode_simple_category_ranges + unicode_simple_category_jump_pos[jump_pos_index];
