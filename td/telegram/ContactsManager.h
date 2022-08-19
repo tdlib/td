@@ -324,7 +324,7 @@ class ContactsManager final : public Actor {
 
   void set_location(const Location &location, Promise<Unit> &&promise);
 
-  void set_location_visibility();
+  static void set_location_visibility(Td *td);
 
   void get_is_location_visible(Promise<Unit> &&promise);
 
@@ -1686,6 +1686,8 @@ class ContactsManager final : public Actor {
   void on_invite_link_info_expire_timeout(DialogId dialog_id);
 
   void on_channel_participant_cache_timeout(ChannelId channel_id);
+
+  void start_up() final;
 
   void tear_down() final;
 

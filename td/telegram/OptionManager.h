@@ -84,7 +84,6 @@ class OptionManager {
 
   Td *td_;
   bool is_td_inited_ = false;
-  bool have_pending_is_location_visible_ = false;
   vector<std::pair<string, Promise<td_api::object_ptr<td_api::OptionValue>>>> pending_get_options_;
 
   unique_ptr<TsSeqKeyValue> options_;

@@ -108,11 +108,6 @@ OptionManager::~OptionManager() = default;
 void OptionManager::on_td_inited() {
   is_td_inited_ = true;
 
-  if (have_pending_is_location_visible_) {
-    have_pending_is_location_visible_ = false;
-    td_->contacts_manager_->set_location_visibility();
-  }
-
   for (auto &request : pending_get_options_) {
     get_option(request.first, std::move(request.second));
   }
@@ -693,11 +688,7 @@ void OptionManager::set_option(const string &name, td_api::object_ptr<td_api::Op
         return;
       }
       if (!is_bot && set_boolean_option("is_location_visible")) {
-        if (is_td_inited_) {
-          td_->contacts_manager_->set_location_visibility();
-        } else {
-          have_pending_is_location_visible_ = true;
-        }
+        ContactsManager::set_location_visibility(td_);
         return;
       }
       break;

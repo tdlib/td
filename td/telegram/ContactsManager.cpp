@@ -3373,7 +3373,6 @@ ContactsManager::ContactsManager(Td *td, ActorShared<> parent) : td_(td), parent
       G()->td_db()->get_binlog_pmc()->get("pending_location_visibility_expire_date");
   if (!pending_location_visibility_expire_date_string.empty()) {
     pending_location_visibility_expire_date_ = to_integer<int32>(pending_location_visibility_expire_date_string);
-    try_send_set_location_visibility_query();
   }
   update_is_location_visible();
   LOG(INFO) << "Loaded location_visibility_expire_date = " << location_visibility_expire_date_
@@ -3409,6 +3408,12 @@ ContactsManager::~ContactsManager() {
       unavailable_channel_fulls_, loaded_from_database_secret_chats_, dialog_administrators_,
       cached_channel_participants_, resolved_phone_numbers_, channel_participants_, all_imported_contacts_,
       linked_channel_ids_, restricted_user_ids_, restricted_channel_ids_);
+}
+
+void ContactsManager::start_up() {
+  if (!pending_location_visibility_expire_date_) {
+    try_send_set_location_visibility_query();
+  }
 }
 
 void ContactsManager::tear_down() {
@@ -6036,20 +6041,24 @@ void ContactsManager::set_location(const Location &location, Promise<Unit> &&pro
   td_->create_handler<SearchDialogsNearbyQuery>(std::move(query_promise))->send(location, true, -1);
 }
 
-void ContactsManager::set_location_visibility() {
-  bool is_location_visible = td_->option_manager_->get_option_boolean("is_location_visible");
+void ContactsManager::set_location_visibility(Td *td) {
+  bool is_location_visible = td->option_manager_->get_option_boolean("is_location_visible");
   auto pending_location_visibility_expire_date = is_location_visible ? std::numeric_limits<int32>::max() : 0;
-  if (pending_location_visibility_expire_date_ == -1 &&
-      pending_location_visibility_expire_date == location_visibility_expire_date_) {
-    return;
-  }
-  if (pending_location_visibility_expire_date_ != pending_location_visibility_expire_date) {
-    pending_location_visibility_expire_date_ = pending_location_visibility_expire_date;
+  if (td->contacts_manager_ == nullptr) {
     G()->td_db()->get_binlog_pmc()->set("pending_location_visibility_expire_date",
                                         to_string(pending_location_visibility_expire_date));
-    update_is_location_visible();
+    return;
   }
-  try_send_set_location_visibility_query();
+  if (td->contacts_manager_->pending_location_visibility_expire_date_ == -1 &&
+      pending_location_visibility_expire_date == td->contacts_manager_->location_visibility_expire_date_) {
+    return;
+  }
+  if (td->contacts_manager_->pending_location_visibility_expire_date_ != pending_location_visibility_expire_date) {
+    td->contacts_manager_->pending_location_visibility_expire_date_ = pending_location_visibility_expire_date;
+    G()->td_db()->get_binlog_pmc()->set("pending_location_visibility_expire_date",
+                                        to_string(pending_location_visibility_expire_date));
+  }
+  td->contacts_manager_->try_send_set_location_visibility_query();
 }
 
 void ContactsManager::try_send_set_location_visibility_query() {
@@ -6060,6 +6069,7 @@ void ContactsManager::try_send_set_location_visibility_query() {
     return;
   }
 
+  LOG(INFO) << "Trying to send set location visibility query";
   if (is_set_location_visibility_request_sent_) {
     return;
   }
