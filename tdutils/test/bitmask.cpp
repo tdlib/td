@@ -50,7 +50,7 @@ class RangeSet {
     RangeSet res;
     for (auto begin = data.ubegin(); begin != data.uend();) {
       uint32 size;
-      begin = next_utf8_unsafe(begin, &size, "RangeSet");
+      begin = next_utf8_unsafe(begin, &size);
 
       if (!is_empty && size != 0) {
         res.ranges_.push_back({curr * BIT_SIZE, (curr + size) * BIT_SIZE});

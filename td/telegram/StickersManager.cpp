@@ -8460,7 +8460,7 @@ vector<string> StickersManager::get_emoji_language_codes(const vector<string> &i
   }
   if (!text.empty()) {
     uint32 code = 0;
-    next_utf8_unsafe(text.ubegin(), &code, "get_emoji_language_codes");
+    next_utf8_unsafe(text.ubegin(), &code);
     if ((0x410 <= code && code <= 0x44F) || code == 0x401 || code == 0x451) {
       // the first letter is cyrillic
       if (!td::contains(language_codes, "ru") && !td::contains(language_codes, "uk") &&

@@ -34,7 +34,7 @@ vector<string> Hints::fix_words(vector<string> words) {
   return words;
 }
 
-vector<string> Hints::get_words(Slice name, bool is_search) {
+vector<string> Hints::get_words(Slice name) {
   bool in_word = false;
   string word;
   vector<string> words;
@@ -42,7 +42,7 @@ vector<string> Hints::get_words(Slice name, bool is_search) {
   auto end = name.uend();
   while (pos != end) {
     uint32 code;
-    pos = next_utf8_unsafe(pos, &code, is_search ? "get_words_search" : "get_words_add");
+    pos = next_utf8_unsafe(pos, &code);
 
     code = prepare_search_character(code);
     if (code == 0) {
@@ -94,7 +94,7 @@ void Hints::add(KeyT key, Slice name) {
       return;
     }
     vector<string> old_transliterations;
-    for (auto &old_word : get_words(it->second, false)) {
+    for (auto &old_word : get_words(it->second)) {
       delete_word(old_word, key, word_to_keys_);
 
       for (auto &w : get_word_transliterations(old_word, false)) {
@@ -116,7 +116,7 @@ void Hints::add(KeyT key, Slice name) {
   }
 
   vector<string> transliterations;
-  for (auto &word : get_words(name, false)) {
+  for (auto &word : get_words(name)) {
     add_word(word, key, word_to_keys_);
 
     for (auto &w : get_word_transliterations(word, false)) {
@@ -166,7 +166,7 @@ std::pair<size_t, vector<Hints::KeyT>> Hints::search(Slice query, int32 limit, b
     return {key_to_name_.size(), std::move(results)};
   }
 
-  auto words = get_words(query, true);
+  auto words = get_words(query);
   if (return_all_for_empty_query && words.empty()) {
     results.reserve(key_to_name_.size());
     for (auto &it : key_to_name_) {

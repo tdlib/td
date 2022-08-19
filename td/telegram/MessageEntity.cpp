@@ -262,7 +262,7 @@ static vector<Slice> match_mentions(Slice str) {
 
     if (ptr != begin) {
       uint32 prev;
-      next_utf8_unsafe(prev_utf8_unsafe(ptr), &prev, "match_mentions");
+      next_utf8_unsafe(prev_utf8_unsafe(ptr), &prev);
 
       if (is_word_character(prev)) {
         ptr++;
@@ -280,7 +280,7 @@ static vector<Slice> match_mentions(Slice str) {
     }
     uint32 next = 0;
     if (ptr != end) {
-      next_utf8_unsafe(ptr, &next, "match_mentions 2");
+      next_utf8_unsafe(ptr, &next);
     }
     if (is_word_character(next)) {
       continue;
@@ -306,7 +306,7 @@ static vector<Slice> match_bot_commands(Slice str) {
 
     if (ptr != begin) {
       uint32 prev;
-      next_utf8_unsafe(prev_utf8_unsafe(ptr), &prev, "match_bot_commands");
+      next_utf8_unsafe(prev_utf8_unsafe(ptr), &prev);
 
       if (is_word_character(prev) || prev == '/' || prev == '<' || prev == '>') {
         ptr++;
@@ -339,7 +339,7 @@ static vector<Slice> match_bot_commands(Slice str) {
 
     uint32 next = 0;
     if (ptr != end) {
-      next_utf8_unsafe(ptr, &next, "match_bot_commands 2");
+      next_utf8_unsafe(ptr, &next);
     }
     if (is_word_character(next) || next == '/' || next == '<' || next == '>') {
       continue;
@@ -382,7 +382,7 @@ static vector<Slice> match_hashtags(Slice str) {
 
     if (ptr != begin) {
       uint32 prev;
-      next_utf8_unsafe(prev_utf8_unsafe(ptr), &prev, "match_hashtags");
+      next_utf8_unsafe(prev_utf8_unsafe(ptr), &prev);
 
       if (is_hashtag_letter(prev, category)) {
         ptr++;
@@ -395,7 +395,7 @@ static vector<Slice> match_hashtags(Slice str) {
     bool was_letter = false;
     while (ptr != end) {
       uint32 code;
-      auto next_ptr = next_utf8_unsafe(ptr, &code, "match_hashtags 2");
+      auto next_ptr = next_utf8_unsafe(ptr, &code);
       if (!is_hashtag_letter(code, category)) {
         break;
       }
@@ -443,7 +443,7 @@ static vector<Slice> match_cashtags(Slice str) {
 
     if (ptr != begin) {
       uint32 prev;
-      next_utf8_unsafe(prev_utf8_unsafe(ptr), &prev, "match_cashtags");
+      next_utf8_unsafe(prev_utf8_unsafe(ptr), &prev);
 
       if (is_hashtag_letter(prev, category) || prev == '$') {
         ptr++;
@@ -467,7 +467,7 @@ static vector<Slice> match_cashtags(Slice str) {
 
     if (cashtag_end != end) {
       uint32 code;
-      next_utf8_unsafe(ptr, &code, "match_cashtags 2");
+      next_utf8_unsafe(ptr, &code);
       if (is_hashtag_letter(code, category) || code == '$') {
         continue;
       }
@@ -506,7 +506,7 @@ static vector<Slice> match_media_timestamps(Slice str) {
 
       if (media_timestamp_begin != begin) {
         uint32 prev;
-        next_utf8_unsafe(prev_utf8_unsafe(media_timestamp_begin), &prev, "match_media_timestamps 1");
+        next_utf8_unsafe(prev_utf8_unsafe(media_timestamp_begin), &prev);
 
         if (is_word_character(prev)) {
           continue;
@@ -514,7 +514,7 @@ static vector<Slice> match_media_timestamps(Slice str) {
       }
       if (media_timestamp_end != end) {
         uint32 next;
-        next_utf8_unsafe(media_timestamp_end, &next, "match_media_timestamps 2");
+        next_utf8_unsafe(media_timestamp_end, &next);
 
         if (is_word_character(next)) {
           continue;
@@ -546,7 +546,7 @@ static vector<Slice> match_bank_card_numbers(Slice str) {
     }
     if (ptr != begin) {
       uint32 prev;
-      next_utf8_unsafe(prev_utf8_unsafe(ptr), &prev, "match_bank_card_numbers");
+      next_utf8_unsafe(prev_utf8_unsafe(ptr), &prev);
 
       if (prev == '.' || prev == ',' || prev == '+' || prev == '-' || prev == '_' ||
           get_unicode_simple_category(prev) == UnicodeSimpleCategory::Letter) {
@@ -582,7 +582,7 @@ static vector<Slice> match_bank_card_numbers(Slice str) {
     }
     if (card_number_end != end) {
       uint32 next;
-      next_utf8_unsafe(card_number_end, &next, "match_bank_card_numbers 2");
+      next_utf8_unsafe(card_number_end, &next);
       if (next == '-' || next == '_' || get_unicode_simple_category(next) == UnicodeSimpleCategory::Letter) {
         continue;
       }
@@ -657,7 +657,7 @@ static vector<Slice> match_tg_urls(Slice str) {
       auto path_end_ptr = ptr + 1;
       while (path_end_ptr != end) {
         uint32 code = 0;
-        auto next_ptr = next_utf8_unsafe(path_end_ptr, &code, "match_tg_urls");
+        auto next_ptr = next_utf8_unsafe(path_end_ptr, &code);
         if (!is_url_path_symbol(code)) {
           break;
         }
@@ -739,7 +739,7 @@ static vector<Slice> match_urls(Slice str) {
     while (domain_begin_ptr != begin) {
       domain_begin_ptr = prev_utf8_unsafe(domain_begin_ptr);
       uint32 code = 0;
-      auto next_ptr = next_utf8_unsafe(domain_begin_ptr, &code, "match_urls 0");
+      auto next_ptr = next_utf8_unsafe(domain_begin_ptr, &code);
       if (!is_domain_symbol(code)) {
         domain_begin_ptr = next_ptr;
         break;
@@ -752,7 +752,7 @@ static vector<Slice> match_urls(Slice str) {
       // try to find '@' to the right if there is no '@' to the left
       while (domain_end_ptr != end) {
         uint32 code = 0;
-        auto next_ptr = next_utf8_unsafe(domain_end_ptr, &code, "match_urls");
+        auto next_ptr = next_utf8_unsafe(domain_end_ptr, &code);
         if (code == '@') {
           last_at_ptr = domain_end_ptr;
         }
@@ -765,7 +765,7 @@ static vector<Slice> match_urls(Slice str) {
     }
     while (domain_end_ptr != end) {
       uint32 code = 0;
-      auto next_ptr = next_utf8_unsafe(domain_end_ptr, &code, "match_urls 2");
+      auto next_ptr = next_utf8_unsafe(domain_end_ptr, &code);
       if (!is_domain_symbol(code)) {
         break;
       }
@@ -776,7 +776,7 @@ static vector<Slice> match_urls(Slice str) {
       while (domain_begin_ptr != begin) {
         domain_begin_ptr = prev_utf8_unsafe(domain_begin_ptr);
         uint32 code = 0;
-        auto next_ptr = next_utf8_unsafe(domain_begin_ptr, &code, "match_urls 3");
+        auto next_ptr = next_utf8_unsafe(domain_begin_ptr, &code);
         if (!is_user_data_symbol(code)) {
           domain_begin_ptr = next_ptr;
           break;
@@ -808,7 +808,7 @@ static vector<Slice> match_urls(Slice str) {
       auto path_end_ptr = url_end_ptr + 1;
       while (path_end_ptr != end) {
         uint32 code = 0;
-        auto next_ptr = next_utf8_unsafe(path_end_ptr, &code, "match_urls 4");
+        auto next_ptr = next_utf8_unsafe(path_end_ptr, &code);
         if (!is_url_path_symbol(code)) {
           break;
         }
@@ -836,7 +836,7 @@ static vector<Slice> match_urls(Slice str) {
       while (user_data_begin_ptr != begin) {
         user_data_begin_ptr = prev_utf8_unsafe(user_data_begin_ptr);
         uint32 code = 0;
-        auto next_ptr = next_utf8_unsafe(user_data_begin_ptr, &code, "match_urls 5");
+        auto next_ptr = next_utf8_unsafe(user_data_begin_ptr, &code);
         if (!is_user_data_symbol(code)) {
           user_data_begin_ptr = next_ptr;
           break;
@@ -856,7 +856,7 @@ static vector<Slice> match_urls(Slice str) {
         while (protocol_begin_ptr != begin) {
           protocol_begin_ptr = prev_utf8_unsafe(protocol_begin_ptr);
           uint32 code = 0;
-          auto next_ptr = next_utf8_unsafe(protocol_begin_ptr, &code, "match_urls 6");
+          auto next_ptr = next_utf8_unsafe(protocol_begin_ptr, &code);
           if (!is_protocol_symbol(code)) {
             protocol_begin_ptr = next_ptr;
             break;
@@ -876,7 +876,7 @@ static vector<Slice> match_urls(Slice str) {
         auto prefix_end = prefix.uend();
         auto prefix_back = prev_utf8_unsafe(prefix_end);
         uint32 code = 0;
-        next_utf8_unsafe(prefix_back, &code, "match_urls 7");
+        next_utf8_unsafe(prefix_back, &code);
         if (is_word_character(code) || code == '/' || code == '#' || code == '@') {
           is_bad = true;
         }
@@ -1669,7 +1669,7 @@ static void fix_entity_offsets(Slice text, vector<MessageEntity> &entities) {
     while (ptr != end && cnt > 0) {
       unsigned char c = ptr[0];
       utf16_pos += 1 + (c >= 0xf0);
-      ptr = next_utf8_unsafe(ptr, &skipped_code, "fix_entity_offsets");
+      ptr = next_utf8_unsafe(ptr, &skipped_code);
 
       pos = static_cast<int32>(ptr - begin);
       if (entity_begin == pos) {

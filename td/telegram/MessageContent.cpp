@@ -5975,14 +5975,14 @@ void update_used_hashtags(Td *td, const MessageContent *content) {
     }
     while (utf16_pos < entity.offset && ptr < end) {
       utf16_pos += 1 + (ptr[0] >= 0xf0);
-      ptr = next_utf8_unsafe(ptr, &skipped_code, "update_used_hashtags");
+      ptr = next_utf8_unsafe(ptr, &skipped_code);
     }
     CHECK(utf16_pos == entity.offset);
     auto from = ptr;
 
     while (utf16_pos < entity.offset + entity.length && ptr < end) {
       utf16_pos += 1 + (ptr[0] >= 0xf0);
-      ptr = next_utf8_unsafe(ptr, &skipped_code, "update_used_hashtags 2");
+      ptr = next_utf8_unsafe(ptr, &skipped_code);
     }
     CHECK(utf16_pos == entity.offset + entity.length);
     auto to = ptr;

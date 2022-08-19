@@ -49,7 +49,7 @@ inline const unsigned char *prev_utf8_unsafe(const unsigned char *ptr) {
 }
 
 /// moves pointer one UTF-8 character forward and saves code of the skipped character in *code
-const unsigned char *next_utf8_unsafe(const unsigned char *ptr, uint32 *code, const char *source);
+const unsigned char *next_utf8_unsafe(const unsigned char *ptr, uint32 *code);
 
 /// truncates UTF-8 string to the given length in Unicode characters
 template <class T>

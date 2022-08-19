@@ -52,7 +52,7 @@ class Hints {
 
   static vector<string> fix_words(vector<string> words);
 
-  static vector<string> get_words(Slice name, bool is_search);
+  static vector<string> get_words(Slice name);
 
   static void add_search_results(vector<KeyT> &results, const string &word,
                                  const std::map<string, vector<KeyT>> &word_to_keys);

@@ -6,7 +6,6 @@
 //
 #include "td/utils/utf8.h"
 
-#include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/SliceBuilder.h"
 #include "td/utils/unicode.h"
@@ -81,7 +80,7 @@ void append_utf8_character(string &str, uint32 ch) {
   }
 }
 
-const unsigned char *next_utf8_unsafe(const unsigned char *ptr, uint32 *code, const char *source) {
+const unsigned char *next_utf8_unsafe(const unsigned char *ptr, uint32 *code) {
   uint32 a = ptr[0];
   if ((a & 0x80) == 0) {
     *code = a;
@@ -96,7 +95,7 @@ const unsigned char *next_utf8_unsafe(const unsigned char *ptr, uint32 *code, co
     *code = ((a & 0x07) << 18) | ((ptr[1] & 0x3f) << 12) | ((ptr[2] & 0x3f) << 6) | (ptr[3] & 0x3f);
     return ptr + 4;
   }
-  LOG(FATAL) << a << " " << source;
+  UNREACHABLE();
   *code = 0;
   return ptr;
 }
@@ -107,7 +106,7 @@ string utf8_to_lower(Slice str) {
   auto end = str.uend();
   while (pos != end) {
     uint32 code;
-    pos = next_utf8_unsafe(pos, &code, "utf8_to_lower");
+    pos = next_utf8_unsafe(pos, &code);
     append_utf8_character(result, unicode_to_lower(code));
   }
   return result;
