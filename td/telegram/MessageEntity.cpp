@@ -748,23 +748,12 @@ static vector<Slice> match_urls(Slice str) {
 
     const unsigned char *last_at_ptr = nullptr;
     const unsigned char *domain_end_ptr = begin + dot_pos;
-    if (domain_begin_ptr == begin || domain_begin_ptr[-1] != '@') {
-      // try to find '@' to the right if there is no '@' to the left
-      while (domain_end_ptr != end) {
-        uint32 code = 0;
-        auto next_ptr = next_utf8_unsafe(domain_end_ptr, &code);
-        if (code == '@') {
-          last_at_ptr = domain_end_ptr;
-        } else if (!is_domain_symbol(code)) {
-          break;
-        }
-        domain_end_ptr = next_ptr;
-      }
-    }
     while (domain_end_ptr != end) {
       uint32 code = 0;
       auto next_ptr = next_utf8_unsafe(domain_end_ptr, &code);
-      if (!is_domain_symbol(code)) {
+      if (code == '@') {
+        last_at_ptr = domain_end_ptr;
+      } else if (!is_domain_symbol(code)) {
         break;
       }
       domain_end_ptr = next_ptr;

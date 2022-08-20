@@ -704,6 +704,7 @@ TEST(MessageEntities, url) {
   check_url("http://test―‑@―google―.―com―/―–―‐―/―/―/―?―‑―#―――", {"http://test―‑@―google―.―com―/―–―‐―/―/―/―?―‑―#―――"});
   check_url("http://google.com/‖", {"http://google.com/"});
   check_url("a@b@c.com", {}, {});
+  check_url("abc@c.com@d.com", {});
   check_url("a@b.com:c@1", {}, {"a@b.com"});
   check_url("test@test.software", {}, {"test@test.software"});
   check_url("a:b?@gmail.com", {});
