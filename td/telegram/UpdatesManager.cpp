@@ -2441,6 +2441,7 @@ void UpdatesManager::process_postponed_pts_updates() {
     return;
   }
 
+  auto begin_time = Time::now();
   auto initial_pts = get_pts();
   auto old_pts = initial_pts;
   int32 skipped_update_count = 0;
@@ -2504,6 +2505,14 @@ void UpdatesManager::process_postponed_pts_updates() {
     VLOG(get_difference) << "Pts has changed from " << initial_pts << " to " << old_pts << " after skipping "
                          << skipped_update_count << ", applying " << applied_update_count << " and keeping "
                          << postponed_pts_updates_.size() << " postponed updates";
+  }
+
+  auto passed_time = Time::now() - begin_time;
+  if (passed_time >= 1.0) {
+    LOG(WARNING) << "Pts has changed from " << initial_pts << " to " << old_pts << " after skipping "
+                 << skipped_update_count << ", applying " << applied_update_count << " and keeping "
+                 << postponed_pts_updates_.size() << " postponed for " << (Time::now() - get_difference_start_time_)
+                 << " updates in " << passed_time;
   }
 }
 
