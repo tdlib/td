@@ -1143,6 +1143,17 @@ static bool is_common_tld(Slice str) {
        "zippo", "zm", "zone", "zuerich",
        // comment for clang-format to prevent it from placing all strings on separate lines
        "zw"});
+  bool is_lower = true;
+  for (auto c : str) {
+    if (static_cast<uint32>(c - 'a') > 'z' - 'a') {
+      is_lower = false;
+      break;
+    }
+  }
+  if (is_lower) {
+    // fast path
+    return tlds.count(str) > 0;
+  }
   string str_lower = utf8_to_lower(str);
   if (str_lower != str && utf8_substr(Slice(str_lower), 1) == utf8_substr(str, 1)) {
     return false;
