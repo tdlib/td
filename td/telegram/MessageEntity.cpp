@@ -953,33 +953,30 @@ bool is_email_address(Slice str) {
   Slice userdata;
   Slice domain;
   std::tie(userdata, domain) = split(str, '@');
-  vector<Slice> userdata_parts;
+  if (domain.empty()) {
+    return false;
+  }
+
   size_t prev = 0;
+  size_t userdata_part_count = 0;
   for (size_t i = 0; i < userdata.size(); i++) {
     if (userdata[i] == '.' || userdata[i] == '+') {
-      userdata_parts.push_back(userdata.substr(prev, i - prev));
-      prev = i + 1;
-    }
-  }
-  userdata_parts.push_back(userdata.substr(prev));
-  if (userdata_parts.size() >= 12) {
-    return false;
-  }
-  for (auto &part : userdata_parts) {
-    for (auto c : part) {
-      if (!is_alpha_digit_or_underscore_or_minus(c)) {
+      if (i - prev >= 27) {
         return false;
       }
-    }
-  }
-  if (userdata_parts.back().empty() || userdata_parts.back().size() >= 36) {
-    return false;
-  }
-  userdata_parts.pop_back();
-  for (auto &part : userdata_parts) {
-    if (part.size() >= 27) {
+      userdata_part_count++;
+      prev = i + 1;
+    } else if (!is_alpha_digit_or_underscore_or_minus(userdata[i])) {
       return false;
     }
+  }
+  userdata_part_count++;
+  if (userdata_part_count >= 12) {
+    return false;
+  }
+  auto last_part_length = userdata.size() - prev;
+  if (last_part_length == 0 || last_part_length >= 36) {
+    return false;
   }
 
   vector<Slice> domain_parts = full_split(domain, '.');
