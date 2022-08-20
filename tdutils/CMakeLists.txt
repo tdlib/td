@@ -336,6 +336,7 @@ set(TDUTILS_TEST_SOURCE
   ${CMAKE_CURRENT_SOURCE_DIR}/test/StealingQueue.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/test/variant.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/test/WaitFreeHashMap.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/test/WaitFreeHashSet.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/test/WaitFreeVector.cpp
   PARENT_SCOPE
 )
