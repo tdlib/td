@@ -78,6 +78,7 @@
 #include "td/utils/Status.h"
 #include "td/utils/StringBuilder.h"
 #include "td/utils/WaitFreeHashMap.h"
+#include "td/utils/WaitFreeHashSet.h"
 
 #include <array>
 #include <functional>
@@ -1371,7 +1372,7 @@ class MessagesManager final : public Actor {
 
     FlatHashMap<int32, MessageId> last_assigned_scheduled_message_id;  // date -> message_id
 
-    FlatHashSet<MessageId, MessageIdHash> deleted_message_ids;
+    WaitFreeHashSet<MessageId, MessageIdHash> deleted_message_ids;
     FlatHashSet<ScheduledServerMessageId, ScheduledServerMessageIdHash> deleted_scheduled_server_message_ids;
 
     vector<std::pair<DialogId, MessageId>> pending_new_message_notifications;

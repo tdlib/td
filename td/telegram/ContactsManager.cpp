@@ -11933,15 +11933,15 @@ void ContactsManager::on_update_user_full_need_phone_number_privacy_exception(
 }
 
 void ContactsManager::on_ignored_restriction_reasons_changed() {
-  for (auto user_id : restricted_user_ids_) {
+  restricted_user_ids_.foreach([&](const UserId &user_id) {
     send_closure(G()->td(), &Td::send_update,
                  td_api::make_object<td_api::updateUser>(get_user_object(user_id, get_user(user_id))));
-  }
-  for (auto channel_id : restricted_channel_ids_) {
+  });
+  restricted_channel_ids_.foreach([&](const ChannelId &channel_id) {
     send_closure(
         G()->td(), &Td::send_update,
         td_api::make_object<td_api::updateSupergroup>(get_supergroup_object(channel_id, get_channel(channel_id))));
-  }
+  });
 }
 
 void ContactsManager::on_set_profile_photo(tl_object_ptr<telegram_api::photos_photo> &&photo, int64 old_photo_id) {

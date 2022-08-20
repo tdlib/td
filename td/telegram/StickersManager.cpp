@@ -1688,9 +1688,7 @@ void StickersManager::on_load_special_sticker_set(const SpecialStickerSetType &t
   }
 
   vector<FullMessageId> full_message_ids;
-  for (const auto &full_message_id : it->second) {
-    full_message_ids.push_back(full_message_id);
-  }
+  it->second.foreach([&](const FullMessageId &full_message_id) { full_message_ids.push_back(full_message_id); });
   CHECK(!full_message_ids.empty());
   for (const auto &full_message_id : full_message_ids) {
     td_->messages_manager_->on_external_update_message_content(full_message_id);
@@ -5172,9 +5170,8 @@ void StickersManager::try_update_animated_emoji_messages() {
         (new_animated_sticker.first.is_valid() && new_sound_file_id != it.second->sound_file_id_)) {
       it.second->animated_emoji_sticker_ = new_animated_sticker;
       it.second->sound_file_id_ = new_sound_file_id;
-      for (const auto &full_message_id : it.second->full_message_ids_) {
-        full_message_ids.push_back(full_message_id);
-      }
+      it.second->full_message_ids_.foreach(
+          [&](const FullMessageId &full_message_id) { full_message_ids.push_back(full_message_id); });
     }
   }
   for (const auto &full_message_id : full_message_ids) {
@@ -5192,9 +5189,8 @@ void StickersManager::try_update_custom_emoji_messages(int64 custom_emoji_id) {
   auto new_sticker_id = get_custom_animated_emoji_sticker_id(custom_emoji_id);
   if (new_sticker_id != it->second->sticker_id_) {
     it->second->sticker_id_ = new_sticker_id;
-    for (const auto &full_message_id : it->second->full_message_ids_) {
-      full_message_ids.push_back(full_message_id);
-    }
+    it->second->full_message_ids_.foreach(
+        [&](const FullMessageId &full_message_id) { full_message_ids.push_back(full_message_id); });
   }
   for (const auto &full_message_id : full_message_ids) {
     td_->messages_manager_->on_external_update_message_content(full_message_id);
@@ -5264,8 +5260,7 @@ void StickersManager::register_dice(const string &emoji, int32 value, FullMessag
 
   LOG(INFO) << "Register dice " << emoji << " with value " << value << " from " << full_message_id << " from "
             << source;
-  bool is_inserted = dice_messages_[emoji].insert(full_message_id).second;
-  LOG_CHECK(is_inserted) << source << " " << emoji << " " << value << " " << full_message_id;
+  dice_messages_[emoji].insert(full_message_id);
 
   if (!td::contains(dice_emojis_, emoji)) {
     if (full_message_id.get_message_id().is_any_server() &&
@@ -5334,8 +5329,7 @@ void StickersManager::register_emoji(const string &emoji, int64 custom_emoji_id,
         get_custom_emoji_stickers({custom_emoji_id}, true, Promise<td_api::object_ptr<td_api::stickers>>());
       }
     }
-    bool is_inserted = emoji_messages.full_message_ids_.insert(full_message_id).second;
-    LOG_CHECK(is_inserted) << source << ' ' << custom_emoji_id << ' ' << full_message_id;
+    emoji_messages.full_message_ids_.insert(full_message_id);
     return;
   }
 
@@ -5348,8 +5342,7 @@ void StickersManager::register_emoji(const string &emoji, int64 custom_emoji_id,
     emoji_messages.animated_emoji_sticker_ = get_animated_emoji_sticker(emoji);
     emoji_messages.sound_file_id_ = get_animated_emoji_sound_file_id(emoji);
   }
-  bool is_inserted = emoji_messages.full_message_ids_.insert(full_message_id).second;
-  LOG_CHECK(is_inserted) << source << ' ' << emoji << ' ' << full_message_id;
+  emoji_messages.full_message_ids_.insert(full_message_id);
 }
 
 void StickersManager::unregister_emoji(const string &emoji, int64 custom_emoji_id, FullMessageId full_message_id,
