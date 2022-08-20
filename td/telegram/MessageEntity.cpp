@@ -1181,10 +1181,12 @@ static Slice fix_url(Slice str) {
   }
   domain.truncate(domain.rfind(':'));
 
-  string domain_lower = domain.str();
-  to_lower_inplace(domain_lower);
-  if (domain_lower == "teiegram.org") {
-    return Slice();
+  if (domain.size() == 12 && (domain[0] == 't' || domain[0] == 'T')) {
+    string domain_lower = domain.str();
+    to_lower_inplace(domain_lower);
+    if (domain_lower == "teiegram.org") {
+      return Slice();
+    }
   }
 
   int32 balance[3] = {0, 0, 0};
@@ -1220,42 +1222,44 @@ static Slice fix_url(Slice str) {
   }
   full_url.remove_suffix(path.size() - path_pos);
 
-  vector<Slice> domain_parts = full_split(domain, '.');
-  if (domain_parts.size() <= 1) {
+  size_t prev = 0;
+  size_t domain_part_count = 0;
+  bool has_non_digit = false;
+  bool is_ipv4 = true;
+  for (size_t i = 0; i <= domain.size(); i++) {
+    if (i == domain.size() || domain[i] == '.') {
+      auto part_size = i - prev;
+      if (part_size == 0 || part_size >= 64 || domain[i - 1] == '-') {
+        return Slice();
+      }
+      if (is_ipv4) {
+        if (part_size > 3) {
+          is_ipv4 = false;
+        }
+        if (part_size == 3 &&
+            (domain[prev] >= '3' || (domain[prev] == '2' && (domain[prev + 1] >= '6' ||
+                                                             (domain[prev + 1] == '5' && domain[prev + 2] >= '6'))))) {
+          is_ipv4 = false;
+        }
+        if (domain[prev] == '0' && part_size >= 2) {
+          is_ipv4 = false;
+        }
+      }
+
+      domain_part_count++;
+      if (i != domain.size()) {
+        prev = i + 1;
+      }
+    } else if (!is_digit(domain[i])) {
+      is_ipv4 = false;
+      has_non_digit = true;
+    }
+  }
+  if (domain_part_count == 1) {
     return Slice();
   }
 
-  bool is_ipv4 = domain_parts.size() == 4;
-  bool has_non_digit = false;
-  for (auto &part : domain_parts) {
-    if (part.empty() || part.size() >= 64) {
-      return Slice();
-    }
-    if (part.back() == '-') {
-      return Slice();
-    }
-
-    if (!has_non_digit) {
-      if (part.size() > 3) {
-        is_ipv4 = false;
-      }
-      for (auto c : part) {
-        if (!is_digit(c)) {
-          is_ipv4 = false;
-          has_non_digit = true;
-        }
-      }
-      if (part.size() == 3 &&
-          (part[0] >= '3' || (part[0] == '2' && (part[1] >= '6' || (part[1] == '5' && part[2] >= '6'))))) {
-        is_ipv4 = false;
-      }
-      if (part[0] == '0' && part.size() >= 2) {
-        is_ipv4 = false;
-      }
-    }
-  }
-
-  if (is_ipv4) {
+  if (is_ipv4 && domain_part_count == 4) {
     return full_url;
   }
 
@@ -1263,7 +1267,7 @@ static Slice fix_url(Slice str) {
     return Slice();
   }
 
-  auto tld = domain_parts.back();
+  auto tld = domain.substr(prev);
   if (utf8_length(tld) <= 1) {
     return Slice();
   }
@@ -1290,9 +1294,14 @@ static Slice fix_url(Slice str) {
     }
   }
 
-  domain_parts.pop_back();
-  if (domain_parts.back().find('_') < domain_parts.back().size()) {
-    return Slice();
+  CHECK(prev > 0);
+  prev--;
+  while (prev-- > 0) {
+    if (domain[prev] == '_') {
+      return Slice();
+    } else if (domain[prev] == '.') {
+      break;
+    }
   }
 
   return full_url;

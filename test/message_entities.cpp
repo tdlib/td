@@ -562,7 +562,8 @@ TEST(MessageEntities, url) {
   check_url("http://ÀТеСт.МоСкВач", {"http://ÀТеСт.МоСкВач"});
   check_url("ÀÁ.com. ÀÁ.com.", {"ÀÁ.com", "ÀÁ.com"});
   check_url("ÀÁ.com,ÀÁ.com.", {"ÀÁ.com", "ÀÁ.com"});
-  check_url("teiegram.org", {});
+  check_url("teiegram.org/test", {});
+  check_url("TeiegraM.org/test", {});
   check_url("http://test.google.com/?q=abc()}[]def", {"http://test.google.com/?q=abc()"});
   check_url("http://test.google.com/?q=abc([{)]}def", {"http://test.google.com/?q=abc([{)]}def"});
   check_url("http://test.google.com/?q=abc(){}]def", {"http://test.google.com/?q=abc(){}"});
@@ -713,6 +714,10 @@ TEST(MessageEntities, url) {
   check_url("a:b#@gmail.com", {});
   check_url("a!:b@gmail.com", {"a!:b@gmail.com"});
   check_url("a:b!@gmail.com", {"a:b!@gmail.com"});
+  check_url("http://test_.com", {});
+  check_url("test_.com", {});
+  check_url("_test.com", {});
+  check_url("_.test.com", {"_.test.com"});
 }
 
 static void check_fix_formatted_text(td::string str, td::vector<td::MessageEntity> entities,
