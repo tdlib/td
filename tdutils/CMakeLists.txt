@@ -294,6 +294,7 @@ set(TDUTILS_SOURCE
   td/utils/Variant.h
   td/utils/VectorQueue.h
   td/utils/WaitFreeHashMap.h
+  td/utils/WaitFreeHashSet.h
   td/utils/WaitFreeVector.h
 )
 
