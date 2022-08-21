@@ -9393,7 +9393,7 @@ void MessagesManager::after_get_difference() {
           if (!have_input_peer(dialog_id, AccessRights::Read) ||
               (d != nullptr &&
                message_id <= td::max(d->last_clear_history_message_id, d->max_unavailable_message_id))) {
-            update_message_ids_to_delete.push_back(it.first);
+            update_message_ids_to_delete.push_back(full_message_id);
           }
           break;
         }
@@ -9408,15 +9408,13 @@ void MessagesManager::after_get_difference() {
           dump_debug_message_op(get_dialog(dialog_id));
         }
         if (message_id <= d->last_new_message_id) {
-          get_message_from_server(it.first, PromiseCreator::lambda([full_message_id](Result<Unit> result) {
-                                    if (result.is_error()) {
-                                      LOG(WARNING)
-                                          << "Failed to get missing " << full_message_id << ": " << result.error();
-                                    } else {
-                                      LOG(WARNING) << "Successfully get missing " << full_message_id;
-                                    }
-                                  }),
-                                  "get missing");
+          get_message_from_server(
+              full_message_id,
+              PromiseCreator::lambda([actor_id = actor_id(this), full_message_id](Result<Unit> result) {
+                send_closure(actor_id, &MessagesManager::on_restore_missing_message_after_get_difference,
+                             full_message_id, std::move(result));
+              }),
+              "get missing");
         } else if (dialog_id.get_type() == DialogType::Channel) {
           LOG(INFO) << "Schedule getDifference in " << dialog_id.get_channel_id();
           channel_get_difference_retry_timeout_.add_timeout_in(dialog_id.get(), 0.001);
@@ -9449,6 +9447,15 @@ void MessagesManager::after_get_difference() {
       LOG(INFO) << "Loading chat list in " << dialog_list_id << " to init total unread count";
       get_dialogs_from_list(dialog_list_id, limit + 2, Auto());
     }
+  }
+}
+
+void MessagesManager::on_restore_missing_message_after_get_difference(FullMessageId full_message_id,
+                                                                      Result<Unit> result) {
+  if (result.is_error()) {
+    LOG(WARNING) << "Failed to get missing " << full_message_id << ": " << result.error();
+  } else {
+    LOG(WARNING) << "Successfully get missing " << full_message_id;
   }
 }
 

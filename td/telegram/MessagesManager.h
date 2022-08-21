@@ -2950,6 +2950,8 @@ class MessagesManager final : public Actor {
   void ttl_db_loop(double server_now);
   void ttl_db_on_result(Result<std::pair<std::vector<MessagesDbMessage>, int32>> r_result, bool dummy);
 
+  void on_restore_missing_message_after_get_difference(FullMessageId full_message_id, Result<Unit> result);
+
   void on_get_message_link_dialog(MessageLinkInfo &&info, Promise<MessageLinkInfo> &&promise);
 
   void on_get_message_link_message(MessageLinkInfo &&info, DialogId dialog_id, Promise<MessageLinkInfo> &&promise);
