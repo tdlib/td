@@ -1062,6 +1062,8 @@ void UpdatesManager::on_get_updates_state(tl_object_ptr<telegram_api::updates_st
   if (get_pts() == std::numeric_limits<int32>::max()) {
     LOG(WARNING) << "Restore pts to " << state->pts_;
     // restoring right pts
+    CHECK(pending_pts_updates_.empty());
+    process_postponed_pts_updates();  // drop all updates with old pts
     pts_manager_.init(state->pts_);
     last_get_difference_pts_ = get_pts();
     last_pts_save_time_ = Time::now() - 2 * MAX_PTS_SAVE_DELAY;
