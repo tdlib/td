@@ -9371,6 +9371,7 @@ void MessagesManager::after_get_difference() {
     auto full_message_id = it.first;
     auto dialog_id = full_message_id.get_dialog_id();
     auto message_id = full_message_id.get_message_id();
+    auto old_message_id = it.second;
     CHECK(message_id.is_valid());
     CHECK(message_id.is_server());
     switch (dialog_id.get_type()) {
@@ -9382,7 +9383,7 @@ void MessagesManager::after_get_difference() {
       // fallthrough
       case DialogType::User:
       case DialogType::Chat: {
-        if (!have_message_force({dialog_id, it.second}, "after get difference")) {
+        if (!have_message_force({dialog_id, old_message_id}, "after get difference")) {
           // The sent message has already been deleted by the user or sent to inaccessible channel.
           // The sent message may never be received, but we will need updateMessageId in case the message is received
           // to delete it from the server and not add to the chat.
@@ -9401,7 +9402,7 @@ void MessagesManager::after_get_difference() {
         const Dialog *d = get_dialog(dialog_id);
         CHECK(d != nullptr);
         if (dialog_id.get_type() == DialogType::Channel || message_id <= d->last_new_message_id) {
-          LOG(ERROR) << "Receive updateMessageId from " << it.second << " to " << full_message_id
+          LOG(ERROR) << "Receive updateMessageId from " << old_message_id << " to " << full_message_id
                      << " but not receive corresponding message, last_new_message_id = " << d->last_new_message_id;
         }
         if (dialog_id.get_type() != DialogType::Channel && message_id <= d->last_new_message_id) {
@@ -9410,9 +9411,9 @@ void MessagesManager::after_get_difference() {
         if (message_id <= d->last_new_message_id) {
           get_message_from_server(
               full_message_id,
-              PromiseCreator::lambda([actor_id = actor_id(this), full_message_id](Result<Unit> result) {
+              PromiseCreator::lambda([actor_id = actor_id(this), full_message_id, old_message_id](Result<Unit> result) {
                 send_closure(actor_id, &MessagesManager::on_restore_missing_message_after_get_difference,
-                             full_message_id, std::move(result));
+                             full_message_id, old_message_id, std::move(result));
               }),
               "get missing");
         } else if (dialog_id.get_type() == DialogType::Channel) {
@@ -9451,11 +9452,37 @@ void MessagesManager::after_get_difference() {
 }
 
 void MessagesManager::on_restore_missing_message_after_get_difference(FullMessageId full_message_id,
-                                                                      Result<Unit> result) {
+                                                                      MessageId old_message_id, Result<Unit> result) {
   if (result.is_error()) {
-    LOG(WARNING) << "Failed to get missing " << full_message_id << ": " << result.error();
+    LOG(WARNING) << "Failed to get missing " << full_message_id << " for " << old_message_id << ": " << result.error();
   } else {
-    LOG(WARNING) << "Successfully get missing " << full_message_id;
+    LOG(WARNING) << "Successfully get missing " << full_message_id << " for " << old_message_id;
+
+    bool have_message = have_message_force(full_message_id, "on_restore_missing_message_after_get_difference");
+    if (!have_message && update_message_ids_.count(full_message_id)) {
+      LOG(ERROR) << "Receive messageEmpty instead of missing " << full_message_id << " for " << old_message_id;
+
+      auto dialog_id = full_message_id.get_dialog_id();
+      Dialog *d = get_dialog(dialog_id);
+      CHECK(d != nullptr);
+
+      bool need_update_dialog_pos = false;
+      vector<int64> deleted_message_ids;
+      auto m = delete_message(d, old_message_id, true, &need_update_dialog_pos,
+                              "on_restore_missing_message_after_get_difference");
+      if (m == nullptr) {
+        LOG(INFO) << "Can't delete " << old_message_id << " because it is not found";
+      } else {
+        deleted_message_ids.push_back(m->message_id.get());
+      }
+
+      if (need_update_dialog_pos) {
+        send_update_chat_last_message(d, "on_restore_missing_message_after_get_difference");
+      }
+      send_update_delete_messages(dialog_id, std::move(deleted_message_ids), true, false);
+
+      update_message_ids_.erase(full_message_id);
+    }
   }
 }
 
