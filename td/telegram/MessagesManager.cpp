@@ -30629,7 +30629,7 @@ void MessagesManager::send_update_new_chat(Dialog *d) {
   CHECK(d->messages == nullptr);
   if ((d->dialog_id.get_type() == DialogType::User || d->dialog_id.get_type() == DialogType::SecretChat) &&
       td_->auth_manager_->is_bot()) {
-    (void)get_dialog_photo(dialog_id);  // to apply pending user photo
+    (void)get_dialog_photo(d->dialog_id);  // to apply pending user photo
   }
   d->is_update_new_chat_being_sent = true;
   auto chat_object = get_chat_object(d);
