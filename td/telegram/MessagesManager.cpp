@@ -30627,6 +30627,10 @@ void MessagesManager::send_update_delete_messages(DialogId dialog_id, vector<int
 void MessagesManager::send_update_new_chat(Dialog *d) {
   CHECK(d != nullptr);
   CHECK(d->messages == nullptr);
+  if ((d->dialog_id.get_type() == DialogType::User || d->dialog_id.get_type() == DialogType::SecretChat) &&
+      td_->auth_manager_->is_bot()) {
+    (void)get_dialog_photo(dialog_id);  // to apply pending user photo
+  }
   d->is_update_new_chat_being_sent = true;
   auto chat_object = get_chat_object(d);
   bool has_action_bar = chat_object->action_bar_ != nullptr;
@@ -32645,7 +32649,12 @@ void MessagesManager::on_dialog_photo_updated(DialogId dialog_id) {
         make_tl_object<td_api::updateChatPhoto>(
             dialog_id.get(), get_chat_photo_info_object(td_->file_manager_.get(), get_dialog_photo(dialog_id))));
   } else if (d != nullptr && d->is_update_new_chat_being_sent) {
-    LOG(ERROR) << "Changed photo of " << dialog_id << " while the chat is being added: " << get_dialog_photo(dialog_id);
+    const auto *photo = get_dialog_photo(dialog_id);
+    if (photo == nullptr) {
+      LOG(ERROR) << "Removed photo of " << dialog_id << " while the chat is being added";
+    } else {
+      LOG(ERROR) << "Changed photo of " << dialog_id << " while the chat is being added to " << *photo;
+    }
   }
 }
 
