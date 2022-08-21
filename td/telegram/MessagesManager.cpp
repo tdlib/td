@@ -36898,7 +36898,8 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
     update_dialog_pos(d, "fix_new_dialog 7", true, is_loaded_from_database);
   }
   if (is_loaded_from_database && d->order != order && order < MAX_ORDINARY_DIALOG_ORDER &&
-      !td_->contacts_manager_->is_dialog_info_received_from_server(dialog_id) && !d->had_last_yet_unsent_message) {
+      !td_->contacts_manager_->is_dialog_info_received_from_server(dialog_id) && !d->had_last_yet_unsent_message &&
+      !td_->auth_manager_->is_bot()) {
     LOG(ERROR) << dialog_id << " has order " << d->order << " instead of saved to database order " << order;
   }
 
