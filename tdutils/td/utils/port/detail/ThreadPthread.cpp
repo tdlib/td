@@ -14,6 +14,7 @@ char disable_linker_warning_about_empty_file_thread_pthread_cpp TD_UNUSED;
 
 #include <pthread.h>
 #include <sched.h>
+#include <signal.h>
 #if TD_FREEBSD || TD_OPENBSD || TD_NETBSD
 #include <sys/sysctl.h>
 #endif
@@ -80,6 +81,12 @@ void ThreadPthread::detach() {
     is_inited_ = false;
     pthread_detach(thread_);
   }
+}
+
+void ThreadPthread::send_real_time_signal(id thread_id, int real_time_signal_number) {
+#ifdef SIGRTMIN
+  pthread_kill(thread_id, SIGRTMIN + real_time_signal_number);
+#endif
 }
 
 int ThreadPthread::do_pthread_create(pthread_t *thread, const pthread_attr_t *attr, void *(*start_routine)(void *),

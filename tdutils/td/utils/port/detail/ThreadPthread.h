@@ -26,6 +26,7 @@
 
 namespace td {
 namespace detail {
+
 class ThreadPthread {
  public:
   ThreadPthread() = default;
@@ -63,6 +64,8 @@ class ThreadPthread {
 
   using id = pthread_t;
 
+  static void send_real_time_signal(id thread_id, int real_time_signal_number);
+
  private:
   MovableValue<bool> is_inited_;
   pthread_t thread_;
@@ -85,6 +88,7 @@ class ThreadPthread {
 namespace this_thread_pthread {
 ThreadPthread::id get_id();
 }  // namespace this_thread_pthread
+
 }  // namespace detail
 }  // namespace td
 

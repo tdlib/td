@@ -23,6 +23,7 @@
 
 namespace td {
 namespace detail {
+
 class ThreadStl {
  public:
   ThreadStl() = default;
@@ -33,6 +34,7 @@ class ThreadStl {
   ~ThreadStl() {
     join();
   }
+
   template <class Function, class... Args>
   explicit ThreadStl(Function &&f, Args &&...args) {
     thread_ = std::thread([args = std::make_tuple(decay_copy(std::forward<Function>(f)),
@@ -48,12 +50,15 @@ class ThreadStl {
       thread_.join();
     }
   }
+
   void detach() {
     if (thread_.joinable()) {
       thread_.detach();
     }
   }
+
   void set_name(CSlice name) {
+    // not supported
   }
 
   static unsigned hardware_concurrency() {
@@ -61,6 +66,10 @@ class ThreadStl {
   }
 
   using id = std::thread::id;
+
+  static void send_real_time_signal(id thread_id, int real_time_signal_number) {
+    // not supported
+  }
 
  private:
   std::thread thread_;
@@ -70,9 +79,11 @@ class ThreadStl {
     return std::forward<T>(v);
   }
 };
+
 namespace this_thread_stl {
 using std::this_thread::get_id;
 }  // namespace this_thread_stl
+
 }  // namespace detail
 }  // namespace td
 
