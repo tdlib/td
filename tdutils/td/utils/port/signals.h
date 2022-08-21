@@ -20,7 +20,7 @@ Status set_signal_handler(SignalType type, void (*func)(int sig)) TD_WARN_UNUSED
 
 Status set_extended_signal_handler(SignalType type, void (*func)(int sig, void *addr)) TD_WARN_UNUSED_RESULT;
 
-Status set_runtime_signal_handler(int runtime_signal_number, void (*func)(int sig)) TD_WARN_UNUSED_RESULT;
+Status set_real_time_signal_handler(int real_time_signal_number, void (*func)(int sig)) TD_WARN_UNUSED_RESULT;
 
 Status ignore_signal(SignalType type) TD_WARN_UNUSED_RESULT;
 

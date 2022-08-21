@@ -191,10 +191,10 @@ Status set_extended_signal_handler(SignalType type, extended_signal_handler func
   return set_signal_handler_impl(std::move(signals), siginfo_handler);
 }
 
-Status set_runtime_signal_handler(int runtime_signal_number, void (*func)(int)) {
+Status set_real_time_signal_handler(int real_time_signal_number, void (*func)(int)) {
 #ifdef SIGRTMIN
-  CHECK(SIGRTMIN + runtime_signal_number <= SIGRTMAX);
-  return set_signal_handler_impl({SIGRTMIN + runtime_signal_number}, func == nullptr ? SIG_DFL : func);
+  CHECK(SIGRTMIN + real_time_signal_number <= SIGRTMAX);
+  return set_signal_handler_impl({SIGRTMIN + real_time_signal_number}, func == nullptr ? SIG_DFL : func);
 #else
   return Status::OK();
 #endif
