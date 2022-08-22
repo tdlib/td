@@ -64,8 +64,13 @@ string get_message_reaction_string(const telegram_api::object_ptr<telegram_api::
   switch (reaction->get_id()) {
     case telegram_api::reactionEmpty::ID:
       return string();
-    case telegram_api::reactionEmoji::ID:
-      return static_cast<const telegram_api::reactionEmoji *>(reaction.get())->emoticon_;
+    case telegram_api::reactionEmoji::ID: {
+      const string &emoji = static_cast<const telegram_api::reactionEmoji *>(reaction.get())->emoticon_;
+      if (emoji[0] == '#') {
+        return string();
+      }
+      return emoji;
+    }
     case telegram_api::reactionCustomEmoji::ID:
       return get_custom_emoji_string(
           static_cast<const telegram_api::reactionCustomEmoji *>(reaction.get())->document_id_);
@@ -90,7 +95,7 @@ string get_message_reaction_string(const td_api::object_ptr<td_api::ReactionType
   switch (type->get_id()) {
     case td_api::reactionTypeEmoji::ID: {
       const string &emoji = static_cast<const td_api::reactionTypeEmoji *>(type.get())->emoji_;
-      if (!check_utf8(emoji)) {
+      if (!check_utf8(emoji) || emoji[0] == '#') {
         return string();
       }
       return emoji;
