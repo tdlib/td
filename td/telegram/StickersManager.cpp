@@ -2424,7 +2424,7 @@ FileId StickersManager::get_custom_animated_emoji_sticker_id(int64 custom_emoji_
 
 td_api::object_ptr<td_api::animatedEmoji> StickersManager::get_animated_emoji_object(const string &emoji,
                                                                                      int64 custom_emoji_id) {
-  if (disable_animated_emojis_) {
+  if (td_->auth_manager_->is_bot() || disable_animated_emojis_) {
     return nullptr;
   }
 
