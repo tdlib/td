@@ -4476,6 +4476,9 @@ updateWebAppMessageSent web_app_launch_id:int64 = Update;
 //@description The list of supported reactions has changed @reactions The new list of supported reactions
 updateReactions reactions:vector<reaction> = Update;
 
+//@description The type of default reaction has changed @reaction_type The new type of the default reaction
+updateDefaultReactionType reaction_type:ReactionType = Update;
+
 //@description The list of supported dice emojis has changed @emojis The new list of supported dice emojis
 updateDiceEmojis emojis:vector<string> = Update;
 
@@ -5137,7 +5140,7 @@ setMessageReaction chat_id:int53 message_id:int53 reaction_type:ReactionType is_
 //@limit The maximum number of reactions to be returned; must be positive and can't be greater than 100
 getMessageAddedReactions chat_id:int53 message_id:int53 reaction_type:ReactionType offset:string limit:int32 = AddedReactions;
 
-//@description Changes default reaction type for the current user @reaction_type New type of the default reaction
+//@description Changes type of default reaction for the current user @reaction_type New type of the default reaction
 setDefaultReactionType reaction_type:ReactionType = Ok;
 
 

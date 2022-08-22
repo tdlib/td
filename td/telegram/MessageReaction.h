@@ -186,4 +186,6 @@ void set_default_reaction(Td *td, string reaction, Promise<Unit> &&promise);
 
 void send_set_default_reaction_query(Td *td);
 
+void send_update_default_reaction_type();
+
 }  // namespace td

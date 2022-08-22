@@ -65,6 +65,8 @@ OptionManager::OptionManager(Td *td)
         vector<SuggestedAction> added_actions{SuggestedAction{SuggestedAction::Type::SetPassword, DialogId(), days}};
         send_closure(G()->td(), &Td::send_update, get_update_suggested_actions_object(added_actions, {}));
       }
+    } else if (name == "default_reaction") {
+      send_update_default_reaction_type();
     }
   }
 
@@ -317,6 +319,9 @@ void OptionManager::on_option_updated(Slice name) {
       }
       break;
     case 'd':
+      if (name == "default_reaction") {
+        send_update_default_reaction_type();
+      }
       if (name == "dice_emojis") {
         send_closure(td_->stickers_manager_actor_, &StickersManager::on_update_dice_emojis);
       }

@@ -693,4 +693,14 @@ void send_set_default_reaction_query(Td *td) {
   td->create_handler<SetDefaultReactionQuery>()->send(td->option_manager_->get_option_string("default_reaction"));
 }
 
+void send_update_default_reaction_type() {
+  auto default_reaction = G()->get_option_string("default_reaction");
+  if (default_reaction.empty()) {
+    LOG(ERROR) << "Have no default reaction";
+    return;
+  }
+  send_closure(G()->td(), &Td::send_update,
+               td_api::make_object<td_api::updateDefaultReactionType>(get_reaction_type_object(default_reaction)));
+}
+
 }  // namespace td
