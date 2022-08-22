@@ -118,7 +118,7 @@ class SetAccountTtlQuery final : public Td::ResultHandler {
 
   void send(int32 account_ttl) {
     send_query(G()->net_query_creator().create(
-        telegram_api::account_setAccountTTL(make_tl_object<telegram_api::accountDaysTTL>(account_ttl))));
+        telegram_api::account_setAccountTTL(make_tl_object<telegram_api::accountDaysTTL>(account_ttl)), {{"me"}}));
   }
 
   void on_result(BufferSlice packet) final {
@@ -315,7 +315,8 @@ class ChangeAuthorizationSettingsQuery final : public Td::ResultHandler {
       flags |= telegram_api::account_changeAuthorizationSettings::CALL_REQUESTS_DISABLED_MASK;
     }
     send_query(G()->net_query_creator().create(telegram_api::account_changeAuthorizationSettings(
-        flags, hash, encrypted_requests_disabled, call_requests_disabled)));
+                                                   flags, hash, encrypted_requests_disabled, call_requests_disabled),
+                                               {{"me"}}));
   }
 
   void on_result(BufferSlice packet) final {
@@ -342,7 +343,8 @@ class SetAuthorizationTtlQuery final : public Td::ResultHandler {
   }
 
   void send(int32 authorization_ttl_days) {
-    send_query(G()->net_query_creator().create(telegram_api::account_setAuthorizationTTL(authorization_ttl_days)));
+    send_query(
+        G()->net_query_creator().create(telegram_api::account_setAuthorizationTTL(authorization_ttl_days), {{"me"}}));
   }
 
   void on_result(BufferSlice packet) final {
@@ -472,7 +474,7 @@ class SetBotGroupDefaultAdminRightsQuery final : public Td::ResultHandler {
 
   void send(AdministratorRights administrator_rights) {
     send_query(G()->net_query_creator().create(
-        telegram_api::bots_setBotGroupDefaultAdminRights(administrator_rights.get_chat_admin_rights())));
+        telegram_api::bots_setBotGroupDefaultAdminRights(administrator_rights.get_chat_admin_rights()), {{"me"}}));
   }
 
   void on_result(BufferSlice packet) final {
@@ -505,7 +507,7 @@ class SetBotBroadcastDefaultAdminRightsQuery final : public Td::ResultHandler {
 
   void send(AdministratorRights administrator_rights) {
     send_query(G()->net_query_creator().create(
-        telegram_api::bots_setBotBroadcastDefaultAdminRights(administrator_rights.get_chat_admin_rights())));
+        telegram_api::bots_setBotBroadcastDefaultAdminRights(administrator_rights.get_chat_admin_rights()), {{"me"}}));
   }
 
   void on_result(BufferSlice packet) final {

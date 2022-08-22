@@ -462,8 +462,10 @@ class UploadProfilePhotoQuery final : public Td::ResultHandler {
       flags |= telegram_api::photos_uploadProfilePhoto::FILE_MASK;
       photo_input_file = std::move(input_file);
     }
-    send_query(G()->net_query_creator().create(telegram_api::photos_uploadProfilePhoto(
-        flags, std::move(photo_input_file), std::move(video_input_file), main_frame_timestamp)));
+    send_query(G()->net_query_creator().create(
+        telegram_api::photos_uploadProfilePhoto(flags, std::move(photo_input_file), std::move(video_input_file),
+                                                main_frame_timestamp),
+        {{"me"}}));
   }
 
   void on_result(BufferSlice packet) final {
@@ -501,7 +503,8 @@ class UpdateProfilePhotoQuery final : public Td::ResultHandler {
     file_id_ = file_id;
     old_photo_id_ = old_photo_id;
     file_reference_ = FileManager::extract_file_reference(input_photo);
-    send_query(G()->net_query_creator().create(telegram_api::photos_updateProfilePhoto(std::move(input_photo))));
+    send_query(
+        G()->net_query_creator().create(telegram_api::photos_updateProfilePhoto(std::move(input_photo)), {{"me"}}));
   }
 
   void on_result(BufferSlice packet) final {
@@ -592,8 +595,8 @@ class UpdateProfileQuery final : public Td::ResultHandler {
     first_name_ = first_name;
     last_name_ = last_name;
     about_ = about;
-    send_query(
-        G()->net_query_creator().create(telegram_api::account_updateProfile(flags, first_name, last_name, about)));
+    send_query(G()->net_query_creator().create(telegram_api::account_updateProfile(flags, first_name, last_name, about),
+                                               {{"me"}}));
   }
 
   void on_result(BufferSlice packet) final {
@@ -647,7 +650,7 @@ class UpdateUsernameQuery final : public Td::ResultHandler {
   }
 
   void send(const string &username) {
-    send_query(G()->net_query_creator().create(telegram_api::account_updateUsername(username)));
+    send_query(G()->net_query_creator().create(telegram_api::account_updateUsername(username), {{"me"}}));
   }
 
   void on_result(BufferSlice packet) final {
@@ -684,7 +687,8 @@ class UpdateEmojiStatusQuery final : public Td::ResultHandler {
       }
       return make_tl_object<telegram_api::emojiStatus>(custom_emoji_id);
     }();
-    send_query(G()->net_query_creator().create(telegram_api::account_updateEmojiStatus(std::move(emoji_status))));
+    send_query(
+        G()->net_query_creator().create(telegram_api::account_updateEmojiStatus(std::move(emoji_status)), {{"me"}}));
   }
 
   void on_result(BufferSlice packet) final {
