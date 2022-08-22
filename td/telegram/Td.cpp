@@ -4053,6 +4053,7 @@ void Td::send_update(tl_object_ptr<td_api::Update> &&object) {
     case td_api::updateFileAddedToDownloads::ID / 2:
     case td_api::updateFileDownload::ID / 2:
     case td_api::updateFileRemovedFromDownloads::ID / 2:
+    case td_api::updateDefaultReactionType::ID:
       LOG(ERROR) << "Sending update: " << oneline(to_string(object));
       break;
     default:

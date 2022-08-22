@@ -12,6 +12,7 @@
 #include "td/telegram/JsonValue.h"
 #include "td/telegram/LinkManager.h"
 #include "td/telegram/logevent/LogEvent.h"
+#include "td/telegram/MessageReaction.h"
 #include "td/telegram/net/AuthDataShared.h"
 #include "td/telegram/net/ConnectionCreator.h"
 #include "td/telegram/net/DcId.h"
@@ -1413,6 +1414,13 @@ void ConfigManager::process_config(tl_object_ptr<telegram_api::config> config) {
   options.set_option_integer("online_cloud_timeout_ms", fix_timeout_ms(config->online_cloud_timeout_ms_));
   options.set_option_integer("notification_cloud_delay_ms", fix_timeout_ms(config->notify_cloud_delay_ms_));
   options.set_option_integer("notification_default_delay_ms", fix_timeout_ms(config->notify_default_delay_ms_));
+
+  if (is_from_main_dc && !options.have_option("default_reaction_need_sync")) {
+    auto reaction_str = get_message_reaction_string(config->reactions_default_);
+    if (!reaction_str.empty()) {
+      options.set_option_string("default_reaction", reaction_str);
+    }
+  }
 
   // delete outdated options
   options.set_option_empty("suggested_language_code");

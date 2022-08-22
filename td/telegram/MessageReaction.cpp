@@ -57,7 +57,7 @@ static telegram_api::object_ptr<telegram_api::Reaction> get_input_reaction(const
   return telegram_api::make_object<telegram_api::reactionEmoji>(reaction);
 }
 
-static string get_reaction_string(const telegram_api::object_ptr<telegram_api::Reaction> &reaction) {
+string get_message_reaction_string(const telegram_api::object_ptr<telegram_api::Reaction> &reaction) {
   if (reaction == nullptr) {
     return string();
   }
@@ -271,7 +271,7 @@ class GetMessageReactionsListQuery final : public Td::ResultHandler {
     FlatHashMap<string, vector<DialogId>> recent_reactions;
     for (const auto &reaction : ptr->reactions_) {
       DialogId dialog_id(reaction->peer_id_);
-      auto reaction_str = get_reaction_string(reaction->reaction_);
+      auto reaction_str = get_message_reaction_string(reaction->reaction_);
       if (!dialog_id.is_valid() || (reaction_.empty() ? reaction_str.empty() : reaction_ != reaction_str)) {
         LOG(ERROR) << "Receive unexpected " << to_string(reaction);
         continue;
@@ -451,7 +451,7 @@ unique_ptr<MessageReactions> MessageReactions::get_message_reactions(
   FlatHashSet<string> reaction_strings;
   FlatHashSet<DialogId, DialogIdHash> recent_choosers;
   for (auto &reaction_count : reactions->results_) {
-    auto reaction_str = get_reaction_string(reaction_count->reaction_);
+    auto reaction_str = get_message_reaction_string(reaction_count->reaction_);
     if (reaction_count->count_ <= 0 || reaction_count->count_ >= MessageReaction::MAX_CHOOSE_COUNT ||
         reaction_str.empty()) {
       LOG(ERROR) << "Receive reaction " << reaction_str << " with invalid count " << reaction_count->count_;
@@ -466,7 +466,7 @@ unique_ptr<MessageReactions> MessageReactions::get_message_reactions(
     vector<DialogId> recent_chooser_dialog_ids;
     vector<std::pair<ChannelId, MinChannel>> recent_chooser_min_channels;
     for (auto &peer_reaction : reactions->recent_reactions_) {
-      auto peer_reaction_str = get_reaction_string(peer_reaction->reaction_);
+      auto peer_reaction_str = get_message_reaction_string(peer_reaction->reaction_);
       if (peer_reaction_str == reaction_str) {
         DialogId dialog_id(peer_reaction->peer_id_);
         if (!dialog_id.is_valid()) {
