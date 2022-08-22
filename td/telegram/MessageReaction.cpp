@@ -675,7 +675,10 @@ void get_message_added_reactions(Td *td, FullMessageId full_message_id, string r
 }
 
 void set_default_reaction(Td *td, string reaction, Promise<Unit> &&promise) {
-  if (!td->stickers_manager_->is_active_reaction(reaction)) {
+  if (reaction.empty()) {
+    return promise.set_error(Status::Error(400, "Default reaction must be non-empty"));
+  }
+  if (reaction[0] != '#' && !td->stickers_manager_->is_active_reaction(reaction)) {
     return promise.set_error(Status::Error(400, "Can't set incative reaction as default"));
   }
 
@@ -693,8 +696,7 @@ void send_set_default_reaction_query(Td *td) {
   td->create_handler<SetDefaultReactionQuery>()->send(td->option_manager_->get_option_string("default_reaction"));
 }
 
-void send_update_default_reaction_type() {
-  auto default_reaction = G()->get_option_string("default_reaction");
+void send_update_default_reaction_type(const string &default_reaction) {
   if (default_reaction.empty()) {
     LOG(ERROR) << "Have no default reaction";
     return;

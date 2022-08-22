@@ -54,11 +54,10 @@ OptionManager::OptionManager(Td *td)
   all_options["utc_time_offset"] = PSTRING() << 'I' << Clocks::tz_offset();
   for (const auto &name_value : all_options) {
     const string &name = name_value.first;
-    const string &value = name_value.second;
-    options_->set(name, value);
+    options_->set(name, name_value.second);
     if (!is_internal_option(name)) {
       send_closure(G()->td(), &Td::send_update,
-                   td_api::make_object<td_api::updateOption>(name, get_option_value_object(value)));
+                   td_api::make_object<td_api::updateOption>(name, get_option_value_object(name_value.second)));
     } else if (name == "otherwise_relogin_days") {
       auto days = narrow_cast<int32>(get_option_integer(name));
       if (days > 0) {
@@ -66,7 +65,7 @@ OptionManager::OptionManager(Td *td)
         send_closure(G()->td(), &Td::send_update, get_update_suggested_actions_object(added_actions, {}));
       }
     } else if (name == "default_reaction") {
-      send_update_default_reaction_type();
+      send_update_default_reaction_type(get_option_string(name));
     }
   }
 
@@ -320,7 +319,7 @@ void OptionManager::on_option_updated(Slice name) {
       break;
     case 'd':
       if (name == "default_reaction") {
-        send_update_default_reaction_type();
+        send_update_default_reaction_type(get_option_string(name));
       }
       if (name == "dice_emojis") {
         send_closure(td_->stickers_manager_actor_, &StickersManager::on_update_dice_emojis);

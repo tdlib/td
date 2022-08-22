@@ -2216,6 +2216,10 @@ class CliClient final : public Actor {
       ChatId chat_id;
       get_args(args, chat_id);
       send_request(td_api::make_object<td_api::getChatScheduledMessages>(chat_id));
+    } else if (op == "sdrt") {
+      string reaction;
+      get_args(args, reaction);
+      send_request(td_api::make_object<td_api::setDefaultReactionType>(as_reaction_type(reaction)));
     } else if (op == "gmar") {
       ChatId chat_id;
       MessageId message_id;
