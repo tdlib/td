@@ -3356,7 +3356,13 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateNewStickerSet> 
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateStickerSets> update, Promise<Unit> &&promise) {
-  td_->stickers_manager_->on_update_sticker_sets();
+  StickerType sticker_type = StickerType::Regular;
+  if (update->emojis_) {
+    sticker_type = StickerType::CustomEmoji;
+  } else if (update->masks_) {
+    sticker_type = StickerType::Mask;
+  }
+  td_->stickers_manager_->on_update_sticker_sets(sticker_type);
   promise.set_value(Unit());
 }
 

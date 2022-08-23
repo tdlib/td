@@ -5151,13 +5151,11 @@ void StickersManager::on_update_disable_animated_emojis() {
   }
 }
 
-void StickersManager::on_update_sticker_sets() {
-  // TODO better support
-  for (int32 type = 0; type < MAX_STICKER_TYPE; type++) {
-    archived_sticker_set_ids_[type].clear();
-    total_archived_sticker_set_count_[type] = -1;
-    reload_installed_sticker_sets(static_cast<StickerType>(type), true);
-  }
+void StickersManager::on_update_sticker_sets(StickerType sticker_type) {
+  auto type = static_cast<int32>(sticker_type);
+  archived_sticker_set_ids_[type].clear();
+  total_archived_sticker_set_count_[type] = -1;
+  reload_installed_sticker_sets(sticker_type, true);
 }
 
 void StickersManager::try_update_animated_emoji_messages() {

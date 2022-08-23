@@ -205,7 +205,7 @@ class StickersManager final : public Actor {
 
   void on_update_emoji_sounds();
 
-  void on_update_sticker_sets();
+  void on_update_sticker_sets(StickerType sticker_type);
 
   void on_update_sticker_sets_order(StickerType sticker_type, const vector<StickerSetId> &sticker_set_ids);
 
