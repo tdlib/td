@@ -11761,6 +11761,34 @@ void ContactsManager::register_user_photo(User *u, UserId user_id, const Photo &
   }
 }
 
+void ContactsManager::on_update_user_emoji_status(UserId user_id,
+                                                  tl_object_ptr<telegram_api::EmojiStatus> &&emoji_status_ptr) {
+  if (!user_id.is_valid()) {
+    LOG(ERROR) << "Receive invalid " << user_id;
+    return;
+  }
+
+  User *u = get_user_force(user_id);
+  if (u != nullptr) {
+    int64 emoji_status = 0;
+    if (emoji_status_ptr != nullptr && emoji_status_ptr->get_id() == telegram_api::emojiStatus::ID) {
+      emoji_status = static_cast<const telegram_api::emojiStatus *>(emoji_status_ptr.get())->document_id_;
+    }
+    on_update_user_emoji_status(u, user_id, emoji_status);
+    update_user(u, user_id);
+  } else {
+    LOG(INFO) << "Ignore update user emoji status about unknown " << user_id;
+  }
+}
+
+void ContactsManager::on_update_user_emoji_status(User *u, UserId user_id, int64 emoji_status) {
+  if (u->emoji_status != emoji_status) {
+    u->emoji_status = emoji_status;
+    LOG(DEBUG) << "Emoji status has changed for " << user_id;
+    u->is_changed = true;
+  }
+}
+
 void ContactsManager::on_update_user_is_contact(User *u, UserId user_id, bool is_contact, bool is_mutual_contact) {
   UserId my_id = get_my_id();
   if (user_id == my_id) {

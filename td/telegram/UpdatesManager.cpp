@@ -3165,8 +3165,12 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateUserPhone> upda
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateUserPhoto> update, Promise<Unit> &&promise) {
-  // TODO update->previous_, update->date_
   td_->contacts_manager_->on_update_user_photo(UserId(update->user_id_), std::move(update->photo_));
+  promise.set_value(Unit());
+}
+
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateUserEmojiStatus> update, Promise<Unit> &&promise) {
+  td_->contacts_manager_->on_update_user_emoji_status(UserId(update->user_id_), std::move(update->emoji_status_));
   promise.set_value(Unit());
 }
 
@@ -3575,10 +3579,6 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateRecentEmojiStat
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateRecentReactions> update, Promise<Unit> &&promise) {
-  promise.set_value(Unit());
-}
-
-void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateUserEmojiStatus> update, Promise<Unit> &&promise) {
   promise.set_value(Unit());
 }
 
