@@ -349,6 +349,44 @@ class SetDefaultReactionQuery final : public Td::ResultHandler {
   }
 };
 
+class ReportReactionQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  DialogId dialog_id_;
+
+ public:
+  explicit ReportReactionQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(DialogId dialog_id, MessageId message_id, DialogId chooser_dialog_id) {
+    dialog_id_ = dialog_id;
+
+    auto input_peer = td_->messages_manager_->get_input_peer(dialog_id_, AccessRights::Read);
+    CHECK(input_peer != nullptr);
+
+    auto chooser_input_peer = td_->messages_manager_->get_input_peer(chooser_dialog_id, AccessRights::Know);
+    if (chooser_input_peer == nullptr) {
+      return promise_.set_error(Status::Error(400, "Reaction sender is not accessible"));
+    }
+
+    send_query(G()->net_query_creator().create(telegram_api::messages_reportReaction(
+        std::move(input_peer), message_id.get_server_message_id().get(), std::move(chooser_input_peer))));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_reportReaction>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "ReportReactionQuery");
+    promise_.set_error(std::move(status));
+  }
+};
+
 void MessageReaction::add_recent_chooser_dialog_id(DialogId dialog_id) {
   recent_chooser_dialog_ids_.insert(recent_chooser_dialog_ids_.begin(), dialog_id);
   if (recent_chooser_dialog_ids_.size() > MAX_RECENT_CHOOSERS + 1) {
@@ -708,6 +746,34 @@ void send_update_default_reaction_type(const string &default_reaction) {
   }
   send_closure(G()->td(), &Td::send_update,
                td_api::make_object<td_api::updateDefaultReactionType>(get_reaction_type_object(default_reaction)));
+}
+
+void report_message_reactions(Td *td, FullMessageId full_message_id, DialogId chooser_dialog_id,
+                              Promise<Unit> &&promise) {
+  auto dialog_id = full_message_id.get_dialog_id();
+  if (!td->messages_manager_->have_dialog_force(dialog_id, "send_callback_query")) {
+    return promise.set_error(Status::Error(400, "Chat not found"));
+  }
+  if (!td->messages_manager_->have_input_peer(dialog_id, AccessRights::Read)) {
+    return promise.set_error(Status::Error(400, "Can't access the chat"));
+  }
+
+  if (!td->messages_manager_->have_message_force(full_message_id, "report_user_reactions")) {
+    return promise.set_error(Status::Error(400, "Message not found"));
+  }
+  auto message_id = full_message_id.get_message_id();
+  if (message_id.is_valid_scheduled()) {
+    return promise.set_error(Status::Error(400, "Can't report reactions on scheduled messages"));
+  }
+  if (!message_id.is_server()) {
+    return promise.set_error(Status::Error(400, "Message reactions can't be reported"));
+  }
+
+  if (!td->messages_manager_->have_input_peer(chooser_dialog_id, AccessRights::Know)) {
+    return promise.set_error(Status::Error(400, "Reaction sender not found"));
+  }
+
+  td->create_handler<ReportReactionQuery>(std::move(promise))->send(dialog_id, message_id, chooser_dialog_id);
 }
 
 }  // namespace td

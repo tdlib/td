@@ -1154,6 +1154,8 @@ class Td final : public Actor {
 
   void on_request(uint64 id, td_api::reportChatPhoto &request);
 
+  void on_request(uint64 id, const td_api::reportMessageReactions &request);
+
   void on_request(uint64 id, const td_api::getChatStatistics &request);
 
   void on_request(uint64 id, const td_api::getMessageStatistics &request);

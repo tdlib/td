@@ -7180,6 +7180,14 @@ void Td::on_request(uint64 id, td_api::reportChatPhoto &request) {
                                          r_report_reason.move_as_ok(), std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::reportMessageReactions &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  TRY_RESULT_PROMISE(promise, sender_dialog_id, get_message_sender_dialog_id(this, request.sender_id_, false, false));
+  report_message_reactions(this, {DialogId(request.chat_id_), MessageId(request.message_id_)}, sender_dialog_id,
+                           std::move(promise));
+}
+
 void Td::on_request(uint64 id, const td_api::getChatStatistics &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();

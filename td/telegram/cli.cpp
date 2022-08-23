@@ -4748,6 +4748,13 @@ class CliClient final : public Actor {
       get_args(args, chat_id, file_id, reason, text);
       send_request(
           td_api::make_object<td_api::reportChatPhoto>(chat_id, file_id, get_chat_report_reason(reason), text));
+    } else if (op == "rmr") {
+      ChatId chat_id;
+      MessageId message_id;
+      string sender_id;
+      get_args(args, chat_id, message_id, sender_id);
+      send_request(
+          td_api::make_object<td_api::reportMessageReactions>(chat_id, message_id, as_message_sender(sender_id)));
     } else if (op == "gcst") {
       ChatId chat_id;
       bool is_dark;
