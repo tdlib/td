@@ -18723,6 +18723,25 @@ Status MessagesManager::can_get_media_timestamp_link(DialogId dialog_id, const M
   return Status::OK();
 }
 
+bool MessagesManager::can_report_message_reactions(DialogId dialog_id, const Message *m) const {
+  CHECK(m != nullptr);
+  if (dialog_id.get_type() != DialogType::Channel || is_broadcast_channel(dialog_id) ||
+      !td_->contacts_manager_->is_channel_public(dialog_id.get_channel_id())) {
+    return false;
+  }
+  if (m->message_id.is_scheduled() || !m->message_id.is_server()) {
+    return false;
+  }
+  if (m->message_id.is_scheduled() || !m->message_id.is_server()) {
+    return false;
+  }
+  if (is_discussion_message(dialog_id, m)) {
+    return false;
+  }
+
+  return true;
+}
+
 Result<std::pair<string, bool>> MessagesManager::get_message_link(FullMessageId full_message_id, int32 media_timestamp,
                                                                   bool for_group, bool for_comment) {
   auto dialog_id = full_message_id.get_dialog_id();
@@ -24719,6 +24738,7 @@ tl_object_ptr<td_api::message> MessagesManager::get_message_object(DialogId dial
   auto can_get_message_thread = for_event_log ? false : get_top_thread_full_message_id(dialog_id, m).is_ok();
   auto can_get_viewers = for_event_log ? false : can_get_message_viewers(dialog_id, m).is_ok();
   auto can_get_media_timestamp_links = for_event_log ? false : can_get_media_timestamp_link(dialog_id, m).is_ok();
+  auto can_report_reactions = for_event_log ? false : can_report_message_reactions(dialog_id, m);
   auto via_bot_user_id = td_->contacts_manager_->get_user_id_object(m->via_bot_user_id, "via_bot_user_id");
   auto media_album_id = for_event_log ? static_cast<int64>(0) : m->media_album_id;
   auto reply_to_message_id = for_event_log ? static_cast<int64>(0) : m->reply_to_message_id.get();
@@ -24742,11 +24762,11 @@ tl_object_ptr<td_api::message> MessagesManager::get_message_object(DialogId dial
       m->message_id.get(), std::move(sender), dialog_id.get(), std::move(sending_state), std::move(scheduling_state),
       is_outgoing, is_pinned, can_be_edited, can_be_forwarded, can_be_saved, can_delete_for_self,
       can_delete_for_all_users, can_get_added_reactions, can_get_statistics, can_get_message_thread, can_get_viewers,
-      can_get_media_timestamp_links, has_timestamped_media, m->is_channel_post, contains_unread_mention, date,
-      edit_date, std::move(forward_info), std::move(interaction_info), std::move(unread_reactions),
-      reply_in_dialog_id.get(), reply_to_message_id, top_thread_message_id, ttl, ttl_expires_in, via_bot_user_id,
-      m->author_signature, media_album_id, get_restriction_reason_description(m->restriction_reasons),
-      std::move(content), std::move(reply_markup));
+      can_get_media_timestamp_links, can_report_reactions, has_timestamped_media, m->is_channel_post,
+      contains_unread_mention, date, edit_date, std::move(forward_info), std::move(interaction_info),
+      std::move(unread_reactions), reply_in_dialog_id.get(), reply_to_message_id, top_thread_message_id, ttl,
+      ttl_expires_in, via_bot_user_id, m->author_signature, media_album_id,
+      get_restriction_reason_description(m->restriction_reasons), std::move(content), std::move(reply_markup));
 }
 
 tl_object_ptr<td_api::messages> MessagesManager::get_messages_object(int32 total_count, DialogId dialog_id,

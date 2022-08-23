@@ -1903,6 +1903,8 @@ class MessagesManager final : public Actor {
 
   static Status can_get_media_timestamp_link(DialogId dialog_id, const Message *m);
 
+  bool can_report_message_reactions(DialogId dialog_id, const Message *m) const;
+
   Status can_get_message_viewers(FullMessageId full_message_id) TD_WARN_UNUSED_RESULT;
 
   Status can_get_message_viewers(DialogId dialog_id, const Message *m) const TD_WARN_UNUSED_RESULT;
