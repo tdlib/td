@@ -47,7 +47,7 @@ static string get_custom_emoji_string(int64 custom_emoji_id) {
   return PSTRING() << '#' << base64_encode(Slice(s, 8));
 }
 
-static telegram_api::object_ptr<telegram_api::Reaction> get_input_reaction(const string &reaction) {
+telegram_api::object_ptr<telegram_api::Reaction> get_input_reaction(const string &reaction) {
   if (reaction.empty()) {
     return telegram_api::make_object<telegram_api::reactionEmpty>();
   }
@@ -80,7 +80,7 @@ string get_message_reaction_string(const telegram_api::object_ptr<telegram_api::
   }
 }
 
-static td_api::object_ptr<td_api::ReactionType> get_reaction_type_object(const string &reaction) {
+td_api::object_ptr<td_api::ReactionType> get_reaction_type_object(const string &reaction) {
   CHECK(!reaction.empty());
   if (reaction[0] == '#') {
     return td_api::make_object<td_api::reactionTypeCustomEmoji>(get_custom_emoji_id(reaction));

@@ -499,6 +499,8 @@ void StickersManager::Reaction::parse(ParserT &parser) {
   if (has_center_animation) {
     center_animation_ = stickers_manager->parse_sticker(false, parser);
   }
+
+  is_premium_ = false;
 }
 
 template <class StorerT>

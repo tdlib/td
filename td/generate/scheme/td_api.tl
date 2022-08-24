@@ -2563,18 +2563,14 @@ addedReaction type:ReactionType sender_id:MessageSender = AddedReaction;
 //@description Represents a list of reactions added to a message @total_count The total number of found reactions @reactions The list of added reactions @next_offset The offset for the next request. If empty, there are no more results
 addedReactions total_count:int32 reactions:vector<addedReaction> next_offset:string = AddedReactions;
 
-//@description Represents an available reaction @reaction Text representation of the reaction @needs_premium True, if Telegram Premium is needed to send the reaction
-availableReaction reaction:string needs_premium:Bool = AvailableReaction;
-
-//@description Represents a list of available reactions @reactions List of reactions
-availableReactions reactions:vector<availableReaction> = AvailableReactions;
+//@description Represents a list of available reactions @reactions List of available reactions
+availableReactions reactions:vector<ReactionType> = AvailableReactions;
 
 
 //@description Contains stickers which must be used for emoji reaction animation rendering
 //@reaction Text representation of the reaction
 //@title Reaction title
 //@is_active True, if the reaction can be added to new messages and enabled in chats
-//@is_premium True, if the reaction is available only for Premium users
 //@static_icon Static icon for the reaction
 //@appear_animation Appear animation for the reaction
 //@select_animation Select animation for the reaction
@@ -2582,7 +2578,7 @@ availableReactions reactions:vector<availableReaction> = AvailableReactions;
 //@effect_animation Effect animation for the reaction
 //@around_animation Around animation for the reaction; may be null
 //@center_animation Center animation for the reaction; may be null
-reaction reaction:string title:string is_active:Bool is_premium:Bool static_icon:sticker appear_animation:sticker select_animation:sticker activate_animation:sticker effect_animation:sticker around_animation:sticker center_animation:sticker = Reaction;
+reaction reaction:string title:string is_active:Bool static_icon:sticker appear_animation:sticker select_animation:sticker activate_animation:sticker effect_animation:sticker around_animation:sticker center_animation:sticker = Reaction;
 
 
 //@description Represents a list of animations @animations List of animations

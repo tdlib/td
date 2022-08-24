@@ -3640,11 +3640,10 @@ void StickersManager::on_get_special_sticker_set(const SpecialStickerSetType &ty
 td_api::object_ptr<td_api::updateReactions> StickersManager::get_update_reactions_object() const {
   auto reactions = transform(reactions_.reactions_, [this](const Reaction &reaction) {
     return td_api::make_object<td_api::reaction>(
-        reaction.reaction_, reaction.title_, reaction.is_active_, reaction.is_premium_,
-        get_sticker_object(reaction.static_icon_), get_sticker_object(reaction.appear_animation_),
-        get_sticker_object(reaction.select_animation_), get_sticker_object(reaction.activate_animation_),
-        get_sticker_object(reaction.effect_animation_), get_sticker_object(reaction.around_animation_),
-        get_sticker_object(reaction.center_animation_));
+        reaction.reaction_, reaction.title_, reaction.is_active_, get_sticker_object(reaction.static_icon_),
+        get_sticker_object(reaction.appear_animation_), get_sticker_object(reaction.select_animation_),
+        get_sticker_object(reaction.activate_animation_), get_sticker_object(reaction.effect_animation_),
+        get_sticker_object(reaction.around_animation_), get_sticker_object(reaction.center_animation_));
   });
   return td_api::make_object<td_api::updateReactions>(std::move(reactions));
 }
@@ -3685,7 +3684,7 @@ void StickersManager::update_active_reactions() {
   vector<AvailableReaction> active_reactions;
   for (auto &reaction : reactions_.reactions_) {
     if (reaction.is_active_) {
-      active_reactions.emplace_back(reaction.reaction_, reaction.is_premium_);
+      active_reactions.emplace_back(reaction.reaction_);
     }
   }
   td_->messages_manager_->set_active_reactions(std::move(active_reactions));
@@ -3733,6 +3732,10 @@ void StickersManager::on_get_available_reactions(
 
     if (!reaction.is_valid()) {
       LOG(ERROR) << "Receive invalid reaction " << reaction.reaction_;
+      continue;
+    }
+    if (reaction.is_premium_) {
+      LOG(ERROR) << "Receive premium reaction " << reaction.reaction_;
       continue;
     }
 

@@ -24399,7 +24399,7 @@ vector<AvailableReaction> MessagesManager::get_message_available_reactions(const
       // can add the reaction if it has already been used for the message or is available in the chat
       bool is_set = (m->reactions != nullptr && m->reactions->get_reaction(active_reaction.reaction_) != nullptr);
       if (is_set || (can_add_new_reactions && td::contains(active_reactions, active_reaction.reaction_))) {
-        result.emplace_back(active_reaction.reaction_, !is_premium && active_reaction.is_premium_ && !is_set);
+        result.emplace_back(active_reaction.reaction_);
       }
     }
   }
@@ -24409,7 +24409,7 @@ vector<AvailableReaction> MessagesManager::get_message_available_reactions(const
           get_reaction_type(result, reaction.get_reaction()) == AvailableReactionType::Unavailable) {
         CHECK(!can_use_reactions ||
               get_reaction_type(active_reactions_, reaction.get_reaction()) == AvailableReactionType::Unavailable);
-        result.emplace_back(reaction.get_reaction(), false);
+        result.emplace_back(reaction.get_reaction());
       }
     }
   }

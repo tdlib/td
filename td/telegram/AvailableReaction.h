@@ -14,12 +14,9 @@ namespace td {
 
 struct AvailableReaction {
   string reaction_;
-  bool is_premium_;
 
-  AvailableReaction(const string &reaction, bool is_premium) : reaction_(reaction), is_premium_(is_premium) {
+  explicit AvailableReaction(const string &reaction) : reaction_(reaction) {
   }
-
-  td_api::object_ptr<td_api::availableReaction> get_available_reaction_object() const;
 };
 
 bool operator==(const AvailableReaction &lhs, const AvailableReaction &rhs);

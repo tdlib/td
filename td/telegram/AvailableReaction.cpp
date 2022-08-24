@@ -11,11 +11,11 @@
 namespace td {
 
 AvailableReactionType get_reaction_type(const vector<AvailableReaction> &available_reactions, const string &reaction) {
+  if (reaction[0] == '#') {
+    return AvailableReactionType::NeedsPremium;
+  }
   for (auto &available_reaction : available_reactions) {
     if (available_reaction.reaction_ == reaction) {
-      if (available_reaction.is_premium_) {
-        return AvailableReactionType::NeedsPremium;
-      }
       return AvailableReactionType::Available;
     }
   }
@@ -50,12 +50,8 @@ vector<string> get_active_reactions(const vector<string> &available_reactions,
   return result;
 }
 
-td_api::object_ptr<td_api::availableReaction> AvailableReaction::get_available_reaction_object() const {
-  return td_api::make_object<td_api::availableReaction>(reaction_, is_premium_);
-}
-
 bool operator==(const AvailableReaction &lhs, const AvailableReaction &rhs) {
-  return lhs.reaction_ == rhs.reaction_ && lhs.is_premium_ == rhs.is_premium_;
+  return lhs.reaction_ == rhs.reaction_;
 }
 
 }  // namespace td

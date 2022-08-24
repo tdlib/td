@@ -5242,7 +5242,7 @@ void Td::on_request(uint64 id, const td_api::getMessageAvailableReactions &reque
     send_closure(actor_id(this), &Td::send_error, id, r_reactions.move_as_error());
   } else {
     auto reactions =
-        transform(r_reactions.ok(), [](auto &reaction) { return reaction.get_available_reaction_object(); });
+        transform(r_reactions.ok(), [](auto &reaction) { return get_reaction_type_object(reaction.reaction_); });
     send_closure(actor_id(this), &Td::send_result, id,
                  td_api::make_object<td_api::availableReactions>(std::move(reactions)));
   }
