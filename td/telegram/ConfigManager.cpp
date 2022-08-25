@@ -1817,13 +1817,15 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
   if (ignored_restriction_reasons.empty()) {
     options.set_option_empty("ignored_restriction_reasons");
 
-    if (options.get_option_boolean("ignore_sensitive_content_restrictions", true)) {
+    if (options.get_option_boolean("ignore_sensitive_content_restrictions", true) ||
+        options.get_option_boolean("can_ignore_sensitive_content_restrictions", true)) {
       get_content_settings(Auto());
     }
   } else {
     options.set_option_string("ignored_restriction_reasons", ignored_restriction_reasons);
 
-    if (!options.get_option_boolean("can_ignore_sensitive_content_restrictions")) {
+    if (!options.get_option_boolean("can_ignore_sensitive_content_restrictions") ||
+        !options.get_option_boolean("ignore_sensitive_content_restrictions")) {
       get_content_settings(Auto());
     }
   }
