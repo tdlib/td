@@ -46,7 +46,8 @@ class InlineQueriesManager final : public Actor {
                            Promise<Unit> &&promise) const;
 
   void get_simple_web_view_url(UserId bot_user_id, string &&url,
-                               const td_api::object_ptr<td_api::themeParameters> &theme, Promise<string> &&promise);
+                               const td_api::object_ptr<td_api::themeParameters> &theme, string &&platform,
+                               Promise<string> &&promise);
 
   void send_web_view_data(UserId bot_user_id, string &&button_text, string &&data, Promise<Unit> &&promise) const;
 

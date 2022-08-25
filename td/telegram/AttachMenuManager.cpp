@@ -49,8 +49,8 @@ class RequestWebViewQuery final : public Td::ResultHandler {
   }
 
   void send(DialogId dialog_id, UserId bot_user_id, tl_object_ptr<telegram_api::InputUser> &&input_user, string &&url,
-            td_api::object_ptr<td_api::themeParameters> &&theme, MessageId reply_to_message_id, bool silent,
-            DialogId as_dialog_id) {
+            td_api::object_ptr<td_api::themeParameters> &&theme, string &&platform, MessageId reply_to_message_id,
+            bool silent, DialogId as_dialog_id) {
     dialog_id_ = dialog_id;
     bot_user_id_ = bot_user_id;
     reply_to_message_id_ = reply_to_message_id;
@@ -104,7 +104,7 @@ class RequestWebViewQuery final : public Td::ResultHandler {
 
     send_query(G()->net_query_creator().create(telegram_api::messages_requestWebView(
         flags, false /*ignored*/, false /*ignored*/, std::move(input_peer), std::move(input_user), url, start_parameter,
-        std::move(theme_parameters), string(), reply_to_message_id.get_server_message_id().get(),
+        std::move(theme_parameters), platform, reply_to_message_id.get_server_message_id().get(),
         std::move(as_input_peer))));
   }
 
@@ -601,7 +601,7 @@ void AttachMenuManager::schedule_ping_web_view() {
 
 void AttachMenuManager::request_web_view(DialogId dialog_id, UserId bot_user_id, MessageId reply_to_message_id,
                                          string &&url, td_api::object_ptr<td_api::themeParameters> &&theme,
-                                         Promise<td_api::object_ptr<td_api::webAppInfo>> &&promise) {
+                                         string &&platform, Promise<td_api::object_ptr<td_api::webAppInfo>> &&promise) {
   TRY_STATUS_PROMISE(promise, td_->contacts_manager_->get_bot_data(bot_user_id));
   TRY_RESULT_PROMISE(promise, input_user, td_->contacts_manager_->get_input_user(bot_user_id));
 
@@ -635,8 +635,8 @@ void AttachMenuManager::request_web_view(DialogId dialog_id, UserId bot_user_id,
   DialogId as_dialog_id = td_->messages_manager_->get_dialog_default_send_message_as_dialog_id(dialog_id);
 
   td_->create_handler<RequestWebViewQuery>(std::move(promise))
-      ->send(dialog_id, bot_user_id, std::move(input_user), std::move(url), std::move(theme), reply_to_message_id,
-             silent, as_dialog_id);
+      ->send(dialog_id, bot_user_id, std::move(input_user), std::move(url), std::move(theme), std::move(platform),
+             reply_to_message_id, silent, as_dialog_id);
 }
 
 void AttachMenuManager::open_web_view(int64 query_id, DialogId dialog_id, UserId bot_user_id,

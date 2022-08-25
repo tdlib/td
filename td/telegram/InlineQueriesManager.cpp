@@ -174,7 +174,7 @@ class RequestSimpleWebViewQuery final : public Td::ResultHandler {
   }
 
   void send(tl_object_ptr<telegram_api::InputUser> &&input_user, const string &url,
-            const td_api::object_ptr<td_api::themeParameters> &theme) {
+            const td_api::object_ptr<td_api::themeParameters> &theme, string &&platform) {
     tl_object_ptr<telegram_api::dataJSON> theme_parameters;
     int32 flags = 0;
     if (theme != nullptr) {
@@ -184,7 +184,7 @@ class RequestSimpleWebViewQuery final : public Td::ResultHandler {
       theme_parameters->data_ = ThemeManager::get_theme_parameters_json_string(theme, false);
     }
     send_query(G()->net_query_creator().create(telegram_api::messages_requestSimpleWebView(
-        flags, std::move(input_user), url, std::move(theme_parameters), string())));
+        flags, std::move(input_user), url, std::move(theme_parameters), platform)));
   }
 
   void on_result(BufferSlice packet) final {
@@ -499,11 +499,12 @@ void InlineQueriesManager::answer_inline_query(
 
 void InlineQueriesManager::get_simple_web_view_url(UserId bot_user_id, string &&url,
                                                    const td_api::object_ptr<td_api::themeParameters> &theme,
-                                                   Promise<string> &&promise) {
+                                                   string &&platform, Promise<string> &&promise) {
   TRY_RESULT_PROMISE(promise, input_user, td_->contacts_manager_->get_input_user(bot_user_id));
   TRY_RESULT_PROMISE(promise, bot_data, td_->contacts_manager_->get_bot_data(bot_user_id));
 
-  td_->create_handler<RequestSimpleWebViewQuery>(std::move(promise))->send(std::move(input_user), url, theme);
+  td_->create_handler<RequestSimpleWebViewQuery>(std::move(promise))
+      ->send(std::move(input_user), url, theme, std::move(platform));
 }
 
 void InlineQueriesManager::send_web_view_data(UserId bot_user_id, string &&button_text, string &&data,

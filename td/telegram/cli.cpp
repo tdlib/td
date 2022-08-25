@@ -3582,7 +3582,7 @@ class CliClient final : public Actor {
       UserId user_id;
       string url;
       get_args(args, user_id, url);
-      send_request(td_api::make_object<td_api::getWebAppUrl>(user_id, url, get_theme_parameters()));
+      send_request(td_api::make_object<td_api::getWebAppUrl>(user_id, url, get_theme_parameters(), "android"));
     } else if (op == "swad") {
       UserId user_id;
       string button_text;
@@ -3595,7 +3595,7 @@ class CliClient final : public Actor {
       string url;
       MessageId reply_to_message_id;
       get_args(args, chat_id, bot_user_id, url, reply_to_message_id);
-      send_request(td_api::make_object<td_api::openWebApp>(chat_id, bot_user_id, url, get_theme_parameters(),
+      send_request(td_api::make_object<td_api::openWebApp>(chat_id, bot_user_id, url, get_theme_parameters(), "android",
                                                            reply_to_message_id));
     } else if (op == "cwa") {
       int64 launch_id;

@@ -5235,7 +5235,8 @@ answerInlineQuery inline_query_id:int64 is_personal:Bool results:vector<InputInl
 //@bot_user_id Identifier of the target bot
 //@url The URL from the keyboardButtonTypeWebApp button
 //@theme Preferred Web App theme; pass null to use the default theme
-getWebAppUrl bot_user_id:int53 url:string theme:themeParameters = HttpUrl;
+//@application_name Short name of the application; 0-64 English letters, digits, and underscores
+getWebAppUrl bot_user_id:int53 url:string theme:themeParameters application_name:string = HttpUrl;
 
 //@description Sends data received from a keyboardButtonTypeWebApp Web App to a bot
 //@bot_user_id Identifier of the target bot @button_text Text of the keyboardButtonTypeWebApp button, which opened the Web App @data Received data
@@ -5247,8 +5248,9 @@ sendWebAppData bot_user_id:int53 button_text:string data:string = Ok;
 //@bot_user_id Identifier of the bot, providing the Web App
 //@url The URL from an inlineKeyboardButtonTypeWebApp button, a botMenuButton button, or an internalLinkTypeAttachmentMenuBot link, or an empty string otherwise
 //@theme Preferred Web App theme; pass null to use the default theme
+//@application_name Short name of the application; 0-64 English letters, digits, and underscores
 //@reply_to_message_id Identifier of the replied message for the message sent by the Web App; 0 if none
-openWebApp chat_id:int53 bot_user_id:int53 url:string theme:themeParameters reply_to_message_id:int53 = WebAppInfo;
+openWebApp chat_id:int53 bot_user_id:int53 url:string theme:themeParameters application_name:string reply_to_message_id:int53 = WebAppInfo;
 
 //@description Informs TDLib that a previously opened Web App was closed @web_app_launch_id Identifier of Web App launch, received from openWebApp
 closeWebApp web_app_launch_id:int64 = Ok;
