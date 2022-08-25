@@ -24390,7 +24390,6 @@ vector<AvailableReaction> MessagesManager::get_message_available_reactions(const
 
   vector<AvailableReaction> result;
   if (can_use_reactions) {
-    bool is_premium = td_->option_manager_->get_option_boolean("is_premium");
     int64 reactions_uniq_max = td_->option_manager_->get_option_integer("reactions_uniq_max", 11);
     bool can_add_new_reactions =
         m->reactions == nullptr || static_cast<int64>(m->reactions->reactions_.size()) < reactions_uniq_max;

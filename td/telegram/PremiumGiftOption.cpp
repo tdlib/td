@@ -28,11 +28,23 @@ PremiumGiftOption::PremiumGiftOption(telegram_api::object_ptr<telegram_api::prem
   }
 }
 
+PremiumGiftOption::PremiumGiftOption(telegram_api::object_ptr<telegram_api::premiumSubscriptionOption> &&option)
+    : months_(option->months_)
+    , currency_(std::move(option->currency_))
+    , amount_(option->amount_)
+    , bot_url_(std::move(option->bot_url_))
+    , store_product_(std::move(option->store_product_)) {
+  if (amount_ <= 0 || !check_currency_amount(amount_)) {
+    LOG(ERROR) << "Receive invalid premium gift option amount " << amount_;
+    amount_ = static_cast<int64>(1) << 40;
+  }
+}
+
 double PremiumGiftOption::get_monthly_price() const {
   return static_cast<double>(amount_) / static_cast<double>(months_);
 }
 
-td_api::object_ptr<td_api::premiumGiftOption> PremiumGiftOption::get_premium_gift_option_object(
+td_api::object_ptr<td_api::premiumPaymentOption> PremiumGiftOption::get_premium_payment_option_object(
     const PremiumGiftOption &base_option) const {
   auto link_type = LinkManager::parse_internal_link(bot_url_, true);
   int32 discount_percentage = 0;
@@ -42,7 +54,7 @@ td_api::object_ptr<td_api::premiumGiftOption> PremiumGiftOption::get_premium_gif
       discount_percentage = static_cast<int32>(100 * (1.0 - relative_price));
     }
   }
-  return td_api::make_object<td_api::premiumGiftOption>(
+  return td_api::make_object<td_api::premiumPaymentOption>(
       currency_, amount_, discount_percentage, months_, store_product_,
       link_type == nullptr ? nullptr : link_type->get_internal_link_type_object());
 }

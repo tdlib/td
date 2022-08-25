@@ -466,14 +466,14 @@ chatPermissions can_send_messages:Bool can_send_media_messages:Bool can_send_pol
 chatAdministratorRights can_manage_chat:Bool can_change_info:Bool can_post_messages:Bool can_edit_messages:Bool can_delete_messages:Bool can_invite_users:Bool can_restrict_members:Bool can_pin_messages:Bool can_promote_members:Bool can_manage_video_chats:Bool is_anonymous:Bool = ChatAdministratorRights;
 
 
-//@description Describes an option for gifting Telegram Premium to a user
+//@description Describes an option for buying Telegram Premium to a user
 //@currency ISO 4217 currency code for Telegram Premium subscription payment
 //@amount The amount to pay, in the smallest units of the currency
-//@discount_percentage The discount associated with this gift option, as a percentage
+//@discount_percentage The discount associated with this option, as a percentage
 //@month_count Number of month the Telegram Premium subscription will be active
 //@store_product_id Identifier of the store product associated with the option
-//@payment_link An internal link to be opened for gifting Telegram Premium to the user if store payment isn't possible; may be null if direct payment isn't available
-premiumGiftOption currency:string amount:int53 discount_percentage:int32 month_count:int32 store_product_id:string payment_link:InternalLinkType = PremiumGiftOption;
+//@payment_link An internal link to be opened for buying Telegram Premium to the user if store payment isn't possible; may be null if direct payment isn't available
+premiumPaymentOption currency:string amount:int53 discount_percentage:int32 month_count:int32 store_product_id:string payment_link:InternalLinkType = PremiumPaymentOption;
 
 
 //@description Represents a user
@@ -524,7 +524,7 @@ botInfo share_text:string description:string photo:photo animation:animation men
 //@premium_gift_options The list of available options for gifting Telegram Premium to the user
 //@group_in_common_count Number of group chats where both the other user and the current user are a member; 0 for the current user
 //@bot_info For bots, information about the bot; may be null
-userFullInfo photo:chatPhoto is_blocked:Bool can_be_called:Bool supports_video_calls:Bool has_private_calls:Bool has_private_forwards:Bool has_restricted_voice_and_video_note_messages:Bool need_phone_number_privacy_exception:Bool bio:formattedText premium_gift_options:vector<premiumGiftOption> group_in_common_count:int32 bot_info:botInfo = UserFullInfo;
+userFullInfo photo:chatPhoto is_blocked:Bool can_be_called:Bool supports_video_calls:Bool has_private_calls:Bool has_private_forwards:Bool has_restricted_voice_and_video_note_messages:Bool need_phone_number_privacy_exception:Bool bio:formattedText premium_gift_options:vector<premiumPaymentOption> group_in_common_count:int32 bot_info:botInfo = UserFullInfo;
 
 //@description Represents a list of users @total_count Approximate total number of users found @user_ids A list of user identifiers
 users total_count:int32 user_ids:vector<int53> = Users;
@@ -3056,10 +3056,9 @@ premiumFeaturePromotionAnimation feature:PremiumFeature animation:animation = Pr
 
 //@description Contains state of Telegram Premium subscription and promotion videos for Premium features
 //@state Text description of the state of the current Premium subscription; may be empty if the current user has no Telegram Premium subscription
-//@currency ISO 4217 currency code for Telegram Premium subscription payment
-//@monthly_amount Monthly subscription payment for Telegram Premium subscription, in the smallest units of the currency
+//@payment_options The list of available options for buying Telegram Premium
 //@animations The list of available promotion animations for Premium features
-premiumState state:formattedText currency:string monthly_amount:int53 animations:vector<premiumFeaturePromotionAnimation> = PremiumState;
+premiumState state:formattedText payment_options:vector<premiumPaymentOption> animations:vector<premiumFeaturePromotionAnimation> = PremiumState;
 
 
 //@class StorePaymentPurpose @description Describes a purpose of an in-store payment

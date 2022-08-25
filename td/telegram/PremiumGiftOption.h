@@ -29,8 +29,9 @@ class PremiumGiftOption {
  public:
   PremiumGiftOption() = default;
   explicit PremiumGiftOption(telegram_api::object_ptr<telegram_api::premiumGiftOption> &&option);
+  explicit PremiumGiftOption(telegram_api::object_ptr<telegram_api::premiumSubscriptionOption> &&option);
 
-  td_api::object_ptr<td_api::premiumGiftOption> get_premium_gift_option_object(
+  td_api::object_ptr<td_api::premiumPaymentOption> get_premium_payment_option_object(
       const PremiumGiftOption &base_option) const;
 
   template <class StorerT>
