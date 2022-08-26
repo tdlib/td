@@ -157,12 +157,9 @@ class GetPremiumPromoQuery final : public Td::ResultHandler {
     }
 
     auto period_options = get_premium_gift_options(std::move(promo->period_options_));
-    auto base_premium_gift_it = std::min_element(period_options.begin(), period_options.end());
-    auto payment_options = transform(period_options, [&base_premium_gift_it](const auto &option) {
-      return option.get_premium_payment_option_object(*base_premium_gift_it);
-    });
     promise_.set_value(td_api::make_object<td_api::premiumState>(get_formatted_text_object(state, true, 0),
-                                                                 std::move(payment_options), std::move(animations)));
+                                                                 get_premium_payment_options_object(period_options),
+                                                                 std::move(animations)));
   }
 
   void on_error(Status status) final {

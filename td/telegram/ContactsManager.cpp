@@ -16850,18 +16850,14 @@ tl_object_ptr<td_api::userFullInfo> ContactsManager::get_user_full_info_object(U
     }
     bio_object = get_formatted_text_object(bio, true, 0);
   }
-  auto base_premium_gift_it =
-      std::min_element(user_full->premium_gift_options.begin(), user_full->premium_gift_options.end());
-  auto premium_gift_options = transform(user_full->premium_gift_options, [&base_premium_gift_it](const auto &option) {
-    return option.get_premium_payment_option_object(*base_premium_gift_it);
-  });
   auto voice_messages_forbidden = is_premium ? user_full->voice_messages_forbidden : false;
-  return make_tl_object<td_api::userFullInfo>(
-      get_chat_photo_object(td_->file_manager_.get(), user_full->photo), user_full->is_blocked,
-      user_full->can_be_called, user_full->supports_video_calls, user_full->has_private_calls,
-      !user_full->private_forward_name.empty(), voice_messages_forbidden,
-      user_full->need_phone_number_privacy_exception, std::move(bio_object), std::move(premium_gift_options),
-      user_full->common_chat_count, std::move(bot_info));
+  return make_tl_object<td_api::userFullInfo>(get_chat_photo_object(td_->file_manager_.get(), user_full->photo),
+                                              user_full->is_blocked, user_full->can_be_called,
+                                              user_full->supports_video_calls, user_full->has_private_calls,
+                                              !user_full->private_forward_name.empty(), voice_messages_forbidden,
+                                              user_full->need_phone_number_privacy_exception, std::move(bio_object),
+                                              get_premium_payment_options_object(user_full->premium_gift_options),
+                                              user_full->common_chat_count, std::move(bot_info));
 }
 
 td_api::object_ptr<td_api::updateBasicGroup> ContactsManager::get_update_unknown_basic_group_object(ChatId chat_id) {

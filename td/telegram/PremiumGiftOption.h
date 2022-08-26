@@ -52,4 +52,7 @@ vector<PremiumGiftOption> get_premium_gift_options(
 vector<PremiumGiftOption> get_premium_gift_options(
     vector<telegram_api::object_ptr<telegram_api::premiumSubscriptionOption>> &&options);
 
+vector<td_api::object_ptr<td_api::premiumPaymentOption>> get_premium_payment_options_object(
+    const vector<PremiumGiftOption> &options);
+
 }  // namespace td

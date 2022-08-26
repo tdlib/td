@@ -13,6 +13,7 @@
 #include "td/utils/common.h"
 #include "td/utils/logging.h"
 
+#include <algorithm>
 #include <tuple>
 
 namespace td {
@@ -92,6 +93,17 @@ vector<PremiumGiftOption> get_premium_gift_options(
       std::move(options), [](auto &&premium_gift_option) { return PremiumGiftOption(std::move(premium_gift_option)); });
   td::remove_if(premium_gift_options, [](const auto &premium_gift_option) { return !premium_gift_option.is_valid(); });
   return premium_gift_options;
+}
+
+vector<td_api::object_ptr<td_api::premiumPaymentOption>> get_premium_payment_options_object(
+    const vector<PremiumGiftOption> &options) {
+  if (options.empty()) {
+    return {};
+  }
+  auto base_premium_option_it = std::min_element(options.begin(), options.end());
+  return transform(options, [&base_premium_option_it](const auto &option) {
+    return option.get_premium_payment_option_object(*base_premium_option_it);
+  });
 }
 
 }  // namespace td
