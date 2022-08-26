@@ -156,8 +156,7 @@ class GetPremiumPromoQuery final : public Td::ResultHandler {
                                                                                          std::move(animation_object)));
     }
 
-    auto period_options = transform(std::move(promo->period_options_),
-                                    [](auto &&period_option) { return PremiumGiftOption(std::move(period_option)); });
+    auto period_options = get_premium_gift_options(std::move(promo->period_options_));
     auto base_premium_gift_it = std::min_element(period_options.begin(), period_options.end());
     auto payment_options = transform(period_options, [&base_premium_gift_it](const auto &option) {
       return option.get_premium_payment_option_object(*base_premium_gift_it);

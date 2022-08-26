@@ -10901,9 +10901,7 @@ void ContactsManager::on_get_user_full(tl_object_ptr<telegram_api::userFull> &&u
   bool supports_video_calls = user->video_calls_available_ && !user->phone_calls_private_;
   bool has_private_calls = user->phone_calls_private_;
   bool voice_messages_forbidden = u->is_premium ? user->voice_messages_forbidden_ : false;
-  auto premium_gift_options = transform(std::move(user->premium_gifts_), [](auto &&premium_gift_option) {
-    return PremiumGiftOption(std::move(premium_gift_option));
-  });
+  auto premium_gift_options = get_premium_gift_options(std::move(user->premium_gifts_));
   AdministratorRights group_administrator_rights(user->bot_group_admin_rights_, ChannelType::Megagroup);
   AdministratorRights broadcast_administrator_rights(user->bot_broadcast_admin_rights_, ChannelType::Broadcast);
   if (user_full->can_be_called != can_be_called || user_full->supports_video_calls != supports_video_calls ||
