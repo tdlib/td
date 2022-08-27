@@ -2601,6 +2601,8 @@ class MessagesManager final : public Actor {
   bool set_dialog_is_pinned(DialogListId dialog_list_id, Dialog *d, bool is_pinned,
                             bool need_update_dialog_lists = true);
 
+  void save_pinned_folder_dialog_ids(const DialogList &list) const;
+
   void set_dialog_is_marked_as_unread(Dialog *d, bool is_marked_as_unread);
 
   void set_dialog_is_blocked(Dialog *d, bool is_blocked);

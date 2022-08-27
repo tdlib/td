@@ -15116,18 +15116,24 @@ bool MessagesManager::set_dialog_is_pinned(DialogListId dialog_list_id, Dialog *
   }
 
   LOG(INFO) << "Set " << d->dialog_id << " is pinned in " << dialog_list_id << " to " << is_pinned;
-  if (dialog_list_id.is_folder() && G()->parameters().use_message_db) {
-    G()->td_db()->get_binlog_pmc()->set(
-        PSTRING() << "pinned_dialog_ids" << dialog_list_id.get_folder_id().get(),
-        implode(transform(list->pinned_dialogs_,
-                          [](auto &pinned_dialog) { return PSTRING() << pinned_dialog.get_dialog_id().get(); }),
-                ','));
-  }
+
+  save_pinned_folder_dialog_ids(*list);
 
   if (need_update_dialog_lists) {
     update_dialog_lists(d, std::move(positions), true, false, "set_dialog_is_pinned");
   }
   return true;
+}
+
+void MessagesManager::save_pinned_folder_dialog_ids(const DialogList &list) const {
+  if (!list.dialog_list_id.is_folder() || !G()->parameters().use_message_db) {
+    return;
+  }
+  G()->td_db()->get_binlog_pmc()->set(
+      PSTRING() << "pinned_dialog_ids" << list.dialog_list_id.get_folder_id().get(),
+      implode(transform(list.pinned_dialogs_,
+                        [](auto &pinned_dialog) { return PSTRING() << pinned_dialog.get_dialog_id().get(); }),
+              ','));
 }
 
 void MessagesManager::set_dialog_reply_markup(Dialog *d, MessageId message_id) {
@@ -16777,8 +16783,9 @@ vector<DialogId> MessagesManager::get_dialogs(DialogListId dialog_list_id, Dialo
     }
   }
 
-  bool need_reload_pinned_dialogs = false;
   if (!list.pinned_dialogs_.empty() && offset < list.pinned_dialogs_.back() && limit > 0) {
+    bool need_reload_pinned_dialogs = false;
+    bool need_remove_unknown_secret_chats = false;
     for (auto &pinned_dialog : list.pinned_dialogs_) {
       if (offset < pinned_dialog) {
         auto dialog_id = pinned_dialog.get_dialog_id();
@@ -16787,6 +16794,8 @@ vector<DialogId> MessagesManager::get_dialogs(DialogListId dialog_list_id, Dialo
           LOG(ERROR) << "Failed to load pinned " << dialog_id << " from " << dialog_list_id;
           if (dialog_id.get_type() != DialogType::SecretChat) {
             need_reload_pinned_dialogs = true;
+          } else {
+            need_remove_unknown_secret_chats = true;
           }
           continue;
         }
@@ -16802,9 +16811,20 @@ vector<DialogId> MessagesManager::get_dialogs(DialogListId dialog_list_id, Dialo
         }
       }
     }
-  }
-  if (need_reload_pinned_dialogs) {
-    reload_pinned_dialogs(dialog_list_id, Auto());
+    if (need_reload_pinned_dialogs) {
+      reload_pinned_dialogs(dialog_list_id, Auto());
+    }
+    if (need_remove_unknown_secret_chats) {
+      td::remove_if(list.pinned_dialogs_, [this, &list](const DialogDate &dialog_date) {
+        auto dialog_id = dialog_date.get_dialog_id();
+        if (dialog_id.get_type() == DialogType::SecretChat && !have_dialog_force(dialog_id, "get_dialogs 2")) {
+          list.pinned_dialog_id_orders_.erase(dialog_id);
+          return true;
+        }
+        return false;
+      });
+      save_pinned_folder_dialog_ids(list);
+    }
   }
   update_list_last_pinned_dialog_date(list);
 
@@ -37510,7 +37530,7 @@ bool MessagesManager::do_update_list_last_pinned_dialog_date(DialogList &list) c
   }
 
   DialogDate max_dialog_date = MIN_DIALOG_DATE;
-  for (auto &pinned_dialog : list.pinned_dialogs_) {
+  for (const auto &pinned_dialog : list.pinned_dialogs_) {
     if (!have_dialog(pinned_dialog.get_dialog_id())) {
       break;
     }
