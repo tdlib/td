@@ -120,7 +120,14 @@ struct DialogListIdHash {
 
 inline StringBuilder &operator<<(StringBuilder &string_builder, DialogListId dialog_list_id) {
   if (dialog_list_id.is_folder()) {
-    return string_builder << "chat list " << dialog_list_id.get_folder_id();
+    auto folder_id = dialog_list_id.get_folder_id();
+    if (folder_id == FolderId::archive()) {
+      return string_builder << "Archive chat list";
+    }
+    if (folder_id == FolderId::main()) {
+      return string_builder << "Main chat list";
+    }
+    return string_builder << "chat list " << folder_id;
   }
   if (dialog_list_id.is_filter()) {
     return string_builder << "chat list " << dialog_list_id.get_filter_id();
