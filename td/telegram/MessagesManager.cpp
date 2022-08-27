@@ -16841,6 +16841,7 @@ vector<DialogId> MessagesManager::get_dialogs(DialogListId dialog_list_id, Dialo
 
   if ((!result.empty() && (!exact_limit || limit == 0)) || force || list.list_last_dialog_date_ == MAX_DIALOG_DATE) {
     if (limit > 0 && list.list_last_dialog_date_ != MAX_DIALOG_DATE) {
+      LOG(INFO) << "Preload next " << limit << " chats in " << dialog_list_id;
       load_dialog_list(list, limit, Promise<Unit>());
     }
 
@@ -16874,7 +16875,7 @@ void MessagesManager::load_dialog_list(DialogList &list, int32 limit, Promise<Un
   } else {
     LOG(ERROR) << "There is nothing to load for " << list.dialog_list_id << " with folders "
                << get_dialog_list_folder_ids(list);
-    promise.set_value(Unit());
+    promise.set_error(Status::Error(404, "Not Found"));
   }
 }
 
