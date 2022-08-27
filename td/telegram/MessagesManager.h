@@ -1270,6 +1270,7 @@ class MessagesManager final : public Actor {
     int32 pending_join_request_count = 0;
     vector<UserId> pending_join_request_user_ids;
     int32 have_full_history_source = 0;
+    int32 unload_dialog_delay_seed = 0;
 
     FolderId folder_id;
     vector<DialogListId> dialog_list_ids;  // TODO replace with mask
@@ -2088,7 +2089,7 @@ class MessagesManager final : public Actor {
 
   int32 get_unload_dialog_delay() const;
 
-  int32 get_next_unload_dialog_delay() const;
+  double get_next_unload_dialog_delay(Dialog *d) const;
 
   void unload_dialog(DialogId dialog_id);
 

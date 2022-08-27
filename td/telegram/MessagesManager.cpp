@@ -11626,9 +11626,12 @@ int32 MessagesManager::get_unload_dialog_delay() const {
   return narrow_cast<int32>(td_->option_manager_->get_option_integer("message_unload_delay", default_unload_delay));
 }
 
-int32 MessagesManager::get_next_unload_dialog_delay() const {
-  auto delay = get_unload_dialog_delay();
-  return Random::fast(delay / 4, delay / 2);
+double MessagesManager::get_next_unload_dialog_delay(Dialog *d) const {
+  if (d->unload_dialog_delay_seed == 0) {
+    d->unload_dialog_delay_seed = Random::fast(1, 1000000000);
+  }
+  auto delay = get_unload_dialog_delay() / 4;
+  return delay + delay * 1e-9 * d->unload_dialog_delay_seed;
 }
 
 void MessagesManager::unload_dialog(DialogId dialog_id) {
@@ -11676,7 +11679,7 @@ void MessagesManager::unload_dialog(DialogId dialog_id) {
 
   if (has_left_to_unload_messages) {
     LOG(DEBUG) << "Need to unload more messages in " << dialog_id;
-    pending_unload_dialog_timeout_.add_timeout_in(d->dialog_id.get(), get_next_unload_dialog_delay());
+    pending_unload_dialog_timeout_.add_timeout_in(d->dialog_id.get(), get_next_unload_dialog_delay(d));
   } else {
     d->has_unload_timeout = false;
   }
@@ -21221,7 +21224,7 @@ void MessagesManager::close_dialog(Dialog *d) {
 
   if (is_message_unload_enabled()) {
     CHECK(!d->has_unload_timeout);
-    pending_unload_dialog_timeout_.set_timeout_in(dialog_id.get(), get_next_unload_dialog_delay());
+    pending_unload_dialog_timeout_.set_timeout_in(dialog_id.get(), get_next_unload_dialog_delay(d));
     d->has_unload_timeout = true;
   }
 
@@ -34708,7 +34711,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
 
   if (!d->is_opened && d->messages != nullptr && is_message_unload_enabled() && !d->has_unload_timeout) {
     LOG(INFO) << "Schedule unload of " << dialog_id;
-    pending_unload_dialog_timeout_.add_timeout_in(dialog_id.get(), get_next_unload_dialog_delay());
+    pending_unload_dialog_timeout_.add_timeout_in(dialog_id.get(), get_next_unload_dialog_delay(d));
     d->has_unload_timeout = true;
   }
 
