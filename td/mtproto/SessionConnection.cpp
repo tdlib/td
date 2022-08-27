@@ -720,11 +720,13 @@ void SessionConnection::on_read(size_t size) {
 }
 
 SessionConnection::SessionConnection(Mode mode, unique_ptr<RawConnection> raw_connection, AuthData *auth_data)
-    : raw_connection_(std::move(raw_connection)), auth_data_(auth_data) {
+    : random_delay_(Random::fast(0, 5000000) * 1e-6)
+    , state_(Init)
+    , mode_(mode)
+    , created_at_(Time::now())
+    , raw_connection_(std::move(raw_connection))
+    , auth_data_(auth_data) {
   CHECK(raw_connection_);
-  state_ = Init;
-  mode_ = mode;
-  created_at_ = Time::now();
 }
 
 PollableFdInfo &SessionConnection::get_poll_info() {
@@ -969,10 +971,11 @@ void SessionConnection::flush_packet() {
   {
     // LOG(ERROR) << (auth_data_->get_header().empty() ? '-' : '+');
     uint64 parent_message_id = 0;
-    auto storer = PacketStorer<CryptoImpl>(
-        queries, auth_data_->get_header(), std::move(to_ack), ping_id, ping_disconnect_delay() + 2, max_delay,
-        max_after, max_wait, future_salt_n, to_get_state_info, to_resend_answer, to_cancel_answer, destroy_auth_key,
-        auth_data_, &container_id, &get_state_info_id, &resend_answer_id, &ping_message_id, &parent_message_id);
+    auto storer = PacketStorer<CryptoImpl>(queries, auth_data_->get_header(), std::move(to_ack), ping_id,
+                                           static_cast<int>(ping_disconnect_delay() + 2.0), max_delay, max_after,
+                                           max_wait, future_salt_n, to_get_state_info, to_resend_answer,
+                                           to_cancel_answer, destroy_auth_key, auth_data_, &container_id,
+                                           &get_state_info_id, &resend_answer_id, &ping_message_id, &parent_message_id);
 
     auto quick_ack_token = use_quick_ack ? parent_message_id : 0;
     send_crypto(storer, quick_ack_token);

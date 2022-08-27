@@ -139,32 +139,31 @@ class SessionConnection final
   bool is_main_ = false;
   bool was_moved_ = false;
 
-  int rtt() const {
-    return max(2, static_cast<int>(raw_connection_->extra().rtt * 1.5 + 1));
+  double rtt() const {
+    return max(2.0, raw_connection_->extra().rtt * 1.5 + 1);
   }
 
-  int32 read_disconnect_delay() const {
-    return online_flag_ ? rtt() * 7 / 2 : 135;
+  double read_disconnect_delay() const {
+    return online_flag_ ? rtt() * 3.5 : 135 + random_delay_;
   }
 
-  int32 ping_disconnect_delay() const {
-    return (online_flag_ && is_main_) ? rtt() * 5 / 2 : 135;
+  double ping_disconnect_delay() const {
+    return online_flag_ && is_main_ ? rtt() * 2.5 : 135 + random_delay_;
   }
 
-  int32 ping_may_delay() const {
-    return online_flag_ ? rtt() / 2 : 30;
+  double ping_may_delay() const {
+    return online_flag_ ? rtt() * 0.5 : 30 + random_delay_;
   }
 
-  int32 ping_must_delay() const {
-    return online_flag_ ? rtt() : 60;
+  double ping_must_delay() const {
+    return online_flag_ ? rtt() : 60 + random_delay_;
   }
 
   double http_max_wait() const {
     return 25.0;  // 25s. Longer could be closed by proxy
   }
-  static constexpr int HTTP_MAX_AFTER = 10;              // 0.01s
-  static constexpr int HTTP_MAX_DELAY = 30;              // 0.03s
-  static constexpr int TEMP_KEY_TIMEOUT = 60 * 60 * 24;  // one day
+  static constexpr int HTTP_MAX_AFTER = 10;  // 0.01s
+  static constexpr int HTTP_MAX_DELAY = 30;  // 0.03s
 
   vector<MtprotoQuery> to_send_;
   vector<int64> to_ack_;
@@ -182,6 +181,7 @@ class SessionConnection final
   // nobody cleans up this map. But it should be really small.
   FlatHashMap<uint64, vector<uint64>> container_to_service_msg_;
 
+  double random_delay_ = 0;
   double last_read_at_ = 0;
   double last_ping_at_ = 0;
   double last_pong_at_ = 0;
