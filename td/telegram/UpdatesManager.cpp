@@ -473,7 +473,7 @@ Promise<> UpdatesManager::set_pts(int32 pts, const char *source) {
       last_get_difference_pts_ = get_pts();
       schedule_get_difference("rare pts getDifference");
     }
-  } else if (pts < get_pts()) {
+  } else if (pts < get_pts() && (pts > 1 || td_->option_manager_->get_option_integer("session_count") <= 1)) {
     LOG(ERROR) << "Receive wrong pts = " << pts << " from " << source << ". Current pts = " << get_pts();
   }
   return result;
