@@ -1063,7 +1063,10 @@ void UpdatesManager::on_get_updates_state(tl_object_ptr<telegram_api::updates_st
     LOG(WARNING) << "Restore pts to " << state->pts_;
     // restoring right pts
     CHECK(pending_pts_updates_.empty());
+    auto real_running_get_difference = running_get_difference_;
+    running_get_difference_ = false;
     process_postponed_pts_updates();  // drop all updates with old pts
+    running_get_difference_ = real_running_get_difference;
     pts_manager_.init(state->pts_);
     last_get_difference_pts_ = get_pts();
     last_pts_save_time_ = Time::now() - 2 * MAX_PTS_SAVE_DELAY;

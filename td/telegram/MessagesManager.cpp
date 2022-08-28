@@ -6396,8 +6396,8 @@ void MessagesManager::skip_old_pending_pts_update(tl_object_ptr<telegram_api::Up
     auto update_new_message = static_cast<telegram_api::updateNewMessage *>(update.get());
     auto full_message_id = get_full_message_id(update_new_message->message_, false);
     if (update_message_ids_.count(full_message_id) > 0) {
-      if (new_pts == old_pts) {  // otherwise message can be already deleted
-        // apply sent message anyway
+      if (new_pts == old_pts || old_pts == std::numeric_limits<int32>::max()) {
+        // apply sent message anyway if it is definitely non-deleted or being skipped because of pts overflow
         on_get_message(std::move(update_new_message->message_), true, false, false, true, true,
                        "updateNewMessage with an awaited message");
         return;
@@ -6411,8 +6411,8 @@ void MessagesManager::skip_old_pending_pts_update(tl_object_ptr<telegram_api::Up
   if (update->get_id() == updateSentMessage::ID) {
     auto update_sent_message = static_cast<updateSentMessage *>(update.get());
     if (being_sent_messages_.count(update_sent_message->random_id_) > 0) {
-      if (new_pts == old_pts) {  // otherwise message can be already deleted
-        // apply sent message anyway
+      if (new_pts == old_pts || old_pts == std::numeric_limits<int32>::max()) {
+        // apply sent message anyway if it is definitely non-deleted or being skipped because of pts overflow
         on_send_message_success(update_sent_message->random_id_, update_sent_message->message_id_,
                                 update_sent_message->date_, update_sent_message->ttl_period_, FileId(),
                                 "process old updateSentMessage");
