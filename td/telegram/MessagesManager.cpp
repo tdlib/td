@@ -303,6 +303,7 @@ class GetDialogQuery final : public Td::ResultHandler {
 
 class GetDialogsQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
+  bool is_single_ = false;
 
  public:
   explicit GetDialogsQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
@@ -311,6 +312,7 @@ class GetDialogsQuery final : public Td::ResultHandler {
   void send(vector<InputDialogId> input_dialog_ids) {
     CHECK(!input_dialog_ids.empty());
     CHECK(input_dialog_ids.size() <= 100);
+    is_single_ = input_dialog_ids.size() == 1;
     auto input_dialog_peers = InputDialogId::get_input_dialog_peers(input_dialog_ids);
     CHECK(input_dialog_peers.size() == input_dialog_ids.size());
     send_query(G()->net_query_creator().create(telegram_api::messages_getPeerDialogs(std::move(input_dialog_peers))));
@@ -332,6 +334,9 @@ class GetDialogsQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
+    if (is_single_ && status.code() == 400) {
+      return promise_.set_value(Unit());
+    }
     promise_.set_error(std::move(status));
   }
 };
