@@ -328,24 +328,64 @@ class Evp {
   }
 
   void init_encrypt_ecb(Slice key) {
-    init(true, EVP_aes_256_ecb(), key);
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L && !defined(LIBRESSL_VERSION_NUMBER)
+    static TD_THREAD_LOCAL const EVP_CIPHER *evp_cipher;
+    if (unlikely(evp_cipher == nullptr)) {
+      init_thread_local_evp_cipher(evp_cipher, "AES-256-ECB");
+    }
+#else
+    const EVP_CIPHER *evp_cipher = EVP_aes_256_ecb();
+#endif
+    init(true, evp_cipher, key);
   }
 
   void init_decrypt_ecb(Slice key) {
-    init(false, EVP_aes_256_ecb(), key);
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L && !defined(LIBRESSL_VERSION_NUMBER)
+    static TD_THREAD_LOCAL const EVP_CIPHER *evp_cipher;
+    if (unlikely(evp_cipher == nullptr)) {
+      init_thread_local_evp_cipher(evp_cipher, "AES-256-ECB");
+    }
+#else
+    const EVP_CIPHER *evp_cipher = EVP_aes_256_ecb();
+#endif
+    init(false, evp_cipher, key);
   }
 
   void init_encrypt_cbc(Slice key) {
-    init(true, EVP_aes_256_cbc(), key);
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L && !defined(LIBRESSL_VERSION_NUMBER)
+    static TD_THREAD_LOCAL const EVP_CIPHER *evp_cipher;
+    if (unlikely(evp_cipher == nullptr)) {
+      init_thread_local_evp_cipher(evp_cipher, "AES-256-CBC");
+    }
+#else
+    const EVP_CIPHER *evp_cipher = EVP_aes_256_cbc();
+#endif
+    init(true, evp_cipher, key);
   }
 
   void init_decrypt_cbc(Slice key) {
-    init(false, EVP_aes_256_cbc(), key);
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L && !defined(LIBRESSL_VERSION_NUMBER)
+    static TD_THREAD_LOCAL const EVP_CIPHER *evp_cipher;
+    if (unlikely(evp_cipher == nullptr)) {
+      init_thread_local_evp_cipher(evp_cipher, "AES-256-CBC");
+    }
+#else
+    const EVP_CIPHER *evp_cipher = EVP_aes_256_cbc();
+#endif
+    init(false, evp_cipher, key);
   }
 
 #if OPENSSL_VERSION_NUMBER >= 0x10100000L
   void init_encrypt_ctr(Slice key) {
-    init(true, EVP_aes_256_ctr(), key);
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L && !defined(LIBRESSL_VERSION_NUMBER)
+    static TD_THREAD_LOCAL const EVP_CIPHER *evp_cipher;
+    if (unlikely(evp_cipher == nullptr)) {
+      init_thread_local_evp_cipher(evp_cipher, "AES-256-CTR");
+    }
+#else
+    const EVP_CIPHER *evp_cipher = EVP_aes_256_ctr();
+#endif
+    init(true, evp_cipher, key);
   }
 #endif
 
@@ -372,11 +412,22 @@ class Evp {
  private:
   EVP_CIPHER_CTX *ctx_{nullptr};
 
-  void init(bool is_encrypt, const EVP_CIPHER *cipher, Slice key) {
-    int res = EVP_CipherInit_ex(ctx_, cipher, nullptr, key.ubegin(), nullptr, is_encrypt ? 1 : 0);
+  void init(bool is_encrypt, const EVP_CIPHER *evp_cipher, Slice key) {
+    int res = EVP_CipherInit_ex(ctx_, evp_cipher, nullptr, key.ubegin(), nullptr, is_encrypt ? 1 : 0);
     LOG_IF(FATAL, res != 1);
     EVP_CIPHER_CTX_set_padding(ctx_, 0);
   }
+
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L && !defined(LIBRESSL_VERSION_NUMBER)
+  static void init_thread_local_evp_cipher(const EVP_CIPHER *&evp_cipher, const char *algorithm) {
+    evp_cipher = EVP_CIPHER_fetch(nullptr, algorithm, nullptr);
+    LOG_IF(FATAL, evp_cipher == nullptr);
+    detail::add_thread_local_destructor(create_destructor([&evp_cipher]() mutable {
+      EVP_CIPHER_free(const_cast<EVP_CIPHER *>(evp_cipher));
+      evp_cipher = nullptr;
+    }));
+  }
+#endif
 };
 
 struct AesState::Impl {
