@@ -688,11 +688,24 @@ static void make_digest(Slice data, MutableSlice output, const EVP_MD *evp_md) {
   LOG_IF(FATAL, res != 1);
   EVP_MD_CTX_free(ctx);
 }
+
+static void init_thread_local_evp_md(const EVP_MD *&evp_md, const char *algorithm) {
+  evp_md = EVP_MD_fetch(nullptr, algorithm, nullptr);
+  LOG_IF(FATAL, evp_md == nullptr);
+  detail::add_thread_local_destructor(create_destructor([&evp_md]() mutable {
+    EVP_MD_free(const_cast<EVP_MD *>(evp_md));
+    evp_md = nullptr;
+  }));
+}
 #endif
 
 void sha1(Slice data, unsigned char output[20]) {
 #if OPENSSL_VERSION_NUMBER >= 0x30000000L && !defined(LIBRESSL_VERSION_NUMBER)
-  make_digest(data, MutableSlice(output, 20), EVP_sha1());
+  static TD_THREAD_LOCAL const EVP_MD *evp_md;
+  if (unlikely(evp_md == nullptr)) {
+    init_thread_local_evp_md(evp_md, "sha1");
+  }
+  make_digest(data, MutableSlice(output, 20), evp_md);
 #else
   auto result = SHA1(data.ubegin(), data.size(), output);
   CHECK(result == output);
@@ -702,7 +715,11 @@ void sha1(Slice data, unsigned char output[20]) {
 void sha256(Slice data, MutableSlice output) {
   CHECK(output.size() >= 32);
 #if OPENSSL_VERSION_NUMBER >= 0x30000000L && !defined(LIBRESSL_VERSION_NUMBER)
-  make_digest(data, output, EVP_sha256());
+  static TD_THREAD_LOCAL const EVP_MD *evp_md;
+  if (unlikely(evp_md == nullptr)) {
+    init_thread_local_evp_md(evp_md, "sha256");
+  }
+  make_digest(data, output, evp_md);
 #else
   auto result = SHA256(data.ubegin(), data.size(), output.ubegin());
   CHECK(result == output.ubegin());
@@ -712,7 +729,11 @@ void sha256(Slice data, MutableSlice output) {
 void sha512(Slice data, MutableSlice output) {
   CHECK(output.size() >= 64);
 #if OPENSSL_VERSION_NUMBER >= 0x30000000L && !defined(LIBRESSL_VERSION_NUMBER)
-  make_digest(data, output, EVP_sha512());
+  static TD_THREAD_LOCAL const EVP_MD *evp_md;
+  if (unlikely(evp_md == nullptr)) {
+    init_thread_local_evp_md(evp_md, "sha512");
+  }
+  make_digest(data, output, evp_md);
 #else
   auto result = SHA512(data.ubegin(), data.size(), output.ubegin());
   CHECK(result == output.ubegin());
@@ -792,7 +813,11 @@ void Sha256State::init() {
   }
   CHECK(!is_inited_);
 #if OPENSSL_VERSION_NUMBER >= 0x30000000L && !defined(LIBRESSL_VERSION_NUMBER)
-  int err = EVP_DigestInit_ex(impl_->ctx_, EVP_sha256(), nullptr);
+  static TD_THREAD_LOCAL const EVP_MD *evp_md;
+  if (unlikely(evp_md == nullptr)) {
+    init_thread_local_evp_md(evp_md, "sha256");
+  }
+  int err = EVP_DigestInit_ex(impl_->ctx_, evp_md, nullptr);
 #else
   int err = SHA256_Init(&impl_->ctx_);
 #endif
@@ -830,7 +855,11 @@ void Sha256State::extract(MutableSlice output, bool destroy) {
 void md5(Slice input, MutableSlice output) {
   CHECK(output.size() >= 16);
 #if OPENSSL_VERSION_NUMBER >= 0x30000000L && !defined(LIBRESSL_VERSION_NUMBER)
-  make_digest(input, output, EVP_md5());
+  static TD_THREAD_LOCAL const EVP_MD *evp_md;
+  if (unlikely(evp_md == nullptr)) {
+    init_thread_local_evp_md(evp_md, "md5");
+  }
+  make_digest(input, output, evp_md);
 #else
   auto result = MD5(input.ubegin(), input.size(), output.ubegin());
   CHECK(result == output.ubegin());
