@@ -52,6 +52,66 @@ class SHA1Bench final : public td::Benchmark {
 };
 #endif
 
+class SHA1ShortBench final : public td::Benchmark {
+ public:
+  alignas(64) unsigned char data[SHORT_DATA_SIZE];
+
+  std::string get_description() const final {
+    return PSTRING() << "SHA1 [" << SHORT_DATA_SIZE << "B]";
+  }
+
+  void start_up() final {
+    std::fill(std::begin(data), std::end(data), static_cast<unsigned char>(123));
+  }
+
+  void run(int n) final {
+    unsigned char md[20];
+    for (int i = 0; i < n; i++) {
+      td::sha1(td::Slice(data, SHORT_DATA_SIZE), md);
+    }
+  }
+};
+
+class SHA256ShortBench final : public td::Benchmark {
+ public:
+  alignas(64) unsigned char data[SHORT_DATA_SIZE];
+
+  std::string get_description() const final {
+    return PSTRING() << "SHA256 [" << SHORT_DATA_SIZE << "B]";
+  }
+
+  void start_up() final {
+    std::fill(std::begin(data), std::end(data), static_cast<unsigned char>(123));
+  }
+
+  void run(int n) final {
+    unsigned char md[32];
+    for (int i = 0; i < n; i++) {
+      td::sha256(td::Slice(data, SHORT_DATA_SIZE), td::MutableSlice(md, 32));
+    }
+  }
+};
+
+class SHA512ShortBench final : public td::Benchmark {
+ public:
+  alignas(64) unsigned char data[SHORT_DATA_SIZE];
+
+  std::string get_description() const final {
+    return PSTRING() << "SHA512 [" << SHORT_DATA_SIZE << "B]";
+  }
+
+  void start_up() final {
+    std::fill(std::begin(data), std::end(data), static_cast<unsigned char>(123));
+  }
+
+  void run(int n) final {
+    unsigned char md[64];
+    for (int i = 0; i < n; i++) {
+      td::sha512(td::Slice(data, SHORT_DATA_SIZE), td::MutableSlice(md, 64));
+    }
+  }
+};
+
 class AesEcbBench final : public td::Benchmark {
  public:
   alignas(64) unsigned char data[DATA_SIZE];
@@ -415,6 +475,9 @@ int main() {
 #if OPENSSL_VERSION_NUMBER <= 0x10100000L
   td::bench(SHA1Bench());
 #endif
+  td::bench(SHA1ShortBench());
+  td::bench(SHA256ShortBench());
+  td::bench(SHA512ShortBench());
   td::bench(Crc32Bench());
   td::bench(Crc64Bench());
 }
