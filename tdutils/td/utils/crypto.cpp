@@ -328,24 +328,24 @@ class Evp {
   }
 
   void init_encrypt_ecb(Slice key) {
-    init(Type::Ecb, true, EVP_aes_256_ecb(), key);
+    init(true, EVP_aes_256_ecb(), key);
   }
 
   void init_decrypt_ecb(Slice key) {
-    init(Type::Ecb, false, EVP_aes_256_ecb(), key);
+    init(false, EVP_aes_256_ecb(), key);
   }
 
   void init_encrypt_cbc(Slice key) {
-    init(Type::Cbc, true, EVP_aes_256_cbc(), key);
+    init(true, EVP_aes_256_cbc(), key);
   }
 
   void init_decrypt_cbc(Slice key) {
-    init(Type::Cbc, false, EVP_aes_256_cbc(), key);
+    init(false, EVP_aes_256_cbc(), key);
   }
 
 #if OPENSSL_VERSION_NUMBER >= 0x10100000L
   void init_encrypt_ctr(Slice key) {
-    init(Type::Ctr, true, EVP_aes_256_ctr(), key);
+    init(true, EVP_aes_256_ctr(), key);
   }
 #endif
 
@@ -355,8 +355,6 @@ class Evp {
   }
 
   void encrypt(const uint8 *src, uint8 *dst, int size) {
-    // CHECK(type_ != Type::Empty && is_encrypt_);
-    // CHECK(size % AES_BLOCK_SIZE == 0);
     int len;
     int res = EVP_EncryptUpdate(ctx_, dst, &len, src, size);
     LOG_IF(FATAL, res != 1);
@@ -364,7 +362,6 @@ class Evp {
   }
 
   void decrypt(const uint8 *src, uint8 *dst, int size) {
-    // CHECK(type_ != Type::Empty && !is_encrypt_);
     CHECK(size % AES_BLOCK_SIZE == 0);
     int len;
     int res = EVP_DecryptUpdate(ctx_, dst, &len, src, size);
@@ -374,13 +371,8 @@ class Evp {
 
  private:
   EVP_CIPHER_CTX *ctx_{nullptr};
-  enum class Type : int8 { Empty, Ecb, Cbc, Ctr };
-  // Type type_{Type::Empty};
-  // bool is_encrypt_ = false;
 
-  void init(Type type, bool is_encrypt, const EVP_CIPHER *cipher, Slice key) {
-    // type_ = type;
-    // is_encrypt_ = is_encrypt;
+  void init(bool is_encrypt, const EVP_CIPHER *cipher, Slice key) {
     int res = EVP_CipherInit_ex(ctx_, cipher, nullptr, key.ubegin(), nullptr, is_encrypt ? 1 : 0);
     LOG_IF(FATAL, res != 1);
     EVP_CIPHER_CTX_set_padding(ctx_, 0);
