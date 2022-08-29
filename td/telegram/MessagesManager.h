@@ -2784,6 +2784,9 @@ class MessagesManager final : public Actor {
   void load_dialog_filter_dialogs(DialogFilterId dialog_filter_id, vector<InputDialogId> &&input_dialog_ids,
                                   Promise<Unit> &&promise);
 
+  void on_load_dialog_filter_dialogs(DialogFilterId dialog_filter_id, vector<DialogId> &&dialog_ids,
+                                     Promise<Unit> &&promise);
+
   void load_dialog_filter(const DialogFilter *filter, bool force, Promise<Unit> &&promise);
 
   void on_get_recommended_dialog_filters(Result<vector<tl_object_ptr<telegram_api::dialogFilterSuggested>>> result,

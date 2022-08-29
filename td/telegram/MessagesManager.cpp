@@ -16580,16 +16580,65 @@ void MessagesManager::load_dialog_filter_dialogs(DialogFilterId dialog_filter_id
   const size_t MAX_SLICE_SIZE = 100;  // server side limit
   MultiPromiseActorSafe mpas{"GetFilterDialogsOnServerMultiPromiseActor"};
   mpas.add_promise(std::move(promise));
-  mpas.set_ignore_errors(true);
   auto lock = mpas.get_promise();
 
   for (size_t i = 0; i < input_dialog_ids.size(); i += MAX_SLICE_SIZE) {
     auto end_i = i + MAX_SLICE_SIZE;
     auto end = end_i < input_dialog_ids.size() ? input_dialog_ids.begin() + end_i : input_dialog_ids.end();
-    td_->create_handler<GetDialogsQuery>(mpas.get_promise())->send({input_dialog_ids.begin() + i, end});
+    vector<InputDialogId> slice_input_dialog_ids = {input_dialog_ids.begin() + i, end};
+    auto slice_dialog_ids = transform(slice_input_dialog_ids,
+                                      [](InputDialogId input_dialog_id) { return input_dialog_id.get_dialog_id(); });
+    auto query_promise =
+        PromiseCreator::lambda([actor_id = actor_id(this), dialog_filter_id, dialog_ids = std::move(slice_dialog_ids),
+                                promise = mpas.get_promise()](Result<Unit> &&result) mutable {
+          if (result.is_error()) {
+            return promise.set_error(result.move_as_error());
+          }
+          send_closure(actor_id, &MessagesManager::on_load_dialog_filter_dialogs, dialog_filter_id,
+                       std::move(dialog_ids), std::move(promise));
+        });
+    td_->create_handler<GetDialogsQuery>(std::move(query_promise))->send(std::move(slice_input_dialog_ids));
   }
 
   lock.set_value(Unit());
+}
+
+void MessagesManager::on_load_dialog_filter_dialogs(DialogFilterId dialog_filter_id, vector<DialogId> &&dialog_ids,
+                                                    Promise<Unit> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+
+  td::remove_if(dialog_ids,
+                [this](DialogId dialog_id) { return have_dialog_force(dialog_id, "on_load_dialog_filter_dialogs"); });
+  if (dialog_ids.empty()) {
+    LOG(INFO) << "All chats from " << dialog_filter_id << " were loaded";
+    return promise.set_value(Unit());
+  }
+
+  LOG(INFO) << "Failed to load chats " << dialog_ids << " from " << dialog_filter_id;
+
+  auto old_dialog_filter = get_dialog_filter(dialog_filter_id);
+  if (old_dialog_filter == nullptr) {
+    return promise.set_value(Unit());
+  }
+  CHECK(is_update_chat_filters_sent_);
+
+  auto new_dialog_filter = td::make_unique<DialogFilter>(*old_dialog_filter);
+  for (auto dialog_id : dialog_ids) {
+    InputDialogId::remove(new_dialog_filter->pinned_dialog_ids, dialog_id);
+    InputDialogId::remove(new_dialog_filter->included_dialog_ids, dialog_id);
+    InputDialogId::remove(new_dialog_filter->excluded_dialog_ids, dialog_id);
+  }
+
+  if (*new_dialog_filter != *old_dialog_filter) {
+    LOG(INFO) << "Update " << dialog_filter_id << " from " << *old_dialog_filter << " to " << *new_dialog_filter;
+    edit_dialog_filter(std::move(new_dialog_filter), "on_load_dialog_filter_dialogs");
+    save_dialog_filters();
+    send_update_chat_filters();
+
+    synchronize_dialog_filters();
+  }
+
+  promise.set_value(Unit());
 }
 
 void MessagesManager::load_dialog_filter(DialogFilterId dialog_filter_id, bool force, Promise<Unit> &&promise) {

@@ -10,6 +10,7 @@
 #include "td/telegram/ChatId.h"
 #include "td/telegram/UserId.h"
 
+#include "td/utils/algorithm.h"
 #include "td/utils/logging.h"
 
 namespace td {
@@ -141,6 +142,12 @@ bool InputDialogId::contains(const vector<InputDialogId> &input_dialog_ids, Dial
     }
   }
   return false;
+}
+
+bool InputDialogId::remove(vector<InputDialogId> &input_dialog_ids, DialogId dialog_id) {
+  return td::remove_if(input_dialog_ids, [dialog_id](InputDialogId input_dialog_id) {
+    return input_dialog_id.get_dialog_id() == dialog_id;
+  });
 }
 
 }  // namespace td

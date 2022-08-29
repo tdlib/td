@@ -40,6 +40,8 @@ class InputDialogId {
 
   static bool contains(const vector<InputDialogId> &input_dialog_ids, DialogId dialog_id);
 
+  static bool remove(vector<InputDialogId> &input_dialog_ids, DialogId dialog_id);
+
   bool operator==(const InputDialogId &other) const {
     return dialog_id == other.dialog_id && access_hash == other.access_hash;
   }
