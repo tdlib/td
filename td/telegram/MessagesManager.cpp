@@ -38726,10 +38726,10 @@ void MessagesManager::on_get_channel_difference(
     case telegram_api::updates_channelDifferenceTooLong::ID: {
       auto difference = move_tl_object_as<telegram_api::updates_channelDifferenceTooLong>(difference_ptr);
 
-      tl_object_ptr<telegram_api::dialog> dialog;
+      telegram_api::dialog *dialog = nullptr;
       switch (difference->dialog_->get_id()) {
         case telegram_api::dialog::ID:
-          dialog = telegram_api::move_object_as<telegram_api::dialog>(difference->dialog_);
+          dialog = static_cast<telegram_api::dialog *>(difference->dialog_.get());
           break;
         case telegram_api::dialogFolder::ID:
           return after_get_channel_difference(dialog_id, false);
