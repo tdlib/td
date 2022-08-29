@@ -30,6 +30,8 @@ class InputDialogId {
   static vector<InputDialogId> get_input_dialog_ids(const vector<tl_object_ptr<telegram_api::InputPeer>> &input_peers,
                                                     FlatHashSet<DialogId, DialogIdHash> *added_dialog_ids = nullptr);
 
+  static vector<DialogId> get_dialog_ids(const vector<InputDialogId> &input_dialog_ids);
+
   static vector<telegram_api::object_ptr<telegram_api::InputDialogPeer>> get_input_dialog_peers(
       const vector<InputDialogId> &input_dialog_ids);
 

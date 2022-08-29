@@ -71,6 +71,10 @@ vector<InputDialogId> InputDialogId::get_input_dialog_ids(
   return result;
 }
 
+vector<DialogId> InputDialogId::get_dialog_ids(const vector<InputDialogId> &input_dialog_ids) {
+  return transform(input_dialog_ids, [](InputDialogId input_dialog_id) { return input_dialog_id.get_dialog_id(); });
+}
+
 vector<telegram_api::object_ptr<telegram_api::InputDialogPeer>> InputDialogId::get_input_dialog_peers(
     const vector<InputDialogId> &input_dialog_ids) {
   vector<telegram_api::object_ptr<telegram_api::InputDialogPeer>> result;

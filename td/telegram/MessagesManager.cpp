@@ -15033,12 +15033,8 @@ bool MessagesManager::is_dialog_pinned(DialogListId dialog_list_id, DialogId dia
   }
   if (dialog_list_id.is_filter()) {
     const auto *filter = get_dialog_filter(dialog_list_id.get_filter_id());
-    if (filter != nullptr) {
-      for (const auto &input_dialog_id : filter->pinned_dialog_ids) {
-        if (input_dialog_id.get_dialog_id() == dialog_id) {
-          return true;
-        }
-      }
+    if (filter != nullptr && InputDialogId::contains(filter->pinned_dialog_ids, dialog_id)) {
+      return true;
     }
   }
   return false;
@@ -16586,17 +16582,15 @@ void MessagesManager::load_dialog_filter_dialogs(DialogFilterId dialog_filter_id
     auto end_i = i + MAX_SLICE_SIZE;
     auto end = end_i < input_dialog_ids.size() ? input_dialog_ids.begin() + end_i : input_dialog_ids.end();
     vector<InputDialogId> slice_input_dialog_ids = {input_dialog_ids.begin() + i, end};
-    auto slice_dialog_ids = transform(slice_input_dialog_ids,
-                                      [](InputDialogId input_dialog_id) { return input_dialog_id.get_dialog_id(); });
-    auto query_promise =
-        PromiseCreator::lambda([actor_id = actor_id(this), dialog_filter_id, dialog_ids = std::move(slice_dialog_ids),
-                                promise = mpas.get_promise()](Result<Unit> &&result) mutable {
-          if (result.is_error()) {
-            return promise.set_error(result.move_as_error());
-          }
-          send_closure(actor_id, &MessagesManager::on_load_dialog_filter_dialogs, dialog_filter_id,
-                       std::move(dialog_ids), std::move(promise));
-        });
+    auto query_promise = PromiseCreator::lambda([actor_id = actor_id(this), dialog_filter_id,
+                                                 dialog_ids = InputDialogId::get_dialog_ids(slice_input_dialog_ids),
+                                                 promise = mpas.get_promise()](Result<Unit> &&result) mutable {
+      if (result.is_error()) {
+        return promise.set_error(result.move_as_error());
+      }
+      send_closure(actor_id, &MessagesManager::on_load_dialog_filter_dialogs, dialog_filter_id, std::move(dialog_ids),
+                   std::move(promise));
+    });
     td_->create_handler<GetDialogsQuery>(std::move(query_promise))->send(std::move(slice_input_dialog_ids));
   }
 
@@ -17255,7 +17249,7 @@ vector<DialogId> MessagesManager::get_pinned_dialog_ids(DialogListId dialog_list
     if (filter == nullptr) {
       return {};
     }
-    return transform(filter->pinned_dialog_ids, [](auto &input_dialog) { return input_dialog.get_dialog_id(); });
+    return InputDialogId::get_dialog_ids(filter->pinned_dialog_ids);
   }
 
   auto *list = get_dialog_list(dialog_list_id);
@@ -20069,16 +20063,13 @@ Status MessagesManager::toggle_dialog_is_pinned(DialogListId dialog_list_id, Dia
     auto old_dialog_filter = get_dialog_filter(dialog_filter_id);
     CHECK(old_dialog_filter != nullptr);
     auto new_dialog_filter = make_unique<DialogFilter>(*old_dialog_filter);
-    auto is_changed_dialog = [dialog_id](InputDialogId input_dialog_id) {
-      return dialog_id == input_dialog_id.get_dialog_id();
-    };
     if (is_pinned) {
       new_dialog_filter->pinned_dialog_ids.insert(new_dialog_filter->pinned_dialog_ids.begin(),
                                                   get_input_dialog_id(dialog_id));
-      td::remove_if(new_dialog_filter->included_dialog_ids, is_changed_dialog);
-      td::remove_if(new_dialog_filter->excluded_dialog_ids, is_changed_dialog);
+      InputDialogId::remove(new_dialog_filter->included_dialog_ids, dialog_id);
+      InputDialogId::remove(new_dialog_filter->excluded_dialog_ids, dialog_id);
     } else {
-      bool is_removed = td::remove_if(new_dialog_filter->pinned_dialog_ids, is_changed_dialog);
+      bool is_removed = InputDialogId::remove(new_dialog_filter->pinned_dialog_ids, dialog_id);
       CHECK(is_removed);
       new_dialog_filter->included_dialog_ids.push_back(get_input_dialog_id(dialog_id));
     }
@@ -33451,9 +33442,7 @@ vector<DialogListId> MessagesManager::get_dialog_lists_to_add_dialog(DialogId di
 
       auto new_dialog_filter = make_unique<DialogFilter>(*dialog_filter);
       new_dialog_filter->included_dialog_ids.push_back(get_input_dialog_id(dialog_id));
-      td::remove_if(new_dialog_filter->excluded_dialog_ids, [dialog_id](InputDialogId input_dialog_id) {
-        return dialog_id == input_dialog_id.get_dialog_id();
-      });
+      InputDialogId::remove(new_dialog_filter->excluded_dialog_ids, dialog_id);
 
       if (new_dialog_filter->check_limits().is_ok()) {
         result.push_back(DialogListId(dialog_filter_id));
@@ -33495,8 +33484,7 @@ void MessagesManager::add_dialog_to_list(DialogId dialog_id, DialogListId dialog
 
     auto new_dialog_filter = make_unique<DialogFilter>(*old_dialog_filter);
     new_dialog_filter->included_dialog_ids.push_back(get_input_dialog_id(dialog_id));
-    td::remove_if(new_dialog_filter->excluded_dialog_ids,
-                  [dialog_id](InputDialogId input_dialog_id) { return dialog_id == input_dialog_id.get_dialog_id(); });
+    InputDialogId::remove(new_dialog_filter->excluded_dialog_ids, dialog_id);
 
     auto status = new_dialog_filter->check_limits();
     if (status.is_error()) {
