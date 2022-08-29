@@ -2781,6 +2781,9 @@ class MessagesManager final : public Actor {
 
   td_api::object_ptr<td_api::chatFilter> get_chat_filter_object(const DialogFilter *filter) const;
 
+  void load_dialog_filter_dialogs(DialogFilterId dialog_filter_id, vector<InputDialogId> &&input_dialog_ids,
+                                  Promise<Unit> &&promise);
+
   void load_dialog_filter(const DialogFilter *filter, bool force, Promise<Unit> &&promise);
 
   void on_get_recommended_dialog_filters(Result<vector<tl_object_ptr<telegram_api::dialogFilterSuggested>>> result,

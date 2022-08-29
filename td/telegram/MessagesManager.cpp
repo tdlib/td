@@ -16575,6 +16575,23 @@ bool MessagesManager::load_dialog(DialogId dialog_id, int left_tries, Promise<Un
   return true;
 }
 
+void MessagesManager::load_dialog_filter_dialogs(DialogFilterId dialog_filter_id,
+                                                 vector<InputDialogId> &&input_dialog_ids, Promise<Unit> &&promise) {
+  const size_t MAX_SLICE_SIZE = 100;  // server side limit
+  MultiPromiseActorSafe mpas{"GetFilterDialogsOnServerMultiPromiseActor"};
+  mpas.add_promise(std::move(promise));
+  mpas.set_ignore_errors(true);
+  auto lock = mpas.get_promise();
+
+  for (size_t i = 0; i < input_dialog_ids.size(); i += MAX_SLICE_SIZE) {
+    auto end_i = i + MAX_SLICE_SIZE;
+    auto end = end_i < input_dialog_ids.size() ? input_dialog_ids.begin() + end_i : input_dialog_ids.end();
+    td_->create_handler<GetDialogsQuery>(mpas.get_promise())->send({input_dialog_ids.begin() + i, end});
+  }
+
+  lock.set_value(Unit());
+}
+
 void MessagesManager::load_dialog_filter(DialogFilterId dialog_filter_id, bool force, Promise<Unit> &&promise) {
   CHECK(!td_->auth_manager_->is_bot());
   if (!dialog_filter_id.is_valid()) {
@@ -16617,20 +16634,7 @@ void MessagesManager::load_dialog_filter(const DialogFilter *filter, bool force,
   }
 
   if (!input_dialog_ids.empty() && !force) {
-    const size_t MAX_SLICE_SIZE = 100;  // server side limit
-    MultiPromiseActorSafe mpas{"GetFilterDialogsOnServerMultiPromiseActor"};
-    mpas.add_promise(std::move(promise));
-    mpas.set_ignore_errors(true);
-    auto lock = mpas.get_promise();
-
-    for (size_t i = 0; i < input_dialog_ids.size(); i += MAX_SLICE_SIZE) {
-      auto end_i = i + MAX_SLICE_SIZE;
-      auto end = end_i < input_dialog_ids.size() ? input_dialog_ids.begin() + end_i : input_dialog_ids.end();
-      td_->create_handler<GetDialogsQuery>(mpas.get_promise())->send({input_dialog_ids.begin() + i, end});
-    }
-
-    lock.set_value(Unit());
-    return;
+    return load_dialog_filter_dialogs(filter->dialog_filter_id, std::move(input_dialog_ids), std::move(promise));
   }
 
   promise.set_value(Unit());
@@ -16782,7 +16786,7 @@ vector<DialogId> MessagesManager::get_dialogs(DialogListId dialog_list_id, Dialo
         promise.set_value(Unit());
         return result;
       } else {
-        td_->create_handler<GetDialogsQuery>(std::move(promise))->send(std::move(input_dialog_ids));
+        load_dialog_filter_dialogs(filter->dialog_filter_id, std::move(input_dialog_ids), std::move(promise));
         return {};
       }
     }
