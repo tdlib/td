@@ -1078,13 +1078,26 @@ class MessagesManager final : public Actor {
     }
 
     friend StringBuilder &operator<<(StringBuilder &string_builder, const MessageForwardInfo &forward_info) {
-      return string_builder << "MessageForwardInfo[" << (forward_info.is_imported ? "imported " : "") << "sender "
-                            << forward_info.sender_user_id << "(" << forward_info.author_signature << "/"
-                            << forward_info.sender_name << "), psa_type " << forward_info.psa_type << ", source "
-                            << forward_info.sender_dialog_id << ", source " << forward_info.message_id << ", from "
-                            << forward_info.from_dialog_id << ", from " << forward_info.from_message_id << " at "
-                            << forward_info.date << " "
-                            << "]";
+      string_builder << "MessageForwardInfo[" << (forward_info.is_imported ? "imported " : "") << "sender "
+                     << forward_info.sender_user_id;
+      if (!forward_info.author_signature.empty() || !forward_info.sender_name.empty()) {
+        string_builder << '(' << forward_info.author_signature << '/' << forward_info.sender_name << ')';
+      }
+      if (!forward_info.psa_type.empty()) {
+        string_builder << ", psa_type " << forward_info.psa_type;
+      }
+      if (forward_info.sender_dialog_id.is_valid()) {
+        string_builder << ", source ";
+        if (forward_info.message_id.is_valid()) {
+          string_builder << FullMessageId(forward_info.sender_dialog_id, forward_info.message_id);
+        } else {
+          string_builder << forward_info.sender_dialog_id;
+        }
+      }
+      if (forward_info.from_dialog_id.is_valid() || forward_info.from_message_id.is_valid()) {
+        string_builder << ", from " << FullMessageId(forward_info.from_dialog_id, forward_info.from_message_id);
+      }
+      return string_builder << " at " << forward_info.date << ']';
     }
   };
 
