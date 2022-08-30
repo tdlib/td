@@ -4477,6 +4477,8 @@ class CliClient final : public Actor {
       auto premium_status =
           args.empty() ? nullptr : td_api::make_object<td_api::premiumStatus>(to_integer<int64>(args));
       send_request(td_api::make_object<td_api::setPremiumStatus>(std::move(premium_status)));
+    } else if (op == "gdps") {
+      send_request(td_api::make_object<td_api::getDefaultPremiumStatuses>());
     } else if (op == "ccun") {
       ChatId chat_id;
       string username;

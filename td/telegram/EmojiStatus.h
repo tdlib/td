@@ -10,10 +10,13 @@
 #include "td/telegram/telegram_api.h"
 
 #include "td/utils/common.h"
+#include "td/utils/Promise.h"
 #include "td/utils/StringBuilder.h"
 #include "td/utils/tl_helpers.h"
 
 namespace td {
+
+class Td;
 
 class EmojiStatus {
   int64 custom_emoji_id_ = 0;
@@ -57,5 +60,7 @@ inline bool operator!=(const EmojiStatus &lhs, const EmojiStatus &rhs) {
 }
 
 StringBuilder &operator<<(StringBuilder &string_builder, const EmojiStatus &emoji_status);
+
+void get_default_emoji_statuses(Td *td, Promise<td_api::object_ptr<td_api::premiumStatuses>> &&promise);
 
 }  // namespace td

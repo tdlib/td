@@ -478,6 +478,9 @@ premiumPaymentOption currency:string amount:int53 discount_percentage:int32 mont
 //@description Describes a custom emoji to be shown instead of the Telegram Premium badge @custom_emoji_id Identifier of the custom emoji in stickerFormatTgs format
 premiumStatus custom_emoji_id:int64 = PremiumStatus;
 
+//@description Contains a list of premium statuses @premium_statuses The list of premium statuses
+premiumStatuses premium_statuses:vector<premiumStatus> = PremiumStatuses;
+
 
 //@description Represents a user
 //@id User identifier
@@ -5570,6 +5573,10 @@ getAttachmentMenuBot bot_user_id:int53 = AttachmentMenuBot;
 
 //@description Adds or removes a bot to attachment menu. Bot can be added to attachment menu, only if userTypeBot.can_be_added_to_attachment_menu == true @bot_user_id Bot's user identifier @is_added Pass true to add the bot to attachment menu; pass false to remove the bot from attachment menu
 toggleBotIsAddedToAttachmentMenu bot_user_id:int53 is_added:Bool = Ok;
+
+
+//@description Returns default premium statuses
+getDefaultPremiumStatuses = PremiumStatuses;
 
 
 //@description Downloads a file from the cloud. Download progress and completion of the download will be notified through updateFile updates

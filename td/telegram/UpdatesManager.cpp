@@ -20,6 +20,7 @@
 #include "td/telegram/DialogInviteLink.h"
 #include "td/telegram/DialogParticipant.h"
 #include "td/telegram/DownloadManager.h"
+#include "td/telegram/EmojiStatus.h"
 #include "td/telegram/FolderId.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/GroupCallManager.h"
@@ -1700,6 +1701,7 @@ void UpdatesManager::try_reload_data() {
   td_->animations_manager_->get_saved_animations(Auto());
   td_->contacts_manager_->reload_created_public_dialogs(PublicDialogType::HasUsername, Auto());
   td_->contacts_manager_->reload_created_public_dialogs(PublicDialogType::IsLocationBased, Auto());
+  get_default_emoji_statuses(td_, Auto());
   td_->notification_settings_manager_->reload_saved_ringtones(Auto());
   td_->notification_settings_manager_->send_get_scope_notification_settings_query(NotificationSettingsScope::Private,
                                                                                   Auto());
