@@ -24,7 +24,7 @@ AvailableReactionType get_reaction_type(const vector<AvailableReaction> &availab
 
 ChatReactions get_active_reactions(const ChatReactions &available_reactions,
                                    const vector<AvailableReaction> &active_reactions) {
-  if (available_reactions.empty()) {
+  if (available_reactions.reactions_.empty()) {
     // fast path
     return available_reactions;
   }
