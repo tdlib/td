@@ -101,7 +101,7 @@ vector<unique_ptr<WebPageBlock>> get_web_page_blocks(
     const FlatHashMap<int64, FileId> &documents, const FlatHashMap<int64, unique_ptr<Photo>> &photos,
     const FlatHashMap<int64, FileId> &videos, const FlatHashMap<int64, FileId> &voice_notes);
 
-vector<td_api::object_ptr<td_api::PageBlock>> get_page_block_objects(
+vector<td_api::object_ptr<td_api::PageBlock>> get_page_blocks_object(
     const vector<unique_ptr<WebPageBlock>> &page_blocks, Td *td, Slice base_url);
 
 }  // namespace td

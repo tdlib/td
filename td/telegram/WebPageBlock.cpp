@@ -53,7 +53,7 @@ struct GetWebPageBlockObjectContext {
   std::unordered_map<Slice, const RichText *, SliceHash> anchors_;  // anchor -> text
 };
 
-static vector<td_api::object_ptr<td_api::PageBlock>> get_page_block_objects(
+static vector<td_api::object_ptr<td_api::PageBlock>> get_page_blocks_object(
     const vector<unique_ptr<WebPageBlock>> &page_blocks, GetWebPageBlockObjectContext *context) {
   return transform(page_blocks, [context](const unique_ptr<WebPageBlock> &page_block) {
     return page_block->get_page_block_object(context);
@@ -61,7 +61,7 @@ static vector<td_api::object_ptr<td_api::PageBlock>> get_page_block_objects(
 }
 
 class RichText {
-  static vector<td_api::object_ptr<td_api::RichText>> get_rich_text_objects(const vector<RichText> &rich_texts,
+  static vector<td_api::object_ptr<td_api::RichText>> get_rich_texts_object(const vector<RichText> &rich_texts,
                                                                             GetWebPageBlockObjectContext *context) {
     return transform(rich_texts,
                      [context](const RichText &rich_text) { return rich_text.get_rich_text_object(context); });
@@ -152,7 +152,7 @@ class RichText {
       case RichText::Type::EmailAddress:
         return make_tl_object<td_api::richTextEmailAddress>(texts[0].get_rich_text_object(context), content);
       case RichText::Type::Concatenation:
-        return make_tl_object<td_api::richTexts>(get_rich_text_objects(texts, context));
+        return make_tl_object<td_api::richTexts>(get_rich_texts_object(texts, context));
       case RichText::Type::Subscript:
         return make_tl_object<td_api::richTextSubscript>(texts[0].get_rich_text_object(context));
       case RichText::Type::Superscript:
@@ -832,7 +832,7 @@ class WebPageBlockList final : public WebPageBlock {
                                                                                        Context *context) {
     // if label is empty, then Bullet U+2022 is used as a label
     return td_api::make_object<td_api::pageBlockListItem>(item.label.empty() ? "\xE2\x80\xA2" : item.label,
-                                                          get_page_block_objects(item.page_blocks, context));
+                                                          get_page_blocks_object(item.page_blocks, context));
   }
 
  public:
@@ -1291,7 +1291,7 @@ class WebPageBlockEmbeddedPost final : public WebPageBlock {
   td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const final {
     return make_tl_object<td_api::pageBlockEmbeddedPost>(
         url, author, get_photo_object(context->td_->file_manager_.get(), author_photo), date,
-        get_page_block_objects(page_blocks, context), caption.get_page_block_caption_object(context));
+        get_page_blocks_object(page_blocks, context), caption.get_page_block_caption_object(context));
   }
 
   template <class StorerT>
@@ -1339,7 +1339,7 @@ class WebPageBlockCollage final : public WebPageBlock {
   }
 
   td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const final {
-    return make_tl_object<td_api::pageBlockCollage>(get_page_block_objects(page_blocks, context),
+    return make_tl_object<td_api::pageBlockCollage>(get_page_blocks_object(page_blocks, context),
                                                     caption.get_page_block_caption_object(context));
   }
 
@@ -1380,7 +1380,7 @@ class WebPageBlockSlideshow final : public WebPageBlock {
   }
 
   td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const final {
-    return make_tl_object<td_api::pageBlockSlideshow>(get_page_block_objects(page_blocks, context),
+    return make_tl_object<td_api::pageBlockSlideshow>(get_page_blocks_object(page_blocks, context),
                                                       caption.get_page_block_caption_object(context));
   }
 
@@ -1591,7 +1591,7 @@ class WebPageBlockDetails final : public WebPageBlock {
 
   td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const final {
     return make_tl_object<td_api::pageBlockDetails>(header.get_rich_text_object(context),
-                                                    get_page_block_objects(page_blocks, context), is_open);
+                                                    get_page_blocks_object(page_blocks, context), is_open);
   }
 
   template <class StorerT>
@@ -2386,19 +2386,19 @@ vector<unique_ptr<WebPageBlock>> get_web_page_blocks(
   return result;
 }
 
-vector<td_api::object_ptr<td_api::PageBlock>> get_page_block_objects(
+vector<td_api::object_ptr<td_api::PageBlock>> get_page_blocks_object(
     const vector<unique_ptr<WebPageBlock>> &page_blocks, Td *td, Slice base_url) {
   GetWebPageBlockObjectContext context;
   context.td_ = td;
   context.base_url_ = base_url;
-  auto blocks = get_page_block_objects(page_blocks, &context);
+  auto blocks = get_page_blocks_object(page_blocks, &context);
   if (context.anchors_.empty() || !context.has_anchor_urls_) {
     return blocks;
   }
 
   context.is_first_pass_ = false;
   context.anchors_.emplace(Slice(), nullptr);  // back to top
-  return get_page_block_objects(page_blocks, &context);
+  return get_page_blocks_object(page_blocks, &context);
 }
 
 }  // namespace td

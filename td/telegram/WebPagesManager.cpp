@@ -1311,7 +1311,7 @@ tl_object_ptr<td_api::webPageInstantView> WebPagesManager::get_web_page_instant_
   auto feedback_link = td_api::make_object<td_api::internalLinkTypeBotStart>(
       "previews", PSTRING() << "webpage" << web_page_id.get(), true);
   return td_api::make_object<td_api::webPageInstantView>(
-      get_page_block_objects(web_page_instant_view->page_blocks, td_, web_page_instant_view->url),
+      get_page_blocks_object(web_page_instant_view->page_blocks, td_, web_page_instant_view->url),
       web_page_instant_view->view_count, web_page_instant_view->is_v2 ? 2 : 1, web_page_instant_view->is_rtl,
       web_page_instant_view->is_full, std::move(feedback_link));
 }
