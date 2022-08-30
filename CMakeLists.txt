@@ -330,6 +330,7 @@ set(TDLIB_SOURCE
   td/telegram/DownloadManager.cpp
   td/telegram/DownloadManagerCallback.cpp
   td/telegram/DraftMessage.cpp
+  td/telegram/EmojiStatus.cpp
   td/telegram/FileReferenceManager.cpp
   td/telegram/files/FileBitmask.cpp
   td/telegram/files/FileDb.cpp
