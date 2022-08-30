@@ -4473,8 +4473,10 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::setBio>("\n" + args + "\n" + args + "\n"));
     } else if (op == "sun") {
       send_request(td_api::make_object<td_api::setUsername>(args));
-    } else if (op == "spb") {
-      send_request(td_api::make_object<td_api::setPremiumBadge>(to_integer<int64>(args)));
+    } else if (op == "sps") {
+      auto premium_status =
+          args.empty() ? nullptr : td_api::make_object<td_api::premiumStatus>(to_integer<int64>(args));
+      send_request(td_api::make_object<td_api::setPremiumStatus>(std::move(premium_status)));
     } else if (op == "ccun") {
       ChatId chat_id;
       string username;

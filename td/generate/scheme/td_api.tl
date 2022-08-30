@@ -475,6 +475,9 @@ chatAdministratorRights can_manage_chat:Bool can_change_info:Bool can_post_messa
 //@payment_link An internal link to be opened for buying Telegram Premium to the user if store payment isn't possible; may be null if direct payment isn't available
 premiumPaymentOption currency:string amount:int53 discount_percentage:int32 month_count:int32 store_product_id:string payment_link:InternalLinkType = PremiumPaymentOption;
 
+//@description Describes a custom emoji to be shown instead of the Telegram Premium badge @custom_emoji_id Identifier of the custom emoji in stickerFormatTgs format
+premiumStatus custom_emoji_id:int64 = PremiumStatus;
+
 
 //@description Represents a user
 //@id User identifier
@@ -484,7 +487,7 @@ premiumPaymentOption currency:string amount:int53 discount_percentage:int32 mont
 //@phone_number Phone number of the user
 //@status Current online status of the user
 //@profile_photo Profile photo of the user; may be null
-//@premium_badge_custom_emoji_id Identifier of the custom emoji to be shown instead of the Telegram Premium badge; 0 if none. For Telegram Premium users only
+//@premium_status Premium status to be shown instead of the default Telegram Premium badge; may be null. For Telegram Premium users only
 //@is_contact The user is a contact of the current user
 //@is_mutual_contact The user is a contact of the current user and the current user is a contact of the user
 //@is_verified True, if the user is verified
@@ -497,7 +500,7 @@ premiumPaymentOption currency:string amount:int53 discount_percentage:int32 mont
 //@type Type of the user
 //@language_code IETF language tag of the user's language; only available to bots
 //@added_to_attachment_menu True, if the user added the current bot to attachment menu; only available to bots
-user id:int53 first_name:string last_name:string username:string phone_number:string status:UserStatus profile_photo:profilePhoto premium_badge_custom_emoji_id:int64 is_contact:Bool is_mutual_contact:Bool is_verified:Bool is_premium:Bool is_support:Bool restriction_reason:string is_scam:Bool is_fake:Bool have_access:Bool type:UserType language_code:string added_to_attachment_menu:Bool = User;
+user id:int53 first_name:string last_name:string username:string phone_number:string status:UserStatus profile_photo:profilePhoto premium_status:premiumStatus is_contact:Bool is_mutual_contact:Bool is_verified:Bool is_premium:Bool is_support:Bool restriction_reason:string is_scam:Bool is_fake:Bool have_access:Bool type:UserType language_code:string added_to_attachment_menu:Bool = User;
 
 
 //@description Contains information about a bot
@@ -6075,8 +6078,8 @@ setBio bio:string = Ok;
 //@description Changes the username of the current user @username The new value of the username. Use an empty string to remove the username
 setUsername username:string = Ok;
 
-//@description Changes the premium badge of the current user; for Telegram Premium users only @custom_emoji_id Identifier of the custom emoji to use as premium badge; pass 0 to switch to default badge. The custom emoji must have stickerFormatTgs
-setPremiumBadge custom_emoji_id:int64 = Ok;
+//@description Changes the premium status of the current user; for Telegram Premium users only @premium_status New premium status; pass null to switch to the default badge
+setPremiumStatus premium_status:premiumStatus = Ok;
 
 //@description Changes the location of the current user. Needs to be called if GetOption("is_location_visible") is true and location changes for more than 1 kilometer @location The new location of the user
 setLocation location:location = Ok;

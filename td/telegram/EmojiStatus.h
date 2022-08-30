@@ -6,6 +6,7 @@
 //
 #pragma once
 
+#include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 
 #include "td/utils/common.h"
@@ -24,7 +25,8 @@ class EmojiStatus {
  public:
   EmojiStatus() = default;
 
-  explicit EmojiStatus(int64 custom_emoji_id) : custom_emoji_id_(custom_emoji_id) {
+  explicit EmojiStatus(const td_api::object_ptr<td_api::premiumStatus> &premium_status)
+      : custom_emoji_id_(premium_status != nullptr ? premium_status->custom_emoji_id_ : 0) {
   }
 
   explicit EmojiStatus(tl_object_ptr<telegram_api::EmojiStatus> &&emoji_status) {
@@ -40,8 +42,11 @@ class EmojiStatus {
     return make_tl_object<telegram_api::emojiStatus>(custom_emoji_id_);
   }
 
-  int64 get_premium_badge_object() const {
-    return custom_emoji_id_;
+  td_api::object_ptr<td_api::premiumStatus> get_premium_status_object() const {
+    if (is_empty()) {
+      return nullptr;
+    }
+    return td_api::make_object<td_api::premiumStatus>(custom_emoji_id_);
   }
 
   bool is_empty() const {

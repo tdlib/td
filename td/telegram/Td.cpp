@@ -6727,10 +6727,10 @@ void Td::on_request(uint64 id, td_api::setUsername &request) {
   contacts_manager_->set_username(request.username_, std::move(promise));
 }
 
-void Td::on_request(uint64 id, const td_api::setPremiumBadge &request) {
+void Td::on_request(uint64 id, const td_api::setPremiumStatus &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  contacts_manager_->set_emoji_status(EmojiStatus(request.custom_emoji_id_), std::move(promise));
+  contacts_manager_->set_emoji_status(EmojiStatus(request.premium_status_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::setCommands &request) {
