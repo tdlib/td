@@ -6,6 +6,7 @@
 //
 #pragma once
 
+#include "td/telegram/ChatReactions.h"
 #include "td/telegram/td_api.h"
 
 #include "td/utils/common.h"
@@ -29,7 +30,7 @@ enum class AvailableReactionType : int32 { Unavailable, Available, NeedsPremium 
 
 AvailableReactionType get_reaction_type(const vector<AvailableReaction> &reactions, const string &reaction);
 
-vector<string> get_active_reactions(const vector<string> &available_reactions,
-                                    const vector<AvailableReaction> &active_reactions);
+ChatReactions get_active_reactions(const ChatReactions &available_reactions,
+                                   const vector<AvailableReaction> &active_reactions);
 
 }  // namespace td

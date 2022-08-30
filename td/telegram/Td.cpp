@@ -6092,9 +6092,6 @@ void Td::on_request(uint64 id, const td_api::toggleBotIsAddedToAttachmentMenu &r
 }
 
 void Td::on_request(uint64 id, td_api::setChatAvailableReactions &request) {
-  for (auto &reaction : request.available_reactions_) {
-    CLEAN_INPUT_STRING(reaction);
-  }
   CREATE_OK_REQUEST_PROMISE();
   messages_manager_->set_dialog_available_reactions(DialogId(request.chat_id_), std::move(request.available_reactions_),
                                                     std::move(promise));

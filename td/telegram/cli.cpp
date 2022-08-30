@@ -724,7 +724,7 @@ class CliClient final : public Actor {
     return td_api::make_object<td_api::location>(to_double(latitude), to_double(longitude), to_double(accuracy));
   }
 
-  td_api::object_ptr<td_api::ReactionType> as_reaction_type(Slice type) const {
+  static td_api::object_ptr<td_api::ReactionType> as_reaction_type(Slice type) {
     type = trim(type);
     if (type.empty()) {
       return nullptr;
@@ -4523,7 +4523,15 @@ class CliClient final : public Actor {
       ChatId chat_id;
       string available_reactions;
       get_args(args, chat_id, available_reactions);
-      send_request(td_api::make_object<td_api::setChatAvailableReactions>(chat_id, autosplit_str(available_reactions)));
+      td_api::object_ptr<td_api::ChatAvailableReactions> chat_available_reactions;
+      if (available_reactions == "all") {
+        chat_available_reactions = td_api::make_object<td_api::chatAvailableReactionsAll>();
+      } else if (!available_reactions.empty()) {
+        auto reactions = transform(autosplit_str(available_reactions), as_reaction_type);
+        chat_available_reactions = td_api::make_object<td_api::chatAvailableReactionsSome>(std::move(reactions));
+      }
+      send_request(
+          td_api::make_object<td_api::setChatAvailableReactions>(chat_id, std::move(chat_available_reactions)));
     } else if (op == "scd") {
       ChatId chat_id;
       string description;

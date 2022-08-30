@@ -1427,14 +1427,14 @@ class SetChatAvailableReactionsQuery final : public Td::ResultHandler {
   explicit SetChatAvailableReactionsQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(DialogId dialog_id, vector<string> available_reactions) {
+  void send(DialogId dialog_id, const ChatReactions &available_reactions) {
     dialog_id_ = dialog_id;
     auto input_peer = td_->messages_manager_->get_input_peer(dialog_id, AccessRights::Write);
     if (input_peer == nullptr) {
       return on_error(Status::Error(400, "Can't access the chat"));
     }
     send_query(G()->net_query_creator().create(telegram_api::messages_setChatAvailableReactions(
-        std::move(input_peer), make_tl_object<telegram_api::chatReactionsNone>())));
+        std::move(input_peer), available_reactions.get_input_chat_reactions())));
   }
 
   void on_result(BufferSlice packet) final {
@@ -5208,9 +5208,10 @@ void MessagesManager::Dialog::store(StorerT &storer) const {
   bool has_pending_join_requests = pending_join_request_count != 0;
   bool has_action_bar = action_bar != nullptr;
   bool has_default_send_message_as_dialog_id = default_send_message_as_dialog_id.is_valid();
-  bool has_available_reactions = !available_reactions.empty();
+  bool has_legacy_available_reactions = false;
   bool has_available_reactions_generation = available_reactions_generation != 0;
   bool has_have_full_history_source = have_full_history && have_full_history_source != 0;
+  bool has_available_reactions = !available_reactions.empty();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_draft_message);
   STORE_FLAG(has_last_database_message);
@@ -5287,10 +5288,11 @@ void MessagesManager::Dialog::store(StorerT &storer) const {
     STORE_FLAG(has_action_bar);
     STORE_FLAG(has_default_send_message_as_dialog_id);
     STORE_FLAG(need_drop_default_send_message_as_dialog_id);
-    STORE_FLAG(has_available_reactions);
+    STORE_FLAG(has_legacy_available_reactions);
     STORE_FLAG(is_available_reactions_inited);
     STORE_FLAG(has_available_reactions_generation);
     STORE_FLAG(has_have_full_history_source);
+    STORE_FLAG(has_available_reactions);
     END_STORE_FLAGS();
   }
 
@@ -5448,9 +5450,10 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
   bool action_bar_can_invite_members = false;
   bool has_action_bar = false;
   bool has_default_send_message_as_dialog_id = false;
-  bool has_available_reactions = false;
+  bool has_legacy_available_reactions = false;
   bool has_available_reactions_generation = false;
   bool has_have_full_history_source = false;
+  bool has_available_reactions = false;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(has_draft_message);
   PARSE_FLAG(has_last_database_message);
@@ -5542,10 +5545,11 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
     PARSE_FLAG(has_action_bar);
     PARSE_FLAG(has_default_send_message_as_dialog_id);
     PARSE_FLAG(need_drop_default_send_message_as_dialog_id);
-    PARSE_FLAG(has_available_reactions);
+    PARSE_FLAG(has_legacy_available_reactions);
     PARSE_FLAG(is_available_reactions_inited);
     PARSE_FLAG(has_available_reactions_generation);
     PARSE_FLAG(has_have_full_history_source);
+    PARSE_FLAG(has_available_reactions);
     END_PARSE_FLAGS();
   } else {
     need_repair_action_bar = false;
@@ -5696,6 +5700,10 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
   }
   if (has_available_reactions) {
     parse(available_reactions, parser);
+  } else if (has_legacy_available_reactions) {
+    vector<string> legacy_available_reactions;
+    parse(legacy_available_reactions, parser);
+    available_reactions = ChatReactions(std::move(legacy_available_reactions));
   }
   if (has_available_reactions_generation) {
     parse(available_reactions_generation, parser);
@@ -8130,11 +8138,10 @@ void MessagesManager::on_update_dialog_available_reactions(
     return;
   }
 
-  vector<string> legacy_available_reactions;
-  set_dialog_available_reactions(d, std::move(legacy_available_reactions));
+  set_dialog_available_reactions(d, ChatReactions(std::move(available_reactions)));
 }
 
-void MessagesManager::set_dialog_available_reactions(Dialog *d, vector<string> &&available_reactions) {
+void MessagesManager::set_dialog_available_reactions(Dialog *d, ChatReactions &&available_reactions) {
   CHECK(!td_->auth_manager_->is_bot());
   CHECK(d != nullptr);
   switch (d->dialog_id.get_type()) {
@@ -8276,15 +8283,15 @@ void MessagesManager::set_active_reactions(vector<AvailableReaction> active_reac
   });
 }
 
-vector<string> MessagesManager::get_active_reactions(const vector<string> &available_reactions) const {
+ChatReactions MessagesManager::get_active_reactions(const ChatReactions &available_reactions) const {
   return ::td::get_active_reactions(available_reactions, active_reactions_);
 }
 
-vector<string> MessagesManager::get_dialog_active_reactions(const Dialog *d) const {
+ChatReactions MessagesManager::get_dialog_active_reactions(const Dialog *d) const {
   CHECK(d != nullptr);
   switch (d->dialog_id.get_type()) {
     case DialogType::User:
-      return transform(active_reactions_, [](auto &reaction) { return reaction.reaction_; });
+      return ChatReactions(true, true);
     case DialogType::Chat:
     case DialogType::Channel:
       return get_active_reactions(d->available_reactions);
@@ -8310,7 +8317,7 @@ vector<string> MessagesManager::get_message_active_reactions(const Dialog *d, co
       return vector<string>();
     }
   }
-  return get_dialog_active_reactions(d);
+  return get_dialog_active_reactions(d).reactions_;
 }
 
 bool MessagesManager::need_poll_dialog_message_reactions(const Dialog *d) {
@@ -21432,6 +21439,7 @@ td_api::object_ptr<td_api::chat> MessagesManager::get_chat_object(const Dialog *
   auto can_delete = can_delete_dialog(d);
   // TODO hide/show draft message when can_send_message(dialog_id) changes
   auto draft_message = can_send_message(d->dialog_id).is_ok() ? get_draft_message_object(d->draft_message) : nullptr;
+  auto available_reactions = get_dialog_active_reactions(d).get_chat_available_reactions_object();
   return make_tl_object<td_api::chat>(
       d->dialog_id.get(), get_chat_type_object(d->dialog_id), get_dialog_title(d->dialog_id),
       get_chat_photo_info_object(td_->file_manager_.get(), get_dialog_photo(d->dialog_id)),
@@ -21443,7 +21451,7 @@ td_api::object_ptr<td_api::chat> MessagesManager::get_chat_object(const Dialog *
       can_report_dialog(d->dialog_id), d->notification_settings.silent_send_message,
       d->server_unread_count + d->local_unread_count, d->last_read_inbox_message_id.get(),
       d->last_read_outbox_message_id.get(), d->unread_mention_count, d->unread_reaction_count,
-      get_chat_notification_settings_object(&d->notification_settings), get_dialog_active_reactions(d),
+      get_chat_notification_settings_object(&d->notification_settings), std::move(available_reactions),
       d->message_ttl.get_message_ttl_object(), get_dialog_theme_name(d), get_chat_action_bar_object(d),
       get_video_chat_object(d), get_chat_join_requests_info_object(d), d->reply_markup_message_id.get(),
       std::move(draft_message), d->client_data);
@@ -31047,9 +31055,10 @@ void MessagesManager::send_update_chat_available_reactions(const Dialog *d) {
 
   CHECK(d != nullptr);
   LOG_CHECK(d->is_update_new_chat_sent) << "Wrong " << d->dialog_id << " in send_update_chat_available_reactions";
+  auto available_reactions = get_dialog_active_reactions(d).get_chat_available_reactions_object();
   send_closure(
       G()->td(), &Td::send_update,
-      td_api::make_object<td_api::updateChatAvailableReactions>(d->dialog_id.get(), get_dialog_active_reactions(d)));
+      td_api::make_object<td_api::updateChatAvailableReactions>(d->dialog_id.get(), std::move(available_reactions)));
 }
 
 void MessagesManager::send_update_secret_chats_with_user_theme(const Dialog *d) const {
@@ -33735,15 +33744,17 @@ void MessagesManager::set_dialog_title(DialogId dialog_id, const string &title, 
   td_->create_handler<EditDialogTitleQuery>(std::move(promise))->send(dialog_id, new_title);
 }
 
-void MessagesManager::set_dialog_available_reactions(DialogId dialog_id, vector<string> available_reactions,
-                                                     Promise<Unit> &&promise) {
+void MessagesManager::set_dialog_available_reactions(
+    DialogId dialog_id, td_api::object_ptr<td_api::ChatAvailableReactions> &&available_reactions_ptr,
+    Promise<Unit> &&promise) {
   Dialog *d = get_dialog_force(dialog_id, "set_dialog_available_reactions");
   if (d == nullptr) {
     return promise.set_error(Status::Error(400, "Chat not found"));
   }
 
+  ChatReactions available_reactions(std::move(available_reactions_ptr), !is_broadcast_channel(dialog_id));
   auto active_reactions = get_active_reactions(available_reactions);
-  if (active_reactions.size() != available_reactions.size()) {
+  if (active_reactions.reactions_.size() != available_reactions.reactions_.size()) {
     return promise.set_error(Status::Error(400, "Invalid reactions specified"));
   }
   available_reactions = std::move(active_reactions);
@@ -33776,7 +33787,7 @@ void MessagesManager::set_dialog_available_reactions(DialogId dialog_id, vector<
 
   bool is_changed = d->available_reactions != available_reactions;
 
-  set_dialog_available_reactions(d, vector<string>(available_reactions));
+  set_dialog_available_reactions(d, ChatReactions(available_reactions));
 
   if (!is_changed) {
     return promise.set_value(Unit());

@@ -10,6 +10,7 @@
 #include "td/telegram/AffectedHistory.h"
 #include "td/telegram/AvailableReaction.h"
 #include "td/telegram/ChannelId.h"
+#include "td/telegram/ChatReactions.h"
 #include "td/telegram/DialogAction.h"
 #include "td/telegram/DialogDate.h"
 #include "td/telegram/DialogDb.h"
@@ -539,7 +540,9 @@ class MessagesManager final : public Actor {
 
   void set_active_reactions(vector<AvailableReaction> active_reactions);
 
-  void set_dialog_available_reactions(DialogId dialog_id, vector<string> available_reactions, Promise<Unit> &&promise);
+  void set_dialog_available_reactions(DialogId dialog_id,
+                                      td_api::object_ptr<td_api::ChatAvailableReactions> &&available_reactions_ptr,
+                                      Promise<Unit> &&promise);
 
   void set_dialog_permissions(DialogId dialog_id, const td_api::object_ptr<td_api::chatPermissions> &permissions,
                               Promise<Unit> &&promise);
@@ -1265,7 +1268,7 @@ class MessagesManager final : public Actor {
     MessageId last_pinned_message_id;
     MessageId reply_markup_message_id;
     DialogNotificationSettings notification_settings;
-    vector<string> available_reactions;
+    ChatReactions available_reactions;
     uint32 available_reactions_generation = 0;
     MessageTtl message_ttl;
     unique_ptr<DraftMessage> draft_message;
@@ -2683,15 +2686,15 @@ class MessagesManager final : public Actor {
 
   void on_set_message_reaction(FullMessageId full_message_id, Result<Unit> result, Promise<Unit> promise);
 
-  void set_dialog_available_reactions(Dialog *d, vector<string> &&available_reactions);
+  void set_dialog_available_reactions(Dialog *d, ChatReactions &&available_reactions);
 
   void set_dialog_next_available_reactions_generation(Dialog *d, uint32 generation);
 
   void hide_dialog_message_reactions(Dialog *d);
 
-  vector<string> get_active_reactions(const vector<string> &available_reactions) const;
+  ChatReactions get_active_reactions(const ChatReactions &available_reactions) const;
 
-  vector<string> get_dialog_active_reactions(const Dialog *d) const;
+  ChatReactions get_dialog_active_reactions(const Dialog *d) const;
 
   vector<string> get_message_active_reactions(const Dialog *d, const Message *m) const;
 

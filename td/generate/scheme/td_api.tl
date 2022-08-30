@@ -1069,6 +1069,15 @@ chatSourcePublicServiceAnnouncement type:string text:string = ChatSource;
 chatPosition list:ChatList order:int64 is_pinned:Bool source:ChatSource = ChatPosition;
 
 
+//@class ChatAvailableReactions @description Describes reactions available in the chat
+
+//@description All reactions are available in the chat
+chatAvailableReactionsAll = ChatAvailableReactions;
+
+//@description Only specific reactions are available in the chat @reactions The list of reactions
+chatAvailableReactionsSome reactions:vector<ReactionType> = ChatAvailableReactions;
+
+
 //@description Describes a video chat
 //@group_call_id Group call identifier of an active video chat; 0 if none. Full information about the video chat can be received through the method getGroupCall
 //@has_participants True, if the video chat has participants
@@ -1099,7 +1108,7 @@ videoChat group_call_id:int32 has_participants:Bool default_participant_id:Messa
 //@unread_mention_count Number of unread messages with a mention/reply in the chat
 //@unread_reaction_count Number of messages with unread reactions in the chat
 //@notification_settings Notification settings for the chat
-//@available_reactions List of reactions, available in the chat
+//@available_reactions Types of reaction, available in the chat
 //@message_ttl Current message Time To Live setting (self-destruct timer) for the chat; 0 if not defined. TTL is counted from the time message or its content is viewed in secret chats and from the send date in other chats
 //@theme_name If non-empty, name of a theme, set for the chat
 //@action_bar Information about actions which must be possible to do through the chat action bar; may be null
@@ -1108,7 +1117,7 @@ videoChat group_call_id:int32 has_participants:Bool default_participant_id:Messa
 //@reply_markup_message_id Identifier of the message from which reply markup needs to be used; 0 if there is no default custom reply markup in the chat
 //@draft_message A draft of a message in the chat; may be null
 //@client_data Application-specific data associated with the chat. (For example, the chat scroll position or local chat notification settings can be stored here.) Persistent if the message database is used
-chat id:int53 type:ChatType title:string photo:chatPhotoInfo permissions:chatPermissions last_message:message positions:vector<chatPosition> message_sender_id:MessageSender has_protected_content:Bool is_marked_as_unread:Bool is_blocked:Bool has_scheduled_messages:Bool can_be_deleted_only_for_self:Bool can_be_deleted_for_all_users:Bool can_be_reported:Bool default_disable_notification:Bool unread_count:int32 last_read_inbox_message_id:int53 last_read_outbox_message_id:int53 unread_mention_count:int32 unread_reaction_count:int32 notification_settings:chatNotificationSettings available_reactions:vector<string> message_ttl:int32 theme_name:string action_bar:ChatActionBar video_chat:videoChat pending_join_requests:chatJoinRequestsInfo reply_markup_message_id:int53 draft_message:draftMessage client_data:string = Chat;
+chat id:int53 type:ChatType title:string photo:chatPhotoInfo permissions:chatPermissions last_message:message positions:vector<chatPosition> message_sender_id:MessageSender has_protected_content:Bool is_marked_as_unread:Bool is_blocked:Bool has_scheduled_messages:Bool can_be_deleted_only_for_self:Bool can_be_deleted_for_all_users:Bool can_be_reported:Bool default_disable_notification:Bool unread_count:int32 last_read_inbox_message_id:int53 last_read_outbox_message_id:int53 unread_mention_count:int32 unread_reaction_count:int32 notification_settings:chatNotificationSettings available_reactions:ChatAvailableReactions message_ttl:int32 theme_name:string action_bar:ChatActionBar video_chat:videoChat pending_join_requests:chatJoinRequestsInfo reply_markup_message_id:int53 draft_message:draftMessage client_data:string = Chat;
 
 //@description Represents a list of chats @total_count Approximate total number of chats found @chat_ids List of chat identifiers
 chats total_count:int32 chat_ids:vector<int53> = Chats;
@@ -2832,7 +2841,7 @@ chatEventMemberPromoted user_id:int53 old_status:ChatMemberStatus new_status:Cha
 chatEventMemberRestricted member_id:MessageSender old_status:ChatMemberStatus new_status:ChatMemberStatus = ChatEventAction;
 
 //@description The chat available reactions were changed @old_available_reactions Previous chat available reactions @new_available_reactions New chat available reactions
-chatEventAvailableReactionsChanged old_available_reactions:vector<string> new_available_reactions:vector<string> = ChatEventAction;
+chatEventAvailableReactionsChanged old_available_reactions:ChatAvailableReactions new_available_reactions:ChatAvailableReactions = ChatEventAction;
 
 //@description The chat description was changed @old_description Previous chat description @new_description New chat description
 chatEventDescriptionChanged old_description:string new_description:string = ChatEventAction;
@@ -4247,8 +4256,8 @@ updateChatReadOutbox chat_id:int53 last_read_outbox_message_id:int53 = Update;
 //@description The chat action bar was changed @chat_id Chat identifier @action_bar The new value of the action bar; may be null
 updateChatActionBar chat_id:int53 action_bar:ChatActionBar = Update;
 
-//@description The chat available reactions were changed @chat_id Chat identifier @available_reactions The new list of reactions, available in the chat
-updateChatAvailableReactions chat_id:int53 available_reactions:vector<string> = Update;
+//@description The chat available reactions were changed @chat_id Chat identifier @available_reactions The new reactions, available in the chat
+updateChatAvailableReactions chat_id:int53 available_reactions:ChatAvailableReactions = Update;
 
 //@description A chat draft has changed. Be aware that the update may come in the currently opened chat but with old content of the draft. If the user has changed the content of the draft, this update mustn't be applied @chat_id Chat identifier @draft_message The new draft message; may be null @positions The new chat positions in the chat lists
 updateChatDraftMessage chat_id:int53 draft_message:draftMessage positions:vector<chatPosition> = Update;
@@ -5434,8 +5443,8 @@ toggleChatIsMarkedAsUnread chat_id:int53 is_marked_as_unread:Bool = Ok;
 //@description Changes the value of the default disable_notification parameter, used when a message is sent to a chat @chat_id Chat identifier @default_disable_notification New value of default_disable_notification
 toggleChatDefaultDisableNotification chat_id:int53 default_disable_notification:Bool = Ok;
 
-//@description Changes reactions, available in a chat. Available for basic groups, supergroups, and channels. Requires can_change_info administrator right @chat_id Identifier of the chat @available_reactions New list of reactions, available in the chat. All reactions must be active
-setChatAvailableReactions chat_id:int53 available_reactions:vector<string> = Ok;
+//@description Changes reactions, available in a chat. Available for basic groups, supergroups, and channels. Requires can_change_info administrator right @chat_id Identifier of the chat @available_reactions Reactions available in the chat. All emoji reactions must be active
+setChatAvailableReactions chat_id:int53 available_reactions:ChatAvailableReactions = Ok;
 
 //@description Changes application-specific data associated with a chat @chat_id Chat identifier @client_data New value of client_data
 setChatClientData chat_id:int53 client_data:string = Ok;

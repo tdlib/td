@@ -7,6 +7,7 @@
 #include "td/telegram/DialogEventLog.h"
 
 #include "td/telegram/ChannelId.h"
+#include "td/telegram/ChatReactions.h"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/DialogInviteLink.h"
 #include "td/telegram/DialogLocation.h"
@@ -346,7 +347,11 @@ static td_api::object_ptr<td_api::ChatEventAction> get_chat_event_action_object(
     }
     case telegram_api::channelAdminLogEventActionChangeAvailableReactions::ID: {
       auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionChangeAvailableReactions>(action_ptr);
-      return nullptr;
+      ChatReactions old_available_reactions(std::move(action->prev_value_));
+      ChatReactions new_available_reactions(std::move(action->new_value_));
+      return td_api::make_object<td_api::chatEventAvailableReactionsChanged>(
+          old_available_reactions.get_chat_available_reactions_object(),
+          new_available_reactions.get_chat_available_reactions_object());
     }
     default:
       UNREACHABLE();
