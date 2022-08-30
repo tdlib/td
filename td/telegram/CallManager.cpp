@@ -66,8 +66,9 @@ void CallManager::create_call(UserId user_id, tl_object_ptr<telegram_api::InputU
   auto call_id = create_call_actor();
   auto actor = get_call_actor(call_id);
   CHECK(!actor.empty());
+  auto safe_promise = SafePromise<CallId>(std::move(promise), Status::Error(400, "Call not found"));
   send_closure(actor, &CallActor::create_call, user_id, std::move(input_user), std::move(protocol), is_video,
-               std::move(promise));
+               std::move(safe_promise));
 }
 
 void CallManager::accept_call(CallId call_id, CallProtocol &&protocol, Promise<Unit> promise) {
@@ -75,7 +76,8 @@ void CallManager::accept_call(CallId call_id, CallProtocol &&protocol, Promise<U
   if (actor.empty()) {
     return promise.set_error(Status::Error(400, "Call not found"));
   }
-  send_closure(actor, &CallActor::accept_call, std::move(protocol), std::move(promise));
+  auto safe_promise = SafePromise<Unit>(std::move(promise), Status::Error(400, "Call not found"));
+  send_closure(actor, &CallActor::accept_call, std::move(protocol), std::move(safe_promise));
 }
 
 void CallManager::send_call_signaling_data(CallId call_id, string &&data, Promise<Unit> promise) {
@@ -83,7 +85,8 @@ void CallManager::send_call_signaling_data(CallId call_id, string &&data, Promis
   if (actor.empty()) {
     return promise.set_error(Status::Error(400, "Call not found"));
   }
-  send_closure(actor, &CallActor::send_call_signaling_data, std::move(data), std::move(promise));
+  auto safe_promise = SafePromise<Unit>(std::move(promise), Status::Error(400, "Call not found"));
+  send_closure(actor, &CallActor::send_call_signaling_data, std::move(data), std::move(safe_promise));
 }
 
 void CallManager::discard_call(CallId call_id, bool is_disconnected, int32 duration, bool is_video, int64 connection_id,
@@ -92,7 +95,9 @@ void CallManager::discard_call(CallId call_id, bool is_disconnected, int32 durat
   if (actor.empty()) {
     return promise.set_error(Status::Error(400, "Call not found"));
   }
-  send_closure(actor, &CallActor::discard_call, is_disconnected, duration, is_video, connection_id, std::move(promise));
+  auto safe_promise = SafePromise<Unit>(std::move(promise), Status::Error(400, "Call not found"));
+  send_closure(actor, &CallActor::discard_call, is_disconnected, duration, is_video, connection_id,
+               std::move(safe_promise));
 }
 
 void CallManager::rate_call(CallId call_id, int32 rating, string comment,
@@ -101,7 +106,8 @@ void CallManager::rate_call(CallId call_id, int32 rating, string comment,
   if (actor.empty()) {
     return promise.set_error(Status::Error(400, "Call not found"));
   }
-  send_closure(actor, &CallActor::rate_call, rating, std::move(comment), std::move(problems), std::move(promise));
+  auto safe_promise = SafePromise<Unit>(std::move(promise), Status::Error(400, "Call not found"));
+  send_closure(actor, &CallActor::rate_call, rating, std::move(comment), std::move(problems), std::move(safe_promise));
 }
 
 void CallManager::send_call_debug_information(CallId call_id, string data, Promise<Unit> promise) {
@@ -109,7 +115,8 @@ void CallManager::send_call_debug_information(CallId call_id, string data, Promi
   if (actor.empty()) {
     return promise.set_error(Status::Error(400, "Call not found"));
   }
-  send_closure(actor, &CallActor::send_call_debug_information, std::move(data), std::move(promise));
+  auto safe_promise = SafePromise<Unit>(std::move(promise), Status::Error(400, "Call not found"));
+  send_closure(actor, &CallActor::send_call_debug_information, std::move(data), std::move(safe_promise));
 }
 
 void CallManager::send_call_log(CallId call_id, td_api::object_ptr<td_api::InputFile> log_file, Promise<Unit> promise) {
@@ -117,7 +124,8 @@ void CallManager::send_call_log(CallId call_id, td_api::object_ptr<td_api::Input
   if (actor.empty()) {
     return promise.set_error(Status::Error(400, "Call not found"));
   }
-  send_closure(actor, &CallActor::send_call_log, std::move(log_file), std::move(promise));
+  auto safe_promise = SafePromise<Unit>(std::move(promise), Status::Error(400, "Call not found"));
+  send_closure(actor, &CallActor::send_call_log, std::move(log_file), std::move(safe_promise));
 }
 
 CallId CallManager::create_call_actor() {
