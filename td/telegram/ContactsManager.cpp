@@ -680,15 +680,9 @@ class UpdateEmojiStatusQuery final : public Td::ResultHandler {
   explicit UpdateEmojiStatusQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(int64 custom_emoji_id) {
-    auto emoji_status = [custom_emoji_id]() -> telegram_api::object_ptr<telegram_api::EmojiStatus> {
-      if (custom_emoji_id == 0) {
-        return make_tl_object<telegram_api::emojiStatusEmpty>();
-      }
-      return make_tl_object<telegram_api::emojiStatus>(custom_emoji_id);
-    }();
-    send_query(
-        G()->net_query_creator().create(telegram_api::account_updateEmojiStatus(std::move(emoji_status)), {{"me"}}));
+  void send(EmojiStatus emoji_status) {
+    send_query(G()->net_query_creator().create(
+        telegram_api::account_updateEmojiStatus(emoji_status.get_input_emoji_status()), {{"me"}}));
   }
 
   void on_result(BufferSlice packet) final {
@@ -3661,7 +3655,7 @@ void ContactsManager::User::store(StorerT &storer) const {
   bool has_cache_version = cache_version != 0;
   bool has_is_contact = true;
   bool has_restriction_reasons = !restriction_reasons.empty();
-  bool has_emoji_status = emoji_status != 0;
+  bool has_emoji_status = !emoji_status.is_empty();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(is_received);
   STORE_FLAG(is_verified);
@@ -6605,27 +6599,26 @@ void ContactsManager::set_username(const string &username, Promise<Unit> &&promi
   td_->create_handler<UpdateUsernameQuery>(std::move(promise))->send(username);
 }
 
-void ContactsManager::set_emoji_status(int64 custom_emoji_id, Promise<Unit> &&promise) {
+void ContactsManager::set_emoji_status(EmojiStatus emoji_status, Promise<Unit> &&promise) {
   if (!td_->option_manager_->get_option_boolean("is_premium")) {
     return promise.set_error(Status::Error(400, "The method is available only for Telegram Premium users"));
   }
   auto query_promise = PromiseCreator::lambda(
-      [actor_id = actor_id(this), custom_emoji_id, promise = std::move(promise)](Result<Unit> result) mutable {
+      [actor_id = actor_id(this), emoji_status, promise = std::move(promise)](Result<Unit> result) mutable {
         if (result.is_ok()) {
-          send_closure(actor_id, &ContactsManager::on_set_emoji_status, custom_emoji_id, std::move(promise));
+          send_closure(actor_id, &ContactsManager::on_set_emoji_status, emoji_status, std::move(promise));
         } else {
           promise.set_error(result.move_as_error());
         }
       });
-  td_->create_handler<UpdateEmojiStatusQuery>(std::move(query_promise))->send(custom_emoji_id);
+  td_->create_handler<UpdateEmojiStatusQuery>(std::move(query_promise))->send(emoji_status);
 }
 
-void ContactsManager::on_set_emoji_status(int64 custom_emoji_id, Promise<Unit> &&promise) {
+void ContactsManager::on_set_emoji_status(EmojiStatus emoji_status, Promise<Unit> &&promise) {
   auto user_id = get_my_id();
   User *u = get_user(user_id);
-  if (u != nullptr && u->emoji_status != custom_emoji_id) {
-    u->emoji_status = custom_emoji_id;
-    u->is_changed = true;
+  if (u != nullptr) {
+    on_update_user_emoji_status(u, user_id, emoji_status);
     update_user(u, user_id);
   }
   promise.set_value(Unit());
@@ -8768,10 +8761,7 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
   bool has_bot_info_version = (flags & USER_FLAG_HAS_BOT_INFO_VERSION) != 0;
   bool need_apply_min_photo = (flags & USER_FLAG_NEED_APPLY_MIN_PHOTO) != 0;
   bool is_fake = (flags & USER_FLAG_IS_FAKE) != 0;
-  int64 emoji_status = 0;
-  if (user->emoji_status_ != nullptr && user->emoji_status_->get_id() == telegram_api::emojiStatus::ID) {
-    emoji_status = static_cast<const telegram_api::emojiStatus *>(user->emoji_status_.get())->document_id_;
-  }
+  EmojiStatus emoji_status(std::move(user->emoji_status_));
 
   LOG_IF(ERROR, !can_join_groups && !is_bot)
       << "Receive not bot " << user_id << " which can't join groups from " << source;
@@ -8804,11 +8794,12 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
 
   int32 bot_info_version = has_bot_info_version ? user->bot_info_version_ : -1;
   if (u->emoji_status != emoji_status) {
-    if ((u->is_premium ? u->emoji_status : 0) != (is_premium ? emoji_status : 0)) {
+    if ((u->is_premium ? u->emoji_status : EmojiStatus()) != (is_premium ? emoji_status : EmojiStatus())) {
       u->is_changed = true;
+    } else {
+      u->need_save_to_database = true;
     }
     u->emoji_status = emoji_status;
-    u->need_save_to_database = true;
   }
   if (is_verified != u->is_verified || is_premium != u->is_premium || is_support != u->is_support ||
       is_bot != u->is_bot || can_join_groups != u->can_join_groups ||
@@ -11760,7 +11751,7 @@ void ContactsManager::register_user_photo(User *u, UserId user_id, const Photo &
 }
 
 void ContactsManager::on_update_user_emoji_status(UserId user_id,
-                                                  tl_object_ptr<telegram_api::EmojiStatus> &&emoji_status_ptr) {
+                                                  tl_object_ptr<telegram_api::EmojiStatus> &&emoji_status) {
   if (!user_id.is_valid()) {
     LOG(ERROR) << "Receive invalid " << user_id;
     return;
@@ -11768,22 +11759,22 @@ void ContactsManager::on_update_user_emoji_status(UserId user_id,
 
   User *u = get_user_force(user_id);
   if (u != nullptr) {
-    int64 emoji_status = 0;
-    if (emoji_status_ptr != nullptr && emoji_status_ptr->get_id() == telegram_api::emojiStatus::ID) {
-      emoji_status = static_cast<const telegram_api::emojiStatus *>(emoji_status_ptr.get())->document_id_;
-    }
-    on_update_user_emoji_status(u, user_id, emoji_status);
+    on_update_user_emoji_status(u, user_id, EmojiStatus(std::move(emoji_status)));
     update_user(u, user_id);
   } else {
     LOG(INFO) << "Ignore update user emoji status about unknown " << user_id;
   }
 }
 
-void ContactsManager::on_update_user_emoji_status(User *u, UserId user_id, int64 emoji_status) {
+void ContactsManager::on_update_user_emoji_status(User *u, UserId user_id, EmojiStatus emoji_status) {
   if (u->emoji_status != emoji_status) {
     u->emoji_status = emoji_status;
     LOG(DEBUG) << "Emoji status has changed for " << user_id;
-    u->is_changed = true;
+    if (u->is_premium) {
+      u->is_changed = true;
+    } else {
+      u->need_save_to_database = true;
+    }
   }
 }
 
@@ -16786,10 +16777,10 @@ tl_object_ptr<td_api::user> ContactsManager::get_user_object(UserId user_id, con
     type = make_tl_object<td_api::userTypeRegular>();
   }
 
-  int64 emoji_status = u->is_premium ? u->emoji_status : 0;
+  int64 premium_badge = u->is_premium ? u->emoji_status.get_premium_badge_object() : 0;
   return make_tl_object<td_api::user>(
       user_id.get(), u->first_name, u->last_name, u->username, u->phone_number, get_user_status_object(user_id, u),
-      get_profile_photo_object(td_->file_manager_.get(), u->photo), emoji_status, u->is_contact, u->is_mutual_contact,
+      get_profile_photo_object(td_->file_manager_.get(), u->photo), premium_badge, u->is_contact, u->is_mutual_contact,
       u->is_verified, u->is_premium, u->is_support, get_restriction_reason_description(u->restriction_reasons),
       u->is_scam, u->is_fake, u->is_received, std::move(type), u->language_code, u->attach_menu_enabled);
 }

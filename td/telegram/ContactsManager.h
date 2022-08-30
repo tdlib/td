@@ -19,6 +19,7 @@
 #include "td/telegram/DialogLocation.h"
 #include "td/telegram/DialogParticipant.h"
 #include "td/telegram/DialogParticipantFilter.h"
+#include "td/telegram/EmojiStatus.h"
 #include "td/telegram/files/FileId.h"
 #include "td/telegram/files/FileSourceId.h"
 #include "td/telegram/FolderId.h"
@@ -178,7 +179,7 @@ class ContactsManager final : public Actor {
   void on_update_user_name(UserId user_id, string &&first_name, string &&last_name, string &&username);
   void on_update_user_phone_number(UserId user_id, string &&phone_number);
   void on_update_user_photo(UserId user_id, tl_object_ptr<telegram_api::UserProfilePhoto> &&photo_ptr);
-  void on_update_user_emoji_status(UserId user_id, tl_object_ptr<telegram_api::EmojiStatus> &&emoji_status_ptr);
+  void on_update_user_emoji_status(UserId user_id, tl_object_ptr<telegram_api::EmojiStatus> &&emoji_status);
   void on_update_user_online(UserId user_id, tl_object_ptr<telegram_api::UserStatus> &&status);
   void on_update_user_local_was_online(UserId user_id, int32 local_was_online);
   void on_update_user_is_blocked(UserId user_id, bool is_blocked);
@@ -344,7 +345,7 @@ class ContactsManager final : public Actor {
 
   void set_username(const string &username, Promise<Unit> &&promise);
 
-  void set_emoji_status(int64 suctom_emoji_id, Promise<Unit> &&promise);
+  void set_emoji_status(EmojiStatus emoji_status, Promise<Unit> &&promise);
 
   void set_chat_description(ChatId chat_id, const string &description, Promise<Unit> &&promise);
 
@@ -644,7 +645,7 @@ class ContactsManager final : public Actor {
     string username;
     string phone_number;
     int64 access_hash = -1;
-    int64 emoji_status = 0;
+    EmojiStatus emoji_status;
 
     ProfilePhoto photo;
 
@@ -1251,13 +1252,13 @@ class ContactsManager final : public Actor {
 
   static bool is_valid_username(const string &username);
 
-  void on_set_emoji_status(int64 custom_emoji_id, Promise<Unit> &&promise);
+  void on_set_emoji_status(EmojiStatus emoji_status, Promise<Unit> &&promise);
 
   void on_update_user_name(User *u, UserId user_id, string &&first_name, string &&last_name, string &&username);
   void on_update_user_phone_number(User *u, UserId user_id, string &&phone_number);
   void on_update_user_photo(User *u, UserId user_id, tl_object_ptr<telegram_api::UserProfilePhoto> &&photo,
                             const char *source);
-  void on_update_user_emoji_status(User *u, UserId user_id, int64 emoji_status);
+  void on_update_user_emoji_status(User *u, UserId user_id, EmojiStatus emoji_status);
   void on_update_user_is_contact(User *u, UserId user_id, bool is_contact, bool is_mutual_contact);
   void on_update_user_online(User *u, UserId user_id, tl_object_ptr<telegram_api::UserStatus> &&status);
   void on_update_user_local_was_online(User *u, UserId user_id, int32 local_was_online);

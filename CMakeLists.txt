@@ -539,6 +539,7 @@ set(TDLIB_SOURCE
   td/telegram/DownloadManager.h
   td/telegram/DownloadManagerCallback.h
   td/telegram/DraftMessage.h
+  td/telegram/EmojiStatus.h
   td/telegram/EncryptedFile.h
   td/telegram/FileReferenceManager.h
   td/telegram/files/FileBitmask.h

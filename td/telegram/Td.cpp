@@ -41,6 +41,7 @@
 #include "td/telegram/DocumentsManager.h"
 #include "td/telegram/DownloadManager.h"
 #include "td/telegram/DownloadManagerCallback.h"
+#include "td/telegram/EmojiStatus.h"
 #include "td/telegram/FileReferenceManager.h"
 #include "td/telegram/files/FileGcParameters.h"
 #include "td/telegram/files/FileId.h"
@@ -6729,7 +6730,7 @@ void Td::on_request(uint64 id, td_api::setUsername &request) {
 void Td::on_request(uint64 id, const td_api::setPremiumBadge &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  contacts_manager_->set_emoji_status(request.custom_emoji_id_, std::move(promise));
+  contacts_manager_->set_emoji_status(EmojiStatus(request.custom_emoji_id_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::setCommands &request) {
