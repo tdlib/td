@@ -3179,6 +3179,11 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateUserEmojiStatus
   promise.set_value(Unit());
 }
 
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateRecentEmojiStatuses> update, Promise<Unit> &&promise) {
+  get_recent_emoji_statuses(td_, Auto());
+  promise.set_value(Unit());
+}
+
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updatePeerBlocked> update, Promise<Unit> &&promise) {
   td_->messages_manager_->on_update_dialog_is_blocked(DialogId(update->peer_id_), update->blocked_);
   promise.set_value(Unit());
@@ -3584,10 +3589,6 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateTranscribedAudi
 }
 
 // unsupported updates
-
-void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateRecentEmojiStatuses> update, Promise<Unit> &&promise) {
-  promise.set_value(Unit());
-}
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateRecentReactions> update, Promise<Unit> &&promise) {
   promise.set_value(Unit());
