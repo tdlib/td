@@ -6745,6 +6745,12 @@ void Td::on_request(uint64 id, const td_api::getRecentPremiumStatuses &request) 
   get_recent_emoji_statuses(this, std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::clearRecentPremiumStatuses &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  clear_recent_emoji_statuses(this, std::move(promise));
+}
+
 void Td::on_request(uint64 id, td_api::setCommands &request) {
   CHECK_IS_BOT();
   CREATE_OK_REQUEST_PROMISE();

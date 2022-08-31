@@ -4481,6 +4481,8 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::getDefaultPremiumStatuses>());
     } else if (op == "grps") {
       send_request(td_api::make_object<td_api::getRecentPremiumStatuses>());
+    } else if (op == "crps") {
+      send_request(td_api::make_object<td_api::clearRecentPremiumStatuses>());
     } else if (op == "ccun") {
       ChatId chat_id;
       string username;

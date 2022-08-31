@@ -5581,6 +5581,9 @@ getDefaultPremiumStatuses = PremiumStatuses;
 //@description Returns recent premium statuses
 getRecentPremiumStatuses = PremiumStatuses;
 
+//@description Clears recent premium statuses
+clearRecentPremiumStatuses = Ok;
+
 
 //@description Downloads a file from the cloud. Download progress and completion of the download will be notified through updateFile updates
 //@file_id Identifier of the file to download

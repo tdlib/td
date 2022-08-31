@@ -18,7 +18,7 @@
 namespace td {
 
 struct EmojiStatuses {
-  int64 hash_ = -1;
+  int64 hash_ = 0;
   vector<EmojiStatus> emoji_statuses_;
 
   td_api::object_ptr<td_api::premiumStatuses> get_premium_statuses_object() const {
@@ -73,6 +73,8 @@ static EmojiStatuses load_emoji_statuses(const string &key) {
   auto log_event_string = G()->td_db()->get_binlog_pmc()->get(key);
   if (!log_event_string.empty()) {
     log_event_parse(result, log_event_string).ensure();
+  } else {
+    result.hash_ = -1;
   }
   return result;
 }
@@ -90,7 +92,7 @@ class GetDefaultEmojiStatusesQuery final : public Td::ResultHandler {
   }
 
   void send(int64 hash) {
-    send_query(G()->net_query_creator().create(telegram_api::account_getDefaultEmojiStatuses(hash)));
+    send_query(G()->net_query_creator().create(telegram_api::account_getDefaultEmojiStatuses(hash), {{"me"}}));
   }
 
   void on_result(BufferSlice packet) final {
@@ -132,7 +134,7 @@ class GetRecentEmojiStatusesQuery final : public Td::ResultHandler {
   }
 
   void send(int64 hash) {
-    send_query(G()->net_query_creator().create(telegram_api::account_getRecentEmojiStatuses(hash)));
+    send_query(G()->net_query_creator().create(telegram_api::account_getRecentEmojiStatuses(hash), {{"me"}}));
   }
 
   void on_result(BufferSlice packet) final {
@@ -158,6 +160,32 @@ class GetRecentEmojiStatusesQuery final : public Td::ResultHandler {
     if (promise_) {
       promise_.set_value(emoji_statuses.get_premium_statuses_object());
     }
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
+class ClearRecentEmojiStatusesQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit ClearRecentEmojiStatusesQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send() {
+    send_query(G()->net_query_creator().create(telegram_api::account_clearRecentEmojiStatuses(), {{"me"}}));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::account_clearRecentEmojiStatuses>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    save_emoji_statuses(get_recent_emoji_statuses_database_key(), EmojiStatuses());
+    promise_.set_value(Unit());
   }
 
   void on_error(Status status) final {
@@ -212,6 +240,11 @@ void get_recent_emoji_statuses(Td *td, Promise<td_api::object_ptr<td_api::premiu
     promise = Promise<td_api::object_ptr<td_api::premiumStatuses>>();
   }
   td->create_handler<GetRecentEmojiStatusesQuery>(std::move(promise))->send(statuses.hash_);
+}
+
+void clear_recent_emoji_statuses(Td *td, Promise<Unit> &&promise) {
+  save_emoji_statuses(get_recent_emoji_statuses_database_key(), EmojiStatuses());
+  td->create_handler<ClearRecentEmojiStatusesQuery>(std::move(promise))->send();
 }
 
 }  // namespace td
