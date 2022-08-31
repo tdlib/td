@@ -3512,7 +3512,7 @@ class MessagesManager final : public Actor {
 
   struct CommonDialogs {
     vector<DialogId> dialog_ids;
-    double received_date = 0;
+    double receive_time = 0;
     int32 total_count = 0;
     bool is_outdated = false;
   };

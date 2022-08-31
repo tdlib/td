@@ -17793,7 +17793,7 @@ std::pair<int32, vector<DialogId>> MessagesManager::get_common_dialogs(UserId us
   if (it != found_common_dialogs_.end() && !it->second.dialog_ids.empty()) {
     int32 total_count = it->second.total_count;
     vector<DialogId> &common_dialog_ids = it->second.dialog_ids;
-    bool use_cache = (!it->second.is_outdated && it->second.received_date >= Time::now() - 3600) || force ||
+    bool use_cache = (!it->second.is_outdated && it->second.receive_time >= Time::now() - 3600) || force ||
                      offset_chat_id != 0 || common_dialog_ids.size() >= static_cast<size_t>(MAX_GET_DIALOGS);
     // use cache if it is up-to-date, or we required to use it or we can't update it
     if (use_cache) {
@@ -17841,8 +17841,8 @@ void MessagesManager::on_get_common_dialogs(UserId user_id, int64 offset_chat_id
     // drop outdated cache if possible
     common_dialogs = CommonDialogs();
   }
-  if (common_dialogs.received_date == 0) {
-    common_dialogs.received_date = Time::now();
+  if (common_dialogs.receive_time == 0) {
+    common_dialogs.receive_time = Time::now();
   }
   common_dialogs.is_outdated = false;
   auto &result = common_dialogs.dialog_ids;
