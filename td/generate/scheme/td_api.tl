@@ -5578,6 +5578,9 @@ toggleBotIsAddedToAttachmentMenu bot_user_id:int53 is_added:Bool = Ok;
 //@description Returns default premium statuses
 getDefaultPremiumStatuses = PremiumStatuses;
 
+//@description Returns recent premium statuses
+getRecentPremiumStatuses = PremiumStatuses;
+
 
 //@description Downloads a file from the cloud. Download progress and completion of the download will be notified through updateFile updates
 //@file_id Identifier of the file to download

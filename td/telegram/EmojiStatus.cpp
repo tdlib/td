@@ -18,7 +18,7 @@
 namespace td {
 
 struct EmojiStatuses {
-  int64 hash_ = 0;
+  int64 hash_ = -1;
   vector<EmojiStatus> emoji_statuses_;
 
   td_api::object_ptr<td_api::premiumStatuses> get_premium_statuses_object() const {
@@ -60,6 +60,11 @@ struct EmojiStatuses {
 
 static const string &get_default_emoji_statuses_database_key() {
   static string key = "def_emoji_statuses";
+  return key;
+}
+
+static const string &get_recent_emoji_statuses_database_key() {
+  static string key = "rec_emoji_statuses";
   return key;
 }
 
@@ -118,6 +123,48 @@ class GetDefaultEmojiStatusesQuery final : public Td::ResultHandler {
   }
 };
 
+class GetRecentEmojiStatusesQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::premiumStatuses>> promise_;
+
+ public:
+  explicit GetRecentEmojiStatusesQuery(Promise<td_api::object_ptr<td_api::premiumStatuses>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(int64 hash) {
+    send_query(G()->net_query_creator().create(telegram_api::account_getRecentEmojiStatuses(hash)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::account_getRecentEmojiStatuses>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto emoji_statuses_ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for GetRecentEmojiStatusesQuery: " << to_string(emoji_statuses_ptr);
+
+    if (emoji_statuses_ptr->get_id() == telegram_api::account_emojiStatusesNotModified::ID) {
+      if (promise_) {
+        promise_.set_error(Status::Error(500, "Receive wrong server response"));
+      }
+      return;
+    }
+
+    CHECK(emoji_statuses_ptr->get_id() == telegram_api::account_emojiStatuses::ID);
+    EmojiStatuses emoji_statuses(move_tl_object_as<telegram_api::account_emojiStatuses>(emoji_statuses_ptr));
+    save_emoji_statuses(get_recent_emoji_statuses_database_key(), emoji_statuses);
+
+    if (promise_) {
+      promise_.set_value(emoji_statuses.get_premium_statuses_object());
+    }
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 EmojiStatus::EmojiStatus(const td_api::object_ptr<td_api::premiumStatus> &premium_status)
     : custom_emoji_id_(premium_status != nullptr ? premium_status->custom_emoji_id_ : 0) {
 }
@@ -151,11 +198,20 @@ StringBuilder &operator<<(StringBuilder &string_builder, const EmojiStatus &emoj
 
 void get_default_emoji_statuses(Td *td, Promise<td_api::object_ptr<td_api::premiumStatuses>> &&promise) {
   auto statuses = load_emoji_statuses(get_default_emoji_statuses_database_key());
-  if (statuses.hash_ != 0 && promise) {
+  if (statuses.hash_ != -1 && promise) {
     promise.set_value(statuses.get_premium_statuses_object());
     promise = Promise<td_api::object_ptr<td_api::premiumStatuses>>();
   }
   td->create_handler<GetDefaultEmojiStatusesQuery>(std::move(promise))->send(statuses.hash_);
+}
+
+void get_recent_emoji_statuses(Td *td, Promise<td_api::object_ptr<td_api::premiumStatuses>> &&promise) {
+  auto statuses = load_emoji_statuses(get_recent_emoji_statuses_database_key());
+  if (statuses.hash_ != -1 && promise) {
+    promise.set_value(statuses.get_premium_statuses_object());
+    promise = Promise<td_api::object_ptr<td_api::premiumStatuses>>();
+  }
+  td->create_handler<GetRecentEmojiStatusesQuery>(std::move(promise))->send(statuses.hash_);
 }
 
 }  // namespace td

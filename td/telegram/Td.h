@@ -1016,6 +1016,8 @@ class Td final : public Actor {
 
   void on_request(uint64 id, const td_api::getDefaultPremiumStatuses &request);
 
+  void on_request(uint64 id, const td_api::getRecentPremiumStatuses &request);
+
   void on_request(uint64 id, td_api::setCommands &request);
 
   void on_request(uint64 id, td_api::deleteCommands &request);
