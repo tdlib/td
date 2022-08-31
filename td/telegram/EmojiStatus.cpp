@@ -242,6 +242,22 @@ void get_recent_emoji_statuses(Td *td, Promise<td_api::object_ptr<td_api::premiu
   td->create_handler<GetRecentEmojiStatusesQuery>(std::move(promise))->send(statuses.hash_);
 }
 
+void add_recent_emoji_status(EmojiStatus emoji_status) {
+  if (emoji_status.is_empty()) {
+    return;
+  }
+
+  auto statuses = load_emoji_statuses(get_recent_emoji_statuses_database_key());
+  if (!statuses.emoji_statuses_.empty() && statuses.emoji_statuses_[0] == emoji_status) {
+    return;
+  }
+
+  statuses.hash_ = 0;
+  td::remove(statuses.emoji_statuses_, emoji_status);
+  statuses.emoji_statuses_.insert(statuses.emoji_statuses_.begin(), emoji_status);
+  save_emoji_statuses(get_recent_emoji_statuses_database_key(), statuses);
+}
+
 void clear_recent_emoji_statuses(Td *td, Promise<Unit> &&promise) {
   save_emoji_statuses(get_recent_emoji_statuses_database_key(), EmojiStatuses());
   td->create_handler<ClearRecentEmojiStatusesQuery>(std::move(promise))->send();

@@ -65,6 +65,8 @@ void get_default_emoji_statuses(Td *td, Promise<td_api::object_ptr<td_api::premi
 
 void get_recent_emoji_statuses(Td *td, Promise<td_api::object_ptr<td_api::premiumStatuses>> &&promise);
 
+void add_recent_emoji_status(EmojiStatus emoji_status);
+
 void clear_recent_emoji_statuses(Td *td, Promise<Unit> &&promise);
 
 }  // namespace td

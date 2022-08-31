@@ -6603,6 +6603,7 @@ void ContactsManager::set_emoji_status(EmojiStatus emoji_status, Promise<Unit> &
   if (!td_->option_manager_->get_option_boolean("is_premium")) {
     return promise.set_error(Status::Error(400, "The method is available only for Telegram Premium users"));
   }
+  add_recent_emoji_status(emoji_status);
   auto query_promise = PromiseCreator::lambda(
       [actor_id = actor_id(this), emoji_status, promise = std::move(promise)](Result<Unit> result) mutable {
         if (result.is_ok()) {
