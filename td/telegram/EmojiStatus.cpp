@@ -7,12 +7,74 @@
 #include "td/telegram/EmojiStatus.h"
 
 #include "td/telegram/Global.h"
+#include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/Td.h"
+#include "td/telegram/TdDb.h"
 
+#include "td/utils/algorithm.h"
 #include "td/utils/buffer.h"
 #include "td/utils/Status.h"
 
 namespace td {
+
+struct EmojiStatuses {
+  int64 hash_ = 0;
+  vector<EmojiStatus> emoji_statuses_;
+
+  td_api::object_ptr<td_api::premiumStatuses> get_premium_statuses_object() const {
+    auto premium_statuses = transform(emoji_statuses_, [](const EmojiStatus &emoji_status) {
+      CHECK(!emoji_status.is_empty());
+      return emoji_status.get_premium_status_object();
+    });
+
+    return td_api::make_object<td_api::premiumStatuses>(std::move(premium_statuses));
+  }
+
+  EmojiStatuses() = default;
+
+  explicit EmojiStatuses(tl_object_ptr<telegram_api::account_emojiStatuses> &&emoji_statuses) {
+    CHECK(emoji_statuses != nullptr);
+    hash_ = emoji_statuses->hash_;
+    for (auto &status : emoji_statuses->statuses_) {
+      EmojiStatus emoji_status(std::move(status));
+      if (emoji_status.is_empty()) {
+        LOG(ERROR) << "Receive empty emoji status";
+        continue;
+      }
+      emoji_statuses_.push_back(emoji_status);
+    }
+  }
+
+  template <class StorerT>
+  void store(StorerT &storer) const {
+    td::store(hash_, storer);
+    td::store(emoji_statuses_, storer);
+  }
+
+  template <class ParserT>
+  void parse(ParserT &parser) {
+    td::parse(hash_, parser);
+    td::parse(emoji_statuses_, parser);
+  }
+};
+
+static const string &get_default_emoji_statuses_database_key() {
+  static string key = "def_emoji_statuses";
+  return key;
+}
+
+static EmojiStatuses load_emoji_statuses(const string &key) {
+  EmojiStatuses result;
+  auto log_event_string = G()->td_db()->get_binlog_pmc()->get(key);
+  if (!log_event_string.empty()) {
+    log_event_parse(result, log_event_string).ensure();
+  }
+  return result;
+}
+
+static void save_emoji_statuses(const string &key, const EmojiStatuses &emoji_statuses) {
+  G()->td_db()->get_binlog_pmc()->set(key, log_event_store(emoji_statuses).as_slice().str());
+}
 
 class GetDefaultEmojiStatusesQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::premiumStatuses>> promise_;
@@ -35,19 +97,20 @@ class GetDefaultEmojiStatusesQuery final : public Td::ResultHandler {
     auto emoji_statuses_ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for GetDefaultEmojiStatusesQuery: " << to_string(emoji_statuses_ptr);
 
-    auto result = td_api::make_object<td_api::premiumStatuses>();
-    if (emoji_statuses_ptr->get_id() == telegram_api::account_emojiStatuses::ID) {
-      auto emoji_statuses = move_tl_object_as<telegram_api::account_emojiStatuses>(emoji_statuses_ptr);
-      for (auto &status : emoji_statuses->statuses_) {
-        EmojiStatus emoji_status(std::move(status));
-        if (emoji_status.is_empty()) {
-          LOG(ERROR) << "Receive empty default emoji status";
-          continue;
-        }
-        result->premium_statuses_.push_back(emoji_status.get_premium_status_object());
+    if (emoji_statuses_ptr->get_id() == telegram_api::account_emojiStatusesNotModified::ID) {
+      if (promise_) {
+        promise_.set_error(Status::Error(500, "Receive wrong server response"));
       }
+      return;
     }
-    promise_.set_value(std::move(result));
+
+    CHECK(emoji_statuses_ptr->get_id() == telegram_api::account_emojiStatuses::ID);
+    EmojiStatuses emoji_statuses(move_tl_object_as<telegram_api::account_emojiStatuses>(emoji_statuses_ptr));
+    save_emoji_statuses(get_default_emoji_statuses_database_key(), emoji_statuses);
+
+    if (promise_) {
+      promise_.set_value(emoji_statuses.get_premium_statuses_object());
+    }
   }
 
   void on_error(Status status) final {
@@ -87,7 +150,12 @@ StringBuilder &operator<<(StringBuilder &string_builder, const EmojiStatus &emoj
 }
 
 void get_default_emoji_statuses(Td *td, Promise<td_api::object_ptr<td_api::premiumStatuses>> &&promise) {
-  td->create_handler<GetDefaultEmojiStatusesQuery>(std::move(promise))->send(0);
+  auto statuses = load_emoji_statuses(get_default_emoji_statuses_database_key());
+  if (statuses.hash_ != 0 && promise) {
+    promise.set_value(statuses.get_premium_statuses_object());
+    promise = Promise<td_api::object_ptr<td_api::premiumStatuses>>();
+  }
+  td->create_handler<GetDefaultEmojiStatusesQuery>(std::move(promise))->send(statuses.hash_);
 }
 
 }  // namespace td
