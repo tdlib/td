@@ -255,6 +255,10 @@ void add_recent_emoji_status(EmojiStatus emoji_status) {
   statuses.hash_ = 0;
   td::remove(statuses.emoji_statuses_, emoji_status);
   statuses.emoji_statuses_.insert(statuses.emoji_statuses_.begin(), emoji_status);
+  constexpr size_t MAX_RECENT_EMOJI_STATUSES = 50;  // server-side limit
+  if (statuses.emoji_statuses_.size() > MAX_RECENT_EMOJI_STATUSES) {
+    statuses.emoji_statuses_.resize(MAX_RECENT_EMOJI_STATUSES);
+  }
   save_emoji_statuses(get_recent_emoji_statuses_database_key(), statuses);
 }
 
