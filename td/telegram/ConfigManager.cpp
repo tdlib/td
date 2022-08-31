@@ -1478,10 +1478,10 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
   string animation_search_emojis;
   vector<SuggestedAction> suggested_actions;
   bool can_archive_and_mute_new_chats_from_unknown_users = false;
-  int64 chat_read_mark_expire_period = 0;
-  int64 chat_read_mark_size_threshold = 0;
+  int32 chat_read_mark_expire_period = 0;
+  int32 chat_read_mark_size_threshold = 0;
   double animated_emoji_zoom = 0.0;
-  int64 reactions_uniq_max = 0;
+  int32 reactions_uniq_max = 0;
   vector<string> premium_features;
   auto &premium_limit_keys = get_premium_limit_keys();
   string premium_bot_username;
@@ -1799,6 +1799,11 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
       }
       if (key == "stickers_normal_by_emoji_per_premium_num") {
         stickers_normal_by_emoji_per_premium_num = get_json_value_int(std::move(key_value->value_), key);
+        continue;
+      }
+      if (key == "default_emoji_statuses_stickerset_id") {
+        auto setting_value = get_json_value_long(std::move(key_value->value_), key);
+        G()->set_option_integer("themed_premium_statuses_sticker_set_id", setting_value);
         continue;
       }
 

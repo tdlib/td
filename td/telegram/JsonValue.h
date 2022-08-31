@@ -30,6 +30,8 @@ bool get_json_value_bool(telegram_api::object_ptr<telegram_api::JSONValue> &&jso
 
 int32 get_json_value_int(telegram_api::object_ptr<telegram_api::JSONValue> &&json_value, Slice name);
 
+int64 get_json_value_long(telegram_api::object_ptr<telegram_api::JSONValue> &&json_value, Slice name);
+
 double get_json_value_double(telegram_api::object_ptr<telegram_api::JSONValue> &&json_value, Slice name);
 
 string get_json_value_string(telegram_api::object_ptr<telegram_api::JSONValue> &&json_value, Slice name);

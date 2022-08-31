@@ -217,6 +217,15 @@ int32 get_json_value_int(telegram_api::object_ptr<telegram_api::JSONValue> &&jso
   return 0;
 }
 
+int64 get_json_value_long(telegram_api::object_ptr<telegram_api::JSONValue> &&json_value, Slice name) {
+  CHECK(json_value != nullptr);
+  if (json_value->get_id() == telegram_api::jsonString::ID) {
+    return to_integer<int64>(static_cast<const telegram_api::jsonString *>(json_value.get())->value_);
+  }
+  LOG(ERROR) << "Expected Long as " << name << ", but found " << to_string(json_value);
+  return 0;
+}
+
 double get_json_value_double(telegram_api::object_ptr<telegram_api::JSONValue> &&json_value, Slice name) {
   CHECK(json_value != nullptr);
   if (json_value->get_id() == telegram_api::jsonNumber::ID) {

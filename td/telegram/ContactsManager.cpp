@@ -700,6 +700,7 @@ class UpdateEmojiStatusQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
+    get_recent_emoji_statuses(td_, Auto());
     promise_.set_error(std::move(status));
   }
 };
