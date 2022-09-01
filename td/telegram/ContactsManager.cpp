@@ -8797,19 +8797,17 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
   int32 bot_info_version = has_bot_info_version ? user->bot_info_version_ : -1;
   if (u->emoji_status != emoji_status) {
     u->emoji_status = emoji_status;
-    u->is_emoji_status_changed = true;
   }
-  if (is_verified != u->is_verified || is_premium != u->is_premium || is_support != u->is_support ||
-      is_bot != u->is_bot || can_join_groups != u->can_join_groups ||
-      can_read_all_group_messages != u->can_read_all_group_messages || restriction_reasons != u->restriction_reasons ||
-      is_scam != u->is_scam || is_fake != u->is_fake || is_inline_bot != u->is_inline_bot ||
-      inline_query_placeholder != u->inline_query_placeholder || need_location_bot != u->need_location_bot ||
-      can_be_added_to_attach_menu != u->can_be_added_to_attach_menu || attach_menu_enabled != u->attach_menu_enabled) {
+  if (is_verified != u->is_verified || is_support != u->is_support || is_bot != u->is_bot ||
+      can_join_groups != u->can_join_groups || can_read_all_group_messages != u->can_read_all_group_messages ||
+      restriction_reasons != u->restriction_reasons || is_scam != u->is_scam || is_fake != u->is_fake ||
+      is_inline_bot != u->is_inline_bot || inline_query_placeholder != u->inline_query_placeholder ||
+      need_location_bot != u->need_location_bot || can_be_added_to_attach_menu != u->can_be_added_to_attach_menu ||
+      attach_menu_enabled != u->attach_menu_enabled) {
     LOG_IF(ERROR, is_bot != u->is_bot && !is_deleted && !u->is_deleted && u->is_received)
         << "User.is_bot has changed for " << user_id << "/" << u->username << " from " << source << " from "
         << u->is_bot << " to " << is_bot;
     u->is_verified = is_verified;
-    u->is_premium = is_premium;
     u->is_support = is_support;
     u->is_bot = is_bot;
     u->can_join_groups = can_join_groups;
@@ -8824,6 +8822,10 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
     u->attach_menu_enabled = attach_menu_enabled;
 
     LOG(DEBUG) << "Info has changed for " << user_id;
+    u->is_changed = true;
+  }
+  if (is_premium != u->is_premium) {
+    u->is_premium = is_premium;
     u->is_changed = true;
   }
 
@@ -10329,16 +10331,6 @@ void ContactsManager::update_user(User *u, UserId user_id, bool from_binlog, boo
     }
     u->is_phone_number_changed = false;
   }
-  if (u->is_emoji_status_changed) {
-    auto effective_custom_emoji_id = u->emoji_status.get_effective_custom_emoji_id(u->is_premium);
-    if (effective_custom_emoji_id != u->last_sent_emoji_status) {
-      u->last_sent_emoji_status = effective_custom_emoji_id;
-      u->is_changed = true;
-    } else {
-      u->need_save_to_database = true;
-    }
-    u->is_emoji_status_changed = false;
-  }
   if (u->is_status_changed && user_id != get_my_id()) {
     auto left_time = get_user_was_online(u, user_id) - G()->server_time_cached();
     if (left_time >= 0 && left_time < 30 * 86400) {
@@ -10356,6 +10348,15 @@ void ContactsManager::update_user(User *u, UserId user_id, bool from_binlog, boo
     } else {
       restricted_user_ids_.insert(user_id);
     }
+  }
+
+  auto unix_time = G()->unix_time();
+  auto effective_custom_emoji_id = u->emoji_status.get_effective_custom_emoji_id(u->is_premium, unix_time);
+  if (effective_custom_emoji_id != u->last_sent_emoji_status) {
+    u->last_sent_emoji_status = effective_custom_emoji_id;
+    u->is_changed = true;
+  } else {
+    u->need_save_to_database = true;
   }
 
   if (u->is_deleted) {
@@ -11777,7 +11778,6 @@ void ContactsManager::on_update_user_emoji_status(UserId user_id,
 void ContactsManager::on_update_user_emoji_status(User *u, UserId user_id, EmojiStatus emoji_status) {
   if (u->emoji_status != emoji_status) {
     u->emoji_status = emoji_status;
-    u->is_emoji_status_changed = true;
     LOG(DEBUG) << "Emoji status has changed for " << user_id;
   }
 }
@@ -16781,7 +16781,7 @@ tl_object_ptr<td_api::user> ContactsManager::get_user_object(UserId user_id, con
     type = make_tl_object<td_api::userTypeRegular>();
   }
 
-  auto premium_status = u->is_premium ? u->emoji_status.get_premium_status_object() : nullptr;
+  auto premium_status = u->last_sent_emoji_status != 0 ? u->emoji_status.get_premium_status_object() : nullptr;
   return make_tl_object<td_api::user>(
       user_id.get(), u->first_name, u->last_name, u->username, u->phone_number, get_user_status_object(user_id, u),
       get_profile_photo_object(td_->file_manager_.get(), u->photo), std::move(premium_status), u->is_contact,

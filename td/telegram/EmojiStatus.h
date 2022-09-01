@@ -20,6 +20,7 @@ class Td;
 
 class EmojiStatus {
   int64 custom_emoji_id_ = 0;
+  int32 until_date_ = 0;
 
   friend bool operator==(const EmojiStatus &lhs, const EmojiStatus &rhs);
 
@@ -28,7 +29,7 @@ class EmojiStatus {
  public:
   EmojiStatus() = default;
 
-  explicit EmojiStatus(const td_api::object_ptr<td_api::premiumStatus> &premium_status);
+  EmojiStatus(const td_api::object_ptr<td_api::premiumStatus> &premium_status, int32 duration);
 
   explicit EmojiStatus(tl_object_ptr<telegram_api::EmojiStatus> &&emoji_status);
 
@@ -36,7 +37,7 @@ class EmojiStatus {
 
   td_api::object_ptr<td_api::premiumStatus> get_premium_status_object() const;
 
-  int64 get_effective_custom_emoji_id(bool is_premium) const;
+  int64 get_effective_custom_emoji_id(bool is_premium, int32 unix_time) const;
 
   bool is_empty() const {
     return custom_emoji_id_ == 0;
@@ -44,17 +45,31 @@ class EmojiStatus {
 
   template <class StorerT>
   void store(StorerT &storer) const {
+    bool has_until_date = until_date_ != 0;
+    BEGIN_STORE_FLAGS();
+    STORE_FLAG(has_until_date);
+    END_STORE_FLAGS();
     td::store(custom_emoji_id_, storer);
+    if (has_until_date) {
+      td::store(until_date_, storer);
+    }
   }
 
   template <class ParserT>
   void parse(ParserT &parser) {
+    bool has_until_date;
+    BEGIN_PARSE_FLAGS();
+    PARSE_FLAG(has_until_date);
+    END_PARSE_FLAGS();
     td::parse(custom_emoji_id_, parser);
+    if (has_until_date) {
+      td::parse(until_date_, parser);
+    }
   }
 };
 
 inline bool operator==(const EmojiStatus &lhs, const EmojiStatus &rhs) {
-  return lhs.custom_emoji_id_ == rhs.custom_emoji_id_;
+  return lhs.custom_emoji_id_ == rhs.custom_emoji_id_ && lhs.until_date_ == rhs.until_date_;
 }
 
 inline bool operator!=(const EmojiStatus &lhs, const EmojiStatus &rhs) {

@@ -193,19 +193,51 @@ class ClearRecentEmojiStatusesQuery final : public Td::ResultHandler {
   }
 };
 
-EmojiStatus::EmojiStatus(const td_api::object_ptr<td_api::premiumStatus> &premium_status)
-    : custom_emoji_id_(premium_status != nullptr ? premium_status->custom_emoji_id_ : 0) {
+EmojiStatus::EmojiStatus(const td_api::object_ptr<td_api::premiumStatus> &premium_status, int32 duration) {
+  if (premium_status == nullptr) {
+    return;
+  }
+
+  custom_emoji_id_ = premium_status->custom_emoji_id_;
+  if (duration != 0) {
+    int32 current_time = G()->unix_time();
+    if (duration >= std::numeric_limits<int32>::max() - current_time) {
+      until_date_ = std::numeric_limits<int32>::max();
+    } else {
+      until_date_ = current_time + duration;
+    }
+  }
 }
 
 EmojiStatus::EmojiStatus(tl_object_ptr<telegram_api::EmojiStatus> &&emoji_status) {
-  if (emoji_status != nullptr && emoji_status->get_id() == telegram_api::emojiStatus::ID) {
-    custom_emoji_id_ = static_cast<const telegram_api::emojiStatus *>(emoji_status.get())->document_id_;
+  if (emoji_status == nullptr) {
+    return;
+  }
+  switch (emoji_status->get_id()) {
+    case telegram_api::emojiStatusEmpty::ID:
+      break;
+    case telegram_api::emojiStatus::ID: {
+      auto status = static_cast<const telegram_api::emojiStatus *>(emoji_status.get());
+      custom_emoji_id_ = status->document_id_;
+      break;
+    }
+    case telegram_api::emojiStatusUntil::ID: {
+      auto status = static_cast<const telegram_api::emojiStatusUntil *>(emoji_status.get());
+      custom_emoji_id_ = status->document_id_;
+      until_date_ = status->until_;
+      break;
+    }
+    default:
+      UNREACHABLE();
   }
 }
 
 tl_object_ptr<telegram_api::EmojiStatus> EmojiStatus::get_input_emoji_status() const {
   if (is_empty()) {
     return make_tl_object<telegram_api::emojiStatusEmpty>();
+  }
+  if (until_date_ != 0) {
+    return make_tl_object<telegram_api::emojiStatusUntil>(custom_emoji_id_, until_date_);
   }
   return make_tl_object<telegram_api::emojiStatus>(custom_emoji_id_);
 }
@@ -217,15 +249,25 @@ td_api::object_ptr<td_api::premiumStatus> EmojiStatus::get_premium_status_object
   return td_api::make_object<td_api::premiumStatus>(custom_emoji_id_);
 }
 
-int64 EmojiStatus::get_effective_custom_emoji_id(bool is_premium) const {
-  return is_premium ? 0 : custom_emoji_id_;
+int64 EmojiStatus::get_effective_custom_emoji_id(bool is_premium, int32 unix_time) const {
+  if (!is_premium) {
+    return 0;
+  }
+  if (until_date_ != 0 && until_date_ <= unix_time) {
+    return 0;
+  }
+  return custom_emoji_id_;
 }
 
 StringBuilder &operator<<(StringBuilder &string_builder, const EmojiStatus &emoji_status) {
   if (emoji_status.is_empty()) {
     return string_builder << "DefaultProfileBadge";
   }
-  return string_builder << "CustomEmoji " << emoji_status.custom_emoji_id_;
+  string_builder << "CustomEmoji " << emoji_status.custom_emoji_id_;
+  if (emoji_status.until_date_ != 0) {
+    string_builder << " until " << emoji_status.until_date_;
+  }
+  return string_builder;
 }
 
 void get_default_emoji_statuses(Td *td, Promise<td_api::object_ptr<td_api::premiumStatuses>> &&promise) {

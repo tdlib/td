@@ -6091,8 +6091,10 @@ setBio bio:string = Ok;
 //@description Changes the username of the current user @username The new value of the username. Use an empty string to remove the username
 setUsername username:string = Ok;
 
-//@description Changes the premium status of the current user; for Telegram Premium users only @premium_status New premium status; pass null to switch to the default badge
-setPremiumStatus premium_status:premiumStatus = Ok;
+//@description Changes the premium status of the current user; for Telegram Premium users only
+//@premium_status New premium status; pass null to switch to the default badge
+//@duration Duration of the status, in seconds; pass 0 to keep the status active until it will be changed manually
+setPremiumStatus premium_status:premiumStatus duration:int32 = Ok;
 
 //@description Changes the location of the current user. Needs to be called if GetOption("is_location_visible") is true and location changes for more than 1 kilometer @location The new location of the user
 setLocation location:location = Ok;

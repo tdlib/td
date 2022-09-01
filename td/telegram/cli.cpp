@@ -4473,10 +4473,14 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::setBio>("\n" + args + "\n" + args + "\n"));
     } else if (op == "sun") {
       send_request(td_api::make_object<td_api::setUsername>(args));
+    } else if (op == "spse") {
+      send_request(td_api::make_object<td_api::setPremiumStatus>(nullptr, 0));
     } else if (op == "sps") {
-      auto premium_status =
-          args.empty() ? nullptr : td_api::make_object<td_api::premiumStatus>(to_integer<int64>(args));
-      send_request(td_api::make_object<td_api::setPremiumStatus>(std::move(premium_status)));
+      int64 custom_emoji_id;
+      int32 until_date;
+      get_args(args, custom_emoji_id, until_date);
+      send_request(td_api::make_object<td_api::setPremiumStatus>(
+          td_api::make_object<td_api::premiumStatus>(custom_emoji_id), until_date));
     } else if (op == "gdps") {
       send_request(td_api::make_object<td_api::getDefaultPremiumStatuses>());
     } else if (op == "grps") {
