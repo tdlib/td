@@ -1676,6 +1676,8 @@ class ContactsManager final : public Actor {
 
   static void on_user_online_timeout_callback(void *contacts_manager_ptr, int64 user_id_long);
 
+  static void on_user_emoji_status_timeout_callback(void *contacts_manager_ptr, int64 user_id_long);
+
   static void on_channel_unban_timeout_callback(void *contacts_manager_ptr, int64 channel_id_long);
 
   static void on_user_nearby_timeout_callback(void *contacts_manager_ptr, int64 user_id_long);
@@ -1687,6 +1689,8 @@ class ContactsManager final : public Actor {
   static void on_channel_participant_cache_timeout_callback(void *contacts_manager_ptr, int64 channel_id_long);
 
   void on_user_online_timeout(UserId user_id);
+
+  void on_user_emoji_status_timeout(UserId user_id);
 
   void on_channel_unban_timeout(ChannelId channel_id);
 
@@ -1861,6 +1865,7 @@ class ContactsManager final : public Actor {
   vector<int32> unimported_contact_invites_;  // result of change_imported_contacts
 
   MultiTimeout user_online_timeout_{"UserOnlineTimeout"};
+  MultiTimeout user_emoji_status_timeout_{"UserEmojiStatusTimeout"};
   MultiTimeout channel_unban_timeout_{"ChannelUnbanTimeout"};
   MultiTimeout user_nearby_timeout_{"UserNearbyTimeout"};
   MultiTimeout slow_mode_delay_timeout_{"SlowModeDelayTimeout"};

@@ -3416,6 +3416,9 @@ ContactsManager::ContactsManager(Td *td, ActorShared<> parent) : td_(td), parent
   user_online_timeout_.set_callback(on_user_online_timeout_callback);
   user_online_timeout_.set_callback_data(static_cast<void *>(this));
 
+  user_emoji_status_timeout_.set_callback(on_user_emoji_status_timeout_callback);
+  user_emoji_status_timeout_.set_callback_data(static_cast<void *>(this));
+
   channel_unban_timeout_.set_callback(on_channel_unban_timeout_callback);
   channel_unban_timeout_.set_callback_data(static_cast<void *>(this));
 
@@ -3503,6 +3506,28 @@ void ContactsManager::on_user_online_timeout(UserId user_id) {
                td_api::make_object<td_api::updateUserStatus>(user_id.get(), get_user_status_object(user_id, u)));
 
   update_user_online_member_count(u);
+}
+
+void ContactsManager::on_user_emoji_status_timeout_callback(void *contacts_manager_ptr, int64 user_id_long) {
+  if (G()->close_flag()) {
+    return;
+  }
+
+  auto contacts_manager = static_cast<ContactsManager *>(contacts_manager_ptr);
+  send_closure_later(contacts_manager->actor_id(contacts_manager), &ContactsManager::on_user_emoji_status_timeout,
+                     UserId(user_id_long));
+}
+
+void ContactsManager::on_user_emoji_status_timeout(UserId user_id) {
+  if (G()->close_flag()) {
+    return;
+  }
+
+  auto u = get_user(user_id);
+  CHECK(u != nullptr);
+  CHECK(u->is_update_user_sent);
+
+  update_user(u, user_id);
 }
 
 void ContactsManager::on_channel_unban_timeout_callback(void *contacts_manager_ptr, int64 channel_id_long) {
@@ -10353,10 +10378,19 @@ void ContactsManager::update_user(User *u, UserId user_id, bool from_binlog, boo
   auto unix_time = G()->unix_time();
   auto effective_custom_emoji_id = u->emoji_status.get_effective_custom_emoji_id(u->is_premium, unix_time);
   if (effective_custom_emoji_id != u->last_sent_emoji_status) {
+    user_emoji_status_timeout_.cancel_timeout(user_id.get());
     u->last_sent_emoji_status = effective_custom_emoji_id;
     u->is_changed = true;
   } else {
     u->need_save_to_database = true;
+  }
+  if (u->last_sent_emoji_status != 0) {
+    auto until_date = u->emoji_status.get_until_date();
+    auto left_time = until_date - unix_time;
+    if (left_time >= 0 && left_time < 30 * 86400) {
+      LOG(DEBUG) << "Set premium status timeout for " << user_id << " in " << left_time;
+      user_emoji_status_timeout_.set_timeout_in(user_id.get(), left_time);
+    }
   }
 
   if (u->is_deleted) {
