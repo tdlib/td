@@ -36,6 +36,8 @@ class EmojiStatus {
 
   td_api::object_ptr<td_api::premiumStatus> get_premium_status_object() const;
 
+  int64 get_effective_custom_emoji_id(bool is_premium) const;
+
   bool is_empty() const {
     return custom_emoji_id_ == 0;
   }

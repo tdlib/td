@@ -8796,12 +8796,8 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
 
   int32 bot_info_version = has_bot_info_version ? user->bot_info_version_ : -1;
   if (u->emoji_status != emoji_status) {
-    if ((u->is_premium ? u->emoji_status : EmojiStatus()) != (is_premium ? emoji_status : EmojiStatus())) {
-      u->is_changed = true;
-    } else {
-      u->need_save_to_database = true;
-    }
     u->emoji_status = emoji_status;
+    u->is_emoji_status_changed = true;
   }
   if (is_verified != u->is_verified || is_premium != u->is_premium || is_support != u->is_support ||
       is_bot != u->is_bot || can_join_groups != u->can_join_groups ||
@@ -10333,6 +10329,16 @@ void ContactsManager::update_user(User *u, UserId user_id, bool from_binlog, boo
     }
     u->is_phone_number_changed = false;
   }
+  if (u->is_emoji_status_changed) {
+    auto effective_custom_emoji_id = u->emoji_status.get_effective_custom_emoji_id(u->is_premium);
+    if (effective_custom_emoji_id != u->last_sent_emoji_status) {
+      u->last_sent_emoji_status = effective_custom_emoji_id;
+      u->is_changed = true;
+    } else {
+      u->need_save_to_database = true;
+    }
+    u->is_emoji_status_changed = false;
+  }
   if (u->is_status_changed && user_id != get_my_id()) {
     auto left_time = get_user_was_online(u, user_id) - G()->server_time_cached();
     if (left_time >= 0 && left_time < 30 * 86400) {
@@ -11771,12 +11777,8 @@ void ContactsManager::on_update_user_emoji_status(UserId user_id,
 void ContactsManager::on_update_user_emoji_status(User *u, UserId user_id, EmojiStatus emoji_status) {
   if (u->emoji_status != emoji_status) {
     u->emoji_status = emoji_status;
+    u->is_emoji_status_changed = true;
     LOG(DEBUG) << "Emoji status has changed for " << user_id;
-    if (u->is_premium) {
-      u->is_changed = true;
-    } else {
-      u->need_save_to_database = true;
-    }
   }
 }
 

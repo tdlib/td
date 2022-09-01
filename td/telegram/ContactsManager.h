@@ -646,6 +646,7 @@ class ContactsManager final : public Actor {
     string phone_number;
     int64 access_hash = -1;
     EmojiStatus emoji_status;
+    int64 last_sent_emoji_status = 0;
 
     ProfilePhoto photo;
 
@@ -692,6 +693,7 @@ class ContactsManager final : public Actor {
     bool is_username_changed = true;
     bool is_photo_changed = true;
     bool is_phone_number_changed = true;
+    bool is_emoji_status_changed = true;
     bool is_is_contact_changed = true;
     bool is_is_deleted_changed = true;
     bool is_changed = true;             // have new changes that need to be sent to the client and database

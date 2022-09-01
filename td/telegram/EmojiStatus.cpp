@@ -217,6 +217,10 @@ td_api::object_ptr<td_api::premiumStatus> EmojiStatus::get_premium_status_object
   return td_api::make_object<td_api::premiumStatus>(custom_emoji_id_);
 }
 
+int64 EmojiStatus::get_effective_custom_emoji_id(bool is_premium) const {
+  return is_premium ? 0 : custom_emoji_id_;
+}
+
 StringBuilder &operator<<(StringBuilder &string_builder, const EmojiStatus &emoji_status) {
   if (emoji_status.is_empty()) {
     return string_builder << "DefaultProfileBadge";
