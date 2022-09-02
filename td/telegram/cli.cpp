@@ -4481,6 +4481,8 @@ class CliClient final : public Actor {
       get_args(args, custom_emoji_id, until_date);
       send_request(td_api::make_object<td_api::setPremiumStatus>(
           td_api::make_object<td_api::premiumStatus>(custom_emoji_id), until_date));
+    } else if (op == "gtps") {
+      send_request(td_api::make_object<td_api::getThemedPremiumStatuses>());
     } else if (op == "gdps") {
       send_request(td_api::make_object<td_api::getDefaultPremiumStatuses>());
     } else if (op == "grps") {

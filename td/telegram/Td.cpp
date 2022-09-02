@@ -6733,6 +6733,12 @@ void Td::on_request(uint64 id, const td_api::setPremiumStatus &request) {
   contacts_manager_->set_emoji_status(EmojiStatus(request.premium_status_, request.duration_), std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::getThemedPremiumStatuses &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  stickers_manager_->get_default_emoji_statuses(false, std::move(promise));
+}
+
 void Td::on_request(uint64 id, const td_api::getDefaultPremiumStatuses &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();

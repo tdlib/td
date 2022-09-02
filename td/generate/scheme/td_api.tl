@@ -5575,11 +5575,14 @@ getAttachmentMenuBot bot_user_id:int53 = AttachmentMenuBot;
 toggleBotIsAddedToAttachmentMenu bot_user_id:int53 is_added:Bool = Ok;
 
 
-//@description Returns default premium statuses
-getDefaultPremiumStatuses = PremiumStatuses;
+//@description Returns up to 8 themed premium statuses, which color must be changed to the color of the Telegram Premium badge
+getThemedPremiumStatuses = PremiumStatuses;
 
 //@description Returns recent premium statuses
 getRecentPremiumStatuses = PremiumStatuses;
+
+//@description Returns default premium statuses
+getDefaultPremiumStatuses = PremiumStatuses;
 
 //@description Clears recent premium statuses
 clearRecentPremiumStatuses = Ok;
