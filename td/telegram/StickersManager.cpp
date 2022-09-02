@@ -6740,6 +6740,39 @@ void StickersManager::on_update_sticker_sets_order(StickerType sticker_type,
   }
 }
 
+// -1 - sticker set can't be moved to top, 0 - order wasn't changed, 1 - sticker set was moved to top
+int StickersManager::move_installed_sticker_set_to_top(StickerType sticker_type, StickerSetId sticker_set_id) {
+  auto type = static_cast<int32>(sticker_type);
+  if (!are_installed_sticker_sets_loaded_[type]) {
+    return -1;
+  }
+
+  vector<StickerSetId> &current_sticker_set_ids = installed_sticker_set_ids_[type];
+  auto it = std::find(current_sticker_set_ids.begin(), current_sticker_set_ids.end(), sticker_set_id);
+  if (it == current_sticker_set_ids.end()) {
+    return -1;
+  }
+  if (sticker_set_id == current_sticker_set_ids[0]) {
+    CHECK(it == current_sticker_set_ids.begin());
+    return 0;
+  }
+
+  std::rotate(current_sticker_set_ids.begin(), it, it + 1);
+
+  need_update_installed_sticker_sets_[type] = true;
+  return 1;
+}
+
+void StickersManager::on_update_move_sticker_set_to_top(StickerType sticker_type, StickerSetId sticker_set_id) {
+  int result = move_installed_sticker_set_to_top(sticker_type, sticker_set_id);
+  if (result < 0) {
+    return reload_installed_sticker_sets(sticker_type, true);
+  }
+  if (result > 0) {
+    send_update_installed_sticker_sets();
+  }
+}
+
 void StickersManager::reorder_installed_sticker_sets(StickerType sticker_type,
                                                      const vector<StickerSetId> &sticker_set_ids,
                                                      Promise<Unit> &&promise) {

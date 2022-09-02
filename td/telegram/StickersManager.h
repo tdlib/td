@@ -213,6 +213,8 @@ class StickersManager final : public Actor {
 
   void on_update_sticker_sets_order(StickerType sticker_type, const vector<StickerSetId> &sticker_set_ids);
 
+  void on_update_move_sticker_set_to_top(StickerType sticker_type, StickerSetId sticker_set_id);
+
   std::pair<int32, vector<StickerSetId>> get_archived_sticker_sets(StickerType sticker_type,
                                                                    StickerSetId offset_sticker_set_id, int32 limit,
                                                                    bool force, Promise<Unit> &&promise);
@@ -598,6 +600,8 @@ class StickersManager final : public Actor {
   void on_resolve_sticker_set_short_name(FileId sticker_file_id, const string &short_name);
 
   int apply_installed_sticker_sets_order(StickerType sticker_type, const vector<StickerSetId> &sticker_set_ids);
+
+  int move_installed_sticker_set_to_top(StickerType sticker_type, StickerSetId sticker_set_id);
 
   void on_update_sticker_set(StickerSet *sticker_set, bool is_installed, bool is_archived, bool is_changed,
                              bool from_database = false);

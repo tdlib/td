@@ -491,6 +491,7 @@ class UpdatesManager final : public Actor {
   void on_update(tl_object_ptr<telegram_api::updateNewStickerSet> update, Promise<Unit> &&promise);
   void on_update(tl_object_ptr<telegram_api::updateStickerSets> update, Promise<Unit> &&promise);
   void on_update(tl_object_ptr<telegram_api::updateStickerSetsOrder> update, Promise<Unit> &&promise);
+  void on_update(tl_object_ptr<telegram_api::updateMoveStickerSetToTop> update, Promise<Unit> &&promise);
   void on_update(tl_object_ptr<telegram_api::updateReadFeaturedStickers> update, Promise<Unit> &&promise);
   void on_update(tl_object_ptr<telegram_api::updateReadFeaturedEmojiStickers> update, Promise<Unit> &&promise);
   void on_update(tl_object_ptr<telegram_api::updateRecentStickers> update, Promise<Unit> &&promise);
@@ -539,8 +540,6 @@ class UpdatesManager final : public Actor {
   // unsupported updates
 
   void on_update(tl_object_ptr<telegram_api::updateRecentReactions> update, Promise<Unit> &&promise);
-
-  void on_update(tl_object_ptr<telegram_api::updateMoveStickerSetToTop> update, Promise<Unit> &&promise);
 };
 
 }  // namespace td

@@ -3380,6 +3380,12 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateStickerSetsOrde
   promise.set_value(Unit());
 }
 
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateMoveStickerSetToTop> update, Promise<Unit> &&promise) {
+  auto sticker_type = get_sticker_type(update->masks_, update->emojis_);
+  td_->stickers_manager_->on_update_move_sticker_set_to_top(sticker_type, StickerSetId(update->stickerset_));
+  promise.set_value(Unit());
+}
+
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateReadFeaturedStickers> update,
                                Promise<Unit> &&promise) {
   td_->stickers_manager_->reload_featured_sticker_sets(StickerType::Regular, true);
@@ -3583,10 +3589,6 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateTranscribedAudi
 // unsupported updates
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateRecentReactions> update, Promise<Unit> &&promise) {
-  promise.set_value(Unit());
-}
-
-void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateMoveStickerSetToTop> update, Promise<Unit> &&promise) {
   promise.set_value(Unit());
 }
 
