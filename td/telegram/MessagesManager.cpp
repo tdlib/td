@@ -14482,6 +14482,16 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
     ttl = max(ttl, get_message_content_duration(message_info.content.get(), td_) + 1);
   }
 
+  if (message_id.is_scheduled()) {
+    if (message_info.reply_info != nullptr) {
+      LOG(ERROR) << "Receive " << message_id << " in " << dialog_id << " with reply info";
+      message_info.reply_info = nullptr;
+    }
+    if (message_info.reactions != nullptr) {
+      LOG(ERROR) << "Receive " << message_id << " in " << dialog_id << " with reactions";
+      message_info.reactions = nullptr;
+    }
+  }
   int32 view_count = message_info.view_count;
   if (view_count < 0) {
     LOG(ERROR) << "Wrong view_count = " << view_count << " received in " << message_id << " in " << dialog_id;
@@ -14502,6 +14512,10 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
   }
   auto reactions =
       MessageReactions::get_message_reactions(td_, std::move(message_info.reactions), td_->auth_manager_->is_bot());
+  if (reactions != nullptr) {
+    reactions->sort_reactions(active_reaction_pos_);
+    reactions->fix_chosen_reaction(get_my_dialog_id());
+  }
 
   bool has_forward_info = message_info.forward_header != nullptr;
 
@@ -14543,6 +14557,7 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
   message->is_from_scheduled = is_from_scheduled;
   message->is_pinned = is_pinned;
   message->noforwards = noforwards;
+  message->interaction_info_update_date = G()->unix_time();
   message->view_count = view_count;
   message->forward_count = forward_count;
   message->reply_info = std::move(reply_info);
