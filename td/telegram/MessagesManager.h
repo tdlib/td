@@ -2696,7 +2696,7 @@ class MessagesManager final : public Actor {
 
   ChatReactions get_dialog_active_reactions(const Dialog *d) const;
 
-  vector<string> get_message_active_reactions(const Dialog *d, const Message *m) const;
+  ChatReactions get_message_active_reactions(const Dialog *d, const Message *m) const;
 
   static bool need_poll_dialog_message_reactions(const Dialog *d);
 

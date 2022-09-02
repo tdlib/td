@@ -8303,21 +8303,21 @@ ChatReactions MessagesManager::get_dialog_active_reactions(const Dialog *d) cons
   }
 }
 
-vector<string> MessagesManager::get_message_active_reactions(const Dialog *d, const Message *m) const {
+ChatReactions MessagesManager::get_message_active_reactions(const Dialog *d, const Message *m) const {
   CHECK(d != nullptr);
   CHECK(m != nullptr);
   if (is_service_message_content(m->content->get_type()) || m->ttl > 0) {
-    return vector<string>();
+    return ChatReactions();
   }
   if (is_discussion_message(d->dialog_id, m)) {
     d = get_dialog(m->forward_info->from_dialog_id);
     if (d == nullptr) {
       LOG(ERROR) << "Failed to find linked " << m->forward_info->from_dialog_id
                  << " to determine correct active reactions";
-      return vector<string>();
+      return ChatReactions();
     }
   }
-  return get_dialog_active_reactions(d).reactions_;
+  return get_dialog_active_reactions(d);
 }
 
 bool MessagesManager::need_poll_dialog_message_reactions(const Dialog *d) {
@@ -24493,7 +24493,8 @@ vector<AvailableReaction> MessagesManager::get_message_available_reactions(const
     for (const auto &active_reaction : active_reactions_) {
       // can add the reaction if it has already been used for the message or is available in the chat
       bool is_set = (m->reactions != nullptr && m->reactions->get_reaction(active_reaction.reaction_) != nullptr);
-      if (is_set || (can_add_new_reactions && td::contains(active_reactions, active_reaction.reaction_))) {
+      if (is_set || (can_add_new_reactions && (active_reactions.allow_all_ ||
+                                               td::contains(active_reactions.reactions_, active_reaction.reaction_)))) {
         result.emplace_back(active_reaction.reaction_);
       }
     }
