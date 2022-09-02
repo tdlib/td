@@ -8,6 +8,16 @@
 
 namespace td {
 
+StickerType get_sticker_type(bool is_mask, bool is_custom_emoji) {
+  if (is_custom_emoji) {
+    return StickerType::CustomEmoji;
+  }
+  if (is_mask) {
+    return StickerType::Mask;
+  }
+  return StickerType::Regular;
+}
+
 StickerType get_sticker_type(const td_api::object_ptr<td_api::StickerType> &type) {
   if (type == nullptr) {
     return StickerType::Regular;

@@ -113,13 +113,7 @@ FileId StickersManager::parse_sticker(bool in_sticker_set, ParserT &parser) {
   } else {
     sticker->format_ = StickerFormat::Webp;
   }
-  if (is_emoji) {
-    sticker->type_ = StickerType::CustomEmoji;
-  } else if (is_mask) {
-    sticker->type_ = StickerType::Mask;
-  } else {
-    sticker->type_ = StickerType::Regular;
-  }
+  sticker->type_ = ::td::get_sticker_type(is_mask, is_emoji);
   if (in_sticker_set_stored != in_sticker_set) {
     Slice data = parser.template fetch_string_raw<Slice>(parser.get_left_len());
     for (auto c : data) {
@@ -299,12 +293,7 @@ void StickersManager::parse_sticker_set(StickerSet *sticker_set, ParserT &parser
   } else {
     sticker_format = StickerFormat::Webp;
   }
-  StickerType sticker_type = StickerType::Regular;
-  if (is_emojis) {
-    sticker_type = StickerType::CustomEmoji;
-  } else if (is_masks) {
-    sticker_type = StickerType::Mask;
-  }
+  auto sticker_type = ::td::get_sticker_type(is_masks, is_emojis);
 
   if (sticker_set->is_inited_) {
     string title;

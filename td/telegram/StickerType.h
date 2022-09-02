@@ -18,6 +18,8 @@ enum class StickerType : int32 { Regular, Mask, CustomEmoji };
 
 static constexpr int32 MAX_STICKER_TYPE = 3;
 
+StickerType get_sticker_type(bool is_mask, bool is_custom_emoji);
+
 StickerType get_sticker_type(const td_api::object_ptr<td_api::StickerType> &type);
 
 td_api::object_ptr<td_api::StickerType> get_sticker_type_object(StickerType sticker_type);
