@@ -11805,13 +11805,13 @@ void ContactsManager::on_update_user_emoji_status(UserId user_id,
     on_update_user_emoji_status(u, user_id, EmojiStatus(std::move(emoji_status)));
     update_user(u, user_id);
   } else {
-    LOG(INFO) << "Ignore update user emoji status about unknown " << user_id;
+    LOG(INFO) << "Ignore update user premium status about unknown " << user_id;
   }
 }
 
 void ContactsManager::on_update_user_emoji_status(User *u, UserId user_id, EmojiStatus emoji_status) {
   if (u->emoji_status != emoji_status) {
-    LOG(DEBUG) << "Change emoji status of " << user_id << " from " << u->emoji_status << " to " << emoji_status;
+    LOG(DEBUG) << "Change premium status of " << user_id << " from " << u->emoji_status << " to " << emoji_status;
     u->emoji_status = emoji_status;
   }
 }

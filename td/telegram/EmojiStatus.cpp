@@ -38,8 +38,12 @@ struct EmojiStatuses {
     for (auto &status : emoji_statuses->statuses_) {
       EmojiStatus emoji_status(std::move(status));
       if (emoji_status.is_empty()) {
-        LOG(ERROR) << "Receive empty emoji status";
+        LOG(ERROR) << "Receive empty premium status";
         continue;
+      }
+      if (emoji_status.get_until_date() != 0) {
+        LOG(ERROR) << "Receive temporary premium status";
+        emoji_status.clear_until_date();
       }
       emoji_statuses_.push_back(emoji_status);
     }
