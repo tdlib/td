@@ -8771,6 +8771,7 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
     on_update_user_name(u, user_id, std::move(user->first_name_), std::move(user->last_name_),
                         std::move(user->username_));
   }
+  on_update_user_emoji_status(u, user_id, EmojiStatus(std::move(user->emoji_status_)));
 
   bool is_verified = (flags & USER_FLAG_IS_VERIFIED) != 0;
   bool is_premium = (flags & USER_FLAG_IS_PREMIUM) != 0;
@@ -8788,7 +8789,6 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
   bool has_bot_info_version = (flags & USER_FLAG_HAS_BOT_INFO_VERSION) != 0;
   bool need_apply_min_photo = (flags & USER_FLAG_NEED_APPLY_MIN_PHOTO) != 0;
   bool is_fake = (flags & USER_FLAG_IS_FAKE) != 0;
-  EmojiStatus emoji_status(std::move(user->emoji_status_));
 
   LOG_IF(ERROR, !can_join_groups && !is_bot)
       << "Receive not bot " << user_id << " which can't join groups from " << source;
@@ -8820,9 +8820,6 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
       << "Receive not bot " << user_id << " which has bot info version from " << source;
 
   int32 bot_info_version = has_bot_info_version ? user->bot_info_version_ : -1;
-  if (u->emoji_status != emoji_status) {
-    u->emoji_status = emoji_status;
-  }
   if (is_verified != u->is_verified || is_support != u->is_support || is_bot != u->is_bot ||
       can_join_groups != u->can_join_groups || can_read_all_group_messages != u->can_read_all_group_messages ||
       restriction_reasons != u->restriction_reasons || is_scam != u->is_scam || is_fake != u->is_fake ||
@@ -10378,7 +10375,6 @@ void ContactsManager::update_user(User *u, UserId user_id, bool from_binlog, boo
   auto unix_time = G()->unix_time();
   auto effective_custom_emoji_id = u->emoji_status.get_effective_custom_emoji_id(u->is_premium, unix_time);
   if (effective_custom_emoji_id != u->last_sent_emoji_status) {
-    user_emoji_status_timeout_.cancel_timeout(user_id.get());
     u->last_sent_emoji_status = effective_custom_emoji_id;
     u->is_changed = true;
   } else {
@@ -10390,7 +10386,11 @@ void ContactsManager::update_user(User *u, UserId user_id, bool from_binlog, boo
     if (left_time >= 0 && left_time < 30 * 86400) {
       LOG(DEBUG) << "Set premium status timeout for " << user_id << " in " << left_time;
       user_emoji_status_timeout_.set_timeout_in(user_id.get(), left_time);
+    } else {
+      user_emoji_status_timeout_.cancel_timeout(user_id.get());
     }
+  } else {
+    user_emoji_status_timeout_.cancel_timeout(user_id.get());
   }
 
   if (u->is_deleted) {
@@ -11811,8 +11811,8 @@ void ContactsManager::on_update_user_emoji_status(UserId user_id,
 
 void ContactsManager::on_update_user_emoji_status(User *u, UserId user_id, EmojiStatus emoji_status) {
   if (u->emoji_status != emoji_status) {
+    LOG(DEBUG) << "Change emoji status of " << user_id << " from " << u->emoji_status << " to " << emoji_status;
     u->emoji_status = emoji_status;
-    LOG(DEBUG) << "Emoji status has changed for " << user_id;
   }
 }
 

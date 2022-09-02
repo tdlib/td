@@ -293,6 +293,7 @@ void add_recent_emoji_status(EmojiStatus emoji_status) {
     return;
   }
 
+  emoji_status.clear_until_date();
   auto statuses = load_emoji_statuses(get_recent_emoji_statuses_database_key());
   if (!statuses.emoji_statuses_.empty() && statuses.emoji_statuses_[0] == emoji_status) {
     return;

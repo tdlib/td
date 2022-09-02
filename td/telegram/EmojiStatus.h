@@ -47,6 +47,10 @@ class EmojiStatus {
     return until_date_;
   }
 
+  void clear_until_date() {
+    until_date_ = 0;
+  }
+
   template <class StorerT>
   void store(StorerT &storer) const {
     bool has_until_date = until_date_ != 0;
