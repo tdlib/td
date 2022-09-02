@@ -5496,6 +5496,20 @@ void StickersManager::get_default_emoji_statuses(bool is_recursive,
   promise.set_value(td_api::make_object<td_api::premiumStatuses>(std::move(statuses)));
 }
 
+bool StickersManager::is_default_emoji_status(int64 custom_emoji_id) {
+  auto &special_sticker_set = add_special_sticker_set(SpecialStickerSetType::default_statuses());
+  auto sticker_set = get_sticker_set(special_sticker_set.id_);
+  if (sticker_set == nullptr || !sticker_set->was_loaded_) {
+    return false;
+  }
+  for (auto sticker_id : sticker_set->sticker_ids_) {
+    if (get_custom_emoji_id(sticker_id) == custom_emoji_id) {
+      return true;
+    }
+  }
+  return false;
+}
+
 void StickersManager::load_custom_emoji_sticker_from_database(int64 custom_emoji_id, Promise<Unit> &&promise) {
   CHECK(custom_emoji_id != 0);
   auto &queries = custom_emoji_load_queries_[custom_emoji_id];

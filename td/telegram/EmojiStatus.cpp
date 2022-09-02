@@ -8,6 +8,7 @@
 
 #include "td/telegram/Global.h"
 #include "td/telegram/logevent/LogEvent.h"
+#include "td/telegram/StickersManager.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"
 
@@ -292,8 +293,13 @@ void get_recent_emoji_statuses(Td *td, Promise<td_api::object_ptr<td_api::premiu
   td->create_handler<GetRecentEmojiStatusesQuery>(std::move(promise))->send(statuses.hash_);
 }
 
-void add_recent_emoji_status(EmojiStatus emoji_status) {
+void add_recent_emoji_status(Td *td, EmojiStatus emoji_status) {
   if (emoji_status.is_empty()) {
+    return;
+  }
+
+  if (td->stickers_manager_->is_default_emoji_status(emoji_status.get_custom_emoji_id())) {
+    LOG(INFO) << "Skip adding themed premium status to recents";
     return;
   }
 

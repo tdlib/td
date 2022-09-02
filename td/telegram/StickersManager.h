@@ -105,6 +105,8 @@ class StickersManager final : public Actor {
 
   void get_default_emoji_statuses(bool is_recursive, Promise<td_api::object_ptr<td_api::premiumStatuses>> &&promise);
 
+  bool is_default_emoji_status(int64 custom_emoji_id);
+
   void get_custom_emoji_stickers(vector<int64> &&document_ids, bool use_database,
                                  Promise<td_api::object_ptr<td_api::stickers>> &&promise);
 

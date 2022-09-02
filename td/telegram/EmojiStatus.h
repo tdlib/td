@@ -43,6 +43,10 @@ class EmojiStatus {
     return custom_emoji_id_ == 0;
   }
 
+  int64 get_custom_emoji_id() const {
+    return custom_emoji_id_;
+  }
+
   int32 get_until_date() const {
     return until_date_;
   }
@@ -53,11 +57,15 @@ class EmojiStatus {
 
   template <class StorerT>
   void store(StorerT &storer) const {
+    bool has_custom_emoji_id = custom_emoji_id_ != 0;
     bool has_until_date = until_date_ != 0;
     BEGIN_STORE_FLAGS();
+    STORE_FLAG(has_custom_emoji_id);
     STORE_FLAG(has_until_date);
     END_STORE_FLAGS();
-    td::store(custom_emoji_id_, storer);
+    if (has_custom_emoji_id) {
+      td::store(custom_emoji_id_, storer);
+    }
     if (has_until_date) {
       td::store(until_date_, storer);
     }
@@ -65,11 +73,15 @@ class EmojiStatus {
 
   template <class ParserT>
   void parse(ParserT &parser) {
+    bool has_custom_emoji_id;
     bool has_until_date;
     BEGIN_PARSE_FLAGS();
+    PARSE_FLAG(has_custom_emoji_id);
     PARSE_FLAG(has_until_date);
     END_PARSE_FLAGS();
-    td::parse(custom_emoji_id_, parser);
+    if (has_custom_emoji_id) {
+      td::parse(custom_emoji_id_, parser);
+    }
     if (has_until_date) {
       td::parse(until_date_, parser);
     }
@@ -90,7 +102,7 @@ void get_default_emoji_statuses(Td *td, Promise<td_api::object_ptr<td_api::premi
 
 void get_recent_emoji_statuses(Td *td, Promise<td_api::object_ptr<td_api::premiumStatuses>> &&promise);
 
-void add_recent_emoji_status(EmojiStatus emoji_status);
+void add_recent_emoji_status(Td *td, EmojiStatus emoji_status);
 
 void clear_recent_emoji_statuses(Td *td, Promise<Unit> &&promise);
 
