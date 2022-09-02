@@ -552,7 +552,8 @@ unique_ptr<MessageReactions> MessageReactions::get_message_reactions(
       }
     }
 
-    result->reactions_.emplace_back(std::move(reaction_str), reaction_count->count_, reaction_count->chosen_order_ != 0,
+    bool is_chosen = (reaction_count->flags_ & telegram_api::reactionCount::CHOSEN_ORDER_MASK) != 0;
+    result->reactions_.emplace_back(std::move(reaction_str), reaction_count->count_, is_chosen,
                                     std::move(recent_chooser_dialog_ids), std::move(recent_chooser_min_channels));
   }
   return result;
