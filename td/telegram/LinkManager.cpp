@@ -885,6 +885,24 @@ LinkManager::LinkInfo LinkManager::get_link_info(Slice link) {
       return result;
     }
 
+    auto host = url_decode(http_url.host_, false);
+    to_lower_inplace(host);
+    if (ends_with(host, ".t.me") && host.size() >= 9 && host.find('.') == host.size() - 5) {
+      Slice subdomain(&host[0], host.size() - 5);
+      if (is_valid_username(subdomain) && subdomain != "addemoji" && subdomain != "addstickers" &&
+          subdomain != "addtheme" && subdomain != "auth" && subdomain != "confirmphone" && subdomain != "invoice" &&
+          subdomain != "joinchat" && subdomain != "login" && subdomain != "proxy" && subdomain != "setlanguage" &&
+          subdomain != "share" && subdomain != "socks") {
+        result.is_internal_ = true;
+        result.is_tg_ = false;
+        result.query_ = PSTRING() << '/' << subdomain << http_url.query_;
+        return result;
+      }
+    }
+    if (begins_with(host, "www.")) {
+      host = host.substr(4);
+    }
+
     vector<Slice> t_me_urls{Slice("t.me"), Slice("telegram.me"), Slice("telegram.dog")};
     if (Scheduler::context() != nullptr) {  // for tests only
       string cur_t_me_url = G()->get_option_string("t_me_url");
@@ -895,12 +913,6 @@ LinkManager::LinkInfo LinkManager::get_link_info(Slice link) {
           t_me_urls.push_back(t_me_url);
         }
       }
-    }
-
-    auto host = url_decode(http_url.host_, false);
-    to_lower_inplace(host);
-    if (begins_with(host, "www.")) {
-      host = host.substr(4);
     }
 
     for (auto t_me_url : t_me_urls) {

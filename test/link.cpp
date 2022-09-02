@@ -921,4 +921,29 @@ TEST(Link, parse_internal_link) {
   parse_internal_link("tg://settings/filters", settings());
   parse_internal_link("tg://settings/language", language_settings());
   parse_internal_link("tg://settings/privacy", privacy_and_security_settings());
+
+  parse_internal_link("username.t.me////0/a//s/as?start=", bot_start("username", ""));
+  parse_internal_link("username.t.me?start=as", bot_start("username", "as"));
+  parse_internal_link("username.t.me", public_chat("username"));
+  parse_internal_link("aAAb.t.me/12345?single", message("tg:resolve?domain=aaab&post=12345&single"));
+  parse_internal_link("telegram.t.me/195", message("tg:resolve?domain=telegram&post=195"));
+  parse_internal_link("shares.t.me", public_chat("shares"));
+
+  parse_internal_link("c.t.me/12345?single", nullptr);
+  parse_internal_link("aaa.t.me/12345?single", nullptr);
+  parse_internal_link("aaa_.t.me/12345?single", nullptr);
+  parse_internal_link("0aaa.t.me/12345?single", nullptr);
+  parse_internal_link("_aaa.t.me/12345?single", nullptr);
+  parse_internal_link("addemoji.t.me", nullptr);
+  parse_internal_link("addstickers.t.me", nullptr);
+  parse_internal_link("addtheme.t.me", nullptr);
+  parse_internal_link("auth.t.me", nullptr);
+  parse_internal_link("confirmphone.t.me", nullptr);
+  parse_internal_link("invoice.t.me", nullptr);
+  parse_internal_link("joinchat.t.me", nullptr);
+  parse_internal_link("login.t.me", nullptr);
+  parse_internal_link("proxy.t.me", nullptr);
+  parse_internal_link("setlanguage.t.me", nullptr);
+  parse_internal_link("share.t.me", nullptr);
+  parse_internal_link("socks.t.me", nullptr);
 }
