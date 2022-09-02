@@ -29,6 +29,14 @@ SpecialStickerSetType SpecialStickerSetType::premium_gifts() {
   return SpecialStickerSetType("premium_gifts_sticker_set");
 }
 
+SpecialStickerSetType SpecialStickerSetType::generic_animations() {
+  return SpecialStickerSetType("generic_animations_sticker_set");
+}
+
+SpecialStickerSetType SpecialStickerSetType::default_statuses() {
+  return SpecialStickerSetType("default_statuses_sticker_set");
+}
+
 SpecialStickerSetType::SpecialStickerSetType(
     const telegram_api::object_ptr<telegram_api::InputStickerSet> &input_sticker_set) {
   CHECK(input_sticker_set != nullptr);
@@ -44,6 +52,12 @@ SpecialStickerSetType::SpecialStickerSetType(
       break;
     case telegram_api::inputStickerSetPremiumGifts::ID:
       *this = premium_gifts();
+      break;
+    case telegram_api::inputStickerSetEmojiGenericAnimations::ID:
+      *this = generic_animations();
+      break;
+    case telegram_api::inputStickerSetEmojiDefaultStatuses::ID:
+      *this = default_statuses();
       break;
     default:
       UNREACHABLE();
@@ -68,6 +82,12 @@ telegram_api::object_ptr<telegram_api::InputStickerSet> SpecialStickerSetType::g
   }
   if (*this == premium_gifts()) {
     return telegram_api::make_object<telegram_api::inputStickerSetPremiumGifts>();
+  }
+  if (*this == generic_animations()) {
+    return telegram_api::make_object<telegram_api::inputStickerSetEmojiGenericAnimations>();
+  }
+  if (*this == default_statuses()) {
+    return telegram_api::make_object<telegram_api::inputStickerSetEmojiDefaultStatuses>();
   }
   auto emoji = get_dice_emoji();
   if (!emoji.empty()) {

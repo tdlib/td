@@ -1417,7 +1417,6 @@ void StickersManager::init() {
   is_inited_ = true;
 
   {
-    // add animated emoji sticker set
     auto &sticker_set = add_special_sticker_set(SpecialStickerSetType::animated_emoji());
     if (G()->is_test_dc()) {
       init_special_sticker_set(sticker_set, 1258816259751954, 4879754868529595811, "emojies");
@@ -1427,13 +1426,21 @@ void StickersManager::init() {
     load_special_sticker_set_info_from_binlog(sticker_set);
   }
   if (!G()->is_test_dc()) {
-    // add animated emoji click sticker set
     auto &sticker_set = add_special_sticker_set(SpecialStickerSetType::animated_emoji_click());
     load_special_sticker_set_info_from_binlog(sticker_set);
   }
-  // add premium gifts sticker set
-  auto &sticker_set = add_special_sticker_set(SpecialStickerSetType::premium_gifts());
-  load_special_sticker_set_info_from_binlog(sticker_set);
+  {
+    auto &sticker_set = add_special_sticker_set(SpecialStickerSetType::premium_gifts());
+    load_special_sticker_set_info_from_binlog(sticker_set);
+  }
+  {
+    auto &sticker_set = add_special_sticker_set(SpecialStickerSetType::generic_animations());
+    load_special_sticker_set_info_from_binlog(sticker_set);
+  }
+  {
+    auto &sticker_set = add_special_sticker_set(SpecialStickerSetType::default_statuses());
+    load_special_sticker_set_info_from_binlog(sticker_set);
+  }
 
   dice_emojis_str_ =
       td_->option_manager_->get_option_string("dice_emojis", "🎲\x01🎯\x01🏀\x01⚽\x01⚽️\x01🎰\x01🎳");
@@ -1654,6 +1661,12 @@ void StickersManager::on_load_special_sticker_set(const SpecialStickerSetType &t
   if (type == SpecialStickerSetType::premium_gifts()) {
     set_promises(pending_get_premium_gift_option_sticker_queries_);
     try_update_premium_gift_messages();
+    return;
+  }
+  if (type == SpecialStickerSetType::generic_animations()) {
+    return;
+  }
+  if (type == SpecialStickerSetType::default_statuses()) {
     return;
   }
 
@@ -2739,6 +2752,8 @@ StickerSetId StickersManager::get_sticker_set_id(const tl_object_ptr<telegram_ap
     case telegram_api::inputStickerSetAnimatedEmoji::ID:
     case telegram_api::inputStickerSetAnimatedEmojiAnimations::ID:
     case telegram_api::inputStickerSetPremiumGifts::ID:
+    case telegram_api::inputStickerSetEmojiGenericAnimations::ID:
+    case telegram_api::inputStickerSetEmojiDefaultStatuses::ID:
       LOG(ERROR) << "Receive special sticker set " << to_string(set_ptr);
       return add_special_sticker_set(SpecialStickerSetType(set_ptr)).id_;
     case telegram_api::inputStickerSetDice::ID:
@@ -2769,6 +2784,8 @@ StickerSetId StickersManager::add_sticker_set(tl_object_ptr<telegram_api::InputS
     case telegram_api::inputStickerSetAnimatedEmoji::ID:
     case telegram_api::inputStickerSetAnimatedEmojiAnimations::ID:
     case telegram_api::inputStickerSetPremiumGifts::ID:
+    case telegram_api::inputStickerSetEmojiGenericAnimations::ID:
+    case telegram_api::inputStickerSetEmojiDefaultStatuses::ID:
       LOG(ERROR) << "Receive special sticker set " << to_string(set_ptr);
       return add_special_sticker_set(SpecialStickerSetType(set_ptr)).id_;
     case telegram_api::inputStickerSetDice::ID:
@@ -2964,6 +2981,8 @@ StickerSetId StickersManager::on_get_input_sticker_set(FileId sticker_file_id,
     case telegram_api::inputStickerSetAnimatedEmoji::ID:
     case telegram_api::inputStickerSetAnimatedEmojiAnimations::ID:
     case telegram_api::inputStickerSetPremiumGifts::ID:
+    case telegram_api::inputStickerSetEmojiGenericAnimations::ID:
+    case telegram_api::inputStickerSetEmojiDefaultStatuses::ID:
       return add_special_sticker_set(SpecialStickerSetType(set_ptr)).id_;
     case telegram_api::inputStickerSetDice::ID:
       return StickerSetId();

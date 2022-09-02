@@ -31,6 +31,10 @@ class SpecialStickerSetType {
 
   static SpecialStickerSetType premium_gifts();
 
+  static SpecialStickerSetType generic_animations();
+
+  static SpecialStickerSetType default_statuses();
+
   string get_dice_emoji() const;
 
   bool is_empty() const {
