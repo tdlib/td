@@ -375,7 +375,7 @@ void TopDialogManager::do_get_top_dialogs(GetTopDialogsQuery &&query) {
         }
         send_closure(actor_id, &TopDialogManager::on_load_dialogs, std::move(query), r_dialog_ids.move_as_ok());
       });
-  td_->messages_manager_->load_dialogs(std::move(dialog_ids), std::move(promise));
+  send_closure(td_->messages_manager_actor_, &MessagesManager::load_dialogs, std::move(dialog_ids), std::move(promise));
 }
 
 void TopDialogManager::on_load_dialogs(GetTopDialogsQuery &&query, vector<DialogId> &&dialog_ids) {
