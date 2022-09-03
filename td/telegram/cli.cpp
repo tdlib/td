@@ -1808,7 +1808,7 @@ class CliClient final : public Actor {
                     bool disable_notification = false, bool from_background = false, int64 reply_to_message_id = 0) {
     auto id = send_request(td_api::make_object<td_api::sendMessage>(
         chat_id, as_message_thread_id(message_thread_id_), reply_to_message_id,
-        td_api::make_object<td_api::messageSendOptions>(disable_notification, from_background, true,
+        td_api::make_object<td_api::messageSendOptions>(disable_notification, from_background, true, true,
                                                         as_message_scheduling_state(schedule_date_)),
         nullptr, std::move(input_message_content)));
     if (id != 0) {
@@ -1817,7 +1817,7 @@ class CliClient final : public Actor {
   }
 
   td_api::object_ptr<td_api::messageSendOptions> default_message_send_options() const {
-    return td_api::make_object<td_api::messageSendOptions>(false, false, false,
+    return td_api::make_object<td_api::messageSendOptions>(false, false, false, true,
                                                            as_message_scheduling_state(schedule_date_));
   }
 

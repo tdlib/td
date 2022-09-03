@@ -1151,6 +1151,7 @@ class MessagesManager final : public Actor {
     bool has_explicit_sender = false;       // for send_message
     bool is_copy = false;                   // for send_message
     bool from_background = false;           // for send_message
+    bool update_stickersets_order = false;  // for send_message
     bool disable_web_page_preview = false;  // for send_message
     bool clear_draft = false;               // for send_message
     bool in_game_share = false;             // for send_message
@@ -1721,13 +1722,16 @@ class MessagesManager final : public Actor {
   struct MessageSendOptions {
     bool disable_notification = false;
     bool from_background = false;
+    bool update_stickersets_order = false;
     bool protect_content = false;
     int32 schedule_date = 0;
 
     MessageSendOptions() = default;
-    MessageSendOptions(bool disable_notification, bool from_background, bool protect_content, int32 schedule_date)
+    MessageSendOptions(bool disable_notification, bool from_background, bool update_stickersets_order,
+                       bool protect_content, int32 schedule_date)
         : disable_notification(disable_notification)
         , from_background(from_background)
+        , update_stickersets_order(update_stickersets_order)
         , protect_content(protect_content)
         , schedule_date(schedule_date) {
     }
@@ -1881,7 +1885,8 @@ class MessagesManager final : public Actor {
                                                           tl_object_ptr<td_api::messageCopyOptions> &&options) const;
 
   Result<MessageSendOptions> process_message_send_options(DialogId dialog_id,
-                                                          tl_object_ptr<td_api::messageSendOptions> &&options) const;
+                                                          tl_object_ptr<td_api::messageSendOptions> &&options,
+                                                          bool allow_update_stickersets_order) const;
 
   static Status can_use_message_send_options(const MessageSendOptions &options,
                                              const unique_ptr<MessageContent> &content, int32 ttl);

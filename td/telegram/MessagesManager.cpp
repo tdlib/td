@@ -4762,6 +4762,7 @@ void MessagesManager::Message::store(StorerT &storer) const {
     STORE_FLAG(has_explicit_sender);
     STORE_FLAG(has_reactions);
     STORE_FLAG(has_available_reactions_generation);
+    STORE_FLAG(update_stickersets_order);
     END_STORE_FLAGS();
   }
 
@@ -5003,6 +5004,7 @@ void MessagesManager::Message::parse(ParserT &parser) {
     PARSE_FLAG(has_explicit_sender);
     PARSE_FLAG(has_reactions);
     PARSE_FLAG(has_available_reactions_generation);
+    PARSE_FLAG(update_stickersets_order);
     END_PARSE_FLAGS();
   }
 
@@ -25006,6 +25008,7 @@ unique_ptr<MessagesManager::Message> MessagesManager::create_message_to_send(
   m->is_channel_post = is_channel_post;
   m->is_outgoing = is_scheduled || dialog_id != DialogId(my_id);
   m->from_background = options.from_background;
+  m->update_stickersets_order = options.update_stickersets_order;
   m->noforwards = options.protect_content;
   m->view_count = is_channel_post && !is_scheduled ? 1 : 0;
   m->forward_count = 0;
@@ -25564,7 +25567,7 @@ Result<td_api::object_ptr<td_api::message>> MessagesManager::send_message(
   TRY_STATUS(can_send_message(dialog_id));
   TRY_RESULT(message_reply_markup, get_dialog_reply_markup(dialog_id, std::move(reply_markup)));
   TRY_RESULT(message_content, process_input_message_content(dialog_id, std::move(input_message_content)));
-  TRY_RESULT(message_send_options, process_message_send_options(dialog_id, std::move(options)));
+  TRY_RESULT(message_send_options, process_message_send_options(dialog_id, std::move(options), true));
   TRY_STATUS(can_use_message_send_options(message_send_options, message_content));
   TRY_STATUS(can_use_top_thread_message_id(d, top_thread_message_id, reply_to_message_id));
 
@@ -25685,11 +25688,15 @@ Result<MessageCopyOptions> MessagesManager::process_message_copy_options(
 }
 
 Result<MessagesManager::MessageSendOptions> MessagesManager::process_message_send_options(
-    DialogId dialog_id, tl_object_ptr<td_api::messageSendOptions> &&options) const {
+    DialogId dialog_id, tl_object_ptr<td_api::messageSendOptions> &&options,
+    bool allow_update_stickersets_order) const {
   MessageSendOptions result;
   if (options != nullptr) {
     result.disable_notification = options->disable_notification_;
     result.from_background = options->from_background_;
+    if (allow_update_stickersets_order) {
+      result.update_stickersets_order = options->update_order_of_installed_sticker_sets_;
+    }
     result.protect_content = options->protect_content_;
     TRY_RESULT_ASSIGN(result.schedule_date, get_message_schedule_date(std::move(options->scheduling_state_)));
   }
@@ -25794,7 +25801,7 @@ Result<td_api::object_ptr<td_api::messages>> MessagesManager::send_message_group
   }
 
   TRY_STATUS(can_send_message(dialog_id));
-  TRY_RESULT(message_send_options, process_message_send_options(dialog_id, std::move(options)));
+  TRY_RESULT(message_send_options, process_message_send_options(dialog_id, std::move(options), true));
 
   vector<std::pair<unique_ptr<MessageContent>, int32>> message_contents;
   std::unordered_set<MessageContentType, MessageContentTypeHash> message_content_types;
@@ -26674,7 +26681,7 @@ Result<MessageId> MessagesManager::send_inline_query_result_message(DialogId dia
   }
 
   TRY_STATUS(can_send_message(dialog_id));
-  TRY_RESULT(message_send_options, process_message_send_options(dialog_id, std::move(options)));
+  TRY_RESULT(message_send_options, process_message_send_options(dialog_id, std::move(options), false));
   bool to_secret = false;
   switch (dialog_id.get_type()) {
     case DialogType::User:
@@ -27933,6 +27940,9 @@ int32 MessagesManager::get_message_flags(const Message *m) {
   if (m->noforwards) {
     flags |= SEND_MESSAGE_FLAG_NOFORWARDS;
   }
+  if (m->update_stickersets_order) {
+    flags |= SEND_MESSAGE_FLAG_UPDATE_STICKER_SETS_ORDER;
+  }
   return flags;
 }
 
@@ -28458,7 +28468,7 @@ Result<MessagesManager::ForwardedMessages> MessagesManager::get_forwarded_messag
   }
 
   TRY_STATUS(can_send_message(to_dialog_id));
-  TRY_RESULT(message_send_options, process_message_send_options(to_dialog_id, std::move(options)));
+  TRY_RESULT(message_send_options, process_message_send_options(to_dialog_id, std::move(options), false));
 
   {
     MessageId last_message_id;
@@ -28859,7 +28869,8 @@ Result<vector<MessageId>> MessagesManager::resend_messages(DialogId dialog_id, v
 
     auto need_another_sender =
         message->send_error_code == 400 && message->send_error_message == CSlice("SEND_AS_PEER_INVALID");
-    MessageSendOptions options(message->disable_notification, message->from_background, message->noforwards,
+    MessageSendOptions options(message->disable_notification, message->from_background,
+                               message->update_stickersets_order, message->noforwards,
                                get_message_schedule_date(message.get()));
     Message *m = get_message_to_send(
         d, message->top_thread_message_id,
@@ -29066,6 +29077,7 @@ Result<MessageId> MessagesManager::add_local_message(
   m->is_outgoing = dialog_id != DialogId(my_id) && sender_user_id == my_id;
   m->disable_notification = disable_notification;
   m->from_background = false;
+  m->update_stickersets_order = false;
   m->view_count = 0;
   m->forward_count = 0;
   m->content = std::move(message_content.content);
