@@ -399,7 +399,8 @@ if (ANDROID)
 endif()
 
 if (CMAKE_SYSTEM_NAME MATCHES "NetBSD")
-  target_link_libraries(tdutils PUBLIC /usr/pkg/gcc5/i486--netbsdelf/lib/libatomic.so)
+  target_link_directories(tdutils PUBLIC /usr/pkg/gcc12/x86_64--netbsd/lib /usr/pkg/gcc12/i486--netbsdelf/lib)
+  target_link_libraries(tdutils PUBLIC atomic)
 endif()
 
 install(TARGETS tdutils EXPORT TdTargets

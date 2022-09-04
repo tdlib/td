@@ -746,7 +746,7 @@ function onOptionsChanged() {
     pre_text.push('Note that building requires a lot of memory, so you may need to increase allowed per-process memory usage in /etc/login.conf or build from root.');
   }
   if (os_netbsd) {
-    pre_text.push('Note that the following instruction is for NetBSD 8.0 and default SH shell.');
+    pre_text.push('Note that the following instruction is for NetBSD 8+ and default SH shell.');
   }
   if (os_mac) {
     pre_text.push('Note that the following instruction will build TDLib only for ' + os_mac_host_name + '.');
@@ -917,8 +917,8 @@ function onOptionsChanged() {
     if (!use_root) {
       commands.push('su -');
     }
-    commands.push('export PKG_PATH=ftp://ftp.netbsd.org/pub/pkgsrc/packages/NetBSD/i386/8.0_2019Q2/All');
-    var packages = 'git gperf php-7.3.6 cmake openssl gcc5-libs';
+    commands.push('export PKG_PATH=http://cdn.netbsd.org/pub/pkgsrc/packages/NetBSD/$(uname -p)/$(uname -r)/All');
+    var packages = 'git gperf php-8* cmake openssl gcc12-libs mozilla-rootcerts-openssl';
     commands.push('pkg_add ' + packages);
     if (!use_root) {
       commands.push('exit');
