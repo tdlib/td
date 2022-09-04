@@ -25098,6 +25098,9 @@ MessagesManager::Message *MessagesManager::get_message_to_send(
   if (result->message_id.is_scheduled()) {
     send_update_chat_has_scheduled_messages(d, false);
   }
+  if (options.update_stickersets_order && !td_->auth_manager_->is_bot()) {
+    move_message_content_sticker_set_to_top(td_, result->content.get());
+  }
   return result;
 }
 

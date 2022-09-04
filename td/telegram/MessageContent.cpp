@@ -5933,12 +5933,34 @@ void add_message_content_dependencies(Dependencies &dependencies, const MessageC
 void on_sent_message_content(Td *td, const MessageContent *content) {
   switch (content->get_type()) {
     case MessageContentType::Animation:
-      return td->animations_manager_->add_saved_animation_by_id(get_message_content_any_file_id(content));
+      return td->animations_manager_->add_saved_animation_by_id(get_message_content_upload_file_id(content));
     case MessageContentType::Sticker:
-      return td->stickers_manager_->add_recent_sticker_by_id(false, get_message_content_any_file_id(content));
+      return td->stickers_manager_->add_recent_sticker_by_id(false, get_message_content_upload_file_id(content));
     default:
       // nothing to do
       return;
+  }
+}
+
+void move_message_content_sticker_set_to_top(Td *td, const MessageContent *content) {
+  CHECK(content != nullptr);
+  if (content->get_type() == MessageContentType::Sticker) {
+    td->stickers_manager_->move_sticker_set_to_top_by_sticker_id(get_message_content_upload_file_id(content));
+    return;
+  }
+
+  auto text = get_message_content_text(content);
+  if (text == nullptr) {
+    return;
+  }
+  vector<int64> custom_emoji_ids;
+  for (auto &entity : text->entities) {
+    if (entity.type == MessageEntity::Type::CustomEmoji) {
+      custom_emoji_ids.push_back(entity.document_id);
+    }
+  }
+  if (!custom_emoji_ids.empty()) {
+    td->stickers_manager_->move_sticker_set_to_top_by_custom_emoji_ids(custom_emoji_ids);
   }
 }
 

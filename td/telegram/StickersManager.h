@@ -240,6 +240,10 @@ class StickersManager final : public Actor {
   void reorder_installed_sticker_sets(StickerType sticker_type, const vector<StickerSetId> &sticker_set_ids,
                                       Promise<Unit> &&promise);
 
+  void move_sticker_set_to_top_by_sticker_id(FileId sticker_id);
+
+  void move_sticker_set_to_top_by_custom_emoji_ids(const vector<int64> &custom_emoji_ids);
+
   FileId upload_sticker_file(UserId user_id, tl_object_ptr<td_api::inputSticker> &&sticker, Promise<Unit> &&promise);
 
   void get_suggested_sticker_set_name(string title, Promise<string> &&promise);

@@ -6742,6 +6742,7 @@ void StickersManager::on_update_sticker_sets_order(StickerType sticker_type,
 
 // -1 - sticker set can't be moved to top, 0 - order wasn't changed, 1 - sticker set was moved to top
 int StickersManager::move_installed_sticker_set_to_top(StickerType sticker_type, StickerSetId sticker_set_id) {
+  LOG(INFO) << "Move " << sticker_set_id << " to top of " << sticker_type;
   auto type = static_cast<int32>(sticker_type);
   if (!are_installed_sticker_sets_loaded_[type]) {
     return -1;
@@ -6786,6 +6787,47 @@ void StickersManager::reorder_installed_sticker_sets(StickerType sticker_type,
     send_update_installed_sticker_sets();
   }
   promise.set_value(Unit());
+}
+
+void StickersManager::move_sticker_set_to_top_by_sticker_id(FileId sticker_id) {
+  LOG(INFO) << "Move to top sticker set of " << sticker_id;
+  const auto *s = get_sticker(sticker_id);
+  if (s == nullptr || !s->set_id_.is_valid()) {
+    return;
+  }
+  if (s->type_ == StickerType::CustomEmoji) {
+    // just in case
+    return;
+  }
+  if (move_installed_sticker_set_to_top(s->type_, s->set_id_) > 0) {
+    send_update_installed_sticker_sets();
+  }
+}
+
+void StickersManager::move_sticker_set_to_top_by_custom_emoji_ids(const vector<int64> &custom_emoji_ids) {
+  LOG(INFO) << "Move to top sticker set of " << custom_emoji_ids;
+  StickerSetId sticker_set_id;
+  for (auto custom_emoji_id : custom_emoji_ids) {
+    auto sticker_id = custom_emoji_to_sticker_id_.get(custom_emoji_id);
+    if (!sticker_id.is_valid()) {
+      return;
+    }
+    const auto *s = get_sticker(sticker_id);
+    if (s == nullptr || !s->set_id_.is_valid()) {
+      return;
+    }
+    CHECK(s->type_ == StickerType::CustomEmoji);
+    if (s->set_id_ != sticker_set_id) {
+      if (sticker_set_id.is_valid()) {
+        return;
+      }
+      sticker_set_id = s->set_id_;
+    }
+  }
+  CHECK(sticker_set_id.is_valid());
+  if (move_installed_sticker_set_to_top(StickerType::CustomEmoji, sticker_set_id) > 0) {
+    send_update_installed_sticker_sets();
+  }
 }
 
 Result<std::tuple<FileId, bool, bool, StickerFormat>> StickersManager::prepare_input_sticker(
