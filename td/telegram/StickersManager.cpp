@@ -1737,13 +1737,11 @@ StickerType StickersManager::get_sticker_type(FileId file_id) const {
 
 bool StickersManager::is_premium_custom_emoji(int64 custom_emoji_id, bool default_result) const {
   auto sticker_id = custom_emoji_to_sticker_id_.get(custom_emoji_id);
-  const Sticker *s = get_sticker(sticker_id);
-  if (s == nullptr) {
-    if (sticker_id.is_valid()) {
-      LOG(ERROR) << "Failed to find custom emoji sticker " << sticker_id;
-    }
+  if (!sticker_id.is_valid()) {
     return default_result;
   }
+  const Sticker *s = get_sticker(sticker_id);
+  CHECK(s != nullptr);
   return s->is_premium_;
 }
 
@@ -5557,13 +5555,17 @@ td_api::object_ptr<td_api::stickers> StickersManager::get_custom_emoji_stickers_
   vector<int64> reload_document_ids;
   for (auto document_id : document_ids) {
     auto file_id = custom_emoji_to_sticker_id_.get(document_id);
-    auto sticker = get_sticker_object(file_id);
-    if (sticker != nullptr && sticker->type_->get_id() == td_api::stickerTypeCustomEmoji::ID) {
+    if (file_id.is_valid()) {
       auto s = get_sticker(file_id);
+      CHECK(s != nullptr);
+      CHECK(s->type_ == StickerType::CustomEmoji);
       if (s->emoji_receive_date_ < update_before_date && !s->is_being_reloaded_) {
         s->is_being_reloaded_ = true;
         reload_document_ids.push_back(document_id);
       }
+
+      auto sticker = get_sticker_object(file_id);
+      CHECK(sticker != nullptr);
       stickers.push_back(std::move(sticker));
     }
   }
@@ -6813,10 +6815,11 @@ void StickersManager::move_sticker_set_to_top_by_custom_emoji_ids(const vector<i
       return;
     }
     const auto *s = get_sticker(sticker_id);
-    if (s == nullptr || !s->set_id_.is_valid()) {
+    CHECK(s != nullptr);
+    CHECK(s->type_ == StickerType::CustomEmoji);
+    if (!s->set_id_.is_valid()) {
       return;
     }
-    CHECK(s->type_ == StickerType::CustomEmoji);
     if (s->set_id_ != sticker_set_id) {
       if (sticker_set_id.is_valid()) {
         return;
