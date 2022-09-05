@@ -5343,10 +5343,13 @@ void StickersManager::register_emoji(const string &emoji, int64 custom_emoji_id,
     }
     auto &emoji_messages = *emoji_messages_ptr;
     if (emoji_messages.full_message_ids_.empty()) {
-      emoji_messages.sticker_id_ = get_custom_animated_emoji_sticker_id(custom_emoji_id);
-      if (!disable_animated_emojis_) {
-        get_custom_emoji_stickers({custom_emoji_id}, true, Promise<td_api::object_ptr<td_api::stickers>>());
+      if (!disable_animated_emojis_ && custom_emoji_to_sticker_id_.count(custom_emoji_id) == 0) {
+        load_custom_emoji_sticker_from_database_force(custom_emoji_id);
+        if (custom_emoji_to_sticker_id_.count(custom_emoji_id) == 0) {
+          get_custom_emoji_stickers({custom_emoji_id}, false, Promise<td_api::object_ptr<td_api::stickers>>());
+        }
       }
+      emoji_messages.sticker_id_ = get_custom_animated_emoji_sticker_id(custom_emoji_id);
     }
     emoji_messages.full_message_ids_.insert(full_message_id);
     return;
@@ -5506,6 +5509,26 @@ bool StickersManager::is_default_emoji_status(int64 custom_emoji_id) {
     }
   }
   return false;
+}
+
+void StickersManager::load_custom_emoji_sticker_from_database_force(int64 custom_emoji_id) {
+  if (!G()->parameters().use_file_db) {
+    return;
+  }
+
+  auto value = G()->td_db()->get_sqlite_sync_pmc()->get(get_custom_emoji_database_key(custom_emoji_id));
+  if (value.empty()) {
+    LOG(INFO) << "Failed to load custom emoji " << custom_emoji_id << " from database";
+    return;
+  }
+
+  LOG(INFO) << "Synchronously loaded custom emoji " << custom_emoji_id << " of size " << value.size()
+            << " from database";
+  CustomEmojiLogEvent log_event;
+  if (log_event_parse(log_event, value).is_error()) {
+    LOG(ERROR) << "Delete invalid custom emoji " << custom_emoji_id << " value from database";
+    G()->td_db()->get_sqlite_sync_pmc()->erase(get_custom_emoji_database_key(custom_emoji_id));
+  }
 }
 
 void StickersManager::load_custom_emoji_sticker_from_database(int64 custom_emoji_id, Promise<Unit> &&promise) {

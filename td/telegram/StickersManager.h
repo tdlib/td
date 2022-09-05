@@ -578,6 +578,8 @@ class StickersManager final : public Actor {
 
   static string get_custom_emoji_database_key(int64 custom_emoji_id);
 
+  void load_custom_emoji_sticker_from_database_force(int64 custom_emoji_id);
+
   void load_custom_emoji_sticker_from_database(int64 custom_emoji_id, Promise<Unit> &&promise);
 
   void on_load_custom_emoji_from_database(int64 custom_emoji_id, string value);
