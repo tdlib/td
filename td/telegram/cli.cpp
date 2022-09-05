@@ -2225,14 +2225,14 @@ class CliClient final : public Actor {
       MessageId message_id;
       get_args(args, chat_id, message_id);
       send_request(td_api::make_object<td_api::getMessageAvailableReactions>(chat_id, message_id));
-    } else if (op == "react") {
+    } else if (op == "react" || op == "reactr") {
       ChatId chat_id;
       MessageId message_id;
       string reaction;
       bool is_big;
       get_args(args, chat_id, message_id, reaction, is_big);
-      send_request(
-          td_api::make_object<td_api::setMessageReaction>(chat_id, message_id, as_reaction_type(reaction), is_big));
+      send_request(td_api::make_object<td_api::setMessageReaction>(chat_id, message_id, as_reaction_type(reaction),
+                                                                   is_big, op == "reactr"));
     } else if (op == "gmars") {
       ChatId chat_id;
       MessageId message_id;

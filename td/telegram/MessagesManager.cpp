@@ -24515,7 +24515,7 @@ vector<AvailableReaction> MessagesManager::get_message_available_reactions(const
 }
 
 void MessagesManager::set_message_reaction(FullMessageId full_message_id, string reaction, bool is_big,
-                                           Promise<Unit> &&promise) {
+                                           bool add_to_recent, Promise<Unit> &&promise) {
   auto dialog_id = full_message_id.get_dialog_id();
   Dialog *d = get_dialog_force(dialog_id, "set_message_reaction");
   if (d == nullptr) {
@@ -24591,7 +24591,8 @@ void MessagesManager::set_message_reaction(FullMessageId full_message_id, string
         send_closure(actor_id, &MessagesManager::on_set_message_reaction, full_message_id, std::move(result),
                      std::move(promise));
       });
-  ::td::set_message_reaction(td_, full_message_id, std::move(reaction), is_big, std::move(query_promise));
+  ::td::set_message_reaction(td_, full_message_id, std::move(reaction), is_big, add_to_recent,
+                             std::move(query_promise));
 }
 
 void MessagesManager::on_set_message_reaction(FullMessageId full_message_id, Result<Unit> result,

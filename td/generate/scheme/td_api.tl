@@ -5142,7 +5142,8 @@ getMessageAvailableReactions chat_id:int53 message_id:int53 = AvailableReactions
 //@message_id Identifier of the message
 //@reaction_type Type of the new chosen reaction; pass null or the currently chosen non-big reaction to remove the reaction
 //@is_big Pass true if the reaction is added with a big animation
-setMessageReaction chat_id:int53 message_id:int53 reaction_type:ReactionType is_big:Bool = Ok;
+//@update_recent_reactions Pass true if the reaction needs to be added to recent reactions
+setMessageReaction chat_id:int53 message_id:int53 reaction_type:ReactionType is_big:Bool update_recent_reactions:Bool = Ok;
 
 //@description Returns reactions added for a message, along with their sender
 //@chat_id Identifier of the chat to which the message belongs

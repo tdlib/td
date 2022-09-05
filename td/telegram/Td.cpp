@@ -5254,7 +5254,7 @@ void Td::on_request(uint64 id, td_api::setMessageReaction &request) {
   CREATE_OK_REQUEST_PROMISE();
   messages_manager_->set_message_reaction({DialogId(request.chat_id_), MessageId(request.message_id_)},
                                           get_message_reaction_string(request.reaction_type_), request.is_big_,
-                                          std::move(promise));
+                                          request.update_recent_reactions_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::getMessageAddedReactions &request) {

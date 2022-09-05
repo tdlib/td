@@ -169,7 +169,7 @@ class SendReactionQuery final : public Td::ResultHandler {
   explicit SendReactionQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(FullMessageId full_message_id, string reaction, bool is_big) {
+  void send(FullMessageId full_message_id, string reaction, bool is_big, bool add_to_recent) {
     dialog_id_ = full_message_id.get_dialog_id();
 
     auto input_peer = td_->messages_manager_->get_input_peer(dialog_id_, AccessRights::Read);
@@ -183,6 +183,10 @@ class SendReactionQuery final : public Td::ResultHandler {
 
       if (is_big) {
         flags |= telegram_api::messages_sendReaction::BIG_MASK;
+      }
+
+      if (add_to_recent) {
+        flags |= telegram_api::messages_sendReaction::ADD_TO_RECENT_MASK;
       }
     }
 
@@ -689,9 +693,10 @@ void reload_message_reactions(Td *td, DialogId dialog_id, vector<MessageId> &&me
   td->create_handler<GetMessagesReactionsQuery>()->send(dialog_id, std::move(message_ids));
 }
 
-void set_message_reaction(Td *td, FullMessageId full_message_id, string reaction, bool is_big,
+void set_message_reaction(Td *td, FullMessageId full_message_id, string reaction, bool is_big, bool add_to_recent,
                           Promise<Unit> &&promise) {
-  td->create_handler<SendReactionQuery>(std::move(promise))->send(full_message_id, std::move(reaction), is_big);
+  td->create_handler<SendReactionQuery>(std::move(promise))
+      ->send(full_message_id, std::move(reaction), is_big, add_to_recent);
 }
 
 void get_message_added_reactions(Td *td, FullMessageId full_message_id, string reaction, string offset, int32 limit,
