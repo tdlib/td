@@ -110,7 +110,7 @@ class DownloadManagerImpl final : public DownloadManager {
   }
 
   void remove_file(FileId file_id, FileSourceId file_source_id, bool delete_from_cache, Promise<Unit> promise) final {
-    promise.set_result(remove_file_impl(file_id, file_source_id, delete_from_cache));
+    promise.set_result(remove_file_impl(file_id, file_source_id, delete_from_cache, "remove_file"));
   }
 
   void remove_file_if_finished(FileId file_id) final {
@@ -131,7 +131,7 @@ class DownloadManagerImpl final : public DownloadManager {
       to_remove.push_back(file_info.file_id);
     }
     for (auto file_id : to_remove) {
-      remove_file_impl(file_id, {}, delete_from_cache);
+      remove_file_impl(file_id, {}, delete_from_cache, "remove_all_files");
     }
     promise.set_value(Unit());
   }
@@ -140,7 +140,7 @@ class DownloadManagerImpl final : public DownloadManager {
                 Promise<td_api::object_ptr<td_api::file>> promise) final {
     TRY_STATUS_PROMISE(promise, check_is_active("add_file"));
 
-    remove_file_impl(file_id, {}, false);
+    remove_file_impl(file_id, {}, false, "add_file");
 
     auto download_id = next_download_id();
 
@@ -311,7 +311,7 @@ class DownloadManagerImpl final : public DownloadManager {
       return;
     }
     auto &file_info = *r_file_info_ptr.ok();
-    remove_file_impl(file_info.file_id, {}, false);
+    remove_file_impl(file_info.file_id, {}, false, "update_file_deleted");
   }
 
   void update_file_viewed(FileId file_id, FileSourceId file_source_id) final {
@@ -517,7 +517,7 @@ class DownloadManagerImpl final : public DownloadManager {
 
     if (r_search_text.is_error()) {
       if (!G()->close_flag()) {
-        remove_file_impl(it->second->file_id, {}, false);
+        remove_file_impl(it->second->file_id, {}, false, "add_download_to_hints");
       }
     } else {
       auto search_text = r_search_text.move_as_ok();
@@ -572,9 +572,9 @@ class DownloadManagerImpl final : public DownloadManager {
     }
   }
 
-  Status remove_file_impl(FileId file_id, FileSourceId file_source_id, bool delete_from_cache) {
+  Status remove_file_impl(FileId file_id, FileSourceId file_source_id, bool delete_from_cache, const char *source) {
     LOG(INFO) << "Remove from downloads file " << file_id << " from " << file_source_id;
-    TRY_STATUS(check_is_active("remove_file_impl"));
+    TRY_STATUS(check_is_active(source));
     TRY_RESULT(file_info_ptr, get_file_info(file_id, file_source_id));
     auto &file_info = *file_info_ptr;
     auto download_id = file_info.download_id;
@@ -608,7 +608,7 @@ class DownloadManagerImpl final : public DownloadManager {
     if (!is_completed(*file_info_ptr)) {
       return Status::Error("File is active");
     }
-    return remove_file_impl(file_id, {}, false);
+    return remove_file_impl(file_id, {}, false, "remove_file_if_finished_impl");
   }
 
   void timeout_expired() final {
@@ -779,7 +779,7 @@ class DownloadManagerImpl final : public DownloadManager {
     while (completed_download_ids_.size() > MAX_COMPLETED_DOWNLOADS) {
       auto download_id = *completed_download_ids_.begin();
       auto file_info = get_file_info(download_id).move_as_ok();
-      remove_file_impl(file_info->file_id, FileSourceId(), false);
+      remove_file_impl(file_info->file_id, FileSourceId(), false, "check_completed_downloads_size");
     }
   }
 
