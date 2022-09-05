@@ -775,6 +775,10 @@ class DownloadManagerImpl final : public DownloadManager {
   }
 
   void check_completed_downloads_size() {
+    if (!is_database_loaded_) {
+      return;
+    }
+
     constexpr size_t MAX_COMPLETED_DOWNLOADS = 200;
     while (completed_download_ids_.size() > MAX_COMPLETED_DOWNLOADS) {
       auto download_id = *completed_download_ids_.begin();
