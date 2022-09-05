@@ -301,19 +301,6 @@ class DownloadManagerImpl final : public DownloadManager {
     }
   }
 
-  void update_file_deleted(FileId internal_file_id) final {
-    if (!callback_ || !is_database_loaded_) {
-      return;
-    }
-
-    auto r_file_info_ptr = get_file_info_by_internal(internal_file_id);
-    if (r_file_info_ptr.is_error()) {
-      return;
-    }
-    auto &file_info = *r_file_info_ptr.ok();
-    remove_file_impl(file_info.file_id, {}, false, "update_file_deleted");
-  }
-
   void update_file_viewed(FileId file_id, FileSourceId file_source_id) final {
     if (unviewed_completed_download_ids_.empty() || !callback_ || !is_database_loaded_) {
       return;
