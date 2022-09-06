@@ -9,6 +9,7 @@
 #include "td/telegram/net/NetQuery.h"
 #include "td/telegram/NewPasswordState.h"
 #include "td/telegram/SecureStorage.h"
+#include "td/telegram/SentEmailCode.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 
@@ -106,8 +107,7 @@ class PasswordManager final : public NetQueryCallback {
     string password_hint;
     bool has_recovery_email_address = false;
     bool has_secure_values = false;
-    string unconfirmed_recovery_email_address_pattern;
-    int32 code_length = 0;
+    SentEmailCode unconfirmed_recovery_email_code;
     int32 pending_reset_date = 0;
 
     string current_client_salt;
@@ -120,13 +120,9 @@ class PasswordManager final : public NetQueryCallback {
     NewPasswordState new_state;
 
     State get_password_state_object() const {
-      td_api::object_ptr<td_api::emailAddressAuthenticationCodeInfo> code_info;
-      if (!unconfirmed_recovery_email_address_pattern.empty()) {
-        code_info = td_api::make_object<td_api::emailAddressAuthenticationCodeInfo>(
-            unconfirmed_recovery_email_address_pattern, code_length);
-      }
-      return td_api::make_object<td_api::passwordState>(has_password, password_hint, has_recovery_email_address,
-                                                        has_secure_values, std::move(code_info), pending_reset_date);
+      return td_api::make_object<td_api::passwordState>(
+          has_password, password_hint, has_recovery_email_address, has_secure_values,
+          unconfirmed_recovery_email_code.get_email_address_authentication_code_info_object(), pending_reset_date);
     }
   };
 

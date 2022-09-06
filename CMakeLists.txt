@@ -429,6 +429,7 @@ set(TDLIB_SOURCE
   td/telegram/SecureStorage.cpp
   td/telegram/SecureValue.cpp
   td/telegram/SendCodeHelper.cpp
+  td/telegram/SentEmailCode.cpp
   td/telegram/SequenceDispatcher.cpp
   td/telegram/SpecialStickerSetType.cpp
   td/telegram/SponsoredMessageManager.cpp
@@ -676,6 +677,7 @@ set(TDLIB_SOURCE
   td/telegram/SecureStorage.h
   td/telegram/SecureValue.h
   td/telegram/SendCodeHelper.h
+  td/telegram/SentEmailCode.h
   td/telegram/SequenceDispatcher.h
   td/telegram/ServerMessageId.h
   td/telegram/SetWithPosition.h
