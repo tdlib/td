@@ -111,7 +111,7 @@ tl_object_ptr<td_api::AuthorizationState> AuthManager::get_authorization_state_o
       return make_tl_object<td_api::authorizationStateWaitEmailAddress>(allow_apple_id_, allow_google_id_);
     case State::WaitEmailCode:
       return make_tl_object<td_api::authorizationStateWaitEmailCode>(
-          allow_apple_id_, allow_google_id_, email_code_.get_email_address_authentication_code_info_object());
+          allow_apple_id_, allow_google_id_, email_code_info_.get_email_address_authentication_code_info_object());
     case State::WaitCode:
       return send_code_helper_.get_authorization_state_wait_code();
     case State::WaitQrCodeConfirmation:
@@ -267,7 +267,9 @@ void AuthManager::set_phone_number(uint64 query_id, string phone_number,
   allow_apple_id_ = false;
   allow_google_id_ = false;
   email_address_ = {};
-  email_code_ = {};
+  email_code_info_ = {};
+  code_ = string();
+  email_code_ = nullptr;
 
   if (send_code_helper_.phone_number() != phone_number) {
     send_code_helper_ = SendCodeHelper();
@@ -315,6 +317,16 @@ void AuthManager::resend_authentication_code(uint64 query_id) {
   start_net_query(NetQueryType::SendCode, G()->net_query_creator().create_unauth(r_resend_code.move_as_ok()));
 }
 
+void AuthManager::send_auth_sign_in_query() {
+  bool is_email = email_code_ != nullptr;
+  int32 flags =
+      is_email ? telegram_api::auth_signIn::EMAIL_VERIFICATION_MASK : telegram_api::auth_signIn::PHONE_CODE_MASK;
+  start_net_query(NetQueryType::SignIn,
+                  G()->net_query_creator().create_unauth(telegram_api::auth_signIn(
+                      flags, send_code_helper_.phone_number().str(), send_code_helper_.phone_code_hash().str(), code_,
+                      is_email ? get_input_email_verification(email_code_) : nullptr)));
+}
+
 void AuthManager::check_email_code(uint64 query_id, td_api::object_ptr<td_api::EmailAddressAuthentication> &&code) {
   if (code == nullptr) {
     return on_query_error(query_id, Status::Error(400, "Code must be non-empty"));
@@ -324,10 +336,18 @@ void AuthManager::check_email_code(uint64 query_id, td_api::object_ptr<td_api::E
     return on_query_error(query_id, Status::Error(400, "Call to checkAuthenticationEmailCode unexpected"));
   }
 
+  code_ = string();
+  email_code_ = std::move(code);
+
   on_new_query(query_id);
-  start_net_query(NetQueryType::VerifyEmailAddress,
-                  G()->net_query_creator().create_unauth(telegram_api::account_verifyEmail(
-                      send_code_helper_.get_email_verify_purpose_login_setup(), get_input_email_verification(code))));
+  if (email_address_.empty()) {
+    send_auth_sign_in_query();
+  } else {
+    start_net_query(
+        NetQueryType::VerifyEmailAddress,
+        G()->net_query_creator().create_unauth(telegram_api::account_verifyEmail(
+            send_code_helper_.get_email_verify_purpose_login_setup(), get_input_email_verification(email_code_))));
+  }
 }
 
 void AuthManager::check_code(uint64 query_id, string code) {
@@ -336,11 +356,10 @@ void AuthManager::check_code(uint64 query_id, string code) {
   }
 
   code_ = std::move(code);
-  int32 flags = telegram_api::auth_signIn::PHONE_CODE_MASK;
+  email_code_ = nullptr;
+
   on_new_query(query_id);
-  start_net_query(NetQueryType::SignIn, G()->net_query_creator().create_unauth(telegram_api::auth_signIn(
-                                            flags, send_code_helper_.phone_number().str(),
-                                            send_code_helper_.phone_code_hash().str(), code_, nullptr)));
+  send_auth_sign_in_query();
 }
 
 void AuthManager::register_user(uint64 query_id, string first_name, string last_name) {
@@ -529,12 +548,25 @@ void AuthManager::start_net_query(NetQueryType net_query_type, NetQueryPtr net_q
 }
 
 void AuthManager::on_sent_code(telegram_api::object_ptr<telegram_api::auth_sentCode> &&sent_code) {
-  if (sent_code->type_->get_id() == telegram_api::auth_sentCodeTypeSetUpEmailRequired::ID) {
+  auto code_type_id = sent_code->type_->get_id();
+  if (code_type_id == telegram_api::auth_sentCodeTypeSetUpEmailRequired::ID) {
     auto code_type = move_tl_object_as<telegram_api::auth_sentCodeTypeSetUpEmailRequired>(std::move(sent_code->type_));
     send_code_helper_.on_phone_code_hash(std::move(sent_code->phone_code_hash_));
     allow_apple_id_ = code_type->apple_signin_allowed_;
     allow_google_id_ = code_type->google_signin_allowed_;
     update_state(State::WaitEmailAddress, true);
+  } else if (code_type_id == telegram_api::auth_sentCodeTypeEmailCode::ID) {
+    auto code_type = move_tl_object_as<telegram_api::auth_sentCodeTypeEmailCode>(std::move(sent_code->type_));
+    send_code_helper_.on_phone_code_hash(std::move(sent_code->phone_code_hash_));
+    allow_apple_id_ = code_type->apple_signin_allowed_;
+    allow_google_id_ = code_type->google_signin_allowed_;
+    email_address_.clear();
+    email_code_info_ = SentEmailCode(std::move(code_type->email_pattern_), code_type->length_);
+    if (email_code_info_.is_empty()) {
+      email_code_info_ = SentEmailCode("<unknown>", code_type->length_);
+      CHECK(!email_code_info_.is_empty());
+    }
+    update_state(State::WaitEmailCode, true);
   } else {
     send_code_helper_.on_sent_code(std::move(sent_code));
     update_state(State::WaitCode, true);
@@ -562,8 +594,8 @@ void AuthManager::on_send_email_code_result(NetQueryPtr &result) {
 
   LOG(INFO) << "Receive " << to_string(sent_code);
 
-  email_code_ = SentEmailCode(std::move(sent_code));
-  if (email_code_.is_empty()) {
+  email_code_info_ = SentEmailCode(std::move(sent_code));
+  if (email_code_info_.is_empty()) {
     return on_query_error(Status::Error(500, "Receive invalid response"));
   }
 
@@ -710,10 +742,7 @@ void AuthManager::on_get_password_result(NetQueryPtr &result) {
     set_login_token_expires_at(Time::now() + login_code_retry_delay_);
     return;
   } else {
-    int32 flags = telegram_api::auth_signIn::PHONE_CODE_MASK;
-    start_net_query(NetQueryType::SignIn, G()->net_query_creator().create_unauth(telegram_api::auth_signIn(
-                                              flags, send_code_helper_.phone_number().str(),
-                                              send_code_helper_.phone_code_hash().str(), code_, nullptr)));
+    send_auth_sign_in_query();
     return;
   }
 
@@ -1116,7 +1145,7 @@ bool AuthManager::load_state() {
     allow_apple_id_ = db_state.allow_apple_id_;
     allow_google_id_ = db_state.allow_google_id_;
     email_address_ = std::move(db_state.email_address_);
-    email_code_ = std::move(db_state.email_code_);
+    email_code_info_ = std::move(db_state.email_code_info_);
     send_code_helper_ = std::move(db_state.send_code_helper_);
   } else if (db_state.state_ == State::WaitCode) {
     send_code_helper_ = std::move(db_state.send_code_helper_);
@@ -1150,7 +1179,7 @@ void AuthManager::save_state() {
       return DbState::wait_email_address(api_id_, api_hash_, allow_apple_id_, allow_google_id_, send_code_helper_);
     } else if (state_ == State::WaitEmailCode) {
       return DbState::wait_email_code(api_id_, api_hash_, allow_apple_id_, allow_google_id_, email_address_,
-                                      email_code_, send_code_helper_);
+                                      email_code_info_, send_code_helper_);
     } else if (state_ == State::WaitCode) {
       return DbState::wait_code(api_id_, api_hash_, send_code_helper_);
     } else if (state_ == State::WaitQrCodeConfirmation) {

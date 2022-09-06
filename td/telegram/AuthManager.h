@@ -124,7 +124,7 @@ class AuthManager final : public NetActor {
 
     // WaitEmailCode
     string email_address_;
-    SentEmailCode email_code_;
+    SentEmailCode email_code_info_;
 
     // WaitEmailAddress, WaitEmailCode, WaitCode and WaitRegistration
     SendCodeHelper send_code_helper_;
@@ -152,13 +152,14 @@ class AuthManager final : public NetActor {
     }
 
     static DbState wait_email_code(int32 api_id, string api_hash, bool allow_apple_id, bool allow_google_id,
-                                   string email_address, SentEmailCode email_code, SendCodeHelper send_code_helper) {
+                                   string email_address, SentEmailCode email_code_info,
+                                   SendCodeHelper send_code_helper) {
       DbState state(State::WaitEmailCode, api_id, std::move(api_hash));
       state.send_code_helper_ = std::move(send_code_helper);
       state.allow_apple_id_ = allow_apple_id;
       state.allow_google_id_ = allow_google_id;
       state.email_address_ = std::move(email_address);
-      state.email_code_ = std::move(email_code);
+      state.email_code_info_ = std::move(email_code_info);
       return state;
     }
 
@@ -218,7 +219,8 @@ class AuthManager final : public NetActor {
 
   // State::WaitEmailCode
   string email_address_;
-  SentEmailCode email_code_;
+  SentEmailCode email_code_info_;
+  td_api::object_ptr<td_api::EmailAddressAuthentication> email_code_;
 
   // State::WaitCode
   SendCodeHelper send_code_helper_;
@@ -270,6 +272,7 @@ class AuthManager final : public NetActor {
   void do_delete_account(uint64 query_id, string reason,
                          Result<tl_object_ptr<telegram_api::InputCheckPasswordSRP>> r_input_password);
 
+  void send_auth_sign_in_query();
   void send_log_out_query();
   void destroy_auth_keys();
 
