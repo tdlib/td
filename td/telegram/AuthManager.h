@@ -6,6 +6,7 @@
 //
 #pragma once
 
+#include "td/telegram/EmailVerification.h"
 #include "td/telegram/net/NetActor.h"
 #include "td/telegram/net/NetQuery.h"
 #include "td/telegram/SendCodeHelper.h"
@@ -38,7 +39,7 @@ class AuthManager final : public NetActor {
                         td_api::object_ptr<td_api::phoneNumberAuthenticationSettings> settings);
   void set_email_address(uint64 query_id, string email_address);
   void resend_authentication_code(uint64 query_id);
-  void check_email_code(uint64 query_id, td_api::object_ptr<td_api::EmailAddressAuthentication> &&code);
+  void check_email_code(uint64 query_id, EmailVerification &&code);
   void check_code(uint64 query_id, string code);
   void register_user(uint64 query_id, string first_name, string last_name);
   void request_qr_code_authentication(uint64 query_id, vector<UserId> other_user_ids);
@@ -223,7 +224,7 @@ class AuthManager final : public NetActor {
   string email_address_;
   SentEmailCode email_code_info_;
   int32 next_phone_number_login_date_ = 0;
-  td_api::object_ptr<td_api::EmailAddressAuthentication> email_code_;
+  EmailVerification email_code_;
 
   // State::WaitCode
   SendCodeHelper send_code_helper_;
@@ -301,9 +302,6 @@ class AuthManager final : public NetActor {
 
   static void send_ok(uint64 query_id);
   static void on_query_error(uint64 query_id, Status status);
-
-  static telegram_api::object_ptr<telegram_api::EmailVerification> get_input_email_verification(
-      const td_api::object_ptr<td_api::EmailAddressAuthentication> &code);
 
   void start_up() final;
   void tear_down() final;

@@ -271,7 +271,7 @@ void AuthManager::set_phone_number(uint64 query_id, string phone_number,
   email_code_info_ = {};
   next_phone_number_login_date_ = 0;
   code_ = string();
-  email_code_ = nullptr;
+  email_code_ = {};
 
   if (send_code_helper_.phone_number() != phone_number) {
     send_code_helper_ = SendCodeHelper();
@@ -320,21 +320,20 @@ void AuthManager::resend_authentication_code(uint64 query_id) {
 }
 
 void AuthManager::send_auth_sign_in_query() {
-  bool is_email = email_code_ != nullptr;
+  bool is_email = !email_code_.is_empty();
   int32 flags =
       is_email ? telegram_api::auth_signIn::EMAIL_VERIFICATION_MASK : telegram_api::auth_signIn::PHONE_CODE_MASK;
   start_net_query(NetQueryType::SignIn,
                   G()->net_query_creator().create_unauth(telegram_api::auth_signIn(
                       flags, send_code_helper_.phone_number().str(), send_code_helper_.phone_code_hash().str(), code_,
-                      is_email ? get_input_email_verification(email_code_) : nullptr)));
+                      is_email ? email_code_.get_input_email_verification() : nullptr)));
 }
 
-void AuthManager::check_email_code(uint64 query_id, td_api::object_ptr<td_api::EmailAddressAuthentication> &&code) {
-  if (code == nullptr) {
+void AuthManager::check_email_code(uint64 query_id, EmailVerification &&code) {
+  if (code.is_empty()) {
     return on_query_error(query_id, Status::Error(400, "Code must be non-empty"));
   }
-  if (state_ != State::WaitEmailCode &&
-      !(state_ == State::WaitEmailAddress && code->get_id() == td_api::emailAddressAuthenticationCode::ID)) {
+  if (state_ != State::WaitEmailCode && !(state_ == State::WaitEmailAddress && code.is_email_code())) {
     return on_query_error(query_id, Status::Error(400, "Call to checkAuthenticationEmailCode unexpected"));
   }
 
@@ -348,7 +347,7 @@ void AuthManager::check_email_code(uint64 query_id, td_api::object_ptr<td_api::E
     start_net_query(
         NetQueryType::VerifyEmailAddress,
         G()->net_query_creator().create_unauth(telegram_api::account_verifyEmail(
-            send_code_helper_.get_email_verify_purpose_login_setup(), get_input_email_verification(email_code_))));
+            send_code_helper_.get_email_verify_purpose_login_setup(), email_code_.get_input_email_verification())));
   }
 }
 
@@ -358,7 +357,7 @@ void AuthManager::check_code(uint64 query_id, string code) {
   }
 
   code_ = std::move(code);
-  email_code_ = nullptr;
+  email_code_ = {};
 
   on_new_query(query_id);
   send_auth_sign_in_query();
@@ -1198,37 +1197,6 @@ void AuthManager::save_state() {
     }
   }();
   G()->td_db()->get_binlog_pmc()->set("auth_state", log_event_store(db_state).as_slice().str());
-}
-
-telegram_api::object_ptr<telegram_api::EmailVerification> AuthManager::get_input_email_verification(
-    const td_api::object_ptr<td_api::EmailAddressAuthentication> &code) {
-  CHECK(code != nullptr);
-  switch (code->get_id()) {
-    case td_api::emailAddressAuthenticationCode::ID: {
-      auto token = static_cast<const td_api::emailAddressAuthenticationCode *>(code.get())->code_;
-      if (!clean_input_string(token)) {
-        token.clear();
-      }
-      return telegram_api::make_object<telegram_api::emailVerificationCode>(token);
-    }
-    case td_api::emailAddressAuthenticationAppleId::ID: {
-      auto token = static_cast<const td_api::emailAddressAuthenticationAppleId *>(code.get())->token_;
-      if (!clean_input_string(token)) {
-        token.clear();
-      }
-      return telegram_api::make_object<telegram_api::emailVerificationApple>(token);
-    }
-    case td_api::emailAddressAuthenticationGoogleId::ID: {
-      auto token = static_cast<const td_api::emailAddressAuthenticationGoogleId *>(code.get())->token_;
-      if (!clean_input_string(token)) {
-        token.clear();
-      }
-      return telegram_api::make_object<telegram_api::emailVerificationGoogle>(token);
-    }
-    default:
-      UNREACHABLE();
-      return nullptr;
-  }
 }
 
 }  // namespace td

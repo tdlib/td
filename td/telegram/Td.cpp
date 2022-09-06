@@ -4274,7 +4274,7 @@ void Td::on_request(uint64 id, const td_api::resendAuthenticationCode &request) 
 }
 
 void Td::on_request(uint64 id, td_api::checkAuthenticationEmailCode &request) {
-  send_closure(auth_manager_actor_, &AuthManager::check_email_code, id, std::move(request.code_));
+  send_closure(auth_manager_actor_, &AuthManager::check_email_code, id, EmailVerification(std::move(request.code_)));
 }
 
 void Td::on_request(uint64 id, td_api::checkAuthenticationCode &request) {
