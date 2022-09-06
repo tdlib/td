@@ -145,10 +145,8 @@ SendCodeHelper::AuthenticationCodeInfo SendCodeHelper::get_authentication_code_i
       auto code_type = move_tl_object_as<telegram_api::auth_sentCodeTypeEmailCode>(sent_code_type_ptr);
       return AuthenticationCodeInfo{AuthenticationCodeInfo::Type::Message, code_type->length_, ""};
     }
-    case telegram_api::auth_sentCodeTypeSetUpEmailRequired::ID: {
-      auto code_type = move_tl_object_as<telegram_api::auth_sentCodeTypeSetUpEmailRequired>(sent_code_type_ptr);
-      return AuthenticationCodeInfo{AuthenticationCodeInfo::Type::Message, 0, ""};
-    }
+    case telegram_api::auth_sentCodeTypeSetUpEmailRequired::ID:
+      return AuthenticationCodeInfo();
     default:
       UNREACHABLE();
       return AuthenticationCodeInfo();

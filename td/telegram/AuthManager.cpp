@@ -107,6 +107,8 @@ tl_object_ptr<td_api::AuthorizationState> AuthManager::get_authorization_state_o
   switch (authorization_state) {
     case State::WaitPhoneNumber:
       return make_tl_object<td_api::authorizationStateWaitPhoneNumber>();
+    case State::WaitEmailAddress:
+      return make_tl_object<td_api::authorizationStateWaitEmailAddress>(allow_apple_id_, allow_google_id_);
     case State::WaitCode:
       return send_code_helper_.get_authorization_state_wait_code();
     case State::WaitQrCodeConfirmation:
@@ -174,7 +176,8 @@ void AuthManager::check_bot_token(uint64 query_id, string bot_token) {
 
 void AuthManager::request_qr_code_authentication(uint64 query_id, vector<UserId> other_user_ids) {
   if (state_ != State::WaitPhoneNumber) {
-    if ((state_ == State::WaitCode || state_ == State::WaitPassword || state_ == State::WaitRegistration) &&
+    if ((state_ == State::WaitEmailAddress || state_ == State::WaitCode || state_ == State::WaitPassword ||
+         state_ == State::WaitRegistration) &&
         net_query_id_ == 0) {
       // ok
     } else {
@@ -239,7 +242,8 @@ void AuthManager::on_update_login_token() {
 void AuthManager::set_phone_number(uint64 query_id, string phone_number,
                                    td_api::object_ptr<td_api::phoneNumberAuthenticationSettings> settings) {
   if (state_ != State::WaitPhoneNumber) {
-    if ((state_ == State::WaitCode || state_ == State::WaitPassword || state_ == State::WaitRegistration) &&
+    if ((state_ == State::WaitEmailAddress || state_ == State::WaitCode || state_ == State::WaitPassword ||
+         state_ == State::WaitRegistration) &&
         net_query_id_ == 0) {
       // ok
     } else {
@@ -490,9 +494,15 @@ void AuthManager::on_send_code_result(NetQueryPtr &result) {
 
   LOG(INFO) << "Receive " << to_string(sent_code);
 
-  send_code_helper_.on_sent_code(std::move(sent_code));
-
-  update_state(State::WaitCode, true);
+  if (sent_code->type_->get_id() == telegram_api::auth_sentCodeTypeSetUpEmailRequired::ID) {
+    auto code_type = move_tl_object_as<telegram_api::auth_sentCodeTypeSetUpEmailRequired>(std::move(sent_code->type_));
+    allow_apple_id_ = code_type->apple_signin_allowed_;
+    allow_google_id_ = code_type->google_signin_allowed_;
+    update_state(State::WaitEmailAddress, true);
+  } else {
+    send_code_helper_.on_sent_code(std::move(sent_code));
+    update_state(State::WaitCode, true);
+  }
   on_query_ok();
 }
 
@@ -992,6 +1002,7 @@ bool AuthManager::load_state() {
       case State::WaitPassword:
       case State::WaitRegistration:
         return 86400;
+      case State::WaitEmailAddress:
       case State::WaitCode:
       case State::WaitQrCodeConfirmation:
         return 5 * 60;
@@ -1007,7 +1018,11 @@ bool AuthManager::load_state() {
   }
 
   LOG(INFO) << "Load auth_state from database: " << tag("state", static_cast<int32>(db_state.state_));
-  if (db_state.state_ == State::WaitCode) {
+  if (db_state.state_ == State::WaitEmailAddress) {
+    allow_apple_id_ = db_state.allow_apple_id_;
+    allow_google_id_ = db_state.allow_google_id_;
+    send_code_helper_ = std::move(db_state.send_code_helper_);
+  } else if (db_state.state_ == State::WaitCode) {
     send_code_helper_ = std::move(db_state.send_code_helper_);
   } else if (db_state.state_ == State::WaitQrCodeConfirmation) {
     other_user_ids_ = std::move(db_state.other_user_ids_);
@@ -1026,8 +1041,8 @@ bool AuthManager::load_state() {
 }
 
 void AuthManager::save_state() {
-  if (state_ != State::WaitCode && state_ != State::WaitQrCodeConfirmation && state_ != State::WaitPassword &&
-      state_ != State::WaitRegistration) {
+  if (state_ != State::WaitEmailAddress && state_ != State::WaitCode && state_ != State::WaitQrCodeConfirmation &&
+      state_ != State::WaitPassword && state_ != State::WaitRegistration) {
     if (state_ != State::Closing) {
       G()->td_db()->get_binlog_pmc()->erase("auth_state");
     }
@@ -1035,7 +1050,9 @@ void AuthManager::save_state() {
   }
 
   DbState db_state = [&] {
-    if (state_ == State::WaitCode) {
+    if (state_ == State::WaitEmailAddress) {
+      return DbState::wait_email_address(api_id_, api_hash_, allow_apple_id_, allow_google_id_, send_code_helper_);
+    } else if (state_ == State::WaitCode) {
       return DbState::wait_code(api_id_, api_hash_, send_code_helper_);
     } else if (state_ == State::WaitQrCodeConfirmation) {
       return DbState::wait_qr_code_confirmation(api_id_, api_hash_, other_user_ids_, login_token_,

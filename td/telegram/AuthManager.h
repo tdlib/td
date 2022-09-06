@@ -65,6 +65,7 @@ class AuthManager final : public NetActor {
     WaitQrCodeConfirmation,
     WaitPassword,
     WaitRegistration,
+    WaitEmailAddress,
     Ok,
     LoggingOut,
     DestroyingKeys,
@@ -111,7 +112,11 @@ class AuthManager final : public NetActor {
     string api_hash_;
     Timestamp state_timestamp_;
 
-    // WaitCode
+    // WaitEmailAddress
+    bool allow_apple_id_ = false;
+    bool allow_google_id_ = false;
+
+    // WaitEmailAddress and WaitCode
     SendCodeHelper send_code_helper_;
 
     // WaitQrCodeConfirmation
@@ -126,6 +131,15 @@ class AuthManager final : public NetActor {
     TermsOfService terms_of_service_;
 
     DbState() = default;
+
+    static DbState wait_email_address(int32 api_id, string api_hash, bool allow_apple_id, bool allow_google_id,
+                                      SendCodeHelper send_code_helper) {
+      DbState state(State::WaitEmailAddress, api_id, std::move(api_hash));
+      state.send_code_helper_ = std::move(send_code_helper);
+      state.allow_apple_id_ = allow_apple_id;
+      state.allow_google_id_ = allow_google_id;
+      return state;
+    }
 
     static DbState wait_code(int32 api_id, string api_hash, SendCodeHelper send_code_helper) {
       DbState state(State::WaitCode, api_id, std::move(api_hash));
@@ -176,6 +190,10 @@ class AuthManager final : public NetActor {
   // from contructor
   int32 api_id_;
   string api_hash_;
+
+  // State::WaitEmailAddress
+  bool allow_apple_id_ = false;
+  bool allow_google_id_ = false;
 
   // State::WaitCode
   SendCodeHelper send_code_helper_;
