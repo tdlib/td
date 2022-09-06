@@ -255,7 +255,7 @@ void AuthManager::set_phone_number(uint64 query_id, string phone_number,
         query_id, Status::Error(400, "Cannot set phone number after bot token was entered. You need to log out first"));
   }
   if (phone_number.empty()) {
-    return on_query_error(query_id, Status::Error(400, "Phone number can't be empty"));
+    return on_query_error(query_id, Status::Error(400, "Phone number must be non-empty"));
   }
 
   other_user_ids_.clear();
@@ -270,6 +270,22 @@ void AuthManager::set_phone_number(uint64 query_id, string phone_number,
 
   start_net_query(NetQueryType::SendCode, G()->net_query_creator().create_unauth(send_code_helper_.send_code(
                                               std::move(phone_number), settings, api_id_, api_hash_)));
+}
+
+void AuthManager::set_email_address(uint64 query_id, string email_address) {
+  if (state_ != State::WaitEmailAddress) {
+    return on_query_error(query_id, Status::Error(400, "Call to setAuthenticationEmailAddress unexpected"));
+  }
+  if (email_address.empty()) {
+    return on_query_error(query_id, Status::Error(400, "Email address must be non-empty"));
+  }
+
+  email_address_ = std::move(email_address);
+
+  on_new_query(query_id);
+
+  start_net_query(NetQueryType::SendEmailCode,
+                  G()->net_query_creator().create_unauth(send_code_helper_.send_verify_email_code(email_address_)));
 }
 
 void AuthManager::resend_authentication_code(uint64 query_id) {
@@ -308,7 +324,7 @@ void AuthManager::register_user(uint64 query_id, string first_name, string last_
   on_new_query(query_id);
   first_name = clean_name(first_name, MAX_NAME_LENGTH);
   if (first_name.empty()) {
-    return on_query_error(Status::Error(400, "First name can't be empty"));
+    return on_query_error(Status::Error(400, "First name must be non-empty"));
   }
 
   last_name = clean_name(last_name, MAX_NAME_LENGTH);
@@ -496,6 +512,7 @@ void AuthManager::on_send_code_result(NetQueryPtr &result) {
 
   if (sent_code->type_->get_id() == telegram_api::auth_sentCodeTypeSetUpEmailRequired::ID) {
     auto code_type = move_tl_object_as<telegram_api::auth_sentCodeTypeSetUpEmailRequired>(std::move(sent_code->type_));
+    send_code_helper_.on_phone_code_hash(std::move(sent_code->phone_code_hash_));
     allow_apple_id_ = code_type->apple_signin_allowed_;
     allow_google_id_ = code_type->google_signin_allowed_;
     update_state(State::WaitEmailAddress, true);
@@ -503,6 +520,18 @@ void AuthManager::on_send_code_result(NetQueryPtr &result) {
     send_code_helper_.on_sent_code(std::move(sent_code));
     update_state(State::WaitCode, true);
   }
+  on_query_ok();
+}
+
+void AuthManager::on_send_email_code_result(NetQueryPtr &result) {
+  auto r_sent_code = fetch_result<telegram_api::account_sendVerifyEmailCode>(result->ok());
+  if (r_sent_code.is_error()) {
+    return on_query_error(r_sent_code.move_as_error());
+  }
+  auto sent_code = r_sent_code.move_as_ok();
+
+  LOG(INFO) << "Receive " << to_string(sent_code);
+
   on_query_ok();
 }
 
@@ -871,8 +900,8 @@ void AuthManager::on_result(NetQueryPtr result) {
     type = net_query_type_;
     net_query_type_ = NetQueryType::None;
     if (result->is_error()) {
-      if ((type == NetQueryType::SendCode || type == NetQueryType::SignIn || type == NetQueryType::RequestQrCode ||
-           type == NetQueryType::ImportQrCode) &&
+      if ((type == NetQueryType::SendCode || type == NetQueryType::SendEmailCode || type == NetQueryType::SignIn ||
+           type == NetQueryType::RequestQrCode || type == NetQueryType::ImportQrCode) &&
           result->error().code() == 401 && result->error().message() == CSlice("SESSION_PASSWORD_NEEDED")) {
         auto dc_id = DcId::main();
         if (type == NetQueryType::ImportQrCode) {
@@ -926,6 +955,9 @@ void AuthManager::on_result(NetQueryPtr result) {
       break;
     case NetQueryType::SendCode:
       on_send_code_result(result);
+      break;
+    case NetQueryType::SendEmailCode:
+      on_send_email_code_result(result);
       break;
     case NetQueryType::RequestQrCode:
       on_request_qr_code_result(result, false);

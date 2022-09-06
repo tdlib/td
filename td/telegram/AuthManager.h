@@ -35,6 +35,7 @@ class AuthManager final : public NetActor {
 
   void set_phone_number(uint64 query_id, string phone_number,
                         td_api::object_ptr<td_api::phoneNumberAuthenticationSettings> settings);
+  void set_email_address(uint64 query_id, string email_address);
   void resend_authentication_code(uint64 query_id);
   void check_code(uint64 query_id, string code);
   void register_user(uint64 query_id, string first_name, string last_name);
@@ -76,6 +77,7 @@ class AuthManager final : public NetActor {
     SignIn,
     SignUp,
     SendCode,
+    SendEmailCode,
     RequestQrCode,
     ImportQrCode,
     GetPassword,
@@ -194,6 +196,7 @@ class AuthManager final : public NetActor {
   // State::WaitEmailAddress
   bool allow_apple_id_ = false;
   bool allow_google_id_ = false;
+  string email_address_;
 
   // State::WaitCode
   SendCodeHelper send_code_helper_;
@@ -249,6 +252,7 @@ class AuthManager final : public NetActor {
   void destroy_auth_keys();
 
   void on_send_code_result(NetQueryPtr &result);
+  void on_send_email_code_result(NetQueryPtr &result);
   void on_request_qr_code_result(NetQueryPtr &result, bool is_import);
   void on_get_password_result(NetQueryPtr &result);
   void on_request_password_recovery_result(NetQueryPtr &result);

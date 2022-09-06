@@ -20,6 +20,8 @@ class SendCodeHelper {
  public:
   void on_sent_code(telegram_api::object_ptr<telegram_api::auth_sentCode> sent_code);
 
+  void on_phone_code_hash(string &&phone_code_hash);
+
   td_api::object_ptr<td_api::authorizationStateWaitCode> get_authorization_state_wait_code() const;
 
   td_api::object_ptr<td_api::authenticationCodeInfo> get_authentication_code_info_object() const;
@@ -30,6 +32,8 @@ class SendCodeHelper {
 
   telegram_api::auth_sendCode send_code(string phone_number, const Settings &settings, int32 api_id,
                                         const string &api_hash);
+
+  telegram_api::account_sendVerifyEmailCode send_verify_email_code(const string &email_address);
 
   telegram_api::account_sendChangePhoneCode send_change_phone_code(Slice phone_number, const Settings &settings);
 
@@ -88,6 +92,8 @@ class SendCodeHelper {
       const AuthenticationCodeInfo &authentication_code_info);
 
   static telegram_api::object_ptr<telegram_api::codeSettings> get_input_code_settings(const Settings &settings);
+
+  telegram_api::object_ptr<telegram_api::emailVerifyPurposeLoginSetup> get_email_verify_purpose_login_setup() const;
 };
 
 }  // namespace td

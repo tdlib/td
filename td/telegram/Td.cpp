@@ -4261,6 +4261,11 @@ void Td::on_request(uint64 id, td_api::setAuthenticationPhoneNumber &request) {
                std::move(request.settings_));
 }
 
+void Td::on_request(uint64 id, td_api::setAuthenticationEmailAddress &request) {
+  CLEAN_INPUT_STRING(request.email_address_);
+  send_closure(auth_manager_actor_, &AuthManager::set_email_address, id, std::move(request.email_address_));
+}
+
 void Td::on_request(uint64 id, const td_api::resendAuthenticationCode &request) {
   send_closure(auth_manager_actor_, &AuthManager::resend_authentication_code, id);
 }

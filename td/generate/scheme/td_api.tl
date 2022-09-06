@@ -4615,6 +4615,9 @@ checkDatabaseEncryptionKey encryption_key:bytes = Ok;
 //@phone_number The phone number of the user, in international format @settings Settings for the authentication of the user's phone number; pass null to use default settings
 setAuthenticationPhoneNumber phone_number:string settings:phoneNumberAuthenticationSettings = Ok;
 
+//@description Sets the email address of the user and sends an authentication code to the email address. Works only when the current authorization state is authorizationStateWaitEmailAddress @email_address The email address of the user
+setAuthenticationEmailAddress email_address:string = Ok;
+
 //@description Re-sends an authentication code to the user. Works only when the current authorization state is authorizationStateWaitCode, the next_code_type of the result is not null and the server-specified timeout has passed
 resendAuthenticationCode = Ok;
 
