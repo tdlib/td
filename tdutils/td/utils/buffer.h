@@ -678,14 +678,10 @@ class ChainBufferReader {
 
 class ChainBufferWriter {
  public:
-  ChainBufferWriter() {
-    init();
-  }
-
-  void init(size_t size = 0) {
-    writer_ = BufferWriter(size);
-    tail_ = ChainBufferNodeAllocator::create(writer_.as_buffer_slice(), true);
-    head_ = ChainBufferNodeAllocator::clone(tail_);
+  ChainBufferWriter()
+      : writer_(0)
+      , tail_(ChainBufferNodeAllocator::create(writer_.as_buffer_slice(), true))
+      , head_(ChainBufferNodeAllocator::clone(tail_)) {
   }
 
   MutableSlice prepare_append(size_t hint = 0) {
@@ -770,9 +766,9 @@ class ChainBufferWriter {
     return !tail_;
   }
 
-  ChainBufferNodeReaderPtr head_;
-  ChainBufferNodeWriterPtr tail_;
   BufferWriter writer_;
+  ChainBufferNodeWriterPtr tail_;
+  ChainBufferNodeReaderPtr head_;
 };
 
 class BufferBuilder {
