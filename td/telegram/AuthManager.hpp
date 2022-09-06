@@ -80,6 +80,7 @@ void AuthManager::DbState::store(StorerT &storer) const {
     store(send_code_helper_, storer);
     store(email_address_, storer);
     store(email_code_info_, storer);
+    store(next_phone_number_login_date_, storer);
   } else if (state_ == State::WaitCode) {
     store(send_code_helper_, storer);
   } else if (state_ == State::WaitQrCodeConfirmation) {
@@ -139,6 +140,7 @@ void AuthManager::DbState::parse(ParserT &parser) {
     parse(send_code_helper_, parser);
     parse(email_address_, parser);
     parse(email_code_info_, parser);
+    parse(next_phone_number_login_date_, parser);
   } else if (state_ == State::WaitCode) {
     parse(send_code_helper_, parser);
   } else if (state_ == State::WaitQrCodeConfirmation) {

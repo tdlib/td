@@ -125,6 +125,7 @@ class AuthManager final : public NetActor {
     // WaitEmailCode
     string email_address_;
     SentEmailCode email_code_info_;
+    int32 next_phone_number_login_date_ = 0;
 
     // WaitEmailAddress, WaitEmailCode, WaitCode and WaitRegistration
     SendCodeHelper send_code_helper_;
@@ -153,13 +154,14 @@ class AuthManager final : public NetActor {
 
     static DbState wait_email_code(int32 api_id, string api_hash, bool allow_apple_id, bool allow_google_id,
                                    string email_address, SentEmailCode email_code_info,
-                                   SendCodeHelper send_code_helper) {
+                                   int32 next_phone_number_login_date, SendCodeHelper send_code_helper) {
       DbState state(State::WaitEmailCode, api_id, std::move(api_hash));
       state.send_code_helper_ = std::move(send_code_helper);
       state.allow_apple_id_ = allow_apple_id;
       state.allow_google_id_ = allow_google_id;
       state.email_address_ = std::move(email_address);
       state.email_code_info_ = std::move(email_code_info);
+      state.next_phone_number_login_date_ = next_phone_number_login_date;
       return state;
     }
 
@@ -220,6 +222,7 @@ class AuthManager final : public NetActor {
   // State::WaitEmailCode
   string email_address_;
   SentEmailCode email_code_info_;
+  int32 next_phone_number_login_date_ = 0;
   td_api::object_ptr<td_api::EmailAddressAuthentication> email_code_;
 
   // State::WaitCode
