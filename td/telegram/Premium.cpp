@@ -45,7 +45,7 @@ static td_api::object_ptr<td_api::PremiumFeature> get_premium_feature_object(Sli
   if (premium_feature == "no_ads") {
     return td_api::make_object<td_api::premiumFeatureDisabledAds>();
   }
-  if (premium_feature == "unique_reactions") {
+  if (premium_feature == "unique_reactions" || premium_feature == "infinite_reactions") {
     return td_api::make_object<td_api::premiumFeatureUniqueReactions>();
   }
   if (premium_feature == "premium_stickers") {
@@ -59,6 +59,9 @@ static td_api::object_ptr<td_api::PremiumFeature> get_premium_feature_object(Sli
   }
   if (premium_feature == "profile_badge") {
     return td_api::make_object<td_api::premiumFeatureProfileBadge>();
+  }
+  if (premium_feature == "emoji_status") {
+    return td_api::make_object<td_api::premiumFeatureEmojiStatus>();
   }
   if (premium_feature == "animated_userpics") {
     return td_api::make_object<td_api::premiumFeatureAnimatedProfilePhoto>();
@@ -342,7 +345,7 @@ static string get_premium_source(const td_api::PremiumFeature *feature) {
     case td_api::premiumFeatureDisabledAds::ID:
       return "no_ads";
     case td_api::premiumFeatureUniqueReactions::ID:
-      return "unique_reactions";
+      return "infinite_reactions";
     case td_api::premiumFeatureUniqueStickers::ID:
       return "premium_stickers";
     case td_api::premiumFeatureCustomEmoji::ID:
@@ -351,6 +354,8 @@ static string get_premium_source(const td_api::PremiumFeature *feature) {
       return "advanced_chat_management";
     case td_api::premiumFeatureProfileBadge::ID:
       return "profile_badge";
+    case td_api::premiumFeatureEmojiStatus::ID:
+      return "emoji_status";
     case td_api::premiumFeatureAnimatedProfilePhoto::ID:
       return "animated_userpics";
     case td_api::premiumFeatureAppIcons::ID:
@@ -443,12 +448,12 @@ void get_premium_limit(const td_api::object_ptr<td_api::PremiumLimitType> &limit
 
 void get_premium_features(Td *td, const td_api::object_ptr<td_api::PremiumSource> &source,
                           Promise<td_api::object_ptr<td_api::premiumFeatures>> &&promise) {
-  auto premium_features =
-      full_split(G()->get_option_string(
-                     "premium_features",
-                     "double_limits,more_upload,faster_download,voice_to_text,no_ads,unique_reactions,premium_stickers,"
-                     "animated_emoji,advanced_chat_management,profile_badge,animated_userpics,app_icons"),
-                 ',');
+  auto premium_features = full_split(
+      G()->get_option_string(
+          "premium_features",
+          "double_limits,more_upload,faster_download,voice_to_text,no_ads,infinite_reactions,premium_stickers,"
+          "animated_emoji,advanced_chat_management,profile_badge,emoji_status,animated_userpics,app_icons"),
+      ',');
   vector<td_api::object_ptr<td_api::PremiumFeature>> features;
   for (const auto &premium_feature : premium_features) {
     auto feature = get_premium_feature_object(premium_feature);

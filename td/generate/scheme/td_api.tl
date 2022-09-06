@@ -3059,6 +3059,9 @@ premiumFeatureAdvancedChatManagement = PremiumFeature;
 //@description A badge in the user's profile
 premiumFeatureProfileBadge = PremiumFeature;
 
+//@description A emoji status shown along with the user's name
+premiumFeatureEmojiStatus = PremiumFeature;
+
 //@description Profile photo animation on message and chat screens
 premiumFeatureAnimatedProfilePhoto = PremiumFeature;
 
