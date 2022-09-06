@@ -109,6 +109,9 @@ tl_object_ptr<td_api::AuthorizationState> AuthManager::get_authorization_state_o
       return make_tl_object<td_api::authorizationStateWaitPhoneNumber>();
     case State::WaitEmailAddress:
       return make_tl_object<td_api::authorizationStateWaitEmailAddress>(allow_apple_id_, allow_google_id_);
+    case State::WaitEmailCode:
+      return make_tl_object<td_api::authorizationStateWaitEmailCode>(
+          allow_apple_id_, allow_google_id_, email_code_.get_email_address_authentication_code_info_object());
     case State::WaitCode:
       return send_code_helper_.get_authorization_state_wait_code();
     case State::WaitQrCodeConfirmation:
@@ -176,8 +179,8 @@ void AuthManager::check_bot_token(uint64 query_id, string bot_token) {
 
 void AuthManager::request_qr_code_authentication(uint64 query_id, vector<UserId> other_user_ids) {
   if (state_ != State::WaitPhoneNumber) {
-    if ((state_ == State::WaitEmailAddress || state_ == State::WaitCode || state_ == State::WaitPassword ||
-         state_ == State::WaitRegistration) &&
+    if ((state_ == State::WaitEmailAddress || state_ == State::WaitEmailCode || state_ == State::WaitCode ||
+         state_ == State::WaitPassword || state_ == State::WaitRegistration) &&
         net_query_id_ == 0) {
       // ok
     } else {
@@ -242,8 +245,8 @@ void AuthManager::on_update_login_token() {
 void AuthManager::set_phone_number(uint64 query_id, string phone_number,
                                    td_api::object_ptr<td_api::phoneNumberAuthenticationSettings> settings) {
   if (state_ != State::WaitPhoneNumber) {
-    if ((state_ == State::WaitEmailAddress || state_ == State::WaitCode || state_ == State::WaitPassword ||
-         state_ == State::WaitRegistration) &&
+    if ((state_ == State::WaitEmailAddress || state_ == State::WaitEmailCode || state_ == State::WaitCode ||
+         state_ == State::WaitPassword || state_ == State::WaitRegistration) &&
         net_query_id_ == 0) {
       // ok
     } else {
@@ -261,6 +264,11 @@ void AuthManager::set_phone_number(uint64 query_id, string phone_number,
   other_user_ids_.clear();
   was_qr_code_request_ = false;
 
+  allow_apple_id_ = false;
+  allow_google_id_ = false;
+  email_address_ = {};
+  email_code_ = {};
+
   if (send_code_helper_.phone_number() != phone_number) {
     send_code_helper_ = SendCodeHelper();
     terms_of_service_ = TermsOfService();
@@ -274,7 +282,11 @@ void AuthManager::set_phone_number(uint64 query_id, string phone_number,
 
 void AuthManager::set_email_address(uint64 query_id, string email_address) {
   if (state_ != State::WaitEmailAddress) {
-    return on_query_error(query_id, Status::Error(400, "Call to setAuthenticationEmailAddress unexpected"));
+    if (state_ == State::WaitEmailCode && net_query_id_ == 0) {
+      // ok
+    } else {
+      return on_query_error(query_id, Status::Error(400, "Call to setAuthenticationEmailAddress unexpected"));
+    }
   }
   if (email_address.empty()) {
     return on_query_error(query_id, Status::Error(400, "Email address must be non-empty"));
@@ -532,6 +544,12 @@ void AuthManager::on_send_email_code_result(NetQueryPtr &result) {
 
   LOG(INFO) << "Receive " << to_string(sent_code);
 
+  email_code_ = SentEmailCode(std::move(sent_code));
+  if (email_code_.is_empty()) {
+    return on_query_error(Status::Error(500, "Receive invalid response"));
+  }
+
+  update_state(State::WaitEmailCode, true);
   on_query_ok();
 }
 
@@ -1035,6 +1053,7 @@ bool AuthManager::load_state() {
       case State::WaitRegistration:
         return 86400;
       case State::WaitEmailAddress:
+      case State::WaitEmailCode:
       case State::WaitCode:
       case State::WaitQrCodeConfirmation:
         return 5 * 60;
@@ -1053,6 +1072,12 @@ bool AuthManager::load_state() {
   if (db_state.state_ == State::WaitEmailAddress) {
     allow_apple_id_ = db_state.allow_apple_id_;
     allow_google_id_ = db_state.allow_google_id_;
+    send_code_helper_ = std::move(db_state.send_code_helper_);
+  } else if (db_state.state_ == State::WaitEmailCode) {
+    allow_apple_id_ = db_state.allow_apple_id_;
+    allow_google_id_ = db_state.allow_google_id_;
+    email_address_ = std::move(db_state.email_address_);
+    email_code_ = std::move(db_state.email_code_);
     send_code_helper_ = std::move(db_state.send_code_helper_);
   } else if (db_state.state_ == State::WaitCode) {
     send_code_helper_ = std::move(db_state.send_code_helper_);
@@ -1073,8 +1098,8 @@ bool AuthManager::load_state() {
 }
 
 void AuthManager::save_state() {
-  if (state_ != State::WaitEmailAddress && state_ != State::WaitCode && state_ != State::WaitQrCodeConfirmation &&
-      state_ != State::WaitPassword && state_ != State::WaitRegistration) {
+  if (state_ != State::WaitEmailAddress && state_ != State::WaitEmailCode && state_ != State::WaitCode &&
+      state_ != State::WaitQrCodeConfirmation && state_ != State::WaitPassword && state_ != State::WaitRegistration) {
     if (state_ != State::Closing) {
       G()->td_db()->get_binlog_pmc()->erase("auth_state");
     }
@@ -1084,6 +1109,9 @@ void AuthManager::save_state() {
   DbState db_state = [&] {
     if (state_ == State::WaitEmailAddress) {
       return DbState::wait_email_address(api_id_, api_hash_, allow_apple_id_, allow_google_id_, send_code_helper_);
+    } else if (state_ == State::WaitEmailCode) {
+      return DbState::wait_email_code(api_id_, api_hash_, allow_apple_id_, allow_google_id_, email_address_,
+                                      email_code_, send_code_helper_);
     } else if (state_ == State::WaitCode) {
       return DbState::wait_code(api_id_, api_hash_, send_code_helper_);
     } else if (state_ == State::WaitQrCodeConfirmation) {

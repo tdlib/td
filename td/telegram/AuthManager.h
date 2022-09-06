@@ -9,6 +9,7 @@
 #include "td/telegram/net/NetActor.h"
 #include "td/telegram/net/NetQuery.h"
 #include "td/telegram/SendCodeHelper.h"
+#include "td/telegram/SentEmailCode.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/TermsOfService.h"
@@ -67,6 +68,7 @@ class AuthManager final : public NetActor {
     WaitPassword,
     WaitRegistration,
     WaitEmailAddress,
+    WaitEmailCode,
     Ok,
     LoggingOut,
     DestroyingKeys,
@@ -114,11 +116,15 @@ class AuthManager final : public NetActor {
     string api_hash_;
     Timestamp state_timestamp_;
 
-    // WaitEmailAddress
+    // WaitEmailAddress and WaitEmailCode
     bool allow_apple_id_ = false;
     bool allow_google_id_ = false;
 
-    // WaitEmailAddress and WaitCode
+    // WaitEmailCode
+    string email_address_;
+    SentEmailCode email_code_;
+
+    // WaitEmailAddress, WaitEmailCode, WaitCode and WaitRegistration
     SendCodeHelper send_code_helper_;
 
     // WaitQrCodeConfirmation
@@ -140,6 +146,17 @@ class AuthManager final : public NetActor {
       state.send_code_helper_ = std::move(send_code_helper);
       state.allow_apple_id_ = allow_apple_id;
       state.allow_google_id_ = allow_google_id;
+      return state;
+    }
+
+    static DbState wait_email_code(int32 api_id, string api_hash, bool allow_apple_id, bool allow_google_id,
+                                   string email_address, SentEmailCode email_code, SendCodeHelper send_code_helper) {
+      DbState state(State::WaitEmailCode, api_id, std::move(api_hash));
+      state.send_code_helper_ = std::move(send_code_helper);
+      state.allow_apple_id_ = allow_apple_id;
+      state.allow_google_id_ = allow_google_id;
+      state.email_address_ = std::move(email_address);
+      state.email_code_ = std::move(email_code);
       return state;
     }
 
@@ -196,7 +213,10 @@ class AuthManager final : public NetActor {
   // State::WaitEmailAddress
   bool allow_apple_id_ = false;
   bool allow_google_id_ = false;
+
+  // State::WaitEmailCode
   string email_address_;
+  SentEmailCode email_code_;
 
   // State::WaitCode
   SendCodeHelper send_code_helper_;
