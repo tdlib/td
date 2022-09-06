@@ -38,6 +38,7 @@ class AuthManager final : public NetActor {
                         td_api::object_ptr<td_api::phoneNumberAuthenticationSettings> settings);
   void set_email_address(uint64 query_id, string email_address);
   void resend_authentication_code(uint64 query_id);
+  void check_email_code(uint64 query_id, td_api::object_ptr<td_api::EmailAddressAuthentication> &&code);
   void check_code(uint64 query_id, string code);
   void register_user(uint64 query_id, string first_name, string last_name);
   void request_qr_code_authentication(uint64 query_id, vector<UserId> other_user_ids);
@@ -80,6 +81,7 @@ class AuthManager final : public NetActor {
     SignUp,
     SendCode,
     SendEmailCode,
+    VerifyEmailAddress,
     RequestQrCode,
     ImportQrCode,
     GetPassword,
@@ -271,8 +273,11 @@ class AuthManager final : public NetActor {
   void send_log_out_query();
   void destroy_auth_keys();
 
+  void on_sent_code(telegram_api::object_ptr<telegram_api::auth_sentCode> &&sent_code);
+
   void on_send_code_result(NetQueryPtr &result);
   void on_send_email_code_result(NetQueryPtr &result);
+  void on_verify_email_address_result(NetQueryPtr &result);
   void on_request_qr_code_result(NetQueryPtr &result, bool is_import);
   void on_get_password_result(NetQueryPtr &result);
   void on_request_password_recovery_result(NetQueryPtr &result);
@@ -290,6 +295,9 @@ class AuthManager final : public NetActor {
 
   static void send_ok(uint64 query_id);
   static void on_query_error(uint64 query_id, Status status);
+
+  static telegram_api::object_ptr<telegram_api::EmailVerification> get_input_email_verification(
+      const td_api::object_ptr<td_api::EmailAddressAuthentication> &code);
 
   void start_up() final;
   void tear_down() final;

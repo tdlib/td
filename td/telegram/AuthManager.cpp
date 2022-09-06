@@ -315,6 +315,21 @@ void AuthManager::resend_authentication_code(uint64 query_id) {
   start_net_query(NetQueryType::SendCode, G()->net_query_creator().create_unauth(r_resend_code.move_as_ok()));
 }
 
+void AuthManager::check_email_code(uint64 query_id, td_api::object_ptr<td_api::EmailAddressAuthentication> &&code) {
+  if (code == nullptr) {
+    return on_query_error(query_id, Status::Error(400, "Code must be non-empty"));
+  }
+  if (state_ != State::WaitEmailCode &&
+      !(state_ == State::WaitEmailAddress && code->get_id() == td_api::emailAddressAuthenticationCode::ID)) {
+    return on_query_error(query_id, Status::Error(400, "Call to checkAuthenticationEmailCode unexpected"));
+  }
+
+  on_new_query(query_id);
+  start_net_query(NetQueryType::VerifyEmailAddress,
+                  G()->net_query_creator().create_unauth(telegram_api::account_verifyEmail(
+                      send_code_helper_.get_email_verify_purpose_login_setup(), get_input_email_verification(code))));
+}
+
 void AuthManager::check_code(uint64 query_id, string code) {
   if (state_ != State::WaitCode) {
     return on_query_error(query_id, Status::Error(400, "Call to checkAuthenticationCode unexpected"));
@@ -513,15 +528,7 @@ void AuthManager::start_net_query(NetQueryType net_query_type, NetQueryPtr net_q
   G()->net_query_dispatcher().dispatch_with_callback(std::move(net_query), actor_shared(this));
 }
 
-void AuthManager::on_send_code_result(NetQueryPtr &result) {
-  auto r_sent_code = fetch_result<telegram_api::auth_sendCode>(result->ok());
-  if (r_sent_code.is_error()) {
-    return on_query_error(r_sent_code.move_as_error());
-  }
-  auto sent_code = r_sent_code.move_as_ok();
-
-  LOG(INFO) << "Receive " << to_string(sent_code);
-
+void AuthManager::on_sent_code(telegram_api::object_ptr<telegram_api::auth_sentCode> &&sent_code) {
   if (sent_code->type_->get_id() == telegram_api::auth_sentCodeTypeSetUpEmailRequired::ID) {
     auto code_type = move_tl_object_as<telegram_api::auth_sentCodeTypeSetUpEmailRequired>(std::move(sent_code->type_));
     send_code_helper_.on_phone_code_hash(std::move(sent_code->phone_code_hash_));
@@ -532,6 +539,17 @@ void AuthManager::on_send_code_result(NetQueryPtr &result) {
     send_code_helper_.on_sent_code(std::move(sent_code));
     update_state(State::WaitCode, true);
   }
+}
+
+void AuthManager::on_send_code_result(NetQueryPtr &result) {
+  auto r_sent_code = fetch_result<telegram_api::auth_sendCode>(result->ok());
+  if (r_sent_code.is_error()) {
+    return on_query_error(r_sent_code.move_as_error());
+  }
+  auto sent_code = r_sent_code.move_as_ok();
+
+  LOG(INFO) << "Receive " << to_string(sent_code);
+  on_sent_code(std::move(sent_code));
   on_query_ok();
 }
 
@@ -550,6 +568,23 @@ void AuthManager::on_send_email_code_result(NetQueryPtr &result) {
   }
 
   update_state(State::WaitEmailCode, true);
+  on_query_ok();
+}
+
+void AuthManager::on_verify_email_address_result(NetQueryPtr &result) {
+  auto r_email_verified = fetch_result<telegram_api::account_verifyEmail>(result->ok());
+  if (r_email_verified.is_error()) {
+    return on_query_error(r_email_verified.move_as_error());
+  }
+  auto email_verified = r_email_verified.move_as_ok();
+
+  LOG(INFO) << "Receive " << to_string(email_verified);
+  if (email_verified->get_id() != telegram_api::account_emailVerifiedLogin::ID) {
+    return on_query_error(Status::Error(500, "Receive invalid response"));
+  }
+
+  auto verified_login = telegram_api::move_object_as<telegram_api::account_emailVerifiedLogin>(email_verified);
+  on_sent_code(std::move(verified_login->sent_code_));
   on_query_ok();
 }
 
@@ -918,7 +953,8 @@ void AuthManager::on_result(NetQueryPtr result) {
     type = net_query_type_;
     net_query_type_ = NetQueryType::None;
     if (result->is_error()) {
-      if ((type == NetQueryType::SendCode || type == NetQueryType::SendEmailCode || type == NetQueryType::SignIn ||
+      if ((type == NetQueryType::SendCode || type == NetQueryType::SendEmailCode ||
+           type == NetQueryType::VerifyEmailAddress || type == NetQueryType::SignIn ||
            type == NetQueryType::RequestQrCode || type == NetQueryType::ImportQrCode) &&
           result->error().code() == 401 && result->error().message() == CSlice("SESSION_PASSWORD_NEEDED")) {
         auto dc_id = DcId::main();
@@ -976,6 +1012,9 @@ void AuthManager::on_result(NetQueryPtr result) {
       break;
     case NetQueryType::SendEmailCode:
       on_send_email_code_result(result);
+      break;
+    case NetQueryType::VerifyEmailAddress:
+      on_verify_email_address_result(result);
       break;
     case NetQueryType::RequestQrCode:
       on_request_qr_code_result(result, false);
@@ -1125,6 +1164,37 @@ void AuthManager::save_state() {
     }
   }();
   G()->td_db()->get_binlog_pmc()->set("auth_state", log_event_store(db_state).as_slice().str());
+}
+
+telegram_api::object_ptr<telegram_api::EmailVerification> AuthManager::get_input_email_verification(
+    const td_api::object_ptr<td_api::EmailAddressAuthentication> &code) {
+  CHECK(code != nullptr);
+  switch (code->get_id()) {
+    case td_api::emailAddressAuthenticationCode::ID: {
+      auto token = static_cast<const td_api::emailAddressAuthenticationCode *>(code.get())->code_;
+      if (!clean_input_string(token)) {
+        token.clear();
+      }
+      return telegram_api::make_object<telegram_api::emailVerificationCode>(token);
+    }
+    case td_api::emailAddressAuthenticationAppleId::ID: {
+      auto token = static_cast<const td_api::emailAddressAuthenticationAppleId *>(code.get())->token_;
+      if (!clean_input_string(token)) {
+        token.clear();
+      }
+      return telegram_api::make_object<telegram_api::emailVerificationApple>(token);
+    }
+    case td_api::emailAddressAuthenticationGoogleId::ID: {
+      auto token = static_cast<const td_api::emailAddressAuthenticationGoogleId *>(code.get())->token_;
+      if (!clean_input_string(token)) {
+        token.clear();
+      }
+      return telegram_api::make_object<telegram_api::emailVerificationGoogle>(token);
+    }
+    default:
+      UNREACHABLE();
+      return nullptr;
+  }
 }
 
 }  // namespace td

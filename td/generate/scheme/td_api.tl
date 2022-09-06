@@ -66,6 +66,18 @@ authenticationCodeInfo phone_number:string type:AuthenticationCodeType next_type
 emailAddressAuthenticationCodeInfo email_address_pattern:string length:int32 = EmailAddressAuthenticationCodeInfo;
 
 
+//@class EmailAddressAuthentication @description Contains authentication data for a email address
+
+//@description An authentication code delivered to a user's email address @code The code
+emailAddressAuthenticationCode code:string = EmailAddressAuthentication;
+
+//@description An authentication token received through Apple ID @token The token
+emailAddressAuthenticationAppleId token:string = EmailAddressAuthentication;
+
+//@description An authentication token received through Google ID @token The token
+emailAddressAuthenticationGoogleId token:string = EmailAddressAuthentication;
+
+
 //@description Represents a part of the text that needs to be formatted in some unusual way @offset Offset of the entity, in UTF-16 code units @length Length of the entity, in UTF-16 code units @type Type of the entity
 textEntity offset:int32 length:int32 type:TextEntityType = TextEntity;
 
@@ -4624,6 +4636,9 @@ setAuthenticationEmailAddress email_address:string = Ok;
 
 //@description Re-sends an authentication code to the user. Works only when the current authorization state is authorizationStateWaitCode, the next_code_type of the result is not null and the server-specified timeout has passed
 resendAuthenticationCode = Ok;
+
+//@description Checks the authentication of a email address. Works only when the current authorization state is authorizationStateWaitEmailCode @code Email address authentication to check
+checkAuthenticationEmailCode code:EmailAddressAuthentication = Ok;
 
 //@description Checks the authentication code. Works only when the current authorization state is authorizationStateWaitCode @code Authentication code to check
 checkAuthenticationCode code:string = Ok;

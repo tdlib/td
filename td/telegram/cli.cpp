@@ -1850,6 +1850,16 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::checkDatabaseEncryptionKey>(args));
     } else if (op == "sdek" || op == "SetDatabaseEncryptionKey") {
       send_request(td_api::make_object<td_api::setDatabaseEncryptionKey>(args));
+    } else if (op == "caec") {
+      td_api::object_ptr<td_api::EmailAddressAuthentication> code;
+      if (begins_with(args, "a ")) {
+        code = td_api::make_object<td_api::emailAddressAuthenticationAppleId>(args.substr(2));
+      } else if (begins_with(args, "g ")) {
+        code = td_api::make_object<td_api::emailAddressAuthenticationGoogleId>(args.substr(2));
+      } else if (!args.empty()) {
+        code = td_api::make_object<td_api::emailAddressAuthenticationCode>(args);
+      }
+      send_request(td_api::make_object<td_api::checkAuthenticationEmailCode>(std::move(code)));
     } else if (op == "cac") {
       send_request(td_api::make_object<td_api::checkAuthenticationCode>(args));
     } else if (op == "ru") {

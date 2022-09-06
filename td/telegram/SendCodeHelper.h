@@ -42,6 +42,8 @@ class SendCodeHelper {
   telegram_api::account_sendConfirmPhoneCode send_confirm_phone_code(const string &hash, Slice phone_number,
                                                                      const Settings &settings);
 
+  telegram_api::object_ptr<telegram_api::emailVerifyPurposeLoginSetup> get_email_verify_purpose_login_setup() const;
+
   Slice phone_number() const {
     return phone_number_;
   }
@@ -92,8 +94,6 @@ class SendCodeHelper {
       const AuthenticationCodeInfo &authentication_code_info);
 
   static telegram_api::object_ptr<telegram_api::codeSettings> get_input_code_settings(const Settings &settings);
-
-  telegram_api::object_ptr<telegram_api::emailVerifyPurposeLoginSetup> get_email_verify_purpose_login_setup() const;
 };
 
 }  // namespace td
