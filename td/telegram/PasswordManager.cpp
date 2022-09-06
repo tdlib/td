@@ -420,8 +420,7 @@ void PasswordManager::resend_recovery_email_address_code(Promise<State> promise)
                     }));
 }
 
-void PasswordManager::send_email_address_verification_code(
-    string email, Promise<td_api::object_ptr<td_api::emailAddressAuthenticationCodeInfo>> promise) {
+void PasswordManager::send_email_address_verification_code(string email, Promise<SentEmailCode> promise) {
   last_verified_email_address_ = email;
   auto query = G()->net_query_creator().create(telegram_api::account_sendVerifyEmailCode(
       make_tl_object<telegram_api::emailVerifyPurposePassport>(), std::move(email)));
@@ -431,16 +430,11 @@ void PasswordManager::send_email_address_verification_code(
                       if (r_result.is_error()) {
                         return promise.set_error(r_result.move_as_error());
                       }
-                      SentEmailCode sent_code(r_result.move_as_ok());
-                      if (sent_code.is_empty()) {
-                        return promise.set_error(Status::Error(500, "Receive invalid response"));
-                      }
-                      return promise.set_value(sent_code.get_email_address_authentication_code_info_object());
+                      return promise.set_value(SentEmailCode(r_result.move_as_ok()));
                     }));
 }
 
-void PasswordManager::resend_email_address_verification_code(
-    Promise<td_api::object_ptr<td_api::emailAddressAuthenticationCodeInfo>> promise) {
+void PasswordManager::resend_email_address_verification_code(Promise<SentEmailCode> promise) {
   if (last_verified_email_address_.empty()) {
     return promise.set_error(Status::Error(400, "No email address verification was sent"));
   }
@@ -464,8 +458,7 @@ void PasswordManager::check_email_address_verification_code(string code, Promise
                     }));
 }
 
-void PasswordManager::request_password_recovery(
-    Promise<td_api::object_ptr<td_api::emailAddressAuthenticationCodeInfo>> promise) {
+void PasswordManager::request_password_recovery(Promise<SentEmailCode> promise) {
   // is called only after authorization
   send_with_promise(G()->net_query_creator().create(telegram_api::auth_requestPasswordRecovery()),
                     PromiseCreator::lambda([promise = std::move(promise)](Result<NetQueryPtr> r_query) mutable {
@@ -474,11 +467,7 @@ void PasswordManager::request_password_recovery(
                         return promise.set_error(r_result.move_as_error());
                       }
                       auto result = r_result.move_as_ok();
-                      SentEmailCode sent_code(std::move(result->email_pattern_), 0);
-                      if (sent_code.is_empty()) {
-                        return promise.set_error(Status::Error(500, "Receive invalid response"));
-                      }
-                      return promise.set_value(sent_code.get_email_address_authentication_code_info_object());
+                      return promise.set_value(SentEmailCode(std::move(result->email_pattern_), 0));
                     }));
 }
 

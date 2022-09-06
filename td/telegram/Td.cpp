@@ -104,6 +104,7 @@
 #include "td/telegram/SecretChatsManager.h"
 #include "td/telegram/SecureManager.h"
 #include "td/telegram/SecureValue.h"
+#include "td/telegram/SentEmailCode.h"
 #include "td/telegram/SponsoredMessageManager.h"
 #include "td/telegram/StateManager.h"
 #include "td/telegram/StickerSetId.h"
@@ -4434,7 +4435,14 @@ void Td::on_request(uint64 id, const td_api::resendRecoveryEmailAddressCode &req
 void Td::on_request(uint64 id, td_api::requestPasswordRecovery &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
-  send_closure(password_manager_, &PasswordManager::request_password_recovery, std::move(promise));
+  auto query_promise = PromiseCreator::lambda([promise = std::move(promise)](Result<SentEmailCode> result) mutable {
+    if (result.is_error()) {
+      promise.set_error(result.move_as_error());
+    } else {
+      promise.set_value(result.ok().get_email_address_authentication_code_info_object());
+    }
+  });
+  send_closure(password_manager_, &PasswordManager::request_password_recovery, std::move(query_promise));
 }
 
 void Td::on_request(uint64 id, td_api::checkPasswordRecoveryCode &request) {
@@ -7651,14 +7659,28 @@ void Td::on_request(uint64 id, td_api::sendEmailAddressVerificationCode &request
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.email_address_);
   CREATE_REQUEST_PROMISE();
+  auto query_promise = PromiseCreator::lambda([promise = std::move(promise)](Result<SentEmailCode> result) mutable {
+    if (result.is_error()) {
+      promise.set_error(result.move_as_error());
+    } else {
+      promise.set_value(result.ok().get_email_address_authentication_code_info_object());
+    }
+  });
   send_closure(password_manager_, &PasswordManager::send_email_address_verification_code,
-               std::move(request.email_address_), std::move(promise));
+               std::move(request.email_address_), std::move(query_promise));
 }
 
 void Td::on_request(uint64 id, const td_api::resendEmailAddressVerificationCode &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
-  send_closure(password_manager_, &PasswordManager::resend_email_address_verification_code, std::move(promise));
+  auto query_promise = PromiseCreator::lambda([promise = std::move(promise)](Result<SentEmailCode> result) mutable {
+    if (result.is_error()) {
+      promise.set_error(result.move_as_error());
+    } else {
+      promise.set_value(result.ok().get_email_address_authentication_code_info_object());
+    }
+  });
+  send_closure(password_manager_, &PasswordManager::resend_email_address_verification_code, std::move(query_promise));
 }
 
 void Td::on_request(uint64 id, td_api::checkEmailAddressVerificationCode &request) {
