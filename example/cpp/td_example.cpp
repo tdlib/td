@@ -254,6 +254,29 @@ class TdExample {
                                 need_restart_ = true;
                                 std::cout << "Terminated" << std::endl;
                               },
+                              [this](td_api::authorizationStateWaitPhoneNumber &) {
+                                std::cout << "Enter phone number: " << std::flush;
+                                std::string phone_number;
+                                std::cin >> phone_number;
+                                send_query(
+                                    td_api::make_object<td_api::setAuthenticationPhoneNumber>(phone_number, nullptr),
+                                    create_authentication_query_handler());
+                              },
+                              [this](td_api::authorizationStateWaitEmailAddress &) {
+                                std::cout << "Enter email address: " << std::flush;
+                                std::string email_address;
+                                std::cin >> email_address;
+                                send_query(td_api::make_object<td_api::setAuthenticationEmailAddress>(email_address),
+                                           create_authentication_query_handler());
+                              },
+                              [this](td_api::authorizationStateWaitEmailCode &) {
+                                std::cout << "Enter email authentication code: " << std::flush;
+                                std::string code;
+                                std::cin >> code;
+                                send_query(td_api::make_object<td_api::checkAuthenticationEmailCode>(
+                                               td_api::make_object<td_api::emailAddressAuthenticationCode>(code)),
+                                           create_authentication_query_handler());
+                              },
                               [this](td_api::authorizationStateWaitCode &) {
                                 std::cout << "Enter authentication code: " << std::flush;
                                 std::string code;
@@ -280,14 +303,6 @@ class TdExample {
                               },
                               [this](td_api::authorizationStateWaitOtherDeviceConfirmation &state) {
                                 std::cout << "Confirm this login link on another device: " << state.link_ << std::endl;
-                              },
-                              [this](td_api::authorizationStateWaitPhoneNumber &) {
-                                std::cout << "Enter phone number: " << std::flush;
-                                std::string phone_number;
-                                std::cin >> phone_number;
-                                send_query(
-                                    td_api::make_object<td_api::setAuthenticationPhoneNumber>(phone_number, nullptr),
-                                    create_authentication_query_handler());
                               },
                               [this](td_api::authorizationStateWaitTdlibParameters &) {
                                 auto request = td_api::make_object<td_api::setTdlibParameters>();
