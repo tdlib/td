@@ -1991,6 +1991,8 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::checkEmailAddressVerificationCode>(args));
     } else if (op == "reavc" || op == "ResendEmailAddressVerificationCode") {
       send_request(td_api::make_object<td_api::resendEmailAddressVerificationCode>());
+    } else if (op == "slea") {
+      send_request(td_api::make_object<td_api::setLoginEmailAddress>(args));
     } else if (op == "srea" || op == "SetRecoveryEmailAddress") {
       string password;
       string recovery_email_address;

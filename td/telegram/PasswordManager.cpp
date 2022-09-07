@@ -180,6 +180,20 @@ void PasswordManager::set_password(string current_password, string new_password,
   update_password_settings(std::move(update_settings), std::move(promise));
 }
 
+void PasswordManager::set_login_email_address(string new_login_email_address, Promise<SentEmailCode> promise) {
+  last_verified_email_address_ = new_login_email_address;
+  auto query = G()->net_query_creator().create(telegram_api::account_sendVerifyEmailCode(
+      make_tl_object<telegram_api::emailVerifyPurposeLoginChange>(), std::move(new_login_email_address)));
+  send_with_promise(std::move(query),
+                    PromiseCreator::lambda([promise = std::move(promise)](Result<NetQueryPtr> r_query) mutable {
+                      auto r_result = fetch_result<telegram_api::account_sendVerifyEmailCode>(std::move(r_query));
+                      if (r_result.is_error()) {
+                        return promise.set_error(r_result.move_as_error());
+                      }
+                      return promise.set_value(SentEmailCode(r_result.move_as_ok()));
+                    }));
+}
+
 void PasswordManager::set_recovery_email_address(string password, string new_recovery_email_address,
                                                  Promise<State> promise) {
   UpdateSettings update_settings;
