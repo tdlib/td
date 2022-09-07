@@ -306,6 +306,13 @@ void AuthManager::set_email_address(uint64 query_id, string email_address) {
 
 void AuthManager::resend_authentication_code(uint64 query_id) {
   if (state_ != State::WaitCode) {
+    if (state_ == State::WaitEmailCode) {
+      on_new_query(query_id);
+      start_net_query(NetQueryType::SendEmailCode,
+                      G()->net_query_creator().create_unauth(send_code_helper_.send_verify_email_code(email_address_)));
+      return;
+    }
+
     return on_query_error(query_id, Status::Error(400, "Call to resendAuthenticationCode unexpected"));
   }
 
