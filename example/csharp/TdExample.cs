@@ -80,10 +80,6 @@ namespace TdExample
 
                 _client.Send(new TdApi.SetTdlibParameters(parameters), new AuthorizationRequestHandler());
             }
-            else if (_authorizationState is TdApi.AuthorizationStateWaitEncryptionKey)
-            {
-                _client.Send(new TdApi.CheckDatabaseEncryptionKey(), new AuthorizationRequestHandler());
-            }
             else if (_authorizationState is TdApi.AuthorizationStateWaitPhoneNumber)
             {
                 string phoneNumber = ReadLine("Please enter phone number: ");

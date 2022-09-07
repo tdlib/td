@@ -26,6 +26,7 @@ ok = Ok;
 //@use_test_dc If set to true, the Telegram test environment will be used instead of the production environment
 //@database_directory The path to the directory for the persistent database; if empty, the current working directory will be used
 //@files_directory The path to the directory for storing files; if empty, database_directory will be used
+//@database_encryption_key Encryption key for the database
 //@use_file_database If set to true, information about downloaded and uploaded files will be saved between application restarts
 //@use_chat_info_database If set to true, the library will maintain a cache of users, basic groups, supergroups, channels and secret chats. Implies use_file_database
 //@use_message_database If set to true, the library will maintain a cache of chats and messages. Implies use_chat_info_database
@@ -38,7 +39,7 @@ ok = Ok;
 //@application_version Application version; must be non-empty
 //@enable_storage_optimizer If set to true, old files will automatically be deleted
 //@ignore_file_names If set to true, original file names will be ignored. Otherwise, downloaded files will be saved under names as close as possible to the original name
-tdlibParameters use_test_dc:Bool database_directory:string files_directory:string use_file_database:Bool use_chat_info_database:Bool use_message_database:Bool use_secret_chats:Bool api_id:int32 api_hash:string system_language_code:string device_model:string system_version:string application_version:string enable_storage_optimizer:Bool ignore_file_names:Bool = TdlibParameters;
+tdlibParameters use_test_dc:Bool database_directory:string files_directory:string database_encryption_key:bytes use_file_database:Bool use_chat_info_database:Bool use_message_database:Bool use_secret_chats:Bool api_id:int32 api_hash:string system_language_code:string device_model:string system_version:string application_version:string enable_storage_optimizer:Bool ignore_file_names:Bool = TdlibParameters;
 
 
 //@class AuthenticationCodeType @description Provides information about the method by which an authentication code is delivered to the user
@@ -97,9 +98,6 @@ termsOfService text:formattedText min_user_age:int32 show_popup:Bool = TermsOfSe
 
 //@description TDLib needs TdlibParameters for initialization
 authorizationStateWaitTdlibParameters = AuthorizationState;
-
-//@description TDLib needs an encryption key to decrypt the local database @is_encrypted True, if the database is currently encrypted
-authorizationStateWaitEncryptionKey is_encrypted:Bool = AuthorizationState;
 
 //@description TDLib needs the user's phone number to authorize. Call `setAuthenticationPhoneNumber` to provide the phone number, or use `requestQrCodeAuthentication`, or `checkAuthenticationBotToken` for other authentication options
 authorizationStateWaitPhoneNumber = AuthorizationState;
@@ -4628,9 +4626,6 @@ getAuthorizationState = AuthorizationState;
 
 //@description Sets the parameters for TDLib initialization. Works only when the current authorization state is authorizationStateWaitTdlibParameters @parameters Parameters for TDLib initialization
 setTdlibParameters parameters:tdlibParameters = Ok;
-
-//@description Checks the database encryption key for correctness. Works only when the current authorization state is authorizationStateWaitEncryptionKey @encryption_key Encryption key to check or set up
-checkDatabaseEncryptionKey encryption_key:bytes = Ok;
 
 //@description Sets the phone number of the user and sends an authentication code to the user. Works only when the current authorization state is authorizationStateWaitPhoneNumber,
 //-or if there is no pending authentication query and the current authorization state is authorizationStateWaitCode, authorizationStateWaitRegistration, or authorizationStateWaitPassword

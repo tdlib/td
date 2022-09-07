@@ -291,9 +291,9 @@ class Td final : public Actor {
   bool destroy_flag_ = false;
   int close_flag_ = 0;
 
-  enum class State : int32 { WaitParameters, Decrypt, Run, Close } state_ = State::WaitParameters;
-  uint64 init_request_id_ = 0;
+  enum class State : int32 { WaitParameters, Run, Close } state_ = State::WaitParameters;
   uint64 set_parameters_request_id_ = 0;
+  string database_encryption_key_;
   bool is_database_encrypted_ = false;
 
   FlatHashMap<uint64, std::shared_ptr<ResultHandler>> result_handlers_;
@@ -390,10 +390,6 @@ class Td final : public Actor {
 
   void on_request(uint64 id, const td_api::setTdlibParameters &request);
 
-  void on_request(uint64 id, const td_api::checkDatabaseEncryptionKey &request);
-
-  void on_request(uint64 id, td_api::setDatabaseEncryptionKey &request);
-
   void on_request(uint64 id, const td_api::getAuthorizationState &request);
 
   void on_request(uint64 id, td_api::setAuthenticationPhoneNumber &request);
@@ -427,6 +423,8 @@ class Td final : public Actor {
   void on_request(uint64 id, td_api::checkAuthenticationBotToken &request);
 
   void on_request(uint64 id, td_api::confirmQrCodeAuthentication &request);
+
+  void on_request(uint64 id, td_api::setDatabaseEncryptionKey &request);
 
   void on_request(uint64 id, const td_api::getCurrentState &request);
 
@@ -1470,8 +1468,6 @@ class Td final : public Actor {
 
   void finish_set_parameters();
 
-  void start_init(uint64 id, string &&key);
-
   void init(Result<TdDb::OpenedDatabase> r_opened_database);
 
   void init_options_and_network();
@@ -1481,8 +1477,6 @@ class Td final : public Actor {
   void init_file_manager();
 
   void init_managers();
-
-  void finish_init();
 
   void clear();
 

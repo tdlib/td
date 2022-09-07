@@ -120,9 +120,6 @@ func updateAuthorizationState(authorizationState: Dictionary<String, Any>) {
                 ]
             ]);
 
-        case "authorizationStateWaitEncryptionKey":
-            client.queryAsync(query: ["@type":"checkDatabaseEncryptionKey", "encryption_key":""])
-
         case "authorizationStateWaitPhoneNumber":
             print("Enter your phone number: ")
             let phone_number = myReadLine()

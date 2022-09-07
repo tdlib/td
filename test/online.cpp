@@ -230,9 +230,6 @@ class InitTask : public Task {
     start_flag_ = true;
     td::tl_object_ptr<td::td_api::Function> function;
     switch (authorization_state->get_id()) {
-      case td::td_api::authorizationStateWaitEncryptionKey::ID:
-        send(td::make_tl_object<td::td_api::checkDatabaseEncryptionKey>());
-        break;
       case td::td_api::authorizationStateReady::ID:
         promise_.set_value({});
         stop();

@@ -2777,8 +2777,6 @@ void Td::set_is_bot_online(bool is_bot_online) {
 bool Td::is_authentication_request(int32 id) {
   switch (id) {
     case td_api::setTdlibParameters::ID:
-    case td_api::checkDatabaseEncryptionKey::ID:
-    case td_api::setDatabaseEncryptionKey::ID:
     case td_api::getAuthorizationState::ID:
     case td_api::setAuthenticationPhoneNumber::ID:
     case td_api::setAuthenticationEmailAddress::ID:
@@ -2902,8 +2900,6 @@ td_api::object_ptr<td_api::AuthorizationState> Td::get_fake_authorization_state_
   switch (state_) {
     case State::WaitParameters:
       return td_api::make_object<td_api::authorizationStateWaitTdlibParameters>();
-    case State::Decrypt:
-      return td_api::make_object<td_api::authorizationStateWaitEncryptionKey>(is_database_encrypted_);
     case State::Run:
       UNREACHABLE();
       return nullptr;
@@ -2963,10 +2959,6 @@ void Td::run_request(uint64 id, tl_object_ptr<td_api::Function> function) {
     pending_set_parameters_requests_.emplace_back(id, std::move(function));
     return;
   }
-  if (init_request_id_ > 0) {
-    pending_init_requests_.emplace_back(id, std::move(function));
-    return;
-  }
 
   int32 function_id = function->get_id();
   if (state_ != State::Run) {
@@ -3013,34 +3005,6 @@ void Td::run_request(uint64 id, tl_object_ptr<td_api::Function> function) {
           }
           return send_error_impl(
               id, make_error(400, "Initialization parameters are needed: call setTdlibParameters first"));
-      }
-      break;
-    }
-    case State::Decrypt: {
-      switch (function_id) {
-        case td_api::checkDatabaseEncryptionKey::ID: {
-          auto check_key = move_tl_object_as<td_api::checkDatabaseEncryptionKey>(function);
-          return start_init(id, std::move(check_key->encryption_key_));
-        }
-        case td_api::setDatabaseEncryptionKey::ID: {
-          auto set_key = move_tl_object_as<td_api::setDatabaseEncryptionKey>(function);
-          return start_init(id, std::move(set_key->new_encryption_key_));
-        }
-        case td_api::destroy::ID:
-          // need to send response synchronously before actual destroying
-          send_closure(actor_id(this), &Td::send_result, id, td_api::make_object<td_api::ok>());
-          send_closure(actor_id(this), &Td::destroy);
-          return;
-        default:
-          if (is_preinitialization_request(function_id)) {
-            break;
-          }
-          if (is_preauthentication_request(function_id)) {
-            pending_preauthentication_requests_.emplace_back(id, std::move(function));
-            return;
-          }
-          return send_error_impl(
-              id, make_error(400, "Database encryption key is needed: call checkDatabaseEncryptionKey first"));
       }
       break;
     }
@@ -3503,11 +3467,8 @@ void Td::close_impl(bool destroy_flag) {
   }
 
   LOG(WARNING) << (destroy_flag ? "Destroy" : "Close") << " Td in state " << static_cast<int32>(state_);
-  if (state_ == State::WaitParameters || state_ == State::Decrypt) {
+  if (state_ == State::WaitParameters) {
     clear_requests();
-    if (destroy_flag && state_ == State::Decrypt) {
-      TdDb::destroy(parameters_).ignore();
-    }
     state_ = State::Close;
     close_flag_ = 4;
     G()->set_close_flag();
@@ -3591,14 +3552,12 @@ void Td::on_parameters_checked(Result<TdDb::CheckedParameters> r_checked_paramet
   parameters_.files_directory = std::move(checked_parameters.files_directory);
   is_database_encrypted_ = checked_parameters.is_database_encrypted;
 
-  state_ = State::Decrypt;
-  VLOG(td_init) << "Send authorizationStateWaitEncryptionKey";
-  send_closure(actor_id(this), &Td::send_update,
-               td_api::make_object<td_api::updateAuthorizationState>(
-                   td_api::make_object<td_api::authorizationStateWaitEncryptionKey>(is_database_encrypted_)));
-  VLOG(td_init) << "Finish set parameters";
-  send_closure(actor_id(this), &Td::send_result, set_parameters_request_id_, td_api::make_object<td_api::ok>());
-  return finish_set_parameters();
+  VLOG(td_init) << "Begin to init database";
+  auto promise = PromiseCreator::lambda([actor_id = actor_id(this)](Result<TdDb::OpenedDatabase> r_opened_database) {
+    send_closure(actor_id, &Td::init, std::move(r_opened_database));
+  });
+  TdDb::open(get_database_scheduler_id(), parameters_, as_db_key(std::move(database_encryption_key_)),
+             std::move(promise));
 }
 
 void Td::finish_set_parameters() {
@@ -3617,23 +3576,13 @@ void Td::finish_set_parameters() {
   CHECK(pending_set_parameters_requests_.size() < requests.size());
 }
 
-void Td::start_init(uint64 id, string &&key) {
-  VLOG(td_init) << "Begin to init database";
-  init_request_id_ = id;
-
-  auto promise = PromiseCreator::lambda([actor_id = actor_id(this)](Result<TdDb::OpenedDatabase> r_opened_database) {
-    send_closure(actor_id, &Td::init, std::move(r_opened_database));
-  });
-  TdDb::open(get_database_scheduler_id(), parameters_, as_db_key(std::move(key)), std::move(promise));
-}
-
 void Td::init(Result<TdDb::OpenedDatabase> r_opened_database) {
-  CHECK(init_request_id_ != 0);
+  CHECK(set_parameters_request_id_ != 0);
   if (r_opened_database.is_error()) {
     LOG(WARNING) << "Failed to open database: " << r_opened_database.error();
-    send_closure(actor_id(this), &Td::send_error, init_request_id_,
+    send_closure(actor_id(this), &Td::send_error, set_parameters_request_id_,
                  Status::Error(400, r_opened_database.error().message()));
-    return finish_init();
+    return finish_set_parameters();
   }
 
   LOG(INFO) << "Successfully inited database in " << tag("database_directory", parameters_.database_directory)
@@ -3776,24 +3725,8 @@ void Td::init(Result<TdDb::OpenedDatabase> r_opened_database) {
 
   state_ = State::Run;
 
-  send_closure(actor_id(this), &Td::send_result, init_request_id_, td_api::make_object<td_api::ok>());
-  return finish_init();
-}
-
-void Td::finish_init() {
-  CHECK(init_request_id_ > 0);
-  init_request_id_ = 0;
-
-  if (pending_init_requests_.empty()) {
-    return;
-  }
-
-  VLOG(td_init) << "Continue to execute " << pending_init_requests_.size() << " pending requests";
-  auto requests = std::move(pending_init_requests_);
-  for (auto &request : requests) {
-    run_request(request.first, std::move(request.second));
-  }
-  CHECK(pending_init_requests_.size() < requests.size());
+  send_closure(actor_id(this), &Td::send_result, set_parameters_request_id_, td_api::make_object<td_api::ok>());
+  return finish_set_parameters();
 }
 
 void Td::init_options_and_network() {
@@ -4238,15 +4171,13 @@ Status Td::set_parameters(td_api::object_ptr<td_api::tdlibParameters> parameters
   options_.is_emulator = false;
   options_.proxy = Proxy();
 
+  database_encryption_key_ = std::move(parameters->database_encryption_key_);
+
   return Status::OK();
 }
 
 void Td::on_request(uint64 id, const td_api::setTdlibParameters &request) {
   send_error_raw(id, 400, "Unexpected setTdlibParameters");
-}
-
-void Td::on_request(uint64 id, const td_api::checkDatabaseEncryptionKey &request) {
-  send_error_raw(id, 400, "Unexpected checkDatabaseEncryptionKey");
 }
 
 void Td::on_request(uint64 id, td_api::setDatabaseEncryptionKey &request) {

@@ -46,7 +46,6 @@ namespace TdApp
             parameters.DeviceModel = "Desktop";
             parameters.ApplicationVersion = "1.0.0";
             _client.Send(new TdApi.SetTdlibParameters(parameters), null);
-            _client.Send(new TdApi.CheckDatabaseEncryptionKey(), null);
         }
 
         public void Print(String str)

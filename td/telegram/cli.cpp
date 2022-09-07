@@ -415,9 +415,6 @@ class CliClient final : public Actor {
         send_request(td_api::make_object<td_api::setTdlibParameters>(std::move(parameters)));
         break;
       }
-      case td_api::authorizationStateWaitEncryptionKey::ID:
-        send_request(td_api::make_object<td_api::checkDatabaseEncryptionKey>());
-        break;
       case td_api::authorizationStateReady::ID:
         LOG(INFO) << "Logged in";
         break;
@@ -1857,9 +1854,7 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::setAuthenticationEmailAddress>(args));
     } else if (op == "rac") {
       send_request(td_api::make_object<td_api::resendAuthenticationCode>());
-    } else if (op == "cdek" || op == "CheckDatabaseEncryptionKey") {
-      send_request(td_api::make_object<td_api::checkDatabaseEncryptionKey>(args));
-    } else if (op == "sdek" || op == "SetDatabaseEncryptionKey") {
+    } else if (op == "sdek") {
       send_request(td_api::make_object<td_api::setDatabaseEncryptionKey>(args));
     } else if (op == "caec") {
       send_request(td_api::make_object<td_api::checkAuthenticationEmailCode>(as_email_address_authentication(args)));

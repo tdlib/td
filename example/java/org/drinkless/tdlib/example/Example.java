@@ -114,9 +114,6 @@ public final class Example {
 
                 client.send(new TdApi.SetTdlibParameters(parameters), new AuthorizationRequestHandler());
                 break;
-            case TdApi.AuthorizationStateWaitEncryptionKey.CONSTRUCTOR:
-                client.send(new TdApi.CheckDatabaseEncryptionKey(), new AuthorizationRequestHandler());
-                break;
             case TdApi.AuthorizationStateWaitPhoneNumber.CONSTRUCTOR: {
                 String phoneNumber = promptString("Please enter phone number: ");
                 client.send(new TdApi.SetAuthenticationPhoneNumber(phoneNumber, null), new AuthorizationRequestHandler());
