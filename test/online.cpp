@@ -235,19 +235,18 @@ class InitTask : public Task {
         stop();
         break;
       case td::td_api::authorizationStateWaitTdlibParameters::ID: {
-        auto parameters = td::td_api::make_object<td::td_api::tdlibParameters>();
-        parameters->use_test_dc_ = true;
-        parameters->database_directory_ = options_.name + TD_DIR_SLASH;
-        parameters->use_message_database_ = true;
-        parameters->use_secret_chats_ = true;
-        parameters->api_id_ = options_.api_id;
-        parameters->api_hash_ = options_.api_hash;
-        parameters->system_language_code_ = "en";
-        parameters->device_model_ = "Desktop";
-        parameters->application_version_ = "tdclient-test";
-        parameters->ignore_file_names_ = false;
-        parameters->enable_storage_optimizer_ = true;
-        send(td::td_api::make_object<td::td_api::setTdlibParameters>(std::move(parameters)));
+        auto request = td::td_api::make_object<td::td_api::setTdlibParameters>();
+        request->use_test_dc_ = true;
+        request->database_directory_ = options_.name + TD_DIR_SLASH;
+        request->use_message_database_ = true;
+        request->use_secret_chats_ = true;
+        request->api_id_ = options_.api_id;
+        request->api_hash_ = options_.api_hash;
+        request->system_language_code_ = "en";
+        request->device_model_ = "Desktop";
+        request->application_version_ = "tdclient-test";
+        request->enable_storage_optimizer_ = true;
+        send(std::move(request));
         break;
       }
       default:

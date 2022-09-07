@@ -101,18 +101,18 @@ public final class Example {
         }
         switch (Example.authorizationState.getConstructor()) {
             case TdApi.AuthorizationStateWaitTdlibParameters.CONSTRUCTOR:
-                TdApi.TdlibParameters parameters = new TdApi.TdlibParameters();
-                parameters.databaseDirectory = "tdlib";
-                parameters.useMessageDatabase = true;
-                parameters.useSecretChats = true;
-                parameters.apiId = 94575;
-                parameters.apiHash = "a3406de8d171bb422bb6ddf3bbd800e2";
-                parameters.systemLanguageCode = "en";
-                parameters.deviceModel = "Desktop";
-                parameters.applicationVersion = "1.0";
-                parameters.enableStorageOptimizer = true;
+                TdApi.SetTdlibParameters request = new TdApi.SetTdlibParameters();
+                request.databaseDirectory = "tdlib";
+                request.useMessageDatabase = true;
+                request.useSecretChats = true;
+                request.apiId = 94575;
+                request.apiHash = "a3406de8d171bb422bb6ddf3bbd800e2";
+                request.systemLanguageCode = "en";
+                request.deviceModel = "Desktop";
+                request.applicationVersion = "1.0";
+                request.enableStorageOptimizer = true;
 
-                client.send(new TdApi.SetTdlibParameters(parameters), new AuthorizationRequestHandler());
+                client.send(parameters, new AuthorizationRequestHandler());
                 break;
             case TdApi.AuthorizationStateWaitPhoneNumber.CONSTRUCTOR: {
                 String phoneNumber = promptString("Please enter phone number: ");

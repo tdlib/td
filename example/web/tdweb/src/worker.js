@@ -734,14 +734,14 @@ class TdClient {
 
   prepareQuery(query) {
     if (query['@type'] === 'setTdlibParameters') {
-      query.parameters.database_directory = this.tdfs.dbFileSystem.root;
-      query.parameters.files_directory = this.tdfs.inboundFileSystem.root;
+      query.database_directory = this.tdfs.dbFileSystem.root;
+      query.files_directory = this.tdfs.inboundFileSystem.root;
 
       const useDb = this.useDatabase;
-      query.parameters.use_file_database = useDb;
-      query.parameters.use_chat_info_database = useDb;
-      query.parameters.use_message_database = useDb;
-      query.parameters.use_secret_chats = useDb;
+      query.use_file_database = useDb;
+      query.use_chat_info_database = useDb;
+      query.use_message_database = useDb;
+      query.use_secret_chats = useDb;
     }
     if (query['@type'] === 'getLanguagePackString') {
       query.language_pack_database_path =

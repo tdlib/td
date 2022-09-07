@@ -400,19 +400,19 @@ class CliClient final : public Actor {
     authorization_state_ = std::move(state);
     switch (authorization_state_->get_id()) {
       case td_api::authorizationStateWaitTdlibParameters::ID: {
-        auto parameters = td_api::make_object<td_api::tdlibParameters>();
-        parameters->use_test_dc_ = use_test_dc_;
-        parameters->use_message_database_ = true;
-        parameters->use_chat_info_database_ = true;
-        parameters->use_secret_chats_ = true;
-        parameters->api_id_ = api_id_;
-        parameters->api_hash_ = api_hash_;
-        parameters->system_language_code_ = "en";
-        parameters->device_model_ = "Desktop";
-        parameters->application_version_ = "1.0";
+        auto request = td_api::make_object<td_api::setTdlibParameters>();
+        request->use_test_dc_ = use_test_dc_;
+        request->use_message_database_ = true;
+        request->use_chat_info_database_ = true;
+        request->use_secret_chats_ = true;
+        request->api_id_ = api_id_;
+        request->api_hash_ = api_hash_;
+        request->system_language_code_ = "en";
+        request->device_model_ = "Desktop";
+        request->application_version_ = "1.0";
         send_request(
             td_api::make_object<td_api::setOption>("use_pfs", td_api::make_object<td_api::optionValueBoolean>(true)));
-        send_request(td_api::make_object<td_api::setTdlibParameters>(std::move(parameters)));
+        send_request(std::move(request));
         break;
       }
       case td_api::authorizationStateReady::ID:
@@ -1162,11 +1162,11 @@ class CliClient final : public Actor {
                                                          td_api::make_object<td_api::proxyTypeSocks5>()));
       send_request(td_api::make_object<td_api::pingProxy>(0));
 
-      auto bad_parameters = td_api::make_object<td_api::tdlibParameters>();
-      bad_parameters->database_directory_ = "/..";
-      bad_parameters->api_id_ = api_id_;
-      bad_parameters->api_hash_ = api_hash_;
-      send_request(td_api::make_object<td_api::setTdlibParameters>(std::move(bad_parameters)));
+      auto bad_request = td_api::make_object<td_api::setTdlibParameters>();
+      bad_request->database_directory_ = "/..";
+      bad_request->api_id_ = api_id_;
+      bad_request->api_hash_ = api_hash_;
+      send_request(std::move(bad_request));
     }
   }
 

@@ -36,16 +36,16 @@ namespace TdApp
             });
 
             _client = Td.Client.Create(_handler);
-            var parameters = new TdApi.TdlibParameters();
-            parameters.DatabaseDirectory = Windows.Storage.ApplicationData.Current.LocalFolder.Path;
-            parameters.UseSecretChats = true;
-            parameters.UseMessageDatabase = true;
-            parameters.ApiId = 94575;
-            parameters.ApiHash = "a3406de8d171bb422bb6ddf3bbd800e2";
-            parameters.SystemLanguageCode = "en";
-            parameters.DeviceModel = "Desktop";
-            parameters.ApplicationVersion = "1.0.0";
-            _client.Send(new TdApi.SetTdlibParameters(parameters), null);
+            var request = new TdApi.SetTdlibParameters();
+            request.DatabaseDirectory = Windows.Storage.ApplicationData.Current.LocalFolder.Path;
+            request.UseSecretChats = true;
+            request.UseMessageDatabase = true;
+            request.ApiId = 94575;
+            request.ApiHash = "a3406de8d171bb422bb6ddf3bbd800e2";
+            request.SystemLanguageCode = "en";
+            request.DeviceModel = "Desktop";
+            request.ApplicationVersion = "1.0.0";
+            _client.Send(request, null);
         }
 
         public void Print(String str)

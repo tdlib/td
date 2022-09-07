@@ -221,19 +221,18 @@ class DoAuthentication final : public TestClinetTask {
         function = td::make_tl_object<td::td_api::registerUser>(name_, "");
         break;
       case td::td_api::authorizationStateWaitTdlibParameters::ID: {
-        auto parameters = td::td_api::make_object<td::td_api::tdlibParameters>();
-        parameters->use_test_dc_ = true;
-        parameters->database_directory_ = name_ + TD_DIR_SLASH;
-        parameters->use_message_database_ = true;
-        parameters->use_secret_chats_ = true;
-        parameters->api_id_ = 94575;
-        parameters->api_hash_ = "a3406de8d171bb422bb6ddf3bbd800e2";
-        parameters->system_language_code_ = "en";
-        parameters->device_model_ = "Desktop";
-        parameters->application_version_ = "tdclient-test";
-        parameters->ignore_file_names_ = false;
-        parameters->enable_storage_optimizer_ = true;
-        function = td::td_api::make_object<td::td_api::setTdlibParameters>(std::move(parameters));
+        auto request = td::td_api::make_object<td::td_api::setTdlibParameters>();
+        request->use_test_dc_ = true;
+        request->database_directory_ = name_ + TD_DIR_SLASH;
+        request->use_message_database_ = true;
+        request->use_secret_chats_ = true;
+        request->api_id_ = 94575;
+        request->api_hash_ = "a3406de8d171bb422bb6ddf3bbd800e2";
+        request->system_language_code_ = "en";
+        request->device_model_ = "Desktop";
+        request->application_version_ = "tdclient-test";
+        request->enable_storage_optimizer_ = true;
+        function = std::move(request);
         break;
       }
       case td::td_api::authorizationStateReady::ID:

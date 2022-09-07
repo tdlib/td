@@ -2982,7 +2982,8 @@ void Td::run_request(uint64 id, tl_object_ptr<td_api::Function> function) {
     case State::WaitParameters: {
       switch (function_id) {
         case td_api::setTdlibParameters::ID: {
-          auto status = set_parameters(std::move(move_tl_object_as<td_api::setTdlibParameters>(function)->parameters_));
+          auto parameters = move_tl_object_as<td_api::setTdlibParameters>(function);
+          auto status = set_parameters(std::move(parameters));
           if (status.is_error()) {
             return send_closure(actor_id(this), &Td::send_error, id, std::move(status));
           }
@@ -4096,7 +4097,7 @@ Status Td::fix_parameters(TdParameters &parameters) {
   return Status::OK();
 }
 
-Status Td::set_parameters(td_api::object_ptr<td_api::tdlibParameters> parameters) {
+Status Td::set_parameters(td_api::object_ptr<td_api::setTdlibParameters> parameters) {
   VLOG(td_init) << "Begin to set TDLib parameters";
   if (parameters == nullptr) {
     VLOG(td_init) << "Empty parameters";

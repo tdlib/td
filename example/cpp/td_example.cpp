@@ -290,18 +290,17 @@ class TdExample {
                                     create_authentication_query_handler());
                               },
                               [this](td_api::authorizationStateWaitTdlibParameters &) {
-                                auto parameters = td_api::make_object<td_api::tdlibParameters>();
-                                parameters->database_directory_ = "tdlib";
-                                parameters->use_message_database_ = true;
-                                parameters->use_secret_chats_ = true;
-                                parameters->api_id_ = 94575;
-                                parameters->api_hash_ = "a3406de8d171bb422bb6ddf3bbd800e2";
-                                parameters->system_language_code_ = "en";
-                                parameters->device_model_ = "Desktop";
-                                parameters->application_version_ = "1.0";
-                                parameters->enable_storage_optimizer_ = true;
-                                send_query(td_api::make_object<td_api::setTdlibParameters>(std::move(parameters)),
-                                           create_authentication_query_handler());
+                                auto request = td_api::make_object<td_api::setTdlibParameters>();
+                                request->database_directory_ = "tdlib";
+                                request->use_message_database_ = true;
+                                request->use_secret_chats_ = true;
+                                request->api_id_ = 94575;
+                                request->api_hash_ = "a3406de8d171bb422bb6ddf3bbd800e2";
+                                request->system_language_code_ = "en";
+                                request->device_model_ = "Desktop";
+                                request->application_version_ = "1.0";
+                                request->enable_storage_optimizer_ = true;
+                                send_query(std::move(request), create_authentication_query_handler());
                               }));
   }
 

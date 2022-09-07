@@ -94,16 +94,16 @@ while True:
             # you MUST obtain your own api_id and api_hash at https://my.telegram.org
             # and use them in the setTdlibParameters call
             if auth_state['@type'] == 'authorizationStateWaitTdlibParameters':
-                td_send({'@type': 'setTdlibParameters', 'parameters': {
-                                                       'database_directory': 'tdlib',
-                                                       'use_message_database': True,
-                                                       'use_secret_chats': True,
-                                                       'api_id': 94575,
-                                                       'api_hash': 'a3406de8d171bb422bb6ddf3bbd800e2',
-                                                       'system_language_code': 'en',
-                                                       'device_model': 'Desktop',
-                                                       'application_version': '1.0',
-                                                       'enable_storage_optimizer': True}})
+                td_send({'@type': 'setTdlibParameters',
+                         'database_directory': 'tdlib',
+                         'use_message_database': True,
+                         'use_secret_chats': True,
+                         'api_id': 94575,
+                         'api_hash': 'a3406de8d171bb422bb6ddf3bbd800e2',
+                         'system_language_code': 'en',
+                         'device_model': 'Desktop',
+                         'application_version': '1.0',
+                         'enable_storage_optimizer': True})
 
             # enter phone number to log in
             if auth_state['@type'] == 'authorizationStateWaitPhoneNumber':
