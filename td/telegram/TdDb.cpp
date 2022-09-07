@@ -519,15 +519,6 @@ void TdDb::check_parameters_impl(TdParameters parameters, Promise<CheckedParamet
   }
   result.files_directory = r_files_directory.move_as_ok();
 
-  Binlog binlog;
-  auto status = binlog.init(get_binlog_path(parameters), Binlog::Callback());
-  if (status.is_error() && status.code() != Binlog::Error::WrongPassword) {
-    LOG(WARNING) << "Failed to check binlog: " << status;
-    return promise.set_error(std::move(status));
-  }
-  result.is_database_encrypted = binlog.get_info().wrong_password;
-  binlog.close(false /*need_sync*/).ensure();
-
   promise.set_value(std::move(result));
 }
 

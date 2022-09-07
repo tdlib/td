@@ -50,7 +50,6 @@ class TdDb {
   struct CheckedParameters {
     string database_directory;
     string files_directory;
-    bool is_database_encrypted{false};
   };
   static void check_parameters(int32 scheduler_id, TdParameters parameters, Promise<CheckedParameters> promise);
 

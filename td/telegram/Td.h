@@ -294,7 +294,6 @@ class Td final : public Actor {
   enum class State : int32 { WaitParameters, Run, Close } state_ = State::WaitParameters;
   uint64 set_parameters_request_id_ = 0;
   string database_encryption_key_;
-  bool is_database_encrypted_ = false;
 
   FlatHashMap<uint64, std::shared_ptr<ResultHandler>> result_handlers_;
   enum : int8 { RequestActorIdType = 1, ActorIdType = 2 };

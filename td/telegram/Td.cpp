@@ -3550,7 +3550,6 @@ void Td::on_parameters_checked(Result<TdDb::CheckedParameters> r_checked_paramet
 
   parameters_.database_directory = std::move(checked_parameters.database_directory);
   parameters_.files_directory = std::move(checked_parameters.files_directory);
-  is_database_encrypted_ = checked_parameters.is_database_encrypted;
 
   VLOG(td_init) << "Begin to init database";
   auto promise = PromiseCreator::lambda([actor_id = actor_id(this)](Result<TdDb::OpenedDatabase> r_opened_database) {
