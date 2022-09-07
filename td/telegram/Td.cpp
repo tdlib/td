@@ -2987,13 +2987,15 @@ void Td::run_request(uint64 id, tl_object_ptr<td_api::Function> function) {
             return send_closure(actor_id(this), &Td::send_error, id, std::move(status));
           }
 
-          VLOG(td_init) << "Begin to check parameters";
+          VLOG(td_init) << "Begin to open database";
           set_parameters_request_id_ = id;
+
           auto promise =
-              PromiseCreator::lambda([actor_id = actor_id(this)](Result<TdDb::CheckedParameters> r_checked_parameters) {
-                send_closure(actor_id, &Td::on_parameters_checked, std::move(r_checked_parameters));
+              PromiseCreator::lambda([actor_id = actor_id(this)](Result<TdDb::OpenedDatabase> r_opened_database) {
+                send_closure(actor_id, &Td::init, std::move(r_opened_database));
               });
-          return TdDb::check_parameters(get_database_scheduler_id(), parameters_, std::move(promise));
+          return TdDb::open(get_database_scheduler_id(), parameters_, as_db_key(std::move(database_encryption_key_)),
+                            std::move(promise));
         }
         default:
           if (is_preinitialization_request(function_id)) {
@@ -3539,26 +3541,6 @@ int32 Td::get_database_scheduler_id() {
   return min(current_scheduler_id + 1, scheduler_count - 1);
 }
 
-void Td::on_parameters_checked(Result<TdDb::CheckedParameters> r_checked_parameters) {
-  CHECK(set_parameters_request_id_ != 0);
-  if (r_checked_parameters.is_error()) {
-    send_closure(actor_id(this), &Td::send_error, set_parameters_request_id_,
-                 Status::Error(400, r_checked_parameters.error().message()));
-    return finish_set_parameters();
-  }
-  auto checked_parameters = r_checked_parameters.move_as_ok();
-
-  parameters_.database_directory = std::move(checked_parameters.database_directory);
-  parameters_.files_directory = std::move(checked_parameters.files_directory);
-
-  VLOG(td_init) << "Begin to init database";
-  auto promise = PromiseCreator::lambda([actor_id = actor_id(this)](Result<TdDb::OpenedDatabase> r_opened_database) {
-    send_closure(actor_id, &Td::init, std::move(r_opened_database));
-  });
-  TdDb::open(get_database_scheduler_id(), parameters_, as_db_key(std::move(database_encryption_key_)),
-             std::move(promise));
-}
-
 void Td::finish_set_parameters() {
   CHECK(set_parameters_request_id_ != 0);
   set_parameters_request_id_ = 0;
@@ -3583,12 +3565,15 @@ void Td::init(Result<TdDb::OpenedDatabase> r_opened_database) {
                  Status::Error(400, r_opened_database.error().message()));
     return finish_set_parameters();
   }
+  auto events = r_opened_database.move_as_ok();
+
+  parameters_.database_directory = std::move(events.database_directory);
+  parameters_.files_directory = std::move(events.files_directory);
 
   LOG(INFO) << "Successfully inited database in " << tag("database_directory", parameters_.database_directory)
             << " and " << tag("files_directory", parameters_.files_directory);
   VLOG(td_init) << "Successfully inited database";
 
-  auto events = r_opened_database.move_as_ok();
   G()->init(parameters_, actor_id(this), std::move(events.database)).ensure();
 
   init_options_and_network();

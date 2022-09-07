@@ -47,13 +47,10 @@ class TdDb {
   TdDb &operator=(TdDb &&) = delete;
   ~TdDb();
 
-  struct CheckedParameters {
+  struct OpenedDatabase {
     string database_directory;
     string files_directory;
-  };
-  static void check_parameters(int32 scheduler_id, TdParameters parameters, Promise<CheckedParameters> promise);
 
-  struct OpenedDatabase {
     unique_ptr<TdDb> database;
 
     vector<BinlogEvent> to_secret_chats_manager;
@@ -126,7 +123,7 @@ class TdDb {
 
   static void open_impl(TdParameters parameters, DbKey key, Promise<OpenedDatabase> &&promise);
 
-  static void check_parameters_impl(TdParameters parameters, Promise<CheckedParameters> promise);
+  static Status check_parameters(TdParameters &parameters);
 
   Status init_sqlite(const TdParameters &parameters, const DbKey &key, const DbKey &old_key,
                      BinlogKeyValue<Binlog> &binlog_pmc);

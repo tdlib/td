@@ -385,7 +385,11 @@ void TdDb::open(int32 scheduler_id, TdParameters parameters, DbKey key, Promise<
 }
 
 void TdDb::open_impl(TdParameters parameters, DbKey key, Promise<OpenedDatabase> &&promise) {
+  TRY_STATUS_PROMISE(promise, check_parameters(parameters));
+
   OpenedDatabase result;
+  result.database_directory = parameters.database_directory;
+  result.files_directory = parameters.files_directory;
 
   // Init pmc
   Binlog *binlog_ptr = nullptr;
@@ -478,16 +482,7 @@ void TdDb::open_impl(TdParameters parameters, DbKey key, Promise<OpenedDatabase>
 TdDb::TdDb() = default;
 TdDb::~TdDb() = default;
 
-void TdDb::check_parameters(int32 scheduler_id, TdParameters parameters, Promise<CheckedParameters> promise) {
-  Scheduler::instance()->run_on_scheduler(
-      scheduler_id, [parameters = std::move(parameters), promise = std::move(promise)](Unit) mutable {
-        TdDb::check_parameters_impl(std::move(parameters), std::move(promise));
-      });
-}
-
-void TdDb::check_parameters_impl(TdParameters parameters, Promise<CheckedParameters> promise) {
-  CheckedParameters result;
-
+Status TdDb::check_parameters(TdParameters &parameters) {
   auto prepare_dir = [](string dir) -> Result<string> {
     CHECK(!dir.empty());
     if (dir.back() != TD_DIR_SLASH) {
@@ -504,22 +499,20 @@ void TdDb::check_parameters_impl(TdParameters parameters, Promise<CheckedParamet
   auto r_database_directory = prepare_dir(parameters.database_directory);
   if (r_database_directory.is_error()) {
     VLOG(td_init) << "Invalid database_directory";
-    return promise.set_error(Status::Error(PSLICE()
-                                           << "Can't init database in the directory \"" << parameters.database_directory
-                                           << "\": " << r_database_directory.error()));
+    return Status::Error(PSLICE() << "Can't init database in the directory \"" << parameters.database_directory
+                                  << "\": " << r_database_directory.error());
   }
-  result.database_directory = r_database_directory.move_as_ok();
-  parameters.database_directory = result.database_directory;
+  parameters.database_directory = r_database_directory.move_as_ok();
 
   auto r_files_directory = prepare_dir(parameters.files_directory);
   if (r_files_directory.is_error()) {
     VLOG(td_init) << "Invalid files_directory";
-    return promise.set_error(Status::Error(PSLICE() << "Can't init files directory \"" << parameters.files_directory
-                                                    << "\": " << r_files_directory.error()));
+    return Status::Error(PSLICE() << "Can't init files directory \"" << parameters.files_directory
+                                  << "\": " << r_files_directory.error());
   }
-  result.files_directory = r_files_directory.move_as_ok();
+  parameters.files_directory = r_files_directory.move_as_ok();
 
-  promise.set_value(std::move(result));
+  return Status::OK();
 }
 
 void TdDb::change_key(DbKey key, Promise<> promise) {

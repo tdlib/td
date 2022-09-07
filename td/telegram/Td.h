@@ -1463,8 +1463,6 @@ class Td final : public Actor {
 
   static int32 get_database_scheduler_id();
 
-  void on_parameters_checked(Result<TdDb::CheckedParameters> r_checked_parameters);
-
   void finish_set_parameters();
 
   void init(Result<TdDb::OpenedDatabase> r_opened_database);
