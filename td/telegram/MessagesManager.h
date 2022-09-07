@@ -2733,7 +2733,8 @@ class MessagesManager final : public Actor {
   void fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_database_message, MessageId last_database_message_id,
                       int64 order, int32 last_clear_history_date, MessageId last_clear_history_message_id,
                       DialogId default_join_group_call_as_dialog_id, DialogId default_send_message_as_dialog_id,
-                      bool need_drop_default_send_message_as_dialog_id, bool is_loaded_from_database);
+                      bool need_drop_default_send_message_as_dialog_id, bool is_loaded_from_database,
+                      const char *source);
 
   bool add_dialog_last_database_message(Dialog *d, unique_ptr<Message> &&last_database_message);
 

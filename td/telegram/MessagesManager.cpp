@@ -15450,12 +15450,16 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
     }
   }
 
+  const char *source = nullptr;
   if (from_get_dialog) {
     LOG(INFO) << "Process " << dialogs.size() << " chats";
+    source = "get chat";
   } else if (from_pinned_dialog_list) {
     LOG(INFO) << "Process " << dialogs.size() << " pinned chats in " << folder_id;
+    source = "get pinned chats";
   } else {
     LOG(INFO) << "Process " << dialogs.size() << " chats out of " << total_count << " in " << folder_id;
+    source = "get chat list";
   }
   FlatHashMap<FullMessageId, DialogDate, FullMessageIdHash> full_message_id_to_dialog_date;
   FlatHashMap<FullMessageId, tl_object_ptr<telegram_api::Message>, FullMessageIdHash> full_message_id_to_message;
@@ -15553,12 +15557,12 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
       continue;
     }
     added_dialog_ids.push_back(dialog_id);
-    Dialog *d = get_dialog_force(dialog_id, "on_get_dialogs");
+    Dialog *d = get_dialog_force(dialog_id, source);
     bool need_update_dialog_pos = false;
     CHECK(!being_added_dialog_id_.is_valid());
     being_added_dialog_id_ = dialog_id;
     if (d == nullptr) {
-      d = add_dialog(dialog_id, "on_get_dialogs");
+      d = add_dialog(dialog_id, source);
       need_update_dialog_pos = true;
     } else {
       LOG(INFO) << "Receive already created " << dialog_id;
@@ -15569,7 +15573,7 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
 
     set_dialog_folder_id(d, FolderId((dialog->flags_ & DIALOG_FLAG_HAS_FOLDER_ID) != 0 ? dialog->folder_id_ : 0));
 
-    on_update_dialog_notify_settings(dialog_id, std::move(dialog->notify_settings_), "on_get_dialogs");
+    on_update_dialog_notify_settings(dialog_id, std::move(dialog->notify_settings_), source);
     if (!d->notification_settings.is_synchronized && !td_->auth_manager_->is_bot()) {
       LOG(ERROR) << "Failed to synchronize settings in " << dialog_id;
       d->notification_settings.is_synchronized = true;
@@ -15632,21 +15636,21 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
         } else if (!has_pts || d->pts == 0 || dialog->pts_ <= d->pts || d->is_channel_difference_finished) {
           auto last_message = std::move(it->second);
           auto added_full_message_id =
-              on_get_message(std::move(last_message), false, has_pts, false, false, false, "get chats");
+              on_get_message(std::move(last_message), false, has_pts, false, false, false, source);
           CHECK(d->last_new_message_id == MessageId());
-          set_dialog_last_new_message_id(d, last_message_id, "on_get_dialogs");
+          set_dialog_last_new_message_id(d, last_message_id, source);
           if (d->last_new_message_id > d->last_message_id && added_full_message_id.get_message_id().is_valid()) {
             CHECK(added_full_message_id.get_message_id() == d->last_new_message_id);
-            set_dialog_last_message_id(d, d->last_new_message_id, "on_get_dialogs");
-            send_update_chat_last_message(d, "on_get_dialogs");
+            set_dialog_last_message_id(d, d->last_new_message_id, source);
+            send_update_chat_last_message(d, source);
           }
         } else {
-          get_channel_difference(dialog_id, d->pts, true, "on_get_dialogs");
+          get_channel_difference(dialog_id, d->pts, true, source);
         }
       }
 
       if (has_pts && !running_get_channel_difference(dialog_id)) {
-        set_channel_pts(d, dialog->pts_, "get channel");
+        set_channel_pts(d, dialog->pts_, source);
       }
     }
     bool is_marked_as_unread = dialog->unread_mark_;
@@ -15655,7 +15659,7 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
     }
 
     if (need_update_dialog_pos) {
-      update_dialog_pos(d, "on_get_dialogs");
+      update_dialog_pos(d, source);
     }
 
     if (!td_->auth_manager_->is_bot() && !from_pinned_dialog_list) {
@@ -15701,7 +15705,7 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
           LOG(INFO) << "Have last_read_inbox_message_id = " << d->last_read_inbox_message_id << ", but received only "
                     << read_inbox_max_message_id << " from the server, trying to repair server unread count again";
           previous_message_id = read_inbox_max_message_id;
-          repair_server_unread_count(dialog_id, d->server_unread_count, "on_get_dialogs");
+          repair_server_unread_count(dialog_id, d->server_unread_count, source);
         }
       }
       if (!d->need_repair_server_unread_count) {
@@ -15711,7 +15715,7 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
            d->last_read_inbox_message_id == read_inbox_max_message_id) ||
           d->last_read_inbox_message_id < read_inbox_max_message_id) {
         set_dialog_last_read_inbox_message_id(d, read_inbox_max_message_id, dialog->unread_count_,
-                                              d->local_unread_count, true, "on_get_dialogs");
+                                              d->local_unread_count, true, source);
       }
       if (!d->is_last_read_inbox_message_id_inited) {
         d->is_last_read_inbox_message_id_inited = true;
@@ -15738,13 +15742,13 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
       if (d->unread_reaction_count != dialog->unread_reactions_count_) {
         set_dialog_unread_reaction_count(d, dialog->unread_reactions_count_);
         // update_dialog_mention_notification_count(d);
-        send_update_chat_unread_reaction_count(d, "on_get_dialogs");
+        send_update_chat_unread_reaction_count(d, source);
       }
     }
 
     being_added_dialog_id_ = DialogId();
 
-    update_dialog_lists(d, std::move(positions), true, false, "on_get_dialogs");
+    update_dialog_lists(d, std::move(positions), true, false, source);
   }
 
   if (from_dialog_list) {
@@ -15757,7 +15761,7 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
       folder_list.server_dialog_total_count_ = total_count;
       if (folder_list.is_dialog_unread_count_inited_) {
         if (old_dialog_total_count != get_dialog_total_count(folder_list)) {
-          send_update_unread_chat_count(folder_list, DialogId(), true, "on_get_dialogs");
+          send_update_unread_chat_count(folder_list, DialogId(), true, source);
         } else {
           save_unread_chat_count(folder_list);
         }
@@ -34429,7 +34433,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(DialogId dialog
       CHECK(!being_added_by_new_message_dialog_id_.is_valid());
       being_added_by_new_message_dialog_id_ = dialog_id;
     }
-    d = add_dialog(dialog_id, "add_message_to_dialog");
+    d = add_dialog(dialog_id, source);
     *need_update_dialog_pos = true;
     being_added_by_new_message_dialog_id_ = DialogId();
   } else {
@@ -36464,8 +36468,8 @@ void MessagesManager::force_create_dialog(DialogId dialog_id, const char *source
       return;
     }
 
-    d = add_dialog(dialog_id, "force_create_dialog");
-    update_dialog_pos(d, "force_create_dialog");
+    d = add_dialog(dialog_id, source);
+    update_dialog_pos(d, source);
 
     if (dialog_id.get_type() == DialogType::SecretChat && !d->notification_settings.is_synchronized &&
         td_->contacts_manager_->get_secret_chat_state(dialog_id.get_secret_chat_id()) != SecretChatState::Closed) {
@@ -36709,7 +36713,7 @@ MessagesManager::Dialog *MessagesManager::add_new_dialog(unique_ptr<Dialog> &&di
 
   fix_new_dialog(d, std::move(last_database_message), last_database_message_id, order, last_clear_history_date,
                  last_clear_history_message_id, default_join_group_call_as_dialog_id, default_send_message_as_dialog_id,
-                 need_drop_default_send_message_as_dialog_id, is_loaded_from_database);
+                 need_drop_default_send_message_as_dialog_id, is_loaded_from_database, source);
 
   return d;
 }
@@ -36719,7 +36723,8 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
                                      MessageId last_clear_history_message_id,
                                      DialogId default_join_group_call_as_dialog_id,
                                      DialogId default_send_message_as_dialog_id,
-                                     bool need_drop_default_send_message_as_dialog_id, bool is_loaded_from_database) {
+                                     bool need_drop_default_send_message_as_dialog_id, bool is_loaded_from_database,
+                                     const char *source) {
   CHECK(d != nullptr);
   auto dialog_id = d->dialog_id;
   auto dialog_type = dialog_id.get_type();
@@ -37070,9 +37075,10 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
       auto common_data =
           PSTRING() << ' ' << last_message_id << ' ' << d->last_message_id << ' ' << d->last_database_message_id << ' '
                     << d->debug_set_dialog_last_database_message_id << ' ' << d->messages->debug_source << ' '
-                    << is_loaded_from_database << ' ' << being_added_dialog_id_ << ' ' << being_added_new_dialog_id_
-                    << ' ' << dialog_id << ' ' << d->is_channel_difference_finished << ' '
-                    << debug_last_get_channel_difference_dialog_id_ << ' ' << debug_last_get_channel_difference_source_;
+                    << is_loaded_from_database << ' ' << source << ' ' << being_added_dialog_id_ << ' '
+                    << being_added_new_dialog_id_ << ' ' << dialog_id << ' ' << d->is_channel_difference_finished << ' '
+                    << debug_last_get_channel_difference_dialog_id_ << ' ' << debug_last_get_channel_difference_source_
+                    << ' ' << G()->parameters().use_message_db;
       LOG_CHECK(d->messages->message_id == last_message_id) << d->messages->message_id << common_data;
       LOG_CHECK(d->messages->left == nullptr)
           << d->messages->left->message_id << ' ' << d->messages->message_id << ' ' << d->messages->left->message_id
