@@ -13,7 +13,7 @@ namespace td {
 
 void SendCodeHelper::on_sent_code(telegram_api::object_ptr<telegram_api::auth_sentCode> sent_code) {
   phone_code_hash_ = std::move(sent_code->phone_code_hash_);
-  sent_code_info_ = get_authentication_code_info(std::move(sent_code->type_));
+  sent_code_info_ = get_sent_authentication_code_info(std::move(sent_code->type_));
   next_code_info_ = get_authentication_code_info(std::move(sent_code->next_type_));
   next_code_timestamp_ = Timestamp::in((sent_code->flags_ & SENT_CODE_FLAG_HAS_TIMEOUT) != 0 ? sent_code->timeout_ : 0);
 }
@@ -124,7 +124,7 @@ SendCodeHelper::AuthenticationCodeInfo SendCodeHelper::get_authentication_code_i
   }
 }
 
-SendCodeHelper::AuthenticationCodeInfo SendCodeHelper::get_authentication_code_info(
+SendCodeHelper::AuthenticationCodeInfo SendCodeHelper::get_sent_authentication_code_info(
     tl_object_ptr<telegram_api::auth_SentCodeType> &&sent_code_type_ptr) {
   CHECK(sent_code_type_ptr != nullptr);
   switch (sent_code_type_ptr->get_id()) {
@@ -151,7 +151,6 @@ SendCodeHelper::AuthenticationCodeInfo SendCodeHelper::get_authentication_code_i
     }
     case telegram_api::auth_sentCodeTypeEmailCode::ID:
     case telegram_api::auth_sentCodeTypeSetUpEmailRequired::ID:
-      return AuthenticationCodeInfo();
     default:
       UNREACHABLE();
       return AuthenticationCodeInfo();

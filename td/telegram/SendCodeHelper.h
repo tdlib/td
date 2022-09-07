@@ -87,7 +87,7 @@ class SendCodeHelper {
 
   static AuthenticationCodeInfo get_authentication_code_info(
       tl_object_ptr<telegram_api::auth_CodeType> &&code_type_ptr);
-  static AuthenticationCodeInfo get_authentication_code_info(
+  static AuthenticationCodeInfo get_sent_authentication_code_info(
       tl_object_ptr<telegram_api::auth_SentCodeType> &&sent_code_type_ptr);
 
   static td_api::object_ptr<td_api::AuthenticationCodeType> get_authentication_code_type_object(

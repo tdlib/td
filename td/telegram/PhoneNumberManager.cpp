@@ -213,6 +213,14 @@ void PhoneNumberManager::on_send_code_result(NetQueryPtr &result) {
 
   LOG(INFO) << "Receive " << to_string(sent_code);
 
+  switch (sent_code->type_->get_id()) {
+    case telegram_api::auth_sentCodeTypeSetUpEmailRequired::ID:
+    case telegram_api::auth_sentCodeTypeEmailCode::ID:
+      return on_query_error(Status::Error(500, "Receive incorrect response"));
+    default:
+      break;
+  }
+
   send_code_helper_.on_sent_code(std::move(sent_code));
 
   state_ = State::WaitCode;
