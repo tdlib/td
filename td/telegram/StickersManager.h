@@ -103,7 +103,7 @@ class StickersManager final : public Actor {
 
   void get_all_animated_emojis(bool is_recursive, Promise<td_api::object_ptr<td_api::emojis>> &&promise);
 
-  void get_default_emoji_statuses(bool is_recursive, Promise<td_api::object_ptr<td_api::premiumStatuses>> &&promise);
+  void get_default_emoji_statuses(bool is_recursive, Promise<td_api::object_ptr<td_api::emojiStatuses>> &&promise);
 
   bool is_default_emoji_status(int64 custom_emoji_id);
 

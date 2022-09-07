@@ -3444,7 +3444,7 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::joinChatByInviteLink>(args));
     } else if (op == "gte") {
       send_request(td_api::make_object<td_api::getTextEntities>(args));
-    } else if (op == "gtes") {
+    } else if (op == "gtee") {
       execute(td_api::make_object<td_api::getTextEntities>(args));
     } else if (op == "pm") {
       send_request(
@@ -4485,22 +4485,22 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::setBio>("\n" + args + "\n" + args + "\n"));
     } else if (op == "sun") {
       send_request(td_api::make_object<td_api::setUsername>(args));
-    } else if (op == "spse") {
-      send_request(td_api::make_object<td_api::setPremiumStatus>(nullptr, 0));
-    } else if (op == "sps") {
+    } else if (op == "sese") {
+      send_request(td_api::make_object<td_api::setEmojiStatus>(nullptr, 0));
+    } else if (op == "ses") {
       int64 custom_emoji_id;
       int32 until_date;
       get_args(args, custom_emoji_id, until_date);
-      send_request(td_api::make_object<td_api::setPremiumStatus>(
-          td_api::make_object<td_api::premiumStatus>(custom_emoji_id), until_date));
-    } else if (op == "gtps") {
-      send_request(td_api::make_object<td_api::getThemedPremiumStatuses>());
-    } else if (op == "gdps") {
-      send_request(td_api::make_object<td_api::getDefaultPremiumStatuses>());
-    } else if (op == "grps") {
-      send_request(td_api::make_object<td_api::getRecentPremiumStatuses>());
-    } else if (op == "crps") {
-      send_request(td_api::make_object<td_api::clearRecentPremiumStatuses>());
+      send_request(td_api::make_object<td_api::setEmojiStatus>(
+          td_api::make_object<td_api::emojiStatus>(custom_emoji_id), until_date));
+    } else if (op == "gtes") {
+      send_request(td_api::make_object<td_api::getThemedEmojiStatuses>());
+    } else if (op == "gdes") {
+      send_request(td_api::make_object<td_api::getDefaultEmojiStatuses>());
+    } else if (op == "gres") {
+      send_request(td_api::make_object<td_api::getRecentEmojiStatuses>());
+    } else if (op == "cres") {
+      send_request(td_api::make_object<td_api::clearRecentEmojiStatuses>());
     } else if (op == "ccun") {
       ChatId chat_id;
       string username;

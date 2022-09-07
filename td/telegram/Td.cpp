@@ -6746,31 +6746,31 @@ void Td::on_request(uint64 id, td_api::setUsername &request) {
   contacts_manager_->set_username(request.username_, std::move(promise));
 }
 
-void Td::on_request(uint64 id, const td_api::setPremiumStatus &request) {
+void Td::on_request(uint64 id, const td_api::setEmojiStatus &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  contacts_manager_->set_emoji_status(EmojiStatus(request.premium_status_, request.duration_), std::move(promise));
+  contacts_manager_->set_emoji_status(EmojiStatus(request.emoji_status_, request.duration_), std::move(promise));
 }
 
-void Td::on_request(uint64 id, const td_api::getThemedPremiumStatuses &request) {
+void Td::on_request(uint64 id, const td_api::getThemedEmojiStatuses &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
   stickers_manager_->get_default_emoji_statuses(false, std::move(promise));
 }
 
-void Td::on_request(uint64 id, const td_api::getDefaultPremiumStatuses &request) {
+void Td::on_request(uint64 id, const td_api::getDefaultEmojiStatuses &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
   get_default_emoji_statuses(this, std::move(promise));
 }
 
-void Td::on_request(uint64 id, const td_api::getRecentPremiumStatuses &request) {
+void Td::on_request(uint64 id, const td_api::getRecentEmojiStatuses &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
   get_recent_emoji_statuses(this, std::move(promise));
 }
 
-void Td::on_request(uint64 id, const td_api::clearRecentPremiumStatuses &request) {
+void Td::on_request(uint64 id, const td_api::clearRecentEmojiStatuses &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
   clear_recent_emoji_statuses(this, std::move(promise));

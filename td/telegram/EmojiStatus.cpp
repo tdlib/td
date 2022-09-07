@@ -22,13 +22,13 @@ struct EmojiStatuses {
   int64 hash_ = 0;
   vector<EmojiStatus> emoji_statuses_;
 
-  td_api::object_ptr<td_api::premiumStatuses> get_premium_statuses_object() const {
-    auto premium_statuses = transform(emoji_statuses_, [](const EmojiStatus &emoji_status) {
+  td_api::object_ptr<td_api::emojiStatuses> get_emoji_statuses_object() const {
+    auto emoji_statuses = transform(emoji_statuses_, [](const EmojiStatus &emoji_status) {
       CHECK(!emoji_status.is_empty());
-      return emoji_status.get_premium_status_object();
+      return emoji_status.get_emoji_status_object();
     });
 
-    return td_api::make_object<td_api::premiumStatuses>(std::move(premium_statuses));
+    return td_api::make_object<td_api::emojiStatuses>(std::move(emoji_statuses));
   }
 
   EmojiStatuses() = default;
@@ -39,11 +39,11 @@ struct EmojiStatuses {
     for (auto &status : emoji_statuses->statuses_) {
       EmojiStatus emoji_status(std::move(status));
       if (emoji_status.is_empty()) {
-        LOG(ERROR) << "Receive empty premium status";
+        LOG(ERROR) << "Receive empty emoji status";
         continue;
       }
       if (emoji_status.get_until_date() != 0) {
-        LOG(ERROR) << "Receive temporary premium status";
+        LOG(ERROR) << "Receive temporary emoji status";
         emoji_status.clear_until_date();
       }
       emoji_statuses_.push_back(emoji_status);
@@ -89,10 +89,10 @@ static void save_emoji_statuses(const string &key, const EmojiStatuses &emoji_st
 }
 
 class GetDefaultEmojiStatusesQuery final : public Td::ResultHandler {
-  Promise<td_api::object_ptr<td_api::premiumStatuses>> promise_;
+  Promise<td_api::object_ptr<td_api::emojiStatuses>> promise_;
 
  public:
-  explicit GetDefaultEmojiStatusesQuery(Promise<td_api::object_ptr<td_api::premiumStatuses>> &&promise)
+  explicit GetDefaultEmojiStatusesQuery(Promise<td_api::object_ptr<td_api::emojiStatuses>> &&promise)
       : promise_(std::move(promise)) {
   }
 
@@ -121,7 +121,7 @@ class GetDefaultEmojiStatusesQuery final : public Td::ResultHandler {
     save_emoji_statuses(get_default_emoji_statuses_database_key(), emoji_statuses);
 
     if (promise_) {
-      promise_.set_value(emoji_statuses.get_premium_statuses_object());
+      promise_.set_value(emoji_statuses.get_emoji_statuses_object());
     }
   }
 
@@ -131,10 +131,10 @@ class GetDefaultEmojiStatusesQuery final : public Td::ResultHandler {
 };
 
 class GetRecentEmojiStatusesQuery final : public Td::ResultHandler {
-  Promise<td_api::object_ptr<td_api::premiumStatuses>> promise_;
+  Promise<td_api::object_ptr<td_api::emojiStatuses>> promise_;
 
  public:
-  explicit GetRecentEmojiStatusesQuery(Promise<td_api::object_ptr<td_api::premiumStatuses>> &&promise)
+  explicit GetRecentEmojiStatusesQuery(Promise<td_api::object_ptr<td_api::emojiStatuses>> &&promise)
       : promise_(std::move(promise)) {
   }
 
@@ -163,7 +163,7 @@ class GetRecentEmojiStatusesQuery final : public Td::ResultHandler {
     save_emoji_statuses(get_recent_emoji_statuses_database_key(), emoji_statuses);
 
     if (promise_) {
-      promise_.set_value(emoji_statuses.get_premium_statuses_object());
+      promise_.set_value(emoji_statuses.get_emoji_statuses_object());
     }
   }
 
@@ -198,12 +198,12 @@ class ClearRecentEmojiStatusesQuery final : public Td::ResultHandler {
   }
 };
 
-EmojiStatus::EmojiStatus(const td_api::object_ptr<td_api::premiumStatus> &premium_status, int32 duration) {
-  if (premium_status == nullptr) {
+EmojiStatus::EmojiStatus(const td_api::object_ptr<td_api::emojiStatus> &emoji_status, int32 duration) {
+  if (emoji_status == nullptr) {
     return;
   }
 
-  custom_emoji_id_ = premium_status->custom_emoji_id_;
+  custom_emoji_id_ = emoji_status->custom_emoji_id_;
   if (duration != 0) {
     int32 current_time = G()->unix_time();
     if (duration >= std::numeric_limits<int32>::max() - current_time) {
@@ -247,11 +247,11 @@ tl_object_ptr<telegram_api::EmojiStatus> EmojiStatus::get_input_emoji_status() c
   return make_tl_object<telegram_api::emojiStatus>(custom_emoji_id_);
 }
 
-td_api::object_ptr<td_api::premiumStatus> EmojiStatus::get_premium_status_object() const {
+td_api::object_ptr<td_api::emojiStatus> EmojiStatus::get_emoji_status_object() const {
   if (is_empty()) {
     return nullptr;
   }
-  return td_api::make_object<td_api::premiumStatus>(custom_emoji_id_);
+  return td_api::make_object<td_api::emojiStatus>(custom_emoji_id_);
 }
 
 int64 EmojiStatus::get_effective_custom_emoji_id(bool is_premium, int32 unix_time) const {
@@ -275,20 +275,20 @@ StringBuilder &operator<<(StringBuilder &string_builder, const EmojiStatus &emoj
   return string_builder;
 }
 
-void get_default_emoji_statuses(Td *td, Promise<td_api::object_ptr<td_api::premiumStatuses>> &&promise) {
+void get_default_emoji_statuses(Td *td, Promise<td_api::object_ptr<td_api::emojiStatuses>> &&promise) {
   auto statuses = load_emoji_statuses(get_default_emoji_statuses_database_key());
   if (statuses.hash_ != -1 && promise) {
-    promise.set_value(statuses.get_premium_statuses_object());
-    promise = Promise<td_api::object_ptr<td_api::premiumStatuses>>();
+    promise.set_value(statuses.get_emoji_statuses_object());
+    promise = Promise<td_api::object_ptr<td_api::emojiStatuses>>();
   }
   td->create_handler<GetDefaultEmojiStatusesQuery>(std::move(promise))->send(statuses.hash_);
 }
 
-void get_recent_emoji_statuses(Td *td, Promise<td_api::object_ptr<td_api::premiumStatuses>> &&promise) {
+void get_recent_emoji_statuses(Td *td, Promise<td_api::object_ptr<td_api::emojiStatuses>> &&promise) {
   auto statuses = load_emoji_statuses(get_recent_emoji_statuses_database_key());
   if (statuses.hash_ != -1 && promise) {
-    promise.set_value(statuses.get_premium_statuses_object());
-    promise = Promise<td_api::object_ptr<td_api::premiumStatuses>>();
+    promise.set_value(statuses.get_emoji_statuses_object());
+    promise = Promise<td_api::object_ptr<td_api::emojiStatuses>>();
   }
   td->create_handler<GetRecentEmojiStatusesQuery>(std::move(promise))->send(statuses.hash_);
 }
@@ -299,7 +299,7 @@ void add_recent_emoji_status(Td *td, EmojiStatus emoji_status) {
   }
 
   if (td->stickers_manager_->is_default_emoji_status(emoji_status.get_custom_emoji_id())) {
-    LOG(INFO) << "Skip adding themed premium status to recents";
+    LOG(INFO) << "Skip adding themed emoji status to recents";
     return;
   }
 

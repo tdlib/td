@@ -1016,15 +1016,15 @@ class Td final : public Actor {
 
   void on_request(uint64 id, td_api::setUsername &request);
 
-  void on_request(uint64 id, const td_api::setPremiumStatus &request);
+  void on_request(uint64 id, const td_api::setEmojiStatus &request);
 
-  void on_request(uint64 id, const td_api::getThemedPremiumStatuses &request);
+  void on_request(uint64 id, const td_api::getThemedEmojiStatuses &request);
 
-  void on_request(uint64 id, const td_api::getDefaultPremiumStatuses &request);
+  void on_request(uint64 id, const td_api::getDefaultEmojiStatuses &request);
 
-  void on_request(uint64 id, const td_api::getRecentPremiumStatuses &request);
+  void on_request(uint64 id, const td_api::getRecentEmojiStatuses &request);
 
-  void on_request(uint64 id, const td_api::clearRecentPremiumStatuses &request);
+  void on_request(uint64 id, const td_api::clearRecentEmojiStatuses &request);
 
   void on_request(uint64 id, td_api::setCommands &request);
 

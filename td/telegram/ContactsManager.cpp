@@ -10384,7 +10384,7 @@ void ContactsManager::update_user(User *u, UserId user_id, bool from_binlog, boo
     auto until_date = u->emoji_status.get_until_date();
     auto left_time = until_date - unix_time;
     if (left_time >= 0 && left_time < 30 * 86400) {
-      LOG(DEBUG) << "Set premium status timeout for " << user_id << " in " << left_time;
+      LOG(DEBUG) << "Set emoji status timeout for " << user_id << " in " << left_time;
       user_emoji_status_timeout_.set_timeout_in(user_id.get(), left_time);
     } else {
       user_emoji_status_timeout_.cancel_timeout(user_id.get());
@@ -11805,13 +11805,13 @@ void ContactsManager::on_update_user_emoji_status(UserId user_id,
     on_update_user_emoji_status(u, user_id, EmojiStatus(std::move(emoji_status)));
     update_user(u, user_id);
   } else {
-    LOG(INFO) << "Ignore update user premium status about unknown " << user_id;
+    LOG(INFO) << "Ignore update user emoji status about unknown " << user_id;
   }
 }
 
 void ContactsManager::on_update_user_emoji_status(User *u, UserId user_id, EmojiStatus emoji_status) {
   if (u->emoji_status != emoji_status) {
-    LOG(DEBUG) << "Change premium status of " << user_id << " from " << u->emoji_status << " to " << emoji_status;
+    LOG(DEBUG) << "Change emoji status of " << user_id << " from " << u->emoji_status << " to " << emoji_status;
     u->emoji_status = emoji_status;
   }
 }
@@ -16815,10 +16815,10 @@ tl_object_ptr<td_api::user> ContactsManager::get_user_object(UserId user_id, con
     type = make_tl_object<td_api::userTypeRegular>();
   }
 
-  auto premium_status = u->last_sent_emoji_status != 0 ? u->emoji_status.get_premium_status_object() : nullptr;
+  auto emoji_status = u->last_sent_emoji_status != 0 ? u->emoji_status.get_emoji_status_object() : nullptr;
   return make_tl_object<td_api::user>(
       user_id.get(), u->first_name, u->last_name, u->username, u->phone_number, get_user_status_object(user_id, u),
-      get_profile_photo_object(td_->file_manager_.get(), u->photo), std::move(premium_status), u->is_contact,
+      get_profile_photo_object(td_->file_manager_.get(), u->photo), std::move(emoji_status), u->is_contact,
       u->is_mutual_contact, u->is_verified, u->is_premium, u->is_support,
       get_restriction_reason_description(u->restriction_reasons), u->is_scam, u->is_fake, u->is_received,
       std::move(type), u->language_code, u->attach_menu_enabled);

@@ -497,11 +497,11 @@ chatAdministratorRights can_manage_chat:Bool can_change_info:Bool can_post_messa
 //@payment_link An internal link to be opened for buying Telegram Premium to the user if store payment isn't possible; may be null if direct payment isn't available
 premiumPaymentOption currency:string amount:int53 discount_percentage:int32 month_count:int32 store_product_id:string payment_link:InternalLinkType = PremiumPaymentOption;
 
-//@description Describes a custom emoji to be shown instead of the Telegram Premium badge @custom_emoji_id Identifier of the custom emoji in stickerFormatTgs format. If the custom emoji belongs to the sticker set GetOption("themed_premium_statuses_sticker_set_id"), then it's color must be changed to the color of the Telegram Premium badge
-premiumStatus custom_emoji_id:int64 = PremiumStatus;
+//@description Describes a custom emoji to be shown instead of the Telegram Premium badge @custom_emoji_id Identifier of the custom emoji in stickerFormatTgs format. If the custom emoji belongs to the sticker set GetOption("themed_emoji_statuses_sticker_set_id"), then it's color must be changed to the color of the Telegram Premium badge
+emojiStatus custom_emoji_id:int64 = EmojiStatus;
 
-//@description Contains a list of premium statuses @premium_statuses The list of premium statuses
-premiumStatuses premium_statuses:vector<premiumStatus> = PremiumStatuses;
+//@description Contains a list of emoji statuses @emoji_statuses The list of emoji statuses
+emojiStatuses emoji_statuses:vector<emojiStatus> = EmojiStatuses;
 
 
 //@description Represents a user
@@ -512,7 +512,7 @@ premiumStatuses premium_statuses:vector<premiumStatus> = PremiumStatuses;
 //@phone_number Phone number of the user
 //@status Current online status of the user
 //@profile_photo Profile photo of the user; may be null
-//@premium_status Premium status to be shown instead of the default Telegram Premium badge; may be null. For Telegram Premium users only
+//@emoji_status Emoji status to be shown instead of the default Telegram Premium badge; may be null. For Telegram Premium users only
 //@is_contact The user is a contact of the current user
 //@is_mutual_contact The user is a contact of the current user and the current user is a contact of the user
 //@is_verified True, if the user is verified
@@ -525,7 +525,7 @@ premiumStatuses premium_statuses:vector<premiumStatus> = PremiumStatuses;
 //@type Type of the user
 //@language_code IETF language tag of the user's language; only available to bots
 //@added_to_attachment_menu True, if the user added the current bot to attachment menu; only available to bots
-user id:int53 first_name:string last_name:string username:string phone_number:string status:UserStatus profile_photo:profilePhoto premium_status:premiumStatus is_contact:Bool is_mutual_contact:Bool is_verified:Bool is_premium:Bool is_support:Bool restriction_reason:string is_scam:Bool is_fake:Bool have_access:Bool type:UserType language_code:string added_to_attachment_menu:Bool = User;
+user id:int53 first_name:string last_name:string username:string phone_number:string status:UserStatus profile_photo:profilePhoto emoji_status:emojiStatus is_contact:Bool is_mutual_contact:Bool is_verified:Bool is_premium:Bool is_support:Bool restriction_reason:string is_scam:Bool is_fake:Bool have_access:Bool type:UserType language_code:string added_to_attachment_menu:Bool = User;
 
 
 //@description Contains information about a bot
@@ -5608,17 +5608,17 @@ getAttachmentMenuBot bot_user_id:int53 = AttachmentMenuBot;
 toggleBotIsAddedToAttachmentMenu bot_user_id:int53 is_added:Bool = Ok;
 
 
-//@description Returns up to 8 themed premium statuses, which color must be changed to the color of the Telegram Premium badge
-getThemedPremiumStatuses = PremiumStatuses;
+//@description Returns up to 8 themed emoji statuses, which color must be changed to the color of the Telegram Premium badge
+getThemedEmojiStatuses = EmojiStatuses;
 
-//@description Returns recent premium statuses
-getRecentPremiumStatuses = PremiumStatuses;
+//@description Returns recent emoji statuses
+getRecentEmojiStatuses = EmojiStatuses;
 
-//@description Returns default premium statuses
-getDefaultPremiumStatuses = PremiumStatuses;
+//@description Returns default emoji statuses
+getDefaultEmojiStatuses = EmojiStatuses;
 
-//@description Clears recent premium statuses
-clearRecentPremiumStatuses = Ok;
+//@description Clears recent emoji statuses
+clearRecentEmojiStatuses = Ok;
 
 
 //@description Downloads a file from the cloud. Download progress and completion of the download will be notified through updateFile updates
@@ -6127,10 +6127,10 @@ setBio bio:string = Ok;
 //@description Changes the username of the current user @username The new value of the username. Use an empty string to remove the username
 setUsername username:string = Ok;
 
-//@description Changes the premium status of the current user; for Telegram Premium users only
-//@premium_status New premium status; pass null to switch to the default badge
+//@description Changes the emoji status of the current user; for Telegram Premium users only
+//@emoji_status New emoji status; pass null to switch to the default badge
 //@duration Duration of the status, in seconds; pass 0 to keep the status active until it will be changed manually
-setPremiumStatus premium_status:premiumStatus duration:int32 = Ok;
+setEmojiStatus emoji_status:emojiStatus duration:int32 = Ok;
 
 //@description Changes the location of the current user. Needs to be called if GetOption("is_location_visible") is true and location changes for more than 1 kilometer @location The new location of the user
 setLocation location:location = Ok;

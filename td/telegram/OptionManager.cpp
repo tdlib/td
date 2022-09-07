@@ -102,10 +102,10 @@ OptionManager::OptionManager(Td *td)
   if (!have_option("chat_filter_chosen_chat_count_max")) {
     set_option_integer("chat_filter_chosen_chat_count_max", G()->is_test_dc() ? 5 : 100);
   }
-  if (!have_option("themed_premium_statuses_sticker_set_id")) {
+  if (!have_option("themed_emoji_statuses_sticker_set_id")) {
     auto sticker_set_id =
         G()->is_test_dc() ? static_cast<int64>(2964141614563343) : static_cast<int64>(773947703670341676);
-    set_option_integer("themed_premium_statuses_sticker_set_id", sticker_set_id);
+    set_option_integer("themed_emoji_statuses_sticker_set_id", sticker_set_id);
   }
 }
 

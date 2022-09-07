@@ -5460,14 +5460,14 @@ void StickersManager::get_all_animated_emojis(bool is_recursive,
 }
 
 void StickersManager::get_default_emoji_statuses(bool is_recursive,
-                                                 Promise<td_api::object_ptr<td_api::premiumStatuses>> &&promise) {
+                                                 Promise<td_api::object_ptr<td_api::emojiStatuses>> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
 
   auto &special_sticker_set = add_special_sticker_set(SpecialStickerSetType::default_statuses());
   auto sticker_set = get_sticker_set(special_sticker_set.id_);
   if (sticker_set == nullptr || !sticker_set->was_loaded_) {
     if (is_recursive) {
-      return promise.set_value(td_api::make_object<td_api::premiumStatuses>());
+      return promise.set_value(td_api::make_object<td_api::emojiStatuses>());
     }
 
     pending_get_default_statuses_queries_.push_back(PromiseCreator::lambda(
@@ -5482,19 +5482,19 @@ void StickersManager::get_default_emoji_statuses(bool is_recursive,
     return;
   }
 
-  vector<td_api::object_ptr<td_api::premiumStatus>> statuses;
+  vector<td_api::object_ptr<td_api::emojiStatus>> statuses;
   for (auto sticker_id : sticker_set->sticker_ids_) {
     auto custom_emoji_id = get_custom_emoji_id(sticker_id);
     if (custom_emoji_id == 0) {
       LOG(ERROR) << "Ignore wrong sticker " << sticker_id;
       continue;
     }
-    statuses.emplace_back(td_api::make_object<td_api::premiumStatus>(custom_emoji_id));
+    statuses.emplace_back(td_api::make_object<td_api::emojiStatus>(custom_emoji_id));
     if (statuses.size() >= 8) {
       break;
     }
   }
-  promise.set_value(td_api::make_object<td_api::premiumStatuses>(std::move(statuses)));
+  promise.set_value(td_api::make_object<td_api::emojiStatuses>(std::move(statuses)));
 }
 
 bool StickersManager::is_default_emoji_status(int64 custom_emoji_id) {
