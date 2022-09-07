@@ -144,8 +144,9 @@ authorizationStateClosed = AuthorizationState;
 //@description Represents the current state of 2-step verification @has_password True, if a 2-step verification password is set @password_hint Hint for the password; may be empty
 //@has_recovery_email_address True, if a recovery email is set @has_passport_data True, if some Telegram Passport elements were saved
 //@recovery_email_address_code_info Information about the recovery email address to which the confirmation email was sent; may be null
+//@login_email_address_pattern Pattern of the email address set up for logging in
 //@pending_reset_date If not 0, point in time (Unix timestamp) after which the 2-step verification password can be reset immediately using resetPassword
-passwordState has_password:Bool password_hint:string has_recovery_email_address:Bool has_passport_data:Bool recovery_email_address_code_info:emailAddressAuthenticationCodeInfo pending_reset_date:int32 = PasswordState;
+passwordState has_password:Bool password_hint:string has_recovery_email_address:Bool has_passport_data:Bool recovery_email_address_code_info:emailAddressAuthenticationCodeInfo login_email_address_pattern:string pending_reset_date:int32 = PasswordState;
 
 //@description Contains information about the current recovery email address @recovery_email_address Recovery email address
 recoveryEmailAddress recovery_email_address:string = RecoveryEmailAddress;

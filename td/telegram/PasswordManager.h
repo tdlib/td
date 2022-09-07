@@ -106,6 +106,7 @@ class PasswordManager final : public NetQueryCallback {
     bool has_recovery_email_address = false;
     bool has_secure_values = false;
     SentEmailCode unconfirmed_recovery_email_code;
+    string login_email_pattern;
     int32 pending_reset_date = 0;
 
     string current_client_salt;
@@ -120,7 +121,8 @@ class PasswordManager final : public NetQueryCallback {
     State get_password_state_object() const {
       return td_api::make_object<td_api::passwordState>(
           has_password, password_hint, has_recovery_email_address, has_secure_values,
-          unconfirmed_recovery_email_code.get_email_address_authentication_code_info_object(), pending_reset_date);
+          unconfirmed_recovery_email_code.get_email_address_authentication_code_info_object(), login_email_pattern,
+          pending_reset_date);
     }
   };
 
