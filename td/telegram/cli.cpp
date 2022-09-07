@@ -1591,6 +1591,17 @@ class CliClient final : public Actor {
     return nullptr;
   }
 
+  static td_api::object_ptr<td_api::EmailAddressAuthentication> as_email_address_authentication(Slice arg) {
+    if (begins_with(arg, "a ")) {
+      return td_api::make_object<td_api::emailAddressAuthenticationAppleId>(arg.substr(2).str());
+    } else if (begins_with(arg, "g ")) {
+      return td_api::make_object<td_api::emailAddressAuthenticationGoogleId>(arg.substr(2).str());
+    } else if (!arg.empty()) {
+      return td_api::make_object<td_api::emailAddressAuthenticationCode>(arg.str());
+    }
+    return nullptr;
+  }
+
   static td_api::object_ptr<td_api::PassportElementType> as_passport_element_type(Slice passport_element_type) {
     if (passport_element_type == "address" || passport_element_type == "a") {
       return td_api::make_object<td_api::passportElementTypeAddress>();
@@ -1851,15 +1862,7 @@ class CliClient final : public Actor {
     } else if (op == "sdek" || op == "SetDatabaseEncryptionKey") {
       send_request(td_api::make_object<td_api::setDatabaseEncryptionKey>(args));
     } else if (op == "caec") {
-      td_api::object_ptr<td_api::EmailAddressAuthentication> code;
-      if (begins_with(args, "a ")) {
-        code = td_api::make_object<td_api::emailAddressAuthenticationAppleId>(args.substr(2));
-      } else if (begins_with(args, "g ")) {
-        code = td_api::make_object<td_api::emailAddressAuthenticationGoogleId>(args.substr(2));
-      } else if (!args.empty()) {
-        code = td_api::make_object<td_api::emailAddressAuthenticationCode>(args);
-      }
-      send_request(td_api::make_object<td_api::checkAuthenticationEmailCode>(std::move(code)));
+      send_request(td_api::make_object<td_api::checkAuthenticationEmailCode>(as_email_address_authentication(args)));
     } else if (op == "cac") {
       send_request(td_api::make_object<td_api::checkAuthenticationCode>(args));
     } else if (op == "ru") {
@@ -1995,6 +1998,8 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::setLoginEmailAddress>(args));
     } else if (op == "rleac") {
       send_request(td_api::make_object<td_api::resendLoginEmailAddressCode>());
+    } else if (op == "cleac") {
+      send_request(td_api::make_object<td_api::checkLoginEmailAddressCode>(as_email_address_authentication(args)));
     } else if (op == "srea" || op == "SetRecoveryEmailAddress") {
       string password;
       string recovery_email_address;

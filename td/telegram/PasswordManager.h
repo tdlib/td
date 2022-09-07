@@ -6,6 +6,7 @@
 //
 #pragma once
 
+#include "td/telegram/EmailVerification.h"
 #include "td/telegram/net/NetQuery.h"
 #include "td/telegram/NewPasswordState.h"
 #include "td/telegram/SecureStorage.h"
@@ -70,8 +71,11 @@ class PasswordManager final : public NetQueryCallback {
   void get_state(Promise<State> promise);
   void set_password(string current_password, string new_password, string new_hint, bool set_recovery_email_address,
                     string recovery_email_address, Promise<State> promise);
+
   void set_login_email_address(string new_login_email_address, Promise<SentEmailCode> promise);
   void resend_login_email_address_code(Promise<SentEmailCode> promise);
+  void check_login_email_address_code(EmailVerification &&code, Promise<Unit> promise);
+
   void set_recovery_email_address(string password, string new_recovery_email_address, Promise<State> promise);
   void get_recovery_email_address(string password, Promise<tl_object_ptr<td_api::recoveryEmailAddress>> promise);
   void check_recovery_email_address_code(string code, Promise<State> promise);

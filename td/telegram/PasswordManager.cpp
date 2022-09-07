@@ -201,6 +201,25 @@ void PasswordManager::resend_login_email_address_code(Promise<SentEmailCode> pro
   set_login_email_address(last_set_login_email_address_, std::move(promise));
 }
 
+void PasswordManager::check_login_email_address_code(EmailVerification &&code, Promise<Unit> promise) {
+  if (last_set_login_email_address_.empty()) {
+    return promise.set_error(Status::Error(400, "No login email address code was sent"));
+  }
+  if (code.is_empty()) {
+    return promise.set_error(Status::Error(400, "Verification code must be non-empty"));
+  }
+  auto query = G()->net_query_creator().create(telegram_api::account_verifyEmail(
+      make_tl_object<telegram_api::emailVerifyPurposeLoginChange>(), code.get_input_email_verification()));
+  send_with_promise(std::move(query),
+                    PromiseCreator::lambda([promise = std::move(promise)](Result<NetQueryPtr> r_query) mutable {
+                      auto r_result = fetch_result<telegram_api::account_verifyEmail>(std::move(r_query));
+                      if (r_result.is_error()) {
+                        return promise.set_error(r_result.move_as_error());
+                      }
+                      return promise.set_value(Unit());
+                    }));
+}
+
 void PasswordManager::set_recovery_email_address(string password, string new_recovery_email_address,
                                                  Promise<State> promise) {
   UpdateSettings update_settings;

@@ -4709,6 +4709,9 @@ setLoginEmailAddress new_login_email_address:string = EmailAddressAuthentication
 //@description Resends the login email address verification code
 resendLoginEmailAddressCode = EmailAddressAuthenticationCodeInfo;
 
+//@description Checks the login email address authentication @code Email address authentication to check
+checkLoginEmailAddressCode code:EmailAddressAuthentication = Ok;
+
 //@description Returns a 2-step verification recovery email address that was previously set up. This method can be used to verify a password provided by the user @password The 2-step verification password for the current user
 getRecoveryEmailAddress password:string = RecoveryEmailAddress;
 
