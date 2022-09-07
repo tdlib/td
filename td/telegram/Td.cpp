@@ -2983,6 +2983,7 @@ void Td::run_request(uint64 id, tl_object_ptr<td_api::Function> function) {
       switch (function_id) {
         case td_api::setTdlibParameters::ID: {
           auto parameters = move_tl_object_as<td_api::setTdlibParameters>(function);
+          auto database_encryption_key = as_db_key(std::move(parameters->database_encryption_key_));
           auto status = set_parameters(std::move(parameters));
           if (status.is_error()) {
             return send_closure(actor_id(this), &Td::send_error, id, std::move(status));
@@ -2995,7 +2996,7 @@ void Td::run_request(uint64 id, tl_object_ptr<td_api::Function> function) {
               PromiseCreator::lambda([actor_id = actor_id(this)](Result<TdDb::OpenedDatabase> r_opened_database) {
                 send_closure(actor_id, &Td::init, std::move(r_opened_database));
               });
-          return TdDb::open(get_database_scheduler_id(), parameters_, as_db_key(std::move(database_encryption_key_)),
+          return TdDb::open(get_database_scheduler_id(), parameters_, std::move(database_encryption_key),
                             std::move(promise));
         }
         default:
@@ -4099,11 +4100,6 @@ Status Td::fix_parameters(TdParameters &parameters) {
 
 Status Td::set_parameters(td_api::object_ptr<td_api::setTdlibParameters> parameters) {
   VLOG(td_init) << "Begin to set TDLib parameters";
-  if (parameters == nullptr) {
-    VLOG(td_init) << "Empty parameters";
-    return Status::Error(400, "Parameters aren't specified");
-  }
-
   if (!clean_input_string(parameters->api_hash_) || !clean_input_string(parameters->system_language_code_) ||
       !clean_input_string(parameters->device_model_) || !clean_input_string(parameters->system_version_) ||
       !clean_input_string(parameters->application_version_)) {
@@ -4155,8 +4151,6 @@ Status Td::set_parameters(td_api::object_ptr<td_api::setTdlibParameters> paramet
   options_.parameters = string();
   options_.is_emulator = false;
   options_.proxy = Proxy();
-
-  database_encryption_key_ = std::move(parameters->database_encryption_key_);
 
   return Status::OK();
 }
