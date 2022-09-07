@@ -4640,7 +4640,7 @@ setAuthenticationPhoneNumber phone_number:string settings:phoneNumberAuthenticat
 //@description Sets the email address of the user and sends an authentication code to the email address. Works only when the current authorization state is authorizationStateWaitEmailAddress @email_address The email address of the user
 setAuthenticationEmailAddress email_address:string = Ok;
 
-//@description Re-sends an authentication code to the user. Works only when the current authorization state is authorizationStateWaitCode, the next_code_type of the result is not null and the server-specified timeout has passed
+//@description Resends an authentication code to the user. Works only when the current authorization state is authorizationStateWaitCode, the next_code_type of the result is not null and the server-specified timeout has passed
 resendAuthenticationCode = Ok;
 
 //@description Checks the authentication of a email address. Works only when the current authorization state is authorizationStateWaitEmailCode @code Email address authentication to check
@@ -4705,6 +4705,9 @@ setPassword old_password:string new_password:string new_hint:string set_recovery
 
 //@description Changes the login email address of the user. The change will not be applied until the new login email address is confirmed with `checkLoginEmailAddressCode`. To use Apple ID/Google ID instead of a email address, call `checkLoginEmailAddressCode` directly @new_login_email_address New login email address
 setLoginEmailAddress new_login_email_address:string = EmailAddressAuthenticationCodeInfo;
+
+//@description Resends the login email address verification code
+resendLoginEmailAddressCode = EmailAddressAuthenticationCodeInfo;
 
 //@description Returns a 2-step verification recovery email address that was previously set up. This method can be used to verify a password provided by the user @password The 2-step verification password for the current user
 getRecoveryEmailAddress password:string = RecoveryEmailAddress;
@@ -6143,7 +6146,7 @@ setLocation location:location = Ok;
 //@phone_number The new phone number of the user in international format @settings Settings for the authentication of the user's phone number; pass null to use default settings
 changePhoneNumber phone_number:string settings:phoneNumberAuthenticationSettings = AuthenticationCodeInfo;
 
-//@description Re-sends the authentication code sent to confirm a new phone number for the current user. Works only if the previously received authenticationCodeInfo next_code_type was not null and the server-specified timeout has passed
+//@description Resends the authentication code sent to confirm a new phone number for the current user. Works only if the previously received authenticationCodeInfo next_code_type was not null and the server-specified timeout has passed
 resendChangePhoneNumberCode = AuthenticationCodeInfo;
 
 //@description Checks the authentication code sent to confirm a new phone number of the user @code Authentication code to check
@@ -6473,7 +6476,7 @@ getPreferredCountryLanguage country_code:string = Text;
 //@phone_number The phone number of the user, in international format @settings Settings for the authentication of the user's phone number; pass null to use default settings
 sendPhoneNumberVerificationCode phone_number:string settings:phoneNumberAuthenticationSettings = AuthenticationCodeInfo;
 
-//@description Re-sends the code to verify a phone number to be added to a user's Telegram Passport
+//@description Resends the code to verify a phone number to be added to a user's Telegram Passport
 resendPhoneNumberVerificationCode = AuthenticationCodeInfo;
 
 //@description Checks the phone number verification code for Telegram Passport @code Verification code to check
@@ -6483,7 +6486,7 @@ checkPhoneNumberVerificationCode code:string = Ok;
 //@description Sends a code to verify an email address to be added to a user's Telegram Passport @email_address Email address
 sendEmailAddressVerificationCode email_address:string = EmailAddressAuthenticationCodeInfo;
 
-//@description Re-sends the code to verify an email address to be added to a user's Telegram Passport
+//@description Resends the code to verify an email address to be added to a user's Telegram Passport
 resendEmailAddressVerificationCode = EmailAddressAuthenticationCodeInfo;
 
 //@description Checks the email address verification code for Telegram Passport @code Verification code to check

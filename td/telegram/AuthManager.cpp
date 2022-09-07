@@ -457,7 +457,7 @@ void AuthManager::log_out(uint64 query_id) {
 }
 
 void AuthManager::send_log_out_query() {
-  // we can lose authorization while logging out, but still may need to re-send the request,
+  // we can lose authorization while logging out, but still may need to resend the request,
   // so we pretend that it doesn't require authorization
   auto query = G()->net_query_creator().create_unauth(telegram_api::auth_logOut());
   query->set_priority(1);

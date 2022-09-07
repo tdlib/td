@@ -181,7 +181,7 @@ void PasswordManager::set_password(string current_password, string new_password,
 }
 
 void PasswordManager::set_login_email_address(string new_login_email_address, Promise<SentEmailCode> promise) {
-  last_verified_email_address_ = new_login_email_address;
+  last_set_login_email_address_ = new_login_email_address;
   auto query = G()->net_query_creator().create(telegram_api::account_sendVerifyEmailCode(
       make_tl_object<telegram_api::emailVerifyPurposeLoginChange>(), std::move(new_login_email_address)));
   send_with_promise(std::move(query),
@@ -192,6 +192,13 @@ void PasswordManager::set_login_email_address(string new_login_email_address, Pr
                       }
                       return promise.set_value(SentEmailCode(r_result.move_as_ok()));
                     }));
+}
+
+void PasswordManager::resend_login_email_address_code(Promise<SentEmailCode> promise) {
+  if (last_set_login_email_address_.empty()) {
+    return promise.set_error(Status::Error(400, "No login email address code was sent"));
+  }
+  set_login_email_address(last_set_login_email_address_, std::move(promise));
 }
 
 void PasswordManager::set_recovery_email_address(string password, string new_recovery_email_address,
