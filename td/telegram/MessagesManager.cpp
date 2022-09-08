@@ -7,7 +7,6 @@
 #include "td/telegram/MessagesManager.h"
 
 #include "td/telegram/AuthManager.h"
-#include "td/telegram/AvailableReaction.h"
 #include "td/telegram/ChainId.h"
 #include "td/telegram/ChannelType.h"
 #include "td/telegram/ChatId.h"
@@ -24508,10 +24507,8 @@ vector<string> MessagesManager::get_message_available_reactions(const Dialog *d,
   }
   if (m->reactions != nullptr) {
     for (const auto &reaction : m->reactions->reactions_) {
-      if (reaction.is_chosen() &&
-          get_reaction_type(result, reaction.get_reaction()) == AvailableReactionType::Unavailable) {
-        CHECK(!can_use_reactions ||
-              get_reaction_type(active_reactions_, reaction.get_reaction()) == AvailableReactionType::Unavailable);
+      if (reaction.is_chosen() && !td::contains(result, reaction.get_reaction())) {
+        CHECK(!can_use_reactions || !td::contains(active_reactions_, reaction.get_reaction()));
         result.push_back(reaction.get_reaction());
       }
     }
@@ -24532,14 +24529,8 @@ void MessagesManager::set_message_reaction(FullMessageId full_message_id, string
     return promise.set_error(Status::Error(400, "Message not found"));
   }
 
-  if (!reaction.empty()) {
-    auto reaction_type = get_reaction_type(get_message_available_reactions(d, m), reaction);
-    if (reaction_type == AvailableReactionType::Unavailable) {
-      return promise.set_error(Status::Error(400, "The reaction isn't available for the message"));
-    }
-    if (reaction_type == AvailableReactionType::NeedsPremium) {
-      return promise.set_error(Status::Error(400, "The reaction is available only for Telegram Premium users"));
-    }
+  if (!reaction.empty() && !td::contains(get_message_available_reactions(d, m), reaction)) {
+    return promise.set_error(Status::Error(400, "The reaction isn't available for the message"));
   }
 
   bool can_get_added_reactions = !is_broadcast_channel(dialog_id) && dialog_id.get_type() != DialogType::User &&
