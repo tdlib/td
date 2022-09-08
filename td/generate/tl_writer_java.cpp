@@ -234,8 +234,11 @@ std::string TD_TL_writer_java::gen_class_begin(const std::string &class_name, co
     full_class_name += "<" + fetched_type + ">";
   }
   std::string result = "    public " + std::string(is_proxy ? "abstract " : "") + full_class_name + " {\n";
+  if (is_proxy) {
+    result += "        public " + class_name + "() {\n        }\n";
+  }
   if (class_name == gen_base_tl_class_name() || class_name == gen_base_function_class_name()) {
-    result += "        public native String toString();\n";
+    result += "\n        public native String toString();\n";
   }
 
   return result;
