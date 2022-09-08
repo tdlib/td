@@ -112,7 +112,7 @@ public final class Example {
                 request.applicationVersion = "1.0";
                 request.enableStorageOptimizer = true;
 
-                client.send(parameters, new AuthorizationRequestHandler());
+                client.send(request, new AuthorizationRequestHandler());
                 break;
             case TdApi.AuthorizationStateWaitPhoneNumber.CONSTRUCTOR: {
                 String phoneNumber = promptString("Please enter phone number: ");
@@ -122,6 +122,16 @@ public final class Example {
             case TdApi.AuthorizationStateWaitOtherDeviceConfirmation.CONSTRUCTOR: {
                 String link = ((TdApi.AuthorizationStateWaitOtherDeviceConfirmation) Example.authorizationState).link;
                 System.out.println("Please confirm this login link on another device: " + link);
+                break;
+            }
+            case TdApi.AuthorizationStateWaitEmailAddress.CONSTRUCTOR: {
+                String emailAddress = promptString("Please enter email address: ");
+                client.send(new TdApi.SetAuthenticationEmailAddress(emailAddress), new AuthorizationRequestHandler());
+                break;
+            }
+            case TdApi.AuthorizationStateWaitEmailCode.CONSTRUCTOR: {
+                String code = promptString("Please enter email authentication code: ");
+                client.send(new TdApi.CheckAuthenticationEmailCode(new TdApi.EmailAddressAuthenticationCode(code)), new AuthorizationRequestHandler());
                 break;
             }
             case TdApi.AuthorizationStateWaitCode.CONSTRUCTOR: {
