@@ -24458,7 +24458,11 @@ void MessagesManager::on_get_scheduled_messages_from_database(DialogId dialog_id
   set_promises(promises);
 }
 
-Result<vector<string>> MessagesManager::get_message_available_reactions(FullMessageId full_message_id) {
+bool MessagesManager::is_active_reaction(const string &reaction) const {
+  return !reaction.empty() && (reaction[0] == '#' || active_reaction_pos_.count(reaction) > 0);
+}
+
+Result<ChatReactions> MessagesManager::get_message_available_reactions(FullMessageId full_message_id) {
   auto dialog_id = full_message_id.get_dialog_id();
   Dialog *d = get_dialog_force(dialog_id, "get_message_available_reactions");
   if (d == nullptr) {
@@ -24472,7 +24476,7 @@ Result<vector<string>> MessagesManager::get_message_available_reactions(FullMess
   return get_message_available_reactions(d, m);
 }
 
-vector<string> MessagesManager::get_message_available_reactions(const Dialog *d, const Message *m) {
+ChatReactions MessagesManager::get_message_available_reactions(const Dialog *d, const Message *m) {
   CHECK(d != nullptr);
   CHECK(m != nullptr);
   auto active_reactions = get_message_active_reactions(d, m);
@@ -24490,30 +24494,31 @@ vector<string> MessagesManager::get_message_available_reactions(const Dialog *d,
     }
   }
 
-  vector<string> result;
-  if (can_use_reactions) {
-    int64 reactions_uniq_max = td_->option_manager_->get_option_integer("reactions_uniq_max", 11);
-    bool can_add_new_reactions =
-        m->reactions == nullptr || static_cast<int64>(m->reactions->reactions_.size()) < reactions_uniq_max;
-    // can add only active available reactions or remove previously set reaction
-    for (const auto &active_reaction : active_reactions_) {
-      // can add the reaction if it has already been used for the message or is available in the chat
-      bool is_set = (m->reactions != nullptr && m->reactions->get_reaction(active_reaction) != nullptr);
-      if (is_set || (can_add_new_reactions &&
-                     (active_reactions.allow_all_ || td::contains(active_reactions.reactions_, active_reaction)))) {
-        result.push_back(active_reaction);
-      }
-    }
+  int64 reactions_uniq_max = td_->option_manager_->get_option_integer("reactions_uniq_max", 11);
+  bool can_add_new_reactions =
+      m->reactions == nullptr || static_cast<int64>(m->reactions->reactions_.size()) < reactions_uniq_max;
+
+  if (!can_use_reactions || !can_add_new_reactions) {
+    active_reactions = ChatReactions();
+  }
+
+  if (active_reactions.allow_all_) {
+    active_reactions.reactions_ = active_reactions_;
+    active_reactions.allow_all_ = false;
   }
   if (m->reactions != nullptr) {
     for (const auto &reaction : m->reactions->reactions_) {
-      if (reaction.is_chosen() && !td::contains(result, reaction.get_reaction())) {
-        CHECK(!can_use_reactions || !td::contains(active_reactions_, reaction.get_reaction()));
-        result.push_back(reaction.get_reaction());
+      // we always can remove a currently chosen reaction
+      // an already used reaction can be added if it is an active reaction
+      const string &reaction_str = reaction.get_reaction();
+      if (reaction.is_chosen() || (can_use_reactions && is_active_reaction(reaction_str))) {
+        if (!td::contains(active_reactions.reactions_, reaction_str)) {
+          active_reactions.reactions_.push_back(reaction_str);
+        }
       }
     }
   }
-  return result;
+  return active_reactions;
 }
 
 void MessagesManager::set_message_reaction(FullMessageId full_message_id, string reaction, bool is_big,
@@ -24529,7 +24534,7 @@ void MessagesManager::set_message_reaction(FullMessageId full_message_id, string
     return promise.set_error(Status::Error(400, "Message not found"));
   }
 
-  if (!reaction.empty() && !td::contains(get_message_available_reactions(d, m), reaction)) {
+  if (!reaction.empty() && !td::contains(get_message_available_reactions(d, m).reactions_, reaction)) {
     return promise.set_error(Status::Error(400, "The reaction isn't available for the message"));
   }
 

@@ -805,7 +805,7 @@ class MessagesManager final : public Actor {
   vector<MessageId> get_dialog_scheduled_messages(DialogId dialog_id, bool force, bool ignore_result,
                                                   Promise<Unit> &&promise);
 
-  Result<vector<string>> get_message_available_reactions(FullMessageId full_message_id);
+  Result<ChatReactions> get_message_available_reactions(FullMessageId full_message_id);
 
   void set_message_reaction(FullMessageId full_message_id, string reaction, bool is_big, bool add_to_recent,
                             Promise<Unit> &&promise);
@@ -2687,7 +2687,9 @@ class MessagesManager final : public Actor {
 
   bool update_dialog_silent_send_message(Dialog *d, bool silent_send_message);
 
-  vector<string> get_message_available_reactions(const Dialog *d, const Message *m);
+  bool is_active_reaction(const string &reaction) const;
+
+  ChatReactions get_message_available_reactions(const Dialog *d, const Message *m);
 
   void on_set_message_reaction(FullMessageId full_message_id, Result<Unit> result, Promise<Unit> promise);
 

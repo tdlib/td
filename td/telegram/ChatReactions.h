@@ -38,6 +38,8 @@ struct ChatReactions {
 
   td_api::object_ptr<td_api::ChatAvailableReactions> get_chat_available_reactions_object() const;
 
+  td_api::object_ptr<td_api::availableReactions> get_available_reactions_object() const;
+
   bool empty() const {
     return reactions_.empty() && !allow_all_;
   }
