@@ -8,7 +8,6 @@
 
 #include "td/telegram/AccessRights.h"
 #include "td/telegram/AffectedHistory.h"
-#include "td/telegram/AvailableReaction.h"
 #include "td/telegram/ChannelId.h"
 #include "td/telegram/ChatReactions.h"
 #include "td/telegram/DialogAction.h"
@@ -538,7 +537,7 @@ class MessagesManager final : public Actor {
 
   void set_dialog_description(DialogId dialog_id, const string &description, Promise<Unit> &&promise);
 
-  void set_active_reactions(vector<AvailableReaction> active_reactions);
+  void set_active_reactions(vector<string> active_reactions);
 
   void set_dialog_available_reactions(DialogId dialog_id,
                                       td_api::object_ptr<td_api::ChatAvailableReactions> &&available_reactions_ptr,
@@ -806,7 +805,7 @@ class MessagesManager final : public Actor {
   vector<MessageId> get_dialog_scheduled_messages(DialogId dialog_id, bool force, bool ignore_result,
                                                   Promise<Unit> &&promise);
 
-  Result<vector<AvailableReaction>> get_message_available_reactions(FullMessageId full_message_id);
+  Result<vector<string>> get_message_available_reactions(FullMessageId full_message_id);
 
   void set_message_reaction(FullMessageId full_message_id, string reaction, bool is_big, bool add_to_recent,
                             Promise<Unit> &&promise);
@@ -2688,7 +2687,7 @@ class MessagesManager final : public Actor {
 
   bool update_dialog_silent_send_message(Dialog *d, bool silent_send_message);
 
-  vector<AvailableReaction> get_message_available_reactions(const Dialog *d, const Message *m);
+  vector<string> get_message_available_reactions(const Dialog *d, const Message *m);
 
   void on_set_message_reaction(FullMessageId full_message_id, Result<Unit> result, Promise<Unit> promise);
 
@@ -3735,7 +3734,7 @@ class MessagesManager final : public Actor {
   };
   FlatHashMap<FullMessageId, PendingReaction, FullMessageIdHash> pending_reactions_;
 
-  vector<AvailableReaction> active_reactions_;
+  vector<string> active_reactions_;
   FlatHashMap<string, size_t> active_reaction_pos_;
 
   uint32 scheduled_messages_sync_generation_ = 1;

@@ -101,6 +101,7 @@ class FileDb final : public FileDbInterface {
 
       pmc.commit_transaction().ensure();
     }
+
     void store_file_data(FileDbId id, const string &file_data, const string &remote_key, const string &local_key,
                          const string &generate_key) {
       auto &pmc = file_pmc();
@@ -125,6 +126,7 @@ class FileDb final : public FileDbInterface {
 
       pmc.commit_transaction().ensure();
     }
+
     void store_file_data_ref(FileDbId id, FileDbId new_id) {
       auto &pmc = file_pmc();
       pmc.begin_write_transaction().ensure();
@@ -202,6 +204,7 @@ class FileDb final : public FileDbInterface {
     }
     send_closure(file_db_actor_, &FileDbActor::clear_file_data, id, remote_key, local_key, generate_key);
   }
+
   void set_file_data(FileDbId id, const FileData &file_data, bool new_remote, bool new_local, bool new_generate) final {
     string remote_key;
     if (file_data.remote_.type() == RemoteFileLocation::Type::Full && new_remote) {

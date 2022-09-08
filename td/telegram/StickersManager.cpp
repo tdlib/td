@@ -8,7 +8,6 @@
 
 #include "td/telegram/AccessRights.h"
 #include "td/telegram/AuthManager.h"
-#include "td/telegram/AvailableReaction.h"
 #include "td/telegram/ConfigManager.h"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/DialogId.h"
@@ -3699,7 +3698,7 @@ void StickersManager::load_reactions() {
 }
 
 void StickersManager::update_active_reactions() {
-  vector<AvailableReaction> active_reactions;
+  vector<string> active_reactions;
   for (auto &reaction : reactions_.reactions_) {
     if (reaction.is_active_) {
       active_reactions.emplace_back(reaction.reaction_);

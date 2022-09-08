@@ -13,24 +13,10 @@
 
 namespace td {
 
-struct AvailableReaction {
-  string reaction_;
-
-  explicit AvailableReaction(const string &reaction) : reaction_(reaction) {
-  }
-};
-
-bool operator==(const AvailableReaction &lhs, const AvailableReaction &rhs);
-
-inline bool operator!=(const AvailableReaction &lhs, const AvailableReaction &rhs) {
-  return !(lhs == rhs);
-}
-
 enum class AvailableReactionType : int32 { Unavailable, Available, NeedsPremium };
 
-AvailableReactionType get_reaction_type(const vector<AvailableReaction> &reactions, const string &reaction);
+AvailableReactionType get_reaction_type(const vector<string> &reactions, const string &reaction);
 
-ChatReactions get_active_reactions(const ChatReactions &available_reactions,
-                                   const vector<AvailableReaction> &active_reactions);
+ChatReactions get_active_reactions(const ChatReactions &available_reactions, const vector<string> &active_reactions);
 
 }  // namespace td
