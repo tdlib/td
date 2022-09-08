@@ -20,21 +20,4 @@ AvailableReactionType get_reaction_type(const vector<string> &available_reaction
   return AvailableReactionType::Unavailable;
 }
 
-ChatReactions get_active_reactions(const ChatReactions &available_reactions, const vector<string> &active_reactions) {
-  if (available_reactions.reactions_.empty()) {
-    // fast path
-    return available_reactions;
-  }
-  CHECK(!available_reactions.allow_all_);
-  CHECK(!available_reactions.allow_custom_);
-
-  vector<string> result;
-  for (const auto &active_reaction : active_reactions) {
-    if (td::contains(available_reactions.reactions_, active_reaction)) {
-      result.push_back(active_reaction);
-    }
-  }
-  return ChatReactions(std::move(result));
-}
-
 }  // namespace td

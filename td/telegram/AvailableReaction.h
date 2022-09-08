@@ -17,6 +17,4 @@ enum class AvailableReactionType : int32 { Unavailable, Available, NeedsPremium 
 
 AvailableReactionType get_reaction_type(const vector<string> &reactions, const string &reaction);
 
-ChatReactions get_active_reactions(const ChatReactions &available_reactions, const vector<string> &active_reactions);
-
 }  // namespace td

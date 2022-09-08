@@ -8263,8 +8263,8 @@ void MessagesManager::set_active_reactions(vector<string> active_reactions) {
         break;
       case DialogType::Chat:
       case DialogType::Channel: {
-        auto old_reactions = ::td::get_active_reactions(d->available_reactions, old_active_reactions);
-        auto new_reactions = ::td::get_active_reactions(d->available_reactions, active_reactions_);
+        auto old_reactions = d->available_reactions.get_active_reactions(old_active_reactions);
+        auto new_reactions = d->available_reactions.get_active_reactions(active_reactions_);
         if (old_reactions != new_reactions) {
           if (old_reactions.empty() != new_reactions.empty()) {
             if (!old_reactions.empty()) {
@@ -8287,7 +8287,7 @@ void MessagesManager::set_active_reactions(vector<string> active_reactions) {
 }
 
 ChatReactions MessagesManager::get_active_reactions(const ChatReactions &available_reactions) const {
-  return ::td::get_active_reactions(available_reactions, active_reactions_);
+  return available_reactions.get_active_reactions(active_reactions_);
 }
 
 ChatReactions MessagesManager::get_dialog_active_reactions(const Dialog *d) const {

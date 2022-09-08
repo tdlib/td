@@ -32,6 +32,8 @@ struct ChatReactions {
   ChatReactions(bool allow_all, bool allow_custom) : allow_all_(allow_all), allow_custom_(allow_custom) {
   }
 
+  ChatReactions get_active_reactions(const vector<string> &active_reactions) const;
+
   telegram_api::object_ptr<telegram_api::ChatReactions> get_input_chat_reactions() const;
 
   td_api::object_ptr<td_api::ChatAvailableReactions> get_chat_available_reactions_object() const;
