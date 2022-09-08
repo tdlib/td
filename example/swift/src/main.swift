@@ -123,6 +123,17 @@ func updateAuthorizationState(authorizationState: Dictionary<String, Any>) {
             let phone_number = myReadLine()
             client.queryAsync(query:["@type":"setAuthenticationPhoneNumber", "phone_number":phone_number], f:checkAuthenticationError)
 
+        case "authorizationStateWaitEmailAddress":
+            print("Enter your email address: ")
+            let email_address = myReadLine()
+            client.queryAsync(query:["@type":"setAuthenticationEmailAddress", "email_address":email_address], f:checkAuthenticationError)
+
+        case "authorizationStateWaitEmailCode":
+            var code: String = ""
+            print("Enter email code: ")
+            code = myReadLine()
+            client.queryAsync(query:["@type":"checkAuthenticationEmailCode", "code":["@type":"emailAddressAuthenticationCode", "code":code]], f:checkAuthenticationError)
+
         case "authorizationStateWaitCode":
             var code: String = ""
             print("Enter (SMS) code: ")
