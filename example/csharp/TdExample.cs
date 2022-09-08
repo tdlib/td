@@ -85,6 +85,16 @@ namespace TdExample
                 string phoneNumber = ReadLine("Please enter phone number: ");
                 _client.Send(new TdApi.SetAuthenticationPhoneNumber(phoneNumber, null), new AuthorizationRequestHandler());
             }
+            else if (_authorizationState is TdApi.AuthorizationStateWaitEmailAddress)
+            {
+                string emailAddress = ReadLine("Please enter email address: ");
+                _client.Send(new TdApi.SetAuthenticationEmailAddress(emailAddress), new AuthorizationRequestHandler());
+            }
+            else if (_authorizationState is TdApi.AuthorizationStateWaitEmailCode)
+            {
+                string code = ReadLine("Please enter email authentication code: ");
+                _client.Send(new TdApi.CheckAuthenticationEmailCode(new TdApi.EmailAddressAuthenticationCode(code)), new AuthorizationRequestHandler());
+            }
             else if (_authorizationState is TdApi.AuthorizationStateWaitOtherDeviceConfirmation state)
             {
                 Console.WriteLine("Please confirm this login link on another device: " + state.Link);
