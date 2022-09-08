@@ -194,7 +194,15 @@ std::string TD_TL_writer_java::gen_output_begin() const {
   return "package " + package_name +
          ";\n\n"
          "public class " +
-         tl_name + " {\n";
+         tl_name +
+         " {\n"
+         "    static {\n"
+         "        try {\n"
+         "            System.loadLibrary(\"tdjni\");\n"
+         "        } catch (UnsatisfiedLinkError e) {\n"
+         "            e.printStackTrace();\n" +
+         "        }\n"
+         "    }\n\n";
 }
 
 std::string TD_TL_writer_java::gen_output_end() const {
