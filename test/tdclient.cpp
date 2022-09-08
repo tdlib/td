@@ -214,6 +214,13 @@ class DoAuthentication final : public TestClinetTask {
       case td::td_api::authorizationStateWaitPhoneNumber::ID:
         function = td::make_tl_object<td::td_api::setAuthenticationPhoneNumber>(phone_, nullptr);
         break;
+      case td::td_api::authorizationStateWaitEmailAddress::ID:
+        function = td::make_tl_object<td::td_api::setAuthenticationEmailAddress>("alice_test@gmail.com");
+        break;
+      case td::td_api::authorizationStateWaitEmailCode::ID:
+        function = td::make_tl_object<td::td_api::checkAuthenticationEmailCode>(
+            td::make_tl_object<td::td_api::emailAddressAuthenticationCode>(code_));
+        break;
       case td::td_api::authorizationStateWaitCode::ID:
         function = td::make_tl_object<td::td_api::checkAuthenticationCode>(code_);
         break;
