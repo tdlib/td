@@ -96,6 +96,18 @@ namespace TdApp
                 AcceptCommand(command);
                 _client.Send(new TdApi.SetAuthenticationPhoneNumber(args[1], null), _handler);
             }
+            else if (command.StartsWith("sae"))
+            {
+                var args = command.Split(" ".ToCharArray(), 2);
+                AcceptCommand(command);
+                _client.Send(new TdApi.SetAuthenticationEmailAddress(args[1]), _handler);
+            }
+            else if (command.StartsWith("caec"))
+            {
+                var args = command.Split(" ".ToCharArray(), 2);
+                AcceptCommand(command);
+                _client.Send(new TdApi.CheckAuthenticationEmailCode(new TdApi.EmailAddressAuthenticationCode(args[1])), _handler);
+            }
             else if (command.StartsWith("cac"))
             {
                 var args = command.Split(" ".ToCharArray(), 2);
