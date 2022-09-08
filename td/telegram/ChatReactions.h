@@ -10,6 +10,7 @@
 #include "td/telegram/telegram_api.h"
 
 #include "td/utils/common.h"
+#include "td/utils/FlatHashMap.h"
 #include "td/utils/StringBuilder.h"
 #include "td/utils/tl_helpers.h"
 
@@ -32,7 +33,7 @@ struct ChatReactions {
   ChatReactions(bool allow_all, bool allow_custom) : allow_all_(allow_all), allow_custom_(allow_custom) {
   }
 
-  ChatReactions get_active_reactions(const vector<string> &active_reactions) const;
+  ChatReactions get_active_reactions(const FlatHashMap<string, size_t> &active_reaction_pos) const;
 
   telegram_api::object_ptr<telegram_api::ChatReactions> get_input_chat_reactions() const;
 

@@ -680,6 +680,10 @@ StringBuilder &operator<<(StringBuilder &string_builder, const unique_ptr<Messag
   return string_builder << *reactions;
 }
 
+bool is_active_reaction(const string &reaction, const FlatHashMap<string, size_t> &active_reaction_pos) {
+  return !reaction.empty() && (reaction[0] == '#' || active_reaction_pos.count(reaction) > 0);
+}
+
 void reload_message_reactions(Td *td, DialogId dialog_id, vector<MessageId> &&message_ids) {
   if (!td->messages_manager_->have_input_peer(dialog_id, AccessRights::Read) || message_ids.empty()) {
     return;

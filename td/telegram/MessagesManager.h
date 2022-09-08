@@ -2687,8 +2687,6 @@ class MessagesManager final : public Actor {
 
   bool update_dialog_silent_send_message(Dialog *d, bool silent_send_message);
 
-  bool is_active_reaction(const string &reaction) const;
-
   ChatReactions get_message_available_reactions(const Dialog *d, const Message *m);
 
   void on_set_message_reaction(FullMessageId full_message_id, Result<Unit> result, Promise<Unit> promise);

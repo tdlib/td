@@ -60,21 +60,15 @@ ChatReactions::ChatReactions(td_api::object_ptr<td_api::ChatAvailableReactions> 
   }
 }
 
-ChatReactions ChatReactions::get_active_reactions(const vector<string> &active_reactions) const {
-  if (reactions_.empty()) {
-    // fast path
-    return *this;
+ChatReactions ChatReactions::get_active_reactions(const FlatHashMap<string, size_t> &active_reaction_pos) const {
+  ChatReactions result = *this;
+  if (!reactions_.empty()) {
+    CHECK(!allow_all_);
+    CHECK(!allow_custom_);
+    td::remove_if(result.reactions_,
+                  [&](const string &reaction) { return !is_active_reaction(reaction, active_reaction_pos); });
   }
-  CHECK(!allow_all_);
-  CHECK(!allow_custom_);
-
-  vector<string> result;
-  for (const auto &active_reaction : active_reactions) {
-    if (td::contains(reactions_, active_reaction)) {
-      result.push_back(active_reaction);
-    }
-  }
-  return ChatReactions(std::move(result));
+  return result;
 }
 
 td_api::object_ptr<td_api::ChatAvailableReactions> ChatReactions::get_chat_available_reactions_object() const {

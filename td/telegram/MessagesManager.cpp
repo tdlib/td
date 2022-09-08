@@ -8241,15 +8241,13 @@ void MessagesManager::set_active_reactions(vector<string> active_reactions) {
     return;
   }
 
-  auto old_active_reactions = std::move(active_reactions_);
+  bool is_changed = active_reactions != active_reactions_;
   active_reactions_ = std::move(active_reactions);
+
+  auto old_active_reaction_pos_ = std::move(active_reaction_pos_);
   active_reaction_pos_.clear();
-  bool is_changed = old_active_reactions.size() != active_reactions_.size();
   for (size_t i = 0; i < active_reactions_.size(); i++) {
     active_reaction_pos_[active_reactions_[i]] = i;
-    if (!is_changed && active_reactions_[i] != old_active_reactions[i]) {
-      is_changed = true;
-    }
   }
 
   dialogs_.foreach([&](const DialogId &dialog_id, unique_ptr<Dialog> &dialog) {
@@ -8262,8 +8260,8 @@ void MessagesManager::set_active_reactions(vector<string> active_reactions) {
         break;
       case DialogType::Chat:
       case DialogType::Channel: {
-        auto old_reactions = d->available_reactions.get_active_reactions(old_active_reactions);
-        auto new_reactions = d->available_reactions.get_active_reactions(active_reactions_);
+        auto old_reactions = d->available_reactions.get_active_reactions(old_active_reaction_pos_);
+        auto new_reactions = d->available_reactions.get_active_reactions(active_reaction_pos_);
         if (old_reactions != new_reactions) {
           if (old_reactions.empty() != new_reactions.empty()) {
             if (!old_reactions.empty()) {
@@ -8286,7 +8284,7 @@ void MessagesManager::set_active_reactions(vector<string> active_reactions) {
 }
 
 ChatReactions MessagesManager::get_active_reactions(const ChatReactions &available_reactions) const {
-  return available_reactions.get_active_reactions(active_reactions_);
+  return available_reactions.get_active_reactions(active_reaction_pos_);
 }
 
 ChatReactions MessagesManager::get_dialog_active_reactions(const Dialog *d) const {
@@ -24458,10 +24456,6 @@ void MessagesManager::on_get_scheduled_messages_from_database(DialogId dialog_id
   set_promises(promises);
 }
 
-bool MessagesManager::is_active_reaction(const string &reaction) const {
-  return !reaction.empty() && (reaction[0] == '#' || active_reaction_pos_.count(reaction) > 0);
-}
-
 Result<ChatReactions> MessagesManager::get_message_available_reactions(FullMessageId full_message_id) {
   auto dialog_id = full_message_id.get_dialog_id();
   Dialog *d = get_dialog_force(dialog_id, "get_message_available_reactions");
@@ -24511,7 +24505,7 @@ ChatReactions MessagesManager::get_message_available_reactions(const Dialog *d, 
       // we always can remove a currently chosen reaction
       // an already used reaction can be added if it is an active reaction
       const string &reaction_str = reaction.get_reaction();
-      if (reaction.is_chosen() || (can_use_reactions && is_active_reaction(reaction_str))) {
+      if (reaction.is_chosen() || (can_use_reactions && is_active_reaction(reaction_str, active_reaction_pos_))) {
         if (!td::contains(active_reactions.reactions_, reaction_str)) {
           active_reactions.reactions_.push_back(reaction_str);
         }
