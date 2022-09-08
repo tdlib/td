@@ -110,6 +110,17 @@ while True:
                 phone_number = input('Please enter your phone number: ')
                 td_send({'@type': 'setAuthenticationPhoneNumber', 'phone_number': phone_number})
 
+            # enter email address to log in
+            if auth_state['@type'] == 'authorizationStateWaitEmailAddress':
+                email_address = input('Please enter your email address: ')
+                td_send({'@type': 'setAuthenticationEmailAddress', 'email_address': email_address})
+
+            # wait for email authorization code
+            if auth_state['@type'] == 'authorizationStateWaitEmailCode':
+                code = input('Please enter the email authentication code you received: ')
+                td_send({'@type': 'checkAuthenticationEmailCode',
+                         'code': {'@type': 'emailAddressAuthenticationCode', 'code' : 'code'}})
+
             # wait for authorization code
             if auth_state['@type'] == 'authorizationStateWaitCode':
                 code = input('Please enter the authentication code you received: ')
