@@ -152,14 +152,18 @@ EOT
 
         $this->addDocumentation('        public abstract int getConstructor();', <<<EOT
         /**
-         * @return identifier uniquely determining type of the object.
+         * Returns an identifier uniquely determining type of the object.
+         *
+         * @return a unique identifier of the object type.
          */
 EOT
 );
 
         $this->addDocumentation('        public native String toString();', <<<EOT
         /**
-         * @return string representation of the object.
+         * Returns a string representation of the object.
+         *
+         * @return a string representation of the object.
          */
 EOT
 );
