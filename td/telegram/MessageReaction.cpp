@@ -51,7 +51,7 @@ telegram_api::object_ptr<telegram_api::Reaction> get_input_reaction(const string
   if (reaction.empty()) {
     return telegram_api::make_object<telegram_api::reactionEmpty>();
   }
-  if (reaction[0] == '#') {
+  if (is_custom_reaction(reaction)) {
     return telegram_api::make_object<telegram_api::reactionCustomEmoji>(get_custom_emoji_id(reaction));
   }
   return telegram_api::make_object<telegram_api::reactionEmoji>(reaction);
@@ -66,7 +66,7 @@ string get_message_reaction_string(const telegram_api::object_ptr<telegram_api::
       return string();
     case telegram_api::reactionEmoji::ID: {
       const string &emoji = static_cast<const telegram_api::reactionEmoji *>(reaction.get())->emoticon_;
-      if (emoji[0] == '#') {
+      if (is_custom_reaction(emoji)) {
         return string();
       }
       return emoji;
@@ -82,7 +82,7 @@ string get_message_reaction_string(const telegram_api::object_ptr<telegram_api::
 
 td_api::object_ptr<td_api::ReactionType> get_reaction_type_object(const string &reaction) {
   CHECK(!reaction.empty());
-  if (reaction[0] == '#') {
+  if (is_custom_reaction(reaction)) {
     return td_api::make_object<td_api::reactionTypeCustomEmoji>(get_custom_emoji_id(reaction));
   }
   return td_api::make_object<td_api::reactionTypeEmoji>(reaction);
@@ -95,7 +95,7 @@ string get_message_reaction_string(const td_api::object_ptr<td_api::ReactionType
   switch (type->get_id()) {
     case td_api::reactionTypeEmoji::ID: {
       const string &emoji = static_cast<const td_api::reactionTypeEmoji *>(type.get())->emoji_;
-      if (!check_utf8(emoji) || emoji[0] == '#') {
+      if (!check_utf8(emoji) || is_custom_reaction(emoji)) {
         return string();
       }
       return emoji;
@@ -675,8 +675,12 @@ StringBuilder &operator<<(StringBuilder &string_builder, const unique_ptr<Messag
   return string_builder << *reactions;
 }
 
+bool is_custom_reaction(const string &reaction) {
+  return reaction[0] == '#';
+}
+
 bool is_active_reaction(const string &reaction, const FlatHashMap<string, size_t> &active_reaction_pos) {
-  return !reaction.empty() && (reaction[0] == '#' || active_reaction_pos.count(reaction) > 0);
+  return !reaction.empty() && (is_custom_reaction(reaction) || active_reaction_pos.count(reaction) > 0);
 }
 
 void reload_message_reactions(Td *td, DialogId dialog_id, vector<MessageId> &&message_ids) {
@@ -726,7 +730,7 @@ void set_default_reaction(Td *td, string reaction, Promise<Unit> &&promise) {
   if (reaction.empty()) {
     return promise.set_error(Status::Error(400, "Default reaction must be non-empty"));
   }
-  if (reaction[0] != '#' && !td->stickers_manager_->is_active_reaction(reaction)) {
+  if (!is_custom_reaction(reaction) && !td->stickers_manager_->is_active_reaction(reaction)) {
     return promise.set_error(Status::Error(400, "Can't set incative reaction as default"));
   }
 

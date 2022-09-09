@@ -181,6 +181,8 @@ string get_message_reaction_string(const telegram_api::object_ptr<telegram_api::
 
 string get_message_reaction_string(const td_api::object_ptr<td_api::ReactionType> &type);
 
+bool is_custom_reaction(const string &reaction);
+
 bool is_active_reaction(const string &reaction, const FlatHashMap<string, size_t> &active_reaction_pos);
 
 void reload_message_reactions(Td *td, DialogId dialog_id, vector<MessageId> &&message_ids);

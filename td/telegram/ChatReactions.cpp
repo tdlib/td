@@ -73,7 +73,7 @@ ChatReactions ChatReactions::get_active_reactions(const FlatHashMap<string, size
 
 bool ChatReactions::is_allowed_reaction(const string &reaction) const {
   CHECK(!allow_all_);
-  if (allow_custom_ && reaction[0] == '#') {
+  if (allow_custom_ && is_custom_reaction(reaction)) {
     return true;
   }
   return td::contains(reactions_, reaction);
