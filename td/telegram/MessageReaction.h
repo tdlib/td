@@ -185,8 +185,8 @@ bool is_active_reaction(const string &reaction, const FlatHashMap<string, size_t
 
 void reload_message_reactions(Td *td, DialogId dialog_id, vector<MessageId> &&message_ids);
 
-void set_message_reaction(Td *td, FullMessageId full_message_id, string reaction, bool is_big, bool add_to_recent,
-                          Promise<Unit> &&promise);
+void send_message_reaction(Td *td, FullMessageId full_message_id, vector<string> reactions, bool is_big,
+                           bool add_to_recent, Promise<Unit> &&promise);
 
 void get_message_added_reactions(Td *td, FullMessageId full_message_id, string reaction, string offset, int32 limit,
                                  Promise<td_api::object_ptr<td_api::addedReactions>> &&promise);

@@ -169,7 +169,7 @@ class SendReactionQuery final : public Td::ResultHandler {
   explicit SendReactionQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(FullMessageId full_message_id, string reaction, bool is_big, bool add_to_recent) {
+  void send(FullMessageId full_message_id, vector<string> reactions, bool is_big, bool add_to_recent) {
     dialog_id_ = full_message_id.get_dialog_id();
 
     auto input_peer = td_->messages_manager_->get_input_peer(dialog_id_, AccessRights::Read);
@@ -178,7 +178,7 @@ class SendReactionQuery final : public Td::ResultHandler {
     }
 
     int32 flags = 0;
-    if (!reaction.empty()) {
+    if (!reactions.empty()) {
       flags |= telegram_api::messages_sendReaction::REACTION_MASK;
 
       if (is_big) {
@@ -190,15 +190,10 @@ class SendReactionQuery final : public Td::ResultHandler {
       }
     }
 
-    vector<telegram_api::object_ptr<telegram_api::Reaction>> reactions;
-    if (!reaction.empty()) {
-      reactions.push_back(get_input_reaction(reaction));
-    }
-
     send_query(G()->net_query_creator().create(
         telegram_api::messages_sendReaction(flags, false /*ignored*/, false /*ignored*/, std::move(input_peer),
                                             full_message_id.get_message_id().get_server_message_id().get(),
-                                            std::move(reactions)),
+                                            transform(reactions, get_input_reaction)),
         {{dialog_id_}, {full_message_id}}));
   }
 
@@ -697,10 +692,10 @@ void reload_message_reactions(Td *td, DialogId dialog_id, vector<MessageId> &&me
   td->create_handler<GetMessagesReactionsQuery>()->send(dialog_id, std::move(message_ids));
 }
 
-void set_message_reaction(Td *td, FullMessageId full_message_id, string reaction, bool is_big, bool add_to_recent,
-                          Promise<Unit> &&promise) {
+void send_message_reaction(Td *td, FullMessageId full_message_id, vector<string> reactions, bool is_big,
+                           bool add_to_recent, Promise<Unit> &&promise) {
   td->create_handler<SendReactionQuery>(std::move(promise))
-      ->send(full_message_id, std::move(reaction), is_big, add_to_recent);
+      ->send(full_message_id, std::move(reactions), is_big, add_to_recent);
 }
 
 void get_message_added_reactions(Td *td, FullMessageId full_message_id, string reaction, string offset, int32 limit,

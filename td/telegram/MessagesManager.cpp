@@ -24569,7 +24569,7 @@ void MessagesManager::add_message_reaction(FullMessageId full_message_id, string
     m->reactions->reactions_.emplace_back(reaction, 1, true, std::move(recent_chooser_dialog_ids), Auto());
   }
 
-  set_message_reactions(d, m, reaction, is_big, add_to_recent, std::move(promise));
+  set_message_reactions(d, m, is_big, add_to_recent, std::move(promise));
 }
 
 void MessagesManager::remove_message_reaction(FullMessageId full_message_id, string reaction, Promise<Unit> &&promise) {
@@ -24612,17 +24612,23 @@ void MessagesManager::remove_message_reaction(FullMessageId full_message_id, str
     return promise.set_value(Unit());
   }
 
-  set_message_reactions(d, m, reaction, false, false, std::move(promise));
+  set_message_reactions(d, m, false, false, std::move(promise));
 }
 
-void MessagesManager::set_message_reactions(Dialog *d, Message *m, string reaction, bool is_big, bool add_to_recent,
+void MessagesManager::set_message_reactions(Dialog *d, Message *m, bool is_big, bool add_to_recent,
                                             Promise<Unit> &&promise) {
   CHECK(m->reactions != nullptr);
+  m->reactions->sort_reactions(active_reaction_pos_);
+
+  vector<string> reactions;
+  for (auto &reaction : m->reactions->reactions_) {
+    if (reaction.is_chosen()) {
+      reactions.push_back(reaction.get_reaction());
+    }
+  }
 
   FullMessageId full_message_id{d->dialog_id, m->message_id};
   pending_reactions_[full_message_id].query_count++;
-
-  m->reactions->sort_reactions(active_reaction_pos_);
 
   send_update_message_interaction_info(d->dialog_id, m);
   on_message_changed(d, m, true, "set_message_reactions");
@@ -24633,8 +24639,7 @@ void MessagesManager::set_message_reactions(Dialog *d, Message *m, string reacti
         send_closure(actor_id, &MessagesManager::on_set_message_reactions, full_message_id, std::move(result),
                      std::move(promise));
       });
-  ::td::set_message_reaction(td_, full_message_id, std::move(reaction), is_big, add_to_recent,
-                             std::move(query_promise));
+  send_message_reaction(td_, full_message_id, std::move(reactions), is_big, add_to_recent, std::move(query_promise));
 }
 
 void MessagesManager::on_set_message_reactions(FullMessageId full_message_id, Result<Unit> result,

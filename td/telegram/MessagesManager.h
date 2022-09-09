@@ -2691,8 +2691,7 @@ class MessagesManager final : public Actor {
 
   ChatReactions get_message_available_reactions(const Dialog *d, const Message *m);
 
-  void set_message_reactions(Dialog *d, Message *m, string reaction, bool is_big, bool add_to_recent,
-                             Promise<Unit> &&promise);
+  void set_message_reactions(Dialog *d, Message *m, bool is_big, bool add_to_recent, Promise<Unit> &&promise);
 
   void on_set_message_reactions(FullMessageId full_message_id, Result<Unit> result, Promise<Unit> promise);
 
