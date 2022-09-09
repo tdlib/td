@@ -1806,6 +1806,11 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
         G()->set_option_integer("themed_emoji_statuses_sticker_set_id", setting_value);
         continue;
       }
+      if (key == "reactions_user_max_default" || key == "reactions_user_max_premium") {
+        auto setting_value = get_json_value_int(std::move(key_value->value_), key);
+        G()->set_option_integer(key, setting_value);
+        continue;
+      }
 
       new_values.push_back(std::move(key_value));
     }
