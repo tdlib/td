@@ -24512,6 +24512,9 @@ ChatReactions MessagesManager::get_message_available_reactions(const Dialog *d, 
       }
     }
   }
+  if (!td_->option_manager_->get_option_boolean("is_premium")) {
+    active_reactions.allow_custom_ = false;
+  }
   return active_reactions;
 }
 

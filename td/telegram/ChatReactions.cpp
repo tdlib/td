@@ -80,7 +80,8 @@ td_api::object_ptr<td_api::ChatAvailableReactions> ChatReactions::get_chat_avail
 
 td_api::object_ptr<td_api::availableReactions> ChatReactions::get_available_reactions_object() const {
   CHECK(!allow_all_);
-  return td_api::make_object<td_api::availableReactions>(transform(reactions_, get_reaction_type_object));
+  return td_api::make_object<td_api::availableReactions>(transform(reactions_, get_reaction_type_object),
+                                                         allow_custom_);
 }
 
 telegram_api::object_ptr<telegram_api::ChatReactions> ChatReactions::get_input_chat_reactions() const {

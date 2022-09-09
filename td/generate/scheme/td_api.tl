@@ -2580,8 +2580,8 @@ addedReaction type:ReactionType sender_id:MessageSender = AddedReaction;
 //@description Represents a list of reactions added to a message @total_count The total number of found reactions @reactions The list of added reactions @next_offset The offset for the next request. If empty, there are no more results
 addedReactions total_count:int32 reactions:vector<addedReaction> next_offset:string = AddedReactions;
 
-//@description Represents a list of available reactions @reactions List of available reactions
-availableReactions reactions:vector<ReactionType> = AvailableReactions;
+//@description Represents a list of reactions that can be added to a message @reactions List of available reactions @allow_custom_emoji True, if any other custom emoji reaction can be added
+availableReactions reactions:vector<ReactionType> allow_custom_emoji:Bool = AvailableReactions;
 
 
 //@description Contains stickers which must be used for emoji reaction animation rendering
