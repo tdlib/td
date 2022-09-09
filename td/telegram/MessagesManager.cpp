@@ -7093,9 +7093,15 @@ bool MessagesManager::update_message_interaction_info(Dialog *d, Message *m, int
           }
         }
       }
-    } else if (m->available_reactions_generation != d->available_reactions_generation) {
-      m->available_reactions_generation = d->available_reactions_generation;
-      on_message_changed(d, m, false, "update_message_interaction_info");
+    } else if (has_reactions) {
+      bool is_changed = false;
+      if (m->available_reactions_generation != d->available_reactions_generation) {
+        m->available_reactions_generation = d->available_reactions_generation;
+        is_changed = true;
+      }
+      if (is_changed) {
+        on_message_changed(d, m, false, "update_message_interaction_info");
+      }
     }
     if (need_update) {
       send_update_message_interaction_info(dialog_id, m);
@@ -7104,7 +7110,7 @@ bool MessagesManager::update_message_interaction_info(Dialog *d, Message *m, int
       send_update_message_unread_reactions(dialog_id, m, new_dialog_unread_reaction_count);
     }
     return true;
-  } else if (m->available_reactions_generation != d->available_reactions_generation) {
+  } else if (has_reactions && m->available_reactions_generation != d->available_reactions_generation) {
     m->available_reactions_generation = d->available_reactions_generation;
     on_message_changed(d, m, false, "update_message_interaction_info");
   }
