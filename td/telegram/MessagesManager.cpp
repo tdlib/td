@@ -6942,7 +6942,7 @@ td_api::object_ptr<td_api::messageInteractionInfo> MessagesManager::get_message_
     DialogId dialog_id, const Message *m) const {
   bool is_visible_reply_info = is_visible_message_reply_info(dialog_id, m);
   bool has_reactions =
-      is_visible_message_reactions(dialog_id, m) && m->reactions != nullptr && !m->reactions->reactions_.empty();
+      m->reactions != nullptr && !m->reactions->reactions_.empty() && is_visible_message_reactions(dialog_id, m);
   if (m->view_count == 0 && m->forward_count == 0 && !is_visible_reply_info && !has_reactions) {
     return nullptr;
   }
@@ -24502,10 +24502,9 @@ ChatReactions MessagesManager::get_message_available_reactions(const Dialog *d, 
   }
   if (m->reactions != nullptr) {
     for (const auto &reaction : m->reactions->reactions_) {
-      // we always can remove a currently chosen reaction
       // an already used reaction can be added if it is an active reaction
       const string &reaction_str = reaction.get_reaction();
-      if (reaction.is_chosen() || (can_use_reactions && is_active_reaction(reaction_str, active_reaction_pos_))) {
+      if (can_use_reactions && is_active_reaction(reaction_str, active_reaction_pos_)) {
         if (!td::contains(active_reactions.reactions_, reaction_str)) {
           active_reactions.reactions_.push_back(reaction_str);
         }
