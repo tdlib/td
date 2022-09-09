@@ -24531,7 +24531,7 @@ void MessagesManager::add_message_reaction(FullMessageId full_message_id, string
     return promise.set_error(Status::Error(400, "Message not found"));
   }
 
-  if (!td::contains(get_message_available_reactions(d, m).reactions_, reaction)) {
+  if (!get_message_available_reactions(d, m).is_allowed_reaction(reaction)) {
     return promise.set_error(Status::Error(400, "The reaction isn't available for the message"));
   }
 
