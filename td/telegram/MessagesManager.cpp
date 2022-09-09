@@ -24526,7 +24526,7 @@ void MessagesManager::add_message_reaction(FullMessageId full_message_id, string
     return promise.set_error(Status::Error(400, "Chat not found"));
   }
 
-  Message *m = get_message_force(d, full_message_id.get_message_id(), "set_message_reaction");
+  Message *m = get_message_force(d, full_message_id.get_message_id(), "add_message_reaction");
   if (m == nullptr) {
     return promise.set_error(Status::Error(400, "Message not found"));
   }
@@ -24535,41 +24535,15 @@ void MessagesManager::add_message_reaction(FullMessageId full_message_id, string
     return promise.set_error(Status::Error(400, "The reaction isn't available for the message"));
   }
 
-  bool can_get_added_reactions = !is_broadcast_channel(dialog_id) && dialog_id.get_type() != DialogType::User &&
-                                 !is_discussion_message(dialog_id, m);
+  bool have_recent_choosers = !is_broadcast_channel(dialog_id) && !is_discussion_message(dialog_id, m);
   if (m->reactions == nullptr) {
     m->reactions = make_unique<MessageReactions>();
-    m->reactions->can_get_added_reactions_ = can_get_added_reactions;
+    m->reactions->can_get_added_reactions_ = have_recent_choosers && dialog_id.get_type() != DialogType::User;
     m->available_reactions_generation = d->available_reactions_generation;
   }
 
-  bool is_found = false;
-  for (auto it = m->reactions->reactions_.begin(); it != m->reactions->reactions_.end();) {
-    auto &message_reaction = *it;
-    if (message_reaction.is_chosen()) {
-      if (message_reaction.get_reaction() == reaction && !is_big) {
-        return promise.set_value(Unit());
-      }
-      message_reaction.set_is_chosen(false, get_my_dialog_id(), can_get_added_reactions);
-    }
-    if (message_reaction.get_reaction() == reaction) {
-      message_reaction.set_is_chosen(true, get_my_dialog_id(), can_get_added_reactions);
-      is_found = true;
-    }
-
-    if (message_reaction.is_empty()) {
-      it = m->reactions->reactions_.erase(it);
-    } else {
-      ++it;
-    }
-  }
-
-  if (!is_found) {
-    vector<DialogId> recent_chooser_dialog_ids;
-    if (!is_broadcast_channel(dialog_id)) {
-      recent_chooser_dialog_ids.push_back(get_my_dialog_id());
-    }
-    m->reactions->reactions_.emplace_back(reaction, 1, true, std::move(recent_chooser_dialog_ids), Auto());
+  if (!m->reactions->add_reaction(reaction, is_big, get_my_dialog_id(), have_recent_choosers)) {
+    return promise.set_value(Unit());
   }
 
   set_message_reactions(d, m, is_big, add_to_recent, std::move(promise));
@@ -24582,36 +24556,13 @@ void MessagesManager::remove_message_reaction(FullMessageId full_message_id, str
     return promise.set_error(Status::Error(400, "Chat not found"));
   }
 
-  Message *m = get_message_force(d, full_message_id.get_message_id(), "set_message_reaction");
+  Message *m = get_message_force(d, full_message_id.get_message_id(), "remove_message_reaction");
   if (m == nullptr) {
     return promise.set_error(Status::Error(400, "Message not found"));
   }
 
-  bool can_get_added_reactions = !is_broadcast_channel(dialog_id) && dialog_id.get_type() != DialogType::User &&
-                                 !is_discussion_message(dialog_id, m);
-  if (m->reactions == nullptr) {
-    return promise.set_value(Unit());
-  }
-
-  bool is_found = false;
-  for (auto it = m->reactions->reactions_.begin(); it != m->reactions->reactions_.end();) {
-    auto &message_reaction = *it;
-    if (message_reaction.get_reaction() == reaction) {
-      if (message_reaction.is_chosen()) {
-        message_reaction.set_is_chosen(false, get_my_dialog_id(), can_get_added_reactions);
-        is_found = true;
-      } else {
-        return promise.set_value(Unit());
-      }
-    }
-
-    if (message_reaction.is_empty()) {
-      it = m->reactions->reactions_.erase(it);
-    } else {
-      ++it;
-    }
-  }
-  if (!is_found) {
+  bool have_recent_choosers = !is_broadcast_channel(dialog_id) && !is_discussion_message(dialog_id, m);
+  if (m->reactions == nullptr || !m->reactions->remove_reaction(reaction, get_my_dialog_id(), have_recent_choosers)) {
     return promise.set_value(Unit());
   }
 

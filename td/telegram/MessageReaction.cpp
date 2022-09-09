@@ -414,7 +414,7 @@ void MessageReaction::update_recent_chooser_dialog_ids(const MessageReaction &ol
   recent_chooser_min_channels_ = old_reaction.recent_chooser_min_channels_;
 }
 
-void MessageReaction::set_is_chosen(bool is_chosen, DialogId chooser_dialog_id, bool can_get_added_reactions) {
+void MessageReaction::set_is_chosen(bool is_chosen, DialogId chooser_dialog_id, bool have_recent_choosers) {
   if (is_chosen_ == is_chosen) {
     return;
   }
@@ -423,7 +423,7 @@ void MessageReaction::set_is_chosen(bool is_chosen, DialogId chooser_dialog_id, 
 
   if (chooser_dialog_id.is_valid()) {
     choose_count_ += is_chosen_ ? 1 : -1;
-    if (can_get_added_reactions) {
+    if (have_recent_choosers) {
       remove_recent_chooser_dialog_id(chooser_dialog_id);
       if (is_chosen_) {
         add_recent_chooser_dialog_id(chooser_dialog_id);
@@ -599,6 +599,58 @@ void MessageReactions::update_from(const MessageReactions &old_reactions) {
       }
     }
   }
+}
+
+bool MessageReactions::add_reaction(const string &reaction, bool is_big, DialogId chooser_dialog_id,
+                                    bool have_recent_choosers) {
+  bool is_found = false;
+  for (auto it = reactions_.begin(); it != reactions_.end();) {
+    auto &message_reaction = *it;
+    if (message_reaction.is_chosen()) {
+      if (message_reaction.get_reaction() == reaction && !is_big) {
+        return false;
+      }
+      message_reaction.set_is_chosen(false, chooser_dialog_id, have_recent_choosers);
+    }
+    if (message_reaction.get_reaction() == reaction) {
+      message_reaction.set_is_chosen(true, chooser_dialog_id, have_recent_choosers);
+      is_found = true;
+    }
+
+    if (message_reaction.is_empty()) {
+      it = reactions_.erase(it);
+    } else {
+      ++it;
+    }
+  }
+
+  if (!is_found) {
+    return true;
+  }
+
+  vector<DialogId> recent_chooser_dialog_ids;
+  if (have_recent_choosers) {
+    recent_chooser_dialog_ids.push_back(chooser_dialog_id);
+  }
+  reactions_.emplace_back(reaction, 1, true, std::move(recent_chooser_dialog_ids), Auto());
+  return true;
+}
+
+bool MessageReactions::remove_reaction(const string &reaction, DialogId chooser_dialog_id, bool have_recent_choosers) {
+  for (auto it = reactions_.begin(); it != reactions_.end(); ++it) {
+    auto &message_reaction = *it;
+    if (message_reaction.get_reaction() == reaction) {
+      if (message_reaction.is_chosen()) {
+        message_reaction.set_is_chosen(false, chooser_dialog_id, have_recent_choosers);
+        if (message_reaction.is_empty()) {
+          it = reactions_.erase(it);
+        }
+        return true;
+      }
+      break;
+    }
+  }
+  return false;
 }
 
 void MessageReactions::sort_reactions(const FlatHashMap<string, size_t> &active_reaction_pos) {

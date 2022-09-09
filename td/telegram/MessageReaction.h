@@ -63,7 +63,7 @@ class MessageReaction {
     return is_chosen_;
   }
 
-  void set_is_chosen(bool is_chosen, DialogId chooser_dialog_id, bool can_get_added_reactions);
+  void set_is_chosen(bool is_chosen, DialogId chooser_dialog_id, bool have_recent_choosers);
 
   int32 get_choose_count() const {
     return choose_count_;
@@ -151,6 +151,10 @@ struct MessageReactions {
   const MessageReaction *get_reaction(const string &reaction) const;
 
   void update_from(const MessageReactions &old_reactions);
+
+  bool add_reaction(const string &reaction, bool is_big, DialogId chooser_dialog_id, bool have_recent_choosers);
+
+  bool remove_reaction(const string &reaction, DialogId chooser_dialog_id, bool have_recent_choosers);
 
   void sort_reactions(const FlatHashMap<string, size_t> &active_reaction_pos);
 
