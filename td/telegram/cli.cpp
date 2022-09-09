@@ -2241,14 +2241,21 @@ class CliClient final : public Actor {
       MessageId message_id;
       get_args(args, chat_id, message_id);
       send_request(td_api::make_object<td_api::getMessageAvailableReactions>(chat_id, message_id));
-    } else if (op == "react" || op == "reactr") {
+    } else if (op == "amr" || op == "react") {
       ChatId chat_id;
       MessageId message_id;
       string reaction;
       bool is_big;
-      get_args(args, chat_id, message_id, reaction, is_big);
-      send_request(td_api::make_object<td_api::setMessageReaction>(chat_id, message_id, as_reaction_type(reaction),
-                                                                   is_big, op == "reactr"));
+      bool update_recent_reactions;
+      get_args(args, chat_id, message_id, reaction, is_big, update_recent_reactions);
+      send_request(td_api::make_object<td_api::addMessageReaction>(chat_id, message_id, as_reaction_type(reaction),
+                                                                   is_big, update_recent_reactions));
+    } else if (op == "rmr") {
+      ChatId chat_id;
+      MessageId message_id;
+      string reaction;
+      get_args(args, chat_id, message_id, reaction);
+      send_request(td_api::make_object<td_api::removeMessageReaction>(chat_id, message_id, as_reaction_type(reaction)));
     } else if (op == "gmars") {
       ChatId chat_id;
       MessageId message_id;
@@ -4786,7 +4793,7 @@ class CliClient final : public Actor {
       get_args(args, chat_id, file_id, reason, text);
       send_request(
           td_api::make_object<td_api::reportChatPhoto>(chat_id, file_id, get_chat_report_reason(reason), text));
-    } else if (op == "rmr") {
+    } else if (op == "reportmr") {
       ChatId chat_id;
       MessageId message_id;
       string sender_id;

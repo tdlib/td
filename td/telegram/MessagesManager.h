@@ -807,8 +807,10 @@ class MessagesManager final : public Actor {
 
   Result<ChatReactions> get_message_available_reactions(FullMessageId full_message_id);
 
-  void set_message_reaction(FullMessageId full_message_id, string reaction, bool is_big, bool add_to_recent,
+  void add_message_reaction(FullMessageId full_message_id, string reaction, bool is_big, bool add_to_recent,
                             Promise<Unit> &&promise);
+
+  void remove_message_reaction(FullMessageId full_message_id, string reaction, Promise<Unit> &&promise);
 
   void get_message_public_forwards(FullMessageId full_message_id, string offset, int32 limit,
                                    Promise<td_api::object_ptr<td_api::foundMessages>> &&promise);
@@ -2689,7 +2691,10 @@ class MessagesManager final : public Actor {
 
   ChatReactions get_message_available_reactions(const Dialog *d, const Message *m);
 
-  void on_set_message_reaction(FullMessageId full_message_id, Result<Unit> result, Promise<Unit> promise);
+  void set_message_reactions(Dialog *d, Message *m, string reaction, bool is_big, bool add_to_recent,
+                             Promise<Unit> &&promise);
+
+  void on_set_message_reactions(FullMessageId full_message_id, Result<Unit> result, Promise<Unit> promise);
 
   void set_dialog_available_reactions(Dialog *d, ChatReactions &&available_reactions);
 

@@ -5210,12 +5210,19 @@ void Td::on_request(uint64 id, const td_api::getMessageAvailableReactions &reque
   }
 }
 
-void Td::on_request(uint64 id, td_api::setMessageReaction &request) {
+void Td::on_request(uint64 id, td_api::addMessageReaction &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  messages_manager_->set_message_reaction({DialogId(request.chat_id_), MessageId(request.message_id_)},
+  messages_manager_->add_message_reaction({DialogId(request.chat_id_), MessageId(request.message_id_)},
                                           get_message_reaction_string(request.reaction_type_), request.is_big_,
                                           request.update_recent_reactions_, std::move(promise));
+}
+
+void Td::on_request(uint64 id, td_api::removeMessageReaction &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  messages_manager_->remove_message_reaction({DialogId(request.chat_id_), MessageId(request.message_id_)},
+                                             get_message_reaction_string(request.reaction_type_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::getMessageAddedReactions &request) {

@@ -5169,13 +5169,19 @@ editMessageSchedulingState chat_id:int53 message_id:int53 scheduling_state:Messa
 //@message_id Identifier of the message
 getMessageAvailableReactions chat_id:int53 message_id:int53 = AvailableReactions;
 
-//@description Changes chosen reaction for a message
+//@description Adds a reaction to a message. Use getMessageAvailableReactions to receive the list of available reactions for the message
 //@chat_id Identifier of the chat to which the message belongs
 //@message_id Identifier of the message
-//@reaction_type Type of the new chosen reaction; pass null or the currently chosen non-big reaction to remove the reaction
+//@reaction_type Type of the reaction to add
 //@is_big Pass true if the reaction is added with a big animation
 //@update_recent_reactions Pass true if the reaction needs to be added to recent reactions
-setMessageReaction chat_id:int53 message_id:int53 reaction_type:ReactionType is_big:Bool update_recent_reactions:Bool = Ok;
+addMessageReaction chat_id:int53 message_id:int53 reaction_type:ReactionType is_big:Bool update_recent_reactions:Bool = Ok;
+
+//@description Removes a reaction from a message. A chosen reaction can always be removed
+//@chat_id Identifier of the chat to which the message belongs
+//@message_id Identifier of the message
+//@reaction_type Type of the reaction to remove
+removeMessageReaction chat_id:int53 message_id:int53 reaction_type:ReactionType = Ok;
 
 //@description Returns reactions added for a message, along with their sender
 //@chat_id Identifier of the chat to which the message belongs

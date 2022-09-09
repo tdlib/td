@@ -24515,10 +24515,10 @@ ChatReactions MessagesManager::get_message_available_reactions(const Dialog *d, 
   return active_reactions;
 }
 
-void MessagesManager::set_message_reaction(FullMessageId full_message_id, string reaction, bool is_big,
+void MessagesManager::add_message_reaction(FullMessageId full_message_id, string reaction, bool is_big,
                                            bool add_to_recent, Promise<Unit> &&promise) {
   auto dialog_id = full_message_id.get_dialog_id();
-  Dialog *d = get_dialog_force(dialog_id, "set_message_reaction");
+  Dialog *d = get_dialog_force(dialog_id, "add_message_reaction");
   if (d == nullptr) {
     return promise.set_error(Status::Error(400, "Chat not found"));
   }
@@ -24528,17 +24528,13 @@ void MessagesManager::set_message_reaction(FullMessageId full_message_id, string
     return promise.set_error(Status::Error(400, "Message not found"));
   }
 
-  if (!reaction.empty() && !td::contains(get_message_available_reactions(d, m).reactions_, reaction)) {
+  if (!td::contains(get_message_available_reactions(d, m).reactions_, reaction)) {
     return promise.set_error(Status::Error(400, "The reaction isn't available for the message"));
   }
 
   bool can_get_added_reactions = !is_broadcast_channel(dialog_id) && dialog_id.get_type() != DialogType::User &&
                                  !is_discussion_message(dialog_id, m);
   if (m->reactions == nullptr) {
-    if (reaction.empty()) {
-      return promise.set_value(Unit());
-    }
-
     m->reactions = make_unique<MessageReactions>();
     m->reactions->can_get_added_reactions_ = can_get_added_reactions;
     m->available_reactions_generation = d->available_reactions_generation;
@@ -24549,8 +24545,7 @@ void MessagesManager::set_message_reaction(FullMessageId full_message_id, string
     auto &message_reaction = *it;
     if (message_reaction.is_chosen()) {
       if (message_reaction.get_reaction() == reaction && !is_big) {
-        // double set removes reaction, unless a big reaction is set
-        reaction = string();
+        return promise.set_value(Unit());
       }
       message_reaction.set_is_chosen(false, get_my_dialog_id(), can_get_added_reactions);
     }
@@ -24566,32 +24561,84 @@ void MessagesManager::set_message_reaction(FullMessageId full_message_id, string
     }
   }
 
-  pending_reactions_[full_message_id].query_count++;
-
-  if (!is_found && !reaction.empty()) {
+  if (!is_found) {
     vector<DialogId> recent_chooser_dialog_ids;
     if (!is_broadcast_channel(dialog_id)) {
       recent_chooser_dialog_ids.push_back(get_my_dialog_id());
     }
     m->reactions->reactions_.emplace_back(reaction, 1, true, std::move(recent_chooser_dialog_ids), Auto());
   }
+
+  set_message_reactions(d, m, reaction, is_big, add_to_recent, std::move(promise));
+}
+
+void MessagesManager::remove_message_reaction(FullMessageId full_message_id, string reaction, Promise<Unit> &&promise) {
+  auto dialog_id = full_message_id.get_dialog_id();
+  Dialog *d = get_dialog_force(dialog_id, "remove_message_reaction");
+  if (d == nullptr) {
+    return promise.set_error(Status::Error(400, "Chat not found"));
+  }
+
+  Message *m = get_message_force(d, full_message_id.get_message_id(), "set_message_reaction");
+  if (m == nullptr) {
+    return promise.set_error(Status::Error(400, "Message not found"));
+  }
+
+  bool can_get_added_reactions = !is_broadcast_channel(dialog_id) && dialog_id.get_type() != DialogType::User &&
+                                 !is_discussion_message(dialog_id, m);
+  if (m->reactions == nullptr) {
+    return promise.set_value(Unit());
+  }
+
+  bool is_found = false;
+  for (auto it = m->reactions->reactions_.begin(); it != m->reactions->reactions_.end();) {
+    auto &message_reaction = *it;
+    if (message_reaction.get_reaction() == reaction) {
+      if (message_reaction.is_chosen()) {
+        message_reaction.set_is_chosen(false, get_my_dialog_id(), can_get_added_reactions);
+        is_found = true;
+      } else {
+        return promise.set_value(Unit());
+      }
+    }
+
+    if (message_reaction.is_empty()) {
+      it = m->reactions->reactions_.erase(it);
+    } else {
+      ++it;
+    }
+  }
+  if (!is_found) {
+    return promise.set_value(Unit());
+  }
+
+  set_message_reactions(d, m, reaction, false, false, std::move(promise));
+}
+
+void MessagesManager::set_message_reactions(Dialog *d, Message *m, string reaction, bool is_big, bool add_to_recent,
+                                            Promise<Unit> &&promise) {
+  CHECK(m->reactions != nullptr);
+
+  FullMessageId full_message_id{d->dialog_id, m->message_id};
+  pending_reactions_[full_message_id].query_count++;
+
   m->reactions->sort_reactions(active_reaction_pos_);
 
-  send_update_message_interaction_info(dialog_id, m);
-  on_message_changed(d, m, true, "set_message_reaction");
+  send_update_message_interaction_info(d->dialog_id, m);
+  on_message_changed(d, m, true, "set_message_reactions");
 
-  // TODO invoke_after, cancel previous queries, log event
+  // TODO cancel previous queries, log event
   auto query_promise = PromiseCreator::lambda(
       [actor_id = actor_id(this), full_message_id, promise = std::move(promise)](Result<Unit> &&result) mutable {
-        send_closure(actor_id, &MessagesManager::on_set_message_reaction, full_message_id, std::move(result),
+        send_closure(actor_id, &MessagesManager::on_set_message_reactions, full_message_id, std::move(result),
                      std::move(promise));
       });
   ::td::set_message_reaction(td_, full_message_id, std::move(reaction), is_big, add_to_recent,
                              std::move(query_promise));
 }
 
-void MessagesManager::on_set_message_reaction(FullMessageId full_message_id, Result<Unit> result,
-                                              Promise<Unit> promise) {
+void MessagesManager::on_set_message_reactions(FullMessageId full_message_id, Result<Unit> result,
+                                               Promise<Unit> promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
 
   bool need_reload = result.is_error();
