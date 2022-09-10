@@ -500,7 +500,7 @@ static Result<InlineKeyboardButton> get_inline_keyboard_button(tl_object_ptr<td_
   current_button.text = std::move(button->text_);
 
   if (button->type_ == nullptr) {
-    return Status::Error(400, "Inline keyboard button type can't be empty");
+    return Status::Error(400, "Inline keyboard button type must be non-empty");
   }
 
   int32 button_type_id = button->type_->get_id();

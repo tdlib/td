@@ -2794,7 +2794,7 @@ bool can_forward_message_content(const MessageContent *content) {
   auto content_type = content->get_type();
   if (content_type == MessageContentType::Text) {
     auto *text = static_cast<const MessageText *>(content);
-    return !is_empty_string(text->text.text);  // text can't be empty in the new message
+    return !is_empty_string(text->text.text);  // text must be non-empty in the new message
   }
   if (content_type == MessageContentType::Poll) {
     auto *poll = static_cast<const MessagePoll *>(content);

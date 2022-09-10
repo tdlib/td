@@ -20696,7 +20696,7 @@ DialogId MessagesManager::create_new_group_chat(const vector<UserId> &user_ids, 
 
   auto new_title = clean_name(title, MAX_TITLE_LENGTH);
   if (new_title.empty()) {
-    promise.set_error(Status::Error(400, "Title can't be empty"));
+    promise.set_error(Status::Error(400, "Title must be non-empty"));
     return DialogId();
   }
 
@@ -20744,7 +20744,7 @@ DialogId MessagesManager::create_new_channel_chat(const string &title, bool is_m
 
   auto new_title = clean_name(title, MAX_TITLE_LENGTH);
   if (new_title.empty()) {
-    promise.set_error(Status::Error(400, "Title can't be empty"));
+    promise.set_error(Status::Error(400, "Title must be non-empty"));
     return DialogId();
   }
 
@@ -33748,7 +33748,7 @@ void MessagesManager::set_dialog_title(DialogId dialog_id, const string &title, 
 
   auto new_title = clean_name(title, MAX_TITLE_LENGTH);
   if (new_title.empty()) {
-    return promise.set_error(Status::Error(400, "Title can't be empty"));
+    return promise.set_error(Status::Error(400, "Title must be non-empty"));
   }
 
   switch (dialog_id.get_type()) {

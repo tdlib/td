@@ -6995,7 +6995,7 @@ tl_object_ptr<telegram_api::inputStickerSetItem> StickersManager::get_input_stic
 void StickersManager::get_suggested_sticker_set_name(string title, Promise<string> &&promise) {
   title = strip_empty_characters(title, MAX_STICKER_SET_TITLE_LENGTH);
   if (title.empty()) {
-    return promise.set_error(Status::Error(400, "Sticker set title can't be empty"));
+    return promise.set_error(Status::Error(400, "Sticker set title must be non-empty"));
   }
 
   td_->create_handler<SuggestStickerSetShortNameQuery>(std::move(promise))->send(title);
@@ -7052,12 +7052,12 @@ void StickersManager::create_new_sticker_set(UserId user_id, string title, strin
 
   title = strip_empty_characters(title, MAX_STICKER_SET_TITLE_LENGTH);
   if (title.empty()) {
-    return promise.set_error(Status::Error(400, "Sticker set title can't be empty"));
+    return promise.set_error(Status::Error(400, "Sticker set title must be non-empty"));
   }
 
   short_name = strip_empty_characters(short_name, MAX_STICKER_SET_SHORT_NAME_LENGTH);
   if (short_name.empty()) {
-    return promise.set_error(Status::Error(400, "Sticker set name can't be empty"));
+    return promise.set_error(Status::Error(400, "Sticker set name must be non-empty"));
   }
 
   if (stickers.empty()) {
@@ -7292,7 +7292,7 @@ void StickersManager::add_sticker_to_set(UserId user_id, string short_name,
 
   short_name = clean_username(strip_empty_characters(short_name, MAX_STICKER_SET_SHORT_NAME_LENGTH));
   if (short_name.empty()) {
-    return promise.set_error(Status::Error(400, "Sticker set name can't be empty"));
+    return promise.set_error(Status::Error(400, "Sticker set name must be non-empty"));
   }
 
   const StickerSet *sticker_set = get_sticker_set(short_name_to_sticker_set_id_.get(short_name));
@@ -7386,7 +7386,7 @@ void StickersManager::set_sticker_set_thumbnail(UserId user_id, string short_nam
 
   short_name = clean_username(strip_empty_characters(short_name, MAX_STICKER_SET_SHORT_NAME_LENGTH));
   if (short_name.empty()) {
-    return promise.set_error(Status::Error(400, "Sticker set name can't be empty"));
+    return promise.set_error(Status::Error(400, "Sticker set name must be non-empty"));
   }
 
   const StickerSet *sticker_set = get_sticker_set(short_name_to_sticker_set_id_.get(short_name));

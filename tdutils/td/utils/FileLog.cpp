@@ -18,7 +18,7 @@ namespace td {
 
 Status FileLog::init(string path, int64 rotate_threshold, bool redirect_stderr) {
   if (path.empty()) {
-    return Status::Error("Log file path can't be empty");
+    return Status::Error("Log file path must be non-empty");
   }
   if (path == path_) {
     set_rotate_threshold(rotate_threshold);

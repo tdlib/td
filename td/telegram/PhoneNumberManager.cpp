@@ -45,7 +45,7 @@ void PhoneNumberManager::send_new_send_code_query(uint64 query_id, const telegra
 
 void PhoneNumberManager::set_phone_number(uint64 query_id, string phone_number, Settings settings) {
   if (phone_number.empty()) {
-    return on_query_error(query_id, Status::Error(400, "Phone number can't be empty"));
+    return on_query_error(query_id, Status::Error(400, "Phone number must be non-empty"));
   }
 
   switch (type_) {
@@ -64,10 +64,10 @@ void PhoneNumberManager::set_phone_number(uint64 query_id, string phone_number, 
 void PhoneNumberManager::set_phone_number_and_hash(uint64 query_id, string hash, string phone_number,
                                                    Settings settings) {
   if (phone_number.empty()) {
-    return on_query_error(query_id, Status::Error(400, "Phone number can't be empty"));
+    return on_query_error(query_id, Status::Error(400, "Phone number must be non-empty"));
   }
   if (hash.empty()) {
-    return on_query_error(query_id, Status::Error(400, "Hash can't be empty"));
+    return on_query_error(query_id, Status::Error(400, "Hash must be non-empty"));
   }
 
   switch (type_) {

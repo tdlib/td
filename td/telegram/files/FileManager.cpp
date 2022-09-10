@@ -2913,7 +2913,7 @@ Result<FileId> FileManager::from_persistent_id(CSlice persistent_id, FileType fi
   }
   auto binary = r_binary.move_as_ok();
   if (binary.empty()) {
-    return Status::Error(400, "Remote file identifier can't be empty");
+    return Status::Error(400, "Remote file identifier must be non-empty");
   }
   if (binary.back() == FileNode::PERSISTENT_ID_VERSION_OLD) {
     return from_persistent_id_v2(binary, file_type);

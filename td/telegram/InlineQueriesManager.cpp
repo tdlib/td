@@ -346,7 +346,7 @@ Result<tl_object_ptr<telegram_api::InputBotInlineMessage>> InlineQueriesManager:
     tl_object_ptr<td_api::InputMessageContent> &&input_message_content,
     tl_object_ptr<td_api::ReplyMarkup> &&reply_markup_ptr, int32 allowed_media_content_id) const {
   if (input_message_content == nullptr) {
-    return Status::Error(400, "Inline message can't be empty");
+    return Status::Error(400, "Inline message must be non-empty");
   }
   TRY_RESULT(reply_markup, get_reply_markup(std::move(reply_markup_ptr), true, true, false, true));
   auto input_reply_markup = get_input_reply_markup(td_->contacts_manager_.get(), reply_markup);
