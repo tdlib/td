@@ -4489,8 +4489,8 @@ updateAttachmentMenuBots bots:vector<attachmentMenuBot> = Update;
 //@description A message was sent by an opened Web App, so the Web App needs to be closed @web_app_launch_id Identifier of Web App launch
 updateWebAppMessageSent web_app_launch_id:int64 = Update;
 
-//@description The list of supported reactions has changed @reactions The new list of supported reactions
-updateReactions reactions:vector<reaction> = Update;
+//@description The list of active emoji reactions has changed @emojis The new list of active emoji reactions
+updateActiveEmojiReactions emojis:vector<string> = Update;
 
 //@description The type of default reaction has changed @reaction_type The new type of the default reaction
 updateDefaultReactionType reaction_type:ReactionType = Update;
@@ -5164,7 +5164,7 @@ editInlineMessageReplyMarkup inline_message_id:string reply_markup:ReplyMarkup =
 editMessageSchedulingState chat_id:int53 message_id:int53 scheduling_state:MessageSchedulingState = Ok;
 
 
-//@description Returns reactions, which can be added to a message. The list can change after updateReactions, updateChatAvailableReactions for the chat, or updateMessageInteractionInfo for the message
+//@description Returns reactions, which can be added to a message. The list can change after updateActiveEmojiReactions, updateChatAvailableReactions for the chat, or updateMessageInteractionInfo for the message
 //@chat_id Identifier of the chat to which the message belongs
 //@message_id Identifier of the message
 getMessageAvailableReactions chat_id:int53 message_id:int53 = AvailableReactions;

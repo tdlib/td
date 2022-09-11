@@ -821,13 +821,17 @@ class StickersManager final : public Actor {
 
   void tear_down() final;
 
+  void save_active_reactions();
+
   void save_reactions();
+
+  void load_active_reactions();
 
   void load_reactions();
 
   void update_active_reactions();
 
-  td_api::object_ptr<td_api::updateReactions> get_update_reactions_object() const;
+  td_api::object_ptr<td_api::updateActiveEmojiReactions> get_update_active_emoji_reactions_object() const;
 
   SpecialStickerSet &add_special_sticker_set(const SpecialStickerSetType &type);
 
@@ -1004,6 +1008,7 @@ class StickersManager final : public Actor {
   FlatHashMap<FileId, std::pair<UserId, Promise<Unit>>, FileIdHash> being_uploaded_files_;
 
   Reactions reactions_;
+  vector<string> active_reactions_;
 
   FlatHashMap<string, vector<string>> emoji_language_codes_;
   FlatHashMap<string, int32> emoji_language_code_versions_;
