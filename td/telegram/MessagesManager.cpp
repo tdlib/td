@@ -24589,6 +24589,8 @@ void MessagesManager::set_message_reactions(Dialog *d, Message *m, bool is_big, 
   CHECK(m->reactions != nullptr);
   m->reactions->sort_reactions(active_reaction_pos_);
 
+  LOG(INFO) << "Update message reactions to " << *m->reactions;
+
   FullMessageId full_message_id{d->dialog_id, m->message_id};
   pending_reactions_[full_message_id].query_count++;
 

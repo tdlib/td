@@ -174,6 +174,9 @@ struct MessageReactions {
 
   template <class ParserT>
   void parse(ParserT &parser);
+
+ private:
+  bool do_remove_reaction(const string &reaction, DialogId chooser_dialog_id, bool have_recent_choosers);
 };
 
 StringBuilder &operator<<(StringBuilder &string_builder, const MessageReactions &reactions);
