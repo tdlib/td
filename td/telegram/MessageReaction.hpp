@@ -77,12 +77,14 @@ template <class StorerT>
 void MessageReactions::store(StorerT &storer) const {
   bool has_reactions = !reactions_.empty();
   bool has_unread_reactions = !unread_reactions_.empty();
+  bool has_chosen_reaction_order = !chosen_reaction_order_.empty();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(is_min_);
   STORE_FLAG(need_polling_);
   STORE_FLAG(can_get_added_reactions_);
   STORE_FLAG(has_unread_reactions);
   STORE_FLAG(has_reactions);
+  STORE_FLAG(has_chosen_reaction_order);
   END_STORE_FLAGS();
   if (has_reactions) {
     td::store(reactions_, storer);
@@ -90,24 +92,32 @@ void MessageReactions::store(StorerT &storer) const {
   if (has_unread_reactions) {
     td::store(unread_reactions_, storer);
   }
+  if (has_chosen_reaction_order) {
+    td::store(chosen_reaction_order_, storer);
+  }
 }
 
 template <class ParserT>
 void MessageReactions::parse(ParserT &parser) {
   bool has_reactions;
   bool has_unread_reactions;
+  bool has_chosen_reaction_order;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(is_min_);
   PARSE_FLAG(need_polling_);
   PARSE_FLAG(can_get_added_reactions_);
   PARSE_FLAG(has_unread_reactions);
   PARSE_FLAG(has_reactions);
+  PARSE_FLAG(has_chosen_reaction_order);
   END_PARSE_FLAGS();
   if (has_reactions) {
     td::parse(reactions_, parser);
   }
   if (has_unread_reactions) {
     td::parse(unread_reactions_, parser);
+  }
+  if (has_chosen_reaction_order) {
+    td::parse(chosen_reaction_order_, parser);
   }
 }
 

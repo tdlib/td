@@ -7032,8 +7032,10 @@ bool MessagesManager::update_message_interaction_info(Dialog *d, Message *m, int
       has_reactions && MessageReactions::need_update_message_reactions(m->reactions.get(), reactions.get());
   bool need_update_unread_reactions =
       has_reactions && MessageReactions::need_update_unread_reactions(m->reactions.get(), reactions.get());
+  bool need_update_chosen_reaction_order = has_reactions && reactions != nullptr && m->reactions != nullptr &&
+                                           m->reactions->chosen_reaction_order_ != reactions->chosen_reaction_order_;
   if (view_count > m->view_count || forward_count > m->forward_count || need_update_reply_info ||
-      need_update_reactions || need_update_unread_reactions) {
+      need_update_reactions || need_update_unread_reactions || need_update_chosen_reaction_order) {
     LOG(DEBUG) << "Update interaction info of " << FullMessageId{dialog_id, m->message_id} << " from " << m->view_count
                << '/' << m->forward_count << '/' << m->reply_info << '/' << m->reactions << " to " << view_count << '/'
                << forward_count << '/' << reply_info << '/' << reactions;
@@ -7097,6 +7099,10 @@ bool MessagesManager::update_message_interaction_info(Dialog *d, Message *m, int
       bool is_changed = false;
       if (m->available_reactions_generation != d->available_reactions_generation) {
         m->available_reactions_generation = d->available_reactions_generation;
+        is_changed = true;
+      }
+      if (need_update_chosen_reaction_order) {
+        m->reactions->chosen_reaction_order_ = std::move(reactions->chosen_reaction_order_);
         is_changed = true;
       }
       if (is_changed) {

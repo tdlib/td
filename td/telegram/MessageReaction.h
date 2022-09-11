@@ -136,6 +136,7 @@ StringBuilder &operator<<(StringBuilder &string_builder, const UnreadMessageReac
 struct MessageReactions {
   vector<MessageReaction> reactions_;
   vector<UnreadMessageReaction> unread_reactions_;
+  vector<string> chosen_reaction_order_;
   bool is_min_ = false;
   bool need_polling_ = true;
   bool can_get_added_reactions_ = false;

@@ -491,6 +491,7 @@ unique_ptr<MessageReactions> MessageReactions::get_message_reactions(
   result->is_min_ = reactions->min_;
 
   FlatHashSet<string> reaction_strings;
+  vector<std::pair<int32, string>> chosen_reaction_order;
   for (auto &reaction_count : reactions->results_) {
     auto reaction_str = get_message_reaction_string(reaction_count->reaction_);
     if (reaction_count->count_ <= 0 || reaction_count->count_ >= MessageReaction::MAX_CHOOSE_COUNT ||
@@ -552,8 +553,16 @@ unique_ptr<MessageReactions> MessageReactions::get_message_reactions(
     }
 
     bool is_chosen = (reaction_count->flags_ & telegram_api::reactionCount::CHOSEN_ORDER_MASK) != 0;
+    if (is_chosen) {
+      chosen_reaction_order.emplace_back(reaction_count->chosen_order_, reaction_str);
+    }
     result->reactions_.emplace_back(std::move(reaction_str), reaction_count->count_, is_chosen,
                                     std::move(recent_chooser_dialog_ids), std::move(recent_chooser_min_channels));
+  }
+  if (chosen_reaction_order.size() > 1) {
+    std::sort(chosen_reaction_order.begin(), chosen_reaction_order.end());
+    result->chosen_reaction_order_ =
+        transform(chosen_reaction_order, [](const std::pair<int32, string> &order) { return order.second; });
   }
   return result;
 }
@@ -589,6 +598,7 @@ void MessageReactions::update_from(const MessageReactions &old_reactions) {
       }
     }
     unread_reactions_ = old_reactions.unread_reactions_;
+    chosen_reaction_order_ = old_reactions.chosen_reaction_order_;
   }
   for (const auto &old_reaction : old_reactions.reactions_) {
     if (old_reaction.is_chosen() &&
@@ -700,7 +710,7 @@ bool MessageReactions::need_update_message_reactions(const MessageReactions *old
     return true;
   }
 
-  // unread_reactions_ are updated independently; compare all other fields
+  // unread_reactions_ and chosen_reaction_order_ are updated independently; compare all other fields
   return old_reactions->reactions_ != new_reactions->reactions_ || old_reactions->is_min_ != new_reactions->is_min_ ||
          old_reactions->can_get_added_reactions_ != new_reactions->can_get_added_reactions_ ||
          old_reactions->need_polling_ != new_reactions->need_polling_;
@@ -716,7 +726,8 @@ bool MessageReactions::need_update_unread_reactions(const MessageReactions *old_
 
 StringBuilder &operator<<(StringBuilder &string_builder, const MessageReactions &reactions) {
   return string_builder << (reactions.is_min_ ? "Min" : "") << "MessageReactions{" << reactions.reactions_
-                        << " with unread " << reactions.unread_reactions_
+                        << " with unread " << reactions.unread_reactions_ << ", reaction order "
+                        << reactions.chosen_reaction_order_
                         << " and can_get_added_reactions = " << reactions.can_get_added_reactions_;
 }
 
