@@ -699,6 +699,20 @@ void MessageReactions::fix_chosen_reaction(DialogId my_dialog_id) {
   }
 }
 
+vector<string> MessageReactions::get_chosen_reactions() const {
+  if (!chosen_reaction_order_.empty()) {
+    return chosen_reaction_order_;
+  }
+
+  vector<string> reaction_order;
+  for (auto &reaction : reactions_) {
+    if (reaction.is_chosen()) {
+      reaction_order.push_back(reaction.get_reaction());
+    }
+  }
+  return reaction_order;
+}
+
 bool MessageReactions::need_update_message_reactions(const MessageReactions *old_reactions,
                                                      const MessageReactions *new_reactions) {
   if (old_reactions == nullptr) {

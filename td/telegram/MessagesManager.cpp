@@ -24589,13 +24589,6 @@ void MessagesManager::set_message_reactions(Dialog *d, Message *m, bool is_big, 
   CHECK(m->reactions != nullptr);
   m->reactions->sort_reactions(active_reaction_pos_);
 
-  vector<string> reactions;
-  for (auto &reaction : m->reactions->reactions_) {
-    if (reaction.is_chosen()) {
-      reactions.push_back(reaction.get_reaction());
-    }
-  }
-
   FullMessageId full_message_id{d->dialog_id, m->message_id};
   pending_reactions_[full_message_id].query_count++;
 
@@ -24608,7 +24601,8 @@ void MessagesManager::set_message_reactions(Dialog *d, Message *m, bool is_big, 
         send_closure(actor_id, &MessagesManager::on_set_message_reactions, full_message_id, std::move(result),
                      std::move(promise));
       });
-  send_message_reaction(td_, full_message_id, std::move(reactions), is_big, add_to_recent, std::move(query_promise));
+  send_message_reaction(td_, full_message_id, m->reactions->get_chosen_reactions(), is_big, add_to_recent,
+                        std::move(query_promise));
 }
 
 void MessagesManager::on_set_message_reactions(FullMessageId full_message_id, Result<Unit> result,

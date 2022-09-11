@@ -161,6 +161,8 @@ struct MessageReactions {
 
   void fix_chosen_reaction(DialogId my_dialog_id);
 
+  vector<string> get_chosen_reactions() const;
+
   static bool need_update_message_reactions(const MessageReactions *old_reactions,
                                             const MessageReactions *new_reactions);
 
