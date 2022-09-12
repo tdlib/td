@@ -3841,6 +3841,9 @@ void StickersManager::load_active_reactions() {
   }
 
   LOG(INFO) << "Successfully loaded " << active_reactions_.size() << " active reactions";
+
+  td_->messages_manager_->set_active_reactions(vector<string>(active_reactions_));
+
   send_closure(G()->td(), &Td::send_update, get_update_active_emoji_reactions_object());
 }
 

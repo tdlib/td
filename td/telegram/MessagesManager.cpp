@@ -8253,6 +8253,7 @@ void MessagesManager::set_active_reactions(vector<string> active_reactions) {
     return;
   }
 
+  LOG(INFO) << "Set active reactions to " << active_reactions;
   bool is_changed = active_reactions != active_reactions_;
   active_reactions_ = std::move(active_reactions);
 
