@@ -214,4 +214,6 @@ void report_message_reactions(Td *td, FullMessageId full_message_id, DialogId ch
 
 void add_recent_reaction(Td *td, const string &reaction);
 
+int64 get_reactions_hash(const vector<string> &reactions);
+
 }  // namespace td

@@ -12,6 +12,7 @@
 #include "td/telegram/Global.h"
 #include "td/telegram/MessageSender.h"
 #include "td/telegram/MessagesManager.h"
+#include "td/telegram/misc.h"
 #include "td/telegram/OptionManager.h"
 #include "td/telegram/ServerMessageId.h"
 #include "td/telegram/StickersManager.h"
@@ -24,6 +25,8 @@
 #include "td/utils/as.h"
 #include "td/utils/base64.h"
 #include "td/utils/buffer.h"
+#include "td/utils/crypto.h"
+#include "td/utils/emoji.h"
 #include "td/utils/FlatHashSet.h"
 #include "td/utils/logging.h"
 #include "td/utils/Status.h"
@@ -879,6 +882,28 @@ void report_message_reactions(Td *td, FullMessageId full_message_id, DialogId ch
 
 void add_recent_reaction(Td *td, const string &reaction) {
   td->stickers_manager_->add_recent_reaction(reaction);
+}
+
+int64 get_reactions_hash(const vector<string> &reactions) {
+  vector<uint64> numbers;
+  for (auto &reaction : reactions) {
+    if (is_custom_reaction(reaction)) {
+      auto custom_emoji_id = static_cast<uint64>(get_custom_emoji_id(reaction));
+      numbers.push_back(custom_emoji_id >> 32);
+      numbers.push_back(custom_emoji_id & 0xFFFFFFFF);
+    } else {
+      auto emoji = remove_emoji_selectors(reaction);
+      unsigned char hash[16];
+      md5(emoji, {hash, sizeof(hash)});
+      auto get = [hash](int num) {
+        return static_cast<uint32>(hash[num]);
+      };
+
+      numbers.push_back(0);
+      numbers.push_back(static_cast<int32>((get(0) << 24) + (get(1) << 16) + (get(2) << 8) + get(3)));
+    }
+  }
+  return get_vector_hash(numbers);
 }
 
 }  // namespace td

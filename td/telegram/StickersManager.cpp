@@ -1592,7 +1592,7 @@ void StickersManager::add_recent_reaction(const string &reaction) {
   }
   std::rotate(reactions.begin(), it, it + 1);
 
-  recent_reactions_.hash_ = 0;
+  recent_reactions_.hash_ = get_reactions_hash(reactions);
 }
 
 void StickersManager::clear_recent_reactions(Promise<Unit> &&promise) {
@@ -4024,6 +4024,12 @@ void StickersManager::on_get_recent_reactions(tl_object_ptr<telegram_api::messag
   }
   recent_reactions_.reactions_ = std::move(new_reactions);
   recent_reactions_.hash_ = reactions->hash_;
+
+  auto expected_hash = get_reactions_hash(recent_reactions_.reactions_);
+  if (recent_reactions_.hash_ != expected_hash) {
+    LOG(ERROR) << "Receive hash " << recent_reactions_.hash_ << " instead of " << expected_hash << " for reactions "
+               << recent_reactions_.reactions_;
+  }
 
   save_recent_reactions();
 }
