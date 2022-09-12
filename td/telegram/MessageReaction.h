@@ -212,4 +212,6 @@ void send_update_default_reaction_type(const string &default_reaction);
 void report_message_reactions(Td *td, FullMessageId full_message_id, DialogId chooser_dialog_id,
                               Promise<Unit> &&promise);
 
+void add_recent_reaction(Td *td, const string &reaction);
+
 }  // namespace td

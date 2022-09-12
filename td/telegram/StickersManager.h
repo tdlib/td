@@ -173,6 +173,8 @@ class StickersManager final : public Actor {
 
   td_api::object_ptr<td_api::emojiReaction> get_emoji_reaction_object(const string &emoji);
 
+  void add_recent_reaction(const string &reaction);
+
   void clear_recent_reactions(Promise<Unit> &&promise);
 
   void reload_reactions();
@@ -402,6 +404,8 @@ class StickersManager final : public Actor {
 
   static constexpr int32 EMOJI_KEYWORDS_UPDATE_DELAY = 3600;
   static constexpr double MIN_ANIMATED_EMOJI_CLICK_DELAY = 0.2;
+
+  static constexpr int32 MAX_RECENT_REACTIONS = 100;  // some reasonable value
 
   class Sticker {
    public:

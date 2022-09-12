@@ -877,4 +877,8 @@ void report_message_reactions(Td *td, FullMessageId full_message_id, DialogId ch
   td->create_handler<ReportReactionQuery>(std::move(promise))->send(dialog_id, message_id, chooser_dialog_id);
 }
 
+void add_recent_reaction(Td *td, const string &reaction) {
+  td->stickers_manager_->add_recent_reaction(reaction);
+}
+
 }  // namespace td

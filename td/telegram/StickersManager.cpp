@@ -95,8 +95,8 @@ class GetAvailableReactionsQuery final : public Td::ResultHandler {
 
 class GetRecentReactionsQuery final : public Td::ResultHandler {
  public:
-  void send(int64 hash) {
-    send_query(G()->net_query_creator().create(telegram_api::messages_getRecentReactions(50, hash)));
+  void send(int32 limit, int64 hash) {
+    send_query(G()->net_query_creator().create(telegram_api::messages_getRecentReactions(limit, hash)));
   }
 
   void on_result(BufferSlice packet) final {
@@ -1573,6 +1573,28 @@ td_api::object_ptr<td_api::emojiReaction> StickersManager::get_emoji_reaction_ob
   return nullptr;
 }
 
+void StickersManager::add_recent_reaction(const string &reaction) {
+  load_recent_reactions();
+
+  auto &reactions = recent_reactions_.reactions_;
+  if (!reactions.empty() && reactions[0] == reaction) {
+    return;
+  }
+
+  auto it = std::find(reactions.begin(), reactions.end(), reaction);
+  if (it == reactions.end()) {
+    if (static_cast<int32>(reactions.size()) == MAX_RECENT_REACTIONS) {
+      reactions.back() = reaction;
+    } else {
+      reactions.push_back(reaction);
+    }
+    it = reactions.end() - 1;
+  }
+  std::rotate(reactions.begin(), it, it + 1);
+
+  recent_reactions_.hash_ = 0;
+}
+
 void StickersManager::clear_recent_reactions(Promise<Unit> &&promise) {
   load_recent_reactions();
 
@@ -1603,7 +1625,7 @@ void StickersManager::reload_recent_reactions() {
   CHECK(!td_->auth_manager_->is_bot());
   recent_reactions_.is_being_reloaded_ = true;
   load_recent_reactions();  // must be after is_being_reloaded_ is set to true to avoid recursion
-  td_->create_handler<GetRecentReactionsQuery>()->send(recent_reactions_.hash_);
+  td_->create_handler<GetRecentReactionsQuery>()->send(MAX_RECENT_REACTIONS, recent_reactions_.hash_);
 }
 
 void StickersManager::reload_top_reactions() {
