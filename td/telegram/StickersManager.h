@@ -175,11 +175,15 @@ class StickersManager final : public Actor {
 
   void reload_reactions();
 
+  void reload_recent_reactions();
+
   void reload_top_reactions();
 
   void reload_special_sticker_set_by_type(SpecialStickerSetType type, bool is_recursive = false);
 
   void on_get_available_reactions(tl_object_ptr<telegram_api::messages_AvailableReactions> &&available_reactions_ptr);
+
+  void on_get_recent_reactions(tl_object_ptr<telegram_api::messages_Reactions> &&reactions_ptr);
 
   void on_get_top_reactions(tl_object_ptr<telegram_api::messages_Reactions> &&reactions_ptr);
 
@@ -846,11 +850,15 @@ class StickersManager final : public Actor {
 
   void save_reactions();
 
+  void save_recent_reactions();
+
   void save_top_reactions();
 
   void load_active_reactions();
 
   void load_reactions();
+
+  void load_recent_reactions();
 
   void load_top_reactions();
 
@@ -1035,9 +1043,11 @@ class StickersManager final : public Actor {
   Reactions reactions_;
   vector<string> active_reactions_;
 
+  ReactionList recent_reactions_;
   ReactionList top_reactions_;
 
   bool are_reactions_loaded_from_database_ = false;
+  bool are_recent_reactions_loaded_from_database_ = false;
   bool are_top_reactions_loaded_from_database_ = false;
 
   FlatHashMap<string, vector<string>> emoji_language_codes_;

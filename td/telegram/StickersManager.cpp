@@ -93,6 +93,29 @@ class GetAvailableReactionsQuery final : public Td::ResultHandler {
   }
 };
 
+class GetRecentReactionsQuery final : public Td::ResultHandler {
+ public:
+  void send(int64 hash) {
+    send_query(G()->net_query_creator().create(telegram_api::messages_getRecentReactions(50, hash)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_getRecentReactions>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for GetRecentReactionsQuery: " << to_string(ptr);
+    td_->stickers_manager_->on_get_recent_reactions(std::move(ptr));
+  }
+
+  void on_error(Status status) final {
+    LOG(INFO) << "Receive error for GetRecentReactionsQuery: " << status;
+    td_->stickers_manager_->on_get_recent_reactions(nullptr);
+  }
+};
+
 class GetTopReactionsQuery final : public Td::ResultHandler {
  public:
   void send(int64 hash) {
@@ -1528,6 +1551,16 @@ void StickersManager::reload_reactions() {
   reactions_.are_being_reloaded_ = true;
   load_reactions();  // must be after are_being_reloaded_ is set to true to avoid recursion
   td_->create_handler<GetAvailableReactionsQuery>()->send(reactions_.hash_);
+}
+
+void StickersManager::reload_recent_reactions() {
+  if (G()->close_flag() || recent_reactions_.is_being_reloaded_) {
+    return;
+  }
+  CHECK(!td_->auth_manager_->is_bot());
+  recent_reactions_.is_being_reloaded_ = true;
+  load_recent_reactions();  // must be after is_being_reloaded_ is set to true to avoid recursion
+  td_->create_handler<GetRecentReactionsQuery>()->send(recent_reactions_.hash_);
 }
 
 void StickersManager::reload_top_reactions() {
@@ -3719,6 +3752,11 @@ void StickersManager::save_reactions() {
   G()->td_db()->get_binlog_pmc()->set("reactions", log_event_store(reactions_).as_slice().str());
 }
 
+void StickersManager::save_recent_reactions() {
+  LOG(INFO) << "Save recent reactions";
+  G()->td_db()->get_binlog_pmc()->set("recent_reactions", log_event_store(recent_reactions_).as_slice().str());
+}
+
 void StickersManager::save_top_reactions() {
   LOG(INFO) << "Save top reactions";
   G()->td_db()->get_binlog_pmc()->set("top_reactions", log_event_store(top_reactions_).as_slice().str());
@@ -3769,6 +3807,27 @@ void StickersManager::load_reactions() {
   LOG(INFO) << "Successfully loaded " << reactions_.reactions_.size() << " available reactions";
 
   update_active_reactions();
+}
+
+void StickersManager::load_recent_reactions() {
+  if (are_recent_reactions_loaded_from_database_) {
+    return;
+  }
+  are_recent_reactions_loaded_from_database_ = true;
+
+  string recent_reactions = G()->td_db()->get_binlog_pmc()->get("recent_reactions");
+  if (recent_reactions.empty()) {
+    return reload_recent_reactions();
+  }
+
+  auto status = log_event_parse(recent_reactions_, recent_reactions);
+  if (status.is_error()) {
+    LOG(ERROR) << "Can't load recent reactions: " << status;
+    recent_reactions_ = {};
+    return reload_recent_reactions();
+  }
+
+  LOG(INFO) << "Successfully loaded " << recent_reactions_.reactions_.size() << " recent reactions";
 }
 
 void StickersManager::load_top_reactions() {
@@ -3868,6 +3927,37 @@ void StickersManager::on_get_available_reactions(
   save_reactions();
 
   update_active_reactions();
+}
+
+void StickersManager::on_get_recent_reactions(tl_object_ptr<telegram_api::messages_Reactions> &&reactions_ptr) {
+  CHECK(recent_reactions_.is_being_reloaded_);
+  recent_reactions_.is_being_reloaded_ = false;
+
+  if (reactions_ptr == nullptr) {
+    // failed to get recent reactions
+    return;
+  }
+
+  int32 constructor_id = reactions_ptr->get_id();
+  if (constructor_id == telegram_api::messages_reactionsNotModified::ID) {
+    LOG(INFO) << "Top reactions are not modified";
+    return;
+  }
+
+  CHECK(constructor_id == telegram_api::messages_reactions::ID);
+  auto reactions = move_tl_object_as<telegram_api::messages_reactions>(reactions_ptr);
+  auto new_reactions =
+      transform(reactions->reactions_, [](const telegram_api::object_ptr<telegram_api::Reaction> &reaction) {
+        return get_message_reaction_string(reaction);
+      });
+  if (new_reactions == recent_reactions_.reactions_ && recent_reactions_.hash_ == reactions->hash_) {
+    LOG(INFO) << "Top reactions are not modified";
+    return;
+  }
+  recent_reactions_.reactions_ = std::move(new_reactions);
+  recent_reactions_.hash_ = reactions->hash_;
+
+  save_recent_reactions();
 }
 
 void StickersManager::on_get_top_reactions(tl_object_ptr<telegram_api::messages_Reactions> &&reactions_ptr) {
