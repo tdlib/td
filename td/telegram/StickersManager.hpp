@@ -516,4 +516,28 @@ void StickersManager::Reactions::parse(ParserT &parser) {
   }
 }
 
+template <class StorerT>
+void StickersManager::ReactionList::store(StorerT &storer) const {
+  bool has_reactions = !reactions_.empty();
+  BEGIN_STORE_FLAGS();
+  STORE_FLAG(has_reactions);
+  END_STORE_FLAGS();
+  if (has_reactions) {
+    td::store(reactions_, storer);
+    td::store(hash_, storer);
+  }
+}
+
+template <class ParserT>
+void StickersManager::ReactionList::parse(ParserT &parser) {
+  bool has_reactions;
+  BEGIN_PARSE_FLAGS();
+  PARSE_FLAG(has_reactions);
+  END_PARSE_FLAGS();
+  if (has_reactions) {
+    td::parse(reactions_, parser);
+    td::parse(hash_, parser);
+  }
+}
+
 }  // namespace td

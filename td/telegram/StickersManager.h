@@ -175,9 +175,13 @@ class StickersManager final : public Actor {
 
   void reload_reactions();
 
+  void reload_top_reactions();
+
   void reload_special_sticker_set_by_type(SpecialStickerSetType type, bool is_recursive = false);
 
   void on_get_available_reactions(tl_object_ptr<telegram_api::messages_AvailableReactions> &&available_reactions_ptr);
+
+  void on_get_top_reactions(tl_object_ptr<telegram_api::messages_Reactions> &&reactions_ptr);
 
   void on_get_installed_sticker_sets(StickerType sticker_type,
                                      tl_object_ptr<telegram_api::messages_AllStickers> &&stickers_ptr);
@@ -551,6 +555,18 @@ class StickersManager final : public Actor {
     void parse(ParserT &parser);
   };
 
+  struct ReactionList {
+    int64 hash_ = 0;
+    bool is_being_reloaded_ = false;
+    vector<string> reactions_;
+
+    template <class StorerT>
+    void store(StorerT &storer) const;
+
+    template <class ParserT>
+    void parse(ParserT &parser);
+  };
+
   class CustomEmojiLogEvent;
   class StickerListLogEvent;
   class StickerSetListLogEvent;
@@ -830,9 +846,13 @@ class StickersManager final : public Actor {
 
   void save_reactions();
 
+  void save_top_reactions();
+
   void load_active_reactions();
 
   void load_reactions();
+
+  void load_top_reactions();
 
   void update_active_reactions();
 
@@ -1014,7 +1034,11 @@ class StickersManager final : public Actor {
 
   Reactions reactions_;
   vector<string> active_reactions_;
+
+  ReactionList top_reactions_;
+
   bool are_reactions_loaded_from_database_ = false;
+  bool are_top_reactions_loaded_from_database_ = false;
 
   FlatHashMap<string, vector<string>> emoji_language_codes_;
   FlatHashMap<string, int32> emoji_language_code_versions_;
