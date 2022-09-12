@@ -2583,9 +2583,8 @@ addedReactions total_count:int32 reactions:vector<addedReaction> next_offset:str
 //@description Represents a list of reactions that can be added to a message @reactions List of available reactions @allow_custom_emoji True, if any other custom emoji reaction can be added
 availableReactions reactions:vector<ReactionType> allow_custom_emoji:Bool = AvailableReactions;
 
-
-//@description Contains stickers which must be used for emoji reaction animation rendering
-//@reaction Text representation of the reaction
+//@description Contains information about a emoji reaction
+//@emoji Text representation of the reaction
 //@title Reaction title
 //@is_active True, if the reaction can be added to new messages and enabled in chats
 //@static_icon Static icon for the reaction
@@ -2595,7 +2594,7 @@ availableReactions reactions:vector<ReactionType> allow_custom_emoji:Bool = Avai
 //@effect_animation Effect animation for the reaction
 //@around_animation Around animation for the reaction; may be null
 //@center_animation Center animation for the reaction; may be null
-reaction reaction:string title:string is_active:Bool static_icon:sticker appear_animation:sticker select_animation:sticker activate_animation:sticker effect_animation:sticker around_animation:sticker center_animation:sticker = Reaction;
+emojiReaction emoji:string title:string is_active:Bool static_icon:sticker appear_animation:sticker select_animation:sticker activate_animation:sticker effect_animation:sticker around_animation:sticker center_animation:sticker = EmojiReaction;
 
 
 //@description Represents a list of animations @animations List of animations
@@ -5164,6 +5163,9 @@ editInlineMessageReplyMarkup inline_message_id:string reply_markup:ReplyMarkup =
 editMessageSchedulingState chat_id:int53 message_id:int53 scheduling_state:MessageSchedulingState = Ok;
 
 
+//@description Returns information about a emoji reaction. Returns a 404 error if the reaction is not found @emoji Text representation of the reaction
+getEmojiReaction emoji:string = EmojiReaction;
+
 //@description Returns reactions, which can be added to a message. The list can change after updateActiveEmojiReactions, updateChatAvailableReactions for the chat, or updateMessageInteractionInfo for the message
 //@chat_id Identifier of the chat to which the message belongs
 //@message_id Identifier of the message
@@ -6392,7 +6394,7 @@ reportChat chat_id:int53 message_ids:vector<int53> reason:ChatReportReason text:
 reportChatPhoto chat_id:int53 file_id:int32 reason:ChatReportReason text:string = Ok;
 
 //@description Reports reactions set on a message to the Telegram moderators. Reactions on a message can be reported only if message.can_report_reactions
-//@chat_id Chat identifier @message_id Message identifier @sender_id Identifier of the sender, added the reaction
+//@chat_id Chat identifier @message_id Message identifier @sender_id Identifier of the sender, which added the reaction
 reportMessageReactions chat_id:int53 message_id:int53 sender_id:MessageSender = Ok;
 
 

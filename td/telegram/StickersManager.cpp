@@ -1482,12 +1482,27 @@ void StickersManager::init() {
   td_->option_manager_->set_option_empty("animated_emoji_sticker_set_name");  // legacy
 }
 
+td_api::object_ptr<td_api::emojiReaction> StickersManager::get_emoji_reaction_object(const string &emoji) {
+  load_reactions();
+  for (auto &reaction : reactions_.reactions_) {
+    if (reaction.reaction_ == emoji) {
+      return td_api::make_object<td_api::emojiReaction>(
+          reaction.reaction_, reaction.title_, reaction.is_active_, get_sticker_object(reaction.static_icon_),
+          get_sticker_object(reaction.appear_animation_), get_sticker_object(reaction.select_animation_),
+          get_sticker_object(reaction.activate_animation_), get_sticker_object(reaction.effect_animation_),
+          get_sticker_object(reaction.around_animation_), get_sticker_object(reaction.center_animation_));
+    }
+  }
+  return nullptr;
+}
+
 void StickersManager::reload_reactions() {
   if (G()->close_flag() || reactions_.are_being_reloaded_) {
     return;
   }
   CHECK(!td_->auth_manager_->is_bot());
   reactions_.are_being_reloaded_ = true;
+  load_reactions();  // must be after are_being_reloaded_ is set to true to avoid recursion
   td_->create_handler<GetAvailableReactionsQuery>()->send(reactions_.hash_);
 }
 
@@ -3687,24 +3702,29 @@ void StickersManager::load_active_reactions() {
 }
 
 void StickersManager::load_reactions() {
+  if (are_reactions_loaded_from_database_) {
+    return;
+  }
+  are_reactions_loaded_from_database_ = true;
+
   string reactions = G()->td_db()->get_binlog_pmc()->get("reactions");
   if (reactions.empty()) {
     return reload_reactions();
   }
 
-  auto status = log_event_parse(reactions_, reactions);
+  auto new_reactions = reactions_;
+  auto status = log_event_parse(new_reactions, reactions);
   if (status.is_error()) {
     LOG(ERROR) << "Can't load available reactions: " << status;
-    reactions_ = {};
     return reload_reactions();
   }
-  for (auto &reaction : reactions_.reactions_) {
+  for (auto &reaction : new_reactions.reactions_) {
     if (!reaction.is_valid()) {
       LOG(ERROR) << "Loaded invalid reaction";
-      reactions_ = {};
       return reload_reactions();
     }
   }
+  reactions_ = std::move(new_reactions);
 
   LOG(INFO) << "Successfully loaded " << reactions_.reactions_.size() << " available reactions";
 

@@ -5199,6 +5199,11 @@ void Td::on_request(uint64 id, const td_api::getChatScheduledMessages &request) 
   CREATE_REQUEST(GetChatScheduledMessagesRequest, request.chat_id_);
 }
 
+void Td::on_request(uint64 id, const td_api::getEmojiReaction &request) {
+  CHECK_IS_USER();
+  send_closure(actor_id(this), &Td::send_result, id, stickers_manager_->get_emoji_reaction_object(request.emoji_));
+}
+
 void Td::on_request(uint64 id, const td_api::getMessageAvailableReactions &request) {
   CHECK_IS_USER();
   auto r_reactions =

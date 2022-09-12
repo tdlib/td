@@ -168,6 +168,8 @@ class StickersManager final : public Actor {
 
   void view_featured_sticker_sets(const vector<StickerSetId> &sticker_set_ids);
 
+  td_api::object_ptr<td_api::emojiReaction> get_emoji_reaction_object(const string &emoji);
+
   void reload_reactions();
 
   void reload_special_sticker_set_by_type(SpecialStickerSetType type, bool is_recursive = false);
@@ -1009,6 +1011,7 @@ class StickersManager final : public Actor {
 
   Reactions reactions_;
   vector<string> active_reactions_;
+  bool are_reactions_loaded_from_database_ = false;
 
   FlatHashMap<string, vector<string>> emoji_language_codes_;
   FlatHashMap<string, int32> emoji_language_code_versions_;

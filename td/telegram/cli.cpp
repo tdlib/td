@@ -2236,6 +2236,10 @@ class CliClient final : public Actor {
       string reaction;
       get_args(args, reaction);
       send_request(td_api::make_object<td_api::setDefaultReactionType>(as_reaction_type(reaction)));
+    } else if (op == "ger") {
+      string emoji;
+      get_args(args, emoji);
+      send_request(td_api::make_object<td_api::getEmojiReaction>(emoji));
     } else if (op == "gmar") {
       ChatId chat_id;
       MessageId message_id;
