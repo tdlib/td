@@ -5204,6 +5204,12 @@ void Td::on_request(uint64 id, const td_api::getEmojiReaction &request) {
   send_closure(actor_id(this), &Td::send_result, id, stickers_manager_->get_emoji_reaction_object(request.emoji_));
 }
 
+void Td::on_request(uint64 id, const td_api::getCustomEmojiReactionAnimations &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  stickers_manager_->get_custom_emoji_reaction_generic_animations(false, std::move(promise));
+}
+
 void Td::on_request(uint64 id, const td_api::getMessageAvailableReactions &request) {
   CHECK_IS_USER();
   auto r_reactions =

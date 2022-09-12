@@ -2240,6 +2240,8 @@ class CliClient final : public Actor {
       string emoji;
       get_args(args, emoji);
       send_request(td_api::make_object<td_api::getEmojiReaction>(emoji));
+    } else if (op == "gcera") {
+      send_request(td_api::make_object<td_api::getCustomEmojiReactionAnimations>());
     } else if (op == "gmar") {
       ChatId chat_id;
       MessageId message_id;

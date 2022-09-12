@@ -163,6 +163,9 @@ remoteFile id:string unique_id:string is_uploading_active:Bool is_uploading_comp
 //@remote Information about the remote copy of the file
 file id:int32 size:int53 expected_size:int53 local:localFile remote:remoteFile = File;
 
+//@description Represents a list of files @files List of files
+files files:vector<file> = Files;
+
 
 //@class InputFile @description Points to a file
 
@@ -5165,6 +5168,9 @@ editMessageSchedulingState chat_id:int53 message_id:int53 scheduling_state:Messa
 
 //@description Returns information about a emoji reaction. Returns a 404 error if the reaction is not found @emoji Text representation of the reaction
 getEmojiReaction emoji:string = EmojiReaction;
+
+//@description Returns TGS files with generic animations for custom emoji reactions
+getCustomEmojiReactionAnimations = Files;
 
 //@description Returns reactions, which can be added to a message. The list can change after updateActiveEmojiReactions, updateChatAvailableReactions for the chat, or updateMessageInteractionInfo for the message
 //@chat_id Identifier of the chat to which the message belongs

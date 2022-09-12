@@ -658,6 +658,8 @@ class Td final : public Actor {
 
   void on_request(uint64 id, const td_api::getEmojiReaction &request);
 
+  void on_request(uint64 id, const td_api::getCustomEmojiReactionAnimations &request);
+
   void on_request(uint64 id, const td_api::getMessageAvailableReactions &request);
 
   void on_request(uint64 id, td_api::addMessageReaction &request);

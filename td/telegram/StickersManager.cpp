@@ -1678,6 +1678,7 @@ void StickersManager::on_load_special_sticker_set(const SpecialStickerSetType &t
     return;
   }
   if (type == SpecialStickerSetType::generic_animations()) {
+    set_promises(pending_get_generic_animations_queries_);
     return;
   }
   if (type == SpecialStickerSetType::default_statuses()) {
@@ -5498,6 +5499,35 @@ void StickersManager::get_all_animated_emojis(bool is_recursive,
     return s->alt_;
   });
   promise.set_value(td_api::make_object<td_api::emojis>(std::move(emojis)));
+}
+
+void StickersManager::get_custom_emoji_reaction_generic_animations(
+    bool is_recursive, Promise<td_api::object_ptr<td_api::files>> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+
+  auto &special_sticker_set = add_special_sticker_set(SpecialStickerSetType::generic_animations());
+  auto sticker_set = get_sticker_set(special_sticker_set.id_);
+  if (sticker_set == nullptr || !sticker_set->was_loaded_) {
+    if (is_recursive) {
+      return promise.set_value(td_api::make_object<td_api::files>());
+    }
+
+    pending_get_generic_animations_queries_.push_back(PromiseCreator::lambda(
+        [actor_id = actor_id(this), promise = std::move(promise)](Result<Unit> &&result) mutable {
+          if (result.is_error()) {
+            promise.set_error(result.move_as_error());
+          } else {
+            send_closure(actor_id, &StickersManager::get_custom_emoji_reaction_generic_animations, true,
+                         std::move(promise));
+          }
+        }));
+    load_special_sticker_set(special_sticker_set);
+    return;
+  }
+
+  auto files = transform(sticker_set->sticker_ids_,
+                         [&](FileId sticker_id) { return td_->file_manager_->get_file_object(sticker_id); });
+  promise.set_value(td_api::make_object<td_api::files>(std::move(files)));
 }
 
 void StickersManager::get_default_emoji_statuses(bool is_recursive,
