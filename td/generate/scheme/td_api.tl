@@ -5177,6 +5177,9 @@ getCustomEmojiReactionAnimations = Files;
 //@message_id Identifier of the message
 getMessageAvailableReactions chat_id:int53 message_id:int53 = AvailableReactions;
 
+//@description Clears the list of recently used reactions
+clearRecentReactions = Ok;
+
 //@description Adds a reaction to a message. Use getMessageAvailableReactions to receive the list of available reactions for the message
 //@chat_id Identifier of the chat to which the message belongs
 //@message_id Identifier of the message
@@ -5632,7 +5635,7 @@ getRecentEmojiStatuses = EmojiStatuses;
 //@description Returns default emoji statuses
 getDefaultEmojiStatuses = EmojiStatuses;
 
-//@description Clears recent emoji statuses
+//@description Clears the list of recently used emoji statuses
 clearRecentEmojiStatuses = Ok;
 
 

@@ -139,6 +139,36 @@ class GetTopReactionsQuery final : public Td::ResultHandler {
   }
 };
 
+class ClearRecentReactionsQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit ClearRecentReactionsQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send() {
+    send_query(G()->net_query_creator().create(telegram_api::messages_clearRecentReactions()));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_clearRecentReactions>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    td_->stickers_manager_->reload_recent_reactions();
+    promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    if (!G()->is_expected_error(status)) {
+      LOG(ERROR) << "Receive error for clear recent reactions: " << status;
+    }
+    td_->stickers_manager_->reload_recent_reactions();
+    promise_.set_error(std::move(status));
+  }
+};
+
 class GetAllStickersQuery final : public Td::ResultHandler {
   StickerType sticker_type_;
 
@@ -1541,6 +1571,19 @@ td_api::object_ptr<td_api::emojiReaction> StickersManager::get_emoji_reaction_ob
     }
   }
   return nullptr;
+}
+
+void StickersManager::clear_recent_reactions(Promise<Unit> &&promise) {
+  load_recent_reactions();
+
+  if (recent_reactions_.reactions_.empty()) {
+    return promise.set_value(Unit());
+  }
+
+  recent_reactions_.hash_ = 0;
+  recent_reactions_.reactions_.clear();
+
+  td_->create_handler<ClearRecentReactionsQuery>(std::move(promise))->send();
 }
 
 void StickersManager::reload_reactions() {

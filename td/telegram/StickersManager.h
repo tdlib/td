@@ -173,6 +173,8 @@ class StickersManager final : public Actor {
 
   td_api::object_ptr<td_api::emojiReaction> get_emoji_reaction_object(const string &emoji);
 
+  void clear_recent_reactions(Promise<Unit> &&promise);
+
   void reload_reactions();
 
   void reload_recent_reactions();

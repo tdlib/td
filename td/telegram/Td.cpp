@@ -5221,6 +5221,12 @@ void Td::on_request(uint64 id, const td_api::getMessageAvailableReactions &reque
   }
 }
 
+void Td::on_request(uint64 id, const td_api::clearRecentReactions &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  stickers_manager_->clear_recent_reactions(std::move(promise));
+}
+
 void Td::on_request(uint64 id, td_api::addMessageReaction &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
