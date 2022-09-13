@@ -805,7 +805,8 @@ class MessagesManager final : public Actor {
   vector<MessageId> get_dialog_scheduled_messages(DialogId dialog_id, bool force, bool ignore_result,
                                                   Promise<Unit> &&promise);
 
-  Result<ChatReactions> get_message_available_reactions(FullMessageId full_message_id);
+  Result<td_api::object_ptr<td_api::availableReactions>> get_message_available_reactions(FullMessageId full_message_id,
+                                                                                         int32 row_size);
 
   void add_message_reaction(FullMessageId full_message_id, string reaction, bool is_big, bool add_to_recent,
                             Promise<Unit> &&promise);
@@ -2689,7 +2690,8 @@ class MessagesManager final : public Actor {
 
   bool update_dialog_silent_send_message(Dialog *d, bool silent_send_message);
 
-  ChatReactions get_message_available_reactions(const Dialog *d, const Message *m);
+  ChatReactions get_message_available_reactions(const Dialog *d, const Message *m,
+                                                bool dissalow_custom_for_non_premium);
 
   void set_message_reactions(Dialog *d, Message *m, bool is_big, bool add_to_recent, Promise<Unit> &&promise);
 

@@ -880,6 +880,14 @@ void report_message_reactions(Td *td, FullMessageId full_message_id, DialogId ch
   td->create_handler<ReportReactionQuery>(std::move(promise))->send(dialog_id, message_id, chooser_dialog_id);
 }
 
+vector<string> get_recent_reactions(Td *td) {
+  return td->stickers_manager_->get_recent_reactions();
+}
+
+vector<string> get_top_reactions(Td *td) {
+  return td->stickers_manager_->get_top_reactions();
+}
+
 void add_recent_reaction(Td *td, const string &reaction) {
   td->stickers_manager_->add_recent_reaction(reaction);
 }

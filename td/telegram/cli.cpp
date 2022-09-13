@@ -2246,7 +2246,7 @@ class CliClient final : public Actor {
       ChatId chat_id;
       MessageId message_id;
       get_args(args, chat_id, message_id);
-      send_request(td_api::make_object<td_api::getMessageAvailableReactions>(chat_id, message_id));
+      send_request(td_api::make_object<td_api::getMessageAvailableReactions>(chat_id, message_id, 8));
     } else if (op == "crr") {
       send_request(td_api::make_object<td_api::clearRecentReactions>());
     } else if (op == "amr" || op == "react") {

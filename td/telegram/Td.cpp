@@ -5212,12 +5212,12 @@ void Td::on_request(uint64 id, const td_api::getCustomEmojiReactionAnimations &r
 
 void Td::on_request(uint64 id, const td_api::getMessageAvailableReactions &request) {
   CHECK_IS_USER();
-  auto r_reactions =
-      messages_manager_->get_message_available_reactions({DialogId(request.chat_id_), MessageId(request.message_id_)});
+  auto r_reactions = messages_manager_->get_message_available_reactions(
+      {DialogId(request.chat_id_), MessageId(request.message_id_)}, request.row_size_);
   if (r_reactions.is_error()) {
     send_closure(actor_id(this), &Td::send_error, id, r_reactions.move_as_error());
   } else {
-    send_closure(actor_id(this), &Td::send_result, id, r_reactions.ok().get_available_reactions_object());
+    send_closure(actor_id(this), &Td::send_result, id, r_reactions.move_as_ok());
   }
 }
 

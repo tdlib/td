@@ -2583,8 +2583,15 @@ addedReaction type:ReactionType sender_id:MessageSender = AddedReaction;
 //@description Represents a list of reactions added to a message @total_count The total number of found reactions @reactions The list of added reactions @next_offset The offset for the next request. If empty, there are no more results
 addedReactions total_count:int32 reactions:vector<addedReaction> next_offset:string = AddedReactions;
 
-//@description Represents a list of reactions that can be added to a message @reactions List of available reactions @allow_custom_emoji True, if any other custom emoji reaction can be added
-availableReactions reactions:vector<ReactionType> allow_custom_emoji:Bool = AvailableReactions;
+//@description Represents an available reaction @type Type of the reaction @needs_premium True, if Telegram Premium is needed to send the reaction
+availableReaction type:ReactionType needs_premium:Bool = AvailableReaction;
+
+//@description Represents a list of reactions that can be added to a message
+//@top_reactions List of reactions to be shown at the top
+//@recent_reactions List of recently used reactions
+//@popular_reactions List of popular reactions
+//@allow_custom_emoji True, if any other custom emoji reaction could be added by Telegram Premium subscribers
+availableReactions top_reactions:vector<availableReaction> recent_reactions:vector<availableReaction> popular_reactions:vector<availableReaction> allow_custom_emoji:Bool = AvailableReactions;
 
 //@description Contains information about a emoji reaction
 //@emoji Text representation of the reaction
@@ -5175,7 +5182,8 @@ getCustomEmojiReactionAnimations = Files;
 //@description Returns reactions, which can be added to a message. The list can change after updateActiveEmojiReactions, updateChatAvailableReactions for the chat, or updateMessageInteractionInfo for the message
 //@chat_id Identifier of the chat to which the message belongs
 //@message_id Identifier of the message
-getMessageAvailableReactions chat_id:int53 message_id:int53 = AvailableReactions;
+//@row_size Number of reaction per row, 5-25
+getMessageAvailableReactions chat_id:int53 message_id:int53 row_size:int32 = AvailableReactions;
 
 //@description Clears the list of recently used reactions
 clearRecentReactions = Ok;

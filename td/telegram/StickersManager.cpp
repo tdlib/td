@@ -1573,6 +1573,16 @@ td_api::object_ptr<td_api::emojiReaction> StickersManager::get_emoji_reaction_ob
   return nullptr;
 }
 
+vector<string> StickersManager::get_recent_reactions() {
+  load_recent_reactions();
+  return recent_reactions_.reactions_;
+}
+
+vector<string> StickersManager::get_top_reactions() {
+  load_top_reactions();
+  return top_reactions_.reactions_;
+}
+
 void StickersManager::add_recent_reaction(const string &reaction) {
   load_recent_reactions();
 

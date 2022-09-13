@@ -24469,7 +24469,12 @@ void MessagesManager::on_get_scheduled_messages_from_database(DialogId dialog_id
   set_promises(promises);
 }
 
-Result<ChatReactions> MessagesManager::get_message_available_reactions(FullMessageId full_message_id) {
+Result<td_api::object_ptr<td_api::availableReactions>> MessagesManager::get_message_available_reactions(
+    FullMessageId full_message_id, int32 row_size) {
+  if (row_size < 5 || row_size > 25) {
+    row_size = 8;
+  }
+
   auto dialog_id = full_message_id.get_dialog_id();
   Dialog *d = get_dialog_force(dialog_id, "get_message_available_reactions");
   if (d == nullptr) {
@@ -24480,10 +24485,97 @@ Result<ChatReactions> MessagesManager::get_message_available_reactions(FullMessa
   if (m == nullptr) {
     return Status::Error(400, "Message not found");
   }
-  return get_message_available_reactions(d, m);
+
+  auto available_reactions = get_message_available_reactions(d, m, false);
+  bool is_premium = td_->option_manager_->get_option_boolean("is_premium");
+  bool show_premium = is_premium;
+
+  auto recent_reactions = get_recent_reactions(td_);
+  auto top_reactions = get_top_reactions(td_);
+  auto active_reactions = get_message_active_reactions(d, m);
+  LOG(INFO) << "Have available reactions " << available_reactions << " to be sorted by top reactions " << top_reactions
+            << " and recent reactions " << recent_reactions;
+  if (active_reactions.allow_custom_ && active_reactions.allow_all_) {
+    for (auto &reaction : recent_reactions) {
+      if (is_custom_reaction(reaction)) {
+        show_premium = true;
+      }
+    }
+    for (auto &reaction : top_reactions) {
+      if (is_custom_reaction(reaction)) {
+        show_premium = true;
+      }
+    }
+  }
+
+  FlatHashSet<string> all_available_reactions;
+  for (const auto &reaction : available_reactions.reactions_) {
+    all_available_reactions.insert(reaction);
+  }
+
+  vector<td_api::object_ptr<td_api::availableReaction>> top_reaction_objects;
+  vector<td_api::object_ptr<td_api::availableReaction>> recent_reaction_objects;
+  vector<td_api::object_ptr<td_api::availableReaction>> popular_reaction_objects;
+  vector<td_api::object_ptr<td_api::availableReaction>> last_reaction_objects;
+
+  auto add_reactions = [&](vector<td_api::object_ptr<td_api::availableReaction>> &reaction_objects,
+                           const vector<string> &reactions) {
+    for (auto &reaction : reactions) {
+      if (all_available_reactions.erase(reaction) != 0) {
+        // add available reaction
+        reaction_objects.push_back(
+            td_api::make_object<td_api::availableReaction>(get_reaction_type_object(reaction), false));
+      } else if (is_custom_reaction(reaction) && available_reactions.allow_custom_) {
+        // add implicitly available custom reaction
+        reaction_objects.push_back(
+            td_api::make_object<td_api::availableReaction>(get_reaction_type_object(reaction), !is_premium));
+      } else {
+        // skip the reaction
+      }
+    }
+  };
+  if (show_premium) {
+    if (top_reactions.size() > 2 * static_cast<size_t>(row_size)) {
+      top_reactions.resize(2 * static_cast<size_t>(row_size));
+    }
+    add_reactions(top_reaction_objects, top_reactions);
+
+    if (!recent_reactions.empty()) {
+      add_reactions(recent_reaction_objects, recent_reactions);
+    }
+  } else {
+    add_reactions(top_reaction_objects, top_reactions);
+  }
+  add_reactions(last_reaction_objects, active_reactions_);
+  add_reactions(last_reaction_objects, available_reactions.reactions_);
+
+  if (show_premium) {
+    if (recent_reactions.empty()) {
+      popular_reaction_objects = std::move(last_reaction_objects);
+    } else {
+      auto max_objects = 10 * static_cast<size_t>(row_size);
+      if (recent_reaction_objects.size() + last_reaction_objects.size() > max_objects) {
+        if (last_reaction_objects.size() < max_objects) {
+          recent_reaction_objects.resize(max_objects - last_reaction_objects.size());
+        } else {
+          recent_reaction_objects.clear();
+        }
+      }
+      append(recent_reaction_objects, std::move(last_reaction_objects));
+    }
+  } else {
+    append(top_reaction_objects, std::move(last_reaction_objects));
+  }
+
+  CHECK(all_available_reactions.empty());
+
+  return td_api::make_object<td_api::availableReactions>(
+      std::move(top_reaction_objects), std::move(recent_reaction_objects), std::move(popular_reaction_objects),
+      available_reactions.allow_custom_);
 }
 
-ChatReactions MessagesManager::get_message_available_reactions(const Dialog *d, const Message *m) {
+ChatReactions MessagesManager::get_message_available_reactions(const Dialog *d, const Message *m,
+                                                               bool dissalow_custom_for_non_premium) {
   CHECK(d != nullptr);
   CHECK(m != nullptr);
   auto active_reactions = get_message_active_reactions(d, m);
@@ -24517,14 +24609,13 @@ ChatReactions MessagesManager::get_message_available_reactions(const Dialog *d, 
     for (const auto &reaction : m->reactions->reactions_) {
       // an already used reaction can be added if it is an active reaction
       const string &reaction_str = reaction.get_reaction();
-      if (can_use_reactions && is_active_reaction(reaction_str, active_reaction_pos_)) {
-        if (!td::contains(active_reactions.reactions_, reaction_str)) {
-          active_reactions.reactions_.push_back(reaction_str);
-        }
+      if (can_use_reactions && is_active_reaction(reaction_str, active_reaction_pos_) &&
+          !td::contains(active_reactions.reactions_, reaction_str)) {
+        active_reactions.reactions_.push_back(reaction_str);
       }
     }
   }
-  if (!td_->option_manager_->get_option_boolean("is_premium")) {
+  if (dissalow_custom_for_non_premium && !td_->option_manager_->get_option_boolean("is_premium")) {
     active_reactions.allow_custom_ = false;
   }
   return active_reactions;
@@ -24543,7 +24634,7 @@ void MessagesManager::add_message_reaction(FullMessageId full_message_id, string
     return promise.set_error(Status::Error(400, "Message not found"));
   }
 
-  if (!get_message_available_reactions(d, m).is_allowed_reaction(reaction)) {
+  if (!get_message_available_reactions(d, m, true).is_allowed_reaction(reaction)) {
     return promise.set_error(Status::Error(400, "The reaction isn't available for the message"));
   }
 
