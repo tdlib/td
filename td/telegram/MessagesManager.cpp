@@ -24518,14 +24518,19 @@ Result<td_api::object_ptr<td_api::availableReactions>> MessagesManager::get_mess
   vector<td_api::object_ptr<td_api::availableReaction>> popular_reaction_objects;
   vector<td_api::object_ptr<td_api::availableReaction>> last_reaction_objects;
 
+  FlatHashSet<string> added_custom_reactions;
   auto add_reactions = [&](vector<td_api::object_ptr<td_api::availableReaction>> &reaction_objects,
                            const vector<string> &reactions) {
     for (auto &reaction : reactions) {
       if (all_available_reactions.erase(reaction) != 0) {
         // add available reaction
+        if (is_custom_reaction(reaction)) {
+          added_custom_reactions.insert(reaction);
+        }
         reaction_objects.push_back(
             td_api::make_object<td_api::availableReaction>(get_reaction_type_object(reaction), false));
-      } else if (is_custom_reaction(reaction) && available_reactions.allow_custom_) {
+      } else if (is_custom_reaction(reaction) && available_reactions.allow_custom_ &&
+                 added_custom_reactions.insert(reaction).second) {
         // add implicitly available custom reaction
         reaction_objects.push_back(
             td_api::make_object<td_api::availableReaction>(get_reaction_type_object(reaction), !is_premium));
