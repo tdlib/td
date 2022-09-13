@@ -6736,7 +6736,7 @@ void MessagesManager::on_get_message_reaction_list(FullMessageId full_message_id
   };
 
   // it's impossible to use received reactions to update message reactions, because there is no way to find,
-  // which reaction is chosen by the current user, so just reload message reactions for consistency
+  // which reactions are chosen by the current user, so just reload message reactions for consistency
   bool need_reload = false;
   if (reaction.empty()) {
     // received list and total_count for all reactions

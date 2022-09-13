@@ -36,11 +36,7 @@ class MessageReaction {
 
   friend StringBuilder &operator<<(StringBuilder &string_builder, const MessageReaction &message_reaction);
 
- public:
-  static constexpr size_t MAX_RECENT_CHOOSERS = 3;
-  static constexpr int32 MAX_CHOOSE_COUNT = 2147483640;
-
-  MessageReaction() = default;
+  friend struct MessageReactions;
 
   MessageReaction(string reaction, int32 choose_count, bool is_chosen, vector<DialogId> &&recent_chooser_dialog_ids,
                   vector<std::pair<ChannelId, MinChannel>> &&recent_chooser_min_channels)
@@ -55,15 +51,27 @@ class MessageReaction {
     return choose_count_ <= 0;
   }
 
-  const string &get_reaction() const {
-    return reaction_;
-  }
-
   bool is_chosen() const {
     return is_chosen_;
   }
 
   void set_is_chosen(bool is_chosen, DialogId chooser_dialog_id, bool have_recent_choosers);
+
+  void add_recent_chooser_dialog_id(DialogId dialog_id);
+
+  bool remove_recent_chooser_dialog_id(DialogId dialog_id);
+
+  void update_recent_chooser_dialog_ids(const MessageReaction &old_reaction);
+
+ public:
+  static constexpr size_t MAX_RECENT_CHOOSERS = 3;
+  static constexpr int32 MAX_CHOOSE_COUNT = 2147483640;
+
+  MessageReaction() = default;
+
+  const string &get_reaction() const {
+    return reaction_;
+  }
 
   int32 get_choose_count() const {
     return choose_count_;
@@ -76,12 +84,6 @@ class MessageReaction {
   const vector<std::pair<ChannelId, MinChannel>> &get_recent_chooser_min_channels() const {
     return recent_chooser_min_channels_;
   }
-
-  void add_recent_chooser_dialog_id(DialogId dialog_id);
-
-  bool remove_recent_chooser_dialog_id(DialogId dialog_id);
-
-  void update_recent_chooser_dialog_ids(const MessageReaction &old_reaction);
 
   td_api::object_ptr<td_api::messageReaction> get_message_reaction_object(Td *td) const;
 

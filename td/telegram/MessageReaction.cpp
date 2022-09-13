@@ -559,8 +559,8 @@ unique_ptr<MessageReactions> MessageReactions::get_message_reactions(
     if (is_chosen) {
       chosen_reaction_order.emplace_back(reaction_count->chosen_order_, reaction_str);
     }
-    result->reactions_.emplace_back(std::move(reaction_str), reaction_count->count_, is_chosen,
-                                    std::move(recent_chooser_dialog_ids), std::move(recent_chooser_min_channels));
+    result->reactions_.push_back({std::move(reaction_str), reaction_count->count_, is_chosen,
+                                  std::move(recent_chooser_dialog_ids), std::move(recent_chooser_min_channels)});
   }
   if (chosen_reaction_order.size() > 1) {
     std::sort(chosen_reaction_order.begin(), chosen_reaction_order.end());
@@ -624,7 +624,7 @@ bool MessageReactions::add_reaction(const string &reaction, bool is_big, DialogI
     if (have_recent_choosers) {
       recent_chooser_dialog_ids.push_back(chooser_dialog_id);
     }
-    reactions_.emplace_back(reaction, 1, true, std::move(recent_chooser_dialog_ids), Auto());
+    reactions_.push_back({reaction, 1, true, std::move(recent_chooser_dialog_ids), Auto()});
     new_chosen_reaction_order.emplace_back(reaction);
   } else if (!added_reaction->is_chosen()) {
     added_reaction->set_is_chosen(true, chooser_dialog_id, have_recent_choosers);
