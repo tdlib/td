@@ -11,6 +11,7 @@ char disable_linker_warning_about_empty_file_thread_pthread_cpp TD_UNUSED;
 #if TD_THREAD_PTHREAD
 
 #include "td/utils/misc.h"
+#include "td/utils/port/detail/skip_eintr.h"
 
 #include <pthread.h>
 #include <sched.h>
@@ -95,11 +96,44 @@ int ThreadPthread::do_pthread_create(pthread_t *thread, const pthread_attr_t *at
 }
 
 Status ThreadPthread::set_affinity_mask(id thread_id, uint64 mask) {
+#if TD_LINUX
+  cpu_set_t cpuset;
+  CPU_ZERO(&cpuset);
+  for (int j = 0; j < 64 && j < CPU_SETSIZE; j++) {
+    if ((mask >> j) & 1) {
+      CPU_SET(j, &cpuset);
+    }
+  }
+
+  auto res = skip_eintr([&] { return pthread_setaffinity_np(thread_id, sizeof(cpu_set_t), &cpuset); });
+  if (res) {
+    return OS_ERROR("Failed to set thread affinity mask");
+  }
+  return Status::OK();
+#else
   return Status::Error("Unsupported");
+#endif
 }
 
 uint64 ThreadPthread::get_affinity_mask(id thread_id) {
+#if TD_LINUX
+  cpu_set_t cpuset;
+  CPU_ZERO(&cpuset);
+  auto res = skip_eintr([&] { return pthread_getaffinity_np(thread_id, sizeof(cpu_set_t), &cpuset); });
+  if (res) {
+    return 0;
+  }
+
+  uint64 mask = 0;
+  for (int j = 0; j < 64 && j < CPU_SETSIZE; j++) {
+    if (CPU_ISSET(j, &cpuset)) {
+      mask |= static_cast<uint64>(1) << j;
+    }
+  }
+  return mask;
+#else
   return 0;
+#endif
 }
 
 namespace this_thread_pthread {
