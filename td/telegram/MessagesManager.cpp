@@ -6961,8 +6961,14 @@ td_api::object_ptr<td_api::messageInteractionInfo> MessagesManager::get_message_
 
   vector<td_api::object_ptr<td_api::messageReaction>> reactions;
   if (has_reactions) {
-    reactions = transform(m->reactions->reactions_, [td = td_](const MessageReaction &reaction) {
-      return reaction.get_message_reaction_object(td);
+    UserId my_user_id;
+    UserId peer_user_id;
+    if (dialog_id.get_type() == DialogType::User) {
+      my_user_id = td_->contacts_manager_->get_my_id();
+      peer_user_id = dialog_id.get_user_id();
+    }
+    reactions = transform(m->reactions->reactions_, [td = td_, my_user_id, peer_user_id](const MessageReaction &reaction) {
+      return reaction.get_message_reaction_object(td, my_user_id, peer_user_id);
     });
   }
 

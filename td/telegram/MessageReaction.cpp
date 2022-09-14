@@ -433,16 +433,33 @@ void MessageReaction::set_is_chosen(bool is_chosen, DialogId chooser_dialog_id, 
   }
 }
 
-td_api::object_ptr<td_api::messageReaction> MessageReaction::get_message_reaction_object(Td *td) const {
+td_api::object_ptr<td_api::messageReaction> MessageReaction::get_message_reaction_object(Td *td, UserId my_user_id,
+                                                                                         UserId peer_user_id) const {
   CHECK(!is_empty());
 
   vector<td_api::object_ptr<td_api::MessageSender>> recent_choosers;
-  for (auto dialog_id : recent_chooser_dialog_ids_) {
-    auto recent_chooser = get_min_message_sender_object(td, dialog_id, "get_message_reaction_object");
-    if (recent_chooser != nullptr) {
-      recent_choosers.push_back(std::move(recent_chooser));
-      if (recent_choosers.size() == MAX_RECENT_CHOOSERS) {
-        break;
+  if (my_user_id.is_valid()) {
+    CHECK(peer_user_id.is_valid());
+    if (is_chosen()) {
+      auto recent_chooser = get_min_message_sender_object(td, DialogId(my_user_id), "get_message_reaction_object");
+      if (recent_chooser != nullptr) {
+        recent_choosers.push_back(std::move(recent_chooser));
+      }
+    }
+    if (choose_count_ >= (is_chosen() ? 2 : 1)) {
+      auto recent_chooser = get_min_message_sender_object(td, DialogId(peer_user_id), "get_message_reaction_object");
+      if (recent_chooser != nullptr) {
+        recent_choosers.push_back(std::move(recent_chooser));
+      }
+    }
+  } else {
+    for (auto dialog_id : recent_chooser_dialog_ids_) {
+      auto recent_chooser = get_min_message_sender_object(td, dialog_id, "get_message_reaction_object");
+      if (recent_chooser != nullptr) {
+        recent_choosers.push_back(std::move(recent_chooser));
+        if (recent_choosers.size() == MAX_RECENT_CHOOSERS) {
+          break;
+        }
       }
     }
   }

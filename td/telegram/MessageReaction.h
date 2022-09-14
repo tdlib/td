@@ -85,7 +85,8 @@ class MessageReaction {
     return recent_chooser_min_channels_;
   }
 
-  td_api::object_ptr<td_api::messageReaction> get_message_reaction_object(Td *td) const;
+  td_api::object_ptr<td_api::messageReaction> get_message_reaction_object(Td *td, UserId my_user_id,
+                                                                          UserId peer_user_id) const;
 
   template <class StorerT>
   void store(StorerT &storer) const;
