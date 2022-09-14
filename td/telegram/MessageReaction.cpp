@@ -331,8 +331,6 @@ class SetDefaultReactionQuery final : public Td::ResultHandler {
     }
 
     auto default_reaction = td_->option_manager_->get_option_string("default_reaction", "-");
-    LOG(INFO) << "Successfully set reaction " << reaction_ << " as default, current default is " << default_reaction;
-
     if (default_reaction != reaction_) {
       send_set_default_reaction_query(td_);
     } else {
@@ -345,7 +343,7 @@ class SetDefaultReactionQuery final : public Td::ResultHandler {
       return;
     }
 
-    LOG(INFO) << "Failed to set default reaction: " << status;
+    LOG(INFO) << "Receive error for SetDefaultReactionQuery: " << status;
     td_->option_manager_->set_option_empty("default_reaction_needs_sync");
     send_closure(G()->config_manager(), &ConfigManager::request_config, false);
   }

@@ -2590,7 +2590,7 @@ availableReaction type:ReactionType needs_premium:Bool = AvailableReaction;
 //@top_reactions List of reactions to be shown at the top
 //@recent_reactions List of recently used reactions
 //@popular_reactions List of popular reactions
-//@allow_custom_emoji True, if any other custom emoji reaction could be added by Telegram Premium subscribers
+//@allow_custom_emoji True, if custom emoji reactions could be added by Telegram Premium subscribers
 availableReactions top_reactions:vector<availableReaction> recent_reactions:vector<availableReaction> popular_reactions:vector<availableReaction> allow_custom_emoji:Bool = AvailableReactions;
 
 //@description Contains information about a emoji reaction
