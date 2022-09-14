@@ -65,7 +65,11 @@ class ThreadStl {
     return std::thread::hardware_concurrency();
   }
 
+#if TD_WINDOWS
+  using id = HANDLE;
+#else
   using id = std::thread::id;
+#endif
 
   static void send_real_time_signal(id thread_id, int real_time_signal_number) {
     // not supported
@@ -81,7 +85,13 @@ class ThreadStl {
 };
 
 namespace this_thread_stl {
+#if TD_WINDOWS
+inline ThreadStl::id get_id() {
+  return GetCurrentThread();
+}
+#else
 using std::this_thread::get_id;
+#endif
 }  // namespace this_thread_stl
 
 }  // namespace detail
