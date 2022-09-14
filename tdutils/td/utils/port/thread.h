@@ -22,9 +22,6 @@ namespace td {
   using thread = detail::ThreadStl;
   namespace this_thread = detail::this_thread_stl;
 #elif TD_THREAD_UNSUPPORTED
-  namespace this_thread {
-    inline void yield() {}
-  }
 #else
   #error "Thread's implementation is not defined"
 #endif
