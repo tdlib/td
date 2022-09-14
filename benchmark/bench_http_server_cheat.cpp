@@ -122,7 +122,7 @@ class Server final : public td::TcpListener::Callback {
 int main() {
   SET_VERBOSITY_LEVEL(VERBOSITY_NAME(ERROR));
   auto scheduler = td::make_unique<td::ConcurrentScheduler>();
-  scheduler->init(N);
+  scheduler->init(N, 0);
   scheduler->create_actor_unsafe<Server>(0, "Server").release();
   scheduler->start();
   while (scheduler->run_main(10)) {

@@ -37,7 +37,7 @@ class MainActor final : public td::Actor {
 
 int main() {
   td::ConcurrentScheduler scheduler;
-  scheduler.init(4 /*threads_count*/);
+  scheduler.init(4 /*thread_count*/, 0);
   scheduler.start();
   {
     auto guard = scheduler.get_main_guard();

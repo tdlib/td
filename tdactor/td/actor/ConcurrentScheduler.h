@@ -26,7 +26,7 @@ namespace td {
 
 class ConcurrentScheduler final : private Scheduler::Callback {
  public:
-  void init(int32 threads_n);
+  void init(int32 additional_thread_count, uint64 thread_affinity_mask = 0);
 
   void finish_async() {
     schedulers_[0]->finish();
@@ -90,6 +90,7 @@ class ConcurrentScheduler final : private Scheduler::Callback {
   std::atomic<bool> is_finished_{false};
 #if !TD_THREAD_UNSUPPORTED && !TD_EVENTFD_UNSUPPORTED
   vector<td::thread> threads_;
+  uint64 thread_affinity_mask_ = 0;
 #endif
 #if TD_PORT_WINDOWS
   unique_ptr<detail::Iocp> iocp_;

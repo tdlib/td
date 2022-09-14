@@ -15,18 +15,19 @@
 
 namespace td {
 
-void ConcurrentScheduler::init(int32 threads_n) {
+void ConcurrentScheduler::init(int32 additional_thread_count, uint64 thread_affinity_mask) {
 #if TD_THREAD_UNSUPPORTED || TD_EVENTFD_UNSUPPORTED
-  threads_n = 0;
+  additional_thread_count = 0;
 #endif
-  threads_n++;
-  std::vector<std::shared_ptr<MpscPollableQueue<EventFull>>> outbound(threads_n);
+  additional_thread_count++;
+  std::vector<std::shared_ptr<MpscPollableQueue<EventFull>>> outbound(additional_thread_count);
 #if !TD_THREAD_UNSUPPORTED && !TD_EVENTFD_UNSUPPORTED
-  for (int32 i = 0; i < threads_n; i++) {
+  for (int32 i = 0; i < additional_thread_count; i++) {
     auto queue = std::make_shared<MpscPollableQueue<EventFull>>();
     queue->init();
     outbound[i] = queue;
   }
+  thread_affinity_mask_ = thread_affinity_mask;
 #endif
 
   // +1 for extra scheduler for IOCP and send_closure from unrelated threads
@@ -37,13 +38,13 @@ void ConcurrentScheduler::init(int32 threads_n) {
   extra_scheduler_ = 0;
 #endif
 
-  schedulers_.resize(threads_n + extra_scheduler_);
-  for (int32 i = 0; i < threads_n + extra_scheduler_; i++) {
+  schedulers_.resize(additional_thread_count + extra_scheduler_);
+  for (int32 i = 0; i < additional_thread_count + extra_scheduler_; i++) {
     auto &sched = schedulers_[i];
     sched = make_unique<Scheduler>();
 
 #if !TD_THREAD_UNSUPPORTED && !TD_EVENTFD_UNSUPPORTED
-    if (i >= threads_n) {
+    if (i >= additional_thread_count) {
       auto queue = std::make_shared<MpscPollableQueue<EventFull>>();
       queue->init();
       outbound.push_back(std::move(queue));
@@ -75,10 +76,13 @@ void ConcurrentScheduler::start() {
 #if !TD_THREAD_UNSUPPORTED && !TD_EVENTFD_UNSUPPORTED
   for (size_t i = 1; i + extra_scheduler_ < schedulers_.size(); i++) {
     auto &sched = schedulers_[i];
-    threads_.push_back(td::thread([&] {
+    threads_.push_back(td::thread([&, thread_affinity_mask = thread_affinity_mask_] {
 #if TD_PORT_WINDOWS
       detail::Iocp::Guard iocp_guard(iocp_.get());
 #endif
+      if (thread_affinity_mask != 0) {
+        thread::set_affinity_mask(this_thread::get_id(), thread_affinity_mask);
+      }
       while (!is_finished()) {
         sched->run(Timestamp::in(10));
       }
