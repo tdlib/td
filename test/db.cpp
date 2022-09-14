@@ -684,8 +684,7 @@ TEST(DB, persistent_key_value) {
       int ref_cnt_;
     };
 
-    td::ConcurrentScheduler sched;
-    sched.init(threads_n);
+    td::ConcurrentScheduler sched(threads_n, 0);
     sched.create_actor_unsafe<Main>(0, "Main", threads_n, &queries, &res).release();
     sched.start();
     while (sched.run_main(10)) {

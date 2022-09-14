@@ -999,9 +999,7 @@ void FakeSecretChatContext::on_read_message(int64, Promise<> promise) {
 
 TEST(Secret, go) {
   return;
-  ConcurrentScheduler sched;
-  int threads_n = 0;
-  sched.init(threads_n);
+  ConcurrentScheduler sched(0, 0);
 
   Status result;
   sched.create_actor_unsafe<Master>(0, "HandshakeTestActor", &result).release();

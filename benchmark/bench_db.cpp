@@ -29,7 +29,7 @@
 
 template <class KeyValueT>
 class TdKvBench final : public td::Benchmark {
-  td::ConcurrentScheduler sched;
+  td::ConcurrentScheduler sched{1, 0};
   td::string name_;
 
  public:
@@ -72,7 +72,6 @@ class TdKvBench final : public td::Benchmark {
   };
 
   void start_up_n(int n) final {
-    sched.init(1);
     sched.create_actor_unsafe<Main>(1, "Main", n).release();
   }
 
@@ -179,8 +178,7 @@ class SqliteKeyValueAsyncBench final : public td::Benchmark {
   td::unique_ptr<td::SqliteKeyValueAsyncInterface> sqlite_kv_async_;
 
   td::Status do_start_up() {
-    scheduler_ = td::make_unique<td::ConcurrentScheduler>();
-    scheduler_->init(1);
+    scheduler_ = td::make_unique<td::ConcurrentScheduler>(1, 0);
 
     auto guard = scheduler_->get_main_guard();
 

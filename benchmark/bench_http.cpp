@@ -66,8 +66,7 @@ class HttpClient final : public td::HttpOutboundConnection::Callback {
 
 int main() {
   SET_VERBOSITY_LEVEL(VERBOSITY_NAME(ERROR));
-  auto scheduler = td::make_unique<td::ConcurrentScheduler>();
-  scheduler->init(0);
+  auto scheduler = td::make_unique<td::ConcurrentScheduler>(0, 0);
   scheduler->create_actor_unsafe<HttpClient>(0, "Client1").release();
   scheduler->create_actor_unsafe<HttpClient>(0, "Client2").release();
   scheduler->start();

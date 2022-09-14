@@ -46,10 +46,9 @@ class ActorTraits<TestActor> {
 }  // namespace td
 
 class CreateActorBench final : public td::Benchmark {
-  td::ConcurrentScheduler scheduler_;
+  td::ConcurrentScheduler scheduler_{0, 0};
 
   void start_up() final {
-    scheduler_.init(0);
     scheduler_.start();
   }
 
@@ -140,8 +139,7 @@ class RingBench final : public td::Benchmark {
   }
 
   void start_up() final {
-    scheduler_ = new td::ConcurrentScheduler();
-    scheduler_->init(thread_n_);
+    scheduler_ = new td::ConcurrentScheduler(thread_n_, 0);
 
     actor_array_ = td::vector<td::ActorId<PassActor>>(actor_n_);
     for (int i = 0; i < actor_n_; i++) {
@@ -293,8 +291,7 @@ class QueryBench final : public td::Benchmark {
   };
 
   void start_up() final {
-    scheduler_ = new td::ConcurrentScheduler();
-    scheduler_->init(0);
+    scheduler_ = new td::ConcurrentScheduler(0, 0);
 
     server_ = scheduler_->create_actor_unsafe<ServerActor>(0, "Server");
     scheduler_->start();

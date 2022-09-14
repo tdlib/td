@@ -832,7 +832,6 @@ class Tdclient_login final : public td::Test {
   using Test::Test;
   bool step() final {
     if (!is_inited_) {
-      sched_.init(4);
       sched_.create_actor_unsafe<LoginTestActor>(0, "LoginTestActor", &result_).release();
       sched_.start();
       is_inited_ = true;
@@ -852,7 +851,7 @@ class Tdclient_login final : public td::Test {
 
  private:
   bool is_inited_ = false;
-  td::ConcurrentScheduler sched_;
+  td::ConcurrentScheduler sched_{4, 0};
   td::Status result_;
 };
 //RegisterTest<Tdclient_login> Tdclient_login("Tdclient_login");

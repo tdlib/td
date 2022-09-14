@@ -106,8 +106,7 @@ class Manager final : public td::Actor {
 };
 
 static void test_workers(int threads_n, int workers_n, int queries_n, int query_size) {
-  td::ConcurrentScheduler sched;
-  sched.init(threads_n);
+  td::ConcurrentScheduler sched(threads_n, 0);
 
   td::vector<td::ActorId<PowerWorker>> workers;
   for (int i = 0; i < workers_n; i++) {

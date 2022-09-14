@@ -617,8 +617,7 @@ int main(int argc, char **argv) {
   }
   SET_VERBOSITY_LEVEL(new_verbosity_level);
 
-  td::ConcurrentScheduler sched;
-  sched.init(4);
+  td::ConcurrentScheduler sched(4, 0);
   sched.create_actor_unsafe<TestTd>(0, "TestTd", std::move(test_options)).release();
   sched.start();
   while (sched.run_main(10)) {

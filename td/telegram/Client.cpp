@@ -98,8 +98,7 @@ class ClientManager::Impl final {
         CHECK(concurrent_scheduler_ == nullptr);
         CHECK(options_.net_query_stats == nullptr);
         options_.net_query_stats = std::make_shared<NetQueryStats>();
-        concurrent_scheduler_ = make_unique<ConcurrentScheduler>();
-        concurrent_scheduler_->init(0, 0);
+        concurrent_scheduler_ = make_unique<ConcurrentScheduler>(0, 0);
         concurrent_scheduler_->start();
       }
       tds_[client_id] =
@@ -354,8 +353,7 @@ class MultiImpl {
   static constexpr int32 ADDITIONAL_THREAD_COUNT = 3;
 
   explicit MultiImpl(std::shared_ptr<NetQueryStats> net_query_stats) {
-    concurrent_scheduler_ = std::make_shared<ConcurrentScheduler>();
-    concurrent_scheduler_->init(ADDITIONAL_THREAD_COUNT, 0);
+    concurrent_scheduler_ = std::make_shared<ConcurrentScheduler>(ADDITIONAL_THREAD_COUNT, 0);
     concurrent_scheduler_->start();
 
     {
@@ -423,6 +421,7 @@ class MultiImpl {
   static std::atomic<uint32> current_id_;
 };
 
+constexpr int32 MultiImpl::ADDITIONAL_THREAD_COUNT;
 std::atomic<uint32> MultiImpl::current_id_{1};
 
 class MultiImplPool {

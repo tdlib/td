@@ -5257,8 +5257,7 @@ void main(int argc, char **argv) {
   }
 
   {
-    ConcurrentScheduler scheduler;
-    scheduler.init(3);
+    ConcurrentScheduler scheduler(3, 0);
 
     class CreateClient final : public Actor {
      public:

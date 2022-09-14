@@ -15,7 +15,7 @@
 
 namespace td {
 
-void ConcurrentScheduler::init(int32 additional_thread_count, uint64 thread_affinity_mask) {
+ConcurrentScheduler::ConcurrentScheduler(int32 additional_thread_count, uint64 thread_affinity_mask) {
 #if TD_THREAD_UNSUPPORTED || TD_EVENTFD_UNSUPPORTED
   additional_thread_count = 0;
 #endif

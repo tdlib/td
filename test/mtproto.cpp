@@ -47,9 +47,8 @@
 #include "td/utils/Time.h"
 
 TEST(Mtproto, GetHostByNameActor) {
-  td::ConcurrentScheduler sched;
   int threads_n = 1;
-  sched.init(threads_n);
+  td::ConcurrentScheduler sched(threads_n, 0);
 
   int cnt = 1;
   td::vector<td::ActorOwn<td::GetHostByNameActor>> actors;
@@ -139,9 +138,8 @@ TEST(Time, parse_http_date) {
 }
 
 TEST(Mtproto, config) {
-  td::ConcurrentScheduler sched;
   int threads_n = 0;
-  sched.init(threads_n);
+  td::ConcurrentScheduler sched(threads_n, 0);
 
   int cnt = 1;
   {
@@ -273,7 +271,6 @@ class Mtproto_ping final : public td::Test {
   using Test::Test;
   bool step() final {
     if (!is_inited_) {
-      sched_.init(0);
       sched_.create_actor_unsafe<TestPingActor>(0, "Pinger", get_default_ip_address(), &result_).release();
       sched_.start();
       is_inited_ = true;
@@ -292,7 +289,7 @@ class Mtproto_ping final : public td::Test {
 
  private:
   bool is_inited_ = false;
-  td::ConcurrentScheduler sched_;
+  td::ConcurrentScheduler sched_{0, 0};
   td::Status result_;
 };
 td::RegisterTest<Mtproto_ping> mtproto_ping("Mtproto_ping");
@@ -416,7 +413,6 @@ class Mtproto_handshake final : public td::Test {
   using Test::Test;
   bool step() final {
     if (!is_inited_) {
-      sched_.init(0);
       sched_.create_actor_unsafe<HandshakeTestActor>(0, "HandshakeTestActor", get_default_dc_id(), &result_).release();
       sched_.start();
       is_inited_ = true;
@@ -435,7 +431,7 @@ class Mtproto_handshake final : public td::Test {
 
  private:
   bool is_inited_ = false;
-  td::ConcurrentScheduler sched_;
+  td::ConcurrentScheduler sched_{0, 0};
   td::Status result_;
 };
 td::RegisterTest<Mtproto_handshake> mtproto_handshake("Mtproto_handshake");
@@ -484,9 +480,8 @@ class Socks5TestActor final : public td::Actor {
 
 TEST(Mtproto, socks5) {
   return;
-  td::ConcurrentScheduler sched;
   int threads_n = 0;
-  sched.init(threads_n);
+  td::ConcurrentScheduler sched(threads_n, 0);
 
   sched.create_actor_unsafe<Socks5TestActor>(0, "Socks5TestActor").release();
   sched.start();
@@ -640,7 +635,6 @@ class Mtproto_FastPing final : public td::Test {
   using Test::Test;
   bool step() final {
     if (!is_inited_) {
-      sched_.init(0);
       sched_.create_actor_unsafe<FastPingTestActor>(0, "FastPingTestActor", &result_).release();
       sched_.start();
       is_inited_ = true;
@@ -659,7 +653,7 @@ class Mtproto_FastPing final : public td::Test {
 
  private:
   bool is_inited_ = false;
-  td::ConcurrentScheduler sched_;
+  td::ConcurrentScheduler sched_{0, 0};
   td::Status result_;
 };
 td::RegisterTest<Mtproto_FastPing> mtproto_fastping("Mtproto_FastPing");
@@ -676,9 +670,8 @@ TEST(Mtproto, Grease) {
 }
 
 TEST(Mtproto, TlsTransport) {
-  td::ConcurrentScheduler sched;
   int threads_n = 1;
-  sched.init(threads_n);
+  td::ConcurrentScheduler sched(threads_n, 0);
   {
     auto guard = sched.get_main_guard();
     class RunTest final : public td::Actor {

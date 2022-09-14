@@ -26,7 +26,7 @@ namespace td {
 
 class ConcurrentScheduler final : private Scheduler::Callback {
  public:
-  void init(int32 additional_thread_count, uint64 thread_affinity_mask = 0);
+  explicit ConcurrentScheduler(int32 additional_thread_count, uint64 thread_affinity_mask = 0);
 
   void finish_async() {
     schedulers_[0]->finish();

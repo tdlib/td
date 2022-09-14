@@ -87,8 +87,7 @@ class MessagesDbBench final : public td::Benchmark {
   std::shared_ptr<td::MessagesDbAsyncInterface> messages_db_async_;
 
   td::Status do_start_up() {
-    scheduler_ = td::make_unique<td::ConcurrentScheduler>();
-    scheduler_->init(1);
+    scheduler_ = td::make_unique<td::ConcurrentScheduler>(1, 0);
 
     auto guard = scheduler_->get_main_guard();
 
