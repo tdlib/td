@@ -4684,7 +4684,7 @@ unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const
       if (type == MessageContentDupType::Copy || type == MessageContentDupType::ServerCopy) {
         remove_unallowed_entities(td, result->text, dialog_id);
       }
-      return result;
+      return std::move(result);
     }
     case MessageContentType::Venue:
       return make_unique<MessageVenue>(*static_cast<const MessageVenue *>(content));
