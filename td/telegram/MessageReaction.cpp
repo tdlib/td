@@ -37,6 +37,13 @@
 
 namespace td {
 
+static size_t get_max_reaction_count() {
+  bool is_premium = G()->get_option_boolean("is_premium");
+  auto option_key = is_premium ? Slice("reactions_user_max_premium") : Slice("reactions_user_max_default");
+  return static_cast<size_t>(
+      max(static_cast<int32>(1), static_cast<int32>(G()->get_option_integer(option_key, is_premium ? 3 : 1))));
+}
+
 static int64 get_custom_emoji_id(const string &reaction) {
   auto r_decoded = base64_decode(Slice(&reaction[1], reaction.size() - 1));
   CHECK(r_decoded.is_ok());
@@ -648,13 +655,13 @@ bool MessageReactions::add_reaction(const string &reaction, bool is_big, DialogI
     return false;
   }
 
-  bool is_premium = G()->get_option_boolean("is_premium");
-  auto option_key = is_premium ? Slice("reactions_user_max_premium") : Slice("reactions_user_max_default");
-  int32 max_reaction_count = max(1, static_cast<int32>(G()->get_option_integer(option_key, is_premium ? 3 : 1)));
-  if (new_chosen_reaction_order.size() > static_cast<size_t>(max_reaction_count)) {
-    bool is_removed = do_remove_reaction(new_chosen_reaction_order[0], chooser_dialog_id, have_recent_choosers);
+  auto max_reaction_count = get_max_reaction_count();
+  while (new_chosen_reaction_order.size() > max_reaction_count) {
+    auto index = new_chosen_reaction_order[0] == reaction ? 1 : 0;
+    CHECK(static_cast<size_t>(index) < new_chosen_reaction_order.size());
+    bool is_removed = do_remove_reaction(new_chosen_reaction_order[index], chooser_dialog_id, have_recent_choosers);
     CHECK(is_removed);
-    new_chosen_reaction_order.erase(new_chosen_reaction_order.begin());
+    new_chosen_reaction_order.erase(new_chosen_reaction_order.begin() + index);
   }
 
   if (new_chosen_reaction_order.size() == 1) {
@@ -669,10 +676,19 @@ bool MessageReactions::remove_reaction(const string &reaction, DialogId chooser_
     if (!chosen_reaction_order_.empty()) {
       bool is_removed = td::remove(chosen_reaction_order_, reaction);
       CHECK(is_removed);
+
+      auto max_reaction_count = get_max_reaction_count();
+      while (chosen_reaction_order_.size() > max_reaction_count) {
+        is_removed = do_remove_reaction(chosen_reaction_order_[0], chooser_dialog_id, have_recent_choosers);
+        CHECK(is_removed);
+        chosen_reaction_order_.erase(chosen_reaction_order_.begin());
+      }
+
       if (chosen_reaction_order_.size() <= 1) {
         reset_to_empty(chosen_reaction_order_);
       }
     }
+
     return true;
   }
   return false;
