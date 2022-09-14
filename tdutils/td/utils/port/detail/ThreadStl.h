@@ -15,6 +15,7 @@
 #include "td/utils/port/detail/ThreadIdGuard.h"
 #include "td/utils/port/thread_local.h"
 #include "td/utils/Slice.h"
+#include "td/utils/Status.h"
 
 #include <thread>
 #include <tuple>
@@ -73,6 +74,35 @@ class ThreadStl {
 
   static void send_real_time_signal(id thread_id, int real_time_signal_number) {
     // not supported
+  }
+
+  static Status set_affinity_mask(id thread_id, uint64 mask) {
+#if TD_WINDOWS
+    if (static_cast<DWORD_PTR>(mask) != mask) {
+      return Status::Error("Invalid thread affinity mask specified");
+    }
+    if (SetThreadAffinityMask(thread_id, static_cast<DWORD_PTR>(mask))) {
+      return Status::OK();
+    }
+    return OS_ERROR("Failed to set thread affinity mask");
+#else
+    return Status::Error("Unsupported");
+#endif
+  }
+
+  static uint64 get_affinity_mask(id thread_id) {
+#if TD_WINDOWS
+    DWORD_PTR process_mask = 0;
+    DWORD_PTR system_mask = 0;
+    if (GetProcessAffinityMask(GetCurrentProcess(), &process_mask, &system_mask)) {
+      auto result = SetThreadAffinityMask(thread_id, process_mask);
+      if (result != 0 && result != process_mask) {
+        SetThreadAffinityMask(thread_id, result);
+      }
+      return result;
+    }
+#endif
+    return 0;
   }
 
  private:

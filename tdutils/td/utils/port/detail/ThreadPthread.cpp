@@ -94,6 +94,14 @@ int ThreadPthread::do_pthread_create(pthread_t *thread, const pthread_attr_t *at
   return pthread_create(thread, attr, start_routine, arg);
 }
 
+Status ThreadPthread::set_affinity_mask(id thread_id, uint64 mask) {
+  return Status::Error("Unsupported");
+}
+
+uint64 ThreadPthread::get_affinity_mask(id thread_id) {
+  return 0;
+}
+
 namespace this_thread_pthread {
 ThreadPthread::id get_id() {
   return pthread_self();

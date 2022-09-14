@@ -17,6 +17,7 @@
 #include "td/utils/port/detail/ThreadIdGuard.h"
 #include "td/utils/port/thread_local.h"
 #include "td/utils/Slice.h"
+#include "td/utils/Status.h"
 
 #include <tuple>
 #include <type_traits>
@@ -65,6 +66,10 @@ class ThreadPthread {
   using id = pthread_t;
 
   static void send_real_time_signal(id thread_id, int real_time_signal_number);
+
+  static Status set_affinity_mask(id thread_id, uint64 mask);
+
+  static uint64 get_affinity_mask(id thread_id);
 
  private:
   MovableValue<bool> is_inited_;
