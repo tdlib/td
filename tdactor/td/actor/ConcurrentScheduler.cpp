@@ -81,7 +81,7 @@ void ConcurrentScheduler::start() {
       detail::Iocp::Guard iocp_guard(iocp_.get());
 #endif
       if (thread_affinity_mask != 0) {
-        thread::set_affinity_mask(this_thread::get_id(), thread_affinity_mask);
+        thread::set_affinity_mask(this_thread::get_id(), thread_affinity_mask).ignore();
       }
       while (!is_finished()) {
         sched->run(Timestamp::in(10));
