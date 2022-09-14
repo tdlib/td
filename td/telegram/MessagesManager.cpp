@@ -38805,7 +38805,8 @@ void MessagesManager::on_get_channel_difference(
       if (delay == 0) {
         delay = 1;
       }
-      channel_get_difference_retry_timeout_.add_timeout_in(dialog_id.get(), delay);
+      channel_get_difference_retry_timeout_.add_timeout_in(dialog_id.get(),
+                                                           Random::fast(delay * 1000, delay * 1500) * 1e-3);
       delay *= 2;
       if (delay > 60) {
         delay = Random::fast(60, 80);
