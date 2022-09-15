@@ -3145,7 +3145,7 @@ Result<FileId> FileManager::get_input_thumbnail_file_id(const tl_object_ptr<td_a
 
 Result<FileId> FileManager::get_input_file_id(FileType type, const tl_object_ptr<td_api::InputFile> &file,
                                               DialogId owner_dialog_id, bool allow_zero, bool is_encrypted,
-                                              bool get_by_hash, bool is_secure) {
+                                              bool get_by_hash, bool is_secure, bool force_reuse) {
   if (file == nullptr) {
     if (allow_zero) {
       return FileId();
@@ -3176,8 +3176,13 @@ Result<FileId> FileManager::get_input_file_id(FileType type, const tl_object_ptr
               auto file_id = file_hash_to_file_id_.get(hash);
               if (file_id.is_valid()) {
                 auto file_view = get_file_view(file_id);
-                if (!file_view.empty() && file_view.has_remote_location() && !file_view.remote_location().is_web()) {
-                  return file_id;
+                if (!file_view.empty()) {
+                  if (force_reuse) {
+                    return file_id;
+                  }
+                  if (file_view.has_remote_location() && !file_view.remote_location().is_web()) {
+                    return file_id;
+                  }
                 }
               }
             }
