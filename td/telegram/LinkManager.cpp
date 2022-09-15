@@ -337,6 +337,18 @@ class LinkManager::InternalLinkGame final : public InternalLink {
   }
 };
 
+class LinkManager::InternalLinkInstantView final : public InternalLink {
+  string url_;
+
+  td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
+    return td_api::make_object<td_api::internalLinkTypeInstantView>(url_);
+  }
+
+ public:
+  explicit InternalLinkInstantView(string url) : url_(std::move(url)) {
+  }
+};
+
 class LinkManager::InternalLinkInvoice final : public InternalLink {
   string invoice_name_;
 
@@ -1335,6 +1347,12 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_t_me_link_query(Slice q
       // /share?url=<url>
       // /share/url?url=<url>&text=<text>
       return get_internal_link_message_draft(get_arg("url"), get_arg("text"));
+    }
+  } else if (path[0] == "iv") {
+    if (path.size() == 1 && has_arg("url")) {
+      // /iv?url=<url>&rhash=<rhash>
+      return td::make_unique<InternalLinkInstantView>(PSTRING()
+                                                      << "https://t.me/iv" << copy_arg("url") << copy_arg("rhash"));
     }
   } else if (is_valid_username(path[0])) {
     if (path.size() >= 2 && to_integer<int64>(path[1]) > 0) {

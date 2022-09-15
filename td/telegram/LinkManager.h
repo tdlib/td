@@ -101,6 +101,7 @@ class LinkManager final : public Actor {
   class InternalLinkDialogInvite;
   class InternalLinkFilterSettings;
   class InternalLinkGame;
+  class InternalLinkInstantView;
   class InternalLinkInvoice;
   class InternalLinkLanguage;
   class InternalLinkLanguageSettings;
