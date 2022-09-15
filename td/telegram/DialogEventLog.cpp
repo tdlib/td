@@ -152,9 +152,8 @@ static td_api::object_ptr<td_api::ChatEventAction> get_chat_event_action_object(
     }
     case telegram_api::channelAdminLogEventActionUpdatePinned::ID: {
       auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionUpdatePinned>(action_ptr);
-      DialogId sender_dialog_id;
       auto message = td->messages_manager_->get_dialog_event_log_message_object(
-          DialogId(channel_id), std::move(action->message_), sender_dialog_id);
+          DialogId(channel_id), std::move(action->message_), actor_dialog_id);
       if (message == nullptr) {
         return nullptr;
       }
