@@ -151,6 +151,7 @@ using SslCtx = std::shared_ptr<SSL_CTX>;
 
 struct SslHandleDeleter {
   void operator()(SSL *ssl_handle) {
+    auto start_time = Time::now();
     if (SSL_is_init_finished(ssl_handle)) {
       clear_openssl_errors("Before SSL_shutdown");
       SSL_set_quiet_shutdown(ssl_handle, 1);
@@ -158,6 +159,10 @@ struct SslHandleDeleter {
       clear_openssl_errors("After SSL_shutdown");
     }
     SSL_free(ssl_handle);
+    auto elapsed_time = Time::now() - start_time;
+    if (elapsed_time >= 0.001) {
+      LOG(ERROR) << "SSL_free took " << elapsed_time << " seconds";
+    }
   }
 };
 
@@ -289,7 +294,13 @@ Result<SslCtx> create_ssl_ctx(CSlice cert_file, SslStream::VerifyPeer verify_pee
       return get_default_unverified_ssl_ctx();
     }
   }
-  return do_create_ssl_ctx(cert_file, verify_peer);
+  auto start_time = Time::now();
+  auto result = do_create_ssl_ctx(cert_file, verify_peer);
+  auto elapsed_time = Time::now() - start_time;
+  if (elapsed_time >= 0.01) {
+    LOG(ERROR) << "do_create_ssl_ctx took " << elapsed_time << " seconds";
+  }
+  return result;
 }
 
 }  // namespace
@@ -381,7 +392,12 @@ class SslStreamImpl {
 
   Result<size_t> read(MutableSlice slice) {
     clear_openssl_errors("Before SslFd::read");
+    auto start_time = Time::now();
     auto size = SSL_read(ssl_handle_.get(), slice.data(), static_cast<int>(slice.size()));
+    auto elapsed_time = Time::now() - start_time;
+    if (elapsed_time >= 0.01) {
+      LOG(ERROR) << "SSL_read took " << elapsed_time << " seconds and returned " << size;
+    }
     if (size <= 0) {
       return process_ssl_error(size);
     }

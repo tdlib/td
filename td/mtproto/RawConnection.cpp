@@ -25,6 +25,7 @@
 #include "td/utils/SliceBuilder.h"
 #include "td/utils/Status.h"
 #include "td/utils/StorerBase.h"
+#include "td/utils/Timer.h"
 
 #include <memory>
 #include <utility>
@@ -247,10 +248,11 @@ class RawConnectionDefault final : public RawConnection {
     if (has_error_) {
       return Status::Error("Connection has already failed");
     }
+    PerfWarningTimer timer("RawConnection::do_flush", 0.01);
     sync_with_poll(socket_fd_);
 
     // read/write
-    // EINVAL may be returned in linux kernel < 2.6.28. And on some new kernels too.
+    // EINVAL can be returned in Linux kernel < 2.6.28. And on some new kernels too.
     // just close connection and hope that read or write will not return this error too.
     TRY_STATUS(socket_fd_.get_pending_error());
 
