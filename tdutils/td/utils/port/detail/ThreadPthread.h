@@ -23,6 +23,9 @@
 #include <type_traits>
 #include <utility>
 
+#if TD_OPENBSD || TD_SOLARIS
+#include <pthread.h>
+#endif
 #include <sys/types.h>
 
 namespace td {
