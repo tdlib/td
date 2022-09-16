@@ -83,34 +83,109 @@ void parse(Invoice &invoice, ParserT &parser) {
 
 template <class StorerT>
 void store(const InputInvoice &input_invoice, StorerT &storer) {
+  bool has_description = !input_invoice.description.empty();
+  bool has_photo = !input_invoice.photo.is_empty();
+  bool has_start_parameter = !input_invoice.start_parameter.empty();
+  bool has_payload = !input_invoice.payload.empty();
+  bool has_provider_token = !input_invoice.provider_token.empty();
+  bool has_provider_data = !input_invoice.provider_data.empty();
+  bool has_total_amount = input_invoice.total_amount != 0;
+  bool has_receipt_message_id = input_invoice.receipt_message_id.is_valid();
+  BEGIN_STORE_FLAGS();
+  STORE_FLAG(has_description);
+  STORE_FLAG(has_photo);
+  STORE_FLAG(has_start_parameter);
+  STORE_FLAG(has_payload);
+  STORE_FLAG(has_provider_token);
+  STORE_FLAG(has_provider_data);
+  STORE_FLAG(has_total_amount);
+  STORE_FLAG(has_receipt_message_id);
+  END_STORE_FLAGS();
   store(input_invoice.title, storer);
-  store(input_invoice.description, storer);
-  store(input_invoice.photo, storer);
-  store(input_invoice.start_parameter, storer);
+  if (has_description) {
+    store(input_invoice.description, storer);
+  }
+  if (has_photo) {
+    store(input_invoice.photo, storer);
+  }
+  if (has_start_parameter) {
+    store(input_invoice.start_parameter, storer);
+  }
   store(input_invoice.invoice, storer);
-  store(input_invoice.payload, storer);
-  store(input_invoice.provider_token, storer);
-  store(input_invoice.provider_data, storer);
-  store(input_invoice.total_amount, storer);
-  store(input_invoice.receipt_message_id, storer);
+  if (has_payload) {
+    store(input_invoice.payload, storer);
+  }
+  if (has_provider_token) {
+    store(input_invoice.provider_token, storer);
+  }
+  if (has_provider_data) {
+    store(input_invoice.provider_data, storer);
+  }
+  if (has_total_amount) {
+    store(input_invoice.total_amount, storer);
+  }
+  if (has_receipt_message_id) {
+    store(input_invoice.receipt_message_id, storer);
+  }
 }
 
 template <class ParserT>
 void parse(InputInvoice &input_invoice, ParserT &parser) {
-  parse(input_invoice.title, parser);
-  parse(input_invoice.description, parser);
-  parse(input_invoice.photo, parser);
-  parse(input_invoice.start_parameter, parser);
-  parse(input_invoice.invoice, parser);
-  parse(input_invoice.payload, parser);
-  parse(input_invoice.provider_token, parser);
-  if (parser.version() >= static_cast<int32>(Version::AddMessageInvoiceProviderData)) {
-    parse(input_invoice.provider_data, parser);
+  bool has_description;
+  bool has_photo;
+  bool has_start_parameter;
+  bool has_payload;
+  bool has_provider_token;
+  bool has_provider_data;
+  bool has_total_amount;
+  bool has_receipt_message_id;
+  if (parser.version() >= static_cast<int32>(Version::AddInputInvoiceFlags)) {
+    BEGIN_PARSE_FLAGS();
+    PARSE_FLAG(has_description);
+    PARSE_FLAG(has_photo);
+    PARSE_FLAG(has_start_parameter);
+    PARSE_FLAG(has_payload);
+    PARSE_FLAG(has_provider_token);
+    PARSE_FLAG(has_provider_data);
+    PARSE_FLAG(has_total_amount);
+    PARSE_FLAG(has_receipt_message_id);
+    END_PARSE_FLAGS();
   } else {
-    input_invoice.provider_data.clear();
+    has_description = true;
+    has_photo = true;
+    has_start_parameter = true;
+    has_payload = true;
+    has_provider_token = true;
+    has_provider_data = parser.version() >= static_cast<int32>(Version::AddMessageInvoiceProviderData);
+    has_total_amount = true;
+    has_receipt_message_id = true;
   }
-  parse(input_invoice.total_amount, parser);
-  parse(input_invoice.receipt_message_id, parser);
+  parse(input_invoice.title, parser);
+  if (has_description) {
+    parse(input_invoice.description, parser);
+  }
+  if (has_photo) {
+    parse(input_invoice.photo, parser);
+  }
+  if (has_start_parameter) {
+    parse(input_invoice.start_parameter, parser);
+  }
+  parse(input_invoice.invoice, parser);
+  if (has_payload) {
+    parse(input_invoice.payload, parser);
+  }
+  if (has_provider_token) {
+    parse(input_invoice.provider_token, parser);
+  }
+  if (has_provider_data) {
+    parse(input_invoice.provider_data, parser);
+  }
+  if (has_total_amount) {
+    parse(input_invoice.total_amount, parser);
+  }
+  if (has_receipt_message_id) {
+    parse(input_invoice.receipt_message_id, parser);
+  }
 }
 
 template <class StorerT>
