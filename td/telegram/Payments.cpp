@@ -1029,7 +1029,7 @@ tl_object_ptr<telegram_api::inputMediaInvoice> get_input_media_invoice(const Inp
       get_input_invoice(input_invoice.invoice), BufferSlice(input_invoice.payload), input_invoice.provider_token,
       telegram_api::make_object<telegram_api::dataJSON>(
           input_invoice.provider_data.empty() ? "null" : input_invoice.provider_data),
-      input_invoice.start_parameter);
+      input_invoice.start_parameter, nullptr);
 }
 
 tl_object_ptr<telegram_api::inputBotInlineMessageMediaInvoice> get_input_bot_inline_message_media_invoice(

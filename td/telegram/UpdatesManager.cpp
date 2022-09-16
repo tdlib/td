@@ -3595,4 +3595,9 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateTranscribedAudi
 
 // unsupported updates
 
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateMessageExtendedMedia> update,
+                               Promise<Unit> &&promise) {
+  promise.set_value(Unit());
+}
+
 }  // namespace td
