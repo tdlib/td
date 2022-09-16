@@ -945,6 +945,16 @@ LinkManager::LinkInfo LinkManager::get_link_info(Slice link) {
         return result;
       }
     }
+
+    if (http_url.query_.size() > 1) {
+      for (auto telegraph_url : {Slice("telegra.ph"), Slice("te.legra.ph"), Slice("graph.org")}) {
+        if (host == telegraph_url) {
+          result.type_ = LinkType::Telegraph;
+          result.query_ = std::move(http_url.query_);
+          return result;
+        }
+      }
+    }
   }
   return result;
 }
@@ -963,6 +973,8 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_internal_link(Slice lin
       return parse_tg_link_query(info.query_, is_trusted);
     case LinkType::TMe:
       return parse_t_me_link_query(info.query_, is_trusted);
+    case LinkType::Telegraph:
+      return td::make_unique<InternalLinkInstantView>(PSTRING() << "https://telegra.ph" << info.query_);
     default:
       UNREACHABLE();
       return nullptr;

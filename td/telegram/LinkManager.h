@@ -123,7 +123,7 @@ class LinkManager final : public Actor {
   class InternalLinkUserPhoneNumber;
   class InternalLinkVoiceChat;
 
-  enum class LinkType : int32 { External, TMe, Tg };
+  enum class LinkType : int32 { External, TMe, Tg, Telegraph };
 
   struct LinkInfo {
     LinkType type_ = LinkType::External;

@@ -27,7 +27,8 @@ static void check_find_urls(const td::string &url, bool is_valid) {
 
   {
     if (is_valid && (td::begins_with(url_lower, "http") || td::begins_with(url_lower, "t.me")) &&
-        url.find('.') != td::string::npos && url.find(' ') == td::string::npos && url != "http://..") {
+        url.find('.') != td::string::npos && url.find(' ') == td::string::npos && url != "http://.." &&
+        url.find("ra.ph") == td::string::npos && url.find("Aph") == td::string::npos) {
       auto urls = td::find_urls(url);
       ASSERT_EQ(1u, urls.size());
       ASSERT_STREQ(url, urls[0].first);
@@ -86,7 +87,7 @@ static void parse_internal_link(const td::string &url, td::td_api::object_ptr<td
     if (object->get_id() == td::td_api::internalLinkTypeMessageDraft::ID) {
       static_cast<td::td_api::internalLinkTypeMessageDraft *>(object.get())->text_->entities_.clear();
     }
-    ASSERT_STREQ(url + " " + to_string(expected), url + " " + to_string(object));
+    ASSERT_STREQ(url + ' ' + to_string(expected), url + ' ' + to_string(object));
   } else {
     LOG_IF(ERROR, expected != nullptr) << url;
     ASSERT_TRUE(expected == nullptr);
@@ -964,4 +965,10 @@ TEST(Link, parse_internal_link) {
   parse_internal_link("setlanguage.t.me", nullptr);
   parse_internal_link("share.t.me", nullptr);
   parse_internal_link("socks.t.me", nullptr);
+
+  parse_internal_link("www.telegra.ph/", nullptr);
+  parse_internal_link("www.telegrA.ph/#", nullptr);
+  parse_internal_link("www.telegrA.ph/?", instant_view("https://telegra.ph/?"));
+  parse_internal_link("http://te.leGra.ph/?", instant_view("https://telegra.ph/?"));
+  parse_internal_link("https://grAph.org/12345", instant_view("https://telegra.ph/12345"));
 }
