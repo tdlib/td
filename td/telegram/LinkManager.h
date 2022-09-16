@@ -123,9 +123,10 @@ class LinkManager final : public Actor {
   class InternalLinkUserPhoneNumber;
   class InternalLinkVoiceChat;
 
+  enum class LinkType : int32 { External, TMe, Tg };
+
   struct LinkInfo {
-    bool is_internal_ = false;
-    bool is_tg_ = false;
+    LinkType type_ = LinkType::External;
     string query_;
   };
   // returns information about the link

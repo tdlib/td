@@ -888,8 +888,7 @@ LinkManager::LinkInfo LinkManager::get_link_info(Slice link) {
       return result;
     }
 
-    result.is_internal_ = true;
-    result.is_tg_ = true;
+    result.type_ = LinkType::Tg;
     result.query_ = link.str();
     return result;
   } else {
@@ -905,8 +904,7 @@ LinkManager::LinkInfo LinkManager::get_link_info(Slice link) {
           subdomain != "addtheme" && subdomain != "auth" && subdomain != "confirmphone" && subdomain != "invoice" &&
           subdomain != "joinchat" && subdomain != "login" && subdomain != "proxy" && subdomain != "setlanguage" &&
           subdomain != "share" && subdomain != "socks") {
-        result.is_internal_ = true;
-        result.is_tg_ = false;
+        result.type_ = LinkType::TMe;
         result.query_ = PSTRING() << '/' << subdomain << http_url.query_;
         return result;
       }
@@ -929,8 +927,7 @@ LinkManager::LinkInfo LinkManager::get_link_info(Slice link) {
 
     for (auto t_me_url : t_me_urls) {
       if (host == t_me_url) {
-        result.is_internal_ = true;
-        result.is_tg_ = false;
+        result.type_ = LinkType::TMe;
 
         Slice query = http_url.query_;
         while (true) {
@@ -954,18 +951,21 @@ LinkManager::LinkInfo LinkManager::get_link_info(Slice link) {
 
 bool LinkManager::is_internal_link(Slice link) {
   auto info = get_link_info(link);
-  return info.is_internal_;
+  return info.type_ != LinkType::External;
 }
 
 unique_ptr<LinkManager::InternalLink> LinkManager::parse_internal_link(Slice link, bool is_trusted) {
   auto info = get_link_info(link);
-  if (!info.is_internal_) {
-    return nullptr;
-  }
-  if (info.is_tg_) {
-    return parse_tg_link_query(info.query_, is_trusted);
-  } else {
-    return parse_t_me_link_query(info.query_, is_trusted);
+  switch (info.type_) {
+    case LinkType::External:
+      return nullptr;
+    case LinkType::Tg:
+      return parse_tg_link_query(info.query_, is_trusted);
+    case LinkType::TMe:
+      return parse_t_me_link_query(info.query_, is_trusted);
+    default:
+      UNREACHABLE();
+      return nullptr;
   }
 }
 
@@ -1584,11 +1584,11 @@ void LinkManager::get_link_login_url(const string &url, bool allow_write_access,
 
 string LinkManager::get_dialog_invite_link_hash(Slice invite_link) {
   auto link_info = get_link_info(invite_link);
-  if (!link_info.is_internal_) {
+  if (link_info.type_ != LinkType::Tg && link_info.type_ != LinkType::TMe) {
     return string();
   }
   const auto url_query = parse_url_query(link_info.query_);
-  return get_url_query_hash(link_info.is_tg_, url_query);
+  return get_url_query_hash(link_info.type_ == LinkType::Tg, url_query);
 }
 
 string LinkManager::get_dialog_invite_link(Slice hash, bool is_internal) {
@@ -1691,7 +1691,7 @@ Result<MessageLinkInfo> LinkManager::get_message_link_info(Slice url) {
     return Status::Error("URL must be non-empty");
   }
   auto link_info = get_link_info(url);
-  if (!link_info.is_internal_) {
+  if (link_info.type_ != LinkType::Tg && link_info.type_ != LinkType::TMe) {
     return Status::Error("Invalid message link URL");
   }
   url = link_info.query_;
@@ -1703,7 +1703,7 @@ Result<MessageLinkInfo> LinkManager::get_message_link_info(Slice url) {
   Slice media_timestamp_slice;
   bool is_single = false;
   bool for_comment = false;
-  if (link_info.is_tg_) {
+  if (link_info.type_ == LinkType::Tg) {
     // resolve?domain=username&post=12345&single&t=123&comment=12&thread=21
     // privatepost?channel=123456789&post=12345&single&t=123&comment=12&thread=21
 
