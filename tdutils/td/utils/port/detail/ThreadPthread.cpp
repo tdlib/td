@@ -144,6 +144,9 @@ Status ThreadPthread::set_affinity_mask(id thread_id, uint64 mask) {
   if (res) {
     return OS_ERROR("Failed to set thread affinity mask");
   }
+  if (get_affinity_mask(thread_id) != mask) {
+    return Status::Error("Failed to set exact thread affinity mask");
+  }
   return Status::OK();
 #else
   return Status::Error("Unsupported");
@@ -186,6 +189,13 @@ uint64 ThreadPthread::get_affinity_mask(id thread_id) {
   uint64 mask = 0;
   for (int j = 0; j < 64; j++) {
     if (cpuset_isset(j, cpuset) > 0) {
+      mask |= static_cast<uint64>(1) << j;
+    }
+  }
+  if (mask == 0) {
+    // the mask wasn't set, all CPUs are allowed
+    auto proc_count = sysconf(_SC_NPROCESSORS_ONLN);
+    for (int j = 0; j < 64 && j < proc_count; j++) {
       mask |= static_cast<uint64>(1) << j;
     }
   }
