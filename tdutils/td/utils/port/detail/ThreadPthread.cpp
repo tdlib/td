@@ -12,6 +12,9 @@ char disable_linker_warning_about_empty_file_thread_pthread_cpp TD_UNUSED;
 
 #include "td/utils/misc.h"
 #include "td/utils/port/detail/skip_eintr.h"
+#if TD_NETBSD
+#include "td/utils/ScopeGuard.h"
+#endif
 
 #include <pthread.h>
 #if TD_FREEBSD
@@ -120,6 +123,27 @@ Status ThreadPthread::set_affinity_mask(id thread_id, uint64 mask) {
     return OS_ERROR("Failed to set thread affinity mask");
   }
   return Status::OK();
+#elif TD_NETBSD
+  cpuset_t *cpuset = cpuset_create();
+  if (cpuset == nullptr) {
+    return OS_ERROR("Failed to create cpuset");
+  }
+  SCOPE_EXIT {
+    cpuset_destroy(cpuset);
+  };
+  for (int j = 0; j < 64; j++) {
+    if ((mask >> j) & 1) {
+      if (cpuset_set(j, cpuset) != 0) {
+        return OS_ERROR("Failed to set CPU identifier");
+      }
+    }
+  }
+
+  auto res = skip_eintr([&] { return pthread_setaffinity_np(thread_id, cpuset_size(cpuset), cpuset); });
+  if (res) {
+    return OS_ERROR("Failed to set thread affinity mask");
+  }
+  return Status::OK();
 #else
   return Status::Error("Unsupported");
 #endif
@@ -141,6 +165,26 @@ uint64 ThreadPthread::get_affinity_mask(id thread_id) {
   uint64 mask = 0;
   for (int j = 0; j < 64 && j < CPU_SETSIZE; j++) {
     if (CPU_ISSET(j, &cpuset)) {
+      mask |= static_cast<uint64>(1) << j;
+    }
+  }
+  return mask;
+#elif TD_NETBSD
+  cpuset_t *cpuset = cpuset_create();
+  if (cpuset == nullptr) {
+    return 0;
+  }
+  SCOPE_EXIT {
+    cpuset_destroy(cpuset);
+  };
+  auto res = skip_eintr([&] { return pthread_getaffinity_np(thread_id, cpuset_size(cpuset), cpuset); });
+  if (res) {
+    return 0;
+  }
+
+  uint64 mask = 0;
+  for (int j = 0; j < 64; j++) {
+    if (cpuset_isset(j, cpuset) > 0) {
       mask |= static_cast<uint64>(1) << j;
     }
   }
