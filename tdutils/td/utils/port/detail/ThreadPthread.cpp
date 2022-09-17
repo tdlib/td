@@ -14,8 +14,14 @@ char disable_linker_warning_about_empty_file_thread_pthread_cpp TD_UNUSED;
 #include "td/utils/port/detail/skip_eintr.h"
 
 #include <pthread.h>
+#if TD_FREEBSD
+#include <pthread_np.h>
+#endif
 #include <sched.h>
 #include <signal.h>
+#if TD_FREEBSD
+#include <sys/cpuset.h>
+#endif
 #if TD_FREEBSD || TD_OPENBSD || TD_NETBSD
 #include <sys/sysctl.h>
 #endif
@@ -96,8 +102,12 @@ int ThreadPthread::do_pthread_create(pthread_t *thread, const pthread_attr_t *at
 }
 
 Status ThreadPthread::set_affinity_mask(id thread_id, uint64 mask) {
-#if TD_LINUX
+#if TD_LINUX || TD_FREEBSD
+#if TD_FREEBSD
+  cpuset_t cpuset;
+#else
   cpu_set_t cpuset;
+#endif
   CPU_ZERO(&cpuset);
   for (int j = 0; j < 64 && j < CPU_SETSIZE; j++) {
     if ((mask >> j) & 1) {
@@ -105,7 +115,7 @@ Status ThreadPthread::set_affinity_mask(id thread_id, uint64 mask) {
     }
   }
 
-  auto res = skip_eintr([&] { return pthread_setaffinity_np(thread_id, sizeof(cpu_set_t), &cpuset); });
+  auto res = skip_eintr([&] { return pthread_setaffinity_np(thread_id, sizeof(cpuset), &cpuset); });
   if (res) {
     return OS_ERROR("Failed to set thread affinity mask");
   }
@@ -116,10 +126,14 @@ Status ThreadPthread::set_affinity_mask(id thread_id, uint64 mask) {
 }
 
 uint64 ThreadPthread::get_affinity_mask(id thread_id) {
-#if TD_LINUX
+#if TD_LINUX || TD_FREEBSD
+#if TD_FREEBSD
+  cpuset_t cpuset;
+#else
   cpu_set_t cpuset;
+#endif
   CPU_ZERO(&cpuset);
-  auto res = skip_eintr([&] { return pthread_getaffinity_np(thread_id, sizeof(cpu_set_t), &cpuset); });
+  auto res = skip_eintr([&] { return pthread_getaffinity_np(thread_id, sizeof(cpuset), &cpuset); });
   if (res) {
     return 0;
   }
