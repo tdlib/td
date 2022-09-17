@@ -25,6 +25,10 @@
 #include <type_traits>
 #include <utility>
 
+#if TD_WINDOWS
+#define TD_HAVE_THREAD_AFFINITY 1
+#endif
+
 namespace td {
 namespace detail {
 
@@ -79,8 +83,8 @@ class ThreadStl {
     // not supported
   }
 
+#if TD_HAVE_THREAD_AFFINITY
   static Status set_affinity_mask(id thread_id, uint64 mask) {
-#if TD_WINDOWS
     if (static_cast<DWORD_PTR>(mask) != mask) {
       return Status::Error("Invalid thread affinity mask specified");
     }
@@ -93,13 +97,9 @@ class ThreadStl {
       return Status::OK();
     }
     return OS_ERROR("Failed to set thread affinity mask");
-#else
-    return Status::Error("Unsupported");
-#endif
   }
 
   static uint64 get_affinity_mask(id thread_id) {
-#if TD_WINDOWS
     DWORD_PTR process_mask = 0;
     DWORD_PTR system_mask = 0;
     if (GetProcessAffinityMask(GetCurrentProcess(), &process_mask, &system_mask)) {
@@ -114,9 +114,9 @@ class ThreadStl {
       }
       return result;
     }
-#endif
     return 0;
   }
+#endif
 
  private:
   std::thread thread_;

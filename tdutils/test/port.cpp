@@ -285,7 +285,7 @@ TEST(Port, EventFdAndSignals) {
 #endif
 #endif
 
-#if !TD_THREAD_UNSUPPORTED
+#if TD_HAVE_THREAD_AFFINITY
 TEST(Port, ThreadAffinityMask) {
   auto thread_id = td::this_thread::get_id();
   auto old_mask = td::thread::get_affinity_mask(thread_id);

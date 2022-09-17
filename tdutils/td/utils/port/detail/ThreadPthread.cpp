@@ -104,6 +104,7 @@ int ThreadPthread::do_pthread_create(pthread_t *thread, const pthread_attr_t *at
   return pthread_create(thread, attr, start_routine, arg);
 }
 
+#if TD_HAVE_THREAD_AFFINITY
 Status ThreadPthread::set_affinity_mask(id thread_id, uint64 mask) {
 #if TD_LINUX || TD_FREEBSD
 #if TD_FREEBSD
@@ -193,6 +194,7 @@ uint64 ThreadPthread::get_affinity_mask(id thread_id) {
   return 0;
 #endif
 }
+#endif
 
 namespace this_thread_pthread {
 ThreadPthread::id get_id() {

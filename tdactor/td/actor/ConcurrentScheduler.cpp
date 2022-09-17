@@ -80,9 +80,11 @@ void ConcurrentScheduler::start() {
 #if TD_PORT_WINDOWS
       detail::Iocp::Guard iocp_guard(iocp_.get());
 #endif
+#if TD_HAVE_THREAD_AFFINITY
       if (thread_affinity_mask != 0) {
         thread::set_affinity_mask(this_thread::get_id(), thread_affinity_mask).ignore();
       }
+#endif
       while (!is_finished()) {
         sched->run(Timestamp::in(10));
       }
