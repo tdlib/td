@@ -315,7 +315,7 @@ TEST(FlatHashMap, stress_test) {
     ASSERT_EQ(ref[key], tbl[key]);
   });
 
-  add_step("reserve", 10, [&] { tbl.reserve(rnd() % max_table_size); });
+  add_step("reserve", 10, [&] { tbl.reserve(static_cast<size_t>(rnd() % max_table_size)); });
 
   add_step("find", 1000, [&] {
     auto key = gen_key();
@@ -398,7 +398,7 @@ TEST(FlatHashSet, stress_test) {
     tbl.insert(key);
   });
 
-  add_step("reserve", 10, [&] { tbl.reserve(rnd() % max_table_size); });
+  add_step("reserve", 10, [&] { tbl.reserve(static_cast<size_t>(rnd() % max_table_size)); });
 
   add_step("find", 1000, [&] {
     auto key = gen_key();
