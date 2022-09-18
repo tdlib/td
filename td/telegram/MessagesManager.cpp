@@ -27376,7 +27376,9 @@ void MessagesManager::on_message_media_edited(DialogId dialog_id, MessageId mess
   // must not run getDifference
 
   CHECK(message_id.is_any_server());
-  auto m = get_message({dialog_id, message_id});
+  Dialog *d = get_dialog(dialog_id);
+  CHECK(d != nullptr);
+  auto m = get_message(d, message_id);
   if (m == nullptr || m->edit_generation != generation) {
     // message is already deleted or was edited again
     return;
@@ -27397,7 +27399,7 @@ void MessagesManager::on_message_media_edited(DialogId dialog_id, MessageId mess
     bool need_merge_files = pts != 0 && pts == m->last_edit_pts;
     bool need_send_update = update_message_content(dialog_id, m, std::move(m->edited_content), need_merge_files, true);
     if (need_send_update && need_send_update_message_content) {
-      send_update_message_content(dialog_id, m, true, "on_message_media_edited");
+      send_update_message_content(d, m, true, "on_message_media_edited");
     }
   } else {
     LOG(INFO) << "Failed to edit " << message_id << " in " << dialog_id << ": " << result.error();
@@ -30785,14 +30787,6 @@ void MessagesManager::send_update_message_send_succeeded(Dialog *d, MessageId ol
   send_closure(G()->td(), &Td::send_update,
                make_tl_object<td_api::updateMessageSendSucceeded>(
                    get_message_object(d->dialog_id, m, "send_update_message_send_succeeded"), old_message_id.get()));
-}
-
-void MessagesManager::send_update_message_content(DialogId dialog_id, Message *m, bool is_message_in_dialog,
-                                                  const char *source) {
-  Dialog *d = get_dialog(dialog_id);
-  LOG_CHECK(d != nullptr) << "Send updateMessageContent in unknown " << dialog_id << " from " << source
-                          << " with load count " << loaded_dialogs_.count(dialog_id);
-  send_update_message_content(d, m, is_message_in_dialog, source);
 }
 
 void MessagesManager::send_update_message_content(const Dialog *d, Message *m, bool is_message_in_dialog,

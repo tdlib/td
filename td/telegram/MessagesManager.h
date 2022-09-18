@@ -2477,8 +2477,6 @@ class MessagesManager final : public Actor {
 
   void send_update_message_send_succeeded(Dialog *d, MessageId old_message_id, const Message *m) const;
 
-  void send_update_message_content(DialogId dialog_id, Message *m, bool is_message_in_dialog, const char *source);
-
   void send_update_message_content(const Dialog *d, Message *m, bool is_message_in_dialog, const char *source);
 
   void send_update_message_content_impl(DialogId dialog_id, const Message *m, const char *source) const;
