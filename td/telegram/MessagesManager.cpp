@@ -26288,9 +26288,12 @@ void MessagesManager::on_upload_message_media_success(DialogId dialog_id, Messag
   auto content = get_message_content(td_, caption == nullptr ? FormattedText() : *caption, std::move(media), dialog_id,
                                      false, UserId(), nullptr, nullptr, "on_upload_message_media_success");
 
-  bool need_update = update_message_content(dialog_id, m, std::move(content), true, true);
+  bool is_content_changed = false;
+  bool need_update = update_message_content(dialog_id, m, std::move(content), true, true, is_content_changed);
   if (need_update) {
     send_update_message_content(d, m, true, "on_upload_message_media_success");
+  }
+  if (is_content_changed || need_update) {
     on_message_changed(d, m, need_update, "on_upload_message_media_success");
   }
 
@@ -27395,10 +27398,16 @@ void MessagesManager::on_message_media_edited(DialogId dialog_id, MessageId mess
     bool need_send_update_message_content = m->edited_content->get_type() == MessageContentType::Photo &&
                                             m->content->get_type() == MessageContentType::Photo;
     bool need_merge_files = pts != 0 && pts == m->last_edit_pts;
-    bool need_update = update_message_content(dialog_id, m, std::move(m->edited_content), need_merge_files, true);
-    if (need_update && need_send_update_message_content) {
-      send_update_message_content(d, m, true, "on_message_media_edited");
-      on_message_changed(d, m, need_update, "on_message_media_edited");
+    bool is_content_changed = false;
+    bool need_update =
+        update_message_content(dialog_id, m, std::move(m->edited_content), need_merge_files, true, is_content_changed);
+    if (need_send_update_message_content) {
+      if (need_update) {
+        send_update_message_content(d, m, true, "on_message_media_edited");
+      }
+      if (is_content_changed || need_update) {
+        on_message_changed(d, m, need_update, "on_message_media_edited");
+      }
     }
   } else {
     LOG(INFO) << "Failed to edit " << message_id << " in " << dialog_id << ": " << result.error();
@@ -36362,8 +36371,10 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
     }
   }
 
+  bool is_content_changed = false;
   if (update_message_content(dialog_id, old_message, std::move(new_message->content),
-                             message_id.is_yet_unsent() && new_message->edit_date == 0, is_message_in_dialog)) {
+                             message_id.is_yet_unsent() && new_message->edit_date == 0, is_message_in_dialog,
+                             is_content_changed)) {
     send_update_message_content(d, old_message, is_message_in_dialog, "update_message");
     need_send_update = true;
   }
@@ -36408,9 +36419,10 @@ bool MessagesManager::need_message_changed_warning(const Message *old_message) {
 
 bool MessagesManager::update_message_content(DialogId dialog_id, Message *old_message,
                                              unique_ptr<MessageContent> new_content, bool need_merge_files,
-                                             bool is_message_in_dialog) {
-  bool is_content_changed = false;
+                                             bool is_message_in_dialog, bool &is_content_changed) {
+  is_content_changed = false;
   bool need_update = false;
+
   unique_ptr<MessageContent> &old_content = old_message->content;
   MessageContentType old_content_type = old_content->get_type();
   MessageContentType new_content_type = new_content->get_type();

@@ -2404,7 +2404,7 @@ class MessagesManager final : public Actor {
   static bool need_message_changed_warning(const Message *old_message);
 
   bool update_message_content(DialogId dialog_id, Message *old_message, unique_ptr<MessageContent> new_content,
-                              bool need_merge_files, bool is_message_in_dialog);
+                              bool need_merge_files, bool is_message_in_dialog, bool &is_content_changed);
 
   void update_message_max_reply_media_timestamp(const Dialog *d, Message *m, bool need_send_update_message_content);
 
