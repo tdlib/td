@@ -994,9 +994,8 @@ class ReadFeaturedStickerSetsQuery final : public Td::ResultHandler {
     if (!G()->is_expected_error(status)) {
       LOG(ERROR) << "Receive error for ReadFeaturedStickerSetsQuery: " << status;
     }
-    for (int32 type = 0; type < MAX_STICKER_TYPE; type++) {
-      td_->stickers_manager_->reload_featured_sticker_sets(static_cast<StickerType>(type), true);
-    }
+    td_->stickers_manager_->reload_featured_sticker_sets(StickerType::Regular, true);
+    td_->stickers_manager_->reload_featured_sticker_sets(StickerType::CustomEmoji, true);
   }
 };
 
@@ -6798,6 +6797,7 @@ void StickersManager::on_get_featured_sticker_sets_failed(StickerType sticker_ty
 }
 
 void StickersManager::load_featured_sticker_sets(StickerType sticker_type, Promise<Unit> &&promise) {
+  CHECK(sticker_type != StickerType::Mask);
   auto type = static_cast<int32>(sticker_type);
   if (td_->auth_manager_->is_bot()) {
     are_featured_sticker_sets_loaded_[type] = true;
