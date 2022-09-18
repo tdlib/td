@@ -411,6 +411,11 @@ void TdDb::open_impl(TdParameters parameters, DbKey key, Promise<OpenedDatabase>
   config_pmc->external_init_finish(binlog);
   VLOG(td_init) << "Finish initialization of config PMC";
 
+  if (parameters.use_file_db && binlog_pmc->get("auth").empty()) {
+    LOG(INFO) << "Destroy SQLite database, because wasn't authorized yet";
+    SqliteDb::destroy(get_sqlite_path(parameters)).ignore();
+  }
+
   DbKey new_sqlite_key;
   DbKey old_sqlite_key;
   bool encrypt_sqlite = encrypt_binlog;
