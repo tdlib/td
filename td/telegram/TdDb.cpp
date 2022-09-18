@@ -288,7 +288,7 @@ Status TdDb::init_sqlite(const TdParameters &parameters, const DbKey &key, const
   bool use_dialog_db = parameters.use_message_db;
   bool use_message_db = parameters.use_message_db;
   if (!use_sqlite) {
-    unlink(sql_database_path).ignore();
+    SqliteDb::destroy(sql_database_path).ignore();
     return Status::OK();
   }
 
