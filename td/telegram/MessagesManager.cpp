@@ -7187,6 +7187,7 @@ void MessagesManager::on_external_update_message_content(FullMessageId full_mess
   Message *m = get_message(d, full_message_id.get_message_id());
   CHECK(m != nullptr);
   send_update_message_content(d, m, true, "on_external_update_message_content");
+  // must not call on_message_changed, because the message itself wasn't changed
   if (m->message_id == d->last_message_id) {
     send_update_chat_last_message_impl(d, "on_external_update_message_content");
   }
@@ -15392,12 +15393,11 @@ void MessagesManager::on_update_sent_text_message(int64 random_id,
                                "on_update_sent_text_message");
     m->content = std::move(new_content);
     m->is_content_secret = is_secret_message_content(m->ttl, MessageContentType::Text);
-  }
-  if (need_update) {
-    send_update_message_content(d, m, true, "on_update_sent_text_message");
-    if (m->message_id == d->last_message_id) {
-      send_update_chat_last_message_impl(d, "on_update_sent_text_message");
+
+    if (need_update) {
+      send_update_message_content(d, m, true, "on_update_sent_text_message");
     }
+    on_message_changed(d, m, need_update, "on_update_sent_text_message");
   }
 }
 
@@ -26288,12 +26288,10 @@ void MessagesManager::on_upload_message_media_success(DialogId dialog_id, Messag
   auto content = get_message_content(td_, caption == nullptr ? FormattedText() : *caption, std::move(media), dialog_id,
                                      false, UserId(), nullptr, nullptr, "on_upload_message_media_success");
 
-  bool need_send_update = update_message_content(dialog_id, m, std::move(content), true, true);
-  if (need_send_update) {
+  bool need_update = update_message_content(dialog_id, m, std::move(content), true, true);
+  if (need_update) {
     send_update_message_content(d, m, true, "on_upload_message_media_success");
-    if (m->message_id == d->last_message_id) {
-      send_update_chat_last_message_impl(d, "on_upload_message_media_success");
-    }
+    on_message_changed(d, m, need_update, "on_upload_message_media_success");
   }
 
   auto input_media = get_input_media(m->content.get(), td_, m->ttl, m->send_emoji, true);
@@ -27397,9 +27395,10 @@ void MessagesManager::on_message_media_edited(DialogId dialog_id, MessageId mess
     bool need_send_update_message_content = m->edited_content->get_type() == MessageContentType::Photo &&
                                             m->content->get_type() == MessageContentType::Photo;
     bool need_merge_files = pts != 0 && pts == m->last_edit_pts;
-    bool need_send_update = update_message_content(dialog_id, m, std::move(m->edited_content), need_merge_files, true);
-    if (need_send_update && need_send_update_message_content) {
+    bool need_update = update_message_content(dialog_id, m, std::move(m->edited_content), need_merge_files, true);
+    if (need_update && need_send_update_message_content) {
       send_update_message_content(d, m, true, "on_message_media_edited");
+      on_message_changed(d, m, need_update, "on_message_media_edited");
     }
   } else {
     LOG(INFO) << "Failed to edit " << message_id << " in " << dialog_id << ": " << result.error();
