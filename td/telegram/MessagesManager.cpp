@@ -6967,9 +6967,10 @@ td_api::object_ptr<td_api::messageInteractionInfo> MessagesManager::get_message_
       my_user_id = td_->contacts_manager_->get_my_id();
       peer_user_id = dialog_id.get_user_id();
     }
-    reactions = transform(m->reactions->reactions_, [td = td_, my_user_id, peer_user_id](const MessageReaction &reaction) {
-      return reaction.get_message_reaction_object(td, my_user_id, peer_user_id);
-    });
+    reactions =
+        transform(m->reactions->reactions_, [td = td_, my_user_id, peer_user_id](const MessageReaction &reaction) {
+          return reaction.get_message_reaction_object(td, my_user_id, peer_user_id);
+        });
   }
 
   return td_api::make_object<td_api::messageInteractionInfo>(m->view_count, m->forward_count, std::move(reply_info),
@@ -15393,7 +15394,7 @@ void MessagesManager::on_update_sent_text_message(int64 random_id,
     m->is_content_secret = is_secret_message_content(m->ttl, MessageContentType::Text);
   }
   if (need_update) {
-    send_update_message_content(dialog_id, m, true, "on_update_sent_text_message");
+    send_update_message_content(d, m, true, "on_update_sent_text_message");
     if (m->message_id == d->last_message_id) {
       send_update_chat_last_message_impl(d, "on_update_sent_text_message");
     }
@@ -26287,9 +26288,12 @@ void MessagesManager::on_upload_message_media_success(DialogId dialog_id, Messag
   auto content = get_message_content(td_, caption == nullptr ? FormattedText() : *caption, std::move(media), dialog_id,
                                      false, UserId(), nullptr, nullptr, "on_upload_message_media_success");
 
-  if (update_message_content(dialog_id, m, std::move(content), true, true, true) &&
-      m->message_id == d->last_message_id) {
-    send_update_chat_last_message_impl(d, "on_upload_message_media_success");
+  bool need_send_update = update_message_content(dialog_id, m, std::move(content), true, true);
+  if (need_send_update) {
+    send_update_message_content(d, m, true, "on_upload_message_media_success");
+    if (m->message_id == d->last_message_id) {
+      send_update_chat_last_message_impl(d, "on_upload_message_media_success");
+    }
   }
 
   auto input_media = get_input_media(m->content.get(), td_, m->ttl, m->send_emoji, true);
@@ -27391,8 +27395,10 @@ void MessagesManager::on_message_media_edited(DialogId dialog_id, MessageId mess
     bool need_send_update_message_content = m->edited_content->get_type() == MessageContentType::Photo &&
                                             m->content->get_type() == MessageContentType::Photo;
     bool need_merge_files = pts != 0 && pts == m->last_edit_pts;
-    update_message_content(dialog_id, m, std::move(m->edited_content), need_send_update_message_content,
-                           need_merge_files, true);
+    bool need_send_update = update_message_content(dialog_id, m, std::move(m->edited_content), need_merge_files, true);
+    if (need_send_update && need_send_update_message_content) {
+      send_update_message_content(dialog_id, m, true, "on_message_media_edited");
+    }
   } else {
     LOG(INFO) << "Failed to edit " << message_id << " in " << dialog_id << ": " << result.error();
     if (was_uploaded) {
@@ -36363,8 +36369,9 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
     }
   }
 
-  if (update_message_content(dialog_id, old_message, std::move(new_message->content), true,
+  if (update_message_content(dialog_id, old_message, std::move(new_message->content),
                              message_id.is_yet_unsent() && new_message->edit_date == 0, is_message_in_dialog)) {
+    send_update_message_content(d, old_message, is_message_in_dialog, "update_message");
     need_send_update = true;
   }
 
@@ -36407,8 +36414,7 @@ bool MessagesManager::need_message_changed_warning(const Message *old_message) {
 }
 
 bool MessagesManager::update_message_content(DialogId dialog_id, Message *old_message,
-                                             unique_ptr<MessageContent> new_content,
-                                             bool need_send_update_message_content, bool need_merge_files,
+                                             unique_ptr<MessageContent> new_content, bool need_merge_files,
                                              bool is_message_in_dialog) {
   bool is_content_changed = false;
   bool need_update = false;
@@ -36480,10 +36486,6 @@ bool MessagesManager::update_message_content(DialogId dialog_id, Message *old_me
   }
 
   if (need_update) {
-    if (need_send_update_message_content) {
-      send_update_message_content(dialog_id, old_message, is_message_in_dialog, "update_message_content");
-    }
-
     auto file_ids = get_message_content_file_ids(old_content.get(), td_);
     if (!file_ids.empty()) {
       auto file_source_id = get_message_file_source_id(FullMessageId(dialog_id, old_message->message_id));
