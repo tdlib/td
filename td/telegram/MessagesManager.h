@@ -2358,6 +2358,8 @@ class MessagesManager final : public Actor {
 
   void on_message_changed(const Dialog *d, const Message *m, bool need_send_update, const char *source);
 
+  void on_message_notification_changed(Dialog *d, const Message *m, const char *source);
+
   bool need_delete_file(FullMessageId full_message_id, FileId file_id) const;
 
   bool need_delete_message_files(DialogId dialog_id, const Message *m) const;

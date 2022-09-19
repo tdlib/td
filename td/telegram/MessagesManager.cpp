@@ -34836,27 +34836,8 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
           try_add_active_live_location(dialog_id, m);
         }
         change_message_files(dialog_id, m, old_file_ids);
-        if (need_send_update && m->notification_id.is_valid() && is_message_notification_active(d, m)) {
-          auto &group_info = get_notification_group_info(d, m);
-          if (group_info.group_id.is_valid()) {
-            send_closure_later(
-                G()->notification_manager(), &NotificationManager::edit_notification, group_info.group_id,
-                m->notification_id,
-                create_new_message_notification(
-                    m->message_id, is_message_preview_enabled(d, m, is_from_mention_notification_group(m))));
-          }
-        }
-        if (need_send_update && m->is_pinned && d->pinned_message_notification_message_id.is_valid() &&
-            d->mention_notification_group.group_id.is_valid()) {
-          auto pinned_message = get_message_force(d, d->pinned_message_notification_message_id, "after update_message");
-          if (pinned_message != nullptr && pinned_message->notification_id.is_valid() &&
-              is_message_notification_active(d, pinned_message) &&
-              get_message_content_pinned_message_id(pinned_message->content.get()) == message_id) {
-            send_closure_later(
-                G()->notification_manager(), &NotificationManager::edit_notification,
-                d->mention_notification_group.group_id, pinned_message->notification_id,
-                create_new_message_notification(pinned_message->message_id, is_message_preview_enabled(d, m, true)));
-          }
+        if (need_send_update) {
+          on_message_notification_changed(d, m, source);
         }
         update_message_count_by_index(d, -1, old_index_mask & ~new_index_mask);
         update_message_count_by_index(d, +1, new_index_mask & ~old_index_mask);
@@ -35583,6 +35564,32 @@ void MessagesManager::on_message_changed(const Dialog *d, const Message *m, bool
 
   if (!m->message_id.is_yet_unsent()) {
     add_message_to_database(d, m, source);
+  }
+}
+
+void MessagesManager::on_message_notification_changed(Dialog *d, const Message *m, const char *source) {
+  CHECK(d != nullptr);
+  CHECK(m != nullptr);
+  if (m->notification_id.is_valid() && is_message_notification_active(d, m)) {
+    auto &group_info = get_notification_group_info(d, m);
+    if (group_info.group_id.is_valid()) {
+      send_closure_later(G()->notification_manager(), &NotificationManager::edit_notification, group_info.group_id,
+                         m->notification_id,
+                         create_new_message_notification(
+                             m->message_id, is_message_preview_enabled(d, m, is_from_mention_notification_group(m))));
+    }
+  }
+  if (m->is_pinned && d->pinned_message_notification_message_id.is_valid() &&
+      d->mention_notification_group.group_id.is_valid()) {
+    auto pinned_message = get_message_force(d, d->pinned_message_notification_message_id, "after update_message");
+    if (pinned_message != nullptr && pinned_message->notification_id.is_valid() &&
+        is_message_notification_active(d, pinned_message) &&
+        get_message_content_pinned_message_id(pinned_message->content.get()) == m->message_id) {
+      send_closure_later(
+          G()->notification_manager(), &NotificationManager::edit_notification, d->mention_notification_group.group_id,
+          pinned_message->notification_id,
+          create_new_message_notification(pinned_message->message_id, is_message_preview_enabled(d, m, true)));
+    }
   }
 }
 
