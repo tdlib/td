@@ -24528,6 +24528,7 @@ Result<td_api::object_ptr<td_api::availableReactions>> MessagesManager::get_mess
 
   FlatHashSet<string> all_available_reactions;
   for (const auto &reaction : available_reactions.reactions_) {
+    CHECK(!reaction.empty());
     all_available_reactions.insert(reaction);
   }
 
