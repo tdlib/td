@@ -182,7 +182,7 @@ FileId VoiceNotesManager::on_get_voice_note(unique_ptr<VoiceNote> new_voice_note
       v->transcription_id = new_voice_note->transcription_id;
       v->text = std::move(new_voice_note->text);
       v->last_transcription_error = Status::OK();
-      on_voice_note_transcription_updated(file_id);
+      on_voice_note_transcription_completed(file_id);
     }
   }
 
@@ -316,7 +316,7 @@ void VoiceNotesManager::on_voice_note_transcribed(FileId file_id, string &&text,
     auto promises = std::move(it->second);
     speech_recognition_queries_.erase(it);
 
-    on_voice_note_transcription_updated(file_id);
+    on_voice_note_transcription_completed(file_id);
     set_promises(promises);
   } else {
     if (is_changed) {
@@ -382,6 +382,15 @@ void VoiceNotesManager::on_voice_note_transcription_updated(FileId file_id) {
   if (it != voice_note_messages_.end()) {
     for (const auto &full_message_id : it->second) {
       td_->messages_manager_->on_external_update_message_content(full_message_id);
+    }
+  }
+}
+
+void VoiceNotesManager::on_voice_note_transcription_completed(FileId file_id) {
+  auto it = voice_note_messages_.find(file_id);
+  if (it != voice_note_messages_.end()) {
+    for (const auto &full_message_id : it->second) {
+      td_->messages_manager_->on_update_message_content(full_message_id);
     }
   }
 }

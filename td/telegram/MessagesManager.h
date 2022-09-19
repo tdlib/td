@@ -366,6 +366,8 @@ class MessagesManager final : public Actor {
 
   void on_external_update_message_content(FullMessageId full_message_id);
 
+  void on_update_message_content(FullMessageId full_message_id);
+
   void on_read_channel_inbox(ChannelId channel_id, MessageId max_message_id, int32 server_unread_count, int32 pts,
                              const char *source);
 

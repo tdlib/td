@@ -100,6 +100,8 @@ class VoiceNotesManager final : public Actor {
 
   void on_voice_note_transcription_updated(FileId file_id);
 
+  void on_voice_note_transcription_completed(FileId file_id);
+
   void tear_down() final;
 
   Td *td_;
