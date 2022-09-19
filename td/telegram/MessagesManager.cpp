@@ -7191,6 +7191,7 @@ void MessagesManager::on_external_update_message_content(FullMessageId full_mess
   if (m->message_id == d->last_message_id) {
     send_update_chat_last_message_impl(d, "on_external_update_message_content");
   }
+  on_message_notification_changed(d, m, "on_external_update_message_content");
 }
 
 void MessagesManager::on_update_message_content(FullMessageId full_message_id) {
@@ -7200,6 +7201,7 @@ void MessagesManager::on_update_message_content(FullMessageId full_message_id) {
   CHECK(m != nullptr);
   send_update_message_content(d, m, true, "on_update_message_content");
   on_message_changed(d, m, true, "on_update_message_content");
+  on_message_notification_changed(d, m, "on_update_message_content");
 }
 
 bool MessagesManager::update_message_contains_unread_mention(Dialog *d, Message *m, bool contains_unread_mention,
