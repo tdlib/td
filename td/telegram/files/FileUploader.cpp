@@ -239,7 +239,7 @@ Status FileUploader::generate_iv_map() {
 Status FileUploader::before_start_parts() {
   auto status = acquire_fd();
   if (status.is_error() && !local_is_ready_) {
-    return Status::Error(1, "Can't open temporary file");
+    return Status::Error(-1, "Can't open temporary file");
   }
   return status;
 }

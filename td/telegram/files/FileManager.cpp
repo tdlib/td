@@ -2193,7 +2193,7 @@ void FileManager::download(FileId file_id, std::shared_ptr<DownloadCallback> cal
   if (!node) {
     LOG(INFO) << "File " << file_id << " not found";
     if (callback) {
-      callback->on_download_error(file_id, Status::Error("File not found"));
+      callback->on_download_error(file_id, Status::Error(400, "File not found"));
     }
     return;
   }
@@ -2220,7 +2220,7 @@ void FileManager::download(FileId file_id, std::shared_ptr<DownloadCallback> cal
   if (!file_view.can_download_from_server() && !file_view.can_generate()) {
     LOG(INFO) << "File " << file_id << " can't be downloaded";
     if (callback) {
-      callback->on_download_error(file_id, Status::Error("Can't download or generate file"));
+      callback->on_download_error(file_id, Status::Error(400, "Can't download or generate file"));
     }
     return;
   }
@@ -2439,7 +2439,7 @@ class FileManager::ForceUploadActor final : public Actor {
       if (callback_.empty()) {
         return;
       }
-      send_closure(std::move(callback_), &ForceUploadActor::on_upload_error, Status::Error("Canceled"));
+      send_closure(std::move(callback_), &ForceUploadActor::on_upload_error, Status::Error(200, "Canceled"));
     }
 
    private:
@@ -2517,7 +2517,7 @@ class FileManager::ForceUploadActor final : public Actor {
 
   void tear_down() final {
     if (callback_) {
-      callback_->on_upload_error(file_id_, Status::Error("Canceled"));
+      callback_->on_upload_error(file_id_, Status::Error(200, "Canceled"));
     }
   }
 };
@@ -2536,7 +2536,7 @@ void FileManager::resume_upload(FileId file_id, vector<int> bad_parts, std::shar
   if (!node) {
     LOG(INFO) << "File " << file_id << " not found";
     if (callback) {
-      callback->on_upload_error(file_id, Status::Error("File not found"));
+      callback->on_upload_error(file_id, Status::Error(400, "File not found"));
     }
     return;
   }
@@ -2545,7 +2545,7 @@ void FileManager::resume_upload(FileId file_id, vector<int> bad_parts, std::shar
     if (node->last_successful_force_reupload_time_ >= Time::now() - 60) {
       LOG(INFO) << "Recently reuploaded file " << file_id << ", do not try again";
       if (callback) {
-        callback->on_upload_error(file_id, Status::Error("Failed to reupload file"));
+        callback->on_upload_error(file_id, Status::Error(400, "Failed to reupload file"));
       }
       return;
     }
@@ -2585,8 +2585,8 @@ void FileManager::resume_upload(FileId file_id, vector<int> bad_parts, std::shar
   if (!file_view.has_local_location() && !file_view.has_generate_location() && !file_view.has_alive_remote_location()) {
     LOG(INFO) << "File " << file_id << " can't be uploaded";
     if (callback) {
-      callback->on_upload_error(file_id,
-                                Status::Error("Need full local (or generate, or inactive remote) location for upload"));
+      callback->on_upload_error(
+          file_id, Status::Error(400, "Need full local (or generate, or inactive remote) location for upload"));
     }
     return;
   }
@@ -2594,7 +2594,7 @@ void FileManager::resume_upload(FileId file_id, vector<int> bad_parts, std::shar
       (!file_view.has_local_location() && file_view.can_download_from_server())) {
     // TODO
     if (callback) {
-      callback->on_upload_error(file_id, Status::Error("Failed to upload thumbnail without local location"));
+      callback->on_upload_error(file_id, Status::Error(400, "Failed to upload thumbnail without local location"));
     }
     return;
   }
@@ -3854,9 +3854,13 @@ void FileManager::on_error_impl(FileNodePtr node, Query::Type type, bool was_act
     return;
   }
 
-  if (status.code() != 1 && !G()->close_flag()) {
-    LOG(WARNING) << "Failed to " << type << " file " << node->main_file_id_ << " of type " << FileView(node).get_type()
-                 << ": " << status;
+  if (G()->close_flag() && status.code() < 400) {
+    status = Global::request_aborted_error();
+  } else {
+    if (status.code() != -1) {
+      LOG(WARNING) << "Failed to " << type << " file " << node->main_file_id_ << " of type "
+                   << FileView(node).get_type() << ": " << status;
+    }
     if (status.code() == 0) {
       // Remove partial locations
       if (node->local_.type() == LocalFileLocation::Type::Partial &&
@@ -3872,8 +3876,8 @@ void FileManager::on_error_impl(FileNodePtr node, Query::Type type, bool was_act
         }
       }
       node->delete_partial_remote_location();
-      status = Status::Error(400, status.message());
     }
+    status = Status::Error(400, status.message());
   }
 
   // Stop everything on error

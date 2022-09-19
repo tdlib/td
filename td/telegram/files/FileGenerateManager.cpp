@@ -258,7 +258,7 @@ class WebFileDownloadGenerateActor final : public FileGenerateActor {
   }
 
   void hangup_shared() final {
-    on_error(Status::Error(1, "Canceled"));
+    on_error(Status::Error(-1, "Canceled"));
   }
 };
 
@@ -328,7 +328,7 @@ class FileExternalGenerateActor final : public FileGenerateActor {
             static_cast<int64>(query_id_), generate_location_.original_path_, path_, generate_location_.conversion_));
   }
   void hangup() final {
-    check_status(Status::Error(1, "Canceled"));
+    check_status(Status::Error(-1, "Canceled"));
   }
 
   Status do_file_generate_write_part(int64 offset, const string &data) {
@@ -365,7 +365,7 @@ class FileExternalGenerateActor final : public FileGenerateActor {
 
   void check_status(Status status, Promise<> promise = Promise<>()) {
     if (promise) {
-      if (status.is_ok() || status.code() == 1) {
+      if (status.is_ok() || status.code() == -1) {
         promise.set_value(Unit());
       } else {
         promise.set_error(Status::Error(400, status.message()));

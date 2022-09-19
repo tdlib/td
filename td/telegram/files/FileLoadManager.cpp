@@ -156,7 +156,7 @@ void FileLoadManager::cancel(QueryId id) {
   if (it == query_id_to_node_id_.end()) {
     return;
   }
-  on_error_impl(it->second, Status::Error(1, "Canceled"));
+  on_error_impl(it->second, Status::Error(-1, "Canceled"));
 }
 void FileLoadManager::update_local_file_location(QueryId id, const LocalFileLocation &local) {
   if (stop_flag_) {
@@ -298,7 +298,7 @@ void FileLoadManager::on_error_impl(NodeId node_id, Status status) {
 
 void FileLoadManager::hangup_shared() {
   auto node_id = get_link_token();
-  on_error_impl(node_id, Status::Error(1, "Canceled"));
+  on_error_impl(node_id, Status::Error(-1, "Canceled"));
 }
 
 void FileLoadManager::loop() {

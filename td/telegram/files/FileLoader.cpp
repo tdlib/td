@@ -153,7 +153,7 @@ void FileLoader::loop() {
   }
   auto status = do_loop();
   if (status.is_error()) {
-    if (status.code() == 1) {
+    if (status.code() == -1) {
       return;
     }
     on_error(std::move(status));

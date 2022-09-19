@@ -281,7 +281,7 @@ Result<Part> PartsManager::start_part() {
   update_first_empty_part();
   auto part_i = first_streaming_empty_part_;
   if (known_prefix_flag_ && part_i >= static_cast<int>(known_prefix_size_ / part_size_)) {
-    return Status::Error(1, "Wait for prefix to be known");
+    return Status::Error(-1, "Wait for prefix to be known");
   }
   if (part_i == part_count_) {
     if (unknown_size_flag_) {

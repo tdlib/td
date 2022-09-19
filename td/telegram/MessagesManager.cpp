@@ -9052,7 +9052,7 @@ void MessagesManager::on_upload_media_error(FileId file_id, Status status) {
 
   bool is_edit = full_message_id.get_message_id().is_any_server();
   if (is_edit) {
-    fail_edit_message_media(full_message_id, Status::Error(status.code() > 0 ? status.code() : 500, status.message()));
+    fail_edit_message_media(full_message_id, std::move(status));
   } else {
     fail_send_message(full_message_id, std::move(status));
   }
