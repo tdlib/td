@@ -721,15 +721,22 @@ void AesCtrState::decrypt(Slice from, MutableSlice to) {
 
 #if OPENSSL_VERSION_NUMBER >= 0x30000000L && !defined(LIBRESSL_VERSION_NUMBER)
 static void make_digest(Slice data, MutableSlice output, const EVP_MD *evp_md) {
-  EVP_MD_CTX *ctx = EVP_MD_CTX_new();
-  LOG_IF(FATAL, ctx == nullptr);
+  static TD_THREAD_LOCAL EVP_MD_CTX *ctx;
+  if (unlikely(ctx == nullptr)) {
+    ctx = EVP_MD_CTX_new();
+    LOG_IF(FATAL, ctx == nullptr);
+    detail::add_thread_local_destructor(create_destructor([] {
+      EVP_MD_CTX_free(ctx);
+      ctx = nullptr;
+    }));
+  }
   int res = EVP_DigestInit_ex(ctx, evp_md, nullptr);
   LOG_IF(FATAL, res != 1);
   res = EVP_DigestUpdate(ctx, data.ubegin(), data.size());
   LOG_IF(FATAL, res != 1);
   res = EVP_DigestFinal_ex(ctx, output.ubegin(), nullptr);
   LOG_IF(FATAL, res != 1);
-  EVP_MD_CTX_free(ctx);
+  EVP_MD_CTX_reset(ctx);
 }
 
 static void init_thread_local_evp_md(const EVP_MD *&evp_md, const char *algorithm) {
