@@ -26,6 +26,7 @@
 #include "td/utils/ScopeGuard.h"
 #include "td/utils/SliceBuilder.h"
 #include "td/utils/Time.h"
+#include "td/utils/Timer.h"
 #include "td/utils/tl_parsers.h"
 #include "td/utils/TlDowncastHelper.h"
 
@@ -1027,6 +1028,7 @@ Status SessionConnection::do_flush() {
                              << connected_flag_ << ' ' << is_main_ << ' ' << need_destroy_auth_key_ << ' '
                              << sent_destroy_auth_key_ << ' ' << callback_ << ' ' << (Time::now() - created_at_) << ' '
                              << (Time::now() - last_read_at_);
+  PerfWarningTimer timer("SessionConnection::do_flush", 0.01);
   CHECK(state_ != Closed);
   if (state_ == Init) {
     TRY_STATUS(init());

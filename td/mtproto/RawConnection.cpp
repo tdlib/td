@@ -25,7 +25,6 @@
 #include "td/utils/SliceBuilder.h"
 #include "td/utils/Status.h"
 #include "td/utils/StorerBase.h"
-#include "td/utils/Timer.h"
 
 #include <memory>
 #include <utility>
@@ -248,7 +247,6 @@ class RawConnectionDefault final : public RawConnection {
     if (has_error_) {
       return Status::Error("Connection has already failed");
     }
-    PerfWarningTimer timer("RawConnection::do_flush", 0.01);
     sync_with_poll(socket_fd_);
 
     // read/write
