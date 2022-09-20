@@ -383,7 +383,13 @@ class SslStreamImpl {
 
   Result<size_t> write(Slice slice) {
     clear_openssl_errors("Before SslFd::write");
+    auto start_time = Time::now();
     auto size = SSL_write(ssl_handle_.get(), slice.data(), static_cast<int>(slice.size()));
+    auto elapsed_time = Time::now() - start_time;
+    if (elapsed_time >= 0.001) {
+      LOG(ERROR) << "SSL_write of size " << slice.size() << " took " << elapsed_time << " seconds and returned " << size
+                 << ' ' << SSL_get_error(ssl_handle_.get(), size);
+    }
     if (size <= 0) {
       return process_ssl_error(size);
     }
@@ -395,8 +401,9 @@ class SslStreamImpl {
     auto start_time = Time::now();
     auto size = SSL_read(ssl_handle_.get(), slice.data(), static_cast<int>(slice.size()));
     auto elapsed_time = Time::now() - start_time;
-    if (elapsed_time >= 0.01) {
-      LOG(ERROR) << "SSL_read took " << elapsed_time << " seconds and returned " << size;
+    if (elapsed_time >= 0.001) {
+      LOG(ERROR) << "SSL_read took " << elapsed_time << " seconds and returned " << size << ' '
+                 << SSL_get_error(ssl_handle_.get(), size);
     }
     if (size <= 0) {
       return process_ssl_error(size);
