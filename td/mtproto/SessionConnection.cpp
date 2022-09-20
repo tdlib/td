@@ -26,7 +26,6 @@
 #include "td/utils/ScopeGuard.h"
 #include "td/utils/SliceBuilder.h"
 #include "td/utils/Time.h"
-#include "td/utils/Timer.h"
 #include "td/utils/tl_parsers.h"
 #include "td/utils/TlDowncastHelper.h"
 
@@ -718,6 +717,7 @@ Status SessionConnection::on_quick_ack(uint64 quick_ack_token) {
 
 void SessionConnection::on_read(size_t size) {
   last_read_at_ = Time::now_cached();
+  last_read_size_ += size;
 }
 
 SessionConnection::SessionConnection(Mode mode, unique_ptr<RawConnection> raw_connection, AuthData *auth_data)
@@ -768,8 +768,9 @@ void SessionConnection::do_close(Status status) {
 
 void SessionConnection::send_crypto(const Storer &storer, uint64 quick_ack_token) {
   CHECK(state_ != Closed);
-  raw_connection_->send_crypto(storer, auth_data_->get_session_id(), auth_data_->get_server_salt(Time::now_cached()),
-                               auth_data_->get_auth_key(), quick_ack_token);
+  last_write_size_ += raw_connection_->send_crypto(storer, auth_data_->get_session_id(),
+                                                   auth_data_->get_server_salt(Time::now_cached()),
+                                                   auth_data_->get_auth_key(), quick_ack_token);
 }
 
 Result<uint64> SessionConnection::send_query(BufferSlice buffer, bool gzip_flag, int64 message_id,
@@ -1028,7 +1029,6 @@ Status SessionConnection::do_flush() {
                              << connected_flag_ << ' ' << is_main_ << ' ' << need_destroy_auth_key_ << ' '
                              << sent_destroy_auth_key_ << ' ' << callback_ << ' ' << (Time::now() - created_at_) << ' '
                              << (Time::now() - last_read_at_);
-  PerfWarningTimer timer("SessionConnection::do_flush", 0.01);
   CHECK(state_ != Closed);
   if (state_ == Init) {
     TRY_STATUS(init());
@@ -1037,7 +1037,18 @@ Status SessionConnection::do_flush() {
     return Status::Error("No auth key");
   }
 
-  TRY_STATUS(raw_connection_->flush(auth_data_->get_auth_key(), *this));
+  last_read_size_ = 0;
+  last_write_size_ = 0;
+  auto start_time = Time::now();
+  auto result = raw_connection_->flush(auth_data_->get_auth_key(), *this);
+  auto elapsed_time = Time::now() - start_time;
+  if (elapsed_time >= 0.01) {
+    LOG(ERROR) << "RawConnection::flush took " << elapsed_time << " seconds, written " << last_write_size_
+               << " bytes, read " << last_read_size_ << " bytes and returned " << result;
+  }
+  if (result.is_error()) {
+    return result;
+  }
 
   if (last_pong_at_ + ping_disconnect_delay() < Time::now_cached()) {
     auto stats_callback = raw_connection_->stats_callback();

@@ -189,6 +189,9 @@ class SessionConnection final
   uint64 last_ping_message_id_ = 0;
   uint64 last_ping_container_id_ = 0;
 
+  uint64 last_read_size_ = 0;
+  uint64 last_write_size_ = 0;
+
   bool need_destroy_auth_key_ = false;
   bool sent_destroy_auth_key_ = false;
 

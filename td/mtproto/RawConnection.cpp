@@ -49,11 +49,13 @@ class RawConnectionDefault final : public RawConnection {
   bool can_send() const final {
     return transport_->can_write();
   }
+
   TransportType get_transport_type() const final {
     return transport_->get_type();
   }
-  void send_crypto(const Storer &storer, int64 session_id, int64 salt, const AuthKey &auth_key,
-                   uint64 quick_ack_token) final {
+
+  size_t send_crypto(const Storer &storer, int64 session_id, int64 salt, const AuthKey &auth_key,
+                     uint64 quick_ack_token) final {
     PacketInfo info;
     info.version = 2;
     info.no_crypto_flag = false;
@@ -76,7 +78,9 @@ class RawConnectionDefault final : public RawConnection {
       }
     }
 
+    auto packet_size = packet.size();
     transport_->write(std::move(packet), use_quick_ack);
+    return packet_size;
   }
 
   uint64 send_no_crypto(const Storer &storer) final {
@@ -280,11 +284,13 @@ class RawConnectionHttp final : public RawConnection {
   bool can_send() const final {
     return mode_ == Send;
   }
+
   TransportType get_transport_type() const final {
     return mtproto::TransportType{mtproto::TransportType::Http, 0, mtproto::ProxySecret()};
   }
-  void send_crypto(const Storer &storer, int64 session_id, int64 salt, const AuthKey &auth_key,
-                   uint64 quick_ack_token) final {
+
+  size_t send_crypto(const Storer &storer, int64 session_id, int64 salt, const AuthKey &auth_key,
+                     uint64 quick_ack_token) final {
     PacketInfo info;
     info.version = 2;
     info.no_crypto_flag = false;
@@ -295,7 +301,9 @@ class RawConnectionHttp final : public RawConnection {
     auto packet = BufferWriter{Transport::write(storer, auth_key, &info), 0, 0};
     Transport::write(storer, auth_key, &info, packet.as_slice());
 
+    auto packet_size = packet.size();
     send_packet(packet.as_buffer_slice());
+    return packet_size;
   }
 
   uint64 send_no_crypto(const Storer &storer) final {
