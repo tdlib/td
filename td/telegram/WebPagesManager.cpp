@@ -1238,6 +1238,9 @@ tl_object_ptr<td_api::webPage> WebPagesManager::get_web_page_object(WebPageId we
         if (entity.type == MessageEntity::Type::Hashtag) {
           return PSTRING() << "https://twitter.com/hashtag/" << url_encode(text.substr(1));
         }
+        if (entity.type == MessageEntity::Type::Cashtag) {
+          return PSTRING() << "https://twitter.com/search?q=" << url_encode(text) << "&src=cashtag_click";
+        }
         return string();
       });
     } else if (host == "t.me" || host == "telegram.me" || host == "telegram.dog" || host == "telesco.pe") {
