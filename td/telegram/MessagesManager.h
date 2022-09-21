@@ -1293,6 +1293,7 @@ class MessagesManager final : public Actor {
     vector<UserId> pending_join_request_user_ids;
     int32 have_full_history_source = 0;
     int32 unload_dialog_delay_seed = 0;
+    int64 last_media_album_id = 0;
 
     FolderId folder_id;
     vector<DialogListId> dialog_list_ids;  // TODO replace with mask
@@ -2598,7 +2599,7 @@ class MessagesManager final : public Actor {
 
   void set_dialog_last_read_outbox_message_id(Dialog *d, MessageId message_id);
 
-  void set_dialog_last_message_id(Dialog *d, MessageId last_message_id, const char *source);
+  void set_dialog_last_message_id(Dialog *d, MessageId last_message_id, const char *source, const Message *m = nullptr);
 
   void set_dialog_first_database_message_id(Dialog *d, MessageId first_database_message_id, const char *source);
 

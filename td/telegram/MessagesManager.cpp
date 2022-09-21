@@ -14856,12 +14856,26 @@ FullMessageId MessagesManager::on_get_message(MessageInfo &&message_info, bool f
   return FullMessageId(dialog_id, message_id);
 }
 
-void MessagesManager::set_dialog_last_message_id(Dialog *d, MessageId last_message_id, const char *source) {
+void MessagesManager::set_dialog_last_message_id(Dialog *d, MessageId last_message_id, const char *source,
+                                                 const Message *m) {
   CHECK(!last_message_id.is_scheduled());
 
   LOG(INFO) << "Set " << d->dialog_id << " last message to " << last_message_id << " from " << source;
   d->last_message_id = last_message_id;
 
+  if (m != nullptr) {
+    d->last_media_album_id = m->media_album_id;
+  } else if (!last_message_id.is_valid()) {
+    d->last_media_album_id = 0;
+  } else {
+    m = get_message(d, last_message_id);
+    if (m == nullptr) {
+      LOG(ERROR) << "Failed to find last " << last_message_id << " in " << d->dialog_id;
+      d->last_media_album_id = 0;
+    } else {
+      d->last_media_album_id = m->media_album_id;
+    }
+  }
   if (!last_message_id.is_valid()) {
     d->suffix_load_first_message_id_ = MessageId();
     d->suffix_load_done_ = false;
@@ -15927,6 +15941,7 @@ bool MessagesManager::can_unload_message(const Dialog *d, const Message *m) cons
   // don't want to unload message with active reply markup
   // don't want to unload the newest pinned message
   // don't want to unload last edited message, because server can send updateEditChannelMessage again
+  // don't want to unload messages from the last album
   // can't unload from memory last dialog, last database messages, yet unsent messages, being edited media messages and active live locations
   // can't unload messages in dialog with active suffix load query
   FullMessageId full_message_id{d->dialog_id, m->message_id};
@@ -15934,7 +15949,8 @@ bool MessagesManager::can_unload_message(const Dialog *d, const Message *m) cons
          !m->message_id.is_yet_unsent() && active_live_location_full_message_ids_.count(full_message_id) == 0 &&
          replied_by_yet_unsent_messages_.count(full_message_id) == 0 && m->edited_content == nullptr &&
          d->suffix_load_queries_.empty() && m->message_id != d->reply_markup_message_id &&
-         m->message_id != d->last_pinned_message_id && m->message_id != d->last_edited_message_id;
+         m->message_id != d->last_pinned_message_id && m->message_id != d->last_edited_message_id &&
+         (m->media_album_id != d->last_media_album_id || m->media_album_id == 0);
 }
 
 void MessagesManager::unload_message(Dialog *d, MessageId message_id) {
@@ -16226,7 +16242,7 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
       if ((*it)->have_previous) {
         --it;
         if (*it != nullptr) {
-          set_dialog_last_message_id(d, (*it)->message_id, "do_delete_message");
+          set_dialog_last_message_id(d, (*it)->message_id, "do_delete_message", *it);
         } else {
           LOG(ERROR) << "Have have_previous is true, but there is no previous for " << full_message_id << " from "
                      << source;
@@ -35162,7 +35178,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     update_message_count_by_index(d, +1, m);
   }
   if (auto_attach && message_id > d->last_message_id && message_id >= d->last_new_message_id) {
-    set_dialog_last_message_id(d, message_id, "add_message_to_dialog");
+    set_dialog_last_message_id(d, message_id, "add_message_to_dialog", m);
     *need_update_dialog_pos = true;
   }
   if (auto_attach && !message_id.is_yet_unsent() && message_id >= d->last_new_message_id &&
@@ -37290,7 +37306,7 @@ bool MessagesManager::add_dialog_last_database_message(Dialog *d, unique_ptr<Mes
     }
   }
   if (m != nullptr) {
-    set_dialog_last_message_id(d, m->message_id, "add_dialog_last_database_message 2");
+    set_dialog_last_message_id(d, m->message_id, "add_dialog_last_database_message 2", m);
     send_update_chat_last_message(d, "add_dialog_last_database_message 3");
   } else {
     if (d->pending_last_message_date != 0) {
