@@ -35128,8 +35128,9 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     }
   }
 
+  const Message *m = message.get();
   if (*need_update && message_id > d->last_read_inbox_message_id && !td_->auth_manager_->is_bot()) {
-    if (has_incoming_notification(dialog_id, message.get())) {
+    if (has_incoming_notification(dialog_id, m)) {
       int32 server_unread_count = d->server_unread_count;
       int32 local_unread_count = d->local_unread_count;
       if (message_id.is_server()) {
@@ -35149,16 +35150,16 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
       }
     }
   }
-  if (*need_update && message->contains_unread_mention) {
+  if (*need_update && m->contains_unread_mention) {
     set_dialog_unread_mention_count(d, d->unread_mention_count + 1);
     send_update_chat_unread_mention_count(d);
   }
-  if (*need_update && has_unread_message_reactions(dialog_id, message.get())) {
+  if (*need_update && has_unread_message_reactions(dialog_id, m)) {
     set_dialog_unread_reaction_count(d, d->unread_reaction_count + 1);
     send_update_chat_unread_reaction_count(d, "add_message_to_dialog");
   }
   if (*need_update) {
-    update_message_count_by_index(d, +1, message.get());
+    update_message_count_by_index(d, +1, m);
   }
   if (auto_attach && message_id > d->last_message_id && message_id >= d->last_new_message_id) {
     set_dialog_last_message_id(d, message_id, "add_message_to_dialog");
@@ -35174,12 +35175,11 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
       set_dialog_last_database_message_id(d, message_id, "add_message_to_dialog");
       if (!d->first_database_message_id.is_valid()) {
         set_dialog_first_database_message_id(d, message_id, "add_message_to_dialog");
-        try_restore_dialog_reply_markup(d, message.get());
+        try_restore_dialog_reply_markup(d, m);
       }
     }
   }
 
-  const Message *m = message.get();
   if (m->message_id.is_yet_unsent() && m->reply_to_message_id != MessageId()) {
     if (!m->reply_to_message_id.is_yet_unsent()) {
       if (!m->reply_to_message_id.is_scheduled()) {
