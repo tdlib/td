@@ -4465,15 +4465,16 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
     case telegram_api::messageMediaGame::ID: {
       auto media = move_tl_object_as<telegram_api::messageMediaGame>(media_ptr);
 
-      auto m = make_unique<MessageGame>(Game(td, via_bot_user_id, std::move(media->game_), message, owner_dialog_id));
+      auto m = make_unique<MessageGame>(
+          Game(td, via_bot_user_id, std::move(media->game_), std::move(message), owner_dialog_id));
       if (m->game.is_empty()) {
         break;
       }
       return std::move(m);
     }
     case telegram_api::messageMediaInvoice::ID:
-      return td::make_unique<MessageInvoice>(
-          get_input_invoice(move_tl_object_as<telegram_api::messageMediaInvoice>(media_ptr), td, owner_dialog_id));
+      return td::make_unique<MessageInvoice>(get_input_invoice(
+          move_tl_object_as<telegram_api::messageMediaInvoice>(media_ptr), td, owner_dialog_id, std::move(message)));
     case telegram_api::messageMediaWebPage::ID: {
       auto media = move_tl_object_as<telegram_api::messageMediaWebPage>(media_ptr);
       if (disable_web_page_preview != nullptr) {
@@ -5093,7 +5094,7 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
     }
     case MessageContentType::Invoice: {
       const auto *m = static_cast<const MessageInvoice *>(content);
-      return get_message_invoice_object(m->input_invoice, td);
+      return get_message_invoice_object(m->input_invoice, td, skip_bot_commands, max_media_timestamp);
     }
     case MessageContentType::LiveLocation: {
       const auto *m = static_cast<const MessageLiveLocation *>(content);
@@ -5565,7 +5566,7 @@ vector<FileId> get_message_content_file_ids(const MessageContent *content, const
     case MessageContentType::Game:
       return static_cast<const MessageGame *>(content)->game.get_file_ids(td);
     case MessageContentType::Invoice:
-      return get_input_invoice_file_ids(static_cast<const MessageInvoice *>(content)->input_invoice);
+      return get_input_invoice_file_ids(td, static_cast<const MessageInvoice *>(content)->input_invoice);
     case MessageContentType::ChatChangePhoto:
       return photo_get_file_ids(static_cast<const MessageChatChangePhoto *>(content)->photo);
     case MessageContentType::PassportDataReceived: {

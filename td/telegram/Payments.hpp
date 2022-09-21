@@ -8,6 +8,7 @@
 
 #include "td/telegram/Payments.h"
 
+#include "td/telegram/MessageExtendedMedia.hpp"
 #include "td/telegram/Photo.hpp"
 #include "td/telegram/Version.h"
 
@@ -91,6 +92,7 @@ void store(const InputInvoice &input_invoice, StorerT &storer) {
   bool has_provider_data = !input_invoice.provider_data.empty();
   bool has_total_amount = input_invoice.total_amount != 0;
   bool has_receipt_message_id = input_invoice.receipt_message_id.is_valid();
+  bool has_extended_media = input_invoice.extended_media.is_empty();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_description);
   STORE_FLAG(has_photo);
@@ -100,6 +102,7 @@ void store(const InputInvoice &input_invoice, StorerT &storer) {
   STORE_FLAG(has_provider_data);
   STORE_FLAG(has_total_amount);
   STORE_FLAG(has_receipt_message_id);
+  STORE_FLAG(has_extended_media);
   END_STORE_FLAGS();
   store(input_invoice.title, storer);
   if (has_description) {
@@ -127,6 +130,9 @@ void store(const InputInvoice &input_invoice, StorerT &storer) {
   if (has_receipt_message_id) {
     store(input_invoice.receipt_message_id, storer);
   }
+  if (has_extended_media) {
+    store(input_invoice.extended_media, storer);
+  }
 }
 
 template <class ParserT>
@@ -139,6 +145,7 @@ void parse(InputInvoice &input_invoice, ParserT &parser) {
   bool has_provider_data;
   bool has_total_amount;
   bool has_receipt_message_id;
+  bool has_extended_media;
   if (parser.version() >= static_cast<int32>(Version::AddInputInvoiceFlags)) {
     BEGIN_PARSE_FLAGS();
     PARSE_FLAG(has_description);
@@ -149,6 +156,7 @@ void parse(InputInvoice &input_invoice, ParserT &parser) {
     PARSE_FLAG(has_provider_data);
     PARSE_FLAG(has_total_amount);
     PARSE_FLAG(has_receipt_message_id);
+    PARSE_FLAG(has_extended_media);
     END_PARSE_FLAGS();
   } else {
     has_description = true;
@@ -159,6 +167,7 @@ void parse(InputInvoice &input_invoice, ParserT &parser) {
     has_provider_data = parser.version() >= static_cast<int32>(Version::AddMessageInvoiceProviderData);
     has_total_amount = true;
     has_receipt_message_id = true;
+    has_extended_media = false;
   }
   parse(input_invoice.title, parser);
   if (has_description) {
@@ -185,6 +194,9 @@ void parse(InputInvoice &input_invoice, ParserT &parser) {
   }
   if (has_receipt_message_id) {
     parse(input_invoice.receipt_message_id, parser);
+  }
+  if (has_extended_media) {
+    parse(input_invoice.extended_media, parser);
   }
 }
 

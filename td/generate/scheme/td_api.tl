@@ -479,6 +479,7 @@ chatAdministratorRights can_manage_chat:Bool can_change_info:Bool can_post_messa
 //@payment_link An internal link to be opened for buying Telegram Premium to the user if store payment isn't possible; may be null if direct payment isn't available
 premiumPaymentOption currency:string amount:int53 discount_percentage:int32 month_count:int32 store_product_id:string payment_link:InternalLinkType = PremiumPaymentOption;
 
+
 //@description Describes a custom emoji to be shown instead of the Telegram Premium badge @custom_emoji_id Identifier of the custom emoji in stickerFormatTgs format. If the custom emoji belongs to the sticker set GetOption("themed_emoji_statuses_sticker_set_id"), then it's color must be changed to the color of the Telegram Premium badge
 emojiStatus custom_emoji_id:int64 = EmojiStatus;
 
@@ -1634,13 +1635,34 @@ paymentResult success:Bool verification_url:string = PaymentResult;
 paymentReceipt title:string description:formattedText photo:photo date:int32 seller_bot_user_id:int53 payment_provider_user_id:int53 invoice:invoice order_info:orderInfo shipping_option:shippingOption credentials_title:string tip_amount:int53 = PaymentReceipt;
 
 
-//@class InputInvoice @description Describe an invoice to process
+//@class InputInvoice @description Describes an invoice to process
 
 //@description An invoice from a message of the type messageInvoice @chat_id Chat identifier of the message @message_id Message identifier
 inputInvoiceMessage chat_id:int53 message_id:int53 = InputInvoice;
 
 //@description An invoice from a link of the type internalLinkTypeInvoice @name Name of the invoice
 inputInvoiceName name:string = InputInvoice;
+
+
+//@class MessageExtendedMedia @description Describes a media, which is attached to an invoice
+
+//@description The media is hidden until the invoice is paid
+//@width Media width; 0 if unknown
+//@height Media height; 0 if unknown
+//@duration Media duration; 0 if unknown
+//@minithumbnail Media minithumbnail; may be null
+//@caption Media caption
+messageExtendedMediaPreview width:int32 height:int32 duration:int32 minithumbnail:minithumbnail caption:formattedText = MessageExtendedMedia;
+
+//@description The media is a photo @photo The photo @caption Photo caption
+messageExtendedMediaPhoto photo:photo caption:formattedText = MessageExtendedMedia;
+
+//@description The media is a video @video The video @caption Photo caption
+messageExtendedMediaVideo video:video caption:formattedText = MessageExtendedMedia;
+
+//@description The media is unuspported @caption Media caption
+messageExtendedMediaUnsupported caption:formattedText = MessageExtendedMedia;
+
 
 
 //@description File with the date it was uploaded @file The file @date Point in time (Unix timestamp) when the file was uploaded
@@ -1960,7 +1982,8 @@ messagePoll poll:poll = MessageContent;
 //@description A message with an invoice from a bot @title Product title @param_description Product description @photo Product photo; may be null @currency Currency for the product price @total_amount Product total price in the smallest units of the currency
 //@start_parameter Unique invoice bot start_parameter. To share an invoice use the URL https://t.me/{bot_username}?start={start_parameter} @is_test True, if the invoice is a test invoice
 //@need_shipping_address True, if the shipping address must be specified @receipt_message_id The identifier of the message with the receipt, after the product has been purchased
-messageInvoice title:string description:formattedText photo:photo currency:string total_amount:int53 start_parameter:string is_test:Bool need_shipping_address:Bool receipt_message_id:int53 = MessageContent;
+//@extended_media Extended media attached to the invoice; may be null
+messageInvoice title:string description:formattedText photo:photo currency:string total_amount:int53 start_parameter:string is_test:Bool need_shipping_address:Bool receipt_message_id:int53 extended_media:MessageExtendedMedia = MessageContent;
 
 //@description A message with information about an ended call @is_video True, if the call was a video call @discard_reason Reason why the call was discarded @duration Call duration, in seconds
 messageCall is_video:Bool discard_reason:CallDiscardReason duration:int32 = MessageContent;

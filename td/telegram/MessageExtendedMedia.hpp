@@ -1,0 +1,110 @@
+//
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
+//
+// Distributed under the Boost Software License, Version 1.0. (See accompanying
+// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+//
+#pragma once
+
+#include "td/telegram/MessageExtendedMedia.h"
+#include "td/telegram/Photo.hpp"
+#include "td/telegram/Td.h"
+#include "td/telegram/VideosManager.h"
+
+#include "td/utils/tl_helpers.h"
+
+namespace td {
+
+template <class StorerT>
+void MessageExtendedMedia::store(StorerT &storer) const {
+  bool has_caption = !caption_.text.empty();
+  bool has_duration = duration_ != 0;
+  bool has_dimensions = dimensions_.width != 0 || dimensions_.height != 0;
+  bool has_minithumbnail = !minithumbnail_.empty();
+  bool has_photo = !photo_.is_empty();
+  bool has_video = video_file_id_.is_valid();
+  BEGIN_STORE_FLAGS();
+  STORE_FLAG(has_caption);
+  STORE_FLAG(has_duration);
+  STORE_FLAG(has_dimensions);
+  STORE_FLAG(has_minithumbnail);
+  STORE_FLAG(has_photo);
+  STORE_FLAG(has_video);
+  END_STORE_FLAGS();
+  td::store(type_, storer);
+  if (has_caption) {
+    td::store(caption_, storer);
+  }
+  if (has_duration) {
+    td::store(duration_, storer);
+  }
+  if (has_dimensions) {
+    td::store(dimensions_, storer);
+  }
+  if (has_minithumbnail) {
+    td::store(minithumbnail_, storer);
+  }
+  if (has_photo) {
+    td::store(photo_, storer);
+  }
+  if (has_video) {
+    Td *td = storer.context()->td().get_actor_unsafe();
+    td->videos_manager_->store_video(video_file_id_, storer);
+  }
+}
+
+template <class ParserT>
+void MessageExtendedMedia::parse(ParserT &parser) {
+  bool has_caption;
+  bool has_duration;
+  bool has_dimensions;
+  bool has_minithumbnail;
+  bool has_photo;
+  bool has_video;
+  BEGIN_PARSE_FLAGS();
+  PARSE_FLAG(has_caption);
+  PARSE_FLAG(has_duration);
+  PARSE_FLAG(has_dimensions);
+  PARSE_FLAG(has_minithumbnail);
+  PARSE_FLAG(has_photo);
+  PARSE_FLAG(has_video);
+  END_PARSE_FLAGS();
+  td::parse(type_, parser);
+  if (has_caption) {
+    td::parse(caption_, parser);
+  }
+  if (has_duration) {
+    td::parse(duration_, parser);
+  }
+  if (has_dimensions) {
+    td::parse(dimensions_, parser);
+  }
+  if (has_minithumbnail) {
+    td::parse(minithumbnail_, parser);
+  }
+  bool is_bad = false;
+  if (has_photo) {
+    td::parse(photo_, parser);
+    for (auto &photo_size : photo_.photos) {
+      if (!photo_size.file_id.is_valid()) {
+        is_bad = true;
+      }
+    }
+    if (photo_.is_empty()) {
+      is_bad = true;
+    }
+  }
+  if (has_video) {
+    Td *td = parser.context()->td().get_actor_unsafe();
+    video_file_id_ = td->videos_manager_->parse_video(parser);
+    is_bad = !video_file_id_.is_valid();
+  }
+  if (is_bad) {
+    LOG(ERROR) << "Failed to parse MessageExtendedMedia";
+    photo_ = Photo();
+    video_file_id_ = FileId();
+    type_ = Type::Unsupported;
+  }
+}
+
+}  // namespace td

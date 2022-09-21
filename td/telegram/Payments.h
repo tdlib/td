@@ -9,6 +9,7 @@
 #include "td/telegram/DialogId.h"
 #include "td/telegram/files/FileId.h"
 #include "td/telegram/FullMessageId.h"
+#include "td/telegram/MessageExtendedMedia.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/Photo.h"
 #include "td/telegram/td_api.h"
@@ -63,6 +64,7 @@ struct InputInvoice {
   string payload;
   string provider_token;
   string provider_data;
+  MessageExtendedMedia extended_media;
 
   int64 total_amount = 0;
   MessageId receipt_message_id;
@@ -123,7 +125,7 @@ bool operator==(const InputInvoice &lhs, const InputInvoice &rhs);
 bool operator!=(const InputInvoice &lhs, const InputInvoice &rhs);
 
 InputInvoice get_input_invoice(tl_object_ptr<telegram_api::messageMediaInvoice> &&message_invoice, Td *td,
-                               DialogId owner_dialog_id);
+                               DialogId owner_dialog_id, FormattedText &&message);
 
 InputInvoice get_input_invoice(tl_object_ptr<telegram_api::botInlineMessageMediaInvoice> &&message_invoice, Td *td,
                                DialogId owner_dialog_id);
@@ -131,14 +133,15 @@ InputInvoice get_input_invoice(tl_object_ptr<telegram_api::botInlineMessageMedia
 Result<InputInvoice> process_input_message_invoice(
     td_api::object_ptr<td_api::InputMessageContent> &&input_message_content, Td *td);
 
-tl_object_ptr<td_api::messageInvoice> get_message_invoice_object(const InputInvoice &input_invoice, Td *td);
+tl_object_ptr<td_api::messageInvoice> get_message_invoice_object(const InputInvoice &input_invoice, Td *td,
+                                                                 bool skip_bot_commands, int32 max_media_timestamp);
 
 tl_object_ptr<telegram_api::inputMediaInvoice> get_input_media_invoice(const InputInvoice &input_invoice, Td *td);
 
 tl_object_ptr<telegram_api::inputBotInlineMessageMediaInvoice> get_input_bot_inline_message_media_invoice(
     const InputInvoice &input_invoice, tl_object_ptr<telegram_api::ReplyMarkup> &&reply_markup, Td *td);
 
-vector<FileId> get_input_invoice_file_ids(const InputInvoice &input_invoice);
+vector<FileId> get_input_invoice_file_ids(const Td *td, const InputInvoice &input_invoice);
 
 bool operator==(const Address &lhs, const Address &rhs);
 bool operator!=(const Address &lhs, const Address &rhs);

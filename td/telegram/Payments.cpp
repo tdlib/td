@@ -756,7 +756,7 @@ bool operator==(const InputInvoice &lhs, const InputInvoice &rhs) {
          lhs.start_parameter == rhs.start_parameter && lhs.invoice == rhs.invoice &&
          lhs.total_amount == rhs.total_amount && lhs.receipt_message_id == rhs.receipt_message_id &&
          lhs.payload == rhs.payload && lhs.provider_token == rhs.provider_token &&
-         lhs.provider_data == rhs.provider_data;
+         lhs.provider_data == rhs.provider_data && lhs.extended_media == rhs.extended_media;
 }
 
 bool operator!=(const InputInvoice &lhs, const InputInvoice &rhs) {
@@ -764,7 +764,7 @@ bool operator!=(const InputInvoice &lhs, const InputInvoice &rhs) {
 }
 
 InputInvoice get_input_invoice(tl_object_ptr<telegram_api::messageMediaInvoice> &&message_invoice, Td *td,
-                               DialogId owner_dialog_id) {
+                               DialogId owner_dialog_id, FormattedText &&message) {
   InputInvoice result;
   result.title = std::move(message_invoice->title_);
   result.description = std::move(message_invoice->description_);
@@ -776,6 +776,8 @@ InputInvoice get_input_invoice(tl_object_ptr<telegram_api::messageMediaInvoice> 
   // result.payload = string();
   // result.provider_token = string();
   // result.provider_data = string();
+  result.extended_media =
+      MessageExtendedMedia(td, std::move(message_invoice->extended_media_), std::move(message), owner_dialog_id);
   if (message_invoice->total_amount_ <= 0 || !check_currency_amount(message_invoice->total_amount_)) {
     LOG(ERROR) << "Receive invalid total amount " << message_invoice->total_amount_;
     message_invoice->total_amount_ = 0;
@@ -804,6 +806,7 @@ InputInvoice get_input_invoice(tl_object_ptr<telegram_api::botInlineMessageMedia
   // result.payload = string();
   // result.provider_token = string();
   // result.provider_data = string();
+  // result.extended_media = MessageExtendedMedia();
   if (message_invoice->total_amount_ <= 0 || !check_currency_amount(message_invoice->total_amount_)) {
     LOG(ERROR) << "Receive invalid total amount " << message_invoice->total_amount_;
     message_invoice->total_amount_ = 0;
@@ -935,15 +938,21 @@ Result<InputInvoice> process_input_message_invoice(
   result.payload = std::move(input_invoice->payload_);
   result.provider_token = std::move(input_invoice->provider_token_);
   result.provider_data = std::move(input_invoice->provider_data_);
+
+  // TRY_RESULT(extended_media, MessageExtendedMedia::get_message_extended_media(td, std::move(input_invoice->extended_media_)));
+  // result.extended_media = std::move(extended_media);
+
   return result;
 }
 
-tl_object_ptr<td_api::messageInvoice> get_message_invoice_object(const InputInvoice &input_invoice, Td *td) {
+tl_object_ptr<td_api::messageInvoice> get_message_invoice_object(const InputInvoice &input_invoice, Td *td,
+                                                                 bool skip_bot_commands, int32 max_media_timestamp) {
   return make_tl_object<td_api::messageInvoice>(
       input_invoice.title, get_product_description_object(input_invoice.description),
       get_photo_object(td->file_manager_.get(), input_invoice.photo), input_invoice.invoice.currency,
       input_invoice.total_amount, input_invoice.start_parameter, input_invoice.invoice.is_test,
-      input_invoice.invoice.need_shipping_address, input_invoice.receipt_message_id.get());
+      input_invoice.invoice.need_shipping_address, input_invoice.receipt_message_id.get(),
+      input_invoice.extended_media.get_message_extended_media_object(td, skip_bot_commands, max_media_timestamp));
 }
 
 static tl_object_ptr<telegram_api::invoice> get_input_invoice(const Invoice &invoice) {
@@ -1050,8 +1059,10 @@ tl_object_ptr<telegram_api::inputBotInlineMessageMediaInvoice> get_input_bot_inl
       std::move(reply_markup));
 }
 
-vector<FileId> get_input_invoice_file_ids(const InputInvoice &input_invoice) {
-  return photo_get_file_ids(input_invoice.photo);
+vector<FileId> get_input_invoice_file_ids(const Td *td, const InputInvoice &input_invoice) {
+  auto file_ids = photo_get_file_ids(input_invoice.photo);
+  input_invoice.extended_media.append_file_ids(td, file_ids);
+  return file_ids;
 }
 
 bool operator==(const Address &lhs, const Address &rhs) {
