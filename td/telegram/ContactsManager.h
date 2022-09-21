@@ -252,7 +252,7 @@ class ContactsManager final : public Actor {
 
   void on_get_dialogs_for_discussion(vector<tl_object_ptr<telegram_api::Chat>> &&chats);
 
-  void on_get_inactive_channels(vector<tl_object_ptr<telegram_api::Chat>> &&chats);
+  void on_get_inactive_channels(vector<tl_object_ptr<telegram_api::Chat>> &&chats, Promise<Unit> &&promise);
 
   void remove_inactive_channel(ChannelId channel_id);
 
@@ -1608,6 +1608,8 @@ class ContactsManager final : public Actor {
 
   vector<DialogId> get_dialog_ids(vector<tl_object_ptr<telegram_api::Chat>> &&chats, const char *source);
 
+  void on_create_inactive_channels(vector<ChannelId> &&channel_ids, Promise<Unit> &&promise);
+
   void update_dialogs_for_discussion(DialogId dialog_id, bool is_suitable);
 
   void send_edit_chat_admin_query(ChatId chat_id, UserId user_id, bool is_administrator, Promise<Unit> &&promise);
@@ -1757,8 +1759,8 @@ class ContactsManager final : public Actor {
   bool dialogs_for_discussion_inited_ = false;
   vector<DialogId> dialogs_for_discussion_;
 
-  bool inactive_channels_inited_ = false;
-  vector<ChannelId> inactive_channels_;
+  bool inactive_channel_ids_inited_ = false;
+  vector<ChannelId> inactive_channel_ids_;
 
   FlatHashMap<UserId, vector<Promise<Unit>>, UserIdHash> load_user_from_database_queries_;
   FlatHashSet<UserId, UserIdHash> loaded_from_database_users_;

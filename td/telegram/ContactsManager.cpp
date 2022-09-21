@@ -2588,11 +2588,9 @@ class GetInactiveChannelsQuery final : public Td::ResultHandler {
 
     auto result = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for GetInactiveChannelsQuery: " << to_string(result);
-    // TODO use result->dates_
+    // don't need to use result->dates_, because chat.last_message.date is more reliable
     td_->contacts_manager_->on_get_users(std::move(result->users_), "GetInactiveChannelsQuery");
-    td_->contacts_manager_->on_get_inactive_channels(std::move(result->chats_));
-
-    promise_.set_value(Unit());
+    td_->contacts_manager_->on_get_inactive_channels(std::move(result->chats_), std::move(promise_));
   }
 
   void on_error(Status status) final {
@@ -8305,26 +8303,42 @@ void ContactsManager::update_dialogs_for_discussion(DialogId dialog_id, bool is_
 }
 
 vector<DialogId> ContactsManager::get_inactive_channels(Promise<Unit> &&promise) {
-  if (inactive_channels_inited_) {
+  if (inactive_channel_ids_inited_) {
     promise.set_value(Unit());
-    return transform(inactive_channels_, [&](ChannelId channel_id) {
-      DialogId dialog_id{channel_id};
-      td_->messages_manager_->force_create_dialog(dialog_id, "get_inactive_channels");
-      return dialog_id;
-    });
+    return transform(inactive_channel_ids_, [&](ChannelId channel_id) { return DialogId(channel_id); });
   }
 
   td_->create_handler<GetInactiveChannelsQuery>(std::move(promise))->send();
   return {};
 }
 
-void ContactsManager::on_get_inactive_channels(vector<tl_object_ptr<telegram_api::Chat>> &&chats) {
-  inactive_channels_inited_ = true;
-  inactive_channels_ = get_channel_ids(std::move(chats), "on_get_inactive_channels");
+void ContactsManager::on_get_inactive_channels(vector<tl_object_ptr<telegram_api::Chat>> &&chats,
+                                               Promise<Unit> &&promise) {
+  auto channel_ids = get_channel_ids(std::move(chats), "on_get_inactive_channels");
+
+  MultiPromiseActorSafe mpas{"GetInactiveChannelsMultiPromiseActor"};
+  mpas.add_promise(PromiseCreator::lambda([actor_id = actor_id(this), channel_ids,
+                                           promise = std::move(promise)](Unit) mutable {
+    send_closure(actor_id, &ContactsManager::on_create_inactive_channels, std::move(channel_ids), std::move(promise));
+  }));
+  mpas.set_ignore_errors(true);
+  auto lock_promise = mpas.get_promise();
+
+  for (auto channel_id : channel_ids) {
+    td_->messages_manager_->create_dialog(DialogId(channel_id), false, mpas.get_promise());
+  }
+
+  lock_promise.set_value(Unit());
+}
+
+void ContactsManager::on_create_inactive_channels(vector<ChannelId> &&channel_ids, Promise<Unit> &&promise) {
+  inactive_channel_ids_inited_ = true;
+  inactive_channel_ids_ = std::move(channel_ids);
+  promise.set_value(Unit());
 }
 
 void ContactsManager::remove_inactive_channel(ChannelId channel_id) {
-  if (inactive_channels_inited_ && td::remove(inactive_channels_, channel_id)) {
+  if (inactive_channel_ids_inited_ && td::remove(inactive_channel_ids_, channel_id)) {
     LOG(DEBUG) << "Remove " << channel_id << " from list of inactive channels";
   }
 }
