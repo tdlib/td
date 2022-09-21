@@ -7243,7 +7243,9 @@ void ContactsManager::add_channel_participant(ChannelId channel_id, UserId user_
       return promise.set_error(Status::Error(400, "Can't return to kicked from chat"));
     }
 
-    speculative_add_channel_user(channel_id, user_id, DialogParticipantStatus::Member(), c->status);
+    if (!get_channel_join_request(c)) {
+      speculative_add_channel_user(channel_id, user_id, DialogParticipantStatus::Member(), c->status);
+    }
     td_->create_handler<JoinChannelQuery>(std::move(promise))->send(channel_id);
     return;
   }
