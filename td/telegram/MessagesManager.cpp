@@ -7895,8 +7895,8 @@ void MessagesManager::on_message_edited(FullMessageId full_message_id, int32 pts
   Message *m = get_message(d, full_message_id.get_message_id());
   CHECK(m != nullptr);
   m->last_edit_pts = pts;
+  d->last_edited_message_id = m->message_id;
   if (td_->auth_manager_->is_bot()) {
-    d->last_edited_message_id = m->message_id;
     send_update_message_edited(dialog_id, m);
   }
   update_used_hashtags(dialog_id, m);
@@ -36279,15 +36279,6 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
     old_message->disable_web_page_preview = new_message->disable_web_page_preview;
   }
 
-  if (!is_scheduled &&
-      update_message_contains_unread_mention(d, old_message, new_message->contains_unread_mention, "update_message")) {
-    need_send_update = true;
-  }
-  if (update_message_interaction_info(d, old_message, new_message->view_count, new_message->forward_count, true,
-                                      std::move(new_message->reply_info), true, std::move(new_message->reactions),
-                                      "update_message")) {
-    need_send_update = true;
-  }
   if (old_message->noforwards != new_message->noforwards) {
     LOG(DEBUG) << "Message can_be_saved has changed from " << !old_message->noforwards << " to "
                << !old_message->noforwards;
@@ -36321,10 +36312,6 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
   if (old_message->is_from_scheduled != new_message->is_from_scheduled) {
     // is_from_scheduled flag shouldn't be changed, because we are unable to show/hide message notification
     // old_message->is_from_scheduled = new_message->is_from_scheduled;
-  }
-
-  if (!is_scheduled && update_message_is_pinned(d, old_message, new_message->is_pinned, "update_message")) {
-    need_send_update = true;
   }
 
   if (old_message->edit_date > 0) {
@@ -36391,8 +36378,21 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
   if (old_message->last_access_date < new_message->last_access_date) {
     old_message->last_access_date = new_message->last_access_date;
   }
-  if (new_message->is_update_sent) {
+  if (new_message->is_update_sent || is_edited) {
     old_message->is_update_sent = true;
+  }
+
+  if (!is_scheduled && update_message_is_pinned(d, old_message, new_message->is_pinned, "update_message")) {
+    need_send_update = true;
+  }
+  if (!is_scheduled &&
+      update_message_contains_unread_mention(d, old_message, new_message->contains_unread_mention, "update_message")) {
+    need_send_update = true;
+  }
+  if (update_message_interaction_info(d, old_message, new_message->view_count, new_message->forward_count, true,
+                                      std::move(new_message->reply_info), true, std::move(new_message->reactions),
+                                      "update_message")) {
+    need_send_update = true;
   }
 
   if (!is_scheduled) {
@@ -36419,7 +36419,6 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
   }
 
   if (is_edited && !td_->auth_manager_->is_bot()) {
-    d->last_edited_message_id = message_id;
     send_update_message_edited(dialog_id, old_message);
   }
 
