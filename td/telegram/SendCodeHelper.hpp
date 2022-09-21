@@ -6,6 +6,7 @@
 //
 #pragma once
 
+#include "td/telegram/logevent/LogEventHelper.h"
 #include "td/telegram/SendCodeHelper.h"
 
 #include "td/utils/tl_helpers.h"
@@ -36,7 +37,7 @@ void SendCodeHelper::store(StorerT &storer) const {
   store(phone_code_hash_, storer);
   store(sent_code_info_, storer);
   store(next_code_info_, storer);
-  store(next_code_timestamp_, storer);
+  store_time(next_code_timestamp_, storer);
 }
 
 template <class ParserT>
@@ -48,7 +49,7 @@ void SendCodeHelper::parse(ParserT &parser) {
   parse(phone_code_hash_, parser);
   parse(sent_code_info_, parser);
   parse(next_code_info_, parser);
-  parse(next_code_timestamp_, parser);
+  parse_time(next_code_timestamp_, parser);
 }
 
 }  // namespace td

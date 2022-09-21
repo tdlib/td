@@ -83,7 +83,7 @@ class SendCodeHelper {
 
   SendCodeHelper::AuthenticationCodeInfo sent_code_info_;
   SendCodeHelper::AuthenticationCodeInfo next_code_info_;
-  Timestamp next_code_timestamp_;
+  double next_code_timestamp_ = 0.0;
 
   static AuthenticationCodeInfo get_authentication_code_info(
       tl_object_ptr<telegram_api::auth_CodeType> &&code_type_ptr);
