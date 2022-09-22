@@ -698,19 +698,6 @@ class GetBankCardInfoQuery final : public Td::ResultHandler {
   }
 };
 
-bool operator==(const ShippingOption &lhs, const ShippingOption &rhs) {
-  return lhs.id == rhs.id && lhs.title == rhs.title && lhs.price_parts == rhs.price_parts;
-}
-
-bool operator!=(const ShippingOption &lhs, const ShippingOption &rhs) {
-  return !(lhs == rhs);
-}
-
-StringBuilder &operator<<(StringBuilder &string_builder, const ShippingOption &shipping_option) {
-  return string_builder << "[ShippingOption " << shipping_option.id << " " << shipping_option.title
-                        << " with price parts " << format::as_array(shipping_option.price_parts) << "]";
-}
-
 void answer_shipping_query(Td *td, int64 shipping_query_id,
                            vector<tl_object_ptr<td_api::shippingOption>> &&shipping_options,
                            const string &error_message, Promise<Unit> &&promise) {

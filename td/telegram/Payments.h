@@ -8,7 +8,6 @@
 
 #include "td/telegram/DialogId.h"
 #include "td/telegram/FullMessageId.h"
-#include "td/telegram/LabeledPricePart.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 
@@ -21,17 +20,6 @@
 namespace td {
 
 class Td;
-
-struct ShippingOption {
-  string id;
-  string title;
-  vector<LabeledPricePart> price_parts;
-};
-
-bool operator==(const ShippingOption &lhs, const ShippingOption &rhs);
-bool operator!=(const ShippingOption &lhs, const ShippingOption &rhs);
-
-StringBuilder &operator<<(StringBuilder &string_builder, const ShippingOption &shipping_option);
 
 void answer_shipping_query(Td *td, int64 shipping_query_id,
                            vector<tl_object_ptr<td_api::shippingOption>> &&shipping_options,
