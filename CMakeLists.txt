@@ -362,6 +362,7 @@ set(TDLIB_SOURCE
   td/telegram/InlineQueriesManager.cpp
   td/telegram/InputDialogId.cpp
   td/telegram/InputGroupCallId.cpp
+  td/telegram/InputInvoice.cpp
   td/telegram/InputMessageText.cpp
   td/telegram/JsonValue.cpp
   td/telegram/LanguagePackManager.cpp
@@ -586,6 +587,7 @@ set(TDLIB_SOURCE
   td/telegram/InlineQueriesManager.h
   td/telegram/InputDialogId.h
   td/telegram/InputGroupCallId.h
+  td/telegram/InputInvoice.h
   td/telegram/InputMessageText.h
   td/telegram/JsonValue.h
   td/telegram/LabeledPricePart.h
@@ -730,6 +732,7 @@ set(TDLIB_SOURCE
   td/telegram/files/FileManager.hpp
   td/telegram/files/FileSourceId.hpp
   td/telegram/Game.hpp
+  td/telegram/InputInvoice.hpp
   td/telegram/InputMessageText.hpp
   td/telegram/MessageEntity.hpp
   td/telegram/MessageExtendedMedia.hpp

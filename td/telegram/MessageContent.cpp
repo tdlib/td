@@ -34,6 +34,8 @@
 #include "td/telegram/GroupCallManager.h"
 #include "td/telegram/HashtagHints.h"
 #include "td/telegram/InputGroupCallId.h"
+#include "td/telegram/InputInvoice.h"
+#include "td/telegram/InputInvoice.hpp"
 #include "td/telegram/InputMessageText.h"
 #include "td/telegram/Location.h"
 #include "td/telegram/MessageEntity.h"
