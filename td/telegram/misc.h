@@ -37,4 +37,7 @@ int64 get_vector_hash(const vector<uint64> &numbers) TD_WARN_UNUSED_RESULT;
 // returns emoji corresponding to the specified number
 string get_emoji_fingerprint(uint64 num);
 
+// checks whether currency amount is valid
+bool check_currency_amount(int64 amount);
+
 }  // namespace td

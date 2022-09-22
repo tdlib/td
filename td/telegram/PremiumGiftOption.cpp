@@ -7,7 +7,7 @@
 #include "td/telegram/PremiumGiftOption.h"
 
 #include "td/telegram/LinkManager.h"
-#include "td/telegram/Payments.h"
+#include "td/telegram/misc.h"
 
 #include "td/utils/algorithm.h"
 #include "td/utils/common.h"

@@ -718,11 +718,6 @@ StringBuilder &operator<<(StringBuilder &string_builder, const ShippingOption &s
                         << " with price parts " << format::as_array(shipping_option.price_parts) << "]";
 }
 
-bool check_currency_amount(int64 amount) {
-  constexpr int64 MAX_AMOUNT = 9999'9999'9999;
-  return -MAX_AMOUNT <= amount && amount <= MAX_AMOUNT;
-}
-
 void answer_shipping_query(Td *td, int64 shipping_query_id,
                            vector<tl_object_ptr<td_api::shippingOption>> &&shipping_options,
                            const string &error_message, Promise<Unit> &&promise) {

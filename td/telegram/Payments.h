@@ -33,8 +33,6 @@ bool operator!=(const ShippingOption &lhs, const ShippingOption &rhs);
 
 StringBuilder &operator<<(StringBuilder &string_builder, const ShippingOption &shipping_option);
 
-bool check_currency_amount(int64 amount);
-
 tl_object_ptr<td_api::formattedText> get_product_description_object(const string &description);
 
 void answer_shipping_query(Td *td, int64 shipping_query_id,
