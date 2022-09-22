@@ -33,13 +33,6 @@
 
 namespace td {
 
-tl_object_ptr<td_api::formattedText> get_product_description_object(const string &description) {
-  FormattedText result;
-  result.text = description;
-  result.entities = find_entities(result.text, true, true);
-  return get_formatted_text_object(result, true, 0);
-}
-
 namespace {
 
 struct InputInvoiceInfo {

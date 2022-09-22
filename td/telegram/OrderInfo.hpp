@@ -6,7 +6,7 @@
 //
 #pragma once
 
-#include "td/telegram/Payments.h"
+#include "td/telegram/OrderInfo.h"
 
 #include "td/utils/tl_helpers.h"
 

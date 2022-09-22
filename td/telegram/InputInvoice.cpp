@@ -8,7 +8,6 @@
 
 #include "td/telegram/files/FileManager.h"
 #include "td/telegram/misc.h"
-#include "td/telegram/Payments.h"
 #include "td/telegram/PhotoSize.h"
 #include "td/telegram/Td.h"
 
@@ -393,6 +392,13 @@ FileId get_input_invoice_any_file_id(const InputInvoice &input_invoice) {
 
 FileId get_input_invoice_thumbnail_file_id(const Td *td, const InputInvoice &input_invoice) {
   return input_invoice.extended_media.get_thumbnail_file_id(td);
+}
+
+tl_object_ptr<td_api::formattedText> get_product_description_object(const string &description) {
+  FormattedText result;
+  result.text = description;
+  result.entities = find_entities(result.text, true, true);
+  return get_formatted_text_object(result, true, 0);
 }
 
 }  // namespace td

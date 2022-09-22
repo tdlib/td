@@ -99,4 +99,6 @@ FileId get_input_invoice_any_file_id(const InputInvoice &input_invoice);
 
 FileId get_input_invoice_thumbnail_file_id(const Td *td, const InputInvoice &input_invoice);
 
+tl_object_ptr<td_api::formattedText> get_product_description_object(const string &description);
+
 }  // namespace td
