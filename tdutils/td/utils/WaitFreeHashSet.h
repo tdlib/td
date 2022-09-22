@@ -17,9 +17,10 @@ namespace td {
 template <class KeyT, class HashT = std::hash<KeyT>, class EqT = std::equal_to<KeyT>>
 class WaitFreeHashSet {
   using Storage = FlatHashSet<KeyT, HashT, EqT>;
-  static constexpr size_t MAX_STORAGE_COUNT = 256;
+  static constexpr size_t MAX_STORAGE_COUNT = 1 << 11;
   static_assert((MAX_STORAGE_COUNT & (MAX_STORAGE_COUNT - 1)) == 0, "");
-  static constexpr size_t MAX_STORAGE_SIZE = MAX_STORAGE_COUNT * MAX_STORAGE_COUNT / 2;
+  static constexpr size_t MAX_STORAGE_SIZE = 1 << 17;
+  static_assert((MAX_STORAGE_SIZE & (MAX_STORAGE_SIZE - 1)) == 0, "");
 
   Storage default_set_;
   struct WaitFreeStorage {
