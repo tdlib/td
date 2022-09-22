@@ -36,6 +36,7 @@
 #include "td/telegram/NotificationSettings.h"
 #include "td/telegram/NotificationSettingsManager.h"
 #include "td/telegram/OptionManager.h"
+#include "td/telegram/OrderInfo.h"
 #include "td/telegram/Payments.h"
 #include "td/telegram/PollId.h"
 #include "td/telegram/PollManager.h"

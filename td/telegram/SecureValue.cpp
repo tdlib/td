@@ -14,7 +14,7 @@
 #include "td/telegram/Global.h"
 #include "td/telegram/misc.h"
 #include "td/telegram/net/DcId.h"
-#include "td/telegram/Payments.h"
+#include "td/telegram/OrderInfo.h"
 #include "td/telegram/telegram_api.hpp"
 
 #include "td/utils/algorithm.h"

@@ -408,6 +408,7 @@ set(TDLIB_SOURCE
   td/telegram/NotificationSound.cpp
   td/telegram/NotificationType.cpp
   td/telegram/OptionManager.cpp
+  td/telegram/OrderInfo.cpp
   td/telegram/Payments.cpp
   td/telegram/PasswordManager.cpp
   td/telegram/PhoneNumberManager.cpp
@@ -651,6 +652,7 @@ set(TDLIB_SOURCE
   td/telegram/NotificationSoundType.h
   td/telegram/NotificationType.h
   td/telegram/OptionManager.h
+  td/telegram/OrderInfo.h
   td/telegram/PasswordManager.h
   td/telegram/Payments.h
   td/telegram/PhoneNumberManager.h
@@ -740,7 +742,7 @@ set(TDLIB_SOURCE
   td/telegram/MessageReplyInfo.hpp
   td/telegram/MinChannel.hpp
   td/telegram/NotificationSettings.hpp
-  td/telegram/Payments.hpp
+  td/telegram/OrderInfo.hpp
   td/telegram/Photo.hpp
   td/telegram/PhotoSize.hpp
   td/telegram/PhotoSizeSource.hpp
