@@ -3224,6 +3224,10 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
       if (old_->input_invoice != new_->input_invoice) {
         need_update = true;
       }
+      if (old_->input_invoice.extended_media.get_unsupported_version() !=
+          new_->input_invoice.extended_media.get_unsupported_version()) {
+        is_content_changed = true;
+      }
       break;
     }
     case MessageContentType::LiveLocation: {
@@ -5715,6 +5719,10 @@ bool need_reget_message_content(const MessageContent *content) {
     case MessageContentType::Unsupported: {
       const auto *m = static_cast<const MessageUnsupported *>(content);
       return m->version != MessageUnsupported::CURRENT_VERSION;
+    }
+    case MessageContentType::Invoice: {
+      const auto *m = static_cast<const MessageInvoice *>(content);
+      return m->input_invoice.extended_media.need_reget();
     }
     default:
       return false;

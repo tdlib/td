@@ -82,6 +82,9 @@ MessageExtendedMedia::MessageExtendedMedia(
         default:
           break;
       }
+      if (type_ == Type::Unsupported) {
+        unsupported_version_ = CURRENT_VERSION;
+      }
       break;
     }
     default:

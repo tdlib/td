@@ -23,6 +23,11 @@ class MessageExtendedMedia {
   Type type_ = Type::Empty;
   FormattedText caption_;
 
+  static constexpr int32 CURRENT_VERSION = 1;
+
+  // for Unsupported
+  int32 unsupported_version_ = 0;
+
   // for Preview
   int32 duration_ = 0;
   Dimensions dimensions_;
@@ -56,6 +61,14 @@ class MessageExtendedMedia {
                                                                                      int32 max_media_timestamp) const;
 
   void append_file_ids(const Td *td, vector<FileId> &file_ids) const;
+
+  int32 get_unsupported_version() const {
+    return unsupported_version_;
+  }
+
+  bool need_reget() const {
+    return type_ == Type::Unsupported && unsupported_version_ < CURRENT_VERSION;
+  }
 
   template <class StorerT>
   void store(StorerT &storer) const;

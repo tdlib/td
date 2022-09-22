@@ -18,6 +18,7 @@ namespace td {
 template <class StorerT>
 void MessageExtendedMedia::store(StorerT &storer) const {
   bool has_caption = !caption_.text.empty();
+  bool has_unsupported_version = unsupported_version_ != 0;
   bool has_duration = duration_ != 0;
   bool has_dimensions = dimensions_.width != 0 || dimensions_.height != 0;
   bool has_minithumbnail = !minithumbnail_.empty();
@@ -25,6 +26,7 @@ void MessageExtendedMedia::store(StorerT &storer) const {
   bool has_video = video_file_id_.is_valid();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_caption);
+  STORE_FLAG(has_unsupported_version);
   STORE_FLAG(has_duration);
   STORE_FLAG(has_dimensions);
   STORE_FLAG(has_minithumbnail);
@@ -34,6 +36,9 @@ void MessageExtendedMedia::store(StorerT &storer) const {
   td::store(type_, storer);
   if (has_caption) {
     td::store(caption_, storer);
+  }
+  if (has_unsupported_version) {
+    td::store(unsupported_version_, storer);
   }
   if (has_duration) {
     td::store(duration_, storer);
@@ -56,6 +61,7 @@ void MessageExtendedMedia::store(StorerT &storer) const {
 template <class ParserT>
 void MessageExtendedMedia::parse(ParserT &parser) {
   bool has_caption;
+  bool has_unsupported_version;
   bool has_duration;
   bool has_dimensions;
   bool has_minithumbnail;
@@ -63,6 +69,7 @@ void MessageExtendedMedia::parse(ParserT &parser) {
   bool has_video;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(has_caption);
+  PARSE_FLAG(has_unsupported_version);
   PARSE_FLAG(has_duration);
   PARSE_FLAG(has_dimensions);
   PARSE_FLAG(has_minithumbnail);
@@ -72,6 +79,9 @@ void MessageExtendedMedia::parse(ParserT &parser) {
   td::parse(type_, parser);
   if (has_caption) {
     td::parse(caption_, parser);
+  }
+  if (has_unsupported_version) {
+    td::parse(unsupported_version_, parser);
   }
   if (has_duration) {
     td::parse(duration_, parser);
@@ -104,6 +114,7 @@ void MessageExtendedMedia::parse(ParserT &parser) {
     photo_ = Photo();
     video_file_id_ = FileId();
     type_ = Type::Unsupported;
+    unsupported_version_ = 0;
   }
 }
 
