@@ -16889,7 +16889,7 @@ tl_object_ptr<td_api::userFullInfo> ContactsManager::get_user_full_info_object(U
           return true;
         }
         if (entity.type == MessageEntity::Type::Url &&
-            !LinkManager::is_internal_link(utf8_utf16_substr(Slice(bio.text), entity.offset, entity.length))) {
+            !LinkManager::is_internal_link(utf8_utf16_substr(bio.text, entity.offset, entity.length))) {
           return true;
         }
         return false;

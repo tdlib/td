@@ -1793,7 +1793,7 @@ string get_first_url(const FormattedText &text) {
         if (entity.length <= 4) {
           continue;
         }
-        Slice url = utf8_utf16_substr(text.text, entity.offset, entity.length);
+        auto url = utf8_utf16_substr(text.text, entity.offset, entity.length);
         string scheme = to_lower(url.substr(0, 4));
         if (scheme == "ton:" || begins_with(scheme, "tg:") || scheme == "ftp:" || is_plain_domain(url)) {
           continue;

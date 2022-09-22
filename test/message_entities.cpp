@@ -959,8 +959,8 @@ TEST(MessageEntities, fix_formatted_text) {
       }
     }
 
-    check_fix_formatted_text(str, entities, td::utf8_utf16_substr(str, 3, 11), fixed_entities, false, false, false,
-                             false);
+    check_fix_formatted_text(str, entities, td::utf8_utf16_substr(str, 3, 11).str(), fixed_entities, false, false,
+                             false, false);
   }
 
   for (td::string text : {"\t", "\r", "\n", "\t ", "\r ", "\n "}) {
