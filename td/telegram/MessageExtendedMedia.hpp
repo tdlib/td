@@ -95,14 +95,7 @@ void MessageExtendedMedia::parse(ParserT &parser) {
   bool is_bad = false;
   if (has_photo) {
     td::parse(photo_, parser);
-    for (auto &photo_size : photo_.photos) {
-      if (!photo_size.file_id.is_valid()) {
-        is_bad = true;
-      }
-    }
-    if (photo_.is_empty()) {
-      is_bad = true;
-    }
+    is_bad = photo_.is_bad();
   }
   if (has_video) {
     Td *td = parser.context()->td().get_actor_unsafe();

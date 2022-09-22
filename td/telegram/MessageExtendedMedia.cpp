@@ -176,12 +176,7 @@ FileId MessageExtendedMedia::get_upload_file_id() const {
     case Type::Preview:
       break;
     case Type::Photo:
-      for (auto &size : photo_.photos) {
-        if (size.type == 'i') {
-          return size.file_id;
-        }
-      }
-      break;
+      return get_photo_upload_file_id(photo_);
     case Type::Video:
       return video_file_id_;
     default:
@@ -197,12 +192,8 @@ FileId MessageExtendedMedia::get_any_file_id() const {
     case Type::Unsupported:
     case Type::Preview:
       break;
-    case Type::Photo: {
-      if (!photo_.photos.empty()) {
-        return photo_.photos.back().file_id;
-      }
-      break;
-    }
+    case Type::Photo:
+      return get_photo_any_file_id(photo_);
     case Type::Video:
       return video_file_id_;
     default:
@@ -219,12 +210,7 @@ FileId MessageExtendedMedia::get_thumbnail_file_id(const Td *td) const {
     case Type::Preview:
       break;
     case Type::Photo:
-      for (auto &size : photo_.photos) {
-        if (size.type == 't') {
-          return size.file_id;
-        }
-      }
-      break;
+      return get_photo_thumbnail_file_id(photo_);
     case Type::Video:
       return td->videos_manager_->get_video_thumbnail_file_id(video_file_id_);
     default:

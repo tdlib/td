@@ -1226,14 +1226,7 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
     case MessageContentType::Photo: {
       auto m = make_unique<MessagePhoto>();
       parse(m->photo, parser);
-      for (auto &photo_size : m->photo.photos) {
-        if (!photo_size.file_id.is_valid()) {
-          is_bad = true;
-        }
-      }
-      if (m->photo.is_empty()) {
-        is_bad = true;
-      }
+      is_bad |= m->photo.is_bad();
       parse_caption(m->caption, parser);
       content = std::move(m);
       break;
@@ -3678,6 +3671,7 @@ bool merge_message_content_file_id(Td *td, MessageContent *message_content, File
     return false;
   }
 
+  // secret chats only
   LOG(INFO) << "Merge message content of a message with file " << new_file_id;
   MessageContentType content_type = message_content->get_type();
   switch (content_type) {
@@ -5456,12 +5450,7 @@ FileId get_message_content_upload_file_id(const MessageContent *content) {
     case MessageContentType::Invoice:
       return get_input_invoice_upload_file_id(static_cast<const MessageInvoice *>(content)->input_invoice);
     case MessageContentType::Photo:
-      for (auto &size : static_cast<const MessagePhoto *>(content)->photo.photos) {
-        if (size.type == 'i') {
-          return size.file_id;
-        }
-      }
-      break;
+      return get_photo_upload_file_id(static_cast<const MessagePhoto *>(content)->photo);
     case MessageContentType::Sticker:
       return static_cast<const MessageSticker *>(content)->file_id;
     case MessageContentType::Video:
@@ -5480,10 +5469,7 @@ FileId get_message_content_any_file_id(const MessageContent *content) {
   FileId result = get_message_content_upload_file_id(content);
   if (!result.is_valid()) {
     if (content->get_type() == MessageContentType::Photo) {
-      const auto &sizes = static_cast<const MessagePhoto *>(content)->photo.photos;
-      if (!sizes.empty()) {
-        result = sizes.back().file_id;
-      }
+      result = get_photo_any_file_id(static_cast<const MessagePhoto *>(content)->photo);
     } else if (content->get_type() == MessageContentType::Invoice) {
       result = get_input_invoice_any_file_id(static_cast<const MessageInvoice *>(content)->input_invoice);
     }
@@ -5533,12 +5519,7 @@ FileId get_message_content_thumbnail_file_id(const MessageContent *content, cons
     case MessageContentType::Invoice:
       return get_input_invoice_thumbnail_file_id(td, static_cast<const MessageInvoice *>(content)->input_invoice);
     case MessageContentType::Photo:
-      for (auto &size : static_cast<const MessagePhoto *>(content)->photo.photos) {
-        if (size.type == 't') {
-          return size.file_id;
-        }
-      }
-      break;
+      return get_photo_thumbnail_file_id(static_cast<const MessagePhoto *>(content)->photo);
     case MessageContentType::Sticker:
       return td->stickers_manager_->get_sticker_thumbnail_file_id(
           static_cast<const MessageSticker *>(content)->file_id);

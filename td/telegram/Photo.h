@@ -50,6 +50,18 @@ struct Photo {
   bool is_empty() const {
     return id.get() == -2;
   }
+
+  bool is_bad() const {
+    if (is_empty()) {
+      return true;
+    }
+    for (auto &photo_size : photos) {
+      if (!photo_size.file_id.is_valid()) {
+        return true;
+      }
+    }
+    return false;
+  }
 };
 
 ProfilePhoto get_profile_photo(FileManager *file_manager, UserId user_id, int64 user_access_hash,
@@ -94,6 +106,12 @@ tl_object_ptr<td_api::chatPhoto> get_chat_photo_object(FileManager *file_manager
 void photo_delete_thumbnail(Photo &photo);
 
 bool photo_has_input_media(FileManager *file_manager, const Photo &photo, bool is_secret, bool is_bot);
+
+FileId get_photo_upload_file_id(const Photo &photo);
+
+FileId get_photo_any_file_id(const Photo &photo);
+
+FileId get_photo_thumbnail_file_id(const Photo &photo);
 
 SecretInputMedia photo_get_secret_input_media(FileManager *file_manager, const Photo &photo,
                                               tl_object_ptr<telegram_api::InputEncryptedFile> input_file,
