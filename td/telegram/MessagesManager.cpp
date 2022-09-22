@@ -26053,7 +26053,7 @@ void MessagesManager::do_send_message(DialogId dialog_id, const Message *m, vect
       if (content_type == MessageContentType::Game || content_type == MessageContentType::Poll) {
         return;
       }
-      if (content_type == MessageContentType::Photo) {
+      if (file_view.get_type() == FileType::Photo) {
         thumbnail_file_id = FileId();
       }
 
@@ -31517,7 +31517,7 @@ FullMessageId MessagesManager::on_send_message_success(int64 random_id, MessageI
   bool need_update = true;
   Message *m = add_message_to_dialog(d, std::move(sent_message), true, &need_update, &need_update_dialog_pos, source);
   if (need_update_dialog_pos) {
-    send_update_chat_last_message(d, "on_send_message_success");
+    send_update_chat_last_message(d, source);
   }
 
   if (m == nullptr) {

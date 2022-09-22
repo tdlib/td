@@ -2545,6 +2545,10 @@ void delete_message_content_thumbnail(MessageContent *content, Td *td) {
       auto *m = static_cast<MessageDocument *>(content);
       return td->documents_manager_->delete_document_thumbnail(m->file_id);
     }
+    case MessageContentType::Invoice: {
+      auto *m = static_cast<MessageInvoice *>(content);
+      return input_invoice_delete_thumbnail(td, m->input_invoice);
+    }
     case MessageContentType::Photo: {
       auto *m = static_cast<MessagePhoto *>(content);
       return photo_delete_thumbnail(m->photo);
@@ -2564,7 +2568,6 @@ void delete_message_content_thumbnail(MessageContent *content, Td *td) {
     case MessageContentType::Contact:
     case MessageContentType::Dice:
     case MessageContentType::Game:
-    case MessageContentType::Invoice:
     case MessageContentType::LiveLocation:
     case MessageContentType::Location:
     case MessageContentType::Venue:
@@ -3036,6 +3039,10 @@ bool can_message_content_have_media_timestamp(const MessageContent *content) {
     case MessageContentType::VideoNote:
     case MessageContentType::VoiceNote:
       return true;
+    case MessageContentType::Invoice: {
+      const auto *m = static_cast<const MessageInvoice *>(content);
+      return has_input_invoice_media_timestamp(m->input_invoice);
+    }
     default:
       return has_message_content_web_page(content);
   }
@@ -5365,6 +5372,8 @@ const FormattedText *get_message_content_caption(const MessageContent *content) 
       return &static_cast<const MessageAudio *>(content)->caption;
     case MessageContentType::Document:
       return &static_cast<const MessageDocument *>(content)->caption;
+    case MessageContentType::Invoice:
+      return get_input_invoice_caption(static_cast<const MessageInvoice *>(content)->input_invoice);
     case MessageContentType::Photo:
       return &static_cast<const MessagePhoto *>(content)->caption;
     case MessageContentType::Video:
@@ -5387,6 +5396,8 @@ int32 get_message_content_duration(const MessageContent *content, const Td *td) 
       auto audio_file_id = static_cast<const MessageAudio *>(content)->file_id;
       return td->audios_manager_->get_audio_duration(audio_file_id);
     }
+    case MessageContentType::Invoice:
+      return get_input_invoice_duration(td, static_cast<const MessageInvoice *>(content)->input_invoice);
     case MessageContentType::Video: {
       auto video_file_id = static_cast<const MessageVideo *>(content)->file_id;
       return td->videos_manager_->get_video_duration(video_file_id);
@@ -5411,6 +5422,8 @@ int32 get_message_content_media_duration(const MessageContent *content, const Td
       auto audio_file_id = static_cast<const MessageAudio *>(content)->file_id;
       return td->audios_manager_->get_audio_duration(audio_file_id);
     }
+    case MessageContentType::Invoice:
+      return get_input_invoice_duration(td, static_cast<const MessageInvoice *>(content)->input_invoice);
     case MessageContentType::Text: {
       auto web_page_id = static_cast<const MessageText *>(content)->web_page_id;
       return td->web_pages_manager_->get_web_page_media_duration(web_page_id);
@@ -5440,6 +5453,8 @@ FileId get_message_content_upload_file_id(const MessageContent *content) {
       return static_cast<const MessageAudio *>(content)->file_id;
     case MessageContentType::Document:
       return static_cast<const MessageDocument *>(content)->file_id;
+    case MessageContentType::Invoice:
+      return get_input_invoice_upload_file_id(static_cast<const MessageInvoice *>(content)->input_invoice);
     case MessageContentType::Photo:
       for (auto &size : static_cast<const MessagePhoto *>(content)->photo.photos) {
         if (size.type == 'i') {
@@ -5463,10 +5478,14 @@ FileId get_message_content_upload_file_id(const MessageContent *content) {
 
 FileId get_message_content_any_file_id(const MessageContent *content) {
   FileId result = get_message_content_upload_file_id(content);
-  if (!result.is_valid() && content->get_type() == MessageContentType::Photo) {
-    const auto &sizes = static_cast<const MessagePhoto *>(content)->photo.photos;
-    if (!sizes.empty()) {
-      result = sizes.back().file_id;
+  if (!result.is_valid()) {
+    if (content->get_type() == MessageContentType::Photo) {
+      const auto &sizes = static_cast<const MessagePhoto *>(content)->photo.photos;
+      if (!sizes.empty()) {
+        result = sizes.back().file_id;
+      }
+    } else if (content->get_type() == MessageContentType::Invoice) {
+      result = get_input_invoice_any_file_id(static_cast<const MessageInvoice *>(content)->input_invoice);
     }
   }
   return result;
@@ -5511,6 +5530,8 @@ FileId get_message_content_thumbnail_file_id(const MessageContent *content, cons
     case MessageContentType::Document:
       return td->documents_manager_->get_document_thumbnail_file_id(
           static_cast<const MessageDocument *>(content)->file_id);
+    case MessageContentType::Invoice:
+      return get_input_invoice_thumbnail_file_id(td, static_cast<const MessageInvoice *>(content)->input_invoice);
     case MessageContentType::Photo:
       for (auto &size : static_cast<const MessagePhoto *>(content)->photo.photos) {
         if (size.type == 't') {
@@ -5606,21 +5627,25 @@ string get_message_content_search_text(const Td *td, const MessageContent *conte
       if (!text->web_page_id.is_valid()) {
         return text->text.text;
       }
-      return PSTRING() << text->text.text << " " << td->web_pages_manager_->get_web_page_search_text(text->web_page_id);
+      return PSTRING() << text->text.text << ' ' << td->web_pages_manager_->get_web_page_search_text(text->web_page_id);
     }
     case MessageContentType::Animation: {
       const auto *animation = static_cast<const MessageAnimation *>(content);
-      return PSTRING() << td->animations_manager_->get_animation_search_text(animation->file_id) << " "
+      return PSTRING() << td->animations_manager_->get_animation_search_text(animation->file_id) << ' '
                        << animation->caption.text;
     }
     case MessageContentType::Audio: {
       const auto *audio = static_cast<const MessageAudio *>(content);
-      return PSTRING() << td->audios_manager_->get_audio_search_text(audio->file_id) << " " << audio->caption.text;
+      return PSTRING() << td->audios_manager_->get_audio_search_text(audio->file_id) << ' ' << audio->caption.text;
     }
     case MessageContentType::Document: {
       const auto *document = static_cast<const MessageDocument *>(content);
-      return PSTRING() << td->documents_manager_->get_document_search_text(document->file_id) << " "
+      return PSTRING() << td->documents_manager_->get_document_search_text(document->file_id) << ' '
                        << document->caption.text;
+    }
+    case MessageContentType::Invoice: {
+      const auto *invoice = static_cast<const MessageInvoice *>(content);
+      return get_input_invoice_caption(invoice->input_invoice)->text;
     }
     case MessageContentType::Photo: {
       const auto *photo = static_cast<const MessagePhoto *>(content);
@@ -5636,7 +5661,6 @@ string get_message_content_search_text(const Td *td, const MessageContent *conte
     }
     case MessageContentType::Contact:
     case MessageContentType::Game:
-    case MessageContentType::Invoice:
     case MessageContentType::LiveLocation:
     case MessageContentType::Location:
     case MessageContentType::Sticker:

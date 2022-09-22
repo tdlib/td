@@ -1065,6 +1065,34 @@ vector<FileId> get_input_invoice_file_ids(const Td *td, const InputInvoice &inpu
   return file_ids;
 }
 
+void input_invoice_delete_thumbnail(Td *td, InputInvoice &input_invoice) {
+  input_invoice.extended_media.delete_thumbnail(td);
+}
+
+bool has_input_invoice_media_timestamp(const InputInvoice &input_invoice) {
+  return input_invoice.extended_media.has_media_timestamp();
+}
+
+const FormattedText *get_input_invoice_caption(const InputInvoice &input_invoice) {
+  return input_invoice.extended_media.get_caption();
+}
+
+int32 get_input_invoice_duration(const Td *td, const InputInvoice &input_invoice) {
+  return input_invoice.extended_media.get_duration(td);
+}
+
+FileId get_input_invoice_upload_file_id(const InputInvoice &input_invoice) {
+  return input_invoice.extended_media.get_upload_file_id();
+}
+
+FileId get_input_invoice_any_file_id(const InputInvoice &input_invoice) {
+  return input_invoice.extended_media.get_any_file_id();
+}
+
+FileId get_input_invoice_thumbnail_file_id(const Td *td, const InputInvoice &input_invoice) {
+  return input_invoice.extended_media.get_thumbnail_file_id(td);
+}
+
 bool operator==(const Address &lhs, const Address &rhs) {
   return lhs.country_code == rhs.country_code && lhs.state == rhs.state && lhs.city == rhs.city &&
          lhs.street_line1 == rhs.street_line1 && lhs.street_line2 == rhs.street_line2 &&

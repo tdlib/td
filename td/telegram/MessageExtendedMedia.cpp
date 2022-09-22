@@ -144,6 +144,96 @@ void MessageExtendedMedia::append_file_ids(const Td *td, vector<FileId> &file_id
   }
 }
 
+void MessageExtendedMedia::delete_thumbnail(Td *td) {
+  switch (type_) {
+    case Type::Empty:
+    case Type::Unsupported:
+    case Type::Preview:
+      break;
+    case Type::Photo:
+      photo_delete_thumbnail(photo_);
+      break;
+    case Type::Video:
+      td->videos_manager_->delete_video_thumbnail(video_file_id_);
+      break;
+    default:
+      UNREACHABLE();
+      break;
+  }
+}
+
+int32 MessageExtendedMedia::get_duration(const Td *td) const {
+  if (!has_media_timestamp()) {
+    return 0;
+  }
+  return td->videos_manager_->get_video_duration(video_file_id_);
+}
+
+FileId MessageExtendedMedia::get_upload_file_id() const {
+  switch (type_) {
+    case Type::Empty:
+    case Type::Unsupported:
+    case Type::Preview:
+      break;
+    case Type::Photo:
+      for (auto &size : photo_.photos) {
+        if (size.type == 'i') {
+          return size.file_id;
+        }
+      }
+      break;
+    case Type::Video:
+      return video_file_id_;
+    default:
+      UNREACHABLE();
+      break;
+  }
+  return FileId();
+}
+
+FileId MessageExtendedMedia::get_any_file_id() const {
+  switch (type_) {
+    case Type::Empty:
+    case Type::Unsupported:
+    case Type::Preview:
+      break;
+    case Type::Photo: {
+      if (!photo_.photos.empty()) {
+        return photo_.photos.back().file_id;
+      }
+      break;
+    }
+    case Type::Video:
+      return video_file_id_;
+    default:
+      UNREACHABLE();
+      break;
+  }
+  return FileId();
+}
+
+FileId MessageExtendedMedia::get_thumbnail_file_id(const Td *td) const {
+  switch (type_) {
+    case Type::Empty:
+    case Type::Unsupported:
+    case Type::Preview:
+      break;
+    case Type::Photo:
+      for (auto &size : photo_.photos) {
+        if (size.type == 't') {
+          return size.file_id;
+        }
+      }
+      break;
+    case Type::Video:
+      return td->videos_manager_->get_video_thumbnail_file_id(video_file_id_);
+    default:
+      UNREACHABLE();
+      break;
+  }
+  return FileId();
+}
+
 bool operator==(const MessageExtendedMedia &lhs, const MessageExtendedMedia &rhs) {
   if (lhs.type_ != rhs.type_ || lhs.caption_ != rhs.caption_) {
     return false;

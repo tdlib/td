@@ -143,6 +143,20 @@ tl_object_ptr<telegram_api::inputBotInlineMessageMediaInvoice> get_input_bot_inl
 
 vector<FileId> get_input_invoice_file_ids(const Td *td, const InputInvoice &input_invoice);
 
+void input_invoice_delete_thumbnail(Td *td, InputInvoice &input_invoice);
+
+bool has_input_invoice_media_timestamp(const InputInvoice &input_invoice);
+
+const FormattedText *get_input_invoice_caption(const InputInvoice &input_invoice);
+
+int32 get_input_invoice_duration(const Td *td, const InputInvoice &input_invoice);
+
+FileId get_input_invoice_upload_file_id(const InputInvoice &input_invoice);
+
+FileId get_input_invoice_any_file_id(const InputInvoice &input_invoice);
+
+FileId get_input_invoice_thumbnail_file_id(const Td *td, const InputInvoice &input_invoice);
+
 bool operator==(const Address &lhs, const Address &rhs);
 bool operator!=(const Address &lhs, const Address &rhs);
 

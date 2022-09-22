@@ -62,6 +62,8 @@ class MessageExtendedMedia {
 
   void append_file_ids(const Td *td, vector<FileId> &file_ids) const;
 
+  void delete_thumbnail(Td *td);
+
   int32 get_unsupported_version() const {
     return unsupported_version_;
   }
@@ -69,6 +71,22 @@ class MessageExtendedMedia {
   bool need_reget() const {
     return type_ == Type::Unsupported && unsupported_version_ < CURRENT_VERSION;
   }
+
+  bool has_media_timestamp() const {
+    return type_ == Type::Video;
+  }
+
+  int32 get_duration(const Td *td) const;
+
+  const FormattedText *get_caption() const {
+    return &caption_;
+  }
+
+  FileId get_upload_file_id() const;
+
+  FileId get_any_file_id() const;
+
+  FileId get_thumbnail_file_id(const Td *td) const;
 
   template <class StorerT>
   void store(StorerT &storer) const;

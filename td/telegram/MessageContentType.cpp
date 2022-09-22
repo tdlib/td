@@ -364,6 +364,7 @@ uint64 get_message_content_chain_id(MessageContentType content_type) {
     case MessageContentType::Animation:
     case MessageContentType::Audio:
     case MessageContentType::Document:
+    case MessageContentType::Invoice:
     case MessageContentType::Photo:
     case MessageContentType::Sticker:
     case MessageContentType::Video:
