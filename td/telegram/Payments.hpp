@@ -17,18 +17,6 @@
 namespace td {
 
 template <class StorerT>
-void store(const LabeledPricePart &labeled_price_part, StorerT &storer) {
-  store(labeled_price_part.label, storer);
-  store(labeled_price_part.amount, storer);
-}
-
-template <class ParserT>
-void parse(LabeledPricePart &labeled_price_part, ParserT &parser) {
-  parse(labeled_price_part.label, parser);
-  parse(labeled_price_part.amount, parser);
-}
-
-template <class StorerT>
 void store(const Invoice &invoice, StorerT &storer) {
   bool has_tip = invoice.max_tip_amount != 0;
   bool is_recurring = !invoice.recurring_payment_terms_of_service_url.empty();

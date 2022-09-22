@@ -9,6 +9,7 @@
 #include "td/telegram/DialogId.h"
 #include "td/telegram/files/FileId.h"
 #include "td/telegram/FullMessageId.h"
+#include "td/telegram/LabeledPricePart.h"
 #include "td/telegram/MessageExtendedMedia.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/Photo.h"
@@ -24,15 +25,6 @@
 namespace td {
 
 class Td;
-
-struct LabeledPricePart {
-  string label;
-  int64 amount = 0;
-
-  LabeledPricePart() = default;
-  LabeledPricePart(string &&label, int64 amount) : label(std::move(label)), amount(amount) {
-  }
-};
 
 struct Invoice {
   string currency;

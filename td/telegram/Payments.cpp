@@ -707,18 +707,6 @@ class GetBankCardInfoQuery final : public Td::ResultHandler {
   }
 };
 
-bool operator==(const LabeledPricePart &lhs, const LabeledPricePart &rhs) {
-  return lhs.label == rhs.label && lhs.amount == rhs.amount;
-}
-
-bool operator!=(const LabeledPricePart &lhs, const LabeledPricePart &rhs) {
-  return !(lhs == rhs);
-}
-
-StringBuilder &operator<<(StringBuilder &string_builder, const LabeledPricePart &labeled_price_part) {
-  return string_builder << "[" << labeled_price_part.label << ": " << labeled_price_part.amount << "]";
-}
-
 bool operator==(const Invoice &lhs, const Invoice &rhs) {
   return lhs.is_test == rhs.is_test && lhs.need_name == rhs.need_name &&
          lhs.need_phone_number == rhs.need_phone_number && lhs.need_email_address == rhs.need_email_address &&
