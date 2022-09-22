@@ -298,7 +298,7 @@ Result<SslCtx> create_ssl_ctx(CSlice cert_file, SslStream::VerifyPeer verify_pee
   auto result = do_create_ssl_ctx(cert_file, verify_peer);
   auto elapsed_time = Time::now() - start_time;
   if (elapsed_time >= 0.1) {
-    LOG(ERROR) << "do_create_ssl_ctx took " << elapsed_time << " seconds";
+    LOG(ERROR) << "SSL context creation took " << elapsed_time << " seconds";
   }
   return result;
 }

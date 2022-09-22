@@ -15,7 +15,6 @@
 
 namespace td {
 
-class Dependencies;
 class Td;
 
 class MessageExtendedMedia {
