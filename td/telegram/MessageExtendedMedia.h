@@ -36,6 +36,10 @@ class MessageExtendedMedia {
 
   friend bool operator==(const MessageExtendedMedia &lhs, const MessageExtendedMedia &rhs);
 
+  bool is_media() const {
+    return type_ != Type::Empty && type_ != Type::Preview;
+  }
+
  public:
   MessageExtendedMedia() = default;
 
@@ -45,6 +49,8 @@ class MessageExtendedMedia {
   bool is_empty() const {
     return type_ == Type::Empty;
   }
+
+  void update_from(const MessageExtendedMedia &old_extended_media);
 
   td_api::object_ptr<td_api::MessageExtendedMedia> get_message_extended_media_object(Td *td, bool skip_bot_commands,
                                                                                      int32 max_media_timestamp) const;

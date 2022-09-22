@@ -3219,7 +3219,8 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
     }
     case MessageContentType::Invoice: {
       const auto *old_ = static_cast<const MessageInvoice *>(old_content);
-      const auto *new_ = static_cast<const MessageInvoice *>(new_content);
+      auto *new_ = static_cast<MessageInvoice *>(new_content);
+      new_->input_invoice.extended_media.update_from(old_->input_invoice.extended_media);
       if (old_->input_invoice != new_->input_invoice) {
         need_update = true;
       }

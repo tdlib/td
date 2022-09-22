@@ -89,6 +89,12 @@ MessageExtendedMedia::MessageExtendedMedia(
   }
 }
 
+void MessageExtendedMedia::update_from(const MessageExtendedMedia &old_extended_media) {
+  if (!is_media() && old_extended_media.is_media()) {
+    *this = old_extended_media;
+  }
+}
+
 td_api::object_ptr<td_api::MessageExtendedMedia> MessageExtendedMedia::get_message_extended_media_object(
     Td *td, bool skip_bot_commands, int32 max_media_timestamp) const {
   if (type_ == Type::Empty) {
