@@ -18,28 +18,28 @@ namespace td {
 
 template <class StorerT>
 void store(const Invoice &invoice, StorerT &storer) {
-  bool has_tip = invoice.max_tip_amount != 0;
-  bool is_recurring = !invoice.recurring_payment_terms_of_service_url.empty();
+  bool has_tip = invoice.max_tip_amount_ != 0;
+  bool is_recurring = !invoice.recurring_payment_terms_of_service_url_.empty();
   BEGIN_STORE_FLAGS();
-  STORE_FLAG(invoice.is_test);
-  STORE_FLAG(invoice.need_name);
-  STORE_FLAG(invoice.need_phone_number);
-  STORE_FLAG(invoice.need_email_address);
-  STORE_FLAG(invoice.need_shipping_address);
-  STORE_FLAG(invoice.is_flexible);
-  STORE_FLAG(invoice.send_phone_number_to_provider);
-  STORE_FLAG(invoice.send_email_address_to_provider);
+  STORE_FLAG(invoice.is_test_);
+  STORE_FLAG(invoice.need_name_);
+  STORE_FLAG(invoice.need_phone_number_);
+  STORE_FLAG(invoice.need_email_address_);
+  STORE_FLAG(invoice.need_shipping_address_);
+  STORE_FLAG(invoice.is_flexible_);
+  STORE_FLAG(invoice.send_phone_number_to_provider_);
+  STORE_FLAG(invoice.send_email_address_to_provider_);
   STORE_FLAG(has_tip);
   STORE_FLAG(is_recurring);
   END_STORE_FLAGS();
-  store(invoice.currency, storer);
-  store(invoice.price_parts, storer);
+  store(invoice.currency_, storer);
+  store(invoice.price_parts_, storer);
   if (has_tip) {
-    store(invoice.max_tip_amount, storer);
-    store(invoice.suggested_tip_amounts, storer);
+    store(invoice.max_tip_amount_, storer);
+    store(invoice.suggested_tip_amounts_, storer);
   }
   if (is_recurring) {
-    store(invoice.recurring_payment_terms_of_service_url, storer);
+    store(invoice.recurring_payment_terms_of_service_url_, storer);
   }
 }
 
@@ -48,39 +48,39 @@ void parse(Invoice &invoice, ParserT &parser) {
   bool has_tip;
   bool is_recurring;
   BEGIN_PARSE_FLAGS();
-  PARSE_FLAG(invoice.is_test);
-  PARSE_FLAG(invoice.need_name);
-  PARSE_FLAG(invoice.need_phone_number);
-  PARSE_FLAG(invoice.need_email_address);
-  PARSE_FLAG(invoice.need_shipping_address);
-  PARSE_FLAG(invoice.is_flexible);
-  PARSE_FLAG(invoice.send_phone_number_to_provider);
-  PARSE_FLAG(invoice.send_email_address_to_provider);
+  PARSE_FLAG(invoice.is_test_);
+  PARSE_FLAG(invoice.need_name_);
+  PARSE_FLAG(invoice.need_phone_number_);
+  PARSE_FLAG(invoice.need_email_address_);
+  PARSE_FLAG(invoice.need_shipping_address_);
+  PARSE_FLAG(invoice.is_flexible_);
+  PARSE_FLAG(invoice.send_phone_number_to_provider_);
+  PARSE_FLAG(invoice.send_email_address_to_provider_);
   PARSE_FLAG(has_tip);
   PARSE_FLAG(is_recurring);
   END_PARSE_FLAGS();
-  parse(invoice.currency, parser);
-  parse(invoice.price_parts, parser);
+  parse(invoice.currency_, parser);
+  parse(invoice.price_parts_, parser);
   if (has_tip) {
-    parse(invoice.max_tip_amount, parser);
-    parse(invoice.suggested_tip_amounts, parser);
+    parse(invoice.max_tip_amount_, parser);
+    parse(invoice.suggested_tip_amounts_, parser);
   }
   if (is_recurring) {
-    parse(invoice.recurring_payment_terms_of_service_url, parser);
+    parse(invoice.recurring_payment_terms_of_service_url_, parser);
   }
 }
 
 template <class StorerT>
 void store(const InputInvoice &input_invoice, StorerT &storer) {
-  bool has_description = !input_invoice.description.empty();
-  bool has_photo = !input_invoice.photo.is_empty();
-  bool has_start_parameter = !input_invoice.start_parameter.empty();
-  bool has_payload = !input_invoice.payload.empty();
-  bool has_provider_token = !input_invoice.provider_token.empty();
-  bool has_provider_data = !input_invoice.provider_data.empty();
-  bool has_total_amount = input_invoice.total_amount != 0;
-  bool has_receipt_message_id = input_invoice.receipt_message_id.is_valid();
-  bool has_extended_media = input_invoice.extended_media.is_empty();
+  bool has_description = !input_invoice.description_.empty();
+  bool has_photo = !input_invoice.photo_.is_empty();
+  bool has_start_parameter = !input_invoice.start_parameter_.empty();
+  bool has_payload = !input_invoice.payload_.empty();
+  bool has_provider_token = !input_invoice.provider_token_.empty();
+  bool has_provider_data = !input_invoice.provider_data_.empty();
+  bool has_total_amount = input_invoice.total_amount_ != 0;
+  bool has_receipt_message_id = input_invoice.receipt_message_id_.is_valid();
+  bool has_extended_media = input_invoice.extended_media_.is_empty();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_description);
   STORE_FLAG(has_photo);
@@ -92,34 +92,34 @@ void store(const InputInvoice &input_invoice, StorerT &storer) {
   STORE_FLAG(has_receipt_message_id);
   STORE_FLAG(has_extended_media);
   END_STORE_FLAGS();
-  store(input_invoice.title, storer);
+  store(input_invoice.title_, storer);
   if (has_description) {
-    store(input_invoice.description, storer);
+    store(input_invoice.description_, storer);
   }
   if (has_photo) {
-    store(input_invoice.photo, storer);
+    store(input_invoice.photo_, storer);
   }
   if (has_start_parameter) {
-    store(input_invoice.start_parameter, storer);
+    store(input_invoice.start_parameter_, storer);
   }
-  store(input_invoice.invoice, storer);
+  store(input_invoice.invoice_, storer);
   if (has_payload) {
-    store(input_invoice.payload, storer);
+    store(input_invoice.payload_, storer);
   }
   if (has_provider_token) {
-    store(input_invoice.provider_token, storer);
+    store(input_invoice.provider_token_, storer);
   }
   if (has_provider_data) {
-    store(input_invoice.provider_data, storer);
+    store(input_invoice.provider_data_, storer);
   }
   if (has_total_amount) {
-    store(input_invoice.total_amount, storer);
+    store(input_invoice.total_amount_, storer);
   }
   if (has_receipt_message_id) {
-    store(input_invoice.receipt_message_id, storer);
+    store(input_invoice.receipt_message_id_, storer);
   }
   if (has_extended_media) {
-    store(input_invoice.extended_media, storer);
+    store(input_invoice.extended_media_, storer);
   }
 }
 
@@ -157,34 +157,34 @@ void parse(InputInvoice &input_invoice, ParserT &parser) {
     has_receipt_message_id = true;
     has_extended_media = false;
   }
-  parse(input_invoice.title, parser);
+  parse(input_invoice.title_, parser);
   if (has_description) {
-    parse(input_invoice.description, parser);
+    parse(input_invoice.description_, parser);
   }
   if (has_photo) {
-    parse(input_invoice.photo, parser);
+    parse(input_invoice.photo_, parser);
   }
   if (has_start_parameter) {
-    parse(input_invoice.start_parameter, parser);
+    parse(input_invoice.start_parameter_, parser);
   }
-  parse(input_invoice.invoice, parser);
+  parse(input_invoice.invoice_, parser);
   if (has_payload) {
-    parse(input_invoice.payload, parser);
+    parse(input_invoice.payload_, parser);
   }
   if (has_provider_token) {
-    parse(input_invoice.provider_token, parser);
+    parse(input_invoice.provider_token_, parser);
   }
   if (has_provider_data) {
-    parse(input_invoice.provider_data, parser);
+    parse(input_invoice.provider_data_, parser);
   }
   if (has_total_amount) {
-    parse(input_invoice.total_amount, parser);
+    parse(input_invoice.total_amount_, parser);
   }
   if (has_receipt_message_id) {
-    parse(input_invoice.receipt_message_id, parser);
+    parse(input_invoice.receipt_message_id_, parser);
   }
   if (has_extended_media) {
-    parse(input_invoice.extended_media, parser);
+    parse(input_invoice.extended_media_, parser);
   }
 }
 

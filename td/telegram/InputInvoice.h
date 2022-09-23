@@ -23,39 +23,39 @@ namespace td {
 class Td;
 
 struct Invoice {
-  string currency;
-  vector<LabeledPricePart> price_parts;
-  int64 max_tip_amount = 0;
-  vector<int64> suggested_tip_amounts;
-  string recurring_payment_terms_of_service_url;
-  bool is_test = false;
-  bool need_name = false;
-  bool need_phone_number = false;
-  bool need_email_address = false;
-  bool need_shipping_address = false;
-  bool send_phone_number_to_provider = false;
-  bool send_email_address_to_provider = false;
-  bool is_flexible = false;
+  string currency_;
+  vector<LabeledPricePart> price_parts_;
+  int64 max_tip_amount_ = 0;
+  vector<int64> suggested_tip_amounts_;
+  string recurring_payment_terms_of_service_url_;
+  bool is_test_ = false;
+  bool need_name_ = false;
+  bool need_phone_number_ = false;
+  bool need_email_address_ = false;
+  bool need_shipping_address_ = false;
+  bool send_phone_number_to_provider_ = false;
+  bool send_email_address_to_provider_ = false;
+  bool is_flexible_ = false;
 
   Invoice() = default;
   Invoice(string &&currency, bool is_test, bool need_shipping_address)
-      : currency(std::move(currency)), is_test(is_test), need_shipping_address(need_shipping_address) {
+      : currency_(std::move(currency)), is_test_(is_test), need_shipping_address_(need_shipping_address) {
   }
 };
 
 struct InputInvoice {
-  string title;
-  string description;
-  Photo photo;
-  string start_parameter;
-  Invoice invoice;
-  string payload;
-  string provider_token;
-  string provider_data;
-  MessageExtendedMedia extended_media;
+  string title_;
+  string description_;
+  Photo photo_;
+  string start_parameter_;
+  Invoice invoice_;
+  string payload_;
+  string provider_token_;
+  string provider_data_;
+  MessageExtendedMedia extended_media_;
 
-  int64 total_amount = 0;
-  MessageId receipt_message_id;
+  int64 total_amount_ = 0;
+  MessageId receipt_message_id_;
 };
 
 bool operator==(const Invoice &lhs, const Invoice &rhs);
