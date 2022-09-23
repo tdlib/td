@@ -80,7 +80,7 @@ void store(const InputInvoice &input_invoice, StorerT &storer) {
   bool has_provider_data = !input_invoice.provider_data_.empty();
   bool has_total_amount = input_invoice.total_amount_ != 0;
   bool has_receipt_message_id = input_invoice.receipt_message_id_.is_valid();
-  bool has_extended_media = input_invoice.extended_media_.is_empty();
+  bool has_extended_media = !input_invoice.extended_media_.is_empty();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_description);
   STORE_FLAG(has_photo);
