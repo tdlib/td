@@ -20,7 +20,7 @@
 
 namespace td {
 
-bool operator==(const Invoice &lhs, const Invoice &rhs) {
+static bool operator==(const Invoice &lhs, const Invoice &rhs) {
   return lhs.is_test_ == rhs.is_test_ && lhs.need_name_ == rhs.need_name_ &&
          lhs.need_phone_number_ == rhs.need_phone_number_ && lhs.need_email_address_ == rhs.need_email_address_ &&
          lhs.need_shipping_address_ == rhs.need_shipping_address_ &&
@@ -30,27 +30,6 @@ bool operator==(const Invoice &lhs, const Invoice &rhs) {
          lhs.price_parts_ == rhs.price_parts_ && lhs.max_tip_amount_ == rhs.max_tip_amount_ &&
          lhs.suggested_tip_amounts_ == rhs.suggested_tip_amounts_ &&
          lhs.recurring_payment_terms_of_service_url_ == rhs.recurring_payment_terms_of_service_url_;
-}
-
-bool operator!=(const Invoice &lhs, const Invoice &rhs) {
-  return !(lhs == rhs);
-}
-
-StringBuilder &operator<<(StringBuilder &string_builder, const Invoice &invoice) {
-  return string_builder << "[" << (invoice.is_flexible_ ? "Flexible" : "") << (invoice.is_test_ ? "Test" : "")
-                        << "Invoice" << (invoice.need_name_ ? ", needs name" : "")
-                        << (invoice.need_phone_number_ ? ", needs phone number" : "")
-                        << (invoice.need_email_address_ ? ", needs email address" : "")
-                        << (invoice.need_shipping_address_ ? ", needs shipping address" : "")
-                        << (invoice.send_phone_number_to_provider_ ? ", sends phone number to provider" : "")
-                        << (invoice.send_email_address_to_provider_ ? ", sends email address to provider" : "")
-                        << (invoice.recurring_payment_terms_of_service_url_.empty()
-                                ? string()
-                                : ", recurring payments terms of service at " +
-                                      invoice.recurring_payment_terms_of_service_url_)
-                        << " in " << invoice.currency_ << " with price parts " << format::as_array(invoice.price_parts_)
-                        << " and suggested tip amounts " << invoice.suggested_tip_amounts_ << " up to "
-                        << invoice.max_tip_amount_ << "]";
 }
 
 bool operator==(const InputInvoice &lhs, const InputInvoice &rhs) {

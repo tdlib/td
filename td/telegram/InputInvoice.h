@@ -96,11 +96,6 @@ struct InputInvoice {
                              DialogId owner_dialog_id, Td *td);
 };
 
-bool operator==(const Invoice &lhs, const Invoice &rhs);
-bool operator!=(const Invoice &lhs, const Invoice &rhs);
-
-StringBuilder &operator<<(StringBuilder &string_builder, const Invoice &invoice);
-
 bool operator==(const InputInvoice &lhs, const InputInvoice &rhs);
 bool operator!=(const InputInvoice &lhs, const InputInvoice &rhs);
 
