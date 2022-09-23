@@ -160,7 +160,7 @@ struct SslHandleDeleter {
     }
     SSL_free(ssl_handle);
     auto elapsed_time = Time::now() - start_time;
-    if (elapsed_time >= 0.001) {
+    if (elapsed_time >= 0.1) {
       LOG(ERROR) << "SSL_free took " << elapsed_time << " seconds";
     }
   }
@@ -297,7 +297,7 @@ Result<SslCtx> create_ssl_ctx(CSlice cert_file, SslStream::VerifyPeer verify_pee
   auto start_time = Time::now();
   auto result = do_create_ssl_ctx(cert_file, verify_peer);
   auto elapsed_time = Time::now() - start_time;
-  if (elapsed_time >= 0.01) {
+  if (elapsed_time >= 0.1) {
     LOG(ERROR) << "do_create_ssl_ctx took " << elapsed_time << " seconds";
   }
   return result;
@@ -386,7 +386,7 @@ class SslStreamImpl {
     auto start_time = Time::now();
     auto size = SSL_write(ssl_handle_.get(), slice.data(), static_cast<int>(slice.size()));
     auto elapsed_time = Time::now() - start_time;
-    if (elapsed_time >= 0.001) {
+    if (elapsed_time >= 0.1) {
       LOG(ERROR) << "SSL_write of size " << slice.size() << " took " << elapsed_time << " seconds and returned " << size
                  << ' ' << SSL_get_error(ssl_handle_.get(), size);
     }
@@ -401,7 +401,7 @@ class SslStreamImpl {
     auto start_time = Time::now();
     auto size = SSL_read(ssl_handle_.get(), slice.data(), static_cast<int>(slice.size()));
     auto elapsed_time = Time::now() - start_time;
-    if (elapsed_time >= 0.001) {
+    if (elapsed_time >= 0.1) {
       LOG(ERROR) << "SSL_read took " << elapsed_time << " seconds and returned " << size << ' '
                  << SSL_get_error(ssl_handle_.get(), size);
     }
