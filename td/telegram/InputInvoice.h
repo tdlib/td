@@ -56,6 +56,44 @@ struct InputInvoice {
 
   int64 total_amount_ = 0;
   MessageId receipt_message_id_;
+
+  InputInvoice() = default;
+
+  InputInvoice(tl_object_ptr<telegram_api::messageMediaInvoice> &&message_invoice, Td *td, DialogId owner_dialog_id,
+               FormattedText &&message);
+
+  InputInvoice(tl_object_ptr<telegram_api::botInlineMessageMediaInvoice> &&message_invoice, Td *td,
+               DialogId owner_dialog_id);
+
+  static Result<InputInvoice> process_input_message_invoice(
+      td_api::object_ptr<td_api::InputMessageContent> &&input_message_content, Td *td);
+
+  tl_object_ptr<td_api::messageInvoice> get_message_invoice_object(Td *td, bool skip_bot_commands,
+                                                                   int32 max_media_timestamp) const;
+
+  tl_object_ptr<telegram_api::inputMediaInvoice> get_input_media_invoice(Td *td) const;
+
+  tl_object_ptr<telegram_api::inputBotInlineMessageMediaInvoice> get_input_bot_inline_message_media_invoice(
+      tl_object_ptr<telegram_api::ReplyMarkup> &&reply_markup, Td *td) const;
+
+  vector<FileId> get_file_ids(const Td *td) const;
+
+  void delete_thumbnail(Td *td);
+
+  bool has_media_timestamp() const;
+
+  const FormattedText *get_caption() const;
+
+  int32 get_duration(const Td *td) const;
+
+  FileId get_upload_file_id() const;
+
+  FileId get_any_file_id() const;
+
+  FileId get_thumbnail_file_id(const Td *td) const;
+
+  bool update_extended_media(telegram_api::object_ptr<telegram_api::MessageExtendedMedia> extended_media,
+                             DialogId owner_dialog_id, Td *td);
 };
 
 bool operator==(const Invoice &lhs, const Invoice &rhs);
@@ -65,43 +103,6 @@ StringBuilder &operator<<(StringBuilder &string_builder, const Invoice &invoice)
 
 bool operator==(const InputInvoice &lhs, const InputInvoice &rhs);
 bool operator!=(const InputInvoice &lhs, const InputInvoice &rhs);
-
-InputInvoice get_input_invoice(tl_object_ptr<telegram_api::messageMediaInvoice> &&message_invoice, Td *td,
-                               DialogId owner_dialog_id, FormattedText &&message);
-
-InputInvoice get_input_invoice(tl_object_ptr<telegram_api::botInlineMessageMediaInvoice> &&message_invoice, Td *td,
-                               DialogId owner_dialog_id);
-
-Result<InputInvoice> process_input_message_invoice(
-    td_api::object_ptr<td_api::InputMessageContent> &&input_message_content, Td *td);
-
-tl_object_ptr<td_api::messageInvoice> get_message_invoice_object(const InputInvoice &input_invoice, Td *td,
-                                                                 bool skip_bot_commands, int32 max_media_timestamp);
-
-tl_object_ptr<telegram_api::inputMediaInvoice> get_input_media_invoice(const InputInvoice &input_invoice, Td *td);
-
-tl_object_ptr<telegram_api::inputBotInlineMessageMediaInvoice> get_input_bot_inline_message_media_invoice(
-    const InputInvoice &input_invoice, tl_object_ptr<telegram_api::ReplyMarkup> &&reply_markup, Td *td);
-
-vector<FileId> get_input_invoice_file_ids(const Td *td, const InputInvoice &input_invoice);
-
-void input_invoice_delete_thumbnail(Td *td, InputInvoice &input_invoice);
-
-bool has_input_invoice_media_timestamp(const InputInvoice &input_invoice);
-
-const FormattedText *get_input_invoice_caption(const InputInvoice &input_invoice);
-
-int32 get_input_invoice_duration(const Td *td, const InputInvoice &input_invoice);
-
-FileId get_input_invoice_upload_file_id(const InputInvoice &input_invoice);
-
-FileId get_input_invoice_any_file_id(const InputInvoice &input_invoice);
-
-FileId get_input_invoice_thumbnail_file_id(const Td *td, const InputInvoice &input_invoice);
-
-bool update_input_invoice_extended_media(InputInvoice &input_invoice,
-                                         telegram_api::object_ptr<telegram_api::MessageExtendedMedia> extended_media,
-                                         DialogId owner_dialog_id, Td *td);
 
 tl_object_ptr<td_api::formattedText> get_product_description_object(const string &description);
 

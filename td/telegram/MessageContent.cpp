@@ -1637,8 +1637,7 @@ InlineMessageContent create_inline_message_content(Td *td, FileId file_id,
     case telegram_api::botInlineMessageMediaInvoice::ID: {
       auto inline_message = move_tl_object_as<telegram_api::botInlineMessageMediaInvoice>(bot_inline_message);
       reply_markup = std::move(inline_message->reply_markup_);
-      result.message_content =
-          make_unique<MessageInvoice>(get_input_invoice(std::move(inline_message), td, DialogId()));
+      result.message_content = make_unique<MessageInvoice>(InputInvoice(std::move(inline_message), td, DialogId()));
       break;
     }
     case telegram_api::botInlineMessageMediaGeo::ID: {
@@ -1955,7 +1954,7 @@ static Result<InputMessageContent> create_input_message_content(
         return Status::Error(400, "Invoices can be sent only by bots");
       }
 
-      TRY_RESULT(input_invoice, process_input_message_invoice(std::move(input_message_content), td));
+      TRY_RESULT(input_invoice, InputInvoice::process_input_message_invoice(std::move(input_message_content), td));
       content = make_unique<MessageInvoice>(std::move(input_invoice));
       break;
     }
@@ -2358,7 +2357,7 @@ static tl_object_ptr<telegram_api::InputMedia> get_input_media_impl(
     }
     case MessageContentType::Invoice: {
       const auto *m = static_cast<const MessageInvoice *>(content);
-      return get_input_media_invoice(m->input_invoice, td);
+      return m->input_invoice.get_input_media_invoice(td);
     }
     case MessageContentType::LiveLocation: {
       const auto *m = static_cast<const MessageLiveLocation *>(content);
@@ -2542,7 +2541,7 @@ void delete_message_content_thumbnail(MessageContent *content, Td *td) {
     }
     case MessageContentType::Invoice: {
       auto *m = static_cast<MessageInvoice *>(content);
-      return input_invoice_delete_thumbnail(td, m->input_invoice);
+      return m->input_invoice.delete_thumbnail(td);
     }
     case MessageContentType::Photo: {
       auto *m = static_cast<MessagePhoto *>(content);
@@ -3036,7 +3035,7 @@ bool can_message_content_have_media_timestamp(const MessageContent *content) {
       return true;
     case MessageContentType::Invoice: {
       const auto *m = static_cast<const MessageInvoice *>(content);
-      return has_input_invoice_media_timestamp(m->input_invoice);
+      return m->input_invoice.has_media_timestamp();
     }
     default:
       return has_message_content_web_page(content);
@@ -4481,7 +4480,7 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
       return std::move(m);
     }
     case telegram_api::messageMediaInvoice::ID:
-      return td::make_unique<MessageInvoice>(get_input_invoice(
+      return td::make_unique<MessageInvoice>(InputInvoice(
           move_tl_object_as<telegram_api::messageMediaInvoice>(media_ptr), td, owner_dialog_id, std::move(message)));
     case telegram_api::messageMediaWebPage::ID: {
       auto media = move_tl_object_as<telegram_api::messageMediaWebPage>(media_ptr);
@@ -5102,7 +5101,7 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
     }
     case MessageContentType::Invoice: {
       const auto *m = static_cast<const MessageInvoice *>(content);
-      return get_message_invoice_object(m->input_invoice, td, skip_bot_commands, max_media_timestamp);
+      return m->input_invoice.get_message_invoice_object(td, skip_bot_commands, max_media_timestamp);
     }
     case MessageContentType::LiveLocation: {
       const auto *m = static_cast<const MessageLiveLocation *>(content);
@@ -5369,7 +5368,7 @@ const FormattedText *get_message_content_caption(const MessageContent *content) 
     case MessageContentType::Document:
       return &static_cast<const MessageDocument *>(content)->caption;
     case MessageContentType::Invoice:
-      return get_input_invoice_caption(static_cast<const MessageInvoice *>(content)->input_invoice);
+      return static_cast<const MessageInvoice *>(content)->input_invoice.get_caption();
     case MessageContentType::Photo:
       return &static_cast<const MessagePhoto *>(content)->caption;
     case MessageContentType::Video:
@@ -5393,7 +5392,7 @@ int32 get_message_content_duration(const MessageContent *content, const Td *td) 
       return td->audios_manager_->get_audio_duration(audio_file_id);
     }
     case MessageContentType::Invoice:
-      return get_input_invoice_duration(td, static_cast<const MessageInvoice *>(content)->input_invoice);
+      return static_cast<const MessageInvoice *>(content)->input_invoice.get_duration(td);
     case MessageContentType::Video: {
       auto video_file_id = static_cast<const MessageVideo *>(content)->file_id;
       return td->videos_manager_->get_video_duration(video_file_id);
@@ -5419,7 +5418,7 @@ int32 get_message_content_media_duration(const MessageContent *content, const Td
       return td->audios_manager_->get_audio_duration(audio_file_id);
     }
     case MessageContentType::Invoice:
-      return get_input_invoice_duration(td, static_cast<const MessageInvoice *>(content)->input_invoice);
+      return static_cast<const MessageInvoice *>(content)->input_invoice.get_duration(td);
     case MessageContentType::Text: {
       auto web_page_id = static_cast<const MessageText *>(content)->web_page_id;
       return td->web_pages_manager_->get_web_page_media_duration(web_page_id);
@@ -5450,7 +5449,7 @@ FileId get_message_content_upload_file_id(const MessageContent *content) {
     case MessageContentType::Document:
       return static_cast<const MessageDocument *>(content)->file_id;
     case MessageContentType::Invoice:
-      return get_input_invoice_upload_file_id(static_cast<const MessageInvoice *>(content)->input_invoice);
+      return static_cast<const MessageInvoice *>(content)->input_invoice.get_upload_file_id();
     case MessageContentType::Photo:
       return get_photo_upload_file_id(static_cast<const MessagePhoto *>(content)->photo);
     case MessageContentType::Sticker:
@@ -5473,7 +5472,7 @@ FileId get_message_content_any_file_id(const MessageContent *content) {
     if (content->get_type() == MessageContentType::Photo) {
       result = get_photo_any_file_id(static_cast<const MessagePhoto *>(content)->photo);
     } else if (content->get_type() == MessageContentType::Invoice) {
-      result = get_input_invoice_any_file_id(static_cast<const MessageInvoice *>(content)->input_invoice);
+      result = static_cast<const MessageInvoice *>(content)->input_invoice.get_any_file_id();
     }
   }
   return result;
@@ -5519,7 +5518,7 @@ FileId get_message_content_thumbnail_file_id(const MessageContent *content, cons
       return td->documents_manager_->get_document_thumbnail_file_id(
           static_cast<const MessageDocument *>(content)->file_id);
     case MessageContentType::Invoice:
-      return get_input_invoice_thumbnail_file_id(td, static_cast<const MessageInvoice *>(content)->input_invoice);
+      return static_cast<const MessageInvoice *>(content)->input_invoice.get_thumbnail_file_id(td);
     case MessageContentType::Photo:
       return get_photo_thumbnail_file_id(static_cast<const MessagePhoto *>(content)->photo);
     case MessageContentType::Sticker:
@@ -5575,7 +5574,7 @@ vector<FileId> get_message_content_file_ids(const MessageContent *content, const
     case MessageContentType::Game:
       return static_cast<const MessageGame *>(content)->game.get_file_ids(td);
     case MessageContentType::Invoice:
-      return get_input_invoice_file_ids(td, static_cast<const MessageInvoice *>(content)->input_invoice);
+      return static_cast<const MessageInvoice *>(content)->input_invoice.get_file_ids(td);
     case MessageContentType::ChatChangePhoto:
       return photo_get_file_ids(static_cast<const MessageChatChangePhoto *>(content)->photo);
     case MessageContentType::PassportDataReceived: {
@@ -5628,7 +5627,7 @@ string get_message_content_search_text(const Td *td, const MessageContent *conte
     }
     case MessageContentType::Invoice: {
       const auto *invoice = static_cast<const MessageInvoice *>(content);
-      return get_input_invoice_caption(invoice->input_invoice)->text;
+      return invoice->input_invoice.get_caption()->text;
     }
     case MessageContentType::Photo: {
       const auto *photo = static_cast<const MessagePhoto *>(content);
@@ -5695,8 +5694,8 @@ bool update_message_content_extended_media(MessageContent *content,
                                            DialogId owner_dialog_id, Td *td) {
   CHECK(content != nullptr);
   CHECK(content->get_type() == MessageContentType::Invoice);
-  return update_input_invoice_extended_media(static_cast<MessageInvoice *>(content)->input_invoice,
-                                             std::move(extended_media), owner_dialog_id, td);
+  return static_cast<MessageInvoice *>(content)->input_invoice.update_extended_media(std::move(extended_media),
+                                                                                     owner_dialog_id, td);
 }
 
 void get_message_content_animated_emoji_click_sticker(const MessageContent *content, FullMessageId full_message_id,

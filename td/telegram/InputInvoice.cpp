@@ -65,60 +65,56 @@ bool operator!=(const InputInvoice &lhs, const InputInvoice &rhs) {
   return !(lhs == rhs);
 }
 
-InputInvoice get_input_invoice(tl_object_ptr<telegram_api::messageMediaInvoice> &&message_invoice, Td *td,
-                               DialogId owner_dialog_id, FormattedText &&message) {
-  InputInvoice result;
-  result.title_ = std::move(message_invoice->title_);
-  result.description_ = std::move(message_invoice->description_);
-  result.photo_ = get_web_document_photo(td->file_manager_.get(), std::move(message_invoice->photo_), owner_dialog_id);
-  result.start_parameter_ = std::move(message_invoice->start_param_);
-  result.invoice_.currency_ = std::move(message_invoice->currency_);
-  result.invoice_.is_test_ = message_invoice->test_;
-  result.invoice_.need_shipping_address_ = message_invoice->shipping_address_requested_;
-  // result.payload_ = string();
-  // result.provider_token_ = string();
-  // result.provider_data_ = string();
-  result.extended_media_ =
+InputInvoice::InputInvoice(tl_object_ptr<telegram_api::messageMediaInvoice> &&message_invoice, Td *td,
+                           DialogId owner_dialog_id, FormattedText &&message) {
+  title_ = std::move(message_invoice->title_);
+  description_ = std::move(message_invoice->description_);
+  photo_ = get_web_document_photo(td->file_manager_.get(), std::move(message_invoice->photo_), owner_dialog_id);
+  start_parameter_ = std::move(message_invoice->start_param_);
+  invoice_.currency_ = std::move(message_invoice->currency_);
+  invoice_.is_test_ = message_invoice->test_;
+  invoice_.need_shipping_address_ = message_invoice->shipping_address_requested_;
+  // payload_ = string();
+  // provider_token_ = string();
+  // provider_data_ = string();
+  extended_media_ =
       MessageExtendedMedia(td, std::move(message_invoice->extended_media_), std::move(message), owner_dialog_id);
   if (message_invoice->total_amount_ <= 0 || !check_currency_amount(message_invoice->total_amount_)) {
     LOG(ERROR) << "Receive invalid total amount " << message_invoice->total_amount_;
     message_invoice->total_amount_ = 0;
   }
-  result.total_amount_ = message_invoice->total_amount_;
+  total_amount_ = message_invoice->total_amount_;
   if ((message_invoice->flags_ & telegram_api::messageMediaInvoice::RECEIPT_MSG_ID_MASK) != 0) {
-    result.receipt_message_id_ = MessageId(ServerMessageId(message_invoice->receipt_msg_id_));
-    if (!result.receipt_message_id_.is_valid()) {
-      LOG(ERROR) << "Receive as receipt message " << result.receipt_message_id_ << " in " << owner_dialog_id;
-      result.receipt_message_id_ = MessageId();
+    receipt_message_id_ = MessageId(ServerMessageId(message_invoice->receipt_msg_id_));
+    if (!receipt_message_id_.is_valid()) {
+      LOG(ERROR) << "Receive as receipt message " << receipt_message_id_ << " in " << owner_dialog_id;
+      receipt_message_id_ = MessageId();
     }
   }
-  return result;
 }
 
-InputInvoice get_input_invoice(tl_object_ptr<telegram_api::botInlineMessageMediaInvoice> &&message_invoice, Td *td,
-                               DialogId owner_dialog_id) {
-  InputInvoice result;
-  result.title_ = std::move(message_invoice->title_);
-  result.description_ = std::move(message_invoice->description_);
-  result.photo_ = get_web_document_photo(td->file_manager_.get(), std::move(message_invoice->photo_), owner_dialog_id);
-  // result.start_parameter_ = string();
-  result.invoice_.currency_ = std::move(message_invoice->currency_);
-  result.invoice_.is_test_ = message_invoice->test_;
-  result.invoice_.need_shipping_address_ = message_invoice->shipping_address_requested_;
-  // result.payload_ = string();
-  // result.provider_token_ = string();
-  // result.provider_data_ = string();
-  // result.extended_media_ = MessageExtendedMedia();
+InputInvoice::InputInvoice(tl_object_ptr<telegram_api::botInlineMessageMediaInvoice> &&message_invoice, Td *td,
+                           DialogId owner_dialog_id) {
+  title_ = std::move(message_invoice->title_);
+  description_ = std::move(message_invoice->description_);
+  photo_ = get_web_document_photo(td->file_manager_.get(), std::move(message_invoice->photo_), owner_dialog_id);
+  // start_parameter_ = string();
+  invoice_.currency_ = std::move(message_invoice->currency_);
+  invoice_.is_test_ = message_invoice->test_;
+  invoice_.need_shipping_address_ = message_invoice->shipping_address_requested_;
+  // payload_ = string();
+  // provider_token_ = string();
+  // provider_data_ = string();
+  // extended_media_ = MessageExtendedMedia();
   if (message_invoice->total_amount_ <= 0 || !check_currency_amount(message_invoice->total_amount_)) {
     LOG(ERROR) << "Receive invalid total amount " << message_invoice->total_amount_;
     message_invoice->total_amount_ = 0;
   }
-  result.total_amount_ = message_invoice->total_amount_;
-  // result.receipt_message_id_ = MessageId();
-  return result;
+  total_amount_ = message_invoice->total_amount_;
+  // receipt_message_id_ = MessageId();
 }
 
-Result<InputInvoice> process_input_message_invoice(
+Result<InputInvoice> InputInvoice::process_input_message_invoice(
     td_api::object_ptr<td_api::InputMessageContent> &&input_message_content, Td *td) {
   CHECK(input_message_content != nullptr);
   CHECK(input_message_content->get_id() == td_api::inputMessageInvoice::ID);
@@ -247,14 +243,13 @@ Result<InputInvoice> process_input_message_invoice(
   return result;
 }
 
-tl_object_ptr<td_api::messageInvoice> get_message_invoice_object(const InputInvoice &input_invoice, Td *td,
-                                                                 bool skip_bot_commands, int32 max_media_timestamp) {
+tl_object_ptr<td_api::messageInvoice> InputInvoice::get_message_invoice_object(Td *td, bool skip_bot_commands,
+                                                                               int32 max_media_timestamp) const {
   return make_tl_object<td_api::messageInvoice>(
-      input_invoice.title_, get_product_description_object(input_invoice.description_),
-      get_photo_object(td->file_manager_.get(), input_invoice.photo_), input_invoice.invoice_.currency_,
-      input_invoice.total_amount_, input_invoice.start_parameter_, input_invoice.invoice_.is_test_,
-      input_invoice.invoice_.need_shipping_address_, input_invoice.receipt_message_id_.get(),
-      input_invoice.extended_media_.get_message_extended_media_object(td, skip_bot_commands, max_media_timestamp));
+      title_, get_product_description_object(description_), get_photo_object(td->file_manager_.get(), photo_),
+      invoice_.currency_, total_amount_, start_parameter_, invoice_.is_test_, invoice_.need_shipping_address_,
+      receipt_message_id_.get(),
+      extended_media_.get_message_extended_media_object(td, skip_bot_commands, max_media_timestamp));
 }
 
 static tl_object_ptr<telegram_api::invoice> get_input_invoice(const Invoice &invoice) {
@@ -325,80 +320,77 @@ static tl_object_ptr<telegram_api::inputWebDocument> get_input_web_document(cons
       std::move(attributes));
 }
 
-tl_object_ptr<telegram_api::inputMediaInvoice> get_input_media_invoice(const InputInvoice &input_invoice, Td *td) {
+tl_object_ptr<telegram_api::inputMediaInvoice> InputInvoice::get_input_media_invoice(Td *td) const {
   int32 flags = 0;
-  if (!input_invoice.start_parameter_.empty()) {
+  if (!start_parameter_.empty()) {
     flags |= telegram_api::inputMediaInvoice::START_PARAM_MASK;
   }
-  auto input_web_document = get_input_web_document(td->file_manager_.get(), input_invoice.photo_);
+  auto input_web_document = get_input_web_document(td->file_manager_.get(), photo_);
   if (input_web_document != nullptr) {
     flags |= telegram_api::inputMediaInvoice::PHOTO_MASK;
   }
 
   return make_tl_object<telegram_api::inputMediaInvoice>(
-      flags, input_invoice.title_, input_invoice.description_, std::move(input_web_document),
-      get_input_invoice(input_invoice.invoice_), BufferSlice(input_invoice.payload_), input_invoice.provider_token_,
-      telegram_api::make_object<telegram_api::dataJSON>(
-          input_invoice.provider_data_.empty() ? "null" : input_invoice.provider_data_),
-      input_invoice.start_parameter_, nullptr);
+      flags, title_, description_, std::move(input_web_document), get_input_invoice(invoice_), BufferSlice(payload_),
+      provider_token_,
+      telegram_api::make_object<telegram_api::dataJSON>(provider_data_.empty() ? "null" : provider_data_),
+      start_parameter_, nullptr);
 }
 
-tl_object_ptr<telegram_api::inputBotInlineMessageMediaInvoice> get_input_bot_inline_message_media_invoice(
-    const InputInvoice &input_invoice, tl_object_ptr<telegram_api::ReplyMarkup> &&reply_markup, Td *td) {
+tl_object_ptr<telegram_api::inputBotInlineMessageMediaInvoice> InputInvoice::get_input_bot_inline_message_media_invoice(
+    tl_object_ptr<telegram_api::ReplyMarkup> &&reply_markup, Td *td) const {
   int32 flags = 0;
   if (reply_markup != nullptr) {
     flags |= telegram_api::inputBotInlineMessageMediaInvoice::REPLY_MARKUP_MASK;
   }
-  auto input_web_document = get_input_web_document(td->file_manager_.get(), input_invoice.photo_);
+  auto input_web_document = get_input_web_document(td->file_manager_.get(), photo_);
   if (input_web_document != nullptr) {
     flags |= telegram_api::inputBotInlineMessageMediaInvoice::PHOTO_MASK;
   }
   return make_tl_object<telegram_api::inputBotInlineMessageMediaInvoice>(
-      flags, input_invoice.title_, input_invoice.description_, std::move(input_web_document),
-      get_input_invoice(input_invoice.invoice_), BufferSlice(input_invoice.payload_), input_invoice.provider_token_,
-      telegram_api::make_object<telegram_api::dataJSON>(
-          input_invoice.provider_data_.empty() ? "null" : input_invoice.provider_data_),
+      flags, title_, description_, std::move(input_web_document), get_input_invoice(invoice_), BufferSlice(payload_),
+      provider_token_,
+      telegram_api::make_object<telegram_api::dataJSON>(provider_data_.empty() ? "null" : provider_data_),
       std::move(reply_markup));
 }
 
-vector<FileId> get_input_invoice_file_ids(const Td *td, const InputInvoice &input_invoice) {
-  auto file_ids = photo_get_file_ids(input_invoice.photo_);
-  input_invoice.extended_media_.append_file_ids(td, file_ids);
+vector<FileId> InputInvoice::get_file_ids(const Td *td) const {
+  auto file_ids = photo_get_file_ids(photo_);
+  extended_media_.append_file_ids(td, file_ids);
   return file_ids;
 }
 
-void input_invoice_delete_thumbnail(Td *td, InputInvoice &input_invoice) {
-  input_invoice.extended_media_.delete_thumbnail(td);
+void InputInvoice::delete_thumbnail(Td *td) {
+  extended_media_.delete_thumbnail(td);
 }
 
-bool has_input_invoice_media_timestamp(const InputInvoice &input_invoice) {
-  return input_invoice.extended_media_.has_media_timestamp();
+bool InputInvoice::has_media_timestamp() const {
+  return extended_media_.has_media_timestamp();
 }
 
-const FormattedText *get_input_invoice_caption(const InputInvoice &input_invoice) {
-  return input_invoice.extended_media_.get_caption();
+const FormattedText *InputInvoice::get_caption() const {
+  return extended_media_.get_caption();
 }
 
-int32 get_input_invoice_duration(const Td *td, const InputInvoice &input_invoice) {
-  return input_invoice.extended_media_.get_duration(td);
+int32 InputInvoice::get_duration(const Td *td) const {
+  return extended_media_.get_duration(td);
 }
 
-FileId get_input_invoice_upload_file_id(const InputInvoice &input_invoice) {
-  return input_invoice.extended_media_.get_upload_file_id();
+FileId InputInvoice::get_upload_file_id() const {
+  return extended_media_.get_upload_file_id();
 }
 
-FileId get_input_invoice_any_file_id(const InputInvoice &input_invoice) {
-  return input_invoice.extended_media_.get_any_file_id();
+FileId InputInvoice::get_any_file_id() const {
+  return extended_media_.get_any_file_id();
 }
 
-FileId get_input_invoice_thumbnail_file_id(const Td *td, const InputInvoice &input_invoice) {
-  return input_invoice.extended_media_.get_thumbnail_file_id(td);
+FileId InputInvoice::get_thumbnail_file_id(const Td *td) const {
+  return extended_media_.get_thumbnail_file_id(td);
 }
 
-bool update_input_invoice_extended_media(InputInvoice &input_invoice,
-                                         telegram_api::object_ptr<telegram_api::MessageExtendedMedia> extended_media,
+bool InputInvoice::update_extended_media(telegram_api::object_ptr<telegram_api::MessageExtendedMedia> extended_media,
                                          DialogId owner_dialog_id, Td *td) {
-  return input_invoice.extended_media_.update_to(td, std::move(extended_media), owner_dialog_id);
+  return extended_media_.update_to(td, std::move(extended_media), owner_dialog_id);
 }
 
 tl_object_ptr<td_api::formattedText> get_product_description_object(const string &description) {
