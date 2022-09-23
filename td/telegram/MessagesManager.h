@@ -364,6 +364,9 @@ class MessagesManager final : public Actor {
 
   void on_update_some_live_location_viewed(Promise<Unit> &&promise);
 
+  void on_update_message_extended_media(FullMessageId full_message_id,
+                                        telegram_api::object_ptr<telegram_api::MessageExtendedMedia> extended_media);
+
   void on_external_update_message_content(FullMessageId full_message_id);
 
   void on_update_message_content(FullMessageId full_message_id);

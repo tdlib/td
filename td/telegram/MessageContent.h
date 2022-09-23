@@ -228,6 +228,10 @@ vector<FileId> get_message_content_file_ids(const MessageContent *content, const
 
 string get_message_content_search_text(const Td *td, const MessageContent *content);
 
+bool update_message_content_extended_media(MessageContent *content,
+                                           telegram_api::object_ptr<telegram_api::MessageExtendedMedia> extended_media,
+                                           DialogId owner_dialog_id, Td *td);
+
 void get_message_content_animated_emoji_click_sticker(const MessageContent *content, FullMessageId full_message_id,
                                                       Td *td, Promise<td_api::object_ptr<td_api::sticker>> &&promise);
 

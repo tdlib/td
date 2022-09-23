@@ -56,6 +56,9 @@ class MessageExtendedMedia {
 
   void update_from(const MessageExtendedMedia &old_extended_media);
 
+  bool update_to(Td *td, telegram_api::object_ptr<telegram_api::MessageExtendedMedia> extended_media_ptr,
+                 DialogId owner_dialog_id);
+
   td_api::object_ptr<td_api::MessageExtendedMedia> get_message_extended_media_object(Td *td, bool skip_bot_commands,
                                                                                      int32 max_media_timestamp) const;
 

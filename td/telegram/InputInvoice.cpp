@@ -394,6 +394,12 @@ FileId get_input_invoice_thumbnail_file_id(const Td *td, const InputInvoice &inp
   return input_invoice.extended_media.get_thumbnail_file_id(td);
 }
 
+bool update_input_invoice_extended_media(InputInvoice &input_invoice,
+                                         telegram_api::object_ptr<telegram_api::MessageExtendedMedia> extended_media,
+                                         DialogId owner_dialog_id, Td *td) {
+  return input_invoice.extended_media.update_to(td, std::move(extended_media), owner_dialog_id);
+}
+
 tl_object_ptr<td_api::formattedText> get_product_description_object(const string &description) {
   FormattedText result;
   result.text = description;

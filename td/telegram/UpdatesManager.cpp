@@ -3521,6 +3521,13 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateGeoLiveViewed> 
   promise.set_value(Unit());
 }
 
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateMessageExtendedMedia> update,
+                               Promise<Unit> &&promise) {
+  td_->messages_manager_->on_update_message_extended_media(
+      {DialogId(update->peer_), MessageId(ServerMessageId(update->msg_id_))}, std::move(update->extended_media_));
+  promise.set_value(Unit());
+}
+
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateMessagePoll> update, Promise<Unit> &&promise) {
   td_->poll_manager_->on_get_poll(PollId(update->poll_id_), std::move(update->poll_), std::move(update->results_),
                                   "updateMessagePoll");
@@ -3595,10 +3602,5 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateTranscribedAudi
 }
 
 // unsupported updates
-
-void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateMessageExtendedMedia> update,
-                               Promise<Unit> &&promise) {
-  promise.set_value(Unit());
-}
 
 }  // namespace td

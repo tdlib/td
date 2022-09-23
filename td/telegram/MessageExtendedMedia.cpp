@@ -98,6 +98,20 @@ void MessageExtendedMedia::update_from(const MessageExtendedMedia &old_extended_
   }
 }
 
+bool MessageExtendedMedia::update_to(Td *td,
+                                     telegram_api::object_ptr<telegram_api::MessageExtendedMedia> extended_media_ptr,
+                                     DialogId owner_dialog_id) {
+  MessageExtendedMedia new_extended_media(td, std::move(extended_media_ptr), FormattedText(caption_), owner_dialog_id);
+  if (!new_extended_media.is_media() && is_media()) {
+    return false;
+  }
+  if (*this != new_extended_media || get_unsupported_version() != new_extended_media.get_unsupported_version()) {
+    *this = std::move(new_extended_media);
+    return true;
+  }
+  return false;
+}
+
 td_api::object_ptr<td_api::MessageExtendedMedia> MessageExtendedMedia::get_message_extended_media_object(
     Td *td, bool skip_bot_commands, int32 max_media_timestamp) const {
   if (type_ == Type::Empty) {

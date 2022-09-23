@@ -5690,6 +5690,15 @@ string get_message_content_search_text(const Td *td, const MessageContent *conte
   }
 }
 
+bool update_message_content_extended_media(MessageContent *content,
+                                           telegram_api::object_ptr<telegram_api::MessageExtendedMedia> extended_media,
+                                           DialogId owner_dialog_id, Td *td) {
+  CHECK(content != nullptr);
+  CHECK(content->get_type() == MessageContentType::Invoice);
+  return update_input_invoice_extended_media(static_cast<MessageInvoice *>(content)->input_invoice,
+                                             std::move(extended_media), owner_dialog_id, td);
+}
+
 void get_message_content_animated_emoji_click_sticker(const MessageContent *content, FullMessageId full_message_id,
                                                       Td *td, Promise<td_api::object_ptr<td_api::sticker>> &&promise) {
   if (content->get_type() != MessageContentType::Text) {

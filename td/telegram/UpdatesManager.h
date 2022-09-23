@@ -517,6 +517,7 @@ class UpdatesManager final : public Actor {
   void on_update(tl_object_ptr<telegram_api::updateLangPack> update, Promise<Unit> &&promise);
 
   void on_update(tl_object_ptr<telegram_api::updateGeoLiveViewed> update, Promise<Unit> &&promise);
+  void on_update(tl_object_ptr<telegram_api::updateMessageExtendedMedia> update, Promise<Unit> &&promise);
 
   void on_update(tl_object_ptr<telegram_api::updateMessagePoll> update, Promise<Unit> &&promise);
   void on_update(tl_object_ptr<telegram_api::updateMessagePollVote> update, Promise<Unit> &&promise);
@@ -540,8 +541,6 @@ class UpdatesManager final : public Actor {
   void on_update(tl_object_ptr<telegram_api::updateTranscribedAudio> update, Promise<Unit> &&promise);
 
   // unsupported updates
-
-  void on_update(tl_object_ptr<telegram_api::updateMessageExtendedMedia> update, Promise<Unit> &&promise);
 };
 
 }  // namespace td

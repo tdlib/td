@@ -99,6 +99,10 @@ FileId get_input_invoice_any_file_id(const InputInvoice &input_invoice);
 
 FileId get_input_invoice_thumbnail_file_id(const Td *td, const InputInvoice &input_invoice);
 
+bool update_input_invoice_extended_media(InputInvoice &input_invoice,
+                                         telegram_api::object_ptr<telegram_api::MessageExtendedMedia> extended_media,
+                                         DialogId owner_dialog_id, Td *td);
+
 tl_object_ptr<td_api::formattedText> get_product_description_object(const string &description);
 
 }  // namespace td

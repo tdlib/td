@@ -7133,6 +7133,36 @@ void MessagesManager::on_update_some_live_location_viewed(Promise<Unit> &&promis
   promise.set_value(Unit());
 }
 
+void MessagesManager::on_update_message_extended_media(
+    FullMessageId full_message_id, telegram_api::object_ptr<telegram_api::MessageExtendedMedia> extended_media) {
+  auto dialog_id = full_message_id.get_dialog_id();
+  Dialog *d = get_dialog_force(dialog_id, "on_update_message_extended_media");
+  if (d == nullptr) {
+    LOG(INFO) << "Ignore update of message extended media in unknown " << dialog_id;
+    return;
+  }
+
+  auto m = get_message_force(d, full_message_id.get_message_id(), "on_update_message_extended_media");
+  if (m == nullptr) {
+    LOG(INFO) << "Ignore update of message extended media in unknown " << full_message_id;
+    return;
+  }
+
+  auto content = m->content.get();
+  auto content_type = content->get_type();
+  if (content_type != MessageContentType::Invoice) {
+    if (content_type != MessageContentType::Unsupported) {
+      LOG(ERROR) << "Receive updateMessageExtendedMedia for " << full_message_id << " of type " << content_type;
+    }
+    return;
+  }
+  if (update_message_content_extended_media(content, std::move(extended_media), dialog_id, td_)) {
+    send_update_message_content(d, m, true, "on_update_message_extended_media");
+    on_message_changed(d, m, true, "on_update_message_extended_media");
+    on_message_notification_changed(d, m, "on_update_message_extended_media");  // usually a no-op
+  }
+}
+
 bool MessagesManager::need_skip_bot_commands(DialogId dialog_id, const Message *m) const {
   if (td_->auth_manager_->is_bot()) {
     return false;
