@@ -1954,7 +1954,8 @@ static Result<InputMessageContent> create_input_message_content(
         return Status::Error(400, "Invoices can be sent only by bots");
       }
 
-      TRY_RESULT(input_invoice, InputInvoice::process_input_message_invoice(std::move(input_message_content), td));
+      TRY_RESULT(input_invoice, InputInvoice::process_input_message_invoice(std::move(input_message_content), td,
+                                                                            dialog_id, is_premium));
       content = make_unique<MessageInvoice>(std::move(input_invoice));
       break;
     }
@@ -2357,7 +2358,7 @@ static tl_object_ptr<telegram_api::InputMedia> get_input_media_impl(
     }
     case MessageContentType::Invoice: {
       const auto *m = static_cast<const MessageInvoice *>(content);
-      return m->input_invoice.get_input_media_invoice(td);
+      return m->input_invoice.get_input_media_invoice(td, std::move(input_file), std::move(input_thumbnail));
     }
     case MessageContentType::LiveLocation: {
       const auto *m = static_cast<const MessageLiveLocation *>(content);
@@ -5438,6 +5439,16 @@ int32 get_message_content_media_duration(const MessageContent *content, const Td
     default:
       return -1;
   }
+}
+
+const Photo *get_message_content_photo(const MessageContent *content) {
+  switch (content->get_type()) {
+    case MessageContentType::Photo:
+      return &static_cast<const MessagePhoto *>(content)->photo;
+    default:
+      break;
+  }
+  return nullptr;
 }
 
 FileId get_message_content_upload_file_id(const MessageContent *content) {

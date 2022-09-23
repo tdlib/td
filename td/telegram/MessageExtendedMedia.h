@@ -50,6 +50,10 @@ class MessageExtendedMedia {
   MessageExtendedMedia(Td *td, telegram_api::object_ptr<telegram_api::MessageExtendedMedia> &&extended_media,
                        FormattedText &&caption, DialogId owner_dialog_id);
 
+  static Result<MessageExtendedMedia> get_message_extended_media(
+      Td *td, td_api::object_ptr<td_api::InputMessageContent> &&extended_media_content, DialogId owner_dialog_id,
+      bool is_premium);
+
   bool is_empty() const {
     return type_ == Type::Empty;
   }
@@ -89,6 +93,10 @@ class MessageExtendedMedia {
   FileId get_any_file_id() const;
 
   FileId get_thumbnail_file_id(const Td *td) const;
+
+  telegram_api::object_ptr<telegram_api::InputMedia> get_input_media(
+      Td *td, tl_object_ptr<telegram_api::InputFile> input_file,
+      tl_object_ptr<telegram_api::InputFile> input_thumbnail) const;
 
   template <class StorerT>
   void store(StorerT &storer) const;

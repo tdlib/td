@@ -8,6 +8,7 @@
 
 #include "td/telegram/Document.h"
 #include "td/telegram/DocumentsManager.h"
+#include "td/telegram/MessageContent.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/VideosManager.h"
 
@@ -90,6 +91,42 @@ MessageExtendedMedia::MessageExtendedMedia(
     default:
       UNREACHABLE();
   }
+}
+
+Result<MessageExtendedMedia> MessageExtendedMedia::get_message_extended_media(
+    Td *td, td_api::object_ptr<td_api::InputMessageContent> &&extended_media_content, DialogId owner_dialog_id,
+    bool is_premium) {
+  if (extended_media_content == nullptr) {
+    return MessageExtendedMedia();
+  }
+  if (!owner_dialog_id.is_valid()) {
+    return Status::Error(400, "Extended media can't be added to the invoice");
+  }
+
+  auto input_content_type = extended_media_content->get_id();
+  if (input_content_type != td_api::inputMessagePhoto::ID && input_content_type != td_api::inputMessageVideo::ID) {
+    return Status::Error("Invalid extended media content specified");
+  }
+  TRY_RESULT(input_message_content,
+             get_input_message_content(owner_dialog_id, std::move(extended_media_content), td, is_premium));
+  if (input_message_content.ttl != 0) {
+    return Status::Error("Can't use self-destructing extended media");
+  }
+
+  auto content = input_message_content.content.get();
+  auto content_type = content->get_type();
+  MessageExtendedMedia result;
+  CHECK(content_type == MessageContentType::Photo || content_type == MessageContentType::Video);
+  result.caption_ = *get_message_content_caption(content);
+  if (content_type == MessageContentType::Photo) {
+    result.type_ = Type::Photo;
+    result.photo_ = *get_message_content_photo(content);
+  } else {
+    CHECK(content_type == MessageContentType::Video);
+    result.type_ = Type::Video;
+    result.video_file_id_ = get_message_content_upload_file_id(content);
+  }
+  return result;
 }
 
 void MessageExtendedMedia::update_from(const MessageExtendedMedia &old_extended_media) {
@@ -232,6 +269,25 @@ FileId MessageExtendedMedia::get_thumbnail_file_id(const Td *td) const {
       break;
   }
   return FileId();
+}
+
+telegram_api::object_ptr<telegram_api::InputMedia> MessageExtendedMedia::get_input_media(
+    Td *td, tl_object_ptr<telegram_api::InputFile> input_file,
+    tl_object_ptr<telegram_api::InputFile> input_thumbnail) const {
+  switch (type_) {
+    case Type::Empty:
+    case Type::Unsupported:
+    case Type::Preview:
+      break;
+    case Type::Photo:
+      return photo_get_input_media(td->file_manager_.get(), photo_, std::move(input_file), 0);
+    case Type::Video:
+      return td->videos_manager_->get_input_media(video_file_id_, std::move(input_file), std::move(input_thumbnail), 0);
+    default:
+      UNREACHABLE();
+      break;
+  }
+  return nullptr;
 }
 
 bool operator==(const MessageExtendedMedia &lhs, const MessageExtendedMedia &rhs) {

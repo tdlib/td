@@ -66,12 +66,15 @@ struct InputInvoice {
                DialogId owner_dialog_id);
 
   static Result<InputInvoice> process_input_message_invoice(
-      td_api::object_ptr<td_api::InputMessageContent> &&input_message_content, Td *td);
+      td_api::object_ptr<td_api::InputMessageContent> &&input_message_content, Td *td, DialogId owner_dialog_id,
+      bool is_premium);
 
   tl_object_ptr<td_api::messageInvoice> get_message_invoice_object(Td *td, bool skip_bot_commands,
                                                                    int32 max_media_timestamp) const;
 
-  tl_object_ptr<telegram_api::inputMediaInvoice> get_input_media_invoice(Td *td) const;
+  tl_object_ptr<telegram_api::inputMediaInvoice> get_input_media_invoice(
+      Td *td, tl_object_ptr<telegram_api::InputFile> input_file,
+      tl_object_ptr<telegram_api::InputFile> input_thumbnail) const;
 
   tl_object_ptr<telegram_api::inputBotInlineMessageMediaInvoice> get_input_bot_inline_message_media_invoice(
       tl_object_ptr<telegram_api::ReplyMarkup> &&reply_markup, Td *td) const;

@@ -94,7 +94,8 @@ InputInvoice::InputInvoice(tl_object_ptr<telegram_api::botInlineMessageMediaInvo
 }
 
 Result<InputInvoice> InputInvoice::process_input_message_invoice(
-    td_api::object_ptr<td_api::InputMessageContent> &&input_message_content, Td *td) {
+    td_api::object_ptr<td_api::InputMessageContent> &&input_message_content, Td *td, DialogId owner_dialog_id,
+    bool is_premium) {
   CHECK(input_message_content != nullptr);
   CHECK(input_message_content->get_id() == td_api::inputMessageInvoice::ID);
   auto input_invoice = move_tl_object_as<td_api::inputMessageInvoice>(input_message_content);
@@ -216,8 +217,9 @@ Result<InputInvoice> InputInvoice::process_input_message_invoice(
   result.provider_token_ = std::move(input_invoice->provider_token_);
   result.provider_data_ = std::move(input_invoice->provider_data_);
 
-  // TRY_RESULT(extended_media, MessageExtendedMedia::get_message_extended_media(td, std::move(input_invoice->extended_media_)));
-  // result.extended_media_ = std::move(extended_media);
+  TRY_RESULT(extended_media, MessageExtendedMedia::get_message_extended_media(
+                                 td, std::move(input_invoice->extended_media_content_), owner_dialog_id, is_premium));
+  result.extended_media_ = std::move(extended_media);
 
   return result;
 }
@@ -299,7 +301,9 @@ static tl_object_ptr<telegram_api::inputWebDocument> get_input_web_document(cons
       std::move(attributes));
 }
 
-tl_object_ptr<telegram_api::inputMediaInvoice> InputInvoice::get_input_media_invoice(Td *td) const {
+tl_object_ptr<telegram_api::inputMediaInvoice> InputInvoice::get_input_media_invoice(
+    Td *td, tl_object_ptr<telegram_api::InputFile> input_file,
+    tl_object_ptr<telegram_api::InputFile> input_thumbnail) const {
   int32 flags = 0;
   if (!start_parameter_.empty()) {
     flags |= telegram_api::inputMediaInvoice::START_PARAM_MASK;
@@ -308,12 +312,20 @@ tl_object_ptr<telegram_api::inputMediaInvoice> InputInvoice::get_input_media_inv
   if (input_web_document != nullptr) {
     flags |= telegram_api::inputMediaInvoice::PHOTO_MASK;
   }
+  telegram_api::object_ptr<telegram_api::InputMedia> extended_media;
+  if (!extended_media_.is_empty()) {
+    flags |= telegram_api::inputMediaInvoice::EXTENDED_MEDIA_MASK;
+    extended_media = extended_media_.get_input_media(td, std::move(input_file), std::move(input_thumbnail));
+    if (extended_media == nullptr) {
+      return nullptr;
+    }
+  }
 
   return make_tl_object<telegram_api::inputMediaInvoice>(
       flags, title_, description_, std::move(input_web_document), get_input_invoice(invoice_), BufferSlice(payload_),
       provider_token_,
       telegram_api::make_object<telegram_api::dataJSON>(provider_data_.empty() ? "null" : provider_data_),
-      start_parameter_, nullptr);
+      start_parameter_, std::move(extended_media));
 }
 
 tl_object_ptr<telegram_api::inputBotInlineMessageMediaInvoice> InputInvoice::get_input_bot_inline_message_media_invoice(
