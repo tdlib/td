@@ -6936,10 +6936,7 @@ td_api::object_ptr<td_api::messageInteractionInfo> MessagesManager::get_message_
       my_user_id = td_->contacts_manager_->get_my_id();
       peer_user_id = dialog_id.get_user_id();
     }
-    reactions =
-        transform(m->reactions->reactions_, [td = td_, my_user_id, peer_user_id](const MessageReaction &reaction) {
-          return reaction.get_message_reaction_object(td, my_user_id, peer_user_id);
-        });
+    reactions = m->reactions->get_message_reactions_object(td_, my_user_id, peer_user_id);
   }
 
   return td_api::make_object<td_api::messageInteractionInfo>(m->view_count, m->forward_count, std::move(reply_info),

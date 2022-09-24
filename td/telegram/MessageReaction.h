@@ -13,6 +13,7 @@
 #include "td/telegram/MinChannel.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
+#include "td/telegram/UserId.h"
 
 #include "td/utils/common.h"
 #include "td/utils/FlatHashMap.h"
@@ -168,6 +169,9 @@ struct MessageReactions {
 
   bool are_consistent_with_list(const string &reaction, FlatHashMap<string, vector<DialogId>> reactions,
                                 int32 total_count) const;
+
+  vector<td_api::object_ptr<td_api::messageReaction>> get_message_reactions_object(Td *td, UserId my_user_id,
+                                                                                   UserId peer_user_id) const;
 
   static bool need_update_message_reactions(const MessageReactions *old_reactions,
                                             const MessageReactions *new_reactions);

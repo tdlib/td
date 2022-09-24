@@ -797,6 +797,13 @@ bool MessageReactions::are_consistent_with_list(const string &reaction, FlatHash
   }
 }
 
+vector<td_api::object_ptr<td_api::messageReaction>> MessageReactions::get_message_reactions_object(
+    Td *td, UserId my_user_id, UserId peer_user_id) const {
+  return transform(reactions_, [td, my_user_id, peer_user_id](const MessageReaction &reaction) {
+    return reaction.get_message_reaction_object(td, my_user_id, peer_user_id);
+  });
+}
+
 bool MessageReactions::need_update_message_reactions(const MessageReactions *old_reactions,
                                                      const MessageReactions *new_reactions) {
   if (old_reactions == nullptr) {
