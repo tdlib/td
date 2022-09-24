@@ -87,6 +87,8 @@ struct InputInvoice {
 
   bool has_media_timestamp() const;
 
+  bool is_equal_but_different(const InputInvoice &other) const;
+
   const FormattedText *get_caption() const;
 
   int32 get_duration(const Td *td) const;

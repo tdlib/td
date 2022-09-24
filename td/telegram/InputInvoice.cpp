@@ -34,10 +34,10 @@ static bool operator==(const Invoice &lhs, const Invoice &rhs) {
 
 bool operator==(const InputInvoice &lhs, const InputInvoice &rhs) {
   return lhs.title_ == rhs.title_ && lhs.description_ == rhs.description_ && lhs.photo_ == rhs.photo_ &&
-         lhs.start_parameter_ == rhs.start_parameter_ && lhs.invoice_ == rhs.invoice_ &&
-         lhs.total_amount_ == rhs.total_amount_ && lhs.receipt_message_id_ == rhs.receipt_message_id_ &&
-         lhs.payload_ == rhs.payload_ && lhs.provider_token_ == rhs.provider_token_ &&
-         lhs.provider_data_ == rhs.provider_data_ && lhs.extended_media_ == rhs.extended_media_;
+         lhs.start_parameter_ == rhs.start_parameter_ && lhs.invoice_ == rhs.invoice_ && lhs.payload_ == rhs.payload_ &&
+         lhs.provider_token_ == rhs.provider_token_ && lhs.provider_data_ == rhs.provider_data_ &&
+         lhs.extended_media_ == rhs.extended_media_ && lhs.total_amount_ == rhs.total_amount_ &&
+         lhs.receipt_message_id_ == rhs.receipt_message_id_;
 }
 
 bool operator!=(const InputInvoice &lhs, const InputInvoice &rhs) {
@@ -361,6 +361,10 @@ bool InputInvoice::need_reget() const {
 
 bool InputInvoice::has_media_timestamp() const {
   return extended_media_.has_media_timestamp();
+}
+
+bool InputInvoice::is_equal_but_different(const InputInvoice &other) const {
+  return extended_media_.is_equal_but_different(other.extended_media_);
 }
 
 const FormattedText *InputInvoice::get_caption() const {

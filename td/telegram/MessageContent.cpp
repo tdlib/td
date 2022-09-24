@@ -3225,9 +3225,7 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
       new_->input_invoice.update_from(old_->input_invoice);
       if (old_->input_invoice != new_->input_invoice) {
         need_update = true;
-      }
-      if (old_->input_invoice.extended_media_.get_unsupported_version() !=
-          new_->input_invoice.extended_media_.get_unsupported_version()) {
+      } else if (old_->input_invoice.is_equal_but_different(new_->input_invoice)) {
         is_content_changed = true;
       }
       break;

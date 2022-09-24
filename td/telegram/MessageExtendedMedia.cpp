@@ -142,7 +142,7 @@ bool MessageExtendedMedia::update_to(Td *td,
   if (!new_extended_media.is_media() && is_media()) {
     return false;
   }
-  if (*this != new_extended_media || get_unsupported_version() != new_extended_media.get_unsupported_version()) {
+  if (*this != new_extended_media || is_equal_but_different(new_extended_media)) {
     *this = std::move(new_extended_media);
     return true;
   }
@@ -290,6 +290,11 @@ telegram_api::object_ptr<telegram_api::InputMedia> MessageExtendedMedia::get_inp
   return nullptr;
 }
 
+bool MessageExtendedMedia::is_equal_but_different(const MessageExtendedMedia &other) const {
+  return type_ == Type::Unsupported && other.type_ == Type::Unsupported &&
+         unsupported_version_ != other.unsupported_version_;
+}
+
 bool operator==(const MessageExtendedMedia &lhs, const MessageExtendedMedia &rhs) {
   if (lhs.type_ != rhs.type_ || lhs.caption_ != rhs.caption_) {
     return false;
@@ -298,6 +303,7 @@ bool operator==(const MessageExtendedMedia &lhs, const MessageExtendedMedia &rhs
     case MessageExtendedMedia::Type::Empty:
       return true;
     case MessageExtendedMedia::Type::Unsupported:
+      // don't compare unsupported_version_
       return true;
     case MessageExtendedMedia::Type::Preview:
       return lhs.duration_ == rhs.duration_ && lhs.dimensions_ == rhs.dimensions_ &&

@@ -70,10 +70,6 @@ class MessageExtendedMedia {
 
   void delete_thumbnail(Td *td);
 
-  int32 get_unsupported_version() const {
-    return unsupported_version_;
-  }
-
   bool need_reget() const {
     return type_ == Type::Unsupported && unsupported_version_ < CURRENT_VERSION;
   }
@@ -85,6 +81,8 @@ class MessageExtendedMedia {
   bool has_media_timestamp() const {
     return type_ == Type::Video;
   }
+
+  bool is_equal_but_different(const MessageExtendedMedia &other) const;
 
   int32 get_duration(const Td *td) const;
 
