@@ -25505,13 +25505,8 @@ void MessagesManager::add_message_dependencies(Dependencies &dependencies, const
         LOG(INFO) << "Add min reacted " << recent_chooser_min_channel.first;
         td_->contacts_manager_->add_min_channel(recent_chooser_min_channel.first, recent_chooser_min_channel.second);
       }
-      const auto &dialog_ids = reaction.get_recent_chooser_dialog_ids();
-      for (auto dialog_id : dialog_ids) {
-        // don't load the dialog itself
-        // it will be created in get_message_reaction_object if needed
-        dependencies.add_dialog_dependencies(dialog_id);
-      }
     }
+    m->reactions->add_dependencies(dependencies);
   }
   add_message_content_dependencies(dependencies, m->content.get());
   add_reply_markup_dependencies(dependencies, m->reply_markup.get());

@@ -9,6 +9,7 @@
 #include "td/telegram/AccessRights.h"
 #include "td/telegram/ConfigManager.h"
 #include "td/telegram/ContactsManager.h"
+#include "td/telegram/Dependencies.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/MessageSender.h"
 #include "td/telegram/MessagesManager.h"
@@ -802,6 +803,17 @@ vector<td_api::object_ptr<td_api::messageReaction>> MessageReactions::get_messag
   return transform(reactions_, [td, my_user_id, peer_user_id](const MessageReaction &reaction) {
     return reaction.get_message_reaction_object(td, my_user_id, peer_user_id);
   });
+}
+
+void MessageReactions::add_dependencies(Dependencies &dependencies) const {
+  for (const auto &reaction : reactions_) {
+    const auto &dialog_ids = reaction.get_recent_chooser_dialog_ids();
+    for (auto dialog_id : dialog_ids) {
+      // don't load the dialog itself
+      // it will be created in get_message_reaction_object if needed
+      dependencies.add_dialog_dependencies(dialog_id);
+    }
+  }
 }
 
 bool MessageReactions::need_update_message_reactions(const MessageReactions *old_reactions,
