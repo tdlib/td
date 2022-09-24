@@ -166,6 +166,9 @@ struct MessageReactions {
 
   vector<string> get_chosen_reactions() const;
 
+  bool are_consistent_with_list(const string &reaction, FlatHashMap<string, vector<DialogId>> reactions,
+                                int32 total_count) const;
+
   static bool need_update_message_reactions(const MessageReactions *old_reactions,
                                             const MessageReactions *new_reactions);
 

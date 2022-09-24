@@ -762,6 +762,41 @@ vector<string> MessageReactions::get_chosen_reactions() const {
   return reaction_order;
 }
 
+bool MessageReactions::are_consistent_with_list(const string &reaction, FlatHashMap<string, vector<DialogId>> reactions,
+                                                int32 total_count) const {
+  auto are_consistent = [](const vector<DialogId> &lhs, const vector<DialogId> &rhs) {
+    size_t i = 0;
+    size_t max_i = td::min(lhs.size(), rhs.size());
+    while (i < max_i && lhs[i] == rhs[i]) {
+      i++;
+    }
+    return i == max_i;
+  };
+
+  if (reaction.empty()) {
+    // received list and total_count for all reactions
+    int32 old_total_count = 0;
+    for (const auto &message_reaction : reactions_) {
+      if (!are_consistent(reactions[message_reaction.get_reaction()],
+                          message_reaction.get_recent_chooser_dialog_ids())) {
+        return false;
+      }
+      old_total_count += message_reaction.get_choose_count();
+      reactions.erase(message_reaction.get_reaction());
+    }
+    return old_total_count == total_count && reactions.empty();
+  }
+
+  // received list and total_count for a single reaction
+  const auto *message_reaction = get_reaction(reaction);
+  if (message_reaction == nullptr) {
+    return reactions.count(reaction) == 0 && total_count == 0;
+  } else {
+    return are_consistent(reactions[reaction], message_reaction->get_recent_chooser_dialog_ids()) &&
+           message_reaction->get_choose_count() == total_count;
+  }
+}
+
 bool MessageReactions::need_update_message_reactions(const MessageReactions *old_reactions,
                                                      const MessageReactions *new_reactions) {
   if (old_reactions == nullptr) {

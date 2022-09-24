@@ -6726,40 +6726,9 @@ void MessagesManager::on_get_message_reaction_list(FullMessageId full_message_id
     return;
   }
 
-  auto are_consistent = [](const vector<DialogId> &lhs, const vector<DialogId> &rhs) {
-    size_t i = 0;
-    size_t max_i = td::min(lhs.size(), rhs.size());
-    while (i < max_i && lhs[i] == rhs[i]) {
-      i++;
-    }
-    return i == max_i;
-  };
-
   // it's impossible to use received reactions to update message reactions, because there is no way to find,
   // which reactions are chosen by the current user, so just reload message reactions for consistency
-  bool need_reload = false;
-  if (reaction.empty()) {
-    // received list and total_count for all reactions
-    int32 old_total_count = 0;
-    for (const auto &message_reaction : m->reactions->reactions_) {
-      need_reload |=
-          !are_consistent(reactions[message_reaction.get_reaction()], message_reaction.get_recent_chooser_dialog_ids());
-      old_total_count += message_reaction.get_choose_count();
-      reactions.erase(message_reaction.get_reaction());
-    }
-    need_reload |= old_total_count != total_count || !reactions.empty();
-  } else {
-    // received list and total_count for a single reaction
-    const auto *message_reaction = m->reactions->get_reaction(reaction);
-    if (message_reaction == nullptr) {
-      need_reload = reactions.count(reaction) != 0 || total_count > 0;
-    } else {
-      need_reload = !are_consistent(reactions[reaction], message_reaction->get_recent_chooser_dialog_ids()) ||
-                    message_reaction->get_choose_count() != total_count;
-    }
-  }
-
-  if (!need_reload) {
+  if (m->reactions->are_consistent_with_list(reaction, std::move(reactions), total_count)) {
     return;
   }
 
