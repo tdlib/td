@@ -41,6 +41,12 @@ struct Invoice {
   Invoice(string &&currency, bool is_test, bool need_shipping_address)
       : currency_(std::move(currency)), is_test_(is_test), need_shipping_address_(need_shipping_address) {
   }
+
+  template <class StorerT>
+  void store(StorerT &storer) const;
+
+  template <class ParserT>
+  void parse(ParserT &parser);
 };
 
 struct InputInvoice {
@@ -105,6 +111,12 @@ struct InputInvoice {
                              DialogId owner_dialog_id, Td *td);
 
   bool need_poll_extended_media() const;
+
+  template <class StorerT>
+  void store(StorerT &storer) const;
+
+  template <class ParserT>
+  void parse(ParserT &parser);
 };
 
 bool operator==(const InputInvoice &lhs, const InputInvoice &rhs);
