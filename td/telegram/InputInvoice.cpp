@@ -379,6 +379,10 @@ FileId InputInvoice::get_thumbnail_file_id(const Td *td) const {
   return extended_media_.get_thumbnail_file_id(td);
 }
 
+void InputInvoice::update_from(const InputInvoice &old_input_invoice) {
+  extended_media_.update_from(old_input_invoice.extended_media_);
+}
+
 bool InputInvoice::update_extended_media(telegram_api::object_ptr<telegram_api::MessageExtendedMedia> extended_media,
                                          DialogId owner_dialog_id, Td *td) {
   return extended_media_.update_to(td, std::move(extended_media), owner_dialog_id);

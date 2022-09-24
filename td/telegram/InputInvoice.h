@@ -95,6 +95,8 @@ struct InputInvoice {
 
   FileId get_thumbnail_file_id(const Td *td) const;
 
+  void update_from(const InputInvoice &old_input_invoice);
+
   bool update_extended_media(telegram_api::object_ptr<telegram_api::MessageExtendedMedia> extended_media,
                              DialogId owner_dialog_id, Td *td);
 
