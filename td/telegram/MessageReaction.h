@@ -175,6 +175,8 @@ struct MessageReactions {
   vector<td_api::object_ptr<td_api::messageReaction>> get_message_reactions_object(Td *td, UserId my_user_id,
                                                                                    UserId peer_user_id) const;
 
+  void add_min_channels(Td *td) const;
+
   void add_dependencies(Dependencies &dependencies) const;
 
   static bool need_update_message_reactions(const MessageReactions *old_reactions,

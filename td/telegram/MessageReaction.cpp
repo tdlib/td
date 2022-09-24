@@ -805,6 +805,15 @@ vector<td_api::object_ptr<td_api::messageReaction>> MessageReactions::get_messag
   });
 }
 
+void MessageReactions::add_min_channels(Td *td) const {
+  for (const auto &reaction : reactions_) {
+    for (const auto &recent_chooser_min_channel : reaction.get_recent_chooser_min_channels()) {
+      LOG(INFO) << "Add min reacted " << recent_chooser_min_channel.first;
+      td->contacts_manager_->add_min_channel(recent_chooser_min_channel.first, recent_chooser_min_channel.second);
+    }
+  }
+}
+
 void MessageReactions::add_dependencies(Dependencies &dependencies) const {
   for (const auto &reaction : reactions_) {
     const auto &dialog_ids = reaction.get_recent_chooser_dialog_ids();

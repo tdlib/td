@@ -25500,12 +25500,7 @@ void MessagesManager::add_message_dependencies(Dependencies &dependencies, const
     dependencies.add_dialog_dependencies(recent_replier_dialog_id);
   }
   if (m->reactions != nullptr) {
-    for (const auto &reaction : m->reactions->reactions_) {
-      for (const auto &recent_chooser_min_channel : reaction.get_recent_chooser_min_channels()) {
-        LOG(INFO) << "Add min reacted " << recent_chooser_min_channel.first;
-        td_->contacts_manager_->add_min_channel(recent_chooser_min_channel.first, recent_chooser_min_channel.second);
-      }
-    }
+    m->reactions->add_min_channels(td_);
     m->reactions->add_dependencies(dependencies);
   }
   add_message_content_dependencies(dependencies, m->content.get());
