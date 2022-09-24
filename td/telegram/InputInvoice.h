@@ -49,7 +49,7 @@ struct Invoice {
   void parse(ParserT &parser);
 };
 
-struct InputInvoice {
+class InputInvoice {
   string title_;
   string description_;
   Photo photo_;
@@ -63,6 +63,9 @@ struct InputInvoice {
   int64 total_amount_ = 0;
   MessageId receipt_message_id_;
 
+  friend bool operator==(const InputInvoice &lhs, const InputInvoice &rhs);
+
+ public:
   InputInvoice() = default;
 
   InputInvoice(tl_object_ptr<telegram_api::messageMediaInvoice> &&message_invoice, Td *td, DialogId owner_dialog_id,
