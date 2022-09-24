@@ -5756,7 +5756,7 @@ bool need_reget_message_content(const MessageContent *content) {
     }
     case MessageContentType::Invoice: {
       const auto *m = static_cast<const MessageInvoice *>(content);
-      return m->input_invoice.extended_media_.need_reget();
+      return m->input_invoice.need_reget();
     }
     default:
       return false;

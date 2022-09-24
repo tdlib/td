@@ -355,6 +355,10 @@ void InputInvoice::delete_thumbnail(Td *td) {
   extended_media_.delete_thumbnail(td);
 }
 
+bool InputInvoice::need_reget() const {
+  return extended_media_.need_reget();
+}
+
 bool InputInvoice::has_media_timestamp() const {
   return extended_media_.has_media_timestamp();
 }

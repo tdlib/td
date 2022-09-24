@@ -83,6 +83,8 @@ struct InputInvoice {
 
   void delete_thumbnail(Td *td);
 
+  bool need_reget() const;
+
   bool has_media_timestamp() const;
 
   const FormattedText *get_caption() const;
