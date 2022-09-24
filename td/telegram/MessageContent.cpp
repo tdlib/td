@@ -5709,6 +5709,14 @@ bool update_message_content_extended_media(MessageContent *content,
                                                                                      owner_dialog_id, td);
 }
 
+bool need_poll_message_content_extended_media(const MessageContent *content) {
+  CHECK(content != nullptr);
+  if (content->get_type() != MessageContentType::Invoice) {
+    return false;
+  }
+  return static_cast<const MessageInvoice *>(content)->input_invoice.need_poll_extended_media();
+}
+
 void get_message_content_animated_emoji_click_sticker(const MessageContent *content, FullMessageId full_message_id,
                                                       Td *td, Promise<td_api::object_ptr<td_api::sticker>> &&promise) {
   if (content->get_type() != MessageContentType::Text) {

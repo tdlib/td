@@ -1956,6 +1956,42 @@ class GetMessagesViewsQuery final : public Td::ResultHandler {
   }
 };
 
+class GetExtendedMediaQuery final : public Td::ResultHandler {
+  DialogId dialog_id_;
+  vector<MessageId> message_ids_;
+
+ public:
+  void send(DialogId dialog_id, vector<MessageId> &&message_ids) {
+    dialog_id_ = dialog_id;
+    message_ids_ = std::move(message_ids);
+
+    auto input_peer = td_->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
+    if (input_peer == nullptr) {
+      return on_error(Status::Error(400, "Can't access the chat"));
+    }
+
+    send_query(G()->net_query_creator().create(telegram_api::messages_getExtendedMedia(
+        std::move(input_peer), MessagesManager::get_server_message_ids(message_ids_))));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_getExtendedMedia>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for GetExtendedMediaQuery: " << to_string(ptr);
+    td_->updates_manager_->on_get_updates(std::move(ptr), Promise<Unit>());
+    td_->messages_manager_->finish_get_message_extended_media(dialog_id_, message_ids_);
+  }
+
+  void on_error(Status status) final {
+    td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "GetExtendedMediaQuery");
+    td_->messages_manager_->finish_get_message_extended_media(dialog_id_, message_ids_);
+  }
+};
+
 class ReadMessagesContentsQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
@@ -12846,16 +12882,22 @@ void MessagesManager::on_update_viewed_messages_timeout(DialogId dialog_id) {
   CHECK(info != nullptr);
   vector<MessageId> reaction_message_ids;
   vector<MessageId> views_message_ids;
+  vector<MessageId> extended_media_message_ids;
   for (auto &message_it : info->message_id_to_view_id) {
     Message *m = get_message_force(d, message_it.first, "on_update_viewed_messages_timeout");
     CHECK(m != nullptr);
     CHECK(m->message_id.is_valid());
+    CHECK(m->message_id.is_server());
     if (need_poll_message_reactions(d, m)) {
       reaction_message_ids.push_back(m->message_id);
     }
     if (m->view_count > 0 && !m->has_get_message_views_query) {
       m->has_get_message_views_query = true;
       views_message_ids.push_back(m->message_id);
+    }
+    if (need_poll_message_content_extended_media(m->content.get()) && !m->has_get_extended_media_query) {
+      m->has_get_extended_media_query = true;
+      extended_media_message_ids.push_back(m->message_id);
     }
   }
 
@@ -12864,6 +12906,9 @@ void MessagesManager::on_update_viewed_messages_timeout(DialogId dialog_id) {
   }
   if (!views_message_ids.empty()) {
     td_->create_handler<GetMessagesViewsQuery>()->send(dialog_id, std::move(views_message_ids), false);
+  }
+  if (!extended_media_message_ids.empty()) {
+    td_->create_handler<GetExtendedMediaQuery>()->send(dialog_id, std::move(extended_media_message_ids));
   }
 
   update_viewed_messages_timeout_.add_timeout_in(dialog_id.get(), UPDATE_VIEWED_MESSAGES_PERIOD);
@@ -21093,6 +21138,17 @@ void MessagesManager::finish_get_message_views(DialogId dialog_id, const vector<
     if (m != nullptr) {
       m->has_get_message_views_query = false;
       m->need_view_counter_increment = false;
+    }
+  }
+}
+
+void MessagesManager::finish_get_message_extended_media(DialogId dialog_id, const vector<MessageId> &message_ids) {
+  Dialog *d = get_dialog(dialog_id);
+  CHECK(d != nullptr);
+  for (auto message_id : message_ids) {
+    auto *m = get_message(d, message_id);
+    if (m != nullptr) {
+      m->has_get_extended_media_query = false;
     }
   }
 }

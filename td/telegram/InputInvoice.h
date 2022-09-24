@@ -97,6 +97,8 @@ struct InputInvoice {
 
   bool update_extended_media(telegram_api::object_ptr<telegram_api::MessageExtendedMedia> extended_media,
                              DialogId owner_dialog_id, Td *td);
+
+  bool need_poll_extended_media() const;
 };
 
 bool operator==(const InputInvoice &lhs, const InputInvoice &rhs);

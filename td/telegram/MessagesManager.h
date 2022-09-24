@@ -716,6 +716,8 @@ class MessagesManager final : public Actor {
 
   void finish_get_message_views(DialogId dialog_id, const vector<MessageId> &message_ids);
 
+  void finish_get_message_extended_media(DialogId dialog_id, const vector<MessageId> &message_ids);
+
   Status open_message_content(FullMessageId full_message_id) TD_WARN_UNUSED_RESULT;
 
   void click_animated_emoji_message(FullMessageId full_message_id,
@@ -1172,6 +1174,8 @@ class MessagesManager final : public Actor {
 
     bool has_get_message_views_query = false;
     bool need_view_counter_increment = false;
+
+    bool has_get_extended_media_query = false;
 
     DialogId real_forward_from_dialog_id;    // for resend_message
     MessageId real_forward_from_message_id;  // for resend_message

@@ -78,6 +78,10 @@ class MessageExtendedMedia {
     return type_ == Type::Unsupported && unsupported_version_ < CURRENT_VERSION;
   }
 
+  bool need_poll() const {
+    return type_ == Type::Preview;
+  }
+
   bool has_media_timestamp() const {
     return type_ == Type::Video;
   }

@@ -384,6 +384,10 @@ bool InputInvoice::update_extended_media(telegram_api::object_ptr<telegram_api::
   return extended_media_.update_to(td, std::move(extended_media), owner_dialog_id);
 }
 
+bool InputInvoice::need_poll_extended_media() const {
+  return extended_media_.need_poll();
+}
+
 tl_object_ptr<td_api::formattedText> get_product_description_object(const string &description) {
   FormattedText result;
   result.text = description;
