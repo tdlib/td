@@ -17,7 +17,7 @@
 namespace td {
 
 template <class StorerT>
-void Invoice::store(StorerT &storer) const {
+void InputInvoice::Invoice::store(StorerT &storer) const {
   using td::store;
   bool has_tip = max_tip_amount_ != 0;
   bool is_recurring = !recurring_payment_terms_of_service_url_.empty();
@@ -45,7 +45,7 @@ void Invoice::store(StorerT &storer) const {
 }
 
 template <class ParserT>
-void Invoice::parse(ParserT &parser) {
+void InputInvoice::Invoice::parse(ParserT &parser) {
   using td::parse;
   bool has_tip;
   bool is_recurring;

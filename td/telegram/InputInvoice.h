@@ -22,34 +22,36 @@ namespace td {
 
 class Td;
 
-struct Invoice {
-  string currency_;
-  vector<LabeledPricePart> price_parts_;
-  int64 max_tip_amount_ = 0;
-  vector<int64> suggested_tip_amounts_;
-  string recurring_payment_terms_of_service_url_;
-  bool is_test_ = false;
-  bool need_name_ = false;
-  bool need_phone_number_ = false;
-  bool need_email_address_ = false;
-  bool need_shipping_address_ = false;
-  bool send_phone_number_to_provider_ = false;
-  bool send_email_address_to_provider_ = false;
-  bool is_flexible_ = false;
-
-  Invoice() = default;
-  Invoice(string &&currency, bool is_test, bool need_shipping_address)
-      : currency_(std::move(currency)), is_test_(is_test), need_shipping_address_(need_shipping_address) {
-  }
-
-  template <class StorerT>
-  void store(StorerT &storer) const;
-
-  template <class ParserT>
-  void parse(ParserT &parser);
-};
-
 class InputInvoice {
+  struct Invoice {
+    string currency_;
+    vector<LabeledPricePart> price_parts_;
+    int64 max_tip_amount_ = 0;
+    vector<int64> suggested_tip_amounts_;
+    string recurring_payment_terms_of_service_url_;
+    bool is_test_ = false;
+    bool need_name_ = false;
+    bool need_phone_number_ = false;
+    bool need_email_address_ = false;
+    bool need_shipping_address_ = false;
+    bool send_phone_number_to_provider_ = false;
+    bool send_email_address_to_provider_ = false;
+    bool is_flexible_ = false;
+
+    Invoice() = default;
+    Invoice(string &&currency, bool is_test, bool need_shipping_address)
+        : currency_(std::move(currency)), is_test_(is_test), need_shipping_address_(need_shipping_address) {
+    }
+
+    tl_object_ptr<telegram_api::invoice> get_input_invoice() const;
+
+    template <class StorerT>
+    void store(StorerT &storer) const;
+
+    template <class ParserT>
+    void parse(ParserT &parser);
+  };
+
   string title_;
   string description_;
   Photo photo_;

@@ -20,24 +20,24 @@
 
 namespace td {
 
-static bool operator==(const Invoice &lhs, const Invoice &rhs) {
-  return lhs.is_test_ == rhs.is_test_ && lhs.need_name_ == rhs.need_name_ &&
-         lhs.need_phone_number_ == rhs.need_phone_number_ && lhs.need_email_address_ == rhs.need_email_address_ &&
-         lhs.need_shipping_address_ == rhs.need_shipping_address_ &&
-         lhs.send_phone_number_to_provider_ == rhs.send_phone_number_to_provider_ &&
-         lhs.send_email_address_to_provider_ == rhs.send_email_address_to_provider_ &&
-         lhs.is_flexible_ == rhs.is_flexible_ && lhs.currency_ == rhs.currency_ &&
-         lhs.price_parts_ == rhs.price_parts_ && lhs.max_tip_amount_ == rhs.max_tip_amount_ &&
-         lhs.suggested_tip_amounts_ == rhs.suggested_tip_amounts_ &&
-         lhs.recurring_payment_terms_of_service_url_ == rhs.recurring_payment_terms_of_service_url_;
-}
-
 bool operator==(const InputInvoice &lhs, const InputInvoice &rhs) {
+  auto are_invoice_equal = [](const InputInvoice::Invoice &lhs, const InputInvoice::Invoice &rhs) {
+    return lhs.is_test_ == rhs.is_test_ && lhs.need_name_ == rhs.need_name_ &&
+           lhs.need_phone_number_ == rhs.need_phone_number_ && lhs.need_email_address_ == rhs.need_email_address_ &&
+           lhs.need_shipping_address_ == rhs.need_shipping_address_ &&
+           lhs.send_phone_number_to_provider_ == rhs.send_phone_number_to_provider_ &&
+           lhs.send_email_address_to_provider_ == rhs.send_email_address_to_provider_ &&
+           lhs.is_flexible_ == rhs.is_flexible_ && lhs.currency_ == rhs.currency_ &&
+           lhs.price_parts_ == rhs.price_parts_ && lhs.max_tip_amount_ == rhs.max_tip_amount_ &&
+           lhs.suggested_tip_amounts_ == rhs.suggested_tip_amounts_ &&
+           lhs.recurring_payment_terms_of_service_url_ == rhs.recurring_payment_terms_of_service_url_;
+  };
+
   return lhs.title_ == rhs.title_ && lhs.description_ == rhs.description_ && lhs.photo_ == rhs.photo_ &&
-         lhs.start_parameter_ == rhs.start_parameter_ && lhs.invoice_ == rhs.invoice_ && lhs.payload_ == rhs.payload_ &&
-         lhs.provider_token_ == rhs.provider_token_ && lhs.provider_data_ == rhs.provider_data_ &&
-         lhs.extended_media_ == rhs.extended_media_ && lhs.total_amount_ == rhs.total_amount_ &&
-         lhs.receipt_message_id_ == rhs.receipt_message_id_;
+         lhs.start_parameter_ == rhs.start_parameter_ && are_invoice_equal(lhs.invoice_, rhs.invoice_) &&
+         lhs.payload_ == rhs.payload_ && lhs.provider_token_ == rhs.provider_token_ &&
+         lhs.provider_data_ == rhs.provider_data_ && lhs.extended_media_ == rhs.extended_media_ &&
+         lhs.total_amount_ == rhs.total_amount_ && lhs.receipt_message_id_ == rhs.receipt_message_id_;
 }
 
 bool operator!=(const InputInvoice &lhs, const InputInvoice &rhs) {
@@ -233,47 +233,46 @@ tl_object_ptr<td_api::messageInvoice> InputInvoice::get_message_invoice_object(T
       extended_media_.get_message_extended_media_object(td, skip_bot_commands, max_media_timestamp));
 }
 
-static tl_object_ptr<telegram_api::invoice> get_input_invoice(const Invoice &invoice) {
+tl_object_ptr<telegram_api::invoice> InputInvoice::Invoice::get_input_invoice() const {
   int32 flags = 0;
-  if (invoice.is_test_) {
+  if (is_test_) {
     flags |= telegram_api::invoice::TEST_MASK;
   }
-  if (invoice.need_name_) {
+  if (need_name_) {
     flags |= telegram_api::invoice::NAME_REQUESTED_MASK;
   }
-  if (invoice.need_phone_number_) {
+  if (need_phone_number_) {
     flags |= telegram_api::invoice::PHONE_REQUESTED_MASK;
   }
-  if (invoice.need_email_address_) {
+  if (need_email_address_) {
     flags |= telegram_api::invoice::EMAIL_REQUESTED_MASK;
   }
-  if (invoice.need_shipping_address_) {
+  if (need_shipping_address_) {
     flags |= telegram_api::invoice::SHIPPING_ADDRESS_REQUESTED_MASK;
   }
-  if (invoice.send_phone_number_to_provider_) {
+  if (send_phone_number_to_provider_) {
     flags |= telegram_api::invoice::PHONE_TO_PROVIDER_MASK;
   }
-  if (invoice.send_email_address_to_provider_) {
+  if (send_email_address_to_provider_) {
     flags |= telegram_api::invoice::EMAIL_TO_PROVIDER_MASK;
   }
-  if (invoice.is_flexible_) {
+  if (is_flexible_) {
     flags |= telegram_api::invoice::FLEXIBLE_MASK;
   }
-  if (invoice.max_tip_amount_ != 0) {
+  if (max_tip_amount_ != 0) {
     flags |= telegram_api::invoice::MAX_TIP_AMOUNT_MASK;
   }
-  if (!invoice.recurring_payment_terms_of_service_url_.empty()) {
+  if (!recurring_payment_terms_of_service_url_.empty()) {
     flags |= telegram_api::invoice::RECURRING_TERMS_URL_MASK;
   }
 
-  auto prices = transform(invoice.price_parts_, [](const LabeledPricePart &price) {
+  auto prices = transform(price_parts_, [](const LabeledPricePart &price) {
     return telegram_api::make_object<telegram_api::labeledPrice>(price.label, price.amount);
   });
   return make_tl_object<telegram_api::invoice>(
       flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-      false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, invoice.currency_, std::move(prices),
-      invoice.max_tip_amount_, vector<int64>(invoice.suggested_tip_amounts_),
-      invoice.recurring_payment_terms_of_service_url_);
+      false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, currency_, std::move(prices),
+      max_tip_amount_, vector<int64>(suggested_tip_amounts_), recurring_payment_terms_of_service_url_);
 }
 
 static tl_object_ptr<telegram_api::inputWebDocument> get_input_web_document(const FileManager *file_manager,
@@ -322,7 +321,7 @@ tl_object_ptr<telegram_api::inputMediaInvoice> InputInvoice::get_input_media_inv
   }
 
   return make_tl_object<telegram_api::inputMediaInvoice>(
-      flags, title_, description_, std::move(input_web_document), get_input_invoice(invoice_), BufferSlice(payload_),
+      flags, title_, description_, std::move(input_web_document), invoice_.get_input_invoice(), BufferSlice(payload_),
       provider_token_,
       telegram_api::make_object<telegram_api::dataJSON>(provider_data_.empty() ? "null" : provider_data_),
       start_parameter_, std::move(extended_media));
@@ -339,7 +338,7 @@ tl_object_ptr<telegram_api::inputBotInlineMessageMediaInvoice> InputInvoice::get
     flags |= telegram_api::inputBotInlineMessageMediaInvoice::PHOTO_MASK;
   }
   return make_tl_object<telegram_api::inputBotInlineMessageMediaInvoice>(
-      flags, title_, description_, std::move(input_web_document), get_input_invoice(invoice_), BufferSlice(payload_),
+      flags, title_, description_, std::move(input_web_document), invoice_.get_input_invoice(), BufferSlice(payload_),
       provider_token_,
       telegram_api::make_object<telegram_api::dataJSON>(provider_data_.empty() ? "null" : provider_data_),
       std::move(reply_markup));
