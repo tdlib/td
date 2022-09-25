@@ -3751,8 +3751,8 @@ internalLinkTypeFilterSettings = InternalLinkType;
 //@bot_username Username of the bot that owns the game @game_short_name Short name of the game
 internalLinkTypeGame bot_username:string game_short_name:string = InternalLinkType;
 
-//@description The link must be opened in an Instant View. Call getWebPageInstantView with the given URL to process the link @url URL to be passed to getWebPageInstantView
-internalLinkTypeInstantView url:string = InternalLinkType;
+//@description The link must be opened in an Instant View. Call getWebPageInstantView with the given URL to process the link @url URL to be passed to getWebPageInstantView @fallback_url An URL to open if getWebPageInstantView fails
+internalLinkTypeInstantView url:string fallback_url:string = InternalLinkType;
 
 //@description The link is a link to an invoice. Call getPaymentForm with the given invoice name to process the link @invoice_name Name of the invoice
 internalLinkTypeInvoice invoice_name:string = InternalLinkType;

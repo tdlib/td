@@ -339,13 +339,15 @@ class LinkManager::InternalLinkGame final : public InternalLink {
 
 class LinkManager::InternalLinkInstantView final : public InternalLink {
   string url_;
+  string fallback_url_;
 
   td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
-    return td_api::make_object<td_api::internalLinkTypeInstantView>(url_);
+    return td_api::make_object<td_api::internalLinkTypeInstantView>(url_, fallback_url_);
   }
 
  public:
-  explicit InternalLinkInstantView(string url) : url_(std::move(url)) {
+  InternalLinkInstantView(string url, string fallback_url)
+      : url_(std::move(url)), fallback_url_(std::move(fallback_url)) {
   }
 };
 
@@ -975,7 +977,7 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_internal_link(Slice lin
     case LinkType::TMe:
       return parse_t_me_link_query(info.query_, is_trusted);
     case LinkType::Telegraph:
-      return td::make_unique<InternalLinkInstantView>(PSTRING() << "https://telegra.ph" << info.query_);
+      return td::make_unique<InternalLinkInstantView>(PSTRING() << "https://telegra.ph" << info.query_, link.str());
     default:
       UNREACHABLE();
       return nullptr;
@@ -1364,8 +1366,8 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_t_me_link_query(Slice q
   } else if (path[0] == "iv") {
     if (path.size() == 1 && has_arg("url")) {
       // /iv?url=<url>&rhash=<rhash>
-      return td::make_unique<InternalLinkInstantView>(PSTRING()
-                                                      << "https://t.me/iv" << copy_arg("url") << copy_arg("rhash"));
+      return td::make_unique<InternalLinkInstantView>(
+          PSTRING() << "https://t.me/iv" << copy_arg("url") << copy_arg("rhash"), get_arg("url"));
     }
   } else if (is_valid_username(path[0])) {
     if (path.size() >= 2 && to_integer<int64>(path[1]) > 0) {

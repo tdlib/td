@@ -157,8 +157,8 @@ TEST(Link, parse_internal_link) {
   auto game = [](const td::string &bot_username, const td::string &game_short_name) {
     return td::td_api::make_object<td::td_api::internalLinkTypeGame>(bot_username, game_short_name);
   };
-  auto instant_view = [](const td::string &url) {
-    return td::td_api::make_object<td::td_api::internalLinkTypeInstantView>(url);
+  auto instant_view = [](const td::string &url, const td::string &fallback_url) {
+    return td::td_api::make_object<td::td_api::internalLinkTypeInstantView>(url, fallback_url);
   };
   auto invoice = [](const td::string &invoice_name) {
     return td::td_api::make_object<td::td_api::internalLinkTypeInvoice>(invoice_name);
@@ -643,14 +643,15 @@ TEST(Link, parse_internal_link) {
   parse_internal_link("tg:setlanguage?lang=abc%30ef", language_pack("abc0ef"));
   parse_internal_link("tg://setlanguage?lang=", unknown_deep_link("tg://setlanguage?lang="));
 
-  parse_internal_link("http://telegram.dog/iv?url=https://telegram.org&rhash=abcdef&test=1&tg_rhash=1",
-                      instant_view("https://t.me/iv?url=https%3A%2F%2Ftelegram.org&rhash=abcdef"));
+  parse_internal_link(
+      "http://telegram.dog/iv?url=https://telegram.org&rhash=abcdef&test=1&tg_rhash=1",
+      instant_view("https://t.me/iv?url=https%3A%2F%2Ftelegram.org&rhash=abcdef", "https://telegram.org"));
   parse_internal_link("t.me/iva?url=https://telegram.org&rhash=abcdef", public_chat("iva"));
   parse_internal_link("t.me/iv?url=&rhash=abcdef", nullptr);
   parse_internal_link("t.me/iv?url=https://telegram.org&rhash=",
-                      instant_view("https://t.me/iv?url=https%3A%2F%2Ftelegram.org&rhash"));
+                      instant_view("https://t.me/iv?url=https%3A%2F%2Ftelegram.org&rhash", "https://telegram.org"));
   parse_internal_link("t.me/iv//////?url=https://telegram.org&rhash=",
-                      instant_view("https://t.me/iv?url=https%3A%2F%2Ftelegram.org&rhash"));
+                      instant_view("https://t.me/iv?url=https%3A%2F%2Ftelegram.org&rhash", "https://telegram.org"));
   parse_internal_link("t.me/iv/////1/?url=https://telegram.org&rhash=", nullptr);
   parse_internal_link("t.me/iv", nullptr);
   parse_internal_link("t.me/iv?#url=https://telegram.org&rhash=abcdef", nullptr);
@@ -968,7 +969,7 @@ TEST(Link, parse_internal_link) {
 
   parse_internal_link("www.telegra.ph/", nullptr);
   parse_internal_link("www.telegrA.ph/#", nullptr);
-  parse_internal_link("www.telegrA.ph/?", instant_view("https://telegra.ph/?"));
-  parse_internal_link("http://te.leGra.ph/?", instant_view("https://telegra.ph/?"));
-  parse_internal_link("https://grAph.org/12345", instant_view("https://telegra.ph/12345"));
+  parse_internal_link("www.telegrA.ph/?", instant_view("https://telegra.ph/?", "www.telegrA.ph/?"));
+  parse_internal_link("http://te.leGra.ph/?", instant_view("https://telegra.ph/?", "http://te.leGra.ph/?"));
+  parse_internal_link("https://grAph.org/12345", instant_view("https://telegra.ph/12345", "https://grAph.org/12345"));
 }
