@@ -334,9 +334,11 @@ voiceNote duration:int32 waveform:bytes mime_type:string speech_recognition_resu
 
 //@description Describes an animated or custom representation of an emoji
 //@sticker Sticker for the emoji; may be null if yet unknown for a custom emoji. If the sticker is a custom emoji, it can have arbitrary format different from stickerFormatTgs
+//@sticker_width Expected width of the sticker, which can be used if the sticker is null
+//@sticker_height Expected height of the sticker, which can be used if the sticker is null
 //@fitzpatrick_type Emoji modifier fitzpatrick type; 0-6; 0 if none
 //@sound File containing the sound to be played when the sticker is clicked; may be null. The sound is encoded with the Opus codec, and stored inside an OGG container
-animatedEmoji sticker:sticker fitzpatrick_type:int32 sound:file = AnimatedEmoji;
+animatedEmoji sticker:sticker sticker_width:int32 sticker_height:int32 fitzpatrick_type:int32 sound:file = AnimatedEmoji;
 
 //@description Describes a user contact @phone_number Phone number of the user @first_name First name of the user; 1-255 characters in length @last_name Last name of the user @vcard Additional data about the user in a form of vCard; 0-2048 bytes in length @user_id Identifier of the user, if known; otherwise 0
 contact phone_number:string first_name:string last_name:string vcard:string user_id:int53 = Contact;

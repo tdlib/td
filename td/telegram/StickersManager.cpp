@@ -2600,7 +2600,11 @@ td_api::object_ptr<td_api::animatedEmoji> StickersManager::get_animated_emoji_ob
     auto it = custom_emoji_messages_.find(custom_emoji_id);
     auto sticker_id = it == custom_emoji_messages_.end() ? get_custom_animated_emoji_sticker_id(custom_emoji_id)
                                                          : it->second->sticker_id_;
-    return td_api::make_object<td_api::animatedEmoji>(get_sticker_object(sticker_id, true), 0, nullptr);
+    auto sticker = get_sticker_object(sticker_id, true);
+    auto default_custom_emoji_dimension = static_cast<int32>(512 * animated_emoji_zoom_ + 0.5);
+    auto sticker_width = sticker == nullptr ? default_custom_emoji_dimension : sticker->width_;
+    auto sticker_height = sticker == nullptr ? default_custom_emoji_dimension : sticker->height_;
+    return td_api::make_object<td_api::animatedEmoji>(std::move(sticker), sticker_width, sticker_height, 0, nullptr);
   }
 
   auto it = emoji_messages_.find(emoji);
@@ -2616,8 +2620,12 @@ td_api::object_ptr<td_api::animatedEmoji> StickersManager::get_animated_emoji_ob
   if (!animated_sticker.first.is_valid()) {
     return nullptr;
   }
+  auto sticker = get_sticker_object(animated_sticker.first, true);
+  CHECK(sticker != nullptr);
+  auto sticker_width = sticker->width_;
+  auto sticker_height = sticker->height_;
   return td_api::make_object<td_api::animatedEmoji>(
-      get_sticker_object(animated_sticker.first, true), animated_sticker.second,
+      std::move(sticker), sticker_width, sticker_height, animated_sticker.second,
       sound_file_id.is_valid() ? td_->file_manager_->get_file_object(sound_file_id) : nullptr);
 }
 
