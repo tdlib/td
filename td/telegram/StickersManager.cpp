@@ -3618,7 +3618,7 @@ StickerSetId StickersManager::on_get_sticker_set_covered(tl_object_ptr<telegram_
     case telegram_api::stickerSetFullCovered::ID: {
       auto set = move_tl_object_as<telegram_api::stickerSetFullCovered>(set_ptr);
       auto sticker_set = telegram_api::make_object<telegram_api::messages_stickerSet>(
-          std::move(set->set_), std::move(set->packs_), std::move(set->documents_));
+          std::move(set->set_), std::move(set->packs_), std::move(set->keywords_), std::move(set->documents_));
       return on_get_messages_sticker_set(StickerSetId(), std::move(sticker_set), is_changed, source);
     }
     default:
