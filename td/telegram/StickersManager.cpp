@@ -2191,12 +2191,16 @@ tl_object_ptr<td_api::sticker> StickersManager::get_sticker_object(FileId file_i
   double zoom = 1.0;
   if ((is_sticker_format_vector(sticker->format_) || sticker->type_ == StickerType::CustomEmoji) &&
       (for_animated_emoji || for_clicked_animated_emoji)) {
-    zoom = for_clicked_animated_emoji ? 3 * animated_emoji_zoom_ : animated_emoji_zoom_;
     if (sticker->type_ == StickerType::CustomEmoji && max(width, height) <= 100) {
       zoom *= 5.12;
     }
     width = static_cast<int32>(width * zoom + 0.5);
     height = static_cast<int32>(height * zoom + 0.5);
+    if (for_clicked_animated_emoji) {
+      zoom *= 3;
+      width *= 3;
+      height *= 3;
+    }
   }
   auto premium_animation_object = sticker->premium_animation_file_id_.is_valid()
                                       ? td_->file_manager_->get_file_object(sticker->premium_animation_file_id_)
