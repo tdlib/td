@@ -18,6 +18,7 @@
 #include "td/telegram/DocumentsManager.h"
 #include "td/telegram/DocumentsManager.hpp"
 #include "td/telegram/files/FileId.h"
+#include "td/telegram/LinkManager.h"
 #include "td/telegram/Location.h"
 #include "td/telegram/Photo.h"
 #include "td/telegram/Photo.hpp"
@@ -32,6 +33,7 @@
 
 #include "td/utils/algorithm.h"
 #include "td/utils/common.h"
+#include "td/utils/HttpUrl.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/SliceBuilder.h"
@@ -47,6 +49,8 @@ class RichText;
 struct GetWebPageBlockObjectContext {
   Td *td_ = nullptr;
   Slice base_url_;
+  string real_url_host_;
+  string real_url_rhash_;
 
   bool is_first_pass_ = true;
   bool has_anchor_urls_ = false;
@@ -145,6 +149,15 @@ class RichText {
                 }
               }
             }
+          }
+        }
+        if (!context->real_url_rhash_.empty() && get_url_host(content) == context->real_url_host_) {
+          if (context->is_first_pass_) {
+            context->has_anchor_urls_ = true;
+          } else {
+            return make_tl_object<td_api::richTextUrl>(
+                texts[0].get_rich_text_object(context),
+                LinkManager::get_instant_view_link(content, context->real_url_rhash_), true);
           }
         }
         return make_tl_object<td_api::richTextUrl>(texts[0].get_rich_text_object(context), content,
@@ -2387,12 +2400,19 @@ vector<unique_ptr<WebPageBlock>> get_web_page_blocks(
 }
 
 vector<td_api::object_ptr<td_api::PageBlock>> get_page_blocks_object(
-    const vector<unique_ptr<WebPageBlock>> &page_blocks, Td *td, Slice base_url) {
+    const vector<unique_ptr<WebPageBlock>> &page_blocks, Td *td, Slice base_url, Slice real_url) {
   GetWebPageBlockObjectContext context;
   context.td_ = td;
   context.base_url_ = base_url;
+  context.real_url_rhash_ = LinkManager::get_instant_view_link_rhash(real_url);
+  if (!context.real_url_rhash_.empty()) {
+    context.real_url_host_ = get_url_host(LinkManager::get_instant_view_link_url(real_url));
+    if (context.real_url_host_.empty()) {
+      context.real_url_rhash_ = string();
+    }
+  }
   auto blocks = get_page_blocks_object(page_blocks, &context);
-  if (context.anchors_.empty() || !context.has_anchor_urls_) {
+  if (!context.has_anchor_urls_) {
     return blocks;
   }
 

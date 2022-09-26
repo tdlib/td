@@ -78,6 +78,12 @@ class LinkManager final : public Actor {
 
   static string get_dialog_invite_link(Slice hash, bool is_internal);
 
+  static string get_instant_view_link_url(Slice link);
+
+  static string get_instant_view_link_rhash(Slice link);
+
+  static string get_instant_view_link(Slice url, Slice rhash);
+
   static UserId get_link_user_id(Slice url);
 
   static Result<int64> get_link_custom_emoji_document_id(Slice url);

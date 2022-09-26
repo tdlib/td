@@ -232,6 +232,14 @@ Slice HttpUrlQuery::get_arg(Slice key) const {
   return it == args_.end() ? Slice() : it->second;
 }
 
+string get_url_host(Slice url) {
+  auto r_http_url = parse_url(url);
+  if (r_http_url.is_error()) {
+    return string();
+  }
+  return r_http_url.ok().host_;
+}
+
 string get_url_query_file_name(const string &query) {
   Slice query_slice = query;
   query_slice.truncate(query.find_first_of("?#"));

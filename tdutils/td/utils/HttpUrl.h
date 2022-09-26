@@ -55,6 +55,8 @@ class HttpUrlQuery {
 
 HttpUrlQuery parse_url_query(Slice query);
 
+string get_url_host(Slice url);
+
 string get_url_query_file_name(const string &query);
 
 string get_url_file_name(Slice url);

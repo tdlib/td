@@ -1299,11 +1299,15 @@ tl_object_ptr<td_api::webPage> WebPagesManager::get_web_page_object(WebPageId we
 
 tl_object_ptr<td_api::webPageInstantView> WebPagesManager::get_web_page_instant_view_object(
     WebPageId web_page_id) const {
-  return get_web_page_instant_view_object(web_page_id, get_web_page_instant_view(web_page_id));
+  const WebPage *web_page = get_web_page(web_page_id);
+  if (web_page == nullptr || web_page->instant_view.is_empty) {
+    return nullptr;
+  }
+  return get_web_page_instant_view_object(web_page_id, &web_page->instant_view, web_page->url);
 }
 
 tl_object_ptr<td_api::webPageInstantView> WebPagesManager::get_web_page_instant_view_object(
-    WebPageId web_page_id, const WebPageInstantView *web_page_instant_view) const {
+    WebPageId web_page_id, const WebPageInstantView *web_page_instant_view, Slice web_page_url) const {
   if (web_page_instant_view == nullptr) {
     return nullptr;
   }
@@ -1314,7 +1318,7 @@ tl_object_ptr<td_api::webPageInstantView> WebPagesManager::get_web_page_instant_
   auto feedback_link = td_api::make_object<td_api::internalLinkTypeBotStart>(
       "previews", PSTRING() << "webpage" << web_page_id.get(), true);
   return td_api::make_object<td_api::webPageInstantView>(
-      get_page_blocks_object(web_page_instant_view->page_blocks, td_, web_page_instant_view->url),
+      get_page_blocks_object(web_page_instant_view->page_blocks, td_, web_page_instant_view->url, web_page_url),
       web_page_instant_view->view_count, web_page_instant_view->is_v2 ? 2 : 1, web_page_instant_view->is_rtl,
       web_page_instant_view->is_full, std::move(feedback_link));
 }
@@ -1500,7 +1504,7 @@ void WebPagesManager::on_get_web_page_instant_view(WebPage *web_page, tl_object_
   web_page->instant_view.is_loaded = true;
 
   LOG(DEBUG) << "Receive web page instant view: "
-             << to_string(get_web_page_instant_view_object(WebPageId(), &web_page->instant_view));
+             << to_string(get_web_page_instant_view_object(WebPageId(), &web_page->instant_view, web_page->url));
 }
 
 class WebPagesManager::WebPageLogEvent {

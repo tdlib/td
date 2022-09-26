@@ -1617,6 +1617,37 @@ string LinkManager::get_dialog_invite_link(Slice hash, bool is_internal) {
   }
 }
 
+string LinkManager::get_instant_view_link_url(Slice link) {
+  auto link_info = get_link_info(link);
+  if (link_info.type_ != LinkType::TMe) {
+    return string();
+  }
+  const auto url_query = parse_url_query(link_info.query_);
+  const auto &path = url_query.path_;
+  if (path.size() == 1 && path[0] == "iv") {
+    return url_query.get_arg("url").str();
+  }
+  return string();
+}
+
+string LinkManager::get_instant_view_link_rhash(Slice link) {
+  auto link_info = get_link_info(link);
+  if (link_info.type_ != LinkType::TMe) {
+    return string();
+  }
+  const auto url_query = parse_url_query(link_info.query_);
+  const auto &path = url_query.path_;
+  if (path.size() == 1 && path[0] == "iv" && !url_query.get_arg("url").empty()) {
+    return url_query.get_arg("rhash").str();
+  }
+  return string();
+}
+
+string LinkManager::get_instant_view_link(Slice url, Slice rhash) {
+  return PSTRING() << G()->get_option_string("t_me_url", "https://t.me/") << "iv?url=" << url_encode(url)
+                   << "&rhash=" << url_encode(rhash);
+}
+
 UserId LinkManager::get_link_user_id(Slice url) {
   string lower_cased_url = to_lower(url);
   url = lower_cased_url;
