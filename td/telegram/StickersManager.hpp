@@ -204,6 +204,7 @@ void StickersManager::store_sticker_set(const StickerSet *sticker_set, bool with
   STORE_FLAG(is_webm);
   STORE_FLAG(is_emojis);
   STORE_FLAG(has_thumbnail_document_id);
+  STORE_FLAG(sticker_set->are_keywords_loaded_);
   END_STORE_FLAGS();
   store(sticker_set->id_.get(), storer);
   store(sticker_set->access_hash_, storer);
@@ -234,6 +235,14 @@ void StickersManager::store_sticker_set(const StickerSet *sticker_set, bool with
       if (was_loaded) {
         auto it = sticker_set->sticker_emojis_map_.find(sticker_id);
         if (it != sticker_set->sticker_emojis_map_.end()) {
+          store(it->second, storer);
+        } else {
+          store(vector<string>(), storer);
+        }
+      }
+      if (sticker_set->are_keywords_loaded_) {
+        auto it = sticker_set->sticker_keywords_map_.find(sticker_id);
+        if (it != sticker_set->sticker_keywords_map_.end()) {
           store(it->second, storer);
         } else {
           store(vector<string>(), storer);
@@ -277,6 +286,7 @@ void StickersManager::parse_sticker_set(StickerSet *sticker_set, ParserT &parser
   PARSE_FLAG(is_webm);
   PARSE_FLAG(is_emojis);
   PARSE_FLAG(has_thumbnail_document_id);
+  PARSE_FLAG(sticker_set->are_keywords_loaded_);
   END_PARSE_FLAGS();
   int64 sticker_set_id;
   int64 access_hash;
@@ -367,6 +377,7 @@ void StickersManager::parse_sticker_set(StickerSet *sticker_set, ParserT &parser
     if (sticker_set->was_loaded_) {
       sticker_set->emoji_stickers_map_.clear();
       sticker_set->sticker_emojis_map_.clear();
+      sticker_set->sticker_keywords_map_.clear();
     }
     for (uint32 i = 0; i < stored_sticker_count; i++) {
       auto sticker_id = parse_sticker(true, parser);
@@ -404,6 +415,13 @@ void StickersManager::parse_sticker_set(StickerSet *sticker_set, ParserT &parser
           }
         }
         sticker_set->sticker_emojis_map_[sticker_id] = std::move(emojis);
+      }
+      if (sticker_set->are_keywords_loaded_) {
+        vector<string> keywords;
+        parse(keywords, parser);
+        if (!keywords.empty()) {
+          sticker_set->sticker_keywords_map_.emplace(sticker_id, std::move(keywords));
+        }
       }
     }
     if (expires_at > sticker_set->expires_at_) {

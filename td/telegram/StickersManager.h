@@ -438,6 +438,7 @@ class StickersManager final : public Actor {
     bool is_inited_ = false;  // basic information about the set
     bool was_loaded_ = false;
     bool is_loaded_ = false;
+    bool are_keywords_loaded_ = false;
 
     StickerSetId id_;
     int64 access_hash_ = 0;
@@ -455,8 +456,9 @@ class StickersManager final : public Actor {
 
     vector<FileId> sticker_ids_;
     vector<int32> premium_sticker_positions_;
-    FlatHashMap<string, vector<FileId>> emoji_stickers_map_;              // emoji -> stickers
-    FlatHashMap<FileId, vector<string>, FileIdHash> sticker_emojis_map_;  // sticker -> emojis
+    FlatHashMap<string, vector<FileId>> emoji_stickers_map_;                // emoji -> stickers
+    FlatHashMap<FileId, vector<string>, FileIdHash> sticker_emojis_map_;    // sticker -> emojis
+    FlatHashMap<FileId, vector<string>, FileIdHash> sticker_keywords_map_;  // sticker -> keywords
 
     bool is_installed_ = false;
     bool is_archived_ = false;

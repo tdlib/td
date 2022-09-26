@@ -3673,16 +3673,14 @@ StickerSetId StickersManager::on_get_messages_sticker_set(StickerSetId sticker_s
   s->was_loaded_ = true;
   s->is_loaded_ = true;
   s->is_changed_ = true;
-
-  vector<tl_object_ptr<telegram_api::stickerPack>> packs = std::move(set->packs_);
-  vector<tl_object_ptr<telegram_api::Document>> documents = std::move(set->documents_);
+  s->are_keywords_loaded_ = true;
 
   FlatHashMap<int64, FileId> document_id_to_sticker_id;
 
   s->sticker_ids_.clear();
   s->premium_sticker_positions_.clear();
   bool is_bot = td_->auth_manager_->is_bot();
-  for (auto &document_ptr : documents) {
+  for (auto &document_ptr : set->documents_) {
     auto sticker_id = on_get_sticker_document(std::move(document_ptr), s->sticker_format_);
     if (!sticker_id.second.is_valid() || sticker_id.first == 0) {
       continue;
@@ -3705,7 +3703,8 @@ StickerSetId StickersManager::on_get_messages_sticker_set(StickerSetId sticker_s
   if (!is_bot) {
     s->emoji_stickers_map_.clear();
     s->sticker_emojis_map_.clear();
-    for (auto &pack : packs) {
+    s->sticker_keywords_map_.clear();
+    for (auto &pack : set->packs_) {
       auto cleaned_emoji = remove_emoji_modifiers(pack->emoticon_);
       if (cleaned_emoji.empty()) {
         LOG(ERROR) << "Receive empty emoji in " << set_id << "/" << s->short_name_ << " from " << source;
@@ -3731,6 +3730,21 @@ StickerSetId StickersManager::on_get_messages_sticker_set(StickerSetId sticker_s
         if (!td::contains(sticker_ids, sticker_id)) {
           sticker_ids.push_back(sticker_id);
         }
+      }
+    }
+    for (auto &keywords : set->keywords_) {
+      auto document_id = keywords->document_id_;
+      auto it = document_id_to_sticker_id.find(document_id);
+      if (it == document_id_to_sticker_id.end()) {
+        LOG(ERROR) << "Can't find document with ID " << document_id << " in " << set_id << "/" << s->short_name_
+                   << " from " << source;
+        continue;
+      }
+
+      bool is_inserted = s->sticker_keywords_map_.emplace(it->second, std::move(keywords->keyword_)).second;
+      if (!is_inserted) {
+        LOG(ERROR) << "Receive twice document with ID " << document_id << " in " << set_id << "/" << s->short_name_
+                   << " from " << source;
       }
     }
   }
@@ -5276,7 +5290,8 @@ void StickersManager::on_load_sticker_set_from_database(StickerSetId sticker_set
                  << format::as_hex_dump<4>(Slice(value));
     }
   }
-  if (!sticker_set->is_thumbnail_reloaded_ || !sticker_set->are_legacy_sticker_thumbnails_reloaded_) {
+  if (!sticker_set->are_keywords_loaded_ || !sticker_set->is_thumbnail_reloaded_ ||
+      !sticker_set->are_legacy_sticker_thumbnails_reloaded_) {
     do_reload_sticker_set(sticker_set_id, get_input_sticker_set(sticker_set), 0, Auto());
   }
 
