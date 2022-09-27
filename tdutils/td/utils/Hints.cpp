@@ -35,36 +35,7 @@ vector<string> Hints::fix_words(vector<string> words) {
 }
 
 vector<string> Hints::get_words(Slice name) {
-  bool in_word = false;
-  string word;
-  vector<string> words;
-  auto pos = name.ubegin();
-  auto end = name.uend();
-  while (pos != end) {
-    uint32 code;
-    pos = next_utf8_unsafe(pos, &code);
-
-    code = prepare_search_character(code);
-    if (code == 0) {
-      continue;
-    }
-    if (code == ' ') {
-      if (in_word) {
-        words.push_back(std::move(word));
-        word.clear();
-        in_word = false;
-      }
-    } else {
-      in_word = true;
-      code = remove_diacritics(code);
-      append_utf8_character(word, code);
-    }
-  }
-  if (in_word) {
-    words.push_back(std::move(word));
-  }
-
-  return fix_words(std::move(words));
+  return fix_words(utf8_get_search_words(name));
 }
 
 void Hints::add_word(const string &word, KeyT key, std::map<string, vector<KeyT>> &word_to_keys) {

@@ -112,6 +112,42 @@ string utf8_to_lower(Slice str) {
   return result;
 }
 
+vector<string> utf8_get_search_words(Slice str) {
+  bool in_word = false;
+  string word;
+  vector<string> words;
+  auto pos = str.ubegin();
+  auto end = str.uend();
+  while (pos != end) {
+    uint32 code;
+    pos = next_utf8_unsafe(pos, &code);
+
+    code = prepare_search_character(code);
+    if (code == 0) {
+      continue;
+    }
+    if (code == ' ') {
+      if (in_word) {
+        words.push_back(std::move(word));
+        word.clear();
+        in_word = false;
+      }
+    } else {
+      in_word = true;
+      code = remove_diacritics(code);
+      append_utf8_character(word, code);
+    }
+  }
+  if (in_word) {
+    words.push_back(std::move(word));
+  }
+  return words;
+}
+
+string utf8_prepare_search_string(Slice str) {
+  return implode(utf8_get_search_words(str));
+}
+
 string utf8_encode(CSlice data) {
   if (check_utf8(data)) {
     return data.str();

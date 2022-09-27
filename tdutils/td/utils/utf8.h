@@ -86,6 +86,12 @@ Slice utf8_utf16_substr(Slice str, size_t offset, size_t length);
 /// Returns UTF-8 string converted to lower case.
 string utf8_to_lower(Slice str);
 
+/// Returns UTF-8 string splitted by words for search.
+vector<string> utf8_get_search_words(Slice str);
+
+/// Returns UTF-8 string prepared for search, leaving only digits and lowercased letters.
+string utf8_prepare_search_string(Slice str);
+
 /// Returns valid UTF-8 representation of the string.
 string utf8_encode(CSlice data);
 
