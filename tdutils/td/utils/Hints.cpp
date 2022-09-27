@@ -30,6 +30,9 @@ vector<string> Hints::fix_words(vector<string> words) {
       new_words_size++;
     }
   }
+  if (new_words_size == 1 && words[0].empty()) {
+    new_words_size = 0;
+  }
   words.resize(new_words_size);
   return words;
 }

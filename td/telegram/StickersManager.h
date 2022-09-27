@@ -458,6 +458,7 @@ class StickersManager final : public Actor {
     vector<int32> premium_sticker_positions_;
     FlatHashMap<string, vector<FileId>> emoji_stickers_map_;                // emoji -> stickers
     FlatHashMap<FileId, vector<string>, FileIdHash> sticker_emojis_map_;    // sticker -> emojis
+    std::map<string, vector<FileId>> keyword_stickers_map_;                 // keyword -> stickers
     FlatHashMap<FileId, vector<string>, FileIdHash> sticker_keywords_map_;  // sticker -> keywords
 
     bool is_installed_ = false;
@@ -898,6 +899,8 @@ class StickersManager final : public Actor {
   void on_get_custom_emoji_documents(Result<vector<telegram_api::object_ptr<telegram_api::Document>>> &&r_documents,
                                      vector<int64> &&document_ids,
                                      Promise<td_api::object_ptr<td_api::stickers>> &&promise);
+
+  static const std::map<string, vector<FileId>> &get_sticker_set_keywords(StickerSet *sticker_set);
 
   static string get_emoji_language_code_version_database_key(const string &language_code);
 

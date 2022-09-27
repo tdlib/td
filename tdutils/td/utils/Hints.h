@@ -41,6 +41,8 @@ class Hints {
 
   size_t size() const;
 
+  static vector<string> fix_words(vector<string> words);
+
  private:
   std::map<string, vector<KeyT>> word_to_keys_;
   std::map<string, vector<KeyT>> translit_word_to_keys_;
@@ -49,8 +51,6 @@ class Hints {
 
   static void add_word(const string &word, KeyT key, std::map<string, vector<KeyT>> &word_to_keys);
   static void delete_word(const string &word, KeyT key, std::map<string, vector<KeyT>> &word_to_keys);
-
-  static vector<string> fix_words(vector<string> words);
 
   static vector<string> get_words(Slice name);
 

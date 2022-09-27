@@ -3703,6 +3703,7 @@ StickerSetId StickersManager::on_get_messages_sticker_set(StickerSetId sticker_s
   if (!is_bot) {
     s->emoji_stickers_map_.clear();
     s->sticker_emojis_map_.clear();
+    s->keyword_stickers_map_.clear();
     s->sticker_keywords_map_.clear();
     for (auto &pack : set->packs_) {
       auto cleaned_emoji = remove_emoji_modifiers(pack->emoticon_);
@@ -4183,6 +4184,18 @@ void StickersManager::on_get_installed_sticker_sets_failed(StickerType sticker_t
   auto type = static_cast<int32>(sticker_type);
   next_installed_sticker_sets_load_time_[type] = Time::now_cached() + Random::fast(5, 10);
   fail_promises(load_installed_sticker_sets_queries_[type], std::move(error));
+}
+
+const std::map<string, vector<FileId>> &StickersManager::get_sticker_set_keywords(StickerSet *sticker_set) {
+  if (sticker_set->keyword_stickers_map_.empty()) {
+    for (auto &sticker_id_keywords : sticker_set->sticker_keywords_map_) {
+      for (auto &keyword : Hints::fix_words(transform(sticker_id_keywords.second, utf8_prepare_search_string))) {
+        CHECK(!keyword.empty());
+        sticker_set->keyword_stickers_map_[keyword].push_back(sticker_id_keywords.first);
+      }
+    }
+  }
+  return sticker_set->keyword_stickers_map_;
 }
 
 std::pair<vector<FileId>, vector<FileId>> StickersManager::split_stickers_by_premium(
