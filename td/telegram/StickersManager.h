@@ -458,7 +458,7 @@ class StickersManager final : public Actor {
     vector<int32> premium_sticker_positions_;
     FlatHashMap<string, vector<FileId>> emoji_stickers_map_;                // emoji -> stickers
     FlatHashMap<FileId, vector<string>, FileIdHash> sticker_emojis_map_;    // sticker -> emojis
-    std::map<string, vector<FileId>> keyword_stickers_map_;                 // keyword -> stickers
+    mutable std::map<string, vector<FileId>> keyword_stickers_map_;         // keyword -> stickers
     FlatHashMap<FileId, vector<string>, FileIdHash> sticker_keywords_map_;  // sticker -> keywords
 
     bool is_installed_ = false;
@@ -625,6 +625,7 @@ class StickersManager final : public Actor {
   FileId on_get_sticker(unique_ptr<Sticker> new_sticker, bool replace);
 
   StickerSet *get_sticker_set(StickerSetId sticker_set_id);
+
   const StickerSet *get_sticker_set(StickerSetId sticker_set_id) const;
 
   StickerSet *add_sticker_set(StickerSetId sticker_set_id, int64 access_hash);
@@ -900,7 +901,11 @@ class StickersManager final : public Actor {
                                      vector<int64> &&document_ids,
                                      Promise<td_api::object_ptr<td_api::stickers>> &&promise);
 
-  static const std::map<string, vector<FileId>> &get_sticker_set_keywords(StickerSet *sticker_set);
+  static const std::map<string, vector<FileId>> &get_sticker_set_keywords(const StickerSet *sticker_set);
+
+  static void find_sticker_set_stickers(const StickerSet *sticker_set, const string &query, vector<FileId> &result);
+
+  bool can_found_sticker_by_query(FileId sticker_id, const string &query) const;
 
   static string get_emoji_language_code_version_database_key(const string &language_code);
 
