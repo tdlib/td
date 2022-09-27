@@ -143,7 +143,7 @@ class StickersManager final : public Actor {
                                           tl_object_ptr<telegram_api::InputEncryptedFile> input_file,
                                           BufferSlice thumbnail, int32 layer) const;
 
-  vector<FileId> get_stickers(StickerType sticker_type, string emoji, int32 limit, DialogId dialog_id, bool force,
+  vector<FileId> get_stickers(StickerType sticker_type, string query, int32 limit, DialogId dialog_id, bool force,
                               Promise<Unit> &&promise);
 
   void search_stickers(string emoji, int32 limit, Promise<td_api::object_ptr<td_api::stickers>> &&promise);
@@ -903,9 +903,10 @@ class StickersManager final : public Actor {
 
   static const std::map<string, vector<FileId>> &get_sticker_set_keywords(const StickerSet *sticker_set);
 
-  static void find_sticker_set_stickers(const StickerSet *sticker_set, const string &query, vector<FileId> &result);
+  static void find_sticker_set_stickers(const StickerSet *sticker_set, const string &query,
+                                        const string &prepared_query, vector<FileId> &result);
 
-  bool can_found_sticker_by_query(FileId sticker_id, const string &query) const;
+  bool can_found_sticker_by_query(FileId sticker_id, const string &query, const string &prepared_query) const;
 
   static string get_emoji_language_code_version_database_key(const string &language_code);
 

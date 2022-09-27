@@ -4199,15 +4199,37 @@ const std::map<string, vector<FileId>> &StickersManager::get_sticker_set_keyword
 }
 
 void StickersManager::find_sticker_set_stickers(const StickerSet *sticker_set, const string &query,
-                                                vector<FileId> &result) {
+                                                const string &prepared_query, vector<FileId> &result) {
   auto it = sticker_set->emoji_stickers_map_.find(query);
   if (it != sticker_set->emoji_stickers_map_.end()) {
     LOG(INFO) << "Add " << it->second << " stickers from " << sticker_set->id_;
     append(result, it->second);
   }
+
+  if (!prepared_query.empty()) {
+    const auto &keywords_map = get_sticker_set_keywords(sticker_set);
+    auto keywords_it = keywords_map.lower_bound(prepared_query);
+    if (keywords_it != keywords_map.end() && begins_with(keywords_it->first, prepared_query)) {
+      FlatHashSet<FileId, FileIdHash> found_sticker_ids;
+      if (it != sticker_set->emoji_stickers_map_.end()) {
+        for (auto file_id : it->second) {
+          found_sticker_ids.insert(file_id);
+        }
+      }
+      do {
+        for (auto file_id : keywords_it->second) {
+          if (found_sticker_ids.insert(file_id).second) {
+            result.push_back(file_id);
+          }
+        }
+        ++keywords_it;
+      } while (keywords_it != keywords_map.end() && begins_with(keywords_it->first, prepared_query));
+    }
+  }
 }
 
-bool StickersManager::can_found_sticker_by_query(FileId sticker_id, const string &query) const {
+bool StickersManager::can_found_sticker_by_query(FileId sticker_id, const string &query,
+                                                 const string &prepared_query) const {
   const Sticker *s = get_sticker(sticker_id);
   CHECK(s != nullptr);
   if (remove_emoji_modifiers(s->alt_) == query) {
@@ -4218,12 +4240,26 @@ bool StickersManager::can_found_sticker_by_query(FileId sticker_id, const string
   if (sticker_set == nullptr || !sticker_set->was_loaded_) {
     return false;
   }
-  auto map_it = sticker_set->emoji_stickers_map_.find(query);
-  if (map_it != sticker_set->emoji_stickers_map_.end()) {
-    if (td::contains(map_it->second, sticker_id)) {
+  auto it = sticker_set->emoji_stickers_map_.find(query);
+  if (it != sticker_set->emoji_stickers_map_.end()) {
+    if (td::contains(it->second, sticker_id)) {
       return true;
     }
   }
+
+  if (!prepared_query.empty()) {
+    const auto &keywords_map = get_sticker_set_keywords(sticker_set);
+    auto keywords_it = keywords_map.lower_bound(prepared_query);
+    if (keywords_it != keywords_map.end() && begins_with(keywords_it->first, prepared_query)) {
+      do {
+        if (td::contains(keywords_it->second, sticker_id)) {
+          return true;
+        }
+        ++keywords_it;
+      } while (keywords_it != keywords_map.end() && begins_with(keywords_it->first, prepared_query));
+    }
+  }
+
   return false;
 }
 
@@ -4271,7 +4307,7 @@ std::pair<vector<FileId>, vector<FileId>> StickersManager::split_stickers_by_pre
   return {std::move(regular_sticker_ids), std::move(premium_sticker_ids)};
 }
 
-vector<FileId> StickersManager::get_stickers(StickerType sticker_type, string emoji, int32 limit, DialogId dialog_id,
+vector<FileId> StickersManager::get_stickers(StickerType sticker_type, string query, int32 limit, DialogId dialog_id,
                                              bool force, Promise<Unit> &&promise) {
   if (G()->close_flag()) {
     promise.set_error(Global::request_aborted_error());
@@ -4288,20 +4324,20 @@ vector<FileId> StickersManager::get_stickers(StickerType sticker_type, string em
     CHECK(force == false);
     load_installed_sticker_sets(
         sticker_type,
-        PromiseCreator::lambda([actor_id = actor_id(this), sticker_type, emoji = std::move(emoji), limit, dialog_id,
+        PromiseCreator::lambda([actor_id = actor_id(this), sticker_type, query = std::move(query), limit, dialog_id,
                                 force, promise = std::move(promise)](Result<Unit> result) mutable {
           if (result.is_error()) {
             promise.set_error(result.move_as_error());
           } else {
-            send_closure(actor_id, &StickersManager::get_stickers, sticker_type, std::move(emoji), limit, dialog_id,
+            send_closure(actor_id, &StickersManager::get_stickers, sticker_type, std::move(query), limit, dialog_id,
                          force, std::move(promise));
           }
         }));
     return {};
   }
 
-  remove_emoji_modifiers_in_place(emoji);
-  if (!emoji.empty()) {
+  remove_emoji_modifiers_in_place(query);
+  if (!query.empty()) {
     if (sticker_type == StickerType::Regular) {
       if (!are_recent_stickers_loaded_[0 /*is_attached*/]) {
         load_recent_stickers(false, std::move(promise));
@@ -4320,7 +4356,7 @@ vector<FileId> StickersManager::get_stickers(StickerType sticker_type, string em
   }
 
   vector<StickerSetId> examined_sticker_set_ids = installed_sticker_set_ids_[type];
-  if (!emoji.empty() && sticker_type == StickerType::CustomEmoji) {
+  if (!query.empty() && sticker_type == StickerType::CustomEmoji) {
     append(examined_sticker_set_ids, featured_sticker_set_ids_[type]);
   }
 
@@ -4339,7 +4375,7 @@ vector<FileId> StickersManager::get_stickers(StickerType sticker_type, string em
   }
 
   vector<FileId> prepend_sticker_ids;
-  if (!emoji.empty() && sticker_type == StickerType::Regular) {
+  if (!query.empty() && sticker_type == StickerType::Regular) {
     prepend_sticker_ids.reserve(favorite_sticker_ids_.size() + recent_sticker_ids_[0].size());
     append(prepend_sticker_ids, recent_sticker_ids_[0]);
     for (auto sticker_id : favorite_sticker_ids_) {
@@ -4413,7 +4449,7 @@ vector<FileId> StickersManager::get_stickers(StickerType sticker_type, string em
 
   vector<FileId> result;
   auto limit_size_t = static_cast<size_t>(limit);
-  if (emoji.empty()) {
+  if (query.empty()) {
     for (const auto &sticker_set_id : examined_sticker_set_ids) {
       const StickerSet *sticker_set = get_sticker_set(sticker_set_id);
       if (sticker_set == nullptr || !sticker_set->was_loaded_) {
@@ -4427,6 +4463,8 @@ vector<FileId> StickersManager::get_stickers(StickerType sticker_type, string em
       }
     }
   } else {
+    auto prepared_query = utf8_prepare_search_string(query);
+    LOG(INFO) << "Search stickers by " << query << " and keyword " << prepared_query;
     vector<const StickerSet *> examined_sticker_sets;
     for (const auto &sticker_set_id : examined_sticker_set_ids) {
       const StickerSet *sticker_set = get_sticker_set(sticker_set_id);
@@ -4449,7 +4487,7 @@ vector<FileId> StickersManager::get_stickers(StickerType sticker_type, string em
           return is_sticker_format_animated(lhs->sticker_format_) && !is_sticker_format_animated(rhs->sticker_format_);
         });
     for (auto sticker_set : examined_sticker_sets) {
-      find_sticker_set_stickers(sticker_set, emoji, result);
+      find_sticker_set_stickers(sticker_set, query, prepared_query, result);
     }
 
     vector<FileId> sorted;
@@ -4470,8 +4508,8 @@ vector<FileId> StickersManager::get_stickers(StickerType sticker_type, string em
                   << (it - result.begin());
         *it = FileId();
         is_good = true;
-      } else if (can_found_sticker_by_query(sticker_id, emoji)) {
-        LOG(INFO) << "Found prepend sticker " << sticker_id << " has matching emoji";
+      } else if (can_found_sticker_by_query(sticker_id, query, prepared_query)) {
+        LOG(INFO) << "Found prepend sticker " << sticker_id;
         is_good = true;
       }
 
