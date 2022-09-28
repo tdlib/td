@@ -15,12 +15,12 @@ vector {t:Type} # [ t ] = Vector t;
 decryptedMessage8#1f814f1f random_id:long random_bytes:bytes message:string media:DecryptedMessageMedia = DecryptedMessage;
 decryptedMessageService8#aa48327d random_id:long random_bytes:bytes action:DecryptedMessageAction = DecryptedMessage;
 decryptedMessageMediaEmpty#89f5c4a = DecryptedMessageMedia;
-decryptedMessageMediaPhoto23#32798a8c thumb:bytes thumb_w:int thumb_h:int w:int h:int size:int key:bytes iv:bytes = DecryptedMessageMedia;
+decryptedMessageMediaPhoto8#32798a8c thumb:bytes thumb_w:int thumb_h:int w:int h:int size:int key:bytes iv:bytes = DecryptedMessageMedia;
 decryptedMessageMediaVideo8#4cee6ef3 thumb:bytes thumb_w:int thumb_h:int duration:int w:int h:int size:int key:bytes iv:bytes = DecryptedMessageMedia;
 decryptedMessageMediaGeoPoint#35480a59 lat:double long:double = DecryptedMessageMedia;
 decryptedMessageMediaContact#588a0a97 phone_number:string first_name:string last_name:string user_id:int = DecryptedMessageMedia;
 decryptedMessageActionSetMessageTTL#a1733aec ttl_seconds:int = DecryptedMessageAction;
-decryptedMessageMediaDocument23#b095434b thumb:bytes thumb_w:int thumb_h:int file_name:string mime_type:string size:int key:bytes iv:bytes = DecryptedMessageMedia;
+decryptedMessageMediaDocument8#b095434b thumb:bytes thumb_w:int thumb_h:int file_name:string mime_type:string size:int key:bytes iv:bytes = DecryptedMessageMedia;
 decryptedMessageMediaAudio8#6080758f duration:int size:int key:bytes iv:bytes = DecryptedMessageMedia;
 decryptedMessageActionReadMessages#c4f40be random_ids:Vector<long> = DecryptedMessageAction;
 decryptedMessageActionDeleteMessages#65614304 random_ids:Vector<long> = DecryptedMessageAction;
@@ -59,7 +59,7 @@ decryptedMessageActionNoop#a82fdd63 = DecryptedMessageAction;
 documentAttributeImageSize#6c37c15c w:int h:int = DocumentAttribute;
 documentAttributeAnimated#11b58939 = DocumentAttribute;
 documentAttributeSticker23#fb0a5727 = DocumentAttribute;
-documentAttributeVideo#5910cccb duration:int w:int h:int = DocumentAttribute;
+documentAttributeVideo23#5910cccb duration:int w:int h:int = DocumentAttribute;
 documentAttributeAudio23#51448e5 duration:int = DocumentAttribute;
 documentAttributeFilename#15590068 file_name:string = DocumentAttribute;
 photoSizeEmpty#e17e23c type:string = PhotoSize;
@@ -105,7 +105,7 @@ decryptedMessageMediaWebPage#e50511d8 url:string = DecryptedMessageMedia;
 
 sendMessageRecordRoundAction#88f27fbc = SendMessageAction;
 sendMessageUploadRoundAction#bb718624 = SendMessageAction;
-documentAttributeVideo66#ef02ce6 flags:# round_message:flags.0?true duration:int w:int h:int = DocumentAttribute;
+documentAttributeVideo#ef02ce6 flags:# round_message:flags.0?true duration:int w:int h:int = DocumentAttribute;
 
 // layer 73
 

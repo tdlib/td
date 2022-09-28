@@ -384,7 +384,7 @@ SecretInputMedia AnimationsManager::get_secret_input_media(FileId animation_file
     attributes.push_back(make_tl_object<secret_api::documentAttributeFilename>(animation->file_name));
   }
   if (animation->duration != 0 && animation->mime_type == "video/mp4") {
-    attributes.push_back(make_tl_object<secret_api::documentAttributeVideo66>(
+    attributes.push_back(make_tl_object<secret_api::documentAttributeVideo>(
         0, false, animation->duration, animation->dimensions.width, animation->dimensions.height));
   }
   if (animation->dimensions.width != 0 && animation->dimensions.height != 0) {

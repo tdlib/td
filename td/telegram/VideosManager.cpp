@@ -206,8 +206,8 @@ SecretInputMedia VideosManager::get_secret_input_media(FileId video_file_id,
     return {};
   }
   vector<tl_object_ptr<secret_api::DocumentAttribute>> attributes;
-  attributes.emplace_back(make_tl_object<secret_api::documentAttributeVideo>(video->duration, video->dimensions.width,
-                                                                             video->dimensions.height));
+  attributes.emplace_back(make_tl_object<secret_api::documentAttributeVideo>(
+      0, false, video->duration, video->dimensions.width, video->dimensions.height));
 
   return {std::move(input_file),
           std::move(thumbnail),

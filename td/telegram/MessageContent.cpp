@@ -3997,8 +3997,8 @@ static auto secret_to_telegram(secret_api::documentAttributeSticker &sticker) {
       nullptr);
 }
 
-// documentAttributeVideo duration:int w:int h:int = DocumentAttribute;
-static auto secret_to_telegram(secret_api::documentAttributeVideo &video) {
+// documentAttributeVideo23 duration:int w:int h:int = DocumentAttribute;
+static auto secret_to_telegram(secret_api::documentAttributeVideo23 &video) {
   return make_tl_object<telegram_api::documentAttributeVideo>(0, false /*ignored*/, false /*ignored*/, video.duration_,
                                                               video.w_, video.h_);
 }
@@ -4011,10 +4011,10 @@ static auto secret_to_telegram(secret_api::documentAttributeFilename &filename) 
   return make_tl_object<telegram_api::documentAttributeFilename>(filename.file_name_);
 }
 
-// documentAttributeVideo66 flags:# round_message:flags.0?true duration:int w:int h:int = DocumentAttribute;
-static auto secret_to_telegram(secret_api::documentAttributeVideo66 &video) {
+// documentAttributeVideo flags:# round_message:flags.0?true duration:int w:int h:int = DocumentAttribute;
+static auto secret_to_telegram(secret_api::documentAttributeVideo &video) {
   return make_tl_object<telegram_api::documentAttributeVideo>(
-      (video.flags_ & secret_api::documentAttributeVideo66::ROUND_MESSAGE_MASK) != 0
+      (video.flags_ & secret_api::documentAttributeVideo::ROUND_MESSAGE_MASK) != 0
           ? telegram_api::documentAttributeVideo::ROUND_MESSAGE_MASK
           : 0,
       video.round_message_, false, video.duration_, video.w_, video.h_);
@@ -4195,7 +4195,7 @@ unique_ptr<MessageContent> get_secret_message_content(
       auto media = move_tl_object_as<secret_api::decryptedMessageMediaVideo>(media_ptr);
       vector<tl_object_ptr<secret_api::DocumentAttribute>> attributes;
       attributes.emplace_back(
-          make_tl_object<secret_api::documentAttributeVideo>(media->duration_, media->w_, media->h_));
+          make_tl_object<secret_api::documentAttributeVideo>(0, false, media->duration_, media->w_, media->h_));
       media_ptr = make_tl_object<secret_api::decryptedMessageMediaDocument>(
           std::move(media->thumb_), media->thumb_w_, media->thumb_h_, media->mime_type_, media->size_,
           std::move(media->key_), std::move(media->iv_), std::move(attributes), string());
