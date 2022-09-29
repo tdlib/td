@@ -181,6 +181,7 @@ void CallManager::hangup() {
     stop();
   }
 }
+
 void CallManager::hangup_shared() {
   auto token = narrow_cast<int32>(get_link_token());
   auto it = id_to_actor_.find(CallId(token));
@@ -195,4 +196,5 @@ void CallManager::hangup_shared() {
     stop();
   }
 }
+
 }  // namespace td
