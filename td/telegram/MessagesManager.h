@@ -809,6 +809,9 @@ class MessagesManager final : public Actor {
   void get_dialog_message_count(DialogId dialog_id, MessageSearchFilter filter, bool return_local,
                                 Promise<int32> &&promise);
 
+  void get_dialog_message_position(FullMessageId full_message_id, MessageSearchFilter filter,
+                                   MessageId top_thread_message_id, Promise<int32> &&promise);
+
   vector<MessageId> get_dialog_scheduled_messages(DialogId dialog_id, bool force, bool ignore_result,
                                                   Promise<Unit> &&promise);
 

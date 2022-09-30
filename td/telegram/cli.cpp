@@ -2391,6 +2391,14 @@ class CliClient final : public Actor {
       get_args(args, chat_id, filter, return_local);
       send_request(
           td_api::make_object<td_api::getChatMessageCount>(chat_id, as_search_messages_filter(filter), return_local));
+    } else if (op == "gcmp") {
+      ChatId chat_id;
+      MessageId message_id;
+      string filter;
+      string message_thread_id;
+      get_args(args, chat_id, message_id, filter, message_thread_id);
+      send_request(td_api::make_object<td_api::getChatMessagePosition>(
+          chat_id, message_id, as_search_messages_filter(filter), as_message_thread_id(message_thread_id)));
     } else if (op == "gup" || op == "gupp") {
       UserId user_id;
       int32 offset;

@@ -654,6 +654,8 @@ class Td final : public Actor {
 
   void on_request(uint64 id, const td_api::getChatMessageCount &request);
 
+  void on_request(uint64 id, const td_api::getChatMessagePosition &request);
+
   void on_request(uint64 id, const td_api::getChatScheduledMessages &request);
 
   void on_request(uint64 id, const td_api::getEmojiReaction &request);

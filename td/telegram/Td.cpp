@@ -5194,6 +5194,21 @@ void Td::on_request(uint64 id, const td_api::getChatMessageCount &request) {
                                               request.return_local_, std::move(query_promise));
 }
 
+void Td::on_request(uint64 id, const td_api::getChatMessagePosition &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  auto query_promise = PromiseCreator::lambda([promise = std::move(promise)](Result<int32> result) mutable {
+    if (result.is_error()) {
+      promise.set_error(result.move_as_error());
+    } else {
+      promise.set_value(make_tl_object<td_api::count>(result.move_as_ok()));
+    }
+  });
+  messages_manager_->get_dialog_message_position({DialogId(request.chat_id_), MessageId(request.message_id_)},
+                                                 get_message_search_filter(request.filter_),
+                                                 MessageId(request.message_thread_id_), std::move(query_promise));
+}
+
 void Td::on_request(uint64 id, const td_api::getChatScheduledMessages &request) {
   CHECK_IS_USER();
   CREATE_REQUEST(GetChatScheduledMessagesRequest, request.chat_id_);
