@@ -375,8 +375,4 @@ ActorOwn<ActorT> register_existing_actor(unique_ptr<ActorT> actor_ptr) {
   return Scheduler::instance()->register_existing_actor(std::move(actor_ptr));
 }
 
-inline void yield_scheduler() {
-  Scheduler::instance()->yield();
-}
-
 }  // namespace td

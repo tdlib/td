@@ -302,5 +302,4 @@ void send_event_later(ActorRef actor_ref, ArgsT &&...args) {
   Scheduler::instance()->send<ActorSendType::Later>(actor_ref, std::forward<ArgsT>(args)...);
 }
 
-void yield_scheduler();
 }  // namespace td

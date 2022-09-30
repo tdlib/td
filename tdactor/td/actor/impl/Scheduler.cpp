@@ -87,7 +87,7 @@ void Scheduler::ServiceActor::loop() {
     EventFull event = queue->reader_get_unsafe();
     if (event.actor_id().empty()) {
       if (event.data().empty()) {
-        yield_scheduler();
+        Scheduler::instance()->yield();
       } else {
         Scheduler::instance()->register_migrated_actor(static_cast<ActorInfo *>(event.data().data.ptr));
       }
