@@ -93,7 +93,7 @@ extern int VERBOSITY_NAME(td_requests);
 // It happens after "hangup".
 //
 // Parent needs a way to know that it will receive no more updates.
-// It happens after destruction of callback or after on_closed.
+// It happens after destruction of callback
 class Td final : public Actor {
  public:
   Td(const Td &) = delete;
