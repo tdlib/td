@@ -19,7 +19,7 @@ class WaitFreeHashMap {
   using Storage = FlatHashMap<KeyT, ValueT, HashT, EqT>;
   static constexpr size_t MAX_STORAGE_COUNT = 1 << 11;
   static_assert((MAX_STORAGE_COUNT & (MAX_STORAGE_COUNT - 1)) == 0, "");
-  static constexpr size_t MAX_STORAGE_SIZE = 1 << 17;
+  static constexpr size_t MAX_STORAGE_SIZE = 1 << 16;
   static_assert((MAX_STORAGE_SIZE & (MAX_STORAGE_SIZE - 1)) == 0, "");
 
   Storage default_map_;
