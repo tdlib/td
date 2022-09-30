@@ -33,9 +33,12 @@ index 695be54..4efe5e5 100644
 -TARGETS-iOS=iphonesimulator.x86_64 iphonesimulator.i386 iphoneos.armv7 iphoneos.armv7s iphoneos.arm64
 +TARGETS-iOS=iphoneos.armv7 iphoneos.armv7s iphoneos.arm64
  CFLAGS-iOS=-mios-version-min=7.0
- CFLAGS-iphoneos.armv7=-fembed-bitcode
- CFLAGS-iphoneos.armv7s=-fembed-bitcode
- CFLAGS-iphoneos.arm64=-fembed-bitcode
+-CFLAGS-iphoneos.armv7=-fembed-bitcode
+-CFLAGS-iphoneos.armv7s=-fembed-bitcode
+-CFLAGS-iphoneos.arm64=-fembed-bitcode
++CFLAGS-iphoneos.armv7=
++CFLAGS-iphoneos.armv7s=
++CFLAGS-iphoneos.arm64=
  
 +# iOS-simulator targets
 +TARGETS-iOS-simulator=iphonesimulator.x86_64 iphonesimulator.i386 iphonesimulator.arm64
@@ -45,7 +48,8 @@ index 695be54..4efe5e5 100644
 -TARGETS-tvOS=appletvsimulator.x86_64 appletvos.arm64
 +TARGETS-tvOS=appletvos.arm64
  CFLAGS-tvOS=-mtvos-version-min=9.0
- CFLAGS-appletvos.arm64=-fembed-bitcode
+-CFLAGS-appletvos.arm64=-fembed-bitcode
++CFLAGS-appletvos.arm64=
  PYTHON_CONFIGURE-tvOS=ac_cv_func_sigaltstack=no
  
 +# tvOS-simulator targets
@@ -56,8 +60,9 @@ index 695be54..4efe5e5 100644
 -TARGETS-watchOS=watchsimulator.i386 watchos.armv7k
 +TARGETS-watchOS=watchos.armv7k watchos.arm64_32
  CFLAGS-watchOS=-mwatchos-version-min=4.0
- CFLAGS-watchos.armv7k=-fembed-bitcode
-+CFLAGS-watchos.arm64_32=-fembed-bitcode
+-CFLAGS-watchos.armv7k=-fembed-bitcode
++CFLAGS-watchos.armv7k=
++CFLAGS-watchos.arm64_32=
  PYTHON_CONFIGURE-watchOS=ac_cv_func_sigaltstack=no
  
 +# watchOS-simulator targets

@@ -136,12 +136,9 @@ if (IOS_DEPLOYMENT_TARGET)
 endif()
 
 set (CMAKE_SHARED_LINKER_FLAGS_INIT "-fapplication-extension")
-if (NOT SIMULATOR_FLAG)
-    set (BITCODE "-fembed-bitcode")
-endif()
-set (CMAKE_C_FLAGS_INIT "${XCODE_IOS_PLATFORM_VERSION_FLAGS} ${BITCODE}")
+set (CMAKE_C_FLAGS_INIT "${XCODE_IOS_PLATFORM_VERSION_FLAGS}")
 # Hidden visibilty is required for cxx on iOS
-set (CMAKE_CXX_FLAGS_INIT "${XCODE_IOS_PLATFORM_VERSION_FLAGS} ${BITCODE} -fvisibility-inlines-hidden")
+set (CMAKE_CXX_FLAGS_INIT "${XCODE_IOS_PLATFORM_VERSION_FLAGS} -fvisibility-inlines-hidden")
 
 set (CMAKE_C_LINK_FLAGS   "${XCODE_IOS_PLATFORM_VERSION_FLAGS} -fapplication-extension -Wl,-search_paths_first ${CMAKE_C_LINK_FLAGS}")
 set (CMAKE_CXX_LINK_FLAGS "${XCODE_IOS_PLATFORM_VERSION_FLAGS} -fapplication-extension -Wl,-search_paths_first ${CMAKE_CXX_LINK_FLAGS}")
