@@ -174,7 +174,7 @@ ActorId<CallActor> CallManager::get_call_actor(CallId call_id) {
 void CallManager::hangup() {
   close_flag_ = true;
   for (auto &it : id_to_actor_) {
-    LOG(INFO) << "Ask close CallActor " << it.first;
+    LOG(INFO) << "Ask to close CallActor " << it.first.get();
     it.second.reset();
   }
   if (id_to_actor_.empty()) {
@@ -185,13 +185,10 @@ void CallManager::hangup() {
 void CallManager::hangup_shared() {
   auto token = narrow_cast<int32>(get_link_token());
   auto it = id_to_actor_.find(CallId(token));
-  if (it != id_to_actor_.end()) {
-    LOG(INFO) << "Close CallActor " << tag("id", it->first);
-    it->second.release();
-    id_to_actor_.erase(it);
-  } else {
-    LOG(FATAL) << "Unknown CallActor hangup " << tag("id", static_cast<int32>(token));
-  }
+  CHECK(it != id_to_actor_.end());
+  CHECK(it->second.empty());
+  LOG(INFO) << "Closed CallActor " << it->first.get();
+  id_to_actor_.erase(it);
   if (close_flag_ && id_to_actor_.empty()) {
     stop();
   }

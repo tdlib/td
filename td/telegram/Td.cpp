@@ -4009,7 +4009,7 @@ void Td::send_error_impl(uint64 id, tl_object_ptr<td_api::error> error) {
   auto it = request_set_.find(id);
   if (it != request_set_.end()) {
     if (error->code_ == 0 && error->message_ == "Lost promise") {
-      LOG(FATAL) << "Lost promise for query " << id << " of type " << it->second;
+      LOG(FATAL) << "Lost promise for query " << id << " of type " << it->second << " in close state " << close_flag_;
     }
     VLOG(td_requests) << "Sending error for request " << id << ": " << oneline(to_string(error));
     request_set_.erase(it);
