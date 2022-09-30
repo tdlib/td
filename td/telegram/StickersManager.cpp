@@ -2214,12 +2214,8 @@ tl_object_ptr<td_api::sticker> StickersManager::get_sticker_object(FileId file_i
 }
 
 tl_object_ptr<td_api::stickers> StickersManager::get_stickers_object(const vector<FileId> &sticker_ids) const {
-  auto result = td_api::make_object<td_api::stickers>();
-  result->stickers_.reserve(sticker_ids.size());
-  for (auto sticker_id : sticker_ids) {
-    result->stickers_.push_back(get_sticker_object(sticker_id));
-  }
-  return result;
+  return td_api::make_object<td_api::stickers>(
+      transform(sticker_ids, [&](FileId sticker_id) { return get_sticker_object(sticker_id); }));
 }
 
 tl_object_ptr<td_api::DiceStickers> StickersManager::get_dice_stickers_object(const string &emoji, int32 value) const {
@@ -5854,14 +5850,14 @@ void StickersManager::get_all_animated_emojis(bool is_recursive,
 }
 
 void StickersManager::get_custom_emoji_reaction_generic_animations(
-    bool is_recursive, Promise<td_api::object_ptr<td_api::files>> &&promise) {
+    bool is_recursive, Promise<td_api::object_ptr<td_api::stickers>> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
 
   auto &special_sticker_set = add_special_sticker_set(SpecialStickerSetType::generic_animations());
   auto sticker_set = get_sticker_set(special_sticker_set.id_);
   if (sticker_set == nullptr || !sticker_set->was_loaded_) {
     if (is_recursive) {
-      return promise.set_value(td_api::make_object<td_api::files>());
+      return promise.set_value(td_api::make_object<td_api::stickers>());
     }
 
     pending_get_generic_animations_queries_.push_back(PromiseCreator::lambda(
@@ -5877,9 +5873,7 @@ void StickersManager::get_custom_emoji_reaction_generic_animations(
     return;
   }
 
-  auto files = transform(sticker_set->sticker_ids_,
-                         [&](FileId sticker_id) { return td_->file_manager_->get_file_object(sticker_id); });
-  promise.set_value(td_api::make_object<td_api::files>(std::move(files)));
+  promise.set_value(get_stickers_object(sticker_set->sticker_ids_));
 }
 
 void StickersManager::get_default_emoji_statuses(bool is_recursive,
