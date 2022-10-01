@@ -60,7 +60,7 @@ void NetQueryDispatcher::dispatch(NetQueryPtr net_query) {
 
   if (!net_query->in_sequence_dispatcher() && !net_query->get_chain_ids().empty()) {
     net_query->debug("sent to main sequence dispatcher");
-    send_closure(sequence_dispatcher_, &MultiSequenceDispatcher::send, std::move(net_query));
+    send_closure_later(sequence_dispatcher_, &MultiSequenceDispatcher::send, std::move(net_query));
     return;
   }
 
@@ -73,7 +73,7 @@ void NetQueryDispatcher::dispatch(NetQueryPtr net_query) {
         net_query->resend();
       } else if (code < 0 || code == 500 || code == 420) {
         net_query->debug("sent to NetQueryDelayer");
-        return send_closure(delayer_, &NetQueryDelayer::delay, std::move(net_query));
+        return send_closure_later(delayer_, &NetQueryDelayer::delay, std::move(net_query));
       }
     }
   }

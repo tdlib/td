@@ -77,7 +77,7 @@ void SequenceDispatcher::try_resend_query(Data &data, NetQueryPtr query) {
   // TODO: if query is ok, use NetQueryCallback::on_result
   if (data.callback_.empty()) {
     do_finish(data);
-    send_closure(G()->td(), &Td::on_result, std::move(query));
+    send_closure_later(G()->td(), &Td::on_result, std::move(query));
     loop();
     return;
   }
@@ -385,7 +385,7 @@ class MultiSequenceDispatcherImpl final : public MultiSequenceDispatcher {
     if (node.callback.empty()) {
       auto query = std::move(node.net_query);
       scheduler_.finish_task(task_id);
-      send_closure(G()->td(), &Td::on_result, std::move(query));
+      send_closure_later(G()->td(), &Td::on_result, std::move(query));
       loop();
       return;
     }
