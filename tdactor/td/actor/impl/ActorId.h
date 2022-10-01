@@ -160,17 +160,11 @@ ActorId<ActorType> ActorShared<ActorType>::release() {
 
 template <class ActorType>
 void ActorShared<ActorType>::reset(ActorId<ActorType> other) {
-  reset<ActorType>(std::move(other));
-}
-
-template <class ActorType>
-template <class OtherActorType>
-void ActorShared<ActorType>::reset(ActorId<OtherActorType> other) {
   static_assert(sizeof(ActorType) > 0, "Can't use ActorShared with incomplete type");
   if (!id_.empty()) {
     send_event(*this, Event::hangup());
   }
-  id_ = static_cast<ActorId<ActorType>>(other);
+  id_ = std::move(other);
 }
 
 template <class T>

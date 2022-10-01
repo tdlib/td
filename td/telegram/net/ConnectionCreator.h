@@ -172,9 +172,8 @@ class ConnectionCreator final : public NetQueryCallback {
   std::shared_ptr<NetStatsCallback> media_net_stats_callback_;
   std::shared_ptr<NetStatsCallback> common_net_stats_callback_;
 
-  ActorShared<> ref_cnt_guard_;
+  ActorShared<ConnectionCreator> ref_cnt_guard_;
   int ref_cnt_{0};
-  ActorShared<ConnectionCreator> create_reference(int64 token);
   bool close_flag_{false};
   uint64 current_token_ = 0;
   std::map<uint64, std::pair<bool, ActorShared<>>> children_;
@@ -189,6 +188,8 @@ class ConnectionCreator final : public NetQueryCallback {
   uint64 next_token() {
     return ++current_token_;
   }
+
+  ActorShared<ConnectionCreator> create_reference(int64 token);
 
   void set_active_proxy_id(int32 proxy_id, bool from_binlog = false);
   void enable_proxy_impl(int32 proxy_id);

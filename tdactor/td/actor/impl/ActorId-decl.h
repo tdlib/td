@@ -123,8 +123,6 @@ class ActorShared {
   ActorId<ActorType> get() const;
   ActorId<ActorType> release();
   void reset(ActorId<ActorType> other = ActorId<ActorType>());
-  template <class OtherActorType>
-  void reset(ActorId<OtherActorType> other);
 
  private:
   ActorId<ActorType> id_;
