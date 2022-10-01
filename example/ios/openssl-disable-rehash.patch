@@ -1,0 +1,11 @@
+--- Makefile.org	2019-12-20 14:02:41.000000000 +0100
++++ Makefile.org	2022-10-01 13:23:13.000000000 +0100
+@@ -460,7 +460,7 @@ rehash.time: certs apps
+ 		[ -x "apps/openssl.exe" ] && OPENSSL="apps/openssl.exe" || :; \
+ 		OPENSSL_DEBUG_MEMORY=on; \
+ 		export OPENSSL OPENSSL_DEBUG_MEMORY; \
+-		$(PERL) tools/c_rehash certs/demo) && \
++		echo 'certs/demo rehash skipped') && \
+ 		touch rehash.time; \
+ 	else :; fi
+ 

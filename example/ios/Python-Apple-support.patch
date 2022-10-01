@@ -67,8 +67,15 @@ index 695be54..4efe5e5 100644
  # override machine types for arm64
  MACHINE_DETAILED-arm64=aarch64
  MACHINE_SIMPLE-arm64=arm
-@@ -194,9 +211,11 @@ endif
- 
+@@ -192,11 +209,18 @@ ifeq ($$(findstring iphone,$$(SDK-$1)),)
+ 	LC_ALL=C sed -ie 's/-D_REENTRANT:iOS/-D_REENTRANT:$2/' $$(OPENSSL_DIR-$1)/Configure
+ endif
+
++ifeq (,$(filter $1,OpenSSL-iOS-simulator OpenSSL-watchOS-simulator))
++	# Patch OpenSSL rehash, since it requres a UI interaction
++	cd $$(OPENSSL_DIR-$1) && git apply ../../../../openssl-disable-rehash.patch
++endif
++
  	# Configure the build
  ifeq ($2,macOS)
 +	# Patch openssl-darwin-arm64
