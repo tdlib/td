@@ -50,6 +50,7 @@ class ActorId {
   }
 
   ActorInfo *get_actor_info() const;
+
   ActorType *get_actor_unsafe() const;
 
   Slice get_name() const;
@@ -63,8 +64,7 @@ class ActorId {
   ObjectPool<ActorInfo>::WeakPtr ptr_;
 };
 
-// threat ActorId as pointer and ActorOwn as
-// unique_ptr<ActorId>
+// treat ActorId as pointer and ActorOwn as unique_ptr<ActorId>
 template <class ActorType = Actor>
 class ActorOwn {
  public:
