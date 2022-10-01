@@ -90,7 +90,6 @@ class ActorOwn {
   ActorId<ActorType> get() const;
   ActorId<ActorType> release();
   void reset(ActorId<ActorType> other = ActorId<ActorType>());
-  void hangup() const;
   ActorType *get_actor_unsafe() const;
 
  private:

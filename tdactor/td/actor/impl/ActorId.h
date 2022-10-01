@@ -88,15 +88,10 @@ ActorId<ActorType> ActorOwn<ActorType>::release() {
 template <class ActorType>
 void ActorOwn<ActorType>::reset(ActorId<ActorType> other) {
   static_assert(sizeof(ActorType) > 0, "Can't use ActorOwn with incomplete type");
-  hangup();
-  id_ = std::move(other);
-}
-
-template <class ActorType>
-void ActorOwn<ActorType>::hangup() const {
   if (!id_.empty()) {
     send_event(id_, Event::hangup());
   }
+  id_ = std::move(other);
 }
 
 template <class ActorType>

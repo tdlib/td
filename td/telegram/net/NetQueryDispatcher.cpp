@@ -209,12 +209,12 @@ void NetQueryDispatcher::stop() {
   std::lock_guard<std::mutex> guard(main_dc_id_mutex_);
   td_guard_.reset();
   stop_flag_ = true;
-  delayer_.hangup();
-  for (const auto &dc : dcs_) {
-    dc.main_session_.hangup();
-    dc.upload_session_.hangup();
-    dc.download_session_.hangup();
-    dc.download_small_session_.hangup();
+  delayer_.reset();
+  for (auto &dc : dcs_) {
+    dc.main_session_.reset();
+    dc.upload_session_.reset();
+    dc.download_session_.reset();
+    dc.download_small_session_.reset();
   }
   public_rsa_key_watchdog_.reset();
   dc_auth_manager_.reset();
