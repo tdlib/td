@@ -26,7 +26,7 @@ class ActorId {
   ActorId(const ActorId &other) = default;
   ActorId &operator=(const ActorId &other) = default;
   ActorId(ActorId &&other) noexcept : ptr_(other.ptr_) {
-    other.ptr_.clear();
+    other.clear();
   }
   ActorId &operator=(ActorId &&other) noexcept {
     if (&other == this) {
@@ -52,19 +52,11 @@ class ActorId {
   ActorInfo *get_actor_info() const;
   ActorType *get_actor_unsafe() const;
 
-  // returns pointer to actor if it is on current thread. nullptr otherwise
-  ActorType *try_get_actor() const;
-
   Slice get_name() const;
 
   template <class ToActorType, class = std::enable_if_t<std::is_base_of<ToActorType, ActorType>::value>>
   explicit operator ActorId<ToActorType>() const {
     return ActorId<ToActorType>(ptr_);
-  }
-
-  template <class AsActorType>
-  ActorId<AsActorType> as() const {
-    return ActorId<AsActorType>(ptr_);
   }
 
  private:
@@ -99,10 +91,7 @@ class ActorOwn {
   ActorId<ActorType> release();
   void reset(ActorId<ActorType> other = ActorId<ActorType>());
   void hangup() const;
-  const ActorId<ActorType> *operator->() const;
-
-  using ActorIdConstRef = const ActorId<ActorType> &;
-  // operator ActorIdConstRef();
+  ActorType *get_actor_unsafe() const;
 
  private:
   ActorId<ActorType> id_;
@@ -137,7 +126,6 @@ class ActorShared {
   void reset(ActorId<ActorType> other = ActorId<ActorType>());
   template <class OtherActorType>
   void reset(ActorId<OtherActorType> other);
-  const ActorId<ActorType> *operator->() const;
 
  private:
   ActorId<ActorType> id_;

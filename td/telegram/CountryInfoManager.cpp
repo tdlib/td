@@ -136,7 +136,7 @@ void CountryInfoManager::tear_down() {
 }
 
 string CountryInfoManager::get_main_language_code() {
-  return to_lower(td_->language_pack_manager_->get_actor_unsafe()->get_main_language_code());
+  return to_lower(td_->language_pack_manager_.get_actor_unsafe()->get_main_language_code());
 }
 
 void CountryInfoManager::get_countries(Promise<td_api::object_ptr<td_api::countries>> &&promise) {

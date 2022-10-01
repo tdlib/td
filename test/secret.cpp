@@ -760,7 +760,7 @@ class Master final : public Actor {
     auto old_context = set_context(std::make_shared<Global>());
     alice_ = create_actor<SecretChatProxy>("SecretChatProxy alice", "alice", actor_shared(this, 1));
     bob_ = create_actor<SecretChatProxy>("SecretChatProxy bob", "bob", actor_shared(this, 2));
-    send_closure(alice_->get_actor_unsafe()->actor_, &SecretChatActor::create_chat, UserId(static_cast<int64>(2)), 0,
+    send_closure(alice_.get_actor_unsafe()->actor_, &SecretChatActor::create_chat, UserId(static_cast<int64>(2)), 0,
                  123, PromiseCreator::lambda([actor_id = actor_id(this)](Result<SecretChatId> res) {
                    send_closure(actor_id, &Master::got_secret_chat_id, std::move(res), false);
                  }));
@@ -838,9 +838,9 @@ class Master final : public Actor {
   void process_net_query(my_api::messages_requestEncryption &&request_encryption, NetQueryPtr net_query,
                          ActorShared<NetQueryCallback> callback) {
     CHECK(get_link_token() == 1);
-    send_closure(alice_->get_actor_unsafe()->actor_, &SecretChatActor::update_chat,
+    send_closure(alice_.get_actor_unsafe()->actor_, &SecretChatActor::update_chat,
                  make_tl_object<telegram_api::encryptedChatWaiting>(123, 321, 0, 1, 2));
-    send_closure(bob_->get_actor_unsafe()->actor_, &SecretChatActor::update_chat,
+    send_closure(bob_.get_actor_unsafe()->actor_, &SecretChatActor::update_chat,
                  make_tl_object<telegram_api::encryptedChatRequested>(0, false, 123, 321, 0, 1, 2,
                                                                       request_encryption.g_a_.clone()));
     net_query->clear();
@@ -848,7 +848,7 @@ class Master final : public Actor {
   void process_net_query(my_api::messages_acceptEncryption &&request_encryption, NetQueryPtr net_query,
                          ActorShared<NetQueryCallback> callback) {
     CHECK(get_link_token() == 2);
-    send_closure(alice_->get_actor_unsafe()->actor_, &SecretChatActor::update_chat,
+    send_closure(alice_.get_actor_unsafe()->actor_, &SecretChatActor::update_chat,
                  make_tl_object<telegram_api::encryptedChat>(123, 321, 0, 1, 2, request_encryption.g_b_.clone(),
                                                              request_encryption.key_fingerprint_));
 

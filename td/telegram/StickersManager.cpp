@@ -9031,7 +9031,7 @@ void StickersManager::on_get_language_codes(const string &key, Result<vector<str
 
 vector<string> StickersManager::get_emoji_language_codes(const vector<string> &input_language_codes, Slice text,
                                                          Promise<Unit> &promise) {
-  vector<string> language_codes = td_->language_pack_manager_->get_actor_unsafe()->get_used_language_codes();
+  vector<string> language_codes = td_->language_pack_manager_.get_actor_unsafe()->get_used_language_codes();
   auto system_language_code = G()->mtproto_header().get_system_language_code();
   if (system_language_code.size() >= 2 && system_language_code.find('$') == string::npos &&
       (system_language_code.size() == 2 || system_language_code[2] == '-')) {

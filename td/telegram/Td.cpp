@@ -3754,10 +3754,10 @@ void Td::init_connection_creator() {
   auto net_stats_manager = create_actor<NetStatsManager>("NetStatsManager", create_reference());
 
   // How else could I let two actor know about each other, without quite complex async logic?
-  auto net_stats_manager_ptr = net_stats_manager->get_actor_unsafe();
+  auto net_stats_manager_ptr = net_stats_manager.get_actor_unsafe();
   net_stats_manager_ptr->init();
-  connection_creator->get_actor_unsafe()->set_net_stats_callback(net_stats_manager_ptr->get_common_stats_callback(),
-                                                                 net_stats_manager_ptr->get_media_stats_callback());
+  connection_creator.get_actor_unsafe()->set_net_stats_callback(net_stats_manager_ptr->get_common_stats_callback(),
+                                                                net_stats_manager_ptr->get_media_stats_callback());
   G()->set_net_stats_file_callbacks(net_stats_manager_ptr->get_file_stats_callbacks());
 
   G()->set_connection_creator(std::move(connection_creator));
@@ -4283,7 +4283,7 @@ void Td::on_request(uint64 id, const td_api::getCurrentState &request) {
 
     notification_manager_->get_current_state(updates);
 
-    config_manager_->get_actor_unsafe()->get_current_state(updates);
+    config_manager_.get_actor_unsafe()->get_current_state(updates);
 
     // TODO updateFileGenerationStart generation_id:int64 original_path:string destination_path:string conversion:string = Update;
     // TODO updateCall call:call = Update;
