@@ -10228,12 +10228,15 @@ void MessagesManager::on_get_dialog_messages_search_result(
     for (auto &message : messages) {
       auto new_full_message_id =
           on_get_message(std::move(message), false, false, false, false, false, "search call messages");
-      if (new_full_message_id != FullMessageId()) {
-        result.push_back(new_full_message_id);
-        added_message_count++;
+      if (new_full_message_id == FullMessageId()) {
+        continue;
       }
 
+      result.push_back(new_full_message_id);
+      added_message_count++;
+
       auto message_id = new_full_message_id.get_message_id();
+      CHECK(message_id.is_valid());
       if (message_id < first_added_message_id || !first_added_message_id.is_valid()) {
         first_added_message_id = message_id;
       }
@@ -34515,9 +34518,9 @@ unique_ptr<MessagesManager::Message> *MessagesManager::treap_find_message(unique
 const unique_ptr<MessagesManager::Message> *MessagesManager::treap_find_message(const unique_ptr<Message> *v,
                                                                                 MessageId message_id) {
   while (*v != nullptr) {
-    if ((*v)->message_id < message_id) {
+    if ((*v)->message_id.get() < message_id.get()) {
       v = &(*v)->right;
-    } else if ((*v)->message_id > message_id) {
+    } else if ((*v)->message_id.get() > message_id.get()) {
       v = &(*v)->left;
     } else {
       break;
@@ -34529,7 +34532,7 @@ const unique_ptr<MessagesManager::Message> *MessagesManager::treap_find_message(
 MessagesManager::Message *MessagesManager::treap_insert_message(unique_ptr<Message> *v, unique_ptr<Message> message) {
   auto message_id = message->message_id;
   while (*v != nullptr && (*v)->random_y >= message->random_y) {
-    if ((*v)->message_id < message_id) {
+    if ((*v)->message_id.get() < message_id.get()) {
       v = &(*v)->right;
     } else if ((*v)->message_id == message_id) {
       UNREACHABLE();
@@ -34543,7 +34546,7 @@ MessagesManager::Message *MessagesManager::treap_insert_message(unique_ptr<Messa
 
   unique_ptr<Message> cur = std::move(*v);
   while (cur != nullptr) {
-    if (cur->message_id < message_id) {
+    if (cur->message_id.get() < message_id.get()) {
       *left = std::move(cur);
       left = &((*left)->right);
       cur = std::move(*left);
