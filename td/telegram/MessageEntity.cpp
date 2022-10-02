@@ -122,8 +122,8 @@ StringBuilder &operator<<(StringBuilder &string_builder, const MessageEntity &me
   if (message_entity.user_id.is_valid()) {
     string_builder << ", " << message_entity.user_id;
   }
-  if (message_entity.document_id != 0) {
-    string_builder << ", emoji = " << message_entity.document_id;
+  if (message_entity.custom_emoji_id.is_valid()) {
+    string_builder << ", " << message_entity.custom_emoji_id;
   }
   string_builder << ']';
   return string_builder;
@@ -173,7 +173,7 @@ tl_object_ptr<td_api::TextEntityType> MessageEntity::get_text_entity_type_object
     case MessageEntity::Type::Spoiler:
       return make_tl_object<td_api::textEntityTypeSpoiler>();
     case MessageEntity::Type::CustomEmoji:
-      return make_tl_object<td_api::textEntityTypeCustomEmoji>(document_id);
+      return make_tl_object<td_api::textEntityTypeCustomEmoji>(custom_emoji_id.get());
     default:
       UNREACHABLE();
       return nullptr;
@@ -1421,7 +1421,7 @@ void remove_empty_entities(vector<MessageEntity> &entities) {
       case MessageEntity::Type::MentionName:
         return !entity.user_id.is_valid();
       case MessageEntity::Type::CustomEmoji:
-        return entity.document_id == 0;
+        return !entity.custom_emoji_id.is_valid();
       default:
         return false;
     }
@@ -2126,7 +2126,7 @@ static Result<vector<MessageEntity>> do_parse_markdown_v2(CSlice text, string &r
       auto type = nested_entities.back().type;
       auto argument = std::move(nested_entities.back().argument);
       UserId user_id;
-      int64 document_id = 0;
+      CustomEmojiId custom_emoji_id;
       bool skip_entity = utf16_offset == nested_entities.back().entity_offset;
       switch (type) {
         case MessageEntity::Type::Bold:
@@ -2192,7 +2192,7 @@ static Result<vector<MessageEntity>> do_parse_markdown_v2(CSlice text, string &r
             return Status::Error(400, PSLICE()
                                           << "Can't find end of a custom emoji URL at byte offset " << url_begin_pos);
           }
-          TRY_RESULT_ASSIGN(document_id, LinkManager::get_link_custom_emoji_document_id(url));
+          TRY_RESULT_ASSIGN(custom_emoji_id, LinkManager::get_link_custom_emoji_id(url));
           break;
         }
         default:
@@ -2205,8 +2205,8 @@ static Result<vector<MessageEntity>> do_parse_markdown_v2(CSlice text, string &r
         auto entity_length = utf16_offset - entity_offset;
         if (user_id.is_valid()) {
           entities.emplace_back(entity_offset, entity_length, user_id);
-        } else if (document_id != 0) {
-          entities.emplace_back(type, entity_offset, entity_length, document_id);
+        } else if (custom_emoji_id.is_valid()) {
+          entities.emplace_back(type, entity_offset, entity_length, custom_emoji_id);
         } else {
           entities.emplace_back(type, entity_offset, entity_length, std::move(argument));
         }
@@ -3170,7 +3170,8 @@ static Result<vector<MessageEntity>> do_parse_html(CSlice text, string &result) 
           if (r_document_id.is_error() || r_document_id.ok() == 0) {
             return Status::Error(400, "Invalid custom emoji identifier specified");
           }
-          entities.emplace_back(MessageEntity::Type::CustomEmoji, entity_offset, entity_length, r_document_id.ok());
+          entities.emplace_back(MessageEntity::Type::CustomEmoji, entity_offset, entity_length,
+                                CustomEmojiId(r_document_id.ok()));
         } else if (tag_name == "a") {
           auto url = std::move(nested_entities.back().argument);
           if (url.empty()) {
@@ -3308,8 +3309,8 @@ vector<tl_object_ptr<secret_api::MessageEntity>> get_input_secret_message_entiti
         break;
       case MessageEntity::Type::CustomEmoji:
         if (layer >= static_cast<int32>(SecretChatLayer::SpoilerAndCustomEmojiEntities)) {
-          result.push_back(
-              make_tl_object<secret_api::messageEntityCustomEmoji>(entity.offset, entity.length, entity.document_id));
+          result.push_back(make_tl_object<secret_api::messageEntityCustomEmoji>(entity.offset, entity.length,
+                                                                                entity.custom_emoji_id.get()));
         }
         break;
       default:
@@ -3425,7 +3426,11 @@ Result<vector<MessageEntity>> get_message_entities(const ContactsManager *contac
         break;
       case td_api::textEntityTypeCustomEmoji::ID: {
         auto entity = static_cast<td_api::textEntityTypeCustomEmoji *>(input_entity->type_.get());
-        entities.emplace_back(MessageEntity::Type::CustomEmoji, offset, length, entity->custom_emoji_id_);
+        CustomEmojiId custom_emoji_id(entity->custom_emoji_id_);
+        if (!custom_emoji_id.is_valid()) {
+          return Status::Error(400, "Invalid custom emoji identifier specified");
+        }
+        entities.emplace_back(MessageEntity::Type::CustomEmoji, offset, length, custom_emoji_id);
         break;
       }
       default:
@@ -3564,7 +3569,8 @@ vector<MessageEntity> get_message_entities(const ContactsManager *contacts_manag
       }
       case telegram_api::messageEntityCustomEmoji::ID: {
         auto entity = static_cast<const telegram_api::messageEntityCustomEmoji *>(server_entity.get());
-        entities.emplace_back(MessageEntity::Type::CustomEmoji, entity->offset_, entity->length_, entity->document_id_);
+        entities.emplace_back(MessageEntity::Type::CustomEmoji, entity->offset_, entity->length_,
+                              CustomEmojiId(entity->document_id_));
         break;
       }
       default:
@@ -3580,7 +3586,7 @@ vector<MessageEntity> get_message_entities(Td *td, vector<tl_object_ptr<secret_a
   constexpr size_t MAX_CUSTOM_EMOJI_ENTITIES = 100;
   vector<MessageEntity> entities;
   entities.reserve(secret_entities.size());
-  vector<int64> document_ids;
+  vector<CustomEmojiId> custom_emoji_ids;
   for (auto &secret_entity : secret_entities) {
     switch (secret_entity->get_id()) {
       case secret_api::messageEntityUnknown::ID:
@@ -3683,11 +3689,11 @@ vector<MessageEntity> get_message_entities(Td *td, vector<tl_object_ptr<secret_a
       }
       case secret_api::messageEntityCustomEmoji::ID: {
         auto entity = static_cast<const secret_api::messageEntityCustomEmoji *>(secret_entity.get());
-        if (is_premium || !td->stickers_manager_->is_premium_custom_emoji(entity->document_id_, false)) {
-          if (document_ids.size() < MAX_CUSTOM_EMOJI_ENTITIES) {
-            entities.emplace_back(MessageEntity::Type::CustomEmoji, entity->offset_, entity->length_,
-                                  entity->document_id_);
-            document_ids.push_back(entity->document_id_);
+        CustomEmojiId custom_emoji_id(entity->document_id_);
+        if (is_premium || !td->stickers_manager_->is_premium_custom_emoji(custom_emoji_id, false)) {
+          if (custom_emoji_ids.size() < MAX_CUSTOM_EMOJI_ENTITIES) {
+            entities.emplace_back(MessageEntity::Type::CustomEmoji, entity->offset_, entity->length_, custom_emoji_id);
+            custom_emoji_ids.push_back(custom_emoji_id);
           }
         }
         break;
@@ -3701,10 +3707,10 @@ vector<MessageEntity> get_message_entities(Td *td, vector<tl_object_ptr<secret_a
     }
   }
 
-  if (!document_ids.empty() && !is_premium) {
+  if (!custom_emoji_ids.empty() && !is_premium) {
     // preload custom emoji to check that they aren't premium
     td->stickers_manager_->get_custom_emoji_stickers(
-        std::move(document_ids), true,
+        std::move(custom_emoji_ids), true,
         PromiseCreator::lambda(
             [promise = load_data_multipromise.get_promise()](td_api::object_ptr<td_api::stickers> result) mutable {
               promise.set_value(Unit());
@@ -4425,8 +4431,8 @@ vector<tl_object_ptr<telegram_api::MessageEntity>> get_input_message_entities(co
         break;
       }
       case MessageEntity::Type::CustomEmoji:
-        result.push_back(
-            make_tl_object<telegram_api::messageEntityCustomEmoji>(entity.offset, entity.length, entity.document_id));
+        result.push_back(make_tl_object<telegram_api::messageEntityCustomEmoji>(entity.offset, entity.length,
+                                                                                entity.custom_emoji_id.get()));
         break;
       default:
         UNREACHABLE();
@@ -4470,7 +4476,7 @@ vector<tl_object_ptr<telegram_api::MessageEntity>> get_input_message_entities(co
 void remove_premium_custom_emoji_entities(const Td *td, vector<MessageEntity> &entities, bool remove_unknown) {
   td::remove_if(entities, [&](const MessageEntity &entity) {
     return entity.type == MessageEntity::Type::CustomEmoji &&
-           td->stickers_manager_->is_premium_custom_emoji(entity.document_id, remove_unknown);
+           td->stickers_manager_->is_premium_custom_emoji(entity.custom_emoji_id, remove_unknown);
   });
 }
 

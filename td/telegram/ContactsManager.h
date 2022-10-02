@@ -13,6 +13,7 @@
 #include "td/telegram/ChannelType.h"
 #include "td/telegram/ChatId.h"
 #include "td/telegram/Contact.h"
+#include "td/telegram/CustomEmojiId.h"
 #include "td/telegram/DialogAdministrator.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/DialogInviteLink.h"
@@ -646,7 +647,7 @@ class ContactsManager final : public Actor {
     string phone_number;
     int64 access_hash = -1;
     EmojiStatus emoji_status;
-    int64 last_sent_emoji_status = 0;
+    CustomEmojiId last_sent_emoji_status;
 
     ProfilePhoto photo;
 

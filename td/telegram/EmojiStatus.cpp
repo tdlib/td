@@ -203,7 +203,7 @@ EmojiStatus::EmojiStatus(const td_api::object_ptr<td_api::emojiStatus> &emoji_st
     return;
   }
 
-  custom_emoji_id_ = emoji_status->custom_emoji_id_;
+  custom_emoji_id_ = CustomEmojiId(emoji_status->custom_emoji_id_);
   if (duration != 0) {
     int32 current_time = G()->unix_time();
     if (duration >= std::numeric_limits<int32>::max() - current_time) {
@@ -223,12 +223,12 @@ EmojiStatus::EmojiStatus(tl_object_ptr<telegram_api::EmojiStatus> &&emoji_status
       break;
     case telegram_api::emojiStatus::ID: {
       auto status = static_cast<const telegram_api::emojiStatus *>(emoji_status.get());
-      custom_emoji_id_ = status->document_id_;
+      custom_emoji_id_ = CustomEmojiId(status->document_id_);
       break;
     }
     case telegram_api::emojiStatusUntil::ID: {
       auto status = static_cast<const telegram_api::emojiStatusUntil *>(emoji_status.get());
-      custom_emoji_id_ = status->document_id_;
+      custom_emoji_id_ = CustomEmojiId(status->document_id_);
       until_date_ = status->until_;
       break;
     }
@@ -242,24 +242,24 @@ tl_object_ptr<telegram_api::EmojiStatus> EmojiStatus::get_input_emoji_status() c
     return make_tl_object<telegram_api::emojiStatusEmpty>();
   }
   if (until_date_ != 0) {
-    return make_tl_object<telegram_api::emojiStatusUntil>(custom_emoji_id_, until_date_);
+    return make_tl_object<telegram_api::emojiStatusUntil>(custom_emoji_id_.get(), until_date_);
   }
-  return make_tl_object<telegram_api::emojiStatus>(custom_emoji_id_);
+  return make_tl_object<telegram_api::emojiStatus>(custom_emoji_id_.get());
 }
 
 td_api::object_ptr<td_api::emojiStatus> EmojiStatus::get_emoji_status_object() const {
   if (is_empty()) {
     return nullptr;
   }
-  return td_api::make_object<td_api::emojiStatus>(custom_emoji_id_);
+  return td_api::make_object<td_api::emojiStatus>(custom_emoji_id_.get());
 }
 
-int64 EmojiStatus::get_effective_custom_emoji_id(bool is_premium, int32 unix_time) const {
+CustomEmojiId EmojiStatus::get_effective_custom_emoji_id(bool is_premium, int32 unix_time) const {
   if (!is_premium) {
-    return 0;
+    return CustomEmojiId();
   }
   if (until_date_ != 0 && until_date_ <= unix_time) {
-    return 0;
+    return CustomEmojiId();
   }
   return custom_emoji_id_;
 }
@@ -268,7 +268,7 @@ StringBuilder &operator<<(StringBuilder &string_builder, const EmojiStatus &emoj
   if (emoji_status.is_empty()) {
     return string_builder << "DefaultProfileBadge";
   }
-  string_builder << "CustomEmoji " << emoji_status.custom_emoji_id_;
+  string_builder << emoji_status.custom_emoji_id_;
   if (emoji_status.until_date_ != 0) {
     string_builder << " until " << emoji_status.until_date_;
   }

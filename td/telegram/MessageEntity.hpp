@@ -28,7 +28,7 @@ void MessageEntity::store(StorerT &storer) const {
     store(media_timestamp, storer);
   }
   if (type == Type::CustomEmoji) {
-    store(document_id, storer);
+    store(custom_emoji_id, storer);
   }
 }
 
@@ -48,7 +48,7 @@ void MessageEntity::parse(ParserT &parser) {
     parse(media_timestamp, parser);
   }
   if (type == Type::CustomEmoji) {
-    parse(document_id, parser);
+    parse(custom_emoji_id, parser);
   }
 }
 

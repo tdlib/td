@@ -6,6 +6,7 @@
 //
 #pragma once
 
+#include "td/telegram/CustomEmojiId.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/secret_api.h"
 #include "td/telegram/td_api.h"
@@ -60,7 +61,7 @@ class MessageEntity {
   int32 media_timestamp = -1;
   string argument;
   UserId user_id;
-  int64 document_id = 0;
+  CustomEmojiId custom_emoji_id;
 
   MessageEntity() = default;
 
@@ -74,8 +75,8 @@ class MessageEntity {
       : type(type), offset(offset), length(length), media_timestamp(media_timestamp) {
     CHECK(type == Type::MediaTimestamp);
   }
-  MessageEntity(Type type, int32 offset, int32 length, int64 document_id)
-      : type(type), offset(offset), length(length), document_id(document_id) {
+  MessageEntity(Type type, int32 offset, int32 length, CustomEmojiId custom_emoji_id)
+      : type(type), offset(offset), length(length), custom_emoji_id(custom_emoji_id) {
     CHECK(type == Type::CustomEmoji);
   }
 
@@ -84,7 +85,7 @@ class MessageEntity {
   bool operator==(const MessageEntity &other) const {
     return offset == other.offset && length == other.length && type == other.type &&
            media_timestamp == other.media_timestamp && argument == other.argument && user_id == other.user_id &&
-           document_id == other.document_id;
+           custom_emoji_id == other.custom_emoji_id;
   }
 
   bool operator<(const MessageEntity &other) const {

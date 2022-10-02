@@ -1690,7 +1690,7 @@ UserId LinkManager::get_link_user_id(Slice url) {
   return UserId();
 }
 
-Result<int64> LinkManager::get_link_custom_emoji_document_id(Slice url) {
+Result<CustomEmojiId> LinkManager::get_link_custom_emoji_id(Slice url) {
   string lower_cased_url = to_lower(url);
   url = lower_cased_url;
 
@@ -1726,7 +1726,7 @@ Result<int64> LinkManager::get_link_custom_emoji_document_id(Slice url) {
       if (r_document_id.is_error() || r_document_id.ok() == 0) {
         return Status::Error(400, "Invalid custom emoji identifier specified");
       }
-      return r_document_id.ok();
+      return CustomEmojiId(r_document_id.ok());
     }
   }
   return Status::Error(400, "Custom emoji URL must have an emoji identifier");

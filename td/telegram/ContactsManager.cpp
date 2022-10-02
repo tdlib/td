@@ -10397,7 +10397,7 @@ void ContactsManager::update_user(User *u, UserId user_id, bool from_binlog, boo
   } else {
     u->need_save_to_database = true;
   }
-  if (u->last_sent_emoji_status != 0) {
+  if (u->last_sent_emoji_status.is_valid()) {
     auto until_date = u->emoji_status.get_until_date();
     auto left_time = until_date - unix_time;
     if (left_time >= 0 && left_time < 30 * 86400) {
@@ -16832,7 +16832,7 @@ tl_object_ptr<td_api::user> ContactsManager::get_user_object(UserId user_id, con
     type = make_tl_object<td_api::userTypeRegular>();
   }
 
-  auto emoji_status = u->last_sent_emoji_status != 0 ? u->emoji_status.get_emoji_status_object() : nullptr;
+  auto emoji_status = u->last_sent_emoji_status.is_valid() ? u->emoji_status.get_emoji_status_object() : nullptr;
   return make_tl_object<td_api::user>(
       user_id.get(), u->first_name, u->last_name, u->username, u->phone_number, get_user_status_object(user_id, u),
       get_profile_photo_object(td_->file_manager_.get(), u->photo), std::move(emoji_status), u->is_contact,

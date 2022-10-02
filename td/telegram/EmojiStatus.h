@@ -6,6 +6,7 @@
 //
 #pragma once
 
+#include "td/telegram/CustomEmojiId.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 
@@ -19,7 +20,7 @@ namespace td {
 class Td;
 
 class EmojiStatus {
-  int64 custom_emoji_id_ = 0;
+  CustomEmojiId custom_emoji_id_;
   int32 until_date_ = 0;
 
   friend bool operator==(const EmojiStatus &lhs, const EmojiStatus &rhs);
@@ -37,13 +38,13 @@ class EmojiStatus {
 
   td_api::object_ptr<td_api::emojiStatus> get_emoji_status_object() const;
 
-  int64 get_effective_custom_emoji_id(bool is_premium, int32 unix_time) const;
+  CustomEmojiId get_effective_custom_emoji_id(bool is_premium, int32 unix_time) const;
 
   bool is_empty() const {
-    return custom_emoji_id_ == 0;
+    return !custom_emoji_id_.is_valid();
   }
 
-  int64 get_custom_emoji_id() const {
+  CustomEmojiId get_custom_emoji_id() const {
     return custom_emoji_id_;
   }
 
@@ -57,7 +58,7 @@ class EmojiStatus {
 
   template <class StorerT>
   void store(StorerT &storer) const {
-    bool has_custom_emoji_id = custom_emoji_id_ != 0;
+    bool has_custom_emoji_id = custom_emoji_id_.is_valid();
     bool has_until_date = until_date_ != 0;
     BEGIN_STORE_FLAGS();
     STORE_FLAG(has_custom_emoji_id);

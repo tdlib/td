@@ -16,6 +16,7 @@
 #include "td/telegram/ChatId.h"
 #include "td/telegram/Contact.h"
 #include "td/telegram/ContactsManager.h"
+#include "td/telegram/CustomEmojiId.h"
 #include "td/telegram/Dependencies.h"
 #include "td/telegram/DialogAction.h"
 #include "td/telegram/DialogParticipant.h"
@@ -3810,14 +3811,14 @@ static bool can_be_animated_emoji(const FormattedText &text) {
   }
   if (text.entities.size() == 1 && text.entities[0].type == MessageEntity::Type::CustomEmoji &&
       text.entities[0].offset == 0 && static_cast<size_t>(text.entities[0].length) == utf8_utf16_length(text.text) &&
-      text.entities[0].document_id != 0) {
+      text.entities[0].custom_emoji_id.is_valid()) {
     return true;
   }
   return false;
 }
 
-static int64 get_custom_emoji_id(const FormattedText &text) {
-  return text.entities.empty() ? 0 : text.entities[0].document_id;
+static CustomEmojiId get_custom_emoji_id(const FormattedText &text) {
+  return text.entities.empty() ? CustomEmojiId() : text.entities[0].custom_emoji_id;
 }
 
 void register_message_content(Td *td, const MessageContent *content, FullMessageId full_message_id,
@@ -5995,10 +5996,10 @@ void move_message_content_sticker_set_to_top(Td *td, const MessageContent *conte
   if (text == nullptr) {
     return;
   }
-  vector<int64> custom_emoji_ids;
+  vector<CustomEmojiId> custom_emoji_ids;
   for (auto &entity : text->entities) {
     if (entity.type == MessageEntity::Type::CustomEmoji) {
-      custom_emoji_ids.push_back(entity.document_id);
+      custom_emoji_ids.push_back(entity.custom_emoji_id);
     }
   }
   if (!custom_emoji_ids.empty()) {

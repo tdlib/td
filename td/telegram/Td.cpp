@@ -27,6 +27,7 @@
 #include "td/telegram/ConfigManager.h"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/CountryInfoManager.h"
+#include "td/telegram/CustomEmojiId.h"
 #include "td/telegram/DeviceTokenManager.h"
 #include "td/telegram/DialogAction.h"
 #include "td/telegram/DialogEventLog.h"
@@ -7120,9 +7121,11 @@ void Td::on_request(uint64 id, td_api::getEmojiSuggestionsUrl &request) {
   CREATE_REQUEST(GetEmojiSuggestionsUrlRequest, std::move(request.language_code_));
 }
 
-void Td::on_request(uint64 id, td_api::getCustomEmojiStickers &request) {
+void Td::on_request(uint64 id, const td_api::getCustomEmojiStickers &request) {
   CREATE_REQUEST_PROMISE();
-  stickers_manager_->get_custom_emoji_stickers(std::move(request.custom_emoji_ids_), true, std::move(promise));
+  stickers_manager_->get_custom_emoji_stickers(
+      transform(request.custom_emoji_ids_, [](int64 custom_emoji_id) { return CustomEmojiId(custom_emoji_id); }), true,
+      std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::getSavedAnimations &request) {

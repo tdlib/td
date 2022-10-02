@@ -517,6 +517,7 @@ set(TDLIB_SOURCE
   td/telegram/Contact.h
   td/telegram/ContactsManager.h
   td/telegram/CountryInfoManager.h
+  td/telegram/CustomEmojiId.h
   td/telegram/DelayDispatcher.h
   td/telegram/Dependencies.h
   td/telegram/DeviceTokenManager.h

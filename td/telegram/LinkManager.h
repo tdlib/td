@@ -6,6 +6,7 @@
 //
 #pragma once
 
+#include "td/telegram/CustomEmojiId.h"
 #include "td/telegram/FullMessageId.h"
 #include "td/telegram/MessageLinkInfo.h"
 #include "td/telegram/td_api.h"
@@ -86,7 +87,7 @@ class LinkManager final : public Actor {
 
   static UserId get_link_user_id(Slice url);
 
-  static Result<int64> get_link_custom_emoji_document_id(Slice url);
+  static Result<CustomEmojiId> get_link_custom_emoji_id(Slice url);
 
   static Result<MessageLinkInfo> get_message_link_info(Slice url);
 
