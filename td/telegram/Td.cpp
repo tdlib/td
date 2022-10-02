@@ -4700,7 +4700,13 @@ void Td::on_request(uint64 id, const td_api::rateSpeechRecognition &request) {
 }
 
 void Td::on_request(uint64 id, const td_api::getFile &request) {
-  send_closure(actor_id(this), &Td::send_result, id, file_manager_->get_file_object(FileId(request.file_id_, 0)));
+  auto file_object = file_manager_->get_file_object(FileId(request.file_id_, 0));
+  if (file_object->id_ == 0) {
+    file_object = nullptr;
+  } else {
+    file_object->id_ = request.file_id_;
+  }
+  send_closure(actor_id(this), &Td::send_result, id, std::move(file_object));
 }
 
 void Td::on_request(uint64 id, td_api::getRemoteFile &request) {
