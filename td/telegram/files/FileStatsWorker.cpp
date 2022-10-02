@@ -103,13 +103,11 @@ struct FsFileInfo {
 template <class CallbackT>
 void scan_fs(CancellationToken &token, CallbackT &&callback) {
   std::unordered_set<string> scanned_file_dirs;
-  for (int32 i = 0; i < MAX_FILE_TYPE; i++) {
-    auto file_type = static_cast<FileType>(i);
-    auto file_dir = get_files_dir(file_type);
+  auto scan_dir = [&](FileType file_type, const string &file_dir) {
+    LOG(INFO) << "Trying to scan directory " << file_dir;
     if (!scanned_file_dirs.insert(file_dir).second) {
-      continue;
+      return;
     }
-    auto main_file_type = get_main_file_type(file_type);
     walk_path(file_dir, [&](CSlice path, WalkPath::Type type) {
       if (token) {
         return WalkPath::Action::Abort;
@@ -131,13 +129,19 @@ void scan_fs(CancellationToken &token, CallbackT &&callback) {
       FsFileInfo info;
       info.path = path.str();
       info.size = stat.real_size_;
-      info.file_type = main_file_type;
+      info.file_type = file_type;
       info.atime_nsec = stat.atime_nsec_;
       info.mtime_nsec = stat.mtime_nsec_;
       callback(info);
       return WalkPath::Action::Continue;
     }).ignore();
+  };
+  for (int32 i = 0; i < MAX_FILE_TYPE; i++) {
+    auto file_type = static_cast<FileType>(i);
+    scan_dir(get_main_file_type(file_type), get_files_dir(file_type));
   }
+  scan_dir(get_main_file_type(FileType::Temp), get_files_temp_dir(FileType::SecureDecrypted));
+  scan_dir(get_main_file_type(FileType::Temp), get_files_temp_dir(FileType::Video));
 }
 }  // namespace
 

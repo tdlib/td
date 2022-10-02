@@ -3867,7 +3867,7 @@ void FileManager::on_error_impl(FileNodePtr node, Query::Type type, bool was_act
           !begins_with(status.message(), "FILE_DOWNLOAD_ID_INVALID") &&
           !begins_with(status.message(), "FILE_DOWNLOAD_LIMIT")) {
         CSlice path = node->local_.partial().path_;
-        if (begins_with(path, get_files_temp_dir(FileType::Encrypted)) ||
+        if (begins_with(path, get_files_temp_dir(FileType::SecureDecrypted)) ||
             begins_with(path, get_files_temp_dir(FileType::Video))) {
           LOG(INFO) << "Unlink file " << path;
           send_closure(file_load_manager_, &FileLoadManager::unlink_file, std::move(node->local_.partial().path_),
