@@ -1123,7 +1123,7 @@ void FileManager::on_file_unlink(const FullLocalFileLocation &location) {
   clear_from_pmc(file_node);
   send_closure(G()->download_manager(), &DownloadManager::remove_file_if_finished, file_node->main_file_id_);
   file_node->drop_local_location();
-  try_flush_node_info(file_node, "on_file_unlink");
+  try_flush_node(file_node, "on_file_unlink");
 }
 
 Result<FileId> FileManager::register_local(FullLocalFileLocation location, DialogId owner_dialog_id, int64 size,
