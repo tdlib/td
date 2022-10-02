@@ -1873,6 +1873,7 @@ void FileManager::clear_from_pmc(FileNodePtr node) {
   auto file_view = FileView(node);
   if (file_view.has_local_location()) {
     data.local_ = node->local_;
+    prepare_path_for_pmc(data.local_.full().file_type_, data.local_.full().path_);
   }
   if (file_view.has_remote_location()) {
     data.remote_ = RemoteFileLocation(*node->remote_.full);
