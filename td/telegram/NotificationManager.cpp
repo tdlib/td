@@ -3257,7 +3257,7 @@ Status NotificationManager::process_push_notification_payload(string payload, bo
     return Status::Error(406, "Phone call notification is not supported");
   }
 
-  if (begins_with(loc_key, "REACT_")) {
+  if (begins_with(loc_key, "REACT_") || loc_key == "READ_REACTION") {
     // TODO REACT_* notifications
     return Status::Error(406, "Reaction notifications are unsupported");
   }
