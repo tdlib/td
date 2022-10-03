@@ -11,7 +11,6 @@
 #include "td/utils/misc.h"
 #include "td/utils/Slice.h"
 #include "td/utils/translit.h"
-#include "td/utils/unicode.h"
 #include "td/utils/utf8.h"
 
 #include <algorithm>

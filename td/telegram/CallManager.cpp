@@ -9,7 +9,6 @@
 #include "td/telegram/telegram_api.hpp"
 
 #include "td/utils/common.h"
-#include "td/utils/format.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/SliceBuilder.h"

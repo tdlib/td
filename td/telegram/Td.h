@@ -196,8 +196,8 @@ class Td final : public Actor {
   ActorOwn<NetStatsManager> net_stats_manager_;
   ActorOwn<PasswordManager> password_manager_;
   ActorOwn<PrivacyManager> privacy_manager_;
-  ActorOwn<SecureManager> secure_manager_;
   ActorOwn<SecretChatsManager> secret_chats_manager_;
+  ActorOwn<SecureManager> secure_manager_;
   ActorOwn<StateManager> state_manager_;
   ActorOwn<StorageManager> storage_manager_;
   ActorOwn<PhoneNumberManager> verify_phone_number_manager_;

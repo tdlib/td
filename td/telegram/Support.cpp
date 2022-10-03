@@ -102,9 +102,9 @@ void get_user_info(Td *td, UserId user_id, Promise<td_api::object_ptr<td_api::us
 
 void set_user_info(Td *td, UserId user_id, td_api::object_ptr<td_api::formattedText> &&message,
                    Promise<td_api::object_ptr<td_api::userSupportInfo>> &&promise) {
-  TRY_RESULT_PROMISE(
-      promise, formatted_text,
-      get_formatted_text(td, DialogId(td->contacts_manager_->get_my_id()), std::move(message), false, true, true, false));
+  TRY_RESULT_PROMISE(promise, formatted_text,
+                     get_formatted_text(td, DialogId(td->contacts_manager_->get_my_id()), std::move(message), false,
+                                        true, true, false));
   td->create_handler<EditUserInfoQuery>(std::move(promise))->send(user_id, std::move(formatted_text));
 }
 

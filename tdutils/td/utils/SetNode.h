@@ -30,7 +30,7 @@ struct SetNode {
     return first;
   }
 
-  SetNode(): first() {
+  SetNode() : first() {
   }
   explicit SetNode(KeyT key) : first(std::move(key)) {
   }
@@ -100,7 +100,7 @@ struct SetNode<KeyT, typename std::enable_if_t<(sizeof(KeyT) > 28 * sizeof(void 
     return impl_->first;
   }
 
-  SetNode(): impl_() {
+  SetNode() : impl_() {
   }
   explicit SetNode(KeyT key) : impl_(td::make_unique<Impl>(std::move(key))) {
   }
