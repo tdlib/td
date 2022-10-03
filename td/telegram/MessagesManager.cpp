@@ -2389,6 +2389,7 @@ class GetMessagePositionQuery final : public Td::ResultHandler {
   Promise<int32> promise_;
   DialogId dialog_id_;
   MessageId message_id_;
+  MessageId top_thread_message_id_;
   MessageSearchFilter filter_;
 
  public:
@@ -2401,16 +2402,22 @@ class GetMessagePositionQuery final : public Td::ResultHandler {
 
     dialog_id_ = dialog_id;
     message_id_ = message_id;
+    top_thread_message_id_ = top_thread_message_id;
     filter_ = filter;
 
-    int32 flags = 0;
-    if (top_thread_message_id.is_valid()) {
-      flags |= telegram_api::messages_search::TOP_MSG_ID_MASK;
+    if (filter == MessageSearchFilter::Empty && !top_thread_message_id.is_valid()) {
+      send_query(G()->net_query_creator().create(telegram_api::messages_getHistory(
+          std::move(input_peer), message_id.get_server_message_id().get(), 0, -1, 1, 0, 0, 0)));
+    } else {
+      int32 flags = 0;
+      if (top_thread_message_id.is_valid()) {
+        flags |= telegram_api::messages_search::TOP_MSG_ID_MASK;
+      }
+      send_query(G()->net_query_creator().create(telegram_api::messages_search(
+          flags, std::move(input_peer), string(), nullptr, top_thread_message_id.get_server_message_id().get(),
+          get_input_messages_filter(filter), 0, std::numeric_limits<int32>::max(),
+          message_id.get_server_message_id().get(), -1, 1, std::numeric_limits<int32>::max(), 0, 0)));
     }
-    send_query(G()->net_query_creator().create(telegram_api::messages_search(
-        flags, std::move(input_peer), string(), nullptr, top_thread_message_id.get_server_message_id().get(),
-        get_input_messages_filter(filter), 0, std::numeric_limits<int32>::max(),
-        message_id.get_server_message_id().get(), -1, 1, std::numeric_limits<int32>::max(), 0, 0)));
   }
 
   void on_result(BufferSlice packet) final {
@@ -2437,7 +2444,8 @@ class GetMessagePositionQuery final : public Td::ResultHandler {
           return promise_.set_error(Status::Error(400, "Message not found by the filter"));
         }
         if (messages->offset_id_offset_ <= 0) {
-          LOG(ERROR) << "Failed to receive position for " << message_id_ << " in " << dialog_id_ << " by " << filter_;
+          LOG(ERROR) << "Failed to receive position for " << message_id_ << " in thread of " << top_thread_message_id_
+                     << " in " << dialog_id_ << " by " << filter_;
           return promise_.set_error(Status::Error(400, "Message position is unknown"));
         }
         return promise_.set_value(std::move(messages->offset_id_offset_));
@@ -23987,7 +23995,8 @@ void MessagesManager::get_dialog_message_position(FullMessageId full_message_id,
     return promise.set_error(Status::Error(400, "Message not found"));
   }
   if (!m->message_id.is_valid() || !m->message_id.is_server() ||
-      (get_message_index_mask(d->dialog_id, m) & message_search_filter_index_mask(filter)) == 0) {
+      (filter != MessageSearchFilter::Empty &&
+       (get_message_index_mask(d->dialog_id, m) & message_search_filter_index_mask(filter)) == 0)) {
     return promise.set_error(Status::Error(400, "Message can't be found in the filter"));
   }
 
@@ -23998,7 +24007,7 @@ void MessagesManager::get_dialog_message_position(FullMessageId full_message_id,
     if (dialog_id.get_type() != DialogType::Channel || is_broadcast_channel(dialog_id)) {
       return promise.set_error(Status::Error(400, "Can't filter by message thread identifier in the chat"));
     }
-    if (m->top_thread_message_id != top_thread_message_id) {
+    if (m->top_thread_message_id != top_thread_message_id || m->message_id == top_thread_message_id) {
       return promise.set_error(Status::Error(400, "Message doesn't belong to the message thread"));
     }
   }
@@ -24006,8 +24015,8 @@ void MessagesManager::get_dialog_message_position(FullMessageId full_message_id,
     return promise.set_error(Status::Error(400, "The method can't be used in secret chats"));
   }
 
-  if (filter == MessageSearchFilter::Empty || filter == MessageSearchFilter::UnreadMention ||
-      filter == MessageSearchFilter::UnreadReaction || filter == MessageSearchFilter::FailedToSend) {
+  if (filter == MessageSearchFilter::UnreadMention || filter == MessageSearchFilter::UnreadReaction ||
+      filter == MessageSearchFilter::FailedToSend) {
     return promise.set_error(Status::Error(400, "The filter is not supported"));
   }
 
