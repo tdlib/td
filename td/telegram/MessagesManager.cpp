@@ -17814,17 +17814,17 @@ vector<DialogId> MessagesManager::search_public_dialogs(const string &query, Pro
     for (auto &short_username : get_valid_short_usernames()) {
       if (2 * username.size() > short_username.size() && begins_with(short_username, username)) {
         username = short_username.str();
-        auto it = resolved_usernames_.find(username);
-        if (it == resolved_usernames_.end()) {
+        auto resolved_username = resolved_usernames_.get(username);
+        if (!resolved_username.dialog_id.is_valid()) {
           td_->create_handler<ResolveUsernameQuery>(std::move(promise))->send(username);
           return {};
         }
 
-        if (it->second.expires_at < Time::now()) {
+        if (resolved_username.expires_at < Time::now()) {
           td_->create_handler<ResolveUsernameQuery>(Promise<>())->send(username);
         }
 
-        auto dialog_id = it->second.dialog_id;
+        auto dialog_id = resolved_username.dialog_id;
         force_create_dialog(dialog_id, "public dialogs search");
 
         auto d = get_dialog(dialog_id);
@@ -33256,17 +33256,12 @@ void MessagesManager::on_dialog_linked_channel_updated(DialogId dialog_id, Chann
 
 DialogId MessagesManager::resolve_dialog_username(const string &username) const {
   auto cleaned_username = clean_username(username);
-  auto it = resolved_usernames_.find(cleaned_username);
-  if (it != resolved_usernames_.end()) {
-    return it->second.dialog_id;
+  auto resolved_username = resolved_usernames_.get(cleaned_username);
+  if (resolved_username.dialog_id.is_valid()) {
+    return resolved_username.dialog_id;
   }
 
-  auto it2 = inaccessible_resolved_usernames_.find(cleaned_username);
-  if (it2 != inaccessible_resolved_usernames_.end()) {
-    return it2->second;
-  }
-
-  return DialogId();
+  return inaccessible_resolved_usernames_.get(cleaned_username);
 }
 
 DialogId MessagesManager::search_public_dialog(const string &username_to_search, bool force, Promise<Unit> &&promise) {
@@ -33280,17 +33275,14 @@ DialogId MessagesManager::search_public_dialog(const string &username_to_search,
   }
 
   DialogId dialog_id;
-  auto it = resolved_usernames_.find(username);
-  if (it != resolved_usernames_.end()) {
-    if (it->second.expires_at < Time::now()) {
+  auto resolved_username = resolved_usernames_.get(username);
+  if (resolved_username.dialog_id.is_valid()) {
+    if (resolved_username.expires_at < Time::now()) {
       td_->create_handler<ResolveUsernameQuery>(Promise<>())->send(username);
     }
-    dialog_id = it->second.dialog_id;
+    dialog_id = resolved_username.dialog_id;
   } else {
-    auto it2 = inaccessible_resolved_usernames_.find(username);
-    if (it2 != inaccessible_resolved_usernames_.end()) {
-      dialog_id = it2->second;
-    }
+    dialog_id = inaccessible_resolved_usernames_.get(username);
   }
 
   if (dialog_id.is_valid()) {
@@ -33447,6 +33439,7 @@ bool MessagesManager::is_update_about_username_change_received(DialogId dialog_i
 
 void MessagesManager::on_dialog_username_updated(DialogId dialog_id, const string &old_username,
                                                  const string &new_username) {
+  CHECK(dialog_id.is_valid());
   auto d = get_dialog(dialog_id);
   if (d != nullptr) {
     update_dialogs_hints(d);
@@ -33480,10 +33473,11 @@ void MessagesManager::on_resolved_username(const string &username, DialogId dial
     return;
   }
 
-  auto it = resolved_usernames_.find(cleaned_username);
-  if (it != resolved_usernames_.end()) {
-    LOG_IF(ERROR, it->second.dialog_id != dialog_id)
-        << "Resolve username \"" << username << "\" to " << dialog_id << ", but have it in " << it->second.dialog_id;
+  auto resolved_username = resolved_usernames_.get(cleaned_username);
+  if (resolved_username.dialog_id.is_valid()) {
+    LOG_IF(ERROR, resolved_username.dialog_id != dialog_id)
+        << "Resolve username \"" << username << "\" to " << dialog_id << ", but have it in "
+        << resolved_username.dialog_id;
     return;
   }
 
@@ -33491,20 +33485,23 @@ void MessagesManager::on_resolved_username(const string &username, DialogId dial
 }
 
 void MessagesManager::drop_username(const string &username) {
-  inaccessible_resolved_usernames_.erase(clean_username(username));
-
-  auto it = resolved_usernames_.find(clean_username(username));
-  if (it == resolved_usernames_.end()) {
+  auto cleaned_username = clean_username(username);
+  if (cleaned_username.empty()) {
     return;
   }
 
-  auto dialog_id = it->second.dialog_id;
-  if (have_input_peer(dialog_id, AccessRights::Read)) {
-    CHECK(dialog_id.get_type() != DialogType::SecretChat);
-    send_get_dialog_query(dialog_id, Auto(), 0, "drop_username");
-  }
+  inaccessible_resolved_usernames_.erase(cleaned_username);
 
-  resolved_usernames_.erase(it);
+  auto resolved_username = resolved_usernames_.get(cleaned_username);
+  if (resolved_username.dialog_id.is_valid()) {
+    auto dialog_id = resolved_username.dialog_id;
+    if (have_input_peer(dialog_id, AccessRights::Read)) {
+      CHECK(dialog_id.get_type() != DialogType::SecretChat);
+      send_get_dialog_query(dialog_id, Auto(), 0, "drop_username");
+    }
+
+    resolved_usernames_.erase(cleaned_username);
+  }
 }
 
 const DialogPhoto *MessagesManager::get_dialog_photo(DialogId dialog_id) const {

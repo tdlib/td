@@ -3649,8 +3649,8 @@ class MessagesManager final : public Actor {
     double expires_at;
   };
 
-  FlatHashMap<string, ResolvedUsername> resolved_usernames_;
-  FlatHashMap<string, DialogId> inaccessible_resolved_usernames_;
+  WaitFreeHashMap<string, ResolvedUsername> resolved_usernames_;
+  WaitFreeHashMap<string, DialogId> inaccessible_resolved_usernames_;
   FlatHashSet<string> reload_voice_chat_on_search_usernames_;
 
   struct GetDialogsTask {
