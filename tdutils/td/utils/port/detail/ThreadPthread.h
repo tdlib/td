@@ -72,6 +72,10 @@ class ThreadPthread {
 
   using id = pthread_t;
 
+  id get_id() noexcept {
+    return thread_;
+  }
+
   static void send_real_time_signal(id thread_id, int real_time_signal_number);
 
 #if TD_HAVE_THREAD_AFFINITY

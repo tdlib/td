@@ -79,6 +79,14 @@ class ThreadStl {
   using id = std::thread::id;
 #endif
 
+  id get_id() noexcept {
+#if TD_WINDOWS
+    return GetThreadId(thread_.native_handle());
+#else
+    return thread_.get_id();
+#endif
+  }
+
   static void send_real_time_signal(id thread_id, int real_time_signal_number) {
     // not supported
   }
