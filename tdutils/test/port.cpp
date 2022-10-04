@@ -304,6 +304,8 @@ TEST(Port, ThreadAffinityMask) {
         auto result = td::thread::set_affinity_mask(thread_id, 1);
         LOG(INFO) << "Thread " << thread_id << ": " << result << ' ' << td::thread::get_affinity_mask(thread_id);
       });
+      LOG(INFO) << "Will join new thread " << thread.get_id()
+                << " with affinity mask: " << td::thread::get_affinity_mask(thread.get_id());
     }
   }
   auto result = td::thread::set_affinity_mask(thread_id, old_mask);
