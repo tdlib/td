@@ -81,7 +81,11 @@ class ClientActor final : public Actor {
   ClientActor &operator=(const ClientActor &other) = delete;
 
  private:
+  void start_up() final;
+
   ActorOwn<Td> td_;
+  unique_ptr<TdCallback> callback_;
+  Options options_;
 };
 
 /**

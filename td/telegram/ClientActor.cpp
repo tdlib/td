@@ -12,10 +12,14 @@
 
 namespace td {
 
-ClientActor::ClientActor(unique_ptr<TdCallback> callback, Options options) {
+ClientActor::ClientActor(unique_ptr<TdCallback> callback, Options options)
+    : callback_(std::move(callback)), options_(std::move(options)) {
+}
+
+void ClientActor::start_up() {
   Td::Options td_options;
-  td_options.net_query_stats = std::move(options.net_query_stats);
-  td_ = create_actor<Td>("Td", std::move(callback), std::move(td_options));
+  td_options.net_query_stats = std::move(options_.net_query_stats);
+  td_ = create_actor<Td>("Td", std::move(callback_), std::move(td_options));
 }
 
 void ClientActor::request(uint64 id, td_api::object_ptr<td_api::Function> request) {
