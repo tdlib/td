@@ -70,6 +70,12 @@ void ConcurrentScheduler::test_one_thread_run() {
   } while (!is_finished_.load(std::memory_order_relaxed));
 }
 
+thread::id ConcurrentScheduler::get_thread_id(int32 sched_id) {
+  auto thread_pos = static_cast<size_t>(sched_id - 1);
+  CHECK(thread_pos < threads_.size());
+  return threads_[thread_pos].get_id();
+}
+
 void ConcurrentScheduler::start() {
   CHECK(state_ == State::Start);
   is_finished_.store(false, std::memory_order_relaxed);
@@ -100,6 +106,7 @@ void ConcurrentScheduler::start() {
 
   state_ = State::Run;
 }
+
 static TD_THREAD_LOCAL double emscripten_timeout;
 
 bool ConcurrentScheduler::run_main(Timestamp timeout) {

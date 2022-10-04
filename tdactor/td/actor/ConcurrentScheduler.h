@@ -31,9 +31,11 @@ class ConcurrentScheduler final : private Scheduler::Callback {
   void finish_async() {
     schedulers_[0]->finish();
   }
+
   void wakeup() {
     schedulers_[0]->wakeup();
   }
+
   SchedulerGuard get_main_guard() {
     return schedulers_[0]->get_guard();
   }
@@ -47,6 +49,8 @@ class ConcurrentScheduler final : private Scheduler::Callback {
   bool is_finished() const {
     return is_finished_.load(std::memory_order_relaxed);
   }
+
+  thread::id get_thread_id(int32 sched_id);
 
   void start();
 
