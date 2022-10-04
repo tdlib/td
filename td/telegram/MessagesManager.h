@@ -428,7 +428,7 @@ class MessagesManager final : public Actor {
   void reload_voice_chat_on_search(const string &username);
 
   void get_dialog_send_message_as_dialog_ids(DialogId dialog_id,
-                                             Promise<td_api::object_ptr<td_api::messageSenders>> &&promise,
+                                             Promise<td_api::object_ptr<td_api::chatMessageSenders>> &&promise,
                                              bool is_recursive = false);
 
   void set_dialog_default_send_message_as_dialog_id(DialogId dialog_id, DialogId message_sender_dialog_id,

@@ -15263,6 +15263,14 @@ int32 ContactsManager::get_channel_participant_count(ChannelId channel_id) const
   return c->participant_count;
 }
 
+bool ContactsManager::get_channel_is_verified(ChannelId channel_id) const {
+  auto c = get_channel(channel_id);
+  if (c == nullptr) {
+    return false;
+  }
+  return c->is_verified;
+}
+
 bool ContactsManager::get_channel_sign_messages(ChannelId channel_id) const {
   auto c = get_channel(channel_id);
   if (c == nullptr) {

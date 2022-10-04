@@ -795,6 +795,13 @@ messageSenderChat chat_id:int53 = MessageSender;
 messageSenders total_count:int32 senders:vector<MessageSender> = MessageSenders;
 
 
+//@description Represents a message sender, which can be used to send messages in a chat @sender Available message senders @needs_premium True, if Telegram Premium is needed to use the message sender
+chatMessageSender sender:MessageSender needs_premium:Bool = ChatMessageSender;
+
+//@description Represents a list of message senders, which can be used to send messages in a chat @senders List of available message senders
+chatMessageSenders senders:vector<chatMessageSender> = ChatMessageSenders;
+
+
 //@class MessageForwardOrigin @description Contains information about the origin of a forwarded message
 
 //@description The message was originally sent by a known user @sender_user_id Identifier of the user that originally sent the message
@@ -5056,7 +5063,7 @@ rateSpeechRecognition chat_id:int53 message_id:int53 is_good:Bool = Ok;
 
 
 //@description Returns list of message sender identifiers, which can be used to send messages in a chat @chat_id Chat identifier
-getChatAvailableMessageSenders chat_id:int53 = MessageSenders;
+getChatAvailableMessageSenders chat_id:int53 = ChatMessageSenders;
 
 //@description Selects a message sender to send messages in a chat @chat_id Chat identifier @message_sender_id New message sender for the chat
 setChatMessageSender chat_id:int53 message_sender_id:MessageSender = Ok;

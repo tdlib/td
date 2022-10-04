@@ -25738,7 +25738,7 @@ void MessagesManager::add_message_dependencies(Dependencies &dependencies, const
 }
 
 void MessagesManager::get_dialog_send_message_as_dialog_ids(
-    DialogId dialog_id, Promise<td_api::object_ptr<td_api::messageSenders>> &&promise, bool is_recursive) {
+    DialogId dialog_id, Promise<td_api::object_ptr<td_api::chatMessageSenders>> &&promise, bool is_recursive) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
 
   const Dialog *d = get_dialog_force(dialog_id, "get_group_call_join_as");
@@ -25749,21 +25749,21 @@ void MessagesManager::get_dialog_send_message_as_dialog_ids(
     return promise.set_error(Status::Error(400, "Can't access chat"));
   }
   if (!d->default_send_message_as_dialog_id.is_valid()) {
-    return promise.set_value(td_api::make_object<td_api::messageSenders>());
+    return promise.set_value(td_api::make_object<td_api::chatMessageSenders>());
   }
   CHECK(dialog_id.get_type() == DialogType::Channel);
 
   if (created_public_broadcasts_inited_) {
-    auto senders = td_api::make_object<td_api::messageSenders>();
+    auto senders = td_api::make_object<td_api::chatMessageSenders>();
     if (!created_public_broadcasts_.empty()) {
-      auto add_sender = [&senders, td = td_](DialogId dialog_id) {
-        senders->total_count_++;
-        senders->senders_.push_back(get_message_sender_object_const(td, dialog_id, "add_sender"));
+      auto add_sender = [&senders, td = td_](DialogId dialog_id, bool needs_premium) {
+        auto sender = get_message_sender_object_const(td, dialog_id, "add_sender");
+        senders->senders_.push_back(td_api::make_object<td_api::chatMessageSender>(std::move(sender), needs_premium));
       };
       if (is_anonymous_administrator(dialog_id, nullptr)) {
-        add_sender(dialog_id);
+        add_sender(dialog_id, false);
       } else {
-        add_sender(get_my_dialog_id());
+        add_sender(get_my_dialog_id(), false);
       }
       auto sorted_channel_ids = transform(created_public_broadcasts_, [&](ChannelId channel_id) {
         auto participant_count = td_->contacts_manager_->get_channel_participant_count(channel_id);
@@ -25771,8 +25771,13 @@ void MessagesManager::get_dialog_send_message_as_dialog_ids(
       });
       std::sort(sorted_channel_ids.begin(), sorted_channel_ids.end());
 
-      for (auto channel_id : sorted_channel_ids) {
-        add_sender(DialogId(ChannelId(channel_id.second)));
+      bool is_premium = td_->option_manager_->get_option_boolean("is_premium");
+      auto linked_channel_id = td_->contacts_manager_->get_channel_linked_channel_id(dialog_id.get_channel_id());
+      for (auto sorted_channel_id : sorted_channel_ids) {
+        ChannelId channel_id(sorted_channel_id.second);
+        bool needs_premium = !is_premium && channel_id != linked_channel_id &&
+                             !td_->contacts_manager_->get_channel_is_verified(channel_id);
+        add_sender(DialogId(channel_id), needs_premium);
       }
     }
     return promise.set_value(std::move(senders));
