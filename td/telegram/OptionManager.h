@@ -86,6 +86,7 @@ class OptionManager {
   bool is_td_inited_ = false;
   vector<std::pair<string, Promise<td_api::object_ptr<td_api::OptionValue>>>> pending_get_options_;
 
+  int32 current_scheduler_id_ = -1;
   unique_ptr<TsSeqKeyValue> options_;
   std::shared_ptr<KeyValueSyncInterface> option_pmc_;
 

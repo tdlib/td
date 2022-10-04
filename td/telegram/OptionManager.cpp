@@ -47,7 +47,10 @@
 namespace td {
 
 OptionManager::OptionManager(Td *td)
-    : td_(td), options_(td::make_unique<TsSeqKeyValue>()), option_pmc_(G()->td_db()->get_config_pmc_shared()) {
+    : td_(td)
+    , current_scheduler_id_(Scheduler::instance()->sched_id())
+    , options_(td::make_unique<TsSeqKeyValue>())
+    , option_pmc_(G()->td_db()->get_config_pmc_shared()) {
   send_unix_time_update();
 
   auto all_options = option_pmc_->get_all();
@@ -181,7 +184,7 @@ string OptionManager::get_option_string(Slice name, string default_value) const 
 
 void OptionManager::set_option(Slice name, Slice value) {
   CHECK(!name.empty());
-  CHECK(Scheduler::instance()->sched_id() == 0);
+  CHECK(Scheduler::instance()->sched_id() == current_scheduler_id_);
   if (value.empty()) {
     if (option_pmc_->erase(name.str()) == 0) {
       return;
