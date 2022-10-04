@@ -202,6 +202,10 @@ std::string TD_TL_writer_java::gen_output_begin() const {
          "        } catch (UnsatisfiedLinkError e) {\n"
          "            e.printStackTrace();\n" +
          "        }\n"
+         "    }\n\n"
+         "    private " +
+         tl_name +
+         "() {\n"
          "    }\n\n";
 }
 
