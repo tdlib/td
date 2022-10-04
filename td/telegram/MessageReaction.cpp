@@ -778,6 +778,7 @@ bool MessageReactions::are_consistent_with_list(const string &reaction, FlatHash
     // received list and total_count for all reactions
     int32 old_total_count = 0;
     for (const auto &message_reaction : reactions_) {
+      CHECK(!message_reaction.get_reaction().empty());
       if (!are_consistent(reactions[message_reaction.get_reaction()],
                           message_reaction.get_recent_chooser_dialog_ids())) {
         return false;

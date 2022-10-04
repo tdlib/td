@@ -12449,23 +12449,24 @@ void MessagesManager::read_history_outbox(DialogId dialog_id, MessageId max_mess
     }
 
     if (max_message_id.is_yet_unsent()) {
-      LOG(ERROR) << "Tried to update last read outbox message with " << max_message_id;
+      LOG(ERROR) << "Tried to update last read outbox message with " << max_message_id << " in " << dialog_id;
       return;
     }
 
     // it is impossible for just sent outgoing messages because updates are ordered by pts
-    LOG_IF(INFO, d->last_new_message_id.is_valid() && max_message_id > d->last_new_message_id &&
-                     dialog_id.get_type() != DialogType::Channel)
-        << "Receive read outbox update about unknown " << max_message_id << " in " << dialog_id << " with last new "
-        << d->last_new_message_id << ". Possible only for deleted outgoing message";
+    if (d->last_new_message_id.is_valid() && max_message_id > d->last_new_message_id &&
+        dialog_id.get_type() != DialogType::Channel) {
+      LOG(INFO) << "Receive read outbox update about unknown " << max_message_id << " in " << dialog_id
+                << " with last new " << d->last_new_message_id << ". Possible only for deleted outgoing message";
+    }
 
     if (dialog_id.get_type() == DialogType::SecretChat) {
-      double server_time = Time::now();
-      double read_time = server_time;
+      double server_time = G()->server_time();
+      double read_time = Time::now();
       if (read_date <= 0) {
         LOG(ERROR) << "Receive wrong read date " << read_date << " in " << dialog_id;
       } else if (read_date < server_time) {
-        read_time = read_date;
+        read_time -= (server_time - read_date);
       }
       ttl_read_history(d, true, max_message_id, d->last_read_outbox_message_id, read_time);
     }
@@ -14041,7 +14042,7 @@ void MessagesManager::read_secret_chat_outbox_inner(DialogId dialog_id, int32 up
   CHECK(d != nullptr);
 
   auto end = MessagesConstIterator(d, MessageId::max());
-  while (*end && (*end)->date > up_to_date) {
+  while (*end && ((*end)->date > up_to_date || (*end)->message_id.is_yet_unsent())) {
     --end;
   }
   if (!*end) {
