@@ -32,7 +32,7 @@ class SqliteDb {
 
   // dangerous
   SqliteDb clone() const {
-    return SqliteDb(raw_);
+    return SqliteDb(raw_, enable_logging_);
   }
 
   bool empty() const {
@@ -77,7 +77,8 @@ class SqliteDb {
   optional<int32> get_cipher_version() const;
 
  private:
-  explicit SqliteDb(std::shared_ptr<detail::RawSqliteDb> raw) : raw_(std::move(raw)) {
+  SqliteDb(std::shared_ptr<detail::RawSqliteDb> raw, bool enable_logging)
+      : raw_(std::move(raw)), enable_logging_(enable_logging) {
   }
   std::shared_ptr<detail::RawSqliteDb> raw_;
   bool enable_logging_ = false;

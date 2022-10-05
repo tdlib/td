@@ -181,8 +181,7 @@ Status SqliteStatement::step() {
   VLOG(sqlite) << "Start step " << tag("query", tdsqlite3_sql(stmt_.get())) << tag("statement", stmt_.get())
                << tag("database", db_.get());
   auto rc = tdsqlite3_step(stmt_.get());
-  VLOG(sqlite) << "Finish step " << tag("query", tdsqlite3_sql(stmt_.get())) << tag("statement", stmt_.get())
-               << tag("database", db_.get());
+  VLOG(sqlite) << "Finish step with response " << (rc == SQLITE_ROW ? "ROW" : (rc == SQLITE_DONE ? "DONE" : "ERROR"));
   if (rc == SQLITE_ROW) {
     state_ = State::GotRow;
     return Status::OK();

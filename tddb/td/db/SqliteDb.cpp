@@ -125,14 +125,17 @@ Status SqliteDb::exec(CSlice cmd) {
     VLOG(sqlite) << "Start exec " << tag("query", cmd) << tag("database", raw_->db());
   }
   auto rc = tdsqlite3_exec(raw_->db(), cmd.c_str(), nullptr, nullptr, &msg);
-  if (enable_logging_) {
-    VLOG(sqlite) << "Finish exec " << tag("query", cmd) << tag("database", raw_->db());
-  }
   if (rc != SQLITE_OK) {
     CHECK(msg != nullptr);
+    if (enable_logging_) {
+      VLOG(sqlite) << "Finish exec with error " << msg;
+    }
     return Status::Error(PSLICE() << tag("query", cmd) << " to database \"" << raw_->path() << "\" failed: " << msg);
   }
   CHECK(msg == nullptr);
+  if (enable_logging_) {
+    VLOG(sqlite) << "Finish exec";
+  }
   return Status::OK();
 }
 
