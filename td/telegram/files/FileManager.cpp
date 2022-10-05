@@ -1702,6 +1702,11 @@ Result<FileId> FileManager::merge(FileId x_file_id, FileId y_file_id, bool no_sy
     node->on_info_changed();
   }
 
+  if (node->file_ids_.size() > (1u << file_node_size_warning_exp_)) {
+    LOG(WARNING) << "File of type " << file_view.get_type() << " has " << node->file_ids_.size() << " file identifiers";
+    file_node_size_warning_exp_++;
+  }
+
   // Check if some download/upload queries are ready
   for (auto file_id : vector<FileId>(node->file_ids_)) {
     auto *info = get_file_id_info(file_id);
