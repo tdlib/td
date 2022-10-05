@@ -90,6 +90,8 @@ void ConcurrentScheduler::start() {
       if (thread_affinity_mask != 0) {
         thread::set_affinity_mask(this_thread::get_id(), thread_affinity_mask).ignore();
       }
+#else
+      (void)thread_affinity_mask;
 #endif
       while (!is_finished()) {
         sched->run(Timestamp::in(10));
