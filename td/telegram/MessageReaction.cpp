@@ -551,19 +551,19 @@ unique_ptr<MessageReactions> MessageReactions::get_message_reactions(
           if (dialog_type == DialogType::User) {
             auto user_id = dialog_id.get_user_id();
             if (!td->contacts_manager_->have_min_user(user_id)) {
-              LOG(ERROR) << "Have no info about " << user_id;
+              LOG(ERROR) << "Receive unknown " << user_id;
               continue;
             }
           } else if (dialog_type == DialogType::Channel) {
             auto channel_id = dialog_id.get_channel_id();
             auto min_channel = td->contacts_manager_->get_min_channel(channel_id);
             if (min_channel == nullptr) {
-              LOG(ERROR) << "Have no info about reacted " << channel_id;
+              LOG(ERROR) << "Receive unknown reacted " << channel_id;
               continue;
             }
             recent_chooser_min_channels.emplace_back(channel_id, *min_channel);
           } else {
-            LOG(ERROR) << "Have no info about reacted " << dialog_id;
+            LOG(ERROR) << "Receive unknown reacted " << dialog_id;
             continue;
           }
         }

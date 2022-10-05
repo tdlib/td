@@ -94,7 +94,7 @@ vector<DialogId> get_message_sender_dialog_ids(Td *td,
     }
     if (dialog_id.get_type() == DialogType::User) {
       if (!td->contacts_manager_->have_user(dialog_id.get_user_id())) {
-        LOG(ERROR) << "Have no info about " << dialog_id.get_user_id();
+        LOG(ERROR) << "Receive unknown " << dialog_id.get_user_id();
         continue;
       }
     } else {

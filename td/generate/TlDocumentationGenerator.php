@@ -212,14 +212,14 @@ abstract class TlDocumentationGenerator
                         $known_fields[$field_name] = $field_type;
                         continue;
                     }
-                    $this->printError("Have no info about field `$field_name`");
+                    $this->printError("Have no documentation for field `$field_name`");
                 }
 
                 foreach ($info as $name => $value) {
                     if (!$value) {
-                        $this->printError("info[$name] for $class_name is empty");
+                        $this->printError("Documentation for field $name of $class_name is empty");
                     } elseif (($value[0] < 'A' || $value[0] > 'Z') && ($value[0] < '0' || $value[0] > '9')) {
-                        $this->printError("info[$name] for $class_name doesn't begins with capital letter");
+                        $this->printError("Documentation for field $name of $class_name doesn't begin with a capital letter");
                     }
                 }
 
@@ -235,7 +235,7 @@ abstract class TlDocumentationGenerator
                 }
 
                 foreach (array_diff_key($info, $known_fields) as $field_name => $field_info) {
-                    $this->printError("Have info about unexisted field `$field_name`");
+                    $this->printError("Have info about nonexistent field `$field_name`");
                 }
 
                 if (array_keys($info) !== array_keys($known_fields)) {

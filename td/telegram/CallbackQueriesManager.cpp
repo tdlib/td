@@ -176,7 +176,7 @@ void CallbackQueriesManager::on_new_query(int32 flags, int64 callback_query_id, 
     LOG(ERROR) << "Receive new callback query from invalid " << sender_user_id << " in " << dialog_id;
     return;
   }
-  LOG_IF(ERROR, !td_->contacts_manager_->have_user(sender_user_id)) << "Have no info about " << sender_user_id;
+  LOG_IF(ERROR, !td_->contacts_manager_->have_user(sender_user_id)) << "Receive unknown " << sender_user_id;
   if (!td_->auth_manager_->is_bot()) {
     LOG(ERROR) << "Receive new callback query";
     return;
@@ -208,7 +208,7 @@ void CallbackQueriesManager::on_new_inline_query(
     LOG(ERROR) << "Receive new callback query from invalid " << sender_user_id;
     return;
   }
-  LOG_IF(ERROR, !td_->contacts_manager_->have_user(sender_user_id)) << "Have no info about " << sender_user_id;
+  LOG_IF(ERROR, !td_->contacts_manager_->have_user(sender_user_id)) << "Receive unknown " << sender_user_id;
   if (!td_->auth_manager_->is_bot()) {
     LOG(ERROR) << "Receive new callback query";
     return;

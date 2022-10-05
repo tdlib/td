@@ -66,7 +66,7 @@ function split_file($file, $chunks, $undo) {
     }
 
     if (!file_exists($cpp_name)) {
-        echo "ERROR: skip unexisting file $cpp_name".PHP_EOL;
+        echo "ERROR: skip nonexistent file $cpp_name".PHP_EOL;
         return;
     }
 

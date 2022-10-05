@@ -2028,7 +2028,7 @@ void InlineQueriesManager::on_new_query(int64 query_id, UserId sender_user_id, L
     LOG(ERROR) << "Receive new inline query from invalid " << sender_user_id;
     return;
   }
-  LOG_IF(ERROR, !td_->contacts_manager_->have_user(sender_user_id)) << "Have no info about " << sender_user_id;
+  LOG_IF(ERROR, !td_->contacts_manager_->have_user(sender_user_id)) << "Receive unknown " << sender_user_id;
   if (!td_->auth_manager_->is_bot()) {
     LOG(ERROR) << "Receive new inline query";
     return;
@@ -2067,7 +2067,7 @@ void InlineQueriesManager::on_chosen_result(
     LOG(ERROR) << "Receive chosen inline query result from invalid " << user_id;
     return;
   }
-  LOG_IF(ERROR, !td_->contacts_manager_->have_user(user_id)) << "Have no info about " << user_id;
+  LOG_IF(ERROR, !td_->contacts_manager_->have_user(user_id)) << "Receive unknown " << user_id;
   if (!td_->auth_manager_->is_bot()) {
     LOG(ERROR) << "Receive chosen inline query result";
     return;

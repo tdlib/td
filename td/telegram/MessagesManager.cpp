@@ -2844,7 +2844,7 @@ class GetRecentLocationsQuery final : public Td::ResultHandler {
   void send(DialogId dialog_id, int32 limit) {
     auto input_peer = td_->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
     if (input_peer == nullptr) {
-      return on_error(Status::Error(400, "Have no info about the chat"));
+      return on_error(Status::Error(400, "Chat is not accessible"));
     }
 
     dialog_id_ = dialog_id;
@@ -27004,7 +27004,7 @@ void MessagesManager::do_send_bot_start_message(UserId bot_user_id, DialogId dia
                                                                      ? make_tl_object<telegram_api::inputPeerEmpty>()
                                                                      : get_input_peer(dialog_id, AccessRights::Write);
   if (input_peer == nullptr) {
-    return on_send_message_fail(random_id, Status::Error(400, "Have no info about the chat"));
+    return on_send_message_fail(random_id, Status::Error(400, "Chat is not accessible"));
   }
   auto r_bot_input_user = td_->contacts_manager_->get_input_user(bot_user_id);
   if (r_bot_input_user.is_error()) {
@@ -36870,8 +36870,7 @@ void MessagesManager::force_create_dialog(DialogId dialog_id, const char *source
             td_->contacts_manager_->have_min_channel(dialog_id.get_channel_id())) {
           LOG(INFO) << "Created " << dialog_id << " for min-channel from " << source;
         } else {
-          LOG(ERROR) << "Have no info about " << dialog_id << " received from " << source
-                     << ", but forced to create it";
+          LOG(ERROR) << "Forced to create unknown " << dialog_id << " from " << source;
         }
       } else if (!expect_no_access) {
         LOG(ERROR) << "Have no access to " << dialog_id << " received from " << source << ", but forced to create it";
@@ -38141,7 +38140,7 @@ unique_ptr<MessagesManager::Dialog> MessagesManager::parse_dialog(DialogId dialo
         send_get_dialog_query(dialog_id, Auto(), 0, source);
       }
     } else {
-      LOG(ERROR) << "Have no info about " << dialog_id << " from " << source << " to repair it";
+      LOG(ERROR) << "Can't repair unknown " << dialog_id << " from " << source;
     }
   }
   CHECK(dialog_id == d->dialog_id);
@@ -38679,7 +38678,7 @@ void MessagesManager::get_channel_difference(DialogId dialog_id, int32 pts, bool
   auto input_channel = td_->contacts_manager_->get_input_channel(dialog_id.get_channel_id());
   if (input_channel == nullptr) {
     LOG(ERROR) << "Skip running channels.getDifference for " << dialog_id << " from " << source
-               << " because have no info about the chat";
+               << " because the channel is unknown";
     after_get_channel_difference(dialog_id, false);
     return;
   }
@@ -40047,7 +40046,7 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
         auto dialog_id = log_event.dialog_id_;
         CHECK(dialog_id.get_type() == DialogType::SecretChat);
         if (!td_->contacts_manager_->have_secret_chat_force(dialog_id.get_secret_chat_id())) {
-          LOG(ERROR) << "Have no info about " << dialog_id;
+          LOG(ERROR) << "Can't read history in unknown " << dialog_id;
           binlog_erase(G()->td_db()->get_binlog(), event.id_);
           break;
         }
