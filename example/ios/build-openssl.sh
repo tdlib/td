@@ -32,6 +32,6 @@ do
     mkdir -p third_party/openssl/$platform/lib
     cp ./Python-Apple-support/build/$platform/libcrypto.a third_party/openssl/$platform/lib/
     cp ./Python-Apple-support/build/$platform/libssl.a third_party/openssl/$platform/lib/
-    cp -r ./Python-Apple-support/build/$platform/Support/OpenSSL/Headers/ third_party/openssl/$platform/include
+    cp -r ./Python-Apple-support/build/$platform/openssl/include/ third_party/openssl/$platform/include
   done
 done
