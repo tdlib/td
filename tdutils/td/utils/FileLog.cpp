@@ -11,8 +11,10 @@
 #include "td/utils/port/FileFd.h"
 #include "td/utils/port/path.h"
 #include "td/utils/port/StdStreams.h"
+#include "td/utils/port/thread_local.h"
 #include "td/utils/Slice.h"
 #include "td/utils/SliceBuilder.h"
+#include "td/utils/Time.h"
 
 namespace td {
 
@@ -71,6 +73,7 @@ bool FileLog::get_redirect_stderr() const {
 }
 
 void FileLog::do_append(int log_level, CSlice slice) {
+  auto start_time = Time::now();
   if (size_ > rotate_threshold_ || want_rotate_.load(std::memory_order_relaxed)) {
     auto status = rename(path_, PSLICE() << path_ << ".old");
     if (status.is_error()) {
@@ -86,6 +89,12 @@ void FileLog::do_append(int log_level, CSlice slice) {
     auto written = r_size.ok();
     size_ += static_cast<int64>(written);
     slice.remove_prefix(written);
+  }
+  auto total_time = Time::now() - start_time;
+  if (total_time >= 0.1 && log_level >= 1) {
+    auto thread_id = get_thread_id();
+    fd_.write(PSLICE() << "[ 1][t" << (0 <= thread_id && thread_id < 10 ? " " : "") << thread_id
+                       << "] !!! Previous logging took " << total_time << " seconds !!!\n");
   }
 }
 
