@@ -14915,10 +14915,11 @@ FileSourceId ContactsManager::get_user_full_file_source_id(UserId user_id) {
     return FileSourceId();
   }
 
-  if (get_user_full(user_id) != nullptr) {
+  auto user_full = get_user_full(user_id);
+  if (user_full != nullptr) {
     VLOG(file_references) << "Don't need to create file source for full " << user_id;
     // user full was already added, source ID was registered and shouldn't be needed
-    return FileSourceId();
+    return user_full->is_update_user_full_sent ? FileSourceId() : user_full->file_source_id;
   }
 
   auto &source_id = user_full_file_source_ids_[user_id];
@@ -14934,10 +14935,11 @@ FileSourceId ContactsManager::get_chat_full_file_source_id(ChatId chat_id) {
     return FileSourceId();
   }
 
-  if (get_chat_full(chat_id) != nullptr) {
+  auto chat_full = get_chat_full(chat_id);
+  if (chat_full != nullptr) {
     VLOG(file_references) << "Don't need to create file source for full " << chat_id;
     // chat full was already added, source ID was registered and shouldn't be needed
-    return FileSourceId();
+    return chat_full->is_update_chat_full_sent ? FileSourceId() : chat_full->file_source_id;
   }
 
   auto &source_id = chat_full_file_source_ids_[chat_id];
@@ -14953,10 +14955,11 @@ FileSourceId ContactsManager::get_channel_full_file_source_id(ChannelId channel_
     return FileSourceId();
   }
 
-  if (get_channel_full(channel_id) != nullptr) {
+  auto channel_full = get_channel_full(channel_id);
+  if (channel_full != nullptr) {
     VLOG(file_references) << "Don't need to create file source for full " << channel_id;
     // channel full was already added, source ID was registered and shouldn't be needed
-    return FileSourceId();
+    return channel_full->is_update_channel_full_sent ? FileSourceId() : channel_full->file_source_id;
   }
 
   auto &source_id = channel_full_file_source_ids_[channel_id];
