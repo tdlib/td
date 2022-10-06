@@ -3343,13 +3343,10 @@ void Td::clear() {
   close_flag_ = 2;
 
   Timer timer;
-  if (destroy_flag_) {
-    option_manager_->clear_options();
-    if (!auth_manager_->is_bot()) {
+  if (!auth_manager_->is_bot()) {
+    if (destroy_flag_) {
       notification_manager_->destroy_all_notifications();
-    }
-  } else {
-    if (!auth_manager_->is_bot()) {
+    } else {
       notification_manager_->flush_all_notifications();
     }
   }

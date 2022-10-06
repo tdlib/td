@@ -229,16 +229,6 @@ void OptionManager::on_update_server_time_difference() {
   send_unix_time_update();
 }
 
-void OptionManager::clear_options() {
-  for (const auto &option : options_->get_all()) {
-    if (!is_internal_option(option.first)) {
-      send_closure(
-          G()->td(), &Td::send_update,
-          td_api::make_object<td_api::updateOption>(option.first, td_api::make_object<td_api::optionValueEmpty>()));
-    }
-  }
-}
-
 bool OptionManager::is_internal_option(Slice name) {
   switch (name[0]) {
     case 'a':

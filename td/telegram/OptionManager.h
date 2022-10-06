@@ -55,8 +55,6 @@ class OptionManager {
 
   void set_option(const string &name, td_api::object_ptr<td_api::OptionValue> &&value, Promise<Unit> &&promise);
 
-  void clear_options();
-
   static bool is_synchronous_option(Slice name);
 
   static td_api::object_ptr<td_api::OptionValue> get_option_synchronously(Slice name);
