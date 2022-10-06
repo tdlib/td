@@ -8999,7 +8999,7 @@ Result<string> MessagesManager::get_login_button_url(FullMessageId full_message_
 void MessagesManager::load_secret_thumbnail(FileId thumbnail_file_id) {
   class Callback final : public FileManager::DownloadCallback {
    public:
-    explicit Callback(Promise<> download_promise) : download_promise_(std::move(download_promise)) {
+    explicit Callback(Promise<Unit> download_promise) : download_promise_(std::move(download_promise)) {
     }
 
     void on_download_ok(FileId file_id) final {
@@ -9010,7 +9010,7 @@ void MessagesManager::load_secret_thumbnail(FileId thumbnail_file_id) {
     }
 
    private:
-    Promise<> download_promise_;
+    Promise<Unit> download_promise_;
   };
 
   auto thumbnail_promise = PromiseCreator::lambda([actor_id = actor_id(this),
@@ -13368,7 +13368,33 @@ void MessagesManager::tear_down() {
 
 void MessagesManager::hangup() {
   postponed_channel_updates_.clear();
-  load_active_live_location_messages_queries_.clear();
+  fail_promises(load_active_live_location_messages_queries_, Global::request_aborted_error());
+  fail_promises(dialog_filter_reload_queries_, Global::request_aborted_error());
+  auto fail_promise_map = [](auto &queries) {
+    while (!queries.empty()) {
+      auto it = queries.begin();
+      auto promises = std::move(it->second);
+      queries.erase(it);
+      fail_promises(promises, Global::request_aborted_error());
+    }
+  };
+  fail_promise_map(get_dialog_queries_);
+  fail_promise_map(load_scheduled_messages_from_database_queries_);
+  fail_promise_map(run_after_get_channel_difference_);
+  fail_promise_map(search_public_dialogs_queries_);
+  while (!pending_channel_on_get_dialogs_.empty()) {
+    auto it = pending_channel_on_get_dialogs_.begin();
+    auto promise = std::move(it->second.promise);
+    pending_channel_on_get_dialogs_.erase(it);
+    promise.set_error(Global::request_aborted_error());
+  }
+  while (!get_dialogs_tasks_.empty()) {
+    auto it = get_dialogs_tasks_.begin();
+    auto promise = std::move(it->second.promise);
+    get_dialogs_tasks_.erase(it);
+    promise.set_error(Global::request_aborted_error());
+  }
+
   stop();
 }
 
@@ -13880,7 +13906,7 @@ void MessagesManager::ttl_db_on_result(Result<std::pair<std::vector<MessagesDbMe
   ttl_db_loop(G()->server_time());
 }
 
-void MessagesManager::on_send_secret_message_error(int64 random_id, Status error, Promise<> promise) {
+void MessagesManager::on_send_secret_message_error(int64 random_id, Status error, Promise<Unit> promise) {
   promise.set_value(Unit());  // TODO: set after error is saved
 
   auto it = being_sent_messages_.find(random_id);
@@ -13910,7 +13936,7 @@ void MessagesManager::on_send_secret_message_error(int64 random_id, Status error
 }
 
 void MessagesManager::on_send_secret_message_success(int64 random_id, MessageId message_id, int32 date,
-                                                     unique_ptr<EncryptedFile> file, Promise<> promise) {
+                                                     unique_ptr<EncryptedFile> file, Promise<Unit> promise) {
   promise.set_value(Unit());  // TODO: set after message is saved
 
   FileId new_file_id;
@@ -13934,7 +13960,7 @@ void MessagesManager::on_send_secret_message_success(int64 random_id, MessageId 
 }
 
 void MessagesManager::delete_secret_messages(SecretChatId secret_chat_id, std::vector<int64> random_ids,
-                                             Promise<> promise) {
+                                             Promise<Unit> promise) {
   LOG(DEBUG) << "On delete messages in " << secret_chat_id << " with random_ids " << random_ids;
   CHECK(secret_chat_id.is_valid());
 
@@ -13955,7 +13981,7 @@ void MessagesManager::delete_secret_messages(SecretChatId secret_chat_id, std::v
 }
 
 void MessagesManager::finish_delete_secret_messages(DialogId dialog_id, std::vector<int64> random_ids,
-                                                    Promise<> promise) {
+                                                    Promise<Unit> promise) {
   LOG(INFO) << "Delete messages with random_ids " << random_ids << " in " << dialog_id;
   promise.set_value(Unit());  // TODO: set after event is saved
 
@@ -13980,7 +14006,7 @@ void MessagesManager::finish_delete_secret_messages(DialogId dialog_id, std::vec
 }
 
 void MessagesManager::delete_secret_chat_history(SecretChatId secret_chat_id, bool remove_from_dialog_list,
-                                                 MessageId last_message_id, Promise<> promise) {
+                                                 MessageId last_message_id, Promise<Unit> promise) {
   LOG(DEBUG) << "Delete history in " << secret_chat_id << " up to " << last_message_id;
   CHECK(secret_chat_id.is_valid());
   CHECK(!last_message_id.is_scheduled());
@@ -14003,7 +14029,7 @@ void MessagesManager::delete_secret_chat_history(SecretChatId secret_chat_id, bo
 }
 
 void MessagesManager::finish_delete_secret_chat_history(DialogId dialog_id, bool remove_from_dialog_list,
-                                                        MessageId last_message_id, Promise<> promise) {
+                                                        MessageId last_message_id, Promise<Unit> promise) {
   LOG(DEBUG) << "Delete history in " << dialog_id << " up to " << last_message_id;
   Dialog *d = get_dialog(dialog_id);
   CHECK(d != nullptr);
@@ -14056,7 +14082,7 @@ void MessagesManager::read_secret_chat_outbox_inner(DialogId dialog_id, int32 up
   read_history_outbox(dialog_id, max_message_id, read_date);
 }
 
-void MessagesManager::open_secret_message(SecretChatId secret_chat_id, int64 random_id, Promise<> promise) {
+void MessagesManager::open_secret_message(SecretChatId secret_chat_id, int64 random_id, Promise<Unit> promise) {
   promise.set_value(Unit());  // TODO: set after event is saved
   DialogId dialog_id(secret_chat_id);
   Dialog *d = get_dialog_force(dialog_id, "open_secret_message");
@@ -14101,7 +14127,8 @@ void MessagesManager::on_update_secret_chat_state(SecretChatId secret_chat_id, S
 
 void MessagesManager::on_get_secret_message(SecretChatId secret_chat_id, UserId user_id, MessageId message_id,
                                             int32 date, unique_ptr<EncryptedFile> file,
-                                            tl_object_ptr<secret_api::decryptedMessage> message, Promise<> promise) {
+                                            tl_object_ptr<secret_api::decryptedMessage> message,
+                                            Promise<Unit> promise) {
   LOG(DEBUG) << "On get " << to_string(message);
   CHECK(message != nullptr);
   CHECK(secret_chat_id.is_valid());
@@ -14203,7 +14230,7 @@ void MessagesManager::on_resolve_secret_chat_message_via_bot_username(const stri
 }
 
 void MessagesManager::on_secret_chat_screenshot_taken(SecretChatId secret_chat_id, UserId user_id, MessageId message_id,
-                                                      int32 date, int64 random_id, Promise<> promise) {
+                                                      int32 date, int64 random_id, Promise<Unit> promise) {
   LOG(DEBUG) << "On screenshot taken in " << secret_chat_id;
   CHECK(secret_chat_id.is_valid());
   CHECK(user_id.is_valid());
@@ -14236,7 +14263,7 @@ void MessagesManager::on_secret_chat_screenshot_taken(SecretChatId secret_chat_i
 }
 
 void MessagesManager::on_secret_chat_ttl_changed(SecretChatId secret_chat_id, UserId user_id, MessageId message_id,
-                                                 int32 date, int32 ttl, int64 random_id, Promise<> promise) {
+                                                 int32 date, int32 ttl, int64 random_id, Promise<Unit> promise) {
   LOG(DEBUG) << "On TTL set in " << secret_chat_id << " to " << ttl;
   CHECK(secret_chat_id.is_valid());
   CHECK(user_id.is_valid());
@@ -17823,7 +17850,7 @@ vector<DialogId> MessagesManager::search_public_dialogs(const string &query, Pro
         }
 
         if (resolved_username.expires_at < Time::now()) {
-          td_->create_handler<ResolveUsernameQuery>(Promise<>())->send(username);
+          td_->create_handler<ResolveUsernameQuery>(Promise<Unit>())->send(username);
         }
 
         auto dialog_id = resolved_username.dialog_id;
@@ -20183,7 +20210,7 @@ void MessagesManager::save_dialog_draft_message_on_server(DialogId dialog_id) {
   auto d = get_dialog(dialog_id);
   CHECK(d != nullptr);
 
-  Promise<> promise;
+  Promise<Unit> promise;
   if (d->save_draft_message_log_event_id.log_event_id != 0) {
     d->save_draft_message_log_event_id.generation++;
     promise = PromiseCreator::lambda([actor_id = actor_id(this), dialog_id,
@@ -20745,7 +20772,7 @@ void MessagesManager::update_dialog_notification_settings_on_server(DialogId dia
                   LogEvent::HandlerType::UpdateDialogNotificationSettingsOnServer, "notification settings");
   }
 
-  Promise<> promise;
+  Promise<Unit> promise;
   if (d->save_notification_settings_log_event_id.log_event_id != 0) {
     d->save_notification_settings_log_event_id.generation++;
     promise = PromiseCreator::lambda(
@@ -22221,7 +22248,7 @@ void MessagesManager::read_history_on_server_impl(Dialog *d, MessageId max_messa
     }
   }
 
-  Promise<> promise;
+  Promise<Unit> promise;
   if (d->read_history_log_event_ids[0].log_event_id != 0) {
     d->read_history_log_event_ids[0].generation++;
     promise = PromiseCreator::lambda([actor_id = actor_id(this), dialog_id,
@@ -22285,7 +22312,7 @@ void MessagesManager::read_message_thread_history_on_server_impl(Dialog *d, Mess
     }
   }
 
-  Promise<> promise;
+  Promise<Unit> promise;
   if (d->read_history_log_event_ids[top_thread_message_id.get()].log_event_id != 0) {
     d->read_history_log_event_ids[top_thread_message_id.get()].generation++;
     promise = PromiseCreator::lambda(
@@ -23310,7 +23337,7 @@ void MessagesManager::change_message_files(DialogId dialog_id, const Message *m,
   for (auto file_id : old_file_ids) {
     if (!td::contains(new_file_ids, file_id)) {
       if (need_delete_files && need_delete_file(full_message_id, file_id)) {
-        send_closure(G()->file_manager(), &FileManager::delete_file, file_id, Promise<>(), "change_message_files");
+        send_closure(G()->file_manager(), &FileManager::delete_file, file_id, Promise<Unit>(), "change_message_files");
       }
       if (file_source_id.is_valid()) {
         auto file_view = td_->file_manager_->get_file_view(file_id);
@@ -23433,7 +23460,7 @@ td_api::object_ptr<td_api::foundMessages> MessagesManager::get_found_messages_ob
 MessagesManager::FoundMessages MessagesManager::offline_search_messages(DialogId dialog_id, const string &query,
                                                                         string offset, int32 limit,
                                                                         MessageSearchFilter filter, int64 &random_id,
-                                                                        Promise<> &&promise) {
+                                                                        Promise<Unit> &&promise) {
   if (!G()->parameters().use_message_db) {
     promise.set_error(Status::Error(400, "Message database is required to search messages in secret chats"));
     return {};
@@ -23528,7 +23555,7 @@ void MessagesManager::on_messages_db_fts_result(Result<MessagesDbFtsResult> resu
 
 void MessagesManager::on_messages_db_calls_result(Result<MessagesDbCallsResult> result, int64 random_id,
                                                   MessageId first_db_message_id, MessageSearchFilter filter,
-                                                  Promise<> &&promise) {
+                                                  Promise<Unit> &&promise) {
   if (G()->close_flag()) {
     result = Global::request_aborted_error();
   }
@@ -29292,7 +29319,7 @@ Status MessagesManager::send_screenshot_taken_notification_message(DialogId dial
   } else {
     send_closure(td_->secret_chats_manager_, &SecretChatsManager::notify_screenshot_taken,
                  dialog_id.get_secret_chat_id(),
-                 Promise<>());  // TODO Promise
+                 Promise<Unit>());  // TODO Promise
   }
 
   return Status::OK();
@@ -33285,7 +33312,7 @@ DialogId MessagesManager::search_public_dialog(const string &username_to_search,
   auto resolved_username = resolved_usernames_.get(username);
   if (resolved_username.dialog_id.is_valid()) {
     if (resolved_username.expires_at < Time::now()) {
-      td_->create_handler<ResolveUsernameQuery>(Promise<>())->send(username);
+      td_->create_handler<ResolveUsernameQuery>(Promise<Unit>())->send(username);
     }
     dialog_id = resolved_username.dialog_id;
   } else {
@@ -33939,7 +33966,7 @@ void MessagesManager::set_dialog_folder_id_on_server(DialogId dialog_id, bool fr
                   LogEvent::HandlerType::SetDialogFolderIdOnServer, "set chat folder");
   }
 
-  Promise<> promise;
+  Promise<Unit> promise;
   if (d->set_folder_id_log_event_id.log_event_id != 0) {
     d->set_folder_id_log_event_id.generation++;
     promise = PromiseCreator::lambda([actor_id = actor_id(this), dialog_id,
@@ -35943,7 +35970,7 @@ class MessagesManager::DeleteMessageLogEvent {
 void MessagesManager::delete_message_files(DialogId dialog_id, const Message *m) const {
   for (auto file_id : get_message_file_ids(m)) {
     if (need_delete_file({dialog_id, m->message_id}, file_id)) {
-      send_closure(G()->file_manager(), &FileManager::delete_file, file_id, Promise<>(), "delete_message_files");
+      send_closure(G()->file_manager(), &FileManager::delete_file, file_id, Promise<Unit>(), "delete_message_files");
     }
   }
 }
@@ -37140,7 +37167,7 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
       d->notification_settings.is_use_default_fixed = true;
       on_dialog_updated(dialog_id, "reget notification settings");
     } else {
-      td_->notification_settings_manager_->send_get_dialog_notification_settings_query(dialog_id, Promise<>());
+      td_->notification_settings_manager_->send_get_dialog_notification_settings_query(dialog_id, Promise<Unit>());
     }
   }
   if (td_->auth_manager_->is_bot() || d->notification_settings.use_default_mute_until ||
@@ -40475,7 +40502,7 @@ void MessagesManager::suffix_load_query_ready(DialogId dialog_id) {
 }
 
 void MessagesManager::suffix_load_add_query(Dialog *d,
-                                            std::pair<Promise<>, std::function<bool(const Message *)>> query) {
+                                            std::pair<Promise<Unit>, std::function<bool(const Message *)>> query) {
   suffix_load_update_first_message_id(d);
   auto *m = get_message_force(d, d->suffix_load_first_message_id_, "suffix_load_add_query");
   if (d->suffix_load_done_ || query.second(m)) {
@@ -40486,7 +40513,7 @@ void MessagesManager::suffix_load_add_query(Dialog *d,
   }
 }
 
-void MessagesManager::suffix_load_till_date(Dialog *d, int32 date, Promise<> promise) {
+void MessagesManager::suffix_load_till_date(Dialog *d, int32 date, Promise<Unit> promise) {
   LOG(INFO) << "Load suffix of " << d->dialog_id << " till date " << date;
   auto condition = [date](const Message *m) {
     return m != nullptr && m->date < date;
@@ -40494,7 +40521,7 @@ void MessagesManager::suffix_load_till_date(Dialog *d, int32 date, Promise<> pro
   suffix_load_add_query(d, std::make_pair(std::move(promise), std::move(condition)));
 }
 
-void MessagesManager::suffix_load_till_message_id(Dialog *d, MessageId message_id, Promise<> promise) {
+void MessagesManager::suffix_load_till_message_id(Dialog *d, MessageId message_id, Promise<Unit> promise) {
   LOG(INFO) << "Load suffix of " << d->dialog_id << " till " << message_id;
   auto condition = [message_id](const Message *m) {
     return m != nullptr && m->message_id < message_id;

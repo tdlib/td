@@ -372,8 +372,6 @@ inline StringBuilder &operator<<(StringBuilder &stream, const NetQueryPtr &net_q
   return stream << *net_query_ptr;
 }
 
-void dump_pending_network_queries();
-
 inline void cancel_query(NetQueryRef &ref) {
   if (ref.empty()) {
     return;
