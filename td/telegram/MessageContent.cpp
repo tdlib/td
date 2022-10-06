@@ -3076,7 +3076,10 @@ static void merge_location_access_hash(const Location &first, const Location &se
 
 static bool need_message_text_changed_warning(const MessageText *old_content, const MessageText *new_content) {
   if (new_content->text.text == "Unsupported characters" ||
-      new_content->text.text == "This channel is blocked because it was used to spread pornographic content.") {
+      new_content->text.text == "This channel is blocked because it was used to spread pornographic content." ||
+      begins_with(new_content->text.text,
+                  "This group has been temporarily suspended to give its moderators time to clean up after users who "
+                  "posted illegal pornographic content.")) {
     // message contained unsupported characters or is restricted, text is replaced
     return false;
   }
