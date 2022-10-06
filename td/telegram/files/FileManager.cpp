@@ -1300,10 +1300,13 @@ Result<FileId> FileManager::register_file(FileData &&data, FileLocationSource fi
   try_flush_node(get_file_node(file_id), "register_file");
   auto main_file_id = get_file_node(file_id)->main_file_id_;
   try_forget_file_id(file_id);
-  for (auto file_source_id : data.file_source_ids_) {
+
+  if (!data.file_source_ids_.empty()) {
     VLOG(file_references) << "Loaded " << data.file_source_ids_ << " for file " << main_file_id << " from " << source;
-    CHECK(file_source_id.is_valid());
-    context_->add_file_source(main_file_id, file_source_id);
+    for (auto file_source_id : data.file_source_ids_) {
+      CHECK(file_source_id.is_valid());
+      context_->add_file_source(main_file_id, file_source_id);
+    }
   }
   return FileId(main_file_id.get(), remote_key);
 }
@@ -1993,22 +1996,21 @@ void FileManager::load_from_pmc(FileNodePtr node, bool new_remote, bool new_loca
 
   LOG(DEBUG) << "Load from pmc file " << file_id << '/' << file_view.get_main_file_id()
              << ", new_remote = " << new_remote << ", new_local = " << new_local << ", new_generate = " << new_generate;
-  auto load = [&](auto location) {
+  auto load = [&](auto location, const char *source) {
     TRY_RESULT(file_data, file_db_->get_file_data_sync(location));
-    TRY_RESULT(new_file_id,
-               register_file(std::move(file_data), FileLocationSource::FromDatabase, "load_from_pmc", false));
+    TRY_RESULT(new_file_id, register_file(std::move(file_data), FileLocationSource::FromDatabase, source, false));
     TRY_RESULT(main_file_id, merge(file_id, new_file_id));
     file_id = main_file_id;
     return Status::OK();
   };
   if (new_remote) {
-    load(remote).ignore();
+    load(remote, "load remote from database").ignore();
   }
   if (new_local) {
-    load(local).ignore();
+    load(local, "load local from database").ignore();
   }
   if (new_generate) {
-    load(generate).ignore();
+    load(generate, "load generate from database").ignore();
   }
 }
 
