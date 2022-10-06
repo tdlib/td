@@ -10638,7 +10638,8 @@ void MessagesManager::delete_messages_from_updates(const vector<MessageId> &mess
 
     Dialog *d = get_dialog_by_message_id(message_id);
     if (d != nullptr) {
-      auto message = delete_message(d, message_id, true, &need_update_dialog_pos[d->dialog_id], "updates");
+      auto message =
+          delete_message(d, message_id, true, &need_update_dialog_pos[d->dialog_id], "delete_messages_from_updates");
       CHECK(message != nullptr);
       LOG_CHECK(message->message_id == message_id) << message_id << " " << message->message_id << " " << d->dialog_id;
       deleted_message_ids[d->dialog_id].push_back(message->message_id.get());
@@ -10646,7 +10647,8 @@ void MessagesManager::delete_messages_from_updates(const vector<MessageId> &mess
     if (last_clear_history_message_id_to_dialog_id_.count(message_id)) {
       d = get_dialog(last_clear_history_message_id_to_dialog_id_[message_id]);
       CHECK(d != nullptr);
-      auto message = delete_message(d, message_id, true, &need_update_dialog_pos[d->dialog_id], "updates");
+      auto message =
+          delete_message(d, message_id, true, &need_update_dialog_pos[d->dialog_id], "delete_messages_from_updates");
       CHECK(message == nullptr);
     }
   }
