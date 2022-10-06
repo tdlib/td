@@ -1053,13 +1053,13 @@ WebPageId WebPagesManager::get_web_page_by_url(const string &url) const {
     return WebPageId();
   }
 
-  LOG(INFO) << "Get web page identifier for the url \"" << url << '"';
-
   auto it = url_to_web_page_id_.find(url);
   if (it != url_to_web_page_id_.end()) {
+    LOG(INFO) << "Return " << it->second << " for the url \"" << url << '"';
     return it->second;
   }
 
+  LOG(INFO) << "Can't find web page identifier for the url \"" << url << '"';
   return WebPageId();
 }
 
@@ -1712,7 +1712,12 @@ FileSourceId WebPagesManager::get_url_file_source_id(const string &url) {
       return web_page->file_source_id;
     }
   }
-  return url_to_file_source_id_[url] = td_->file_reference_manager_->create_web_page_file_source(url);
+  auto &source_id = url_to_file_source_id_[url];
+  if (!source_id.is_valid()) {
+    source_id = td_->file_reference_manager_->create_web_page_file_source(url);
+  }
+  VLOG(file_references) << "Return " << source_id << " for URL " << url;
+  return source_id;
 }
 
 string WebPagesManager::get_web_page_search_text(WebPageId web_page_id) const {
