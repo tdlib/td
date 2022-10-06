@@ -578,15 +578,16 @@ void WebPagesManager::update_web_page(unique_ptr<WebPage> web_page, WebPageId we
   }
   page = std::move(web_page);
 
+  // must be called before any other action for correct behavior of get_url_file_source_id
+  if (!page->url.empty()) {
+    on_get_web_page_by_url(page->url, web_page_id, from_database);
+  }
+
   update_web_page_instant_view(web_page_id, page->instant_view, std::move(old_instant_view));
 
   auto new_file_ids = get_web_page_file_ids(page.get());
   if (old_file_ids != new_file_ids) {
     td_->file_manager_->change_files_source(get_web_page_file_source_id(page.get()), old_file_ids, new_file_ids);
-  }
-
-  if (!page->url.empty()) {
-    on_get_web_page_by_url(page->url, web_page_id, from_database);
   }
 
   if (is_changed && !from_database) {
@@ -1692,6 +1693,9 @@ const WebPagesManager::WebPage *WebPagesManager::get_web_page_force(WebPageId we
 FileSourceId WebPagesManager::get_web_page_file_source_id(WebPage *web_page) {
   if (!web_page->file_source_id.is_valid()) {
     web_page->file_source_id = td_->file_reference_manager_->create_web_page_file_source(web_page->url);
+    VLOG(file_references) << "Create " << web_page->file_source_id << " for URL " << web_page->url;
+  } else {
+    VLOG(file_references) << "Return " << web_page->file_source_id << " for URL " << web_page->url;
   }
   return web_page->file_source_id;
 }
@@ -1708,6 +1712,9 @@ FileSourceId WebPagesManager::get_url_file_source_id(const string &url) {
       if (!web_page->file_source_id.is_valid()) {
         web_pages_[web_page_id]->file_source_id =
             td_->file_reference_manager_->create_web_page_file_source(web_page->url);
+        VLOG(file_references) << "Create " << web_page->file_source_id << " for " << web_page_id << " with URL " << url;
+      } else {
+        VLOG(file_references) << "Return " << web_page->file_source_id << " for " << web_page_id << " with URL " << url;
       }
       return web_page->file_source_id;
     }
@@ -1715,8 +1722,10 @@ FileSourceId WebPagesManager::get_url_file_source_id(const string &url) {
   auto &source_id = url_to_file_source_id_[url];
   if (!source_id.is_valid()) {
     source_id = td_->file_reference_manager_->create_web_page_file_source(url);
+    VLOG(file_references) << "Create " << source_id << " for URL " << url;
+  } else {
+    VLOG(file_references) << "Return " << source_id << " for URL " << url;
   }
-  VLOG(file_references) << "Return " << source_id << " for URL " << url;
   return source_id;
 }
 
