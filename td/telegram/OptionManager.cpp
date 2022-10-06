@@ -68,7 +68,13 @@ OptionManager::OptionManager(Td *td)
         send_closure(G()->td(), &Td::send_update, get_update_suggested_actions_object(added_actions, {}));
       }
     } else if (name == "default_reaction") {
-      send_update_default_reaction_type(get_option_string(name));
+      auto value = get_option_string(name);
+      if (value.empty()) {
+        // legacy
+        set_option_empty(name);
+      } else {
+        send_update_default_reaction_type(value);
+      }
     }
   }
 
