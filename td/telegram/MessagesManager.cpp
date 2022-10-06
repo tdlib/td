@@ -13368,6 +13368,14 @@ void MessagesManager::tear_down() {
 
 void MessagesManager::hangup() {
   postponed_channel_updates_.clear();
+
+  if (!G()->parameters().use_message_db) {
+    while (!being_sent_messages_.empty()) {
+      td_->messages_manager_->on_send_message_fail(being_sent_messages_.begin()->first,
+                                                   Global::request_aborted_error());
+    }
+  }
+
   fail_promises(load_active_live_location_messages_queries_, Global::request_aborted_error());
   fail_promises(dialog_filter_reload_queries_, Global::request_aborted_error());
   auto fail_promise_map = [](auto &queries) {
