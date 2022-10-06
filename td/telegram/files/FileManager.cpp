@@ -1302,9 +1302,8 @@ Result<FileId> FileManager::register_file(FileData &&data, FileLocationSource fi
   try_forget_file_id(file_id);
   for (auto file_source_id : data.file_source_ids_) {
     VLOG(file_references) << "Loaded " << data.file_source_ids_ << " for file " << main_file_id << " from " << source;
-    if (file_source_id.is_valid()) {
-      context_->add_file_source(main_file_id, file_source_id);
-    }
+    CHECK(file_source_id.is_valid());
+    context_->add_file_source(main_file_id, file_source_id);
   }
   return FileId(main_file_id.get(), remote_key);
 }

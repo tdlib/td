@@ -122,7 +122,10 @@ void FileData::parse(ParserT &parser, bool register_file_sources) {
         if (parser.get_error()) {
           return;
         }
-        file_source_ids_.push_back(td->file_reference_manager_->parse_file_source(td, parser));
+        auto file_source_id = td->file_reference_manager_->parse_file_source(td, parser);
+        if (file_source_id.is_valid() && !td::contains(file_source_ids_, file_source_id)) {
+          file_source_ids_.push_back(file_source_id);
+        }
       }
     } else {
       parser.set_error("Wrong number of file source ids");
