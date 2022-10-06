@@ -1742,7 +1742,7 @@ Result<FileId> FileManager::merge(FileId x_file_id, FileId y_file_id, bool no_sy
 }
 
 void FileManager::add_file_source(FileId file_id, FileSourceId file_source_id) {
-  auto node = get_file_node(file_id);
+  auto node = get_sync_file_node(file_id);  // synchronously load the file to preload known file sources
   if (!node) {
     return;
   }
@@ -1755,7 +1755,7 @@ void FileManager::add_file_source(FileId file_id, FileSourceId file_source_id) {
 }
 
 void FileManager::remove_file_source(FileId file_id, FileSourceId file_source_id) {
-  auto node = get_file_node(file_id);
+  auto node = get_sync_file_node(file_id);  // synchronously load the file to preload known file sources
   if (!node) {
     return;
   }
@@ -1992,8 +1992,8 @@ void FileManager::load_from_pmc(FileNodePtr node, bool new_remote, bool new_loca
     generate = file_view.generate_location();
   }
 
-  LOG(DEBUG) << "Load from pmc " << file_id << "/" << file_view.get_main_file_id() << ", new_remote = " << new_remote
-             << ", new_local = " << new_local << ", new_generate = " << new_generate;
+  LOG(DEBUG) << "Load from pmc file " << file_id << '/' << file_view.get_main_file_id()
+             << ", new_remote = " << new_remote << ", new_local = " << new_local << ", new_generate = " << new_generate;
   auto load = [&](auto location) {
     TRY_RESULT(file_data, file_db_->get_file_data_sync(location));
     TRY_RESULT(new_file_id,

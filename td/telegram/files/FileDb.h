@@ -68,9 +68,9 @@ class FileDbInterface {
   Result<FileData> get_file_data_sync(const LocationT &location) {
     auto res = get_file_data_sync_impl(as_key(location));
     if (res.is_ok()) {
-      LOG(DEBUG) << "GET " << location << " " << res.ok();
+      LOG(DEBUG) << "GET " << location << ": " << res.ok();
     } else {
-      LOG(DEBUG) << "GET " << location << " " << res.error();
+      LOG(DEBUG) << "GET " << location << ": " << res.error();
     }
     return res;
   }
