@@ -55,7 +55,7 @@ class SponsoredMessageManager final : public Actor {
       DialogId dialog_id, const DialogSponsoredMessages &sponsored_messages) const;
 
   void on_get_dialog_sponsored_messages(
-      DialogId dialog_id, Result<telegram_api::object_ptr<telegram_api::messages_sponsoredMessages>> &&result);
+      DialogId dialog_id, Result<telegram_api::object_ptr<telegram_api::messages_SponsoredMessages>> &&result);
 
   FlatHashMap<DialogId, unique_ptr<DialogSponsoredMessages>, DialogIdHash> dialog_sponsored_messages_;
 

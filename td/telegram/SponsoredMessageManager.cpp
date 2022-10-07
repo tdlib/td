@@ -30,12 +30,12 @@
 namespace td {
 
 class GetSponsoredMessagesQuery final : public Td::ResultHandler {
-  Promise<telegram_api::object_ptr<telegram_api::messages_sponsoredMessages>> promise_;
+  Promise<telegram_api::object_ptr<telegram_api::messages_SponsoredMessages>> promise_;
   ChannelId channel_id_;
 
  public:
   explicit GetSponsoredMessagesQuery(
-      Promise<telegram_api::object_ptr<telegram_api::messages_sponsoredMessages>> &&promise)
+      Promise<telegram_api::object_ptr<telegram_api::messages_SponsoredMessages>> &&promise)
       : promise_(std::move(promise)) {
   }
 
@@ -225,7 +225,7 @@ void SponsoredMessageManager::get_dialog_sponsored_message(
   if (messages->promises.size() == 1) {
     auto query_promise = PromiseCreator::lambda(
         [actor_id = actor_id(this),
-         dialog_id](Result<telegram_api::object_ptr<telegram_api::messages_sponsoredMessages>> &&result) mutable {
+         dialog_id](Result<telegram_api::object_ptr<telegram_api::messages_SponsoredMessages>> &&result) mutable {
           send_closure(actor_id, &SponsoredMessageManager::on_get_dialog_sponsored_messages, dialog_id,
                        std::move(result));
         });
@@ -234,7 +234,7 @@ void SponsoredMessageManager::get_dialog_sponsored_message(
 }
 
 void SponsoredMessageManager::on_get_dialog_sponsored_messages(
-    DialogId dialog_id, Result<telegram_api::object_ptr<telegram_api::messages_sponsoredMessages>> &&result) {
+    DialogId dialog_id, Result<telegram_api::object_ptr<telegram_api::messages_SponsoredMessages>> &&result) {
   if (result.is_ok() && G()->close_flag()) {
     result = Global::request_aborted_error();
   }
@@ -252,75 +252,87 @@ void SponsoredMessageManager::on_get_dialog_sponsored_messages(
     return;
   }
 
-  auto sponsored_messages = result.move_as_ok();
+  auto sponsored_messages_ptr = result.move_as_ok();
+  switch (sponsored_messages_ptr->get_id()) {
+    case telegram_api::messages_sponsoredMessages::ID: {
+      auto sponsored_messages =
+          telegram_api::move_object_as<telegram_api::messages_sponsoredMessages>(sponsored_messages_ptr);
 
-  td_->contacts_manager_->on_get_users(std::move(sponsored_messages->users_), "on_get_dialog_sponsored_messages");
-  td_->contacts_manager_->on_get_chats(std::move(sponsored_messages->chats_), "on_get_dialog_sponsored_messages");
+      td_->contacts_manager_->on_get_users(std::move(sponsored_messages->users_), "on_get_dialog_sponsored_messages");
+      td_->contacts_manager_->on_get_chats(std::move(sponsored_messages->chats_), "on_get_dialog_sponsored_messages");
 
-  for (auto &sponsored_message : sponsored_messages->messages_) {
-    DialogId sponsor_dialog_id;
-    ServerMessageId server_message_id;
-    string invite_hash;
-    if (sponsored_message->from_id_ != nullptr) {
-      sponsor_dialog_id = DialogId(sponsored_message->from_id_);
-      if (!sponsor_dialog_id.is_valid() || !td_->messages_manager_->have_dialog_info_force(sponsor_dialog_id)) {
-        LOG(ERROR) << "Receive unknown sponsor " << sponsor_dialog_id;
-        continue;
+      for (auto &sponsored_message : sponsored_messages->messages_) {
+        DialogId sponsor_dialog_id;
+        ServerMessageId server_message_id;
+        string invite_hash;
+        if (sponsored_message->from_id_ != nullptr) {
+          sponsor_dialog_id = DialogId(sponsored_message->from_id_);
+          if (!sponsor_dialog_id.is_valid() || !td_->messages_manager_->have_dialog_info_force(sponsor_dialog_id)) {
+            LOG(ERROR) << "Receive unknown sponsor " << sponsor_dialog_id;
+            continue;
+          }
+          server_message_id = ServerMessageId(sponsored_message->channel_post_);
+          if (!server_message_id.is_valid() && server_message_id != ServerMessageId()) {
+            LOG(ERROR) << "Receive invalid channel post in " << to_string(sponsored_message);
+            server_message_id = ServerMessageId();
+          }
+          td_->messages_manager_->force_create_dialog(sponsor_dialog_id, "on_get_dialog_sponsored_messages");
+        } else if (sponsored_message->chat_invite_ != nullptr && !sponsored_message->chat_invite_hash_.empty()) {
+          auto invite_link = LinkManager::get_dialog_invite_link(sponsored_message->chat_invite_hash_, false);
+          if (invite_link.empty()) {
+            LOG(ERROR) << "Receive invalid invite link hash in " << to_string(sponsored_message);
+            continue;
+          }
+          auto chat_invite = to_string(sponsored_message->chat_invite_);
+          td_->contacts_manager_->on_get_dialog_invite_link_info(
+              invite_link, std::move(sponsored_message->chat_invite_), Promise<Unit>());
+          auto chat_invite_link_info = td_->contacts_manager_->get_chat_invite_link_info_object(invite_link);
+          if (chat_invite_link_info == nullptr) {
+            LOG(ERROR) << "Failed to get invite link info from " << chat_invite << " for "
+                       << to_string(sponsored_message);
+            continue;
+          }
+          invite_hash = std::move(sponsored_message->chat_invite_hash_);
+        } else {
+          LOG(ERROR) << "Receive " << to_string(sponsored_message);
+          continue;
+        }
+
+        auto message_text = get_message_text(td_->contacts_manager_.get(), std::move(sponsored_message->message_),
+                                             std::move(sponsored_message->entities_), true, true, 0, false,
+                                             "on_get_dialog_sponsored_messages");
+        int32 ttl = 0;
+        bool disable_web_page_preview = false;
+        auto content = get_message_content(td_, std::move(message_text), nullptr, sponsor_dialog_id, true, UserId(),
+                                           &ttl, &disable_web_page_preview, "on_get_dialog_sponsored_messages");
+        if (ttl != 0) {
+          LOG(ERROR) << "Receive sponsored message with TTL " << ttl;
+          continue;
+        }
+        CHECK(disable_web_page_preview);
+
+        current_sponsored_message_id_ = current_sponsored_message_id_.get_next_message_id(MessageType::Local);
+        if (!current_sponsored_message_id_.is_valid_sponsored()) {
+          LOG(ERROR) << "Sponsored message ID overflowed";
+          current_sponsored_message_id_ = MessageId::max().get_next_message_id(MessageType::Local);
+          CHECK(current_sponsored_message_id_.is_valid_sponsored());
+        }
+        auto local_id = current_sponsored_message_id_.get();
+        CHECK(!current_sponsored_message_id_.is_valid());
+        CHECK(!current_sponsored_message_id_.is_scheduled());
+        auto is_inserted =
+            messages->message_random_ids.emplace(local_id, sponsored_message->random_id_.as_slice().str()).second;
+        CHECK(is_inserted);
+        messages->messages.emplace_back(local_id, sponsored_message->recommended_, sponsor_dialog_id, server_message_id,
+                                        std::move(sponsored_message->start_param_), std::move(invite_hash),
+                                        std::move(content));
+        break;
       }
-      server_message_id = ServerMessageId(sponsored_message->channel_post_);
-      if (!server_message_id.is_valid() && server_message_id != ServerMessageId()) {
-        LOG(ERROR) << "Receive invalid channel post in " << to_string(sponsored_message);
-        server_message_id = ServerMessageId();
-      }
-      td_->messages_manager_->force_create_dialog(sponsor_dialog_id, "on_get_dialog_sponsored_messages");
-    } else if (sponsored_message->chat_invite_ != nullptr && !sponsored_message->chat_invite_hash_.empty()) {
-      auto invite_link = LinkManager::get_dialog_invite_link(sponsored_message->chat_invite_hash_, false);
-      if (invite_link.empty()) {
-        LOG(ERROR) << "Receive invalid invite link hash in " << to_string(sponsored_message);
-        continue;
-      }
-      auto chat_invite = to_string(sponsored_message->chat_invite_);
-      td_->contacts_manager_->on_get_dialog_invite_link_info(invite_link, std::move(sponsored_message->chat_invite_),
-                                                             Promise<Unit>());
-      auto chat_invite_link_info = td_->contacts_manager_->get_chat_invite_link_info_object(invite_link);
-      if (chat_invite_link_info == nullptr) {
-        LOG(ERROR) << "Failed to get invite link info from " << chat_invite << " for " << to_string(sponsored_message);
-        continue;
-      }
-      invite_hash = std::move(sponsored_message->chat_invite_hash_);
-    } else {
-      LOG(ERROR) << "Receive " << to_string(sponsored_message);
-      continue;
     }
-
-    auto message_text = get_message_text(td_->contacts_manager_.get(), std::move(sponsored_message->message_),
-                                         std::move(sponsored_message->entities_), true, true, 0, false,
-                                         "on_get_dialog_sponsored_messages");
-    int32 ttl = 0;
-    bool disable_web_page_preview = false;
-    auto content = get_message_content(td_, std::move(message_text), nullptr, sponsor_dialog_id, true, UserId(), &ttl,
-                                       &disable_web_page_preview, "on_get_dialog_sponsored_messages");
-    if (ttl != 0) {
-      LOG(ERROR) << "Receive sponsored message with TTL " << ttl;
-      continue;
-    }
-    CHECK(disable_web_page_preview);
-
-    current_sponsored_message_id_ = current_sponsored_message_id_.get_next_message_id(MessageType::Local);
-    if (!current_sponsored_message_id_.is_valid_sponsored()) {
-      LOG(ERROR) << "Sponsored message ID overflowed";
-      current_sponsored_message_id_ = MessageId::max().get_next_message_id(MessageType::Local);
-      CHECK(current_sponsored_message_id_.is_valid_sponsored());
-    }
-    auto local_id = current_sponsored_message_id_.get();
-    CHECK(!current_sponsored_message_id_.is_valid());
-    CHECK(!current_sponsored_message_id_.is_scheduled());
-    auto is_inserted =
-        messages->message_random_ids.emplace(local_id, sponsored_message->random_id_.as_slice().str()).second;
-    CHECK(is_inserted);
-    messages->messages.emplace_back(local_id, sponsored_message->recommended_, sponsor_dialog_id, server_message_id,
-                                    std::move(sponsored_message->start_param_), std::move(invite_hash),
-                                    std::move(content));
+    case telegram_api::messages_sponsoredMessagesEmpty::ID:
+      break;
+    default:
+      UNREACHABLE();
   }
 
   for (auto &promise : promises) {

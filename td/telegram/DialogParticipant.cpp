@@ -119,7 +119,8 @@ telegram_api::object_ptr<telegram_api::chatAdminRights> AdministratorRights::get
 
   return telegram_api::make_object<telegram_api::chatAdminRights>(
       flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-      false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/);
+      false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
+      false /*ignored*/);
 }
 
 td_api::object_ptr<td_api::chatAdministratorRights> AdministratorRights::get_chat_administrator_rights_object() const {
@@ -268,10 +269,10 @@ tl_object_ptr<telegram_api::chatBannedRights> RestrictedRights::get_chat_banned_
   }
 
   LOG(INFO) << "Create chat banned rights " << flags;
-  return make_tl_object<telegram_api::chatBannedRights>(flags, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-                                                        false /*ignored*/, false /*ignored*/, false /*ignored*/,
-                                                        false /*ignored*/, false /*ignored*/, false /*ignored*/,
-                                                        false /*ignored*/, false /*ignored*/, false /*ignored*/, 0);
+  return make_tl_object<telegram_api::chatBannedRights>(
+      flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
+      false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
+      false /*ignored*/, false /*ignored*/, 0);
 }
 
 bool operator==(const RestrictedRights &lhs, const RestrictedRights &rhs) {

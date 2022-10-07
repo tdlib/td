@@ -650,7 +650,9 @@ class UnpinAllMessagesQuery final : public Td::ResultHandler {
       return on_error(Status::Error(400, "Can't unpin all messages"));
     }
 
-    send_query(G()->net_query_creator().create(telegram_api::messages_unpinAllMessages(std::move(input_peer))));
+    int32 flags = 0;
+    send_query(
+        G()->net_query_creator().create(telegram_api::messages_unpinAllMessages(flags, std::move(input_peer), 0)));
   }
 
   void on_result(BufferSlice packet) final {
@@ -1658,7 +1660,7 @@ class SaveDraftMessageQuery final : public Td::ResultHandler {
           td_->contacts_manager_.get(), draft_message->input_message_text.text.entities, "SaveDraftMessageQuery");
     }
     send_query(G()->net_query_creator().create(
-        telegram_api::messages_saveDraft(flags, false /*ignored*/, reply_to_message_id.get(), std::move(input_peer),
+        telegram_api::messages_saveDraft(flags, false /*ignored*/, reply_to_message_id.get(), 0, std::move(input_peer),
                                          draft_message == nullptr ? "" : draft_message->input_message_text.text.text,
                                          std::move(input_message_entities)),
         {{dialog_id}}));
@@ -2510,21 +2512,28 @@ class SearchMessagesQuery final : public Td::ResultHandler {
     top_thread_message_id_ = top_thread_message_id;
     random_id_ = random_id;
 
+    auto top_msg_id = top_thread_message_id.get_server_message_id().get();
+    auto offset_id = from_message_id.get_server_message_id().get();
     if (filter == MessageSearchFilter::UnreadMention) {
-      send_query(G()->net_query_creator().create(
-          telegram_api::messages_getUnreadMentions(std::move(input_peer), from_message_id.get_server_message_id().get(),
-                                                   offset, limit, std::numeric_limits<int32>::max(), 0)));
+      int32 flags = 0;
+      if (top_thread_message_id.is_valid()) {
+        flags |= telegram_api::messages_getUnreadMentions::TOP_MSG_ID_MASK;
+      }
+      send_query(G()->net_query_creator().create(telegram_api::messages_getUnreadMentions(
+          flags, std::move(input_peer), top_msg_id, offset_id, offset, limit, std::numeric_limits<int32>::max(), 0)));
     } else if (filter == MessageSearchFilter::UnreadReaction) {
+      int32 flags = 0;
+      if (top_thread_message_id.is_valid()) {
+        flags |= telegram_api::messages_getUnreadReactions::TOP_MSG_ID_MASK;
+      }
       send_query(G()->net_query_creator().create(telegram_api::messages_getUnreadReactions(
-          std::move(input_peer), from_message_id.get_server_message_id().get(), offset, limit,
-          std::numeric_limits<int32>::max(), 0)));
+          flags, std::move(input_peer), top_msg_id, offset_id, offset, limit, std::numeric_limits<int32>::max(), 0)));
     } else if (top_thread_message_id.is_valid() && query.empty() && !sender_dialog_id.is_valid() &&
                filter == MessageSearchFilter::Empty) {
       handle_errors_ = dialog_id.get_type() != DialogType::Channel ||
                        !td_->contacts_manager_->is_broadcast_channel(dialog_id.get_channel_id());
       send_query(G()->net_query_creator().create(telegram_api::messages_getReplies(
-          std::move(input_peer), top_thread_message_id.get_server_message_id().get(),
-          from_message_id.get_server_message_id().get(), 0, offset, limit, std::numeric_limits<int32>::max(), 0, 0)));
+          std::move(input_peer), top_msg_id, offset_id, 0, offset, limit, std::numeric_limits<int32>::max(), 0, 0)));
     } else {
       int32 flags = 0;
       tl_object_ptr<telegram_api::InputPeer> sender_input_peer;
@@ -2537,11 +2546,10 @@ class SearchMessagesQuery final : public Td::ResultHandler {
         flags |= telegram_api::messages_search::TOP_MSG_ID_MASK;
       }
 
-      send_query(G()->net_query_creator().create(telegram_api::messages_search(
-          flags, std::move(input_peer), query, std::move(sender_input_peer),
-          top_thread_message_id.get_server_message_id().get(), get_input_messages_filter(filter), 0,
-          std::numeric_limits<int32>::max(), from_message_id.get_server_message_id().get(), offset, limit,
-          std::numeric_limits<int32>::max(), 0, 0)));
+      send_query(G()->net_query_creator().create(
+          telegram_api::messages_search(flags, std::move(input_peer), query, std::move(sender_input_peer), top_msg_id,
+                                        get_input_messages_filter(filter), 0, std::numeric_limits<int32>::max(),
+                                        offset_id, offset, limit, std::numeric_limits<int32>::max(), 0, 0)));
     }
   }
 
@@ -2651,8 +2659,10 @@ class GetSearchCountersQuery final : public Td::ResultHandler {
     CHECK(filter != MessageSearchFilter::UnreadReaction);
     vector<telegram_api::object_ptr<telegram_api::MessagesFilter>> filters;
     filters.push_back(get_input_messages_filter(filter));
+
+    int32 flags = 0;
     send_query(G()->net_query_creator().create(
-        telegram_api::messages_getSearchCounters(std::move(input_peer), std::move(filters))));
+        telegram_api::messages_getSearchCounters(flags, std::move(input_peer), 0, std::move(filters))));
   }
 
   void on_result(BufferSlice packet) final {
@@ -3224,8 +3234,8 @@ class ReadMentionsQuery final : public Td::ResultHandler {
       return promise_.set_error(Status::Error(400, "Chat is not accessible"));
     }
 
-    send_query(
-        G()->net_query_creator().create(telegram_api::messages_readMentions(std::move(input_peer)), {{dialog_id}}));
+    send_query(G()->net_query_creator().create(telegram_api::messages_readMentions(0, std::move(input_peer), 0),
+                                               {{dialog_id}}));
   }
 
   void on_result(BufferSlice packet) final {
@@ -3259,8 +3269,9 @@ class ReadReactionsQuery final : public Td::ResultHandler {
       return promise_.set_error(Status::Error(400, "Chat is not accessible"));
     }
 
-    send_query(
-        G()->net_query_creator().create(telegram_api::messages_readReactions(std::move(input_peer)), {{dialog_id}}));
+    int32 flags = 0;
+    send_query(G()->net_query_creator().create(telegram_api::messages_readReactions(flags, std::move(input_peer), 0),
+                                               {{dialog_id}}));
   }
 
   void on_result(BufferSlice packet) final {
@@ -3343,7 +3354,7 @@ class SendMessageQuery final : public Td::ResultHandler {
     auto query = G()->net_query_creator().create(
         telegram_api::messages_sendMessage(
             flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-            false /*ignored*/, std::move(input_peer), reply_to_message_id.get_server_message_id().get(), text,
+            false /*ignored*/, std::move(input_peer), reply_to_message_id.get_server_message_id().get(), 0, text,
             random_id, std::move(reply_markup), std::move(entities), schedule_date, std::move(as_input_peer)),
         {{dialog_id, MessageContentType::Text},
          {dialog_id, is_copy ? MessageContentType::Photo : MessageContentType::Text}});
@@ -3476,7 +3487,7 @@ class SendInlineBotResultQuery final : public Td::ResultHandler {
     auto query = G()->net_query_creator().create(
         telegram_api::messages_sendInlineBotResult(flags, false /*ignored*/, false /*ignored*/, false /*ignored*/,
                                                    false /*ignored*/, std::move(input_peer),
-                                                   reply_to_message_id.get_server_message_id().get(), random_id,
+                                                   reply_to_message_id.get_server_message_id().get(), 0, random_id,
                                                    query_id, result_id, schedule_date, std::move(as_input_peer)),
         {{dialog_id, MessageContentType::Text}, {dialog_id, MessageContentType::Photo}});
     auto send_query_ref = query.get_weak();
@@ -3540,7 +3551,7 @@ class SendMultiMediaQuery final : public Td::ResultHandler {
     send_query(G()->net_query_creator().create(
         telegram_api::messages_sendMultiMedia(flags, false /*ignored*/, false /*ignored*/, false /*ignored*/,
                                               false /*ignored*/, false /*ignored*/, std::move(input_peer),
-                                              reply_to_message_id.get_server_message_id().get(),
+                                              reply_to_message_id.get_server_message_id().get(), 0,
                                               std::move(input_single_media), schedule_date, std::move(as_input_peer)),
         {{dialog_id, is_copy ? MessageContentType::Text : MessageContentType::Photo},
          {dialog_id, MessageContentType::Photo}}));
@@ -3657,7 +3668,7 @@ class SendMediaQuery final : public Td::ResultHandler {
     auto query = G()->net_query_creator().create(
         telegram_api::messages_sendMedia(
             flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-            std::move(input_peer), reply_to_message_id.get_server_message_id().get(), std::move(input_media), text,
+            std::move(input_peer), reply_to_message_id.get_server_message_id().get(), 0, std::move(input_media), text,
             random_id, std::move(reply_markup), std::move(entities), schedule_date, std::move(as_input_peer)),
         {{dialog_id, content_type}, {dialog_id, is_copy ? MessageContentType::Text : content_type}});
     if (td_->option_manager_->get_option_boolean("use_quick_ack") && was_uploaded_) {
@@ -4022,7 +4033,7 @@ class ForwardMessagesQuery final : public Td::ResultHandler {
         telegram_api::messages_forwardMessages(
             flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
             false /*ignored*/, std::move(from_input_peer), MessagesManager::get_server_message_ids(message_ids),
-            std::move(random_ids), std::move(to_input_peer), schedule_date, std::move(as_input_peer)),
+            std::move(random_ids), std::move(to_input_peer), 0, schedule_date, std::move(as_input_peer)),
         {{to_dialog_id, MessageContentType::Text}, {to_dialog_id, MessageContentType::Photo}});
     if (td_->option_manager_->get_option_boolean("use_quick_ack")) {
       query->quick_ack_promise_ = PromiseCreator::lambda([random_ids = random_ids_](Result<Unit> result) {
@@ -6728,12 +6739,16 @@ void MessagesManager::on_update_read_channel_messages_contents(
     LOG(ERROR) << "Receive invalid " << channel_id << " in updateChannelReadMessagesContents";
     return;
   }
-
   DialogId dialog_id = DialogId(channel_id);
 
   Dialog *d = get_dialog_force(dialog_id, "on_update_read_channel_messages_contents");
   if (d == nullptr) {
     LOG(INFO) << "Receive read channel messages contents update in unknown " << dialog_id;
+    return;
+  }
+
+  if ((update->flags_ & telegram_api::updateChannelReadMessagesContents::TOP_MSG_ID_MASK) != 0) {
+    // TODO
     return;
   }
 

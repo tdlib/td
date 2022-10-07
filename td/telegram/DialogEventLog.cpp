@@ -127,6 +127,10 @@ static td_api::object_ptr<td_api::ChatEventAction> get_chat_event_action_object(
       return td_api::make_object<td_api::chatEventUsernameChanged>(std::move(action->prev_value_),
                                                                    std::move(action->new_value_));
     }
+    case telegram_api::channelAdminLogEventActionChangeUsernames::ID: {
+      auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionChangeUsernames>(action_ptr);
+      return nullptr;
+    }
     case telegram_api::channelAdminLogEventActionChangePhoto::ID: {
       auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionChangePhoto>(action_ptr);
       auto file_manager = td->file_manager_.get();
@@ -352,6 +356,12 @@ static td_api::object_ptr<td_api::ChatEventAction> get_chat_event_action_object(
           old_available_reactions.get_chat_available_reactions_object(),
           new_available_reactions.get_chat_available_reactions_object());
     }
+    case telegram_api::channelAdminLogEventActionToggleForum::ID:
+    case telegram_api::channelAdminLogEventActionCreateTopic::ID:
+    case telegram_api::channelAdminLogEventActionEditTopic::ID:
+    case telegram_api::channelAdminLogEventActionDeleteTopic::ID:
+    case telegram_api::channelAdminLogEventActionPinTopic::ID:
+      return nullptr;
     default:
       UNREACHABLE();
       return nullptr;
@@ -489,7 +499,8 @@ static telegram_api::object_ptr<telegram_api::channelAdminLogEventsFilter> get_i
   return telegram_api::make_object<telegram_api::channelAdminLogEventsFilter>(
       flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
       false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-      false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/);
+      false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
+      false /*ignored*/);
 }
 
 void get_dialog_event_log(Td *td, DialogId dialog_id, const string &query, int64 from_event_id, int32 limit,

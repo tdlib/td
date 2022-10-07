@@ -541,6 +541,8 @@ class UpdatesManager final : public Actor {
   void on_update(tl_object_ptr<telegram_api::updateTranscribedAudio> update, Promise<Unit> &&promise);
 
   // unsupported updates
+
+  void on_update(tl_object_ptr<telegram_api::updateChannelPinnedTopic> update, Promise<Unit> &&promise);
 };
 
 }  // namespace td

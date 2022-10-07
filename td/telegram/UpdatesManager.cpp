@@ -760,6 +760,8 @@ bool UpdatesManager::is_acceptable_message(const telegram_api::Message *message_
         case telegram_api::messageActionWebViewDataSentMe::ID:
         case telegram_api::messageActionWebViewDataSent::ID:
         case telegram_api::messageActionGiftPremium::ID:
+        case telegram_api::messageActionTopicCreate::ID:
+        case telegram_api::messageActionTopicEdit::ID:
           break;
         case telegram_api::messageActionChatCreate::ID: {
           auto chat_create = static_cast<const telegram_api::messageActionChatCreate *>(action);
@@ -2910,6 +2912,9 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateNotifySettings>
       td_->notification_settings_manager_->on_update_scope_notify_settings(NotificationSettingsScope::Channel,
                                                                            std::move(update->notify_settings_));
       break;
+    case telegram_api::notifyForumTopic::ID:
+      // TODO
+      break;
     default:
       UNREACHABLE();
   }
@@ -3176,7 +3181,7 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateUserStatus> upd
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateUserName> update, Promise<Unit> &&promise) {
   td_->contacts_manager_->on_update_user_name(UserId(update->user_id_), std::move(update->first_name_),
-                                              std::move(update->last_name_), std::move(update->username_));
+                                              std::move(update->last_name_), string());
   promise.set_value(Unit());
 }
 
@@ -3608,5 +3613,9 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateTranscribedAudi
 }
 
 // unsupported updates
+
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateChannelPinnedTopic> update, Promise<Unit> &&promise) {
+  promise.set_value(Unit());
+}
 
 }  // namespace td

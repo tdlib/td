@@ -5063,6 +5063,14 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       }
       return td::make_unique<MessageGiftPremium>(std::move(action->currency_), action->amount_, action->months_);
     }
+    case telegram_api::messageActionTopicCreate::ID: {
+      auto action = move_tl_object_as<telegram_api::messageActionTopicCreate>(action_ptr);
+      break;
+    }
+    case telegram_api::messageActionTopicEdit::ID: {
+      auto action = move_tl_object_as<telegram_api::messageActionTopicEdit>(action_ptr);
+      break;
+    }
     default:
       UNREACHABLE();
   }

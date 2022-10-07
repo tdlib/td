@@ -2919,6 +2919,7 @@ StickerSetId StickersManager::get_sticker_set_id(const tl_object_ptr<telegram_ap
     case telegram_api::inputStickerSetPremiumGifts::ID:
     case telegram_api::inputStickerSetEmojiGenericAnimations::ID:
     case telegram_api::inputStickerSetEmojiDefaultStatuses::ID:
+    case telegram_api::inputStickerSetEmojiDefaultTopicIcons::ID:
       LOG(ERROR) << "Receive special sticker set " << to_string(set_ptr);
       return add_special_sticker_set(SpecialStickerSetType(set_ptr)).id_;
     case telegram_api::inputStickerSetDice::ID:
@@ -2951,6 +2952,7 @@ StickerSetId StickersManager::add_sticker_set(tl_object_ptr<telegram_api::InputS
     case telegram_api::inputStickerSetPremiumGifts::ID:
     case telegram_api::inputStickerSetEmojiGenericAnimations::ID:
     case telegram_api::inputStickerSetEmojiDefaultStatuses::ID:
+    case telegram_api::inputStickerSetEmojiDefaultTopicIcons::ID:
       LOG(ERROR) << "Receive special sticker set " << to_string(set_ptr);
       return add_special_sticker_set(SpecialStickerSetType(set_ptr)).id_;
     case telegram_api::inputStickerSetDice::ID:
@@ -3148,6 +3150,7 @@ StickerSetId StickersManager::on_get_input_sticker_set(FileId sticker_file_id,
     case telegram_api::inputStickerSetPremiumGifts::ID:
     case telegram_api::inputStickerSetEmojiGenericAnimations::ID:
     case telegram_api::inputStickerSetEmojiDefaultStatuses::ID:
+    case telegram_api::inputStickerSetEmojiDefaultTopicIcons::ID:
       return add_special_sticker_set(SpecialStickerSetType(set_ptr)).id_;
     case telegram_api::inputStickerSetDice::ID:
       return StickerSetId();
