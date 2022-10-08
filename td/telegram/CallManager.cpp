@@ -185,8 +185,8 @@ void CallManager::hangup_shared() {
   auto token = narrow_cast<int32>(get_link_token());
   auto it = id_to_actor_.find(CallId(token));
   CHECK(it != id_to_actor_.end());
-  CHECK(it->second.empty());
   LOG(INFO) << "Closed CallActor " << it->first.get();
+  it->second.release();
   id_to_actor_.erase(it);
   if (close_flag_ && id_to_actor_.empty()) {
     stop();
