@@ -145,7 +145,7 @@ FileNode *FileNodePtr::get_unsafe() const {
   return file_manager_->get_file_node_raw(file_id_);
 }
 
-FileNodePtr::operator bool() const {
+FileNodePtr::operator bool() const noexcept {
   return file_manager_ != nullptr && get_unsafe() != nullptr;
 }
 

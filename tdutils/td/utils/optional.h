@@ -46,7 +46,7 @@ class optional {
   optional &operator=(optional &&other) = default;
   ~optional() = default;
 
-  explicit operator bool() const {
+  explicit operator bool() const noexcept {
     return impl_.is_ok();
   }
   T &value() {

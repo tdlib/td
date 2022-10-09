@@ -36,7 +36,7 @@ namespace td {
 template <int shift>
 struct MaskIterator {
   uint64 mask;
-  explicit operator bool() const {
+  explicit operator bool() const noexcept {
     return mask != 0;
   }
   int pos() const {

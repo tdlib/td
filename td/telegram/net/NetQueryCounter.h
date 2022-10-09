@@ -24,7 +24,7 @@ class NetQueryCounter {
     counter->fetch_add(1, std::memory_order_relaxed);
   }
 
-  explicit operator bool() const {
+  explicit operator bool() const noexcept {
     return static_cast<bool>(ptr_);
   }
 

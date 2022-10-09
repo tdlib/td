@@ -158,7 +158,7 @@ class MpscLinkQueueUniquePtrNode {
     return MpscLinkQueueUniquePtrNode<Value>(unique_ptr<Value>(Value::from_mpsc_link_queue_node(node)));
   }
 
-  explicit operator bool() {
+  explicit operator bool() const noexcept {
     return ptr_ != nullptr;
   }
 

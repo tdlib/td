@@ -38,7 +38,7 @@ class NativeFd {
   NativeFd &operator=(NativeFd &&other) noexcept;
   ~NativeFd();
 
-  explicit operator bool() const;
+  explicit operator bool() const noexcept;
 
   Fd fd() const;
   Socket socket() const;

@@ -208,7 +208,7 @@ class FileNodePtr {
   FileNode &operator*() const;
   FileNode *get() const;
   FullRemoteFileLocation *get_remote() const;
-  explicit operator bool() const;
+  explicit operator bool() const noexcept;
 
  private:
   FileId file_id_;
@@ -229,7 +229,7 @@ class ConstFileNodePtr {
     return file_node_ptr_.operator*();
   }
 
-  explicit operator bool() const {
+  explicit operator bool() const noexcept {
     return static_cast<bool>(file_node_ptr_);
   }
   const FullRemoteFileLocation *get_remote() const {

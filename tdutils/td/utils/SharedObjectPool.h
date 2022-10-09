@@ -123,10 +123,10 @@ class SharedPtr {
     other.raw_ = nullptr;
     return *this;
   }
-  bool empty() const {
+  bool empty() const noexcept {
     return raw_ == nullptr;
   }
-  explicit operator bool() const {
+  explicit operator bool() const noexcept {
     return !empty();
   }
   uint64 use_cnt() const {
@@ -255,7 +255,7 @@ class SharedObjectPool {
     Raw *get() const {
       return raw_;
     }
-    explicit operator bool() const {
+    explicit operator bool() noexcept {
       return raw_ != nullptr;
     }
 

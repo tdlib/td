@@ -156,7 +156,7 @@ NativeFd::~NativeFd() {
   close();
 }
 
-NativeFd::operator bool() const {
+NativeFd::operator bool() const noexcept {
   return fd_ != empty_fd();
 }
 

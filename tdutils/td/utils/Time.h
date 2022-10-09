@@ -69,7 +69,7 @@ class Timestamp {
     return is_in_past(now_cached());
   }
 
-  explicit operator bool() const {
+  explicit operator bool() const noexcept {
     return at_ > 0;
   }
 

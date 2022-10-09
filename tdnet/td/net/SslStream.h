@@ -34,7 +34,7 @@ class SslStream {
   size_t flow_read(MutableSlice slice);
   size_t flow_write(Slice slice);
 
-  explicit operator bool() const {
+  explicit operator bool() const noexcept {
     return static_cast<bool>(impl_);
   }
 

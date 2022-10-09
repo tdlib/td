@@ -245,7 +245,7 @@ class Promise {
   Promise(F &&f) : promise_(detail::promise_interface_ptr<T>(std::forward<F>(f))) {
   }
 
-  explicit operator bool() {
+  explicit operator bool() const noexcept {
     return static_cast<bool>(promise_);
   }
 

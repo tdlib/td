@@ -19,7 +19,7 @@ struct RawCancellationToken {
 
 class CancellationToken {
  public:
-  explicit operator bool() const {
+  explicit operator bool() const noexcept {
     // empty CancellationToken is never canceled
     if (!token_) {
       return false;

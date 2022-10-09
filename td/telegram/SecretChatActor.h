@@ -496,7 +496,7 @@ class SecretChatActor final : public NetQueryCallback {
    public:
     Change() : message_id() {
     }
-    explicit operator bool() const {
+    explicit operator bool() const noexcept {
       return !data.empty();
     }
     explicit Change(const StateT &state) {
