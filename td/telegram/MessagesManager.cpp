@@ -23812,7 +23812,7 @@ void MessagesManager::get_dialog_message_by_date_from_server(const Dialog *d, in
                                                              bool after_database_search, Promise<Unit> &&promise) {
   CHECK(d != nullptr);
   if (d->have_full_history) {
-    // request can be always done locally/in memory. There is no need to send request to the server
+    // request can always be done locally/in memory. There is no need to send request to the server
     if (after_database_search) {
       return promise.set_value(Unit());
     }
