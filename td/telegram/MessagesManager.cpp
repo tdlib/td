@@ -13371,8 +13371,7 @@ void MessagesManager::hangup() {
 
   if (!G()->parameters().use_message_db) {
     while (!being_sent_messages_.empty()) {
-      td_->messages_manager_->on_send_message_fail(being_sent_messages_.begin()->first,
-                                                   Global::request_aborted_error());
+      on_send_message_fail(being_sent_messages_.begin()->first, Global::request_aborted_error());
     }
   }
 

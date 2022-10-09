@@ -134,7 +134,7 @@ See [example/cpp](https://github.com/tdlib/td/tree/master/example/cpp) for an ex
 See also the source code of [Fernschreiber](https://github.com/Wunderfitz/harbour-fernschreiber) and [Depecher](https://github.com/blacksailer/depecher) – Telegram apps for Sailfish OS,
 [TELEports](https://gitlab.com/ubports/development/apps/teleports) – a Qt-client for Ubuntu Touch, [tdlib-purple](https://github.com/ars3niy/tdlib-purple) - Telegram plugin for Pidgin,
 or [MeeGram](https://github.com/qtinsider/meegram2) - a Telegram client for Nokia N9,
-[TDLib Native Sciter Extension](https://github.com/RadRussianRus/TDLibNSE) - a Sciter native extension for TDLib's JSON interface, all of which are based on TDLib.
+[TDLib Native Sciter Extension](https://github.com/EricKotato/TDLibNSE) - a Sciter native extension for TDLib's JSON interface, all of which are based on TDLib.
 
 <a name="swift"></a>
 ## Using TDLib in Swift projects
@@ -182,7 +182,7 @@ See also [f-Telegram](https://github.com/evgfilim1/ftg) - Flutter Telegram clien
 
 TDLib can be used from the Rust programming language through the [JSON](https://github.com/tdlib/td#using-json) interface.
 
-See [rust-tdlib](https://github.com/aCLr/rust-tdlib), [tdlib](https://github.com/melix99/tdlib-rs), or [tdlib-rs](https://github.com/agnipau/tdlib-rs), which provide convenient TDLib clients with automatically generated and fully-documented classes for all TDLib API methods and objects.
+See [rust-tdlib](https://github.com/aCLr/rust-tdlib), or [tdlib](https://github.com/melix99/tdlib-rs), which provide convenient TDLib clients with automatically generated and fully-documented classes for all TDLib API methods and objects.
 
 See [rtdlib](https://github.com/fewensa/rtdlib), [tdlib-rs](https://github.com/d653/tdlib-rs), [tdlib-futures](https://github.com/yuri91/tdlib-futures),
 [tdlib-sys](https://github.com/nuxeh/tdlib-sys), [tdjson-rs](https://github.com/mersinvald/tdjson-rs), [rust-tdlib](https://github.com/vhaoran/rust-tdlib), or [tdlib-json-sys](https://github.com/aykxt/tdlib-json-sys) for examples of TDLib Rust bindings.
