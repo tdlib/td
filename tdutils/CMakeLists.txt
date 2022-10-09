@@ -87,6 +87,7 @@ set(TDUTILS_SOURCE
 
   ${TDMIME_AUTO}
 
+  td/utils/AsyncFileLog.cpp
   td/utils/base64.cpp
   td/utils/BigNum.cpp
   td/utils/buffer.cpp
@@ -179,6 +180,7 @@ set(TDUTILS_SOURCE
   td/utils/AesCtrByteFlow.h
   td/utils/algorithm.h
   td/utils/as.h
+  td/utils/AsyncFileLog.h
   td/utils/AtomicRead.h
   td/utils/base64.h
   td/utils/benchmark.h

@@ -4,6 +4,7 @@
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
+#include "td/utils/AsyncFileLog.h"
 #include "td/utils/benchmark.h"
 #include "td/utils/CombinedLog.h"
 #include "td/utils/FileLog.h"
@@ -161,5 +162,26 @@ TEST(Log, Bench) {
     };
     return td::make_unique<FileLog>();
   });
+
+#if !TD_EVENTFD_UNSUPPORTED
+  bench_log("AsyncFileLog", [] {
+    class AsyncFileLog final : public td::LogInterface {
+     public:
+      AsyncFileLog() {
+        file_log_.init("tmplog", std::numeric_limits<td::int64>::max()).ensure();
+      }
+      void do_append(int log_level, td::CSlice slice) final {
+        static_cast<td::LogInterface &>(file_log_).do_append(log_level, slice);
+      }
+      std::vector<std::string> get_file_paths() final {
+        return static_cast<td::LogInterface &>(file_log_).get_file_paths();
+      }
+
+     private:
+      td::AsyncFileLog file_log_;
+    };
+    return td::make_unique<AsyncFileLog>();
+  });
+#endif
 }
 #endif
