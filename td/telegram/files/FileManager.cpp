@@ -1015,17 +1015,17 @@ static Status check_partial_local_location(const PartialLocalFileLocation &locat
   return Status::OK();
 }
 
-void FileManager::check_local_location(FileId file_id) {
+void FileManager::check_local_location(FileId file_id, bool skip_file_size_checks) {
   auto node = get_sync_file_node(file_id);
   if (node) {
-    check_local_location(node).ignore();
+    check_local_location(node, skip_file_size_checks).ignore();
   }
 }
 
-Status FileManager::check_local_location(FileNodePtr node) {
+Status FileManager::check_local_location(FileNodePtr node, bool skip_file_size_checks) {
   Status status;
   if (node->local_.type() == LocalFileLocation::Type::Full) {
-    status = check_local_location(node->local_.full(), node->size_, false);
+    status = check_local_location(node->local_.full(), node->size_, skip_file_size_checks);
   } else if (node->local_.type() == LocalFileLocation::Type::Partial) {
     status = check_partial_local_location(node->local_.partial());
   }
@@ -2070,7 +2070,7 @@ void FileManager::get_content(FileId file_id, Promise<BufferSlice> promise) {
   if (!node) {
     return promise.set_error(Status::Error("Unknown file_id"));
   }
-  auto status = check_local_location(node);
+  auto status = check_local_location(node, true);
   status.ignore();
 
   auto file_view = FileView(node);
@@ -2206,7 +2206,7 @@ void FileManager::download(FileId file_id, std::shared_ptr<DownloadCallback> cal
   }
 
   if (node->local_.type() == LocalFileLocation::Type::Full) {
-    auto status = check_local_location(node);
+    auto status = check_local_location(node, true);
     if (status.is_error()) {
       LOG(WARNING) << "Need to redownload file " << file_id << ": " << status;
     } else {
@@ -2217,7 +2217,7 @@ void FileManager::download(FileId file_id, std::shared_ptr<DownloadCallback> cal
       return;
     }
   } else if (node->local_.type() == LocalFileLocation::Type::Partial) {
-    auto status = check_local_location(node);
+    auto status = check_local_location(node, true);
     if (status.is_error()) {
       LOG(WARNING) << "Need to download file " << file_id << " from beginning: " << status;
     }
@@ -2583,7 +2583,7 @@ void FileManager::resume_upload(FileId file_id, vector<int> bad_parts, std::shar
   }
 
   if (file_view.has_local_location() && new_priority != 0) {
-    auto status = check_local_location(node);
+    auto status = check_local_location(node, false);
     if (status.is_error()) {
       LOG(INFO) << "Full local location of file " << file_id << " for upload is invalid: " << status;
     }
@@ -2642,7 +2642,7 @@ bool FileManager::delete_partial_remote_location(FileId file_id) {
     return false;
   }
 
-  auto status = check_local_location(node);
+  auto status = check_local_location(node, false);
   if (status.is_error()) {
     LOG(INFO) << "Need full local location to upload file " << file_id << ": " << status;
     return false;
