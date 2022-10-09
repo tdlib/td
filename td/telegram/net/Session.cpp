@@ -426,7 +426,7 @@ void Session::on_bind_result(NetQueryPtr query) {
     auth_data_.on_bind();
     last_bind_success_timestamp_ = Time::now();
     on_tmp_auth_key_updated();
-  } else if (status.error().message() == "DispatchTtlError") {
+  } else if (status.message() == "DispatchTtlError") {
     LOG(INFO) << "Resend bind auth key " << auth_data_.get_tmp_auth_key().id() << " request after DispatchTtlError";
   } else {
     LOG(ERROR) << "BindKey failed: " << status;
@@ -452,7 +452,7 @@ void Session::on_check_key_result(NetQueryPtr query) {
       status = r_flag.move_as_error();
     }
   }
-  if (status.is_ok() || status.error().code() != -404) {
+  if (status.is_ok() || status.code() != -404) {
     LOG(INFO) << "Check main key ok";
     need_check_main_key_ = false;
     auth_data_.set_use_pfs(true);

@@ -48,8 +48,7 @@ static std::pair<td_api::object_ptr<td_api::Function>, string> to_request(Slice 
   td_api::object_ptr<td_api::Function> func;
   auto status = from_json(func, std::move(json_value));
   if (status.is_error()) {
-    return {get_return_error_function(PSLICE()
-                                      << "Failed to parse JSON object as TDLib request: " << status.error().message()),
+    return {get_return_error_function(PSLICE() << "Failed to parse JSON object as TDLib request: " << status.message()),
             std::move(extra)};
   }
   return std::make_pair(std::move(func), std::move(extra));

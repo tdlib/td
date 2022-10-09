@@ -45,7 +45,7 @@ Status AsyncFileLog::init(string path, int64 rotate_threshold) {
           if (size > rotate_threshold) {
             auto status = rename(path, PSLICE() << path << ".old");
             if (status.is_error()) {
-              process_fatal_error(PSLICE() << status.error() << " in " << __FILE__ << " at " << __LINE__ << '\n');
+              process_fatal_error(PSLICE() << status << " in " << __FILE__ << " at " << __LINE__ << '\n');
             }
             after_rotation();
           }

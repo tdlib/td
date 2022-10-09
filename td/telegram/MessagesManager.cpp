@@ -9063,9 +9063,9 @@ void MessagesManager::on_upload_media(FileId file_id, tl_object_ptr<telegram_api
   auto can_send_status = can_send_message(dialog_id);
   if (!is_edit && can_send_status.is_error()) {
     // user has left the chat during upload of the file or lost their privileges
-    LOG(INFO) << "Can't send a message to " << dialog_id << ": " << can_send_status.error();
+    LOG(INFO) << "Can't send a message to " << dialog_id << ": " << can_send_status;
 
-    fail_send_message(full_message_id, can_send_status.move_as_error());
+    fail_send_message(full_message_id, std::move(can_send_status));
     return;
   }
 
@@ -9222,9 +9222,9 @@ void MessagesManager::on_load_secret_thumbnail(FileId thumbnail_file_id, BufferS
   auto can_send_status = can_send_message(dialog_id);
   if (can_send_status.is_error()) {
     // secret chat was closed during load of the file
-    LOG(INFO) << "Can't send a message to " << dialog_id << ": " << can_send_status.error();
+    LOG(INFO) << "Can't send a message to " << dialog_id << ": " << can_send_status;
 
-    fail_send_message(full_message_id, can_send_status.move_as_error());
+    fail_send_message(full_message_id, std::move(can_send_status));
     return;
   }
 
@@ -9270,9 +9270,9 @@ void MessagesManager::on_upload_thumbnail(FileId thumbnail_file_id,
   auto can_send_status = can_send_message(dialog_id);
   if (!is_edit && can_send_status.is_error()) {
     // user has left the chat during upload of the thumbnail or lost their privileges
-    LOG(INFO) << "Can't send a message to " << dialog_id << ": " << can_send_status.error();
+    LOG(INFO) << "Can't send a message to " << dialog_id << ": " << can_send_status;
 
-    fail_send_message(full_message_id, can_send_status.move_as_error());
+    fail_send_message(full_message_id, std::move(can_send_status));
     return;
   }
 
@@ -33697,7 +33697,7 @@ void MessagesManager::send_dialog_action(DialogId dialog_id, MessageId top_threa
     auto can_send_status = can_send_message(dialog_id);
     if (can_send_status.is_error()) {
       if (td_->auth_manager_->is_bot()) {
-        return promise.set_error(can_send_status.move_as_error());
+        return promise.set_error(std::move(can_send_status));
       }
       return promise.set_value(Unit());
     }
@@ -39675,9 +39675,9 @@ MessagesManager::Message *MessagesManager::continue_send_message(DialogId dialog
     can_send_status = Status::Error(400, "Message is too old to be re-sent automatically");
   }
   if (can_send_status.is_error()) {
-    LOG(INFO) << "Can't continue to send a message to " << dialog_id << ": " << can_send_status.error();
+    LOG(INFO) << "Can't continue to send a message to " << dialog_id << ": " << can_send_status;
 
-    fail_send_message({dialog_id, result_message->message_id}, can_send_status.move_as_error());
+    fail_send_message({dialog_id, result_message->message_id}, std::move(can_send_status));
     return nullptr;
   }
 

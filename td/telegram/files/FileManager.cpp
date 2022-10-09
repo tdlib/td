@@ -2208,7 +2208,7 @@ void FileManager::download(FileId file_id, std::shared_ptr<DownloadCallback> cal
   if (node->local_.type() == LocalFileLocation::Type::Full) {
     auto status = check_local_location(node);
     if (status.is_error()) {
-      LOG(WARNING) << "Need to redownload file " << file_id << ": " << status.error();
+      LOG(WARNING) << "Need to redownload file " << file_id << ": " << status;
     } else {
       LOG(INFO) << "File " << file_id << " is already downloaded";
       if (callback) {
@@ -2219,7 +2219,7 @@ void FileManager::download(FileId file_id, std::shared_ptr<DownloadCallback> cal
   } else if (node->local_.type() == LocalFileLocation::Type::Partial) {
     auto status = check_local_location(node);
     if (status.is_error()) {
-      LOG(WARNING) << "Need to download file " << file_id << " from beginning: " << status.error();
+      LOG(WARNING) << "Need to download file " << file_id << " from beginning: " << status;
     }
   }
 

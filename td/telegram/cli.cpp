@@ -1931,9 +1931,9 @@ class CliClient final : public Actor {
       HttpReader http_reader;
       http_reader.init(&reader);
       HttpQuery query;
-      auto status = http_reader.read_next(&query);
-      if (status.is_error()) {
-        LOG(ERROR) << status.error();
+      auto r_size = http_reader.read_next(&query);
+      if (r_size.is_error()) {
+        LOG(ERROR) << r_size.error();
         return;
       }
       string bot_user_id = query.get_arg("bot_id").str();

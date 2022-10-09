@@ -8198,7 +8198,7 @@ td_api::object_ptr<td_api::Object> Td::do_static_request(td_api::parseMarkdown &
   auto entities = r_entities.move_as_ok();
   auto status = fix_formatted_text(request.text_->text_, entities, true, true, true, true, true);
   if (status.is_error()) {
-    return make_error(400, status.error().message());
+    return make_error(400, status.message());
   }
 
   auto parsed_text = parse_markdown_v3({std::move(request.text_->text_), std::move(entities)});
@@ -8225,7 +8225,7 @@ td_api::object_ptr<td_api::Object> Td::do_static_request(td_api::getMarkdownText
   auto entities = r_entities.move_as_ok();
   auto status = fix_formatted_text(request.text_->text_, entities, true, true, true, true, true);
   if (status.is_error()) {
-    return make_error(400, status.error().message());
+    return make_error(400, status.message());
   }
 
   return get_formatted_text_object(get_markdown_v3({std::move(request.text_->text_), std::move(entities)}), false,

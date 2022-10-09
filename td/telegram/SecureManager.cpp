@@ -650,8 +650,8 @@ void SetSecureValue::merge(FileManager *file_manager, FileId file_id, EncryptedS
     LOG(ERROR) << "Hash mismatch";
     return;
   }
-  auto status = file_manager->merge(encrypted_file.file.file_id, file_id);
-  LOG_IF(ERROR, status.is_error()) << status.error();
+  auto r_file_id = file_manager->merge(encrypted_file.file.file_id, file_id);
+  LOG_IF(ERROR, r_file_id.is_error()) << r_file_id.error();
 }
 
 class DeleteSecureValue final : public NetQueryCallback {

@@ -55,7 +55,7 @@ void SqliteKeyValue::set(Slice key, Slice value) {
   set_stmt_.bind_blob(2, value).ensure();
   auto status = set_stmt_.step();
   if (status.is_error()) {
-    LOG(FATAL) << "Failed to set \"" << base64_encode(key) << "\": " << status.error();
+    LOG(FATAL) << "Failed to set \"" << base64_encode(key) << "\": " << status;
   }
   set_stmt_.reset();
 }

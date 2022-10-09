@@ -77,7 +77,7 @@ void FileLog::do_append(int log_level, CSlice slice) {
   if (size_ > rotate_threshold_ || want_rotate_.load(std::memory_order_relaxed)) {
     auto status = rename(path_, PSLICE() << path_ << ".old");
     if (status.is_error()) {
-      process_fatal_error(PSLICE() << status.error() << " in " << __FILE__ << " at " << __LINE__ << '\n');
+      process_fatal_error(PSLICE() << status << " in " << __FILE__ << " at " << __LINE__ << '\n');
     }
     do_after_rotation();
   }
