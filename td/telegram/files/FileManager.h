@@ -620,7 +620,7 @@ class FileManager final : public FileLoadManager::Callback {
 
   Status check_local_location(FileNodePtr node, bool skip_file_size_checks);
   static bool try_fix_partial_local_location(FileNodePtr node);
-  Status check_local_location(FullLocalFileLocation &location, int64 &size, bool skip_file_size_checks);
+  static Status check_local_location(FullLocalFileLocation &location, int64 &size, bool skip_file_size_checks);
   void try_flush_node_full(FileNodePtr node, bool new_remote, bool new_local, bool new_generate, FileDbId other_pmc_id);
   void try_flush_node(FileNodePtr node, const char *source);
   void try_flush_node_info(FileNodePtr node, const char *source);

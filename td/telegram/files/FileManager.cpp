@@ -947,9 +947,7 @@ Status FileManager::check_local_location(FullLocalFileLocation &location, int64 
     return Status::Error(400, "Can't find real file path");
   }
   location.path_ = r_path.move_as_ok();
-  if (bad_paths_.count(location.path_) != 0) {
-    return Status::Error(400, "Sending of internal database files is forbidden");
-  }
+
   auto r_stat = stat(location.path_);
   if (r_stat.is_error()) {
     return Status::Error(400, "Can't get stat about the file");
@@ -1026,6 +1024,9 @@ Status FileManager::check_local_location(FileNodePtr node, bool skip_file_size_c
   Status status;
   if (node->local_.type() == LocalFileLocation::Type::Full) {
     status = check_local_location(node->local_.full(), node->size_, skip_file_size_checks);
+    if (status.is_ok() && bad_paths_.count(node->local_.full().path_) != 0) {
+      status = Status::Error(400, "Sending of internal database files is forbidden");
+    }
   } else if (node->local_.type() == LocalFileLocation::Type::Partial) {
     status = check_partial_local_location(node->local_.partial());
   }
@@ -1203,6 +1204,9 @@ Result<FileId> FileManager::register_file(FileData &&data, FileLocationSource fi
 
     if (!is_from_database) {
       auto status = check_local_location(data.local_.full(), data.size_, skip_file_size_checks);
+      if (status.is_ok() && bad_paths_.count(data.local_.full().path_) != 0) {
+        status = Status::Error(400, "Sending of internal database files is forbidden");
+      }
       if (status.is_error()) {
         LOG(INFO) << "Invalid " << data.local_.full() << ": " << status << " from " << source;
         data.local_ = LocalFileLocation();
