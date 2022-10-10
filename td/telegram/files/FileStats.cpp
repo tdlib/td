@@ -6,7 +6,6 @@
 //
 #include "td/telegram/files/FileStats.h"
 
-#include "td/telegram/files/FileLoaderUtils.h"
 #include "td/telegram/td_api.h"
 
 #include "td/utils/algorithm.h"

@@ -412,7 +412,7 @@ static Status check_mtime(std::string &conversion, CSlice original_path) {
   conversion = parser.read_all().str();
   auto r_stat = stat(original_path);
   uint64 actual_mtime = r_stat.is_ok() ? r_stat.ok().mtime_nsec_ : 0;
-  if (FileManager::are_modification_times_equal(expected_mtime, actual_mtime)) {
+  if (are_modification_times_equal(expected_mtime, actual_mtime)) {
     LOG(DEBUG) << "File \"" << original_path << "\" modification time " << actual_mtime << " matches";
     return Status::OK();
   }

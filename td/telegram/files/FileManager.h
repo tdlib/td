@@ -416,8 +416,6 @@ class FileManager final : public FileLoadManager::Callback {
   FileManager &operator=(FileManager &&other) = delete;
   ~FileManager() final;
 
-  static bool are_modification_times_equal(int64 old_mtime, int64 new_mtime);
-
   static bool is_remotely_generated_file(Slice conversion);
 
   void init_actor();
@@ -617,13 +615,6 @@ class FileManager final : public FileLoadManager::Callback {
   void load_from_pmc_impl(FileId file_id, const LocationT &location);
   void load_from_pmc_result(FileId file_id, Result<FileData> &&result);
   FileId register_pmc_file_data(FileData &&data);
-
-  struct FullLocalLocationInfo {
-    FullLocalFileLocation location_;
-    int64 size_ = 0;
-  };
-  static Result<FullLocalLocationInfo> check_local_location(FullLocalLocationInfo local_info,
-                                                            bool skip_file_size_checks);
 
   Status check_local_location(FileNodePtr node, bool skip_file_size_checks);
   static bool try_fix_partial_local_location(FileNodePtr node);

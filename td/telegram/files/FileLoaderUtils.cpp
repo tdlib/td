@@ -257,4 +257,100 @@ string get_files_dir(FileType file_type) {
   return PSTRING() << get_files_base_dir(file_type) << get_file_type_name(file_type) << TD_DIR_SLASH;
 }
 
+bool are_modification_times_equal(int64 old_mtime, int64 new_mtime) {
+  if (old_mtime == new_mtime) {
+    return true;
+  }
+  if (old_mtime < new_mtime) {
+    return false;
+  }
+  if (old_mtime - new_mtime == 1000000000 && old_mtime % 1000000000 == 0 && new_mtime % 2000000000 == 0) {
+    // FAT32 has 2 seconds mtime resolution, but file system sometimes reports odd modification time
+    return true;
+  }
+  return false;
+}
+
+Result<FullLocalLocationInfo> check_full_local_location(FullLocalLocationInfo local_info, bool skip_file_size_checks) {
+  constexpr int64 MAX_FILE_SIZE = static_cast<int64>(4000) << 20 /* 4000 MB */;
+  constexpr int64 MAX_THUMBNAIL_SIZE = 200 * (1 << 10) - 1 /* 200 KB - 1 B */;
+  constexpr int64 MAX_PHOTO_SIZE = 10 * (1 << 20) /* 10 MB */;
+  constexpr int64 DEFAULT_VIDEO_NOTE_SIZE_MAX = 12 * (1 << 20) /* 12 MB */;
+
+  FullLocalFileLocation &location = local_info.location_;
+  int64 &size = local_info.size_;
+  if (location.path_.empty()) {
+    return Status::Error(400, "File must have non-empty path");
+  }
+  auto r_path = realpath(location.path_, true);
+  if (r_path.is_error()) {
+    return Status::Error(400, "Can't find real file path");
+  }
+  location.path_ = r_path.move_as_ok();
+
+  auto r_stat = stat(location.path_);
+  if (r_stat.is_error()) {
+    return Status::Error(400, "Can't get stat about the file");
+  }
+  auto stat = r_stat.move_as_ok();
+  if (!stat.is_reg_) {
+    return Status::Error(400, "File must be a regular file");
+  }
+  if (stat.size_ < 0) {
+    // TODO is it possible?
+    return Status::Error(400, "File is too big");
+  }
+  if (stat.size_ == 0) {
+    return Status::Error(400, "File must be non-empty");
+  }
+
+  if (size == 0) {
+    size = stat.size_;
+  }
+  if (location.mtime_nsec_ == 0) {
+    VLOG(file_loader) << "Set file \"" << location.path_ << "\" modification time to " << stat.mtime_nsec_;
+    location.mtime_nsec_ = stat.mtime_nsec_;
+  } else if (!are_modification_times_equal(location.mtime_nsec_, stat.mtime_nsec_)) {
+    VLOG(file_loader) << "File \"" << location.path_ << "\" was modified: old mtime = " << location.mtime_nsec_
+                      << ", new mtime = " << stat.mtime_nsec_;
+    return Status::Error(400, PSLICE() << "File \"" << utf8_encode(location.path_) << "\" was modified");
+  }
+  if (skip_file_size_checks) {
+    return std::move(local_info);
+  }
+
+  auto get_file_size_error = [&](Slice reason) {
+    return Status::Error(400, PSLICE() << "File \"" << utf8_encode(location.path_) << "\" of size " << size
+                                       << " bytes is too big" << reason);
+  };
+  if ((location.file_type_ == FileType::Thumbnail || location.file_type_ == FileType::EncryptedThumbnail) &&
+      size > MAX_THUMBNAIL_SIZE && !begins_with(PathView(location.path_).file_name(), "map") &&
+      !begins_with(PathView(location.path_).file_name(), "Album cover for ")) {
+    return get_file_size_error(" for a thumbnail");
+  }
+  if (size > MAX_FILE_SIZE) {
+    return get_file_size_error("");
+  }
+  if (location.file_type_ == FileType::Photo && size > MAX_PHOTO_SIZE) {
+    return get_file_size_error(" for a photo");
+  }
+  if (location.file_type_ == FileType::VideoNote &&
+      size > G()->get_option_integer("video_note_size_max", DEFAULT_VIDEO_NOTE_SIZE_MAX)) {
+    return get_file_size_error(" for a video note");
+  }
+  return std::move(local_info);
+}
+
+Status check_partial_local_location(const PartialLocalFileLocation &location) {
+  TRY_RESULT(stat, stat(location.path_));
+  if (!stat.is_reg_) {
+    if (stat.is_dir_) {
+      return Status::Error(PSLICE() << "Can't use directory \"" << location.path_ << "\" as a file path");
+    }
+    return Status::Error("File must be a regular file");
+  }
+  // can't check mtime. Hope nobody will mess with this files in our temporary dir.
+  return Status::OK();
+}
+
 }  // namespace td
