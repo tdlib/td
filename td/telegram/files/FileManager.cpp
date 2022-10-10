@@ -2220,15 +2220,16 @@ void FileManager::delete_file(FileId file_id, Promise<Unit> promise, const char 
 }
 
 void FileManager::download(FileId file_id, std::shared_ptr<DownloadCallback> callback, int32 new_priority, int64 offset,
-                           int64 limit) {
+                           int64 limit, Promise<td_api::object_ptr<td_api::file>> promise) {
   LOG(INFO) << "Download file " << file_id << " with priority " << new_priority;
   auto node = get_sync_file_node(file_id);
   if (!node) {
     LOG(INFO) << "File " << file_id << " not found";
+    auto error = Status::Error(400, "File not found");
     if (callback) {
-      callback->on_download_error(file_id, Status::Error(400, "File not found"));
+      callback->on_download_error(file_id, error.clone());
     }
-    return;
+    return promise.set_error(std::move(error));
   }
 
   auto status = check_local_location(node, true);
@@ -2240,22 +2241,23 @@ void FileManager::download(FileId file_id, std::shared_ptr<DownloadCallback> cal
     if (callback) {
       callback->on_download_ok(file_id);
     }
-    return;
+    return promise.set_value(get_file_object(file_id, false));
   }
 
   FileView file_view(node);
   if (!file_view.can_download_from_server() && !file_view.can_generate()) {
     LOG(INFO) << "File " << file_id << " can't be downloaded";
+    auto error = Status::Error(400, "Can't download or generate the file");
     if (callback) {
-      callback->on_download_error(file_id, Status::Error(400, "Can't download or generate file"));
+      callback->on_download_error(file_id, error.clone());
     }
-    return;
+    return promise.set_error(std::move(error));
   }
 
   if (new_priority == -1) {
     if (node->is_download_started_) {
       LOG(INFO) << "File " << file_id << " is being downloaded";
-      return;
+      return promise.set_value(get_file_object(file_id, false));
     }
     new_priority = 0;
   }
@@ -2285,6 +2287,7 @@ void FileManager::download(FileId file_id, std::shared_ptr<DownloadCallback> cal
   run_download(node, true);
 
   try_flush_node(node, "download");
+  promise.set_value(get_file_object(file_id, false));
 }
 
 void FileManager::run_download(FileNodePtr node, bool force_update_priority) {

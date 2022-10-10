@@ -83,11 +83,12 @@ class FileDownloadGenerateActor final : public FileGenerateActor {
     };
 
     send_closure(G()->file_manager(), &FileManager::download, file_id_, std::make_shared<Callback>(actor_id(this)), 1,
-                 FileManager::KEEP_DOWNLOAD_OFFSET, FileManager::KEEP_DOWNLOAD_LIMIT);
+                 FileManager::KEEP_DOWNLOAD_OFFSET, FileManager::KEEP_DOWNLOAD_LIMIT,
+                 Promise<td_api::object_ptr<td_api::file>>());
   }
   void hangup() final {
     send_closure(G()->file_manager(), &FileManager::download, file_id_, nullptr, 0, FileManager::KEEP_DOWNLOAD_OFFSET,
-                 FileManager::KEEP_DOWNLOAD_LIMIT);
+                 FileManager::KEEP_DOWNLOAD_LIMIT, Promise<td_api::object_ptr<td_api::file>>());
     stop();
   }
 

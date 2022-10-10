@@ -453,7 +453,7 @@ class FileManager final : public FileLoadManager::Callback {
   void check_local_location(FileId file_id, bool skip_file_size_checks);
 
   void download(FileId file_id, std::shared_ptr<DownloadCallback> callback, int32 new_priority, int64 offset,
-                int64 limit);
+                int64 limit, Promise<td_api::object_ptr<td_api::file>> promise);
   void upload(FileId file_id, std::shared_ptr<UploadCallback> callback, int32 new_priority, uint64 upload_order);
   void resume_upload(FileId file_id, std::vector<int> bad_parts, std::shared_ptr<UploadCallback> callback,
                      int32 new_priority, uint64 upload_order, bool force = false, bool prefer_small = false);

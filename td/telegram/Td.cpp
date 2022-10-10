@@ -6406,11 +6406,12 @@ void Td::on_request(uint64 id, const td_api::downloadFile &request) {
   DownloadInfo *info = info_it == pending_file_downloads_.end() ? nullptr : &info_it->second;
   if (info != nullptr && (offset != info->offset || limit != info->limit)) {
     // we can't have two pending requests with different offset and limit, so cancel all previous requests
-    for (auto request_id : info->request_ids) {
+    auto request_ids = std::move(info->request_ids);
+    info->request_ids.clear();
+    for (auto request_id : request_ids) {
       send_closure(actor_id(this), &Td::send_error, request_id,
                    Status::Error(200, "Canceled by another downloadFile request"));
     }
-    info->request_ids.clear();
   }
   if (request.synchronous_) {
     if (info == nullptr) {
@@ -6420,10 +6421,12 @@ void Td::on_request(uint64 id, const td_api::downloadFile &request) {
     info->limit = limit;
     info->request_ids.push_back(id);
   }
-  file_manager_->download(file_id, download_file_callback_, priority, offset, limit);
+  Promise<td_api::object_ptr<td_api::file>> download_promise;
   if (!request.synchronous_) {
-    send_closure(actor_id(this), &Td::send_result, id, file_manager_->get_file_object(file_id, false));
+    CREATE_REQUEST_PROMISE();
+    download_promise = std::move(promise);
   }
+  file_manager_->download(file_id, download_file_callback_, priority, offset, limit, std::move(download_promise));
 }
 
 void Td::on_file_download_finished(FileId file_id) {
@@ -6468,8 +6471,8 @@ void Td::on_request(uint64 id, const td_api::getFileDownloadedPrefixSize &reques
 
 void Td::on_request(uint64 id, const td_api::cancelDownloadFile &request) {
   file_manager_->download(FileId(request.file_id_, 0), nullptr, request.only_if_pending_ ? -1 : 0,
-                          FileManager::KEEP_DOWNLOAD_OFFSET, FileManager::KEEP_DOWNLOAD_LIMIT);
-
+                          FileManager::KEEP_DOWNLOAD_OFFSET, FileManager::KEEP_DOWNLOAD_LIMIT,
+                          Promise<td_api::object_ptr<td_api::file>>());
   send_closure(actor_id(this), &Td::send_result, id, make_tl_object<td_api::ok>());
 }
 
