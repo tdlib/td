@@ -2209,22 +2209,16 @@ void FileManager::download(FileId file_id, std::shared_ptr<DownloadCallback> cal
     return;
   }
 
+  auto status = check_local_location(node, true);
+  if (status.is_error()) {
+    LOG(WARNING) << "Need to redownload file " << file_id << ": " << status;
+  }
   if (node->local_.type() == LocalFileLocation::Type::Full) {
-    auto status = check_local_location(node, true);
-    if (status.is_error()) {
-      LOG(WARNING) << "Need to redownload file " << file_id << ": " << status;
-    } else {
-      LOG(INFO) << "File " << file_id << " is already downloaded";
-      if (callback) {
-        callback->on_download_ok(file_id);
-      }
-      return;
+    LOG(INFO) << "File " << file_id << " is already downloaded";
+    if (callback) {
+      callback->on_download_ok(file_id);
     }
-  } else if (node->local_.type() == LocalFileLocation::Type::Partial) {
-    auto status = check_local_location(node, true);
-    if (status.is_error()) {
-      LOG(WARNING) << "Need to download file " << file_id << " from beginning: " << status;
-    }
+    return;
   }
 
   FileView file_view(node);
