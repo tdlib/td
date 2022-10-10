@@ -146,6 +146,20 @@ void FileLoadManager::unlink_file(string file_path, Promise<Unit> promise) {
   promise.set_value(Unit());
 }
 
+void FileLoadManager::check_full_local_location(FullLocalLocationInfo local_info, bool skip_file_size_checks,
+                                                Promise<FullLocalLocationInfo> promise) {
+  promise.set_result(::td::check_full_local_location(std::move(local_info), skip_file_size_checks));
+}
+
+void FileLoadManager::check_partial_local_location(PartialLocalFileLocation partial, Promise<Unit> promise) {
+  auto status = ::td::check_partial_local_location(partial);
+  if (status.is_error()) {
+    promise.set_error(std::move(status));
+  } else {
+    promise.set_value(Unit());
+  }
+}
+
 // void upload_reload_parts(QueryId id, vector<int32> parts);
 // void upload_restart(QueryId id);
 void FileLoadManager::cancel(QueryId id) {

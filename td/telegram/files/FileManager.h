@@ -617,6 +617,13 @@ class FileManager final : public FileLoadManager::Callback {
   FileId register_pmc_file_data(FileData &&data);
 
   Status check_local_location(FileNodePtr node, bool skip_file_size_checks);
+  void on_failed_check_local_location(FileNodePtr node);
+  void check_local_location_async(FileNodePtr node, bool skip_file_size_checks, Promise<Unit> promise);
+  void on_check_full_local_location(FileId file_id, LocalFileLocation checked_location,
+                                    Result<FullLocalLocationInfo> r_info, Promise<Unit> promise);
+  void on_check_partial_local_location(FileId file_id, LocalFileLocation checked_location, Result<Unit> result,
+                                       Promise<Unit> promise);
+
   static bool try_fix_partial_local_location(FileNodePtr node);
   void try_flush_node_full(FileNodePtr node, bool new_remote, bool new_local, bool new_generate, FileDbId other_pmc_id);
   void try_flush_node(FileNodePtr node, const char *source);

@@ -10,6 +10,7 @@
 #include "td/telegram/files/FileEncryptionKey.h"
 #include "td/telegram/files/FileFromBytes.h"
 #include "td/telegram/files/FileHashUploader.h"
+#include "td/telegram/files/FileLoaderUtils.h"
 #include "td/telegram/files/FileLocation.h"
 #include "td/telegram/files/FileType.h"
 #include "td/telegram/files/FileUploader.h"
@@ -63,6 +64,11 @@ class FileLoadManager final : public Actor {
   void read_file_part(string file_path, int64 offset, int64 count, Promise<string> promise);
 
   void unlink_file(string file_path, Promise<Unit> promise);
+
+  void check_full_local_location(FullLocalLocationInfo local_info, bool skip_file_size_checks,
+                                 Promise<FullLocalLocationInfo> promise);
+
+  void check_partial_local_location(PartialLocalFileLocation partial, Promise<Unit> promise);
 
  private:
   struct Node {

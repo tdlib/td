@@ -943,11 +943,84 @@ Status FileManager::check_local_location(FileNodePtr node, bool skip_file_size_c
     status = check_partial_local_location(node->local_.partial());
   }
   if (status.is_error()) {
-    send_closure(G()->download_manager(), &DownloadManager::remove_file_if_finished, node->main_file_id_);
-    node->drop_local_location();
-    try_flush_node(node, "check_local_location");
+    on_failed_check_local_location(node);
   }
   return status;
+}
+
+void FileManager::on_failed_check_local_location(FileNodePtr node) {
+  send_closure(G()->download_manager(), &DownloadManager::remove_file_if_finished, node->main_file_id_);
+  node->drop_local_location();
+  try_flush_node(node, "on_failed_check_local_location");
+}
+
+void FileManager::check_local_location_async(FileNodePtr node, bool skip_file_size_checks, Promise<Unit> promise) {
+  if (node->local_.type() == LocalFileLocation::Type::Empty) {
+    return promise.set_value(Unit());
+  }
+
+  if (node->local_.type() == LocalFileLocation::Type::Full) {
+    send_closure(file_load_manager_, &FileLoadManager::check_full_local_location,
+                 FullLocalLocationInfo{node->local_.full(), node->size_}, skip_file_size_checks,
+                 PromiseCreator::lambda([actor_id = actor_id(this), file_id = node->main_file_id_,
+                                         checked_location = node->local_,
+                                         promise = std::move(promise)](Result<FullLocalLocationInfo> result) mutable {
+                   send_closure(actor_id, &FileManager::on_check_full_local_location, file_id,
+                                std::move(checked_location), std::move(result), std::move(promise));
+                 }));
+  } else {
+    CHECK(node->local_.type() == LocalFileLocation::Type::Partial);
+    send_closure(file_load_manager_, &FileLoadManager::check_partial_local_location, node->local_.partial(),
+                 PromiseCreator::lambda([actor_id = actor_id(this), file_id = node->main_file_id_,
+                                         checked_location = node->local_,
+                                         promise = std::move(promise)](Result<Unit> result) mutable {
+                   send_closure(actor_id, &FileManager::on_check_partial_local_location, file_id,
+                                std::move(checked_location), std::move(result), std::move(promise));
+                 }));
+  }
+}
+
+void FileManager::on_check_full_local_location(FileId file_id, LocalFileLocation checked_location,
+                                               Result<FullLocalLocationInfo> r_info, Promise<Unit> promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+  auto node = get_file_node(file_id);
+  CHECK(node);
+  if (node->local_ != checked_location) {
+    LOG(INFO) << "Full location changed while being checked; ignore check result";
+    return promise.set_value(Unit());
+  }
+  Status status;
+  if (r_info.is_error()) {
+    status = r_info.move_as_error();
+  } else if (bad_paths_.count(r_info.ok().location_.path_) != 0) {
+    status = Status::Error(400, "Sending of internal database files is forbidden");
+  } else if (r_info.ok().location_ != node->local_.full() || r_info.ok().size_ != node->size_) {
+    LOG(ERROR) << "Local location changed from " << node->local_.full() << " with size " << node->size_ << " to "
+               << r_info.ok().location_ << " with size " << r_info.ok().size_;
+  }
+  if (status.is_error()) {
+    on_failed_check_local_location(node);
+    promise.set_error(std::move(status));
+  } else {
+    promise.set_value(Unit());
+  }
+}
+
+void FileManager::on_check_partial_local_location(FileId file_id, LocalFileLocation checked_location,
+                                                  Result<Unit> result, Promise<Unit> promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+  auto node = get_file_node(file_id);
+  CHECK(node);
+  if (node->local_ != checked_location) {
+    LOG(INFO) << "Partial location changed while being checked; ignore check result";
+    return promise.set_value(Unit());
+  }
+  if (result.is_error()) {
+    on_failed_check_local_location(node);
+    promise.set_error(result.move_as_error());
+  } else {
+    promise.set_value(Unit());
+  }
 }
 
 bool FileManager::try_fix_partial_local_location(FileNodePtr node) {
@@ -1992,8 +2065,7 @@ void FileManager::get_content(FileId file_id, Promise<BufferSlice> promise) {
   if (!node) {
     return promise.set_error(Status::Error("Unknown file_id"));
   }
-  auto status = check_local_location(node, true);
-  status.ignore();
+  check_local_location(node, true).ignore();
 
   auto file_view = FileView(node);
   if (!file_view.has_local_location()) {
