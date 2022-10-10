@@ -616,6 +616,9 @@ class FileManager final : public FileLoadManager::Callback {
   void load_from_pmc_result(FileId file_id, Result<FileData> &&result);
   FileId register_pmc_file_data(FileData &&data);
 
+  void download_impl(FileId file_id, std::shared_ptr<DownloadCallback> callback, int32 new_priority, int64 offset,
+                     int64 limit, Status check_status, Promise<td_api::object_ptr<td_api::file>> promise);
+
   Status check_local_location(FileNodePtr node, bool skip_file_size_checks);
   void on_failed_check_local_location(FileNodePtr node);
   void check_local_location_async(FileNodePtr node, bool skip_file_size_checks, Promise<Unit> promise);

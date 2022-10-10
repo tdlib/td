@@ -2221,7 +2221,8 @@ void FileManager::delete_file(FileId file_id, Promise<Unit> promise, const char 
 
 void FileManager::download(FileId file_id, std::shared_ptr<DownloadCallback> callback, int32 new_priority, int64 offset,
                            int64 limit, Promise<td_api::object_ptr<td_api::file>> promise) {
-  LOG(INFO) << "Download file " << file_id << " with priority " << new_priority;
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+
   auto node = get_sync_file_node(file_id);
   if (!node) {
     LOG(INFO) << "File " << file_id << " not found";
@@ -2232,9 +2233,36 @@ void FileManager::download(FileId file_id, std::shared_ptr<DownloadCallback> cal
     return promise.set_error(std::move(error));
   }
 
-  auto status = check_local_location(node, true);
-  if (status.is_error()) {
-    LOG(WARNING) << "Need to redownload file " << file_id << ": " << status;
+  if ((callback == nullptr && new_priority <= 0) || node->local_.type() == LocalFileLocation::Type::Empty) {
+    // skip local location check if download is canceled or there is no local location
+    return download_impl(file_id, std::move(callback), new_priority, offset, limit, Status::OK(), std::move(promise));
+  }
+
+  LOG(INFO) << "Asynchronously check location of file " << file_id << " before downloading";
+  auto check_promise =
+      PromiseCreator::lambda([actor_id = actor_id(this), file_id, callback = std::move(callback), new_priority, offset,
+                              limit, promise = std::move(promise)](Result<Unit> result) mutable {
+        Status check_status;
+        if (result.is_error()) {
+          check_status = result.move_as_error();
+        }
+        send_closure(actor_id, &FileManager::download_impl, file_id, std::move(callback), new_priority, offset, limit,
+                     std::move(check_status), std::move(promise));
+      });
+  check_local_location_async(node, true, std::move(check_promise));
+}
+
+void FileManager::download_impl(FileId file_id, std::shared_ptr<DownloadCallback> callback, int32 new_priority,
+                                int64 offset, int64 limit, Status check_status,
+                                Promise<td_api::object_ptr<td_api::file>> promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+
+  LOG(INFO) << "Download file " << file_id << " with priority " << new_priority;
+  auto node = get_file_node(file_id);
+  CHECK(node);
+
+  if (check_status.is_error()) {
+    LOG(WARNING) << "Need to redownload file " << file_id << ": " << check_status;
   }
   if (node->local_.type() == LocalFileLocation::Type::Full) {
     LOG(INFO) << "File " << file_id << " is already downloaded";
