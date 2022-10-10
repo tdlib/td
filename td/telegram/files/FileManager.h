@@ -623,6 +623,8 @@ class FileManager final : public FileLoadManager::Callback {
                                     Result<FullLocalLocationInfo> r_info, Promise<Unit> promise);
   void on_check_partial_local_location(FileId file_id, LocalFileLocation checked_location, Result<Unit> result,
                                        Promise<Unit> promise);
+  void recheck_full_local_location(FullLocalLocationInfo location_info, bool skip_file_size_checks);
+  void on_recheck_full_local_location(FullLocalFileLocation checked_location, Result<FullLocalLocationInfo> r_info);
 
   static bool try_fix_partial_local_location(FileNodePtr node);
   void try_flush_node_full(FileNodePtr node, bool new_remote, bool new_local, bool new_generate, FileDbId other_pmc_id);

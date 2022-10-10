@@ -983,8 +983,11 @@ void FileManager::check_local_location_async(FileNodePtr node, bool skip_file_si
 void FileManager::on_check_full_local_location(FileId file_id, LocalFileLocation checked_location,
                                                Result<FullLocalLocationInfo> r_info, Promise<Unit> promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
+
   auto node = get_file_node(file_id);
-  CHECK(node);
+  if (!node) {
+    return;
+  }
   if (node->local_ != checked_location) {
     LOG(INFO) << "Full location changed while being checked; ignore check result";
     return promise.set_value(Unit());
@@ -1009,6 +1012,7 @@ void FileManager::on_check_full_local_location(FileId file_id, LocalFileLocation
 void FileManager::on_check_partial_local_location(FileId file_id, LocalFileLocation checked_location,
                                                   Result<Unit> result, Promise<Unit> promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
+
   auto node = get_file_node(file_id);
   CHECK(node);
   if (node->local_ != checked_location) {
@@ -1021,6 +1025,31 @@ void FileManager::on_check_partial_local_location(FileId file_id, LocalFileLocat
   } else {
     promise.set_value(Unit());
   }
+}
+
+void FileManager::recheck_full_local_location(FullLocalLocationInfo location_info, bool skip_file_size_checks) {
+  auto promise = PromiseCreator::lambda([actor_id = actor_id(this), checked_location = location_info.location_](
+                                            Result<FullLocalLocationInfo> result) mutable {
+    send_closure(actor_id, &FileManager::on_recheck_full_local_location, std::move(checked_location),
+                 std::move(result));
+  });
+  send_closure(file_load_manager_, &FileLoadManager::check_full_local_location, std::move(location_info),
+               skip_file_size_checks, std::move(promise));
+}
+
+void FileManager::on_recheck_full_local_location(FullLocalFileLocation checked_location,
+                                                 Result<FullLocalLocationInfo> r_info) {
+  if (G()->close_flag()) {
+    return;
+  }
+
+  auto file_id_it = local_location_to_file_id_.find(checked_location);
+  if (file_id_it == local_location_to_file_id_.end()) {
+    return;
+  }
+  auto file_id = file_id_it->second;
+
+  on_check_full_local_location(file_id, LocalFileLocation(checked_location), std::move(r_info), Promise<Unit>());
 }
 
 bool FileManager::try_fix_partial_local_location(FileNodePtr node) {
@@ -1187,7 +1216,7 @@ Result<FileId> FileManager::register_file(FileData &&data, FileLocationSource fi
       }
     }
 
-    if (!is_from_database) {
+    if (file_location_source != FileLocationSource::FromDatabase) {
       Status status;
       auto r_info = check_full_local_location({data.local_.full(), data.size_}, skip_file_size_checks);
       if (r_info.is_error()) {
@@ -1209,6 +1238,9 @@ Result<FileId> FileManager::register_file(FileData &&data, FileLocationSource fi
         data.local_ = LocalFileLocation(std::move(r_info.ok().location_));
         data.size_ = r_info.ok().size_;
       }
+    } else {
+      // the location has been checked previously, but recheck it just in case
+      recheck_full_local_location({data.local_.full(), data.size_}, skip_file_size_checks);
     }
   }
   bool has_local = data.local_.type() == LocalFileLocation::Type::Full;
