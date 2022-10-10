@@ -618,9 +618,15 @@ class FileManager final : public FileLoadManager::Callback {
   void load_from_pmc_result(FileId file_id, Result<FileData> &&result);
   FileId register_pmc_file_data(FileData &&data);
 
+  struct FullLocalLocationInfo {
+    FullLocalFileLocation location_;
+    int64 size_ = 0;
+  };
+  static Result<FullLocalLocationInfo> check_local_location(FullLocalLocationInfo local_info,
+                                                            bool skip_file_size_checks);
+
   Status check_local_location(FileNodePtr node, bool skip_file_size_checks);
   static bool try_fix_partial_local_location(FileNodePtr node);
-  static Status check_local_location(FullLocalFileLocation &location, int64 &size, bool skip_file_size_checks);
   void try_flush_node_full(FileNodePtr node, bool new_remote, bool new_local, bool new_generate, FileDbId other_pmc_id);
   void try_flush_node(FileNodePtr node, const char *source);
   void try_flush_node_info(FileNodePtr node, const char *source);

@@ -934,11 +934,14 @@ bool FileManager::is_remotely_generated_file(Slice conversion) {
   return begins_with(conversion, "#map#") || begins_with(conversion, "#audio_t#");
 }
 
-Status FileManager::check_local_location(FullLocalFileLocation &location, int64 &size, bool skip_file_size_checks) {
+Result<FileManager::FullLocalLocationInfo> FileManager::check_local_location(FullLocalLocationInfo local_info,
+                                                                bool skip_file_size_checks) {
   constexpr int64 MAX_THUMBNAIL_SIZE = 200 * (1 << 10) - 1 /* 200 KB - 1 B */;
   constexpr int64 MAX_PHOTO_SIZE = 10 * (1 << 20) /* 10 MB */;
   constexpr int64 DEFAULT_VIDEO_NOTE_SIZE_MAX = 12 * (1 << 20) /* 12 MB */;
 
+  FullLocalFileLocation &location = local_info.location_;
+  int64 &size = local_info.size_;
   if (location.path_.empty()) {
     return Status::Error(400, "File must have non-empty path");
   }
@@ -976,7 +979,7 @@ Status FileManager::check_local_location(FullLocalFileLocation &location, int64 
     return Status::Error(400, PSLICE() << "File \"" << utf8_encode(location.path_) << "\" was modified");
   }
   if (skip_file_size_checks) {
-    return Status::OK();
+    return std::move(local_info);
   }
 
   auto get_file_size_error = [&](Slice reason) {
@@ -998,7 +1001,7 @@ Status FileManager::check_local_location(FullLocalFileLocation &location, int64 
       size > G()->get_option_integer("video_note_size_max", DEFAULT_VIDEO_NOTE_SIZE_MAX)) {
     return get_file_size_error(" for a video note");
   }
-  return Status::OK();
+  return std::move(local_info);
 }
 
 static Status check_partial_local_location(const PartialLocalFileLocation &location) {
@@ -1023,9 +1026,14 @@ void FileManager::check_local_location(FileId file_id, bool skip_file_size_check
 Status FileManager::check_local_location(FileNodePtr node, bool skip_file_size_checks) {
   Status status;
   if (node->local_.type() == LocalFileLocation::Type::Full) {
-    status = check_local_location(node->local_.full(), node->size_, skip_file_size_checks);
-    if (status.is_ok() && bad_paths_.count(node->local_.full().path_) != 0) {
+    auto r_info = check_local_location({node->local_.full(), node->size_}, skip_file_size_checks);
+    if (r_info.is_error()) {
+      status = r_info.move_as_error();
+    } else if (bad_paths_.count(r_info.ok().location_.path_) != 0) {
       status = Status::Error(400, "Sending of internal database files is forbidden");
+    } else if (r_info.ok().location_ != node->local_.full() || r_info.ok().size_ != node->size_) {
+      LOG(ERROR) << "Local location changed from " << node->local_.full() << " with size " << node->size_ << " to "
+                 << r_info.ok().location_ << " with size " << r_info.ok().size_;
     }
   } else if (node->local_.type() == LocalFileLocation::Type::Partial) {
     status = check_partial_local_location(node->local_.partial());
@@ -1203,8 +1211,11 @@ Result<FileId> FileManager::register_file(FileData &&data, FileLocationSource fi
     }
 
     if (!is_from_database) {
-      auto status = check_local_location(data.local_.full(), data.size_, skip_file_size_checks);
-      if (status.is_ok() && bad_paths_.count(data.local_.full().path_) != 0) {
+      Status status;
+      auto r_info = check_local_location({data.local_.full(), data.size_}, skip_file_size_checks);
+      if (r_info.is_error()) {
+        status = r_info.move_as_error();
+      } else if (bad_paths_.count(r_info.ok().location_.path_) != 0) {
         status = Status::Error(400, "Sending of internal database files is forbidden");
       }
       if (status.is_error()) {
@@ -1217,6 +1228,9 @@ Result<FileId> FileManager::register_file(FileData &&data, FileLocationSource fi
         if (!has_remote && !has_generate) {
           return std::move(status);
         }
+      } else {
+        data.local_ = LocalFileLocation(std::move(r_info.ok().location_));
+        data.size_ = r_info.ok().size_;
       }
     }
   }
