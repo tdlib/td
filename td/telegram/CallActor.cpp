@@ -953,6 +953,8 @@ void CallActor::loop() {
         break;
       }
       LOG(INFO) << "Close " << local_call_id_;
+      container_.for_each(
+          [](auto id, Promise<NetQueryPtr> &promise) { promise.set_error(Global::request_aborted_error()); });
       stop();
       break;
     }
