@@ -33462,23 +33462,6 @@ void MessagesManager::on_get_dialog_query_finished(DialogId dialog_id, Status &&
   }
 }
 
-bool MessagesManager::is_update_about_username_change_received(DialogId dialog_id) const {
-  switch (dialog_id.get_type()) {
-    case DialogType::User:
-      return td_->contacts_manager_->is_update_about_username_change_received(dialog_id.get_user_id());
-    case DialogType::Chat:
-      return true;
-    case DialogType::Channel:
-      return td_->contacts_manager_->get_channel_status(dialog_id.get_channel_id()).is_member();
-    case DialogType::SecretChat:
-      return true;
-    case DialogType::None:
-    default:
-      UNREACHABLE();
-      return false;
-  }
-}
-
 void MessagesManager::on_dialog_username_updated(DialogId dialog_id, const string &old_username,
                                                  const string &new_username) {
   CHECK(dialog_id.is_valid());
@@ -33495,11 +33478,9 @@ void MessagesManager::on_dialog_username_updated(DialogId dialog_id, const strin
     inaccessible_resolved_usernames_.erase(clean_username(old_username));
   }
   if (!new_username.empty()) {
-    auto cache_time = is_update_about_username_change_received(dialog_id) ? USERNAME_CACHE_EXPIRE_TIME
-                                                                          : USERNAME_CACHE_EXPIRE_TIME_SHORT;
     auto cleaned_username = clean_username(new_username);
     if (!cleaned_username.empty()) {
-      resolved_usernames_[cleaned_username] = ResolvedUsername{dialog_id, Time::now() + cache_time};
+      resolved_usernames_[cleaned_username] = ResolvedUsername{dialog_id, Time::now() + USERNAME_CACHE_EXPIRE_TIME};
     }
   }
 }

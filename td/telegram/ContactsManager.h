@@ -127,8 +127,6 @@ class ContactsManager final : public Actor {
 
   string get_dialog_about(DialogId dialog_id);
 
-  bool is_update_about_username_change_received(UserId user_id) const;
-
   void for_each_secret_chat_with_user(UserId user_id, const std::function<void(SecretChatId)> &f);
 
   string get_user_username(UserId user_id) const;

@@ -851,8 +851,6 @@ class MessagesManager final : public Actor {
 
   bool is_old_channel_update(DialogId dialog_id, int32 new_pts);
 
-  bool is_update_about_username_change_received(DialogId dialog_id) const;
-
   void on_dialog_bots_updated(DialogId dialog_id, vector<UserId> bot_user_ids, bool from_database);
 
   void on_dialog_photo_updated(DialogId dialog_id);
@@ -1825,8 +1823,7 @@ class MessagesManager final : public Actor {
   static constexpr int32 LIVE_LOCATION_VIEW_PERIOD = 60;      // seconds, server-side limit
   static constexpr int32 UPDATE_VIEWED_MESSAGES_PERIOD = 15;  // seconds
 
-  static constexpr int32 USERNAME_CACHE_EXPIRE_TIME = 3 * 86400;
-  static constexpr int32 USERNAME_CACHE_EXPIRE_TIME_SHORT = 900;
+  static constexpr int32 USERNAME_CACHE_EXPIRE_TIME = 86400;
   static constexpr int32 AUTH_NOTIFICATION_ID_CACHE_TIME = 7 * 86400;
   static constexpr size_t MAX_SAVED_AUTH_NOTIFICATION_IDS = 100;
 

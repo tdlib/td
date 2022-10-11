@@ -11635,15 +11635,6 @@ void ContactsManager::on_get_channel_full_failed(ChannelId channel_id) {
   }
 }
 
-bool ContactsManager::is_update_about_username_change_received(UserId user_id) const {
-  const User *u = get_user(user_id);
-  if (u != nullptr) {
-    return u->is_contact;
-  } else {
-    return false;
-  }
-}
-
 void ContactsManager::on_update_user_name(UserId user_id, string &&first_name, string &&last_name, string &&username) {
   if (!user_id.is_valid()) {
     LOG(ERROR) << "Receive invalid " << user_id;
