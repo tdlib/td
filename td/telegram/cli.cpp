@@ -299,15 +299,17 @@ class CliClient final : public Actor {
   void on_get_messages(const td_api::messages &messages) {
     if (get_history_chat_id_ != 0) {
       int64 last_message_id = 0;
+      int32 last_message_date = 0;
       for (auto &m : messages.messages_) {
         // LOG(PLAIN) << to_string(m);
         if (m->content_->get_id() == td_api::messageText::ID) {
           LOG(PLAIN) << oneline(static_cast<const td_api::messageText *>(m->content_.get())->text_->text_) << "\n";
         }
         last_message_id = m->id_;
+        last_message_date = m->date_;
       }
 
-      if (last_message_id > 0) {
+      if (last_message_id > 0 && last_message_date > 1660000000) {
         send_request(td_api::make_object<td_api::getChatHistory>(get_history_chat_id_, last_message_id, 0, 100, false));
       } else {
         get_history_chat_id_ = 0;
@@ -5168,7 +5170,7 @@ static void on_log_message(int verbosity_level, const char *message) {
   if (verbosity_level == 0) {
     std::cerr << "Fatal error: " << message;
   }
-  std::cerr << "Log message: " << message;
+  // std::cerr << "Log message: " << message;
 }
 
 void main(int argc, char **argv) {
