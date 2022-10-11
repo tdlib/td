@@ -127,11 +127,12 @@ class ContactsManager final : public Actor {
 
   string get_dialog_about(DialogId dialog_id);
 
+  string get_dialog_search_text(DialogId dialog_id) const;
+
   void for_each_secret_chat_with_user(UserId user_id, const std::function<void(SecretChatId)> &f);
 
   string get_user_username(UserId user_id) const;
   string get_channel_username(ChannelId channel_id) const;
-  string get_secret_chat_username(SecretChatId secret_chat_id) const;
 
   int32 get_secret_chat_date(SecretChatId secret_chat_id) const;
   int32 get_secret_chat_ttl(SecretChatId secret_chat_id) const;
@@ -1237,6 +1238,9 @@ class ContactsManager final : public Actor {
 
   SecretChat *add_secret_chat(SecretChatId secret_chat_id);
 
+  string get_user_search_text(UserId user_id) const;
+  static string get_user_search_text(const User *u);
+
   static DialogParticipantStatus get_chat_status(const Chat *c);
   DialogParticipantStatus get_chat_permissions(const Chat *c) const;
 
@@ -1248,6 +1252,9 @@ class ContactsManager final : public Actor {
   static bool get_channel_can_be_deleted(const Channel *c);
   static bool get_channel_join_to_send(const Channel *c);
   static bool get_channel_join_request(const Channel *c);
+
+  string get_channel_search_text(ChannelId channel_id) const;
+  static string get_channel_search_text(const Channel *c);
 
   void set_my_id(UserId my_id);
 

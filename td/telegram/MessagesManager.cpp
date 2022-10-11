@@ -33561,23 +33561,6 @@ string MessagesManager::get_dialog_title(DialogId dialog_id) const {
   }
 }
 
-string MessagesManager::get_dialog_username(DialogId dialog_id) const {
-  switch (dialog_id.get_type()) {
-    case DialogType::User:
-      return td_->contacts_manager_->get_user_username(dialog_id.get_user_id());
-    case DialogType::Chat:
-      return string();
-    case DialogType::Channel:
-      return td_->contacts_manager_->get_channel_username(dialog_id.get_channel_id());
-    case DialogType::SecretChat:
-      return td_->contacts_manager_->get_secret_chat_username(dialog_id.get_secret_chat_id());
-    case DialogType::None:
-    default:
-      UNREACHABLE();
-      return string();
-  }
-}
-
 RestrictedRights MessagesManager::get_dialog_default_permissions(DialogId dialog_id) const {
   switch (dialog_id.get_type()) {
     case DialogType::User:
@@ -37535,7 +37518,7 @@ bool MessagesManager::add_dialog_last_database_message(Dialog *d, unique_ptr<Mes
 
 void MessagesManager::update_dialogs_hints(const Dialog *d) {
   if (!td_->auth_manager_->is_bot() && d->order != DEFAULT_ORDER) {
-    dialogs_hints_.add(-d->dialog_id.get(), get_dialog_title(d->dialog_id) + ' ' + get_dialog_username(d->dialog_id));
+    dialogs_hints_.add(-d->dialog_id.get(), td_->contacts_manager_->get_dialog_search_text(d->dialog_id));
   }
 }
 

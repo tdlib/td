@@ -3073,8 +3073,6 @@ class MessagesManager final : public Actor {
 
   const DialogPhoto *get_dialog_photo(DialogId dialog_id) const;
 
-  string get_dialog_username(DialogId dialog_id) const;
-
   RestrictedRights get_dialog_default_permissions(DialogId dialog_id) const;
 
   bool get_dialog_has_protected_content(DialogId dialog_id) const;

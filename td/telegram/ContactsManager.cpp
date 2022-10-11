@@ -5071,6 +5071,49 @@ string ContactsManager::get_dialog_about(DialogId dialog_id) {
   return string();
 }
 
+string ContactsManager::get_dialog_search_text(DialogId dialog_id) const {
+  switch (dialog_id.get_type()) {
+    case DialogType::User:
+      return get_user_search_text(dialog_id.get_user_id());
+    case DialogType::Chat:
+      return get_chat_title(dialog_id.get_chat_id());
+    case DialogType::Channel:
+      return get_channel_search_text(dialog_id.get_channel_id());
+    case DialogType::SecretChat:
+      return get_user_search_text(get_secret_chat_user_id(dialog_id.get_secret_chat_id()));
+    case DialogType::None:
+    default:
+      UNREACHABLE();
+  }
+  return string();
+}
+
+string ContactsManager::get_user_search_text(UserId user_id) const {
+  auto u = get_user(user_id);
+  if (u == nullptr) {
+    return string();
+  }
+  return get_user_search_text(u);
+}
+
+string ContactsManager::get_user_search_text(const User *u) {
+  CHECK(u != nullptr);
+  return PSTRING() << u->first_name << ' ' << u->last_name << ' ' << u->username;
+}
+
+string ContactsManager::get_channel_search_text(ChannelId channel_id) const {
+  auto c = get_channel(channel_id);
+  if (c == nullptr) {
+    return get_channel_title(channel_id);
+  }
+  return get_channel_search_text(c);
+}
+
+string ContactsManager::get_channel_search_text(const Channel *c) {
+  CHECK(c != nullptr);
+  return PSTRING() << c->title << ' ' << c->username;
+}
+
 int32 ContactsManager::get_secret_chat_date(SecretChatId secret_chat_id) const {
   auto c = get_secret_chat(secret_chat_id);
   if (c == nullptr) {
@@ -5097,14 +5140,6 @@ string ContactsManager::get_user_username(UserId user_id) const {
     return string();
   }
   return u->username;
-}
-
-string ContactsManager::get_secret_chat_username(SecretChatId secret_chat_id) const {
-  auto c = get_secret_chat(secret_chat_id);
-  if (c == nullptr) {
-    return string();
-  }
-  return get_user_username(c->user_id);
 }
 
 string ContactsManager::get_channel_username(ChannelId channel_id) const {
@@ -14515,7 +14550,7 @@ void ContactsManager::update_contacts_hints(const User *u, UserId user_id, bool 
 
   int64 key = user_id.get();
   string old_value = contacts_hints_.key_to_string(key);
-  string new_value = is_contact ? (PSTRING() << u->first_name << ' ' << u->last_name << ' ' << u->username) : string();
+  string new_value = is_contact ? get_user_search_text(u) : string();
 
   if (new_value != old_value) {
     if (is_contact) {
@@ -15616,7 +15651,7 @@ std::pair<int32, vector<DialogId>> ContactsManager::search_among_dialogs(const v
       if (query.empty()) {
         hints.add(dialog_id.get(), Slice(" "));
       } else {
-        hints.add(dialog_id.get(), PSLICE() << u->first_name << ' ' << u->last_name << ' ' << u->username);
+        hints.add(dialog_id.get(), get_user_search_text(u));
       }
       rating = -get_user_was_online(u, user_id);
     } else {
@@ -15626,7 +15661,7 @@ std::pair<int32, vector<DialogId>> ContactsManager::search_among_dialogs(const v
       if (query.empty()) {
         hints.add(dialog_id.get(), Slice(" "));
       } else {
-        hints.add(dialog_id.get(), td_->messages_manager_->get_dialog_title(dialog_id));
+        hints.add(dialog_id.get(), get_dialog_search_text(dialog_id));
       }
     }
     hints.set_rating(dialog_id.get(), rating);
