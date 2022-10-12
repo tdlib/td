@@ -2142,7 +2142,7 @@ unique_ptr<WebPageBlock> get_web_page_block(Td *td, tl_object_ptr<telegram_api::
           LOG(INFO) << "Receive known min " << channel_id;
           return td::make_unique<WebPageBlockChatLink>(td->contacts_manager_->get_channel_title(channel_id),
                                                        *td->contacts_manager_->get_channel_dialog_photo(channel_id),
-                                                       td->contacts_manager_->get_channel_username(channel_id));
+                                                       td->contacts_manager_->get_channel_first_username(channel_id));
         } else {
           bool has_access_hash = (channel->flags_ & telegram_api::channel::ACCESS_HASH_MASK) != 0;
           return td::make_unique<WebPageBlockChatLink>(

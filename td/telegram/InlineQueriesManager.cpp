@@ -1948,7 +1948,7 @@ void InlineQueriesManager::save_recently_used_bots() {
       value += ',';
       value_ids += ',';
     }
-    value += td_->contacts_manager_->get_user_username(bot_user_id);
+    value += td_->contacts_manager_->get_user_first_username(bot_user_id);
     value_ids += to_string(bot_user_id.get());
   }
   G()->td_db()->get_binlog_pmc()->set("recently_used_inline_bot_usernames", value);

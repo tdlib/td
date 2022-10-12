@@ -52,13 +52,13 @@ void RecentDialogList::save_dialogs() const {
       switch (dialog_id.get_type()) {
         case DialogType::User:
           if (!td_->contacts_manager_->is_user_contact(dialog_id.get_user_id())) {
-            username = td_->contacts_manager_->get_user_username(dialog_id.get_user_id());
+            username = td_->contacts_manager_->get_user_first_username(dialog_id.get_user_id());
           }
           break;
         case DialogType::Chat:
           break;
         case DialogType::Channel:
-          username = td_->contacts_manager_->get_channel_username(dialog_id.get_channel_id());
+          username = td_->contacts_manager_->get_channel_first_username(dialog_id.get_channel_id());
           break;
         case DialogType::SecretChat:
           break;

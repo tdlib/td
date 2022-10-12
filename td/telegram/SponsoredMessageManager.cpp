@@ -160,7 +160,7 @@ td_api::object_ptr<td_api::sponsoredMessage> SponsoredMessageManager::get_sponso
       if (!td_->contacts_manager_->is_user_bot(user_id)) {
         break;
       }
-      auto bot_username = td_->contacts_manager_->get_user_username(user_id);
+      auto bot_username = td_->contacts_manager_->get_user_first_username(user_id);
       if (bot_username.empty()) {
         break;
       }

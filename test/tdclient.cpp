@@ -297,7 +297,8 @@ class SetUsername final : public TestClinetTask {
     CHECK(res->get_id() == td::td_api::user::ID);
     auto user = td::move_tl_object_as<td::td_api::user>(res);
     self_id_ = user->id_;
-    if (user->username_ != username_) {
+    auto current_username = user->usernames_ != nullptr ? user->usernames_->editable_username_ : td::string();
+    if (current_username != username_) {
       LOG(INFO) << "SET USERNAME: " << username_;
       send_query(td::make_tl_object<td::td_api::setUsername>(username_), [this](auto res) {
         CHECK(res->get_id() == td::td_api::ok::ID);

@@ -19175,7 +19175,7 @@ Result<std::pair<string, bool>> MessagesManager::get_message_link(FullMessageId 
       CHECK(linked_d != nullptr);
       CHECK(linked_dialog_id.get_type() == DialogType::Channel);
       auto *linked_m = get_message_force(linked_d, linked_message_id, "get_public_message_link");
-      auto channel_username = td_->contacts_manager_->get_channel_username(linked_dialog_id.get_channel_id());
+      auto channel_username = td_->contacts_manager_->get_channel_first_username(linked_dialog_id.get_channel_id());
       if (linked_m != nullptr && is_active_message_reply_info(linked_dialog_id, linked_m->reply_info) &&
           linked_message_id.is_server() && have_input_peer(linked_dialog_id, AccessRights::Read) &&
           !channel_username.empty()) {
@@ -19192,7 +19192,7 @@ Result<std::pair<string, bool>> MessagesManager::get_message_link(FullMessageId 
     }
   }
 
-  auto dialog_username = td_->contacts_manager_->get_channel_username(dialog_id.get_channel_id());
+  auto dialog_username = td_->contacts_manager_->get_channel_first_username(dialog_id.get_channel_id());
   bool is_public = !dialog_username.empty();
   if (m->content->get_type() == MessageContentType::VideoNote && is_broadcast_channel(dialog_id) && is_public) {
     return std::make_pair(
@@ -19236,7 +19236,7 @@ string MessagesManager::get_message_embedding_code(FullMessageId full_message_id
     return {};
   }
   if (dialog_id.get_type() != DialogType::Channel ||
-      td_->contacts_manager_->get_channel_username(dialog_id.get_channel_id()).empty()) {
+      td_->contacts_manager_->get_channel_first_username(dialog_id.get_channel_id()).empty()) {
     promise.set_error(Status::Error(
         400, "Message embedding code is available only for messages in public supergroups and channel chats"));
     return {};
@@ -25914,7 +25914,7 @@ void MessagesManager::set_dialog_default_send_message_as_dialog_id(DialogId dial
         break;
       }
       if (!is_broadcast_channel(message_sender_dialog_id) ||
-          td_->contacts_manager_->get_channel_username(message_sender_dialog_id.get_channel_id()).empty()) {
+          td_->contacts_manager_->get_channel_first_username(message_sender_dialog_id.get_channel_id()).empty()) {
         return promise.set_error(Status::Error(400, "Message sender chat must be a public channel"));
       }
       break;
@@ -26562,8 +26562,8 @@ void MessagesManager::send_secret_message(DialogId dialog_id, const Message *m, 
       make_tl_object<secret_api::decryptedMessage>(
           flags, false /*ignored*/, random_id, m->ttl,
           m->content->get_type() == MessageContentType::Text ? text->text : string(), std::move(media.decrypted_media_),
-          std::move(entities), td_->contacts_manager_->get_user_username(m->via_bot_user_id), m->reply_to_random_id,
-          -m->media_album_id),
+          std::move(entities), td_->contacts_manager_->get_user_first_username(m->via_bot_user_id),
+          m->reply_to_random_id, -m->media_album_id),
       std::move(media.input_file_), Promise<Unit>());
 }
 
@@ -33510,25 +33510,30 @@ void MessagesManager::on_get_dialog_query_finished(DialogId dialog_id, Status &&
   }
 }
 
-void MessagesManager::on_dialog_username_updated(DialogId dialog_id, const string &old_username,
-                                                 const string &new_username) {
+void MessagesManager::on_dialog_usernames_updated(DialogId dialog_id, const Usernames &old_usernames,
+                                                  const Usernames &new_usernames) {
   CHECK(dialog_id.is_valid());
   auto d = get_dialog(dialog_id);
   if (d != nullptr) {
     update_dialogs_hints(d);
   }
-  if (old_username != new_username) {
+  if (old_usernames != new_usernames) {
     message_embedding_codes_[0].erase(dialog_id);
     message_embedding_codes_[1].erase(dialog_id);
   }
-  if (!old_username.empty() && old_username != new_username) {
-    resolved_usernames_.erase(clean_username(old_username));
-    inaccessible_resolved_usernames_.erase(clean_username(old_username));
+  if (!old_usernames.is_empty() && old_usernames != new_usernames) {
+    for (auto &username : old_usernames.get_active_usernames()) {
+      auto cleaned_username = clean_username(username);
+      resolved_usernames_.erase(cleaned_username);
+      inaccessible_resolved_usernames_.erase(cleaned_username);
+    }
   }
-  if (!new_username.empty()) {
-    auto cleaned_username = clean_username(new_username);
-    if (!cleaned_username.empty()) {
-      resolved_usernames_[cleaned_username] = ResolvedUsername{dialog_id, Time::now() + USERNAME_CACHE_EXPIRE_TIME};
+  if (!new_usernames.is_empty()) {
+    for (auto &username : new_usernames.get_active_usernames()) {
+      auto cleaned_username = clean_username(username);
+      if (!cleaned_username.empty()) {
+        resolved_usernames_[cleaned_username] = ResolvedUsername{dialog_id, Time::now() + USERNAME_CACHE_EXPIRE_TIME};
+      }
     }
   }
 }

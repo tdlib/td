@@ -28,7 +28,6 @@ class Venue {
   string type_;
 
   friend bool operator==(const Venue &lhs, const Venue &rhs);
-  friend bool operator!=(const Venue &lhs, const Venue &rhs);
 
   friend StringBuilder &operator<<(StringBuilder &string_builder, const Venue &venue);
 

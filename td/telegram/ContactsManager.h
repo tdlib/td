@@ -39,6 +39,7 @@
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/UserId.h"
+#include "td/telegram/Usernames.h"
 
 #include "td/actor/actor.h"
 #include "td/actor/MultiPromise.h"
@@ -131,8 +132,8 @@ class ContactsManager final : public Actor {
 
   void for_each_secret_chat_with_user(UserId user_id, const std::function<void(SecretChatId)> &f);
 
-  string get_user_username(UserId user_id) const;
-  string get_channel_username(ChannelId channel_id) const;
+  string get_user_first_username(UserId user_id) const;
+  string get_channel_first_username(ChannelId channel_id) const;
 
   int32 get_secret_chat_date(SecretChatId secret_chat_id) const;
   int32 get_secret_chat_ttl(SecretChatId secret_chat_id) const;
@@ -176,7 +177,7 @@ class ContactsManager final : public Actor {
 
   void on_update_profile_success(int32 flags, const string &first_name, const string &last_name, const string &about);
 
-  void on_update_user_name(UserId user_id, string &&first_name, string &&last_name, string &&username);
+  void on_update_user_name(UserId user_id, string &&first_name, string &&last_name, Usernames &&usernames);
   void on_update_user_phone_number(UserId user_id, string &&phone_number);
   void on_update_user_photo(UserId user_id, tl_object_ptr<telegram_api::UserProfilePhoto> &&photo_ptr);
   void on_update_user_emoji_status(UserId user_id, tl_object_ptr<telegram_api::EmojiStatus> &&emoji_status);
@@ -199,7 +200,7 @@ class ContactsManager final : public Actor {
   void on_update_chat_default_permissions(ChatId chat_id, RestrictedRights default_permissions, int32 version);
   void on_update_chat_pinned_message(ChatId chat_id, MessageId pinned_message_id, int32 version);
 
-  void on_update_channel_username(ChannelId channel_id, string &&username);
+  void on_update_channel_usernames(ChannelId channel_id, Usernames &&usernames);
   void on_update_channel_description(ChannelId channel_id, string &&description);
   void on_update_channel_sticker_set(ChannelId channel_id, StickerSetId sticker_set_id);
   void on_update_channel_linked_channel_id(ChannelId channel_id, ChannelId group_channel_id);
@@ -643,7 +644,7 @@ class ContactsManager final : public Actor {
   struct User {
     string first_name;
     string last_name;
-    string username;
+    Usernames usernames;
     string phone_number;
     int64 access_hash = -1;
     EmojiStatus emoji_status;
@@ -845,7 +846,7 @@ class ContactsManager final : public Actor {
     int64 access_hash = 0;
     string title;
     DialogPhoto photo;
-    string username;
+    Usernames usernames;
     vector<RestrictionReason> restriction_reasons;
     DialogParticipantStatus status = DialogParticipantStatus::Banned(0);
     RestrictedRights default_permissions{false, false, false, false, false, false, false, false, false, false, false};
@@ -1078,6 +1079,7 @@ class ContactsManager final : public Actor {
   static constexpr int32 USER_FLAG_IS_PREMIUM = 1 << 28;
   static constexpr int32 USER_FLAG_ATTACH_MENU_ENABLED = 1 << 29;
   static constexpr int32 USER_FLAG_HAS_EMOJI_STATUS = 1 << 30;
+  static constexpr int32 USER_FLAG_HAS_USERNAMES = 1 << 0;
 
   static constexpr int32 USER_FULL_FLAG_IS_BLOCKED = 1 << 0;
   static constexpr int32 USER_FULL_FLAG_HAS_ABOUT = 1 << 1;
@@ -1114,7 +1116,7 @@ class ContactsManager final : public Actor {
   static constexpr int32 CHANNEL_FLAG_USER_IS_CREATOR = 1 << 0;
   static constexpr int32 CHANNEL_FLAG_USER_HAS_LEFT = 1 << 2;
   static constexpr int32 CHANNEL_FLAG_IS_BROADCAST = 1 << 5;
-  static constexpr int32 CHANNEL_FLAG_IS_PUBLIC = 1 << 6;
+  static constexpr int32 CHANNEL_FLAG_HAS_USERNAME = 1 << 6;
   static constexpr int32 CHANNEL_FLAG_IS_VERIFIED = 1 << 7;
   static constexpr int32 CHANNEL_FLAG_IS_MEGAGROUP = 1 << 8;
   static constexpr int32 CHANNEL_FLAG_IS_RESTRICTED = 1 << 9;
@@ -1137,6 +1139,7 @@ class ContactsManager final : public Actor {
   static constexpr int32 CHANNEL_FLAG_NOFORWARDS = 1 << 27;
   static constexpr int32 CHANNEL_FLAG_JOIN_TO_SEND = 1 << 28;
   static constexpr int32 CHANNEL_FLAG_JOIN_REQUEST = 1 << 29;
+  static constexpr int32 CHANNEL_FLAG_HAS_USERNAMES = 1 << 0;
 
   static constexpr int32 CHANNEL_FULL_FLAG_HAS_PARTICIPANT_COUNT = 1 << 0;
   static constexpr int32 CHANNEL_FULL_FLAG_HAS_ADMINISTRATOR_COUNT = 1 << 1;
@@ -1262,7 +1265,7 @@ class ContactsManager final : public Actor {
 
   void on_set_emoji_status(EmojiStatus emoji_status, Promise<Unit> &&promise);
 
-  void on_update_user_name(User *u, UserId user_id, string &&first_name, string &&last_name, string &&username);
+  void on_update_user_name(User *u, UserId user_id, string &&first_name, string &&last_name, Usernames &&usernames);
   void on_update_user_phone_number(User *u, UserId user_id, string &&phone_number);
   void on_update_user_photo(User *u, UserId user_id, tl_object_ptr<telegram_api::UserProfilePhoto> &&photo,
                             const char *source);
@@ -1322,7 +1325,7 @@ class ContactsManager final : public Actor {
                                tl_object_ptr<telegram_api::ChatPhoto> &&chat_photo_ptr);
   void on_update_channel_photo(Channel *c, ChannelId channel_id, DialogPhoto &&photo, bool invalidate_photo_cache);
   static void on_update_channel_title(Channel *c, ChannelId channel_id, string &&title);
-  void on_update_channel_username(Channel *c, ChannelId channel_id, string &&username);
+  void on_update_channel_usernames(Channel *c, ChannelId channel_id, Usernames &&usernames);
   void on_update_channel_status(Channel *c, ChannelId channel_id, DialogParticipantStatus &&status);
   static void on_update_channel_default_permissions(Channel *c, ChannelId channel_id,
                                                     RestrictedRights default_permissions);
@@ -1346,8 +1349,8 @@ class ContactsManager final : public Actor {
 
   void on_channel_status_changed(Channel *c, ChannelId channel_id, const DialogParticipantStatus &old_status,
                                  const DialogParticipantStatus &new_status);
-  void on_channel_username_changed(const Channel *c, ChannelId channel_id, const string &old_username,
-                                   const string &new_username);
+  void on_channel_usernames_changed(const Channel *c, ChannelId channel_id, const Usernames &old_usernames,
+                                    const Usernames &new_usernames);
 
   void remove_linked_channel_id(ChannelId channel_id);
   ChannelId get_linked_channel_id(ChannelId channel_id) const;
@@ -1837,7 +1840,7 @@ class ContactsManager final : public Actor {
 
   bool are_contacts_loaded_ = false;
   int32 next_contacts_sync_date_ = 0;
-  Hints contacts_hints_;  // search contacts by first name, last name and username
+  Hints contacts_hints_;  // search contacts by first name, last name and usernames
   vector<Promise<Unit>> load_contacts_queries_;
   MultiPromiseActor load_contact_users_multipromise_{"LoadContactUsersMultiPromiseActor"};
   int32 saved_contact_count_ = -1;

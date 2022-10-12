@@ -774,13 +774,13 @@ class UpdateChannelUsernameQuery final : public Td::ResultHandler {
       return on_error(Status::Error(500, "Supergroup username is not updated"));
     }
 
-    td_->contacts_manager_->on_update_channel_username(channel_id_, std::move(username_));
+    // td_->contacts_manager_->on_update_channel_editable_username(channel_id_, std::move(username_));
     promise_.set_value(Unit());
   }
 
   void on_error(Status status) final {
     if (status.message() == "USERNAME_NOT_MODIFIED" || status.message() == "CHAT_NOT_MODIFIED") {
-      td_->contacts_manager_->on_update_channel_username(channel_id_, std::move(username_));
+      // td_->contacts_manager_->on_update_channel_editable_username(channel_id_, std::move(username_));
       if (!td_->auth_manager_->is_bot()) {
         promise_.set_value(Unit());
         return;
@@ -3672,7 +3672,7 @@ template <class StorerT>
 void ContactsManager::User::store(StorerT &storer) const {
   using td::store;
   bool has_last_name = !last_name.empty();
-  bool has_username = !username.empty();
+  bool legacy_has_username = false;
   bool has_photo = photo.small_file_id.is_valid();
   bool has_language_code = !language_code.empty();
   bool have_access_hash = access_hash != -1;
@@ -3680,6 +3680,7 @@ void ContactsManager::User::store(StorerT &storer) const {
   bool has_is_contact = true;
   bool has_restriction_reasons = !restriction_reasons.empty();
   bool has_emoji_status = !emoji_status.is_empty();
+  bool has_usernames = !usernames.is_empty();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(is_received);
   STORE_FLAG(is_verified);
@@ -3690,7 +3691,7 @@ void ContactsManager::User::store(StorerT &storer) const {
   STORE_FLAG(is_inline_bot);
   STORE_FLAG(need_location_bot);
   STORE_FLAG(has_last_name);
-  STORE_FLAG(has_username);
+  STORE_FLAG(legacy_has_username);
   STORE_FLAG(has_photo);  // 10
   STORE_FLAG(false);      // legacy is_restricted
   STORE_FLAG(has_language_code);
@@ -3709,13 +3710,11 @@ void ContactsManager::User::store(StorerT &storer) const {
   STORE_FLAG(is_premium);  // 25
   STORE_FLAG(attach_menu_enabled);
   STORE_FLAG(has_emoji_status);
+  STORE_FLAG(has_usernames);
   END_STORE_FLAGS();
   store(first_name, storer);
   if (has_last_name) {
     store(last_name, storer);
-  }
-  if (has_username) {
-    store(username, storer);
   }
   store(phone_number, storer);
   if (have_access_hash) {
@@ -3743,13 +3742,16 @@ void ContactsManager::User::store(StorerT &storer) const {
   if (has_emoji_status) {
     store(emoji_status, storer);
   }
+  if (has_usernames) {
+    store(usernames, storer);
+  }
 }
 
 template <class ParserT>
 void ContactsManager::User::parse(ParserT &parser) {
   using td::parse;
   bool has_last_name;
-  bool has_username;
+  bool legacy_has_username;
   bool has_photo;
   bool legacy_is_restricted;
   bool has_language_code;
@@ -3758,6 +3760,7 @@ void ContactsManager::User::parse(ParserT &parser) {
   bool has_is_contact;
   bool has_restriction_reasons;
   bool has_emoji_status;
+  bool has_usernames;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(is_received);
   PARSE_FLAG(is_verified);
@@ -3768,7 +3771,7 @@ void ContactsManager::User::parse(ParserT &parser) {
   PARSE_FLAG(is_inline_bot);
   PARSE_FLAG(need_location_bot);
   PARSE_FLAG(has_last_name);
-  PARSE_FLAG(has_username);
+  PARSE_FLAG(legacy_has_username);
   PARSE_FLAG(has_photo);
   PARSE_FLAG(legacy_is_restricted);
   PARSE_FLAG(has_language_code);
@@ -3787,13 +3790,17 @@ void ContactsManager::User::parse(ParserT &parser) {
   PARSE_FLAG(is_premium);
   PARSE_FLAG(attach_menu_enabled);
   PARSE_FLAG(has_emoji_status);
+  PARSE_FLAG(has_usernames);
   END_PARSE_FLAGS();
   parse(first_name, parser);
   if (has_last_name) {
     parse(last_name, parser);
   }
-  if (has_username) {
+  if (legacy_has_username) {
+    CHECK(!has_usernames);
+    string username;
     parse(username, parser);
+    usernames = Usernames(std::move(username), vector<telegram_api::object_ptr<telegram_api::username>>());
   }
   parse(phone_number, parser);
   if (parser.version() < static_cast<int32>(Version::FixMinUsers)) {
@@ -3841,6 +3848,10 @@ void ContactsManager::User::parse(ParserT &parser) {
   if (has_emoji_status) {
     parse(emoji_status, parser);
   }
+  if (has_usernames) {
+    CHECK(!legacy_has_username);
+    parse(usernames, parser);
+  }
 
   if (!check_utf8(first_name)) {
     LOG(ERROR) << "Have invalid first name \"" << first_name << '"';
@@ -3850,11 +3861,6 @@ void ContactsManager::User::parse(ParserT &parser) {
   if (!check_utf8(last_name)) {
     LOG(ERROR) << "Have invalid last name \"" << last_name << '"';
     last_name.clear();
-    cache_version = 0;
-  }
-  if (!check_utf8(username)) {
-    LOG(ERROR) << "Have invalid username \"" << username << '"';
-    username.clear();
     cache_version = 0;
   }
 
@@ -4213,13 +4219,14 @@ template <class StorerT>
 void ContactsManager::Channel::store(StorerT &storer) const {
   using td::store;
   bool has_photo = photo.small_file_id.is_valid();
-  bool has_username = !username.empty();
+  bool legacy_has_username = false;
   bool use_new_rights = true;
   bool has_participant_count = participant_count != 0;
   bool have_default_permissions = true;
   bool has_cache_version = cache_version != 0;
   bool has_restriction_reasons = !restriction_reasons.empty();
   bool legacy_has_active_group_call = false;
+  bool has_usernames = !usernames.is_empty();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(false);
   STORE_FLAG(false);
@@ -4231,7 +4238,7 @@ void ContactsManager::Channel::store(StorerT &storer) const {
   STORE_FLAG(is_megagroup);
   STORE_FLAG(is_verified);
   STORE_FLAG(has_photo);
-  STORE_FLAG(has_username);  // 10
+  STORE_FLAG(legacy_has_username);  // 10
   STORE_FLAG(false);
   STORE_FLAG(use_new_rights);
   STORE_FLAG(has_participant_count);
@@ -4249,6 +4256,7 @@ void ContactsManager::Channel::store(StorerT &storer) const {
   STORE_FLAG(can_be_deleted);  // 25
   STORE_FLAG(join_to_send);
   STORE_FLAG(join_request);
+  STORE_FLAG(has_usernames);
   END_STORE_FLAGS();
 
   store(status, storer);
@@ -4256,9 +4264,6 @@ void ContactsManager::Channel::store(StorerT &storer) const {
   store(title, storer);
   if (has_photo) {
     store(photo, storer);
-  }
-  if (has_username) {
-    store(username, storer);
   }
   store(date, storer);
   if (has_restriction_reasons) {
@@ -4273,13 +4278,16 @@ void ContactsManager::Channel::store(StorerT &storer) const {
   if (has_cache_version) {
     store(cache_version, storer);
   }
+  if (has_usernames) {
+    store(usernames, storer);
+  }
 }
 
 template <class ParserT>
 void ContactsManager::Channel::parse(ParserT &parser) {
   using td::parse;
   bool has_photo;
-  bool has_username;
+  bool legacy_has_username;
   bool legacy_is_restricted;
   bool left;
   bool kicked;
@@ -4293,6 +4301,7 @@ void ContactsManager::Channel::parse(ParserT &parser) {
   bool has_cache_version;
   bool has_restriction_reasons;
   bool legacy_has_active_group_call;
+  bool has_usernames;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(left);
   PARSE_FLAG(kicked);
@@ -4304,7 +4313,7 @@ void ContactsManager::Channel::parse(ParserT &parser) {
   PARSE_FLAG(is_megagroup);
   PARSE_FLAG(is_verified);
   PARSE_FLAG(has_photo);
-  PARSE_FLAG(has_username);
+  PARSE_FLAG(legacy_has_username);
   PARSE_FLAG(legacy_is_restricted);
   PARSE_FLAG(use_new_rights);
   PARSE_FLAG(has_participant_count);
@@ -4322,6 +4331,7 @@ void ContactsManager::Channel::parse(ParserT &parser) {
   PARSE_FLAG(can_be_deleted);
   PARSE_FLAG(join_to_send);
   PARSE_FLAG(join_request);
+  PARSE_FLAG(has_usernames);
   END_PARSE_FLAGS();
 
   if (use_new_rights) {
@@ -4344,8 +4354,11 @@ void ContactsManager::Channel::parse(ParserT &parser) {
   if (has_photo) {
     parse(photo, parser);
   }
-  if (has_username) {
+  if (legacy_has_username) {
+    CHECK(!has_usernames);
+    string username;
     parse(username, parser);
+    usernames = Usernames(std::move(username), vector<telegram_api::object_ptr<telegram_api::username>>());
   }
   parse(date, parser);
   if (legacy_is_restricted) {
@@ -4369,15 +4382,14 @@ void ContactsManager::Channel::parse(ParserT &parser) {
   if (has_cache_version) {
     parse(cache_version, parser);
   }
+  if (has_usernames) {
+    CHECK(!legacy_has_username);
+    parse(usernames, parser);
+  }
 
   if (!check_utf8(title)) {
     LOG(ERROR) << "Have invalid title \"" << title << '"';
     title.clear();
-    cache_version = 0;
-  }
-  if (!check_utf8(username)) {
-    LOG(ERROR) << "Have invalid username \"" << username << '"';
-    username.clear();
     cache_version = 0;
   }
   if (legacy_has_active_group_call) {
@@ -5098,7 +5110,7 @@ string ContactsManager::get_user_search_text(UserId user_id) const {
 
 string ContactsManager::get_user_search_text(const User *u) {
   CHECK(u != nullptr);
-  return PSTRING() << u->first_name << ' ' << u->last_name << ' ' << u->username;
+  return PSTRING() << u->first_name << ' ' << u->last_name << ' ' << implode(u->usernames.get_active_usernames());
 }
 
 string ContactsManager::get_channel_search_text(ChannelId channel_id) const {
@@ -5111,7 +5123,7 @@ string ContactsManager::get_channel_search_text(ChannelId channel_id) const {
 
 string ContactsManager::get_channel_search_text(const Channel *c) {
   CHECK(c != nullptr);
-  return PSTRING() << c->title << ' ' << c->username;
+  return PSTRING() << c->title << ' ' << implode(c->usernames.get_active_usernames());
 }
 
 int32 ContactsManager::get_secret_chat_date(SecretChatId secret_chat_id) const {
@@ -5130,7 +5142,7 @@ int32 ContactsManager::get_secret_chat_ttl(SecretChatId secret_chat_id) const {
   return c->ttl;
 }
 
-string ContactsManager::get_user_username(UserId user_id) const {
+string ContactsManager::get_user_first_username(UserId user_id) const {
   if (!user_id.is_valid()) {
     return string();
   }
@@ -5139,15 +5151,15 @@ string ContactsManager::get_user_username(UserId user_id) const {
   if (u == nullptr) {
     return string();
   }
-  return u->username;
+  return u->usernames.get_first_username();
 }
 
-string ContactsManager::get_channel_username(ChannelId channel_id) const {
+string ContactsManager::get_channel_first_username(ChannelId channel_id) const {
   auto c = get_channel(channel_id);
   if (c == nullptr) {
     return string();
   }
-  return c->username;
+  return c->usernames.get_first_username();
 }
 
 UserId ContactsManager::get_secret_chat_user_id(SecretChatId secret_chat_id) const {
@@ -5332,7 +5344,7 @@ void ContactsManager::check_dialog_username(DialogId dialog_id, const string &us
         return promise.set_error(Status::Error(400, "Not enough rights to change username"));
       }
 
-      if (username == c->username) {
+      if (username == c->usernames.get_editable_username()) {
         return promise.set_value(CheckDialogUsernameResult::Ok);
       }
       break;
@@ -6699,7 +6711,7 @@ void ContactsManager::set_channel_username(ChannelId channel_id, const string &u
     return promise.set_error(Status::Error(400, "Username is invalid"));
   }
 
-  if (!username.empty() && c->username.empty()) {
+  if (!username.empty() && c->usernames.is_empty()) {
     auto channel_full = get_channel_full(channel_id, false, "set_channel_username");
     if (channel_full != nullptr && !channel_full->can_set_username) {
       return promise.set_error(Status::Error(400, "Can't set supergroup username"));
@@ -8208,7 +8220,7 @@ void ContactsManager::finish_get_created_public_dialogs(PublicDialogType type, R
 void ContactsManager::update_created_public_channels(Channel *c, ChannelId channel_id) {
   if (created_public_channels_inited_[0]) {
     bool was_changed = false;
-    if (c->username.empty() || !c->status.is_creator()) {
+    if (c->usernames.is_empty() || !c->status.is_creator()) {
       was_changed = td::remove(created_public_channels_[0], channel_id);
     } else {
       if (!td::contains(created_public_channels_[0], channel_id)) {
@@ -8809,7 +8821,7 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
 
   if (is_received || !u->is_received) {
     on_update_user_name(u, user_id, std::move(user->first_name_), std::move(user->last_name_),
-                        std::move(user->username_));
+                        Usernames{std::move(user->username_), std::move(user->usernames_)});
   }
   on_update_user_emoji_status(u, user_id, EmojiStatus(std::move(user->emoji_status_)));
 
@@ -8867,7 +8879,7 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
       need_location_bot != u->need_location_bot || can_be_added_to_attach_menu != u->can_be_added_to_attach_menu ||
       attach_menu_enabled != u->attach_menu_enabled) {
     LOG_IF(ERROR, is_bot != u->is_bot && !is_deleted && !u->is_deleted && u->is_received)
-        << "User.is_bot has changed for " << user_id << "/" << u->username << " from " << source << " from "
+        << "User.is_bot has changed for " << user_id << "/" << u->usernames << " from " << source << " from "
         << u->is_bot << " to " << is_bot;
     u->is_verified = is_verified;
     u->is_support = is_support;
@@ -9694,8 +9706,8 @@ void ContactsManager::on_load_channel_from_database(ChannelId channel_id, string
         CHECK(!c->is_being_saved);
       }
 
-      if (temp_c.username != c->username) {
-        on_channel_username_changed(c, channel_id, temp_c.username, c->username);
+      if (temp_c.usernames != c->usernames) {
+        on_channel_usernames_changed(c, channel_id, temp_c.usernames, c->usernames);
         CHECK(!c->is_being_saved);
       }
     }
@@ -11660,7 +11672,8 @@ void ContactsManager::on_get_channel_full_failed(ChannelId channel_id) {
   }
 }
 
-void ContactsManager::on_update_user_name(UserId user_id, string &&first_name, string &&last_name, string &&username) {
+void ContactsManager::on_update_user_name(UserId user_id, string &&first_name, string &&last_name,
+                                          Usernames &&usernames) {
   if (!user_id.is_valid()) {
     LOG(ERROR) << "Receive invalid " << user_id;
     return;
@@ -11668,7 +11681,7 @@ void ContactsManager::on_update_user_name(UserId user_id, string &&first_name, s
 
   User *u = get_user_force(user_id);
   if (u != nullptr) {
-    on_update_user_name(u, user_id, std::move(first_name), std::move(last_name), std::move(username));
+    on_update_user_name(u, user_id, std::move(first_name), std::move(last_name), std::move(usernames));
     update_user(u, user_id);
   } else {
     LOG(INFO) << "Ignore update user name about unknown " << user_id;
@@ -11676,7 +11689,7 @@ void ContactsManager::on_update_user_name(UserId user_id, string &&first_name, s
 }
 
 void ContactsManager::on_update_user_name(User *u, UserId user_id, string &&first_name, string &&last_name,
-                                          string &&username) {
+                                          Usernames &&usernames) {
   if (first_name.empty() && last_name.empty()) {
     first_name = u->phone_number;
   }
@@ -11687,11 +11700,11 @@ void ContactsManager::on_update_user_name(User *u, UserId user_id, string &&firs
     LOG(DEBUG) << "Name has changed for " << user_id;
     u->is_changed = true;
   }
-  td_->messages_manager_->on_dialog_username_updated(DialogId(user_id), u->username, username);
-  if (u->username != username) {
-    u->username = std::move(username);
+  td_->messages_manager_->on_dialog_usernames_updated(DialogId(user_id), u->usernames, usernames);
+  if (u->usernames != usernames) {
+    u->usernames = std::move(usernames);
     u->is_username_changed = true;
-    LOG(DEBUG) << "Username has changed for " << user_id;
+    LOG(DEBUG) << "Usernames has changed for " << user_id;
     u->is_changed = true;
   }
 }
@@ -12595,9 +12608,9 @@ bool ContactsManager::on_get_channel_error(ChannelId channel_id, const Status &s
                                             c->access_hash, c->title, 0);
       on_chat_update(update, "CHANNEL_PRIVATE");
     } else if (!c->status.is_banned()) {
-      if (!c->username.empty()) {
-        LOG(INFO) << "Drop username of " << channel_id;
-        on_update_channel_username(c, channel_id, "");
+      if (!c->usernames.is_empty()) {
+        LOG(INFO) << "Drop usernames of " << channel_id;
+        on_update_channel_usernames(c, channel_id, Usernames());
       }
 
       on_update_channel_has_location(c, channel_id, false);
@@ -14202,7 +14215,7 @@ void ContactsManager::on_update_channel_noforwards(Channel *c, ChannelId channel
   }
 }
 
-void ContactsManager::on_update_channel_username(ChannelId channel_id, string &&username) {
+void ContactsManager::on_update_channel_usernames(ChannelId channel_id, Usernames &&usernames) {
   if (!channel_id.is_valid()) {
     LOG(ERROR) << "Receive invalid " << channel_id;
     return;
@@ -14210,30 +14223,30 @@ void ContactsManager::on_update_channel_username(ChannelId channel_id, string &&
 
   Channel *c = get_channel_force(channel_id);
   if (c != nullptr) {
-    on_update_channel_username(c, channel_id, std::move(username));
+    on_update_channel_usernames(c, channel_id, std::move(usernames));
     update_channel(c, channel_id);
   } else {
-    LOG(INFO) << "Ignore update channel username about unknown " << channel_id;
+    LOG(INFO) << "Ignore update channel usernames about unknown " << channel_id;
   }
 }
 
-void ContactsManager::on_update_channel_username(Channel *c, ChannelId channel_id, string &&username) {
-  td_->messages_manager_->on_dialog_username_updated(DialogId(channel_id), c->username, username);
-  if (c->username != username) {
+void ContactsManager::on_update_channel_usernames(Channel *c, ChannelId channel_id, Usernames &&usernames) {
+  td_->messages_manager_->on_dialog_usernames_updated(DialogId(channel_id), c->usernames, usernames);
+  if (c->usernames != usernames) {
     if (c->is_update_supergroup_sent) {
-      on_channel_username_changed(c, channel_id, c->username, username);
+      on_channel_usernames_changed(c, channel_id, c->usernames, usernames);
     }
 
-    c->username = std::move(username);
+    c->usernames = std::move(usernames);
     c->is_username_changed = true;
     c->is_changed = true;
   }
 }
 
-void ContactsManager::on_channel_username_changed(const Channel *c, ChannelId channel_id, const string &old_username,
-                                                  const string &new_username) {
+void ContactsManager::on_channel_usernames_changed(const Channel *c, ChannelId channel_id,
+                                                   const Usernames &old_usernames, const Usernames &new_usernames) {
   bool have_channel_full = get_channel_full(channel_id) != nullptr;
-  if (old_username.empty() || new_username.empty()) {
+  if (old_usernames.is_empty() || new_usernames.is_empty()) {
     // moving channel from private to public can change availability of chat members
     invalidate_channel_full(channel_id, !c->is_slow_mode_enabled);
   }
@@ -14609,7 +14622,7 @@ Result<ContactsManager::BotData> ContactsManager::get_bot_data(UserId user_id) c
   }
 
   BotData bot_data;
-  bot_data.username = u->username;
+  bot_data.username = u->usernames.get_first_username();
   bot_data.can_join_groups = u->can_join_groups;
   bot_data.can_read_all_group_messages = u->can_read_all_group_messages;
   bot_data.is_inline = u->is_inline_bot;
@@ -15206,7 +15219,7 @@ bool ContactsManager::is_channel_public(ChannelId channel_id) const {
 }
 
 bool ContactsManager::is_channel_public(const Channel *c) {
-  return c != nullptr && (!c->username.empty() || c->has_location);
+  return c != nullptr && (!c->usernames.is_empty() || c->has_location);
 }
 
 ChannelType ContactsManager::get_channel_type(ChannelId channel_id) const {
@@ -16479,7 +16492,8 @@ void ContactsManager::on_chat_update(telegram_api::channel &channel, const char 
       auto old_join_to_send = get_channel_join_to_send(c);
       auto old_join_request = get_channel_join_request(c);
       on_update_channel_title(c, channel_id, std::move(channel.title_));
-      on_update_channel_username(c, channel_id, std::move(channel.username_));
+      on_update_channel_usernames(c, channel_id,
+                                  Usernames(std::move(channel.username_), std::move(channel.usernames_)));
       on_update_channel_photo(c, channel_id, std::move(channel.photo_));
       on_update_channel_default_permissions(c, channel_id, RestrictedRights(channel.default_banned_rights_));
       on_update_channel_has_location(c, channel_id, channel.has_geo_);
@@ -16554,7 +16568,10 @@ void ContactsManager::on_chat_update(telegram_api::channel &channel, const char 
   }
   on_update_channel_photo(c, channel_id, std::move(channel.photo_));
   on_update_channel_status(c, channel_id, std::move(status));
-  on_update_channel_username(c, channel_id, std::move(channel.username_));  // uses status, must be called after
+  on_update_channel_usernames(
+      c, channel_id,
+      Usernames(std::move(channel.username_),
+                std::move(channel.usernames_)));  // uses status, must be called after on_update_channel_status
   on_update_channel_default_permissions(c, channel_id, RestrictedRights(channel.default_banned_rights_));
   on_update_channel_has_location(c, channel_id, channel.has_geo_);
   on_update_channel_noforwards(c, channel_id, channel.noforwards_);
@@ -16656,7 +16673,7 @@ void ContactsManager::on_chat_update(telegram_api::channelForbidden &channel, co
   }
   int32 unban_date = (channel.flags_ & CHANNEL_FLAG_HAS_UNBAN_DATE) != 0 ? channel.until_date_ : 0;
   on_update_channel_status(c, channel_id, DialogParticipantStatus::Banned(unban_date));
-  // on_update_channel_username(c, channel_id, "");  // don't know if channel username is empty, so don't update it
+  // on_update_channel_usernames(c, channel_id, Usernames());  // don't know if channel usernames are empty, so don't update it
   tl_object_ptr<telegram_api::chatBannedRights> banned_rights;  // == nullptr
   on_update_channel_default_permissions(c, channel_id, RestrictedRights(banned_rights));
   // on_update_channel_has_location(c, channel_id, false);
@@ -16827,8 +16844,8 @@ td_api::object_ptr<td_api::UserStatus> ContactsManager::get_user_status_object(U
 
 td_api::object_ptr<td_api::updateUser> ContactsManager::get_update_unknown_user_object(UserId user_id) {
   return td_api::make_object<td_api::updateUser>(td_api::make_object<td_api::user>(
-      user_id.get(), "", "", "", "", td_api::make_object<td_api::userStatusEmpty>(), nullptr, nullptr, false, false,
-      false, false, false, "", false, false, false, td_api::make_object<td_api::userTypeUnknown>(), "", false));
+      user_id.get(), "", "", nullptr, "", td_api::make_object<td_api::userStatusEmpty>(), nullptr, nullptr, false,
+      false, false, false, false, "", false, false, false, td_api::make_object<td_api::userTypeUnknown>(), "", false));
 }
 
 int64 ContactsManager::get_user_id_object(UserId user_id, const char *source) const {
@@ -16861,9 +16878,9 @@ tl_object_ptr<td_api::user> ContactsManager::get_user_object(UserId user_id, con
 
   auto emoji_status = u->last_sent_emoji_status.is_valid() ? u->emoji_status.get_emoji_status_object() : nullptr;
   return make_tl_object<td_api::user>(
-      user_id.get(), u->first_name, u->last_name, u->username, u->phone_number, get_user_status_object(user_id, u),
-      get_profile_photo_object(td_->file_manager_.get(), u->photo), std::move(emoji_status), u->is_contact,
-      u->is_mutual_contact, u->is_verified, u->is_premium, u->is_support,
+      user_id.get(), u->first_name, u->last_name, u->usernames.get_usernames_object(), u->phone_number,
+      get_user_status_object(user_id, u), get_profile_photo_object(td_->file_manager_.get(), u->photo),
+      std::move(emoji_status), u->is_contact, u->is_mutual_contact, u->is_verified, u->is_premium, u->is_support,
       get_restriction_reason_description(u->restriction_reasons), u->is_scam, u->is_fake, u->is_received,
       std::move(type), u->language_code, u->attach_menu_enabled);
 }
@@ -16991,8 +17008,8 @@ td_api::object_ptr<td_api::updateSupergroup> ContactsManager::get_update_unknown
   auto min_channel = get_min_channel(channel_id);
   bool is_megagroup = min_channel == nullptr ? false : min_channel->is_megagroup_;
   return td_api::make_object<td_api::updateSupergroup>(td_api::make_object<td_api::supergroup>(
-      channel_id.get(), string(), 0, DialogParticipantStatus::Banned(0).get_chat_member_status_object(), 0, false,
-      false, false, !is_megagroup, false, false, !is_megagroup, false, false, string(), false, false));
+      channel_id.get(), nullptr, 0, DialogParticipantStatus::Banned(0).get_chat_member_status_object(), 0, false, false,
+      false, !is_megagroup, false, false, !is_megagroup, false, false, string(), false, false));
 }
 
 int64 ContactsManager::get_supergroup_id_object(ChannelId channel_id, const char *source) const {
@@ -17017,9 +17034,10 @@ tl_object_ptr<td_api::supergroup> ContactsManager::get_supergroup_object(Channel
     return nullptr;
   }
   return td_api::make_object<td_api::supergroup>(
-      channel_id.get(), c->username, c->date, get_channel_status(c).get_chat_member_status_object(),
-      c->participant_count, c->has_linked_channel, c->has_location, c->sign_messages, get_channel_join_to_send(c),
-      get_channel_join_request(c), c->is_slow_mode_enabled, !c->is_megagroup, c->is_gigagroup, c->is_verified,
+      channel_id.get(), c->usernames.get_usernames_object(), c->date,
+      get_channel_status(c).get_chat_member_status_object(), c->participant_count, c->has_linked_channel,
+      c->has_location, c->sign_messages, get_channel_join_to_send(c), get_channel_join_request(c),
+      c->is_slow_mode_enabled, !c->is_megagroup, c->is_gigagroup, c->is_verified,
       get_restriction_reason_description(c->restriction_reasons), c->is_scam, c->is_fake);
 }
 

@@ -250,9 +250,10 @@ class CliClient final : public Actor {
     User &new_user = *new_user_ptr;
     new_user.first_name = user.first_name_;
     new_user.last_name = user.last_name_;
-    new_user.username = user.username_;
-    if (!new_user.username.empty()) {
-      username_to_user_id_[to_lower(new_user.username)] = user.id_;
+    if (user.usernames_ != nullptr) {
+      for (auto &username : user.usernames_->active_usernames_) {
+        username_to_user_id_[to_lower(username)] = user.id_;
+      }
     }
   }
 
@@ -260,9 +261,6 @@ class CliClient final : public Actor {
     const User *user = users_[user_id].get();
     CHECK(user != nullptr);
     log << user->first_name << " " << user->last_name << " #" << user_id;
-    if (!user->username.empty()) {
-      log << " @" << user->username;
-    }
   }
 
   void update_users(const td_api::users &users) {
@@ -278,8 +276,10 @@ class CliClient final : public Actor {
 
   FlatHashMap<string, int64> username_to_supergroup_id_;
   void register_supergroup(const td_api::supergroup &supergroup) {
-    if (!supergroup.username_.empty()) {
-      username_to_supergroup_id_[to_lower(supergroup.username_)] = supergroup.id_;
+    if (supergroup.usernames_ != nullptr) {
+      for (auto &username : supergroup.usernames_->active_usernames_) {
+        username_to_supergroup_id_[to_lower(username)] = supergroup.id_;
+      }
     }
   }
 
