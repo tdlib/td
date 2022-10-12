@@ -1258,7 +1258,7 @@ class ContactsManager final : public Actor {
 
   void set_my_id(UserId my_id);
 
-  static bool is_valid_username(const string &username);
+  static bool is_allowed_username(const string &username);
 
   void on_set_emoji_status(EmojiStatus emoji_status, Promise<Unit> &&promise);
 

@@ -243,6 +243,30 @@ bool is_empty_string(const string &str) {
   return strip_empty_characters(str, str.size()).empty();
 }
 
+bool is_valid_username(Slice username) {
+  if (username.empty() || username.size() > 32) {
+    return false;
+  }
+  if (!is_alpha(username[0])) {
+    return false;
+  }
+  for (auto c : username) {
+    if (!is_alpha(c) && !is_digit(c) && c != '_') {
+      return false;
+    }
+  }
+  if (username.back() == '_') {
+    return false;
+  }
+  for (size_t i = 1; i < username.size(); i++) {
+    if (username[i - 1] == '_' && username[i] == '_') {
+      return false;
+    }
+  }
+
+  return true;
+}
+
 int64 get_vector_hash(const vector<uint64> &numbers) {
   uint64 acc = 0;
   for (auto number : numbers) {

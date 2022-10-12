@@ -45,30 +45,6 @@ static bool is_valid_start_parameter(Slice start_parameter) {
   return start_parameter.size() <= 64 && is_base64url_characters(start_parameter);
 }
 
-static bool is_valid_username(Slice username) {
-  if (username.empty() || username.size() > 32) {
-    return false;
-  }
-  if (!is_alpha(username[0])) {
-    return false;
-  }
-  for (auto c : username) {
-    if (!is_alpha(c) && !is_digit(c) && c != '_') {
-      return false;
-    }
-  }
-  if (username.back() == '_') {
-    return false;
-  }
-  for (size_t i = 1; i < username.size(); i++) {
-    if (username[i - 1] == '_' && username[i] == '_') {
-      return false;
-    }
-  }
-
-  return true;
-}
-
 static bool is_valid_phone_number(Slice phone_number) {
   if (phone_number.empty() || phone_number.size() > 32) {
     return false;

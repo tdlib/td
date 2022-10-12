@@ -5353,7 +5353,7 @@ void ContactsManager::check_dialog_username(DialogId dialog_id, const string &us
   if (username.empty()) {
     return promise.set_value(CheckDialogUsernameResult::Ok);
   }
-  if (!is_valid_username(username)) {
+  if (!is_allowed_username(username)) {
     return promise.set_value(CheckDialogUsernameResult::Invalid);
   }
 
@@ -5409,29 +5409,18 @@ td_api::object_ptr<td_api::CheckChatUsernameResult> ContactsManager::get_check_c
   }
 }
 
-bool ContactsManager::is_valid_username(const string &username) {
-  if (username.size() < 5 || username.size() > 32) {
+bool ContactsManager::is_allowed_username(const string &username) {
+  if (!is_valid_username(username)) {
     return false;
   }
-  if (!is_alpha(username[0])) {
+  if (username.size() < 5) {
     return false;
   }
-  for (auto c : username) {
-    if (!is_alpha(c) && !is_digit(c) && c != '_') {
-      return false;
-    }
-  }
-  if (username.back() == '_') {
-    return false;
-  }
-  for (size_t i = 1; i < username.size(); i++) {
-    if (username[i - 1] == '_' && username[i] == '_') {
-      return false;
-    }
-  }
-  if (username.find("admin") == 0 || username.find("telegram") == 0 || username.find("support") == 0 ||
-      username.find("security") == 0 || username.find("settings") == 0 || username.find("contacts") == 0 ||
-      username.find("service") == 0 || username.find("telegraph") == 0) {
+  auto username_lowered = to_lower(username);
+  if (username_lowered.find("admin") == 0 || username_lowered.find("telegram") == 0 ||
+      username_lowered.find("support") == 0 || username_lowered.find("security") == 0 ||
+      username_lowered.find("settings") == 0 || username_lowered.find("contacts") == 0 ||
+      username_lowered.find("service") == 0 || username_lowered.find("telegraph") == 0) {
     return false;
   }
   return true;
@@ -6652,7 +6641,7 @@ void ContactsManager::on_update_profile_success(int32 flags, const string &first
 }
 
 void ContactsManager::set_username(const string &username, Promise<Unit> &&promise) {
-  if (!username.empty() && !is_valid_username(username)) {
+  if (!username.empty() && !is_allowed_username(username)) {
     return promise.set_error(Status::Error(400, "Username is invalid"));
   }
   td_->create_handler<UpdateUsernameQuery>(std::move(promise))->send(username);
@@ -6706,7 +6695,7 @@ void ContactsManager::set_channel_username(ChannelId channel_id, const string &u
     return promise.set_error(Status::Error(400, "Not enough rights to change supergroup username"));
   }
 
-  if (!username.empty() && !is_valid_username(username)) {
+  if (!username.empty() && !is_allowed_username(username)) {
     return promise.set_error(Status::Error(400, "Username is invalid"));
   }
 
