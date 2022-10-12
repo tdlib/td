@@ -21,6 +21,7 @@
 #include "td/telegram/StickerType.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
+#include "td/telegram/UserId.h"
 
 #include "td/actor/actor.h"
 #include "td/actor/MultiPromise.h"
@@ -37,6 +38,7 @@
 #include "td/utils/WaitFreeHashMap.h"
 #include "td/utils/WaitFreeHashSet.h"
 
+#include <map>
 #include <memory>
 #include <tuple>
 #include <unordered_map>

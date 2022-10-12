@@ -9,10 +9,13 @@
 #include "td/telegram/Document.h"
 #include "td/telegram/DocumentsManager.h"
 #include "td/telegram/MessageContent.h"
+#include "td/telegram/MessageContentType.h"
+#include "td/telegram/PhotoSize.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/VideosManager.h"
 
 #include "td/utils/algorithm.h"
+#include "td/utils/logging.h"
 
 namespace td {
 

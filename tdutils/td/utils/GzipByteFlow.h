@@ -38,7 +38,7 @@ class GzipByteFlow final : public ByteFlowBase {
 
  private:
   Gzip gzip_;
-  size_t uncommited_size_ = 0;
+  size_t uncommitted_size_ = 0;
   size_t total_output_size_ = 0;
   size_t max_output_size_ = std::numeric_limits<size_t>::max();
 };

@@ -10,6 +10,7 @@
 #include "td/telegram/BackgroundManager.h"
 #include "td/telegram/BackgroundType.hpp"
 #include "td/telegram/Global.h"
+#include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/net/NetQueryCreator.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"

@@ -38,10 +38,10 @@ class FileDbInterface {
   FileDbInterface &operator=(const FileDbInterface &) = delete;
   virtual ~FileDbInterface() = default;
 
-  // non thread safe
+  // non-thread-safe
   virtual FileDbId create_pmc_id() = 0;
 
-  // thread safe
+  // thread-safe
   virtual void close(Promise<> promise) = 0;
 
   template <class LocationT>

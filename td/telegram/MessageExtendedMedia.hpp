@@ -11,6 +11,7 @@
 #include "td/telegram/Td.h"
 #include "td/telegram/VideosManager.h"
 
+#include "td/utils/logging.h"
 #include "td/utils/tl_helpers.h"
 
 namespace td {

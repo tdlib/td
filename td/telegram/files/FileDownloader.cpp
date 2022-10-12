@@ -33,8 +33,8 @@
 namespace td {
 
 FileDownloader::FileDownloader(const FullRemoteFileLocation &remote, const LocalFileLocation &local, int64 size,
-                               string name, const FileEncryptionKey &encryption_key, bool is_small, bool search_file,
-                               int64 offset, int64 limit, unique_ptr<Callback> callback)
+                               string name, const FileEncryptionKey &encryption_key, bool is_small,
+                               bool need_search_file, int64 offset, int64 limit, unique_ptr<Callback> callback)
     : remote_(remote)
     , local_(local)
     , size_(size)
@@ -42,7 +42,7 @@ FileDownloader::FileDownloader(const FullRemoteFileLocation &remote, const Local
     , encryption_key_(encryption_key)
     , callback_(std::move(callback))
     , is_small_(is_small)
-    , search_file_(search_file)
+    , need_search_file_(need_search_file)
     , offset_(offset)
     , limit_(limit) {
   if (encryption_key.is_secret()) {
@@ -87,7 +87,7 @@ Result<FileLoader::FileInfo> FileDownloader::init() {
       CHECK((part_size & (part_size - 1)) == 0);
     }
   }
-  if (search_file_ && fd_.empty() && size_ > 0 && encryption_key_.empty() && !remote_.is_web()) {
+  if (need_search_file_ && fd_.empty() && size_ > 0 && encryption_key_.empty() && !remote_.is_web()) {
     [&] {
       TRY_RESULT(path, search_file(remote_.file_type_, name_, size_));
       TRY_RESULT(fd, FileFd::open(path, FileFd::Read));

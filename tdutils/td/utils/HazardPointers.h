@@ -88,8 +88,8 @@ class HazardPointers {
 
   size_t to_delete_size_unsafe() const {
     size_t res = 0;
-    for (auto &thread : threads_) {
-      res += thread.to_delete_.size();
+    for (auto &thread_data : threads_) {
+      res += thread_data.to_delete_.size();
     }
     return res;
   }
@@ -122,8 +122,8 @@ class HazardPointers {
   }
 
   bool is_protected(T *ptr) {
-    for (auto &thread : threads_) {
-      for (auto &hazard_ptr : thread.hazard_) {
+    for (auto &thread_data : threads_) {
+      for (auto &hazard_ptr : thread_data.hazard_) {
         if (hazard_ptr.load() == ptr) {
           return true;
         }

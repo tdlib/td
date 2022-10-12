@@ -6,6 +6,8 @@
 //
 #include "td/telegram/SentEmailCode.h"
 
+#include "td/utils/logging.h"
+
 namespace td {
 
 SentEmailCode::SentEmailCode(telegram_api::object_ptr<telegram_api::account_sentEmailCode> &&email_code)

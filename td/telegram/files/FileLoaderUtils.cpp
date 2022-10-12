@@ -21,6 +21,7 @@
 #include "td/utils/Random.h"
 #include "td/utils/SliceBuilder.h"
 #include "td/utils/StringBuilder.h"
+#include "td/utils/utf8.h"
 
 #include <tuple>
 

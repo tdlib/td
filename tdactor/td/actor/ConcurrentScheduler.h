@@ -50,7 +50,7 @@ class ConcurrentScheduler final : private Scheduler::Callback {
     return is_finished_.load(std::memory_order_relaxed);
   }
 
-  thread::id get_thread_id(int32 sched_id);
+  thread::id get_scheduler_thread_id(int32 sched_id);
 
   void start();
 

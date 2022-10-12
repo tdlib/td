@@ -6,12 +6,16 @@
 //
 #include "td/telegram/InputInvoice.h"
 
+#include "td/telegram/Dimensions.h"
 #include "td/telegram/files/FileManager.h"
+#include "td/telegram/files/FileType.h"
 #include "td/telegram/misc.h"
 #include "td/telegram/PhotoSize.h"
+#include "td/telegram/ServerMessageId.h"
 #include "td/telegram/Td.h"
 
 #include "td/utils/algorithm.h"
+#include "td/utils/buffer.h"
 #include "td/utils/common.h"
 #include "td/utils/HttpUrl.h"
 #include "td/utils/logging.h"

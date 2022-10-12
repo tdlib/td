@@ -7,11 +7,13 @@
 #include "td/telegram/EncryptedFile.h"
 #include "td/telegram/FolderId.h"
 #include "td/telegram/Global.h"
+#include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/secret_api.h"
 #include "td/telegram/SecretChatActor.h"
 #include "td/telegram/SecretChatId.h"
 #include "td/telegram/telegram_api.h"
+#include "td/telegram/UserId.h"
 
 #include "td/db/binlog/BinlogInterface.h"
 #include "td/db/binlog/detail/BinlogEventsProcessor.h"

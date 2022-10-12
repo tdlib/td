@@ -214,7 +214,7 @@ class SharedObjectPool {
     return free_queue_reader_.calc_size();
   }
 
-  //non thread safe
+  // non-thread-safe
   template <class F>
   void for_each(F &&f) {
     for (auto &raw : allocated_) {
@@ -255,7 +255,7 @@ class SharedObjectPool {
     Raw *get() const {
       return raw_;
     }
-    explicit operator bool() noexcept {
+    explicit operator bool() const noexcept {
       return raw_ != nullptr;
     }
 

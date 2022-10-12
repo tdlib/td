@@ -33,8 +33,8 @@ class FileDownloader final : public FileLoader {
   };
 
   FileDownloader(const FullRemoteFileLocation &remote, const LocalFileLocation &local, int64 size, string name,
-                 const FileEncryptionKey &encryption_key, bool is_small, bool search_file, int64 offset, int64 limit,
-                 unique_ptr<Callback> callback);
+                 const FileEncryptionKey &encryption_key, bool is_small, bool need_search_file, int64 offset,
+                 int64 limit, unique_ptr<Callback> callback);
 
   // Should just implement all parent pure virtual methods.
   // Must not call any of them...
@@ -55,7 +55,7 @@ class FileDownloader final : public FileLoader {
   int32 next_part_ = 0;
   bool next_part_stop_ = false;
   bool is_small_;
-  bool search_file_{false};
+  bool need_search_file_{false};
   int64 offset_;
   int64 limit_;
 

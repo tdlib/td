@@ -7,6 +7,7 @@
 #include "td/telegram/MessagesDb.h"
 
 #include "td/telegram/logevent/LogEvent.h"
+#include "td/telegram/UserId.h"
 #include "td/telegram/Version.h"
 
 #include "td/db/SqliteConnectionSafe.h"

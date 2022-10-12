@@ -68,7 +68,7 @@ class TsSeqKeyValue {
     return kv_.get_all();
   }
 
-  // not thread safe method
+  // non-thread-safe method
   SeqKeyValue &inner() {
     return kv_;
   }

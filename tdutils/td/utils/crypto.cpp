@@ -10,6 +10,7 @@
 #include "td/utils/BigNum.h"
 #include "td/utils/bits.h"
 #include "td/utils/common.h"
+#include "td/utils/Destructor.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/port/RwMutex.h"

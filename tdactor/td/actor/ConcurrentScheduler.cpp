@@ -70,7 +70,7 @@ void ConcurrentScheduler::test_one_thread_run() {
   } while (!is_finished_.load(std::memory_order_relaxed));
 }
 
-thread::id ConcurrentScheduler::get_thread_id(int32 sched_id) {
+thread::id ConcurrentScheduler::get_scheduler_thread_id(int32 sched_id) {
   auto thread_pos = static_cast<size_t>(sched_id - 1);
   CHECK(thread_pos < threads_.size());
   return threads_[thread_pos].get_id();
