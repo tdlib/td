@@ -1222,7 +1222,7 @@ class CliClient final : public Actor {
     return as_formatted_text(caption, std::move(entities));
   }
 
-  static td_api::object_ptr<td_api::NotificationSettingsScope> get_notification_settings_scope(Slice scope) {
+  static td_api::object_ptr<td_api::NotificationSettingsScope> as_notification_settings_scope(Slice scope) {
     if (scope.empty()) {
       return nullptr;
     }
@@ -1235,7 +1235,7 @@ class CliClient final : public Actor {
     return td_api::make_object<td_api::notificationSettingsScopePrivateChats>();
   }
 
-  static td_api::object_ptr<td_api::UserPrivacySetting> get_user_privacy_setting(MutableSlice setting) {
+  static td_api::object_ptr<td_api::UserPrivacySetting> as_user_privacy_setting(MutableSlice setting) {
     setting = trim(setting);
     to_lower_inplace(setting);
     if (setting == "invite") {
@@ -1265,7 +1265,7 @@ class CliClient final : public Actor {
     return nullptr;
   }
 
-  td_api::object_ptr<td_api::userPrivacySettingRules> get_user_privacy_setting_rules(Slice allow, Slice ids) const {
+  td_api::object_ptr<td_api::userPrivacySettingRules> as_user_privacy_setting_rules(Slice allow, Slice ids) const {
     vector<td_api::object_ptr<td_api::UserPrivacySettingRule>> rules;
     if (allow == "c" || allow == "contacts") {
       rules.push_back(td_api::make_object<td_api::userPrivacySettingRuleAllowContacts>());
@@ -1343,7 +1343,7 @@ class CliClient final : public Actor {
     return nullptr;
   }
 
-  static td_api::object_ptr<td_api::ChatMembersFilter> get_chat_members_filter(MutableSlice filter) {
+  static td_api::object_ptr<td_api::ChatMembersFilter> as_chat_members_filter(MutableSlice filter) {
     filter = trim(filter);
     to_lower_inplace(filter);
     if (filter == "a" || filter == "admin" || filter == "administrators") {
@@ -1373,9 +1373,9 @@ class CliClient final : public Actor {
     return nullptr;
   }
 
-  static td_api::object_ptr<td_api::SupergroupMembersFilter> get_supergroup_members_filter(MutableSlice filter,
-                                                                                           const string &query,
-                                                                                           Slice message_thread_id) {
+  static td_api::object_ptr<td_api::SupergroupMembersFilter> as_supergroup_members_filter(MutableSlice filter,
+                                                                                          const string &query,
+                                                                                          Slice message_thread_id) {
     filter = trim(filter);
     to_lower_inplace(filter);
     if (begins_with(filter, "get")) {
@@ -1441,7 +1441,7 @@ class CliClient final : public Actor {
         can_restrict_members, can_pin_messages, can_promote_members, can_manage_video_chats, is_anonymous);
   }
 
-  static td_api::object_ptr<td_api::TopChatCategory> get_top_chat_category(MutableSlice category) {
+  static td_api::object_ptr<td_api::TopChatCategory> as_top_chat_category(MutableSlice category) {
     category = trim(category);
     to_lower_inplace(category);
     if (!category.empty() && category.back() == 's') {
@@ -1464,7 +1464,7 @@ class CliClient final : public Actor {
     }
   }
 
-  static td_api::object_ptr<td_api::ChatAction> get_chat_action(MutableSlice action) {
+  static td_api::object_ptr<td_api::ChatAction> as_chat_action(MutableSlice action) {
     action = trim(action);
     to_lower_inplace(action);
     if (action == "c" || action == "cancel") {
@@ -1512,7 +1512,7 @@ class CliClient final : public Actor {
     return td_api::make_object<td_api::chatActionTyping>();
   }
 
-  static td_api::object_ptr<td_api::ChatReportReason> get_chat_report_reason(MutableSlice reason) {
+  static td_api::object_ptr<td_api::ChatReportReason> as_chat_report_reason(MutableSlice reason) {
     reason = trim(reason);
     if (reason == "null") {
       return nullptr;
@@ -1547,7 +1547,7 @@ class CliClient final : public Actor {
     return td_api::make_object<td_api::chatReportReasonCustom>();
   }
 
-  static td_api::object_ptr<td_api::NetworkType> get_network_type(MutableSlice type) {
+  static td_api::object_ptr<td_api::NetworkType> as_network_type(MutableSlice type) {
     type = trim(type);
     to_lower_inplace(type);
     if (type == "none") {
@@ -1729,55 +1729,55 @@ class CliClient final : public Actor {
     return td_api::make_object<td_api::messageSchedulingStateSendAtDate>(send_date);
   }
 
-  static td_api::object_ptr<td_api::themeParameters> get_theme_parameters() {
+  static td_api::object_ptr<td_api::themeParameters> as_theme_parameters() {
     return td_api::make_object<td_api::themeParameters>(0, 1, -1, 256, 65536, 123456789, 65535);
   }
 
-  static td_api::object_ptr<td_api::BackgroundFill> get_background_fill(int32 color) {
+  static td_api::object_ptr<td_api::BackgroundFill> as_background_fill(int32 color) {
     return td_api::make_object<td_api::backgroundFillSolid>(color);
   }
 
-  static td_api::object_ptr<td_api::BackgroundFill> get_background_fill(int32 top_color, int32 bottom_color) {
+  static td_api::object_ptr<td_api::BackgroundFill> as_background_fill(int32 top_color, int32 bottom_color) {
     return td_api::make_object<td_api::backgroundFillGradient>(top_color, bottom_color, Random::fast(0, 7) * 45);
   }
 
-  static td_api::object_ptr<td_api::BackgroundFill> get_background_fill(vector<int32> colors) {
+  static td_api::object_ptr<td_api::BackgroundFill> as_background_fill(vector<int32> colors) {
     return td_api::make_object<td_api::backgroundFillFreeformGradient>(std::move(colors));
   }
 
-  static td_api::object_ptr<td_api::BackgroundType> get_solid_pattern_background(int32 color, int32 intensity,
-                                                                                 bool is_moving) {
-    return get_gradient_pattern_background(color, color, intensity, false, is_moving);
+  static td_api::object_ptr<td_api::BackgroundType> as_solid_pattern_background(int32 color, int32 intensity,
+                                                                                bool is_moving) {
+    return as_gradient_pattern_background(color, color, intensity, false, is_moving);
   }
 
-  static td_api::object_ptr<td_api::BackgroundType> get_gradient_pattern_background(int32 top_color, int32 bottom_color,
-                                                                                    int32 intensity, bool is_inverted,
-                                                                                    bool is_moving) {
-    return td_api::make_object<td_api::backgroundTypePattern>(get_background_fill(top_color, bottom_color), intensity,
+  static td_api::object_ptr<td_api::BackgroundType> as_gradient_pattern_background(int32 top_color, int32 bottom_color,
+                                                                                   int32 intensity, bool is_inverted,
+                                                                                   bool is_moving) {
+    return td_api::make_object<td_api::backgroundTypePattern>(as_background_fill(top_color, bottom_color), intensity,
                                                               is_inverted, is_moving);
   }
 
-  static td_api::object_ptr<td_api::BackgroundType> get_freeform_gradient_pattern_background(vector<int32> colors,
-                                                                                             int32 intensity,
-                                                                                             bool is_inverted,
-                                                                                             bool is_moving) {
-    return td_api::make_object<td_api::backgroundTypePattern>(get_background_fill(std::move(colors)), intensity,
+  static td_api::object_ptr<td_api::BackgroundType> as_freeform_gradient_pattern_background(vector<int32> colors,
+                                                                                            int32 intensity,
+                                                                                            bool is_inverted,
+                                                                                            bool is_moving) {
+    return td_api::make_object<td_api::backgroundTypePattern>(as_background_fill(std::move(colors)), intensity,
                                                               is_inverted, is_moving);
   }
 
-  static td_api::object_ptr<td_api::BackgroundType> get_solid_background(int32 color) {
-    return td_api::make_object<td_api::backgroundTypeFill>(get_background_fill(color));
+  static td_api::object_ptr<td_api::BackgroundType> as_solid_background(int32 color) {
+    return td_api::make_object<td_api::backgroundTypeFill>(as_background_fill(color));
   }
 
-  static td_api::object_ptr<td_api::BackgroundType> get_gradient_background(int32 top_color, int32 bottom_color) {
-    return td_api::make_object<td_api::backgroundTypeFill>(get_background_fill(top_color, bottom_color));
+  static td_api::object_ptr<td_api::BackgroundType> as_gradient_background(int32 top_color, int32 bottom_color) {
+    return td_api::make_object<td_api::backgroundTypeFill>(as_background_fill(top_color, bottom_color));
   }
 
-  static td_api::object_ptr<td_api::BackgroundType> get_freeform_gradient_background(vector<int32> colors) {
-    return td_api::make_object<td_api::backgroundTypeFill>(get_background_fill(std::move(colors)));
+  static td_api::object_ptr<td_api::BackgroundType> as_freeform_gradient_background(vector<int32> colors) {
+    return td_api::make_object<td_api::backgroundTypeFill>(as_background_fill(std::move(colors)));
   }
 
-  td_api::object_ptr<td_api::phoneNumberAuthenticationSettings> get_phone_number_authentication_settings() const {
+  td_api::object_ptr<td_api::phoneNumberAuthenticationSettings> as_phone_number_authentication_settings() const {
     return td_api::make_object<td_api::phoneNumberAuthenticationSettings>(false, true, false, false,
                                                                           vector<string>(authentication_tokens_));
   }
@@ -1851,7 +1851,7 @@ class CliClient final : public Actor {
       LOG(ERROR) << to_string(authorization_state_);
     } else if (op == "sap" || op == "sapn") {
       send_request(
-          td_api::make_object<td_api::setAuthenticationPhoneNumber>(args, get_phone_number_authentication_settings()));
+          td_api::make_object<td_api::setAuthenticationPhoneNumber>(args, as_phone_number_authentication_settings()));
     } else if (op == "sae" || op == "saea") {
       send_request(td_api::make_object<td_api::setAuthenticationEmailAddress>(args));
     } else if (op == "rac") {
@@ -2093,7 +2093,7 @@ class CliClient final : public Actor {
     } else if (op == "gpf") {
       InputInvoice input_invoice;
       get_args(args, input_invoice);
-      send_request(td_api::make_object<td_api::getPaymentForm>(input_invoice, get_theme_parameters()));
+      send_request(td_api::make_object<td_api::getPaymentForm>(input_invoice, as_theme_parameters()));
     } else if (op == "voi") {
       InputInvoice input_invoice;
       bool allow_save;
@@ -2138,14 +2138,14 @@ class CliClient final : public Actor {
       // } else if (op == "gtwps") {
       //   send_request(td_api::make_object<td_api::getTonWalletPasswordSalt>());
     } else if (op == "gpr") {
-      send_request(td_api::make_object<td_api::getUserPrivacySettingRules>(get_user_privacy_setting(args)));
+      send_request(td_api::make_object<td_api::getUserPrivacySettingRules>(as_user_privacy_setting(args)));
     } else if (op == "spr") {
       string setting;
       string allow;
       string ids;
       get_args(args, setting, allow, ids);
-      send_request(td_api::make_object<td_api::setUserPrivacySettingRules>(get_user_privacy_setting(setting),
-                                                                           get_user_privacy_setting_rules(allow, ids)));
+      send_request(td_api::make_object<td_api::setUserPrivacySettingRules>(as_user_privacy_setting(setting),
+                                                                           as_user_privacy_setting_rules(allow, ids)));
     } else if (op == "cp" || op == "ChangePhone") {
       send_request(td_api::make_object<td_api::changePhoneNumber>(args, nullptr));
     } else if (op == "ccpc" || op == "CheckChangePhoneCode") {
@@ -2547,32 +2547,32 @@ class CliClient final : public Actor {
       send_get_background_url(td_api::make_object<td_api::backgroundTypeWallpaper>(false, true));
       send_get_background_url(td_api::make_object<td_api::backgroundTypeWallpaper>(true, false));
       send_get_background_url(td_api::make_object<td_api::backgroundTypeWallpaper>(true, true));
-      send_get_background_url(get_solid_pattern_background(-1, 0, false));
-      send_get_background_url(get_solid_pattern_background(0x1000000, 0, true));
-      send_get_background_url(get_solid_pattern_background(0, -1, false));
-      send_get_background_url(get_solid_pattern_background(0, 101, false));
-      send_get_background_url(get_solid_pattern_background(0, 0, false));
-      send_get_background_url(get_solid_pattern_background(0xFFFFFF, 100, true));
-      send_get_background_url(get_solid_pattern_background(0xABCDEF, 49, true));
-      send_get_background_url(get_gradient_pattern_background(0, 0, 0, false, false));
-      send_get_background_url(get_gradient_pattern_background(0, 0, 0, true, false));
-      send_get_background_url(get_gradient_pattern_background(0xFFFFFF, 0, 100, false, true));
-      send_get_background_url(get_gradient_pattern_background(0xFFFFFF, 0, 100, true, true));
-      send_get_background_url(get_gradient_pattern_background(0xABCDEF, 0xFEDCBA, 49, false, true));
-      send_get_background_url(get_gradient_pattern_background(0, 0x1000000, 49, false, true));
-      send_get_background_url(get_freeform_gradient_pattern_background({0xABCDEF, 0xFEDCBA}, 49, false, true));
-      send_get_background_url(get_freeform_gradient_pattern_background({0xABCDEF, 0x111111, 0x222222}, 49, true, true));
+      send_get_background_url(as_solid_pattern_background(-1, 0, false));
+      send_get_background_url(as_solid_pattern_background(0x1000000, 0, true));
+      send_get_background_url(as_solid_pattern_background(0, -1, false));
+      send_get_background_url(as_solid_pattern_background(0, 101, false));
+      send_get_background_url(as_solid_pattern_background(0, 0, false));
+      send_get_background_url(as_solid_pattern_background(0xFFFFFF, 100, true));
+      send_get_background_url(as_solid_pattern_background(0xABCDEF, 49, true));
+      send_get_background_url(as_gradient_pattern_background(0, 0, 0, false, false));
+      send_get_background_url(as_gradient_pattern_background(0, 0, 0, true, false));
+      send_get_background_url(as_gradient_pattern_background(0xFFFFFF, 0, 100, false, true));
+      send_get_background_url(as_gradient_pattern_background(0xFFFFFF, 0, 100, true, true));
+      send_get_background_url(as_gradient_pattern_background(0xABCDEF, 0xFEDCBA, 49, false, true));
+      send_get_background_url(as_gradient_pattern_background(0, 0x1000000, 49, false, true));
+      send_get_background_url(as_freeform_gradient_pattern_background({0xABCDEF, 0xFEDCBA}, 49, false, true));
+      send_get_background_url(as_freeform_gradient_pattern_background({0xABCDEF, 0x111111, 0x222222}, 49, true, true));
       send_get_background_url(
-          get_freeform_gradient_pattern_background({0xABCDEF, 0xFEDCBA, 0x111111, 0x222222}, 49, false, true));
-      send_get_background_url(get_solid_background(-1));
-      send_get_background_url(get_solid_background(0xABCDEF));
-      send_get_background_url(get_solid_background(0x1000000));
-      send_get_background_url(get_gradient_background(0xABCDEF, 0xFEDCBA));
-      send_get_background_url(get_gradient_background(0, 0));
-      send_get_background_url(get_gradient_background(-1, -1));
-      send_get_background_url(get_freeform_gradient_background({0xFEDCBA, 0x222222}));
-      send_get_background_url(get_freeform_gradient_background({0xFEDCBA, 0x111111, 0x222222}));
-      send_get_background_url(get_freeform_gradient_background({0xABCDEF, 0xFEDCBA, 0x111111, 0x222222}));
+          as_freeform_gradient_pattern_background({0xABCDEF, 0xFEDCBA, 0x111111, 0x222222}, 49, false, true));
+      send_get_background_url(as_solid_background(-1));
+      send_get_background_url(as_solid_background(0xABCDEF));
+      send_get_background_url(as_solid_background(0x1000000));
+      send_get_background_url(as_gradient_background(0xABCDEF, 0xFEDCBA));
+      send_get_background_url(as_gradient_background(0, 0));
+      send_get_background_url(as_gradient_background(-1, -1));
+      send_get_background_url(as_freeform_gradient_background({0xFEDCBA, 0x222222}));
+      send_get_background_url(as_freeform_gradient_background({0xFEDCBA, 0x111111, 0x222222}));
+      send_get_background_url(as_freeform_gradient_background({0xABCDEF, 0xFEDCBA, 0x111111, 0x222222}));
     } else {
       op_not_found_count++;
     }
@@ -2588,23 +2588,23 @@ class CliClient final : public Actor {
     } else if (op == "sbgp" || op == "sbgpd") {
       send_request(td_api::make_object<td_api::setBackground>(
           td_api::make_object<td_api::inputBackgroundLocal>(as_input_file(args)),
-          get_solid_pattern_background(0xABCDEF, 49, true), op == "sbgpd"));
+          as_solid_pattern_background(0xABCDEF, 49, true), op == "sbgpd"));
     } else if (op == "sbggp" || op == "sbggpd") {
       send_request(td_api::make_object<td_api::setBackground>(
           td_api::make_object<td_api::inputBackgroundLocal>(as_input_file(args)),
-          get_gradient_pattern_background(0xABCDEF, 0xFE, 51, op == "sbggpd", false), op == "sbggpd"));
+          as_gradient_pattern_background(0xABCDEF, 0xFE, 51, op == "sbggpd", false), op == "sbggpd"));
     } else if (op == "sbgs" || op == "sbgsd") {
       int32 color;
       get_args(args, color);
-      send_request(td_api::make_object<td_api::setBackground>(nullptr, get_solid_background(color), op == "sbgsd"));
+      send_request(td_api::make_object<td_api::setBackground>(nullptr, as_solid_background(color), op == "sbgsd"));
     } else if (op == "sbgg" || op == "sbggd") {
       int32 top_color;
       int32 bottom_color;
       get_args(args, top_color, bottom_color);
-      auto background_type = get_gradient_background(top_color, bottom_color);
+      auto background_type = as_gradient_background(top_color, bottom_color);
       send_request(td_api::make_object<td_api::setBackground>(nullptr, std::move(background_type), op == "sbggd"));
     } else if (op == "sbgfg" || op == "sbgfgd") {
-      auto background_type = get_freeform_gradient_background(to_integers<int32>(args));
+      auto background_type = as_freeform_gradient_background(to_integers<int32>(args));
       send_request(td_api::make_object<td_api::setBackground>(nullptr, std::move(background_type), op == "sbgfgd"));
     } else if (op == "sbgfid" || op == "sbgfidd") {
       int64 background_id;
@@ -2620,9 +2620,9 @@ class CliClient final : public Actor {
     } else if (op == "sbgpid" || op == "sbgpidd") {
       int64 background_id;
       get_args(args, background_id);
-      send_request(td_api::make_object<td_api::setBackground>(
-          td_api::make_object<td_api::inputBackgroundRemote>(background_id),
-          get_solid_pattern_background(0xabcdef, 49, true), op == "sbgpidd"));
+      send_request(
+          td_api::make_object<td_api::setBackground>(td_api::make_object<td_api::inputBackgroundRemote>(background_id),
+                                                     as_solid_pattern_background(0xabcdef, 49, true), op == "sbgpidd"));
     } else if (op == "rbg") {
       int64 background_id;
       get_args(args, background_id);
@@ -2756,12 +2756,12 @@ class CliClient final : public Actor {
     } else if (op == "reset_network") {
       send_request(td_api::make_object<td_api::resetNetworkStatistics>());
     } else if (op == "snt") {
-      send_request(td_api::make_object<td_api::setNetworkType>(get_network_type(args)));
+      send_request(td_api::make_object<td_api::setNetworkType>(as_network_type(args)));
     } else if (op == "gadsp") {
       send_request(td_api::make_object<td_api::getAutoDownloadSettingsPresets>());
     } else if (op == "sads") {
       send_request(td_api::make_object<td_api::setAutoDownloadSettings>(
-          td_api::make_object<td_api::autoDownloadSettings>(), get_network_type(args)));
+          td_api::make_object<td_api::autoDownloadSettings>(), as_network_type(args)));
     } else if (op == "ansc") {
       int32 sent_bytes;
       int32 received_bytes;
@@ -2770,7 +2770,7 @@ class CliClient final : public Actor {
       get_args(args, sent_bytes, received_bytes, duration, network_type);
       send_request(
           td_api::make_object<td_api::addNetworkStatistics>(td_api::make_object<td_api::networkStatisticsEntryCall>(
-              get_network_type(network_type), sent_bytes, received_bytes, to_double(duration))));
+              as_network_type(network_type), sent_bytes, received_bytes, to_double(duration))));
     } else if (op == "ans") {
       int32 sent_bytes;
       int32 received_bytes;
@@ -2778,15 +2778,15 @@ class CliClient final : public Actor {
       get_args(args, sent_bytes, received_bytes, network_type);
       send_request(
           td_api::make_object<td_api::addNetworkStatistics>(td_api::make_object<td_api::networkStatisticsEntryFile>(
-              td_api::make_object<td_api::fileTypeDocument>(), get_network_type(network_type), sent_bytes,
+              td_api::make_object<td_api::fileTypeDocument>(), as_network_type(network_type), sent_bytes,
               received_bytes)));
     } else if (op == "gtc") {
-      send_request(td_api::make_object<td_api::getTopChats>(get_top_chat_category(args), 50));
+      send_request(td_api::make_object<td_api::getTopChats>(as_top_chat_category(args), 50));
     } else if (op == "rtc") {
       ChatId chat_id;
       string category;
       get_args(args, chat_id, category);
-      send_request(td_api::make_object<td_api::removeTopChat>(get_top_chat_category(category), chat_id));
+      send_request(td_api::make_object<td_api::removeTopChat>(as_top_chat_category(category), chat_id));
     } else if (op == "gsssn") {
       const string &title = args;
       send_request(td_api::make_object<td_api::getSuggestedStickerSetName>(title));
@@ -2892,7 +2892,7 @@ class CliClient final : public Actor {
       SearchQuery query;
       get_args(args, chat_id, filter, query);
       send_request(td_api::make_object<td_api::searchChatMembers>(chat_id, query.query, query.limit,
-                                                                  get_chat_members_filter(filter)));
+                                                                  as_chat_members_filter(filter)));
     } else if (op == "gcm") {
       ChatId chat_id;
       string member_id;
@@ -2914,7 +2914,7 @@ class CliClient final : public Actor {
       }
       get_args(args, supergroup_id, offset, query);
       send_request(td_api::make_object<td_api::getSupergroupMembers>(
-          as_supergroup_id(supergroup_id), get_supergroup_members_filter(op, query.query, message_thread_id), offset,
+          as_supergroup_id(supergroup_id), as_supergroup_members_filter(op, query.query, message_thread_id), offset,
           query.limit));
     } else if (op == "gdialog" || op == "gd") {
       ChatId chat_id;
@@ -3532,7 +3532,7 @@ class CliClient final : public Actor {
           td_api::make_object<td_api::jsonObjectMember>("a", td_api::make_object<td_api::jsonValueNull>()));
       test_get_json_string(std::move(object));
     } else if (op == "gtpjs") {
-      execute(td_api::make_object<td_api::getThemeParametersJsonString>(get_theme_parameters()));
+      execute(td_api::make_object<td_api::getThemeParametersJsonString>(as_theme_parameters()));
     } else if (op == "gac") {
       send_request(td_api::make_object<td_api::getApplicationConfig>());
     } else if (op == "sale") {
@@ -3623,7 +3623,7 @@ class CliClient final : public Actor {
       UserId user_id;
       string url;
       get_args(args, user_id, url);
-      send_request(td_api::make_object<td_api::getWebAppUrl>(user_id, url, get_theme_parameters(), "android"));
+      send_request(td_api::make_object<td_api::getWebAppUrl>(user_id, url, as_theme_parameters(), "android"));
     } else if (op == "swad") {
       UserId user_id;
       string button_text;
@@ -3636,7 +3636,7 @@ class CliClient final : public Actor {
       string url;
       MessageId reply_to_message_id;
       get_args(args, chat_id, bot_user_id, url, reply_to_message_id);
-      send_request(td_api::make_object<td_api::openWebApp>(chat_id, bot_user_id, url, get_theme_parameters(), "android",
+      send_request(td_api::make_object<td_api::openWebApp>(chat_id, bot_user_id, url, as_theme_parameters(), "android",
                                                            reply_to_message_id));
     } else if (op == "cwa") {
       int64 launch_id;
@@ -3648,7 +3648,7 @@ class CliClient final : public Actor {
       string action;
       get_args(args, chat_id, message_thread_id, action);
       send_request(td_api::make_object<td_api::sendChatAction>(chat_id, as_message_thread_id(message_thread_id),
-                                                               get_chat_action(action)));
+                                                               as_chat_action(action)));
     } else if (op == "smt" || op == "smtp" || op == "smtf" || op == "smtpf") {
       ChatId chat_id;
       get_args(args, chat_id);
@@ -4750,9 +4750,9 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::removeSavedNotificationSound>(notification_sound_id));
     } else if (op == "gcnse" || op == "gcnses") {
       send_request(td_api::make_object<td_api::getChatNotificationSettingsExceptions>(
-          get_notification_settings_scope(args), op == "gcnses"));
+          as_notification_settings_scope(args), op == "gcnses"));
     } else if (op == "gsns") {
-      send_request(td_api::make_object<td_api::getScopeNotificationSettings>(get_notification_settings_scope(args)));
+      send_request(td_api::make_object<td_api::getScopeNotificationSettings>(as_notification_settings_scope(args)));
     } else if (op == "scns" || op == "ssns") {
       string chat_id_or_scope;
       string mute_for;
@@ -4772,7 +4772,7 @@ class CliClient final : public Actor {
                 as_bool(disable_mention_notifications))));
       } else {
         send_request(td_api::make_object<td_api::setScopeNotificationSettings>(
-            get_notification_settings_scope(chat_id_or_scope),
+            as_notification_settings_scope(chat_id_or_scope),
             td_api::make_object<td_api::scopeNotificationSettings>(
                 to_integer<int32>(mute_for), sound_id, as_bool(show_preview),
                 as_bool(disable_pinned_message_notifications), as_bool(disable_mention_notifications))));
@@ -4802,15 +4802,14 @@ class CliClient final : public Actor {
       string text;
       get_args(args, chat_id, message_ids, reason, text);
       send_request(td_api::make_object<td_api::reportChat>(chat_id, as_message_ids(message_ids),
-                                                           get_chat_report_reason(reason), text));
+                                                           as_chat_report_reason(reason), text));
     } else if (op == "rcp") {
       ChatId chat_id;
       FileId file_id;
       string reason;
       string text;
       get_args(args, chat_id, file_id, reason, text);
-      send_request(
-          td_api::make_object<td_api::reportChatPhoto>(chat_id, file_id, get_chat_report_reason(reason), text));
+      send_request(td_api::make_object<td_api::reportChatPhoto>(chat_id, file_id, as_chat_report_reason(reason), text));
     } else if (op == "reportmr") {
       ChatId chat_id;
       MessageId message_id;
