@@ -1,5 +1,5 @@
 <?php
-
+# KAMPANAT THUMWONG
 function disjoint_set_find(&$parents, $x) {
     if ($parents[$x] !== $x) {
         return $parents[$x] = disjoint_set_find($parents, $parents[$x]);
