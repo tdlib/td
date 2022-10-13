@@ -112,7 +112,8 @@ class TQueue {
 
   virtual size_t get_size(QueueId queue_id) const = 0;
 
-  virtual int64 run_gc(int32 unix_time_now) = 0;
+  // returns number of deleted events and whether garbage collection was completed
+  virtual std::pair<int64, bool> run_gc(int32 unix_time_now) = 0;
   virtual void close(Promise<> promise) = 0;
 };
 
