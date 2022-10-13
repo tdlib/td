@@ -247,19 +247,22 @@ class TQueueImpl final : public TQueue {
       int32 new_gc_at = 0;
 
       if (!q.events.empty()) {
-        auto head_id = q.events.begin()->first;
-        Event event;
-        MutableSpan<Event> span{&event, 1};
         size_t size_before = get_size(q);
-        do_get(queue_id, q, head_id, false, unix_time_now, span);
+        for (auto event_it = q.events.begin(); event_it != q.events.end();) {
+          auto &event = event_it->second;
+          if (event.expires_at < unix_time_now || event.data.empty()) {
+            pop(q, queue_id, event_it, q.tail_id);
+          } else {
+            if (new_gc_at != 0) {
+              break;
+            }
+            new_gc_at = event.expires_at;
+            ++event_it;
+          }
+        }
         size_t size_after = get_size(q);
         CHECK(size_after <= size_before);
         deleted_events += size_before - size_after;
-        if (!span.empty()) {
-          CHECK(!event.data.empty());
-          new_gc_at = event.expires_at;
-          CHECK(new_gc_at >= unix_time_now);
-        }
       }
       schedule_queue_gc(queue_id, q, new_gc_at);
     }
