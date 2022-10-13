@@ -6275,6 +6275,9 @@ void StickersManager::flush_pending_animated_emoji_clicks() {
   if (pending_animated_emoji_clicks_.empty()) {
     return;
   }
+  if (G()->close_flag()) {
+    return;
+  }
   auto clicks = std::move(pending_animated_emoji_clicks_);
   pending_animated_emoji_clicks_.clear();
   auto full_message_id = last_clicked_animated_emoji_full_message_id_;
@@ -7611,9 +7614,14 @@ void StickersManager::on_upload_sticker_file_error(FileId file_id, Status status
 void StickersManager::do_upload_sticker_file(UserId user_id, FileId file_id,
                                              tl_object_ptr<telegram_api::InputFile> &&input_file,
                                              Promise<Unit> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+
   DialogId dialog_id(user_id);
   auto input_peer = td_->messages_manager_->get_input_peer(dialog_id, AccessRights::Write);
   if (input_peer == nullptr) {
+    if (input_file != nullptr) {
+      td_->file_manager_->cancel_upload(file_id);
+    }
     return promise.set_error(Status::Error(400, "Have no access to the user"));
   }
 
@@ -7626,7 +7634,7 @@ void StickersManager::do_upload_sticker_file(UserId user_id, FileId file_id,
                          : td_->documents_manager_->get_input_media(file_id, std::move(input_file), nullptr);
   CHECK(input_media != nullptr);
   if (had_input_file && !FileManager::extract_was_uploaded(input_media)) {
-    // if we had InputFile, but has failed to use it, then we need to immediately cancel file upload
+    // if we had InputFile, but has failed to use it for input_media, then we need to immediately cancel file upload
     // so the next upload with the same file can succeed
     td_->file_manager_->cancel_upload(file_id);
   }
