@@ -673,6 +673,43 @@ class UpdateUsernameQuery final : public Td::ResultHandler {
   }
 };
 
+class ReorderUsernamesQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  vector<string> usernames_;
+
+ public:
+  explicit ReorderUsernamesQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(vector<string> &&usernames) {
+    usernames_ = usernames;
+    send_query(G()->net_query_creator().create(telegram_api::account_reorderUsernames(std::move(usernames))));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::account_reorderUsernames>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    bool result = result_ptr.ok();
+    LOG(DEBUG) << "Receive result for ReorderUsernamesQuery: " << result;
+    if (!result) {
+      return on_error(Status::Error(500, "Usernames weren't updated"));
+    }
+
+    td_->contacts_manager_->on_update_active_usernames_order(std::move(usernames_), std::move(promise_));
+  }
+
+  void on_error(Status status) final {
+    if (status.message() == "USERNAME_NOT_MODIFIED") {
+      td_->contacts_manager_->on_update_active_usernames_order(std::move(usernames_), std::move(promise_));
+      return;
+    }
+    promise_.set_error(std::move(status));
+  }
+};
+
 class UpdateEmojiStatusQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
@@ -787,6 +824,52 @@ class UpdateChannelUsernameQuery final : public Td::ResultHandler {
       }
     } else {
       td_->contacts_manager_->on_get_channel_error(channel_id_, status, "UpdateChannelUsernameQuery");
+    }
+    promise_.set_error(std::move(status));
+  }
+};
+
+class ReorderChannelUsernamesQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  ChannelId channel_id_;
+  vector<string> usernames_;
+
+ public:
+  explicit ReorderChannelUsernamesQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(ChannelId channel_id, vector<string> &&usernames) {
+    channel_id_ = channel_id;
+    usernames_ = usernames;
+    auto input_channel = td_->contacts_manager_->get_input_channel(channel_id);
+    CHECK(input_channel != nullptr);
+    send_query(G()->net_query_creator().create(
+        telegram_api::channels_reorderUsernames(std::move(input_channel), std::move(usernames))));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::channels_reorderUsernames>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    bool result = result_ptr.ok();
+    LOG(DEBUG) << "Receive result for ReorderChannelUsernamesQuery: " << result;
+    if (!result) {
+      return on_error(Status::Error(500, "Supergroup usernames weren't updated"));
+    }
+
+    td_->contacts_manager_->on_update_channel_active_usernames_order(channel_id_, std::move(usernames_),
+                                                                     std::move(promise_));
+  }
+
+  void on_error(Status status) final {
+    if (status.message() == "USERNAME_NOT_MODIFIED" || status.message() == "CHAT_NOT_MODIFIED") {
+      td_->contacts_manager_->on_update_channel_active_usernames_order(channel_id_, std::move(usernames_),
+                                                                       std::move(promise_));
+      return;
+    } else {
+      td_->contacts_manager_->on_get_channel_error(channel_id_, status, "ReorderChannelUsernamesQuery");
     }
     promise_.set_error(std::move(status));
   }
@@ -6659,6 +6742,39 @@ void ContactsManager::set_username(const string &username, Promise<Unit> &&promi
   td_->create_handler<UpdateUsernameQuery>(std::move(promise))->send(username);
 }
 
+void ContactsManager::reorder_usernames(vector<string> &&usernames, Promise<Unit> &&promise) {
+  get_me(PromiseCreator::lambda([actor_id = actor_id(this), usernames = std::move(usernames),
+                                 promise = std::move(promise)](Result<Unit> &&result) mutable {
+    if (result.is_error()) {
+      promise.set_error(result.move_as_error());
+    } else {
+      send_closure(actor_id, &ContactsManager::reorder_usernames_impl, std::move(usernames), std::move(promise));
+    }
+  }));
+}
+
+void ContactsManager::reorder_usernames_impl(vector<string> &&usernames, Promise<Unit> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+  const User *u = get_user(get_my_id());
+  CHECK(u != nullptr);
+  if (!u->usernames.can_reorder_to(usernames)) {
+    return promise.set_error(Status::Error(400, "Invalid username order specified"));
+  }
+  td_->create_handler<ReorderUsernamesQuery>(std::move(promise))->send(std::move(usernames));
+}
+
+void ContactsManager::on_update_active_usernames_order(vector<string> &&usernames, Promise<Unit> &&promise) {
+  auto user_id = get_my_id();
+  User *u = get_user(user_id);
+  CHECK(u != nullptr);
+  if (!u->usernames.can_reorder_to(usernames)) {
+    return reload_user(user_id, std::move(promise));
+  }
+  on_update_user_usernames(u, user_id, u->usernames.reorder_to(std::move(usernames)));
+  update_user(u, user_id);
+  promise.set_value(Unit());
+}
+
 void ContactsManager::set_emoji_status(EmojiStatus emoji_status, Promise<Unit> &&promise) {
   if (!td_->option_manager_->get_option_boolean("is_premium")) {
     return promise.set_error(Status::Error(400, "The method is available only for Telegram Premium users"));
@@ -6699,7 +6815,7 @@ void ContactsManager::set_chat_description(ChatId chat_id, const string &descrip
 }
 
 void ContactsManager::set_channel_username(ChannelId channel_id, const string &username, Promise<Unit> &&promise) {
-  auto c = get_channel(channel_id);
+  const auto *c = get_channel(channel_id);
   if (c == nullptr) {
     return promise.set_error(Status::Error(400, "Supergroup not found"));
   }
@@ -6719,6 +6835,33 @@ void ContactsManager::set_channel_username(ChannelId channel_id, const string &u
   }
 
   td_->create_handler<UpdateChannelUsernameQuery>(std::move(promise))->send(channel_id, username);
+}
+
+void ContactsManager::reorder_channel_usernames(ChannelId channel_id, vector<string> &&usernames,
+                                                Promise<Unit> &&promise) {
+  const auto *c = get_channel(channel_id);
+  if (c == nullptr) {
+    return promise.set_error(Status::Error(400, "Supergroup not found"));
+  }
+  if (!get_channel_status(c).is_creator()) {
+    return promise.set_error(Status::Error(400, "Not enough rights to change username"));
+  }
+  if (!c->usernames.can_reorder_to(usernames)) {
+    return promise.set_error(Status::Error(400, "Invalid username order specified"));
+  }
+  td_->create_handler<ReorderChannelUsernamesQuery>(std::move(promise))->send(channel_id, std::move(usernames));
+}
+
+void ContactsManager::on_update_channel_active_usernames_order(ChannelId channel_id, vector<string> &&usernames,
+                                                               Promise<Unit> &&promise) {
+  auto *c = get_channel(channel_id);
+  CHECK(c != nullptr);
+  if (!c->usernames.can_reorder_to(usernames)) {
+    return reload_channel(channel_id, std::move(promise));
+  }
+  on_update_channel_usernames(c, channel_id, c->usernames.reorder_to(std::move(usernames)));
+  update_channel(c, channel_id);
+  promise.set_value(Unit());
 }
 
 void ContactsManager::set_channel_sticker_set(ChannelId channel_id, StickerSetId sticker_set_id,
@@ -8820,8 +8963,8 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
   }
 
   if (is_received || !u->is_received) {
-    on_update_user_name(u, user_id, std::move(user->first_name_), std::move(user->last_name_),
-                        Usernames{std::move(user->username_), std::move(user->usernames_)});
+    on_update_user_name(u, user_id, std::move(user->first_name_), std::move(user->last_name_));
+    on_update_user_usernames(u, user_id, Usernames{std::move(user->username_), std::move(user->usernames_)});
   }
   on_update_user_emoji_status(u, user_id, EmojiStatus(std::move(user->emoji_status_)));
 
@@ -11681,15 +11824,15 @@ void ContactsManager::on_update_user_name(UserId user_id, string &&first_name, s
 
   User *u = get_user_force(user_id);
   if (u != nullptr) {
-    on_update_user_name(u, user_id, std::move(first_name), std::move(last_name), std::move(usernames));
+    on_update_user_name(u, user_id, std::move(first_name), std::move(last_name));
+    on_update_user_usernames(u, user_id, std::move(usernames));
     update_user(u, user_id);
   } else {
     LOG(INFO) << "Ignore update user name about unknown " << user_id;
   }
 }
 
-void ContactsManager::on_update_user_name(User *u, UserId user_id, string &&first_name, string &&last_name,
-                                          Usernames &&usernames) {
+void ContactsManager::on_update_user_name(User *u, UserId user_id, string &&first_name, string &&last_name) {
   if (first_name.empty() && last_name.empty()) {
     first_name = u->phone_number;
   }
@@ -11700,6 +11843,9 @@ void ContactsManager::on_update_user_name(User *u, UserId user_id, string &&firs
     LOG(DEBUG) << "Name has changed for " << user_id;
     u->is_changed = true;
   }
+}
+
+void ContactsManager::on_update_user_usernames(User *u, UserId user_id, Usernames &&usernames) {
   td_->messages_manager_->on_dialog_usernames_updated(DialogId(user_id), u->usernames, usernames);
   if (u->usernames != usernames) {
     u->usernames = std::move(usernames);

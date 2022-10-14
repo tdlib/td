@@ -284,6 +284,11 @@ class ContactsManager final : public Actor {
 
   UserId add_channel_bot_user();
 
+  void on_update_active_usernames_order(vector<string> &&usernames, Promise<Unit> &&promise);
+
+  void on_update_channel_active_usernames_order(ChannelId channel_id, vector<string> &&usernames,
+                                                Promise<Unit> &&promise);
+
   void on_update_online_status_privacy();
 
   void on_update_phone_number_privacy();
@@ -346,11 +351,15 @@ class ContactsManager final : public Actor {
 
   void set_username(const string &username, Promise<Unit> &&promise);
 
+  void reorder_usernames(vector<string> &&usernames, Promise<Unit> &&promise);
+
   void set_emoji_status(EmojiStatus emoji_status, Promise<Unit> &&promise);
 
   void set_chat_description(ChatId chat_id, const string &description, Promise<Unit> &&promise);
 
   void set_channel_username(ChannelId channel_id, const string &username, Promise<Unit> &&promise);
+
+  void reorder_channel_usernames(ChannelId channel_id, vector<string> &&usernames, Promise<Unit> &&promise);
 
   void set_channel_sticker_set(ChannelId channel_id, StickerSetId sticker_set_id, Promise<Unit> &&promise);
 
@@ -1265,7 +1274,8 @@ class ContactsManager final : public Actor {
 
   void on_set_emoji_status(EmojiStatus emoji_status, Promise<Unit> &&promise);
 
-  void on_update_user_name(User *u, UserId user_id, string &&first_name, string &&last_name, Usernames &&usernames);
+  void on_update_user_name(User *u, UserId user_id, string &&first_name, string &&last_name);
+  void on_update_user_usernames(User *u, UserId user_id, Usernames &&usernames);
   void on_update_user_phone_number(User *u, UserId user_id, string &&phone_number);
   void on_update_user_photo(User *u, UserId user_id, tl_object_ptr<telegram_api::UserProfilePhoto> &&photo,
                             const char *source);
@@ -1346,6 +1356,8 @@ class ContactsManager final : public Actor {
                                                               int32 slow_mode_next_send_date);
   static void on_update_channel_full_bot_user_ids(ChannelFull *channel_full, ChannelId channel_id,
                                                   vector<UserId> &&bot_user_ids);
+
+  void reorder_usernames_impl(vector<string> &&usernames, Promise<Unit> &&promise);
 
   void on_channel_status_changed(Channel *c, ChannelId channel_id, const DialogParticipantStatus &old_status,
                                  const DialogParticipantStatus &new_status);

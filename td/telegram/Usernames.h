@@ -55,6 +55,10 @@ class Usernames {
     return active_usernames_;
   }
 
+  bool can_reorder_to(const vector<string> &new_username_order) const;
+
+  Usernames reorder_to(vector<string> &&new_username_order) const;
+
   template <class StorerT>
   void store(StorerT &storer) const {
     CHECK(!is_empty())

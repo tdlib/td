@@ -6199,6 +6199,9 @@ setBio bio:string = Ok;
 //@description Changes the editable username of the current user @username The new value of the username. Use an empty string to remove the username. The username can't be completely removed if there is another active or disabled username
 setUsername username:string = Ok;
 
+//@description Changes order of active usernames of the current user @usernames The new order of active usernames. All currently active usernames must be specified
+reorderActiveUsernames usernames:vector<string> = Ok;
+
 //@description Changes the emoji status of the current user; for Telegram Premium users only
 //@emoji_status New emoji status; pass null to switch to the default badge
 //@duration Duration of the status, in seconds; pass 0 to keep the status active until it will be changed manually
@@ -6280,6 +6283,9 @@ disconnectAllWebsites = Ok;
 
 //@description Changes the editable username of a supergroup or channel, requires owner privileges in the supergroup or channel @supergroup_id Identifier of the supergroup or channel @username New value of the username. Use an empty string to remove the username. The username can't be completely removed if there is another active or disabled username
 setSupergroupUsername supergroup_id:int53 username:string = Ok;
+
+//@description Changes order of active usernames of a supergroup or channel, requires owner privileges in the supergroup or channel @supergroup_id Identifier of the supergroup or channel @usernames The new order of active usernames. All currently active usernames must be specified
+reorderSupergroupActiveUsernames supergroup_id:int53 usernames:vector<string> = Ok;
 
 //@description Changes the sticker set of a supergroup; requires can_change_info administrator right @supergroup_id Identifier of the supergroup @sticker_set_id New value of the supergroup sticker set identifier. Use 0 to remove the supergroup sticker set
 setSupergroupStickerSet supergroup_id:int53 sticker_set_id:int64 = Ok;

@@ -6737,6 +6737,15 @@ void Td::on_request(uint64 id, td_api::setUsername &request) {
   contacts_manager_->set_username(request.username_, std::move(promise));
 }
 
+void Td::on_request(uint64 id, td_api::reorderActiveUsernames &request) {
+  CHECK_IS_USER();
+  for (auto &username : request.usernames_) {
+    CLEAN_INPUT_STRING(username);
+  }
+  CREATE_OK_REQUEST_PROMISE();
+  contacts_manager_->reorder_usernames(std::move(request.usernames_), std::move(promise));
+}
+
 void Td::on_request(uint64 id, const td_api::setEmojiStatus &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
@@ -6841,6 +6850,16 @@ void Td::on_request(uint64 id, td_api::setSupergroupUsername &request) {
   CLEAN_INPUT_STRING(request.username_);
   CREATE_OK_REQUEST_PROMISE();
   contacts_manager_->set_channel_username(ChannelId(request.supergroup_id_), request.username_, std::move(promise));
+}
+
+void Td::on_request(uint64 id, td_api::reorderSupergroupActiveUsernames &request) {
+  CHECK_IS_USER();
+  for (auto &username : request.usernames_) {
+    CLEAN_INPUT_STRING(username);
+  }
+  CREATE_OK_REQUEST_PROMISE();
+  contacts_manager_->reorder_channel_usernames(ChannelId(request.supergroup_id_), std::move(request.usernames_),
+                                               std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::setSupergroupStickerSet &request) {

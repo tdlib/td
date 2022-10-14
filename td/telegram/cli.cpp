@@ -4514,6 +4514,8 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::setBio>("\n" + args + "\n" + args + "\n"));
     } else if (op == "sun") {
       send_request(td_api::make_object<td_api::setUsername>(args));
+    } else if (op == "raun") {
+      send_request(td_api::make_object<td_api::reorderActiveUsernames>(autosplit_str(args)));
     } else if (op == "sese") {
       send_request(td_api::make_object<td_api::setEmojiStatus>(nullptr, 0));
     } else if (op == "ses") {
@@ -4540,6 +4542,11 @@ class CliClient final : public Actor {
       string username;
       get_args(args, supergroup_id, username);
       send_request(td_api::make_object<td_api::setSupergroupUsername>(as_supergroup_id(supergroup_id), username));
+    } else if (op == "rsgaun" || op == "rchaun") {
+      string supergroup_id;
+      get_args(args, supergroup_id);
+      send_request(td_api::make_object<td_api::reorderSupergroupActiveUsernames>(as_supergroup_id(supergroup_id),
+                                                                                 autosplit_str(args)));
     } else if (op == "ssgss") {
       string supergroup_id;
       int64 sticker_set_id;

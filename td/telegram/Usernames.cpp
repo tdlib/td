@@ -9,6 +9,8 @@
 #include "td/telegram/misc.h"
 #include "td/telegram/secret_api.h"
 
+#include "td/utils/misc.h"
+
 namespace td {
 
 Usernames::Usernames(string &&first_username, vector<telegram_api::object_ptr<telegram_api::username>> &&usernames) {
@@ -66,6 +68,44 @@ tl_object_ptr<td_api::usernames> Usernames::get_usernames_object() const {
   }
   return make_tl_object<td_api::usernames>(vector<string>(active_usernames_), vector<string>(disabled_usernames_),
                                            active_usernames_[editable_username_pos_]);
+}
+
+bool Usernames::can_reorder_to(const vector<string> &new_username_order) const {
+  if (new_username_order.size() != active_usernames_.size()) {
+    return false;
+  }
+  FlatHashSet<string> active_usernames;
+  for (auto &username : active_usernames_) {
+    active_usernames.insert(username);
+  }
+  for (auto &username : new_username_order) {
+    auto it = active_usernames.find(username);
+    if (it == active_usernames.end()) {
+      return false;
+    }
+    active_usernames.erase(it);
+  }
+  CHECK(active_usernames.empty());
+  return true;
+}
+
+Usernames Usernames::reorder_to(vector<string> &&new_username_order) const {
+  Usernames result;
+  if (is_empty()) {
+    CHECK(new_username_order.empty());
+    return result;
+  }
+  result.active_usernames_ = std::move(new_username_order);
+  result.disabled_usernames_ = disabled_usernames_;
+  const string &editable_username = active_usernames_[editable_username_pos_];
+  for (size_t i = 0; i < result.active_usernames_.size(); i++) {
+    if (result.active_usernames_[i] == editable_username) {
+      result.editable_username_pos_ = narrow_cast<int32>(i);
+      break;
+    }
+  }
+  CHECK(!is_empty());
+  return result;
 }
 
 void Usernames::check_utf8_validness() {
