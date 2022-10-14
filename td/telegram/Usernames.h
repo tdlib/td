@@ -34,21 +34,29 @@ class Usernames {
   td_api::object_ptr<td_api::usernames> get_usernames_object() const;
 
   bool is_empty() const {
-    return editable_username_pos_ == -1;
+    return editable_username_pos_ == -1 && active_usernames_.empty() && disabled_usernames_.empty();
   }
 
   string get_first_username() const {
-    if (is_empty()) {
+    if (!has_first_username()) {
       return string();
     }
     return active_usernames_[0];
   }
 
+  bool has_first_username() const {
+    return !active_usernames_.empty();
+  }
+
   string get_editable_username() const {
-    if (is_empty()) {
+    if (!has_editable_username()) {
       return string();
     }
     return active_usernames_[editable_username_pos_];
+  }
+
+  bool has_editable_username() const {
+    return editable_username_pos_ != -1;
   }
 
   const vector<string> &get_active_usernames() const {
@@ -61,20 +69,22 @@ class Usernames {
 
   template <class StorerT>
   void store(StorerT &storer) const {
-    CHECK(!is_empty())
-    CHECK(!active_usernames_.empty())
+    CHECK(!is_empty());
     bool has_many_active_usernames = active_usernames_.size() > 0;
     bool has_disabled_usernames = !disabled_usernames_.empty();
+    bool has_editable_username = editable_username_pos_ != -1;
     BEGIN_STORE_FLAGS();
     STORE_FLAG(has_many_active_usernames);
     STORE_FLAG(has_disabled_usernames);
+    STORE_FLAG(has_editable_username);
     END_STORE_FLAGS();
     if (has_many_active_usernames) {
       td::store(active_usernames_, storer);
-      td::store(editable_username_pos_, storer);
+      if (has_editable_username) {
+        td::store(editable_username_pos_, storer);
+      }
     } else {
       td::store(active_usernames_[0], storer);
-      CHECK(editable_username_pos_ == 0);
     }
     if (has_disabled_usernames) {
       td::store(disabled_usernames_, storer);
@@ -86,18 +96,24 @@ class Usernames {
     using td::parse;
     bool has_many_active_usernames;
     bool has_disabled_usernames;
+    bool has_editable_username;
     BEGIN_PARSE_FLAGS();
     PARSE_FLAG(has_many_active_usernames);
     PARSE_FLAG(has_disabled_usernames);
+    PARSE_FLAG(has_editable_username);
     END_PARSE_FLAGS();
     if (has_many_active_usernames) {
       td::parse(active_usernames_, parser);
-      td::parse(editable_username_pos_, parser);
-      CHECK(static_cast<size_t>(editable_username_pos_) < active_usernames_.size());
+      if (has_editable_username) {
+        td::parse(editable_username_pos_, parser);
+        CHECK(static_cast<size_t>(editable_username_pos_) < active_usernames_.size());
+      }
     } else {
       active_usernames_.resize(1);
       td::parse(active_usernames_[0], parser);
-      editable_username_pos_ = 0;
+      if (has_editable_username) {
+        editable_username_pos_ = 0;
+      }
     }
     if (has_disabled_usernames) {
       td::parse(disabled_usernames_, parser);

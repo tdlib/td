@@ -6827,7 +6827,7 @@ void ContactsManager::set_channel_username(ChannelId channel_id, const string &u
     return promise.set_error(Status::Error(400, "Username is invalid"));
   }
 
-  if (!username.empty() && c->usernames.is_empty()) {
+  if (!username.empty() && !c->usernames.has_editable_username()) {
     auto channel_full = get_channel_full(channel_id, false, "set_channel_username");
     if (channel_full != nullptr && !channel_full->can_set_username) {
       return promise.set_error(Status::Error(400, "Can't set supergroup username"));
@@ -8363,7 +8363,7 @@ void ContactsManager::finish_get_created_public_dialogs(PublicDialogType type, R
 void ContactsManager::update_created_public_channels(Channel *c, ChannelId channel_id) {
   if (created_public_channels_inited_[0]) {
     bool was_changed = false;
-    if (c->usernames.is_empty() || !c->status.is_creator()) {
+    if (!c->usernames.has_editable_username() || !c->status.is_creator()) {
       was_changed = td::remove(created_public_channels_[0], channel_id);
     } else {
       if (!td::contains(created_public_channels_[0], channel_id)) {
@@ -14392,7 +14392,7 @@ void ContactsManager::on_update_channel_usernames(Channel *c, ChannelId channel_
 void ContactsManager::on_channel_usernames_changed(const Channel *c, ChannelId channel_id,
                                                    const Usernames &old_usernames, const Usernames &new_usernames) {
   bool have_channel_full = get_channel_full(channel_id) != nullptr;
-  if (old_usernames.is_empty() || new_usernames.is_empty()) {
+  if (!old_usernames.has_first_username() || !new_usernames.has_first_username()) {
     // moving channel from private to public can change availability of chat members
     invalidate_channel_full(channel_id, !c->is_slow_mode_enabled);
   }
@@ -15365,7 +15365,7 @@ bool ContactsManager::is_channel_public(ChannelId channel_id) const {
 }
 
 bool ContactsManager::is_channel_public(const Channel *c) {
-  return c != nullptr && (!c->usernames.is_empty() || c->has_location);
+  return c != nullptr && (c->usernames.has_first_username() || c->has_location);
 }
 
 ChannelType ContactsManager::get_channel_type(ChannelId channel_id) const {
