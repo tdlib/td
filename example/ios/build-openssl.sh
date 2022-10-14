@@ -26,12 +26,12 @@ do
     echo $platform
     cd Python-Apple-support
     #NB: -j will fail
-    make OpenSSL-$platform
+    make OpenSSL-$platform || exit 1
     cd ..
-    rm -rf third_party/openssl/$platform
-    mkdir -p third_party/openssl/$platform/lib
-    cp ./Python-Apple-support/build/$platform/libcrypto.a third_party/openssl/$platform/lib/
-    cp ./Python-Apple-support/build/$platform/libssl.a third_party/openssl/$platform/lib/
-    cp -r ./Python-Apple-support/build/$platform/openssl/include/ third_party/openssl/$platform/include
+    rm -rf third_party/openssl/$platform || exit 1
+    mkdir -p third_party/openssl/$platform/lib || exit 1
+    cp ./Python-Apple-support/build/$platform/libcrypto.a third_party/openssl/$platform/lib/ || exit 1
+    cp ./Python-Apple-support/build/$platform/libssl.a third_party/openssl/$platform/lib/ || exit 1
+    cp -r ./Python-Apple-support/build/$platform/openssl/include/ third_party/openssl/$platform/include || exit 1
   done
 done

@@ -1,5 +1,5 @@
 diff --git a/Makefile b/Makefile
-index 695be54..9d4f4a4 100644
+index 695be54..eda7b0d 100644
 --- a/Makefile
 +++ b/Makefile
 @@ -7,8 +7,11 @@
@@ -96,9 +96,9 @@ index 695be54..9d4f4a4 100644
  		CROSS_SDK="$$(notdir $$(SDK_ROOT-$1))" \
 -		make all && make install
 +		make build_libs && \
-+		mkdir -p "$(PROJECT_DIR)/build/$2" && \
-+		cp libcrypto.a libssl.a "$(PROJECT_DIR)/build/$2" && \
-+		make install_sw
++		mkdir -p "$(PROJECT_DIR)/build/$2/openssl/lib" && \
++		cp libcrypto.a libssl.a "$(PROJECT_DIR)/build/$2/openssl/lib"
++	-cd $$(OPENSSL_DIR-$1) && make install_sw 2> /dev/null
  
  # Unpack BZip2
  $$(BZIP2_DIR-$1)/Makefile: downloads/bzip2-$(BZIP2_VERSION).tgz
