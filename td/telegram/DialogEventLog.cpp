@@ -129,7 +129,8 @@ static td_api::object_ptr<td_api::ChatEventAction> get_chat_event_action_object(
     }
     case telegram_api::channelAdminLogEventActionChangeUsernames::ID: {
       auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionChangeUsernames>(action_ptr);
-      return nullptr;
+      return td_api::make_object<td_api::chatEventActiveUsernamesChanged>(std::move(action->prev_value_),
+                                                                          std::move(action->new_value_));
     }
     case telegram_api::channelAdminLogEventActionChangePhoto::ID: {
       auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionChangePhoto>(action_ptr);

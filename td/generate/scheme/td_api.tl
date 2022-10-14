@@ -2927,6 +2927,9 @@ chatEventTitleChanged old_title:string new_title:string = ChatEventAction;
 //@description The chat editable username was changed @old_username Previous chat username @new_username New chat username
 chatEventUsernameChanged old_username:string new_username:string = ChatEventAction;
 
+//@description The chat active usernames were changed @old_usernames Previous list of active usernames @new_usernames New list of active usernames
+chatEventActiveUsernamesChanged old_usernames:vector<string> new_usernames:vector<string> = ChatEventAction;
+
 //@description The has_protected_content setting of a channel was toggled @has_protected_content New value of has_protected_content
 chatEventHasProtectedContentToggled has_protected_content:Bool = ChatEventAction;
 
