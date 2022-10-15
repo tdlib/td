@@ -24,7 +24,7 @@ class AsyncFileLog final : public LogInterface {
   AsyncFileLog &operator=(AsyncFileLog &&) = delete;
   ~AsyncFileLog();
 
-  Status init(string path, int64 rotate_threshold);
+  Status init(string path, int64 rotate_threshold, bool redirect_stderr = true);
 
  private:
   struct Query {
