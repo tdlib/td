@@ -13371,6 +13371,24 @@ void MessagesManager::hangup() {
   postponed_channel_updates_.clear();
 
   if (!G()->parameters().use_message_db) {
+    while (!being_uploaded_files_.empty()) {
+      auto it = being_uploaded_files_.begin();
+      auto full_message_id = it->second.first;
+      being_uploaded_files_.erase(it);
+      fail_send_message(full_message_id, Global::request_aborted_error());
+    }
+    while (!being_uploaded_thumbnails_.empty()) {
+      auto it = being_uploaded_thumbnails_.begin();
+      auto full_message_id = it->second.full_message_id;
+      being_uploaded_thumbnails_.erase(it);
+      fail_send_message(full_message_id, Global::request_aborted_error());
+    }
+    while (!being_loaded_secret_thumbnails_.empty()) {
+      auto it = being_loaded_secret_thumbnails_.begin();
+      auto full_message_id = it->second.full_message_id;
+      being_loaded_secret_thumbnails_.erase(it);
+      fail_send_message(full_message_id, Global::request_aborted_error());
+    }
     while (!being_sent_messages_.empty()) {
       on_send_message_fail(being_sent_messages_.begin()->first, Global::request_aborted_error());
     }
