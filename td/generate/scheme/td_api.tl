@@ -2978,6 +2978,21 @@ chatEventVideoChatParticipantIsMutedToggled participant_id:MessageSender is_mute
 //@description A video chat participant volume level was changed @participant_id Identifier of the affected group call participant @volume_level New value of volume_level; 1-20000 in hundreds of percents
 chatEventVideoChatParticipantVolumeLevelChanged participant_id:MessageSender volume_level:int32 = ChatEventAction;
 
+//@description The is_forum setting of a channel was toggled @is_forum New value of is_forum
+chatEventIsForumToggled is_forum:Bool = ChatEventAction;
+
+//@description A new forum topic was created @topic_info Information about the topic
+chatEventForumTopicCreated topic_info:forumTopicInfo = ChatEventAction;
+
+//@description A forum topic was edited @old_topic_info Old information about the topic @new_topic_info New information about the topic
+chatEventForumTopicEdited old_topic_info:forumTopicInfo new_topic_info:forumTopicInfo = ChatEventAction;
+
+//@description A forum topic was deleted @topic_info Information about the topic
+chatEventForumTopicDeleted topic_info:forumTopicInfo = ChatEventAction;
+
+//@description A pinned forum topic was changed @old_topic_info Information about the old pinned topic; may be null @new_topic_info Information about the new pinned topic; may be null
+chatEventForumTopicPinned old_topic_info:forumTopicInfo new_topic_info:forumTopicInfo = ChatEventAction;
+
 //@description Represents a chat event @id Chat event identifier @date Point in time (Unix timestamp) when the event happened @member_id Identifier of the user or chat who performed the action @action The action
 chatEvent id:int64 date:int32 member_id:MessageSender action:ChatEventAction = ChatEvent;
 

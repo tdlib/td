@@ -12,6 +12,7 @@
 #include "td/telegram/DialogInviteLink.h"
 #include "td/telegram/DialogLocation.h"
 #include "td/telegram/DialogParticipant.h"
+#include "td/telegram/ForumTopicInfo.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/GroupCallManager.h"
 #include "td/telegram/GroupCallParticipant.h"
@@ -357,12 +358,52 @@ static td_api::object_ptr<td_api::ChatEventAction> get_chat_event_action_object(
           old_available_reactions.get_chat_available_reactions_object(),
           new_available_reactions.get_chat_available_reactions_object());
     }
-    case telegram_api::channelAdminLogEventActionToggleForum::ID:
-    case telegram_api::channelAdminLogEventActionCreateTopic::ID:
-    case telegram_api::channelAdminLogEventActionEditTopic::ID:
-    case telegram_api::channelAdminLogEventActionDeleteTopic::ID:
-    case telegram_api::channelAdminLogEventActionPinTopic::ID:
-      return nullptr;
+    case telegram_api::channelAdminLogEventActionToggleForum::ID: {
+      auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionToggleForum>(action_ptr);
+      return td_api::make_object<td_api::chatEventIsForumToggled>(action->new_value_);
+    }
+    case telegram_api::channelAdminLogEventActionCreateTopic::ID: {
+      auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionCreateTopic>(action_ptr);
+      auto topic_info = ForumTopicInfo(td, action->topic_);
+      if (topic_info.is_empty()) {
+        return nullptr;
+      }
+      return td_api::make_object<td_api::chatEventForumTopicCreated>(topic_info.get_forum_topic_info_object(td));
+    }
+    case telegram_api::channelAdminLogEventActionEditTopic::ID: {
+      auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionEditTopic>(action_ptr);
+      auto old_topic_info = ForumTopicInfo(td, action->prev_topic_);
+      auto new_topic_info = ForumTopicInfo(td, action->new_topic_);
+      if (old_topic_info.is_empty() || new_topic_info.is_empty()) {
+        return nullptr;
+      }
+      return td_api::make_object<td_api::chatEventForumTopicEdited>(old_topic_info.get_forum_topic_info_object(td),
+                                                                    new_topic_info.get_forum_topic_info_object(td));
+    }
+    case telegram_api::channelAdminLogEventActionDeleteTopic::ID: {
+      auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionDeleteTopic>(action_ptr);
+      auto topic_info = ForumTopicInfo(td, action->topic_);
+      if (topic_info.is_empty()) {
+        return nullptr;
+      }
+      return td_api::make_object<td_api::chatEventForumTopicDeleted>(topic_info.get_forum_topic_info_object(td));
+    }
+    case telegram_api::channelAdminLogEventActionPinTopic::ID: {
+      auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionPinTopic>(action_ptr);
+      ForumTopicInfo old_topic_info;
+      ForumTopicInfo new_topic_info;
+      if (action->prev_topic_ != nullptr) {
+        old_topic_info = ForumTopicInfo(td, action->prev_topic_);
+      }
+      if (action->new_topic_ != nullptr) {
+        new_topic_info = ForumTopicInfo(td, action->new_topic_);
+      }
+      if (old_topic_info.is_empty() && new_topic_info.is_empty()) {
+        return nullptr;
+      }
+      return td_api::make_object<td_api::chatEventForumTopicPinned>(old_topic_info.get_forum_topic_info_object(td),
+                                                                    new_topic_info.get_forum_topic_info_object(td));
+    }
     default:
       UNREACHABLE();
       return nullptr;
