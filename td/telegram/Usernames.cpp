@@ -9,6 +9,7 @@
 #include "td/telegram/misc.h"
 #include "td/telegram/secret_api.h"
 
+#include "td/utils/algorithm.h"
 #include "td/utils/misc.h"
 
 namespace td {
@@ -55,7 +56,7 @@ Usernames::Usernames(string &&first_username, vector<telegram_api::object_ptr<te
       disabled_usernames_.push_back(std::move(usernames[i]->username_));
     }
   }
-  CHECK((editable_username_pos_ != -1) == was_editable);
+  CHECK(has_editable_username() == was_editable);
 }
 
 tl_object_ptr<td_api::usernames> Usernames::get_usernames_object() const {
@@ -64,12 +65,12 @@ tl_object_ptr<td_api::usernames> Usernames::get_usernames_object() const {
   }
   return make_tl_object<td_api::usernames>(
       vector<string>(active_usernames_), vector<string>(disabled_usernames_),
-      editable_username_pos_ == -1 ? string() : active_usernames_[editable_username_pos_]);
+      has_editable_username() ? active_usernames_[editable_username_pos_] : string());
 }
 
 Usernames Usernames::change_editable_username(string &&new_username) const {
   Usernames result = *this;
-  if (editable_username_pos_ != -1) {
+  if (has_editable_username()) {
     // keep position
     result.active_usernames_[editable_username_pos_] = std::move(new_username);
   } else {
@@ -77,6 +78,48 @@ Usernames Usernames::change_editable_username(string &&new_username) const {
     result.active_usernames_.insert(result.active_usernames_.begin(), std::move(new_username));
     result.editable_username_pos_ = 0;
   }
+  return result;
+}
+
+bool Usernames::can_toggle(const string &username) const {
+  if (td::contains(active_usernames_, username)) {
+    return !has_editable_username() || active_usernames_[editable_username_pos_] != username;
+  }
+  if (td::contains(disabled_usernames_, username)) {
+    return true;
+  }
+  return false;
+}
+
+Usernames Usernames::toggle(const string &username, bool is_active) const {
+  Usernames result = *this;
+  for (size_t i = 0; i < disabled_usernames_.size(); i++) {
+    if (disabled_usernames_[i] == username) {
+      if (is_active) {
+        // activate the username
+        result.disabled_usernames_.erase(result.disabled_usernames_.begin() + i);
+        result.active_usernames_.push_back(username);
+        // editable username position wasn't changed
+      }
+      return result;
+    }
+  }
+  for (size_t i = 0; i < active_usernames_.size(); i++) {
+    if (active_usernames_[i] == username) {
+      if (!is_active) {
+        // disable the username
+        result.active_usernames_.erase(result.active_usernames_.begin() + i);
+        result.disabled_usernames_.insert(result.disabled_usernames_.begin(), username);
+        if (result.has_editable_username() && i <= static_cast<size_t>(result.editable_username_pos_)) {
+          CHECK(i != static_cast<size_t>(result.editable_username_pos_));
+          CHECK(result.editable_username_pos_ > 0);
+          result.editable_username_pos_--;
+        }
+      }
+      return result;
+    }
+  }
+  UNREACHABLE();
   return result;
 }
 
@@ -103,7 +146,7 @@ Usernames Usernames::reorder_to(vector<string> &&new_username_order) const {
   Usernames result;
   result.active_usernames_ = std::move(new_username_order);
   result.disabled_usernames_ = disabled_usernames_;
-  if (editable_username_pos_ != -1) {
+  if (has_editable_username()) {
     const string &editable_username = active_usernames_[editable_username_pos_];
     for (size_t i = 0; i < result.active_usernames_.size(); i++) {
       if (result.active_usernames_[i] == editable_username) {
@@ -111,7 +154,7 @@ Usernames Usernames::reorder_to(vector<string> &&new_username_order) const {
         break;
       }
     }
-    CHECK(result.editable_username_pos_ != -1);
+    CHECK(result.has_editable_username());
   }
   return result;
 }
@@ -144,7 +187,7 @@ bool operator!=(const Usernames &lhs, const Usernames &rhs) {
 
 StringBuilder &operator<<(StringBuilder &string_builder, const Usernames &usernames) {
   string_builder << "Usernames[";
-  if (usernames.editable_username_pos_ != -1) {
+  if (usernames.has_editable_username()) {
     string_builder << usernames.active_usernames_[usernames.editable_username_pos_];
   }
   if (!usernames.active_usernames_.empty()) {

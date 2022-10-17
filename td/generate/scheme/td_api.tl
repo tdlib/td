@@ -488,7 +488,7 @@ emojiStatuses emoji_statuses:vector<emojiStatus> = EmojiStatuses;
 
 //@description Describes usernames assigned to a user, a supergroup, or a channel
 //@active_usernames List of active usernames; the first one must be shown as the primary username. The order of active usernames can be changed with reorderActiveUsernames or reorderSupergroupActiveUsernames
-//@disabled_usernames List of currently disabled usernames; the username can be activated or disabled with toggleUsernameIsActive/toggleSupergroupUsernameIsActive
+//@disabled_usernames List of currently disabled usernames; the username can be activated with toggleUsernameIsActive/toggleSupergroupUsernameIsActive
 //@editable_username The active username, which can be changed with setUsername/setSupergroupUsername
 usernames active_usernames:vector<string> disabled_usernames:vector<string> editable_username:string = Usernames;
 
@@ -6202,6 +6202,9 @@ setBio bio:string = Ok;
 //@description Changes the editable username of the current user @username The new value of the username. Use an empty string to remove the username. The username can't be completely removed if there is another active or disabled username
 setUsername username:string = Ok;
 
+//@description Changes active state for a username of the current user. The editable username can't be disabled. May return an error with a message "USERNAMES_ACTIVE_TOO_MUCH" if the maximum number of active usernames has been reached @username The username to change @is_active True, if the username must be activated, or false, if it must be disabled
+toggleUsernameIsActive username:string is_active:Bool = Ok;
+
 //@description Changes order of active usernames of the current user @usernames The new order of active usernames. All currently active usernames must be specified
 reorderActiveUsernames usernames:vector<string> = Ok;
 
@@ -6286,6 +6289,9 @@ disconnectAllWebsites = Ok;
 
 //@description Changes the editable username of a supergroup or channel, requires owner privileges in the supergroup or channel @supergroup_id Identifier of the supergroup or channel @username New value of the username. Use an empty string to remove the username. The username can't be completely removed if there is another active or disabled username
 setSupergroupUsername supergroup_id:int53 username:string = Ok;
+
+//@description Changes active state for a username of a supergroup or channel, requires owner privileges in the supergroup or channel. The editable username can't be disabled. May return an error with a message "USERNAMES_ACTIVE_TOO_MUCH" if the maximum number of active usernames has been reached @supergroup_id Identifier of the supergroup or channel @username The username to change @is_active True, if the username must be activated, or false, if it must be disabled
+toggleSupergroupUsernameIsActive supergroup_id:int53 username:string is_active:Bool = Ok;
 
 //@description Changes order of active usernames of a supergroup or channel, requires owner privileges in the supergroup or channel @supergroup_id Identifier of the supergroup or channel @usernames The new order of active usernames. All currently active usernames must be specified
 reorderSupergroupActiveUsernames supergroup_id:int53 usernames:vector<string> = Ok;

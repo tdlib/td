@@ -673,6 +673,41 @@ class UpdateUsernameQuery final : public Td::ResultHandler {
   }
 };
 
+class ToggleUsernameQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  string username_;
+  bool is_active_;
+
+ public:
+  explicit ToggleUsernameQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(string &&username, bool is_active) {
+    username_ = std::move(username);
+    is_active_ = is_active;
+    send_query(G()->net_query_creator().create(telegram_api::account_toggleUsername(username_, is_active_)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::account_toggleUsername>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    bool result = result_ptr.ok();
+    LOG(DEBUG) << "Receive result for ToggleUsernameQuery: " << result;
+    td_->contacts_manager_->on_update_username_is_active(std::move(username_), is_active_, std::move(promise_));
+  }
+
+  void on_error(Status status) final {
+    if (status.message() == "USERNAME_NOT_MODIFIED") {
+      td_->contacts_manager_->on_update_username_is_active(std::move(username_), is_active_, std::move(promise_));
+      return;
+    }
+    promise_.set_error(std::move(status));
+  }
+};
+
 class ReorderUsernamesQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   vector<string> usernames_;
@@ -824,6 +859,50 @@ class UpdateChannelUsernameQuery final : public Td::ResultHandler {
       }
     } else {
       td_->contacts_manager_->on_get_channel_error(channel_id_, status, "UpdateChannelUsernameQuery");
+    }
+    promise_.set_error(std::move(status));
+  }
+};
+
+class ToggleChannelUsernameQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  ChannelId channel_id_;
+  string username_;
+  bool is_active_;
+
+ public:
+  explicit ToggleChannelUsernameQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(ChannelId channel_id, string &&username, bool is_active) {
+    channel_id_ = channel_id;
+    username_ = std::move(username);
+    is_active_ = is_active;
+    auto input_channel = td_->contacts_manager_->get_input_channel(channel_id);
+    CHECK(input_channel != nullptr);
+    send_query(G()->net_query_creator().create(
+        telegram_api::channels_toggleUsername(std::move(input_channel), username_, is_active_)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::channels_toggleUsername>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    bool result = result_ptr.ok();
+    LOG(DEBUG) << "Receive result for ToggleChannelUsernameQuery: " << result;
+    td_->contacts_manager_->on_update_channel_username_is_active(channel_id_, std::move(username_), is_active_,
+                                                                 std::move(promise_));
+  }
+
+  void on_error(Status status) final {
+    if (status.message() == "USERNAME_NOT_MODIFIED" || status.message() == "CHAT_NOT_MODIFIED") {
+      td_->contacts_manager_->on_update_channel_username_is_active(channel_id_, std::move(username_), is_active_,
+                                                                   std::move(promise_));
+      return;
+    } else {
+      td_->contacts_manager_->on_get_channel_error(channel_id_, status, "ToggleChannelUsernameQuery");
     }
     promise_.set_error(std::move(status));
   }
@@ -6742,6 +6821,28 @@ void ContactsManager::set_username(const string &username, Promise<Unit> &&promi
   td_->create_handler<UpdateUsernameQuery>(std::move(promise))->send(username);
 }
 
+void ContactsManager::toggle_username_is_active(string &&username, bool is_active, Promise<Unit> &&promise) {
+  get_me(PromiseCreator::lambda([actor_id = actor_id(this), username = std::move(username), is_active,
+                                 promise = std::move(promise)](Result<Unit> &&result) mutable {
+    if (result.is_error()) {
+      promise.set_error(result.move_as_error());
+    } else {
+      send_closure(actor_id, &ContactsManager::toggle_username_is_active_impl, std::move(username), is_active,
+                   std::move(promise));
+    }
+  }));
+}
+
+void ContactsManager::toggle_username_is_active_impl(string &&username, bool is_active, Promise<Unit> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+  const User *u = get_user(get_my_id());
+  CHECK(u != nullptr);
+  if (!u->usernames.can_toggle(username)) {
+    return promise.set_error(Status::Error(400, "Unknown username specified"));
+  }
+  td_->create_handler<ToggleUsernameQuery>(std::move(promise))->send(std::move(username), is_active);
+}
+
 void ContactsManager::reorder_usernames(vector<string> &&usernames, Promise<Unit> &&promise) {
   get_me(PromiseCreator::lambda([actor_id = actor_id(this), usernames = std::move(usernames),
                                  promise = std::move(promise)](Result<Unit> &&result) mutable {
@@ -6761,6 +6862,18 @@ void ContactsManager::reorder_usernames_impl(vector<string> &&usernames, Promise
     return promise.set_error(Status::Error(400, "Invalid username order specified"));
   }
   td_->create_handler<ReorderUsernamesQuery>(std::move(promise))->send(std::move(usernames));
+}
+
+void ContactsManager::on_update_username_is_active(string &&username, bool is_active, Promise<Unit> &&promise) {
+  auto user_id = get_my_id();
+  User *u = get_user(user_id);
+  CHECK(u != nullptr);
+  if (!u->usernames.can_toggle(username)) {
+    return reload_user(user_id, std::move(promise));
+  }
+  on_update_user_usernames(u, user_id, u->usernames.toggle(username, is_active));
+  update_user(u, user_id);
+  promise.set_value(Unit());
 }
 
 void ContactsManager::on_update_active_usernames_order(vector<string> &&usernames, Promise<Unit> &&promise) {
@@ -6837,8 +6950,8 @@ void ContactsManager::set_channel_username(ChannelId channel_id, const string &u
   td_->create_handler<UpdateChannelUsernameQuery>(std::move(promise))->send(channel_id, username);
 }
 
-void ContactsManager::reorder_channel_usernames(ChannelId channel_id, vector<string> &&usernames,
-                                                Promise<Unit> &&promise) {
+void ContactsManager::toggle_channel_username_is_active(ChannelId channel_id, string &&username, bool is_active,
+                                                        Promise<Unit> &&promise) {
   const auto *c = get_channel(channel_id);
   if (c == nullptr) {
     return promise.set_error(Status::Error(400, "Supergroup not found"));
@@ -6846,10 +6959,37 @@ void ContactsManager::reorder_channel_usernames(ChannelId channel_id, vector<str
   if (!get_channel_status(c).is_creator()) {
     return promise.set_error(Status::Error(400, "Not enough rights to change username"));
   }
+  if (!c->usernames.can_toggle(username)) {
+    return promise.set_error(Status::Error(400, "Unknown username specified"));
+  }
+  td_->create_handler<ToggleChannelUsernameQuery>(std::move(promise))->send(channel_id, std::move(username), is_active);
+}
+
+void ContactsManager::reorder_channel_usernames(ChannelId channel_id, vector<string> &&usernames,
+                                                Promise<Unit> &&promise) {
+  const auto *c = get_channel(channel_id);
+  if (c == nullptr) {
+    return promise.set_error(Status::Error(400, "Supergroup not found"));
+  }
+  if (!get_channel_status(c).is_creator()) {
+    return promise.set_error(Status::Error(400, "Not enough rights to reorder usernames"));
+  }
   if (!c->usernames.can_reorder_to(usernames)) {
     return promise.set_error(Status::Error(400, "Invalid username order specified"));
   }
   td_->create_handler<ReorderChannelUsernamesQuery>(std::move(promise))->send(channel_id, std::move(usernames));
+}
+
+void ContactsManager::on_update_channel_username_is_active(ChannelId channel_id, string &&username, bool is_active,
+                                                           Promise<Unit> &&promise) {
+  auto *c = get_channel(channel_id);
+  CHECK(c != nullptr);
+  if (!c->usernames.can_toggle(username)) {
+    return reload_channel(channel_id, std::move(promise));
+  }
+  on_update_channel_usernames(c, channel_id, c->usernames.toggle(username, is_active));
+  update_channel(c, channel_id);
+  promise.set_value(Unit());
 }
 
 void ContactsManager::on_update_channel_active_usernames_order(ChannelId channel_id, vector<string> &&usernames,

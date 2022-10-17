@@ -285,7 +285,12 @@ class ContactsManager final : public Actor {
 
   UserId add_channel_bot_user();
 
+  void on_update_username_is_active(string &&username, bool is_active, Promise<Unit> &&promise);
+
   void on_update_active_usernames_order(vector<string> &&usernames, Promise<Unit> &&promise);
+
+  void on_update_channel_username_is_active(ChannelId channel_id, string &&username, bool is_active,
+                                            Promise<Unit> &&promise);
 
   void on_update_channel_active_usernames_order(ChannelId channel_id, vector<string> &&usernames,
                                                 Promise<Unit> &&promise);
@@ -352,6 +357,8 @@ class ContactsManager final : public Actor {
 
   void set_username(const string &username, Promise<Unit> &&promise);
 
+  void toggle_username_is_active(string &&username, bool is_active, Promise<Unit> &&promise);
+
   void reorder_usernames(vector<string> &&usernames, Promise<Unit> &&promise);
 
   void set_emoji_status(EmojiStatus emoji_status, Promise<Unit> &&promise);
@@ -359,6 +366,9 @@ class ContactsManager final : public Actor {
   void set_chat_description(ChatId chat_id, const string &description, Promise<Unit> &&promise);
 
   void set_channel_username(ChannelId channel_id, const string &username, Promise<Unit> &&promise);
+
+  void toggle_channel_username_is_active(ChannelId channel_id, string &&username, bool is_active,
+                                         Promise<Unit> &&promise);
 
   void reorder_channel_usernames(ChannelId channel_id, vector<string> &&usernames, Promise<Unit> &&promise);
 
@@ -1357,6 +1367,8 @@ class ContactsManager final : public Actor {
                                                               int32 slow_mode_next_send_date);
   static void on_update_channel_full_bot_user_ids(ChannelFull *channel_full, ChannelId channel_id,
                                                   vector<UserId> &&bot_user_ids);
+
+  void toggle_username_is_active_impl(string &&username, bool is_active, Promise<Unit> &&promise);
 
   void reorder_usernames_impl(vector<string> &&usernames, Promise<Unit> &&promise);
 

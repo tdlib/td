@@ -4514,6 +4514,11 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::setBio>("\n" + args + "\n" + args + "\n"));
     } else if (op == "sun") {
       send_request(td_api::make_object<td_api::setUsername>(args));
+    } else if (op == "tunia") {
+      string username;
+      bool is_active;
+      get_args(args, username, is_active);
+      send_request(td_api::make_object<td_api::toggleUsernameIsActive>(username, is_active));
     } else if (op == "raun") {
       send_request(td_api::make_object<td_api::reorderActiveUsernames>(autosplit_str(args)));
     } else if (op == "sese") {
@@ -4542,6 +4547,13 @@ class CliClient final : public Actor {
       string username;
       get_args(args, supergroup_id, username);
       send_request(td_api::make_object<td_api::setSupergroupUsername>(as_supergroup_id(supergroup_id), username));
+    } else if (op == "tsgunia" || op == "tchunia") {
+      string supergroup_id;
+      string username;
+      bool is_active;
+      get_args(args, supergroup_id, username, is_active);
+      send_request(td_api::make_object<td_api::toggleSupergroupUsernameIsActive>(as_supergroup_id(supergroup_id),
+                                                                                 username, is_active));
     } else if (op == "rsgaun" || op == "rchaun") {
       string supergroup_id;
       get_args(args, supergroup_id);

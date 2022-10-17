@@ -1028,6 +1028,8 @@ class Td final : public Actor {
 
   void on_request(uint64 id, td_api::setUsername &request);
 
+  void on_request(uint64 id, td_api::toggleUsernameIsActive &request);
+
   void on_request(uint64 id, td_api::reorderActiveUsernames &request);
 
   void on_request(uint64 id, const td_api::setEmojiStatus &request);
@@ -1063,6 +1065,8 @@ class Td final : public Actor {
   void on_request(uint64 id, const td_api::getUserProfilePhotos &request);
 
   void on_request(uint64 id, td_api::setSupergroupUsername &request);
+
+  void on_request(uint64 id, td_api::toggleSupergroupUsernameIsActive &request);
 
   void on_request(uint64 id, td_api::reorderSupergroupActiveUsernames &request);
 
