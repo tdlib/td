@@ -1297,6 +1297,18 @@ webAppInfo launch_id:int64 url:string = WebAppInfo;
 messageThreadInfo chat_id:int53 message_thread_id:int53 reply_info:messageReplyInfo unread_message_count:int32 messages:vector<message> draft_message:draftMessage = MessageThreadInfo;
 
 
+//@description Contains basic information about a forum topic
+//@message_thread_id Thread identifier of the topic
+//@title Title of the topic
+//@icon_color Color of the topic icon
+//@icon_custom_emoji_id Unique identifier of the custom emoji shown on the topic icon; 0 if none
+//@creation_date Date the topic was created
+//@creator_id Identifier of the creator of the topic
+//@is_outgoing True, if the topic was created by the current user
+//@is_closed True, if the topic is closed
+forumTopicInfo message_thread_id:int53 title:string icon_color:int32 icon_custom_emoji_id:int64 creation_date:int32 creator_id:MessageSender is_outgoing:Bool is_closed:Bool = ForumTopicInfo;
+
+
 //@class RichText @description Describes a text object inside an instant-view web page
 
 //@description A plain text @text Text

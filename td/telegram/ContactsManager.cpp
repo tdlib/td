@@ -6876,7 +6876,7 @@ void ContactsManager::toggle_username_is_active_impl(string &&username, bool is_
   const User *u = get_user(get_my_id());
   CHECK(u != nullptr);
   if (!u->usernames.can_toggle(username)) {
-    return promise.set_error(Status::Error(400, "Unknown username specified"));
+    return promise.set_error(Status::Error(400, "Wrong username specified"));
   }
   td_->create_handler<ToggleUsernameQuery>(std::move(promise))->send(std::move(username), is_active);
 }
@@ -7001,7 +7001,7 @@ void ContactsManager::toggle_channel_username_is_active(ChannelId channel_id, st
     return promise.set_error(Status::Error(400, "Not enough rights to change username"));
   }
   if (!c->usernames.can_toggle(username)) {
-    return promise.set_error(Status::Error(400, "Unknown username specified"));
+    return promise.set_error(Status::Error(400, "Wrong username specified"));
   }
   td_->create_handler<ToggleChannelUsernameQuery>(std::move(promise))->send(channel_id, std::move(username), is_active);
 }
