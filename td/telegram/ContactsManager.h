@@ -200,6 +200,7 @@ class ContactsManager final : public Actor {
   void on_update_chat_default_permissions(ChatId chat_id, RestrictedRights default_permissions, int32 version);
   void on_update_chat_pinned_message(ChatId chat_id, MessageId pinned_message_id, int32 version);
 
+  void on_update_channel_editable_username(ChannelId channel_id, string &&username);
   void on_update_channel_usernames(ChannelId channel_id, Usernames &&usernames);
   void on_update_channel_description(ChannelId channel_id, string &&description);
   void on_update_channel_sticker_set(ChannelId channel_id, StickerSetId sticker_set_id);

@@ -67,6 +67,19 @@ tl_object_ptr<td_api::usernames> Usernames::get_usernames_object() const {
       editable_username_pos_ == -1 ? string() : active_usernames_[editable_username_pos_]);
 }
 
+Usernames Usernames::change_editable_username(string &&new_username) const {
+  Usernames result = *this;
+  if (editable_username_pos_ != -1) {
+    // keep position
+    result.active_usernames_[editable_username_pos_] = std::move(new_username);
+  } else {
+    // add to the beginning
+    result.active_usernames_.insert(result.active_usernames_.begin(), std::move(new_username));
+    result.editable_username_pos_ = 0;
+  }
+  return result;
+}
+
 bool Usernames::can_reorder_to(const vector<string> &new_username_order) const {
   if (new_username_order.size() != active_usernames_.size()) {
     return false;

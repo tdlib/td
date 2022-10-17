@@ -63,6 +63,8 @@ class Usernames {
     return active_usernames_;
   }
 
+  Usernames change_editable_username(string &&new_username) const;
+
   bool can_reorder_to(const vector<string> &new_username_order) const;
 
   Usernames reorder_to(vector<string> &&new_username_order) const;

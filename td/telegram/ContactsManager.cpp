@@ -811,13 +811,13 @@ class UpdateChannelUsernameQuery final : public Td::ResultHandler {
       return on_error(Status::Error(500, "Supergroup username is not updated"));
     }
 
-    // td_->contacts_manager_->on_update_channel_editable_username(channel_id_, std::move(username_));
+    td_->contacts_manager_->on_update_channel_editable_username(channel_id_, std::move(username_));
     promise_.set_value(Unit());
   }
 
   void on_error(Status status) final {
     if (status.message() == "USERNAME_NOT_MODIFIED" || status.message() == "CHAT_NOT_MODIFIED") {
-      // td_->contacts_manager_->on_update_channel_editable_username(channel_id_, std::move(username_));
+      td_->contacts_manager_->on_update_channel_editable_username(channel_id_, std::move(username_));
       if (!td_->auth_manager_->is_bot()) {
         promise_.set_value(Unit());
         return;
@@ -14359,6 +14359,13 @@ void ContactsManager::on_update_channel_noforwards(Channel *c, ChannelId channel
     c->is_noforwards_changed = true;
     c->need_save_to_database = true;
   }
+}
+
+void ContactsManager::on_update_channel_editable_username(ChannelId channel_id, string &&username) {
+  Channel *c = get_channel(channel_id);
+  CHECK(c != nullptr);
+  on_update_channel_usernames(c, channel_id, c->usernames.change_editable_username(std::move(username)));
+  update_channel(c, channel_id);
 }
 
 void ContactsManager::on_update_channel_usernames(ChannelId channel_id, Usernames &&usernames) {
