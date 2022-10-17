@@ -6867,6 +6867,12 @@ void Td::on_request(uint64 id, td_api::toggleSupergroupUsernameIsActive &request
                                                        request.is_active_, std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::disableAllSupergroupUsernames &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  contacts_manager_->disable_all_channel_usernames(ChannelId(request.supergroup_id_), std::move(promise));
+}
+
 void Td::on_request(uint64 id, td_api::reorderSupergroupActiveUsernames &request) {
   CHECK_IS_USER();
   for (auto &username : request.usernames_) {

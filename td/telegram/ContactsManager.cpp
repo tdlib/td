@@ -908,6 +908,44 @@ class ToggleChannelUsernameQuery final : public Td::ResultHandler {
   }
 };
 
+class DeactivateAllChannelUsernamesQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  ChannelId channel_id_;
+
+ public:
+  explicit DeactivateAllChannelUsernamesQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(ChannelId channel_id) {
+    channel_id_ = channel_id;
+    auto input_channel = td_->contacts_manager_->get_input_channel(channel_id);
+    CHECK(input_channel != nullptr);
+    send_query(
+        G()->net_query_creator().create(telegram_api::channels_deactivateAllUsernames(std::move(input_channel))));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::channels_deactivateAllUsernames>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    bool result = result_ptr.ok();
+    LOG(DEBUG) << "Receive result for DeactivateAllChannelUsernamesQuery: " << result;
+    td_->contacts_manager_->on_deactivate_channel_usernames(channel_id_, std::move(promise_));
+  }
+
+  void on_error(Status status) final {
+    if (status.message() == "USERNAME_NOT_MODIFIED" || status.message() == "CHAT_NOT_MODIFIED") {
+      td_->contacts_manager_->on_deactivate_channel_usernames(channel_id_, std::move(promise_));
+      return;
+    } else {
+      td_->contacts_manager_->on_get_channel_error(channel_id_, status, "DeactivateAllChannelUsernamesQuery");
+    }
+    promise_.set_error(std::move(status));
+  }
+};
+
 class ReorderChannelUsernamesQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   ChannelId channel_id_;
@@ -6965,6 +7003,17 @@ void ContactsManager::toggle_channel_username_is_active(ChannelId channel_id, st
   td_->create_handler<ToggleChannelUsernameQuery>(std::move(promise))->send(channel_id, std::move(username), is_active);
 }
 
+void ContactsManager::disable_all_channel_usernames(ChannelId channel_id, Promise<Unit> &&promise) {
+  const auto *c = get_channel(channel_id);
+  if (c == nullptr) {
+    return promise.set_error(Status::Error(400, "Supergroup not found"));
+  }
+  if (!get_channel_status(c).is_creator()) {
+    return promise.set_error(Status::Error(400, "Not enough rights to disable usernames"));
+  }
+  td_->create_handler<DeactivateAllChannelUsernamesQuery>(std::move(promise))->send(channel_id);
+}
+
 void ContactsManager::reorder_channel_usernames(ChannelId channel_id, vector<string> &&usernames,
                                                 Promise<Unit> &&promise) {
   const auto *c = get_channel(channel_id);
@@ -6988,6 +7037,14 @@ void ContactsManager::on_update_channel_username_is_active(ChannelId channel_id,
     return reload_channel(channel_id, std::move(promise));
   }
   on_update_channel_usernames(c, channel_id, c->usernames.toggle(username, is_active));
+  update_channel(c, channel_id);
+  promise.set_value(Unit());
+}
+
+void ContactsManager::on_deactivate_channel_usernames(ChannelId channel_id, Promise<Unit> &&promise) {
+  auto *c = get_channel(channel_id);
+  CHECK(c != nullptr);
+  on_update_channel_usernames(c, channel_id, c->usernames.deactivate_all());
   update_channel(c, channel_id);
   promise.set_value(Unit());
 }

@@ -123,6 +123,21 @@ Usernames Usernames::toggle(const string &username, bool is_active) const {
   return result;
 }
 
+Usernames Usernames::deactivate_all() const {
+  Usernames result;
+  for (size_t i = 0; i < active_usernames_.size(); i++) {
+    if (i == static_cast<size_t>(editable_username_pos_)) {
+      result.active_usernames_.push_back(active_usernames_[i]);
+      result.editable_username_pos_ = 0;
+    } else {
+      result.disabled_usernames_.push_back(active_usernames_[i]);
+    }
+  }
+  td::append(result.disabled_usernames_, disabled_usernames_);
+  CHECK(result.has_editable_username() == has_editable_username());
+  return result;
+}
+
 bool Usernames::can_reorder_to(const vector<string> &new_username_order) const {
   if (new_username_order.size() != active_usernames_.size()) {
     return false;

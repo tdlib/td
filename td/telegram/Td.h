@@ -1068,6 +1068,8 @@ class Td final : public Actor {
 
   void on_request(uint64 id, td_api::toggleSupergroupUsernameIsActive &request);
 
+  void on_request(uint64 id, const td_api::disableAllSupergroupUsernames &request);
+
   void on_request(uint64 id, td_api::reorderSupergroupActiveUsernames &request);
 
   void on_request(uint64 id, const td_api::setSupergroupStickerSet &request);

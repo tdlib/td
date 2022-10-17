@@ -4554,6 +4554,10 @@ class CliClient final : public Actor {
       get_args(args, supergroup_id, username, is_active);
       send_request(td_api::make_object<td_api::toggleSupergroupUsernameIsActive>(as_supergroup_id(supergroup_id),
                                                                                  username, is_active));
+    } else if (op == "dasgun" || op == "dachun") {
+      string supergroup_id;
+      get_args(args, supergroup_id);
+      send_request(td_api::make_object<td_api::disableAllSupergroupUsernames>(as_supergroup_id(supergroup_id)));
     } else if (op == "rsgaun" || op == "rchaun") {
       string supergroup_id;
       get_args(args, supergroup_id);

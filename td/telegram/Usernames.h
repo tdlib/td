@@ -69,6 +69,8 @@ class Usernames {
 
   Usernames toggle(const string &username, bool is_active) const;
 
+  Usernames deactivate_all() const;
+
   bool can_reorder_to(const vector<string> &new_username_order) const;
 
   Usernames reorder_to(vector<string> &&new_username_order) const;

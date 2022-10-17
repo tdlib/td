@@ -292,6 +292,8 @@ class ContactsManager final : public Actor {
   void on_update_channel_username_is_active(ChannelId channel_id, string &&username, bool is_active,
                                             Promise<Unit> &&promise);
 
+  void on_deactivate_channel_usernames(ChannelId channel_id, Promise<Unit> &&promise);
+
   void on_update_channel_active_usernames_order(ChannelId channel_id, vector<string> &&usernames,
                                                 Promise<Unit> &&promise);
 
@@ -369,6 +371,8 @@ class ContactsManager final : public Actor {
 
   void toggle_channel_username_is_active(ChannelId channel_id, string &&username, bool is_active,
                                          Promise<Unit> &&promise);
+
+  void disable_all_channel_usernames(ChannelId channel_id, Promise<Unit> &&promise);
 
   void reorder_channel_usernames(ChannelId channel_id, vector<string> &&usernames, Promise<Unit> &&promise);
 
