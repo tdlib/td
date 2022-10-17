@@ -14333,9 +14333,9 @@ void ContactsManager::on_update_channel_bot_user_ids(ChannelId channel_id, vecto
 void ContactsManager::on_update_channel_full_bot_user_ids(ChannelFull *channel_full, ChannelId channel_id,
                                                           vector<UserId> &&bot_user_ids) {
   CHECK(channel_full != nullptr);
+  send_closure_later(G()->messages_manager(), &MessagesManager::on_dialog_bots_updated, DialogId(channel_id),
+                     bot_user_ids, false);
   if (channel_full->bot_user_ids != bot_user_ids) {
-    send_closure_later(G()->messages_manager(), &MessagesManager::on_dialog_bots_updated, DialogId(channel_id),
-                       bot_user_ids, false);
     channel_full->bot_user_ids = std::move(bot_user_ids);
     channel_full->need_save_to_database = true;
   }
