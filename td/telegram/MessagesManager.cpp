@@ -33518,13 +33518,15 @@ void MessagesManager::on_get_dialog_query_finished(DialogId dialog_id, Status &&
 void MessagesManager::on_dialog_usernames_updated(DialogId dialog_id, const Usernames &old_usernames,
                                                   const Usernames &new_usernames) {
   CHECK(dialog_id.is_valid());
-  auto d = get_dialog(dialog_id);
+  const auto *d = get_dialog(dialog_id);
   if (d != nullptr) {
     update_dialogs_hints(d);
   }
   if (old_usernames != new_usernames) {
     message_embedding_codes_[0].erase(dialog_id);
     message_embedding_codes_[1].erase(dialog_id);
+
+    LOG(INFO) << "Update usernames in " << dialog_id << " from " << old_usernames << " to " << new_usernames;
   }
   if (!old_usernames.is_empty() && old_usernames != new_usernames) {
     for (auto &username : old_usernames.get_active_usernames()) {

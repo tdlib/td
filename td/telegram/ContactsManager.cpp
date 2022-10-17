@@ -6899,6 +6899,9 @@ void ContactsManager::reorder_usernames_impl(vector<string> &&usernames, Promise
   if (!u->usernames.can_reorder_to(usernames)) {
     return promise.set_error(Status::Error(400, "Invalid username order specified"));
   }
+  if (usernames.size() <= 1) {
+    return promise.set_value(Unit());
+  }
   td_->create_handler<ReorderUsernamesQuery>(std::move(promise))->send(std::move(usernames));
 }
 
@@ -7025,6 +7028,9 @@ void ContactsManager::reorder_channel_usernames(ChannelId channel_id, vector<str
   }
   if (!c->usernames.can_reorder_to(usernames)) {
     return promise.set_error(Status::Error(400, "Invalid username order specified"));
+  }
+  if (usernames.size() <= 1) {
+    return promise.set_value(Unit());
   }
   td_->create_handler<ReorderChannelUsernamesQuery>(std::move(promise))->send(channel_id, std::move(usernames));
 }
