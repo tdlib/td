@@ -3272,7 +3272,12 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateChatDefaultBann
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateDraftMessage> update, Promise<Unit> &&promise) {
-  td_->messages_manager_->on_update_dialog_draft_message(DialogId(update->peer_), std::move(update->draft_));
+  MessageId top_thread_message_id;
+  if ((update->flags_ & telegram_api::updateDraftMessage::TOP_MSG_ID_MASK) != 0) {
+    top_thread_message_id = MessageId(ServerMessageId(update->top_msg_id_));
+  }
+  td_->messages_manager_->on_update_dialog_draft_message(DialogId(update->peer_), top_thread_message_id,
+                                                         std::move(update->draft_));
   promise.set_value(Unit());
 }
 

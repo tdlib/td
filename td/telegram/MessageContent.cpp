@@ -5065,11 +5065,11 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
     }
     case telegram_api::messageActionTopicCreate::ID: {
       auto action = move_tl_object_as<telegram_api::messageActionTopicCreate>(action_ptr);
-      break;
+      return make_unique<MessageUnsupported>();
     }
     case telegram_api::messageActionTopicEdit::ID: {
       auto action = move_tl_object_as<telegram_api::messageActionTopicEdit>(action_ptr);
-      break;
+      return make_unique<MessageUnsupported>();
     }
     default:
       UNREACHABLE();

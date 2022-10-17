@@ -32345,7 +32345,7 @@ void MessagesManager::fail_edit_message_media(FullMessageId full_message_id, Sta
   cancel_edit_message_media(dialog_id, m, "Failed to edit message. MUST BE IGNORED");
 }
 
-void MessagesManager::on_update_dialog_draft_message(DialogId dialog_id,
+void MessagesManager::on_update_dialog_draft_message(DialogId dialog_id, MessageId top_thread_message_id,
                                                      tl_object_ptr<telegram_api::DraftMessage> &&draft_message) {
   if (!dialog_id.is_valid()) {
     LOG(ERROR) << "Receive update chat draft in invalid " << dialog_id;
@@ -32361,7 +32361,12 @@ void MessagesManager::on_update_dialog_draft_message(DialogId dialog_id,
     }
     return;
   }
-  update_dialog_draft_message(d, get_draft_message(td_->contacts_manager_.get(), std::move(draft_message)), true, true);
+  auto draft = get_draft_message(td_->contacts_manager_.get(), std::move(draft_message));
+  if (top_thread_message_id.is_valid()) {
+    // TODO update thread message draft
+    return;
+  }
+  update_dialog_draft_message(d, std::move(draft), true, true);
 }
 
 bool MessagesManager::update_dialog_draft_message(Dialog *d, unique_ptr<DraftMessage> &&draft_message, bool from_update,
