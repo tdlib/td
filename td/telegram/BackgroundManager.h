@@ -35,9 +35,6 @@ class BackgroundManager final : public Actor {
 
   void get_backgrounds(bool for_dark_theme, Promise<td_api::object_ptr<td_api::backgrounds>> &&promise);
 
-  static Result<string> get_background_url(const string &name,
-                                           td_api::object_ptr<td_api::BackgroundType> background_type);
-
   void reload_background(BackgroundId background_id, int64 access_hash, Promise<Unit> &&promise);
 
   std::pair<BackgroundId, BackgroundType> search_background(const string &name, Promise<Unit> &&promise);

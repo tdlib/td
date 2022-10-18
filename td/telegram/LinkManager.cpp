@@ -7,6 +7,7 @@
 #include "td/telegram/LinkManager.h"
 
 #include "td/telegram/AccessRights.h"
+#include "td/telegram/BackgroundType.h"
 #include "td/telegram/ChannelId.h"
 #include "td/telegram/ChannelType.h"
 #include "td/telegram/ConfigManager.h"
@@ -1571,6 +1572,23 @@ void LinkManager::get_login_url(FullMessageId full_message_id, int64 button_id, 
 void LinkManager::get_link_login_url(const string &url, bool allow_write_access,
                                      Promise<td_api::object_ptr<td_api::httpUrl>> &&promise) {
   td_->create_handler<AcceptUrlAuthQuery>(std::move(promise))->send(url, FullMessageId(), 0, allow_write_access);
+}
+
+Result<string> LinkManager::get_background_url(const string &name,
+                                               td_api::object_ptr<td_api::BackgroundType> background_type) {
+  TRY_RESULT(type, BackgroundType::get_background_type(background_type.get()));
+  auto url = PSTRING() << G()->get_option_string("t_me_url", "https://t.me/") << "bg/";
+  auto link = type.get_link();
+  if (type.has_file()) {
+    url += name;
+    if (!link.empty()) {
+      url += '?';
+      url += link;
+    }
+  } else {
+    url += link;
+  }
+  return url;
 }
 
 string LinkManager::get_dialog_invite_link_hash(Slice invite_link) {

@@ -7761,7 +7761,7 @@ void Td::on_request(uint64 id, const td_api::getBackgrounds &request) {
 void Td::on_request(uint64 id, td_api::getBackgroundUrl &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.name_);
-  Result<string> r_url = background_manager_->get_background_url(request.name_, std::move(request.type_));
+  Result<string> r_url = LinkManager::get_background_url(request.name_, std::move(request.type_));
   if (r_url.is_error()) {
     return send_closure(actor_id(this), &Td::send_error, id, r_url.move_as_error());
   }

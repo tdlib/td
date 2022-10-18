@@ -75,6 +75,9 @@ class LinkManager final : public Actor {
   void get_link_login_url(const string &url, bool allow_write_access,
                           Promise<td_api::object_ptr<td_api::httpUrl>> &&promise);
 
+  static Result<string> get_background_url(const string &name,
+                                           td_api::object_ptr<td_api::BackgroundType> background_type);
+
   static string get_dialog_invite_link_hash(Slice invite_link);
 
   static string get_dialog_invite_link(Slice hash, bool is_internal);

@@ -449,23 +449,6 @@ void BackgroundManager::get_backgrounds(bool for_dark_theme,
   }
 }
 
-Result<string> BackgroundManager::get_background_url(const string &name,
-                                                     td_api::object_ptr<td_api::BackgroundType> background_type) {
-  TRY_RESULT(type, BackgroundType::get_background_type(background_type.get()));
-  auto url = PSTRING() << G()->get_option_string("t_me_url", "https://t.me/") << "bg/";
-  auto link = type.get_link();
-  if (type.has_file()) {
-    url += name;
-    if (!link.empty()) {
-      url += '?';
-      url += link;
-    }
-  } else {
-    url += link;
-  }
-  return url;
-}
-
 void BackgroundManager::reload_background_from_server(
     BackgroundId background_id, const string &background_name,
     telegram_api::object_ptr<telegram_api::InputWallPaper> &&input_wallpaper, Promise<Unit> &&promise) const {
