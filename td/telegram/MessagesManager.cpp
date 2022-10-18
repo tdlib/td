@@ -16632,7 +16632,7 @@ void MessagesManager::on_message_deleted(Dialog *d, Message *m, bool is_permanen
   // also called for unloaded messages, but not for scheduled messages
   CHECK(m->message_id.is_valid());
 
-  if (m->message_id.is_yet_unsent() && m->top_thread_message_id.is_valid()) {
+  if (m->message_id.is_yet_unsent() && !m->message_id.is_scheduled() && m->top_thread_message_id.is_valid()) {
     auto it = d->yet_unsent_thread_message_ids.find(m->top_thread_message_id);
     CHECK(it != d->yet_unsent_thread_message_ids.end());
     auto is_deleted = it->second.erase(m->message_id) > 0;
@@ -18587,6 +18587,7 @@ void MessagesManager::on_get_discussion_message(DialogId dialog_id, MessageId me
   Dialog *d = get_dialog_force(dialog_id, "on_get_discussion_message");
   CHECK(d != nullptr);
 
+  CHECK(message_id.is_valid());
   auto m = get_message_force(d, message_id, "on_get_discussion_message");
   if (m == nullptr) {
     return promise.set_error(Status::Error(400, "Message not found"));
@@ -25415,13 +25416,11 @@ unique_ptr<MessagesManager::Message> MessagesManager::create_message_to_send(
   m->send_date = G()->unix_time();
   m->date = is_scheduled ? options.schedule_date : m->send_date;
   m->reply_to_message_id = reply_to_message_id;
-  if (!is_scheduled) {
-    m->top_thread_message_id = top_thread_message_id;
-    if (reply_to_message_id.is_valid() && !reply_to_message_id.is_yet_unsent()) {
-      const Message *reply_m = get_message(d, reply_to_message_id);
-      if (reply_m != nullptr && reply_m->top_thread_message_id.is_valid()) {
-        m->top_thread_message_id = reply_m->top_thread_message_id;
-      }
+  m->top_thread_message_id = top_thread_message_id;
+  if (reply_to_message_id.is_valid() && !reply_to_message_id.is_yet_unsent()) {
+    const Message *reply_m = get_message(d, reply_to_message_id);
+    if (reply_m != nullptr && reply_m->top_thread_message_id.is_valid()) {
+      m->top_thread_message_id = reply_m->top_thread_message_id;
     }
   }
   m->is_channel_post = is_channel_post;
@@ -25583,8 +25582,7 @@ MessageId MessagesManager::get_reply_to_message_id(Dialog *d, MessageId top_thre
   CHECK(d != nullptr);
   if (!message_id.is_valid()) {
     if (!for_draft && message_id == MessageId() && top_thread_message_id.is_valid() &&
-        top_thread_message_id.is_server() &&
-        get_message_force(d, top_thread_message_id, "get_reply_to_message_id 1") != nullptr) {
+        top_thread_message_id.is_server()) {
       return top_thread_message_id;
     }
     return MessageId();
@@ -25598,8 +25596,7 @@ MessageId MessagesManager::get_reply_to_message_id(Dialog *d, MessageId top_thre
       // allow to reply yet unreceived server message
       return message_id;
     }
-    if (!for_draft && top_thread_message_id.is_valid() && top_thread_message_id.is_server() &&
-        get_message_force(d, top_thread_message_id, "get_reply_to_message_id 3") != nullptr) {
+    if (!for_draft && top_thread_message_id.is_valid() && top_thread_message_id.is_server()) {
       return top_thread_message_id;
     }
 
@@ -35605,7 +35602,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     }
   }
 
-  if (m->message_id.is_yet_unsent() && m->top_thread_message_id.is_valid()) {
+  if (m->message_id.is_yet_unsent() && !m->message_id.is_scheduled() && m->top_thread_message_id.is_valid()) {
     auto is_inserted = d->yet_unsent_thread_message_ids[m->top_thread_message_id].insert(m->message_id).second;
     CHECK(is_inserted);
   }
@@ -35674,7 +35671,9 @@ MessagesManager::Message *MessagesManager::add_scheduled_message_to_dialog(Dialo
   CHECK(!message->notification_id.is_valid());
   CHECK(!message->removed_notification_id.is_valid());
 
-  message->top_thread_message_id = MessageId();
+  if (!message_id.is_yet_unsent()) {
+    message->top_thread_message_id = MessageId();
+  }
 
   if (is_deleted_message(d, message_id)) {
     LOG(INFO) << "Skip adding deleted " << message_id << " to " << dialog_id << " from " << source;
