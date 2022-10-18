@@ -29,6 +29,8 @@
 #include "td/telegram/files/FileLocation.h"
 #include "td/telegram/files/FileManager.h"
 #include "td/telegram/files/FileType.h"
+#include "td/telegram/ForumTopicIcon.h"
+#include "td/telegram/ForumTopicIcon.hpp"
 #include "td/telegram/Game.h"
 #include "td/telegram/Game.hpp"
 #include "td/telegram/Global.h"
@@ -802,6 +804,20 @@ class MessageGiftPremium final : public MessageContent {
   }
 };
 
+class MessageTopicCreate final : public MessageContent {
+ public:
+  string title;
+  ForumTopicIcon icon;
+
+  MessageTopicCreate() = default;
+  explicit MessageTopicCreate(string &&title, ForumTopicIcon &&icon) : title(std::move(title)), icon(std::move(icon)) {
+  }
+
+  MessageContentType get_type() const final {
+    return MessageContentType::TopicCreate;
+  }
+};
+
 template <class StorerT>
 static void store(const MessageContent *content, StorerT &storer) {
   CHECK(content != nullptr);
@@ -1128,6 +1144,12 @@ static void store(const MessageContent *content, StorerT &storer) {
       store(m->currency, storer);
       store(m->amount, storer);
       store(m->months, storer);
+      break;
+    }
+    case MessageContentType::TopicCreate: {
+      const auto *m = static_cast<const MessageTopicCreate *>(content);
+      store(m->title, storer);
+      store(m->icon, storer);
       break;
     }
     default:
@@ -1577,6 +1599,13 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
       parse(m->currency, parser);
       parse(m->amount, parser);
       parse(m->months, parser);
+      content = std::move(m);
+      break;
+    }
+    case MessageContentType::TopicCreate: {
+      auto m = make_unique<MessageTopicCreate>();
+      parse(m->title, parser);
+      parse(m->icon, parser);
       content = std::move(m);
       break;
     }
@@ -2198,6 +2227,7 @@ bool can_have_input_media(const Td *td, const MessageContent *content, bool is_s
     case MessageContentType::WebViewDataSent:
     case MessageContentType::WebViewDataReceived:
     case MessageContentType::GiftPremium:
+    case MessageContentType::TopicCreate:
       return false;
     case MessageContentType::Animation:
     case MessageContentType::Audio:
@@ -2319,6 +2349,7 @@ SecretInputMedia get_secret_input_media(const MessageContent *content, Td *td,
     case MessageContentType::WebViewDataSent:
     case MessageContentType::WebViewDataReceived:
     case MessageContentType::GiftPremium:
+    case MessageContentType::TopicCreate:
       break;
     default:
       UNREACHABLE();
@@ -2438,6 +2469,7 @@ static tl_object_ptr<telegram_api::InputMedia> get_input_media_impl(
     case MessageContentType::WebViewDataSent:
     case MessageContentType::WebViewDataReceived:
     case MessageContentType::GiftPremium:
+    case MessageContentType::TopicCreate:
       break;
     default:
       UNREACHABLE();
@@ -2602,6 +2634,7 @@ void delete_message_content_thumbnail(MessageContent *content, Td *td) {
     case MessageContentType::WebViewDataSent:
     case MessageContentType::WebViewDataReceived:
     case MessageContentType::GiftPremium:
+    case MessageContentType::TopicCreate:
       break;
     default:
       UNREACHABLE();
@@ -2784,6 +2817,7 @@ Status can_send_message_content(DialogId dialog_id, const MessageContent *conten
     case MessageContentType::WebViewDataSent:
     case MessageContentType::WebViewDataReceived:
     case MessageContentType::GiftPremium:
+    case MessageContentType::TopicCreate:
       UNREACHABLE();
   }
   return Status::OK();
@@ -2913,6 +2947,7 @@ static int32 get_message_content_media_index_mask(const MessageContent *content,
     case MessageContentType::WebViewDataSent:
     case MessageContentType::WebViewDataReceived:
     case MessageContentType::GiftPremium:
+    case MessageContentType::TopicCreate:
       return 0;
     default:
       UNREACHABLE();
@@ -3656,6 +3691,14 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
       }
       break;
     }
+    case MessageContentType::TopicCreate: {
+      const auto *old_ = static_cast<const MessageTopicCreate *>(old_content);
+      const auto *new_ = static_cast<const MessageTopicCreate *>(new_content);
+      if (old_->title != new_->title || old_->icon != new_->icon) {
+        need_update = true;
+      }
+      break;
+    }
     case MessageContentType::Unsupported: {
       const auto *old_ = static_cast<const MessageUnsupported *>(old_content);
       const auto *new_ = static_cast<const MessageUnsupported *>(new_content);
@@ -3796,6 +3839,7 @@ bool merge_message_content_file_id(Td *td, MessageContent *message_content, File
     case MessageContentType::WebViewDataSent:
     case MessageContentType::WebViewDataReceived:
     case MessageContentType::GiftPremium:
+    case MessageContentType::TopicCreate:
       LOG(ERROR) << "Receive new file " << new_file_id << " in a sent message of the type " << content_type;
       break;
     default:
@@ -4766,6 +4810,7 @@ unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const
     case MessageContentType::WebViewDataSent:
     case MessageContentType::WebViewDataReceived:
     case MessageContentType::GiftPremium:
+    case MessageContentType::TopicCreate:
       return nullptr;
     default:
       UNREACHABLE();
@@ -5065,7 +5110,8 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
     }
     case telegram_api::messageActionTopicCreate::ID: {
       auto action = move_tl_object_as<telegram_api::messageActionTopicCreate>(action_ptr);
-      return make_unique<MessageUnsupported>();
+      return td::make_unique<MessageTopicCreate>(std::move(action->title_),
+                                                 ForumTopicIcon(action->icon_color_, action->icon_emoji_id_));
     }
     case telegram_api::messageActionTopicEdit::ID: {
       auto action = move_tl_object_as<telegram_api::messageActionTopicEdit>(action_ptr);
@@ -5346,6 +5392,10 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
       const auto *m = static_cast<const MessageGiftPremium *>(content);
       return make_tl_object<td_api::messageGiftedPremium>(
           m->currency, m->amount, m->months, td->stickers_manager_->get_premium_gift_sticker_object(m->months));
+    }
+    case MessageContentType::TopicCreate: {
+      const auto *m = static_cast<const MessageTopicCreate *>(content);
+      return td_api::make_object<td_api::messageForumTopicCreated>(m->title, m->icon.get_forum_topic_icon_object());
     }
     default:
       UNREACHABLE();
@@ -5703,6 +5753,7 @@ string get_message_content_search_text(const Td *td, const MessageContent *conte
     case MessageContentType::WebViewDataSent:
     case MessageContentType::WebViewDataReceived:
     case MessageContentType::GiftPremium:
+    case MessageContentType::TopicCreate:
       return string();
     default:
       UNREACHABLE();
@@ -5976,6 +6027,8 @@ void add_message_content_dependencies(Dependencies &dependencies, const MessageC
     case MessageContentType::WebViewDataReceived:
       break;
     case MessageContentType::GiftPremium:
+      break;
+    case MessageContentType::TopicCreate:
       break;
     default:
       UNREACHABLE();

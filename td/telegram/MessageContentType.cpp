@@ -110,6 +110,8 @@ StringBuilder &operator<<(StringBuilder &string_builder, MessageContentType cont
       return string_builder << "WebViewDataReceived";
     case MessageContentType::GiftPremium:
       return string_builder << "GiftPremium";
+    case MessageContentType::TopicCreate:
+      return string_builder << "TopicCreate";
     default:
       UNREACHABLE();
       return string_builder;
@@ -168,6 +170,7 @@ bool is_allowed_media_group_content(MessageContentType content_type) {
     case MessageContentType::WebViewDataSent:
     case MessageContentType::WebViewDataReceived:
     case MessageContentType::GiftPremium:
+    case MessageContentType::TopicCreate:
       return false;
     default:
       UNREACHABLE();
@@ -234,6 +237,7 @@ bool is_secret_message_content(int32 ttl, MessageContentType content_type) {
     case MessageContentType::WebViewDataSent:
     case MessageContentType::WebViewDataReceived:
     case MessageContentType::GiftPremium:
+    case MessageContentType::TopicCreate:
       return false;
     default:
       UNREACHABLE();
@@ -293,6 +297,7 @@ bool is_service_message_content(MessageContentType content_type) {
     case MessageContentType::WebViewDataSent:
     case MessageContentType::WebViewDataReceived:
     case MessageContentType::GiftPremium:
+    case MessageContentType::TopicCreate:
       return true;
     default:
       UNREACHABLE();
@@ -352,6 +357,7 @@ bool can_have_message_content_caption(MessageContentType content_type) {
     case MessageContentType::WebViewDataSent:
     case MessageContentType::WebViewDataReceived:
     case MessageContentType::GiftPremium:
+    case MessageContentType::TopicCreate:
       return false;
     default:
       UNREACHABLE();

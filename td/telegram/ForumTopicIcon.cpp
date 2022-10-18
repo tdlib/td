@@ -16,6 +16,14 @@ td_api::object_ptr<td_api::forumTopicIcon> ForumTopicIcon::get_forum_topic_icon_
   return td_api::make_object<td_api::forumTopicIcon>(color_, custom_emoji_id_.get());
 }
 
+bool operator==(const ForumTopicIcon &lhs, const ForumTopicIcon &rhs) {
+  return lhs.color_ == rhs.color_ && lhs.custom_emoji_id_ == rhs.custom_emoji_id_;
+}
+
+bool operator!=(const ForumTopicIcon &lhs, const ForumTopicIcon &rhs) {
+  return !(lhs == rhs);
+}
+
 StringBuilder &operator<<(StringBuilder &string_builder, const ForumTopicIcon &topic_icon) {
   string_builder << "icon color " << topic_icon.color_;
   if (topic_icon.custom_emoji_id_.is_valid()) {

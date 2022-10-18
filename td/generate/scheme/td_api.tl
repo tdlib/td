@@ -2073,6 +2073,9 @@ messageChatSetTheme theme_name:string = MessageContent;
 //@description The TTL (Time To Live) setting for messages in the chat has been changed @ttl New message TTL
 messageChatSetTtl ttl:int32 = MessageContent;
 
+//@description A forum topic has been created @title Title of the topic @icon Icon of the topic
+messageForumTopicCreated title:string icon:forumTopicIcon = MessageContent;
+
 //@description A non-standard action has happened in the chat @text Message text to be shown in the chat
 messageCustomServiceAction text:string = MessageContent;
 
