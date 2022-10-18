@@ -6,8 +6,8 @@
 //
 #pragma once
 
-#include "td/telegram/CustomEmojiId.h"
 #include "td/telegram/DialogId.h"
+#include "td/telegram/ForumTopicIcon.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
@@ -22,8 +22,7 @@ class Td;
 class ForumTopicInfo {
   MessageId top_thread_message_id_;
   string title_;
-  int32 icon_color_ = 0x6FB9F0;
-  CustomEmojiId icon_custom_emoji_id_;
+  ForumTopicIcon icon_;
   int32 creation_date_ = 0;
   DialogId creator_dialog_id_;
   bool is_outgoing_ = false;
