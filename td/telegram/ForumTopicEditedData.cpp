@@ -15,6 +15,16 @@ td_api::object_ptr<td_api::forumTopicEditedData> ForumTopicEditedData::get_forum
                                                            icon_custom_emoji_id_.get(), edit_is_closed_, is_closed_);
 }
 
+bool operator==(const ForumTopicEditedData &lhs, const ForumTopicEditedData &rhs) {
+  return lhs.title_ == rhs.title_ && lhs.icon_custom_emoji_id_ == rhs.icon_custom_emoji_id_ &&
+         lhs.edit_icon_custom_emoji_id_ == rhs.edit_icon_custom_emoji_id_ &&
+         lhs.edit_is_closed_ == rhs.edit_is_closed_ && lhs.is_closed_ == rhs.is_closed_;
+}
+
+bool operator!=(const ForumTopicEditedData &lhs, const ForumTopicEditedData &rhs) {
+  return !(lhs == rhs);
+}
+
 StringBuilder &operator<<(StringBuilder &string_builder, const ForumTopicEditedData &topic_edited_data) {
   if (!topic_edited_data.title_.empty()) {
     string_builder << "set title to \"" << topic_edited_data.title_ << '"';

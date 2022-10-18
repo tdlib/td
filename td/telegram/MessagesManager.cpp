@@ -27438,6 +27438,7 @@ bool MessagesManager::can_edit_message(DialogId dialog_id, const Message *m, boo
     case MessageContentType::WebViewDataReceived:
     case MessageContentType::GiftPremium:
     case MessageContentType::TopicCreate:
+    case MessageContentType::TopicEdit:
       return false;
     default:
       UNREACHABLE();

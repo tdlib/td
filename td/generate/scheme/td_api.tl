@@ -2084,6 +2084,9 @@ messageChatSetTtl ttl:int32 = MessageContent;
 //@description A forum topic has been created @title Title of the topic @icon Icon of the topic
 messageForumTopicCreated title:string icon:forumTopicIcon = MessageContent;
 
+//@description A forum topic has been edited @edited_data Information about edited topic data
+messageForumTopicEdited edited_data:forumTopicEditedData = MessageContent;
+
 //@description A non-standard action has happened in the chat @text Message text to be shown in the chat
 messageCustomServiceAction text:string = MessageContent;
 

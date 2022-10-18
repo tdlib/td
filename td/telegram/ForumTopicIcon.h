@@ -18,9 +18,9 @@ class ForumTopicIcon {
   int32 color_ = 0x6FB9F0;
   CustomEmojiId custom_emoji_id_;
 
-  friend StringBuilder &operator<<(StringBuilder &string_builder, const ForumTopicIcon &topic_icon);
-
   friend bool operator==(const ForumTopicIcon &lhs, const ForumTopicIcon &rhs);
+
+  friend StringBuilder &operator<<(StringBuilder &string_builder, const ForumTopicIcon &topic_icon);
 
  public:
   ForumTopicIcon() = default;

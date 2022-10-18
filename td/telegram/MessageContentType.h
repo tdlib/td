@@ -65,7 +65,8 @@ enum class MessageContentType : int32 {
   WebViewDataSent,
   WebViewDataReceived,
   GiftPremium,
-  TopicCreate
+  TopicCreate,
+  TopicEdit
 };
 
 StringBuilder &operator<<(StringBuilder &string_builder, MessageContentType content_type);

@@ -21,6 +21,8 @@ class ForumTopicEditedData {
   bool edit_is_closed_ = false;
   bool is_closed_ = false;
 
+  friend bool operator==(const ForumTopicEditedData &lhs, const ForumTopicEditedData &rhs);
+
   friend StringBuilder &operator<<(StringBuilder &string_builder, const ForumTopicEditedData &topic_edited_data);
 
  public:
@@ -40,7 +42,16 @@ class ForumTopicEditedData {
   }
 
   td_api::object_ptr<td_api::forumTopicEditedData> get_forum_topic_edited_data_object() const;
+
+  template <class StorerT>
+  void store(StorerT &storer) const;
+
+  template <class ParserT>
+  void parse(ParserT &parser);
 };
+
+bool operator==(const ForumTopicEditedData &lhs, const ForumTopicEditedData &rhs);
+bool operator!=(const ForumTopicEditedData &lhs, const ForumTopicEditedData &rhs);
 
 StringBuilder &operator<<(StringBuilder &string_builder, const ForumTopicEditedData &topic_edited_data);
 
