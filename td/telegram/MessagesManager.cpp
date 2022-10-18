@@ -3332,7 +3332,8 @@ class SendMessageQuery final : public Td::ResultHandler {
 
  public:
   void send(int32 flags, DialogId dialog_id, tl_object_ptr<telegram_api::InputPeer> as_input_peer,
-            MessageId reply_to_message_id, int32 schedule_date, tl_object_ptr<telegram_api::ReplyMarkup> &&reply_markup,
+            MessageId reply_to_message_id, MessageId top_thread_message_id, int32 schedule_date,
+            tl_object_ptr<telegram_api::ReplyMarkup> &&reply_markup,
             vector<tl_object_ptr<telegram_api::MessageEntity>> &&entities, const string &text, bool is_copy,
             int64 random_id, NetQueryRef *send_query_ref) {
     random_id_ = random_id;
@@ -3351,11 +3352,13 @@ class SendMessageQuery final : public Td::ResultHandler {
     }
 
     CHECK(reply_to_message_id == MessageId() || reply_to_message_id.is_server());
+    CHECK(top_thread_message_id == MessageId() || top_thread_message_id.is_server());
     auto query = G()->net_query_creator().create(
         telegram_api::messages_sendMessage(
             flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-            false /*ignored*/, std::move(input_peer), reply_to_message_id.get_server_message_id().get(), 0, text,
-            random_id, std::move(reply_markup), std::move(entities), schedule_date, std::move(as_input_peer)),
+            false /*ignored*/, std::move(input_peer), reply_to_message_id.get_server_message_id().get(),
+            top_thread_message_id.get_server_message_id().get(), text, random_id, std::move(reply_markup),
+            std::move(entities), schedule_date, std::move(as_input_peer)),
         {{dialog_id, MessageContentType::Text},
          {dialog_id, is_copy ? MessageContentType::Photo : MessageContentType::Text}});
     if (td_->option_manager_->get_option_boolean("use_quick_ack")) {
@@ -3471,8 +3474,8 @@ class SendInlineBotResultQuery final : public Td::ResultHandler {
 
  public:
   NetQueryRef send(int32 flags, DialogId dialog_id, tl_object_ptr<telegram_api::InputPeer> as_input_peer,
-                   MessageId reply_to_message_id, int32 schedule_date, int64 random_id, int64 query_id,
-                   const string &result_id) {
+                   MessageId reply_to_message_id, MessageId top_thread_message_id, int32 schedule_date, int64 random_id,
+                   int64 query_id, const string &result_id) {
     random_id_ = random_id;
     dialog_id_ = dialog_id;
 
@@ -3484,11 +3487,12 @@ class SendInlineBotResultQuery final : public Td::ResultHandler {
     }
 
     CHECK(reply_to_message_id == MessageId() || reply_to_message_id.is_server());
+    CHECK(top_thread_message_id == MessageId() || top_thread_message_id.is_server());
     auto query = G()->net_query_creator().create(
-        telegram_api::messages_sendInlineBotResult(flags, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-                                                   false /*ignored*/, std::move(input_peer),
-                                                   reply_to_message_id.get_server_message_id().get(), 0, random_id,
-                                                   query_id, result_id, schedule_date, std::move(as_input_peer)),
+        telegram_api::messages_sendInlineBotResult(
+            flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, std::move(input_peer),
+            reply_to_message_id.get_server_message_id().get(), top_thread_message_id.get_server_message_id().get(),
+            random_id, query_id, result_id, schedule_date, std::move(as_input_peer)),
         {{dialog_id, MessageContentType::Text}, {dialog_id, MessageContentType::Photo}});
     auto send_query_ref = query.get_weak();
     send_query(std::move(query));
@@ -3526,8 +3530,9 @@ class SendMultiMediaQuery final : public Td::ResultHandler {
 
  public:
   void send(int32 flags, DialogId dialog_id, tl_object_ptr<telegram_api::InputPeer> as_input_peer,
-            MessageId reply_to_message_id, int32 schedule_date, vector<FileId> &&file_ids,
-            vector<tl_object_ptr<telegram_api::inputSingleMedia>> &&input_single_media, bool is_copy) {
+            MessageId reply_to_message_id, MessageId top_thread_message_id, int32 schedule_date,
+            vector<FileId> &&file_ids, vector<tl_object_ptr<telegram_api::inputSingleMedia>> &&input_single_media,
+            bool is_copy) {
     for (auto &single_media : input_single_media) {
       random_ids_.push_back(single_media->random_id_);
       CHECK(FileManager::extract_was_uploaded(single_media->media_) == false);
@@ -3548,10 +3553,12 @@ class SendMultiMediaQuery final : public Td::ResultHandler {
 
     // no quick ack, because file reference errors are very likely to happen
     CHECK(reply_to_message_id == MessageId() || reply_to_message_id.is_server());
+    CHECK(top_thread_message_id == MessageId() || top_thread_message_id.is_server());
     send_query(G()->net_query_creator().create(
         telegram_api::messages_sendMultiMedia(flags, false /*ignored*/, false /*ignored*/, false /*ignored*/,
                                               false /*ignored*/, false /*ignored*/, std::move(input_peer),
-                                              reply_to_message_id.get_server_message_id().get(), 0,
+                                              reply_to_message_id.get_server_message_id().get(),
+                                              top_thread_message_id.get_server_message_id().get(),
                                               std::move(input_single_media), schedule_date, std::move(as_input_peer)),
         {{dialog_id, is_copy ? MessageContentType::Text : MessageContentType::Photo},
          {dialog_id, MessageContentType::Photo}}));
@@ -3639,7 +3646,8 @@ class SendMediaQuery final : public Td::ResultHandler {
 
  public:
   void send(FileId file_id, FileId thumbnail_file_id, int32 flags, DialogId dialog_id,
-            tl_object_ptr<telegram_api::InputPeer> as_input_peer, MessageId reply_to_message_id, int32 schedule_date,
+            tl_object_ptr<telegram_api::InputPeer> as_input_peer, MessageId reply_to_message_id,
+            MessageId top_thread_message_id, int32 schedule_date,
             tl_object_ptr<telegram_api::ReplyMarkup> &&reply_markup,
             vector<tl_object_ptr<telegram_api::MessageEntity>> &&entities, const string &text,
             tl_object_ptr<telegram_api::InputMedia> &&input_media, MessageContentType content_type, bool is_copy,
@@ -3665,11 +3673,13 @@ class SendMediaQuery final : public Td::ResultHandler {
     }
 
     CHECK(reply_to_message_id == MessageId() || reply_to_message_id.is_server());
+    CHECK(top_thread_message_id == MessageId() || top_thread_message_id.is_server());
     auto query = G()->net_query_creator().create(
         telegram_api::messages_sendMedia(
             flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-            std::move(input_peer), reply_to_message_id.get_server_message_id().get(), 0, std::move(input_media), text,
-            random_id, std::move(reply_markup), std::move(entities), schedule_date, std::move(as_input_peer)),
+            std::move(input_peer), reply_to_message_id.get_server_message_id().get(),
+            top_thread_message_id.get_server_message_id().get(), std::move(input_media), text, random_id,
+            std::move(reply_markup), std::move(entities), schedule_date, std::move(as_input_peer)),
         {{dialog_id, content_type}, {dialog_id, is_copy ? MessageContentType::Text : content_type}});
     if (td_->option_manager_->get_option_boolean("use_quick_ack") && was_uploaded_) {
       query->quick_ack_promise_ = PromiseCreator::lambda([random_id](Result<Unit> result) {
@@ -26441,7 +26451,7 @@ void MessagesManager::on_message_media_uploaded(DialogId dialog_id, const Messag
           int64 random_id = begin_send_message(dialog_id, m);
           td_->create_handler<SendMediaQuery>()->send(
               file_id, thumbnail_file_id, get_message_flags(m), dialog_id, get_send_message_as_input_peer(m),
-              m->reply_to_message_id, get_message_schedule_date(m),
+              m->reply_to_message_id, m->top_thread_message_id, get_message_schedule_date(m),
               get_input_reply_markup(td_->contacts_manager_.get(), m->reply_markup),
               get_input_message_entities(td_->contacts_manager_.get(), caption, "on_message_media_uploaded"),
               caption == nullptr ? "" : caption->text, std::move(input_media), m->content->get_type(), m->is_copy,
@@ -26745,6 +26755,7 @@ void MessagesManager::do_send_message_group(int64 media_album_id) {
   vector<tl_object_ptr<telegram_api::inputSingleMedia>> input_single_media;
   tl_object_ptr<telegram_api::InputPeer> as_input_peer;
   MessageId reply_to_message_id;
+  MessageId top_thread_message_id;
   int32 flags = 0;
   int32 schedule_date = 0;
   bool is_copy = false;
@@ -26757,6 +26768,7 @@ void MessagesManager::do_send_message_group(int64 media_album_id) {
     }
 
     reply_to_message_id = m->reply_to_message_id;
+    top_thread_message_id = m->top_thread_message_id;
     flags = get_message_flags(m);
     schedule_date = get_message_schedule_date(m);
     is_copy = m->is_copy;
@@ -26823,8 +26835,8 @@ void MessagesManager::do_send_message_group(int64 media_album_id) {
     LOG(INFO) << "Media group " << media_album_id << " from " << dialog_id << " is empty";
   }
   td_->create_handler<SendMultiMediaQuery>()->send(flags, dialog_id, std::move(as_input_peer), reply_to_message_id,
-                                                   schedule_date, std::move(file_ids), std::move(input_single_media),
-                                                   is_copy);
+                                                   top_thread_message_id, schedule_date, std::move(file_ids),
+                                                   std::move(input_single_media), is_copy);
 }
 
 void MessagesManager::on_text_message_ready_to_send(DialogId dialog_id, MessageId message_id) {
@@ -26855,7 +26867,8 @@ void MessagesManager::on_text_message_ready_to_send(DialogId dialog_id, MessageI
     int64 random_id = begin_send_message(dialog_id, m);
     td_->create_handler<SendMessageQuery>()->send(
         get_message_flags(m), dialog_id, get_send_message_as_input_peer(m), m->reply_to_message_id,
-        get_message_schedule_date(m), get_input_reply_markup(td_->contacts_manager_.get(), m->reply_markup),
+        m->top_thread_message_id, get_message_schedule_date(m),
+        get_input_reply_markup(td_->contacts_manager_.get(), m->reply_markup),
         get_input_message_entities(td_->contacts_manager_.get(), message_text->entities, "do_send_message"),
         message_text->text, m->is_copy, random_id, &m->send_query_ref);
   }
@@ -27243,8 +27256,8 @@ void MessagesManager::do_send_inline_query_result_message(DialogId dialog_id, Me
     flags |= telegram_api::messages_sendInlineBotResult::HIDE_VIA_MASK;
   }
   m->send_query_ref = td_->create_handler<SendInlineBotResultQuery>()->send(
-      flags, dialog_id, get_send_message_as_input_peer(m), m->reply_to_message_id, get_message_schedule_date(m),
-      random_id, query_id, result_id);
+      flags, dialog_id, get_send_message_as_input_peer(m), m->reply_to_message_id, m->top_thread_message_id,
+      get_message_schedule_date(m), random_id, query_id, result_id);
 }
 
 bool MessagesManager::has_qts_messages(DialogId dialog_id) const {
@@ -28358,6 +28371,10 @@ int32 MessagesManager::get_message_flags(const Message *m) {
   if (m->reply_to_message_id.is_valid()) {
     CHECK(m->reply_to_message_id.is_server());
     flags |= SEND_MESSAGE_FLAG_IS_REPLY;
+  }
+  if (m->top_thread_message_id.is_valid()) {
+    CHECK(m->top_thread_message_id.is_server());
+    flags |= SEND_MESSAGE_FLAG_IS_FROM_THREAD;
   }
   if (m->disable_web_page_preview) {
     flags |= SEND_MESSAGE_FLAG_DISABLE_WEB_PAGE_PREVIEW;

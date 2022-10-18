@@ -141,7 +141,7 @@ class MessagesManager final : public Actor {
   static constexpr int32 SEND_MESSAGE_FLAG_FROM_BACKGROUND = 1 << 6;
   static constexpr int32 SEND_MESSAGE_FLAG_CLEAR_DRAFT = 1 << 7;
   static constexpr int32 SEND_MESSAGE_FLAG_WITH_MY_SCORE = 1 << 8;
-  static constexpr int32 SEND_MESSAGE_FLAG_GROUP_MEDIA = 1 << 9;
+  static constexpr int32 SEND_MESSAGE_FLAG_IS_FROM_THREAD = 1 << 9;
   static constexpr int32 SEND_MESSAGE_FLAG_HAS_SCHEDULE_DATE = 1 << 10;
   static constexpr int32 SEND_MESSAGE_FLAG_HAS_MESSAGE = 1 << 11;
   static constexpr int32 SEND_MESSAGE_FLAG_HAS_SEND_AS = 1 << 13;
