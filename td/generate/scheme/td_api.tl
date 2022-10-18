@@ -1298,6 +1298,14 @@ webAppInfo launch_id:int64 url:string = WebAppInfo;
 messageThreadInfo chat_id:int53 message_thread_id:int53 reply_info:messageReplyInfo unread_message_count:int32 messages:vector<message> draft_message:draftMessage = MessageThreadInfo;
 
 
+//@description Describes changed data about a forum topic
+//@title If non-empty, the new title of the topic
+//@edit_icon_custom_emoji_id True, if icon's custom_emoji_id is changed
+//@icon_custom_emoji_id New unique identifier of the custom emoji shown on the topic icon; 0 if none. Ignored if edit_icon_custom_emoji_id is false
+//@edit_is_closed True, if the topic is reopened or closed
+//@is_closed True, if the topic is closed, or false if it is reopened. Ignored if edit_is_closed is false
+forumTopicEditedData title:string edit_icon_custom_emoji_id:Bool icon_custom_emoji_id:int64 edit_is_closed:Bool is_closed:Bool = ForumTopicEditedData;
+
 //@description Describes a forum topic icon @color Color of the topic icon in RGB format @custom_emoji_id Unique identifier of the custom emoji shown on the topic icon; 0 if none
 forumTopicIcon color:int32 custom_emoji_id:int64 = ForumTopicIcon;
 

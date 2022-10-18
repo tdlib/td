@@ -352,6 +352,7 @@ set(TDLIB_SOURCE
   td/telegram/files/FileUploader.cpp
   td/telegram/files/PartsManager.cpp
   td/telegram/files/ResourceManager.cpp
+  td/telegram/ForumTopicEditedData.cpp
   td/telegram/ForumTopicIcon.cpp
   td/telegram/ForumTopicInfo.cpp
   td/telegram/Game.cpp
@@ -581,6 +582,7 @@ set(TDLIB_SOURCE
   td/telegram/files/ResourceManager.h
   td/telegram/files/ResourceState.h
   td/telegram/FolderId.h
+  td/telegram/ForumTopicEditedData.h
   td/telegram/ForumTopicIcon.h
   td/telegram/ForumTopicInfo.h
   td/telegram/FullMessageId.h
