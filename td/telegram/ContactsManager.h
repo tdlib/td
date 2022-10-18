@@ -891,6 +891,7 @@ class ContactsManager final : public Actor {
 
     bool is_megagroup = false;
     bool is_gigagroup = false;
+    bool is_forum = false;
     bool is_verified = false;
     bool is_scam = false;
     bool is_fake = false;
@@ -1163,6 +1164,7 @@ class ContactsManager final : public Actor {
   static constexpr int32 CHANNEL_FLAG_NOFORWARDS = 1 << 27;
   static constexpr int32 CHANNEL_FLAG_JOIN_TO_SEND = 1 << 28;
   static constexpr int32 CHANNEL_FLAG_JOIN_REQUEST = 1 << 29;
+  static constexpr int32 CHANNEL_FLAG_IS_FORUM = 1 << 30;
   static constexpr int32 CHANNEL_FLAG_HAS_USERNAMES = 1 << 0;
 
   static constexpr int32 CHANNEL_FULL_FLAG_HAS_PARTICIPANT_COUNT = 1 << 0;
