@@ -3851,16 +3851,19 @@ void StickersManager::save_active_reactions() {
 
 void StickersManager::save_reactions() {
   LOG(INFO) << "Save available reactions";
+  are_reactions_loaded_from_database_ = true;
   G()->td_db()->get_binlog_pmc()->set("reactions", log_event_store(reactions_).as_slice().str());
 }
 
 void StickersManager::save_recent_reactions() {
   LOG(INFO) << "Save recent reactions";
+  are_recent_reactions_loaded_from_database_ = true;
   G()->td_db()->get_binlog_pmc()->set("recent_reactions", log_event_store(recent_reactions_).as_slice().str());
 }
 
 void StickersManager::save_top_reactions() {
   LOG(INFO) << "Save top reactions";
+  are_top_reactions_loaded_from_database_ = true;
   G()->td_db()->get_binlog_pmc()->set("top_reactions", log_event_store(top_reactions_).as_slice().str());
 }
 
