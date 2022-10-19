@@ -1563,12 +1563,12 @@ static bool are_entities_valid(const vector<MessageEntity> &entities) {
       }
       // parents are not pre after this point
       if (is_pre_entity(entity.type) && (nested_entity_type_mask & ~get_blockquote_entities_mask()) != 0) {
-        // Pre and Code can't be contained in other entities, except blockquote
+        // Pre and Code can't be part of other entities, except blockquote
         return false;
       }
       if ((is_continuous_entity(entity.type) || is_blockquote_entity(entity.type)) &&
           (nested_entity_type_mask & get_continuous_entities_mask()) != 0) {
-        // continuous and blockquote can't be contained in continuous
+        // continuous and blockquote can't be part of other continuous entity
         return false;
       }
       if ((nested_entity_type_mask & get_splittable_entities_mask()) != 0) {
