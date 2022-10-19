@@ -136,22 +136,9 @@ tl_object_ptr<td_api::voiceNote> VoiceNotesManager::get_voice_note_object(FileId
 
   auto voice_note = get_voice_note(file_id);
   CHECK(voice_note != nullptr);
-
-  auto speech_recognition_result = [this, voice_note]() -> td_api::object_ptr<td_api::SpeechRecognitionResult> {
-    if (voice_note->is_transcribed) {
-      return td_api::make_object<td_api::speechRecognitionResultText>(voice_note->text);
-    }
-    if (speech_recognition_queries_.count(voice_note->file_id) != 0) {
-      return td_api::make_object<td_api::speechRecognitionResultPending>(voice_note->text);
-    }
-    if (voice_note->last_transcription_error.is_error()) {
-      return td_api::make_object<td_api::speechRecognitionResultError>(
-          td_api::make_object<td_api::error>(voice_note->last_transcription_error.error().code(),
-                                             voice_note->last_transcription_error.error().message().str()));
-    }
-    return nullptr;
-  }();
-
+  auto speech_recognition_result = voice_note->transcription_info == nullptr
+                                       ? nullptr
+                                       : voice_note->transcription_info->get_speech_recognition_result_object();
   return make_tl_object<td_api::voiceNote>(voice_note->duration, voice_note->waveform, voice_note->mime_type,
                                            std::move(speech_recognition_result),
                                            td_->file_manager_->get_file_object(file_id));
@@ -175,13 +162,7 @@ FileId VoiceNotesManager::on_get_voice_note(unique_ptr<VoiceNote> new_voice_note
       v->duration = new_voice_note->duration;
       v->waveform = std::move(new_voice_note->waveform);
     }
-    if (new_voice_note->is_transcribed && v->transcription_id == 0) {
-      CHECK(!v->is_transcribed);
-      CHECK(new_voice_note->transcription_id != 0);
-      v->is_transcribed = true;
-      v->transcription_id = new_voice_note->transcription_id;
-      v->text = std::move(new_voice_note->text);
-      v->last_transcription_error = Status::OK();
+    if (TranscriptionInfo::update_from(v->transcription_info, std::move(new_voice_note->transcription_info))) {
       on_voice_note_transcription_completed(file_id);
     }
   }
@@ -207,10 +188,7 @@ FileId VoiceNotesManager::dup_voice_note(FileId new_id, FileId old_id) {
   new_voice_note->mime_type = old_voice_note->mime_type;
   new_voice_note->duration = old_voice_note->duration;
   new_voice_note->waveform = old_voice_note->waveform;
-  if (old_voice_note->is_transcribed) {
-    new_voice_note->is_transcribed = old_voice_note->is_transcribed;
-    new_voice_note->text = old_voice_note->text;
-  }
+  new_voice_note->transcription_info = TranscriptionInfo::copy_if_transcribed(old_voice_note->transcription_info);
   return new_id;
 }
 
@@ -278,14 +256,11 @@ void VoiceNotesManager::recognize_speech(FullMessageId full_message_id, Promise<
   auto file_id = it->second;
   auto voice_note = get_voice_note(file_id);
   CHECK(voice_note != nullptr);
-  if (voice_note->is_transcribed) {
-    return promise.set_value(Unit());
+  if (voice_note->transcription_info == nullptr) {
+    voice_note->transcription_info = make_unique<TranscriptionInfo>();
   }
-  auto &queries = speech_recognition_queries_[file_id];
-  queries.push_back(std::move(promise));
-  if (queries.size() == 1) {
+  if (voice_note->transcription_info->start_recognize_speech(std::move(promise))) {
     td_->create_handler<TranscribeAudioQuery>()->send(file_id, full_message_id);
-    voice_note->last_transcription_error = Status::OK();
     on_voice_note_transcription_updated(file_id);
   }
 }
@@ -294,25 +269,13 @@ void VoiceNotesManager::on_voice_note_transcribed(FileId file_id, string &&text,
                                                   bool is_final) {
   auto voice_note = get_voice_note(file_id);
   CHECK(voice_note != nullptr);
-  CHECK(!voice_note->is_transcribed);
-  CHECK(voice_note->transcription_id == 0 || voice_note->transcription_id == transcription_id);
-  CHECK(transcription_id != 0);
-  bool is_changed = voice_note->is_transcribed != is_final || voice_note->text != text;
-  voice_note->transcription_id = transcription_id;
-  voice_note->is_transcribed = is_final;
-  voice_note->text = std::move(text);
-  voice_note->last_transcription_error = Status::OK();
-
+  CHECK(voice_note->transcription_info != nullptr);
   if (is_final) {
-    auto it = speech_recognition_queries_.find(file_id);
-    CHECK(it != speech_recognition_queries_.end());
-    CHECK(!it->second.empty());
-    auto promises = std::move(it->second);
-    speech_recognition_queries_.erase(it);
-
+    auto promises = voice_note->transcription_info->on_final_transcription(std::move(text), transcription_id);
     on_voice_note_transcription_completed(file_id);
     set_promises(promises);
   } else {
+    auto is_changed = voice_note->transcription_info->on_partial_transcription(std::move(text), transcription_id);
     if (is_changed) {
       on_voice_note_transcription_updated(file_id);
     }
@@ -330,19 +293,9 @@ void VoiceNotesManager::on_voice_note_transcribed(FileId file_id, string &&text,
 void VoiceNotesManager::on_voice_note_transcription_failed(FileId file_id, Status &&error) {
   auto voice_note = get_voice_note(file_id);
   CHECK(voice_note != nullptr);
-  CHECK(!voice_note->is_transcribed);
-  CHECK(pending_voice_note_transcription_queries_.count(voice_note->transcription_id) == 0);
-
-  voice_note->transcription_id = 0;
-  voice_note->text.clear();
-  voice_note->last_transcription_error = error.clone();
-
-  auto it = speech_recognition_queries_.find(file_id);
-  CHECK(it != speech_recognition_queries_.end());
-  CHECK(!it->second.empty());
-  auto promises = std::move(it->second);
-  speech_recognition_queries_.erase(it);
-
+  CHECK(voice_note->transcription_info != nullptr);
+  CHECK(pending_voice_note_transcription_queries_.count(voice_note->transcription_info->get_transcription_id()) == 0);
+  auto promises = voice_note->transcription_info->on_failed_transcription(error.clone());
   on_voice_note_transcription_updated(file_id);
   fail_promises(promises, std::move(error));
 }
@@ -396,12 +349,12 @@ void VoiceNotesManager::rate_speech_recognition(FullMessageId full_message_id, b
   auto file_id = it->second;
   auto voice_note = get_voice_note(file_id);
   CHECK(voice_note != nullptr);
-  if (!voice_note->is_transcribed) {
+  if (voice_note->transcription_info == nullptr || !voice_note->transcription_info->is_transcribed()) {
     return promise.set_value(Unit());
   }
-  CHECK(voice_note->transcription_id != 0);
-  td_->create_handler<RateTranscribedAudioQuery>(std::move(promise))
-      ->send(full_message_id, voice_note->transcription_id, is_good);
+  auto transcription_id = voice_note->transcription_info->get_transcription_id();
+  CHECK(transcription_id != 0);
+  td_->create_handler<RateTranscribedAudioQuery>(std::move(promise))->send(full_message_id, transcription_id, is_good);
 }
 
 SecretInputMedia VoiceNotesManager::get_secret_input_media(FileId voice_note_file_id,

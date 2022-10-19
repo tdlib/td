@@ -454,6 +454,7 @@ set(TDLIB_SOURCE
   td/telegram/ThemeManager.cpp
   td/telegram/TopDialogCategory.cpp
   td/telegram/TopDialogManager.cpp
+  td/telegram/TranscriptionInfo.cpp
   td/telegram/UpdatesManager.cpp
   td/telegram/Usernames.cpp
   td/telegram/Venue.cpp
@@ -718,6 +719,7 @@ set(TDLIB_SOURCE
   td/telegram/ThemeManager.h
   td/telegram/TopDialogCategory.h
   td/telegram/TopDialogManager.h
+  td/telegram/TranscriptionInfo.h
   td/telegram/UniqueId.h
   td/telegram/UpdatesManager.h
   td/telegram/UserId.h
@@ -769,6 +771,7 @@ set(TDLIB_SOURCE
   td/telegram/SendCodeHelper.hpp
   td/telegram/StickerSetId.hpp
   td/telegram/StickersManager.hpp
+  td/telegram/TranscriptionInfo.hpp
   td/telegram/VideoNotesManager.hpp
   td/telegram/VideosManager.hpp
   td/telegram/VoiceNotesManager.hpp

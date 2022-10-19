@@ -11,6 +11,7 @@
 #include "td/telegram/SecretInputMedia.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
+#include "td/telegram/TranscriptionInfo.h"
 
 #include "td/actor/actor.h"
 #include "td/actor/MultiTimeout.h"
@@ -79,11 +80,8 @@ class VoiceNotesManager final : public Actor {
    public:
     string mime_type;
     int32 duration = 0;
-    bool is_transcribed = false;
     string waveform;
-    int64 transcription_id = 0;
-    string text;
-    Status last_transcription_error;
+    unique_ptr<TranscriptionInfo> transcription_info;
 
     FileId file_id;
   };
@@ -109,7 +107,6 @@ class VoiceNotesManager final : public Actor {
 
   WaitFreeHashMap<FileId, unique_ptr<VoiceNote>, FileIdHash> voice_notes_;
 
-  FlatHashMap<FileId, vector<Promise<Unit>>, FileIdHash> speech_recognition_queries_;
   FlatHashMap<int64, FileId> pending_voice_note_transcription_queries_;
   MultiTimeout voice_note_transcription_timeout_{"VoiceNoteTranscriptionTimeout"};
 
