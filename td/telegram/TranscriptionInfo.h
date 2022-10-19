@@ -6,6 +6,7 @@
 //
 #pragma once
 
+#include "td/telegram/FullMessageId.h"
 #include "td/telegram/td_api.h"
 
 #include "td/utils/common.h"
@@ -13,6 +14,8 @@
 #include "td/utils/Status.h"
 
 namespace td {
+
+class Td;
 
 class TranscriptionInfo {
   bool is_transcribed_ = false;
@@ -39,6 +42,8 @@ class TranscriptionInfo {
   bool on_partial_transcription(string &&text, int64 transcription_id);
 
   vector<Promise<Unit>> on_failed_transcription(Status &&error);
+
+  void rate_speech_recognition(Td *td, FullMessageId full_message_id, bool is_good, Promise<Unit> &&promise) const;
 
   static unique_ptr<TranscriptionInfo> copy_if_transcribed(const unique_ptr<TranscriptionInfo> &info);
 

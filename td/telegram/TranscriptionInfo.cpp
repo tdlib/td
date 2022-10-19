@@ -6,7 +6,50 @@
 //
 #include "td/telegram/TranscriptionInfo.h"
 
+#include "td/telegram/DialogId.h"
+#include "td/telegram/MessagesManager.h"
+#include "td/telegram/Td.h"
+
+#include "td/utils/buffer.h"
+#include "td/utils/logging.h"
+
 namespace td {
+
+class RateTranscribedAudioQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  DialogId dialog_id_;
+
+ public:
+  explicit RateTranscribedAudioQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(FullMessageId full_message_id, int64 transcription_id, bool is_good) {
+    dialog_id_ = full_message_id.get_dialog_id();
+    auto input_peer = td_->messages_manager_->get_input_peer(dialog_id_, AccessRights::Read);
+    if (input_peer == nullptr) {
+      return on_error(Status::Error(400, "Can't access the chat"));
+    }
+    send_query(G()->net_query_creator().create(telegram_api::messages_rateTranscribedAudio(
+        std::move(input_peer), full_message_id.get_message_id().get_server_message_id().get(), transcription_id,
+        is_good)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_rateTranscribedAudio>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    bool result = result_ptr.ok();
+    LOG(INFO) << "Receive result for RateTranscribedAudioQuery: " << result;
+    promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "RateTranscribedAudioQuery");
+    promise_.set_error(std::move(status));
+  }
+};
 
 bool TranscriptionInfo::start_recognize_speech(Promise<Unit> &&promise) {
   if (is_transcribed_) {
@@ -59,6 +102,15 @@ vector<Promise<Unit>> TranscriptionInfo::on_failed_transcription(Status &&error)
   auto promises = std::move(speech_recognition_queries_);
   speech_recognition_queries_.clear();
   return promises;
+}
+
+void TranscriptionInfo::rate_speech_recognition(Td *td, FullMessageId full_message_id, bool is_good,
+                                                Promise<Unit> &&promise) const {
+  if (!is_transcribed_) {
+    return promise.set_value(Unit());
+  }
+  CHECK(transcription_id_ != 0);
+  td->create_handler<RateTranscribedAudioQuery>(std::move(promise))->send(full_message_id, transcription_id_, is_good);
 }
 
 unique_ptr<TranscriptionInfo> TranscriptionInfo::copy_if_transcribed(const unique_ptr<TranscriptionInfo> &info) {
