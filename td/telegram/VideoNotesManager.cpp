@@ -71,7 +71,7 @@ FileId VideoNotesManager::on_get_video_note(unique_ptr<VideoNote> new_video_note
         LOG(INFO) << "Video note " << file_id << " thumbnail has changed from " << v->thumbnail << " to "
                   << new_video_note->thumbnail;
       }
-      v->thumbnail = new_video_note->thumbnail;
+      v->thumbnail = std::move(new_video_note->thumbnail);
     }
   }
   return file_id;

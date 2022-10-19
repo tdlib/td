@@ -63,7 +63,7 @@ FileId VideosManager::on_get_video(unique_ptr<Video> new_video, bool replace) {
     CHECK(v->file_id == new_video->file_id);
     if (v->mime_type != new_video->mime_type) {
       LOG(DEBUG) << "Video " << file_id << " MIME type has changed";
-      v->mime_type = new_video->mime_type;
+      v->mime_type = std::move(new_video->mime_type);
     }
     if (v->duration != new_video->duration || v->dimensions != new_video->dimensions ||
         v->supports_streaming != new_video->supports_streaming) {
@@ -86,7 +86,7 @@ FileId VideosManager::on_get_video(unique_ptr<Video> new_video, bool replace) {
         LOG(INFO) << "Video " << file_id << " thumbnail has changed from " << v->thumbnail << " to "
                   << new_video->thumbnail;
       }
-      v->thumbnail = new_video->thumbnail;
+      v->thumbnail = std::move(new_video->thumbnail);
     }
     if (v->animated_thumbnail != new_video->animated_thumbnail) {
       if (!v->animated_thumbnail.file_id.is_valid()) {
@@ -95,7 +95,7 @@ FileId VideosManager::on_get_video(unique_ptr<Video> new_video, bool replace) {
         LOG(INFO) << "Video " << file_id << " animated thumbnail has changed from " << v->animated_thumbnail << " to "
                   << new_video->animated_thumbnail;
       }
-      v->animated_thumbnail = new_video->animated_thumbnail;
+      v->animated_thumbnail = std::move(new_video->animated_thumbnail);
     }
     if (v->has_stickers != new_video->has_stickers && new_video->has_stickers) {
       v->has_stickers = new_video->has_stickers;

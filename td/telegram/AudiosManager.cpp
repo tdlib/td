@@ -101,13 +101,13 @@ FileId AudiosManager::on_get_audio(unique_ptr<Audio> new_audio, bool replace) {
     CHECK(a->file_id == new_audio->file_id);
     if (a->mime_type != new_audio->mime_type) {
       LOG(DEBUG) << "Audio " << file_id << " info has changed";
-      a->mime_type = new_audio->mime_type;
+      a->mime_type = std::move(new_audio->mime_type);
     }
     if (a->duration != new_audio->duration || a->title != new_audio->title || a->performer != new_audio->performer) {
       LOG(DEBUG) << "Audio " << file_id << " info has changed";
       a->duration = new_audio->duration;
-      a->title = new_audio->title;
-      a->performer = new_audio->performer;
+      a->title = std::move(new_audio->title);
+      a->performer = std::move(new_audio->performer);
     }
     if (a->file_name != new_audio->file_name) {
       LOG(DEBUG) << "Audio " << file_id << " file name has changed";
@@ -126,7 +126,7 @@ FileId AudiosManager::on_get_audio(unique_ptr<Audio> new_audio, bool replace) {
         LOG(INFO) << "Audio " << file_id << " thumbnail has changed from " << a->thumbnail << " to "
                   << new_audio->thumbnail;
       }
-      a->thumbnail = new_audio->thumbnail;
+      a->thumbnail = std::move(new_audio->thumbnail);
     }
   }
 
