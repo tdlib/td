@@ -6823,11 +6823,13 @@ void MessagesManager::on_update_message_reactions(FullMessageId full_message_id,
     auto dialog_id = full_message_id.get_dialog_id();
     if (!have_input_peer(dialog_id, AccessRights::Read)) {
       LOG(INFO) << "Ignore updateMessageReaction in inaccessible " << full_message_id;
+      promise.set_value(Unit());
       return;
     }
     const Dialog *d = get_dialog(dialog_id);
     if (d == nullptr) {
       LOG(INFO) << "Ignore updateMessageReaction in unknown " << dialog_id;
+      promise.set_value(Unit());
       return;
     }
 
@@ -6836,6 +6838,8 @@ void MessagesManager::on_update_message_reactions(FullMessageId full_message_id,
       // but if there are unread reactions or the chat has unread reactions,
       // then number of unread reactions could have been changed, so reload the number of unread reactions
       send_get_dialog_query(dialog_id, std::move(promise), 0, "on_update_message_reactions");
+    } else {
+      promise.set_value(Unit());
     }
     return;
   }
