@@ -8,6 +8,7 @@
 
 #include "td/telegram/Dimensions.h"
 #include "td/telegram/files/FileId.h"
+#include "td/telegram/FullMessageId.h"
 #include "td/telegram/PhotoSize.h"
 #include "td/telegram/SecretInputMedia.h"
 #include "td/telegram/td_api.h"
@@ -15,6 +16,7 @@
 
 #include "td/utils/buffer.h"
 #include "td/utils/common.h"
+#include "td/utils/FlatHashSet.h"
 #include "td/utils/WaitFreeHashMap.h"
 
 namespace td {
@@ -36,6 +38,10 @@ class VideoNotesManager {
 
   void create_video_note(FileId file_id, string minithumbnail, PhotoSize thumbnail, int32 duration,
                          Dimensions dimensions, bool replace);
+
+  void register_video_note(FileId video_note_file_id, FullMessageId full_message_id, const char *source);
+
+  void unregister_video_note(FileId video_note_file_id, FullMessageId full_message_id, const char *source);
 
   tl_object_ptr<telegram_api::InputMedia> get_input_media(FileId file_id,
                                                           tl_object_ptr<telegram_api::InputFile> input_file,
@@ -76,6 +82,9 @@ class VideoNotesManager {
 
   Td *td_;
   WaitFreeHashMap<FileId, unique_ptr<VideoNote>, FileIdHash> video_notes_;
+
+  FlatHashMap<FileId, FlatHashSet<FullMessageId, FullMessageIdHash>, FileIdHash> video_note_messages_;
+  FlatHashMap<FullMessageId, FileId, FullMessageIdHash> message_video_notes_;
 };
 
 }  // namespace td

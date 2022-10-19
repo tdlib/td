@@ -141,6 +141,34 @@ void VideoNotesManager::create_video_note(FileId file_id, string minithumbnail, 
   on_get_video_note(std::move(v), replace);
 }
 
+void VideoNotesManager::register_video_note(FileId video_note_file_id, FullMessageId full_message_id,
+                                            const char *source) {
+  if (full_message_id.get_message_id().is_scheduled() || !full_message_id.get_message_id().is_server()) {
+    return;
+  }
+  LOG(INFO) << "Register video note " << video_note_file_id << " from " << full_message_id << " from " << source;
+  bool is_inserted = video_note_messages_[video_note_file_id].insert(full_message_id).second;
+  LOG_CHECK(is_inserted) << source << ' ' << video_note_file_id << ' ' << full_message_id;
+  is_inserted = message_video_notes_.emplace(full_message_id, video_note_file_id).second;
+  CHECK(is_inserted);
+}
+
+void VideoNotesManager::unregister_video_note(FileId video_note_file_id, FullMessageId full_message_id,
+                                              const char *source) {
+  if (full_message_id.get_message_id().is_scheduled() || !full_message_id.get_message_id().is_server()) {
+    return;
+  }
+  LOG(INFO) << "Unregister video note " << video_note_file_id << " from " << full_message_id << " from " << source;
+  auto &message_ids = video_note_messages_[video_note_file_id];
+  auto is_deleted = message_ids.erase(full_message_id) > 0;
+  LOG_CHECK(is_deleted) << source << ' ' << video_note_file_id << ' ' << full_message_id;
+  if (message_ids.empty()) {
+    video_note_messages_.erase(video_note_file_id);
+  }
+  is_deleted = message_video_notes_.erase(full_message_id) > 0;
+  CHECK(is_deleted);
+}
+
 SecretInputMedia VideoNotesManager::get_secret_input_media(FileId video_note_file_id,
                                                            tl_object_ptr<telegram_api::InputEncryptedFile> input_file,
                                                            BufferSlice thumbnail, int32 layer) const {

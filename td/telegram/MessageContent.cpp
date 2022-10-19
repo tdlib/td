@@ -3922,6 +3922,9 @@ void register_message_content(Td *td, const MessageContent *content, FullMessage
       }
       return;
     }
+    case MessageContentType::VideoNote:
+      return td->video_notes_manager_->register_video_note(static_cast<const MessageVideoNote *>(content)->file_id,
+                                                           full_message_id, source);
     case MessageContentType::VoiceNote:
       return td->voice_notes_manager_->register_voice_note(static_cast<const MessageVoiceNote *>(content)->file_id,
                                                            full_message_id, source);
@@ -3956,6 +3959,12 @@ void reregister_message_content(Td *td, const MessageContent *old_content, const
         }
         break;
       }
+      case MessageContentType::VideoNote:
+        if (static_cast<const MessageVideoNote *>(old_content)->file_id ==
+            static_cast<const MessageVideoNote *>(new_content)->file_id) {
+          return;
+        }
+        break;
       case MessageContentType::VoiceNote:
         if (static_cast<const MessageVoiceNote *>(old_content)->file_id ==
             static_cast<const MessageVoiceNote *>(new_content)->file_id) {
@@ -4003,6 +4012,9 @@ void unregister_message_content(Td *td, const MessageContent *content, FullMessa
       }
       return;
     }
+    case MessageContentType::VideoNote:
+      return td->video_notes_manager_->unregister_video_note(static_cast<const MessageVideoNote *>(content)->file_id,
+                                                             full_message_id, source);
     case MessageContentType::VoiceNote:
       return td->voice_notes_manager_->unregister_voice_note(static_cast<const MessageVoiceNote *>(content)->file_id,
                                                              full_message_id, source);
