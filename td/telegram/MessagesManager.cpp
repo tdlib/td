@@ -18822,6 +18822,24 @@ void MessagesManager::translate_text(const string &text, const string &from_lang
   td_->create_handler<TranslateTextQuery>(std::move(promise))->send(text, from_language_code, to_language_code);
 }
 
+void MessagesManager::recognize_speech(FullMessageId full_message_id, Promise<Unit> &&promise) {
+  auto m = get_message_force(full_message_id, "recognize_speech");
+  if (m == nullptr) {
+    return promise.set_error(Status::Error(400, "Message not found"));
+  }
+
+  recognize_message_content_speech(td_, m->content.get(), full_message_id, std::move(promise));
+}
+
+void MessagesManager::rate_speech_recognition(FullMessageId full_message_id, bool is_good, Promise<Unit> &&promise) {
+  auto m = get_message_force(full_message_id, "rate_speech_recognition");
+  if (m == nullptr) {
+    return promise.set_error(Status::Error(400, "Message not found"));
+  }
+
+  rate_message_content_speech_recognition(td_, m->content.get(), full_message_id, is_good, std::move(promise));
+}
+
 void MessagesManager::get_dialog_info_full(DialogId dialog_id, Promise<Unit> &&promise, const char *source) {
   switch (dialog_id.get_type()) {
     case DialogType::User:

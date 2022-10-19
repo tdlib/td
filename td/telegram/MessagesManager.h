@@ -649,6 +649,10 @@ class MessagesManager final : public Actor {
   void translate_text(const string &text, const string &from_language_code, const string &to_language_code,
                       Promise<td_api::object_ptr<td_api::text>> &&promise);
 
+  void recognize_speech(FullMessageId full_message_id, Promise<Unit> &&promise);
+
+  void rate_speech_recognition(FullMessageId full_message_id, bool is_good, Promise<Unit> &&promise);
+
   bool is_message_edited_recently(FullMessageId full_message_id, int32 seconds);
 
   bool is_deleted_secret_chat(DialogId dialog_id) const;

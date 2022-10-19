@@ -272,14 +272,8 @@ void VoiceNotesManager::unregister_voice_note(FileId voice_note_file_id, FullMes
 }
 
 void VoiceNotesManager::recognize_speech(FullMessageId full_message_id, Promise<Unit> &&promise) {
-  if (!td_->messages_manager_->have_message_force(full_message_id, "recognize_speech")) {
-    return promise.set_error(Status::Error(400, "Message not found"));
-  }
-
   auto it = message_voice_notes_.find(full_message_id);
-  if (it == message_voice_notes_.end()) {
-    return promise.set_error(Status::Error(400, "Invalid message specified"));
-  }
+  CHECK(it != message_voice_notes_.end());
 
   auto file_id = it->second;
   auto voice_note = get_voice_note(file_id);
@@ -396,14 +390,8 @@ void VoiceNotesManager::on_voice_note_transcription_completed(FileId file_id) {
 }
 
 void VoiceNotesManager::rate_speech_recognition(FullMessageId full_message_id, bool is_good, Promise<Unit> &&promise) {
-  if (!td_->messages_manager_->have_message_force(full_message_id, "rate_speech_recognition")) {
-    return promise.set_error(Status::Error(400, "Message not found"));
-  }
-
   auto it = message_voice_notes_.find(full_message_id);
-  if (it == message_voice_notes_.end()) {
-    return promise.set_error(Status::Error(400, "Invalid message specified"));
-  }
+  CHECK(it != message_voice_notes_.end());
 
   auto file_id = it->second;
   auto voice_note = get_voice_note(file_id);
