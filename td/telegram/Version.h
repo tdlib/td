@@ -56,6 +56,7 @@ enum class Version : int32 {
   AddMessageStickerFlags,  // 40
   AddStickerSetListFlags,
   AddInputInvoiceFlags,
+  AddVideoNoteFlags,
   Next
 };
 
