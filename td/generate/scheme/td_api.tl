@@ -320,9 +320,9 @@ sticker set_id:int64 width:int32 height:int32 emoji:string format:StickerFormat 
 video duration:int32 width:int32 height:int32 file_name:string mime_type:string has_stickers:Bool supports_streaming:Bool minithumbnail:minithumbnail thumbnail:thumbnail video:file = Video;
 
 //@description Describes a video note. The video must be equal in width and height, cropped to a circle, and stored in MPEG4 format @duration Duration of the video, in seconds; as defined by the sender
-//@length Video width and height; as defined by the sender @minithumbnail Video minithumbnail; may be null
+//@waveform A waveform representation of the video note's audio in 5-bit format; may be empty if unknown @length Video width and height; as defined by the sender @minithumbnail Video minithumbnail; may be null
 //@thumbnail Video thumbnail in JPEG format; as defined by the sender; may be null @speech_recognition_result Result of speech recognition in the video note; may be null @video File containing the video
-videoNote duration:int32 length:int32 minithumbnail:minithumbnail thumbnail:thumbnail speech_recognition_result:SpeechRecognitionResult video:file = VideoNote;
+videoNote duration:int32 waveform:bytes length:int32 minithumbnail:minithumbnail thumbnail:thumbnail speech_recognition_result:SpeechRecognitionResult video:file = VideoNote;
 
 //@description Describes a voice note. The voice note must be encoded with the Opus codec, and stored inside an OGG container. Voice notes can have only a single audio channel
 //@duration Duration of the voice note, in seconds; as defined by the sender @waveform A waveform representation of the voice note in 5-bit format
@@ -2259,7 +2259,7 @@ inputMessageVideo video:InputFile thumbnail:inputThumbnail added_sticker_file_id
 //@description A video note message @video_note Video note to be sent @thumbnail Video thumbnail; pass null to skip thumbnail uploading @duration Duration of the video, in seconds @length Video width and height; must be positive and not greater than 640
 inputMessageVideoNote video_note:InputFile thumbnail:inputThumbnail duration:int32 length:int32 = InputMessageContent;
 
-//@description A voice note message @voice_note Voice note to be sent @duration Duration of the voice note, in seconds @waveform Waveform representation of the voice note, in 5-bit format @caption Voice note caption; pass null to use an empty caption; 0-GetOption("message_caption_length_max") characters
+//@description A voice note message @voice_note Voice note to be sent @duration Duration of the voice note, in seconds @waveform Waveform representation of the voice note in 5-bit format @caption Voice note caption; pass null to use an empty caption; 0-GetOption("message_caption_length_max") characters
 inputMessageVoiceNote voice_note:InputFile duration:int32 waveform:bytes caption:formattedText = InputMessageContent;
 
 //@description A message with a location @location Location to be sent @live_period Period for which the location can be updated, in seconds; must be between 60 and 86400 for a live location and 0 otherwise

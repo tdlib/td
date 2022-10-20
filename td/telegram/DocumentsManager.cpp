@@ -122,6 +122,7 @@ Document DocumentsManager::on_get_document(RemoteDocument remote_document, Dialo
     }
   }
   int32 video_duration = 0;
+  string video_waveform;
   if (video != nullptr) {
     video_duration = video->duration_;
     auto video_dimensions = get_dimensions(video->w_, video->h_, "documentAttributeVideo");
@@ -130,6 +131,11 @@ Document DocumentsManager::on_get_document(RemoteDocument remote_document, Dialo
         LOG(ERROR) << "Receive ambiguous video dimensions " << dimensions << " and " << video_dimensions;
       }
       dimensions = video_dimensions;
+    }
+    if (audio != nullptr) {
+      video_waveform = audio->waveform_.as_slice().str();
+      type_attributes--;
+      audio = nullptr;
     }
 
     if (animated != nullptr) {
@@ -514,7 +520,7 @@ Document DocumentsManager::on_get_document(RemoteDocument remote_document, Dialo
       break;
     case Document::Type::VideoNote:
       td_->video_notes_manager_->create_video_note(file_id, std::move(minithumbnail), std::move(thumbnail),
-                                                   video_duration, dimensions, !is_web);
+                                                   video_duration, dimensions, std::move(video_waveform), !is_web);
       break;
     case Document::Type::VoiceNote: {
       int32 duration = 0;

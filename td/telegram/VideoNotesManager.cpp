@@ -52,7 +52,8 @@ tl_object_ptr<td_api::videoNote> VideoNotesManager::get_video_note_object(FileId
                                        ? nullptr
                                        : video_note->transcription_info->get_speech_recognition_result_object();
   return make_tl_object<td_api::videoNote>(
-      video_note->duration, video_note->dimensions.width, get_minithumbnail_object(video_note->minithumbnail),
+      video_note->duration, video_note->waveform, video_note->dimensions.width,
+      get_minithumbnail_object(video_note->minithumbnail),
       get_thumbnail_object(td_->file_manager_.get(), video_note->thumbnail, PhotoFormat::Jpeg),
       std::move(speech_recognition_result), td_->file_manager_->get_file_object(file_id));
 }
@@ -66,10 +67,12 @@ FileId VideoNotesManager::on_get_video_note(unique_ptr<VideoNote> new_video_note
     v = std::move(new_video_note);
   } else if (replace) {
     CHECK(v->file_id == new_video_note->file_id);
-    if (v->duration != new_video_note->duration || v->dimensions != new_video_note->dimensions) {
+    if (v->duration != new_video_note->duration || v->dimensions != new_video_note->dimensions ||
+        v->waveform != new_video_note->waveform) {
       LOG(DEBUG) << "Video note " << file_id << " info has changed";
       v->duration = new_video_note->duration;
       v->dimensions = new_video_note->dimensions;
+      v->waveform = std::move(new_video_note->waveform);
     }
     if (v->minithumbnail != new_video_note->minithumbnail) {
       v->minithumbnail = std::move(new_video_note->minithumbnail);
@@ -119,6 +122,7 @@ FileId VideoNotesManager::dup_video_note(FileId new_id, FileId old_id) {
   new_video_note->file_id = new_id;
   new_video_note->duration = old_video_note->duration;
   new_video_note->dimensions = old_video_note->dimensions;
+  new_video_note->waveform = old_video_note->waveform;
   new_video_note->minithumbnail = old_video_note->minithumbnail;
   new_video_note->thumbnail = old_video_note->thumbnail;
   new_video_note->thumbnail.file_id = td_->file_manager_->dup_file_id(new_video_note->thumbnail.file_id);
@@ -146,7 +150,7 @@ void VideoNotesManager::merge_video_notes(FileId new_id, FileId old_id) {
 }
 
 void VideoNotesManager::create_video_note(FileId file_id, string minithumbnail, PhotoSize thumbnail, int32 duration,
-                                          Dimensions dimensions, bool replace) {
+                                          Dimensions dimensions, string waveform, bool replace) {
   auto v = make_unique<VideoNote>();
   v->file_id = file_id;
   v->duration = max(duration, 0);
@@ -155,6 +159,7 @@ void VideoNotesManager::create_video_note(FileId file_id, string minithumbnail, 
   } else {
     LOG(INFO) << "Receive wrong video note dimensions " << dimensions;
   }
+  v->waveform = std::move(waveform);
   if (!td_->auth_manager_->is_bot()) {
     v->minithumbnail = std::move(minithumbnail);
   }

@@ -41,7 +41,7 @@ class VideoNotesManager final : public Actor {
   tl_object_ptr<td_api::videoNote> get_video_note_object(FileId file_id) const;
 
   void create_video_note(FileId file_id, string minithumbnail, PhotoSize thumbnail, int32 duration,
-                         Dimensions dimensions, bool replace);
+                         Dimensions dimensions, string waveform, bool replace);
 
   void register_video_note(FileId video_note_file_id, FullMessageId full_message_id, const char *source);
 
@@ -78,6 +78,7 @@ class VideoNotesManager final : public Actor {
    public:
     int32 duration = 0;
     Dimensions dimensions;
+    string waveform;
     string minithumbnail;
     PhotoSize thumbnail;
     unique_ptr<TranscriptionInfo> transcription_info;

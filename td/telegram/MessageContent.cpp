@@ -1961,7 +1961,7 @@ static Result<InputMessageContent> create_input_message_content(
       }
 
       td->video_notes_manager_->create_video_note(file_id, string(), thumbnail, input_video_note->duration_,
-                                                  get_dimensions(length, length, nullptr), false);
+                                                  get_dimensions(length, length, nullptr), string(), false);
 
       content = make_unique<MessageVideoNote>(file_id, false);
       break;
