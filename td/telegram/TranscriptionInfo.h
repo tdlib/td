@@ -31,10 +31,6 @@ class TranscriptionInfo {
     return is_transcribed_;
   }
 
-  int64 get_transcription_id() const {
-    return transcription_id_;
-  }
-
   bool start_recognize_speech(Promise<Unit> &&promise);
 
   vector<Promise<Unit>> on_final_transcription(string &&text, int64 transcription_id);

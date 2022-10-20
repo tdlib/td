@@ -14,7 +14,6 @@
 #include "td/telegram/TranscriptionInfo.h"
 
 #include "td/actor/actor.h"
-#include "td/actor/MultiTimeout.h"
 
 #include "td/utils/common.h"
 #include "td/utils/FlatHashMap.h"
@@ -50,9 +49,7 @@ class VoiceNotesManager final : public Actor {
 
   void rate_speech_recognition(FullMessageId full_message_id, bool is_good, Promise<Unit> &&promise);
 
-  void on_update_transcribed_audio(string &&text, int64 transcription_id, bool is_final);
-
-  void on_voice_note_transcribed(FileId file_id, string &&text, int64 transcription_id, bool is_final);
+  void on_voice_note_transcribed(FileId file_id, string &&text, int64 transcription_id, bool is_initial, bool is_final);
 
   void on_voice_note_transcription_failed(FileId file_id, Status &&error);
 
@@ -74,8 +71,6 @@ class VoiceNotesManager final : public Actor {
   FileId parse_voice_note(ParserT &parser);
 
  private:
-  static constexpr int32 TRANSCRIPTION_TIMEOUT = 60;
-
   class VoiceNote {
    public:
     string mime_type;
@@ -86,19 +81,18 @@ class VoiceNotesManager final : public Actor {
     FileId file_id;
   };
 
-  static void on_voice_note_transcription_timeout_callback(void *voice_notes_manager_ptr, int64 transcription_id);
-
   VoiceNote *get_voice_note(FileId file_id);
 
   const VoiceNote *get_voice_note(FileId file_id) const;
 
   FileId on_get_voice_note(unique_ptr<VoiceNote> new_voice_note, bool replace);
 
-  void on_pending_voice_note_transcription_failed(int64 transcription_id, Status &&error);
-
   void on_voice_note_transcription_updated(FileId file_id);
 
   void on_voice_note_transcription_completed(FileId file_id);
+
+  void on_transcribed_audio_update(FileId file_id,
+                                   Result<telegram_api::object_ptr<telegram_api::updateTranscribedAudio>> r_update);
 
   void tear_down() final;
 
@@ -106,9 +100,6 @@ class VoiceNotesManager final : public Actor {
   ActorShared<> parent_;
 
   WaitFreeHashMap<FileId, unique_ptr<VoiceNote>, FileIdHash> voice_notes_;
-
-  FlatHashMap<int64, FileId> pending_voice_note_transcription_queries_;
-  MultiTimeout voice_note_transcription_timeout_{"VoiceNoteTranscriptionTimeout"};
 
   FlatHashMap<FileId, FlatHashSet<FullMessageId, FullMessageIdHash>, FileIdHash> voice_note_messages_;
   FlatHashMap<FullMessageId, FileId, FullMessageIdHash> message_voice_notes_;
