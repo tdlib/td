@@ -9,6 +9,7 @@
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/files/FileManager.h"
 #include "td/telegram/Global.h"
+#include "td/telegram/OptionManager.h"
 #include "td/telegram/PhotoFormat.h"
 #include "td/telegram/secret_api.h"
 #include "td/telegram/Td.h"
@@ -193,10 +194,12 @@ tl_object_ptr<telegram_api::InputMedia> VideoNotesManager::get_input_media(
     CHECK(video_note != nullptr);
 
     vector<tl_object_ptr<telegram_api::DocumentAttribute>> attributes;
+    auto suggested_video_note_length =
+        narrow_cast<int32>(td_->option_manager_->get_option_integer("suggested_video_note_length", 384));
     attributes.push_back(make_tl_object<telegram_api::documentAttributeVideo>(
         telegram_api::documentAttributeVideo::ROUND_MESSAGE_MASK, false /*ignored*/, false /*ignored*/,
-        video_note->duration, video_note->dimensions.width ? video_note->dimensions.width : 240,
-        video_note->dimensions.height ? video_note->dimensions.height : 240));
+        video_note->duration, video_note->dimensions.width ? video_note->dimensions.width : suggested_video_note_length,
+        video_note->dimensions.height ? video_note->dimensions.height : suggested_video_note_length));
     int32 flags = telegram_api::inputMediaUploadedDocument::NOSOUND_VIDEO_MASK;
     if (input_thumbnail != nullptr) {
       flags |= telegram_api::inputMediaUploadedDocument::THUMB_MASK;
