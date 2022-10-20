@@ -134,7 +134,6 @@ class Td final : public Actor {
   unique_ptr<CallbackQueriesManager> callback_queries_manager_;
   unique_ptr<DocumentsManager> documents_manager_;
   unique_ptr<OptionManager> option_manager_;
-  unique_ptr<VideoNotesManager> video_notes_manager_;
   unique_ptr<VideosManager> videos_manager_;
 
   unique_ptr<AnimationsManager> animations_manager_;
@@ -181,6 +180,8 @@ class Td final : public Actor {
   ActorOwn<TopDialogManager> top_dialog_manager_actor_;
   unique_ptr<UpdatesManager> updates_manager_;
   ActorOwn<UpdatesManager> updates_manager_actor_;
+  unique_ptr<VideoNotesManager> video_notes_manager_;
+  ActorOwn<VideoNotesManager> video_notes_manager_actor_;
   unique_ptr<VoiceNotesManager> voice_notes_manager_;
   ActorOwn<VoiceNotesManager> voice_notes_manager_actor_;
   unique_ptr<WebPagesManager> web_pages_manager_;

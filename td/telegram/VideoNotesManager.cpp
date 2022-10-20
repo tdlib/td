@@ -23,11 +23,15 @@
 
 namespace td {
 
-VideoNotesManager::VideoNotesManager(Td *td) : td_(td) {
+VideoNotesManager::VideoNotesManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
 }
 
 VideoNotesManager::~VideoNotesManager() {
   Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), video_notes_);
+}
+
+void VideoNotesManager::tear_down() {
+  parent_.reset();
 }
 
 int32 VideoNotesManager::get_video_note_duration(FileId file_id) const {

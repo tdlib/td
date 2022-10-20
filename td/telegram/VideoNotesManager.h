@@ -14,6 +14,8 @@
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 
+#include "td/actor/actor.h"
+
 #include "td/utils/buffer.h"
 #include "td/utils/common.h"
 #include "td/utils/FlatHashMap.h"
@@ -24,14 +26,14 @@ namespace td {
 
 class Td;
 
-class VideoNotesManager {
+class VideoNotesManager final : public Actor {
  public:
-  explicit VideoNotesManager(Td *td);
+  VideoNotesManager(Td *td, ActorShared<> parent);
   VideoNotesManager(const VideoNotesManager &) = delete;
   VideoNotesManager &operator=(const VideoNotesManager &) = delete;
   VideoNotesManager(VideoNotesManager &&) = delete;
   VideoNotesManager &operator=(VideoNotesManager &&) = delete;
-  ~VideoNotesManager();
+  ~VideoNotesManager() final;
 
   int32 get_video_note_duration(FileId file_id) const;
 
@@ -81,7 +83,11 @@ class VideoNotesManager {
 
   FileId on_get_video_note(unique_ptr<VideoNote> new_video_note, bool replace);
 
+  void tear_down() final;
+
   Td *td_;
+  ActorShared<> parent_;
+
   WaitFreeHashMap<FileId, unique_ptr<VideoNote>, FileIdHash> video_notes_;
 
   FlatHashMap<FileId, FlatHashSet<FullMessageId, FullMessageIdHash>, FileIdHash> video_note_messages_;

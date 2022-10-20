@@ -3451,6 +3451,8 @@ void Td::clear() {
   LOG(DEBUG) << "TopDialogManager actor was cleared" << timer;
   updates_manager_actor_.reset();
   LOG(DEBUG) << "UpdatesManager actor was cleared" << timer;
+  video_notes_manager_actor_.reset();
+  LOG(DEBUG) << "VideoNotesManager actor was cleared" << timer;
   voice_notes_manager_actor_.reset();
   LOG(DEBUG) << "VoiceNotesManager actor was cleared" << timer;
   web_pages_manager_actor_.reset();
@@ -3855,7 +3857,6 @@ void Td::init_managers() {
   audios_manager_ = make_unique<AudiosManager>(this);
   callback_queries_manager_ = make_unique<CallbackQueriesManager>(this);
   documents_manager_ = make_unique<DocumentsManager>(this);
-  video_notes_manager_ = make_unique<VideoNotesManager>(this);
   videos_manager_ = make_unique<VideosManager>(this);
 
   animations_manager_ = make_unique<AnimationsManager>(this, create_reference());
@@ -3913,6 +3914,8 @@ void Td::init_managers() {
   updates_manager_ = make_unique<UpdatesManager>(this, create_reference());
   updates_manager_actor_ = register_actor("UpdatesManager", updates_manager_.get());
   G()->set_updates_manager(updates_manager_actor_.get());
+  video_notes_manager_ = make_unique<VideoNotesManager>(this, create_reference());
+  video_notes_manager_actor_ = register_actor("VideoNotesManager", video_notes_manager_.get());
   voice_notes_manager_ = make_unique<VoiceNotesManager>(this, create_reference());
   voice_notes_manager_actor_ = register_actor("VoiceNotesManager", voice_notes_manager_.get());
   web_pages_manager_ = make_unique<WebPagesManager>(this, create_reference());
