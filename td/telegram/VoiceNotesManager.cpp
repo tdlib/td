@@ -181,17 +181,31 @@ void VoiceNotesManager::recognize_speech(FullMessageId full_message_id, Promise<
   }
 }
 
-void VoiceNotesManager::on_voice_note_transcribed(FileId file_id, string &&text, int64 transcription_id,
-                                                  bool is_initial, bool is_final) {
+void VoiceNotesManager::on_transcribed_audio_update(
+    FileId file_id, bool is_initial, Result<telegram_api::object_ptr<telegram_api::updateTranscribedAudio>> r_update) {
+  if (G()->close_flag()) {
+    return;
+  }
+
   auto voice_note = get_voice_note(file_id);
   CHECK(voice_note != nullptr);
   CHECK(voice_note->transcription_info != nullptr);
-  if (is_final) {
-    auto promises = voice_note->transcription_info->on_final_transcription(std::move(text), transcription_id);
+
+  if (r_update.is_error()) {
+    auto promises = voice_note->transcription_info->on_failed_transcription(r_update.error().clone());
+    on_voice_note_transcription_updated(file_id);
+    fail_promises(promises, r_update.move_as_error());
+    return;
+  }
+  auto update = r_update.move_as_ok();
+  auto transcription_id = update->transcription_id_;
+  if (!update->pending_) {
+    auto promises = voice_note->transcription_info->on_final_transcription(std::move(update->text_), transcription_id);
     on_voice_note_transcription_completed(file_id);
     set_promises(promises);
   } else {
-    auto is_changed = voice_note->transcription_info->on_partial_transcription(std::move(text), transcription_id);
+    auto is_changed =
+        voice_note->transcription_info->on_partial_transcription(std::move(update->text_), transcription_id);
     if (is_changed) {
       on_voice_note_transcription_updated(file_id);
     }
@@ -205,25 +219,6 @@ void VoiceNotesManager::on_voice_note_transcribed(FileId file_id, string &&text,
           });
     }
   }
-}
-
-void VoiceNotesManager::on_transcribed_audio_update(
-    FileId file_id, bool is_initial, Result<telegram_api::object_ptr<telegram_api::updateTranscribedAudio>> r_update) {
-  if (r_update.is_error()) {
-    return on_voice_note_transcription_failed(file_id, r_update.move_as_error());
-  }
-  auto update = r_update.move_as_ok();
-  on_voice_note_transcribed(file_id, std::move(update->text_), update->transcription_id_, is_initial,
-                            !update->pending_);
-}
-
-void VoiceNotesManager::on_voice_note_transcription_failed(FileId file_id, Status &&error) {
-  auto voice_note = get_voice_note(file_id);
-  CHECK(voice_note != nullptr);
-  CHECK(voice_note->transcription_info != nullptr);
-  auto promises = voice_note->transcription_info->on_failed_transcription(error.clone());
-  on_voice_note_transcription_updated(file_id);
-  fail_promises(promises, std::move(error));
 }
 
 void VoiceNotesManager::on_voice_note_transcription_updated(FileId file_id) {

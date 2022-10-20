@@ -83,10 +83,6 @@ class VoiceNotesManager final : public Actor {
 
   FileId on_get_voice_note(unique_ptr<VoiceNote> new_voice_note, bool replace);
 
-  void on_voice_note_transcribed(FileId file_id, string &&text, int64 transcription_id, bool is_initial, bool is_final);
-
-  void on_voice_note_transcription_failed(FileId file_id, Status &&error);
-
   void on_voice_note_transcription_updated(FileId file_id);
 
   void on_voice_note_transcription_completed(FileId file_id);
