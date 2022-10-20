@@ -6188,6 +6188,8 @@ void update_used_hashtags(Td *td, const MessageContent *content) {
 void recognize_message_content_speech(Td *td, const MessageContent *content, FullMessageId full_message_id,
                                       Promise<Unit> &&promise) {
   switch (content->get_type()) {
+    case MessageContentType::VideoNote:
+      return td->video_notes_manager_->recognize_speech(full_message_id, std::move(promise));
     case MessageContentType::VoiceNote:
       return td->voice_notes_manager_->recognize_speech(full_message_id, std::move(promise));
     default:
@@ -6198,6 +6200,8 @@ void recognize_message_content_speech(Td *td, const MessageContent *content, Ful
 void rate_message_content_speech_recognition(Td *td, const MessageContent *content, FullMessageId full_message_id,
                                              bool is_good, Promise<Unit> &&promise) {
   switch (content->get_type()) {
+    case MessageContentType::VideoNote:
+      return td->video_notes_manager_->rate_speech_recognition(full_message_id, is_good, std::move(promise));
     case MessageContentType::VoiceNote:
       return td->voice_notes_manager_->rate_speech_recognition(full_message_id, is_good, std::move(promise));
     default:

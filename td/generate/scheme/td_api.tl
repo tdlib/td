@@ -321,8 +321,8 @@ video duration:int32 width:int32 height:int32 file_name:string mime_type:string 
 
 //@description Describes a video note. The video must be equal in width and height, cropped to a circle, and stored in MPEG4 format @duration Duration of the video, in seconds; as defined by the sender
 //@length Video width and height; as defined by the sender @minithumbnail Video minithumbnail; may be null
-//@thumbnail Video thumbnail in JPEG format; as defined by the sender; may be null @video File containing the video
-videoNote duration:int32 length:int32 minithumbnail:minithumbnail thumbnail:thumbnail video:file = VideoNote;
+//@thumbnail Video thumbnail in JPEG format; as defined by the sender; may be null @speech_recognition_result Result of speech recognition in the video note; may be null @video File containing the video
+videoNote duration:int32 length:int32 minithumbnail:minithumbnail thumbnail:thumbnail speech_recognition_result:SpeechRecognitionResult video:file = VideoNote;
 
 //@description Describes a voice note. The voice note must be encoded with the Opus codec, and stored inside an OGG container. Voice notes can have only a single audio channel
 //@duration Duration of the voice note, in seconds; as defined by the sender @waveform A waveform representation of the voice note in 5-bit format
@@ -5108,12 +5108,12 @@ getMessageLinkInfo url:string = MessageLinkInfo;
 //@to_language_code A two-letter ISO 639-1 language code of the language to which the message is translated
 translateText text:string from_language_code:string to_language_code:string = Text;
 
-//@description Recognizes speech in a voice note message. The message must be successfully sent and must not be scheduled. May return an error with a message "MSG_VOICE_TOO_LONG" if the voice note is too long to be recognized
+//@description Recognizes speech in a video note or a voice note message. The message must be successfully sent and must not be scheduled. May return an error with a message "MSG_VOICE_TOO_LONG" if media duration is too big to be recognized
 //@chat_id Identifier of the chat to which the message belongs
 //@message_id Identifier of the message
 recognizeSpeech chat_id:int53 message_id:int53 = Ok;
 
-//@description Rates recognized speech in a voice note message @chat_id Identifier of the chat to which the message belongs @message_id Identifier of the message @is_good Pass true if the speech recognition is good
+//@description Rates recognized speech in a video note or a voice note message @chat_id Identifier of the chat to which the message belongs @message_id Identifier of the message @is_good Pass true if the speech recognition is good
 rateSpeechRecognition chat_id:int53 message_id:int53 is_good:Bool = Ok;
 
 

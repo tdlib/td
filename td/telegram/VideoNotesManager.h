@@ -13,6 +13,7 @@
 #include "td/telegram/SecretInputMedia.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
+#include "td/telegram/TranscriptionInfo.h"
 
 #include "td/actor/actor.h"
 
@@ -46,6 +47,10 @@ class VideoNotesManager final : public Actor {
 
   void unregister_video_note(FileId video_note_file_id, FullMessageId full_message_id, const char *source);
 
+  void recognize_speech(FullMessageId full_message_id, Promise<Unit> &&promise);
+
+  void rate_speech_recognition(FullMessageId full_message_id, bool is_good, Promise<Unit> &&promise);
+
   tl_object_ptr<telegram_api::InputMedia> get_input_media(FileId file_id,
                                                           tl_object_ptr<telegram_api::InputFile> input_file,
                                                           tl_object_ptr<telegram_api::InputFile> input_thumbnail) const;
@@ -75,13 +80,23 @@ class VideoNotesManager final : public Actor {
     Dimensions dimensions;
     string minithumbnail;
     PhotoSize thumbnail;
+    unique_ptr<TranscriptionInfo> transcription_info;
 
     FileId file_id;
   };
 
+  VideoNote *get_video_note(FileId file_id);
+
   const VideoNote *get_video_note(FileId file_id) const;
 
   FileId on_get_video_note(unique_ptr<VideoNote> new_video_note, bool replace);
+
+  void on_video_note_transcription_updated(FileId file_id);
+
+  void on_video_note_transcription_completed(FileId file_id);
+
+  void on_transcribed_audio_update(FileId file_id, bool is_initial,
+                                   Result<telegram_api::object_ptr<telegram_api::updateTranscribedAudio>> r_update);
 
   void tear_down() final;
 

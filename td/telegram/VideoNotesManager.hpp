@@ -24,10 +24,12 @@ void VideoNotesManager::store_video_note(FileId file_id, StorerT &storer) const 
   bool has_duration = video_note->duration != 0;
   bool has_minithumbnail = !video_note->minithumbnail.empty();
   bool has_thumbnail = video_note->thumbnail.file_id.is_valid();
+  bool is_transcribed = video_note->transcription_info != nullptr && video_note->transcription_info->is_transcribed();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_duration);
   STORE_FLAG(has_minithumbnail);
   STORE_FLAG(has_thumbnail);
+  STORE_FLAG(is_transcribed);
   END_STORE_FLAGS();
   if (has_duration) {
     store(video_note->duration, storer);
@@ -39,6 +41,9 @@ void VideoNotesManager::store_video_note(FileId file_id, StorerT &storer) const 
   if (has_thumbnail) {
     store(video_note->thumbnail, storer);
   }
+  if (is_transcribed) {
+    store(video_note->transcription_info, storer);
+  }
   store(file_id, storer);
 }
 
@@ -48,16 +53,19 @@ FileId VideoNotesManager::parse_video_note(ParserT &parser) {
   bool has_duration;
   bool has_minithumbnail;
   bool has_thumbnail;
+  bool is_transcribed;
   if (parser.version() >= static_cast<int32>(Version::AddVideoNoteFlags)) {
     BEGIN_PARSE_FLAGS();
     PARSE_FLAG(has_duration);
     PARSE_FLAG(has_minithumbnail);
     PARSE_FLAG(has_thumbnail);
+    PARSE_FLAG(is_transcribed);
     END_PARSE_FLAGS();
   } else {
     has_duration = true;
     has_minithumbnail = parser.version() >= static_cast<int32>(Version::SupportMinithumbnails);
     has_thumbnail = true;
+    is_transcribed = false;
   }
   if (has_duration) {
     parse(video_note->duration, parser);
@@ -68,6 +76,9 @@ FileId VideoNotesManager::parse_video_note(ParserT &parser) {
   }
   if (has_thumbnail) {
     parse(video_note->thumbnail, parser);
+  }
+  if (is_transcribed) {
+    parse(video_note->transcription_info, parser);
   }
   parse(video_note->file_id, parser);
   if (parser.get_error() != nullptr || !video_note->file_id.is_valid()) {
