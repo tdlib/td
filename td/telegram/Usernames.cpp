@@ -6,11 +6,11 @@
 //
 #include "td/telegram/Usernames.h"
 
-#include "td/telegram/misc.h"
-#include "td/telegram/secret_api.h"
-
 #include "td/utils/algorithm.h"
+#include "td/utils/FlatHashSet.h"
+#include "td/utils/logging.h"
 #include "td/utils/misc.h"
+#include "td/utils/utf8.h"
 
 namespace td {
 
@@ -133,7 +133,7 @@ Usernames Usernames::deactivate_all() const {
       result.disabled_usernames_.push_back(active_usernames_[i]);
     }
   }
-  td::append(result.disabled_usernames_, disabled_usernames_);
+  append(result.disabled_usernames_, disabled_usernames_);
   CHECK(result.has_editable_username() == has_editable_username());
   return result;
 }

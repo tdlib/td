@@ -6278,10 +6278,10 @@ void StickersManager::timeout_expired() {
 }
 
 void StickersManager::flush_pending_animated_emoji_clicks() {
-  if (pending_animated_emoji_clicks_.empty()) {
+  if (G()->close_flag()) {
     return;
   }
-  if (G()->close_flag()) {
+  if (pending_animated_emoji_clicks_.empty()) {
     return;
   }
   auto clicks = std::move(pending_animated_emoji_clicks_);

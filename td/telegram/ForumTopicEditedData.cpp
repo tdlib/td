@@ -6,8 +6,6 @@
 //
 #include "td/telegram/ForumTopicEditedData.h"
 
-#include "td/utils/logging.h"
-
 namespace td {
 
 td_api::object_ptr<td_api::forumTopicEditedData> ForumTopicEditedData::get_forum_topic_edited_data_object() const {

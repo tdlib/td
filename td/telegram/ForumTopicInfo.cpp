@@ -8,13 +8,12 @@
 
 #include "td/telegram/MessageSender.h"
 #include "td/telegram/ServerMessageId.h"
-#include "td/telegram/Td.h"
 
 #include "td/utils/logging.h"
 
 namespace td {
 
-ForumTopicInfo::ForumTopicInfo(Td *td, const tl_object_ptr<telegram_api::ForumTopic> &forum_topic_ptr) {
+ForumTopicInfo::ForumTopicInfo(const tl_object_ptr<telegram_api::ForumTopic> &forum_topic_ptr) {
   CHECK(forum_topic_ptr != nullptr);
   if (forum_topic_ptr->get_id() != telegram_api::forumTopic::ID) {
     LOG(ERROR) << "Receive " << to_string(forum_topic_ptr);

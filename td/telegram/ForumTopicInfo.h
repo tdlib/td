@@ -33,7 +33,7 @@ class ForumTopicInfo {
  public:
   ForumTopicInfo() = default;
 
-  ForumTopicInfo(Td *td, const tl_object_ptr<telegram_api::ForumTopic> &forum_topic_ptr);
+  explicit ForumTopicInfo(const tl_object_ptr<telegram_api::ForumTopic> &forum_topic_ptr);
 
   bool is_empty() const {
     return !top_thread_message_id_.is_valid();

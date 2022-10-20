@@ -1303,7 +1303,7 @@ messageThreadInfo chat_id:int53 message_thread_id:int53 reply_info:messageReplyI
 //@edit_icon_custom_emoji_id True, if icon's custom_emoji_id is changed
 //@icon_custom_emoji_id New unique identifier of the custom emoji shown on the topic icon; 0 if none. Ignored if edit_icon_custom_emoji_id is false
 //@edit_is_closed True, if the topic is reopened or closed
-//@is_closed True, if the topic is closed, or false if it is reopened. Ignored if edit_is_closed is false
+//@is_closed True, if the topic is closed; false if it is reopened. Ignored if edit_is_closed is false
 forumTopicEditedData title:string edit_icon_custom_emoji_id:Bool icon_custom_emoji_id:int64 edit_is_closed:Bool is_closed:Bool = ForumTopicEditedData;
 
 //@description Describes a forum topic icon @color Color of the topic icon in RGB format @custom_emoji_id Unique identifier of the custom emoji shown on the topic icon; 0 if none
@@ -6247,7 +6247,7 @@ setBio bio:string = Ok;
 //@description Changes the editable username of the current user @username The new value of the username. Use an empty string to remove the username. The username can't be completely removed if there is another active or disabled username
 setUsername username:string = Ok;
 
-//@description Changes active state for a username of the current user. The editable username can't be disabled. May return an error with a message "USERNAMES_ACTIVE_TOO_MUCH" if the maximum number of active usernames has been reached @username The username to change @is_active True, if the username must be activated, or false, if it must be disabled
+//@description Changes active state for a username of the current user. The editable username can't be disabled. May return an error with a message "USERNAMES_ACTIVE_TOO_MUCH" if the maximum number of active usernames has been reached @username The username to change @is_active Pass true to activate the username; pass false to disable it
 toggleUsernameIsActive username:string is_active:Bool = Ok;
 
 //@description Changes order of active usernames of the current user @usernames The new order of active usernames. All currently active usernames must be specified
@@ -6335,7 +6335,7 @@ disconnectAllWebsites = Ok;
 //@description Changes the editable username of a supergroup or channel, requires owner privileges in the supergroup or channel @supergroup_id Identifier of the supergroup or channel @username New value of the username. Use an empty string to remove the username. The username can't be completely removed if there is another active or disabled username
 setSupergroupUsername supergroup_id:int53 username:string = Ok;
 
-//@description Changes active state for a username of a supergroup or channel, requires owner privileges in the supergroup or channel. The editable username can't be disabled. May return an error with a message "USERNAMES_ACTIVE_TOO_MUCH" if the maximum number of active usernames has been reached @supergroup_id Identifier of the supergroup or channel @username The username to change @is_active True, if the username must be activated, or false, if it must be disabled
+//@description Changes active state for a username of a supergroup or channel, requires owner privileges in the supergroup or channel. The editable username can't be disabled. May return an error with a message "USERNAMES_ACTIVE_TOO_MUCH" if the maximum number of active usernames has been reached @supergroup_id Identifier of the supergroup or channel @username The username to change @is_active Pass true to activate the username; pass false to disable it
 toggleSupergroupUsernameIsActive supergroup_id:int53 username:string is_active:Bool = Ok;
 
 //@description Disables all active non-editable usernames of a supergroup or channel, requires owner privileges in the supergroup or channel @supergroup_id Identifier of the supergroup or channel

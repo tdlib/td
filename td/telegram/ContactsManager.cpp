@@ -12067,7 +12067,7 @@ void ContactsManager::on_update_user_usernames(User *u, UserId user_id, Username
   if (u->usernames != usernames) {
     u->usernames = std::move(usernames);
     u->is_username_changed = true;
-    LOG(DEBUG) << "Usernames has changed for " << user_id;
+    LOG(DEBUG) << "Usernames have changed for " << user_id;
     u->is_changed = true;
   }
 }

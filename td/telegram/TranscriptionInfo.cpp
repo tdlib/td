@@ -6,9 +6,12 @@
 //
 #include "td/telegram/TranscriptionInfo.h"
 
+#include "td/telegram/AccessRights.h"
 #include "td/telegram/DialogId.h"
+#include "td/telegram/Global.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/Td.h"
+#include "td/telegram/telegram_api.h"
 
 #include "td/utils/buffer.h"
 #include "td/utils/logging.h"
