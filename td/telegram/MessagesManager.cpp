@@ -18828,6 +18828,11 @@ void MessagesManager::recognize_speech(FullMessageId full_message_id, Promise<Un
     return promise.set_error(Status::Error(400, "Message not found"));
   }
 
+  auto message_id = full_message_id.get_message_id();
+  if (message_id.is_scheduled() || !message_id.is_server()) {
+    return promise.set_error(Status::Error(400, "Message must be sent already"));
+  }
+
   recognize_message_content_speech(td_, m->content.get(), full_message_id, std::move(promise));
 }
 

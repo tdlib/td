@@ -18,6 +18,47 @@
 
 namespace td {
 
+class TranscribeAudioQuery final : public Td::ResultHandler {
+  DialogId dialog_id_;
+  std::function<void(Result<telegram_api::object_ptr<telegram_api::updateTranscribedAudio>>)> handler_;
+
+ public:
+  void send(FullMessageId full_message_id,
+            std::function<void(Result<telegram_api::object_ptr<telegram_api::updateTranscribedAudio>>)> &&handler) {
+    dialog_id_ = full_message_id.get_dialog_id();
+    handler_ = std::move(handler);
+    auto input_peer = td_->messages_manager_->get_input_peer(dialog_id_, AccessRights::Read);
+    if (input_peer == nullptr) {
+      return on_error(Status::Error(400, "Can't access the chat"));
+    }
+    send_query(G()->net_query_creator().create(telegram_api::messages_transcribeAudio(
+        std::move(input_peer), full_message_id.get_message_id().get_server_message_id().get())));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_transcribeAudio>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto result = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for TranscribeAudioQuery: " << to_string(result);
+    if (result->transcription_id_ == 0) {
+      return on_error(Status::Error(500, "Receive no recognition identifier"));
+    }
+    auto update = telegram_api::make_object<telegram_api::updateTranscribedAudio>();
+    update->text_ = std::move(result->text_);
+    update->transcription_id_ = result->transcription_id_;
+    update->pending_ = result->pending_;
+    handler_(std::move(update));
+  }
+
+  void on_error(Status status) final {
+    td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "TranscribeAudioQuery");
+    handler_(std::move(status));
+  }
+};
+
 class RateTranscribedAudioQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   DialogId dialog_id_;
@@ -54,7 +95,9 @@ class RateTranscribedAudioQuery final : public Td::ResultHandler {
   }
 };
 
-bool TranscriptionInfo::start_recognize_speech(Promise<Unit> &&promise) {
+bool TranscriptionInfo::recognize_speech(
+    Td *td, FullMessageId full_message_id, Promise<Unit> &&promise,
+    std::function<void(Result<telegram_api::object_ptr<telegram_api::updateTranscribedAudio>>)> &&handler) {
   if (is_transcribed_) {
     promise.set_value(Unit());
     return false;
@@ -62,6 +105,7 @@ bool TranscriptionInfo::start_recognize_speech(Promise<Unit> &&promise) {
   speech_recognition_queries_.push_back(std::move(promise));
   if (speech_recognition_queries_.size() == 1) {
     last_transcription_error_ = Status::OK();
+    td->create_handler<TranscribeAudioQuery>()->send(full_message_id, std::move(handler));
     return true;
   }
   return false;

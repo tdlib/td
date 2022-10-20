@@ -3660,6 +3660,7 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateTranscribedAudi
   if (it == pending_audio_transcriptions_.end()) {
     return promise.set_value(Unit());
   }
+  // flags_, dialog_id_ and message_id_ must not be used
   if (!update->pending_) {
     auto on_update = std::move(it->second);
     pending_audio_transcriptions_.erase(it);

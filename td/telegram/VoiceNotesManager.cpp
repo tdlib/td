@@ -6,7 +6,6 @@
 //
 #include "td/telegram/VoiceNotesManager.h"
 
-#include "td/telegram/AccessRights.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/Dimensions.h"
 #include "td/telegram/files/FileManager.h"
@@ -18,47 +17,9 @@
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/UpdatesManager.h"
 
-#include "td/utils/buffer.h"
 #include "td/utils/logging.h"
 
 namespace td {
-
-class TranscribeAudioQuery final : public Td::ResultHandler {
-  DialogId dialog_id_;
-  FileId file_id_;
-
- public:
-  void send(FileId file_id, FullMessageId full_message_id) {
-    dialog_id_ = full_message_id.get_dialog_id();
-    file_id_ = file_id;
-    auto input_peer = td_->messages_manager_->get_input_peer(dialog_id_, AccessRights::Read);
-    if (input_peer == nullptr) {
-      return on_error(Status::Error(400, "Can't access the chat"));
-    }
-    send_query(G()->net_query_creator().create(telegram_api::messages_transcribeAudio(
-        std::move(input_peer), full_message_id.get_message_id().get_server_message_id().get())));
-  }
-
-  void on_result(BufferSlice packet) final {
-    auto result_ptr = fetch_result<telegram_api::messages_transcribeAudio>(packet);
-    if (result_ptr.is_error()) {
-      return on_error(result_ptr.move_as_error());
-    }
-
-    auto result = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for TranscribeAudioQuery: " << to_string(result);
-    if (result->transcription_id_ == 0) {
-      return on_error(Status::Error(500, "Receive no recognition identifier"));
-    }
-    td_->voice_notes_manager_->on_voice_note_transcribed(file_id_, std::move(result->text_), result->transcription_id_,
-                                                         true, !result->pending_);
-  }
-
-  void on_error(Status status) final {
-    td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "TranscribeAudioQuery");
-    td_->voice_notes_manager_->on_voice_note_transcription_failed(file_id_, std::move(status));
-  }
-};
 
 VoiceNotesManager::VoiceNotesManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
 }
@@ -210,8 +171,12 @@ void VoiceNotesManager::recognize_speech(FullMessageId full_message_id, Promise<
   if (voice_note->transcription_info == nullptr) {
     voice_note->transcription_info = make_unique<TranscriptionInfo>();
   }
-  if (voice_note->transcription_info->start_recognize_speech(std::move(promise))) {
-    td_->create_handler<TranscribeAudioQuery>()->send(file_id, full_message_id);
+
+  auto handler = [actor_id = actor_id(this),
+                  file_id](Result<telegram_api::object_ptr<telegram_api::updateTranscribedAudio>> r_update) {
+    send_closure(actor_id, &VoiceNotesManager::on_transcribed_audio_update, file_id, true, std::move(r_update));
+  };
+  if (voice_note->transcription_info->recognize_speech(td_, full_message_id, std::move(promise), std::move(handler))) {
     on_voice_note_transcription_updated(file_id);
   }
 }
@@ -235,19 +200,21 @@ void VoiceNotesManager::on_voice_note_transcribed(FileId file_id, string &&text,
       td_->updates_manager_->subscribe_to_transcribed_audio_updates(
           transcription_id, [actor_id = actor_id(this),
                              file_id](Result<telegram_api::object_ptr<telegram_api::updateTranscribedAudio>> r_update) {
-            send_closure(actor_id, &VoiceNotesManager::on_transcribed_audio_update, file_id, std::move(r_update));
+            send_closure(actor_id, &VoiceNotesManager::on_transcribed_audio_update, file_id, false,
+                         std::move(r_update));
           });
     }
   }
 }
 
 void VoiceNotesManager::on_transcribed_audio_update(
-    FileId file_id, Result<telegram_api::object_ptr<telegram_api::updateTranscribedAudio>> r_update) {
+    FileId file_id, bool is_initial, Result<telegram_api::object_ptr<telegram_api::updateTranscribedAudio>> r_update) {
   if (r_update.is_error()) {
     return on_voice_note_transcription_failed(file_id, r_update.move_as_error());
   }
   auto update = r_update.move_as_ok();
-  on_voice_note_transcribed(file_id, std::move(update->text_), update->transcription_id_, false, !update->pending_);
+  on_voice_note_transcribed(file_id, std::move(update->text_), update->transcription_id_, is_initial,
+                            !update->pending_);
 }
 
 void VoiceNotesManager::on_voice_note_transcription_failed(FileId file_id, Status &&error) {
