@@ -32,8 +32,8 @@ class SponsoredMessageManager final : public Actor {
   SponsoredMessageManager &operator=(SponsoredMessageManager &&) = delete;
   ~SponsoredMessageManager() final;
 
-  void get_dialog_sponsored_message(DialogId dialog_id,
-                                    Promise<td_api::object_ptr<td_api::sponsoredMessage>> &&promise);
+  void get_dialog_sponsored_messages(DialogId dialog_id,
+                                     Promise<td_api::object_ptr<td_api::sponsoredMessages>> &&promise);
 
   void view_sponsored_message(DialogId dialog_id, MessageId sponsored_message_id);
 
@@ -51,7 +51,7 @@ class SponsoredMessageManager final : public Actor {
   td_api::object_ptr<td_api::sponsoredMessage> get_sponsored_message_object(
       DialogId dialog_id, const SponsoredMessage &sponsored_message) const;
 
-  td_api::object_ptr<td_api::sponsoredMessage> get_sponsored_message_object(
+  td_api::object_ptr<td_api::sponsoredMessages> get_sponsored_messages_object(
       DialogId dialog_id, const DialogSponsoredMessages &sponsored_messages) const;
 
   void on_get_dialog_sponsored_messages(

@@ -2974,7 +2974,7 @@ class CliClient final : public Actor {
     } else if (op == "gcspm") {
       ChatId chat_id;
       get_args(args, chat_id);
-      send_request(td_api::make_object<td_api::getChatSponsoredMessage>(chat_id));
+      send_request(td_api::make_object<td_api::getChatSponsoredMessages>(chat_id));
     } else if (op == "gmlink") {
       ChatId chat_id;
       MessageId message_id;

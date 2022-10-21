@@ -960,6 +960,9 @@ messageCalendar total_count:int32 days:vector<messageCalendarDay> = MessageCalen
 //@content Content of the message. Currently, can be only of the type messageText
 sponsoredMessage message_id:int53 is_recommended:Bool sponsor_chat_id:int53 sponsor_chat_info:chatInviteLinkInfo show_chat_photo:Bool link:InternalLinkType content:MessageContent = SponsoredMessage;
 
+//@description Contains a list of sponsored messages @messages List of sponsored messages @messages_between The minimum number of messages between shown sponsored messages, or 0 if only one sponsored message must be shown after all ordinary messages
+sponsoredMessages messages:vector<sponsoredMessage> messages_between:int32 = SponsoredMessages;
+
 
 //@description Describes a file added to file download list
 //@file_id File identifier
@@ -5074,8 +5077,8 @@ getChatScheduledMessages chat_id:int53 = Messages;
 //@limit The maximum number of messages to be returned; must be positive and can't be greater than 100. For optimal performance, the number of returned messages is chosen by TDLib and can be smaller than the specified limit
 getMessagePublicForwards chat_id:int53 message_id:int53 offset:string limit:int32 = FoundMessages;
 
-//@description Returns sponsored message to be shown in a chat; for channel chats only. Returns a 404 error if there is no sponsored message in the chat @chat_id Identifier of the chat
-getChatSponsoredMessage chat_id:int53 = SponsoredMessage;
+//@description Returns sponsored messages to be shown in a chat; for channel chats only @chat_id Identifier of the chat
+getChatSponsoredMessages chat_id:int53 = SponsoredMessages;
 
 
 //@description Removes an active notification from notification list. Needs to be called only if the notification is removed by the current user @notification_group_id Identifier of notification group to which the notification belongs @notification_id Identifier of removed notification

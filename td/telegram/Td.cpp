@@ -4639,10 +4639,10 @@ void Td::on_request(uint64 id, const td_api::getMessages &request) {
   CREATE_REQUEST(GetMessagesRequest, request.chat_id_, request.message_ids_);
 }
 
-void Td::on_request(uint64 id, const td_api::getChatSponsoredMessage &request) {
+void Td::on_request(uint64 id, const td_api::getChatSponsoredMessages &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
-  sponsored_message_manager_->get_dialog_sponsored_message(DialogId(request.chat_id_), std::move(promise));
+  sponsored_message_manager_->get_dialog_sponsored_messages(DialogId(request.chat_id_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::getMessageThread &request) {
