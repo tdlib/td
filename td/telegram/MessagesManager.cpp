@@ -4018,7 +4018,7 @@ class ForwardMessagesQuery final : public Td::ResultHandler {
   explicit ForwardMessagesQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(int32 flags, DialogId to_dialog_id, DialogId from_dialog_id,
+  void send(int32 flags, DialogId to_dialog_id, MessageId top_thread_message_id, DialogId from_dialog_id,
             tl_object_ptr<telegram_api::InputPeer> as_input_peer, const vector<MessageId> &message_ids,
             vector<int64> &&random_ids, int32 schedule_date) {
     random_ids_ = random_ids;
@@ -4038,12 +4038,16 @@ class ForwardMessagesQuery final : public Td::ResultHandler {
     if (as_input_peer != nullptr) {
       flags |= MessagesManager::SEND_MESSAGE_FLAG_HAS_SEND_AS;
     }
+    if (top_thread_message_id.is_valid()) {
+      flags |= MessagesManager::SEND_MESSAGE_FLAG_IS_FROM_THREAD;
+    }
 
     auto query = G()->net_query_creator().create(
         telegram_api::messages_forwardMessages(
             flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
             false /*ignored*/, std::move(from_input_peer), MessagesManager::get_server_message_ids(message_ids),
-            std::move(random_ids), std::move(to_input_peer), 0, schedule_date, std::move(as_input_peer)),
+            std::move(random_ids), std::move(to_input_peer), top_thread_message_id.get_server_message_id().get(),
+            schedule_date, std::move(as_input_peer)),
         {{to_dialog_id, MessageContentType::Text}, {to_dialog_id, MessageContentType::Photo}});
     if (td_->option_manager_->get_option_boolean("use_quick_ack")) {
       query->quick_ack_promise_ = PromiseCreator::lambda([random_ids = random_ids_](Result<Unit> result) {
@@ -26015,11 +26019,11 @@ Result<td_api::object_ptr<td_api::message>> MessagesManager::send_message(
   if (input_message_content->get_id() == td_api::inputMessageForwarded::ID) {
     auto input_message = td_api::move_object_as<td_api::inputMessageForwarded>(input_message_content);
     TRY_RESULT(copy_options, process_message_copy_options(dialog_id, std::move(input_message->copy_options_)));
-    copy_options.top_thread_message_id = top_thread_message_id;
     copy_options.reply_to_message_id = reply_to_message_id;
     TRY_RESULT_ASSIGN(copy_options.reply_markup, get_dialog_reply_markup(dialog_id, std::move(reply_markup)));
-    return forward_message(dialog_id, DialogId(input_message->from_chat_id_), MessageId(input_message->message_id_),
-                           std::move(options), input_message->in_game_share_, std::move(copy_options));
+    return forward_message(dialog_id, top_thread_message_id, DialogId(input_message->from_chat_id_),
+                           MessageId(input_message->message_id_), std::move(options), input_message->in_game_share_,
+                           std::move(copy_options));
   }
 
   TRY_STATUS(can_send_message(dialog_id));
@@ -28773,28 +28777,29 @@ void MessagesManager::do_forward_messages(DialogId to_dialog_id, DialogId from_d
 
   vector<int64> random_ids =
       transform(messages, [this, to_dialog_id](const Message *m) { return begin_send_message(to_dialog_id, m); });
-  send_closure_later(actor_id(this), &MessagesManager::send_forward_message_query, flags, to_dialog_id, from_dialog_id,
-                     std::move(as_input_peer), message_ids, std::move(random_ids), schedule_date,
-                     get_erase_log_event_promise(log_event_id));
+  send_closure_later(actor_id(this), &MessagesManager::send_forward_message_query, flags, to_dialog_id,
+                     messages[0]->top_thread_message_id, from_dialog_id, std::move(as_input_peer), message_ids,
+                     std::move(random_ids), schedule_date, get_erase_log_event_promise(log_event_id));
 }
 
-void MessagesManager::send_forward_message_query(int32 flags, DialogId to_dialog_id, DialogId from_dialog_id,
+void MessagesManager::send_forward_message_query(int32 flags, DialogId to_dialog_id, MessageId top_thread_message_id,
+                                                 DialogId from_dialog_id,
                                                  tl_object_ptr<telegram_api::InputPeer> as_input_peer,
                                                  vector<MessageId> message_ids, vector<int64> random_ids,
                                                  int32 schedule_date, Promise<Unit> promise) {
   td_->create_handler<ForwardMessagesQuery>(std::move(promise))
-      ->send(flags, to_dialog_id, from_dialog_id, std::move(as_input_peer), message_ids, std::move(random_ids),
-             schedule_date);
+      ->send(flags, to_dialog_id, top_thread_message_id, from_dialog_id, std::move(as_input_peer), message_ids,
+             std::move(random_ids), schedule_date);
 }
 
 Result<td_api::object_ptr<td_api::message>> MessagesManager::forward_message(
-    DialogId to_dialog_id, DialogId from_dialog_id, MessageId message_id,
+    DialogId to_dialog_id, MessageId top_thread_message_id, DialogId from_dialog_id, MessageId message_id,
     tl_object_ptr<td_api::messageSendOptions> &&options, bool in_game_share, MessageCopyOptions &&copy_options) {
   bool need_copy = copy_options.send_copy;
   vector<MessageCopyOptions> all_copy_options;
   all_copy_options.push_back(std::move(copy_options));
-  TRY_RESULT(result, forward_messages(to_dialog_id, from_dialog_id, {message_id}, std::move(options), in_game_share,
-                                      std::move(all_copy_options), false));
+  TRY_RESULT(result, forward_messages(to_dialog_id, top_thread_message_id, from_dialog_id, {message_id},
+                                      std::move(options), in_game_share, std::move(all_copy_options), false));
   CHECK(result->messages_.size() == 1);
   if (result->messages_[0] == nullptr) {
     return Status::Error(400,
@@ -28915,8 +28920,8 @@ void MessagesManager::fix_forwarded_message(Message *m, DialogId to_dialog_id, c
 }
 
 Result<MessagesManager::ForwardedMessages> MessagesManager::get_forwarded_messages(
-    DialogId to_dialog_id, DialogId from_dialog_id, const vector<MessageId> &message_ids,
-    tl_object_ptr<td_api::messageSendOptions> &&options, bool in_game_share,
+    DialogId to_dialog_id, MessageId top_thread_message_id, DialogId from_dialog_id,
+    const vector<MessageId> &message_ids, tl_object_ptr<td_api::messageSendOptions> &&options, bool in_game_share,
     vector<MessageCopyOptions> &&copy_options) {
   CHECK(copy_options.size() == message_ids.size());
   if (message_ids.size() > 100) {  // TODO replace with const from config or implement mass-forward
@@ -28951,6 +28956,7 @@ Result<MessagesManager::ForwardedMessages> MessagesManager::get_forwarded_messag
 
   TRY_STATUS(can_send_message(to_dialog_id));
   TRY_RESULT(message_send_options, process_message_send_options(to_dialog_id, std::move(options), false));
+  TRY_STATUS(can_use_top_thread_message_id(to_dialog, top_thread_message_id, MessageId()));
 
   {
     MessageId last_message_id;
@@ -29029,7 +29035,6 @@ Result<MessagesManager::ForwardedMessages> MessagesManager::get_forwarded_messag
 
     auto type = need_copy ? (is_local_copy ? MessageContentDupType::Copy : MessageContentDupType::ServerCopy)
                           : MessageContentDupType::Forward;
-    auto top_thread_message_id = copy_options[i].top_thread_message_id;
     auto reply_to_message_id = copy_options[i].reply_to_message_id;
     auto reply_markup = std::move(copy_options[i].reply_markup);
     unique_ptr<MessageContent> content =
@@ -29073,14 +29078,15 @@ Result<MessagesManager::ForwardedMessages> MessagesManager::get_forwarded_messag
     }
 
     if (is_local_copy) {
-      copied_messages.push_back({std::move(content), top_thread_message_id, reply_to_message_id,
-                                 forwarded_message->message_id, forwarded_message->reply_to_message_id,
-                                 std::move(reply_markup), forwarded_message->media_album_id,
+      copied_messages.push_back({std::move(content), reply_to_message_id, forwarded_message->message_id,
+                                 forwarded_message->reply_to_message_id, std::move(reply_markup),
+                                 forwarded_message->media_album_id,
                                  get_message_disable_web_page_preview(forwarded_message), i});
     } else {
       forwarded_message_contents.push_back({std::move(content), forwarded_message->media_album_id, i});
     }
   }
+  result.top_thread_message_id = top_thread_message_id;
 
   if (2 <= forwarded_message_contents.size() && forwarded_message_contents.size() <= MAX_GROUPED_MESSAGES) {
     std::unordered_set<MessageContentType, MessageContentTypeHash> message_content_types;
@@ -29122,12 +29128,12 @@ Result<MessagesManager::ForwardedMessages> MessagesManager::get_forwarded_messag
 }
 
 Result<td_api::object_ptr<td_api::messages>> MessagesManager::forward_messages(
-    DialogId to_dialog_id, DialogId from_dialog_id, vector<MessageId> message_ids,
+    DialogId to_dialog_id, MessageId top_thread_message_id, DialogId from_dialog_id, vector<MessageId> message_ids,
     tl_object_ptr<td_api::messageSendOptions> &&options, bool in_game_share, vector<MessageCopyOptions> &&copy_options,
     bool only_preview) {
   TRY_RESULT(forwarded_messages_info,
-             get_forwarded_messages(to_dialog_id, from_dialog_id, message_ids, std::move(options), in_game_share,
-                                    std::move(copy_options)));
+             get_forwarded_messages(to_dialog_id, top_thread_message_id, from_dialog_id, message_ids,
+                                    std::move(options), in_game_share, std::move(copy_options)));
   auto from_dialog = forwarded_messages_info.from_dialog;
   auto to_dialog = forwarded_messages_info.to_dialog;
   auto message_send_options = forwarded_messages_info.message_send_options;
@@ -29135,6 +29141,7 @@ Result<td_api::object_ptr<td_api::messages>> MessagesManager::forward_messages(
   auto &forwarded_message_contents = forwarded_messages_info.forwarded_message_contents;
   auto drop_author = forwarded_messages_info.drop_author;
   auto drop_media_captions = forwarded_messages_info.drop_media_captions;
+  top_thread_message_id = forwarded_messages_info.top_thread_message_id;
 
   FlatHashMap<MessageId, MessageId, MessageIdHash> forwarded_message_id_to_new_message_id;
   vector<td_api::object_ptr<td_api::message>> result(message_ids.size());
@@ -29169,7 +29176,7 @@ Result<td_api::object_ptr<td_api::messages>> MessagesManager::forward_messages(
     unique_ptr<Message> message;
     Message *m;
     if (only_preview) {
-      message = create_message_to_send(to_dialog, MessageId(), reply_to_message_id, message_send_options,
+      message = create_message_to_send(to_dialog, top_thread_message_id, reply_to_message_id, message_send_options,
                                        std::move(content), j + 1 != forwarded_message_contents.size(),
                                        std::move(forward_info), false, DialogId());
       MessageId new_message_id =
@@ -29179,8 +29186,8 @@ Result<td_api::object_ptr<td_api::messages>> MessagesManager::forward_messages(
       set_message_id(message, new_message_id);
       m = message.get();
     } else {
-      m = get_message_to_send(to_dialog, MessageId(), reply_to_message_id, message_send_options, std::move(content),
-                              &need_update_dialog_pos, j + 1 != forwarded_message_contents.size(),
+      m = get_message_to_send(to_dialog, top_thread_message_id, reply_to_message_id, message_send_options,
+                              std::move(content), &need_update_dialog_pos, j + 1 != forwarded_message_contents.size(),
                               std::move(forward_info));
     }
     fix_forwarded_message(m, to_dialog_id, forwarded_message, forwarded_message_contents[j].media_album_id,
@@ -29226,9 +29233,8 @@ Result<td_api::object_ptr<td_api::messages>> MessagesManager::forward_messages(
     unique_ptr<Message> message;
     Message *m;
     if (only_preview) {
-      message = create_message_to_send(to_dialog, copied_message.top_thread_message_id, reply_to_message_id,
-                                       message_send_options, std::move(copied_message.content), false, nullptr, is_copy,
-                                       DialogId());
+      message = create_message_to_send(to_dialog, top_thread_message_id, reply_to_message_id, message_send_options,
+                                       std::move(copied_message.content), false, nullptr, is_copy, DialogId());
       MessageId new_message_id =
           message_send_options.schedule_date != 0
               ? get_next_yet_unsent_scheduled_message_id(to_dialog, message_send_options.schedule_date)
@@ -29236,9 +29242,8 @@ Result<td_api::object_ptr<td_api::messages>> MessagesManager::forward_messages(
       set_message_id(message, new_message_id);
       m = message.get();
     } else {
-      m = get_message_to_send(to_dialog, copied_message.top_thread_message_id, reply_to_message_id,
-                              message_send_options, std::move(copied_message.content), &need_update_dialog_pos, false,
-                              nullptr, is_copy);
+      m = get_message_to_send(to_dialog, top_thread_message_id, reply_to_message_id, message_send_options,
+                              std::move(copied_message.content), &need_update_dialog_pos, false, nullptr, is_copy);
     }
     m->disable_web_page_preview = copied_message.disable_web_page_preview;
     m->media_album_id = copied_message.media_album_id;

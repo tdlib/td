@@ -3131,11 +3131,11 @@ class CliClient final : public Actor {
       ChatId chat_id;
       ChatId from_chat_id;
       string message_ids;
-      get_args(args, chat_id, from_chat_id, message_ids);
-      auto chat = chat_id;
-      send_request(td_api::make_object<td_api::forwardMessages>(chat, from_chat_id, as_message_ids(message_ids),
-                                                                default_message_send_options(), op[0] == 'c',
-                                                                rand_bool(), op.back() == 'p'));
+      string message_thread_id;
+      get_args(args, chat_id, from_chat_id, message_ids, message_thread_id);
+      send_request(td_api::make_object<td_api::forwardMessages>(
+          chat_id, as_message_thread_id(message_thread_id), from_chat_id, as_message_ids(message_ids),
+          default_message_send_options(), op[0] == 'c', rand_bool(), op.back() == 'p'));
     } else if (op == "resend") {
       ChatId chat_id;
       string message_ids;
@@ -3871,9 +3871,8 @@ class CliClient final : public Actor {
       int64 query_id;
       string result_id;
       get_args(args, chat_id, query_id, result_id);
-      auto chat = chat_id;
       send_request(td_api::make_object<td_api::sendInlineQueryResultMessage>(
-          chat, as_message_thread_id(message_thread_id_), 0, default_message_send_options(), query_id, result_id,
+          chat_id, as_message_thread_id(message_thread_id_), 0, default_message_send_options(), query_id, result_id,
           op == "siqrh"));
     } else if (op == "gcqa") {
       ChatId chat_id;

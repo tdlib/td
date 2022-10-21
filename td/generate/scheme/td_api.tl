@@ -5161,13 +5161,14 @@ sendInlineQueryResultMessage chat_id:int53 message_thread_id:int53 reply_to_mess
 
 //@description Forwards previously sent messages. Returns the forwarded messages in the same order as the message identifiers passed in message_ids. If a message can't be forwarded, null will be returned instead of the message
 //@chat_id Identifier of the chat to which to forward messages
+//@message_thread_id If not 0, a message thread identifier in which the message will be sent
 //@from_chat_id Identifier of the chat from which to forward messages
 //@message_ids Identifiers of the messages to forward. Message identifiers must be in a strictly increasing order. At most 100 messages can be forwarded simultaneously
 //@options Options to be used to send the messages; pass null to use default options
 //@send_copy Pass true to copy content of the messages without reference to the original sender. Always true if the messages are forwarded to a secret chat or are local
 //@remove_caption Pass true to remove media captions of message copies. Ignored if send_copy is false
 //@only_preview Pass true to get fake messages instead of actually forwarding them
-forwardMessages chat_id:int53 from_chat_id:int53 message_ids:vector<int53> options:messageSendOptions send_copy:Bool remove_caption:Bool only_preview:Bool = Messages;
+forwardMessages chat_id:int53 message_thread_id:int53 from_chat_id:int53 message_ids:vector<int53> options:messageSendOptions send_copy:Bool remove_caption:Bool only_preview:Bool = Messages;
 
 //@description Resends messages which failed to send. Can be called only for messages for which messageSendingStateFailed.can_retry is true and after specified in messageSendingStateFailed.retry_after time passed.
 //-If a message is re-sent, the corresponding failed to send message is deleted. Returns the sent messages in the same order as the message identifiers passed in message_ids. If a message can't be re-sent, null will be returned instead of the message

@@ -461,8 +461,8 @@ class MessagesManager final : public Actor {
                                                      int64 query_id, const string &result_id,
                                                      bool hide_via_bot) TD_WARN_UNUSED_RESULT;
 
-  Result<td_api::object_ptr<td_api::messages>> forward_messages(DialogId to_dialog_id, DialogId from_dialog_id,
-                                                                vector<MessageId> message_ids,
+  Result<td_api::object_ptr<td_api::messages>> forward_messages(DialogId to_dialog_id, MessageId top_thread_message_id,
+                                                                DialogId from_dialog_id, vector<MessageId> message_ids,
                                                                 tl_object_ptr<td_api::messageSendOptions> &&options,
                                                                 bool in_game_share,
                                                                 vector<MessageCopyOptions> &&copy_options,
@@ -1989,12 +1989,13 @@ class MessagesManager final : public Actor {
                            const vector<MessageId> &message_ids, bool drop_author, bool drop_media_captions,
                            uint64 log_event_id);
 
-  void send_forward_message_query(int32 flags, DialogId to_dialog_id, DialogId from_dialog_id,
-                                  tl_object_ptr<telegram_api::InputPeer> as_input_peer, vector<MessageId> message_ids,
-                                  vector<int64> random_ids, int32 schedule_date, Promise<Unit> promise);
+  void send_forward_message_query(int32 flags, DialogId to_dialog_id, MessageId top_thread_message_id,
+                                  DialogId from_dialog_id, tl_object_ptr<telegram_api::InputPeer> as_input_peer,
+                                  vector<MessageId> message_ids, vector<int64> random_ids, int32 schedule_date,
+                                  Promise<Unit> promise);
 
-  Result<td_api::object_ptr<td_api::message>> forward_message(DialogId to_dialog_id, DialogId from_dialog_id,
-                                                              MessageId message_id,
+  Result<td_api::object_ptr<td_api::message>> forward_message(DialogId to_dialog_id, MessageId top_thread_message_id,
+                                                              DialogId from_dialog_id, MessageId message_id,
                                                               tl_object_ptr<td_api::messageSendOptions> &&options,
                                                               bool in_game_share,
                                                               MessageCopyOptions &&copy_options) TD_WARN_UNUSED_RESULT;
@@ -2008,7 +2009,6 @@ class MessagesManager final : public Actor {
   struct ForwardedMessages {
     struct CopiedMessage {
       unique_ptr<MessageContent> content;
-      MessageId top_thread_message_id;
       MessageId reply_to_message_id;
       MessageId original_message_id;
       MessageId original_reply_to_message_id;
@@ -2029,12 +2029,13 @@ class MessagesManager final : public Actor {
     bool drop_media_captions = false;
 
     Dialog *from_dialog;
+    MessageId top_thread_message_id;
     Dialog *to_dialog;
     MessageSendOptions message_send_options;
   };
 
-  Result<ForwardedMessages> get_forwarded_messages(DialogId to_dialog_id, DialogId from_dialog_id,
-                                                   const vector<MessageId> &message_ids,
+  Result<ForwardedMessages> get_forwarded_messages(DialogId to_dialog_id, MessageId top_thread_message_id,
+                                                   DialogId from_dialog_id, const vector<MessageId> &message_ids,
                                                    tl_object_ptr<td_api::messageSendOptions> &&options,
                                                    bool in_game_share, vector<MessageCopyOptions> &&copy_options);
 
