@@ -5932,11 +5932,11 @@ void ContactsManager::on_update_contacts_reset() {
     G()->td_db()->get_sqlite_pmc()->erase("user_imported_contacts", Auto());
   }
   if (!are_imported_contacts_loaded_) {
-    CHECK(all_imported_contacts_.empty());
     if (load_imported_contacts_queries_.empty()) {
+      CHECK(all_imported_contacts_.empty());
       LOG(INFO) << "Imported contacts was never loaded, just clear them";
     } else {
-      LOG(INFO) << "Imported contacts are being loaded, clear them also when they will be loaded";
+      LOG(INFO) << "Imported contacts are being loaded, clear them after they will be loaded";
       need_clear_imported_contacts_ = true;
     }
   } else {
@@ -5944,7 +5944,7 @@ void ContactsManager::on_update_contacts_reset() {
       LOG(INFO) << "Imported contacts was loaded, but aren't changing now, just clear them";
       all_imported_contacts_.clear();
     } else {
-      LOG(INFO) << "Imported contacts are changing now, clear them also after they will be loaded";
+      LOG(INFO) << "Imported contacts are changing now, clear them after they will be changed";
       need_clear_imported_contacts_ = true;
     }
   }
