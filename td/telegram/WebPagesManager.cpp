@@ -1340,10 +1340,15 @@ void WebPagesManager::on_web_page_changed(WebPageId web_page_id, bool have_web_p
         td_->messages_manager_->on_external_update_message_content(full_message_id);
       }
     }
-    if (have_web_page) {
-      CHECK(web_page_messages_[web_page_id].size() == full_message_ids.size());
-    } else {
-      CHECK(web_page_messages_.count(web_page_id) == 0);
+
+    bool is_ok = (have_web_page ? web_page_messages_[web_page_id].size() == full_message_ids.size()
+                                : web_page_messages_.count(web_page_id) == 0);
+    if (!is_ok) {
+      vector<FullMessageId> new_full_message_ids;
+      for (const auto &full_message_id : web_page_messages_[web_page_id]) {
+        new_full_message_ids.push_back(full_message_id);
+      }
+      LOG_CHECK(is_ok) << have_web_page << ' ' << full_message_ids << ' ' << new_full_message_ids;
     }
   }
   auto get_it = pending_get_web_pages_.find(web_page_id);
