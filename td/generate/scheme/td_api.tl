@@ -955,9 +955,10 @@ messageCalendar total_count:int32 days:vector<messageCalendarDay> = MessageCalen
 //@is_recommended True, if the message needs to be labeled as "recommended" instead of "sponsored"
 //@sponsor_chat_id Sponsor chat identifier; 0 if the sponsor chat is accessible through an invite link
 //@sponsor_chat_info Information about the sponsor chat; may be null unless sponsor_chat_id == 0
+//@show_chat_photo True, if the sponsor's chat photo must be shown
 //@link An internal link to be opened when the sponsored message is clicked; may be null if the sponsor chat needs to be opened instead
 //@content Content of the message. Currently, can be only of the type messageText
-sponsoredMessage message_id:int53 is_recommended:Bool sponsor_chat_id:int53 sponsor_chat_info:chatInviteLinkInfo link:InternalLinkType content:MessageContent = SponsoredMessage;
+sponsoredMessage message_id:int53 is_recommended:Bool sponsor_chat_id:int53 sponsor_chat_info:chatInviteLinkInfo show_chat_photo:Bool link:InternalLinkType content:MessageContent = SponsoredMessage;
 
 
 //@description Describes a file added to file download list
