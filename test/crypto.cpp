@@ -160,41 +160,37 @@ struct HandshakeTest {
   td::SecureString key;
 };
 
-namespace td {
-
-static void KDF3(Slice auth_key, const UInt128 &msg_key, int X, UInt256 *aes_key, UInt128 *aes_iv) {
-  uint8 buf_raw[36 + 16];
-  MutableSlice buf(buf_raw, 36 + 16);
-  Slice msg_key_slice = as_slice(msg_key);
+static void KDF3(td::Slice auth_key, const td::UInt128 &msg_key, int X, td::UInt256 *aes_key, td::UInt128 *aes_iv) {
+  td::uint8 buf_raw[36 + 16];
+  td::MutableSlice buf(buf_raw, 36 + 16);
+  td::Slice msg_key_slice = td::as_slice(msg_key);
 
   // sha256_a = SHA256 (msg_key + substr(auth_key, x, 36));
   buf.copy_from(msg_key_slice);
   buf.substr(16, 36).copy_from(auth_key.substr(X, 36));
-  uint8 sha256_a_raw[32];
-  MutableSlice sha256_a(sha256_a_raw, 32);
+  td::uint8 sha256_a_raw[32];
+  td::MutableSlice sha256_a(sha256_a_raw, 32);
   sha256(buf, sha256_a);
 
   // sha256_b = SHA256 (substr(auth_key, 40+x, 36) + msg_key);
   buf.copy_from(auth_key.substr(40 + X, 36));
   buf.substr(36).copy_from(msg_key_slice);
-  uint8 sha256_b_raw[32];
-  MutableSlice sha256_b(sha256_b_raw, 32);
+  td::uint8 sha256_b_raw[32];
+  td::MutableSlice sha256_b(sha256_b_raw, 32);
   sha256(buf, sha256_b);
 
   // aes_key = substr(sha256_a, 0, 8) + substr(sha256_b, 8, 16) + substr(sha256_a, 24, 8);
-  MutableSlice aes_key_slice(aes_key->raw, sizeof(aes_key->raw));
+  td::MutableSlice aes_key_slice(aes_key->raw, sizeof(aes_key->raw));
   aes_key_slice.copy_from(sha256_a.substr(0, 8));
   aes_key_slice.substr(8).copy_from(sha256_b.substr(8, 16));
   aes_key_slice.substr(24).copy_from(sha256_a.substr(24, 8));
 
   // aes_iv = substr(sha256_b, 0, 4) + substr(sha256_a, 8, 8) + substr(sha256_b, 24, 4);
-  MutableSlice aes_iv_slice(aes_iv->raw, sizeof(aes_iv->raw));
+  td::MutableSlice aes_iv_slice(aes_iv->raw, sizeof(aes_iv->raw));
   aes_iv_slice.copy_from(sha256_b.substr(0, 4));
   aes_iv_slice.substr(4).copy_from(sha256_a.substr(8, 8));
   aes_iv_slice.substr(12).copy_from(sha256_b.substr(24, 4));
 }
-
-}  // namespace td
 
 static td::SecureString encrypt(td::Slice key, td::Slice data, td::int32 seqno, int X) {
   td::SecureString res(data.size() + 4 + 16);
@@ -212,7 +208,7 @@ static td::SecureString encrypt(td::Slice key, td::Slice data, td::int32 seqno, 
   td::UInt128 msg_key = td::mtproto::Transport::calc_message_key2(auth_key, X, payload).second;
   td::UInt256 aes_key;
   td::UInt128 aes_iv;
-  td::KDF3(key, msg_key, X, &aes_key, &aes_iv);
+  KDF3(key, msg_key, X, &aes_key, &aes_iv);
   td::AesCtrState aes;
   aes.init(aes_key.as_slice(), aes_iv.as_slice());
   aes.encrypt(payload, payload);
