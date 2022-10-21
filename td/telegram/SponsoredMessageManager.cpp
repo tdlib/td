@@ -117,6 +117,7 @@ struct SponsoredMessageManager::DialogSponsoredMessages {
   vector<SponsoredMessage> messages;
   FlatHashMap<int64, string> message_random_ids;
   int32 messages_between = 0;
+  bool is_premium = false;
 };
 
 SponsoredMessageManager::SponsoredMessageManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
@@ -147,9 +148,9 @@ void SponsoredMessageManager::delete_cached_sponsored_messages(DialogId dialog_i
   }
 
   auto it = dialog_sponsored_messages_.find(dialog_id);
-  CHECK(it != dialog_sponsored_messages_.end());
-  CHECK(it->second->promises.empty());
-  dialog_sponsored_messages_.erase(it);
+  if (it != dialog_sponsored_messages_.end() && it->second->promises.empty()) {
+    dialog_sponsored_messages_.erase(it);
+  }
 }
 
 td_api::object_ptr<td_api::sponsoredMessage> SponsoredMessageManager::get_sponsored_message_object(
@@ -216,7 +217,14 @@ void SponsoredMessageManager::get_dialog_sponsored_messages(
 
   auto &messages = dialog_sponsored_messages_[dialog_id];
   if (messages != nullptr && messages->promises.empty()) {
-    return promise.set_value(get_sponsored_messages_object(dialog_id, *messages));
+    if (messages->is_premium == td_->option_manager_->get_option_boolean("is_premium", false)) {
+      // use cached value
+      return promise.set_value(get_sponsored_messages_object(dialog_id, *messages));
+    } else {
+      // drop cache
+      messages = nullptr;
+      delete_cached_sponsored_messages_timeout_.cancel_timeout(dialog_id.get());
+    }
   }
 
   if (messages == nullptr) {
@@ -336,6 +344,7 @@ void SponsoredMessageManager::on_get_dialog_sponsored_messages(
     default:
       UNREACHABLE();
   }
+  messages->is_premium = td_->option_manager_->get_option_boolean("is_premium", false);
 
   for (auto &promise : promises) {
     promise.set_value(get_sponsored_messages_object(dialog_id, *messages));
