@@ -163,8 +163,8 @@ std::shared_ptr<KeyValueSyncInterface> TdDb::get_config_pmc_shared() {
   return config_pmc_;
 }
 
-KeyValueSyncInterface *TdDb::get_binlog_pmc() {
-  CHECK(binlog_pmc_);
+KeyValueSyncInterface *TdDb::get_binlog_pmc_impl(const char *file, int line) {
+  LOG_CHECK(binlog_pmc_) << G()->close_flag() << ' ' << file << ' ' << line;
   return binlog_pmc_.get();
 }
 

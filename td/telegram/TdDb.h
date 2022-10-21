@@ -76,7 +76,9 @@ class TdDb {
 
   std::shared_ptr<KeyValueSyncInterface> get_binlog_pmc_shared();
   std::shared_ptr<KeyValueSyncInterface> get_config_pmc_shared();
-  KeyValueSyncInterface *get_binlog_pmc();
+
+#define get_binlog_pmc() get_binlog_pmc_impl(__FILE__, __LINE__)
+  KeyValueSyncInterface *get_binlog_pmc_impl(const char *file, int line);
   KeyValueSyncInterface *get_config_pmc();
 
   SqliteKeyValue *get_sqlite_sync_pmc();
