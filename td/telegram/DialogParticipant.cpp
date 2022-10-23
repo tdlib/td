@@ -83,7 +83,7 @@ AdministratorRights::AdministratorRights(bool is_anonymous, bool can_manage_dial
 
 telegram_api::object_ptr<telegram_api::chatAdminRights> AdministratorRights::get_chat_admin_rights() const {
   int32 flags = 0;
-  if ((flags_ & CAN_CHANGE_INFO_AND_SETTINGS) != 0) {
+  if (can_change_info_and_settings()) {
     flags |= telegram_api::chatAdminRights::CHANGE_INFO_MASK;
   }
   if (can_post_messages()) {
@@ -95,13 +95,13 @@ telegram_api::object_ptr<telegram_api::chatAdminRights> AdministratorRights::get
   if (can_delete_messages()) {
     flags |= telegram_api::chatAdminRights::DELETE_MESSAGES_MASK;
   }
-  if ((flags_ & CAN_INVITE_USERS) != 0) {
+  if (can_invite_users()) {
     flags |= telegram_api::chatAdminRights::INVITE_USERS_MASK;
   }
   if (can_restrict_members()) {
     flags |= telegram_api::chatAdminRights::BAN_USERS_MASK;
   }
-  if ((flags_ & CAN_PIN_MESSAGES) != 0) {
+  if (can_pin_messages()) {
     flags |= telegram_api::chatAdminRights::PIN_MESSAGES_MASK;
   }
   if (can_promote_members()) {

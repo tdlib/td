@@ -88,11 +88,6 @@ class AdministratorRights {
     return (flags_ & CAN_INVITE_USERS) != 0;
   }
 
-  bool can_manage_invite_links() const {
-    // invite links can be managed, only if administrator was explicitly granted the right
-    return (flags_ & CAN_INVITE_USERS) != 0;
-  }
-
   bool can_restrict_members() const {
     return (flags_ & CAN_RESTRICT_MEMBERS) != 0;
   }
