@@ -33,11 +33,13 @@ class AdministratorRights {
   static constexpr uint32 CAN_PROMOTE_MEMBERS = 1 << 8;
   static constexpr uint32 CAN_MANAGE_CALLS = 1 << 9;
   static constexpr uint32 CAN_MANAGE_DIALOG = 1 << 10;
+  static constexpr uint32 CAN_MANAGE_TOPICS = 1 << 11;
   static constexpr uint32 IS_ANONYMOUS = 1 << 13;
 
-  static constexpr uint32 ALL_ADMINISTRATOR_RIGHTS =
-      CAN_CHANGE_INFO_AND_SETTINGS | CAN_POST_MESSAGES | CAN_EDIT_MESSAGES | CAN_DELETE_MESSAGES | CAN_INVITE_USERS |
-      CAN_RESTRICT_MEMBERS | CAN_PIN_MESSAGES | CAN_PROMOTE_MEMBERS | CAN_MANAGE_CALLS | CAN_MANAGE_DIALOG;
+  static constexpr uint32 ALL_ADMINISTRATOR_RIGHTS = CAN_CHANGE_INFO_AND_SETTINGS | CAN_POST_MESSAGES |
+                                                     CAN_EDIT_MESSAGES | CAN_DELETE_MESSAGES | CAN_INVITE_USERS |
+                                                     CAN_RESTRICT_MEMBERS | CAN_PIN_MESSAGES | CAN_MANAGE_TOPICS |
+                                                     CAN_PROMOTE_MEMBERS | CAN_MANAGE_CALLS | CAN_MANAGE_DIALOG;
 
   uint32 flags_;
 
@@ -57,8 +59,8 @@ class AdministratorRights {
 
   AdministratorRights(bool is_anonymous, bool can_manage_dialog, bool can_change_info, bool can_post_messages,
                       bool can_edit_messages, bool can_delete_messages, bool can_invite_users,
-                      bool can_restrict_members, bool can_pin_messages, bool can_promote_members, bool can_manage_calls,
-                      ChannelType channel_type);
+                      bool can_restrict_members, bool can_pin_messages, bool can_manage_topics,
+                      bool can_promote_members, bool can_manage_calls, ChannelType channel_type);
 
   telegram_api::object_ptr<telegram_api::chatAdminRights> get_chat_admin_rights() const;
 
@@ -94,6 +96,10 @@ class AdministratorRights {
 
   bool can_pin_messages() const {
     return (flags_ & CAN_PIN_MESSAGES) != 0;
+  }
+
+  bool can_manage_topics() const {
+    return (flags_ & CAN_MANAGE_TOPICS) != 0;
   }
 
   bool can_promote_members() const {
@@ -141,9 +147,10 @@ class RestrictedRights {
   static constexpr uint32 CAN_CHANGE_INFO_AND_SETTINGS = 1 << 24;
   static constexpr uint32 CAN_INVITE_USERS = 1 << 25;
   static constexpr uint32 CAN_PIN_MESSAGES = 1 << 26;
+  static constexpr uint32 CAN_MANAGE_TOPICS = 1 << 12;
 
   static constexpr uint32 ALL_ADMIN_PERMISSION_RIGHTS =
-      CAN_CHANGE_INFO_AND_SETTINGS | CAN_INVITE_USERS | CAN_PIN_MESSAGES;
+      CAN_CHANGE_INFO_AND_SETTINGS | CAN_INVITE_USERS | CAN_PIN_MESSAGES | CAN_MANAGE_TOPICS;
 
   static constexpr uint32 ALL_RESTRICTED_RIGHTS =
       CAN_SEND_MESSAGES | CAN_SEND_MEDIA | CAN_SEND_STICKERS | CAN_SEND_ANIMATIONS | CAN_SEND_GAMES |
@@ -163,7 +170,8 @@ class RestrictedRights {
 
   RestrictedRights(bool can_send_messages, bool can_send_media, bool can_send_stickers, bool can_send_animations,
                    bool can_send_games, bool can_use_inline_bots, bool can_add_web_page_previews, bool can_send_polls,
-                   bool can_change_info_and_settings, bool can_invite_users, bool can_pin_messages);
+                   bool can_change_info_and_settings, bool can_invite_users, bool can_pin_messages,
+                   bool can_manage_topics);
 
   td_api::object_ptr<td_api::chatPermissions> get_chat_permissions_object() const;
 
@@ -179,6 +187,10 @@ class RestrictedRights {
 
   bool can_pin_messages() const {
     return (flags_ & CAN_PIN_MESSAGES) != 0;
+  }
+
+  bool can_manage_topics() const {
+    return (flags_ & CAN_MANAGE_TOPICS) != 0;
   }
 
   bool can_send_messages() const {
@@ -235,7 +247,7 @@ bool operator!=(const RestrictedRights &lhs, const RestrictedRights &rhs);
 StringBuilder &operator<<(StringBuilder &string_builder, const RestrictedRights &status);
 
 class DialogParticipantStatus {
-  // only flags 11 and 12 are unused
+  // all flags are used
   static constexpr uint32 HAS_RANK = 1 << 14;
   static constexpr uint32 CAN_BE_EDITED = 1 << 15;
 
@@ -341,6 +353,15 @@ class DialogParticipantStatus {
 
   bool can_pin_messages() const {
     return get_administrator_rights().can_pin_messages() || get_restricted_rights().can_pin_messages();
+  }
+
+  bool can_edit_topics() const {
+    // topics can be edited, only if administrator was explicitly granted the right
+    return get_administrator_rights().can_manage_topics();
+  }
+
+  bool can_create_topics() const {
+    return get_administrator_rights().can_manage_topics() || get_restricted_rights().can_manage_topics();
   }
 
   bool can_promote_members() const {

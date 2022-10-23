@@ -90,6 +90,7 @@ static AdministratorRights get_administrator_rights(Slice rights, bool for_chann
   bool can_invite_users = false;
   bool can_restrict_members = false;
   bool can_pin_messages = false;
+  bool can_manage_topics = false;
   bool can_promote_members = false;
   bool can_manage_calls = false;
   bool is_anonymous = false;
@@ -108,6 +109,8 @@ static AdministratorRights get_administrator_rights(Slice rights, bool for_chann
       can_invite_users = true;
     } else if (right == "pin_messages") {
       can_pin_messages = true;
+    } else if (right == "manage_topics") {
+      can_manage_topics = true;
     } else if (right == "promote_members") {
       can_promote_members = true;
     } else if (right == "manage_video_chats") {
@@ -120,7 +123,7 @@ static AdministratorRights get_administrator_rights(Slice rights, bool for_chann
   }
   return AdministratorRights(is_anonymous, can_manage_dialog, can_change_info, can_post_messages, can_edit_messages,
                              can_delete_messages, can_invite_users, can_restrict_members, can_pin_messages,
-                             can_promote_members, can_manage_calls,
+                             can_manage_topics, can_promote_members, can_manage_calls,
                              for_channel ? ChannelType::Broadcast : ChannelType::Megagroup);
 }
 

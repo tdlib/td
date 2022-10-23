@@ -1435,10 +1435,11 @@ class CliClient final : public Actor {
   static td_api::object_ptr<td_api::chatAdministratorRights> as_chat_administrator_rights(
       bool can_manage_chat, bool can_change_info, bool can_post_messages, bool can_edit_messages,
       bool can_delete_messages, bool can_invite_users, bool can_restrict_members, bool can_pin_messages,
-      bool can_promote_members, bool can_manage_video_chats, bool is_anonymous) {
+      bool can_manage_topics, bool can_promote_members, bool can_manage_video_chats, bool is_anonymous) {
     return td_api::make_object<td_api::chatAdministratorRights>(
         can_manage_chat, can_change_info, can_post_messages, can_edit_messages, can_delete_messages, can_invite_users,
-        can_restrict_members, can_pin_messages, can_promote_members, can_manage_video_chats, is_anonymous);
+        can_restrict_members, can_pin_messages, can_manage_topics, can_promote_members, can_manage_video_chats,
+        is_anonymous);
   }
 
   static td_api::object_ptr<td_api::TopChatCategory> as_top_chat_category(MutableSlice category) {
@@ -4340,11 +4341,12 @@ class CliClient final : public Actor {
       ChatId chat_id;
       string permissions;
       get_args(args, chat_id, permissions);
-      if (permissions.size() == 8) {
+      if (permissions.size() == 9) {
         auto &s = permissions;
         send_request(td_api::make_object<td_api::setChatPermissions>(
             chat_id, td_api::make_object<td_api::chatPermissions>(s[0] == '1', s[1] == '1', s[2] == '1', s[3] == '1',
-                                                                  s[4] == '1', s[5] == '1', s[6] == '1', s[7] == '1')));
+                                                                  s[4] == '1', s[5] == '1', s[6] == '1', s[7] == '1',
+                                                                  s[8] == '1')));
       } else {
         LOG(ERROR) << "Wrong permissions size, expected 8";
       }
@@ -4423,47 +4425,54 @@ class CliClient final : public Actor {
       } else if (status_str == "anonadmin") {
         status = td_api::make_object<td_api::chatMemberStatusAdministrator>(
             "anon", true,
-            as_chat_administrator_rights(true, true, true, true, true, true, true, true, true, true, true));
+            as_chat_administrator_rights(true, true, true, true, true, true, true, true, true, true, true, true));
       } else if (status_str == "anon") {
         status = td_api::make_object<td_api::chatMemberStatusAdministrator>(
             "anon", false,
-            as_chat_administrator_rights(false, false, false, false, false, false, false, false, false, false, true));
+            as_chat_administrator_rights(false, false, false, false, false, false, false, false, false, false, false,
+                                         true));
       } else if (status_str == "addadmin") {
         status = td_api::make_object<td_api::chatMemberStatusAdministrator>(
             "anon", false,
-            as_chat_administrator_rights(false, false, false, false, false, false, false, false, true, false, false));
+            as_chat_administrator_rights(false, false, false, false, false, false, false, false, false, true, false,
+                                         false));
       } else if (status_str == "calladmin") {
         status = td_api::make_object<td_api::chatMemberStatusAdministrator>(
             "anon", false,
-            as_chat_administrator_rights(false, false, false, false, false, false, false, false, false, true, false));
+            as_chat_administrator_rights(false, false, false, false, false, false, false, false, false, false, true,
+                                         false));
       } else if (status_str == "admin") {
         status = td_api::make_object<td_api::chatMemberStatusAdministrator>(
-            "", true, as_chat_administrator_rights(false, true, true, true, true, true, true, true, true, true, false));
+            "", true,
+            as_chat_administrator_rights(false, true, true, true, true, true, true, true, true, true, true, false));
       } else if (status_str == "adminq") {
         status = td_api::make_object<td_api::chatMemberStatusAdministrator>(
             "title", true,
-            as_chat_administrator_rights(false, true, true, true, true, true, true, true, true, true, false));
+            as_chat_administrator_rights(false, true, true, true, true, true, true, true, true, true, true, false));
       } else if (status_str == "minadmin") {
         status = td_api::make_object<td_api::chatMemberStatusAdministrator>(
             "", true,
-            as_chat_administrator_rights(true, false, false, false, false, false, false, false, false, false, false));
+            as_chat_administrator_rights(true, false, false, false, false, false, false, false, false, false, false,
+                                         false));
       } else if (status_str == "unadmin") {
         status = td_api::make_object<td_api::chatMemberStatusAdministrator>("", true, nullptr);
       } else if (status_str == "rest") {
         status = td_api::make_object<td_api::chatMemberStatusRestricted>(
             true, static_cast<int32>(120 + std::time(nullptr)),
-            td_api::make_object<td_api::chatPermissions>(false, false, false, false, false, false, false, false));
+            td_api::make_object<td_api::chatPermissions>(false, false, false, false, false, false, false, false,
+                                                         false));
       } else if (status_str == "restkick") {
         status = td_api::make_object<td_api::chatMemberStatusRestricted>(
             false, static_cast<int32>(120 + std::time(nullptr)),
-            td_api::make_object<td_api::chatPermissions>(true, false, false, false, false, false, false, false));
+            td_api::make_object<td_api::chatPermissions>(true, false, false, false, false, false, false, false, false));
       } else if (status_str == "restunkick") {
         status = td_api::make_object<td_api::chatMemberStatusRestricted>(
             true, static_cast<int32>(120 + std::time(nullptr)),
-            td_api::make_object<td_api::chatPermissions>(true, false, false, false, false, false, false, false));
+            td_api::make_object<td_api::chatPermissions>(true, false, false, false, false, false, false, false, false));
       } else if (status_str == "unrest") {
         status = td_api::make_object<td_api::chatMemberStatusRestricted>(
-            true, 0, td_api::make_object<td_api::chatPermissions>(true, true, true, true, true, true, true, true));
+            true, 0,
+            td_api::make_object<td_api::chatPermissions>(true, true, true, true, true, true, true, true, true));
       }
       if (status != nullptr) {
         send_request(
