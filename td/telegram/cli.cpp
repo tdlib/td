@@ -2290,9 +2290,10 @@ class CliClient final : public Actor {
     } else if (op == "replies") {
       ChatId chat_id;
       string message_thread_id;
-      get_args(args, chat_id, message_thread_id);
-      send_request(td_api::make_object<td_api::searchChatMessages>(chat_id, "", nullptr, 0, 0, 100, nullptr,
-                                                                   as_message_thread_id(message_thread_id)));
+      string filter;
+      get_args(args, chat_id, message_thread_id, filter);
+      send_request(td_api::make_object<td_api::searchChatMessages>(
+          chat_id, "", nullptr, 0, 0, 100, as_search_messages_filter(filter), as_message_thread_id(message_thread_id)));
     } else if (op == "spvf") {
       search_chat_id_ = as_chat_id(args);
       send_request(td_api::make_object<td_api::searchChatMessages>(search_chat_id_, "", nullptr, 0, 0, 100,

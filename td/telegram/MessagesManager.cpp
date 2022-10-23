@@ -22890,10 +22890,6 @@ std::pair<int32, vector<MessageId>> MessagesManager::search_dialog_messages(
       promise.set_error(Status::Error(400, "Filtering by sender is unsupported with the specified filter"));
       return result;
     }
-    if (top_thread_message_id != MessageId()) {
-      promise.set_error(Status::Error(400, "Filtering by message thread is unsupported with the specified filter"));
-      return result;
-    }
   }
 
   // Trying to use database
