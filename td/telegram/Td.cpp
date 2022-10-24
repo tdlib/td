@@ -5335,7 +5335,8 @@ void Td::on_request(uint64 id, const td_api::readAllChatMentions &request) {
 void Td::on_request(uint64 id, const td_api::readAllChatReactions &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  messages_manager_->read_all_dialog_reactions(DialogId(request.chat_id_), std::move(promise));
+  messages_manager_->read_all_dialog_reactions(DialogId(request.chat_id_), MessageId(request.message_thread_id_),
+                                               std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::getChatAvailableMessageSenders &request) {

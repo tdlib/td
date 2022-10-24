@@ -4758,8 +4758,9 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::readAllChatMentions>(chat_id, as_message_thread_id(message_thread_id)));
     } else if (op == "racr") {
       ChatId chat_id;
-      get_args(args, chat_id);
-      send_request(td_api::make_object<td_api::readAllChatReactions>(chat_id));
+      string message_thread_id;
+      get_args(args, chat_id, message_thread_id);
+      send_request(td_api::make_object<td_api::readAllChatReactions>(chat_id, as_message_thread_id(message_thread_id)));
     } else if (op == "tre") {
       send_request(td_api::make_object<td_api::testReturnError>(
           args.empty() ? nullptr : td_api::make_object<td_api::error>(-1, args)));

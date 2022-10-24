@@ -5507,11 +5507,11 @@ getExternalLinkInfo link:string = LoginUrlInfo;
 getExternalLink link:string allow_write_access:Bool = HttpUrl;
 
 
-//@description Marks all mentions in a chat as read @chat_id Chat identifier @message_thread_id If not 0, a message thread identifier in mentions are marked as read; for forum supergroups only
+//@description Marks all mentions in a chat as read @chat_id Chat identifier @message_thread_id If not 0, a message thread identifier in which mentions are marked as read; for forum supergroups only
 readAllChatMentions chat_id:int53 message_thread_id:int53 = Ok;
 
-//@description Marks all reactions in a chat as read @chat_id Chat identifier
-readAllChatReactions chat_id:int53 = Ok;
+//@description Marks all reactions in a chat as read @chat_id Chat identifier @message_thread_id If not 0, a message thread identifier in which reactions are marked as read; for forum supergroups only
+readAllChatReactions chat_id:int53 message_thread_id:int53 = Ok;
 
 
 //@description Returns an existing chat corresponding to a given user @user_id User identifier @force Pass true to create the chat without a network request. In this case all information about the chat except its type, title and photo can be incorrect

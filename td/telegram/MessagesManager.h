@@ -414,7 +414,7 @@ class MessagesManager final : public Actor {
 
   void read_all_dialog_mentions(DialogId dialog_id, MessageId top_thread_message_id, Promise<Unit> &&promise);
 
-  void read_all_dialog_reactions(DialogId dialog_id, Promise<Unit> &&promise);
+  void read_all_dialog_reactions(DialogId dialog_id, MessageId top_thread_message_id, Promise<Unit> &&promise);
 
   Status add_recently_found_dialog(DialogId dialog_id) TD_WARN_UNUSED_RESULT;
 
