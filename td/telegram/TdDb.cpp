@@ -495,8 +495,11 @@ Status TdDb::check_parameters(TdParameters &parameters) {
     }
     TRY_STATUS(mkpath(dir, 0750));
     TRY_RESULT(real_dir, realpath(dir, true));
-    if (dir.back() != TD_DIR_SLASH) {
-      dir += TD_DIR_SLASH;
+    if (real_dir.empty()) {
+      return Status::Error(PSTRING() << "Failed to get realpath for \"" << dir << '"');
+    }
+    if (real_dir.back() != TD_DIR_SLASH) {
+      real_dir += TD_DIR_SLASH;
     }
     return real_dir;
   };
