@@ -7,9 +7,11 @@
 #pragma once
 
 #include "td/telegram/DialogId.h"
+#include "td/telegram/DialogNotificationSettings.h"
 #include "td/telegram/files/FileId.h"
 #include "td/telegram/files/FileSourceId.h"
-#include "td/telegram/NotificationSettings.h"
+#include "td/telegram/NotificationSettingsScope.h"
+#include "td/telegram/ScopeNotificationSettings.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 

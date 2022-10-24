@@ -320,6 +320,7 @@ set(TDLIB_SOURCE
   td/telegram/DialogId.cpp
   td/telegram/DialogInviteLink.cpp
   td/telegram/DialogLocation.cpp
+  td/telegram/DialogNotificationSettings.cpp
   td/telegram/DialogParticipant.cpp
   td/telegram/DialogParticipantFilter.cpp
   td/telegram/DialogSource.cpp
@@ -403,7 +404,7 @@ set(TDLIB_SOURCE
   td/telegram/net/SessionMultiProxy.cpp
   td/telegram/NewPasswordState.cpp
   td/telegram/NotificationManager.cpp
-  td/telegram/NotificationSettings.cpp
+  td/telegram/NotificationSettingsScope.cpp
   td/telegram/NotificationSettingsManager.cpp
   td/telegram/NotificationSound.cpp
   td/telegram/NotificationType.cpp
@@ -424,6 +425,7 @@ set(TDLIB_SOURCE
   td/telegram/ReplyMarkup.cpp
   td/telegram/ReportReason.cpp
   td/telegram/RestrictionReason.cpp
+  td/telegram/ScopeNotificationSettings.cpp
   td/telegram/SecretChatActor.cpp
   td/telegram/SecretChatDb.cpp
   td/telegram/SecretChatsManager.cpp
@@ -535,6 +537,7 @@ set(TDLIB_SOURCE
   td/telegram/DialogInviteLink.h
   td/telegram/DialogListId.h
   td/telegram/DialogLocation.h
+  td/telegram/DialogNotificationSettings.h
   td/telegram/DialogParticipant.h
   td/telegram/DialogParticipantFilter.h
   td/telegram/DialogSource.h
@@ -647,7 +650,7 @@ set(TDLIB_SOURCE
   td/telegram/NotificationGroupType.h
   td/telegram/NotificationId.h
   td/telegram/NotificationManager.h
-  td/telegram/NotificationSettings.h
+  td/telegram/NotificationSettingsScope.h
   td/telegram/NotificationSettingsManager.h
   td/telegram/NotificationSound.h
   td/telegram/NotificationSoundType.h
@@ -675,6 +678,7 @@ set(TDLIB_SOURCE
   td/telegram/RequestActor.h
   td/telegram/RestrictionReason.h
   td/telegram/ScheduledServerMessageId.h
+  td/telegram/ScopeNotificationSettings.h
   td/telegram/SecretChatActor.h
   td/telegram/SecretChatId.h
   td/telegram/SecretChatDb.h
@@ -723,6 +727,7 @@ set(TDLIB_SOURCE
   td/telegram/AudiosManager.hpp
   td/telegram/AuthManager.hpp
   td/telegram/BackgroundType.hpp
+  td/telegram/DialogNotificationSettings.hpp
   td/telegram/DialogFilter.hpp
   td/telegram/Dimensions.hpp
   td/telegram/Document.hpp
@@ -742,7 +747,6 @@ set(TDLIB_SOURCE
   td/telegram/MessageReaction.hpp
   td/telegram/MessageReplyInfo.hpp
   td/telegram/MinChannel.hpp
-  td/telegram/NotificationSettings.hpp
   td/telegram/OrderInfo.hpp
   td/telegram/Photo.hpp
   td/telegram/PhotoSize.hpp
@@ -751,6 +755,7 @@ set(TDLIB_SOURCE
   td/telegram/PollManager.hpp
   td/telegram/PremiumGiftOption.hpp
   td/telegram/ReplyMarkup.hpp
+  td/telegram/ScopeNotificationSettings.hpp
   td/telegram/SecureValue.hpp
   td/telegram/SendCodeHelper.hpp
   td/telegram/StickerSetId.hpp

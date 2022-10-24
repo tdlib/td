@@ -55,67 +55,19 @@ class DialogNotificationSettings {
   }
 };
 
-enum class NotificationSettingsScope : int32 { Private, Group, Channel };
-
-class ScopeNotificationSettings {
- public:
-  int32 mute_until = 0;
-  unique_ptr<NotificationSound> sound;
-  bool show_preview = true;
-  bool is_synchronized = false;
-
-  // local settings
-  bool disable_pinned_message_notifications = false;
-  bool disable_mention_notifications = false;
-
-  ScopeNotificationSettings() = default;
-
-  ScopeNotificationSettings(int32 mute_until, unique_ptr<NotificationSound> &&sound, bool show_preview,
-                            bool disable_pinned_message_notifications, bool disable_mention_notifications)
-      : mute_until(mute_until)
-      , sound(std::move(sound))
-      , show_preview(show_preview)
-      , is_synchronized(true)
-      , disable_pinned_message_notifications(disable_pinned_message_notifications)
-      , disable_mention_notifications(disable_mention_notifications) {
-  }
-};
-
 StringBuilder &operator<<(StringBuilder &string_builder, const DialogNotificationSettings &notification_settings);
-
-StringBuilder &operator<<(StringBuilder &string_builder, NotificationSettingsScope scope);
-
-StringBuilder &operator<<(StringBuilder &string_builder, const ScopeNotificationSettings &notification_settings);
-
-td_api::object_ptr<td_api::NotificationSettingsScope> get_notification_settings_scope_object(
-    NotificationSettingsScope scope);
 
 td_api::object_ptr<td_api::chatNotificationSettings> get_chat_notification_settings_object(
     const DialogNotificationSettings *notification_settings);
 
-td_api::object_ptr<td_api::scopeNotificationSettings> get_scope_notification_settings_object(
-    const ScopeNotificationSettings *notification_settings);
-
-telegram_api::object_ptr<telegram_api::InputNotifyPeer> get_input_notify_peer(NotificationSettingsScope scope);
-
-NotificationSettingsScope get_notification_settings_scope(
-    const td_api::object_ptr<td_api::NotificationSettingsScope> &scope);
-
 Result<DialogNotificationSettings> get_dialog_notification_settings(
     td_api::object_ptr<td_api::chatNotificationSettings> &&notification_settings, bool old_silent_send_message);
-
-Result<ScopeNotificationSettings> get_scope_notification_settings(
-    td_api::object_ptr<td_api::scopeNotificationSettings> &&notification_settings);
 
 DialogNotificationSettings get_dialog_notification_settings(tl_object_ptr<telegram_api::peerNotifySettings> &&settings,
                                                             bool old_use_default_disable_pinned_message_notifications,
                                                             bool old_disable_pinned_message_notifications,
                                                             bool old_use_default_disable_mention_notifications,
                                                             bool old_disable_mention_notifications);
-
-ScopeNotificationSettings get_scope_notification_settings(tl_object_ptr<telegram_api::peerNotifySettings> &&settings,
-                                                          bool old_disable_pinned_message_notifications,
-                                                          bool old_disable_mention_notifications);
 
 bool are_default_dialog_notification_settings(const DialogNotificationSettings &settings, bool compare_sound);
 
