@@ -39,6 +39,10 @@ class ForumTopicInfo {
     return !top_thread_message_id_.is_valid();
   }
 
+  MessageId get_thread_id() const {
+    return top_thread_message_id_;
+  }
+
   td_api::object_ptr<td_api::forumTopicInfo> get_forum_topic_info_object(Td *td) const;
 };
 

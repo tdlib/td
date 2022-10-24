@@ -1316,7 +1316,7 @@ forumTopicEditedData title:string edit_icon_custom_emoji_id:Bool icon_custom_emo
 forumTopicIcon color:int32 custom_emoji_id:int64 = ForumTopicIcon;
 
 //@description Contains basic information about a forum topic
-//@message_thread_id Thread identifier of the topic
+//@message_thread_id Message thread identifier of the topic
 //@title Title of the topic
 //@icon Icon of the topic
 //@creation_date Date the topic was created
@@ -1324,6 +1324,19 @@ forumTopicIcon color:int32 custom_emoji_id:int64 = ForumTopicIcon;
 //@is_outgoing True, if the topic was created by the current user
 //@is_closed True, if the topic is closed
 forumTopicInfo message_thread_id:int53 title:string icon:forumTopicIcon creation_date:int32 creator_id:MessageSender is_outgoing:Bool is_closed:Bool = ForumTopicInfo;
+
+//@description Describes a forum topic
+//@info Basic information about the topic
+//@last_message Last message in the topic; may be null
+//@is_pinned True, if the topic is pinned in the topic list
+//@unread_count Number of unread messages in the topic
+//@last_read_inbox_message_id Identifier of the last read incoming message
+//@last_read_outbox_message_id Identifier of the last read outgoing message
+//@unread_mention_count Number of unread messages with a mention/reply in the topic
+//@unread_reaction_count Number of messages with unread reactions in the topic
+//@notification_settings Notification settings for the topic
+//@draft_message A draft of a message in the topic; may be null
+forumTopic info:forumTopicInfo last_message:message is_pinned:Bool unread_count:int32 last_read_inbox_message_id:int53 last_read_outbox_message_id:int53 unread_mention_count:int32 unread_reaction_count:int32 notification_settings:chatNotificationSettings draft_message:draftMessage = ForumTopic;
 
 
 //@class RichText @description Describes a text object inside an instant-view web page

@@ -19,7 +19,7 @@ ForumTopicInfo::ForumTopicInfo(const tl_object_ptr<telegram_api::ForumTopic> &fo
     LOG(ERROR) << "Receive " << to_string(forum_topic_ptr);
     return;
   }
-  const telegram_api::forumTopic *forum_topic = static_cast<const telegram_api::forumTopic *>(forum_topic_ptr.get());
+  const auto *forum_topic = static_cast<const telegram_api::forumTopic *>(forum_topic_ptr.get());
 
   top_thread_message_id_ = MessageId(ServerMessageId(forum_topic->id_));
   title_ = forum_topic->title_;
