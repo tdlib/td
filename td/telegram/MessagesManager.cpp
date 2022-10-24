@@ -3226,7 +3226,7 @@ class ReadMentionsQuery final : public Td::ResultHandler {
   explicit ReadMentionsQuery(Promise<AffectedHistory> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(DialogId dialog_id) {
+  void send(DialogId dialog_id, MessageId top_thread_message_id) {
     dialog_id_ = dialog_id;
 
     auto input_peer = td_->messages_manager_->get_input_peer(dialog_id_, AccessRights::Read);
@@ -3234,8 +3234,14 @@ class ReadMentionsQuery final : public Td::ResultHandler {
       return promise_.set_error(Status::Error(400, "Chat is not accessible"));
     }
 
-    send_query(G()->net_query_creator().create(telegram_api::messages_readMentions(0, std::move(input_peer), 0),
-                                               {{dialog_id}}));
+    int32 flags = 0;
+    if (top_thread_message_id.is_valid()) {
+      flags |= telegram_api::messages_readMentions::TOP_MSG_ID_MASK;
+    }
+    send_query(G()->net_query_creator().create(
+        telegram_api::messages_readMentions(flags, std::move(input_peer),
+                                            top_thread_message_id.get_server_message_id().get()),
+        {{dialog_id}}));
   }
 
   void on_result(BufferSlice packet) final {
@@ -12017,16 +12023,30 @@ void MessagesManager::on_update_dialog_group_call_rights(DialogId dialog_id) {
   }
 }
 
-void MessagesManager::read_all_dialog_mentions(DialogId dialog_id, Promise<Unit> &&promise) {
+void MessagesManager::read_all_dialog_mentions(DialogId dialog_id, MessageId top_thread_message_id,
+                                               Promise<Unit> &&promise) {
   Dialog *d = get_dialog_force(dialog_id, "read_all_dialog_mentions");
   if (d == nullptr) {
     return promise.set_error(Status::Error(400, "Chat not found"));
   }
 
-  LOG(INFO) << "Receive readAllChatMentions request in " << dialog_id << " with " << d->unread_mention_count
-            << " unread mentions";
+  TRY_STATUS_PROMISE(promise, can_use_top_thread_message_id(d, top_thread_message_id, MessageId()));
+
   if (!have_input_peer(dialog_id, AccessRights::Read)) {
     return promise.set_error(Status::Error(400, "Chat is not accessible"));
+  }
+
+  if (top_thread_message_id.is_valid()) {
+    LOG(INFO) << "Receive readAllChatMentions request in thread of " << top_thread_message_id << " in " << dialog_id;
+    AffectedHistoryQuery query = [td = td_, top_thread_message_id](DialogId dialog_id,
+                                                                   Promise<AffectedHistory> &&query_promise) {
+      td->create_handler<ReadMentionsQuery>(std::move(query_promise))->send(dialog_id, top_thread_message_id);
+    };
+    run_affected_history_query_until_complete(dialog_id, std::move(query), true, std::move(promise));
+    return;
+  } else {
+    LOG(INFO) << "Receive readAllChatMentions request in " << dialog_id << " with " << d->unread_mention_count
+              << " unread mentions";
   }
   if (dialog_id.get_type() == DialogType::SecretChat) {
     CHECK(d->unread_mention_count == 0);
@@ -12100,7 +12120,7 @@ void MessagesManager::read_all_dialog_mentions_on_server(DialogId dialog_id, uin
   }
 
   AffectedHistoryQuery query = [td = td_](DialogId dialog_id, Promise<AffectedHistory> &&query_promise) {
-    td->create_handler<ReadMentionsQuery>(std::move(query_promise))->send(dialog_id);
+    td->create_handler<ReadMentionsQuery>(std::move(query_promise))->send(dialog_id, MessageId());
   };
   run_affected_history_query_until_complete(dialog_id, std::move(query), false,
                                             get_erase_log_event_promise(log_event_id, std::move(promise)));

@@ -5507,8 +5507,8 @@ getExternalLinkInfo link:string = LoginUrlInfo;
 getExternalLink link:string allow_write_access:Bool = HttpUrl;
 
 
-//@description Marks all mentions in a chat as read @chat_id Chat identifier
-readAllChatMentions chat_id:int53 = Ok;
+//@description Marks all mentions in a chat as read @chat_id Chat identifier @message_thread_id If not 0, a message thread identifier in mentions are marked as read; for forum supergroups only
+readAllChatMentions chat_id:int53 message_thread_id:int53 = Ok;
 
 //@description Marks all reactions in a chat as read @chat_id Chat identifier
 readAllChatReactions chat_id:int53 = Ok;

@@ -412,7 +412,7 @@ class MessagesManager final : public Actor {
 
   void on_update_dialog_group_call_rights(DialogId dialog_id);
 
-  void read_all_dialog_mentions(DialogId dialog_id, Promise<Unit> &&promise);
+  void read_all_dialog_mentions(DialogId dialog_id, MessageId top_thread_message_id, Promise<Unit> &&promise);
 
   void read_all_dialog_reactions(DialogId dialog_id, Promise<Unit> &&promise);
 
