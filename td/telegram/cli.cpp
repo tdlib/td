@@ -4569,7 +4569,7 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::disableAllSupergroupUsernames>(as_supergroup_id(supergroup_id)));
     } else if (op == "rsgaun" || op == "rchaun") {
       string supergroup_id;
-      get_args(args, supergroup_id);
+      get_args(args, supergroup_id, args);
       send_request(td_api::make_object<td_api::reorderSupergroupActiveUsernames>(as_supergroup_id(supergroup_id),
                                                                                  autosplit_str(args)));
     } else if (op == "ssgss") {
