@@ -625,7 +625,7 @@ class CheckUsernameQuery final : public Td::ResultHandler {
   }
 
   void send(const string &username) {
-    send_query(G()->net_query_creator().create(telegram_api::account_checkUsername(username)));
+    send_query(G()->net_query_creator().create(telegram_api::account_checkUsername(username), {{"me"}}));
   }
 
   void on_result(BufferSlice packet) final {
@@ -685,7 +685,7 @@ class ToggleUsernameQuery final : public Td::ResultHandler {
   void send(string &&username, bool is_active) {
     username_ = std::move(username);
     is_active_ = is_active;
-    send_query(G()->net_query_creator().create(telegram_api::account_toggleUsername(username_, is_active_)));
+    send_query(G()->net_query_creator().create(telegram_api::account_toggleUsername(username_, is_active_), {{"me"}}));
   }
 
   void on_result(BufferSlice packet) final {
@@ -718,7 +718,7 @@ class ReorderUsernamesQuery final : public Td::ResultHandler {
 
   void send(vector<string> &&usernames) {
     usernames_ = usernames;
-    send_query(G()->net_query_creator().create(telegram_api::account_reorderUsernames(std::move(usernames))));
+    send_query(G()->net_query_creator().create(telegram_api::account_reorderUsernames(std::move(usernames)), {{"me"}}));
   }
 
   void on_result(BufferSlice packet) final {
