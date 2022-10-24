@@ -15631,6 +15631,14 @@ bool ContactsManager::is_megagroup_channel(ChannelId channel_id) const {
   return get_channel_type(channel_id) == ChannelType::Megagroup;
 }
 
+bool ContactsManager::is_forum_channel(ChannelId channel_id) const {
+  auto c = get_channel(channel_id);
+  if (c == nullptr) {
+    return false;
+  }
+  return c->is_forum;
+}
+
 int32 ContactsManager::get_channel_date(ChannelId channel_id) const {
   auto c = get_channel(channel_id);
   if (c == nullptr) {
