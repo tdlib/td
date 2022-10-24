@@ -20278,6 +20278,8 @@ Status MessagesManager::set_dialog_draft_message(DialogId dialog_id, MessageId t
   }
   TRY_STATUS(can_send_message(dialog_id));
 
+  TRY_STATUS(can_use_top_thread_message_id(d, top_thread_message_id, MessageId()));
+
   TRY_RESULT(new_draft_message, get_draft_message(td_, dialog_id, std::move(draft_message)));
   if (new_draft_message != nullptr) {
     new_draft_message->reply_to_message_id =
@@ -20289,13 +20291,10 @@ Status MessagesManager::set_dialog_draft_message(DialogId dialog_id, MessageId t
   }
 
   if (top_thread_message_id != MessageId()) {
-    if (!top_thread_message_id.is_valid()) {
-      return Status::Error(400, "Invalid message thread specified");
-    }
-
+    CHECK(top_thread_message_id.is_valid());
+    CHECK(top_thread_message_id.is_server());
     auto m = get_message_force(d, top_thread_message_id, "set_dialog_draft_message");
-    if (m == nullptr || m->message_id.is_scheduled() || m->reply_info.is_comment ||
-        !is_active_message_reply_info(dialog_id, m->reply_info)) {
+    if (m == nullptr || m->reply_info.is_comment || !is_active_message_reply_info(dialog_id, m->reply_info)) {
       return Status::OK();
     }
 
