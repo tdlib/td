@@ -6,6 +6,8 @@
 //
 #pragma once
 
+#include "td/telegram/ChannelId.h"
+#include "td/telegram/ChatId.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/FolderId.h"
 #include "td/telegram/FullMessageId.h"
@@ -22,6 +24,12 @@ class ChainId {
   uint64 id = 0;
 
  public:
+  ChainId(ChannelId channel_id) : ChainId(DialogId(channel_id)) {
+  }
+
+  ChainId(ChatId chat_id) : ChainId(DialogId(chat_id)) {
+  }
+
   ChainId(DialogId dialog_id, MessageContentType message_content_type)
       : id((static_cast<uint64>(dialog_id.get()) << 10) + get_message_content_chain_id(message_content_type)) {
   }

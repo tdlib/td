@@ -830,8 +830,8 @@ class UpdateChannelUsernameQuery final : public Td::ResultHandler {
     username_ = username;
     auto input_channel = td_->contacts_manager_->get_input_channel(channel_id);
     CHECK(input_channel != nullptr);
-    send_query(
-        G()->net_query_creator().create(telegram_api::channels_updateUsername(std::move(input_channel), username)));
+    send_query(G()->net_query_creator().create(
+        telegram_api::channels_updateUsername(std::move(input_channel), username), {{channel_id}}));
   }
 
   void on_result(BufferSlice packet) final {
@@ -881,7 +881,7 @@ class ToggleChannelUsernameQuery final : public Td::ResultHandler {
     auto input_channel = td_->contacts_manager_->get_input_channel(channel_id);
     CHECK(input_channel != nullptr);
     send_query(G()->net_query_creator().create(
-        telegram_api::channels_toggleUsername(std::move(input_channel), username_, is_active_)));
+        telegram_api::channels_toggleUsername(std::move(input_channel), username_, is_active_), {{channel_id}}));
   }
 
   void on_result(BufferSlice packet) final {
@@ -920,8 +920,8 @@ class DeactivateAllChannelUsernamesQuery final : public Td::ResultHandler {
     channel_id_ = channel_id;
     auto input_channel = td_->contacts_manager_->get_input_channel(channel_id);
     CHECK(input_channel != nullptr);
-    send_query(
-        G()->net_query_creator().create(telegram_api::channels_deactivateAllUsernames(std::move(input_channel))));
+    send_query(G()->net_query_creator().create(telegram_api::channels_deactivateAllUsernames(std::move(input_channel)),
+                                               {{channel_id}}));
   }
 
   void on_result(BufferSlice packet) final {
@@ -961,7 +961,7 @@ class ReorderChannelUsernamesQuery final : public Td::ResultHandler {
     auto input_channel = td_->contacts_manager_->get_input_channel(channel_id);
     CHECK(input_channel != nullptr);
     send_query(G()->net_query_creator().create(
-        telegram_api::channels_reorderUsernames(std::move(input_channel), std::move(usernames))));
+        telegram_api::channels_reorderUsernames(std::move(input_channel), std::move(usernames)), {{channel_id}}));
   }
 
   void on_result(BufferSlice packet) final {
@@ -1008,7 +1008,7 @@ class SetChannelStickerSetQuery final : public Td::ResultHandler {
     auto input_channel = td_->contacts_manager_->get_input_channel(channel_id);
     CHECK(input_channel != nullptr);
     send_query(G()->net_query_creator().create(
-        telegram_api::channels_setStickers(std::move(input_channel), std::move(input_sticker_set))));
+        telegram_api::channels_setStickers(std::move(input_channel), std::move(input_sticker_set)), {{channel_id}}));
   }
 
   void on_result(BufferSlice packet) final {
@@ -1054,7 +1054,7 @@ class ToggleChannelSignaturesQuery final : public Td::ResultHandler {
     auto input_channel = td_->contacts_manager_->get_input_channel(channel_id);
     CHECK(input_channel != nullptr);
     send_query(G()->net_query_creator().create(
-        telegram_api::channels_toggleSignatures(std::move(input_channel), sign_messages)));
+        telegram_api::channels_toggleSignatures(std::move(input_channel), sign_messages), {{channel_id}}));
   }
 
   void on_result(BufferSlice packet) final {
@@ -1094,7 +1094,7 @@ class ToggleChannelJoinToSendQuery final : public Td::ResultHandler {
     auto input_channel = td_->contacts_manager_->get_input_channel(channel_id);
     CHECK(input_channel != nullptr);
     send_query(G()->net_query_creator().create(
-        telegram_api::channels_toggleJoinToSend(std::move(input_channel), join_to_send)));
+        telegram_api::channels_toggleJoinToSend(std::move(input_channel), join_to_send), {{channel_id}}));
   }
 
   void on_result(BufferSlice packet) final {
@@ -1134,7 +1134,7 @@ class ToggleChannelJoinRequestQuery final : public Td::ResultHandler {
     auto input_channel = td_->contacts_manager_->get_input_channel(channel_id);
     CHECK(input_channel != nullptr);
     send_query(G()->net_query_creator().create(
-        telegram_api::channels_toggleJoinRequest(std::move(input_channel), join_request)));
+        telegram_api::channels_toggleJoinRequest(std::move(input_channel), join_request), {{channel_id}}));
   }
 
   void on_result(BufferSlice packet) final {
@@ -1177,7 +1177,8 @@ class TogglePrehistoryHiddenQuery final : public Td::ResultHandler {
     auto input_channel = td_->contacts_manager_->get_input_channel(channel_id);
     CHECK(input_channel != nullptr);
     send_query(G()->net_query_creator().create(
-        telegram_api::channels_togglePreHistoryHidden(std::move(input_channel), !is_all_history_available)));
+        telegram_api::channels_togglePreHistoryHidden(std::move(input_channel), !is_all_history_available),
+        {{channel_id}}));
   }
 
   void on_result(BufferSlice packet) final {
@@ -1225,7 +1226,8 @@ class ConvertToGigagroupQuery final : public Td::ResultHandler {
 
     auto input_channel = td_->contacts_manager_->get_input_channel(channel_id);
     CHECK(input_channel != nullptr);
-    send_query(G()->net_query_creator().create(telegram_api::channels_convertToGigagroup(std::move(input_channel))));
+    send_query(G()->net_query_creator().create(telegram_api::channels_convertToGigagroup(std::move(input_channel)),
+                                               {{channel_id}}));
   }
 
   void on_result(BufferSlice packet) final {
@@ -1280,7 +1282,8 @@ class EditChatAboutQuery final : public Td::ResultHandler {
     if (input_peer == nullptr) {
       return on_error(Status::Error(400, "Can't access the chat"));
     }
-    send_query(G()->net_query_creator().create(telegram_api::messages_editChatAbout(std::move(input_peer), about)));
+    send_query(G()->net_query_creator().create(telegram_api::messages_editChatAbout(std::move(input_peer), about),
+                                               {{dialog_id}}));
   }
 
   void on_result(BufferSlice packet) final {
@@ -1328,7 +1331,8 @@ class SetDiscussionGroupQuery final : public Td::ResultHandler {
     broadcast_channel_id_ = broadcast_channel_id;
     group_channel_id_ = group_channel_id;
     send_query(G()->net_query_creator().create(
-        telegram_api::channels_setDiscussionGroup(std::move(broadcast_input_channel), std::move(group_input_channel))));
+        telegram_api::channels_setDiscussionGroup(std::move(broadcast_input_channel), std::move(group_input_channel)),
+        {{broadcast_channel_id}, {group_channel_id}}));
   }
 
   void on_result(BufferSlice packet) final {
@@ -1368,8 +1372,10 @@ class EditLocationQuery final : public Td::ResultHandler {
     auto input_channel = td_->contacts_manager_->get_input_channel(channel_id);
     CHECK(input_channel != nullptr);
 
-    send_query(G()->net_query_creator().create(telegram_api::channels_editLocation(
-        std::move(input_channel), location_.get_input_geo_point(), location_.get_address())));
+    send_query(G()->net_query_creator().create(
+        telegram_api::channels_editLocation(std::move(input_channel), location_.get_input_geo_point(),
+                                            location_.get_address()),
+        {{channel_id}}));
   }
 
   void on_result(BufferSlice packet) final {
@@ -1408,7 +1414,7 @@ class ToggleSlowModeQuery final : public Td::ResultHandler {
     CHECK(input_channel != nullptr);
 
     send_query(G()->net_query_creator().create(
-        telegram_api::channels_toggleSlowMode(std::move(input_channel), slow_mode_delay)));
+        telegram_api::channels_toggleSlowMode(std::move(input_channel), slow_mode_delay), {{channel_id}}));
   }
 
   void on_result(BufferSlice packet) final {
@@ -1494,7 +1500,7 @@ class DeleteChatQuery final : public Td::ResultHandler {
   }
 
   void send(ChatId chat_id) {
-    send_query(G()->net_query_creator().create(telegram_api::messages_deleteChat(chat_id.get())));
+    send_query(G()->net_query_creator().create(telegram_api::messages_deleteChat(chat_id.get()), {{chat_id}}));
   }
 
   void on_result(BufferSlice packet) final {
@@ -1525,7 +1531,8 @@ class DeleteChannelQuery final : public Td::ResultHandler {
     channel_id_ = channel_id;
     auto input_channel = td_->contacts_manager_->get_input_channel(channel_id);
     CHECK(input_channel != nullptr);
-    send_query(G()->net_query_creator().create(telegram_api::channels_deleteChannel(std::move(input_channel))));
+    send_query(G()->net_query_creator().create(telegram_api::channels_deleteChannel(std::move(input_channel)),
+                                               {{channel_id}}));
   }
 
   void on_result(BufferSlice packet) final {
@@ -2397,7 +2404,8 @@ class JoinChannelQuery final : public Td::ResultHandler {
     channel_id_ = channel_id;
     auto input_channel = td_->contacts_manager_->get_input_channel(channel_id);
     CHECK(input_channel != nullptr);
-    send_query(G()->net_query_creator().create(telegram_api::channels_joinChannel(std::move(input_channel))));
+    send_query(
+        G()->net_query_creator().create(telegram_api::channels_joinChannel(std::move(input_channel)), {{channel_id}}));
   }
 
   void on_result(BufferSlice packet) final {
@@ -2549,7 +2557,8 @@ class LeaveChannelQuery final : public Td::ResultHandler {
     channel_id_ = channel_id;
     auto input_channel = td_->contacts_manager_->get_input_channel(channel_id);
     CHECK(input_channel != nullptr);
-    send_query(G()->net_query_creator().create(telegram_api::channels_leaveChannel(std::move(input_channel))));
+    send_query(
+        G()->net_query_creator().create(telegram_api::channels_leaveChannel(std::move(input_channel)), {{channel_id}}));
   }
 
   void on_result(BufferSlice packet) final {
@@ -2620,8 +2629,10 @@ class EditChannelCreatorQuery final : public Td::ResultHandler {
     if (r_input_user.is_error()) {
       return promise_.set_error(r_input_user.move_as_error());
     }
-    send_query(G()->net_query_creator().create(telegram_api::channels_editCreator(
-        std::move(input_channel), r_input_user.move_as_ok(), std::move(input_check_password))));
+    send_query(G()->net_query_creator().create(
+        telegram_api::channels_editCreator(std::move(input_channel), r_input_user.move_as_ok(),
+                                           std::move(input_check_password)),
+        {{channel_id}}));
   }
 
   void on_result(BufferSlice packet) final {
@@ -2651,7 +2662,7 @@ class MigrateChatQuery final : public Td::ResultHandler {
   }
 
   void send(ChatId chat_id) {
-    send_query(G()->net_query_creator().create(telegram_api::messages_migrateChat(chat_id.get())));
+    send_query(G()->net_query_creator().create(telegram_api::messages_migrateChat(chat_id.get()), {{chat_id}}));
   }
 
   void on_result(BufferSlice packet) final {
