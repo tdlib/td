@@ -1155,6 +1155,49 @@ FlatHashSet<int64> UpdatesManager::get_sent_messages_random_ids(const telegram_a
   return random_ids;
 }
 
+const telegram_api::Message *UpdatesManager::get_message_by_random_id(const telegram_api::Updates *updates_ptr,
+                                                                      DialogId dialog_id, int64 random_id) {
+  auto updates = get_updates(updates_ptr);
+  if (updates == nullptr) {
+    return nullptr;
+  }
+
+  int32 message_id = 0;
+  for (auto &update : *updates) {
+    if (update->get_id() == telegram_api::updateMessageID::ID) {
+      auto update_message_id = static_cast<const telegram_api::updateMessageID *>(update.get());
+      if (update_message_id->random_id_ == random_id) {
+        if (message_id != 0 || update_message_id->id_ == 0) {
+          return nullptr;
+        }
+        message_id = update_message_id->id_;
+      }
+    }
+  }
+  if (message_id == 0) {
+    return nullptr;
+  }
+
+  const telegram_api::Message *result = nullptr;
+  FullMessageId full_message_id(dialog_id, MessageId(ServerMessageId(message_id)));
+  for (auto &update : *updates) {
+    auto constructor_id = update->get_id();
+    const tl_object_ptr<telegram_api::Message> *message = nullptr;
+    if (constructor_id == telegram_api::updateNewMessage::ID) {
+      message = &static_cast<const telegram_api::updateNewMessage *>(update.get())->message_;
+    } else if (constructor_id == telegram_api::updateNewChannelMessage::ID) {
+      message = &static_cast<const telegram_api::updateNewChannelMessage *>(update.get())->message_;
+    }
+    if (message != nullptr && MessagesManager::get_full_message_id(*message, false) == full_message_id) {
+      if (result != nullptr) {
+        return nullptr;
+      }
+      result = message->get();
+    }
+  }
+  return result;
+}
+
 vector<const tl_object_ptr<telegram_api::Message> *> UpdatesManager::get_new_messages(
     const telegram_api::Updates *updates_ptr) {
   vector<const tl_object_ptr<telegram_api::Message> *> messages;

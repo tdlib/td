@@ -5509,6 +5509,14 @@ void Td::on_request(uint64 id, td_api::editMessageSchedulingState &request) {
                                                    std::move(request.scheduling_state_), std::move(promise));
 }
 
+void Td::on_request(uint64 id, td_api::createForumTopic &request) {
+  CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.title_);
+  CREATE_REQUEST_PROMISE();
+  forum_topic_manager_->create_forum_topic(DialogId(request.chat_id_), std::move(request.title_),
+                                           std::move(request.icon_), std::move(promise));
+}
+
 void Td::on_request(uint64 id, td_api::setGameScore &request) {
   CHECK_IS_BOT();
   CREATE_REQUEST_PROMISE();

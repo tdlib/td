@@ -3842,6 +3842,13 @@ class CliClient final : public Actor {
       get_args(args, chat_id, message_id, date);
       send_request(td_api::make_object<td_api::editMessageSchedulingState>(chat_id, message_id,
                                                                            as_message_scheduling_state(date)));
+    } else if (op == "cft") {
+      ChatId chat_id;
+      string title;
+      int32 icon_color;
+      get_args(args, chat_id, title, icon_color);
+      send_request(td_api::make_object<td_api::createForumTopic>(
+          chat_id, title, td_api::make_object<td_api::forumTopicIcon>(icon_color, 0)));
     } else if (op == "gallm") {
       send_request(td_api::make_object<td_api::getActiveLiveLocationMessages>());
     } else if (op == "sbsm") {

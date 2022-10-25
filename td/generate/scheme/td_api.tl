@@ -5291,6 +5291,10 @@ editInlineMessageReplyMarkup inline_message_id:string reply_markup:ReplyMarkup =
 editMessageSchedulingState chat_id:int53 message_id:int53 scheduling_state:MessageSchedulingState = Ok;
 
 
+//@description Creates a topic in a forum supergroup chat; requires can_manage_topics rights in the supergroup @chat_id Identifier of the chat @title Title of the topic @icon Icon of the topic. Icon color must be one of 0x6FB9F0, 0xFFD67E, 0xCB86DB, 0x8EEE98, 0xFF93B2, or 0xFB6F5F. Icon custom emoji can be added only by Telegram Premium users
+createForumTopic chat_id:int53 title:string icon:forumTopicIcon = ForumTopicInfo;
+
+
 //@description Returns information about a emoji reaction. Returns a 404 error if the reaction is not found @emoji Text representation of the reaction
 getEmojiReaction emoji:string = EmojiReaction;
 

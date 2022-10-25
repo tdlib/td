@@ -103,6 +103,9 @@ class UpdatesManager final : public Actor {
 
   static FlatHashSet<int64> get_sent_messages_random_ids(const telegram_api::Updates *updates_ptr);
 
+  static const telegram_api::Message *get_message_by_random_id(const telegram_api::Updates *updates_ptr,
+                                                               DialogId dialog_id, int64 random_id);
+
   static vector<const tl_object_ptr<telegram_api::Message> *> get_new_messages(
       const telegram_api::Updates *updates_ptr);
 
