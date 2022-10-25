@@ -4584,6 +4584,11 @@ class CliClient final : public Actor {
       get_args(args, supergroup_id, is_all_history_available);
       send_request(td_api::make_object<td_api::toggleSupergroupIsAllHistoryAvailable>(as_supergroup_id(supergroup_id),
                                                                                       is_all_history_available));
+    } else if (op == "tsgif") {
+      string supergroup_id;
+      bool is_forum;
+      get_args(args, supergroup_id, is_forum);
+      send_request(td_api::make_object<td_api::toggleSupergroupIsForum>(as_supergroup_id(supergroup_id), is_forum));
     } else if (op == "ToggleSupergroupIsBroadcastGroup") {
       string supergroup_id;
       get_args(args, supergroup_id);

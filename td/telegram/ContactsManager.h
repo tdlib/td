@@ -387,6 +387,8 @@ class ContactsManager final : public Actor {
   void toggle_channel_is_all_history_available(ChannelId channel_id, bool is_all_history_available,
                                                Promise<Unit> &&promise);
 
+  void toggle_channel_is_forum(ChannelId channel_id, bool is_forum, Promise<Unit> &&promise);
+
   void convert_channel_to_gigagroup(ChannelId channel_id, Promise<Unit> &&promise);
 
   void set_channel_description(ChannelId channel_id, const string &description, Promise<Unit> &&promise);
