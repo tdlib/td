@@ -3157,6 +3157,9 @@ premiumFeatureEmojiStatus = PremiumFeature;
 //@description Profile photo animation on message and chat screens
 premiumFeatureAnimatedProfilePhoto = PremiumFeature;
 
+//@description The ability to set a custom emoji as a forum topic icon
+premiumFeatureForumTopicIcon = PremiumFeature;
+
 //@description Allowed to set a premium appllication icons
 premiumFeatureAppIcons = PremiumFeature;
 
