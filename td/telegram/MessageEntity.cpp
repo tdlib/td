@@ -1322,7 +1322,7 @@ vector<Slice> find_mentions(Slice str) {
   auto mentions = match_mentions(str);
   td::remove_if(mentions, [](Slice mention) {
     mention.remove_prefix(1);
-    if (mention.size() >= 5) {
+    if (mention.size() >= 4) {
       return false;
     }
     auto lowered_mention = to_lower(mention);
