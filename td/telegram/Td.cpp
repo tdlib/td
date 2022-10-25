@@ -52,6 +52,7 @@
 #include "td/telegram/files/FileStats.h"
 #include "td/telegram/files/FileType.h"
 #include "td/telegram/FolderId.h"
+#include "td/telegram/ForumTopicManager.h"
 #include "td/telegram/FullMessageId.h"
 #include "td/telegram/GameManager.h"
 #include "td/telegram/Global.h"
@@ -3235,6 +3236,8 @@ void Td::dec_actor_refcnt() {
       LOG(DEBUG) << "FileManager was cleared" << timer;
       file_reference_manager_.reset();
       LOG(DEBUG) << "FileReferenceManager was cleared" << timer;
+      forum_topic_manager_.reset();
+      LOG(DEBUG) << "ForumTopicManager was cleared" << timer;
       game_manager_.reset();
       LOG(DEBUG) << "GameManager was cleared" << timer;
       group_call_manager_.reset();
@@ -3425,6 +3428,8 @@ void Td::clear() {
   LOG(DEBUG) << "FileManager actor was cleared" << timer;
   file_reference_manager_actor_.reset();
   LOG(DEBUG) << "FileReferenceManager actor was cleared" << timer;
+  forum_topic_manager_actor_.reset();
+  LOG(DEBUG) << "ForumTopicManager actor was cleared" << timer;
   game_manager_actor_.reset();
   LOG(DEBUG) << "GameManager actor was cleared" << timer;
   group_call_manager_actor_.reset();
@@ -3876,6 +3881,9 @@ void Td::init_managers() {
   download_manager_ = DownloadManager::create(td::make_unique<DownloadManagerCallback>(this, create_reference()));
   download_manager_actor_ = register_actor("DownloadManager", download_manager_.get());
   G()->set_download_manager(download_manager_actor_.get());
+  forum_topic_manager_ = make_unique<ForumTopicManager>(this, create_reference());
+  forum_topic_manager_actor_ = register_actor("ForumTopicManager", forum_topic_manager_.get());
+  G()->set_forum_topic_manager(forum_topic_manager_actor_.get());
   game_manager_ = make_unique<GameManager>(this, create_reference());
   game_manager_actor_ = register_actor("GameManager", game_manager_.get());
   G()->set_game_manager(game_manager_actor_.get());

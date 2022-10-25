@@ -42,6 +42,7 @@ class ContactsManager;
 class DownloadManager;
 class FileManager;
 class FileReferenceManager;
+class ForumTopicManager;
 class GameManager;
 class GroupCallManager;
 class LanguagePackManager;
@@ -250,6 +251,13 @@ class Global final : public ActorContext {
   }
   void set_file_reference_manager(ActorId<FileReferenceManager> file_reference_manager) {
     file_reference_manager_ = std::move(file_reference_manager);
+  }
+
+  ActorId<ForumTopicManager> forum_topic_manager() const {
+    return forum_topic_manager_;
+  }
+  void set_forum_topic_manager(ActorId<ForumTopicManager> forum_topic_manager) {
+    forum_topic_manager_ = forum_topic_manager;
   }
 
   ActorId<GameManager> game_manager() const {
@@ -474,6 +482,7 @@ class Global final : public ActorContext {
   ActorId<DownloadManager> download_manager_;
   ActorId<FileManager> file_manager_;
   ActorId<FileReferenceManager> file_reference_manager_;
+  ActorId<ForumTopicManager> forum_topic_manager_;
   ActorId<GameManager> game_manager_;
   ActorId<GroupCallManager> group_call_manager_;
   ActorId<LanguagePackManager> language_pack_manager_;

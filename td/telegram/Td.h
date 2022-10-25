@@ -53,6 +53,7 @@ class DocumentsManager;
 class DownloadManager;
 class FileManager;
 class FileReferenceManager;
+class ForumTopicManager;
 class GameManager;
 class GroupCallManager;
 class InlineQueriesManager;
@@ -154,6 +155,8 @@ class Td final : public Actor {
   ActorOwn<FileManager> file_manager_actor_;
   unique_ptr<FileReferenceManager> file_reference_manager_;
   ActorOwn<FileReferenceManager> file_reference_manager_actor_;
+  unique_ptr<ForumTopicManager> forum_topic_manager_;
+  ActorOwn<ForumTopicManager> forum_topic_manager_actor_;
   unique_ptr<GameManager> game_manager_;
   ActorOwn<GameManager> game_manager_actor_;
   unique_ptr<GroupCallManager> group_call_manager_;
