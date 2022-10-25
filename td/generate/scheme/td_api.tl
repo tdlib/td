@@ -759,7 +759,7 @@ supergroup id:int53 usernames:usernames date:int32 status:ChatMemberStatus membe
 //@can_set_sticker_set True, if the supergroup sticker set can be changed
 //@can_set_location True, if the supergroup location can be changed
 //@can_get_statistics True, if the supergroup or channel statistics are available
-//@is_all_history_available True, if new chat members will have access to old messages. In public or discussion groups and both public and private channels, old messages are always available, so this option affects only private supergroups without a linked chat. The value of this field is only available for chat administrators
+//@is_all_history_available True, if new chat members will have access to old messages. In public, discussion, of forum groups and all channels, old messages are always available, so this option affects only private non-forum supergroups without a linked chat. The value of this field is only available for chat administrators
 //@sticker_set_id Identifier of the supergroup sticker set; 0 if none
 //@location Location to which the supergroup is connected; may be null
 //@invite_link Primary invite link for the chat; may be null. For chat administrators with can_invite_users right only

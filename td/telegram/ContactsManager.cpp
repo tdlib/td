@@ -7222,6 +7222,9 @@ void ContactsManager::toggle_channel_is_all_history_available(ChannelId channel_
   if (get_channel_type(c) != ChannelType::Megagroup) {
     return promise.set_error(Status::Error(400, "Message history can be hidden in supergroups only"));
   }
+  if (c->is_forum && !is_all_history_available) {
+    return promise.set_error(Status::Error(400, "Message history can't be hidden in forum supergroups"));
+  }
   if (c->has_linked_channel && !is_all_history_available) {
     return promise.set_error(Status::Error(400, "Message history can't be hidden in discussion supergroups"));
   }
