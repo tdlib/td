@@ -38,12 +38,12 @@ static void test_parse_url_query(const td::string &query, const td::vector<td::s
   }
 }
 
-TEST(HttpUrl, parce_url_query) {
+TEST(HttpUrl, parse_url_query) {
   test_parse_url_query("", {}, {});
   test_parse_url_query("a", {"a"}, {});
   test_parse_url_query("/", {}, {});
-  test_parse_url_query("//", {""}, {});
-  test_parse_url_query("///?a", {td::string(), td::string()}, {{"a", ""}});
+  test_parse_url_query("//", {}, {});
+  test_parse_url_query("///?a", {}, {{"a", ""}});
   test_parse_url_query("/a/b/c/", {"a", "b", "c"}, {});
   test_parse_url_query("/a/b/?c/", {td::string("a"), td::string("b")}, {{"c/", ""}});
   test_parse_url_query("?", {}, {});
