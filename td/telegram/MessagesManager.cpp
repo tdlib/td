@@ -7880,7 +7880,11 @@ void MessagesManager::add_pending_channel_update(DialogId dialog_id, tl_object_p
   }
 
   if (d == nullptr || pts_count > 0) {
-    process_channel_update(std::move(update));
+    if (!process_channel_update(std::move(update)) &&
+        channel_get_difference_retry_timeout_.has_timeout(dialog_id.get())) {
+      promise.set_value(Unit());
+      return;
+    }
     LOG_CHECK(!running_get_channel_difference(dialog_id)) << '"' << active_get_channel_differencies_[dialog_id] << '"';
   } else {
     LOG_IF(INFO, update->get_id() != dummyUpdate::ID)
@@ -7988,7 +7992,7 @@ void MessagesManager::process_pts_update(tl_object_ptr<telegram_api::Update> &&u
   CHECK(!td_->updates_manager_->running_get_difference());
 }
 
-void MessagesManager::process_channel_update(tl_object_ptr<telegram_api::Update> &&update_ptr) {
+bool MessagesManager::process_channel_update(tl_object_ptr<telegram_api::Update> &&update_ptr) {
   switch (update_ptr->get_id()) {
     case dummyUpdate::ID:
       LOG(INFO) << "Process dummyUpdate";
@@ -8030,6 +8034,9 @@ void MessagesManager::process_channel_update(tl_object_ptr<telegram_api::Update>
       bool had_message = have_message_force(get_full_message_id(update->message_, false), "updateEditChannelMessage");
       auto full_message_id =
           on_get_message(std::move(update->message_), false, true, false, false, false, "updateEditChannelMessage");
+      if (full_message_id == FullMessageId()) {
+        return false;
+      }
       on_message_edited(full_message_id, update->pts_, had_message);
       break;
     }
@@ -8053,6 +8060,7 @@ void MessagesManager::process_channel_update(tl_object_ptr<telegram_api::Update>
     default:
       UNREACHABLE();
   }
+  return true;
 }
 
 void MessagesManager::on_message_edited(FullMessageId full_message_id, int32 pts, bool had_message) {

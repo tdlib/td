@@ -1971,7 +1971,7 @@ class MessagesManager final : public Actor {
   void add_postponed_channel_update(DialogId dialog_id, tl_object_ptr<telegram_api::Update> &&update, int32 new_pts,
                                     int32 pts_count, Promise<Unit> &&promise);
 
-  void process_channel_update(tl_object_ptr<telegram_api::Update> &&update_ptr);
+  bool process_channel_update(tl_object_ptr<telegram_api::Update> &&update_ptr);
 
   void on_message_edited(FullMessageId full_message_id, int32 pts, bool had_message);
 
