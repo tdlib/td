@@ -6,6 +6,7 @@
 //
 #include "td/telegram/ForumTopicManager.h"
 
+#include "td/telegram/AccessRights.h"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/CustomEmojiId.h"
 #include "td/telegram/Global.h"
@@ -31,7 +32,8 @@ class CreateForumTopicQuery final : public Td::ResultHandler {
       : promise_(std::move(promise)) {
   }
 
-  void send(ChannelId channel_id, const string &title, int32 icon_color, CustomEmojiId icon_custom_emoji_id) {
+  void send(ChannelId channel_id, const string &title, int32 icon_color, CustomEmojiId icon_custom_emoji_id,
+            DialogId as_dialog_id) {
     channel_id_ = channel_id;
     creator_dialog_id_ = DialogId(td_->contacts_manager_->get_my_id());
 
@@ -42,6 +44,14 @@ class CreateForumTopicQuery final : public Td::ResultHandler {
     if (icon_custom_emoji_id.is_valid()) {
       flags |= telegram_api::channels_createForumTopic::ICON_EMOJI_ID_MASK;
     }
+    tl_object_ptr<telegram_api::InputPeer> as_input_peer;
+    if (as_dialog_id.is_valid()) {
+      as_input_peer = td_->messages_manager_->get_input_peer(as_dialog_id, AccessRights::Write);
+      if (as_input_peer != nullptr) {
+        flags |= telegram_api::channels_createForumTopic::SEND_AS_MASK;
+        creator_dialog_id_ = as_dialog_id;
+      }
+    }
 
     do {
       random_id_ = Random::secure_int64();
@@ -51,7 +61,7 @@ class CreateForumTopicQuery final : public Td::ResultHandler {
     CHECK(input_channel != nullptr);
     send_query(G()->net_query_creator().create(
         telegram_api::channels_createForumTopic(flags, std::move(input_channel), title, icon_color,
-                                                icon_custom_emoji_id.get(), random_id_, nullptr),
+                                                icon_custom_emoji_id.get(), random_id_, std::move(as_input_peer)),
         {{channel_id}}));
   }
 
@@ -126,8 +136,10 @@ void ForumTopicManager::create_forum_topic(DialogId dialog_id, string &&title,
     icon_custom_emoji_id = CustomEmojiId(icon->custom_emoji_id_);
   }
 
+  DialogId as_dialog_id = td_->messages_manager_->get_dialog_default_send_message_as_dialog_id(dialog_id);
+
   td_->create_handler<CreateForumTopicQuery>(std::move(promise))
-      ->send(channel_id, new_title, icon_color, icon_custom_emoji_id);
+      ->send(channel_id, new_title, icon_color, icon_custom_emoji_id, as_dialog_id);
 }
 
 void ForumTopicManager::on_forum_topic_created(ForumTopicInfo &&forum_topic_info,
