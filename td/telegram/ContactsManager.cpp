@@ -13124,7 +13124,8 @@ void ContactsManager::on_get_channel_participants(
     total_count = static_cast<int32>(result.size());
   } else if (is_full && total_count > static_cast<int32>(result.size())) {
     LOG(ERROR) << "Fix total number of " << filter << " members from " << total_count << " to " << result.size()
-               << " in " << channel_id;
+               << " in " << channel_id << " for request with limit " << limit << " and received " << participants.size()
+               << " results";
     total_count = static_cast<int32>(result.size());
   }
 
