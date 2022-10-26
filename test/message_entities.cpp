@@ -4,8 +4,8 @@
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
+#include "td/telegram/CustomEmojiId.h"
 #include "td/telegram/MessageEntity.h"
-
 #include "td/telegram/UserId.h"
 
 #include "td/utils/algorithm.h"
@@ -1360,13 +1360,13 @@ TEST(MessageEntities, parse_html) {
                    {{td::MessageEntity::Type::Pre, 6, 7}, {td::MessageEntity::Type::Code, 7, 6}});
   check_parse_html("➡️ ➡️<tg-emoji emoji-id = \"12345\">➡️ ➡️</tg-emoji><b>➡️ ➡️</b>",
                    "➡️ ➡️➡️ ➡️➡️ ➡️",
-                   {{td::MessageEntity::Type::CustomEmoji, 5, 5, static_cast<td::int64>(12345)},
+                   {{td::MessageEntity::Type::CustomEmoji, 5, 5, td::CustomEmojiId(static_cast<td::int64>(12345))},
                     {td::MessageEntity::Type::Bold, 10, 5}});
   check_parse_html("🏟 🏟<tg-emoji emoji-id=\"54321\">🏟 &lt🏟</tg-emoji>", "🏟 🏟🏟 <🏟",
-                   {{td::MessageEntity::Type::CustomEmoji, 5, 6, static_cast<td::int64>(54321)}});
-  check_parse_html(
-      "🏟 🏟<b aba   =   caba><tg-emoji emoji-id=\"1\">🏟</tg-emoji>1</b>", "🏟 🏟🏟1",
-      {{td::MessageEntity::Type::Bold, 5, 3}, {td::MessageEntity::Type::CustomEmoji, 5, 2, static_cast<td::int64>(1)}});
+                   {{td::MessageEntity::Type::CustomEmoji, 5, 6, td::CustomEmojiId(static_cast<td::int64>(54321))}});
+  check_parse_html("🏟 🏟<b aba   =   caba><tg-emoji emoji-id=\"1\">🏟</tg-emoji>1</b>", "🏟 🏟🏟1",
+                   {{td::MessageEntity::Type::Bold, 5, 3},
+                    {td::MessageEntity::Type::CustomEmoji, 5, 2, td::CustomEmojiId(static_cast<td::int64>(1))}});
 }
 
 static void check_parse_markdown(td::string text, const td::string &result,
@@ -1504,7 +1504,7 @@ TEST(MessageEntities, parse_markdown) {
   check_parse_markdown("[telegram\\.org](tg:user?id=123456)", "telegram.org",
                        {{0, 12, td::UserId(static_cast<td::int64>(123456))}});
   check_parse_markdown("🏟 🏟![👍](TG://EMoJI/?test=1231&id=25#id=32)a", "🏟 🏟👍a",
-                       {{td::MessageEntity::Type::CustomEmoji, 5, 2, static_cast<td::int64>(25)}});
+                       {{td::MessageEntity::Type::CustomEmoji, 5, 2, td::CustomEmojiId(static_cast<td::int64>(25))}});
 }
 
 static void check_parse_markdown_v3(td::string text, td::vector<td::MessageEntity> entities,
