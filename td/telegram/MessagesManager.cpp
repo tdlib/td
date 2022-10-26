@@ -10886,7 +10886,8 @@ bool MessagesManager::can_delete_channel_message(const DialogParticipantStatus &
     return false;
   }
   auto content_type = m->content->get_type();
-  if (content_type == MessageContentType::ChannelMigrateFrom || content_type == MessageContentType::ChannelCreate) {
+  if (content_type == MessageContentType::ChannelMigrateFrom || content_type == MessageContentType::ChannelCreate ||
+      content_type == MessageContentType::TopicCreate) {
     return false;
   }
 
