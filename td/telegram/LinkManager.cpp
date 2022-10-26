@@ -754,6 +754,8 @@ void LinkManager::start_up() {
   autologin_domains_ = full_split(G()->td_db()->get_binlog_pmc()->get("autologin_domains"), '\xFF');
 
   url_auth_domains_ = full_split(G()->td_db()->get_binlog_pmc()->get("url_auth_domains"), '\xFF');
+
+  whitelisted_domains_ = full_split(G()->td_db()->get_binlog_pmc()->get("whitelisted_domains"), '\xFF');
 }
 
 void LinkManager::tear_down() {
@@ -1470,7 +1472,7 @@ unique_ptr<LinkManager::InternalLink> LinkManager::get_internal_link_passport(
 }
 
 void LinkManager::update_autologin_domains(string autologin_token, vector<string> autologin_domains,
-                                           vector<string> url_auth_domains) {
+                                           vector<string> url_auth_domains, vector<string> whitelisted_domains) {
   autologin_update_time_ = Time::now();
   autologin_token_ = std::move(autologin_token);
   if (autologin_domains_ != autologin_domains) {
@@ -1480,6 +1482,10 @@ void LinkManager::update_autologin_domains(string autologin_token, vector<string
   if (url_auth_domains_ != url_auth_domains) {
     url_auth_domains_ = std::move(url_auth_domains);
     G()->td_db()->get_binlog_pmc()->set("url_auth_domains", implode(url_auth_domains_, '\xFF'));
+  }
+  if (whitelisted_domains_ != whitelisted_domains) {
+    whitelisted_domains_ = std::move(whitelisted_domains);
+    G()->td_db()->get_binlog_pmc()->set("whitelisted_domains", implode(whitelisted_domains_, '\xFF'));
   }
 }
 
@@ -1509,6 +1515,9 @@ void LinkManager::get_external_link_info(string &&link, Promise<td_api::object_p
   if (r_url.is_error()) {
     return promise.set_value(std::move(default_result));
   }
+
+  bool skip_confirm = td::contains(whitelisted_domains_, r_url.ok().host_);
+  default_result->skip_confirm_ = skip_confirm;
 
   if (!td::contains(autologin_domains_, r_url.ok().host_)) {
     if (td::contains(url_auth_domains_, r_url.ok().host_)) {
@@ -1555,7 +1564,7 @@ void LinkManager::get_external_link_info(string &&link, Promise<td_api::object_p
 
   url.query_ = PSTRING() << path << parameters << added_parameter << hash;
 
-  promise.set_value(td_api::make_object<td_api::loginUrlInfoOpen>(url.get_url(), false));
+  promise.set_value(td_api::make_object<td_api::loginUrlInfoOpen>(url.get_url(), skip_confirm));
 }
 
 void LinkManager::get_login_url_info(FullMessageId full_message_id, int64 button_id,

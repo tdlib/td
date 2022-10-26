@@ -1467,6 +1467,7 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
   string autologin_token;
   vector<string> autologin_domains;
   vector<string> url_auth_domains;
+  vector<string> whitelisted_domains;
 
   vector<tl_object_ptr<telegram_api::jsonObjectValue>> new_values;
   string ignored_restriction_reasons;
@@ -1680,10 +1681,21 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
         if (value->get_id() == telegram_api::jsonArray::ID) {
           auto domains = std::move(static_cast<telegram_api::jsonArray *>(value)->value_);
           for (auto &domain : domains) {
-            autologin_domains.push_back(get_json_value_string(std::move(domain), key));
+            url_auth_domains.push_back(get_json_value_string(std::move(domain), key));
           }
         } else {
           LOG(ERROR) << "Receive unexpected url_auth_domains " << to_string(*value);
+        }
+        continue;
+      }
+      if (key == "whitelisted_domains") {
+        if (value->get_id() == telegram_api::jsonArray::ID) {
+          auto domains = std::move(static_cast<telegram_api::jsonArray *>(value)->value_);
+          for (auto &domain : domains) {
+            whitelisted_domains.push_back(get_json_value_string(std::move(domain), key));
+          }
+        } else {
+          LOG(ERROR) << "Receive unexpected whitelisted_domains " << to_string(*value);
         }
         continue;
       }
@@ -1820,7 +1832,7 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
   config = make_tl_object<telegram_api::jsonObject>(std::move(new_values));
 
   send_closure(G()->link_manager(), &LinkManager::update_autologin_domains, std::move(autologin_token),
-               std::move(autologin_domains), std::move(url_auth_domains));
+               std::move(autologin_domains), std::move(url_auth_domains), std::move(whitelisted_domains));
 
   Global &options = *G();
 
