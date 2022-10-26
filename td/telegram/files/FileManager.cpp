@@ -2288,17 +2288,22 @@ void FileManager::download_impl(FileId file_id, std::shared_ptr<DownloadCallback
     new_priority = 0;
   }
 
-  LOG(INFO) << "Change download priority of file " << file_id << " to " << new_priority;
+  LOG(INFO) << "Change download priority of file " << file_id << " to " << new_priority << " with callback "
+            << callback.get();
   node->set_download_offset(offset);
   node->set_download_limit(limit);
   auto *file_info = get_file_id_info(file_id);
   CHECK(new_priority == 0 || callback);
   if (file_info->download_callback_ != nullptr && file_info->download_callback_.get() != callback.get()) {
-    // the callback will be destroyed soon and lost forever
-    // this would be an error and should never happen, unless we cancel previous download query
-    // in that case we send an error to the callback
-    CHECK(new_priority == 0);
-    file_info->download_callback_->on_download_error(file_id, Status::Error(200, "Canceled"));
+    // the old callback will be destroyed soon and lost forever
+    // this is a bug and must never happen, unless we cancel previous download query
+    // but still there is no way to prevent this with the current FileManager implementation
+    if (new_priority == 0) {
+      file_info->download_callback_->on_download_error(file_id, Status::Error(200, "Canceled"));
+    } else {
+      LOG(ERROR) << "File " << file_id << " is used with different download callbacks";
+      file_info->download_callback_->on_download_error(file_id, Status::Error(500, "Internal Server Error"));
+    }
   }
   file_info->ignore_download_limit = limit == IGNORE_DOWNLOAD_LIMIT;
   file_info->download_priority_ = narrow_cast<int8>(new_priority);
@@ -2655,9 +2660,21 @@ void FileManager::resume_upload(FileId file_id, vector<int> bad_parts, std::shar
     return;
   }
 
-  LOG(INFO) << "Change upload priority of file " << file_id << " to " << new_priority;
+  LOG(INFO) << "Change upload priority of file " << file_id << " to " << new_priority << " with callback "
+            << callback.get();
   auto *file_info = get_file_id_info(file_id);
   CHECK(new_priority == 0 || callback);
+  if (file_info->upload_callback_ != nullptr && file_info->upload_callback_.get() != callback.get()) {
+    // the old callback will be destroyed soon and lost forever
+    // this is a bug and must never happen, unless we cancel previous upload query
+    // but still there is no way to prevent this with the current FileManager implementation
+    if (new_priority == 0) {
+      file_info->upload_callback_->on_upload_error(file_id, Status::Error(200, "Canceled"));
+    } else {
+      LOG(ERROR) << "File " << file_id << " is used with different upload callbacks";
+      file_info->upload_callback_->on_upload_error(file_id, Status::Error(500, "Internal Server Error"));
+    }
+  }
   file_info->upload_order_ = upload_order;
   file_info->upload_priority_ = narrow_cast<int8>(new_priority);
   file_info->upload_callback_ = std::move(callback);
