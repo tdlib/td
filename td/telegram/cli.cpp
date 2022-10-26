@@ -1409,7 +1409,7 @@ class CliClient final : public Actor {
     if (filter == "restricted") {
       return td_api::make_object<td_api::supergroupMembersFilterRestricted>(query);
     }
-    if (filter == "nentions") {
+    if (filter == "mentions") {
       return td_api::make_object<td_api::supergroupMembersFilterMention>(query,
                                                                          as_message_thread_id(message_thread_id));
     }
