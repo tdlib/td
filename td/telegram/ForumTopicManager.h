@@ -63,6 +63,11 @@ class ForumTopicManager final : public Actor {
 
   const ForumTopicInfo *get_topic_info(DialogId dialog_id, MessageId top_thread_message_id) const;
 
+  td_api::object_ptr<td_api::updateForumTopicInfo> get_update_forum_topic_info(DialogId dialog_id,
+                                                                               const ForumTopicInfo *topic_info) const;
+
+  void send_update_forum_topic_info(DialogId dialog_id, const ForumTopicInfo *topic_info) const;
+
   Td *td_;
   ActorShared<> parent_;
 

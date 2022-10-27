@@ -267,7 +267,9 @@ void ForumTopicManager::on_forum_topic_edited(DialogId dialog_id, MessageId top_
   if (topic_info == nullptr) {
     return;
   }
-  topic_info->apply_edited_data(edited_data);
+  if (topic_info->apply_edited_data(edited_data)) {
+    send_update_forum_topic_info(dialog_id, topic_info);
+  }
 }
 
 Status ForumTopicManager::is_forum(DialogId dialog_id) {
@@ -296,6 +298,7 @@ ForumTopicInfo *ForumTopicManager::add_topic_info(DialogId dialog_id, unique_ptr
     dialog_info->topic_infos_.set(top_thread_message_id, std::move(forum_topic_info));
     topic_info = get_topic_info(dialog_id, top_thread_message_id);
     CHECK(topic_info != nullptr);
+    send_update_forum_topic_info(dialog_id, topic_info);
   }
   return topic_info;
 }
@@ -314,6 +317,16 @@ const ForumTopicInfo *ForumTopicManager::get_topic_info(DialogId dialog_id, Mess
     return nullptr;
   }
   return dialog_info->topic_infos_.get_pointer(top_thread_message_id);
+}
+
+td_api::object_ptr<td_api::updateForumTopicInfo> ForumTopicManager::get_update_forum_topic_info(
+    DialogId dialog_id, const ForumTopicInfo *topic_info) const {
+  return td_api::make_object<td_api::updateForumTopicInfo>(dialog_id.get(),
+                                                           topic_info->get_forum_topic_info_object(td_));
+}
+
+void ForumTopicManager::send_update_forum_topic_info(DialogId dialog_id, const ForumTopicInfo *topic_info) const {
+  send_closure(G()->td(), &Td::send_update, get_update_forum_topic_info(dialog_id, topic_info));
 }
 
 }  // namespace td

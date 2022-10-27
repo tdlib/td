@@ -4439,6 +4439,9 @@ updateChatFilters chat_filters:vector<chatFilterInfo> main_chat_list_position:in
 //@description The number of online group members has changed. This update with non-zero number of online group members is sent only for currently opened chats. There is no guarantee that it will be sent just after the number of online users has changed @chat_id Identifier of the chat @online_member_count New number of online members in the chat, or 0 if unknown
 updateChatOnlineMemberCount chat_id:int53 online_member_count:int32 = Update;
 
+//@description Basic information about a topic in a forum chat was changed @chat_id Chat identifier @info New information about the topic
+updateForumTopicInfo chat_id:int53 info:forumTopicInfo = Update;
+
 //@description Notification settings for some type of chats were updated @scope Types of chats for which notification settings were updated @notification_settings The new notification settings
 updateScopeNotificationSettings scope:NotificationSettingsScope notification_settings:scopeNotificationSettings = Update;
 
