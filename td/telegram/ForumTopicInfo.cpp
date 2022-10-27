@@ -35,6 +35,22 @@ ForumTopicInfo::ForumTopicInfo(const tl_object_ptr<telegram_api::ForumTopic> &fo
   }
 }
 
+bool ForumTopicInfo::apply_edited_data(const ForumTopicEditedData &edited_data) {
+  bool is_changed = false;
+  if (!edited_data.title_.empty() && edited_data.title_ != title_) {
+    title_ = edited_data.title_;
+    is_changed = true;
+  }
+  if (edited_data.edit_icon_custom_emoji_id_ && icon_.edit_custom_emoji_id(edited_data.icon_custom_emoji_id_)) {
+    is_changed = true;
+  }
+  if (edited_data.edit_is_closed_ && edited_data.is_closed_ != is_closed_) {
+    is_closed_ = edited_data.is_closed_;
+    is_changed = true;
+  }
+  return is_changed;
+}
+
 td_api::object_ptr<td_api::forumTopicInfo> ForumTopicInfo::get_forum_topic_info_object(Td *td) const {
   if (is_empty()) {
     return nullptr;

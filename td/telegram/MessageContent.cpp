@@ -33,6 +33,7 @@
 #include "td/telegram/ForumTopicEditedData.hpp"
 #include "td/telegram/ForumTopicIcon.h"
 #include "td/telegram/ForumTopicIcon.hpp"
+#include "td/telegram/ForumTopicManager.h"
 #include "td/telegram/Game.h"
 #include "td/telegram/Game.hpp"
 #include "td/telegram/Global.h"
@@ -6100,6 +6101,21 @@ void add_message_content_dependencies(Dependencies &dependencies, const MessageC
       break;
   }
   add_formatted_text_dependencies(dependencies, get_message_content_text(message_content));
+}
+
+void update_forum_topic_info_by_service_message_content(Td *td, const MessageContent *content, DialogId dialog_id,
+                                                        MessageId top_thread_message_id) {
+  if (!top_thread_message_id.is_valid()) {
+    return;
+  }
+  switch (content->get_type()) {
+    case MessageContentType::TopicEdit:
+      return td->forum_topic_manager_->on_forum_topic_edited(
+          dialog_id, top_thread_message_id, static_cast<const MessageTopicEdit *>(content)->edited_data);
+    default:
+      // nothing to do
+      return;
+  }
 }
 
 void on_sent_message_content(Td *td, const MessageContent *content) {

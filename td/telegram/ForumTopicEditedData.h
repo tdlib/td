@@ -25,6 +25,8 @@ class ForumTopicEditedData {
 
   friend StringBuilder &operator<<(StringBuilder &string_builder, const ForumTopicEditedData &topic_edited_data);
 
+  friend class ForumTopicInfo;
+
  public:
   ForumTopicEditedData() = default;
 

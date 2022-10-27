@@ -252,6 +252,9 @@ void update_failed_to_send_message_content(Td *td, unique_ptr<MessageContent> &c
 
 void add_message_content_dependencies(Dependencies &dependencies, const MessageContent *message_content);
 
+void update_forum_topic_info_by_service_message_content(Td *td, const MessageContent *content, DialogId dialog_id,
+                                                        MessageId top_thread_message_id);
+
 void on_sent_message_content(Td *td, const MessageContent *content);
 
 void move_message_content_sticker_set_to_top(Td *td, const MessageContent *content);

@@ -8,6 +8,7 @@
 
 #include "td/telegram/CustomEmojiId.h"
 #include "td/telegram/DialogId.h"
+#include "td/telegram/ForumTopicEditedData.h"
 #include "td/telegram/ForumTopicInfo.h"
 #include "td/telegram/td_api.h"
 
@@ -41,6 +42,9 @@ class ForumTopicManager final : public Actor {
 
   void toggle_forum_topic_is_closed(DialogId dialog_id, MessageId top_thread_message_id, bool is_closed,
                                     Promise<Unit> &&promise);
+
+  void on_forum_topic_edited(DialogId dialog_id, MessageId top_thread_message_id,
+                             const ForumTopicEditedData &edited_data);
 
  private:
   static constexpr size_t MAX_FORUM_TOPIC_TITLE_LENGTH = 128;  // server side limit for forum topic title

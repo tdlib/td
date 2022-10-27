@@ -264,6 +264,15 @@ void ForumTopicManager::toggle_forum_topic_is_closed(DialogId dialog_id, Message
   td_->create_handler<EditForumTopicQuery>(std::move(promise))->send(channel_id, top_thread_message_id, is_closed);
 }
 
+void ForumTopicManager::on_forum_topic_edited(DialogId dialog_id, MessageId top_thread_message_id,
+                                              const ForumTopicEditedData &edited_data) {
+  auto topic_info = get_topic_info(dialog_id, top_thread_message_id);
+  if (topic_info == nullptr) {
+    return;
+  }
+  topic_info->apply_edited_data(edited_data);
+}
+
 Status ForumTopicManager::is_forum(DialogId dialog_id) {
   if (!td_->messages_manager_->have_dialog_force(dialog_id, "ForumTopicManager::is_forum")) {
     return Status::Error(400, "Chat not found");
