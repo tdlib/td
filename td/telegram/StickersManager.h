@@ -116,6 +116,8 @@ class StickersManager final : public Actor {
 
   bool is_default_emoji_status(CustomEmojiId custom_emoji_id);
 
+  void get_default_topic_icons(bool is_recursive, Promise<td_api::object_ptr<td_api::stickers>> &&promise);
+
   void get_custom_emoji_stickers(vector<CustomEmojiId> &&custom_emoji_ids, bool use_database,
                                  Promise<td_api::object_ptr<td_api::stickers>> &&promise);
 
@@ -1046,6 +1048,7 @@ class StickersManager final : public Actor {
   vector<Promise<Unit>> pending_get_premium_gift_option_sticker_queries_;
   vector<Promise<Unit>> pending_get_generic_animations_queries_;
   vector<Promise<Unit>> pending_get_default_statuses_queries_;
+  vector<Promise<Unit>> pending_get_default_topic_icons_queries_;
 
   double next_click_animated_emoji_message_time_ = 0;
   double next_update_animated_emoji_clicked_time_ = 0;

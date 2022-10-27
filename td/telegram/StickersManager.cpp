@@ -1518,6 +1518,10 @@ void StickersManager::init() {
     auto &sticker_set = add_special_sticker_set(SpecialStickerSetType::default_statuses());
     load_special_sticker_set_info_from_binlog(sticker_set);
   }
+  {
+    auto &sticker_set = add_special_sticker_set(SpecialStickerSetType::default_topic_icons());
+    load_special_sticker_set_info_from_binlog(sticker_set);
+  }
 
   dice_emojis_str_ =
       td_->option_manager_->get_option_string("dice_emojis", "🎲\x01🎯\x01🏀\x01⚽\x01⚽️\x01🎰\x01🎳");
@@ -1826,6 +1830,10 @@ void StickersManager::on_load_special_sticker_set(const SpecialStickerSetType &t
   }
   if (type == SpecialStickerSetType::default_statuses()) {
     set_promises(pending_get_default_statuses_queries_);
+    return;
+  }
+  if (type == SpecialStickerSetType::default_topic_icons()) {
+    set_promises(pending_get_default_topic_icons_queries_);
     return;
   }
 
@@ -5933,6 +5941,32 @@ bool StickersManager::is_default_emoji_status(CustomEmojiId custom_emoji_id) {
     }
   }
   return false;
+}
+
+void StickersManager::get_default_topic_icons(bool is_recursive,
+                                              Promise<td_api::object_ptr<td_api::stickers>> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+
+  auto &special_sticker_set = add_special_sticker_set(SpecialStickerSetType::default_topic_icons());
+  auto sticker_set = get_sticker_set(special_sticker_set.id_);
+  if (sticker_set == nullptr || !sticker_set->was_loaded_) {
+    if (is_recursive) {
+      return promise.set_value(td_api::make_object<td_api::stickers>());
+    }
+
+    pending_get_default_topic_icons_queries_.push_back(PromiseCreator::lambda(
+        [actor_id = actor_id(this), promise = std::move(promise)](Result<Unit> &&result) mutable {
+          if (result.is_error()) {
+            promise.set_error(result.move_as_error());
+          } else {
+            send_closure(actor_id, &StickersManager::get_default_topic_icons, true, std::move(promise));
+          }
+        }));
+    load_special_sticker_set(special_sticker_set);
+    return;
+  }
+
+  promise.set_value(get_stickers_object(sticker_set->sticker_ids_));
 }
 
 void StickersManager::load_custom_emoji_sticker_from_database_force(CustomEmojiId custom_emoji_id) {

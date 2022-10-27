@@ -1795,6 +1795,7 @@ void UpdatesManager::try_reload_data() {
   td_->stickers_manager_->reload_special_sticker_set_by_type(SpecialStickerSetType::premium_gifts());
   td_->stickers_manager_->reload_special_sticker_set_by_type(SpecialStickerSetType::generic_animations());
   td_->stickers_manager_->reload_special_sticker_set_by_type(SpecialStickerSetType::default_statuses());
+  td_->stickers_manager_->reload_special_sticker_set_by_type(SpecialStickerSetType::default_topic_icons());
 
   schedule_data_reload();
 }
