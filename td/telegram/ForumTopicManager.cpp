@@ -236,7 +236,10 @@ void ForumTopicManager::edit_forum_topic(DialogId dialog_id, MessageId top_threa
   }
 
   if (!td_->contacts_manager_->get_channel_permissions(channel_id).can_edit_topics()) {
-    return promise.set_error(Status::Error(400, "Not enough rights to edit a topic"));
+    auto topic_info = get_topic_info(dialog_id, top_thread_message_id);
+    if (topic_info != nullptr && !topic_info->is_outgoing()) {
+      return promise.set_error(Status::Error(400, "Not enough rights to edit the topic"));
+    }
   }
 
   auto new_title = clean_name(std::move(title), MAX_FORUM_TOPIC_TITLE_LENGTH);
@@ -258,7 +261,10 @@ void ForumTopicManager::toggle_forum_topic_is_closed(DialogId dialog_id, Message
   }
 
   if (!td_->contacts_manager_->get_channel_permissions(channel_id).can_edit_topics()) {
-    return promise.set_error(Status::Error(400, "Not enough rights to edit a topic"));
+    auto topic_info = get_topic_info(dialog_id, top_thread_message_id);
+    if (topic_info != nullptr && !topic_info->is_outgoing()) {
+      return promise.set_error(Status::Error(400, "Not enough rights to close or open the topic"));
+    }
   }
 
   td_->create_handler<EditForumTopicQuery>(std::move(promise))->send(channel_id, top_thread_message_id, is_closed);
