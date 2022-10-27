@@ -374,7 +374,9 @@ static td_api::object_ptr<td_api::ChatEventAction> get_chat_event_action_object(
       auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionEditTopic>(action_ptr);
       auto old_topic_info = ForumTopicInfo(action->prev_topic_);
       auto new_topic_info = ForumTopicInfo(action->new_topic_);
-      if (old_topic_info.is_empty() || new_topic_info.is_empty()) {
+      if (old_topic_info.is_empty() || new_topic_info.is_empty() ||
+          old_topic_info.get_thread_id() != new_topic_info.get_thread_id()) {
+        LOG(ERROR) << "Receive " << to_string(action);
         return nullptr;
       }
       if (old_topic_info.is_closed() != new_topic_info.is_closed()) {
