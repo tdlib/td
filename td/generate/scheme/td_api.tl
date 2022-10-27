@@ -5294,9 +5294,18 @@ editMessageSchedulingState chat_id:int53 message_id:int53 scheduling_state:Messa
 //@description Returns list of custom emojis, which can be used as forum topic icon by all users
 getForumTopicDefaultIcons = Stickers;
 
-//@description Creates a topic in a forum supergroup chat; requires can_manage_topics rights in the supergroup @chat_id Identifier of the chat @title Title of the topic
+//@description Creates a topic in a forum supergroup chat; requires can_manage_topics rights in the supergroup
+//@chat_id Identifier of the chat
+//@title Title of the topic
 //@icon Icon of the topic. Icon color must be one of 0x6FB9F0, 0xFFD67E, 0xCB86DB, 0x8EEE98, 0xFF93B2, or 0xFB6F5F. Telegram Premium users can use any custom emoji as topic icon, other users can use only a custom emoji returned by getForumTopicDefaultIcons
 createForumTopic chat_id:int53 title:string icon:forumTopicIcon = ForumTopicInfo;
+
+//@description Edits title and icon of a topic in a forum supergroup chat; requires can_manage_topics administrator rights in the supergroup
+//@chat_id Identifier of the chat
+//@message_thread_id Message thread identifier of the forum topic
+//@title New title of the topic
+//@icon_custom_emoji_id Identifier of the new custom emoji for topic icon. Telegram Premium users can use any custom emoji, other users can use only a custom emoji returned by getForumTopicDefaultIcons
+editForumTopic chat_id:int53 message_thread_id:int53 title:string icon_custom_emoji_id:int64 = Ok;
 
 
 //@description Returns information about a emoji reaction. Returns a 404 error if the reaction is not found @emoji Text representation of the reaction

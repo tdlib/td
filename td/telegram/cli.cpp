@@ -3863,6 +3863,14 @@ class CliClient final : public Actor {
       get_args(args, chat_id, title, icon_color);
       send_request(td_api::make_object<td_api::createForumTopic>(
           chat_id, title, td_api::make_object<td_api::forumTopicIcon>(icon_color, 0)));
+    } else if (op == "eft") {
+      ChatId chat_id;
+      MessageThreadId message_thread_id;
+      string title;
+      int64 icon_custom_emoji_id;
+      get_args(args, chat_id, message_thread_id, title, icon_custom_emoji_id);
+      send_request(
+          td_api::make_object<td_api::editForumTopic>(chat_id, message_thread_id, title, icon_custom_emoji_id));
     } else if (op == "gallm") {
       send_request(td_api::make_object<td_api::getActiveLiveLocationMessages>());
     } else if (op == "sbsm") {

@@ -6,6 +6,7 @@
 //
 #pragma once
 
+#include "td/telegram/CustomEmojiId.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/ForumTopicInfo.h"
 #include "td/telegram/td_api.h"
@@ -34,6 +35,9 @@ class ForumTopicManager final : public Actor {
 
   void on_forum_topic_created(DialogId dialog_id, unique_ptr<ForumTopicInfo> &&forum_topic_info,
                               Promise<td_api::object_ptr<td_api::forumTopicInfo>> &&promise);
+
+  void edit_forum_topic(DialogId dialog_id, MessageId top_thread_message_id, string &&title,
+                        CustomEmojiId icon_custom_emoji_id, Promise<Unit> &&promise);
 
  private:
   static constexpr size_t MAX_FORUM_TOPIC_TITLE_LENGTH = 128;  // server side limit for forum topic title
