@@ -5458,7 +5458,7 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
     }
     case MessageContentType::TopicEdit: {
       const auto *m = static_cast<const MessageTopicEdit *>(content);
-      return td_api::make_object<td_api::messageForumTopicEdited>(m->edited_data.get_forum_topic_edited_data_object());
+      return m->edited_data.get_message_content_object();
     }
     default:
       UNREACHABLE();

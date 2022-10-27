@@ -1304,14 +1304,6 @@ webAppInfo launch_id:int64 url:string = WebAppInfo;
 messageThreadInfo chat_id:int53 message_thread_id:int53 reply_info:messageReplyInfo unread_message_count:int32 messages:vector<message> draft_message:draftMessage = MessageThreadInfo;
 
 
-//@description Describes changed data about a forum topic
-//@title If non-empty, the new title of the topic
-//@edit_icon_custom_emoji_id True, if icon's custom_emoji_id is changed
-//@icon_custom_emoji_id New unique identifier of the custom emoji shown on the topic icon; 0 if none. Ignored if edit_icon_custom_emoji_id is false
-//@edit_is_closed True, if the topic is reopened or closed
-//@is_closed True, if the topic is closed; false if it is reopened. Ignored if edit_is_closed is false
-forumTopicEditedData title:string edit_icon_custom_emoji_id:Bool icon_custom_emoji_id:int64 edit_is_closed:Bool is_closed:Bool = ForumTopicEditedData;
-
 //@description Describes a forum topic icon @color Color of the topic icon in RGB format @custom_emoji_id Unique identifier of the custom emoji shown on the topic icon; 0 if none
 forumTopicIcon color:int32 custom_emoji_id:int64 = ForumTopicIcon;
 
@@ -2103,8 +2095,11 @@ messageChatSetTtl ttl:int32 = MessageContent;
 //@description A forum topic has been created @title Title of the topic @icon Icon of the topic
 messageForumTopicCreated title:string icon:forumTopicIcon = MessageContent;
 
-//@description A forum topic has been edited @edited_data Information about edited topic data
-messageForumTopicEdited edited_data:forumTopicEditedData = MessageContent;
+//@description A forum topic has been edited @title If non-empty, the new title of the topic @edit_icon_custom_emoji_id True, if icon's custom_emoji_id is changed @icon_custom_emoji_id New unique identifier of the custom emoji shown on the topic icon; 0 if none. Must be ignored if edit_icon_custom_emoji_id is false
+messageForumTopicEdited title:string edit_icon_custom_emoji_id:Bool icon_custom_emoji_id:int64 = MessageContent;
+
+//@description A forum topic has been closed or opened @is_closed True if the topic was closed or reopened
+messageForumTopicIsClosedToggled is_closed:Bool = MessageContent;
 
 //@description A non-standard action has happened in the chat @text Message text to be shown in the chat
 messageCustomServiceAction text:string = MessageContent;
@@ -5310,7 +5305,7 @@ editForumTopic chat_id:int53 message_thread_id:int53 title:string icon_custom_em
 //@description Toggles is_closed state of a topic in a forum supergroup chat; requires can_manage_topics administrator rights in the supergroup unless the user is creator of the topic
 //@chat_id Identifier of the chat
 //@message_thread_id Message thread identifier of the forum topic
-//@is_closed Pass true to close the topic; pass false to open it
+//@is_closed Pass true to close the topic; pass false to reopen it
 toggleForumTopicIsClosed chat_id:int53 message_thread_id:int53 is_closed:Bool = Ok;
 
 

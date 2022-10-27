@@ -8,9 +8,12 @@
 
 namespace td {
 
-td_api::object_ptr<td_api::forumTopicEditedData> ForumTopicEditedData::get_forum_topic_edited_data_object() const {
-  return td_api::make_object<td_api::forumTopicEditedData>(title_, edit_icon_custom_emoji_id_,
-                                                           icon_custom_emoji_id_.get(), edit_is_closed_, is_closed_);
+td_api::object_ptr<td_api::MessageContent> ForumTopicEditedData::get_message_content_object() const {
+  if (edit_is_closed_) {
+    return td_api::make_object<td_api::messageForumTopicIsClosedToggled>(is_closed_);
+  }
+  return td_api::make_object<td_api::messageForumTopicEdited>(title_, edit_icon_custom_emoji_id_,
+                                                              icon_custom_emoji_id_.get());
 }
 
 bool operator==(const ForumTopicEditedData &lhs, const ForumTopicEditedData &rhs) {
