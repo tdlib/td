@@ -107,7 +107,9 @@ class CreateForumTopicQuery final : public Td::ResultHandler {
 ForumTopicManager::ForumTopicManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
 }
 
-ForumTopicManager::~ForumTopicManager() = default;
+ForumTopicManager::~ForumTopicManager() {
+  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), dialog_topics_);
+}
 
 void ForumTopicManager::tear_down() {
   parent_.reset();
