@@ -5307,6 +5307,12 @@ createForumTopic chat_id:int53 title:string icon:forumTopicIcon = ForumTopicInfo
 //@icon_custom_emoji_id Identifier of the new custom emoji for topic icon. Telegram Premium users can use any custom emoji, other users can use only a custom emoji returned by getForumTopicDefaultIcons
 editForumTopic chat_id:int53 message_thread_id:int53 title:string icon_custom_emoji_id:int64 = Ok;
 
+//@description Toggles is_closed state of a topic in a forum supergroup chat; requires can_manage_topics administrator rights in the supergroup
+//@chat_id Identifier of the chat
+//@message_thread_id Message thread identifier of the forum topic
+//@is_closed Pass true to close the topic; pass false to open it
+toggleForumTopicIsClosed chat_id:int53 message_thread_id:int53 is_closed:Bool = Ok;
+
 
 //@description Returns information about a emoji reaction. Returns a 404 error if the reaction is not found @emoji Text representation of the reaction
 getEmojiReaction emoji:string = EmojiReaction;

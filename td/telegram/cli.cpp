@@ -3871,6 +3871,12 @@ class CliClient final : public Actor {
       get_args(args, chat_id, message_thread_id, title, icon_custom_emoji_id);
       send_request(
           td_api::make_object<td_api::editForumTopic>(chat_id, message_thread_id, title, icon_custom_emoji_id));
+    } else if (op == "tftic") {
+      ChatId chat_id;
+      MessageThreadId message_thread_id;
+      bool is_closed;
+      get_args(args, chat_id, message_thread_id, is_closed);
+      send_request(td_api::make_object<td_api::toggleForumTopicIsClosed>(chat_id, message_thread_id, is_closed));
     } else if (op == "gallm") {
       send_request(td_api::make_object<td_api::getActiveLiveLocationMessages>());
     } else if (op == "sbsm") {

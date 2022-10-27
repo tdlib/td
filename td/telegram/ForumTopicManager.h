@@ -39,6 +39,9 @@ class ForumTopicManager final : public Actor {
   void edit_forum_topic(DialogId dialog_id, MessageId top_thread_message_id, string &&title,
                         CustomEmojiId icon_custom_emoji_id, Promise<Unit> &&promise);
 
+  void toggle_forum_topic_is_closed(DialogId dialog_id, MessageId top_thread_message_id, bool is_closed,
+                                    Promise<Unit> &&promise);
+
  private:
   static constexpr size_t MAX_FORUM_TOPIC_TITLE_LENGTH = 128;  // server side limit for forum topic title
 
