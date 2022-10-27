@@ -5907,7 +5907,7 @@ void StickersManager::get_default_emoji_statuses(bool is_recursive,
       LOG(ERROR) << "Ignore wrong sticker " << sticker_id;
       continue;
     }
-    statuses.emplace_back(td_api::make_object<td_api::emojiStatus>(custom_emoji_id.get()));
+    statuses.push_back(td_api::make_object<td_api::emojiStatus>(custom_emoji_id.get()));
     if (statuses.size() >= 8) {
       break;
     }

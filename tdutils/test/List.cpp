@@ -63,7 +63,7 @@ static void do_run_list_test(ListRootT &root, std::atomic<td::uint64> &id) {
     if (nodes.size() >= 20) {
       return;
     }
-    nodes.emplace_back(NodeT({next_id(), false}));
+    nodes.push_back(NodeT({next_id(), false}));
   };
   auto pop_node = [&] {
     if (nodes.empty()) {

@@ -138,7 +138,7 @@ static void measure(td::StringBuilder &sb, td::Slice name, td::Slice key_name, t
       ht.emplace(key_generator.next(), value_generator.next());
       update();
       if ((i + 1) % p == 0) {
-        stat.emplace_back(Stat{pi, min_ratio, max_ratio});
+        stat.push_back(Stat{pi, min_ratio, max_ratio});
         reset();
         pi++;
         p *= 10;

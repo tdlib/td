@@ -638,7 +638,7 @@ Status HttpReader::parse_json_parameters(MutableSlice parameters) {
     if (!parser.empty()) {
       return Status::Error(400, "Bad Request: extra data after string");
     }
-    query_->container_.emplace_back(BufferSlice("content"));
+    query_->container_.emplace_back("content");
     query_->args_.emplace_back(query_->container_.back().as_slice(), r_value.move_as_ok());
     return Status::OK();
   }
