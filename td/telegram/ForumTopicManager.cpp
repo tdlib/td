@@ -7,6 +7,7 @@
 #include "td/telegram/ForumTopicManager.h"
 
 #include "td/telegram/AccessRights.h"
+#include "td/telegram/AuthManager.h"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/CustomEmojiId.h"
 #include "td/telegram/Global.h"
@@ -142,6 +143,9 @@ class EditForumTopicQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
+    if (status.message() == "TOPIC_NOT_MODIFIED" && !td_->auth_manager_->is_bot()) {
+      return promise_.set_value(Unit());
+    }
     td_->contacts_manager_->on_get_channel_error(channel_id_, status, "EditForumTopicQuery");
     promise_.set_error(std::move(status));
   }
