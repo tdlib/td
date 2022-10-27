@@ -3637,9 +3637,11 @@ class CliClient final : public Actor {
       UserId bot_user_id;
       string url;
       MessageId reply_to_message_id;
-      get_args(args, chat_id, bot_user_id, url, reply_to_message_id);
+      string message_thread_id;
+      get_args(args, chat_id, bot_user_id, url, reply_to_message_id, message_thread_id);
       send_request(td_api::make_object<td_api::openWebApp>(chat_id, bot_user_id, url, as_theme_parameters(), "android",
-                                                           reply_to_message_id));
+                                                           reply_to_message_id,
+                                                           as_message_thread_id(message_thread_id)));
     } else if (op == "cwa") {
       int64 launch_id;
       get_args(args, launch_id);

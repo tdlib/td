@@ -32,12 +32,13 @@ class AttachMenuManager final : public Actor {
 
   void init();
 
-  void request_web_view(DialogId dialog_id, UserId bot_user_id, MessageId reply_to_message_id, string &&url,
+  void request_web_view(DialogId dialog_id, UserId bot_user_id, MessageId top_thread_message_id,
+                        MessageId reply_to_message_id, string &&url,
                         td_api::object_ptr<td_api::themeParameters> &&theme, string &&platform,
                         Promise<td_api::object_ptr<td_api::webAppInfo>> &&promise);
 
-  void open_web_view(int64 query_id, DialogId dialog_id, UserId bot_user_id, MessageId reply_to_message_id,
-                     DialogId as_dialog_id);
+  void open_web_view(int64 query_id, DialogId dialog_id, UserId bot_user_id, MessageId top_thread_message_id,
+                     MessageId reply_to_message_id, DialogId as_dialog_id);
 
   void close_web_view(int64 query_id, Promise<Unit> &&promise);
 
@@ -154,6 +155,7 @@ class AttachMenuManager final : public Actor {
   struct OpenedWebView {
     DialogId dialog_id_;
     UserId bot_user_id_;
+    MessageId top_thread_message_id_;
     MessageId reply_to_message_id_;
     DialogId as_dialog_id_;
   };

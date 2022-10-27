@@ -39,6 +39,7 @@ class RequestWebViewQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::webAppInfo>> promise_;
   DialogId dialog_id_;
   UserId bot_user_id_;
+  MessageId top_thread_message_id_;
   MessageId reply_to_message_id_;
   DialogId as_dialog_id_;
   bool from_attach_menu_ = false;
@@ -49,8 +50,8 @@ class RequestWebViewQuery final : public Td::ResultHandler {
   }
 
   void send(DialogId dialog_id, UserId bot_user_id, tl_object_ptr<telegram_api::InputUser> &&input_user, string &&url,
-            td_api::object_ptr<td_api::themeParameters> &&theme, string &&platform, MessageId reply_to_message_id,
-            bool silent, DialogId as_dialog_id) {
+            td_api::object_ptr<td_api::themeParameters> &&theme, string &&platform, MessageId top_thread_message_id,
+            MessageId reply_to_message_id, bool silent, DialogId as_dialog_id) {
     dialog_id_ = dialog_id;
     bot_user_id_ = bot_user_id;
     reply_to_message_id_ = reply_to_message_id;
@@ -86,6 +87,10 @@ class RequestWebViewQuery final : public Td::ResultHandler {
       flags |= telegram_api::messages_requestWebView::THEME_PARAMS_MASK;
     }
 
+    if (top_thread_message_id.is_valid()) {
+      flags |= telegram_api::messages_requestWebView::TOP_MSG_ID_MASK;
+    }
+
     if (reply_to_message_id.is_valid()) {
       flags |= telegram_api::messages_requestWebView::REPLY_TO_MSG_ID_MASK;
     }
@@ -104,8 +109,8 @@ class RequestWebViewQuery final : public Td::ResultHandler {
 
     send_query(G()->net_query_creator().create(telegram_api::messages_requestWebView(
         flags, false /*ignored*/, false /*ignored*/, std::move(input_peer), std::move(input_user), url, start_parameter,
-        std::move(theme_parameters), platform, reply_to_message_id.get_server_message_id().get(), 0,
-        std::move(as_input_peer))));
+        std::move(theme_parameters), platform, reply_to_message_id.get_server_message_id().get(),
+        top_thread_message_id.get_server_message_id().get(), std::move(as_input_peer))));
   }
 
   void on_result(BufferSlice packet) final {
@@ -115,8 +120,8 @@ class RequestWebViewQuery final : public Td::ResultHandler {
     }
 
     auto ptr = result_ptr.move_as_ok();
-    td_->attach_menu_manager_->open_web_view(ptr->query_id_, dialog_id_, bot_user_id_, reply_to_message_id_,
-                                             as_dialog_id_);
+    td_->attach_menu_manager_->open_web_view(ptr->query_id_, dialog_id_, bot_user_id_, top_thread_message_id_,
+                                             reply_to_message_id_, as_dialog_id_);
     promise_.set_value(td_api::make_object<td_api::webAppInfo>(ptr->query_id_, ptr->url_));
   }
 
@@ -134,8 +139,8 @@ class ProlongWebViewQuery final : public Td::ResultHandler {
   DialogId dialog_id_;
 
  public:
-  void send(DialogId dialog_id, UserId bot_user_id, int64 query_id, MessageId reply_to_message_id, bool silent,
-            DialogId as_dialog_id) {
+  void send(DialogId dialog_id, UserId bot_user_id, int64 query_id, MessageId top_thread_message_id,
+            MessageId reply_to_message_id, bool silent, DialogId as_dialog_id) {
     dialog_id_ = dialog_id;
 
     auto input_peer = td_->messages_manager_->get_input_peer(dialog_id, AccessRights::Write);
@@ -147,6 +152,10 @@ class ProlongWebViewQuery final : public Td::ResultHandler {
     int32 flags = 0;
     if (reply_to_message_id.is_valid()) {
       flags |= telegram_api::messages_prolongWebView::REPLY_TO_MSG_ID_MASK;
+    }
+
+    if (top_thread_message_id.is_valid()) {
+      flags |= telegram_api::messages_prolongWebView::TOP_MSG_ID_MASK;
     }
 
     if (silent) {
@@ -163,7 +172,8 @@ class ProlongWebViewQuery final : public Td::ResultHandler {
 
     send_query(G()->net_query_creator().create(telegram_api::messages_prolongWebView(
         flags, false /*ignored*/, std::move(input_peer), r_input_user.move_as_ok(), query_id,
-        reply_to_message_id.get_server_message_id().get(), 0, std::move(as_input_peer))));
+        reply_to_message_id.get_server_message_id().get(), top_thread_message_id.get_server_message_id().get(),
+        std::move(as_input_peer))));
   }
 
   void on_result(BufferSlice packet) final {
@@ -585,9 +595,9 @@ void AttachMenuManager::ping_web_view() {
   for (const auto &it : opened_web_views_) {
     const auto &opened_web_view = it.second;
     bool silent = td_->messages_manager_->get_dialog_silent_send_message(opened_web_view.dialog_id_);
-    td_->create_handler<ProlongWebViewQuery>()->send(opened_web_view.dialog_id_, opened_web_view.bot_user_id_, it.first,
-                                                     opened_web_view.reply_to_message_id_, silent,
-                                                     opened_web_view.as_dialog_id_);
+    td_->create_handler<ProlongWebViewQuery>()->send(
+        opened_web_view.dialog_id_, opened_web_view.bot_user_id_, it.first, opened_web_view.top_thread_message_id_,
+        opened_web_view.reply_to_message_id_, silent, opened_web_view.as_dialog_id_);
   }
 
   schedule_ping_web_view();
@@ -599,9 +609,10 @@ void AttachMenuManager::schedule_ping_web_view() {
   ping_web_view_timeout_.set_timeout_in(PING_WEB_VIEW_TIMEOUT);
 }
 
-void AttachMenuManager::request_web_view(DialogId dialog_id, UserId bot_user_id, MessageId reply_to_message_id,
-                                         string &&url, td_api::object_ptr<td_api::themeParameters> &&theme,
-                                         string &&platform, Promise<td_api::object_ptr<td_api::webAppInfo>> &&promise) {
+void AttachMenuManager::request_web_view(DialogId dialog_id, UserId bot_user_id, MessageId top_thread_message_id,
+                                         MessageId reply_to_message_id, string &&url,
+                                         td_api::object_ptr<td_api::themeParameters> &&theme, string &&platform,
+                                         Promise<td_api::object_ptr<td_api::webAppInfo>> &&promise) {
   TRY_STATUS_PROMISE(promise, td_->contacts_manager_->get_bot_data(bot_user_id));
   TRY_RESULT_PROMISE(promise, input_user, td_->contacts_manager_->get_input_user(bot_user_id));
 
@@ -630,17 +641,23 @@ void AttachMenuManager::request_web_view(DialogId dialog_id, UserId bot_user_id,
       !td_->messages_manager_->have_message_force({dialog_id, reply_to_message_id}, "request_web_view")) {
     reply_to_message_id = MessageId();
   }
+  if (!top_thread_message_id.is_valid() || !top_thread_message_id.is_server() ||
+      dialog_id.get_type() != DialogType::Channel ||
+      !td_->contacts_manager_->is_megagroup_channel(dialog_id.get_channel_id())) {
+    top_thread_message_id = MessageId();
+  }
 
   bool silent = td_->messages_manager_->get_dialog_silent_send_message(dialog_id);
   DialogId as_dialog_id = td_->messages_manager_->get_dialog_default_send_message_as_dialog_id(dialog_id);
 
   td_->create_handler<RequestWebViewQuery>(std::move(promise))
       ->send(dialog_id, bot_user_id, std::move(input_user), std::move(url), std::move(theme), std::move(platform),
-             reply_to_message_id, silent, as_dialog_id);
+             top_thread_message_id, reply_to_message_id, silent, as_dialog_id);
 }
 
 void AttachMenuManager::open_web_view(int64 query_id, DialogId dialog_id, UserId bot_user_id,
-                                      MessageId reply_to_message_id, DialogId as_dialog_id) {
+                                      MessageId top_thread_message_id, MessageId reply_to_message_id,
+                                      DialogId as_dialog_id) {
   if (query_id == 0) {
     LOG(ERROR) << "Receive Web App query identifier == 0";
     return;
@@ -652,6 +669,7 @@ void AttachMenuManager::open_web_view(int64 query_id, DialogId dialog_id, UserId
   OpenedWebView opened_web_view;
   opened_web_view.dialog_id_ = dialog_id;
   opened_web_view.bot_user_id_ = bot_user_id;
+  opened_web_view.top_thread_message_id_ = top_thread_message_id;
   opened_web_view.reply_to_message_id_ = reply_to_message_id;
   opened_web_view.as_dialog_id_ = as_dialog_id;
   opened_web_views_.emplace(query_id, std::move(opened_web_view));
