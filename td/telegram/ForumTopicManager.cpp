@@ -212,17 +212,8 @@ void ForumTopicManager::on_forum_topic_created(DialogId dialog_id, unique_ptr<Fo
                                                Promise<td_api::object_ptr<td_api::forumTopicInfo>> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
 
-  MessageId top_thread_message_id = forum_topic_info->get_thread_id();
-  auto topic_info = get_topic_info(dialog_id, top_thread_message_id);
-  if (topic_info == nullptr) {
-    if (dialog_topics_.get_pointer(dialog_id) == nullptr) {
-      dialog_topics_.set(dialog_id, make_unique<DialogTopics>());
-    }
-    dialog_topics_.get_pointer(dialog_id)->topic_infos_.set(top_thread_message_id, std::move(forum_topic_info));
-    topic_info = get_topic_info(dialog_id, top_thread_message_id);
-    CHECK(topic_info != nullptr);
-  }
-
+  auto topic_info = add_topic_info(dialog_id, std::move(forum_topic_info));
+  CHECK(topic_info != nullptr);
   promise.set_value(topic_info->get_forum_topic_info_object(td_));
 }
 
@@ -288,6 +279,25 @@ Status ForumTopicManager::is_forum(DialogId dialog_id) {
     return Status::Error(400, "The chat is not a forum");
   }
   return Status::OK();
+}
+
+ForumTopicInfo *ForumTopicManager::add_topic_info(DialogId dialog_id, unique_ptr<ForumTopicInfo> &&forum_topic_info) {
+  CHECK(forum_topic_info != nullptr);
+  auto *dialog_info = dialog_topics_.get_pointer(dialog_id);
+  if (dialog_info == nullptr) {
+    dialog_topics_.set(dialog_id, make_unique<DialogTopics>());
+    dialog_info = dialog_topics_.get_pointer(dialog_id);
+    CHECK(dialog_info != nullptr);
+  }
+
+  MessageId top_thread_message_id = forum_topic_info->get_thread_id();
+  auto topic_info = dialog_info->topic_infos_.get_pointer(top_thread_message_id);
+  if (topic_info == nullptr) {
+    dialog_info->topic_infos_.set(top_thread_message_id, std::move(forum_topic_info));
+    topic_info = get_topic_info(dialog_id, top_thread_message_id);
+    CHECK(topic_info != nullptr);
+  }
+  return topic_info;
 }
 
 ForumTopicInfo *ForumTopicManager::get_topic_info(DialogId dialog_id, MessageId top_thread_message_id) {

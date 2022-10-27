@@ -57,6 +57,8 @@ class ForumTopicManager final : public Actor {
 
   Status is_forum(DialogId dialog_id);
 
+  ForumTopicInfo *add_topic_info(DialogId dialog_id, unique_ptr<ForumTopicInfo> &&forum_topic_info);
+
   ForumTopicInfo *get_topic_info(DialogId dialog_id, MessageId top_thread_message_id);
 
   const ForumTopicInfo *get_topic_info(DialogId dialog_id, MessageId top_thread_message_id) const;
