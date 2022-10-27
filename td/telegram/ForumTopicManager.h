@@ -14,6 +14,7 @@
 
 #include "td/utils/common.h"
 #include "td/utils/Promise.h"
+#include "td/utils/WaitFreeHashMap.h"
 
 namespace td {
 
@@ -31,18 +32,28 @@ class ForumTopicManager final : public Actor {
   void create_forum_topic(DialogId dialog_id, string &&title, td_api::object_ptr<td_api::forumTopicIcon> &&icon,
                           Promise<td_api::object_ptr<td_api::forumTopicInfo>> &&promise);
 
-  void on_forum_topic_created(ForumTopicInfo &&forum_topic_info,
+  void on_forum_topic_created(DialogId dialog_id, unique_ptr<ForumTopicInfo> &&forum_topic_info,
                               Promise<td_api::object_ptr<td_api::forumTopicInfo>> &&promise);
 
  private:
   static constexpr size_t MAX_FORUM_TOPIC_TITLE_LENGTH = 128;  // server side limit for forum topic title
 
+  struct DialogTopics {
+    WaitFreeHashMap<MessageId, unique_ptr<ForumTopicInfo>, MessageIdHash> topic_infos_;
+  };
+
   void tear_down() final;
 
   Status is_forum(DialogId dialog_id);
 
+  ForumTopicInfo *get_topic_info(DialogId dialog_id, MessageId top_thread_message_id);
+
+  const ForumTopicInfo *get_topic_info(DialogId dialog_id, MessageId top_thread_message_id) const;
+
   Td *td_;
   ActorShared<> parent_;
+
+  WaitFreeHashMap<DialogId, unique_ptr<DialogTopics>, DialogIdHash> dialog_topics_;
 };
 
 }  // namespace td

@@ -85,13 +85,15 @@ class CreateForumTopicQuery final : public Td::ResultHandler {
     }
 
     auto action = static_cast<const telegram_api::messageActionTopicCreate *>(service_message->action_.get());
-    ForumTopicInfo forum_topic_info(MessageId(ServerMessageId(service_message->id_)), action->title_,
-                                    ForumTopicIcon(action->icon_color_, action->icon_emoji_id_), service_message->date_,
-                                    creator_dialog_id_, true, false);
+    auto forum_topic_info =
+        td::make_unique<ForumTopicInfo>(MessageId(ServerMessageId(service_message->id_)), action->title_,
+                                        ForumTopicIcon(action->icon_color_, action->icon_emoji_id_),
+                                        service_message->date_, creator_dialog_id_, true, false);
     td_->updates_manager_->on_get_updates(
-        std::move(ptr), PromiseCreator::lambda([forum_topic_info = std::move(forum_topic_info),
-                                                promise = std::move(promise_)](Unit result) mutable {
-          send_closure(G()->forum_topic_manager(), &ForumTopicManager::on_forum_topic_created,
+        std::move(ptr),
+        PromiseCreator::lambda([dialog_id = DialogId(channel_id_), forum_topic_info = std::move(forum_topic_info),
+                                promise = std::move(promise_)](Unit result) mutable {
+          send_closure(G()->forum_topic_manager(), &ForumTopicManager::on_forum_topic_created, dialog_id,
                        std::move(forum_topic_info), std::move(promise));
         }));
   }
@@ -142,11 +144,22 @@ void ForumTopicManager::create_forum_topic(DialogId dialog_id, string &&title,
       ->send(channel_id, new_title, icon_color, icon_custom_emoji_id, as_dialog_id);
 }
 
-void ForumTopicManager::on_forum_topic_created(ForumTopicInfo &&forum_topic_info,
+void ForumTopicManager::on_forum_topic_created(DialogId dialog_id, unique_ptr<ForumTopicInfo> &&forum_topic_info,
                                                Promise<td_api::object_ptr<td_api::forumTopicInfo>> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
 
-  promise.set_value(forum_topic_info.get_forum_topic_info_object(td_));
+  MessageId top_thread_message_id = forum_topic_info->get_thread_id();
+  auto topic_info = get_topic_info(dialog_id, top_thread_message_id);
+  if (topic_info == nullptr) {
+    if (dialog_topics_.get_pointer(dialog_id) == nullptr) {
+      dialog_topics_.set(dialog_id, make_unique<DialogTopics>());
+    }
+    dialog_topics_.get_pointer(dialog_id)->topic_infos_.set(top_thread_message_id, std::move(forum_topic_info));
+    topic_info = get_topic_info(dialog_id, top_thread_message_id);
+    CHECK(topic_info != nullptr);
+  }
+
+  promise.set_value(topic_info->get_forum_topic_info_object(td_));
 }
 
 Status ForumTopicManager::is_forum(DialogId dialog_id) {
@@ -158,6 +171,22 @@ Status ForumTopicManager::is_forum(DialogId dialog_id) {
     return Status::Error(400, "The chat is not a forum");
   }
   return Status::OK();
+}
+
+ForumTopicInfo *ForumTopicManager::get_topic_info(DialogId dialog_id, MessageId top_thread_message_id) {
+  auto *dialog_info = dialog_topics_.get_pointer(dialog_id);
+  if (dialog_info == nullptr) {
+    return nullptr;
+  }
+  return dialog_info->topic_infos_.get_pointer(top_thread_message_id);
+}
+
+const ForumTopicInfo *ForumTopicManager::get_topic_info(DialogId dialog_id, MessageId top_thread_message_id) const {
+  auto *dialog_info = dialog_topics_.get_pointer(dialog_id);
+  if (dialog_info == nullptr) {
+    return nullptr;
+  }
+  return dialog_info->topic_infos_.get_pointer(top_thread_message_id);
 }
 
 }  // namespace td
