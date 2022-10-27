@@ -3018,6 +3018,9 @@ chatEventForumTopicCreated topic_info:forumTopicInfo = ChatEventAction;
 //@description A forum topic was edited @old_topic_info Old information about the topic @new_topic_info New information about the topic
 chatEventForumTopicEdited old_topic_info:forumTopicInfo new_topic_info:forumTopicInfo = ChatEventAction;
 
+//@description A forum topic was closed or reopened @topic_info New information about the topic
+chatEventForumTopicToggleIsClosed topic_info:forumTopicInfo = ChatEventAction;
+
 //@description A forum topic was deleted @topic_info Information about the topic
 chatEventForumTopicDeleted topic_info:forumTopicInfo = ChatEventAction;
 
