@@ -1151,6 +1151,7 @@ class MessagesManager final : public Actor {
     string author_signature;
 
     bool is_channel_post = false;
+    bool is_topic_message = false;
     bool is_outgoing = false;
     bool is_failed_to_send = false;
     bool disable_notification = false;

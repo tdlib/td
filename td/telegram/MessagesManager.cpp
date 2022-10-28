@@ -4929,6 +4929,7 @@ void MessagesManager::Message::store(StorerT &storer) const {
     STORE_FLAG(has_reactions);
     STORE_FLAG(has_available_reactions_generation);
     STORE_FLAG(update_stickersets_order);
+    STORE_FLAG(is_topic_message);
     END_STORE_FLAGS();
   }
 
@@ -5171,6 +5172,7 @@ void MessagesManager::Message::parse(ParserT &parser) {
     PARSE_FLAG(has_reactions);
     PARSE_FLAG(has_available_reactions_generation);
     PARSE_FLAG(update_stickersets_order);
+    PARSE_FLAG(is_topic_message);
     END_PARSE_FLAGS();
   }
 
@@ -14706,6 +14708,7 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
   MessageId reply_to_message_id = message_info.reply_to_message_id;  // for secret messages
   DialogId reply_in_dialog_id;
   MessageId top_thread_message_id;
+  bool is_topic_message = false;
   if (message_info.reply_header != nullptr) {
     if (message_info.reply_header->reply_to_scheduled_) {
       reply_to_message_id = MessageId(ScheduledServerMessageId(message_info.reply_header->reply_to_msg_id_), date);
@@ -14736,10 +14739,10 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
           reply_in_dialog_id = DialogId();  // just in case
         }
       }
-      if (reply_to_message_id.is_valid() && !td_->auth_manager_->is_bot() && !message_id.is_scheduled() &&
-          !reply_in_dialog_id.is_valid()) {
+      if (reply_to_message_id.is_valid() && !message_id.is_scheduled() && !reply_in_dialog_id.is_valid()) {
         if ((message_info.reply_header->flags_ & telegram_api::messageReplyHeader::REPLY_TO_TOP_ID_MASK) != 0) {
           top_thread_message_id = MessageId(ServerMessageId(message_info.reply_header->reply_to_top_id_));
+          is_topic_message = message_info.reply_header->forum_topic_;
         } else if (!is_broadcast_channel(dialog_id)) {
           top_thread_message_id = reply_to_message_id;
         }
@@ -14748,6 +14751,10 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
   }
   fix_server_reply_to_message_id(dialog_id, message_id, reply_in_dialog_id, reply_to_message_id);
   fix_server_reply_to_message_id(dialog_id, message_id, reply_in_dialog_id, top_thread_message_id);
+  if (top_thread_message_id.is_valid()) {
+    // just in case
+    is_topic_message = false;
+  }
 
   UserId via_bot_user_id = message_info.via_bot_user_id;
   if (!via_bot_user_id.is_valid()) {
@@ -14816,6 +14823,7 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
     top_thread_message_id = message_id;
   }
   if (top_thread_message_id.is_valid() && dialog_type != DialogType::Channel) {
+    // just in case
     top_thread_message_id = MessageId();
   }
   auto reactions =
@@ -14847,6 +14855,7 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
   message->reply_to_message_id = reply_to_message_id;
   message->reply_in_dialog_id = reply_in_dialog_id;
   message->top_thread_message_id = top_thread_message_id;
+  message->is_topic_message = is_topic_message;
   message->via_bot_user_id = via_bot_user_id;
   message->restriction_reasons = std::move(message_info.restriction_reasons);
   message->author_signature = std::move(message_info.author_signature);
@@ -25362,9 +25371,9 @@ tl_object_ptr<td_api::message> MessagesManager::get_message_object(DialogId dial
       is_outgoing, is_pinned, can_be_edited, can_be_forwarded, can_be_saved, can_delete_for_self,
       can_delete_for_all_users, can_get_added_reactions, can_get_statistics, can_get_message_thread, can_get_viewers,
       can_get_media_timestamp_links, can_report_reactions, has_timestamped_media, m->is_channel_post,
-      contains_unread_mention, date, edit_date, std::move(forward_info), std::move(interaction_info),
-      std::move(unread_reactions), reply_in_dialog_id.get(), reply_to_message_id, top_thread_message_id, ttl,
-      ttl_expires_in, via_bot_user_id, m->author_signature, media_album_id,
+      m->is_topic_message, contains_unread_mention, date, edit_date, std::move(forward_info),
+      std::move(interaction_info), std::move(unread_reactions), reply_in_dialog_id.get(), reply_to_message_id,
+      top_thread_message_id, ttl, ttl_expires_in, via_bot_user_id, m->author_signature, media_album_id,
       get_restriction_reason_description(m->restriction_reasons), std::move(content), std::move(reply_markup));
 }
 
@@ -25498,10 +25507,18 @@ unique_ptr<MessagesManager::Message> MessagesManager::create_message_to_send(
   m->date = is_scheduled ? options.schedule_date : m->send_date;
   m->reply_to_message_id = reply_to_message_id;
   m->top_thread_message_id = top_thread_message_id;
-  if (reply_to_message_id.is_valid() && !reply_to_message_id.is_yet_unsent()) {
+  if (reply_to_message_id.is_valid()) {
     const Message *reply_m = get_message(d, reply_to_message_id);
     if (reply_m != nullptr && reply_m->top_thread_message_id.is_valid()) {
       m->top_thread_message_id = reply_m->top_thread_message_id;
+    }
+    if (reply_m != nullptr && m->top_thread_message_id.is_valid()) {
+      m->is_topic_message = reply_m->is_topic_message;
+    }
+  } else if (m->top_thread_message_id.is_valid()) {
+    const Message *top_m = get_message(d, m->top_thread_message_id);
+    if (top_m != nullptr) {
+      m->is_topic_message = top_m->is_topic_message;
     }
   }
   m->is_channel_post = is_channel_post;
@@ -25661,6 +25678,9 @@ MessageId MessagesManager::get_persistent_message_id(const Dialog *d, MessageId 
 MessageId MessagesManager::get_reply_to_message_id(Dialog *d, MessageId top_thread_message_id, MessageId message_id,
                                                    bool for_draft) {
   CHECK(d != nullptr);
+  if (top_thread_message_id.is_valid() && !have_message_force(d, top_thread_message_id, "get_reply_to_message_id 1")) {
+    LOG(INFO) << "Have reply to " << message_id << " in the thread of unknown " << top_thread_message_id;
+  }
   if (!message_id.is_valid()) {
     if (!for_draft && message_id == MessageId() && top_thread_message_id.is_valid() &&
         top_thread_message_id.is_server()) {
@@ -29602,6 +29622,9 @@ Result<MessageId> MessagesManager::add_local_message(
     const Message *reply_m = get_message(d, m->reply_to_message_id);
     if (reply_m != nullptr) {
       m->top_thread_message_id = reply_m->top_thread_message_id;
+      if (m->top_thread_message_id.is_valid()) {
+        m->is_topic_message = reply_m->is_topic_message;
+      }
     }
   }
   m->is_channel_post = is_channel_post;
@@ -36591,6 +36614,11 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
       << message_id << " in " << dialog_id << " has changed is_channel_post from " << old_message->is_channel_post
       << " to " << new_message->is_channel_post << ", message content type is " << old_content_type << '/'
       << new_content_type;
+  if (old_message->is_topic_message != new_message->is_topic_message) {
+    LOG_IF(ERROR, !message_id.is_yet_unsent())
+        << message_id << " in " << dialog_id << " has changed is_topic_message to " << new_message->is_topic_message;
+    old_message->is_topic_message = new_message->is_topic_message;
+  }
   if (old_message->contains_mention != new_message->contains_mention) {
     if (old_message->edit_date == 0 && is_new_available && old_content_type != MessageContentType::PinMessage &&
         old_content_type != MessageContentType::ExpiredPhoto && old_content_type != MessageContentType::ExpiredVideo &&
