@@ -18524,9 +18524,6 @@ Result<FullMessageId> MessagesManager::get_top_thread_full_message_id(DialogId d
     if (!m->top_thread_message_id.is_valid()) {
       return Status::Error(400, "Message has no thread");
     }
-    if (!m->message_id.is_server()) {
-      return Status::Error(400, "Message thread is unavailable for the message");
-    }
     return FullMessageId{dialog_id, m->top_thread_message_id};
   }
 }
@@ -18548,6 +18545,7 @@ void MessagesManager::get_message_thread(DialogId dialog_id, MessageId message_i
     return promise.set_error(Status::Error(400, "Scheduled messages can't have message threads"));
   }
 
+  message_id = get_persistent_message_id(d, message_id);
   auto m = get_message_force(d, message_id, "get_message_thread");
   if (m == nullptr) {
     return promise.set_error(Status::Error(400, "Message not found"));
@@ -22565,6 +22563,7 @@ std::pair<DialogId, vector<MessageId>> MessagesManager::get_message_thread_histo
 
   FullMessageId top_thread_full_message_id;
   {
+    message_id = get_persistent_message_id(d, message_id);
     Message *m = get_message_force(d, message_id, "get_message_thread_history 1");
     if (m == nullptr) {
       promise.set_error(Status::Error(400, "Message not found"));
