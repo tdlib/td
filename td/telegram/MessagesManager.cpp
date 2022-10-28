@@ -13367,6 +13367,7 @@ void MessagesManager::on_message_ttl_expired_impl(Dialog *d, Message *m) {
   m->max_reply_media_timestamp = -1;
   m->reply_in_dialog_id = DialogId();
   m->top_thread_message_id = MessageId();
+  m->is_topic_message = false;
   m->linked_top_thread_message_id = MessageId();
   m->is_content_secret = false;
 }
@@ -14898,6 +14899,7 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
     message->reply_to_random_id = 0;
     message->reply_in_dialog_id = DialogId();
     message->top_thread_message_id = MessageId();
+    message->is_topic_message = false;
     message->linked_top_thread_message_id = MessageId();
   }
 
@@ -24175,7 +24177,8 @@ void MessagesManager::get_dialog_message_position(FullMessageId full_message_id,
     if (dialog_id.get_type() != DialogType::Channel || is_broadcast_channel(dialog_id)) {
       return promise.set_error(Status::Error(400, "Can't filter by message thread identifier in the chat"));
     }
-    if (m->top_thread_message_id != top_thread_message_id || m->message_id == top_thread_message_id) {
+    if (m->top_thread_message_id != top_thread_message_id ||
+        (m->message_id == top_thread_message_id && !m->is_topic_message)) {
       return promise.set_error(Status::Error(400, "Message doesn't belong to the message thread"));
     }
   }
@@ -35006,6 +35009,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     }
   }
 
+  // uses is_visible_message_reply_info instead of is_active_message_reply_info to skip non-server messages
   if (!message->top_thread_message_id.is_valid() && !is_broadcast_channel(dialog_id) &&
       is_visible_message_reply_info(dialog_id, message.get()) && !message_id.is_scheduled()) {
     message->top_thread_message_id = message_id;
@@ -36616,10 +36620,14 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
       << message_id << " in " << dialog_id << " has changed is_channel_post from " << old_message->is_channel_post
       << " to " << new_message->is_channel_post << ", message content type is " << old_content_type << '/'
       << new_content_type;
+  if (!old_message->top_thread_message_id.is_valid()) {
+    new_message->is_topic_message = false;
+  }
   if (old_message->is_topic_message != new_message->is_topic_message) {
     LOG_IF(ERROR, !message_id.is_yet_unsent())
         << message_id << " in " << dialog_id << " has changed is_topic_message to " << new_message->is_topic_message;
     old_message->is_topic_message = new_message->is_topic_message;
+    need_send_update = true;
   }
   if (old_message->contains_mention != new_message->contains_mention) {
     if (old_message->edit_date == 0 && is_new_available && old_content_type != MessageContentType::PinMessage &&
@@ -36759,6 +36767,7 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
       update_message_contains_unread_mention(d, old_message, new_message->contains_unread_mention, "update_message")) {
     need_send_update = true;
   }
+  // update_message_interaction_info must be called after top_thread_message_id is updated
   if (update_message_interaction_info(d, old_message, new_message->view_count, new_message->forward_count, true,
                                       std::move(new_message->reply_info), true, std::move(new_message->reactions),
                                       "update_message")) {
