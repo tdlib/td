@@ -326,6 +326,9 @@ td_api::object_ptr<td_api::updateForumTopicInfo> ForumTopicManager::get_update_f
 }
 
 void ForumTopicManager::send_update_forum_topic_info(DialogId dialog_id, const ForumTopicInfo *topic_info) const {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
   send_closure(G()->td(), &Td::send_update, get_update_forum_topic_info(dialog_id, topic_info));
 }
 
