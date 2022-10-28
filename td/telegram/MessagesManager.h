@@ -2200,6 +2200,11 @@ class MessagesManager final : public Actor {
                                        bool has_reply_info, tl_object_ptr<telegram_api::messageReplies> &&reply_info,
                                        bool has_reactions, unique_ptr<MessageReactions> &&reactions);
 
+  bool is_thread_message(DialogId dialog_id, const Message *m) const;
+
+  bool is_thread_message(DialogId dialog_id, MessageId message_id, const MessageReplyInfo &info,
+                         MessageContentType content_type) const;
+
   bool is_active_message_reply_info(DialogId dialog_id, const MessageReplyInfo &info) const;
 
   bool is_visible_message_reply_info(DialogId dialog_id, const Message *m) const;

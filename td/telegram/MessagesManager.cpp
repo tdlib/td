@@ -7005,6 +7005,22 @@ void MessagesManager::update_message_interaction_info(FullMessageId full_message
   }
 }
 
+bool MessagesManager::is_thread_message(DialogId dialog_id, const Message *m) const {
+  CHECK(m != nullptr);
+  return is_thread_message(dialog_id, m->message_id, m->reply_info, m->content->get_type());
+}
+
+bool MessagesManager::is_thread_message(DialogId dialog_id, MessageId message_id, const MessageReplyInfo &info,
+                                        MessageContentType content_type) const {
+  if (dialog_id.get_type() != DialogType::Channel || is_broadcast_channel(dialog_id)) {
+    return false;
+  }
+  if (!message_id.is_valid() || !message_id.is_server()) {
+    return false;
+  }
+  return !info.is_empty() || content_type == MessageContentType::TopicCreate;
+}
+
 bool MessagesManager::is_active_message_reply_info(DialogId dialog_id, const MessageReplyInfo &info) const {
   if (info.is_empty()) {
     return false;
@@ -7205,8 +7221,7 @@ bool MessagesManager::update_message_interaction_info(Dialog *d, Message *m, int
         }
       }
       m->reply_info = std::move(reply_info);
-      if (!m->top_thread_message_id.is_valid() && !is_broadcast_channel(dialog_id) &&
-          is_visible_message_reply_info(dialog_id, m)) {
+      if (!m->top_thread_message_id.is_valid() && is_thread_message(dialog_id, m)) {
         m->top_thread_message_id = m->message_id;
       }
       need_update |= is_visible_message_reply_info(dialog_id, m);
@@ -14584,14 +14599,16 @@ MessagesManager::MessageInfo MessagesManager::parse_telegram_api_message(
       MessageId reply_to_message_id;
       if (message->reply_to_ != nullptr && !message->reply_to_->reply_to_scheduled_) {
         reply_to_message_id = MessageId(ServerMessageId(message->reply_to_->reply_to_msg_id_));
-        auto reply_to_peer_id = std::move(message->reply_to_->reply_to_peer_id_);
-        if (reply_to_peer_id != nullptr) {
-          reply_in_dialog_id = DialogId(reply_to_peer_id);
+        if (message->reply_to_->reply_to_peer_id_ != nullptr) {
+          reply_in_dialog_id = DialogId(message->reply_to_->reply_to_peer_id_);
           if (!reply_in_dialog_id.is_valid()) {
-            LOG(ERROR) << "Receive reply in invalid " << to_string(reply_to_peer_id);
+            LOG(ERROR) << "Receive reply in invalid " << to_string(message->reply_to_->reply_to_peer_id_);
             reply_to_message_id = MessageId();
             reply_in_dialog_id = DialogId();
           }
+        }
+        if (message->reply_to_->forum_topic_ || message->reply_to_->reply_to_top_id_ != 0) {
+          message_info.reply_header = std::move(message->reply_to_);
         }
       }
       message_info.content = get_action_message_content(td_, std::move(message->action_), message_info.dialog_id,
@@ -14745,19 +14762,15 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
       if (reply_to_message_id.is_valid() && !message_id.is_scheduled() && !reply_in_dialog_id.is_valid()) {
         if ((message_info.reply_header->flags_ & telegram_api::messageReplyHeader::REPLY_TO_TOP_ID_MASK) != 0) {
           top_thread_message_id = MessageId(ServerMessageId(message_info.reply_header->reply_to_top_id_));
-          is_topic_message = message_info.reply_header->forum_topic_;
         } else if (!is_broadcast_channel(dialog_id)) {
           top_thread_message_id = reply_to_message_id;
         }
+        is_topic_message = message_info.reply_header->forum_topic_;
       }
     }
   }
   fix_server_reply_to_message_id(dialog_id, message_id, reply_in_dialog_id, reply_to_message_id);
   fix_server_reply_to_message_id(dialog_id, message_id, reply_in_dialog_id, top_thread_message_id);
-  if (top_thread_message_id.is_valid()) {
-    // just in case
-    is_topic_message = false;
-  }
 
   UserId via_bot_user_id = message_info.via_bot_user_id;
   if (!via_bot_user_id.is_valid()) {
@@ -14821,13 +14834,17 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
     forward_count = 0;
   }
   MessageReplyInfo reply_info(td_, std::move(message_info.reply_info), td_->auth_manager_->is_bot());
-  if (!top_thread_message_id.is_valid() && !is_broadcast_channel(dialog_id) &&
-      is_active_message_reply_info(dialog_id, reply_info) && !message_id.is_scheduled()) {
+  if (!top_thread_message_id.is_valid() && is_thread_message(dialog_id, message_id, reply_info, content_type)) {
     top_thread_message_id = message_id;
+    is_topic_message = (content_type == MessageContentType::TopicCreate);
   }
   if (top_thread_message_id.is_valid() && dialog_type != DialogType::Channel) {
     // just in case
     top_thread_message_id = MessageId();
+  }
+  if (!top_thread_message_id.is_valid()) {
+    // just in case
+    is_topic_message = false;
   }
   auto reactions =
       MessageReactions::get_message_reactions(td_, std::move(message_info.reactions), td_->auth_manager_->is_bot());
@@ -35008,9 +35025,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     }
   }
 
-  // uses is_visible_message_reply_info instead of is_active_message_reply_info to skip non-server messages
-  if (!message->top_thread_message_id.is_valid() && !is_broadcast_channel(dialog_id) &&
-      is_visible_message_reply_info(dialog_id, message.get()) && !message_id.is_scheduled()) {
+  if (!message->top_thread_message_id.is_valid() && is_thread_message(dialog_id, message.get())) {
     message->top_thread_message_id = message_id;
   }
 
