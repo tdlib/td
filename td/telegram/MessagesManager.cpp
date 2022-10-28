@@ -7678,6 +7678,7 @@ void MessagesManager::on_dialog_action(DialogId dialog_id, MessageId top_thread_
   }
 
   if (is_canceled) {
+    // passed top_thread_message_id must be ignored
     auto actions_it = active_dialog_actions_.find(dialog_id);
     if (actions_it == active_dialog_actions_.end()) {
       return;
@@ -7751,7 +7752,8 @@ void MessagesManager::cancel_dialog_action(DialogId dialog_id, const Message *m)
     return;
   }
 
-  on_dialog_action(dialog_id, MessageId(), get_message_sender(m), DialogAction(), m->date, m->content->get_type());
+  on_dialog_action(dialog_id, MessageId() /*ignored*/, get_message_sender(m), DialogAction(), m->date,
+                   m->content->get_type());
 }
 
 void MessagesManager::add_postponed_channel_update(DialogId dialog_id, tl_object_ptr<telegram_api::Update> &&update,
