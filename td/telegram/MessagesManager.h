@@ -2202,10 +2202,10 @@ class MessagesManager final : public Actor {
 
   bool is_thread_message(DialogId dialog_id, const Message *m) const;
 
-  bool is_thread_message(DialogId dialog_id, MessageId message_id, const MessageReplyInfo &info,
+  bool is_thread_message(DialogId dialog_id, MessageId message_id, const MessageReplyInfo &reply_info,
                          MessageContentType content_type) const;
 
-  bool is_active_message_reply_info(DialogId dialog_id, const MessageReplyInfo &info) const;
+  bool is_active_message_reply_info(DialogId dialog_id, const MessageReplyInfo &reply_info) const;
 
   bool is_visible_message_reply_info(DialogId dialog_id, const Message *m) const;
 

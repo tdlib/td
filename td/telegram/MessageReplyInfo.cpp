@@ -19,11 +19,15 @@
 namespace td {
 
 MessageReplyInfo::MessageReplyInfo(Td *td, tl_object_ptr<telegram_api::messageReplies> &&reply_info, bool is_bot) {
-  if (reply_info == nullptr || is_bot || reply_info->channel_id_ == 777) {
+  if (reply_info == nullptr) {
     return;
   }
   if (reply_info->replies_ < 0) {
     LOG(ERROR) << "Receive wrong " << to_string(reply_info);
+    return;
+  }
+  if (is_bot || reply_info->channel_id_ == 777) {
+    is_dropped = true;
     return;
   }
   reply_count = reply_info->replies_;

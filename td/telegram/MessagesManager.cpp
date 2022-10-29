@@ -7010,7 +7010,7 @@ bool MessagesManager::is_thread_message(DialogId dialog_id, const Message *m) co
   return is_thread_message(dialog_id, m->message_id, m->reply_info, m->content->get_type());
 }
 
-bool MessagesManager::is_thread_message(DialogId dialog_id, MessageId message_id, const MessageReplyInfo &info,
+bool MessagesManager::is_thread_message(DialogId dialog_id, MessageId message_id, const MessageReplyInfo &reply_info,
                                         MessageContentType content_type) const {
   if (dialog_id.get_type() != DialogType::Channel || is_broadcast_channel(dialog_id)) {
     return false;
@@ -7018,18 +7018,18 @@ bool MessagesManager::is_thread_message(DialogId dialog_id, MessageId message_id
   if (!message_id.is_valid() || !message_id.is_server()) {
     return false;
   }
-  return !info.is_empty() || content_type == MessageContentType::TopicCreate;
+  return !reply_info.is_empty() || reply_info.was_dropped() || content_type == MessageContentType::TopicCreate;
 }
 
-bool MessagesManager::is_active_message_reply_info(DialogId dialog_id, const MessageReplyInfo &info) const {
-  if (info.is_empty()) {
+bool MessagesManager::is_active_message_reply_info(DialogId dialog_id, const MessageReplyInfo &reply_info) const {
+  if (reply_info.is_empty()) {
     return false;
   }
   if (dialog_id.get_type() != DialogType::Channel) {
     return false;
   }
 
-  if (!info.is_comment) {
+  if (!reply_info.is_comment) {
     return true;
   }
   if (!is_broadcast_channel(dialog_id)) {
@@ -7049,7 +7049,7 @@ bool MessagesManager::is_active_message_reply_info(DialogId dialog_id, const Mes
     return true;
   }
 
-  return linked_channel_id == info.channel_id;
+  return linked_channel_id == reply_info.channel_id;
 }
 
 bool MessagesManager::is_visible_message_reply_info(DialogId dialog_id, const Message *m) const {

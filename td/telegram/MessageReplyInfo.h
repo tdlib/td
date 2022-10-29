@@ -32,6 +32,7 @@ struct MessageReplyInfo {
   MessageId last_read_inbox_message_id;
   MessageId last_read_outbox_message_id;
   bool is_comment = false;
+  bool is_dropped = false;
 
   static constexpr size_t MAX_RECENT_REPLIERS = 3;
 
@@ -41,6 +42,10 @@ struct MessageReplyInfo {
 
   bool is_empty() const {
     return reply_count < 0;
+  }
+
+  bool was_dropped() const {
+    return is_dropped;
   }
 
   bool need_update_to(const MessageReplyInfo &other) const;
