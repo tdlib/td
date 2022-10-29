@@ -25824,19 +25824,30 @@ void MessagesManager::get_dialog_send_message_as_dialog_ids(
       } else {
         add_sender(get_my_dialog_id(), false);
       }
-      auto sorted_channel_ids = transform(created_public_broadcasts_, [&](ChannelId channel_id) {
-        auto participant_count = td_->contacts_manager_->get_channel_participant_count(channel_id);
-        return std::make_pair(-participant_count, channel_id.get());
-      });
-      std::sort(sorted_channel_ids.begin(), sorted_channel_ids.end());
+
+      struct Sender {
+        ChannelId channel_id;
+        bool needs_premium;
+      };
+      std::multimap<int64, Sender> sorted_senders;
 
       bool is_premium = td_->option_manager_->get_option_boolean("is_premium");
       auto linked_channel_id = td_->contacts_manager_->get_channel_linked_channel_id(dialog_id.get_channel_id());
-      for (auto sorted_channel_id : sorted_channel_ids) {
-        ChannelId channel_id(sorted_channel_id.second);
+      for (auto channel_id : created_public_broadcasts_) {
+        int64 score = td_->contacts_manager_->get_channel_participant_count(channel_id);
         bool needs_premium = !is_premium && channel_id != linked_channel_id &&
                              !td_->contacts_manager_->get_channel_is_verified(channel_id);
-        add_sender(DialogId(channel_id), needs_premium);
+        if (needs_premium) {
+          score -= static_cast<int64>(1) << 40;
+        }
+        if (channel_id == linked_channel_id) {
+          score += static_cast<int64>(1) << 32;
+        }
+        sorted_senders.emplace(-score, Sender{channel_id, needs_premium});
+      };
+
+      for (auto &sender : sorted_senders) {
+        add_sender(DialogId(sender.second.channel_id), sender.second.needs_premium);
       }
     }
     return promise.set_value(std::move(senders));
