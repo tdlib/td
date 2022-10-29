@@ -261,6 +261,25 @@ void ForumTopicManager::toggle_forum_topic_is_closed(DialogId dialog_id, Message
   td_->create_handler<EditForumTopicQuery>(std::move(promise))->send(channel_id, top_thread_message_id, is_closed);
 }
 
+void ForumTopicManager::delete_forum_topic(DialogId dialog_id, MessageId top_thread_message_id,
+                                           Promise<Unit> &&promise) {
+  TRY_STATUS_PROMISE(promise, is_forum(dialog_id));
+  auto channel_id = dialog_id.get_channel_id();
+
+  if (!top_thread_message_id.is_valid() || !top_thread_message_id.is_server()) {
+    return promise.set_error(Status::Error(400, "Invalid message thread identifier specified"));
+  }
+
+  if (!td_->contacts_manager_->get_channel_permissions(channel_id).can_delete_messages()) {
+    auto topic_info = get_topic_info(dialog_id, top_thread_message_id);
+    if (topic_info != nullptr && !topic_info->is_outgoing()) {
+      return promise.set_error(Status::Error(400, "Not enough rights to delete the topic"));
+    }
+  }
+
+  td_->messages_manager_->delete_topic_history(dialog_id, top_thread_message_id, std::move(promise));
+}
+
 void ForumTopicManager::on_forum_topic_edited(DialogId dialog_id, MessageId top_thread_message_id,
                                               const ForumTopicEditedData &edited_data) {
   auto topic_info = get_topic_info(dialog_id, top_thread_message_id);

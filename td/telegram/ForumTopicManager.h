@@ -43,6 +43,8 @@ class ForumTopicManager final : public Actor {
   void toggle_forum_topic_is_closed(DialogId dialog_id, MessageId top_thread_message_id, bool is_closed,
                                     Promise<Unit> &&promise);
 
+  void delete_forum_topic(DialogId dialog_id, MessageId top_thread_message_id, Promise<Unit> &&promise);
+
   void on_forum_topic_edited(DialogId dialog_id, MessageId top_thread_message_id,
                              const ForumTopicEditedData &edited_data);
 

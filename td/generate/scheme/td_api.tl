@@ -5315,6 +5315,11 @@ editForumTopic chat_id:int53 message_thread_id:int53 title:string icon_custom_em
 //@is_closed Pass true to close the topic; pass false to reopen it
 toggleForumTopicIsClosed chat_id:int53 message_thread_id:int53 is_closed:Bool = Ok;
 
+//@description Deletes all messages in a forum topic; requires can_delete_messages administrator rights in the supergroup unless the user is creator of the topic, the topic has no messages from other users and has at most 11 messages
+//@chat_id Identifier of the chat
+//@message_thread_id Message thread identifier of the forum topic
+deleteForumTopic chat_id:int53 message_thread_id:int53 = Ok;
+
 
 //@description Returns information about a emoji reaction. Returns a 404 error if the reaction is not found @emoji Text representation of the reaction
 getEmojiReaction emoji:string = EmojiReaction;

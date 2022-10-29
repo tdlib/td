@@ -3015,6 +3015,40 @@ class DeleteHistoryQuery final : public Td::ResultHandler {
   }
 };
 
+class DeleteTopicHistoryQuery final : public Td::ResultHandler {
+  Promise<AffectedHistory> promise_;
+  ChannelId channel_id_;
+
+ public:
+  explicit DeleteTopicHistoryQuery(Promise<AffectedHistory> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(DialogId dialog_id, MessageId top_thread_message_id) {
+    CHECK(dialog_id.get_type() == DialogType::Channel);
+    channel_id_ = dialog_id.get_channel_id();
+
+    auto input_channel = td_->contacts_manager_->get_input_channel(channel_id_);
+    CHECK(input_channel != nullptr);
+
+    send_query(G()->net_query_creator().create(telegram_api::channels_deleteTopicHistory(
+        std::move(input_channel), top_thread_message_id.get_server_message_id().get())));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::channels_deleteTopicHistory>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    promise_.set_value(AffectedHistory(result_ptr.move_as_ok()));
+  }
+
+  void on_error(Status status) final {
+    td_->contacts_manager_->on_get_channel_error(channel_id_, status, "DeleteTopicHistoryQuery");
+    promise_.set_error(std::move(status));
+  }
+};
+
 class DeleteChannelHistoryQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   ChannelId channel_id_;
@@ -11501,6 +11535,68 @@ void MessagesManager::delete_dialog_history_on_server(DialogId dialog_id, Messag
       UNREACHABLE();
       break;
   }
+}
+
+void MessagesManager::delete_topic_history(DialogId dialog_id, MessageId top_thread_message_id,
+                                           Promise<Unit> &&promise) {
+  Dialog *d = get_dialog_force(dialog_id, "delete_dialog_history");
+  if (d == nullptr) {
+    return promise.set_error(Status::Error(400, "Chat not found"));
+  }
+
+  if (!have_input_peer(dialog_id, AccessRights::Read)) {
+    return promise.set_error(Status::Error(400, "Chat info not found"));
+  }
+
+  // auto old_order = d->order;
+  // delete_all_dialog_topic_messages(d, top_thread_message_id);
+
+  delete_topic_history_on_server(dialog_id, top_thread_message_id, 0, std::move(promise));
+}
+
+class MessagesManager::DeleteTopicHistoryOnServerLogEvent {
+ public:
+  DialogId dialog_id_;
+  MessageId top_thread_message_id_;
+
+  template <class StorerT>
+  void store(StorerT &storer) const {
+    BEGIN_STORE_FLAGS();
+    END_STORE_FLAGS();
+    td::store(dialog_id_, storer);
+    td::store(top_thread_message_id_, storer);
+  }
+
+  template <class ParserT>
+  void parse(ParserT &parser) {
+    BEGIN_PARSE_FLAGS();
+    END_PARSE_FLAGS();
+    td::parse(dialog_id_, parser);
+    td::parse(top_thread_message_id_, parser);
+  }
+};
+
+uint64 MessagesManager::save_delete_topic_history_on_server_log_event(DialogId dialog_id,
+                                                                      MessageId top_thread_message_id) {
+  DeleteTopicHistoryOnServerLogEvent log_event{dialog_id, top_thread_message_id};
+  return binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::DeleteTopicHistoryOnServer,
+                    get_log_event_storer(log_event));
+}
+
+void MessagesManager::delete_topic_history_on_server(DialogId dialog_id, MessageId top_thread_message_id,
+                                                     uint64 log_event_id, Promise<Unit> &&promise) {
+  if (log_event_id == 0 && G()->parameters().use_message_db) {
+    log_event_id = save_delete_topic_history_on_server_log_event(dialog_id, top_thread_message_id);
+  }
+
+  auto new_promise = get_erase_log_event_promise(log_event_id, std::move(promise));
+  promise = std::move(new_promise);  // to prevent self-move
+
+  AffectedHistoryQuery query = [td = td_, top_thread_message_id](DialogId dialog_id,
+                                                                 Promise<AffectedHistory> &&query_promise) {
+    td->create_handler<DeleteTopicHistoryQuery>(std::move(query_promise))->send(dialog_id, top_thread_message_id);
+  };
+  run_affected_history_query_until_complete(dialog_id, std::move(query), true, std::move(promise));
 }
 
 void MessagesManager::delete_all_call_messages(bool revoke, Promise<Unit> &&promise) {
@@ -40156,6 +40252,25 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
 
         delete_dialog_history_on_server(dialog_id, log_event.max_message_id_, log_event.remove_from_dialog_list_,
                                         log_event.revoke_, true, event.id_, Auto());
+        break;
+      }
+      case LogEvent::HandlerType::DeleteTopicHistoryOnServer: {
+        if (!G()->parameters().use_message_db) {
+          binlog_erase(G()->td_db()->get_binlog(), event.id_);
+          break;
+        }
+
+        DeleteTopicHistoryOnServerLogEvent log_event;
+        log_event_parse(log_event, event.data_).ensure();
+
+        auto dialog_id = log_event.dialog_id_;
+        Dialog *d = get_dialog_force(dialog_id, "DeleteTopicHistoryOnServerLogEvent");
+        if (d == nullptr || !have_input_peer(dialog_id, AccessRights::Read)) {
+          binlog_erase(G()->td_db()->get_binlog(), event.id_);
+          break;
+        }
+
+        delete_topic_history_on_server(dialog_id, log_event.top_thread_message_id_, event.id_, Auto());
         break;
       }
       case LogEvent::HandlerType::DeleteAllCallMessagesOnServer: {

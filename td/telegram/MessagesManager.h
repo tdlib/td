@@ -401,6 +401,8 @@ class MessagesManager final : public Actor {
 
   void delete_dialog_history(DialogId dialog_id, bool remove_from_dialog_list, bool revoke, Promise<Unit> &&promise);
 
+  void delete_topic_history(DialogId dialog_id, MessageId top_thread_message_id, Promise<Unit> &&promise);
+
   void delete_all_call_messages(bool revoke, Promise<Unit> &&promise);
 
   void delete_dialog_messages_by_sender(DialogId dialog_id, DialogId sender_dialog_id, Promise<Unit> &&promise);
@@ -1767,6 +1769,7 @@ class MessagesManager final : public Actor {
   class DeleteMessageLogEvent;
   class DeleteMessagesOnServerLogEvent;
   class DeleteScheduledMessagesOnServerLogEvent;
+  class DeleteTopicHistoryOnServerLogEvent;
   class ForwardMessagesLogEvent;
   class GetChannelDifferenceLogEvent;
   class ReadAllDialogMentionsOnServerLogEvent;
@@ -2153,6 +2156,9 @@ class MessagesManager final : public Actor {
 
   void delete_dialog_history_on_server(DialogId dialog_id, MessageId max_message_id, bool remove_from_dialog_list,
                                        bool revoke, bool allow_error, uint64 log_event_id, Promise<Unit> &&promise);
+
+  void delete_topic_history_on_server(DialogId dialog_id, MessageId top_thread_message_id, uint64 log_event_id,
+                                      Promise<Unit> &&promise);
 
   void delete_all_call_messages_on_server(bool revoke, uint64 log_event_id, Promise<Unit> &&promise);
 
@@ -3309,6 +3315,8 @@ class MessagesManager final : public Actor {
 
   static uint64 save_delete_dialog_history_on_server_log_event(DialogId dialog_id, MessageId max_message_id,
                                                                bool remove_from_dialog_list, bool revoke);
+
+  static uint64 save_delete_topic_history_on_server_log_event(DialogId dialog_id, MessageId top_thread_message_id);
 
   static uint64 save_delete_all_call_messages_on_server_log_event(bool revoke);
 

@@ -3877,6 +3877,11 @@ class CliClient final : public Actor {
       bool is_closed;
       get_args(args, chat_id, message_thread_id, is_closed);
       send_request(td_api::make_object<td_api::toggleForumTopicIsClosed>(chat_id, message_thread_id, is_closed));
+    } else if (op == "dft") {
+      ChatId chat_id;
+      MessageThreadId message_thread_id;
+      get_args(args, chat_id, message_thread_id);
+      send_request(td_api::make_object<td_api::deleteForumTopic>(chat_id, message_thread_id));
     } else if (op == "gallm") {
       send_request(td_api::make_object<td_api::getActiveLiveLocationMessages>());
     } else if (op == "sbsm") {

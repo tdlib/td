@@ -5539,6 +5539,13 @@ void Td::on_request(uint64 id, const td_api::toggleForumTopicIsClosed &request) 
                                                      request.is_closed_, std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::deleteForumTopic &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  forum_topic_manager_->delete_forum_topic(DialogId(request.chat_id_), MessageId(request.message_thread_id_),
+                                           std::move(promise));
+}
+
 void Td::on_request(uint64 id, td_api::setGameScore &request) {
   CHECK_IS_BOT();
   CREATE_REQUEST_PROMISE();
