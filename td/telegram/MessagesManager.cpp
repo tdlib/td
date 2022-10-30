@@ -7905,7 +7905,7 @@ void MessagesManager::add_pending_channel_update(DialogId dialog_id, tl_object_p
         }
       }
 
-      LOG_IF(WARNING, new_pts == old_pts && pts_count == 0)
+      LOG_IF(WARNING, new_pts == old_pts && pts_count == 0 && !is_allowed_useless_update(update))
           << "Receive from " << source << " useless channel update " << oneline(to_string(update));
       LOG(INFO) << "Skip already applied channel update";
       promise.set_value(Unit());
