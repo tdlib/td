@@ -882,7 +882,7 @@ class ContactsManager final : public Actor {
     int32 date = 0;
     int32 participant_count = 0;
 
-    static constexpr uint32 CACHE_VERSION = 9;
+    static constexpr uint32 CACHE_VERSION = 10;
     uint32 cache_version = 0;
 
     bool has_linked_channel = false;
