@@ -33565,7 +33565,7 @@ void MessagesManager::on_dialog_user_is_deleted_updated(DialogId dialog_id, bool
 void MessagesManager::on_dialog_linked_channel_updated(DialogId dialog_id, ChannelId old_linked_channel_id,
                                                        ChannelId new_linked_channel_id) const {
   CHECK(dialog_id.get_type() == DialogType::Channel);
-  if (!is_broadcast_channel(dialog_id)) {
+  if (td_->auth_manager_->is_bot() || !is_broadcast_channel(dialog_id)) {
     return;
   }
   auto d = get_dialog(dialog_id);  // no need to create the dialog
