@@ -36734,7 +36734,7 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
     new_message->is_topic_message = false;
   }
   if (old_message->is_topic_message != new_message->is_topic_message) {
-    LOG_IF(ERROR, !message_id.is_yet_unsent())
+    LOG_IF(ERROR, !message_id.is_yet_unsent() && !replace_legacy)
         << message_id << " in " << dialog_id << " has changed is_topic_message to " << new_message->is_topic_message;
     old_message->is_topic_message = new_message->is_topic_message;
     need_send_update = true;
