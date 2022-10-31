@@ -1298,7 +1298,7 @@ webAppInfo launch_id:int64 url:string = WebAppInfo;
 //@description Contains information about a message thread
 //@chat_id Identifier of the chat to which the message thread belongs
 //@message_thread_id Message thread identifier, unique within the chat
-//@reply_info Information about the message thread
+//@reply_info Information about the message thread; may be null for forum topic threads
 //@unread_message_count Approximate number of unread messages in the message thread
 //@messages The messages from which the thread starts. The messages are returned in a reverse chronological order (i.e., in order of decreasing message_id)
 //@draft_message A draft of a message in the message thread; may be null

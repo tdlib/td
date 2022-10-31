@@ -18827,6 +18827,7 @@ td_api::object_ptr<td_api::messageThreadInfo> MessagesManager::get_message_threa
   td_api::object_ptr<td_api::messageReplyInfo> reply_info;
   vector<td_api::object_ptr<td_api::message>> messages;
   messages.reserve(info.message_ids.size());
+  bool is_forum_topic = false;
   for (auto message_id : info.message_ids) {
     const Message *m = get_message_force(d, message_id, "get_message_thread_info_object");
     auto message = get_message_object(d->dialog_id, m, "get_message_thread_info_object");
@@ -18835,10 +18836,14 @@ td_api::object_ptr<td_api::messageThreadInfo> MessagesManager::get_message_threa
         reply_info = m->reply_info.get_message_reply_info_object(td_);
         CHECK(reply_info != nullptr);
       }
+      is_forum_topic = message->is_topic_message_;
       messages.push_back(std::move(message));
     }
   }
-  if (reply_info == nullptr) {
+  if (messages.size() != 1) {
+    is_forum_topic = false;
+  }
+  if (reply_info == nullptr && !is_forum_topic) {
     return nullptr;
   }
 
