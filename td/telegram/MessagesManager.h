@@ -563,7 +563,7 @@ class MessagesManager final : public Actor {
   void pin_dialog_message(DialogId dialog_id, MessageId message_id, bool disable_notification, bool only_for_self,
                           bool is_unpin, Promise<Unit> &&promise);
 
-  void unpin_all_dialog_messages(DialogId dialog_id, Promise<Unit> &&promise);
+  void unpin_all_dialog_messages(DialogId dialog_id, MessageId top_thread_message_id, Promise<Unit> &&promise);
 
   void get_dialog_info_full(DialogId dialog_id, Promise<Unit> &&promise, const char *source);
 

@@ -4697,8 +4697,9 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::unpinChatMessage>(chat_id, message_id));
     } else if (op == "uacm") {
       ChatId chat_id;
-      get_args(args, chat_id);
-      send_request(td_api::make_object<td_api::unpinAllChatMessages>(chat_id));
+      MessageThreadId message_thread_id;
+      get_args(args, chat_id, message_thread_id);
+      send_request(td_api::make_object<td_api::unpinAllChatMessages>(chat_id, message_thread_id));
     } else if (op == "grib") {
       send_request(td_api::make_object<td_api::getRecentInlineBots>());
     } else if (op == "spc" || op == "su") {

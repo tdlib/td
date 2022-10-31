@@ -641,7 +641,7 @@ class UnpinAllMessagesQuery final : public Td::ResultHandler {
   explicit UnpinAllMessagesQuery(Promise<AffectedHistory> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(DialogId dialog_id) {
+  void send(DialogId dialog_id, MessageId top_thread_message_id) {
     dialog_id_ = dialog_id;
 
     auto input_peer = td_->messages_manager_->get_input_peer(dialog_id_, AccessRights::Write);
@@ -651,8 +651,11 @@ class UnpinAllMessagesQuery final : public Td::ResultHandler {
     }
 
     int32 flags = 0;
-    send_query(
-        G()->net_query_creator().create(telegram_api::messages_unpinAllMessages(flags, std::move(input_peer), 0)));
+    if (top_thread_message_id.is_valid()) {
+      flags |= telegram_api::messages_unpinAllMessages::TOP_MSG_ID_MASK;
+    }
+    send_query(G()->net_query_creator().create(telegram_api::messages_unpinAllMessages(
+        flags, std::move(input_peer), top_thread_message_id.get_server_message_id().get())));
   }
 
   void on_result(BufferSlice packet) final {
@@ -26400,7 +26403,7 @@ Status MessagesManager::can_use_top_thread_message_id(Dialog *d, MessageId top_t
   }
 
   if (!top_thread_message_id.is_valid() || !top_thread_message_id.is_server()) {
-    return Status::Error(400, "Invalid message thread ID specified");
+    return Status::Error(400, "Invalid message thread identifier specified");
   }
   if (d->dialog_id.get_type() != DialogType::Channel || is_broadcast_channel(d->dialog_id)) {
     return Status::Error(400, "Chat doesn't have threads");
@@ -34752,25 +34755,41 @@ void MessagesManager::pin_dialog_message(DialogId dialog_id, MessageId message_i
       ->send(dialog_id, message_id, is_unpin, disable_notification, only_for_self);
 }
 
-void MessagesManager::unpin_all_dialog_messages(DialogId dialog_id, Promise<Unit> &&promise) {
+void MessagesManager::unpin_all_dialog_messages(DialogId dialog_id, MessageId top_thread_message_id,
+                                                Promise<Unit> &&promise) {
   auto d = get_dialog_force(dialog_id, "unpin_all_dialog_messages");
   if (d == nullptr) {
     return promise.set_error(Status::Error(400, "Chat not found"));
   }
   TRY_STATUS_PROMISE(promise, can_pin_messages(dialog_id));
+  TRY_STATUS_PROMISE(promise, can_use_top_thread_message_id(d, top_thread_message_id, MessageId()));
 
-  vector<MessageId> message_ids;
-  find_messages(d->messages.get(), message_ids, [](const Message *m) { return m->is_pinned; });
+  if (!td_->auth_manager_->is_bot()) {
+    vector<MessageId> message_ids;
+    find_messages(d->messages.get(), message_ids, [top_thread_message_id](const Message *m) {
+      return m->is_pinned && (!top_thread_message_id.is_valid() || m->top_thread_message_id == top_thread_message_id);
+    });
 
-  vector<int64> deleted_message_ids;
-  for (auto message_id : message_ids) {
-    auto m = get_message(d, message_id);
-    CHECK(m != nullptr);
+    vector<int64> deleted_message_ids;
+    for (auto message_id : message_ids) {
+      auto m = get_message(d, message_id);
+      CHECK(m != nullptr);
 
-    m->is_pinned = false;
-    send_closure(G()->td(), &Td::send_update,
-                 make_tl_object<td_api::updateMessageIsPinned>(d->dialog_id.get(), m->message_id.get(), m->is_pinned));
-    on_message_changed(d, m, true, "unpin_all_dialog_messages");
+      m->is_pinned = false;
+      send_closure(
+          G()->td(), &Td::send_update,
+          make_tl_object<td_api::updateMessageIsPinned>(d->dialog_id.get(), m->message_id.get(), m->is_pinned));
+      on_message_changed(d, m, true, "unpin_all_dialog_messages");
+    }
+  }
+
+  if (top_thread_message_id.is_valid()) {
+    AffectedHistoryQuery query = [td = td_, top_thread_message_id](DialogId dialog_id,
+                                                                   Promise<AffectedHistory> &&query_promise) {
+      td->create_handler<UnpinAllMessagesQuery>(std::move(query_promise))->send(dialog_id, top_thread_message_id);
+    };
+    run_affected_history_query_until_complete(dialog_id, std::move(query), true, std::move(promise));
+    return;
   }
 
   set_dialog_last_pinned_message_id(d, MessageId());
@@ -34810,7 +34829,7 @@ void MessagesManager::unpin_all_dialog_messages_on_server(DialogId dialog_id, ui
   }
 
   AffectedHistoryQuery query = [td = td_](DialogId dialog_id, Promise<AffectedHistory> &&query_promise) {
-    td->create_handler<UnpinAllMessagesQuery>(std::move(query_promise))->send(dialog_id);
+    td->create_handler<UnpinAllMessagesQuery>(std::move(query_promise))->send(dialog_id, MessageId());
   };
   run_affected_history_query_until_complete(dialog_id, std::move(query), true,
                                             get_erase_log_event_promise(log_event_id, std::move(promise)));
