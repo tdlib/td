@@ -4697,9 +4697,13 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::unpinChatMessage>(chat_id, message_id));
     } else if (op == "uacm") {
       ChatId chat_id;
+      get_args(args, chat_id);
+      send_request(td_api::make_object<td_api::unpinAllChatMessages>(chat_id));
+    } else if (op == "uamtm") {
+      ChatId chat_id;
       MessageThreadId message_thread_id;
       get_args(args, chat_id, message_thread_id);
-      send_request(td_api::make_object<td_api::unpinAllChatMessages>(chat_id, message_thread_id));
+      send_request(td_api::make_object<td_api::unpinAllMessageThreadMessages>(chat_id, message_thread_id));
     } else if (op == "grib") {
       send_request(td_api::make_object<td_api::getRecentInlineBots>());
     } else if (op == "spc" || op == "su") {
@@ -4798,14 +4802,22 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::getExternalLink>(link, op == "gelw"));
     } else if (op == "racm") {
       ChatId chat_id;
-      MessageThreadId message_thread_id;
-      get_args(args, chat_id, message_thread_id);
-      send_request(td_api::make_object<td_api::readAllChatMentions>(chat_id, message_thread_id));
-    } else if (op == "racr") {
+      get_args(args, chat_id);
+      send_request(td_api::make_object<td_api::readAllChatMentions>(chat_id));
+    } else if (op == "ramtm") {
       ChatId chat_id;
       MessageThreadId message_thread_id;
       get_args(args, chat_id, message_thread_id);
-      send_request(td_api::make_object<td_api::readAllChatReactions>(chat_id, message_thread_id));
+      send_request(td_api::make_object<td_api::readAllMessageThreadMentions>(chat_id, message_thread_id));
+    } else if (op == "racr") {
+      ChatId chat_id;
+      get_args(args, chat_id);
+      send_request(td_api::make_object<td_api::readAllChatReactions>(chat_id));
+    } else if (op == "ramtr") {
+      ChatId chat_id;
+      MessageThreadId message_thread_id;
+      get_args(args, chat_id, message_thread_id);
+      send_request(td_api::make_object<td_api::readAllMessageThreadReactions>(chat_id, message_thread_id));
     } else if (op == "tre") {
       send_request(td_api::make_object<td_api::testReturnError>(
           args.empty() ? nullptr : td_api::make_object<td_api::error>(-1, args)));

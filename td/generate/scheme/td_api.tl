@@ -5554,11 +5554,17 @@ getExternalLinkInfo link:string = LoginUrlInfo;
 getExternalLink link:string allow_write_access:Bool = HttpUrl;
 
 
-//@description Marks all mentions in a chat or a forum topic as read @chat_id Chat identifier @message_thread_id If not 0, a message thread identifier in which mentions are marked as read; for forum supergroups only
-readAllChatMentions chat_id:int53 message_thread_id:int53 = Ok;
+//@description Marks all mentions in a chat as read @chat_id Chat identifier
+readAllChatMentions chat_id:int53 = Ok;
 
-//@description Marks all reactions in a chat or a forum topic as read @chat_id Chat identifier @message_thread_id If not 0, a message thread identifier in which reactions are marked as read; for forum supergroups only
-readAllChatReactions chat_id:int53 message_thread_id:int53 = Ok;
+//@description Marks all mentions in a forum topic as read @chat_id Chat identifier @message_thread_id Message thread identifier in which mentions are marked as read
+readAllMessageThreadMentions chat_id:int53 message_thread_id:int53 = Ok;
+
+//@description Marks all reactions in a chat or a forum topic as read @chat_id Chat identifier
+readAllChatReactions chat_id:int53 = Ok;
+
+//@description Marks all reactions in a forum topic as read @chat_id Chat identifier @message_thread_id Message thread identifier in which reactions are marked as read
+readAllMessageThreadReactions chat_id:int53 message_thread_id:int53 = Ok;
 
 
 //@description Returns an existing chat corresponding to a given user @user_id User identifier @force Pass true to create the chat without a network request. In this case all information about the chat except its type, title and photo can be incorrect
@@ -5686,9 +5692,12 @@ pinChatMessage chat_id:int53 message_id:int53 disable_notification:Bool only_for
 //@description Removes a pinned message from a chat; requires can_pin_messages rights in the group or can_edit_messages rights in the channel @chat_id Identifier of the chat @message_id Identifier of the removed pinned message
 unpinChatMessage chat_id:int53 message_id:int53 = Ok;
 
-//@description Removes all pinned messages from a chat or a forum topic; requires can_pin_messages rights in the group or can_edit_messages rights in the channel @chat_id Identifier of the chat
-//@message_thread_id If not 0, a message thread identifier in which messages will be unpinned; for forum supergroups only
-unpinAllChatMessages chat_id:int53 message_thread_id:int53 = Ok;
+//@description Removes all pinned messages from a chat; requires can_pin_messages rights in the group or can_edit_messages rights in the channel @chat_id Identifier of the chat
+unpinAllChatMessages chat_id:int53 = Ok;
+
+//@description Removes all pinned messages from a forum topic; requires can_pin_messages rights in the supergroup @chat_id Identifier of the chat
+//@message_thread_id Message thread identifier in which messages will be unpinned
+unpinAllMessageThreadMessages chat_id:int53 message_thread_id:int53 = Ok;
 
 
 //@description Adds the current user as a new member to a chat. Private and secret chats can't be joined using this method. May return an error with a message "INVITE_REQUEST_SENT" if only a join request was created @chat_id Chat identifier
