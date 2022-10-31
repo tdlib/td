@@ -5510,13 +5510,11 @@ void Td::on_request(uint64 id, td_api::editMessageSchedulingState &request) {
 }
 
 void Td::on_request(uint64 id, const td_api::getForumTopicDefaultIcons &request) {
-  CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
   stickers_manager_->get_default_topic_icons(false, std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::createForumTopic &request) {
-  CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.title_);
   CREATE_REQUEST_PROMISE();
   forum_topic_manager_->create_forum_topic(DialogId(request.chat_id_), std::move(request.title_),
@@ -5524,7 +5522,6 @@ void Td::on_request(uint64 id, td_api::createForumTopic &request) {
 }
 
 void Td::on_request(uint64 id, td_api::editForumTopic &request) {
-  CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.title_);
   CREATE_OK_REQUEST_PROMISE();
   forum_topic_manager_->edit_forum_topic(DialogId(request.chat_id_), MessageId(request.message_thread_id_),
@@ -5533,14 +5530,12 @@ void Td::on_request(uint64 id, td_api::editForumTopic &request) {
 }
 
 void Td::on_request(uint64 id, const td_api::toggleForumTopicIsClosed &request) {
-  CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
   forum_topic_manager_->toggle_forum_topic_is_closed(DialogId(request.chat_id_), MessageId(request.message_thread_id_),
                                                      request.is_closed_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::deleteForumTopic &request) {
-  CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
   forum_topic_manager_->delete_forum_topic(DialogId(request.chat_id_), MessageId(request.message_thread_id_),
                                            std::move(promise));
