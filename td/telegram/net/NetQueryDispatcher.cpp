@@ -49,7 +49,7 @@ void NetQueryDispatcher::dispatch(NetQueryPtr net_query) {
   if (G()->get_option_boolean("test_flood_wait")) {
     net_query->set_error(Status::Error(429, "Too Many Requests: retry after 10"));
     return complete_net_query(std::move(net_query));
-    //    if (net_query->is_ok() && net_query->tl_constructor() == 0x0d9d75a4) {
+    //    if (net_query->is_ok() && net_query->tl_constructor() == telegram_api::messages_sendMessage::ID) {
     //      net_query->set_error(Status::Error(420, "FLOOD_WAIT_10"));
     //    }
   }
