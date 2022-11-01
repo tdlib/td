@@ -222,6 +222,9 @@ class SendReactionQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
+    if (status.message() == "MESSAGE_NOT_MODIFIED") {
+      return promise_.set_value(Unit());
+    }
     td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "SendReactionQuery");
     promise_.set_error(std::move(status));
   }
