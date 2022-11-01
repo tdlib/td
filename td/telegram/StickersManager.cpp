@@ -1724,7 +1724,7 @@ void StickersManager::load_special_sticker_set_by_type(SpecialStickerSetType typ
 }
 
 void StickersManager::load_special_sticker_set(SpecialStickerSet &sticker_set) {
-  CHECK(!td_->auth_manager_->is_bot());
+  CHECK(!td_->auth_manager_->is_bot() || sticker_set.type_ == SpecialStickerSetType::default_topic_icons());
   if (sticker_set.is_being_loaded_) {
     return;
   }
@@ -3841,8 +3841,12 @@ void StickersManager::on_get_special_sticker_set(const SpecialStickerSetType &ty
   sticker_set.short_name_ = clean_username(s->short_name_);
   sticker_set.type_ = type;
 
-  G()->td_db()->get_binlog_pmc()->set(type.type_, PSTRING() << sticker_set.id_.get() << ' ' << sticker_set.access_hash_
-                                                            << ' ' << sticker_set.short_name_);
+  if (!td_->auth_manager_->is_bot()) {
+    G()->td_db()->get_binlog_pmc()->set(type.type_, PSTRING()
+                                                        << sticker_set.id_.get() << ' ' << sticker_set.access_hash_
+                                                        << ' ' << sticker_set.short_name_);
+  }
+
   sticker_set.is_being_loaded_ = true;
   on_load_special_sticker_set(type, Status::OK());
 }
@@ -5963,6 +5967,20 @@ void StickersManager::get_default_topic_icons(bool is_recursive,
           }
         }));
     load_special_sticker_set(special_sticker_set);
+    return;
+  }
+
+  if (!is_recursive && td_->auth_manager_->is_bot() && G()->unix_time() >= sticker_set->expires_at_) {
+    auto reload_promise = PromiseCreator::lambda(
+        [actor_id = actor_id(this), promise = std::move(promise)](Result<Unit> &&result) mutable {
+          if (result.is_error()) {
+            promise.set_error(result.move_as_error());
+          } else {
+            send_closure(actor_id, &StickersManager::get_default_topic_icons, true, std::move(promise));
+          }
+        });
+    do_reload_sticker_set(sticker_set->id_, get_input_sticker_set(sticker_set), sticker_set->hash_,
+                          std::move(reload_promise));
     return;
   }
 
