@@ -58,7 +58,7 @@ class TimedStat {
     }
     if (next_timestamp_ + 2 * duration_ < now) {
       current_ = StatT();
-      current_timestamp_ = now;
+      current_timestamp_ = now - duration_;
       next_ = StatT();
       next_timestamp_ = now;
     } else if (next_timestamp_ + duration_ < now) {
