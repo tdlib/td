@@ -29,6 +29,7 @@
 #include "td/utils/tl_storers.h"
 #include "td/utils/TlStorerToString.h"
 
+#include <functional>
 #include <map>
 
 namespace td {

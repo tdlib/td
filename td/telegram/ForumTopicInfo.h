@@ -51,7 +51,7 @@ class ForumTopicInfo {
     return !top_thread_message_id_.is_valid();
   }
 
-  MessageId get_thread_id() const {
+  MessageId get_top_thread_message_id() const {
     return top_thread_message_id_;
   }
 

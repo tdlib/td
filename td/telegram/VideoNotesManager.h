@@ -21,6 +21,8 @@
 #include "td/utils/common.h"
 #include "td/utils/FlatHashMap.h"
 #include "td/utils/FlatHashSet.h"
+#include "td/utils/Promise.h"
+#include "td/utils/Status.h"
 #include "td/utils/WaitFreeHashMap.h"
 
 namespace td {

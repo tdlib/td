@@ -8,16 +8,20 @@
 
 #include "td/telegram/AccessRights.h"
 #include "td/telegram/AuthManager.h"
+#include "td/telegram/ChannelId.h"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/CustomEmojiId.h"
+#include "td/telegram/ForumTopicIcon.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/misc.h"
+#include "td/telegram/ServerMessageId.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/UpdatesManager.h"
 
 #include "td/utils/buffer.h"
+#include "td/utils/logging.h"
 #include "td/utils/Random.h"
 
 namespace td {
@@ -311,7 +315,7 @@ ForumTopicInfo *ForumTopicManager::add_topic_info(DialogId dialog_id, unique_ptr
     CHECK(dialog_info != nullptr);
   }
 
-  MessageId top_thread_message_id = forum_topic_info->get_thread_id();
+  MessageId top_thread_message_id = forum_topic_info->get_top_thread_message_id();
   auto topic_info = dialog_info->topic_infos_.get_pointer(top_thread_message_id);
   if (topic_info == nullptr) {
     dialog_info->topic_infos_.set(top_thread_message_id, std::move(forum_topic_info));

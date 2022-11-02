@@ -5341,10 +5341,10 @@ void Td::on_request(uint64 id, const td_api::readAllChatMentions &request) {
 
 void Td::on_request(uint64 id, const td_api::readAllMessageThreadMentions &request) {
   CHECK_IS_USER();
-  CREATE_OK_REQUEST_PROMISE();
   if (request.message_thread_id_ == 0) {
     return send_error_raw(id, 400, "Invalid message thread identifier specified");
   }
+  CREATE_OK_REQUEST_PROMISE();
   messages_manager_->read_all_dialog_mentions(DialogId(request.chat_id_), MessageId(request.message_thread_id_),
                                               std::move(promise));
 }
@@ -5357,10 +5357,10 @@ void Td::on_request(uint64 id, const td_api::readAllChatReactions &request) {
 
 void Td::on_request(uint64 id, const td_api::readAllMessageThreadReactions &request) {
   CHECK_IS_USER();
-  CREATE_OK_REQUEST_PROMISE();
   if (request.message_thread_id_ == 0) {
     return send_error_raw(id, 400, "Invalid message thread identifier specified");
   }
+  CREATE_OK_REQUEST_PROMISE();
   messages_manager_->read_all_dialog_reactions(DialogId(request.chat_id_), MessageId(request.message_thread_id_),
                                                std::move(promise));
 }
@@ -6219,10 +6219,10 @@ void Td::on_request(uint64 id, const td_api::unpinAllChatMessages &request) {
 }
 
 void Td::on_request(uint64 id, const td_api::unpinAllMessageThreadMessages &request) {
-  CREATE_OK_REQUEST_PROMISE();
   if (request.message_thread_id_ == 0) {
     return send_error_raw(id, 400, "Invalid message thread identifier specified");
   }
+  CREATE_OK_REQUEST_PROMISE();
   messages_manager_->unpin_all_dialog_messages(DialogId(request.chat_id_), MessageId(request.message_thread_id_),
                                                std::move(promise));
 }

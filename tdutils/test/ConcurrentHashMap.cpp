@@ -5,6 +5,7 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 #include "td/utils/benchmark.h"
+#include "td/utils/common.h"
 #include "td/utils/ConcurrentHashTable.h"
 #include "td/utils/misc.h"
 #include "td/utils/port/Mutex.h"

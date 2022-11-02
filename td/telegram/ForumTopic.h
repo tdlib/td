@@ -40,8 +40,8 @@ class ForumTopic {
     return info_.is_empty();
   }
 
-  MessageId get_thread_id() const {
-    return info_.get_thread_id();
+  MessageId get_top_thread_message_id() const {
+    return info_.get_top_thread_message_id();
   }
 
   td_api::object_ptr<td_api::forumTopic> get_forum_topic_object(Td *td) const;

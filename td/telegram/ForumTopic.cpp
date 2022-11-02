@@ -7,6 +7,7 @@
 #include "td/telegram/ForumTopic.h"
 
 #include "td/telegram/DraftMessage.h"
+#include "td/telegram/ServerMessageId.h"
 #include "td/telegram/Td.h"
 
 #include "td/utils/logging.h"
@@ -39,7 +40,7 @@ td_api::object_ptr<td_api::forumTopic> ForumTopic::get_forum_topic_object(Td *td
     return nullptr;
   }
 
-  // TODO draft_message = can_send_message(dialog_id, info_.get_thread_id()).is_ok() ? ... : nullptr;
+  // TODO draft_message = can_send_message(dialog_id, info_.get_top_thread_message_id()).is_ok() ? ... : nullptr;
   // TODO last_message
   auto draft_message = get_draft_message_object(draft_message_);
   return td_api::make_object<td_api::forumTopic>(
