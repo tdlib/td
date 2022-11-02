@@ -14628,8 +14628,10 @@ MessagesManager::MessageInfo MessagesManager::parse_telegram_api_message(
       }
       message_info.date = message->date_;
       message_info.forward_header = std::move(message->fwd_from_);
+      bool can_have_thread = !is_scheduled && message_info.dialog_id.get_type() == DialogType::Channel &&
+                             !is_broadcast_channel(message_info.dialog_id);
       message_info.reply_header = MessageReplyHeader(std::move(message->reply_to_), message_info.dialog_id,
-                                                     message_info.message_id, message_info.date);
+                                                     message_info.message_id, message_info.date, can_have_thread);
       if (message->flags_ & MESSAGE_FLAG_IS_SENT_VIA_BOT) {
         message_info.via_bot_user_id = UserId(message->via_bot_id_);
         if (!message_info.via_bot_user_id.is_valid()) {
@@ -14694,8 +14696,10 @@ MessagesManager::MessageInfo MessagesManager::parse_telegram_api_message(
         message_info.ttl_period = message->ttl_period_;
       }
       message_info.flags = message->flags_;
+      bool can_have_thread = !is_scheduled && message_info.dialog_id.get_type() == DialogType::Channel &&
+                             !is_broadcast_channel(message_info.dialog_id);
       message_info.reply_header = MessageReplyHeader(std::move(message->reply_to_), message_info.dialog_id,
-                                                     message_info.message_id, message_info.date);
+                                                     message_info.message_id, message_info.date, can_have_thread);
       message_info.content = get_action_message_content(td_, std::move(message->action_), message_info.dialog_id,
                                                         message_info.reply_header.reply_in_dialog_id,
                                                         message_info.reply_header.reply_to_message_id);
@@ -14882,11 +14886,6 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
     forward_count = 0;
   }
   MessageReplyInfo reply_info(td_, std::move(message_info.reply_info), td_->auth_manager_->is_bot());
-  if (reply_to_message_id.is_valid() && !reply_in_dialog_id.is_valid() && message_id.is_valid() &&
-      message_id.is_server() && !top_thread_message_id.is_valid() && dialog_type == DialogType::Channel &&
-      !is_broadcast_channel(dialog_id)) {
-    top_thread_message_id = reply_to_message_id;
-  }
   if (!top_thread_message_id.is_valid() && is_thread_message(dialog_id, message_id, reply_info, content_type)) {
     top_thread_message_id = message_id;
     is_topic_message = (content_type == MessageContentType::TopicCreate);

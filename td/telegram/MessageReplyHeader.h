@@ -23,7 +23,7 @@ struct MessageReplyHeader {
   MessageReplyHeader() = default;
 
   MessageReplyHeader(tl_object_ptr<telegram_api::messageReplyHeader> &&reply_header, DialogId dialog_id,
-                     MessageId message_id, int32 date);
+                     MessageId message_id, int32 date, bool can_have_thread);
 };
 
 }  // namespace td
