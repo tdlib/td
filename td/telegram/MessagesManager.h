@@ -33,6 +33,7 @@
 #include "td/telegram/MessageCopyOptions.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/MessageLinkInfo.h"
+#include "td/telegram/MessageReplyHeader.h"
 #include "td/telegram/MessageReplyInfo.h"
 #include "td/telegram/MessagesDb.h"
 #include "td/telegram/MessageSearchFilter.h"
@@ -1043,8 +1044,7 @@ class MessagesManager final : public Actor {
     bool disable_web_page_preview = false;
     int64 random_id = 0;
     tl_object_ptr<telegram_api::messageFwdHeader> forward_header;
-    MessageId reply_to_message_id;
-    tl_object_ptr<telegram_api::messageReplyHeader> reply_header;
+    MessageReplyHeader reply_header;
     UserId via_bot_user_id;
     int32 view_count = 0;
     int32 forward_count = 0;
