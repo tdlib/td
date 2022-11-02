@@ -82,6 +82,8 @@ BackgroundFill::BackgroundFill(const telegram_api::wallPaperSettings *settings) 
       LOG(ERROR) << "Receive " << to_string(*settings);
       rotation_angle_ = 0;
     }
+  } else {
+    bottom_color_ = top_color_;
   }
 }
 
