@@ -34721,7 +34721,8 @@ void MessagesManager::unpin_all_dialog_messages(DialogId dialog_id, MessageId to
   if (!td_->auth_manager_->is_bot()) {
     vector<MessageId> message_ids;
     find_messages(d->messages.get(), message_ids, [top_thread_message_id](const Message *m) {
-      return m->is_pinned && (!top_thread_message_id.is_valid() || m->top_thread_message_id == top_thread_message_id);
+      return m->is_pinned && (!top_thread_message_id.is_valid() ||
+                              (m->is_topic_message && m->top_thread_message_id == top_thread_message_id));
     });
 
     vector<int64> deleted_message_ids;
