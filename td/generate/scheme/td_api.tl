@@ -1310,13 +1310,13 @@ forumTopicIcon color:int32 custom_emoji_id:int64 = ForumTopicIcon;
 
 //@description Contains basic information about a forum topic
 //@message_thread_id Message thread identifier of the topic
-//@title Title of the topic
+//@name Name of the topic
 //@icon Icon of the topic
 //@creation_date Date the topic was created
 //@creator_id Identifier of the creator of the topic
 //@is_outgoing True, if the topic was created by the current user
 //@is_closed True, if the topic is closed
-forumTopicInfo message_thread_id:int53 title:string icon:forumTopicIcon creation_date:int32 creator_id:MessageSender is_outgoing:Bool is_closed:Bool = ForumTopicInfo;
+forumTopicInfo message_thread_id:int53 name:string icon:forumTopicIcon creation_date:int32 creator_id:MessageSender is_outgoing:Bool is_closed:Bool = ForumTopicInfo;
 
 //@description Describes a forum topic
 //@info Basic information about the topic
@@ -2093,11 +2093,11 @@ messageChatSetTheme theme_name:string = MessageContent;
 //@description The TTL (Time To Live) setting for messages in the chat has been changed @ttl New message TTL
 messageChatSetTtl ttl:int32 = MessageContent;
 
-//@description A forum topic has been created @title Title of the topic @icon Icon of the topic
-messageForumTopicCreated title:string icon:forumTopicIcon = MessageContent;
+//@description A forum topic has been created @name Name of the topic @icon Icon of the topic
+messageForumTopicCreated name:string icon:forumTopicIcon = MessageContent;
 
-//@description A forum topic has been edited @title If non-empty, the new title of the topic @edit_icon_custom_emoji_id True, if icon's custom_emoji_id is changed @icon_custom_emoji_id New unique identifier of the custom emoji shown on the topic icon; 0 if none. Must be ignored if edit_icon_custom_emoji_id is false
-messageForumTopicEdited title:string edit_icon_custom_emoji_id:Bool icon_custom_emoji_id:int64 = MessageContent;
+//@description A forum topic has been edited @name If non-empty, the new name of the topic @edit_icon_custom_emoji_id True, if icon's custom_emoji_id is changed @icon_custom_emoji_id New unique identifier of the custom emoji shown on the topic icon; 0 if none. Must be ignored if edit_icon_custom_emoji_id is false
+messageForumTopicEdited name:string edit_icon_custom_emoji_id:Bool icon_custom_emoji_id:int64 = MessageContent;
 
 //@description A forum topic has been closed or opened @is_closed True if the topic was closed or reopened
 messageForumTopicIsClosedToggled is_closed:Bool = MessageContent;
@@ -5298,16 +5298,16 @@ getForumTopicDefaultIcons = Stickers;
 
 //@description Creates a topic in a forum supergroup chat; requires can_manage_topics rights in the supergroup
 //@chat_id Identifier of the chat
-//@title Title of the topic
+//@name Name of the topic; 1-128 characters
 //@icon Icon of the topic. Icon color must be one of 0x6FB9F0, 0xFFD67E, 0xCB86DB, 0x8EEE98, 0xFF93B2, or 0xFB6F5F. Telegram Premium users can use any custom emoji as topic icon, other users can use only a custom emoji returned by getForumTopicDefaultIcons
-createForumTopic chat_id:int53 title:string icon:forumTopicIcon = ForumTopicInfo;
+createForumTopic chat_id:int53 name:string icon:forumTopicIcon = ForumTopicInfo;
 
 //@description Edits title and icon of a topic in a forum supergroup chat; requires can_manage_topics administrator rights in the supergroup unless the user is creator of the topic
 //@chat_id Identifier of the chat
 //@message_thread_id Message thread identifier of the forum topic
-//@title New title of the topic
+//@name New name of the topic; 1-128 characters
 //@icon_custom_emoji_id Identifier of the new custom emoji for topic icon. Telegram Premium users can use any custom emoji, other users can use only a custom emoji returned by getForumTopicDefaultIcons
-editForumTopic chat_id:int53 message_thread_id:int53 title:string icon_custom_emoji_id:int64 = Ok;
+editForumTopic chat_id:int53 message_thread_id:int53 name:string icon_custom_emoji_id:int64 = Ok;
 
 //@description Toggles is_closed state of a topic in a forum supergroup chat; requires can_manage_topics administrator rights in the supergroup unless the user is creator of the topic
 //@chat_id Identifier of the chat

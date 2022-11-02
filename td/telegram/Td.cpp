@@ -5533,17 +5533,17 @@ void Td::on_request(uint64 id, const td_api::getForumTopicDefaultIcons &request)
 }
 
 void Td::on_request(uint64 id, td_api::createForumTopic &request) {
-  CLEAN_INPUT_STRING(request.title_);
+  CLEAN_INPUT_STRING(request.name_);
   CREATE_REQUEST_PROMISE();
-  forum_topic_manager_->create_forum_topic(DialogId(request.chat_id_), std::move(request.title_),
+  forum_topic_manager_->create_forum_topic(DialogId(request.chat_id_), std::move(request.name_),
                                            std::move(request.icon_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::editForumTopic &request) {
-  CLEAN_INPUT_STRING(request.title_);
+  CLEAN_INPUT_STRING(request.name_);
   CREATE_OK_REQUEST_PROMISE();
   forum_topic_manager_->edit_forum_topic(DialogId(request.chat_id_), MessageId(request.message_thread_id_),
-                                         std::move(request.title_), CustomEmojiId(request.icon_custom_emoji_id_),
+                                         std::move(request.name_), CustomEmojiId(request.icon_custom_emoji_id_),
                                          std::move(promise));
 }
 
