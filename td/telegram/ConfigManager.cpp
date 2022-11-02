@@ -1471,6 +1471,7 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
 
   vector<tl_object_ptr<telegram_api::jsonObjectValue>> new_values;
   string ignored_restriction_reasons;
+  string restriction_add_platforms;
   vector<string> dice_emojis;
   FlatHashMap<string, size_t> dice_emoji_index;
   FlatHashMap<string, string> dice_emoji_success_value;
@@ -1516,6 +1517,25 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
           }
         } else {
           LOG(ERROR) << "Receive unexpected ignore_restriction_reasons " << to_string(*value);
+        }
+        continue;
+      }
+      if (key == "restriction_add_platforms") {
+        if (value->get_id() == telegram_api::jsonArray::ID) {
+          auto platforms = std::move(static_cast<telegram_api::jsonArray *>(value)->value_);
+          for (auto &platform : platforms) {
+            auto platform_name = get_json_value_string(std::move(platform), key);
+            if (!platform_name.empty() && platform_name.find(',') == string::npos) {
+              if (!restriction_add_platforms.empty()) {
+                restriction_add_platforms += ',';
+              }
+              restriction_add_platforms += platform_name;
+            } else {
+              LOG(ERROR) << "Receive unexpected restriction platform " << platform_name;
+            }
+          }
+        } else {
+          LOG(ERROR) << "Receive unexpected restriction_add_platforms " << to_string(*value);
         }
         continue;
       }
@@ -1850,6 +1870,11 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
         !options.get_option_boolean("ignore_sensitive_content_restrictions")) {
       get_content_settings(Auto());
     }
+  }
+  if (restriction_add_platforms.empty()) {
+    options.set_option_empty("restriction_add_platforms");
+  } else {
+    options.set_option_string("restriction_add_platforms", restriction_add_platforms);
   }
 
   if (!dice_emojis.empty()) {
