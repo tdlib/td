@@ -9879,39 +9879,41 @@ bool MessagesManager::delete_newer_server_messages_at_the_end(Dialog *d, Message
     return false;
   }
 
-  bool need_update_dialog_pos = false;
-  vector<int64> deleted_message_ids;
+  vector<MessageId> server_message_ids;
+  vector<MessageId> kept_message_ids;
   for (auto message_id : message_ids) {
     CHECK(message_id > max_message_id);
     if (message_id.is_server()) {
-      auto message =
-          delete_message(d, message_id, true, &need_update_dialog_pos, "delete_newer_server_messages_at_the_end 1");
-      CHECK(message != nullptr);
-      deleted_message_ids.push_back(message->message_id.get());
+      server_message_ids.push_back(message_id);
+    } else {
+      kept_message_ids.push_back(message_id);
     }
   }
+
+  bool need_update_dialog_pos = false;
+  vector<int64> deleted_message_ids;
+  for (auto message_id : server_message_ids) {
+    auto message =
+        delete_message(d, message_id, true, &need_update_dialog_pos, "delete_newer_server_messages_at_the_end");
+    CHECK(message != nullptr);
+    deleted_message_ids.push_back(message->message_id.get());
+  }
   if (need_update_dialog_pos) {
-    send_update_chat_last_message(d, "delete_newer_server_messages_at_the_end 2");
+    send_update_chat_last_message(d, "delete_newer_server_messages_at_the_end");
   }
-
-  if (!deleted_message_ids.empty()) {
-    send_update_delete_messages(d->dialog_id, std::move(deleted_message_ids), true, false);
-
-    message_ids.clear();
-    find_newer_messages(d->messages.get(), max_message_id, message_ids);
-  }
+  send_update_delete_messages(d->dialog_id, std::move(deleted_message_ids), true, false);
 
   // connect all messages with ID > max_message_id
-  for (size_t i = 0; i + 1 < message_ids.size(); i++) {
-    auto m = get_message(d, message_ids[i]);
+  for (size_t i = 0; i + 1 < kept_message_ids.size(); i++) {
+    auto m = get_message(d, kept_message_ids[i]);
     CHECK(m != nullptr);
     if (!m->have_next) {
       m->have_next = true;
-      attach_message_to_next(d, message_ids[i], "delete_newer_server_messages_at_the_end 3");
+      attach_message_to_next(d, kept_message_ids[i], "delete_newer_server_messages_at_the_end");
     }
   }
 
-  return !message_ids.empty();
+  return !kept_message_ids.empty();
 }
 
 void MessagesManager::on_get_history(DialogId dialog_id, MessageId from_message_id, MessageId old_last_new_message_id,
