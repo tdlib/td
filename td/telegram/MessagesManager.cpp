@@ -8077,10 +8077,15 @@ bool MessagesManager::process_channel_update(tl_object_ptr<telegram_api::Update>
 
       vector<MessageId> message_ids;
       for (auto &message : update->messages_) {
-        message_ids.push_back(MessageId(ServerMessageId(message)));
+        auto message_id = MessageId(ServerMessageId(message));
+        if (message_id.is_valid()) {
+          message_ids.push_back(message_id);
+        } else {
+          LOG(ERROR) << "Receive updateDeleteChannelMessages with message " << message << " in " << channel_id;
+        }
       }
 
-      delete_dialog_messages(DialogId(channel_id), message_ids, true, false, "updateDeleteChannelMessages");
+      delete_dialog_messages(DialogId(channel_id), message_ids, false, "updateDeleteChannelMessages");
       break;
     }
     case telegram_api::updateEditChannelMessage::ID: {
@@ -9768,7 +9773,7 @@ void MessagesManager::on_restore_missing_message_after_get_difference(FullMessag
 
 void MessagesManager::on_get_empty_messages(DialogId dialog_id, const vector<MessageId> &empty_message_ids) {
   if (!empty_message_ids.empty()) {
-    delete_dialog_messages(dialog_id, empty_message_ids, true, true, "on_get_empty_messages");
+    delete_dialog_messages(dialog_id, empty_message_ids, true, "on_get_empty_messages");
   }
 }
 
@@ -10782,33 +10787,24 @@ void MessagesManager::delete_messages_from_updates(const vector<MessageId> &mess
 }
 
 void MessagesManager::delete_dialog_messages(DialogId dialog_id, const vector<MessageId> &message_ids,
-                                             bool from_updates, bool skip_update_for_not_found_messages,
-                                             const char *source) {
+                                             bool skip_update_for_not_found_messages, const char *source) {
   Dialog *d = get_dialog_force(dialog_id, "delete_dialog_messages");
   if (d == nullptr) {
     LOG(INFO) << "Ignore deleteChannelMessages for unknown " << dialog_id << " from " << source;
-    CHECK(from_updates);
     CHECK(dialog_id.get_type() == DialogType::Channel);
     return;
   }
 
-  delete_dialog_messages(d, message_ids, from_updates, skip_update_for_not_found_messages, source);
+  delete_dialog_messages(d, message_ids, skip_update_for_not_found_messages, source);
 }
 
-void MessagesManager::delete_dialog_messages(Dialog *d, const vector<MessageId> &message_ids, bool from_updates,
+void MessagesManager::delete_dialog_messages(Dialog *d, const vector<MessageId> &message_ids,
                                              bool skip_update_for_not_found_messages, const char *source) {
   vector<int64> deleted_message_ids;
   bool need_update_dialog_pos = false;
   for (auto message_id : message_ids) {
     CHECK(!message_id.is_scheduled());
-    if (from_updates) {
-      if (!message_id.is_valid() || (!message_id.is_server() && d->dialog_id.get_type() != DialogType::SecretChat)) {
-        LOG(ERROR) << "Tried to delete " << message_id << " in " << d->dialog_id << " from " << source;
-        continue;
-      }
-    } else {
-      CHECK(message_id.is_valid());
-    }
+    CHECK(message_id.is_valid());
 
     bool was_already_deleted = is_deleted_message(d, message_id);
     auto message = delete_message(d, message_id, true, &need_update_dialog_pos, source);
@@ -13438,7 +13434,7 @@ void MessagesManager::ttl_loop(double now) {
     }
   }
   for (auto &it : to_delete) {
-    delete_dialog_messages(it.first, it.second, false, true, "ttl_loop");
+    delete_dialog_messages(it.first, it.second, true, "ttl_loop");
   }
   ttl_update_timeout(now);
 }
@@ -14249,7 +14245,7 @@ void MessagesManager::finish_delete_secret_messages(DialogId dialog_id, std::vec
       LOG(INFO) << "Skip deletion of service " << message_id;
     }
   }
-  delete_dialog_messages(d, to_delete_message_ids, true, false, "finish_delete_secret_messages");
+  delete_dialog_messages(d, to_delete_message_ids, false, "finish_delete_secret_messages");
 }
 
 void MessagesManager::delete_secret_chat_history(SecretChatId secret_chat_id, bool remove_from_dialog_list,
