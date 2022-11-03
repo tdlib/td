@@ -10780,10 +10780,10 @@ void MessagesManager::delete_dialog_messages(Dialog *d, const vector<MessageId> 
   for (auto message_id : message_ids) {
     CHECK(message_id.is_valid() || message_id.is_valid_scheduled());
 
-    bool was_already_deleted = is_deleted_message(d, message_id);
+    bool force_update = force_update_for_not_found_messages && !is_deleted_message(d, message_id);
     auto message = delete_message(d, message_id, true, &need_update_dialog_pos, source);
     if (message == nullptr) {
-      if (force_update_for_not_found_messages && !was_already_deleted) {
+      if (force_update) {
         deleted_message_ids.push_back(message_id.get());
       }
     } else {
