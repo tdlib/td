@@ -32257,7 +32257,8 @@ void MessagesManager::on_send_message_fail(int64 random_id, Status error) {
     case 400:
       if (error.message() == "MESSAGE_TOO_LONG") {
         error_message = "Message is too long";
-        // TODO move check to send_message
+      } else if (error.message() == "MEDIA_CAPTION_TOO_LONG") {
+        error_message = "Message caption is too long";
       } else if (error.message() == "INPUT_USER_DEACTIVATED") {
         error_code = 403;
         error_message = "User is deactivated";

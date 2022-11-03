@@ -1818,6 +1818,11 @@ static Result<InputMessageContent> create_input_message_content(
       disable_web_page_preview = input_message_text.disable_web_page_preview;
       clear_draft = input_message_text.clear_draft;
 
+      if (is_bot && static_cast<int64>(utf8_length(input_message_text.text.text)) >
+                        G()->get_option_integer("message_text_length_max")) {
+        return Status::Error(400, "Message is too long");
+      }
+
       WebPageId web_page_id;
       bool can_add_web_page_previews =
           dialog_id.get_type() != DialogType::Channel ||
@@ -2210,8 +2215,12 @@ Result<InputMessageContent> get_input_message_content(
     }
   }
 
-  TRY_RESULT(caption, get_formatted_text(td, dialog_id, extract_input_caption(input_message_content),
-                                         td->auth_manager_->is_bot(), true, false, false));
+  bool is_bot = td->auth_manager_->is_bot();
+  TRY_RESULT(caption, get_formatted_text(td, dialog_id, extract_input_caption(input_message_content), is_bot, true,
+                                         false, false));
+  if (is_bot && static_cast<int64>(utf8_length(caption.text)) > G()->get_option_integer("message_caption_length_max")) {
+    return Status::Error(400, "Message caption is too long");
+  }
   return create_input_message_content(dialog_id, std::move(input_message_content), td, std::move(caption), file_id,
                                       std::move(thumbnail), std::move(sticker_file_ids), is_premium);
 }
