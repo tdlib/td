@@ -1052,6 +1052,8 @@ class StickersManager final : public Actor {
   vector<Promise<Unit>> pending_get_default_statuses_queries_;
   vector<Promise<Unit>> pending_get_default_topic_icons_queries_;
 
+  vector<std::pair<string, Promise<td_api::object_ptr<td_api::emojiReaction>>>> pending_get_emoji_reaction_queries_;
+
   double next_click_animated_emoji_message_time_ = 0;
   double next_update_animated_emoji_clicked_time_ = 0;
   vector<PendingGetAnimatedEmojiClickSticker> pending_get_animated_emoji_click_stickers_;

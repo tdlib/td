@@ -55,6 +55,7 @@
 #include "td/utils/misc.h"
 #include "td/utils/PathView.h"
 #include "td/utils/Random.h"
+#include "td/utils/ScopeGuard.h"
 #include "td/utils/Slice.h"
 #include "td/utils/SliceBuilder.h"
 #include "td/utils/StackAllocator.h"
@@ -1580,6 +1581,10 @@ td_api::object_ptr<td_api::emojiReaction> StickersManager::get_emoji_reaction_ob
 void StickersManager::get_emoji_reaction(const string &emoji,
                                          Promise<td_api::object_ptr<td_api::emojiReaction>> &&promise) {
   load_reactions();
+  if (reactions_.reactions_.empty() && reactions_.are_being_reloaded_) {
+    pending_get_emoji_reaction_queries_.emplace_back(emoji, std::move(promise));
+    return;
+  }
   promise.set_value(get_emoji_reaction_object(emoji));
 }
 
@@ -4003,6 +4008,14 @@ void StickersManager::on_get_available_reactions(
     tl_object_ptr<telegram_api::messages_AvailableReactions> &&available_reactions_ptr) {
   CHECK(reactions_.are_being_reloaded_);
   reactions_.are_being_reloaded_ = false;
+
+  auto get_emoji_reaction_queries = std::move(pending_get_emoji_reaction_queries_);
+  pending_get_emoji_reaction_queries_.clear();
+  SCOPE_EXIT {
+    for (auto &query : get_emoji_reaction_queries) {
+      query.second.set_value(get_emoji_reaction_object(query.first));
+    }
+  };
 
   if (available_reactions_ptr == nullptr) {
     // failed to get available reactions
