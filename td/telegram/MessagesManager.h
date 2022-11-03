@@ -1985,6 +1985,9 @@ class MessagesManager final : public Actor {
   void delete_dialog_messages(DialogId dialog_id, const vector<MessageId> &message_ids, bool from_updates,
                               bool skip_update_for_not_found_messages, const char *source);
 
+  void delete_dialog_messages(Dialog *d, const vector<MessageId> &message_ids, bool from_updates,
+                              bool skip_update_for_not_found_messages, const char *source);
+
   void update_dialog_pinned_messages_from_updates(DialogId dialog_id, const vector<MessageId> &message_ids,
                                                   bool is_pin);
 

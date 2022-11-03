@@ -8080,8 +8080,7 @@ bool MessagesManager::process_channel_update(tl_object_ptr<telegram_api::Update>
         message_ids.push_back(MessageId(ServerMessageId(message)));
       }
 
-      auto dialog_id = DialogId(channel_id);
-      delete_dialog_messages(dialog_id, message_ids, true, false, "updateDeleteChannelMessages");
+      delete_dialog_messages(DialogId(channel_id), message_ids, true, false, "updateDeleteChannelMessages");
       break;
     }
     case telegram_api::updateEditChannelMessage::ID: {
@@ -10793,13 +10792,18 @@ void MessagesManager::delete_dialog_messages(DialogId dialog_id, const vector<Me
     return;
   }
 
+  delete_dialog_messages(d, message_ids, from_updates, skip_update_for_not_found_messages, source);
+}
+
+void MessagesManager::delete_dialog_messages(Dialog *d, const vector<MessageId> &message_ids, bool from_updates,
+                                             bool skip_update_for_not_found_messages, const char *source) {
   vector<int64> deleted_message_ids;
   bool need_update_dialog_pos = false;
   for (auto message_id : message_ids) {
     CHECK(!message_id.is_scheduled());
     if (from_updates) {
-      if (!message_id.is_valid() || (!message_id.is_server() && dialog_id.get_type() != DialogType::SecretChat)) {
-        LOG(ERROR) << "Tried to delete " << message_id << " in " << dialog_id << " from " << source;
+      if (!message_id.is_valid() || (!message_id.is_server() && d->dialog_id.get_type() != DialogType::SecretChat)) {
+        LOG(ERROR) << "Tried to delete " << message_id << " in " << d->dialog_id << " from " << source;
         continue;
       }
     } else {
@@ -10819,7 +10823,7 @@ void MessagesManager::delete_dialog_messages(DialogId dialog_id, const vector<Me
   if (need_update_dialog_pos) {
     send_update_chat_last_message(d, source);
   }
-  send_update_delete_messages(dialog_id, std::move(deleted_message_ids), true, false);
+  send_update_delete_messages(d->dialog_id, std::move(deleted_message_ids), true, false);
 }
 
 void MessagesManager::update_dialog_pinned_messages_from_updates(DialogId dialog_id,
@@ -14245,7 +14249,7 @@ void MessagesManager::finish_delete_secret_messages(DialogId dialog_id, std::vec
       LOG(INFO) << "Skip deletion of service " << message_id;
     }
   }
-  delete_dialog_messages(dialog_id, to_delete_message_ids, true, false, "finish_delete_secret_messages");
+  delete_dialog_messages(d, to_delete_message_ids, true, false, "finish_delete_secret_messages");
 }
 
 void MessagesManager::delete_secret_chat_history(SecretChatId secret_chat_id, bool remove_from_dialog_list,
