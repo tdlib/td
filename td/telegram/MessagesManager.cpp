@@ -10739,6 +10739,7 @@ void MessagesManager::on_get_message_public_forwards(int32 total_count,
 void MessagesManager::delete_messages_from_updates(const vector<MessageId> &message_ids) {
   FlatHashMap<DialogId, vector<int64>, DialogIdHash> deleted_message_ids;
   FlatHashMap<DialogId, bool, DialogIdHash> need_update_dialog_pos;
+  vector<unique_ptr<Message>> deleted_messages;
   for (auto message_id : message_ids) {
     if (!message_id.is_valid() || !message_id.is_server()) {
       LOG(ERROR) << "Incoming update tries to delete " << message_id;
@@ -10752,6 +10753,7 @@ void MessagesManager::delete_messages_from_updates(const vector<MessageId> &mess
       CHECK(message != nullptr);
       LOG_CHECK(message->message_id == message_id) << message_id << " " << message->message_id << " " << d->dialog_id;
       deleted_message_ids[d->dialog_id].push_back(message->message_id.get());
+      deleted_messages.push_back(std::move(message));
     }
     if (last_clear_history_message_id_to_dialog_id_.count(message_id)) {
       d = get_dialog(last_clear_history_message_id_to_dialog_id_[message_id]);
@@ -10772,6 +10774,9 @@ void MessagesManager::delete_messages_from_updates(const vector<MessageId> &mess
   for (auto &it : deleted_message_ids) {
     auto dialog_id = it.first;
     send_update_delete_messages(dialog_id, std::move(it.second), true, false);
+  }
+  if (deleted_messages.size() >= MIN_DELETED_ASYNCHRONOUSLY_MESSAGES) {
+    Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), deleted_messages);
   }
 }
 
@@ -11113,15 +11118,20 @@ void MessagesManager::delete_messages(DialogId dialog_id, const vector<MessageId
 
   bool need_update_dialog_pos = false;
   bool need_update_chat_has_scheduled_messages = false;
+  vector<unique_ptr<Message>> deleted_messages;
   vector<int64> deleted_message_ids;
   for (auto message_id : message_ids) {
-    auto m = delete_message(d, message_id, true, &need_update_dialog_pos, DELETE_MESSAGE_USER_REQUEST_SOURCE);
-    if (m == nullptr) {
+    auto message = delete_message(d, message_id, true, &need_update_dialog_pos, DELETE_MESSAGE_USER_REQUEST_SOURCE);
+    if (message == nullptr) {
       LOG(INFO) << "Can't delete " << message_id << " because it is not found";
     } else {
-      need_update_chat_has_scheduled_messages |= m->message_id.is_scheduled();
-      deleted_message_ids.push_back(m->message_id.get());
+      need_update_chat_has_scheduled_messages |= message->message_id.is_scheduled();
+      deleted_message_ids.push_back(message->message_id.get());
+      deleted_messages.push_back(std::move(message));
     }
+  }
+  if (deleted_messages.size() >= MIN_DELETED_ASYNCHRONOUSLY_MESSAGES) {
+    Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), deleted_messages);
   }
 
   if (need_update_dialog_pos) {
@@ -12008,9 +12018,13 @@ void MessagesManager::unload_dialog(DialogId dialog_id) {
                            to_unload_message_ids, has_left_to_unload_messages);
 
   vector<int64> unloaded_message_ids;
+  vector<unique_ptr<Message>> unloaded_messages;
   for (auto message_id : to_unload_message_ids) {
-    unload_message(d, message_id);
+    unloaded_messages.push_back(unload_message(d, message_id));
     unloaded_message_ids.push_back(message_id.get());
+  }
+  if (unloaded_messages.size() >= MIN_DELETED_ASYNCHRONOUSLY_MESSAGES) {
+    Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), unloaded_messages);
   }
 
   if (!unloaded_message_ids.empty()) {
@@ -16311,12 +16325,13 @@ bool MessagesManager::can_unload_message(const Dialog *d, const Message *m) cons
          (m->media_album_id != d->last_media_album_id || m->media_album_id == 0);
 }
 
-void MessagesManager::unload_message(Dialog *d, MessageId message_id) {
+unique_ptr<MessagesManager::Message> MessagesManager::unload_message(Dialog *d, MessageId message_id) {
   CHECK(d != nullptr);
   CHECK(message_id.is_valid());
   bool need_update_dialog_pos = false;
   auto m = do_delete_message(d, message_id, false, true, &need_update_dialog_pos, "unload_message");
   CHECK(!need_update_dialog_pos);
+  return m;
 }
 
 unique_ptr<MessagesManager::Message> MessagesManager::delete_message(Dialog *d, MessageId message_id,
