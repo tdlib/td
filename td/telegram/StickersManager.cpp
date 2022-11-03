@@ -3857,29 +3857,30 @@ td_api::object_ptr<td_api::updateActiveEmojiReactions> StickersManager::get_upda
 }
 
 void StickersManager::save_active_reactions() {
-  LOG(INFO) << "Save active reactions";
+  LOG(INFO) << "Save " << active_reactions_.size() << " active reactions";
   G()->td_db()->get_binlog_pmc()->set("active_reactions", log_event_store(active_reactions_).as_slice().str());
 }
 
 void StickersManager::save_reactions() {
-  LOG(INFO) << "Save available reactions";
+  LOG(INFO) << "Save " << reactions_.reactions_.size() << " available reactions";
   are_reactions_loaded_from_database_ = true;
   G()->td_db()->get_binlog_pmc()->set("reactions", log_event_store(reactions_).as_slice().str());
 }
 
 void StickersManager::save_recent_reactions() {
-  LOG(INFO) << "Save recent reactions";
+  LOG(INFO) << "Save " << recent_reactions_.reactions_.size() << " recent reactions";
   are_recent_reactions_loaded_from_database_ = true;
   G()->td_db()->get_binlog_pmc()->set("recent_reactions", log_event_store(recent_reactions_).as_slice().str());
 }
 
 void StickersManager::save_top_reactions() {
-  LOG(INFO) << "Save top reactions";
+  LOG(INFO) << "Save " << top_reactions_.reactions_.size() << " top reactions";
   are_top_reactions_loaded_from_database_ = true;
   G()->td_db()->get_binlog_pmc()->set("top_reactions", log_event_store(top_reactions_).as_slice().str());
 }
 
 void StickersManager::load_active_reactions() {
+  LOG(INFO) << "Loading active reactions";
   string active_reactions = G()->td_db()->get_binlog_pmc()->get("active_reactions");
   if (active_reactions.empty()) {
     return reload_reactions();
@@ -3905,6 +3906,7 @@ void StickersManager::load_reactions() {
   }
   are_reactions_loaded_from_database_ = true;
 
+  LOG(INFO) << "Loading available reactions";
   string reactions = G()->td_db()->get_binlog_pmc()->get("reactions");
   if (reactions.empty()) {
     return reload_reactions();
@@ -3935,6 +3937,7 @@ void StickersManager::load_recent_reactions() {
   }
   are_recent_reactions_loaded_from_database_ = true;
 
+  LOG(INFO) << "Loading recent reactions";
   string recent_reactions = G()->td_db()->get_binlog_pmc()->get("recent_reactions");
   if (recent_reactions.empty()) {
     return reload_recent_reactions();
@@ -3956,6 +3959,7 @@ void StickersManager::load_top_reactions() {
   }
   are_top_reactions_loaded_from_database_ = true;
 
+  LOG(INFO) << "Loading top reactions";
   string top_reactions = G()->td_db()->get_binlog_pmc()->get("top_reactions");
   if (top_reactions.empty()) {
     return reload_top_reactions();
