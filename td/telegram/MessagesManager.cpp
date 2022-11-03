@@ -9747,24 +9747,8 @@ void MessagesManager::on_restore_missing_message_after_get_difference(FullMessag
     if (!have_message && update_message_ids_.count(full_message_id)) {
       LOG(ERROR) << "Receive messageEmpty instead of missing " << full_message_id << " for " << old_message_id;
 
-      auto dialog_id = full_message_id.get_dialog_id();
-      Dialog *d = get_dialog(dialog_id);
-      CHECK(d != nullptr);
-
-      bool need_update_dialog_pos = false;
-      vector<int64> deleted_message_ids;
-      auto m = delete_message(d, old_message_id, true, &need_update_dialog_pos,
-                              "on_restore_missing_message_after_get_difference");
-      if (m == nullptr) {
-        LOG(INFO) << "Can't delete " << old_message_id << " because it is not found";
-      } else {
-        deleted_message_ids.push_back(m->message_id.get());
-      }
-
-      if (need_update_dialog_pos) {
-        send_update_chat_last_message(d, "on_restore_missing_message_after_get_difference");
-      }
-      send_update_delete_messages(dialog_id, std::move(deleted_message_ids), true, false);
+      delete_dialog_messages(full_message_id.get_dialog_id(), {old_message_id}, false,
+                             "on_restore_missing_message_after_get_difference");
 
       update_message_ids_.erase(full_message_id);
     }
@@ -9894,18 +9878,7 @@ bool MessagesManager::delete_newer_server_messages_at_the_end(Dialog *d, Message
     }
   }
 
-  bool need_update_dialog_pos = false;
-  vector<int64> deleted_message_ids;
-  for (auto message_id : server_message_ids) {
-    auto message =
-        delete_message(d, message_id, true, &need_update_dialog_pos, "delete_newer_server_messages_at_the_end");
-    CHECK(message != nullptr);
-    deleted_message_ids.push_back(message->message_id.get());
-  }
-  if (need_update_dialog_pos) {
-    send_update_chat_last_message(d, "delete_newer_server_messages_at_the_end");
-  }
-  send_update_delete_messages(d->dialog_id, std::move(deleted_message_ids), true, false);
+  delete_dialog_messages(d, server_message_ids, false, "delete_newer_server_messages_at_the_end");
 
   // connect all messages with ID > max_message_id
   for (size_t i = 0; i + 1 < kept_message_ids.size(); i++) {
@@ -10769,6 +10742,9 @@ void MessagesManager::delete_messages_from_updates(const vector<MessageId> &mess
       CHECK(message == nullptr);
     }
   }
+  if (deleted_messages.size() >= MIN_DELETED_ASYNCHRONOUSLY_MESSAGES) {
+    Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), deleted_messages);
+  }
   for (auto &it : need_update_dialog_pos) {
     if (it.second) {
       auto dialog_id = it.first;
@@ -10780,9 +10756,6 @@ void MessagesManager::delete_messages_from_updates(const vector<MessageId> &mess
   for (auto &it : deleted_message_ids) {
     auto dialog_id = it.first;
     send_update_delete_messages(dialog_id, std::move(it.second), true, false);
-  }
-  if (deleted_messages.size() >= MIN_DELETED_ASYNCHRONOUSLY_MESSAGES) {
-    Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), deleted_messages);
   }
 }
 
@@ -10803,9 +10776,9 @@ void MessagesManager::delete_dialog_messages(Dialog *d, const vector<MessageId> 
   vector<unique_ptr<Message>> deleted_messages;
   vector<int64> deleted_message_ids;
   bool need_update_dialog_pos = false;
+  bool need_update_chat_has_scheduled_messages = false;
   for (auto message_id : message_ids) {
-    CHECK(!message_id.is_scheduled());
-    CHECK(message_id.is_valid());
+    CHECK(message_id.is_valid() || message_id.is_valid_scheduled());
 
     bool was_already_deleted = is_deleted_message(d, message_id);
     auto message = delete_message(d, message_id, true, &need_update_dialog_pos, source);
@@ -10814,6 +10787,7 @@ void MessagesManager::delete_dialog_messages(Dialog *d, const vector<MessageId> 
         deleted_message_ids.push_back(message_id.get());
       }
     } else {
+      need_update_chat_has_scheduled_messages |= message->message_id.is_scheduled();
       deleted_message_ids.push_back(message->message_id.get());
       deleted_messages.push_back(std::move(message));
     }
@@ -10825,6 +10799,10 @@ void MessagesManager::delete_dialog_messages(Dialog *d, const vector<MessageId> 
     send_update_chat_last_message(d, source);
   }
   send_update_delete_messages(d->dialog_id, std::move(deleted_message_ids), true, false);
+
+  if (need_update_chat_has_scheduled_messages) {
+    send_update_chat_has_scheduled_messages(d, true);
+  }
 }
 
 void MessagesManager::update_dialog_pinned_messages_from_updates(DialogId dialog_id,
@@ -11123,32 +11101,7 @@ void MessagesManager::delete_messages(DialogId dialog_id, const vector<MessageId
                                       mpas.get_promise());
   lock.set_value(Unit());
 
-  bool need_update_dialog_pos = false;
-  bool need_update_chat_has_scheduled_messages = false;
-  vector<unique_ptr<Message>> deleted_messages;
-  vector<int64> deleted_message_ids;
-  for (auto message_id : message_ids) {
-    auto message = delete_message(d, message_id, true, &need_update_dialog_pos, DELETE_MESSAGE_USER_REQUEST_SOURCE);
-    if (message == nullptr) {
-      LOG(INFO) << "Can't delete " << message_id << " because it is not found";
-    } else {
-      need_update_chat_has_scheduled_messages |= message->message_id.is_scheduled();
-      deleted_message_ids.push_back(message->message_id.get());
-      deleted_messages.push_back(std::move(message));
-    }
-  }
-  if (deleted_messages.size() >= MIN_DELETED_ASYNCHRONOUSLY_MESSAGES) {
-    Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), deleted_messages);
-  }
-
-  if (need_update_dialog_pos) {
-    send_update_chat_last_message(d, "delete_messages");
-  }
-  send_update_delete_messages(dialog_id, std::move(deleted_message_ids), true, false);
-
-  if (need_update_chat_has_scheduled_messages) {
-    send_update_chat_has_scheduled_messages(d, true);
-  }
+  delete_dialog_messages(d, message_ids, false, DELETE_MESSAGE_USER_REQUEST_SOURCE);
 }
 
 void MessagesManager::erase_delete_messages_log_event(uint64 log_event_id) {
@@ -11784,27 +11737,11 @@ void MessagesManager::delete_dialog_messages_by_sender(DialogId dialog_id, Dialo
   }
 
   vector<MessageId> message_ids;
-  find_messages(d->messages.get(), message_ids,
-                [sender_dialog_id](const Message *m) { return sender_dialog_id == get_message_sender(m); });
+  find_messages(d->messages.get(), message_ids, [sender_dialog_id, channel_status, is_bot](const Message *m) {
+    return sender_dialog_id == get_message_sender(m) && can_delete_channel_message(channel_status, m, is_bot);
+  });
 
-  vector<int64> deleted_message_ids;
-  bool need_update_dialog_pos = false;
-  for (auto message_id : message_ids) {
-    auto m = get_message(d, message_id);
-    CHECK(m != nullptr);
-    CHECK(m->message_id == message_id);
-    if (can_delete_channel_message(channel_status, m, is_bot)) {
-      auto p = delete_message(d, message_id, true, &need_update_dialog_pos, "delete_dialog_messages_by_sender");
-      CHECK(p.get() == m);
-      deleted_message_ids.push_back(p->message_id.get());
-    }
-  }
-
-  if (need_update_dialog_pos) {
-    send_update_chat_last_message(d, "delete_dialog_messages_by_sender");
-  }
-
-  send_update_delete_messages(dialog_id, std::move(deleted_message_ids), true, false);
+  delete_dialog_messages(d, message_ids, false, DELETE_MESSAGE_USER_REQUEST_SOURCE);
 
   delete_all_channel_messages_by_sender_on_server(channel_id, sender_dialog_id, 0, std::move(promise));
 }
@@ -11914,18 +11851,7 @@ void MessagesManager::delete_dialog_messages_by_date(DialogId dialog_id, int32 m
   vector<MessageId> message_ids;
   find_messages_by_date(d->messages.get(), min_date, max_date, message_ids);
 
-  bool need_update_dialog_pos = false;
-  vector<int64> deleted_message_ids;
-  for (auto message_id : message_ids) {
-    auto m = delete_message(d, message_id, true, &need_update_dialog_pos, DELETE_MESSAGE_USER_REQUEST_SOURCE);
-    CHECK(m != nullptr);
-    deleted_message_ids.push_back(m->message_id.get());
-  }
-
-  if (need_update_dialog_pos) {
-    send_update_chat_last_message(d, "delete_dialog_messages_by_date");
-  }
-  send_update_delete_messages(dialog_id, std::move(deleted_message_ids), true, false);
+  delete_dialog_messages(d, message_ids, false, DELETE_MESSAGE_USER_REQUEST_SOURCE);
 
   delete_dialog_messages_by_date_on_server(dialog_id, min_date, max_date, revoke, 0, std::move(promise));
 }
@@ -18346,30 +18272,17 @@ void MessagesManager::block_message_sender_from_replies(MessageId message_id, bo
   if (m->forward_info != nullptr) {
     sender_user_id = m->forward_info->sender_user_id;
   }
-  bool need_update_dialog_pos = false;
-  vector<int64> deleted_message_ids;
-  if (need_delete_message) {
-    auto p = delete_message(d, message_id, true, &need_update_dialog_pos, "block_message_sender_from_replies");
-    CHECK(p.get() == m);
-    deleted_message_ids.push_back(p->message_id.get());
-  }
+  vector<MessageId> message_ids;
   if (need_delete_all_messages && sender_user_id.is_valid()) {
-    vector<MessageId> message_ids;
     find_messages(d->messages.get(), message_ids, [sender_user_id](const Message *m) {
       return !m->is_outgoing && m->forward_info != nullptr && m->forward_info->sender_user_id == sender_user_id;
     });
-
-    for (auto user_message_id : message_ids) {
-      auto p = delete_message(d, user_message_id, true, &need_update_dialog_pos, "block_message_sender_from_replies 2");
-      deleted_message_ids.push_back(p->message_id.get());
-    }
+    CHECK(td::contains(message_ids, message_id));
+  } else if (need_delete_message) {
+    message_ids.push_back(message_id);
   }
 
-  if (need_update_dialog_pos) {
-    send_update_chat_last_message(d, "block_message_sender_from_replies");
-  }
-
-  send_update_delete_messages(dialog_id, std::move(deleted_message_ids), true, false);
+  delete_dialog_messages(d, message_ids, false, DELETE_MESSAGE_USER_REQUEST_SOURCE);
 
   block_message_sender_from_replies_on_server(message_id, need_delete_message, need_delete_all_messages, report_spam, 0,
                                               std::move(promise));
