@@ -1564,8 +1564,7 @@ void StickersManager::init() {
   td_->option_manager_->set_option_empty("animated_emoji_sticker_set_name");  // legacy
 }
 
-td_api::object_ptr<td_api::emojiReaction> StickersManager::get_emoji_reaction_object(const string &emoji) {
-  load_reactions();
+td_api::object_ptr<td_api::emojiReaction> StickersManager::get_emoji_reaction_object(const string &emoji) const {
   for (auto &reaction : reactions_.reactions_) {
     if (reaction.reaction_ == emoji) {
       return td_api::make_object<td_api::emojiReaction>(
@@ -1576,6 +1575,12 @@ td_api::object_ptr<td_api::emojiReaction> StickersManager::get_emoji_reaction_ob
     }
   }
   return nullptr;
+}
+
+void StickersManager::get_emoji_reaction(const string &emoji,
+                                         Promise<td_api::object_ptr<td_api::emojiReaction>> &&promise) {
+  load_reactions();
+  promise.set_value(get_emoji_reaction_object(emoji));
 }
 
 vector<string> StickersManager::get_recent_reactions() {

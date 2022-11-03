@@ -179,7 +179,7 @@ class StickersManager final : public Actor {
 
   void view_featured_sticker_sets(const vector<StickerSetId> &sticker_set_ids);
 
-  td_api::object_ptr<td_api::emojiReaction> get_emoji_reaction_object(const string &emoji);
+  void get_emoji_reaction(const string &emoji, Promise<td_api::object_ptr<td_api::emojiReaction>> &&promise);
 
   vector<string> get_recent_reactions();
 
@@ -612,6 +612,8 @@ class StickersManager final : public Actor {
 
   tl_object_ptr<td_api::stickerSetInfo> get_sticker_set_info_object(StickerSetId sticker_set_id, size_t covers_limit,
                                                                     bool prefer_premium) const;
+
+  td_api::object_ptr<td_api::emojiReaction> get_emoji_reaction_object(const string &emoji) const;
 
   Sticker *get_sticker(FileId file_id);
   const Sticker *get_sticker(FileId file_id) const;
