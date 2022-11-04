@@ -12258,6 +12258,10 @@ void ContactsManager::do_update_user_photo(User *u, UserId user_id, ProfilePhoto
         }
       }
     }
+  } else if (need_update_dialog_photo_minithumbnail(u->photo.minithumbnail, new_photo.minithumbnail)) {
+    u->photo.minithumbnail = std::move(new_photo.minithumbnail);
+    u->is_photo_changed = true;
+    u->is_changed = true;
   }
 }
 
@@ -14426,6 +14430,10 @@ void ContactsManager::on_update_chat_photo(Chat *c, ChatId chat_id, DialogPhoto 
         update_chat_full(chat_full, chat_id, "on_update_chat_photo");
       }
     }
+  } else if (need_update_dialog_photo_minithumbnail(c->photo.minithumbnail, photo.minithumbnail)) {
+    c->photo.minithumbnail = std::move(photo.minithumbnail);
+    c->is_photo_changed = true;
+    c->need_save_to_database = true;
   }
 }
 
@@ -14576,6 +14584,10 @@ void ContactsManager::on_update_channel_photo(Channel *c, ChannelId channel_id, 
         update_channel_full(channel_full, channel_id, "on_update_channel_photo");
       }
     }
+  } else if (need_update_dialog_photo_minithumbnail(c->photo.minithumbnail, photo.minithumbnail)) {
+    c->photo.minithumbnail = std::move(photo.minithumbnail);
+    c->is_photo_changed = true;
+    c->need_save_to_database = true;
   }
 }
 

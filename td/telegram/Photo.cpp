@@ -196,8 +196,7 @@ bool is_same_dialog_photo(FileManager *file_manager, DialogId dialog_id, const P
 
 bool need_update_dialog_photo(const DialogPhoto &from, const DialogPhoto &to) {
   return from.small_file_id != to.small_file_id || from.big_file_id != to.big_file_id ||
-         from.has_animation != to.has_animation ||
-         need_update_dialog_photo_minithumbnail(from.minithumbnail, to.minithumbnail);
+         from.has_animation != to.has_animation;
 }
 
 StringBuilder &operator<<(StringBuilder &string_builder, const DialogPhoto &dialog_photo) {
