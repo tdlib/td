@@ -2870,7 +2870,7 @@ class MessagesManager final : public Actor {
 
   void edit_dialog_filter(unique_ptr<DialogFilter> new_dialog_filter, const char *source);
 
-  void delete_dialog_filter(DialogFilterId dialog_filter_id, const char *source);
+  int32 delete_dialog_filter(DialogFilterId dialog_filter_id, const char *source);
 
   static bool set_dialog_filters_order(vector<unique_ptr<DialogFilter>> &dialog_filters,
                                        vector<DialogFilterId> dialog_filter_ids);

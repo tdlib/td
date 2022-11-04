@@ -19699,6 +19699,9 @@ void MessagesManager::create_dialog_filter(td_api::object_ptr<td_api::chatFilter
   }
 
   add_dialog_filter(std::move(dialog_filter), at_beginning, "create_dialog_filter");
+  if (at_beginning && main_dialog_list_position_ != 0) {
+    main_dialog_list_position_++;
+  }
   save_dialog_filters();
   send_update_chat_filters();
 
@@ -19780,8 +19783,8 @@ void MessagesManager::on_update_dialog_filter(unique_ptr<DialogFilter> dialog_fi
       } else {
         server_dialog_filters_.push_back(std::move(dialog_filter));
       }
-      if (at_beginning && main_dialog_list_position_ != 0) {
-        main_dialog_list_position_++;
+      if (at_beginning && server_main_dialog_list_position_ != 0) {
+        server_main_dialog_list_position_++;
       }
     }
     save_dialog_filters();
@@ -19798,7 +19801,10 @@ void MessagesManager::delete_dialog_filter(DialogFilterId dialog_filter_id, Prom
     return promise.set_value(Unit());
   }
 
-  delete_dialog_filter(dialog_filter_id, "delete_dialog_filter");
+  int32 position = delete_dialog_filter(dialog_filter_id, "delete_dialog_filter");
+  if (main_dialog_list_position_ > position) {
+    main_dialog_list_position_--;
+  }
   save_dialog_filters();
   send_update_chat_filters();
 
@@ -20194,10 +20200,10 @@ void MessagesManager::edit_dialog_filter(unique_ptr<DialogFilter> new_dialog_fil
   UNREACHABLE();
 }
 
-void MessagesManager::delete_dialog_filter(DialogFilterId dialog_filter_id, const char *source) {
+int32 MessagesManager::delete_dialog_filter(DialogFilterId dialog_filter_id, const char *source) {
   if (td_->auth_manager_->is_bot()) {
     // just in case
-    return;
+    return -1;
   }
 
   LOG(INFO) << "Delete " << dialog_filter_id << " from " << source;
@@ -20258,12 +20264,14 @@ void MessagesManager::delete_dialog_filter(DialogFilterId dialog_filter_id, cons
 
       fail_promises(list->load_list_queries_, Status::Error(400, "Chat list not found"));
 
+      auto position = static_cast<int32>(it - dialog_filters_.begin());
       dialog_lists_.erase(dialog_list_id);
       dialog_filters_.erase(it);
-      return;
+      return position;
     }
   }
   UNREACHABLE();
+  return -1;
 }
 
 Status MessagesManager::delete_dialog_reply_markup(DialogId dialog_id, MessageId message_id) {
