@@ -17721,7 +17721,7 @@ void MessagesManager::on_get_dialog_filters(Result<vector<tl_object_ptr<telegram
 
   auto filters = r_filters.move_as_ok();
   vector<unique_ptr<DialogFilter>> new_server_dialog_filters;
-  LOG(INFO) << "Receive " << filters.size() << " chat filters from server";
+  LOG(INFO) << "Receive chat filters from server: " << to_string(filters);
   std::unordered_set<DialogFilterId, DialogFilterIdHash> new_dialog_filter_ids;
   int32 server_main_dialog_list_position = -1;
   int32 position = 0;
@@ -19769,7 +19769,20 @@ void MessagesManager::on_update_dialog_filter(unique_ptr<DialogFilter> dialog_fi
     }
 
     if (!is_edited) {
-      server_dialog_filters_.push_back(std::move(dialog_filter));
+      bool at_beginning = false;
+      for (const auto &recommended_dialog_filter : recommended_dialog_filters_) {
+        if (DialogFilter::are_similar(*recommended_dialog_filter.dialog_filter, *dialog_filter)) {
+          at_beginning = true;
+        }
+      }
+      if (at_beginning) {
+        server_dialog_filters_.insert(server_dialog_filters_.begin(), std::move(dialog_filter));
+      } else {
+        server_dialog_filters_.push_back(std::move(dialog_filter));
+      }
+      if (at_beginning && main_dialog_list_position_ != 0) {
+        main_dialog_list_position_++;
+      }
     }
     save_dialog_filters();
   }
