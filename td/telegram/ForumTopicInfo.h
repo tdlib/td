@@ -55,6 +55,10 @@ class ForumTopicInfo {
     return top_thread_message_id_;
   }
 
+  DialogId get_creator_dialog_id() const {
+    return creator_dialog_id_;
+  }
+
   bool is_outgoing() const {
     return is_outgoing_;
   }

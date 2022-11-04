@@ -368,6 +368,7 @@ static td_api::object_ptr<td_api::ChatEventAction> get_chat_event_action_object(
       if (topic_info.is_empty()) {
         return nullptr;
       }
+      actor_dialog_id = topic_info.get_creator_dialog_id();
       return td_api::make_object<td_api::chatEventForumTopicCreated>(topic_info.get_forum_topic_info_object(td));
     }
     case telegram_api::channelAdminLogEventActionEditTopic::ID: {
