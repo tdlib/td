@@ -3912,11 +3912,11 @@ messageLink link:string is_public:Bool = MessageLink;
 //@description Contains information about a link to a message in a chat
 //@is_public True, if the link is a public link for a message in a chat
 //@chat_id If found, identifier of the chat to which the message belongs, 0 otherwise
+//@message_thread_id If found, identifier of the message thread in which to open the message, or which to open in case of a missing message
 //@message If found, the linked message; may be null
 //@media_timestamp Timestamp from which the video/audio/video note/voice note playing must start, in seconds; 0 if not specified. The media can be in the message content or in its web page preview
 //@for_album True, if the whole media album to which the message belongs is linked
-//@for_comment True, if the message is linked as a channel post comment or from a message thread
-messageLinkInfo is_public:Bool chat_id:int53 message:message media_timestamp:int32 for_album:Bool for_comment:Bool = MessageLinkInfo;
+messageLinkInfo is_public:Bool chat_id:int53 message_thread_id:int53 message:message media_timestamp:int32 for_album:Bool = MessageLinkInfo;
 
 
 //@description Contains a part of a file @data File bytes

@@ -1752,6 +1752,7 @@ Result<MessageLinkInfo> LinkManager::get_message_link_info(Slice url) {
   Slice channel_id_slice;
   Slice message_id_slice;
   Slice comment_message_id_slice = "0";
+  Slice top_thread_message_id_slice;
   Slice media_timestamp_slice;
   bool is_single = false;
   bool for_comment = false;
@@ -1803,10 +1804,12 @@ Result<MessageLinkInfo> LinkManager::get_message_link_info(Slice url) {
       }
       if (key_value.first == "thread") {
         for_comment = true;
+        top_thread_message_id_slice = key_value.second;
       }
     }
   } else {
     // /c/123456789/12345
+    // /c/123456789/1234/12345
     // /username/12345?single
 
     CHECK(!url.empty() && url[0] == '/');
@@ -1845,8 +1848,14 @@ Result<MessageLinkInfo> LinkManager::get_message_link_info(Slice url) {
         }
         if (key_value.first == "thread") {
           for_comment = true;
+          top_thread_message_id_slice = key_value.second;
         }
       }
+    }
+    auto slash_pos = message_id_slice.find('/');
+    if (slash_pos != Slice::npos) {
+      top_thread_message_id_slice = message_id_slice.substr(0, slash_pos);
+      message_id_slice.remove_prefix(slash_pos + 1);
     }
   }
 
@@ -1862,6 +1871,18 @@ Result<MessageLinkInfo> LinkManager::get_message_link_info(Slice url) {
   auto r_message_id = to_integer_safe<int32>(message_id_slice);
   if (r_message_id.is_error() || !ServerMessageId(r_message_id.ok()).is_valid()) {
     return Status::Error("Wrong message ID");
+  }
+
+  int32 top_thread_message_id = 0;
+  if (!top_thread_message_id_slice.empty()) {
+    auto r_top_thread_message_id = to_integer_safe<int32>(top_thread_message_id_slice);
+    if (r_top_thread_message_id.is_error()) {
+      return Status::Error("Wrong message thread ID");
+    }
+    top_thread_message_id = r_top_thread_message_id.ok();
+    if (!ServerMessageId(top_thread_message_id).is_valid()) {
+      return Status::Error("Invalid message thread ID");
+    }
   }
 
   auto r_comment_message_id = to_integer_safe<int32>(comment_message_id_slice);
@@ -1912,6 +1933,7 @@ Result<MessageLinkInfo> LinkManager::get_message_link_info(Slice url) {
   info.channel_id = channel_id;
   info.message_id = MessageId(ServerMessageId(r_message_id.ok()));
   info.comment_message_id = MessageId(ServerMessageId(r_comment_message_id.ok()));
+  info.top_thread_message_id = MessageId(ServerMessageId(top_thread_message_id));
   info.media_timestamp = is_media_timestamp_invalid ? 0 : media_timestamp;
   info.is_single = is_single;
   info.for_comment = for_comment;

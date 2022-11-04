@@ -19513,32 +19513,45 @@ td_api::object_ptr<td_api::messageLinkInfo> MessagesManager::get_message_link_in
   DialogId dialog_id = info.comment_dialog_id.is_valid()
                            ? info.comment_dialog_id
                            : (is_public ? resolve_dialog_username(info.username) : DialogId(info.channel_id));
+  MessageId top_thread_message_id;
   MessageId message_id = info.comment_dialog_id.is_valid() ? info.comment_message_id : info.message_id;
   td_api::object_ptr<td_api::message> message;
   int32 media_timestamp = 0;
   bool for_album = false;
-  bool for_comment = false;
 
   const Dialog *d = get_dialog(dialog_id);
   if (d == nullptr) {
     dialog_id = DialogId();
+    top_thread_message_id = MessageId();
   } else {
     const Message *m = get_message(d, message_id);
     if (m != nullptr) {
       message = get_message_object(dialog_id, m, "get_message_link_info_object");
       for_album = !info.is_single && m->media_album_id != 0;
-      for_comment = (info.comment_dialog_id.is_valid() || info.for_comment) && m->top_thread_message_id.is_valid();
+      if (info.comment_dialog_id.is_valid() || info.for_comment || m->is_topic_message) {
+        top_thread_message_id = m->top_thread_message_id;
+      } else {
+        top_thread_message_id = MessageId();
+      }
       if (can_message_content_have_media_timestamp(m->content.get())) {
         auto duration = get_message_content_media_duration(m->content.get(), td_);
         if (duration == 0 || info.media_timestamp <= duration) {
           media_timestamp = info.media_timestamp;
         }
       }
+      if (m->content->get_type() == MessageContentType::TopicCreate && m->top_thread_message_id.is_valid()) {
+        message = nullptr;
+        CHECK(!for_album);
+        CHECK(media_timestamp == 0);
+      }
+    } else if (!info.comment_dialog_id.is_valid() && dialog_id.get_type() == DialogType::Channel &&
+               !is_broadcast_channel(dialog_id)) {
+      top_thread_message_id = info.top_thread_message_id;
     }
   }
 
-  return td_api::make_object<td_api::messageLinkInfo>(is_public, dialog_id.get(), std::move(message), media_timestamp,
-                                                      for_album, for_comment);
+  return td_api::make_object<td_api::messageLinkInfo>(is_public, dialog_id.get(), top_thread_message_id.get(),
+                                                      std::move(message), media_timestamp, for_album);
 }
 
 InputDialogId MessagesManager::get_input_dialog_id(DialogId dialog_id) const {

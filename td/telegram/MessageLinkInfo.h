@@ -23,6 +23,8 @@ struct MessageLinkInfo {
   bool is_single = false;
   int32 media_timestamp = 0;
 
+  MessageId top_thread_message_id;
+
   DialogId comment_dialog_id;
   MessageId comment_message_id;
   bool for_comment = false;
