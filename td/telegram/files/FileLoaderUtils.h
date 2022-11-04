@@ -43,6 +43,9 @@ bool are_modification_times_equal(int64 old_mtime, int64 new_mtime);
 struct FullLocalLocationInfo {
   FullLocalFileLocation location_;
   int64 size_ = 0;
+
+  FullLocalLocationInfo(const FullLocalFileLocation &location, int64 size) : location_(location), size_(size) {
+  }
 };
 
 Result<FullLocalLocationInfo> check_full_local_location(FullLocalLocationInfo local_info, bool skip_file_size_checks);
