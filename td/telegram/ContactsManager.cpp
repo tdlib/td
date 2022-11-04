@@ -10497,7 +10497,7 @@ void ContactsManager::on_load_user_full_from_database(UserId user_id, string val
   if (is_user_deleted(user_id)) {
     drop_user_full(user_id);
   } else if (user_full->expires_at == 0.0) {
-    load_user_full(user_id, true, Auto(), "on_load_user_full_from_database");
+    reload_user_full(user_id, Auto());
   }
 }
 
@@ -12254,7 +12254,7 @@ void ContactsManager::do_update_user_photo(User *u, UserId user_id, ProfilePhoto
           user_full->is_changed = true;
         }
         if (user_full->is_update_user_full_sent) {
-          update_user_full(user_full, user_id, "drop_user_photos");
+          update_user_full(user_full, user_id, "do_update_user_photo");
         }
       }
     }
@@ -12639,7 +12639,7 @@ void ContactsManager::add_profile_photo_to_cache(UserId user_id, Photo &&photo) 
     return;
   }
 
-  LOG(INFO) << "Add prifile photo " << photo.id.get() << " to cache";
+  LOG(INFO) << "Add profile photo " << photo.id.get() << " to cache";
 
   // update photo list
   auto it = user_photos_.find(user_id);
@@ -12680,7 +12680,7 @@ bool ContactsManager::delete_profile_photo_from_cache(UserId user_id, int64 prof
   // we have subsequence of user photos in user_photos_
   // ProfilePhoto in User and Photo in UserFull
 
-  LOG(INFO) << "Delete prifile photo " << profile_photo_id << " from cache with" << (send_updates ? "" : "out")
+  LOG(INFO) << "Delete profile photo " << profile_photo_id << " from cache with" << (send_updates ? "" : "out")
             << " updates";
 
   User *u = get_user_force(user_id);
@@ -12741,11 +12741,16 @@ bool ContactsManager::delete_profile_photo_from_cache(UserId user_id, int64 prof
         }
       } else {
         // repair UserFull photo
-        user_full->expires_at = 0.0;
-        user_full->photo = Photo();
-        user_full->is_changed = true;
+        if (!user_full->photo.is_empty()) {
+          user_full->photo = Photo();
+          user_full->is_changed = true;
+        }
+        if (user_full->expires_at > 0.0) {
+          user_full->expires_at = 0.0;
+          user_full->need_save_to_database = true;
+        }
 
-        load_user_full(user_id, true, Auto(), "delete_profile_photo_from_cache");
+        reload_user_full(user_id, Auto());
       }
       if (send_updates) {
         update_user_full(user_full, user_id, "delete_profile_photo_from_cache");
@@ -12757,6 +12762,7 @@ bool ContactsManager::delete_profile_photo_from_cache(UserId user_id, int64 prof
 }
 
 void ContactsManager::drop_user_photos(UserId user_id, bool is_empty, bool drop_user_full_photo, const char *source) {
+  LOG(INFO) << "Drop user photos to " << (is_empty ? "empty" : "unknown") << " from " << source;
   auto it = user_photos_.find(user_id);
   if (it != user_photos_.end()) {
     auto user_photos = &it->second;
