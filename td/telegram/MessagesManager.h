@@ -3656,7 +3656,11 @@ class MessagesManager final : public Actor {
 
   struct ResolvedUsername {
     DialogId dialog_id;
-    double expires_at;
+    double expires_at = 0.0;
+
+    ResolvedUsername() = default;
+    ResolvedUsername(DialogId dialog_id, double expires_at) : dialog_id(dialog_id), expires_at(expires_at) {
+    }
   };
 
   WaitFreeHashMap<string, ResolvedUsername> resolved_usernames_;
