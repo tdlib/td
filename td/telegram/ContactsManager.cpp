@@ -11504,7 +11504,7 @@ void ContactsManager::on_get_user_full(tl_object_ptr<telegram_api::userFull> &&u
   }
 
   if (u->is_changed) {
-    LOG(WARNING) << "Receive inconsistent chatPhoto and chatPhotoInfo for " << user_id;
+    LOG(ERROR) << "Receive inconsistent chatPhoto and chatPhotoInfo for " << user_id;
     update_user(u, user_id);
   }
 
@@ -11762,7 +11762,7 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
     }
 
     if (c->is_changed) {
-      LOG(WARNING) << "Receive inconsistent chatPhoto and chatPhotoInfo for " << chat_id;
+      LOG(ERROR) << "Receive inconsistent chatPhoto and chatPhotoInfo for " << chat_id;
       update_chat(c, chat_id);
     }
 
@@ -12041,7 +12041,7 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
     }
 
     if (c->is_changed) {
-      LOG(WARNING) << "Receive inconsistent chatPhoto and chatPhotoInfo for " << channel_id;
+      LOG(ERROR) << "Receive inconsistent chatPhoto and chatPhotoInfo for " << channel_id;
       update_channel(c, channel_id);
     }
 
