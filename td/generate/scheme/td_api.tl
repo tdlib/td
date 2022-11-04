@@ -5114,8 +5114,8 @@ removeNotificationGroup notification_group_id:int32 max_notification_id:int32 = 
 //@message_id Identifier of the message
 //@media_timestamp If not 0, timestamp from which the video/audio/video note/voice note playing must start, in seconds. The media can be in the message content or in its web page preview
 //@for_album Pass true to create a link for the whole media album
-//@for_comment Pass true to create a link to the message as a channel post comment, or from a message thread
-getMessageLink chat_id:int53 message_id:int53 media_timestamp:int32 for_album:Bool for_comment:Bool = MessageLink;
+//@in_message_thread Pass true to create a link to the message as a channel post comment, in a message thread, or a forum topic
+getMessageLink chat_id:int53 message_id:int53 media_timestamp:int32 for_album:Bool in_message_thread:Bool = MessageLink;
 
 //@description Returns an HTML code for embedding the message. Available only for messages in supergroups and channels with a username
 //@chat_id Identifier of the chat to which the message belongs

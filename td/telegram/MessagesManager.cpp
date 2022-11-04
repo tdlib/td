@@ -19212,7 +19212,7 @@ bool MessagesManager::can_report_message_reactions(DialogId dialog_id, const Mes
 }
 
 Result<std::pair<string, bool>> MessagesManager::get_message_link(FullMessageId full_message_id, int32 media_timestamp,
-                                                                  bool for_group, bool for_comment) {
+                                                                  bool for_group, bool in_message_thread) {
   auto dialog_id = full_message_id.get_dialog_id();
   auto d = get_dialog_force(dialog_id, "get_message_link");
   if (d == nullptr) {
@@ -19244,7 +19244,7 @@ Result<std::pair<string, bool>> MessagesManager::get_message_link(FullMessageId 
     dialog_id = m->forward_info->sender_dialog_id;
     message_id = m->forward_info->message_id;
     for_group = false;
-    for_comment = false;
+    in_message_thread = false;
     auto channel_message = get_message({dialog_id, message_id});
     if (channel_message != nullptr && channel_message->media_album_id == 0) {
       for_group = true;  // default is true
@@ -19255,14 +19255,9 @@ Result<std::pair<string, bool>> MessagesManager::get_message_link(FullMessageId 
     }
   }
 
-  if (!m->top_thread_message_id.is_valid() || !m->top_thread_message_id.is_server()) {
-    for_comment = false;
-  }
-  if (is_deleted_message(d, m->top_thread_message_id)) {
-    for_comment = false;
-  }
-  if (for_comment && is_broadcast_channel(dialog_id)) {
-    for_comment = false;
+  if (!m->top_thread_message_id.is_valid() || !m->top_thread_message_id.is_server() ||
+      is_deleted_message(d, m->top_thread_message_id) || is_broadcast_channel(dialog_id)) {
+    in_message_thread = false;
   }
 
   if (!td_->auth_manager_->is_bot()) {
@@ -19273,7 +19268,8 @@ Result<std::pair<string, bool>> MessagesManager::get_message_link(FullMessageId 
   SliceBuilder sb;
   sb << td_->option_manager_->get_option_string("t_me_url", "https://t.me/");
 
-  if (for_comment) {
+  if (in_message_thread) {
+    // try to generate a comment link
     auto *top_m = get_message_force(d, m->top_thread_message_id, "get_public_message_link");
     if (is_discussion_message(dialog_id, top_m) && is_active_message_reply_info(dialog_id, top_m->reply_info)) {
       auto linked_dialog_id = top_m->forward_info->from_dialog_id;
@@ -19311,10 +19307,16 @@ Result<std::pair<string, bool>> MessagesManager::get_message_link(FullMessageId 
   } else {
     sb << "c/" << dialog_id.get_channel_id().get();
   }
+  if (in_message_thread && td_->contacts_manager_->is_forum_channel(dialog_id.get_channel_id())) {
+    if (m->top_thread_message_id != message_id) {
+      sb << '/' << m->top_thread_message_id.get_server_message_id().get();
+    }
+    in_message_thread = false;
+  }
   sb << '/' << message_id.get_server_message_id().get();
 
   char separator = '?';
-  if (for_comment) {
+  if (in_message_thread) {
     sb << separator << "thread=" << m->top_thread_message_id.get_server_message_id().get();
     separator = '&';
   }
