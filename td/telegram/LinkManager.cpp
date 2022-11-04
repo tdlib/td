@@ -1241,10 +1241,17 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_t_me_link_query(Slice q
   if (path[0] == "c") {
     if (path.size() >= 3 && to_integer<int64>(path[1]) > 0 && to_integer<int64>(path[2]) > 0) {
       // /c/123456789/12345?single&thread=<thread_id>&comment=<message_id>&t=<media_timestamp>
+      // /c/123456789/1234/12345?single&comment=<message_id>&t=<media_timestamp>
       is_first_arg = false;
-      return td::make_unique<InternalLinkMessage>(
-          PSTRING() << "tg:privatepost?channel=" << to_integer<int64>(path[1]) << "&post=" << to_integer<int64>(path[2])
-                    << copy_arg("single") << copy_arg("thread") << copy_arg("comment") << copy_arg("t"));
+      auto post = to_integer<int64>(path[2]);
+      auto thread = PSTRING() << copy_arg("thread");
+      if (path.size() >= 4 && to_integer<int64>(path[3]) > 0) {
+        thread = PSTRING() << "&thread=" << post;
+        post = to_integer<int64>(path[3]);
+      }
+      return td::make_unique<InternalLinkMessage>(PSTRING() << "tg:privatepost?channel=" << to_integer<int64>(path[1])
+                                                            << "&post=" << post << copy_arg("single") << thread
+                                                            << copy_arg("comment") << copy_arg("t"));
     }
   } else if (path[0] == "login") {
     if (path.size() >= 2 && !path[1].empty()) {
@@ -1354,10 +1361,17 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_t_me_link_query(Slice q
   } else if (is_valid_username(path[0])) {
     if (path.size() >= 2 && to_integer<int64>(path[1]) > 0) {
       // /<username>/12345?single&thread=<thread_id>&comment=<message_id>&t=<media_timestamp>
+      // /<username>/1234/12345?single&comment=<message_id>&t=<media_timestamp>
       is_first_arg = false;
-      return td::make_unique<InternalLinkMessage>(
-          PSTRING() << "tg:resolve?domain=" << url_encode(path[0]) << "&post=" << to_integer<int64>(path[1])
-                    << copy_arg("single") << copy_arg("thread") << copy_arg("comment") << copy_arg("t"));
+      auto post = to_integer<int64>(path[1]);
+      auto thread = PSTRING() << copy_arg("thread");
+      if (path.size() >= 3 && to_integer<int64>(path[2]) > 0) {
+        thread = PSTRING() << "&thread=" << post;
+        post = to_integer<int64>(path[2]);
+      }
+      return td::make_unique<InternalLinkMessage>(PSTRING() << "tg:resolve?domain=" << url_encode(path[0])
+                                                            << "&post=" << post << copy_arg("single") << thread
+                                                            << copy_arg("comment") << copy_arg("t"));
     }
     auto username = path[0];
     for (auto &arg : url_query.args_) {

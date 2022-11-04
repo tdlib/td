@@ -327,6 +327,8 @@ TEST(Link, parse_internal_link) {
                       message("tg:resolve?domain=username&post=12345&single"));
   parse_internal_link("t.me/username/12345/asdasd//asd/asd/asd/?single",
                       message("tg:resolve?domain=username&post=12345&single"));
+  parse_internal_link("t.me/username/12345/67890/asdasd//asd/asd/asd/?single",
+                      message("tg:resolve?domain=username&post=67890&single&thread=12345"));
   parse_internal_link("t.me/username/1asdasdas/asdasd//asd/asd/asd/?single",
                       message("tg:resolve?domain=username&post=1&single"));
   parse_internal_link("t.me/username/asd", public_chat("username"));
@@ -371,6 +373,8 @@ TEST(Link, parse_internal_link) {
   parse_internal_link("t.me/c/12345/123", message("tg:privatepost?channel=12345&post=123"));
   parse_internal_link("t.me/c/12345/123?single", message("tg:privatepost?channel=12345&post=123&single"));
   parse_internal_link("t.me/c/12345/123/asd/asd////?single", message("tg:privatepost?channel=12345&post=123&single"));
+  parse_internal_link("t.me/c/12345/123/456/asd/asd////?single",
+                      message("tg:privatepost?channel=12345&post=456&single&thread=123"));
   parse_internal_link("t.me/c/%312345/%3123?comment=456&t=789&single&thread=123%20%31",
                       message("tg:privatepost?channel=12345&post=123&single&thread=123%201&comment=456&t=789"));
 
