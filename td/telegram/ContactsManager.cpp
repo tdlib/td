@@ -12240,7 +12240,8 @@ void ContactsManager::do_update_user_photo(User *u, UserId user_id, ProfilePhoto
         << "Update profile photo of " << user_id << " without access hash from " << source;
     u->photo = new_photo;
     u->is_photo_changed = true;
-    LOG(DEBUG) << "Photo has changed for " << user_id;
+    LOG(DEBUG) << "Photo has changed for " << user_id << " to " << u->photo
+               << ", invalidate_photo_cache = " << invalidate_photo_cache;
     u->is_changed = true;
 
     if (invalidate_photo_cache) {
@@ -12634,6 +12635,8 @@ void ContactsManager::add_profile_photo_to_cache(UserId user_id, Photo &&photo) 
     return;
   }
 
+  LOG(INFO) << "Add prifile photo " << photo.id.get() << " to cache";
+
   // update photo list
   auto it = user_photos_.find(user_id);
   if (it != user_photos_.end() && it->second.count != -1) {
@@ -12650,6 +12653,11 @@ void ContactsManager::add_profile_photo_to_cache(UserId user_id, Photo &&photo) 
     }
   }
 
+  // update ProfilePhoto in User
+  do_update_user_photo(u, user_id, as_profile_photo(td_->file_manager_.get(), user_id, u->access_hash, photo), false,
+                       "add_profile_photo_to_cache");
+  update_user(u, user_id);
+
   // update Photo in UserFull
   auto user_full = get_user_full_force(user_id);
   if (user_full != nullptr) {
@@ -12660,11 +12668,6 @@ void ContactsManager::add_profile_photo_to_cache(UserId user_id, Photo &&photo) 
     }
     update_user_full(user_full, user_id, "add_profile_photo_to_cache");
   }
-
-  // update ProfilePhoto in User
-  do_update_user_photo(u, user_id, as_profile_photo(td_->file_manager_.get(), user_id, u->access_hash, photo), false,
-                       "add_profile_photo_to_cache");
-  update_user(u, user_id);
 }
 
 bool ContactsManager::delete_profile_photo_from_cache(UserId user_id, int64 profile_photo_id, bool send_updates) {
@@ -12672,6 +12675,9 @@ bool ContactsManager::delete_profile_photo_from_cache(UserId user_id, int64 prof
 
   // we have subsequence of user photos in user_photos_
   // ProfilePhoto in User and Photo in UserFull
+
+  LOG(INFO) << "Delete prifile photo " << profile_photo_id << " from cache with" << (send_updates ? "" : "out")
+            << " updates";
 
   User *u = get_user_force(user_id);
   bool is_main_photo_deleted = u != nullptr && u->photo.id == profile_photo_id;
@@ -12698,35 +12704,19 @@ bool ContactsManager::delete_profile_photo_from_cache(UserId user_id, int64 prof
       user_photos->offset = -1;
     }
   }
+  bool have_new_photo =
+      it != user_photos_.end() && it->second.count != -1 && it->second.offset == 0 && !it->second.photos.empty();
 
-  // update Photo in UserFull
   auto user_full = get_user_full_force(user_id);
-  if (user_full != nullptr && !user_full->photo.is_empty() &&
-      (is_main_photo_deleted || user_full->photo.id.get() == profile_photo_id)) {
-    if (it != user_photos_.end() && it->second.count != -1 && it->second.offset == 0 && !it->second.photos.empty()) {
-      // found exact new photo
-      if (it->second.photos[0] != user_full->photo) {
-        user_full->photo = it->second.photos[0];
-        user_full->is_changed = true;
-      }
-    } else {
-      // repair UserFull photo
-      user_full->expires_at = 0.0;
-      user_full->photo = Photo();
-      user_full->is_changed = true;
-
-      load_user_full(user_id, true, Auto(), "delete_profile_photo_from_cache");
-    }
-    if (send_updates) {
-      update_user_full(user_full, user_id, "delete_profile_photo_from_cache");
-    }
+  if (user_full != nullptr && user_full->photo.id.get() == profile_photo_id) {
+    // user_full->photo is empty or coincides with u->photo
+    CHECK(is_main_photo_deleted);
   }
 
   // update ProfilePhoto in User
   bool need_reget_user = false;
   if (is_main_photo_deleted) {
-    if (it != user_photos_.end() && it->second.count != -1 && it->second.offset == 0 && !it->second.photos.empty()) {
-      // found exact new photo
+    if (have_new_photo) {
       do_update_user_photo(u, user_id,
                            as_profile_photo(td_->file_manager_.get(), user_id, u->access_hash, it->second.photos[0]),
                            false, "delete_profile_photo_from_cache");
@@ -12736,6 +12726,26 @@ bool ContactsManager::delete_profile_photo_from_cache(UserId user_id, int64 prof
     }
     if (send_updates) {
       update_user(u, user_id);
+    }
+
+    // update Photo in UserFull
+    if (user_full != nullptr) {
+      if (have_new_photo) {
+        if (it->second.photos[0] != user_full->photo) {
+          user_full->photo = it->second.photos[0];
+          user_full->is_changed = true;
+        }
+      } else {
+        // repair UserFull photo
+        user_full->expires_at = 0.0;
+        user_full->photo = Photo();
+        user_full->is_changed = true;
+
+        load_user_full(user_id, true, Auto(), "delete_profile_photo_from_cache");
+      }
+      if (send_updates) {
+        update_user_full(user_full, user_id, "delete_profile_photo_from_cache");
+      }
     }
   }
 

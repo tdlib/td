@@ -531,7 +531,7 @@ user id:int53 first_name:string last_name:string usernames:usernames phone_numbe
 botInfo share_text:string description:string photo:photo animation:animation menu_button:botMenuButton commands:vector<botCommand> default_group_administrator_rights:chatAdministratorRights default_channel_administrator_rights:chatAdministratorRights = BotInfo;
 
 //@description Contains full information about a user
-//@photo User profile photo; may be null if empty or unknown
+//@photo User profile photo; may be null if empty or unknown. If non-null, then it is the same photo as in user.profile_photo and chat.photo
 //@is_blocked True, if the user is blocked by the current user
 //@can_be_called True, if the user can be called
 //@supports_video_calls True, if a video call can be created with the user
@@ -714,7 +714,7 @@ chatJoinRequestsInfo total_count:int32 user_ids:vector<int53> = ChatJoinRequests
 basicGroup id:int53 member_count:int32 status:ChatMemberStatus is_active:Bool upgraded_to_supergroup_id:int53 = BasicGroup;
 
 //@description Contains full information about a basic group
-//@photo Chat photo; may be null if empty or unknown
+//@photo Chat photo; may be null if empty or unknown. If non-null, then it is the same photo as in chat.photo
 //@param_description Group description. Updated only after the basic group is opened
 //@creator_user_id User identifier of the creator of the group; 0 if unknown
 //@members Group members
@@ -745,7 +745,7 @@ basicGroupFullInfo photo:chatPhoto description:string creator_user_id:int53 memb
 supergroup id:int53 usernames:usernames date:int32 status:ChatMemberStatus member_count:int32 has_linked_chat:Bool has_location:Bool sign_messages:Bool join_to_send_messages:Bool join_by_request:Bool is_slow_mode_enabled:Bool is_channel:Bool is_broadcast_group:Bool is_forum:Bool is_verified:Bool restriction_reason:string is_scam:Bool is_fake:Bool = Supergroup;
 
 //@description Contains full information about a supergroup or channel
-//@photo Chat photo; may be null if empty or unknown
+//@photo Chat photo; may be null if empty or unknown. If non-null, then it is the same photo as in chat.photo
 //@param_description Supergroup or channel description
 //@member_count Number of members in the supergroup or channel; 0 if unknown
 //@administrator_count Number of privileged users in the supergroup or channel; 0 if unknown
