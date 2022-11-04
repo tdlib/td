@@ -10967,6 +10967,12 @@ void ContactsManager::update_chat(Chat *c, ChatId chat_id, bool from_binlog, boo
     c->is_noforwards_changed = false;
   }
 
+  if (need_update_chat_full) {
+    auto chat_full = get_chat_full(chat_id);
+    CHECK(chat_full != nullptr);
+    update_chat_full(chat_full, chat_id, "drop_chat_photos");
+  }
+
   LOG(DEBUG) << "Update " << chat_id << ": need_save_to_database = " << c->need_save_to_database
              << ", is_changed = " << c->is_changed;
   c->need_save_to_database |= c->is_changed;
@@ -10993,12 +10999,6 @@ void ContactsManager::update_chat(Chat *c, ChatId chat_id, bool from_binlog, boo
 
     LOG(INFO) << "Repairing cache of " << chat_id;
     reload_chat(chat_id, Promise<Unit>());
-  }
-
-  if (need_update_chat_full) {
-    auto chat_full = get_chat_full(chat_id);
-    CHECK(chat_full != nullptr);
-    update_chat_full(chat_full, chat_id, "drop_chat_photos");
   }
 }
 
@@ -11089,6 +11089,12 @@ void ContactsManager::update_channel(Channel *c, ChannelId channel_id, bool from
     }
   }
 
+  if (need_update_channel_full) {
+    auto channel_full = get_channel_full(channel_id, true, "update_channel");
+    CHECK(channel_full != nullptr);
+    update_channel_full(channel_full, channel_id, "update_channel");
+  }
+
   LOG(DEBUG) << "Update " << channel_id << ": need_save_to_database = " << c->need_save_to_database
              << ", is_changed = " << c->is_changed;
   c->need_save_to_database |= c->is_changed;
@@ -11128,12 +11134,6 @@ void ContactsManager::update_channel(Channel *c, ChannelId channel_id, bool from
 
     LOG(INFO) << "Repairing cache of " << channel_id;
     reload_channel(channel_id, Promise<Unit>());
-  }
-
-  if (need_update_channel_full) {
-    auto channel_full = get_channel_full(channel_id, true, "update_channel");
-    CHECK(channel_full != nullptr);
-    update_channel_full(channel_full, channel_id, "update_channel");
   }
 }
 
