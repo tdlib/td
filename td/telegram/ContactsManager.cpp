@@ -10938,7 +10938,9 @@ void ContactsManager::update_chat(Chat *c, ChatId chat_id, bool from_binlog, boo
     if (chat_full != nullptr &&
         !is_same_dialog_photo(td_->file_manager_.get(), DialogId(chat_id), chat_full->photo, c->photo)) {
       on_update_chat_full_photo(chat_full, chat_id, Photo());
-      need_update_chat_full = true;
+      if (chat_full->is_update_chat_full_sent) {
+        need_update_chat_full = true;
+      }
       if (c->photo.small_file_id.is_valid()) {
         reload_chat_full(chat_id, Auto());
       }
@@ -10970,7 +10972,7 @@ void ContactsManager::update_chat(Chat *c, ChatId chat_id, bool from_binlog, boo
   if (need_update_chat_full) {
     auto chat_full = get_chat_full(chat_id);
     CHECK(chat_full != nullptr);
-    update_chat_full(chat_full, chat_id, "drop_chat_photos");
+    update_chat_full(chat_full, chat_id, "update_chat");
   }
 
   LOG(DEBUG) << "Update " << chat_id << ": need_save_to_database = " << c->need_save_to_database
@@ -11013,7 +11015,9 @@ void ContactsManager::update_channel(Channel *c, ChannelId channel_id, bool from
     if (channel_full != nullptr &&
         !is_same_dialog_photo(td_->file_manager_.get(), DialogId(channel_id), channel_full->photo, c->photo)) {
       on_update_channel_full_photo(channel_full, channel_id, Photo());
-      need_update_channel_full = true;
+      if (channel_full->is_update_channel_full_sent) {
+        need_update_channel_full = true;
+      }
       if (c->photo.small_file_id.is_valid()) {
         if (channel_full->expires_at > 0.0) {
           channel_full->expires_at = 0.0;
@@ -11503,6 +11507,7 @@ void ContactsManager::on_get_user_full(tl_object_ptr<telegram_api::userFull> &&u
     register_user_photo(u, user_id, user_full->photo);
   }
 
+  // User must be updated before UserFull
   if (u->is_changed) {
     LOG(ERROR) << "Receive inconsistent chatPhoto and chatPhotoInfo for " << user_id;
     update_user(u, user_id);
@@ -12240,6 +12245,17 @@ void ContactsManager::do_update_user_photo(User *u, UserId user_id, ProfilePhoto
 
     if (invalidate_photo_cache) {
       drop_user_photos(user_id, !u->photo.small_file_id.is_valid(), true, "do_update_user_photo");
+    } else {
+      auto user_full = get_user_full(user_id);  // must not load UserFull
+      if (user_full != nullptr) {
+        if (u->photo.id != user_full->photo.id.get() && !user_full->photo.is_empty()) {
+          user_full->photo = Photo();
+          user_full->is_changed = true;
+        }
+        if (user_full->is_update_user_full_sent) {
+          update_user_full(user_full, user_id, "drop_user_photos");
+        }
+      }
     }
   }
 }
@@ -12707,8 +12723,8 @@ bool ContactsManager::delete_profile_photo_from_cache(UserId user_id, int64 prof
   }
 
   // update ProfilePhoto in User
+  bool need_reget_user = false;
   if (is_main_photo_deleted) {
-    bool need_reget_user = false;
     if (it != user_photos_.end() && it->second.count != -1 && it->second.offset == 0 && !it->second.photos.empty()) {
       // found exact new photo
       do_update_user_photo(u, user_id,
@@ -12721,10 +12737,9 @@ bool ContactsManager::delete_profile_photo_from_cache(UserId user_id, int64 prof
     if (send_updates) {
       update_user(u, user_id);
     }
-    return need_reget_user;
   }
 
-  return false;
+  return need_reget_user;
 }
 
 void ContactsManager::drop_user_photos(UserId user_id, bool is_empty, bool drop_user_full_photo, const char *source) {
@@ -12757,7 +12772,9 @@ void ContactsManager::drop_user_photos(UserId user_id, bool is_empty, bool drop_
         }
         reload_user_full(user_id, Auto());
       }
-      update_user_full(user_full, user_id, "drop_user_photos");
+      if (user_full->is_update_user_full_sent) {
+        update_user_full(user_full, user_id, "drop_user_photos");
+      }
     }
   }
 }
