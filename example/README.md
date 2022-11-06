@@ -170,12 +170,14 @@ See [tdlib-lazarus](https://github.com/dieletro/tdlib-lazarus) for an example of
 
 TDLib can be used from the Dart programming language through the [JSON](https://github.com/tdlib/td#using-json) interface and a Dart Native Extension or Dart FFI.
 
-See [dart_tdlib](https://github.com/periodicaidan/dart_tdlib), [flutter_libtdjson](https://github.com/up9cloud/flutter_libtdjson), [Dart wrapper for TDLib](https://github.com/tdlib/td/pull/708/commits/237060abd4c205768153180e9f814298d1aa9d49), or [tdlib_bindings](https://github.com/lesnitsky/tdlib_bindings) for an example of a TDLib Dart bindings through FFI.
+See [tdlib-dart](https://github.com/ivk1800/tdlib-dart), which provide convenient TDLib client with automatically generated and fully-documented classes for all TDLib API methods and objects.
+
+See also [dart_tdlib](https://github.com/periodicaidan/dart_tdlib), [flutter_libtdjson](https://github.com/up9cloud/flutter_libtdjson), [Dart wrapper for TDLib](https://github.com/tdlib/td/pull/708/commits/237060abd4c205768153180e9f814298d1aa9d49), or [tdlib_bindings](https://github.com/lesnitsky/tdlib_bindings) for an example of a TDLib Dart bindings through FFI.
 
 See [Telegram Client library](https://github.com/azkadev/telegram_client), [project.scarlet](https://github.com/aaugmentum/project.scarlet), [tdlib](https://github.com/i-Naji/tdlib),
 [tdlib-dart](https://github.com/drewpayment/tdlib-dart), [FluGram](https://github.com/triedcatched/tdlib-dart), or [telegram-service](https://github.com/igorder-dev/telegram-service) for examples of using TDLib from Dart.
 
-See also [f-Telegram](https://github.com/evgfilim1/ftg) - Flutter Telegram client.
+See also [telegram-flutter](https://github.com/ivk1800/telegram-flutter) - Telegram client written in Dart, and [f-Telegram](https://github.com/evgfilim1/ftg) - Flutter Telegram client.
 
 <a name="rust"></a>
 ## Using TDLib in Rust projects
