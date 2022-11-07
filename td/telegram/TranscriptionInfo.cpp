@@ -124,7 +124,7 @@ vector<Promise<Unit>> TranscriptionInfo::on_final_transcription(string &&text, i
   auto promises = std::move(speech_recognition_queries_);
   speech_recognition_queries_.clear();
 
-  return std::move(promises);
+  return promises;
 }
 
 bool TranscriptionInfo::on_partial_transcription(string &&text, int64 transcription_id) {
