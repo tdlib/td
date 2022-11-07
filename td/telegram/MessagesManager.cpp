@@ -30495,11 +30495,7 @@ vector<NotificationGroupKey> MessagesManager::get_message_notification_group_key
 
   auto *dialog_db = G()->td_db()->get_dialog_db_sync();
   dialog_db->begin_read_transaction().ensure();
-  Result<vector<NotificationGroupKey>> r_notification_group_keys =
-      dialog_db->get_notification_groups_by_last_notification_date(from_group_key, limit);
-  r_notification_group_keys.ensure();
-  auto group_keys = r_notification_group_keys.move_as_ok();
-
+  auto group_keys = dialog_db->get_notification_groups_by_last_notification_date(from_group_key, limit);
   vector<NotificationGroupKey> result;
   for (auto &group_key : group_keys) {
     CHECK(group_key.group_id.is_valid());

@@ -39,20 +39,19 @@ class DialogDbSyncInterface {
   DialogDbSyncInterface &operator=(const DialogDbSyncInterface &) = delete;
   virtual ~DialogDbSyncInterface() = default;
 
-  virtual Status add_dialog(DialogId dialog_id, FolderId folder_id, int64 order, BufferSlice data,
-                            vector<NotificationGroupKey> notification_groups) = 0;
+  virtual void add_dialog(DialogId dialog_id, FolderId folder_id, int64 order, BufferSlice data,
+                          vector<NotificationGroupKey> notification_groups) = 0;
 
   virtual Result<BufferSlice> get_dialog(DialogId dialog_id) = 0;
 
-  virtual Result<DialogDbGetDialogsResult> get_dialogs(FolderId folder_id, int64 order, DialogId dialog_id,
-                                                       int32 limit) = 0;
+  virtual DialogDbGetDialogsResult get_dialogs(FolderId folder_id, int64 order, DialogId dialog_id, int32 limit) = 0;
 
-  virtual Result<vector<NotificationGroupKey>> get_notification_groups_by_last_notification_date(
+  virtual vector<NotificationGroupKey> get_notification_groups_by_last_notification_date(
       NotificationGroupKey notification_group_key, int32 limit) = 0;
 
   virtual Result<NotificationGroupKey> get_notification_group(NotificationGroupId notification_group_id) = 0;
 
-  virtual Result<int32> get_secret_chat_count(FolderId folder_id) = 0;
+  virtual int32 get_secret_chat_count(FolderId folder_id) = 0;
 
   virtual Status begin_read_transaction() = 0;
   virtual Status begin_write_transaction() = 0;
@@ -77,7 +76,7 @@ class DialogDbAsyncInterface {
   virtual ~DialogDbAsyncInterface() = default;
 
   virtual void add_dialog(DialogId dialog_id, FolderId folder_id, int64 order, BufferSlice data,
-                          vector<NotificationGroupKey> notification_groups, Promise<> promise) = 0;
+                          vector<NotificationGroupKey> notification_groups, Promise<Unit> promise) = 0;
 
   virtual void get_dialog(DialogId dialog_id, Promise<BufferSlice> promise) = 0;
 
@@ -93,7 +92,7 @@ class DialogDbAsyncInterface {
 
   virtual void get_secret_chat_count(FolderId folder_id, Promise<int32> promise) = 0;
 
-  virtual void close(Promise<> promise) = 0;
+  virtual void close(Promise<Unit> promise) = 0;
 };
 
 Status init_dialog_db(SqliteDb &db, int version, KeyValueSyncInterface &binlog_pmc,
