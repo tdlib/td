@@ -24479,7 +24479,7 @@ void MessagesManager::on_get_history_from_database(DialogId dialog_id, MessageId
                                                      &need_update_dialog_pos, "on_get_history_from_database");
     if (m != nullptr) {
       first_added_message_id = m->message_id;
-      if (!have_next) {
+      if (!last_added_message_id.is_valid()) {
         last_added_message_id = m->message_id;
       }
       if (old_message == nullptr) {
