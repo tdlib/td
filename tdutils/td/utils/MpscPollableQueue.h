@@ -68,6 +68,11 @@ class MpscPollableQueue {
     //nop
   }
 
+  bool is_empty() {
+    auto guard = lock_.lock();
+    return writer_vector_.empty() && reader_vector_.empty();
+  }
+
   void init() {
     event_fd_.init();
   }

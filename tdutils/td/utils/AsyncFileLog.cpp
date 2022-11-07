@@ -8,8 +8,10 @@
 
 #include "td/utils/port/FileFd.h"
 #include "td/utils/port/path.h"
+#include "td/utils/port/sleep.h"
 #include "td/utils/port/StdStreams.h"
 #include "td/utils/SliceBuilder.h"
+#include "td/utils/Time.h"
 
 namespace td {
 
@@ -137,6 +139,14 @@ void AsyncFileLog::do_append(int log_level, CSlice slice) {
     process_fatal_error("AsyncFileLog is not inited");
   }
   queue_->writer_put(std::move(query));
+  if (log_level == VERBOSITY_NAME(FATAL)) {
+    // it is not thread-safe to join logging_thread_ there, so just wait for the log line to be printed
+    auto end_time = Time::now() + 1.0;
+    while (!queue_->is_empty() && Time::now() < end_time) {
+      usleep_for(1000);
+    }
+    usleep_for(5000);  // allow some time for the log line to be actually printed
+  }
 }
 
 }  // namespace td
