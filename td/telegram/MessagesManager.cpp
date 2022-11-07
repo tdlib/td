@@ -14077,6 +14077,7 @@ void MessagesManager::ttl_db_on_result(Result<std::pair<std::vector<MessagesDbMe
     return;
   }
 
+  CHECK(r_result.is_ok());
   auto result = r_result.move_as_ok();
   ttl_db_has_query_ = false;
   ttl_db_expires_from_ = ttl_db_expires_till_;
@@ -24111,6 +24112,7 @@ void MessagesManager::get_dialog_sparse_message_positions(
     LOG(INFO) << "Get sparse message positions from database";
     auto new_promise =
         PromiseCreator::lambda([promise = std::move(promise)](Result<MessagesDbMessagePositions> result) mutable {
+          TRY_STATUS_PROMISE(promise, G()->close_status());
           if (result.is_error()) {
             return promise.set_error(result.move_as_error());
           }
@@ -30360,12 +30362,8 @@ vector<Notification> MessagesManager::get_message_notifications_from_database_fo
     return res;
   }
   while (true) {
-    auto result = do_get_message_notifications_from_database_force(d, from_mentions, from_notification_id,
-                                                                   from_message_id, limit);
-    if (result.is_error()) {
-      break;
-    }
-    auto messages = result.move_as_ok();
+    auto messages = do_get_message_notifications_from_database_force(d, from_mentions, from_notification_id,
+                                                                     from_message_id, limit);
     if (messages.empty()) {
       break;
     }
@@ -30459,7 +30457,7 @@ vector<Notification> MessagesManager::get_message_notifications_from_database_fo
   return res;
 }
 
-Result<vector<MessagesDbDialogMessage>> MessagesManager::do_get_message_notifications_from_database_force(
+vector<MessagesDbDialogMessage> MessagesManager::do_get_message_notifications_from_database_force(
     Dialog *d, bool from_mentions, NotificationId from_notification_id, MessageId from_message_id, int32 limit) {
   CHECK(G()->parameters().use_message_db);
   CHECK(!from_message_id.is_scheduled());

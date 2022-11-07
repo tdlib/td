@@ -104,15 +104,14 @@ class MessagesDbSyncInterface {
   MessagesDbSyncInterface &operator=(const MessagesDbSyncInterface &) = delete;
   virtual ~MessagesDbSyncInterface() = default;
 
-  virtual Status add_message(FullMessageId full_message_id, ServerMessageId unique_message_id,
-                             DialogId sender_dialog_id, int64 random_id, int32 ttl_expires_at, int32 index_mask,
-                             int64 search_id, string text, NotificationId notification_id,
-                             MessageId top_thread_message_id, BufferSlice data) = 0;
-  virtual Status add_scheduled_message(FullMessageId full_message_id, BufferSlice data) = 0;
+  virtual void add_message(FullMessageId full_message_id, ServerMessageId unique_message_id, DialogId sender_dialog_id,
+                           int64 random_id, int32 ttl_expires_at, int32 index_mask, int64 search_id, string text,
+                           NotificationId notification_id, MessageId top_thread_message_id, BufferSlice data) = 0;
+  virtual void add_scheduled_message(FullMessageId full_message_id, BufferSlice data) = 0;
 
-  virtual Status delete_message(FullMessageId full_message_id) = 0;
-  virtual Status delete_all_dialog_messages(DialogId dialog_id, MessageId from_message_id) = 0;
-  virtual Status delete_dialog_messages_by_sender(DialogId dialog_id, DialogId sender_dialog_id) = 0;
+  virtual void delete_message(FullMessageId full_message_id) = 0;
+  virtual void delete_all_dialog_messages(DialogId dialog_id, MessageId from_message_id) = 0;
+  virtual void delete_dialog_messages_by_sender(DialogId dialog_id, DialogId sender_dialog_id) = 0;
 
   virtual Result<MessagesDbDialogMessage> get_message(FullMessageId full_message_id) = 0;
   virtual Result<MessagesDbMessage> get_message_by_unique_message_id(ServerMessageId unique_message_id) = 0;
@@ -120,22 +119,21 @@ class MessagesDbSyncInterface {
   virtual Result<MessagesDbDialogMessage> get_dialog_message_by_date(DialogId dialog_id, MessageId first_message_id,
                                                                      MessageId last_message_id, int32 date) = 0;
 
-  virtual Result<MessagesDbCalendar> get_dialog_message_calendar(MessagesDbDialogCalendarQuery query) = 0;
+  virtual MessagesDbCalendar get_dialog_message_calendar(MessagesDbDialogCalendarQuery query) = 0;
 
   virtual Result<MessagesDbMessagePositions> get_dialog_sparse_message_positions(
       MessagesDbGetDialogSparseMessagePositionsQuery query) = 0;
 
-  virtual Result<vector<MessagesDbDialogMessage>> get_messages(MessagesDbMessagesQuery query) = 0;
-  virtual Result<vector<MessagesDbDialogMessage>> get_scheduled_messages(DialogId dialog_id, int32 limit) = 0;
-  virtual Result<vector<MessagesDbDialogMessage>> get_messages_from_notification_id(DialogId dialog_id,
-                                                                                    NotificationId from_notification_id,
-                                                                                    int32 limit) = 0;
+  virtual vector<MessagesDbDialogMessage> get_messages(MessagesDbMessagesQuery query) = 0;
+  virtual vector<MessagesDbDialogMessage> get_scheduled_messages(DialogId dialog_id, int32 limit) = 0;
+  virtual vector<MessagesDbDialogMessage> get_messages_from_notification_id(DialogId dialog_id,
+                                                                            NotificationId from_notification_id,
+                                                                            int32 limit) = 0;
 
-  virtual Result<std::pair<vector<MessagesDbMessage>, int32>> get_expiring_messages(int32 expires_from,
-                                                                                    int32 expires_till,
-                                                                                    int32 limit) = 0;
-  virtual Result<MessagesDbCallsResult> get_calls(MessagesDbCallsQuery query) = 0;
-  virtual Result<MessagesDbFtsResult> get_messages_fts(MessagesDbFtsQuery query) = 0;
+  virtual std::pair<vector<MessagesDbMessage>, int32> get_expiring_messages(int32 expires_from, int32 expires_till,
+                                                                            int32 limit) = 0;
+  virtual MessagesDbCallsResult get_calls(MessagesDbCallsQuery query) = 0;
+  virtual MessagesDbFtsResult get_messages_fts(MessagesDbFtsQuery query) = 0;
 
   virtual Status begin_write_transaction() = 0;
   virtual Status commit_transaction() = 0;
