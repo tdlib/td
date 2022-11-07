@@ -36610,15 +36610,17 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
       LOG(DEBUG) << "Drop message reply_to_message_id";
       unregister_message_reply(dialog_id, old_message);
       old_message->reply_to_message_id = MessageId();
+      old_message->reply_in_dialog_id = DialogId();
       update_message_max_reply_media_timestamp(d, old_message, is_message_in_dialog);
       need_send_update = true;
     } else if (is_new_available) {
       if (message_id.is_yet_unsent() && old_message->reply_to_message_id == MessageId() &&
-          is_deleted_message(d, new_message->reply_to_message_id) &&
+          new_message->reply_in_dialog_id == DialogId() && is_deleted_message(d, new_message->reply_to_message_id) &&
           get_message(d, new_message->reply_to_message_id) == nullptr && !is_message_in_dialog) {
         LOG(INFO) << "Update replied message from " << old_message->reply_to_message_id << " to deleted "
                   << new_message->reply_to_message_id;
         old_message->reply_to_message_id = new_message->reply_to_message_id;
+        old_message->reply_in_dialog_id = DialogId();
         update_message_max_reply_media_timestamp(d, old_message, is_message_in_dialog);
         need_send_update = true;
       } else if (old_message->reply_to_message_id.is_valid_scheduled() &&
@@ -36626,12 +36628,23 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
                  new_message->reply_to_message_id.is_valid_scheduled() &&
                  new_message->reply_to_message_id.is_scheduled_server() &&
                  old_message->reply_to_message_id.get_scheduled_server_message_id() ==
-                     new_message->reply_to_message_id.get_scheduled_server_message_id()) {
+                     new_message->reply_to_message_id.get_scheduled_server_message_id() &&
+                 new_message->reply_in_dialog_id == DialogId()) {
         // schedule date has changed
         old_message->reply_to_message_id = new_message->reply_to_message_id;
+        old_message->reply_in_dialog_id = DialogId();
+        need_send_update = true;
+      } else if (message_id.is_yet_unsent() && old_message->top_thread_message_id == new_message->reply_to_message_id &&
+                 new_message->reply_in_dialog_id == DialogId()) {
+        LOG(INFO) << "Update replied message from " << old_message->reply_to_message_id << " to top thread "
+                  << new_message->reply_to_message_id;
+        unregister_message_reply(dialog_id, old_message);
+        old_message->reply_to_message_id = new_message->reply_to_message_id;
+        old_message->reply_in_dialog_id = DialogId();
+        register_message_reply(dialog_id, old_message);
         need_send_update = true;
       } else {
-        LOG(ERROR) << message_id << " in " << dialog_id << " has changed message it is replied message from "
+        LOG(ERROR) << message_id << " in " << dialog_id << " has changed it is replied message from "
                    << old_message->reply_to_message_id << " to " << new_message->reply_to_message_id
                    << ", message content type is " << old_content_type << '/' << new_content_type;
       }
