@@ -2525,8 +2525,7 @@ class MessagesManager final : public Actor {
 
   void send_update_message_live_location_viewed(FullMessageId full_message_id);
 
-  void send_update_delete_messages(DialogId dialog_id, vector<int64> &&message_ids, bool is_permanent,
-                                   bool from_cache) const;
+  void send_update_delete_messages(DialogId dialog_id, vector<int64> &&message_ids, bool is_permanent) const;
 
   void send_update_new_chat(Dialog *d);
 

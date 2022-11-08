@@ -7610,7 +7610,7 @@ void MessagesManager::on_update_delete_scheduled_messages(DialogId dialog_id,
     }
   }
 
-  send_update_delete_messages(dialog_id, std::move(deleted_message_ids), true, false);
+  send_update_delete_messages(dialog_id, std::move(deleted_message_ids), true);
 
   send_update_chat_has_scheduled_messages(d, true);
 }
@@ -10637,7 +10637,7 @@ void MessagesManager::on_get_scheduled_server_messages(DialogId dialog_id, uint3
     auto message_id = it.second;
     auto message = do_delete_scheduled_message(d, message_id, true, "on_get_scheduled_server_messages");
     CHECK(message != nullptr);
-    send_update_delete_messages(dialog_id, {message->message_id.get()}, true, false);
+    send_update_delete_messages(dialog_id, {message->message_id.get()}, true);
   }
 
   send_update_chat_has_scheduled_messages(d, false);
@@ -10758,7 +10758,7 @@ void MessagesManager::delete_messages_from_updates(const vector<MessageId> &mess
   }
   for (auto &it : deleted_message_ids) {
     auto dialog_id = it.first;
-    send_update_delete_messages(dialog_id, std::move(it.second), true, false);
+    send_update_delete_messages(dialog_id, std::move(it.second), true);
   }
 }
 
@@ -10801,7 +10801,7 @@ void MessagesManager::delete_dialog_messages(Dialog *d, const vector<MessageId> 
   if (need_update_dialog_pos) {
     send_update_chat_last_message(d, source);
   }
-  send_update_delete_messages(d->dialog_id, std::move(deleted_message_ids), true, false);
+  send_update_delete_messages(d->dialog_id, std::move(deleted_message_ids), true);
 
   if (need_update_chat_has_scheduled_messages) {
     send_update_chat_has_scheduled_messages(d, true);
@@ -12065,7 +12065,7 @@ void MessagesManager::delete_all_dialog_messages(Dialog *d, bool remove_from_dia
 
   on_dialog_updated(d->dialog_id, "delete_all_dialog_messages 11");
 
-  send_update_delete_messages(d->dialog_id, std::move(deleted_message_ids), is_permanently_deleted, false);
+  send_update_delete_messages(d->dialog_id, std::move(deleted_message_ids), is_permanently_deleted);
 }
 
 void MessagesManager::on_dialog_deleted(DialogId dialog_id, Promise<Unit> &&promise) {
@@ -13016,7 +13016,7 @@ void MessagesManager::set_dialog_max_unavailable_message_id(DialogId dialog_id, 
       send_update_chat_last_message(d, "set_dialog_max_unavailable_message_id");
     }
 
-    send_update_delete_messages(dialog_id, std::move(deleted_message_ids), !from_update, false);
+    send_update_delete_messages(dialog_id, std::move(deleted_message_ids), !from_update);
 
     if (d->server_unread_count + d->local_unread_count > 0) {
       read_history_inbox(dialog_id, max_unavailable_message_id, -1, "set_dialog_max_unavailable_message_id");
@@ -15114,7 +15114,7 @@ FullMessageId MessagesManager::on_get_message(MessageInfo &&message_info, bool f
         LOG(ERROR) << "Failed to add just sent " << old_message_id << " to " << dialog_id << " as " << message_id
                    << " from " << source << ": " << debug_add_message_to_dialog_fail_reason_;
       }
-      send_update_delete_messages(dialog_id, {message_id.get()}, true, false);
+      send_update_delete_messages(dialog_id, {message_id.get()}, true);
     }
 
     return FullMessageId();
@@ -15149,7 +15149,7 @@ FullMessageId MessagesManager::on_get_message(MessageInfo &&message_info, bool f
     auto p = delete_message(d, message_id, false, &need_update_dialog_pos, "get a message in inaccessible chat");
     CHECK(p.get() == m);
     // CHECK(d->messages == nullptr);
-    send_update_delete_messages(dialog_id, {p->message_id.get()}, false, false);
+    send_update_delete_messages(dialog_id, {p->message_id.get()}, false);
     // don't need to update dialog pos
     return FullMessageId();
   }
@@ -15267,7 +15267,7 @@ void MessagesManager::remove_dialog_newer_messages(Dialog *d, MessageId from_mes
     if (need_update_dialog_pos) {
       send_update_chat_last_message(d, "remove_dialog_newer_messages");
     }
-    send_update_delete_messages(d->dialog_id, std::move(deleted_message_ids), false, false);
+    send_update_delete_messages(d->dialog_id, std::move(deleted_message_ids), false);
   }
 }
 
@@ -29479,7 +29479,7 @@ Result<vector<MessageId>> MessagesManager::resend_messages(DialogId dialog_id, v
     being_readded_message_id_ = {dialog_id, message_ids[i]};
     unique_ptr<Message> message = delete_message(d, message_ids[i], true, &need_update_dialog_pos, "resend_messages");
     CHECK(message != nullptr);
-    send_update_delete_messages(dialog_id, {message->message_id.get()}, true, false);
+    send_update_delete_messages(dialog_id, {message->message_id.get()}, true);
 
     auto need_another_sender =
         message->send_error_code == 400 && message->send_error_message == CSlice("SEND_AS_PEER_INVALID");
@@ -30793,7 +30793,7 @@ void MessagesManager::remove_message_notifications_by_message_ids(DialogId dialo
   if (need_update_dialog_pos) {
     send_update_chat_last_message(d, "remove_message_notifications_by_message_ids");
   }
-  send_update_delete_messages(dialog_id, std::move(deleted_message_ids), true, false);
+  send_update_delete_messages(dialog_id, std::move(deleted_message_ids), true);
 }
 
 void MessagesManager::do_remove_message_notification(DialogId dialog_id, bool from_mentions,
@@ -31343,8 +31343,8 @@ void MessagesManager::send_update_message_live_location_viewed(FullMessageId ful
                                                                             full_message_id.get_message_id().get()));
 }
 
-void MessagesManager::send_update_delete_messages(DialogId dialog_id, vector<int64> &&message_ids, bool is_permanent,
-                                                  bool from_cache) const {
+void MessagesManager::send_update_delete_messages(DialogId dialog_id, vector<int64> &&message_ids,
+                                                  bool is_permanent) const {
   if (message_ids.empty()) {
     return;
   }
@@ -31352,7 +31352,7 @@ void MessagesManager::send_update_delete_messages(DialogId dialog_id, vector<int
   LOG_CHECK(have_dialog(dialog_id)) << "Wrong " << dialog_id << " in send_update_delete_messages";
   send_closure(
       G()->td(), &Td::send_update,
-      make_tl_object<td_api::updateDeleteMessages>(dialog_id.get(), std::move(message_ids), is_permanent, from_cache));
+      make_tl_object<td_api::updateDeleteMessages>(dialog_id.get(), std::move(message_ids), is_permanent, false));
 }
 
 void MessagesManager::send_update_new_chat(Dialog *d) {
@@ -32015,7 +32015,7 @@ FullMessageId MessagesManager::on_send_message_success(int64 random_id, MessageI
       LOG(ERROR) << "Failed to add just sent " << old_message_id << " to " << dialog_id << " as " << new_message_id
                  << " from " << source << ": " << debug_add_message_to_dialog_fail_reason_;
     }
-    send_update_delete_messages(dialog_id, {new_message_id.get()}, true, false);
+    send_update_delete_messages(dialog_id, {new_message_id.get()}, true);
     being_readded_message_id_ = FullMessageId();
     return {};
   }
@@ -35197,7 +35197,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     {
       auto m = delete_message(d, message_id, true, need_update_dialog_pos, "message chat delete history");
       if (m != nullptr) {
-        send_update_delete_messages(dialog_id, {m->message_id.get()}, true, false);
+        send_update_delete_messages(dialog_id, {m->message_id.get()}, true);
       }
     }
     int32 last_message_date = 0;
@@ -35920,7 +35920,7 @@ MessagesManager::Message *MessagesManager::add_scheduled_message_to_dialog(Dialo
         being_readded_message_id_ = {dialog_id, old_message_id};
         message = do_delete_scheduled_message(d, old_message_id, false, "add_scheduled_message_to_dialog");
         CHECK(message != nullptr);
-        send_update_delete_messages(dialog_id, {message->message_id.get()}, false, false);
+        send_update_delete_messages(dialog_id, {message->message_id.get()}, false);
         set_message_id(message, message_id);
         message->from_database = false;
       } else {
