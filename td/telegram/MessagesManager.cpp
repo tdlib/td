@@ -11956,19 +11956,23 @@ void MessagesManager::unload_dialog(DialogId dialog_id) {
   vector<int64> unloaded_message_ids;
   vector<unique_ptr<Message>> unloaded_messages;
   for (auto message_id : to_unload_message_ids) {
-    unloaded_messages.push_back(unload_message(d, message_id));
-    unloaded_message_ids.push_back(message_id.get());
+    auto message = unload_message(d, message_id);
+    CHECK(message != nullptr);
+    if (message->is_update_sent) {
+      unloaded_message_ids.push_back(message->message_id.get());
+    }
+    unloaded_messages.push_back(std::move(message));
   }
   if (unloaded_messages.size() >= MIN_DELETED_ASYNCHRONOUSLY_MESSAGES) {
     Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), unloaded_messages);
   }
 
-  if (!unloaded_message_ids.empty()) {
-    if (!G()->parameters().use_message_db && !d->is_empty) {
-      d->have_full_history = false;
-      d->have_full_history_source = 0;
-    }
+  if (!to_unload_message_ids.empty() && !G()->parameters().use_message_db && !d->is_empty) {
+    d->have_full_history = false;
+    d->have_full_history_source = 0;
+  }
 
+  if (!unloaded_message_ids.empty()) {
     send_closure_later(
         G()->td(), &Td::send_update,
         make_tl_object<td_api::updateDeleteMessages>(dialog_id.get(), std::move(unloaded_message_ids), false, true));
