@@ -215,6 +215,18 @@ class TQueueImpl final : public TQueue {
     pop(q, queue_id, it, q.tail_id);
   }
 
+  void clear(QueueId queue_id, size_t keep_count) final {
+    auto size = get_size(queue_id);
+    if (size <= keep_count) {
+      return;
+    }
+
+    MutableSpan<TQueue::Event> span;
+    auto r_size = get(queue_id, get_tail(queue_id).advance(0 - keep_count).move_as_ok(), true, 0, span);
+    CHECK(r_size.is_ok());
+    CHECK(r_size.ok() == keep_count);
+  }
+
   Result<size_t> get(QueueId queue_id, EventId from_id, bool forget_previous, int32 unix_time_now,
                      MutableSpan<Event> &result_events) final {
     auto it = queues_.find(queue_id);

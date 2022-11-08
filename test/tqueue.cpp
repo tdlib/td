@@ -18,6 +18,7 @@
 #include "td/utils/SliceBuilder.h"
 #include "td/utils/Span.h"
 #include "td/utils/tests.h"
+#include "td/utils/Time.h"
 
 #include <memory>
 #include <utility>
@@ -224,4 +225,26 @@ TEST(TQueue, memory_leak) {
                  << td::BufferAllocator::get_buffer_slice_size();
     }
   }
+}
+
+TEST(TQueue, clear) {
+  auto tqueue = td::TQueue::create();
+
+  auto start_time = td::Time::now();
+  td::int32 now = 0;
+  td::vector<td::TQueue::EventId> ids;
+  td::Random::Xorshift128plus rnd(123);
+  for (size_t i = 0; i < 1000000; i++) {
+    auto id = tqueue->push(1, td::string(td::Random::fast(100, 500), 'a'), now + 600000, 0, {}).move_as_ok();
+  }
+  auto tail_id = tqueue->get_tail(1);
+  auto clear_start_time = td::Time::now();
+  size_t keep_count = td::Random::fast(0, 2);
+  tqueue->clear(1, keep_count);
+  auto finish_time = td::Time::now();
+  LOG(INFO) << "Added TQueue events in " << clear_start_time - start_time << " seconds and cleared them in "
+            << finish_time - clear_start_time << " seconds";
+  CHECK(tqueue->get_size(1) == keep_count);
+  CHECK(tqueue->get_head(1).advance(keep_count).ok() == tail_id);
+  CHECK(tqueue->get_tail(1) == tail_id);
 }
