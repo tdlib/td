@@ -50,7 +50,13 @@ class ConcurrentScheduler final : private Scheduler::Callback {
     return is_finished_.load(std::memory_order_relaxed);
   }
 
+#if TD_THREAD_UNSUPPORTED
+  int get_scheduler_thread_id(int32 sched_id) {
+    return 1;
+  }
+#else
   thread::id get_scheduler_thread_id(int32 sched_id);
+#endif
 
   void start();
 
