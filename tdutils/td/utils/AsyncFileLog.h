@@ -15,6 +15,8 @@
 
 namespace td {
 
+#if !TD_THREAD_UNSUPPORTED
+
 class AsyncFileLog final : public LogInterface {
  public:
   AsyncFileLog() = default;
@@ -43,5 +45,7 @@ class AsyncFileLog final : public LogInterface {
 
   void do_append(int log_level, CSlice slice) final;
 };
+
+#endif
 
 }  // namespace td

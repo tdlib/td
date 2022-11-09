@@ -15,6 +15,8 @@
 
 namespace td {
 
+#if !TD_THREAD_UNSUPPORTED
+
 Status AsyncFileLog::init(string path, int64 rotate_threshold, bool redirect_stderr) {
   CHECK(path_.empty());
   CHECK(!path.empty());
@@ -148,5 +150,7 @@ void AsyncFileLog::do_append(int log_level, CSlice slice) {
     usleep_for(5000);  // allow some time for the log line to be actually printed
   }
 }
+
+#endif
 
 }  // namespace td
