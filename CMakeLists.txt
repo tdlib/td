@@ -384,7 +384,7 @@ set(TDLIB_SOURCE
   td/telegram/MessageReaction.cpp
   td/telegram/MessageReplyHeader.cpp
   td/telegram/MessageReplyInfo.cpp
-  td/telegram/MessagesDb.cpp
+  td/telegram/MessageDb.cpp
   td/telegram/MessageSearchFilter.cpp
   td/telegram/MessageSender.cpp
   td/telegram/MessagesManager.cpp
@@ -627,7 +627,7 @@ set(TDLIB_SOURCE
   td/telegram/MessageReplyHeader.h
   td/telegram/MessageReplyInfo.h
   td/telegram/MessageThreadInfo.h
-  td/telegram/MessagesDb.h
+  td/telegram/MessageDb.h
   td/telegram/MessageSearchFilter.h
   td/telegram/MessageSender.h
   td/telegram/MessagesManager.h

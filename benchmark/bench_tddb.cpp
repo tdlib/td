@@ -5,8 +5,8 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 #include "td/telegram/DialogId.h"
+#include "td/telegram/MessageDb.h"
 #include "td/telegram/MessageId.h"
-#include "td/telegram/MessagesDb.h"
 #include "td/telegram/NotificationId.h"
 #include "td/telegram/ServerMessageId.h"
 #include "td/telegram/UserId.h"
@@ -36,10 +36,10 @@ static td::Status init_db(td::SqliteDb &db) {
   return td::Status::OK();
 }
 
-class MessagesDbBench final : public td::Benchmark {
+class MessageDbBench final : public td::Benchmark {
  public:
   td::string get_description() const final {
-    return "MessagesDb";
+    return "MessageDb";
   }
   void start_up() final {
     LOG(ERROR) << "START UP";
@@ -60,9 +60,9 @@ class MessagesDbBench final : public td::Benchmark {
         auto data = td::BufferSlice(td::Random::fast(100, 299));
 
         // use async on same thread.
-        messages_db_async_->add_message({dialog_id, message_id}, unique_message_id, sender_dialog_id, random_id,
-                                        ttl_expires_at, 0, 0, "", td::NotificationId(), td::MessageId(),
-                                        std::move(data), td::Promise<>());
+        message_db_async_->add_message({dialog_id, message_id}, unique_message_id, sender_dialog_id, random_id,
+                                       ttl_expires_at, 0, 0, "", td::NotificationId(), td::MessageId(), std::move(data),
+                                       td::Promise<>());
       }
     }
   }
@@ -71,8 +71,8 @@ class MessagesDbBench final : public td::Benchmark {
     {
       auto guard = scheduler_->get_main_guard();
       sql_connection_.reset();
-      messages_db_sync_safe_.reset();
-      messages_db_async_.reset();
+      message_db_sync_safe_.reset();
+      message_db_async_.reset();
     }
 
     scheduler_->finish();
@@ -83,8 +83,8 @@ class MessagesDbBench final : public td::Benchmark {
  private:
   td::unique_ptr<td::ConcurrentScheduler> scheduler_;
   std::shared_ptr<td::SqliteConnectionSafe> sql_connection_;
-  std::shared_ptr<td::MessagesDbSyncSafeInterface> messages_db_sync_safe_;
-  std::shared_ptr<td::MessagesDbAsyncInterface> messages_db_async_;
+  std::shared_ptr<td::MessageDbSyncSafeInterface> message_db_sync_safe_;
+  std::shared_ptr<td::MessageDbAsyncInterface> message_db_async_;
 
   td::Status do_start_up() {
     scheduler_ = td::make_unique<td::ConcurrentScheduler>(1, 0);
@@ -98,16 +98,16 @@ class MessagesDbBench final : public td::Benchmark {
 
     db.exec("BEGIN TRANSACTION").ensure();
     // version == 0 ==> db will be destroyed
-    TRY_STATUS(init_messages_db(db, 0));
+    TRY_STATUS(init_message_db(db, 0));
     db.exec("COMMIT TRANSACTION").ensure();
 
-    messages_db_sync_safe_ = td::create_messages_db_sync(sql_connection_);
-    messages_db_async_ = td::create_messages_db_async(messages_db_sync_safe_, 0);
+    message_db_sync_safe_ = td::create_message_db_sync(sql_connection_);
+    message_db_async_ = td::create_message_db_async(message_db_sync_safe_, 0);
     return td::Status::OK();
   }
 };
 
 int main() {
   SET_VERBOSITY_LEVEL(VERBOSITY_NAME(WARNING));
-  td::bench(MessagesDbBench());
+  td::bench(MessageDbBench());
 }

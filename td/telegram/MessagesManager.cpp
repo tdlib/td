@@ -34,12 +34,12 @@
 #include "td/telegram/Location.h"
 #include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/MessageContent.h"
+#include "td/telegram/MessageDb.h"
 #include "td/telegram/MessageEntity.h"
 #include "td/telegram/MessageEntity.hpp"
 #include "td/telegram/MessageReaction.h"
 #include "td/telegram/MessageReaction.hpp"
 #include "td/telegram/MessageReplyInfo.hpp"
-#include "td/telegram/MessagesDb.h"
 #include "td/telegram/MessageSender.h"
 #include "td/telegram/misc.h"
 #include "td/telegram/net/DcId.h"
@@ -11735,8 +11735,8 @@ void MessagesManager::delete_dialog_messages_by_sender(DialogId dialog_id, Dialo
 
   if (G()->parameters().use_message_db) {
     LOG(INFO) << "Delete all messages from " << sender_dialog_id << " in " << dialog_id << " from database";
-    G()->td_db()->get_messages_db_async()->delete_dialog_messages_by_sender(dialog_id, sender_dialog_id,
-                                                                            Auto());  // TODO Promise
+    G()->td_db()->get_message_db_async()->delete_dialog_messages_by_sender(dialog_id, sender_dialog_id,
+                                                                           Auto());  // TODO Promise
   }
 
   vector<MessageId> message_ids;
@@ -14068,15 +14068,15 @@ void MessagesManager::ttl_db_loop(double server_now) {
   int32 limit = 50;
   LOG(INFO) << "Send ttl_db query " << tag("expires_from", ttl_db_expires_from_)
             << tag("expires_till", ttl_db_expires_till_) << tag("limit", limit);
-  G()->td_db()->get_messages_db_async()->get_expiring_messages(
+  G()->td_db()->get_message_db_async()->get_expiring_messages(
       ttl_db_expires_from_, ttl_db_expires_till_, limit,
       PromiseCreator::lambda(
-          [actor_id = actor_id(this)](Result<std::pair<std::vector<MessagesDbMessage>, int32>> result) {
+          [actor_id = actor_id(this)](Result<std::pair<std::vector<MessageDbMessage>, int32>> result) {
             send_closure(actor_id, &MessagesManager::ttl_db_on_result, std::move(result), false);
           }));
 }
 
-void MessagesManager::ttl_db_on_result(Result<std::pair<std::vector<MessagesDbMessage>, int32>> r_result, bool dummy) {
+void MessagesManager::ttl_db_on_result(Result<std::pair<std::vector<MessageDbMessage>, int32>> r_result, bool dummy) {
   if (G()->close_flag()) {
     return;
   }
@@ -21707,9 +21707,9 @@ void MessagesManager::open_dialog(Dialog *d) {
 
       LOG(INFO) << "Send check has_scheduled_database_messages request";
       d->is_has_scheduled_database_messages_checked = true;
-      G()->td_db()->get_messages_db_async()->get_scheduled_messages(
+      G()->td_db()->get_message_db_async()->get_scheduled_messages(
           dialog_id, 1,
-          PromiseCreator::lambda([actor_id = actor_id(this), dialog_id](vector<MessagesDbDialogMessage> messages) {
+          PromiseCreator::lambda([actor_id = actor_id(this), dialog_id](vector<MessageDbDialogMessage> messages) {
             if (messages.empty()) {
               send_closure(actor_id, &MessagesManager::set_dialog_has_scheduled_database_messages, dialog_id, false);
             }
@@ -22810,17 +22810,17 @@ td_api::object_ptr<td_api::messageCalendar> MessagesManager::get_dialog_message_
       LOG(INFO) << "Get message calendar from database in " << dialog_id << " from " << fixed_from_message_id;
       auto new_promise =
           PromiseCreator::lambda([random_id, dialog_id, fixed_from_message_id, first_db_message_id, filter,
-                                  promise = std::move(promise)](Result<MessagesDbCalendar> r_calendar) mutable {
+                                  promise = std::move(promise)](Result<MessageDbCalendar> r_calendar) mutable {
             send_closure(G()->messages_manager(), &MessagesManager::on_get_message_calendar_from_database, random_id,
                          dialog_id, fixed_from_message_id, first_db_message_id, filter, std::move(r_calendar),
                          std::move(promise));
           });
-      MessagesDbDialogCalendarQuery db_query;
+      MessageDbDialogCalendarQuery db_query;
       db_query.dialog_id = dialog_id;
       db_query.filter = filter;
       db_query.from_message_id = fixed_from_message_id;
       db_query.tz_offset = static_cast<int32>(td_->option_manager_->get_option_integer("utc_time_offset"));
-      G()->td_db()->get_messages_db_async()->get_dialog_message_calendar(db_query, std::move(new_promise));
+      G()->td_db()->get_message_db_async()->get_dialog_message_calendar(db_query, std::move(new_promise));
       return {};
     }
   }
@@ -22852,7 +22852,7 @@ td_api::object_ptr<td_api::messageCalendar> MessagesManager::get_dialog_message_
 void MessagesManager::on_get_message_calendar_from_database(int64 random_id, DialogId dialog_id,
                                                             MessageId from_message_id, MessageId first_db_message_id,
                                                             MessageSearchFilter filter,
-                                                            Result<MessagesDbCalendar> r_calendar,
+                                                            Result<MessageDbCalendar> r_calendar,
                                                             Promise<Unit> promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
 
@@ -23031,18 +23031,18 @@ std::pair<int32, vector<MessageId>> MessagesManager::search_dialog_messages(
                 << " and with limit " << limit;
       auto new_promise = PromiseCreator::lambda(
           [random_id, dialog_id, fixed_from_message_id, first_db_message_id, filter, offset, limit,
-           promise = std::move(promise)](Result<vector<MessagesDbDialogMessage>> r_messages) mutable {
-            send_closure(G()->messages_manager(), &MessagesManager::on_search_dialog_messages_db_result, random_id,
+           promise = std::move(promise)](Result<vector<MessageDbDialogMessage>> r_messages) mutable {
+            send_closure(G()->messages_manager(), &MessagesManager::on_search_dialog_message_db_result, random_id,
                          dialog_id, fixed_from_message_id, first_db_message_id, filter, offset, limit,
                          std::move(r_messages), std::move(promise));
           });
-      MessagesDbMessagesQuery db_query;
+      MessageDbMessagesQuery db_query;
       db_query.dialog_id = dialog_id;
       db_query.filter = filter;
       db_query.from_message_id = fixed_from_message_id;
       db_query.offset = offset;
       db_query.limit = limit;
-      G()->td_db()->get_messages_db_async()->get_messages(db_query, std::move(new_promise));
+      G()->td_db()->get_message_db_async()->get_messages(db_query, std::move(new_promise));
       return result;
     }
   }
@@ -23136,15 +23136,15 @@ std::pair<int32, vector<FullMessageId>> MessagesManager::search_call_messages(Me
     if (first_db_message_id < fixed_from_message_id && message_count != -1) {
       LOG(INFO) << "Search messages in database from " << fixed_from_message_id << " and with limit " << limit;
 
-      MessagesDbCallsQuery db_query;
+      MessageDbCallsQuery db_query;
       db_query.filter = filter;
       db_query.from_unique_message_id = fixed_from_message_id.get_server_message_id().get();
       db_query.limit = limit;
-      G()->td_db()->get_messages_db_async()->get_calls(
+      G()->td_db()->get_message_db_async()->get_calls(
           db_query, PromiseCreator::lambda([random_id, first_db_message_id, filter, promise = std::move(promise)](
-                                               Result<MessagesDbCallsResult> calls_result) mutable {
-            send_closure(G()->messages_manager(), &MessagesManager::on_messages_db_calls_result,
-                         std::move(calls_result), random_id, first_db_message_id, filter, std::move(promise));
+                                               Result<MessageDbCallsResult> calls_result) mutable {
+            send_closure(G()->messages_manager(), &MessagesManager::on_message_db_calls_result, std::move(calls_result),
+                         random_id, first_db_message_id, filter, std::move(promise));
           }));
       return result;
     }
@@ -23569,11 +23569,11 @@ MessageId MessagesManager::get_first_database_message_id_by_index(const Dialog *
   return message_id;
 }
 
-void MessagesManager::on_search_dialog_messages_db_result(int64 random_id, DialogId dialog_id,
-                                                          MessageId from_message_id, MessageId first_db_message_id,
-                                                          MessageSearchFilter filter, int32 offset, int32 limit,
-                                                          Result<vector<MessagesDbDialogMessage>> r_messages,
-                                                          Promise<Unit> promise) {
+void MessagesManager::on_search_dialog_message_db_result(int64 random_id, DialogId dialog_id, MessageId from_message_id,
+                                                         MessageId first_db_message_id, MessageSearchFilter filter,
+                                                         int32 offset, int32 limit,
+                                                         Result<vector<MessageDbDialogMessage>> r_messages,
+                                                         Promise<Unit> promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
 
   if (r_messages.is_error()) {
@@ -23598,7 +23598,7 @@ void MessagesManager::on_search_dialog_messages_db_result(int64 random_id, Dialo
 
   res.reserve(messages.size());
   for (auto &message : messages) {
-    auto m = on_get_message_from_database(d, message, false, "on_search_dialog_messages_db_result");
+    auto m = on_get_message_from_database(d, message, false, "on_search_dialog_message_db_result");
     if (m != nullptr && first_db_message_id <= m->message_id) {
       if (filter == MessageSearchFilter::UnreadMention && !m->contains_unread_mention) {
         // skip already read by d->last_read_all_mentions_message_id mentions
@@ -23626,9 +23626,9 @@ void MessagesManager::on_search_dialog_messages_db_result(int64 random_id, Dialo
     if (filter == MessageSearchFilter::UnreadReaction) {
       d->unread_reaction_count = message_count;
       // update_dialog_mention_notification_count(d);
-      send_update_chat_unread_reaction_count(d, "on_search_dialog_messages_db_result");
+      send_update_chat_unread_reaction_count(d, "on_search_dialog_message_db_result");
     }
-    on_dialog_updated(dialog_id, "on_search_dialog_messages_db_result");
+    on_dialog_updated(dialog_id, "on_search_dialog_message_db_result");
   }
   it->second.first = message_count;
   if (res.empty() && first_db_message_id != MessageId::min() && dialog_id.get_type() != DialogType::SecretChat) {
@@ -23693,7 +23693,7 @@ MessagesManager::FoundMessages MessagesManager::offline_search_messages(DialogId
     limit = MAX_SEARCH_MESSAGES;
   }
 
-  MessagesDbFtsQuery fts_query;
+  MessageDbFtsQuery fts_query;
   fts_query.query = query;
   fts_query.dialog_id = dialog_id;
   fts_query.filter = filter;
@@ -23712,19 +23712,19 @@ MessagesManager::FoundMessages MessagesManager::offline_search_messages(DialogId
   } while (random_id == 0 || found_fts_messages_.count(random_id) > 0);
   found_fts_messages_[random_id];  // reserve place for result
 
-  G()->td_db()->get_messages_db_async()->get_messages_fts(
+  G()->td_db()->get_message_db_async()->get_messages_fts(
       std::move(fts_query),
       PromiseCreator::lambda([random_id, offset = std::move(offset), limit,
-                              promise = std::move(promise)](Result<MessagesDbFtsResult> fts_result) mutable {
-        send_closure(G()->messages_manager(), &MessagesManager::on_messages_db_fts_result, std::move(fts_result),
+                              promise = std::move(promise)](Result<MessageDbFtsResult> fts_result) mutable {
+        send_closure(G()->messages_manager(), &MessagesManager::on_message_db_fts_result, std::move(fts_result),
                      std::move(offset), limit, random_id, std::move(promise));
       }));
 
   return {};
 }
 
-void MessagesManager::on_messages_db_fts_result(Result<MessagesDbFtsResult> result, string offset, int32 limit,
-                                                int64 random_id, Promise<Unit> &&promise) {
+void MessagesManager::on_message_db_fts_result(Result<MessageDbFtsResult> result, string offset, int32 limit,
+                                               int64 random_id, Promise<Unit> &&promise) {
   if (G()->close_flag()) {
     result = Global::request_aborted_error();
   }
@@ -23740,7 +23740,7 @@ void MessagesManager::on_messages_db_fts_result(Result<MessagesDbFtsResult> resu
 
   res.reserve(fts_result.messages.size());
   for (auto &message : fts_result.messages) {
-    auto m = on_get_message_from_database(message, false, "on_messages_db_fts_result");
+    auto m = on_get_message_from_database(message, false, "on_message_db_fts_result");
     if (m != nullptr) {
       res.emplace_back(message.dialog_id, m->message_id);
     }
@@ -23754,9 +23754,9 @@ void MessagesManager::on_messages_db_fts_result(Result<MessagesDbFtsResult> resu
   promise.set_value(Unit());
 }
 
-void MessagesManager::on_messages_db_calls_result(Result<MessagesDbCallsResult> result, int64 random_id,
-                                                  MessageId first_db_message_id, MessageSearchFilter filter,
-                                                  Promise<Unit> &&promise) {
+void MessagesManager::on_message_db_calls_result(Result<MessageDbCallsResult> result, int64 random_id,
+                                                 MessageId first_db_message_id, MessageSearchFilter filter,
+                                                 Promise<Unit> &&promise) {
   if (G()->close_flag()) {
     result = Global::request_aborted_error();
   }
@@ -23773,7 +23773,7 @@ void MessagesManager::on_messages_db_calls_result(Result<MessagesDbCallsResult> 
   CHECK(!first_db_message_id.is_scheduled());
   res.reserve(calls_result.messages.size());
   for (auto &message : calls_result.messages) {
-    auto m = on_get_message_from_database(message, false, "on_messages_db_calls_result");
+    auto m = on_get_message_from_database(message, false, "on_message_db_calls_result");
 
     if (m != nullptr && first_db_message_id <= m->message_id) {
       res.emplace_back(message.dialog_id, m->message_id);
@@ -23885,10 +23885,10 @@ int64 MessagesManager::get_dialog_message_by_date(DialogId dialog_id, int32 date
 
   if (G()->parameters().use_message_db && d->last_database_message_id != MessageId()) {
     CHECK(d->first_database_message_id != MessageId());
-    G()->td_db()->get_messages_db_async()->get_dialog_message_by_date(
+    G()->td_db()->get_message_db_async()->get_dialog_message_by_date(
         dialog_id, d->first_database_message_id, d->last_database_message_id, date,
         PromiseCreator::lambda([actor_id = actor_id(this), dialog_id, date, random_id,
-                                promise = std::move(promise)](Result<MessagesDbDialogMessage> result) mutable {
+                                promise = std::move(promise)](Result<MessageDbDialogMessage> result) mutable {
           send_closure(actor_id, &MessagesManager::on_get_dialog_message_by_date_from_database, dialog_id, date,
                        random_id, std::move(result), std::move(promise));
         }));
@@ -23978,7 +23978,7 @@ void MessagesManager::find_messages_by_date(const Message *m, int32 min_date, in
 }
 
 void MessagesManager::on_get_dialog_message_by_date_from_database(DialogId dialog_id, int32 date, int64 random_id,
-                                                                  Result<MessagesDbDialogMessage> result,
+                                                                  Result<MessageDbDialogMessage> result,
                                                                   Promise<Unit> promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
 
@@ -24115,7 +24115,7 @@ void MessagesManager::get_dialog_sparse_message_positions(
 
     LOG(INFO) << "Get sparse message positions from database";
     auto new_promise =
-        PromiseCreator::lambda([promise = std::move(promise)](Result<MessagesDbMessagePositions> result) mutable {
+        PromiseCreator::lambda([promise = std::move(promise)](Result<MessageDbMessagePositions> result) mutable {
           TRY_STATUS_PROMISE(promise, G()->close_status());
           if (result.is_error()) {
             return promise.set_error(result.move_as_error());
@@ -24123,17 +24123,17 @@ void MessagesManager::get_dialog_sparse_message_positions(
 
           auto positions = result.move_as_ok();
           promise.set_value(td_api::make_object<td_api::messagePositions>(
-              positions.total_count, transform(positions.positions, [](const MessagesDbMessagePosition &position) {
+              positions.total_count, transform(positions.positions, [](const MessageDbMessagePosition &position) {
                 return td_api::make_object<td_api::messagePosition>(position.position, position.message_id.get(),
                                                                     position.date);
               })));
         });
-    MessagesDbGetDialogSparseMessagePositionsQuery db_query;
+    MessageDbGetDialogSparseMessagePositionsQuery db_query;
     db_query.dialog_id = dialog_id;
     db_query.filter = filter;
     db_query.from_message_id = from_message_id;
     db_query.limit = limit;
-    G()->td_db()->get_messages_db_async()->get_dialog_sparse_message_positions(db_query, std::move(new_promise));
+    G()->td_db()->get_message_db_async()->get_dialog_sparse_message_positions(db_query, std::move(new_promise));
     return;
   }
 
@@ -24377,8 +24377,7 @@ unique_ptr<MessagesManager::Message> MessagesManager::parse_message(Dialog *d, M
 void MessagesManager::on_get_history_from_database(DialogId dialog_id, MessageId from_message_id,
                                                    MessageId old_last_database_message_id, int32 offset, int32 limit,
                                                    bool from_the_end, bool only_local,
-                                                   vector<MessagesDbDialogMessage> &&messages,
-                                                   Promise<Unit> &&promise) {
+                                                   vector<MessageDbDialogMessage> &&messages, Promise<Unit> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
   CHECK(-limit < offset && offset <= 0);
   CHECK(offset < 0 || from_the_end);
@@ -24658,14 +24657,14 @@ void MessagesManager::get_history_from_the_end_impl(const Dialog *d, bool from_d
       limit = 10;
     }
     LOG(INFO) << "Get history from the end of " << dialog_id << " from database from " << source;
-    MessagesDbMessagesQuery db_query;
+    MessageDbMessagesQuery db_query;
     db_query.dialog_id = dialog_id;
     db_query.from_message_id = MessageId::max();
     db_query.limit = limit;
-    G()->td_db()->get_messages_db_async()->get_messages(
+    G()->td_db()->get_message_db_async()->get_messages(
         db_query, PromiseCreator::lambda([dialog_id, old_last_database_message_id = d->last_database_message_id,
                                           only_local, limit, actor_id = actor_id(this), promise = std::move(promise)](
-                                             vector<MessagesDbDialogMessage> messages) mutable {
+                                             vector<MessageDbDialogMessage> messages) mutable {
           send_closure(actor_id, &MessagesManager::on_get_history_from_database, dialog_id, MessageId::max(),
                        old_last_database_message_id, 0, limit, true, only_local, std::move(messages),
                        std::move(promise));
@@ -24711,16 +24710,16 @@ void MessagesManager::get_history_impl(const Dialog *d, MessageId from_message_i
   if (from_database && G()->parameters().use_message_db) {
     LOG(INFO) << "Get history in " << dialog_id << " from " << from_message_id << " with offset " << offset
               << " and limit " << limit << " from database";
-    MessagesDbMessagesQuery db_query;
+    MessageDbMessagesQuery db_query;
     db_query.dialog_id = dialog_id;
     db_query.from_message_id = from_message_id;
     db_query.offset = offset;
     db_query.limit = limit;
-    G()->td_db()->get_messages_db_async()->get_messages(
+    G()->td_db()->get_message_db_async()->get_messages(
         db_query,
         PromiseCreator::lambda([dialog_id, from_message_id, old_last_database_message_id = d->last_database_message_id,
                                 offset, limit, only_local, actor_id = actor_id(this),
-                                promise = std::move(promise)](vector<MessagesDbDialogMessage> messages) mutable {
+                                promise = std::move(promise)](vector<MessageDbDialogMessage> messages) mutable {
           send_closure(actor_id, &MessagesManager::on_get_history_from_database, dialog_id, from_message_id,
                        old_last_database_message_id, offset, limit, false, only_local, std::move(messages),
                        std::move(promise));
@@ -24863,9 +24862,9 @@ void MessagesManager::load_dialog_scheduled_messages(DialogId dialog_id, bool fr
     auto &queries = load_scheduled_messages_from_database_queries_[dialog_id];
     queries.push_back(std::move(promise));
     if (queries.size() == 1) {
-      G()->td_db()->get_messages_db_async()->get_scheduled_messages(
+      G()->td_db()->get_message_db_async()->get_scheduled_messages(
           dialog_id, 1000,
-          PromiseCreator::lambda([dialog_id, actor_id = actor_id(this)](vector<MessagesDbDialogMessage> messages) {
+          PromiseCreator::lambda([dialog_id, actor_id = actor_id(this)](vector<MessageDbDialogMessage> messages) {
             send_closure(actor_id, &MessagesManager::on_get_scheduled_messages_from_database, dialog_id,
                          std::move(messages));
           }));
@@ -24877,7 +24876,7 @@ void MessagesManager::load_dialog_scheduled_messages(DialogId dialog_id, bool fr
 }
 
 void MessagesManager::on_get_scheduled_messages_from_database(DialogId dialog_id,
-                                                              vector<MessagesDbDialogMessage> &&messages) {
+                                                              vector<MessageDbDialogMessage> &&messages) {
   if (G()->close_flag()) {
     auto it = load_scheduled_messages_from_database_queries_.find(dialog_id);
     CHECK(it != load_scheduled_messages_from_database_queries_.end());
@@ -30461,12 +30460,12 @@ vector<Notification> MessagesManager::get_message_notifications_from_database_fo
   return res;
 }
 
-vector<MessagesDbDialogMessage> MessagesManager::do_get_message_notifications_from_database_force(
+vector<MessageDbDialogMessage> MessagesManager::do_get_message_notifications_from_database_force(
     Dialog *d, bool from_mentions, NotificationId from_notification_id, MessageId from_message_id, int32 limit) {
   CHECK(G()->parameters().use_message_db);
   CHECK(!from_message_id.is_scheduled());
 
-  auto *db = G()->td_db()->get_messages_db_sync();
+  auto *db = G()->td_db()->get_message_db_sync();
   if (!from_mentions) {
     CHECK(from_message_id > d->last_read_inbox_message_id);
     VLOG(notifications) << "Trying to load " << limit << " messages with notifications in "
@@ -30478,7 +30477,7 @@ vector<MessagesDbDialogMessage> MessagesManager::do_get_message_notifications_fr
                         << d->mention_notification_group.group_id << '/' << d->dialog_id << " from " << from_message_id;
 
     // ignore first_db_message_id, notifications can be nonconsecutive
-    MessagesDbMessagesQuery db_query;
+    MessageDbMessagesQuery db_query;
     db_query.dialog_id = d->dialog_id;
     db_query.filter = MessageSearchFilter::UnreadMention;
     db_query.from_message_id = from_message_id;
@@ -30582,12 +30581,12 @@ void MessagesManager::do_get_message_notifications_from_database(Dialog *d, bool
   auto dialog_id = d->dialog_id;
   auto new_promise =
       PromiseCreator::lambda([actor_id = actor_id(this), dialog_id, from_mentions, initial_from_notification_id, limit,
-                              promise = std::move(promise)](Result<vector<MessagesDbDialogMessage>> result) mutable {
+                              promise = std::move(promise)](Result<vector<MessageDbDialogMessage>> result) mutable {
         send_closure(actor_id, &MessagesManager::on_get_message_notifications_from_database, dialog_id, from_mentions,
                      initial_from_notification_id, limit, std::move(result), std::move(promise));
       });
 
-  auto *db = G()->td_db()->get_messages_db_async();
+  auto *db = G()->td_db()->get_message_db_async();
   if (!from_mentions) {
     VLOG(notifications) << "Trying to load " << limit << " messages with notifications in " << group_info.group_id
                         << '/' << dialog_id << " from " << from_notification_id;
@@ -30597,7 +30596,7 @@ void MessagesManager::do_get_message_notifications_from_database(Dialog *d, bool
                         << '/' << dialog_id << " from " << from_message_id;
 
     // ignore first_db_message_id, notifications can be nonconsecutive
-    MessagesDbMessagesQuery db_query;
+    MessageDbMessagesQuery db_query;
     db_query.dialog_id = dialog_id;
     db_query.filter = MessageSearchFilter::UnreadMention;
     db_query.from_message_id = from_message_id;
@@ -30610,7 +30609,7 @@ void MessagesManager::do_get_message_notifications_from_database(Dialog *d, bool
 void MessagesManager::on_get_message_notifications_from_database(DialogId dialog_id, bool from_mentions,
                                                                  NotificationId initial_from_notification_id,
                                                                  int32 limit,
-                                                                 Result<vector<MessagesDbDialogMessage>> result,
+                                                                 Result<vector<MessageDbDialogMessage>> result,
                                                                  Promise<vector<Notification>> promise) {
   if (G()->close_flag()) {
     result = Global::request_aborted_error();
@@ -30756,10 +30755,10 @@ void MessagesManager::remove_message_notification(DialogId dialog_id, Notificati
   }
 
   if (G()->parameters().use_message_db) {
-    G()->td_db()->get_messages_db_async()->get_messages_from_notification_id(
+    G()->td_db()->get_message_db_async()->get_messages_from_notification_id(
         dialog_id, NotificationId(notification_id.get() + 1), 1,
         PromiseCreator::lambda([dialog_id, from_mentions, notification_id,
-                                actor_id = actor_id(this)](vector<MessagesDbDialogMessage> result) {
+                                actor_id = actor_id(this)](vector<MessageDbDialogMessage> result) {
           send_closure(actor_id, &MessagesManager::do_remove_message_notification, dialog_id, from_mentions,
                        notification_id, std::move(result));
         }));
@@ -30802,7 +30801,7 @@ void MessagesManager::remove_message_notifications_by_message_ids(DialogId dialo
 
 void MessagesManager::do_remove_message_notification(DialogId dialog_id, bool from_mentions,
                                                      NotificationId notification_id,
-                                                     vector<MessagesDbDialogMessage> result) {
+                                                     vector<MessageDbDialogMessage> result) {
   if (result.empty() || G()->close_flag()) {
     return;
   }
@@ -34893,14 +34892,14 @@ MessagesManager::Message *MessagesManager::get_message_force(Dialog *d, MessageI
 
   LOG(INFO) << "Trying to load " << FullMessageId{d->dialog_id, message_id} << " from database from " << source;
 
-  auto r_value = G()->td_db()->get_messages_db_sync()->get_message({d->dialog_id, message_id});
+  auto r_value = G()->td_db()->get_message_db_sync()->get_message({d->dialog_id, message_id});
   if (r_value.is_error()) {
     return nullptr;
   }
   return on_get_message_from_database(d, r_value.ok(), message_id.is_scheduled(), source);
 }
 
-MessagesManager::Message *MessagesManager::on_get_message_from_database(const MessagesDbMessage &message,
+MessagesManager::Message *MessagesManager::on_get_message_from_database(const MessageDbMessage &message,
                                                                         bool is_scheduled, const char *source) {
   if (message.data.empty()) {
     return nullptr;
@@ -34932,7 +34931,7 @@ MessagesManager::Message *MessagesManager::on_get_message_from_database(const Me
 }
 
 MessagesManager::Message *MessagesManager::on_get_message_from_database(Dialog *d,
-                                                                        const MessagesDbDialogMessage &message,
+                                                                        const MessageDbDialogMessage &message,
                                                                         bool is_scheduled, const char *source) {
   return on_get_message_from_database(d, message.message_id, message.data, is_scheduled, source);
 }
@@ -36065,8 +36064,8 @@ void MessagesManager::add_message_to_database(const Dialog *d, const Message *m,
 
   if (message_id.is_scheduled()) {
     set_dialog_has_scheduled_database_messages(d->dialog_id, true);
-    G()->td_db()->get_messages_db_async()->add_scheduled_message({d->dialog_id, message_id}, log_event_store(*m),
-                                                                 Auto());  // TODO Promise
+    G()->td_db()->get_message_db_async()->add_scheduled_message({d->dialog_id, message_id}, log_event_store(*m),
+                                                                Auto());  // TODO Promise
     return;
   }
   LOG_CHECK(message_id.is_server() || message_id.is_local()) << source;
@@ -36108,11 +36107,11 @@ void MessagesManager::add_message_to_database(const Dialog *d, const Message *m,
   if (m->ttl_period != 0 && (ttl_expires_at == 0 || m->date + m->ttl_period < ttl_expires_at)) {
     ttl_expires_at = m->date + m->ttl_period;
   }
-  G()->td_db()->get_messages_db_async()->add_message({d->dialog_id, message_id}, unique_message_id,
-                                                     get_message_sender(m), random_id, ttl_expires_at,
-                                                     get_message_index_mask(d->dialog_id, m), search_id, text,
-                                                     m->notification_id, m->top_thread_message_id, log_event_store(*m),
-                                                     Auto());  // TODO Promise
+  G()->td_db()->get_message_db_async()->add_message({d->dialog_id, message_id}, unique_message_id,
+                                                    get_message_sender(m), random_id, ttl_expires_at,
+                                                    get_message_index_mask(d->dialog_id, m), search_id, text,
+                                                    m->notification_id, m->top_thread_message_id, log_event_store(*m),
+                                                    Auto());  // TODO Promise
 }
 
 void MessagesManager::delete_all_dialog_messages_from_database(Dialog *d, MessageId max_message_id,
@@ -36153,8 +36152,8 @@ void MessagesManager::delete_all_dialog_messages_from_database(Dialog *d, Messag
     }
   }
   */
-  G()->td_db()->get_messages_db_async()->delete_all_dialog_messages(dialog_id, max_message_id,
-                                                                    Auto());  // TODO Promise
+  G()->td_db()->get_message_db_async()->delete_all_dialog_messages(dialog_id, max_message_id,
+                                                                   Auto());  // TODO Promise
 }
 
 class MessagesManager::DeleteMessageLogEvent {
@@ -36375,7 +36374,7 @@ void MessagesManager::do_delete_message_log_event(const DeleteMessageLogEvent &l
 
   // message may not exist in the dialog
   LOG(INFO) << "Delete " << log_event.full_message_id_ << " from database";
-  G()->td_db()->get_messages_db_async()->delete_message(log_event.full_message_id_, std::move(db_promise));
+  G()->td_db()->get_message_db_async()->delete_message(log_event.full_message_id_, std::move(db_promise));
 }
 
 void MessagesManager::attach_message_to_previous(Dialog *d, MessageId message_id, const char *source) {
@@ -37010,7 +37009,7 @@ MessagesManager::Dialog *MessagesManager::get_dialog_by_message_id(MessageId mes
   if (dialog_id == DialogId()) {
     if (G()->parameters().use_message_db) {
       auto r_value =
-          G()->td_db()->get_messages_db_sync()->get_message_by_unique_message_id(message_id.get_server_message_id());
+          G()->td_db()->get_message_db_sync()->get_message_by_unique_message_id(message_id.get_server_message_id());
       if (r_value.is_ok()) {
         Message *m = on_get_message_from_database(r_value.ok(), false, "get_dialog_by_message_id");
         if (m != nullptr) {
@@ -37041,7 +37040,7 @@ MessageId MessagesManager::get_message_id_by_random_id(Dialog *d, int64 random_i
   auto it = d->random_id_to_message_id.find(random_id);
   if (it == d->random_id_to_message_id.end()) {
     if (G()->parameters().use_message_db && d->dialog_id.get_type() == DialogType::SecretChat) {
-      auto r_value = G()->td_db()->get_messages_db_sync()->get_message_by_random_id(d->dialog_id, random_id);
+      auto r_value = G()->td_db()->get_message_db_sync()->get_message_by_random_id(d->dialog_id, random_id);
       if (r_value.is_ok()) {
         debug_add_message_to_dialog_fail_reason_ = "not called";
         Message *m = on_get_message_from_database(d, r_value.ok(), false, "get_message_id_by_random_id");

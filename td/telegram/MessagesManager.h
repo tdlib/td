@@ -31,11 +31,11 @@
 #include "td/telegram/logevent/LogEventHelper.h"
 #include "td/telegram/MessageContentType.h"
 #include "td/telegram/MessageCopyOptions.h"
+#include "td/telegram/MessageDb.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/MessageLinkInfo.h"
 #include "td/telegram/MessageReplyHeader.h"
 #include "td/telegram/MessageReplyInfo.h"
-#include "td/telegram/MessagesDb.h"
 #include "td/telegram/MessageSearchFilter.h"
 #include "td/telegram/MessageThreadInfo.h"
 #include "td/telegram/MessageTtl.h"
@@ -2302,7 +2302,7 @@ class MessagesManager final : public Actor {
 
   void on_get_history_from_database(DialogId dialog_id, MessageId from_message_id,
                                     MessageId old_last_database_message_id, int32 offset, int32 limit,
-                                    bool from_the_end, bool only_local, vector<MessagesDbDialogMessage> &&messages,
+                                    bool from_the_end, bool only_local, vector<MessageDbDialogMessage> &&messages,
                                     Promise<Unit> &&promise);
 
   void get_history_from_the_end(DialogId dialog_id, bool from_database, bool only_local, Promise<Unit> &&promise);
@@ -2324,7 +2324,7 @@ class MessagesManager final : public Actor {
 
   void load_dialog_scheduled_messages(DialogId dialog_id, bool from_database, int64 hash, Promise<Unit> &&promise);
 
-  void on_get_scheduled_messages_from_database(DialogId dialog_id, vector<MessagesDbDialogMessage> &&messages);
+  void on_get_scheduled_messages_from_database(DialogId dialog_id, vector<MessageDbDialogMessage> &&messages);
 
   static int32 get_random_y(MessageId message_id);
 
@@ -2475,7 +2475,7 @@ class MessagesManager final : public Actor {
 
   vector<Notification> get_message_notifications_from_database_force(Dialog *d, bool from_mentions, int32 limit);
 
-  static vector<MessagesDbDialogMessage> do_get_message_notifications_from_database_force(
+  static vector<MessageDbDialogMessage> do_get_message_notifications_from_database_force(
       Dialog *d, bool from_mentions, NotificationId from_notification_id, MessageId from_message_id, int32 limit);
 
   void do_get_message_notifications_from_database(Dialog *d, bool from_mentions,
@@ -2485,11 +2485,11 @@ class MessagesManager final : public Actor {
 
   void on_get_message_notifications_from_database(DialogId dialog_id, bool from_mentions,
                                                   NotificationId initial_from_notification_id, int32 limit,
-                                                  Result<vector<MessagesDbDialogMessage>> result,
+                                                  Result<vector<MessageDbDialogMessage>> result,
                                                   Promise<vector<Notification>> promise);
 
   void do_remove_message_notification(DialogId dialog_id, bool from_mentions, NotificationId notification_id,
-                                      vector<MessagesDbDialogMessage> result);
+                                      vector<MessageDbDialogMessage> result);
 
   int32 get_dialog_pending_notification_count(const Dialog *d, bool from_mentions) const;
 
@@ -2940,9 +2940,9 @@ class MessagesManager final : public Actor {
   void get_message_force_from_server(Dialog *d, MessageId message_id, Promise<Unit> &&promise,
                                      tl_object_ptr<telegram_api::InputMessage> input_message = nullptr);
 
-  Message *on_get_message_from_database(const MessagesDbMessage &message, bool is_scheduled, const char *source);
+  Message *on_get_message_from_database(const MessageDbMessage &message, bool is_scheduled, const char *source);
 
-  Message *on_get_message_from_database(Dialog *d, const MessagesDbDialogMessage &message, bool is_scheduled,
+  Message *on_get_message_from_database(Dialog *d, const MessageDbDialogMessage &message, bool is_scheduled,
                                         const char *source);
 
   Message *on_get_message_from_database(Dialog *d, MessageId message_id, const BufferSlice &value, bool is_scheduled,
@@ -2952,7 +2952,7 @@ class MessagesManager final : public Actor {
                                               Promise<Unit> &&promise);
 
   void on_get_dialog_message_by_date_from_database(DialogId dialog_id, int32 date, int64 random_id,
-                                                   Result<MessagesDbDialogMessage> result, Promise<Unit> promise);
+                                                   Result<MessageDbDialogMessage> result, Promise<Unit> promise);
 
   std::pair<bool, int32> get_dialog_mute_until(DialogId dialog_id, const Dialog *d) const;
 
@@ -3023,7 +3023,7 @@ class MessagesManager final : public Actor {
 
   void ttl_db_loop_start(double server_now);
   void ttl_db_loop(double server_now);
-  void ttl_db_on_result(Result<std::pair<std::vector<MessagesDbMessage>, int32>> r_result, bool dummy);
+  void ttl_db_on_result(Result<std::pair<std::vector<MessageDbMessage>, int32>> r_result, bool dummy);
 
   void on_restore_missing_message_after_get_difference(FullMessageId full_message_id, MessageId old_message_id,
                                                        Result<Unit> result);
@@ -3049,18 +3049,18 @@ class MessagesManager final : public Actor {
 
   void on_get_message_calendar_from_database(int64 random_id, DialogId dialog_id, MessageId from_message_id,
                                              MessageId first_db_message_id, MessageSearchFilter filter,
-                                             Result<MessagesDbCalendar> r_calendar, Promise<Unit> promise);
+                                             Result<MessageDbCalendar> r_calendar, Promise<Unit> promise);
 
-  void on_search_dialog_messages_db_result(int64 random_id, DialogId dialog_id, MessageId from_message_id,
-                                           MessageId first_db_message_id, MessageSearchFilter filter, int32 offset,
-                                           int32 limit, Result<vector<MessagesDbDialogMessage>> r_messages,
-                                           Promise<Unit> promise);
+  void on_search_dialog_message_db_result(int64 random_id, DialogId dialog_id, MessageId from_message_id,
+                                          MessageId first_db_message_id, MessageSearchFilter filter, int32 offset,
+                                          int32 limit, Result<vector<MessageDbDialogMessage>> r_messages,
+                                          Promise<Unit> promise);
 
-  void on_messages_db_fts_result(Result<MessagesDbFtsResult> result, string offset, int32 limit, int64 random_id,
-                                 Promise<Unit> &&promise);
+  void on_message_db_fts_result(Result<MessageDbFtsResult> result, string offset, int32 limit, int64 random_id,
+                                Promise<Unit> &&promise);
 
-  void on_messages_db_calls_result(Result<MessagesDbCallsResult> result, int64 random_id, MessageId first_db_message_id,
-                                   MessageSearchFilter filter, Promise<Unit> &&promise);
+  void on_message_db_calls_result(Result<MessageDbCallsResult> result, int64 random_id, MessageId first_db_message_id,
+                                  MessageSearchFilter filter, Promise<Unit> &&promise);
 
   void on_load_active_live_location_full_message_ids_from_database(string value);
 

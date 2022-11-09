@@ -10,7 +10,7 @@
 #include "td/telegram/files/FileDb.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/logevent/LogEvent.h"
-#include "td/telegram/MessagesDb.h"
+#include "td/telegram/MessageDb.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/TdParameters.h"
 #include "td/telegram/Version.h"
@@ -184,11 +184,11 @@ SqliteKeyValueAsyncInterface *TdDb::get_sqlite_pmc() {
   return common_kv_async_.get();
 }
 
-MessagesDbSyncInterface *TdDb::get_messages_db_sync() {
-  return &messages_db_sync_safe_->get();
+MessageDbSyncInterface *TdDb::get_message_db_sync() {
+  return &message_db_sync_safe_->get();
 }
-MessagesDbAsyncInterface *TdDb::get_messages_db_async() {
-  return messages_db_async_.get();
+MessageDbAsyncInterface *TdDb::get_message_db_async() {
+  return message_db_async_.get();
 }
 DialogDbSyncInterface *TdDb::get_dialog_db_sync() {
   return &dialog_db_sync_safe_->get();
@@ -206,8 +206,8 @@ CSlice TdDb::sqlite_path() const {
 
 void TdDb::flush_all() {
   LOG(INFO) << "Flush all databases";
-  if (messages_db_async_) {
-    messages_db_async_->force_flush();
+  if (message_db_async_) {
+    message_db_async_->force_flush();
   }
   binlog_->force_flush();
 }
@@ -249,9 +249,9 @@ void TdDb::do_close(Promise<> on_finished, bool destroy_flag) {
     common_kv_async_->close(mpas.get_promise());
   }
 
-  messages_db_sync_safe_.reset();
-  if (messages_db_async_) {
-    messages_db_async_->close(mpas.get_promise());
+  message_db_sync_safe_.reset();
+  if (message_db_async_) {
+    message_db_async_->close(mpas.get_promise());
   }
 
   dialog_db_sync_safe_.reset();
@@ -320,11 +320,11 @@ Status TdDb::init_sqlite(const TdParameters &parameters, const DbKey &key, const
     TRY_STATUS(drop_dialog_db(db, user_version));
   }
 
-  // init MessagesDb
+  // init MessageDb
   if (use_message_db) {
-    TRY_STATUS(init_messages_db(db, user_version));
+    TRY_STATUS(init_message_db(db, user_version));
   } else {
-    TRY_STATUS(drop_messages_db(db, user_version));
+    TRY_STATUS(drop_message_db(db, user_version));
   }
 
   // init filesDb
@@ -372,8 +372,8 @@ Status TdDb::init_sqlite(const TdParameters &parameters, const DbKey &key, const
   }
 
   if (use_message_db) {
-    messages_db_sync_safe_ = create_messages_db_sync(sql_connection_);
-    messages_db_async_ = create_messages_db_async(messages_db_sync_safe_);
+    message_db_sync_safe_ = create_message_db_sync(sql_connection_);
+    message_db_async_ = create_message_db_async(message_db_sync_safe_);
   }
 
   return Status::OK();

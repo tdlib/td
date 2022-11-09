@@ -30,9 +30,9 @@ class DialogDbSyncInterface;
 class DialogDbSyncSafeInterface;
 class DialogDbAsyncInterface;
 class FileDbInterface;
-class MessagesDbSyncInterface;
-class MessagesDbSyncSafeInterface;
-class MessagesDbAsyncInterface;
+class MessageDbSyncInterface;
+class MessageDbSyncSafeInterface;
+class MessageDbAsyncInterface;
 class SqliteConnectionSafe;
 class SqliteKeyValueSafe;
 class SqliteKeyValueAsyncInterface;
@@ -92,8 +92,8 @@ class TdDb {
   void close_all(Promise<> on_finished);
   void close_and_destroy_all(Promise<> on_finished);
 
-  MessagesDbSyncInterface *get_messages_db_sync();
-  MessagesDbAsyncInterface *get_messages_db_async();
+  MessageDbSyncInterface *get_message_db_sync();
+  MessageDbAsyncInterface *get_message_db_async();
 
   DialogDbSyncInterface *get_dialog_db_sync();
   DialogDbAsyncInterface *get_dialog_db_async();
@@ -113,8 +113,8 @@ class TdDb {
   std::shared_ptr<SqliteKeyValueSafe> common_kv_safe_;
   unique_ptr<SqliteKeyValueAsyncInterface> common_kv_async_;
 
-  std::shared_ptr<MessagesDbSyncSafeInterface> messages_db_sync_safe_;
-  std::shared_ptr<MessagesDbAsyncInterface> messages_db_async_;
+  std::shared_ptr<MessageDbSyncSafeInterface> message_db_sync_safe_;
+  std::shared_ptr<MessageDbAsyncInterface> message_db_async_;
 
   std::shared_ptr<DialogDbSyncSafeInterface> dialog_db_sync_safe_;
   std::shared_ptr<DialogDbAsyncInterface> dialog_db_async_;
