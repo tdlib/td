@@ -83,8 +83,8 @@ bool EventId::is_valid_id(int32 id) {
 
 class TQueueImpl final : public TQueue {
   static constexpr size_t MAX_EVENT_LENGTH = 65536 * 8;
-  static constexpr size_t MAX_QUEUE_EVENTS = 1000000;
-  static constexpr size_t MAX_TOTAL_EVENT_LENGTH = 1 << 30;
+  static constexpr size_t MAX_QUEUE_EVENTS = 100000;
+  static constexpr size_t MAX_TOTAL_EVENT_LENGTH = 1 << 27;
 
  public:
   void set_callback(unique_ptr<StorageCallback> callback) final {
@@ -158,7 +158,9 @@ class TQueueImpl final : public TQueue {
     while (true) {
       if (q.tail_id.empty()) {
         if (hint_new_id.empty()) {
-          q.tail_id = EventId::from_int32(Random::fast(2 * MAX_QUEUE_EVENTS + 1, EventId::MAX_ID / 2)).move_as_ok();
+          q.tail_id = EventId::from_int32(
+                          Random::fast(2 * max(static_cast<int>(MAX_QUEUE_EVENTS), 1000000) + 1, EventId::MAX_ID / 2))
+                          .move_as_ok();
         } else {
           q.tail_id = hint_new_id;
         }
