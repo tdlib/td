@@ -378,16 +378,17 @@ set(TDLIB_SOURCE
   td/telegram/Logging.cpp
   td/telegram/MessageContent.cpp
   td/telegram/MessageContentType.cpp
+  td/telegram/MessageDb.cpp
   td/telegram/MessageEntity.cpp
   td/telegram/MessageExtendedMedia.cpp
   td/telegram/MessageId.cpp
   td/telegram/MessageReaction.cpp
   td/telegram/MessageReplyHeader.cpp
   td/telegram/MessageReplyInfo.cpp
-  td/telegram/MessageDb.cpp
   td/telegram/MessageSearchFilter.cpp
   td/telegram/MessageSender.cpp
   td/telegram/MessagesManager.cpp
+  td/telegram/MessageThreadDb.cpp
   td/telegram/MessageTtl.cpp
   td/telegram/misc.cpp
   td/telegram/net/AuthDataShared.cpp
@@ -619,6 +620,7 @@ set(TDLIB_SOURCE
   td/telegram/MessageContent.h
   td/telegram/MessageContentType.h
   td/telegram/MessageCopyOptions.h
+  td/telegram/MessageDb.h
   td/telegram/MessageEntity.h
   td/telegram/MessageExtendedMedia.h
   td/telegram/MessageId.h
@@ -626,11 +628,11 @@ set(TDLIB_SOURCE
   td/telegram/MessageReaction.h
   td/telegram/MessageReplyHeader.h
   td/telegram/MessageReplyInfo.h
-  td/telegram/MessageThreadInfo.h
-  td/telegram/MessageDb.h
   td/telegram/MessageSearchFilter.h
   td/telegram/MessageSender.h
   td/telegram/MessagesManager.h
+  td/telegram/MessageThreadDb.h
+  td/telegram/MessageThreadInfo.h
   td/telegram/MessageTtl.h
   td/telegram/MinChannel.h
   td/telegram/misc.h

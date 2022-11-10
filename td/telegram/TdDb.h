@@ -33,6 +33,9 @@ class FileDbInterface;
 class MessageDbSyncInterface;
 class MessageDbSyncSafeInterface;
 class MessageDbAsyncInterface;
+class MessageThreadDbSyncInterface;
+class MessageThreadDbSyncSafeInterface;
+class MessageThreadDbAsyncInterface;
 class SqliteConnectionSafe;
 class SqliteKeyValueSafe;
 class SqliteKeyValueAsyncInterface;
@@ -95,6 +98,9 @@ class TdDb {
   MessageDbSyncInterface *get_message_db_sync();
   MessageDbAsyncInterface *get_message_db_async();
 
+  MessageThreadDbSyncInterface *get_message_thread_db_sync();
+  MessageThreadDbAsyncInterface *get_message_thread_db_async();
+
   DialogDbSyncInterface *get_dialog_db_sync();
   DialogDbAsyncInterface *get_dialog_db_async();
 
@@ -115,6 +121,9 @@ class TdDb {
 
   std::shared_ptr<MessageDbSyncSafeInterface> message_db_sync_safe_;
   std::shared_ptr<MessageDbAsyncInterface> message_db_async_;
+
+  std::shared_ptr<MessageThreadDbSyncSafeInterface> message_thread_db_sync_safe_;
+  std::shared_ptr<MessageThreadDbAsyncInterface> message_thread_db_async_;
 
   std::shared_ptr<DialogDbSyncSafeInterface> dialog_db_sync_safe_;
   std::shared_ptr<DialogDbAsyncInterface> dialog_db_async_;
