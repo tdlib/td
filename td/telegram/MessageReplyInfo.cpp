@@ -101,7 +101,7 @@ bool MessageReplyInfo::need_update_to(const MessageReplyInfo &other) const {
     // ignore updates to empty reply info, because we will hide the info ourselves
     // return true;
   }
-  if (other.pts < pts) {
+  if (other.pts < pts && !other.was_dropped()) {
     return false;
   }
   return reply_count != other.reply_count || recent_replier_dialog_ids != other.recent_replier_dialog_ids ||
