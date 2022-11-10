@@ -93,6 +93,8 @@ class DialogDbAsyncInterface {
   virtual void get_secret_chat_count(FolderId folder_id, Promise<int32> promise) = 0;
 
   virtual void close(Promise<Unit> promise) = 0;
+
+  virtual void force_flush() = 0;
 };
 
 Status init_dialog_db(SqliteDb &db, int version, KeyValueSyncInterface &binlog_pmc,

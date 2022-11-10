@@ -209,6 +209,9 @@ void TdDb::flush_all() {
   if (message_db_async_) {
     message_db_async_->force_flush();
   }
+  if (dialog_db_async_) {
+    dialog_db_async_->force_flush();
+  }
   binlog_->force_flush();
 }
 

@@ -377,6 +377,10 @@ class DialogDbAsync final : public DialogDbAsyncInterface {
     send_closure_later(impl_, &Impl::close, std::move(promise));
   }
 
+  void force_flush() final {
+    send_closure_later(impl_, &Impl::force_flush);
+  }
+
  private:
   class Impl final : public Actor {
    public:
@@ -430,6 +434,11 @@ class DialogDbAsync final : public DialogDbAsyncInterface {
       sync_db_ = nullptr;
       promise.set_value(Unit());
       stop();
+    }
+
+    void force_flush() {
+      do_flush();
+      LOG(INFO) << "DialogDb flushed";
     }
 
    private:

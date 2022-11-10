@@ -1199,8 +1199,8 @@ class MessageDbAsync final : public MessageDbAsyncInterface {
     }
 
     void force_flush() {
-      LOG(INFO) << "MessageDb flushed";
       do_flush();
+      LOG(INFO) << "MessageDb flushed";
     }
 
    private:
