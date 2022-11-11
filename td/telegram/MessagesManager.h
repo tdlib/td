@@ -1810,7 +1810,8 @@ class MessagesManager final : public Actor {
   static constexpr size_t MAX_DIALOG_FILTER_TITLE_LENGTH = 12;  // server side limit for dialog filter title
   static constexpr int32 MAX_PRIVATE_MESSAGE_TTL = 60;          // server side limit
   static constexpr int32 DIALOG_FILTERS_CACHE_TIME = 86400;
-  static constexpr size_t MIN_DELETED_ASYNCHRONOUSLY_MESSAGES = 10u;
+  static constexpr size_t MIN_DELETED_ASYNCHRONOUSLY_MESSAGES = 10;
+  static constexpr size_t MAX_UNLOADED_MESSAGES = 5000;
 
   static constexpr int64 SPONSORED_DIALOG_ORDER = static_cast<int64>(2147483647) << 32;
   static constexpr int32 MIN_PINNED_DIALOG_DATE = 2147000000;  // some big date

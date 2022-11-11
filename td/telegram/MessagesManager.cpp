@@ -11665,6 +11665,10 @@ void MessagesManager::find_unloadable_messages(const Dialog *d, int32 unload_bef
   if (m == nullptr) {
     return;
   }
+  if (message_ids.size() >= MAX_UNLOADED_MESSAGES) {
+    has_left_to_unload_messages = true;
+    return;
+  }
 
   find_unloadable_messages(d, unload_before_date, m->left.get(), message_ids, has_left_to_unload_messages);
 
@@ -11980,7 +11984,9 @@ void MessagesManager::unload_dialog(DialogId dialog_id) {
 
   if (has_left_to_unload_messages) {
     LOG(DEBUG) << "Need to unload more messages in " << dialog_id;
-    pending_unload_dialog_timeout_.add_timeout_in(d->dialog_id.get(), get_next_unload_dialog_delay(d));
+    pending_unload_dialog_timeout_.add_timeout_in(
+        d->dialog_id.get(),
+        to_unload_message_ids.size() >= MAX_UNLOADED_MESSAGES ? 1.0 : get_next_unload_dialog_delay(d));
   } else {
     d->has_unload_timeout = false;
   }
