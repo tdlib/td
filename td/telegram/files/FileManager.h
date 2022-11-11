@@ -601,7 +601,7 @@ class FileManager final : public FileLoadManager::Callback {
 
   std::set<std::string> bad_paths_;
 
-  int file_node_size_warning_exp_ = 12;
+  int file_node_size_warning_exp_ = 11;
 
   FileId next_file_id();
   FileNodeId next_file_node_id();
