@@ -277,7 +277,9 @@ void remove_emoji_modifiers_in_place(string &emoji) {
       emoji[j++] = emoji[i++];
     }
   }
-  emoji.resize(j);
+  if (j != 0) {
+    emoji.resize(j);
+  }
 }
 
 string remove_emoji_selectors(Slice emoji) {

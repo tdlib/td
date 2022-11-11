@@ -76,11 +76,11 @@ TEST(Emoji, remove_emoji_modifiers) {
   test_remove_emoji_modifiers("👋🏽", "👋");
   test_remove_emoji_modifiers("👋🏾", "👋");
   test_remove_emoji_modifiers("👋🏿", "👋");
-  test_remove_emoji_modifiers("🏻", "");
-  test_remove_emoji_modifiers("🏼", "");
-  test_remove_emoji_modifiers("🏽", "");
-  test_remove_emoji_modifiers("🏾", "");
-  test_remove_emoji_modifiers("🏿", "");
+  test_remove_emoji_modifiers("🏻", "🏻");
+  test_remove_emoji_modifiers("🏼", "🏼");
+  test_remove_emoji_modifiers("🏽", "🏽");
+  test_remove_emoji_modifiers("🏾", "🏾");
+  test_remove_emoji_modifiers("🏿", "🏿");
   test_remove_emoji_modifiers("⌚", "⌚");
   test_remove_emoji_modifiers("↔", "↔");
   test_remove_emoji_modifiers("🪗", "🪗");
@@ -89,6 +89,9 @@ TEST(Emoji, remove_emoji_modifiers) {
   test_remove_emoji_modifiers("❤️", "❤");
   test_remove_emoji_modifiers("❤", "❤");
   test_remove_emoji_modifiers("⌚", "⌚");
+  test_remove_emoji_modifiers("️", "️");
+  test_remove_emoji_modifiers("️️️🏻", "️️️🏻");
+  test_remove_emoji_modifiers("️️️🏻a", "a");
   test_remove_emoji_modifiers("🎄", "🎄");
   test_remove_emoji_modifiers("🧑‍🎄", "🧑‍🎄");
 }
