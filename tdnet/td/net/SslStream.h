@@ -25,9 +25,7 @@ class SslStream {
   SslStream &operator=(SslStream &&) noexcept;
   ~SslStream();
 
-  static Result<SslStream> create(CSlice host, CSlice cert_file = CSlice(),
-                                  SslCtx::VerifyPeer verify_peer = SslCtx::VerifyPeer::On,
-                                  bool use_ip_address_as_host = false);
+  static Result<SslStream> create(CSlice host, SslCtx ssl_ctx, bool use_ip_address_as_host = false);
 
   ByteFlowInterface &read_byte_flow();
   ByteFlowInterface &write_byte_flow();

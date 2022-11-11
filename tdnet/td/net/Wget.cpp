@@ -84,7 +84,8 @@ Status Wget::try_init() {
                                                        std::numeric_limits<std::size_t>::max(), 0, 0,
                                                        ActorOwn<HttpOutboundConnection::Callback>(actor_id(this)));
   } else {
-    TRY_RESULT(ssl_stream, SslStream::create(url.host_, CSlice() /* certificate */, verify_peer_));
+    TRY_RESULT(ssl_ctx, SslCtx::create(CSlice() /* certificate */, verify_peer_));
+    TRY_RESULT(ssl_stream, SslStream::create(url.host_, std::move(ssl_ctx)));
     connection_ = create_actor<HttpOutboundConnection>(
         "Connect", BufferedFd<SocketFd>(std::move(fd)), std::move(ssl_stream), std::numeric_limits<std::size_t>::max(),
         0, 0, ActorOwn<HttpOutboundConnection::Callback>(actor_id(this)));

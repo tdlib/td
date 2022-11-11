@@ -135,12 +135,12 @@ using SslHandle = std::unique_ptr<SSL, SslHandleDeleter>;
 
 class SslStreamImpl {
  public:
-  Status init(CSlice host, CSlice cert_file, SslCtx::VerifyPeer verify_peer, bool check_ip_address_as_host) {
-    SslCtx::init_openssl();
+  Status init(CSlice host, SslCtx ssl_ctx, bool check_ip_address_as_host) {
+    if (!ssl_ctx) {
+      return Status::Error("Invalid SSL context provided");
+    }
 
     clear_openssl_errors("Before SslFd::init");
-
-    TRY_RESULT(ssl_ctx, SslCtx::create(cert_file, verify_peer));
 
     auto ssl_handle = SslHandle(SSL_new(static_cast<SSL_CTX *>(ssl_ctx.get_openssl_ctx())));
     if (!ssl_handle) {
@@ -356,10 +356,9 @@ SslStream::SslStream(SslStream &&) noexcept = default;
 SslStream &SslStream::operator=(SslStream &&) noexcept = default;
 SslStream::~SslStream() = default;
 
-Result<SslStream> SslStream::create(CSlice host, CSlice cert_file, SslCtx::VerifyPeer verify_peer,
-                                    bool use_ip_address_as_host) {
+Result<SslStream> SslStream::create(CSlice host, SslCtx ssl_ctx, bool use_ip_address_as_host) {
   auto impl = make_unique<detail::SslStreamImpl>();
-  TRY_STATUS(impl->init(host, cert_file, verify_peer, use_ip_address_as_host));
+  TRY_STATUS(impl->init(host, ssl_ctx, use_ip_address_as_host));
   return SslStream(std::move(impl));
 }
 SslStream::SslStream(unique_ptr<detail::SslStreamImpl> impl) : impl_(std::move(impl)) {
@@ -392,8 +391,7 @@ SslStream::SslStream(SslStream &&) noexcept = default;
 SslStream &SslStream::operator=(SslStream &&) noexcept = default;
 SslStream::~SslStream() = default;
 
-Result<SslStream> SslStream::create(CSlice host, CSlice cert_file, SslCtx::VerifyPeer verify_peer,
-                                    bool check_ip_address_as_host) {
+Result<SslStream> SslStream::create(CSlice host, SslCtx ssl_ctx, bool check_ip_address_as_host) {
   return Status::Error("Not supported in Emscripten");
 }
 
