@@ -1273,15 +1273,13 @@ Result<FileId> FileManager::register_file(FileData &&data, FileLocationSource fi
   FileView file_view(get_file_node(file_id));
 
   vector<FileId> to_merge;
-  auto register_location = [&](const auto &location, auto &mp) {
+  auto register_location = [&](const auto &location, auto &mp) -> FileId * {
     auto &other_id = mp[location];
     if (other_id.empty()) {
-      other_id = file_id;
-      get_file_id_info(file_id)->pin_flag_ = true;
-      return true;
+      return &other_id;
     } else {
       to_merge.push_back(other_id);
-      return false;
+      return nullptr;
     }
   };
   bool new_remote = false;
@@ -1302,17 +1300,17 @@ Result<FileId> FileManager::register_file(FileData &&data, FileLocationSource fi
       }
     }
   }
-  bool new_local = false;
+  FileId *new_local_file_id = nullptr;
   if (file_view.has_local_location()) {
-    new_local = register_location(file_view.local_location(), local_location_to_file_id_);
+    new_local_file_id = register_location(file_view.local_location(), local_location_to_file_id_);
   }
-  bool new_generate = false;
+  FileId *new_generate_file_id = nullptr;
   if (file_view.has_generate_location()) {
-    new_generate = register_location(file_view.generate_location(), generate_location_to_file_id_);
+    new_generate_file_id = register_location(file_view.generate_location(), generate_location_to_file_id_);
   }
   td::unique(to_merge);
 
-  int new_cnt = new_remote + new_local + new_generate;
+  int new_cnt = new_remote + (new_local_file_id != nullptr) + (new_generate_file_id != nullptr);
   if (data.pmc_id_ == 0 && file_db_ && new_cnt > 0) {
     node->need_load_from_pmc_ = true;
   }
@@ -1324,7 +1322,18 @@ Result<FileId> FileManager::register_file(FileData &&data, FileLocationSource fi
 
   try_flush_node(get_file_node(file_id), "register_file");
   auto main_file_id = get_file_node(file_id)->main_file_id_;
-  try_forget_file_id(file_id);
+  if (main_file_id != file_id) {
+    if (new_local_file_id != nullptr && *new_local_file_id == file_id) {
+      *new_local_file_id = main_file_id;
+    }
+    if (new_generate_file_id != nullptr && *new_generate_file_id == file_id) {
+      *new_generate_file_id = main_file_id;
+    }
+    try_forget_file_id(file_id);
+  }
+  if ((new_local_file_id != nullptr) || (new_generate_file_id != nullptr)) {
+    get_file_id_info(main_file_id)->pin_flag_ = true;
+  }
 
   if (!data.file_source_ids_.empty()) {
     VLOG(file_references) << "Loaded " << data.file_source_ids_ << " for file " << main_file_id << " from " << source;
