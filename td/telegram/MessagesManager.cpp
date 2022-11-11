@@ -36206,7 +36206,7 @@ void MessagesManager::delete_message_files(DialogId dialog_id, const Message *m)
 }
 
 bool MessagesManager::need_delete_file(FullMessageId full_message_id, FileId file_id) const {
-  if (being_readded_message_id_ == full_message_id) {
+  if (being_readded_message_id_ == full_message_id || td_->auth_manager_->is_bot()) {
     return false;
   }
 
@@ -36224,7 +36224,7 @@ bool MessagesManager::need_delete_file(FullMessageId full_message_id, FileId fil
 }
 
 bool MessagesManager::need_delete_message_files(DialogId dialog_id, const Message *m) const {
-  if (m == nullptr) {
+  if (m == nullptr || td_->auth_manager_->is_bot()) {
     return false;
   }
 
