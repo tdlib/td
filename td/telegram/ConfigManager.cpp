@@ -35,7 +35,7 @@
 #include "td/mtproto/TransportType.h"
 
 #if !TD_EMSCRIPTEN  //FIXME
-#include "td/net/SslStream.h"
+#include "td/net/SslCtx.h"
 #include "td/net/Wget.h"
 #endif
 
@@ -239,7 +239,7 @@ static ActorOwn<> get_simple_config_impl(Promise<SimpleConfigResult> promise, in
           return std::move(res);
         }());
       }),
-      std::move(url), std::move(headers), timeout, ttl, prefer_ipv6, SslStream::VerifyPeer::Off, std::move(content),
+      std::move(url), std::move(headers), timeout, ttl, prefer_ipv6, SslCtx::VerifyPeer::Off, std::move(content),
       std::move(content_type)));
 #endif
 }

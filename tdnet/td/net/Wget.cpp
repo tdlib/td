@@ -25,7 +25,7 @@
 namespace td {
 
 Wget::Wget(Promise<unique_ptr<HttpQuery>> promise, string url, std::vector<std::pair<string, string>> headers,
-           int32 timeout_in, int32 ttl, bool prefer_ipv6, SslStream::VerifyPeer verify_peer, string content,
+           int32 timeout_in, int32 ttl, bool prefer_ipv6, SslCtx::VerifyPeer verify_peer, string content,
            string content_type)
     : promise_(std::move(promise))
     , input_url_(std::move(url))

@@ -9,28 +9,18 @@
 #if !TD_EMSCRIPTEN
 #include "td/utils/common.h"
 #include "td/utils/crypto.h"
-#include "td/utils/FlatHashMap.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/port/IPAddress.h"
-#include "td/utils/port/wstring_convert.h"
-#include "td/utils/SliceBuilder.h"
 #include "td/utils/Status.h"
 #include "td/utils/Time.h"
 
+#include <openssl/bio.h>
 #include <openssl/err.h>
-#include <openssl/evp.h>
 #include <openssl/ssl.h>
 #include <openssl/x509.h>
-#include <openssl/x509v3.h>
 
 #include <cstring>
-#include <memory>
-#include <mutex>
-
-#if TD_PORT_WINDOWS
-#include <wincrypt.h>
-#endif
 
 namespace td {
 
@@ -122,33 +112,6 @@ BIO_METHOD *BIO_s_sslstream() {
   return result;
 }
 
-int verify_callback(int preverify_ok, X509_STORE_CTX *ctx) {
-  if (!preverify_ok) {
-    char buf[256];
-    X509_NAME_oneline(X509_get_subject_name(X509_STORE_CTX_get_current_cert(ctx)), buf, 256);
-
-    int err = X509_STORE_CTX_get_error(ctx);
-    auto warning = PSTRING() << "verify error:num=" << err << ":" << X509_verify_cert_error_string(err)
-                             << ":depth=" << X509_STORE_CTX_get_error_depth(ctx) << ":" << Slice(buf, std::strlen(buf));
-    double now = Time::now();
-
-    static std::mutex warning_mutex;
-    {
-      std::lock_guard<std::mutex> lock(warning_mutex);
-      static FlatHashMap<string, double> next_warning_time;
-      double &next = next_warning_time[warning];
-      if (next <= now) {
-        next = now + 300;  // one warning per 5 minutes
-        LOG(WARNING) << warning;
-      }
-    }
-  }
-
-  return preverify_ok;
-}
-
-using SslCtx = std::shared_ptr<SSL_CTX>;
-
 struct SslHandleDeleter {
   void operator()(SSL *ssl_handle) {
     auto start_time = Time::now();
@@ -168,162 +131,18 @@ struct SslHandleDeleter {
 
 using SslHandle = std::unique_ptr<SSL, SslHandleDeleter>;
 
-Result<SslCtx> do_create_ssl_ctx(CSlice cert_file, SslStream::VerifyPeer verify_peer) {
-  auto ssl_method =
-#if OPENSSL_VERSION_NUMBER >= 0x10100000L
-      TLS_client_method();
-#else
-      SSLv23_client_method();
-#endif
-  if (ssl_method == nullptr) {
-    return create_openssl_error(-6, "Failed to create an SSL client method");
-  }
-  auto ssl_ctx = SSL_CTX_new(ssl_method);
-  if (!ssl_ctx) {
-    return create_openssl_error(-7, "Failed to create an SSL context");
-  }
-  auto ssl_ctx_ptr = SslCtx(ssl_ctx, SSL_CTX_free);
-  long options = 0;
-#ifdef SSL_OP_NO_SSLv2
-  options |= SSL_OP_NO_SSLv2;
-#endif
-#ifdef SSL_OP_NO_SSLv3
-  options |= SSL_OP_NO_SSLv3;
-#endif
-  SSL_CTX_set_options(ssl_ctx, options);
-#if OPENSSL_VERSION_NUMBER >= 0x10100000L
-  SSL_CTX_set_min_proto_version(ssl_ctx, TLS1_VERSION);
-#endif
-  SSL_CTX_set_mode(ssl_ctx, SSL_MODE_ACCEPT_MOVING_WRITE_BUFFER | SSL_MODE_ENABLE_PARTIAL_WRITE);
-
-  if (cert_file.empty()) {
-#if TD_PORT_WINDOWS
-    LOG(DEBUG) << "Begin to load system store";
-    auto flags = CERT_STORE_OPEN_EXISTING_FLAG | CERT_STORE_READONLY_FLAG | CERT_SYSTEM_STORE_CURRENT_USER;
-    HCERTSTORE system_store =
-        CertOpenStore(CERT_STORE_PROV_SYSTEM_W, X509_ASN_ENCODING | PKCS_7_ASN_ENCODING, HCRYPTPROV_LEGACY(), flags,
-                      static_cast<const void *>(to_wstring("ROOT").ok().c_str()));
-
-    if (system_store) {
-      X509_STORE *store = X509_STORE_new();
-
-      for (PCCERT_CONTEXT cert_context = CertEnumCertificatesInStore(system_store, nullptr); cert_context != nullptr;
-           cert_context = CertEnumCertificatesInStore(system_store, cert_context)) {
-        const unsigned char *in = cert_context->pbCertEncoded;
-        X509 *x509 = d2i_X509(nullptr, &in, static_cast<long>(cert_context->cbCertEncoded));
-        if (x509 != nullptr) {
-          if (X509_STORE_add_cert(store, x509) != 1) {
-            auto error_code = ERR_peek_error();
-            auto error = create_openssl_error(-20, "Failed to add certificate");
-            if (ERR_GET_REASON(error_code) != X509_R_CERT_ALREADY_IN_HASH_TABLE) {
-              LOG(ERROR) << error;
-            } else {
-              LOG(INFO) << error;
-            }
-          }
-
-          X509_free(x509);
-        } else {
-          LOG(ERROR) << create_openssl_error(-21, "Failed to load X509 certificate");
-        }
-      }
-
-      CertCloseStore(system_store, 0);
-
-      SSL_CTX_set_cert_store(ssl_ctx, store);
-      LOG(DEBUG) << "End to load system store";
-    } else {
-      LOG(ERROR) << create_openssl_error(-22, "Failed to open system certificate store");
-    }
-#else
-    if (SSL_CTX_set_default_verify_paths(ssl_ctx) == 0) {
-      auto error = create_openssl_error(-8, "Failed to load default verify paths");
-      if (verify_peer == SslStream::VerifyPeer::On) {
-        return std::move(error);
-      } else {
-        LOG(ERROR) << error;
-      }
-    }
-#endif
-  } else {
-    if (SSL_CTX_load_verify_locations(ssl_ctx, cert_file.c_str(), nullptr) == 0) {
-      return create_openssl_error(-8, "Failed to set custom certificate file");
-    }
-  }
-
-  if (verify_peer == SslStream::VerifyPeer::On) {
-    SSL_CTX_set_verify(ssl_ctx, SSL_VERIFY_PEER, verify_callback);
-
-    constexpr int DEFAULT_VERIFY_DEPTH = 10;
-    SSL_CTX_set_verify_depth(ssl_ctx, DEFAULT_VERIFY_DEPTH);
-  } else {
-    SSL_CTX_set_verify(ssl_ctx, SSL_VERIFY_NONE, nullptr);
-  }
-
-  string cipher_list;
-  if (SSL_CTX_set_cipher_list(ssl_ctx, cipher_list.empty() ? "DEFAULT" : cipher_list.c_str()) == 0) {
-    return create_openssl_error(-9, PSLICE() << "Failed to set cipher list \"" << cipher_list << '"');
-  }
-
-  return std::move(ssl_ctx_ptr);
-}
-
-Result<SslCtx> get_default_ssl_ctx() {
-  static auto ctx = do_create_ssl_ctx("", SslStream::VerifyPeer::On);
-  if (ctx.is_error()) {
-    return ctx.error().clone();
-  }
-
-  return ctx.ok();
-}
-
-Result<SslCtx> get_default_unverified_ssl_ctx() {
-  static auto ctx = do_create_ssl_ctx("", SslStream::VerifyPeer::Off);
-  if (ctx.is_error()) {
-    return ctx.error().clone();
-  }
-
-  return ctx.ok();
-}
-
-Result<SslCtx> create_ssl_ctx(CSlice cert_file, SslStream::VerifyPeer verify_peer) {
-  if (cert_file.empty()) {
-    if (verify_peer == SslStream::VerifyPeer::On) {
-      return get_default_ssl_ctx();
-    } else {
-      return get_default_unverified_ssl_ctx();
-    }
-  }
-  auto start_time = Time::now();
-  auto result = do_create_ssl_ctx(cert_file, verify_peer);
-  auto elapsed_time = Time::now() - start_time;
-  if (elapsed_time >= 0.1) {
-    LOG(ERROR) << "SSL context creation took " << elapsed_time << " seconds";
-  }
-  return result;
-}
-
 }  // namespace
 
 class SslStreamImpl {
  public:
-  Status init(CSlice host, CSlice cert_file, SslStream::VerifyPeer verify_peer, bool check_ip_address_as_host) {
-    static bool init_openssl = [] {
-#if OPENSSL_VERSION_NUMBER >= 0x10100000L
-      return OPENSSL_init_ssl(0, nullptr) != 0;
-#else
-      OpenSSL_add_all_algorithms();
-      SSL_load_error_strings();
-      return OpenSSL_add_ssl_algorithms() != 0;
-#endif
-    }();
-    CHECK(init_openssl);
+  Status init(CSlice host, CSlice cert_file, SslCtx::VerifyPeer verify_peer, bool check_ip_address_as_host) {
+    SslCtx::init_openssl();
 
     clear_openssl_errors("Before SslFd::init");
 
-    TRY_RESULT(ssl_ctx, create_ssl_ctx(cert_file, verify_peer));
+    TRY_RESULT(ssl_ctx, SslCtx::create(cert_file, verify_peer));
 
-    auto ssl_handle = SslHandle(SSL_new(ssl_ctx.get()));
+    auto ssl_handle = SslHandle(SSL_new(static_cast<SSL_CTX *>(ssl_ctx.get_openssl_ctx())));
     if (!ssl_handle) {
       return create_openssl_error(-13, "Failed to create an SSL handle");
     }
@@ -537,7 +356,7 @@ SslStream::SslStream(SslStream &&) noexcept = default;
 SslStream &SslStream::operator=(SslStream &&) noexcept = default;
 SslStream::~SslStream() = default;
 
-Result<SslStream> SslStream::create(CSlice host, CSlice cert_file, VerifyPeer verify_peer,
+Result<SslStream> SslStream::create(CSlice host, CSlice cert_file, SslCtx::VerifyPeer verify_peer,
                                     bool use_ip_address_as_host) {
   auto impl = make_unique<detail::SslStreamImpl>();
   TRY_STATUS(impl->init(host, cert_file, verify_peer, use_ip_address_as_host));
@@ -569,13 +388,13 @@ class SslStreamImpl {};
 }  // namespace detail
 
 SslStream::SslStream() = default;
-SslStream::SslStream(SslStream &&) = default;
-SslStream &SslStream::operator=(SslStream &&) = default;
+SslStream::SslStream(SslStream &&) noexcept = default;
+SslStream &SslStream::operator=(SslStream &&) noexcept = default;
 SslStream::~SslStream() = default;
 
-Result<SslStream> SslStream::create(CSlice host, CSlice cert_file, VerifyPeer verify_peer,
+Result<SslStream> SslStream::create(CSlice host, CSlice cert_file, SslCtx::VerifyPeer verify_peer,
                                     bool check_ip_address_as_host) {
-  return Status::Error("Not supported in emscripten");
+  return Status::Error("Not supported in Emscripten");
 }
 
 SslStream::SslStream(unique_ptr<detail::SslStreamImpl> impl) : impl_(std::move(impl)) {

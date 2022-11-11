@@ -8,7 +8,7 @@
 
 #include "td/net/HttpOutboundConnection.h"
 #include "td/net/HttpQuery.h"
-#include "td/net/SslStream.h"
+#include "td/net/SslCtx.h"
 
 #include "td/actor/actor.h"
 
@@ -24,8 +24,7 @@ class Wget final : public HttpOutboundConnection::Callback {
  public:
   explicit Wget(Promise<unique_ptr<HttpQuery>> promise, string url, std::vector<std::pair<string, string>> headers = {},
                 int32 timeout_in = 10, int32 ttl = 3, bool prefer_ipv6 = false,
-                SslStream::VerifyPeer verify_peer = SslStream::VerifyPeer::On, string content = {},
-                string content_type = {});
+                SslCtx::VerifyPeer verify_peer = SslCtx::VerifyPeer::On, string content = {}, string content_type = {});
 
  private:
   Status try_init();
@@ -46,7 +45,7 @@ class Wget final : public HttpOutboundConnection::Callback {
   int32 timeout_in_;
   int32 ttl_;
   bool prefer_ipv6_ = false;
-  SslStream::VerifyPeer verify_peer_;
+  SslCtx::VerifyPeer verify_peer_;
   string content_;
   string content_type_;
 };

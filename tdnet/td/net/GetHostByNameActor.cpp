@@ -7,7 +7,7 @@
 #include "td/net/GetHostByNameActor.h"
 
 #include "td/net/HttpQuery.h"
-#include "td/net/SslStream.h"
+#include "td/net/SslCtx.h"
 #include "td/net/Wget.h"
 
 #include "td/utils/common.h"
@@ -51,7 +51,7 @@ class GoogleDnsResolver final : public Actor {
         "GoogleDnsResolver", std::move(wget_promise),
         PSTRING() << "https://dns.google/resolve?name=" << url_encode(host_) << "&type=" << (prefer_ipv6_ ? 28 : 1),
         std::vector<std::pair<string, string>>({{"Host", "dns.google"}}), timeout, ttl, prefer_ipv6_,
-        SslStream::VerifyPeer::Off);
+        SslCtx::VerifyPeer::Off);
   }
 
   static Result<IPAddress> get_ip_address(Result<unique_ptr<HttpQuery>> r_http_query) {

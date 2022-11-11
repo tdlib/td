@@ -24,6 +24,7 @@ set(TDNET_SOURCE
   td/net/HttpQuery.cpp
   td/net/HttpReader.cpp
   td/net/Socks5.cpp
+  td/net/SslCtx.cpp
   td/net/SslStream.cpp
   td/net/TcpListener.cpp
   td/net/TransparentProxy.cpp
@@ -42,6 +43,7 @@ set(TDNET_SOURCE
   td/net/HttpReader.h
   td/net/NetStats.h
   td/net/Socks5.h
+  td/net/SslCtx.h
   td/net/SslStream.h
   td/net/TcpListener.h
   td/net/TransparentProxy.h
