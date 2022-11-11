@@ -26186,7 +26186,7 @@ Result<td_api::object_ptr<td_api::message>> MessagesManager::send_message(
   }
   m->send_emoji = std::move(message_content.emoji);
 
-  if (message_content.clear_draft) {
+  if (m->clear_draft) {
     if (top_thread_message_id.is_valid()) {
       set_dialog_draft_message(dialog_id, top_thread_message_id, nullptr).ignore();
     } else {
@@ -27332,12 +27332,14 @@ Result<MessageId> MessagesManager::send_inline_query_result_message(DialogId dia
     m->reply_markup = make_unique<ReplyMarkup>(*content->message_reply_markup);
   }
   m->disable_web_page_preview = content->disable_web_page_preview;
-  m->clear_draft = true;
+  m->clear_draft = !hide_via_bot;
 
-  if (top_thread_message_id.is_valid()) {
-    set_dialog_draft_message(dialog_id, top_thread_message_id, nullptr).ignore();
-  } else {
-    update_dialog_draft_message(d, nullptr, false, !need_update_dialog_pos);
+  if (m->clear_draft) {
+    if (top_thread_message_id.is_valid()) {
+      set_dialog_draft_message(dialog_id, top_thread_message_id, nullptr).ignore();
+    } else {
+      update_dialog_draft_message(d, nullptr, false, !need_update_dialog_pos);
+    }
   }
 
   send_update_new_message(d, m);
@@ -29738,7 +29740,7 @@ Result<MessageId> MessagesManager::add_local_message(
     }
   }
 
-  if (message_content.clear_draft) {
+  if (m->clear_draft) {
     update_dialog_draft_message(d, nullptr, false, !need_update_dialog_pos);
   }
 
