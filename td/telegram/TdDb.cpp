@@ -310,7 +310,7 @@ Status TdDb::init_sqlite(const TdParameters &parameters, const DbKey &key, const
   bool use_sqlite = parameters.use_file_db;
   bool use_file_db = parameters.use_file_db;
   bool use_dialog_db = parameters.use_message_db;
-  bool use_message_thread_db = parameters.use_message_db;
+  bool use_message_thread_db = parameters.use_message_db && false;
   bool use_message_db = parameters.use_message_db;
   if (!use_sqlite) {
     SqliteDb::destroy(sql_database_path).ignore();
