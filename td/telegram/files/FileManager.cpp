@@ -1323,10 +1323,7 @@ Result<FileId> FileManager::register_file(FileData &&data, FileLocationSource fi
   }
   Status status;
   if (merge_file_id.is_valid()) {
-    auto r_file_id = merge(file_id, merge_file_id);
-    if (r_file_id.is_error()) {
-      status = r_file_id.move_as_error();
-    }
+    status = merge(file_id, merge_file_id);
   }
 
   try_flush_node(get_file_node(file_id), "register_file");
@@ -1515,7 +1512,7 @@ void FileManager::do_cancel_generate(FileNodePtr node) {
   node->set_generate_priority(0, 0);
 }
 
-Result<FileId> FileManager::merge(FileId x_file_id, FileId y_file_id, bool no_sync) {
+Status FileManager::merge(FileId x_file_id, FileId y_file_id, bool no_sync) {
   if (!x_file_id.is_valid()) {
     return Status::Error("First file_id is invalid");
   }
@@ -1527,7 +1524,7 @@ Result<FileId> FileManager::merge(FileId x_file_id, FileId y_file_id, bool no_sy
 
   if (!y_file_id.is_valid()) {
     LOG(DEBUG) << "Old file is invalid";
-    return x_node->main_file_id_;
+    return Status::OK();
   }
   FileNodePtr y_node = get_file_node(y_file_id);
   if (!y_node) {
@@ -1542,7 +1539,7 @@ Result<FileId> FileManager::merge(FileId x_file_id, FileId y_file_id, bool no_sy
     if (x_file_id != y_file_id) {
       LOG(DEBUG) << "New file " << x_file_id << " and old file " << y_file_id << " are already merged";
     }
-    return x_node->main_file_id_;
+    return Status::OK();
   }
   if (y_file_id == y_node->upload_pause_) {
     y_node->set_upload_pause(FileId());
@@ -1786,7 +1783,7 @@ Result<FileId> FileManager::merge(FileId x_file_id, FileId y_file_id, bool no_sy
   }
   try_flush_node_full(node, node_i != remote_i, node_i != local_i, node_i != generate_i, other_pmc_id);
 
-  return node->main_file_id_;
+  return Status::OK();
 }
 
 void FileManager::add_file_source(FileId file_id, FileSourceId file_source_id) {
@@ -2046,8 +2043,7 @@ void FileManager::load_from_pmc(FileNodePtr node, bool new_remote, bool new_loca
     TRY_RESULT(file_data, file_db_->get_file_data_sync(location));
     TRY_RESULT(new_file_id,
                register_file(std::move(file_data), FileLocationSource::FromDatabase, FileId(), source, false));
-    TRY_RESULT(main_file_id, merge(file_id, new_file_id));  // merge manually to keep merge parameters order
-    file_id = main_file_id;
+    TRY_STATUS(merge(file_id, new_file_id));  // merge manually to keep merge parameters order
     return Status::OK();
   };
   if (new_remote) {

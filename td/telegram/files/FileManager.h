@@ -436,7 +436,7 @@ class FileManager final : public FileLoadManager::Callback {
                                    string conversion, DialogId owner_dialog_id,
                                    int64 expected_size) TD_WARN_UNUSED_RESULT;
 
-  Result<FileId> merge(FileId x_file_id, FileId y_file_id, bool no_sync = false) TD_WARN_UNUSED_RESULT;
+  Status merge(FileId x_file_id, FileId y_file_id, bool no_sync = false);
 
   void add_file_source(FileId file_id, FileSourceId file_source_id);
 
