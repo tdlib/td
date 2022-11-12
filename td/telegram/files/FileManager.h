@@ -427,8 +427,8 @@ class FileManager final : public FileLoadManager::Callback {
 
   FileId register_empty(FileType type);
   Result<FileId> register_local(FullLocalFileLocation location, DialogId owner_dialog_id, int64 size,
-                                bool get_by_hash = false, bool force = false,
-                                bool skip_file_size_checks = false) TD_WARN_UNUSED_RESULT;
+                                bool get_by_hash = false, bool force = false, bool skip_file_size_checks = false,
+                                FileId merge_file_id = FileId()) TD_WARN_UNUSED_RESULT;
   FileId register_remote(FullRemoteFileLocation location, FileLocationSource file_location_source,
                          DialogId owner_dialog_id, int64 size, int64 expected_size,
                          string remote_name) TD_WARN_UNUSED_RESULT;
@@ -520,8 +520,8 @@ class FileManager final : public FileLoadManager::Callback {
 
   FileId register_url(string url, FileType file_type, FileLocationSource file_location_source,
                       DialogId owner_dialog_id);
-  Result<FileId> register_file(FileData &&data, FileLocationSource file_location_source, const char *source, bool force,
-                               bool skip_file_size_checks = false);
+  Result<FileId> register_file(FileData &&data, FileLocationSource file_location_source, FileId merge_file_id,
+                               const char *source, bool force, bool skip_file_size_checks = false);
 
   static constexpr int8 FROM_BYTES_PRIORITY = 10;
 
