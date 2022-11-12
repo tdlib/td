@@ -6,6 +6,7 @@
 //
 #include "td/telegram/VoiceNotesManager.h"
 
+#include "td/telegram/AuthManager.h"
 #include "td/telegram/Dimensions.h"
 #include "td/telegram/files/FileManager.h"
 #include "td/telegram/Global.h"
@@ -134,7 +135,8 @@ void VoiceNotesManager::create_voice_note(FileId file_id, string mime_type, int3
 
 void VoiceNotesManager::register_voice_note(FileId voice_note_file_id, FullMessageId full_message_id,
                                             const char *source) {
-  if (full_message_id.get_message_id().is_scheduled() || !full_message_id.get_message_id().is_server()) {
+  if (full_message_id.get_message_id().is_scheduled() || !full_message_id.get_message_id().is_server() ||
+      td_->auth_manager_->is_bot()) {
     return;
   }
   LOG(INFO) << "Register voice note " << voice_note_file_id << " from " << full_message_id << " from " << source;
@@ -146,7 +148,8 @@ void VoiceNotesManager::register_voice_note(FileId voice_note_file_id, FullMessa
 
 void VoiceNotesManager::unregister_voice_note(FileId voice_note_file_id, FullMessageId full_message_id,
                                               const char *source) {
-  if (full_message_id.get_message_id().is_scheduled() || !full_message_id.get_message_id().is_server()) {
+  if (full_message_id.get_message_id().is_scheduled() || !full_message_id.get_message_id().is_server() ||
+      td_->auth_manager_->is_bot()) {
     return;
   }
   LOG(INFO) << "Unregister voice note " << voice_note_file_id << " from " << full_message_id << " from " << source;

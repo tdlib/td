@@ -171,7 +171,8 @@ void VideoNotesManager::create_video_note(FileId file_id, string minithumbnail, 
 
 void VideoNotesManager::register_video_note(FileId video_note_file_id, FullMessageId full_message_id,
                                             const char *source) {
-  if (full_message_id.get_message_id().is_scheduled() || !full_message_id.get_message_id().is_server()) {
+  if (full_message_id.get_message_id().is_scheduled() || !full_message_id.get_message_id().is_server() ||
+      td_->auth_manager_->is_bot()) {
     return;
   }
   LOG(INFO) << "Register video note " << video_note_file_id << " from " << full_message_id << " from " << source;
@@ -183,7 +184,8 @@ void VideoNotesManager::register_video_note(FileId video_note_file_id, FullMessa
 
 void VideoNotesManager::unregister_video_note(FileId video_note_file_id, FullMessageId full_message_id,
                                               const char *source) {
-  if (full_message_id.get_message_id().is_scheduled() || !full_message_id.get_message_id().is_server()) {
+  if (full_message_id.get_message_id().is_scheduled() || !full_message_id.get_message_id().is_server() ||
+      td_->auth_manager_->is_bot()) {
     return;
   }
   LOG(INFO) << "Unregister video note " << video_note_file_id << " from " << full_message_id << " from " << source;
