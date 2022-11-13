@@ -1282,6 +1282,7 @@ Result<FileId> FileManager::register_file(FileData &&data, FileLocationSource fi
   auto register_location = [&](const auto &location, auto &mp) -> FileId * {
     auto &other_id = mp[location];
     if (other_id.empty()) {
+      other_id = file_id;
       return &other_id;
     } else {
       to_merge.push_back(other_id);
@@ -1333,10 +1334,10 @@ Result<FileId> FileManager::register_file(FileData &&data, FileLocationSource fi
   try_flush_node(get_file_node(file_id), "register_file");
   auto main_file_id = get_file_node(file_id)->main_file_id_;
   if (main_file_id != file_id) {
-    if (new_local_file_id != nullptr && *new_local_file_id == file_id) {
+    if (new_local_file_id != nullptr) {
       *new_local_file_id = main_file_id;
     }
-    if (new_generate_file_id != nullptr && *new_generate_file_id == file_id) {
+    if (new_generate_file_id != nullptr) {
       *new_generate_file_id = main_file_id;
     }
     try_forget_file_id(file_id);
