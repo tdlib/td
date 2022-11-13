@@ -18446,6 +18446,9 @@ FullMessageId MessagesManager::get_replied_message_id(DialogId dialog_id, const 
     return full_message_id;
   }
   if (m->reply_to_message_id == MessageId()) {
+    if (m->top_thread_message_id.is_valid() && is_service_message_content(m->content->get_type())) {
+      return {dialog_id, m->top_thread_message_id};
+    }
     return {};
   }
   return {m->reply_in_dialog_id.is_valid() ? m->reply_in_dialog_id : dialog_id, m->reply_to_message_id};
