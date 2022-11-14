@@ -25434,13 +25434,19 @@ tl_object_ptr<td_api::message> MessagesManager::get_message_object(DialogId dial
   auto is_pinned = is_scheduled ? false : m->is_pinned;
   auto has_timestamped_media = for_event_log || reply_to_message_id == 0 || m->max_own_media_timestamp >= 0;
   auto reply_markup = get_reply_markup_object(td_->contacts_manager_.get(), m->reply_markup);
-
   auto live_location_date = m->is_failed_to_send ? 0 : m->date;
   auto skip_bot_commands = for_event_log ? true : need_skip_bot_commands(dialog_id, m);
   auto max_media_timestamp =
       for_event_log ? get_message_own_max_media_timestamp(m) : get_message_max_media_timestamp(m);
   auto content = get_message_content_object(m->content.get(), td_, dialog_id, live_location_date, m->is_content_secret,
                                             skip_bot_commands, max_media_timestamp);
+
+  if (m->is_topic_message && reply_in_dialog_id == dialog_id && reply_to_message_id == top_thread_message_id &&
+      !td_->auth_manager_->is_bot()) {
+    reply_in_dialog_id = DialogId();
+    reply_to_message_id = 0;
+  }
+
   return make_tl_object<td_api::message>(
       m->message_id.get(), std::move(sender), dialog_id.get(), std::move(sending_state), std::move(scheduling_state),
       is_outgoing, is_pinned, can_be_edited, can_be_forwarded, can_be_saved, can_delete_for_self,
