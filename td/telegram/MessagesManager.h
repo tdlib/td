@@ -1206,6 +1206,7 @@ class MessagesManager final : public Actor {
     unique_ptr<DraftMessage> thread_draft_message;
     uint32 available_reactions_generation = 0;
     int32 interaction_info_update_date = 0;
+    uint32 history_generation = 0;
 
     int32 legacy_layer = 0;
 
@@ -1312,6 +1313,7 @@ class MessagesManager final : public Actor {
     int32 have_full_history_source = 0;
     int32 unload_dialog_delay_seed = 0;
     int64 last_media_album_id = 0;
+    uint32 history_generation = 0;
 
     FolderId folder_id;
     vector<DialogListId> dialog_list_ids;  // TODO replace with mask

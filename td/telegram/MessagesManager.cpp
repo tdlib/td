@@ -4896,6 +4896,7 @@ void MessagesManager::Message::store(StorerT &storer) const {
   bool has_flags3 = true;
   bool has_reactions = reactions != nullptr;
   bool has_available_reactions_generation = available_reactions_generation != 0;
+  bool has_history_generation = history_generation != 0;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(is_channel_post);
   STORE_FLAG(is_outgoing);
@@ -4970,6 +4971,7 @@ void MessagesManager::Message::store(StorerT &storer) const {
     STORE_FLAG(has_available_reactions_generation);
     STORE_FLAG(update_stickersets_order);
     STORE_FLAG(is_topic_message);
+    STORE_FLAG(has_history_generation);
     END_STORE_FLAGS();
   }
 
@@ -5094,6 +5096,9 @@ void MessagesManager::Message::store(StorerT &storer) const {
   if (has_available_reactions_generation) {
     store(available_reactions_generation, storer);
   }
+  if (has_history_generation) {
+    store(history_generation, storer);
+  }
 }
 
 // do not forget to resolve message dependencies
@@ -5139,6 +5144,7 @@ void MessagesManager::Message::parse(ParserT &parser) {
   bool has_flags3 = false;
   bool has_reactions = false;
   bool has_available_reactions_generation = false;
+  bool has_history_generation = false;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(is_channel_post);
   PARSE_FLAG(is_outgoing);
@@ -5213,6 +5219,7 @@ void MessagesManager::Message::parse(ParserT &parser) {
     PARSE_FLAG(has_available_reactions_generation);
     PARSE_FLAG(update_stickersets_order);
     PARSE_FLAG(is_topic_message);
+    PARSE_FLAG(has_history_generation);
     END_PARSE_FLAGS();
   }
 
@@ -5344,6 +5351,9 @@ void MessagesManager::Message::parse(ParserT &parser) {
   if (has_available_reactions_generation) {
     parse(available_reactions_generation, parser);
   }
+  if (has_history_generation) {
+    parse(history_generation, parser);
+  }
 
   CHECK(content != nullptr);
   is_content_secret |=
@@ -5422,6 +5432,7 @@ void MessagesManager::Dialog::store(StorerT &storer) const {
   bool has_available_reactions_generation = available_reactions_generation != 0;
   bool has_have_full_history_source = have_full_history && have_full_history_source != 0;
   bool has_available_reactions = !available_reactions.empty();
+  bool has_history_generation = history_generation != 0;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_draft_message);
   STORE_FLAG(has_last_database_message);
@@ -5503,6 +5514,7 @@ void MessagesManager::Dialog::store(StorerT &storer) const {
     STORE_FLAG(has_available_reactions_generation);
     STORE_FLAG(has_have_full_history_source);
     STORE_FLAG(has_available_reactions);
+    STORE_FLAG(has_history_generation);
     END_STORE_FLAGS();
   }
 
@@ -5615,6 +5627,9 @@ void MessagesManager::Dialog::store(StorerT &storer) const {
   if (has_have_full_history_source) {
     store(have_full_history_source, storer);
   }
+  if (has_history_generation) {
+    store(history_generation, storer);
+  }
 }
 
 // do not forget to resolve dialog dependencies including dependencies of last_message
@@ -5664,6 +5679,7 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
   bool has_available_reactions_generation = false;
   bool has_have_full_history_source = false;
   bool has_available_reactions = false;
+  bool has_history_generation = false;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(has_draft_message);
   PARSE_FLAG(has_last_database_message);
@@ -5760,6 +5776,7 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
     PARSE_FLAG(has_available_reactions_generation);
     PARSE_FLAG(has_have_full_history_source);
     PARSE_FLAG(has_available_reactions);
+    PARSE_FLAG(has_history_generation);
     END_PARSE_FLAGS();
   } else {
     need_repair_action_bar = false;
@@ -5920,6 +5937,9 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
   }
   if (has_have_full_history_source) {
     parse(have_full_history_source, parser);
+  }
+  if (has_history_generation) {
+    parse(history_generation, parser);
   }
 
   (void)legacy_know_can_report_spam;
@@ -10054,10 +10074,6 @@ void MessagesManager::on_get_history(DialogId dialog_id, MessageId from_message_
         }
       }
       first_added_message_id = message_id;
-      if (!message_id.is_yet_unsent()) {
-        // message should be already saved to database in on_get_message
-        // add_message_to_database(d, get_message(d, message_id), "on_get_history");
-      }
     }
   }
 
@@ -24378,6 +24394,23 @@ unique_ptr<MessagesManager::Message> MessagesManager::parse_message(Dialog *d, M
       }
     }
   }
+  if (m->history_generation > d->history_generation && m->history_generation - d->history_generation < 1000000000) {
+    switch (dialog_id.get_type()) {
+      case DialogType::Channel:
+        LOG(ERROR) << "Fix history_generation in " << dialog_id << " from " << d->history_generation << " to "
+                   << m->history_generation;
+        d->history_generation = m->history_generation + 1;
+        on_dialog_updated(dialog_id, "parse_message");
+        break;
+      case DialogType::Chat:
+      case DialogType::User:
+      case DialogType::SecretChat:
+      default:
+        LOG(ERROR) << "Receive history_generation = " << m->history_generation << " in " << m->message_id << " in "
+                   << dialog_id;
+        break;
+    }
+  }
 
   LOG(INFO) << "Loaded " << m->message_id << " in " << dialog_id << " of size " << value.size() << " from database";
   return m;
@@ -35096,6 +35129,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
         UNREACHABLE();
         break;
     }
+    message->history_generation = d->history_generation;
   }
 
   if (!message->top_thread_message_id.is_valid() && is_thread_message(dialog_id, message.get())) {
@@ -36077,15 +36111,17 @@ void MessagesManager::add_message_to_database(const Dialog *d, const Message *m,
   CHECK(m != nullptr);
   MessageId message_id = m->message_id;
 
-  LOG(INFO) << "Add " << FullMessageId(d->dialog_id, message_id) << " to database from " << source;
-
   if (message_id.is_scheduled()) {
+    LOG(INFO) << "Add " << FullMessageId(d->dialog_id, message_id) << " to database from " << source;
+
     set_dialog_has_scheduled_database_messages(d->dialog_id, true);
     G()->td_db()->get_message_db_async()->add_scheduled_message({d->dialog_id, message_id}, log_event_store(*m),
                                                                 Auto());  // TODO Promise
     return;
   }
   LOG_CHECK(message_id.is_server() || message_id.is_local()) << source;
+
+  LOG(INFO) << "Add " << FullMessageId(d->dialog_id, message_id) << " to database from " << source;
 
   ServerMessageId unique_message_id;
   int64 random_id = 0;
@@ -36855,6 +36891,9 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
 
   if (old_message->last_access_date < new_message->last_access_date) {
     old_message->last_access_date = new_message->last_access_date;
+  }
+  if (old_message->history_generation < new_message->history_generation) {
+    old_message->history_generation = new_message->history_generation;
   }
   if (new_message->is_update_sent || is_edited) {
     old_message->is_update_sent = true;
@@ -39234,7 +39273,6 @@ void MessagesManager::on_get_channel_dialog(DialogId dialog_id, MessageId last_m
   Dialog *d = get_dialog(dialog_id);
   CHECK(d != nullptr);
 
-  // TODO gaps support
   // There are many ways of handling a gap in a channel:
   // 1) Delete all known messages in the chat, begin from scratch. It is easy to implement, but suddenly disappearing
   //    messages looks awful for the user.
@@ -39262,6 +39300,7 @@ void MessagesManager::on_get_channel_dialog(DialogId dialog_id, MessageId last_m
     d->is_empty = false;
   }
   invalidate_message_indexes(d);
+  // d->history_generation++;
 
   on_dialog_updated(dialog_id, "on_get_channel_dialog 10");
 
