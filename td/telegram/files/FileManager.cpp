@@ -3270,6 +3270,7 @@ Result<FileId> FileManager::get_input_file_id(FileType type, const tl_object_ptr
             if (r_file_content.is_ok()) {
               hash = sha256(r_file_content.ok());
               auto file_id = file_hash_to_file_id_.get(hash);
+              LOG(INFO) << "Found file " << file_id << " by hash " << hex_encode(hash);
               if (file_id.is_valid()) {
                 auto file_view = get_file_view(file_id);
                 if (!file_view.empty()) {
@@ -3278,6 +3279,9 @@ Result<FileId> FileManager::get_input_file_id(FileType type, const tl_object_ptr
                   }
                   if (file_view.has_remote_location() && !file_view.remote_location().is_web()) {
                     return file_id;
+                  }
+                  if (file_view.is_uploading()) {
+                    hash.clear();
                   }
                 }
               }
