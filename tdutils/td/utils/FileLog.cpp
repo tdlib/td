@@ -82,6 +82,12 @@ void FileLog::do_append(int log_level, CSlice slice) {
     do_after_rotation();
   }
   while (!slice.empty()) {
+    if (redirect_stderr_) {
+      auto &guard = get_log_guard();
+      while (guard.load() != 0) {
+        // spin
+      }
+    }
     auto r_size = fd_.write(slice);
     if (r_size.is_error()) {
       process_fatal_error(PSLICE() << r_size.error() << " in " << __FILE__ << " at " << __LINE__ << '\n');

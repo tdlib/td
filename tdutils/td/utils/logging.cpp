@@ -250,6 +250,11 @@ void process_fatal_error(CSlice message) {
   std::abort();
 }
 
+std::atomic<uint32> &get_log_guard() {
+  static std::atomic<uint32> log_guard;
+  return log_guard;
+}
+
 namespace {
 std::mutex sdl_mutex;
 int sdl_cnt = 0;

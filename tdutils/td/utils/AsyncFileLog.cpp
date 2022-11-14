@@ -40,7 +40,6 @@ Status AsyncFileLog::init(string path, int64 rotate_threshold, bool redirect_std
   logging_thread_ = td::thread(
       [queue = queue_.get(), fd = std::move(fd), path = path_, size, rotate_threshold, redirect_stderr]() mutable {
         auto after_rotation = [&] {
-          ScopedDisableLog disable_log;  // to ensure that nothing will be printed to the closed log
           fd.close();
           auto r_fd = FileFd::open(path, FileFd::Create | FileFd::Write | FileFd::Append);
           if (r_fd.is_error()) {
@@ -61,6 +60,12 @@ Status AsyncFileLog::init(string path, int64 rotate_threshold, bool redirect_std
             after_rotation();
           }
           while (!slice.empty()) {
+            if (redirect_stderr) {
+              auto &guard = get_log_guard();
+              while (guard.load() != 0) {
+                // spin
+              }
+            }
             auto r_size = fd.write(slice);
             if (r_size.is_error()) {
               process_fatal_error(PSLICE() << r_size.error() << " in " << __FILE__ << " at " << __LINE__ << '\n');

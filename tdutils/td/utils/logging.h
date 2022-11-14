@@ -221,6 +221,8 @@ class Logger {
   int log_level_;
 };
 
+std::atomic<uint32> &get_log_guard();
+
 class ScopedDisableLog {
  public:
   ScopedDisableLog();
