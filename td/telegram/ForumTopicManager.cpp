@@ -307,8 +307,7 @@ void ForumTopicManager::on_get_forum_topics(DialogId dialog_id,
   if (forum_topics.empty()) {
     return;
   }
-  if (dialog_id.get_type() != DialogType::Channel ||
-      !td_->contacts_manager_->is_megagroup_channel(dialog_id.get_channel_id())) {
+  if (!can_be_forum(dialog_id)) {
     LOG(ERROR) << "Receive forum topics in " << dialog_id << " from " << source;
     return;
   }
@@ -338,6 +337,11 @@ Status ForumTopicManager::is_forum(DialogId dialog_id) {
     return Status::Error(400, "The chat is not a forum");
   }
   return Status::OK();
+}
+
+bool ForumTopicManager::can_be_forum(DialogId dialog_id) const {
+  return dialog_id.get_type() == DialogType::Channel &&
+         td_->contacts_manager_->is_megagroup_channel(dialog_id.get_channel_id());
 }
 
 ForumTopicManager::DialogTopics *ForumTopicManager::add_dialog_topics(DialogId dialog_id) {
