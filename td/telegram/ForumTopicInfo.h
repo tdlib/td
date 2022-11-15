@@ -29,6 +29,9 @@ class ForumTopicInfo {
   bool is_outgoing_ = false;
   bool is_closed_ = false;
 
+  friend bool operator==(const ForumTopicInfo &lhs, const ForumTopicInfo &rhs);
+  friend bool operator!=(const ForumTopicInfo &lhs, const ForumTopicInfo &rhs);
+
   friend StringBuilder &operator<<(StringBuilder &string_builder, const ForumTopicInfo &topic_info);
 
  public:
@@ -71,6 +74,9 @@ class ForumTopicInfo {
 
   td_api::object_ptr<td_api::forumTopicInfo> get_forum_topic_info_object(Td *td) const;
 };
+
+bool operator==(const ForumTopicInfo &lhs, const ForumTopicInfo &rhs);
+bool operator!=(const ForumTopicInfo &lhs, const ForumTopicInfo &rhs);
 
 StringBuilder &operator<<(StringBuilder &string_builder, const ForumTopicInfo &topic_info);
 

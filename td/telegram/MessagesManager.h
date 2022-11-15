@@ -196,7 +196,8 @@ class MessagesManager final : public Actor {
     int32 total_count = 0;
     bool is_channel_messages = false;
   };
-  MessagesInfo get_messages_info(tl_object_ptr<telegram_api::messages_Messages> &&messages_ptr, const char *source);
+  MessagesInfo get_messages_info(DialogId dialog_id, tl_object_ptr<telegram_api::messages_Messages> &&messages_ptr,
+                                 const char *source);
 
   void get_channel_difference_if_needed(DialogId dialog_id, MessagesInfo &&messages_info,
                                         Promise<MessagesInfo> &&promise);

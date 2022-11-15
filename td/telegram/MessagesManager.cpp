@@ -26,6 +26,7 @@
 #include "td/telegram/files/FileLocation.h"
 #include "td/telegram/files/FileManager.h"
 #include "td/telegram/files/FileType.h"
+#include "td/telegram/ForumTopicManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/GroupCallManager.h"
 #include "td/telegram/InlineQueriesManager.h"
@@ -468,7 +469,7 @@ class GetMessagesQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
-    auto info = td_->messages_manager_->get_messages_info(result_ptr.move_as_ok(), "GetMessagesQuery");
+    auto info = td_->messages_manager_->get_messages_info(DialogId(), result_ptr.move_as_ok(), "GetMessagesQuery");
     LOG_IF(ERROR, info.is_channel_messages) << "Receive channel messages in GetMessagesQuery";
     td_->messages_manager_->on_get_messages(std::move(info.messages), info.is_channel_messages, false,
                                             std::move(promise_), "GetMessagesQuery");
@@ -509,7 +510,8 @@ class GetChannelMessagesQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
-    auto info = td_->messages_manager_->get_messages_info(result_ptr.move_as_ok(), "GetChannelMessagesQuery");
+    auto info = td_->messages_manager_->get_messages_info(DialogId(channel_id_), result_ptr.move_as_ok(),
+                                                          "GetChannelMessagesQuery");
     LOG_IF(ERROR, !info.is_channel_messages) << "Receive ordinary messages in GetChannelMessagesQuery";
     // messages with invalid big identifiers can be received as messageEmpty
     // bots can receive messageEmpty because of their privacy mode
@@ -571,7 +573,8 @@ class GetScheduledMessagesQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
-    auto info = td_->messages_manager_->get_messages_info(result_ptr.move_as_ok(), "GetScheduledMessagesQuery");
+    auto info =
+        td_->messages_manager_->get_messages_info(dialog_id_, result_ptr.move_as_ok(), "GetScheduledMessagesQuery");
     LOG_IF(ERROR, info.is_channel_messages != (dialog_id_.get_type() == DialogType::Channel))
         << "Receive wrong messages constructor in GetScheduledMessagesQuery";
     td_->messages_manager_->on_get_messages(std::move(info.messages), info.is_channel_messages, true,
@@ -2110,7 +2113,8 @@ class GetDialogMessageByDateQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
-    auto info = td_->messages_manager_->get_messages_info(result_ptr.move_as_ok(), "GetDialogMessageByDateQuery");
+    auto info =
+        td_->messages_manager_->get_messages_info(dialog_id_, result_ptr.move_as_ok(), "GetDialogMessageByDateQuery");
     td_->messages_manager_->get_channel_difference_if_needed(
         dialog_id_, std::move(info),
         PromiseCreator::lambda([actor_id = td_->messages_manager_actor_.get(), dialog_id = dialog_id_, date = date_,
@@ -2187,7 +2191,7 @@ class GetHistoryQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
-    auto info = td_->messages_manager_->get_messages_info(result_ptr.move_as_ok(), "GetHistoryQuery");
+    auto info = td_->messages_manager_->get_messages_info(dialog_id_, result_ptr.move_as_ok(), "GetHistoryQuery");
     td_->messages_manager_->get_channel_difference_if_needed(
         dialog_id_, std::move(info),
         PromiseCreator::lambda([actor_id = td_->messages_manager_actor_.get(), dialog_id = dialog_id_,
@@ -2574,7 +2578,7 @@ class SearchMessagesQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
-    auto info = td_->messages_manager_->get_messages_info(result_ptr.move_as_ok(), "SearchMessagesQuery");
+    auto info = td_->messages_manager_->get_messages_info(dialog_id_, result_ptr.move_as_ok(), "SearchMessagesQuery");
     td_->messages_manager_->get_channel_difference_if_needed(
         dialog_id_, std::move(info),
         PromiseCreator::lambda([actor_id = td_->messages_manager_actor_.get(), dialog_id = dialog_id_,
@@ -2740,7 +2744,8 @@ class SearchMessagesGlobalQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
-    auto info = td_->messages_manager_->get_messages_info(result_ptr.move_as_ok(), "SearchMessagesGlobalQuery");
+    auto info =
+        td_->messages_manager_->get_messages_info(DialogId(), result_ptr.move_as_ok(), "SearchMessagesGlobalQuery");
     td_->messages_manager_->get_channel_differences_if_needed(
         std::move(info),
         PromiseCreator::lambda([actor_id = td_->messages_manager_actor_.get(), query = std::move(query_),
@@ -2794,7 +2799,8 @@ class GetAllScheduledMessagesQuery final : public Td::ResultHandler {
     if (result_ptr.ok()->get_id() == telegram_api::messages_messagesNotModified::ID) {
       td_->messages_manager_->on_get_scheduled_server_messages(dialog_id_, generation_, Auto(), true);
     } else {
-      auto info = td_->messages_manager_->get_messages_info(result_ptr.move_as_ok(), "GetAllScheduledMessagesQuery");
+      auto info = td_->messages_manager_->get_messages_info(dialog_id_, result_ptr.move_as_ok(),
+                                                            "GetAllScheduledMessagesQuery");
       td_->messages_manager_->on_get_scheduled_server_messages(dialog_id_, generation_, std::move(info.messages),
                                                                false);
     }
@@ -2827,7 +2833,7 @@ class SearchSentMediaQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
-    auto info = td_->messages_manager_->get_messages_info(result_ptr.move_as_ok(), "SearchSentMediaQuery");
+    auto info = td_->messages_manager_->get_messages_info(DialogId(), result_ptr.move_as_ok(), "SearchSentMediaQuery");
     td_->messages_manager_->get_channel_differences_if_needed(
         std::move(info),
         PromiseCreator::lambda([actor_id = td_->messages_manager_actor_.get(),
@@ -2876,7 +2882,8 @@ class GetRecentLocationsQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
-    auto info = td_->messages_manager_->get_messages_info(result_ptr.move_as_ok(), "GetRecentLocationsQuery");
+    auto info =
+        td_->messages_manager_->get_messages_info(dialog_id_, result_ptr.move_as_ok(), "GetRecentLocationsQuery");
     td_->messages_manager_->get_channel_difference_if_needed(
         dialog_id_, std::move(info),
         PromiseCreator::lambda([actor_id = td_->messages_manager_actor_.get(), dialog_id = dialog_id_, limit = limit_,
@@ -2929,7 +2936,8 @@ class GetMessagePublicForwardsQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
-    auto info = td_->messages_manager_->get_messages_info(result_ptr.move_as_ok(), "GetMessagePublicForwardsQuery");
+    auto info =
+        td_->messages_manager_->get_messages_info(DialogId(), result_ptr.move_as_ok(), "GetMessagePublicForwardsQuery");
     td_->messages_manager_->get_channel_differences_if_needed(
         std::move(info),
         PromiseCreator::lambda([actor_id = td_->messages_manager_actor_.get(),
@@ -9801,12 +9809,13 @@ void MessagesManager::on_get_empty_messages(DialogId dialog_id, const vector<Mes
 }
 
 MessagesManager::MessagesInfo MessagesManager::get_messages_info(
-    tl_object_ptr<telegram_api::messages_Messages> &&messages_ptr, const char *source) {
+    DialogId dialog_id, tl_object_ptr<telegram_api::messages_Messages> &&messages_ptr, const char *source) {
   CHECK(messages_ptr != nullptr);
   LOG(DEBUG) << "Receive result for " << source << ": " << to_string(messages_ptr);
 
   vector<tl_object_ptr<telegram_api::User>> users;
   vector<tl_object_ptr<telegram_api::Chat>> chats;
+  vector<tl_object_ptr<telegram_api::ForumTopic>> topics;
   MessagesInfo result;
   switch (messages_ptr->get_id()) {
     case telegram_api::messages_messages::ID: {
@@ -9832,6 +9841,7 @@ MessagesManager::MessagesInfo MessagesManager::get_messages_info(
 
       users = std::move(messages->users_);
       chats = std::move(messages->chats_);
+      topics = std::move(messages->topics_);
       result.total_count = messages->count_;
       result.messages = std::move(messages->messages_);
       result.is_channel_messages = true;
@@ -9847,6 +9857,7 @@ MessagesManager::MessagesInfo MessagesManager::get_messages_info(
 
   td_->contacts_manager_->on_get_users(std::move(users), source);
   td_->contacts_manager_->on_get_chats(std::move(chats), source);
+  td_->forum_topic_manager_->on_get_forum_topics(dialog_id, std::move(topics), source);
 
   return result;
 }

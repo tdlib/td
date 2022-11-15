@@ -12,6 +12,7 @@
 #include "td/telegram/ForumTopicInfo.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/td_api.h"
+#include "td/telegram/telegram_api.h"
 
 #include "td/actor/actor.h"
 
@@ -50,6 +51,9 @@ class ForumTopicManager final : public Actor {
   void on_forum_topic_edited(DialogId dialog_id, MessageId top_thread_message_id,
                              const ForumTopicEditedData &edited_data);
 
+  void on_get_forum_topics(DialogId dialog_id, vector<tl_object_ptr<telegram_api::ForumTopic>> &&forum_topics,
+                           const char *source);
+
  private:
   static constexpr size_t MAX_FORUM_TOPIC_TITLE_LENGTH = 128;  // server side limit for forum topic title
 
@@ -60,6 +64,8 @@ class ForumTopicManager final : public Actor {
   void tear_down() final;
 
   Status is_forum(DialogId dialog_id);
+
+  DialogTopics *ForumTopicManager::add_dialog_topics(DialogId dialog_id);
 
   ForumTopicInfo *add_topic_info(DialogId dialog_id, unique_ptr<ForumTopicInfo> &&forum_topic_info);
 

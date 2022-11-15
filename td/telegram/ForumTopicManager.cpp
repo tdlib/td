@@ -295,6 +295,36 @@ void ForumTopicManager::on_forum_topic_edited(DialogId dialog_id, MessageId top_
   }
 }
 
+void ForumTopicManager::on_get_forum_topics(DialogId dialog_id,
+                                            vector<tl_object_ptr<telegram_api::ForumTopic>> &&forum_topics,
+                                            const char *source) {
+  if (forum_topics.empty()) {
+    return;
+  }
+  if (dialog_id.get_type() != DialogType::Channel ||
+      !td_->contacts_manager_->is_megagroup_channel(dialog_id.get_channel_id())) {
+    LOG(ERROR) << "Receive forum topics in " << dialog_id << " from " << source;
+    return;
+  }
+
+  auto dialog_topics = add_dialog_topics(dialog_id);
+  CHECK(dialog_topics != nullptr);
+  for (auto &forum_topic : forum_topics) {
+    auto forum_topic_info = td::make_unique<ForumTopicInfo>(forum_topic);
+    MessageId top_thread_message_id = forum_topic_info->get_top_thread_message_id();
+    if (!top_thread_message_id.is_valid()) {
+      continue;
+    }
+    auto topic_info = dialog_topics->topic_infos_.get_pointer(top_thread_message_id);
+    if (topic_info == nullptr || *topic_info != *forum_topic_info) {
+      dialog_topics->topic_infos_.set(top_thread_message_id, std::move(forum_topic_info));
+      topic_info = dialog_topics->topic_infos_.get_pointer(top_thread_message_id);
+      CHECK(topic_info != nullptr);
+      send_update_forum_topic_info(dialog_id, topic_info);
+    }
+  }
+}
+
 Status ForumTopicManager::is_forum(DialogId dialog_id) {
   if (!td_->messages_manager_->have_dialog_force(dialog_id, "ForumTopicManager::is_forum")) {
     return Status::Error(400, "Chat not found");
@@ -306,20 +336,24 @@ Status ForumTopicManager::is_forum(DialogId dialog_id) {
   return Status::OK();
 }
 
-ForumTopicInfo *ForumTopicManager::add_topic_info(DialogId dialog_id, unique_ptr<ForumTopicInfo> &&forum_topic_info) {
-  CHECK(forum_topic_info != nullptr);
-  auto *dialog_info = dialog_topics_.get_pointer(dialog_id);
-  if (dialog_info == nullptr) {
-    dialog_topics_.set(dialog_id, make_unique<DialogTopics>());
-    dialog_info = dialog_topics_.get_pointer(dialog_id);
-    CHECK(dialog_info != nullptr);
+ForumTopicManager::DialogTopics *ForumTopicManager::add_dialog_topics(DialogId dialog_id) {
+  auto *dialog_topics = dialog_topics_.get_pointer(dialog_id);
+  if (dialog_topics != nullptr) {
+    return dialog_topics;
   }
+  dialog_topics_.set(dialog_id, make_unique<DialogTopics>());
+  return dialog_topics_.get_pointer(dialog_id);
+}
 
+ForumTopicInfo *ForumTopicManager::add_topic_info(DialogId dialog_id, unique_ptr<ForumTopicInfo> &&forum_topic_info) {
+  auto *dialog_info = add_dialog_topics(dialog_id);
+
+  CHECK(forum_topic_info != nullptr);
   MessageId top_thread_message_id = forum_topic_info->get_top_thread_message_id();
   auto topic_info = dialog_info->topic_infos_.get_pointer(top_thread_message_id);
   if (topic_info == nullptr) {
     dialog_info->topic_infos_.set(top_thread_message_id, std::move(forum_topic_info));
-    topic_info = get_topic_info(dialog_id, top_thread_message_id);
+    topic_info = dialog_info->topic_infos_.get_pointer(top_thread_message_id);
     CHECK(topic_info != nullptr);
     send_update_forum_topic_info(dialog_id, topic_info);
   }

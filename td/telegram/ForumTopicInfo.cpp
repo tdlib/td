@@ -62,6 +62,17 @@ td_api::object_ptr<td_api::forumTopicInfo> ForumTopicInfo::get_forum_topic_info_
                                                      std::move(creator_id), is_outgoing_, is_closed_);
 }
 
+bool operator==(const ForumTopicInfo &lhs, const ForumTopicInfo &rhs) {
+  return lhs.top_thread_message_id_ == rhs.top_thread_message_id_ && lhs.title_ == rhs.title_ &&
+         lhs.icon_ == rhs.icon_ && lhs.creation_date_ == rhs.creation_date_ &&
+         lhs.creator_dialog_id_ == rhs.creator_dialog_id_ && lhs.is_outgoing_ == rhs.is_outgoing_ &&
+         lhs.is_closed_ == rhs.is_closed_;
+}
+
+bool operator!=(const ForumTopicInfo &lhs, const ForumTopicInfo &rhs) {
+  return !(lhs == rhs);
+}
+
 StringBuilder &operator<<(StringBuilder &string_builder, const ForumTopicInfo &topic_info) {
   return string_builder << "Forum topic " << topic_info.top_thread_message_id_.get() << '/' << topic_info.title_
                         << " by " << topic_info.creator_dialog_id_ << " with " << topic_info.icon_;
