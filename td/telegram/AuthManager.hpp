@@ -70,7 +70,7 @@ void AuthManager::DbState::store(StorerT &storer) const {
   store(state_, storer);
   store(api_id_, storer);
   store(api_hash_, storer);
-  store_time(state_timestamp_.at(), storer);
+  store_time(expires_at_, storer);
 
   if (has_terms_of_service) {
     store(terms_of_service_, storer);
@@ -133,9 +133,7 @@ void AuthManager::DbState::parse(ParserT &parser) {
   parse(state_, parser);
   parse(api_id_, parser);
   parse(api_hash_, parser);
-  double state_timestamp = 0.0;
-  parse_time(state_timestamp, parser);
-  state_timestamp_ = Timestamp::at(state_timestamp);
+  parse_time(expires_at_, parser);
 
   if (has_terms_of_service) {
     parse(terms_of_service_, parser);

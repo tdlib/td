@@ -117,7 +117,7 @@ class AuthManager final : public NetActor {
     State state_;
     int32 api_id_;
     string api_hash_;
-    Timestamp state_timestamp_;
+    double expires_at_;
 
     // WaitEmailAddress and WaitEmailCode
     bool allow_apple_id_ = false;
@@ -202,7 +202,23 @@ class AuthManager final : public NetActor {
 
    private:
     DbState(State state, int32 api_id, string &&api_hash)
-        : state_(state), api_id_(api_id), api_hash_(std::move(api_hash)), state_timestamp_(Timestamp::now()) {
+        : state_(state), api_id_(api_id), api_hash_(std::move(api_hash)) {
+      auto state_timeout = [state] {
+        switch (state) {
+          case State::WaitPassword:
+          case State::WaitRegistration:
+            return 86400;
+          case State::WaitEmailAddress:
+          case State::WaitEmailCode:
+          case State::WaitCode:
+          case State::WaitQrCodeConfirmation:
+            return 5 * 60;
+          default:
+            UNREACHABLE();
+            return 0;
+        }
+      }();
+      expires_at_ = Time::now() + state_timeout;
     }
   };
 

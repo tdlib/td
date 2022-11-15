@@ -1121,28 +1121,8 @@ bool AuthManager::load_state() {
     LOG(INFO) << "Ignore auth_state: api_id or api_hash changed";
     return false;
   }
-  if (!db_state.state_timestamp_.is_in_past()) {
-    LOG(INFO) << "Ignore auth_state: timestamp in the future";
-    return false;
-  }
-  auto state_timeout = [state = db_state.state_] {
-    switch (state) {
-      case State::WaitPassword:
-      case State::WaitRegistration:
-        return 86400;
-      case State::WaitEmailAddress:
-      case State::WaitEmailCode:
-      case State::WaitCode:
-      case State::WaitQrCodeConfirmation:
-        return 5 * 60;
-      default:
-        UNREACHABLE();
-        return 0;
-    }
-  }();
-
-  if (Timestamp::at(db_state.state_timestamp_.at() + state_timeout).is_in_past()) {
-    LOG(INFO) << "Ignore auth_state: expired " << db_state.state_timestamp_.in();
+  if (db_state.expires_at_ <= Time::now()) {
+    LOG(INFO) << "Ignore auth_state: expired";
     return false;
   }
 
