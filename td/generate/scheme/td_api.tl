@@ -3350,7 +3350,7 @@ checkChatUsernameResultUsernameOccupied = CheckChatUsernameResult;
 checkChatUsernameResultUsernamePurchasable = CheckChatUsernameResult;
 
 //@description The user has too many chats with username, one of them must be made private first
-checkChatUsernameResultPublicChatsTooMuch = CheckChatUsernameResult;
+checkChatUsernameResultPublicChatsTooMany = CheckChatUsernameResult;
 
 //@description The user can't be a member of a public supergroup
 checkChatUsernameResultPublicGroupsUnavailable = CheckChatUsernameResult;

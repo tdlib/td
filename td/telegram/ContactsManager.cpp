@@ -5643,7 +5643,7 @@ void ContactsManager::check_dialog_username(DialogId dialog_id, const string &us
         return promise.set_value(CheckDialogUsernameResult::PublicGroupsUnavailable);
       }
       if (error.message() == "CHANNELS_ADMIN_PUBLIC_TOO_MUCH") {
-        return promise.set_value(CheckDialogUsernameResult::PublicDialogsTooMuch);
+        return promise.set_value(CheckDialogUsernameResult::PublicDialogsTooMany);
       }
       if (error.message() == "USERNAME_INVALID") {
         return promise.set_value(CheckDialogUsernameResult::Invalid);
@@ -5683,8 +5683,8 @@ td_api::object_ptr<td_api::CheckChatUsernameResult> ContactsManager::get_check_c
       return td_api::make_object<td_api::checkChatUsernameResultUsernameOccupied>();
     case CheckDialogUsernameResult::Purchasable:
       return td_api::make_object<td_api::checkChatUsernameResultUsernamePurchasable>();
-    case CheckDialogUsernameResult::PublicDialogsTooMuch:
-      return td_api::make_object<td_api::checkChatUsernameResultPublicChatsTooMuch>();
+    case CheckDialogUsernameResult::PublicDialogsTooMany:
+      return td_api::make_object<td_api::checkChatUsernameResultPublicChatsTooMany>();
     case CheckDialogUsernameResult::PublicGroupsUnavailable:
       return td_api::make_object<td_api::checkChatUsernameResultPublicGroupsUnavailable>();
     default:

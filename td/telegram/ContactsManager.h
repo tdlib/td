@@ -309,7 +309,7 @@ class ContactsManager final : public Actor {
     Invalid,
     Occupied,
     Purchasable,
-    PublicDialogsTooMuch,
+    PublicDialogsTooMany,
     PublicGroupsUnavailable
   };
 
