@@ -16840,6 +16840,9 @@ void MessagesManager::on_message_deleted(Dialog *d, Message *m, bool is_permanen
   if (m->message_id.is_yet_unsent() || dialog_type == DialogType::SecretChat) {
     delete_random_id_to_message_id_correspondence(d, m->random_id, m->message_id);
   }
+  if (m->is_topic_message) {
+    td_->forum_topic_manager_->on_topic_message_count_changed(d->dialog_id, m->top_thread_message_id, -1);
+  }
 
   added_message_count_--;
 }
@@ -16884,6 +16887,7 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_scheduled_messag
   remove_message_file_sources(d->dialog_id, m);
 
   auto result = treap_delete_message(v);
+  CHECK(m == result.get());
 
   if (message_id.is_scheduled_server()) {
     size_t erased_count = d->scheduled_message_date.erase(message_id.get_scheduled_server_message_id());
@@ -16892,10 +16896,13 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_scheduled_messag
 
   cancel_send_deleted_message(d->dialog_id, result.get(), is_permanently_deleted);
 
-  unregister_message_content(td_, result->content.get(), {d->dialog_id, message_id}, "do_delete_scheduled_message");
+  unregister_message_content(td_, m->content.get(), {d->dialog_id, message_id}, "do_delete_scheduled_message");
   unregister_message_reply(d->dialog_id, m);
   if (message_id.is_yet_unsent()) {
-    delete_random_id_to_message_id_correspondence(d, result->random_id, result->message_id);
+    delete_random_id_to_message_id_correspondence(d, m->random_id, m->message_id);
+  }
+  if (m->is_topic_message) {
+    td_->forum_topic_manager_->on_topic_message_count_changed(d->dialog_id, m->top_thread_message_id, -1);
   }
 
   return result;
@@ -25488,7 +25495,7 @@ tl_object_ptr<td_api::message> MessagesManager::get_message_object(DialogId dial
   auto reply_to_message_id = for_event_log ? static_cast<int64>(0) : m->reply_to_message_id.get();
   auto reply_in_dialog_id =
       reply_to_message_id == 0 ? DialogId() : (m->reply_in_dialog_id.is_valid() ? m->reply_in_dialog_id : dialog_id);
-  auto top_thread_message_id = for_event_log || is_scheduled ? static_cast<int64>(0) : m->top_thread_message_id.get();
+  auto top_thread_message_id = for_event_log ? static_cast<int64>(0) : m->top_thread_message_id.get();
   auto contains_unread_mention = for_event_log ? false : m->contains_unread_mention;
   auto date = is_scheduled ? 0 : m->date;
   auto edit_date = m->hide_edit_date ? 0 : m->edit_date;
@@ -35861,6 +35868,10 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     }
   }
 
+  if (m->is_topic_message) {
+    td_->forum_topic_manager_->on_topic_message_count_changed(dialog_id, m->top_thread_message_id, +1);
+  }
+
   Message *result_message = treap_insert_message(&d->messages, std::move(message));
   CHECK(result_message != nullptr);
   CHECK(result_message == m);
@@ -36062,6 +36073,10 @@ MessagesManager::Message *MessagesManager::add_scheduled_message_to_dialog(Dialo
     int32 &date = d->scheduled_message_date[m->message_id.get_scheduled_server_message_id()];
     CHECK(date == 0);
     date = m->date;
+  }
+
+  if (m->is_topic_message) {
+    td_->forum_topic_manager_->on_topic_message_count_changed(dialog_id, m->top_thread_message_id, +1);
   }
 
   Message *result_message = treap_insert_message(&d->scheduled_messages, std::move(message));

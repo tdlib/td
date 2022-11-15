@@ -54,11 +54,14 @@ class ForumTopicManager final : public Actor {
   void on_get_forum_topics(DialogId dialog_id, vector<tl_object_ptr<telegram_api::ForumTopic>> &&forum_topics,
                            const char *source);
 
+  void on_topic_message_count_changed(DialogId dialog_id, MessageId top_thread_message_id, int diff);
+
  private:
   static constexpr size_t MAX_FORUM_TOPIC_TITLE_LENGTH = 128;  // server side limit for forum topic title
 
   struct Topic {
     unique_ptr<ForumTopicInfo> info_;
+    int32 message_count_ = 0;
   };
 
   struct DialogTopics {
@@ -74,6 +77,8 @@ class ForumTopicManager final : public Actor {
   DialogTopics *add_dialog_topics(DialogId dialog_id);
 
   static Topic *add_topic(DialogTopics *dialog_topics, MessageId top_thread_message_id);
+
+  Topic *add_topic(DialogId dialog_id, MessageId top_thread_message_id);
 
   ForumTopicInfo *get_topic_info(DialogId dialog_id, MessageId top_thread_message_id);
 

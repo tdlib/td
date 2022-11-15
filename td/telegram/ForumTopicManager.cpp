@@ -217,9 +217,8 @@ void ForumTopicManager::on_forum_topic_created(DialogId dialog_id, unique_ptr<Fo
   TRY_STATUS_PROMISE(promise, G()->close_status());
 
   CHECK(forum_topic_info != nullptr);
-  auto *dialog_topics = add_dialog_topics(dialog_id);
   MessageId top_thread_message_id = forum_topic_info->get_top_thread_message_id();
-  auto topic = add_topic(dialog_topics, top_thread_message_id);
+  auto topic = add_topic(dialog_id, top_thread_message_id);
   if (topic->info_ == nullptr) {
     topic->info_ = std::move(forum_topic_info);
     send_update_forum_topic_info(dialog_id, topic->info_.get());
@@ -364,6 +363,10 @@ ForumTopicManager::Topic *ForumTopicManager::add_topic(DialogTopics *dialog_topi
   return topic;
 }
 
+ForumTopicManager::Topic *ForumTopicManager::add_topic(DialogId dialog_id, MessageId top_thread_message_id) {
+  return add_topic(add_dialog_topics(dialog_id), top_thread_message_id);
+}
+
 ForumTopicInfo *ForumTopicManager::get_topic_info(DialogId dialog_id, MessageId top_thread_message_id) {
   auto *dialog_topics = dialog_topics_.get_pointer(dialog_id);
   if (dialog_topics == nullptr) {
@@ -399,6 +402,23 @@ void ForumTopicManager::send_update_forum_topic_info(DialogId dialog_id, const F
     return;
   }
   send_closure(G()->td(), &Td::send_update, get_update_forum_topic_info(dialog_id, topic_info));
+}
+
+void ForumTopicManager::on_topic_message_count_changed(DialogId dialog_id, MessageId top_thread_message_id, int diff) {
+  if (!can_be_forum(dialog_id) || !top_thread_message_id.is_valid()) {
+    LOG(ERROR) << "Change by " << diff << " number of loaded messages in thread of " << top_thread_message_id << " in "
+               << dialog_id;
+    return;
+  }
+
+  auto dialog_topics = add_dialog_topics(dialog_id);
+  auto topic = add_topic(dialog_topics, top_thread_message_id);
+  topic->message_count_ += diff;
+  CHECK(topic->message_count_ >= 0);
+  if (topic->message_count_ == 0) {
+    // TODO kepp topics in the topic list
+    dialog_topics->topics_.erase(top_thread_message_id);
+  }
 }
 
 }  // namespace td
