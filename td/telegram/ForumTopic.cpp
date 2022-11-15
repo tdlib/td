@@ -22,9 +22,14 @@ ForumTopic::ForumTopic(Td *td, tl_object_ptr<telegram_api::ForumTopic> &&forum_t
   }
   info_ = ForumTopicInfo(forum_topic_ptr);
   auto *forum_topic = static_cast<telegram_api::forumTopic *>(forum_topic_ptr.get());
+  is_short_ = forum_topic->short_;
+  if (is_short_) {
+    return;
+  }
 
   last_message_id_ = MessageId(ServerMessageId(forum_topic->top_message_));
   is_pinned_ = forum_topic->pinned_;
+  is_hidden_ = forum_topic->hidden_;
   unread_count_ = forum_topic->unread_count_;
   last_read_inbox_message_id_ = MessageId(ServerMessageId(forum_topic->read_inbox_max_id_));
   last_read_outbox_message_id_ = MessageId(ServerMessageId(forum_topic->read_outbox_max_id_));

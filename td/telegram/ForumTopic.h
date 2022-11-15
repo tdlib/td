@@ -21,9 +21,11 @@ class Td;
 
 class ForumTopic {
   ForumTopicInfo info_;
-  MessageId last_message_id_;
+  bool is_short_ = false;
   bool is_pinned_ = false;
+  bool is_hidden_ = false;
   int32 unread_count_ = 0;
+  MessageId last_message_id_;
   MessageId last_read_inbox_message_id_;
   MessageId last_read_outbox_message_id_;
   int32 unread_mention_count_ = 0;
