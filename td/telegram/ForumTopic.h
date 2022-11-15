@@ -7,7 +7,6 @@
 #pragma once
 
 #include "td/telegram/DialogNotificationSettings.h"
-#include "td/telegram/ForumTopicInfo.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
@@ -17,10 +16,10 @@
 namespace td {
 
 class DraftMessage;
+class ForumTopicInfo;
 class Td;
 
 class ForumTopic {
-  ForumTopicInfo info_;
   bool is_short_ = false;
   bool is_pinned_ = false;
   bool is_hidden_ = false;
@@ -38,15 +37,11 @@ class ForumTopic {
 
   ForumTopic(Td *td, tl_object_ptr<telegram_api::ForumTopic> &&forum_topic_ptr);
 
-  bool is_empty() const {
-    return info_.is_empty();
+  bool is_short() const {
+    return is_short_;
   }
 
-  MessageId get_top_thread_message_id() const {
-    return info_.get_top_thread_message_id();
-  }
-
-  td_api::object_ptr<td_api::forumTopic> get_forum_topic_object(Td *td) const;
+  td_api::object_ptr<td_api::forumTopic> get_forum_topic_object(Td *td, const ForumTopicInfo &info) const;
 };
 
 }  // namespace td
