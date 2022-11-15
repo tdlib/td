@@ -57,17 +57,21 @@ class ForumTopicManager final : public Actor {
  private:
   static constexpr size_t MAX_FORUM_TOPIC_TITLE_LENGTH = 128;  // server side limit for forum topic title
 
+  struct Topic {
+    unique_ptr<ForumTopicInfo> info_;
+  };
+
   struct DialogTopics {
-    WaitFreeHashMap<MessageId, unique_ptr<ForumTopicInfo>, MessageIdHash> topic_infos_;
+    WaitFreeHashMap<MessageId, unique_ptr<Topic>, MessageIdHash> topics_;
   };
 
   void tear_down() final;
 
   Status is_forum(DialogId dialog_id);
 
-  DialogTopics *ForumTopicManager::add_dialog_topics(DialogId dialog_id);
+  DialogTopics *add_dialog_topics(DialogId dialog_id);
 
-  ForumTopicInfo *add_topic_info(DialogId dialog_id, unique_ptr<ForumTopicInfo> &&forum_topic_info);
+  static Topic *add_topic(DialogTopics *dialog_topics, MessageId top_thread_message_id);
 
   ForumTopicInfo *get_topic_info(DialogId dialog_id, MessageId top_thread_message_id);
 

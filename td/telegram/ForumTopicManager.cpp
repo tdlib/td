@@ -216,9 +216,15 @@ void ForumTopicManager::on_forum_topic_created(DialogId dialog_id, unique_ptr<Fo
                                                Promise<td_api::object_ptr<td_api::forumTopicInfo>> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
 
-  auto topic_info = add_topic_info(dialog_id, std::move(forum_topic_info));
-  CHECK(topic_info != nullptr);
-  promise.set_value(topic_info->get_forum_topic_info_object(td_));
+  CHECK(forum_topic_info != nullptr);
+  auto *dialog_topics = add_dialog_topics(dialog_id);
+  MessageId top_thread_message_id = forum_topic_info->get_top_thread_message_id();
+  auto topic = add_topic(dialog_topics, top_thread_message_id);
+  if (topic->info_ == nullptr) {
+    topic->info_ = std::move(forum_topic_info);
+    send_update_forum_topic_info(dialog_id, topic->info_.get());
+  }
+  promise.set_value(topic->info_->get_forum_topic_info_object(td_));
 }
 
 void ForumTopicManager::edit_forum_topic(DialogId dialog_id, MessageId top_thread_message_id, string &&title,
@@ -315,12 +321,10 @@ void ForumTopicManager::on_get_forum_topics(DialogId dialog_id,
     if (!top_thread_message_id.is_valid()) {
       continue;
     }
-    auto topic_info = dialog_topics->topic_infos_.get_pointer(top_thread_message_id);
-    if (topic_info == nullptr || *topic_info != *forum_topic_info) {
-      dialog_topics->topic_infos_.set(top_thread_message_id, std::move(forum_topic_info));
-      topic_info = dialog_topics->topic_infos_.get_pointer(top_thread_message_id);
-      CHECK(topic_info != nullptr);
-      send_update_forum_topic_info(dialog_id, topic_info);
+    auto topic = add_topic(dialog_topics, top_thread_message_id);
+    if (topic->info_ == nullptr || *topic->info_ != *forum_topic_info) {
+      topic->info_ = std::move(forum_topic_info);
+      send_update_forum_topic_info(dialog_id, topic->info_.get());
     }
   }
 }
@@ -338,42 +342,46 @@ Status ForumTopicManager::is_forum(DialogId dialog_id) {
 
 ForumTopicManager::DialogTopics *ForumTopicManager::add_dialog_topics(DialogId dialog_id) {
   auto *dialog_topics = dialog_topics_.get_pointer(dialog_id);
-  if (dialog_topics != nullptr) {
-    return dialog_topics;
+  if (dialog_topics == nullptr) {
+    auto new_dialog_topics = make_unique<DialogTopics>();
+    dialog_topics = new_dialog_topics.get();
+    dialog_topics_.set(dialog_id, std::move(new_dialog_topics));
   }
-  dialog_topics_.set(dialog_id, make_unique<DialogTopics>());
-  return dialog_topics_.get_pointer(dialog_id);
+  return dialog_topics;
 }
 
-ForumTopicInfo *ForumTopicManager::add_topic_info(DialogId dialog_id, unique_ptr<ForumTopicInfo> &&forum_topic_info) {
-  auto *dialog_info = add_dialog_topics(dialog_id);
-
-  CHECK(forum_topic_info != nullptr);
-  MessageId top_thread_message_id = forum_topic_info->get_top_thread_message_id();
-  auto topic_info = dialog_info->topic_infos_.get_pointer(top_thread_message_id);
-  if (topic_info == nullptr) {
-    dialog_info->topic_infos_.set(top_thread_message_id, std::move(forum_topic_info));
-    topic_info = dialog_info->topic_infos_.get_pointer(top_thread_message_id);
-    CHECK(topic_info != nullptr);
-    send_update_forum_topic_info(dialog_id, topic_info);
+ForumTopicManager::Topic *ForumTopicManager::add_topic(DialogTopics *dialog_topics, MessageId top_thread_message_id) {
+  auto topic = dialog_topics->topics_.get_pointer(top_thread_message_id);
+  if (topic == nullptr) {
+    auto new_topic = make_unique<Topic>();
+    topic = new_topic.get();
+    dialog_topics->topics_.set(top_thread_message_id, std::move(new_topic));
   }
-  return topic_info;
+  return topic;
 }
 
 ForumTopicInfo *ForumTopicManager::get_topic_info(DialogId dialog_id, MessageId top_thread_message_id) {
-  auto *dialog_info = dialog_topics_.get_pointer(dialog_id);
-  if (dialog_info == nullptr) {
+  auto *dialog_topics = dialog_topics_.get_pointer(dialog_id);
+  if (dialog_topics == nullptr) {
     return nullptr;
   }
-  return dialog_info->topic_infos_.get_pointer(top_thread_message_id);
+  auto *topic = dialog_topics->topics_.get_pointer(top_thread_message_id);
+  if (topic == nullptr) {
+    return nullptr;
+  }
+  return topic->info_.get();
 }
 
 const ForumTopicInfo *ForumTopicManager::get_topic_info(DialogId dialog_id, MessageId top_thread_message_id) const {
-  auto *dialog_info = dialog_topics_.get_pointer(dialog_id);
-  if (dialog_info == nullptr) {
+  auto *dialog_topics = dialog_topics_.get_pointer(dialog_id);
+  if (dialog_topics == nullptr) {
     return nullptr;
   }
-  return dialog_info->topic_infos_.get_pointer(top_thread_message_id);
+  auto *topic = dialog_topics->topics_.get_pointer(top_thread_message_id);
+  if (topic == nullptr) {
+    return nullptr;
+  }
+  return topic->info_.get();
 }
 
 td_api::object_ptr<td_api::updateForumTopicInfo> ForumTopicManager::get_update_forum_topic_info(
