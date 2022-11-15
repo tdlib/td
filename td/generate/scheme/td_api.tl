@@ -3346,6 +3346,9 @@ checkChatUsernameResultUsernameInvalid = CheckChatUsernameResult;
 //@description The username is occupied
 checkChatUsernameResultUsernameOccupied = CheckChatUsernameResult;
 
+//@description The username can be purchased at fragment.com
+checkChatUsernameResultUsernamePurchasable = CheckChatUsernameResult;
+
 //@description The user has too many chats with username, one of them must be made private first
 checkChatUsernameResultPublicChatsTooMuch = CheckChatUsernameResult;
 

@@ -304,7 +304,14 @@ class ContactsManager final : public Actor {
 
   void invalidate_user_full(UserId user_id);
 
-  enum class CheckDialogUsernameResult : uint8 { Ok, Invalid, Occupied, PublicDialogsTooMuch, PublicGroupsUnavailable };
+  enum class CheckDialogUsernameResult : uint8 {
+    Ok,
+    Invalid,
+    Occupied,
+    Purchasable,
+    PublicDialogsTooMuch,
+    PublicGroupsUnavailable
+  };
 
   void check_dialog_username(DialogId dialog_id, const string &username, Promise<CheckDialogUsernameResult> &&promise);
 

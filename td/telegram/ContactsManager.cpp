@@ -5631,7 +5631,8 @@ void ContactsManager::check_dialog_username(DialogId dialog_id, const string &us
   if (username.empty()) {
     return promise.set_value(CheckDialogUsernameResult::Ok);
   }
-  if (!is_allowed_username(username)) {
+
+  if (!is_allowed_username(username) && username.size() != 4) {
     return promise.set_value(CheckDialogUsernameResult::Invalid);
   }
 
@@ -5646,6 +5647,9 @@ void ContactsManager::check_dialog_username(DialogId dialog_id, const string &us
       }
       if (error.message() == "USERNAME_INVALID") {
         return promise.set_value(CheckDialogUsernameResult::Invalid);
+      }
+      if (error.message() == "USERNAME_PURCHASE_AVAILABLE") {
+        return promise.set_value(CheckDialogUsernameResult::Purchasable);
       }
       return promise.set_error(std::move(error));
     }
@@ -5677,6 +5681,8 @@ td_api::object_ptr<td_api::CheckChatUsernameResult> ContactsManager::get_check_c
       return td_api::make_object<td_api::checkChatUsernameResultUsernameInvalid>();
     case CheckDialogUsernameResult::Occupied:
       return td_api::make_object<td_api::checkChatUsernameResultUsernameOccupied>();
+    case CheckDialogUsernameResult::Purchasable:
+      return td_api::make_object<td_api::checkChatUsernameResultUsernamePurchasable>();
     case CheckDialogUsernameResult::PublicDialogsTooMuch:
       return td_api::make_object<td_api::checkChatUsernameResultPublicChatsTooMuch>();
     case CheckDialogUsernameResult::PublicGroupsUnavailable:
