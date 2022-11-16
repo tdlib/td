@@ -35648,7 +35648,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
       // then definitely there are no unread incoming messages before it
       if (message_id.is_server() && d->last_read_inbox_message_id.is_valid() &&
           d->last_read_inbox_message_id.is_server() &&
-          message_id.get_server_message_id().get() == d->last_read_inbox_message_id.get_server_message_id().get() + 1) {
+          message_id == d->last_read_inbox_message_id.get_next_message_id(MessageType::Server)) {
         read_history_inbox(dialog_id, message_id, 0, "add_message_to_dialog");
       }
     }
