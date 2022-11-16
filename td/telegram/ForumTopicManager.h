@@ -62,6 +62,14 @@ class ForumTopicManager final : public Actor {
   struct Topic {
     unique_ptr<ForumTopicInfo> info_;
     int32 message_count_ = 0;
+
+    template <class StorerT>
+    void store(StorerT &storer) const;
+
+    template <class ParserT>
+    void parse(ParserT &parser);
+
+    int32 MAGIC = 0x1fac3901;
   };
 
   struct DialogTopics {
@@ -92,6 +100,8 @@ class ForumTopicManager final : public Actor {
                                                                                const ForumTopicInfo *topic_info) const;
 
   void send_update_forum_topic_info(DialogId dialog_id, const ForumTopicInfo *topic_info) const;
+
+  void save_topic_to_database(DialogId dialog_id, const Topic *topic);
 
   Td *td_;
   ActorShared<> parent_;

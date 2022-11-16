@@ -759,6 +759,7 @@ set(TDLIB_SOURCE
   td/telegram/files/FileSourceId.hpp
   td/telegram/ForumTopicEditedData.hpp
   td/telegram/ForumTopicIcon.hpp
+  td/telegram/ForumTopicInfo.hpp
   td/telegram/Game.hpp
   td/telegram/InputInvoice.hpp
   td/telegram/InputMessageText.hpp

@@ -73,6 +73,12 @@ class ForumTopicInfo {
   bool apply_edited_data(const ForumTopicEditedData &edited_data);
 
   td_api::object_ptr<td_api::forumTopicInfo> get_forum_topic_info_object(Td *td) const;
+
+  template <class StorerT>
+  void store(StorerT &storer) const;
+
+  template <class ParserT>
+  void parse(ParserT &parser);
 };
 
 bool operator==(const ForumTopicInfo &lhs, const ForumTopicInfo &rhs);

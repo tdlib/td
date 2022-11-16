@@ -12,11 +12,14 @@
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/CustomEmojiId.h"
 #include "td/telegram/ForumTopicIcon.h"
+#include "td/telegram/ForumTopicInfo.hpp"
 #include "td/telegram/Global.h"
 #include "td/telegram/MessagesManager.h"
+#include "td/telegram/MessageThreadDb.h"
 #include "td/telegram/misc.h"
 #include "td/telegram/ServerMessageId.h"
 #include "td/telegram/Td.h"
+#include "td/telegram/TdDb.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/UpdatesManager.h"
 
@@ -170,6 +173,32 @@ class EditForumTopicQuery final : public Td::ResultHandler {
   }
 };
 
+template <class StorerT>
+void ForumTopicManager::Topic::store(StorerT &storer) const {
+  CHECK(info_ != nullptr);
+  using td::store;
+
+  store(MAGIC, storer);
+  BEGIN_STORE_FLAGS();
+  END_STORE_FLAGS();
+  store(info_, storer);
+}
+
+template <class ParserT>
+void ForumTopicManager::Topic::parse(ParserT &parser) {
+  CHECK(info_ != nullptr);
+  using td::parse;
+
+  int32 magic;
+  parse(magic, parser);
+  if (magic != MAGIC) {
+    return parser.set_error("Invalid magic");
+  }
+  BEGIN_PARSE_FLAGS();
+  END_PARSE_FLAGS();
+  parse(info_, parser);
+}
+
 ForumTopicManager::ForumTopicManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
 }
 
@@ -222,6 +251,7 @@ void ForumTopicManager::on_forum_topic_created(DialogId dialog_id, unique_ptr<Fo
   if (topic->info_ == nullptr) {
     topic->info_ = std::move(forum_topic_info);
     send_update_forum_topic_info(dialog_id, topic->info_.get());
+    save_topic_to_database(dialog_id, topic);
   }
   promise.set_value(topic->info_->get_forum_topic_info_object(td_));
 }
@@ -291,12 +321,13 @@ void ForumTopicManager::delete_forum_topic(DialogId dialog_id, MessageId top_thr
 
 void ForumTopicManager::on_forum_topic_edited(DialogId dialog_id, MessageId top_thread_message_id,
                                               const ForumTopicEditedData &edited_data) {
-  auto topic_info = get_topic_info(dialog_id, top_thread_message_id);
-  if (topic_info == nullptr) {
+  auto topic = get_topic(dialog_id, top_thread_message_id);
+  if (topic == nullptr || topic->info_ == nullptr) {
     return;
   }
-  if (topic_info->apply_edited_data(edited_data)) {
-    send_update_forum_topic_info(dialog_id, topic_info);
+  if (topic->info_->apply_edited_data(edited_data)) {
+    send_update_forum_topic_info(dialog_id, topic->info_.get());
+    save_topic_to_database(dialog_id, topic);
   }
 }
 
@@ -323,6 +354,7 @@ void ForumTopicManager::on_get_forum_topics(DialogId dialog_id,
     if (topic->info_ == nullptr || *topic->info_ != *forum_topic_info) {
       topic->info_ = std::move(forum_topic_info);
       send_update_forum_topic_info(dialog_id, topic->info_.get());
+      save_topic_to_database(dialog_id, topic);
     }
   }
 }
@@ -411,6 +443,21 @@ void ForumTopicManager::send_update_forum_topic_info(DialogId dialog_id, const F
     return;
   }
   send_closure(G()->td(), &Td::send_update, get_update_forum_topic_info(dialog_id, topic_info));
+}
+
+void ForumTopicManager::save_topic_to_database(DialogId dialog_id, const Topic *topic) {
+  if (topic->info_ == nullptr) {
+    return;
+  }
+
+  auto message_thread_db = G()->td_db()->get_message_thread_db_async();
+  if (message_thread_db == nullptr) {
+    return;
+  }
+
+  auto top_thread_message_id = topic->info_->get_top_thread_message_id();
+  LOG(INFO) << "Save topic of " << top_thread_message_id << " in " << dialog_id << " to database";
+  message_thread_db->add_message_thread(dialog_id, top_thread_message_id, 0, log_event_store(*topic), Auto());
 }
 
 void ForumTopicManager::on_topic_message_count_changed(DialogId dialog_id, MessageId top_thread_message_id, int diff) {
