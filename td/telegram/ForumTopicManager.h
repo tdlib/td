@@ -80,6 +80,10 @@ class ForumTopicManager final : public Actor {
 
   Topic *add_topic(DialogId dialog_id, MessageId top_thread_message_id);
 
+  Topic *get_topic(DialogId dialog_id, MessageId top_thread_message_id);
+
+  const Topic *get_topic(DialogId dialog_id, MessageId top_thread_message_id) const;
+
   ForumTopicInfo *get_topic_info(DialogId dialog_id, MessageId top_thread_message_id);
 
   const ForumTopicInfo *get_topic_info(DialogId dialog_id, MessageId top_thread_message_id) const;

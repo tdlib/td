@@ -367,12 +367,25 @@ ForumTopicManager::Topic *ForumTopicManager::add_topic(DialogId dialog_id, Messa
   return add_topic(add_dialog_topics(dialog_id), top_thread_message_id);
 }
 
-ForumTopicInfo *ForumTopicManager::get_topic_info(DialogId dialog_id, MessageId top_thread_message_id) {
+ForumTopicManager::Topic *ForumTopicManager::get_topic(DialogId dialog_id, MessageId top_thread_message_id) {
   auto *dialog_topics = dialog_topics_.get_pointer(dialog_id);
   if (dialog_topics == nullptr) {
     return nullptr;
   }
-  auto *topic = dialog_topics->topics_.get_pointer(top_thread_message_id);
+  return dialog_topics->topics_.get_pointer(top_thread_message_id);
+}
+
+const ForumTopicManager::Topic *ForumTopicManager::get_topic(DialogId dialog_id,
+                                                             MessageId top_thread_message_id) const {
+  auto *dialog_topics = dialog_topics_.get_pointer(dialog_id);
+  if (dialog_topics == nullptr) {
+    return nullptr;
+  }
+  return dialog_topics->topics_.get_pointer(top_thread_message_id);
+}
+
+ForumTopicInfo *ForumTopicManager::get_topic_info(DialogId dialog_id, MessageId top_thread_message_id) {
+  auto *topic = get_topic(dialog_id, top_thread_message_id);
   if (topic == nullptr) {
     return nullptr;
   }
@@ -380,11 +393,7 @@ ForumTopicInfo *ForumTopicManager::get_topic_info(DialogId dialog_id, MessageId 
 }
 
 const ForumTopicInfo *ForumTopicManager::get_topic_info(DialogId dialog_id, MessageId top_thread_message_id) const {
-  auto *dialog_topics = dialog_topics_.get_pointer(dialog_id);
-  if (dialog_topics == nullptr) {
-    return nullptr;
-  }
-  auto *topic = dialog_topics->topics_.get_pointer(top_thread_message_id);
+  auto *topic = get_topic(dialog_id, top_thread_message_id);
   if (topic == nullptr) {
     return nullptr;
   }
