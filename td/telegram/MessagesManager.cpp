@@ -12143,6 +12143,9 @@ void MessagesManager::on_dialog_deleted(DialogId dialog_id, Promise<Unit> &&prom
   }
 
   close_dialog(d);
+
+  td_->forum_topic_manager_->delete_all_dialog_topics(dialog_id);
+
   promise.set_value(Unit());
 }
 

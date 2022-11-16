@@ -48,6 +48,8 @@ class ForumTopicManager final : public Actor {
 
   void delete_forum_topic(DialogId dialog_id, MessageId top_thread_message_id, Promise<Unit> &&promise);
 
+  void delete_all_dialog_topics(DialogId dialog_id);
+
   void on_forum_topic_edited(DialogId dialog_id, MessageId top_thread_message_id,
                              const ForumTopicEditedData &edited_data);
 

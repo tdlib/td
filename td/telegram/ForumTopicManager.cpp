@@ -319,6 +319,18 @@ void ForumTopicManager::delete_forum_topic(DialogId dialog_id, MessageId top_thr
   td_->messages_manager_->delete_topic_history(dialog_id, top_thread_message_id, std::move(promise));
 }
 
+void ForumTopicManager::delete_all_dialog_topics(DialogId dialog_id) {
+  dialog_topics_.erase(dialog_id);
+
+  auto message_thread_db = G()->td_db()->get_message_thread_db_async();
+  if (message_thread_db == nullptr) {
+    return;
+  }
+
+  LOG(INFO) << "Delete all topics in " << dialog_id << " from database";
+  message_thread_db->delete_all_dialog_message_threads(dialog_id, Auto());
+}
+
 void ForumTopicManager::on_forum_topic_edited(DialogId dialog_id, MessageId top_thread_message_id,
                                               const ForumTopicEditedData &edited_data) {
   auto topic = get_topic(dialog_id, top_thread_message_id);
