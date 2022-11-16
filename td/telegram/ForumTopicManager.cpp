@@ -316,7 +316,25 @@ void ForumTopicManager::delete_forum_topic(DialogId dialog_id, MessageId top_thr
     }
   }
 
-  td_->messages_manager_->delete_topic_history(dialog_id, top_thread_message_id, std::move(promise));
+  auto delete_promise = PromiseCreator::lambda([actor_id = actor_id(this), dialog_id, top_thread_message_id,
+                                                promise = std::move(promise)](Result<Unit> result) mutable {
+    if (result.is_error()) {
+      return promise.set_error(result.move_as_error());
+    }
+    send_closure(actor_id, &ForumTopicManager::on_delete_forum_topic, dialog_id, top_thread_message_id,
+                 std::move(promise));
+  });
+  td_->messages_manager_->delete_topic_history(dialog_id, top_thread_message_id, std::move(delete_promise));
+}
+
+void ForumTopicManager::on_delete_forum_topic(DialogId dialog_id, MessageId top_thread_message_id,
+                                              Promise<Unit> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+  auto *dialog_topics = dialog_topics_.get_pointer(dialog_id);
+  if (dialog_topics != nullptr) {
+    dialog_topics->topics_.erase(top_thread_message_id);
+  }
+  delete_topic_from_database(dialog_id, top_thread_message_id, std::move(promise));
 }
 
 void ForumTopicManager::delete_all_dialog_topics(DialogId dialog_id) {
@@ -470,6 +488,17 @@ void ForumTopicManager::save_topic_to_database(DialogId dialog_id, const Topic *
   auto top_thread_message_id = topic->info_->get_top_thread_message_id();
   LOG(INFO) << "Save topic of " << top_thread_message_id << " in " << dialog_id << " to database";
   message_thread_db->add_message_thread(dialog_id, top_thread_message_id, 0, log_event_store(*topic), Auto());
+}
+
+void ForumTopicManager::delete_topic_from_database(DialogId dialog_id, MessageId top_thread_message_id,
+                                                   Promise<Unit> &&promise) {
+  auto message_thread_db = G()->td_db()->get_message_thread_db_async();
+  if (message_thread_db == nullptr) {
+    return;
+  }
+
+  LOG(INFO) << "Delete topic of " << top_thread_message_id << " in " << dialog_id << " from database";
+  message_thread_db->delete_message_thread(dialog_id, top_thread_message_id, Auto());
 }
 
 void ForumTopicManager::on_topic_message_count_changed(DialogId dialog_id, MessageId top_thread_message_id, int diff) {
