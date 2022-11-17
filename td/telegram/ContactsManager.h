@@ -238,7 +238,7 @@ class ContactsManager final : public Actor {
 
   void speculative_delete_channel_participant(ChannelId channel_id, UserId deleted_user_id, bool by_me);
 
-  void invalidate_channel_full(ChannelId channel_id, bool need_drop_slow_mode_delay);
+  void invalidate_channel_full(ChannelId channel_id, bool need_drop_slow_mode_delay, const char *source);
 
   bool on_get_channel_error(ChannelId channel_id, const Status &status, const string &source);
 
