@@ -32,7 +32,7 @@ int VERBOSITY_NAME(file_loader) = VERBOSITY_NAME(DEBUG) + 2;
 namespace {
 
 Result<std::pair<FileFd, string>> try_create_new_file(CSlice path, CSlice file_name) {
-  LOG(DEBUG) << "Trying to create new file " << file_name << " in the directory \"" << path << '"';
+  LOG(DEBUG) << "Trying to create new file \"" << file_name << "\" in the directory \"" << path << '"';
   auto name = PSTRING() << path << file_name;
   auto r_fd = FileFd::open(name, FileFd::Read | FileFd::Write | FileFd::CreateNew, 0640);
   if (r_fd.is_error()) {

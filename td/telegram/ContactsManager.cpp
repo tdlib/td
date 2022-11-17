@@ -7756,6 +7756,9 @@ void ContactsManager::add_channel_participants(ChannelId channel_id, const vecto
       continue;
     }
     input_users.push_back(r_input_user.move_as_ok());
+
+    speculative_add_channel_user(channel_id, user_id, DialogParticipantStatus::Member(),
+                                 DialogParticipantStatus::Left());
   }
 
   if (input_users.empty()) {
@@ -13395,6 +13398,9 @@ void ContactsManager::speculative_add_channel_participants(ChannelId channel_id,
     update_channel_online_member_count(channel_id, false);
   }
   if (channel_full != nullptr) {
+    if (channel_full->is_changed) {
+      channel_full->speculative_version++;
+    }
     update_channel_full(channel_full, channel_id, "speculative_add_channel_participants");
   }
   if (delta_participant_count == 0) {
@@ -13475,6 +13481,8 @@ void ContactsManager::speculative_add_channel_user(ChannelId channel_id, UserId 
   // must copy the initial c->participant_count before it is speculatibely updated
   auto channel_full = get_channel_full_force(channel_id, true, "speculative_add_channel_user");
   int32 min_count = 0;
+  LOG(INFO) << "Speculatively change status of " << user_id << " in " << channel_id << " from " << old_status << " to "
+            << new_status;
   if (channel_full != nullptr) {
     channel_full->is_changed |= speculative_add_count(channel_full->administrator_count,
                                                       new_status.is_administrator() - old_status.is_administrator());
