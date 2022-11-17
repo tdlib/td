@@ -2550,33 +2550,6 @@ class SearchBackgroundRequest final : public RequestActor<> {
   }
 };
 
-class SetBackgroundRequest final : public RequestActor<> {
-  td_api::object_ptr<td_api::InputBackground> input_background_;
-  td_api::object_ptr<td_api::BackgroundType> background_type_;
-  bool for_dark_theme_ = false;
-
-  BackgroundId background_id_;
-
-  void do_run(Promise<Unit> &&promise) final {
-    background_id_ = td_->background_manager_->set_background(input_background_.get(), background_type_.get(),
-                                                              for_dark_theme_, std::move(promise));
-  }
-
-  void do_send_result() final {
-    send_result(td_->background_manager_->get_background_object(background_id_, for_dark_theme_, nullptr));
-  }
-
- public:
-  SetBackgroundRequest(ActorShared<Td> td, uint64 request_id,
-                       td_api::object_ptr<td_api::InputBackground> &&input_background,
-                       td_api::object_ptr<td_api::BackgroundType> background_type, bool for_dark_theme)
-      : RequestActor(std::move(td), request_id)
-      , input_background_(std::move(input_background))
-      , background_type_(std::move(background_type))
-      , for_dark_theme_(for_dark_theme) {
-  }
-};
-
 Td::Td(unique_ptr<TdCallback> callback, Options options)
     : callback_(std::move(callback)), td_options_(std::move(options)) {
   CHECK(callback_ != nullptr);
@@ -7898,8 +7871,9 @@ void Td::on_request(uint64 id, td_api::searchBackground &request) {
 
 void Td::on_request(uint64 id, td_api::setBackground &request) {
   CHECK_IS_USER();
-  CREATE_REQUEST(SetBackgroundRequest, std::move(request.background_), std::move(request.type_),
-                 request.for_dark_theme_);
+  CREATE_REQUEST_PROMISE();
+  background_manager_->set_background(request.background_.get(), request.type_.get(), request.for_dark_theme_,
+                                      std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::removeBackground &request) {
