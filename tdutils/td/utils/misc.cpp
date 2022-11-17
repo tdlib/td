@@ -7,6 +7,7 @@
 #include "td/utils/misc.h"
 
 #include "td/utils/port/thread_local.h"
+#include "td/utils/utf8.h"
 
 #include <algorithm>
 #include <cstdlib>
@@ -77,6 +78,16 @@ string oneline(Slice str) {
   }
   return result;
 }
+
+namespace detail {
+Status get_to_integer_safe_error(Slice str) {
+  auto status = Status::Error(PSLICE() << "Can't parse \"" << str << "\" as an integer");
+  if (!check_utf8(status.message())) {
+    status = Status::Error("Strings must be encoded in UTF-8");
+  }
+  return status;
+}
+}  // namespace detail
 
 double to_double(Slice str) {
   static TD_THREAD_LOCAL std::stringstream *ss;

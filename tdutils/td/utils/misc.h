@@ -190,11 +190,15 @@ std::enable_if_t<std::is_unsigned<T>::value, T> to_integer(Slice str) {
   return integer_value;
 }
 
+namespace detail {
+Status get_to_integer_safe_error(Slice str);
+}  // namespace detail
+
 template <class T>
 Result<T> to_integer_safe(Slice str) {
   auto res = to_integer<T>(str);
   if ((PSLICE() << res) != str) {
-    return Status::Error(PSLICE() << "Can't parse \"" << str << "\" as an integer");
+    return detail::get_to_integer_safe_error(str);
   }
   return res;
 }
