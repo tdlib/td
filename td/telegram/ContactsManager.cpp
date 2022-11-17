@@ -13042,7 +13042,7 @@ tl_object_ptr<td_api::chatMember> ContactsManager::get_chat_member_object(
       dialog_participant.joined_date_, dialog_participant.status_.get_chat_member_status_object());
 }
 
-bool ContactsManager::on_get_channel_error(ChannelId channel_id, const Status &status, const string &source) {
+bool ContactsManager::on_get_channel_error(ChannelId channel_id, const Status &status, const char *source) {
   LOG(INFO) << "Receive " << status << " in " << channel_id << " from " << source;
   if (status.message() == CSlice("BOT_METHOD_INVALID")) {
     LOG(ERROR) << "Receive BOT_METHOD_INVALID from " << source;
@@ -13059,7 +13059,8 @@ bool ContactsManager::on_get_channel_error(ChannelId channel_id, const Status &s
 
     auto c = get_channel(channel_id);
     if (c == nullptr) {
-      if (source == "GetChannelDifferenceQuery" || (td_->auth_manager_->is_bot() && source == "GetChannelsQuery")) {
+      if (Slice(source) == Slice("GetChannelDifferenceQuery") ||
+          (td_->auth_manager_->is_bot() && Slice(source) == Slice("GetChannelsQuery"))) {
         // get channel difference after restart
         // get channel from server by its identifier
         return true;
@@ -13095,7 +13096,7 @@ bool ContactsManager::on_get_channel_error(ChannelId channel_id, const Status &s
 
       remove_dialog_access_by_invite_link(DialogId(channel_id));
     }
-    invalidate_channel_full(channel_id, !c->is_slow_mode_enabled, "on_get_channel_error");
+    invalidate_channel_full(channel_id, !c->is_slow_mode_enabled, source);
     LOG_IF(ERROR, have_input_peer_channel(c, channel_id, AccessRights::Read))
         << "Have read access to channel after receiving CHANNEL_PRIVATE. Channel state: "
         << oneline(to_string(get_supergroup_object(channel_id, c)))

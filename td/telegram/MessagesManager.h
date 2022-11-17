@@ -909,7 +909,7 @@ class MessagesManager final : public Actor {
 
   void after_get_difference();
 
-  bool on_get_dialog_error(DialogId dialog_id, const Status &status, const string &source);
+  bool on_get_dialog_error(DialogId dialog_id, const Status &status, const char *source);
 
   void on_send_message_get_quick_ack(int64 random_id);
 

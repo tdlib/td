@@ -29994,7 +29994,7 @@ bool MessagesManager::on_update_message_id(int64 random_id, MessageId new_messag
   return true;
 }
 
-bool MessagesManager::on_get_dialog_error(DialogId dialog_id, const Status &status, const string &source) {
+bool MessagesManager::on_get_dialog_error(DialogId dialog_id, const Status &status, const char *source) {
   if (status.message() == CSlice("BOT_METHOD_INVALID")) {
     LOG(ERROR) << "Receive BOT_METHOD_INVALID from " << source;
     return true;

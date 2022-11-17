@@ -240,7 +240,7 @@ class ContactsManager final : public Actor {
 
   void invalidate_channel_full(ChannelId channel_id, bool need_drop_slow_mode_delay, const char *source);
 
-  bool on_get_channel_error(ChannelId channel_id, const Status &status, const string &source);
+  bool on_get_channel_error(ChannelId channel_id, const Status &status, const char *source);
 
   void on_get_permanent_dialog_invite_link(DialogId dialog_id, const DialogInviteLink &invite_link);
 
