@@ -20,12 +20,12 @@
 #include "td/actor/actor.h"
 
 #include "td/utils/common.h"
-#include "td/utils/FlatHashMap.h"
 #include "td/utils/logging.h"
 #include "td/utils/Promise.h"
 #include "td/utils/Slice.h"
 #include "td/utils/Status.h"
 #include "td/utils/Variant.h"
+#include "td/utils/WaitFreeHashMap.h"
 #include "td/utils/WaitFreeVector.h"
 
 namespace td {
@@ -175,9 +175,11 @@ class FileReferenceManager final : public Actor {
 
   int64 query_generation_{0};
 
-  FlatHashMap<NodeId, Node, FileIdHash> nodes_;
+  WaitFreeHashMap<NodeId, unique_ptr<Node>, FileIdHash> nodes_;
 
   ActorShared<> parent_;
+
+  Node &add_node(NodeId node_id);
 
   void run_node(NodeId node);
   void send_query(Destination dest, FileSourceId file_source_id);
