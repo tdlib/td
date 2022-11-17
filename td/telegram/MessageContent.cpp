@@ -5784,6 +5784,14 @@ string get_message_content_search_text(const Td *td, const MessageContent *conte
       const auto *poll = static_cast<const MessagePoll *>(content);
       return td->poll_manager_->get_poll_search_text(poll->poll_id);
     }
+    case MessageContentType::TopicCreate: {
+      const auto *topic_create = static_cast<const MessageTopicCreate *>(content);
+      return topic_create->title;
+    }
+    case MessageContentType::TopicEdit: {
+      const auto *topic_edit = static_cast<const MessageTopicEdit *>(content);
+      return topic_edit->edited_data.get_title();
+    }
     case MessageContentType::Contact:
     case MessageContentType::Game:
     case MessageContentType::LiveLocation:
@@ -5825,8 +5833,6 @@ string get_message_content_search_text(const Td *td, const MessageContent *conte
     case MessageContentType::WebViewDataSent:
     case MessageContentType::WebViewDataReceived:
     case MessageContentType::GiftPremium:
-    case MessageContentType::TopicCreate:
-    case MessageContentType::TopicEdit:
       return string();
     default:
       UNREACHABLE();

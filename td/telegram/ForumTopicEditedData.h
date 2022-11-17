@@ -30,10 +30,6 @@ class ForumTopicEditedData {
  public:
   ForumTopicEditedData() = default;
 
-  bool is_empty() const {
-    return title_.empty() && !edit_icon_custom_emoji_id_ && !edit_is_closed_;
-  }
-
   ForumTopicEditedData(string &&title, bool edit_icon_custom_emoji_id, int64 icon_custom_emoji_id, bool edit_is_closed,
                        bool is_closed)
       : title_(std::move(title))
@@ -41,6 +37,14 @@ class ForumTopicEditedData {
       , edit_icon_custom_emoji_id_(edit_icon_custom_emoji_id)
       , edit_is_closed_(edit_is_closed)
       , is_closed_(is_closed) {
+  }
+
+  bool is_empty() const {
+    return title_.empty() && !edit_icon_custom_emoji_id_ && !edit_is_closed_;
+  }
+
+  const string &get_title() const {
+    return title_;
   }
 
   td_api::object_ptr<td_api::MessageContent> get_message_content_object() const;
