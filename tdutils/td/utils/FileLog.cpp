@@ -83,8 +83,7 @@ void FileLog::do_append(int log_level, CSlice slice) {
   }
   while (!slice.empty()) {
     if (redirect_stderr_) {
-      auto &guard = get_log_guard();
-      while (guard.load() != 0) {
+      while (has_log_guard()) {
         // spin
       }
     }

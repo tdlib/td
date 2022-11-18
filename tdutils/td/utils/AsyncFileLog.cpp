@@ -61,8 +61,7 @@ Status AsyncFileLog::init(string path, int64 rotate_threshold, bool redirect_std
           }
           while (!slice.empty()) {
             if (redirect_stderr) {
-              auto &guard = get_log_guard();
-              while (guard.load() != 0) {
+              while (has_log_guard()) {
                 // spin
               }
             }

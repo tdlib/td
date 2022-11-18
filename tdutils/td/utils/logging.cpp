@@ -250,9 +250,24 @@ void process_fatal_error(CSlice message) {
   std::abort();
 }
 
-std::atomic<uint32> &get_log_guard() {
-  static std::atomic<uint32> log_guard;
-  return log_guard;
+static std::atomic<uint32> log_guard;
+
+LogGuard::LogGuard() {
+  uint32 expected = 0;
+  while (!log_guard.compare_exchange_strong(expected, 1, std::memory_order_relaxed, std::memory_order_relaxed)) {
+    // spin
+    CHECK(expected == 1);
+    expected = 0;
+  }
+}
+
+LogGuard::~LogGuard() {
+  CHECK(log_guard.load(std::memory_order_relaxed) == 1);
+  log_guard.store(0, std::memory_order_relaxed);
+}
+
+bool has_log_guard() {
+  return log_guard.load(std::memory_order_relaxed) == 1;
 }
 
 namespace {
