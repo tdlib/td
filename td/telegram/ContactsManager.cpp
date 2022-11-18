@@ -7813,6 +7813,7 @@ void ContactsManager::set_channel_participant_status_impl(ChannelId channel_id, 
   if (old_status == new_status && !old_status.is_creator()) {
     return promise.set_value(Unit());
   }
+  CHECK(participant_dialog_id.get_type() == DialogType::User);
 
   LOG(INFO) << "Change status of " << participant_dialog_id << " in " << channel_id << " from " << old_status << " to "
             << new_status;
@@ -8480,6 +8481,35 @@ void ContactsManager::restrict_channel_participant(ChannelId channel_id, DialogI
 
     promise = std::move(on_result_promise);
     new_status = DialogParticipantStatus::Banned(G()->unix_time() + 60);
+  }
+
+  if (new_status.is_member() && !old_status.is_member()) {
+    // there is no way in server API to invite someone and change restrictions
+    // we need to first change restrictions and then try to add the user
+    CHECK(participant_dialog_id.get_type() == DialogType::User);
+    new_status.set_is_member(false);
+    auto on_result_promise =
+        PromiseCreator::lambda([actor_id = actor_id(this), channel_id, participant_dialog_id, old_status = new_status,
+                                promise = std::move(promise)](Result<> result) mutable {
+          if (result.is_error()) {
+            return promise.set_error(result.move_as_error());
+          }
+
+          create_actor<SleepActor>(
+              "AddChannelParticipantSleepActor", 1.0,
+              PromiseCreator::lambda([actor_id, channel_id, participant_dialog_id, old_status = std::move(old_status),
+                                      promise = std::move(promise)](Result<> result) mutable {
+                if (result.is_error()) {
+                  return promise.set_error(result.move_as_error());
+                }
+
+                send_closure(actor_id, &ContactsManager::add_channel_participant, channel_id,
+                             participant_dialog_id.get_user_id(), old_status, std::move(promise));
+              }))
+              .release();
+        });
+
+    promise = std::move(on_result_promise);
   }
 
   if (participant_dialog_id.get_type() == DialogType::User) {
