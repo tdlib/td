@@ -24,8 +24,10 @@ TEST(WaitFreeHashMap, stress_test) {
     return rnd() % 100000 + 1;
   };
 
-  auto check = [&] {
-    ASSERT_EQ(reference.size(), map.size());
+  auto check = [&](bool check_size = false) {
+    if (check_size) {
+      ASSERT_EQ(reference.size(), map.size());
+    }
     ASSERT_EQ(reference.empty(), map.empty());
 
     if (reference.size() < 100) {
@@ -58,7 +60,7 @@ TEST(WaitFreeHashMap, stress_test) {
   add_step(200, [&] {
     auto key = gen_key();
     ASSERT_EQ(reference[key], map[key]);
-    check();
+    check(true);
   });
 
   add_step(2000, [&] {
