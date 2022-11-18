@@ -26,7 +26,7 @@ TEST(WaitFreeHashMap, stress_test) {
 
   auto check = [&](bool check_size = false) {
     if (check_size) {
-      ASSERT_EQ(reference.size(), map.size());
+      ASSERT_EQ(reference.size(), map.calc_size());
     }
     ASSERT_EQ(reference.empty(), map.empty());
 

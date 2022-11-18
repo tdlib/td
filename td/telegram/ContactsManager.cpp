@@ -3707,10 +3707,10 @@ void ContactsManager::start_up() {
 void ContactsManager::tear_down() {
   parent_.reset();
 
-  LOG(DEBUG) << "Have " << users_.size() << " users, " << chats_.size() << " basic groups, " << channels_.size()
-             << " supergroups and " << secret_chats_.size() << " secret chats to free";
-  LOG(DEBUG) << "Have " << users_full_.size() << " full users, " << chats_full_.size() << " full basic groups and "
-             << channels_full_.size() << " full supergroups to free";
+  LOG(DEBUG) << "Have " << users_.calc_size() << " users, " << chats_.calc_size() << " basic groups, "
+             << channels_.calc_size() << " supergroups and " << secret_chats_.calc_size() << " secret chats to free";
+  LOG(DEBUG) << "Have " << users_full_.calc_size() << " full users, " << chats_full_.calc_size()
+             << " full basic groups and " << channels_full_.calc_size() << " full supergroups to free";
 }
 
 UserId ContactsManager::load_my_id() {

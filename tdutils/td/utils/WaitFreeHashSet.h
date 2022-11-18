@@ -96,14 +96,14 @@ class WaitFreeHashSet {
     }
   }
 
-  size_t size() const {
+  size_t calc_size() const {
     if (wait_free_storage_ == nullptr) {
       return default_set_.size();
     }
 
     size_t result = 0;
     for (size_t i = 0; i < MAX_STORAGE_COUNT; i++) {
-      result += wait_free_storage_->sets_[i].size();
+      result += wait_free_storage_->sets_[i].calc_size();
     }
     return result;
   }

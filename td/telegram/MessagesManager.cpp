@@ -13541,7 +13541,7 @@ class MessagesManager::DialogFiltersLogEvent {
 void MessagesManager::tear_down() {
   parent_.reset();
 
-  LOG(DEBUG) << "Have " << dialogs_.size() << " chats with " << added_message_count_ << " messages to free";
+  LOG(DEBUG) << "Have " << dialogs_.calc_size() << " chats with " << added_message_count_ << " messages to free";
 }
 
 void MessagesManager::hangup() {

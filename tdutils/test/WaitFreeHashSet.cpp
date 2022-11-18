@@ -26,7 +26,7 @@ TEST(WaitFreeHashSet, stress_test) {
 
   auto check = [&](bool check_size = false) {
     if (check_size) {
-      ASSERT_EQ(reference.size(), set.size());
+      ASSERT_EQ(reference.size(), set.calc_size());
     }
     ASSERT_EQ(reference.empty(), set.empty());
 
