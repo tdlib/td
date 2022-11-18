@@ -2497,8 +2497,8 @@ class InviteToChannelQuery final : public Td::ResultHandler {
 
   void on_error(Status status) final {
     td_->contacts_manager_->on_get_channel_error(channel_id_, status, "InviteToChannelQuery");
+    td_->contacts_manager_->invalidate_channel_full(channel_id_, false, "InviteToChannelQuery");
     promise_.set_error(std::move(status));
-    td_->updates_manager_->get_difference("InviteToChannelQuery");
   }
 };
 
@@ -2538,8 +2538,8 @@ class EditChannelAdminQuery final : public Td::ResultHandler {
 
   void on_error(Status status) final {
     td_->contacts_manager_->on_get_channel_error(channel_id_, status, "EditChannelAdminQuery");
+    td_->contacts_manager_->invalidate_channel_full(channel_id_, false, "EditChannelAdminQuery");
     promise_.set_error(std::move(status));
-    td_->updates_manager_->get_difference("EditChannelAdminQuery");
   }
 };
 
@@ -2581,8 +2581,8 @@ class EditChannelBannedQuery final : public Td::ResultHandler {
     if (participant_dialog_id_.get_type() != DialogType::Channel) {
       td_->contacts_manager_->on_get_channel_error(channel_id_, status, "EditChannelBannedQuery");
     }
+    td_->contacts_manager_->invalidate_channel_full(channel_id_, false, "EditChannelBannedQuery");
     promise_.set_error(std::move(status));
-    td_->updates_manager_->get_difference("EditChannelBannedQuery");
   }
 };
 
