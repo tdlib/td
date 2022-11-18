@@ -7808,53 +7808,53 @@ void ContactsManager::set_channel_participant_status(ChannelId channel_id, Dialo
 }
 
 void ContactsManager::set_channel_participant_status_impl(ChannelId channel_id, DialogId participant_dialog_id,
-                                                          DialogParticipantStatus status,
+                                                          DialogParticipantStatus new_status,
                                                           DialogParticipantStatus old_status, Promise<Unit> &&promise) {
-  if (old_status == status && !old_status.is_creator()) {
+  if (old_status == new_status && !old_status.is_creator()) {
     return promise.set_value(Unit());
   }
 
   LOG(INFO) << "Change status of " << participant_dialog_id << " in " << channel_id << " from " << old_status << " to "
-            << status;
+            << new_status;
   bool need_add = false;
   bool need_promote = false;
   bool need_restrict = false;
-  if (status.is_creator() || old_status.is_creator()) {
+  if (new_status.is_creator() || old_status.is_creator()) {
     if (!old_status.is_creator()) {
       return promise.set_error(Status::Error(400, "Can't add another owner to the chat"));
     }
-    if (!status.is_creator()) {
+    if (!new_status.is_creator()) {
       return promise.set_error(Status::Error(400, "Can't remove chat owner"));
     }
     auto user_id = get_my_id();
     if (participant_dialog_id != DialogId(user_id)) {
       return promise.set_error(Status::Error(400, "Not enough rights to edit chat owner rights"));
     }
-    if (status.is_member() == old_status.is_member()) {
+    if (new_status.is_member() == old_status.is_member()) {
       // change rank and is_anonymous
       auto r_input_user = get_input_user(user_id);
       CHECK(r_input_user.is_ok());
       td_->create_handler<EditChannelAdminQuery>(std::move(promise))
-          ->send(channel_id, user_id, r_input_user.move_as_ok(), status);
+          ->send(channel_id, user_id, r_input_user.move_as_ok(), new_status);
       return;
     }
-    if (status.is_member()) {
+    if (new_status.is_member()) {
       // creator not member -> creator member
       need_add = true;
     } else {
       // creator member -> creator not member
       need_restrict = true;
     }
-  } else if (status.is_administrator()) {
+  } else if (new_status.is_administrator()) {
     need_promote = true;
-  } else if (!status.is_member() || status.is_restricted()) {
-    if (status.is_member() && !old_status.is_member()) {
+  } else if (!new_status.is_member() || new_status.is_restricted()) {
+    if (new_status.is_member() && !old_status.is_member()) {
       // TODO there is no way in server API to invite someone and change restrictions
       // we need to first add user and change restrictions again after that
       // but if restrictions aren't changed, then adding is enough
       auto copy_old_status = old_status;
       copy_old_status.set_is_member(true);
-      if (copy_old_status == status) {
+      if (copy_old_status == new_status) {
         need_add = true;
       } else {
         need_restrict = true;
@@ -7878,10 +7878,10 @@ void ContactsManager::set_channel_participant_status_impl(ChannelId channel_id, 
     if (participant_dialog_id.get_type() != DialogType::User) {
       return promise.set_error(Status::Error(400, "Can't promote chats to chat administrators"));
     }
-    return promote_channel_participant(channel_id, participant_dialog_id.get_user_id(), status, old_status,
+    return promote_channel_participant(channel_id, participant_dialog_id.get_user_id(), new_status, old_status,
                                        std::move(promise));
   } else if (need_restrict) {
-    return restrict_channel_participant(channel_id, participant_dialog_id, std::move(status), std::move(old_status),
+    return restrict_channel_participant(channel_id, participant_dialog_id, std::move(new_status), std::move(old_status),
                                         std::move(promise));
   } else {
     CHECK(need_add);
@@ -7893,17 +7893,17 @@ void ContactsManager::set_channel_participant_status_impl(ChannelId channel_id, 
 }
 
 void ContactsManager::promote_channel_participant(ChannelId channel_id, UserId user_id,
-                                                  const DialogParticipantStatus &status,
+                                                  const DialogParticipantStatus &new_status,
                                                   const DialogParticipantStatus &old_status, Promise<Unit> &&promise) {
-  LOG(INFO) << "Promote " << user_id << " in " << channel_id << " from " << old_status << " to " << status;
+  LOG(INFO) << "Promote " << user_id << " in " << channel_id << " from " << old_status << " to " << new_status;
   const Channel *c = get_channel(channel_id);
   CHECK(c != nullptr);
 
   if (user_id == get_my_id()) {
-    if (status.is_administrator()) {
+    if (new_status.is_administrator()) {
       return promise.set_error(Status::Error(400, "Can't promote self"));
     }
-    CHECK(status.is_member());
+    CHECK(new_status.is_member());
     // allow to demote self. TODO is it allowed server-side?
   } else {
     if (!get_channel_permissions(c).can_promote_members()) {
@@ -7911,14 +7911,14 @@ void ContactsManager::promote_channel_participant(ChannelId channel_id, UserId u
     }
 
     CHECK(!old_status.is_creator());
-    CHECK(!status.is_creator());
+    CHECK(!new_status.is_creator());
   }
 
   TRY_RESULT_PROMISE(promise, input_user, get_input_user(user_id));
 
-  speculative_add_channel_user(channel_id, user_id, status, old_status);
+  speculative_add_channel_user(channel_id, user_id, new_status, old_status);
   td_->create_handler<EditChannelAdminQuery>(std::move(promise))
-      ->send(channel_id, user_id, std::move(input_user), status);
+      ->send(channel_id, user_id, std::move(input_user), new_status);
 }
 
 void ContactsManager::set_chat_participant_status(ChatId chat_id, UserId user_id, DialogParticipantStatus status,
@@ -8396,19 +8396,19 @@ void ContactsManager::delete_chat_participant(ChatId chat_id, UserId user_id, bo
 }
 
 void ContactsManager::restrict_channel_participant(ChannelId channel_id, DialogId participant_dialog_id,
-                                                   DialogParticipantStatus &&status,
+                                                   DialogParticipantStatus &&new_status,
                                                    DialogParticipantStatus &&old_status, Promise<Unit> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
 
   LOG(INFO) << "Restrict " << participant_dialog_id << " in " << channel_id << " from " << old_status << " to "
-            << status;
+            << new_status;
   const Channel *c = get_channel(channel_id);
   if (c == nullptr) {
     return promise.set_error(Status::Error(400, "Chat info not found"));
   }
   if (!c->status.is_member() && !c->status.is_creator()) {
     if (participant_dialog_id == DialogId(get_my_id())) {
-      if (status.is_member()) {
+      if (new_status.is_member()) {
         return promise.set_error(Status::Error(400, "Can't unrestrict self"));
       }
       return promise.set_value(Unit());
@@ -8422,15 +8422,15 @@ void ContactsManager::restrict_channel_participant(ChannelId channel_id, DialogI
   }
 
   if (participant_dialog_id == DialogId(get_my_id())) {
-    if (status.is_restricted() || status.is_banned()) {
+    if (new_status.is_restricted() || new_status.is_banned()) {
       return promise.set_error(Status::Error(400, "Can't restrict self"));
     }
-    if (status.is_member()) {
+    if (new_status.is_member()) {
       return promise.set_error(Status::Error(400, "Can't unrestrict self"));
     }
 
     // leave the channel
-    speculative_add_channel_user(channel_id, participant_dialog_id.get_user_id(), status, c->status);
+    speculative_add_channel_user(channel_id, participant_dialog_id.get_user_id(), new_status, c->status);
     td_->create_handler<LeaveChannelQuery>(std::move(promise))->send(channel_id);
     return;
   }
@@ -8440,7 +8440,7 @@ void ContactsManager::restrict_channel_participant(ChannelId channel_id, DialogI
       // ok;
       break;
     case DialogType::Channel:
-      if (status.is_administrator() || status.is_member() || status.is_restricted()) {
+      if (new_status.is_administrator() || new_status.is_member() || new_status.is_restricted()) {
         return promise.set_error(Status::Error(400, "Other chats can be only banned or unbanned"));
       }
       break;
@@ -8449,16 +8449,16 @@ void ContactsManager::restrict_channel_participant(ChannelId channel_id, DialogI
   }
 
   CHECK(!old_status.is_creator());
-  CHECK(!status.is_creator());
+  CHECK(!new_status.is_creator());
 
   if (!get_channel_permissions(c).can_restrict_members()) {
     return promise.set_error(Status::Error(400, "Not enough rights to restrict/unrestrict chat member"));
   }
 
-  if (old_status.is_member() && !status.is_member() && !status.is_banned()) {
+  if (old_status.is_member() && !new_status.is_member() && !new_status.is_banned()) {
     // we can't make participant Left without kicking it first
     auto on_result_promise = PromiseCreator::lambda([actor_id = actor_id(this), channel_id, participant_dialog_id,
-                                                     status = std::move(status),
+                                                     new_status = std::move(new_status),
                                                      promise = std::move(promise)](Result<> result) mutable {
       if (result.is_error()) {
         return promise.set_error(result.move_as_error());
@@ -8466,27 +8466,27 @@ void ContactsManager::restrict_channel_participant(ChannelId channel_id, DialogI
 
       create_actor<SleepActor>(
           "RestrictChannelParticipantSleepActor", 1.0,
-          PromiseCreator::lambda([actor_id, channel_id, participant_dialog_id, status = std::move(status),
+          PromiseCreator::lambda([actor_id, channel_id, participant_dialog_id, new_status = std::move(new_status),
                                   promise = std::move(promise)](Result<> result) mutable {
             if (result.is_error()) {
               return promise.set_error(result.move_as_error());
             }
 
             send_closure(actor_id, &ContactsManager::restrict_channel_participant, channel_id, participant_dialog_id,
-                         std::move(status), DialogParticipantStatus::Banned(0), std::move(promise));
+                         std::move(new_status), DialogParticipantStatus::Banned(0), std::move(promise));
           }))
           .release();
     });
 
     promise = std::move(on_result_promise);
-    status = DialogParticipantStatus::Banned(G()->unix_time() + 60);
+    new_status = DialogParticipantStatus::Banned(G()->unix_time() + 60);
   }
 
   if (participant_dialog_id.get_type() == DialogType::User) {
-    speculative_add_channel_user(channel_id, participant_dialog_id.get_user_id(), status, old_status);
+    speculative_add_channel_user(channel_id, participant_dialog_id.get_user_id(), new_status, old_status);
   }
   td_->create_handler<EditChannelBannedQuery>(std::move(promise))
-      ->send(channel_id, participant_dialog_id, std::move(input_peer), status);
+      ->send(channel_id, participant_dialog_id, std::move(input_peer), new_status);
 }
 
 void ContactsManager::on_set_channel_participant_status(ChannelId channel_id, DialogId participant_dialog_id,

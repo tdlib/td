@@ -1691,14 +1691,14 @@ class ContactsManager final : public Actor {
                                       Promise<Unit> &&promise);
 
   void set_channel_participant_status_impl(ChannelId channel_id, DialogId participant_dialog_id,
-                                           DialogParticipantStatus status, DialogParticipantStatus old_status,
+                                           DialogParticipantStatus new_status, DialogParticipantStatus old_status,
                                            Promise<Unit> &&promise);
 
-  void promote_channel_participant(ChannelId channel_id, UserId user_id, const DialogParticipantStatus &status,
+  void promote_channel_participant(ChannelId channel_id, UserId user_id, const DialogParticipantStatus &new_status,
                                    const DialogParticipantStatus &old_status, Promise<Unit> &&promise);
 
   void restrict_channel_participant(ChannelId channel_id, DialogId participant_dialog_id,
-                                    DialogParticipantStatus &&status, DialogParticipantStatus &&old_status,
+                                    DialogParticipantStatus &&new_status, DialogParticipantStatus &&old_status,
                                     Promise<Unit> &&promise);
 
   void transfer_channel_ownership(ChannelId channel_id, UserId user_id,
