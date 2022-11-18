@@ -16,37 +16,39 @@ namespace td {
 
 template <class KeyT, class HashT = std::hash<KeyT>, class EqT = std::equal_to<KeyT>>
 class WaitFreeHashSet {
-  using Storage = FlatHashSet<KeyT, HashT, EqT>;
-  static constexpr size_t MAX_STORAGE_COUNT = 1 << 11;
+  static constexpr size_t MAX_STORAGE_COUNT = 1 << 8;
   static_assert((MAX_STORAGE_COUNT & (MAX_STORAGE_COUNT - 1)) == 0, "");
-  static constexpr size_t MAX_STORAGE_SIZE = 1 << 16;
-  static_assert((MAX_STORAGE_SIZE & (MAX_STORAGE_SIZE - 1)) == 0, "");
+  static constexpr size_t DEFAULT_STORAGE_SIZE = 1 << 14;
 
-  Storage default_set_;
+  FlatHashSet<KeyT, HashT, EqT> default_set_;
   struct WaitFreeStorage {
-    Storage sets_[MAX_STORAGE_COUNT];
+    WaitFreeHashSet sets_[MAX_STORAGE_COUNT];
   };
   unique_ptr<WaitFreeStorage> wait_free_storage_;
+  uint32 hash_mult_ = 1;
+  uint32 max_storage_size_ = DEFAULT_STORAGE_SIZE;
 
-  Storage &get_wait_free_storage(const KeyT &key) {
-    return wait_free_storage_->sets_[randomize_hash(HashT()(key)) & (MAX_STORAGE_COUNT - 1)];
+  uint32 get_wait_free_index(const KeyT &key) const {
+    return randomize_hash(HashT()(key) * hash_mult_) & (MAX_STORAGE_COUNT - 1);
   }
 
-  Storage &get_storage(const KeyT &key) {
-    if (wait_free_storage_ == nullptr) {
-      return default_set_;
-    }
-
-    return get_wait_free_storage(key);
+  WaitFreeHashSet &get_wait_free_storage(const KeyT &key) {
+    return wait_free_storage_->sets_[get_wait_free_index(key)];
   }
 
-  const Storage &get_storage(const KeyT &key) const {
-    return const_cast<WaitFreeHashSet *>(this)->get_storage(key);
+  const WaitFreeHashSet &get_wait_free_storage(const KeyT &key) const {
+    return wait_free_storage_->sets_[get_wait_free_index(key)];
   }
 
   void split_storage() {
     CHECK(wait_free_storage_ == nullptr);
     wait_free_storage_ = make_unique<WaitFreeStorage>();
+    auto next_hash_mult = hash_mult_ * 1000000007;
+    for (uint32 i = 0; i < MAX_STORAGE_COUNT; i++) {
+      auto &set = wait_free_storage_->sets_[i];
+      set.hash_mult_ = next_hash_mult;
+      set.max_storage_size_ = DEFAULT_STORAGE_SIZE + i * next_hash_mult % DEFAULT_STORAGE_SIZE;
+    }
     for (auto &it : default_set_) {
       get_wait_free_storage(it).insert(it);
     }
@@ -55,23 +57,33 @@ class WaitFreeHashSet {
 
  public:
   void insert(const KeyT &key) {
-    auto &storage = get_storage(key);
-    storage.insert(key);
-    if (default_set_.size() == MAX_STORAGE_SIZE) {
+    if (wait_free_storage_ != nullptr) {
+      return get_wait_free_storage(key).insert(key);
+    }
+
+    default_set_.insert(key);
+    if (default_set_.size() == max_storage_size_) {
       split_storage();
     }
   }
 
   size_t count(const KeyT &key) const {
-    const auto &storage = get_storage(key);
-    return storage.count(key);
+    if (wait_free_storage_ != nullptr) {
+      return get_wait_free_storage(key).count(key);
+    }
+
+    return default_set_.count(key);
   }
 
   size_t erase(const KeyT &key) {
-    return get_storage(key).erase(key);
+    if (wait_free_storage_ != nullptr) {
+      return get_wait_free_storage(key).erase(key);
+    }
+
+    return default_set_.erase(key);
   }
 
-  void foreach(std::function<void(const KeyT &key)> callback) const {
+  void foreach(const std::function<void(const KeyT &key)> &callback) const {
     if (wait_free_storage_ == nullptr) {
       for (auto &it : default_set_) {
         callback(it);
@@ -79,10 +91,8 @@ class WaitFreeHashSet {
       return;
     }
 
-    for (size_t i = 0; i < MAX_STORAGE_COUNT; i++) {
-      for (auto &it : wait_free_storage_->sets_[i]) {
-        callback(it);
-      }
+    for (auto &it : wait_free_storage_->sets_) {
+      it.foreach(callback);
     }
   }
 

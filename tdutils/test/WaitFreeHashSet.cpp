@@ -24,8 +24,10 @@ TEST(WaitFreeHashSet, stress_test) {
     return rnd() % 100000 + 1;
   };
 
-  auto check = [&] {
-    ASSERT_EQ(reference.size(), set.size());
+  auto check = [&](bool check_size = false) {
+    if (check_size) {
+      ASSERT_EQ(reference.size(), set.size());
+    }
     ASSERT_EQ(reference.empty(), set.empty());
 
     if (reference.size() < 100) {
