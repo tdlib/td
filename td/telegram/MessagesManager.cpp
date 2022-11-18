@@ -7109,7 +7109,11 @@ bool MessagesManager::is_active_message_reply_info(DialogId dialog_id, const Mes
     return true;
   }
 
-  return linked_channel_id == reply_info.channel_id;
+  if (linked_channel_id != reply_info.channel_id) {
+    return false;
+  }
+
+  return true;
 }
 
 bool MessagesManager::is_visible_message_reply_info(DialogId dialog_id, const Message *m) const {
@@ -7124,7 +7128,16 @@ bool MessagesManager::is_visible_message_reply_info(DialogId dialog_id, const Me
   if (is_broadcast && (m->had_reply_markup || m->reply_markup != nullptr)) {
     return false;
   }
-  return is_active_message_reply_info(dialog_id, m->reply_info);
+  if (!is_active_message_reply_info(dialog_id, m->reply_info)) {
+    return false;
+  }
+  if (m->reply_info.is_comment && is_broadcast &&
+      td_->contacts_manager_->have_channel_force(m->reply_info.channel_id) &&
+      !td_->contacts_manager_->have_input_peer_channel(m->reply_info.channel_id, AccessRights::Read)) {
+    // keep the comment button while have no information about the linked channel
+    return false;
+  }
+  return true;
 }
 
 bool MessagesManager::is_visible_message_reactions(DialogId dialog_id, const Message *m) const {
@@ -18713,6 +18726,10 @@ void MessagesManager::on_get_discussion_message(DialogId dialog_id, MessageId me
     return promise.set_error(Status::Error(400, "Message not found"));
   }
   if (message_thread_info.message_ids.empty()) {
+    if (message_thread_info.dialog_id != dialog_id &&
+        !have_input_peer(message_thread_info.dialog_id, AccessRights::Read)) {
+      return promise.set_error(Status::Error(400, "Can't access message comments"));
+    }
     return promise.set_error(Status::Error(400, "Message has no thread"));
   }
 
