@@ -2939,22 +2939,32 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateChannelAvailabl
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateReadChannelDiscussionInbox> update,
                                Promise<Unit> &&promise) {
-  td_->messages_manager_->on_update_read_message_comments(
-      DialogId(ChannelId(update->channel_id_)), MessageId(ServerMessageId(update->top_msg_id_)), MessageId(),
-      MessageId(ServerMessageId(update->read_max_id_)), MessageId());
+  auto last_read_inbox_message_id = MessageId(ServerMessageId(update->read_max_id_));
+  if (!last_read_inbox_message_id.is_valid()) {
+    LOG(ERROR) << "Receive " << to_string(update);
+    return;
+  }
+  td_->messages_manager_->on_update_read_message_comments(DialogId(ChannelId(update->channel_id_)),
+                                                          MessageId(ServerMessageId(update->top_msg_id_)), MessageId(),
+                                                          last_read_inbox_message_id, MessageId());
   if ((update->flags_ & telegram_api::updateReadChannelDiscussionInbox::BROADCAST_ID_MASK) != 0) {
-    td_->messages_manager_->on_update_read_message_comments(
-        DialogId(ChannelId(update->broadcast_id_)), MessageId(ServerMessageId(update->broadcast_post_)), MessageId(),
-        MessageId(ServerMessageId(update->read_max_id_)), MessageId());
+    td_->messages_manager_->on_update_read_message_comments(DialogId(ChannelId(update->broadcast_id_)),
+                                                            MessageId(ServerMessageId(update->broadcast_post_)),
+                                                            MessageId(), last_read_inbox_message_id, MessageId());
   }
   promise.set_value(Unit());
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateReadChannelDiscussionOutbox> update,
                                Promise<Unit> &&promise) {
-  td_->messages_manager_->on_update_read_message_comments(
-      DialogId(ChannelId(update->channel_id_)), MessageId(ServerMessageId(update->top_msg_id_)), MessageId(),
-      MessageId(), MessageId(ServerMessageId(update->read_max_id_)));
+  auto last_read_outbox_message_id = MessageId(ServerMessageId(update->read_max_id_));
+  if (!last_read_outbox_message_id.is_valid()) {
+    LOG(ERROR) << "Receive " << to_string(update);
+    return;
+  }
+  td_->messages_manager_->on_update_read_message_comments(DialogId(ChannelId(update->channel_id_)),
+                                                          MessageId(ServerMessageId(update->top_msg_id_)), MessageId(),
+                                                          MessageId(), last_read_outbox_message_id);
   promise.set_value(Unit());
 }
 

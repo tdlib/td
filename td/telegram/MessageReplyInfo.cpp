@@ -118,10 +118,6 @@ bool MessageReplyInfo::update_max_message_ids(MessageId other_max_message_id,
                                               MessageId other_last_read_inbox_message_id,
                                               MessageId other_last_read_outbox_message_id) {
   bool result = false;
-  if (other_max_message_id > max_message_id) {
-    max_message_id = other_max_message_id;
-    result = true;
-  }
   if (other_last_read_inbox_message_id > last_read_inbox_message_id) {
     last_read_inbox_message_id = other_last_read_inbox_message_id;
     result = true;
@@ -130,13 +126,18 @@ bool MessageReplyInfo::update_max_message_ids(MessageId other_max_message_id,
     last_read_outbox_message_id = other_last_read_outbox_message_id;
     result = true;
   }
-  if (last_read_inbox_message_id > max_message_id) {
-    max_message_id = last_read_inbox_message_id;
-    result = true;
-  }
-  if (last_read_outbox_message_id > max_message_id) {
-    max_message_id = last_read_outbox_message_id;
-    result = true;
+  if (other_max_message_id.is_valid() ||
+      (!other_last_read_inbox_message_id.is_valid() && !other_last_read_outbox_message_id.is_valid())) {
+    if (other_max_message_id < last_read_inbox_message_id) {
+      other_max_message_id = last_read_inbox_message_id;
+    }
+    if (other_max_message_id < last_read_outbox_message_id) {
+      other_max_message_id = last_read_outbox_message_id;
+    }
+    if (other_max_message_id != max_message_id) {
+      max_message_id = other_max_message_id;
+      result = true;
+    }
   }
   return result;
 }

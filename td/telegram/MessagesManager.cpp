@@ -21428,7 +21428,7 @@ Status MessagesManager::view_messages(DialogId dialog_id, MessageId top_thread_m
     return Status::OK();
   }
 
-  if (top_thread_message_id.is_valid()) {
+  if (top_thread_message_id.is_valid() && max_message_id.is_valid()) {
     MessageId prev_last_read_inbox_message_id;
     MessageId max_thread_message_id;
     Message *top_m = get_message_force(d, top_thread_message_id, "view_messages 2");
