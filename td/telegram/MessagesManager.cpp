@@ -18670,19 +18670,6 @@ void MessagesManager::process_discussion_message_impl(
     Promise<MessageThreadInfo> promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
 
-  MessageId max_message_id;
-  MessageId last_read_inbox_message_id;
-  MessageId last_read_outbox_message_id;
-  if ((result->flags_ & telegram_api::messages_discussionMessage::MAX_ID_MASK) != 0) {
-    max_message_id = MessageId(ServerMessageId(result->max_id_));
-  }
-  if ((result->flags_ & telegram_api::messages_discussionMessage::READ_INBOX_MAX_ID_MASK) != 0) {
-    last_read_inbox_message_id = MessageId(ServerMessageId(result->read_inbox_max_id_));
-  }
-  if ((result->flags_ & telegram_api::messages_discussionMessage::READ_OUTBOX_MAX_ID_MASK) != 0) {
-    last_read_outbox_message_id = MessageId(ServerMessageId(result->read_outbox_max_id_));
-  }
-
   MessageThreadInfo message_thread_info;
   message_thread_info.dialog_id = expected_dialog_id;
   message_thread_info.unread_message_count = max(0, result->unread_count_);
@@ -18701,6 +18688,9 @@ void MessagesManager::process_discussion_message_impl(
   if (!message_thread_info.message_ids.empty() && !top_message_id.is_valid()) {
     top_message_id = message_thread_info.message_ids.back();
   }
+  auto max_message_id = MessageId(ServerMessageId(result->max_id_));
+  auto last_read_inbox_message_id = MessageId(ServerMessageId(result->read_inbox_max_id_));
+  auto last_read_outbox_message_id = MessageId(ServerMessageId(result->read_outbox_max_id_));
   if (top_message_id.is_valid()) {
     on_update_read_message_comments(expected_dialog_id, top_message_id, max_message_id, last_read_inbox_message_id,
                                     last_read_outbox_message_id);
