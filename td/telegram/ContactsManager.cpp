@@ -5157,10 +5157,9 @@ void ContactsManager::apply_pending_user_photo(User *u, UserId user_id) {
     return;
   }
 
-  auto it = pending_user_photos_.find(user_id);
-  if (it != pending_user_photos_.end()) {
-    do_update_user_photo(u, user_id, std::move(it->second), "apply_pending_user_photo");
-    pending_user_photos_.erase(it);
+  if (pending_user_photos_.count(user_id) > 0) {
+    do_update_user_photo(u, user_id, std::move(pending_user_photos_[user_id]), "apply_pending_user_photo");
+    pending_user_photos_.erase(user_id);
     update_user(u, user_id);
   }
 }

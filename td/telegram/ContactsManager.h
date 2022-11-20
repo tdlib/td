@@ -1764,7 +1764,7 @@ class ContactsManager final : public Actor {
   WaitFreeHashMap<UserId, unique_ptr<UserFull>, UserIdHash> users_full_;
   FlatHashMap<UserId, UserPhotos, UserIdHash> user_photos_;
   mutable FlatHashSet<UserId, UserIdHash> unknown_users_;
-  FlatHashMap<UserId, tl_object_ptr<telegram_api::UserProfilePhoto>, UserIdHash> pending_user_photos_;
+  WaitFreeHashMap<UserId, tl_object_ptr<telegram_api::UserProfilePhoto>, UserIdHash> pending_user_photos_;
   struct UserIdPhotoIdHash {
     std::size_t operator()(const std::pair<UserId, int64> &pair) const {
       return UserIdHash()(pair.first) * 2023654985u + std::hash<int64>()(pair.second);
