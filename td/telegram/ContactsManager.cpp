@@ -11552,6 +11552,14 @@ void ContactsManager::on_get_user_full(tl_object_ptr<telegram_api::userFull> &&u
   td_->messages_manager_->on_get_peer_settings(DialogId(user_id), std::move(user->settings_));
 }
 
+ContactsManager::UserPhotos *ContactsManager::add_user_photos(UserId user_id) {
+  auto &user_photos_ptr = user_photos_[user_id];
+  if (user_photos_ptr == nullptr) {
+    user_photos_ptr = make_unique<UserPhotos>();
+  }
+  return user_photos_ptr.get();
+}
+
 void ContactsManager::on_get_user_photos(UserId user_id, int32 offset, int32 limit, int32 total_count,
                                          vector<tl_object_ptr<telegram_api::Photo>> photos) {
   auto photo_count = narrow_cast<int32>(photos.size());
@@ -11595,7 +11603,7 @@ void ContactsManager::on_get_user_photos(UserId user_id, int32 offset, int32 lim
 
   LOG(INFO) << "Receive " << photo_count << " photos of " << user_id << " out of " << total_count << " with offset "
             << offset << " and limit " << limit;
-  UserPhotos *user_photos = &user_photos_[user_id];
+  UserPhotos *user_photos = add_user_photos(user_id);
   user_photos->count = total_count;
   CHECK(user_photos->getting_now);
   user_photos->getting_now = false;
@@ -12674,9 +12682,8 @@ void ContactsManager::add_profile_photo_to_cache(UserId user_id, Photo &&photo) 
   LOG(INFO) << "Add profile photo " << photo.id.get() << " to cache";
 
   // update photo list
-  auto it = user_photos_.find(user_id);
-  if (it != user_photos_.end() && it->second.count != -1) {
-    auto user_photos = &it->second;
+  auto user_photos = user_photos_.get_pointer(user_id);
+  if (user_photos != nullptr && user_photos->count != -1) {
     if (user_photos->offset == 0) {
       if (user_photos->photos.empty() || user_photos->photos[0].id.get() != photo.id.get()) {
         user_photos->photos.insert(user_photos->photos.begin(), photo);
@@ -12719,9 +12726,8 @@ bool ContactsManager::delete_profile_photo_from_cache(UserId user_id, int64 prof
   bool is_main_photo_deleted = u != nullptr && u->photo.id == profile_photo_id;
 
   // update photo list
-  auto it = user_photos_.find(user_id);
-  if (it != user_photos_.end() && it->second.count > 0) {
-    auto user_photos = &it->second;
+  auto user_photos = user_photos_.get_pointer(user_id);
+  if (user_photos != nullptr && user_photos->count > 0) {
     auto old_size = user_photos->photos.size();
     if (td::remove_if(user_photos->photos,
                       [profile_photo_id](const auto &photo) { return photo.id.get() == profile_photo_id; })) {
@@ -12741,7 +12747,7 @@ bool ContactsManager::delete_profile_photo_from_cache(UserId user_id, int64 prof
     }
   }
   bool have_new_photo =
-      it != user_photos_.end() && it->second.count != -1 && it->second.offset == 0 && !it->second.photos.empty();
+      user_photos != nullptr && user_photos->count != -1 && user_photos->offset == 0 && !user_photos->photos.empty();
 
   auto user_full = get_user_full_force(user_id);
   if (user_full != nullptr && user_full->photo.id.get() == profile_photo_id) {
@@ -12754,11 +12760,11 @@ bool ContactsManager::delete_profile_photo_from_cache(UserId user_id, int64 prof
   if (is_main_photo_deleted) {
     if (have_new_photo) {
       do_update_user_photo(u, user_id,
-                           as_profile_photo(td_->file_manager_.get(), user_id, u->access_hash, it->second.photos[0]),
+                           as_profile_photo(td_->file_manager_.get(), user_id, u->access_hash, user_photos->photos[0]),
                            false, "delete_profile_photo_from_cache");
     } else {
       do_update_user_photo(u, user_id, ProfilePhoto(), false, "delete_profile_photo_from_cache 2");
-      need_reget_user = it == user_photos_.end() || it->second.count != 0;
+      need_reget_user = user_photos == nullptr || user_photos->count != 0;
     }
     if (send_updates) {
       update_user(u, user_id);
@@ -12767,8 +12773,8 @@ bool ContactsManager::delete_profile_photo_from_cache(UserId user_id, int64 prof
     // update Photo in UserFull
     if (user_full != nullptr) {
       if (have_new_photo) {
-        if (it->second.photos[0] != user_full->photo) {
-          user_full->photo = it->second.photos[0];
+        if (user_photos->photos[0] != user_full->photo) {
+          user_full->photo = user_photos->photos[0];
           user_full->is_changed = true;
         }
       } else {
@@ -12795,9 +12801,8 @@ bool ContactsManager::delete_profile_photo_from_cache(UserId user_id, int64 prof
 
 void ContactsManager::drop_user_photos(UserId user_id, bool is_empty, bool drop_user_full_photo, const char *source) {
   LOG(INFO) << "Drop user photos to " << (is_empty ? "empty" : "unknown") << " from " << source;
-  auto it = user_photos_.find(user_id);
-  if (it != user_photos_.end()) {
-    auto user_photos = &it->second;
+  auto user_photos = user_photos_.get_pointer(user_id);
+  if (user_photos != nullptr) {
     int32 new_count = is_empty ? 0 : -1;
     if (user_photos->count == new_count) {
       CHECK(user_photos->photos.empty());
@@ -15386,7 +15391,7 @@ std::pair<int32, vector<const Photo *>> ContactsManager::get_user_profile_photos
 
   apply_pending_user_photo(get_user(user_id), user_id);
 
-  auto user_photos = &user_photos_[user_id];
+  auto user_photos = add_user_photos(user_id);
   if (user_photos->getting_now) {
     promise.set_error(Status::Error(400, "Request for new profile photos has already been sent"));
     return result;
