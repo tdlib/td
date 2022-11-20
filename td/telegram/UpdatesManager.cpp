@@ -177,9 +177,6 @@ class GetDifferenceQuery final : public Td::ResultHandler {
   }
 };
 
-const double UpdatesManager::MAX_UNFILLED_GAP_TIME = 0.7;
-const double UpdatesManager::MAX_PTS_SAVE_DELAY = 0.05;
-
 UpdatesManager::UpdatesManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
   last_pts_save_time_ = last_qts_save_time_ = Time::now() - 2 * MAX_PTS_SAVE_DELAY;
 
@@ -1691,7 +1688,7 @@ void UpdatesManager::after_get_difference() {
     }
     VLOG(get_difference) << "Finished to apply " << total_update_count << " postponed updates";
     auto passed_time = Time::now() - begin_time;
-    if (passed_time >= 1.0) {
+    if (passed_time >= UPDATE_APPLY_WARNING_TIME) {
       LOG(WARNING) << "Applied " << total_update_count << " postponed for "
                    << (Time::now() - get_difference_start_time_) << " updates in " << chunk_count << " chunks in "
                    << passed_time;
@@ -1716,7 +1713,7 @@ void UpdatesManager::after_get_difference() {
                          << ", max_pts = " << accumulated_pts_ << " and " << pending_pts_updates_.size() << " + "
                          << postponed_pts_updates_.size() << " pending pts updates";
     auto passed_time = Time::now() - begin_time;
-    if (passed_time >= 1.0) {
+    if (passed_time >= UPDATE_APPLY_WARNING_TIME) {
       LOG(WARNING) << "Applied " << update_count << " postponed for " << (Time::now() - get_difference_start_time_)
                    << " pts updates in " << passed_time;
     }
@@ -2615,7 +2612,7 @@ void UpdatesManager::process_postponed_pts_updates() {
   }
 
   auto passed_time = Time::now() - begin_time;
-  if (passed_time >= 1.0) {
+  if (passed_time >= UPDATE_APPLY_WARNING_TIME) {
     LOG(WARNING) << "Pts has changed from " << initial_pts << " to " << old_pts << " after skipping "
                  << skipped_update_count << ", applying " << applied_update_count << " and keeping "
                  << postponed_pts_updates_.size() << " postponed for " << (Time::now() - get_difference_start_time_)
@@ -2628,7 +2625,9 @@ void UpdatesManager::process_pending_pts_updates() {
     return;
   }
 
-  bool processed_pending_update = false;
+  auto begin_time = Time::now();
+  auto initial_pts = get_pts();
+  int32 applied_update_count = 0;
   while (!pending_pts_updates_.empty()) {
     auto update_it = pending_pts_updates_.begin();
     auto &update = update_it->second;
@@ -2637,7 +2636,7 @@ void UpdatesManager::process_pending_pts_updates() {
       break;
     }
 
-    processed_pending_update = true;
+    applied_update_count++;
     if (update.pts_count > 0) {
       td_->messages_manager_->process_pts_update(std::move(update.update));
       set_pts(update.pts, "process_pending_pts_updates")
@@ -2652,7 +2651,7 @@ void UpdatesManager::process_pending_pts_updates() {
     update.promise.set_value(Unit());
     pending_pts_updates_.erase(update_it);
   }
-  if (processed_pending_update) {
+  if (applied_update_count > 0) {
     pts_gap_timeout_.cancel_timeout();
   }
   if (!pending_pts_updates_.empty()) {
@@ -2667,6 +2666,13 @@ void UpdatesManager::process_pending_pts_updates() {
     }
     set_pts_gap_timeout(receive_time + MAX_UNFILLED_GAP_TIME - Time::now());
   }
+
+  auto passed_time = Time::now() - begin_time;
+  if (passed_time >= UPDATE_APPLY_WARNING_TIME) {
+    LOG(WARNING) << "Pts has changed from " << initial_pts << " to " << get_pts() << " after applying "
+                 << applied_update_count << " and keeping " << pending_pts_updates_.size() << " pending updates in "
+                 << passed_time;
+  }
 }
 
 void UpdatesManager::process_pending_seq_updates() {
@@ -2675,7 +2681,9 @@ void UpdatesManager::process_pending_seq_updates() {
     // must not return, because in case of seq overflow there are no pending seq updates
   }
 
-  bool processed_pending_update = false;
+  auto begin_time = Time::now();
+  int32 iniital_seq = seq_;
+  int32 applied_update_count = 0;
   while (!pending_seq_updates_.empty() && !running_get_difference_) {
     auto update_it = pending_seq_updates_.begin();
     auto &update = update_it->second;
@@ -2685,7 +2693,7 @@ void UpdatesManager::process_pending_seq_updates() {
       break;
     }
 
-    processed_pending_update = true;
+    applied_update_count++;
     auto seq_end = update.seq_end;
     if (seq_begin - 1 == seq_) {
       process_seq_updates(seq_end, update.date, std::move(update.updates), std::move(update.promise));
@@ -2700,7 +2708,7 @@ void UpdatesManager::process_pending_seq_updates() {
     }
     pending_seq_updates_.erase(update_it);
   }
-  if (pending_seq_updates_.empty() || processed_pending_update) {
+  if (pending_seq_updates_.empty() || applied_update_count > 0) {
     seq_gap_timeout_.cancel_timeout();
   }
   if (!pending_seq_updates_.empty()) {
@@ -2715,6 +2723,13 @@ void UpdatesManager::process_pending_seq_updates() {
     }
     set_seq_gap_timeout(receive_time + MAX_UNFILLED_GAP_TIME - Time::now());
   }
+
+  auto passed_time = Time::now() - begin_time;
+  if (passed_time >= UPDATE_APPLY_WARNING_TIME) {
+    LOG(WARNING) << "Seq has changed from " << iniital_seq << " to " << seq_ << " after applying "
+                 << applied_update_count << " and keeping " << pending_seq_updates_.size() << " pending updates in "
+                 << passed_time;
+  }
 }
 
 void UpdatesManager::process_pending_qts_updates() {
@@ -2723,7 +2738,9 @@ void UpdatesManager::process_pending_qts_updates() {
   }
 
   LOG(DEBUG) << "Process " << pending_qts_updates_.size() << " pending qts updates";
-  bool processed_pending_update = false;
+  auto begin_time = Time::now();
+  auto initial_qts = get_qts();
+  int32 applied_update_count = 0;
   while (!pending_qts_updates_.empty()) {
     CHECK(!running_get_difference_);
     auto update_it = pending_qts_updates_.begin();
@@ -2735,7 +2752,7 @@ void UpdatesManager::process_pending_qts_updates() {
     }
     auto promise = PromiseCreator::lambda(
         [promises = std::move(update_it->second.promises)](Unit) mutable { set_promises(promises); });
-    processed_pending_update = true;
+    applied_update_count++;
     if (qts == old_qts + 1) {
       process_qts_update(std::move(update_it->second.update), qts, std::move(promise));
     } else {
@@ -2744,7 +2761,7 @@ void UpdatesManager::process_pending_qts_updates() {
     pending_qts_updates_.erase(update_it);
   }
 
-  if (processed_pending_update) {
+  if (applied_update_count > 0) {
     qts_gap_timeout_.cancel_timeout();
   }
   if (!pending_qts_updates_.empty()) {
@@ -2760,6 +2777,13 @@ void UpdatesManager::process_pending_qts_updates() {
     set_qts_gap_timeout(receive_time + MAX_UNFILLED_GAP_TIME - Time::now());
   }
   CHECK(!running_get_difference_);
+
+  auto passed_time = Time::now() - begin_time;
+  if (passed_time >= UPDATE_APPLY_WARNING_TIME) {
+    LOG(WARNING) << "Qts has changed from " << initial_qts << " to " << get_qts() << " after applying "
+                 << applied_update_count << " and keeping " << pending_qts_updates_.size() << " pending updates in "
+                 << passed_time;
+  }
 }
 
 void UpdatesManager::set_pts_gap_timeout(double timeout) {
