@@ -18,7 +18,7 @@ template <class KeyT, class HashT = std::hash<KeyT>, class EqT = std::equal_to<K
 class WaitFreeHashSet {
   static constexpr size_t MAX_STORAGE_COUNT = 1 << 8;
   static_assert((MAX_STORAGE_COUNT & (MAX_STORAGE_COUNT - 1)) == 0, "");
-  static constexpr uint32 DEFAULT_STORAGE_SIZE = 1 << 14;
+  static constexpr uint32 DEFAULT_STORAGE_SIZE = 1 << 12;
 
   FlatHashSet<KeyT, HashT, EqT> default_set_;
   struct WaitFreeStorage {

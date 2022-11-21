@@ -18,7 +18,7 @@ template <class KeyT, class ValueT, class HashT = std::hash<KeyT>, class EqT = s
 class WaitFreeHashMap {
   static constexpr size_t MAX_STORAGE_COUNT = 1 << 8;
   static_assert((MAX_STORAGE_COUNT & (MAX_STORAGE_COUNT - 1)) == 0, "");
-  static constexpr uint32 DEFAULT_STORAGE_SIZE = 1 << 14;
+  static constexpr uint32 DEFAULT_STORAGE_SIZE = 1 << 12;
 
   FlatHashMap<KeyT, ValueT, HashT, EqT> default_map_;
   struct WaitFreeStorage {
