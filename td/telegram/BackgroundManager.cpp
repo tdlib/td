@@ -781,7 +781,7 @@ void BackgroundManager::save_local_backgrounds(bool for_dark_theme) {
 
 void BackgroundManager::upload_background_file(FileId file_id, const BackgroundType &type, bool for_dark_theme,
                                                Promise<td_api::object_ptr<td_api::background>> &&promise) {
-  auto upload_file_id = td_->file_manager_->dup_file_id(file_id);
+  auto upload_file_id = td_->file_manager_->dup_file_id(file_id, "upload_background_file");
   bool is_inserted =
       being_uploaded_files_.emplace(upload_file_id, UploadedFileInfo(type, for_dark_theme, std::move(promise))).second;
   CHECK(is_inserted);

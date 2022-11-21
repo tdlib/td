@@ -4637,13 +4637,13 @@ unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const
   auto fix_file_id = [dialog_id, to_secret, file_manager = td->file_manager_.get()](FileId file_id) {
     auto file_view = file_manager->get_file_view(file_id);
     if (to_secret && !file_view.is_encrypted_secret()) {
-      auto download_file_id = file_manager->dup_file_id(file_id);
+      auto download_file_id = file_manager->dup_file_id(file_id, "dup_message_content to secret");
       file_id = file_manager
                     ->register_generate(FileType::Encrypted, FileLocationSource::FromServer, file_view.suggested_path(),
                                         PSTRING() << "#file_id#" << download_file_id.get(), dialog_id, file_view.size())
                     .ok();
     }
-    return file_manager->dup_file_id(file_id);
+    return file_manager->dup_file_id(file_id, "dup_message_content");
   };
 
   FileId thumbnail_file_id;
@@ -4776,7 +4776,8 @@ unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const
 
       result->photo.photos.back().file_id = fix_file_id(result->photo.photos.back().file_id);
       if (has_thumbnail) {
-        result->photo.photos[0].file_id = td->file_manager_->dup_file_id(result->photo.photos[0].file_id);
+        result->photo.photos[0].file_id =
+            td->file_manager_->dup_file_id(result->photo.photos[0].file_id, "dup_message_content photo");
       }
       return std::move(result);
     }

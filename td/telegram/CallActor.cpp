@@ -377,7 +377,7 @@ void CallActor::send_call_log(td_api::object_ptr<td_api::InputFile> log_file, Pr
 
 void CallActor::upload_log_file(FileId file_id, Promise<Unit> &&promise) {
   auto *file_manager = G()->td().get_actor_unsafe()->file_manager_.get();
-  auto upload_file_id = file_manager->dup_file_id(file_id);
+  auto upload_file_id = file_manager->dup_file_id(file_id, "upload_log_file");
   LOG(INFO) << "Ask to upload call log file " << upload_file_id;
 
   class UploadLogFileCallback final : public FileManager::UploadCallback {

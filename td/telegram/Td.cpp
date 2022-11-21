@@ -6548,7 +6548,7 @@ void Td::on_request(uint64 id, td_api::preliminaryUploadFile &request) {
     return send_error_raw(id, 400, r_file_id.error().message());
   }
   auto file_id = r_file_id.ok();
-  auto upload_file_id = file_manager_->dup_file_id(file_id);
+  auto upload_file_id = file_manager_->dup_file_id(file_id, "preliminaryUploadFile");
 
   file_manager_->upload(upload_file_id, upload_file_callback_, priority, 0);
 

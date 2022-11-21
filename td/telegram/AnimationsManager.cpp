@@ -255,9 +255,9 @@ FileId AnimationsManager::dup_animation(FileId new_id, FileId old_id) {
   CHECK(new_animation == nullptr);
   new_animation = make_unique<Animation>(*old_animation);
   new_animation->file_id = new_id;
-  new_animation->thumbnail.file_id = td_->file_manager_->dup_file_id(new_animation->thumbnail.file_id);
+  new_animation->thumbnail.file_id = td_->file_manager_->dup_file_id(new_animation->thumbnail.file_id, "dup_animation");
   new_animation->animated_thumbnail.file_id =
-      td_->file_manager_->dup_file_id(new_animation->animated_thumbnail.file_id);
+      td_->file_manager_->dup_file_id(new_animation->animated_thumbnail.file_id, "dup_animation");
   return new_id;
 }
 

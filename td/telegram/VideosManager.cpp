@@ -137,8 +137,9 @@ FileId VideosManager::dup_video(FileId new_id, FileId old_id) {
   CHECK(new_video == nullptr);
   new_video = make_unique<Video>(*old_video);
   new_video->file_id = new_id;
-  new_video->thumbnail.file_id = td_->file_manager_->dup_file_id(new_video->thumbnail.file_id);
-  new_video->animated_thumbnail.file_id = td_->file_manager_->dup_file_id(new_video->animated_thumbnail.file_id);
+  new_video->thumbnail.file_id = td_->file_manager_->dup_file_id(new_video->thumbnail.file_id, "dup_video");
+  new_video->animated_thumbnail.file_id =
+      td_->file_manager_->dup_file_id(new_video->animated_thumbnail.file_id, "dup_video");
   return new_id;
 }
 

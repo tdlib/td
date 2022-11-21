@@ -29875,8 +29875,8 @@ void MessagesManager::import_messages(DialogId dialog_id, const td_api::object_p
     attached_file_ids.push_back(r_attached_file_id.ok());
   }
 
-  upload_imported_messages(dialog_id, td_->file_manager_->dup_file_id(file_id), std::move(attached_file_ids), false,
-                           std::move(promise));
+  upload_imported_messages(dialog_id, td_->file_manager_->dup_file_id(file_id, "import_messages"),
+                           std::move(attached_file_ids), false, std::move(promise));
 }
 
 void MessagesManager::upload_imported_messages(DialogId dialog_id, FileId file_id, vector<FileId> attached_file_ids,
@@ -29917,8 +29917,9 @@ void MessagesManager::start_import_messages(DialogId dialog_id, int64 import_id,
   auto lock_promise = multipromise.get_promise();
 
   for (auto attached_file_id : attached_file_ids) {
-    upload_imported_message_attachment(dialog_id, import_id, td_->file_manager_->dup_file_id(attached_file_id), false,
-                                       multipromise.get_promise());
+    upload_imported_message_attachment(dialog_id, import_id,
+                                       td_->file_manager_->dup_file_id(attached_file_id, "start_import_messages"),
+                                       false, multipromise.get_promise());
   }
 
   lock_promise.set_value(Unit());
@@ -34338,8 +34339,8 @@ void MessagesManager::set_dialog_photo(DialogId dialog_id, const tl_object_ptr<t
     return;
   }
 
-  upload_dialog_photo(dialog_id, td_->file_manager_->dup_file_id(file_id), is_animation, main_frame_timestamp, false,
-                      std::move(promise));
+  upload_dialog_photo(dialog_id, td_->file_manager_->dup_file_id(file_id, "set_dialog_photo"), is_animation,
+                      main_frame_timestamp, false, std::move(promise));
 }
 
 void MessagesManager::send_edit_dialog_photo_query(DialogId dialog_id, FileId file_id,

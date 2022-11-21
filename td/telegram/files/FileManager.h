@@ -421,7 +421,7 @@ class FileManager final : public FileLoadManager::Callback {
 
   void init_actor();
 
-  FileId dup_file_id(FileId file_id);
+  FileId dup_file_id(FileId file_id, const char *source);
 
   void on_file_unlink(const FullLocalFileLocation &location);
 

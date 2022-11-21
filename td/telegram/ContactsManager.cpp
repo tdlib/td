@@ -6776,7 +6776,8 @@ void ContactsManager::set_profile_photo(const td_api::object_ptr<td_api::InputCh
       if (!file_id.is_valid()) {
         return promise.set_error(Status::Error(400, "Unknown profile photo ID specified"));
       }
-      return send_update_profile_photo_query(td_->file_manager_->dup_file_id(file_id), photo_id, std::move(promise));
+      return send_update_profile_photo_query(td_->file_manager_->dup_file_id(file_id, "set_profile_photo"), photo_id,
+                                             std::move(promise));
     }
     case td_api::inputChatPhotoStatic::ID: {
       auto photo = static_cast<const td_api::inputChatPhotoStatic *>(input_photo.get());
@@ -6809,8 +6810,8 @@ void ContactsManager::set_profile_photo(const td_api::object_ptr<td_api::InputCh
   FileId file_id = r_file_id.ok();
   CHECK(file_id.is_valid());
 
-  upload_profile_photo(td_->file_manager_->dup_file_id(file_id), is_animation, main_frame_timestamp,
-                       std::move(promise));
+  upload_profile_photo(td_->file_manager_->dup_file_id(file_id, "set_profile_photo"), is_animation,
+                       main_frame_timestamp, std::move(promise));
 }
 
 void ContactsManager::send_update_profile_photo_query(FileId file_id, int64 old_photo_id, Promise<Unit> &&promise) {

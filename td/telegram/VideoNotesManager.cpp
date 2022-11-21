@@ -127,7 +127,8 @@ FileId VideoNotesManager::dup_video_note(FileId new_id, FileId old_id) {
   new_video_note->waveform = old_video_note->waveform;
   new_video_note->minithumbnail = old_video_note->minithumbnail;
   new_video_note->thumbnail = old_video_note->thumbnail;
-  new_video_note->thumbnail.file_id = td_->file_manager_->dup_file_id(new_video_note->thumbnail.file_id);
+  new_video_note->thumbnail.file_id =
+      td_->file_manager_->dup_file_id(new_video_note->thumbnail.file_id, "dup_video_note");
   new_video_note->transcription_info = TranscriptionInfo::copy_if_transcribed(old_video_note->transcription_info);
   return new_id;
 }

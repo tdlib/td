@@ -1086,14 +1086,14 @@ FileManager::FileIdInfo *FileManager::get_file_id_info(FileId file_id) {
   return &file_id_info_[file_id.get()];
 }
 
-FileId FileManager::dup_file_id(FileId file_id) {
+FileId FileManager::dup_file_id(FileId file_id, const char *source) {
   int32 file_node_id;
   auto *file_node = get_file_node_raw(file_id, &file_node_id);
   if (!file_node) {
     return FileId();
   }
   auto result = FileId(create_file_id(file_node_id, file_node).get(), file_id.get_remote());
-  LOG(INFO) << "Dup file " << file_id << " to " << result;
+  LOG(INFO) << "Dup file " << file_id << " to " << result << " from " << source;
   return result;
 }
 
@@ -3196,7 +3196,7 @@ Result<FileId> FileManager::check_input_file_id(FileType type, Result<FileId> re
       // URLs in non-secret chats never needs to be reuploaded, so they don't need to be duped
       return file_node->main_file_id_;
     }
-    return dup_file_id(file_id);
+    return dup_file_id(file_id, "check_input_file_id");
   }
 
   int32 remote_id = file_id.get_remote();
