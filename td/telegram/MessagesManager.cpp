@@ -7189,7 +7189,10 @@ td_api::object_ptr<td_api::messageInteractionInfo> MessagesManager::get_message_
 
   td_api::object_ptr<td_api::messageReplyInfo> reply_info;
   if (is_visible_reply_info) {
-    reply_info = m->reply_info.get_message_reply_info_object(td_);
+    auto expected_dialog_id = m->reply_info.is_comment_ ? DialogId(m->reply_info.channel_id_) : dialog_id;
+    const Dialog *d = get_dialog(expected_dialog_id);
+    reply_info =
+        m->reply_info.get_message_reply_info_object(td_, d != nullptr ? d->last_read_inbox_message_id : MessageId());
     CHECK(reply_info != nullptr);
   }
 
@@ -18773,7 +18776,7 @@ td_api::object_ptr<td_api::messageThreadInfo> MessagesManager::get_message_threa
     auto message = get_message_object(d->dialog_id, m, "get_message_thread_info_object");
     if (message != nullptr) {
       if (message->interaction_info_ != nullptr && message->interaction_info_->reply_info_ != nullptr) {
-        reply_info = m->reply_info.get_message_reply_info_object(td_);
+        reply_info = m->reply_info.get_message_reply_info_object(td_, d->last_read_inbox_message_id);
         CHECK(reply_info != nullptr);
       }
       is_forum_topic = message->is_topic_message_;

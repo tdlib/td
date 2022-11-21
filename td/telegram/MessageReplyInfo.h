@@ -59,7 +59,8 @@ struct MessageReplyInfo {
 
   bool need_reget(const Td *td) const;
 
-  td_api::object_ptr<td_api::messageReplyInfo> get_message_reply_info_object(Td *td) const;
+  td_api::object_ptr<td_api::messageReplyInfo> get_message_reply_info_object(
+      Td *td, MessageId dialog_last_read_inbox_message_id) const;
 
   template <class StorerT>
   void store(StorerT &storer) const;

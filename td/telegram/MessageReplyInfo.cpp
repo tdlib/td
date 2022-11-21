@@ -196,7 +196,8 @@ bool MessageReplyInfo::need_reget(const Td *td) const {
   return false;
 }
 
-td_api::object_ptr<td_api::messageReplyInfo> MessageReplyInfo::get_message_reply_info_object(Td *td) const {
+td_api::object_ptr<td_api::messageReplyInfo> MessageReplyInfo::get_message_reply_info_object(
+    Td *td, MessageId dialog_last_read_inbox_message_id) const {
   if (is_empty()) {
     return nullptr;
   }
@@ -208,8 +209,12 @@ td_api::object_ptr<td_api::messageReplyInfo> MessageReplyInfo::get_message_reply
       recent_repliers.push_back(std::move(recent_replier));
     }
   }
+  auto last_read_inbox_message_id = last_read_inbox_message_id_;
+  if (last_read_inbox_message_id.is_valid() && last_read_inbox_message_id < dialog_last_read_inbox_message_id) {
+    last_read_inbox_message_id = min(dialog_last_read_inbox_message_id, max_message_id_);
+  }
   return td_api::make_object<td_api::messageReplyInfo>(reply_count_, std::move(recent_repliers),
-                                                       last_read_inbox_message_id_.get(),
+                                                       last_read_inbox_message_id.get(),
                                                        last_read_outbox_message_id_.get(), max_message_id_.get());
 }
 
