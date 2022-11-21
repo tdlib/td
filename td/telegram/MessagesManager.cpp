@@ -7089,7 +7089,7 @@ bool MessagesManager::is_active_message_reply_info(DialogId dialog_id, const Mes
     return false;
   }
 
-  if (!reply_info.is_comment) {
+  if (!reply_info.is_comment_) {
     return true;
   }
   if (!is_broadcast_channel(dialog_id)) {
@@ -7109,7 +7109,7 @@ bool MessagesManager::is_active_message_reply_info(DialogId dialog_id, const Mes
     return true;
   }
 
-  if (linked_channel_id != reply_info.channel_id) {
+  if (linked_channel_id != reply_info.channel_id_) {
     return false;
   }
 
@@ -7131,9 +7131,9 @@ bool MessagesManager::is_visible_message_reply_info(DialogId dialog_id, const Me
   if (!is_active_message_reply_info(dialog_id, m->reply_info)) {
     return false;
   }
-  if (m->reply_info.is_comment && is_broadcast &&
-      td_->contacts_manager_->have_channel_force(m->reply_info.channel_id) &&
-      !td_->contacts_manager_->have_input_peer_channel(m->reply_info.channel_id, AccessRights::Read)) {
+  if (m->reply_info.is_comment_ && is_broadcast &&
+      td_->contacts_manager_->have_channel_force(m->reply_info.channel_id_) &&
+      !td_->contacts_manager_->have_input_peer_channel(m->reply_info.channel_id_, AccessRights::Read)) {
     // keep the comment button while have no information about the linked channel
     return false;
   }
@@ -7237,7 +7237,7 @@ bool MessagesManager::update_message_interaction_info(Dialog *d, Message *m, int
     has_reactions = false;
   }
   bool need_update_reply_info = has_reply_info && m->reply_info.need_update_to(reply_info);
-  if (has_reply_info && m->reply_info.channel_id == reply_info.channel_id) {
+  if (has_reply_info && m->reply_info.channel_id_ == reply_info.channel_id_) {
     if (need_update_reply_info) {
       reply_info.update_max_message_ids(m->reply_info);
     } else {
@@ -7287,8 +7287,8 @@ bool MessagesManager::update_message_interaction_info(Dialog *d, Message *m, int
       need_update = true;
     }
     if (need_update_reply_info) {
-      if (m->reply_info.channel_id != reply_info.channel_id) {
-        if (m->reply_info.channel_id.is_valid() && reply_info.channel_id.is_valid() && m->message_id.is_server()) {
+      if (m->reply_info.channel_id_ != reply_info.channel_id_) {
+        if (m->reply_info.channel_id_.is_valid() && reply_info.channel_id_.is_valid() && m->message_id.is_server()) {
           LOG(ERROR) << "Reply info of " << FullMessageId{dialog_id, m->message_id} << " changed from " << m->reply_info
                      << " to " << reply_info << " from " << source;
         }
@@ -18571,14 +18571,14 @@ Result<FullMessageId> MessagesManager::get_top_thread_full_message_id(DialogId d
   if (dialog_id.get_type() != DialogType::Channel) {
     return Status::Error(400, "Chat can't have message threads");
   }
-  if (!m->reply_info.is_empty() && m->reply_info.is_comment) {
+  if (!m->reply_info.is_empty() && m->reply_info.is_comment_) {
     if (!is_visible_message_reply_info(dialog_id, m)) {
       return Status::Error(400, "Message has no comments");
     }
     if (m->message_id.is_yet_unsent()) {
       return Status::Error(400, "Message is not sent yet");
     }
-    return FullMessageId{DialogId(m->reply_info.channel_id), m->linked_top_thread_message_id};
+    return FullMessageId{DialogId(m->reply_info.channel_id_), m->linked_top_thread_message_id};
   } else {
     if (!m->top_thread_message_id.is_valid()) {
       return Status::Error(400, "Message has no thread");
@@ -18611,7 +18611,7 @@ void MessagesManager::get_message_thread(DialogId dialog_id, MessageId message_i
   }
 
   TRY_RESULT_PROMISE(promise, top_thread_full_message_id, get_top_thread_full_message_id(dialog_id, m));
-  if ((m->reply_info.is_empty() || !m->reply_info.is_comment) &&
+  if ((m->reply_info.is_empty() || !m->reply_info.is_comment_) &&
       top_thread_full_message_id.get_message_id() != m->message_id) {
     CHECK(dialog_id == top_thread_full_message_id.get_dialog_id());
     // get information about the thread from the top message
@@ -18724,11 +18724,11 @@ void MessagesManager::on_get_discussion_message(DialogId dialog_id, MessageId me
   }
 
   DialogId expected_dialog_id;
-  if (m->reply_info.is_comment) {
+  if (m->reply_info.is_comment_) {
     if (!is_active_message_reply_info(dialog_id, m->reply_info)) {
       return promise.set_error(Status::Error(400, "Message has no comments"));
     }
-    expected_dialog_id = DialogId(m->reply_info.channel_id);
+    expected_dialog_id = DialogId(m->reply_info.channel_id_);
   } else {
     if (!m->top_thread_message_id.is_valid()) {
       return promise.set_error(Status::Error(400, "Message has no thread"));
@@ -18736,7 +18736,7 @@ void MessagesManager::on_get_discussion_message(DialogId dialog_id, MessageId me
     expected_dialog_id = dialog_id;
   }
 
-  if (expected_dialog_id != dialog_id && m->reply_info.is_comment &&
+  if (expected_dialog_id != dialog_id && m->reply_info.is_comment_ &&
       m->linked_top_thread_message_id != message_thread_info.message_ids.back()) {
     auto linked_d = get_dialog_force(expected_dialog_id, "on_get_discussion_message 2");
     CHECK(linked_d != nullptr);
@@ -18793,7 +18793,7 @@ td_api::object_ptr<td_api::messageThreadInfo> MessagesManager::get_message_threa
     top_thread_message_id = info.message_ids.back();
     if (can_send_message(d->dialog_id).is_ok()) {
       const Message *m = get_message_force(d, top_thread_message_id, "get_message_thread_info_object 2");
-      if (m != nullptr && !m->reply_info.is_comment && is_active_message_reply_info(d->dialog_id, m->reply_info)) {
+      if (m != nullptr && !m->reply_info.is_comment_ && is_active_message_reply_info(d->dialog_id, m->reply_info)) {
         draft_message = get_draft_message_object(m->thread_draft_message);
       }
     }
@@ -19513,13 +19513,13 @@ void MessagesManager::on_get_message_link_message(MessageLinkInfo &&info, Dialog
   auto message_id = info.message_id;
   Message *m = get_message_force({dialog_id, message_id}, "on_get_message_link_message");
   if (info.comment_message_id == MessageId() || m == nullptr || !is_broadcast_channel(dialog_id) ||
-      !m->reply_info.is_comment || !is_active_message_reply_info(dialog_id, m->reply_info)) {
+      !m->reply_info.is_comment_ || !is_active_message_reply_info(dialog_id, m->reply_info)) {
     return promise.set_value(std::move(info));
   }
 
-  if (td_->contacts_manager_->have_channel_force(m->reply_info.channel_id)) {
-    force_create_dialog(DialogId(m->reply_info.channel_id), "on_get_message_link_message");
-    on_get_message_link_discussion_message(std::move(info), DialogId(m->reply_info.channel_id), std::move(promise));
+  if (td_->contacts_manager_->have_channel_force(m->reply_info.channel_id_)) {
+    force_create_dialog(DialogId(m->reply_info.channel_id_), "on_get_message_link_message");
+    on_get_message_link_discussion_message(std::move(info), DialogId(m->reply_info.channel_id_), std::move(promise));
     return;
   }
 
@@ -19533,7 +19533,7 @@ void MessagesManager::on_get_message_link_message(MessageLinkInfo &&info, Dialog
   });
 
   td_->create_handler<GetDiscussionMessageQuery>(std::move(query_promise))
-      ->send(dialog_id, message_id, DialogId(m->reply_info.channel_id), MessageId());
+      ->send(dialog_id, message_id, DialogId(m->reply_info.channel_id_), MessageId());
 }
 
 void MessagesManager::on_get_message_link_discussion_message(MessageLinkInfo &&info, DialogId comment_dialog_id,
@@ -20408,7 +20408,7 @@ Status MessagesManager::set_dialog_draft_message(DialogId dialog_id, MessageId t
     CHECK(top_thread_message_id.is_valid());
     CHECK(top_thread_message_id.is_server());
     auto m = get_message_force(d, top_thread_message_id, "set_dialog_draft_message");
-    if (m == nullptr || m->reply_info.is_comment || !is_active_message_reply_info(dialog_id, m->reply_info)) {
+    if (m == nullptr || m->reply_info.is_comment_ || !is_active_message_reply_info(dialog_id, m->reply_info)) {
       return Status::OK();
     }
 
@@ -21423,12 +21423,12 @@ Status MessagesManager::view_messages(DialogId dialog_id, MessageId top_thread_m
     MessageId max_thread_message_id;
     Message *top_m = get_message_force(d, top_thread_message_id, "view_messages 2");
     if (top_m != nullptr && is_active_message_reply_info(dialog_id, top_m->reply_info)) {
-      prev_last_read_inbox_message_id = top_m->reply_info.last_read_inbox_message_id;
+      prev_last_read_inbox_message_id = top_m->reply_info.last_read_inbox_message_id_;
       if (top_m->reply_info.update_max_message_ids(MessageId(), max_message_id, MessageId())) {
         on_message_reply_info_changed(dialog_id, top_m);
         on_message_changed(d, top_m, true, "view_messages 3");
       }
-      max_thread_message_id = top_m->reply_info.max_message_id;
+      max_thread_message_id = top_m->reply_info.max_message_id_;
 
       if (is_discussion_message(dialog_id, top_m)) {
         auto linked_dialog_id = top_m->forward_info->from_dialog_id;
@@ -21437,15 +21437,15 @@ Status MessagesManager::view_messages(DialogId dialog_id, MessageId top_thread_m
         CHECK(linked_dialog_id.get_type() == DialogType::Channel);
         auto *linked_m = get_message_force(linked_d, top_m->forward_info->from_message_id, "view_messages 4");
         if (linked_m != nullptr && is_active_message_reply_info(linked_dialog_id, linked_m->reply_info)) {
-          if (linked_m->reply_info.last_read_inbox_message_id < prev_last_read_inbox_message_id) {
-            prev_last_read_inbox_message_id = linked_m->reply_info.last_read_inbox_message_id;
+          if (linked_m->reply_info.last_read_inbox_message_id_ < prev_last_read_inbox_message_id) {
+            prev_last_read_inbox_message_id = linked_m->reply_info.last_read_inbox_message_id_;
           }
           if (linked_m->reply_info.update_max_message_ids(MessageId(), max_message_id, MessageId())) {
             on_message_reply_info_changed(linked_dialog_id, linked_m);
             on_message_changed(linked_d, linked_m, true, "view_messages 5");
           }
-          if (linked_m->reply_info.max_message_id > max_thread_message_id) {
-            max_thread_message_id = linked_m->reply_info.max_message_id;
+          if (linked_m->reply_info.max_message_id_ > max_thread_message_id) {
+            max_thread_message_id = linked_m->reply_info.max_message_id_;
           }
         }
       }
@@ -22542,7 +22542,7 @@ void MessagesManager::read_message_thread_history_on_server_impl(Dialog *d, Mess
 
   const Message *m = get_message_force(d, top_thread_message_id, "read_message_thread_history_on_server_impl");
   if (m != nullptr) {
-    auto message_id = m->reply_info.last_read_inbox_message_id.get_prev_server_message_id();
+    auto message_id = m->reply_info.last_read_inbox_message_id_.get_prev_server_message_id();
     if (message_id > max_message_id) {
       max_message_id = message_id;
     }
@@ -22670,7 +22670,7 @@ std::pair<DialogId, vector<MessageId>> MessagesManager::get_message_thread_histo
       return {};
     }
     top_thread_full_message_id = r_top_thread_full_message_id.move_as_ok();
-    if ((m->reply_info.is_empty() || !m->reply_info.is_comment) &&
+    if ((m->reply_info.is_empty() || !m->reply_info.is_comment_) &&
         top_thread_full_message_id.get_message_id() != m->message_id) {
       CHECK(dialog_id == top_thread_full_message_id.get_dialog_id());
       // get information about the thread from the top message
@@ -22679,7 +22679,7 @@ std::pair<DialogId, vector<MessageId>> MessagesManager::get_message_thread_histo
     }
 
     if (!top_thread_full_message_id.get_message_id().is_valid()) {
-      CHECK(m->reply_info.is_comment);
+      CHECK(m->reply_info.is_comment_);
       get_message_thread(
           dialog_id, message_id,
           PromiseCreator::lambda([promise = std::move(promise)](Result<MessageThreadInfo> &&result) mutable {
@@ -25667,12 +25667,12 @@ unique_ptr<MessagesManager::Message> MessagesManager::create_message_to_send(
         }
         return !reply_to_message_id.is_valid();
       }()) {
-    m->reply_info.reply_count = 0;
+    m->reply_info.reply_count_ = 0;
     if (is_channel_post) {
       auto linked_channel_id = td_->contacts_manager_->get_channel_linked_channel_id(dialog_id.get_channel_id());
       if (linked_channel_id.is_valid()) {
-        m->reply_info.is_comment = true;
-        m->reply_info.channel_id = linked_channel_id;
+        m->reply_info.is_comment_ = true;
+        m->reply_info.channel_id_ = linked_channel_id;
       }
     }
   }
@@ -26013,11 +26013,11 @@ void MessagesManager::add_message_dependencies(Dependencies &dependencies, const
     dependencies.add_dialog_and_dependencies(m->forward_info->sender_dialog_id);
     dependencies.add_dialog_and_dependencies(m->forward_info->from_dialog_id);
   }
-  for (const auto &replier_min_channel : m->reply_info.replier_min_channels) {
+  for (const auto &replier_min_channel : m->reply_info.replier_min_channels_) {
     LOG(INFO) << "Add min replied " << replier_min_channel.first;
     td_->contacts_manager_->add_min_channel(replier_min_channel.first, replier_min_channel.second);
   }
-  for (auto recent_replier_dialog_id : m->reply_info.recent_replier_dialog_ids) {
+  for (auto recent_replier_dialog_id : m->reply_info.recent_replier_dialog_ids_) {
     // don't load the dialog itself
     // it will be created in get_message_reply_info_object if needed
     dependencies.add_dialog_dependencies(recent_replier_dialog_id);
@@ -33568,8 +33568,8 @@ void MessagesManager::on_dialog_linked_channel_updated(DialogId dialog_id, Chann
 
   vector<MessageId> message_ids;
   find_messages(d->messages.get(), message_ids, [old_linked_channel_id, new_linked_channel_id](const Message *m) {
-    return !m->reply_info.is_empty() && m->reply_info.channel_id.is_valid() &&
-           (m->reply_info.channel_id == old_linked_channel_id || m->reply_info.channel_id == new_linked_channel_id);
+    return !m->reply_info.is_empty() && m->reply_info.channel_id_.is_valid() &&
+           (m->reply_info.channel_id_ == old_linked_channel_id || m->reply_info.channel_id_ == new_linked_channel_id);
   });
   LOG(INFO) << "Found discussion messages " << message_ids;
   for (auto message_id : message_ids) {

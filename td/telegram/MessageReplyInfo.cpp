@@ -27,31 +27,31 @@ MessageReplyInfo::MessageReplyInfo(Td *td, tl_object_ptr<telegram_api::messageRe
     return;
   }
   if (is_bot || reply_info->channel_id_ == 777) {
-    is_dropped = true;
+    is_dropped_ = true;
     return;
   }
-  reply_count = reply_info->replies_;
-  pts = reply_info->replies_pts_;
+  reply_count_ = reply_info->replies_;
+  pts_ = reply_info->replies_pts_;
 
-  is_comment = reply_info->comments_;
+  is_comment_ = reply_info->comments_;
 
-  if (is_comment) {
-    channel_id = ChannelId(reply_info->channel_id_);
-    if (!channel_id.is_valid()) {
-      LOG(ERROR) << "Receive invalid " << channel_id;
-      channel_id = ChannelId();
-      is_comment = false;
+  if (is_comment_) {
+    channel_id_ = ChannelId(reply_info->channel_id_);
+    if (!channel_id_.is_valid()) {
+      LOG(ERROR) << "Receive invalid " << channel_id_;
+      channel_id_ = ChannelId();
+      is_comment_ = false;
     }
   }
 
-  if (is_comment) {
+  if (is_comment_) {
     for (const auto &peer : reply_info->recent_repliers_) {
       DialogId dialog_id(peer);
       if (!dialog_id.is_valid()) {
         LOG(ERROR) << "Receive " << dialog_id << " as a recent replier";
         continue;
       }
-      if (td::contains(recent_replier_dialog_ids, dialog_id)) {
+      if (td::contains(recent_replier_dialog_ids_, dialog_id)) {
         LOG(ERROR) << "Receive duplicate " << dialog_id << " as a recent replier";
         continue;
       }
@@ -70,28 +70,28 @@ MessageReplyInfo::MessageReplyInfo(Td *td, tl_object_ptr<telegram_api::messageRe
             LOG(ERROR) << "Receive unknown replied " << replier_channel_id;
             continue;
           }
-          replier_min_channels.emplace_back(replier_channel_id, *min_channel);
+          replier_min_channels_.emplace_back(replier_channel_id, *min_channel);
         } else {
           LOG(ERROR) << "Receive unknown replied " << dialog_id;
           continue;
         }
       }
-      recent_replier_dialog_ids.push_back(dialog_id);
-      if (recent_replier_dialog_ids.size() == MAX_RECENT_REPLIERS) {
+      recent_replier_dialog_ids_.push_back(dialog_id);
+      if (recent_replier_dialog_ids_.size() == MAX_RECENT_REPLIERS) {
         break;
       }
     }
   }
   if ((reply_info->flags_ & telegram_api::messageReplies::MAX_ID_MASK) != 0 &&
       ServerMessageId(reply_info->max_id_).is_valid()) {
-    max_message_id = MessageId(ServerMessageId(reply_info->max_id_));
+    max_message_id_ = MessageId(ServerMessageId(reply_info->max_id_));
   }
   if ((reply_info->flags_ & telegram_api::messageReplies::READ_MAX_ID_MASK) != 0 &&
       ServerMessageId(reply_info->read_max_id_).is_valid()) {
-    last_read_inbox_message_id = MessageId(ServerMessageId(reply_info->read_max_id_));
+    last_read_inbox_message_id_ = MessageId(ServerMessageId(reply_info->read_max_id_));
   }
-  if (last_read_inbox_message_id > max_message_id) {  // possible if last thread message was deleted after it was read
-    max_message_id = last_read_inbox_message_id;
+  if (last_read_inbox_message_id_ > max_message_id_) {  // possible if last thread message was deleted after it was read
+    max_message_id_ = last_read_inbox_message_id_;
   }
   LOG(DEBUG) << "Parsed " << oneline(to_string(reply_info)) << " to " << *this;
 }
@@ -101,41 +101,41 @@ bool MessageReplyInfo::need_update_to(const MessageReplyInfo &other) const {
     // ignore updates to empty reply info, because we will hide the info ourselves
     // return true;
   }
-  if (other.pts < pts && !other.was_dropped()) {
+  if (other.pts_ < pts_ && !other.was_dropped()) {
     return false;
   }
-  return reply_count != other.reply_count || recent_replier_dialog_ids != other.recent_replier_dialog_ids ||
-         replier_min_channels.size() != other.replier_min_channels.size() || is_comment != other.is_comment ||
-         channel_id != other.channel_id;
+  return reply_count_ != other.reply_count_ || recent_replier_dialog_ids_ != other.recent_replier_dialog_ids_ ||
+         replier_min_channels_.size() != other.replier_min_channels_.size() || is_comment_ != other.is_comment_ ||
+         channel_id_ != other.channel_id_;
 }
 
 bool MessageReplyInfo::update_max_message_ids(const MessageReplyInfo &other) {
-  return update_max_message_ids(other.max_message_id, other.last_read_inbox_message_id,
-                                other.last_read_outbox_message_id);
+  return update_max_message_ids(other.max_message_id_, other.last_read_inbox_message_id_,
+                                other.last_read_outbox_message_id_);
 }
 
 bool MessageReplyInfo::update_max_message_ids(MessageId other_max_message_id,
                                               MessageId other_last_read_inbox_message_id,
                                               MessageId other_last_read_outbox_message_id) {
   bool result = false;
-  if (other_last_read_inbox_message_id > last_read_inbox_message_id) {
-    last_read_inbox_message_id = other_last_read_inbox_message_id;
+  if (other_last_read_inbox_message_id > last_read_inbox_message_id_) {
+    last_read_inbox_message_id_ = other_last_read_inbox_message_id;
     result = true;
   }
-  if (other_last_read_outbox_message_id > last_read_outbox_message_id) {
-    last_read_outbox_message_id = other_last_read_outbox_message_id;
+  if (other_last_read_outbox_message_id > last_read_outbox_message_id_) {
+    last_read_outbox_message_id_ = other_last_read_outbox_message_id;
     result = true;
   }
   if (other_max_message_id.is_valid() ||
       (!other_last_read_inbox_message_id.is_valid() && !other_last_read_outbox_message_id.is_valid())) {
-    if (other_max_message_id < last_read_inbox_message_id) {
-      other_max_message_id = last_read_inbox_message_id;
+    if (other_max_message_id < last_read_inbox_message_id_) {
+      other_max_message_id = last_read_inbox_message_id_;
     }
-    if (other_max_message_id < last_read_outbox_message_id) {
-      other_max_message_id = last_read_outbox_message_id;
+    if (other_max_message_id < last_read_outbox_message_id_) {
+      other_max_message_id = last_read_outbox_message_id_;
     }
-    if (other_max_message_id != max_message_id) {
-      max_message_id = other_max_message_id;
+    if (other_max_message_id != max_message_id_) {
+      max_message_id_ = other_max_message_id;
       result = true;
     }
   }
@@ -146,44 +146,44 @@ bool MessageReplyInfo::add_reply(DialogId replier_dialog_id, MessageId reply_mes
   CHECK(!is_empty());
   CHECK(diff == +1 || diff == -1);
 
-  if (diff == -1 && reply_count == 0) {
+  if (diff == -1 && reply_count_ == 0) {
     return false;
   }
 
-  reply_count += diff;
-  if (is_comment && replier_dialog_id.is_valid()) {
+  reply_count_ += diff;
+  if (is_comment_ && replier_dialog_id.is_valid()) {
     if (replier_dialog_id.get_type() == DialogType::Channel) {
       // the replier_dialog_id is never min, because it is the sender of a message
-      for (auto it = replier_min_channels.begin(); it != replier_min_channels.end(); ++it) {
+      for (auto it = replier_min_channels_.begin(); it != replier_min_channels_.end(); ++it) {
         if (it->first == replier_dialog_id.get_channel_id()) {
-          replier_min_channels.erase(it);
+          replier_min_channels_.erase(it);
           break;
         }
       }
     }
 
-    td::remove(recent_replier_dialog_ids, replier_dialog_id);
+    td::remove(recent_replier_dialog_ids_, replier_dialog_id);
     if (diff > 0) {
-      recent_replier_dialog_ids.insert(recent_replier_dialog_ids.begin(), replier_dialog_id);
-      if (recent_replier_dialog_ids.size() > MAX_RECENT_REPLIERS) {
-        recent_replier_dialog_ids.pop_back();
+      recent_replier_dialog_ids_.insert(recent_replier_dialog_ids_.begin(), replier_dialog_id);
+      if (recent_replier_dialog_ids_.size() > MAX_RECENT_REPLIERS) {
+        recent_replier_dialog_ids_.pop_back();
       }
     } else {
-      auto max_repliers = static_cast<size_t>(reply_count);
-      if (recent_replier_dialog_ids.size() > max_repliers) {
-        recent_replier_dialog_ids.resize(max_repliers);
+      auto max_repliers = static_cast<size_t>(reply_count_);
+      if (recent_replier_dialog_ids_.size() > max_repliers) {
+        recent_replier_dialog_ids_.resize(max_repliers);
       }
     }
   }
 
-  if (diff > 0 && reply_message_id > max_message_id) {
-    max_message_id = reply_message_id;
+  if (diff > 0 && reply_message_id > max_message_id_) {
+    max_message_id_ = reply_message_id;
   }
   return true;
 }
 
 bool MessageReplyInfo::need_reget(const Td *td) const {
-  for (auto &dialog_id : recent_replier_dialog_ids) {
+  for (auto &dialog_id : recent_replier_dialog_ids_) {
     if (dialog_id.get_type() != DialogType::User && !td->messages_manager_->have_dialog_info(dialog_id)) {
       if (dialog_id.get_type() == DialogType::Channel &&
           td->contacts_manager_->have_min_channel(dialog_id.get_channel_id())) {
@@ -202,25 +202,25 @@ td_api::object_ptr<td_api::messageReplyInfo> MessageReplyInfo::get_message_reply
   }
 
   vector<td_api::object_ptr<td_api::MessageSender>> recent_repliers;
-  for (auto dialog_id : recent_replier_dialog_ids) {
+  for (auto dialog_id : recent_replier_dialog_ids_) {
     auto recent_replier = get_min_message_sender_object(td, dialog_id, "get_message_reply_info_object");
     if (recent_replier != nullptr) {
       recent_repliers.push_back(std::move(recent_replier));
     }
   }
-  return td_api::make_object<td_api::messageReplyInfo>(reply_count, std::move(recent_repliers),
-                                                       last_read_inbox_message_id.get(),
-                                                       last_read_outbox_message_id.get(), max_message_id.get());
+  return td_api::make_object<td_api::messageReplyInfo>(reply_count_, std::move(recent_repliers),
+                                                       last_read_inbox_message_id_.get(),
+                                                       last_read_outbox_message_id_.get(), max_message_id_.get());
 }
 
 StringBuilder &operator<<(StringBuilder &string_builder, const MessageReplyInfo &reply_info) {
-  if (reply_info.is_comment) {
-    return string_builder << reply_info.reply_count << " comments in " << reply_info.channel_id << " by "
-                          << reply_info.recent_replier_dialog_ids << " read up to "
-                          << reply_info.last_read_inbox_message_id << "/" << reply_info.last_read_outbox_message_id;
+  if (reply_info.is_comment_) {
+    return string_builder << reply_info.reply_count_ << " comments in " << reply_info.channel_id_ << " by "
+                          << reply_info.recent_replier_dialog_ids_ << " read up to "
+                          << reply_info.last_read_inbox_message_id_ << "/" << reply_info.last_read_outbox_message_id_;
   } else {
-    return string_builder << reply_info.reply_count << " replies read up to " << reply_info.last_read_inbox_message_id
-                          << "/" << reply_info.last_read_outbox_message_id;
+    return string_builder << reply_info.reply_count_ << " replies read up to " << reply_info.last_read_inbox_message_id_
+                          << "/" << reply_info.last_read_outbox_message_id_;
   }
 }
 

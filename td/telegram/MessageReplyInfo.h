@@ -23,16 +23,16 @@ namespace td {
 class Td;
 
 struct MessageReplyInfo {
-  int32 reply_count = -1;
-  int32 pts = -1;
-  vector<DialogId> recent_replier_dialog_ids;                     // comments only
-  vector<std::pair<ChannelId, MinChannel>> replier_min_channels;  // comments only
-  ChannelId channel_id;                                           // comments only
-  MessageId max_message_id;
-  MessageId last_read_inbox_message_id;
-  MessageId last_read_outbox_message_id;
-  bool is_comment = false;
-  bool is_dropped = false;
+  int32 reply_count_ = -1;
+  int32 pts_ = -1;
+  vector<DialogId> recent_replier_dialog_ids_;                     // comments only
+  vector<std::pair<ChannelId, MinChannel>> replier_min_channels_;  // comments only
+  ChannelId channel_id_;                                           // comments only
+  MessageId max_message_id_;
+  MessageId last_read_inbox_message_id_;
+  MessageId last_read_outbox_message_id_;
+  bool is_comment_ = false;
+  bool is_dropped_ = false;
 
   static constexpr size_t MAX_RECENT_REPLIERS = 3;
 
@@ -41,11 +41,11 @@ struct MessageReplyInfo {
   MessageReplyInfo(Td *td, tl_object_ptr<telegram_api::messageReplies> &&reply_info, bool is_bot);
 
   bool is_empty() const {
-    return reply_count < 0;
+    return reply_count_ < 0;
   }
 
   bool was_dropped() const {
-    return is_dropped;
+    return is_dropped_;
   }
 
   bool need_update_to(const MessageReplyInfo &other) const;

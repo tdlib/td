@@ -17,14 +17,14 @@ namespace td {
 template <class StorerT>
 void MessageReplyInfo::store(StorerT &storer) const {
   CHECK(!is_empty());
-  bool has_recent_replier_dialog_ids = !recent_replier_dialog_ids.empty();
-  bool has_channel_id = channel_id.is_valid();
-  bool has_max_message_id = max_message_id.is_valid();
-  bool has_last_read_inbox_message_id = last_read_inbox_message_id.is_valid();
-  bool has_last_read_outbox_message_id = last_read_outbox_message_id.is_valid();
-  bool has_replier_min_channels = !replier_min_channels.empty();
+  bool has_recent_replier_dialog_ids = !recent_replier_dialog_ids_.empty();
+  bool has_channel_id = channel_id_.is_valid();
+  bool has_max_message_id = max_message_id_.is_valid();
+  bool has_last_read_inbox_message_id = last_read_inbox_message_id_.is_valid();
+  bool has_last_read_outbox_message_id = last_read_outbox_message_id_.is_valid();
+  bool has_replier_min_channels = !replier_min_channels_.empty();
   BEGIN_STORE_FLAGS();
-  STORE_FLAG(is_comment);
+  STORE_FLAG(is_comment_);
   STORE_FLAG(has_recent_replier_dialog_ids);
   STORE_FLAG(has_channel_id);
   STORE_FLAG(has_max_message_id);
@@ -32,25 +32,25 @@ void MessageReplyInfo::store(StorerT &storer) const {
   STORE_FLAG(has_last_read_outbox_message_id);
   STORE_FLAG(has_replier_min_channels);
   END_STORE_FLAGS();
-  td::store(reply_count, storer);
-  td::store(pts, storer);
+  td::store(reply_count_, storer);
+  td::store(pts_, storer);
   if (has_recent_replier_dialog_ids) {
-    td::store(recent_replier_dialog_ids, storer);
+    td::store(recent_replier_dialog_ids_, storer);
   }
   if (has_channel_id) {
-    td::store(channel_id, storer);
+    td::store(channel_id_, storer);
   }
   if (has_max_message_id) {
-    td::store(max_message_id, storer);
+    td::store(max_message_id_, storer);
   }
   if (has_last_read_inbox_message_id) {
-    td::store(last_read_inbox_message_id, storer);
+    td::store(last_read_inbox_message_id_, storer);
   }
   if (has_last_read_outbox_message_id) {
-    td::store(last_read_outbox_message_id, storer);
+    td::store(last_read_outbox_message_id_, storer);
   }
   if (has_replier_min_channels) {
-    td::store(replier_min_channels, storer);
+    td::store(replier_min_channels_, storer);
   }
 }
 
@@ -63,7 +63,7 @@ void MessageReplyInfo::parse(ParserT &parser) {
   bool has_last_read_outbox_message_id;
   bool has_replier_min_channels;
   BEGIN_PARSE_FLAGS();
-  PARSE_FLAG(is_comment);
+  PARSE_FLAG(is_comment_);
   PARSE_FLAG(has_recent_replier_dialog_ids);
   PARSE_FLAG(has_channel_id);
   PARSE_FLAG(has_max_message_id);
@@ -71,32 +71,33 @@ void MessageReplyInfo::parse(ParserT &parser) {
   PARSE_FLAG(has_last_read_outbox_message_id);
   PARSE_FLAG(has_replier_min_channels);
   END_PARSE_FLAGS();
-  td::parse(reply_count, parser);
-  td::parse(pts, parser);
+  td::parse(reply_count_, parser);
+  td::parse(pts_, parser);
   if (has_recent_replier_dialog_ids) {
-    td::parse(recent_replier_dialog_ids, parser);
+    td::parse(recent_replier_dialog_ids_, parser);
   }
   if (has_channel_id) {
-    td::parse(channel_id, parser);
+    td::parse(channel_id_, parser);
   }
   if (has_max_message_id) {
-    td::parse(max_message_id, parser);
+    td::parse(max_message_id_, parser);
   }
   if (has_last_read_inbox_message_id) {
-    td::parse(last_read_inbox_message_id, parser);
+    td::parse(last_read_inbox_message_id_, parser);
   }
   if (has_last_read_outbox_message_id) {
-    td::parse(last_read_outbox_message_id, parser);
+    td::parse(last_read_outbox_message_id_, parser);
   }
   if (has_replier_min_channels) {
-    td::parse(replier_min_channels, parser);
+    td::parse(replier_min_channels_, parser);
   }
 
-  if (channel_id.get() == 777) {
+  if (channel_id_.get() == 777) {
     *this = MessageReplyInfo();
+    is_dropped_ = true;
   }
-  if (recent_replier_dialog_ids.size() > MAX_RECENT_REPLIERS) {
-    recent_replier_dialog_ids.resize(MAX_RECENT_REPLIERS);
+  if (recent_replier_dialog_ids_.size() > MAX_RECENT_REPLIERS) {
+    recent_replier_dialog_ids_.resize(MAX_RECENT_REPLIERS);
   }
 }
 
