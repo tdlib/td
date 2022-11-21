@@ -955,7 +955,7 @@ void ConfigManager::request_config(bool reopen_sessions) {
     return;
   }
 
-  lazy_request_flood_control_.add_event(static_cast<int32>(Timestamp::now().at()));
+  lazy_request_flood_control_.add_event(Time::now());
   request_config_from_dc_impl(DcId::main(), reopen_sessions);
 }
 

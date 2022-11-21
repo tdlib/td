@@ -610,7 +610,7 @@ void ConnectionCreator::on_pong(size_t hash) {
 void ConnectionCreator::on_mtproto_error(size_t hash) {
   auto &client = clients_[hash];
   client.hash = hash;
-  client.mtproto_error_flood_control.add_event(static_cast<int32>(Time::now_cached()));
+  client.mtproto_error_flood_control.add_event(Time::now_cached());
 }
 
 void ConnectionCreator::request_raw_connection(DcId dc_id, bool allow_media_only, bool is_media,
@@ -892,12 +892,12 @@ void ConnectionCreator::client_loop(ClientInfo &client) {
     wakeup_at = max(client.sanity_flood_control.get_wakeup_at(), wakeup_at);
 
     if (!act_as_if_online) {
-      wakeup_at = max(wakeup_at, client.backoff.get_wakeup_at());
+      wakeup_at = max(wakeup_at, static_cast<double>(client.backoff.get_wakeup_at()));
     }
     if (wakeup_at > Time::now()) {
       return client_set_timeout_at(client, wakeup_at);
     }
-    client.sanity_flood_control.add_event(static_cast<int32>(Time::now()));
+    client.sanity_flood_control.add_event(Time::now());
     if (!act_as_if_online) {
       client.backoff.add_event(static_cast<int32>(Time::now()));
     }
@@ -916,7 +916,7 @@ void ConnectionCreator::client_loop(ClientInfo &client) {
     }
 
     // Events with failed socket creation are ignored
-    flood_control.add_event(static_cast<int32>(Time::now()));
+    flood_control.add_event(Time::now());
 
     auto socket_fd = r_socket_fd.move_as_ok();
     IPAddress debug_ip;
