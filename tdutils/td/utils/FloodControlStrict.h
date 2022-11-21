@@ -45,7 +45,8 @@ class FloodControlStrict {
     wakeup_at_ = 1;
   }
 
-  int32 update(int32 now) {
+ private:
+  void update(int32 now) {
     size_t min_pos = events_.size();
 
     without_update_ = std::numeric_limits<size_t>::max();
@@ -76,10 +77,8 @@ class FloodControlStrict {
       }
       events_.erase(events_.begin(), events_.begin() + min_pos);
     }
-    return wakeup_at_;
   }
 
- private:
   int32 wakeup_at_ = 1;
   struct Event {
     int32 timestamp_;
@@ -90,8 +89,8 @@ class FloodControlStrict {
     size_t pos_;
   };
   size_t without_update_ = 0;
-  std::vector<Event> events_;
-  std::vector<Limit> limits_;
+  vector<Event> events_;
+  vector<Limit> limits_;
 };
 
 }  // namespace td
