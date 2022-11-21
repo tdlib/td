@@ -3644,9 +3644,12 @@ void FileManager::on_partial_upload(QueryId query_id, PartialRemoteFileLocation 
   LOG(DEBUG) << "Receive on_partial_upload for file " << file_id << " with " << partial_remote << " and ready size "
              << ready_size;
   if (!file_node) {
+    LOG(ERROR) << "Can't find being uploaded file " << file_id;
     return;
   }
   if (file_node->upload_id_ != query_id) {
+    LOG(DEBUG) << "Upload identifier of file " << file_id << " is " << file_node->upload_id_ << " instead of "
+               << query_id;
     return;
   }
 
@@ -3874,7 +3877,7 @@ void FileManager::on_error(QueryId query_id, Status status) {
 
 void FileManager::on_error_impl(FileNodePtr node, Query::Type type, bool was_active, Status status) {
   SCOPE_EXIT {
-    try_flush_node(node, "on_error");
+    try_flush_node(node, "on_error_impl");
   };
 
   if (status.message() == "FILE_PART_INVALID") {
