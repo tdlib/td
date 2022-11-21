@@ -33292,7 +33292,7 @@ void MessagesManager::on_update_dialog_default_send_message_as_dialog_id(DialogI
 
   if (d->default_send_message_as_dialog_id != default_send_as_dialog_id) {
     if (force || default_send_as_dialog_id.is_valid() ||
-        (created_public_broadcasts_inited_ && !created_public_broadcasts_.empty())) {
+        (created_public_broadcasts_inited_ && created_public_broadcasts_.empty())) {
       LOG(INFO) << "Set message sender in " << dialog_id << " to " << default_send_as_dialog_id;
       d->need_drop_default_send_message_as_dialog_id = false;
       d->default_send_message_as_dialog_id = default_send_as_dialog_id;
