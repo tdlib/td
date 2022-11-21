@@ -9358,7 +9358,7 @@ void MessagesManager::on_load_secret_thumbnail(FileId thumbnail_file_id, BufferS
     // message has already been deleted by the user, do not need to send it
     // cancel file upload of the main file to allow next upload with the same file to succeed
     LOG(INFO) << "Message with a media has already been deleted";
-    cancel_upload_file(file_id);
+    cancel_upload_file(file_id, "on_load_secret_thumbnail");
     return;
   }
   CHECK(m->message_id.is_yet_unsent());
@@ -25866,18 +25866,18 @@ void MessagesManager::cancel_upload_message_content_files(const MessageContent *
   auto file_id = get_message_content_upload_file_id(content);
   // always cancel file upload, it should be a no-op in the worst case
   if (being_uploaded_files_.erase(file_id) || file_id.is_valid()) {
-    cancel_upload_file(file_id);
+    cancel_upload_file(file_id, "cancel_upload_message_content_files");
   }
   file_id = get_message_content_thumbnail_file_id(content, td_);
   if (being_uploaded_thumbnails_.erase(file_id) || file_id.is_valid()) {
-    cancel_upload_file(file_id);
+    cancel_upload_file(file_id, "cancel_upload_message_content_files");
   }
 }
 
-void MessagesManager::cancel_upload_file(FileId file_id) {
+void MessagesManager::cancel_upload_file(FileId file_id, const char *source) {
   // send the request later so they doesn't interfere with other actions
   // for example merge, supposed to happen soon, can auto-cancel the upload
-  LOG(INFO) << "Cancel upload of file " << file_id;
+  LOG(INFO) << "Cancel upload of file " << file_id << " from " << source;
   send_closure_later(G()->file_manager(), &FileManager::cancel_upload, file_id);
 }
 
@@ -37032,7 +37032,7 @@ bool MessagesManager::update_message_content(DialogId dialog_id, Message *old_me
   if (need_finish_upload) {
     // the file is likely to be already merged with a server file, but if not we need to
     // cancel file upload of the main file to allow next upload with the same file to succeed
-    cancel_upload_file(old_file_id);
+    cancel_upload_file(old_file_id, "update_message_content");
   }
 
   if (is_content_changed || need_update) {

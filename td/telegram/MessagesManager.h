@@ -2969,7 +2969,7 @@ class MessagesManager final : public Actor {
 
   void cancel_upload_message_content_files(const MessageContent *content);
 
-  static void cancel_upload_file(FileId file_id);
+  static void cancel_upload_file(FileId file_id, const char *source);
 
   void cancel_send_message_query(DialogId dialog_id, Message *m);
 

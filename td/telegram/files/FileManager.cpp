@@ -1550,7 +1550,7 @@ Status FileManager::merge(FileId x_file_id, FileId y_file_id, bool no_sync) {
     y_node->set_upload_pause(FileId());
   }
 
-  LOG(DEBUG) << "Merge new file " << x_file_id << " and old file " << y_file_id;
+  LOG(INFO) << "Merge new file " << x_file_id << " and old file " << y_file_id;
   if (x_node->remote_.full && y_node->remote_.full && !x_node->remote_.full.value().is_web() &&
       !y_node->remote_.full.value().is_web() && y_node->remote_.is_full_alive &&
       x_node->remote_.full_source == FileLocationSource::FromServer &&
