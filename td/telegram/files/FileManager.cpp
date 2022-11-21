@@ -395,6 +395,9 @@ void FileNode::set_encryption_key(FileEncryptionKey key) {
 void FileNode::set_upload_pause(FileId upload_pause) {
   if (upload_pause_ != upload_pause) {
     LOG(INFO) << "Change file " << main_file_id_ << " upload_pause from " << upload_pause_ << " to " << upload_pause;
+    if (upload_pause_.is_valid() != upload_pause.is_valid()) {
+      on_info_changed();
+    }
     upload_pause_ = upload_pause;
   }
 }
@@ -661,7 +664,7 @@ int64 FileView::local_total_size() const {
 }
 
 bool FileView::is_uploading() const {
-  return node_->upload_priority_ != 0 || node_->generate_upload_priority_ != 0;
+  return node_->upload_priority_ != 0 || node_->generate_upload_priority_ != 0 || node_->upload_pause_.is_valid();
 }
 
 int64 FileView::remote_size() const {
@@ -1544,6 +1547,7 @@ Status FileManager::merge(FileId x_file_id, FileId y_file_id, bool no_sync) {
     if (x_file_id != y_file_id) {
       LOG(DEBUG) << "New file " << x_file_id << " and old file " << y_file_id << " are already merged";
     }
+    try_flush_node_info(x_node, "merge 1");
     return Status::OK();
   }
   if (y_file_id == y_node->upload_pause_) {
@@ -1595,6 +1599,8 @@ Status FileManager::merge(FileId x_file_id, FileId y_file_id, bool no_sync) {
                                                  y_node->main_file_id_, y_node->main_file_id_priority_);
 
   if (size_i == -1) {
+    try_flush_node_info(x_node, "merge 2");
+    try_flush_node_info(y_node, "merge 3");
     return Status::Error(PSLICE() << "Can't merge files. Different size: " << x_node->size_ << " and "
                                   << y_node->size_);
   }
@@ -1603,6 +1609,8 @@ Status FileManager::merge(FileId x_file_id, FileId y_file_id, bool no_sync) {
       LOG(ERROR) << "Different encryption key in files, but lets choose same key as remote location";
       encryption_key_i = remote_i;
     } else {
+      try_flush_node_info(x_node, "merge 4");
+      try_flush_node_info(y_node, "merge 5");
       return Status::Error("Can't merge files. Different encryption keys");
     }
   }
@@ -1674,7 +1682,7 @@ Status FileManager::merge(FileId x_file_id, FileId y_file_id, bool no_sync) {
     other_node->upload_id_ = 0;
     other_node->upload_was_update_file_reference_ = false;
     other_node->upload_priority_ = 0;
-    other_node->set_upload_pause(FileId());
+    other_node->upload_pause_ = FileId();
   } else {
     do_cancel_upload(other_node);
   }
@@ -2650,6 +2658,9 @@ void FileManager::resume_upload(FileId file_id, vector<int> bad_parts, std::shar
   if (node->upload_pause_ == file_id) {
     node->set_upload_pause(FileId());
   }
+  SCOPE_EXIT {
+    try_flush_node(node, "resume_upload");
+  };
   FileView file_view(node);
   if (file_view.has_active_upload_remote_location() && can_reuse_remote_file(file_view.get_type())) {
     LOG(INFO) << "File " << file_id << " is already uploaded";
@@ -2705,7 +2716,6 @@ void FileManager::resume_upload(FileId file_id, vector<int> bad_parts, std::shar
 
   run_generate(node);
   run_upload(node, std::move(bad_parts));
-  try_flush_node(node, "resume_upload");
 }
 
 bool FileManager::delete_partial_remote_location(FileId file_id) {
@@ -2717,6 +2727,9 @@ bool FileManager::delete_partial_remote_location(FileId file_id) {
   if (node->upload_pause_ == file_id) {
     node->set_upload_pause(FileId());
   }
+  SCOPE_EXIT {
+    try_flush_node(node, "delete_partial_remote_location");
+  };
   if (node->remote_.is_full_alive) {
     LOG(INFO) << "File " << file_id << " is already uploaded";
     return true;
@@ -2738,7 +2751,6 @@ bool FileManager::delete_partial_remote_location(FileId file_id) {
   }
 
   run_upload(node, vector<int>());
-  try_flush_node(node, "delete_partial_remote_location");
   return true;
 }
 
@@ -3713,8 +3725,8 @@ void FileManager::on_upload_ok(QueryId query_id, FileType file_type, PartialRemo
           partial_remote.file_id_, partial_remote.part_count_, "", file_view.encryption_key().calc_fingerprint());
     }
     if (file_info->upload_callback_) {
-      file_info->upload_callback_->on_upload_encrypted_ok(file_id, std::move(input_file));
       file_node->set_upload_pause(file_id);
+      file_info->upload_callback_->on_upload_encrypted_ok(file_id, std::move(input_file));
       file_info->upload_callback_.reset();
     }
   } else if (file_view.is_secure()) {
@@ -3723,8 +3735,8 @@ void FileManager::on_upload_ok(QueryId query_id, FileType file_type, PartialRemo
         partial_remote.file_id_, partial_remote.part_count_, "" /*md5*/, BufferSlice() /*file_hash*/,
         BufferSlice() /*encrypted_secret*/);
     if (file_info->upload_callback_) {
+      file_node->set_upload_pause(file_id);
       file_info->upload_callback_->on_upload_secure_ok(file_id, std::move(input_file));
-      file_node->upload_pause_ = file_id;
       file_info->upload_callback_.reset();
     }
   } else {
@@ -3737,11 +3749,12 @@ void FileManager::on_upload_ok(QueryId query_id, FileType file_type, PartialRemo
                                                            std::move(file_name), "");
     }
     if (file_info->upload_callback_) {
-      file_info->upload_callback_->on_upload_ok(file_id, std::move(input_file));
       file_node->set_upload_pause(file_id);
+      file_info->upload_callback_->on_upload_ok(file_id, std::move(input_file));
       file_info->upload_callback_.reset();
     }
   }
+  // don't flush node info, because nothing actually changed
 }
 
 // for upload by hash
