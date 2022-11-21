@@ -33562,18 +33562,20 @@ void MessagesManager::on_dialog_linked_channel_updated(DialogId dialog_id, Chann
     return;
   }
   auto d = get_dialog(dialog_id);  // no need to create the dialog
-  if (d != nullptr && d->is_update_new_chat_sent) {
-    vector<MessageId> message_ids;
-    find_messages(d->messages.get(), message_ids, [old_linked_channel_id, new_linked_channel_id](const Message *m) {
-      return !m->reply_info.is_empty() && m->reply_info.channel_id.is_valid() &&
-             (m->reply_info.channel_id == old_linked_channel_id || m->reply_info.channel_id == new_linked_channel_id);
-    });
-    LOG(INFO) << "Found discussion messages " << message_ids;
-    for (auto message_id : message_ids) {
-      send_update_message_interaction_info(dialog_id, get_message(d, message_id));
-      if (message_id == d->last_message_id) {
-        send_update_chat_last_message_impl(d, "on_dialog_linked_channel_updated");
-      }
+  if (d == nullptr || !d->is_update_new_chat_sent) {
+    return;
+  }
+
+  vector<MessageId> message_ids;
+  find_messages(d->messages.get(), message_ids, [old_linked_channel_id, new_linked_channel_id](const Message *m) {
+    return !m->reply_info.is_empty() && m->reply_info.channel_id.is_valid() &&
+           (m->reply_info.channel_id == old_linked_channel_id || m->reply_info.channel_id == new_linked_channel_id);
+  });
+  LOG(INFO) << "Found discussion messages " << message_ids;
+  for (auto message_id : message_ids) {
+    send_update_message_interaction_info(dialog_id, get_message(d, message_id));
+    if (message_id == d->last_message_id) {
+      send_update_chat_last_message_impl(d, "on_dialog_linked_channel_updated");
     }
   }
 }
@@ -38504,7 +38506,8 @@ unique_ptr<MessagesManager::Dialog> MessagesManager::parse_dialog(DialogId dialo
     send_get_dialog_query(dialog_id, Auto(), 0, source);
   }
 
-  switch (d->dialog_id.get_type()) {
+  auto dialog_type = d->dialog_id.get_type();
+  switch (dialog_type) {
     case DialogType::Chat:
     case DialogType::Channel:
       if (get_active_reactions(d->available_reactions).empty() != ((d->available_reactions_generation & 1) == 1)) {
@@ -38515,6 +38518,12 @@ unique_ptr<MessagesManager::Dialog> MessagesManager::parse_dialog(DialogId dialo
     case DialogType::SecretChat:
     default:
       break;
+  }
+  if (!d->need_drop_default_send_message_as_dialog_id && d->default_send_message_as_dialog_id.is_valid() &&
+      dialog_type == DialogType::Channel && !td_->contacts_manager_->is_channel_public(dialog_id.get_channel_id()) &&
+      !td_->contacts_manager_->get_channel_has_linked_channel(dialog_id.get_channel_id())) {
+    LOG(INFO) << "Drop message sender in " << dialog_id;
+    d->need_drop_default_send_message_as_dialog_id = true;
   }
 
   return dialog;

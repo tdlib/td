@@ -11126,6 +11126,11 @@ void ContactsManager::update_channel(Channel *c, ChannelId channel_id, bool from
     }
   }
 
+  if (!is_channel_public(c) && !c->has_linked_channel) {
+    send_closure_later(G()->messages_manager(), &MessagesManager::on_update_dialog_default_send_message_as_dialog_id,
+                       DialogId(channel_id), DialogId(), false);
+  }
+
   if (need_update_channel_full) {
     auto channel_full = get_channel_full(channel_id, true, "update_channel");
     CHECK(channel_full != nullptr);
