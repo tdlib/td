@@ -3189,13 +3189,16 @@ Result<FileId> FileManager::check_input_file_id(FileType type, Result<FileId> re
   }
 
   if (!file_view.has_remote_location()) {
-    // TODO why not return file_id here? We will dup it anyway
-    // But it will not be duped if has_input_media(), so for now we can't return main_file_id
+    // There are no reasons to dup file_id, because it will be duped anyway before upload/reupload
+    // It will not be duped in dup_message_content only if has_input_media(),
+    // but currently in this case the file never needs to be reuploaded
 
-    if (file_view.has_url() && !is_encrypted) {
+    if (!is_encrypted) {
       // URLs in non-secret chats never needs to be reuploaded, so they don't need to be duped
+      // non-URLs without remote location will be duped at dup_message_content, because they have no input media
       return file_node->main_file_id_;
     }
+
     return dup_file_id(file_id, "check_input_file_id");
   }
 
