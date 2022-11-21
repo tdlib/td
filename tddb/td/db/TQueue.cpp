@@ -228,12 +228,21 @@ class TQueueImpl final : public TQueue {
       return;
     }
 
+    auto start_time = Time::now();
+    auto total_event_length = q.total_event_length;
+
     auto end_it = q.events.end();
-    while (keep_count-- > 0) {
+    for (size_t i = 0; i < keep_count; i++) {
       --end_it;
     }
     for (auto it = q.events.begin(); it != end_it;) {
       pop(q, queue_id, it, q.tail_id);
+    }
+
+    auto clear_time = Time::now() - start_time;
+    if (clear_time > 0.1) {
+      LOG(WARNING) << "Cleared " << (size - keep_count) << " TQueue events with total size "
+                   << (total_event_length - q.total_event_length) << " in " << time << " seconds";
     }
   }
 
