@@ -3967,8 +3967,13 @@ void FileManager::on_error_impl(FileNodePtr node, Query::Type type, bool was_act
     status = Global::request_aborted_error();
   } else {
     if (status.code() != -1) {
-      LOG(WARNING) << "Failed to " << type << " file " << node->main_file_id_ << " of type "
-                   << FileView(node).get_type() << ": " << status;
+      if (type == Query::Type::Generate && node->generate_ != nullptr) {
+        LOG(WARNING) << "Failed to generate file " << node->main_file_id_ << " with " << *node->generate_ << ": "
+                     << status;
+      } else {
+        LOG(WARNING) << "Failed to " << type << " file " << node->main_file_id_ << " of type "
+                     << FileView(node).get_type() << ": " << status;
+      }
     }
     if (status.code() == 0) {
       // Remove partial locations
