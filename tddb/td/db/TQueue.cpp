@@ -242,7 +242,7 @@ class TQueueImpl final : public TQueue {
     auto clear_time = Time::now() - start_time;
     if (clear_time > 0.1) {
       LOG(WARNING) << "Cleared " << (size - keep_count) << " TQueue events with total size "
-                   << (total_event_length - q.total_event_length) << " in " << time << " seconds";
+                   << (total_event_length - q.total_event_length) << " in " << clear_time << " seconds";
     }
   }
 
