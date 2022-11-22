@@ -1249,10 +1249,13 @@ TEST(Misc, check_reset_guard) {
 TEST(FloodControl, Fast) {
   td::FloodControlFast fc;
   fc.add_limit(1, 5);
+  fc.add_limit(5, 10);
+
+  td::int32 count = 0;
   double now = 0;
   for (int i = 0; i < 100; i++) {
     now = fc.get_wakeup_at();
     fc.add_event(now);
-    LOG(INFO) << now;
+    LOG(INFO) << ++count << ": " << now;
   }
 }
