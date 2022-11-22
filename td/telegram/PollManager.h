@@ -25,6 +25,7 @@
 #include "td/utils/Promise.h"
 #include "td/utils/Status.h"
 #include "td/utils/WaitFreeHashMap.h"
+#include "td/utils/WaitFreeHashSet.h"
 
 #include <utility>
 
@@ -227,8 +228,8 @@ class PollManager final : public Actor {
   ActorShared<> parent_;
   WaitFreeHashMap<PollId, unique_ptr<Poll>, PollIdHash> polls_;
 
-  FlatHashMap<PollId, FlatHashSet<FullMessageId, FullMessageIdHash>, PollIdHash> server_poll_messages_;
-  FlatHashMap<PollId, FlatHashSet<FullMessageId, FullMessageIdHash>, PollIdHash> other_poll_messages_;
+  WaitFreeHashMap<PollId, WaitFreeHashSet<FullMessageId, FullMessageIdHash>, PollIdHash> server_poll_messages_;
+  WaitFreeHashMap<PollId, WaitFreeHashSet<FullMessageId, FullMessageIdHash>, PollIdHash> other_poll_messages_;
 
   struct PendingPollAnswer {
     vector<string> options_;

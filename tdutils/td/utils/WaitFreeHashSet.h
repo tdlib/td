@@ -96,6 +96,22 @@ class WaitFreeHashSet {
     }
   }
 
+  KeyT get_random() const {
+    if (wait_free_storage_ != nullptr) {
+      for (size_t i = 0; i < MAX_STORAGE_COUNT; i++) {
+        if (!wait_free_storage_->sets_[i].empty()) {
+          return wait_free_storage_->sets_[i].get_random();
+        }
+      }
+      // no need to explicitly return KeyT()
+    }
+
+    if (default_set_.empty()) {
+      return KeyT();
+    }
+    return *default_set_.begin();
+  }
+
   size_t calc_size() const {
     if (wait_free_storage_ == nullptr) {
       return default_set_.size();
