@@ -196,7 +196,7 @@ inline StringBuilder &operator<<(StringBuilder &logger, Size t) {
   static constexpr size_t sizes_n = sizeof(sizes) / sizeof(NamedValue);
 
   size_t i = 0;
-  while (i + 1 < sizes_n && t.size_ > 10 * sizes[i + 1].value) {
+  while (i + 1 < sizes_n && t.size_ >= 100000 * sizes[i].value) {
     i++;
   }
   logger << t.size_ / sizes[i].value << Slice(sizes[i].name);
