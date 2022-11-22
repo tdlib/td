@@ -334,6 +334,10 @@ bool PollManager::have_poll(PollId poll_id) const {
 }
 
 void PollManager::notify_on_poll_update(PollId poll_id) {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+
   auto server_it = server_poll_messages_.find(poll_id);
   if (server_it != server_poll_messages_.end()) {
     for (const auto &full_message_id : server_it->second) {
@@ -1214,21 +1218,25 @@ void PollManager::do_stop_poll(PollId poll_id, FullMessageId full_message_id, un
 
   bool is_inserted = being_closed_polls_.insert(poll_id).second;
   CHECK(is_inserted);
-  auto new_promise = PromiseCreator::lambda(
-      [actor_id = actor_id(this), poll_id, log_event_id, promise = std::move(promise)](Result<Unit> result) mutable {
-        send_closure(actor_id, &PollManager::on_stop_poll_finished, poll_id, log_event_id, std::move(result),
-                     std::move(promise));
-      });
+  auto new_promise = PromiseCreator::lambda([actor_id = actor_id(this), poll_id, full_message_id, log_event_id,
+                                             promise = std::move(promise)](Result<Unit> result) mutable {
+    send_closure(actor_id, &PollManager::on_stop_poll_finished, poll_id, full_message_id, log_event_id,
+                 std::move(result), std::move(promise));
+  });
 
   td_->create_handler<StopPollQuery>(std::move(new_promise))->send(full_message_id, std::move(reply_markup), poll_id);
 }
 
-void PollManager::on_stop_poll_finished(PollId poll_id, uint64 log_event_id, Result<Unit> &&result,
-                                        Promise<Unit> &&promise) {
+void PollManager::on_stop_poll_finished(PollId poll_id, FullMessageId full_message_id, uint64 log_event_id,
+                                        Result<Unit> &&result, Promise<Unit> &&promise) {
   being_closed_polls_.erase(poll_id);
 
   if (log_event_id != 0 && !G()->close_flag()) {
     binlog_erase(G()->td_db()->get_binlog(), log_event_id);
+  }
+
+  if (td_->auth_manager_->is_bot()) {
+    td_->messages_manager_->on_external_update_message_content(full_message_id);
   }
 
   promise.set_result(std::move(result));

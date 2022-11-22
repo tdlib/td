@@ -213,7 +213,8 @@ class PollManager final : public Actor {
   void do_stop_poll(PollId poll_id, FullMessageId full_message_id, unique_ptr<ReplyMarkup> &&reply_markup,
                     uint64 log_event_id, Promise<Unit> &&promise);
 
-  void on_stop_poll_finished(PollId poll_id, uint64 log_event_id, Result<Unit> &&result, Promise<Unit> &&promise);
+  void on_stop_poll_finished(PollId poll_id, FullMessageId full_message_id, uint64 log_event_id, Result<Unit> &&result,
+                             Promise<Unit> &&promise);
 
   void forget_local_poll(PollId poll_id);
 
