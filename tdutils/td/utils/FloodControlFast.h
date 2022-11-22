@@ -11,52 +11,77 @@
 
 namespace td {
 
-class FloodControlFast {
+class FloodControlBucket {
  public:
-  void add_event(int32 now) {
-    for (auto &limit : limits_) {
-      limit.stat_.add_event(CounterStat::Event(), now);
-      if (limit.stat_.get_stat(now).count_ > limit.count_) {
-        wakeup_at_ = max(wakeup_at_, now + limit.duration_ * 2);
-      }
-    }
+  FloodControlBucket(double duration, double count)
+      : max_capacity_(count), speed_(count / duration), volume_(max_capacity_) {
   }
 
-  uint32 get_wakeup_at() const {
+  void add_event(double now, double size = 1) {
+    CHECK(now >= wakeup_at_);
+    update_volume(now);
+    if (volume_ >= size) {
+      volume_ -= size;
+      return;
+    }
+    size -= volume_;
+    volume_ = 0;
+    wakeup_at_ = volume_at_ + size / speed_;
+    volume_at_ = wakeup_at_;
+  }
+  double get_wakeup_at() const {
     return wakeup_at_;
   }
 
-  void add_limit(uint32 duration, int32 count) {
-    limits_.push_back({TimedStat<CounterStat>(duration, 0), duration, count});
+  void clear_events() {
+    volume_ = max_capacity_;
+    volume_at_ = 0;
+    wakeup_at_ = 0;
+  }
+
+ private:
+  double max_capacity_{1};
+  double speed_{1};
+  double volume_{max_capacity_};
+
+  double volume_at_{0};
+  double wakeup_at_{0};
+
+  void update_volume(double now) {
+    CHECK(now >= volume_at_);
+    auto passed = now - volume_at_;
+    volume_ = td::min(volume_ + passed * speed_, max_capacity_);
+    volume_at_ = now;
+  }
+};
+
+class FloodControlFast {
+ public:
+  void add_event(double now) {
+    for (auto &bucket : buckets_) {
+      bucket.add_event(now);
+      wakeup_at_ = td::max(wakeup_at_, bucket.get_wakeup_at());
+    }
+  }
+
+  double get_wakeup_at() const {
+    return wakeup_at_;
+  }
+
+  void add_limit(double duration, double count) {
+    buckets_.emplace_back(FloodControlBucket(duration, count));
   }
 
   void clear_events() {
-    for (auto &limit : limits_) {
-      limit.stat_.clear_events();
+    for (auto &bucket : buckets_) {
+      bucket.clear_events();
     }
     wakeup_at_ = 0;
   }
 
  private:
-  class CounterStat {
-   public:
-    struct Event {};
-    int32 count_ = 0;
-    void on_event(Event e) {
-      count_++;
-    }
-    void clear() {
-      count_ = 0;
-    }
-  };
-
-  uint32 wakeup_at_ = 0;
-  struct Limit {
-    TimedStat<CounterStat> stat_;
-    uint32 duration_;
-    int32 count_;
-  };
-  std::vector<Limit> limits_;
+  double wakeup_at_ = 0;
+  std::vector<FloodControlBucket> buckets_;
 };
 
 }  // namespace td

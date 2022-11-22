@@ -12,6 +12,7 @@
 #include "td/utils/CancellationToken.h"
 #include "td/utils/common.h"
 #include "td/utils/ExitGuard.h"
+#include "td/utils/FloodControlFast.h"
 #include "td/utils/Hash.h"
 #include "td/utils/HashMap.h"
 #include "td/utils/HashSet.h"
@@ -1243,4 +1244,15 @@ TEST(Misc, serialize) {
 
 TEST(Misc, check_reset_guard) {
   CheckExitGuard check_exit_guard{false};
+}
+
+TEST(FloodControl, Fast) {
+  td::FloodControlFast fc;
+  fc.add_limit(1, 5);
+  double now = 0;
+  for (int i = 0; i < 100; i++) {
+    now = fc.get_wakeup_at();
+    fc.add_event(now);
+    LOG(INFO) << now;
+  }
 }
