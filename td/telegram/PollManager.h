@@ -24,6 +24,7 @@
 #include "td/utils/FlatHashSet.h"
 #include "td/utils/Promise.h"
 #include "td/utils/Status.h"
+#include "td/utils/WaitFreeHashMap.h"
 
 #include <utility>
 
@@ -224,7 +225,7 @@ class PollManager final : public Actor {
 
   Td *td_;
   ActorShared<> parent_;
-  FlatHashMap<PollId, unique_ptr<Poll>, PollIdHash> polls_;
+  WaitFreeHashMap<PollId, unique_ptr<Poll>, PollIdHash> polls_;
 
   FlatHashMap<PollId, FlatHashSet<FullMessageId, FullMessageIdHash>, PollIdHash> server_poll_messages_;
   FlatHashMap<PollId, FlatHashSet<FullMessageId, FullMessageIdHash>, PollIdHash> other_poll_messages_;

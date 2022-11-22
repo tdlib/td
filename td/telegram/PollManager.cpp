@@ -301,32 +301,23 @@ bool PollManager::is_local_poll_id(PollId poll_id) {
 }
 
 const PollManager::Poll *PollManager::get_poll(PollId poll_id) const {
-  auto p = polls_.find(poll_id);
-  if (p == polls_.end()) {
-    return nullptr;
-  } else {
-    return p->second.get();
-  }
+  return polls_.get_pointer(poll_id);
 }
 
 const PollManager::Poll *PollManager::get_poll(PollId poll_id) {
-  auto p = polls_.find(poll_id);
-  if (p == polls_.end()) {
-    return nullptr;
-  } else {
+  auto p = polls_.get_pointer(poll_id);
+  if (p != nullptr) {
     schedule_poll_unload(poll_id);
-    return p->second.get();
   }
+  return p;
 }
 
 PollManager::Poll *PollManager::get_poll_editable(PollId poll_id) {
-  auto p = polls_.find(poll_id);
-  if (p == polls_.end()) {
-    return nullptr;
-  } else {
+  auto p = polls_.get_pointer(poll_id);
+  if (p != nullptr) {
     schedule_poll_unload(poll_id);
-    return p->second.get();
   }
+  return p;
 }
 
 bool PollManager::have_poll(PollId poll_id) const {
@@ -649,8 +640,7 @@ PollId PollManager::create_poll(string &&question, vector<string> &&options, boo
 
   PollId poll_id(--current_local_poll_id_);
   CHECK(is_local_poll_id(poll_id));
-  bool is_inserted = polls_.emplace(poll_id, std::move(poll)).second;
-  CHECK(is_inserted);
+  polls_.set(poll_id, std::move(poll));
   return poll_id;
 }
 
@@ -1523,8 +1513,7 @@ PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll
 
     auto p = make_unique<Poll>();
     poll = p.get();
-    bool is_inserted = polls_.emplace(poll_id, std::move(p)).second;
-    CHECK(is_inserted);
+    polls_.set(poll_id, std::move(p));
   }
   CHECK(poll != nullptr);
 
