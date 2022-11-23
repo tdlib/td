@@ -235,7 +235,7 @@ TEST(TQueue, clear) {
   td::vector<td::TQueue::EventId> ids;
   td::Random::Xorshift128plus rnd(123);
   for (size_t i = 0; i < 1000000; i++) {
-    auto id = tqueue->push(1, td::string(td::Random::fast(100, 500), 'a'), now + 600000, 0, {}).move_as_ok();
+    tqueue->push(1, td::string(td::Random::fast(100, 500), 'a'), now + 600000, 0, {}).ensure();
   }
   auto tail_id = tqueue->get_tail(1);
   auto clear_start_time = td::Time::now();
