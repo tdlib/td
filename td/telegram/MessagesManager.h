@@ -3179,10 +3179,11 @@ class MessagesManager final : public Actor {
 
   void on_channel_get_difference_timeout(DialogId dialog_id);
 
-  void get_channel_difference(DialogId dialog_id, int32 pts, bool force, const char *source);
+  void get_channel_difference(DialogId dialog_id, int32 pts, bool force, const char *source, bool is_old = false);
 
   void do_get_channel_difference(DialogId dialog_id, int32 pts, bool force,
-                                 tl_object_ptr<telegram_api::InputChannel> &&input_channel, const char *source);
+                                 tl_object_ptr<telegram_api::InputChannel> &&input_channel, bool is_old,
+                                 const char *source);
 
   void process_get_channel_difference_updates(DialogId dialog_id, int32 new_pts,
                                               vector<tl_object_ptr<telegram_api::Message>> &&new_messages,

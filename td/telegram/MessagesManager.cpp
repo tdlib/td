@@ -39013,7 +39013,8 @@ class MessagesManager::GetChannelDifferenceLogEvent {
   }
 };
 
-void MessagesManager::get_channel_difference(DialogId dialog_id, int32 pts, bool force, const char *source) {
+void MessagesManager::get_channel_difference(DialogId dialog_id, int32 pts, bool force, const char *source,
+                                             bool is_old) {
   if (channel_get_difference_retry_timeout_.has_timeout(dialog_id.get())) {
     LOG(INFO) << "Skip running channels.getDifference for " << dialog_id << " from " << source
               << " because it is scheduled for later time";
@@ -39055,11 +39056,11 @@ void MessagesManager::get_channel_difference(DialogId dialog_id, int32 pts, bool
     get_channel_difference_to_log_event_id_.emplace(dialog_id, log_event_id);
   }
 
-  return do_get_channel_difference(dialog_id, pts, force, std::move(input_channel), source);
+  return do_get_channel_difference(dialog_id, pts, force, std::move(input_channel), is_old, source);
 }
 
 void MessagesManager::do_get_channel_difference(DialogId dialog_id, int32 pts, bool force,
-                                                tl_object_ptr<telegram_api::InputChannel> &&input_channel,
+                                                tl_object_ptr<telegram_api::InputChannel> &&input_channel, bool is_old,
                                                 const char *source) {
   auto inserted = active_get_channel_differencies_.emplace(dialog_id, source);
   if (!inserted.second) {
@@ -39082,7 +39083,7 @@ void MessagesManager::do_get_channel_difference(DialogId dialog_id, int32 pts, b
     }
   }
 
-  int32 limit = td_->auth_manager_->is_bot() ? MAX_BOT_CHANNEL_DIFFERENCE : MAX_CHANNEL_DIFFERENCE;
+  int32 limit = td_->auth_manager_->is_bot() && !is_old ? MAX_BOT_CHANNEL_DIFFERENCE : MAX_CHANNEL_DIFFERENCE;
   if (pts <= 0) {
     pts = 1;
     limit = MIN_CHANNEL_DIFFERENCE;
@@ -39454,6 +39455,7 @@ void MessagesManager::on_get_channel_difference(
                                         << dialog_id << " during getChannelDifference";
 
   bool is_final = true;
+  bool is_old = false;
   int32 timeout = 0;
   switch (difference_ptr->get_id()) {
     case telegram_api::updates_channelDifferenceEmpty::ID: {
@@ -39508,6 +39510,12 @@ void MessagesManager::on_get_channel_difference(
             return;
           }
           cur_message_id = message_id;
+        }
+      }
+      if (!is_final && !difference->new_messages_.empty() && td_->auth_manager_->is_bot()) {
+        auto date = get_message_date(difference->new_messages_.back());
+        if (0 < date && date < G()->unix_time() - 2 * 86400) {
+          is_old = true;
         }
       }
 
@@ -39595,7 +39603,7 @@ void MessagesManager::on_get_channel_difference(
 
   if (!is_final) {
     LOG_IF(ERROR, timeout > 0) << "Have timeout in nonfinal ChannelDifference in " << dialog_id;
-    get_channel_difference(dialog_id, d->pts, true, "on_get_channel_difference");
+    get_channel_difference(dialog_id, d->pts, true, "on_get_channel_difference", is_old);
     return;
   }
 
@@ -40750,7 +40758,7 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
         do_get_channel_difference(
             dialog_id, load_channel_pts(dialog_id), true,
             telegram_api::make_object<telegram_api::inputChannel>(log_event.channel_id.get(), log_event.access_hash),
-            "LogEvent::HandlerType::GetChannelDifference");
+            false, "LogEvent::HandlerType::GetChannelDifference");
         break;
       }
       default:
