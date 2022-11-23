@@ -29,7 +29,7 @@ class WaitFreeHashSet {
   uint32 max_storage_size_ = DEFAULT_STORAGE_SIZE;
 
   uint32 get_wait_free_index(const KeyT &key) const {
-    return (HashT()(key) * hash_mult_) & (MAX_STORAGE_COUNT - 1);
+    return randomize_hash(HashT()(key) * hash_mult_) & (MAX_STORAGE_COUNT - 1);
   }
 
   WaitFreeHashSet &get_wait_free_storage(const KeyT &key) {
