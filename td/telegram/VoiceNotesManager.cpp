@@ -17,6 +17,7 @@
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/UpdatesManager.h"
 
+#include "td/utils/buffer.h"
 #include "td/utils/logging.h"
 
 namespace td {

@@ -24,7 +24,7 @@ class FloodControlFast {
   }
 
   void add_limit(double duration, double count) {
-    buckets_.emplace_back(FloodControlBucket(duration, count));
+    buckets_.emplace_back(duration, count);
   }
 
   void clear_events() {

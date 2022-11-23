@@ -12,6 +12,7 @@
 #include "td/db/binlog/BinlogInterface.h"
 
 #include "td/utils/FlatHashMap.h"
+#include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/Random.h"
 #include "td/utils/StorerBase.h"

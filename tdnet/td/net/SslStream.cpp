@@ -21,6 +21,7 @@
 #include <openssl/x509.h>
 
 #include <cstring>
+#include <memory>
 
 namespace td {
 

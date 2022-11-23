@@ -479,7 +479,7 @@ Promise<> UpdatesManager::set_pts(int32 pts, const char *source) {
   Promise<> result;
   if (pts > get_pts() || (0 < pts && pts < get_pts() - 399999)) {  // pts can only go up or drop cardinally
     if (pts < get_pts() - 399999) {
-      LOG(WARNING) << "Pts decreases from " << get_pts() << " to " << pts << " from " << source;
+      LOG(WARNING) << "PTS decreases from " << get_pts() << " to " << pts << " from " << source;
     } else {
       LOG(INFO) << "Update pts from " << get_pts() << " to " << pts << " from " << source;
     }
@@ -2606,14 +2606,14 @@ void UpdatesManager::process_postponed_pts_updates() {
   }
   CHECK(!running_get_difference_);
   if (skipped_update_count + applied_update_count > 0) {
-    VLOG(get_difference) << "Pts has changed from " << initial_pts << " to " << old_pts << " after skipping "
+    VLOG(get_difference) << "PTS has changed from " << initial_pts << " to " << old_pts << " after skipping "
                          << skipped_update_count << ", applying " << applied_update_count << " and keeping "
                          << postponed_pts_updates_.size() << " postponed updates";
   }
 
   auto passed_time = Time::now() - begin_time;
   if (passed_time >= UPDATE_APPLY_WARNING_TIME) {
-    LOG(WARNING) << "Pts has changed from " << initial_pts << " to " << old_pts << " after skipping "
+    LOG(WARNING) << "PTS has changed from " << initial_pts << " to " << old_pts << " after skipping "
                  << skipped_update_count << ", applying " << applied_update_count << " and keeping "
                  << postponed_pts_updates_.size() << " postponed for " << (Time::now() - get_difference_start_time_)
                  << " updates in " << passed_time;
@@ -2669,7 +2669,7 @@ void UpdatesManager::process_pending_pts_updates() {
 
   auto passed_time = Time::now() - begin_time;
   if (passed_time >= UPDATE_APPLY_WARNING_TIME) {
-    LOG(WARNING) << "Pts has changed from " << initial_pts << " to " << get_pts() << " after applying "
+    LOG(WARNING) << "PTS has changed from " << initial_pts << " to " << get_pts() << " after applying "
                  << applied_update_count << " and keeping " << pending_pts_updates_.size() << " pending updates in "
                  << passed_time;
   }
@@ -2682,7 +2682,7 @@ void UpdatesManager::process_pending_seq_updates() {
   }
 
   auto begin_time = Time::now();
-  int32 iniital_seq = seq_;
+  int32 initial_seq = seq_;
   int32 applied_update_count = 0;
   while (!pending_seq_updates_.empty() && !running_get_difference_) {
     auto update_it = pending_seq_updates_.begin();
@@ -2726,7 +2726,7 @@ void UpdatesManager::process_pending_seq_updates() {
 
   auto passed_time = Time::now() - begin_time;
   if (passed_time >= UPDATE_APPLY_WARNING_TIME) {
-    LOG(WARNING) << "Seq has changed from " << iniital_seq << " to " << seq_ << " after applying "
+    LOG(WARNING) << "Seq has changed from " << initial_seq << " to " << seq_ << " after applying "
                  << applied_update_count << " and keeping " << pending_seq_updates_.size() << " pending updates in "
                  << passed_time;
   }
@@ -2780,7 +2780,7 @@ void UpdatesManager::process_pending_qts_updates() {
 
   auto passed_time = Time::now() - begin_time;
   if (passed_time >= UPDATE_APPLY_WARNING_TIME) {
-    LOG(WARNING) << "Qts has changed from " << initial_qts << " to " << get_qts() << " after applying "
+    LOG(WARNING) << "QTS has changed from " << initial_qts << " to " << get_qts() << " after applying "
                  << applied_update_count << " and keeping " << pending_qts_updates_.size() << " pending updates in "
                  << passed_time;
   }

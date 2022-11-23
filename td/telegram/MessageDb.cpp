@@ -1236,15 +1236,9 @@ class MessageDbAsync final : public MessageDbAsyncInterface {
         return;
       }
       sync_db_->begin_write_transaction().ensure();
-      for (auto &query : pending_writes_) {
-        query.set_value(Unit());
-      }
+      set_promises(pending_writes_);
       sync_db_->commit_transaction().ensure();
-      pending_writes_.clear();
-      for (auto &promise : finished_writes_) {
-        promise.set_value(Unit());
-      }
-      finished_writes_.clear();
+      set_promises(finished_writes_);
       cancel_timeout();
     }
     void timeout_expired() final {
