@@ -15,8 +15,7 @@
 #include "td/telegram/PollId.h"
 
 #include "td/utils/common.h"
-
-#include <functional>
+#include "td/utils/HashTableUtils.h"
 
 namespace td {
 
@@ -47,7 +46,7 @@ class ChainId {
   ChainId(PollId poll_id) : id(static_cast<uint64>(poll_id.get())) {
   }
 
-  ChainId(const string &str) : id(std::hash<string>()(str)) {
+  ChainId(const string &str) : id(Hash<string>()(str)) {
   }
 
   uint64 get() const {

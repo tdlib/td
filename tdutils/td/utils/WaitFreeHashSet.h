@@ -14,7 +14,7 @@
 
 namespace td {
 
-template <class KeyT, class HashT = std::hash<KeyT>, class EqT = std::equal_to<KeyT>>
+template <class KeyT, class HashT = Hash<KeyT>, class EqT = std::equal_to<KeyT>>
 class WaitFreeHashSet {
   static constexpr size_t MAX_STORAGE_COUNT = 1 << 8;
   static_assert((MAX_STORAGE_COUNT & (MAX_STORAGE_COUNT - 1)) == 0, "");
@@ -29,7 +29,7 @@ class WaitFreeHashSet {
   uint32 max_storage_size_ = DEFAULT_STORAGE_SIZE;
 
   uint32 get_wait_free_index(const KeyT &key) const {
-    return randomize_hash(HashT()(key) * hash_mult_) & (MAX_STORAGE_COUNT - 1);
+    return (HashT()(key) * hash_mult_) & (MAX_STORAGE_COUNT - 1);
   }
 
   WaitFreeHashSet &get_wait_free_storage(const KeyT &key) {

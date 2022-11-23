@@ -9,9 +9,9 @@
 #include "td/telegram/Version.h"
 
 #include "td/utils/common.h"
+#include "td/utils/HashTableUtils.h"
 #include "td/utils/StringBuilder.h"
 
-#include <functional>
 #include <type_traits>
 
 namespace td {
@@ -61,8 +61,8 @@ class ChatId {
 };
 
 struct ChatIdHash {
-  std::size_t operator()(ChatId chat_id) const {
-    return std::hash<int64>()(chat_id.get());
+  uint32 operator()(ChatId chat_id) const {
+    return Hash<int64>()(chat_id.get());
   }
 };
 

@@ -12,6 +12,7 @@
 #include "td/utils/FlatHashMap.h"
 #include "td/utils/FlatHashMapChunks.h"
 #include "td/utils/FlatHashTable.h"
+#include "td/utils/HashTableUtils.h"
 #include "td/utils/logging.h"
 #include "td/utils/MapNode.h"
 #include "td/utils/misc.h"
@@ -77,9 +78,9 @@ class IntGenerator {
 };
 
 template <>
-class Generator<td::uint32> final : public IntGenerator<td::uint32> {};
+class Generator<td::int32> final : public IntGenerator<td::int32> {};
 template <>
-class Generator<td::uint64> final : public IntGenerator<td::uint64> {};
+class Generator<td::int64> final : public IntGenerator<td::int64> {};
 
 template <class T>
 class Generator<td::unique_ptr<T>> {
@@ -159,14 +160,14 @@ void print_memory_stats(td::Slice name) {
   td::string big_buff(1 << 16, '\0');
   td::StringBuilder sb(big_buff, false);
 #define MEASURE(KeyT, ValueT) measure<T<KeyT, ValueT>, KeyT, ValueT>(sb, name, #KeyT, #ValueT);
-  MEASURE(td::uint32, td::uint32);
-  MEASURE(td::uint64, td::unique_ptr<Bytes<360>>);
+  MEASURE(td::int32, td::int32);
+  MEASURE(td::int64, td::unique_ptr<Bytes<360>>);
   if (!sb.as_cslice().empty()) {
     LOG(PLAIN) << '\n' << sb.as_cslice() << '\n';
   }
 }
 
-template <class KeyT, class ValueT, class HashT = std::hash<KeyT>, class EqT = std::equal_to<KeyT>>
+template <class KeyT, class ValueT, class HashT = td::Hash<KeyT>, class EqT = std::equal_to<KeyT>>
 using FlatHashMapImpl = td::FlatHashTable<td::MapNode<KeyT, ValueT>, HashT, EqT>;
 
 #define FOR_EACH_TABLE(F) \

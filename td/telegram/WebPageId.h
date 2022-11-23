@@ -7,10 +7,10 @@
 #pragma once
 
 #include "td/utils/common.h"
+#include "td/utils/HashTableUtils.h"
 #include "td/utils/StringBuilder.h"
 #include "td/utils/tl_helpers.h"
 
-#include <functional>
 #include <type_traits>
 
 namespace td {
@@ -54,8 +54,8 @@ class WebPageId {
 };
 
 struct WebPageIdHash {
-  std::size_t operator()(WebPageId web_page_id) const {
-    return std::hash<int64>()(web_page_id.get());
+  uint32 operator()(WebPageId web_page_id) const {
+    return Hash<int64>()(web_page_id.get());
   }
 };
 

@@ -7,6 +7,7 @@
 #include "td/utils/benchmark.h"
 #include "td/utils/common.h"
 #include "td/utils/ConcurrentHashTable.h"
+#include "td/utils/HashTableUtils.h"
 #include "td/utils/misc.h"
 #include "td/utils/port/Mutex.h"
 #include "td/utils/port/thread.h"
@@ -88,7 +89,7 @@ class ConcurrentHashMapMutex {
 #if TD_HAVE_ABSL
   absl::flat_hash_map<KeyT, ValueT> hash_map_;
 #else
-  std::unordered_map<KeyT, ValueT> hash_map_;
+  std::unordered_map<KeyT, ValueT, td::Hash<KeyT>> hash_map_;
 #endif
 };
 
@@ -118,7 +119,7 @@ class ConcurrentHashMapSpinlock {
 #if TD_HAVE_ABSL
   absl::flat_hash_map<KeyT, ValueT> hash_map_;
 #else
-  std::unordered_map<KeyT, ValueT> hash_map_;
+  std::unordered_map<KeyT, ValueT, td::Hash<KeyT>> hash_map_;
 #endif
 };
 
@@ -236,15 +237,15 @@ static void bench_hash_map() {
 }
 
 TEST(ConcurrentHashMap, Benchmark) {
-  bench_hash_map<td::ConcurrentHashMap<int, int>>();
-  bench_hash_map<ArrayHashMap<int, int>>();
-  bench_hash_map<ConcurrentHashMapSpinlock<int, int>>();
-  bench_hash_map<ConcurrentHashMapMutex<int, int>>();
+  bench_hash_map<td::ConcurrentHashMap<td::int32, td::int32>>();
+  bench_hash_map<ArrayHashMap<td::int32, td::int32>>();
+  bench_hash_map<ConcurrentHashMapSpinlock<td::int32, td::int32>>();
+  bench_hash_map<ConcurrentHashMapMutex<td::int32, td::int32>>();
 #if TD_WITH_LIBCUCKOO
-  bench_hash_map<ConcurrentHashMapLibcuckoo<int, int>>();
+  bench_hash_map<ConcurrentHashMapLibcuckoo<td::int32, td::int32>>();
 #endif
 #if TD_WITH_JUNCTION
-  bench_hash_map<ConcurrentHashMapJunction<int, int>>();
+  bench_hash_map<ConcurrentHashMapJunction<td::int32, td::int32>>();
 #endif
 }
 

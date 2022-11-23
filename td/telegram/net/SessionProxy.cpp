@@ -16,12 +16,11 @@
 
 #include "td/utils/buffer.h"
 #include "td/utils/common.h"
+#include "td/utils/HashTableUtils.h"
 #include "td/utils/logging.h"
 #include "td/utils/Promise.h"
 #include "td/utils/Slice.h"
 #include "td/utils/SliceBuilder.h"
-
-#include <functional>
 
 namespace td {
 
@@ -31,7 +30,7 @@ class RawConnection;
 
 class SessionCallback final : public Session::Callback {
  public:
-  SessionCallback(ActorShared<SessionProxy> parent, DcId dc_id, bool allow_media_only, bool is_media, size_t hash)
+  SessionCallback(ActorShared<SessionProxy> parent, DcId dc_id, bool allow_media_only, bool is_media, uint32 hash)
       : parent_(std::move(parent))
       , dc_id_(dc_id)
       , allow_media_only_(allow_media_only)
@@ -75,7 +74,7 @@ class SessionCallback final : public Session::Callback {
   DcId dc_id_;
   bool allow_media_only_ = false;
   bool is_media_ = false;
-  size_t hash_ = 0;
+  uint32 hash_ = 0;
 };
 
 SessionProxy::SessionProxy(unique_ptr<Callback> callback, std::shared_ptr<AuthDataShared> shared_auth_data,
@@ -201,7 +200,7 @@ void SessionProxy::open_session(bool force) {
   auto dc_id = auth_data_->dc_id();
   string name = PSTRING() << "Session" << get_name().substr(Slice("SessionProxy").size());
   string hash_string = PSTRING() << name << " " << dc_id.get_raw_id() << " " << allow_media_only_;
-  auto hash = std::hash<std::string>()(hash_string);
+  auto hash = Hash<string>()(hash_string);
   int32 raw_dc_id = dc_id.get_raw_id();
   int32 int_dc_id = raw_dc_id;
   if (G()->is_test_dc()) {

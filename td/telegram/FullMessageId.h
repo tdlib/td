@@ -55,7 +55,7 @@ struct FullMessageId {
 };
 
 struct FullMessageIdHash {
-  std::size_t operator()(FullMessageId full_message_id) const {
+  uint32 operator()(FullMessageId full_message_id) const {
     return DialogIdHash()(full_message_id.get_dialog_id()) * 2023654985u +
            MessageIdHash()(full_message_id.get_message_id());
   }

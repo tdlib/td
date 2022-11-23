@@ -7,9 +7,9 @@
 #pragma once
 
 #include "td/utils/common.h"
+#include "td/utils/HashTableUtils.h"
 #include "td/utils/StringBuilder.h"
 
-#include <functional>
 #include <type_traits>
 
 namespace td {
@@ -56,8 +56,8 @@ class FolderId {
 };
 
 struct FolderIdHash {
-  std::size_t operator()(FolderId folder_id) const {
-    return std::hash<int32>()(folder_id.get());
+  uint32 operator()(FolderId folder_id) const {
+    return Hash<int32>()(folder_id.get());
   }
 };
 

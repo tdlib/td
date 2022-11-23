@@ -465,7 +465,7 @@ class FlatHashTable {
   }
 
   uint32 calc_bucket(const KeyT &key) const {
-    return randomize_hash(HashT()(key)) & bucket_count_mask_;
+    return HashT()(key) & bucket_count_mask_;
   }
 
   inline void next_bucket(uint32 &bucket) const {

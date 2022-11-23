@@ -7,9 +7,8 @@
 #pragma once
 
 #include "td/utils/common.h"
+#include "td/utils/HashTableUtils.h"
 #include "td/utils/StringBuilder.h"
-
-#include <functional>
 
 namespace td {
 
@@ -84,8 +83,8 @@ bool can_have_message_content_caption(MessageContentType content_type);
 uint64 get_message_content_chain_id(MessageContentType content_type);
 
 struct MessageContentTypeHash {
-  std::size_t operator()(MessageContentType content_type) const {
-    return std::hash<int32>()(static_cast<int32>(content_type));
+  uint32 operator()(MessageContentType content_type) const {
+    return Hash<int32>()(static_cast<int32>(content_type));
   }
 };
 

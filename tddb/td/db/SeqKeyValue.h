@@ -6,6 +6,7 @@
 //
 #pragma once
 
+#include "td/utils/HashTableUtils.h"
 #include "td/utils/Slice.h"
 
 #include <unordered_map>
@@ -66,12 +67,12 @@ class SeqKeyValue {
     return map_.size();
   }
 
-  std::unordered_map<string, string> get_all() const {
+  std::unordered_map<string, string, Hash<string>> get_all() const {
     return map_;
   }
 
  private:
-  std::unordered_map<string, string> map_;
+  std::unordered_map<string, string, Hash<string>> map_;
   SeqNo current_id_ = 0;
   SeqNo next_seq_no() {
     return ++current_id_;

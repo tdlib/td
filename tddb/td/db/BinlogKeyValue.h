@@ -14,6 +14,7 @@
 #include "td/utils/algorithm.h"
 #include "td/utils/buffer.h"
 #include "td/utils/common.h"
+#include "td/utils/HashTableUtils.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/port/RwMutex.h"
@@ -192,9 +193,9 @@ class BinlogKeyValue final : public KeyValueSyncInterface {
     binlog_->lazy_sync(std::move(promise));
   }
 
-  std::unordered_map<string, string> prefix_get(Slice prefix) final {
+  std::unordered_map<string, string, Hash<string>> prefix_get(Slice prefix) final {
     auto lock = rw_mutex_.lock_write().move_as_ok();
-    std::unordered_map<string, string> res;
+    std::unordered_map<string, string, Hash<string>> res;
     for (const auto &kv : map_) {
       if (begins_with(kv.first, prefix)) {
         res.emplace(kv.first.substr(prefix.size()), kv.second.first);
@@ -203,9 +204,9 @@ class BinlogKeyValue final : public KeyValueSyncInterface {
     return res;
   }
 
-  std::unordered_map<string, string> get_all() final {
+  std::unordered_map<string, string, Hash<string>> get_all() final {
     auto lock = rw_mutex_.lock_write().move_as_ok();
-    std::unordered_map<string, string> res;
+    std::unordered_map<string, string, Hash<string>> res;
     for (const auto &kv : map_) {
       res.emplace(kv.first, kv.second.first);
     }
@@ -238,7 +239,7 @@ class BinlogKeyValue final : public KeyValueSyncInterface {
   }
 
  private:
-  std::unordered_map<string, std::pair<string, uint64>> map_;
+  std::unordered_map<string, std::pair<string, uint64>, Hash<string>> map_;
   std::shared_ptr<BinlogT> binlog_;
   RwMutex rw_mutex_;
   int32 magic_ = MAGIC;

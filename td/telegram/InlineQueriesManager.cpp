@@ -46,6 +46,7 @@
 #include "td/utils/algorithm.h"
 #include "td/utils/base64.h"
 #include "td/utils/buffer.h"
+#include "td/utils/HashTableUtils.h"
 #include "td/utils/HttpUrl.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
@@ -57,7 +58,6 @@
 #include "td/utils/tl_parsers.h"
 
 #include <algorithm>
-#include <functional>
 
 namespace td {
 
@@ -981,10 +981,10 @@ uint64 InlineQueriesManager::send_inline_query(UserId bot_user_id, DialogId dial
     }
   }();
 
-  uint64 query_hash = std::hash<std::string>()(trim(query));
+  uint64 query_hash = Hash<string>()(trim(query));
   query_hash = query_hash * 2023654985u + bot_user_id.get();
   query_hash = query_hash * 2023654985u + static_cast<uint64>(peer_type);
-  query_hash = query_hash * 2023654985u + std::hash<std::string>()(offset);
+  query_hash = query_hash * 2023654985u + Hash<string>()(offset);
   if (r_bot_data.ok().need_location) {
     query_hash = query_hash * 2023654985u + static_cast<uint64>(user_location.get_latitude() * 1e4);
     query_hash = query_hash * 2023654985u + static_cast<uint64>(user_location.get_longitude() * 1e4);

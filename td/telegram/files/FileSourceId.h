@@ -7,9 +7,9 @@
 #pragma once
 
 #include "td/utils/common.h"
+#include "td/utils/HashTableUtils.h"
 #include "td/utils/StringBuilder.h"
 
-#include <functional>
 #include <type_traits>
 
 namespace td {
@@ -47,8 +47,8 @@ class FileSourceId {
 };
 
 struct FileSourceIdHash {
-  std::size_t operator()(FileSourceId file_source_id) const {
-    return std::hash<int32>()(file_source_id.get());
+  uint32 operator()(FileSourceId file_source_id) const {
+    return Hash<int32>()(file_source_id.get());
   }
 };
 

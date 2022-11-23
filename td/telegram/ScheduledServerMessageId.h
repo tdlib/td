@@ -7,9 +7,9 @@
 #pragma once
 
 #include "td/utils/common.h"
+#include "td/utils/HashTableUtils.h"
 #include "td/utils/StringBuilder.h"
 
-#include <functional>
 #include <type_traits>
 
 namespace td {
@@ -53,8 +53,8 @@ class ScheduledServerMessageId {
 };
 
 struct ScheduledServerMessageIdHash {
-  std::size_t operator()(ScheduledServerMessageId message_id) const {
-    return std::hash<int32>()(message_id.get());
+  uint32 operator()(ScheduledServerMessageId message_id) const {
+    return Hash<int32>()(message_id.get());
   }
 };
 

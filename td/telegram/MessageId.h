@@ -10,9 +10,9 @@
 #include "td/telegram/ServerMessageId.h"
 
 #include "td/utils/common.h"
+#include "td/utils/HashTableUtils.h"
 #include "td/utils/StringBuilder.h"
 
-#include <functional>
 #include <limits>
 #include <type_traits>
 
@@ -182,8 +182,8 @@ class MessageId {
 };
 
 struct MessageIdHash {
-  std::size_t operator()(MessageId message_id) const {
-    return std::hash<int64>()(message_id.get());
+  uint32 operator()(MessageId message_id) const {
+    return Hash<int64>()(message_id.get());
   }
 };
 

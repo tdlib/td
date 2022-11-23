@@ -9,8 +9,7 @@
 #include "td/telegram/telegram_api.h"
 
 #include "td/utils/common.h"
-
-#include <functional>
+#include "td/utils/HashTableUtils.h"
 
 namespace td {
 
@@ -59,8 +58,8 @@ inline bool operator!=(const SpecialStickerSetType &lhs, const SpecialStickerSet
 }
 
 struct SpecialStickerSetTypeHash {
-  std::size_t operator()(SpecialStickerSetType type) const {
-    return std::hash<string>()(type.type_);
+  uint32 operator()(SpecialStickerSetType type) const {
+    return Hash<string>()(type.type_);
   }
 };
 

@@ -16,6 +16,7 @@
 #include "td/utils/Hash.h"
 #include "td/utils/HashMap.h"
 #include "td/utils/HashSet.h"
+#include "td/utils/HashTableUtils.h"
 #include "td/utils/invoke.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"

@@ -19,6 +19,7 @@
 
 #include "td/utils/algorithm.h"
 #include "td/utils/format.h"
+#include "td/utils/HashTableUtils.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/Promise.h"
@@ -2455,7 +2456,7 @@ static FormattedText parse_text_url_entities_v3(Slice text, const vector<Message
 }
 
 static vector<MessageEntity> find_splittable_entities_v3(Slice text, const vector<MessageEntity> &entities) {
-  std::unordered_set<size_t> unallowed_boundaries;
+  std::unordered_set<int32, Hash<int32>> unallowed_boundaries;
   for (auto &entity : entities) {
     unallowed_boundaries.insert(entity.offset);
     unallowed_boundaries.insert(entity.offset + entity.length);
@@ -2489,7 +2490,8 @@ static vector<MessageEntity> find_splittable_entities_v3(Slice text, const vecto
     if ((c == '_' || c == '*' || c == '~' || c == '|') && text[i] == text[i + 1] &&
         unallowed_boundaries.count(utf16_offset) == 0) {
       auto j = i + 2;
-      while (j != text.size() && text[j] == text[i] && unallowed_boundaries.count(utf16_offset + j - i - 1) == 0) {
+      while (j != text.size() && text[j] == text[i] &&
+             unallowed_boundaries.count(utf16_offset + static_cast<int32>(j - i - 1)) == 0) {
         j++;
       }
       if (j == i + 2) {

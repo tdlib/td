@@ -487,7 +487,7 @@ class FlatHashTableChunks {
   }
 
   HashInfo calc_hash(const KeyT &key) {
-    auto h = randomize_hash(HashT()(key));
+    auto h = HashT()(key);
     return {(h >> 8) % chunks_.size(), static_cast<uint8>(0x80 | h)};
   }
 
@@ -561,9 +561,10 @@ class FlatHashTableChunks {
   }
 };
 
-template <class KeyT, class ValueT, class HashT = std::hash<KeyT>, class EqT = std::equal_to<KeyT>>
+template <class KeyT, class ValueT, class HashT = Hash<KeyT>, class EqT = std::equal_to<KeyT>>
 using FlatHashMapChunks = FlatHashTableChunks<MapNode<KeyT, ValueT>, HashT, EqT>;
-template <class KeyT, class HashT = std::hash<KeyT>, class EqT = std::equal_to<KeyT>>
+
+template <class KeyT, class HashT = Hash<KeyT>, class EqT = std::equal_to<KeyT>>
 using FlatHashSetChunks = FlatHashTableChunks<SetNode<KeyT>, HashT, EqT>;
 
 template <class NodeT, class HashT, class EqT, class FuncT>

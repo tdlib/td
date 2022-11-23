@@ -11,9 +11,9 @@
 #include "td/telegram/td_api.h"
 
 #include "td/utils/common.h"
+#include "td/utils/HashTableUtils.h"
 #include "td/utils/StringBuilder.h"
 
-#include <functional>
 #include <limits>
 #include <type_traits>
 
@@ -113,8 +113,8 @@ class DialogListId {
 };
 
 struct DialogListIdHash {
-  std::size_t operator()(DialogListId dialog_list_id) const {
-    return std::hash<int64>()(dialog_list_id.get());
+  uint32 operator()(DialogListId dialog_list_id) const {
+    return Hash<int64>()(dialog_list_id.get());
   }
 };
 

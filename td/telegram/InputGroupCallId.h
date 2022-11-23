@@ -9,9 +9,8 @@
 #include "td/telegram/telegram_api.h"
 
 #include "td/utils/common.h"
+#include "td/utils/HashTableUtils.h"
 #include "td/utils/StringBuilder.h"
-
-#include <functional>
 
 namespace td {
 
@@ -43,8 +42,8 @@ class InputGroupCallId {
     return group_call_id != 0;
   }
 
-  std::size_t get_hash() const {
-    return std::hash<int64>()(group_call_id);
+  uint32 get_hash() const {
+    return Hash<int64>()(group_call_id);
   }
 
   tl_object_ptr<telegram_api::inputGroupCall> get_input_group_call() const;
@@ -65,7 +64,7 @@ class InputGroupCallId {
 };
 
 struct InputGroupCallIdHash {
-  std::size_t operator()(InputGroupCallId input_group_call_id) const {
+  uint32 operator()(InputGroupCallId input_group_call_id) const {
     return input_group_call_id.get_hash();
   }
 };

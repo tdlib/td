@@ -31,6 +31,7 @@
 #include "td/utils/common.h"
 #include "td/utils/FlatHashMap.h"
 #include "td/utils/FlatHashSet.h"
+#include "td/utils/HashTableUtils.h"
 #include "td/utils/Hints.h"
 #include "td/utils/Promise.h"
 #include "td/utils/Slice.h"
@@ -1018,8 +1019,8 @@ class StickersManager final : public Actor {
   FlatHashMap<string, FoundStickers> found_stickers_;
   FlatHashMap<string, vector<std::pair<int32, Promise<td_api::object_ptr<td_api::stickers>>>>> search_stickers_queries_;
 
-  std::unordered_map<string, vector<StickerSetId>> found_sticker_sets_;
-  std::unordered_map<string, vector<Promise<Unit>>> search_sticker_sets_queries_;
+  std::unordered_map<string, vector<StickerSetId>, Hash<string>> found_sticker_sets_;
+  std::unordered_map<string, vector<Promise<Unit>>, Hash<string>> search_sticker_sets_queries_;
 
   FlatHashSet<StickerSetId, StickerSetIdHash> pending_viewed_featured_sticker_set_ids_;
   Timeout pending_featured_sticker_set_views_timeout_;

@@ -8,6 +8,7 @@
 
 //#include "td/utils/FlatHashMapChunks.h"
 #include "td/utils/FlatHashTable.h"
+#include "td/utils/HashTableUtils.h"
 #include "td/utils/SetNode.h"
 
 #include <functional>
@@ -15,7 +16,7 @@
 
 namespace td {
 
-template <class KeyT, class HashT = std::hash<KeyT>, class EqT = std::equal_to<KeyT>>
+template <class KeyT, class HashT = Hash<KeyT>, class EqT = std::equal_to<KeyT>>
 using FlatHashSet = FlatHashTable<SetNode<KeyT>, HashT, EqT>;
 //using FlatHashSet = FlatHashSetChunks<KeyT, HashT, EqT>;
 //using FlatHashSet = std::unordered_set<KeyT, HashT, EqT>;

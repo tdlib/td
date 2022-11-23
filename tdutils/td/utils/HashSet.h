@@ -17,10 +17,10 @@
 namespace td {
 
 #if TD_HAVE_ABSL
-template <class Key, class H = Hash<Key>>
+template <class Key, class H = AbslHash<Key>>
 using HashSet = absl::flat_hash_set<Key, H>;
 #else
-template <class Key, class H = Hash<Key>>
+template <class Key, class H = AbslHash<Key>>
 using HashSet = std::unordered_set<Key, H>;
 #endif
 

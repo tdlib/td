@@ -206,7 +206,7 @@ class CSlice : public Slice {
 };
 
 struct SliceHash {
-  std::size_t operator()(Slice slice) const;
+  uint32 operator()(Slice slice) const;
 };
 
 }  // namespace td

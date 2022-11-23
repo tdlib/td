@@ -12,11 +12,10 @@
 
 #include "td/db/SqliteKeyValueAsync.h"
 
+#include "td/utils/HashTableUtils.h"
 #include "td/utils/logging.h"
 #include "td/utils/tl_helpers.h"
 #include "td/utils/utf8.h"
-
-#include <functional>
 
 namespace td {
 
@@ -49,7 +48,7 @@ void HashtagHints::remove_hashtag(string hashtag, Promise<> promise) {
   if (hashtag[0] == '#') {
     hashtag = hashtag.substr(1);
   }
-  auto key = std::hash<std::string>()(hashtag);
+  auto key = Hash<string>()(hashtag);
   if (hints_.has_key(key)) {
     hints_.remove(key);
     G()->td_db()->get_sqlite_pmc()->set(get_key(), serialize(keys_to_strings(hints_.search_empty(101).second)),
@@ -80,8 +79,7 @@ void HashtagHints::hashtag_used_impl(const string &hashtag) {
     return;
   }
 
-  // TODO: may be it should be optimized a little
-  auto key = std::hash<std::string>()(hashtag);
+  auto key = Hash<string>()(hashtag);
   hints_.add(key, hashtag);
   hints_.set_rating(key, -++counter_);
 }

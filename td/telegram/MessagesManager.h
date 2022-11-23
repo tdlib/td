@@ -73,6 +73,7 @@
 #include "td/utils/common.h"
 #include "td/utils/FlatHashMap.h"
 #include "td/utils/FlatHashSet.h"
+#include "td/utils/HashTableUtils.h"
 #include "td/utils/Heap.h"
 #include "td/utils/Hints.h"
 #include "td/utils/logging.h"
@@ -1300,7 +1301,7 @@ class MessagesManager final : public Actor {
     unique_ptr<DialogActionBar> action_bar;
     LogEventIdWithGeneration save_draft_message_log_event_id;
     LogEventIdWithGeneration save_notification_settings_log_event_id;
-    std::unordered_map<int64, LogEventIdWithGeneration> read_history_log_event_ids;
+    std::unordered_map<int64, LogEventIdWithGeneration, Hash<int64>> read_history_log_event_ids;
     std::unordered_set<MessageId, MessageIdHash> updated_read_history_message_ids;
     LogEventIdWithGeneration set_folder_id_log_event_id;
     InputGroupCallId active_group_call_id;
@@ -1399,11 +1400,12 @@ class MessagesManager final : public Actor {
     bool suffix_load_done_ = false;
     bool suffix_load_has_query_ = false;
 
-    int32 pts = 0;                                                 // for channels only
-    int32 pending_read_channel_inbox_pts = 0;                      // for channels only
-    int32 pending_read_channel_inbox_server_unread_count = 0;      // for channels only
-    MessageId pending_read_channel_inbox_max_message_id;           // for channels only
-    std::unordered_map<int64, MessageId> random_id_to_message_id;  // for secret chats and yet unsent messages only
+    int32 pts = 0;                                             // for channels only
+    int32 pending_read_channel_inbox_pts = 0;                  // for channels only
+    int32 pending_read_channel_inbox_server_unread_count = 0;  // for channels only
+    MessageId pending_read_channel_inbox_max_message_id;       // for channels only
+    std::unordered_map<int64, MessageId, Hash<int64>>
+        random_id_to_message_id;  // for secret chats and yet unsent messages only
 
     MessageId last_assigned_message_id;  // identifier of the last local or yet unsent message, assigned after
                                          // application start, used to guarantee that all assigned message identifiers
@@ -3439,8 +3441,8 @@ class MessagesManager final : public Actor {
     }
   };
   struct TtlNodeHash {
-    std::size_t operator()(const TtlNode &ttl_node) const {
-      return FullMessageIdHash()(ttl_node.full_message_id_) * 2 + static_cast<size_t>(ttl_node.by_ttl_period_);
+    uint32 operator()(const TtlNode &ttl_node) const {
+      return FullMessageIdHash()(ttl_node.full_message_id_) * 2 + static_cast<uint32>(ttl_node.by_ttl_period_);
     }
   };
   std::unordered_set<TtlNode, TtlNodeHash> ttl_nodes_;

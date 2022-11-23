@@ -9,9 +9,9 @@
 #include "td/telegram/td_api.h"
 
 #include "td/utils/common.h"
+#include "td/utils/HashTableUtils.h"
 #include "td/utils/StringBuilder.h"
 
-#include <functional>
 #include <type_traits>
 
 namespace td {
@@ -47,8 +47,8 @@ class CallId {
 };
 
 struct CallIdHash {
-  std::size_t operator()(CallId call_id) const {
-    return std::hash<int32>()(call_id.get());
+  uint32 operator()(CallId call_id) const {
+    return Hash<int32>()(call_id.get());
   }
 };
 

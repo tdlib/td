@@ -29188,8 +29188,8 @@ Result<MessagesManager::ForwardedMessages> MessagesManager::get_forwarded_messag
   result.drop_author = can_use_server_forward && copy_options[0].send_copy;
   result.drop_media_captions = can_use_server_forward && copy_options[0].replace_caption;
 
-  std::unordered_map<int64, std::pair<int64, int32>> new_copied_media_album_ids;
-  std::unordered_map<int64, std::pair<int64, int32>> new_forwarded_media_album_ids;
+  std::unordered_map<int64, std::pair<int64, int32>, Hash<int64>> new_copied_media_album_ids;
+  std::unordered_map<int64, std::pair<int64, int32>, Hash<int64>> new_forwarded_media_album_ids;
 
   for (size_t i = 0; i < message_ids.size(); i++) {
     MessageId message_id = get_persistent_message_id(from_dialog, message_ids[i]);
@@ -29497,7 +29497,7 @@ Result<vector<MessageId>> MessagesManager::resend_messages(DialogId dialog_id, v
   }
 
   vector<unique_ptr<MessageContent>> new_contents(message_ids.size());
-  std::unordered_map<int64, std::pair<int64, int32>> new_media_album_ids;
+  std::unordered_map<int64, std::pair<int64, int32>, Hash<int64>> new_media_album_ids;
   for (size_t i = 0; i < message_ids.size(); i++) {
     MessageId message_id = message_ids[i];
     const Message *m = get_message(d, message_id);

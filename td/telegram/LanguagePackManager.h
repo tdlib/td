@@ -15,6 +15,7 @@
 #include "td/utils/common.h"
 #include "td/utils/Container.h"
 #include "td/utils/FlatHashMap.h"
+#include "td/utils/HashTableUtils.h"
 #include "td/utils/Promise.h"
 #include "td/utils/Slice.h"
 #include "td/utils/Status.h"
@@ -105,7 +106,7 @@ class LanguagePackManager final : public NetQueryCallback {
   static int32 manager_count_;
 
   static std::mutex language_database_mutex_;
-  static std::unordered_map<string, unique_ptr<LanguageDatabase>> language_databases_;
+  static std::unordered_map<string, unique_ptr<LanguageDatabase>, Hash<string>> language_databases_;
 
   static LanguageDatabase *add_language_database(string path);
 

@@ -50,7 +50,7 @@ namespace detail {
 class StatsCallback final : public mtproto::RawConnection::StatsCallback {
  public:
   StatsCallback(std::shared_ptr<NetStatsCallback> net_stats_callback, ActorId<ConnectionCreator> connection_creator,
-                size_t hash, DcOptionsSet::Stat *option_stat)
+                uint32 hash, DcOptionsSet::Stat *option_stat)
       : net_stats_callback_(std::move(net_stats_callback))
       , connection_creator_(std::move(connection_creator))
       , hash_(hash)
@@ -84,7 +84,7 @@ class StatsCallback final : public mtproto::RawConnection::StatsCallback {
  private:
   std::shared_ptr<NetStatsCallback> net_stats_callback_;
   ActorId<ConnectionCreator> connection_creator_;
-  size_t hash_;
+  uint32 hash_;
   DcOptionsSet::Stat *option_stat_;
 };
 
@@ -595,7 +595,7 @@ void ConnectionCreator::on_logging_out(bool is_logging_out) {
   }
 }
 
-void ConnectionCreator::on_pong(size_t hash) {
+void ConnectionCreator::on_pong(uint32 hash) {
   G()->save_server_time();
   if (active_proxy_id_ != 0) {
     auto now = G()->unix_time();
@@ -607,14 +607,14 @@ void ConnectionCreator::on_pong(size_t hash) {
   }
 }
 
-void ConnectionCreator::on_mtproto_error(size_t hash) {
+void ConnectionCreator::on_mtproto_error(uint32 hash) {
   auto &client = clients_[hash];
   client.hash = hash;
   client.mtproto_error_flood_control.add_event(Time::now_cached());
 }
 
 void ConnectionCreator::request_raw_connection(DcId dc_id, bool allow_media_only, bool is_media,
-                                               Promise<unique_ptr<mtproto::RawConnection>> promise, size_t hash,
+                                               Promise<unique_ptr<mtproto::RawConnection>> promise, uint32 hash,
                                                unique_ptr<mtproto::AuthData> auth_data) {
   auto &client = clients_[hash];
   if (!client.inited) {
@@ -957,7 +957,7 @@ void ConnectionCreator::client_loop(ClientInfo &client) {
 }
 
 void ConnectionCreator::client_create_raw_connection(Result<ConnectionData> r_connection_data, bool check_mode,
-                                                     mtproto::TransportType transport_type, size_t hash,
+                                                     mtproto::TransportType transport_type, uint32 hash,
                                                      string debug_str, uint32 network_generation) {
   unique_ptr<mtproto::AuthData> auth_data;
   uint64 auth_data_generation{0};
@@ -1018,7 +1018,7 @@ void ConnectionCreator::client_set_timeout_at(ClientInfo &client, double wakeup_
                     << wakeup_at - Time::now_cached();
 }
 
-void ConnectionCreator::client_add_connection(size_t hash, Result<unique_ptr<mtproto::RawConnection>> r_raw_connection,
+void ConnectionCreator::client_add_connection(uint32 hash, Result<unique_ptr<mtproto::RawConnection>> r_raw_connection,
                                               bool check_flag, uint64 auth_data_generation, int64 session_id) {
   auto &client = clients_[hash];
   client.add_session_id(session_id);
@@ -1044,7 +1044,7 @@ void ConnectionCreator::client_add_connection(size_t hash, Result<unique_ptr<mtp
   client_loop(client);
 }
 
-void ConnectionCreator::client_wakeup(size_t hash) {
+void ConnectionCreator::client_wakeup(uint32 hash) {
   VLOG(connections) << tag("hash", format::as_hex(hash)) << " wakeup";
   G()->save_server_time();
   client_loop(clients_[hash]);

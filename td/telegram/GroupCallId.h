@@ -7,9 +7,9 @@
 #pragma once
 
 #include "td/utils/common.h"
+#include "td/utils/HashTableUtils.h"
 #include "td/utils/StringBuilder.h"
 
-#include <functional>
 #include <type_traits>
 
 namespace td {
@@ -41,8 +41,8 @@ class GroupCallId {
 };
 
 struct GroupCallIdHash {
-  std::size_t operator()(GroupCallId group_call_id) const {
-    return std::hash<int32>()(group_call_id.get());
+  uint32 operator()(GroupCallId group_call_id) const {
+    return Hash<int32>()(group_call_id.get());
   }
 };
 

@@ -13,9 +13,9 @@
 #include "td/telegram/UserId.h"
 
 #include "td/utils/common.h"
+#include "td/utils/HashTableUtils.h"
 #include "td/utils/StringBuilder.h"
 
-#include <functional>
 #include <type_traits>
 
 namespace td {
@@ -78,8 +78,8 @@ class DialogId {
 };
 
 struct DialogIdHash {
-  std::size_t operator()(DialogId dialog_id) const {
-    return std::hash<int64>()(dialog_id.get());
+  uint32 operator()(DialogId dialog_id) const {
+    return Hash<int64>()(dialog_id.get());
   }
 };
 

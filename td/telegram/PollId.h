@@ -7,9 +7,9 @@
 #pragma once
 
 #include "td/utils/common.h"
+#include "td/utils/HashTableUtils.h"
 #include "td/utils/StringBuilder.h"
 
-#include <functional>
 #include <type_traits>
 
 namespace td {
@@ -43,8 +43,8 @@ class PollId {
 };
 
 struct PollIdHash {
-  std::size_t operator()(PollId poll_id) const {
-    return std::hash<int64>()(poll_id.get());
+  uint32 operator()(PollId poll_id) const {
+    return Hash<int64>()(poll_id.get());
   }
 };
 

@@ -6094,7 +6094,7 @@ std::pair<vector<UserId>, vector<int32>> ContactsManager::change_imported_contac
   vector<Contact> unique_new_contacts;
   unique_new_contacts.reserve(contacts.size());
   std::unordered_map<Contact, size_t, ContactHash, ContactEqual> different_new_contacts;
-  std::unordered_set<string> different_new_phone_numbers;
+  std::unordered_set<string, Hash<string>> different_new_phone_numbers;
   size_t unique_size = 0;
   for (size_t i = 0; i < contacts.size(); i++) {
     auto it_success = different_new_contacts.emplace(std::move(contacts[i]), unique_size);
@@ -8924,12 +8924,12 @@ void ContactsManager::on_import_contacts_finished(int64 random_id, vector<UserId
     CHECK(unimported_contact_invites.size() == add_size);
     CHECK(imported_contacts_unique_id_.size() == result_size);
 
-    std::unordered_map<size_t, int32> unique_id_to_unimported_contact_invites;
+    std::unordered_map<int64, int32, Hash<int64>> unique_id_to_unimported_contact_invites;
     for (size_t i = 0; i < add_size; i++) {
       auto unique_id = imported_contacts_pos_[i];
       get_user_id_object(imported_contact_user_ids[i], "on_import_contacts_finished");  // to ensure updateUser
       all_imported_contacts_[unique_id].set_user_id(imported_contact_user_ids[i]);
-      unique_id_to_unimported_contact_invites[unique_id] = unimported_contact_invites[i];
+      unique_id_to_unimported_contact_invites[narrow_cast<int64>(unique_id)] = unimported_contact_invites[i];
     }
 
     if (G()->parameters().use_chat_info_db) {
@@ -8946,7 +8946,7 @@ void ContactsManager::on_import_contacts_finished(int64 random_id, vector<UserId
       auto unique_id = imported_contacts_unique_id_[i];
       CHECK(unique_id < unique_size);
       imported_contact_user_ids_[i] = all_imported_contacts_[unique_id].get_user_id();
-      auto it = unique_id_to_unimported_contact_invites.find(unique_id);
+      auto it = unique_id_to_unimported_contact_invites.find(narrow_cast<int64>(unique_id));
       if (it == unique_id_to_unimported_contact_invites.end()) {
         unimported_contact_invites_[i] = 0;
       } else {

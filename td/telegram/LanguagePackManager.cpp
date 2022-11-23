@@ -1914,6 +1914,7 @@ void LanguagePackManager::hangup() {
 
 int32 LanguagePackManager::manager_count_ = 0;
 std::mutex LanguagePackManager::language_database_mutex_;
-std::unordered_map<string, unique_ptr<LanguagePackManager::LanguageDatabase>> LanguagePackManager::language_databases_;
+std::unordered_map<string, unique_ptr<LanguagePackManager::LanguageDatabase>, Hash<string>>
+    LanguagePackManager::language_databases_;
 
 }  // namespace td

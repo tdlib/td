@@ -20,6 +20,7 @@
 #include "td/db/SqliteKeyValue.h"
 
 #include "td/utils/format.h"
+#include "td/utils/HashTableUtils.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/PathView.h"
@@ -30,7 +31,6 @@
 #include "td/utils/Time.h"
 #include "td/utils/tl_parsers.h"
 
-#include <functional>
 #include <unordered_map>
 #include <unordered_set>
 
@@ -102,7 +102,7 @@ struct FsFileInfo {
 
 template <class CallbackT>
 void scan_fs(CancellationToken &token, CallbackT &&callback) {
-  std::unordered_set<string> scanned_file_dirs;
+  std::unordered_set<string, Hash<string>> scanned_file_dirs;
   auto scan_dir = [&](FileType file_type, const string &file_dir) {
     LOG(INFO) << "Trying to scan directory " << file_dir;
     if (!scanned_file_dirs.insert(file_dir).second) {
@@ -188,17 +188,17 @@ void FileStatsWorker::get_stats(bool need_all_files, bool split_by_owner_dialog_
       return promise.set_error(Global::request_aborted_error());
     }
 
-    std::unordered_map<size_t, size_t> hash_to_pos;
+    std::unordered_map<int64, size_t, Hash<int64>> hash_to_pos;
     size_t pos = 0;
     for (auto &full_info : full_infos) {
-      hash_to_pos[std::hash<std::string>()(full_info.path)] = pos;
+      hash_to_pos[Hash<string>()(full_info.path)] = pos;
       pos++;
       if (token_) {
         return promise.set_error(Global::request_aborted_error());
       }
     }
     scan_db(token_, [&](DbFileInfo &db_info) {
-      auto it = hash_to_pos.find(std::hash<std::string>()(db_info.path));
+      auto it = hash_to_pos.find(Hash<string>()(db_info.path));
       if (it == hash_to_pos.end()) {
         return;
       }

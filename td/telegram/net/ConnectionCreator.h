@@ -59,10 +59,10 @@ class ConnectionCreator final : public NetQueryCallback {
 
   void on_dc_options(DcOptions new_dc_options);
   void on_dc_update(DcId dc_id, string ip_port, Promise<> promise);
-  void on_pong(size_t hash);
-  void on_mtproto_error(size_t hash);
+  void on_pong(uint32 hash);
+  void on_mtproto_error(uint32 hash);
   void request_raw_connection(DcId dc_id, bool allow_media_only, bool is_media,
-                              Promise<unique_ptr<mtproto::RawConnection>> promise, size_t hash = 0,
+                              Promise<unique_ptr<mtproto::RawConnection>> promise, uint32 hash = 0,
                               unique_ptr<mtproto::AuthData> auth_data = {});
   void request_raw_connection_by_ip(IPAddress ip_address, mtproto::TransportType transport_type,
                                     Promise<unique_ptr<mtproto::RawConnection>> promise);
@@ -159,7 +159,7 @@ class ConnectionCreator final : public NetQueryCallback {
     static constexpr double READY_CONNECTIONS_TIMEOUT = 10;
 
     bool inited{false};
-    size_t hash{0};
+    uint32 hash{0};
     DcId dc_id;
     bool allow_media_only{false};
     bool is_media{false};
@@ -167,7 +167,7 @@ class ConnectionCreator final : public NetQueryCallback {
     unique_ptr<mtproto::AuthData> auth_data;
     uint64 auth_data_generation{0};
   };
-  std::map<size_t, ClientInfo> clients_;
+  std::map<uint32, ClientInfo> clients_;
 
   std::shared_ptr<NetStatsCallback> media_net_stats_callback_;
   std::shared_ptr<NetStatsCallback> common_net_stats_callback_;
@@ -209,7 +209,7 @@ class ConnectionCreator final : public NetQueryCallback {
   Result<SocketFd> do_request_connection(DcId dc_id, bool allow_media_only);
   Result<std::pair<unique_ptr<mtproto::RawConnection>, bool>> do_request_raw_connection(DcId dc_id,
                                                                                         bool allow_media_only,
-                                                                                        bool is_media, size_t hash);
+                                                                                        bool is_media, uint32 hash);
 
   void on_network(bool network_flag, uint32 network_generation);
   void on_online(bool online_flag);
@@ -217,12 +217,12 @@ class ConnectionCreator final : public NetQueryCallback {
 
   static void update_mtproto_header(const Proxy &proxy);
 
-  void client_wakeup(size_t hash);
+  void client_wakeup(uint32 hash);
   void client_loop(ClientInfo &client);
   void client_create_raw_connection(Result<ConnectionData> r_connection_data, bool check_mode,
-                                    mtproto::TransportType transport_type, size_t hash, string debug_str,
+                                    mtproto::TransportType transport_type, uint32 hash, string debug_str,
                                     uint32 network_generation);
-  void client_add_connection(size_t hash, Result<unique_ptr<mtproto::RawConnection>> r_raw_connection, bool check_flag,
+  void client_add_connection(uint32 hash, Result<unique_ptr<mtproto::RawConnection>> r_raw_connection, bool check_flag,
                              uint64 auth_data_generation, int64 session_id);
   void client_set_timeout_at(ClientInfo &client, double wakeup_at);
 

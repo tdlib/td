@@ -7,9 +7,9 @@
 #pragma once
 
 #include "td/utils/common.h"
+#include "td/utils/HashTableUtils.h"
 #include "td/utils/StringBuilder.h"
 
-#include <functional>
 #include <limits>
 #include <type_traits>
 
@@ -60,8 +60,8 @@ class NotificationId {
 };
 
 struct NotificationIdHash {
-  std::size_t operator()(NotificationId notification_id) const {
-    return std::hash<int32>()(notification_id.get());
+  uint32 operator()(NotificationId notification_id) const {
+    return Hash<int32>()(notification_id.get());
   }
 };
 

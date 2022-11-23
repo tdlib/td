@@ -8,6 +8,7 @@
 
 #include "td/db/SeqKeyValue.h"
 
+#include "td/utils/HashTableUtils.h"
 #include "td/utils/port/RwMutex.h"
 #include "td/utils/Slice.h"
 
@@ -63,7 +64,7 @@ class TsSeqKeyValue {
     return kv_.size();
   }
 
-  std::unordered_map<string, string> get_all() const {
+  std::unordered_map<string, string, Hash<string>> get_all() const {
     auto lock = rw_mutex_.lock_write().move_as_ok();
     return kv_.get_all();
   }

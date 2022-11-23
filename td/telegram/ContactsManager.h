@@ -48,6 +48,7 @@
 #include "td/utils/common.h"
 #include "td/utils/FlatHashMap.h"
 #include "td/utils/FlatHashSet.h"
+#include "td/utils/HashTableUtils.h"
 #include "td/utils/Hints.h"
 #include "td/utils/Promise.h"
 #include "td/utils/Status.h"
@@ -1767,8 +1768,8 @@ class ContactsManager final : public Actor {
   mutable FlatHashSet<UserId, UserIdHash> unknown_users_;
   WaitFreeHashMap<UserId, tl_object_ptr<telegram_api::UserProfilePhoto>, UserIdHash> pending_user_photos_;
   struct UserIdPhotoIdHash {
-    std::size_t operator()(const std::pair<UserId, int64> &pair) const {
-      return UserIdHash()(pair.first) * 2023654985u + std::hash<int64>()(pair.second);
+    uint32 operator()(const std::pair<UserId, int64> &pair) const {
+      return UserIdHash()(pair.first) * 2023654985u + Hash<int64>()(pair.second);
     }
   };
   WaitFreeHashMap<std::pair<UserId, int64>, FileSourceId, UserIdPhotoIdHash> user_profile_photo_file_source_ids_;

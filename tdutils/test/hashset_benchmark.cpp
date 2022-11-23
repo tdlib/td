@@ -10,7 +10,7 @@
 #include "td/utils/FlatHashMapChunks.h"
 #include "td/utils/FlatHashTable.h"
 #include "td/utils/format.h"
-#include "td/utils/Hash.h"
+#include "td/utils/HashTableUtils.h"
 #include "td/utils/logging.h"
 #include "td/utils/MapNode.h"
 #include "td/utils/Random.h"
@@ -588,7 +588,7 @@ BENCHMARK_TEMPLATE(BM_mask, td::MaskNeon);
 BENCHMARK_TEMPLATE(BM_mask, td::MaskSse2);
 #endif
 
-template <class KeyT, class ValueT, class HashT = std::hash<KeyT>, class EqT = std::equal_to<KeyT>>
+template <class KeyT, class ValueT, class HashT = td::Hash<KeyT>, class EqT = std::equal_to<KeyT>>
 using FlatHashMapImpl = td::FlatHashTable<td::MapNode<KeyT, ValueT>, HashT, EqT>;
 
 #define FOR_EACH_TABLE(F)  \

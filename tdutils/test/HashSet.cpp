@@ -9,6 +9,7 @@
 #include "td/utils/FlatHashMap.h"
 #include "td/utils/FlatHashMapChunks.h"
 #include "td/utils/FlatHashSet.h"
+#include "td/utils/HashTableUtils.h"
 #include "td/utils/logging.h"
 #include "td/utils/Random.h"
 #include "td/utils/Slice.h"
@@ -16,7 +17,6 @@
 
 #include <algorithm>
 #include <array>
-#include <functional>
 #include <random>
 #include <unordered_map>
 #include <unordered_set>
@@ -83,8 +83,8 @@ struct A {
 };
 
 struct AHash {
-  std::size_t operator()(A a) const {
-    return std::hash<int>()(a.a);
+  td::uint32 operator()(A a) const {
+    return td::Hash<int>()(a.a);
   }
 };
 
@@ -213,7 +213,7 @@ TEST(FlatHashMap, remove_if_basic) {
   constexpr int TESTS_N = 1000;
   constexpr int MAX_TABLE_SIZE = 1000;
   for (int test_i = 0; test_i < TESTS_N; test_i++) {
-    std::unordered_map<td::uint64, td::uint64> reference;
+    std::unordered_map<td::uint64, td::uint64, td::Hash<td::uint64>> reference;
     td::FlatHashMap<td::uint64, td::uint64> table;
     int N = rnd.fast(1, MAX_TABLE_SIZE);
     for (int i = 0; i < N; i++) {
@@ -241,7 +241,7 @@ static constexpr size_t MAX_TABLE_SIZE = 1000;
 TEST(FlatHashMap, stress_test) {
   td::Random::Xorshift128plus rnd(123);
   size_t max_table_size = MAX_TABLE_SIZE;  // dynamic value
-  std::unordered_map<td::uint64, td::uint64> ref;
+  std::unordered_map<td::uint64, td::uint64, td::Hash<td::uint64>> ref;
   td::FlatHashMap<td::uint64, td::uint64> tbl;
 
   auto validate = [&] {
@@ -363,7 +363,7 @@ TEST(FlatHashSet, stress_test) {
 
   td::Random::Xorshift128plus rnd(123);
   size_t max_table_size = MAX_TABLE_SIZE;  // dynamic value
-  std::unordered_set<td::uint64> ref;
+  std::unordered_set<td::uint64, td::Hash<td::uint64>> ref;
   td::FlatHashSet<td::uint64> tbl;
 
   auto validate = [&] {

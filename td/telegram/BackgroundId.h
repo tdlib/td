@@ -7,10 +7,10 @@
 #pragma once
 
 #include "td/utils/common.h"
+#include "td/utils/HashTableUtils.h"
 #include "td/utils/StringBuilder.h"
 #include "td/utils/tl_helpers.h"
 
-#include <functional>
 #include <type_traits>
 
 namespace td {
@@ -58,8 +58,8 @@ class BackgroundId {
 };
 
 struct BackgroundIdHash {
-  std::size_t operator()(BackgroundId background_id) const {
-    return std::hash<int64>()(background_id.get());
+  uint32 operator()(BackgroundId background_id) const {
+    return Hash<int64>()(background_id.get());
   }
 };
 

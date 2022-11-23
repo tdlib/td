@@ -7,6 +7,7 @@
 #pragma once
 
 #include "td/utils/common.h"
+#include "td/utils/HashTableUtils.h"
 #include "td/utils/Slice.h"
 
 #include <map>
@@ -46,8 +47,8 @@ class Hints {
  private:
   std::map<string, vector<KeyT>> word_to_keys_;
   std::map<string, vector<KeyT>> translit_word_to_keys_;
-  std::unordered_map<KeyT, string> key_to_name_;
-  std::unordered_map<KeyT, RatingT> key_to_rating_;
+  std::unordered_map<KeyT, string, Hash<KeyT>> key_to_name_;
+  std::unordered_map<KeyT, RatingT, Hash<KeyT>> key_to_rating_;
 
   static void add_word(const string &word, KeyT key, std::map<string, vector<KeyT>> &word_to_keys);
   static void delete_word(const string &word, KeyT key, std::map<string, vector<KeyT>> &word_to_keys);
@@ -60,7 +61,7 @@ class Hints {
   vector<KeyT> search_word(const string &word) const;
 
   class CompareByRating {
-    const std::unordered_map<KeyT, RatingT> &key_to_rating_;
+    const std::unordered_map<KeyT, RatingT, Hash<KeyT>> &key_to_rating_;
 
     RatingT get_rating(const KeyT &key) const {
       auto it = key_to_rating_.find(key);
@@ -71,7 +72,8 @@ class Hints {
     }
 
    public:
-    explicit CompareByRating(const std::unordered_map<KeyT, RatingT> &key_to_rating) : key_to_rating_(key_to_rating) {
+    explicit CompareByRating(const std::unordered_map<KeyT, RatingT, Hash<KeyT>> &key_to_rating)
+        : key_to_rating_(key_to_rating) {
     }
 
     bool operator()(const KeyT &lhs, const KeyT &rhs) const {

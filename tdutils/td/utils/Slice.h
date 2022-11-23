@@ -290,10 +290,10 @@ inline CSlice::CSlice(const char *s, const char *t) : Slice(s, t) {
   CHECK(*t == '\0');
 }
 
-inline std::size_t SliceHash::operator()(Slice slice) const {
+inline uint32 SliceHash::operator()(Slice slice) const {
   // simple string hash
-  std::size_t result = 0;
-  constexpr std::size_t MUL = 123456789;
+  uint32 result = 0;
+  constexpr uint32 MUL = 123456789;
   for (auto c : slice) {
     result = result * MUL + c;
   }

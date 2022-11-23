@@ -7,9 +7,9 @@
 #pragma once
 
 #include "td/utils/common.h"
+#include "td/utils/HashTableUtils.h"
 #include "td/utils/StringBuilder.h"
 
-#include <functional>
 #include <type_traits>
 
 namespace td {
@@ -61,8 +61,8 @@ class DialogFilterId {
 };
 
 struct DialogFilterIdHash {
-  std::size_t operator()(DialogFilterId dialog_filter_id) const {
-    return std::hash<int32>()(dialog_filter_id.get());
+  uint32 operator()(DialogFilterId dialog_filter_id) const {
+    return Hash<int32>()(dialog_filter_id.get());
   }
 };
 

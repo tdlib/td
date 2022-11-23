@@ -7,9 +7,9 @@
 #pragma once
 
 #include "td/utils/common.h"
+#include "td/utils/HashTableUtils.h"
 #include "td/utils/StringBuilder.h"
 
-#include <functional>
 #include <type_traits>
 
 namespace td {
@@ -53,8 +53,8 @@ class CustomEmojiId {
 };
 
 struct CustomEmojiIdHash {
-  std::size_t operator()(CustomEmojiId custom_emoji_id) const {
-    return std::hash<int64>()(custom_emoji_id.get());
+  uint32 operator()(CustomEmojiId custom_emoji_id) const {
+    return Hash<int64>()(custom_emoji_id.get());
   }
 };
 
