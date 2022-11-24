@@ -112,7 +112,7 @@ TEST(FlatHashSet, TL) {
 
 TEST(FlatHashMap, basic) {
   {
-    td::FlatHashMap<int, int> map;
+    td::FlatHashMap<td::int32, int> map;
     map[1] = 2;
     ASSERT_EQ(2, map[1]);
     ASSERT_EQ(1, map.find(1)->first);
@@ -126,13 +126,13 @@ TEST(FlatHashMap, basic) {
     map.erase(map.find(1));
   }
 
-  td::FlatHashMap<int, std::array<td::unique_ptr<td::string>, 10>> x;
+  td::FlatHashMap<td::int32, std::array<td::unique_ptr<td::string>, 10>> x;
   auto y = std::move(x);
   x[12];
   x.erase(x.find(12));
 
   {
-    td::FlatHashMap<int, td::string> map = {{1, "hello"}, {2, "world"}};
+    td::FlatHashMap<td::int32, td::string> map = {{1, "hello"}, {2, "world"}};
     ASSERT_EQ("hello", map[1]);
     ASSERT_EQ("world", map[2]);
     ASSERT_EQ(2u, map.size());
@@ -141,7 +141,7 @@ TEST(FlatHashMap, basic) {
   }
 
   {
-    td::FlatHashMap<int, td::string> map = {{1, "hello"}, {1, "world"}};
+    td::FlatHashMap<td::int32, td::string> map = {{1, "hello"}, {1, "world"}};
     ASSERT_EQ("hello", map[1]);
     ASSERT_EQ(1u, map.size());
   }

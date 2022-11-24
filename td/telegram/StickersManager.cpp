@@ -6520,7 +6520,7 @@ void StickersManager::schedule_update_animated_emoji_clicked(const StickerSet *s
   }
 
   auto all_sticker_ids = get_animated_emoji_click_stickers(sticker_set, emoji);
-  FlatHashMap<int, FileId> sticker_ids;
+  FlatHashMap<int32, FileId> sticker_ids;
   for (auto sticker_id : all_sticker_ids) {
     auto it = sticker_set->sticker_emojis_map_.find(sticker_id);
     if (it != sticker_set->sticker_emojis_map_.end()) {

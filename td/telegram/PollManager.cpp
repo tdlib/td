@@ -765,7 +765,7 @@ void PollManager::set_poll_answer(PollId poll_id, FullMessageId full_message_id,
     return promise.set_error(Status::Error(400, "Can't revote in a quiz"));
   }
 
-  FlatHashMap<size_t, int> affected_option_ids;
+  FlatHashMap<uint64, int> affected_option_ids;
   vector<string> options;
   for (auto &option_id : option_ids) {
     auto index = static_cast<size_t>(option_id);
@@ -786,7 +786,7 @@ void PollManager::set_poll_answer(PollId poll_id, FullMessageId full_message_id,
   }
   for (const auto &it : affected_option_ids) {
     if (it.second == 1) {
-      invalidate_poll_option_voters(poll, poll_id, it.first - 1);
+      invalidate_poll_option_voters(poll, poll_id, static_cast<size_t>(it.first - 1));
     }
   }
 
