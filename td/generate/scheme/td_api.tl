@@ -39,6 +39,9 @@ authenticationCodeTypeFlashCall pattern:string = AuthenticationCodeType;
 //@description An authentication code is delivered by an immediately canceled call to the specified phone number. The last digits of the phone number that calls are the code that must be entered manually by the user @phone_number_prefix Prefix of the phone number from which the call will be made @length Number of digits in the code, excluding the prefix
 authenticationCodeTypeMissedCall phone_number_prefix:string length:int32 = AuthenticationCodeType;
 
+//@description An authentication code is delivered to https://fragment.com. The user must be logged in there via a wallet owning the phone number's NFT @url URL to open to receive the code @length Length of the code
+authenticationCodeTypeFragment url:string length:int32 = AuthenticationCodeType;
+
 
 //@description Information about the authentication code that was sent @phone_number A phone number that is being authenticated @type The way the code was sent to the user @next_type The way the next code will be sent to the user; may be null @timeout Timeout before the code can be re-sent, in seconds
 authenticationCodeInfo phone_number:string type:AuthenticationCodeType next_type:AuthenticationCodeType timeout:int32 = AuthenticationCodeInfo;

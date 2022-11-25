@@ -121,7 +121,7 @@ SendCodeHelper::AuthenticationCodeInfo SendCodeHelper::get_authentication_code_i
     case telegram_api::auth_codeTypeMissedCall::ID:
       return {AuthenticationCodeInfo::Type::MissedCall, 0, string()};
     case telegram_api::auth_codeTypeFragmentSms::ID:
-      return {AuthenticationCodeInfo::Type::MissedCall, 0, string()};
+      return {AuthenticationCodeInfo::Type::Fragment, 0, string()};
     default:
       UNREACHABLE();
       return AuthenticationCodeInfo();
@@ -155,7 +155,7 @@ SendCodeHelper::AuthenticationCodeInfo SendCodeHelper::get_sent_authentication_c
     }
     case telegram_api::auth_sentCodeTypeFragmentSms::ID: {
       auto code_type = move_tl_object_as<telegram_api::auth_sentCodeTypeFragmentSms>(sent_code_type_ptr);
-      return AuthenticationCodeInfo{AuthenticationCodeInfo::Type::MissedCall, code_type->length_,
+      return AuthenticationCodeInfo{AuthenticationCodeInfo::Type::Fragment, code_type->length_,
                                     std::move(code_type->url_)};
     }
     case telegram_api::auth_sentCodeTypeEmailCode::ID:
@@ -182,6 +182,9 @@ td_api::object_ptr<td_api::AuthenticationCodeType> SendCodeHelper::get_authentic
     case AuthenticationCodeInfo::Type::MissedCall:
       return td_api::make_object<td_api::authenticationCodeTypeMissedCall>(authentication_code_info.pattern,
                                                                            authentication_code_info.length);
+    case AuthenticationCodeInfo::Type::Fragment:
+      return td_api::make_object<td_api::authenticationCodeTypeFragment>(authentication_code_info.pattern,
+                                                                         authentication_code_info.length);
     default:
       UNREACHABLE();
       return nullptr;
