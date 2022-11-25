@@ -1586,6 +1586,42 @@ class ReportChannelSpamQuery final : public Td::ResultHandler {
   }
 };
 
+class ReportChannelAntiSpamFalsePositiveQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  ChannelId channel_id_;
+
+ public:
+  explicit ReportChannelAntiSpamFalsePositiveQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(ChannelId channel_id, MessageId message_id) {
+    channel_id_ = channel_id;
+
+    auto input_channel = td_->contacts_manager_->get_input_channel(channel_id);
+    CHECK(input_channel != nullptr);
+
+    send_query(G()->net_query_creator().create(telegram_api::channels_reportAntiSpamFalsePositive(
+        std::move(input_channel), message_id.get_server_message_id().get())));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::channels_reportAntiSpamFalsePositive>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    bool result = result_ptr.move_as_ok();
+    LOG_IF(INFO, !result) << "Report anti-spam false positive has failed in " << channel_id_;
+
+    promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    td_->contacts_manager_->on_get_channel_error(channel_id_, status, "ReportChannelAntiSpamFalsePositiveQuery");
+    promise_.set_error(std::move(status));
+  }
+};
+
 class DeleteChatQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
@@ -7693,6 +7729,27 @@ void ContactsManager::report_channel_spam(ChannelId channel_id, const vector<Mes
   }
 
   lock_promise.set_value(Unit());
+}
+
+void ContactsManager::report_channel_anti_spam_false_positive(ChannelId channel_id, MessageId message_id,
+                                                              Promise<Unit> &&promise) {
+  auto c = get_channel(channel_id);
+  if (c == nullptr) {
+    return promise.set_error(Status::Error(400, "Supergroup not found"));
+  }
+  if (!c->is_megagroup) {
+    return promise.set_error(Status::Error(400, "The chat is not a supergroup"));
+  }
+  if (!c->status.is_administrator()) {
+    return promise.set_error(
+        Status::Error(400, "Anti-spam checks false positives can be reported only by chat administrators"));
+  }
+
+  if (!message_id.is_valid() || !message_id.is_server()) {
+    return promise.set_error(Status::Error(400, "Invalid message identifier specified"));
+  }
+
+  td_->create_handler<ReportChannelAntiSpamFalsePositiveQuery>(std::move(promise))->send(channel_id, message_id);
 }
 
 void ContactsManager::delete_chat(ChatId chat_id, Promise<Unit> &&promise) {

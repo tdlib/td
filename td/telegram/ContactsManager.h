@@ -414,6 +414,8 @@ class ContactsManager final : public Actor {
 
   void report_channel_spam(ChannelId channel_id, const vector<MessageId> &message_ids, Promise<Unit> &&promise);
 
+  void report_channel_anti_spam_false_positive(ChannelId channel_id, MessageId message_id, Promise<Unit> &&promise);
+
   void delete_dialog(DialogId dialog_id, Promise<Unit> &&promise);
 
   void get_channel_statistics_dc_id(DialogId dialog_id, bool for_full_statistics, Promise<DcId> &&promise);

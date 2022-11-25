@@ -4966,6 +4966,12 @@ class CliClient final : public Actor {
       get_args(args, supergroup_id, message_ids);
       send_request(td_api::make_object<td_api::reportSupergroupSpam>(as_supergroup_id(supergroup_id),
                                                                      as_message_ids(message_ids)));
+    } else if (op == "rsgasfp") {
+      string supergroup_id;
+      MessageId message_id;
+      get_args(args, supergroup_id, message_id);
+      send_request(td_api::make_object<td_api::reportSupergroupAntiSpamFalsePositive>(as_supergroup_id(supergroup_id),
+                                                                                      message_id));
     } else if (op == "gdiff") {
       send_request(td_api::make_object<td_api::testGetDifference>());
     } else if (op == "dproxy") {

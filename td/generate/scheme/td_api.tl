@@ -6440,6 +6440,9 @@ toggleSupergroupIsBroadcastGroup supergroup_id:int53 = Ok;
 //@description Reports messages in a supergroup as spam; requires administrator rights in the supergroup @supergroup_id Supergroup identifier @message_ids Identifiers of messages to report
 reportSupergroupSpam supergroup_id:int53 message_ids:vector<int53> = Ok;
 
+//@description Reports a false deletion of a message by aggressive anti-spam checks; requires administrator rights in the supergroup. Can be called only for messages from chatEventMessageDeleted with can_report_anti_spam_false_positive == true @supergroup_id Supergroup identifier @message_id Identifier of the erroneously deleted message
+reportSupergroupAntiSpamFalsePositive supergroup_id:int53 message_id:int53 = Ok;
+
 //@description Returns information about members or banned users in a supergroup or channel. Can be used only if supergroupFullInfo.can_get_members == true; additionally, administrator privileges may be required for some filters @supergroup_id Identifier of the supergroup or channel
 //@filter The type of users to return; pass null to use supergroupMembersFilterRecent @offset Number of users to skip @limit The maximum number of users be returned; up to 200
 getSupergroupMembers supergroup_id:int53 filter:SupergroupMembersFilter offset:int32 limit:int32 = ChatMembers;

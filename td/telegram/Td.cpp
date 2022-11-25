@@ -6989,6 +6989,13 @@ void Td::on_request(uint64 id, const td_api::reportSupergroupSpam &request) {
                                          MessagesManager::get_message_ids(request.message_ids_), std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::reportSupergroupAntiSpamFalsePositive &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  contacts_manager_->report_channel_anti_spam_false_positive(ChannelId(request.supergroup_id_),
+                                                             MessageId(request.message_id_), std::move(promise));
+}
+
 void Td::on_request(uint64 id, td_api::getSupergroupMembers &request) {
   CREATE_REQUEST_PROMISE();
   auto query_promise =
