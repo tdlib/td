@@ -1102,6 +1102,8 @@ class Td final : public Actor {
 
   void on_request(uint64 id, const td_api::toggleSupergroupIsAllHistoryAvailable &request);
 
+  void on_request(uint64 id, const td_api::toggleSupergroupIsAggressiveAntiSpamEnabled &request);
+
   void on_request(uint64 id, const td_api::toggleSupergroupIsForum &request);
 
   void on_request(uint64 id, const td_api::toggleSupergroupIsBroadcastGroup &request);

@@ -4622,6 +4622,12 @@ class CliClient final : public Actor {
       get_args(args, supergroup_id, is_all_history_available);
       send_request(td_api::make_object<td_api::toggleSupergroupIsAllHistoryAvailable>(as_supergroup_id(supergroup_id),
                                                                                       is_all_history_available));
+    } else if (op == "tsgas") {
+      string supergroup_id;
+      bool is_aggressive_anti_spam_enabled;
+      get_args(args, supergroup_id, is_aggressive_anti_spam_enabled);
+      send_request(td_api::make_object<td_api::toggleSupergroupIsAggressiveAntiSpamEnabled>(
+          as_supergroup_id(supergroup_id), is_aggressive_anti_spam_enabled));
     } else if (op == "tsgif") {
       string supergroup_id;
       bool is_forum;

@@ -1214,6 +1214,58 @@ class TogglePrehistoryHiddenQuery final : public Td::ResultHandler {
   }
 };
 
+class ToggleAntiSpamQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  ChannelId channel_id_;
+  bool is_aggressive_anti_spam_enabled_;
+
+ public:
+  explicit ToggleAntiSpamQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(ChannelId channel_id, bool is_aggressive_anti_spam_enabled) {
+    channel_id_ = channel_id;
+    is_aggressive_anti_spam_enabled_ = is_aggressive_anti_spam_enabled;
+
+    auto input_channel = td_->contacts_manager_->get_input_channel(channel_id);
+    CHECK(input_channel != nullptr);
+    send_query(G()->net_query_creator().create(
+        telegram_api::channels_toggleAntiSpam(std::move(input_channel), is_aggressive_anti_spam_enabled),
+        {{channel_id}}));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::channels_toggleAntiSpam>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for ToggleAntiSpamQuery: " << to_string(ptr);
+
+    td_->updates_manager_->on_get_updates(
+        std::move(ptr),
+        PromiseCreator::lambda(
+            [actor_id = G()->contacts_manager(), promise = std::move(promise_), channel_id = channel_id_,
+             is_aggressive_anti_spam_enabled = is_aggressive_anti_spam_enabled_](Unit result) mutable {
+              send_closure(actor_id, &ContactsManager::on_update_channel_is_aggressive_anti_spam_enabled, channel_id,
+                           is_aggressive_anti_spam_enabled, std::move(promise));
+            }));
+  }
+
+  void on_error(Status status) final {
+    if (status.message() == "CHAT_NOT_MODIFIED") {
+      if (!td_->auth_manager_->is_bot()) {
+        promise_.set_value(Unit());
+        return;
+      }
+    } else {
+      td_->contacts_manager_->on_get_channel_error(channel_id_, status, "ToggleAntiSpamQuery");
+    }
+    promise_.set_error(std::move(status));
+  }
+};
+
 class ToggleForumQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   ChannelId channel_id_;
@@ -4713,7 +4765,7 @@ void ContactsManager::ChannelFull::store(StorerT &storer) const {
   STORE_FLAG(has_invite_link);
   STORE_FLAG(has_bot_commands);  // 25
   STORE_FLAG(can_be_deleted);
-  STORE_FLAG(has_antispam);
+  STORE_FLAG(is_aggressive_anti_spam_enabled);
   END_STORE_FLAGS();
   if (has_description) {
     store(description, storer);
@@ -4817,7 +4869,7 @@ void ContactsManager::ChannelFull::parse(ParserT &parser) {
   PARSE_FLAG(has_invite_link);
   PARSE_FLAG(has_bot_commands);
   PARSE_FLAG(can_be_deleted);
-  PARSE_FLAG(has_antispam);
+  PARSE_FLAG(is_aggressive_anti_spam_enabled);
   END_PARSE_FLAGS();
   if (has_description) {
     parse(description, parser);
@@ -7240,6 +7292,27 @@ void ContactsManager::toggle_channel_is_all_history_available(ChannelId channel_
   // it can be toggled in public chats, but will not affect them
 
   td_->create_handler<TogglePrehistoryHiddenQuery>(std::move(promise))->send(channel_id, is_all_history_available);
+}
+
+void ContactsManager::toggle_channel_is_aggressive_anti_spam_enabled(ChannelId channel_id,
+                                                                     bool is_aggressive_anti_spam_enabled,
+                                                                     Promise<Unit> &&promise) {
+  auto c = get_channel(channel_id);
+  if (c == nullptr) {
+    return promise.set_error(Status::Error(400, "Supergroup not found"));
+  }
+  if (!get_channel_permissions(c).can_delete_messages()) {
+    return promise.set_error(Status::Error(400, "Not enough rights to enable aggressive anti-spam checks"));
+  }
+  if (get_channel_type(c) != ChannelType::Megagroup) {
+    return promise.set_error(Status::Error(400, "Aggressive anti-spam checks can be enabled in supergroups only"));
+  }
+  if (c->is_gigagroup) {
+    return promise.set_error(
+        Status::Error(400, "Aggressive anti-spam checks can't be enabled in broadcast supergroups"));
+  }
+
+  td_->create_handler<ToggleAntiSpamQuery>(std::move(promise))->send(channel_id, is_aggressive_anti_spam_enabled);
 }
 
 void ContactsManager::toggle_channel_is_forum(ChannelId channel_id, bool is_forum, Promise<Unit> &&promise) {
@@ -11904,7 +11977,7 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
     auto can_set_sticker_set = (channel->flags_ & CHANNEL_FULL_FLAG_CAN_SET_STICKER_SET) != 0;
     auto can_set_location = (channel->flags_ & CHANNEL_FULL_FLAG_CAN_SET_LOCATION) != 0;
     auto is_all_history_available = (channel->flags_ & CHANNEL_FULL_FLAG_IS_ALL_HISTORY_HIDDEN) == 0;
-    auto has_antispam = channel->antispam_;
+    auto is_aggressive_anti_spam_enabled = channel->antispam_;
     auto can_view_statistics = (channel->flags_ & CHANNEL_FULL_FLAG_CAN_VIEW_STATISTICS) != 0;
     StickerSetId sticker_set_id;
     if (channel->stickerset_ != nullptr) {
@@ -11932,7 +12005,7 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
         channel_full->can_view_statistics != can_view_statistics || channel_full->stats_dc_id != stats_dc_id ||
         channel_full->sticker_set_id != sticker_set_id ||
         channel_full->is_all_history_available != is_all_history_available ||
-        channel_full->has_antispam != has_antispam) {
+        channel_full->is_aggressive_anti_spam_enabled != is_aggressive_anti_spam_enabled) {
       channel_full->participant_count = participant_count;
       channel_full->administrator_count = administrator_count;
       channel_full->restricted_count = restricted_count;
@@ -11945,7 +12018,7 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
       channel_full->stats_dc_id = stats_dc_id;
       channel_full->sticker_set_id = sticker_set_id;
       channel_full->is_all_history_available = is_all_history_available;
-      channel_full->has_antispam = has_antispam;
+      channel_full->is_aggressive_anti_spam_enabled = is_aggressive_anti_spam_enabled;
 
       channel_full->is_changed = true;
     }
@@ -14920,6 +14993,20 @@ void ContactsManager::on_update_channel_is_all_history_available(ChannelId chann
   promise.set_value(Unit());
 }
 
+void ContactsManager::on_update_channel_is_aggressive_anti_spam_enabled(ChannelId channel_id,
+                                                                        bool is_aggressive_anti_spam_enabled,
+                                                                        Promise<Unit> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+  CHECK(channel_id.is_valid());
+  auto channel_full = get_channel_full_force(channel_id, true, "on_update_channel_is_aggressive_anti_spam_enabled");
+  if (channel_full != nullptr && channel_full->is_aggressive_anti_spam_enabled != is_aggressive_anti_spam_enabled) {
+    channel_full->is_aggressive_anti_spam_enabled = is_aggressive_anti_spam_enabled;
+    channel_full->is_changed = true;
+    update_channel_full(channel_full, channel_id, "on_update_channel_is_aggressive_anti_spam_enabled");
+  }
+  promise.set_value(Unit());
+}
+
 void ContactsManager::on_update_channel_default_permissions(ChannelId channel_id,
                                                             RestrictedRights default_permissions) {
   if (!channel_id.is_valid()) {
@@ -17626,9 +17713,9 @@ tl_object_ptr<td_api::supergroupFullInfo> ContactsManager::get_supergroup_full_i
       channel_full->banned_count, DialogId(channel_full->linked_channel_id).get(), channel_full->slow_mode_delay,
       slow_mode_delay_expires_in, channel_full->can_get_participants, channel_full->can_set_username,
       channel_full->can_set_sticker_set, channel_full->can_set_location, channel_full->can_view_statistics,
-      channel_full->is_all_history_available, channel_full->has_antispam, channel_full->sticker_set_id.get(),
-      channel_full->location.get_chat_location_object(), channel_full->invite_link.get_chat_invite_link_object(this),
-      std::move(bot_commands),
+      channel_full->is_all_history_available, channel_full->is_aggressive_anti_spam_enabled,
+      channel_full->sticker_set_id.get(), channel_full->location.get_chat_location_object(),
+      channel_full->invite_link.get_chat_invite_link_object(this), std::move(bot_commands),
       get_basic_group_id_object(channel_full->migrated_from_chat_id, "get_supergroup_full_info_object"),
       channel_full->migrated_from_max_message_id.get());
 }

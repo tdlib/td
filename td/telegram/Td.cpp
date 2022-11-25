@@ -6963,6 +6963,13 @@ void Td::on_request(uint64 id, const td_api::toggleSupergroupIsAllHistoryAvailab
                                                              request.is_all_history_available_, std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::toggleSupergroupIsAggressiveAntiSpamEnabled &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  contacts_manager_->toggle_channel_is_aggressive_anti_spam_enabled(
+      ChannelId(request.supergroup_id_), request.is_aggressive_anti_spam_enabled_, std::move(promise));
+}
+
 void Td::on_request(uint64 id, const td_api::toggleSupergroupIsForum &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();

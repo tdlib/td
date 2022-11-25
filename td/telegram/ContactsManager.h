@@ -211,6 +211,8 @@ class ContactsManager final : public Actor {
   void on_update_channel_slow_mode_next_send_date(ChannelId channel_id, int32 slow_mode_next_send_date);
   void on_update_channel_is_all_history_available(ChannelId channel_id, bool is_all_history_available,
                                                   Promise<Unit> &&promise);
+  void on_update_channel_is_aggressive_anti_spam_enabled(ChannelId channel_id, bool is_aggressive_anti_spam_enabled,
+                                                         Promise<Unit> &&promise);
   void on_update_channel_default_permissions(ChannelId channel_id, RestrictedRights default_permissions);
   void on_update_channel_administrator_count(ChannelId channel_id, int32 administrator_count);
 
@@ -394,6 +396,9 @@ class ContactsManager final : public Actor {
 
   void toggle_channel_is_all_history_available(ChannelId channel_id, bool is_all_history_available,
                                                Promise<Unit> &&promise);
+
+  void toggle_channel_is_aggressive_anti_spam_enabled(ChannelId channel_id, bool is_aggressive_anti_spam_enabled,
+                                                      Promise<Unit> &&promise);
 
   void toggle_channel_is_forum(ChannelId channel_id, bool is_forum, Promise<Unit> &&promise);
 
@@ -981,7 +986,7 @@ class ContactsManager final : public Actor {
     bool can_view_statistics = false;
     bool is_can_view_statistics_inited = false;
     bool is_all_history_available = true;
-    bool has_antispam = true;
+    bool is_aggressive_anti_spam_enabled = true;
     bool can_be_deleted = false;
 
     bool is_slow_mode_next_send_date_changed = true;
