@@ -81,7 +81,11 @@ class ThreadStl {
 
   id get_id() noexcept {
 #if TD_WINDOWS
+#ifdef __MINGW32__
+    return GetThreadId(reinterpret_cast<HANDLE>(thread_.native_handle()));
+#else
     return GetThreadId(thread_.native_handle());
+#endif
 #else
     return thread_.get_id();
 #endif
