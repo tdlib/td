@@ -12,7 +12,7 @@
 
 #include "td/utils/common.h"
 #include "td/utils/invoke.h"
-#if TD_WINDOWS
+#if TD_WINDOWS && TD_MSVC
 #include "td/utils/port/detail/NativeFd.h"
 #endif
 #include "td/utils/port/detail/ThreadIdGuard.h"
@@ -25,7 +25,7 @@
 #include <type_traits>
 #include <utility>
 
-#if TD_WINDOWS
+#if TD_WINDOWS && TD_MSVC
 #define TD_HAVE_THREAD_AFFINITY 1
 #endif
 
@@ -73,19 +73,17 @@ class ThreadStl {
     return std::thread::hardware_concurrency();
   }
 
-#if TD_WINDOWS
+#if TD_WINDOWS && TD_MSVC
   using id = DWORD;
 #else
   using id = std::thread::id;
 #endif
 
   id get_id() noexcept {
-#if TD_WINDOWS
-#ifdef __MINGW32__
-    return GetThreadId(reinterpret_cast<HANDLE>(thread_.native_handle()));
-#else
+#if TD_WINDOWS && TD_MSVC
+    static_assert(std::is_same<decltype(thread_.native_handle()), HANDLE>::value,
+                  "Expected HANDLE as native thread type");
     return GetThreadId(thread_.native_handle());
-#endif
 #else
     return thread_.get_id();
 #endif
@@ -140,7 +138,7 @@ class ThreadStl {
 };
 
 namespace this_thread_stl {
-#if TD_WINDOWS
+#if TD_WINDOWS && TD_MSVC
 inline ThreadStl::id get_id() {
   return GetCurrentThreadId();
 }
