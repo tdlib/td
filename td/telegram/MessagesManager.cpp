@@ -33652,6 +33652,10 @@ DialogId MessagesManager::search_public_dialog(const string &username_to_search,
 }
 
 void MessagesManager::reload_voice_chat_on_search(const string &username) {
+  if (!td_->auth_manager_->is_authorized()) {
+    return;
+  }
+
   auto cleaned_username = clean_username(username);
   if (!cleaned_username.empty()) {
     reload_voice_chat_on_search_usernames_.insert(cleaned_username);
