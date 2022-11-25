@@ -134,7 +134,7 @@ class EditForumTopicQuery final : public Td::ResultHandler {
     send_query(G()->net_query_creator().create(
         telegram_api::channels_editForumTopic(flags, std::move(input_channel),
                                               top_thread_message_id.get_server_message_id().get(), title,
-                                              icon_custom_emoji_id.get(), false),
+                                              icon_custom_emoji_id.get(), false, false),
         {{channel_id}}));
   }
 
@@ -149,7 +149,7 @@ class EditForumTopicQuery final : public Td::ResultHandler {
     send_query(G()->net_query_creator().create(
         telegram_api::channels_editForumTopic(flags, std::move(input_channel),
                                               top_thread_message_id.get_server_message_id().get(), string(), 0,
-                                              is_closed),
+                                              is_closed, false),
         {{channel_id}}));
   }
 

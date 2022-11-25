@@ -1015,7 +1015,9 @@ class CreateChatQuery final : public Td::ResultHandler {
 
   void send(vector<tl_object_ptr<telegram_api::InputUser>> &&input_users, const string &title, int64 random_id) {
     random_id_ = random_id;
-    send_query(G()->net_query_creator().create(telegram_api::messages_createChat(std::move(input_users), title)));
+    int32 flags = 0;
+    send_query(
+        G()->net_query_creator().create(telegram_api::messages_createChat(flags, std::move(input_users), title, 0)));
   }
 
   void on_result(BufferSlice packet) final {
@@ -1061,7 +1063,7 @@ class CreateChannelQuery final : public Td::ResultHandler {
     random_id_ = random_id;
     send_query(G()->net_query_creator().create(
         telegram_api::channels_createChannel(flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, title,
-                                             about, location.get_input_geo_point(), location.get_address())));
+                                             about, location.get_input_geo_point(), location.get_address(), 0)));
   }
 
   void on_result(BufferSlice packet) final {

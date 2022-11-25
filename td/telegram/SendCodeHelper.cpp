@@ -120,6 +120,8 @@ SendCodeHelper::AuthenticationCodeInfo SendCodeHelper::get_authentication_code_i
       return {AuthenticationCodeInfo::Type::FlashCall, 0, string()};
     case telegram_api::auth_codeTypeMissedCall::ID:
       return {AuthenticationCodeInfo::Type::MissedCall, 0, string()};
+    case telegram_api::auth_codeTypeFragmentSms::ID:
+      return {AuthenticationCodeInfo::Type::MissedCall, 0, string()};
     default:
       UNREACHABLE();
       return AuthenticationCodeInfo();
@@ -150,6 +152,11 @@ SendCodeHelper::AuthenticationCodeInfo SendCodeHelper::get_sent_authentication_c
       auto code_type = move_tl_object_as<telegram_api::auth_sentCodeTypeMissedCall>(sent_code_type_ptr);
       return AuthenticationCodeInfo{AuthenticationCodeInfo::Type::MissedCall, code_type->length_,
                                     std::move(code_type->prefix_)};
+    }
+    case telegram_api::auth_sentCodeTypeFragmentSms::ID: {
+      auto code_type = move_tl_object_as<telegram_api::auth_sentCodeTypeFragmentSms>(sent_code_type_ptr);
+      return AuthenticationCodeInfo{AuthenticationCodeInfo::Type::MissedCall, code_type->length_,
+                                    std::move(code_type->url_)};
     }
     case telegram_api::auth_sentCodeTypeEmailCode::ID:
     case telegram_api::auth_sentCodeTypeSetUpEmailRequired::ID:

@@ -411,6 +411,9 @@ static td_api::object_ptr<td_api::ChatEventAction> get_chat_event_action_object(
       return td_api::make_object<td_api::chatEventForumTopicPinned>(old_topic_info.get_forum_topic_info_object(td),
                                                                     new_topic_info.get_forum_topic_info_object(td));
     }
+    case telegram_api::channelAdminLogEventActionToggleAntiSpam::ID: {
+      return nullptr;
+    }
     default:
       UNREACHABLE();
       return nullptr;
