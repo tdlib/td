@@ -4713,6 +4713,7 @@ void ContactsManager::ChannelFull::store(StorerT &storer) const {
   STORE_FLAG(has_invite_link);
   STORE_FLAG(has_bot_commands);  // 25
   STORE_FLAG(can_be_deleted);
+  STORE_FLAG(has_antispam);
   END_STORE_FLAGS();
   if (has_description) {
     store(description, storer);
@@ -4816,6 +4817,7 @@ void ContactsManager::ChannelFull::parse(ParserT &parser) {
   PARSE_FLAG(has_invite_link);
   PARSE_FLAG(has_bot_commands);
   PARSE_FLAG(can_be_deleted);
+  PARSE_FLAG(has_antispam);
   END_PARSE_FLAGS();
   if (has_description) {
     parse(description, parser);
@@ -11902,6 +11904,7 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
     auto can_set_sticker_set = (channel->flags_ & CHANNEL_FULL_FLAG_CAN_SET_STICKER_SET) != 0;
     auto can_set_location = (channel->flags_ & CHANNEL_FULL_FLAG_CAN_SET_LOCATION) != 0;
     auto is_all_history_available = (channel->flags_ & CHANNEL_FULL_FLAG_IS_ALL_HISTORY_HIDDEN) == 0;
+    auto has_antispam = channel->antispam_;
     auto can_view_statistics = (channel->flags_ & CHANNEL_FULL_FLAG_CAN_VIEW_STATISTICS) != 0;
     StickerSetId sticker_set_id;
     if (channel->stickerset_ != nullptr) {
@@ -11928,7 +11931,8 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
         channel_full->can_set_location != can_set_location ||
         channel_full->can_view_statistics != can_view_statistics || channel_full->stats_dc_id != stats_dc_id ||
         channel_full->sticker_set_id != sticker_set_id ||
-        channel_full->is_all_history_available != is_all_history_available) {
+        channel_full->is_all_history_available != is_all_history_available ||
+        channel_full->has_antispam != has_antispam) {
       channel_full->participant_count = participant_count;
       channel_full->administrator_count = administrator_count;
       channel_full->restricted_count = restricted_count;
@@ -11939,8 +11943,9 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
       channel_full->can_set_location = can_set_location;
       channel_full->can_view_statistics = can_view_statistics;
       channel_full->stats_dc_id = stats_dc_id;
-      channel_full->is_all_history_available = is_all_history_available;
       channel_full->sticker_set_id = sticker_set_id;
+      channel_full->is_all_history_available = is_all_history_available;
+      channel_full->has_antispam = has_antispam;
 
       channel_full->is_changed = true;
     }
@@ -17621,7 +17626,7 @@ tl_object_ptr<td_api::supergroupFullInfo> ContactsManager::get_supergroup_full_i
       channel_full->banned_count, DialogId(channel_full->linked_channel_id).get(), channel_full->slow_mode_delay,
       slow_mode_delay_expires_in, channel_full->can_get_participants, channel_full->can_set_username,
       channel_full->can_set_sticker_set, channel_full->can_set_location, channel_full->can_view_statistics,
-      channel_full->is_all_history_available, channel_full->sticker_set_id.get(),
+      channel_full->is_all_history_available, channel_full->has_antispam, channel_full->sticker_set_id.get(),
       channel_full->location.get_chat_location_object(), channel_full->invite_link.get_chat_invite_link_object(this),
       std::move(bot_commands),
       get_basic_group_id_object(channel_full->migrated_from_chat_id, "get_supergroup_full_info_object"),

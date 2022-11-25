@@ -981,6 +981,7 @@ class ContactsManager final : public Actor {
     bool can_view_statistics = false;
     bool is_can_view_statistics_inited = false;
     bool is_all_history_available = true;
+    bool has_antispam = true;
     bool can_be_deleted = false;
 
     bool is_slow_mode_next_send_date_changed = true;
@@ -1208,6 +1209,7 @@ class ContactsManager final : public Actor {
   static constexpr int32 CHANNEL_FULL_FLAG_HAS_PENDING_REQUEST_COUNT = 1 << 28;
   static constexpr int32 CHANNEL_FULL_FLAG_HAS_DEFAULT_SEND_AS = 1 << 29;
   static constexpr int32 CHANNEL_FULL_FLAG_HAS_AVAILABLE_REACTIONS = 1 << 30;
+  static constexpr int32 CHANNEL_FULL_FLAG2_HAS_ANTISPAM = 1 << 1;
 
   static constexpr int32 CHAT_INVITE_FLAG_IS_CHANNEL = 1 << 0;
   static constexpr int32 CHAT_INVITE_FLAG_IS_BROADCAST = 1 << 1;
