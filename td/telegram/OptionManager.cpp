@@ -119,6 +119,9 @@ OptionManager::OptionManager(Td *td)
   if (!have_option("forum_member_count_min")) {
     set_option_integer("forum_member_count_min", 200);
   }
+  if (!have_option("aggressive_anti_spam_supergroup_member_count_min")) {
+    set_option_integer("aggressive_anti_spam_supergroup_member_count_min", G()->is_test_dc() ? 1 : 100);
+  }
 }
 
 OptionManager::~OptionManager() = default;

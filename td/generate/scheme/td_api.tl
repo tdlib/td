@@ -6428,7 +6428,7 @@ toggleSupergroupJoinByRequest supergroup_id:int53 join_by_request:Bool = Ok;
 //@description Toggles whether the message history of a supergroup is available to new members; requires can_change_info administrator right @supergroup_id The identifier of the supergroup @is_all_history_available The new value of is_all_history_available
 toggleSupergroupIsAllHistoryAvailable supergroup_id:int53 is_all_history_available:Bool = Ok;
 
-//@description Toggles whether aggressive anti-spam checks are enabled in the supergroup; requires can_delete_messages administrator right @supergroup_id The identifier of the supergroup, which isn't a broadcast group @is_aggressive_anti_spam_enabled The new value of is_aggressive_anti_spam_enabled
+//@description Toggles whether aggressive anti-spam checks are enabled in the supergroup; requires can_delete_messages administrator right. Can be called only if the supergroup has at least GetOption("aggressive_anti_spam_supergroup_member_count_min") members @supergroup_id The identifier of the supergroup, which isn't a broadcast group @is_aggressive_anti_spam_enabled The new value of is_aggressive_anti_spam_enabled
 toggleSupergroupIsAggressiveAntiSpamEnabled supergroup_id:int53 is_aggressive_anti_spam_enabled:Bool = Ok;
 
 //@description Toggles whether the supergroup is a forum; requires owner privileges in the supergroup @supergroup_id Identifier of the supergroup @is_forum New value of is_forum. A supergroup can be converted to a forum, only if it has at least GetOption("forum_member_count_min") members

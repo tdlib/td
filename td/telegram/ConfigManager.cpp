@@ -1492,6 +1492,7 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
   int32 stickers_premium_by_emoji_num = 0;
   int32 stickers_normal_by_emoji_per_premium_num = 2;
   int32 forum_upgrade_participants_min = 200;
+  int32 telegram_antispam_group_size_min = 100;
   if (config->get_id() == telegram_api::jsonObject::ID) {
     for (auto &key_value : static_cast<telegram_api::jsonObject *>(config.get())->value_) {
       Slice key = key_value->key_;
@@ -1853,6 +1854,10 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
         G()->set_option_integer("telegram_antispam_user_id", setting_value);
         continue;
       }
+      if (key == "telegram_antispam_group_size_min") {
+        telegram_antispam_group_size_min = get_json_value_int(std::move(key_value->value_), key);
+        continue;
+      }
 
       new_values.push_back(std::move(key_value));
     }
@@ -1939,10 +1944,11 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
   } else {
     options.set_option_integer("reactions_uniq_max", reactions_uniq_max);
   }
-  if (forum_upgrade_participants_min < 0) {
-    options.set_option_empty("forum_member_count_min");
-  } else {
+  if (forum_upgrade_participants_min >= 0) {
     options.set_option_integer("forum_member_count_min", forum_upgrade_participants_min);
+  }
+  if (telegram_antispam_group_size_min >= 0) {
+    options.set_option_integer("aggressive_anti_spam_supergroup_member_count_min", telegram_antispam_group_size_min);
   }
 
   bool is_premium = options.get_option_boolean("is_premium");
