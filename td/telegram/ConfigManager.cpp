@@ -1848,6 +1848,11 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
         forum_upgrade_participants_min = get_json_value_int(std::move(key_value->value_), key);
         continue;
       }
+      if (key == "telegram_antispam_user_id") {
+        auto setting_value = get_json_value_long(std::move(key_value->value_), key);
+        G()->set_option_integer("telegram_antispam_user_id", setting_value);
+        continue;
+      }
 
       new_values.push_back(std::move(key_value));
     }

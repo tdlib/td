@@ -282,6 +282,8 @@ bool OptionManager::is_internal_option(Slice name) {
              name == "saved_gifs_limit_premium" || name == "session_count" || name == "stickers_faved_limit_default" ||
              name == "stickers_faved_limit_premium" || name == "stickers_normal_by_emoji_per_premium_num" ||
              name == "stickers_premium_by_emoji_num";
+    case 't':
+      return name == "telegram_antispam_user_id";
     case 'v':
       return name == "video_note_size_max";
     case 'w':

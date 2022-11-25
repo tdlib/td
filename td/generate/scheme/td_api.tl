@@ -2906,8 +2906,8 @@ gameHighScores scores:vector<gameHighScore> = GameHighScores;
 //@description A message was edited @old_message The original message before the edit @new_message The message after it was edited
 chatEventMessageEdited old_message:message new_message:message = ChatEventAction;
 
-//@description A message was deleted @message Deleted message
-chatEventMessageDeleted message:message = ChatEventAction;
+//@description A message was deleted @message Deleted message @can_report_anti_spam_false_positive True, if the message deletion can be reported via reportSupergroupAntiSpamFalsePositive
+chatEventMessageDeleted message:message can_report_anti_spam_false_positive:Bool = ChatEventAction;
 
 //@description A message was pinned @message Pinned message
 chatEventMessagePinned message:message = ChatEventAction;
