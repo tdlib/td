@@ -155,6 +155,10 @@ function(td_set_up_compiler)
     add_cxx_compiler_flag("-Wno-return-stack-address")
   endif()
 
+  if (MINGW)
+    add_cxx_compiler_flag("-ftrack-macro-expansion=0")
+  endif()
+
   #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem /usr/include/c++/v1")
   #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
   #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=thread")
