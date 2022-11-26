@@ -2563,6 +2563,11 @@ void UpdatesManager::process_postponed_pts_updates() {
       continue;
     }
 
+    if (Time::now() - begin_time >= td::min(UPDATE_APPLY_WARNING_TIME / 2, 0.1)) {
+      // the updates will be applied or skipped later; reget the remaining updates through getDifference
+      break;
+    }
+
     auto last_update_it = update_it;
     for (int32 i = 1; true; i++) {
       ++last_update_it;
