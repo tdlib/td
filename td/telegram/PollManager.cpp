@@ -1222,7 +1222,10 @@ void PollManager::on_stop_poll_finished(PollId poll_id, FullMessageId full_messa
   }
 
   if (td_->auth_manager_->is_bot()) {
-    td_->messages_manager_->on_external_update_message_content(full_message_id);
+    if ((server_poll_messages_.count(poll_id) > 0 && server_poll_messages_[poll_id].count(full_message_id) > 0) ||
+        (other_poll_messages_.count(poll_id) > 0 && other_poll_messages_[poll_id].count(full_message_id) > 0)) {
+      td_->messages_manager_->on_external_update_message_content(full_message_id);
+    }
   }
 
   promise.set_result(std::move(result));
