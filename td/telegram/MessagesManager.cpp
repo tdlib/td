@@ -21309,12 +21309,17 @@ Status MessagesManager::view_messages(DialogId dialog_id, MessageId top_thread_m
     return Status::Error(400, "Can't access the chat");
   }
 
+  MessageId max_thread_message_id;
   if (top_thread_message_id != MessageId()) {
     if (!top_thread_message_id.is_valid() || !top_thread_message_id.is_server()) {
       return Status::Error(400, "Invalid message thread ID specified");
     }
     if (dialog_id.get_type() != DialogType::Channel || is_broadcast_channel(dialog_id)) {
       return Status::Error(400, "There are no message threads in the chat");
+    }
+    const auto *top_m = get_message_force(d, top_thread_message_id, "view_messages 6");
+    if (top_m != nullptr && !top_m->reply_info.is_comment_) {
+      max_thread_message_id = top_m->reply_info.max_message_id_;
     }
   }
 
@@ -21328,7 +21333,7 @@ Status MessagesManager::view_messages(DialogId dialog_id, MessageId top_thread_m
       continue;
     }
 
-    auto *m = get_message_force(d, message_id, "view_messages");
+    auto *m = get_message_force(d, message_id, "view_messages 1");
     if (m != nullptr) {
       if (m->message_id.is_server() && m->view_count > 0) {
         d->pending_viewed_message_ids.insert(m->message_id);
@@ -21386,9 +21391,11 @@ Status MessagesManager::view_messages(DialogId dialog_id, MessageId top_thread_m
         view_id = ++info->current_view_id;
         info->recently_viewed_messages[view_id] = message_id;
       }
-    } else if (!message_id.is_yet_unsent() && message_id > max_message_id &&
-               message_id <= d->max_notification_message_id) {
-      max_message_id = message_id;
+    } else if (!message_id.is_yet_unsent() && message_id > max_message_id) {
+      if (message_id <= d->max_notification_message_id || message_id <= d->last_new_message_id ||
+          message_id <= max_thread_message_id) {
+        max_message_id = message_id;
+      }
     }
   }
   if (!d->pending_viewed_message_ids.empty()) {
@@ -21423,7 +21430,7 @@ Status MessagesManager::view_messages(DialogId dialog_id, MessageId top_thread_m
 
   if (top_thread_message_id.is_valid() && max_message_id.is_valid()) {
     MessageId prev_last_read_inbox_message_id;
-    MessageId max_thread_message_id;
+    max_thread_message_id = MessageId();
     Message *top_m = get_message_force(d, top_thread_message_id, "view_messages 2");
     if (top_m != nullptr && is_active_message_reply_info(dialog_id, top_m->reply_info)) {
       prev_last_read_inbox_message_id = top_m->reply_info.last_read_inbox_message_id_;
