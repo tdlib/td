@@ -84,7 +84,7 @@ Result<size_t> HttpReader::read_next(HttpQuery *query, bool can_be_slow) {
           return Status::Error(501, "Unimplemented: unsupported transfer-encoding");
         }
 
-        if (content_encoding_.empty()) {
+        if (content_encoding_.empty() || content_encoding_ == "none") {
         } else if (content_encoding_ == "gzip" || content_encoding_ == "deflate") {
           gzip_flow_ = GzipByteFlow(Gzip::Mode::Decode);
           GzipByteFlow::Options options;
