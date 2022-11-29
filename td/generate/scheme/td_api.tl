@@ -5586,16 +5586,20 @@ createSupergroupChat supergroup_id:int53 force:Bool = Chat;
 //@description Returns an existing chat corresponding to a known secret chat @secret_chat_id Secret chat identifier
 createSecretChat secret_chat_id:int32 = Chat;
 
-//@description Creates a new basic group and sends a corresponding messageBasicGroupChatCreate. Returns the newly created chat @user_ids Identifiers of users to be added to the basic group @title Title of the new basic group; 1-128 characters
-createNewBasicGroupChat user_ids:vector<int53> title:string = Chat;
+//@description Creates a new basic group and sends a corresponding messageBasicGroupChatCreate. Returns the newly created chat
+//@user_ids Identifiers of users to be added to the basic group
+//@title Title of the new basic group; 1-128 characters
+//@message_ttl Message TTL value, in seconds; must be from 0 up to 365 * 86400 and be divisible by 86400
+createNewBasicGroupChat user_ids:vector<int53> title:string message_ttl:int32 = Chat;
 
 //@description Creates a new supergroup or channel and sends a corresponding messageSupergroupChatCreate. Returns the newly created chat
 //@title Title of the new chat; 1-128 characters
 //@is_channel Pass true to create a channel chat
 //@param_description Chat description; 0-255 characters
 //@location Chat location if a location-based supergroup is being created; pass null to create an ordinary supergroup chat
+//@message_ttl Message TTL value, in seconds; must be from 0 up to 365 * 86400 and be divisible by 86400
 //@for_import Pass true to create a supergroup for importing messages using importMessage
-createNewSupergroupChat title:string is_channel:Bool description:string location:chatLocation for_import:Bool = Chat;
+createNewSupergroupChat title:string is_channel:Bool description:string location:chatLocation message_ttl:int32 for_import:Bool = Chat;
 
 //@description Creates a new secret chat. Returns the newly created chat @user_id Identifier of the target user
 createNewSecretChat user_id:int53 = Chat;

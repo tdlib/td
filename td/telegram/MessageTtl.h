@@ -34,6 +34,8 @@ class MessageTtl {
 
   int32 get_message_ttl_object() const;
 
+  int32 get_input_ttl_period() const;
+
   template <class StorerT>
   void store(StorerT &storer) const {
     td::store(period_, storer);

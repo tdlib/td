@@ -1628,12 +1628,14 @@ class CreateChatRequest final : public RequestActor<> {
 class CreateNewGroupChatRequest final : public RequestActor<> {
   vector<UserId> user_ids_;
   string title_;
+  MessageTtl message_ttl_;
   int64 random_id_;
 
   DialogId dialog_id_;
 
   void do_run(Promise<Unit> &&promise) final {
-    dialog_id_ = td_->messages_manager_->create_new_group_chat(user_ids_, title_, random_id_, std::move(promise));
+    dialog_id_ =
+        td_->messages_manager_->create_new_group_chat(user_ids_, title_, message_ttl_, random_id_, std::move(promise));
   }
 
   void do_send_result() final {
@@ -1642,10 +1644,12 @@ class CreateNewGroupChatRequest final : public RequestActor<> {
   }
 
  public:
-  CreateNewGroupChatRequest(ActorShared<Td> td, uint64 request_id, vector<UserId> user_ids, string title)
+  CreateNewGroupChatRequest(ActorShared<Td> td, uint64 request_id, vector<UserId> user_ids, string title,
+                            int32 message_ttl)
       : RequestActor(std::move(td), request_id)
       , user_ids_(std::move(user_ids))
       , title_(std::move(title))
+      , message_ttl_(message_ttl)
       , random_id_(0) {
   }
 };
@@ -1691,13 +1695,14 @@ class CreateNewSupergroupChatRequest final : public RequestActor<> {
   string description_;
   DialogLocation location_;
   bool for_import_;
+  MessageTtl message_ttl_;
   int64 random_id_;
 
   DialogId dialog_id_;
 
   void do_run(Promise<Unit> &&promise) final {
-    dialog_id_ = td_->messages_manager_->create_new_channel_chat(title_, is_megagroup_, description_, location_,
-                                                                 for_import_, random_id_, std::move(promise));
+    dialog_id_ = td_->messages_manager_->create_new_channel_chat(
+        title_, is_megagroup_, description_, location_, for_import_, message_ttl_, random_id_, std::move(promise));
   }
 
   void do_send_result() final {
@@ -1708,13 +1713,14 @@ class CreateNewSupergroupChatRequest final : public RequestActor<> {
  public:
   CreateNewSupergroupChatRequest(ActorShared<Td> td, uint64 request_id, string title, bool is_megagroup,
                                  string description, td_api::object_ptr<td_api::chatLocation> &&location,
-                                 bool for_import)
+                                 bool for_import, int32 message_ttl)
       : RequestActor(std::move(td), request_id)
       , title_(std::move(title))
       , is_megagroup_(is_megagroup)
       , description_(std::move(description))
       , location_(std::move(location))
       , for_import_(for_import)
+      , message_ttl_(message_ttl)
       , random_id_(0) {
   }
 };
@@ -5637,7 +5643,8 @@ void Td::on_request(uint64 id, td_api::createSecretChat &request) {
 void Td::on_request(uint64 id, td_api::createNewBasicGroupChat &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.title_);
-  CREATE_REQUEST(CreateNewGroupChatRequest, UserId::get_user_ids(request.user_ids_), std::move(request.title_));
+  CREATE_REQUEST(CreateNewGroupChatRequest, UserId::get_user_ids(request.user_ids_), std::move(request.title_),
+                 request.message_ttl_);
 }
 
 void Td::on_request(uint64 id, td_api::createNewSupergroupChat &request) {
@@ -5645,8 +5652,10 @@ void Td::on_request(uint64 id, td_api::createNewSupergroupChat &request) {
   CLEAN_INPUT_STRING(request.title_);
   CLEAN_INPUT_STRING(request.description_);
   CREATE_REQUEST(CreateNewSupergroupChatRequest, std::move(request.title_), !request.is_channel_,
-                 std::move(request.description_), std::move(request.location_), request.for_import_);
+                 std::move(request.description_), std::move(request.location_), request.for_import_,
+                 request.message_ttl_);
 }
+
 void Td::on_request(uint64 id, td_api::createNewSecretChat &request) {
   CREATE_REQUEST(CreateNewSecretChatRequest, request.user_id_);
 }

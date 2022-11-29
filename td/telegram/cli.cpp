@@ -4258,18 +4258,22 @@ class CliClient final : public Actor {
     } else if (op == "cnbgc") {
       string user_ids_string;
       string title;
-      get_args(args, user_ids_string, title);
-      send_request(td_api::make_object<td_api::createNewBasicGroupChat>(as_user_ids(user_ids_string), title));
-    } else if (op == "cnchc") {
-      send_request(td_api::make_object<td_api::createNewSupergroupChat>(args, true, "Description", nullptr, false));
-    } else if (op == "cnsgc") {
-      send_request(td_api::make_object<td_api::createNewSupergroupChat>(args, false, "Description", nullptr, false));
+      int32 message_ttl;
+      get_args(args, user_ids_string, title, message_ttl);
+      send_request(
+          td_api::make_object<td_api::createNewBasicGroupChat>(as_user_ids(user_ids_string), title, message_ttl));
+    } else if (op == "cnchc" || op == "cnchcttl") {
+      send_request(td_api::make_object<td_api::createNewSupergroupChat>(args, true, "Description", nullptr,
+                                                                        op == "cnchcttl" ? 86400 : 0, false));
+    } else if (op == "cnsgc" || op == "cnsgcttl") {
+      send_request(td_api::make_object<td_api::createNewSupergroupChat>(args, false, "Description", nullptr,
+                                                                        op == "cnsgcttl" ? 86400 : 0, false));
     } else if (op == "cnsgcloc") {
       send_request(td_api::make_object<td_api::createNewSupergroupChat>(
           args, false, "Description",
-          td_api::make_object<td_api::chatLocation>(as_location("40.0", "60.0", ""), "address"), false));
+          td_api::make_object<td_api::chatLocation>(as_location("40.0", "60.0", ""), "address"), 0, false));
     } else if (op == "cnsgcimport") {
-      send_request(td_api::make_object<td_api::createNewSupergroupChat>(args, false, "Description", nullptr, true));
+      send_request(td_api::make_object<td_api::createNewSupergroupChat>(args, false, "Description", nullptr, 0, true));
     } else if (op == "UpgradeBasicGroupChatToSupergroupChat") {
       ChatId chat_id;
       get_args(args, chat_id);

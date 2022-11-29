@@ -16,6 +16,10 @@ int32 MessageTtl::get_message_ttl_object() const {
   return period_;
 }
 
+int32 MessageTtl::get_input_ttl_period() const {
+  return period_;
+}
+
 bool operator==(const MessageTtl &lhs, const MessageTtl &rhs) {
   return lhs.period_ == rhs.period_;
 }

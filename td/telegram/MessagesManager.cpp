@@ -1013,11 +1013,12 @@ class CreateChatQuery final : public Td::ResultHandler {
   explicit CreateChatQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(vector<tl_object_ptr<telegram_api::InputUser>> &&input_users, const string &title, int64 random_id) {
+  void send(vector<tl_object_ptr<telegram_api::InputUser>> &&input_users, const string &title, MessageTtl message_ttl,
+            int64 random_id) {
     random_id_ = random_id;
-    int32 flags = 0;
-    send_query(
-        G()->net_query_creator().create(telegram_api::messages_createChat(flags, std::move(input_users), title, 0)));
+    int32 flags = telegram_api::messages_createChat::TTL_PERIOD_MASK;
+    send_query(G()->net_query_creator().create(
+        telegram_api::messages_createChat(flags, std::move(input_users), title, message_ttl.get_input_ttl_period())));
   }
 
   void on_result(BufferSlice packet) final {
@@ -1046,8 +1047,8 @@ class CreateChannelQuery final : public Td::ResultHandler {
   }
 
   void send(const string &title, bool is_megagroup, const string &about, const DialogLocation &location,
-            bool for_import, int64 random_id) {
-    int32 flags = 0;
+            bool for_import, MessageTtl message_ttl, int64 random_id) {
+    int32 flags = telegram_api::channels_createChannel::TTL_PERIOD_MASK;
     if (is_megagroup) {
       flags |= telegram_api::channels_createChannel::MEGAGROUP_MASK;
     } else {
@@ -1061,9 +1062,9 @@ class CreateChannelQuery final : public Td::ResultHandler {
     }
 
     random_id_ = random_id;
-    send_query(G()->net_query_creator().create(
-        telegram_api::channels_createChannel(flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, title,
-                                             about, location.get_input_geo_point(), location.get_address(), 0)));
+    send_query(G()->net_query_creator().create(telegram_api::channels_createChannel(
+        flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, title, about, location.get_input_geo_point(),
+        location.get_address(), message_ttl.get_input_ttl_period())));
   }
 
   void on_result(BufferSlice packet) final {
@@ -21145,8 +21146,8 @@ void MessagesManager::create_dialog(DialogId dialog_id, bool force, Promise<Unit
   promise.set_value(Unit());
 }
 
-DialogId MessagesManager::create_new_group_chat(const vector<UserId> &user_ids, const string &title, int64 &random_id,
-                                                Promise<Unit> &&promise) {
+DialogId MessagesManager::create_new_group_chat(const vector<UserId> &user_ids, const string &title,
+                                                MessageTtl message_ttl, int64 &random_id, Promise<Unit> &&promise) {
   LOG(INFO) << "Trying to create group chat \"" << title << "\" with members " << format::as_array(user_ids);
 
   if (random_id != 0) {
@@ -21192,13 +21193,14 @@ DialogId MessagesManager::create_new_group_chat(const vector<UserId> &user_ids, 
   } while (random_id == 0 || created_dialogs_.count(random_id) > 0);
   created_dialogs_[random_id];  // reserve place for result
 
-  td_->create_handler<CreateChatQuery>(std::move(promise))->send(std::move(input_users), new_title, random_id);
+  td_->create_handler<CreateChatQuery>(std::move(promise))
+      ->send(std::move(input_users), new_title, message_ttl, random_id);
   return DialogId();
 }
 
 DialogId MessagesManager::create_new_channel_chat(const string &title, bool is_megagroup, const string &description,
-                                                  const DialogLocation &location, bool for_import, int64 &random_id,
-                                                  Promise<Unit> &&promise) {
+                                                  const DialogLocation &location, bool for_import,
+                                                  MessageTtl message_ttl, int64 &random_id, Promise<Unit> &&promise) {
   LOG(INFO) << "Trying to create " << (is_megagroup ? "supergroup" : "broadcast") << " with title \"" << title
             << "\", description \"" << description << "\" and " << location;
 
@@ -21232,7 +21234,7 @@ DialogId MessagesManager::create_new_channel_chat(const string &title, bool is_m
 
   td_->create_handler<CreateChannelQuery>(std::move(promise))
       ->send(new_title, is_megagroup, strip_empty_characters(description, MAX_DESCRIPTION_LENGTH), location, for_import,
-             random_id);
+             message_ttl, random_id);
   return DialogId();
 }
 
@@ -33383,7 +33385,7 @@ void MessagesManager::on_create_new_dialog_success(int64 random_id, tl_object_pt
                                                    DialogType expected_type, Promise<Unit> &&promise) {
   auto sent_messages = UpdatesManager::get_new_messages(updates.get());
   auto sent_messages_random_ids = UpdatesManager::get_sent_messages_random_ids(updates.get());
-  if (sent_messages.size() != 1u || sent_messages_random_ids.size() != 1u) {
+  if (sent_messages.size() < 1u || sent_messages_random_ids.size() < 1u) {
     LOG(ERROR) << "Receive wrong result for create group or channel chat " << oneline(to_string(updates));
     return on_create_new_dialog_fail(random_id, Status::Error(500, "Unsupported server response"), std::move(promise));
   }
@@ -33395,6 +33397,15 @@ void MessagesManager::on_create_new_dialog_success(int64 random_id, tl_object_pt
   auto dialog_id = get_message_dialog_id(*message);
   if (dialog_id.get_type() != expected_type) {
     return on_create_new_dialog_fail(random_id, Status::Error(500, "Chat of wrong type has been created"),
+                                     std::move(promise));
+  }
+  if ((*message)->get_id() != telegram_api::messageService::ID) {
+    return on_create_new_dialog_fail(random_id, Status::Error(500, "Invalid message received"), std::move(promise));
+  }
+  auto action_id = static_cast<const telegram_api::messageService *>((*message).get())->action_->get_id();
+  if (action_id != telegram_api::messageActionChatCreate::ID &&
+      action_id != telegram_api::messageActionChannelCreate::ID) {
+    return on_create_new_dialog_fail(random_id, Status::Error(500, "Invalid service message received"),
                                      std::move(promise));
   }
 
