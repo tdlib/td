@@ -3649,7 +3649,7 @@ userPrivacySettingAllowPrivateVoiceAndVideoNoteMessages = UserPrivacySetting;
 accountTtl days:int32 = AccountTtl;
 
 
-//@description Contains default message Time To Live setting (self-destruct timer) for new chats @ttl Message TTL setting, in seconds
+//@description Contains default message Time To Live setting (self-destruct timer) for new chats @ttl Message TTL setting, in seconds. If 0, then messages aren't deleted automatically
 messageTtl ttl:int32 = MessageTtl;
 
 
@@ -5593,7 +5593,7 @@ createSecretChat secret_chat_id:int32 = Chat;
 //@description Creates a new basic group and sends a corresponding messageBasicGroupChatCreate. Returns the newly created chat
 //@user_ids Identifiers of users to be added to the basic group
 //@title Title of the new basic group; 1-128 characters
-//@message_ttl Message TTL value, in seconds; must be from 0 up to 365 * 86400 and be divisible by 86400
+//@message_ttl Message TTL value, in seconds; must be from 0 up to 365 * 86400 and be divisible by 86400. If 0, then messages aren't deleted automatically
 createNewBasicGroupChat user_ids:vector<int53> title:string message_ttl:int32 = Chat;
 
 //@description Creates a new supergroup or channel and sends a corresponding messageSupergroupChatCreate. Returns the newly created chat
@@ -5601,7 +5601,7 @@ createNewBasicGroupChat user_ids:vector<int53> title:string message_ttl:int32 = 
 //@is_channel Pass true to create a channel chat
 //@param_description Chat description; 0-255 characters
 //@location Chat location if a location-based supergroup is being created; pass null to create an ordinary supergroup chat
-//@message_ttl Message TTL value, in seconds; must be from 0 up to 365 * 86400 and be divisible by 86400
+//@message_ttl Message TTL value, in seconds; must be from 0 up to 365 * 86400 and be divisible by 86400. If 0, then messages aren't deleted automatically
 //@for_import Pass true to create a supergroup for importing messages using importMessage
 createNewSupergroupChat title:string is_channel:Bool description:string location:chatLocation message_ttl:int32 for_import:Bool = Chat;
 
@@ -5651,7 +5651,7 @@ setChatPhoto chat_id:int53 photo:InputChatPhoto = Ok;
 
 //@description Changes the message TTL in a chat. Requires can_delete_messages administrator right in basic groups, supergroups and channels
 //-Message TTL can't be changed in a chat with the current user (Saved Messages) and the chat 777000 (Telegram).
-//@chat_id Chat identifier @ttl New TTL value, in seconds; unless the chat is secret, it must be from 0 up to 365 * 86400 and be divisible by 86400
+//@chat_id Chat identifier @ttl New TTL value, in seconds; unless the chat is secret, it must be from 0 up to 365 * 86400 and be divisible by 86400. If 0, then messages aren't deleted automatically
 setChatMessageTtl chat_id:int53 ttl:int32 = Ok;
 
 //@description Changes the chat members permissions. Supported only for basic groups and supergroups. Requires can_restrict_members administrator right
@@ -6597,7 +6597,7 @@ getAccountTtl = AccountTtl;
 deleteAccount reason:string password:string = Ok;
 
 
-//@description Changes the default message Time To Live setting (self-destruct timer) for new chats @ttl New account TTL; must be from 0 up to 365 * 86400 and be divisible by 86400
+//@description Changes the default message Time To Live setting (self-destruct timer) for new chats @ttl New message TTL; must be from 0 up to 365 * 86400 and be divisible by 86400. If 0, then messages aren't deleted automatically
 setDefaultMessageTtl ttl:messageTtl = Ok;
 
 //@description Returns default message Time To Live setting (self-destruct timer) for new chats
