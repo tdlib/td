@@ -4462,6 +4462,19 @@ void Td::on_request(uint64 id, td_api::setUserPrivacySettingRules &request) {
                std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::getDefaultMessageTtl &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  auto query_promise = PromiseCreator::lambda([promise = std::move(promise)](Result<int32> result) mutable {
+    if (result.is_error()) {
+      promise.set_error(result.move_as_error());
+    } else {
+      promise.set_value(td_api::make_object<td_api::messageTtl>(result.ok()));
+    }
+  });
+  get_default_message_ttl(this, std::move(query_promise));
+}
+
 void Td::on_request(uint64 id, const td_api::setDefaultMessageTtl &request) {
   CHECK_IS_USER();
   if (request.ttl_ == nullptr) {

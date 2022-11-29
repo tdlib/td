@@ -6600,6 +6600,9 @@ deleteAccount reason:string password:string = Ok;
 //@description Changes the default message Time To Live setting (self-destruct timer) for new chats @ttl New account TTL; must be from 0 up to 365 * 86400 and be divisible by 86400
 setDefaultMessageTtl ttl:messageTtl = Ok;
 
+//@description Returns default message Time To Live setting (self-destruct timer) for new chats
+getDefaultMessageTtl = MessageTtl;
+
 
 //@description Removes a chat action bar without any other action @chat_id Chat identifier
 removeChatActionBar chat_id:int53 = Ok;

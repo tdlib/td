@@ -2522,6 +2522,8 @@ class CliClient final : public Actor {
       int32 ttl;
       get_args(args, ttl);
       send_request(td_api::make_object<td_api::setDefaultMessageTtl>(td_api::make_object<td_api::messageTtl>(ttl)));
+    } else if (op == "gdmttl") {
+      send_request(td_api::make_object<td_api::getDefaultMessageTtl>());
     } else if (op == "sattl") {
       int32 days;
       get_args(args, days);
