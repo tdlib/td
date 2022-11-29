@@ -7051,7 +7051,7 @@ void MessagesManager::update_message_interaction_info(FullMessageId full_message
   Message *m = get_message_force(d, message_id, "update_message_interaction_info");
   if (m == nullptr) {
     LOG(INFO) << "Ignore message interaction info about unknown " << full_message_id;
-    if (!message_id.is_scheduled() && message_id > d->last_new_message_id &&
+    if (!message_id.is_scheduled() && message_id > d->last_new_message_id && d->last_new_message_id.is_valid() &&
         dialog_id.get_type() == DialogType::Channel) {
       get_channel_difference(dialog_id, d->pts, true, "update_message_interaction_info");
     }
@@ -12390,7 +12390,7 @@ void MessagesManager::read_channel_message_content_from_updates(Dialog *d, Messa
   Message *m = get_message_force(d, message_id, "read_channel_message_content_from_updates");
   if (m != nullptr) {
     read_message_content(d, m, false, "read_channel_message_content_from_updates");
-  } else if (message_id > d->last_new_message_id) {
+  } else if (message_id > d->last_new_message_id && d->last_new_message_id.is_valid()) {
     get_channel_difference(d->dialog_id, d->pts, true, "read_channel_message_content_from_updates");
   }
 }
@@ -16066,7 +16066,7 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
             set_dialog_last_message_id(d, d->last_new_message_id, source);
             send_update_chat_last_message(d, source);
           }
-        } else {
+        } else if (dialog_id.get_type() == DialogType::Channel) {
           get_channel_difference(dialog_id, d->pts, true, source);
         }
       }
