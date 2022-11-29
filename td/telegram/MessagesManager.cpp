@@ -16021,6 +16021,10 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
                  << dialog_id;
       dialog->unread_reactions_count_ = 0;
     }
+    if (dialog->ttl_period_ < 0) {
+      LOG(ERROR) << "Receive " << dialog->ttl_period_ << " as message TTL in " << dialog_id;
+      dialog->ttl_period_ = 0;
+    }
     if (!d->is_is_blocked_inited && !td_->auth_manager_->is_bot()) {
       // asynchronously get is_blocked from the server
       // TODO add is_blocked to telegram_api::dialog
@@ -16162,6 +16166,8 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
         send_update_chat_unread_reaction_count(d, source);
       }
     }
+
+    set_dialog_message_ttl(d, MessageTtl(dialog->ttl_period_));
 
     being_added_dialog_id_ = DialogId();
 
@@ -33348,7 +33354,11 @@ void MessagesManager::on_update_dialog_message_ttl(DialogId dialog_id, MessageTt
     // nothing to do
     return;
   }
+  set_dialog_message_ttl(d, std::move(message_ttl));
+}
 
+void MessagesManager::set_dialog_message_ttl(Dialog *d, MessageTtl message_ttl) {
+  CHECK(d != nullptr);
   if (d->message_ttl != message_ttl) {
     d->message_ttl = message_ttl;
     d->is_message_ttl_inited = true;
@@ -33356,7 +33366,7 @@ void MessagesManager::on_update_dialog_message_ttl(DialogId dialog_id, MessageTt
   }
   if (!d->is_message_ttl_inited) {
     d->is_message_ttl_inited = true;
-    on_dialog_updated(dialog_id, "on_update_dialog_message_ttl");
+    on_dialog_updated(d->dialog_id, "on_update_dialog_message_ttl");
   }
 }
 

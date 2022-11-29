@@ -2729,6 +2729,8 @@ class MessagesManager final : public Actor {
 
   bool update_dialog_silent_send_message(Dialog *d, bool silent_send_message);
 
+  void set_dialog_message_ttl(Dialog *d, MessageTtl message_ttl);
+
   ChatReactions get_message_available_reactions(const Dialog *d, const Message *m,
                                                 bool dissalow_custom_for_non_premium);
 
