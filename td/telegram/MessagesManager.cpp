@@ -7042,6 +7042,10 @@ void MessagesManager::update_message_interaction_info(FullMessageId full_message
                                                       int32 forward_count, bool has_reply_info,
                                                       tl_object_ptr<telegram_api::messageReplies> &&reply_info,
                                                       bool has_reactions, unique_ptr<MessageReactions> &&reactions) {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+
   auto dialog_id = full_message_id.get_dialog_id();
   Dialog *d = get_dialog_force(dialog_id, "update_message_interaction_info");
   if (d == nullptr) {
@@ -7242,6 +7246,10 @@ bool MessagesManager::update_message_interaction_info(Dialog *d, Message *m, int
                                                       bool has_reply_info, MessageReplyInfo &&reply_info,
                                                       bool has_reactions, unique_ptr<MessageReactions> &&reactions,
                                                       const char *source) {
+  if (td_->auth_manager_->is_bot()) {
+    return false;
+  }
+
   CHECK(d != nullptr);
   CHECK(m != nullptr);
   auto dialog_id = d->dialog_id;
