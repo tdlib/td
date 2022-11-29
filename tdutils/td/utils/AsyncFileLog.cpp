@@ -49,7 +49,12 @@ Status AsyncFileLog::init(string path, int64 rotate_threshold, bool redirect_std
           if (!Stderr().empty() && redirect_stderr) {
             fd.get_native_fd().duplicate(Stderr().get_native_fd()).ignore();
           }
-          size = 0;
+          auto r_size = fd.get_size();
+          if (r_fd.is_error()) {
+            process_fatal_error(PSLICE() << "Failed to get log size: " << r_fd.error() << " in " << __FILE__ << " at "
+                                         << __LINE__ << '\n');
+          }
+          size = r_size.move_as_ok();
         };
         auto append = [&](CSlice slice) {
           if (size > rotate_threshold) {
