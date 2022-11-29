@@ -2094,8 +2094,8 @@ messageScreenshotTaken = MessageContent;
 //@description A theme in the chat has been changed @theme_name If non-empty, name of a new theme, set for the chat. Otherwise chat theme was reset to the default one
 messageChatSetTheme theme_name:string = MessageContent;
 
-//@description The TTL (Time To Live) setting for messages in the chat has been changed @ttl New message TTL
-messageChatSetTtl ttl:int32 = MessageContent;
+//@description The TTL (Time To Live) setting for messages in the chat has been changed @ttl New message TTL @from_user_id If not 0, a user identifier, which default setting was automatically applied
+messageChatSetTtl ttl:int32 from_user_id:int53 = MessageContent;
 
 //@description A forum topic has been created @name Name of the topic @icon Icon of the topic
 messageForumTopicCreated name:string icon:forumTopicIcon = MessageContent;

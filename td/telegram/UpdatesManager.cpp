@@ -768,7 +768,6 @@ bool UpdatesManager::is_acceptable_message(const telegram_api::Message *message_
         case telegram_api::messageActionContactSignUp::ID:
         case telegram_api::messageActionGroupCall::ID:
         case telegram_api::messageActionGroupCallScheduled::ID:
-        case telegram_api::messageActionSetMessagesTTL::ID:
         case telegram_api::messageActionSetChatTheme::ID:
         case telegram_api::messageActionChatJoinedByRequest::ID:
         case telegram_api::messageActionWebViewDataSentMe::ID:
@@ -835,6 +834,14 @@ bool UpdatesManager::is_acceptable_message(const telegram_api::Message *message_
             if (!is_acceptable_user(UserId(user))) {
               return false;
             }
+          }
+          break;
+        }
+        case telegram_api::messageActionSetMessagesTTL::ID: {
+          auto set_messages_ttl = static_cast<const telegram_api::messageActionSetMessagesTTL *>(action);
+          if (set_messages_ttl->auto_setting_from_ != 0 &&
+              !is_acceptable_user(UserId(set_messages_ttl->auto_setting_from_))) {
+            return false;
           }
           break;
         }

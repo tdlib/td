@@ -14527,7 +14527,7 @@ void MessagesManager::on_secret_chat_ttl_changed(SecretChatId secret_chat_id, Us
   message_info.date = date;
   message_info.random_id = random_id;
   message_info.flags = MESSAGE_FLAG_HAS_FROM_ID;
-  message_info.content = create_chat_set_ttl_message_content(ttl);
+  message_info.content = create_chat_set_ttl_message_content(ttl, UserId());
 
   Dialog *d = get_dialog_force(message_info.dialog_id, "on_secret_chat_ttl_changed");
   if (d == nullptr && have_dialog_info_force(message_info.dialog_id)) {
@@ -34564,7 +34564,7 @@ void MessagesManager::set_dialog_message_ttl(DialogId dialog_id, int32 ttl, Prom
   } else {
     bool need_update_dialog_pos = false;
     Message *m = get_message_to_send(d, MessageId(), MessageId(), MessageSendOptions(),
-                                     create_chat_set_ttl_message_content(ttl), &need_update_dialog_pos);
+                                     create_chat_set_ttl_message_content(ttl, UserId()), &need_update_dialog_pos);
 
     send_update_new_message(d, m);
     if (need_update_dialog_pos) {

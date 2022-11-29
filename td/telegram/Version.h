@@ -57,6 +57,7 @@ enum class Version : int32 {
   AddStickerSetListFlags,
   AddInputInvoiceFlags,
   AddVideoNoteFlags,
+  AddMessageChatSetTtlFlags,
   Next
 };
 
