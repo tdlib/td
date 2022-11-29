@@ -109,6 +109,36 @@ static td_api::object_ptr<td_api::session> convert_authorization_object(
       authorization->country_, authorization->region_);
 }
 
+class SetDefaultHistoryTtlQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit SetDefaultHistoryTtlQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(int32 account_ttl) {
+    send_query(G()->net_query_creator().create(telegram_api::messages_setDefaultHistoryTTL(account_ttl), {{"me"}}));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_setDefaultHistoryTTL>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    bool result = result_ptr.move_as_ok();
+    if (!result) {
+      return on_error(Status::Error(500, "Internal Server Error: failed to set default message TTL"));
+    }
+
+    promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class SetAccountTtlQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
@@ -530,6 +560,10 @@ class SetBotBroadcastDefaultAdminRightsQuery final : public Td::ResultHandler {
     promise_.set_error(std::move(status));
   }
 };
+
+void set_default_message_ttl(Td *td, int32 message_ttl, Promise<Unit> &&promise) {
+  td->create_handler<SetDefaultHistoryTtlQuery>(std::move(promise))->send(message_ttl);
+}
 
 void set_account_ttl(Td *td, int32 account_ttl, Promise<Unit> &&promise) {
   td->create_handler<SetAccountTtlQuery>(std::move(promise))->send(account_ttl);

@@ -470,6 +470,8 @@ class Td final : public Actor {
 
   void on_request(uint64 id, td_api::setUserPrivacySettingRules &request);
 
+  void on_request(uint64 id, const td_api::setDefaultMessageTtl &request);
+
   void on_request(uint64 id, const td_api::getAccountTtl &request);
 
   void on_request(uint64 id, const td_api::setAccountTtl &request);

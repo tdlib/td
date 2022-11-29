@@ -4462,6 +4462,15 @@ void Td::on_request(uint64 id, td_api::setUserPrivacySettingRules &request) {
                std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::setDefaultMessageTtl &request) {
+  CHECK_IS_USER();
+  if (request.ttl_ == nullptr) {
+    return send_error_raw(id, 400, "New default message TTL must be non-empty");
+  }
+  CREATE_OK_REQUEST_PROMISE();
+  set_default_message_ttl(this, request.ttl_->ttl_, std::move(promise));
+}
+
 void Td::on_request(uint64 id, const td_api::getAccountTtl &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();

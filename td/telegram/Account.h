@@ -16,6 +16,8 @@ namespace td {
 
 class Td;
 
+void set_default_message_ttl(Td *td, int32 message_ttl, Promise<Unit> &&promise);
+
 void set_account_ttl(Td *td, int32 account_ttl, Promise<Unit> &&promise);
 
 void get_account_ttl(Td *td, Promise<int32> &&promise);

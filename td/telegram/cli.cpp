@@ -2518,6 +2518,10 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::setOption>(name, td_api::make_object<td_api::optionValueString>(value)));
     } else if (op == "me") {
       send_request(td_api::make_object<td_api::getMe>());
+    } else if (op == "sdmttl") {
+      int32 ttl;
+      get_args(args, ttl);
+      send_request(td_api::make_object<td_api::setDefaultMessageTtl>(td_api::make_object<td_api::messageTtl>(ttl)));
     } else if (op == "sattl") {
       int32 days;
       get_args(args, days);

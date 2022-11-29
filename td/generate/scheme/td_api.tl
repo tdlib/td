@@ -3649,6 +3649,10 @@ userPrivacySettingAllowPrivateVoiceAndVideoNoteMessages = UserPrivacySetting;
 accountTtl days:int32 = AccountTtl;
 
 
+//@description Contains default message Time To Live setting (self-destruct timer) for new chats @ttl Message TTL setting, in seconds
+messageTtl ttl:int32 = MessageTtl;
+
+
 //@class SessionType @description Represents the type of a session
 
 //@description The session is running on an Android device
@@ -6591,6 +6595,10 @@ getAccountTtl = AccountTtl;
 
 //@description Deletes the account of the current user, deleting all information associated with the user from the server. The phone number of the account can be used to create a new account. Can be called before authorization when the current authorization state is authorizationStateWaitPassword @reason The reason why the account was deleted; optional @password The 2-step verification password of the current user. If not specified, account deletion can be canceled within one week
 deleteAccount reason:string password:string = Ok;
+
+
+//@description Changes the default message Time To Live setting (self-destruct timer) for new chats @ttl New account TTL; must be from 0 up to 365 * 86400 and be divisible by 86400
+setDefaultMessageTtl ttl:messageTtl = Ok;
 
 
 //@description Removes a chat action bar without any other action @chat_id Chat identifier
