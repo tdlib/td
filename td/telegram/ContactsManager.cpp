@@ -3791,6 +3791,8 @@ void ContactsManager::start_up() {
   if (!pending_location_visibility_expire_date_) {
     try_send_set_location_visibility_query();
   }
+
+  on_update_fragment_prefixes();
 }
 
 void ContactsManager::tear_down() {
@@ -16886,6 +16888,22 @@ void ContactsManager::on_update_channel_administrator_count(ChannelId channel_id
 
     update_channel_full(channel_full, channel_id, "on_update_channel_administrator_count");
   }
+}
+
+void ContactsManager::on_update_fragment_prefixes() {
+  if (G()->close_flag()) {
+    return;
+  }
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+
+  auto fragment_prefixes_str = td_->option_manager_->get_option_string("fragment_prefixes", "888");
+  if (fragment_prefixes_str == fragment_prefixes_str_) {
+    return;
+  }
+  fragment_prefixes_str_ = std::move(fragment_prefixes_str);
+  fragment_prefixes_ = full_split(fragment_prefixes_str_, ',');
 }
 
 void ContactsManager::on_update_dialog_administrators(DialogId dialog_id, vector<DialogAdministrator> &&administrators,

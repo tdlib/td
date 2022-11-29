@@ -13,6 +13,7 @@
 #include "td/telegram/LinkManager.h"
 #include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/MessageReaction.h"
+#include "td/telegram/misc.h"
 #include "td/telegram/net/AuthDataShared.h"
 #include "td/telegram/net/ConnectionCreator.h"
 #include "td/telegram/net/DcId.h"
@@ -1493,6 +1494,7 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
   int32 stickers_normal_by_emoji_per_premium_num = 2;
   int32 forum_upgrade_participants_min = 200;
   int32 telegram_antispam_group_size_min = 100;
+  vector<string> fragment_prefixes;
   if (config->get_id() == telegram_api::jsonObject::ID) {
     for (auto &key_value : static_cast<telegram_api::jsonObject *>(config.get())->value_) {
       Slice key = key_value->key_;
@@ -1858,6 +1860,23 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
         telegram_antispam_group_size_min = get_json_value_int(std::move(key_value->value_), key);
         continue;
       }
+      if (key == "fragment_prefixes") {
+        if (value->get_id() == telegram_api::jsonArray::ID) {
+          auto prefixes = std::move(static_cast<telegram_api::jsonArray *>(value)->value_);
+          for (auto &prefix : prefixes) {
+            auto prefix_text = get_json_value_string(std::move(prefix), key);
+            clean_phone_number(prefix_text);
+            if (!prefix_text.empty()) {
+              fragment_prefixes.push_back(prefix_text);
+            } else {
+              LOG(ERROR) << "Receive an invalid Fragment prefix";
+            }
+          }
+        } else {
+          LOG(ERROR) << "Receive unexpected fragment_prefixes " << to_string(*value);
+        }
+        continue;
+      }
 
       new_values.push_back(std::move(key_value));
     }
@@ -1905,6 +1924,8 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
     options.set_option_string("dice_success_values", implode(dice_success_values, ','));
     options.set_option_string("dice_emojis", implode(dice_emojis, '\x01'));
   }
+
+  options.set_option_string("fragment_prefixes", implode(fragment_prefixes, ','));
 
   options.set_option_string("emoji_sounds", implode(emoji_sounds, ','));
 

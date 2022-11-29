@@ -264,6 +264,8 @@ bool OptionManager::is_internal_option(Slice name) {
              name == "dice_emojis" || name == "dice_success_values";
     case 'e':
       return name == "edit_time_limit" || name == "emoji_sounds";
+    case 'f':
+      return name == "fragment_prefixes";
     case 'i':
       return name == "ignored_restriction_reasons";
     case 'l':
@@ -359,6 +361,9 @@ void OptionManager::on_option_updated(Slice name) {
     case 'f':
       if (name == "favorite_stickers_limit") {
         td_->stickers_manager_->on_update_favorite_stickers_limit();
+      }
+      if (name == "fragment_prefixes") {
+        send_closure(td_->contacts_manager_actor_, &ContactsManager::on_update_fragment_prefixes);
       }
       break;
     case 'i':
