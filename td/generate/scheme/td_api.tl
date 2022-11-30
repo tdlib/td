@@ -5326,7 +5326,7 @@ createForumTopic chat_id:int53 name:string icon:forumTopicIcon = ForumTopicInfo;
 //@chat_id Identifier of the chat
 //@message_thread_id Message thread identifier of the forum topic
 //@name New name of the topic; 0-128 characters. If empty, the previous topic name is kept
-//@edit_icon_custom_emoji Pass true to edit the icon of the topic
+//@edit_icon_custom_emoji Pass true to edit the icon of the topic. Icon of the General topic can't be edited
 //@icon_custom_emoji_id Identifier of the new custom emoji for topic icon; pass 0 to remove the custom emoji. Ignored if edit_icon_custom_emoji is false. Telegram Premium users can use any custom emoji, other users can use only a custom emoji returned by getForumTopicDefaultIcons
 editForumTopic chat_id:int53 message_thread_id:int53 name:string edit_icon_custom_emoji:Bool icon_custom_emoji_id:int64 = Ok;
 

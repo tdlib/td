@@ -283,6 +283,9 @@ void ForumTopicManager::edit_forum_topic(DialogId dialog_id, MessageId top_threa
   if (edit_title && new_title.empty()) {
     return promise.set_error(Status::Error(400, "Title must be non-empty"));
   }
+  if (!edit_title && !edit_icon_custom_emoji) {
+    return promise.set_value(Unit());
+  }
 
   td_->create_handler<EditForumTopicQuery>(std::move(promise))
       ->send(channel_id, top_thread_message_id, edit_title, new_title, edit_icon_custom_emoji, icon_custom_emoji_id);
