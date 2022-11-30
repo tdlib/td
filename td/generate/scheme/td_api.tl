@@ -3031,6 +3031,9 @@ chatEventForumTopicEdited old_topic_info:forumTopicInfo new_topic_info:forumTopi
 //@description A forum topic was closed or reopened @topic_info New information about the topic
 chatEventForumTopicToggleIsClosed topic_info:forumTopicInfo = ChatEventAction;
 
+//@description The General forum topic was hidden or unhidden @topic_info New information about the topic
+chatEventForumTopicToggleIsHidden topic_info:forumTopicInfo = ChatEventAction;
+
 //@description A forum topic was deleted @topic_info Information about the topic
 chatEventForumTopicDeleted topic_info:forumTopicInfo = ChatEventAction;
 

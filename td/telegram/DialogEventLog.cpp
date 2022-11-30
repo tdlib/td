@@ -380,6 +380,12 @@ static td_api::object_ptr<td_api::ChatEventAction> get_chat_event_action_object(
         LOG(ERROR) << "Receive " << to_string(action);
         return nullptr;
       }
+      bool edit_is_closed = old_topic_info.is_closed() != new_topic_info.is_closed();
+      bool edit_is_hidden = old_topic_info.is_hidden() != new_topic_info.is_hidden();
+      if (edit_is_hidden && !(!new_topic_info.is_hidden() && edit_is_closed && !new_topic_info.is_closed())) {
+        return td_api::make_object<td_api::chatEventForumTopicToggleIsHidden>(
+            new_topic_info.get_forum_topic_info_object(td));
+      }
       if (old_topic_info.is_closed() != new_topic_info.is_closed()) {
         return td_api::make_object<td_api::chatEventForumTopicToggleIsClosed>(
             new_topic_info.get_forum_topic_info_object(td));
