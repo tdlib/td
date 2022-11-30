@@ -16918,6 +16918,16 @@ void ContactsManager::on_update_fragment_prefixes() {
   }
   fragment_prefixes_str_ = std::move(fragment_prefixes_str);
   fragment_prefixes_ = full_split(fragment_prefixes_str_, ',');
+
+  users_.foreach([&](const UserId &user_id, unique_ptr<User> &user) {
+    User *u = user.get();
+    bool should_be_fragment_phone_number = is_fragment_phone_number(u->phone_number);
+    if (u->is_fragment_phone_number != should_be_fragment_phone_number) {
+      u->is_fragment_phone_number = should_be_fragment_phone_number;
+      u->is_changed = true;
+      update_user(u, user_id);
+    }
+  });
 }
 
 void ContactsManager::on_update_dialog_administrators(DialogId dialog_id, vector<DialogAdministrator> &&administrators,
