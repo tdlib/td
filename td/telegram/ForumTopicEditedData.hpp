@@ -23,6 +23,7 @@ void ForumTopicEditedData::store(StorerT &storer) const {
   STORE_FLAG(is_closed_);
   STORE_FLAG(has_title);
   STORE_FLAG(has_icon_custom_emoji_id);
+  STORE_FLAG(is_hidden_);
   END_STORE_FLAGS();
   if (has_title) {
     td::store(title_, storer);
@@ -42,6 +43,7 @@ void ForumTopicEditedData::parse(ParserT &parser) {
   PARSE_FLAG(is_closed_);
   PARSE_FLAG(has_title);
   PARSE_FLAG(has_icon_custom_emoji_id);
+  PARSE_FLAG(is_hidden_);
   END_PARSE_FLAGS();
   if (has_title) {
     td::parse(title_, parser);

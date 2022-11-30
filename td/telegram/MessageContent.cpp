@@ -5204,9 +5204,10 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       auto action = move_tl_object_as<telegram_api::messageActionTopicEdit>(action_ptr);
       auto edit_icon_custom_emoji_id = (action->flags_ & telegram_api::messageActionTopicEdit::ICON_EMOJI_ID_MASK) != 0;
       auto edit_is_closed = (action->flags_ & telegram_api::messageActionTopicEdit::CLOSED_MASK) != 0;
-      return td::make_unique<MessageTopicEdit>(ForumTopicEditedData{std::move(action->title_),
-                                                                    edit_icon_custom_emoji_id, action->icon_emoji_id_,
-                                                                    edit_is_closed, action->closed_});
+      auto edit_is_hidden = (action->flags_ & telegram_api::messageActionTopicEdit::HIDDEN_MASK) != 0;
+      return td::make_unique<MessageTopicEdit>(
+          ForumTopicEditedData{std::move(action->title_), edit_icon_custom_emoji_id, action->icon_emoji_id_,
+                               edit_is_closed, action->closed_, edit_is_hidden, action->hidden_});
     }
     default:
       UNREACHABLE();

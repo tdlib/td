@@ -1327,7 +1327,7 @@ forumTopicInfo message_thread_id:int53 name:string icon:forumTopicIcon creation_
 //@info Basic information about the topic
 //@last_message Last message in the topic; may be null
 //@is_pinned True, if the topic is pinned in the topic list
-//@is_hidden True, if the topic is hidden above the topic list; for General topic only
+//@is_hidden True, if the topic is hidden above the topic list and closed; for General topic only
 //@unread_count Number of unread messages in the topic
 //@last_read_inbox_message_id Identifier of the last read incoming message
 //@last_read_outbox_message_id Identifier of the last read outgoing message
@@ -2105,8 +2105,11 @@ messageForumTopicCreated name:string icon:forumTopicIcon = MessageContent;
 //@description A forum topic has been edited @name If non-empty, the new name of the topic @edit_icon_custom_emoji_id True, if icon's custom_emoji_id is changed @icon_custom_emoji_id New unique identifier of the custom emoji shown on the topic icon; 0 if none. Must be ignored if edit_icon_custom_emoji_id is false
 messageForumTopicEdited name:string edit_icon_custom_emoji_id:Bool icon_custom_emoji_id:int64 = MessageContent;
 
-//@description A forum topic has been closed or opened @is_closed True if the topic was closed or reopened
+//@description A forum topic has been closed or opened @is_closed True, if the topic was closed, otherwise the topic was reopened
 messageForumTopicIsClosedToggled is_closed:Bool = MessageContent;
+
+//@description A General forum topic has been hidden or unhidden @is_hidden True, if the topic was hidden, otherwise the topic was unhidden
+messageForumTopicIsHiddenToggled is_hidden:Bool = MessageContent;
 
 //@description A non-standard action has happened in the chat @text Message text to be shown in the chat
 messageCustomServiceAction text:string = MessageContent;
@@ -2596,7 +2599,7 @@ groupCall id:int32 title:string scheduled_start_date:int32 enabled_start_notific
 groupCallVideoSourceGroup semantics:string source_ids:vector<int32> = GroupCallVideoSourceGroup;
 
 //@description Contains information about a group call participant's video channel @source_groups List of synchronization source groups of the video @endpoint_id Video channel endpoint identifier
-//@is_paused True if the video is paused. This flag needs to be ignored, if new video frames are received
+//@is_paused True, if the video is paused. This flag needs to be ignored, if new video frames are received
 groupCallParticipantVideoInfo source_groups:vector<groupCallVideoSourceGroup> endpoint_id:string is_paused:Bool = GroupCallParticipantVideoInfo;
 
 //@description Represents a group call participant
@@ -6067,7 +6070,7 @@ joinGroupCall group_call_id:int32 participant_id:MessageSender audio_source_id:i
 //@payload Group call join payload; received from tgcalls
 startGroupCallScreenSharing group_call_id:int32 audio_source_id:int32 payload:string = Text;
 
-//@description Pauses or unpauses screen sharing in a joined group call @group_call_id Group call identifier @is_paused True if screen sharing is paused
+//@description Pauses or unpauses screen sharing in a joined group call @group_call_id Group call identifier @is_paused True, if screen sharing is paused
 toggleGroupCallScreenSharingIsPaused group_call_id:int32 is_paused:Bool = Ok;
 
 //@description Ends screen sharing in a joined group call @group_call_id Group call identifier

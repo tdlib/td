@@ -9,6 +9,9 @@
 namespace td {
 
 td_api::object_ptr<td_api::MessageContent> ForumTopicEditedData::get_message_content_object() const {
+  if (edit_is_hidden_ && !(!is_hidden_ && edit_is_closed_ && !is_closed_)) {
+    return td_api::make_object<td_api::messageForumTopicIsHiddenToggled>(is_hidden_);
+  }
   if (edit_is_closed_) {
     return td_api::make_object<td_api::messageForumTopicIsClosedToggled>(is_closed_);
   }
@@ -19,7 +22,8 @@ td_api::object_ptr<td_api::MessageContent> ForumTopicEditedData::get_message_con
 bool operator==(const ForumTopicEditedData &lhs, const ForumTopicEditedData &rhs) {
   return lhs.title_ == rhs.title_ && lhs.icon_custom_emoji_id_ == rhs.icon_custom_emoji_id_ &&
          lhs.edit_icon_custom_emoji_id_ == rhs.edit_icon_custom_emoji_id_ &&
-         lhs.edit_is_closed_ == rhs.edit_is_closed_ && lhs.is_closed_ == rhs.is_closed_;
+         lhs.edit_is_closed_ == rhs.edit_is_closed_ && lhs.is_closed_ == rhs.is_closed_ &&
+         lhs.edit_is_hidden_ == rhs.edit_is_hidden_ && lhs.is_hidden_ == rhs.is_hidden_;
 }
 
 bool operator!=(const ForumTopicEditedData &lhs, const ForumTopicEditedData &rhs) {
@@ -35,6 +39,9 @@ StringBuilder &operator<<(StringBuilder &string_builder, const ForumTopicEditedD
   }
   if (topic_edited_data.edit_is_closed_) {
     string_builder << "set is_closed to " << topic_edited_data.is_closed_;
+  }
+  if (topic_edited_data.edit_is_hidden_) {
+    string_builder << "set is_hidden to " << topic_edited_data.is_hidden_;
   }
   return string_builder;
 }

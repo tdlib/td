@@ -20,6 +20,8 @@ class ForumTopicEditedData {
   bool edit_icon_custom_emoji_id_ = false;
   bool edit_is_closed_ = false;
   bool is_closed_ = false;
+  bool edit_is_hidden_ = false;
+  bool is_hidden_ = false;
 
   friend bool operator==(const ForumTopicEditedData &lhs, const ForumTopicEditedData &rhs);
 
@@ -31,16 +33,18 @@ class ForumTopicEditedData {
   ForumTopicEditedData() = default;
 
   ForumTopicEditedData(string &&title, bool edit_icon_custom_emoji_id, int64 icon_custom_emoji_id, bool edit_is_closed,
-                       bool is_closed)
+                       bool is_closed, bool edit_is_hidden, bool is_hidden)
       : title_(std::move(title))
       , icon_custom_emoji_id_(icon_custom_emoji_id)
       , edit_icon_custom_emoji_id_(edit_icon_custom_emoji_id)
       , edit_is_closed_(edit_is_closed)
-      , is_closed_(is_closed) {
+      , is_closed_(is_closed)
+      , edit_is_hidden_(edit_is_hidden)
+      , is_hidden_(is_hidden) {
   }
 
   bool is_empty() const {
-    return title_.empty() && !edit_icon_custom_emoji_id_ && !edit_is_closed_;
+    return title_.empty() && !edit_icon_custom_emoji_id_ && !edit_is_closed_ && !edit_is_hidden_;
   }
 
   const string &get_title() const {
