@@ -121,16 +121,21 @@ class EditForumTopicQuery final : public Td::ResultHandler {
   explicit EditForumTopicQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(ChannelId channel_id, MessageId top_thread_message_id, const string &title,
-            CustomEmojiId icon_custom_emoji_id) {
+  void send(ChannelId channel_id, MessageId top_thread_message_id, bool edit_title, const string &title,
+            bool edit_custom_emoji_id, CustomEmojiId icon_custom_emoji_id) {
     channel_id_ = channel_id;
     top_thread_message_id_ = top_thread_message_id;
 
     auto input_channel = td_->contacts_manager_->get_input_channel(channel_id);
     CHECK(input_channel != nullptr);
 
-    int32 flags =
-        telegram_api::channels_editForumTopic::TITLE_MASK | telegram_api::channels_editForumTopic::ICON_EMOJI_ID_MASK;
+    int32 flags = 0;
+    if (edit_title) {
+      flags |= telegram_api::channels_editForumTopic::TITLE_MASK;
+    }
+    if (edit_custom_emoji_id) {
+      flags |= telegram_api::channels_editForumTopic::ICON_EMOJI_ID_MASK;
+    }
     send_query(G()->net_query_creator().create(
         telegram_api::channels_editForumTopic(flags, std::move(input_channel),
                                               top_thread_message_id.get_server_message_id().get(), title,
@@ -257,7 +262,8 @@ void ForumTopicManager::on_forum_topic_created(DialogId dialog_id, unique_ptr<Fo
 }
 
 void ForumTopicManager::edit_forum_topic(DialogId dialog_id, MessageId top_thread_message_id, string &&title,
-                                         CustomEmojiId icon_custom_emoji_id, Promise<Unit> &&promise) {
+                                         bool edit_icon_custom_emoji, CustomEmojiId icon_custom_emoji_id,
+                                         Promise<Unit> &&promise) {
   TRY_STATUS_PROMISE(promise, is_forum(dialog_id));
   auto channel_id = dialog_id.get_channel_id();
 
@@ -272,13 +278,14 @@ void ForumTopicManager::edit_forum_topic(DialogId dialog_id, MessageId top_threa
     }
   }
 
+  bool edit_title = !title.empty();
   auto new_title = clean_name(std::move(title), MAX_FORUM_TOPIC_TITLE_LENGTH);
-  if (new_title.empty()) {
+  if (edit_title && new_title.empty()) {
     return promise.set_error(Status::Error(400, "Title must be non-empty"));
   }
 
   td_->create_handler<EditForumTopicQuery>(std::move(promise))
-      ->send(channel_id, top_thread_message_id, new_title, icon_custom_emoji_id);
+      ->send(channel_id, top_thread_message_id, edit_title, new_title, edit_icon_custom_emoji, icon_custom_emoji_id);
 }
 
 void ForumTopicManager::toggle_forum_topic_is_closed(DialogId dialog_id, MessageId top_thread_message_id,

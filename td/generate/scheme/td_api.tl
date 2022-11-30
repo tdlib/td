@@ -5324,9 +5324,10 @@ createForumTopic chat_id:int53 name:string icon:forumTopicIcon = ForumTopicInfo;
 //@description Edits title and icon of a topic in a forum supergroup chat; requires can_manage_topics administrator rights in the supergroup unless the user is creator of the topic
 //@chat_id Identifier of the chat
 //@message_thread_id Message thread identifier of the forum topic
-//@name New name of the topic; 1-128 characters
-//@icon_custom_emoji_id Identifier of the new custom emoji for topic icon. Telegram Premium users can use any custom emoji, other users can use only a custom emoji returned by getForumTopicDefaultIcons
-editForumTopic chat_id:int53 message_thread_id:int53 name:string icon_custom_emoji_id:int64 = Ok;
+//@name New name of the topic; 0-128 characters. If empty, the previous topic name is kept
+//@edit_icon_custom_emoji Pass true to edit the icon of the topic
+//@icon_custom_emoji_id Identifier of the new custom emoji for topic icon; pass 0 to remove the custom emoji. Ignored if edit_icon_custom_emoji is false. Telegram Premium users can use any custom emoji, other users can use only a custom emoji returned by getForumTopicDefaultIcons
+editForumTopic chat_id:int53 message_thread_id:int53 name:string edit_icon_custom_emoji:Bool icon_custom_emoji_id:int64 = Ok;
 
 //@description Toggles whether a topic is closed in a forum supergroup chat; requires can_manage_topics administrator rights in the supergroup unless the user is creator of the topic
 //@chat_id Identifier of the chat

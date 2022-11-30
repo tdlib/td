@@ -3873,9 +3873,11 @@ class CliClient final : public Actor {
       ChatId chat_id;
       MessageThreadId message_thread_id;
       string name;
+      bool edit_icon_custom_emoji;
       int64 icon_custom_emoji_id;
-      get_args(args, chat_id, message_thread_id, name, icon_custom_emoji_id);
-      send_request(td_api::make_object<td_api::editForumTopic>(chat_id, message_thread_id, name, icon_custom_emoji_id));
+      get_args(args, chat_id, message_thread_id, name, edit_icon_custom_emoji, icon_custom_emoji_id);
+      send_request(td_api::make_object<td_api::editForumTopic>(chat_id, message_thread_id, name, edit_icon_custom_emoji,
+                                                               icon_custom_emoji_id));
     } else if (op == "tftic") {
       ChatId chat_id;
       MessageThreadId message_thread_id;
