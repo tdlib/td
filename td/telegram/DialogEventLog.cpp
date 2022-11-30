@@ -460,7 +460,7 @@ class GetChannelAdminLogQuery final : public Td::ResultHandler {
     td_->contacts_manager_->on_get_users(std::move(events->users_), "on_get_event_log");
     td_->contacts_manager_->on_get_chats(std::move(events->chats_), "on_get_event_log");
 
-    auto anti_spam_user_id = UserId(G()->get_option_integer("telegram_antispam_user_id"));
+    auto anti_spam_user_id = UserId(G()->get_option_integer("anti_spam_bot_user_id"));
     auto result = td_api::make_object<td_api::chatEvents>();
     result->events_.reserve(events->events_.size());
     for (auto &event : events->events_) {

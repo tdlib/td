@@ -3712,6 +3712,9 @@ ContactsManager::ContactsManager(Td *td, ActorShared<> parent) : td_(td), parent
   td_->option_manager_->set_option_integer("replies_bot_chat_id", DialogId(get_replies_bot_user_id()).get());
   td_->option_manager_->set_option_integer("group_anonymous_bot_user_id", get_anonymous_bot_user_id().get());
   td_->option_manager_->set_option_integer("channel_bot_user_id", get_channel_bot_user_id().get());
+  if (!td_->option_manager_->have_option("anti_spam_bot_user_id")) {
+    td_->option_manager_->set_option_integer("anti_spam_bot_user_id", get_anti_spam_bot_user_id().get());
+  }
 
   if (G()->parameters().use_chat_info_db) {
     auto next_contacts_sync_date_string = G()->td_db()->get_binlog_pmc()->get("next_contacts_sync_date");
@@ -3730,6 +3733,8 @@ ContactsManager::ContactsManager(Td *td, ActorShared<> parent) : td_(td), parent
   if (G()->parameters().use_file_db) {
     G()->td_db()->get_sqlite_pmc()->erase_by_prefix("us_bot_info", Auto());
   }
+
+  on_update_fragment_prefixes();
 
   was_online_local_ = to_integer<int32>(G()->td_db()->get_binlog_pmc()->get("my_was_online_local"));
   was_online_remote_ = to_integer<int32>(G()->td_db()->get_binlog_pmc()->get("my_was_online_remote"));
@@ -3791,8 +3796,6 @@ void ContactsManager::start_up() {
   if (!pending_location_visibility_expire_date_) {
     try_send_set_location_visibility_query();
   }
-
-  on_update_fragment_prefixes();
 }
 
 void ContactsManager::tear_down() {
@@ -5662,6 +5665,10 @@ UserId ContactsManager::get_anonymous_bot_user_id() {
 
 UserId ContactsManager::get_channel_bot_user_id() {
   return UserId(static_cast<int64>(G()->is_test_dc() ? 936174 : 136817688));
+}
+
+UserId ContactsManager::get_anti_spam_bot_user_id() {
+  return UserId(static_cast<int64>(G()->is_test_dc() ? 2200583762ll : 5434988373ll));
 }
 
 UserId ContactsManager::add_anonymous_bot_user() {
@@ -9774,7 +9781,8 @@ ContactsManager::User *ContactsManager::get_user_force(UserId user_id) {
   auto u = get_user_force_impl(user_id);
   if ((u == nullptr || !u->is_received) &&
       (user_id == get_service_notifications_user_id() || user_id == get_replies_bot_user_id() ||
-       user_id == get_anonymous_bot_user_id() || user_id == get_channel_bot_user_id())) {
+       user_id == get_anonymous_bot_user_id() || user_id == get_channel_bot_user_id() ||
+       user_id == get_anti_spam_bot_user_id())) {
     int32 flags = USER_FLAG_HAS_ACCESS_HASH | USER_FLAG_HAS_FIRST_NAME | USER_FLAG_NEED_APPLY_MIN_PHOTO;
     int64 profile_photo_id = 0;
     int32 profile_photo_dc_id = 1;
@@ -9819,6 +9827,17 @@ ContactsManager::User *ContactsManager::get_user_force(UserId user_id) {
       username = G()->is_test_dc() ? "channelsbot" : "Channel_Bot";
       bot_info_version = G()->is_test_dc() ? 1 : 4;
       profile_photo_id = 587627495930570665;
+    } else if (user_id == get_service_notifications_user_id()) {
+      flags |= USER_FLAG_HAS_USERNAME | USER_FLAG_IS_BOT;
+      if (G()->is_test_dc()) {
+        first_name = "antispambot";
+        username = "tantispambot";
+      } else {
+        flags |= USER_FLAG_IS_VERIFIED;
+        first_name = "Telegram Anti-Spam";
+        username = "tgsantispambot";
+        profile_photo_id = 5170408289966598902;
+      }
     }
 
     telegram_api::object_ptr<telegram_api::userProfilePhoto> profile_photo;
@@ -9837,6 +9856,8 @@ ContactsManager::User *ContactsManager::get_user_force(UserId user_id) {
     on_get_user(std::move(user), "get_user_force");
     u = get_user(user_id);
     CHECK(u != nullptr && u->is_received);
+
+    reload_user(user_id, Promise<Unit>());
   }
   return u;
 }
@@ -15409,7 +15430,8 @@ bool ContactsManager::get_user(UserId user_id, int left_tries, Promise<Unit> &&p
   }
 
   if (user_id == get_service_notifications_user_id() || user_id == get_replies_bot_user_id() ||
-      user_id == get_anonymous_bot_user_id() || user_id == get_channel_bot_user_id()) {
+      user_id == get_anonymous_bot_user_id() || user_id == get_channel_bot_user_id() ||
+      user_id == get_anti_spam_bot_user_id()) {
     get_user_force(user_id);
   }
 

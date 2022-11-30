@@ -1853,7 +1853,7 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
       }
       if (key == "telegram_antispam_user_id") {
         auto setting_value = get_json_value_long(std::move(key_value->value_), key);
-        G()->set_option_integer("telegram_antispam_user_id", setting_value);
+        G()->set_option_integer("anti_spam_bot_user_id", setting_value);
         continue;
       }
       if (key == "telegram_antispam_group_size_min") {
