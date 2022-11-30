@@ -5555,6 +5555,12 @@ void Td::on_request(uint64 id, const td_api::toggleForumTopicIsClosed &request) 
                                                      request.is_closed_, std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::toggleGeneralForumTopicIsHidden &request) {
+  CREATE_OK_REQUEST_PROMISE();
+  forum_topic_manager_->toggle_forum_topic_is_hidden(DialogId(request.chat_id_), request.is_hidden_,
+                                                     std::move(promise));
+}
+
 void Td::on_request(uint64 id, const td_api::deleteForumTopic &request) {
   CREATE_OK_REQUEST_PROMISE();
   forum_topic_manager_->delete_forum_topic(DialogId(request.chat_id_), MessageId(request.message_thread_id_),

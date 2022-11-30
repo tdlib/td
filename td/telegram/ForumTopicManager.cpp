@@ -138,7 +138,7 @@ class EditForumTopicQuery final : public Td::ResultHandler {
     }
     send_query(G()->net_query_creator().create(
         telegram_api::channels_editForumTopic(flags, std::move(input_channel),
-                                              top_thread_message_id.get_server_message_id().get(), title,
+                                              top_thread_message_id_.get_server_message_id().get(), title,
                                               icon_custom_emoji_id.get(), false, false),
         {{channel_id}}));
   }
@@ -153,8 +153,23 @@ class EditForumTopicQuery final : public Td::ResultHandler {
     int32 flags = telegram_api::channels_editForumTopic::CLOSED_MASK;
     send_query(G()->net_query_creator().create(
         telegram_api::channels_editForumTopic(flags, std::move(input_channel),
-                                              top_thread_message_id.get_server_message_id().get(), string(), 0,
+                                              top_thread_message_id_.get_server_message_id().get(), string(), 0,
                                               is_closed, false),
+        {{channel_id}}));
+  }
+
+  void send(ChannelId channel_id, bool is_hidden) {
+    channel_id_ = channel_id;
+    top_thread_message_id_ = MessageId(ServerMessageId(1));
+
+    auto input_channel = td_->contacts_manager_->get_input_channel(channel_id);
+    CHECK(input_channel != nullptr);
+
+    int32 flags = telegram_api::channels_editForumTopic::HIDDEN_MASK;
+    send_query(G()->net_query_creator().create(
+        telegram_api::channels_editForumTopic(flags, std::move(input_channel),
+                                              top_thread_message_id_.get_server_message_id().get(), string(), 0, false,
+                                              is_hidden),
         {{channel_id}}));
   }
 
@@ -308,6 +323,17 @@ void ForumTopicManager::toggle_forum_topic_is_closed(DialogId dialog_id, Message
   }
 
   td_->create_handler<EditForumTopicQuery>(std::move(promise))->send(channel_id, top_thread_message_id, is_closed);
+}
+
+void ForumTopicManager::toggle_forum_topic_is_hidden(DialogId dialog_id, bool is_hidden, Promise<Unit> &&promise) {
+  TRY_STATUS_PROMISE(promise, is_forum(dialog_id));
+  auto channel_id = dialog_id.get_channel_id();
+
+  if (!td_->contacts_manager_->get_channel_permissions(channel_id).can_edit_topics()) {
+    return promise.set_error(Status::Error(400, "Not enough rights to close or open the topic"));
+  }
+
+  td_->create_handler<EditForumTopicQuery>(std::move(promise))->send(channel_id, is_hidden);
 }
 
 void ForumTopicManager::delete_forum_topic(DialogId dialog_id, MessageId top_thread_message_id,

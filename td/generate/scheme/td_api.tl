@@ -5336,6 +5336,11 @@ editForumTopic chat_id:int53 message_thread_id:int53 name:string edit_icon_custo
 //@is_closed Pass true to close the topic; pass false to reopen it
 toggleForumTopicIsClosed chat_id:int53 message_thread_id:int53 is_closed:Bool = Ok;
 
+//@description Toggles whether a General topic is hidden in a forum supergroup chat; requires can_manage_topics administrator rights in the supergroup
+//@chat_id Identifier of the chat
+//@is_hidden Pass true to hide and close the General topic; pass false to unhide it
+toggleGeneralForumTopicIsHidden chat_id:int53 is_hidden:Bool = Ok;
+
 //@description Deletes all messages in a forum topic; requires can_delete_messages administrator rights in the supergroup unless the user is creator of the topic, the topic has no messages from other users and has at most 11 messages
 //@chat_id Identifier of the chat
 //@message_thread_id Message thread identifier of the forum topic

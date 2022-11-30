@@ -3884,6 +3884,11 @@ class CliClient final : public Actor {
       bool is_closed;
       get_args(args, chat_id, message_thread_id, is_closed);
       send_request(td_api::make_object<td_api::toggleForumTopicIsClosed>(chat_id, message_thread_id, is_closed));
+    } else if (op == "tgftih") {
+      ChatId chat_id;
+      bool is_hidden;
+      get_args(args, chat_id, is_hidden);
+      send_request(td_api::make_object<td_api::toggleGeneralForumTopicIsHidden>(chat_id, is_hidden));
     } else if (op == "dft") {
       ChatId chat_id;
       MessageThreadId message_thread_id;

@@ -46,6 +46,8 @@ class ForumTopicManager final : public Actor {
   void toggle_forum_topic_is_closed(DialogId dialog_id, MessageId top_thread_message_id, bool is_closed,
                                     Promise<Unit> &&promise);
 
+  void toggle_forum_topic_is_hidden(DialogId dialog_id, bool is_hidden, Promise<Unit> &&promise);
+
   void delete_forum_topic(DialogId dialog_id, MessageId top_thread_message_id, Promise<Unit> &&promise);
 
   void delete_all_dialog_topics(DialogId dialog_id);
