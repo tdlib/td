@@ -28,6 +28,7 @@ class ForumTopicInfo {
   DialogId creator_dialog_id_;
   bool is_outgoing_ = false;
   bool is_closed_ = false;
+  bool is_hidden_ = false;
 
   friend bool operator==(const ForumTopicInfo &lhs, const ForumTopicInfo &rhs);
   friend bool operator!=(const ForumTopicInfo &lhs, const ForumTopicInfo &rhs);
@@ -40,14 +41,15 @@ class ForumTopicInfo {
   explicit ForumTopicInfo(const tl_object_ptr<telegram_api::ForumTopic> &forum_topic_ptr);
 
   ForumTopicInfo(MessageId top_thread_message_id, string title, ForumTopicIcon icon, int32 creation_date,
-                 DialogId creator_dialog_id, bool is_outgoing, bool is_closed)
+                 DialogId creator_dialog_id, bool is_outgoing, bool is_closed, bool is_hidden)
       : top_thread_message_id_(top_thread_message_id)
       , title_(std::move(title))
       , icon_(std::move(icon))
       , creation_date_(creation_date)
       , creator_dialog_id_(creator_dialog_id)
       , is_outgoing_(is_outgoing)
-      , is_closed_(is_closed) {
+      , is_closed_(is_closed)
+      , is_hidden_(is_hidden) {
   }
 
   bool is_empty() const {
@@ -68,6 +70,10 @@ class ForumTopicInfo {
 
   bool is_closed() const {
     return is_closed_;
+  }
+
+  bool is_hidden() const {
+    return is_hidden_;
   }
 
   bool apply_edited_data(const ForumTopicEditedData &edited_data);
