@@ -11012,6 +11012,7 @@ void ContactsManager::update_user(User *u, UserId user_id, bool from_binlog, boo
     if (!u->phone_number.empty() && !td_->auth_manager_->is_bot()) {
       resolved_phone_numbers_[u->phone_number] = user_id;
     }
+    u->is_fragment_phone_number = is_fragment_phone_number(u->phone_number);
     u->is_phone_number_changed = false;
   }
   if (u->is_status_changed && user_id != get_my_id()) {
@@ -16890,6 +16891,19 @@ void ContactsManager::on_update_channel_administrator_count(ChannelId channel_id
   }
 }
 
+bool ContactsManager::is_fragment_phone_number(string phone_number) const {
+  if (phone_number.empty()) {
+    return false;
+  }
+  clean_phone_number(phone_number);
+  for (auto &prefix : fragment_prefixes_) {
+    if (begins_with(phone_number, prefix)) {
+      return true;
+    }
+  }
+  return false;
+}
+
 void ContactsManager::on_update_fragment_prefixes() {
   if (G()->close_flag()) {
     return;
@@ -17572,7 +17586,8 @@ td_api::object_ptr<td_api::UserStatus> ContactsManager::get_user_status_object(U
 td_api::object_ptr<td_api::updateUser> ContactsManager::get_update_unknown_user_object(UserId user_id) {
   return td_api::make_object<td_api::updateUser>(td_api::make_object<td_api::user>(
       user_id.get(), "", "", nullptr, "", td_api::make_object<td_api::userStatusEmpty>(), nullptr, nullptr, false,
-      false, false, false, false, "", false, false, false, td_api::make_object<td_api::userTypeUnknown>(), "", false));
+      false, false, false, false, false, "", false, false, false, td_api::make_object<td_api::userTypeUnknown>(), "",
+      false));
 }
 
 int64 ContactsManager::get_user_id_object(UserId user_id, const char *source) const {
@@ -17608,8 +17623,8 @@ tl_object_ptr<td_api::user> ContactsManager::get_user_object(UserId user_id, con
       user_id.get(), u->first_name, u->last_name, u->usernames.get_usernames_object(), u->phone_number,
       get_user_status_object(user_id, u), get_profile_photo_object(td_->file_manager_.get(), u->photo),
       std::move(emoji_status), u->is_contact, u->is_mutual_contact, u->is_verified, u->is_premium, u->is_support,
-      get_restriction_reason_description(u->restriction_reasons), u->is_scam, u->is_fake, u->is_received,
-      std::move(type), u->language_code, u->attach_menu_enabled);
+      u->is_fragment_phone_number, get_restriction_reason_description(u->restriction_reasons), u->is_scam, u->is_fake,
+      u->is_received, std::move(type), u->language_code, u->attach_menu_enabled);
 }
 
 vector<int64> ContactsManager::get_user_ids_object(const vector<UserId> &user_ids, const char *source) const {

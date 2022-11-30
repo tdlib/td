@@ -730,6 +730,7 @@ class ContactsManager final : public Actor {
     bool need_apply_min_photo = false;
     bool can_be_added_to_attach_menu = false;
     bool attach_menu_enabled = false;
+    bool is_fragment_phone_number = false;
 
     bool is_photo_inited = false;
 
@@ -1503,6 +1504,8 @@ class ContactsManager final : public Actor {
   bool is_chat_full_outdated(const ChatFull *chat_full, const Chat *c, ChatId chat_id, bool only_participants) const;
 
   bool is_user_contact(const User *u, UserId user_id, bool is_mutual) const;
+
+  bool is_fragment_phone_number(string phone_number) const;
 
   int32 get_user_was_online(const User *u, UserId user_id) const;
 
