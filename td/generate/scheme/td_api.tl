@@ -2763,6 +2763,10 @@ sentWebAppMessage inline_message_id:string = SentWebAppMessage;
 httpUrl url:string = HttpUrl;
 
 
+//@description Contains an HTTPS URL, which can be used to get information about a user @url The URL @expires_in Left time for which the link is valid, in seconds; 0 if the link is a public username link
+userLink url:string expires_in:int32 = UserLink;
+
+
 //@class InputInlineQueryResult @description Represents a single result of an inline query; for bots only
 
 //@description Represents a link to an animated GIF or an animated (i.e., without sound) H.264/MPEG-4 AVC video
@@ -6365,6 +6369,9 @@ resendChangePhoneNumberCode = AuthenticationCodeInfo;
 
 //@description Checks the authentication code sent to confirm a new phone number of the user @code Authentication code to check
 checkChangePhoneNumberCode code:string = Ok;
+
+//@description Returns an HTTPS link, which can be used to get information about the current user
+getUserLink = UserLink;
 
 
 //@description Sets the list of commands supported by the bot for the given user scope and language; for bots only

@@ -486,6 +486,8 @@ class Td final : public Actor {
 
   void on_request(uint64 id, td_api::resendChangePhoneNumberCode &request);
 
+  void on_request(uint64 id, const td_api::getUserLink &request);
+
   void on_request(uint64 id, const td_api::getActiveSessions &request);
 
   void on_request(uint64 id, const td_api::terminateSession &request);

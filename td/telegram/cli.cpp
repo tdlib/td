@@ -2171,6 +2171,8 @@ class CliClient final : public Actor {
       } else {
         send_request(td_api::make_object<td_api::searchContacts>("", as_limit(args)));
       }
+    } else if (op == "gul") {
+      send_request(td_api::make_object<td_api::getUserLink>());
     } else if (op == "AddContact") {
       UserId user_id;
       string first_name;

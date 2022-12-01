@@ -1668,6 +1668,10 @@ string LinkManager::get_instant_view_link(Slice url, Slice rhash) {
                    << "&rhash=" << url_encode(rhash);
 }
 
+string LinkManager::get_public_chat_link(Slice username) {
+  return PSTRING() << G()->get_option_string("t_me_url", "https://t.me/") << url_encode(username);
+}
+
 UserId LinkManager::get_link_user_id(Slice url) {
   string lower_cased_url = to_lower(url);
   url = lower_cased_url;

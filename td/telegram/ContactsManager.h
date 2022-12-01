@@ -538,6 +538,8 @@ class ContactsManager final : public Actor {
 
   void reload_dialog_info(DialogId dialog_id, Promise<Unit> &&promise);
 
+  void get_user_link(Promise<td_api::object_ptr<td_api::userLink>> &&promise);
+
   static void send_get_me_query(Td *td, Promise<Unit> &&promise);
   UserId get_me(Promise<Unit> &&promise);
   bool get_user(UserId user_id, int left_tries, Promise<Unit> &&promise);
@@ -1311,6 +1313,8 @@ class ContactsManager final : public Actor {
 
   string get_channel_search_text(ChannelId channel_id) const;
   static string get_channel_search_text(const Channel *c);
+
+  void get_user_link_impl(Promise<td_api::object_ptr<td_api::userLink>> &&promise);
 
   void set_my_id(UserId my_id);
 

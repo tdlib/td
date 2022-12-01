@@ -589,6 +589,35 @@ class SetBotBroadcastDefaultAdminRightsQuery final : public Td::ResultHandler {
   }
 };
 
+class ExportContactTokenQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::userLink>> promise_;
+
+ public:
+  explicit ExportContactTokenQuery(Promise<td_api::object_ptr<td_api::userLink>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send() {
+    send_query(G()->net_query_creator().create(telegram_api::contacts_exportContactToken()));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::contacts_exportContactToken>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for ExportContactTokenQuery: " << to_string(ptr);
+    promise_.set_value(td_api::make_object<td_api::userLink>(
+        ptr->url_, td::max(static_cast<int32>(ptr->expires_ - G()->unix_time()), static_cast<int32>(1))));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 void set_default_message_ttl(Td *td, int32 message_ttl, Promise<Unit> &&promise) {
   td->create_handler<SetDefaultHistoryTtlQuery>(std::move(promise))->send(message_ttl);
 }
@@ -666,6 +695,10 @@ void set_default_channel_administrator_rights(Td *td, AdministratorRights admini
                                               Promise<Unit> &&promise) {
   td->contacts_manager_->invalidate_user_full(td->contacts_manager_->get_my_id());
   td->create_handler<SetBotBroadcastDefaultAdminRightsQuery>(std::move(promise))->send(administrator_rights);
+}
+
+void export_contact_token(Td *td, Promise<td_api::object_ptr<td_api::userLink>> &&promise) {
+  td->create_handler<ExportContactTokenQuery>(std::move(promise))->send();
 }
 
 }  // namespace td

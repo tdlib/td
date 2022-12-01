@@ -4530,6 +4530,12 @@ void Td::on_request(uint64 id, td_api::resendChangePhoneNumberCode &request) {
   send_closure(change_phone_number_manager_, &PhoneNumberManager::resend_authentication_code, id);
 }
 
+void Td::on_request(uint64 id, const td_api::getUserLink &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  contacts_manager_->get_user_link(std::move(promise));
+}
+
 void Td::on_request(uint64 id, const td_api::getActiveSessions &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();

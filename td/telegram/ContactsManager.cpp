@@ -6,6 +6,7 @@
 //
 #include "td/telegram/ContactsManager.h"
 
+#include "td/telegram/Account.h"
 #include "td/telegram/AnimationsManager.h"
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/BotMenuButton.h"
@@ -15404,6 +15405,27 @@ void ContactsManager::reload_dialog_info(DialogId dialog_id, Promise<Unit> &&pro
     default:
       return promise.set_error(Status::Error("Invalid dialog ID to reload"));
   }
+}
+
+void ContactsManager::get_user_link(Promise<td_api::object_ptr<td_api::userLink>> &&promise) {
+  get_me(
+      PromiseCreator::lambda([actor_id = actor_id(this), promise = std::move(promise)](Result<Unit> &&result) mutable {
+        if (result.is_error()) {
+          promise.set_error(result.move_as_error());
+        } else {
+          send_closure(actor_id, &ContactsManager::get_user_link_impl, std::move(promise));
+        }
+      }));
+}
+
+void ContactsManager::get_user_link_impl(Promise<td_api::object_ptr<td_api::userLink>> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+  const auto *u = get_user(get_my_id());
+  if (u != nullptr && u->usernames.has_first_username()) {
+    return promise.set_value(
+        td_api::make_object<td_api::userLink>(LinkManager::get_public_chat_link(u->usernames.get_first_username()), 0));
+  }
+  export_contact_token(td_, std::move(promise));
 }
 
 void ContactsManager::send_get_me_query(Td *td, Promise<Unit> &&promise) {
