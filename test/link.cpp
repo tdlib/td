@@ -232,6 +232,9 @@ TEST(Link, parse_internal_link) {
   auto user_phone_number = [](const td::string &phone_number) {
     return td::td_api::make_object<td::td_api::internalLinkTypeUserPhoneNumber>(phone_number);
   };
+  auto user_token = [](const td::string &token) {
+    return td::td_api::make_object<td::td_api::internalLinkTypeUserToken>(token);
+  };
   auto video_chat = [](const td::string &chat_username, const td::string &invite_hash, bool is_live_stream) {
     return td::td_api::make_object<td::td_api::internalLinkTypeVideoChat>(chat_username, invite_hash, is_live_stream);
   };
@@ -317,6 +320,20 @@ TEST(Link, parse_internal_link) {
   parse_internal_link("tg:resolve?phone=", unknown_deep_link("tg://resolve?phone="));
   parse_internal_link("tg:resolve?phone=+123", unknown_deep_link("tg://resolve?phone=+123"));
   parse_internal_link("tg:resolve?phone=123456 ", unknown_deep_link("tg://resolve?phone=123456 "));
+
+  parse_internal_link("tg:contact?token=1", user_token("1"));
+  parse_internal_link("tg:contact?token=123456", user_token("123456"));
+  parse_internal_link("tg:contact?token=123456&startattach", user_token("123456"));
+  parse_internal_link("tg:contact?token=123456&startattach=123", user_token("123456"));
+  parse_internal_link("tg:contact?token=123456&attach=", user_token("123456"));
+  parse_internal_link("tg:contact?token=123456&attach=&startattach", user_token("123456"));
+  parse_internal_link("tg:contact?token=123456&attach=&startattach=123", user_token("123456"));
+  parse_internal_link("tg:contact?token=01234567890123456789012345678912",
+                      user_token("01234567890123456789012345678912"));
+  parse_internal_link("tg:contact?token=012345678901234567890123456789123",
+                      user_token("012345678901234567890123456789123"));
+  parse_internal_link("tg:contact?token=", unknown_deep_link("tg://contact?token="));
+  parse_internal_link("tg:contact?token=+123", user_token(" 123"));
 
   parse_internal_link("t.me/username/12345?single", message("tg:resolve?domain=username&post=12345&single"));
   parse_internal_link("t.me/username/12345?asdasd", message("tg:resolve?domain=username&post=12345"));
@@ -572,6 +589,12 @@ TEST(Link, parse_internal_link) {
                       attachment_menu_bot(nullptr, user_phone_number("123456"), "bot", ""));
   parse_internal_link("t.me/+123456?attach=bot&startattach=1",
                       attachment_menu_bot(nullptr, user_phone_number("123456"), "bot", "1"));
+
+  parse_internal_link("t.me/contact/startattach/adasd", user_token("startattach"));
+  parse_internal_link("t.me/contact/startattach", user_token("startattach"));
+  parse_internal_link("t.me/contact/startattach=1", user_token("startattach=1"));
+  parse_internal_link("t.me/contact/", nullptr);
+  parse_internal_link("t.me/contact/?attach=&startattach", nullptr);
 
   parse_internal_link("tg:join?invite=abcdef", chat_invite("abcdef"));
   parse_internal_link("tg:join?invite=abc%20def", chat_invite("abc%20def"));

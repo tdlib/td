@@ -133,6 +133,7 @@ class LinkManager final : public Actor {
   class InternalLinkUnknownDeepLink;
   class InternalLinkUnsupportedProxy;
   class InternalLinkUserPhoneNumber;
+  class InternalLinkUserToken;
   class InternalLinkVoiceChat;
 
   enum class LinkType : int32 { External, TMe, Tg, Telegraph };

@@ -3924,6 +3924,9 @@ internalLinkTypeUnsupportedProxy = InternalLinkType;
 //@description The link is a link to a user by its phone number. Call searchUserByPhoneNumber with the given phone number to process the link @phone_number Phone number of the user
 internalLinkTypeUserPhoneNumber phone_number:string = InternalLinkType;
 
+//@description The link is a link to a user by a temporary token. Call searchUserByToken with the given token to process the link @token The token
+internalLinkTypeUserToken token:string = InternalLinkType;
+
 //@description The link is a link to a video chat. Call searchPublicChat with the given chat username, and then joinGroupCall with the given invite hash to process the link
 //@chat_username Username of the chat with the video chat @invite_hash If non-empty, invite hash to be used to join the video chat without being muted by administrators
 //@is_live_stream True, if the video chat is expected to be a live stream in a channel or a broadcast group
