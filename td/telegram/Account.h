@@ -52,4 +52,6 @@ void set_default_channel_administrator_rights(Td *td, AdministratorRights admini
 
 void export_contact_token(Td *td, Promise<td_api::object_ptr<td_api::userLink>> &&promise);
 
+void import_contact_token(Td *td, const string &token, Promise<td_api::object_ptr<td_api::user>> &&promise);
+
 }  // namespace td

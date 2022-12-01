@@ -2173,6 +2173,8 @@ class CliClient final : public Actor {
       }
     } else if (op == "gul") {
       send_request(td_api::make_object<td_api::getUserLink>());
+    } else if (op == "subt") {
+      send_request(td_api::make_object<td_api::searchUserByToken>(args));
     } else if (op == "AddContact") {
       UserId user_id;
       string first_name;

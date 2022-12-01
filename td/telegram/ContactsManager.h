@@ -540,6 +540,8 @@ class ContactsManager final : public Actor {
 
   void get_user_link(Promise<td_api::object_ptr<td_api::userLink>> &&promise);
 
+  void search_user_by_token(string token, Promise<td_api::object_ptr<td_api::user>> &&promise);
+
   static void send_get_me_query(Td *td, Promise<Unit> &&promise);
   UserId get_me(Promise<Unit> &&promise);
   bool get_user(UserId user_id, int left_tries, Promise<Unit> &&promise);

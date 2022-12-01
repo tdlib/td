@@ -3402,7 +3402,7 @@ class GetSupportUserQuery final : public Td::ResultHandler {
     LOG(INFO) << "Receive result for GetSupportUserQuery: " << to_string(ptr);
 
     auto user_id = ContactsManager::get_user_id(ptr->user_);
-    td_->contacts_manager_->on_get_user(std::move(ptr->user_), "GetSupportUserQuery", false);
+    td_->contacts_manager_->on_get_user(std::move(ptr->user_), "GetSupportUserQuery");
 
     promise_.set_value(std::move(user_id));
   }
@@ -15426,6 +15426,10 @@ void ContactsManager::get_user_link_impl(Promise<td_api::object_ptr<td_api::user
         td_api::make_object<td_api::userLink>(LinkManager::get_public_chat_link(u->usernames.get_first_username()), 0));
   }
   export_contact_token(td_, std::move(promise));
+}
+
+void ContactsManager::search_user_by_token(string token, Promise<td_api::object_ptr<td_api::user>> &&promise) {
+  import_contact_token(td_, token, std::move(promise));
 }
 
 void ContactsManager::send_get_me_query(Td *td, Promise<Unit> &&promise) {

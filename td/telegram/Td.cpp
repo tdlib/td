@@ -4536,6 +4536,13 @@ void Td::on_request(uint64 id, const td_api::getUserLink &request) {
   contacts_manager_->get_user_link(std::move(promise));
 }
 
+void Td::on_request(uint64 id, td_api::searchUserByToken &request) {
+  CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.token_);
+  CREATE_REQUEST_PROMISE();
+  contacts_manager_->search_user_by_token(std::move(request.token_), std::move(promise));
+}
+
 void Td::on_request(uint64 id, const td_api::getActiveSessions &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();

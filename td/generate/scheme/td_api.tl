@@ -6370,8 +6370,12 @@ resendChangePhoneNumberCode = AuthenticationCodeInfo;
 //@description Checks the authentication code sent to confirm a new phone number of the user @code Authentication code to check
 checkChangePhoneNumberCode code:string = Ok;
 
+
 //@description Returns an HTTPS link, which can be used to get information about the current user
 getUserLink = UserLink;
+
+//@description Searches a user by a token from the user's link @token Token to search for
+searchUserByToken token:string = User;
 
 
 //@description Sets the list of commands supported by the bot for the given user scope and language; for bots only
