@@ -1146,11 +1146,18 @@ FlatHashSet<int64> UpdatesManager::get_sent_messages_random_ids(const telegram_a
   FlatHashSet<int64> random_ids;
   auto updates = get_updates(updates_ptr);
   if (updates != nullptr) {
+    auto new_messages = get_new_messages(updates_ptr);
     for (auto &update : *updates) {
       if (update->get_id() == telegram_api::updateMessageID::ID) {
         int64 random_id = static_cast<const telegram_api::updateMessageID *>(update.get())->random_id_;
-        if (random_id != 0 && !random_ids.insert(random_id).second) {
-          LOG(ERROR) << "Receive twice updateMessageID for " << random_id;
+        if (random_id != 0) {
+          bool found_message = false;
+          for (auto *message : new_messages) {
+            // TODO
+          }
+          if (found_message && !random_ids.insert(random_id).second) {
+            LOG(ERROR) << "Receive twice updateMessageID for " << random_id;
+          }
         }
       }
     }
@@ -1201,19 +1208,32 @@ const telegram_api::Message *UpdatesManager::get_message_by_random_id(const tele
   return result;
 }
 
+bool UpdatesManager::is_additional_service_message(const telegram_api::Message *message) {
+  if (message->get_id() != telegram_api::messageService::ID) {
+    return false;
+  }
+  auto action_id = static_cast<const telegram_api::messageService *>(message)->action_->get_id();
+  return action_id == telegram_api::messageActionSetMessagesTTL::ID;
+}
+
 vector<const tl_object_ptr<telegram_api::Message> *> UpdatesManager::get_new_messages(
     const telegram_api::Updates *updates_ptr) {
   vector<const tl_object_ptr<telegram_api::Message> *> messages;
   auto updates = get_updates(updates_ptr);
   if (updates != nullptr) {
     for (auto &update : *updates) {
+      const tl_object_ptr<telegram_api::Message> *message = nullptr;
       auto constructor_id = update->get_id();
       if (constructor_id == telegram_api::updateNewMessage::ID) {
-        messages.emplace_back(&static_cast<const telegram_api::updateNewMessage *>(update.get())->message_);
+        message = &static_cast<const telegram_api::updateNewMessage *>(update.get())->message_;
       } else if (constructor_id == telegram_api::updateNewChannelMessage::ID) {
-        messages.emplace_back(&static_cast<const telegram_api::updateNewChannelMessage *>(update.get())->message_);
+        message = &static_cast<const telegram_api::updateNewChannelMessage *>(update.get())->message_;
       } else if (constructor_id == telegram_api::updateNewScheduledMessage::ID) {
-        messages.emplace_back(&static_cast<const telegram_api::updateNewScheduledMessage *>(update.get())->message_);
+        message = &static_cast<const telegram_api::updateNewScheduledMessage *>(update.get())->message_;
+      }
+
+      if (is_additional_service_message((*message).get())) {
+        messages.push_back(message);
       }
     }
   }

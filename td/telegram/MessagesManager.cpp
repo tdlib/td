@@ -33393,7 +33393,7 @@ void MessagesManager::on_create_new_dialog_success(int64 random_id, tl_object_pt
                                                    DialogType expected_type, Promise<Unit> &&promise) {
   auto sent_messages = UpdatesManager::get_new_messages(updates.get());
   auto sent_messages_random_ids = UpdatesManager::get_sent_messages_random_ids(updates.get());
-  if (sent_messages.size() < 1u || sent_messages_random_ids.size() < 1u) {
+  if (sent_messages.size() != 1u || sent_messages_random_ids.size() != 1u) {
     LOG(ERROR) << "Receive wrong result for create group or channel chat " << oneline(to_string(updates));
     return on_create_new_dialog_fail(random_id, Status::Error(500, "Unsupported server response"), std::move(promise));
   }

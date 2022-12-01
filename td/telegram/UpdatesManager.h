@@ -379,6 +379,8 @@ class UpdatesManager final : public Actor {
 
   static bool is_channel_pts_update(const telegram_api::Update *update);
 
+  static bool is_additional_service_message(const telegram_api::Message *message);
+
   static const vector<tl_object_ptr<telegram_api::Update>> *get_updates(const telegram_api::Updates *updates_ptr);
 
   static vector<tl_object_ptr<telegram_api::Update>> *get_updates(telegram_api::Updates *updates_ptr);
