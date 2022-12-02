@@ -40,7 +40,8 @@ class ForumTopic {
     return is_short_;
   }
 
-  td_api::object_ptr<td_api::forumTopic> get_forum_topic_object(Td *td, const ForumTopicInfo &info) const;
+  td_api::object_ptr<td_api::forumTopic> get_forum_topic_object(Td *td, DialogId dialog_id,
+                                                                const ForumTopicInfo &info) const;
 };
 
 }  // namespace td

@@ -8,6 +8,7 @@
 
 #include "td/telegram/DraftMessage.h"
 #include "td/telegram/ForumTopicInfo.h"
+#include "td/telegram/MessagesMAnager.h"
 #include "td/telegram/ServerMessageId.h"
 #include "td/telegram/Td.h"
 
@@ -41,18 +42,19 @@ ForumTopic::ForumTopic(Td *td, tl_object_ptr<telegram_api::ForumTopic> &&forum_t
   unread_reaction_count_ = forum_topic->unread_reactions_count_;
 }
 
-td_api::object_ptr<td_api::forumTopic> ForumTopic::get_forum_topic_object(Td *td, const ForumTopicInfo &info) const {
+td_api::object_ptr<td_api::forumTopic> ForumTopic::get_forum_topic_object(Td *td, DialogId dialog_id,
+                                                                          const ForumTopicInfo &info) const {
   if (info.is_empty()) {
     return nullptr;
   }
 
   // TODO draft_message = can_send_message(dialog_id, info_.get_top_thread_message_id()).is_ok() ? ... : nullptr;
-  // TODO last_message
+  auto last_message = td->messages_manager_->get_message_object({dialog_id, last_message_id_}, "get_forum_topic_object");
   auto draft_message = get_draft_message_object(draft_message_);
   return td_api::make_object<td_api::forumTopic>(
-      info.get_forum_topic_info_object(td), nullptr, is_pinned_, unread_count_, last_read_inbox_message_id_.get(),
-      last_read_outbox_message_id_.get(), unread_mention_count_, unread_reaction_count_,
-      get_chat_notification_settings_object(&notification_settings_), std::move(draft_message));
+      info.get_forum_topic_info_object(td), std::move(last_message), is_pinned_, unread_count_,
+      last_read_inbox_message_id_.get(), last_read_outbox_message_id_.get(), unread_mention_count_,
+      unread_reaction_count_, get_chat_notification_settings_object(&notification_settings_), std::move(draft_message));
 }
 
 }  // namespace td

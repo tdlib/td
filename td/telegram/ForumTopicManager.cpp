@@ -249,7 +249,7 @@ class GetForumTopicQuery final : public Td::ResultHandler {
         }
         td_->forum_topic_manager_->on_get_forum_topic_info(DialogId(channel_id_), forum_topic_info,
                                                            "GetForumTopicQuery");
-        return promise_.set_value(forum_topic.get_forum_topic_object(td_, forum_topic_info));
+        return promise_.set_value(forum_topic.get_forum_topic_object(td_, DialogId(channel_id_), forum_topic_info));
       }
       default:
         UNREACHABLE();
