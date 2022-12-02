@@ -31,6 +31,7 @@
 
 #include <functional>
 #include <map>
+#include <utility>
 
 namespace td {
 
@@ -107,7 +108,8 @@ class UpdatesManager final : public Actor {
   static const telegram_api::Message *get_message_by_random_id(const telegram_api::Updates *updates_ptr,
                                                                DialogId dialog_id, int64 random_id);
 
-  static vector<const tl_object_ptr<telegram_api::Message> *> get_new_messages(
+  // [Message, is_scheduled]
+  static vector<std::pair<const telegram_api::Message *, bool>> get_new_messages(
       const telegram_api::Updates *updates_ptr);
 
   static vector<InputGroupCallId> get_update_new_group_call_ids(const telegram_api::Updates *updates_ptr);

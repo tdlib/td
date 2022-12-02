@@ -1151,10 +1151,10 @@ FlatHashSet<int64> UpdatesManager::get_sent_messages_random_ids(const telegram_a
       if (update->get_id() == telegram_api::updateMessageID::ID) {
         int64 random_id = static_cast<const telegram_api::updateMessageID *>(update.get())->random_id_;
         if (random_id != 0) {
-          bool found_message = false;
-          for (auto *message : new_messages) {
-            // TODO
-          }
+          bool found_message = true;
+          // for (auto *message : new_messages) {
+          // TODO
+          // }
           if (found_message && !random_ids.insert(random_id).second) {
             LOG(ERROR) << "Receive twice updateMessageID for " << random_id;
           }
@@ -1216,24 +1216,26 @@ bool UpdatesManager::is_additional_service_message(const telegram_api::Message *
   return action_id == telegram_api::messageActionSetMessagesTTL::ID;
 }
 
-vector<const tl_object_ptr<telegram_api::Message> *> UpdatesManager::get_new_messages(
+vector<std::pair<const telegram_api::Message *, bool>> UpdatesManager::get_new_messages(
     const telegram_api::Updates *updates_ptr) {
-  vector<const tl_object_ptr<telegram_api::Message> *> messages;
+  vector<std::pair<const telegram_api::Message *, bool>> messages;
   auto updates = get_updates(updates_ptr);
   if (updates != nullptr) {
     for (auto &update : *updates) {
-      const tl_object_ptr<telegram_api::Message> *message = nullptr;
+      const telegram_api::Message *message = nullptr;
+      bool is_scheduled = false;
       auto constructor_id = update->get_id();
       if (constructor_id == telegram_api::updateNewMessage::ID) {
-        message = &static_cast<const telegram_api::updateNewMessage *>(update.get())->message_;
+        message = static_cast<const telegram_api::updateNewMessage *>(update.get())->message_.get();
       } else if (constructor_id == telegram_api::updateNewChannelMessage::ID) {
-        message = &static_cast<const telegram_api::updateNewChannelMessage *>(update.get())->message_;
+        message = static_cast<const telegram_api::updateNewChannelMessage *>(update.get())->message_.get();
       } else if (constructor_id == telegram_api::updateNewScheduledMessage::ID) {
-        message = &static_cast<const telegram_api::updateNewScheduledMessage *>(update.get())->message_;
+        message = static_cast<const telegram_api::updateNewScheduledMessage *>(update.get())->message_.get();
+        is_scheduled = true;
       }
 
-      if (is_additional_service_message((*message).get())) {
-        messages.push_back(message);
+      if (is_additional_service_message(message)) {
+        messages.emplace_back(message, is_scheduled);
       }
     }
   }

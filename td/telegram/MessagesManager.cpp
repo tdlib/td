@@ -3658,7 +3658,7 @@ class SendMultiMediaQuery final : public Td::ResultHandler {
         is_result_wrong = true;
       }
       for (auto &sent_message : sent_messages) {
-        if (MessagesManager::get_message_dialog_id(*sent_message) != dialog_id_) {
+        if (MessagesManager::get_message_dialog_id(sent_message.first) != dialog_id_) {
           is_result_wrong = true;
         }
       }
@@ -4155,7 +4155,7 @@ class ForwardMessagesQuery final : public Td::ResultHandler {
         is_result_wrong = true;
       }
       for (auto &sent_message : sent_messages) {
-        if (MessagesManager::get_message_dialog_id(*sent_message) != to_dialog_id_) {
+        if (MessagesManager::get_message_dialog_id(sent_message.first) != to_dialog_id_) {
           is_result_wrong = true;
         }
       }
@@ -13254,25 +13254,29 @@ MessageId MessagesManager::get_message_id(const tl_object_ptr<telegram_api::Mess
   }
 }
 
-DialogId MessagesManager::get_message_dialog_id(const tl_object_ptr<telegram_api::Message> &message_ptr) {
+DialogId MessagesManager::get_message_dialog_id(const telegram_api::Message *message_ptr) {
   CHECK(message_ptr != nullptr);
   switch (message_ptr->get_id()) {
     case telegram_api::messageEmpty::ID: {
-      auto message = static_cast<const telegram_api::messageEmpty *>(message_ptr.get());
+      auto message = static_cast<const telegram_api::messageEmpty *>(message_ptr);
       return message->peer_id_ == nullptr ? DialogId() : DialogId(message->peer_id_);
     }
     case telegram_api::message::ID: {
-      auto message = static_cast<const telegram_api::message *>(message_ptr.get());
+      auto message = static_cast<const telegram_api::message *>(message_ptr);
       return DialogId(message->peer_id_);
     }
     case telegram_api::messageService::ID: {
-      auto message = static_cast<const telegram_api::messageService *>(message_ptr.get());
+      auto message = static_cast<const telegram_api::messageService *>(message_ptr);
       return DialogId(message->peer_id_);
     }
     default:
       UNREACHABLE();
       return DialogId();
   }
+}
+
+DialogId MessagesManager::get_message_dialog_id(const tl_object_ptr<telegram_api::Message> &message_ptr) {
+  return get_message_dialog_id(message_ptr.get());
 }
 
 FullMessageId MessagesManager::get_full_message_id(const tl_object_ptr<telegram_api::Message> &message_ptr,
@@ -31970,8 +31974,8 @@ void MessagesManager::check_send_message_result(int64 random_id, DialogId dialog
   };
 
   if (sent_messages.size() != 1u || sent_messages_random_ids.size() != 1u ||
-      *sent_messages_random_ids.begin() != random_id || get_message_dialog_id(*sent_messages[0]) != dialog_id ||
-      is_invalid_poll_message(sent_messages[0]->get())) {
+      *sent_messages_random_ids.begin() != random_id || get_message_dialog_id(sent_messages[0].first) != dialog_id ||
+      is_invalid_poll_message(sent_messages[0].first)) {
     LOG(ERROR) << "Receive wrong result for sending message with random_id " << random_id << " from " << source
                << " to " << dialog_id << ": " << oneline(to_string(*updates_ptr));
     Dialog *d = get_dialog(dialog_id);
@@ -33398,19 +33402,23 @@ void MessagesManager::on_create_new_dialog_success(int64 random_id, tl_object_pt
     return on_create_new_dialog_fail(random_id, Status::Error(500, "Unsupported server response"), std::move(promise));
   }
 
-  auto message = *sent_messages.begin();
+  auto *message = sent_messages.begin()->first;
   // int64 message_random_id = *sent_messages_random_ids.begin();
   // TODO check that message_random_id equals random_id after messages_createChat will be updated
 
-  auto dialog_id = get_message_dialog_id(*message);
+  if (sent_messages.begin()->second) {
+    return on_create_new_dialog_fail(random_id, Status::Error(500, "Scheduled message received"), std::move(promise));
+  }
+
+  auto dialog_id = get_message_dialog_id(message);
   if (dialog_id.get_type() != expected_type) {
     return on_create_new_dialog_fail(random_id, Status::Error(500, "Chat of wrong type has been created"),
                                      std::move(promise));
   }
-  if ((*message)->get_id() != telegram_api::messageService::ID) {
+  if (message->get_id() != telegram_api::messageService::ID) {
     return on_create_new_dialog_fail(random_id, Status::Error(500, "Invalid message received"), std::move(promise));
   }
-  auto action_id = static_cast<const telegram_api::messageService *>((*message).get())->action_->get_id();
+  auto action_id = static_cast<const telegram_api::messageService *>(message)->action_->get_id();
   if (action_id != telegram_api::messageActionChatCreate::ID &&
       action_id != telegram_api::messageActionChannelCreate::ID) {
     return on_create_new_dialog_fail(random_id, Status::Error(500, "Invalid service message received"),
