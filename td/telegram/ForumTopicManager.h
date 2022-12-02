@@ -58,6 +58,8 @@ class ForumTopicManager final : public Actor {
   void on_forum_topic_edited(DialogId dialog_id, MessageId top_thread_message_id,
                              const ForumTopicEditedData &edited_data);
 
+  void on_get_forum_topic_info(DialogId dialog_id, const ForumTopicInfo &topic_info, const char *source);
+
   void on_get_forum_topics(DialogId dialog_id, vector<tl_object_ptr<telegram_api::ForumTopic>> &&forum_topics,
                            const char *source);
 

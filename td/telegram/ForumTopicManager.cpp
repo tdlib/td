@@ -247,6 +247,8 @@ class GetForumTopicQuery final : public Td::ResultHandler {
         if (forum_topic_info.get_top_thread_message_id() != top_thread_message_id_) {
           return promise_.set_error(Status::Error(500, "Wrong forum topic received"));
         }
+        td_->forum_topic_manager_->on_get_forum_topic_info(DialogId(channel_id_), forum_topic_info,
+                                                           "GetForumTopicQuery");
         return promise_.set_value(forum_topic.get_forum_topic_object(td_, forum_topic_info));
       }
       default:
@@ -471,6 +473,26 @@ void ForumTopicManager::on_forum_topic_edited(DialogId dialog_id, MessageId top_
     return;
   }
   if (topic->info_->apply_edited_data(edited_data)) {
+    send_update_forum_topic_info(dialog_id, topic->info_.get());
+    save_topic_to_database(dialog_id, topic);
+  }
+}
+
+void ForumTopicManager::on_get_forum_topic_info(DialogId dialog_id, const ForumTopicInfo &topic_info,
+                                                const char *source) {
+  if (!can_be_forum(dialog_id)) {
+    LOG(ERROR) << "Receive forum topics in " << dialog_id << " from " << source;
+    return;
+  }
+
+  auto dialog_topics = add_dialog_topics(dialog_id);
+  CHECK(dialog_topics != nullptr);
+  auto forum_topic_info = td::make_unique<ForumTopicInfo>(topic_info);
+  MessageId top_thread_message_id = forum_topic_info->get_top_thread_message_id();
+  CHECK(top_thread_message_id.is_valid());
+  auto topic = add_topic(dialog_topics, top_thread_message_id);
+  if (topic->info_ == nullptr || *topic->info_ != *forum_topic_info) {
+    topic->info_ = std::move(forum_topic_info);
     send_update_forum_topic_info(dialog_id, topic->info_.get());
     save_topic_to_database(dialog_id, topic);
   }
