@@ -5671,7 +5671,7 @@ setChatTitle chat_id:int53 title:string = Ok;
 //@chat_id Chat identifier @photo New chat photo; pass null to delete the chat photo
 setChatPhoto chat_id:int53 photo:InputChatPhoto = Ok;
 
-//@description Changes the message TTL in a chat. Requires can_delete_messages administrator right in basic groups, supergroups and channels
+//@description Changes the message TTL in a chat. Requires change_info administrator right in basic groups, supergroups and channels
 //-Message TTL can't be changed in a chat with the current user (Saved Messages) and the chat 777000 (Telegram).
 //@chat_id Chat identifier @ttl New TTL value, in seconds; unless the chat is secret, it must be from 0 up to 365 * 86400 and be divisible by 86400. If 0, then messages aren't deleted automatically
 setChatMessageTtl chat_id:int53 ttl:int32 = Ok;

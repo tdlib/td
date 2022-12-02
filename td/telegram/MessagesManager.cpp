@@ -34569,7 +34569,7 @@ void MessagesManager::set_dialog_message_ttl(DialogId dialog_id, int32 ttl, Prom
     case DialogType::Chat: {
       auto chat_id = dialog_id.get_chat_id();
       auto status = td_->contacts_manager_->get_chat_permissions(chat_id);
-      if (!status.can_delete_messages()) {
+      if (!status.can_change_info_and_settings()) {
         return promise.set_error(
             Status::Error(400, "Not enough rights to change message auto-delete time in the chat"));
       }
