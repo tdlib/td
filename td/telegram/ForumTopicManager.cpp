@@ -650,7 +650,7 @@ void ForumTopicManager::on_topic_message_count_changed(DialogId dialog_id, Messa
   topic->message_count_ += diff;
   CHECK(topic->message_count_ >= 0);
   if (topic->message_count_ == 0) {
-    // TODO kepp topics in the topic list
+    // TODO keep topics in the topic list
     dialog_topics->topics_.erase(top_thread_message_id);
   }
 }

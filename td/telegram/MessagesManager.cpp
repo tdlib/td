@@ -13506,8 +13506,6 @@ void MessagesManager::on_message_ttl_expired_impl(Dialog *d, Message *m) {
   m->reply_to_random_id = 0;
   m->max_reply_media_timestamp = -1;
   m->reply_in_dialog_id = DialogId();
-  m->top_thread_message_id = MessageId();
-  m->is_topic_message = false;
   m->linked_top_thread_message_id = MessageId();
   m->is_content_secret = false;
 }
@@ -15001,8 +14999,6 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
     message->reply_to_message_id = MessageId();
     message->reply_to_random_id = 0;
     message->reply_in_dialog_id = DialogId();
-    message->top_thread_message_id = MessageId();
-    message->is_topic_message = false;
     message->linked_top_thread_message_id = MessageId();
   }
 
@@ -36856,7 +36852,13 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
   if (!old_message->top_thread_message_id.is_valid()) {
     new_message->is_topic_message = false;
   }
-  if (old_message->is_topic_message != new_message->is_topic_message) {
+  if (old_message->is_topic_message != new_message->is_topic_message &&
+      old_message->top_thread_message_id == new_message->top_thread_message_id) {
+    if (is_message_in_dialog) {
+      td_->forum_topic_manager_->on_topic_message_count_changed(
+          dialog_id, old_message->top_thread_message_id,
+          static_cast<int>(new_message->is_topic_message) - static_cast<int>(old_message->is_topic_message));
+    }
     LOG_IF(ERROR, !message_id.is_yet_unsent() && !replace_legacy)
         << message_id << " in " << dialog_id << " has changed is_topic_message to " << new_message->is_topic_message;
     old_message->is_topic_message = new_message->is_topic_message;
