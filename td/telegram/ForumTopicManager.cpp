@@ -11,6 +11,7 @@
 #include "td/telegram/ChannelId.h"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/CustomEmojiId.h"
+#include "td/telegram/ForumTopic.h"
 #include "td/telegram/ForumTopicIcon.h"
 #include "td/telegram/ForumTopicInfo.hpp"
 #include "td/telegram/Global.h"
@@ -193,6 +194,72 @@ class EditForumTopicQuery final : public Td::ResultHandler {
   }
 };
 
+class GetForumTopicQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::forumTopic>> promise_;
+  ChannelId channel_id_;
+  MessageId top_thread_message_id_;
+
+ public:
+  explicit GetForumTopicQuery(Promise<td_api::object_ptr<td_api::forumTopic>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(ChannelId channel_id, MessageId top_thread_message_id) {
+    channel_id_ = channel_id;
+    top_thread_message_id_ = top_thread_message_id;
+
+    auto input_channel = td_->contacts_manager_->get_input_channel(channel_id);
+    CHECK(input_channel != nullptr);
+
+    send_query(G()->net_query_creator().create(
+        telegram_api::channels_getForumTopicsByID(std::move(input_channel),
+                                                  {top_thread_message_id_.get_server_message_id().get()}),
+        {{channel_id}}));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::channels_getForumTopicsByID>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for GetForumTopicQuery: " << to_string(ptr);
+
+    td_->contacts_manager_->on_get_users(std::move(ptr->users_), "GetForumTopicQuery");
+    td_->contacts_manager_->on_get_chats(std::move(ptr->chats_), "GetForumTopicQuery");
+    td_->messages_manager_->on_get_messages(std::move(ptr->messages_), true, false, Promise<Unit>(),
+                                            "GetForumTopicQuery");
+    if (ptr->topics_.size() != 1u) {
+      return promise_.set_value(nullptr);
+    }
+
+    auto topic = std::move(ptr->topics_[0]);
+    switch (topic->get_id()) {
+      case telegram_api::forumTopicDeleted::ID:
+        return promise_.set_value(nullptr);
+      case telegram_api::forumTopic::ID: {
+        ForumTopicInfo forum_topic_info(topic);
+        ForumTopic forum_topic(td_, std::move(topic));
+        if (forum_topic.is_short()) {
+          return promise_.set_error(Status::Error(500, "Receive short forum topic"));
+        }
+        if (forum_topic_info.get_top_thread_message_id() != top_thread_message_id_) {
+          return promise_.set_error(Status::Error(500, "Wrong forum topic received"));
+        }
+        return promise_.set_value(forum_topic.get_forum_topic_object(td_, forum_topic_info));
+      }
+      default:
+        UNREACHABLE();
+    }
+  }
+
+  void on_error(Status status) final {
+    td_->contacts_manager_->on_get_channel_error(channel_id_, status, "GetForumTopicQuery");
+    promise_.set_error(std::move(status));
+  }
+};
+
 template <class StorerT>
 void ForumTopicManager::Topic::store(StorerT &storer) const {
   CHECK(info_ != nullptr);
@@ -304,6 +371,18 @@ void ForumTopicManager::edit_forum_topic(DialogId dialog_id, MessageId top_threa
 
   td_->create_handler<EditForumTopicQuery>(std::move(promise))
       ->send(channel_id, top_thread_message_id, edit_title, new_title, edit_icon_custom_emoji, icon_custom_emoji_id);
+}
+
+void ForumTopicManager::get_forum_topic(DialogId dialog_id, MessageId top_thread_message_id,
+                                        Promise<td_api::object_ptr<td_api::forumTopic>> &&promise) {
+  TRY_STATUS_PROMISE(promise, is_forum(dialog_id));
+  auto channel_id = dialog_id.get_channel_id();
+
+  if (!top_thread_message_id.is_valid() || !top_thread_message_id.is_server()) {
+    return promise.set_error(Status::Error(400, "Invalid message thread identifier specified"));
+  }
+
+  td_->create_handler<GetForumTopicQuery>(std::move(promise))->send(channel_id, top_thread_message_id);
 }
 
 void ForumTopicManager::toggle_forum_topic_is_closed(DialogId dialog_id, MessageId top_thread_message_id,

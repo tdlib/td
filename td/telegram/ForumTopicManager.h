@@ -43,6 +43,9 @@ class ForumTopicManager final : public Actor {
   void edit_forum_topic(DialogId dialog_id, MessageId top_thread_message_id, string &&title,
                         bool edit_icon_custom_emoji, CustomEmojiId icon_custom_emoji_id, Promise<Unit> &&promise);
 
+  void get_forum_topic(DialogId dialog_id, MessageId top_thread_message_id,
+                       Promise<td_api::object_ptr<td_api::forumTopic>> &&promise);
+
   void toggle_forum_topic_is_closed(DialogId dialog_id, MessageId top_thread_message_id, bool is_closed,
                                     Promise<Unit> &&promise);
 

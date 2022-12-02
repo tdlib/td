@@ -3882,6 +3882,11 @@ class CliClient final : public Actor {
       get_args(args, chat_id, message_thread_id, name, edit_icon_custom_emoji, icon_custom_emoji_id);
       send_request(td_api::make_object<td_api::editForumTopic>(chat_id, message_thread_id, name, edit_icon_custom_emoji,
                                                                icon_custom_emoji_id));
+    } else if (op == "gft") {
+      ChatId chat_id;
+      MessageThreadId message_thread_id;
+      get_args(args, chat_id, message_thread_id);
+      send_request(td_api::make_object<td_api::getForumTopic>(chat_id, message_thread_id));
     } else if (op == "tftic") {
       ChatId chat_id;
       MessageThreadId message_thread_id;

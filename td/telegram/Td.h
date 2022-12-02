@@ -748,6 +748,8 @@ class Td final : public Actor {
 
   void on_request(uint64 id, td_api::editForumTopic &request);
 
+  void on_request(uint64 id, const td_api::getForumTopic &request);
+
   void on_request(uint64 id, const td_api::toggleForumTopicIsClosed &request);
 
   void on_request(uint64 id, const td_api::toggleGeneralForumTopicIsHidden &request);

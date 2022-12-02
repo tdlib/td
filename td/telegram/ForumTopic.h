@@ -7,6 +7,7 @@
 #pragma once
 
 #include "td/telegram/DialogNotificationSettings.h"
+#include "td/telegram/DraftMessage.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
@@ -15,7 +16,6 @@
 
 namespace td {
 
-class DraftMessage;
 class ForumTopicInfo;
 class Td;
 
