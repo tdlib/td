@@ -13232,19 +13232,20 @@ void MessagesManager::on_update_viewed_messages_timeout(DialogId dialog_id) {
   update_viewed_messages_timeout_.add_timeout_in(dialog_id.get(), UPDATE_VIEWED_MESSAGES_PERIOD);
 }
 
-MessageId MessagesManager::get_message_id(const tl_object_ptr<telegram_api::Message> &message_ptr, bool is_scheduled) {
+MessageId MessagesManager::get_message_id(const telegram_api::Message *message_ptr, bool is_scheduled) {
+  CHECK(message_ptr != nullptr)
   switch (message_ptr->get_id()) {
     case telegram_api::messageEmpty::ID: {
-      auto message = static_cast<const telegram_api::messageEmpty *>(message_ptr.get());
+      auto message = static_cast<const telegram_api::messageEmpty *>(message_ptr);
       return is_scheduled ? MessageId() : MessageId(ServerMessageId(message->id_));
     }
     case telegram_api::message::ID: {
-      auto message = static_cast<const telegram_api::message *>(message_ptr.get());
+      auto message = static_cast<const telegram_api::message *>(message_ptr);
       return is_scheduled ? MessageId(ScheduledServerMessageId(message->id_), message->date_)
                           : MessageId(ServerMessageId(message->id_));
     }
     case telegram_api::messageService::ID: {
-      auto message = static_cast<const telegram_api::messageService *>(message_ptr.get());
+      auto message = static_cast<const telegram_api::messageService *>(message_ptr);
       return is_scheduled ? MessageId(ScheduledServerMessageId(message->id_), message->date_)
                           : MessageId(ServerMessageId(message->id_));
     }
@@ -13252,6 +13253,10 @@ MessageId MessagesManager::get_message_id(const tl_object_ptr<telegram_api::Mess
       UNREACHABLE();
       return MessageId();
   }
+}
+
+MessageId MessagesManager::get_message_id(const tl_object_ptr<telegram_api::Message> &message_ptr, bool is_scheduled) {
+  return get_message_id(message_ptr.get(), is_scheduled);
 }
 
 DialogId MessagesManager::get_message_dialog_id(const telegram_api::Message *message_ptr) {

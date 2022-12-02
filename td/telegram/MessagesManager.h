@@ -165,6 +165,8 @@ class MessagesManager final : public Actor {
 
   static vector<int32> get_scheduled_server_message_ids(const vector<MessageId> &message_ids);
 
+  static MessageId get_message_id(const telegram_api::Message *message_ptr, bool is_scheduled);
+
   static MessageId get_message_id(const tl_object_ptr<telegram_api::Message> &message_ptr, bool is_scheduled);
 
   static DialogId get_message_dialog_id(const telegram_api::Message *message_ptr);

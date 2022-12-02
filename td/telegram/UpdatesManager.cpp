@@ -1149,12 +1149,20 @@ FlatHashSet<int64> UpdatesManager::get_sent_messages_random_ids(const telegram_a
     auto new_messages = get_new_messages(updates_ptr);
     for (auto &update : *updates) {
       if (update->get_id() == telegram_api::updateMessageID::ID) {
-        int64 random_id = static_cast<const telegram_api::updateMessageID *>(update.get())->random_id_;
+        auto update_message_id = static_cast<const telegram_api::updateMessageID *>(update.get());
+        int64 random_id = update_message_id->random_id_;
         if (random_id != 0) {
-          bool found_message = true;
-          // for (auto *message : new_messages) {
-          // TODO
-          // }
+          bool found_message = false;
+          for (auto message : new_messages) {
+            MessageId message_id = MessagesManager::get_message_id(message.first, message.second);
+            if (message.second) {
+              found_message |= message_id.is_valid_scheduled() &&
+                               message_id.get_scheduled_server_message_id().get() == update_message_id->id_;
+            } else {
+              found_message |=
+                  message_id.is_valid() && message_id.get_server_message_id().get() == update_message_id->id_;
+            }
+          }
           if (found_message && !random_ids.insert(random_id).second) {
             LOG(ERROR) << "Receive twice updateMessageID for " << random_id;
           }
@@ -1234,7 +1242,7 @@ vector<std::pair<const telegram_api::Message *, bool>> UpdatesManager::get_new_m
         is_scheduled = true;
       }
 
-      if (is_additional_service_message(message)) {
+      if (message != nullptr && !is_additional_service_message(message)) {
         messages.emplace_back(message, is_scheduled);
       }
     }
