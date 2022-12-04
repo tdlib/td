@@ -36805,7 +36805,8 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
     }
   }
   if (old_message->top_thread_message_id != new_message->top_thread_message_id) {
-    if (new_message->top_thread_message_id == MessageId() || old_message->top_thread_message_id == MessageId()) {
+    if ((new_message->top_thread_message_id == MessageId() || old_message->top_thread_message_id == MessageId()) &&
+        !is_message_in_dialog) {
       LOG(DEBUG) << "Change message thread from " << old_message->top_thread_message_id << " to "
                  << new_message->top_thread_message_id;
       old_message->top_thread_message_id = new_message->top_thread_message_id;
