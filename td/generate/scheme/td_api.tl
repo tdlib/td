@@ -2997,6 +2997,9 @@ chatEventInvitesToggled can_invite_users:Bool = ChatEventAction;
 //@description The is_all_history_available setting of a supergroup was toggled @is_all_history_available New value of is_all_history_available
 chatEventIsAllHistoryAvailableToggled is_all_history_available:Bool = ChatEventAction;
 
+//@description The is_aggressive_anti_spam_enabled setting of a supergroup was toggled @is_aggressive_anti_spam_enabled New value of is_aggressive_anti_spam_enabled
+chatEventIsAggressiveAntiSpamEnabledToggled is_aggressive_anti_spam_enabled:Bool = ChatEventAction;
+
 //@description The sign_messages setting of a channel was toggled @sign_messages New value of sign_messages
 chatEventSignMessagesToggled sign_messages:Bool = ChatEventAction;
 

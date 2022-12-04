@@ -418,7 +418,8 @@ static td_api::object_ptr<td_api::ChatEventAction> get_chat_event_action_object(
                                                                     new_topic_info.get_forum_topic_info_object(td));
     }
     case telegram_api::channelAdminLogEventActionToggleAntiSpam::ID: {
-      return nullptr;
+      auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionToggleAntiSpam>(action_ptr);
+      return td_api::make_object<td_api::chatEventIsAggressiveAntiSpamEnabledToggled>(action->new_value_);
     }
     default:
       UNREACHABLE();
