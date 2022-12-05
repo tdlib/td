@@ -5568,6 +5568,19 @@ void Td::on_request(uint64 id, const td_api::getForumTopic &request) {
                                         std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::getForumTopicLink &request) {
+  CREATE_REQUEST_PROMISE();
+  auto query_promise = PromiseCreator::lambda([promise = std::move(promise)](Result<string> result) mutable {
+    if (result.is_error()) {
+      promise.set_error(result.move_as_error());
+    } else {
+      promise.set_value(td_api::make_object<td_api::httpUrl>(result.move_as_ok()));
+    }
+  });
+  forum_topic_manager_->get_forum_topic_link(DialogId(request.chat_id_), MessageId(request.message_thread_id_),
+                                             std::move(query_promise));
+}
+
 void Td::on_request(uint64 id, const td_api::toggleForumTopicIsClosed &request) {
   CREATE_OK_REQUEST_PROMISE();
   forum_topic_manager_->toggle_forum_topic_is_closed(DialogId(request.chat_id_), MessageId(request.message_thread_id_),

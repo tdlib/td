@@ -18,6 +18,7 @@
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/MessageThreadDb.h"
 #include "td/telegram/misc.h"
+#include "td/telegram/OptionManager.h"
 #include "td/telegram/ServerMessageId.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"
@@ -385,6 +386,29 @@ void ForumTopicManager::get_forum_topic(DialogId dialog_id, MessageId top_thread
   }
 
   td_->create_handler<GetForumTopicQuery>(std::move(promise))->send(channel_id, top_thread_message_id);
+}
+
+void ForumTopicManager::get_forum_topic_link(DialogId dialog_id, MessageId top_thread_message_id,
+                                             Promise<string> &&promise) {
+  TRY_STATUS_PROMISE(promise, is_forum(dialog_id));
+  auto channel_id = dialog_id.get_channel_id();
+
+  if (!top_thread_message_id.is_valid() || !top_thread_message_id.is_server()) {
+    return promise.set_error(Status::Error(400, "Invalid message thread identifier specified"));
+  }
+
+  SliceBuilder sb;
+  sb << td_->option_manager_->get_option_string("t_me_url", "https://t.me/");
+
+  auto dialog_username = td_->contacts_manager_->get_channel_first_username(channel_id);
+  if (!dialog_username.empty()) {
+    sb << dialog_username;
+  } else {
+    sb << "c/" << channel_id.get();
+  }
+  sb << '/' << top_thread_message_id.get_server_message_id().get();
+
+  promise.set_value(sb.as_cslice().str());
 }
 
 void ForumTopicManager::toggle_forum_topic_is_closed(DialogId dialog_id, MessageId top_thread_message_id,

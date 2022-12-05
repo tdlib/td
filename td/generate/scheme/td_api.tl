@@ -3870,7 +3870,7 @@ internalLinkTypeLanguagePack language_pack_id:string = InternalLinkType;
 //@description The link is a link to the language settings section of the app
 internalLinkTypeLanguageSettings = InternalLinkType;
 
-//@description The link is a link to a Telegram message. Call getMessageLinkInfo with the given URL to process the link @url URL to be passed to getMessageLinkInfo
+//@description The link is a link to a Telegram message or a forum topic. Call getMessageLinkInfo with the given URL to process the link @url URL to be passed to getMessageLinkInfo
 internalLinkTypeMessage url:string = InternalLinkType;
 
 //@description The link contains a message draft text. A share screen needs to be shown to the user, then the chosen chat must be opened and the text is added to the input field
@@ -3939,10 +3939,10 @@ internalLinkTypeVideoChat chat_username:string invite_hash:string is_live_stream
 //@description Contains an HTTPS link to a message in a supergroup or channel @link Message link @is_public True, if the link will work for non-members of the chat
 messageLink link:string is_public:Bool = MessageLink;
 
-//@description Contains information about a link to a message in a chat
+//@description Contains information about a link to a message or a forum topic in a chat
 //@is_public True, if the link is a public link for a message in a chat
 //@chat_id If found, identifier of the chat to which the message belongs, 0 otherwise
-//@message_thread_id If found, identifier of the message thread in which to open the message, or which to open in case of a missing message
+//@message_thread_id If found, identifier of the message thread in which to open the message, or which to open if the message is missing
 //@message If found, the linked message; may be null
 //@media_timestamp Timestamp from which the video/audio/video note/voice note playing must start, in seconds; 0 if not specified. The media can be in the message content or in its web page preview
 //@for_album True, if the whole media album to which the message belongs is linked
@@ -5342,6 +5342,9 @@ editForumTopic chat_id:int53 message_thread_id:int53 name:string edit_icon_custo
 
 //@description Returns information about a forum topic @chat_id Identifier of the chat @message_thread_id Message thread identifier of the forum topic
 getForumTopic chat_id:int53 message_thread_id:int53 = ForumTopic;
+
+//@description Returns an HTTPS link to a topic in a forum chat. This is an offline request @chat_id Identifier of the chat @message_thread_id Message thread identifier of the forum topic
+getForumTopicLink chat_id:int53 message_thread_id:int53 = HttpUrl;
 
 //@description Toggles whether a topic is closed in a forum supergroup chat; requires can_manage_topics administrator rights in the supergroup unless the user is creator of the topic
 //@chat_id Identifier of the chat

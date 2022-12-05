@@ -3887,6 +3887,11 @@ class CliClient final : public Actor {
       MessageThreadId message_thread_id;
       get_args(args, chat_id, message_thread_id);
       send_request(td_api::make_object<td_api::getForumTopic>(chat_id, message_thread_id));
+    } else if (op == "gftl") {
+      ChatId chat_id;
+      MessageThreadId message_thread_id;
+      get_args(args, chat_id, message_thread_id);
+      send_request(td_api::make_object<td_api::getForumTopicLink>(chat_id, message_thread_id));
     } else if (op == "tftic") {
       ChatId chat_id;
       MessageThreadId message_thread_id;

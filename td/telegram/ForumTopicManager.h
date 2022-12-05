@@ -46,6 +46,8 @@ class ForumTopicManager final : public Actor {
   void get_forum_topic(DialogId dialog_id, MessageId top_thread_message_id,
                        Promise<td_api::object_ptr<td_api::forumTopic>> &&promise);
 
+  void get_forum_topic_link(DialogId dialog_id, MessageId top_thread_message_id, Promise<string> &&promise);
+
   void toggle_forum_topic_is_closed(DialogId dialog_id, MessageId top_thread_message_id, bool is_closed,
                                     Promise<Unit> &&promise);
 
