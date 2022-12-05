@@ -341,10 +341,9 @@ void ForumTopicManager::on_forum_topic_created(DialogId dialog_id, unique_ptr<Fo
   MessageId top_thread_message_id = forum_topic_info->get_top_thread_message_id();
   auto topic = add_topic(dialog_id, top_thread_message_id);
   if (topic->info_ == nullptr) {
-    topic->info_ = std::move(forum_topic_info);
-    send_update_forum_topic_info(dialog_id, topic->info_.get());
-    save_topic_to_database(dialog_id, topic);
+    set_topic_info(dialog_id, topic, std::move(forum_topic_info));
   }
+  save_topic_to_database(dialog_id, topic);
   promise.set_value(topic->info_->get_forum_topic_info_object(td_));
 }
 
@@ -485,8 +484,9 @@ void ForumTopicManager::on_forum_topic_edited(DialogId dialog_id, MessageId top_
   }
   if (topic->info_->apply_edited_data(edited_data)) {
     send_update_forum_topic_info(dialog_id, topic->info_.get());
-    save_topic_to_database(dialog_id, topic);
+    topic->need_save_to_database_ = true;
   }
+  save_topic_to_database(dialog_id, topic);
 }
 
 void ForumTopicManager::on_get_forum_topic_info(DialogId dialog_id, const ForumTopicInfo &topic_info,
@@ -502,9 +502,8 @@ void ForumTopicManager::on_get_forum_topic_info(DialogId dialog_id, const ForumT
   MessageId top_thread_message_id = forum_topic_info->get_top_thread_message_id();
   CHECK(can_be_message_thread_id(top_thread_message_id).is_ok());
   auto topic = add_topic(dialog_topics, top_thread_message_id);
-  if (set_topic_info(dialog_id, topic, std::move(forum_topic_info))) {
-    save_topic_to_database(dialog_id, topic);
-  }
+  set_topic_info(dialog_id, topic, std::move(forum_topic_info));
+  save_topic_to_database(dialog_id, topic);
 }
 
 void ForumTopicManager::on_get_forum_topic_infos(DialogId dialog_id,
@@ -527,9 +526,8 @@ void ForumTopicManager::on_get_forum_topic_infos(DialogId dialog_id,
       continue;
     }
     auto topic = add_topic(dialog_topics, top_thread_message_id);
-    if (set_topic_info(dialog_id, topic, std::move(forum_topic_info))) {
-      save_topic_to_database(dialog_id, topic);
-    }
+    set_topic_info(dialog_id, topic, std::move(forum_topic_info));
+    save_topic_to_database(dialog_id, topic);
   }
 }
 
@@ -556,17 +554,12 @@ MessageId ForumTopicManager::on_get_forum_topic(DialogId dialog_id,
       }
       MessageId top_thread_message_id = forum_topic_info->get_top_thread_message_id();
       Topic *topic = add_topic(dialog_id, top_thread_message_id);
-      bool need_save = false;
       if (topic->topic_ == nullptr || true) {
         topic->topic_ = std::move(forum_topic_full);
-        need_save = true;
+        topic->need_save_to_database_ = true;  // temporary
       }
-      if (set_topic_info(dialog_id, topic, std::move(forum_topic_info))) {
-        need_save = true;
-      }
-      if (need_save) {
-        save_topic_to_database(dialog_id, topic);
-      }
+      set_topic_info(dialog_id, topic, std::move(forum_topic_info));
+      save_topic_to_database(dialog_id, topic);
       return top_thread_message_id;
     }
     default:
@@ -665,13 +658,12 @@ const ForumTopicInfo *ForumTopicManager::get_topic_info(DialogId dialog_id, Mess
   return topic->info_.get();
 }
 
-bool ForumTopicManager::set_topic_info(DialogId dialog_id, Topic *topic, unique_ptr<ForumTopicInfo> forum_topic_info) {
+void ForumTopicManager::set_topic_info(DialogId dialog_id, Topic *topic, unique_ptr<ForumTopicInfo> forum_topic_info) {
   if (topic->info_ == nullptr || *topic->info_ != *forum_topic_info) {
     topic->info_ = std::move(forum_topic_info);
     send_update_forum_topic_info(dialog_id, topic->info_.get());
-    return true;
+    topic->need_save_to_database_ = true;
   }
-  return false;
 }
 
 td_api::object_ptr<td_api::updateForumTopicInfo> ForumTopicManager::get_update_forum_topic_info(
@@ -688,9 +680,11 @@ void ForumTopicManager::send_update_forum_topic_info(DialogId dialog_id, const F
 }
 
 void ForumTopicManager::save_topic_to_database(DialogId dialog_id, const Topic *topic) {
-  if (topic->info_ == nullptr) {
+  CHECK(topic != nullptr);
+  if (topic->info_ == nullptr || !topic->need_save_to_database_) {
     return;
   }
+  topic->need_save_to_database_ = false;
 
   auto message_thread_db = G()->td_db()->get_message_thread_db_async();
   if (message_thread_db == nullptr) {

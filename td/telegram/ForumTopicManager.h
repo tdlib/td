@@ -80,6 +80,7 @@ class ForumTopicManager final : public Actor {
     unique_ptr<ForumTopicInfo> info_;
     unique_ptr<ForumTopic> topic_;
     int32 message_count_ = 0;
+    mutable bool need_save_to_database_ = true;
 
     template <class StorerT>
     void store(StorerT &storer) const;
@@ -116,7 +117,7 @@ class ForumTopicManager final : public Actor {
 
   const ForumTopicInfo *get_topic_info(DialogId dialog_id, MessageId top_thread_message_id) const;
 
-  bool set_topic_info(DialogId dialog_id, Topic *topic, unique_ptr<ForumTopicInfo> forum_topic_info);
+  void set_topic_info(DialogId dialog_id, Topic *topic, unique_ptr<ForumTopicInfo> forum_topic_info);
 
   void on_delete_forum_topic(DialogId dialog_id, MessageId top_thread_message_id, Promise<Unit> &&promise);
 
