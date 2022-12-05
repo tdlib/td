@@ -502,9 +502,7 @@ void ForumTopicManager::on_get_forum_topic_info(DialogId dialog_id, const ForumT
   MessageId top_thread_message_id = forum_topic_info->get_top_thread_message_id();
   CHECK(can_be_message_thread_id(top_thread_message_id).is_ok());
   auto topic = add_topic(dialog_topics, top_thread_message_id);
-  if (topic->info_ == nullptr || *topic->info_ != *forum_topic_info) {
-    topic->info_ = std::move(forum_topic_info);
-    send_update_forum_topic_info(dialog_id, topic->info_.get());
+  if (set_topic_info(dialog_id, topic, std::move(forum_topic_info))) {
     save_topic_to_database(dialog_id, topic);
   }
 }
@@ -529,9 +527,7 @@ void ForumTopicManager::on_get_forum_topic_infos(DialogId dialog_id,
       continue;
     }
     auto topic = add_topic(dialog_topics, top_thread_message_id);
-    if (topic->info_ == nullptr || *topic->info_ != *forum_topic_info) {
-      topic->info_ = std::move(forum_topic_info);
-      send_update_forum_topic_info(dialog_id, topic->info_.get());
+    if (set_topic_info(dialog_id, topic, std::move(forum_topic_info))) {
       save_topic_to_database(dialog_id, topic);
     }
   }
@@ -565,9 +561,7 @@ MessageId ForumTopicManager::on_get_forum_topic(DialogId dialog_id,
         topic->topic_ = std::move(forum_topic_full);
         need_save = true;
       }
-      if (topic->info_ == nullptr || *topic->info_ != *forum_topic_info) {
-        topic->info_ = std::move(forum_topic_info);
-        send_update_forum_topic_info(dialog_id, topic->info_.get());
+      if (set_topic_info(dialog_id, topic, std::move(forum_topic_info))) {
         need_save = true;
       }
       if (need_save) {
@@ -669,6 +663,15 @@ const ForumTopicInfo *ForumTopicManager::get_topic_info(DialogId dialog_id, Mess
     return nullptr;
   }
   return topic->info_.get();
+}
+
+bool ForumTopicManager::set_topic_info(DialogId dialog_id, Topic *topic, unique_ptr<ForumTopicInfo> forum_topic_info) {
+  if (topic->info_ == nullptr || *topic->info_ != *forum_topic_info) {
+    topic->info_ = std::move(forum_topic_info);
+    send_update_forum_topic_info(dialog_id, topic->info_.get());
+    return true;
+  }
+  return false;
 }
 
 td_api::object_ptr<td_api::updateForumTopicInfo> ForumTopicManager::get_update_forum_topic_info(
