@@ -8380,7 +8380,7 @@ void MessagesManager::on_update_notification_scope_is_muted(NotificationSettings
   if (!dialog_filters_.empty()) {
     dialogs_.foreach([&](const DialogId &dialog_id, unique_ptr<Dialog> &dialog) {
       Dialog *d = dialog.get();
-      if (d->order != DEFAULT_ORDER && d->notification_settings.use_default_mute_until &&
+      if (need_unread_counter(d->order) && d->notification_settings.use_default_mute_until &&
           get_dialog_notification_setting_scope(d->dialog_id) == scope) {
         update_dialog_lists(d, get_dialog_positions(d), true, false, "on_update_notification_scope_is_muted");
       }
@@ -8390,7 +8390,7 @@ void MessagesManager::on_update_notification_scope_is_muted(NotificationSettings
   if (is_muted) {
     dialogs_.foreach([&](const DialogId &dialog_id, unique_ptr<Dialog> &dialog) {
       Dialog *d = dialog.get();
-      if (d->order != DEFAULT_ORDER && d->notification_settings.use_default_mute_until &&
+      if (need_unread_counter(d->order) && d->notification_settings.use_default_mute_until &&
           get_dialog_notification_setting_scope(d->dialog_id) == scope) {
         remove_all_dialog_notifications(d, false, "on_update_notification_scope_is_muted");
       }
