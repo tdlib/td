@@ -757,6 +757,7 @@ set(TDLIB_SOURCE
   td/telegram/files/FileLocation.hpp
   td/telegram/files/FileManager.hpp
   td/telegram/files/FileSourceId.hpp
+  td/telegram/ForumTopic.hpp
   td/telegram/ForumTopicEditedData.hpp
   td/telegram/ForumTopicIcon.hpp
   td/telegram/ForumTopicInfo.hpp

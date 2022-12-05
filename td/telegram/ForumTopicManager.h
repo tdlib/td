@@ -8,6 +8,7 @@
 
 #include "td/telegram/CustomEmojiId.h"
 #include "td/telegram/DialogId.h"
+#include "td/telegram/ForumTopic.h"
 #include "td/telegram/ForumTopicEditedData.h"
 #include "td/telegram/ForumTopicInfo.h"
 #include "td/telegram/MessageId.h"
@@ -62,8 +63,13 @@ class ForumTopicManager final : public Actor {
 
   void on_get_forum_topic_info(DialogId dialog_id, const ForumTopicInfo &topic_info, const char *source);
 
-  void on_get_forum_topics(DialogId dialog_id, vector<tl_object_ptr<telegram_api::ForumTopic>> &&forum_topics,
-                           const char *source);
+  void on_get_forum_topic_infos(DialogId dialog_id, vector<tl_object_ptr<telegram_api::ForumTopic>> &&forum_topics,
+                                const char *source);
+
+  MessageId on_get_forum_topic(DialogId dialog_id, tl_object_ptr<telegram_api::ForumTopic> &&forum_topic);
+
+  td_api::object_ptr<td_api::forumTopic> get_forum_topic_object(DialogId dialog_id,
+                                                                MessageId top_thread_message_id) const;
 
   void on_topic_message_count_changed(DialogId dialog_id, MessageId top_thread_message_id, int diff);
 
@@ -72,6 +78,7 @@ class ForumTopicManager final : public Actor {
 
   struct Topic {
     unique_ptr<ForumTopicInfo> info_;
+    unique_ptr<ForumTopic> topic_;
     int32 message_count_ = 0;
 
     template <class StorerT>

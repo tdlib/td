@@ -12,6 +12,7 @@
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/CustomEmojiId.h"
 #include "td/telegram/ForumTopic.h"
+#include "td/telegram/ForumTopic.hpp"
 #include "td/telegram/ForumTopicIcon.h"
 #include "td/telegram/ForumTopicInfo.hpp"
 #include "td/telegram/Global.h"
@@ -235,26 +236,15 @@ class GetForumTopicQuery final : public Td::ResultHandler {
       return promise_.set_value(nullptr);
     }
 
-    auto topic = std::move(ptr->topics_[0]);
-    switch (topic->get_id()) {
-      case telegram_api::forumTopicDeleted::ID:
-        return promise_.set_value(nullptr);
-      case telegram_api::forumTopic::ID: {
-        ForumTopicInfo forum_topic_info(topic);
-        ForumTopic forum_topic(td_, std::move(topic));
-        if (forum_topic.is_short()) {
-          return promise_.set_error(Status::Error(500, "Receive short forum topic"));
-        }
-        if (forum_topic_info.get_top_thread_message_id() != top_thread_message_id_) {
-          return promise_.set_error(Status::Error(500, "Wrong forum topic received"));
-        }
-        td_->forum_topic_manager_->on_get_forum_topic_info(DialogId(channel_id_), forum_topic_info,
-                                                           "GetForumTopicQuery");
-        return promise_.set_value(forum_topic.get_forum_topic_object(td_, DialogId(channel_id_), forum_topic_info));
-      }
-      default:
-        UNREACHABLE();
+    auto top_thread_message_id =
+        td_->forum_topic_manager_->on_get_forum_topic(DialogId(channel_id_), std::move(ptr->topics_[0]));
+    if (!top_thread_message_id.is_valid()) {
+      return promise_.set_value(nullptr);
     }
+    if (top_thread_message_id != top_thread_message_id_) {
+      return promise_.set_error(Status::Error(500, "Wrong forum topic received"));
+    }
+    promise_.set_value(td_->forum_topic_manager_->get_forum_topic_object(DialogId(channel_id_), top_thread_message_id));
   }
 
   void on_error(Status status) final {
@@ -269,9 +259,15 @@ void ForumTopicManager::Topic::store(StorerT &storer) const {
   using td::store;
 
   store(MAGIC, storer);
+
+  bool has_topic = topic_ != nullptr;
   BEGIN_STORE_FLAGS();
+  STORE_FLAG(has_topic);
   END_STORE_FLAGS();
   store(info_, storer);
+  if (has_topic) {
+    store(topic_, storer);
+  }
 }
 
 template <class ParserT>
@@ -284,9 +280,15 @@ void ForumTopicManager::Topic::parse(ParserT &parser) {
   if (magic != MAGIC) {
     return parser.set_error("Invalid magic");
   }
+
+  bool has_topic;
   BEGIN_PARSE_FLAGS();
+  PARSE_FLAG(has_topic);
   END_PARSE_FLAGS();
   parse(info_, parser);
+  if (has_topic) {
+    parse(topic_, parser);
+  }
 }
 
 ForumTopicManager::ForumTopicManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
@@ -507,9 +509,9 @@ void ForumTopicManager::on_get_forum_topic_info(DialogId dialog_id, const ForumT
   }
 }
 
-void ForumTopicManager::on_get_forum_topics(DialogId dialog_id,
-                                            vector<tl_object_ptr<telegram_api::ForumTopic>> &&forum_topics,
-                                            const char *source) {
+void ForumTopicManager::on_get_forum_topic_infos(DialogId dialog_id,
+                                                 vector<tl_object_ptr<telegram_api::ForumTopic>> &&forum_topics,
+                                                 const char *source) {
   if (forum_topics.empty()) {
     return;
   }
@@ -533,6 +535,60 @@ void ForumTopicManager::on_get_forum_topics(DialogId dialog_id,
       save_topic_to_database(dialog_id, topic);
     }
   }
+}
+
+MessageId ForumTopicManager::on_get_forum_topic(DialogId dialog_id,
+                                                tl_object_ptr<telegram_api::ForumTopic> &&forum_topic) {
+  CHECK(forum_topic != nullptr);
+  switch (forum_topic->get_id()) {
+    case telegram_api::forumTopicDeleted::ID: {
+      auto top_thread_message_id =
+          MessageId(ServerMessageId(static_cast<const telegram_api::forumTopicDeleted *>(forum_topic.get())->id_));
+      if (!top_thread_message_id.is_valid()) {
+        LOG(ERROR) << "Receive " << to_string(forum_topic);
+        return MessageId();
+      }
+      on_delete_forum_topic(dialog_id, top_thread_message_id, Promise<Unit>());
+      return MessageId();
+    }
+    case telegram_api::forumTopic::ID: {
+      auto forum_topic_info = td::make_unique<ForumTopicInfo>(forum_topic);
+      auto forum_topic_full = td::make_unique<ForumTopic>(td_, std::move(forum_topic));
+      if (forum_topic_full->is_short()) {
+        LOG(ERROR) << "Receive short " << to_string(forum_topic);
+        return MessageId();
+      }
+      MessageId top_thread_message_id = forum_topic_info->get_top_thread_message_id();
+      Topic *topic = add_topic(dialog_id, top_thread_message_id);
+      bool need_save = false;
+      if (topic->topic_ == nullptr || true) {
+        topic->topic_ = std::move(forum_topic_full);
+        need_save = true;
+      }
+      if (topic->info_ == nullptr || *topic->info_ != *forum_topic_info) {
+        topic->info_ = std::move(forum_topic_info);
+        send_update_forum_topic_info(dialog_id, topic->info_.get());
+        need_save = true;
+      }
+      if (need_save) {
+        save_topic_to_database(dialog_id, topic);
+      }
+      return top_thread_message_id;
+    }
+    default:
+      UNREACHABLE();
+      return MessageId();
+  }
+}
+
+td_api::object_ptr<td_api::forumTopic> ForumTopicManager::get_forum_topic_object(
+    DialogId dialog_id, MessageId top_thread_message_id) const {
+  auto topic = get_topic(dialog_id, top_thread_message_id);
+  if (topic == nullptr || topic->topic_ == nullptr) {
+    return nullptr;
+  }
+  CHECK(topic->info_ != nullptr);
+  return topic->topic_->get_forum_topic_object(td_, dialog_id, *topic->info_);
 }
 
 Status ForumTopicManager::is_forum(DialogId dialog_id) {

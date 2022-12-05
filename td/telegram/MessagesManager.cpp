@@ -9868,7 +9868,7 @@ MessagesManager::MessagesInfo MessagesManager::get_messages_info(
 
   td_->contacts_manager_->on_get_users(std::move(users), source);
   td_->contacts_manager_->on_get_chats(std::move(chats), source);
-  td_->forum_topic_manager_->on_get_forum_topics(dialog_id, std::move(topics), source);
+  td_->forum_topic_manager_->on_get_forum_topic_infos(dialog_id, std::move(topics), source);
 
   return result;
 }
