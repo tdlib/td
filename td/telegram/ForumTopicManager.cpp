@@ -350,11 +350,8 @@ void ForumTopicManager::edit_forum_topic(DialogId dialog_id, MessageId top_threa
                                          bool edit_icon_custom_emoji, CustomEmojiId icon_custom_emoji_id,
                                          Promise<Unit> &&promise) {
   TRY_STATUS_PROMISE(promise, is_forum(dialog_id));
+  TRY_STATUS_PROMISE(promise, can_be_message_thread_id(top_thread_message_id));
   auto channel_id = dialog_id.get_channel_id();
-
-  if (!top_thread_message_id.is_valid() || !top_thread_message_id.is_server()) {
-    return promise.set_error(Status::Error(400, "Invalid message thread identifier specified"));
-  }
 
   if (!td_->contacts_manager_->get_channel_permissions(channel_id).can_edit_topics()) {
     auto topic_info = get_topic_info(dialog_id, top_thread_message_id);
@@ -379,11 +376,8 @@ void ForumTopicManager::edit_forum_topic(DialogId dialog_id, MessageId top_threa
 void ForumTopicManager::get_forum_topic(DialogId dialog_id, MessageId top_thread_message_id,
                                         Promise<td_api::object_ptr<td_api::forumTopic>> &&promise) {
   TRY_STATUS_PROMISE(promise, is_forum(dialog_id));
+  TRY_STATUS_PROMISE(promise, can_be_message_thread_id(top_thread_message_id));
   auto channel_id = dialog_id.get_channel_id();
-
-  if (!top_thread_message_id.is_valid() || !top_thread_message_id.is_server()) {
-    return promise.set_error(Status::Error(400, "Invalid message thread identifier specified"));
-  }
 
   td_->create_handler<GetForumTopicQuery>(std::move(promise))->send(channel_id, top_thread_message_id);
 }
@@ -391,11 +385,8 @@ void ForumTopicManager::get_forum_topic(DialogId dialog_id, MessageId top_thread
 void ForumTopicManager::get_forum_topic_link(DialogId dialog_id, MessageId top_thread_message_id,
                                              Promise<string> &&promise) {
   TRY_STATUS_PROMISE(promise, is_forum(dialog_id));
+  TRY_STATUS_PROMISE(promise, can_be_message_thread_id(top_thread_message_id));
   auto channel_id = dialog_id.get_channel_id();
-
-  if (!top_thread_message_id.is_valid() || !top_thread_message_id.is_server()) {
-    return promise.set_error(Status::Error(400, "Invalid message thread identifier specified"));
-  }
 
   SliceBuilder sb;
   sb << td_->option_manager_->get_option_string("t_me_url", "https://t.me/");
@@ -414,11 +405,8 @@ void ForumTopicManager::get_forum_topic_link(DialogId dialog_id, MessageId top_t
 void ForumTopicManager::toggle_forum_topic_is_closed(DialogId dialog_id, MessageId top_thread_message_id,
                                                      bool is_closed, Promise<Unit> &&promise) {
   TRY_STATUS_PROMISE(promise, is_forum(dialog_id));
+  TRY_STATUS_PROMISE(promise, can_be_message_thread_id(top_thread_message_id));
   auto channel_id = dialog_id.get_channel_id();
-
-  if (!top_thread_message_id.is_valid() || !top_thread_message_id.is_server()) {
-    return promise.set_error(Status::Error(400, "Invalid message thread identifier specified"));
-  }
 
   if (!td_->contacts_manager_->get_channel_permissions(channel_id).can_edit_topics()) {
     auto topic_info = get_topic_info(dialog_id, top_thread_message_id);
@@ -444,11 +432,8 @@ void ForumTopicManager::toggle_forum_topic_is_hidden(DialogId dialog_id, bool is
 void ForumTopicManager::delete_forum_topic(DialogId dialog_id, MessageId top_thread_message_id,
                                            Promise<Unit> &&promise) {
   TRY_STATUS_PROMISE(promise, is_forum(dialog_id));
+  TRY_STATUS_PROMISE(promise, can_be_message_thread_id(top_thread_message_id));
   auto channel_id = dialog_id.get_channel_id();
-
-  if (!top_thread_message_id.is_valid() || !top_thread_message_id.is_server()) {
-    return promise.set_error(Status::Error(400, "Invalid message thread identifier specified"));
-  }
 
   if (!td_->contacts_manager_->get_channel_permissions(channel_id).can_delete_messages()) {
     auto topic_info = get_topic_info(dialog_id, top_thread_message_id);
@@ -513,7 +498,7 @@ void ForumTopicManager::on_get_forum_topic_info(DialogId dialog_id, const ForumT
   CHECK(dialog_topics != nullptr);
   auto forum_topic_info = td::make_unique<ForumTopicInfo>(topic_info);
   MessageId top_thread_message_id = forum_topic_info->get_top_thread_message_id();
-  CHECK(top_thread_message_id.is_valid());
+  CHECK(can_be_message_thread_id(top_thread_message_id).is_ok());
   auto topic = add_topic(dialog_topics, top_thread_message_id);
   if (topic->info_ == nullptr || *topic->info_ != *forum_topic_info) {
     topic->info_ = std::move(forum_topic_info);
@@ -538,7 +523,7 @@ void ForumTopicManager::on_get_forum_topics(DialogId dialog_id,
   for (auto &forum_topic : forum_topics) {
     auto forum_topic_info = td::make_unique<ForumTopicInfo>(forum_topic);
     MessageId top_thread_message_id = forum_topic_info->get_top_thread_message_id();
-    if (!top_thread_message_id.is_valid()) {
+    if (can_be_message_thread_id(top_thread_message_id).is_error()) {
       continue;
     }
     auto topic = add_topic(dialog_topics, top_thread_message_id);
@@ -564,6 +549,13 @@ Status ForumTopicManager::is_forum(DialogId dialog_id) {
 bool ForumTopicManager::can_be_forum(DialogId dialog_id) const {
   return dialog_id.get_type() == DialogType::Channel &&
          td_->contacts_manager_->is_megagroup_channel(dialog_id.get_channel_id());
+}
+
+Status ForumTopicManager::can_be_message_thread_id(MessageId top_thread_message_id) {
+  if (!top_thread_message_id.is_valid() || !top_thread_message_id.is_server()) {
+    return Status::Error(400, "Invalid message thread identifier specified");
+  }
+  return Status::OK();
 }
 
 ForumTopicManager::DialogTopics *ForumTopicManager::add_dialog_topics(DialogId dialog_id) {
@@ -663,7 +655,7 @@ void ForumTopicManager::delete_topic_from_database(DialogId dialog_id, MessageId
 }
 
 void ForumTopicManager::on_topic_message_count_changed(DialogId dialog_id, MessageId top_thread_message_id, int diff) {
-  if (!can_be_forum(dialog_id) || !top_thread_message_id.is_valid()) {
+  if (!can_be_forum(dialog_id) || can_be_message_thread_id(top_thread_message_id).is_error()) {
     LOG(ERROR) << "Change by " << diff << " number of loaded messages in thread of " << top_thread_message_id << " in "
                << dialog_id;
     return;

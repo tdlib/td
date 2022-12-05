@@ -93,6 +93,8 @@ class ForumTopicManager final : public Actor {
 
   bool can_be_forum(DialogId dialog_id) const;
 
+  static Status can_be_message_thread_id(MessageId top_thread_message_id);
+
   DialogTopics *add_dialog_topics(DialogId dialog_id);
 
   static Topic *add_topic(DialogTopics *dialog_topics, MessageId top_thread_message_id);
