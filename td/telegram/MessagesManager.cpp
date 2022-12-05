@@ -19620,6 +19620,10 @@ td_api::object_ptr<td_api::messageLinkInfo> MessagesManager::get_message_link_in
   if (d == nullptr) {
     dialog_id = DialogId();
     top_thread_message_id = MessageId();
+  } else if (message_id == MessageId(ServerMessageId(1)) && dialog_id.get_type() == DialogType::Channel &&
+             td_->contacts_manager_->is_forum_channel(dialog_id.get_channel_id())) {
+    // General topic
+    top_thread_message_id = message_id;
   } else {
     const Message *m = get_message(d, message_id);
     if (m != nullptr) {
@@ -19636,7 +19640,7 @@ td_api::object_ptr<td_api::messageLinkInfo> MessagesManager::get_message_link_in
           media_timestamp = info.media_timestamp;
         }
       }
-      if (m->content->get_type() == MessageContentType::TopicCreate && m->top_thread_message_id.is_valid()) {
+      if (m->content->get_type() == MessageContentType::TopicCreate && top_thread_message_id.is_valid()) {
         message = nullptr;
         CHECK(!for_album);
         CHECK(media_timestamp == 0);
