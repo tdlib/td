@@ -16,7 +16,8 @@
 
 namespace td {
 
-ForumTopic::ForumTopic(Td *td, tl_object_ptr<telegram_api::ForumTopic> &&forum_topic_ptr) {
+ForumTopic::ForumTopic(Td *td, tl_object_ptr<telegram_api::ForumTopic> &&forum_topic_ptr,
+                       const DialogNotificationSettings *current_notification_settings) {
   CHECK(forum_topic_ptr != nullptr);
   if (forum_topic_ptr->get_id() != telegram_api::forumTopic::ID) {
     LOG(INFO) << "Receive " << to_string(forum_topic_ptr);
@@ -27,7 +28,7 @@ ForumTopic::ForumTopic(Td *td, tl_object_ptr<telegram_api::ForumTopic> &&forum_t
   is_short_ = forum_topic->short_;
   is_pinned_ = forum_topic->pinned_;
   notification_settings_ =
-      get_dialog_notification_settings(std::move(forum_topic->notify_settings_), true, false, true, false);
+      get_dialog_notification_settings(std::move(forum_topic->notify_settings_), current_notification_settings);
   draft_message_ = get_draft_message(td->contacts_manager_.get(), std::move(forum_topic->draft_));
 
   if (is_short_) {
@@ -49,7 +50,8 @@ td_api::object_ptr<td_api::forumTopic> ForumTopic::get_forum_topic_object(Td *td
   }
 
   // TODO draft_message = can_send_message(dialog_id, info_.get_top_thread_message_id()).is_ok() ? ... : nullptr;
-  auto last_message = td->messages_manager_->get_message_object({dialog_id, last_message_id_}, "get_forum_topic_object");
+  auto last_message =
+      td->messages_manager_->get_message_object({dialog_id, last_message_id_}, "get_forum_topic_object");
   auto draft_message = get_draft_message_object(draft_message_);
   return td_api::make_object<td_api::forumTopic>(
       info.get_forum_topic_info_object(td), std::move(last_message), is_pinned_, unread_count_,

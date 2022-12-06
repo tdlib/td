@@ -410,10 +410,7 @@ void ForumTopicManager::on_update_forum_topic_notify_settings(
     return;
   }
 
-  auto notification_settings = get_dialog_notification_settings(
-      std::move(peer_notify_settings), current_settings->use_default_disable_pinned_message_notifications,
-      current_settings->disable_pinned_message_notifications,
-      current_settings->use_default_disable_mention_notifications, current_settings->disable_mention_notifications);
+  auto notification_settings = get_dialog_notification_settings(std::move(peer_notify_settings), current_settings);
   if (!notification_settings.is_synchronized) {
     return;
   }
@@ -658,13 +655,15 @@ MessageId ForumTopicManager::on_get_forum_topic(DialogId dialog_id,
     }
     case telegram_api::forumTopic::ID: {
       auto forum_topic_info = td::make_unique<ForumTopicInfo>(forum_topic);
-      auto forum_topic_full = td::make_unique<ForumTopic>(td_, std::move(forum_topic));
+      MessageId top_thread_message_id = forum_topic_info->get_top_thread_message_id();
+      Topic *topic = add_topic(dialog_id, top_thread_message_id);
+      auto current_notification_settings =
+          topic->topic_ == nullptr ? nullptr : topic->topic_->get_notification_settings();
+      auto forum_topic_full = td::make_unique<ForumTopic>(td_, std::move(forum_topic), current_notification_settings);
       if (forum_topic_full->is_short()) {
         LOG(ERROR) << "Receive short " << to_string(forum_topic);
         return MessageId();
       }
-      MessageId top_thread_message_id = forum_topic_info->get_top_thread_message_id();
-      Topic *topic = add_topic(dialog_id, top_thread_message_id);
       if (topic->topic_ == nullptr || true) {
         topic->topic_ = std::move(forum_topic_full);
         topic->need_save_to_database_ = true;  // temporary

@@ -8445,10 +8445,8 @@ void MessagesManager::on_update_dialog_notify_settings(
     return;
   }
 
-  DialogNotificationSettings notification_settings = ::td::get_dialog_notification_settings(
-      std::move(peer_notify_settings), current_settings->use_default_disable_pinned_message_notifications,
-      current_settings->disable_pinned_message_notifications,
-      current_settings->use_default_disable_mention_notifications, current_settings->disable_mention_notifications);
+  DialogNotificationSettings notification_settings =
+      ::td::get_dialog_notification_settings(std::move(peer_notify_settings), current_settings);
   if (!notification_settings.is_synchronized) {
     return;
   }

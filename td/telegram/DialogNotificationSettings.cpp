@@ -69,18 +69,32 @@ Result<DialogNotificationSettings> get_dialog_notification_settings(
 }
 
 DialogNotificationSettings get_dialog_notification_settings(tl_object_ptr<telegram_api::peerNotifySettings> &&settings,
-                                                            bool old_use_default_disable_pinned_message_notifications,
-                                                            bool old_disable_pinned_message_notifications,
-                                                            bool old_use_default_disable_mention_notifications,
-                                                            bool old_disable_mention_notifications) {
-  if (settings == nullptr) {
-    return DialogNotificationSettings();
+                                                            const DialogNotificationSettings *old_settings) {
+  bool old_use_default_disable_pinned_message_notifications = true;
+  bool old_disable_pinned_message_notifications = false;
+  bool old_use_default_disable_mention_notifications = true;
+  bool old_disable_mention_notifications = false;
+  if (old_settings != nullptr) {
+    old_use_default_disable_pinned_message_notifications =
+        old_settings->use_default_disable_pinned_message_notifications;
+    old_disable_pinned_message_notifications = old_settings->disable_pinned_message_notifications;
+    old_use_default_disable_mention_notifications = old_settings->use_default_disable_mention_notifications;
+    old_disable_mention_notifications = old_settings->disable_mention_notifications;
   }
+
+  if (settings == nullptr) {
+    auto result = DialogNotificationSettings();
+    result.use_default_disable_pinned_message_notifications = old_use_default_disable_pinned_message_notifications;
+    result.disable_pinned_message_notifications = old_disable_pinned_message_notifications;
+    result.use_default_disable_mention_notifications = old_use_default_disable_mention_notifications;
+    result.disable_mention_notifications = old_disable_mention_notifications;
+    return result;
+  }
+
   bool use_default_mute_until = (settings->flags_ & telegram_api::peerNotifySettings::MUTE_UNTIL_MASK) == 0;
   bool use_default_show_preview = (settings->flags_ & telegram_api::peerNotifySettings::SHOW_PREVIEWS_MASK) == 0;
   auto mute_until = use_default_mute_until || settings->mute_until_ <= G()->unix_time() ? 0 : settings->mute_until_;
-  bool silent_send_message =
-      (settings->flags_ & telegram_api::peerNotifySettings::SILENT_MASK) == 0 ? false : settings->silent_;
+  bool silent_send_message = settings->silent_;
   return {use_default_mute_until,
           mute_until,
           get_notification_sound(settings.get()),
