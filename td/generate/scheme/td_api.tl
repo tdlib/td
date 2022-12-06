@@ -1338,6 +1338,14 @@ forumTopicInfo message_thread_id:int53 name:string icon:forumTopicIcon creation_
 //@draft_message A draft of a message in the topic; may be null
 forumTopic info:forumTopicInfo last_message:message is_pinned:Bool unread_count:int32 last_read_inbox_message_id:int53 last_read_outbox_message_id:int53 unread_mention_count:int32 unread_reaction_count:int32 notification_settings:chatNotificationSettings draft_message:draftMessage = ForumTopic;
 
+//@description Describes a list of forum topics
+//@total_count Approximate total number of forum topics found
+//@topics List of forum topics
+//@next_offset_date Offset date for the next getForumTopics request
+//@next_offset_message_id Offset message identifier for the next getForumTopics request
+//@next_offset_message_thread_id Offset message thread identifier for the next getForumTopics request
+forumTopics total_count:int32 topics:vector<forumTopic> next_offset_date:int32 next_offset_message_id:int53 next_offset_message_thread_id:int53 = ForumTopics;
+
 
 //@class RichText @description Describes a text object inside an instant-view web page
 
@@ -5345,6 +5353,15 @@ getForumTopic chat_id:int53 message_thread_id:int53 = ForumTopic;
 
 //@description Returns an HTTPS link to a topic in a forum chat. This is an offline request @chat_id Identifier of the chat @message_thread_id Message thread identifier of the forum topic
 getForumTopicLink chat_id:int53 message_thread_id:int53 = HttpUrl;
+
+//@description Returns found forum topics in a forum chat. This is a temporary method for getting information about topic list from the server
+//@chat_id Identifier of the forum chat
+//@query Query to search for in the forum topic's name
+//@offset_date The date starting from which the results need to be fetched. Use 0 or any date in the future to get results from the last topic
+//@offset_message_id The message identifier of the last message in the last found topic, or 0 for the first request
+//@offset_message_thread_id The message thread identifier of the last found topic, or 0 for the first request
+//@limit The maximum number of forum topics to be returned; up to 100. For optimal performance, the number of returned forum topics is chosen by TDLib and can be smaller than the specified limit
+getForumTopics chat_id:int53 query:string offset_date:int32 offset_message_id:int53 offset_message_thread_id:int53 limit:int32 = ForumTopics;
 
 //@description Changes the notification settings of a forum topic
 //@chat_id Chat identifier @message_thread_id Message thread identifier of the forum topic @notification_settings New notification settings for the forum topic. If the topic is muted for more than 366 days, it is considered to be muted forever

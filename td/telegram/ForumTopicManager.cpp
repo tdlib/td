@@ -255,6 +255,84 @@ class GetForumTopicQuery final : public Td::ResultHandler {
   }
 };
 
+class GetForumTopicsQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::forumTopics>> promise_;
+  ChannelId channel_id_;
+
+ public:
+  explicit GetForumTopicsQuery(Promise<td_api::object_ptr<td_api::forumTopics>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(ChannelId channel_id, const string &query, int32 offset_date, MessageId offset_message_id,
+            MessageId offset_top_thread_message_id, int32 limit) {
+    channel_id_ = channel_id;
+
+    auto input_channel = td_->contacts_manager_->get_input_channel(channel_id);
+    CHECK(input_channel != nullptr);
+
+    int32 flags = 0;
+    if (!query.empty()) {
+      flags |= telegram_api::channels_getForumTopics::Q_MASK;
+    }
+    send_query(G()->net_query_creator().create(
+        telegram_api::channels_getForumTopics(flags, std::move(input_channel), query, offset_date,
+                                              offset_message_id.get_server_message_id().get(),
+                                              offset_top_thread_message_id.get_server_message_id().get(), limit),
+        {{channel_id}}));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::channels_getForumTopics>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for GetForumTopicsQuery: " << to_string(ptr);
+
+    td_->contacts_manager_->on_get_users(std::move(ptr->users_), "GetForumTopicsQuery");
+    td_->contacts_manager_->on_get_chats(std::move(ptr->chats_), "GetForumTopicsQuery");
+    td_->messages_manager_->on_get_messages(std::move(ptr->messages_), true, false, Promise<Unit>(),
+                                            "GetForumTopicsQuery");
+    // ignore ptr->pts_
+    auto order_by_creation_date = ptr->order_by_create_date_;
+    vector<td_api::object_ptr<td_api::forumTopic>> forum_topics;
+    int32 next_offset_date = 0;
+    MessageId next_offset_message_id;
+    MessageId next_offset_top_thread_message_id;
+    for (auto &topic : ptr->topics_) {
+      auto top_thread_message_id =
+          td_->forum_topic_manager_->on_get_forum_topic(DialogId(channel_id_), std::move(topic));
+      if (!top_thread_message_id.is_valid()) {
+        continue;
+      }
+      auto forum_topic_object =
+          td_->forum_topic_manager_->get_forum_topic_object(DialogId(channel_id_), top_thread_message_id);
+      CHECK(forum_topic_object != nullptr);
+      if (order_by_creation_date || forum_topic_object->last_message_ == nullptr) {
+        next_offset_date = forum_topic_object->info_->creation_date_;
+      } else {
+        next_offset_date = forum_topic_object->last_message_->date_;
+      }
+      next_offset_message_id = forum_topic_object->last_message_ != nullptr
+                                   ? MessageId(forum_topic_object->last_message_->id_)
+                                   : MessageId();
+      next_offset_top_thread_message_id = top_thread_message_id;
+      forum_topics.push_back(std::move(forum_topic_object));
+    }
+
+    promise_.set_value(td_api::make_object<td_api::forumTopics>(ptr->count_, std::move(forum_topics), next_offset_date,
+                                                                next_offset_message_id.get(),
+                                                                next_offset_top_thread_message_id.get()));
+  }
+
+  void on_error(Status status) final {
+    td_->contacts_manager_->on_get_channel_error(channel_id_, status, "GetForumTopicsQuery");
+    promise_.set_error(std::move(status));
+  }
+};
+
 template <class StorerT>
 void ForumTopicManager::Topic::store(StorerT &storer) const {
   CHECK(info_ != nullptr);
@@ -488,6 +566,28 @@ void ForumTopicManager::get_forum_topic_link(DialogId dialog_id, MessageId top_t
   sb << '/' << top_thread_message_id.get_server_message_id().get();
 
   promise.set_value(sb.as_cslice().str());
+}
+
+void ForumTopicManager::get_forum_topics(DialogId dialog_id, string query, int32 offset_date,
+                                         MessageId offset_message_id, MessageId offset_top_thread_message_id,
+                                         int32 limit, Promise<td_api::object_ptr<td_api::forumTopics>> promise) {
+  TRY_STATUS_PROMISE(promise, is_forum(dialog_id));
+  auto channel_id = dialog_id.get_channel_id();
+
+  if (offset_date < 0) {
+    return promise.set_error(Status::Error(400, "Invalid offset date specified"));
+  }
+  if (offset_message_id != MessageId() && !offset_message_id.is_valid() && !offset_message_id.is_server()) {
+    return promise.set_error(Status::Error(400, "Invalid offset message identifier specified"));
+  }
+  if (offset_top_thread_message_id != MessageId()) {
+    TRY_STATUS_PROMISE(promise, can_be_message_thread_id(offset_top_thread_message_id));
+  }
+  if (limit <= 0) {
+    return promise.set_error(Status::Error(400, "Invalid limit specified"));
+  }
+  td_->create_handler<GetForumTopicsQuery>(std::move(promise))
+      ->send(channel_id, query, offset_date, offset_message_id, offset_top_thread_message_id, limit);
 }
 
 void ForumTopicManager::toggle_forum_topic_is_closed(DialogId dialog_id, MessageId top_thread_message_id,

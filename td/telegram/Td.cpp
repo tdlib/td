@@ -5581,6 +5581,16 @@ void Td::on_request(uint64 id, const td_api::getForumTopicLink &request) {
                                              std::move(query_promise));
 }
 
+void Td::on_request(uint64 id, td_api::getForumTopics &request) {
+  CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.query_);
+  CREATE_REQUEST_PROMISE();
+  forum_topic_manager_->get_forum_topics(DialogId(request.chat_id_), std::move(request.query_), request.offset_date_,
+                                         MessageId(request.offset_message_id_),
+                                         MessageId(request.offset_message_thread_id_), request.limit_,
+                                         std::move(promise));
+}
+
 void Td::on_request(uint64 id, const td_api::toggleForumTopicIsClosed &request) {
   CREATE_OK_REQUEST_PROMISE();
   forum_topic_manager_->toggle_forum_topic_is_closed(DialogId(request.chat_id_), MessageId(request.message_thread_id_),

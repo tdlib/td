@@ -3892,6 +3892,16 @@ class CliClient final : public Actor {
       MessageThreadId message_thread_id;
       get_args(args, chat_id, message_thread_id);
       send_request(td_api::make_object<td_api::getForumTopicLink>(chat_id, message_thread_id));
+    } else if (op == "gfts") {
+      ChatId chat_id;
+      string query;
+      int32 offset_date;
+      MessageId offset_message_id;
+      MessageThreadId offset_message_thread_id;
+      string limit;
+      get_args(args, chat_id, query, offset_date, offset_message_id, offset_message_thread_id, limit);
+      send_request(td_api::make_object<td_api::getForumTopics>(chat_id, query, offset_date, offset_message_id,
+                                                               offset_message_thread_id, as_limit(limit)));
     } else if (op == "tftic") {
       ChatId chat_id;
       MessageThreadId message_thread_id;
