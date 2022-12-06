@@ -51,21 +51,28 @@ static int32 get_mute_until(int32 mute_for) {
 }
 
 Result<DialogNotificationSettings> get_dialog_notification_settings(
-    td_api::object_ptr<td_api::chatNotificationSettings> &&notification_settings, bool old_silent_send_message) {
+    td_api::object_ptr<td_api::chatNotificationSettings> &&notification_settings,
+    const DialogNotificationSettings *old_settings) {
   if (notification_settings == nullptr) {
     return Status::Error(400, "New notification settings must be non-empty");
   }
 
+  CHECK(old_settings != nullptr);
+
   int32 mute_until =
       notification_settings->use_default_mute_for_ ? 0 : get_mute_until(notification_settings->mute_for_);
-  return DialogNotificationSettings(
-      notification_settings->use_default_mute_for_, mute_until,
-      get_notification_sound(notification_settings->use_default_sound_, notification_settings->sound_id_),
-      notification_settings->use_default_show_preview_, notification_settings->show_preview_, old_silent_send_message,
-      notification_settings->use_default_disable_pinned_message_notifications_,
-      notification_settings->disable_pinned_message_notifications_,
-      notification_settings->use_default_disable_mention_notifications_,
-      notification_settings->disable_mention_notifications_);
+  auto notification_sound =
+      get_notification_sound(notification_settings->use_default_sound_, notification_settings->sound_id_);
+  if (is_notification_sound_default(old_settings->sound) && is_notification_sound_default(notification_sound)) {
+    notification_sound = dup_notification_sound(old_settings->sound);
+  }
+  return DialogNotificationSettings(notification_settings->use_default_mute_for_, mute_until,
+                                    std::move(notification_sound), notification_settings->use_default_show_preview_,
+                                    notification_settings->show_preview_, old_settings->silent_send_message,
+                                    notification_settings->use_default_disable_pinned_message_notifications_,
+                                    notification_settings->disable_pinned_message_notifications_,
+                                    notification_settings->use_default_disable_mention_notifications_,
+                                    notification_settings->disable_mention_notifications_);
 }
 
 DialogNotificationSettings get_dialog_notification_settings(tl_object_ptr<telegram_api::peerNotifySettings> &&settings,

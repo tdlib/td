@@ -22165,11 +22165,7 @@ Status MessagesManager::set_dialog_notification_settings(
     return Status::Error(400, "Notification settings of the Saved Messages chat can't be changed");
   }
 
-  TRY_RESULT(new_settings, ::td::get_dialog_notification_settings(std::move(notification_settings),
-                                                                  current_settings->silent_send_message));
-  if (is_notification_sound_default(current_settings->sound) && is_notification_sound_default(new_settings.sound)) {
-    new_settings.sound = dup_notification_sound(current_settings->sound);
-  }
+  TRY_RESULT(new_settings, ::td::get_dialog_notification_settings(std::move(notification_settings), current_settings));
   if (update_dialog_notification_settings(dialog_id, current_settings, std::move(new_settings))) {
     update_dialog_notification_settings_on_server(dialog_id, false);
   }

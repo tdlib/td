@@ -430,11 +430,7 @@ Status ForumTopicManager::set_forum_topic_notification_settings(
     return Status::Error(400, "Unknown forum topic identifier specified");
   }
 
-  TRY_RESULT(new_settings,
-             get_dialog_notification_settings(std::move(notification_settings), current_settings->silent_send_message));
-  if (is_notification_sound_default(current_settings->sound) && is_notification_sound_default(new_settings.sound)) {
-    new_settings.sound = dup_notification_sound(current_settings->sound);
-  }
+  TRY_RESULT(new_settings, get_dialog_notification_settings(std::move(notification_settings), current_settings));
   if (update_forum_topic_notification_settings(dialog_id, top_thread_message_id, current_settings,
                                                std::move(new_settings))) {
     // TODO log event

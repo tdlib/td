@@ -61,7 +61,8 @@ td_api::object_ptr<td_api::chatNotificationSettings> get_chat_notification_setti
     const DialogNotificationSettings *notification_settings);
 
 Result<DialogNotificationSettings> get_dialog_notification_settings(
-    td_api::object_ptr<td_api::chatNotificationSettings> &&notification_settings, bool old_silent_send_message);
+    td_api::object_ptr<td_api::chatNotificationSettings> &&notification_settings,
+    const DialogNotificationSettings *old_settings);
 
 DialogNotificationSettings get_dialog_notification_settings(tl_object_ptr<telegram_api::peerNotifySettings> &&settings,
                                                             const DialogNotificationSettings *old_settings);
