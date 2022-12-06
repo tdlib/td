@@ -29824,7 +29824,7 @@ Result<MessageId> MessagesManager::add_local_message(
     }
   }
 
-  if (m->clear_draft) {
+  if (result->clear_draft) {
     update_dialog_draft_message(d, nullptr, false, !need_update_dialog_pos);
   }
 
