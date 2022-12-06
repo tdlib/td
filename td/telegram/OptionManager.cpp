@@ -117,7 +117,7 @@ OptionManager::OptionManager(Td *td)
     set_option_integer("themed_emoji_statuses_sticker_set_id", sticker_set_id);
   }
   if (!have_option("forum_member_count_min")) {
-    set_option_integer("forum_member_count_min", 200);
+    set_option_integer("forum_member_count_min", G()->is_test_dc() ? 3 : 100);
   }
   if (!have_option("aggressive_anti_spam_supergroup_member_count_min")) {
     set_option_integer("aggressive_anti_spam_supergroup_member_count_min", G()->is_test_dc() ? 1 : 100);
