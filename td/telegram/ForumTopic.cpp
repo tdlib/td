@@ -27,7 +27,7 @@ ForumTopic::ForumTopic(Td *td, tl_object_ptr<telegram_api::ForumTopic> &&forum_t
   is_short_ = forum_topic->short_;
   is_pinned_ = forum_topic->pinned_;
   notification_settings_ =
-      get_dialog_notification_settings(std::move(forum_topic->notify_settings_), false, false, false, false);
+      get_dialog_notification_settings(std::move(forum_topic->notify_settings_), true, false, true, false);
   draft_message_ = get_draft_message(td->contacts_manager_.get(), std::move(forum_topic->draft_));
 
   if (is_short_) {
