@@ -120,4 +120,26 @@ bool are_default_dialog_notification_settings(const DialogNotificationSettings &
          settings.use_default_disable_mention_notifications;
 }
 
+NeedUpdateDialogNotificationSettings need_update_dialog_notification_settings(
+    const DialogNotificationSettings *current_settings, const DialogNotificationSettings &new_settings) {
+  NeedUpdateDialogNotificationSettings result;
+  result.need_update_server = current_settings->mute_until != new_settings.mute_until ||
+                              !are_equivalent_notification_sounds(current_settings->sound, new_settings.sound) ||
+                              current_settings->show_preview != new_settings.show_preview ||
+                              current_settings->use_default_mute_until != new_settings.use_default_mute_until ||
+                              current_settings->use_default_show_preview != new_settings.use_default_show_preview;
+  result.need_update_local =
+      current_settings->use_default_disable_pinned_message_notifications !=
+          new_settings.use_default_disable_pinned_message_notifications ||
+      current_settings->disable_pinned_message_notifications != new_settings.disable_pinned_message_notifications ||
+      current_settings->use_default_disable_mention_notifications !=
+          new_settings.use_default_disable_mention_notifications ||
+      current_settings->disable_mention_notifications != new_settings.disable_mention_notifications;
+  result.are_changed = result.need_update_server || result.need_update_local ||
+                       current_settings->is_synchronized != new_settings.is_synchronized ||
+                       current_settings->is_use_default_fixed != new_settings.is_use_default_fixed ||
+                       are_different_equivalent_notification_sounds(current_settings->sound, new_settings.sound);
+  return result;
+}
+
 }  // namespace td

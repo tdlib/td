@@ -448,25 +448,8 @@ bool ForumTopicManager::update_forum_topic_notification_settings(DialogId dialog
     return false;
   }
 
-  bool need_update_server = current_settings->mute_until != new_settings.mute_until ||
-                            !are_equivalent_notification_sounds(current_settings->sound, new_settings.sound) ||
-                            current_settings->show_preview != new_settings.show_preview ||
-                            current_settings->use_default_mute_until != new_settings.use_default_mute_until ||
-                            current_settings->use_default_show_preview != new_settings.use_default_show_preview;
-  bool need_update_local =
-      current_settings->use_default_disable_pinned_message_notifications !=
-          new_settings.use_default_disable_pinned_message_notifications ||
-      current_settings->disable_pinned_message_notifications != new_settings.disable_pinned_message_notifications ||
-      current_settings->use_default_disable_mention_notifications !=
-          new_settings.use_default_disable_mention_notifications ||
-      current_settings->disable_mention_notifications != new_settings.disable_mention_notifications;
-
-  bool is_changed = need_update_server || need_update_local ||
-                    current_settings->is_synchronized != new_settings.is_synchronized ||
-                    current_settings->is_use_default_fixed != new_settings.is_use_default_fixed ||
-                    are_different_equivalent_notification_sounds(current_settings->sound, new_settings.sound);
-
-  if (is_changed) {
+  auto need_update = need_update_dialog_notification_settings(current_settings, new_settings);
+  if (need_update.are_changed) {
     // TODO update unmute timeouts, td_api updates, remove notifications
     *current_settings = std::move(new_settings);
 
@@ -475,7 +458,7 @@ bool ForumTopicManager::update_forum_topic_notification_settings(DialogId dialog
     topic->need_save_to_database_ = true;
     save_topic_to_database(dialog_id, topic);
   }
-  return need_update_server;
+  return need_update.need_update_server;
 }
 
 void ForumTopicManager::get_forum_topic(DialogId dialog_id, MessageId top_thread_message_id,

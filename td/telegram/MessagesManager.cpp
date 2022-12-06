@@ -8213,25 +8213,8 @@ bool MessagesManager::update_dialog_notification_settings(DialogId dialog_id,
     return false;
   }
 
-  bool need_update_server = current_settings->mute_until != new_settings.mute_until ||
-                            !are_equivalent_notification_sounds(current_settings->sound, new_settings.sound) ||
-                            current_settings->show_preview != new_settings.show_preview ||
-                            current_settings->use_default_mute_until != new_settings.use_default_mute_until ||
-                            current_settings->use_default_show_preview != new_settings.use_default_show_preview;
-  bool need_update_local =
-      current_settings->use_default_disable_pinned_message_notifications !=
-          new_settings.use_default_disable_pinned_message_notifications ||
-      current_settings->disable_pinned_message_notifications != new_settings.disable_pinned_message_notifications ||
-      current_settings->use_default_disable_mention_notifications !=
-          new_settings.use_default_disable_mention_notifications ||
-      current_settings->disable_mention_notifications != new_settings.disable_mention_notifications;
-
-  bool is_changed = need_update_server || need_update_local ||
-                    current_settings->is_synchronized != new_settings.is_synchronized ||
-                    current_settings->is_use_default_fixed != new_settings.is_use_default_fixed ||
-                    are_different_equivalent_notification_sounds(current_settings->sound, new_settings.sound);
-
-  if (is_changed) {
+  auto need_update = need_update_dialog_notification_settings(current_settings, new_settings);
+  if (need_update.are_changed) {
     Dialog *d = get_dialog(dialog_id);
     LOG_CHECK(d != nullptr) << "Wrong " << dialog_id << " in update_dialog_notification_settings";
     bool was_dialog_mentions_disabled = is_dialog_mention_notifications_disabled(d);
@@ -8261,13 +8244,13 @@ bool MessagesManager::update_dialog_notification_settings(DialogId dialog_id,
       }
     }
 
-    if (need_update_server || need_update_local) {
+    if (need_update.need_update_server || need_update.need_update_local) {
       send_closure(G()->td(), &Td::send_update,
                    make_tl_object<td_api::updateChatNotificationSettings>(
                        dialog_id.get(), get_chat_notification_settings_object(current_settings)));
     }
   }
-  return need_update_server;
+  return need_update.need_update_server;
 }
 
 void MessagesManager::schedule_dialog_unmute(DialogId dialog_id, bool use_default, int32 mute_until) {
