@@ -24,6 +24,7 @@
 #include "td/telegram/FolderId.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/GroupCallManager.h"
+#include "td/telegram/ForumTopicManager.h"
 #include "td/telegram/InlineQueriesManager.h"
 #include "td/telegram/LanguagePackManager.h"
 #include "td/telegram/Location.h"
@@ -3054,7 +3055,8 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updatePinnedChannelMe
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateNotifySettings> update, Promise<Unit> &&promise) {
   switch (update->peer_->get_id()) {
     case telegram_api::notifyPeer::ID: {
-      DialogId dialog_id(static_cast<const telegram_api::notifyPeer *>(update->peer_.get())->peer_);
+      auto notify_peer = static_cast<const telegram_api::notifyPeer *>(update->peer_.get());
+      DialogId dialog_id(notify_peer->peer_);
       if (dialog_id.is_valid()) {
         td_->messages_manager_->on_update_dialog_notify_settings(dialog_id, std::move(update->notify_settings_),
                                                                  "updateNotifySettings");
@@ -3075,9 +3077,18 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateNotifySettings>
       td_->notification_settings_manager_->on_update_scope_notify_settings(NotificationSettingsScope::Channel,
                                                                            std::move(update->notify_settings_));
       break;
-    case telegram_api::notifyForumTopic::ID:
-      // TODO
+    case telegram_api::notifyForumTopic::ID: {
+      auto notify_peer = static_cast<const telegram_api::notifyForumTopic *>(update->peer_.get());
+      DialogId dialog_id(notify_peer->peer_);
+      auto top_thread_message_id = MessageId(ServerMessageId(notify_peer->top_msg_id_));
+      if (dialog_id.is_valid() && top_thread_message_id.is_valid()) {
+        td_->forum_topic_manager_->on_update_forum_topic_notify_settings(
+            dialog_id, top_thread_message_id, std::move(update->notify_settings_), "updateNotifySettings");
+      } else {
+        LOG(ERROR) << "Receive wrong " << to_string(update);
+      }
       break;
+    }
     default:
       UNREACHABLE();
   }
