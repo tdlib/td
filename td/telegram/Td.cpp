@@ -7424,6 +7424,13 @@ void Td::on_request(uint64 id, td_api::setChatNotificationSettings &request) {
                                                                           std::move(request.notification_settings_)));
 }
 
+void Td::on_request(uint64 id, td_api::setForumTopicNotificationSettings &request) {
+  CHECK_IS_USER();
+  answer_ok_query(id, forum_topic_manager_->set_forum_topic_notification_settings(
+                          DialogId(request.chat_id_), MessageId(request.message_thread_id_),
+                          std::move(request.notification_settings_)));
+}
+
 void Td::on_request(uint64 id, td_api::setScopeNotificationSettings &request) {
   CHECK_IS_USER();
   if (request.scope_ == nullptr) {

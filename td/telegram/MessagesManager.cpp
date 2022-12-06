@@ -21043,7 +21043,7 @@ void MessagesManager::update_dialog_notification_settings_on_server(DialogId dia
     return;
   }
 
-  if (!from_binlog && td_->notification_settings_manager_->get_input_notify_peer(dialog_id) == nullptr) {
+  if (!from_binlog && td_->notification_settings_manager_->get_input_notify_peer(dialog_id, MessageId()) == nullptr) {
     // don't even create new binlog events
     return;
   }
@@ -21077,8 +21077,8 @@ void MessagesManager::send_update_dialog_notification_settings_query(const Dialo
   CHECK(!td_->auth_manager_->is_bot());
   CHECK(d != nullptr);
   // TODO do not send two queries simultaneously or use InvokeAfter
-  td_->notification_settings_manager_->update_dialog_notify_settings(d->dialog_id, d->notification_settings,
-                                                                     std::move(promise));
+  td_->notification_settings_manager_->update_dialog_notify_settings(d->dialog_id, MessageId(),
+                                                                     d->notification_settings, std::move(promise));
 }
 
 void MessagesManager::on_updated_dialog_notification_settings(DialogId dialog_id, uint64 generation) {
@@ -31210,8 +31210,8 @@ bool MessagesManager::add_new_message_notification(Dialog *d, Message *m, bool f
         settings_dialog = get_dialog(settings_dialog_id);
       }
       if (settings_dialog != nullptr) {
-        td_->notification_settings_manager_->send_get_dialog_notification_settings_query(settings_dialog_id,
-                                                                                         std::move(promise));
+        td_->notification_settings_manager_->send_get_dialog_notification_settings_query(
+            settings_dialog_id, MessageId() /* TODO */, std::move(promise));
       } else {
         send_get_dialog_query(settings_dialog_id, std::move(promise), 0, "add_new_message_notification");
       }
@@ -37572,7 +37572,8 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
       d->notification_settings.is_use_default_fixed = true;
       on_dialog_updated(dialog_id, "reget notification settings");
     } else {
-      td_->notification_settings_manager_->send_get_dialog_notification_settings_query(dialog_id, Promise<Unit>());
+      td_->notification_settings_manager_->send_get_dialog_notification_settings_query(dialog_id, MessageId(),
+                                                                                       Promise<Unit>());
     }
   }
   if (td_->auth_manager_->is_bot() || d->notification_settings.use_default_mute_until ||

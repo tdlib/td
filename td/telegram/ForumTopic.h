@@ -40,6 +40,14 @@ class ForumTopic {
     return is_short_;
   }
 
+  DialogNotificationSettings *get_notification_settings() {
+    return &notification_settings_;
+  }
+
+  const DialogNotificationSettings *get_notification_settings() const {
+    return &notification_settings_;
+  }
+
   td_api::object_ptr<td_api::forumTopic> get_forum_topic_object(Td *td, DialogId dialog_id,
                                                                 const ForumTopicInfo &info) const;
 

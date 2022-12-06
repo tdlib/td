@@ -19,6 +19,8 @@
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/MessageThreadDb.h"
 #include "td/telegram/misc.h"
+#include "td/telegram/NotificationManager.h"
+#include "td/telegram/NotificationSettingsManager.h"
 #include "td/telegram/OptionManager.h"
 #include "td/telegram/ServerMessageId.h"
 #include "td/telegram/Td.h"
@@ -372,6 +374,115 @@ void ForumTopicManager::edit_forum_topic(DialogId dialog_id, MessageId top_threa
 
   td_->create_handler<EditForumTopicQuery>(std::move(promise))
       ->send(channel_id, top_thread_message_id, edit_title, new_title, edit_icon_custom_emoji, icon_custom_emoji_id);
+}
+
+DialogNotificationSettings *ForumTopicManager::get_forum_topic_notification_settings(DialogId dialog_id,
+                                                                                     MessageId top_thread_message_id) {
+  auto topic = get_topic(dialog_id, top_thread_message_id);
+  if (topic == nullptr || topic->topic_ == nullptr) {
+    return nullptr;
+  }
+  return topic->topic_->get_notification_settings();
+}
+
+const DialogNotificationSettings *ForumTopicManager::get_forum_topic_notification_settings(
+    DialogId dialog_id, MessageId top_thread_message_id) const {
+  auto topic = get_topic(dialog_id, top_thread_message_id);
+  if (topic == nullptr || topic->topic_ == nullptr) {
+    return nullptr;
+  }
+  return topic->topic_->get_notification_settings();
+}
+
+void ForumTopicManager::on_update_forum_topic_notify_settings(
+    DialogId dialog_id, MessageId top_thread_message_id,
+    tl_object_ptr<telegram_api::peerNotifySettings> &&peer_notify_settings, const char *source) {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+
+  VLOG(notifications) << "Receive notification settings for topic of " << top_thread_message_id << " in " << dialog_id
+                      << " from " << source << ": " << to_string(peer_notify_settings);
+
+  DialogNotificationSettings *current_settings =
+      get_forum_topic_notification_settings(dialog_id, top_thread_message_id);
+  if (current_settings == nullptr) {
+    return;
+  }
+
+  auto notification_settings = get_dialog_notification_settings(
+      std::move(peer_notify_settings), current_settings->use_default_disable_pinned_message_notifications,
+      current_settings->disable_pinned_message_notifications,
+      current_settings->use_default_disable_mention_notifications, current_settings->disable_mention_notifications);
+  if (!notification_settings.is_synchronized) {
+    return;
+  }
+
+  update_forum_topic_notification_settings(dialog_id, top_thread_message_id, current_settings,
+                                           std::move(notification_settings));
+}
+
+Status ForumTopicManager::set_forum_topic_notification_settings(
+    DialogId dialog_id, MessageId top_thread_message_id,
+    tl_object_ptr<td_api::chatNotificationSettings> &&notification_settings) {
+  CHECK(!td_->auth_manager_->is_bot());
+  TRY_STATUS(is_forum(dialog_id));
+  TRY_STATUS(can_be_message_thread_id(top_thread_message_id));
+  auto current_settings = get_forum_topic_notification_settings(dialog_id, top_thread_message_id);
+  if (current_settings == nullptr) {
+    return Status::Error(400, "Unknown forum topic identifier specified");
+  }
+
+  TRY_RESULT(new_settings,
+             get_dialog_notification_settings(std::move(notification_settings), current_settings->silent_send_message));
+  if (is_notification_sound_default(current_settings->sound) && is_notification_sound_default(new_settings.sound)) {
+    new_settings.sound = dup_notification_sound(current_settings->sound);
+  }
+  if (update_forum_topic_notification_settings(dialog_id, top_thread_message_id, current_settings,
+                                               std::move(new_settings))) {
+    // TODO log event
+    td_->notification_settings_manager_->update_dialog_notify_settings(dialog_id, top_thread_message_id,
+                                                                       *current_settings, Promise<Unit>());
+  }
+  return Status::OK();
+}
+
+bool ForumTopicManager::update_forum_topic_notification_settings(DialogId dialog_id, MessageId top_thread_message_id,
+                                                                 DialogNotificationSettings *current_settings,
+                                                                 DialogNotificationSettings &&new_settings) {
+  if (td_->auth_manager_->is_bot()) {
+    // just in case
+    return false;
+  }
+
+  bool need_update_server = current_settings->mute_until != new_settings.mute_until ||
+                            !are_equivalent_notification_sounds(current_settings->sound, new_settings.sound) ||
+                            current_settings->show_preview != new_settings.show_preview ||
+                            current_settings->use_default_mute_until != new_settings.use_default_mute_until ||
+                            current_settings->use_default_show_preview != new_settings.use_default_show_preview;
+  bool need_update_local =
+      current_settings->use_default_disable_pinned_message_notifications !=
+          new_settings.use_default_disable_pinned_message_notifications ||
+      current_settings->disable_pinned_message_notifications != new_settings.disable_pinned_message_notifications ||
+      current_settings->use_default_disable_mention_notifications !=
+          new_settings.use_default_disable_mention_notifications ||
+      current_settings->disable_mention_notifications != new_settings.disable_mention_notifications;
+
+  bool is_changed = need_update_server || need_update_local ||
+                    current_settings->is_synchronized != new_settings.is_synchronized ||
+                    current_settings->is_use_default_fixed != new_settings.is_use_default_fixed ||
+                    are_different_equivalent_notification_sounds(current_settings->sound, new_settings.sound);
+
+  if (is_changed) {
+    // TODO update unmute timeouts, td_api updates, remove notifications
+    *current_settings = std::move(new_settings);
+
+    auto topic = get_topic(dialog_id, top_thread_message_id);
+    CHECK(topic != nullptr);
+    topic->need_save_to_database_ = true;
+    save_topic_to_database(dialog_id, topic);
+  }
+  return need_update_server;
 }
 
 void ForumTopicManager::get_forum_topic(DialogId dialog_id, MessageId top_thread_message_id,

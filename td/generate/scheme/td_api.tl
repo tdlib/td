@@ -1005,12 +1005,12 @@ notificationSettingsScopeGroupChats = NotificationSettingsScope;
 notificationSettingsScopeChannelChats = NotificationSettingsScope;
 
 
-//@description Contains information about notification settings for a chat
-//@use_default_mute_for If true, mute_for is ignored and the value for the relevant type of chat is used instead @mute_for Time left before notifications will be unmuted, in seconds
-//@use_default_sound If true, the value for the relevant type of chat is used instead of sound_id @sound_id Identifier of the notification sound to be played; 0 if sound is disabled
-//@use_default_show_preview If true, show_preview is ignored and the value for the relevant type of chat is used instead @show_preview True, if message content must be displayed in notifications
-//@use_default_disable_pinned_message_notifications If true, disable_pinned_message_notifications is ignored and the value for the relevant type of chat is used instead @disable_pinned_message_notifications If true, notifications for incoming pinned messages will be created as for an ordinary unread message
-//@use_default_disable_mention_notifications If true, disable_mention_notifications is ignored and the value for the relevant type of chat is used instead @disable_mention_notifications If true, notifications for messages with mentions will be created as for an ordinary unread message
+//@description Contains information about notification settings for a chat or a froum topic
+//@use_default_mute_for If true, mute_for is ignored and the value for the relevant type of chat or the forum chat is used instead @mute_for Time left before notifications will be unmuted, in seconds
+//@use_default_sound If true, the value for the relevant type of chat or the forum chat is used instead of sound_id @sound_id Identifier of the notification sound to be played; 0 if sound is disabled
+//@use_default_show_preview If true, show_preview is ignored and the value for the relevant type of chat or the forum chat is used instead @show_preview True, if message content must be displayed in notifications
+//@use_default_disable_pinned_message_notifications If true, disable_pinned_message_notifications is ignored and the value for the relevant type of chat or the forum chat is used instead @disable_pinned_message_notifications If true, notifications for incoming pinned messages will be created as for an ordinary unread message
+//@use_default_disable_mention_notifications If true, disable_mention_notifications is ignored and the value for the relevant type of chat or the forum chat is used instead @disable_mention_notifications If true, notifications for messages with mentions will be created as for an ordinary unread message
 chatNotificationSettings use_default_mute_for:Bool mute_for:int32 use_default_sound:Bool sound_id:int64 use_default_show_preview:Bool show_preview:Bool use_default_disable_pinned_message_notifications:Bool disable_pinned_message_notifications:Bool use_default_disable_mention_notifications:Bool disable_mention_notifications:Bool = ChatNotificationSettings;
 
 //@description Contains information about notification settings for several chats
@@ -5345,6 +5345,10 @@ getForumTopic chat_id:int53 message_thread_id:int53 = ForumTopic;
 
 //@description Returns an HTTPS link to a topic in a forum chat. This is an offline request @chat_id Identifier of the chat @message_thread_id Message thread identifier of the forum topic
 getForumTopicLink chat_id:int53 message_thread_id:int53 = HttpUrl;
+
+//@description Changes the notification settings of a forum topic
+//@chat_id Chat identifier @message_thread_id Message thread identifier of the forum topic @notification_settings New notification settings for the forum topic. If the topic is muted for more than 366 days, it is considered to be muted forever
+setForumTopicNotificationSettings chat_id:int53 message_thread_id:int53 notification_settings:chatNotificationSettings = Ok;
 
 //@description Toggles whether a topic is closed in a forum supergroup chat; requires can_manage_topics administrator rights in the supergroup unless the user is creator of the topic
 //@chat_id Identifier of the chat

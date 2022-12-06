@@ -52,11 +52,22 @@ class ForumTopicManager final : public Actor {
   void toggle_forum_topic_is_closed(DialogId dialog_id, MessageId top_thread_message_id, bool is_closed,
                                     Promise<Unit> &&promise);
 
+  const DialogNotificationSettings *get_forum_topic_notification_settings(DialogId dialog_id,
+                                                                          MessageId top_thread_message_id) const;
+
+  Status set_forum_topic_notification_settings(DialogId dialog_id, MessageId top_thread_message_id,
+                                               tl_object_ptr<td_api::chatNotificationSettings> &&notification_settings)
+      TD_WARN_UNUSED_RESULT;
+
   void toggle_forum_topic_is_hidden(DialogId dialog_id, bool is_hidden, Promise<Unit> &&promise);
 
   void delete_forum_topic(DialogId dialog_id, MessageId top_thread_message_id, Promise<Unit> &&promise);
 
   void delete_all_dialog_topics(DialogId dialog_id);
+
+  void on_update_forum_topic_notify_settings(DialogId dialog_id, MessageId top_thread_message_id,
+                                             tl_object_ptr<telegram_api::peerNotifySettings> &&peer_notify_settings,
+                                             const char *source);
 
   void on_forum_topic_edited(DialogId dialog_id, MessageId top_thread_message_id,
                              const ForumTopicEditedData &edited_data);
@@ -118,6 +129,13 @@ class ForumTopicManager final : public Actor {
   const ForumTopicInfo *get_topic_info(DialogId dialog_id, MessageId top_thread_message_id) const;
 
   void set_topic_info(DialogId dialog_id, Topic *topic, unique_ptr<ForumTopicInfo> forum_topic_info);
+
+  DialogNotificationSettings *get_forum_topic_notification_settings(DialogId dialog_id,
+                                                                    MessageId top_thread_message_id);
+
+  bool update_forum_topic_notification_settings(DialogId dialog_id, MessageId top_thread_message_id,
+                                                DialogNotificationSettings *current_settings,
+                                                DialogNotificationSettings &&new_settings);
 
   void on_delete_forum_topic(DialogId dialog_id, MessageId top_thread_message_id, Promise<Unit> &&promise);
 

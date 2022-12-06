@@ -4880,29 +4880,37 @@ class CliClient final : public Actor {
           as_notification_settings_scope(args), op == "gcnses"));
     } else if (op == "gsns") {
       send_request(td_api::make_object<td_api::getScopeNotificationSettings>(as_notification_settings_scope(args)));
-    } else if (op == "scns" || op == "ssns") {
-      string chat_id_or_scope;
+    } else if (op == "scns" || op == "ssns" || op == "sftns") {
+      string scope;
       string mute_for;
       int64 sound_id;
       string show_preview;
       string disable_pinned_message_notifications;
       string disable_mention_notifications;
-      get_args(args, chat_id_or_scope, mute_for, sound_id, show_preview, disable_pinned_message_notifications,
+      get_args(args, scope, mute_for, sound_id, show_preview, disable_pinned_message_notifications,
                disable_mention_notifications);
-      if (op == "scns") {
-        send_request(td_api::make_object<td_api::setChatNotificationSettings>(
-            as_chat_id(chat_id_or_scope),
-            td_api::make_object<td_api::chatNotificationSettings>(
-                mute_for.empty(), to_integer<int32>(mute_for), sound_id == -1, sound_id, show_preview.empty(),
-                as_bool(show_preview), disable_pinned_message_notifications.empty(),
-                as_bool(disable_pinned_message_notifications), disable_mention_notifications.empty(),
-                as_bool(disable_mention_notifications))));
-      } else {
+      if (op == "ssns") {
         send_request(td_api::make_object<td_api::setScopeNotificationSettings>(
-            as_notification_settings_scope(chat_id_or_scope),
+            as_notification_settings_scope(scope),
             td_api::make_object<td_api::scopeNotificationSettings>(
                 to_integer<int32>(mute_for), sound_id, as_bool(show_preview),
                 as_bool(disable_pinned_message_notifications), as_bool(disable_mention_notifications))));
+      } else {
+        auto settings = td_api::make_object<td_api::chatNotificationSettings>(
+            mute_for.empty(), to_integer<int32>(mute_for), sound_id == -1, sound_id, show_preview.empty(),
+            as_bool(show_preview), disable_pinned_message_notifications.empty(),
+            as_bool(disable_pinned_message_notifications), disable_mention_notifications.empty(),
+            as_bool(disable_mention_notifications));
+        if (op == "scns") {
+          send_request(
+              td_api::make_object<td_api::setChatNotificationSettings>(as_chat_id(scope), std::move(settings)));
+        } else {
+          string chat_id;
+          string message_id;
+          std::tie(chat_id, message_id) = split(scope, ',');
+          send_request(td_api::make_object<td_api::setForumTopicNotificationSettings>(
+              as_chat_id(chat_id), as_message_id(message_id), std::move(settings)));
+        }
       }
     } else if (op == "rans") {
       send_request(td_api::make_object<td_api::resetAllNotificationSettings>());
