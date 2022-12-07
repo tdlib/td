@@ -387,6 +387,7 @@ set(TDLIB_SOURCE
   td/telegram/MessageReplyInfo.cpp
   td/telegram/MessageSearchFilter.cpp
   td/telegram/MessageSender.cpp
+  td/telegram/MessagesInfo.cpp
   td/telegram/MessagesManager.cpp
   td/telegram/MessageThreadDb.cpp
   td/telegram/MessageTtl.cpp
