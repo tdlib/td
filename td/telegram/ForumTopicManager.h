@@ -12,6 +12,7 @@
 #include "td/telegram/ForumTopicEditedData.h"
 #include "td/telegram/ForumTopicInfo.h"
 #include "td/telegram/MessageId.h"
+#include "td/telegram/MessagesInfo.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 
@@ -47,6 +48,10 @@ class ForumTopicManager final : public Actor {
   void get_forum_topic(DialogId dialog_id, MessageId top_thread_message_id,
                        Promise<td_api::object_ptr<td_api::forumTopic>> &&promise);
 
+  void on_get_forum_topic(ChannelId channel_id, MessageId expected_top_thread_message_id, MessagesInfo &&info,
+                          telegram_api::object_ptr<telegram_api::ForumTopic> &&topic,
+                          Promise<td_api::object_ptr<td_api::forumTopic>> &&promise);
+
   void get_forum_topic_link(DialogId dialog_id, MessageId top_thread_message_id, Promise<string> &&promise);
 
   void get_forum_topics(DialogId dialog_id, string query, int32 offset_date, MessageId offset_message_id,
@@ -81,7 +86,7 @@ class ForumTopicManager final : public Actor {
   void on_get_forum_topic_infos(DialogId dialog_id, vector<tl_object_ptr<telegram_api::ForumTopic>> &&forum_topics,
                                 const char *source);
 
-  MessageId on_get_forum_topic(DialogId dialog_id, tl_object_ptr<telegram_api::ForumTopic> &&forum_topic);
+  MessageId on_get_forum_topic_impl(DialogId dialog_id, tl_object_ptr<telegram_api::ForumTopic> &&forum_topic);
 
   td_api::object_ptr<td_api::forumTopic> get_forum_topic_object(DialogId dialog_id,
                                                                 MessageId top_thread_message_id) const;

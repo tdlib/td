@@ -232,21 +232,29 @@ class GetForumTopicQuery final : public Td::ResultHandler {
 
     td_->contacts_manager_->on_get_users(std::move(ptr->users_), "GetForumTopicQuery");
     td_->contacts_manager_->on_get_chats(std::move(ptr->chats_), "GetForumTopicQuery");
-    td_->messages_manager_->on_get_messages(std::move(ptr->messages_), true, false, Promise<Unit>(),
-                                            "GetForumTopicQuery");
+
     if (ptr->topics_.size() != 1u) {
       return promise_.set_value(nullptr);
     }
 
-    auto top_thread_message_id =
-        td_->forum_topic_manager_->on_get_forum_topic(DialogId(channel_id_), std::move(ptr->topics_[0]));
-    if (!top_thread_message_id.is_valid()) {
-      return promise_.set_value(nullptr);
-    }
-    if (top_thread_message_id != top_thread_message_id_) {
-      return promise_.set_error(Status::Error(500, "Wrong forum topic received"));
-    }
-    promise_.set_value(td_->forum_topic_manager_->get_forum_topic_object(DialogId(channel_id_), top_thread_message_id));
+    MessagesInfo messages_info;
+    messages_info.messages = std::move(ptr->messages_);
+    messages_info.total_count = ptr->count_;
+    messages_info.is_channel_messages = true;
+
+    td_->messages_manager_->get_channel_difference_if_needed(
+        DialogId(channel_id_), std::move(messages_info),
+        PromiseCreator::lambda([actor_id = td_->forum_topic_manager_actor_.get(), channel_id = channel_id_,
+                                top_thread_message_id = top_thread_message_id_, topic = std::move(ptr->topics_[0]),
+                                promise = std::move(promise_)](Result<MessagesInfo> &&result) mutable {
+          if (result.is_error()) {
+            promise.set_error(result.move_as_error());
+          } else {
+            auto info = result.move_as_ok();
+            send_closure(actor_id, &ForumTopicManager::on_get_forum_topic, channel_id, top_thread_message_id,
+                         std::move(info), std::move(topic), std::move(promise));
+          }
+        }));
   }
 
   void on_error(Status status) final {
@@ -303,7 +311,7 @@ class GetForumTopicsQuery final : public Td::ResultHandler {
     MessageId next_offset_top_thread_message_id;
     for (auto &topic : ptr->topics_) {
       auto top_thread_message_id =
-          td_->forum_topic_manager_->on_get_forum_topic(DialogId(channel_id_), std::move(topic));
+          td_->forum_topic_manager_->on_get_forum_topic_impl(DialogId(channel_id_), std::move(topic));
       if (!top_thread_message_id.is_valid()) {
         continue;
       }
@@ -548,6 +556,21 @@ void ForumTopicManager::get_forum_topic(DialogId dialog_id, MessageId top_thread
   td_->create_handler<GetForumTopicQuery>(std::move(promise))->send(channel_id, top_thread_message_id);
 }
 
+void ForumTopicManager::on_get_forum_topic(ChannelId channel_id, MessageId expected_top_thread_message_id,
+                                           MessagesInfo &&info,
+                                           telegram_api::object_ptr<telegram_api::ForumTopic> &&topic,
+                                           Promise<td_api::object_ptr<td_api::forumTopic>> &&promise) {
+  td_->messages_manager_->on_get_messages(std::move(info.messages), true, false, Promise<Unit>(), "GetForumTopicQuery");
+  auto top_thread_message_id = on_get_forum_topic_impl(DialogId(channel_id), std::move(topic));
+  if (!top_thread_message_id.is_valid()) {
+    return promise.set_value(nullptr);
+  }
+  if (top_thread_message_id != expected_top_thread_message_id) {
+    return promise.set_error(Status::Error(500, "Wrong forum topic received"));
+  }
+  promise.set_value(get_forum_topic_object(DialogId(channel_id), top_thread_message_id));
+}
+
 void ForumTopicManager::get_forum_topic_link(DialogId dialog_id, MessageId top_thread_message_id,
                                              Promise<string> &&promise) {
   TRY_STATUS_PROMISE(promise, is_forum(dialog_id));
@@ -718,8 +741,8 @@ void ForumTopicManager::on_get_forum_topic_infos(DialogId dialog_id,
   }
 }
 
-MessageId ForumTopicManager::on_get_forum_topic(DialogId dialog_id,
-                                                tl_object_ptr<telegram_api::ForumTopic> &&forum_topic) {
+MessageId ForumTopicManager::on_get_forum_topic_impl(DialogId dialog_id,
+                                                     tl_object_ptr<telegram_api::ForumTopic> &&forum_topic) {
   CHECK(forum_topic != nullptr);
   switch (forum_topic->get_id()) {
     case telegram_api::forumTopicDeleted::ID: {
