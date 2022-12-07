@@ -3383,6 +3383,8 @@ class MessagesManager final : public Actor {
 
   bool is_group_dialog(DialogId dialog_id) const;
 
+  bool is_forum_channel(DialogId dialog_id) const;
+
   bool is_broadcast_channel(DialogId dialog_id) const;
 
   bool is_deleted_secret_chat(const Dialog *d) const;

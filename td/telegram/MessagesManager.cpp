@@ -19383,7 +19383,7 @@ Result<std::pair<string, bool>> MessagesManager::get_message_link(FullMessageId 
   } else {
     sb << "c/" << dialog_id.get_channel_id().get();
   }
-  if (in_message_thread && td_->contacts_manager_->is_forum_channel(dialog_id.get_channel_id())) {
+  if (in_message_thread && is_forum_channel(dialog_id)) {
     if (m->top_thread_message_id != message_id) {
       sb << '/' << m->top_thread_message_id.get_server_message_id().get();
     }
@@ -19601,8 +19601,7 @@ td_api::object_ptr<td_api::messageLinkInfo> MessagesManager::get_message_link_in
   if (d == nullptr) {
     dialog_id = DialogId();
     top_thread_message_id = MessageId();
-  } else if (message_id == MessageId(ServerMessageId(1)) && dialog_id.get_type() == DialogType::Channel &&
-             td_->contacts_manager_->is_forum_channel(dialog_id.get_channel_id())) {
+  } else if (message_id == MessageId(ServerMessageId(1)) && is_forum_channel(dialog_id)) {
     // General topic
     top_thread_message_id = message_id;
   } else {
@@ -27735,6 +27734,11 @@ bool MessagesManager::is_group_dialog(DialogId dialog_id) const {
     default:
       return false;
   }
+}
+
+bool MessagesManager::is_forum_channel(DialogId dialog_id) const {
+  return dialog_id.get_type() == DialogType::Channel &&
+         td_->contacts_manager_->is_forum_channel(dialog_id.get_channel_id());
 }
 
 bool MessagesManager::is_broadcast_channel(DialogId dialog_id) const {
