@@ -19603,9 +19603,6 @@ td_api::object_ptr<td_api::messageLinkInfo> MessagesManager::get_message_link_in
   if (d == nullptr) {
     dialog_id = DialogId();
     top_thread_message_id = MessageId();
-  } else if (message_id == MessageId(ServerMessageId(1)) && is_forum_channel(dialog_id)) {
-    // General topic
-    top_thread_message_id = message_id;
   } else {
     const Message *m = get_message(d, message_id);
     if (m != nullptr) {
@@ -19613,6 +19610,9 @@ td_api::object_ptr<td_api::messageLinkInfo> MessagesManager::get_message_link_in
       for_album = !info.is_single && m->media_album_id != 0;
       if (info.comment_dialog_id.is_valid() || info.for_comment || m->is_topic_message) {
         top_thread_message_id = m->top_thread_message_id;
+      } else if (is_forum_channel(dialog_id) && info.top_thread_message_id == MessageId(ServerMessageId(1))) {
+        // General topic
+        top_thread_message_id = info.top_thread_message_id;
       } else {
         top_thread_message_id = MessageId();
       }
