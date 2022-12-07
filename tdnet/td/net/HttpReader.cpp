@@ -174,8 +174,8 @@ Result<size_t> HttpReader::read_next(HttpQuery *query, bool can_be_slow) {
         }
         // save content to a file
         if (temp_file_.empty()) {
-          auto file = open_temp_file("file");
-          if (file.is_error()) {
+          auto open_status = open_temp_file("file");
+          if (open_status.is_error()) {
             return Status::Error(500, "Internal Server Error: can't create temporary file");
           }
         }
@@ -408,10 +408,6 @@ Result<bool> HttpReader::parse_multipart_form_data(bool can_be_slow) {
             if (query_->files_.size() == max_files_) {
               return Status::Error(413, "Request Entity Too Large: too many files attached");
             }
-            auto file = open_temp_file(file_name_);
-            if (file.is_error()) {
-              return Status::Error(500, "Internal Server Error: can't create temporary file");
-            }
 
             // don't need to save headers for files
             file_field_name_ = field_name_.str();
@@ -466,6 +462,12 @@ Result<bool> HttpReader::parse_multipart_form_data(bool can_be_slow) {
       case FormDataParseState::ReadFile: {
         if (!can_be_slow) {
           return Status::Error("SLOW");
+        }
+        if (temp_file_.empty()) {
+          auto open_status = open_temp_file(file_name_);
+          if (open_status.is_error()) {
+            return Status::Error(500, "Internal Server Error: can't create temporary file");
+          }
         }
         if (find_boundary(content_->clone(), boundary_, form_data_read_length_)) {
           auto file_part = content_->cut_head(form_data_read_length_).move_as_buffer_slice();
