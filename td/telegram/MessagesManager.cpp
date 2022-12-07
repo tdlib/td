@@ -531,7 +531,7 @@ class GetChannelMessagesQuery final : public Td::ResultHandler {
     td_->messages_manager_->get_channel_difference_if_needed(
         DialogId(channel_id_), std::move(info),
         PromiseCreator::lambda([actor_id = td_->messages_manager_actor_.get(), source,
-                                promise = std::move(promise_)](Result<MessagesManager::MessagesInfo> &&result) mutable {
+                                promise = std::move(promise_)](Result<MessagesInfo> &&result) mutable {
           if (result.is_error()) {
             promise.set_error(result.move_as_error());
           } else {
@@ -2122,7 +2122,7 @@ class GetDialogMessageByDateQuery final : public Td::ResultHandler {
         dialog_id_, std::move(info),
         PromiseCreator::lambda([actor_id = td_->messages_manager_actor_.get(), dialog_id = dialog_id_, date = date_,
                                 random_id = random_id_,
-                                promise = std::move(promise_)](Result<MessagesManager::MessagesInfo> &&result) mutable {
+                                promise = std::move(promise_)](Result<MessagesInfo> &&result) mutable {
           if (result.is_error()) {
             promise.set_error(result.move_as_error());
           } else {
@@ -2200,7 +2200,7 @@ class GetHistoryQuery final : public Td::ResultHandler {
         PromiseCreator::lambda([actor_id = td_->messages_manager_actor_.get(), dialog_id = dialog_id_,
                                 from_message_id = from_message_id_, old_last_new_message_id = old_last_new_message_id_,
                                 offset = offset_, limit = limit_, from_the_end = from_the_end_,
-                                promise = std::move(promise_)](Result<MessagesManager::MessagesInfo> &&result) mutable {
+                                promise = std::move(promise_)](Result<MessagesInfo> &&result) mutable {
           if (result.is_error()) {
             promise.set_error(result.move_as_error());
           } else {
@@ -2371,7 +2371,7 @@ class GetSearchResultCalendarQuery final : public Td::ResultHandler {
 
     // unused: inexact:flags.0?true min_date:int min_msg_id:int offset_id_offset:flags.1?int
 
-    MessagesManager::MessagesInfo info;
+    MessagesInfo info;
     info.messages = std::move(result->messages_);
     info.total_count = result->count_;
     info.is_channel_messages = dialog_id_.get_type() == DialogType::Channel;
@@ -2381,7 +2381,7 @@ class GetSearchResultCalendarQuery final : public Td::ResultHandler {
         PromiseCreator::lambda([actor_id = td_->messages_manager_actor_.get(), dialog_id = dialog_id_,
                                 from_message_id = from_message_id_, filter = filter_, random_id = random_id_,
                                 periods = std::move(result->periods_),
-                                promise = std::move(promise_)](Result<MessagesManager::MessagesInfo> &&result) mutable {
+                                promise = std::move(promise_)](Result<MessagesInfo> &&result) mutable {
           if (result.is_error()) {
             promise.set_error(result.move_as_error());
           } else {
@@ -2588,7 +2588,7 @@ class SearchMessagesQuery final : public Td::ResultHandler {
                                 query = std::move(query_), sender_dialog_id = sender_dialog_id_,
                                 from_message_id = from_message_id_, offset = offset_, limit = limit_, filter = filter_,
                                 top_thread_message_id = top_thread_message_id_, random_id = random_id_,
-                                promise = std::move(promise_)](Result<MessagesManager::MessagesInfo> &&result) mutable {
+                                promise = std::move(promise_)](Result<MessagesInfo> &&result) mutable {
           if (result.is_error()) {
             promise.set_error(result.move_as_error());
           } else {
@@ -2755,7 +2755,7 @@ class SearchMessagesGlobalQuery final : public Td::ResultHandler {
                                 offset_date = offset_date_, offset_dialog_id = offset_dialog_id_,
                                 offset_message_id = offset_message_id_, limit = limit_, filter = std::move(filter_),
                                 min_date = min_date_, max_date = max_date_, random_id = random_id_,
-                                promise = std::move(promise_)](Result<MessagesManager::MessagesInfo> &&result) mutable {
+                                promise = std::move(promise_)](Result<MessagesInfo> &&result) mutable {
           if (result.is_error()) {
             promise.set_error(result.move_as_error());
           } else {
@@ -2838,9 +2838,8 @@ class SearchSentMediaQuery final : public Td::ResultHandler {
 
     auto info = td_->messages_manager_->get_messages_info(DialogId(), result_ptr.move_as_ok(), "SearchSentMediaQuery");
     td_->messages_manager_->get_channel_differences_if_needed(
-        std::move(info),
-        PromiseCreator::lambda([actor_id = td_->messages_manager_actor_.get(),
-                                promise = std::move(promise_)](Result<MessagesManager::MessagesInfo> &&result) mutable {
+        std::move(info), PromiseCreator::lambda([actor_id = td_->messages_manager_actor_.get(),
+                                                 promise = std::move(promise_)](Result<MessagesInfo> &&result) mutable {
           if (result.is_error()) {
             promise.set_error(result.move_as_error());
           } else {
@@ -2890,7 +2889,7 @@ class GetRecentLocationsQuery final : public Td::ResultHandler {
     td_->messages_manager_->get_channel_difference_if_needed(
         dialog_id_, std::move(info),
         PromiseCreator::lambda([actor_id = td_->messages_manager_actor_.get(), dialog_id = dialog_id_, limit = limit_,
-                                promise = std::move(promise_)](Result<MessagesManager::MessagesInfo> &&result) mutable {
+                                promise = std::move(promise_)](Result<MessagesInfo> &&result) mutable {
           if (result.is_error()) {
             promise.set_error(result.move_as_error());
           } else {
@@ -2942,9 +2941,8 @@ class GetMessagePublicForwardsQuery final : public Td::ResultHandler {
     auto info =
         td_->messages_manager_->get_messages_info(DialogId(), result_ptr.move_as_ok(), "GetMessagePublicForwardsQuery");
     td_->messages_manager_->get_channel_differences_if_needed(
-        std::move(info),
-        PromiseCreator::lambda([actor_id = td_->messages_manager_actor_.get(),
-                                promise = std::move(promise_)](Result<MessagesManager::MessagesInfo> &&result) mutable {
+        std::move(info), PromiseCreator::lambda([actor_id = td_->messages_manager_actor_.get(),
+                                                 promise = std::move(promise_)](Result<MessagesInfo> &&result) mutable {
           if (result.is_error()) {
             promise.set_error(result.move_as_error());
           } else {
@@ -9800,8 +9798,9 @@ void MessagesManager::on_get_empty_messages(DialogId dialog_id, const vector<Mes
   }
 }
 
-MessagesManager::MessagesInfo MessagesManager::get_messages_info(
-    DialogId dialog_id, tl_object_ptr<telegram_api::messages_Messages> &&messages_ptr, const char *source) {
+MessagesInfo MessagesManager::get_messages_info(DialogId dialog_id,
+                                                tl_object_ptr<telegram_api::messages_Messages> &&messages_ptr,
+                                                const char *source) {
   CHECK(messages_ptr != nullptr);
   LOG(DEBUG) << "Receive result for " << source << ": " << to_string(messages_ptr);
 

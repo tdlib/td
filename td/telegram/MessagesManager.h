@@ -37,6 +37,7 @@
 #include "td/telegram/MessageReplyHeader.h"
 #include "td/telegram/MessageReplyInfo.h"
 #include "td/telegram/MessageSearchFilter.h"
+#include "td/telegram/MessagesInfo.h"
 #include "td/telegram/MessageThreadInfo.h"
 #include "td/telegram/MessageTtl.h"
 #include "td/telegram/net/DcId.h"
@@ -195,11 +196,6 @@ class MessagesManager final : public Actor {
 
   void on_get_empty_messages(DialogId dialog_id, const vector<MessageId> &empty_message_ids);
 
-  struct MessagesInfo {
-    vector<tl_object_ptr<telegram_api::Message>> messages;
-    int32 total_count = 0;
-    bool is_channel_messages = false;
-  };
   MessagesInfo get_messages_info(DialogId dialog_id, tl_object_ptr<telegram_api::messages_Messages> &&messages_ptr,
                                  const char *source);
 
