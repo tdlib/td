@@ -52,6 +52,10 @@ class ForumTopicManager final : public Actor {
                           telegram_api::object_ptr<telegram_api::ForumTopic> &&topic,
                           Promise<td_api::object_ptr<td_api::forumTopic>> &&promise);
 
+  void on_get_forum_topics(ChannelId channel_id, bool order_by_creation_date, MessagesInfo &&info,
+                           vector<telegram_api::object_ptr<telegram_api::ForumTopic>> &&topics,
+                           Promise<td_api::object_ptr<td_api::forumTopics>> &&promise);
+
   void get_forum_topic_link(DialogId dialog_id, MessageId top_thread_message_id, Promise<string> &&promise);
 
   void get_forum_topics(DialogId dialog_id, string query, int32 offset_date, MessageId offset_message_id,
@@ -85,8 +89,6 @@ class ForumTopicManager final : public Actor {
 
   void on_get_forum_topic_infos(DialogId dialog_id, vector<tl_object_ptr<telegram_api::ForumTopic>> &&forum_topics,
                                 const char *source);
-
-  MessageId on_get_forum_topic_impl(DialogId dialog_id, tl_object_ptr<telegram_api::ForumTopic> &&forum_topic);
 
   td_api::object_ptr<td_api::forumTopic> get_forum_topic_object(DialogId dialog_id,
                                                                 MessageId top_thread_message_id) const;
@@ -138,6 +140,8 @@ class ForumTopicManager final : public Actor {
   const ForumTopicInfo *get_topic_info(DialogId dialog_id, MessageId top_thread_message_id) const;
 
   void set_topic_info(DialogId dialog_id, Topic *topic, unique_ptr<ForumTopicInfo> forum_topic_info);
+
+  MessageId on_get_forum_topic_impl(DialogId dialog_id, tl_object_ptr<telegram_api::ForumTopic> &&forum_topic);
 
   DialogNotificationSettings *get_forum_topic_notification_settings(DialogId dialog_id,
                                                                     MessageId top_thread_message_id);
