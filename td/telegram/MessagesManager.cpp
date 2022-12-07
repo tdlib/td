@@ -19331,8 +19331,9 @@ Result<std::pair<string, bool>> MessagesManager::get_message_link(FullMessageId 
     }
   }
 
-  if (!m->top_thread_message_id.is_valid() || !m->top_thread_message_id.is_server() ||
-      is_deleted_message(d, m->top_thread_message_id) || is_broadcast_channel(dialog_id)) {
+  bool is_forum = is_forum_channel(dialog_id);
+  if (!is_forum && (!m->top_thread_message_id.is_valid() || !m->top_thread_message_id.is_server() ||
+                    is_deleted_message(d, m->top_thread_message_id) || is_broadcast_channel(dialog_id))) {
     in_message_thread = false;
   }
 
@@ -19344,7 +19345,7 @@ Result<std::pair<string, bool>> MessagesManager::get_message_link(FullMessageId 
   SliceBuilder sb;
   sb << td_->option_manager_->get_option_string("t_me_url", "https://t.me/");
 
-  if (in_message_thread) {
+  if (in_message_thread && !is_forum) {
     // try to generate a comment link
     auto *top_m = get_message_force(d, m->top_thread_message_id, "get_public_message_link");
     if (is_discussion_message(dialog_id, top_m) && is_active_message_reply_info(dialog_id, top_m->reply_info)) {
@@ -19383,9 +19384,10 @@ Result<std::pair<string, bool>> MessagesManager::get_message_link(FullMessageId 
   } else {
     sb << "c/" << dialog_id.get_channel_id().get();
   }
-  if (in_message_thread && is_forum_channel(dialog_id)) {
-    if (m->top_thread_message_id != message_id) {
-      sb << '/' << m->top_thread_message_id.get_server_message_id().get();
+  if (in_message_thread && is_forum) {
+    auto top_thread_message_id = m->is_topic_message ? m->top_thread_message_id : MessageId(ServerMessageId(1));
+    if (top_thread_message_id != message_id) {
+      sb << '/' << top_thread_message_id.get_server_message_id().get();
     }
     in_message_thread = false;
   }
