@@ -17009,21 +17009,7 @@ void MessagesManager::on_load_dialog_filter_dialogs(DialogFilterId dialog_filter
   }
   CHECK(is_update_chat_filters_sent_);
 
-  auto new_dialog_filter = td::make_unique<DialogFilter>(*old_dialog_filter);
-  for (auto dialog_id : dialog_ids) {
-    InputDialogId::remove(new_dialog_filter->pinned_dialog_ids, dialog_id);
-    InputDialogId::remove(new_dialog_filter->included_dialog_ids, dialog_id);
-    InputDialogId::remove(new_dialog_filter->excluded_dialog_ids, dialog_id);
-  }
-
-  if (*new_dialog_filter != *old_dialog_filter) {
-    LOG(INFO) << "Update " << dialog_filter_id << " from " << *old_dialog_filter << " to " << *new_dialog_filter;
-    edit_dialog_filter(std::move(new_dialog_filter), "on_load_dialog_filter_dialogs");
-    save_dialog_filters();
-    send_update_chat_filters();
-
-    synchronize_dialog_filters();
-  }
+  delete_dialogs_from_filter(old_dialog_filter, std::move(dialog_ids), "on_load_dialog_filter_dialogs");
 
   promise.set_value(Unit());
 }
@@ -17074,6 +17060,26 @@ void MessagesManager::load_dialog_filter(const DialogFilter *filter, bool force,
   }
 
   promise.set_value(Unit());
+}
+
+void MessagesManager::delete_dialogs_from_filter(const DialogFilter *dialog_filter, vector<DialogId> &&dialog_ids,
+                                                 const char *source) {
+  auto new_dialog_filter = td::make_unique<DialogFilter>(*dialog_filter);
+  for (auto dialog_id : dialog_ids) {
+    InputDialogId::remove(new_dialog_filter->pinned_dialog_ids, dialog_id);
+    InputDialogId::remove(new_dialog_filter->included_dialog_ids, dialog_id);
+    InputDialogId::remove(new_dialog_filter->excluded_dialog_ids, dialog_id);
+  }
+
+  if (*new_dialog_filter != *dialog_filter) {
+    LOG(INFO) << "Update " << dialog_filter->dialog_filter_id << " from " << *dialog_filter << " to "
+              << *new_dialog_filter;
+    edit_dialog_filter(std::move(new_dialog_filter), source);
+    save_dialog_filters();
+    send_update_chat_filters();
+
+    synchronize_dialog_filters();
+  }
 }
 
 void MessagesManager::get_recommended_dialog_filters(
@@ -21931,7 +21937,7 @@ tl_object_ptr<td_api::chats> MessagesManager::get_chats_object(const std::pair<i
   return get_chats_object(dialog_ids.first, dialog_ids.second);
 }
 
-td_api::object_ptr<td_api::chatFilter> MessagesManager::get_chat_filter_object(DialogFilterId dialog_filter_id) const {
+td_api::object_ptr<td_api::chatFilter> MessagesManager::get_chat_filter_object(DialogFilterId dialog_filter_id) {
   CHECK(!td_->auth_manager_->is_bot());
   auto filter = get_dialog_filter(dialog_filter_id);
   if (filter == nullptr) {
@@ -21941,9 +21947,10 @@ td_api::object_ptr<td_api::chatFilter> MessagesManager::get_chat_filter_object(D
   return get_chat_filter_object(filter);
 }
 
-td_api::object_ptr<td_api::chatFilter> MessagesManager::get_chat_filter_object(const DialogFilter *filter) const {
-  auto get_chat_ids = [this,
-                       dialog_filter_id = filter->dialog_filter_id](const vector<InputDialogId> &input_dialog_ids) {
+td_api::object_ptr<td_api::chatFilter> MessagesManager::get_chat_filter_object(const DialogFilter *filter) {
+  vector<DialogId> left_dialog_ids;
+  auto get_chat_ids = [this, dialog_filter_id = filter->dialog_filter_id,
+                       &left_dialog_ids](const vector<InputDialogId> &input_dialog_ids) {
     vector<int64> chat_ids;
     chat_ids.reserve(input_dialog_ids.size());
     for (auto &input_dialog_id : input_dialog_ids) {
@@ -21954,6 +21961,7 @@ td_api::object_ptr<td_api::chatFilter> MessagesManager::get_chat_filter_object(c
           chat_ids.push_back(dialog_id.get());
         } else {
           LOG(INFO) << "Skip nonjoined " << dialog_id << " from " << dialog_filter_id;
+          left_dialog_ids.push_back(dialog_id);
         }
       } else {
         LOG(ERROR) << "Can't find " << dialog_id << " from " << dialog_filter_id;
@@ -21961,11 +21969,16 @@ td_api::object_ptr<td_api::chatFilter> MessagesManager::get_chat_filter_object(c
     }
     return chat_ids;
   };
-  return td_api::make_object<td_api::chatFilter>(
+
+  auto result = td_api::make_object<td_api::chatFilter>(
       filter->title, filter->get_icon_name(), get_chat_ids(filter->pinned_dialog_ids),
       get_chat_ids(filter->included_dialog_ids), get_chat_ids(filter->excluded_dialog_ids), filter->exclude_muted,
       filter->exclude_read, filter->exclude_archived, filter->include_contacts, filter->include_non_contacts,
       filter->include_bots, filter->include_groups, filter->include_channels);
+
+  delete_dialogs_from_filter(filter, std::move(left_dialog_ids), "get_chat_filter_object");
+
+  return result;
 }
 
 std::pair<bool, int32> MessagesManager::get_dialog_mute_until(DialogId dialog_id, const Dialog *d) const {

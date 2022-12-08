@@ -747,7 +747,7 @@ class MessagesManager final : public Actor {
 
   static tl_object_ptr<td_api::chats> get_chats_object(const std::pair<int32, vector<DialogId>> &dialog_ids);
 
-  tl_object_ptr<td_api::chatFilter> get_chat_filter_object(DialogFilterId dialog_filter_id) const;
+  tl_object_ptr<td_api::chatFilter> get_chat_filter_object(DialogFilterId dialog_filter_id);
 
   tl_object_ptr<td_api::messages> get_dialog_history(DialogId dialog_id, MessageId from_message_id, int32 offset,
                                                      int32 limit, int left_tries, bool only_local,
@@ -2832,7 +2832,7 @@ class MessagesManager final : public Actor {
   void update_dialogs_hints(const Dialog *d);
   void update_dialogs_hints_rating(const Dialog *d);
 
-  td_api::object_ptr<td_api::chatFilter> get_chat_filter_object(const DialogFilter *filter) const;
+  td_api::object_ptr<td_api::chatFilter> get_chat_filter_object(const DialogFilter *filter);
 
   void load_dialog_filter_dialogs(DialogFilterId dialog_filter_id, vector<InputDialogId> &&input_dialog_ids,
                                   Promise<Unit> &&promise);
@@ -2841,6 +2841,8 @@ class MessagesManager final : public Actor {
                                      Promise<Unit> &&promise);
 
   void load_dialog_filter(const DialogFilter *filter, bool force, Promise<Unit> &&promise);
+
+  void delete_dialogs_from_filter(const DialogFilter *dialog_filter, vector<DialogId> &&dialog_ids, const char *source);
 
   void on_get_recommended_dialog_filters(Result<vector<tl_object_ptr<telegram_api::dialogFilterSuggested>>> result,
                                          Promise<td_api::object_ptr<td_api::recommendedChatFilters>> &&promise);
