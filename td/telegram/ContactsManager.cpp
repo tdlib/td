@@ -465,8 +465,8 @@ class UploadProfilePhotoQuery final : public Td::ResultHandler {
       photo_input_file = std::move(input_file);
     }
     send_query(G()->net_query_creator().create(
-        telegram_api::photos_uploadProfilePhoto(flags, std::move(photo_input_file), std::move(video_input_file),
-                                                main_frame_timestamp),
+        telegram_api::photos_uploadProfilePhoto(flags, false /*ignored*/, std::move(photo_input_file),
+                                                std::move(video_input_file), main_frame_timestamp),
         {{"me"}}));
   }
 
@@ -505,8 +505,9 @@ class UpdateProfilePhotoQuery final : public Td::ResultHandler {
     file_id_ = file_id;
     old_photo_id_ = old_photo_id;
     file_reference_ = FileManager::extract_file_reference(input_photo);
-    send_query(
-        G()->net_query_creator().create(telegram_api::photos_updateProfilePhoto(std::move(input_photo)), {{"me"}}));
+    int32 flags = 0;
+    send_query(G()->net_query_creator().create(
+        telegram_api::photos_updateProfilePhoto(flags, false /*ignored*/, std::move(input_photo)), {{"me"}}));
   }
 
   void on_result(BufferSlice packet) final {
@@ -9843,8 +9844,8 @@ ContactsManager::User *ContactsManager::get_user_force(UserId user_id) {
 
     telegram_api::object_ptr<telegram_api::userProfilePhoto> profile_photo;
     if (!G()->is_test_dc() && profile_photo_id != 0) {
-      profile_photo = telegram_api::make_object<telegram_api::userProfilePhoto>(0, false /*ignored*/, profile_photo_id,
-                                                                                BufferSlice(), profile_photo_dc_id);
+      profile_photo = telegram_api::make_object<telegram_api::userProfilePhoto>(
+          0, false /*ignored*/, false /*ignored*/, profile_photo_id, BufferSlice(), profile_photo_dc_id);
     }
 
     auto user = telegram_api::make_object<telegram_api::user>(

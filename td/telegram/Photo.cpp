@@ -422,8 +422,8 @@ tl_object_ptr<telegram_api::InputMedia> photo_get_input_media(FileManager *file_
       if (ttl != 0) {
         flags |= telegram_api::inputMediaPhoto::TTL_SECONDS_MASK;
       }
-      return make_tl_object<telegram_api::inputMediaPhoto>(flags, file_view.main_remote_location().as_input_photo(),
-                                                           ttl);
+      return make_tl_object<telegram_api::inputMediaPhoto>(flags, false /*ignored*/,
+                                                           file_view.main_remote_location().as_input_photo(), ttl);
     }
     if (file_view.has_url()) {
       int32 flags = 0;
@@ -431,7 +431,7 @@ tl_object_ptr<telegram_api::InputMedia> photo_get_input_media(FileManager *file_
         flags |= telegram_api::inputMediaPhotoExternal::TTL_SECONDS_MASK;
       }
       LOG(INFO) << "Create inputMediaPhotoExternal with a URL " << file_view.url() << " and TTL " << ttl;
-      return make_tl_object<telegram_api::inputMediaPhotoExternal>(flags, file_view.url(), ttl);
+      return make_tl_object<telegram_api::inputMediaPhotoExternal>(flags, false /*ignored*/, file_view.url(), ttl);
     }
     if (input_file == nullptr) {
       CHECK(!file_view.has_remote_location());
@@ -447,8 +447,11 @@ tl_object_ptr<telegram_api::InputMedia> photo_get_input_media(FileManager *file_
     if (ttl != 0) {
       flags |= telegram_api::inputMediaUploadedPhoto::TTL_SECONDS_MASK;
     }
+    if (ttl != 0) {
+      flags |= telegram_api::inputMediaUploadedPhoto::TTL_SECONDS_MASK;
+    }
 
-    return make_tl_object<telegram_api::inputMediaUploadedPhoto>(flags, std::move(input_file),
+    return make_tl_object<telegram_api::inputMediaUploadedPhoto>(flags, false /*ignored*/, std::move(input_file),
                                                                  std::move(added_stickers), ttl);
   }
   return nullptr;
@@ -608,7 +611,7 @@ tl_object_ptr<telegram_api::userProfilePhoto> convert_photo_to_profile_photo(
     return nullptr;
   }
   bool has_video = !photo->video_sizes_.empty();
-  return make_tl_object<telegram_api::userProfilePhoto>(0, has_video, photo->id_, BufferSlice(), photo->dc_id_);
+  return make_tl_object<telegram_api::userProfilePhoto>(0, has_video, false, photo->id_, BufferSlice(), photo->dc_id_);
 }
 
 }  // namespace td

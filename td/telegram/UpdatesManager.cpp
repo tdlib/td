@@ -775,6 +775,8 @@ bool UpdatesManager::is_acceptable_message(const telegram_api::Message *message_
         case telegram_api::messageActionGiftPremium::ID:
         case telegram_api::messageActionTopicCreate::ID:
         case telegram_api::messageActionTopicEdit::ID:
+        case telegram_api::messageActionSuggestProfilePhoto::ID:
+        case telegram_api::messageActionAttachMenuBotAllowed::ID:
           break;
         case telegram_api::messageActionChatCreate::ID: {
           auto chat_create = static_cast<const telegram_api::messageActionChatCreate *>(action);
@@ -3358,8 +3360,7 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateUserPhone> upda
   promise.set_value(Unit());
 }
 
-void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateUserPhoto> update, Promise<Unit> &&promise) {
-  td_->contacts_manager_->on_update_user_photo(UserId(update->user_id_), std::move(update->photo_));
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateUser> update, Promise<Unit> &&promise) {
   promise.set_value(Unit());
 }
 

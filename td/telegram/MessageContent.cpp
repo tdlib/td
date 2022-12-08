@@ -2599,12 +2599,12 @@ tl_object_ptr<telegram_api::InputMedia> get_fake_input_media(Td *td, tl_object_p
       flags |= telegram_api::inputMediaUploadedDocument::FORCE_FILE_MASK;
     }
     return make_tl_object<telegram_api::inputMediaUploadedDocument>(
-        flags, false /*ignored*/, false /*ignored*/, std::move(input_file), nullptr, mime_type, std::move(attributes),
-        vector<tl_object_ptr<telegram_api::InputDocument>>(), 0);
+        flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, std::move(input_file), nullptr, mime_type,
+        std::move(attributes), vector<tl_object_ptr<telegram_api::InputDocument>>(), 0);
   } else {
     CHECK(file_type == FileType::Photo);
     return make_tl_object<telegram_api::inputMediaUploadedPhoto>(
-        0, std::move(input_file), vector<tl_object_ptr<telegram_api::InputDocument>>(), 0);
+        0, false /*ignored*/, std::move(input_file), vector<tl_object_ptr<telegram_api::InputDocument>>(), 0);
   }
 }
 
@@ -5199,6 +5199,16 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
           ForumTopicEditedData{std::move(action->title_), edit_icon_custom_emoji_id, action->icon_emoji_id_,
                                edit_is_closed, action->closed_, edit_is_hidden, action->hidden_});
     }
+    case telegram_api::messageActionSuggestProfilePhoto::ID: {
+      auto action = move_tl_object_as<telegram_api::messageActionSuggestProfilePhoto>(action_ptr);
+      auto photo = get_photo(td->file_manager_.get(), std::move(action->photo_), owner_dialog_id);
+      if (photo.is_empty()) {
+        break;
+      }
+      return make_unique<MessagePhoto>(std::move(photo), FormattedText());
+    }
+    case telegram_api::messageActionAttachMenuBotAllowed::ID:
+      return make_unique<MessageUnsupported>();
     default:
       UNREACHABLE();
   }

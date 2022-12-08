@@ -258,8 +258,9 @@ class ToggleBotInAttachMenuQuery final : public Td::ResultHandler {
   }
 
   void send(tl_object_ptr<telegram_api::InputUser> &&input_user, bool is_added) {
-    send_query(
-        G()->net_query_creator().create(telegram_api::messages_toggleBotInAttachMenu(std::move(input_user), is_added)));
+    int32 flags = 0;
+    send_query(G()->net_query_creator().create(
+        telegram_api::messages_toggleBotInAttachMenu(flags, false /*ignored*/, std::move(input_user), is_added)));
   }
 
   void on_result(BufferSlice packet) final {
