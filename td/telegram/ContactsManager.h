@@ -772,6 +772,7 @@ class ContactsManager final : public Actor {
   // do not forget to update drop_user_full and on_get_user_full
   struct UserFull {
     Photo photo;
+    Photo personal_photo;
 
     string about;
     string private_forward_name;
@@ -1149,6 +1150,7 @@ class ContactsManager final : public Actor {
   static constexpr int32 USER_FULL_FLAG_HAS_GROUP_ADMINISTRATOR_RIGHTS = 1 << 17;
   static constexpr int32 USER_FULL_FLAG_HAS_BROADCAST_ADMINISTRATOR_RIGHTS = 1 << 18;
   static constexpr int32 USER_FULL_FLAG_HAS_VOICE_MESSAGES_FORBIDDEN = 1 << 20;
+  static constexpr int32 USER_FULL_FLAG_HAS_PERSONAL_PHOTO = 1 << 21;
 
   static constexpr int32 CHAT_FLAG_USER_IS_CREATOR = 1 << 0;
   static constexpr int32 CHAT_FLAG_USER_HAS_LEFT = 1 << 2;
@@ -1352,7 +1354,7 @@ class ContactsManager final : public Actor {
                                                                bool need_phone_number_privacy_exception) const;
 
   UserPhotos *add_user_photos(UserId user_id);
-  void add_profile_photo_to_cache(UserId user_id, Photo &&photo);
+  void add_set_profile_photo_to_cache(UserId user_id, Photo &&photo);
   bool delete_profile_photo_from_cache(UserId user_id, int64 profile_photo_id, bool send_updates);
   void drop_user_photos(UserId user_id, bool is_empty, bool drop_user_full_photo, const char *source);
   void drop_user_full(UserId user_id);

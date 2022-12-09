@@ -540,7 +540,8 @@ user id:int53 first_name:string last_name:string usernames:usernames phone_numbe
 botInfo share_text:string description:string photo:photo animation:animation menu_button:botMenuButton commands:vector<botCommand> default_group_administrator_rights:chatAdministratorRights default_channel_administrator_rights:chatAdministratorRights = BotInfo;
 
 //@description Contains full information about a user
-//@photo User profile photo; may be null if empty or unknown. If non-null, then it is the same photo as in user.profile_photo and chat.photo
+//@photo User profile photo; may be null if empty or unknown. If non-null and personal_photo is null, then it is the same photo as in user.profile_photo and chat.photo
+//@personal_photo User profile photo set by the current user for the contact; may be null if empty or unknown. If non-null, then it is the same photo as in user.profile_photo and chat.photo
 //@is_blocked True, if the user is blocked by the current user
 //@can_be_called True, if the user can be called
 //@supports_video_calls True, if a video call can be created with the user
@@ -552,7 +553,7 @@ botInfo share_text:string description:string photo:photo animation:animation men
 //@premium_gift_options The list of available options for gifting Telegram Premium to the user
 //@group_in_common_count Number of group chats where both the other user and the current user are a member; 0 for the current user
 //@bot_info For bots, information about the bot; may be null
-userFullInfo photo:chatPhoto is_blocked:Bool can_be_called:Bool supports_video_calls:Bool has_private_calls:Bool has_private_forwards:Bool has_restricted_voice_and_video_note_messages:Bool need_phone_number_privacy_exception:Bool bio:formattedText premium_gift_options:vector<premiumPaymentOption> group_in_common_count:int32 bot_info:botInfo = UserFullInfo;
+userFullInfo photo:chatPhoto personal_photo:chatPhoto is_blocked:Bool can_be_called:Bool supports_video_calls:Bool has_private_calls:Bool has_private_forwards:Bool has_restricted_voice_and_video_note_messages:Bool need_phone_number_privacy_exception:Bool bio:formattedText premium_gift_options:vector<premiumPaymentOption> group_in_common_count:int32 bot_info:botInfo = UserFullInfo;
 
 //@description Represents a list of users @total_count Approximate total number of users found @user_ids A list of user identifiers
 users total_count:int32 user_ids:vector<int53> = Users;
