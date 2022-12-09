@@ -1994,7 +1994,7 @@ messageAudio audio:audio caption:formattedText = MessageContent;
 //@description A document message (general file) @document The document description @caption Document caption
 messageDocument document:document caption:formattedText = MessageContent;
 
-//@description A photo message @photo The photo description @caption Photo caption @is_secret True, if the photo must be blurred and must be shown only while tapped
+//@description A photo message @photo The photo @caption Photo caption @is_secret True, if the photo must be blurred and must be shown only while tapped
 messagePhoto photo:photo caption:formattedText is_secret:Bool = MessageContent;
 
 //@description An expired photo message (self-destructed after TTL has elapsed)
@@ -2121,6 +2121,9 @@ messageForumTopicIsClosedToggled is_closed:Bool = MessageContent;
 
 //@description A General forum topic has been hidden or unhidden @is_hidden True, if the topic was hidden, otherwise the topic was unhidden
 messageForumTopicIsHiddenToggled is_hidden:Bool = MessageContent;
+
+//@description A profile photo was suggested to a user in a private chat @photo The suggested chat photo
+messageSuggestProfilePhoto photo:chatPhoto = MessageContent;
 
 //@description A non-standard action has happened in the chat @text Message text to be shown in the chat
 messageCustomServiceAction text:string = MessageContent;

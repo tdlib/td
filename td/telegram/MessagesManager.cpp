@@ -27573,6 +27573,7 @@ bool MessagesManager::can_edit_message(DialogId dialog_id, const Message *m, boo
     case MessageContentType::GiftPremium:
     case MessageContentType::TopicCreate:
     case MessageContentType::TopicEdit:
+    case MessageContentType::SuggestProfilePhoto:
       return false;
     default:
       UNREACHABLE();

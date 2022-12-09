@@ -125,7 +125,6 @@ Result<MessageExtendedMedia> MessageExtendedMedia::get_message_extended_media(
     result.type_ = Type::Photo;
     result.photo_ = *get_message_content_photo(content);
   } else {
-    CHECK(content_type == MessageContentType::Video);
     result.type_ = Type::Video;
     result.video_file_id_ = get_message_content_upload_file_id(content);
   }

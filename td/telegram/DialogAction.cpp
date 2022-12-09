@@ -405,6 +405,7 @@ bool DialogAction::is_canceled_by_message_of_type(MessageContentType message_con
     case MessageContentType::GiftPremium:
     case MessageContentType::TopicCreate:
     case MessageContentType::TopicEdit:
+    case MessageContentType::SuggestProfilePhoto:
       return false;
     default:
       UNREACHABLE();

@@ -835,6 +835,19 @@ class MessageTopicEdit final : public MessageContent {
   }
 };
 
+class MessageSuggestProfilePhoto final : public MessageContent {
+ public:
+  Photo photo;
+
+  MessageSuggestProfilePhoto() = default;
+  explicit MessageSuggestProfilePhoto(Photo &&photo) : photo(std::move(photo)) {
+  }
+
+  MessageContentType get_type() const final {
+    return MessageContentType::SuggestProfilePhoto;
+  }
+};
+
 template <class StorerT>
 static void store(const MessageContent *content, StorerT &storer) {
   CHECK(content != nullptr);
@@ -959,6 +972,7 @@ static void store(const MessageContent *content, StorerT &storer) {
       break;
     }
     case MessageContentType::ChatDeletePhoto:
+      break;
     case MessageContentType::ChatDeleteHistory:
       break;
     case MessageContentType::ChatAddUsers: {
@@ -1179,6 +1193,11 @@ static void store(const MessageContent *content, StorerT &storer) {
     case MessageContentType::TopicEdit: {
       const auto *m = static_cast<const MessageTopicEdit *>(content);
       store(m->edited_data, storer);
+      break;
+    }
+    case MessageContentType::SuggestProfilePhoto: {
+      const auto *m = static_cast<const MessageSuggestProfilePhoto *>(content);
+      store(m->photo, storer);
       break;
     }
     default:
@@ -1650,6 +1669,15 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
     case MessageContentType::TopicEdit: {
       auto m = make_unique<MessageTopicEdit>();
       parse(m->edited_data, parser);
+      content = std::move(m);
+      break;
+    }
+    case MessageContentType::SuggestProfilePhoto: {
+      auto m = make_unique<MessageSuggestProfilePhoto>();
+      parse(m->photo, parser);
+      if (m->photo.is_empty()) {
+        is_bad = true;
+      }
       content = std::move(m);
       break;
     }
@@ -2275,6 +2303,7 @@ bool can_have_input_media(const Td *td, const MessageContent *content, bool is_s
     case MessageContentType::GiftPremium:
     case MessageContentType::TopicCreate:
     case MessageContentType::TopicEdit:
+    case MessageContentType::SuggestProfilePhoto:
       return false;
     case MessageContentType::Animation:
     case MessageContentType::Audio:
@@ -2398,6 +2427,7 @@ SecretInputMedia get_secret_input_media(const MessageContent *content, Td *td,
     case MessageContentType::GiftPremium:
     case MessageContentType::TopicCreate:
     case MessageContentType::TopicEdit:
+    case MessageContentType::SuggestProfilePhoto:
       break;
     default:
       UNREACHABLE();
@@ -2519,6 +2549,7 @@ static tl_object_ptr<telegram_api::InputMedia> get_input_media_impl(
     case MessageContentType::GiftPremium:
     case MessageContentType::TopicCreate:
     case MessageContentType::TopicEdit:
+    case MessageContentType::SuggestProfilePhoto:
       break;
     default:
       UNREACHABLE();
@@ -2685,6 +2716,7 @@ void delete_message_content_thumbnail(MessageContent *content, Td *td) {
     case MessageContentType::GiftPremium:
     case MessageContentType::TopicCreate:
     case MessageContentType::TopicEdit:
+    case MessageContentType::SuggestProfilePhoto:
       break;
     default:
       UNREACHABLE();
@@ -2869,6 +2901,7 @@ Status can_send_message_content(DialogId dialog_id, const MessageContent *conten
     case MessageContentType::GiftPremium:
     case MessageContentType::TopicCreate:
     case MessageContentType::TopicEdit:
+    case MessageContentType::SuggestProfilePhoto:
       UNREACHABLE();
   }
   return Status::OK();
@@ -3000,6 +3033,7 @@ static int32 get_message_content_media_index_mask(const MessageContent *content,
     case MessageContentType::GiftPremium:
     case MessageContentType::TopicCreate:
     case MessageContentType::TopicEdit:
+    case MessageContentType::SuggestProfilePhoto:
       return 0;
     default:
       UNREACHABLE();
@@ -3771,6 +3805,14 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
       }
       break;
     }
+    case MessageContentType::SuggestProfilePhoto: {
+      const auto *old_ = static_cast<const MessageSuggestProfilePhoto *>(old_content);
+      const auto *new_ = static_cast<const MessageSuggestProfilePhoto *>(new_content);
+      if (old_->photo != new_->photo) {
+        need_update = true;
+      }
+      break;
+    }
     default:
       UNREACHABLE();
       break;
@@ -3905,6 +3947,7 @@ bool merge_message_content_file_id(Td *td, MessageContent *message_content, File
     case MessageContentType::GiftPremium:
     case MessageContentType::TopicCreate:
     case MessageContentType::TopicEdit:
+    case MessageContentType::SuggestProfilePhoto:
       LOG(ERROR) << "Receive new file " << new_file_id << " in a sent message of the type " << content_type;
       break;
     default:
@@ -4888,6 +4931,7 @@ unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const
     case MessageContentType::GiftPremium:
     case MessageContentType::TopicCreate:
     case MessageContentType::TopicEdit:
+    case MessageContentType::SuggestProfilePhoto:
       return nullptr;
     default:
       UNREACHABLE();
@@ -5205,7 +5249,7 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       if (photo.is_empty()) {
         break;
       }
-      return make_unique<MessagePhoto>(std::move(photo), FormattedText());
+      return make_unique<MessageSuggestProfilePhoto>(std::move(photo));
     }
     case telegram_api::messageActionAttachMenuBotAllowed::ID:
       return make_unique<MessageUnsupported>();
@@ -5494,6 +5538,15 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
       const auto *m = static_cast<const MessageTopicEdit *>(content);
       return m->edited_data.get_message_content_object();
     }
+    case MessageContentType::SuggestProfilePhoto: {
+      const auto *m = static_cast<const MessageSuggestProfilePhoto *>(content);
+      auto photo = get_chat_photo_object(td->file_manager_.get(), m->photo);
+      if (photo == nullptr) {
+        LOG(ERROR) << "Have empty suggested profile " << m->photo;
+        return make_tl_object<td_api::messageUnsupported>();
+      }
+      return make_tl_object<td_api::messageSuggestProfilePhoto>(std::move(photo));
+    }
     default:
       UNREACHABLE();
       return nullptr;
@@ -5765,6 +5818,8 @@ vector<FileId> get_message_content_file_ids(const MessageContent *content, const
       }
       return result;
     }
+    case MessageContentType::SuggestProfilePhoto:
+      return photo_get_file_ids(static_cast<const MessageSuggestProfilePhoto *>(content)->photo);
     default:
       return {};
   }
@@ -5858,6 +5913,7 @@ string get_message_content_search_text(const Td *td, const MessageContent *conte
     case MessageContentType::WebViewDataSent:
     case MessageContentType::WebViewDataReceived:
     case MessageContentType::GiftPremium:
+    case MessageContentType::SuggestProfilePhoto:
       return string();
     default:
       UNREACHABLE();
@@ -6138,6 +6194,8 @@ void add_message_content_dependencies(Dependencies &dependencies, const MessageC
     case MessageContentType::TopicCreate:
       break;
     case MessageContentType::TopicEdit:
+      break;
+    case MessageContentType::SuggestProfilePhoto:
       break;
     default:
       UNREACHABLE();
