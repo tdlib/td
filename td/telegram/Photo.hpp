@@ -23,6 +23,7 @@ void store(const DialogPhoto &dialog_photo, StorerT &storer) {
   STORE_FLAG(has_file_ids);
   STORE_FLAG(dialog_photo.has_animation);
   STORE_FLAG(has_minithumbnail);
+  STORE_FLAG(dialog_photo.is_personal);
   END_STORE_FLAGS();
   if (has_file_ids) {
     store(dialog_photo.small_file_id, storer);
@@ -42,6 +43,7 @@ void parse(DialogPhoto &dialog_photo, ParserT &parser) {
     PARSE_FLAG(has_file_ids);
     PARSE_FLAG(dialog_photo.has_animation);
     PARSE_FLAG(has_minithumbnail);
+    PARSE_FLAG(dialog_photo.is_personal);
     END_PARSE_FLAGS();
   }
   if (has_file_ids) {

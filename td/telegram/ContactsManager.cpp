@@ -10789,7 +10789,7 @@ void ContactsManager::on_load_chat_full_from_database(ChatId chat_id, string val
     }
   }
 
-  if (!is_same_dialog_photo(td_->file_manager_.get(), DialogId(chat_id), chat_full->photo, c->photo)) {
+  if (!is_same_dialog_photo(td_->file_manager_.get(), DialogId(chat_id), chat_full->photo, c->photo, false)) {
     chat_full->photo = Photo();
     if (c->photo.small_file_id.is_valid()) {
       reload_chat_full(chat_id, Auto());
@@ -10900,7 +10900,7 @@ void ContactsManager::on_load_channel_full_from_database(ChannelId channel_id, s
     }
   }
 
-  if (!is_same_dialog_photo(td_->file_manager_.get(), DialogId(channel_id), channel_full->photo, c->photo)) {
+  if (!is_same_dialog_photo(td_->file_manager_.get(), DialogId(channel_id), channel_full->photo, c->photo, false)) {
     channel_full->photo = Photo();
     if (c->photo.small_file_id.is_valid()) {
       channel_full->expires_at = 0.0;
@@ -11134,7 +11134,7 @@ void ContactsManager::update_chat(Chat *c, ChatId chat_id, bool from_binlog, boo
 
     auto chat_full = get_chat_full(chat_id);  // must not load ChatFull
     if (chat_full != nullptr &&
-        !is_same_dialog_photo(td_->file_manager_.get(), DialogId(chat_id), chat_full->photo, c->photo)) {
+        !is_same_dialog_photo(td_->file_manager_.get(), DialogId(chat_id), chat_full->photo, c->photo, false)) {
       on_update_chat_full_photo(chat_full, chat_id, Photo());
       if (chat_full->is_update_chat_full_sent) {
         need_update_chat_full = true;
@@ -11211,7 +11211,7 @@ void ContactsManager::update_channel(Channel *c, ChannelId channel_id, bool from
 
     auto channel_full = get_channel_full(channel_id, true, "update_channel");
     if (channel_full != nullptr &&
-        !is_same_dialog_photo(td_->file_manager_.get(), DialogId(channel_id), channel_full->photo, c->photo)) {
+        !is_same_dialog_photo(td_->file_manager_.get(), DialogId(channel_id), channel_full->photo, c->photo, false)) {
       on_update_channel_full_photo(channel_full, channel_id, Photo());
       if (channel_full->is_update_channel_full_sent) {
         need_update_channel_full = true;
@@ -11677,8 +11677,8 @@ void ContactsManager::on_get_user_full(tl_object_ptr<telegram_api::userFull> &&u
 
   auto photo = get_photo(td_->file_manager_.get(), std::move(user->profile_photo_), DialogId(user_id));
   // do_update_user_photo should be a no-op if server sent consistent data
-  do_update_user_photo(u, user_id, as_profile_photo(td_->file_manager_.get(), user_id, u->access_hash, photo), false,
-                       "on_get_user_full");
+  do_update_user_photo(u, user_id, as_profile_photo(td_->file_manager_.get(), user_id, u->access_hash, photo, false),
+                       false, "on_get_user_full");
   if (photo != user_full->photo) {
     user_full->photo = std::move(photo);
     user_full->is_changed = true;
@@ -11735,7 +11735,7 @@ void ContactsManager::on_get_user_photos(UserId user_id, int32 offset, int32 lim
       if (photo_ptr->get_id() == telegram_api::photo::ID) {
         auto server_photo = telegram_api::move_object_as<telegram_api::photo>(photo_ptr);
         if (server_photo->id_ == u->photo.id) {
-          auto profile_photo = convert_photo_to_profile_photo(server_photo);
+          auto profile_photo = convert_photo_to_profile_photo(server_photo, u->photo.is_personal);
           if (profile_photo) {
             LOG_IF(ERROR, u->access_hash == -1) << "Receive profile photo of " << user_id << " without access hash";
             get_profile_photo(td_->file_manager_.get(), user_id, u->access_hash, std::move(profile_photo));
@@ -11913,7 +11913,8 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
     on_update_chat_full_invite_link(chat_full, std::move(chat->exported_invite_));
     auto photo = get_photo(td_->file_manager_.get(), std::move(chat->chat_photo_), DialogId(chat_id));
     // on_update_chat_photo should be a no-op if server sent consistent data
-    on_update_chat_photo(c, chat_id, as_dialog_photo(td_->file_manager_.get(), DialogId(chat_id), 0, photo), false);
+    on_update_chat_photo(c, chat_id, as_dialog_photo(td_->file_manager_.get(), DialogId(chat_id), 0, photo, false),
+                         false);
     on_update_chat_full_photo(chat_full, chat_id, std::move(photo));
     if (chat_full->description != chat->about_) {
       chat_full->description = std::move(chat->about_);
@@ -12084,7 +12085,8 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
     auto photo = get_photo(td_->file_manager_.get(), std::move(channel->chat_photo_), DialogId(channel_id));
     // on_update_channel_photo should be a no-op if server sent consistent data
     on_update_channel_photo(
-        c, channel_id, as_dialog_photo(td_->file_manager_.get(), DialogId(channel_id), c->access_hash, photo), false);
+        c, channel_id, as_dialog_photo(td_->file_manager_.get(), DialogId(channel_id), c->access_hash, photo, false),
+        false);
     on_update_channel_full_photo(channel_full, channel_id, std::move(photo));
 
     td_->messages_manager_->on_read_channel_outbox(channel_id,
@@ -12803,8 +12805,8 @@ void ContactsManager::add_profile_photo_to_cache(UserId user_id, Photo &&photo) 
   }
 
   // update ProfilePhoto in User
-  do_update_user_photo(u, user_id, as_profile_photo(td_->file_manager_.get(), user_id, u->access_hash, photo), false,
-                       "add_profile_photo_to_cache");
+  do_update_user_photo(u, user_id, as_profile_photo(td_->file_manager_.get(), user_id, u->access_hash, photo, false),
+                       false, "add_profile_photo_to_cache");
   update_user(u, user_id);
 
   // update Photo in UserFull
@@ -12865,9 +12867,10 @@ bool ContactsManager::delete_profile_photo_from_cache(UserId user_id, int64 prof
   bool need_reget_user = false;
   if (is_main_photo_deleted) {
     if (have_new_photo) {
-      do_update_user_photo(u, user_id,
-                           as_profile_photo(td_->file_manager_.get(), user_id, u->access_hash, user_photos->photos[0]),
-                           false, "delete_profile_photo_from_cache");
+      do_update_user_photo(
+          u, user_id,
+          as_profile_photo(td_->file_manager_.get(), user_id, u->access_hash, user_photos->photos[0], false), false,
+          "delete_profile_photo_from_cache");
     } else {
       do_update_user_photo(u, user_id, ProfilePhoto(), false, "delete_profile_photo_from_cache 2");
       need_reget_user = user_photos == nullptr || user_photos->count != 0;
@@ -15772,7 +15775,7 @@ bool ContactsManager::is_chat_full_outdated(const ChatFull *chat_full, const Cha
   }
 
   if (!only_participants &&
-      !is_same_dialog_photo(td_->file_manager_.get(), DialogId(chat_id), chat_full->photo, c->photo)) {
+      !is_same_dialog_photo(td_->file_manager_.get(), DialogId(chat_id), chat_full->photo, c->photo, false)) {
     LOG(INFO) << "Have outdated chat photo in " << chat_id;
     return true;
   }
@@ -17916,7 +17919,7 @@ tl_object_ptr<td_api::chatInviteLinkInfo> ContactsManager::get_chat_invite_link_
     description = get_dialog_about(dialog_id);
   } else {
     title = invite_link_info->title;
-    invite_link_photo = as_fake_dialog_photo(invite_link_info->photo, dialog_id);
+    invite_link_photo = as_fake_dialog_photo(invite_link_info->photo, dialog_id, false);
     photo = &invite_link_photo;
     description = invite_link_info->description;
     participant_count = invite_link_info->participant_count;

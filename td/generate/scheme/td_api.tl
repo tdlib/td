@@ -364,19 +364,22 @@ game id:int64 short_name:string title:string text:formattedText description:stri
 poll id:int64 question:string options:vector<pollOption> total_voter_count:int32 recent_voter_user_ids:vector<int53> is_anonymous:Bool type:PollType open_period:int32 close_date:int32 is_closed:Bool = Poll;
 
 
-//@description Describes a user profile photo @id Photo identifier; 0 for an empty photo. Can be used to find a photo in a list of user profile photos
+//@description Describes a user profile photo
+//@id Photo identifier; 0 for an empty photo. Can be used to find a photo in a list of user profile photos
 //@small A small (160x160) user profile photo. The file can be downloaded only before the photo is changed
 //@big A big (640x640) user profile photo. The file can be downloaded only before the photo is changed
 //@minithumbnail User profile photo minithumbnail; may be null
 //@has_animation True, if the photo has animated variant
-profilePhoto id:int64 small:file big:file minithumbnail:minithumbnail has_animation:Bool = ProfilePhoto;
+//@is_personal True, if the photo is visible only for the current user
+profilePhoto id:int64 small:file big:file minithumbnail:minithumbnail has_animation:Bool is_personal:Bool = ProfilePhoto;
 
 //@description Contains basic information about the photo of a chat
 //@small A small (160x160) chat photo variant in JPEG format. The file can be downloaded only before the photo is changed
 //@big A big (640x640) chat photo variant in JPEG format. The file can be downloaded only before the photo is changed
 //@minithumbnail Chat photo minithumbnail; may be null
 //@has_animation True, if the photo has animated variant
-chatPhotoInfo small:file big:file minithumbnail:minithumbnail has_animation:Bool = ChatPhotoInfo;
+//@is_personal True, if the photo is visible only for the current user
+chatPhotoInfo small:file big:file minithumbnail:minithumbnail has_animation:Bool is_personal:Bool = ChatPhotoInfo;
 
 
 //@class UserType @description Represents the type of a user. The following types are possible: regular users, deleted users and bots
