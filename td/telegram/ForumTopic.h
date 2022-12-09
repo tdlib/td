@@ -6,8 +6,10 @@
 //
 #pragma once
 
+#include "td/telegram/DialogId.h"
 #include "td/telegram/DialogNotificationSettings.h"
 #include "td/telegram/DraftMessage.h"
+#include "td/telegram/ForumTopicInfo.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
@@ -16,7 +18,6 @@
 
 namespace td {
 
-class ForumTopicInfo;
 class Td;
 
 class ForumTopic {

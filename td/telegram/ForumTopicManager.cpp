@@ -16,6 +16,7 @@
 #include "td/telegram/ForumTopicIcon.h"
 #include "td/telegram/ForumTopicInfo.hpp"
 #include "td/telegram/Global.h"
+#include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/MessageThreadDb.h"
 #include "td/telegram/misc.h"
@@ -31,6 +32,8 @@
 #include "td/utils/buffer.h"
 #include "td/utils/logging.h"
 #include "td/utils/Random.h"
+#include "td/utils/Slice.h"
+#include "td/utils/tl_helpers.h"
 
 namespace td {
 

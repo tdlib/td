@@ -74,6 +74,7 @@
 #include "td/telegram/MessageSender.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/MessageThreadInfo.h"
+#include "td/telegram/MessageTtl.h"
 #include "td/telegram/misc.h"
 #include "td/telegram/net/ConnectionCreator.h"
 #include "td/telegram/net/DcId.h"
