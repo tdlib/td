@@ -2228,7 +2228,7 @@ tl_object_ptr<td_api::sticker> StickersManager::get_sticker_object(FileId file_i
   return td_api::make_object<td_api::sticker>(
       sticker->set_id_.get(), width, height, sticker->alt_, get_sticker_format_object(sticker->format_),
       get_sticker_type_object(sticker->type_), std::move(mask_position), custom_emoji_id.get(),
-      get_sticker_minithumbnail(sticker->minithumbnail_, sticker->set_id_, document_id, zoom),
+      sticker->has_text_color_, get_sticker_minithumbnail(sticker->minithumbnail_, sticker->set_id_, document_id, zoom),
       std::move(thumbnail_object), sticker->is_premium_, std::move(premium_animation_object),
       td_->file_manager_->get_file_object(file_id));
 }
@@ -2740,8 +2740,19 @@ FileId StickersManager::on_get_sticker(unique_ptr<Sticker> new_sticker, bool rep
       s->m_thumbnail_ = std::move(new_sticker->m_thumbnail_);
       is_changed = true;
     }
-    s->is_premium_ = new_sticker->is_premium_;
-    s->premium_animation_file_id_ = new_sticker->premium_animation_file_id_;
+    if (s->is_premium_ != new_sticker->is_premium_) {
+      s->is_premium_ = new_sticker->is_premium_;
+      is_changed = true;
+    }
+    if (s->has_text_color_ != new_sticker->has_text_color_) {
+      s->has_text_color_ = new_sticker->has_text_color_;
+      is_changed = true;
+    }
+    if (s->premium_animation_file_id_ != new_sticker->premium_animation_file_id_ &&
+        new_sticker->premium_animation_file_id_.is_valid()) {
+      s->premium_animation_file_id_ = new_sticker->premium_animation_file_id_;
+      is_changed = true;
+    }
     if (s->format_ != new_sticker->format_ && new_sticker->format_ != StickerFormat::Unknown) {
       s->format_ = new_sticker->format_;
       is_changed = true;
@@ -3267,6 +3278,7 @@ void StickersManager::create_sticker(FileId file_id, FileId premium_animation_fi
     s->alt_ = std::move(custom_emoji->alt_);
     s->type_ = StickerType::CustomEmoji;
     s->is_premium_ = !custom_emoji->free_;
+    s->has_text_color_ = custom_emoji->text_color_;
     s->emoji_receive_date_ = G()->unix_time();
   }
   s->format_ = format;

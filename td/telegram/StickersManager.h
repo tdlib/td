@@ -433,6 +433,7 @@ class StickersManager final : public Actor {
     StickerFormat format_ = StickerFormat::Unknown;
     StickerType type_ = StickerType::Regular;
     bool is_premium_ = false;
+    bool has_text_color_ = false;
     bool is_from_database_ = false;
     bool is_being_reloaded_ = false;
     int32 point_ = -1;

@@ -47,6 +47,7 @@ void StickersManager::store_sticker(FileId file_id, bool in_sticker_set, StorerT
   STORE_FLAG(is_emoji);
   STORE_FLAG(sticker->is_premium_);
   STORE_FLAG(has_emoji_receive_date);
+  STORE_FLAG(sticker->has_text_color_);
   END_STORE_FLAGS();
   if (!in_sticker_set) {
     store(sticker->set_id_.get(), storer);
@@ -105,6 +106,7 @@ FileId StickersManager::parse_sticker(bool in_sticker_set, ParserT &parser) {
   PARSE_FLAG(is_emoji);
   PARSE_FLAG(sticker->is_premium_);
   PARSE_FLAG(has_emoji_receive_date);
+  PARSE_FLAG(sticker->has_text_color_);
   END_PARSE_FLAGS();
   if (is_webm) {
     sticker->format_ = StickerFormat::Webm;
