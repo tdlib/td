@@ -497,33 +497,29 @@ Status SessionConnection::on_slice_packet(const MsgInfo &info, Slice packet) {
     return status;
   }
 
+  auto get_update_description = [&] {
+    return PSTRING() << "update from " << get_name() << " active for " << (Time::now() - created_at_)
+                     << " seconds in container " << container_id_ << " from session " << auth_data_->get_session_id()
+                     << " with message_id " << info.message_id << ", main_message_id = " << main_message_id_
+                     << ", seq_no = " << info.seq_no << " and original size = " << info.size;
+  };
+
   // It is an update... I hope.
   status = auth_data_->check_update(info.message_id);
   auto recheck_status = auth_data_->recheck_update(info.message_id);
   if (recheck_status.is_error() && recheck_status.code() == 2) {
-    LOG(WARNING) << "Receive very old update from " << get_name() << " created in " << (Time::now() - created_at_)
-                 << " in container " << container_id_ << " from session " << auth_data_->get_session_id()
-                 << " with message_id " << info.message_id << ", main_message_id = " << main_message_id_
-                 << ", seq_no = " << info.seq_no << " and original size " << info.size << ": " << status << ' '
-                 << recheck_status;
+    LOG(WARNING) << "Receive very old " << get_update_description() << ": " << status << ' ' << recheck_status;
   }
   if (status.is_error()) {
     if (status.code() == 2) {
-      LOG(WARNING) << "Receive too old update from " << get_name() << " created in " << (Time::now() - created_at_)
-                   << " in container " << container_id_ << " from session " << auth_data_->get_session_id()
-                   << " with message_id " << info.message_id << ", main_message_id = " << main_message_id_
-                   << ", seq_no = " << info.seq_no << " and original size " << info.size << ": " << status;
+      LOG(WARNING) << "Receive too old " << get_update_description() << ": " << status;
       callback_->on_session_failed(Status::Error("Receive too old update"));
       return status;
     }
-    VLOG(mtproto) << "Skip update " << info.message_id << " of size " << info.size << " with seq_no " << info.seq_no
-                  << " from " << get_name() << " created in " << (Time::now() - created_at_) << ": " << status;
+    VLOG(mtproto) << "Skip " << get_update_description() << ": " << status;
     return Status::OK();
   } else {
-    VLOG(mtproto) << "Got update from " << get_name() << " created in " << (Time::now() - created_at_)
-                  << " in container " << container_id_ << " from session " << auth_data_->get_session_id()
-                  << " with message_id " << info.message_id << ", main_message_id = " << main_message_id_
-                  << ", seq_no = " << info.seq_no << " and original size " << info.size;
+    VLOG(mtproto) << "Receive " << get_update_description();
     return callback_->on_update(as_buffer_slice(packet));
   }
 }
