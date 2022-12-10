@@ -34,7 +34,7 @@ static void test_gzencode(const td::string &s) {
   auto r = td::gzencode(s, td::max(2, static_cast<int>(100 / s.size())));
   ASSERT_TRUE(!r.empty());
   LOG(INFO) << "Encoded string of size " << s.size() << " in " << (td::Time::now() - begin_time)
-            << " with compression ratio " << static_cast<double>(r.size()) / static_cast<double>(s.size());
+            << " seconds with compression ratio " << static_cast<double>(r.size()) / static_cast<double>(s.size());
 }
 
 TEST(Gzip, gzencode) {

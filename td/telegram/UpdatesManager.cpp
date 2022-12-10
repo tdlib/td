@@ -22,9 +22,9 @@
 #include "td/telegram/DownloadManager.h"
 #include "td/telegram/EmojiStatus.h"
 #include "td/telegram/FolderId.h"
+#include "td/telegram/ForumTopicManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/GroupCallManager.h"
-#include "td/telegram/ForumTopicManager.h"
 #include "td/telegram/InlineQueriesManager.h"
 #include "td/telegram/LanguagePackManager.h"
 #include "td/telegram/Location.h"
@@ -1727,9 +1727,8 @@ void UpdatesManager::after_get_difference() {
     VLOG(get_difference) << "Finished to apply " << total_update_count << " postponed updates";
     auto passed_time = Time::now() - begin_time;
     if (passed_time >= UPDATE_APPLY_WARNING_TIME) {
-      LOG(WARNING) << "Applied " << total_update_count << " postponed for "
-                   << (Time::now() - get_difference_start_time_) << " updates in " << chunk_count << " chunks in "
-                   << passed_time;
+      LOG(WARNING) << "Applied " << total_update_count << " updates in " << chunk_count << " chunks in " << passed_time
+                   << " seconds after postponing them for " << (Time::now() - get_difference_start_time_) << " seconds";
     }
   }
 
@@ -1752,8 +1751,8 @@ void UpdatesManager::after_get_difference() {
                          << postponed_pts_updates_.size() << " pending pts updates";
     auto passed_time = Time::now() - begin_time;
     if (passed_time >= UPDATE_APPLY_WARNING_TIME) {
-      LOG(WARNING) << "Applied " << update_count << " postponed for " << (Time::now() - get_difference_start_time_)
-                   << " pts updates in " << passed_time;
+      LOG(WARNING) << "Applied " << update_count << " pts updates in " << passed_time
+                   << " seconds after postponing them for " << (Time::now() - get_difference_start_time_) << " seconds";
     }
   }
 
@@ -2659,7 +2658,7 @@ void UpdatesManager::process_postponed_pts_updates() {
     LOG(WARNING) << "PTS has changed from " << initial_pts << " to " << old_pts << " after skipping "
                  << skipped_update_count << ", applying " << applied_update_count << " and keeping "
                  << postponed_pts_updates_.size() << " postponed for " << (Time::now() - get_difference_start_time_)
-                 << " updates in " << passed_time;
+                 << " seconds updates in " << passed_time << " seconds";
   }
 }
 
@@ -2714,7 +2713,7 @@ void UpdatesManager::process_pending_pts_updates() {
   if (passed_time >= UPDATE_APPLY_WARNING_TIME) {
     LOG(WARNING) << "PTS has changed from " << initial_pts << " to " << get_pts() << " after applying "
                  << applied_update_count << " and keeping " << pending_pts_updates_.size() << " pending updates in "
-                 << passed_time;
+                 << passed_time << " seconds";
   }
 }
 
@@ -2771,7 +2770,7 @@ void UpdatesManager::process_pending_seq_updates() {
   if (passed_time >= UPDATE_APPLY_WARNING_TIME) {
     LOG(WARNING) << "Seq has changed from " << initial_seq << " to " << seq_ << " after applying "
                  << applied_update_count << " and keeping " << pending_seq_updates_.size() << " pending updates in "
-                 << passed_time;
+                 << passed_time << " seconds";
   }
 }
 
@@ -2825,7 +2824,7 @@ void UpdatesManager::process_pending_qts_updates() {
   if (passed_time >= UPDATE_APPLY_WARNING_TIME) {
     LOG(WARNING) << "QTS has changed from " << initial_qts << " to " << get_qts() << " after applying "
                  << applied_update_count << " and keeping " << pending_qts_updates_.size() << " pending updates in "
-                 << passed_time;
+                 << passed_time << " seconds";
   }
 }
 

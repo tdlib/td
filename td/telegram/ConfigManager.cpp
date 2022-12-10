@@ -783,9 +783,9 @@ class ConfigRecoverer final : public Actor {
     }
 
     if (is_connecting_) {
-      VLOG(config_recoverer) << "Failed to connect for " << Time::now() - connecting_since_;
+      VLOG(config_recoverer) << "Failed to connect for " << Time::now() - connecting_since_ << " seconds";
     } else {
-      VLOG(config_recoverer) << "Successfully connected in " << Time::now() - connecting_since_;
+      VLOG(config_recoverer) << "Successfully connected in " << Time::now() - connecting_since_ << " seconds";
     }
 
     Timestamp wakeup_timestamp;
