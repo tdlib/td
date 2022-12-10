@@ -6,6 +6,7 @@
 //
 #include "td/telegram/MessageId.h"
 
+#include "td/utils/algorithm.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
 
@@ -22,6 +23,19 @@ MessageId::MessageId(ScheduledServerMessageId server_message_id, int32 send_date
   }
   id = (static_cast<int64>(send_date - (1 << 30)) << 21) | (static_cast<int64>(server_message_id.get()) << 3) |
        SCHEDULED_MASK;
+}
+
+vector<MessageId> MessageId::get_message_ids(const vector<int64> &input_message_ids) {
+  return transform(input_message_ids, [](int64 input_message_id) { return MessageId(input_message_id); });
+}
+
+vector<int32> MessageId::get_server_message_ids(const vector<MessageId> &message_ids) {
+  return transform(message_ids, [](MessageId message_id) { return message_id.get_server_message_id().get(); });
+}
+
+vector<int32> MessageId::get_scheduled_server_message_ids(const vector<MessageId> &message_ids) {
+  return transform(message_ids,
+                   [](MessageId message_id) { return message_id.get_scheduled_server_message_id().get(); });
 }
 
 bool MessageId::is_valid() const {

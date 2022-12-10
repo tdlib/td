@@ -1060,7 +1060,7 @@ class GetMessagesRequest final : public RequestOnceActor {
   GetMessagesRequest(ActorShared<Td> td, uint64 request_id, int64 dialog_id, const vector<int64> &message_ids)
       : RequestOnceActor(std::move(td), request_id)
       , dialog_id_(dialog_id)
-      , message_ids_(MessagesManager::get_message_ids(message_ids)) {
+      , message_ids_(MessageId::get_message_ids(message_ids)) {
   }
 };
 
@@ -5066,9 +5066,9 @@ void Td::on_request(uint64 id, const td_api::closeChat &request) {
 
 void Td::on_request(uint64 id, const td_api::viewMessages &request) {
   CHECK_IS_USER();
-  answer_ok_query(id, messages_manager_->view_messages(
-                          DialogId(request.chat_id_), MessageId(request.message_thread_id_),
-                          MessagesManager::get_message_ids(request.message_ids_), request.force_read_));
+  answer_ok_query(
+      id, messages_manager_->view_messages(DialogId(request.chat_id_), MessageId(request.message_thread_id_),
+                                           MessageId::get_message_ids(request.message_ids_), request.force_read_));
 }
 
 void Td::on_request(uint64 id, const td_api::openMessageContent &request) {
@@ -5331,7 +5331,7 @@ void Td::on_request(uint64 id, const td_api::removeNotificationGroup &request) {
 
 void Td::on_request(uint64 id, const td_api::deleteMessages &request) {
   CREATE_OK_REQUEST_PROMISE();
-  messages_manager_->delete_messages(DialogId(request.chat_id_), MessagesManager::get_message_ids(request.message_ids_),
+  messages_manager_->delete_messages(DialogId(request.chat_id_), MessageId::get_message_ids(request.message_ids_),
                                      request.revoke_, std::move(promise));
 }
 
@@ -5657,7 +5657,7 @@ void Td::on_request(uint64 id, td_api::sendChatScreenshotTakenNotification &requ
 }
 
 void Td::on_request(uint64 id, td_api::forwardMessages &request) {
-  auto input_message_ids = MessagesManager::get_message_ids(request.message_ids_);
+  auto input_message_ids = MessageId::get_message_ids(request.message_ids_);
   auto message_copy_options =
       transform(input_message_ids, [send_copy = request.send_copy_, remove_caption = request.remove_caption_](
                                        MessageId) { return MessageCopyOptions(send_copy, remove_caption); });
@@ -5674,8 +5674,7 @@ void Td::on_request(uint64 id, td_api::forwardMessages &request) {
 
 void Td::on_request(uint64 id, const td_api::resendMessages &request) {
   DialogId dialog_id(request.chat_id_);
-  auto r_message_ids =
-      messages_manager_->resend_messages(dialog_id, MessagesManager::get_message_ids(request.message_ids_));
+  auto r_message_ids = messages_manager_->resend_messages(dialog_id, MessageId::get_message_ids(request.message_ids_));
   if (r_message_ids.is_error()) {
     return send_closure(actor_id(this), &Td::send_error, id, r_message_ids.move_as_error());
   }
@@ -7066,7 +7065,7 @@ void Td::on_request(uint64 id, const td_api::reportSupergroupSpam &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
   contacts_manager_->report_channel_spam(ChannelId(request.supergroup_id_),
-                                         MessagesManager::get_message_ids(request.message_ids_), std::move(promise));
+                                         MessageId::get_message_ids(request.message_ids_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::reportSupergroupAntiSpamFalsePositive &request) {
@@ -7385,7 +7384,7 @@ void Td::on_request(uint64 id, td_api::reportChat &request) {
     return send_error_raw(id, r_report_reason.error().code(), r_report_reason.error().message());
   }
   CREATE_OK_REQUEST_PROMISE();
-  messages_manager_->report_dialog(DialogId(request.chat_id_), MessagesManager::get_message_ids(request.message_ids_),
+  messages_manager_->report_dialog(DialogId(request.chat_id_), MessageId::get_message_ids(request.message_ids_),
                                    r_report_reason.move_as_ok(), std::move(promise));
 }
 

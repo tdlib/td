@@ -135,7 +135,7 @@ class GetMessagesReactionsQuery final : public Td::ResultHandler {
     CHECK(input_peer != nullptr);
 
     send_query(G()->net_query_creator().create(telegram_api::messages_getMessagesReactions(
-        std::move(input_peer), MessagesManager::get_server_message_ids(message_ids_))));
+        std::move(input_peer), MessageId::get_server_message_ids(message_ids_))));
   }
 
   void on_result(BufferSlice packet) final {

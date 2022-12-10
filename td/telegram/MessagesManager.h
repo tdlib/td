@@ -160,12 +160,6 @@ class MessagesManager final : public Actor {
   MessagesManager &operator=(MessagesManager &&) = delete;
   ~MessagesManager() final;
 
-  static vector<MessageId> get_message_ids(const vector<int64> &input_message_ids);
-
-  static vector<int32> get_server_message_ids(const vector<MessageId> &message_ids);
-
-  static vector<int32> get_scheduled_server_message_ids(const vector<MessageId> &message_ids);
-
   static MessageId get_message_id(const telegram_api::Message *message_ptr, bool is_scheduled);
 
   static MessageId get_message_id(const tl_object_ptr<telegram_api::Message> &message_ptr, bool is_scheduled);

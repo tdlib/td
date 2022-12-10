@@ -1931,7 +1931,7 @@ class GetMessagesViewsQuery final : public Td::ResultHandler {
     }
 
     send_query(G()->net_query_creator().create(telegram_api::messages_getMessagesViews(
-        std::move(input_peer), MessagesManager::get_server_message_ids(message_ids_), increment_view_counter)));
+        std::move(input_peer), MessageId::get_server_message_ids(message_ids_), increment_view_counter)));
   }
 
   void on_result(BufferSlice packet) final {
@@ -1983,7 +1983,7 @@ class GetExtendedMediaQuery final : public Td::ResultHandler {
     }
 
     send_query(G()->net_query_creator().create(telegram_api::messages_getExtendedMedia(
-        std::move(input_peer), MessagesManager::get_server_message_ids(message_ids_))));
+        std::move(input_peer), MessageId::get_server_message_ids(message_ids_))));
   }
 
   void on_result(BufferSlice packet) final {
@@ -2013,7 +2013,7 @@ class ReadMessagesContentsQuery final : public Td::ResultHandler {
 
   void send(vector<MessageId> &&message_ids) {
     send_query(G()->net_query_creator().create(
-        telegram_api::messages_readMessageContents(MessagesManager::get_server_message_ids(message_ids))));
+        telegram_api::messages_readMessageContents(MessageId::get_server_message_ids(message_ids))));
   }
 
   void on_result(BufferSlice packet) final {
@@ -2061,7 +2061,7 @@ class ReadChannelMessagesContentsQuery final : public Td::ResultHandler {
     }
 
     send_query(G()->net_query_creator().create(telegram_api::channels_readMessageContents(
-        std::move(input_channel), MessagesManager::get_server_message_ids(message_ids))));
+        std::move(input_channel), MessageId::get_server_message_ids(message_ids))));
   }
 
   void on_result(BufferSlice packet) final {
@@ -4098,7 +4098,7 @@ class ForwardMessagesQuery final : public Td::ResultHandler {
     auto query = G()->net_query_creator().create(
         telegram_api::messages_forwardMessages(
             flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-            false /*ignored*/, std::move(from_input_peer), MessagesManager::get_server_message_ids(message_ids),
+            false /*ignored*/, std::move(from_input_peer), MessageId::get_server_message_ids(message_ids),
             std::move(random_ids), std::move(to_input_peer), top_thread_message_id.get_server_message_id().get(),
             schedule_date, std::move(as_input_peer)),
         {{to_dialog_id, MessageContentType::Text}, {to_dialog_id, MessageContentType::Photo}});
@@ -4395,7 +4395,7 @@ class DeleteScheduledMessagesQuery final : public Td::ResultHandler {
       return on_error(Status::Error(400, "Can't access the chat"));
     }
     send_query(G()->net_query_creator().create(telegram_api::messages_deleteScheduledMessages(
-        std::move(input_peer), MessagesManager::get_scheduled_server_message_ids(message_ids_))));
+        std::move(input_peer), MessageId::get_scheduled_server_message_ids(message_ids_))));
   }
 
   void on_result(BufferSlice packet) final {
@@ -4551,7 +4551,7 @@ class ReportPeerQuery final : public Td::ResultHandler {
           std::move(input_peer), report_reason.get_input_report_reason(), report_reason.get_message())));
     } else {
       send_query(G()->net_query_creator().create(
-          telegram_api::messages_report(std::move(input_peer), MessagesManager::get_server_message_ids(message_ids),
+          telegram_api::messages_report(std::move(input_peer), MessageId::get_server_message_ids(message_ids),
                                         report_reason.get_input_report_reason(), report_reason.get_message())));
     }
   }
@@ -6421,24 +6421,6 @@ void MessagesManager::update_message_reply_count(Dialog *d, MessageId message_id
     update_message_reply_count(get_dialog(m->forward_info->from_dialog_id), m->forward_info->from_message_id,
                                replier_dialog_id, reply_message_id, update_date, diff, true);
   }
-}
-
-vector<MessageId> MessagesManager::get_message_ids(const vector<int64> &input_message_ids) {
-  vector<MessageId> message_ids;
-  message_ids.reserve(input_message_ids.size());
-  for (auto &input_message_id : input_message_ids) {
-    message_ids.push_back(MessageId(input_message_id));
-  }
-  return message_ids;
-}
-
-vector<int32> MessagesManager::get_server_message_ids(const vector<MessageId> &message_ids) {
-  return transform(message_ids, [](MessageId message_id) { return message_id.get_server_message_id().get(); });
-}
-
-vector<int32> MessagesManager::get_scheduled_server_message_ids(const vector<MessageId> &message_ids) {
-  return transform(message_ids,
-                   [](MessageId message_id) { return message_id.get_scheduled_server_message_id().get(); });
 }
 
 tl_object_ptr<telegram_api::InputPeer> MessagesManager::get_input_peer(DialogId dialog_id,
@@ -11179,7 +11161,7 @@ void MessagesManager::delete_messages_on_server(DialogId dialog_id, vector<Messa
     case DialogType::User:
     case DialogType::Chat:
     case DialogType::Channel: {
-      auto server_message_ids = MessagesManager::get_server_message_ids(message_ids);
+      auto server_message_ids = MessageId::get_server_message_ids(message_ids);
       const size_t MAX_SLICE_SIZE = 100;  // server side limit
       for (size_t i = 0; i < server_message_ids.size(); i += MAX_SLICE_SIZE) {
         auto end_i = i + MAX_SLICE_SIZE;
