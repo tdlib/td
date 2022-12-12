@@ -8,6 +8,7 @@
 
 #include "td/telegram/ScheduledServerMessageId.h"
 #include "td/telegram/ServerMessageId.h"
+#include "td/telegram/telegram_api.h"
 
 #include "td/utils/common.h"
 #include "td/utils/HashTableUtils.h"
@@ -72,6 +73,10 @@ class MessageId {
   static constexpr MessageId max() {
     return MessageId(static_cast<int64>(std::numeric_limits<int32>::max()) << SERVER_ID_SHIFT);
   }
+
+  static MessageId get_message_id(const telegram_api::Message *message_ptr, bool is_scheduled);
+
+  static MessageId get_message_id(const tl_object_ptr<telegram_api::Message> &message_ptr, bool is_scheduled);
 
   static vector<MessageId> get_message_ids(const vector<int64> &input_message_ids);
 

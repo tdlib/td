@@ -66,6 +66,10 @@ class DialogId {
   ChannelId get_channel_id() const;
   SecretChatId get_secret_chat_id() const;
 
+  static DialogId get_message_dialog_id(const telegram_api::Message *message_ptr);
+
+  static DialogId get_message_dialog_id(const tl_object_ptr<telegram_api::Message> &message_ptr);
+
   template <class StorerT>
   void store(StorerT &storer) const {
     storer.store_long(id);

@@ -151,4 +151,29 @@ int64 DialogId::get_peer_id(const tl_object_ptr<telegram_api::Peer> &peer) {
   }
 }
 
+DialogId DialogId::get_message_dialog_id(const telegram_api::Message *message_ptr) {
+  CHECK(message_ptr != nullptr);
+  switch (message_ptr->get_id()) {
+    case telegram_api::messageEmpty::ID: {
+      auto message = static_cast<const telegram_api::messageEmpty *>(message_ptr);
+      return message->peer_id_ == nullptr ? DialogId() : DialogId(message->peer_id_);
+    }
+    case telegram_api::message::ID: {
+      auto message = static_cast<const telegram_api::message *>(message_ptr);
+      return DialogId(message->peer_id_);
+    }
+    case telegram_api::messageService::ID: {
+      auto message = static_cast<const telegram_api::messageService *>(message_ptr);
+      return DialogId(message->peer_id_);
+    }
+    default:
+      UNREACHABLE();
+      return DialogId();
+  }
+}
+
+DialogId DialogId::get_message_dialog_id(const tl_object_ptr<telegram_api::Message> &message_ptr) {
+  return get_message_dialog_id(message_ptr.get());
+}
+
 }  // namespace td

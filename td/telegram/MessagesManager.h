@@ -160,16 +160,6 @@ class MessagesManager final : public Actor {
   MessagesManager &operator=(MessagesManager &&) = delete;
   ~MessagesManager() final;
 
-  static MessageId get_message_id(const telegram_api::Message *message_ptr, bool is_scheduled);
-
-  static MessageId get_message_id(const tl_object_ptr<telegram_api::Message> &message_ptr, bool is_scheduled);
-
-  static DialogId get_message_dialog_id(const telegram_api::Message *message_ptr);
-
-  static DialogId get_message_dialog_id(const tl_object_ptr<telegram_api::Message> &message_ptr);
-
-  static FullMessageId get_full_message_id(const tl_object_ptr<telegram_api::Message> &message_ptr, bool is_scheduled);
-
   tl_object_ptr<telegram_api::InputPeer> get_input_peer(DialogId dialog_id, AccessRights access_rights) const;
 
   static tl_object_ptr<telegram_api::InputPeer> get_input_peer_force(DialogId dialog_id);
