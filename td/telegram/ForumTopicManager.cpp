@@ -940,11 +940,11 @@ void ForumTopicManager::delete_topic_from_database(DialogId dialog_id, MessageId
                                                    Promise<Unit> &&promise) {
   auto message_thread_db = G()->td_db()->get_message_thread_db_async();
   if (message_thread_db == nullptr) {
-    return;
+    return promise.set_value(Unit());
   }
 
   LOG(INFO) << "Delete topic of " << top_thread_message_id << " in " << dialog_id << " from database";
-  message_thread_db->delete_message_thread(dialog_id, top_thread_message_id, Auto());
+  message_thread_db->delete_message_thread(dialog_id, top_thread_message_id, std::move(promise));
 }
 
 void ForumTopicManager::on_topic_message_count_changed(DialogId dialog_id, MessageId top_thread_message_id, int diff) {
