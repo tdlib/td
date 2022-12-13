@@ -188,7 +188,8 @@ class ContactsManager final : public Actor {
   void on_update_user_common_chat_count(UserId user_id, int32 common_chat_count);
   void on_update_user_need_phone_number_privacy_exception(UserId user_id, bool need_phone_number_privacy_exception);
 
-  void on_set_profile_photo(tl_object_ptr<telegram_api::photos_photo> &&photo, int64 old_photo_id);
+  void on_set_profile_photo(UserId user_id, tl_object_ptr<telegram_api::photos_photo> &&photo, int64 old_photo_id);
+
   void on_delete_profile_photo(int64 profile_photo_id, Promise<Unit> promise);
 
   void on_ignored_restriction_reasons_changed();
@@ -362,6 +363,9 @@ class ContactsManager final : public Actor {
   FileId get_profile_photo_file_id(int64 photo_id) const;
 
   void set_profile_photo(const td_api::object_ptr<td_api::InputChatPhoto> &input_photo, Promise<Unit> &&promise);
+
+  void set_user_profile_photo(UserId user_id, const td_api::object_ptr<td_api::InputChatPhoto> &input_photo,
+                              Promise<Unit> &&promise);
 
   void send_update_profile_photo_query(FileId file_id, int64 old_photo_id, Promise<Unit> &&promise);
 
@@ -1336,8 +1340,11 @@ class ContactsManager final : public Actor {
                             const char *source);
   void apply_pending_user_photo(User *u, UserId user_id);
 
-  void upload_profile_photo(FileId file_id, bool is_animation, double main_frame_timestamp, Promise<Unit> &&promise,
-                            int reupload_count = 0, vector<int> bad_parts = {});
+  void set_profile_photo_impl(UserId user_id, const td_api::object_ptr<td_api::InputChatPhoto> &input_photo,
+                              Promise<Unit> &&promise);
+
+  void upload_profile_photo(UserId user_id, FileId file_id, bool is_animation, double main_frame_timestamp,
+                            Promise<Unit> &&promise, int reupload_count = 0, vector<int> bad_parts = {});
 
   void on_upload_profile_photo(FileId file_id, tl_object_ptr<telegram_api::InputFile> input_file);
   void on_upload_profile_photo_error(FileId file_id, Status status);
@@ -1862,13 +1869,16 @@ class ContactsManager final : public Actor {
   std::shared_ptr<UploadProfilePhotoCallback> upload_profile_photo_callback_;
 
   struct UploadedProfilePhoto {
+    UserId user_id;
     double main_frame_timestamp;
     bool is_animation;
     int reupload_count;
     Promise<Unit> promise;
 
-    UploadedProfilePhoto(double main_frame_timestamp, bool is_animation, int32 reupload_count, Promise<Unit> promise)
-        : main_frame_timestamp(main_frame_timestamp)
+    UploadedProfilePhoto(UserId user_id, double main_frame_timestamp, bool is_animation, int32 reupload_count,
+                         Promise<Unit> promise)
+        : user_id(user_id)
+        , main_frame_timestamp(main_frame_timestamp)
         , is_animation(is_animation)
         , reupload_count(reupload_count)
         , promise(std::move(promise)) {

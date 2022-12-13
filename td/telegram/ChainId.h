@@ -13,6 +13,7 @@
 #include "td/telegram/FullMessageId.h"
 #include "td/telegram/MessageContentType.h"
 #include "td/telegram/PollId.h"
+#include "td/telegram/UserId.h"
 
 #include "td/utils/common.h"
 #include "td/utils/HashTableUtils.h"
@@ -47,6 +48,9 @@ class ChainId {
   }
 
   ChainId(const string &str) : id(Hash<string>()(str)) {
+  }
+
+  ChainId(UserId user_id) : ChainId(DialogId(user_id)) {
   }
 
   uint64 get() const {
