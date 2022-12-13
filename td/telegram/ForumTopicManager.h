@@ -24,6 +24,7 @@
 #include "td/utils/Promise.h"
 #include "td/utils/Status.h"
 #include "td/utils/WaitFreeHashMap.h"
+#include "td/utils/WaitFreeHashSet.h"
 
 namespace td {
 
@@ -117,6 +118,7 @@ class ForumTopicManager final : public Actor {
 
   struct DialogTopics {
     WaitFreeHashMap<MessageId, unique_ptr<Topic>, MessageIdHash> topics_;
+    WaitFreeHashSet<MessageId, MessageIdHash> deleted_topic_ids_;
   };
 
   void tear_down() final;

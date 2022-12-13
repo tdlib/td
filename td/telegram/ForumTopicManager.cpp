@@ -419,6 +419,9 @@ void ForumTopicManager::on_forum_topic_created(DialogId dialog_id, unique_ptr<Fo
   CHECK(forum_topic_info != nullptr);
   MessageId top_thread_message_id = forum_topic_info->get_top_thread_message_id();
   auto topic = add_topic(dialog_id, top_thread_message_id);
+  if (topic == nullptr) {
+    return promise.set_value(forum_topic_info->get_forum_topic_info_object(td_));
+  }
   if (topic->info_ == nullptr) {
     set_topic_info(dialog_id, topic, std::move(forum_topic_info));
   }
@@ -698,6 +701,7 @@ void ForumTopicManager::on_delete_forum_topic(DialogId dialog_id, MessageId top_
   auto *dialog_topics = dialog_topics_.get_pointer(dialog_id);
   if (dialog_topics != nullptr) {
     dialog_topics->topics_.erase(top_thread_message_id);
+    dialog_topics->deleted_topic_ids_.insert(top_thread_message_id);
   }
   delete_topic_from_database(dialog_id, top_thread_message_id, std::move(promise));
 }
@@ -740,6 +744,9 @@ void ForumTopicManager::on_get_forum_topic_info(DialogId dialog_id, const ForumT
   MessageId top_thread_message_id = forum_topic_info->get_top_thread_message_id();
   CHECK(can_be_message_thread_id(top_thread_message_id).is_ok());
   auto topic = add_topic(dialog_topics, top_thread_message_id);
+  if (topic == nullptr) {
+    return;
+  }
   set_topic_info(dialog_id, topic, std::move(forum_topic_info));
   save_topic_to_database(dialog_id, topic);
 }
@@ -764,8 +771,10 @@ void ForumTopicManager::on_get_forum_topic_infos(DialogId dialog_id,
       continue;
     }
     auto topic = add_topic(dialog_topics, top_thread_message_id);
-    set_topic_info(dialog_id, topic, std::move(forum_topic_info));
-    save_topic_to_database(dialog_id, topic);
+    if (topic != nullptr) {
+      set_topic_info(dialog_id, topic, std::move(forum_topic_info));
+      save_topic_to_database(dialog_id, topic);
+    }
   }
 }
 
@@ -787,6 +796,9 @@ MessageId ForumTopicManager::on_get_forum_topic_impl(DialogId dialog_id,
       auto forum_topic_info = td::make_unique<ForumTopicInfo>(forum_topic);
       MessageId top_thread_message_id = forum_topic_info->get_top_thread_message_id();
       Topic *topic = add_topic(dialog_id, top_thread_message_id);
+      if (topic == nullptr) {
+        return MessageId();
+      }
       auto current_notification_settings =
           topic->topic_ == nullptr ? nullptr : topic->topic_->get_notification_settings();
       auto forum_topic_full = td::make_unique<ForumTopic>(td_, std::move(forum_topic), current_notification_settings);
@@ -854,6 +866,9 @@ ForumTopicManager::DialogTopics *ForumTopicManager::add_dialog_topics(DialogId d
 ForumTopicManager::Topic *ForumTopicManager::add_topic(DialogTopics *dialog_topics, MessageId top_thread_message_id) {
   auto topic = dialog_topics->topics_.get_pointer(top_thread_message_id);
   if (topic == nullptr) {
+    if (dialog_topics->deleted_topic_ids_.count(top_thread_message_id) > 0) {
+      return nullptr;
+    }
     auto new_topic = make_unique<Topic>();
     topic = new_topic.get();
     dialog_topics->topics_.set(top_thread_message_id, std::move(new_topic));
@@ -954,8 +969,13 @@ void ForumTopicManager::on_topic_message_count_changed(DialogId dialog_id, Messa
     return;
   }
 
+  LOG(INFO) << "Change by " << diff << " number of loaded messages in thread of " << top_thread_message_id << " in "
+            << dialog_id;
   auto dialog_topics = add_dialog_topics(dialog_id);
   auto topic = add_topic(dialog_topics, top_thread_message_id);
+  if (topic == nullptr) {
+    return;
+  }
   topic->message_count_ += diff;
   CHECK(topic->message_count_ >= 0);
   if (topic->message_count_ == 0) {
