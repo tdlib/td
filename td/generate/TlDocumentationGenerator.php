@@ -127,6 +127,9 @@ abstract class TlDocumentationGenerator
                     }
                     $description .= trim(substr($line, 2)).' ';
                 } elseif ($line[2] === '-') {
+                    if (strpos($line, '@') !== false) {
+                      $description_line_count += 100;
+                    }
                     $description .= trim(substr($line, 3)).' ';
                 } else {
                     $this->printError('Unexpected comment');
@@ -246,7 +249,7 @@ abstract class TlDocumentationGenerator
 
                 if (array_keys($info) !== array_keys($known_fields)) {
                     $this->printError("Have wrong documentation for class `$class_name`");
-                } else if ($description_line_count !== 1 && $description_line_count !== count($known_fields) + 1) {
+                } else if ($description_line_count === 1 ? count($known_fields) >= 4 : $description_line_count !== count($known_fields) + 1) {
                     $this->printError("Documentation for fields of class `$class_name` must be split to different lines");
                 }
 

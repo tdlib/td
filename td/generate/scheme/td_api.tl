@@ -24,29 +24,43 @@ ok = Ok;
 
 //@class AuthenticationCodeType @description Provides information about the method by which an authentication code is delivered to the user
 
-//@description An authentication code is delivered via a private Telegram message, which can be viewed from another active session @length Length of the code
+//@description An authentication code is delivered via a private Telegram message, which can be viewed from another active session
+//@length Length of the code
 authenticationCodeTypeTelegramMessage length:int32 = AuthenticationCodeType;
 
-//@description An authentication code is delivered via an SMS message to the specified phone number @length Length of the code
+//@description An authentication code is delivered via an SMS message to the specified phone number
+//@length Length of the code
 authenticationCodeTypeSms length:int32 = AuthenticationCodeType;
 
-//@description An authentication code is delivered via a phone call to the specified phone number @length Length of the code
+//@description An authentication code is delivered via a phone call to the specified phone number
+//@length Length of the code
 authenticationCodeTypeCall length:int32 = AuthenticationCodeType;
 
-//@description An authentication code is delivered by an immediately canceled call to the specified phone number. The phone number that calls is the code that must be entered automatically @pattern Pattern of the phone number from which the call will be made
+//@description An authentication code is delivered by an immediately canceled call to the specified phone number. The phone number that calls is the code that must be entered automatically
+//@pattern Pattern of the phone number from which the call will be made
 authenticationCodeTypeFlashCall pattern:string = AuthenticationCodeType;
 
-//@description An authentication code is delivered by an immediately canceled call to the specified phone number. The last digits of the phone number that calls are the code that must be entered manually by the user @phone_number_prefix Prefix of the phone number from which the call will be made @length Number of digits in the code, excluding the prefix
+//@description An authentication code is delivered by an immediately canceled call to the specified phone number. The last digits of the phone number that calls are the code that must be entered manually by the user
+//@phone_number_prefix Prefix of the phone number from which the call will be made
+//@length Number of digits in the code, excluding the prefix
 authenticationCodeTypeMissedCall phone_number_prefix:string length:int32 = AuthenticationCodeType;
 
-//@description An authentication code is delivered to https://fragment.com. The user must be logged in there via a wallet owning the phone number's NFT @url URL to open to receive the code @length Length of the code
+//@description An authentication code is delivered to https://fragment.com. The user must be logged in there via a wallet owning the phone number's NFT
+//@url URL to open to receive the code
+//@length Length of the code
 authenticationCodeTypeFragment url:string length:int32 = AuthenticationCodeType;
 
 
-//@description Information about the authentication code that was sent @phone_number A phone number that is being authenticated @type The way the code was sent to the user @next_type The way the next code will be sent to the user; may be null @timeout Timeout before the code can be re-sent, in seconds
+//@description Information about the authentication code that was sent
+//@phone_number A phone number that is being authenticated
+//@type The way the code was sent to the user
+//@next_type The way the next code will be sent to the user; may be null
+//@timeout Timeout before the code can be re-sent, in seconds
 authenticationCodeInfo phone_number:string type:AuthenticationCodeType next_type:AuthenticationCodeType timeout:int32 = AuthenticationCodeInfo;
 
-//@description Information about the email address authentication code that was sent @email_address_pattern Pattern of the email address to which an authentication code was sent @length Length of the code; 0 if unknown
+//@description Information about the email address authentication code that was sent
+//@email_address_pattern Pattern of the email address to which an authentication code was sent
+//@length Length of the code; 0 if unknown
 emailAddressAuthenticationCodeInfo email_address_pattern:string length:int32 = EmailAddressAuthenticationCodeInfo;
 
 
@@ -159,7 +173,8 @@ localFile path:string can_be_downloaded:Bool can_be_deleted:Bool is_downloading_
 //@description Represents a remote file
 //@id Remote file identifier; may be empty. Can be used by the current user across application restarts or even from other devices. Uniquely identifies a file, but a file can have a lot of different valid identifiers.
 //-If the ID starts with "http://" or "https://", it represents the HTTP URL of the file. TDLib is currently unable to download files if only their URL is known.
-//-If downloadFile/addFileToDownloads is called on such a file or if it is sent to a secret chat, TDLib starts a file generation process by sending updateFileGenerationStart to the application with the HTTP URL in the original_path and "#url#" as the conversion string. Application must generate the file by downloading it to the specified location
+//-If downloadFile/addFileToDownloads is called on such a file or if it is sent to a secret chat, TDLib starts a file generation process by sending updateFileGenerationStart to the application with the HTTP URL in the original_path and "#url#" as the conversion string.
+//-Application must generate the file by downloading it to the specified location
 //@unique_id Unique file identifier; may be empty if unknown. The unique file identifier which is the same for the same file even for different users and is persistent over time
 //@is_uploading_active True, if the file is currently being uploaded (or a remote copy is being generated by some other means)
 //@is_uploading_completed True, if a remote copy is fully available
@@ -231,7 +246,11 @@ thumbnailFormatWebm = ThumbnailFormat;
 thumbnailFormatWebp = ThumbnailFormat;
 
 
-//@description Represents a thumbnail @format Thumbnail format @width Thumbnail width @height Thumbnail height @file The thumbnail
+//@description Represents a thumbnail
+//@format Thumbnail format
+//@width Thumbnail width
+//@height Thumbnail height
+//@file The thumbnail
 thumbnail format:ThumbnailFormat width:int32 height:int32 file:file = Thumbnail;
 
 
@@ -399,7 +418,12 @@ voiceNote duration:int32 waveform:bytes mime_type:string speech_recognition_resu
 //@sound File containing the sound to be played when the sticker is clicked; may be null. The sound is encoded with the Opus codec, and stored inside an OGG container
 animatedEmoji sticker:sticker sticker_width:int32 sticker_height:int32 fitzpatrick_type:int32 sound:file = AnimatedEmoji;
 
-//@description Describes a user contact @phone_number Phone number of the user @first_name First name of the user; 1-255 characters in length @last_name Last name of the user @vcard Additional data about the user in a form of vCard; 0-2048 bytes in length @user_id Identifier of the user, if known; otherwise 0
+//@description Describes a user contact
+//@phone_number Phone number of the user
+//@first_name First name of the user; 1-255 characters in length
+//@last_name Last name of the user
+//@vcard Additional data about the user in a form of vCard; 0-2048 bytes in length
+//@user_id Identifier of the user, if known; otherwise 0
 contact phone_number:string first_name:string last_name:string vcard:string user_id:int53 = Contact;
 
 //@description Describes a location on planet Earth
@@ -566,7 +590,8 @@ chatAdministratorRights can_manage_chat:Bool can_change_info:Bool can_post_messa
 premiumPaymentOption currency:string amount:int53 discount_percentage:int32 month_count:int32 store_product_id:string payment_link:InternalLinkType = PremiumPaymentOption;
 
 
-//@description Describes a custom emoji to be shown instead of the Telegram Premium badge @custom_emoji_id Identifier of the custom emoji in stickerFormatTgs format. If the custom emoji belongs to the sticker set getOption("themed_emoji_statuses_sticker_set_id"), then it's color must be changed to the color of the Telegram Premium badge
+//@description Describes a custom emoji to be shown instead of the Telegram Premium badge
+//@custom_emoji_id Identifier of the custom emoji in stickerFormatTgs format. If the custom emoji belongs to the sticker set getOption("themed_emoji_statuses_sticker_set_id"), then it's color must be changed to the color of the Telegram Premium badge
 emojiStatus custom_emoji_id:int64 = EmojiStatus;
 
 //@description Contains a list of emoji statuses @emoji_statuses The list of emoji statuses
@@ -651,7 +676,8 @@ chatAdministrators administrators:vector<chatAdministrator> = ChatAdministrators
 //@is_member True, if the user is a member of the chat
 chatMemberStatusCreator custom_title:string is_anonymous:Bool is_member:Bool = ChatMemberStatus;
 
-//@description The user is a member of the chat and has some additional privileges. In basic groups, administrators can edit and delete messages sent by others, add new members, ban unprivileged members, and manage video chats. In supergroups and channels, there are more detailed options for administrator privileges
+//@description The user is a member of the chat and has some additional privileges. In basic groups, administrators can edit and delete messages sent by others, add new members, ban unprivileged members, and manage video chats.
+//-In supergroups and channels, there are more detailed options for administrator privileges
 //@custom_title A custom title of the administrator; 0-16 characters without emojis; applicable to supergroups only
 //@can_be_edited True, if the current user can edit the administrator privileges for the called user
 //@rights Rights of the administrator
@@ -810,12 +836,15 @@ basicGroup id:int53 member_count:int32 status:ChatMemberStatus is_active:Bool up
 basicGroupFullInfo photo:chatPhoto description:string creator_user_id:int53 members:vector<chatMember> invite_link:chatInviteLink bot_commands:vector<botCommands> = BasicGroupFullInfo;
 
 
-//@description Represents a supergroup or channel with zero or more members (subscribers in the case of channels). From the point of view of the system, a channel is a special kind of a supergroup: only administrators can post and see the list of members, and posts from all administrators use the name and photo of the channel instead of individual names and profile photos. Unlike supergroups, channels can have an unlimited number of subscribers
+//@description Represents a supergroup or channel with zero or more members (subscribers in the case of channels). From the point of view of the system, a channel is a special kind of a supergroup:
+//-only administrators can post and see the list of members, and posts from all administrators use the name and photo of the channel instead of individual names and profile photos.
+//-Unlike supergroups, channels can have an unlimited number of subscribers
 //@id Supergroup or channel identifier
 //@usernames Usernames of the supergroup or channel; may be null
 //@date Point in time (Unix timestamp) when the current user joined, or the point in time when the supergroup or channel was created, in case the user is not a member
 //@status Status of the current user in the supergroup or channel; custom title will always be empty
-//@member_count Number of members in the supergroup or channel; 0 if unknown. Currently, it is guaranteed to be known only if the supergroup or channel was received through searchPublicChats, searchChatsNearby, getInactiveSupergroupChats, getSuitableDiscussionChats, getGroupsInCommon, or getUserPrivacySettingRules
+//@member_count Number of members in the supergroup or channel; 0 if unknown. Currently, it is guaranteed to be known only if the supergroup or channel was received
+//-through searchPublicChats, searchChatsNearby, getInactiveSupergroupChats, getSuitableDiscussionChats, getGroupsInCommon, or getUserPrivacySettingRules
 //@has_linked_chat True, if the channel has a discussion group, or the supergroup is the designated discussion group for a channel
 //@has_location True, if the supergroup is connected to a location, i.e. the supergroup is a location-based supergroup
 //@sign_messages True, if messages sent to the channel need to contain information about the sender. This field is only applicable to channels
@@ -846,7 +875,8 @@ supergroup id:int53 usernames:usernames date:int32 status:ChatMemberStatus membe
 //@can_set_sticker_set True, if the supergroup sticker set can be changed
 //@can_set_location True, if the supergroup location can be changed
 //@can_get_statistics True, if the supergroup or channel statistics are available
-//@is_all_history_available True, if new chat members will have access to old messages. In public, discussion, of forum groups and all channels, old messages are always available, so this option affects only private non-forum supergroups without a linked chat. The value of this field is only available for chat administrators
+//@is_all_history_available True, if new chat members will have access to old messages. In public, discussion, of forum groups and all channels, old messages are always available,
+//-so this option affects only private non-forum supergroups without a linked chat. The value of this field is only available for chat administrators
 //@is_aggressive_anti_spam_enabled True, if aggressive anti-spam checks are enabled in the supergroup. The value of this field is only available for chat administrators
 //@sticker_set_id Identifier of the supergroup sticker set; 0 if none
 //@location Location to which the supergroup is connected; may be null
@@ -876,7 +906,8 @@ secretChatStateClosed = SecretChatState;
 //@is_outbound True, if the chat was created by the current user; otherwise false
 //@key_hash Hash of the currently used key for comparison with the hash of the chat partner's key. This is a string of 36 little-endian bytes, which must be split into groups of 2 bits, each denoting a pixel of one of 4 colors FFFFFF, D5E6F3, 2D5775, and 2F99C9.
 //-The pixels must be used to make a 12x12 square image filled from left to right, top to bottom. Alternatively, the first 32 bytes of the hash can be converted to the hexadecimal format and printed as 32 2-digit hex numbers
-//@layer Secret chat layer; determines features supported by the chat partner's application. Nested text entities and underline and strikethrough entities are supported if the layer >= 101, files bigger than 2000MB are supported if the layer >= 143, spoiler and custom emoji text entities are supported if the layer >= 144
+//@layer Secret chat layer; determines features supported by the chat partner's application. Nested text entities and underline and strikethrough entities are supported if the layer >= 101,
+//-files bigger than 2000MB are supported if the layer >= 143, spoiler and custom emoji text entities are supported if the layer >= 144
 secretChat id:int32 user_id:int53 state:SecretChatState is_outbound:Bool key_hash:bytes layer:int32 = SecretChat;
 
 
@@ -1136,7 +1167,8 @@ chatTypeSecret secret_chat_id:int32 user_id:int53 = ChatType;
 
 //@description Represents a filter of user chats
 //@title The title of the filter; 1-12 characters without line feeds
-//@icon_name The chosen icon name for short filter representation. If non-empty, must be one of "All", "Unread", "Unmuted", "Bots", "Channels", "Groups", "Private", "Custom", "Setup", "Cat", "Crown", "Favorite", "Flower", "Game", "Home", "Love", "Mask", "Party", "Sport", "Study", "Trade", "Travel", "Work", "Airplane", "Book", "Light", "Like", "Money", "Note", "Palette".
+//@icon_name The chosen icon name for short filter representation. If non-empty, must be one of "All", "Unread", "Unmuted", "Bots", "Channels", "Groups", "Private", "Custom", "Setup", "Cat", "Crown",
+//-"Favorite", "Flower", "Game", "Home", "Love", "Mask", "Party", "Sport", "Study", "Trade", "Travel", "Work", "Airplane", "Book", "Light", "Like", "Money", "Note", "Palette".
 //-If empty, use getChatFilterDefaultIconName to get default icon name for the filter
 //@pinned_chat_ids The chat identifiers of pinned chats in the filtered chat list. There can be up to getOption("chat_filter_chosen_chat_count_max") pinned and always included non-secret chats and the same number of secret chats, but the limit can be increased with Telegram Premium
 //@included_chat_ids The chat identifiers of always included chats in the filtered chat list. There can be up to getOption("chat_filter_chosen_chat_count_max") pinned and always included non-secret chats and the same number of secret chats, but the limit can be increased with Telegram Premium
@@ -1154,7 +1186,8 @@ chatFilter title:string icon_name:string pinned_chat_ids:vector<int53> included_
 //@description Contains basic information about a chat filter
 //@id Unique chat filter identifier
 //@title The title of the filter; 1-12 characters without line feeds
-//@icon_name The chosen or default icon name for short filter representation. One of "All", "Unread", "Unmuted", "Bots", "Channels", "Groups", "Private", "Custom", "Setup", "Cat", "Crown", "Favorite", "Flower", "Game", "Home", "Love", "Mask", "Party", "Sport", "Study", "Trade", "Travel", "Work", "Airplane", "Book", "Light", "Like", "Money", "Note", "Palette"
+//@icon_name The chosen or default icon name for short filter representation. One of "All", "Unread", "Unmuted", "Bots", "Channels", "Groups", "Private", "Custom", "Setup", "Cat", "Crown",
+//-"Favorite", "Flower", "Game", "Home", "Love", "Mask", "Party", "Sport", "Study", "Trade", "Travel", "Work", "Airplane", "Book", "Light", "Like", "Money", "Note", "Palette"
 chatFilterInfo id:int32 title:string icon_name:string = ChatFilterInfo;
 
 //@description Describes a recommended chat filter @filter The chat filter @param_description Chat filter description
@@ -1278,7 +1311,8 @@ chatActionBarReportUnrelatedLocation = ChatActionBar;
 //@description The chat is a recently created group chat to which new members can be invited
 chatActionBarInviteMembers = ChatActionBar;
 
-//@description The chat is a private or secret chat, which can be reported using the method reportChat, or the other user can be blocked using the method toggleMessageSenderIsBlocked, or the other user can be added to the contact list using the method addContact. If the chat is a private chat with a user with an emoji status, then a notice about emoji status usage must be shown
+//@description The chat is a private or secret chat, which can be reported using the method reportChat, or the other user can be blocked using the method toggleMessageSenderIsBlocked,
+//-or the other user can be added to the contact list using the method addContact. If the chat is a private chat with a user with an emoji status, then a notice about emoji status usage must be shown
 //@can_unarchive If true, the chat was automatically archived and can be moved back to the main chat list using addChatToList simultaneously with setting chat notification settings to default using setChatNotificationSettings
 //@distance If non-negative, the current user was found by the peer through searchChatsNearby and this is the distance between the users
 chatActionBarReportAddBlock can_unarchive:Bool distance:int32 = ChatActionBar;
@@ -1582,55 +1616,109 @@ pageBlockAnchor name:string = PageBlock;
 //@description A list of data blocks @items The items of the list
 pageBlockList items:vector<pageBlockListItem> = PageBlock;
 
-//@description A block quote @text Quote text @credit Quote credit
+//@description A block quote
+//@text Quote text
+//@credit Quote credit
 pageBlockBlockQuote text:RichText credit:RichText = PageBlock;
 
-//@description A pull quote @text Quote text @credit Quote credit
+//@description A pull quote
+//@text Quote text
+//@credit Quote credit
 pageBlockPullQuote text:RichText credit:RichText = PageBlock;
 
-//@description An animation @animation Animation file; may be null @caption Animation caption @need_autoplay True, if the animation must be played automatically
+//@description An animation
+//@animation Animation file; may be null
+//@caption Animation caption
+//@need_autoplay True, if the animation must be played automatically
 pageBlockAnimation animation:animation caption:pageBlockCaption need_autoplay:Bool = PageBlock;
 
-//@description An audio file @audio Audio file; may be null @caption Audio file caption
+//@description An audio file
+//@audio Audio file; may be null
+//@caption Audio file caption
 pageBlockAudio audio:audio caption:pageBlockCaption = PageBlock;
 
-//@description A photo @photo Photo file; may be null @caption Photo caption @url URL that needs to be opened when the photo is clicked
+//@description A photo
+//@photo Photo file; may be null
+//@caption Photo caption
+//@url URL that needs to be opened when the photo is clicked
 pageBlockPhoto photo:photo caption:pageBlockCaption url:string = PageBlock;
 
-//@description A video @video Video file; may be null @caption Video caption @need_autoplay True, if the video must be played automatically @is_looped True, if the video must be looped
+//@description A video
+//@video Video file; may be null
+//@caption Video caption
+//@need_autoplay True, if the video must be played automatically
+//@is_looped True, if the video must be looped
 pageBlockVideo video:video caption:pageBlockCaption need_autoplay:Bool is_looped:Bool = PageBlock;
 
-//@description A voice note @voice_note Voice note; may be null @caption Voice note caption
+//@description A voice note
+//@voice_note Voice note; may be null
+//@caption Voice note caption
 pageBlockVoiceNote voice_note:voiceNote caption:pageBlockCaption = PageBlock;
 
-//@description A page cover @cover Cover
+//@description A page cover
+//@cover Cover
 pageBlockCover cover:PageBlock = PageBlock;
 
-//@description An embedded web page @url Web page URL, if available @html HTML-markup of the embedded page @poster_photo Poster photo, if available; may be null @width Block width; 0 if unknown @height Block height; 0 if unknown @caption Block caption @is_full_width True, if the block must be full width @allow_scrolling True, if scrolling needs to be allowed
+//@description An embedded web page
+//@url Web page URL, if available
+//@html HTML-markup of the embedded page
+//@poster_photo Poster photo, if available; may be null
+//@width Block width; 0 if unknown
+//@height Block height; 0 if unknown
+//@caption Block caption
+//@is_full_width True, if the block must be full width
+//@allow_scrolling True, if scrolling needs to be allowed
 pageBlockEmbedded url:string html:string poster_photo:photo width:int32 height:int32 caption:pageBlockCaption is_full_width:Bool allow_scrolling:Bool = PageBlock;
 
-//@description An embedded post @url Web page URL @author Post author @author_photo Post author photo; may be null @date Point in time (Unix timestamp) when the post was created; 0 if unknown @page_blocks Post content @caption Post caption
+//@description An embedded post
+//@url Web page URL
+//@author Post author
+//@author_photo Post author photo; may be null
+//@date Point in time (Unix timestamp) when the post was created; 0 if unknown
+//@page_blocks Post content
+//@caption Post caption
 pageBlockEmbeddedPost url:string author:string author_photo:photo date:int32 page_blocks:vector<PageBlock> caption:pageBlockCaption = PageBlock;
 
-//@description A collage @page_blocks Collage item contents @caption Block caption
+//@description A collage
+//@page_blocks Collage item contents
+//@caption Block caption
 pageBlockCollage page_blocks:vector<PageBlock> caption:pageBlockCaption = PageBlock;
 
-//@description A slideshow @page_blocks Slideshow item contents @caption Block caption
+//@description A slideshow
+//@page_blocks Slideshow item contents
+//@caption Block caption
 pageBlockSlideshow page_blocks:vector<PageBlock> caption:pageBlockCaption = PageBlock;
 
-//@description A link to a chat @title Chat title @photo Chat photo; may be null @username Chat username by which all other information about the chat can be resolved
+//@description A link to a chat
+//@title Chat title
+//@photo Chat photo; may be null
+//@username Chat username by which all other information about the chat can be resolved
 pageBlockChatLink title:string photo:chatPhotoInfo username:string = PageBlock;
 
-//@description A table @caption Table caption @cells Table cells @is_bordered True, if the table is bordered @is_striped True, if the table is striped
+//@description A table
+//@caption Table caption
+//@cells Table cells
+//@is_bordered True, if the table is bordered
+//@is_striped True, if the table is striped
 pageBlockTable caption:RichText cells:vector<vector<pageBlockTableCell>> is_bordered:Bool is_striped:Bool = PageBlock;
 
-//@description A collapsible block @header Always visible heading for the block @page_blocks Block contents @is_open True, if the block is open by default
+//@description A collapsible block
+//@header Always visible heading for the block
+//@page_blocks Block contents
+//@is_open True, if the block is open by default
 pageBlockDetails header:RichText page_blocks:vector<PageBlock> is_open:Bool = PageBlock;
 
-//@description Related articles @header Block header @articles List of related articles
+//@description Related articles
+//@header Block header
+//@articles List of related articles
 pageBlockRelatedArticles header:RichText articles:vector<pageBlockRelatedArticle> = PageBlock;
 
-//@description A map @location Location of the map center @zoom Map zoom level @width Map width @height Map height @caption Block caption
+//@description A map
+//@location Location of the map center
+//@zoom Map zoom level
+//@width Map width
+//@height Map height
+//@caption Block caption
 pageBlockMap location:location zoom:int32 width:int32 height:int32 caption:pageBlockCaption = PageBlock;
 
 
@@ -1694,7 +1782,13 @@ bankCardActionOpenUrl text:string url:string = BankCardActionOpenUrl;
 bankCardInfo title:string actions:vector<bankCardActionOpenUrl> = BankCardInfo;
 
 
-//@description Describes an address @country_code A two-letter ISO 3166-1 alpha-2 country code @state State, if applicable @city City @street_line1 First line of the address @street_line2 Second line of the address @postal_code Address postal code
+//@description Describes an address
+//@country_code A two-letter ISO 3166-1 alpha-2 country code
+//@state State, if applicable
+//@city City
+//@street_line1 First line of the address
+//@street_line2 Second line of the address
+//@postal_code Address postal code
 address country_code:string state:string city:string street_line1:string street_line2:string postal_code:string = Address;
 
 
@@ -1728,10 +1822,17 @@ labeledPricePart label:string amount:int53 = LabeledPricePart;
 //@is_flexible True, if the total price depends on the shipping method
 invoice currency:string price_parts:vector<labeledPricePart> max_tip_amount:int53 suggested_tip_amounts:vector<int53> recurring_payment_terms_of_service_url:string is_test:Bool need_name:Bool need_phone_number:Bool need_email_address:Bool need_shipping_address:Bool send_phone_number_to_provider:Bool send_email_address_to_provider:Bool is_flexible:Bool = Invoice;
 
-//@description Order information @name Name of the user @phone_number Phone number of the user @email_address Email address of the user @shipping_address Shipping address for this order; may be null
+//@description Order information
+//@name Name of the user
+//@phone_number Phone number of the user
+//@email_address Email address of the user
+//@shipping_address Shipping address for this order; may be null
 orderInfo name:string phone_number:string email_address:string shipping_address:address = OrderInfo;
 
-//@description One shipping option @id Shipping option identifier @title Option title @price_parts A list of objects used to calculate the total shipping costs
+//@description One shipping option
+//@id Shipping option identifier
+//@title Option title
+//@price_parts A list of objects used to calculate the total shipping costs
 shippingOption id:string title:string price_parts:vector<labeledPricePart> = ShippingOption;
 
 //@description Contains information about saved payment credentials @id Unique identifier of the saved credentials @title Title of the saved credentials
@@ -1758,7 +1859,11 @@ inputCredentialsGooglePay data:string = InputCredentials;
 //@description Smart Glocal payment provider @public_token Public payment token
 paymentProviderSmartGlocal public_token:string = PaymentProvider;
 
-//@description Stripe payment provider @publishable_key Stripe API publishable key @need_country True, if the user country must be provided @need_postal_code True, if the user ZIP/postal code must be provided @need_cardholder_name True, if the cardholder name must be provided
+//@description Stripe payment provider
+//@publishable_key Stripe API publishable key
+//@need_country True, if the user country must be provided
+//@need_postal_code True, if the user ZIP/postal code must be provided
+//@need_cardholder_name True, if the cardholder name must be provided
 paymentProviderStripe publishable_key:string need_country:Bool need_postal_code:Bool need_cardholder_name:Bool = PaymentProvider;
 
 //@description Some other payment provider, for which a web payment form must be shown @url Payment form URL
@@ -2069,7 +2174,16 @@ passportElementsWithErrors elements:vector<PassportElement> errors:vector<passpo
 encryptedCredentials data:bytes hash:bytes secret:bytes = EncryptedCredentials;
 
 
-//@description Contains information about an encrypted Telegram Passport element; for bots only @type Type of Telegram Passport element @data Encrypted JSON-encoded data about the user @front_side The front side of an identity document @reverse_side The reverse side of an identity document; may be null @selfie Selfie with the document; may be null @translation List of files containing a certified English translation of the document @files List of attached files @value Unencrypted data, phone number or email address @hash Hash of the entire element
+//@description Contains information about an encrypted Telegram Passport element; for bots only
+//@type Type of Telegram Passport element
+//@data Encrypted JSON-encoded data about the user
+//@front_side The front side of an identity document
+//@reverse_side The reverse side of an identity document; may be null
+//@selfie Selfie with the document; may be null
+//@translation List of files containing a certified English translation of the document
+//@files List of attached files
+//@value Unencrypted data, phone number or email address
+//@hash Hash of the entire element
 encryptedPassportElement type:PassportElementType data:bytes front_side:datedFile reverse_side:datedFile selfie:datedFile translation:vector<datedFile> files:vector<datedFile> value:string hash:string = EncryptedPassportElement;
 
 
@@ -2249,7 +2363,10 @@ messageChatSetTtl ttl:int32 from_user_id:int53 = MessageContent;
 //@description A forum topic has been created @name Name of the topic @icon Icon of the topic
 messageForumTopicCreated name:string icon:forumTopicIcon = MessageContent;
 
-//@description A forum topic has been edited @name If non-empty, the new name of the topic @edit_icon_custom_emoji_id True, if icon's custom_emoji_id is changed @icon_custom_emoji_id New unique identifier of the custom emoji shown on the topic icon; 0 if none. Must be ignored if edit_icon_custom_emoji_id is false
+//@description A forum topic has been edited
+//@name If non-empty, the new name of the topic
+//@edit_icon_custom_emoji_id True, if icon's custom_emoji_id is changed
+//@icon_custom_emoji_id New unique identifier of the custom emoji shown on the topic icon; 0 if none. Must be ignored if edit_icon_custom_emoji_id is false
 messageForumTopicEdited name:string edit_icon_custom_emoji_id:Bool icon_custom_emoji_id:int64 = MessageContent;
 
 //@description A forum topic has been closed or opened @is_closed True, if the topic was closed, otherwise the topic was reopened
@@ -2745,11 +2862,20 @@ callProtocol udp_p2p:Bool udp_reflector:Bool min_layer:int32 max_layer:int32 lib
 //@description A Telegram call reflector @peer_tag A peer tag to be used with the reflector @is_tcp True, if the server uses TCP instead of UDP
 callServerTypeTelegramReflector peer_tag:bytes is_tcp:Bool = CallServerType;
 
-//@description A WebRTC server @username Username to be used for authentication @password Authentication password @supports_turn True, if the server supports TURN @supports_stun True, if the server supports STUN
+//@description A WebRTC server
+//@username Username to be used for authentication
+//@password Authentication password
+//@supports_turn True, if the server supports TURN
+//@supports_stun True, if the server supports STUN
 callServerTypeWebrtc username:string password:string supports_turn:Bool supports_stun:Bool = CallServerType;
 
 
-//@description Describes a server for relaying call data @id Server identifier @ip_address Server IPv4 address @ipv6_address Server IPv6 address @port Server port number @type Server type
+//@description Describes a server for relaying call data
+//@id Server identifier
+//@ip_address Server IPv4 address
+//@ipv6_address Server IPv6 address
+//@port Server port number
+//@type Server type
 callServer id:int64 ip_address:string ipv6_address:string port:int32 type:CallServerType = CallServer;
 
 
@@ -2768,13 +2894,23 @@ callStatePending is_created:Bool is_received:Bool = CallState;
 //@description The call has been answered and encryption keys are being exchanged
 callStateExchangingKeys = CallState;
 
-//@description The call is ready to use @protocol Call protocols supported by the peer @servers List of available call servers @config A JSON-encoded call config @encryption_key Call encryption key @emojis Encryption key emojis fingerprint @allow_p2p True, if peer-to-peer connection is allowed by users privacy settings
+//@description The call is ready to use
+//@protocol Call protocols supported by the peer
+//@servers List of available call servers
+//@config A JSON-encoded call config
+//@encryption_key Call encryption key
+//@emojis Encryption key emojis fingerprint
+//@allow_p2p True, if peer-to-peer connection is allowed by users privacy settings
 callStateReady protocol:callProtocol servers:vector<callServer> config:string encryption_key:bytes emojis:vector<string> allow_p2p:Bool = CallState;
 
 //@description The call is hanging up after discardCall has been called
 callStateHangingUp = CallState;
 
-//@description The call has ended successfully @reason The reason, why the call has ended @need_rating True, if the call rating must be sent to the server @need_debug_information True, if the call debug information must be sent to the server @need_log True, if the call log must be sent to the server
+//@description The call has ended successfully
+//@reason The reason, why the call has ended
+//@need_rating True, if the call rating must be sent to the server
+//@need_debug_information True, if the call debug information must be sent to the server
+//@need_log True, if the call log must be sent to the server
 callStateDiscarded reason:CallDiscardReason need_rating:Bool need_debug_information:Bool need_log:Bool = CallState;
 
 //@description The call has ended with an error @error Error. An error with the code 4005000 will be returned if an outgoing call is missed because of an expired timeout
@@ -2894,7 +3030,12 @@ callProblemDistortedVideo = CallProblem;
 callProblemPixelatedVideo = CallProblem;
 
 
-//@description Describes a call @id Call identifier, not persistent @user_id Peer user identifier @is_outgoing True, if the call is outgoing @is_video True, if the call is a video call @state Call state
+//@description Describes a call
+//@id Call identifier, not persistent
+//@user_id Peer user identifier
+//@is_outgoing True, if the call is outgoing
+//@is_video True, if the call is a video call
+//@state Call state
 call id:int32 user_id:int53 is_outgoing:Bool is_video:Bool state:CallState = Call;
 
 
@@ -3154,37 +3295,71 @@ inputInlineQueryResultVoiceNote id:string title:string voice_note_url:string voi
 //@thumbnail Result thumbnail in JPEG format; may be null
 inlineQueryResultArticle id:string url:string hide_url:Bool title:string description:string thumbnail:thumbnail = InlineQueryResult;
 
-//@description Represents a user contact @id Unique identifier of the query result @contact A user contact @thumbnail Result thumbnail in JPEG format; may be null
+//@description Represents a user contact
+//@id Unique identifier of the query result
+//@contact A user contact
+//@thumbnail Result thumbnail in JPEG format; may be null
 inlineQueryResultContact id:string contact:contact thumbnail:thumbnail = InlineQueryResult;
 
-//@description Represents a point on the map @id Unique identifier of the query result @location Location result @title Title of the result @thumbnail Result thumbnail in JPEG format; may be null
+//@description Represents a point on the map
+//@id Unique identifier of the query result
+//@location Location result
+//@title Title of the result
+//@thumbnail Result thumbnail in JPEG format; may be null
 inlineQueryResultLocation id:string location:location title:string thumbnail:thumbnail = InlineQueryResult;
 
-//@description Represents information about a venue @id Unique identifier of the query result @venue Venue result @thumbnail Result thumbnail in JPEG format; may be null
+//@description Represents information about a venue
+//@id Unique identifier of the query result
+//@venue Venue result
+//@thumbnail Result thumbnail in JPEG format; may be null
 inlineQueryResultVenue id:string venue:venue thumbnail:thumbnail = InlineQueryResult;
 
-//@description Represents information about a game @id Unique identifier of the query result @game Game result
+//@description Represents information about a game
+//@id Unique identifier of the query result
+//@game Game result
 inlineQueryResultGame id:string game:game = InlineQueryResult;
 
-//@description Represents an animation file @id Unique identifier of the query result @animation Animation file @title Animation title
+//@description Represents an animation file
+//@id Unique identifier of the query result
+//@animation Animation file
+//@title Animation title
 inlineQueryResultAnimation id:string animation:animation title:string = InlineQueryResult;
 
-//@description Represents an audio file @id Unique identifier of the query result @audio Audio file
+//@description Represents an audio file
+//@id Unique identifier of the query result
+//@audio Audio file
 inlineQueryResultAudio id:string audio:audio = InlineQueryResult;
 
-//@description Represents a document @id Unique identifier of the query result @document Document @title Document title @param_description Document description
+//@description Represents a document
+//@id Unique identifier of the query result
+//@document Document
+//@title Document title
+//@param_description Document description
 inlineQueryResultDocument id:string document:document title:string description:string = InlineQueryResult;
 
-//@description Represents a photo @id Unique identifier of the query result @photo Photo @title Title of the result, if known @param_description A short description of the result, if known
+//@description Represents a photo
+//@id Unique identifier of the query result
+//@photo Photo
+//@title Title of the result, if known
+//@param_description A short description of the result, if known
 inlineQueryResultPhoto id:string photo:photo title:string description:string = InlineQueryResult;
 
-//@description Represents a sticker @id Unique identifier of the query result @sticker Sticker
+//@description Represents a sticker
+//@id Unique identifier of the query result
+//@sticker Sticker
 inlineQueryResultSticker id:string sticker:sticker = InlineQueryResult;
 
-//@description Represents a video @id Unique identifier of the query result @video Video @title Title of the video @param_description Description of the video
+//@description Represents a video
+//@id Unique identifier of the query result
+//@video Video
+//@title Title of the video
+//@param_description Description of the video
 inlineQueryResultVideo id:string video:video title:string description:string = InlineQueryResult;
 
-//@description Represents a voice note @id Unique identifier of the query result @voice_note Voice note @title Title of the voice note
+//@description Represents a voice note
+//@id Unique identifier of the query result
+//@voice_note Voice note
+//@title Title of the voice note
 inlineQueryResultVoiceNote id:string voice_note:voiceNote title:string = InlineQueryResult;
 
 
@@ -3358,7 +3533,11 @@ chatEventForumTopicDeleted topic_info:forumTopicInfo = ChatEventAction;
 //@description A pinned forum topic was changed @old_topic_info Information about the old pinned topic; may be null @new_topic_info Information about the new pinned topic; may be null
 chatEventForumTopicPinned old_topic_info:forumTopicInfo new_topic_info:forumTopicInfo = ChatEventAction;
 
-//@description Represents a chat event @id Chat event identifier @date Point in time (Unix timestamp) when the event happened @member_id Identifier of the user or chat who performed the action @action The action
+//@description Represents a chat event
+//@id Chat event identifier
+//@date Point in time (Unix timestamp) when the event happened
+//@member_id Identifier of the user or chat who performed the action
+//@action The action
 chatEvent id:int64 date:int32 member_id:MessageSender action:ChatEventAction = ChatEvent;
 
 //@description Contains a list of chat events @events List of events
@@ -3770,22 +3949,36 @@ pushMessageContentInvoice price:string is_pinned:Bool = PushMessageContent;
 //@description A message with a location @is_live True, if the location is live @is_pinned True, if the message is a pinned message with the specified content
 pushMessageContentLocation is_live:Bool is_pinned:Bool = PushMessageContent;
 
-//@description A photo message @photo Message content; may be null @caption Photo caption @is_secret True, if the photo is secret @is_pinned True, if the message is a pinned message with the specified content
+//@description A photo message
+//@photo Message content; may be null
+//@caption Photo caption
+//@is_secret True, if the photo is secret
+//@is_pinned True, if the message is a pinned message with the specified content
 pushMessageContentPhoto photo:photo caption:string is_secret:Bool is_pinned:Bool = PushMessageContent;
 
-//@description A message with a poll @question Poll question @is_regular True, if the poll is regular and not in quiz mode @is_pinned True, if the message is a pinned message with the specified content
+//@description A message with a poll
+//@question Poll question
+//@is_regular True, if the poll is regular and not in quiz mode
+//@is_pinned True, if the message is a pinned message with the specified content
 pushMessageContentPoll question:string is_regular:Bool is_pinned:Bool = PushMessageContent;
 
 //@description A screenshot of a message in the chat has been taken
 pushMessageContentScreenshotTaken = PushMessageContent;
 
-//@description A message with a sticker @sticker Message content; may be null @emoji Emoji corresponding to the sticker; may be empty @is_pinned True, if the message is a pinned message with the specified content
+//@description A message with a sticker
+//@sticker Message content; may be null
+//@emoji Emoji corresponding to the sticker; may be empty
+//@is_pinned True, if the message is a pinned message with the specified content
 pushMessageContentSticker sticker:sticker emoji:string is_pinned:Bool = PushMessageContent;
 
 //@description A text message @text Message text @is_pinned True, if the message is a pinned message with the specified content
 pushMessageContentText text:string is_pinned:Bool = PushMessageContent;
 
-//@description A video message @video Message content; may be null @caption Video caption @is_secret True, if the video is secret @is_pinned True, if the message is a pinned message with the specified content
+//@description A video message
+//@video Message content; may be null
+//@caption Video caption
+//@is_secret True, if the video is secret
+//@is_pinned True, if the message is a pinned message with the specified content
 pushMessageContentVideo video:video caption:string is_secret:Bool is_pinned:Bool = PushMessageContent;
 
 //@description A video note message @video_note Message content; may be null @is_pinned True, if the message is a pinned message with the specified content
@@ -4369,13 +4562,23 @@ fileTypeVoiceNote = FileType;
 fileTypeWallpaper = FileType;
 
 
-//@description Contains the storage usage statistics for a specific file type @file_type File type @size Total size of the files, in bytes @count Total number of files
+//@description Contains the storage usage statistics for a specific file type
+//@file_type File type
+//@size Total size of the files, in bytes
+//@count Total number of files
 storageStatisticsByFileType file_type:FileType size:int53 count:int32 = StorageStatisticsByFileType;
 
-//@description Contains the storage usage statistics for a specific chat @chat_id Chat identifier; 0 if none @size Total size of the files in the chat, in bytes @count Total number of files in the chat @by_file_type Statistics split by file types
+//@description Contains the storage usage statistics for a specific chat
+//@chat_id Chat identifier; 0 if none
+//@size Total size of the files in the chat, in bytes
+//@count Total number of files in the chat
+//@by_file_type Statistics split by file types
 storageStatisticsByChat chat_id:int53 size:int53 count:int32 by_file_type:vector<storageStatisticsByFileType> = StorageStatisticsByChat;
 
-//@description Contains the exact storage usage statistics split by chats and file type @size Total size of files, in bytes @count Total number of files @by_chat Statistics split by chats
+//@description Contains the exact storage usage statistics split by chats and file type
+//@size Total size of files, in bytes
+//@count Total number of files
+//@by_chat Statistics split by chats
 storageStatistics size:int53 count:int32 by_chat:vector<storageStatisticsByChat> = StorageStatistics;
 
 //@description Contains approximate storage usage statistics, excluding files of unknown file type
@@ -4570,7 +4773,13 @@ proxyTypeHttp username:string password:string http_only:Bool = ProxyType;
 proxyTypeMtproto secret:string = ProxyType;
 
 
-//@description Contains information about a proxy server @id Unique identifier of the proxy @server Proxy server IP address @port Proxy server port @last_used_date Point in time (Unix timestamp) when the proxy was last used; 0 if never @is_enabled True, if the proxy is enabled now @type Type of the proxy
+//@description Contains information about a proxy server
+//@id Unique identifier of the proxy
+//@server Proxy server IP address
+//@port Proxy server port
+//@last_used_date Point in time (Unix timestamp) when the proxy was last used; 0 if never
+//@is_enabled True, if the proxy is enabled now
+//@type Type of the proxy
 proxy id:int32 server:string port:int32 last_used_date:int32 is_enabled:Bool type:ProxyType = Proxy;
 
 //@description Represents a list of proxy servers @proxies List of proxy servers
@@ -4578,7 +4787,8 @@ proxies proxies:vector<proxy> = Proxies;
 
 
 //@description A sticker to be added to a sticker set
-//@sticker File with the sticker; must fit in a 512x512 square. For WEBP stickers and masks the file must be in PNG format, which will be converted to WEBP server-side. Otherwise, the file must be local or uploaded within a week. See https://core.telegram.org/animated_stickers#technical-requirements for technical requirements
+//@sticker File with the sticker; must fit in a 512x512 square. For WEBP stickers and masks the file must be in PNG format, which will be converted to WEBP server-side.
+//-Otherwise, the file must be local or uploaded within a week. See https://core.telegram.org/animated_stickers#technical-requirements for technical requirements
 //@emojis Emojis corresponding to the sticker
 //@format Sticker format
 //@mask_position Position where the mask is placed; pass null if not specified
@@ -4719,7 +4929,8 @@ updateAuthorizationState authorization_state:AuthorizationState = Update;
 //@description A new message was received; can also be an outgoing message @message The new message
 updateNewMessage message:message = Update;
 
-//@description A request to send a message has reached the Telegram server. This doesn't mean that the message will be sent successfully or even that the send message request will be processed. This update will be sent only if the option "use_quick_ack" is set to true. This update may be sent multiple times for the same message
+//@description A request to send a message has reached the Telegram server. This doesn't mean that the message will be sent successfully or even that the send message request will be processed.
+//-This update will be sent only if the option "use_quick_ack" is set to true. This update may be sent multiple times for the same message
 //@chat_id The chat identifier of the sent message
 //@message_id A temporary message identifier
 updateMessageSendAcknowledged chat_id:int53 message_id:int53 = Update;
@@ -4737,7 +4948,11 @@ updateMessageSendFailed message:message old_message_id:int53 error_code:int32 er
 //@description The message content has changed @chat_id Chat identifier @message_id Message identifier @new_content New message content
 updateMessageContent chat_id:int53 message_id:int53 new_content:MessageContent = Update;
 
-//@description A message was edited. Changes in the message content will come in a separate updateMessageContent @chat_id Chat identifier @message_id Message identifier @edit_date Point in time (Unix timestamp) when the message was edited @reply_markup New message reply markup; may be null
+//@description A message was edited. Changes in the message content will come in a separate updateMessageContent
+//@chat_id Chat identifier
+//@message_id Message identifier
+//@edit_date Point in time (Unix timestamp) when the message was edited
+//@reply_markup New message reply markup; may be null
 updateMessageEdited chat_id:int53 message_id:int53 edit_date:int32 reply_markup:ReplyMarkup = Update;
 
 //@description The message pinned state was changed @chat_id Chat identifier @message_id The message identifier @is_pinned True, if the message is pinned
@@ -4752,7 +4967,11 @@ updateMessageContentOpened chat_id:int53 message_id:int53 = Update;
 //@description A message with an unread mention was read @chat_id Chat identifier @message_id Message identifier @unread_mention_count The new number of unread mention messages left in the chat
 updateMessageMentionRead chat_id:int53 message_id:int53 unread_mention_count:int32 = Update;
 
-//@description The list of unread reactions added to a message was changed @chat_id Chat identifier @message_id Message identifier @unread_reactions The new list of unread reactions @unread_reaction_count The new number of messages with unread reactions left in the chat
+//@description The list of unread reactions added to a message was changed
+//@chat_id Chat identifier
+//@message_id Message identifier
+//@unread_reactions The new list of unread reactions
+//@unread_reaction_count The new number of messages with unread reactions left in the chat
 updateMessageUnreadReactions chat_id:int53 message_id:int53 unread_reactions:vector<unreadReaction> unread_reaction_count:int32 = Update;
 
 //@description A message with a live location was viewed. When the update is received, the application is supposed to update the live location
@@ -4772,10 +4991,15 @@ updateChatPhoto chat_id:int53 photo:chatPhotoInfo = Update;
 //@description Chat permissions was changed @chat_id Chat identifier @permissions The new chat permissions
 updateChatPermissions chat_id:int53 permissions:chatPermissions = Update;
 
-//@description The last message of a chat was changed. If last_message is null, then the last message in the chat became unknown. Some new unknown messages might be added to the chat in this case @chat_id Chat identifier @last_message The new last message in the chat; may be null @positions The new chat positions in the chat lists
+//@description The last message of a chat was changed. If last_message is null, then the last message in the chat became unknown. Some new unknown messages might be added to the chat in this case
+//@chat_id Chat identifier
+//@last_message The new last message in the chat; may be null
+//@positions The new chat positions in the chat lists
 updateChatLastMessage chat_id:int53 last_message:message positions:vector<chatPosition> = Update;
 
-//@description The position of a chat in a chat list has changed. Instead of this update updateChatLastMessage or updateChatDraftMessage might be sent @chat_id Chat identifier @position New chat position. If new order is 0, then the chat needs to be removed from the list
+//@description The position of a chat in a chat list has changed. Instead of this update updateChatLastMessage or updateChatDraftMessage might be sent
+//@chat_id Chat identifier
+//@position New chat position. If new order is 0, then the chat needs to be removed from the list
 updateChatPosition chat_id:int53 position:chatPosition = Update;
 
 //@description Incoming messages were read or the number of unread messages has been changed @chat_id Chat identifier @last_read_inbox_message_id Identifier of the last read incoming message @unread_count The number of unread messages left in the chat
@@ -4790,7 +5014,10 @@ updateChatActionBar chat_id:int53 action_bar:ChatActionBar = Update;
 //@description The chat available reactions were changed @chat_id Chat identifier @available_reactions The new reactions, available in the chat
 updateChatAvailableReactions chat_id:int53 available_reactions:ChatAvailableReactions = Update;
 
-//@description A chat draft has changed. Be aware that the update may come in the currently opened chat but with old content of the draft. If the user has changed the content of the draft, this update mustn't be applied @chat_id Chat identifier @draft_message The new draft message; may be null @positions The new chat positions in the chat lists
+//@description A chat draft has changed. Be aware that the update may come in the currently opened chat but with old content of the draft. If the user has changed the content of the draft, this update mustn't be applied
+//@chat_id Chat identifier
+//@draft_message The new draft message; may be null
+//@positions The new chat positions in the chat lists
 updateChatDraftMessage chat_id:int53 draft_message:draftMessage positions:vector<chatPosition> = Update;
 
 //@description The message sender that is selected to send messages in a chat has changed @chat_id Chat identifier @message_sender_id New value of message_sender_id; may be null if the user can't change message sender
@@ -4840,7 +5067,10 @@ updateChatIsMarkedAsUnread chat_id:int53 is_marked_as_unread:Bool = Update;
 //@description The list of chat filters or a chat filter has changed @chat_filters The new list of chat filters @main_chat_list_position Position of the main chat list among chat filters, 0-based
 updateChatFilters chat_filters:vector<chatFilterInfo> main_chat_list_position:int32 = Update;
 
-//@description The number of online group members has changed. This update with non-zero number of online group members is sent only for currently opened chats. There is no guarantee that it will be sent just after the number of online users has changed @chat_id Identifier of the chat @online_member_count New number of online members in the chat, or 0 if unknown
+//@description The number of online group members has changed. This update with non-zero number of online group members is sent only for currently opened chats.
+//-There is no guarantee that it will be sent just after the number of online users has changed
+//@chat_id Identifier of the chat
+//@online_member_count New number of online members in the chat, or 0 if unknown
 updateChatOnlineMemberCount chat_id:int53 online_member_count:int32 = Update;
 
 //@description Basic information about a topic in a forum chat was changed @chat_id Chat identifier @info New information about the topic
@@ -4878,7 +5108,11 @@ updateHavePendingNotifications have_delayed_notifications:Bool have_unreceived_n
 //@from_cache True, if the messages are deleted only from the cache and can possibly be retrieved again in the future
 updateDeleteMessages chat_id:int53 message_ids:vector<int53> is_permanent:Bool from_cache:Bool = Update;
 
-//@description A message sender activity in the chat has changed @chat_id Chat identifier @message_thread_id If not 0, a message thread identifier in which the action was performed @sender_id Identifier of a message sender performing the action @action The action
+//@description A message sender activity in the chat has changed
+//@chat_id Chat identifier
+//@message_thread_id If not 0, a message thread identifier in which the action was performed
+//@sender_id Identifier of a message sender performing the action
+//@action The action
 updateChatAction chat_id:int53 message_thread_id:int53 sender_id:MessageSender action:ChatAction = Update;
 
 //@description The user went online or offline @user_id User identifier @status New status of the user
@@ -5077,7 +5311,11 @@ updateNewCallbackQuery id:int64 sender_user_id:int53 chat_id:int53 message_id:in
 //@payload Query payload
 updateNewInlineCallbackQuery id:int64 sender_user_id:int53 inline_message_id:string chat_instance:int64 payload:CallbackQueryPayload = Update;
 
-//@description A new incoming shipping query; for bots only. Only for invoices with flexible price @id Unique query identifier @sender_user_id Identifier of the user who sent the query @invoice_payload Invoice payload @shipping_address User shipping address
+//@description A new incoming shipping query; for bots only. Only for invoices with flexible price
+//@id Unique query identifier
+//@sender_user_id Identifier of the user who sent the query
+//@invoice_payload Invoice payload
+//@shipping_address User shipping address
 updateNewShippingQuery id:int64 sender_user_id:int53 invoice_payload:string shipping_address:address = Update;
 
 //@description A new incoming pre-checkout query; for bots only. Contains full information about a checkout
@@ -5194,7 +5432,8 @@ setAuthenticationPhoneNumber phone_number:string settings:phoneNumberAuthenticat
 //@description Sets the email address of the user and sends an authentication code to the email address. Works only when the current authorization state is authorizationStateWaitEmailAddress @email_address The email address of the user
 setAuthenticationEmailAddress email_address:string = Ok;
 
-//@description Resends an authentication code to the user. Works only when the current authorization state is authorizationStateWaitCode, the next_code_type of the result is not null and the server-specified timeout has passed, or when the current authorization state is authorizationStateWaitEmailCode
+//@description Resends an authentication code to the user. Works only when the current authorization state is authorizationStateWaitCode, the next_code_type of the result is not null and the server-specified timeout has passed,
+//-or when the current authorization state is authorizationStateWaitEmailCode
 resendAuthenticationCode = Ok;
 
 //@description Checks the authentication of a email address. Works only when the current authorization state is authorizationStateWaitEmailCode @code Email address authentication to check
@@ -5237,7 +5476,8 @@ logOut = Ok;
 //@description Closes the TDLib instance. All databases will be flushed to disk and properly closed. After the close completes, updateAuthorizationState with authorizationStateClosed will be sent. Can be called before initialization
 close = Ok;
 
-//@description Closes the TDLib instance, destroying all local data without a proper logout. The current user session will remain in the list of all active sessions. All local data will be destroyed. After the destruction completes updateAuthorizationState with authorizationStateClosed will be sent. Can be called before authorization
+//@description Closes the TDLib instance, destroying all local data without a proper logout. The current user session will remain in the list of all active sessions. All local data will be destroyed.
+//-After the destruction completes updateAuthorizationState with authorizationStateClosed will be sent. Can be called before authorization
 destroy = Ok;
 
 
@@ -5264,7 +5504,9 @@ getPasswordState = PasswordState;
 //@new_recovery_email_address New recovery email address; may be empty
 setPassword old_password:string new_password:string new_hint:string set_recovery_email_address:Bool new_recovery_email_address:string = PasswordState;
 
-//@description Changes the login email address of the user. The change will not be applied until the new login email address is confirmed with checkLoginEmailAddressCode. To use Apple ID/Google ID instead of a email address, call checkLoginEmailAddressCode directly @new_login_email_address New login email address
+//@description Changes the login email address of the user. The change will not be applied until the new login email address is confirmed with checkLoginEmailAddressCode.
+//-To use Apple ID/Google ID instead of a email address, call checkLoginEmailAddressCode directly
+//@new_login_email_address New login email address
 setLoginEmailAddress new_login_email_address:string = EmailAddressAuthenticationCodeInfo;
 
 //@description Resends the login email address verification code
@@ -5277,7 +5519,9 @@ checkLoginEmailAddressCode code:EmailAddressAuthentication = Ok;
 getRecoveryEmailAddress password:string = RecoveryEmailAddress;
 
 //@description Changes the 2-step verification recovery email address of the user. If a new recovery email address is specified, then the change will not be applied until the new recovery email address is confirmed.
-//-If new_recovery_email_address is the same as the email address that is currently set up, this call succeeds immediately and aborts all other requests waiting for an email confirmation @password The 2-step verification password of the current user @new_recovery_email_address New recovery email address
+//-If new_recovery_email_address is the same as the email address that is currently set up, this call succeeds immediately and aborts all other requests waiting for an email confirmation
+//@password The 2-step verification password of the current user
+//@new_recovery_email_address New recovery email address
 setRecoveryEmailAddress password:string new_recovery_email_address:string = PasswordState;
 
 //@description Checks the 2-step verification recovery email address verification code @code Verification code to check
@@ -5344,7 +5588,8 @@ getMessage chat_id:int53 message_id:int53 = Message;
 //@description Returns information about a message, if it is available without sending network request. This is an offline request @chat_id Identifier of the chat the message belongs to @message_id Identifier of the message to get
 getMessageLocally chat_id:int53 message_id:int53 = Message;
 
-//@description Returns information about a message that is replied by a given message. Also returns the pinned message, the game message, the invoice message, and the topic creation message for messages of the types messagePinMessage, messageGameScore, messagePaymentSuccessful, and topic messages without replied message respectively
+//@description Returns information about a message that is replied by a given message. Also returns the pinned message, the game message, the invoice message, and the topic creation message for messages
+//-of the types messagePinMessage, messageGameScore, messagePaymentSuccessful, and topic messages without replied message respectively
 //@chat_id Identifier of the chat the message belongs to
 //@message_id Identifier of the reply message
 getRepliedMessage chat_id:int53 message_id:int53 = Message;
@@ -5361,7 +5606,9 @@ getMessages chat_id:int53 message_ids:vector<int53> = Messages;
 //@description Returns information about a message thread. Can be used only if message.can_get_message_thread == true @chat_id Chat identifier @message_id Identifier of the message
 getMessageThread chat_id:int53 message_id:int53 = MessageThreadInfo;
 
-//@description Returns viewers of a recent outgoing message in a basic group or a supergroup chat. For video notes and voice notes only users, opened content of the message, are returned. The method can be called if message.can_get_viewers == true @chat_id Chat identifier @message_id Identifier of the message
+//@description Returns viewers of a recent outgoing message in a basic group or a supergroup chat. For video notes and voice notes only users, opened content of the message, are returned. The method can be called if message.can_get_viewers == true
+//@chat_id Chat identifier
+//@message_id Identifier of the message
 getMessageViewers chat_id:int53 message_id:int53 = Users;
 
 //@description Returns information about a file; this is an offline request @file_id Identifier of the file to get
@@ -5387,16 +5634,21 @@ getChats chat_list:ChatList limit:int32 = Chats;
 searchPublicChat username:string = Chat;
 
 //@description Searches public chats by looking for specified query in their username and title. Currently, only private chats, supergroups and channels can be public. Returns a meaningful number of results.
-//-Excludes private chats with contacts and chats from the chat list from the results @query Query to search for
+//-Excludes private chats with contacts and chats from the chat list from the results
+//@query Query to search for
 searchPublicChats query:string = Chats;
 
-//@description Searches for the specified query in the title and username of already known chats, this is an offline request. Returns chats in the order seen in the main chat list @query Query to search for. If the query is empty, returns up to 50 recently found chats @limit The maximum number of chats to be returned
+//@description Searches for the specified query in the title and username of already known chats, this is an offline request. Returns chats in the order seen in the main chat list
+//@query Query to search for. If the query is empty, returns up to 50 recently found chats
+//@limit The maximum number of chats to be returned
 searchChats query:string limit:int32 = Chats;
 
 //@description Searches for the specified query in the title and username of already known chats via request to the server. Returns chats in the order seen in the main chat list @query Query to search for @limit The maximum number of chats to be returned
 searchChatsOnServer query:string limit:int32 = Chats;
 
-//@description Returns a list of users and location-based supergroups nearby. The list of users nearby will be updated for 60 seconds after the request by the updates updateUsersNearby. The request must be sent again every 25 seconds with adjusted location to not miss new chats @location Current user location
+//@description Returns a list of users and location-based supergroups nearby. The list of users nearby will be updated for 60 seconds after the request by the updates updateUsersNearby.
+//-The request must be sent again every 25 seconds with adjusted location to not miss new chats
+//@location Current user location
 searchChatsNearby location:location = ChatsNearby;
 
 //@description Returns a list of frequently used chats. Supported only if the chat info database is enabled @category Category of chats to be returned @limit The maximum number of chats to be returned; up to 30
@@ -5426,14 +5678,18 @@ getCreatedPublicChats type:PublicChatType = Chats;
 //@description Checks whether the maximum number of owned public chats has been reached. Returns corresponding error if the limit was reached. The limit can be increased with Telegram Premium @type Type of the public chats, for which to check the limit
 checkCreatedPublicChatsLimit type:PublicChatType = Ok;
 
-//@description Returns a list of basic group and supergroup chats, which can be used as a discussion group for a channel. Returned basic group chats must be first upgraded to supergroups before they can be set as a discussion group. To set a returned supergroup as a discussion group, access to its old messages must be enabled using toggleSupergroupIsAllHistoryAvailable first
+//@description Returns a list of basic group and supergroup chats, which can be used as a discussion group for a channel. Returned basic group chats must be first upgraded to supergroups before they can be set as a discussion group.
+//-To set a returned supergroup as a discussion group, access to its old messages must be enabled using toggleSupergroupIsAllHistoryAvailable first
 getSuitableDiscussionChats = Chats;
 
 //@description Returns a list of recently inactive supergroups and channels. Can be used when user reaches limit on the number of joined supergroups and channels and receives CHANNELS_TOO_MUCH error. Also, the limit can be increased with Telegram Premium
 getInactiveSupergroupChats = Chats;
 
 
-//@description Returns a list of common group chats with a given user. Chats are sorted by their type and creation date @user_id User identifier @offset_chat_id Chat identifier starting from which to return chats; use 0 for the first request @limit The maximum number of chats to be returned; up to 100
+//@description Returns a list of common group chats with a given user. Chats are sorted by their type and creation date
+//@user_id User identifier
+//@offset_chat_id Chat identifier starting from which to return chats; use 0 for the first request
+//@limit The maximum number of chats to be returned; up to 100
 getGroupsInCommon user_id:int53 offset_chat_id:int53 limit:int32 = Chats;
 
 
@@ -5442,7 +5698,8 @@ getGroupsInCommon user_id:int53 offset_chat_id:int53 limit:int32 = Chats;
 //@chat_id Chat identifier
 //@from_message_id Identifier of the message starting from which history must be fetched; use 0 to get results from the last message
 //@offset Specify 0 to get results from exactly the from_message_id or a negative offset up to 99 to get additionally some newer messages
-//@limit The maximum number of messages to be returned; must be positive and can't be greater than 100. If the offset is negative, the limit must be greater than or equal to -offset. For optimal performance, the number of returned messages is chosen by TDLib and can be smaller than the specified limit
+//@limit The maximum number of messages to be returned; must be positive and can't be greater than 100. If the offset is negative, the limit must be greater than or equal to -offset.
+//-For optimal performance, the number of returned messages is chosen by TDLib and can be smaller than the specified limit
 //@only_local Pass true to get only messages that are available without sending network requests
 getChatHistory chat_id:int53 from_message_id:int53 offset:int32 limit:int32 only_local:Bool = Messages;
 
@@ -5452,7 +5709,8 @@ getChatHistory chat_id:int53 from_message_id:int53 offset:int32 limit:int32 only
 //@message_id Message identifier, which thread history needs to be returned
 //@from_message_id Identifier of the message starting from which history must be fetched; use 0 to get results from the last message
 //@offset Specify 0 to get results from exactly the from_message_id or a negative offset up to 99 to get additionally some newer messages
-//@limit The maximum number of messages to be returned; must be positive and can't be greater than 100. If the offset is negative, the limit must be greater than or equal to -offset. For optimal performance, the number of returned messages is chosen by TDLib and can be smaller than the specified limit
+//@limit The maximum number of messages to be returned; must be positive and can't be greater than 100. If the offset is negative, the limit must be greater than or equal to -offset.
+//-For optimal performance, the number of returned messages is chosen by TDLib and can be smaller than the specified limit
 getMessageThreadHistory chat_id:int53 message_id:int53 from_message_id:int53 offset:int32 limit:int32 = Messages;
 
 //@description Deletes all messages in the chat. Use chat.can_be_deleted_only_for_self and chat.can_be_deleted_for_all_users fields to find whether and how the method can be applied to the chat
@@ -5472,7 +5730,8 @@ deleteChat chat_id:int53 = Ok;
 //@sender_id Identifier of the sender of messages to search for; pass null to search for messages from any sender. Not supported in secret chats
 //@from_message_id Identifier of the message starting from which history must be fetched; use 0 to get results from the last message
 //@offset Specify 0 to get results from exactly the from_message_id or a negative offset to get the specified message and some newer messages
-//@limit The maximum number of messages to be returned; must be positive and can't be greater than 100. If the offset is negative, the limit must be greater than -offset. For optimal performance, the number of returned messages is chosen by TDLib and can be smaller than the specified limit
+//@limit The maximum number of messages to be returned; must be positive and can't be greater than 100. If the offset is negative, the limit must be greater than -offset.
+//-For optimal performance, the number of returned messages is chosen by TDLib and can be smaller than the specified limit
 //@filter Additional filter for messages to search; pass null to search for all messages
 //@message_thread_id If not 0, only messages in the specified thread will be returned; supergroups only
 searchChatMessages chat_id:int53 query:string sender_id:MessageSender from_message_id:int53 offset:int32 limit:int32 filter:SearchMessagesFilter message_thread_id:int53 = Messages;
@@ -5535,7 +5794,10 @@ getChatSparseMessagePositions chat_id:int53 filter:SearchMessagesFilter from_mes
 //@from_message_id The message identifier from which to return information about messages; use 0 to get results from the last message
 getChatMessageCalendar chat_id:int53 filter:SearchMessagesFilter from_message_id:int53 = MessageCalendar;
 
-//@description Returns approximate number of messages of the specified type in the chat @chat_id Identifier of the chat in which to count messages @filter Filter for message content; searchMessagesFilterEmpty is unsupported in this function @return_local Pass true to get the number of messages without sending network requests, or -1 if the number of messages is unknown locally
+//@description Returns approximate number of messages of the specified type in the chat
+//@chat_id Identifier of the chat in which to count messages
+//@filter Filter for message content; searchMessagesFilterEmpty is unsupported in this function
+//@return_local Pass true to get the number of messages without sending network requests, or -1 if the number of messages is unknown locally
 getChatMessageCount chat_id:int53 filter:SearchMessagesFilter return_local:Bool = Count;
 
 //@description Returns approximate 1-based position of a message among messages, which can be found by the specified filter in the chat. Cannot be used in secret chats
@@ -5983,10 +6245,18 @@ closeWebApp web_app_launch_id:int64 = Ok;
 answerWebAppQuery web_app_query_id:string result:InputInlineQueryResult = SentWebAppMessage;
 
 
-//@description Sends a callback query to a bot and returns an answer. Returns an error with code 502 if the bot fails to answer the query before the query timeout expires @chat_id Identifier of the chat with the message @message_id Identifier of the message from which the query originated @payload Query payload
+//@description Sends a callback query to a bot and returns an answer. Returns an error with code 502 if the bot fails to answer the query before the query timeout expires
+//@chat_id Identifier of the chat with the message
+//@message_id Identifier of the message from which the query originated
+//@payload Query payload
 getCallbackQueryAnswer chat_id:int53 message_id:int53 payload:CallbackQueryPayload = CallbackQueryAnswer;
 
-//@description Sets the result of a callback query; for bots only @callback_query_id Identifier of the callback query @text Text of the answer @show_alert Pass true to show an alert to the user instead of a toast notification @url URL to be opened @cache_time Time during which the result of the query can be cached, in seconds
+//@description Sets the result of a callback query; for bots only
+//@callback_query_id Identifier of the callback query
+//@text Text of the answer
+//@show_alert Pass true to show an alert to the user instead of a toast notification
+//@url URL to be opened
+//@cache_time Time during which the result of the query can be cached, in seconds
 answerCallbackQuery callback_query_id:int64 text:string show_alert:Bool url:string cache_time:int32 = Ok;
 
 
@@ -6037,14 +6307,18 @@ openChat chat_id:int53 = Ok;
 //@description Informs TDLib that the chat is closed by the user. Many useful activities depend on the chat being opened or closed @chat_id Chat identifier
 closeChat chat_id:int53 = Ok;
 
-//@description Informs TDLib that messages are being viewed by the user. Sponsored messages must be marked as viewed only when the entire text of the message is shown on the screen (excluding the button). Many useful activities depend on whether the messages are currently being viewed or not (e.g., marking messages as read, incrementing a view counter, updating a view counter, removing deleted messages in supergroups and channels)
+//@description Informs TDLib that messages are being viewed by the user. Sponsored messages must be marked as viewed only when the entire text of the message is shown on the screen (excluding the button).
+//-Many useful activities depend on whether the messages are currently being viewed or not (e.g., marking messages as read, incrementing a view counter, updating a view counter, removing deleted messages in supergroups and channels)
 //@chat_id Chat identifier
 //@message_thread_id If not 0, a message thread identifier in which the messages are being viewed
 //@message_ids The identifiers of the messages being viewed
 //@force_read Pass true to mark as read the specified messages even the chat is closed
 viewMessages chat_id:int53 message_thread_id:int53 message_ids:vector<int53> force_read:Bool = Ok;
 
-//@description Informs TDLib that the message content has been opened (e.g., the user has opened a photo, video, document, location or venue, or has listened to an audio file or voice note message). An updateMessageContentOpened update will be generated if something has changed @chat_id Chat identifier of the message @message_id Identifier of the message with the opened content
+//@description Informs TDLib that the message content has been opened (e.g., the user has opened a photo, video, document, location or venue, or has listened to an audio file or voice note message).
+//-An updateMessageContentOpened update will be generated if something has changed
+//@chat_id Chat identifier of the message
+//@message_id Identifier of the message with the opened content
 openMessageContent chat_id:int53 message_id:int53 = Ok;
 
 //@description Informs TDLib that a message with an animated emoji was clicked by the user. Returns a big animated sticker to be played or a 404 error if usual animation needs to be played @chat_id Chat identifier of the message @message_id Identifier of the clicked message
@@ -6191,8 +6465,10 @@ setChatClientData chat_id:int53 client_data:string = Ok;
 //@description Changes information about a chat. Available for basic groups, supergroups, and channels. Requires can_change_info administrator right @chat_id Identifier of the chat @param_description New chat description; 0-255 characters
 setChatDescription chat_id:int53 description:string = Ok;
 
-//@description Changes the discussion group of a channel chat; requires can_change_info administrator right in the channel if it is specified @chat_id Identifier of the channel chat. Pass 0 to remove a link from the supergroup passed in the second argument to a linked channel chat (requires can_pin_messages rights in the supergroup) @discussion_chat_id Identifier of a new channel's discussion group. Use 0 to remove the discussion group.
-//-Use the method getSuitableDiscussionChats to find all suitable groups. Basic group chats must be first upgraded to supergroup chats. If new chat members don't have access to old messages in the supergroup, then toggleSupergroupIsAllHistoryAvailable must be used first to change that
+//@description Changes the discussion group of a channel chat; requires can_change_info administrator right in the channel if it is specified
+//@chat_id Identifier of the channel chat. Pass 0 to remove a link from the supergroup passed in the second argument to a linked channel chat (requires can_pin_messages rights in the supergroup)
+//@discussion_chat_id Identifier of a new channel's discussion group. Use 0 to remove the discussion group. Use the method getSuitableDiscussionChats to find all suitable groups.
+//-Basic group chats must be first upgraded to supergroup chats. If new chat members don't have access to old messages in the supergroup, then toggleSupergroupIsAllHistoryAvailable must be used first to change that
 setChatDiscussionGroup chat_id:int53 discussion_chat_id:int53 = Ok;
 
 //@description Changes the location of a chat. Available only for some location-based supergroups, use supergroupFullInfo.can_set_location to check whether the method is allowed to use @chat_id Chat identifier @location New location for the chat; must be valid and not null
@@ -6352,7 +6628,8 @@ cancelDownloadFile file_id:int32 only_if_pending:Bool = Ok;
 //@description Returns suggested name for saving a file in a given directory @file_id Identifier of the file @directory Directory in which the file is supposed to be saved
 getSuggestedFileName file_id:int32 directory:string = Text;
 
-//@description Preliminary uploads a file to the cloud before sending it in a message, which can be useful for uploading of being recorded voice and video notes. Updates updateFile will be used to notify about upload progress and successful completion of the upload. The file will not have a persistent remote identifier until it will be sent in a message
+//@description Preliminary uploads a file to the cloud before sending it in a message, which can be useful for uploading of being recorded voice and video notes. Updates updateFile will be used
+//-to notify about upload progress and successful completion of the upload. The file will not have a persistent remote identifier until it will be sent in a message
 //@file File to upload
 //@file_type File type; pass null if unknown
 //@priority Priority of the upload (1-32). The higher the priority, the earlier the file will be uploaded. If the priorities of two files are equal, then the first one for which preliminaryUploadFile was called will be uploaded first
@@ -6526,10 +6803,19 @@ acceptCall call_id:int32 protocol:callProtocol = Ok;
 //@description Sends call signaling data @call_id Call identifier @data The data
 sendCallSignalingData call_id:int32 data:bytes = Ok;
 
-//@description Discards a call @call_id Call identifier @is_disconnected Pass true if the user was disconnected @duration The call duration, in seconds @is_video Pass true if the call was a video call @connection_id Identifier of the connection used during the call
+//@description Discards a call
+//@call_id Call identifier
+//@is_disconnected Pass true if the user was disconnected
+//@duration The call duration, in seconds
+//@is_video Pass true if the call was a video call
+//@connection_id Identifier of the connection used during the call
 discardCall call_id:int32 is_disconnected:Bool duration:int32 is_video:Bool connection_id:int64 = Ok;
 
-//@description Sends a call rating @call_id Call identifier @rating Call rating; 1-5 @comment An optional user comment if the rating is less than 5 @problems List of the exact types of problems with the call, specified by the user
+//@description Sends a call rating
+//@call_id Call identifier
+//@rating Call rating; 1-5
+//@comment An optional user comment if the rating is less than 5
+//@problems List of the exact types of problems with the call, specified by the user
 sendCallRating call_id:int32 rating:int32 comment:string problems:vector<CallProblem> = Ok;
 
 //@description Sends debug information for a call to Telegram servers @call_id Call identifier @debug_information Debug information in application-specific format
@@ -6691,7 +6977,8 @@ getBlockedMessageSenders offset:int32 limit:int32 = MessageSenders;
 
 //@description Adds a user to the contact list or edits an existing contact by their user identifier
 //@contact The contact to add or edit; phone number may be empty and needs to be specified only if known, vCard is ignored
-//@share_phone_number Pass true to share the current user's phone number with the new contact. A corresponding rule to userPrivacySettingShowPhoneNumber will be added if needed. Use the field userFullInfo.need_phone_number_privacy_exception to check whether the current user needs to be asked to share their phone number
+//@share_phone_number Pass true to share the current user's phone number with the new contact. A corresponding rule to userPrivacySettingShowPhoneNumber will be added if needed.
+//-Use the field userFullInfo.need_phone_number_privacy_exception to check whether the current user needs to be asked to share their phone number
 addContact contact:contact share_phone_number:Bool = Ok;
 
 //@description Adds new contacts or edits existing contacts by their phone numbers; contacts' user identifiers are ignored @contacts The list of contacts to import or edit; contacts' vCard are ignored and are not imported
@@ -6700,7 +6987,9 @@ importContacts contacts:vector<contact> = ImportedContacts;
 //@description Returns all user contacts
 getContacts = Users;
 
-//@description Searches for the specified query in the first names, last names and usernames of the known user contacts @query Query to search for; may be empty to return all contacts @limit The maximum number of users to be returned
+//@description Searches for the specified query in the first names, last names and usernames of the known user contacts
+//@query Query to search for; may be empty to return all contacts
+//@limit The maximum number of users to be returned
 searchContacts query:string limit:int32 = Users;
 
 //@description Removes users from the contact list @user_ids Identifiers of users to be deleted
@@ -6710,7 +6999,8 @@ removeContacts user_ids:vector<int53> = Ok;
 getImportedContactCount = Count;
 
 //@description Changes imported contacts using the list of contacts saved on the device. Imports newly added contacts and, if at least the file database is enabled, deletes recently deleted contacts.
-//-Query result depends on the result of the previous query, so only one query is possible at the same time @contacts The new list of contacts, contact's vCard are ignored and are not imported
+//-Query result depends on the result of the previous query, so only one query is possible at the same time
+//@contacts The new list of contacts, contact's vCard are ignored and are not imported
 changeImportedContacts contacts:vector<contact> = ImportedContacts;
 
 //@description Clears all imported contacts, contact list remains unchanged
@@ -6783,7 +7073,8 @@ reorderInstalledStickerSets sticker_type:StickerType sticker_set_ids:vector<int6
 //@description Returns a list of recently used stickers @is_attached Pass true to return stickers and masks that were recently attached to photos or video files; pass false to return recently sent stickers
 getRecentStickers is_attached:Bool = Stickers;
 
-//@description Manually adds a new sticker to the list of recently used stickers. The new sticker is added to the top of the list. If the sticker was already in the list, it is removed from the list first. Only stickers belonging to a sticker set can be added to this list. Emoji stickers can't be added to recent stickers
+//@description Manually adds a new sticker to the list of recently used stickers. The new sticker is added to the top of the list. If the sticker was already in the list, it is removed from the list first.
+//-Only stickers belonging to a sticker set can be added to this list. Emoji stickers can't be added to recent stickers
 //@is_attached Pass true to add the sticker to the list of stickers recently attached to photo or video files; pass false to add the sticker to the list of recently sent stickers
 //@sticker Sticker file to add
 addRecentSticker is_attached:Bool sticker:InputFile = Stickers;
@@ -6797,7 +7088,8 @@ clearRecentStickers is_attached:Bool = Ok;
 //@description Returns favorite stickers
 getFavoriteStickers = Stickers;
 
-//@description Adds a new sticker to the list of favorite stickers. The new sticker is added to the top of the list. If the sticker was already in the list, it is removed from the list first. Only stickers belonging to a sticker set can be added to this list. Emoji stickers can't be added to favorite stickers
+//@description Adds a new sticker to the list of favorite stickers. The new sticker is added to the top of the list. If the sticker was already in the list, it is removed from the list first.
+//-Only stickers belonging to a sticker set can be added to this list. Emoji stickers can't be added to favorite stickers
 //@sticker Sticker file to add
 addFavoriteSticker sticker:InputFile = Ok;
 
@@ -6807,7 +7099,10 @@ removeFavoriteSticker sticker:InputFile = Ok;
 //@description Returns emoji corresponding to a sticker. The list is only for informational purposes, because a sticker is always sent with a fixed emoji from the corresponding Sticker object @sticker Sticker file identifier
 getStickerEmojis sticker:InputFile = Emojis;
 
-//@description Searches for emojis by keywords. Supported only if the file database is enabled @text Text to search for @exact_match Pass true if only emojis, which exactly match the text, needs to be returned @input_language_codes List of possible IETF language tags of the user's input language; may be empty if unknown
+//@description Searches for emojis by keywords. Supported only if the file database is enabled
+//@text Text to search for
+//@exact_match Pass true if only emojis, which exactly match the text, needs to be returned
+//@input_language_codes List of possible IETF language tags of the user's input language; may be empty if unknown
 searchEmojis text:string exact_match:Bool input_language_codes:vector<string> = Emojis;
 
 //@description Returns an animated emoji corresponding to a given emoji. Returns a 404 error if the emoji has no animated emoji @emoji The emoji
@@ -6861,10 +7156,13 @@ setName first_name:string last_name:string = Ok;
 //@description Changes the bio of the current user @bio The new value of the user bio; 0-getOption("bio_length_max") characters without line feeds
 setBio bio:string = Ok;
 
-//@description Changes the editable username of the current user @username The new value of the username. Use an empty string to remove the username. The username can't be completely removed if there is another active or disabled username
+//@description Changes the editable username of the current user
+//@username The new value of the username. Use an empty string to remove the username. The username can't be completely removed if there is another active or disabled username
 setUsername username:string = Ok;
 
-//@description Changes active state for a username of the current user. The editable username can't be disabled. May return an error with a message "USERNAMES_ACTIVE_TOO_MUCH" if the maximum number of active usernames has been reached @username The username to change @is_active Pass true to activate the username; pass false to disable it
+//@description Changes active state for a username of the current user. The editable username can't be disabled. May return an error with a message "USERNAMES_ACTIVE_TOO_MUCH" if the maximum number of active usernames has been reached
+//@username The username to change
+//@is_active Pass true to activate the username; pass false to disable it
 toggleUsernameIsActive username:string is_active:Bool = Ok;
 
 //@description Changes order of active usernames of the current user @usernames The new order of active usernames. All currently active usernames must be specified
@@ -6957,10 +7255,16 @@ disconnectWebsite website_id:int64 = Ok;
 disconnectAllWebsites = Ok;
 
 
-//@description Changes the editable username of a supergroup or channel, requires owner privileges in the supergroup or channel @supergroup_id Identifier of the supergroup or channel @username New value of the username. Use an empty string to remove the username. The username can't be completely removed if there is another active or disabled username
+//@description Changes the editable username of a supergroup or channel, requires owner privileges in the supergroup or channel
+//@supergroup_id Identifier of the supergroup or channel
+//@username New value of the username. Use an empty string to remove the username. The username can't be completely removed if there is another active or disabled username
 setSupergroupUsername supergroup_id:int53 username:string = Ok;
 
-//@description Changes active state for a username of a supergroup or channel, requires owner privileges in the supergroup or channel. The editable username can't be disabled. May return an error with a message "USERNAMES_ACTIVE_TOO_MUCH" if the maximum number of active usernames has been reached @supergroup_id Identifier of the supergroup or channel @username The username to change @is_active Pass true to activate the username; pass false to disable it
+//@description Changes active state for a username of a supergroup or channel, requires owner privileges in the supergroup or channel. The editable username can't be disabled.
+//-May return an error with a message "USERNAMES_ACTIVE_TOO_MUCH" if the maximum number of active usernames has been reached
+//@supergroup_id Identifier of the supergroup or channel
+//@username The username to change
+//@is_active Pass true to activate the username; pass false to disable it
 toggleSupergroupUsernameIsActive supergroup_id:int53 username:string is_active:Bool = Ok;
 
 //@description Disables all active non-editable usernames of a supergroup or channel, requires owner privileges in the supergroup or channel @supergroup_id Identifier of the supergroup or channel
@@ -6984,7 +7288,9 @@ toggleSupergroupJoinByRequest supergroup_id:int53 join_by_request:Bool = Ok;
 //@description Toggles whether the message history of a supergroup is available to new members; requires can_change_info administrator right @supergroup_id The identifier of the supergroup @is_all_history_available The new value of is_all_history_available
 toggleSupergroupIsAllHistoryAvailable supergroup_id:int53 is_all_history_available:Bool = Ok;
 
-//@description Toggles whether aggressive anti-spam checks are enabled in the supergroup; requires can_delete_messages administrator right. Can be called only if the supergroup has at least getOption("aggressive_anti_spam_supergroup_member_count_min") members @supergroup_id The identifier of the supergroup, which isn't a broadcast group @is_aggressive_anti_spam_enabled The new value of is_aggressive_anti_spam_enabled
+//@description Toggles whether aggressive anti-spam checks are enabled in the supergroup; requires can_delete_messages administrator right. Can be called only if the supergroup has at least getOption("aggressive_anti_spam_supergroup_member_count_min") members
+//@supergroup_id The identifier of the supergroup, which isn't a broadcast group
+//@is_aggressive_anti_spam_enabled The new value of is_aggressive_anti_spam_enabled
 toggleSupergroupIsAggressiveAntiSpamEnabled supergroup_id:int53 is_aggressive_anti_spam_enabled:Bool = Ok;
 
 //@description Toggles whether the supergroup is a forum; requires owner privileges in the supergroup @supergroup_id Identifier of the supergroup @is_forum New value of is_forum. A supergroup can be converted to a forum, only if it has at least getOption("forum_member_count_min") members
@@ -6996,7 +7302,9 @@ toggleSupergroupIsBroadcastGroup supergroup_id:int53 = Ok;
 //@description Reports messages in a supergroup as spam; requires administrator rights in the supergroup @supergroup_id Supergroup identifier @message_ids Identifiers of messages to report
 reportSupergroupSpam supergroup_id:int53 message_ids:vector<int53> = Ok;
 
-//@description Reports a false deletion of a message by aggressive anti-spam checks; requires administrator rights in the supergroup. Can be called only for messages from chatEventMessageDeleted with can_report_anti_spam_false_positive == true @supergroup_id Supergroup identifier @message_id Identifier of the erroneously deleted message
+//@description Reports a false deletion of a message by aggressive anti-spam checks; requires administrator rights in the supergroup. Can be called only for messages from chatEventMessageDeleted with can_report_anti_spam_false_positive == true
+//@supergroup_id Supergroup identifier
+//@message_id Identifier of the erroneously deleted message
 reportSupergroupAntiSpamFalsePositive supergroup_id:int53 message_id:int53 = Ok;
 
 //@description Returns information about members or banned users in a supergroup or channel. Can be used only if supergroupFullInfo.can_get_members == true; additionally, administrator privileges may be required for some filters
@@ -7090,7 +7398,9 @@ getLocalizationTargetInfo only_local:Bool = LocalizationTargetInfo;
 //@description Returns information about a language pack. Returned language pack identifier may be different from a provided one. Can be called before authorization @language_pack_id Language pack identifier
 getLanguagePackInfo language_pack_id:string = LanguagePackInfo;
 
-//@description Returns strings from a language pack in the current localization target by their keys. Can be called before authorization @language_pack_id Language pack identifier of the strings to be returned @keys Language pack keys of the strings to be returned; leave empty to request all available strings
+//@description Returns strings from a language pack in the current localization target by their keys. Can be called before authorization
+//@language_pack_id Language pack identifier of the strings to be returned
+//@keys Language pack keys of the strings to be returned; leave empty to request all available strings
 getLanguagePackStrings language_pack_id:string keys:vector<string> = LanguagePackStrings;
 
 //@description Fetches the latest versions of all strings from a language pack in the current localization target from the server. This method doesn't need to be called explicitly for the current used/base language packs. Can be called before authorization @language_pack_id Language pack identifier
@@ -7099,7 +7409,9 @@ synchronizeLanguagePack language_pack_id:string = Ok;
 //@description Adds a custom server language pack to the list of installed language packs in current localization target. Can be called before authorization @language_pack_id Identifier of a language pack to be added; may be different from a name that is used in an "https://t.me/setlanguage/" link
 addCustomServerLanguagePack language_pack_id:string = Ok;
 
-//@description Adds or changes a custom local language pack to the current localization target @info Information about the language pack. Language pack ID must start with 'X', consist only of English letters, digits and hyphens, and must not exceed 64 characters. Can be called before authorization @strings Strings of the new language pack
+//@description Adds or changes a custom local language pack to the current localization target
+//@info Information about the language pack. Language pack ID must start with 'X', consist only of English letters, digits and hyphens, and must not exceed 64 characters. Can be called before authorization
+//@strings Strings of the new language pack
 setCustomLanguagePack info:languagePackInfo strings:vector<languagePackString> = Ok;
 
 //@description Edits information about a custom local language pack in the current localization target. Can be called before authorization @info New information about the custom local language pack
@@ -7108,7 +7420,9 @@ editCustomLanguagePackInfo info:languagePackInfo = Ok;
 //@description Adds, edits or deletes a string in a custom local language pack. Can be called before authorization @language_pack_id Identifier of a previously added custom local language pack in the current localization target @new_string New language pack string
 setCustomLanguagePackString language_pack_id:string new_string:languagePackString = Ok;
 
-//@description Deletes all information about a language pack in the current localization target. The language pack which is currently in use (including base language pack) or is being synchronized can't be deleted. Can be called before authorization @language_pack_id Identifier of the language pack to delete
+//@description Deletes all information about a language pack in the current localization target. The language pack which is currently in use (including base language pack) or is being synchronized can't be deleted.
+//-Can be called before authorization
+//@language_pack_id Identifier of the language pack to delete
 deleteLanguagePack language_pack_id:string = Ok;
 
 
@@ -7150,7 +7464,10 @@ setAccountTtl ttl:accountTtl = Ok;
 //@description Returns the period of inactivity after which the account of the current user will automatically be deleted
 getAccountTtl = AccountTtl;
 
-//@description Deletes the account of the current user, deleting all information associated with the user from the server. The phone number of the account can be used to create a new account. Can be called before authorization when the current authorization state is authorizationStateWaitPassword @reason The reason why the account was deleted; optional @password The 2-step verification password of the current user. If not specified, account deletion can be canceled within one week
+//@description Deletes the account of the current user, deleting all information associated with the user from the server. The phone number of the account can be used to create a new account.
+//-Can be called before authorization when the current authorization state is authorizationStateWaitPassword
+//@reason The reason why the account was deleted; optional
+//@password The 2-step verification password of the current user. If not specified, account deletion can be canceled within one week
 deleteAccount reason:string password:string = Ok;
 
 
@@ -7195,7 +7512,8 @@ getMessageStatistics chat_id:int53 message_id:int53 is_dark:Bool = MessageStatis
 getStatisticalGraph chat_id:int53 token:string x:int53 = StatisticalGraph;
 
 
-//@description Returns storage usage statistics. Can be called before authorization @chat_limit The maximum number of chats with the largest storage usage for which separate statistics need to be returned. All other chats will be grouped in entries with chat_id == 0. If the chat info database is not used, the chat_limit is ignored and is always set to 0
+//@description Returns storage usage statistics. Can be called before authorization
+//@chat_limit The maximum number of chats with the largest storage usage for which separate statistics need to be returned. All other chats will be grouped in entries with chat_id == 0. If the chat info database is not used, the chat_limit is ignored and is always set to 0
 getStorageStatistics chat_limit:int32 = StorageStatistics;
 
 //@description Quickly returns approximate storage usage statistics. Can be called before authorization
@@ -7217,8 +7535,9 @@ getDatabaseStatistics = DatabaseStatistics;
 optimizeStorage size:int53 ttl:int32 count:int32 immunity_delay:int32 file_types:vector<FileType> chat_ids:vector<int53> exclude_chat_ids:vector<int53> return_deleted_file_statistics:Bool chat_limit:int32 = StorageStatistics;
 
 
-//@description Sets the current network type. Can be called before authorization. Calling this method forces all network connections to reopen, mitigating the delay in switching between different networks, so it must be called whenever the network is changed, even if the network type remains the same.
-//-Network type is used to check whether the library can use the network at all and also for collecting detailed network data usage statistics @type The new network type; pass null to set network type to networkTypeOther
+//@description Sets the current network type. Can be called before authorization. Calling this method forces all network connections to reopen, mitigating the delay in switching between different networks,
+//-so it must be called whenever the network is changed, even if the network type remains the same. Network type is used to check whether the library can use the network at all and also for collecting detailed network data usage statistics
+//@type The new network type; pass null to set network type to networkTypeOther
 setNetworkType type:NetworkType = Ok;
 
 //@description Returns network data usage statistics. Can be called before authorization @only_current Pass true to get statistics only for the current library launch
@@ -7247,7 +7566,9 @@ getPassportElement type:PassportElementType password:string = PassportElement;
 //@description Returns all available Telegram Passport elements @password The 2-step verification password of the current user
 getAllPassportElements password:string = PassportElements;
 
-//@description Adds an element to the user's Telegram Passport. May return an error with a message "PHONE_VERIFICATION_NEEDED" or "EMAIL_VERIFICATION_NEEDED" if the chosen phone number or the chosen email address must be verified first @element Input Telegram Passport element @password The 2-step verification password of the current user
+//@description Adds an element to the user's Telegram Passport. May return an error with a message "PHONE_VERIFICATION_NEEDED" or "EMAIL_VERIFICATION_NEEDED" if the chosen phone number or the chosen email address must be verified first
+//@element Input Telegram Passport element
+//@password The 2-step verification password of the current user
 setPassportElement element:InputPassportElement password:string = PassportElement;
 
 //@description Deletes a Telegram Passport element @type Element type
@@ -7283,10 +7604,16 @@ resendEmailAddressVerificationCode = EmailAddressAuthenticationCodeInfo;
 checkEmailAddressVerificationCode code:string = Ok;
 
 
-//@description Returns a Telegram Passport authorization form for sharing data with a service @bot_user_id User identifier of the service's bot @scope Telegram Passport element types requested by the service @public_key Service's public key @nonce Unique request identifier provided by the service
+//@description Returns a Telegram Passport authorization form for sharing data with a service
+//@bot_user_id User identifier of the service's bot
+//@scope Telegram Passport element types requested by the service
+//@public_key Service's public key
+//@nonce Unique request identifier provided by the service
 getPassportAuthorizationForm bot_user_id:int53 scope:string public_key:string nonce:string = PassportAuthorizationForm;
 
-//@description Returns already available Telegram Passport elements suitable for completing a Telegram Passport authorization form. Result can be received only once for each authorization form @autorization_form_id Authorization form identifier @password The 2-step verification password of the current user
+//@description Returns already available Telegram Passport elements suitable for completing a Telegram Passport authorization form. Result can be received only once for each authorization form
+//@autorization_form_id Authorization form identifier
+//@password The 2-step verification password of the current user
 getPassportAuthorizationFormAvailableElements autorization_form_id:int32 password:string = PassportElementsWithErrors;
 
 //@description Sends a Telegram Passport authorization form, effectively sharing data with the service. This method must be called after getPassportAuthorizationFormAvailableElements if some previously available elements are going to be reused
@@ -7295,7 +7622,10 @@ getPassportAuthorizationFormAvailableElements autorization_form_id:int32 passwor
 sendPassportAuthorizationForm autorization_form_id:int32 types:vector<PassportElementType> = Ok;
 
 
-//@description Sends phone number confirmation code to handle links of the type internalLinkTypePhoneNumberConfirmation @hash Hash value from the link @phone_number Phone number value from the link @settings Settings for the authentication of the user's phone number; pass null to use default settings
+//@description Sends phone number confirmation code to handle links of the type internalLinkTypePhoneNumberConfirmation
+//@hash Hash value from the link
+//@phone_number Phone number value from the link
+//@settings Settings for the authentication of the user's phone number; pass null to use default settings
 sendPhoneNumberConfirmationCode hash:string phone_number:string settings:phoneNumberAuthenticationSettings = AuthenticationCodeInfo;
 
 //@description Resends phone number confirmation code
@@ -7348,7 +7678,13 @@ setStickerPositionInSet sticker:InputFile position:int32 = Ok;
 removeStickerFromSet sticker:InputFile = Ok;
 
 
-//@description Returns information about a file with a map thumbnail in PNG format. Only map thumbnail files with size less than 1MB can be downloaded @location Location of the map center @zoom Map zoom level; 13-20 @width Map width in pixels before applying scale; 16-1024 @height Map height in pixels before applying scale; 16-1024 @scale Map scale; 1-3 @chat_id Identifier of a chat in which the thumbnail will be shown. Use 0 if unknown
+//@description Returns information about a file with a map thumbnail in PNG format. Only map thumbnail files with size less than 1MB can be downloaded
+//@location Location of the map center
+//@zoom Map zoom level; 13-20
+//@width Map width in pixels before applying scale; 16-1024
+//@height Map height in pixels before applying scale; 16-1024
+//@scale Map scale; 1-3
+//@chat_id Identifier of a chat in which the thumbnail will be shown. Use 0 if unknown
 getMapThumbnailFile location:location zoom:int32 width:int32 height:int32 scale:int32 chat_id:int53 = File;
 
 
@@ -7376,7 +7712,11 @@ canPurchasePremium purpose:StorePaymentPurpose = Ok;
 //@description Informs server about a purchase through App Store. For official applications only @receipt App Store receipt @purpose Transaction purpose
 assignAppStoreTransaction receipt:bytes purpose:StorePaymentPurpose = Ok;
 
-//@description Informs server about a purchase through Google Play. For official applications only @package_name Application package name @store_product_id Identifier of the purchased store product @purchase_token Google Play purchase token @purpose Transaction purpose
+//@description Informs server about a purchase through Google Play. For official applications only
+//@package_name Application package name
+//@store_product_id Identifier of the purchased store product
+//@purchase_token Google Play purchase token
+//@purpose Transaction purpose
 assignGooglePlayTransaction package_name:string store_product_id:string purchase_token:string purpose:StorePaymentPurpose = Ok;
 
 
@@ -7423,10 +7763,19 @@ getApplicationConfig = JsonValue;
 saveApplicationLogEvent type:string chat_id:int53 data:JsonValue = Ok;
 
 
-//@description Adds a proxy server for network requests. Can be called before authorization @server Proxy server IP address @port Proxy server port @enable Pass true to immediately enable the proxy @type Proxy type
+//@description Adds a proxy server for network requests. Can be called before authorization
+//@server Proxy server IP address
+//@port Proxy server port
+//@enable Pass true to immediately enable the proxy
+//@type Proxy type
 addProxy server:string port:int32 enable:Bool type:ProxyType = Proxy;
 
-//@description Edits an existing proxy server for network requests. Can be called before authorization @proxy_id Proxy identifier @server Proxy server IP address @port Proxy server port @enable Pass true to immediately enable the proxy @type Proxy type
+//@description Edits an existing proxy server for network requests. Can be called before authorization
+//@proxy_id Proxy identifier
+//@server Proxy server IP address
+//@port Proxy server port
+//@enable Pass true to immediately enable the proxy
+//@type Proxy type
 editProxy proxy_id:int32 server:string port:int32 enable:Bool type:ProxyType = Proxy;
 
 //@description Enables a proxy. Only one proxy can be enabled at a time. Can be called before authorization @proxy_id Proxy identifier
@@ -7455,7 +7804,8 @@ setLogStream log_stream:LogStream = Ok;
 getLogStream = LogStream;
 
 //@description Sets the verbosity level of the internal logging of TDLib. Can be called synchronously
-//@new_verbosity_level New value of the verbosity level for logging. Value 0 corresponds to fatal errors, value 1 corresponds to errors, value 2 corresponds to warnings and debug warnings, value 3 corresponds to informational, value 4 corresponds to debug, value 5 corresponds to verbose debug, value greater than 5 and up to 1023 can be used to enable even more logging
+//@new_verbosity_level New value of the verbosity level for logging. Value 0 corresponds to fatal errors, value 1 corresponds to errors, value 2 corresponds to warnings and debug warnings,
+//-value 3 corresponds to informational, value 4 corresponds to debug, value 5 corresponds to verbose debug, value greater than 5 and up to 1023 can be used to enable even more logging
 setLogVerbosityLevel new_verbosity_level:int32 = Ok;
 
 //@description Returns current verbosity level of the internal logging of TDLib. Can be called synchronously
