@@ -66,7 +66,8 @@ enum class MessageContentType : int32 {
   GiftPremium,
   TopicCreate,
   TopicEdit,
-  SuggestProfilePhoto
+  SuggestProfilePhoto,
+  WriteAccessAllowed
 };
 
 StringBuilder &operator<<(StringBuilder &string_builder, MessageContentType content_type);

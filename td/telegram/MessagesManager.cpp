@@ -27574,6 +27574,7 @@ bool MessagesManager::can_edit_message(DialogId dialog_id, const Message *m, boo
     case MessageContentType::TopicCreate:
     case MessageContentType::TopicEdit:
     case MessageContentType::SuggestProfilePhoto:
+    case MessageContentType::WriteAccessAllowed:
       return false;
     default:
       UNREACHABLE();

@@ -848,6 +848,13 @@ class MessageSuggestProfilePhoto final : public MessageContent {
   }
 };
 
+class MessageWriteAccessAllowed final : public MessageContent {
+ public:
+  MessageContentType get_type() const final {
+    return MessageContentType::WriteAccessAllowed;
+  }
+};
+
 template <class StorerT>
 static void store(const MessageContent *content, StorerT &storer) {
   CHECK(content != nullptr);
@@ -1200,6 +1207,8 @@ static void store(const MessageContent *content, StorerT &storer) {
       store(m->photo, storer);
       break;
     }
+    case MessageContentType::WriteAccessAllowed:
+      break;
     default:
       UNREACHABLE();
   }
@@ -1681,6 +1690,9 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
       content = std::move(m);
       break;
     }
+    case MessageContentType::WriteAccessAllowed:
+      content = make_unique<MessageWriteAccessAllowed>();
+      break;
     default:
       LOG(FATAL) << "Have unknown message content type " << static_cast<int32>(content_type);
   }
@@ -2304,6 +2316,7 @@ bool can_have_input_media(const Td *td, const MessageContent *content, bool is_s
     case MessageContentType::TopicCreate:
     case MessageContentType::TopicEdit:
     case MessageContentType::SuggestProfilePhoto:
+    case MessageContentType::WriteAccessAllowed:
       return false;
     case MessageContentType::Animation:
     case MessageContentType::Audio:
@@ -2428,6 +2441,7 @@ SecretInputMedia get_secret_input_media(const MessageContent *content, Td *td,
     case MessageContentType::TopicCreate:
     case MessageContentType::TopicEdit:
     case MessageContentType::SuggestProfilePhoto:
+    case MessageContentType::WriteAccessAllowed:
       break;
     default:
       UNREACHABLE();
@@ -2550,6 +2564,7 @@ static tl_object_ptr<telegram_api::InputMedia> get_input_media_impl(
     case MessageContentType::TopicCreate:
     case MessageContentType::TopicEdit:
     case MessageContentType::SuggestProfilePhoto:
+    case MessageContentType::WriteAccessAllowed:
       break;
     default:
       UNREACHABLE();
@@ -2717,6 +2732,7 @@ void delete_message_content_thumbnail(MessageContent *content, Td *td) {
     case MessageContentType::TopicCreate:
     case MessageContentType::TopicEdit:
     case MessageContentType::SuggestProfilePhoto:
+    case MessageContentType::WriteAccessAllowed:
       break;
     default:
       UNREACHABLE();
@@ -2902,6 +2918,7 @@ Status can_send_message_content(DialogId dialog_id, const MessageContent *conten
     case MessageContentType::TopicCreate:
     case MessageContentType::TopicEdit:
     case MessageContentType::SuggestProfilePhoto:
+    case MessageContentType::WriteAccessAllowed:
       UNREACHABLE();
   }
   return Status::OK();
@@ -3034,6 +3051,7 @@ static int32 get_message_content_media_index_mask(const MessageContent *content,
     case MessageContentType::TopicCreate:
     case MessageContentType::TopicEdit:
     case MessageContentType::SuggestProfilePhoto:
+    case MessageContentType::WriteAccessAllowed:
       return 0;
     default:
       UNREACHABLE();
@@ -3813,6 +3831,8 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
       }
       break;
     }
+    case MessageContentType::WriteAccessAllowed:
+      break;
     default:
       UNREACHABLE();
       break;
@@ -3948,6 +3968,7 @@ bool merge_message_content_file_id(Td *td, MessageContent *message_content, File
     case MessageContentType::TopicCreate:
     case MessageContentType::TopicEdit:
     case MessageContentType::SuggestProfilePhoto:
+    case MessageContentType::WriteAccessAllowed:
       LOG(ERROR) << "Receive new file " << new_file_id << " in a sent message of the type " << content_type;
       break;
     default:
@@ -4932,6 +4953,7 @@ unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const
     case MessageContentType::TopicCreate:
     case MessageContentType::TopicEdit:
     case MessageContentType::SuggestProfilePhoto:
+    case MessageContentType::WriteAccessAllowed:
       return nullptr;
     default:
       UNREACHABLE();
@@ -5252,7 +5274,7 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       return make_unique<MessageSuggestProfilePhoto>(std::move(photo));
     }
     case telegram_api::messageActionAttachMenuBotAllowed::ID:
-      return make_unique<MessageUnsupported>();
+      return td::make_unique<MessageWriteAccessAllowed>();
     default:
       UNREACHABLE();
   }
@@ -5547,6 +5569,8 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
       }
       return make_tl_object<td_api::messageSuggestProfilePhoto>(std::move(photo));
     }
+    case MessageContentType::WriteAccessAllowed:
+      return make_tl_object<td_api::messageBotWriteAccessAllowed>();
     default:
       UNREACHABLE();
       return nullptr;
@@ -5914,6 +5938,7 @@ string get_message_content_search_text(const Td *td, const MessageContent *conte
     case MessageContentType::WebViewDataReceived:
     case MessageContentType::GiftPremium:
     case MessageContentType::SuggestProfilePhoto:
+    case MessageContentType::WriteAccessAllowed:
       return string();
     default:
       UNREACHABLE();
@@ -6196,6 +6221,8 @@ void add_message_content_dependencies(Dependencies &dependencies, const MessageC
     case MessageContentType::TopicEdit:
       break;
     case MessageContentType::SuggestProfilePhoto:
+      break;
+    case MessageContentType::WriteAccessAllowed:
       break;
     default:
       UNREACHABLE();
