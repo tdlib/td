@@ -36671,9 +36671,17 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
   }
   if (old_message->top_thread_message_id != new_message->top_thread_message_id) {
     if ((new_message->top_thread_message_id == MessageId() || old_message->top_thread_message_id == MessageId()) &&
-        !is_message_in_dialog) {
+        (!is_message_in_dialog || replace_legacy)) {
       LOG(DEBUG) << "Change message thread from " << old_message->top_thread_message_id << " to "
                  << new_message->top_thread_message_id;
+      if (is_message_in_dialog && old_message->is_topic_message) {
+        if (old_message->top_thread_message_id != MessageId()) {
+          td_->forum_topic_manager_->on_topic_message_count_changed(dialog_id, old_message->top_thread_message_id, -1);
+        }
+        if (new_message->top_thread_message_id != MessageId()) {
+          td_->forum_topic_manager_->on_topic_message_count_changed(dialog_id, new_message->top_thread_message_id, +1);
+        }
+      }
       old_message->top_thread_message_id = new_message->top_thread_message_id;
       need_send_update = true;
     } else if (is_new_available) {
