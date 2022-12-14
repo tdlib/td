@@ -101,6 +101,7 @@ abstract class TlDocumentationGenerator
     {
         $lines = array_filter(array_map('trim', file($tl_scheme_file)));
         $description = '';
+        $description_line_count = 0;
         $current_class = '';
         $is_function = false;
         $need_class_description = false;
@@ -120,8 +121,13 @@ abstract class TlDocumentationGenerator
                     $this->printError('Wrong comment');
                     continue;
                 }
-                if ($line[2] === '@' || $line[2] === '-') {
-                    $description .= trim(substr($line, 2 + intval($line[2] === '-'))).' ';
+                if ($line[2] === '@') {
+                    if (substr($line, 2, 7) !== '@class ') {
+                      $description_line_count++;
+                    }
+                    $description .= trim(substr($line, 2)).' ';
+                } elseif ($line[2] === '-') {
+                    $description .= trim(substr($line, 3)).' ';
                 } else {
                     $this->printError('Unexpected comment');
                 }
@@ -240,6 +246,8 @@ abstract class TlDocumentationGenerator
 
                 if (array_keys($info) !== array_keys($known_fields)) {
                     $this->printError("Have wrong documentation for class `$class_name`");
+                } else if ($description_line_count !== 1 && $description_line_count !== count($known_fields) + 1) {
+                    $this->printError("Documentation for fields of class `$class_name` must be split to different lines");
                 }
 
                 $base_class_name = $current_class ?: $this->getBaseClassName($is_function);
@@ -274,6 +282,7 @@ abstract class TlDocumentationGenerator
                 }
 
                 $description = '';
+                $description_line_count = 0;
             }
         }
 
