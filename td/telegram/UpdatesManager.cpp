@@ -3013,11 +3013,11 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateReadChannelDisc
   }
   td_->messages_manager_->on_update_read_message_comments(DialogId(ChannelId(update->channel_id_)),
                                                           MessageId(ServerMessageId(update->top_msg_id_)), MessageId(),
-                                                          last_read_inbox_message_id, MessageId());
+                                                          last_read_inbox_message_id, MessageId(), -1);
   if ((update->flags_ & telegram_api::updateReadChannelDiscussionInbox::BROADCAST_ID_MASK) != 0) {
     td_->messages_manager_->on_update_read_message_comments(DialogId(ChannelId(update->broadcast_id_)),
                                                             MessageId(ServerMessageId(update->broadcast_post_)),
-                                                            MessageId(), last_read_inbox_message_id, MessageId());
+                                                            MessageId(), last_read_inbox_message_id, MessageId(), -1);
   }
   promise.set_value(Unit());
 }
@@ -3031,7 +3031,7 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateReadChannelDisc
   }
   td_->messages_manager_->on_update_read_message_comments(DialogId(ChannelId(update->channel_id_)),
                                                           MessageId(ServerMessageId(update->top_msg_id_)), MessageId(),
-                                                          MessageId(), last_read_outbox_message_id);
+                                                          MessageId(), last_read_outbox_message_id, -1);
   promise.set_value(Unit());
 }
 

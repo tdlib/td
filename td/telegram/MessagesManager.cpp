@@ -6830,7 +6830,7 @@ void MessagesManager::on_update_read_channel_messages_contents(
 
 void MessagesManager::on_update_read_message_comments(DialogId dialog_id, MessageId message_id,
                                                       MessageId max_message_id, MessageId last_read_inbox_message_id,
-                                                      MessageId last_read_outbox_message_id) {
+                                                      MessageId last_read_outbox_message_id, int32 unread_count) {
   Dialog *d = get_dialog_force(dialog_id, "on_update_read_message_comments");
   if (d == nullptr) {
     LOG(INFO) << "Ignore update of read message comments in unknown " << dialog_id << " in updateReadDiscussion";
@@ -6838,8 +6838,14 @@ void MessagesManager::on_update_read_message_comments(DialogId dialog_id, Messag
   }
 
   auto m = get_message_force(d, message_id, "on_update_read_message_comments");
-  if (m == nullptr || !m->message_id.is_server() || m->top_thread_message_id != m->message_id ||
-      !is_active_message_reply_info(dialog_id, m->reply_info)) {
+  if (m == nullptr || !m->message_id.is_server() || m->top_thread_message_id != m->message_id) {
+    return;
+  }
+  if (m->is_topic_message) {
+    td_->forum_topic_manager_->on_update_forum_topic_unread(
+        dialog_id, message_id, max_message_id, last_read_inbox_message_id, last_read_outbox_message_id, unread_count);
+  }
+  if (!is_active_message_reply_info(dialog_id, m->reply_info)) {
     return;
   }
   if (m->reply_info.update_max_message_ids(max_message_id, last_read_inbox_message_id, last_read_outbox_message_id)) {
@@ -18590,11 +18596,11 @@ void MessagesManager::process_discussion_message_impl(
   auto last_read_outbox_message_id = MessageId(ServerMessageId(result->read_outbox_max_id_));
   if (top_message_id.is_valid()) {
     on_update_read_message_comments(expected_dialog_id, top_message_id, max_message_id, last_read_inbox_message_id,
-                                    last_read_outbox_message_id);
+                                    last_read_outbox_message_id, message_thread_info.unread_message_count);
   }
   if (expected_dialog_id != dialog_id) {
     on_update_read_message_comments(dialog_id, message_id, max_message_id, last_read_inbox_message_id,
-                                    last_read_outbox_message_id);
+                                    last_read_outbox_message_id, message_thread_info.unread_message_count);
   }
   promise.set_value(std::move(message_thread_info));
 }

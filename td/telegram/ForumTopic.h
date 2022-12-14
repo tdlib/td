@@ -42,6 +42,10 @@ class ForumTopic {
     return is_short_;
   }
 
+  bool update_last_read_outbox_message_id(MessageId last_read_outbox_message_id);
+
+  bool update_last_read_inbox_message_id(MessageId last_read_inbox_message_id, int32 unread_count);
+
   DialogNotificationSettings *get_notification_settings() {
     return &notification_settings_;
   }

@@ -42,6 +42,25 @@ ForumTopic::ForumTopic(Td *td, tl_object_ptr<telegram_api::ForumTopic> &&forum_t
   unread_reaction_count_ = forum_topic->unread_reactions_count_;
 }
 
+bool ForumTopic::update_last_read_outbox_message_id(MessageId last_read_outbox_message_id) {
+  if (last_read_outbox_message_id <= last_read_outbox_message_id_) {
+    return false;
+  }
+  last_read_outbox_message_id_ = last_read_outbox_message_id;
+  return true;
+}
+
+bool ForumTopic::update_last_read_inbox_message_id(MessageId last_read_inbox_message_id, int32 unread_count) {
+  if (last_read_inbox_message_id <= last_read_inbox_message_id_) {
+    return false;
+  }
+  last_read_inbox_message_id_ = last_read_inbox_message_id;
+  if (unread_count >= 0) {
+    unread_count_ = unread_count;
+  }
+  return true;
+}
+
 td_api::object_ptr<td_api::forumTopic> ForumTopic::get_forum_topic_object(Td *td, DialogId dialog_id,
                                                                           const ForumTopicInfo &info) const {
   if (info.is_empty()) {

@@ -456,6 +456,26 @@ void ForumTopicManager::edit_forum_topic(DialogId dialog_id, MessageId top_threa
       ->send(channel_id, top_thread_message_id, edit_title, new_title, edit_icon_custom_emoji, icon_custom_emoji_id);
 }
 
+void ForumTopicManager::on_update_forum_topic_unread(DialogId dialog_id, MessageId top_thread_message_id,
+                                                     MessageId last_message_id, MessageId last_read_inbox_message_id,
+                                                     MessageId last_read_outbox_message_id, int32 unread_count) {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+
+  auto topic = get_topic(dialog_id, top_thread_message_id);
+  if (topic == nullptr || topic->topic_ == nullptr) {
+    return;
+  }
+
+  if (topic->topic_->update_last_read_outbox_message_id(last_read_outbox_message_id)) {
+    // TODO send updates
+  }
+  if (topic->topic_->update_last_read_inbox_message_id(last_read_inbox_message_id, unread_count)) {
+    // TODO send updates
+  }
+}
+
 DialogNotificationSettings *ForumTopicManager::get_forum_topic_notification_settings(DialogId dialog_id,
                                                                                      MessageId top_thread_message_id) {
   auto topic = get_topic(dialog_id, top_thread_message_id);
