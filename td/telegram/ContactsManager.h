@@ -367,7 +367,7 @@ class ContactsManager final : public Actor {
                          Promise<Unit> &&promise);
 
   void set_user_profile_photo(UserId user_id, const td_api::object_ptr<td_api::InputChatPhoto> &input_photo,
-                              Promise<Unit> &&promise);
+                              bool only_suggest, Promise<Unit> &&promise);
 
   void send_update_profile_photo_query(FileId file_id, int64 old_photo_id, bool is_fallback, Promise<Unit> &&promise);
 
@@ -1345,9 +1345,9 @@ class ContactsManager final : public Actor {
   void apply_pending_user_photo(User *u, UserId user_id);
 
   void set_profile_photo_impl(UserId user_id, const td_api::object_ptr<td_api::InputChatPhoto> &input_photo,
-                              bool is_fallback, Promise<Unit> &&promise);
+                              bool is_fallback, bool only_suggest, Promise<Unit> &&promise);
 
-  void upload_profile_photo(UserId user_id, FileId file_id, bool is_fallback, bool is_animation,
+  void upload_profile_photo(UserId user_id, FileId file_id, bool is_fallback, bool only_suggest, bool is_animation,
                             double main_frame_timestamp, Promise<Unit> &&promise, int reupload_count = 0,
                             vector<int> bad_parts = {});
 
@@ -1877,15 +1877,17 @@ class ContactsManager final : public Actor {
   struct UploadedProfilePhoto {
     UserId user_id;
     bool is_fallback;
+    bool only_suggest;
     double main_frame_timestamp;
     bool is_animation;
     int reupload_count;
     Promise<Unit> promise;
 
-    UploadedProfilePhoto(UserId user_id, bool is_fallback, double main_frame_timestamp, bool is_animation,
-                         int32 reupload_count, Promise<Unit> promise)
+    UploadedProfilePhoto(UserId user_id, bool is_fallback, bool only_suggest, double main_frame_timestamp,
+                         bool is_animation, int32 reupload_count, Promise<Unit> promise)
         : user_id(user_id)
         , is_fallback(is_fallback)
+        , only_suggest(only_suggest)
         , main_frame_timestamp(main_frame_timestamp)
         , is_animation(is_animation)
         , reupload_count(reupload_count)

@@ -6826,7 +6826,13 @@ void Td::on_request(uint64 id, const td_api::clearImportedContacts &request) {
 void Td::on_request(uint64 id, td_api::setUserPersonalProfilePhoto &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  contacts_manager_->set_user_profile_photo(UserId(request.user_id_), request.photo_, std::move(promise));
+  contacts_manager_->set_user_profile_photo(UserId(request.user_id_), request.photo_, false, std::move(promise));
+}
+
+void Td::on_request(uint64 id, td_api::suggestUserPersonalProfilePhoto &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  contacts_manager_->set_user_profile_photo(UserId(request.user_id_), request.photo_, true, std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::searchUserByPhoneNumber &request) {

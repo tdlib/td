@@ -4815,6 +4815,34 @@ class CliClient final : public Actor {
           td_api::make_object<td_api::setProfilePhoto>(td_api::make_object<td_api::inputChatPhotoAnimation>(
                                                            as_input_file(animation), to_double(main_frame_timestamp)),
                                                        op == "sppaf"));
+    } else if (op == "suppp") {
+      UserId user_id;
+      string photo;
+      get_args(args, user_id, photo);
+      send_request(td_api::make_object<td_api::setUserPersonalProfilePhoto>(
+          user_id, td_api::make_object<td_api::inputChatPhotoStatic>(as_input_file(photo))));
+    } else if (op == "supppa") {
+      UserId user_id;
+      string animation;
+      string main_frame_timestamp;
+      get_args(args, user_id, animation, main_frame_timestamp);
+      send_request(td_api::make_object<td_api::setUserPersonalProfilePhoto>(
+          user_id, td_api::make_object<td_api::inputChatPhotoAnimation>(as_input_file(animation),
+                                                                        to_double(main_frame_timestamp))));
+    } else if (op == "suuppp") {
+      UserId user_id;
+      string photo;
+      get_args(args, user_id, photo);
+      send_request(td_api::make_object<td_api::suggestUserPersonalProfilePhoto>(
+          user_id, td_api::make_object<td_api::inputChatPhotoStatic>(as_input_file(photo))));
+    } else if (op == "suupppa") {
+      UserId user_id;
+      string animation;
+      string main_frame_timestamp;
+      get_args(args, user_id, animation, main_frame_timestamp);
+      send_request(td_api::make_object<td_api::suggestUserPersonalProfilePhoto>(
+          user_id, td_api::make_object<td_api::inputChatPhotoAnimation>(as_input_file(animation),
+                                                                        to_double(main_frame_timestamp))));
     } else if (op == "sh") {
       const string &prefix = args;
       send_request(td_api::make_object<td_api::searchHashtags>(prefix, 10));
