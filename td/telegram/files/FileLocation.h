@@ -724,8 +724,7 @@ struct FullLocalFileLocation {
     return *this;
   }
 
-  // TODO: remove this constructor
-  FullLocalFileLocation() : file_type_(FileType::Photo) {
+  FullLocalFileLocation() : file_type_(FileType::None), path_(), mtime_nsec_() {
   }
   FullLocalFileLocation(FileType file_type, string path, uint64 mtime_nsec)
       : file_type_(file_type), path_(std::move(path)), mtime_nsec_(mtime_nsec) {
