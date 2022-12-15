@@ -88,6 +88,7 @@ class AttachMenuManager final : public Actor {
     bool supports_group_dialogs_ = false;
     bool supports_broadcast_dialogs_ = false;
     bool supports_settings_ = false;
+    bool request_write_access_ = false;
     string name_;
     AttachMenuBotColor name_color_;
     FileId default_icon_file_id_;
@@ -98,7 +99,7 @@ class AttachMenuManager final : public Actor {
     AttachMenuBotColor icon_color_;
     FileId placeholder_file_id_;
 
-    static constexpr uint32 CACHE_VERSION = 1;
+    static constexpr uint32 CACHE_VERSION = 2;
     uint32 cache_version_ = 0;
 
     template <class StorerT>

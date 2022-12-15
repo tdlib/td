@@ -311,8 +311,8 @@ bool operator==(const AttachMenuManager::AttachMenuBot &lhs, const AttachMenuMan
          lhs.supports_bot_dialogs_ == rhs.supports_bot_dialogs_ &&
          lhs.supports_group_dialogs_ == rhs.supports_group_dialogs_ &&
          lhs.supports_broadcast_dialogs_ == rhs.supports_broadcast_dialogs_ &&
-         lhs.supports_settings_ == rhs.supports_settings_ && lhs.name_ == rhs.name_ &&
-         lhs.default_icon_file_id_ == rhs.default_icon_file_id_ &&
+         lhs.supports_settings_ == rhs.supports_settings_ && lhs.request_write_access_ == rhs.request_write_access_ &&
+         lhs.name_ == rhs.name_ && lhs.default_icon_file_id_ == rhs.default_icon_file_id_ &&
          lhs.ios_static_icon_file_id_ == rhs.ios_static_icon_file_id_ &&
          lhs.ios_animated_icon_file_id_ == rhs.ios_animated_icon_file_id_ &&
          lhs.android_icon_file_id_ == rhs.android_icon_file_id_ && lhs.macos_icon_file_id_ == rhs.macos_icon_file_id_ &&
@@ -352,6 +352,7 @@ void AttachMenuManager::AttachMenuBot::store(StorerT &storer) const {
   STORE_FLAG(supports_settings_);
   STORE_FLAG(has_placeholder_file_id);
   STORE_FLAG(has_cache_version);
+  STORE_FLAG(request_write_access_);
   END_STORE_FLAGS();
   td::store(user_id_, storer);
   td::store(name_, storer);
@@ -410,6 +411,7 @@ void AttachMenuManager::AttachMenuBot::parse(ParserT &parser) {
   PARSE_FLAG(supports_settings_);
   PARSE_FLAG(has_placeholder_file_id);
   PARSE_FLAG(has_cache_version);
+  PARSE_FLAG(request_write_access_);
   END_PARSE_FLAGS();
   td::parse(user_id_, parser);
   td::parse(name_, parser);
@@ -816,6 +818,7 @@ Result<AttachMenuManager::AttachMenuBot> AttachMenuManager::get_attach_menu_bot(
     }
   }
   attach_menu_bot.supports_settings_ = bot->has_settings_;
+  attach_menu_bot.request_write_access_ = bot->request_write_access_;
   if (!attach_menu_bot.default_icon_file_id_.is_valid()) {
     return Status::Error(PSLICE() << "Have no default icon for " << user_id);
   }
@@ -1057,7 +1060,7 @@ td_api::object_ptr<td_api::attachmentMenuBot> AttachMenuManager::get_attachment_
   return td_api::make_object<td_api::attachmentMenuBot>(
       td_->contacts_manager_->get_user_id_object(bot.user_id_, "get_attachment_menu_bot_object"),
       bot.supports_self_dialog_, bot.supports_user_dialogs_, bot.supports_bot_dialogs_, bot.supports_group_dialogs_,
-      bot.supports_broadcast_dialogs_, bot.supports_settings_, bot.name_,
+      bot.supports_broadcast_dialogs_, bot.supports_settings_, bot.request_write_access_, bot.name_,
       get_attach_menu_bot_color_object(bot.name_color_), get_file(bot.default_icon_file_id_),
       get_file(bot.ios_static_icon_file_id_), get_file(bot.ios_animated_icon_file_id_),
       get_file(bot.android_icon_file_id_), get_file(bot.macos_icon_file_id_),
