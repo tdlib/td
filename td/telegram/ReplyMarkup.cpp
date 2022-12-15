@@ -27,6 +27,7 @@ static constexpr int32 REPLY_MARKUP_FLAG_NEED_RESIZE_KEYBOARD = 1 << 0;
 static constexpr int32 REPLY_MARKUP_FLAG_IS_ONE_TIME_KEYBOARD = 1 << 1;
 static constexpr int32 REPLY_MARKUP_FLAG_IS_PERSONAL = 1 << 2;
 static constexpr int32 REPLY_MARKUP_FLAG_HAS_PLACEHOLDER = 1 << 3;
+static constexpr int32 REPLY_MARKUP_FLAG_IS_PERSISTENT = 1 << 4;
 
 static bool operator==(const KeyboardButton &lhs, const KeyboardButton &rhs) {
   return lhs.type == rhs.type && lhs.text == rhs.text;
@@ -122,8 +123,8 @@ bool operator==(const ReplyMarkup &lhs, const ReplyMarkup &rhs) {
   if (lhs.type != ReplyMarkup::Type::ShowKeyboard) {
     return true;
   }
-  return lhs.need_resize_keyboard == rhs.need_resize_keyboard && lhs.is_one_time_keyboard == rhs.is_one_time_keyboard &&
-         lhs.keyboard == rhs.keyboard;
+  return lhs.is_persistent == rhs.is_persistent && lhs.need_resize_keyboard == rhs.need_resize_keyboard &&
+         lhs.is_one_time_keyboard == rhs.is_one_time_keyboard && lhs.keyboard == rhs.keyboard;
 }
 
 bool operator!=(const ReplyMarkup &lhs, const ReplyMarkup &rhs) {
@@ -156,6 +157,9 @@ StringBuilder &ReplyMarkup::print(StringBuilder &string_builder) const {
   }
 
   if (type == ReplyMarkup::Type::ShowKeyboard) {
+    if (is_persistent) {
+      string_builder << ", persistent";
+    }
     if (need_resize_keyboard) {
       string_builder << ", need resize";
     }
@@ -366,6 +370,7 @@ unique_ptr<ReplyMarkup> get_reply_markup(tl_object_ptr<telegram_api::ReplyMarkup
     case telegram_api::replyKeyboardMarkup::ID: {
       auto keyboard_markup = move_tl_object_as<telegram_api::replyKeyboardMarkup>(reply_markup_ptr);
       reply_markup->type = ReplyMarkup::Type::ShowKeyboard;
+      reply_markup->is_persistent = (keyboard_markup->flags_ & REPLY_MARKUP_FLAG_IS_PERSISTENT) != 0;
       reply_markup->need_resize_keyboard = (keyboard_markup->flags_ & REPLY_MARKUP_FLAG_NEED_RESIZE_KEYBOARD) != 0;
       reply_markup->is_one_time_keyboard = (keyboard_markup->flags_ & REPLY_MARKUP_FLAG_IS_ONE_TIME_KEYBOARD) != 0;
       reply_markup->is_personal = (keyboard_markup->flags_ & REPLY_MARKUP_FLAG_IS_PERSONAL) != 0;
@@ -632,6 +637,7 @@ Result<unique_ptr<ReplyMarkup>> get_reply_markup(tl_object_ptr<td_api::ReplyMark
     case td_api::replyMarkupShowKeyboard::ID: {
       auto show_keyboard_markup = move_tl_object_as<td_api::replyMarkupShowKeyboard>(reply_markup_ptr);
       reply_markup->type = ReplyMarkup::Type::ShowKeyboard;
+      reply_markup->is_persistent = show_keyboard_markup->is_persistent_;
       reply_markup->need_resize_keyboard = show_keyboard_markup->resize_keyboard_;
       reply_markup->is_one_time_keyboard = show_keyboard_markup->one_time_;
       reply_markup->is_personal = show_keyboard_markup->is_personal_;
@@ -840,7 +846,8 @@ tl_object_ptr<telegram_api::ReplyMarkup> ReplyMarkup::get_input_reply_markup(Con
       }
       LOG(DEBUG) << "Return replyKeyboardMarkup to send it";
       return make_tl_object<telegram_api::replyKeyboardMarkup>(
-          need_resize_keyboard * REPLY_MARKUP_FLAG_NEED_RESIZE_KEYBOARD +
+          is_persistent * REPLY_MARKUP_FLAG_IS_PERSISTENT +
+              need_resize_keyboard * REPLY_MARKUP_FLAG_NEED_RESIZE_KEYBOARD +
               is_one_time_keyboard * REPLY_MARKUP_FLAG_IS_ONE_TIME_KEYBOARD +
               is_personal * REPLY_MARKUP_FLAG_IS_PERSONAL + (!placeholder.empty()) * REPLY_MARKUP_FLAG_HAS_PLACEHOLDER,
           false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, std::move(rows), placeholder);
@@ -966,7 +973,7 @@ tl_object_ptr<td_api::ReplyMarkup> ReplyMarkup::get_reply_markup_object(Contacts
         rows.push_back(std::move(buttons));
       }
 
-      return make_tl_object<td_api::replyMarkupShowKeyboard>(std::move(rows), need_resize_keyboard,
+      return make_tl_object<td_api::replyMarkupShowKeyboard>(std::move(rows), is_persistent, need_resize_keyboard,
                                                              is_one_time_keyboard, is_personal, placeholder);
     }
     case ReplyMarkup::Type::RemoveKeyboard:

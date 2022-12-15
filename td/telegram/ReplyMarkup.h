@@ -64,6 +64,7 @@ struct ReplyMarkup {
 
   bool is_personal = false;  // for ShowKeyboard, RemoveKeyboard, ForceReply
 
+  bool is_persistent = false;               // for ShowKeyboard
   bool need_resize_keyboard = false;        // for ShowKeyboard
   bool is_one_time_keyboard = false;        // for ShowKeyboard
   vector<vector<KeyboardButton>> keyboard;  // for ShowKeyboard
