@@ -4266,6 +4266,7 @@ void ContactsManager::UserFull::store(StorerT &storer) const {
   bool has_description_animation = description_animation_file_id.is_valid();
   bool has_premium_gift_options = !premium_gift_options.empty();
   bool has_personal_photo = !personal_photo.is_empty();
+  bool has_fallback_photo = !fallback_photo.is_empty();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_about);
   STORE_FLAG(is_blocked);
@@ -4286,6 +4287,7 @@ void ContactsManager::UserFull::store(StorerT &storer) const {
   STORE_FLAG(has_premium_gift_options);
   STORE_FLAG(voice_messages_forbidden);
   STORE_FLAG(has_personal_photo);
+  STORE_FLAG(has_fallback_photo);
   END_STORE_FLAGS();
   if (has_about) {
     store(about, storer);
@@ -4326,6 +4328,9 @@ void ContactsManager::UserFull::store(StorerT &storer) const {
   if (has_personal_photo) {
     store(personal_photo, storer);
   }
+  if (has_fallback_photo) {
+    store(fallback_photo, storer);
+  }
 }
 
 template <class ParserT>
@@ -4343,6 +4348,7 @@ void ContactsManager::UserFull::parse(ParserT &parser) {
   bool has_description_animation;
   bool has_premium_gift_options;
   bool has_personal_photo;
+  bool has_fallback_photo;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(has_about);
   PARSE_FLAG(is_blocked);
@@ -4363,6 +4369,7 @@ void ContactsManager::UserFull::parse(ParserT &parser) {
   PARSE_FLAG(has_premium_gift_options);
   PARSE_FLAG(voice_messages_forbidden);
   PARSE_FLAG(has_personal_photo);
+  PARSE_FLAG(has_fallback_photo);
   END_PARSE_FLAGS();
   if (has_about) {
     parse(about, parser);
@@ -4402,6 +4409,9 @@ void ContactsManager::UserFull::parse(ParserT &parser) {
   }
   if (has_personal_photo) {
     parse(personal_photo, parser);
+  }
+  if (has_fallback_photo) {
+    parse(fallback_photo, parser);
   }
 }
 
@@ -10745,6 +10755,7 @@ void ContactsManager::on_load_user_full_from_database(UserId user_id, string val
   if (u->photo.id != user_full_photo_id) {
     user_full->photo = Photo();
     user_full->personal_photo = Photo();
+    user_full->fallback_photo = Photo();
     if (u->photo.id > 0) {
       user_full->expires_at = 0.0;
     }
@@ -10754,6 +10765,9 @@ void ContactsManager::on_load_user_full_from_database(UserId user_id, string val
   }
   if (!user_full->personal_photo.is_empty()) {
     register_user_photo(u, user_id, user_full->personal_photo);
+  }
+  if (!user_full->fallback_photo.is_empty()) {
+    register_user_photo(u, user_id, user_full->fallback_photo);
   }
 
   td_->group_call_manager_->on_update_dialog_about(DialogId(user_id), user_full->about, false);
@@ -11747,15 +11761,21 @@ void ContactsManager::on_get_user_full(tl_object_ptr<telegram_api::userFull> &&u
 
   auto photo = get_photo(td_->file_manager_.get(), std::move(user->profile_photo_), DialogId(user_id));
   auto personal_photo = get_photo(td_->file_manager_.get(), std::move(user->personal_photo_), DialogId(user_id));
+  auto fallback_photo = get_photo(td_->file_manager_.get(), std::move(user->fallback_photo_), DialogId(user_id));
   // do_update_user_photo should be a no-op if server sent consistent data
+  const Photo *photo_ptr = nullptr;
+  bool is_personal = false;
   if (!personal_photo.is_empty()) {
-    do_update_user_photo(u, user_id,
-                         as_profile_photo(td_->file_manager_.get(), user_id, u->access_hash, personal_photo, true),
-                         false, "on_get_user_full");
+    photo_ptr = &personal_photo;
+    is_personal = true;
+  } else if (!photo.is_empty()) {
+    photo_ptr = &photo;
   } else {
-    do_update_user_photo(u, user_id, as_profile_photo(td_->file_manager_.get(), user_id, u->access_hash, photo, false),
-                         false, "on_get_user_full");
+    photo_ptr = &fallback_photo;
   }
+  do_update_user_photo(u, user_id,
+                       as_profile_photo(td_->file_manager_.get(), user_id, u->access_hash, *photo_ptr, is_personal),
+                       false, "on_get_user_full");
   if (photo != user_full->photo) {
     user_full->photo = std::move(photo);
     user_full->is_changed = true;
@@ -11764,14 +11784,20 @@ void ContactsManager::on_get_user_full(tl_object_ptr<telegram_api::userFull> &&u
     user_full->personal_photo = std::move(personal_photo);
     user_full->is_changed = true;
   }
+  if (fallback_photo != user_full->fallback_photo) {
+    user_full->fallback_photo = std::move(fallback_photo);
+    user_full->is_changed = true;
+  }
   if (!user_full->photo.is_empty()) {
     register_user_photo(u, user_id, user_full->photo);
   }
   if (!user_full->personal_photo.is_empty()) {
     register_user_photo(u, user_id, user_full->personal_photo);
   }
-  if (user_full->photo.is_empty() && user_full->personal_photo.is_empty()) {
-    // TODO drop separately
+  if (!user_full->fallback_photo.is_empty()) {
+    register_user_photo(u, user_id, user_full->fallback_photo);
+  }
+  if (photo_ptr->is_empty()) {
     drop_user_photos(user_id, true, false, "on_get_user_full");
   }
 
@@ -12485,7 +12511,7 @@ void ContactsManager::do_update_user_photo(User *u, UserId user_id, ProfilePhoto
       if (user_full != nullptr) {
         auto user_full_photo_id = get_user_full_profile_photo_id(user_full);
         if (u->photo.id == 0 || u->photo.id != user_full_photo_id) {
-          // if profile photo is unknown, we must drop both photos
+          // if profile photo is unknown, we must drop all photos
           if (!user_full->photo.is_empty()) {
             user_full->photo = Photo();
             user_full->is_changed = true;
@@ -12493,6 +12519,13 @@ void ContactsManager::do_update_user_photo(User *u, UserId user_id, ProfilePhoto
           if (!user_full->personal_photo.is_empty()) {
             user_full->personal_photo = Photo();
             user_full->is_changed = true;
+          }
+          if (!user_full->fallback_photo.is_empty()) {
+            user_full->fallback_photo = Photo();
+            user_full->is_changed = true;
+          }
+          if (u->photo.id > 0 && user_full->is_changed) {
+            user_full->expires_at = 0.0;
           }
         }
         if (user_full->is_update_user_full_sent) {
@@ -12871,7 +12904,10 @@ int64 ContactsManager::get_user_full_profile_photo_id(const UserFull *user_full)
   if (!user_full->personal_photo.is_empty()) {
     return user_full->personal_photo.id.get();
   }
-  return user_full->photo.id.get();
+  if (!user_full->photo.is_empty()) {
+    return user_full->photo.id.get();
+  }
+  return user_full->fallback_photo.id.get();
 }
 
 void ContactsManager::add_set_profile_photo_to_cache(UserId user_id, Photo &&photo) {
@@ -12972,11 +13008,8 @@ bool ContactsManager::delete_profile_photo_from_cache(UserId user_id, int64 prof
   auto user_full = get_user_full_force(user_id);
 
   // check that user_full photo is empty or coincides with u->photo
-  if (user_full != nullptr && (!user_full->personal_photo.is_empty() || !user_full->photo.is_empty())) {
-    auto user_full_photo_id = get_user_full_profile_photo_id(user_full);
-    if (user_full_photo_id == profile_photo_id) {
-      CHECK(is_main_photo_deleted);
-    }
+  if (user_full != nullptr && get_user_full_profile_photo_id(user_full) == profile_photo_id) {
+    CHECK(is_main_photo_deleted);
   }
 
   // update ProfilePhoto in User
@@ -12999,6 +13032,10 @@ bool ContactsManager::delete_profile_photo_from_cache(UserId user_id, int64 prof
     if (user_full != nullptr) {
       if (user_full->personal_photo.id.get() == profile_photo_id) {
         user_full->personal_photo = Photo();
+        user_full->is_changed = true;
+      }
+      if (user_full->fallback_photo.id.get() == profile_photo_id) {
+        user_full->fallback_photo = Photo();
         user_full->is_changed = true;
       }
       if (have_new_photo) {
@@ -13055,6 +13092,10 @@ void ContactsManager::drop_user_photos(UserId user_id, bool is_empty, bool drop_
         user_full->personal_photo = Photo();
         user_full->is_changed = true;
       }
+      if (!user_full->fallback_photo.is_empty()) {
+        user_full->fallback_photo = Photo();
+        user_full->is_changed = true;
+      }
       if (!is_empty) {
         if (user_full->expires_at > 0.0) {
           user_full->expires_at = 0.0;
@@ -13082,6 +13123,7 @@ void ContactsManager::drop_user_full(UserId user_id) {
 
   user_full->photo = Photo();
   user_full->personal_photo = Photo();
+  user_full->fallback_photo = Photo();
   user_full->is_blocked = false;
   user_full->can_be_called = false;
   user_full->supports_video_calls = false;
@@ -17806,6 +17848,7 @@ tl_object_ptr<td_api::userFullInfo> ContactsManager::get_user_full_info_object(U
   auto voice_messages_forbidden = is_premium ? user_full->voice_messages_forbidden : false;
   return make_tl_object<td_api::userFullInfo>(
       get_chat_photo_object(td_->file_manager_.get(), user_full->photo),
+      get_chat_photo_object(td_->file_manager_.get(), user_full->fallback_photo),
       get_chat_photo_object(td_->file_manager_.get(), user_full->personal_photo), user_full->is_blocked,
       user_full->can_be_called, user_full->supports_video_calls, user_full->has_private_calls,
       !user_full->private_forward_name.empty(), voice_messages_forbidden,

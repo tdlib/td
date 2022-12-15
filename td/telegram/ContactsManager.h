@@ -776,6 +776,7 @@ class ContactsManager final : public Actor {
   // do not forget to update drop_user_full and on_get_user_full
   struct UserFull {
     Photo photo;
+    Photo fallback_photo;
     Photo personal_photo;
 
     string about;
@@ -1155,6 +1156,7 @@ class ContactsManager final : public Actor {
   static constexpr int32 USER_FULL_FLAG_HAS_BROADCAST_ADMINISTRATOR_RIGHTS = 1 << 18;
   static constexpr int32 USER_FULL_FLAG_HAS_VOICE_MESSAGES_FORBIDDEN = 1 << 20;
   static constexpr int32 USER_FULL_FLAG_HAS_PERSONAL_PHOTO = 1 << 21;
+  static constexpr int32 USER_FULL_FLAG_HAS_FALLBACK_PHOTO = 1 << 22;
 
   static constexpr int32 CHAT_FLAG_USER_IS_CREATOR = 1 << 0;
   static constexpr int32 CHAT_FLAG_USER_HAS_LEFT = 1 << 2;
