@@ -590,6 +590,41 @@ class UpdateProfilePhotoQuery final : public Td::ResultHandler {
   }
 };
 
+class DeleteContactProfilePhotoQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  UserId user_id_;
+
+ public:
+  explicit DeleteContactProfilePhotoQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(UserId user_id, tl_object_ptr<telegram_api::InputUser> &&input_user) {
+    CHECK(input_user != nullptr);
+    user_id_ = user_id;
+
+    int32 flags = 0;
+    flags |= telegram_api::photos_uploadContactProfilePhoto::SAVE_MASK;
+    send_query(G()->net_query_creator().create(
+        telegram_api::photos_uploadContactProfilePhoto(flags, false /*ignored*/, false /*ignored*/,
+                                                       std::move(input_user), nullptr, nullptr, 0),
+        {{user_id}}));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::photos_uploadContactProfilePhoto>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    td_->contacts_manager_->on_set_profile_photo(user_id_, result_ptr.move_as_ok(), false, 0);
+    promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class DeleteProfilePhotoQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   int64 profile_photo_id_;
@@ -7007,6 +7042,10 @@ void ContactsManager::set_user_profile_photo(UserId user_id,
   }
   if (user_id == get_my_id()) {
     return promise.set_error(Status::Error(400, "Can't set personal photo to self"));
+  }
+  if (input_photo == nullptr) {
+    td_->create_handler<DeleteContactProfilePhotoQuery>(std::move(promise))->send(user_id, r_input_user.move_as_ok());
+    return;
   }
 
   set_profile_photo_impl(user_id, input_photo, false, only_suggest, std::move(promise));

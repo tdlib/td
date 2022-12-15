@@ -4829,6 +4829,10 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::setUserPersonalProfilePhoto>(
           user_id, td_api::make_object<td_api::inputChatPhotoAnimation>(as_input_file(animation),
                                                                         to_double(main_frame_timestamp))));
+    } else if (op == "suppe") {
+      UserId user_id;
+      get_args(args, user_id);
+      send_request(td_api::make_object<td_api::setUserPersonalProfilePhoto>(user_id, nullptr));
     } else if (op == "suuppp") {
       UserId user_id;
       string photo;
