@@ -4799,20 +4799,22 @@ class CliClient final : public Actor {
       bool force_full;
       get_args(args, url, force_full);
       send_request(td_api::make_object<td_api::getWebPageInstantView>(url, force_full));
-    } else if (op == "sppp") {
+    } else if (op == "sppp" || op == "spppf") {
       int64 profile_photo_id;
       get_args(args, profile_photo_id);
       send_request(td_api::make_object<td_api::setProfilePhoto>(
-          td_api::make_object<td_api::inputChatPhotoPrevious>(profile_photo_id)));
-    } else if (op == "spp") {
+          td_api::make_object<td_api::inputChatPhotoPrevious>(profile_photo_id), op == "spppf"));
+    } else if (op == "spp" || op == "sppf") {
       send_request(td_api::make_object<td_api::setProfilePhoto>(
-          td_api::make_object<td_api::inputChatPhotoStatic>(as_input_file(args))));
-    } else if (op == "sppa" || op == "sppv") {
+          td_api::make_object<td_api::inputChatPhotoStatic>(as_input_file(args)), op == "sppf"));
+    } else if (op == "sppa" || op == "sppaf") {
       string animation;
       string main_frame_timestamp;
       get_args(args, animation, main_frame_timestamp);
-      send_request(td_api::make_object<td_api::setProfilePhoto>(td_api::make_object<td_api::inputChatPhotoAnimation>(
-          as_input_file(animation), to_double(main_frame_timestamp))));
+      send_request(
+          td_api::make_object<td_api::setProfilePhoto>(td_api::make_object<td_api::inputChatPhotoAnimation>(
+                                                           as_input_file(animation), to_double(main_frame_timestamp)),
+                                                       op == "sppaf"));
     } else if (op == "sh") {
       const string &prefix = args;
       send_request(td_api::make_object<td_api::searchHashtags>(prefix, 10));

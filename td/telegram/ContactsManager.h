@@ -188,7 +188,8 @@ class ContactsManager final : public Actor {
   void on_update_user_common_chat_count(UserId user_id, int32 common_chat_count);
   void on_update_user_need_phone_number_privacy_exception(UserId user_id, bool need_phone_number_privacy_exception);
 
-  void on_set_profile_photo(UserId user_id, tl_object_ptr<telegram_api::photos_photo> &&photo, int64 old_photo_id);
+  void on_set_profile_photo(UserId user_id, tl_object_ptr<telegram_api::photos_photo> &&photo, bool is_fallback,
+                            int64 old_photo_id);
 
   void on_delete_profile_photo(int64 profile_photo_id, Promise<Unit> promise);
 
@@ -362,12 +363,13 @@ class ContactsManager final : public Actor {
 
   FileId get_profile_photo_file_id(int64 photo_id) const;
 
-  void set_profile_photo(const td_api::object_ptr<td_api::InputChatPhoto> &input_photo, Promise<Unit> &&promise);
+  void set_profile_photo(const td_api::object_ptr<td_api::InputChatPhoto> &input_photo, bool is_fallback,
+                         Promise<Unit> &&promise);
 
   void set_user_profile_photo(UserId user_id, const td_api::object_ptr<td_api::InputChatPhoto> &input_photo,
                               Promise<Unit> &&promise);
 
-  void send_update_profile_photo_query(FileId file_id, int64 old_photo_id, Promise<Unit> &&promise);
+  void send_update_profile_photo_query(FileId file_id, int64 old_photo_id, bool is_fallback, Promise<Unit> &&promise);
 
   void delete_profile_photo(int64 profile_photo_id, Promise<Unit> &&promise);
 
@@ -1343,10 +1345,11 @@ class ContactsManager final : public Actor {
   void apply_pending_user_photo(User *u, UserId user_id);
 
   void set_profile_photo_impl(UserId user_id, const td_api::object_ptr<td_api::InputChatPhoto> &input_photo,
-                              Promise<Unit> &&promise);
+                              bool is_fallback, Promise<Unit> &&promise);
 
-  void upload_profile_photo(UserId user_id, FileId file_id, bool is_animation, double main_frame_timestamp,
-                            Promise<Unit> &&promise, int reupload_count = 0, vector<int> bad_parts = {});
+  void upload_profile_photo(UserId user_id, FileId file_id, bool is_fallback, bool is_animation,
+                            double main_frame_timestamp, Promise<Unit> &&promise, int reupload_count = 0,
+                            vector<int> bad_parts = {});
 
   void on_upload_profile_photo(FileId file_id, tl_object_ptr<telegram_api::InputFile> input_file);
   void on_upload_profile_photo_error(FileId file_id, Status status);
@@ -1364,7 +1367,7 @@ class ContactsManager final : public Actor {
 
   UserPhotos *add_user_photos(UserId user_id);
   int64 get_user_full_profile_photo_id(const UserFull *user_full);
-  void add_set_profile_photo_to_cache(UserId user_id, Photo &&photo);
+  void add_set_profile_photo_to_cache(UserId user_id, Photo &&photo, bool is_fallback);
   bool delete_profile_photo_from_cache(UserId user_id, int64 profile_photo_id, bool send_updates);
   void drop_user_photos(UserId user_id, bool is_empty, bool drop_user_full_photo, const char *source);
   void drop_user_full(UserId user_id);
@@ -1873,14 +1876,16 @@ class ContactsManager final : public Actor {
 
   struct UploadedProfilePhoto {
     UserId user_id;
+    bool is_fallback;
     double main_frame_timestamp;
     bool is_animation;
     int reupload_count;
     Promise<Unit> promise;
 
-    UploadedProfilePhoto(UserId user_id, double main_frame_timestamp, bool is_animation, int32 reupload_count,
-                         Promise<Unit> promise)
+    UploadedProfilePhoto(UserId user_id, bool is_fallback, double main_frame_timestamp, bool is_animation,
+                         int32 reupload_count, Promise<Unit> promise)
         : user_id(user_id)
+        , is_fallback(is_fallback)
         , main_frame_timestamp(main_frame_timestamp)
         , is_animation(is_animation)
         , reupload_count(reupload_count)

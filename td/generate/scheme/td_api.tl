@@ -7153,8 +7153,8 @@ getWebPagePreview text:formattedText = WebPage;
 getWebPageInstantView url:string force_full:Bool = WebPageInstantView;
 
 
-//@description Changes a profile photo for the current user @photo Profile photo to set
-setProfilePhoto photo:InputChatPhoto = Ok;
+//@description Changes a profile photo for the current user @photo Profile photo to set @is_fallback Pass true to set a fallback photo, which will be visible even the main photo is hidden by privacy settings
+setProfilePhoto photo:InputChatPhoto is_fallback:Bool = Ok;
 
 //@description Deletes a profile photo @profile_photo_id Identifier of the profile photo to delete
 deleteProfilePhoto profile_photo_id:int64 = Ok;
