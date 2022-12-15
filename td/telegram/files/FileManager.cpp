@@ -861,6 +861,7 @@ string FileManager::get_file_name(FileType file_type, Slice path) {
       break;
     case FileType::ProfilePhoto:
     case FileType::Photo:
+    case FileType::PhotoWithSpoiler:
       if (extension != "jpg" && extension != "jpeg" && extension != "gif" && extension != "png" && extension != "tif" &&
           extension != "bmp") {
         return fix_file_extension(file_name, "photo", "jpg");
@@ -873,6 +874,7 @@ string FileManager::get_file_name(FileType file_type, Slice path) {
       }
       break;
     case FileType::Video:
+    case FileType::VideoWithSpoiler:
     case FileType::VideoNote:
       if (extension != "mov" && extension != "3gp" && extension != "mpeg4" && extension != "mp4" &&
           extension != "mkv") {
@@ -902,13 +904,13 @@ string FileManager::get_file_name(FileType file_type, Slice path) {
       }
       break;
     case FileType::Document:
+    case FileType::DocumentAsFile:
     case FileType::Animation:
     case FileType::Encrypted:
     case FileType::Temp:
     case FileType::EncryptedThumbnail:
     case FileType::SecureEncrypted:
     case FileType::SecureDecrypted:
-    case FileType::DocumentAsFile:
     case FileType::CallLog:
       break;
     default:
@@ -3278,7 +3280,8 @@ Result<FileId> FileManager::get_input_file_id(FileType type, const tl_object_ptr
           return FileId();
         }
         string hash;
-        if (G()->get_option_boolean("reuse_uploaded_photos_by_hash") && new_type == FileType::Photo) {
+        if (G()->get_option_boolean("reuse_uploaded_photos_by_hash") &&
+            get_main_file_type(new_type) == FileType::Photo) {
           auto r_stat = stat(path);
           if (r_stat.is_ok() && r_stat.ok().size_ > 0 && r_stat.ok().size_ < 11000000) {
             auto r_file_content = read_file_str(path, r_stat.ok().size_);

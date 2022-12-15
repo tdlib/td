@@ -393,6 +393,7 @@ class FullRemoteFileLocation {
             auto &thumbnail = source.thumbnail();
             switch (thumbnail.file_type) {
               case FileType::Photo:
+              case FileType::PhotoWithSpoiler:
                 return make_tl_object<telegram_api::inputPhotoFileLocation>(
                     id, access_hash, BufferSlice(file_reference_),
                     std::string(1, static_cast<char>(static_cast<uint8>(thumbnail.thumbnail_type))));

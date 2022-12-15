@@ -93,6 +93,10 @@ tl_object_ptr<td_api::FileType> get_file_type_object(FileType file_type) {
       return make_tl_object<td_api::fileTypeNotificationSound>();
     case FileType::CallLog:
       return make_tl_object<td_api::fileTypeDocument>();
+    case FileType::PhotoWithSpoiler:
+      return make_tl_object<td_api::fileTypePhoto>();
+    case FileType::VideoWithSpoiler:
+      return make_tl_object<td_api::fileTypeVideo>();
     case FileType::None:
       return make_tl_object<td_api::fileTypeNone>();
     default:
@@ -111,13 +115,17 @@ FileType get_main_file_type(FileType file_type) {
       return FileType::Document;
     case FileType::CallLog:
       return FileType::Document;
+    case FileType::PhotoWithSpoiler:
+      return FileType::Photo;
+    case FileType::VideoWithSpoiler:
+      return FileType::Video;
     default:
       return file_type;
   }
 }
 
 CSlice get_file_type_name(FileType file_type) {
-  switch (file_type) {
+  switch (get_main_file_type(file_type)) {
     case FileType::Thumbnail:
       return CSlice("thumbnails");
     case FileType::ProfilePhoto:
@@ -142,24 +150,14 @@ CSlice get_file_type_name(FileType file_type) {
       return CSlice("animations");
     case FileType::EncryptedThumbnail:
       return CSlice("secret_thumbnails");
-    case FileType::Wallpaper:
-      return CSlice("wallpapers");
     case FileType::VideoNote:
       return CSlice("video_notes");
-    case FileType::SecureDecrypted:
-      return CSlice("passport");
     case FileType::SecureEncrypted:
       return CSlice("passport");
     case FileType::Background:
       return CSlice("wallpapers");
-    case FileType::DocumentAsFile:
-      return CSlice("documents");
     case FileType::Ringtone:
       return CSlice("notification_sounds");
-    case FileType::CallLog:
-      return CSlice("documents");
-    case FileType::Size:
-    case FileType::None:
     default:
       UNREACHABLE();
       return CSlice("none");
@@ -173,6 +171,7 @@ FileTypeClass get_file_type_class(FileType file_type) {
     case FileType::Thumbnail:
     case FileType::EncryptedThumbnail:
     case FileType::Wallpaper:
+    case FileType::PhotoWithSpoiler:
       return FileTypeClass::Photo;
     case FileType::Video:
     case FileType::VoiceNote:
@@ -185,6 +184,7 @@ FileTypeClass get_file_type_class(FileType file_type) {
     case FileType::DocumentAsFile:
     case FileType::Ringtone:
     case FileType::CallLog:
+    case FileType::VideoWithSpoiler:
       return FileTypeClass::Document;
     case FileType::SecureDecrypted:
     case FileType::SecureEncrypted:
@@ -247,6 +247,10 @@ StringBuilder &operator<<(StringBuilder &string_builder, FileType file_type) {
       return string_builder << "NotificationSound";
     case FileType::CallLog:
       return string_builder << "CallLog";
+    case FileType::PhotoWithSpoiler:
+      return string_builder << "PhotoWithSpoiler";
+    case FileType::VideoWithSpoiler:
+      return string_builder << "VideoWithSpoiler";
     case FileType::Size:
     case FileType::None:
     default:
@@ -274,11 +278,10 @@ FileDirType get_file_dir_type(FileType file_type) {
 }
 
 bool is_file_big(FileType file_type, int64 expected_size) {
+  if (get_file_type_class(file_type) == FileTypeClass::Photo) {
+    return false;
+  }
   switch (file_type) {
-    case FileType::Thumbnail:
-    case FileType::ProfilePhoto:
-    case FileType::Photo:
-    case FileType::EncryptedThumbnail:
     case FileType::VideoNote:
     case FileType::Ringtone:
     case FileType::CallLog:

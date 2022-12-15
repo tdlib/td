@@ -454,8 +454,13 @@ tl_object_ptr<telegram_api::InputMedia> photo_get_input_media(FileManager *file_
     if (ttl != 0) {
       flags |= telegram_api::inputMediaUploadedPhoto::TTL_SECONDS_MASK;
     }
-    if (ttl != 0) {
-      flags |= telegram_api::inputMediaUploadedPhoto::TTL_SECONDS_MASK;
+
+    CHECK(!photo.photos.empty());
+    auto file_id = photo.photos.back().file_id;
+    auto file_view = file_manager->get_file_view(file_id);
+    auto file_type = file_view.get_type();
+    if (file_type == FileType::PhotoWithSpoiler) {
+      flags |= telegram_api::inputMediaUploadedPhoto::SPOILER_MASK;
     }
 
     return make_tl_object<telegram_api::inputMediaUploadedPhoto>(flags, false /*ignored*/, std::move(input_file),

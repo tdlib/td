@@ -673,7 +673,8 @@ tl_object_ptr<telegram_api::InputMedia> DocumentsManager::get_input_media(
     if (input_thumbnail != nullptr) {
       flags |= telegram_api::inputMediaUploadedDocument::THUMB_MASK;
     }
-    if (file_view.get_type() == FileType::DocumentAsFile) {
+    auto file_type = file_view.get_type();
+    if (file_type == FileType::DocumentAsFile) {
       flags |= telegram_api::inputMediaUploadedDocument::FORCE_FILE_MASK;
     }
     return make_tl_object<telegram_api::inputMediaUploadedDocument>(

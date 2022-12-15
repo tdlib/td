@@ -9023,7 +9023,7 @@ void MessagesManager::report_dialog_photo(DialogId dialog_id, FileId file_id, Re
   if (file_view.empty()) {
     return promise.set_error(Status::Error(400, "Unknown file ID"));
   }
-  if (file_view.get_type() != FileType::Photo || !file_view.has_remote_location() ||
+  if (get_main_file_type(file_view.get_type()) != FileType::Photo || !file_view.has_remote_location() ||
       !file_view.remote_location().is_photo()) {
     return promise.set_error(Status::Error(400, "Only full chat photos can be reported"));
   }
@@ -26512,7 +26512,7 @@ void MessagesManager::do_send_message(DialogId dialog_id, const Message *m, vect
       if (content_type == MessageContentType::Game || content_type == MessageContentType::Poll) {
         return;
       }
-      if (file_view.get_type() == FileType::Photo) {
+      if (get_main_file_type(file_view.get_type()) == FileType::Photo) {
         thumbnail_file_id = FileId();
       }
 

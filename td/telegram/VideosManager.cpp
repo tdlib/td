@@ -8,6 +8,7 @@
 
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/files/FileManager.h"
+#include "td/telegram/files/FileType.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/PhotoFormat.h"
 #include "td/telegram/secret_api.h"
@@ -278,6 +279,10 @@ tl_object_ptr<telegram_api::InputMedia> VideosManager::get_input_media(
     }
     if (input_thumbnail != nullptr) {
       flags |= telegram_api::inputMediaUploadedDocument::THUMB_MASK;
+    }
+    auto file_type = file_view.get_type();
+    if (file_type == FileType::VideoWithSpoiler) {
+      flags |= telegram_api::inputMediaUploadedDocument::SPOILER_MASK;
     }
     return make_tl_object<telegram_api::inputMediaUploadedDocument>(
         flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, std::move(input_file),

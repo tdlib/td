@@ -2193,8 +2193,8 @@ Result<InputMessageContent> get_input_message_content(
     }
     case td_api::inputMessagePhoto::ID: {
       auto input_message = static_cast<td_api::inputMessagePhoto *>(input_message_content.get());
-      r_file_id =
-          td->file_manager_->get_input_file_id(FileType::Photo, input_message->photo_, dialog_id, false, is_secret);
+      auto file_type = input_message->has_spoiler_ ? FileType::PhotoWithSpoiler : FileType::Photo;
+      r_file_id = td->file_manager_->get_input_file_id(file_type, input_message->photo_, dialog_id, false, is_secret);
       input_thumbnail = std::move(input_message->thumbnail_);
       if (!input_message->added_sticker_file_ids_.empty()) {
         sticker_file_ids = td->stickers_manager_->get_attached_sticker_file_ids(input_message->added_sticker_file_ids_);
@@ -2210,8 +2210,8 @@ Result<InputMessageContent> get_input_message_content(
     }
     case td_api::inputMessageVideo::ID: {
       auto input_message = static_cast<td_api::inputMessageVideo *>(input_message_content.get());
-      r_file_id =
-          td->file_manager_->get_input_file_id(FileType::Video, input_message->video_, dialog_id, false, is_secret);
+      auto file_type = input_message->has_spoiler_ ? FileType::VideoWithSpoiler : FileType::Video;
+      r_file_id = td->file_manager_->get_input_file_id(file_type, input_message->video_, dialog_id, false, is_secret);
       input_thumbnail = std::move(input_message->thumbnail_);
       if (!input_message->added_sticker_file_ids_.empty()) {
         sticker_file_ids = td->stickers_manager_->get_attached_sticker_file_ids(input_message->added_sticker_file_ids_);
@@ -2638,8 +2638,11 @@ tl_object_ptr<telegram_api::InputMedia> get_fake_input_media(Td *td, tl_object_p
     }
     string mime_type = MimeType::from_extension(path_view.extension());
     int32 flags = 0;
-    if (file_type == FileType::Video) {
+    if (file_type == FileType::Video || file_type == FileType::VideoWithSpoiler) {
       flags |= telegram_api::inputMediaUploadedDocument::NOSOUND_VIDEO_MASK;
+    }
+    if (file_type == FileType::VideoWithSpoiler) {
+      flags |= telegram_api::inputMediaUploadedDocument::SPOILER_MASK;
     }
     if (file_type == FileType::DocumentAsFile) {
       flags |= telegram_api::inputMediaUploadedDocument::FORCE_FILE_MASK;
@@ -2648,9 +2651,13 @@ tl_object_ptr<telegram_api::InputMedia> get_fake_input_media(Td *td, tl_object_p
         flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, std::move(input_file), nullptr, mime_type,
         std::move(attributes), vector<tl_object_ptr<telegram_api::InputDocument>>(), 0);
   } else {
-    CHECK(file_type == FileType::Photo);
+    CHECK(file_type == FileType::Photo || file_type == FileType::PhotoWithSpoiler);
+    int32 flags = 0;
+    if (file_type == FileType::PhotoWithSpoiler) {
+      flags |= telegram_api::inputMediaUploadedPhoto::SPOILER_MASK;
+    }
     return make_tl_object<telegram_api::inputMediaUploadedPhoto>(
-        0, false /*ignored*/, std::move(input_file), vector<tl_object_ptr<telegram_api::InputDocument>>(), 0);
+        flags, false /*ignored*/, std::move(input_file), vector<tl_object_ptr<telegram_api::InputDocument>>(), 0);
   }
 }
 
@@ -3468,7 +3475,7 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
                      old_file_view.main_remote_location().get_access_hash() !=
                          new_file_view.remote_location().get_access_hash()) {
             FileId file_id = td->file_manager_->register_remote(
-                FullRemoteFileLocation(PhotoSizeSource::thumbnail(FileType::Photo, 'i'),
+                FullRemoteFileLocation(PhotoSizeSource::thumbnail(new_file_view.get_type(), 'i'),
                                        new_file_view.remote_location().get_id(),
                                        new_file_view.remote_location().get_access_hash(), DcId::invalid(),
                                        new_file_view.remote_location().get_file_reference().str()),
