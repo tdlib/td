@@ -10741,8 +10741,7 @@ void ContactsManager::on_load_user_full_from_database(UserId user_id, string val
 
   User *u = get_user(user_id);
   CHECK(u != nullptr);
-  auto user_full_photo_id =
-      !user_full->personal_photo.is_empty() ? user_full->personal_photo.id.get() : user_full->photo.id.get();
+  auto user_full_photo_id = get_user_full_profile_photo_id(user_full);
   if (u->photo.id != user_full_photo_id) {
     user_full->photo = Photo();
     user_full->personal_photo = Photo();
@@ -12484,7 +12483,7 @@ void ContactsManager::do_update_user_photo(User *u, UserId user_id, ProfilePhoto
     } else {
       auto user_full = get_user_full(user_id);  // must not load UserFull
       if (user_full != nullptr) {
-        auto user_full_photo_id = u->photo.is_personal ? user_full->personal_photo.id.get() : user_full->photo.id.get();
+        auto user_full_photo_id = get_user_full_profile_photo_id(user_full);
         if (u->photo.id == 0 || u->photo.id != user_full_photo_id) {
           // if profile photo is unknown, we must drop both photos
           if (!user_full->photo.is_empty()) {
@@ -12868,6 +12867,13 @@ void ContactsManager::on_delete_profile_photo(int64 profile_photo_id, Promise<Un
   promise.set_value(Unit());
 }
 
+int64 ContactsManager::get_user_full_profile_photo_id(const UserFull *user_full) {
+  if (!user_full->personal_photo.is_empty()) {
+    return user_full->personal_photo.id.get();
+  }
+  return user_full->photo.id.get();
+}
+
 void ContactsManager::add_set_profile_photo_to_cache(UserId user_id, Photo &&photo) {
   if (photo.is_empty()) {
     return;
@@ -12967,8 +12973,7 @@ bool ContactsManager::delete_profile_photo_from_cache(UserId user_id, int64 prof
 
   // check that user_full photo is empty or coincides with u->photo
   if (user_full != nullptr && (!user_full->personal_photo.is_empty() || !user_full->photo.is_empty())) {
-    auto user_full_photo_id =
-        !user_full->personal_photo.is_empty() ? user_full->personal_photo.id.get() : user_full->photo.id.get();
+    auto user_full_photo_id = get_user_full_profile_photo_id(user_full);
     if (user_full_photo_id == profile_photo_id) {
       CHECK(is_main_photo_deleted);
     }

@@ -1361,6 +1361,7 @@ class ContactsManager final : public Actor {
                                                                bool need_phone_number_privacy_exception) const;
 
   UserPhotos *add_user_photos(UserId user_id);
+  int64 get_user_full_profile_photo_id(const UserFull *user_full);
   void add_set_profile_photo_to_cache(UserId user_id, Photo &&photo);
   bool delete_profile_photo_from_cache(UserId user_id, int64 profile_photo_id, bool send_updates);
   void drop_user_photos(UserId user_id, bool is_empty, bool drop_user_full_photo, const char *source);
