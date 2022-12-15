@@ -3641,8 +3641,10 @@ class CliClient final : public Actor {
     } else if (op == "tbiatam") {
       UserId user_id;
       bool is_added;
-      get_args(args, user_id, is_added);
-      send_request(td_api::make_object<td_api::toggleBotIsAddedToAttachmentMenu>(user_id, is_added));
+      bool allow_write_access;
+      get_args(args, user_id, is_added, allow_write_access);
+      send_request(
+          td_api::make_object<td_api::toggleBotIsAddedToAttachmentMenu>(user_id, is_added, allow_write_access));
     } else if (op == "gwau") {
       UserId user_id;
       string url;

@@ -50,7 +50,8 @@ class AttachMenuManager final : public Actor {
 
   FileSourceId get_attach_menu_bot_file_source_id(UserId user_id);
 
-  void toggle_bot_is_added_to_attach_menu(UserId user_id, bool is_added, Promise<Unit> &&promise);
+  void toggle_bot_is_added_to_attach_menu(UserId user_id, bool is_added, bool allow_write_access,
+                                          Promise<Unit> &&promise);
 
   void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
 

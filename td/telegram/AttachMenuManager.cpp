@@ -257,8 +257,11 @@ class ToggleBotInAttachMenuQuery final : public Td::ResultHandler {
   explicit ToggleBotInAttachMenuQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(tl_object_ptr<telegram_api::InputUser> &&input_user, bool is_added) {
+  void send(tl_object_ptr<telegram_api::InputUser> &&input_user, bool is_added, bool allow_write_access) {
     int32 flags = 0;
+    if (is_added && allow_write_access) {
+      flags |= telegram_api::messages_toggleBotInAttachMenu::WRITE_ALLOWED_MASK;
+    }
     send_query(G()->net_query_creator().create(
         telegram_api::messages_toggleBotInAttachMenu(flags, false /*ignored*/, std::move(input_user), is_added)));
   }
@@ -996,7 +999,8 @@ FileSourceId AttachMenuManager::get_attach_menu_bot_file_source_id(UserId user_i
   return source_id;
 }
 
-void AttachMenuManager::toggle_bot_is_added_to_attach_menu(UserId user_id, bool is_added, Promise<Unit> &&promise) {
+void AttachMenuManager::toggle_bot_is_added_to_attach_menu(UserId user_id, bool is_added, bool allow_write_access,
+                                                           Promise<Unit> &&promise) {
   CHECK(is_active());
 
   TRY_RESULT_PROMISE(promise, input_user, td_->contacts_manager_->get_input_user(user_id));
@@ -1030,7 +1034,8 @@ void AttachMenuManager::toggle_bot_is_added_to_attach_menu(UserId user_id, bool 
         }
       });
 
-  td_->create_handler<ToggleBotInAttachMenuQuery>(std::move(query_promise))->send(std::move(input_user), is_added);
+  td_->create_handler<ToggleBotInAttachMenuQuery>(std::move(query_promise))
+      ->send(std::move(input_user), is_added, allow_write_access);
 }
 
 td_api::object_ptr<td_api::attachmentMenuBot> AttachMenuManager::get_attachment_menu_bot_object(

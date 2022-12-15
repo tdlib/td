@@ -6212,7 +6212,7 @@ void Td::on_request(uint64 id, const td_api::toggleBotIsAddedToAttachmentMenu &r
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
   attach_menu_manager_->toggle_bot_is_added_to_attach_menu(UserId(request.bot_user_id_), request.is_added_,
-                                                           std::move(promise));
+                                                           request.allow_write_access_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::setChatAvailableReactions &request) {
