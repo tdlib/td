@@ -1227,12 +1227,6 @@ class ContactsManager final : public Actor {
   static constexpr int32 CHANNEL_FULL_FLAG_HAS_AVAILABLE_REACTIONS = 1 << 30;
   static constexpr int32 CHANNEL_FULL_FLAG2_HAS_ANTISPAM = 1 << 1;
 
-  static constexpr int32 CHAT_INVITE_FLAG_IS_CHANNEL = 1 << 0;
-  static constexpr int32 CHAT_INVITE_FLAG_IS_BROADCAST = 1 << 1;
-  static constexpr int32 CHAT_INVITE_FLAG_IS_PUBLIC = 1 << 2;
-  static constexpr int32 CHAT_INVITE_FLAG_IS_MEGAGROUP = 1 << 3;
-  static constexpr int32 CHAT_INVITE_FLAG_HAS_USERS = 1 << 4;
-
   static constexpr int32 USER_FULL_EXPIRE_TIME = 60;
   static constexpr int32 CHANNEL_FULL_EXPIRE_TIME = 60;
 

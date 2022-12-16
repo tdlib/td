@@ -11581,49 +11581,26 @@ void ContactsManager::on_get_user_full(tl_object_ptr<telegram_api::userFull> &&u
 
   td_->messages_manager_->on_update_dialog_theme_name(DialogId(user_id), std::move(user->theme_emoticon_));
 
-  {
-    MessageId pinned_message_id;
-    if ((user->flags_ & USER_FULL_FLAG_HAS_PINNED_MESSAGE) != 0) {
-      pinned_message_id = MessageId(ServerMessageId(user->pinned_msg_id_));
-    }
-    td_->messages_manager_->on_update_dialog_last_pinned_message_id(DialogId(user_id), pinned_message_id);
-  }
-  {
-    FolderId folder_id;
-    if ((user->flags_ & USER_FULL_FLAG_HAS_FOLDER_ID) != 0) {
-      folder_id = FolderId(user->folder_id_);
-    }
-    td_->messages_manager_->on_update_dialog_folder_id(DialogId(user_id), folder_id);
-  }
-  td_->messages_manager_->on_update_dialog_has_scheduled_server_messages(
-      DialogId(user_id), (user->flags_ & USER_FULL_FLAG_HAS_SCHEDULED_MESSAGES) != 0);
-  {
-    MessageTtl message_ttl;
-    if ((user->flags_ & USER_FULL_FLAG_HAS_MESSAGE_TTL) != 0) {
-      message_ttl = MessageTtl(user->ttl_period_);
-    }
-    td_->messages_manager_->on_update_dialog_message_ttl(DialogId(user_id), message_ttl);
-  }
+  td_->messages_manager_->on_update_dialog_last_pinned_message_id(DialogId(user_id),
+                                                                  MessageId(ServerMessageId(user->pinned_msg_id_)));
+
+  td_->messages_manager_->on_update_dialog_folder_id(DialogId(user_id), FolderId(user->folder_id_));
+
+  td_->messages_manager_->on_update_dialog_has_scheduled_server_messages(DialogId(user_id), user->has_scheduled_);
+
+  td_->messages_manager_->on_update_dialog_message_ttl(DialogId(user_id), MessageTtl(user->ttl_period_));
+
+  td_->messages_manager_->on_update_dialog_is_blocked(DialogId(user_id), user->blocked_);
 
   UserFull *user_full = add_user_full(user_id);
   user_full->expires_at = Time::now() + USER_FULL_EXPIRE_TIME;
 
-  {
-    bool is_blocked = (user->flags_ & USER_FULL_FLAG_IS_BLOCKED) != 0;
-    on_update_user_full_is_blocked(user_full, user_id, is_blocked);
-    td_->messages_manager_->on_update_dialog_is_blocked(DialogId(user_id), is_blocked);
-  }
-
+  on_update_user_full_is_blocked(user_full, user_id, user->blocked_);
   on_update_user_full_common_chat_count(user_full, user_id, user->common_chats_count_);
   on_update_user_full_need_phone_number_privacy_exception(user_full, user_id,
                                                           user->settings_->need_contacts_exception_);
 
   bool can_pin_messages = user->can_pin_message_;
-  if (user_full->can_pin_messages != can_pin_messages) {
-    user_full->can_pin_messages = can_pin_messages;
-    user_full->is_changed = true;
-  }
-
   bool can_be_called = user->phone_calls_available_ && !user->phone_calls_private_;
   bool supports_video_calls = user->video_calls_available_ && !user->phone_calls_private_;
   bool has_private_calls = user->phone_calls_private_;
@@ -11636,7 +11613,8 @@ void ContactsManager::on_get_user_full(tl_object_ptr<telegram_api::userFull> &&u
       user_full->group_administrator_rights != group_administrator_rights ||
       user_full->broadcast_administrator_rights != broadcast_administrator_rights ||
       user_full->premium_gift_options != premium_gift_options ||
-      user_full->voice_messages_forbidden != voice_messages_forbidden) {
+      user_full->voice_messages_forbidden != voice_messages_forbidden ||
+      user_full->can_pin_messages != can_pin_messages) {
     user_full->can_be_called = can_be_called;
     user_full->supports_video_calls = supports_video_calls;
     user_full->has_private_calls = has_private_calls;
@@ -11644,6 +11622,7 @@ void ContactsManager::on_get_user_full(tl_object_ptr<telegram_api::userFull> &&u
     user_full->broadcast_administrator_rights = broadcast_administrator_rights;
     user_full->premium_gift_options = std::move(premium_gift_options);
     user_full->voice_messages_forbidden = voice_messages_forbidden;
+    user_full->can_pin_messages = can_pin_messages;
 
     user_full->is_changed = true;
   }
@@ -11892,31 +11871,22 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
       LOG(ERROR) << "Can't find " << chat_id;
       return promise.set_value(Unit());
     }
-    {
-      MessageId pinned_message_id;
-      if ((chat->flags_ & CHAT_FULL_FLAG_HAS_PINNED_MESSAGE) != 0) {
-        pinned_message_id = MessageId(ServerMessageId(chat->pinned_msg_id_));
-      }
-      if (c->version >= c->pinned_message_version) {
-        LOG(INFO) << "Receive pinned " << pinned_message_id << " in " << chat_id << " with version " << c->version
-                  << ". Current version is " << c->pinned_message_version;
-        td_->messages_manager_->on_update_dialog_last_pinned_message_id(DialogId(chat_id), pinned_message_id);
-        if (c->version > c->pinned_message_version) {
-          c->pinned_message_version = c->version;
-          c->need_save_to_database = true;
-          update_chat(c, chat_id);
-        }
+    if (c->version >= c->pinned_message_version) {
+      auto pinned_message_id = MessageId(ServerMessageId(chat->pinned_msg_id_));
+      LOG(INFO) << "Receive pinned " << pinned_message_id << " in " << chat_id << " with version " << c->version
+                << ". Current version is " << c->pinned_message_version;
+      td_->messages_manager_->on_update_dialog_last_pinned_message_id(DialogId(chat_id), pinned_message_id);
+      if (c->version > c->pinned_message_version) {
+        c->pinned_message_version = c->version;
+        c->need_save_to_database = true;
+        update_chat(c, chat_id);
       }
     }
-    {
-      FolderId folder_id;
-      if ((chat->flags_ & CHAT_FULL_FLAG_HAS_FOLDER_ID) != 0) {
-        folder_id = FolderId(chat->folder_id_);
-      }
-      td_->messages_manager_->on_update_dialog_folder_id(DialogId(chat_id), folder_id);
-    }
-    td_->messages_manager_->on_update_dialog_has_scheduled_server_messages(
-        DialogId(chat_id), (chat->flags_ & CHAT_FULL_FLAG_HAS_SCHEDULED_MESSAGES) != 0);
+
+    td_->messages_manager_->on_update_dialog_folder_id(DialogId(chat_id), FolderId(chat->folder_id_));
+
+    td_->messages_manager_->on_update_dialog_has_scheduled_server_messages(DialogId(chat_id), chat->has_scheduled_);
+
     {
       InputGroupCallId input_group_call_id;
       if (chat->call_ != nullptr) {
@@ -11924,6 +11894,7 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
       }
       td_->messages_manager_->on_update_dialog_group_call_id(DialogId(chat_id), input_group_call_id);
     }
+
     {
       DialogId default_join_group_call_as_dialog_id;
       if (chat->groupcall_default_join_as_ != nullptr) {
@@ -11934,13 +11905,8 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
                          &MessagesManager::on_update_dialog_default_join_group_call_as_dialog_id, DialogId(chat_id),
                          default_join_group_call_as_dialog_id, false);
     }
-    {
-      MessageTtl message_ttl;
-      if ((chat->flags_ & CHAT_FULL_FLAG_HAS_MESSAGE_TTL) != 0) {
-        message_ttl = MessageTtl(chat->ttl_period_);
-      }
-      td_->messages_manager_->on_update_dialog_message_ttl(DialogId(chat_id), message_ttl);
-    }
+
+    td_->messages_manager_->on_update_dialog_message_ttl(DialogId(chat_id), MessageTtl(chat->ttl_period_));
 
     ChatFull *chat_full = add_chat_full(chat_id);
     on_update_chat_full_invite_link(chat_full, std::move(chat->exported_invite_));
@@ -12024,13 +11990,7 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
     td_->messages_manager_->on_update_dialog_pending_join_requests(DialogId(channel_id), channel->requests_pending_,
                                                                    std::move(channel->recent_requesters_));
 
-    {
-      MessageTtl message_ttl;
-      if ((channel->flags_ & CHANNEL_FULL_FLAG_HAS_MESSAGE_TTL) != 0) {
-        message_ttl = MessageTtl(channel->ttl_period_);
-      }
-      td_->messages_manager_->on_update_dialog_message_ttl(DialogId(channel_id), message_ttl);
-    }
+    td_->messages_manager_->on_update_dialog_message_ttl(DialogId(channel_id), MessageTtl(channel->ttl_period_));
 
     auto c = get_channel(channel_id);
     if (c == nullptr) {
@@ -12052,15 +12012,15 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
     if (participant_count < administrator_count) {
       participant_count = administrator_count;
     }
-    auto restricted_count = (channel->flags_ & CHANNEL_FULL_FLAG_HAS_BANNED_COUNT) != 0 ? channel->banned_count_ : 0;
-    auto banned_count = (channel->flags_ & CHANNEL_FULL_FLAG_HAS_BANNED_COUNT) != 0 ? channel->kicked_count_ : 0;
-    auto can_get_participants = (channel->flags_ & CHANNEL_FULL_FLAG_CAN_GET_PARTICIPANTS) != 0;
-    auto can_set_username = (channel->flags_ & CHANNEL_FULL_FLAG_CAN_SET_USERNAME) != 0;
-    auto can_set_sticker_set = (channel->flags_ & CHANNEL_FULL_FLAG_CAN_SET_STICKER_SET) != 0;
-    auto can_set_location = (channel->flags_ & CHANNEL_FULL_FLAG_CAN_SET_LOCATION) != 0;
-    auto is_all_history_available = (channel->flags_ & CHANNEL_FULL_FLAG_IS_ALL_HISTORY_HIDDEN) == 0;
+    auto restricted_count = channel->banned_count_;
+    auto banned_count = channel->kicked_count_;
+    auto can_get_participants = channel->can_view_participants_;
+    auto can_set_username = channel->can_set_username_;
+    auto can_set_sticker_set = channel->can_set_stickers_;
+    auto can_set_location = channel->can_set_location_;
+    auto is_all_history_available = !channel->hidden_prehistory_;
     auto is_aggressive_anti_spam_enabled = channel->antispam_;
-    auto can_view_statistics = (channel->flags_ & CHANNEL_FULL_FLAG_CAN_VIEW_STATISTICS) != 0;
+    auto can_view_statistics = channel->can_view_stats_;
     StickerSetId sticker_set_id;
     if (channel->stickerset_ != nullptr) {
       sticker_set_id =
@@ -12137,26 +12097,15 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
 
     on_update_channel_full_invite_link(channel_full, std::move(channel->exported_invite_));
 
-    {
-      auto is_blocked = (channel->flags_ & CHANNEL_FULL_FLAG_IS_BLOCKED) != 0;
-      td_->messages_manager_->on_update_dialog_is_blocked(DialogId(channel_id), is_blocked);
-    }
-    {
-      MessageId pinned_message_id;
-      if ((channel->flags_ & CHANNEL_FULL_FLAG_HAS_PINNED_MESSAGE) != 0) {
-        pinned_message_id = MessageId(ServerMessageId(channel->pinned_msg_id_));
-      }
-      td_->messages_manager_->on_update_dialog_last_pinned_message_id(DialogId(channel_id), pinned_message_id);
-    }
-    {
-      FolderId folder_id;
-      if ((channel->flags_ & CHANNEL_FULL_FLAG_HAS_FOLDER_ID) != 0) {
-        folder_id = FolderId(channel->folder_id_);
-      }
-      td_->messages_manager_->on_update_dialog_folder_id(DialogId(channel_id), folder_id);
-    }
-    td_->messages_manager_->on_update_dialog_has_scheduled_server_messages(
-        DialogId(channel_id), (channel->flags_ & CHANNEL_FULL_FLAG_HAS_SCHEDULED_MESSAGES) != 0);
+    td_->messages_manager_->on_update_dialog_is_blocked(DialogId(channel_id), channel->blocked_);
+
+    td_->messages_manager_->on_update_dialog_last_pinned_message_id(
+        DialogId(channel_id), MessageId(ServerMessageId(channel->pinned_msg_id_)));
+
+    td_->messages_manager_->on_update_dialog_folder_id(DialogId(channel_id), FolderId(channel->folder_id_));
+
+    td_->messages_manager_->on_update_dialog_has_scheduled_server_messages(DialogId(channel_id),
+                                                                           channel->has_scheduled_);
     {
       InputGroupCallId input_group_call_id;
       if (channel->call_ != nullptr) {
@@ -12184,12 +12133,8 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
                          DialogId(channel_id), default_send_message_as_dialog_id, false);
     }
 
-    if (participant_count >= 190) {
-      int32 online_member_count = 0;
-      if ((channel->flags_ & CHANNEL_FULL_FLAG_HAS_ONLINE_MEMBER_COUNT) != 0) {
-        online_member_count = channel->online_count_;
-      }
-      td_->messages_manager_->on_update_dialog_online_member_count(DialogId(channel_id), online_member_count, true);
+    if (participant_count >= 190 || !can_get_participants) {
+      td_->messages_manager_->on_update_dialog_online_member_count(DialogId(channel_id), channel->online_count_, true);
     }
 
     vector<UserId> bot_user_ids;
@@ -12224,15 +12169,8 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
     on_update_channel_full_location(channel_full, channel_id, DialogLocation(std::move(channel->location_)));
 
     if (c->is_megagroup) {
-      int32 slow_mode_delay = 0;
-      int32 slow_mode_next_send_date = 0;
-      if ((channel->flags_ & CHANNEL_FULL_FLAG_HAS_SLOW_MODE_DELAY) != 0) {
-        slow_mode_delay = channel->slowmode_seconds_;
-      }
-      if ((channel->flags_ & CHANNEL_FULL_FLAG_HAS_SLOW_MODE_NEXT_SEND_DATE) != 0) {
-        slow_mode_next_send_date = channel->slowmode_next_send_date_;
-      }
-      on_update_channel_full_slow_mode_delay(channel_full, channel_id, slow_mode_delay, slow_mode_next_send_date);
+      on_update_channel_full_slow_mode_delay(channel_full, channel_id, channel->slowmode_seconds_,
+                                             channel->slowmode_next_send_date_);
     }
     if (channel_full->can_be_deleted != channel->can_delete_channel_) {
       channel_full->can_be_deleted = channel->can_delete_channel_;
@@ -12243,14 +12181,8 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
       c->need_save_to_database = true;
     }
 
-    ChatId migrated_from_chat_id;
-    MessageId migrated_from_max_message_id;
-
-    if ((channel->flags_ & CHANNEL_FULL_FLAG_MIGRATED_FROM) != 0) {
-      migrated_from_chat_id = ChatId(channel->migrated_from_chat_id_);
-      migrated_from_max_message_id = MessageId(ServerMessageId(channel->migrated_from_max_id_));
-    }
-
+    auto migrated_from_chat_id = ChatId(channel->migrated_from_chat_id_);
+    auto migrated_from_max_message_id = MessageId(ServerMessageId(channel->migrated_from_max_id_));
     if (channel_full->migrated_from_chat_id != migrated_from_chat_id ||
         channel_full->migrated_from_max_message_id != migrated_from_max_message_id) {
       channel_full->migrated_from_chat_id = migrated_from_chat_id;
@@ -14185,12 +14117,12 @@ void ContactsManager::on_get_dialog_invite_link_info(const string &invite_link,
       invite_link_info->participant_count = chat_invite->participants_count_;
       invite_link_info->participant_user_ids = std::move(participant_user_ids);
       invite_link_info->creates_join_request = std::move(chat_invite->request_needed_);
-      invite_link_info->is_chat = (chat_invite->flags_ & CHAT_INVITE_FLAG_IS_CHANNEL) == 0;
-      invite_link_info->is_channel = (chat_invite->flags_ & CHAT_INVITE_FLAG_IS_CHANNEL) != 0;
+      invite_link_info->is_chat = !chat_invite->channel_;
+      invite_link_info->is_channel = chat_invite->channel_;
 
-      bool is_broadcast = (chat_invite->flags_ & CHAT_INVITE_FLAG_IS_BROADCAST) != 0;
-      bool is_public = (chat_invite->flags_ & CHAT_INVITE_FLAG_IS_PUBLIC) != 0;
-      bool is_megagroup = (chat_invite->flags_ & CHAT_INVITE_FLAG_IS_MEGAGROUP) != 0;
+      bool is_broadcast = chat_invite->broadcast_;
+      bool is_public = chat_invite->public_;
+      bool is_megagroup = chat_invite->megagroup_;
 
       if (!invite_link_info->is_channel) {
         if (is_broadcast || is_public || is_megagroup) {
