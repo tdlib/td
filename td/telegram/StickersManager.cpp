@@ -3286,8 +3286,11 @@ bool StickersManager::has_input_media(FileId sticker_file_id, bool is_secret) co
       }
     } else if (!file_view.is_encrypted()) {
       if (sticker->set_id_.is_valid()) {
-        // stickers within a set can be sent by id and access_hash
-        return true;
+        const auto *sticker_set = get_sticker_set(sticker->set_id_);
+        if (sticker_set != nullptr && td::contains(sticker_set->sticker_ids_, sticker_file_id)) {
+          // stickers within a set can be sent by id and access_hash
+          return true;
+        }
       }
     }
   } else {
@@ -3301,7 +3304,8 @@ bool StickersManager::has_input_media(FileId sticker_file_id, bool is_secret) co
     CHECK(sticker != nullptr);
     if (sticker->set_id_.is_valid()) {
       // stickers within a set doesn't need to be duped
-      return true;
+      // but the sticker can be deleted any time from the set, so we are forced to dup it anyway
+      // return true;
     }
     // having remote location is not enough to have InputMedia, because the file may not have valid file_reference
     // also file_id needs to be duped, because upload can be called to repair the file_reference and every upload
@@ -3343,7 +3347,7 @@ SecretInputMedia StickersManager::get_secret_input_media(FileId sticker_file_id,
   if (sticker->set_id_.is_valid()) {
     const StickerSet *sticker_set = get_sticker_set(sticker->set_id_);
     CHECK(sticker_set != nullptr);
-    if (sticker_set->is_inited_) {
+    if (sticker_set->is_inited_ && td::contains(sticker_set->sticker_ids_, sticker_file_id)) {
       input_sticker_set = make_tl_object<secret_api::inputStickerSetShortName>(sticker_set->short_name_);
     } else {
       // TODO load sticker set
