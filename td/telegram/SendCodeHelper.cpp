@@ -16,8 +16,7 @@ void SendCodeHelper::on_sent_code(telegram_api::object_ptr<telegram_api::auth_se
   phone_code_hash_ = std::move(sent_code->phone_code_hash_);
   sent_code_info_ = get_sent_authentication_code_info(std::move(sent_code->type_));
   next_code_info_ = get_authentication_code_info(std::move(sent_code->next_type_));
-  next_code_timestamp_ =
-      Time::now() + ((sent_code->flags_ & SENT_CODE_FLAG_HAS_TIMEOUT) != 0 ? sent_code->timeout_ : 0);
+  next_code_timestamp_ = Time::now() + sent_code->timeout_;
 }
 
 void SendCodeHelper::on_phone_code_hash(string &&phone_code_hash) {

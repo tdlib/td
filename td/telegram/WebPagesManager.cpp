@@ -124,9 +124,7 @@ class GetWebPageQuery final : public Td::ResultHandler {
     if (ptr->get_id() == telegram_api::webPageNotModified::ID) {
       if (web_page_id_.is_valid()) {
         auto web_page = move_tl_object_as<telegram_api::webPageNotModified>(ptr);
-        int32 view_count = (web_page->flags_ & telegram_api::webPageNotModified::CACHED_PAGE_VIEWS_MASK) != 0
-                               ? web_page->cached_page_views_
-                               : 0;
+        int32 view_count = web_page->cached_page_views_;
         td_->web_pages_manager_->on_get_web_page_instant_view_view_count(web_page_id_, view_count);
         return promise_.set_value(std::move(web_page_id_));
       } else {
@@ -495,24 +493,16 @@ WebPageId WebPagesManager::on_get_web_page(tl_object_ptr<telegram_api::WebPage> 
       page->title = std::move(web_page->title_);
       page->description = std::move(web_page->description_);
       page->photo = get_photo(td_->file_manager_.get(), std::move(web_page->photo_), owner_dialog_id);
-      if (web_page->flags_ & WEBPAGE_FLAG_HAS_EMBEDDED_PREVIEW) {
-        page->embed_url = std::move(web_page->embed_url_);
-        page->embed_type = std::move(web_page->embed_type_);
+      page->embed_url = std::move(web_page->embed_url_);
+      page->embed_type = std::move(web_page->embed_type_);
+      page->embed_dimensions = get_dimensions(web_page->embed_width_, web_page->embed_height_, "webPage");
+      page->duration = web_page->duration_;
+      if (page->duration < 0) {
+        LOG(ERROR) << "Receive wrong web page duration " << page->duration;
+        page->duration = 0;
       }
-      if (web_page->flags_ & WEBPAGE_FLAG_HAS_EMBEDDED_PREVIEW_SIZE) {
-        page->embed_dimensions = get_dimensions(web_page->embed_width_, web_page->embed_height_, "webPage");
-      }
-      if (web_page->flags_ & WEBPAGE_FLAG_HAS_DURATION) {
-        page->duration = web_page->duration_;
-        if (page->duration < 0) {
-          LOG(ERROR) << "Receive wrong web page duration " << page->duration;
-          page->duration = 0;
-        }
-      }
-      if (web_page->flags_ & WEBPAGE_FLAG_HAS_AUTHOR) {
-        page->author = std::move(web_page->author_);
-      }
-      if (web_page->flags_ & WEBPAGE_FLAG_HAS_DOCUMENT) {
+      page->author = std::move(web_page->author_);
+      if (web_page->document_ != nullptr) {
         int32 document_id = web_page->document_->get_id();
         if (document_id == telegram_api::document::ID) {
           auto parsed_document = td_->documents_manager_->on_get_document(
@@ -535,7 +525,7 @@ WebPageId WebPagesManager::on_get_web_page(tl_object_ptr<telegram_api::WebPage> 
         }
         // TODO attribute->settings_
       }
-      if (web_page->flags_ & WEBPAGE_FLAG_HAS_INSTANT_VIEW) {
+      if (web_page->cached_page_ != nullptr) {
         on_get_web_page_instant_view(page.get(), std::move(web_page->cached_page_), web_page->hash_, owner_dialog_id);
       }
 
@@ -1500,7 +1490,7 @@ void WebPagesManager::on_get_web_page_instant_view(WebPage *web_page, tl_object_
             << " photos, " << videos.size() << " videos and " << voice_notes.size() << " voice notes";
   web_page->instant_view.page_blocks =
       get_web_page_blocks(td_, std::move(page->blocks_), animations, audios, documents, photos, videos, voice_notes);
-  web_page->instant_view.view_count = (page->flags_ & telegram_api::page::VIEWS_MASK) != 0 ? page->views_ : 0;
+  web_page->instant_view.view_count = page->views_;
   web_page->instant_view.is_v2 = page->v2_;
   web_page->instant_view.is_rtl = page->rtl_;
   web_page->instant_view.hash = hash;

@@ -1716,17 +1716,10 @@ InlineMessageContent create_inline_message_content(Td *td, FileId file_id,
     }
     case telegram_api::botInlineMessageMediaGeo::ID: {
       auto inline_message = move_tl_object_as<telegram_api::botInlineMessageMediaGeo>(bot_inline_message);
-      if ((inline_message->flags_ & telegram_api::botInlineMessageMediaGeo::PERIOD_MASK) != 0 &&
-          inline_message->period_ > 0) {
-        auto heading = (inline_message->flags_ & telegram_api::botInlineMessageMediaGeo::HEADING_MASK) != 0
-                           ? inline_message->heading_
-                           : 0;
-        auto approacing_notification_radius =
-            (inline_message->flags_ & telegram_api::botInlineMessageMediaGeo::PROXIMITY_NOTIFICATION_RADIUS_MASK) != 0
-                ? inline_message->proximity_notification_radius_
-                : 0;
-        result.message_content = make_unique<MessageLiveLocation>(
-            Location(inline_message->geo_), inline_message->period_, heading, approacing_notification_radius);
+      if (inline_message->period_ > 0) {
+        result.message_content =
+            make_unique<MessageLiveLocation>(Location(inline_message->geo_), inline_message->period_,
+                                             inline_message->heading_, inline_message->proximity_notification_radius_);
       } else {
         result.message_content = make_unique<MessageLocation>(Location(inline_message->geo_));
       }
@@ -4146,10 +4139,8 @@ static auto secret_to_telegram(secret_api::documentAttributeFilename &filename) 
 // documentAttributeVideo flags:# round_message:flags.0?true duration:int w:int h:int = DocumentAttribute;
 static auto secret_to_telegram(secret_api::documentAttributeVideo &video) {
   return make_tl_object<telegram_api::documentAttributeVideo>(
-      (video.flags_ & secret_api::documentAttributeVideo::ROUND_MESSAGE_MASK) != 0
-          ? telegram_api::documentAttributeVideo::ROUND_MESSAGE_MASK
-          : 0,
-      video.round_message_, false, video.duration_, video.w_, video.h_);
+      video.round_message_ ? telegram_api::documentAttributeVideo::ROUND_MESSAGE_MASK : 0, video.round_message_, false,
+      video.duration_, video.w_, video.h_);
 }
 
 static auto telegram_documentAttributeAudio(bool is_voice_note, int duration, string title, string performer,
@@ -4190,8 +4181,8 @@ static auto secret_to_telegram(secret_api::documentAttributeAudio45 &audio) {
 // documentAttributeAudio flags:# voice:flags.10?true duration:int title:flags.0?string
 //    performer:flags.1?string waveform:flags.2?bytes = DocumentAttribute;
 static auto secret_to_telegram(secret_api::documentAttributeAudio &audio) {
-  return telegram_documentAttributeAudio((audio.flags_ & secret_api::documentAttributeAudio::VOICE_MASK) != 0,
-                                         audio.duration_, audio.title_, audio.performer_, audio.waveform_.clone());
+  return telegram_documentAttributeAudio(audio.voice_, audio.duration_, audio.title_, audio.performer_,
+                                         audio.waveform_.clone());
 }
 
 static auto secret_to_telegram(std::vector<tl_object_ptr<secret_api::DocumentAttribute>> &attributes) {
@@ -5032,8 +5023,7 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
     }
     case telegram_api::messageActionPhoneCall::ID: {
       auto action = move_tl_object_as<telegram_api::messageActionPhoneCall>(action_ptr);
-      auto duration =
-          (action->flags_ & telegram_api::messageActionPhoneCall::DURATION_MASK) != 0 ? action->duration_ : 0;
+      auto duration = action->duration_;
       if (duration < 0) {
         LOG(ERROR) << "Receive invalid " << oneline(to_string(action));
         break;

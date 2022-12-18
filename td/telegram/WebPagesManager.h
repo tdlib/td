@@ -91,19 +91,6 @@ class WebPagesManager final : public Actor {
   int32 get_web_page_media_duration(WebPageId web_page_id) const;
 
  private:
-  static constexpr int32 WEBPAGE_FLAG_HAS_TYPE = 1 << 0;
-  static constexpr int32 WEBPAGE_FLAG_HAS_SITE_NAME = 1 << 1;
-  static constexpr int32 WEBPAGE_FLAG_HAS_TITLE = 1 << 2;
-  static constexpr int32 WEBPAGE_FLAG_HAS_DESCRIPTION = 1 << 3;
-  static constexpr int32 WEBPAGE_FLAG_HAS_PHOTO = 1 << 4;
-  static constexpr int32 WEBPAGE_FLAG_HAS_EMBEDDED_PREVIEW = 1 << 5;
-  static constexpr int32 WEBPAGE_FLAG_HAS_EMBEDDED_PREVIEW_SIZE = 1 << 6;
-  static constexpr int32 WEBPAGE_FLAG_HAS_DURATION = 1 << 7;
-  static constexpr int32 WEBPAGE_FLAG_HAS_AUTHOR = 1 << 8;
-  static constexpr int32 WEBPAGE_FLAG_HAS_DOCUMENT = 1 << 9;
-  static constexpr int32 WEBPAGE_FLAG_HAS_INSTANT_VIEW = 1 << 10;
-  static constexpr int32 WEBPAGE_FLAG_HAS_DOCUMENTS = 1 << 11;
-
   class WebPage;
 
   class WebPageInstantView;

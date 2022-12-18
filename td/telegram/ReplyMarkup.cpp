@@ -272,9 +272,8 @@ static InlineKeyboardButton get_inline_keyboard_button(
     }
     case telegram_api::keyboardButtonSwitchInline::ID: {
       auto keyboard_button = move_tl_object_as<telegram_api::keyboardButtonSwitchInline>(keyboard_button_ptr);
-      button.type = (keyboard_button->flags_ & telegram_api::keyboardButtonSwitchInline::SAME_PEER_MASK) != 0
-                        ? InlineKeyboardButton::Type::SwitchInlineCurrentDialog
-                        : InlineKeyboardButton::Type::SwitchInline;
+      button.type = keyboard_button->same_peer_ ? InlineKeyboardButton::Type::SwitchInlineCurrentDialog
+                                                : InlineKeyboardButton::Type::SwitchInline;
       button.text = std::move(keyboard_button->text_);
       button.data = std::move(keyboard_button->query_);
       break;

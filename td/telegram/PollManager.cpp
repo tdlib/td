@@ -1571,9 +1571,8 @@ PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll
       poll->is_updated_after_close = true;
       is_changed = true;
     }
-    int32 open_period =
-        (poll_server->flags_ & telegram_api::poll::CLOSE_PERIOD_MASK) != 0 ? poll_server->close_period_ : 0;
-    int32 close_date = (poll_server->flags_ & telegram_api::poll::CLOSE_DATE_MASK) != 0 ? poll_server->close_date_ : 0;
+    int32 open_period = poll_server->close_period_;
+    int32 close_date = poll_server->close_date_;
     if (close_date == 0 || open_period == 0) {
       close_date = 0;
       open_period = 0;

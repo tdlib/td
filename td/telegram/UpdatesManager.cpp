@@ -670,8 +670,7 @@ bool UpdatesManager::is_acceptable_message(const telegram_api::Message *message_
         return false;
       }
 
-      if (message->flags_ & MessagesManager::MESSAGE_FLAG_HAS_MEDIA) {
-        CHECK(message->media_ != nullptr);
+      if (message->media_ != nullptr) {
         auto media_id = message->media_->get_id();
         if (media_id == telegram_api::messageMediaContact::ID) {
           auto message_media_contact = static_cast<const telegram_api::messageMediaContact *>(message->media_.get());
@@ -953,8 +952,7 @@ void UpdatesManager::on_get_updates(tl_object_ptr<telegram_api::Updates> &&updat
         update->flags_ ^= MessagesManager::MESSAGE_FLAG_HAS_MEDIA;
       }
 
-      auto from_id = update->flags_ & MessagesManager::MESSAGE_FLAG_IS_OUT ? td_->contacts_manager_->get_my_id().get()
-                                                                           : update->user_id_;
+      auto from_id = update->out_ ? td_->contacts_manager_->get_my_id().get() : update->user_id_;
       update->flags_ |= MessagesManager::MESSAGE_FLAG_HAS_FROM_ID;
 
       auto message = make_tl_object<telegram_api::message>(
@@ -3100,11 +3098,7 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updatePeerSettings> u
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updatePeerHistoryTTL> update, Promise<Unit> &&promise) {
-  MessageTtl message_ttl;
-  if ((update->flags_ & telegram_api::updatePeerHistoryTTL::TTL_PERIOD_MASK) != 0) {
-    message_ttl = MessageTtl(update->ttl_period_);
-  }
-  td_->messages_manager_->on_update_dialog_message_ttl(DialogId(update->peer_), message_ttl);
+  td_->messages_manager_->on_update_dialog_message_ttl(DialogId(update->peer_), MessageTtl(update->ttl_period_));
   promise.set_value(Unit());
 }
 
@@ -3329,13 +3323,9 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateChatUserTyping>
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateChannelUserTyping> update, Promise<Unit> &&promise) {
-  MessageId top_thread_message_id;
-  if ((update->flags_ & telegram_api::updateChannelUserTyping::TOP_MSG_ID_MASK) != 0) {
-    top_thread_message_id = MessageId(ServerMessageId(update->top_msg_id_));
-  }
-  td_->messages_manager_->on_dialog_action(DialogId(ChannelId(update->channel_id_)), top_thread_message_id,
-                                           DialogId(update->from_id_), DialogAction(std::move(update->action_)),
-                                           get_short_update_date());
+  td_->messages_manager_->on_dialog_action(DialogId(ChannelId(update->channel_id_)),
+                                           MessageId(ServerMessageId(update->top_msg_id_)), DialogId(update->from_id_),
+                                           DialogAction(std::move(update->action_)), get_short_update_date());
   promise.set_value(Unit());
 }
 
@@ -3444,12 +3434,8 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateChatDefaultBann
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateDraftMessage> update, Promise<Unit> &&promise) {
-  MessageId top_thread_message_id;
-  if ((update->flags_ & telegram_api::updateDraftMessage::TOP_MSG_ID_MASK) != 0) {
-    top_thread_message_id = MessageId(ServerMessageId(update->top_msg_id_));
-  }
-  td_->messages_manager_->on_update_dialog_draft_message(DialogId(update->peer_), top_thread_message_id,
-                                                         std::move(update->draft_));
+  td_->messages_manager_->on_update_dialog_draft_message(
+      DialogId(update->peer_), MessageId(ServerMessageId(update->top_msg_id_)), std::move(update->draft_));
   promise.set_value(Unit());
 }
 
@@ -3460,8 +3446,7 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateDialogPinned> u
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updatePinnedDialogs> update, Promise<Unit> &&promise) {
-  FolderId folder_id(update->flags_ & telegram_api::updatePinnedDialogs::FOLDER_ID_MASK ? update->folder_id_ : 0);
-  td_->messages_manager_->on_update_pinned_dialogs(folder_id);  // TODO use update->order_
+  td_->messages_manager_->on_update_pinned_dialogs(FolderId(update->folder_id_));  // TODO use update->order_
   promise.set_value(Unit());
 }
 

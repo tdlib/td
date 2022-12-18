@@ -17402,8 +17402,7 @@ void ContactsManager::on_chat_update(telegram_api::channelForbidden &channel, co
     c->date = 0;
     c->is_changed = true;
   }
-  int32 unban_date = (channel.flags_ & CHANNEL_FLAG_HAS_UNBAN_DATE) != 0 ? channel.until_date_ : 0;
-  on_update_channel_status(c, channel_id, DialogParticipantStatus::Banned(unban_date));
+  on_update_channel_status(c, channel_id, DialogParticipantStatus::Banned(channel.until_date_));
   // on_update_channel_usernames(c, channel_id, Usernames());  // don't know if channel usernames are empty, so don't update it
   tl_object_ptr<telegram_api::chatBannedRights> banned_rights;  // == nullptr
   on_update_channel_default_permissions(c, channel_id, RestrictedRights(banned_rights));

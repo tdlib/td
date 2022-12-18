@@ -3444,9 +3444,7 @@ class SendMessageQuery final : public Td::ResultHandler {
                                                         std::move(sent_message->entities_));
 
     auto message_id = MessageId(ServerMessageId(sent_message->id_));
-    auto ttl_period = (sent_message->flags_ & telegram_api::updateShortSentMessage::TTL_PERIOD_MASK) != 0
-                          ? sent_message->ttl_period_
-                          : 0;
+    auto ttl_period = sent_message->ttl_period_;
     auto update = make_tl_object<updateSentMessage>(random_id_, message_id, sent_message->date_, ttl_period);
     if (dialog_id_.get_type() == DialogType::Channel) {
       td_->messages_manager_->add_pending_channel_update(dialog_id_, std::move(update), sent_message->pts_,
@@ -6874,10 +6872,8 @@ void MessagesManager::on_update_channel_too_long(tl_object_ptr<telegram_api::upd
     }
   }
 
-  int32 update_pts = (update->flags_ & UPDATE_CHANNEL_TO_LONG_FLAG_HAS_PTS) ? update->pts_ : 0;
-
   if (d != nullptr) {
-    if (update_pts == 0 || update_pts > d->pts) {
+    if (update->pts_ == 0 || update->pts_ > d->pts) {
       get_channel_difference(dialog_id, d->pts, true, "on_update_channel_too_long 1");
     }
   } else {
@@ -14559,8 +14555,7 @@ MessagesManager::MessageInfo MessagesManager::parse_telegram_api_message(
                            message_info.media_album_id != 0, new_source.c_str()),
           std::move(message->media_), message_info.dialog_id, is_content_read, message_info.via_bot_user_id,
           &message_info.ttl, &message_info.disable_web_page_preview, new_source.c_str());
-      message_info.reply_markup =
-          message->flags_ & MESSAGE_FLAG_HAS_REPLY_MARKUP ? std::move(message->reply_markup_) : nullptr;
+      message_info.reply_markup = std::move(message->reply_markup_);
       message_info.restriction_reasons = get_restriction_reasons(std::move(message->restriction_reason_));
       message_info.author_signature = std::move(message->post_author_);
       break;
@@ -15800,7 +15795,7 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
           LOG(ERROR) << "Last " << last_message_id << " in " << dialog_id << " not found";
           return promise.set_error(Status::Error(500, "Wrong query result returned: last message not found"));
         }
-        FolderId dialog_folder_id((dialog->flags_ & DIALOG_FLAG_HAS_FOLDER_ID) != 0 ? dialog->folder_id_ : 0);
+        FolderId dialog_folder_id(dialog->folder_id_);
         if (dialog_folder_id != folder_id) {
           LOG(ERROR) << "Receive " << dialog_id << " in " << dialog_folder_id << " instead of " << folder_id;
           continue;
@@ -15853,7 +15848,7 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
     bool is_new = d->last_new_message_id == MessageId();
     auto positions = get_dialog_positions(d);
 
-    set_dialog_folder_id(d, FolderId((dialog->flags_ & DIALOG_FLAG_HAS_FOLDER_ID) != 0 ? dialog->folder_id_ : 0));
+    set_dialog_folder_id(d, FolderId(dialog->folder_id_));
 
     on_update_dialog_notify_settings(dialog_id, std::move(dialog->notify_settings_), source);
     if (!d->notification_settings.is_synchronized && !td_->auth_manager_->is_bot()) {
@@ -39529,7 +39524,7 @@ void MessagesManager::on_get_channel_difference(
         }
       }
 
-      set_dialog_folder_id(d, FolderId((dialog->flags_ & DIALOG_FLAG_HAS_FOLDER_ID) != 0 ? dialog->folder_id_ : 0));
+      set_dialog_folder_id(d, FolderId(dialog->folder_id_));
 
       on_update_dialog_notify_settings(dialog_id, std::move(dialog->notify_settings_),
                                        "updates.channelDifferenceTooLong");

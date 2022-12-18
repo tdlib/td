@@ -1805,8 +1805,6 @@ class MessagesManager final : public Actor {
   static constexpr int64 MAX_ORDINARY_DIALOG_ORDER =
       9221294780217032704;  // == get_dialog_order(MessageId(), MIN_PINNED_DIALOG_DATE - 1)
 
-  static constexpr int32 UPDATE_CHANNEL_TO_LONG_FLAG_HAS_PTS = 1 << 0;
-
   static constexpr int32 CHANNEL_DIFFERENCE_FLAG_IS_FINAL = 1 << 0;
   static constexpr int32 CHANNEL_DIFFERENCE_FLAG_HAS_TIMEOUT = 1 << 1;
 

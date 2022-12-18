@@ -56,10 +56,6 @@ class SendCodeHelper {
   void parse(ParserT &parser);
 
  private:
-  static constexpr int32 SENT_CODE_FLAG_IS_USER_REGISTERED = 1 << 0;
-  static constexpr int32 SENT_CODE_FLAG_HAS_NEXT_TYPE = 1 << 1;
-  static constexpr int32 SENT_CODE_FLAG_HAS_TIMEOUT = 1 << 2;
-
   struct AuthenticationCodeInfo {
     enum class Type : int32 { None, Message, Sms, Call, FlashCall, MissedCall, Fragment };
     Type type = Type::None;
