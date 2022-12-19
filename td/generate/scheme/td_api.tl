@@ -871,7 +871,8 @@ supergroup id:int53 usernames:usernames date:int32 status:ChatMemberStatus membe
 //@linked_chat_id Chat identifier of a discussion group for the channel, or a channel, for which the supergroup is the designated discussion group; 0 if none or unknown
 //@slow_mode_delay Delay between consecutive sent messages for non-administrator supergroup members, in seconds
 //@slow_mode_delay_expires_in Time left before next message can be sent in the supergroup, in seconds. An updateSupergroupFullInfo update is not triggered when value of this field changes, but both new and old values are non-zero
-//@can_get_members True, if members of the chat can be retrieved
+//@can_get_members True, if members of the chat can be retrieved via getSupergroupMembers or searchChatMembers
+//@has_hidden_members True, if non-administrators can receive only administrators and bots using getSupergroupMembers or searchChatMembers
 //@can_set_username True, if the chat username can be changed
 //@can_set_sticker_set True, if the supergroup sticker set can be changed
 //@can_set_location True, if the supergroup location can be changed
@@ -886,7 +887,7 @@ supergroup id:int53 usernames:usernames date:int32 status:ChatMemberStatus membe
 //@bot_commands List of commands of bots in the group
 //@upgraded_from_basic_group_id Identifier of the basic group from which supergroup was upgraded; 0 if none
 //@upgraded_from_max_message_id Identifier of the last message in the basic group from which supergroup was upgraded; 0 if none
-supergroupFullInfo photo:chatPhoto description:string member_count:int32 administrator_count:int32 restricted_count:int32 banned_count:int32 linked_chat_id:int53 slow_mode_delay:int32 slow_mode_delay_expires_in:double can_get_members:Bool can_set_username:Bool can_set_sticker_set:Bool can_set_location:Bool can_get_statistics:Bool can_toggle_aggressive_anti_spam:Bool is_all_history_available:Bool is_aggressive_anti_spam_enabled:Bool sticker_set_id:int64 location:chatLocation invite_link:chatInviteLink bot_commands:vector<botCommands> upgraded_from_basic_group_id:int53 upgraded_from_max_message_id:int53 = SupergroupFullInfo;
+supergroupFullInfo photo:chatPhoto description:string member_count:int32 administrator_count:int32 restricted_count:int32 banned_count:int32 linked_chat_id:int53 slow_mode_delay:int32 slow_mode_delay_expires_in:double can_get_members:Bool has_hidden_members:Bool can_set_username:Bool can_set_sticker_set:Bool can_set_location:Bool can_get_statistics:Bool can_toggle_aggressive_anti_spam:Bool is_all_history_available:Bool is_aggressive_anti_spam_enabled:Bool sticker_set_id:int64 location:chatLocation invite_link:chatInviteLink bot_commands:vector<botCommands> upgraded_from_basic_group_id:int53 upgraded_from_max_message_id:int53 = SupergroupFullInfo;
 
 
 //@class SecretChatState @description Describes the current secret chat state

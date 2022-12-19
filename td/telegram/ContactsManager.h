@@ -999,6 +999,7 @@ class ContactsManager final : public Actor {
     vector<UserId> bot_user_ids;
 
     bool can_get_participants = false;
+    bool has_hidden_participants = false;
     bool can_set_username = false;
     bool can_set_sticker_set = false;
     bool can_set_location = false;
@@ -1236,6 +1237,7 @@ class ContactsManager final : public Actor {
   static constexpr int32 CHANNEL_FULL_FLAG_HAS_DEFAULT_SEND_AS = 1 << 29;
   static constexpr int32 CHANNEL_FULL_FLAG_HAS_AVAILABLE_REACTIONS = 1 << 30;
   static constexpr int32 CHANNEL_FULL_FLAG2_HAS_ANTISPAM = 1 << 1;
+  static constexpr int32 CHANNEL_FULL_FLAG2_ARE_PARTICIPANTS_HIDDEN = 1 << 2;
 
   static constexpr int32 USER_FULL_EXPIRE_TIME = 60;
   static constexpr int32 CHANNEL_FULL_EXPIRE_TIME = 60;

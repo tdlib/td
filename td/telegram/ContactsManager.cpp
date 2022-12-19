@@ -4908,6 +4908,7 @@ void ContactsManager::ChannelFull::store(StorerT &storer) const {
   STORE_FLAG(has_bot_commands);  // 25
   STORE_FLAG(can_be_deleted);
   STORE_FLAG(is_aggressive_anti_spam_enabled);
+  STORE_FLAG(has_hidden_participants);
   END_STORE_FLAGS();
   if (has_description) {
     store(description, storer);
@@ -5012,6 +5013,7 @@ void ContactsManager::ChannelFull::parse(ParserT &parser) {
   PARSE_FLAG(has_bot_commands);
   PARSE_FLAG(can_be_deleted);
   PARSE_FLAG(is_aggressive_anti_spam_enabled);
+  PARSE_FLAG(has_hidden_participants);
   END_PARSE_FLAGS();
   if (has_description) {
     parse(description, parser);
@@ -12203,6 +12205,7 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
     auto restricted_count = channel->banned_count_;
     auto banned_count = channel->kicked_count_;
     auto can_get_participants = channel->can_view_participants_;
+    auto has_hidden_participants = channel->participants_hidden_;
     auto can_set_username = channel->can_set_username_;
     auto can_set_sticker_set = channel->can_set_stickers_;
     auto can_set_location = channel->can_set_location_;
@@ -12235,12 +12238,14 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
         channel_full->can_view_statistics != can_view_statistics || channel_full->stats_dc_id != stats_dc_id ||
         channel_full->sticker_set_id != sticker_set_id ||
         channel_full->is_all_history_available != is_all_history_available ||
-        channel_full->is_aggressive_anti_spam_enabled != is_aggressive_anti_spam_enabled) {
+        channel_full->is_aggressive_anti_spam_enabled != is_aggressive_anti_spam_enabled ||
+        channel_full->has_hidden_participants != has_hidden_participants) {
       channel_full->participant_count = participant_count;
       channel_full->administrator_count = administrator_count;
       channel_full->restricted_count = restricted_count;
       channel_full->banned_count = banned_count;
       channel_full->can_get_participants = can_get_participants;
+      channel_full->has_hidden_participants = has_hidden_participants;
       channel_full->can_set_username = can_set_username;
       channel_full->can_set_sticker_set = can_set_sticker_set;
       channel_full->can_set_location = can_set_location;
@@ -12322,7 +12327,7 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
                          DialogId(channel_id), default_send_message_as_dialog_id, false);
     }
 
-    if (participant_count >= 190 || !can_get_participants) {
+    if (participant_count >= 190 || !can_get_participants || has_hidden_participants) {
       td_->messages_manager_->on_update_dialog_online_member_count(DialogId(channel_id), channel->online_count_, true);
     }
 
@@ -18041,12 +18046,12 @@ tl_object_ptr<td_api::supergroupFullInfo> ContactsManager::get_supergroup_full_i
       get_chat_photo_object(td_->file_manager_.get(), channel_full->photo), channel_full->description,
       channel_full->participant_count, channel_full->administrator_count, channel_full->restricted_count,
       channel_full->banned_count, DialogId(channel_full->linked_channel_id).get(), channel_full->slow_mode_delay,
-      slow_mode_delay_expires_in, channel_full->can_get_participants, channel_full->can_set_username,
-      channel_full->can_set_sticker_set, channel_full->can_set_location, channel_full->can_view_statistics,
-      can_toggle_channel_aggressive_anti_spam(channel_id, channel_full).is_ok(), channel_full->is_all_history_available,
-      channel_full->is_aggressive_anti_spam_enabled, channel_full->sticker_set_id.get(),
-      channel_full->location.get_chat_location_object(), channel_full->invite_link.get_chat_invite_link_object(this),
-      std::move(bot_commands),
+      slow_mode_delay_expires_in, channel_full->can_get_participants, channel_full->has_hidden_participants,
+      channel_full->can_set_username, channel_full->can_set_sticker_set, channel_full->can_set_location,
+      channel_full->can_view_statistics, can_toggle_channel_aggressive_anti_spam(channel_id, channel_full).is_ok(),
+      channel_full->is_all_history_available, channel_full->is_aggressive_anti_spam_enabled,
+      channel_full->sticker_set_id.get(), channel_full->location.get_chat_location_object(),
+      channel_full->invite_link.get_chat_invite_link_object(this), std::move(bot_commands),
       get_basic_group_id_object(channel_full->migrated_from_chat_id, "get_supergroup_full_info_object"),
       channel_full->migrated_from_max_message_id.get());
 }
