@@ -13275,7 +13275,7 @@ void ContactsManager::update_chat_online_member_count(const ChatFull *chat_full,
 }
 
 void ContactsManager::update_channel_online_member_count(ChannelId channel_id, bool is_from_server) {
-  if (!is_megagroup_channel(channel_id)) {
+  if (!is_megagroup_channel(channel_id) || get_channel_has_hidden_participants(channel_id)) {
     return;
   }
 
@@ -13520,6 +13520,8 @@ void ContactsManager::on_get_channel_participants(
   LOG(INFO) << "Receive " << participants.size() << " " << filter << " members in " << channel_id;
 
   bool is_full = offset == 0 && static_cast<int32>(participants.size()) < limit && total_count < limit;
+  bool has_hidden_participants = get_channel_has_hidden_participants(channel_id);
+  bool is_full_recent = is_full && filter.is_recent() && !has_hidden_participants;
 
   auto channel_type = get_channel_type(channel_id);
   vector<DialogParticipant> result;
@@ -13561,8 +13563,11 @@ void ContactsManager::on_get_channel_participants(
 
   const auto max_participant_count = is_megagroup_channel(channel_id) ? 975 : 195;
   auto participant_count =
-      filter.is_recent() && total_count != 0 && total_count < max_participant_count ? total_count : -1;
-  int32 administrator_count = filter.is_administrators() ? total_count : -1;
+      filter.is_recent() && !has_hidden_participants && total_count != 0 && total_count < max_participant_count
+          ? total_count
+          : -1;
+  int32 administrator_count =
+      filter.is_administrators() || (filter.is_recent() && has_hidden_participants) ? total_count : -1;
   if (is_full && (filter.is_administrators() || filter.is_bots() || filter.is_recent())) {
     vector<DialogAdministrator> administrators;
     vector<UserId> bot_user_ids;
@@ -13575,14 +13580,14 @@ void ContactsManager::on_get_channel_participants(
               administrators.emplace_back(participant_user_id, participant.status_.get_rank(),
                                           participant.status_.is_creator());
             }
-            if (is_user_bot(participant_user_id)) {
+            if (is_full_recent && is_user_bot(participant_user_id)) {
               bot_user_ids.push_back(participant_user_id);
             }
           }
         }
         administrator_count = narrow_cast<int32>(administrators.size());
 
-        if (is_megagroup_channel(channel_id) && !td_->auth_manager_->is_bot()) {
+        if (is_megagroup_channel(channel_id) && !td_->auth_manager_->is_bot() && is_full_recent) {
           cached_channel_participants_[channel_id] = result;
           update_channel_online_member_count(channel_id, true);
         }
@@ -13603,7 +13608,7 @@ void ContactsManager::on_get_channel_participants(
     if (filter.is_administrators() || filter.is_recent()) {
       on_update_dialog_administrators(DialogId(channel_id), std::move(administrators), true, false);
     }
-    if (filter.is_bots() || filter.is_recent()) {
+    if (filter.is_bots() || is_full_recent) {
       on_update_channel_bot_user_ids(channel_id, std::move(bot_user_ids));
     }
   }
@@ -16304,6 +16309,17 @@ int32 ContactsManager::get_channel_slow_mode_delay(ChannelId channel_id) {
     }
   }
   return channel_full->slow_mode_delay;
+}
+
+bool ContactsManager::get_channel_has_hidden_participants(ChannelId channel_id) {
+  auto channel_full = get_channel_full_const(channel_id);
+  if (channel_full == nullptr) {
+    channel_full = get_channel_full_force(channel_id, true, "get_channel_has_hidden_participants");
+    if (channel_full == nullptr) {
+      return true;
+    }
+  }
+  return channel_full->has_hidden_participants;
 }
 
 bool ContactsManager::have_channel(ChannelId channel_id) const {
