@@ -7473,23 +7473,40 @@ void ContactsManager::toggle_channel_is_all_history_available(ChannelId channel_
   td_->create_handler<TogglePrehistoryHiddenQuery>(std::move(promise))->send(channel_id, is_all_history_available);
 }
 
+Status ContactsManager::can_toggle_channel_aggressive_anti_spam(ChannelId channel_id,
+                                                                const ChannelFull *channel_full) const {
+  auto c = get_channel(channel_id);
+  if (c == nullptr) {
+    return Status::Error(400, "Supergroup not found");
+  }
+  if (!get_channel_permissions(c).can_delete_messages()) {
+    return Status::Error(400, "Not enough rights to enable aggressive anti-spam checks");
+  }
+  if (get_channel_type(c) != ChannelType::Megagroup) {
+    return Status::Error(400, "Aggressive anti-spam checks can be enabled in supergroups only");
+  }
+  if (c->is_gigagroup) {
+    return Status::Error(400, "Aggressive anti-spam checks can't be enabled in broadcast supergroups");
+  }
+  if (channel_full != nullptr && channel_full->is_aggressive_anti_spam_enabled) {
+    return Status::OK();
+  }
+  if (c->has_location || begins_with(c->usernames.get_editable_username(), "translation_")) {
+    return Status::OK();
+  }
+  if (c->participant_count > 0 && c->participant_count < td_->option_manager_->get_option_integer(
+                                                             "aggressive_anti_spam_supergroup_member_count_min")) {
+    return Status::Error(400, "The supergroup is too small");
+  }
+
+  return Status::OK();
+}
+
 void ContactsManager::toggle_channel_is_aggressive_anti_spam_enabled(ChannelId channel_id,
                                                                      bool is_aggressive_anti_spam_enabled,
                                                                      Promise<Unit> &&promise) {
-  auto c = get_channel(channel_id);
-  if (c == nullptr) {
-    return promise.set_error(Status::Error(400, "Supergroup not found"));
-  }
-  if (!get_channel_permissions(c).can_delete_messages()) {
-    return promise.set_error(Status::Error(400, "Not enough rights to enable aggressive anti-spam checks"));
-  }
-  if (get_channel_type(c) != ChannelType::Megagroup) {
-    return promise.set_error(Status::Error(400, "Aggressive anti-spam checks can be enabled in supergroups only"));
-  }
-  if (c->is_gigagroup) {
-    return promise.set_error(
-        Status::Error(400, "Aggressive anti-spam checks can't be enabled in broadcast supergroups"));
-  }
+  auto channel_full = get_channel_full_force(channel_id, true, "toggle_channel_is_aggressive_anti_spam_enabled");
+  TRY_STATUS_PROMISE(promise, can_toggle_channel_aggressive_anti_spam(channel_id, channel_full));
 
   td_->create_handler<ToggleAntiSpamQuery>(std::move(promise))->send(channel_id, is_aggressive_anti_spam_enabled);
 }
@@ -18026,9 +18043,10 @@ tl_object_ptr<td_api::supergroupFullInfo> ContactsManager::get_supergroup_full_i
       channel_full->banned_count, DialogId(channel_full->linked_channel_id).get(), channel_full->slow_mode_delay,
       slow_mode_delay_expires_in, channel_full->can_get_participants, channel_full->can_set_username,
       channel_full->can_set_sticker_set, channel_full->can_set_location, channel_full->can_view_statistics,
-      channel_full->is_all_history_available, channel_full->is_aggressive_anti_spam_enabled,
-      channel_full->sticker_set_id.get(), channel_full->location.get_chat_location_object(),
-      channel_full->invite_link.get_chat_invite_link_object(this), std::move(bot_commands),
+      can_toggle_channel_aggressive_anti_spam(channel_id, channel_full).is_ok(), channel_full->is_all_history_available,
+      channel_full->is_aggressive_anti_spam_enabled, channel_full->sticker_set_id.get(),
+      channel_full->location.get_chat_location_object(), channel_full->invite_link.get_chat_invite_link_object(this),
+      std::move(bot_commands),
       get_basic_group_id_object(channel_full->migrated_from_chat_id, "get_supergroup_full_info_object"),
       channel_full->migrated_from_max_message_id.get());
 }

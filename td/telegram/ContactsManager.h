@@ -1005,7 +1005,7 @@ class ContactsManager final : public Actor {
     bool can_view_statistics = false;
     bool is_can_view_statistics_inited = false;
     bool is_all_history_available = true;
-    bool is_aggressive_anti_spam_enabled = true;
+    bool is_aggressive_anti_spam_enabled = false;
     bool can_be_deleted = false;
 
     bool is_slow_mode_next_send_date_changed = true;
@@ -1676,6 +1676,8 @@ class ContactsManager final : public Actor {
   td_api::object_ptr<td_api::updateSupergroup> get_update_unknown_supergroup_object(ChannelId channel_id) const;
 
   static tl_object_ptr<td_api::supergroup> get_supergroup_object(ChannelId channel_id, const Channel *c);
+
+  Status can_toggle_channel_aggressive_anti_spam(ChannelId channel_id, const ChannelFull *channel_full) const;
 
   tl_object_ptr<td_api::supergroupFullInfo> get_supergroup_full_info_object(ChannelId channel_id,
                                                                             const ChannelFull *channel_full) const;
