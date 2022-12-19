@@ -6976,7 +6976,7 @@ void Td::on_request(uint64 id, const td_api::setLocation &request) {
 void Td::on_request(uint64 id, td_api::setProfilePhoto &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  contacts_manager_->set_profile_photo(request.photo_, request.is_fallback_, std::move(promise));
+  contacts_manager_->set_profile_photo(request.photo_, request.is_public_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::deleteProfilePhoto &request) {
