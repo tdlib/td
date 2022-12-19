@@ -18751,6 +18751,9 @@ Status MessagesManager::can_get_message_viewers(DialogId dialog_id, const Messag
       if (is_broadcast_channel(dialog_id)) {
         return Status::Error(400, "Can't get message viewers in channel chats");
       }
+      if (td_->contacts_manager_->get_channel_has_hidden_participants(dialog_id.get_channel_id())) {
+        return Status::Error(400, "Participant list is hidden in the chat");
+      }
       participant_count = td_->contacts_manager_->get_channel_participant_count(dialog_id.get_channel_id());
       break;
     case DialogType::SecretChat:
