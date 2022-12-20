@@ -8095,10 +8095,6 @@ vector<FileId> StickersManager::get_attached_sticker_file_ids(const vector<int32
       // only stickers from sticker sets can be attached to files
       continue;
     }
-    if (s->type_ == StickerType::CustomEmoji) {
-      // custom emoji stickers can't can be attached to files
-      continue;
-    }
 
     auto file_view = td_->file_manager_->get_file_view(file_id);
     CHECK(!file_view.empty());
@@ -8116,7 +8112,7 @@ vector<FileId> StickersManager::get_attached_sticker_file_ids(const vector<int32
     }
     result.push_back(file_id);
 
-    if (!td_->auth_manager_->is_bot()) {
+    if (!td_->auth_manager_->is_bot() && s->type_ != StickerType::CustomEmoji) {
       add_recent_sticker_by_id(true, file_id);
     }
   }
