@@ -3657,8 +3657,11 @@ StickerSetId StickersManager::on_get_sticker_set_covered(tl_object_ptr<telegram_
           std::move(set->set_), std::move(set->packs_), std::move(set->keywords_), std::move(set->documents_));
       return on_get_messages_sticker_set(StickerSetId(), std::move(sticker_set), is_changed, source);
     }
-    case telegram_api::stickerSetNoCovered::ID:
+    case telegram_api::stickerSetNoCovered::ID: {
+      auto covered_set = move_tl_object_as<telegram_api::stickerSetNoCovered>(set_ptr);
+      set_id = on_get_sticker_set(std::move(covered_set->set_), is_changed, source);
       break;
+    }
     default:
       UNREACHABLE();
   }
