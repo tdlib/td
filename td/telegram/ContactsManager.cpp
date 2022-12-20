@@ -11547,7 +11547,7 @@ void ContactsManager::update_channel_full(ChannelFull *channel_full, ChannelId c
     send_closure(
         G()->td(), &Td::send_update,
         make_tl_object<td_api::updateSupergroupFullInfo>(get_supergroup_id_object(channel_id, "update_channel_full"),
-                                                         get_supergroup_full_info_object(channel_full, channel_id)));
+                                                         get_supergroup_full_info_object(channel_id, channel_full)));
     channel_full->need_send_update = false;
   }
   if (channel_full->need_save_to_database) {
@@ -17773,11 +17773,11 @@ tl_object_ptr<td_api::supergroup> ContactsManager::get_supergroup_object(Channel
 }
 
 tl_object_ptr<td_api::supergroupFullInfo> ContactsManager::get_supergroup_full_info_object(ChannelId channel_id) const {
-  return get_supergroup_full_info_object(get_channel_full(channel_id), channel_id);
+  return get_supergroup_full_info_object(channel_id, get_channel_full(channel_id));
 }
 
 tl_object_ptr<td_api::supergroupFullInfo> ContactsManager::get_supergroup_full_info_object(
-    const ChannelFull *channel_full, ChannelId channel_id) const {
+    ChannelId channel_id, const ChannelFull *channel_full) const {
   CHECK(channel_full != nullptr);
   double slow_mode_delay_expires_in = 0;
   if (channel_full->slow_mode_next_send_date != 0) {
@@ -18022,7 +18022,7 @@ void ContactsManager::get_current_state(vector<td_api::object_ptr<td_api::Update
   });
   channels_full_.foreach([&](const ChannelId &channel_id, const unique_ptr<ChannelFull> &channel_full) {
     updates.push_back(td_api::make_object<td_api::updateSupergroupFullInfo>(
-        channel_id.get(), get_supergroup_full_info_object(channel_full.get(), channel_id)));
+        channel_id.get(), get_supergroup_full_info_object(channel_id, channel_full.get())));
   });
   chats_full_.foreach([&](const ChatId &chat_id, const unique_ptr<ChatFull> &chat_full) {
     updates.push_back(td_api::make_object<td_api::updateBasicGroupFullInfo>(
