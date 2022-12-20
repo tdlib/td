@@ -236,18 +236,23 @@ class TQueueImpl final : public TQueue {
     for (size_t i = 0; i < keep_count; i++) {
       --end_it;
     }
+    if (keep_count == 0) {
+      --end_it;
+      auto &event = end_it->second;
+      if (callback_ == nullptr || event.log_event_id == 0) {
+        ++end_it;
+      } else if (!event.data.empty()) {
+        clear_event_data(q, event);
+        callback_->push(queue_id, event);
+      }
+    }
 
     if (callback_ != nullptr) {
       vector<uint64> deleted_log_event_ids;
-      auto callback_end_it = end_it;
-      if (keep_count == 0) {
-        --callback_end_it;
-      }
-      for (auto it = q.events.begin(); it != callback_end_it; ++it) {
+      for (auto it = q.events.begin(); it != end_it; ++it) {
         auto &event = it->second;
         if (event.log_event_id != 0) {
           deleted_log_event_ids.push_back(event.log_event_id);
-          event.log_event_id = 0;
         }
       }
       for (auto log_event_id : deleted_log_event_ids) {
@@ -257,7 +262,7 @@ class TQueueImpl final : public TQueue {
     auto callback_clear_time = Time::now() - start_time;
 
     for (auto it = q.events.begin(); it != end_it;) {
-      pop(q, queue_id, it, q.tail_id);
+      remove_event(q, it);
     }
 
     auto clear_time = Time::now() - start_time;
