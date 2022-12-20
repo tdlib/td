@@ -37,6 +37,8 @@ class CountryInfoManager final : public Actor {
   static td_api::object_ptr<td_api::phoneNumberInfo> get_phone_number_info_sync(const string &language_code,
                                                                                 string phone_number_prefix);
 
+  void on_update_fragment_prefixes();
+
   CountryInfoManager(const CountryInfoManager &) = delete;
   CountryInfoManager &operator=(const CountryInfoManager &) = delete;
   CountryInfoManager(CountryInfoManager &&) = delete;
@@ -52,6 +54,8 @@ class CountryInfoManager final : public Actor {
   struct CountryList;
 
   string get_main_language_code();
+
+  static bool is_fragment_phone_number(string phone_number);
 
   void do_get_countries(string language_code, bool is_recursive,
                         Promise<td_api::object_ptr<td_api::countries>> &&promise);
@@ -77,6 +81,9 @@ class CountryInfoManager final : public Actor {
   static int32 manager_count_;
 
   static FlatHashMap<string, unique_ptr<CountryList>> countries_;
+
+  static string fragment_prefixes_str_;
+  static vector<string> fragment_prefixes_;
 
   FlatHashMap<string, vector<Promise<Unit>>> pending_load_country_queries_;
 

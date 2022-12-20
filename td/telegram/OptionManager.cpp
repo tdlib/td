@@ -11,6 +11,7 @@
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/ConfigManager.h"
 #include "td/telegram/ContactsManager.h"
+#include "td/telegram/CountryInfoManager.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/GitCommitHash.h"
 #include "td/telegram/Global.h"
@@ -364,7 +365,7 @@ void OptionManager::on_option_updated(Slice name) {
         td_->stickers_manager_->on_update_favorite_stickers_limit();
       }
       if (name == "fragment_prefixes") {
-        send_closure(td_->contacts_manager_actor_, &ContactsManager::on_update_fragment_prefixes);
+        send_closure(td_->country_info_manager_actor_, &CountryInfoManager::on_update_fragment_prefixes);
       }
       break;
     case 'i':

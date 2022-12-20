@@ -6,9 +6,11 @@
 //
 #include "td/telegram/CountryInfoManager.h"
 
+#include "td/telegram/AuthManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/LanguagePackManager.h"
 #include "td/telegram/misc.h"
+#include "td/telegram/OptionManager.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/telegram_api.h"
 
@@ -115,6 +117,7 @@ struct CountryInfoManager::CountryList {
 };
 
 CountryInfoManager::CountryInfoManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
+  on_update_fragment_prefixes();
 }
 
 CountryInfoManager::~CountryInfoManager() = default;
@@ -133,6 +136,43 @@ void CountryInfoManager::tear_down() {
     LOG(INFO) << "Clear country info";
     countries_.clear();
   }
+}
+
+bool CountryInfoManager::is_fragment_phone_number(string phone_number) {
+  if (phone_number.empty()) {
+    return false;
+  }
+  if (fragment_prefixes_.empty()) {
+    fragment_prefixes_str_ = "888";
+    fragment_prefixes_.push_back(fragment_prefixes_str_);
+  }
+  clean_phone_number(phone_number);
+  for (auto &prefix : fragment_prefixes_) {
+    if (begins_with(phone_number, prefix)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+void CountryInfoManager::on_update_fragment_prefixes() {
+  if (G()->close_flag()) {
+    return;
+  }
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+  if (!td_->option_manager_->have_option("fragment_prefixes")) {
+    return;
+  }
+
+  auto fragment_prefixes_str = td_->option_manager_->get_option_string("fragment_prefixes", "888");
+  std::lock_guard<std::mutex> country_lock(country_mutex_);
+  if (fragment_prefixes_str == fragment_prefixes_str_) {
+    return;
+  }
+  fragment_prefixes_str_ = std::move(fragment_prefixes_str);
+  fragment_prefixes_ = full_split(fragment_prefixes_str_, ',');
 }
 
 string CountryInfoManager::get_main_language_code() {
@@ -182,7 +222,7 @@ void CountryInfoManager::get_phone_number_info(string phone_number_prefix,
                                                Promise<td_api::object_ptr<td_api::phoneNumberInfo>> &&promise) {
   clean_phone_number(phone_number_prefix);
   if (phone_number_prefix.empty()) {
-    return promise.set_value(td_api::make_object<td_api::phoneNumberInfo>(nullptr, string(), string()));
+    return promise.set_value(td_api::make_object<td_api::phoneNumberInfo>(nullptr, string(), string(), false));
   }
   do_get_phone_number_info(std::move(phone_number_prefix), get_main_language_code(), false, std::move(promise));
 }
@@ -225,7 +265,7 @@ td_api::object_ptr<td_api::phoneNumberInfo> CountryInfoManager::get_phone_number
                                                                                            string phone_number_prefix) {
   clean_phone_number(phone_number_prefix);
   if (phone_number_prefix.empty()) {
-    return td_api::make_object<td_api::phoneNumberInfo>(nullptr, string(), string());
+    return td_api::make_object<td_api::phoneNumberInfo>(nullptr, string(), string(), false);
   }
 
   std::lock_guard<std::mutex> country_lock(country_mutex_);
@@ -244,6 +284,7 @@ td_api::object_ptr<td_api::phoneNumberInfo> CountryInfoManager::get_phone_number
   const CallingCodeInfo *best_calling_code = nullptr;
   size_t best_length = 0;
   bool is_prefix = false;  // is phone number a prefix of a valid country_code + prefix
+  bool is_anonymous = is_fragment_phone_number(phone_number.str());
   for (auto &country : list->countries) {
     for (auto &calling_code : country.calling_codes) {
       if (begins_with(phone_number, calling_code.calling_code)) {
@@ -267,7 +308,7 @@ td_api::object_ptr<td_api::phoneNumberInfo> CountryInfoManager::get_phone_number
   }
   if (best_country == nullptr) {
     return td_api::make_object<td_api::phoneNumberInfo>(nullptr, is_prefix ? phone_number.str() : string(),
-                                                        is_prefix ? string() : phone_number.str());
+                                                        is_prefix ? string() : phone_number.str(), is_anonymous);
   }
 
   Slice formatted_part = phone_number.substr(best_calling_code->calling_code.size());
@@ -323,7 +364,7 @@ td_api::object_ptr<td_api::phoneNumberInfo> CountryInfoManager::get_phone_number
 
   return td_api::make_object<td_api::phoneNumberInfo>(
       best_country->get_country_info_object(), best_calling_code->calling_code,
-      formatted_phone_number.empty() ? formatted_part.str() : formatted_phone_number);
+      formatted_phone_number.empty() ? formatted_part.str() : formatted_phone_number, is_anonymous);
 }
 
 void CountryInfoManager::get_current_country_code(Promise<string> &&promise) {
@@ -539,5 +580,7 @@ const CountryInfoManager::CountryList *CountryInfoManager::get_country_list(Coun
 int32 CountryInfoManager::manager_count_ = 0;
 std::mutex CountryInfoManager::country_mutex_;
 FlatHashMap<string, unique_ptr<CountryInfoManager::CountryList>> CountryInfoManager::countries_;
+string CountryInfoManager::fragment_prefixes_str_;
+vector<string> CountryInfoManager::fragment_prefixes_;
 
 }  // namespace td

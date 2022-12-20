@@ -235,8 +235,6 @@ class ContactsManager final : public Actor {
 
   void on_update_bot_menu_button(UserId bot_user_id, tl_object_ptr<telegram_api::BotMenuButton> &&bot_menu_button);
 
-  void on_update_fragment_prefixes();
-
   void on_update_dialog_administrators(DialogId dialog_id, vector<DialogAdministrator> &&administrators,
                                        bool have_access, bool from_database);
 
@@ -743,7 +741,6 @@ class ContactsManager final : public Actor {
     bool need_apply_min_photo = false;
     bool can_be_added_to_attach_menu = false;
     bool attach_menu_enabled = false;
-    bool is_fragment_phone_number = false;
 
     bool is_photo_inited = false;
 
@@ -1525,8 +1522,6 @@ class ContactsManager final : public Actor {
 
   bool is_user_contact(const User *u, UserId user_id, bool is_mutual) const;
 
-  bool is_fragment_phone_number(string phone_number) const;
-
   int32 get_user_was_online(const User *u, UserId user_id) const;
 
   int64 get_contacts_hash();
@@ -1970,9 +1965,6 @@ class ContactsManager final : public Actor {
 
   vector<UserId> imported_contact_user_ids_;  // result of change_imported_contacts
   vector<int32> unimported_contact_invites_;  // result of change_imported_contacts
-
-  string fragment_prefixes_str_;
-  vector<string> fragment_prefixes_;
 
   MultiTimeout user_online_timeout_{"UserOnlineTimeout"};
   MultiTimeout user_emoji_status_timeout_{"UserEmojiStatusTimeout"};
