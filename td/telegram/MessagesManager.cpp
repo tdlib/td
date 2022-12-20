@@ -13074,7 +13074,7 @@ void MessagesManager::on_update_dialog_online_member_count_timeout(DialogId dial
   if (dialog_id.get_type() == DialogType::Channel && !is_broadcast_channel(dialog_id)) {
     auto participant_count = td_->contacts_manager_->get_channel_participant_count(dialog_id.get_channel_id());
     auto has_hidden_participants =
-        td_->contacts_manager_->get_channel_has_hidden_participants(dialog_id.get_channel_id());
+        td_->contacts_manager_->get_channel_effective_has_hidden_participants(dialog_id.get_channel_id());
     if (participant_count == 0 || participant_count >= 195 || has_hidden_participants) {
       td_->create_handler<GetOnlinesQuery>()->send(dialog_id);
     } else {
@@ -18751,7 +18751,7 @@ Status MessagesManager::can_get_message_viewers(DialogId dialog_id, const Messag
       if (is_broadcast_channel(dialog_id)) {
         return Status::Error(400, "Can't get message viewers in channel chats");
       }
-      if (td_->contacts_manager_->get_channel_has_hidden_participants(dialog_id.get_channel_id())) {
+      if (td_->contacts_manager_->get_channel_effective_has_hidden_participants(dialog_id.get_channel_id())) {
         return Status::Error(400, "Participant list is hidden in the chat");
       }
       participant_count = td_->contacts_manager_->get_channel_participant_count(dialog_id.get_channel_id());
@@ -21613,7 +21613,7 @@ void MessagesManager::open_dialog(Dialog *d) {
       if (!is_broadcast_channel(dialog_id)) {
         auto participant_count = td_->contacts_manager_->get_channel_participant_count(channel_id);
         auto has_hidden_participants =
-            td_->contacts_manager_->get_channel_has_hidden_participants(dialog_id.get_channel_id());
+            td_->contacts_manager_->get_channel_effective_has_hidden_participants(dialog_id.get_channel_id());
         if (participant_count < 195 && !has_hidden_participants) {  // include unknown participant_count
           td_->contacts_manager_->get_channel_participants(
               channel_id, td_api::make_object<td_api::supergroupMembersFilterRecent>(), string(), 0, 200, 200, Auto());
