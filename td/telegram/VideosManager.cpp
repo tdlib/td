@@ -223,7 +223,7 @@ SecretInputMedia VideosManager::get_secret_input_media(FileId video_file_id,
 
 tl_object_ptr<telegram_api::InputMedia> VideosManager::get_input_media(
     FileId file_id, tl_object_ptr<telegram_api::InputFile> input_file,
-    tl_object_ptr<telegram_api::InputFile> input_thumbnail, int32 ttl) const {
+    tl_object_ptr<telegram_api::InputFile> input_thumbnail, int32 ttl, bool has_spoiler) const {
   if (!file_id.is_valid()) {
     LOG_IF(ERROR, ttl == 0) << "Video has invalid file_id";
     return nullptr;
@@ -280,8 +280,7 @@ tl_object_ptr<telegram_api::InputMedia> VideosManager::get_input_media(
     if (input_thumbnail != nullptr) {
       flags |= telegram_api::inputMediaUploadedDocument::THUMB_MASK;
     }
-    auto file_type = file_view.get_type();
-    if (file_type == FileType::VideoWithSpoiler) {
+    if (has_spoiler) {
       flags |= telegram_api::inputMediaUploadedDocument::SPOILER_MASK;
     }
     return make_tl_object<telegram_api::inputMediaUploadedDocument>(

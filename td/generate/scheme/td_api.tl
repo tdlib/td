@@ -2242,8 +2242,12 @@ messageAudio audio:audio caption:formattedText = MessageContent;
 //@description A document message (general file) @document The document description @caption Document caption
 messageDocument document:document caption:formattedText = MessageContent;
 
-//@description A photo message @photo The photo @caption Photo caption @is_secret True, if the photo must be blurred and must be shown only while tapped
-messagePhoto photo:photo caption:formattedText is_secret:Bool = MessageContent;
+//@description A photo message
+//@photo The photo
+//@caption Photo caption
+//@has_spoiler True, if the photo preview should be covered by spoiler animation
+//@is_secret True, if the photo must be blurred and must be shown only while tapped
+messagePhoto photo:photo caption:formattedText has_spoiler:Bool is_secret:Bool = MessageContent;
 
 //@description An expired photo message (self-destructed after TTL has elapsed)
 messageExpiredPhoto = MessageContent;
@@ -2251,8 +2255,12 @@ messageExpiredPhoto = MessageContent;
 //@description A sticker message @sticker The sticker description @is_premium True, if premium animation of the sticker must be played
 messageSticker sticker:sticker is_premium:Bool = MessageContent;
 
-//@description A video message @video The video description @caption Video caption @is_secret True, if the video thumbnail must be blurred and the video must be shown only while tapped
-messageVideo video:video caption:formattedText is_secret:Bool = MessageContent;
+//@description A video message
+//@video The video description
+//@caption Video caption
+//@has_spoiler True, if the video preview should be covered by spoiler animation
+//@is_secret True, if the video thumbnail must be blurred and the video must be shown only while tapped
+messageVideo video:video caption:formattedText has_spoiler:Bool is_secret:Bool = MessageContent;
 
 //@description An expired video message (self-destructed after TTL has elapsed)
 messageExpiredVideo = MessageContent;

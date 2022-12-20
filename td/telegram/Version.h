@@ -58,6 +58,7 @@ enum class Version : int32 {
   AddInputInvoiceFlags,
   AddVideoNoteFlags,
   AddMessageChatSetTtlFlags,
+  AddMessageMediaSpoiler,
   Next
 };
 

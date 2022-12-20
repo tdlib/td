@@ -417,7 +417,7 @@ bool photo_has_input_media(FileManager *file_manager, const Photo &photo, bool i
 
 tl_object_ptr<telegram_api::InputMedia> photo_get_input_media(FileManager *file_manager, const Photo &photo,
                                                               tl_object_ptr<telegram_api::InputFile> input_file,
-                                                              int32 ttl) {
+                                                              int32 ttl, bool has_spoiler) {
   if (!photo.photos.empty()) {
     auto file_id = photo.photos.back().file_id;
     auto file_view = file_manager->get_file_view(file_id);
@@ -456,10 +456,7 @@ tl_object_ptr<telegram_api::InputMedia> photo_get_input_media(FileManager *file_
     }
 
     CHECK(!photo.photos.empty());
-    auto file_id = photo.photos.back().file_id;
-    auto file_view = file_manager->get_file_view(file_id);
-    auto file_type = file_view.get_type();
-    if (file_type == FileType::PhotoWithSpoiler) {
+    if (has_spoiler) {
       flags |= telegram_api::inputMediaUploadedPhoto::SPOILER_MASK;
     }
 

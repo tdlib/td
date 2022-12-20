@@ -282,9 +282,10 @@ telegram_api::object_ptr<telegram_api::InputMedia> MessageExtendedMedia::get_inp
     case Type::Preview:
       break;
     case Type::Photo:
-      return photo_get_input_media(td->file_manager_.get(), photo_, std::move(input_file), 0);
+      return photo_get_input_media(td->file_manager_.get(), photo_, std::move(input_file), 0, false);
     case Type::Video:
-      return td->videos_manager_->get_input_media(video_file_id_, std::move(input_file), std::move(input_thumbnail), 0);
+      return td->videos_manager_->get_input_media(video_file_id_, std::move(input_file), std::move(input_thumbnail), 0,
+                                                  false);
     default:
       UNREACHABLE();
       break;
