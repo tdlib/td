@@ -4671,6 +4671,12 @@ class CliClient final : public Actor {
       get_args(args, supergroup_id, is_all_history_available);
       send_request(td_api::make_object<td_api::toggleSupergroupIsAllHistoryAvailable>(as_supergroup_id(supergroup_id),
                                                                                       is_all_history_available));
+    } else if (op == "tsghhm") {
+      string supergroup_id;
+      bool has_hidden_members;
+      get_args(args, supergroup_id, has_hidden_members);
+      send_request(td_api::make_object<td_api::toggleSupergroupHasHiddenMembers>(as_supergroup_id(supergroup_id),
+                                                                                 has_hidden_members));
     } else if (op == "tsgas") {
       string supergroup_id;
       bool is_aggressive_anti_spam_enabled;

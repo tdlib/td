@@ -213,6 +213,8 @@ class ContactsManager final : public Actor {
   void on_update_channel_slow_mode_next_send_date(ChannelId channel_id, int32 slow_mode_next_send_date);
   void on_update_channel_is_all_history_available(ChannelId channel_id, bool is_all_history_available,
                                                   Promise<Unit> &&promise);
+  void on_update_channel_has_hidden_participants(ChannelId channel_id, bool has_hidden_participants,
+                                                 Promise<Unit> &&promise);
   void on_update_channel_is_aggressive_anti_spam_enabled(ChannelId channel_id, bool is_aggressive_anti_spam_enabled,
                                                          Promise<Unit> &&promise);
   void on_update_channel_default_permissions(ChannelId channel_id, RestrictedRights default_permissions);
@@ -404,6 +406,9 @@ class ContactsManager final : public Actor {
 
   void toggle_channel_is_all_history_available(ChannelId channel_id, bool is_all_history_available,
                                                Promise<Unit> &&promise);
+
+  void toggle_channel_has_hidden_participants(ChannelId channel_id, bool has_hidden_participants,
+                                              Promise<Unit> &&promise);
 
   void toggle_channel_is_aggressive_anti_spam_enabled(ChannelId channel_id, bool is_aggressive_anti_spam_enabled,
                                                       Promise<Unit> &&promise);

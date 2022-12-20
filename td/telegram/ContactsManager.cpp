@@ -1295,6 +1295,58 @@ class TogglePrehistoryHiddenQuery final : public Td::ResultHandler {
   }
 };
 
+class ToggleParticipantsHiddenQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  ChannelId channel_id_;
+  bool has_hidden_participants_;
+
+ public:
+  explicit ToggleParticipantsHiddenQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(ChannelId channel_id, bool has_hidden_participants) {
+    channel_id_ = channel_id;
+    has_hidden_participants_ = has_hidden_participants;
+
+    auto input_channel = td_->contacts_manager_->get_input_channel(channel_id);
+    CHECK(input_channel != nullptr);
+    send_query(G()->net_query_creator().create(
+        telegram_api::channels_toggleParticipantsHidden(std::move(input_channel), has_hidden_participants),
+        {{channel_id}}));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::channels_toggleParticipantsHidden>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for ToggleParticipantsHiddenQuery: " << to_string(ptr);
+
+    td_->updates_manager_->on_get_updates(
+        std::move(ptr),
+        PromiseCreator::lambda([actor_id = G()->contacts_manager(), promise = std::move(promise_),
+                                channel_id = channel_id_,
+                                has_hidden_participants = has_hidden_participants_](Unit result) mutable {
+          send_closure(actor_id, &ContactsManager::on_update_channel_has_hidden_participants, channel_id,
+                       has_hidden_participants, std::move(promise));
+        }));
+  }
+
+  void on_error(Status status) final {
+    if (status.message() == "CHAT_NOT_MODIFIED") {
+      if (!td_->auth_manager_->is_bot()) {
+        promise_.set_value(Unit());
+        return;
+      }
+    } else {
+      td_->contacts_manager_->on_get_channel_error(channel_id_, status, "ToggleParticipantsHiddenQuery");
+    }
+    promise_.set_error(std::move(status));
+  }
+};
+
 class ToggleAntiSpamQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   ChannelId channel_id_;
@@ -7506,6 +7558,14 @@ Status ContactsManager::can_hide_channel_participants(ChannelId channel_id, cons
     return Status::Error(400, "The supergroup is too small");
   }
   return Status::OK();
+}
+
+void ContactsManager::toggle_channel_has_hidden_participants(ChannelId channel_id, bool has_hidden_participants,
+                                                             Promise<Unit> &&promise) {
+  auto channel_full = get_channel_full_force(channel_id, true, "toggle_channel_has_hidden_participants");
+  TRY_STATUS_PROMISE(promise, can_hide_channel_participants(channel_id, channel_full));
+
+  td_->create_handler<ToggleParticipantsHiddenQuery>(std::move(promise))->send(channel_id, has_hidden_participants);
 }
 
 Status ContactsManager::can_toggle_chat_aggressive_anti_spam(ChatId chat_id) const {
@@ -15304,6 +15364,19 @@ void ContactsManager::on_update_channel_is_all_history_available(ChannelId chann
     channel_full->is_all_history_available = is_all_history_available;
     channel_full->is_changed = true;
     update_channel_full(channel_full, channel_id, "on_update_channel_is_all_history_available");
+  }
+  promise.set_value(Unit());
+}
+
+void ContactsManager::on_update_channel_has_hidden_participants(ChannelId channel_id, bool has_hidden_participants,
+                                                                Promise<Unit> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+  CHECK(channel_id.is_valid());
+  auto channel_full = get_channel_full_force(channel_id, true, "on_update_channel_has_hidden_participants");
+  if (channel_full != nullptr && channel_full->has_hidden_participants != has_hidden_participants) {
+    channel_full->has_hidden_participants = has_hidden_participants;
+    channel_full->is_changed = true;
+    update_channel_full(channel_full, channel_id, "on_update_channel_has_hidden_participants");
   }
   promise.set_value(Unit());
 }

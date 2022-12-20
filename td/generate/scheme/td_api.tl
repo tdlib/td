@@ -7307,6 +7307,9 @@ toggleSupergroupJoinByRequest supergroup_id:int53 join_by_request:Bool = Ok;
 //@description Toggles whether the message history of a supergroup is available to new members; requires can_change_info administrator right @supergroup_id The identifier of the supergroup @is_all_history_available The new value of is_all_history_available
 toggleSupergroupIsAllHistoryAvailable supergroup_id:int53 is_all_history_available:Bool = Ok;
 
+//@description Toggles whether non-administrators can receive only administrators and bots using getSupergroupMembers or searchChatMembers. Can be called only if supergroupFullInfo.can_hide_members == true @supergroup_id Identifier of the supergroup @has_hidden_members New value of has_hidden_members
+toggleSupergroupHasHiddenMembers supergroup_id:int53 has_hidden_members:Bool = Ok;
+
 //@description Toggles whether aggressive anti-spam checks are enabled in the supergroup. Can be called only if supergroupFullInfo.can_toggle_aggressive_anti_spam == true
 //@supergroup_id The identifier of the supergroup, which isn't a broadcast group
 //@is_aggressive_anti_spam_enabled The new value of is_aggressive_anti_spam_enabled
