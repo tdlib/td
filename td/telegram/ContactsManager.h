@@ -1674,13 +1674,18 @@ class ContactsManager final : public Actor {
 
   tl_object_ptr<td_api::basicGroup> get_basic_group_object_const(ChatId chat_id, const Chat *c) const;
 
-  tl_object_ptr<td_api::basicGroupFullInfo> get_basic_group_full_info_object(const ChatFull *chat_full) const;
+  tl_object_ptr<td_api::basicGroupFullInfo> get_basic_group_full_info_object(ChatId chat_id,
+                                                                             const ChatFull *chat_full) const;
 
   td_api::object_ptr<td_api::updateSupergroup> get_update_unknown_supergroup_object(ChannelId channel_id) const;
 
   static tl_object_ptr<td_api::supergroup> get_supergroup_object(ChannelId channel_id, const Channel *c);
 
+  Status can_hide_chat_participants(ChatId chat_id) const;
+
   Status can_hide_channel_participants(ChannelId channel_id, const ChannelFull *channel_full) const;
+
+  Status can_toggle_chat_aggressive_anti_spam(ChatId chat_id) const;
 
   Status can_toggle_channel_aggressive_anti_spam(ChannelId channel_id, const ChannelFull *channel_full) const;
 

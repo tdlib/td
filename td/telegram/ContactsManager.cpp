@@ -7475,6 +7475,20 @@ void ContactsManager::toggle_channel_is_all_history_available(ChannelId channel_
   td_->create_handler<TogglePrehistoryHiddenQuery>(std::move(promise))->send(channel_id, is_all_history_available);
 }
 
+Status ContactsManager::can_hide_chat_participants(ChatId chat_id) const {
+  auto c = get_chat(chat_id);
+  if (c == nullptr) {
+    return Status::Error(400, "Basic group not found");
+  }
+  if (!get_chat_permissions(c).is_creator()) {
+    return Status::Error(400, "Not enough rights to hide group members");
+  }
+  if (c->participant_count < td_->option_manager_->get_option_integer("hidden_members_group_size_min")) {
+    return Status::Error(400, "The basic group is too small");
+  }
+  return Status::OK();
+}
+
 Status ContactsManager::can_hide_channel_participants(ChannelId channel_id, const ChannelFull *channel_full) const {
   auto c = get_channel(channel_id);
   if (c == nullptr) {
@@ -7493,7 +7507,21 @@ Status ContactsManager::can_hide_channel_participants(ChannelId channel_id, cons
       c->participant_count < td_->option_manager_->get_option_integer("hidden_members_group_size_min")) {
     return Status::Error(400, "The supergroup is too small");
   }
+  return Status::OK();
+}
 
+Status ContactsManager::can_toggle_chat_aggressive_anti_spam(ChatId chat_id) const {
+  auto c = get_chat(chat_id);
+  if (c == nullptr) {
+    return Status::Error(400, "Basic group not found");
+  }
+  if (!get_chat_permissions(c).is_creator()) {
+    return Status::Error(400, "Not enough rights to enable aggressive anti-spam checks");
+  }
+  if (c->participant_count <
+      td_->option_manager_->get_option_integer("aggressive_anti_spam_supergroup_member_count_min")) {
+    return Status::Error(400, "The basic group is too small");
+  }
   return Status::OK();
 }
 
@@ -7522,7 +7550,6 @@ Status ContactsManager::can_toggle_channel_aggressive_anti_spam(ChannelId channe
                                                              "aggressive_anti_spam_supergroup_member_count_min")) {
     return Status::Error(400, "The supergroup is too small");
   }
-
   return Status::OK();
 }
 
@@ -11666,7 +11693,7 @@ void ContactsManager::update_chat_full(ChatFull *chat_full, ChatId chat_id, cons
     send_closure(
         G()->td(), &Td::send_update,
         make_tl_object<td_api::updateBasicGroupFullInfo>(get_basic_group_id_object(chat_id, "update_chat_full"),
-                                                         get_basic_group_full_info_object(chat_full)));
+                                                         get_basic_group_full_info_object(chat_id, chat_full)));
     chat_full->need_send_update = false;
   }
   if (chat_full->need_save_to_database) {
@@ -18011,20 +18038,22 @@ tl_object_ptr<td_api::basicGroup> ContactsManager::get_basic_group_object_const(
 }
 
 tl_object_ptr<td_api::basicGroupFullInfo> ContactsManager::get_basic_group_full_info_object(ChatId chat_id) const {
-  return get_basic_group_full_info_object(get_chat_full(chat_id));
+  return get_basic_group_full_info_object(chat_id, get_chat_full(chat_id));
 }
 
 tl_object_ptr<td_api::basicGroupFullInfo> ContactsManager::get_basic_group_full_info_object(
-    const ChatFull *chat_full) const {
+    ChatId chat_id, const ChatFull *chat_full) const {
   CHECK(chat_full != nullptr);
   auto bot_commands = transform(chat_full->bot_commands, [td = td_](const BotCommands &commands) {
     return commands.get_bot_commands_object(td);
   });
+  auto members = transform(chat_full->participants, [this](const DialogParticipant &chat_participant) {
+    return get_chat_member_object(chat_participant);
+  });
   return make_tl_object<td_api::basicGroupFullInfo>(
       get_chat_photo_object(td_->file_manager_.get(), chat_full->photo), chat_full->description,
-      get_user_id_object(chat_full->creator_user_id, "basicGroupFullInfo"),
-      transform(chat_full->participants,
-                [this](const DialogParticipant &chat_participant) { return get_chat_member_object(chat_participant); }),
+      get_user_id_object(chat_full->creator_user_id, "basicGroupFullInfo"), std::move(members),
+      can_hide_chat_participants(chat_id).is_ok(), can_toggle_chat_aggressive_anti_spam(chat_id).is_ok(),
       chat_full->invite_link.get_chat_invite_link_object(this), std::move(bot_commands));
 }
 
@@ -18323,7 +18352,7 @@ void ContactsManager::get_current_state(vector<td_api::object_ptr<td_api::Update
   });
   chats_full_.foreach([&](const ChatId &chat_id, const unique_ptr<ChatFull> &chat_full) {
     updates.push_back(td_api::make_object<td_api::updateBasicGroupFullInfo>(
-        chat_id.get(), get_basic_group_full_info_object(chat_full.get())));
+        chat_id.get(), get_basic_group_full_info_object(chat_id, chat_full.get())));
   });
 }
 

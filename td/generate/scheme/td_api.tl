@@ -832,9 +832,11 @@ basicGroup id:int53 member_count:int32 status:ChatMemberStatus is_active:Bool up
 //@param_description Group description. Updated only after the basic group is opened
 //@creator_user_id User identifier of the creator of the group; 0 if unknown
 //@members Group members
+//@can_hide_members True, if non-administrators and non-bots can be hidden in responses to getSupergroupMembers and searchChatMembers for non-administrators after upgrading the basic group to a supergroup
+//@can_toggle_aggressive_anti_spam True, if aggressive anti-spam checks can be enabled or disabled in the supergroup after upgrading the basic group to a supergroup
 //@invite_link Primary invite link for this group; may be null. For chat administrators with can_invite_users right only. Updated only after the basic group is opened
 //@bot_commands List of commands of bots in the group
-basicGroupFullInfo photo:chatPhoto description:string creator_user_id:int53 members:vector<chatMember> invite_link:chatInviteLink bot_commands:vector<botCommands> = BasicGroupFullInfo;
+basicGroupFullInfo photo:chatPhoto description:string creator_user_id:int53 members:vector<chatMember> can_hide_members:Bool can_toggle_aggressive_anti_spam:Bool invite_link:chatInviteLink bot_commands:vector<botCommands> = BasicGroupFullInfo;
 
 
 //@description Represents a supergroup or channel with zero or more members (subscribers in the case of channels). From the point of view of the system, a channel is a special kind of a supergroup:
