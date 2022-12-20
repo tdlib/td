@@ -2383,6 +2383,10 @@ void UpdatesManager::add_pending_pts_update(tl_object_ptr<telegram_api::Update> 
     td_->messages_manager_->skip_old_pending_pts_update(std::move(update), new_pts, old_pts, pts_count, source);
     return promise.set_value(Unit());
   }
+  if (source == AFTER_GET_DIFFERENCE_SOURCE && old_pts >= 1 && new_pts - (1 << 21) > old_pts) {
+    LOG(ERROR) << "Ignore update " << oneline(to_string(update)) << ", because current PTS is " << old_pts;
+    return promise.set_value(Unit());
+  }
 
   if (running_get_difference_ || !postponed_pts_updates_.empty()) {
     LOG(INFO) << "Save pending update got while running getDifference from " << source;
