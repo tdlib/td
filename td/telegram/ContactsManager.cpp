@@ -7475,6 +7475,28 @@ void ContactsManager::toggle_channel_is_all_history_available(ChannelId channel_
   td_->create_handler<TogglePrehistoryHiddenQuery>(std::move(promise))->send(channel_id, is_all_history_available);
 }
 
+Status ContactsManager::can_hide_channel_participants(ChannelId channel_id, const ChannelFull *channel_full) const {
+  auto c = get_channel(channel_id);
+  if (c == nullptr) {
+    return Status::Error(400, "Supergroup not found");
+  }
+  if (!get_channel_permissions(c).can_restrict_members()) {
+    return Status::Error(400, "Not enough rights to hide group members");
+  }
+  if (get_channel_type(c) != ChannelType::Megagroup) {
+    return Status::Error(400, "Group members are hidden by default in channels");
+  }
+  if (channel_full != nullptr && channel_full->has_hidden_participants) {
+    return Status::OK();
+  }
+  if (c->participant_count > 0 &&
+      c->participant_count < td_->option_manager_->get_option_integer("hidden_members_group_size_min")) {
+    return Status::Error(400, "The supergroup is too small");
+  }
+
+  return Status::OK();
+}
+
 Status ContactsManager::can_toggle_channel_aggressive_anti_spam(ChannelId channel_id,
                                                                 const ChannelFull *channel_full) const {
   auto c = get_channel(channel_id);
@@ -16319,7 +16341,7 @@ bool ContactsManager::get_channel_has_hidden_participants(ChannelId channel_id) 
       return true;
     }
   }
-  return channel_full->has_hidden_participants;
+  return channel_full->has_hidden_participants || !channel_full->can_get_participants;
 }
 
 bool ContactsManager::have_channel(ChannelId channel_id) const {
@@ -18058,16 +18080,18 @@ tl_object_ptr<td_api::supergroupFullInfo> ContactsManager::get_supergroup_full_i
   auto bot_commands = transform(channel_full->bot_commands, [td = td_](const BotCommands &commands) {
     return commands.get_bot_commands_object(td);
   });
+  bool has_hidden_participants = channel_full->has_hidden_participants || !channel_full->can_get_participants;
   return td_api::make_object<td_api::supergroupFullInfo>(
       get_chat_photo_object(td_->file_manager_.get(), channel_full->photo), channel_full->description,
       channel_full->participant_count, channel_full->administrator_count, channel_full->restricted_count,
       channel_full->banned_count, DialogId(channel_full->linked_channel_id).get(), channel_full->slow_mode_delay,
-      slow_mode_delay_expires_in, channel_full->can_get_participants, channel_full->has_hidden_participants,
-      channel_full->can_set_username, channel_full->can_set_sticker_set, channel_full->can_set_location,
-      channel_full->can_view_statistics, can_toggle_channel_aggressive_anti_spam(channel_id, channel_full).is_ok(),
-      channel_full->is_all_history_available, channel_full->is_aggressive_anti_spam_enabled,
-      channel_full->sticker_set_id.get(), channel_full->location.get_chat_location_object(),
-      channel_full->invite_link.get_chat_invite_link_object(this), std::move(bot_commands),
+      slow_mode_delay_expires_in, channel_full->can_get_participants, has_hidden_participants,
+      can_hide_channel_participants(channel_id, channel_full).is_ok(), channel_full->can_set_username,
+      channel_full->can_set_sticker_set, channel_full->can_set_location, channel_full->can_view_statistics,
+      can_toggle_channel_aggressive_anti_spam(channel_id, channel_full).is_ok(), channel_full->is_all_history_available,
+      channel_full->is_aggressive_anti_spam_enabled, channel_full->sticker_set_id.get(),
+      channel_full->location.get_chat_location_object(), channel_full->invite_link.get_chat_invite_link_object(this),
+      std::move(bot_commands),
       get_basic_group_id_object(channel_full->migrated_from_chat_id, "get_supergroup_full_info_object"),
       channel_full->migrated_from_max_message_id.get());
 }

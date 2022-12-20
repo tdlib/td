@@ -267,6 +267,8 @@ bool OptionManager::is_internal_option(Slice name) {
       return name == "edit_time_limit" || name == "emoji_sounds";
     case 'f':
       return name == "fragment_prefixes";
+    case 'h':
+      return name == "hidden_members_group_size_min";
     case 'i':
       return name == "ignored_restriction_reasons";
     case 'l':

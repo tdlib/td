@@ -1680,6 +1680,8 @@ class ContactsManager final : public Actor {
 
   static tl_object_ptr<td_api::supergroup> get_supergroup_object(ChannelId channel_id, const Channel *c);
 
+  Status can_hide_channel_participants(ChannelId channel_id, const ChannelFull *channel_full) const;
+
   Status can_toggle_channel_aggressive_anti_spam(ChannelId channel_id, const ChannelFull *channel_full) const;
 
   tl_object_ptr<td_api::supergroupFullInfo> get_supergroup_full_info_object(ChannelId channel_id,
