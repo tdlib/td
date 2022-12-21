@@ -4875,10 +4875,12 @@ bool StickersManager::update_sticker_set_cache(const StickerSet *sticker_set, Pr
   } else {
     if (G()->unix_time() >= sticker_set->expires_at_) {
       if (td_->auth_manager_->is_bot()) {
-        do_reload_sticker_set(set_id, get_input_sticker_set(sticker_set), sticker_set->hash_, std::move(promise));
+        do_reload_sticker_set(set_id, get_input_sticker_set(sticker_set), sticker_set->hash_, std::move(promise),
+                              "update_sticker_set_cache");
         return true;
       } else {
-        do_reload_sticker_set(set_id, get_input_sticker_set(sticker_set), sticker_set->hash_, Auto());
+        do_reload_sticker_set(set_id, get_input_sticker_set(sticker_set), sticker_set->hash_, Auto(),
+                              "update_sticker_set_cache");
       }
     }
   }
@@ -4891,7 +4893,7 @@ StickerSetId StickersManager::get_sticker_set(StickerSetId set_id, Promise<Unit>
   if (sticker_set == nullptr) {
     if (set_id.get() == GREAT_MINDS_SET_ID) {
       do_reload_sticker_set(set_id, make_tl_object<telegram_api::inputStickerSetID>(set_id.get(), 0), 0,
-                            std::move(promise));
+                            std::move(promise), "get_sticker_set");
       return StickerSetId();
     }
 
@@ -4913,7 +4915,7 @@ StickerSetId StickersManager::search_sticker_set(const string &short_name_to_sea
 
   if (sticker_set == nullptr) {
     auto set_to_load = make_tl_object<telegram_api::inputStickerSetShortName>(short_name);
-    do_reload_sticker_set(StickerSetId(), std::move(set_to_load), 0, std::move(promise));
+    do_reload_sticker_set(StickerSetId(), std::move(set_to_load), 0, std::move(promise), "search_sticker_set");
     return StickerSetId();
   }
 
@@ -5299,7 +5301,7 @@ void StickersManager::load_sticker_sets(vector<StickerSetId> &&sticker_set_ids, 
             }));
       } else {
         LOG(INFO) << "Trying to load " << sticker_set_id << " with stickers from server";
-        do_reload_sticker_set(sticker_set_id, get_input_sticker_set(sticker_set), 0, Auto());
+        do_reload_sticker_set(sticker_set_id, get_input_sticker_set(sticker_set), 0, Auto(), "load_sticker_sets");
       }
     }
   }
@@ -5337,7 +5339,8 @@ void StickersManager::load_sticker_sets_without_stickers(vector<StickerSetId> &&
               }));
         } else {
           LOG(INFO) << "Trying to load " << sticker_set_id << " from server";
-          do_reload_sticker_set(sticker_set_id, get_input_sticker_set(sticker_set), 0, Auto());
+          do_reload_sticker_set(sticker_set_id, get_input_sticker_set(sticker_set), 0, Auto(),
+                                "load_sticker_sets_without_stickers");
         }
       }
     }
@@ -5368,7 +5371,8 @@ void StickersManager::on_load_sticker_set_from_database(StickerSetId sticker_set
 
   if (value.empty()) {
     LOG(INFO) << "Failed to find in the database " << sticker_set_id;
-    return do_reload_sticker_set(sticker_set_id, get_input_sticker_set(sticker_set), 0, Auto());
+    return do_reload_sticker_set(sticker_set_id, get_input_sticker_set(sticker_set), 0, Auto(),
+                                 "on_load_sticker_set_from_database");
   }
 
   LOG(INFO) << "Successfully loaded " << sticker_set_id << " with" << (with_stickers ? "" : "out")
@@ -5395,7 +5399,8 @@ void StickersManager::on_load_sticker_set_from_database(StickerSetId sticker_set
   }
   if (!sticker_set->are_keywords_loaded_ || !sticker_set->is_thumbnail_reloaded_ ||
       !sticker_set->are_legacy_sticker_thumbnails_reloaded_) {
-    do_reload_sticker_set(sticker_set_id, get_input_sticker_set(sticker_set), 0, Auto());
+    do_reload_sticker_set(sticker_set_id, get_input_sticker_set(sticker_set), 0, Auto(),
+                          "on_load_sticker_set_from_database 2");
   }
 
   if (with_stickers && old_sticker_count < get_max_featured_sticker_count(sticker_set->sticker_type_) &&
@@ -5410,13 +5415,14 @@ void StickersManager::on_load_sticker_set_from_database(StickerSetId sticker_set
 void StickersManager::reload_sticker_set(StickerSetId sticker_set_id, int64 access_hash, Promise<Unit> &&promise) {
   do_reload_sticker_set(sticker_set_id,
                         make_tl_object<telegram_api::inputStickerSetID>(sticker_set_id.get(), access_hash), 0,
-                        std::move(promise));
+                        std::move(promise), "reload_sticker_set");
 }
 
 void StickersManager::do_reload_sticker_set(StickerSetId sticker_set_id,
                                             tl_object_ptr<telegram_api::InputStickerSet> &&input_sticker_set,
-                                            int32 hash, Promise<Unit> &&promise) const {
+                                            int32 hash, Promise<Unit> &&promise, const char *source) const {
   TRY_STATUS_PROMISE(promise, G()->close_status());
+  LOG(INFO) << "Reload " << sticker_set_id << " from " << source;
   td_->create_handler<GetStickerSetQuery>(std::move(promise))->send(sticker_set_id, std::move(input_sticker_set), hash);
 }
 
@@ -6006,7 +6012,7 @@ void StickersManager::get_default_topic_icons(bool is_recursive,
           }
         });
     do_reload_sticker_set(sticker_set->id_, get_input_sticker_set(sticker_set), sticker_set->hash_,
-                          std::move(reload_promise));
+                          std::move(reload_promise), "get_default_topic_icons");
     return;
   }
 
@@ -7829,7 +7835,8 @@ void StickersManager::add_sticker_to_set(UserId user_id, string short_name,
           send_closure(actor_id, &StickersManager::do_add_sticker_to_set, user_id, std::move(short_name),
                        std::move(sticker), std::move(promise));
         }
-      }));
+      }),
+      "add_sticker_to_set");
 }
 
 void StickersManager::do_add_sticker_to_set(UserId user_id, string short_name,
@@ -7923,7 +7930,8 @@ void StickersManager::set_sticker_set_thumbnail(UserId user_id, string short_nam
           send_closure(actor_id, &StickersManager::do_set_sticker_set_thumbnail, user_id, std::move(short_name),
                        std::move(thumbnail), std::move(promise));
         }
-      }));
+      }),
+      "set_sticker_set_thumbnail");
 }
 
 void StickersManager::do_set_sticker_set_thumbnail(UserId user_id, string short_name,

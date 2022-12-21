@@ -682,7 +682,7 @@ class StickersManager final : public Actor {
 
   void do_reload_sticker_set(StickerSetId sticker_set_id,
                              tl_object_ptr<telegram_api::InputStickerSet> &&input_sticker_set, int32 hash,
-                             Promise<Unit> &&promise) const;
+                             Promise<Unit> &&promise, const char *source) const;
 
   void do_get_premium_stickers(int32 limit, Promise<td_api::object_ptr<td_api::stickers>> &&promise);
 
