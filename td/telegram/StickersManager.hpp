@@ -207,6 +207,7 @@ void StickersManager::store_sticker_set(const StickerSet *sticker_set, bool with
   STORE_FLAG(is_emojis);
   STORE_FLAG(has_thumbnail_document_id);
   STORE_FLAG(sticker_set->are_keywords_loaded_);
+  STORE_FLAG(sticker_set->is_sticker_has_text_color_loaded_);
   END_STORE_FLAGS();
   store(sticker_set->id_.get(), storer);
   store(sticker_set->access_hash_, storer);
@@ -289,6 +290,7 @@ void StickersManager::parse_sticker_set(StickerSet *sticker_set, ParserT &parser
   PARSE_FLAG(is_emojis);
   PARSE_FLAG(has_thumbnail_document_id);
   PARSE_FLAG(sticker_set->are_keywords_loaded_);
+  PARSE_FLAG(sticker_set->is_sticker_has_text_color_loaded_);
   END_PARSE_FLAGS();
   int64 sticker_set_id;
   int64 access_hash;
@@ -306,6 +308,9 @@ void StickersManager::parse_sticker_set(StickerSet *sticker_set, ParserT &parser
     sticker_format = StickerFormat::Webp;
   }
   auto sticker_type = ::td::get_sticker_type(is_masks, is_emojis);
+  if (!is_emojis) {
+    sticker_set->is_sticker_has_text_color_loaded_ = true;
+  }
 
   if (sticker_set->is_inited_) {
     string title;

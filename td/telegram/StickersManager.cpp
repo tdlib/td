@@ -3715,6 +3715,7 @@ StickerSetId StickersManager::on_get_messages_sticker_set(StickerSetId sticker_s
   s->is_loaded_ = true;
   s->is_changed_ = true;
   s->are_keywords_loaded_ = true;
+  s->is_sticker_has_text_color_loaded_ = true;
 
   FlatHashMap<int64, FileId> document_id_to_sticker_id;
 
@@ -5415,8 +5416,8 @@ void StickersManager::on_load_sticker_set_from_database(StickerSetId sticker_set
                  << format::as_hex_dump<4>(Slice(value));
     }
   }
-  if (!sticker_set->are_keywords_loaded_ || !sticker_set->is_thumbnail_reloaded_ ||
-      !sticker_set->are_legacy_sticker_thumbnails_reloaded_) {
+  if (!sticker_set->is_sticker_has_text_color_loaded_ || !sticker_set->are_keywords_loaded_ ||
+      !sticker_set->is_thumbnail_reloaded_ || !sticker_set->are_legacy_sticker_thumbnails_reloaded_) {
     do_reload_sticker_set(sticker_set_id, get_input_sticker_set(sticker_set), 0, Auto(),
                           "on_load_sticker_set_from_database 2");
   }

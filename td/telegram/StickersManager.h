@@ -448,7 +448,8 @@ class StickersManager final : public Actor {
     bool is_inited_ = false;  // basic information about the set
     bool was_loaded_ = false;
     bool is_loaded_ = false;
-    bool are_keywords_loaded_ = false;
+    bool are_keywords_loaded_ = false;               // stored in telegram_api::messages_stickerSet
+    bool is_sticker_has_text_color_loaded_ = false;  // stored in telegram_api::messages_stickerSet
 
     StickerSetId id_;
     int64 access_hash_ = 0;
@@ -475,11 +476,11 @@ class StickersManager final : public Actor {
     bool is_archived_ = false;
     bool is_official_ = false;
     bool is_viewed_ = true;
-    bool is_thumbnail_reloaded_ = false;
-    bool are_legacy_sticker_thumbnails_reloaded_ = false;
-    mutable bool was_update_sent_ = false;  // does the sticker set is known to the client
-    bool is_changed_ = true;                // have new changes that need to be sent to the client and database
-    bool need_save_to_database_ = true;     // have new changes that need only to be saved to the database
+    bool is_thumbnail_reloaded_ = false;                   // stored in telegram_api::stickerSet
+    bool are_legacy_sticker_thumbnails_reloaded_ = false;  // stored in telegram_api::stickerSet
+    mutable bool was_update_sent_ = false;                 // does the sticker set is known to the client
+    bool is_changed_ = true;             // have new changes that need to be sent to the client and database
+    bool need_save_to_database_ = true;  // have new changes that need only to be saved to the database
 
     vector<uint32> load_requests_;
     vector<uint32> load_without_stickers_requests_;
