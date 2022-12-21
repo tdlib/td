@@ -18469,7 +18469,8 @@ FullMessageId MessagesManager::get_replied_message(DialogId dialog_id, MessageId
   return replied_message_id;
 }
 
-Result<FullMessageId> MessagesManager::get_top_thread_full_message_id(DialogId dialog_id, const Message *m) const {
+Result<FullMessageId> MessagesManager::get_top_thread_full_message_id(DialogId dialog_id, const Message *m,
+                                                                      bool allow_non_root) const {
   CHECK(m != nullptr);
   if (m->message_id.is_scheduled()) {
     return Status::Error(400, "Message is scheduled");
@@ -18488,6 +18489,10 @@ Result<FullMessageId> MessagesManager::get_top_thread_full_message_id(DialogId d
   } else {
     if (!m->top_thread_message_id.is_valid()) {
       return Status::Error(400, "Message has no thread");
+    }
+    if (!allow_non_root && m->top_thread_message_id != m->message_id &&
+        !td_->contacts_manager_->get_channel_has_linked_channel(dialog_id.get_channel_id())) {
+      return Status::Error(400, "Root message must be used to get the message thread");
     }
     return FullMessageId{dialog_id, m->top_thread_message_id};
   }
@@ -18516,7 +18521,7 @@ void MessagesManager::get_message_thread(DialogId dialog_id, MessageId message_i
     return promise.set_error(Status::Error(400, "Message not found"));
   }
 
-  TRY_RESULT_PROMISE(promise, top_thread_full_message_id, get_top_thread_full_message_id(dialog_id, m));
+  TRY_RESULT_PROMISE(promise, top_thread_full_message_id, get_top_thread_full_message_id(dialog_id, m, true));
   if ((m->reply_info.is_empty() || !m->reply_info.is_comment_) &&
       top_thread_full_message_id.get_message_id() != m->message_id) {
     CHECK(dialog_id == top_thread_full_message_id.get_dialog_id());
@@ -22591,7 +22596,7 @@ std::pair<DialogId, vector<MessageId>> MessagesManager::get_message_thread_histo
       return {};
     }
 
-    auto r_top_thread_full_message_id = get_top_thread_full_message_id(dialog_id, m);
+    auto r_top_thread_full_message_id = get_top_thread_full_message_id(dialog_id, m, true);
     if (r_top_thread_full_message_id.is_error()) {
       promise.set_error(r_top_thread_full_message_id.move_as_error());
       return {};
@@ -25385,7 +25390,7 @@ tl_object_ptr<td_api::message> MessagesManager::get_message_object(DialogId dial
   auto can_get_added_reactions =
       for_event_log ? false : m->reactions != nullptr && m->reactions->can_get_added_reactions_;
   auto can_get_statistics = for_event_log ? false : can_get_message_statistics(dialog_id, m);
-  auto can_get_message_thread = for_event_log ? false : get_top_thread_full_message_id(dialog_id, m).is_ok();
+  auto can_get_message_thread = for_event_log ? false : get_top_thread_full_message_id(dialog_id, m, false).is_ok();
   auto can_get_viewers = for_event_log ? false : can_get_message_viewers(dialog_id, m).is_ok();
   auto can_get_media_timestamp_links = for_event_log ? false : can_get_media_timestamp_link(dialog_id, m).is_ok();
   auto can_report_reactions = for_event_log ? false : can_report_message_reactions(dialog_id, m);
