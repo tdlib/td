@@ -1998,7 +1998,7 @@ static Result<InputMessageContent> create_input_message_content(
       message_photo->photo.sticker_file_ids = std::move(sticker_file_ids);
 
       message_photo->caption = std::move(caption);
-      message_photo->has_spoiler = input_photo->has_spoiler_;
+      message_photo->has_spoiler = input_photo->has_spoiler_ && false;
 
       content = std::move(message_photo);
       break;
@@ -2026,7 +2026,7 @@ static Result<InputMessageContent> create_input_message_content(
           std::move(file_name), std::move(mime_type), input_video->duration_,
           get_dimensions(input_video->width_, input_video->height_, nullptr), input_video->supports_streaming_, false);
 
-      content = make_unique<MessageVideo>(file_id, std::move(caption), input_video->has_spoiler_);
+      content = make_unique<MessageVideo>(file_id, std::move(caption), input_video->has_spoiler_ && false);
       break;
     }
     case td_api::inputMessageVideoNote::ID: {

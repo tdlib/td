@@ -2591,7 +2591,7 @@ inputMessageDocument document:InputFile thumbnail:inputThumbnail disable_content
 //@height Photo height
 //@caption Photo caption; pass null to use an empty caption; 0-getOption("message_caption_length_max") characters
 //@ttl Photo TTL (Time To Live), in seconds (0-60). A non-zero TTL can be specified only in private chats
-//@has_spoiler True, if the photo preview should be covered by spoiler animation
+//@has_spoiler True, if the photo preview should be covered by spoiler animation; not supported yet
 inputMessagePhoto photo:InputFile thumbnail:inputThumbnail added_sticker_file_ids:vector<int32> width:int32 height:int32 caption:formattedText ttl:int32 has_spoiler:Bool = InputMessageContent;
 
 //@description A sticker message
@@ -2612,7 +2612,7 @@ inputMessageSticker sticker:InputFile thumbnail:inputThumbnail width:int32 heigh
 //@supports_streaming True, if the video is supposed to be streamed
 //@caption Video caption; pass null to use an empty caption; 0-getOption("message_caption_length_max") characters
 //@ttl Video TTL (Time To Live), in seconds (0-60). A non-zero TTL can be specified only in private chats
-//@has_spoiler True, if the video preview should be covered by spoiler animation
+//@has_spoiler True, if the video preview should be covered by spoiler animation; not supported yet
 inputMessageVideo video:InputFile thumbnail:inputThumbnail added_sticker_file_ids:vector<int32> duration:int32 width:int32 height:int32 supports_streaming:Bool caption:formattedText ttl:int32 has_spoiler:Bool = InputMessageContent;
 
 //@description A video note message
