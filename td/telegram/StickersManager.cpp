@@ -2176,15 +2176,9 @@ tl_object_ptr<td_api::sticker> StickersManager::get_sticker_object(FileId file_i
 
   const auto *sticker = get_sticker(file_id);
   CHECK(sticker != nullptr);
-  auto mask_position = sticker->point_ >= 0
-                           ? make_tl_object<td_api::maskPosition>(get_mask_point_object(sticker->point_),
-                                                                  sticker->x_shift_, sticker->y_shift_, sticker->scale_)
-                           : nullptr;
-
   const PhotoSize &thumbnail = sticker->m_thumbnail_.file_id.is_valid() ? sticker->m_thumbnail_ : sticker->s_thumbnail_;
   auto thumbnail_format = PhotoFormat::Webp;
   int64 document_id = 0;
-  CustomEmojiId custom_emoji_id;
   if (!sticker->set_id_.is_valid()) {
     auto sticker_file_view = td_->file_manager_->get_file_view(sticker->file_id_);
     if (sticker_file_view.is_encrypted()) {
@@ -2202,8 +2196,6 @@ tl_object_ptr<td_api::sticker> StickersManager::get_sticker_object(FileId file_i
         }
       }
     }
-  } else if (sticker->type_ == StickerType::CustomEmoji) {
-    custom_emoji_id = get_custom_emoji_id(sticker->file_id_);
   }
   auto thumbnail_object = get_thumbnail_object(td_->file_manager_.get(), thumbnail, thumbnail_format);
   int32 width = sticker->dimensions_.width;
@@ -2222,15 +2214,34 @@ tl_object_ptr<td_api::sticker> StickersManager::get_sticker_object(FileId file_i
       height *= 3;
     }
   }
-  auto premium_animation_object = sticker->premium_animation_file_id_.is_valid()
-                                      ? td_->file_manager_->get_file_object(sticker->premium_animation_file_id_)
-                                      : nullptr;
+  auto full_type = [&]() -> td_api::object_ptr<td_api::StickerTypeFullInfo> {
+    switch (sticker->type_) {
+      case StickerType::Regular: {
+        auto premium_animation_object = sticker->premium_animation_file_id_.is_valid()
+                                            ? td_->file_manager_->get_file_object(sticker->premium_animation_file_id_)
+                                            : nullptr;
+        return td_api::make_object<td_api::stickerTypeFullInfoRegular>(std::move(premium_animation_object));
+      }
+      case StickerType::Mask: {
+        td_api::object_ptr<td_api::maskPosition> mask_position;
+        if (sticker->point_ >= 0) {
+          mask_position = td_api::make_object<td_api::maskPosition>(
+              get_mask_point_object(sticker->point_), sticker->x_shift_, sticker->y_shift_, sticker->scale_);
+        }
+        return td_api::make_object<td_api::stickerTypeFullInfoMask>(std::move(mask_position));
+      }
+      case StickerType::CustomEmoji:
+        return td_api::make_object<td_api::stickerTypeFullInfoCustomEmoji>(get_custom_emoji_id(sticker->file_id_).get(),
+                                                                           sticker->has_text_color_);
+      default:
+        UNREACHABLE();
+        return nullptr;
+    }
+  }();
   return td_api::make_object<td_api::sticker>(
       sticker->set_id_.get(), width, height, sticker->alt_, get_sticker_format_object(sticker->format_),
-      get_sticker_type_object(sticker->type_), std::move(mask_position), custom_emoji_id.get(),
-      sticker->has_text_color_, get_sticker_minithumbnail(sticker->minithumbnail_, sticker->set_id_, document_id, zoom),
-      std::move(thumbnail_object), sticker->is_premium_, std::move(premium_animation_object),
-      td_->file_manager_->get_file_object(file_id));
+      std::move(full_type), get_sticker_minithumbnail(sticker->minithumbnail_, sticker->set_id_, document_id, zoom),
+      std::move(thumbnail_object), td_->file_manager_->get_file_object(file_id));
 }
 
 tl_object_ptr<td_api::stickers> StickersManager::get_stickers_object(const vector<FileId> &sticker_ids) const {

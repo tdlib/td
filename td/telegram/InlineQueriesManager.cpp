@@ -1169,14 +1169,20 @@ tl_object_ptr<td_api::maskPosition> copy(const td_api::maskPosition &obj) {
 }
 
 template <>
-tl_object_ptr<td_api::StickerType> copy(const td_api::StickerType &obj) {
+tl_object_ptr<td_api::StickerTypeFullInfo> copy(const td_api::StickerTypeFullInfo &obj) {
   switch (obj.get_id()) {
-    case td_api::stickerTypeRegular::ID:
-      return td_api::make_object<td_api::stickerTypeRegular>();
-    case td_api::stickerTypeMask::ID:
-      return td_api::make_object<td_api::stickerTypeMask>();
-    case td_api::stickerTypeCustomEmoji::ID:
-      return td_api::make_object<td_api::stickerTypeCustomEmoji>();
+    case td_api::stickerTypeFullInfoRegular::ID: {
+      auto &info = static_cast<const td_api::stickerTypeFullInfoRegular &>(obj);
+      return td_api::make_object<td_api::stickerTypeFullInfoRegular>(copy(info.premium_animation_));
+    }
+    case td_api::stickerTypeFullInfoMask::ID: {
+      auto &info = static_cast<const td_api::stickerTypeFullInfoMask &>(obj);
+      return td_api::make_object<td_api::stickerTypeFullInfoMask>(copy(info.mask_position_));
+    }
+    case td_api::stickerTypeFullInfoCustomEmoji::ID: {
+      auto &info = static_cast<const td_api::stickerTypeFullInfoCustomEmoji &>(obj);
+      return td_api::make_object<td_api::stickerTypeFullInfoCustomEmoji>(info.custom_emoji_id_, info.has_text_color_);
+    }
     default:
       UNREACHABLE();
   }
@@ -1269,10 +1275,9 @@ tl_object_ptr<td_api::photo> copy(const td_api::photo &obj) {
 
 template <>
 tl_object_ptr<td_api::sticker> copy(const td_api::sticker &obj) {
-  return td_api::make_object<td_api::sticker>(
-      obj.set_id_, obj.width_, obj.height_, obj.emoji_, copy(obj.format_), copy(obj.type_), copy(obj.mask_position_),
-      obj.custom_emoji_id_, obj.has_text_color_, transform(obj.outline_, copy_closed_vector_path), copy(obj.thumbnail_),
-      obj.is_premium_, copy(obj.premium_animation_), copy(obj.sticker_));
+  return td_api::make_object<td_api::sticker>(obj.set_id_, obj.width_, obj.height_, obj.emoji_, copy(obj.format_),
+                                              copy(obj.full_type_), transform(obj.outline_, copy_closed_vector_path),
+                                              copy(obj.thumbnail_), copy(obj.sticker_));
 }
 
 template <>
