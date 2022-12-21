@@ -84,9 +84,9 @@ See [nativescript-tglib](https://github.com/arpit2438735/nativescript-tglib) as 
 TDLib can be used from the Go programming language through the [JSON](https://github.com/tdlib/td#using-json) interface and Cgo, and can be linked either statically or dynamically.
 
 Convenient Go wrappers already exist for our JSON interface.
-For example, take a look at [go-tdlib](https://github.com/zelenin/go-tdlib) or [go-tdlib](https://github.com/Arman92/go-tdlib), which provide a convenient TDLib client, a generator for TDLib API classes and contain many examples.
+For example, take a look at [go-tdlib (github.com/zelenin/go-tdlib)](https://github.com/zelenin/go-tdlib) or [go-tdlib (github.com/Arman92/go-tdlib)](https://github.com/Arman92/go-tdlib), which provide a convenient TDLib client, a generator for TDLib API classes and contain many examples.
 
-You can also see [go-tdjson](https://github.com/L11R/go-tdjson) for another example of TDLib JSON interface integration with Go.
+You can also see [go-tdjson (github.com/L11R/go-tdjson)](https://github.com/L11R/go-tdjson) for another example of TDLib JSON interface integration with Go.
 
 <a name="java"></a>
 ## Using TDLib in Java projects
