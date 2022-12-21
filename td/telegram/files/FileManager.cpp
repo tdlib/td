@@ -861,7 +861,6 @@ string FileManager::get_file_name(FileType file_type, Slice path) {
       break;
     case FileType::ProfilePhoto:
     case FileType::Photo:
-    case FileType::PhotoWithSpoiler:
       if (extension != "jpg" && extension != "jpeg" && extension != "gif" && extension != "png" && extension != "tif" &&
           extension != "bmp") {
         return fix_file_extension(file_name, "photo", "jpg");
@@ -874,7 +873,6 @@ string FileManager::get_file_name(FileType file_type, Slice path) {
       }
       break;
     case FileType::Video:
-    case FileType::VideoWithSpoiler:
     case FileType::VideoNote:
       if (extension != "mov" && extension != "3gp" && extension != "mpeg4" && extension != "mp4" &&
           extension != "mkv") {
