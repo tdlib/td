@@ -112,17 +112,14 @@ OptionManager::OptionManager(Td *td)
   if (!have_option("chat_filter_chosen_chat_count_max")) {
     set_option_integer("chat_filter_chosen_chat_count_max", G()->is_test_dc() ? 5 : 100);
   }
-  if (!have_option("themed_emoji_statuses_sticker_set_id")) {
-    auto sticker_set_id =
-        G()->is_test_dc() ? static_cast<int64>(2964141614563343) : static_cast<int64>(773947703670341676);
-    set_option_integer("themed_emoji_statuses_sticker_set_id", sticker_set_id);
-  }
   if (!have_option("forum_member_count_min")) {
     set_option_integer("forum_member_count_min", G()->is_test_dc() ? 3 : 100);
   }
   if (!have_option("aggressive_anti_spam_supergroup_member_count_min")) {
     set_option_integer("aggressive_anti_spam_supergroup_member_count_min", G()->is_test_dc() ? 1 : 100);
   }
+
+  set_option_empty("themed_emoji_statuses_sticker_set_id");
 }
 
 OptionManager::~OptionManager() = default;

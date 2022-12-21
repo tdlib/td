@@ -1499,9 +1499,9 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
     for (auto &key_value : static_cast<telegram_api::jsonObject *>(config.get())->value_) {
       Slice key = key_value->key_;
       telegram_api::JSONValue *value = key_value->value_.get();
-      if (key == "getfile_experimental_params" || key == "message_animated_emoji_max" ||
-          key == "reactions_in_chat_max" || key == "stickers_emoji_cache_time" || key == "test" ||
-          key == "upload_max_fileparts_default" || key == "upload_max_fileparts_premium" ||
+      if (key == "default_emoji_statuses_stickerset_id" || key == "getfile_experimental_params" ||
+          key == "message_animated_emoji_max" || key == "reactions_in_chat_max" || key == "stickers_emoji_cache_time" ||
+          key == "test" || key == "upload_max_fileparts_default" || key == "upload_max_fileparts_premium" ||
           key == "wallet_blockchain_name" || key == "wallet_config" || key == "wallet_enabled") {
         continue;
       }
@@ -1835,11 +1835,6 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
       }
       if (key == "stickers_normal_by_emoji_per_premium_num") {
         stickers_normal_by_emoji_per_premium_num = get_json_value_int(std::move(key_value->value_), key);
-        continue;
-      }
-      if (key == "default_emoji_statuses_stickerset_id") {
-        auto setting_value = get_json_value_long(std::move(key_value->value_), key);
-        G()->set_option_integer("themed_emoji_statuses_sticker_set_id", setting_value);
         continue;
       }
       if (key == "reactions_user_max_default" || key == "reactions_user_max_premium") {

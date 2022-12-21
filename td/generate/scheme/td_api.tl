@@ -371,7 +371,7 @@ photo has_stickers:Bool minithumbnail:minithumbnail sizes:vector<photoSize> = Ph
 //@type Sticker type
 //@mask_position Position where the mask is placed; may be null even the sticker is a mask
 //@custom_emoji_id Identifier of the emoji if the sticker is a custom emoji
-//@has_text_color True, if the sticker must be repainted to a text color; for custom emoji only
+//@has_text_color True, if the sticker must be repainted to a text color in messages, the color of the Telegram Premium badge in emoji status, or other appropriate color in other places; for custom emoji only
 //@outline Sticker's outline represented as a list of closed vector paths; may be empty. The coordinate system origin is in the upper-left corner
 //@thumbnail Sticker thumbnail in WEBP or JPEG format; may be null
 //@is_premium True, if only Premium users can use the sticker
@@ -590,8 +590,7 @@ chatAdministratorRights can_manage_chat:Bool can_change_info:Bool can_post_messa
 premiumPaymentOption currency:string amount:int53 discount_percentage:int32 month_count:int32 store_product_id:string payment_link:InternalLinkType = PremiumPaymentOption;
 
 
-//@description Describes a custom emoji to be shown instead of the Telegram Premium badge
-//@custom_emoji_id Identifier of the custom emoji in stickerFormatTgs format. If the custom emoji belongs to the sticker set getOption("themed_emoji_statuses_sticker_set_id"), then it's color must be changed to the color of the Telegram Premium badge
+//@description Describes a custom emoji to be shown instead of the Telegram Premium badge @custom_emoji_id Identifier of the custom emoji in stickerFormatTgs format
 emojiStatus custom_emoji_id:int64 = EmojiStatus;
 
 //@description Contains a list of emoji statuses @emoji_statuses The list of emoji statuses
@@ -6622,7 +6621,7 @@ getAttachmentMenuBot bot_user_id:int53 = AttachmentMenuBot;
 toggleBotIsAddedToAttachmentMenu bot_user_id:int53 is_added:Bool allow_write_access:Bool = Ok;
 
 
-//@description Returns up to 8 themed emoji statuses, which color must be changed to the color of the Telegram Premium badge
+//@description Returns up to 8 emoji statuses, which should be shown right after the default Premium Badge in the emoji status list
 getThemedEmojiStatuses = EmojiStatuses;
 
 //@description Returns recent emoji statuses
