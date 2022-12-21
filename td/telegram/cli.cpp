@@ -2680,7 +2680,17 @@ class CliClient final : public Actor {
     } else if (op == "gprs") {
       send_request(td_api::make_object<td_api::getPremiumState>());
     } else if (op == "cppr") {
-      send_request(td_api::make_object<td_api::canPurchasePremium>());
+      UserId user_id;
+      string currency;
+      int64 amount;
+      get_args(args, user_id, currency, amount);
+      if (currency.empty()) {
+        send_request(td_api::make_object<td_api::canPurchasePremium>(
+            td_api::make_object<td_api::storePaymentPurposePremiumSubscription>(false)));
+      } else {
+        send_request(td_api::make_object<td_api::canPurchasePremium>(
+            td_api::make_object<td_api::storePaymentPurposeGiftedPremium>(user_id, currency, amount)));
+      }
     } else if (op == "atos") {
       send_request(td_api::make_object<td_api::acceptTermsOfService>(args));
     } else if (op == "gdli") {
