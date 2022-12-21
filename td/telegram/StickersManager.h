@@ -684,7 +684,9 @@ class StickersManager final : public Actor {
 
   void do_reload_sticker_set(StickerSetId sticker_set_id,
                              tl_object_ptr<telegram_api::InputStickerSet> &&input_sticker_set, int32 hash,
-                             Promise<Unit> &&promise, const char *source) const;
+                             Promise<Unit> &&promise, const char *source);
+
+  void on_reload_sticker_set(StickerSetId sticker_set_id, Result<Unit> &&result);
 
   void do_get_premium_stickers(int32 limit, Promise<td_api::object_ptr<td_api::stickers>> &&promise);
 
@@ -1003,6 +1005,14 @@ class StickersManager final : public Actor {
   vector<Promise<Unit>> repair_recent_stickers_queries_[2];
   vector<Promise<Unit>> load_favorite_stickers_queries_;
   vector<Promise<Unit>> repair_favorite_stickers_queries_;
+
+  struct StickerSetReloadQueries {
+    vector<Promise<Unit>> sent_promises_;
+    int32 sent_hash_ = 0;
+    vector<Promise<Unit>> pending_promises_;
+    int32 pending_hash_ = 0;
+  };
+  FlatHashMap<StickerSetId, unique_ptr<StickerSetReloadQueries>, StickerSetIdHash> sticker_set_reload_queries_;
 
   vector<FileId> recent_sticker_file_ids_[2];
   FileSourceId recent_stickers_file_source_id_[2];

@@ -5439,10 +5439,68 @@ void StickersManager::reload_sticker_set(StickerSetId sticker_set_id, int64 acce
 
 void StickersManager::do_reload_sticker_set(StickerSetId sticker_set_id,
                                             tl_object_ptr<telegram_api::InputStickerSet> &&input_sticker_set,
-                                            int32 hash, Promise<Unit> &&promise, const char *source) const {
+                                            int32 hash, Promise<Unit> &&promise, const char *source) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
+  CHECK(input_sticker_set != nullptr);
   LOG(INFO) << "Reload " << sticker_set_id << " from " << source;
+  if (sticker_set_id.is_valid() && input_sticker_set->get_id() == telegram_api::inputStickerSetID::ID) {
+    auto &queries = sticker_set_reload_queries_[sticker_set_id];
+    if (queries == nullptr) {
+      queries = make_unique<StickerSetReloadQueries>();
+    }
+    if (!queries->sent_promises_.empty()) {
+      // query has already been sent, just wait for the result
+      if (queries->sent_hash_ == 0 || hash == queries->sent_hash_) {
+        LOG(INFO) << "Wait for result of the sent reload query";
+        queries->sent_promises_.push_back(std::move(promise));
+      } else {
+        LOG(INFO) << "Postpone reload of " << sticker_set_id << ", because another query was sent";
+        if (queries->pending_promises_.empty()) {
+          queries->pending_hash_ = hash;
+        } else if (queries->pending_hash_ != hash) {
+          queries->pending_hash_ = 0;
+        }
+        queries->pending_promises_.push_back(std::move(promise));
+      }
+      return;
+    }
+
+    CHECK(queries->pending_promises_.empty());
+    queries->sent_promises_.push_back(std::move(promise));
+    queries->sent_hash_ = hash;
+    promise = PromiseCreator::lambda([actor_id = actor_id(this), sticker_set_id](Result<Unit> result) mutable {
+      send_closure(actor_id, &StickersManager::on_reload_sticker_set, sticker_set_id, std::move(result));
+    });
+  }
   td_->create_handler<GetStickerSetQuery>(std::move(promise))->send(sticker_set_id, std::move(input_sticker_set), hash);
+}
+
+void StickersManager::on_reload_sticker_set(StickerSetId sticker_set_id, Result<Unit> &&result) {
+  if (G()->close_flag()) {
+    result = Global::request_aborted_error();
+  }
+  LOG(INFO) << "Reloaded " << sticker_set_id;
+  auto it = sticker_set_reload_queries_.find(sticker_set_id);
+  CHECK(it != sticker_set_reload_queries_.end());
+  auto queries = std::move(it->second);
+  sticker_set_reload_queries_.erase(it);
+  CHECK(queries != nullptr);
+  CHECK(!queries->sent_promises_.empty());
+  if (result.is_error()) {
+    fail_promises(queries->sent_promises_, result.error().clone());
+    fail_promises(queries->pending_promises_, result.move_as_error());
+    return;
+  }
+  set_promises(queries->sent_promises_);
+  if (!queries->pending_promises_.empty()) {
+    auto sticker_set = get_sticker_set(sticker_set_id);
+    auto access_hash = sticker_set == nullptr ? 0 : sticker_set->access_hash_;
+    for (auto &promise : queries->pending_promises_) {
+      do_reload_sticker_set(sticker_set_id,
+                            make_tl_object<telegram_api::inputStickerSetID>(sticker_set_id.get(), access_hash),
+                            queries->pending_hash_, std::move(promise), "on_reload_sticker_set");
+    }
+  }
 }
 
 void StickersManager::on_install_sticker_set(StickerSetId set_id, bool is_archived,
