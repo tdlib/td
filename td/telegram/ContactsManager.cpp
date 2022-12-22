@@ -10934,15 +10934,7 @@ void ContactsManager::on_load_user_full_from_database(UserId user_id, string val
 
   User *u = get_user(user_id);
   CHECK(u != nullptr);
-  auto user_full_photo_id = get_user_full_profile_photo_id(user_full);
-  if (u->photo.id != user_full_photo_id) {
-    user_full->photo = Photo();
-    user_full->personal_photo = Photo();
-    user_full->fallback_photo = Photo();
-    if (u->photo.id > 0) {
-      user_full->expires_at = 0.0;
-    }
-  }
+  drop_user_full_photos(user_full, user_id, u->photo.id);
   if (!user_full->photo.is_empty()) {
     register_user_photo(u, user_id, user_full->photo);
   }
@@ -12692,31 +12684,7 @@ void ContactsManager::do_update_user_photo(User *u, UserId user_id, ProfilePhoto
     if (invalidate_photo_cache) {
       drop_user_photos(user_id, !u->photo.small_file_id.is_valid(), true, source);
     } else {
-      auto user_full = get_user_full(user_id);  // must not load UserFull
-      if (user_full != nullptr) {
-        auto user_full_photo_id = get_user_full_profile_photo_id(user_full);
-        if (u->photo.id == 0 || u->photo.id != user_full_photo_id) {
-          // if profile photo is unknown, we must drop all photos
-          if (!user_full->photo.is_empty()) {
-            user_full->photo = Photo();
-            user_full->is_changed = true;
-          }
-          if (!user_full->personal_photo.is_empty()) {
-            user_full->personal_photo = Photo();
-            user_full->is_changed = true;
-          }
-          if (!user_full->fallback_photo.is_empty()) {
-            user_full->fallback_photo = Photo();
-            user_full->is_changed = true;
-          }
-          if (u->photo.id > 0 && user_full->is_changed) {
-            user_full->expires_at = 0.0;
-          }
-        }
-        if (user_full->is_update_user_full_sent) {
-          update_user_full(user_full, user_id, source);
-        }
-      }
+      drop_user_full_photos(get_user_full(user_id), user_id, u->photo.id);  // must not load UserFull
     }
   } else if (need_update_dialog_photo_minithumbnail(u->photo.minithumbnail, new_photo.minithumbnail)) {
     LOG(DEBUG) << "Photo minithumbnail has changed for " << user_id << " from " << source;
@@ -13248,6 +13216,35 @@ bool ContactsManager::delete_profile_photo_from_cache(UserId user_id, int64 prof
   }
 
   return need_reget_user;
+}
+
+void ContactsManager::drop_user_full_photos(UserFull *user_full, UserId user_id, int64 expected_photo_id) {
+  if (user_full == nullptr) {
+    return;
+  }
+  for (auto photo_ptr : {&user_full->personal_photo, &user_full->photo, &user_full->fallback_photo}) {
+    if (photo_ptr->is_empty()) {
+      continue;
+    }
+    if (expected_photo_id == 0) {
+      // if profile photo is empty, we must drop the full photo
+      *photo_ptr = Photo();
+      user_full->is_changed = true;
+    } else if (expected_photo_id != get_user_full_profile_photo_id(user_full)) {
+      // if full profile photo is unknown, we must drop the full photo
+      *photo_ptr = Photo();
+      user_full->is_changed = true;
+    } else {
+      // nothing to drop
+      break;
+    }
+  }
+  if (expected_photo_id != get_user_full_profile_photo_id(user_full)) {
+    user_full->expires_at = 0.0;
+  }
+  if (user_full->is_update_user_full_sent) {
+    update_user_full(user_full, user_id, "drop_user_full_photos");
+  }
 }
 
 void ContactsManager::drop_user_photos(UserId user_id, bool is_empty, bool drop_user_full_photo, const char *source) {
