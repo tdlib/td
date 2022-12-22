@@ -440,6 +440,7 @@ class UploadProfilePhotoQuery final : public Td::ResultHandler {
   UserId user_id_;
   FileId file_id_;
   bool is_fallback_;
+  bool only_suggest_;
 
  public:
   explicit UploadProfilePhotoQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
@@ -453,6 +454,7 @@ class UploadProfilePhotoQuery final : public Td::ResultHandler {
     user_id_ = user_id;
     file_id_ = file_id;
     is_fallback_ = is_fallback;
+    only_suggest_ = only_suggest;
 
     static_assert(telegram_api::photos_uploadProfilePhoto::VIDEO_MASK ==
                       telegram_api::photos_uploadContactProfilePhoto::VIDEO_MASK,
@@ -513,7 +515,9 @@ class UploadProfilePhotoQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
-    td_->contacts_manager_->on_set_profile_photo(user_id_, result_ptr.move_as_ok(), is_fallback_, 0);
+    if (!only_suggest_) {
+      td_->contacts_manager_->on_set_profile_photo(user_id_, result_ptr.move_as_ok(), is_fallback_, 0);
+    }
 
     td_->file_manager_->delete_partial_remote_location(file_id_);
 
