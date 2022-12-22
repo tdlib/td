@@ -42,6 +42,10 @@ ProfilePhoto get_profile_photo(FileManager *file_manager, UserId user_id, int64 
       break;
     case telegram_api::userProfilePhoto::ID: {
       auto profile_photo = move_tl_object_as<telegram_api::userProfilePhoto>(profile_photo_ptr);
+      if (profile_photo->photo_id_ == 0 || profile_photo->photo_id_ == -2) {
+        LOG(ERROR) << "Receive a profile photo without identifier " << to_string(profile_photo);
+        break;
+      }
 
       auto dc_id = DcId::create(profile_photo->dc_id_);
       result.has_animation = profile_photo->has_video_;
