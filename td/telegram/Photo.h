@@ -65,6 +65,8 @@ struct Photo {
   }
 };
 
+int64 get_profile_photo_id(const tl_object_ptr<telegram_api::UserProfilePhoto> &profile_photo_ptr);
+
 ProfilePhoto get_profile_photo(FileManager *file_manager, UserId user_id, int64 user_access_hash,
                                tl_object_ptr<telegram_api::UserProfilePhoto> &&profile_photo_ptr);
 tl_object_ptr<td_api::profilePhoto> get_profile_photo_object(FileManager *file_manager,

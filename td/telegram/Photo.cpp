@@ -25,6 +25,13 @@
 
 namespace td {
 
+int64 get_profile_photo_id(const tl_object_ptr<telegram_api::UserProfilePhoto> &profile_photo_ptr) {
+  if (profile_photo_ptr != nullptr && profile_photo_ptr->get_id() == telegram_api::userProfilePhoto::ID) {
+    return static_cast<const telegram_api::userProfilePhoto *>(profile_photo_ptr.get())->photo_id_;
+  }
+  return 0;
+}
+
 ProfilePhoto get_profile_photo(FileManager *file_manager, UserId user_id, int64 user_access_hash,
                                tl_object_ptr<telegram_api::UserProfilePhoto> &&profile_photo_ptr) {
   ProfilePhoto result;

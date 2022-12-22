@@ -11972,7 +11972,7 @@ void ContactsManager::on_get_user_full(tl_object_ptr<telegram_api::userFull> &&u
     register_user_photo(u, user_id, user_full->fallback_photo);
   }
   if (photo_ptr->is_empty()) {
-    drop_user_photos(user_id, true, false, "on_get_user_full");
+    drop_user_photos(user_id, true, "on_get_user_full");
   }
 
   // User must be updated before UserFull
@@ -12650,10 +12650,11 @@ void ContactsManager::on_update_user_photo(User *u, UserId user_id,
       return;
     }
 
-    bool is_empty = photo == nullptr || photo->get_id() == telegram_api::userProfilePhotoEmpty::ID;
+    auto new_photo_id = get_profile_photo_id(photo);
     old_photo = std::move(photo);
 
-    drop_user_photos(user_id, is_empty, true, "on_update_user_photo");
+    drop_user_photos(user_id, new_photo_id == 0, "on_update_user_photo");
+    drop_user_full_photos(get_user_full(user_id), user_id, new_photo_id);  // must not load UserFull
     return;
   }
 
@@ -12682,10 +12683,9 @@ void ContactsManager::do_update_user_photo(User *u, UserId user_id, ProfilePhoto
     u->is_changed = true;
 
     if (invalidate_photo_cache) {
-      drop_user_photos(user_id, !u->photo.small_file_id.is_valid(), true, source);
-    } else {
-      drop_user_full_photos(get_user_full(user_id), user_id, u->photo.id);  // must not load UserFull
+      drop_user_photos(user_id, u->photo.id == 0, source);
     }
+    drop_user_full_photos(get_user_full(user_id), user_id, u->photo.id);  // must not load UserFull
   } else if (need_update_dialog_photo_minithumbnail(u->photo.minithumbnail, new_photo.minithumbnail)) {
     LOG(DEBUG) << "Photo minithumbnail has changed for " << user_id << " from " << source;
     u->photo.minithumbnail = std::move(new_photo.minithumbnail);
@@ -13247,7 +13247,7 @@ void ContactsManager::drop_user_full_photos(UserFull *user_full, UserId user_id,
   }
 }
 
-void ContactsManager::drop_user_photos(UserId user_id, bool is_empty, bool drop_user_full_photo, const char *source) {
+void ContactsManager::drop_user_photos(UserId user_id, bool is_empty, const char *source) {
   LOG(INFO) << "Drop user photos to " << (is_empty ? "empty" : "unknown") << " from " << source;
   auto user_photos = user_photos_.get_pointer(user_id);
   if (user_photos != nullptr) {
@@ -13262,40 +13262,12 @@ void ContactsManager::drop_user_photos(UserId user_id, bool is_empty, bool drop_
       user_photos->offset = user_photos->count;
     }
   }
-
-  if (drop_user_full_photo) {
-    auto user_full = get_user_full(user_id);  // must not load UserFull
-    if (user_full != nullptr) {
-      if (!user_full->photo.is_empty()) {
-        user_full->photo = Photo();
-        user_full->is_changed = true;
-      }
-      if (!user_full->personal_photo.is_empty()) {
-        user_full->personal_photo = Photo();
-        user_full->is_changed = true;
-      }
-      if (!user_full->fallback_photo.is_empty()) {
-        user_full->fallback_photo = Photo();
-        user_full->is_changed = true;
-      }
-      if (!is_empty) {
-        if (user_full->expires_at > 0.0) {
-          user_full->expires_at = 0.0;
-          user_full->need_save_to_database = true;
-        }
-        reload_user_full(user_id, Auto());
-      }
-      if (user_full->is_update_user_full_sent) {
-        update_user_full(user_full, user_id, "drop_user_photos");
-      }
-    }
-  }
 }
 
 void ContactsManager::drop_user_full(UserId user_id) {
   auto user_full = get_user_full_force(user_id);
 
-  drop_user_photos(user_id, false, false, "drop_user_full");
+  drop_user_photos(user_id, false, "drop_user_full");
 
   if (user_full == nullptr) {
     return;
