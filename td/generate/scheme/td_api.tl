@@ -889,8 +889,8 @@ supergroup id:int53 usernames:usernames date:int32 status:ChatMemberStatus membe
 //@can_get_statistics True, if the supergroup or channel statistics are available
 //@can_toggle_aggressive_anti_spam True, if aggressive anti-spam checks can be enabled or disabled in the supergroup
 //@is_all_history_available True, if new chat members will have access to old messages. In public, discussion, of forum groups and all channels, old messages are always available,
-//-so this option affects only private non-forum supergroups without a linked chat. The value of this field is only available for chat administrators
-//@is_aggressive_anti_spam_enabled True, if aggressive anti-spam checks are enabled in the supergroup. The value of this field is only available for chat administrators
+//-so this option affects only private non-forum supergroups without a linked chat. The value of this field is only available to chat administrators
+//@is_aggressive_anti_spam_enabled True, if aggressive anti-spam checks are enabled in the supergroup. The value of this field is only available to chat administrators
 //@sticker_set_id Identifier of the supergroup sticker set; 0 if none
 //@location Location to which the supergroup is connected; may be null
 //@invite_link Primary invite link for the chat; may be null. For chat administrators with can_invite_users right only
@@ -1767,7 +1767,7 @@ webPageInstantView page_blocks:vector<PageBlock> view_count:int32 version:int32 
 //@video Preview of the content as a video, if available; may be null
 //@video_note Preview of the content as a video note, if available; may be null
 //@voice_note Preview of the content as a voice note, if available; may be null
-//@instant_view_version Version of instant view, available for the web page (currently, can be 1 or 2), 0 if none
+//@instant_view_version Version of web page instant view (currently, can be 1 or 2); 0 if none
 webPage url:string display_url:string type:string site_name:string title:string description:formattedText photo:photo embed_url:string embed_type:string embed_width:int32 embed_height:int32 duration:int32 author:string animation:animation audio:audio document:document sticker:sticker video:video video_note:videoNote voice_note:voiceNote instant_view_version:int32 = WebPage;
 
 
@@ -2284,7 +2284,7 @@ messageVoiceNote voice_note:voiceNote caption:formattedText is_listened:Bool = M
 //@live_period Time relative to the message send date, for which the location can be updated, in seconds
 //@expires_in Left time for which the location can be updated, in seconds. updateMessageContent is not sent when this field changes
 //@heading For live locations, a direction in which the location moves, in degrees; 1-360. If 0 the direction is unknown
-//@proximity_alert_radius For live locations, a maximum distance to another chat member for proximity alerts, in meters (0-100000). 0 if the notification is disabled. Available only for the message sender
+//@proximity_alert_radius For live locations, a maximum distance to another chat member for proximity alerts, in meters (0-100000). 0 if the notification is disabled. Available only to the message sender
 messageLocation location:location live_period:int32 expires_in:int32 heading:int32 proximity_alert_radius:int32 = MessageContent;
 
 //@description A message with information about a venue @venue The venue description

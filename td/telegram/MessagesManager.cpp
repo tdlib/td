@@ -11681,7 +11681,7 @@ void MessagesManager::delete_dialog_messages_by_sender(DialogId dialog_id, Dialo
     case DialogType::Channel: {
       channel_id = dialog_id.get_channel_id();
       if (!td_->contacts_manager_->is_megagroup_channel(channel_id)) {
-        return promise.set_error(Status::Error(400, "The method is available only for supergroup chats"));
+        return promise.set_error(Status::Error(400, "The method is available only in supergroup chats"));
       }
       channel_status = td_->contacts_manager_->get_channel_permissions(channel_id);
       if (!channel_status.can_delete_messages()) {
@@ -28067,9 +28067,7 @@ void MessagesManager::edit_message_caption(FullMessageId full_message_id,
 void MessagesManager::edit_message_reply_markup(FullMessageId full_message_id,
                                                 tl_object_ptr<td_api::ReplyMarkup> &&reply_markup,
                                                 Promise<Unit> &&promise) {
-  if (!td_->auth_manager_->is_bot()) {
-    return promise.set_error(Status::Error(400, "Method is available only for bots"));
-  }
+  CHECK(td_->auth_manager_->is_bot());
 
   LOG(INFO) << "Begin to edit reply markup of " << full_message_id;
   auto dialog_id = full_message_id.get_dialog_id();
@@ -28106,9 +28104,7 @@ void MessagesManager::edit_inline_message_text(const string &inline_message_id,
                                                tl_object_ptr<td_api::ReplyMarkup> &&reply_markup,
                                                tl_object_ptr<td_api::InputMessageContent> &&input_message_content,
                                                Promise<Unit> &&promise) {
-  if (!td_->auth_manager_->is_bot()) {
-    return promise.set_error(Status::Error(400, "Method is available only for bots"));
-  }
+  CHECK(td_->auth_manager_->is_bot());
 
   if (input_message_content == nullptr) {
     return promise.set_error(Status::Error(400, "Can't edit message without new content"));
@@ -28150,9 +28146,7 @@ void MessagesManager::edit_inline_message_live_location(const string &inline_mes
                                                         tl_object_ptr<td_api::ReplyMarkup> &&reply_markup,
                                                         tl_object_ptr<td_api::location> &&input_location, int32 heading,
                                                         int32 proximity_alert_radius, Promise<Unit> &&promise) {
-  if (!td_->auth_manager_->is_bot()) {
-    return promise.set_error(Status::Error(400, "Method is available only for bots"));
-  }
+  CHECK(td_->auth_manager_->is_bot());
 
   auto r_new_reply_markup = get_reply_markup(std::move(reply_markup), td_->auth_manager_->is_bot(), true, false, true);
   if (r_new_reply_markup.is_error()) {
@@ -28188,9 +28182,7 @@ void MessagesManager::edit_inline_message_media(const string &inline_message_id,
                                                 tl_object_ptr<td_api::ReplyMarkup> &&reply_markup,
                                                 tl_object_ptr<td_api::InputMessageContent> &&input_message_content,
                                                 Promise<Unit> &&promise) {
-  if (!td_->auth_manager_->is_bot()) {
-    return promise.set_error(Status::Error(400, "Method is available only for bots"));
-  }
+  CHECK(td_->auth_manager_->is_bot());
 
   if (input_message_content == nullptr) {
     return promise.set_error(Status::Error(400, "Can't edit message without new content"));
@@ -28240,9 +28232,7 @@ void MessagesManager::edit_inline_message_caption(const string &inline_message_i
                                                   tl_object_ptr<td_api::ReplyMarkup> &&reply_markup,
                                                   tl_object_ptr<td_api::formattedText> &&input_caption,
                                                   Promise<Unit> &&promise) {
-  if (!td_->auth_manager_->is_bot()) {
-    return promise.set_error(Status::Error(400, "Method is available only for bots"));
-  }
+  CHECK(td_->auth_manager_->is_bot());
 
   auto r_caption =
       get_formatted_text(td_, DialogId(), std::move(input_caption), td_->auth_manager_->is_bot(), true, false, false);
@@ -28270,9 +28260,7 @@ void MessagesManager::edit_inline_message_caption(const string &inline_message_i
 void MessagesManager::edit_inline_message_reply_markup(const string &inline_message_id,
                                                        tl_object_ptr<td_api::ReplyMarkup> &&reply_markup,
                                                        Promise<Unit> &&promise) {
-  if (!td_->auth_manager_->is_bot()) {
-    return promise.set_error(Status::Error(400, "Method is available only for bots"));
-  }
+  CHECK(td_->auth_manager_->is_bot());
 
   auto r_new_reply_markup = get_reply_markup(std::move(reply_markup), td_->auth_manager_->is_bot(), true, false, true);
   if (r_new_reply_markup.is_error()) {

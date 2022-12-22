@@ -7289,7 +7289,7 @@ void ContactsManager::on_update_active_usernames_order(vector<string> &&username
 
 void ContactsManager::set_emoji_status(EmojiStatus emoji_status, Promise<Unit> &&promise) {
   if (!td_->option_manager_->get_option_boolean("is_premium")) {
-    return promise.set_error(Status::Error(400, "The method is available only for Telegram Premium users"));
+    return promise.set_error(Status::Error(400, "The method is available only to Telegram Premium users"));
   }
   add_recent_emoji_status(td_, emoji_status);
   auto query_promise = PromiseCreator::lambda(

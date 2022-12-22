@@ -4044,9 +4044,9 @@ Promise<Unit> Td::create_ok_request_promise(uint64 id) {
   if (!auth_manager_->is_bot()) {                                   \
     return send_error_raw(id, 400, "Only bots can use the method"); \
   }
-#define CHECK_IS_USER()                                                     \
-  if (auth_manager_->is_bot()) {                                            \
-    return send_error_raw(id, 400, "The method is not available for bots"); \
+#define CHECK_IS_USER()                                                    \
+  if (auth_manager_->is_bot()) {                                           \
+    return send_error_raw(id, 400, "The method is not available to bots"); \
   }
 
 #define CREATE_NO_ARGS_REQUEST(name)                                       \

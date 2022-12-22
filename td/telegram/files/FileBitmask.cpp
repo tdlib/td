@@ -36,7 +36,7 @@ Bitmask Bitmask::compress(int k) const {
 }
 
 std::string Bitmask::encode(int32 prefix_count) {
-  // remove zeroes in the end to make encoding deterministic
+  // remove zeroes at the end to make encoding deterministic
   Slice data(data_);
 
   int save_i = -1;
