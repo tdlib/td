@@ -12686,11 +12686,11 @@ void ContactsManager::do_update_user_photo(User *u, UserId user_id, ProfilePhoto
     u->photo = new_photo;
     u->is_photo_changed = true;
     LOG(DEBUG) << "Photo has changed for " << user_id << " to " << u->photo
-               << ", invalidate_photo_cache = " << invalidate_photo_cache;
+               << ", invalidate_photo_cache = " << invalidate_photo_cache << " from " << source;
     u->is_changed = true;
 
     if (invalidate_photo_cache) {
-      drop_user_photos(user_id, !u->photo.small_file_id.is_valid(), true, "do_update_user_photo");
+      drop_user_photos(user_id, !u->photo.small_file_id.is_valid(), true, source);
     } else {
       auto user_full = get_user_full(user_id);  // must not load UserFull
       if (user_full != nullptr) {
@@ -12714,11 +12714,12 @@ void ContactsManager::do_update_user_photo(User *u, UserId user_id, ProfilePhoto
           }
         }
         if (user_full->is_update_user_full_sent) {
-          update_user_full(user_full, user_id, "do_update_user_photo");
+          update_user_full(user_full, user_id, source);
         }
       }
     }
   } else if (need_update_dialog_photo_minithumbnail(u->photo.minithumbnail, new_photo.minithumbnail)) {
+    LOG(DEBUG) << "Photo minithumbnail has changed for " << user_id << " from " << source;
     u->photo.minithumbnail = std::move(new_photo.minithumbnail);
     u->is_photo_changed = true;
     u->is_changed = true;
@@ -13054,6 +13055,8 @@ void ContactsManager::on_set_profile_photo(UserId user_id, tl_object_ptr<telegra
                                            bool is_fallback, int64 old_photo_id) {
   LOG(INFO) << "Changed profile photo to " << to_string(photo);
 
+  on_get_users(std::move(photo->users_), "on_set_profile_photo");
+
   bool is_my = (user_id == get_my_id());
   if (is_my) {
     delete_profile_photo_from_cache(user_id, old_photo_id, false);
@@ -13069,9 +13072,6 @@ void ContactsManager::on_set_profile_photo(UserId user_id, tl_object_ptr<telegra
   if (user_full != nullptr) {
     update_user_full(user_full, user_id, "on_set_profile_photo");
   }
-
-  // if cache was correctly updated, this should produce no updates
-  on_get_users(std::move(photo->users_), "on_set_profile_photo");
 }
 
 void ContactsManager::on_delete_profile_photo(int64 profile_photo_id, Promise<Unit> promise) {
