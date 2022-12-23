@@ -12644,21 +12644,6 @@ void ContactsManager::on_update_user_phone_number(User *u, UserId user_id, strin
   }
 }
 
-void ContactsManager::on_update_user_photo(UserId user_id, tl_object_ptr<telegram_api::UserProfilePhoto> &&photo_ptr) {
-  if (!user_id.is_valid()) {
-    LOG(ERROR) << "Receive invalid " << user_id;
-    return;
-  }
-
-  User *u = get_user_force(user_id);
-  if (u != nullptr) {
-    on_update_user_photo(u, user_id, std::move(photo_ptr), "on_update_user_photo");
-    update_user(u, user_id);
-  } else {
-    LOG(INFO) << "Ignore update user photo about unknown " << user_id;
-  }
-}
-
 void ContactsManager::on_update_user_photo(User *u, UserId user_id,
                                            tl_object_ptr<telegram_api::UserProfilePhoto> &&photo, const char *source) {
   if (td_->auth_manager_->is_bot() && !G()->parameters().use_file_db && !u->is_photo_inited) {

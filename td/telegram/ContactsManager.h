@@ -180,7 +180,6 @@ class ContactsManager final : public Actor {
 
   void on_update_user_name(UserId user_id, string &&first_name, string &&last_name, Usernames &&usernames);
   void on_update_user_phone_number(UserId user_id, string &&phone_number);
-  void on_update_user_photo(UserId user_id, tl_object_ptr<telegram_api::UserProfilePhoto> &&photo_ptr);
   void on_update_user_emoji_status(UserId user_id, tl_object_ptr<telegram_api::EmojiStatus> &&emoji_status);
   void on_update_user_online(UserId user_id, tl_object_ptr<telegram_api::UserStatus> &&status);
   void on_update_user_local_was_online(UserId user_id, int32 local_was_online);
