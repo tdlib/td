@@ -13137,7 +13137,8 @@ void ContactsManager::add_set_profile_photo_to_cache(UserId user_id, Photo &&pho
     } else {
       current_photo = &user_full->fallback_photo;
     }
-    if (*current_photo != photo) {
+    // don't update the changed photo if other photos aren't known to avoid having only some photos known
+    if (*current_photo != photo && get_user_full_profile_photo_id(user_full) > 0) {
       *current_photo = photo;
       user_full->is_changed = true;
       if (is_me) {
@@ -13147,6 +13148,7 @@ void ContactsManager::add_set_profile_photo_to_cache(UserId user_id, Photo &&pho
           register_suggested_profile_photo(photo);
         }
       }
+      drop_user_full_photos(user_full, user_id, u->photo.id);  // just in case
     }
     if (user_full->expires_at > 0.0) {
       user_full->expires_at = 0.0;
