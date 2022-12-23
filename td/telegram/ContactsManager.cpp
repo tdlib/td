@@ -7041,7 +7041,8 @@ void ContactsManager::set_profile_photo_impl(UserId user_id,
       auto photo_id = photo->chat_photo_id_;
       auto *u = get_user(user_id);
       if (u != nullptr && u->photo.id > 0 && photo_id == u->photo.id) {
-        return promise.set_value(Unit());
+        // it is possible that u->photo.is_fallback != is_fallback, so we need to set the photo anyway
+        // return promise.set_value(Unit());
       }
 
       auto file_id = get_profile_photo_file_id(photo_id);
@@ -7133,9 +7134,10 @@ void ContactsManager::upload_profile_photo(UserId user_id, FileId file_id, bool 
 void ContactsManager::delete_profile_photo(int64 profile_photo_id, Promise<Unit> &&promise) {
   const User *u = get_user(get_my_id());
   if (u != nullptr && u->photo.id == profile_photo_id) {
-    td_->create_handler<UpdateProfilePhotoQuery>(std::move(promise))
-        ->send(FileId(), profile_photo_id, false, make_tl_object<telegram_api::inputPhotoEmpty>());
-    return;
+    // we don't know whether the u->photo is a fallback photo, or not
+    // td_->create_handler<UpdateProfilePhotoQuery>(std::move(promise))
+    //    ->send(FileId(), profile_photo_id, false, make_tl_object<telegram_api::inputPhotoEmpty>());
+    // return;
   }
 
   td_->create_handler<DeleteProfilePhotoQuery>(std::move(promise))->send(profile_photo_id);
