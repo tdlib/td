@@ -13230,14 +13230,6 @@ bool ContactsManager::delete_profile_photo_from_cache(UserId user_id, int64 prof
 
     // update Photo in UserFull
     if (user_full != nullptr) {
-      if (user_full->personal_photo.id.get() == profile_photo_id) {
-        user_full->personal_photo = Photo();
-        user_full->is_changed = true;
-      }
-      if (user_full->fallback_photo.id.get() == profile_photo_id) {
-        user_full->fallback_photo = Photo();
-        user_full->is_changed = true;
-      }
       if (have_new_photo) {
         if (user_full->photo.id.get() == profile_photo_id && user_photos->photos[0] != user_full->photo) {
           user_full->photo = user_photos->photos[0];
@@ -13269,6 +13261,7 @@ void ContactsManager::drop_user_full_photos(UserFull *user_full, UserId user_id,
   if (user_full == nullptr) {
     return;
   }
+  LOG(INFO) << "Expect full photo " << expected_photo_id;
   for (auto photo_ptr : {&user_full->personal_photo, &user_full->photo, &user_full->fallback_photo}) {
     if (photo_ptr->is_empty()) {
       continue;
@@ -13277,7 +13270,8 @@ void ContactsManager::drop_user_full_photos(UserFull *user_full, UserId user_id,
       // if profile photo is empty, we must drop the full photo
       *photo_ptr = Photo();
       user_full->is_changed = true;
-    } else if (expected_photo_id != get_user_full_profile_photo_id(user_full)) {
+    } else if (expected_photo_id != photo_ptr->id.get()) {
+      LOG(INFO) << "Drop full photo " << photo_ptr->id.get();
       // if full profile photo is unknown, we must drop the full photo
       *photo_ptr = Photo();
       user_full->is_changed = true;
