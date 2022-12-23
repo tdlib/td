@@ -10956,7 +10956,7 @@ void ContactsManager::on_load_user_full_from_database(UserId user_id, string val
 
   User *u = get_user(user_id);
   CHECK(u != nullptr);
-  drop_user_full_photos(user_full, user_id, u->photo.id);
+  drop_user_full_photos(user_full, user_id, u->photo.id, "on_load_user_full_from_database");
   if (!user_full->photo.is_empty()) {
     register_user_photo(u, user_id, user_full->photo);
   }
@@ -12663,7 +12663,8 @@ void ContactsManager::on_update_user_photo(User *u, UserId user_id,
     old_photo = std::move(photo);
 
     drop_user_photos(user_id, new_photo_id == 0, "on_update_user_photo");
-    drop_user_full_photos(get_user_full(user_id), user_id, new_photo_id);  // must not load UserFull
+    drop_user_full_photos(get_user_full(user_id), user_id, new_photo_id,
+                          "on_update_user_photo");  // must not load UserFull
     return;
   }
 
@@ -12694,7 +12695,8 @@ void ContactsManager::do_update_user_photo(User *u, UserId user_id, ProfilePhoto
     if (invalidate_photo_cache) {
       drop_user_photos(user_id, u->photo.id == 0, source);
     }
-    drop_user_full_photos(get_user_full(user_id), user_id, u->photo.id);  // must not load UserFull
+    drop_user_full_photos(get_user_full(user_id), user_id, u->photo.id,
+                          "do_update_user_photo");  // must not load UserFull
   } else if (need_update_dialog_photo_minithumbnail(u->photo.minithumbnail, new_photo.minithumbnail)) {
     LOG(DEBUG) << "Photo minithumbnail has changed for " << user_id << " from " << source;
     u->photo.minithumbnail = std::move(new_photo.minithumbnail);
@@ -13139,6 +13141,7 @@ void ContactsManager::add_set_profile_photo_to_cache(UserId user_id, Photo &&pho
     }
     // don't update the changed photo if other photos aren't known to avoid having only some photos known
     if (*current_photo != photo && get_user_full_profile_photo_id(user_full) > 0) {
+      LOG(INFO) << "Update full photo of " << user_id << " to " << photo;
       *current_photo = photo;
       user_full->is_changed = true;
       if (is_me) {
@@ -13148,7 +13151,7 @@ void ContactsManager::add_set_profile_photo_to_cache(UserId user_id, Photo &&pho
           register_suggested_profile_photo(photo);
         }
       }
-      drop_user_full_photos(user_full, user_id, u->photo.id);  // just in case
+      drop_user_full_photos(user_full, user_id, u->photo.id, "add_set_profile_photo_to_cache");  // just in case
     }
     if (user_full->expires_at > 0.0) {
       user_full->expires_at = 0.0;
@@ -13224,6 +13227,7 @@ bool ContactsManager::delete_profile_photo_from_cache(UserId user_id, int64 prof
     if (user_full != nullptr) {
       if (have_new_photo) {
         if (user_full->photo.id.get() == profile_photo_id && user_photos->photos[0] != user_full->photo) {
+          LOG(INFO) << "Update full photo of " << user_id << " to " << user_photos->photos[0];
           user_full->photo = user_photos->photos[0];
           user_full->is_changed = true;
         }
@@ -13231,6 +13235,14 @@ bool ContactsManager::delete_profile_photo_from_cache(UserId user_id, int64 prof
         // repair UserFull photo
         if (!user_full->photo.is_empty()) {
           user_full->photo = Photo();
+          user_full->is_changed = true;
+        }
+        if (!user_full->personal_photo.is_empty()) {
+          user_full->personal_photo = Photo();
+          user_full->is_changed = true;
+        }
+        if (!user_full->fallback_photo.is_empty()) {
+          user_full->fallback_photo = Photo();
           user_full->is_changed = true;
         }
       }
@@ -13248,11 +13260,12 @@ bool ContactsManager::delete_profile_photo_from_cache(UserId user_id, int64 prof
   return need_reget_user;
 }
 
-void ContactsManager::drop_user_full_photos(UserFull *user_full, UserId user_id, int64 expected_photo_id) {
+void ContactsManager::drop_user_full_photos(UserFull *user_full, UserId user_id, int64 expected_photo_id,
+                                            const char *source) {
   if (user_full == nullptr) {
     return;
   }
-  LOG(INFO) << "Expect full photo " << expected_photo_id;
+  LOG(INFO) << "Expect full photo " << expected_photo_id << " from " << source;
   for (auto photo_ptr : {&user_full->personal_photo, &user_full->photo, &user_full->fallback_photo}) {
     if (photo_ptr->is_empty()) {
       continue;
