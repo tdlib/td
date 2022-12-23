@@ -13051,12 +13051,11 @@ void ContactsManager::on_set_profile_photo(UserId user_id, tl_object_ptr<telegra
                                            bool is_fallback, int64 old_photo_id) {
   LOG(INFO) << "Changed profile photo to " << to_string(photo);
 
-  on_get_users(std::move(photo->users_), "on_set_profile_photo");
-
   bool is_my = (user_id == get_my_id());
   if (is_my) {
-    delete_profile_photo_from_cache(user_id, old_photo_id, false);
+    delete_my_profile_photo_from_cache(old_photo_id, false);
   }
+  on_get_users(std::move(photo->users_), "on_set_profile_photo");
   add_set_profile_photo_to_cache(
       user_id, get_photo(td_->file_manager_.get(), std::move(photo->photo_), DialogId(user_id)), is_fallback);
 
@@ -13071,11 +13070,9 @@ void ContactsManager::on_set_profile_photo(UserId user_id, tl_object_ptr<telegra
 }
 
 void ContactsManager::on_delete_profile_photo(int64 profile_photo_id, Promise<Unit> promise) {
-  UserId my_user_id = get_my_id();
-
-  bool need_reget_user = delete_profile_photo_from_cache(my_user_id, profile_photo_id, true);
+  bool need_reget_user = delete_my_profile_photo_from_cache(profile_photo_id, true);
   if (need_reget_user && !G()->close_flag()) {
-    return reload_user(my_user_id, std::move(promise));
+    return reload_user(get_my_id(), std::move(promise));
   }
 
   promise.set_value(Unit());
@@ -13162,7 +13159,7 @@ void ContactsManager::add_set_profile_photo_to_cache(UserId user_id, Photo &&pho
   }
 }
 
-bool ContactsManager::delete_profile_photo_from_cache(UserId user_id, int64 profile_photo_id, bool send_updates) {
+bool ContactsManager::delete_my_profile_photo_from_cache(int64 profile_photo_id, bool send_updates) {
   if (profile_photo_id == 0 || profile_photo_id == -2) {
     return false;
   }
@@ -13173,6 +13170,7 @@ bool ContactsManager::delete_profile_photo_from_cache(UserId user_id, int64 prof
   LOG(INFO) << "Delete profile photo " << profile_photo_id << " from cache with" << (send_updates ? "" : "out")
             << " updates";
 
+  auto user_id = get_my_id();
   User *u = get_user_force(user_id);
   bool is_main_photo_deleted = u != nullptr && u->photo.id == profile_photo_id;
 
@@ -13202,11 +13200,6 @@ bool ContactsManager::delete_profile_photo_from_cache(UserId user_id, int64 prof
 
   auto user_full = get_user_full_force(user_id);
 
-  // check that user_full photo is empty or coincides with u->photo
-  if (user_full != nullptr && get_user_full_profile_photo_id(user_full) == profile_photo_id) {
-    CHECK(is_main_photo_deleted);
-  }
-
   // update ProfilePhoto in User
   bool need_reget_user = false;
   if (is_main_photo_deleted) {
@@ -13214,9 +13207,9 @@ bool ContactsManager::delete_profile_photo_from_cache(UserId user_id, int64 prof
       do_update_user_photo(
           u, user_id,
           as_profile_photo(td_->file_manager_.get(), user_id, u->access_hash, user_photos->photos[0], false), false,
-          "delete_profile_photo_from_cache");
+          "delete_my_profile_photo_from_cache");
     } else {
-      do_update_user_photo(u, user_id, ProfilePhoto(), false, "delete_profile_photo_from_cache 2");
+      do_update_user_photo(u, user_id, ProfilePhoto(), false, "delete_my_profile_photo_from_cache 2");
       need_reget_user = user_photos == nullptr || user_photos->count != 0;
     }
     if (send_updates) {
@@ -13225,7 +13218,11 @@ bool ContactsManager::delete_profile_photo_from_cache(UserId user_id, int64 prof
 
     // update Photo in UserFull
     if (user_full != nullptr) {
-      if (have_new_photo) {
+      if (user_full->fallback_photo.id.get() == profile_photo_id) {
+        LOG(INFO) << "Drop full public photo of " << user_id;
+        user_full->photo = Photo();
+        user_full->is_changed = true;
+      } else if (have_new_photo) {
         if (user_full->photo.id.get() == profile_photo_id && user_photos->photos[0] != user_full->photo) {
           LOG(INFO) << "Update full photo of " << user_id << " to " << user_photos->photos[0];
           user_full->photo = user_photos->photos[0];
@@ -13235,10 +13232,6 @@ bool ContactsManager::delete_profile_photo_from_cache(UserId user_id, int64 prof
         // repair UserFull photo
         if (!user_full->photo.is_empty()) {
           user_full->photo = Photo();
-          user_full->is_changed = true;
-        }
-        if (!user_full->personal_photo.is_empty()) {
-          user_full->personal_photo = Photo();
           user_full->is_changed = true;
         }
         if (!user_full->fallback_photo.is_empty()) {
@@ -13252,7 +13245,7 @@ bool ContactsManager::delete_profile_photo_from_cache(UserId user_id, int64 prof
       }
       reload_user_full(user_id, Auto());
       if (send_updates) {
-        update_user_full(user_full, user_id, "delete_profile_photo_from_cache");
+        update_user_full(user_full, user_id, "delete_my_profile_photo_from_cache");
       }
     }
   }
