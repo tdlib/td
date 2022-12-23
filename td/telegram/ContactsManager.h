@@ -361,6 +361,8 @@ class ContactsManager final : public Actor {
 
   void get_is_location_visible(Promise<Unit> &&promise);
 
+  void register_suggested_profile_photo(const Photo &photo);
+
   FileId get_profile_photo_file_id(int64 photo_id) const;
 
   void set_profile_photo(const td_api::object_ptr<td_api::InputChatPhoto> &input_photo, bool is_fallback,

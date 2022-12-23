@@ -4050,6 +4050,9 @@ void register_message_content(Td *td, const MessageContent *content, FullMessage
     case MessageContentType::GiftPremium:
       return td->stickers_manager_->register_premium_gift(static_cast<const MessageGiftPremium *>(content)->months,
                                                           full_message_id, source);
+    case MessageContentType::SuggestProfilePhoto:
+      return td->contacts_manager_->register_suggested_profile_photo(
+          static_cast<const MessageSuggestProfilePhoto *>(content)->photo);
     default:
       return;
   }

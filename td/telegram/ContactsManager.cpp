@@ -12698,6 +12698,23 @@ void ContactsManager::do_update_user_photo(User *u, UserId user_id, ProfilePhoto
   }
 }
 
+void ContactsManager::register_suggested_profile_photo(const Photo &photo) {
+  auto photo_file_ids = photo_get_file_ids(photo);
+  if (photo.is_empty() || photo_file_ids.empty()) {
+    return;
+  }
+  auto first_file_id = photo_file_ids[0];
+  auto file_type = td_->file_manager_->get_file_view(first_file_id).get_type();
+  if (file_type == FileType::ProfilePhoto) {
+    return;
+  }
+  CHECK(file_type == FileType::Photo);
+  auto photo_id = photo.id.get();
+  if (photo_id != 0) {
+    my_photo_file_id_[photo_id] = first_file_id;
+  }
+}
+
 void ContactsManager::register_user_photo(User *u, UserId user_id, const Photo &photo) {
   auto photo_file_ids = photo_get_file_ids(photo);
   if (photo.is_empty() || photo_file_ids.empty()) {
