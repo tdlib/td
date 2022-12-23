@@ -10944,11 +10944,8 @@ void ContactsManager::on_load_user_full_from_database(UserId user_id, string val
   if (!user_full->photo.is_empty()) {
     register_user_photo(u, user_id, user_full->photo);
   }
-  if (!user_full->personal_photo.is_empty()) {
-    register_user_photo(u, user_id, user_full->personal_photo);
-  }
-  if (!user_full->fallback_photo.is_empty()) {
-    register_user_photo(u, user_id, user_full->fallback_photo);
+  if (user_id == get_my_id() && !user_full->fallback_photo.is_empty()) {
+    register_suggested_profile_photo(user_full->fallback_photo);
   }
 
   td_->group_call_manager_->on_update_dialog_about(DialogId(user_id), user_full->about, false);
@@ -11652,8 +11649,17 @@ void ContactsManager::update_user_full(UserFull *user_full, UserId user_id, cons
     td_->messages_manager_->drop_common_dialogs_cache(user_id);
     user_full->is_common_chat_count_changed = false;
   }
-  if (user_full->are_files_changed) {
-    auto file_ids = photo_get_file_ids(user_full->description_photo);
+  if (true) {
+    vector<FileId> file_ids;
+    if (!user_full->personal_photo.is_empty()) {
+      append(file_ids, photo_get_file_ids(user_full->personal_photo));
+    }
+    if (!user_full->fallback_photo.is_empty()) {
+      append(file_ids, photo_get_file_ids(user_full->fallback_photo));
+    }
+    if (!user_full->description_photo.is_empty()) {
+      append(file_ids, photo_get_file_ids(user_full->description_photo));
+    }
     if (user_full->description_animation_file_id.is_valid()) {
       file_ids.push_back(user_full->description_animation_file_id);
     }
@@ -11935,7 +11941,6 @@ void ContactsManager::on_get_user_full(tl_object_ptr<telegram_api::userFull> &&u
       user_full->description_animation_file_id != description_animation_file_id) {
     user_full->description_photo = std::move(description_photo);
     user_full->description_animation_file_id = description_animation_file_id;
-    user_full->are_files_changed = true;
     user_full->is_changed = true;
   }
 
@@ -11971,11 +11976,8 @@ void ContactsManager::on_get_user_full(tl_object_ptr<telegram_api::userFull> &&u
   if (!user_full->photo.is_empty()) {
     register_user_photo(u, user_id, user_full->photo);
   }
-  if (!user_full->personal_photo.is_empty()) {
-    register_user_photo(u, user_id, user_full->personal_photo);
-  }
-  if (!user_full->fallback_photo.is_empty()) {
-    register_user_photo(u, user_id, user_full->fallback_photo);
+  if (user_id == get_my_id() && !user_full->fallback_photo.is_empty()) {
+    register_suggested_profile_photo(user_full->fallback_photo);
   }
   if (photo_ptr->is_empty()) {
     drop_user_photos(user_id, true, "on_get_user_full");
@@ -13137,7 +13139,13 @@ void ContactsManager::add_set_profile_photo_to_cache(UserId user_id, Photo &&pho
     if (*current_photo != photo) {
       *current_photo = photo;
       user_full->is_changed = true;
-      register_user_photo(u, user_id, photo);
+      if (is_me) {
+        if (!is_fallback) {
+          register_user_photo(u, user_id, photo);
+        } else {
+          register_suggested_profile_photo(photo);
+        }
+      }
     }
     update_user_full(user_full, user_id, "add_set_profile_photo_to_cache");
   }
@@ -13318,7 +13326,6 @@ void ContactsManager::drop_user_full(UserId user_id) {
   user_full->broadcast_administrator_rights = {};
   user_full->premium_gift_options.clear();
   user_full->voice_messages_forbidden = false;
-  user_full->are_files_changed = true;
   user_full->is_changed = true;
 
   update_user_full(user_full, user_id, "drop_user_full");

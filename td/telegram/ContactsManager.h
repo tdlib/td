@@ -812,7 +812,6 @@ class ContactsManager final : public Actor {
     bool voice_messages_forbidden = false;
 
     bool is_common_chat_count_changed = true;
-    bool are_files_changed = true;
     bool is_changed = true;             // have new changes that need to be sent to the client and database
     bool need_send_update = true;       // have new changes that need only to be sent to the client
     bool need_save_to_database = true;  // have new changes that need only to be saved to the database
