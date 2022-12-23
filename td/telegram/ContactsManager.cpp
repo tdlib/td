@@ -13148,7 +13148,12 @@ void ContactsManager::add_set_profile_photo_to_cache(UserId user_id, Photo &&pho
         }
       }
     }
+    if (user_full->expires_at > 0.0) {
+      user_full->expires_at = 0.0;
+      user_full->need_save_to_database = true;
+    }
     update_user_full(user_full, user_id, "add_set_profile_photo_to_cache");
+    reload_user_full(user_id, Auto());
   }
 }
 
@@ -13226,13 +13231,12 @@ bool ContactsManager::delete_profile_photo_from_cache(UserId user_id, int64 prof
           user_full->photo = Photo();
           user_full->is_changed = true;
         }
-        if (user_full->expires_at > 0.0) {
-          user_full->expires_at = 0.0;
-          user_full->need_save_to_database = true;
-        }
-
-        reload_user_full(user_id, Auto());
       }
+      if (user_full->expires_at > 0.0) {
+        user_full->expires_at = 0.0;
+        user_full->need_save_to_database = true;
+      }
+      reload_user_full(user_id, Auto());
       if (send_updates) {
         update_user_full(user_full, user_id, "delete_profile_photo_from_cache");
       }
