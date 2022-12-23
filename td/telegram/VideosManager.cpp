@@ -237,6 +237,9 @@ tl_object_ptr<telegram_api::InputMedia> VideosManager::get_input_media(
     if (ttl != 0) {
       flags |= telegram_api::inputMediaDocument::TTL_SECONDS_MASK;
     }
+    if (has_spoiler) {
+      flags |= telegram_api::inputMediaDocument::SPOILER_MASK;
+    }
     return make_tl_object<telegram_api::inputMediaDocument>(
         flags, false /*ignored*/, file_view.main_remote_location().as_input_document(), ttl, string());
   }
@@ -244,6 +247,9 @@ tl_object_ptr<telegram_api::InputMedia> VideosManager::get_input_media(
     int32 flags = 0;
     if (ttl != 0) {
       flags |= telegram_api::inputMediaDocumentExternal::TTL_SECONDS_MASK;
+    }
+    if (has_spoiler) {
+      flags |= telegram_api::inputMediaDocumentExternal::SPOILER_MASK;
     }
     return make_tl_object<telegram_api::inputMediaDocumentExternal>(flags, false /*ignored*/, file_view.url(), ttl);
   }

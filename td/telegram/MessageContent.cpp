@@ -1881,6 +1881,7 @@ static Result<InputMessageContent> create_input_message_content(
   int32 ttl = 0;
   string emoji;
   bool is_bot = td->auth_manager_->is_bot();
+  bool is_secret = dialog_id.get_type() == DialogType::SecretChat;
   switch (input_message_content->get_id()) {
     case td_api::inputMessageText::ID: {
       TRY_RESULT(input_message_text,
@@ -1998,7 +1999,7 @@ static Result<InputMessageContent> create_input_message_content(
       message_photo->photo.sticker_file_ids = std::move(sticker_file_ids);
 
       message_photo->caption = std::move(caption);
-      message_photo->has_spoiler = input_photo->has_spoiler_ && false;
+      message_photo->has_spoiler = input_photo->has_spoiler_ && !is_secret;
 
       content = std::move(message_photo);
       break;
@@ -2026,7 +2027,7 @@ static Result<InputMessageContent> create_input_message_content(
           std::move(file_name), std::move(mime_type), input_video->duration_,
           get_dimensions(input_video->width_, input_video->height_, nullptr), input_video->supports_streaming_, false);
 
-      content = make_unique<MessageVideo>(file_id, std::move(caption), input_video->has_spoiler_ && false);
+      content = make_unique<MessageVideo>(file_id, std::move(caption), input_video->has_spoiler_ && !is_secret);
       break;
     }
     case td_api::inputMessageVideoNote::ID: {
