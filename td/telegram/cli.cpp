@@ -3772,8 +3772,9 @@ class CliClient final : public Actor {
         get_args(args, reply_to_message_id, args);
       }
       auto input_message_contents = transform(full_split(args), [this](const string &photo) {
-        td_api::object_ptr<td_api::InputMessageContent> content = td_api::make_object<td_api::inputMessagePhoto>(
-            as_input_file(photo), nullptr, Auto(), 0, 0, as_caption(""), message_ttl_, has_spoiler_);
+        td_api::object_ptr<td_api::InputMessageContent> content =
+            td_api::make_object<td_api::inputMessagePhoto>(as_input_file(photo), nullptr, Auto(), 0, 0, as_caption(""),
+                                                           rand_bool() ? message_ttl_ : 0, has_spoiler_ && rand_bool());
         return content;
       });
       send_request(td_api::make_object<td_api::sendMessageAlbum>(
