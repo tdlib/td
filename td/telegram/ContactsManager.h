@@ -373,7 +373,7 @@ class ContactsManager final : public Actor {
 
   void send_update_profile_photo_query(FileId file_id, int64 old_photo_id, bool is_fallback, Promise<Unit> &&promise);
 
-  void delete_profile_photo(int64 profile_photo_id, Promise<Unit> &&promise);
+  void delete_profile_photo(int64 profile_photo_id, bool is_recursive, Promise<Unit> &&promise);
 
   void set_name(const string &first_name, const string &last_name, Promise<Unit> &&promise);
 

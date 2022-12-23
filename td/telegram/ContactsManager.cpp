@@ -7131,13 +7131,29 @@ void ContactsManager::upload_profile_photo(UserId user_id, FileId file_id, bool 
   td_->file_manager_->resume_upload(file_id, std::move(bad_parts), upload_profile_photo_callback_, 32, 0);
 }
 
-void ContactsManager::delete_profile_photo(int64 profile_photo_id, Promise<Unit> &&promise) {
-  const User *u = get_user(get_my_id());
-  if (u != nullptr && u->photo.id == profile_photo_id) {
-    // we don't know whether the u->photo is a fallback photo, or not
-    // td_->create_handler<UpdateProfilePhotoQuery>(std::move(promise))
-    //    ->send(FileId(), profile_photo_id, false, make_tl_object<telegram_api::inputPhotoEmpty>());
-    // return;
+void ContactsManager::delete_profile_photo(int64 profile_photo_id, bool is_recursive, Promise<Unit> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+  const UserFull *user_full = is_recursive ? get_user_full_force(get_my_id()) : nullptr;
+  if (user_full == nullptr) {
+    // must load UserFull first, because fallback photo can't be deleted via DeleteProfilePhotoQuery
+    if (is_recursive) {
+      return promise.set_error(Status::Error(500, "Failed to load UserFullInfo"));
+    }
+    auto reload_promise = PromiseCreator::lambda(
+        [actor_id = actor_id(this), profile_photo_id, promise = std::move(promise)](Result<Unit> result) mutable {
+          if (result.is_error()) {
+            return promise.set_error(result.move_as_error());
+          }
+          send_closure(actor_id, &ContactsManager::delete_profile_photo, profile_photo_id, true, std::move(promise));
+        });
+    reload_user_full(get_my_id(), std::move(reload_promise));
+    return;
+  }
+  if (user_full->photo.id.get() == profile_photo_id || user_full->fallback_photo.id.get() == profile_photo_id) {
+    td_->create_handler<UpdateProfilePhotoQuery>(std::move(promise))
+        ->send(FileId(), profile_photo_id, user_full->fallback_photo.id.get() == profile_photo_id,
+               make_tl_object<telegram_api::inputPhotoEmpty>());
+    return;
   }
 
   td_->create_handler<DeleteProfilePhotoQuery>(std::move(promise))->send(profile_photo_id);
