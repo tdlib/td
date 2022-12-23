@@ -3531,6 +3531,7 @@ class MessagesManager final : public Actor {
   int64 added_message_count_ = 0;
 
   FlatHashSet<DialogId, DialogIdHash> loaded_dialogs_;  // dialogs loaded from database, but not added to dialogs_
+  FlatHashSet<DialogId, DialogIdHash> failed_to_load_dialogs_;
 
   FlatHashSet<DialogId, DialogIdHash> postponed_chat_read_inbox_updates_;
 

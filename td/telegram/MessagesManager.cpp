@@ -6073,7 +6073,7 @@ MessagesManager::~MessagesManager() {
       channel_get_difference_retry_timeouts_, is_channel_difference_finished_, resolved_usernames_,
       inaccessible_resolved_usernames_, dialog_bot_command_message_ids_, full_message_id_to_file_source_id_,
       last_outgoing_forwarded_message_date_, dialog_viewed_messages_, dialog_online_member_counts_,
-      previous_repaired_read_inbox_max_message_id_);
+      previous_repaired_read_inbox_max_message_id_, failed_to_load_dialogs_);
 }
 
 void MessagesManager::on_channel_get_difference_timeout_callback(void *messages_manager_ptr, int64 dialog_id_int) {
@@ -37353,6 +37353,7 @@ MessagesManager::Dialog *MessagesManager::add_new_dialog(unique_ptr<Dialog> &&di
   being_added_new_dialog_id_ = dialog_id;
 
   loaded_dialogs_.erase(dialog_id);
+  failed_to_load_dialogs_.erase(dialog_id);
 
   fix_dialog_action_bar(d, d->action_bar.get());
 
@@ -38402,7 +38403,8 @@ MessagesManager::Dialog *MessagesManager::get_dialog_force(DialogId dialog_id, c
     return d;
   }
 
-  if (!dialog_id.is_valid() || !G()->parameters().use_message_db || loaded_dialogs_.count(dialog_id) > 0) {
+  if (!dialog_id.is_valid() || !G()->parameters().use_message_db || loaded_dialogs_.count(dialog_id) > 0 ||
+      failed_to_load_dialogs_.count(dialog_id) > 0) {
     return nullptr;
   }
 
@@ -38412,6 +38414,7 @@ MessagesManager::Dialog *MessagesManager::get_dialog_force(DialogId dialog_id, c
     d = on_load_dialog_from_database(dialog_id, r_value.move_as_ok(), source);
     LOG_CHECK(d == nullptr || d->dialog_id == dialog_id) << d->dialog_id << ' ' << dialog_id;
   } else {
+    failed_to_load_dialogs_.insert(dialog_id);
     LOG(INFO) << "Failed to load " << dialog_id << " from database from " << source << ": "
               << r_value.error().message();
   }
