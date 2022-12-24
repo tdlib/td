@@ -651,7 +651,7 @@ botInfo share_text:string description:string photo:photo animation:animation men
 //@description Contains full information about a user
 //@personal_photo User profile photo set by the current user for the contact; may be null if empty or unknown. If non-null, then it is the same photo as in user.profile_photo and chat.photo. This photo isn't returned in the list of user photos
 //@photo User profile photo; may be null if empty or unknown. If non-null and personal_photo is null, then it is the same photo as in user.profile_photo and chat.photo
-//@public_photo User profile photo visible if the main photo is hidden by privacy settings; may be null if empty or unknown. If non-null and photo and personal_photo are null, then it is the same photo as in user.profile_photo and chat.photo. This photo isn't returned in the list of user photos
+//@public_photo User profile photo visible if the main photo is hidden by privacy settings; may be null if empty or unknown. If non-null and both photo and personal_photo are null, then it is the same photo as in user.profile_photo and chat.photo. This photo isn't returned in the list of user photos
 //@is_blocked True, if the user is blocked by the current user
 //@can_be_called True, if the user can be called
 //@supports_video_calls True, if a video call can be created with the user
@@ -7052,7 +7052,7 @@ searchUserByPhoneNumber phone_number:string = User;
 sharePhoneNumber user_id:int53 = Ok;
 
 
-//@description Returns the profile photos of a user. The result of this query may be outdated: some photos might have been deleted already @user_id User identifier @offset The number of photos to skip; must be non-negative @limit The maximum number of photos to be returned; up to 100
+//@description Returns the profile photos of a user. Personal and public photo aren't returned @user_id User identifier @offset The number of photos to skip; must be non-negative @limit The maximum number of photos to be returned; up to 100
 getUserProfilePhotos user_id:int53 offset:int32 limit:int32 = ChatPhotos;
 
 
