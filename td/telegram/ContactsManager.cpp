@@ -18037,9 +18037,9 @@ tl_object_ptr<td_api::userFullInfo> ContactsManager::get_user_full_info_object(U
   }
   auto voice_messages_forbidden = is_premium ? user_full->voice_messages_forbidden : false;
   return make_tl_object<td_api::userFullInfo>(
+      get_chat_photo_object(td_->file_manager_.get(), user_full->personal_photo),
       get_chat_photo_object(td_->file_manager_.get(), user_full->photo),
-      get_chat_photo_object(td_->file_manager_.get(), user_full->fallback_photo),
-      get_chat_photo_object(td_->file_manager_.get(), user_full->personal_photo), user_full->is_blocked,
+      get_chat_photo_object(td_->file_manager_.get(), user_full->fallback_photo), user_full->is_blocked,
       user_full->can_be_called, user_full->supports_video_calls, user_full->has_private_calls,
       !user_full->private_forward_name.empty(), voice_messages_forbidden,
       user_full->need_phone_number_privacy_exception, std::move(bio_object),
