@@ -2898,6 +2898,9 @@ string NotificationManager::convert_loc_key(const string &loc_key) {
       if (loc_key == "MESSAGE_STICKER") {
         return "MESSAGE_STICKER";
       }
+      if (loc_key == "MESSAGE_SUGGEST_PHOTO") {
+        return "MESSAGE_SUGGEST_PHOTO";
+      }
       break;
     case 'T':
       if (loc_key == "CHAT_LEFT") {

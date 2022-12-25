@@ -4049,6 +4049,9 @@ pushMessageContentChatJoinByRequest = PushMessageContent;
 //@description A new recurrent payment was made by the current user @amount The paid amount
 pushMessageContentRecurringPayment amount:string = PushMessageContent;
 
+//@description A profile photo was suggested to the user
+pushMessageContentSuggestProfilePhoto = PushMessageContent;
+
 //@description A forwarded messages @total_count Number of forwarded messages
 pushMessageContentMessageForwards total_count:int32 = PushMessageContent;
 

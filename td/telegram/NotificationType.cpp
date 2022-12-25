@@ -296,19 +296,22 @@ class NotificationTypePushMessage final : public NotificationType {
         }
         break;
       case 'S':
+        if (key == "MESSAGE_SCREENSHOT_TAKEN") {
+          return td_api::make_object<td_api::pushMessageContentScreenshotTaken>();
+        }
         if (key == "MESSAGE_SECRET_PHOTO") {
           return td_api::make_object<td_api::pushMessageContentPhoto>(nullptr, arg, true, false);
         }
         if (key == "MESSAGE_SECRET_VIDEO") {
           return td_api::make_object<td_api::pushMessageContentVideo>(nullptr, arg, true, false);
         }
-        if (key == "MESSAGE_SCREENSHOT_TAKEN") {
-          return td_api::make_object<td_api::pushMessageContentScreenshotTaken>();
-        }
         if (key == "MESSAGE_STICKER") {
           auto stickers_manager = G()->td().get_actor_unsafe()->stickers_manager_.get();
           return td_api::make_object<td_api::pushMessageContentSticker>(
               stickers_manager->get_sticker_object(document.file_id), trim(arg), is_pinned);
+        }
+        if (key == "MESSAGE_SUGGEST_PHOTO") {
+          return td_api::make_object<td_api::pushMessageContentSuggestProfilePhoto>();
         }
         break;
       case 'T':
