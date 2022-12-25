@@ -2758,7 +2758,7 @@ class SearchMessagesGlobalQuery final : public Td::ResultHandler {
             auto info = result.move_as_ok();
             send_closure(actor_id, &MessagesManager::on_get_messages_search_result, query, offset_date,
                          offset_dialog_id, offset_message_id, limit, filter, min_date, max_date, random_id,
-                         info.total_count, std::move(info.messages), std::move(promise));
+                         info.total_count, std::move(info.messages), info.next_rate, std::move(promise));
           }
         }));
   }
@@ -10493,7 +10493,7 @@ void MessagesManager::on_get_messages_search_result(const string &query, int32 o
                                                     MessageSearchFilter filter, int32 min_date, int32 max_date,
                                                     int64 random_id, int32 total_count,
                                                     vector<tl_object_ptr<telegram_api::Message>> &&messages,
-                                                    Promise<Unit> &&promise) {
+                                                    int32 next_rate, Promise<Unit> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
 
   LOG(INFO) << "Receive " << messages.size() << " found messages";
@@ -10531,6 +10531,9 @@ void MessagesManager::on_get_messages_search_result(const string &query, int32 o
   }
   it->second.total_count = total_count;
   if (!result.empty()) {
+    if (next_rate > 0) {
+      last_message_date = next_rate;
+    }
     it->second.next_offset = PSTRING() << last_message_date << ',' << last_dialog_id.get() << ','
                                        << last_message_id.get_server_message_id().get();
   }

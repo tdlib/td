@@ -217,7 +217,8 @@ class MessagesManager final : public Actor {
   void on_get_messages_search_result(const string &query, int32 offset_date, DialogId offset_dialog_id,
                                      MessageId offset_message_id, int32 limit, MessageSearchFilter filter,
                                      int32 min_date, int32 max_date, int64 random_id, int32 total_count,
-                                     vector<tl_object_ptr<telegram_api::Message>> &&messages, Promise<Unit> &&promise);
+                                     vector<tl_object_ptr<telegram_api::Message>> &&messages, int32 next_rate,
+                                     Promise<Unit> &&promise);
   void on_failed_messages_search(int64 random_id);
 
   void on_get_outgoing_document_messages(vector<tl_object_ptr<telegram_api::Message>> &&messages,

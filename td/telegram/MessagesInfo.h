@@ -18,6 +18,7 @@ class Td;
 struct MessagesInfo {
   vector<telegram_api::object_ptr<telegram_api::Message>> messages;
   int32 total_count = 0;
+  int32 next_rate = -1;
   bool is_channel_messages = false;
 };
 

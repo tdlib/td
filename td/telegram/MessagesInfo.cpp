@@ -42,6 +42,8 @@ MessagesInfo get_messages_info(Td *td, DialogId dialog_id,
       chats = std::move(messages->chats_);
       result.total_count = messages->count_;
       result.messages = std::move(messages->messages_);
+      result.next_rate = messages->next_rate_;
+      // inexact:flags.1?true offset_id_offset:flags.2?int
       break;
     }
     case telegram_api::messages_channelMessages::ID: {
@@ -53,6 +55,7 @@ MessagesInfo get_messages_info(Td *td, DialogId dialog_id,
       result.total_count = messages->count_;
       result.messages = std::move(messages->messages_);
       result.is_channel_messages = true;
+      // inexact:flags.1?true pts:int offset_id_offset:flags.2?int
       break;
     }
     case telegram_api::messages_messagesNotModified::ID:
