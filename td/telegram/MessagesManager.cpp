@@ -22617,7 +22617,9 @@ std::pair<DialogId, vector<MessageId>> MessagesManager::get_message_thread_histo
   }
 
   FullMessageId top_thread_full_message_id;
-  {
+  if (message_id == MessageId(ServerMessageId(1)) && is_forum_channel(dialog_id)) {
+    top_thread_full_message_id = FullMessageId{dialog_id, message_id};
+  } else {
     message_id = get_persistent_message_id(d, message_id);
     Message *m = get_message_force(d, message_id, "get_message_thread_history 1");
     if (m == nullptr) {
