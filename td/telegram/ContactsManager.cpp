@@ -13052,7 +13052,7 @@ void ContactsManager::on_set_profile_photo(UserId user_id, tl_object_ptr<telegra
   LOG(INFO) << "Changed profile photo to " << to_string(photo);
 
   bool is_my = (user_id == get_my_id());
-  if (is_my) {
+  if (is_my && !is_fallback) {
     delete_my_profile_photo_from_cache(old_photo_id, false);
   }
   on_get_users(std::move(photo->users_), "on_set_profile_photo");
@@ -13121,9 +13121,11 @@ void ContactsManager::add_set_profile_photo_to_cache(UserId user_id, Photo &&pho
   }
 
   // update ProfilePhoto in User
-  do_update_user_photo(u, user_id, as_profile_photo(td_->file_manager_.get(), user_id, u->access_hash, photo, !is_me),
-                       false, "add_set_profile_photo_to_cache");
-  update_user(u, user_id);
+  if (!is_fallback || u->photo.id == 0) {
+    do_update_user_photo(u, user_id, as_profile_photo(td_->file_manager_.get(), user_id, u->access_hash, photo, !is_me),
+                         false, "add_set_profile_photo_to_cache");
+    update_user(u, user_id);
+  }
 
   // update Photo in UserFull
   auto user_full = get_user_full_force(user_id);
