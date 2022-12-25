@@ -2941,7 +2941,7 @@ class GetMessagePublicForwardsQuery final : public Td::ResultHandler {
           } else {
             auto info = result.move_as_ok();
             send_closure(actor_id, &MessagesManager::on_get_message_public_forwards, info.total_count,
-                         std::move(info.messages), std::move(promise));
+                         std::move(info.messages), info.next_rate, std::move(promise));
           }
         }));
   }
@@ -10665,21 +10665,31 @@ void MessagesManager::on_get_recent_locations(DialogId dialog_id, int32 limit, i
 
 void MessagesManager::on_get_message_public_forwards(int32 total_count,
                                                      vector<tl_object_ptr<telegram_api::Message>> &&messages,
+                                                     int32 next_rate,
                                                      Promise<td_api::object_ptr<td_api::foundMessages>> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
 
   LOG(INFO) << "Receive " << messages.size() << " forwarded messages";
   vector<td_api::object_ptr<td_api::message>> result;
-  FullMessageId last_full_message_id;
+  int32 last_message_date = 0;
+  MessageId last_message_id;
+  DialogId last_dialog_id;
   for (auto &message : messages) {
+    auto message_date = get_message_date(message);
+    auto message_id = MessageId::get_message_id(message, false);
     auto dialog_id = DialogId::get_message_dialog_id(message);
+    if (message_date > 0 && message_id.is_valid() && dialog_id.is_valid()) {
+      last_message_date = message_date;
+      last_message_id = message_id;
+      last_dialog_id = dialog_id;
+    }
+
     auto new_full_message_id = on_get_message(std::move(message), false, dialog_id.get_type() == DialogType::Channel,
                                               false, false, false, "get message public forwards");
     if (new_full_message_id != FullMessageId()) {
       CHECK(dialog_id == new_full_message_id.get_dialog_id());
       result.push_back(get_message_object(new_full_message_id, "on_get_message_public_forwards"));
       CHECK(result.back() != nullptr);
-      last_full_message_id = new_full_message_id;
     } else {
       total_count--;
     }
@@ -10691,10 +10701,11 @@ void MessagesManager::on_get_message_public_forwards(int32 total_count,
   }
   string next_offset;
   if (!result.empty()) {
-    auto m = get_message(last_full_message_id);
-    CHECK(m != nullptr);
-    next_offset = PSTRING() << m->date << "," << last_full_message_id.get_dialog_id().get() << ","
-                            << m->message_id.get_server_message_id().get();
+    if (next_rate > 0) {
+      last_message_date = next_rate;
+    }
+    next_offset = PSTRING() << last_message_date << ',' << last_dialog_id.get() << ','
+                            << last_message_id.get_server_message_id().get();
   }
 
   promise.set_value(td_api::make_object<td_api::foundMessages>(total_count, std::move(result), next_offset));
