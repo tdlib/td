@@ -1422,32 +1422,27 @@ class SearchMessagesRequest final : public RequestActor<> {
   FolderId folder_id_;
   bool ignore_folder_id_;
   string query_;
-  int32 offset_date_;
-  DialogId offset_dialog_id_;
-  MessageId offset_message_id_;
+  string offset_;
   int32 limit_;
   MessageSearchFilter filter_;
   int32 min_date_;
   int32 max_date_;
   int64 random_id_;
 
-  std::pair<int32, vector<FullMessageId>> messages_;
+  MessagesManager::FoundMessages messages_;
 
   void do_run(Promise<Unit> &&promise) final {
-    messages_ = td_->messages_manager_->search_messages(folder_id_, ignore_folder_id_, query_, offset_date_,
-                                                        offset_dialog_id_, offset_message_id_, limit_, filter_,
+    messages_ = td_->messages_manager_->search_messages(folder_id_, ignore_folder_id_, query_, offset_, limit_, filter_,
                                                         min_date_, max_date_, random_id_, std::move(promise));
   }
 
   void do_send_result() final {
-    send_result(
-        td_->messages_manager_->get_messages_object(messages_.first, messages_.second, true, "SearchMessagesRequest"));
+    send_result(td_->messages_manager_->get_found_messages_object(messages_, "SearchMessagesRequest"));
   }
 
   void do_send_error(Status &&status) final {
     if (status.message() == "SEARCH_QUERY_EMPTY") {
-      messages_.first = 0;
-      messages_.second.clear();
+      messages_ = {};
       return do_send_result();
     }
     send_error(std::move(status));
@@ -1455,15 +1450,13 @@ class SearchMessagesRequest final : public RequestActor<> {
 
  public:
   SearchMessagesRequest(ActorShared<Td> td, uint64 request_id, FolderId folder_id, bool ignore_folder_id, string query,
-                        int32 offset_date, int64 offset_dialog_id, int64 offset_message_id, int32 limit,
-                        tl_object_ptr<td_api::SearchMessagesFilter> &&filter, int32 min_date, int32 max_date)
+                        string offset, int32 limit, tl_object_ptr<td_api::SearchMessagesFilter> &&filter,
+                        int32 min_date, int32 max_date)
       : RequestActor(std::move(td), request_id)
       , folder_id_(folder_id)
       , ignore_folder_id_(ignore_folder_id)
       , query_(std::move(query))
-      , offset_date_(offset_date)
-      , offset_dialog_id_(offset_dialog_id)
-      , offset_message_id_(offset_message_id)
+      , offset_(std::move(offset))
       , limit_(limit)
       , filter_(get_message_search_filter(filter))
       , min_date_(min_date)
@@ -5161,13 +5154,14 @@ void Td::on_request(uint64 id, td_api::searchSecretMessages &request) {
 void Td::on_request(uint64 id, td_api::searchMessages &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.query_);
+  CLEAN_INPUT_STRING(request.offset_);
   DialogListId dialog_list_id(request.chat_list_);
   if (!dialog_list_id.is_folder()) {
     return send_error_raw(id, 400, "Wrong chat list specified");
   }
   CREATE_REQUEST(SearchMessagesRequest, dialog_list_id.get_folder_id(), request.chat_list_ == nullptr,
-                 std::move(request.query_), request.offset_date_, request.offset_chat_id_, request.offset_message_id_,
-                 request.limit_, std::move(request.filter_), request.min_date_, request.max_date_);
+                 std::move(request.query_), std::move(request.offset_), request.limit_, std::move(request.filter_),
+                 request.min_date_, request.max_date_);
 }
 
 void Td::on_request(uint64 id, const td_api::searchCallMessages &request) {

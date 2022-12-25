@@ -766,11 +766,9 @@ class MessagesManager final : public Actor {
   FoundMessages offline_search_messages(DialogId dialog_id, const string &query, string offset, int32 limit,
                                         MessageSearchFilter filter, int64 &random_id, Promise<Unit> &&promise);
 
-  std::pair<int32, vector<FullMessageId>> search_messages(FolderId folder_id, bool ignore_folder_id,
-                                                          const string &query, int32 offset_date,
-                                                          DialogId offset_dialog_id, MessageId offset_message_id,
-                                                          int32 limit, MessageSearchFilter filter, int32 min_date,
-                                                          int32 max_date, int64 &random_id, Promise<Unit> &&promise);
+  FoundMessages search_messages(FolderId folder_id, bool ignore_folder_id, const string &query, const string &offset,
+                                int32 limit, MessageSearchFilter filter, int32 min_date, int32 max_date,
+                                int64 &random_id, Promise<Unit> &&promise);
 
   std::pair<int32, vector<FullMessageId>> search_call_messages(MessageId from_message_id, int32 limit, bool only_missed,
                                                                int64 &random_id, bool use_db, Promise<Unit> &&promise);
@@ -3553,8 +3551,7 @@ class MessagesManager final : public Actor {
   FlatHashMap<int64, std::pair<int32, vector<MessageId>>>
       found_dialog_messages_;                                     // random_id -> [total_count, [message_id]...]
   FlatHashMap<int64, DialogId> found_dialog_messages_dialog_id_;  // random_id -> dialog_id
-  FlatHashMap<int64, std::pair<int32, vector<FullMessageId>>>
-      found_messages_;  // random_id -> [total_count, [full_message_id]...]
+  FlatHashMap<int64, FoundMessages> found_messages_;              // random_id -> FoundMessages
   FlatHashMap<int64, std::pair<int32, vector<FullMessageId>>>
       found_call_messages_;  // random_id -> [total_count, [full_message_id]...]
 

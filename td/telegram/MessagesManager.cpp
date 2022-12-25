@@ -10500,10 +10500,21 @@ void MessagesManager::on_get_messages_search_result(const string &query, int32 o
   auto it = found_messages_.find(random_id);
   CHECK(it != found_messages_.end());
 
-  auto &result = it->second.second;
+  auto &result = it->second.full_message_ids;
   CHECK(result.empty());
+  int32 last_message_date = 0;
+  MessageId last_message_id;
+  DialogId last_dialog_id;
   for (auto &message : messages) {
+    auto message_date = get_message_date(message);
+    auto message_id = MessageId::get_message_id(message, false);
     auto dialog_id = DialogId::get_message_dialog_id(message);
+    if (message_date > 0 && message_id.is_valid() && dialog_id.is_valid()) {
+      last_message_date = message_date;
+      last_message_id = message_id;
+      last_dialog_id = dialog_id;
+    }
+
     auto new_full_message_id = on_get_message(std::move(message), false, dialog_id.get_type() == DialogType::Channel,
                                               false, false, false, "search messages");
     if (new_full_message_id != FullMessageId()) {
@@ -10518,7 +10529,11 @@ void MessagesManager::on_get_messages_search_result(const string &query, int32 o
                << " messages";
     total_count = static_cast<int32>(result.size());
   }
-  it->second.first = total_count;
+  it->second.total_count = total_count;
+  if (!result.empty()) {
+    it->second.next_offset = PSTRING() << last_message_date << ',' << last_dialog_id.get() << ','
+                                       << last_message_id.get_server_message_id().get();
+  }
   promise.set_value(Unit());
 }
 
@@ -23753,10 +23768,11 @@ void MessagesManager::on_message_db_calls_result(Result<MessageDbCallsResult> re
   promise.set_value(Unit());
 }
 
-std::pair<int32, vector<FullMessageId>> MessagesManager::search_messages(
-    FolderId folder_id, bool ignore_folder_id, const string &query, int32 offset_date, DialogId offset_dialog_id,
-    MessageId offset_message_id, int32 limit, MessageSearchFilter filter, int32 min_date, int32 max_date,
-    int64 &random_id, Promise<Unit> &&promise) {
+MessagesManager::FoundMessages MessagesManager::search_messages(FolderId folder_id, bool ignore_folder_id,
+                                                                const string &query, const string &offset, int32 limit,
+                                                                MessageSearchFilter filter, int32 min_date,
+                                                                int32 max_date, int64 &random_id,
+                                                                Promise<Unit> &&promise) {
   if (random_id != 0) {
     // request has already been sent before
     auto it = found_messages_.find(random_id);
@@ -23775,19 +23791,36 @@ std::pair<int32, vector<FullMessageId>> MessagesManager::search_messages(
     limit = MAX_SEARCH_MESSAGES;
   }
 
-  if (offset_date <= 0) {
-    offset_date = std::numeric_limits<int32>::max();
-  }
-  if (!offset_message_id.is_valid()) {
-    if (offset_message_id.is_valid_scheduled()) {
-      promise.set_error(Status::Error(400, "Parameter offset_message_id can't be a scheduled message identifier"));
-      return {};
+  int32 offset_date = std::numeric_limits<int32>::max();
+  DialogId offset_dialog_id;
+  MessageId offset_message_id;
+  bool is_offset_valid = [&] {
+    if (offset.empty()) {
+      return true;
     }
-    offset_message_id = MessageId();
-  }
-  if (offset_message_id != MessageId() && !offset_message_id.is_server()) {
-    promise.set_error(
-        Status::Error(400, "Parameter offset_message_id must be identifier of the last found message or 0"));
+
+    auto parts = full_split(offset, ',');
+    if (parts.size() != 3) {
+      return false;
+    }
+    auto r_offset_date = to_integer_safe<int32>(parts[0]);
+    auto r_offset_dialog_id = to_integer_safe<int64>(parts[1]);
+    auto r_offset_message_id = to_integer_safe<int32>(parts[2]);
+    if (r_offset_date.is_error() || r_offset_date.ok() <= 0 || r_offset_message_id.is_error() ||
+        r_offset_dialog_id.is_error()) {
+      return false;
+    }
+    offset_date = r_offset_date.ok();
+    offset_message_id = MessageId(ServerMessageId(r_offset_message_id.ok()));
+    offset_dialog_id = DialogId(r_offset_dialog_id.ok());
+    if (!offset_message_id.is_valid() || !offset_dialog_id.is_valid() ||
+        MessagesManager::get_input_peer_force(offset_dialog_id)->get_id() == telegram_api::inputPeerEmpty::ID) {
+      return false;
+    }
+    return true;
+  }();
+  if (!is_offset_valid) {
+    promise.set_error(Status::Error(400, "Invalid offset specified"));
     return {};
   }
 
@@ -23809,8 +23842,8 @@ std::pair<int32, vector<FullMessageId>> MessagesManager::search_messages(
   } while (random_id == 0 || found_messages_.count(random_id) > 0);
   found_messages_[random_id];  // reserve place for result
 
-  LOG(DEBUG) << "Search all messages filtered by " << filter << " with query = \"" << query << "\" from date "
-             << offset_date << ", " << offset_dialog_id << ", " << offset_message_id << " and limit " << limit;
+  LOG(DEBUG) << "Search all messages filtered by " << filter << " with query = \"" << query << "\" from offset "
+             << offset << " and limit " << limit;
 
   td_->create_handler<SearchMessagesGlobalQuery>(std::move(promise))
       ->send(folder_id, ignore_folder_id, query, offset_date, offset_dialog_id, offset_message_id, limit, filter,
