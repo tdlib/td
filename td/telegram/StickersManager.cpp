@@ -2214,13 +2214,13 @@ tl_object_ptr<td_api::sticker> StickersManager::get_sticker_object(FileId file_i
       height *= 3;
     }
   }
-  auto full_type = [&]() -> td_api::object_ptr<td_api::StickerTypeFullInfo> {
+  auto full_type = [&]() -> td_api::object_ptr<td_api::StickerFullType> {
     switch (sticker->type_) {
       case StickerType::Regular: {
         auto premium_animation_object = sticker->premium_animation_file_id_.is_valid()
                                             ? td_->file_manager_->get_file_object(sticker->premium_animation_file_id_)
                                             : nullptr;
-        return td_api::make_object<td_api::stickerTypeFullInfoRegular>(std::move(premium_animation_object));
+        return td_api::make_object<td_api::stickerFullTypeRegular>(std::move(premium_animation_object));
       }
       case StickerType::Mask: {
         td_api::object_ptr<td_api::maskPosition> mask_position;
@@ -2228,11 +2228,11 @@ tl_object_ptr<td_api::sticker> StickersManager::get_sticker_object(FileId file_i
           mask_position = td_api::make_object<td_api::maskPosition>(
               get_mask_point_object(sticker->point_), sticker->x_shift_, sticker->y_shift_, sticker->scale_);
         }
-        return td_api::make_object<td_api::stickerTypeFullInfoMask>(std::move(mask_position));
+        return td_api::make_object<td_api::stickerFullTypeMask>(std::move(mask_position));
       }
       case StickerType::CustomEmoji:
-        return td_api::make_object<td_api::stickerTypeFullInfoCustomEmoji>(get_custom_emoji_id(sticker->file_id_).get(),
-                                                                           sticker->has_text_color_);
+        return td_api::make_object<td_api::stickerFullTypeCustomEmoji>(get_custom_emoji_id(sticker->file_id_).get(),
+                                                                       sticker->has_text_color_);
       default:
         UNREACHABLE();
         return nullptr;

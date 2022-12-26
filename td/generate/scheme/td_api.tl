@@ -300,18 +300,18 @@ stickerTypeMask = StickerType;
 stickerTypeCustomEmoji = StickerType;
 
 
-//@class StickerTypeFullInfo @description Contains full information about sticker type
+//@class StickerFullType @description Contains full information about sticker type
 
 //@description The sticker is a regular sticker @premium_animation Premium animation of the sticker; may be null. If present, only Telegram Premium users can use the sticker
-stickerTypeFullInfoRegular premium_animation:file = StickerTypeFullInfo;
+stickerFullTypeRegular premium_animation:file = StickerFullType;
 
 //@description The sticker is a mask in WEBP format to be placed on photos or videos @mask_position Position where the mask is placed; may be null
-stickerTypeFullInfoMask mask_position:maskPosition = StickerTypeFullInfo;
+stickerFullTypeMask mask_position:maskPosition = StickerFullType;
 
 //@description The sticker is a custom emoji to be used inside message text and caption. Currently, only Telegram Premium users can use custom emoji
 //@custom_emoji_id Identifier of the custom emoji
 //@has_text_color True, if the sticker must be repainted to a text color in messages, the color of the Telegram Premium badge in emoji status, or another appropriate color in other places
-stickerTypeFullInfoCustomEmoji custom_emoji_id:int64 has_text_color:Bool = StickerTypeFullInfo;
+stickerFullTypeCustomEmoji custom_emoji_id:int64 has_text_color:Bool = StickerFullType;
 
 
 //@description Represents a closed vector path. The path begins at the end point of the last command @commands List of vector path commands
@@ -382,11 +382,11 @@ photo has_stickers:Bool minithumbnail:minithumbnail sizes:vector<photoSize> = Ph
 //@height Sticker height; as defined by the sender
 //@emoji Emoji corresponding to the sticker
 //@format Sticker format
-//@full_type Sticker full type
+//@full_type Sticker's full type
 //@outline Sticker's outline represented as a list of closed vector paths; may be empty. The coordinate system origin is in the upper-left corner
 //@thumbnail Sticker thumbnail in WEBP or JPEG format; may be null
 //@sticker File containing the sticker
-sticker set_id:int64 width:int32 height:int32 emoji:string format:StickerFormat full_type:StickerTypeFullInfo outline:vector<closedVectorPath> thumbnail:thumbnail sticker:file = Sticker;
+sticker set_id:int64 width:int32 height:int32 emoji:string format:StickerFormat full_type:StickerFullType outline:vector<closedVectorPath> thumbnail:thumbnail sticker:file = Sticker;
 
 //@description Describes a video file
 //@duration Duration of the video, in seconds; as defined by the sender

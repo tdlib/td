@@ -5387,9 +5387,8 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
       auto sticker = td->stickers_manager_->get_sticker_object(m->file_id);
       CHECK(sticker != nullptr);
       auto is_premium =
-          m->is_premium && sticker->full_type_->get_id() == td_api::stickerTypeFullInfoRegular::ID &&
-          static_cast<const td_api::stickerTypeFullInfoRegular *>(sticker->full_type_.get())->premium_animation_ !=
-              nullptr;
+          m->is_premium && sticker->full_type_->get_id() == td_api::stickerFullTypeRegular::ID &&
+          static_cast<const td_api::stickerFullTypeRegular *>(sticker->full_type_.get())->premium_animation_ != nullptr;
       return make_tl_object<td_api::messageSticker>(std::move(sticker), is_premium);
     }
     case MessageContentType::Text: {

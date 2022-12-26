@@ -1169,19 +1169,19 @@ tl_object_ptr<td_api::maskPosition> copy(const td_api::maskPosition &obj) {
 }
 
 template <>
-tl_object_ptr<td_api::StickerTypeFullInfo> copy(const td_api::StickerTypeFullInfo &obj) {
+tl_object_ptr<td_api::StickerFullType> copy(const td_api::StickerFullType &obj) {
   switch (obj.get_id()) {
-    case td_api::stickerTypeFullInfoRegular::ID: {
-      auto &info = static_cast<const td_api::stickerTypeFullInfoRegular &>(obj);
-      return td_api::make_object<td_api::stickerTypeFullInfoRegular>(copy(info.premium_animation_));
+    case td_api::stickerFullTypeRegular::ID: {
+      auto &info = static_cast<const td_api::stickerFullTypeRegular &>(obj);
+      return td_api::make_object<td_api::stickerFullTypeRegular>(copy(info.premium_animation_));
     }
-    case td_api::stickerTypeFullInfoMask::ID: {
-      auto &info = static_cast<const td_api::stickerTypeFullInfoMask &>(obj);
-      return td_api::make_object<td_api::stickerTypeFullInfoMask>(copy(info.mask_position_));
+    case td_api::stickerFullTypeMask::ID: {
+      auto &info = static_cast<const td_api::stickerFullTypeMask &>(obj);
+      return td_api::make_object<td_api::stickerFullTypeMask>(copy(info.mask_position_));
     }
-    case td_api::stickerTypeFullInfoCustomEmoji::ID: {
-      auto &info = static_cast<const td_api::stickerTypeFullInfoCustomEmoji &>(obj);
-      return td_api::make_object<td_api::stickerTypeFullInfoCustomEmoji>(info.custom_emoji_id_, info.has_text_color_);
+    case td_api::stickerFullTypeCustomEmoji::ID: {
+      auto &info = static_cast<const td_api::stickerFullTypeCustomEmoji &>(obj);
+      return td_api::make_object<td_api::stickerFullTypeCustomEmoji>(info.custom_emoji_id_, info.has_text_color_);
     }
     default:
       UNREACHABLE();
