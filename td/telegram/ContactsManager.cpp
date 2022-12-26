@@ -9717,8 +9717,8 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
 
   if (is_received || !u->is_received) {
     on_update_user_name(u, user_id, std::move(user->first_name_), std::move(user->last_name_));
-    on_update_user_usernames(u, user_id, Usernames{std::move(user->username_), std::move(user->usernames_)});
   }
+  on_update_user_usernames(u, user_id, Usernames{std::move(user->username_), std::move(user->usernames_)});
   on_update_user_emoji_status(u, user_id, EmojiStatus(std::move(user->emoji_status_)));
 
   bool is_verified = (flags & USER_FLAG_IS_VERIFIED) != 0;
