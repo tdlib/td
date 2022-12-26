@@ -6823,7 +6823,7 @@ void Td::on_request(uint64 id, td_api::setUserPersonalProfilePhoto &request) {
   contacts_manager_->set_user_profile_photo(UserId(request.user_id_), request.photo_, false, std::move(promise));
 }
 
-void Td::on_request(uint64 id, td_api::suggestUserPersonalProfilePhoto &request) {
+void Td::on_request(uint64 id, td_api::suggestUserProfilePhoto &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
   contacts_manager_->set_user_profile_photo(UserId(request.user_id_), request.photo_, true, std::move(promise));

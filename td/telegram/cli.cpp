@@ -4855,18 +4855,18 @@ class CliClient final : public Actor {
       UserId user_id;
       get_args(args, user_id);
       send_request(td_api::make_object<td_api::setUserPersonalProfilePhoto>(user_id, nullptr));
-    } else if (op == "suuppp") {
+    } else if (op == "supp") {
       UserId user_id;
       string photo;
       get_args(args, user_id, photo);
-      send_request(td_api::make_object<td_api::suggestUserPersonalProfilePhoto>(
+      send_request(td_api::make_object<td_api::suggestUserProfilePhoto>(
           user_id, td_api::make_object<td_api::inputChatPhotoStatic>(as_input_file(photo))));
-    } else if (op == "suupppa") {
+    } else if (op == "suppa") {
       UserId user_id;
       string animation;
       string main_frame_timestamp;
       get_args(args, user_id, animation, main_frame_timestamp);
-      send_request(td_api::make_object<td_api::suggestUserPersonalProfilePhoto>(
+      send_request(td_api::make_object<td_api::suggestUserProfilePhoto>(
           user_id, td_api::make_object<td_api::inputChatPhotoAnimation>(as_input_file(animation),
                                                                         to_double(main_frame_timestamp))));
     } else if (op == "sh") {
