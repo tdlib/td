@@ -12665,7 +12665,8 @@ void ContactsManager::on_update_user_photo(User *u, UserId user_id,
     old_photo = std::move(photo);
 
     drop_user_photos(user_id, new_photo_id == 0, "on_update_user_photo");
-    drop_user_full_photos(get_user_full(user_id), user_id, new_photo_id,
+    // we didn't sent updateUser yet, so we must not sent updateUserFull with new_photo_id yet
+    drop_user_full_photos(get_user_full(user_id), user_id, 0,
                           "on_update_user_photo");  // must not load UserFull
     return;
   }
@@ -12697,7 +12698,8 @@ void ContactsManager::do_update_user_photo(User *u, UserId user_id, ProfilePhoto
     if (invalidate_photo_cache) {
       drop_user_photos(user_id, u->photo.id == 0, source);
     }
-    drop_user_full_photos(get_user_full(user_id), user_id, u->photo.id,
+    // we didn't sent updateUser yet, so we must not sent updateUserFull with u->photo.id yet
+    drop_user_full_photos(get_user_full(user_id), user_id, 0,
                           "do_update_user_photo");  // must not load UserFull
   } else if (need_update_dialog_photo_minithumbnail(u->photo.minithumbnail, new_photo.minithumbnail)) {
     LOG(DEBUG) << "Photo minithumbnail has changed for " << user_id << " from " << source;
