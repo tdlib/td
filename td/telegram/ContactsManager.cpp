@@ -11975,6 +11975,7 @@ void ContactsManager::on_get_user_full(tl_object_ptr<telegram_api::userFull> &&u
   } else {
     photo_ptr = &fallback_photo;
   }
+  bool is_photo_empty = photo_ptr->is_empty();
   do_update_user_photo(u, user_id,
                        as_profile_photo(td_->file_manager_.get(), user_id, u->access_hash, *photo_ptr, is_personal),
                        false, "on_get_user_full");
@@ -11996,7 +11997,7 @@ void ContactsManager::on_get_user_full(tl_object_ptr<telegram_api::userFull> &&u
   if (user_id == get_my_id() && !user_full->fallback_photo.is_empty()) {
     register_suggested_profile_photo(user_full->fallback_photo);
   }
-  if (photo_ptr->is_empty()) {
+  if (is_photo_empty) {
     drop_user_photos(user_id, true, "on_get_user_full");
   }
 
@@ -15936,6 +15937,7 @@ std::pair<int32, vector<const Photo *>> ContactsManager::get_user_profile_photos
 
   if (user_photos->count != -1) {  // know photo count
     CHECK(user_photos->offset != -1);
+    LOG(INFO) << "Have " << user_photos->count << " cahed user profile photos at offset " << user_photos->offset;
     result.first = user_photos->count;
 
     if (offset >= user_photos->count) {
