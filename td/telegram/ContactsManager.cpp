@@ -13090,10 +13090,6 @@ int64 ContactsManager::get_user_full_profile_photo_id(const UserFull *user_full)
 }
 
 void ContactsManager::add_set_profile_photo_to_cache(UserId user_id, Photo &&photo, bool is_fallback) {
-  if (photo.is_empty()) {
-    return;
-  }
-
   // we have subsequence of user photos in user_photos_
   // ProfilePhoto in User and Photo in UserFull
 
@@ -13108,7 +13104,7 @@ void ContactsManager::add_set_profile_photo_to_cache(UserId user_id, Photo &&pho
 
   // update photo list
   auto user_photos = user_photos_.get_pointer(user_id);
-  if (is_me && !is_fallback && user_photos != nullptr && user_photos->count != -1) {
+  if (is_me && !is_fallback && user_photos != nullptr && user_photos->count != -1 && !photo.is_empty()) {
     if (user_photos->offset == 0) {
       if (user_photos->photos.empty() || user_photos->photos[0].id.get() != photo.id.get()) {
         user_photos->photos.insert(user_photos->photos.begin(), photo);
@@ -13122,7 +13118,7 @@ void ContactsManager::add_set_profile_photo_to_cache(UserId user_id, Photo &&pho
   }
 
   // update ProfilePhoto in User
-  if (!is_fallback || u->photo.id == 0) {
+  if ((!is_fallback || u->photo.id == 0) && !photo.is_empty()) {
     do_update_user_photo(u, user_id, as_profile_photo(td_->file_manager_.get(), user_id, u->access_hash, photo, !is_me),
                          false, "add_set_profile_photo_to_cache");
     update_user(u, user_id);
@@ -13132,19 +13128,32 @@ void ContactsManager::add_set_profile_photo_to_cache(UserId user_id, Photo &&pho
   auto user_full = get_user_full_force(user_id);
   if (user_full != nullptr) {
     Photo *current_photo = nullptr;
+    // don't update the changed photo if other photos aren't known to avoid having only some photos known
+    bool need_apply = get_user_full_profile_photo_id(user_full) > 0;
     if (!is_me) {
       current_photo = &user_full->personal_photo;
+      if (photo.is_empty()) {
+        // always can apply empty personal photo
+        need_apply = true;
+      }
     } else if (!is_fallback) {
       current_photo = &user_full->photo;
+      if (photo.is_empty()) {
+        // never can apply empty photo
+        need_apply = false;
+      }
     } else {
       current_photo = &user_full->fallback_photo;
+      if (photo.is_empty()) {
+        // always can apply empty fallback photo
+        need_apply = true;
+      }
     }
-    // don't update the changed photo if other photos aren't known to avoid having only some photos known
-    if (*current_photo != photo && get_user_full_profile_photo_id(user_full) > 0) {
+    if (*current_photo != photo && need_apply) {
       LOG(INFO) << "Update full photo of " << user_id << " to " << photo;
       *current_photo = photo;
       user_full->is_changed = true;
-      if (is_me) {
+      if (is_me && !photo.is_empty()) {
         if (!is_fallback) {
           register_user_photo(u, user_id, photo);
         } else {
