@@ -1373,7 +1373,7 @@ class ContactsManager final : public Actor {
   UserPhotos *add_user_photos(UserId user_id);
   int64 get_user_full_profile_photo_id(const UserFull *user_full);
   void add_set_profile_photo_to_cache(UserId user_id, Photo &&photo, bool is_fallback);
-  bool delete_my_profile_photo_from_cache(int64 profile_photo_id, bool send_updates);
+  bool delete_my_profile_photo_from_cache(int64 profile_photo_id);
   void drop_user_full_photos(UserFull *user_full, UserId user_id, int64 expected_photo_id, const char *source);
   void drop_user_photos(UserId user_id, bool is_empty, const char *source);
   void drop_user_full(UserId user_id);
