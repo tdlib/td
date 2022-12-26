@@ -621,7 +621,9 @@ class DeleteContactProfilePhotoQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
-    td_->contacts_manager_->on_set_profile_photo(user_id_, result_ptr.move_as_ok(), false, 0);
+    auto ptr = result_ptr.move_as_ok();
+    ptr->photo_ = nullptr;
+    td_->contacts_manager_->on_set_profile_photo(user_id_, std::move(ptr), false, 0);
     promise_.set_value(Unit());
   }
 
