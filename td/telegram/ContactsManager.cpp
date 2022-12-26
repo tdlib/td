@@ -13062,15 +13062,6 @@ void ContactsManager::on_set_profile_photo(UserId user_id, tl_object_ptr<telegra
   on_get_users(std::move(photo->users_), "on_set_profile_photo");
   add_set_profile_photo_to_cache(
       user_id, get_photo(td_->file_manager_.get(), std::move(photo->photo_), DialogId(user_id)), is_fallback);
-
-  User *u = get_user(user_id);
-  if (u != nullptr) {
-    update_user(u, user_id);
-  }
-  auto *user_full = get_user_full(user_id);
-  if (user_full != nullptr) {
-    update_user_full(user_full, user_id, "on_set_profile_photo");
-  }
 }
 
 void ContactsManager::on_delete_profile_photo(int64 profile_photo_id, Promise<Unit> promise) {
