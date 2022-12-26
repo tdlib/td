@@ -39473,7 +39473,7 @@ void MessagesManager::on_get_channel_difference(
   }
 
   int32 cur_pts = d->pts <= 0 ? 1 : d->pts;
-  LOG_IF(ERROR, cur_pts != request_pts) << "Channel pts has changed from " << request_pts << " to " << d->pts << " in "
+  LOG_IF(ERROR, cur_pts != request_pts) << "Channel PTS has changed from " << request_pts << " to " << d->pts << " in "
                                         << dialog_id << " during getChannelDifference";
 
   bool is_final = true;
@@ -39496,7 +39496,7 @@ void MessagesManager::on_get_channel_difference(
       if (request_pts != difference->pts_ && !td_->auth_manager_->is_bot() &&
           have_input_peer(dialog_id, AccessRights::Read)) {
         LOG(ERROR) << "Receive channelDifferenceEmpty as result of getChannelDifference with pts = " << request_pts
-                   << " and limit = " << request_limit << " in " << dialog_id << ", but pts has changed to "
+                   << " and limit = " << request_limit << " in " << dialog_id << ", but PTS has changed to "
                    << difference->pts_;
       }
       set_channel_pts(d, difference->pts_, "channel difference empty");
@@ -39514,7 +39514,7 @@ void MessagesManager::on_get_channel_difference(
       auto new_pts = difference->pts_;
       if (request_pts >= new_pts && request_pts > 1 && (request_pts > new_pts || !td_->auth_manager_->is_bot())) {
         LOG(ERROR) << "Receive channelDifference as result of getChannelDifference with pts = " << request_pts
-                   << " and limit = " << request_limit << " in " << dialog_id << ", but pts has changed from " << d->pts
+                   << " and limit = " << request_limit << " in " << dialog_id << ", but PTS has changed from " << d->pts
                    << " to " << new_pts << ". Difference: " << oneline(to_string(difference));
         new_pts = request_pts + 1;
       }
@@ -39577,7 +39577,7 @@ void MessagesManager::on_get_channel_difference(
       auto new_pts = dialog->pts_;
       if (request_pts > new_pts - request_limit) {
         LOG(ERROR) << "Receive channelDifferenceTooLong as result of getChannelDifference with pts = " << request_pts
-                   << " and limit = " << request_limit << " in " << dialog_id << ", but pts has changed from " << d->pts
+                   << " and limit = " << request_limit << " in " << dialog_id << ", but PTS has changed from " << d->pts
                    << " to " << new_pts << ". Difference: " << oneline(to_string(difference));
         if (request_pts >= new_pts) {
           new_pts = request_pts + 1;

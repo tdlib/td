@@ -1412,7 +1412,7 @@ replyMarkupForceReply is_personal:Bool input_field_placeholder:string = ReplyMar
 
 //@description Contains a custom keyboard layout to quickly reply to bots
 //@rows A list of rows of bot keyboard buttons
-//@is_persistent True, if the keyboard should be shown all the time while ordinary keyboard is minimized
+//@is_persistent True, if the keyboard is supposed be shown all the time while ordinary keyboard is minimized
 //@resize_keyboard True, if the application needs to resize the keyboard vertically
 //@one_time True, if the application needs to hide the keyboard after use
 //@is_personal True, if the keyboard must automatically be shown to the current user. For outgoing messages, specify true to show the keyboard only for the mentioned users and for the target user of a reply
@@ -2244,7 +2244,7 @@ messageText text:formattedText web_page:webPage = MessageContent;
 //@description An animation message (GIF-style).
 //@animation The animation description
 //@caption Animation caption
-//@has_spoiler True, if the animation preview should be covered by a spoiler animation
+//@has_spoiler True, if the animation preview must be covered by a spoiler animation
 //@is_secret True, if the animation thumbnail must be blurred and the animation must be shown only while tapped
 messageAnimation animation:animation caption:formattedText has_spoiler:Bool is_secret:Bool = MessageContent;
 
@@ -2257,7 +2257,7 @@ messageDocument document:document caption:formattedText = MessageContent;
 //@description A photo message
 //@photo The photo
 //@caption Photo caption
-//@has_spoiler True, if the photo preview should be covered by a spoiler animation
+//@has_spoiler True, if the photo preview must be covered by a spoiler animation
 //@is_secret True, if the photo must be blurred and must be shown only while tapped
 messagePhoto photo:photo caption:formattedText has_spoiler:Bool is_secret:Bool = MessageContent;
 
@@ -2270,7 +2270,7 @@ messageSticker sticker:sticker is_premium:Bool = MessageContent;
 //@description A video message
 //@video The video description
 //@caption Video caption
-//@has_spoiler True, if the video preview should be covered by a spoiler animation
+//@has_spoiler True, if the video preview must be covered by a spoiler animation
 //@is_secret True, if the video thumbnail must be blurred and the video must be shown only while tapped
 messageVideo video:video caption:formattedText has_spoiler:Bool is_secret:Bool = MessageContent;
 
@@ -2578,7 +2578,7 @@ inputMessageText text:formattedText disable_web_page_preview:Bool clear_draft:Bo
 //@width Width of the animation; may be replaced by the server
 //@height Height of the animation; may be replaced by the server
 //@caption Animation caption; pass null to use an empty caption; 0-getOption("message_caption_length_max") characters
-//@has_spoiler True, if the animation preview should be covered by a spoiler animation; not supported in secret chats
+//@has_spoiler True, if the animation preview must be covered by a spoiler animation; not supported in secret chats
 inputMessageAnimation animation:InputFile thumbnail:inputThumbnail added_sticker_file_ids:vector<int32> duration:int32 width:int32 height:int32 caption:formattedText has_spoiler:Bool = InputMessageContent;
 
 //@description An audio message
@@ -2605,7 +2605,7 @@ inputMessageDocument document:InputFile thumbnail:inputThumbnail disable_content
 //@height Photo height
 //@caption Photo caption; pass null to use an empty caption; 0-getOption("message_caption_length_max") characters
 //@ttl Photo TTL (Time To Live), in seconds (0-60). A non-zero TTL can be specified only in private chats
-//@has_spoiler True, if the photo preview should be covered by a spoiler animation; not supported in secret chats
+//@has_spoiler True, if the photo preview must be covered by a spoiler animation; not supported in secret chats
 inputMessagePhoto photo:InputFile thumbnail:inputThumbnail added_sticker_file_ids:vector<int32> width:int32 height:int32 caption:formattedText ttl:int32 has_spoiler:Bool = InputMessageContent;
 
 //@description A sticker message
@@ -2626,7 +2626,7 @@ inputMessageSticker sticker:InputFile thumbnail:inputThumbnail width:int32 heigh
 //@supports_streaming True, if the video is supposed to be streamed
 //@caption Video caption; pass null to use an empty caption; 0-getOption("message_caption_length_max") characters
 //@ttl Video TTL (Time To Live), in seconds (0-60). A non-zero TTL can be specified only in private chats
-//@has_spoiler True, if the video preview should be covered by a spoiler animation; not supported in secret chats
+//@has_spoiler True, if the video preview must be covered by a spoiler animation; not supported in secret chats
 inputMessageVideo video:InputFile thumbnail:inputThumbnail added_sticker_file_ids:vector<int32> duration:int32 width:int32 height:int32 supports_streaming:Bool caption:formattedText ttl:int32 has_spoiler:Bool = InputMessageContent;
 
 //@description A video note message
@@ -6636,7 +6636,7 @@ getAttachmentMenuBot bot_user_id:int53 = AttachmentMenuBot;
 toggleBotIsAddedToAttachmentMenu bot_user_id:int53 is_added:Bool allow_write_access:Bool = Ok;
 
 
-//@description Returns up to 8 emoji statuses, which should be shown right after the default Premium Badge in the emoji status list
+//@description Returns up to 8 emoji statuses, which must be shown right after the default Premium Badge in the emoji status list
 getThemedEmojiStatuses = EmojiStatuses;
 
 //@description Returns recent emoji statuses

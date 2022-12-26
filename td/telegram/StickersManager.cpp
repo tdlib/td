@@ -5506,7 +5506,8 @@ void StickersManager::on_reload_sticker_set(StickerSetId sticker_set_id, Result<
   if (!queries->pending_promises_.empty()) {
     auto sticker_set = get_sticker_set(sticker_set_id);
     auto access_hash = sticker_set == nullptr ? 0 : sticker_set->access_hash_;
-    for (auto &promise : queries->pending_promises_) {
+    auto promises = std::move(queries->pending_promises_);
+    for (auto &promise : promises) {
       do_reload_sticker_set(sticker_set_id,
                             make_tl_object<telegram_api::inputStickerSetID>(sticker_set_id.get(), access_hash),
                             queries->pending_hash_, std::move(promise), "on_reload_sticker_set");
