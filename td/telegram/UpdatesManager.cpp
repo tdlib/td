@@ -1522,6 +1522,10 @@ void UpdatesManager::process_get_difference_updates(
       CHECK(!running_get_difference_);
     }
 
+    if (constructor_id == telegram_api::updateUser::ID) {
+      update = nullptr;
+    }
+
     if (constructor_id == telegram_api::updateChat::ID) {
       update = nullptr;
     }
@@ -3361,6 +3365,7 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateUserPhone> upda
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateUser> update, Promise<Unit> &&promise) {
+  td_->contacts_manager_->invalidate_user_full(UserId(update->user_id_));
   promise.set_value(Unit());
 }
 
