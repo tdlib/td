@@ -25413,21 +25413,18 @@ tl_object_ptr<td_api::message> MessagesManager::get_message_object(DialogId dial
                   (!forward_info->from_dialog_id.is_valid() && !is_forward_info_sender_hidden(forward_info));
   }
 
-  int32 ttl = m->ttl;
+  int32 ttl = for_event_log ? 0 : m->ttl;
   double ttl_expires_in = 0;
   if (!for_event_log) {
     if (m->ttl_expires_at != 0) {
-      ttl_expires_in = clamp(m->ttl_expires_at - Time::now(), 1e-3, ttl - 1e-3);
+      ttl_expires_in = clamp(m->ttl_expires_at - Time::now(), 1e-3, m->ttl - 1e-3);
     } else {
-      ttl_expires_in = ttl;
+      ttl_expires_in = m->ttl;
     }
-    if (ttl == 0 && m->ttl_period != 0) {
-      ttl = m->ttl_period;
-      ttl_expires_in = clamp(m->date + m->ttl_period - G()->server_time(), 1e-3, ttl - 1e-3);
-    }
-  } else {
-    ttl = 0;
   }
+  double auto_delete_in = for_event_log || m->ttl_period == 0
+                              ? 0.0
+                              : clamp(m->date + m->ttl_period - G()->server_time(), 1e-3, m->ttl_period - 1e-3);
   auto sender = get_message_sender_object_const(td_, m->sender_user_id, m->sender_dialog_id, source);
   auto scheduling_state = is_scheduled ? get_message_scheduling_state_object(m->date) : nullptr;
   auto forward_info = get_message_forward_info_object(m->forward_info);
@@ -25468,14 +25465,14 @@ tl_object_ptr<td_api::message> MessagesManager::get_message_object(DialogId dial
     reply_to_message_id = 0;
   }
 
-  return make_tl_object<td_api::message>(
+  return td_api::make_object<td_api::message>(
       m->message_id.get(), std::move(sender), dialog_id.get(), std::move(sending_state), std::move(scheduling_state),
       is_outgoing, is_pinned, can_be_edited, can_be_forwarded, can_be_saved, can_delete_for_self,
       can_delete_for_all_users, can_get_added_reactions, can_get_statistics, can_get_message_thread, can_get_viewers,
       can_get_media_timestamp_links, can_report_reactions, has_timestamped_media, m->is_channel_post,
       m->is_topic_message, contains_unread_mention, date, edit_date, std::move(forward_info),
       std::move(interaction_info), std::move(unread_reactions), reply_in_dialog_id.get(), reply_to_message_id,
-      top_thread_message_id, ttl, ttl_expires_in, via_bot_user_id, m->author_signature, media_album_id,
+      top_thread_message_id, ttl, ttl_expires_in, auto_delete_in, via_bot_user_id, m->author_signature, media_album_id,
       get_restriction_reason_description(m->restriction_reasons), std::move(content), std::move(reply_markup));
 }
 
