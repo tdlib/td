@@ -589,7 +589,7 @@ void ForumTopicManager::on_get_forum_topic(ChannelId channel_id, MessageId expec
 }
 
 void ForumTopicManager::get_forum_topic_link(DialogId dialog_id, MessageId top_thread_message_id,
-                                             Promise<string> &&promise) {
+                                             Promise<td_api::object_ptr<td_api::messageLink>> &&promise) {
   TRY_STATUS_PROMISE(promise, is_forum(dialog_id));
   TRY_STATUS_PROMISE(promise, can_be_message_thread_id(top_thread_message_id));
   auto channel_id = dialog_id.get_channel_id();
@@ -597,15 +597,17 @@ void ForumTopicManager::get_forum_topic_link(DialogId dialog_id, MessageId top_t
   SliceBuilder sb;
   sb << td_->option_manager_->get_option_string("t_me_url", "https://t.me/");
 
+  bool is_public = false;
   auto dialog_username = td_->contacts_manager_->get_channel_first_username(channel_id);
   if (!dialog_username.empty()) {
     sb << dialog_username;
+    is_public = true;
   } else {
     sb << "c/" << channel_id.get();
   }
   sb << '/' << top_thread_message_id.get_server_message_id().get();
 
-  promise.set_value(sb.as_cslice().str());
+  promise.set_value(td_api::make_object<td_api::messageLink>(sb.as_cslice().str(), is_public));
 }
 
 void ForumTopicManager::get_forum_topics(DialogId dialog_id, string query, int32 offset_date,
