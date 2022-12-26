@@ -45,7 +45,8 @@ class AnimationsManager final : public Actor {
 
   tl_object_ptr<telegram_api::InputMedia> get_input_media(FileId file_id,
                                                           tl_object_ptr<telegram_api::InputFile> input_file,
-                                                          tl_object_ptr<telegram_api::InputFile> input_thumbnail) const;
+                                                          tl_object_ptr<telegram_api::InputFile> input_thumbnail,
+                                                          bool has_spoiler) const;
 
   SecretInputMedia get_secret_input_media(FileId animation_file_id,
                                           tl_object_ptr<telegram_api::InputEncryptedFile> input_file,

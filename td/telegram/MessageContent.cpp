@@ -123,9 +123,11 @@ class MessageAnimation final : public MessageContent {
   FileId file_id;
 
   FormattedText caption;
+  bool has_spoiler = false;
 
   MessageAnimation() = default;
-  MessageAnimation(FileId file_id, FormattedText &&caption) : file_id(file_id), caption(std::move(caption)) {
+  MessageAnimation(FileId file_id, FormattedText &&caption, bool has_spoiler)
+      : file_id(file_id), caption(std::move(caption)), has_spoiler(has_spoiler) {
   }
 
   MessageContentType get_type() const final {
@@ -873,6 +875,9 @@ static void store(const MessageContent *content, StorerT &storer) {
     case MessageContentType::Animation: {
       const auto *m = static_cast<const MessageAnimation *>(content);
       td->animations_manager_->store_animation(m->file_id, storer);
+      BEGIN_STORE_FLAGS();
+      STORE_FLAG(m->has_spoiler);
+      END_STORE_FLAGS();
       store(m->caption, storer);
       break;
     }
@@ -1251,6 +1256,11 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
     case MessageContentType::Animation: {
       auto m = make_unique<MessageAnimation>();
       m->file_id = td->animations_manager_->parse_animation(parser);
+      if (parser.version() >= static_cast<int32>(Version::AddMessageMediaSpoiler)) {
+        BEGIN_PARSE_FLAGS();
+        PARSE_FLAG(m->has_spoiler);
+        END_PARSE_FLAGS();
+      }
       parse_caption(m->caption, parser);
       is_bad = !m->file_id.is_valid();
       content = std::move(m);
@@ -1809,7 +1819,7 @@ InlineMessageContent create_inline_message_content(Td *td, FileId file_id,
           get_message_text(td->contacts_manager_.get(), inline_message->message_, std::move(inline_message->entities_),
                            true, false, 0, false, "create_inline_message_content");
       if (allowed_media_content_id == td_api::inputMessageAnimation::ID) {
-        result.message_content = make_unique<MessageAnimation>(file_id, std::move(caption));
+        result.message_content = make_unique<MessageAnimation>(file_id, std::move(caption), false);
       } else if (allowed_media_content_id == td_api::inputMessageAudio::ID) {
         result.message_content = make_unique<MessageAudio>(file_id, std::move(caption));
       } else if (allowed_media_content_id == td_api::inputMessageDocument::ID) {
@@ -1913,7 +1923,7 @@ static Result<InputMessageContent> create_input_message_content(
           std::move(file_name), std::move(mime_type), input_animation->duration_,
           get_dimensions(input_animation->width_, input_animation->height_, nullptr), false);
 
-      content = make_unique<MessageAnimation>(file_id, std::move(caption));
+      content = make_unique<MessageAnimation>(file_id, std::move(caption), input_animation->has_spoiler_ && !is_secret);
       break;
     }
     case td_api::inputMessageAudio::ID: {
@@ -2480,7 +2490,8 @@ static tl_object_ptr<telegram_api::InputMedia> get_input_media_impl(
   switch (content->get_type()) {
     case MessageContentType::Animation: {
       const auto *m = static_cast<const MessageAnimation *>(content);
-      return td->animations_manager_->get_input_media(m->file_id, std::move(input_file), std::move(input_thumbnail));
+      return td->animations_manager_->get_input_media(m->file_id, std::move(input_file), std::move(input_thumbnail),
+                                                      m->has_spoiler);
     }
     case MessageContentType::Audio: {
       const auto *m = static_cast<const MessageAudio *>(content);
@@ -3337,7 +3348,7 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
         }
         need_update = true;
       }
-      if (old_->caption != new_->caption) {
+      if (old_->caption != new_->caption || old_->has_spoiler != new_->has_spoiler) {
         need_update = true;
       }
       break;
@@ -3434,11 +3445,10 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
         LOG(DEBUG) << "Photo date has changed from " << old_photo->date << " to " << new_photo->date;
         is_content_changed = true;
       }
-      if (old_photo->id.get() != new_photo->id.get() || old_->caption != new_->caption ||
-          old_->has_spoiler != new_->has_spoiler) {
+      if (old_->caption != new_->caption || old_->has_spoiler != new_->has_spoiler) {
         need_update = true;
       }
-      if (old_photo->minithumbnail != new_photo->minithumbnail) {
+      if (old_photo->id.get() != new_photo->id.get() || old_photo->minithumbnail != new_photo->minithumbnail) {
         need_update = true;
       }
       if (old_photo->photos != new_photo->photos) {
@@ -4316,7 +4326,7 @@ static unique_ptr<MessageContent> get_document_message_content(Document &&parsed
   }
   switch (parsed_document.type) {
     case Document::Type::Animation:
-      return make_unique<MessageAnimation>(file_id, std::move(caption));
+      return make_unique<MessageAnimation>(file_id, std::move(caption), has_spoiler);
     case Document::Type::Audio:
       return make_unique<MessageAudio>(file_id, std::move(caption));
     case Document::Type::General:
@@ -5321,7 +5331,8 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
       const auto *m = static_cast<const MessageAnimation *>(content);
       return make_tl_object<td_api::messageAnimation>(
           td->animations_manager_->get_animation_object(m->file_id),
-          get_formatted_text_object(m->caption, skip_bot_commands, max_media_timestamp), is_content_secret);
+          get_formatted_text_object(m->caption, skip_bot_commands, max_media_timestamp), m->has_spoiler,
+          is_content_secret);
     }
     case MessageContentType::Audio: {
       const auto *m = static_cast<const MessageAudio *>(content);

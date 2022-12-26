@@ -3829,7 +3829,7 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::editMessageMedia>(
           chat_id, message_id, nullptr,
           td_api::make_object<td_api::inputMessageAnimation>(as_input_file(animation), nullptr, vector<int32>(), 0, 0,
-                                                             0, as_caption("animation"))));
+                                                             0, as_caption("animation"), has_spoiler_)));
     } else if (op == "emc") {
       ChatId chat_id;
       MessageId message_id;
@@ -4002,7 +4002,7 @@ class CliClient final : public Actor {
       get_args(args, chat_id, animation_path, width, height, caption);
       send_message(chat_id, td_api::make_object<td_api::inputMessageAnimation>(as_input_file(animation_path), nullptr,
                                                                                vector<int32>(), 60, width, height,
-                                                                               as_caption(caption)));
+                                                                               as_caption(caption), has_spoiler_));
     } else if (op == "sang") {
       ChatId chat_id;
       string animation_path;
@@ -4010,25 +4010,27 @@ class CliClient final : public Actor {
       get_args(args, chat_id, animation_path, animation_conversion);
       send_message(chat_id, td_api::make_object<td_api::inputMessageAnimation>(
                                 as_generated_file(animation_path, animation_conversion), nullptr, vector<int32>(), 60,
-                                0, 0, as_caption("")));
+                                0, 0, as_caption(""), has_spoiler_));
     } else if (op == "sanid") {
       ChatId chat_id;
       string file_id;
       get_args(args, chat_id, file_id);
-      send_message(chat_id, td_api::make_object<td_api::inputMessageAnimation>(
-                                as_input_file_id(file_id), nullptr, vector<int32>(), 0, 0, 0, as_caption("")));
+      send_message(chat_id,
+                   td_api::make_object<td_api::inputMessageAnimation>(
+                       as_input_file_id(file_id), nullptr, vector<int32>(), 0, 0, 0, as_caption(""), has_spoiler_));
     } else if (op == "sanurl") {
       ChatId chat_id;
       string url;
       get_args(args, chat_id, url);
-      send_message(chat_id, td_api::make_object<td_api::inputMessageAnimation>(
-                                as_generated_file(url, "#url#"), nullptr, vector<int32>(), 0, 0, 0, as_caption("")));
+      send_message(chat_id, td_api::make_object<td_api::inputMessageAnimation>(as_generated_file(url, "#url#"), nullptr,
+                                                                               vector<int32>(), 0, 0, 0, as_caption(""),
+                                                                               has_spoiler_));
     } else if (op == "sanurl2") {
       ChatId chat_id;
       string url;
       get_args(args, chat_id, url);
       send_message(chat_id, td_api::make_object<td_api::inputMessageAnimation>(
-                                as_remote_file(url), nullptr, vector<int32>(), 0, 0, 0, as_caption("")));
+                                as_remote_file(url), nullptr, vector<int32>(), 0, 0, 0, as_caption(""), has_spoiler_));
     } else if (op == "sau") {
       ChatId chat_id;
       string audio_path;

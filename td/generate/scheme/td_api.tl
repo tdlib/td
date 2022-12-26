@@ -2241,8 +2241,12 @@ inputPassportElementError type:PassportElementType message:string source:InputPa
 //@description A text message @text Text of the message @web_page A preview of the web page that's mentioned in the text; may be null
 messageText text:formattedText web_page:webPage = MessageContent;
 
-//@description An animation message (GIF-style). @animation The animation description @caption Animation caption @is_secret True, if the animation thumbnail must be blurred and the animation must be shown only while tapped
-messageAnimation animation:animation caption:formattedText is_secret:Bool = MessageContent;
+//@description An animation message (GIF-style).
+//@animation The animation description
+//@caption Animation caption
+//@has_spoiler True, if the animation preview should be covered by a spoiler animation
+//@is_secret True, if the animation thumbnail must be blurred and the animation must be shown only while tapped
+messageAnimation animation:animation caption:formattedText has_spoiler:Bool is_secret:Bool = MessageContent;
 
 //@description An audio message @audio The audio description @caption Audio caption
 messageAudio audio:audio caption:formattedText = MessageContent;
@@ -2253,7 +2257,7 @@ messageDocument document:document caption:formattedText = MessageContent;
 //@description A photo message
 //@photo The photo
 //@caption Photo caption
-//@has_spoiler True, if the photo preview should be covered by spoiler animation
+//@has_spoiler True, if the photo preview should be covered by a spoiler animation
 //@is_secret True, if the photo must be blurred and must be shown only while tapped
 messagePhoto photo:photo caption:formattedText has_spoiler:Bool is_secret:Bool = MessageContent;
 
@@ -2266,7 +2270,7 @@ messageSticker sticker:sticker is_premium:Bool = MessageContent;
 //@description A video message
 //@video The video description
 //@caption Video caption
-//@has_spoiler True, if the video preview should be covered by spoiler animation
+//@has_spoiler True, if the video preview should be covered by a spoiler animation
 //@is_secret True, if the video thumbnail must be blurred and the video must be shown only while tapped
 messageVideo video:video caption:formattedText has_spoiler:Bool is_secret:Bool = MessageContent;
 
@@ -2574,7 +2578,8 @@ inputMessageText text:formattedText disable_web_page_preview:Bool clear_draft:Bo
 //@width Width of the animation; may be replaced by the server
 //@height Height of the animation; may be replaced by the server
 //@caption Animation caption; pass null to use an empty caption; 0-getOption("message_caption_length_max") characters
-inputMessageAnimation animation:InputFile thumbnail:inputThumbnail added_sticker_file_ids:vector<int32> duration:int32 width:int32 height:int32 caption:formattedText = InputMessageContent;
+//@has_spoiler True, if the animation preview should be covered by a spoiler animation; not supported in secret chats
+inputMessageAnimation animation:InputFile thumbnail:inputThumbnail added_sticker_file_ids:vector<int32> duration:int32 width:int32 height:int32 caption:formattedText has_spoiler:Bool = InputMessageContent;
 
 //@description An audio message
 //@audio Audio file to be sent
@@ -2600,7 +2605,7 @@ inputMessageDocument document:InputFile thumbnail:inputThumbnail disable_content
 //@height Photo height
 //@caption Photo caption; pass null to use an empty caption; 0-getOption("message_caption_length_max") characters
 //@ttl Photo TTL (Time To Live), in seconds (0-60). A non-zero TTL can be specified only in private chats
-//@has_spoiler True, if the photo preview should be covered by spoiler animation; not supported in secret chats
+//@has_spoiler True, if the photo preview should be covered by a spoiler animation; not supported in secret chats
 inputMessagePhoto photo:InputFile thumbnail:inputThumbnail added_sticker_file_ids:vector<int32> width:int32 height:int32 caption:formattedText ttl:int32 has_spoiler:Bool = InputMessageContent;
 
 //@description A sticker message
@@ -2621,7 +2626,7 @@ inputMessageSticker sticker:InputFile thumbnail:inputThumbnail width:int32 heigh
 //@supports_streaming True, if the video is supposed to be streamed
 //@caption Video caption; pass null to use an empty caption; 0-getOption("message_caption_length_max") characters
 //@ttl Video TTL (Time To Live), in seconds (0-60). A non-zero TTL can be specified only in private chats
-//@has_spoiler True, if the video preview should be covered by spoiler animation; not supported in secret chats
+//@has_spoiler True, if the video preview should be covered by a spoiler animation; not supported in secret chats
 inputMessageVideo video:InputFile thumbnail:inputThumbnail added_sticker_file_ids:vector<int32> duration:int32 width:int32 height:int32 supports_streaming:Bool caption:formattedText ttl:int32 has_spoiler:Bool = InputMessageContent;
 
 //@description A video note message

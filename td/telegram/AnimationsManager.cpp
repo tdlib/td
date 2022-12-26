@@ -308,17 +308,25 @@ void AnimationsManager::create_animation(FileId file_id, string minithumbnail, P
 
 tl_object_ptr<telegram_api::InputMedia> AnimationsManager::get_input_media(
     FileId file_id, tl_object_ptr<telegram_api::InputFile> input_file,
-    tl_object_ptr<telegram_api::InputFile> input_thumbnail) const {
+    tl_object_ptr<telegram_api::InputFile> input_thumbnail, bool has_spoiler) const {
   auto file_view = td_->file_manager_->get_file_view(file_id);
   if (file_view.is_encrypted()) {
     return nullptr;
   }
   if (file_view.has_remote_location() && !file_view.main_remote_location().is_web() && input_file == nullptr) {
+    int32 flags = 0;
+    if (has_spoiler) {
+      flags |= telegram_api::inputMediaDocument::SPOILER_MASK;
+    }
     return make_tl_object<telegram_api::inputMediaDocument>(
-        0, false /*ignored*/, file_view.main_remote_location().as_input_document(), 0, string());
+        flags, false /*ignored*/, file_view.main_remote_location().as_input_document(), 0, string());
   }
   if (file_view.has_url()) {
-    return make_tl_object<telegram_api::inputMediaDocumentExternal>(0, false /*ignored*/, file_view.url(), 0);
+    int32 flags = 0;
+    if (has_spoiler) {
+      flags |= telegram_api::inputMediaDocumentExternal::SPOILER_MASK;
+    }
+    return make_tl_object<telegram_api::inputMediaDocumentExternal>(flags, false /*ignored*/, file_view.url(), 0);
   }
 
   if (input_file != nullptr) {
@@ -349,6 +357,9 @@ tl_object_ptr<telegram_api::InputMedia> AnimationsManager::get_input_media(
     }
     if (input_thumbnail != nullptr) {
       flags |= telegram_api::inputMediaUploadedDocument::THUMB_MASK;
+    }
+    if (has_spoiler) {
+      flags |= telegram_api::inputMediaUploadedDocument::SPOILER_MASK;
     }
     return make_tl_object<telegram_api::inputMediaUploadedDocument>(
         flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, std::move(input_file),
