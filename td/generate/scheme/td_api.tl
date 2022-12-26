@@ -2398,7 +2398,7 @@ messageForumTopicIsClosedToggled is_closed:Bool = MessageContent;
 //@description A General forum topic has been hidden or unhidden @is_hidden True, if the topic was hidden, otherwise the topic was unhidden
 messageForumTopicIsHiddenToggled is_hidden:Bool = MessageContent;
 
-//@description A profile photo was suggested to a user in a private chat @photo The suggested chat photo
+//@description A profile photo was suggested to a user in a private chat @photo The suggested chat photo. Use the method setProfilePhoto with inputChatPhotoPrevious to apply the photo
 messageSuggestProfilePhoto photo:chatPhoto = MessageContent;
 
 //@description A non-standard action has happened in the chat @text Message text to be shown in the chat
