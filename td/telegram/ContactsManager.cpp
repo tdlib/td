@@ -7134,7 +7134,7 @@ void ContactsManager::upload_profile_photo(UserId user_id, FileId file_id, bool 
 
 void ContactsManager::delete_profile_photo(int64 profile_photo_id, bool is_recursive, Promise<Unit> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
-  const UserFull *user_full = is_recursive ? get_user_full_force(get_my_id()) : nullptr;
+  const UserFull *user_full = get_user_full_force(get_my_id());
   if (user_full == nullptr) {
     // must load UserFull first, because fallback photo can't be deleted via DeleteProfilePhotoQuery
     if (is_recursive) {
