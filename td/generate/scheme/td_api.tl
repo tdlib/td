@@ -4501,8 +4501,10 @@ internalLinkTypeRestorePurchases = InternalLinkType;
 //@description The link is a link to application settings
 internalLinkTypeSettings = InternalLinkType;
 
-//@description The link is a link to a sticker set. Call searchStickerSet with the given sticker set name to process the link and show the sticker set @sticker_set_name Name of the sticker set
-internalLinkTypeStickerSet sticker_set_name:string = InternalLinkType;
+//@description The link is a link to a sticker set. Call searchStickerSet with the given sticker set name to process the link and show the sticker set
+//@sticker_set_name Name of the sticker set
+//@expect_custom_emoji True, if the sticker set is expected to contain custom emoji
+internalLinkTypeStickerSet sticker_set_name:string expect_custom_emoji:Bool = InternalLinkType;
 
 //@description The link is a link to a theme. TDLib has no theme support yet @theme_name Name of the theme
 internalLinkTypeTheme theme_name:string = InternalLinkType;

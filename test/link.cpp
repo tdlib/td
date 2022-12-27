@@ -214,8 +214,8 @@ TEST(Link, parse_internal_link) {
   auto settings = [] {
     return td::td_api::make_object<td::td_api::internalLinkTypeSettings>();
   };
-  auto sticker_set = [](const td::string &sticker_set_name) {
-    return td::td_api::make_object<td::td_api::internalLinkTypeStickerSet>(sticker_set_name);
+  auto sticker_set = [](const td::string &sticker_set_name, bool expect_custom_emoji) {
+    return td::td_api::make_object<td::td_api::internalLinkTypeStickerSet>(sticker_set_name, expect_custom_emoji);
   };
   auto theme = [](const td::string &theme_name) {
     return td::td_api::make_object<td::td_api::internalLinkTypeTheme>(theme_name);
@@ -608,15 +608,15 @@ TEST(Link, parse_internal_link) {
   parse_internal_link("t.me/addstickers?/abcdef", nullptr);
   parse_internal_link("t.me/addstickers/?abcdef", nullptr);
   parse_internal_link("t.me/addstickers/#abcdef", nullptr);
-  parse_internal_link("t.me/addstickers/abacaba", sticker_set("abacaba"));
-  parse_internal_link("t.me/addstickers/aba%20aba", sticker_set("aba aba"));
-  parse_internal_link("t.me/addstickers/123456a", sticker_set("123456a"));
-  parse_internal_link("t.me/addstickers/12345678901", sticker_set("12345678901"));
-  parse_internal_link("t.me/addstickers/123456", sticker_set("123456"));
-  parse_internal_link("t.me/addstickers/123456/123123/12/31/a/s//21w/?asdas#test", sticker_set("123456"));
+  parse_internal_link("t.me/addstickers/abacaba", sticker_set("abacaba", false));
+  parse_internal_link("t.me/addstickers/aba%20aba", sticker_set("aba aba", false));
+  parse_internal_link("t.me/addstickers/123456a", sticker_set("123456a", false));
+  parse_internal_link("t.me/addstickers/12345678901", sticker_set("12345678901", false));
+  parse_internal_link("t.me/addstickers/123456", sticker_set("123456", false));
+  parse_internal_link("t.me/addstickers/123456/123123/12/31/a/s//21w/?asdas#test", sticker_set("123456", false));
 
-  parse_internal_link("tg:addstickers?set=abcdef", sticker_set("abcdef"));
-  parse_internal_link("tg:addstickers?set=abc%30ef", sticker_set("abc0ef"));
+  parse_internal_link("tg:addstickers?set=abcdef", sticker_set("abcdef", false));
+  parse_internal_link("tg:addstickers?set=abc%30ef", sticker_set("abc0ef", false));
   parse_internal_link("tg://addstickers?set=", unknown_deep_link("tg://addstickers?set="));
 
   parse_internal_link("t.me/addemoji?set=abcdef", nullptr);
@@ -626,15 +626,15 @@ TEST(Link, parse_internal_link) {
   parse_internal_link("t.me/addemoji?/abcdef", nullptr);
   parse_internal_link("t.me/addemoji/?abcdef", nullptr);
   parse_internal_link("t.me/addemoji/#abcdef", nullptr);
-  parse_internal_link("t.me/addemoji/abacaba", sticker_set("abacaba"));
-  parse_internal_link("t.me/addemoji/aba%20aba", sticker_set("aba aba"));
-  parse_internal_link("t.me/addemoji/123456a", sticker_set("123456a"));
-  parse_internal_link("t.me/addemoji/12345678901", sticker_set("12345678901"));
-  parse_internal_link("t.me/addemoji/123456", sticker_set("123456"));
-  parse_internal_link("t.me/addemoji/123456/123123/12/31/a/s//21w/?asdas#test", sticker_set("123456"));
+  parse_internal_link("t.me/addemoji/abacaba", sticker_set("abacaba", true));
+  parse_internal_link("t.me/addemoji/aba%20aba", sticker_set("aba aba", true));
+  parse_internal_link("t.me/addemoji/123456a", sticker_set("123456a", true));
+  parse_internal_link("t.me/addemoji/12345678901", sticker_set("12345678901", true));
+  parse_internal_link("t.me/addemoji/123456", sticker_set("123456", true));
+  parse_internal_link("t.me/addemoji/123456/123123/12/31/a/s//21w/?asdas#test", sticker_set("123456", true));
 
-  parse_internal_link("tg:addemoji?set=abcdef", sticker_set("abcdef"));
-  parse_internal_link("tg:addemoji?set=abc%30ef", sticker_set("abc0ef"));
+  parse_internal_link("tg:addemoji?set=abcdef", sticker_set("abcdef", true));
+  parse_internal_link("tg:addemoji?set=abc%30ef", sticker_set("abc0ef", true));
   parse_internal_link("tg://addemoji?set=", unknown_deep_link("tg://addemoji?set="));
 
   parse_internal_link("t.me/confirmphone?hash=abc%30ef&phone=", nullptr);
