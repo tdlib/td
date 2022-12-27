@@ -4691,10 +4691,10 @@ class CliClient final : public Actor {
                                                                                  has_hidden_members));
     } else if (op == "tsgas") {
       string supergroup_id;
-      bool is_aggressive_anti_spam_enabled;
-      get_args(args, supergroup_id, is_aggressive_anti_spam_enabled);
-      send_request(td_api::make_object<td_api::toggleSupergroupIsAggressiveAntiSpamEnabled>(
-          as_supergroup_id(supergroup_id), is_aggressive_anti_spam_enabled));
+      bool has_aggressive_anti_spam_enabled;
+      get_args(args, supergroup_id, has_aggressive_anti_spam_enabled);
+      send_request(td_api::make_object<td_api::toggleSupergroupHasAggressiveAntiSpamEnabled>(
+          as_supergroup_id(supergroup_id), has_aggressive_anti_spam_enabled));
     } else if (op == "tsgif") {
       string supergroup_id;
       bool is_forum;

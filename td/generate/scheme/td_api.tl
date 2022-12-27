@@ -890,14 +890,14 @@ supergroup id:int53 usernames:usernames date:int32 status:ChatMemberStatus membe
 //@can_toggle_aggressive_anti_spam True, if aggressive anti-spam checks can be enabled or disabled in the supergroup
 //@is_all_history_available True, if new chat members will have access to old messages. In public, discussion, of forum groups and all channels, old messages are always available,
 //-so this option affects only private non-forum supergroups without a linked chat. The value of this field is only available to chat administrators
-//@is_aggressive_anti_spam_enabled True, if aggressive anti-spam checks are enabled in the supergroup. The value of this field is only available to chat administrators
+//@has_aggressive_anti_spam_enabled True, if aggressive anti-spam checks are enabled in the supergroup. The value of this field is only available to chat administrators
 //@sticker_set_id Identifier of the supergroup sticker set; 0 if none
 //@location Location to which the supergroup is connected; may be null
 //@invite_link Primary invite link for the chat; may be null. For chat administrators with can_invite_users right only
 //@bot_commands List of commands of bots in the group
 //@upgraded_from_basic_group_id Identifier of the basic group from which supergroup was upgraded; 0 if none
 //@upgraded_from_max_message_id Identifier of the last message in the basic group from which supergroup was upgraded; 0 if none
-supergroupFullInfo photo:chatPhoto description:string member_count:int32 administrator_count:int32 restricted_count:int32 banned_count:int32 linked_chat_id:int53 slow_mode_delay:int32 slow_mode_delay_expires_in:double can_get_members:Bool has_hidden_members:Bool can_hide_members:Bool can_set_username:Bool can_set_sticker_set:Bool can_set_location:Bool can_get_statistics:Bool can_toggle_aggressive_anti_spam:Bool is_all_history_available:Bool is_aggressive_anti_spam_enabled:Bool sticker_set_id:int64 location:chatLocation invite_link:chatInviteLink bot_commands:vector<botCommands> upgraded_from_basic_group_id:int53 upgraded_from_max_message_id:int53 = SupergroupFullInfo;
+supergroupFullInfo photo:chatPhoto description:string member_count:int32 administrator_count:int32 restricted_count:int32 banned_count:int32 linked_chat_id:int53 slow_mode_delay:int32 slow_mode_delay_expires_in:double can_get_members:Bool has_hidden_members:Bool can_hide_members:Bool can_set_username:Bool can_set_sticker_set:Bool can_set_location:Bool can_get_statistics:Bool can_toggle_aggressive_anti_spam:Bool is_all_history_available:Bool has_aggressive_anti_spam_enabled:Bool sticker_set_id:int64 location:chatLocation invite_link:chatInviteLink bot_commands:vector<botCommands> upgraded_from_basic_group_id:int53 upgraded_from_max_message_id:int53 = SupergroupFullInfo;
 
 
 //@class SecretChatState @description Describes the current secret chat state
@@ -3517,8 +3517,8 @@ chatEventInvitesToggled can_invite_users:Bool = ChatEventAction;
 //@description The is_all_history_available setting of a supergroup was toggled @is_all_history_available New value of is_all_history_available
 chatEventIsAllHistoryAvailableToggled is_all_history_available:Bool = ChatEventAction;
 
-//@description The is_aggressive_anti_spam_enabled setting of a supergroup was toggled @is_aggressive_anti_spam_enabled New value of is_aggressive_anti_spam_enabled
-chatEventIsAggressiveAntiSpamEnabledToggled is_aggressive_anti_spam_enabled:Bool = ChatEventAction;
+//@description The has_aggressive_anti_spam_enabled setting of a supergroup was toggled @has_aggressive_anti_spam_enabled New value of has_aggressive_anti_spam_enabled
+chatEventHasAggressiveAntiSpamEnabledToggled has_aggressive_anti_spam_enabled:Bool = ChatEventAction;
 
 //@description The sign_messages setting of a channel was toggled @sign_messages New value of sign_messages
 chatEventSignMessagesToggled sign_messages:Bool = ChatEventAction;
@@ -7337,8 +7337,8 @@ toggleSupergroupHasHiddenMembers supergroup_id:int53 has_hidden_members:Bool = O
 
 //@description Toggles whether aggressive anti-spam checks are enabled in the supergroup. Can be called only if supergroupFullInfo.can_toggle_aggressive_anti_spam == true
 //@supergroup_id The identifier of the supergroup, which isn't a broadcast group
-//@is_aggressive_anti_spam_enabled The new value of is_aggressive_anti_spam_enabled
-toggleSupergroupIsAggressiveAntiSpamEnabled supergroup_id:int53 is_aggressive_anti_spam_enabled:Bool = Ok;
+//@has_aggressive_anti_spam_enabled The new value of has_aggressive_anti_spam_enabled
+toggleSupergroupHasAggressiveAntiSpamEnabled supergroup_id:int53 has_aggressive_anti_spam_enabled:Bool = Ok;
 
 //@description Toggles whether the supergroup is a forum; requires owner privileges in the supergroup @supergroup_id Identifier of the supergroup @is_forum New value of is_forum. A supergroup can be converted to a forum, only if it has at least getOption("forum_member_count_min") members
 toggleSupergroupIsForum supergroup_id:int53 is_forum:Bool = Ok;

@@ -1357,20 +1357,20 @@ class ToggleParticipantsHiddenQuery final : public Td::ResultHandler {
 class ToggleAntiSpamQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   ChannelId channel_id_;
-  bool is_aggressive_anti_spam_enabled_;
+  bool has_aggressive_anti_spam_enabled_;
 
  public:
   explicit ToggleAntiSpamQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(ChannelId channel_id, bool is_aggressive_anti_spam_enabled) {
+  void send(ChannelId channel_id, bool has_aggressive_anti_spam_enabled) {
     channel_id_ = channel_id;
-    is_aggressive_anti_spam_enabled_ = is_aggressive_anti_spam_enabled;
+    has_aggressive_anti_spam_enabled_ = has_aggressive_anti_spam_enabled;
 
     auto input_channel = td_->contacts_manager_->get_input_channel(channel_id);
     CHECK(input_channel != nullptr);
     send_query(G()->net_query_creator().create(
-        telegram_api::channels_toggleAntiSpam(std::move(input_channel), is_aggressive_anti_spam_enabled),
+        telegram_api::channels_toggleAntiSpam(std::move(input_channel), has_aggressive_anti_spam_enabled),
         {{channel_id}}));
   }
 
@@ -1387,9 +1387,9 @@ class ToggleAntiSpamQuery final : public Td::ResultHandler {
         std::move(ptr),
         PromiseCreator::lambda(
             [actor_id = G()->contacts_manager(), promise = std::move(promise_), channel_id = channel_id_,
-             is_aggressive_anti_spam_enabled = is_aggressive_anti_spam_enabled_](Unit result) mutable {
-              send_closure(actor_id, &ContactsManager::on_update_channel_is_aggressive_anti_spam_enabled, channel_id,
-                           is_aggressive_anti_spam_enabled, std::move(promise));
+             has_aggressive_anti_spam_enabled = has_aggressive_anti_spam_enabled_](Unit result) mutable {
+              send_closure(actor_id, &ContactsManager::on_update_channel_has_aggressive_anti_spam_enabled, channel_id,
+                           has_aggressive_anti_spam_enabled, std::move(promise));
             }));
   }
 
@@ -4964,7 +4964,7 @@ void ContactsManager::ChannelFull::store(StorerT &storer) const {
   STORE_FLAG(has_invite_link);
   STORE_FLAG(has_bot_commands);  // 25
   STORE_FLAG(can_be_deleted);
-  STORE_FLAG(is_aggressive_anti_spam_enabled);
+  STORE_FLAG(has_aggressive_anti_spam_enabled);
   STORE_FLAG(has_hidden_participants);
   END_STORE_FLAGS();
   if (has_description) {
@@ -5069,7 +5069,7 @@ void ContactsManager::ChannelFull::parse(ParserT &parser) {
   PARSE_FLAG(has_invite_link);
   PARSE_FLAG(has_bot_commands);
   PARSE_FLAG(can_be_deleted);
-  PARSE_FLAG(is_aggressive_anti_spam_enabled);
+  PARSE_FLAG(has_aggressive_anti_spam_enabled);
   PARSE_FLAG(has_hidden_participants);
   END_PARSE_FLAGS();
   if (has_description) {
@@ -7626,7 +7626,7 @@ Status ContactsManager::can_toggle_channel_aggressive_anti_spam(ChannelId channe
   if (c->is_gigagroup) {
     return Status::Error(400, "Aggressive anti-spam checks can't be enabled in broadcast supergroups");
   }
-  if (channel_full != nullptr && channel_full->is_aggressive_anti_spam_enabled) {
+  if (channel_full != nullptr && channel_full->has_aggressive_anti_spam_enabled) {
     return Status::OK();
   }
   if (c->has_location || begins_with(c->usernames.get_editable_username(), "translation_")) {
@@ -7639,13 +7639,13 @@ Status ContactsManager::can_toggle_channel_aggressive_anti_spam(ChannelId channe
   return Status::OK();
 }
 
-void ContactsManager::toggle_channel_is_aggressive_anti_spam_enabled(ChannelId channel_id,
-                                                                     bool is_aggressive_anti_spam_enabled,
-                                                                     Promise<Unit> &&promise) {
-  auto channel_full = get_channel_full_force(channel_id, true, "toggle_channel_is_aggressive_anti_spam_enabled");
+void ContactsManager::toggle_channel_has_aggressive_anti_spam_enabled(ChannelId channel_id,
+                                                                      bool has_aggressive_anti_spam_enabled,
+                                                                      Promise<Unit> &&promise) {
+  auto channel_full = get_channel_full_force(channel_id, true, "toggle_channel_has_aggressive_anti_spam_enabled");
   TRY_STATUS_PROMISE(promise, can_toggle_channel_aggressive_anti_spam(channel_id, channel_full));
 
-  td_->create_handler<ToggleAntiSpamQuery>(std::move(promise))->send(channel_id, is_aggressive_anti_spam_enabled);
+  td_->create_handler<ToggleAntiSpamQuery>(std::move(promise))->send(channel_id, has_aggressive_anti_spam_enabled);
 }
 
 void ContactsManager::toggle_channel_is_forum(ChannelId channel_id, bool is_forum, Promise<Unit> &&promise) {
@@ -12339,7 +12339,7 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
     auto can_set_sticker_set = channel->can_set_stickers_;
     auto can_set_location = channel->can_set_location_;
     auto is_all_history_available = !channel->hidden_prehistory_;
-    auto is_aggressive_anti_spam_enabled = channel->antispam_;
+    auto has_aggressive_anti_spam_enabled = channel->antispam_;
     auto can_view_statistics = channel->can_view_stats_;
     StickerSetId sticker_set_id;
     if (channel->stickerset_ != nullptr) {
@@ -12367,7 +12367,7 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
         channel_full->can_view_statistics != can_view_statistics || channel_full->stats_dc_id != stats_dc_id ||
         channel_full->sticker_set_id != sticker_set_id ||
         channel_full->is_all_history_available != is_all_history_available ||
-        channel_full->is_aggressive_anti_spam_enabled != is_aggressive_anti_spam_enabled ||
+        channel_full->has_aggressive_anti_spam_enabled != has_aggressive_anti_spam_enabled ||
         channel_full->has_hidden_participants != has_hidden_participants) {
       channel_full->participant_count = participant_count;
       channel_full->administrator_count = administrator_count;
@@ -12382,7 +12382,7 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
       channel_full->stats_dc_id = stats_dc_id;
       channel_full->sticker_set_id = sticker_set_id;
       channel_full->is_all_history_available = is_all_history_available;
-      channel_full->is_aggressive_anti_spam_enabled = is_aggressive_anti_spam_enabled;
+      channel_full->has_aggressive_anti_spam_enabled = has_aggressive_anti_spam_enabled;
 
       channel_full->is_changed = true;
     }
@@ -15397,16 +15397,16 @@ void ContactsManager::on_update_channel_has_hidden_participants(ChannelId channe
   promise.set_value(Unit());
 }
 
-void ContactsManager::on_update_channel_is_aggressive_anti_spam_enabled(ChannelId channel_id,
-                                                                        bool is_aggressive_anti_spam_enabled,
-                                                                        Promise<Unit> &&promise) {
+void ContactsManager::on_update_channel_has_aggressive_anti_spam_enabled(ChannelId channel_id,
+                                                                         bool has_aggressive_anti_spam_enabled,
+                                                                         Promise<Unit> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
   CHECK(channel_id.is_valid());
-  auto channel_full = get_channel_full_force(channel_id, true, "on_update_channel_is_aggressive_anti_spam_enabled");
-  if (channel_full != nullptr && channel_full->is_aggressive_anti_spam_enabled != is_aggressive_anti_spam_enabled) {
-    channel_full->is_aggressive_anti_spam_enabled = is_aggressive_anti_spam_enabled;
+  auto channel_full = get_channel_full_force(channel_id, true, "on_update_channel_has_aggressive_anti_spam_enabled");
+  if (channel_full != nullptr && channel_full->has_aggressive_anti_spam_enabled != has_aggressive_anti_spam_enabled) {
+    channel_full->has_aggressive_anti_spam_enabled = has_aggressive_anti_spam_enabled;
     channel_full->is_changed = true;
-    update_channel_full(channel_full, channel_id, "on_update_channel_is_aggressive_anti_spam_enabled");
+    update_channel_full(channel_full, channel_id, "on_update_channel_has_aggressive_anti_spam_enabled");
   }
   promise.set_value(Unit());
 }
@@ -18173,7 +18173,7 @@ tl_object_ptr<td_api::supergroupFullInfo> ContactsManager::get_supergroup_full_i
       can_hide_channel_participants(channel_id, channel_full).is_ok(), channel_full->can_set_username,
       channel_full->can_set_sticker_set, channel_full->can_set_location, channel_full->can_view_statistics,
       can_toggle_channel_aggressive_anti_spam(channel_id, channel_full).is_ok(), channel_full->is_all_history_available,
-      channel_full->is_aggressive_anti_spam_enabled, channel_full->sticker_set_id.get(),
+      channel_full->has_aggressive_anti_spam_enabled, channel_full->sticker_set_id.get(),
       channel_full->location.get_chat_location_object(), channel_full->invite_link.get_chat_invite_link_object(this),
       std::move(bot_commands),
       get_basic_group_id_object(channel_full->migrated_from_chat_id, "get_supergroup_full_info_object"),

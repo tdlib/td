@@ -7048,11 +7048,11 @@ void Td::on_request(uint64 id, const td_api::toggleSupergroupHasHiddenMembers &r
                                                             request.has_hidden_members_, std::move(promise));
 }
 
-void Td::on_request(uint64 id, const td_api::toggleSupergroupIsAggressiveAntiSpamEnabled &request) {
+void Td::on_request(uint64 id, const td_api::toggleSupergroupHasAggressiveAntiSpamEnabled &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  contacts_manager_->toggle_channel_is_aggressive_anti_spam_enabled(
-      ChannelId(request.supergroup_id_), request.is_aggressive_anti_spam_enabled_, std::move(promise));
+  contacts_manager_->toggle_channel_has_aggressive_anti_spam_enabled(
+      ChannelId(request.supergroup_id_), request.has_aggressive_anti_spam_enabled_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::toggleSupergroupIsForum &request) {
