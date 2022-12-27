@@ -7097,11 +7097,14 @@ void ContactsManager::set_user_profile_photo(UserId user_id,
   if (r_input_user.is_error()) {
     return promise.set_error(r_input_user.move_as_error());
   }
-  if (!is_user_contact(user_id)) {
+  if (!only_suggest && !is_user_contact(user_id)) {
     return promise.set_error(Status::Error(400, "User isn't a contact"));
   }
   if (user_id == get_my_id()) {
-    return promise.set_error(Status::Error(400, "Can't set personal photo to self"));
+    return promise.set_error(Status::Error(400, "Can't set personal or suggest photo to self"));
+  }
+  if (is_user_bot(user_id)) {
+    return promise.set_error(Status::Error(400, "Can't set personal or suggest photo to bots"));
   }
   if (input_photo == nullptr) {
     td_->create_handler<DeleteContactProfilePhotoQuery>(std::move(promise))->send(user_id, r_input_user.move_as_ok());
