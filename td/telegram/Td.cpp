@@ -1465,27 +1465,26 @@ class SearchMessagesRequest final : public RequestActor<> {
 };
 
 class SearchCallMessagesRequest final : public RequestActor<> {
-  MessageId from_message_id_;
+  string offset_;
   int32 limit_;
   bool only_missed_;
   int64 random_id_;
 
-  std::pair<int32, vector<FullMessageId>> messages_;
+  MessagesManager::FoundMessages messages_;
 
   void do_run(Promise<Unit> &&promise) final {
-    messages_ = td_->messages_manager_->search_call_messages(from_message_id_, limit_, only_missed_, random_id_,
+    messages_ = td_->messages_manager_->search_call_messages(offset_, limit_, only_missed_, random_id_,
                                                              get_tries() == 3, std::move(promise));
   }
 
   void do_send_result() final {
-    send_result(td_->messages_manager_->get_messages_object(messages_.first, messages_.second, true,
-                                                            "SearchCallMessagesRequest"));
+    send_result(td_->messages_manager_->get_found_messages_object(messages_, "SearchCallMessagesRequest"));
   }
 
  public:
-  SearchCallMessagesRequest(ActorShared<Td> td, uint64 request_id, int64 from_message_id, int32 limit, bool only_missed)
+  SearchCallMessagesRequest(ActorShared<Td> td, uint64 request_id, string offset, int32 limit, bool only_missed)
       : RequestActor(std::move(td), request_id)
-      , from_message_id_(from_message_id)
+      , offset_(std::move(offset))
       , limit_(limit)
       , only_missed_(only_missed)
       , random_id_(0) {
@@ -5165,7 +5164,7 @@ void Td::on_request(uint64 id, td_api::searchMessages &request) {
 
 void Td::on_request(uint64 id, const td_api::searchCallMessages &request) {
   CHECK_IS_USER();
-  CREATE_REQUEST(SearchCallMessagesRequest, request.from_message_id_, request.limit_, request.only_missed_);
+  CREATE_REQUEST(SearchCallMessagesRequest, std::move(request.offset_), request.limit_, request.only_missed_);
 }
 
 void Td::on_request(uint64 id, td_api::searchOutgoingDocumentMessages &request) {

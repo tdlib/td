@@ -10285,10 +10285,15 @@ void MessagesManager::on_get_dialog_messages_search_result(
       first_added_message_id = MessageId::min();
     }
 
-    auto &result = it->second.second;
+    auto &result = it->second.full_message_ids;
     CHECK(result.empty());
     int32 added_message_count = 0;
+    MessageId next_offset_message_id;
     for (auto &message : messages) {
+      auto message_id = MessageId::get_message_id(message, false);
+      if (message_id.is_valid() && (!next_offset_message_id.is_valid() || message_id < next_offset_message_id)) {
+        next_offset_message_id = message_id;
+      }
       auto new_full_message_id =
           on_get_message(std::move(message), false, false, false, false, false, "search call messages");
       if (new_full_message_id == FullMessageId()) {
@@ -10298,7 +10303,7 @@ void MessagesManager::on_get_dialog_messages_search_result(
       result.push_back(new_full_message_id);
       added_message_count++;
 
-      auto message_id = new_full_message_id.get_message_id();
+      CHECK(message_id == new_full_message_id.get_message_id());
       CHECK(message_id.is_valid());
       if (message_id < first_added_message_id || !first_added_message_id.is_valid()) {
         first_added_message_id = message_id;
@@ -10334,7 +10339,10 @@ void MessagesManager::on_get_dialog_messages_search_result(
         save_calls_db_state();
       }
     }
-    it->second.first = total_count;
+    it->second.total_count = total_count;
+    if (next_offset_message_id.is_valid()) {
+      it->second.next_offset = PSTRING() << next_offset_message_id.get_server_message_id().get();
+    }
     promise.set_value(Unit());
     return;
   }
@@ -10357,7 +10365,7 @@ void MessagesManager::on_get_dialog_messages_search_result(
   CHECK(d != nullptr);
   for (auto &message : messages) {
     auto message_id = MessageId::get_message_id(message, false);
-    if (message_id.is_valid() && message_id < next_from_message_id) {
+    if (message_id.is_valid() && (!next_from_message_id.is_valid() || message_id < next_from_message_id)) {
       next_from_message_id = message_id;
     }
     auto new_full_message_id = on_get_message(std::move(message), false, dialog_id.get_type() == DialogType::Channel,
@@ -23080,9 +23088,9 @@ MessagesManager::FoundDialogMessages MessagesManager::search_dialog_messages(
   return result;
 }
 
-std::pair<int32, vector<FullMessageId>> MessagesManager::search_call_messages(MessageId from_message_id, int32 limit,
-                                                                              bool only_missed, int64 &random_id,
-                                                                              bool use_db, Promise<Unit> &&promise) {
+MessagesManager::FoundMessages MessagesManager::search_call_messages(const string &offset, int32 limit,
+                                                                     bool only_missed, int64 &random_id, bool use_db,
+                                                                     Promise<Unit> &&promise) {
   if (random_id != 0) {
     // request has already been sent before
     auto it = found_call_messages_.find(random_id);
@@ -23094,9 +23102,9 @@ std::pair<int32, vector<FullMessageId>> MessagesManager::search_call_messages(Me
     }
     random_id = 0;
   }
-  LOG(INFO) << "Search call messages from " << from_message_id << " with limit " << limit;
+  LOG(INFO) << "Search call messages from " << offset << " with limit " << limit;
 
-  std::pair<int32, vector<FullMessageId>> result;
+  FoundMessages result;
   if (limit <= 0) {
     promise.set_error(Status::Error(400, "Parameter limit must be positive"));
     return result;
@@ -23105,15 +23113,16 @@ std::pair<int32, vector<FullMessageId>> MessagesManager::search_call_messages(Me
     limit = MAX_SEARCH_MESSAGES;
   }
 
-  if (from_message_id.get() > MessageId::max().get()) {
-    from_message_id = MessageId::max();
-  }
+  MessageId offset_message_id;
+  if (!offset.empty()) {
+    auto r_offset_server_message_id = to_integer_safe<int32>(offset);
+    if (r_offset_server_message_id.is_error()) {
+      promise.set_error(Status::Error(400, "Invalid offset specified"));
+      return result;
+    }
 
-  if (!from_message_id.is_valid() && from_message_id != MessageId()) {
-    promise.set_error(Status::Error(400, "Parameter from_message_id must be identifier of a chat message or 0"));
-    return result;
+    offset_message_id = MessageId(ServerMessageId(r_offset_server_message_id.ok()));
   }
-  from_message_id = from_message_id.get_next_server_message_id();
 
   do {
     random_id = Random::secure_int64();
@@ -23127,7 +23136,7 @@ std::pair<int32, vector<FullMessageId>> MessagesManager::search_call_messages(Me
     MessageId first_db_message_id =
         calls_db_state_.first_calls_database_message_id_by_index[call_message_search_filter_index(filter)];
     int32 message_count = calls_db_state_.message_count_by_index[call_message_search_filter_index(filter)];
-    auto fixed_from_message_id = from_message_id;
+    auto fixed_from_message_id = offset_message_id;
     if (fixed_from_message_id == MessageId()) {
       fixed_from_message_id = MessageId::max();
     }
@@ -23152,7 +23161,7 @@ std::pair<int32, vector<FullMessageId>> MessagesManager::search_call_messages(Me
   }
 
   td_->create_handler<SearchMessagesQuery>(std::move(promise))
-      ->send(DialogId(), "", DialogId(), from_message_id, 0, limit, filter, MessageId(), random_id);
+      ->send(DialogId(), "", DialogId(), offset_message_id, 0, limit, filter, MessageId(), random_id);
   return result;
 }
 
@@ -23190,7 +23199,7 @@ void MessagesManager::search_dialog_recent_location_messages(DialogId dialog_id,
     case DialogType::Channel:
       return td_->create_handler<GetRecentLocationsQuery>(std::move(promise))->send(dialog_id, limit);
     case DialogType::SecretChat:
-      return promise.set_value(get_messages_object(0, vector<td_api::object_ptr<td_api::message>>(), true));
+      return promise.set_value(get_messages_object(0, vector<td_api::object_ptr<td_api::message>>(), false));
     default:
       UNREACHABLE();
       promise.set_error(Status::Error(500, "Search messages is not supported"));
@@ -23602,7 +23611,7 @@ void MessagesManager::on_search_dialog_message_db_result(int64 random_id, Dialog
   for (auto &message : messages) {
     auto m = on_get_message_from_database(d, message, false, "on_search_dialog_message_db_result");
     if (m != nullptr && first_db_message_id <= m->message_id) {
-      if (m->message_id < next_from_message_id) {
+      if (!next_from_message_id.is_valid() || m->message_id < next_from_message_id) {
         next_from_message_id = m->message_id;
       }
       if (filter == MessageSearchFilter::UnreadMention && !m->contains_unread_mention) {
@@ -23791,18 +23800,24 @@ void MessagesManager::on_message_db_calls_result(Result<MessageDbCallsResult> re
 
   auto it = found_call_messages_.find(random_id);
   CHECK(it != found_call_messages_.end());
-  auto &res = it->second.second;
+  auto &res = it->second.full_message_ids;
 
   CHECK(!first_db_message_id.is_scheduled());
   res.reserve(calls_result.messages.size());
+  MessageId next_offset_message_id;
   for (auto &message : calls_result.messages) {
     auto m = on_get_message_from_database(message, false, "on_message_db_calls_result");
-
     if (m != nullptr && first_db_message_id <= m->message_id) {
+      if (!next_offset_message_id.is_valid() || m->message_id < next_offset_message_id) {
+        next_offset_message_id = m->message_id;
+      }
       res.emplace_back(message.dialog_id, m->message_id);
     }
   }
-  it->second.first = calls_db_state_.message_count_by_index[call_message_search_filter_index(filter)];
+  it->second.total_count = calls_db_state_.message_count_by_index[call_message_search_filter_index(filter)];
+  if (next_offset_message_id.is_valid()) {
+    it->second.next_offset = PSTRING() << next_offset_message_id.get_server_message_id().get();
+  }
 
   if (res.empty() && first_db_message_id != MessageId::min()) {
     LOG(INFO) << "No messages found in database";
@@ -25293,7 +25308,7 @@ void MessagesManager::send_get_message_public_forwards_query(
 
   int32 offset_date = std::numeric_limits<int32>::max();
   DialogId offset_dialog_id;
-  ServerMessageId offset_message_id;
+  ServerMessageId offset_server_message_id;
 
   if (!offset.empty()) {
     auto parts = full_split(offset, ',');
@@ -25302,18 +25317,18 @@ void MessagesManager::send_get_message_public_forwards_query(
     }
     auto r_offset_date = to_integer_safe<int32>(parts[0]);
     auto r_offset_dialog_id = to_integer_safe<int64>(parts[1]);
-    auto r_offset_message_id = to_integer_safe<int32>(parts[2]);
-    if (r_offset_date.is_error() || r_offset_dialog_id.is_error() || r_offset_message_id.is_error()) {
+    auto r_offset_server_message_id = to_integer_safe<int32>(parts[2]);
+    if (r_offset_date.is_error() || r_offset_dialog_id.is_error() || r_offset_server_message_id.is_error()) {
       return promise.set_error(Status::Error(400, "Invalid offset specified"));
     }
 
     offset_date = r_offset_date.ok();
     offset_dialog_id = DialogId(r_offset_dialog_id.ok());
-    offset_message_id = ServerMessageId(r_offset_message_id.ok());
+    offset_server_message_id = ServerMessageId(r_offset_server_message_id.ok());
   }
 
   td_->create_handler<GetMessagePublicForwardsQuery>(std::move(promise))
-      ->send(dc_id, full_message_id, offset_date, offset_dialog_id, offset_message_id, limit);
+      ->send(dc_id, full_message_id, offset_date, offset_dialog_id, offset_server_message_id, limit);
 }
 
 Result<int32> MessagesManager::get_message_schedule_date(

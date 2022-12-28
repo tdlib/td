@@ -2360,10 +2360,10 @@ class CliClient final : public Actor {
           chat_id, "", nullptr, offset_message_id, offset, as_limit(limit), as_search_messages_filter(filter), 0));
     } else if (op == "SC") {
       string limit;
-      MessageId offset_message_id;
+      string offset;
       bool only_missed;
-      get_args(args, limit, offset_message_id, only_missed);
-      send_request(td_api::make_object<td_api::searchCallMessages>(offset_message_id, as_limit(limit), only_missed));
+      get_args(args, limit, offset, only_missed);
+      send_request(td_api::make_object<td_api::searchCallMessages>(offset, as_limit(limit), only_missed));
     } else if (op == "sodm") {
       SearchQuery query;
       get_args(args, query);

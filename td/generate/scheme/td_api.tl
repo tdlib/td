@@ -5805,10 +5805,10 @@ searchMessages chat_list:ChatList query:string offset:string limit:int32 filter:
 searchSecretMessages chat_id:int53 query:string offset:string limit:int32 filter:SearchMessagesFilter = FoundMessages;
 
 //@description Searches for call messages. Returns the results in reverse chronological order (i.e., in order of decreasing message_id). For optimal performance, the number of returned messages is chosen by TDLib
-//@from_message_id Identifier of the message from which to search; use 0 to get results from the last message
+//@offset Offset of the first entry to return as received from the previous request; use empty string to get the first chunk of results
 //@limit The maximum number of messages to be returned; up to 100. For optimal performance, the number of returned messages is chosen by TDLib and can be smaller than the specified limit
 //@only_missed Pass true to search only for messages with missed/declined calls
-searchCallMessages from_message_id:int53 limit:int32 only_missed:Bool = Messages;
+searchCallMessages offset:string limit:int32 only_missed:Bool = FoundMessages;
 
 //@description Searches for outgoing messages with content of the type messageDocument in all chats except secret chats. Returns the results in reverse chronological order
 //@query Query to search for in document file name and message caption
