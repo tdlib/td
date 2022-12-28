@@ -27944,7 +27944,7 @@ void MessagesManager::on_message_media_edited(DialogId dialog_id, MessageId mess
     // message content has already been replaced from updateEdit{Channel,}Message
     // need only merge files from edited_content with their uploaded counterparts
     // updateMessageContent was already sent and needs to be sent again,
-    // only if 'i' and 't' sizes from edited_content was added to the photo
+    // only if 'i' and 't' sizes from edited_content were added to the photo
     auto pts = result.ok();
     LOG(INFO) << "Successfully edited " << message_id << " in " << dialog_id << " with pts = " << pts
               << " and last edit pts = " << m->last_edit_pts;

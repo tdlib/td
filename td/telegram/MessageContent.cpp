@@ -3461,6 +3461,16 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
         if (need_merge_files && (old_photos_size == 1 || (old_photos_size == 2 && old_photo->photos[0].type == 't')) &&
             old_photo->photos.back().type == 'i') {
           // first time get info about sent photo
+          if (!new_photo->photos.empty() && new_photo->photos.back().type == 'i') {
+            // remove previous 'i' size for the photo if any
+            new_photo->photos.pop_back();
+          }
+          if (!new_photo->photos.empty() && new_photo->photos.back().type == 't') {
+            // remove previous 't' size for the photo if any
+            new_photo->photos.pop_back();
+          }
+
+          // add back 't' and 'i' sizes
           if (old_photos_size == 2) {
             new_photo->photos.push_back(old_photo->photos[0]);
           }
