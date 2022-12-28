@@ -470,9 +470,9 @@ class Td final : public Actor {
 
   void on_request(uint64 id, td_api::setUserPrivacySettingRules &request);
 
-  void on_request(uint64 id, const td_api::getDefaultMessageAutoDeleteTimer &request);
+  void on_request(uint64 id, const td_api::getDefaultMessageAutoDeleteTime &request);
 
-  void on_request(uint64 id, const td_api::setDefaultMessageAutoDeleteTimer &request);
+  void on_request(uint64 id, const td_api::setDefaultMessageAutoDeleteTime &request);
 
   void on_request(uint64 id, const td_api::getAccountTtl &request);
 
@@ -892,7 +892,7 @@ class Td final : public Actor {
 
   void on_request(uint64 id, const td_api::setChatPhoto &request);
 
-  void on_request(uint64 id, const td_api::setChatMessageAutoDeleteTimer &request);
+  void on_request(uint64 id, const td_api::setChatMessageAutoDeleteTime &request);
 
   void on_request(uint64 id, const td_api::setChatPermissions &request);
 

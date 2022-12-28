@@ -1967,7 +1967,7 @@ static Result<InputMessageContent> create_input_message_content(
       if (input_photo->height_ < 0 || input_photo->height_ > 10000) {
         return Status::Error(400, "Wrong photo height");
       }
-      ttl = input_photo->self_destruct_timer_;
+      ttl = input_photo->self_destruct_time_;
 
       auto message_photo = make_unique<MessagePhoto>();
 
@@ -2029,7 +2029,7 @@ static Result<InputMessageContent> create_input_message_content(
     case td_api::inputMessageVideo::ID: {
       auto input_video = static_cast<td_api::inputMessageVideo *>(input_message_content.get());
 
-      ttl = input_video->self_destruct_timer_;
+      ttl = input_video->self_destruct_time_;
 
       bool has_stickers = !sticker_file_ids.empty();
       td->videos_manager_->create_video(
@@ -5504,7 +5504,7 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
       return make_tl_object<td_api::messageScreenshotTaken>();
     case MessageContentType::ChatSetTtl: {
       const auto *m = static_cast<const MessageChatSetTtl *>(content);
-      return make_tl_object<td_api::messageChatSetMessageAutoDeleteTimer>(
+      return make_tl_object<td_api::messageChatSetMessageAutoDeleteTime>(
           m->ttl, td->contacts_manager_->get_user_id_object(m->from_user_id, "MessageChatSetTtl"));
     }
     case MessageContentType::Call: {

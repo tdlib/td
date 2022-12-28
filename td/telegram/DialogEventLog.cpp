@@ -343,8 +343,8 @@ static td_api::object_ptr<td_api::ChatEventAction> get_chat_event_action_object(
       auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionChangeHistoryTTL>(action_ptr);
       auto old_value = MessageTtl(clamp(action->prev_value_, 0, 86400 * 366));
       auto new_value = MessageTtl(clamp(action->new_value_, 0, 86400 * 366));
-      return td_api::make_object<td_api::chatEventMessageAutoDeleteTimerChanged>(
-          old_value.get_message_auto_delete_timer_object(), new_value.get_message_auto_delete_timer_object());
+      return td_api::make_object<td_api::chatEventMessageAutoDeleteTimeChanged>(
+          old_value.get_message_auto_delete_time_object(), new_value.get_message_auto_delete_time_object());
     }
     case telegram_api::channelAdminLogEventActionToggleNoForwards::ID: {
       auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionToggleNoForwards>(action_ptr);

@@ -32,7 +32,7 @@ class MessageTtl {
 
   bool is_empty() const;
 
-  int32 get_message_auto_delete_timer_object() const;
+  int32 get_message_auto_delete_time_object() const;
 
   int32 get_input_ttl_period() const;
 

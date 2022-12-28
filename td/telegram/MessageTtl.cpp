@@ -12,7 +12,7 @@ bool MessageTtl::is_empty() const {
   return period_ == 0;
 }
 
-int32 MessageTtl::get_message_auto_delete_timer_object() const {
+int32 MessageTtl::get_message_auto_delete_time_object() const {
   return period_;
 }
 
