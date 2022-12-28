@@ -156,6 +156,9 @@ TEST(Link, parse_internal_link) {
   auto default_message_auto_delete_timer_settings = [] {
     return td::td_api::make_object<td::td_api::internalLinkTypeDefaultMessageAutoDeleteTimerSettings>();
   };
+  auto edit_profile_settings = [] {
+    return td::td_api::make_object<td::td_api::internalLinkTypeEditProfileSettings>();
+  };
   auto filter_settings = [] {
     return td::td_api::make_object<td::td_api::internalLinkTypeFilterSettings>();
   };
@@ -972,6 +975,7 @@ TEST(Link, parse_internal_link) {
   parse_internal_link("tg://settings/auto_delete", default_message_auto_delete_timer_settings());
   parse_internal_link("tg://settings/devices", active_sessions());
   parse_internal_link("tg://settings/change_number", change_phone_number());
+  parse_internal_link("tg://settings/edit_profile", edit_profile_settings());
   parse_internal_link("tg://settings/folders", filter_settings());
   parse_internal_link("tg://settings/filters", settings());
   parse_internal_link("tg://settings/language", language_settings());

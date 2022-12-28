@@ -303,6 +303,12 @@ class LinkManager::InternalLinkDialogInvite final : public InternalLink {
   }
 };
 
+class LinkManager::InternalLinkEditProfileSettings final : public InternalLink {
+  td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
+    return td_api::make_object<td_api::internalLinkTypeEditProfileSettings>();
+  }
+};
+
 class LinkManager::InternalLinkFilterSettings final : public InternalLink {
   td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
     return td_api::make_object<td_api::internalLinkTypeFilterSettings>();
@@ -1139,6 +1145,10 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
     if (path.size() == 2 && path[1] == "devices") {
       // settings/devices
       return td::make_unique<InternalLinkActiveSessions>();
+    }
+    if (path.size() == 2 && path[1] == "edit_profile") {
+      // settings/edit_profile
+      return td::make_unique<InternalLinkEditProfileSettings>();
     }
     if (path.size() == 2 && path[1] == "folders") {
       // settings/folders

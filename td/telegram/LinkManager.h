@@ -112,6 +112,7 @@ class LinkManager final : public Actor {
   class InternalLinkConfirmPhone;
   class InternalLinkDefaultMessageAutoDeleteTimerSettings;
   class InternalLinkDialogInvite;
+  class InternalLinkEditProfileSettings;
   class InternalLinkFilterSettings;
   class InternalLinkGame;
   class InternalLinkInstantView;
