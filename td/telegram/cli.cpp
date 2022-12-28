@@ -2521,12 +2521,13 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::setOption>(name, td_api::make_object<td_api::optionValueString>(value)));
     } else if (op == "me") {
       send_request(td_api::make_object<td_api::getMe>());
-    } else if (op == "sdmttl") {
-      int32 ttl;
-      get_args(args, ttl);
-      send_request(td_api::make_object<td_api::setDefaultMessageTtl>(td_api::make_object<td_api::messageTtl>(ttl)));
-    } else if (op == "gdmttl") {
-      send_request(td_api::make_object<td_api::getDefaultMessageTtl>());
+    } else if (op == "sdmadt") {
+      int32 auto_delete_timer;
+      get_args(args, auto_delete_timer);
+      send_request(td_api::make_object<td_api::setDefaultMessageAutoDeleteTimer>(
+          td_api::make_object<td_api::messageAutoDeleteTimer>(auto_delete_timer)));
+    } else if (op == "gdmadt") {
+      send_request(td_api::make_object<td_api::getDefaultMessageAutoDeleteTimer>());
     } else if (op == "sattl") {
       int32 days;
       get_args(args, days);
@@ -3693,9 +3694,9 @@ class CliClient final : public Actor {
           message = string(4097, 'a');
         }
         if (op[3] == 'p') {
-          send_message(chat_id,
-                       td_api::make_object<td_api::inputMessagePhoto>(as_local_file("rgb.jpg"), nullptr, Auto(), 0, 0,
-                                                                      as_caption(message), message_ttl_, has_spoiler_));
+          send_message(chat_id, td_api::make_object<td_api::inputMessagePhoto>(
+                                    as_local_file("rgb.jpg"), nullptr, Auto(), 0, 0, as_caption(message),
+                                    message_auto_delete_timer_, has_spoiler_));
         } else {
           send_message(chat_id, td_api::make_object<td_api::inputMessageText>(as_formatted_text(message), false, true));
         }
@@ -3714,8 +3715,8 @@ class CliClient final : public Actor {
       get_args(args, message_thread_id_);
     } else if (op == "shs") {
       has_spoiler_ = as_bool(args);
-    } else if (op == "smttl") {
-      message_ttl_ = to_integer<int32>(args);
+    } else if (op == "smadt") {
+      message_auto_delete_timer_ = to_integer<int32>(args);
     } else if (op == "gcams") {
       ChatId chat_id;
       get_args(args, chat_id);
@@ -3771,9 +3772,9 @@ class CliClient final : public Actor {
         get_args(args, reply_to_message_id, args);
       }
       auto input_message_contents = transform(full_split(args), [this](const string &photo) {
-        td_api::object_ptr<td_api::InputMessageContent> content =
-            td_api::make_object<td_api::inputMessagePhoto>(as_input_file(photo), nullptr, Auto(), 0, 0, as_caption(""),
-                                                           rand_bool() ? message_ttl_ : 0, has_spoiler_ && rand_bool());
+        td_api::object_ptr<td_api::InputMessageContent> content = td_api::make_object<td_api::inputMessagePhoto>(
+            as_input_file(photo), nullptr, Auto(), 0, 0, as_caption(""), rand_bool() ? message_auto_delete_timer_ : 0,
+            has_spoiler_ && rand_bool());
         return content;
       });
       send_request(td_api::make_object<td_api::sendMessageAlbum>(
@@ -3852,7 +3853,7 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::editMessageMedia>(
           chat_id, message_id, nullptr,
           td_api::make_object<td_api::inputMessagePhoto>(as_input_file(photo), as_input_thumbnail(photo), Auto(), 0, 0,
-                                                         as_caption(""), message_ttl_, has_spoiler_)));
+                                                         as_caption(""), message_auto_delete_timer_, has_spoiler_)));
     } else if (op == "emvt") {
       ChatId chat_id;
       MessageId message_id;
@@ -3862,7 +3863,8 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::editMessageMedia>(
           chat_id, message_id, nullptr,
           td_api::make_object<td_api::inputMessageVideo>(as_input_file(video), as_input_thumbnail(thumbnail), Auto(), 1,
-                                                         2, 3, true, as_caption(""), message_ttl_, has_spoiler_)));
+                                                         2, 3, true, as_caption(""), message_auto_delete_timer_,
+                                                         has_spoiler_)));
     } else if (op == "emll") {
       ChatId chat_id;
       MessageId message_id;
@@ -4178,7 +4180,7 @@ class CliClient final : public Actor {
       get_args(args, chat_id, photo, caption, sticker_file_ids);
       send_message(chat_id, td_api::make_object<td_api::inputMessagePhoto>(
                                 as_input_file(photo), nullptr, to_integers<int32>(sticker_file_ids), 0, 0,
-                                as_caption(caption), message_ttl_, has_spoiler_));
+                                as_caption(caption), message_auto_delete_timer_, has_spoiler_));
     } else if (op == "spg") {
       ChatId chat_id;
       string photo_path;
@@ -4187,7 +4189,7 @@ class CliClient final : public Actor {
       get_args(args, chat_id, photo_path, conversion, expected_size);
       send_message(chat_id, td_api::make_object<td_api::inputMessagePhoto>(
                                 as_generated_file(photo_path, conversion, expected_size), nullptr, vector<int32>(), 0,
-                                0, as_caption(""), message_ttl_, has_spoiler_));
+                                0, as_caption(""), message_auto_delete_timer_, has_spoiler_));
     } else if (op == "spt") {
       ChatId chat_id;
       string photo_path;
@@ -4195,7 +4197,7 @@ class CliClient final : public Actor {
       get_args(args, chat_id, photo_path, thumbnail_path);
       send_message(chat_id, td_api::make_object<td_api::inputMessagePhoto>(
                                 as_input_file(photo_path), as_input_thumbnail(thumbnail_path, 90, 89), vector<int32>(),
-                                0, 0, as_caption(""), message_ttl_, has_spoiler_));
+                                0, 0, as_caption(""), message_auto_delete_timer_, has_spoiler_));
     } else if (op == "sptg") {
       ChatId chat_id;
       string photo_path;
@@ -4205,7 +4207,7 @@ class CliClient final : public Actor {
       send_message(chat_id,
                    td_api::make_object<td_api::inputMessagePhoto>(
                        as_input_file(photo_path), as_input_thumbnail(thumbnail_path, thumbnail_conversion, 90, 89),
-                       vector<int32>(), 0, 0, as_caption(""), message_ttl_, has_spoiler_));
+                       vector<int32>(), 0, 0, as_caption(""), message_auto_delete_timer_, has_spoiler_));
     } else if (op == "spgtg") {
       ChatId chat_id;
       string photo_path;
@@ -4216,14 +4218,14 @@ class CliClient final : public Actor {
       send_message(chat_id, td_api::make_object<td_api::inputMessagePhoto>(
                                 as_generated_file(photo_path, conversion),
                                 as_input_thumbnail(thumbnail_path, thumbnail_conversion, 90, 89), vector<int32>(), 0, 0,
-                                as_caption(""), message_ttl_, has_spoiler_));
+                                as_caption(""), message_auto_delete_timer_, has_spoiler_));
     } else if (op == "spid") {
       ChatId chat_id;
       string file_id;
       get_args(args, chat_id, file_id);
-      send_message(chat_id,
-                   td_api::make_object<td_api::inputMessagePhoto>(as_input_file_id(file_id), nullptr, vector<int32>(),
-                                                                  0, 0, as_caption(""), message_ttl_, has_spoiler_));
+      send_message(chat_id, td_api::make_object<td_api::inputMessagePhoto>(as_input_file_id(file_id), nullptr,
+                                                                           vector<int32>(), 0, 0, as_caption(""),
+                                                                           message_auto_delete_timer_, has_spoiler_));
     } else if (op == "ss") {
       ChatId chat_id;
       string sticker_path;
@@ -4255,9 +4257,9 @@ class CliClient final : public Actor {
       } else {
         sticker_file_ids = to_integers<int32>(sticker_file_ids_str);
       }
-      send_message(chat_id, td_api::make_object<td_api::inputMessageVideo>(as_input_file(video_path), nullptr,
-                                                                           std::move(sticker_file_ids), 1, 2, 3, true,
-                                                                           as_caption(""), message_ttl_, has_spoiler_));
+      send_message(chat_id, td_api::make_object<td_api::inputMessageVideo>(
+                                as_input_file(video_path), nullptr, std::move(sticker_file_ids), 1, 2, 3, true,
+                                as_caption(""), message_auto_delete_timer_, has_spoiler_));
     } else if (op == "svt") {
       ChatId chat_id;
       string video;
@@ -4265,7 +4267,7 @@ class CliClient final : public Actor {
       get_args(args, chat_id, video, thumbnail);
       send_message(chat_id, td_api::make_object<td_api::inputMessageVideo>(
                                 as_input_file(video), as_input_thumbnail(thumbnail), vector<int32>(), 0, 0, 0, true,
-                                as_caption(""), message_ttl_, has_spoiler_));
+                                as_caption(""), message_auto_delete_timer_, has_spoiler_));
     } else if (op == "svn") {
       ChatId chat_id;
       string video_path;
@@ -4315,16 +4317,16 @@ class CliClient final : public Actor {
     } else if (op == "cnbgc") {
       string user_ids_string;
       string title;
-      int32 message_ttl;
-      get_args(args, user_ids_string, title, message_ttl);
-      send_request(
-          td_api::make_object<td_api::createNewBasicGroupChat>(as_user_ids(user_ids_string), title, message_ttl));
-    } else if (op == "cnchc" || op == "cnchcttl") {
+      int32 message_auto_delete_timer;
+      get_args(args, user_ids_string, title, message_auto_delete_timer);
+      send_request(td_api::make_object<td_api::createNewBasicGroupChat>(as_user_ids(user_ids_string), title,
+                                                                        message_auto_delete_timer));
+    } else if (op == "cnchc" || op == "cnchcadt") {
       send_request(td_api::make_object<td_api::createNewSupergroupChat>(args, true, "Description", nullptr,
-                                                                        op == "cnchcttl" ? 86400 : 0, false));
-    } else if (op == "cnsgc" || op == "cnsgcttl") {
+                                                                        op == "cnchcadt" ? 86400 : 0, false));
+    } else if (op == "cnsgc" || op == "cnsgcadt") {
       send_request(td_api::make_object<td_api::createNewSupergroupChat>(args, false, "Description", nullptr,
-                                                                        op == "cnsgcttl" ? 86400 : 0, false));
+                                                                        op == "cnsgcadt" ? 86400 : 0, false));
     } else if (op == "cnsgcloc") {
       send_request(td_api::make_object<td_api::createNewSupergroupChat>(
           args, false, "Description",
@@ -4434,9 +4436,9 @@ class CliClient final : public Actor {
                                                                         to_double(main_frame_timestamp))));
     } else if (op == "scmt") {
       ChatId chat_id;
-      int32 ttl;
-      get_args(args, chat_id, ttl);
-      send_request(td_api::make_object<td_api::setChatMessageTtl>(chat_id, ttl));
+      int32 auto_delete_timer;
+      get_args(args, chat_id, auto_delete_timer);
+      send_request(td_api::make_object<td_api::setChatMessageAutoDeleteTimer>(chat_id, auto_delete_timer));
     } else if (op == "scperm") {
       ChatId chat_id;
       string permissions;
@@ -5342,7 +5344,7 @@ class CliClient final : public Actor {
   string schedule_date_;
   MessageThreadId message_thread_id_;
   bool has_spoiler_ = false;
-  int32 message_ttl_ = 0;
+  int32 message_auto_delete_timer_ = 0;
   int64 opened_chat_id_ = 0;
 
   ConcurrentScheduler *scheduler_{nullptr};

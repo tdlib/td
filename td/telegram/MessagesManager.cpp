@@ -21891,7 +21891,7 @@ td_api::object_ptr<td_api::chat> MessagesManager::get_chat_object(const Dialog *
       d->server_unread_count + d->local_unread_count, d->last_read_inbox_message_id.get(),
       d->last_read_outbox_message_id.get(), d->unread_mention_count, d->unread_reaction_count,
       get_chat_notification_settings_object(&d->notification_settings), std::move(available_reactions),
-      d->message_ttl.get_message_ttl_object(), get_dialog_theme_name(d), get_chat_action_bar_object(d),
+      d->message_ttl.get_message_auto_delete_timer_object(), get_dialog_theme_name(d), get_chat_action_bar_object(d),
       get_video_chat_object(d), get_chat_join_requests_info_object(d), d->reply_markup_message_id.get(),
       std::move(draft_message), d->client_data);
 }
@@ -31786,13 +31786,13 @@ void MessagesManager::send_update_chat_message_sender(const Dialog *d) {
       td_api::make_object<td_api::updateChatMessageSender>(d->dialog_id.get(), get_default_message_sender_object(d)));
 }
 
-void MessagesManager::send_update_chat_message_ttl(const Dialog *d) {
+void MessagesManager::send_update_chat_message_auto_delete_timer(const Dialog *d) {
   CHECK(d != nullptr);
-  LOG_CHECK(d->is_update_new_chat_sent) << "Wrong " << d->dialog_id << " in send_update_chat_message_ttl";
-  on_dialog_updated(d->dialog_id, "send_update_chat_message_ttl");
-  send_closure(
-      G()->td(), &Td::send_update,
-      td_api::make_object<td_api::updateChatMessageTtl>(d->dialog_id.get(), d->message_ttl.get_message_ttl_object()));
+  LOG_CHECK(d->is_update_new_chat_sent) << "Wrong " << d->dialog_id << " in send_update_chat_message_auto_delete_timer";
+  on_dialog_updated(d->dialog_id, "send_update_chat_message_auto_delete_timer");
+  send_closure(G()->td(), &Td::send_update,
+               td_api::make_object<td_api::updateChatMessageAutoDeleteTimer>(
+                   d->dialog_id.get(), d->message_ttl.get_message_auto_delete_timer_object()));
 }
 
 void MessagesManager::send_update_chat_has_scheduled_messages(Dialog *d, bool from_deletion) {
@@ -33293,7 +33293,7 @@ void MessagesManager::set_dialog_message_ttl(Dialog *d, MessageTtl message_ttl) 
   if (d->message_ttl != message_ttl) {
     d->message_ttl = message_ttl;
     d->is_message_ttl_inited = true;
-    send_update_chat_message_ttl(d);
+    send_update_chat_message_auto_delete_timer(d);
   }
   if (!d->is_message_ttl_inited) {
     d->is_message_ttl_inited = true;

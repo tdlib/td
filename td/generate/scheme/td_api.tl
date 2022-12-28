@@ -1058,9 +1058,9 @@ messageSendingStateFailed error_code:int32 error_message:string can_retry:Bool n
 //@reply_in_chat_id If non-zero, the identifier of the chat to which the replied message belongs; Currently, only messages in the Replies chat can have different reply_in_chat_id and chat_id
 //@reply_to_message_id If non-zero, the identifier of the message this message is replying to; can be the identifier of a deleted message
 //@message_thread_id If non-zero, the identifier of the message thread the message belongs to; unique within the chat to which the message belongs
-//@ttl For self-destructing messages, the message's TTL (Time To Live), in seconds; 0 if none. TDLib will send updateDeleteMessages or updateMessageContent once the TTL expires
-//@ttl_expires_in Time left before the message expires, in seconds. If the TTL timer isn't started yet, equals to the value of the ttl field
-//@auto_delete_in Time left before the message will be automatically deleted by message_ttl setting of the chat, in seconds; 0 if never. TDLib will send updateDeleteMessages or updateMessageContent once the time expires
+//@ttl For self-destructing messages, the message's self-destruct timer, in seconds; 0 if none. TDLib will send updateDeleteMessages or updateMessageContent once the time expires
+//@ttl_expires_in Time left before the message expires, in seconds. If the self-destruct timer isn't started yet, equals to the value of the ttl field
+//@auto_delete_in Time left before the message will be automatically deleted by message_auto_delete_timer setting of the chat, in seconds; 0 if never. TDLib will send updateDeleteMessages or updateMessageContent once the time expires
 //@via_bot_user_id If non-zero, the user identifier of the bot through which this message was sent
 //@author_signature For channel posts and anonymous group messages, optional author signature
 //@media_album_id Unique identifier of an album this message belongs to. Only audios, documents, photos and videos can be grouped together in albums
@@ -1283,7 +1283,7 @@ videoChat group_call_id:int32 has_participants:Bool default_participant_id:Messa
 //@unread_reaction_count Number of messages with unread reactions in the chat
 //@notification_settings Notification settings for the chat
 //@available_reactions Types of reaction, available in the chat
-//@message_ttl Current message Time To Live setting (self-destruct timer) for the chat; 0 if not defined. TTL is counted from the time message or its content is viewed in secret chats and from the send date in other chats
+//@message_auto_delete_timer Current message auto-delete or self-destruct timer setting for the chat, in seconds; 0 if disabled. Self-destruct timer in secret chats is counted from the time message or its content is viewed. Auto-delete timer in other chats is counted from the send date
 //@theme_name If non-empty, name of a theme, set for the chat
 //@action_bar Information about actions which must be possible to do through the chat action bar; may be null
 //@video_chat Information about video chat of the chat
@@ -1291,7 +1291,7 @@ videoChat group_call_id:int32 has_participants:Bool default_participant_id:Messa
 //@reply_markup_message_id Identifier of the message from which reply markup needs to be used; 0 if there is no default custom reply markup in the chat
 //@draft_message A draft of a message in the chat; may be null
 //@client_data Application-specific data associated with the chat. (For example, the chat scroll position or local chat notification settings can be stored here.) Persistent if the message database is used
-chat id:int53 type:ChatType title:string photo:chatPhotoInfo permissions:chatPermissions last_message:message positions:vector<chatPosition> message_sender_id:MessageSender has_protected_content:Bool is_marked_as_unread:Bool is_blocked:Bool has_scheduled_messages:Bool can_be_deleted_only_for_self:Bool can_be_deleted_for_all_users:Bool can_be_reported:Bool default_disable_notification:Bool unread_count:int32 last_read_inbox_message_id:int53 last_read_outbox_message_id:int53 unread_mention_count:int32 unread_reaction_count:int32 notification_settings:chatNotificationSettings available_reactions:ChatAvailableReactions message_ttl:int32 theme_name:string action_bar:ChatActionBar video_chat:videoChat pending_join_requests:chatJoinRequestsInfo reply_markup_message_id:int53 draft_message:draftMessage client_data:string = Chat;
+chat id:int53 type:ChatType title:string photo:chatPhotoInfo permissions:chatPermissions last_message:message positions:vector<chatPosition> message_sender_id:MessageSender has_protected_content:Bool is_marked_as_unread:Bool is_blocked:Bool has_scheduled_messages:Bool can_be_deleted_only_for_self:Bool can_be_deleted_for_all_users:Bool can_be_reported:Bool default_disable_notification:Bool unread_count:int32 last_read_inbox_message_id:int53 last_read_outbox_message_id:int53 unread_mention_count:int32 unread_reaction_count:int32 notification_settings:chatNotificationSettings available_reactions:ChatAvailableReactions message_auto_delete_timer:int32 theme_name:string action_bar:ChatActionBar video_chat:videoChat pending_join_requests:chatJoinRequestsInfo reply_markup_message_id:int53 draft_message:draftMessage client_data:string = Chat;
 
 //@description Represents a list of chats @total_count Approximate total number of chats found @chat_ids List of chat identifiers
 chats total_count:int32 chat_ids:vector<int53> = Chats;
@@ -2385,8 +2385,8 @@ messageScreenshotTaken = MessageContent;
 //@description A theme in the chat has been changed @theme_name If non-empty, name of a new theme, set for the chat. Otherwise chat theme was reset to the default one
 messageChatSetTheme theme_name:string = MessageContent;
 
-//@description The TTL (Time To Live) setting for messages in the chat has been changed @ttl New message TTL @from_user_id If not 0, a user identifier, which default setting was automatically applied
-messageChatSetTtl ttl:int32 from_user_id:int53 = MessageContent;
+//@description The auto-delete or self-destruct timer setting for messages in the chat has been changed @auto_delete_timer New value auto-delete or self-destruct timer, in seconds; 0 if disabled @from_user_id If not 0, a user identifier, which default setting was automatically applied
+messageChatSetMessageAutoDeleteTimer auto_delete_timer:int32 from_user_id:int53 = MessageContent;
 
 //@description A forum topic has been created @name Name of the topic @icon Icon of the topic
 messageForumTopicCreated name:string icon:forumTopicIcon = MessageContent;
@@ -2605,7 +2605,7 @@ inputMessageDocument document:InputFile thumbnail:inputThumbnail disable_content
 //@width Photo width
 //@height Photo height
 //@caption Photo caption; pass null to use an empty caption; 0-getOption("message_caption_length_max") characters
-//@ttl Photo TTL (Time To Live), in seconds (0-60). A non-zero TTL can be specified only in private chats
+//@ttl Photo self-destruct timer, in seconds (0-60). A non-zero self-destruct timer can be specified only in private chats
 //@has_spoiler True, if the photo preview must be covered by a spoiler animation; not supported in secret chats
 inputMessagePhoto photo:InputFile thumbnail:inputThumbnail added_sticker_file_ids:vector<int32> width:int32 height:int32 caption:formattedText ttl:int32 has_spoiler:Bool = InputMessageContent;
 
@@ -2626,7 +2626,7 @@ inputMessageSticker sticker:InputFile thumbnail:inputThumbnail width:int32 heigh
 //@height Video height
 //@supports_streaming True, if the video is supposed to be streamed
 //@caption Video caption; pass null to use an empty caption; 0-getOption("message_caption_length_max") characters
-//@ttl Video TTL (Time To Live), in seconds (0-60). A non-zero TTL can be specified only in private chats
+//@ttl Video self-destruct timer, in seconds (0-60). A non-zero self-destruct timer can be specified only in private chats
 //@has_spoiler True, if the video preview must be covered by a spoiler animation; not supported in secret chats
 inputMessageVideo video:InputFile thumbnail:inputThumbnail added_sticker_file_ids:vector<int32> duration:int32 width:int32 height:int32 supports_streaming:Bool caption:formattedText ttl:int32 has_spoiler:Bool = InputMessageContent;
 
@@ -3484,8 +3484,8 @@ chatEventLinkedChatChanged old_linked_chat_id:int53 new_linked_chat_id:int53 = C
 //@description The supergroup location was changed @old_location Previous location; may be null @new_location New location; may be null
 chatEventLocationChanged old_location:chatLocation new_location:chatLocation = ChatEventAction;
 
-//@description The message TTL was changed @old_message_ttl Previous value of message_ttl @new_message_ttl New value of message_ttl
-chatEventMessageTtlChanged old_message_ttl:int32 new_message_ttl:int32 = ChatEventAction;
+//@description The message auto-delete timer was changed @old_message_auto_delete_timer Previous value of message_auto_delete_timer @new_message_auto_delete_timer New value of message_auto_delete_timer
+chatEventMessageAutoDeleteTimerChanged old_message_auto_delete_timer:int32 new_message_auto_delete_timer:int32 = ChatEventAction;
 
 //@description The chat permissions was changed @old_permissions Previous chat permissions @new_permissions New chat permissions
 chatEventPermissionsChanged old_permissions:chatPermissions new_permissions:chatPermissions = ChatEventAction;
@@ -4236,8 +4236,8 @@ userPrivacySettingAllowPrivateVoiceAndVideoNoteMessages = UserPrivacySetting;
 accountTtl days:int32 = AccountTtl;
 
 
-//@description Contains default message Time To Live setting (self-destruct timer) for new chats @ttl Message TTL setting, in seconds. If 0, then messages aren't deleted automatically
-messageTtl ttl:int32 = MessageTtl;
+//@description Contains default auto-delete timer setting for new chats @auto_delete_timer Message auto-delete timer setting, in seconds. If 0, then messages aren't deleted automatically
+messageAutoDeleteTimer auto_delete_timer:int32 = MessageAutoDeleteTimer;
 
 
 //@class SessionType @description Represents the type of a session
@@ -5001,7 +5001,7 @@ updateMessageIsPinned chat_id:int53 message_id:int53 is_pinned:Bool = Update;
 //@description The information about interactions with a message has changed @chat_id Chat identifier @message_id Message identifier @interaction_info New information about interactions with the message; may be null
 updateMessageInteractionInfo chat_id:int53 message_id:int53 interaction_info:messageInteractionInfo = Update;
 
-//@description The message content was opened. Updates voice note messages to "listened", video note messages to "viewed" and starts the TTL timer for self-destructing messages @chat_id Chat identifier @message_id Message identifier
+//@description The message content was opened. Updates voice note messages to "listened", video note messages to "viewed" and starts the self-destruct timer @chat_id Chat identifier @message_id Message identifier
 updateMessageContentOpened chat_id:int53 message_id:int53 = Update;
 
 //@description A message with an unread mention was read @chat_id Chat identifier @message_id Message identifier @unread_mention_count The new number of unread mention messages left in the chat
@@ -5063,8 +5063,8 @@ updateChatDraftMessage chat_id:int53 draft_message:draftMessage positions:vector
 //@description The message sender that is selected to send messages in a chat has changed @chat_id Chat identifier @message_sender_id New value of message_sender_id; may be null if the user can't change message sender
 updateChatMessageSender chat_id:int53 message_sender_id:MessageSender = Update;
 
-//@description The message Time To Live setting for a chat was changed @chat_id Chat identifier @message_ttl New value of message_ttl
-updateChatMessageTtl chat_id:int53 message_ttl:int32 = Update;
+//@description The message auto-delete or self-destruct timer setting for a chat was changed @chat_id Chat identifier @message_auto_delete_timer New value of message_auto_delete_timer
+updateChatMessageAutoDeleteTimer chat_id:int53 message_auto_delete_timer:int32 = Update;
 
 //@description Notification settings for a chat were changed @chat_id Chat identifier @notification_settings The new notification settings
 updateChatNotificationSettings chat_id:int53 notification_settings:chatNotificationSettings = Update;
@@ -6402,17 +6402,17 @@ createSecretChat secret_chat_id:int32 = Chat;
 //@description Creates a new basic group and sends a corresponding messageBasicGroupChatCreate. Returns the newly created chat
 //@user_ids Identifiers of users to be added to the basic group
 //@title Title of the new basic group; 1-128 characters
-//@message_ttl Message TTL value, in seconds; must be from 0 up to 365 * 86400 and be divisible by 86400. If 0, then messages aren't deleted automatically
-createNewBasicGroupChat user_ids:vector<int53> title:string message_ttl:int32 = Chat;
+//@message_auto_delete_timer Message auto-delete timer value, in seconds; must be from 0 up to 365 * 86400 and be divisible by 86400. If 0, then messages aren't deleted automatically
+createNewBasicGroupChat user_ids:vector<int53> title:string message_auto_delete_timer:int32 = Chat;
 
 //@description Creates a new supergroup or channel and sends a corresponding messageSupergroupChatCreate. Returns the newly created chat
 //@title Title of the new chat; 1-128 characters
 //@is_channel Pass true to create a channel chat
 //@param_description Chat description; 0-255 characters
 //@location Chat location if a location-based supergroup is being created; pass null to create an ordinary supergroup chat
-//@message_ttl Message TTL value, in seconds; must be from 0 up to 365 * 86400 and be divisible by 86400. If 0, then messages aren't deleted automatically
+//@message_auto_delete_timer Message auto-delete timer value, in seconds; must be from 0 up to 365 * 86400 and be divisible by 86400. If 0, then messages aren't deleted automatically
 //@for_import Pass true to create a supergroup for importing messages using importMessage
-createNewSupergroupChat title:string is_channel:Bool description:string location:chatLocation message_ttl:int32 for_import:Bool = Chat;
+createNewSupergroupChat title:string is_channel:Bool description:string location:chatLocation message_auto_delete_timer:int32 for_import:Bool = Chat;
 
 //@description Creates a new secret chat. Returns the newly created chat @user_id Identifier of the target user
 createNewSecretChat user_id:int53 = Chat;
@@ -6461,11 +6461,11 @@ setChatTitle chat_id:int53 title:string = Ok;
 //@photo New chat photo; pass null to delete the chat photo
 setChatPhoto chat_id:int53 photo:InputChatPhoto = Ok;
 
-//@description Changes the message TTL in a chat. Requires change_info administrator right in basic groups, supergroups and channels
-//-Message TTL can't be changed in a chat with the current user (Saved Messages) and the chat 777000 (Telegram).
+//@description Changes the message auto-delete or self-destruct (for secret chats) timer in a chat. Requires change_info administrator right in basic groups, supergroups and channels
+//-Message auto-delete timer can't be changed in a chat with the current user (Saved Messages) and the chat 777000 (Telegram).
 //@chat_id Chat identifier
-//@ttl New TTL value, in seconds; unless the chat is secret, it must be from 0 up to 365 * 86400 and be divisible by 86400. If 0, then messages aren't deleted automatically
-setChatMessageTtl chat_id:int53 ttl:int32 = Ok;
+//@message_auto_delete_timer New timer value, in seconds; unless the chat is secret, it must be from 0 up to 365 * 86400 and be divisible by 86400. If 0, then messages aren't deleted automatically
+setChatMessageAutoDeleteTimer chat_id:int53 message_auto_delete_timer:int32 = Ok;
 
 //@description Changes the chat members permissions. Supported only for basic groups and supergroups. Requires can_restrict_members administrator right
 //@chat_id Chat identifier
@@ -7518,11 +7518,11 @@ getAccountTtl = AccountTtl;
 deleteAccount reason:string password:string = Ok;
 
 
-//@description Changes the default message Time To Live setting (self-destruct timer) for new chats @ttl New message TTL; must be from 0 up to 365 * 86400 and be divisible by 86400. If 0, then messages aren't deleted automatically
-setDefaultMessageTtl ttl:messageTtl = Ok;
+//@description Changes the default message auto-delete timer for new chats @message_auto_delete_timer New message auto-delete timer; must be from 0 up to 365 * 86400 and be divisible by 86400. If 0, then messages aren't deleted automatically
+setDefaultMessageAutoDeleteTimer message_auto_delete_timer:messageAutoDeleteTimer = Ok;
 
-//@description Returns default message Time To Live setting (self-destruct timer) for new chats
-getDefaultMessageTtl = MessageTtl;
+//@description Returns default message auto-delete timer setting for new chats
+getDefaultMessageAutoDeleteTimer = MessageAutoDeleteTimer;
 
 
 //@description Removes a chat action bar without any other action @chat_id Chat identifier

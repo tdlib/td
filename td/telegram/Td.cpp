@@ -4456,26 +4456,26 @@ void Td::on_request(uint64 id, td_api::setUserPrivacySettingRules &request) {
                std::move(promise));
 }
 
-void Td::on_request(uint64 id, const td_api::getDefaultMessageTtl &request) {
+void Td::on_request(uint64 id, const td_api::getDefaultMessageAutoDeleteTimer &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
   auto query_promise = PromiseCreator::lambda([promise = std::move(promise)](Result<int32> result) mutable {
     if (result.is_error()) {
       promise.set_error(result.move_as_error());
     } else {
-      promise.set_value(td_api::make_object<td_api::messageTtl>(result.ok()));
+      promise.set_value(td_api::make_object<td_api::messageAutoDeleteTimer>(result.ok()));
     }
   });
   get_default_message_ttl(this, std::move(query_promise));
 }
 
-void Td::on_request(uint64 id, const td_api::setDefaultMessageTtl &request) {
+void Td::on_request(uint64 id, const td_api::setDefaultMessageAutoDeleteTimer &request) {
   CHECK_IS_USER();
-  if (request.ttl_ == nullptr) {
+  if (request.message_auto_delete_timer_ == nullptr) {
     return send_error_raw(id, 400, "New default message TTL must be non-empty");
   }
   CREATE_OK_REQUEST_PROMISE();
-  set_default_message_ttl(this, request.ttl_->ttl_, std::move(promise));
+  set_default_message_ttl(this, request.message_auto_delete_timer_->auto_delete_timer_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::getAccountTtl &request) {
@@ -5701,7 +5701,7 @@ void Td::on_request(uint64 id, td_api::createNewBasicGroupChat &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.title_);
   CREATE_REQUEST(CreateNewGroupChatRequest, UserId::get_user_ids(request.user_ids_), std::move(request.title_),
-                 request.message_ttl_);
+                 request.message_auto_delete_timer_);
 }
 
 void Td::on_request(uint64 id, td_api::createNewSupergroupChat &request) {
@@ -5710,7 +5710,7 @@ void Td::on_request(uint64 id, td_api::createNewSupergroupChat &request) {
   CLEAN_INPUT_STRING(request.description_);
   CREATE_REQUEST(CreateNewSupergroupChatRequest, std::move(request.title_), !request.is_channel_,
                  std::move(request.description_), std::move(request.location_), request.for_import_,
-                 request.message_ttl_);
+                 request.message_auto_delete_timer_);
 }
 
 void Td::on_request(uint64 id, td_api::createNewSecretChat &request) {
@@ -6128,9 +6128,10 @@ void Td::on_request(uint64 id, const td_api::setChatPhoto &request) {
   messages_manager_->set_dialog_photo(DialogId(request.chat_id_), request.photo_, std::move(promise));
 }
 
-void Td::on_request(uint64 id, const td_api::setChatMessageTtl &request) {
+void Td::on_request(uint64 id, const td_api::setChatMessageAutoDeleteTimer &request) {
   CREATE_OK_REQUEST_PROMISE();
-  messages_manager_->set_dialog_message_ttl(DialogId(request.chat_id_), request.ttl_, std::move(promise));
+  messages_manager_->set_dialog_message_ttl(DialogId(request.chat_id_), request.message_auto_delete_timer_,
+                                            std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::setChatPermissions &request) {

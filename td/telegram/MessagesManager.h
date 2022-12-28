@@ -2556,7 +2556,7 @@ class MessagesManager final : public Actor {
 
   void send_update_chat_message_sender(const Dialog *d);
 
-  void send_update_chat_message_ttl(const Dialog *d);
+  void send_update_chat_message_auto_delete_timer(const Dialog *d);
 
   void send_update_chat_has_scheduled_messages(Dialog *d, bool from_deletion);
 

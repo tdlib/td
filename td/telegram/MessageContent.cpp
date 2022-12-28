@@ -5494,7 +5494,7 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
       return make_tl_object<td_api::messageScreenshotTaken>();
     case MessageContentType::ChatSetTtl: {
       const auto *m = static_cast<const MessageChatSetTtl *>(content);
-      return make_tl_object<td_api::messageChatSetTtl>(
+      return make_tl_object<td_api::messageChatSetMessageAutoDeleteTimer>(
           m->ttl, td->contacts_manager_->get_user_id_object(m->from_user_id, "MessageChatSetTtl"));
     }
     case MessageContentType::Call: {
