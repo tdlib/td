@@ -7659,14 +7659,14 @@ checkEmailAddressVerificationCode code:string = Ok;
 getPassportAuthorizationForm bot_user_id:int53 scope:string public_key:string nonce:string = PassportAuthorizationForm;
 
 //@description Returns already available Telegram Passport elements suitable for completing a Telegram Passport authorization form. Result can be received only once for each authorization form
-//@autorization_form_id Authorization form identifier
+//@authorization_form_id Authorization form identifier
 //@password The 2-step verification password of the current user
-getPassportAuthorizationFormAvailableElements autorization_form_id:int32 password:string = PassportElementsWithErrors;
+getPassportAuthorizationFormAvailableElements authorization_form_id:int32 password:string = PassportElementsWithErrors;
 
 //@description Sends a Telegram Passport authorization form, effectively sharing data with the service. This method must be called after getPassportAuthorizationFormAvailableElements if some previously available elements are going to be reused
-//@autorization_form_id Authorization form identifier
+//@authorization_form_id Authorization form identifier
 //@types Types of Telegram Passport elements chosen by user to complete the authorization form
-sendPassportAuthorizationForm autorization_form_id:int32 types:vector<PassportElementType> = Ok;
+sendPassportAuthorizationForm authorization_form_id:int32 types:vector<PassportElementType> = Ok;
 
 
 //@description Sends phone number confirmation code to handle links of the type internalLinkTypePhoneNumberConfirmation

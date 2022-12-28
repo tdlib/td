@@ -398,7 +398,7 @@ class CliClient final : public Actor {
     }
   }
 
-  void on_update_autorization_state(td_api::object_ptr<td_api::AuthorizationState> &&state) {
+  void on_update_authorization_state(td_api::object_ptr<td_api::AuthorizationState> &&state) {
     authorization_state_ = std::move(state);
     switch (authorization_state_->get_id()) {
       case td_api::authorizationStateWaitTdlibParameters::ID: {
@@ -991,7 +991,7 @@ class CliClient final : public Actor {
         break;
       case td_api::updateAuthorizationState::ID:
         LOG(WARNING) << result_str;
-        on_update_autorization_state(
+        on_update_authorization_state(
             std::move(static_cast<td_api::updateAuthorizationState *>(result.get())->authorization_state_));
         break;
       case td_api::updateChatLastMessage::ID: {

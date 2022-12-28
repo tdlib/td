@@ -7912,7 +7912,7 @@ void Td::on_request(uint64 id, td_api::getPassportAuthorizationFormAvailableElem
   CLEAN_INPUT_STRING(request.password_);
   CREATE_REQUEST_PROMISE();
   send_closure(secure_manager_, &SecureManager::get_passport_authorization_form_available_elements,
-               request.autorization_form_id_, std::move(request.password_), std::move(promise));
+               request.authorization_form_id_, std::move(request.password_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::sendPassportAuthorizationForm &request) {
@@ -7924,7 +7924,7 @@ void Td::on_request(uint64 id, td_api::sendPassportAuthorizationForm &request) {
   }
 
   CREATE_OK_REQUEST_PROMISE();
-  send_closure(secure_manager_, &SecureManager::send_passport_authorization_form, request.autorization_form_id_,
+  send_closure(secure_manager_, &SecureManager::send_passport_authorization_form, request.authorization_form_id_,
                get_secure_value_types_td_api(request.types_), std::move(promise));
 }
 
