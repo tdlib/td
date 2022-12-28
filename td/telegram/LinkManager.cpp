@@ -285,6 +285,12 @@ class LinkManager::InternalLinkConfirmPhone final : public InternalLink {
   }
 };
 
+class LinkManager::InternalLinkDefaultMessageAutoDeleteTimerSettings final : public InternalLink {
+  td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
+    return td_api::make_object<td_api::internalLinkTypeDefaultMessageAutoDeleteTimerSettings>();
+  }
+};
+
 class LinkManager::InternalLinkDialogInvite final : public InternalLink {
   string url_;
 
@@ -1122,6 +1128,10 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
     // premium_offer?ref=<referrer>
     return td::make_unique<InternalLinkPremiumFeatures>(get_arg("ref"));
   } else if (!path.empty() && path[0] == "settings") {
+    if (path.size() == 2 && path[1] == "auto_delete") {
+      // settings/auto_delete
+      return td::make_unique<InternalLinkDefaultMessageAutoDeleteTimerSettings>();
+    }
     if (path.size() == 2 && path[1] == "change_number") {
       // settings/change_number
       return td::make_unique<InternalLinkChangePhoneNumber>();

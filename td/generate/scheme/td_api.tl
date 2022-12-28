@@ -4435,6 +4435,9 @@ internalLinkTypeChangePhoneNumber = InternalLinkType;
 //@description The link is a chat invite link. Call checkChatInviteLink with the given invite link to process the link @invite_link Internal representation of the invite link
 internalLinkTypeChatInvite invite_link:string = InternalLinkType;
 
+//@description The link is a link to the default message auto-delete timer settings section of the app
+internalLinkTypeDefaultMessageAutoDeleteTimerSettings = InternalLinkType;
+
 //@description The link is a link to the filter settings section of the app
 internalLinkTypeFilterSettings = InternalLinkType;
 

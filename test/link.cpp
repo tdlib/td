@@ -153,6 +153,9 @@ TEST(Link, parse_internal_link) {
   auto chat_invite = [](const td::string &hash) {
     return td::td_api::make_object<td::td_api::internalLinkTypeChatInvite>("tg:join?invite=" + hash);
   };
+  auto default_message_auto_delete_timer_settings = [] {
+    return td::td_api::make_object<td::td_api::internalLinkTypeDefaultMessageAutoDeleteTimerSettings>();
+  };
   auto filter_settings = [] {
     return td::td_api::make_object<td::td_api::internalLinkTypeFilterSettings>();
   };
@@ -966,6 +969,7 @@ TEST(Link, parse_internal_link) {
   parse_internal_link("tg://settings/themes/?as#rad", theme_settings());
   parse_internal_link("tg://settings/themes/a", settings());
   parse_internal_link("tg://settings/asdsathemesasdas/devices", settings());
+  parse_internal_link("tg://settings/auto_delete", default_message_auto_delete_timer_settings());
   parse_internal_link("tg://settings/devices", active_sessions());
   parse_internal_link("tg://settings/change_number", change_phone_number());
   parse_internal_link("tg://settings/folders", filter_settings());
