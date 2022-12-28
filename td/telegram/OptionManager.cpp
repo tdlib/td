@@ -120,6 +120,7 @@ OptionManager::OptionManager(Td *td)
   }
 
   set_option_empty("themed_emoji_statuses_sticker_set_id");
+  set_option_empty("themed_premium_statuses_sticker_set_id");
 }
 
 OptionManager::~OptionManager() = default;

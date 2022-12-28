@@ -748,12 +748,20 @@ class MessagesManager final : public Actor {
                                                                           MessageSearchFilter filter, int64 &random_id,
                                                                           bool use_db, Promise<Unit> &&promise);
 
-  std::pair<int32, vector<MessageId>> search_dialog_messages(DialogId dialog_id, const string &query,
-                                                             const td_api::object_ptr<td_api::MessageSender> &sender,
-                                                             MessageId from_message_id, int32 offset, int32 limit,
-                                                             MessageSearchFilter filter,
-                                                             MessageId top_thread_message_id, int64 &random_id,
-                                                             bool use_db, Promise<Unit> &&promise);
+  struct FoundDialogMessages {
+    vector<MessageId> message_ids;
+    MessageId next_from_message_id;
+    int32 total_count = 0;
+  };
+
+  td_api::object_ptr<td_api::foundChatMessages> get_found_chat_messages_object(
+      DialogId dialog_id, const FoundDialogMessages &found_dialog_messages, const char *source);
+
+  FoundDialogMessages search_dialog_messages(DialogId dialog_id, const string &query,
+                                             const td_api::object_ptr<td_api::MessageSender> &sender,
+                                             MessageId from_message_id, int32 offset, int32 limit,
+                                             MessageSearchFilter filter, MessageId top_thread_message_id,
+                                             int64 &random_id, bool use_db, Promise<Unit> &&promise);
 
   struct FoundMessages {
     vector<FullMessageId> full_message_ids;
@@ -3548,10 +3556,9 @@ class MessagesManager final : public Actor {
   FlatHashMap<int64, FullMessageId> get_dialog_message_by_date_results_;
 
   FlatHashMap<int64, td_api::object_ptr<td_api::messageCalendar>> found_dialog_message_calendars_;
-  FlatHashMap<int64, std::pair<int32, vector<MessageId>>>
-      found_dialog_messages_;                                     // random_id -> [total_count, [message_id]...]
-  FlatHashMap<int64, DialogId> found_dialog_messages_dialog_id_;  // random_id -> dialog_id
-  FlatHashMap<int64, FoundMessages> found_messages_;              // random_id -> FoundMessages
+  FlatHashMap<int64, FoundDialogMessages> found_dialog_messages_;  // random_id -> FoundDialogMessages
+  FlatHashMap<int64, DialogId> found_dialog_messages_dialog_id_;   // random_id -> dialog_id
+  FlatHashMap<int64, FoundMessages> found_messages_;               // random_id -> FoundMessages
   FlatHashMap<int64, std::pair<int32, vector<FullMessageId>>>
       found_call_messages_;  // random_id -> [total_count, [full_message_id]...]
 

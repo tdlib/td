@@ -10342,7 +10342,7 @@ void MessagesManager::on_get_dialog_messages_search_result(
   auto it = found_dialog_messages_.find(random_id);
   CHECK(it != found_dialog_messages_.end());
 
-  auto &result = it->second.second;
+  auto &result = it->second.message_ids;
   CHECK(result.empty());
   MessageId first_added_message_id;
   if (messages.empty()) {
@@ -10352,9 +10352,14 @@ void MessagesManager::on_get_dialog_messages_search_result(
   }
   bool can_be_in_different_dialog = top_thread_message_id.is_valid() && is_broadcast_channel(dialog_id);
   DialogId real_dialog_id;
+  MessageId next_from_message_id;
   Dialog *d = get_dialog(dialog_id);
   CHECK(d != nullptr);
   for (auto &message : messages) {
+    auto message_id = MessageId::get_message_id(message, false);
+    if (message_id.is_valid() && message_id < next_from_message_id) {
+      next_from_message_id = message_id;
+    }
     auto new_full_message_id = on_get_message(std::move(message), false, dialog_id.get_type() == DialogType::Channel,
                                               false, false, false, "on_get_dialog_messages_search_result");
     if (new_full_message_id == FullMessageId()) {
@@ -10380,7 +10385,7 @@ void MessagesManager::on_get_dialog_messages_search_result(
       }
     }
 
-    auto message_id = new_full_message_id.get_message_id();
+    CHECK(message_id == new_full_message_id.get_message_id());
     if (filter == MessageSearchFilter::UnreadMention && message_id <= d->last_read_all_mentions_message_id &&
         !real_dialog_id.is_valid()) {
       total_count--;
@@ -10437,7 +10442,8 @@ void MessagesManager::on_get_dialog_messages_search_result(
     }
   }
 
-  it->second.first = total_count;
+  it->second.total_count = total_count;
+  it->second.next_from_message_id = next_from_message_id;
   promise.set_value(Unit());
 }
 
@@ -22660,7 +22666,7 @@ std::pair<DialogId, vector<MessageId>> MessagesManager::get_message_thread_histo
     // request has already been sent before
     auto it = found_dialog_messages_.find(random_id);
     CHECK(it != found_dialog_messages_.end());
-    auto result = std::move(it->second.second);
+    auto result = std::move(it->second.message_ids);
     found_dialog_messages_.erase(it);
 
     auto dialog_id_it = found_dialog_messages_dialog_id_.find(random_id);
@@ -22898,7 +22904,7 @@ void MessagesManager::on_get_message_calendar_from_database(int64 random_id, Dia
   promise.set_value(Unit());
 }
 
-std::pair<int32, vector<MessageId>> MessagesManager::search_dialog_messages(
+MessagesManager::FoundDialogMessages MessagesManager::search_dialog_messages(
     DialogId dialog_id, const string &query, const td_api::object_ptr<td_api::MessageSender> &sender,
     MessageId from_message_id, int32 offset, int32 limit, MessageSearchFilter filter, MessageId top_thread_message_id,
     int64 &random_id, bool use_db, Promise<Unit> &&promise) {
@@ -22918,7 +22924,7 @@ std::pair<int32, vector<MessageId>> MessagesManager::search_dialog_messages(
             << oneline(to_string(sender)) << " in thread of " << top_thread_message_id << " filtered by " << filter
             << " from " << from_message_id << " with offset " << offset << " and limit " << limit;
 
-  std::pair<int32, vector<MessageId>> result;
+  FoundDialogMessages result;
   if (limit <= 0) {
     promise.set_error(Status::Error(400, "Parameter limit must be positive"));
     return result;
@@ -23589,12 +23595,16 @@ void MessagesManager::on_search_dialog_message_db_result(int64 random_id, Dialog
 
   auto it = found_dialog_messages_.find(random_id);
   CHECK(it != found_dialog_messages_.end());
-  auto &res = it->second.second;
+  auto &res = it->second.message_ids;
 
+  MessageId next_from_message_id;
   res.reserve(messages.size());
   for (auto &message : messages) {
     auto m = on_get_message_from_database(d, message, false, "on_search_dialog_message_db_result");
     if (m != nullptr && first_db_message_id <= m->message_id) {
+      if (m->message_id < next_from_message_id) {
+        next_from_message_id = m->message_id;
+      }
       if (filter == MessageSearchFilter::UnreadMention && !m->contains_unread_mention) {
         // skip already read by d->last_read_all_mentions_message_id mentions
       } else {
@@ -23625,7 +23635,8 @@ void MessagesManager::on_search_dialog_message_db_result(int64 random_id, Dialog
     }
     on_dialog_updated(dialog_id, "on_search_dialog_message_db_result");
   }
-  it->second.first = message_count;
+  it->second.total_count = message_count;
+  it->second.next_from_message_id = next_from_message_id;
   if (res.empty() && first_db_message_id != MessageId::min() && dialog_id.get_type() != DialogType::SecretChat) {
     LOG(INFO) << "No messages found in database";
     found_dialog_messages_.erase(it);
@@ -23636,6 +23647,23 @@ void MessagesManager::on_search_dialog_message_db_result(int64 random_id, Dialog
     }
   }
   promise.set_value(Unit());
+}
+
+td_api::object_ptr<td_api::foundChatMessages> MessagesManager::get_found_chat_messages_object(
+    DialogId dialog_id, const FoundDialogMessages &found_dialog_messages, const char *source) {
+  auto *d = get_dialog(dialog_id);
+  CHECK(d != nullptr);
+  vector<tl_object_ptr<td_api::message>> result;
+  result.reserve(found_dialog_messages.message_ids.size());
+  for (const auto &message_id : found_dialog_messages.message_ids) {
+    auto message = get_message_object(dialog_id, get_message_force(d, message_id, source), source);
+    if (message != nullptr) {
+      result.push_back(std::move(message));
+    }
+  }
+
+  return td_api::make_object<td_api::foundChatMessages>(found_dialog_messages.total_count, std::move(result),
+                                                        found_dialog_messages.next_from_message_id.get());
 }
 
 td_api::object_ptr<td_api::foundMessages> MessagesManager::get_found_messages_object(

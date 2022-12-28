@@ -1346,7 +1346,7 @@ class SearchChatMessagesRequest final : public RequestActor<> {
   MessageId top_thread_message_id_;
   int64 random_id_;
 
-  std::pair<int32, vector<MessageId>> messages_;
+  MessagesManager::FoundDialogMessages messages_;
 
   void do_run(Promise<Unit> &&promise) final {
     messages_ = td_->messages_manager_->search_dialog_messages(dialog_id_, query_, sender_id_, from_message_id_,
@@ -1355,14 +1355,13 @@ class SearchChatMessagesRequest final : public RequestActor<> {
   }
 
   void do_send_result() final {
-    send_result(td_->messages_manager_->get_messages_object(messages_.first, dialog_id_, messages_.second, true,
-                                                            "SearchChatMessagesRequest"));
+    send_result(
+        td_->messages_manager_->get_found_chat_messages_object(dialog_id_, messages_, "SearchChatMessagesRequest"));
   }
 
   void do_send_error(Status &&status) final {
     if (status.message() == "SEARCH_QUERY_EMPTY") {
-      messages_.first = 0;
-      messages_.second.clear();
+      messages_ = {};
       return do_send_result();
     }
     send_error(std::move(status));
