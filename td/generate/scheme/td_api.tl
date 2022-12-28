@@ -1058,8 +1058,8 @@ messageSendingStateFailed error_code:int32 error_message:string can_retry:Bool n
 //@reply_in_chat_id If non-zero, the identifier of the chat to which the replied message belongs; Currently, only messages in the Replies chat can have different reply_in_chat_id and chat_id
 //@reply_to_message_id If non-zero, the identifier of the message this message is replying to; can be the identifier of a deleted message
 //@message_thread_id If non-zero, the identifier of the message thread the message belongs to; unique within the chat to which the message belongs
-//@ttl For self-destructing messages, the message's self-destruct timer, in seconds; 0 if none. TDLib will send updateDeleteMessages or updateMessageContent once the time expires
-//@ttl_expires_in Time left before the message expires, in seconds. If the self-destruct timer isn't started yet, equals to the value of the ttl field
+//@self_destruct_timer The message's self-destruct timer, in seconds; 0 if none. TDLib will send updateDeleteMessages or updateMessageContent once the time expires
+//@self_destruct_in Time left before the message self-destruct timer expires, in seconds. If the self-destruct timer isn't started yet, equals to the value of the self_destruct_timer field
 //@auto_delete_in Time left before the message will be automatically deleted by message_auto_delete_timer setting of the chat, in seconds; 0 if never. TDLib will send updateDeleteMessages or updateMessageContent once the time expires
 //@via_bot_user_id If non-zero, the user identifier of the bot through which this message was sent
 //@author_signature For channel posts and anonymous group messages, optional author signature
@@ -1067,7 +1067,7 @@ messageSendingStateFailed error_code:int32 error_message:string can_retry:Bool n
 //@restriction_reason If non-empty, contains a human-readable description of the reason why access to this message must be restricted
 //@content Content of the message
 //@reply_markup Reply markup for the message; may be null
-message id:int53 sender_id:MessageSender chat_id:int53 sending_state:MessageSendingState scheduling_state:MessageSchedulingState is_outgoing:Bool is_pinned:Bool can_be_edited:Bool can_be_forwarded:Bool can_be_saved:Bool can_be_deleted_only_for_self:Bool can_be_deleted_for_all_users:Bool can_get_added_reactions:Bool can_get_statistics:Bool can_get_message_thread:Bool can_get_viewers:Bool can_get_media_timestamp_links:Bool can_report_reactions:Bool has_timestamped_media:Bool is_channel_post:Bool is_topic_message:Bool contains_unread_mention:Bool date:int32 edit_date:int32 forward_info:messageForwardInfo interaction_info:messageInteractionInfo unread_reactions:vector<unreadReaction> reply_in_chat_id:int53 reply_to_message_id:int53 message_thread_id:int53 ttl:int32 ttl_expires_in:double auto_delete_in:double via_bot_user_id:int53 author_signature:string media_album_id:int64 restriction_reason:string content:MessageContent reply_markup:ReplyMarkup = Message;
+message id:int53 sender_id:MessageSender chat_id:int53 sending_state:MessageSendingState scheduling_state:MessageSchedulingState is_outgoing:Bool is_pinned:Bool can_be_edited:Bool can_be_forwarded:Bool can_be_saved:Bool can_be_deleted_only_for_self:Bool can_be_deleted_for_all_users:Bool can_get_added_reactions:Bool can_get_statistics:Bool can_get_message_thread:Bool can_get_viewers:Bool can_get_media_timestamp_links:Bool can_report_reactions:Bool has_timestamped_media:Bool is_channel_post:Bool is_topic_message:Bool contains_unread_mention:Bool date:int32 edit_date:int32 forward_info:messageForwardInfo interaction_info:messageInteractionInfo unread_reactions:vector<unreadReaction> reply_in_chat_id:int53 reply_to_message_id:int53 message_thread_id:int53 self_destruct_timer:int32 self_destruct_in:double auto_delete_in:double via_bot_user_id:int53 author_signature:string media_album_id:int64 restriction_reason:string content:MessageContent reply_markup:ReplyMarkup = Message;
 
 //@description Contains a list of messages @total_count Approximate total number of messages found @messages List of messages; messages may be null
 messages total_count:int32 messages:vector<message> = Messages;
@@ -2262,7 +2262,7 @@ messageDocument document:document caption:formattedText = MessageContent;
 //@is_secret True, if the photo must be blurred and must be shown only while tapped
 messagePhoto photo:photo caption:formattedText has_spoiler:Bool is_secret:Bool = MessageContent;
 
-//@description An expired photo message (self-destructed after TTL has elapsed)
+//@description A self-destructed photo message
 messageExpiredPhoto = MessageContent;
 
 //@description A sticker message @sticker The sticker description @is_premium True, if premium animation of the sticker must be played
@@ -2275,7 +2275,7 @@ messageSticker sticker:sticker is_premium:Bool = MessageContent;
 //@is_secret True, if the video thumbnail must be blurred and the video must be shown only while tapped
 messageVideo video:video caption:formattedText has_spoiler:Bool is_secret:Bool = MessageContent;
 
-//@description An expired video message (self-destructed after TTL has elapsed)
+//@description A self-destructed video message
 messageExpiredVideo = MessageContent;
 
 //@description A video note message @video_note The video note description @is_viewed True, if at least one of the recipients has viewed the video note @is_secret True, if the video note thumbnail must be blurred and the video note must be shown only while tapped
@@ -2605,9 +2605,9 @@ inputMessageDocument document:InputFile thumbnail:inputThumbnail disable_content
 //@width Photo width
 //@height Photo height
 //@caption Photo caption; pass null to use an empty caption; 0-getOption("message_caption_length_max") characters
-//@ttl Photo self-destruct timer, in seconds (0-60). A non-zero self-destruct timer can be specified only in private chats
+//@self_destruct_timer Photo self-destruct timer, in seconds (0-60). A non-zero self-destruct timer can be specified only in private chats
 //@has_spoiler True, if the photo preview must be covered by a spoiler animation; not supported in secret chats
-inputMessagePhoto photo:InputFile thumbnail:inputThumbnail added_sticker_file_ids:vector<int32> width:int32 height:int32 caption:formattedText ttl:int32 has_spoiler:Bool = InputMessageContent;
+inputMessagePhoto photo:InputFile thumbnail:inputThumbnail added_sticker_file_ids:vector<int32> width:int32 height:int32 caption:formattedText self_destruct_timer:int32 has_spoiler:Bool = InputMessageContent;
 
 //@description A sticker message
 //@sticker Sticker to be sent
@@ -2626,9 +2626,9 @@ inputMessageSticker sticker:InputFile thumbnail:inputThumbnail width:int32 heigh
 //@height Video height
 //@supports_streaming True, if the video is supposed to be streamed
 //@caption Video caption; pass null to use an empty caption; 0-getOption("message_caption_length_max") characters
-//@ttl Video self-destruct timer, in seconds (0-60). A non-zero self-destruct timer can be specified only in private chats
+//@self_destruct_timer Video self-destruct timer, in seconds (0-60). A non-zero self-destruct timer can be specified only in private chats
 //@has_spoiler True, if the video preview must be covered by a spoiler animation; not supported in secret chats
-inputMessageVideo video:InputFile thumbnail:inputThumbnail added_sticker_file_ids:vector<int32> duration:int32 width:int32 height:int32 supports_streaming:Bool caption:formattedText ttl:int32 has_spoiler:Bool = InputMessageContent;
+inputMessageVideo video:InputFile thumbnail:inputThumbnail added_sticker_file_ids:vector<int32> duration:int32 width:int32 height:int32 supports_streaming:Bool caption:formattedText self_destruct_timer:int32 has_spoiler:Bool = InputMessageContent;
 
 //@description A video note message
 //@video_note Video note to be sent
