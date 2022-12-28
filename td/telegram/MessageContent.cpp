@@ -3691,7 +3691,7 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
       const auto *old_ = static_cast<const MessageChatSetTtl *>(old_content);
       const auto *new_ = static_cast<const MessageChatSetTtl *>(new_content);
       if (old_->ttl != new_->ttl) {
-        LOG(ERROR) << "TTL has changed from " << old_->ttl << " to " << new_->ttl;
+        LOG(ERROR) << "Message auto-delete time has changed from " << old_->ttl << " to " << new_->ttl;
         need_update = true;
       }
       if (old_->from_user_id != new_->from_user_id) {
@@ -4604,7 +4604,7 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
       auto media = move_tl_object_as<telegram_api::messageMediaPhoto>(media_ptr);
       if (media->photo_ == nullptr) {
         if ((media->flags_ & telegram_api::messageMediaPhoto::TTL_SECONDS_MASK) == 0) {
-          LOG(ERROR) << "Receive messageMediaPhoto without photo and TTL from " << source << ": "
+          LOG(ERROR) << "Receive messageMediaPhoto without photo and self-destruct timer from " << source << ": "
                      << oneline(to_string(media));
           break;
         }
@@ -4682,7 +4682,7 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
       auto media = move_tl_object_as<telegram_api::messageMediaDocument>(media_ptr);
       if (media->document_ == nullptr) {
         if ((media->flags_ & telegram_api::messageMediaDocument::TTL_SECONDS_MASK) == 0) {
-          LOG(ERROR) << "Receive messageMediaDocument without document and TTL from " << source << ": "
+          LOG(ERROR) << "Receive messageMediaDocument without document and self-destruct timer from " << source << ": "
                      << oneline(to_string(media));
           break;
         }

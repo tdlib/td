@@ -9251,7 +9251,7 @@ void MessagesManager::do_send_media(DialogId dialog_id, Message *m, FileId file_
   bool have_input_thumbnail = input_thumbnail != nullptr;
   LOG(INFO) << "Do send media file " << file_id << " with thumbnail " << thumbnail_file_id
             << ", have_input_file = " << have_input_file << ", have_input_thumbnail = " << have_input_thumbnail
-            << ", TTL = " << m->ttl;
+            << ", self-destruct time = " << m->ttl;
 
   MessageContent *content = nullptr;
   if (m->message_id.is_any_server()) {
@@ -14421,13 +14421,13 @@ void MessagesManager::on_secret_chat_screenshot_taken(SecretChatId secret_chat_i
 
 void MessagesManager::on_secret_chat_ttl_changed(SecretChatId secret_chat_id, UserId user_id, MessageId message_id,
                                                  int32 date, int32 ttl, int64 random_id, Promise<Unit> promise) {
-  LOG(DEBUG) << "On TTL set in " << secret_chat_id << " to " << ttl;
+  LOG(DEBUG) << "On self-destruct timer set in " << secret_chat_id << " to " << ttl;
   CHECK(secret_chat_id.is_valid());
   CHECK(user_id.is_valid());
   CHECK(message_id.is_valid());
   CHECK(date > 0);
   if (ttl < 0) {
-    LOG(WARNING) << "Receive wrong TTL = " << ttl;
+    LOG(WARNING) << "Receive wrong self-destruct time = " << ttl;
     promise.set_value(Unit());
     return;
   }
@@ -14781,14 +14781,14 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
 
   int32 ttl_period = message_info.ttl_period;
   if (ttl_period < 0 || (message_id.is_scheduled() && ttl_period != 0)) {
-    LOG(ERROR) << "Wrong TTL period = " << ttl_period << " received in " << message_id << " in " << dialog_id;
+    LOG(ERROR) << "Wrong auto-delete time " << ttl_period << " received in " << message_id << " in " << dialog_id;
     ttl_period = 0;
   }
 
   int32 ttl = message_info.ttl;
   bool is_content_secret = is_secret_message_content(ttl, content_type);  // must be calculated before TTL is adjusted
   if (ttl < 0 || (message_id.is_scheduled() && ttl != 0)) {
-    LOG(ERROR) << "Wrong TTL = " << ttl << " received in " << message_id << " in " << dialog_id;
+    LOG(ERROR) << "Wrong self-destruct time " << ttl << " received in " << message_id << " in " << dialog_id;
     ttl = 0;
   } else if (ttl > 0) {
     ttl = max(ttl, get_message_content_duration(message_info.content.get(), td_) + 1);
@@ -14886,7 +14886,7 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
                                            message->contains_mention || dialog_type == DialogType::User);
 
   if (content_type == MessageContentType::ExpiredPhoto || content_type == MessageContentType::ExpiredVideo) {
-    CHECK(message->ttl == 0);  // TTL is ignored/set to 0 if the message has already been expired
+    CHECK(message->ttl == 0);  // self-destruct time is ignored/set to 0 if the message has already been expired
     if (message->reply_markup != nullptr) {
       if (message->reply_markup->type != ReplyMarkup::Type::InlineKeyboard) {
         message->had_reply_markup = true;
@@ -15933,7 +15933,7 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
       dialog->unread_reactions_count_ = 0;
     }
     if (dialog->ttl_period_ < 0) {
-      LOG(ERROR) << "Receive " << dialog->ttl_period_ << " as message TTL in " << dialog_id;
+      LOG(ERROR) << "Receive " << dialog->ttl_period_ << " as message auto-delete time in " << dialog_id;
       dialog->ttl_period_ = 0;
     }
     if (!d->is_is_blocked_inited && !td_->auth_manager_->is_bot()) {
@@ -26323,10 +26323,10 @@ Result<InputMessageContent> MessagesManager::process_input_message_content(
   TRY_RESULT(content, get_input_message_content(dialog_id, std::move(input_message_content), td_, is_premium));
 
   if (content.ttl < 0 || content.ttl > MAX_PRIVATE_MESSAGE_TTL) {
-    return Status::Error(400, "Invalid message content TTL specified");
+    return Status::Error(400, "Invalid message content self-destruct time specified");
   }
   if (content.ttl > 0 && dialog_id.get_type() != DialogType::User) {
-    return Status::Error(400, "Message content TTL can be specified only in private chats");
+    return Status::Error(400, "Message content self-destruct time can be specified only in private chats");
   }
 
   if (dialog_id != DialogId()) {
@@ -28287,7 +28287,7 @@ void MessagesManager::edit_inline_message_media(const string &inline_message_id,
   }
   InputMessageContent content = r_input_message_content.move_as_ok();
   if (content.ttl > 0) {
-    LOG(ERROR) << "Have message content with TTL " << content.ttl;
+    LOG(ERROR) << "Have message content with self-destruct time " << content.ttl;
     return promise.set_error(Status::Error(400, "Can't enable self-destruction for media"));
   }
 
@@ -32085,7 +32085,7 @@ FullMessageId MessagesManager::on_send_message_success(int64 random_id, MessageI
     if (!(old_message_id.is_valid() && new_message_id < old_message_id) &&
         !(ttl_period > 0 && date + ttl_period <= G()->server_time())) {
       // if message ID has decreased, which could happen if some messages were lost,
-      // or the message has already been deleted after TTL period, then the error is expected
+      // or the message has already been deleted after auto-delete timer expired, then the error is expected
       LOG(ERROR) << "Failed to add just sent " << old_message_id << " to " << dialog_id << " as " << new_message_id
                  << " from " << source << ": " << debug_add_message_to_dialog_fail_reason_;
     }
@@ -34512,7 +34512,7 @@ void MessagesManager::set_dialog_message_ttl(DialogId dialog_id, int32 ttl, Prom
     return promise.set_error(Status::Error(400, "Have no write access to the chat"));
   }
 
-  LOG(INFO) << "Begin to set message TTL in " << dialog_id << " to " << ttl;
+  LOG(INFO) << "Begin to set message auto-delete time in " << dialog_id << " to " << ttl;
 
   switch (dialog_id.get_type()) {
     case DialogType::User:
@@ -35496,9 +35496,10 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     auto now = Time::now();
     if (message->ttl_expires_at <= now) {
       if (dialog_type == DialogType::SecretChat) {
-        LOG(INFO) << "Can't add " << message_id << " with expired TTL to " << dialog_id << " from " << source;
+        LOG(INFO) << "Can't add " << message_id << " with expired self-destruct timer to " << dialog_id << " from "
+                  << source;
         delete_message_from_database(d, message_id, message.get(), true);
-        debug_add_message_to_dialog_fail_reason_ = "delete expired by TTL message";
+        debug_add_message_to_dialog_fail_reason_ = "delete self-destructed message";
         d->being_added_message_id = MessageId();
         return nullptr;
       } else {
@@ -35516,9 +35517,9 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     CHECK(dialog_type != DialogType::SecretChat);
     auto server_time = G()->server_time();
     if (message->date + message->ttl_period <= server_time) {
-      LOG(INFO) << "Can't add " << message_id << " with expired TTL period to " << dialog_id << " from " << source;
+      LOG(INFO) << "Can't add auto-deleted " << message_id << " to " << dialog_id << " from " << source;
       delete_message_from_database(d, message_id, message.get(), true);
-      debug_add_message_to_dialog_fail_reason_ = "delete expired by TTL period message";
+      debug_add_message_to_dialog_fail_reason_ = "delete auto-deleted message";
       d->being_added_message_id = MessageId();
       return nullptr;
     } else {
@@ -35977,14 +35978,14 @@ MessagesManager::Message *MessagesManager::add_scheduled_message_to_dialog(Dialo
     return nullptr;
   }
   if (message->ttl != 0 || message->ttl_expires_at != 0) {
-    LOG(ERROR) << "Tried to add " << message_id << " with TTL " << message->ttl << "/" << message->ttl_expires_at
-               << " to " << dialog_id << " from " << source;
+    LOG(ERROR) << "Tried to add " << message_id << " with self-destruct timer " << message->ttl << '/'
+               << message->ttl_expires_at << " to " << dialog_id << " from " << source;
     debug_add_message_to_dialog_fail_reason_ = "skip adding secret scheduled message";
     return nullptr;
   }
   if (message->ttl_period != 0) {
-    LOG(ERROR) << "Tried to add " << message_id << " with TTL period " << message->ttl_period << " to " << dialog_id
-               << " from " << source;
+    LOG(ERROR) << "Tried to add " << message_id << " with auto-delete timer " << message->ttl_period << " to "
+               << dialog_id << " from " << source;
     debug_add_message_to_dialog_fail_reason_ = "skip adding auto-deleting scheduled message";
     return nullptr;
   }
@@ -36696,10 +36697,10 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
 
   if (old_message->ttl_period != new_message->ttl_period) {
     if (old_message->ttl_period != 0 || !message_id.is_yet_unsent()) {
-      LOG(ERROR) << message_id << " in " << dialog_id << " has changed TTL period from " << old_message->ttl_period
-                 << " to " << new_message->ttl_period;
+      LOG(ERROR) << message_id << " in " << dialog_id << " has changed auto-delete timer from "
+                 << old_message->ttl_period << " to " << new_message->ttl_period;
     } else {
-      LOG(DEBUG) << "Change message TTL period";
+      LOG(DEBUG) << "Change message auto-delete timer";
       old_message->ttl_period = new_message->ttl_period;
       need_send_update = true;
     }
@@ -37512,8 +37513,8 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
     reload_dialog_info_full(dialog_id, "fix_new_dialog init folder_id");
   } else if (!d->is_message_ttl_inited && !td_->auth_manager_->is_bot() &&
              have_input_peer(dialog_id, AccessRights::Write)) {
-    // asynchronously get dialog message TTL from the server
-    reload_dialog_info_full(dialog_id, "fix_new_dialog init message_ttl");
+    // asynchronously get dialog message auto-delete timer from the server
+    reload_dialog_info_full(dialog_id, "fix_new_dialog init message_auto_delete_time");
   } else if (being_added_dialog_id_ != dialog_id && !d->is_available_reactions_inited &&
              !td_->auth_manager_->is_bot()) {
     // asynchronously get dialog available reactions from the server

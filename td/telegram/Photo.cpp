@@ -454,7 +454,7 @@ tl_object_ptr<telegram_api::InputMedia> photo_get_input_media(FileManager *file_
       if (has_spoiler) {
         flags |= telegram_api::inputMediaPhotoExternal::SPOILER_MASK;
       }
-      LOG(INFO) << "Create inputMediaPhotoExternal with a URL " << file_view.url() << " and TTL " << ttl;
+      LOG(INFO) << "Create inputMediaPhotoExternal with a URL " << file_view.url() << " and self-destruct time " << ttl;
       return make_tl_object<telegram_api::inputMediaPhotoExternal>(flags, false /*ignored*/, file_view.url(), ttl);
     }
     if (input_file == nullptr) {
