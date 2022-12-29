@@ -1494,6 +1494,7 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
   int32 stickers_normal_by_emoji_per_premium_num = 2;
   int32 forum_upgrade_participants_min = 200;
   int32 telegram_antispam_group_size_min = 100;
+  int32 topics_pinned_limit = -1;
   vector<string> fragment_prefixes;
   if (config->get_id() == telegram_api::jsonObject::ID) {
     for (auto &key_value : static_cast<telegram_api::jsonObject *>(config.get())->value_) {
@@ -1877,6 +1878,10 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
         G()->set_option_integer("hidden_members_group_size_min", setting_value);
         continue;
       }
+      if (key == "topics_pinned_limit") {
+        topics_pinned_limit = get_json_value_int(std::move(key_value->value_), key);
+        continue;
+      }
 
       new_values.push_back(std::move(key_value));
     }
@@ -2006,6 +2011,11 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
     options.set_option_empty("premium_invoice_slug");
   } else {
     options.set_option_string("premium_invoice_slug", premium_invoice_slug);
+  }
+  if (topics_pinned_limit >= 0) {
+    options.set_option_integer("pinned_forum_topic_count_max", topics_pinned_limit);
+  } else {
+    options.set_option_empty("pinned_forum_topic_count_max");
   }
 
   options.set_option_integer("stickers_premium_by_emoji_num", stickers_premium_by_emoji_num);
