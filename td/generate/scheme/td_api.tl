@@ -310,8 +310,8 @@ stickerFullTypeMask mask_position:maskPosition = StickerFullType;
 
 //@description The sticker is a custom emoji to be used inside message text and caption. Currently, only Telegram Premium users can use custom emoji
 //@custom_emoji_id Identifier of the custom emoji
-//@has_text_color True, if the sticker must be repainted to a text color in messages, the color of the Telegram Premium badge in emoji status, or another appropriate color in other places
-stickerFullTypeCustomEmoji custom_emoji_id:int64 has_text_color:Bool = StickerFullType;
+//@needs_repainting True, if the sticker must be repainted to a text color in messages, the color of the Telegram Premium badge in emoji status, or another appropriate color in other places
+stickerFullTypeCustomEmoji custom_emoji_id:int64 needs_repainting:Bool = StickerFullType;
 
 
 //@description Represents a closed vector path. The path begins at the end point of the last command @commands List of vector path commands

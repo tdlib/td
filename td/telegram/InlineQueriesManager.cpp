@@ -1181,7 +1181,7 @@ tl_object_ptr<td_api::StickerFullType> copy(const td_api::StickerFullType &obj) 
     }
     case td_api::stickerFullTypeCustomEmoji::ID: {
       auto &info = static_cast<const td_api::stickerFullTypeCustomEmoji &>(obj);
-      return td_api::make_object<td_api::stickerFullTypeCustomEmoji>(info.custom_emoji_id_, info.has_text_color_);
+      return td_api::make_object<td_api::stickerFullTypeCustomEmoji>(info.custom_emoji_id_, info.needs_repainting_);
     }
     default:
       UNREACHABLE();
