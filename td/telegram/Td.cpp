@@ -5596,6 +5596,13 @@ void Td::on_request(uint64 id, const td_api::toggleForumTopicIsPinned &request) 
                                                      request.is_pinned_, std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::setPinnedForumTopics &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  forum_topic_manager_->set_pinned_forum_topics(
+      DialogId(request.chat_id_), MessageId::get_message_ids(request.message_thread_ids_), std::move(promise));
+}
+
 void Td::on_request(uint64 id, const td_api::deleteForumTopic &request) {
   CREATE_OK_REQUEST_PROMISE();
   forum_topic_manager_->delete_forum_topic(DialogId(request.chat_id_), MessageId(request.message_thread_id_),

@@ -6120,6 +6120,9 @@ toggleGeneralForumTopicIsHidden chat_id:int53 is_hidden:Bool = Ok;
 //@is_pinned Pass true to pin the topic; pass false to unpin it
 toggleForumTopicIsPinned chat_id:int53 message_thread_id:int53 is_pinned:Bool = Ok;
 
+//@description Changes the order of pinned forum topics @chat_id Chat identifier @message_thread_ids The new list of pinned forum topics
+setPinnedForumTopics chat_id:int53 message_thread_ids:vector<int53> = Ok;
+
 //@description Deletes all messages in a forum topic; requires can_delete_messages administrator right in the supergroup unless the user is creator of the topic, the topic has no messages from other users and has at most 11 messages
 //@chat_id Identifier of the chat
 //@message_thread_id Message thread identifier of the forum topic

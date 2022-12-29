@@ -522,6 +522,10 @@ class CliClient final : public Actor {
     return as_message_id(str);
   }
 
+  static vector<int64> as_message_thread_ids(Slice str) {
+    return as_message_ids(str);
+  }
+
   td_api::object_ptr<td_api::MessageSender> as_message_sender(Slice sender_id) const {
     sender_id = trim(sender_id);
     if (sender_id.empty() || sender_id[0] != '-') {
@@ -3938,6 +3942,12 @@ class CliClient final : public Actor {
       bool is_pinned;
       get_args(args, chat_id, message_thread_id, is_pinned);
       send_request(td_api::make_object<td_api::toggleForumTopicIsPinned>(chat_id, message_thread_id, is_pinned));
+    } else if (op == "spft") {
+      ChatId chat_id;
+      string message_thread_ids;
+      get_args(args, chat_id, message_thread_ids);
+      send_request(
+          td_api::make_object<td_api::setPinnedForumTopics>(chat_id, as_message_thread_ids(message_thread_ids)));
     } else if (op == "dft") {
       ChatId chat_id;
       MessageThreadId message_thread_id;

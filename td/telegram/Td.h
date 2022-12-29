@@ -760,6 +760,8 @@ class Td final : public Actor {
 
   void on_request(uint64 id, const td_api::toggleForumTopicIsPinned &request);
 
+  void on_request(uint64 id, const td_api::setPinnedForumTopics &request);
+
   void on_request(uint64 id, const td_api::deleteForumTopic &request);
 
   void on_request(uint64 id, td_api::setGameScore &request);
