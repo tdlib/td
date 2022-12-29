@@ -212,6 +212,10 @@ const FormattedText *get_message_content_text(const MessageContent *content);
 
 const FormattedText *get_message_content_caption(const MessageContent *content);
 
+bool get_message_content_has_spoiler(const MessageContent *content);
+
+void set_message_content_has_spoiler(MessageContent *content, bool has_spoiler);
+
 int32 get_message_content_duration(const MessageContent *content, const Td *td);
 
 int32 get_message_content_media_duration(const MessageContent *content, const Td *td);

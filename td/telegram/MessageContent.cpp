@@ -5669,6 +5669,35 @@ const FormattedText *get_message_content_caption(const MessageContent *content) 
   }
 }
 
+bool get_message_content_has_spoiler(const MessageContent *content) {
+  switch (content->get_type()) {
+    case MessageContentType::Animation:
+      return static_cast<const MessageAnimation *>(content)->has_spoiler;
+    case MessageContentType::Photo:
+      return static_cast<const MessagePhoto *>(content)->has_spoiler;
+    case MessageContentType::Video:
+      return static_cast<const MessageVideo *>(content)->has_spoiler;
+    default:
+      return false;
+  }
+}
+
+void set_message_content_has_spoiler(MessageContent *content, bool has_spoiler) {
+  switch (content->get_type()) {
+    case MessageContentType::Animation:
+      static_cast<MessageAnimation *>(content)->has_spoiler = has_spoiler;
+      break;
+    case MessageContentType::Photo:
+      static_cast<MessagePhoto *>(content)->has_spoiler = has_spoiler;
+      break;
+    case MessageContentType::Video:
+      static_cast<MessageVideo *>(content)->has_spoiler = has_spoiler;
+      break;
+    default:
+      break;
+  }
+}
+
 int32 get_message_content_duration(const MessageContent *content, const Td *td) {
   CHECK(content != nullptr);
   switch (content->get_type()) {

@@ -26825,8 +26825,10 @@ void MessagesManager::on_upload_message_media_success(DialogId dialog_id, Messag
   }
 
   auto caption = get_message_content_caption(m->content.get());
+  auto has_spoiler = get_message_content_has_spoiler(m->content.get());
   auto content = get_message_content(td_, caption == nullptr ? FormattedText() : *caption, std::move(media), dialog_id,
                                      false, UserId(), nullptr, nullptr, "on_upload_message_media_success");
+  set_message_content_has_spoiler(content.get(), has_spoiler);
 
   bool is_content_changed = false;
   bool need_update = update_message_content(dialog_id, m, std::move(content), true, true, is_content_changed);
