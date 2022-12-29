@@ -360,6 +360,11 @@ class DialogParticipantStatus {
     return get_administrator_rights().can_manage_topics();
   }
 
+  bool can_pin_topics() const {
+    // topics can be pinned, only if administrator was explicitly granted the right
+    return get_administrator_rights().can_manage_topics();
+  }
+
   bool can_create_topics() const {
     return get_administrator_rights().can_manage_topics() || get_restricted_rights().can_manage_topics();
   }

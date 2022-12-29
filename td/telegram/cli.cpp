@@ -3932,6 +3932,12 @@ class CliClient final : public Actor {
       bool is_hidden;
       get_args(args, chat_id, is_hidden);
       send_request(td_api::make_object<td_api::toggleGeneralForumTopicIsHidden>(chat_id, is_hidden));
+    } else if (op == "tftip") {
+      ChatId chat_id;
+      MessageThreadId message_thread_id;
+      bool is_pinned;
+      get_args(args, chat_id, message_thread_id, is_pinned);
+      send_request(td_api::make_object<td_api::toggleForumTopicIsPinned>(chat_id, message_thread_id, is_pinned));
     } else if (op == "dft") {
       ChatId chat_id;
       MessageThreadId message_thread_id;

@@ -201,6 +201,46 @@ class EditForumTopicQuery final : public Td::ResultHandler {
   }
 };
 
+class UpdatePinnedForumTopicQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  ChannelId channel_id_;
+
+ public:
+  explicit UpdatePinnedForumTopicQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(ChannelId channel_id, MessageId top_thread_message_id, bool is_pinned) {
+    channel_id_ = channel_id;
+
+    auto input_channel = td_->contacts_manager_->get_input_channel(channel_id);
+    CHECK(input_channel != nullptr);
+
+    send_query(G()->net_query_creator().create(
+        telegram_api::channels_updatePinnedForumTopic(std::move(input_channel),
+                                                      top_thread_message_id.get_server_message_id().get(), is_pinned),
+        {{channel_id}}));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::channels_updatePinnedForumTopic>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for UpdatePinnedForumTopicQuery: " << to_string(ptr);
+    td_->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
+  }
+
+  void on_error(Status status) final {
+    if (status.message() == "PINNED_TOPIC_NOT_MODIFIED" && !td_->auth_manager_->is_bot()) {
+      return promise_.set_value(Unit());
+    }
+    td_->contacts_manager_->on_get_channel_error(channel_id_, status, "UpdatePinnedForumTopicQuery");
+    promise_.set_error(std::move(status));
+  }
+};
+
 class GetForumTopicQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::forumTopic>> promise_;
   ChannelId channel_id_;
@@ -691,6 +731,20 @@ void ForumTopicManager::toggle_forum_topic_is_hidden(DialogId dialog_id, bool is
   }
 
   td_->create_handler<EditForumTopicQuery>(std::move(promise))->send(channel_id, is_hidden);
+}
+
+void ForumTopicManager::toggle_forum_topic_is_pinned(DialogId dialog_id, MessageId top_thread_message_id,
+                                                     bool is_pinned, Promise<Unit> &&promise) {
+  TRY_STATUS_PROMISE(promise, is_forum(dialog_id));
+  TRY_STATUS_PROMISE(promise, can_be_message_thread_id(top_thread_message_id));
+  auto channel_id = dialog_id.get_channel_id();
+
+  if (!td_->contacts_manager_->get_channel_permissions(channel_id).can_pin_topics()) {
+    return promise.set_error(Status::Error(400, "Not enough rights to pin or unpin the topic"));
+  }
+
+  td_->create_handler<UpdatePinnedForumTopicQuery>(std::move(promise))
+      ->send(channel_id, top_thread_message_id, is_pinned);
 }
 
 void ForumTopicManager::delete_forum_topic(DialogId dialog_id, MessageId top_thread_message_id,
