@@ -3043,6 +3043,27 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateReadChannelDisc
   promise.set_value(Unit());
 }
 
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateChannelPinnedTopic> update, Promise<Unit> &&promise) {
+  td_->forum_topic_manager_->on_update_forum_topic_is_pinned(
+      DialogId(ChannelId(update->channel_id_)), MessageId(ServerMessageId(update->topic_id_)), update->pinned_);
+  promise.set_value(Unit());
+}
+
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateChannelPinnedTopics> update, Promise<Unit> &&promise) {
+  vector<MessageId> top_thread_message_ids;
+  for (auto &server_message_id : update->order_) {
+    auto message_id = MessageId(ServerMessageId(server_message_id));
+    if (!message_id.is_valid()) {
+      LOG(ERROR) << "Receive " << to_string(update);
+      break;
+    }
+    top_thread_message_ids.push_back(message_id);
+  }
+  td_->forum_topic_manager_->on_update_pinned_forum_topics(DialogId(ChannelId(update->channel_id_)),
+                                                           std::move(top_thread_message_ids));
+  promise.set_value(Unit());
+}
+
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updatePinnedMessages> update, Promise<Unit> &&promise) {
   int new_pts = update->pts_;
   int pts_count = update->pts_count_;
@@ -3798,13 +3819,5 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateTranscribedAudi
 }
 
 // unsupported updates
-
-void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateChannelPinnedTopic> update, Promise<Unit> &&promise) {
-  promise.set_value(Unit());
-}
-
-void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateChannelPinnedTopics> update, Promise<Unit> &&promise) {
-  promise.set_value(Unit());
-}
 
 }  // namespace td

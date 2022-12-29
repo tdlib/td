@@ -29,6 +29,7 @@
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/UpdatesManager.h"
 
+#include "td/utils/algorithm.h"
 #include "td/utils/buffer.h"
 #include "td/utils/logging.h"
 #include "td/utils/Random.h"
@@ -600,6 +601,53 @@ void ForumTopicManager::on_update_forum_topic_notify_settings(
                                            std::move(notification_settings));
 }
 
+void ForumTopicManager::on_update_forum_topic_is_pinned(DialogId dialog_id, MessageId top_thread_message_id,
+                                                        bool is_pinned) {
+  if (!can_be_forum(dialog_id)) {
+    LOG(ERROR) << "Receive pinned topics in " << dialog_id;
+    return;
+  }
+
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+
+  auto topic = get_topic(dialog_id, top_thread_message_id);
+  if (topic == nullptr || topic->topic_ == nullptr) {
+    return;
+  }
+  if (topic->topic_->set_is_pinned(is_pinned)) {
+    topic->need_save_to_database_ = true;
+    save_topic_to_database(dialog_id, topic);
+  }
+}
+
+void ForumTopicManager::on_update_pinned_forum_topics(DialogId dialog_id, vector<MessageId> top_thread_message_ids) {
+  if (!can_be_forum(dialog_id)) {
+    LOG(ERROR) << "Receive pinned topics in " << dialog_id;
+    return;
+  }
+
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+
+  auto dialog_topics = get_dialog_topics(dialog_id);
+  if (dialog_topics == nullptr) {
+    return;
+  }
+
+  dialog_topics->topics_.foreach([&](const MessageId &top_thread_message_id, unique_ptr<Topic> &topic) {
+    if (topic->topic_ == nullptr) {
+      return;
+    }
+    if (topic->topic_->set_is_pinned(contains(top_thread_message_ids, top_thread_message_id))) {
+      topic->need_save_to_database_ = true;
+      save_topic_to_database(dialog_id, topic.get());
+    }
+  });
+}
+
 Status ForumTopicManager::set_forum_topic_notification_settings(
     DialogId dialog_id, MessageId top_thread_message_id,
     tl_object_ptr<td_api::chatNotificationSettings> &&notification_settings) {
@@ -995,6 +1043,10 @@ ForumTopicManager::DialogTopics *ForumTopicManager::add_dialog_topics(DialogId d
   return dialog_topics;
 }
 
+ForumTopicManager::DialogTopics *ForumTopicManager::get_dialog_topics(DialogId dialog_id) {
+  return dialog_topics_.get_pointer(dialog_id);
+}
+
 ForumTopicManager::Topic *ForumTopicManager::add_topic(DialogTopics *dialog_topics, MessageId top_thread_message_id) {
   auto topic = dialog_topics->topics_.get_pointer(top_thread_message_id);
   if (topic == nullptr) {
@@ -1006,6 +1058,10 @@ ForumTopicManager::Topic *ForumTopicManager::add_topic(DialogTopics *dialog_topi
     dialog_topics->topics_.set(top_thread_message_id, std::move(new_topic));
   }
   return topic;
+}
+
+ForumTopicManager::Topic *ForumTopicManager::get_topic(DialogTopics *dialog_topics, MessageId top_thread_message_id) {
+  return dialog_topics->topics_.get_pointer(top_thread_message_id);
 }
 
 ForumTopicManager::Topic *ForumTopicManager::add_topic(DialogId dialog_id, MessageId top_thread_message_id) {
