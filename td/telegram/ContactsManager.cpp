@@ -457,15 +457,15 @@ class UploadProfilePhotoQuery final : public Td::ResultHandler {
     is_fallback_ = is_fallback;
     only_suggest_ = only_suggest;
 
-    static_assert(telegram_api::photos_uploadProfilePhoto::VIDEO_MASK ==
-                      telegram_api::photos_uploadContactProfilePhoto::VIDEO_MASK,
+    static_assert(static_cast<int32>(telegram_api::photos_uploadProfilePhoto::VIDEO_MASK) ==
+                      static_cast<int32>(telegram_api::photos_uploadContactProfilePhoto::VIDEO_MASK),
                   "");
-    static_assert(telegram_api::photos_uploadProfilePhoto::VIDEO_START_TS_MASK ==
-                      telegram_api::photos_uploadContactProfilePhoto::VIDEO_START_TS_MASK,
+    static_assert(static_cast<int32>(telegram_api::photos_uploadProfilePhoto::VIDEO_START_TS_MASK) ==
+                      static_cast<int32>(telegram_api::photos_uploadContactProfilePhoto::VIDEO_START_TS_MASK),
                   "");
-    static_assert(
-        telegram_api::photos_uploadProfilePhoto::FILE_MASK == telegram_api::photos_uploadContactProfilePhoto::FILE_MASK,
-        "");
+    static_assert(static_cast<int32>(telegram_api::photos_uploadProfilePhoto::FILE_MASK) ==
+                      static_cast<int32>(telegram_api::photos_uploadContactProfilePhoto::FILE_MASK),
+                  "");
 
     int32 flags = 0;
     tl_object_ptr<telegram_api::InputFile> photo_input_file;
