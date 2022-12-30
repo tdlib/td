@@ -33978,6 +33978,10 @@ void MessagesManager::send_dialog_action(DialogId dialog_id, MessageId top_threa
     return promise.set_error(Status::Error(400, "Invalid message thread specified"));
   }
 
+  if (is_forum_channel(dialog_id) && !top_thread_message_id.is_valid()) {
+    top_thread_message_id = MessageId(ServerMessageId(1));
+  }
+
   tl_object_ptr<telegram_api::InputPeer> input_peer;
   if (action == DialogAction::get_speaking_action()) {
     input_peer = get_input_peer(dialog_id, AccessRights::Read);
