@@ -1492,7 +1492,6 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
   bool is_premium_available = false;
   int32 stickers_premium_by_emoji_num = 0;
   int32 stickers_normal_by_emoji_per_premium_num = 2;
-  int32 forum_upgrade_participants_min = 200;
   int32 telegram_antispam_group_size_min = 100;
   int32 topics_pinned_limit = -1;
   vector<string> fragment_prefixes;
@@ -1500,9 +1499,10 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
     for (auto &key_value : static_cast<telegram_api::jsonObject *>(config.get())->value_) {
       Slice key = key_value->key_;
       telegram_api::JSONValue *value = key_value->value_.get();
-      if (key == "default_emoji_statuses_stickerset_id" || key == "getfile_experimental_params" ||
-          key == "message_animated_emoji_max" || key == "reactions_in_chat_max" || key == "stickers_emoji_cache_time" ||
-          key == "test" || key == "upload_max_fileparts_default" || key == "upload_max_fileparts_premium" ||
+      if (key == "default_emoji_statuses_stickerset_id" || key == "forum_upgrade_participants_min" ||
+          key == "getfile_experimental_params" || key == "message_animated_emoji_max" ||
+          key == "reactions_in_chat_max" || key == "stickers_emoji_cache_time" || key == "test" ||
+          key == "upload_max_fileparts_default" || key == "upload_max_fileparts_premium" ||
           key == "wallet_blockchain_name" || key == "wallet_config" || key == "wallet_enabled") {
         continue;
       }
@@ -1843,10 +1843,6 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
         G()->set_option_integer(key, setting_value);
         continue;
       }
-      if (key == "forum_upgrade_participants_min") {
-        forum_upgrade_participants_min = get_json_value_int(std::move(key_value->value_), key);
-        continue;
-      }
       if (key == "telegram_antispam_user_id") {
         auto setting_value = get_json_value_long(std::move(key_value->value_), key);
         G()->set_option_integer("anti_spam_bot_user_id", setting_value);
@@ -1969,9 +1965,6 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
     options.set_option_empty("reactions_uniq_max");
   } else {
     options.set_option_integer("reactions_uniq_max", reactions_uniq_max);
-  }
-  if (forum_upgrade_participants_min >= 0) {
-    options.set_option_integer("forum_member_count_min", forum_upgrade_participants_min);
   }
   if (telegram_antispam_group_size_min >= 0) {
     options.set_option_integer("aggressive_anti_spam_supergroup_member_count_min", telegram_antispam_group_size_min);

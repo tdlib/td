@@ -112,9 +112,6 @@ OptionManager::OptionManager(Td *td)
   if (!have_option("chat_filter_chosen_chat_count_max")) {
     set_option_integer("chat_filter_chosen_chat_count_max", G()->is_test_dc() ? 5 : 100);
   }
-  if (!have_option("forum_member_count_min")) {
-    set_option_integer("forum_member_count_min", G()->is_test_dc() ? 3 : 100);
-  }
   if (!have_option("aggressive_anti_spam_supergroup_member_count_min")) {
     set_option_integer("aggressive_anti_spam_supergroup_member_count_min", G()->is_test_dc() ? 1 : 100);
   }
@@ -122,6 +119,7 @@ OptionManager::OptionManager(Td *td)
     set_option_integer("pinned_forum_topic_count_max", G()->is_test_dc() ? 3 : 5);
   }
 
+  set_option_empty("forum_member_count_min");
   set_option_empty("themed_emoji_statuses_sticker_set_id");
   set_option_empty("themed_premium_statuses_sticker_set_id");
 }
