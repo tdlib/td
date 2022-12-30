@@ -45,7 +45,7 @@ class BinlogEventsBuffer;
 
 class Binlog {
  public:
-  enum Error : int { WrongPassword = -1 };
+  enum class Error : int { WrongPassword = -1037284 };
   Binlog();
   Binlog(const Binlog &other) = delete;
   Binlog &operator=(const Binlog &other) = delete;

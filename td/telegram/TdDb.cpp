@@ -133,9 +133,12 @@ Status init_binlog(Binlog &binlog, string path, BinlogKeyValue<Binlog> &binlog_p
     }
   };
 
-  auto binlog_info = binlog.init(std::move(path), callback, std::move(key));
-  if (binlog_info.is_error()) {
-    return binlog_info.move_as_error();
+  auto init_status = binlog.init(std::move(path), callback, std::move(key));
+  if (init_status.is_error()) {
+    if (init_status.code() == static_cast<int>(Binlog::Error::WrongPassword)) {
+      return Status::Error(401, "Wrong database encryption key");
+    }
+    return Status::Error(400, init_status.message());
   }
   return Status::OK();
 }
@@ -482,7 +485,10 @@ void TdDb::open_impl(TdParameters parameters, DbKey key, Promise<OpenedDatabase>
       db->sql_connection_->get().close();
     }
     SqliteDb::destroy(get_sqlite_path(parameters)).ignore();
-    TRY_STATUS_PROMISE(promise, db->init_sqlite(parameters, new_sqlite_key, old_sqlite_key, *binlog_pmc));
+    init_sqlite_status = db->init_sqlite(parameters, new_sqlite_key, old_sqlite_key, *binlog_pmc);
+    if (init_sqlite_status.is_error()) {
+      return promise.set_error(Status::Error(400, init_sqlite_status.message()));
+    }
   }
   if (drop_sqlite_key) {
     binlog_pmc->erase("sqlite_key");
@@ -544,16 +550,16 @@ Status TdDb::check_parameters(TdParameters &parameters) {
   auto r_database_directory = prepare_dir(parameters.database_directory);
   if (r_database_directory.is_error()) {
     VLOG(td_init) << "Invalid database_directory";
-    return Status::Error(PSLICE() << "Can't init database in the directory \"" << parameters.database_directory
-                                  << "\": " << r_database_directory.error());
+    return Status::Error(400, PSLICE() << "Can't init database in the directory \"" << parameters.database_directory
+                                       << "\": " << r_database_directory.error());
   }
   parameters.database_directory = r_database_directory.move_as_ok();
 
   auto r_files_directory = prepare_dir(parameters.files_directory);
   if (r_files_directory.is_error()) {
     VLOG(td_init) << "Invalid files_directory";
-    return Status::Error(PSLICE() << "Can't init files directory \"" << parameters.files_directory
-                                  << "\": " << r_files_directory.error());
+    return Status::Error(400, PSLICE() << "Can't init files directory \"" << parameters.files_directory
+                                       << "\": " << r_files_directory.error());
   }
   parameters.files_directory = r_files_directory.move_as_ok();
 

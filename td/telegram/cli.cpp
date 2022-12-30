@@ -403,6 +403,7 @@ class CliClient final : public Actor {
     switch (authorization_state_->get_id()) {
       case td_api::authorizationStateWaitTdlibParameters::ID: {
         auto request = td_api::make_object<td_api::setTdlibParameters>();
+        // request->database_encryption_key_ = "!";
         request->use_test_dc_ = use_test_dc_;
         request->use_message_database_ = true;
         request->use_chat_info_database_ = true;

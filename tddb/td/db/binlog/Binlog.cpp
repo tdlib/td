@@ -212,7 +212,7 @@ Status Binlog::init(string path, const Callback &callback, DbKey db_key, DbKey o
   last_id_ = processor_->last_id();
   if (info_.wrong_password) {
     close().ignore();
-    return Status::Error(Error::WrongPassword, "Wrong password");
+    return Status::Error(static_cast<int>(Error::WrongPassword), "Wrong password");
   }
 
   if ((!db_key_.is_empty() && !db_key_used_) || (db_key_.is_empty() && encryption_type_ != EncryptionType::None)) {

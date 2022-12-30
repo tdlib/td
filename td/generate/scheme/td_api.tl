@@ -5457,7 +5457,7 @@ getAuthorizationState = AuthorizationState;
 //@use_test_dc Pass true to use Telegram test environment instead of the production environment
 //@database_directory The path to the directory for the persistent database; if empty, the current working directory will be used
 //@files_directory The path to the directory for storing files; if empty, database_directory will be used
-//@database_encryption_key Encryption key for the database
+//@database_encryption_key Encryption key for the database. If the encryption key is invalid, then an error with code 401 will be returned
 //@use_file_database Pass true to keep information about downloaded and uploaded files between application restarts
 //@use_chat_info_database Pass true to keep cache of users, basic groups, supergroups, channels and secret chats between restarts. Implies use_file_database
 //@use_message_database Pass true to keep cache of chats and messages between restarts. Implies use_chat_info_database
