@@ -3923,7 +3923,9 @@ ContactsManager::~ContactsManager() {
       user_profile_photo_file_source_ids_, my_photo_file_id_, user_full_file_source_ids_, chats_, chats_full_,
       unknown_chats_, chat_full_file_source_ids_, min_channels_, channels_, channels_full_, unknown_channels_,
       invalidated_channels_full_, channel_full_file_source_ids_, secret_chats_, unknown_secret_chats_,
-      secret_chats_with_user_, invite_link_infos_, dialog_access_by_invite_link_, loaded_from_database_users_,
+      secret_chats_with_user_);
+  Scheduler::instance()->destroy_on_scheduler(
+      G()->get_gc_scheduler_id(), invite_link_infos_, dialog_access_by_invite_link_, loaded_from_database_users_,
       unavailable_user_fulls_, loaded_from_database_chats_, unavailable_chat_fulls_, loaded_from_database_channels_,
       unavailable_channel_fulls_, loaded_from_database_secret_chats_, dialog_administrators_,
       cached_channel_participants_, resolved_phone_numbers_, channel_participants_, all_imported_contacts_,
