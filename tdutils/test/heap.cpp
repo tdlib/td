@@ -23,7 +23,7 @@ TEST(Heap, sort_random_perm) {
     v[i] = i;
   }
   td::Random::Xorshift128plus rnd(123);
-  td::random_shuffle(td::as_mutable_span(v), rnd);
+  td::rand_shuffle(td::as_mutable_span(v), rnd);
   td::vector<td::HeapNode> nodes(n);
   td::KHeap<int> kheap;
   for (int i = 0; i < n; i++) {

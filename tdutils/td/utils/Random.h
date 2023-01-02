@@ -8,9 +8,6 @@
 
 #include "td/utils/common.h"
 #include "td/utils/Slice.h"
-#include "td/utils/Span.h"
-
-#include <utility>
 
 namespace td {
 
@@ -56,14 +53,5 @@ class Random {
     uint64 seed_[2];
   };
 };
-
-template <class T, class R>
-void random_shuffle(MutableSpan<T> v, R &rnd) {
-  for (size_t i = 1; i < v.size(); i++) {
-    auto pos = static_cast<size_t>(rnd()) % (i + 1);
-    using std::swap;
-    swap(v[i], v[pos]);
-  }
-}
 
 }  // namespace td

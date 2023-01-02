@@ -204,7 +204,7 @@ static void BM_Get(benchmark::State &state) {
   }
 
   std::size_t key_i = 0;
-  td::random_shuffle(td::as_mutable_span(keys), rnd);
+  td::rand_shuffle(td::as_mutable_span(keys), rnd);
   auto next_key = [&] {
     key_i++;
     if (key_i == data.size()) {

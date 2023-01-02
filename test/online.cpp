@@ -23,6 +23,7 @@
 #include "td/utils/port/signals.h"
 #include "td/utils/Promise.h"
 #include "td/utils/Random.h"
+#include "td/utils/tests.h"
 
 #include <iostream>
 #include <map>
@@ -437,7 +438,7 @@ class TestDownloadFile : public Task {
       begin = end;
     }
 
-    random_shuffle(as_mutable_span(ranges_), rnd);
+    rand_shuffle(as_mutable_span(ranges_), rnd);
     start_chunk();
   }
 
