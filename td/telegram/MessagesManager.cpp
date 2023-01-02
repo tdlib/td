@@ -4719,7 +4719,8 @@ class GetChannelDifferenceQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    if (!td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "GetChannelDifferenceQuery")) {
+    if (!td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "GetChannelDifferenceQuery") &&
+        status.message() != "PERSISTENT_TIMESTAMP_INVALID") {
       LOG(ERROR) << "Receive error for GetChannelDifferenceQuery for " << dialog_id_ << " with pts " << pts_
                  << " and limit " << limit_ << ": " << status;
     }
