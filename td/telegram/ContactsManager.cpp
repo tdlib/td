@@ -12022,6 +12022,7 @@ void ContactsManager::on_get_user_full(tl_object_ptr<telegram_api::userFull> &&u
 }
 
 ContactsManager::UserPhotos *ContactsManager::add_user_photos(UserId user_id) {
+  CHECK(user_id.is_valid());
   auto &user_photos_ptr = user_photos_[user_id];
   if (user_photos_ptr == nullptr) {
     user_photos_ptr = make_unique<UserPhotos>();

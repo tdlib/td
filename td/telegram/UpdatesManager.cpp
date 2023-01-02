@@ -1837,6 +1837,7 @@ void UpdatesManager::try_reload_data() {
 }
 
 void UpdatesManager::subscribe_to_transcribed_audio_updates(int64 transcription_id, TranscribedAudioHandler on_update) {
+  CHECK(transcription_id != 0);
   if (pending_audio_transcriptions_.count(transcription_id) != 0) {
     on_pending_audio_transcription_failed(transcription_id,
                                           Status::Error(500, "Receive duplicate speech recognition identifier"));

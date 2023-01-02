@@ -177,6 +177,7 @@ void VideoNotesManager::register_video_note(FileId video_note_file_id, FullMessa
     return;
   }
   LOG(INFO) << "Register video note " << video_note_file_id << " from " << full_message_id << " from " << source;
+  CHECK(video_note_file_id.is_valid());
   bool is_inserted = video_note_messages_[video_note_file_id].insert(full_message_id).second;
   LOG_CHECK(is_inserted) << source << ' ' << video_note_file_id << ' ' << full_message_id;
   is_inserted = message_video_notes_.emplace(full_message_id, video_note_file_id).second;
@@ -190,6 +191,7 @@ void VideoNotesManager::unregister_video_note(FileId video_note_file_id, FullMes
     return;
   }
   LOG(INFO) << "Unregister video note " << video_note_file_id << " from " << full_message_id << " from " << source;
+  CHECK(video_note_file_id.is_valid());
   auto &message_ids = video_note_messages_[video_note_file_id];
   auto is_deleted = message_ids.erase(full_message_id) > 0;
   LOG_CHECK(is_deleted) << source << ' ' << video_note_file_id << ' ' << full_message_id;
