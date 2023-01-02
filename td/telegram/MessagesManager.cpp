@@ -6624,8 +6624,11 @@ void MessagesManager::skip_old_pending_pts_update(tl_object_ptr<telegram_api::Up
     if (update_message_ids_.count(full_message_id) > 0) {
       if (new_pts == old_pts || old_pts == std::numeric_limits<int32>::max()) {
         // apply sent message anyway if it is definitely non-deleted or being skipped because of pts overflow
-        on_get_message(std::move(update_new_message->message_), true, false, false, true, true,
-                       "updateNewMessage with an awaited message");
+        auto added_full_message_id = on_get_message(std::move(update_new_message->message_), true, false, false, true,
+                                                    true, "updateNewMessage with an awaited message");
+        if (added_full_message_id != full_message_id) {
+          LOG(ERROR) << "Failed to add an awaited " << full_message_id << " from " << source;
+        }
         return;
       } else {
         LOG(ERROR) << "Receive awaited sent " << full_message_id << " from " << source << " with pts " << new_pts
@@ -7927,8 +7930,12 @@ void MessagesManager::add_pending_channel_update(DialogId dialog_id, tl_object_p
         FullMessageId full_message_id(dialog_id, message_id);
         if (update_message_ids_.count(full_message_id) > 0) {
           // apply sent channel message
-          on_get_message(std::move(update_new_channel_message->message_), true, true, false, true, true,
-                         "updateNewChannelMessage with an awaited message");
+          auto added_full_message_id =
+              on_get_message(std::move(update_new_channel_message->message_), true, true, false, true, true,
+                             "updateNewChannelMessage with an awaited message");
+          if (added_full_message_id != full_message_id) {
+            LOG(ERROR) << "Failed to add an awaited " << full_message_id << " from " << source;
+          }
           promise.set_value(Unit());
           return;
         }
