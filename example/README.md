@@ -4,7 +4,7 @@ This directory contains basic examples of TDLib usage from different programming
 If you are looking for documentation of all available TDLib methods, see the [td_api.tl](https://github.com/tdlib/td/blob/master/td/generate/scheme/td_api.tl) scheme or the
 automatically generated [HTML documentation](https://core.telegram.org/tdlib/docs/td__api_8h.html) for a list of all available TDLib
 [methods](https://core.telegram.org/tdlib/docs/classtd_1_1td__api_1_1_function.html) and [classes](https://core.telegram.org/tdlib/docs/classtd_1_1td__api_1_1_object.html).
-Also take a look at our [Getting Started](https://core.telegram.org/tdlib/getting-started) tutorial for a description of basic TDLib concepts.
+Also, take a look at our [Getting Started](https://core.telegram.org/tdlib/getting-started) tutorial for a description of basic TDLib concepts.
 
 TDLib can be easily used from almost any programming language on any platform. See a [TDLib build instructions generator](https://tdlib.github.io/td/build.html) for detailed instructions on how to build TDLib.
 Choose your preferred programming language to see examples of usage and a detailed description:
@@ -119,7 +119,7 @@ provides an asynchronous interface for interaction with TDLib, automatically gen
 
 You can also use [TDLibCore](https://github.com/ph09nix/TDLibCore) library.
 
-Also see [Unigram](https://github.com/UnigramDev/Unigram), which is a full-featured client rewritten from scratch in C# using TDLib SDK for Universal Windows Platform in less than 2 months,
+Also, see [Unigram](https://github.com/UnigramDev/Unigram), which is a full-featured client rewritten from scratch in C# using TDLib SDK for Universal Windows Platform in less than 2 months,
 [egram.tel](https://github.com/egramtel/egram.tel) – a cross-platform Telegram client written in C#, .NET Core, ReactiveUI and Avalonia, or
 [telewear](https://github.com/telewear/telewear) - a Telegram client for Samsung watches.
 
@@ -189,7 +189,7 @@ See [rust-tdlib](https://github.com/aCLr/rust-tdlib), or [tdlib](https://github.
 See [rtdlib](https://github.com/fewensa/rtdlib), [tdlib-rs](https://github.com/d653/tdlib-rs), [tdlib-futures](https://github.com/yuri91/tdlib-futures),
 [tdlib-sys](https://github.com/nuxeh/tdlib-sys), [tdjson-rs](https://github.com/mersinvald/tdjson-rs), [rust-tdlib](https://github.com/vhaoran/rust-tdlib), or [tdlib-json-sys](https://github.com/aykxt/tdlib-json-sys) for examples of TDLib Rust bindings.
 
-Also see [Telegrand](https://github.com/melix99/telegrand) – a Telegram client optimized for the GNOME desktop.
+Also, see [Telegrand](https://github.com/melix99/telegrand) – a Telegram client optimized for the GNOME desktop.
 
 <a name="erlang"></a>
 ## Using TDLib in Erlang projects

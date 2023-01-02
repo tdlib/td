@@ -19,7 +19,7 @@ If you want to compile TDLib for 32-bit/64-bit Java on Windows using MSVC, you w
 
 In Windows, use vcpkg toolchain file by adding parameter -DCMAKE_TOOLCHAIN_FILE=<VCPKG_DIR>/scripts/buildsystems/vcpkg.cmake
 
-Then you can build this example:
+After this you can compile the example source code:
 ```
 cd <path to TDLib sources>/example/java
 mkdir build
@@ -30,7 +30,7 @@ cmake --build . --target install
 
 Compiled TDLib shared library and Java example after that will be placed in bin/ and Javadoc documentation in `docs/`.
 
-Now you can run Java example:
+After this you can run the Java example:
 ```
 cd <path to TDLib sources>/example/java/bin
 java '-Djava.library.path=.' org/drinkless/tdlib/example/Example

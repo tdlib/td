@@ -1435,7 +1435,7 @@ Changes in 1.2.0 (20 Mar 2018):
   See [using in .NET projects](README.md#using-dotnet) for more details.
 * Added a C# example. See [README](example/csharp/README.md) for build and usage instructions.
 * Added a build and usage example of TDLib SDK for Universal Windows Platform. See [README](example/uwp/README.md)
-  for detailed build and usage instructions. Also see [Unigram](https://github.com/UnigramDev/Unigram), which is
+  for detailed build and usage instructions. Also, see [Unigram](https://github.com/UnigramDev/Unigram), which is
   a full-featured client rewritten from scratch using TDLib SDK for Universal Windows Platform in less than 2 months.
 * Added a Swift example. See [README](example/swift/README.md) for build and usage instructions.
 * Added an example of building TDLib for iOS, watchOS, tvOS, and also macOS. See [README](example/ios/README.md) for

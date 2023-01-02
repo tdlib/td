@@ -80,7 +80,7 @@ function(get_git_head_revision _refspecvar _hashvar)
     # The following git command will return a non empty string that
     # points to the super project working tree if the current
     # source dir is inside a git submodule.
-    # Otherwise the command will return an empty string.
+    # Otherwise, the command will return an empty string.
     #
     execute_process(
       COMMAND "${GIT_EXECUTABLE}" rev-parse --show-superproject-working-tree

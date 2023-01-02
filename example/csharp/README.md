@@ -35,4 +35,4 @@ After `TDLib` is built you can open and run TdExample project.
 It contains a simple console C# application with implementation of authorization and message sending.
 Just open it with Visual Studio 2015 or later and run.
 
-Also see TdExample.csproj for example of including TDLib in C# project with all native shared library dependencies.
+Also, see TdExample.csproj for example of including TDLib in C# project with all native shared library dependencies.

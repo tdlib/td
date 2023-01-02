@@ -432,7 +432,7 @@ animatedEmoji sticker:sticker sticker_width:int32 sticker_height:int32 fitzpatri
 //@first_name First name of the user; 1-255 characters in length
 //@last_name Last name of the user
 //@vcard Additional data about the user in a form of vCard; 0-2048 bytes in length
-//@user_id Identifier of the user, if known; otherwise 0
+//@user_id Identifier of the user, if known; 0 otherwise
 contact phone_number:string first_name:string last_name:string vcard:string user_id:int53 = Contact;
 
 //@description Describes a location on planet Earth
@@ -649,11 +649,11 @@ user id:int53 first_name:string last_name:string usernames:usernames phone_numbe
 botInfo share_text:string description:string photo:photo animation:animation menu_button:botMenuButton commands:vector<botCommand> default_group_administrator_rights:chatAdministratorRights default_channel_administrator_rights:chatAdministratorRights = BotInfo;
 
 //@description Contains full information about a user
-//@personal_photo User profile photo set by the current user for the contact; may be null. If null and user.profile_photo is null, then the photo is empty, otherwise unknown.
+//@personal_photo User profile photo set by the current user for the contact; may be null. If null and user.profile_photo is null, then the photo is empty; otherwise, it is unknown.
 //-If non-null, then it is the same photo as in user.profile_photo and chat.photo. This photo isn't returned in the list of user photos
-//@photo User profile photo; may be null. If null and user.profile_photo is null, then the photo is empty, otherwise unknown.
+//@photo User profile photo; may be null. If null and user.profile_photo is null, then the photo is empty; otherwise, it is unknown.
 //-If non-null and personal_photo is null, then it is the same photo as in user.profile_photo and chat.photo
-//@public_photo User profile photo visible if the main photo is hidden by privacy settings; may be null. If null and user.profile_photo is null, then the photo is empty, otherwise unknown.
+//@public_photo User profile photo visible if the main photo is hidden by privacy settings; may be null. If null and user.profile_photo is null, then the photo is empty; otherwise, it is unknown.
 //-If non-null and both photo and personal_photo are null, then it is the same photo as in user.profile_photo and chat.photo. This photo isn't returned in the list of user photos
 //@is_blocked True, if the user is blocked by the current user
 //@can_be_called True, if the user can be called
@@ -919,7 +919,7 @@ secretChatStateClosed = SecretChatState;
 //@id Secret chat identifier
 //@user_id Identifier of the chat partner
 //@state State of the secret chat
-//@is_outbound True, if the chat was created by the current user; otherwise false
+//@is_outbound True, if the chat was created by the current user; false otherwise
 //@key_hash Hash of the currently used key for comparison with the hash of the chat partner's key. This is a string of 36 little-endian bytes, which must be split into groups of 2 bits, each denoting a pixel of one of 4 colors FFFFFF, D5E6F3, 2D5775, and 2F99C9.
 //-The pixels must be used to make a 12x12 square image filled from left to right, top to bottom. Alternatively, the first 32 bytes of the hash can be converted to the hexadecimal format and printed as 32 2-digit hex numbers
 //@layer Secret chat layer; determines features supported by the chat partner's application. Nested text entities and underline and strikethrough entities are supported if the layer >= 101,
@@ -1419,7 +1419,7 @@ replyMarkupForceReply is_personal:Bool input_field_placeholder:string = ReplyMar
 
 //@description Contains a custom keyboard layout to quickly reply to bots
 //@rows A list of rows of bot keyboard buttons
-//@is_persistent True, if the keyboard is supposed to be always shown when the ordinary keyboard is hidden
+//@is_persistent True, if the keyboard is supposed to always be shown when the ordinary keyboard is hidden
 //@resize_keyboard True, if the application needs to resize the keyboard vertically
 //@one_time True, if the application needs to hide the keyboard after use
 //@is_personal True, if the keyboard must automatically be shown to the current user. For outgoing messages, specify true to show the keyboard only for the mentioned users and for the target user of a reply
@@ -1912,10 +1912,10 @@ paymentOption title:string url:string = PaymentOption;
 //@product_photo Product photo; may be null
 paymentForm id:int64 invoice:invoice seller_bot_user_id:int53 payment_provider_user_id:int53 payment_provider:PaymentProvider additional_payment_options:vector<paymentOption> saved_order_info:orderInfo saved_credentials:vector<savedCredentials> can_save_credentials:Bool need_password:Bool product_title:string product_description:formattedText product_photo:photo = PaymentForm;
 
-//@description Contains a temporary identifier of validated order information, which is stored for one hour. Also contains the available shipping options @order_info_id Temporary identifier of the order information @shipping_options Available shipping options
+//@description Contains a temporary identifier of validated order information, which is stored for one hour, and the available shipping options @order_info_id Temporary identifier of the order information @shipping_options Available shipping options
 validatedOrderInfo order_info_id:string shipping_options:vector<shippingOption> = ValidatedOrderInfo;
 
-//@description Contains the result of a payment request @success True, if the payment request was successful; otherwise the verification_url will be non-empty @verification_url URL for additional payment credentials verification
+//@description Contains the result of a payment request @success True, if the payment request was successful; otherwise, the verification_url will be non-empty @verification_url URL for additional payment credentials verification
 paymentResult success:Bool verification_url:string = PaymentResult;
 
 //@description Contains information about a successful payment
@@ -2388,7 +2388,7 @@ messagePinMessage message_id:int53 = MessageContent;
 //@description A screenshot of a message in the chat has been taken
 messageScreenshotTaken = MessageContent;
 
-//@description A theme in the chat has been changed @theme_name If non-empty, name of a new theme, set for the chat. Otherwise chat theme was reset to the default one
+//@description A theme in the chat has been changed @theme_name If non-empty, name of a new theme, set for the chat. Otherwise, chat theme was reset to the default one
 messageChatSetTheme theme_name:string = MessageContent;
 
 //@description The auto-delete or self-destruct timer for messages in the chat has been changed @message_auto_delete_time New value auto-delete or self-destruct time, in seconds; 0 if disabled @from_user_id If not 0, a user identifier, which default setting was automatically applied
@@ -2403,10 +2403,10 @@ messageForumTopicCreated name:string icon:forumTopicIcon = MessageContent;
 //@icon_custom_emoji_id New unique identifier of the custom emoji shown on the topic icon; 0 if none. Must be ignored if edit_icon_custom_emoji_id is false
 messageForumTopicEdited name:string edit_icon_custom_emoji_id:Bool icon_custom_emoji_id:int64 = MessageContent;
 
-//@description A forum topic has been closed or opened @is_closed True, if the topic was closed, otherwise the topic was reopened
+//@description A forum topic has been closed or opened @is_closed True, if the topic was closed; otherwise, the topic was reopened
 messageForumTopicIsClosedToggled is_closed:Bool = MessageContent;
 
-//@description A General forum topic has been hidden or unhidden @is_hidden True, if the topic was hidden, otherwise the topic was unhidden
+//@description A General forum topic has been hidden or unhidden @is_hidden True, if the topic was hidden; otherwise, the topic was unhidden
 messageForumTopicIsHiddenToggled is_hidden:Bool = MessageContent;
 
 //@description A profile photo was suggested to a user in a private chat @photo The suggested chat photo. Use the method setProfilePhoto with inputChatPhotoPrevious to apply the photo
@@ -4044,7 +4044,7 @@ pushMessageContentChatChangePhoto = PushMessageContent;
 //@description A chat title was edited @title New chat title
 pushMessageContentChatChangeTitle title:string = PushMessageContent;
 
-//@description A chat theme was edited @theme_name If non-empty, name of a new theme, set for the chat. Otherwise chat theme was reset to the default one
+//@description A chat theme was edited @theme_name If non-empty, name of a new theme, set for the chat. Otherwise, the chat theme was reset to the default one
 pushMessageContentChatSetTheme theme_name:string = PushMessageContent;
 
 //@description A chat member was deleted
@@ -4397,7 +4397,7 @@ targetChatInternalLink link:InternalLinkType = TargetChat;
 internalLinkTypeActiveSessions = InternalLinkType;
 
 //@description The link is a link to an attachment menu bot to be opened in the specified or a chosen chat. Process given target_chat to open the chat.
-//-Then call searchPublicChat with the given bot username, check that the user is a bot and can be added to attachment menu. Then use getAttachmentMenuBot to receive information about the bot.
+//-Then, call searchPublicChat with the given bot username, check that the user is a bot and can be added to attachment menu. Then, use getAttachmentMenuBot to receive information about the bot.
 //-If the bot isn't added to attachment menu, then user needs to confirm adding the bot to attachment menu. If user confirms adding, then use toggleBotIsAddedToAttachmentMenu to add it.
 //-If the attachment menu bot can't be used in the opened chat, show an error to the user. If the bot is added to attachment menu and can be used in the chat, then use openWebApp with the given URL
 //@target_chat Target chat to be opened
@@ -4423,15 +4423,15 @@ internalLinkTypeBotStart bot_username:string start_parameter:string autostart:Bo
 //-If administrator rights are provided by the link, call getChatMember to receive the current bot rights in the chat and if the bot already is an administrator,
 //-check that the current user can edit its administrator rights, combine received rights with the requested administrator rights, show confirmation box to the user,
 //-and call setChatMemberStatus with the chosen chat and confirmed administrator rights. Before call to setChatMemberStatus it may be required to upgrade the chosen basic group chat to a supergroup chat.
-//-Then if start_parameter isn't empty, call sendBotStartMessage with the given start parameter and the chosen chat, otherwise just send /start message with bot's username added to the chat.
+//-Then, if start_parameter isn't empty, call sendBotStartMessage with the given start parameter and the chosen chat; otherwise, just send /start message with bot's username added to the chat.
 //@bot_username Username of the bot
 //@start_parameter The parameter to be passed to sendBotStartMessage
 //@administrator_rights Expected administrator rights for the bot; may be null
 internalLinkTypeBotStartInGroup bot_username:string start_parameter:string administrator_rights:chatAdministratorRights = InternalLinkType;
 
 //@description The link is a link to a Telegram bot, which is supposed to be added to a channel chat as an administrator. Call searchPublicChat with the given bot username and check that the user is a bot,
-//-ask the current user to select a channel chat to add the bot to as an administrator. Then call getChatMember to receive the current bot rights in the chat and if the bot already is an administrator,
-//-check that the current user can edit its administrator rights and combine received rights with the requested administrator rights. Then show confirmation box to the user, and call setChatMemberStatus with the chosen chat and confirmed rights
+//-ask the current user to select a channel chat to add the bot to as an administrator. Then, call getChatMember to receive the current bot rights in the chat and if the bot already is an administrator,
+//-check that the current user can edit its administrator rights and combine received rights with the requested administrator rights. Then, show confirmation box to the user, and call setChatMemberStatus with the chosen chat and confirmed rights
 //@bot_username Username of the bot
 //@administrator_rights Expected administrator rights for the bot
 internalLinkTypeBotAddToChannel bot_username:string administrator_rights:chatAdministratorRights = InternalLinkType;
@@ -4476,7 +4476,7 @@ internalLinkTypeMessage url:string = InternalLinkType;
 //@contains_link True, if the first line of the text contains a link. If true, the input field needs to be focused and the text after the link must be selected
 internalLinkTypeMessageDraft text:formattedText contains_link:Bool = InternalLinkType;
 
-//@description The link contains a request of Telegram passport data. Call getPassportAuthorizationForm with the given parameters to process the link if the link was received from outside of the application, otherwise ignore it
+//@description The link contains a request of Telegram passport data. Call getPassportAuthorizationForm with the given parameters to process the link if the link was received from outside of the application; otherwise, ignore it
 //@bot_user_id User identifier of the service's bot
 //@scope Telegram Passport element types requested by the service
 //@public_key Service's public key
@@ -5051,7 +5051,7 @@ updateChatPermissions chat_id:int53 permissions:chatPermissions = Update;
 //@positions The new chat positions in the chat lists
 updateChatLastMessage chat_id:int53 last_message:message positions:vector<chatPosition> = Update;
 
-//@description The position of a chat in a chat list has changed. Instead of this update updateChatLastMessage or updateChatDraftMessage might be sent
+//@description The position of a chat in a chat list has changed. An updateChatLastMessage or updateChatDraftMessage update might be sent instead of the update
 //@chat_id Chat identifier
 //@position New chat position. If new order is 0, then the chat needs to be removed from the list
 updateChatPosition chat_id:int53 position:chatPosition = Update;
@@ -5274,7 +5274,7 @@ updateInstalledStickerSets sticker_type:StickerType sticker_set_ids:vector<int64
 //@description The list of trending sticker sets was updated or some of them were viewed @sticker_type Type of the affected stickers @sticker_sets The prefix of the list of trending sticker sets with the newest trending sticker sets
 updateTrendingStickerSets sticker_type:StickerType sticker_sets:trendingStickerSets = Update;
 
-//@description The list of recently used stickers was updated @is_attached True, if the list of stickers attached to photo or video files was updated, otherwise the list of sent stickers is updated @sticker_ids The new list of file identifiers of recently used stickers
+//@description The list of recently used stickers was updated @is_attached True, if the list of stickers attached to photo or video files was updated; otherwise, the list of sent stickers is updated @sticker_ids The new list of file identifiers of recently used stickers
 updateRecentStickers is_attached:Bool sticker_ids:vector<int32> = Update;
 
 //@description The list of favorite stickers was updated @sticker_ids The new list of file identifiers of favorite stickers
@@ -5642,7 +5642,7 @@ getMessage chat_id:int53 message_id:int53 = Message;
 //@description Returns information about a message, if it is available without sending network request. This is an offline request @chat_id Identifier of the chat the message belongs to @message_id Identifier of the message to get
 getMessageLocally chat_id:int53 message_id:int53 = Message;
 
-//@description Returns information about a message that is replied by a given message. Also returns the pinned message, the game message, the invoice message, and the topic creation message for messages
+//@description Returns information about a message that is replied by a given message. Also, returns the pinned message, the game message, the invoice message, and the topic creation message for messages
 //-of the types messagePinMessage, messageGameScore, messagePaymentSuccessful, and topic messages without replied message respectively
 //@chat_id Identifier of the chat the message belongs to
 //@message_id Identifier of the reply message
@@ -5684,7 +5684,7 @@ loadChats chat_list:ChatList limit:int32 = Ok;
 //@limit The maximum number of chats to be returned
 getChats chat_list:ChatList limit:int32 = Chats;
 
-//@description Searches a public chat by its username. Currently, only private chats, supergroups and channels can be public. Returns the chat if found; otherwise an error is returned @username Username to be resolved
+//@description Searches a public chat by its username. Currently, only private chats, supergroups and channels can be public. Returns the chat if found; otherwise, an error is returned @username Username to be resolved
 searchPublicChat username:string = Chat;
 
 //@description Searches public chats by looking for specified query in their username and title. Currently, only private chats, supergroups and channels can be public. Returns a meaningful number of results.

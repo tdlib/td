@@ -1517,7 +1517,7 @@ void Session::loop() {
   long_poll_connection_.wakeup_at_ = 0;
 
   // NB: order is crucial. First long_poll_connection, then main_connection
-  // Otherwise queries could be sent with big delay
+  // Otherwise, queries could be sent with big delay
 
   connection_check_mode(&main_connection_);
   connection_check_mode(&long_poll_connection_);

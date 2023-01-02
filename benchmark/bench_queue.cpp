@@ -888,7 +888,6 @@ int main() {
 #endif
 
 #if TD_PORT_POSIX
-  // TODO: yield makes it extremely slow. Yet some backoff may be necessary.
   // td::bench(RingBenchmark<SemQueue>());
   // td::bench(RingBenchmark<td::PollQueue<qvalue_t>>());
 

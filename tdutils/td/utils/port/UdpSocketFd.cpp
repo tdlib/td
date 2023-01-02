@@ -574,7 +574,7 @@ class UdpSocketFdImpl {
 
     auto error = Status::PosixError(sendmsg_errno, PSLICE() << "Send from " << get_native_fd() << " has failed");
     switch (sendmsg_errno) {
-      // Still may send some other packets, but there is no point to resend this particular message
+      // We still may send some other packets, but there is no point to resend this particular message
       case EACCES:
       case EMSGSIZE:
       case EPERM:
@@ -583,7 +583,7 @@ class UdpSocketFdImpl {
         is_sent = true;
         return error;
 
-      // Some general problems, which may be fixed in future
+      // Some general issues, which may be fixed in the future
       case ENOMEM:
       case EDQUOT:
       case EFBIG:

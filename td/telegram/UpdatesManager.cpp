@@ -508,8 +508,7 @@ void UpdatesManager::set_date(int32 date, bool from_update, string date_source) 
     }
     auto now = G()->unix_time();
     if (date_ > now + 1) {
-      LOG(ERROR) << "Receive wrong by " << (date_ - now) << " date = " << date_ << " from " << date_source
-                 << ". Now = " << now;
+      LOG(ERROR) << "Receive wrong by " << (date_ - now) << " date = " << date_ << " from " << date_source;
       date_ = now;
       if (date_ <= date) {
         return;

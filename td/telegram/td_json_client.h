@@ -28,7 +28,7 @@
  * Requests can be sent using td_send and the received client identifier.
  * New updates and responses to requests can be received through td_receive from any thread after the first request
  * has been sent to the client instance. This function must not be called simultaneously from two different threads.
- * Also note that all updates and responses to requests must be applied in the order they were received for consistency.
+ * Also, note that all updates and responses to requests must be applied in the order they were received for consistency.
  * Some TDLib requests can be executed synchronously from any thread using td_execute.
  * TDLib client instances are destroyed automatically after they are closed.
  * All TDLib client instances must be closed before application termination to ensure data consistency.
@@ -118,7 +118,7 @@ TDJSON_EXPORT void td_set_log_message_callback(int max_verbosity_level, td_log_m
  * A TDLib client instance can be created through td_json_client_create.
  * Requests then can be sent using td_json_client_send from any thread.
  * New updates and request responses can be received through td_json_client_receive from any thread. This function
- * must not be called simultaneously from two different threads. Also note that all updates and request responses
+ * must not be called simultaneously from two different threads. Also, note that all updates and request responses
  * must be applied in the order they were received to ensure consistency.
  * Given this information, it's advisable to call this function from a dedicated thread.
  * Some service TDLib requests can be executed synchronously from any thread by using td_json_client_execute.

@@ -479,10 +479,10 @@ class SecretChatActor final : public NetQueryCallback {
   // This is completly flawed.
   // (A-start_save_to_binlog ----> B-start_save_to_binlog+change_memory ----> A-finish_save_to_binlog+surprise)
   //
-  // Instead I suggest general solution that is already used with SeqNoState and qts
+  // Instead, I suggest general solution that is already used with SeqNoState and qts
   // 1. We APPLY CHANGE to memory immediately AFTER corresponding EVENT is SENT to the binlog.
   // 2. We SEND CHANGE to database only after corresponding EVENT is SAVED to the binlog.
-  // 3. Then we are able to ERASE EVENT just AFTER the CHANGE is SAVED to the binlog.
+  // 3. Then, we are able to ERASE EVENT just AFTER the CHANGE is SAVED to the binlog.
   //
   // Actually the change will be saved to binlog too.
   // So we can do it immediatelly after EVENT is SENT to the binlog, because SEND CHANGE and ERASE EVENT will be

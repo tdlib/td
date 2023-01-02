@@ -43,10 +43,9 @@ class ObjectPool {
     // Pattern of usage: 1. Read an object 2. Check if read was valid via is_alive
     //
     // It is not very usual case of acquire/release use.
-    // Instead of publishing an object via some flag we do the opposite.
-    // We publish new generation via destruction of the data.
+    // We publish new generation via destruction of the data instead of publishing the object via some flag.
     // In usual case if we see a flag, then we are able to use an object.
-    // In our case if we have used an object and it is already invalid, then generation will mismatch
+    // In our case if we have used an object and it is already invalid, then generation will mismatch.
     bool is_alive() const {
       if (!storage_) {
         return false;
@@ -216,7 +215,7 @@ class ObjectPool {
   std::atomic<Storage *> head_{static_cast<Storage *>(nullptr)};
   bool check_empty_flag_ = false;
 
-  // TODO(perf): allocation Storages in chunks? Anyway we won't be able to release them.
+  // TODO(perf): allocation Storages in chunks? Anyway, we won't be able to release them.
   // TODO(perf): memory order
   // TODO(perf): use another non lockfree list for release on the same thread
   // only one thread, so no aba problem

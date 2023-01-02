@@ -186,9 +186,8 @@ class MpmcSleepyWaiter {
   // This may put it in a Sleep for some time.
   // After wait returns worker will be in Search state again.
   //
-  // Suppose worker found a work and ready to process it.
-  // Then it may call stop_wait. This will cause transition from
-  // Search to Work state.
+  // If a worker found a work and ready to process it, then it may call stop_wait.
+  // This will cause transition from Search to Work state.
   //
   // Main invariant:
   // After notify is called there should be at least on worker in Search or Work state.

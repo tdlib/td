@@ -595,7 +595,7 @@ void SecretChatActor::run_pfs() {
         break;
       }
       case PfsState::SendCommit: {
-        // must wait till pfs_state is saved to binlog. Otherwise we may save ActionCommit to binlog without pfs_state,
+        // must wait till pfs_state is saved to binlog. Otherwise, we may save ActionCommit to binlog without pfs_state,
         // which has the new auth_key.
         if (saved_pfs_state_message_id_ < pfs_state_.wait_message_id) {
           return;
@@ -1183,7 +1183,7 @@ Status SecretChatActor::do_inbound_message_decrypted(unique_ptr<log_event::Inbou
   // 1. [] => Add log event. [save_log_event]
   // 2. [save_log_event] => Save SeqNoState [save_changes]
   // 3. [save_log_event] => Add message to MessageManager [save_message]
-  //    Note: if we are able to add message by random_id, we may not wait for (log event). Otherwise we should force
+  //    Note: if we are able to add message by random_id, we may not wait for (log event). Otherwise, we should force
   //    binlog flush.
   // 4. [save_log_event] => Update qts [qts]
   // 5. [save_changes; save_message; ?qts) => Remove log event [remove_log_event]

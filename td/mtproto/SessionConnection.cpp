@@ -91,8 +91,7 @@ namespace mtproto {
  *  A notification about new session.
  *  It is reasonable to store unique_id with current session, in order to process duplicated notifications once.
  *
- *  Causes all older than first_msg_id to be re-sent.
- *  Also there is a gap in updates, so getDifference MUST be sent
+ *  Causes all messages older than first_msg_id to be re-sent and notifies about a gap in updates
  *  output:
  *   - new_session_created#9ec20908 first_msg_id:long unique_id:long server_salt:long = NewSession
  *

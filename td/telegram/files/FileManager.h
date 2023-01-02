@@ -375,7 +375,7 @@ class FileManager final : public FileLoadManager::Callback {
 
     // After on_upload_ok all uploads of this file will be paused till merge, delete_partial_remote_location or
     // explicit upload request with the same file_id.
-    // Also upload may be resumed after some other merges.
+    // Also, upload may be resumed after some other merge.
     virtual void on_upload_ok(FileId file_id, tl_object_ptr<telegram_api::InputFile> input_file) = 0;
     virtual void on_upload_encrypted_ok(FileId file_id, tl_object_ptr<telegram_api::InputEncryptedFile> input_file) = 0;
     virtual void on_upload_secure_ok(FileId file_id, tl_object_ptr<telegram_api::InputSecureFile> input_file) = 0;
