@@ -13529,6 +13529,12 @@ void MessagesManager::hangup() {
     while (!being_sent_messages_.empty()) {
       on_send_message_fail(being_sent_messages_.begin()->first, Global::request_aborted_error());
     }
+    if (!update_message_ids_.empty()) {
+      LOG(ERROR) << "Have " << update_message_ids_.size() << " awaited sent messages";
+    }
+    if (!update_scheduled_message_ids_.empty()) {
+      LOG(ERROR) << "Have " << update_scheduled_message_ids_.size() << " awaited sent scheduled messages";
+    }
   }
 
   fail_promises(load_active_live_location_messages_queries_, Global::request_aborted_error());
