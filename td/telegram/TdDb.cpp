@@ -6,6 +6,7 @@
 //
 #include "td/telegram/TdDb.h"
 
+#include "td/telegram/AttachMenuManager.h"
 #include "td/telegram/DialogDb.h"
 #include "td/telegram/files/FileDb.h"
 #include "td/telegram/Global.h"
@@ -390,6 +391,7 @@ Status TdDb::init_sqlite(const TdParameters &parameters, const DbKey &key, const
     binlog_pmc.erase("saved_contact_count");
     binlog_pmc.erase("old_featured_sticker_set_count");
     binlog_pmc.erase("invalidate_old_featured_sticker_sets");
+    binlog_pmc.erase(AttachMenuManager::get_attach_menu_bots_database_key());
   }
   binlog_pmc.force_sync({});
 
