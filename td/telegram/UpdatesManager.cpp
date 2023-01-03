@@ -1473,6 +1473,10 @@ void UpdatesManager::init_state() {
 }
 
 void UpdatesManager::ping_server() {
+  if (is_ping_sent_) {
+    return;
+  }
+  is_ping_sent_ = true;
   auto promise = PromiseCreator::lambda([](Result<tl_object_ptr<telegram_api::updates_state>> result) {
     auto state = result.is_ok() ? result.move_as_ok() : nullptr;
     send_closure(G()->updates_manager(), &UpdatesManager::on_server_pong, std::move(state));
@@ -1482,6 +1486,7 @@ void UpdatesManager::ping_server() {
 
 void UpdatesManager::on_server_pong(tl_object_ptr<telegram_api::updates_state> &&state) {
   LOG(INFO) << "Receive " << oneline(to_string(state));
+  is_ping_sent_ = false;
   if (state == nullptr || state->pts_ > get_pts() || state->seq_ > seq_) {
     get_difference("on server pong");
   }
