@@ -175,7 +175,7 @@ class Session final
 
   struct ContainerInfo {
     size_t ref_cnt;
-    std::vector<uint64> message_ids;
+    vector<uint64> message_ids;
   };
   FlatHashMap<uint64, ContainerInfo> sent_containers_;
 

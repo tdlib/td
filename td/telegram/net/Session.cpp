@@ -392,7 +392,7 @@ void Session::on_bind_result(NetQueryPtr query) {
       bool has_immunity =
           !is_server_time_reliable || auth_key_age < 60 || (auth_key_age > 86400 && last_success_time > now - 86400);
       auto debug = PSTRING() << ". Server time is " << server_time << ", auth key created at " << auth_key_creation_date
-                             << ", is_server_time_reliable = " << is_server_time_reliable
+                             << ", is_server_time_reliable = " << is_server_time_reliable << ", use_pfs = " << use_pfs_
                              << ", last_success_time = " << last_success_time << ", now = " << now;
       if (!use_pfs_) {
         if (has_immunity) {
@@ -688,7 +688,7 @@ void Session::on_closed(Status status) {
 void Session::on_session_created(uint64 unique_id, uint64 first_id) {
   // TODO: use unique_id
   LOG(INFO) << "New session " << unique_id << " created with first message_id " << first_id;
-  if (!use_pfs_) {
+  if (!use_pfs_ && !auth_data_.use_pfs()) {
     last_success_timestamp_ = Time::now();
   }
   if (is_main_) {
@@ -846,7 +846,7 @@ Status Session::on_update(BufferSlice packet) {
     return Status::Error("Receive at update from CDN connection");
   }
 
-  if (!use_pfs_) {
+  if (!use_pfs_ && !auth_data_.use_pfs()) {
     last_success_timestamp_ = Time::now();
   }
   last_activity_timestamp_ = Time::now();
