@@ -104,9 +104,14 @@ class AuthDataSharedImpl final : public AuthDataShared {
   }
 
   void log_auth_key(const mtproto::AuthKey &auth_key) {
+    auto salts = get_future_salts();
+    int64 last_used = 0;
+    if (!salts.empty()) {
+      last_used = static_cast<int64>(salts[0].valid_until);
+    }
     LOG(WARNING) << dc_id_ << " " << tag("auth_key_id", auth_key.id())
                  << tag("state", AuthDataShared::get_auth_key_state(auth_key))
-                 << tag("created_at", auth_key.created_at());
+                 << tag("created_at", static_cast<int64>(auth_key.created_at())) << tag("last_used", last_used);
   }
 };
 
