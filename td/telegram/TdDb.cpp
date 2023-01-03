@@ -33,7 +33,9 @@
 #include "td/utils/format.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
+#include "td/utils/port/Clocks.h"
 #include "td/utils/port/path.h"
+#include "td/utils/port/Stat.h"
 #include "td/utils/Random.h"
 #include "td/utils/SliceBuilder.h"
 #include "td/utils/StringBuilder.h"
@@ -55,6 +57,14 @@ std::string get_sqlite_path(const TdParameters &parameters) {
 
 Status init_binlog(Binlog &binlog, string path, BinlogKeyValue<Binlog> &binlog_pmc, BinlogKeyValue<Binlog> &config_pmc,
                    TdDb::OpenedDatabase &events, DbKey key) {
+  auto r_binlog_stat = stat(path);
+  if (r_binlog_stat.is_ok()) {
+    auto since_last_open = Clocks::system() - r_binlog_stat.ok().mtime_nsec_ * 1e-9;
+    if (since_last_open >= 86400) {
+      LOG(WARNING) << "Binlog wasn't opened for " << since_last_open << " seconds";
+    }
+  }
+
   auto callback = [&](const BinlogEvent &event) {
     switch (event.type_) {
       case LogEvent::HandlerType::SecretChats:
