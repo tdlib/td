@@ -10,7 +10,10 @@
 #include "td/utils/crypto.h"
 #include "td/utils/FlatHashMap.h"
 #include "td/utils/logging.h"
+#include "td/utils/misc.h"
+#include "td/utils/port/path.h"
 #include "td/utils/port/wstring_convert.h"
+#include "td/utils/ScopeGuard.h"
 #include "td/utils/SliceBuilder.h"
 #include "td/utils/Time.h"
 
@@ -18,6 +21,7 @@
 #include <openssl/err.h>
 #include <openssl/ssl.h>
 #include <openssl/x509.h>
+#include <openssl/x509_vfy.h>
 
 #include <cstring>
 #include <memory>
@@ -56,6 +60,69 @@ int verify_callback(int preverify_ok, X509_STORE_CTX *ctx) {
   return preverify_ok;
 }
 
+X509_STORE *load_system_certificate_store() {
+  int32 cert_count = 0;
+  LOG(DEBUG) << "Begin to load system certificate store";
+  SCOPE_EXIT {
+    LOG(DEBUG) << "End to load " << cert_count << " certificates from system store";
+  };
+#if TD_PORT_WINDOWS
+  auto flags = CERT_STORE_OPEN_EXISTING_FLAG | CERT_STORE_READONLY_FLAG | CERT_SYSTEM_STORE_CURRENT_USER;
+  HCERTSTORE system_store =
+      CertOpenStore(CERT_STORE_PROV_SYSTEM_W, X509_ASN_ENCODING | PKCS_7_ASN_ENCODING, HCRYPTPROV_LEGACY(), flags,
+                    static_cast<const void *>(to_wstring("ROOT").ok().c_str()));
+  if (!system_store) {
+    return nullptr;
+  }
+  X509_STORE *store = X509_STORE_new();
+
+  for (PCCERT_CONTEXT cert_context = CertEnumCertificatesInStore(system_store, nullptr); cert_context != nullptr;
+       cert_context = CertEnumCertificatesInStore(system_store, cert_context)) {
+    const unsigned char *in = cert_context->pbCertEncoded;
+    X509 *x509 = d2i_X509(nullptr, &in, static_cast<long>(cert_context->cbCertEncoded));
+    if (x509 != nullptr) {
+      if (X509_STORE_add_cert(store, x509) != 1) {
+        auto error_code = ERR_peek_error();
+        auto error = create_openssl_error(-20, "Failed to add certificate");
+        if (ERR_GET_REASON(error_code) != X509_R_CERT_ALREADY_IN_HASH_TABLE) {
+          LOG(ERROR) << error;
+        } else {
+          LOG(INFO) << error;
+        }
+      } else {
+        cert_count++;
+      }
+
+      X509_free(x509);
+    } else {
+      LOG(ERROR) << create_openssl_error(-21, "Failed to load X509 certificate");
+    }
+  }
+
+  CertCloseStore(system_store, 0);
+#else
+  string default_cert_dir = X509_get_default_cert_dir();
+  if (default_cert_dir.empty()) {
+    return nullptr;
+  }
+  X509_STORE *store = X509_STORE_new();
+
+  for (auto cert_dir : full_split(default_cert_dir, ':')) {
+    walk_path(cert_dir, [&](CSlice path, WalkPath::Type type) {
+      if (type != WalkPath::Type::NotDir) {
+        return WalkPath::Action::Continue;
+      }
+      if (X509_STORE_load_locations(store, path.c_str(), nullptr) == 1) {
+        cert_count++;
+      }
+      return WalkPath::Action::Continue;
+    }).ignore();
+  }
+#endif
+
+  return store;
+}
+
 using SslCtxPtr = std::shared_ptr<SSL_CTX>;
 
 Result<SslCtxPtr> do_create_ssl_ctx(CSlice cert_file, SslCtx::VerifyPeer verify_peer) {
@@ -87,54 +154,17 @@ Result<SslCtxPtr> do_create_ssl_ctx(CSlice cert_file, SslCtx::VerifyPeer verify_
   SSL_CTX_set_mode(ssl_ctx, SSL_MODE_ACCEPT_MOVING_WRITE_BUFFER | SSL_MODE_ENABLE_PARTIAL_WRITE);
 
   if (cert_file.empty()) {
-#if TD_PORT_WINDOWS
-    LOG(DEBUG) << "Begin to load system store";
-    auto flags = CERT_STORE_OPEN_EXISTING_FLAG | CERT_STORE_READONLY_FLAG | CERT_SYSTEM_STORE_CURRENT_USER;
-    HCERTSTORE system_store =
-        CertOpenStore(CERT_STORE_PROV_SYSTEM_W, X509_ASN_ENCODING | PKCS_7_ASN_ENCODING, HCRYPTPROV_LEGACY(), flags,
-                      static_cast<const void *>(to_wstring("ROOT").ok().c_str()));
-
-    if (system_store) {
-      X509_STORE *store = X509_STORE_new();
-
-      for (PCCERT_CONTEXT cert_context = CertEnumCertificatesInStore(system_store, nullptr); cert_context != nullptr;
-           cert_context = CertEnumCertificatesInStore(system_store, cert_context)) {
-        const unsigned char *in = cert_context->pbCertEncoded;
-        X509 *x509 = d2i_X509(nullptr, &in, static_cast<long>(cert_context->cbCertEncoded));
-        if (x509 != nullptr) {
-          if (X509_STORE_add_cert(store, x509) != 1) {
-            auto error_code = ERR_peek_error();
-            auto error = create_openssl_error(-20, "Failed to add certificate");
-            if (ERR_GET_REASON(error_code) != X509_R_CERT_ALREADY_IN_HASH_TABLE) {
-              LOG(ERROR) << error;
-            } else {
-              LOG(INFO) << error;
-            }
-          }
-
-          X509_free(x509);
-        } else {
-          LOG(ERROR) << create_openssl_error(-21, "Failed to load X509 certificate");
-        }
-      }
-
-      CertCloseStore(system_store, 0);
-
-      SSL_CTX_set_cert_store(ssl_ctx, store);
-      LOG(DEBUG) << "End to load system store";
-    } else {
-      LOG(ERROR) << create_openssl_error(-22, "Failed to open system certificate store");
-    }
-#else
-    if (SSL_CTX_set_default_verify_paths(ssl_ctx) == 0) {
-      auto error = create_openssl_error(-8, "Failed to load default verify paths");
+    auto *store = load_system_certificate_store();
+    if (store == nullptr) {
+      auto error = create_openssl_error(-8, "Failed to load system certificate store");
       if (verify_peer == SslCtx::VerifyPeer::On) {
         return std::move(error);
       } else {
         LOG(ERROR) << error;
       }
+    } else {
+      SSL_CTX_set_cert_store(ssl_ctx, store);
     }
-#endif
   } else {
     if (SSL_CTX_load_verify_locations(ssl_ctx, cert_file.c_str(), nullptr) == 0) {
       return create_openssl_error(-8, "Failed to set custom certificate file");
