@@ -59,7 +59,7 @@ Status init_binlog(Binlog &binlog, string path, BinlogKeyValue<Binlog> &binlog_p
                    TdDb::OpenedDatabase &events, DbKey key) {
   auto r_binlog_stat = stat(path);
   if (r_binlog_stat.is_ok()) {
-    auto since_last_open = Clocks::system() - r_binlog_stat.ok().mtime_nsec_ * 1e-9;
+    auto since_last_open = Clocks::system() - static_cast<double>(r_binlog_stat.ok().mtime_nsec_) * 1e-9;
     if (since_last_open >= 86400) {
       LOG(WARNING) << "Binlog wasn't opened for " << since_last_open << " seconds";
     }
