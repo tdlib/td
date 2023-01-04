@@ -91,8 +91,11 @@ Status rmrf(CSlice path) {
       case WalkPath::Type::ExitDir:
         rmdir(path).ignore();
         break;
-      case WalkPath::Type::NotDir:
+      case WalkPath::Type::RegularFile:
         unlink(path).ignore();
+        break;
+      case WalkPath::Type::Symlink:
+        // never follow symbolic links
         break;
     }
   });
@@ -263,6 +266,8 @@ Result<bool> walk_path_dir(string &path, const WalkFunction &func) TD_WARN_UNUSE
 
 Result<bool> walk_path_file(string &path, const WalkFunction &func) TD_WARN_UNUSED_RESULT;
 
+Result<bool> walk_path_symlink(string &path, const WalkFunction &func) TD_WARN_UNUSED_RESULT;
+
 Result<bool> walk_path(string &path, const WalkFunction &func) TD_WARN_UNUSED_RESULT;
 
 Result<bool> walk_path_subdir(string &path, DIR *dir, const WalkFunction &func) {
@@ -296,6 +301,8 @@ Result<bool> walk_path_subdir(string &path, DIR *dir, const WalkFunction &func) 
       status = walk_path_dir(path, func);
     } else if (entry->d_type == DT_REG) {
       status = walk_path_file(path, func);
+    } else if (entry->d_type == DT_LNK) {
+      status = walk_path_symlink(path, func);
     }
 #else
 #if !TD_SOLARIS
@@ -354,7 +361,18 @@ Result<bool> walk_path_dir(string &path, const WalkFunction &func) {
 }
 
 Result<bool> walk_path_file(string &path, const WalkFunction &func) {
-  switch (func(path, WalkPath::Type::NotDir)) {
+  switch (func(path, WalkPath::Type::RegularFile)) {
+    case WalkPath::Action::Abort:
+      return false;
+    case WalkPath::Action::SkipDir:
+    case WalkPath::Action::Continue:
+      break;
+  }
+  return true;
+}
+
+Result<bool> walk_path_symlink(string &path, const WalkFunction &func) {
+  switch (func(path, WalkPath::Type::Symlink)) {
     case WalkPath::Action::Abort:
       return false;
     case WalkPath::Action::SkipDir:
@@ -368,15 +386,18 @@ Result<bool> walk_path(string &path, const WalkFunction &func) {
   TRY_RESULT(fd, FileFd::open(path, FileFd::Read));
   TRY_RESULT(stat, fd.stat());
 
-  bool is_dir = stat.is_dir_;
-  bool is_reg = stat.is_reg_;
-  if (is_dir) {
+  if (stat.is_dir_) {
     return walk_path_dir(path, std::move(fd), func);
   }
 
   fd.close();
-  if (is_reg) {
+
+  if (stat.is_reg_) {
     return walk_path_file(path, func);
+  }
+
+  if (stat.is_symbolic_link_) {
+    return walk_path_symlink(path, func);
   }
 
   return true;
@@ -589,14 +610,24 @@ static Result<bool> walk_path_dir(const std::wstring &dir_name,
         if (!is_ok) {
           return false;
         }
-      } else {
-        switch (func(entry_name, WalkPath::Type::NotDir)) {
+      } else if ((file_data.dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT) == 0) {
+        switch (func(entry_name, WalkPath::Type::RegularFile)) {
           case WalkPath::Action::Abort:
             return false;
           case WalkPath::Action::SkipDir:
           case WalkPath::Action::Continue:
             break;
         }
+      } else if (file_data.dwReserved0 == IO_REPARSE_TAG_SYMLINK) {
+        switch (func(entry_name, WalkPath::Type::Symlink)) {
+          case WalkPath::Action::Abort:
+            return false;
+          case WalkPath::Action::SkipDir:
+          case WalkPath::Action::Continue:
+            break;
+        }
+      } else {
+        // skip other reparse points
       }
     }
     auto status = FindNextFileW(handle, &file_data);

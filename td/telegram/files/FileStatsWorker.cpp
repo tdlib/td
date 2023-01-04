@@ -112,7 +112,7 @@ void scan_fs(CancellationToken &token, CallbackT &&callback) {
       if (token) {
         return WalkPath::Action::Abort;
       }
-      if (type != WalkPath::Type::NotDir) {
+      if (type != WalkPath::Type::RegularFile) {
         return WalkPath::Action::Continue;
       }
       auto r_stat = stat(path);

@@ -44,7 +44,7 @@ Result<string> mkdtemp(CSlice dir, Slice prefix) TD_WARN_UNUSED_RESULT;
 class WalkPath {
  public:
   enum class Action { Continue, Abort, SkipDir };
-  enum class Type { EnterDir, ExitDir, NotDir };
+  enum class Type { EnterDir, ExitDir, RegularFile, Symlink };
 
   template <class F, class R = decltype(std::declval<F>()("", Type::ExitDir))>
   static TD_WARN_UNUSED_RESULT std::enable_if_t<std::is_same<R, Action>::value, Status> run(CSlice path, F &&func) {

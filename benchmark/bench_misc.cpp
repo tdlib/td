@@ -228,13 +228,7 @@ class CreateFileBench final : public td::Benchmark {
     }
   }
   void tear_down() final {
-    td::walk_path("A/", [&](td::CSlice path, auto type) {
-      if (type == td::WalkPath::Type::ExitDir) {
-        td::rmdir(path).ignore();
-      } else if (type == td::WalkPath::Type::NotDir) {
-        td::unlink(path).ignore();
-      }
-    }).ignore();
+    td::rmrf("A/").ignore();
   }
 };
 
@@ -250,22 +244,10 @@ class WalkPathBench final : public td::Benchmark {
   }
   void run(int n) final {
     int cnt = 0;
-    td::walk_path("A/", [&](td::CSlice path, auto type) {
-      if (type == td::WalkPath::Type::EnterDir) {
-        return;
-      }
-      td::stat(path).ok();
-      cnt++;
-    }).ignore();
+    td::rmrf("A/").ignore();
   }
   void tear_down() final {
-    td::walk_path("A/", [&](td::CSlice path, auto type) {
-      if (type == td::WalkPath::Type::ExitDir) {
-        td::rmdir(path).ignore();
-      } else if (type == td::WalkPath::Type::NotDir) {
-        td::unlink(path).ignore();
-      }
-    }).ignore();
+    td::rmrf("A/").ignore();
   }
 };
 
