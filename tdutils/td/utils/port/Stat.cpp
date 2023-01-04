@@ -126,6 +126,7 @@ Stat from_native_stat(const struct ::stat &buf) {
   res.real_size_ = buf.st_blocks * 512;
   res.is_dir_ = (buf.st_mode & S_IFMT) == S_IFDIR;
   res.is_reg_ = (buf.st_mode & S_IFMT) == S_IFREG;
+  res.is_symbolic_link_ = (buf.st_mode & S_IFMT) == S_IFLNK;
   return res;
 }
 

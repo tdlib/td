@@ -17,6 +17,7 @@ namespace td {
 struct Stat {
   bool is_dir_;
   bool is_reg_;
+  bool is_symbolic_link_;
   int64 size_;
   int64 real_size_;
   uint64 atime_nsec_;

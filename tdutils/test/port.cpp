@@ -167,6 +167,14 @@ TEST(Port, Writev) {
   td::string content(expected_content.size(), '\0');
   ASSERT_EQ(content.size(), fd.read(content).move_as_ok());
   ASSERT_EQ(expected_content, content);
+
+  auto stat = td::stat(test_file_path).move_as_ok();
+  CHECK(!stat.is_dir_);
+  CHECK(stat.is_reg_);
+  CHECK(!stat.is_symbolic_link_);
+  CHECK(stat.size_ == static_cast<td::int64>(expected_content.size()));
+
+  td::unlink(test_file_path).ignore();
 }
 
 #if TD_PORT_POSIX && !TD_THREAD_UNSUPPORTED

@@ -434,6 +434,7 @@ Result<string> realpath(CSlice slice, bool ignore_access_denied) {
   if (res.empty()) {
     return Status::Error("Empty path");
   }
+  // TODO GetFullPathName doesn't resolve symbolic links
   if (!slice.empty() && slice.end()[-1] == TD_DIR_SLASH) {
     if (res.back() != TD_DIR_SLASH) {
       res += TD_DIR_SLASH;
