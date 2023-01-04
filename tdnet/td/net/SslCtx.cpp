@@ -122,7 +122,8 @@ X509_STORE *load_system_certificate_store() {
   for (auto cert_dir : full_split(default_cert_dir, ':')) {
     walk_path(cert_dir, [&](CSlice path, WalkPath::Type type) {
       if (type != WalkPath::Type::NotDir) {
-        return WalkPath::Action::Continue;
+        return type == WalkPath::Type::EnterDir && path != cert_dir ? WalkPath::Action::SkipDir
+                                                                    : WalkPath::Action::Continue;
       }
       add_file(path);
       return WalkPath::Action::Continue;
