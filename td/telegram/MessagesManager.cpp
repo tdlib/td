@@ -10408,6 +10408,17 @@ void MessagesManager::on_get_dialog_messages_search_result(
       continue;
     }
 
+    if (filter != MessageSearchFilter::Empty) {
+      const Message *m = get_message(new_full_message_id);
+      CHECK(m != nullptr);
+      auto index_mask = get_message_index_mask(new_full_message_id.get_dialog_id(), m);
+      if ((message_search_filter_index_mask(filter) & index_mask) == 0) {
+        LOG(INFO) << "Skip " << new_full_message_id << " of unexpected type";
+        total_count--;
+        continue;
+      }
+    }
+
     // TODO check that messages are returned in decreasing message_id order
     if (message_id < first_added_message_id || !first_added_message_id.is_valid()) {
       first_added_message_id = message_id;
