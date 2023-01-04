@@ -244,7 +244,13 @@ class WalkPathBench final : public td::Benchmark {
   }
   void run(int n) final {
     int cnt = 0;
-    td::rmrf("A/").ignore();
+    td::walk_path("A/", [&](td::CSlice path, auto type) {
+      if (type == td::WalkPath::Type::EnterDir) {
+        return;
+      }
+      td::stat(path).ok();
+      cnt++;
+    }).ignore();
   }
   void tear_down() final {
     td::rmrf("A/").ignore();
