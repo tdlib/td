@@ -65,7 +65,11 @@ X509_STORE *load_system_certificate_store() {
   int32 file_count = 0;
   LOG(DEBUG) << "Begin to load system certificate store";
   SCOPE_EXIT {
-    LOG(DEBUG) << "End to load " << cert_count << " certificates in " << file_count << " files from system store";
+    LOG(DEBUG) << "End to load " << cert_count << " certificates from " << file_count << " files from system store";
+    if (ERR_peek_error() != 0) {
+      auto error = create_openssl_error(-22, "Have unprocessed errors");
+      LOG(INFO) << error;
+    }
   };
 #if TD_PORT_WINDOWS
   auto flags = CERT_STORE_OPEN_EXISTING_FLAG | CERT_STORE_READONLY_FLAG | CERT_SYSTEM_STORE_CURRENT_USER;
@@ -112,7 +116,8 @@ X509_STORE *load_system_certificate_store() {
 
   auto add_file = [&](CSlice path) {
     if (X509_STORE_load_locations(store, path.c_str(), nullptr) != 1) {
-      LOG(INFO) << path << ": " << create_openssl_error(-20, "Failed to add certificate");
+      auto error = create_openssl_error(-20, "Failed to add certificate");
+      LOG(INFO) << path << ": " << error;
     } else {
       file_count++;
     }
@@ -139,7 +144,7 @@ X509_STORE *load_system_certificate_store() {
   auto objects = X509_STORE_get0_objects(store);
   cert_count = objects == nullptr ? 0 : sk_X509_OBJECT_num(objects);
 #else
-  cert_count = file_count;
+  cert_count = -1;
 #endif
 #endif
 
