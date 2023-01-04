@@ -105,28 +105,35 @@ X509_STORE *load_system_certificate_store() {
 
   CertCloseStore(system_store, 0);
 #else
-  string default_cert_dir = X509_get_default_cert_dir();
-  if (default_cert_dir.empty()) {
-    return nullptr;
-  }
   X509_STORE *store = X509_STORE_new();
   if (store == nullptr) {
     return nullptr;
   }
 
+  auto add_file = [&](CSlice path) {
+    if (X509_STORE_load_locations(store, path.c_str(), nullptr) != 1) {
+      LOG(INFO) << path << ": " << create_openssl_error(-20, "Failed to add certificate");
+    } else {
+      file_count++;
+    }
+  };
+
+  string default_cert_dir = X509_get_default_cert_dir();
   for (auto cert_dir : full_split(default_cert_dir, ':')) {
     walk_path(cert_dir, [&](CSlice path, WalkPath::Type type) {
       if (type != WalkPath::Type::NotDir) {
         return WalkPath::Action::Continue;
       }
-      if (X509_STORE_load_locations(store, path.c_str(), nullptr) != 1) {
-        LOG(INFO) << path << ": " << create_openssl_error(-20, "Failed to add certificate");
-      } else {
-        file_count++;
-      }
+      add_file(path);
       return WalkPath::Action::Continue;
     }).ignore();
   }
+
+  string default_cert_path = X509_get_default_cert_file();
+  if (!default_cert_path.empty()) {
+    add_file(default_cert_path);
+  }
+
 #if OPENSSL_VERSION_NUMBER >= 0x10100000L
   auto objects = X509_STORE_get0_objects(store);
   cert_count = objects == nullptr ? 0 : sk_X509_OBJECT_num(objects);
