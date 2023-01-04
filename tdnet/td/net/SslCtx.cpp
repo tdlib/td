@@ -62,9 +62,10 @@ int verify_callback(int preverify_ok, X509_STORE_CTX *ctx) {
 
 X509_STORE *load_system_certificate_store() {
   int32 cert_count = 0;
+  int32 file_count = 0;
   LOG(DEBUG) << "Begin to load system certificate store";
   SCOPE_EXIT {
-    LOG(DEBUG) << "End to load " << cert_count << " certificates from system store";
+    LOG(DEBUG) << "End to load " << cert_count << " certificates in " << file_count << " files from system store";
   };
 #if TD_PORT_WINDOWS
   auto flags = CERT_STORE_OPEN_EXISTING_FLAG | CERT_STORE_READONLY_FLAG | CERT_SYSTEM_STORE_CURRENT_USER;
@@ -75,6 +76,9 @@ X509_STORE *load_system_certificate_store() {
     return nullptr;
   }
   X509_STORE *store = X509_STORE_new();
+  if (store == nullptr) {
+    return nullptr;
+  }
 
   for (PCCERT_CONTEXT cert_context = CertEnumCertificatesInStore(system_store, nullptr); cert_context != nullptr;
        cert_context = CertEnumCertificatesInStore(system_store, cert_context)) {
@@ -106,18 +110,29 @@ X509_STORE *load_system_certificate_store() {
     return nullptr;
   }
   X509_STORE *store = X509_STORE_new();
+  if (store == nullptr) {
+    return nullptr;
+  }
 
   for (auto cert_dir : full_split(default_cert_dir, ':')) {
     walk_path(cert_dir, [&](CSlice path, WalkPath::Type type) {
       if (type != WalkPath::Type::NotDir) {
         return WalkPath::Action::Continue;
       }
-      if (X509_STORE_load_locations(store, path.c_str(), nullptr) == 1) {
-        cert_count++;
+      if (X509_STORE_load_locations(store, path.c_str(), nullptr) != 1) {
+        LOG(INFO) << path << ": " << create_openssl_error(-20, "Failed to add certificate");
+      } else {
+        file_count++;
       }
       return WalkPath::Action::Continue;
     }).ignore();
   }
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
+  auto objects = X509_STORE_get0_objects(store);
+  cert_count = objects == nullptr ? 0 : sk_X509_OBJECT_num(objects);
+#else
+  cert_count = file_count;
+#endif
 #endif
 
   return store;
