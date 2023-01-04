@@ -121,7 +121,7 @@ X509_STORE *load_system_certificate_store() {
   string default_cert_dir = X509_get_default_cert_dir();
   for (auto cert_dir : full_split(default_cert_dir, ':')) {
     walk_path(cert_dir, [&](CSlice path, WalkPath::Type type) {
-      if (type != WalkPath::Type::RegularFile) {
+      if (type != WalkPath::Type::RegularFile && type != WalkPath::Type::Symlink) {
         return type == WalkPath::Type::EnterDir && path != cert_dir ? WalkPath::Action::SkipDir
                                                                     : WalkPath::Action::Continue;
       }
