@@ -61,9 +61,9 @@ class TQueue {
   struct RawEvent {
     uint64 log_event_id{0};
     EventId event_id;
+    int32 expires_at{0};
     string data;
     int64 extra{0};
-    int32 expires_at{0};
   };
 
   using QueueId = int64;
