@@ -104,7 +104,7 @@ class TQueue {
 
   virtual void forget(QueueId queue_id, EventId event_id) = 0;
 
-  virtual void clear(QueueId queue_id, size_t keep_count) = 0;
+  virtual std::map<EventId, RawEvent> clear(QueueId queue_id, size_t keep_count) = 0;
 
   virtual EventId get_head(QueueId queue_id) const = 0;
   virtual EventId get_tail(QueueId queue_id) const = 0;

@@ -240,11 +240,12 @@ TEST(TQueue, clear) {
   auto tail_id = tqueue->get_tail(1);
   auto clear_start_time = td::Time::now();
   size_t keep_count = td::Random::fast(0, 2);
-  tqueue->clear(1, keep_count);
+  auto deleted_events = tqueue->clear(1, keep_count);
   auto finish_time = td::Time::now();
   LOG(INFO) << "Added TQueue events in " << clear_start_time - start_time << " seconds and cleared them in "
             << finish_time - clear_start_time << " seconds";
   CHECK(tqueue->get_size(1) == keep_count);
   CHECK(tqueue->get_head(1).advance(keep_count).ok() == tail_id);
   CHECK(tqueue->get_tail(1) == tail_id);
+  CHECK(deleted_events.size() == 100000 - keep_count);
 }

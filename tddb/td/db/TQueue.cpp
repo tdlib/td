@@ -218,15 +218,15 @@ class TQueueImpl final : public TQueue {
     pop(q, queue_id, it, q.tail_id);
   }
 
-  void clear(QueueId queue_id, size_t keep_count) final {
+  std::map<EventId, RawEvent> clear(QueueId queue_id, size_t keep_count) final {
     auto queue_it = queues_.find(queue_id);
     if (queue_it == queues_.end()) {
-      return;
+      return {};
     }
     auto &q = queue_it->second;
     auto size = get_size(q);
     if (size <= keep_count) {
-      return;
+      return {};
     }
 
     auto start_time = Time::now();
@@ -261,16 +261,23 @@ class TQueueImpl final : public TQueue {
     }
     auto callback_clear_time = Time::now() - start_time;
 
-    for (auto it = q.events.begin(); it != end_it;) {
-      remove_event(q, it);
+    q.total_event_length = 0;
+    std::map<EventId, RawEvent> new_events;
+    for (auto it = end_it; it != q.events.end();) {
+      q.total_event_length += it->second.data.size();
+      bool is_inserted = new_events.emplace(it->first, std::move(it->second)).second;
+      CHECK(is_inserted);
+      it = q.events.erase(it);
     }
+    std::swap(new_events, q.events);
 
     auto clear_time = Time::now() - start_time;
-    if (clear_time > 0.1) {
+    if (clear_time > 0.01) {
       LOG(WARNING) << "Cleared " << (size - keep_count) << " TQueue events with total size "
                    << (total_event_length - q.total_event_length) << " in " << clear_time - callback_clear_time
                    << " seconds and deleted them from callback in " << callback_clear_time << " seconds";
     }
+    return new_events;
   }
 
   Result<size_t> get(QueueId queue_id, EventId from_id, bool forget_previous, int32 unix_time_now,
