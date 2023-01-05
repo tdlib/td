@@ -95,7 +95,8 @@ Status rmrf(CSlice path) {
         unlink(path).ignore();
         break;
       case WalkPath::Type::Symlink:
-        // never follow symbolic links
+        // never follow symbolic links, but delete the link themselves
+        unlink(path).ignore();
         break;
     }
   });
