@@ -559,7 +559,8 @@ void AuthManager::on_sent_code(telegram_api::object_ptr<telegram_api::auth_SentC
   auto sent_code_id = sent_code_ptr->get_id();
   if (sent_code_id != telegram_api::auth_sentCode::ID) {
     CHECK(sent_code_id == telegram_api::auth_sentCodeSuccess::ID);
-    return on_query_error(Status::Error(500, "Receive unsupported response"));
+    auto sent_code_success = move_tl_object_as<telegram_api::auth_sentCodeSuccess>(sent_code_ptr);
+    return on_get_authorization(std::move(sent_code_success->authorization_));
   }
   auto sent_code = telegram_api::move_object_as<telegram_api::auth_sentCode>(sent_code_ptr);
   auto code_type_id = sent_code->type_->get_id();
