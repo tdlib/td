@@ -28,6 +28,14 @@ class Container {
     return &slots_[slot_id].data;
   }
 
+  const DataT *get(Id id) const {
+    int32 slot_id = decode_id(id);
+    if (slot_id == -1) {
+      return nullptr;
+    }
+    return &slots_[slot_id].data;
+  }
+
   void erase(Id id) {
     int32 slot_id = decode_id(id);
     if (slot_id == -1) {
@@ -60,7 +68,7 @@ class Container {
     return static_cast<uint8>(id);
   }
 
-  vector<Id> ids() {
+  vector<Id> ids() const {
     vector<bool> is_bad(slots_.size(), false);
     for (auto id : empty_slots_) {
       is_bad[id] = true;
@@ -73,6 +81,7 @@ class Container {
     }
     return res;
   }
+
   template <class F>
   void for_each(const F &f) {
     auto ids = this->ids();
@@ -80,13 +89,24 @@ class Container {
       f(id, *get(id));
     }
   }
+
+  template <class F>
+  void for_each(const F &f) const {
+    auto ids = this->ids();
+    for (auto id : ids) {
+      f(id, *get(id));
+    }
+  }
+
   size_t size() const {
     CHECK(empty_slots_.size() <= slots_.size());
     return slots_.size() - empty_slots_.size();
   }
+
   bool empty() const {
     return size() == 0;
   }
+
   void clear() {
     *this = Container<DataT>();
   }
