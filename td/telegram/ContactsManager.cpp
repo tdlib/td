@@ -4645,8 +4645,9 @@ void ContactsManager::Chat::parse(ParserT &parser) {
     } else {
       status = DialogParticipantStatus::Member();
     }
-    default_permissions = RestrictedRights(true, true, true, true, true, true, true, true, everyone_is_administrator,
-                                           everyone_is_administrator, everyone_is_administrator, false);
+    default_permissions =
+        RestrictedRights(true, true, true, true, true, true, true, true, true, true, true, true, true,
+                         everyone_is_administrator, everyone_is_administrator, everyone_is_administrator, false);
   }
   if (has_default_permissions_version) {
     parse(default_permissions_version, parser);
@@ -4913,8 +4914,8 @@ void ContactsManager::Channel::parse(ParserT &parser) {
     if (have_default_permissions) {
       parse(default_permissions, parser);
     } else {
-      default_permissions =
-          RestrictedRights(true, true, true, true, true, true, true, true, false, anyone_can_invite, false, false);
+      default_permissions = RestrictedRights(true, true, true, true, true, true, true, true, true, true, true, true,
+                                             true, false, anyone_can_invite, false, false);
     }
   }
   if (has_cache_version) {
@@ -5523,15 +5524,18 @@ string ContactsManager::get_secret_chat_title(SecretChatId secret_chat_id) const
 RestrictedRights ContactsManager::get_user_default_permissions(UserId user_id) const {
   auto u = get_user(user_id);
   if (u == nullptr || user_id == get_replies_bot_user_id()) {
-    return RestrictedRights(false, false, false, false, false, false, false, false, false, false, u != nullptr, false);
+    return RestrictedRights(false, false, false, false, false, false, false, false, false, false, false, false, false,
+                            false, false, u != nullptr, false);
   }
-  return RestrictedRights(true, true, true, true, true, true, true, true, false, false, true, false);
+  return RestrictedRights(true, true, true, true, true, true, true, true, true, true, true, true, true, false, false,
+                          true, false);
 }
 
 RestrictedRights ContactsManager::get_chat_default_permissions(ChatId chat_id) const {
   auto c = get_chat(chat_id);
   if (c == nullptr) {
-    return RestrictedRights(false, false, false, false, false, false, false, false, false, false, false, false);
+    return RestrictedRights(false, false, false, false, false, false, false, false, false, false, false, false, false,
+                            false, false, false, false);
   }
   return c->default_permissions;
 }
@@ -5539,7 +5543,8 @@ RestrictedRights ContactsManager::get_chat_default_permissions(ChatId chat_id) c
 RestrictedRights ContactsManager::get_channel_default_permissions(ChannelId channel_id) const {
   auto c = get_channel(channel_id);
   if (c == nullptr) {
-    return RestrictedRights(false, false, false, false, false, false, false, false, false, false, false, false);
+    return RestrictedRights(false, false, false, false, false, false, false, false, false, false, false, false, false,
+                            false, false, false, false);
   }
   return c->default_permissions;
 }
@@ -5547,9 +5552,11 @@ RestrictedRights ContactsManager::get_channel_default_permissions(ChannelId chan
 RestrictedRights ContactsManager::get_secret_chat_default_permissions(SecretChatId secret_chat_id) const {
   auto c = get_secret_chat(secret_chat_id);
   if (c == nullptr) {
-    return RestrictedRights(false, false, false, false, false, false, false, false, false, false, false, false);
+    return RestrictedRights(false, false, false, false, false, false, false, false, false, false, false, false, false,
+                            false, false, false, false);
   }
-  return RestrictedRights(true, true, true, true, true, true, true, true, false, false, false, false);
+  return RestrictedRights(true, true, true, true, true, true, true, true, true, true, true, true, true, false, false,
+                          false, false);
 }
 
 bool ContactsManager::get_chat_has_protected_content(ChatId chat_id) const {
@@ -11569,8 +11576,8 @@ void ContactsManager::update_channel(Channel *c, ChannelId channel_id, bool from
   }
   if (c->is_default_permissions_changed) {
     td_->messages_manager_->on_dialog_default_permissions_updated(DialogId(channel_id));
-    if (c->default_permissions !=
-        RestrictedRights(false, false, false, false, false, false, false, false, false, false, false, false)) {
+    if (c->default_permissions != RestrictedRights(false, false, false, false, false, false, false, false, false, false,
+                                                   false, false, false, false, false, false, false)) {
       remove_dialog_suggested_action(SuggestedAction{SuggestedAction::Type::ConvertToGigagroup, DialogId(channel_id)});
     }
     c->is_default_permissions_changed = false;
@@ -12562,9 +12569,9 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
           SuggestedAction suggested_action(action_str, DialogId(channel_id));
           if (!suggested_action.is_empty()) {
             if (suggested_action == SuggestedAction{SuggestedAction::Type::ConvertToGigagroup, DialogId(channel_id)} &&
-                (c->is_gigagroup ||
-                 c->default_permissions != RestrictedRights(false, false, false, false, false, false, false, false,
-                                                            false, false, false, false))) {
+                (c->is_gigagroup || c->default_permissions != RestrictedRights(false, false, false, false, false, false,
+                                                                               false, false, false, false, false, false,
+                                                                               false, false, false, false, false))) {
               LOG(INFO) << "Skip ConvertToGigagroup suggested action";
             } else {
               suggested_actions.push_back(suggested_action);

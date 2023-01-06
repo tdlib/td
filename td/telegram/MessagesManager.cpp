@@ -33929,7 +33929,8 @@ RestrictedRights MessagesManager::get_dialog_default_permissions(DialogId dialog
     case DialogType::None:
     default:
       UNREACHABLE();
-      return RestrictedRights(false, false, false, false, false, false, false, false, false, false, false, false);
+      return RestrictedRights(false, false, false, false, false, false, false, false, false, false, false, false, false,
+                              false, false, false, false);
   }
 }
 

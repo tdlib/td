@@ -563,7 +563,12 @@ inputChatPhotoAnimation animation:InputFile main_frame_timestamp:double = InputC
 
 //@description Describes actions that a user is allowed to take in a chat
 //@can_send_messages True, if the user can send text messages, contacts, invoices, locations, and venues
-//@can_send_media_messages True, if the user can send audio files, documents, photos, videos, video notes, and voice notes. Implies can_send_messages permissions
+//@can_send_audios True, if the user can send music files. Implies can_send_messages permissions
+//@can_send_documents True, if the user can send documents. Implies can_send_messages permissions
+//@can_send_photos True, if the user can send audio photos. Implies can_send_messages permissions
+//@can_send_videos True, if the user can send audio videos. Implies can_send_messages permissions
+//@can_send_video_notes True, if the user can send video notes. Implies can_send_messages permissions
+//@can_send_voice_notes True, if the user can send voice notes. Implies can_send_messages permissions
 //@can_send_polls True, if the user can send polls. Implies can_send_messages permissions
 //@can_send_other_messages True, if the user can send animations, games, stickers, and dice and use inline bots. Implies can_send_messages permissions
 //@can_add_web_page_previews True, if the user may add a web page preview to their messages. Implies can_send_messages permissions
@@ -571,7 +576,7 @@ inputChatPhotoAnimation animation:InputFile main_frame_timestamp:double = InputC
 //@can_invite_users True, if the user can invite new users to the chat
 //@can_pin_messages True, if the user can pin messages
 //@can_manage_topics True, if the user can manage topics
-chatPermissions can_send_messages:Bool can_send_media_messages:Bool can_send_polls:Bool can_send_other_messages:Bool can_add_web_page_previews:Bool can_change_info:Bool can_invite_users:Bool can_pin_messages:Bool can_manage_topics:Bool = ChatPermissions;
+chatPermissions can_send_messages:Bool can_send_audios:Bool can_send_documents:Bool can_send_photos:Bool can_send_videos:Bool can_send_video_notes:Bool can_send_voice_notes:Bool can_send_polls:Bool can_send_other_messages:Bool can_add_web_page_previews:Bool can_change_info:Bool can_invite_users:Bool can_pin_messages:Bool can_manage_topics:Bool = ChatPermissions;
 
 //@description Describes rights of the administrator
 //@can_manage_chat True, if the administrator can get chat event log, get chat statistics, get message statistics in channels, get channel members, see anonymous administrators in supergroups and ignore slow mode. Implied by any other privilege; applicable to supergroups and channels only

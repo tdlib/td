@@ -143,7 +143,13 @@ StringBuilder &operator<<(StringBuilder &string_builder, const AdministratorRigh
 
 class RestrictedRights {
   static constexpr uint64 CAN_SEND_MESSAGES = 1 << 16;
-  static constexpr uint64 CAN_SEND_MEDIA = 1 << 17;
+  static constexpr uint64 LEGACY_CAN_SEND_MEDIA = 1 << 17;
+  static constexpr uint64 CAN_SEND_AUDIOS = static_cast<uint64>(1) << 32;
+  static constexpr uint64 CAN_SEND_DOCUMENTS = static_cast<uint64>(1) << 33;
+  static constexpr uint64 CAN_SEND_PHOTOS = static_cast<uint64>(1) << 34;
+  static constexpr uint64 CAN_SEND_VIDEOS = static_cast<uint64>(1) << 35;
+  static constexpr uint64 CAN_SEND_VIDEO_NOTES = static_cast<uint64>(1) << 36;
+  static constexpr uint64 CAN_SEND_VOICE_NOTES = static_cast<uint64>(1) << 37;
   static constexpr uint64 CAN_SEND_STICKERS = 1 << 18;
   static constexpr uint64 CAN_SEND_ANIMATIONS = 1 << 19;
   static constexpr uint64 CAN_SEND_GAMES = 1 << 20;
@@ -159,8 +165,9 @@ class RestrictedRights {
       CAN_CHANGE_INFO_AND_SETTINGS | CAN_INVITE_USERS | CAN_PIN_MESSAGES | CAN_MANAGE_TOPICS;
 
   static constexpr uint64 ALL_RESTRICTED_RIGHTS =
-      CAN_SEND_MESSAGES | CAN_SEND_MEDIA | CAN_SEND_STICKERS | CAN_SEND_ANIMATIONS | CAN_SEND_GAMES |
-      CAN_USE_INLINE_BOTS | CAN_ADD_WEB_PAGE_PREVIEWS | CAN_SEND_POLLS | ALL_ADMIN_PERMISSION_RIGHTS;
+      CAN_SEND_MESSAGES | CAN_SEND_STICKERS | CAN_SEND_ANIMATIONS | CAN_SEND_GAMES | CAN_USE_INLINE_BOTS |
+      CAN_ADD_WEB_PAGE_PREVIEWS | CAN_SEND_POLLS | ALL_ADMIN_PERMISSION_RIGHTS | CAN_SEND_AUDIOS | CAN_SEND_DOCUMENTS |
+      CAN_SEND_PHOTOS | CAN_SEND_VIDEOS | CAN_SEND_VIDEO_NOTES | CAN_SEND_VOICE_NOTES;
 
   uint64 flags_;
 
@@ -174,10 +181,11 @@ class RestrictedRights {
 
   explicit RestrictedRights(const td_api::object_ptr<td_api::chatPermissions> &rights);
 
-  RestrictedRights(bool can_send_messages, bool can_send_media, bool can_send_stickers, bool can_send_animations,
-                   bool can_send_games, bool can_use_inline_bots, bool can_add_web_page_previews, bool can_send_polls,
-                   bool can_change_info_and_settings, bool can_invite_users, bool can_pin_messages,
-                   bool can_manage_topics);
+  RestrictedRights(bool can_send_messages, bool can_send_audios, bool can_send_documents, bool can_send_photos,
+                   bool can_send_videos, bool can_send_video_notes, bool can_send_voice_notes, bool can_send_stickers,
+                   bool can_send_animations, bool can_send_games, bool can_use_inline_bots,
+                   bool can_add_web_page_previews, bool can_send_polls, bool can_change_info_and_settings,
+                   bool can_invite_users, bool can_pin_messages, bool can_manage_topics);
 
   td_api::object_ptr<td_api::chatPermissions> get_chat_permissions_object() const;
 
@@ -203,8 +211,28 @@ class RestrictedRights {
     return (flags_ & CAN_SEND_MESSAGES) != 0;
   }
 
-  bool can_send_media() const {
-    return (flags_ & CAN_SEND_MEDIA) != 0;
+  bool can_send_audios() const {
+    return (flags_ & CAN_SEND_AUDIOS) != 0;
+  }
+
+  bool can_send_documents() const {
+    return (flags_ & CAN_SEND_DOCUMENTS) != 0;
+  }
+
+  bool can_send_photos() const {
+    return (flags_ & CAN_SEND_PHOTOS) != 0;
+  }
+
+  bool can_send_videos() const {
+    return (flags_ & CAN_SEND_VIDEOS) != 0;
+  }
+
+  bool can_send_video_notes() const {
+    return (flags_ & CAN_SEND_VIDEO_NOTES) != 0;
+  }
+
+  bool can_send_voice_notes() const {
+    return (flags_ & CAN_SEND_VOICE_NOTES) != 0;
   }
 
   bool can_send_stickers() const {
@@ -244,6 +272,10 @@ class RestrictedRights {
       uint32 legacy_flags;
       td::parse(legacy_flags, parser);
       flags_ = legacy_flags;
+    }
+    if (flags_ & LEGACY_CAN_SEND_MEDIA) {
+      flags_ |= CAN_SEND_AUDIOS | CAN_SEND_DOCUMENTS | CAN_SEND_PHOTOS | CAN_SEND_VIDEOS | CAN_SEND_VIDEO_NOTES |
+                CAN_SEND_VOICE_NOTES;
     }
   }
 
@@ -401,8 +433,28 @@ class DialogParticipantStatus {
     return get_restricted_rights().can_send_messages();
   }
 
-  bool can_send_media() const {
-    return get_restricted_rights().can_send_media();
+  bool can_send_audios() const {
+    return get_restricted_rights().can_send_audios();
+  }
+
+  bool can_send_documents() const {
+    return get_restricted_rights().can_send_documents();
+  }
+
+  bool can_send_photos() const {
+    return get_restricted_rights().can_send_photos();
+  }
+
+  bool can_send_videos() const {
+    return get_restricted_rights().can_send_videos();
+  }
+
+  bool can_send_video_notes() const {
+    return get_restricted_rights().can_send_video_notes();
+  }
+
+  bool can_send_voice_notes() const {
+    return get_restricted_rights().can_send_voice_notes();
   }
 
   bool can_send_stickers() const {
@@ -513,6 +565,12 @@ class DialogParticipantStatus {
     stored_flags -= static_cast<uint64>(static_cast<int32>(type_)) << TYPE_SHIFT;
 
     flags_ = stored_flags;
+
+    if (flags_ & RestrictedRights::LEGACY_CAN_SEND_MEDIA) {
+      flags_ |= RestrictedRights::CAN_SEND_AUDIOS | RestrictedRights::CAN_SEND_DOCUMENTS |
+                RestrictedRights::CAN_SEND_PHOTOS | RestrictedRights::CAN_SEND_VIDEOS |
+                RestrictedRights::CAN_SEND_VIDEO_NOTES | RestrictedRights::CAN_SEND_VOICE_NOTES;
+    }
 
     if (is_creator()) {
       flags_ |= AdministratorRights::ALL_ADMINISTRATOR_RIGHTS | RestrictedRights::ALL_RESTRICTED_RIGHTS;

@@ -2802,7 +2802,7 @@ Status can_send_message_content(DialogId dialog_id, const MessageContent *conten
       }
       break;
     case MessageContentType::Audio:
-      if (!permissions.can_send_media()) {
+      if (!permissions.can_send_audios()) {
         return Status::Error(400, "Not enough rights to send music to the chat");
       }
       break;
@@ -2820,7 +2820,7 @@ Status can_send_message_content(DialogId dialog_id, const MessageContent *conten
       }
       break;
     case MessageContentType::Document:
-      if (!permissions.can_send_media()) {
+      if (!permissions.can_send_documents()) {
         return Status::Error(400, "Not enough rights to send documents to the chat");
       }
       break;
@@ -2855,7 +2855,7 @@ Status can_send_message_content(DialogId dialog_id, const MessageContent *conten
       }
       break;
     case MessageContentType::Photo:
-      if (!permissions.can_send_media()) {
+      if (!permissions.can_send_photos()) {
         return Status::Error(400, "Not enough rights to send photos to the chat");
       }
       break;
@@ -2895,12 +2895,12 @@ Status can_send_message_content(DialogId dialog_id, const MessageContent *conten
       }
       break;
     case MessageContentType::Video:
-      if (!permissions.can_send_media()) {
+      if (!permissions.can_send_videos()) {
         return Status::Error(400, "Not enough rights to send videos to the chat");
       }
       break;
     case MessageContentType::VideoNote:
-      if (!permissions.can_send_media()) {
+      if (!permissions.can_send_video_notes()) {
         return Status::Error(400, "Not enough rights to send video notes to the chat");
       }
       if (dialog_type == DialogType::User &&
@@ -2909,7 +2909,7 @@ Status can_send_message_content(DialogId dialog_id, const MessageContent *conten
       }
       break;
     case MessageContentType::VoiceNote:
-      if (!permissions.can_send_media()) {
+      if (!permissions.can_send_voice_notes()) {
         return Status::Error(400, "Not enough rights to send voice notes to the chat");
       }
       if (dialog_type == DialogType::User &&
