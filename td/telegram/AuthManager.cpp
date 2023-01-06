@@ -960,11 +960,15 @@ void AuthManager::on_get_authorization(tl_object_ptr<telegram_api::auth_Authoriz
     log_out(0);
     return;
   }
-  if ((auth->flags_ & telegram_api::auth_authorization::TMP_SESSIONS_MASK) != 0) {
+  if (auth->tmp_sessions_ > 0) {
     td_->option_manager_->set_option_integer("session_count", auth->tmp_sessions_);
   }
   if (auth->setup_password_required_ && auth->otherwise_relogin_days_ > 0) {
     td_->option_manager_->set_option_integer("otherwise_relogin_days", auth->otherwise_relogin_days_);
+  }
+  if (!auth->future_auth_token_.empty()) {
+    td_->option_manager_->set_option_string("authentication_token",
+                                            base64url_encode(auth->future_auth_token_.as_slice()));
   }
   td_->attach_menu_manager_->init();
   td_->messages_manager_->on_authorization_success();
