@@ -846,6 +846,13 @@ bool UpdatesManager::is_acceptable_message(const telegram_api::Message *message_
           }
           break;
         }
+        case telegram_api::messageActionRequestedPeer::ID: {
+          auto requested_peer = static_cast<const telegram_api::messageActionRequestedPeer *>(action);
+          if (!td_->auth_manager_->is_bot() && !is_acceptable_peer(requested_peer->peer_)) {
+            return false;
+          }
+          break;
+        }
         default:
           UNREACHABLE();
           return false;
@@ -3827,5 +3834,9 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateTranscribedAudi
 }
 
 // unsupported updates
+
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateAutoSaveSettings> update, Promise<Unit> &&promise) {
+  promise.set_value(Unit());
+}
 
 }  // namespace td

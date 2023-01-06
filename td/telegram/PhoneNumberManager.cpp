@@ -209,7 +209,13 @@ void PhoneNumberManager::on_send_code_result(NetQueryPtr &result) {
   if (r_sent_code.is_error()) {
     return on_query_error(r_sent_code.move_as_error());
   }
-  auto sent_code = r_sent_code.move_as_ok();
+  auto sent_code_ptr = r_sent_code.move_as_ok();
+  auto sent_code_id = sent_code_ptr->get_id();
+  if (sent_code_id != telegram_api::auth_sentCode::ID) {
+    CHECK(sent_code_id == telegram_api::auth_sentCodeSuccess::ID);
+    return on_query_error(Status::Error(500, "Receive invalid response"));
+  }
+  auto sent_code = telegram_api::move_object_as<telegram_api::auth_sentCode>(sent_code_ptr);
 
   LOG(INFO) << "Receive " << to_string(sent_code);
 

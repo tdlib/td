@@ -236,6 +236,8 @@ static KeyboardButton get_keyboard_button(tl_object_ptr<telegram_api::KeyboardBu
       button.url = r_url.move_as_ok();
       break;
     }
+    case telegram_api::keyboardButtonRequestPeer::ID:
+      break;
     default:
       LOG(ERROR) << "Unsupported keyboard button: " << to_string(keyboard_button_ptr);
   }

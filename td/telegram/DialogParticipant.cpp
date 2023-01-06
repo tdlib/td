@@ -198,7 +198,7 @@ RestrictedRights::RestrictedRights(const tl_object_ptr<telegram_api::chatBannedR
       << "Have until date " << rights->until_date_ << " in restricted rights";
 
   *this =
-      RestrictedRights(!rights->send_messages_, !rights->send_media_, !rights->send_stickers_, !rights->send_gifs_,
+      RestrictedRights(!rights->send_plain_, !rights->send_media_, !rights->send_stickers_, !rights->send_gifs_,
                        !rights->send_games_, !rights->send_inline_, !rights->embed_links_, !rights->send_polls_,
                        !rights->change_info_, !rights->invite_users_, !rights->pin_messages_, !rights->manage_topics_);
 }
@@ -290,7 +290,8 @@ tl_object_ptr<telegram_api::chatBannedRights> RestrictedRights::get_chat_banned_
   return make_tl_object<telegram_api::chatBannedRights>(
       flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
       false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-      false /*ignored*/, false /*ignored*/, 0);
+      false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
+      false /*ignored*/, false /*ignored*/, false /*ignored*/, 0);
 }
 
 bool operator==(const RestrictedRights &lhs, const RestrictedRights &rhs) {

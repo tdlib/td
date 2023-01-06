@@ -2902,7 +2902,11 @@ std::pair<int64, FileId> StickersManager::on_get_sticker_document(tl_object_ptr<
       }
     }
   }
-  for (auto &thumb : document->video_thumbs_) {
+  for (auto &thumb_ptr : document->video_thumbs_) {
+    if (thumb_ptr->get_id() != telegram_api::videoSize::ID) {
+      continue;
+    }
+    auto thumb = move_tl_object_as<telegram_api::videoSize>(thumb_ptr);
     if (thumb->type_ == "f") {
       if (!premium_animation_file_id.is_valid()) {
         premium_animation_file_id =

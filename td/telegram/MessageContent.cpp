@@ -5324,6 +5324,8 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
     }
     case telegram_api::messageActionAttachMenuBotAllowed::ID:
       return td::make_unique<MessageWriteAccessAllowed>();
+    case telegram_api::messageActionRequestedPeer::ID:
+      return td::make_unique<MessageUnsupported>();
     default:
       UNREACHABLE();
   }

@@ -332,7 +332,11 @@ Document DocumentsManager::on_get_document(RemoteDocument remote_document, Dialo
         }
       }
     }
-    for (auto &thumb : document->video_thumbs_) {
+    for (auto &thumb_ptr : document->video_thumbs_) {
+      if (thumb_ptr->get_id() != telegram_api::videoSize::ID) {
+        continue;
+      }
+      auto thumb = move_tl_object_as<telegram_api::videoSize>(thumb_ptr);
       if (thumb->type_ == "v") {
         if (!animated_thumbnail.file_id.is_valid()) {
           animated_thumbnail =

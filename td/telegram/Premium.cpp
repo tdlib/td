@@ -90,7 +90,8 @@ static Result<tl_object_ptr<telegram_api::InputStorePaymentPurpose>> get_input_s
       if (p->is_restore_) {
         flags |= telegram_api::inputStorePaymentPremiumSubscription::RESTORE_MASK;
       }
-      return make_tl_object<telegram_api::inputStorePaymentPremiumSubscription>(flags, false /*ignored*/);
+      return make_tl_object<telegram_api::inputStorePaymentPremiumSubscription>(flags, false /*ignored*/,
+                                                                                false /*ignored*/);
     }
     case td_api::storePaymentPurposeGiftedPremium::ID: {
       auto p = static_cast<const td_api::storePaymentPurposeGiftedPremium *>(purpose.get());

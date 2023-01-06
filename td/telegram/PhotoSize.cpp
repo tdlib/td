@@ -260,8 +260,12 @@ Variant<PhotoSize, string> get_photo_size(FileManager *file_manager, PhotoSizeSo
 
 AnimationSize get_animation_size(FileManager *file_manager, PhotoSizeSource source, int64 id, int64 access_hash,
                                  std::string file_reference, DcId dc_id, DialogId owner_dialog_id,
-                                 tl_object_ptr<telegram_api::videoSize> &&size) {
-  CHECK(size != nullptr);
+                                 tl_object_ptr<telegram_api::VideoSize> &&size_ptr) {
+  CHECK(size_ptr != nullptr);
+  if (size_ptr->get_id() != telegram_api::videoSize::ID) {
+    return {};
+  }
+  auto size = move_tl_object_as<telegram_api::videoSize>(size_ptr);
   AnimationSize res;
   if (size->type_ != "p" && size->type_ != "u" && size->type_ != "v") {
     LOG(ERROR) << "Unsupported videoSize \"" << size->type_ << "\" in " << to_string(size);

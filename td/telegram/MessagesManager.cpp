@@ -717,11 +717,10 @@ class TranslateTextQuery final : public Td::ResultHandler {
 
   void send(const string &text, const string &from_language_code, const string &to_language_code) {
     int flags = telegram_api::messages_translateText::TEXT_MASK;
-    if (!from_language_code.empty()) {
-      flags |= telegram_api::messages_translateText::FROM_LANG_MASK;
-    }
+    vector<telegram_api::object_ptr<telegram_api::textWithEntities>> texts;
+    texts.push_back(telegram_api::make_object<telegram_api::textWithEntities>(text, Auto()));
     send_query(G()->net_query_creator().create(
-        telegram_api::messages_translateText(flags, nullptr, 0, text, from_language_code, to_language_code)));
+        telegram_api::messages_translateText(flags, nullptr, vector<int32>{0}, std::move(texts), to_language_code)));
   }
 
   void on_result(BufferSlice packet) final {
@@ -732,16 +731,10 @@ class TranslateTextQuery final : public Td::ResultHandler {
 
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for TranslateTextQuery: " << to_string(ptr);
-    switch (ptr->get_id()) {
-      case telegram_api::messages_translateNoResult::ID:
-        return promise_.set_value(nullptr);
-      case telegram_api::messages_translateResultText::ID: {
-        auto text = telegram_api::move_object_as<telegram_api::messages_translateResultText>(ptr);
-        return promise_.set_value(td_api::make_object<td_api::text>(text->text_));
-      }
-      default:
-        UNREACHABLE();
+    if (ptr->result_.empty()) {
+      return promise_.set_value(nullptr);
     }
+    promise_.set_value(td_api::make_object<td_api::text>(ptr->result_[0]->text_));
   }
 
   void on_error(Status status) final {
@@ -1061,8 +1054,8 @@ class CreateChannelQuery final : public Td::ResultHandler {
 
     random_id_ = random_id;
     send_query(G()->net_query_creator().create(telegram_api::channels_createChannel(
-        flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, title, about, location.get_input_geo_point(),
-        location.get_address(), message_ttl.get_input_ttl_period())));
+        flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, title, about,
+        location.get_input_geo_point(), location.get_address(), message_ttl.get_input_ttl_period())));
   }
 
   void on_result(BufferSlice packet) final {
@@ -9482,7 +9475,7 @@ void MessagesManager::on_upload_dialog_photo(FileId file_id, tl_object_ptr<teleg
   }
 
   auto input_chat_photo = make_tl_object<telegram_api::inputChatUploadedPhoto>(
-      flags, std::move(photo_input_file), std::move(video_input_file), main_frame_timestamp);
+      flags, std::move(photo_input_file), std::move(video_input_file), main_frame_timestamp, nullptr);
   send_edit_dialog_photo_query(dialog_id, file_id, std::move(input_chat_photo), std::move(promise));
 }
 

@@ -71,8 +71,9 @@ telegram_api::object_ptr<telegram_api::codeSettings> SendCodeHelper::get_input_c
       flags |= telegram_api::codeSettings::LOGOUT_TOKENS_MASK;
     }
   }
-  return telegram_api::make_object<telegram_api::codeSettings>(
-      flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, std::move(logout_tokens));
+  return telegram_api::make_object<telegram_api::codeSettings>(flags, false /*ignored*/, false /*ignored*/,
+                                                               false /*ignored*/, false /*ignored*/, false /*ignored*/,
+                                                               std::move(logout_tokens), string(), false);
 }
 
 telegram_api::auth_sendCode SendCodeHelper::send_code(string phone_number, const Settings &settings, int32 api_id,
@@ -156,6 +157,10 @@ SendCodeHelper::AuthenticationCodeInfo SendCodeHelper::get_sent_authentication_c
       auto code_type = move_tl_object_as<telegram_api::auth_sentCodeTypeFragmentSms>(sent_code_type_ptr);
       return AuthenticationCodeInfo{AuthenticationCodeInfo::Type::Fragment, code_type->length_,
                                     std::move(code_type->url_)};
+    }
+    case telegram_api::auth_sentCodeTypeFirebaseSms::ID: {
+      auto code_type = move_tl_object_as<telegram_api::auth_sentCodeTypeFirebaseSms>(sent_code_type_ptr);
+      return AuthenticationCodeInfo{AuthenticationCodeInfo::Type::Sms, 0, ""};
     }
     case telegram_api::auth_sentCodeTypeEmailCode::ID:
     case telegram_api::auth_sentCodeTypeSetUpEmailRequired::ID:

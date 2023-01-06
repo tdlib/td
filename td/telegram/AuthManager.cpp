@@ -555,7 +555,13 @@ void AuthManager::start_net_query(NetQueryType net_query_type, NetQueryPtr net_q
   G()->net_query_dispatcher().dispatch_with_callback(std::move(net_query), actor_shared(this));
 }
 
-void AuthManager::on_sent_code(telegram_api::object_ptr<telegram_api::auth_sentCode> &&sent_code) {
+void AuthManager::on_sent_code(telegram_api::object_ptr<telegram_api::auth_SentCode> &&sent_code_ptr) {
+  auto sent_code_id = sent_code_ptr->get_id();
+  if (sent_code_id != telegram_api::auth_sentCode::ID) {
+    CHECK(sent_code_id == telegram_api::auth_sentCodeSuccess::ID);
+    return on_query_error(Status::Error(500, "Receive unsupported response"));
+  }
+  auto sent_code = telegram_api::move_object_as<telegram_api::auth_sentCode>(sent_code_ptr);
   auto code_type_id = sent_code->type_->get_id();
   if (code_type_id == telegram_api::auth_sentCodeTypeSetUpEmailRequired::ID) {
     auto code_type = move_tl_object_as<telegram_api::auth_sentCodeTypeSetUpEmailRequired>(std::move(sent_code->type_));

@@ -487,7 +487,7 @@ class UploadProfilePhotoQuery final : public Td::ResultHandler {
       }
       send_query(G()->net_query_creator().create(
           telegram_api::photos_uploadProfilePhoto(flags, false /*ignored*/, std::move(photo_input_file),
-                                                  std::move(video_input_file), main_frame_timestamp),
+                                                  std::move(video_input_file), main_frame_timestamp, nullptr),
           {{"me"}}));
     } else {
       if (only_suggest) {
@@ -502,7 +502,7 @@ class UploadProfilePhotoQuery final : public Td::ResultHandler {
       send_query(G()->net_query_creator().create(
           telegram_api::photos_uploadContactProfilePhoto(flags, false /*ignored*/, false /*ignored*/,
                                                          r_input_user.move_as_ok(), std::move(photo_input_file),
-                                                         std::move(video_input_file), main_frame_timestamp),
+                                                         std::move(video_input_file), main_frame_timestamp, nullptr),
           {{user_id}}));
     }
   }
@@ -611,7 +611,7 @@ class DeleteContactProfilePhotoQuery final : public Td::ResultHandler {
     flags |= telegram_api::photos_uploadContactProfilePhoto::SAVE_MASK;
     send_query(G()->net_query_creator().create(
         telegram_api::photos_uploadContactProfilePhoto(flags, false /*ignored*/, false /*ignored*/,
-                                                       std::move(input_user), nullptr, nullptr, 0),
+                                                       std::move(input_user), nullptr, nullptr, 0, nullptr),
         {{user_id}}));
   }
 

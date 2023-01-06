@@ -55,7 +55,7 @@ Variant<PhotoSize, string> get_photo_size(FileManager *file_manager, PhotoSizeSo
 
 AnimationSize get_animation_size(FileManager *file_manager, PhotoSizeSource source, int64 id, int64 access_hash,
                                  string file_reference, DcId dc_id, DialogId owner_dialog_id,
-                                 tl_object_ptr<telegram_api::videoSize> &&size);
+                                 tl_object_ptr<telegram_api::VideoSize> &&size_ptr);
 
 PhotoSize get_web_document_photo_size(FileManager *file_manager, FileType file_type, DialogId owner_dialog_id,
                                       tl_object_ptr<telegram_api::WebDocument> web_document_ptr);
