@@ -22,30 +22,30 @@ namespace td {
 class Td;
 
 class AdministratorRights {
-  static constexpr uint32 CAN_CHANGE_INFO_AND_SETTINGS = 1 << 0;
-  static constexpr uint32 CAN_POST_MESSAGES = 1 << 1;
-  static constexpr uint32 CAN_EDIT_MESSAGES = 1 << 2;
-  static constexpr uint32 CAN_DELETE_MESSAGES = 1 << 3;
-  static constexpr uint32 CAN_INVITE_USERS = 1 << 4;
-  // static constexpr uint32 CAN_EXPORT_DIALOG_INVITE_LINK = 1 << 5;
-  static constexpr uint32 CAN_RESTRICT_MEMBERS = 1 << 6;
-  static constexpr uint32 CAN_PIN_MESSAGES = 1 << 7;
-  static constexpr uint32 CAN_PROMOTE_MEMBERS = 1 << 8;
-  static constexpr uint32 CAN_MANAGE_CALLS = 1 << 9;
-  static constexpr uint32 CAN_MANAGE_DIALOG = 1 << 10;
-  static constexpr uint32 CAN_MANAGE_TOPICS = 1 << 11;
-  static constexpr uint32 IS_ANONYMOUS = 1 << 13;
+  static constexpr uint64 CAN_CHANGE_INFO_AND_SETTINGS = 1 << 0;
+  static constexpr uint64 CAN_POST_MESSAGES = 1 << 1;
+  static constexpr uint64 CAN_EDIT_MESSAGES = 1 << 2;
+  static constexpr uint64 CAN_DELETE_MESSAGES = 1 << 3;
+  static constexpr uint64 CAN_INVITE_USERS = 1 << 4;
+  // static constexpr uint64 CAN_EXPORT_DIALOG_INVITE_LINK = 1 << 5;
+  static constexpr uint64 CAN_RESTRICT_MEMBERS = 1 << 6;
+  static constexpr uint64 CAN_PIN_MESSAGES = 1 << 7;
+  static constexpr uint64 CAN_PROMOTE_MEMBERS = 1 << 8;
+  static constexpr uint64 CAN_MANAGE_CALLS = 1 << 9;
+  static constexpr uint64 CAN_MANAGE_DIALOG = 1 << 10;
+  static constexpr uint64 CAN_MANAGE_TOPICS = 1 << 11;
+  static constexpr uint64 IS_ANONYMOUS = 1 << 13;
 
-  static constexpr uint32 ALL_ADMINISTRATOR_RIGHTS = CAN_CHANGE_INFO_AND_SETTINGS | CAN_POST_MESSAGES |
+  static constexpr uint64 ALL_ADMINISTRATOR_RIGHTS = CAN_CHANGE_INFO_AND_SETTINGS | CAN_POST_MESSAGES |
                                                      CAN_EDIT_MESSAGES | CAN_DELETE_MESSAGES | CAN_INVITE_USERS |
                                                      CAN_RESTRICT_MEMBERS | CAN_PIN_MESSAGES | CAN_MANAGE_TOPICS |
                                                      CAN_PROMOTE_MEMBERS | CAN_MANAGE_CALLS | CAN_MANAGE_DIALOG;
 
-  uint32 flags_;
+  uint64 flags_;
 
   friend class DialogParticipantStatus;
 
-  explicit AdministratorRights(int32 flags) : flags_(flags & (ALL_ADMINISTRATOR_RIGHTS | IS_ANONYMOUS)) {
+  explicit AdministratorRights(uint64 flags) : flags_(flags & (ALL_ADMINISTRATOR_RIGHTS | IS_ANONYMOUS)) {
   }
 
  public:
@@ -121,7 +121,13 @@ class AdministratorRights {
 
   template <class ParserT>
   void parse(ParserT &parser) {
-    td::parse(flags_, parser);
+    if (parser.version() >= static_cast<int32>(Version::MakeParticipantFlags64Bit)) {
+      td::parse(flags_, parser);
+    } else {
+      uint32 legacy_flags;
+      td::parse(legacy_flags, parser);
+      flags_ = legacy_flags;
+    }
   }
 
   friend bool operator==(const AdministratorRights &lhs, const AdministratorRights &rhs);
@@ -136,31 +142,31 @@ bool operator!=(const AdministratorRights &lhs, const AdministratorRights &rhs);
 StringBuilder &operator<<(StringBuilder &string_builder, const AdministratorRights &status);
 
 class RestrictedRights {
-  static constexpr uint32 CAN_SEND_MESSAGES = 1 << 16;
-  static constexpr uint32 CAN_SEND_MEDIA = 1 << 17;
-  static constexpr uint32 CAN_SEND_STICKERS = 1 << 18;
-  static constexpr uint32 CAN_SEND_ANIMATIONS = 1 << 19;
-  static constexpr uint32 CAN_SEND_GAMES = 1 << 20;
-  static constexpr uint32 CAN_USE_INLINE_BOTS = 1 << 21;
-  static constexpr uint32 CAN_ADD_WEB_PAGE_PREVIEWS = 1 << 22;
-  static constexpr uint32 CAN_SEND_POLLS = 1 << 23;
-  static constexpr uint32 CAN_CHANGE_INFO_AND_SETTINGS = 1 << 24;
-  static constexpr uint32 CAN_INVITE_USERS = 1 << 25;
-  static constexpr uint32 CAN_PIN_MESSAGES = 1 << 26;
-  static constexpr uint32 CAN_MANAGE_TOPICS = 1 << 12;
+  static constexpr uint64 CAN_SEND_MESSAGES = 1 << 16;
+  static constexpr uint64 CAN_SEND_MEDIA = 1 << 17;
+  static constexpr uint64 CAN_SEND_STICKERS = 1 << 18;
+  static constexpr uint64 CAN_SEND_ANIMATIONS = 1 << 19;
+  static constexpr uint64 CAN_SEND_GAMES = 1 << 20;
+  static constexpr uint64 CAN_USE_INLINE_BOTS = 1 << 21;
+  static constexpr uint64 CAN_ADD_WEB_PAGE_PREVIEWS = 1 << 22;
+  static constexpr uint64 CAN_SEND_POLLS = 1 << 23;
+  static constexpr uint64 CAN_CHANGE_INFO_AND_SETTINGS = 1 << 24;
+  static constexpr uint64 CAN_INVITE_USERS = 1 << 25;
+  static constexpr uint64 CAN_PIN_MESSAGES = 1 << 26;
+  static constexpr uint64 CAN_MANAGE_TOPICS = 1 << 12;
 
-  static constexpr uint32 ALL_ADMIN_PERMISSION_RIGHTS =
+  static constexpr uint64 ALL_ADMIN_PERMISSION_RIGHTS =
       CAN_CHANGE_INFO_AND_SETTINGS | CAN_INVITE_USERS | CAN_PIN_MESSAGES | CAN_MANAGE_TOPICS;
 
-  static constexpr uint32 ALL_RESTRICTED_RIGHTS =
+  static constexpr uint64 ALL_RESTRICTED_RIGHTS =
       CAN_SEND_MESSAGES | CAN_SEND_MEDIA | CAN_SEND_STICKERS | CAN_SEND_ANIMATIONS | CAN_SEND_GAMES |
       CAN_USE_INLINE_BOTS | CAN_ADD_WEB_PAGE_PREVIEWS | CAN_SEND_POLLS | ALL_ADMIN_PERMISSION_RIGHTS;
 
-  uint32 flags_;
+  uint64 flags_;
 
   friend class DialogParticipantStatus;
 
-  explicit RestrictedRights(int32 flags) : flags_(flags & ALL_RESTRICTED_RIGHTS) {
+  explicit RestrictedRights(uint64 flags) : flags_(flags & ALL_RESTRICTED_RIGHTS) {
   }
 
  public:
@@ -232,7 +238,13 @@ class RestrictedRights {
 
   template <class ParserT>
   void parse(ParserT &parser) {
-    td::parse(flags_, parser);
+    if (parser.version() >= static_cast<int32>(Version::MakeParticipantFlags64Bit)) {
+      td::parse(flags_, parser);
+    } else {
+      uint32 legacy_flags;
+      td::parse(legacy_flags, parser);
+      flags_ = legacy_flags;
+    }
   }
 
   friend bool operator==(const RestrictedRights &lhs, const RestrictedRights &rhs);
@@ -247,26 +259,26 @@ bool operator!=(const RestrictedRights &lhs, const RestrictedRights &rhs);
 StringBuilder &operator<<(StringBuilder &string_builder, const RestrictedRights &status);
 
 class DialogParticipantStatus {
-  // all flags are used
-  static constexpr uint32 HAS_RANK = 1 << 14;
-  static constexpr uint32 CAN_BE_EDITED = 1 << 15;
+  static constexpr uint64 HAS_RANK = 1 << 14;
+  static constexpr uint64 CAN_BE_EDITED = 1 << 15;
 
-  static constexpr uint32 IS_MEMBER = 1 << 27;
+  static constexpr uint64 IS_MEMBER = 1 << 27;
 
   // bits 28-30 reserved for Type
   static constexpr int TYPE_SHIFT = 28;
-  static constexpr uint32 HAS_UNTIL_DATE = 1u << 31;
+  static constexpr int TYPE_SIZE = 3;
+  static constexpr uint64 HAS_UNTIL_DATE = 1u << 31;
 
   enum class Type : int32 { Creator, Administrator, Member, Restricted, Left, Banned };
   // all fields are logically const, but should be updated in update_restrictions()
   mutable Type type_;
-  mutable uint32 flags_;
   mutable int32 until_date_;  // restricted and banned only
-  string rank_;               // creator and administrator only
+  mutable uint64 flags_;
+  string rank_;  // creator and administrator only
 
   static int32 fix_until_date(int32 date);
 
-  DialogParticipantStatus(Type type, uint32 flags, int32 until_date, string rank);
+  DialogParticipantStatus(Type type, uint64 flags, int32 until_date, string rank);
 
   AdministratorRights get_administrator_rights() const {
     return AdministratorRights(flags_);
@@ -463,7 +475,7 @@ class DialogParticipantStatus {
 
   template <class StorerT>
   void store(StorerT &storer) const {
-    uint32 stored_flags = flags_ | (static_cast<uint32>(type_) << TYPE_SHIFT);
+    uint64 stored_flags = flags_ | (static_cast<uint64>(static_cast<int32>(type_)) << TYPE_SHIFT);
     if (until_date_ > 0) {
       stored_flags |= HAS_UNTIL_DATE;
     }
@@ -481,8 +493,14 @@ class DialogParticipantStatus {
 
   template <class ParserT>
   void parse(ParserT &parser) {
-    uint32 stored_flags;
-    td::parse(stored_flags, parser);
+    uint64 stored_flags;
+    if (parser.version() >= static_cast<int32>(Version::MakeParticipantFlags64Bit)) {
+      td::parse(stored_flags, parser);
+    } else {
+      uint32 legacy_flags;
+      td::parse(legacy_flags, parser);
+      stored_flags = legacy_flags;
+    }
     if ((stored_flags & HAS_UNTIL_DATE) != 0) {
       td::parse(until_date_, parser);
       stored_flags &= ~HAS_UNTIL_DATE;
@@ -491,8 +509,10 @@ class DialogParticipantStatus {
       td::parse(rank_, parser);
       stored_flags &= ~HAS_RANK;
     }
-    type_ = static_cast<Type>(stored_flags >> TYPE_SHIFT);
-    flags_ = stored_flags & ((1 << TYPE_SHIFT) - 1);
+    type_ = static_cast<Type>(static_cast<int32>((stored_flags >> TYPE_SHIFT) & ((1 << TYPE_SIZE) - 1)));
+    stored_flags -= static_cast<uint64>(static_cast<int32>(type_)) << TYPE_SHIFT;
+
+    flags_ = stored_flags;
 
     if (is_creator()) {
       flags_ |= AdministratorRights::ALL_ADMINISTRATOR_RIGHTS | RestrictedRights::ALL_RESTRICTED_RIGHTS;
