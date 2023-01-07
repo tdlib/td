@@ -934,7 +934,6 @@ class InstallStickerSetQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    CHECK(status.is_error());
     promise_.set_error(std::move(status));
   }
 };
@@ -969,7 +968,6 @@ class UninstallStickerSetQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    CHECK(status.is_error());
     promise_.set_error(std::move(status));
   }
 };
@@ -1029,7 +1027,6 @@ class UploadStickerFileQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    CHECK(status.is_error());
     if (was_uploaded_) {
       CHECK(file_id_.is_valid());
       if (begins_with(status.message(), "FILE_PART_") && ends_with(status.message(), "_MISSING")) {
@@ -1154,7 +1151,6 @@ class CreateNewStickerSetQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    CHECK(status.is_error());
     promise_.set_error(std::move(status));
   }
 };
@@ -1189,7 +1185,6 @@ class AddStickerToSetQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    CHECK(status.is_error());
     promise_.set_error(std::move(status));
   }
 };
@@ -1224,7 +1219,6 @@ class SetStickerSetThumbnailQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    CHECK(status.is_error());
     promise_.set_error(std::move(status));
   }
 };
@@ -1258,7 +1252,6 @@ class SetStickerPositionQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    CHECK(status.is_error());
     promise_.set_error(std::move(status));
   }
 };
@@ -1292,7 +1285,6 @@ class DeleteStickerFromSetQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    CHECK(status.is_error());
     promise_.set_error(std::move(status));
   }
 };
