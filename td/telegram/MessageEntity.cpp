@@ -4398,6 +4398,8 @@ vector<tl_object_ptr<telegram_api::MessageEntity>> get_input_message_entities(co
                                                                               const char *source) {
   vector<tl_object_ptr<telegram_api::MessageEntity>> result;
   vector<MessageEntity> splittable_entities;
+  constexpr size_t MAX_USER_ENTITY_COUNT = 100;  // server-side limit
+  size_t user_entity_count = 0;
   for (auto &entity : entities) {
     if (!is_user_entity(entity.type)) {
       continue;
@@ -4406,6 +4408,15 @@ vector<tl_object_ptr<telegram_api::MessageEntity>> get_input_message_entities(co
       splittable_entities.push_back(entity);
       continue;
     }
+    if (entity.type == MessageEntity::Type::CustomEmoji) {
+      result.push_back(make_tl_object<telegram_api::messageEntityCustomEmoji>(entity.offset, entity.length,
+                                                                              entity.custom_emoji_id.get()));
+      continue;
+    }
+    if (user_entity_count >= MAX_USER_ENTITY_COUNT) {
+      continue;
+    }
+    user_entity_count++;
     switch (entity.type) {
       case MessageEntity::Type::BlockQuote:
         result.push_back(make_tl_object<telegram_api::messageEntityBlockquote>(entity.offset, entity.length));
@@ -4430,16 +4441,17 @@ vector<tl_object_ptr<telegram_api::MessageEntity>> get_input_message_entities(co
                                                                                      r_input_user.move_as_ok()));
         break;
       }
-      case MessageEntity::Type::CustomEmoji:
-        result.push_back(make_tl_object<telegram_api::messageEntityCustomEmoji>(entity.offset, entity.length,
-                                                                                entity.custom_emoji_id.get()));
-        break;
       default:
         UNREACHABLE();
     }
   }
   split_entities(splittable_entities, vector<MessageEntity>());
   for (auto &entity : splittable_entities) {
+    if (user_entity_count >= MAX_USER_ENTITY_COUNT) {
+      break;
+    }
+    user_entity_count++;
+
     switch (entity.type) {
       case MessageEntity::Type::Bold:
         result.push_back(make_tl_object<telegram_api::messageEntityBold>(entity.offset, entity.length));
