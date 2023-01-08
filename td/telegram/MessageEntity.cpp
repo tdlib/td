@@ -1963,7 +1963,7 @@ Result<vector<MessageEntity>> parse_markdown(string &text) {
       i += 2;
     }
   }
-  text = result;
+  text = std::move(result);
   return entities;
 }
 
@@ -2228,7 +2228,7 @@ static Result<vector<MessageEntity>> do_parse_markdown_v2(CSlice text, string &r
 Result<vector<MessageEntity>> parse_markdown_v2(string &text) {
   string result;
   TRY_RESULT(entities, do_parse_markdown_v2(text, result));
-  text = result;
+  text = std::move(result);
   return entities;
 }
 
@@ -3000,14 +3000,14 @@ static Result<vector<MessageEntity>> do_parse_html(CSlice text, string &result) 
     int32 entity_offset;
     size_t entity_begin_pos;
 
-    EntityInfo(string tag_name, string argument, int32 entity_offset, size_t entity_begin_pos)
+    EntityInfo(string &&tag_name, string &&argument, int32 entity_offset, size_t entity_begin_pos)
         : tag_name(std::move(tag_name))
         , argument(std::move(argument))
         , entity_offset(entity_offset)
         , entity_begin_pos(entity_begin_pos) {
     }
   };
-  std::vector<EntityInfo> nested_entities;
+  vector<EntityInfo> nested_entities;
 
   for (size_t i = 0; i < text.size(); i++) {
     auto c = static_cast<unsigned char>(text[i]);
@@ -3148,7 +3148,7 @@ static Result<vector<MessageEntity>> do_parse_html(CSlice text, string &result) 
         return Status::Error(400, PSLICE() << "Unclosed end tag at byte offset " << begin_pos);
       }
 
-      string tag_name = std::move(nested_entities.back().tag_name);
+      const string &tag_name = nested_entities.back().tag_name;
       if (!end_tag_name.empty() && end_tag_name != tag_name) {
         return Status::Error(400, PSLICE() << "Unmatched end tag at byte offset " << begin_pos << ", expected \"</"
                                            << tag_name << ">\", found \"</" << end_tag_name << ">\"");
@@ -3237,7 +3237,7 @@ Result<vector<MessageEntity>> parse_html(string &text) {
                          "Text contains invalid Unicode characters after decoding HTML entities, check for unmatched "
                          "surrogate code units");
   }
-  text = result;
+  text = std::move(result);
   return entities;
 }
 
