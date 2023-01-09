@@ -692,7 +692,7 @@ class MessagesManager final : public Actor {
   DialogId create_new_group_chat(const vector<UserId> &user_ids, const string &title, MessageTtl message_ttl,
                                  int64 &random_id, Promise<Unit> &&promise);
 
-  DialogId create_new_channel_chat(const string &title, bool is_megagroup, const string &description,
+  DialogId create_new_channel_chat(const string &title, bool is_forum, bool is_megagroup, const string &description,
                                    const DialogLocation &location, bool for_import, MessageTtl message_ttl,
                                    int64 &random_id, Promise<Unit> &&promise);
 

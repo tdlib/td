@@ -4340,17 +4340,21 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::createNewBasicGroupChat>(as_user_ids(user_ids_string), title,
                                                                         message_auto_delete_time));
     } else if (op == "cnchc" || op == "cnchcadt") {
-      send_request(td_api::make_object<td_api::createNewSupergroupChat>(args, true, "Description", nullptr,
+      send_request(td_api::make_object<td_api::createNewSupergroupChat>(args, false, true, "Description", nullptr,
                                                                         op == "cnchcadt" ? 86400 : 0, false));
     } else if (op == "cnsgc" || op == "cnsgcadt") {
-      send_request(td_api::make_object<td_api::createNewSupergroupChat>(args, false, "Description", nullptr,
+      send_request(td_api::make_object<td_api::createNewSupergroupChat>(args, false, false, "Description", nullptr,
                                                                         op == "cnsgcadt" ? 86400 : 0, false));
+    } else if (op == "cnfc" || op == "cnfcadt") {
+      send_request(td_api::make_object<td_api::createNewSupergroupChat>(args, true, true, "Description", nullptr,
+                                                                        op == "cnfcadt" ? 86400 : 0, false));
     } else if (op == "cnsgcloc") {
       send_request(td_api::make_object<td_api::createNewSupergroupChat>(
-          args, false, "Description",
+          args, false, false, "Description",
           td_api::make_object<td_api::chatLocation>(as_location("40.0", "60.0", ""), "address"), 0, false));
     } else if (op == "cnsgcimport") {
-      send_request(td_api::make_object<td_api::createNewSupergroupChat>(args, false, "Description", nullptr, 0, true));
+      send_request(
+          td_api::make_object<td_api::createNewSupergroupChat>(args, false, false, "Description", nullptr, 0, true));
     } else if (op == "UpgradeBasicGroupChatToSupergroupChat") {
       ChatId chat_id;
       get_args(args, chat_id);

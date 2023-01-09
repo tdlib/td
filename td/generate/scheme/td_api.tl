@@ -6437,12 +6437,13 @@ createNewBasicGroupChat user_ids:vector<int53> title:string message_auto_delete_
 
 //@description Creates a new supergroup or channel and sends a corresponding messageSupergroupChatCreate. Returns the newly created chat
 //@title Title of the new chat; 1-128 characters
-//@is_channel Pass true to create a channel chat
+//@is_forum Pass true to create a forum supergroup chat
+//@is_channel Pass true to create a channel chat; ignored if a forum is created
 //@param_description Chat description; 0-255 characters
 //@location Chat location if a location-based supergroup is being created; pass null to create an ordinary supergroup chat
 //@message_auto_delete_time Message auto-delete time value, in seconds; must be from 0 up to 365 * 86400 and be divisible by 86400. If 0, then messages aren't deleted automatically
 //@for_import Pass true to create a supergroup for importing messages using importMessage
-createNewSupergroupChat title:string is_channel:Bool description:string location:chatLocation message_auto_delete_time:int32 for_import:Bool = Chat;
+createNewSupergroupChat title:string is_forum:Bool is_channel:Bool description:string location:chatLocation message_auto_delete_time:int32 for_import:Bool = Chat;
 
 //@description Creates a new secret chat. Returns the newly created chat @user_id Identifier of the target user
 createNewSecretChat user_id:int53 = Chat;

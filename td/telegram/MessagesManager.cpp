@@ -1037,10 +1037,12 @@ class CreateChannelQuery final : public Td::ResultHandler {
   explicit CreateChannelQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(const string &title, bool is_megagroup, const string &about, const DialogLocation &location,
+  void send(const string &title, bool is_forum, bool is_megagroup, const string &about, const DialogLocation &location,
             bool for_import, MessageTtl message_ttl, int64 random_id) {
     int32 flags = telegram_api::channels_createChannel::TTL_PERIOD_MASK;
-    if (is_megagroup) {
+    if (is_forum) {
+      flags |= telegram_api::channels_createChannel::FORUM_MASK;
+    } else if (is_megagroup) {
       flags |= telegram_api::channels_createChannel::MEGAGROUP_MASK;
     } else {
       flags |= telegram_api::channels_createChannel::BROADCAST_MASK;
@@ -21155,9 +21157,10 @@ DialogId MessagesManager::create_new_group_chat(const vector<UserId> &user_ids, 
   return DialogId();
 }
 
-DialogId MessagesManager::create_new_channel_chat(const string &title, bool is_megagroup, const string &description,
-                                                  const DialogLocation &location, bool for_import,
-                                                  MessageTtl message_ttl, int64 &random_id, Promise<Unit> &&promise) {
+DialogId MessagesManager::create_new_channel_chat(const string &title, bool is_forum, bool is_megagroup,
+                                                  const string &description, const DialogLocation &location,
+                                                  bool for_import, MessageTtl message_ttl, int64 &random_id,
+                                                  Promise<Unit> &&promise) {
   LOG(INFO) << "Trying to create " << (is_megagroup ? "supergroup" : "broadcast") << " with title \"" << title
             << "\", description \"" << description << "\" and " << location;
 
@@ -21190,8 +21193,8 @@ DialogId MessagesManager::create_new_channel_chat(const string &title, bool is_m
   created_dialogs_[random_id];  // reserve place for result
 
   td_->create_handler<CreateChannelQuery>(std::move(promise))
-      ->send(new_title, is_megagroup, strip_empty_characters(description, MAX_DESCRIPTION_LENGTH), location, for_import,
-             message_ttl, random_id);
+      ->send(new_title, is_forum, is_megagroup, strip_empty_characters(description, MAX_DESCRIPTION_LENGTH), location,
+             for_import, message_ttl, random_id);
   return DialogId();
 }
 
