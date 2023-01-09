@@ -2301,8 +2301,10 @@ void UpdatesManager::process_updates(vector<tl_object_ptr<telegram_api::Update>>
           }
 
           process_pts_update(std::move(update));
+          CHECK(update == nullptr);
         } else if (is_qts_update(update.get())) {
           process_qts_update(std::move(update), 0, get_promise());
+          CHECK(update == nullptr);
         } else if (update->get_id() == telegram_api::updateChannelTooLong::ID) {
           td_->messages_manager_->on_update_channel_too_long(
               move_tl_object_as<telegram_api::updateChannelTooLong>(update), true);
@@ -2331,6 +2333,7 @@ void UpdatesManager::process_pts_update(tl_object_ptr<telegram_api::Update> &&up
 
   if (!check_pts_update(update)) {
     LOG(ERROR) << "Receive wrong pts update: " << oneline(to_string(update));
+    update = nullptr;
     return;
   }
 

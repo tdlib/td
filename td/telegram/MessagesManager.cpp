@@ -8093,6 +8093,7 @@ void MessagesManager::process_pts_update(tl_object_ptr<telegram_api::Update> &&u
     default:
       UNREACHABLE();
   }
+  update_ptr = nullptr;
   CHECK(!td_->updates_manager_->running_get_difference());
 }
 
