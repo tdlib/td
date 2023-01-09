@@ -1964,7 +1964,7 @@ Result<vector<MessageEntity>> parse_markdown(string &text) {
     }
   }
   text = std::move(result);
-  return entities;
+  return std::move(entities);
 }
 
 static Result<vector<MessageEntity>> do_parse_markdown_v2(CSlice text, string &result) {
@@ -2222,14 +2222,14 @@ static Result<vector<MessageEntity>> do_parse_markdown_v2(CSlice text, string &r
 
   sort_entities(entities);
 
-  return entities;
+  return std::move(entities);
 }
 
 Result<vector<MessageEntity>> parse_markdown_v2(string &text) {
   string result;
   TRY_RESULT(entities, do_parse_markdown_v2(text, result));
   text = std::move(result);
-  return entities;
+  return std::move(entities);
 }
 
 static vector<Slice> find_text_url_entities_v3(Slice text) {
@@ -3226,7 +3226,7 @@ static Result<vector<MessageEntity>> do_parse_html(CSlice text, string &result) 
 
   sort_entities(entities);
 
-  return entities;
+  return std::move(entities);
 }
 
 Result<vector<MessageEntity>> parse_html(string &text) {
@@ -3238,7 +3238,7 @@ Result<vector<MessageEntity>> parse_html(string &text) {
                          "surrogate code units");
   }
   text = std::move(result);
-  return entities;
+  return std::move(entities);
 }
 
 vector<tl_object_ptr<secret_api::MessageEntity>> get_input_secret_message_entities(
@@ -3443,7 +3443,7 @@ Result<vector<MessageEntity>> get_message_entities(const ContactsManager *contac
       entities.pop_back();
     }
   }
-  return entities;
+  return std::move(entities);
 }
 
 vector<MessageEntity> get_message_entities(const ContactsManager *contacts_manager,
