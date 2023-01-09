@@ -10,7 +10,8 @@
 #include "td/utils/tests.h"
 
 static void check_phone_number_info(td::string phone_number_prefix, const td::string &country_code,
-                                    const td::string &calling_code, const td::string &formatted_phone_number) {
+                                    const td::string &calling_code, const td::string &formatted_phone_number,
+                                    bool is_anonymous = false) {
   auto result = td::CountryInfoManager::get_phone_number_info_sync(td::string(), phone_number_prefix);
   CHECK(result != nullptr);
   if (result->country_ == nullptr) {
@@ -21,6 +22,7 @@ static void check_phone_number_info(td::string phone_number_prefix, const td::st
   CHECK(result->country_calling_code_ == calling_code);
   // LOG(ERROR) << phone_number_prefix << ' ' << result->formatted_phone_number_ << ' ' << formatted_phone_number;
   CHECK(result->formatted_phone_number_ == formatted_phone_number);
+  CHECK(result->is_anonymous_ == is_anonymous);
 }
 
 TEST(CountryInfo, phone_number_info) {
@@ -85,4 +87,13 @@ TEST(CountryInfo, phone_number_info) {
   check_phone_number_info("3196", "NL", "31", "9 6- -- -- --");
   check_phone_number_info("3197", "NL", "31", "9 7- -- -- --");
   check_phone_number_info("3198", "NL", "31", "9 8- -- -- --");
+  check_phone_number_info("88", "", "88", "");
+  check_phone_number_info("888", "FT", "888", "---- ----", true);
+  check_phone_number_info("8888", "FT", "888", "8 ---", true);
+  check_phone_number_info("88888", "FT", "888", "8 8--", true);
+  check_phone_number_info("888888", "FT", "888", "8 88-", true);
+  check_phone_number_info("8888888", "FT", "888", "8 888", true);
+  check_phone_number_info("88888888", "FT", "888", "8 8888", true);
+  check_phone_number_info("888888888", "FT", "888", "8 88888", true);
+  check_phone_number_info("8888888888", "FT", "888", "8 888888", true);
 }
