@@ -82,6 +82,25 @@ const unsigned char *next_utf8_unsafe(const unsigned char *ptr, uint32 *code) {
   return ptr;
 }
 
+unsigned char *append_utf8_character_unsafe(unsigned char *ptr, uint32 code) {
+  if (code <= 0x7f) {
+    *ptr++ = static_cast<unsigned char>(code);
+  } else if (code <= 0x7ff) {
+    *ptr++ = static_cast<unsigned char>(0xc0 | (code >> 6));
+    *ptr++ = static_cast<unsigned char>(0x80 | (code & 0x3f));
+  } else if (code <= 0xffff) {
+    *ptr++ = static_cast<unsigned char>(0xe0 | (code >> 12));
+    *ptr++ = static_cast<unsigned char>(0x80 | ((code >> 6) & 0x3f));
+    *ptr++ = static_cast<unsigned char>(0x80 | (code & 0x3f));
+  } else {
+    *ptr++ = static_cast<unsigned char>(0xf0 | (code >> 18));
+    *ptr++ = static_cast<unsigned char>(0x80 | ((code >> 12) & 0x3f));
+    *ptr++ = static_cast<unsigned char>(0x80 | ((code >> 6) & 0x3f));
+    *ptr++ = static_cast<unsigned char>(0x80 | (code & 0x3f));
+  }
+  return ptr;
+}
+
 string utf8_to_lower(Slice str) {
   string result;
   auto pos = str.ubegin();

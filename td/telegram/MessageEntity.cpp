@@ -2991,13 +2991,12 @@ static uint32 decode_html_entity(CSlice text, size_t &pos) {
 Result<vector<MessageEntity>> parse_html(string &str) {
   auto str_size = str.size();
   const char *text = str.c_str();
+  auto result_end = MutableSlice(str).ubegin();
+  const unsigned char *result_begin = result_end;
 
   vector<MessageEntity> entities;
   int32 utf16_offset = 0;
   bool need_recheck_utf8 = false;
-
-  auto buf = StackAllocator::alloc(str_size + 30);
-  StringBuilder new_text(buf.as_slice(), true);
 
   struct EntityInfo {
     string tag_name;
@@ -3025,7 +3024,8 @@ Result<vector<MessageEntity>> parse_html(string &str) {
           // half of a surrogate pair
           need_recheck_utf8 = true;
         }
-        append_utf8_character(new_text, ch);
+        result_end = append_utf8_character_unsafe(result_end, ch);
+        CHECK(result_end <= result_begin + i);
         continue;
       }
     }
@@ -3033,7 +3033,7 @@ Result<vector<MessageEntity>> parse_html(string &str) {
       if (is_utf8_character_first_code_unit(c)) {
         utf16_offset += 1 + (c >= 0xf0);  // >= 4 bytes in symbol => surrogate pair
       }
-      new_text.push_back(text[i]);
+      *result_end++ = c;
       continue;
     }
 
@@ -3139,7 +3139,7 @@ Result<vector<MessageEntity>> parse_html(string &str) {
                                       << "Tag \"span\" must have class \"tg-spoiler\" at byte offset " << begin_pos);
       }
 
-      nested_entities.emplace_back(std::move(tag_name), std::move(argument), utf16_offset, new_text.size());
+      nested_entities.emplace_back(std::move(tag_name), std::move(argument), utf16_offset, result_end - result_begin);
     } else {
       // end of an entity
       if (nested_entities.empty()) {
@@ -3186,7 +3186,7 @@ Result<vector<MessageEntity>> parse_html(string &str) {
         } else if (tag_name == "a") {
           auto url = std::move(nested_entities.back().argument);
           if (url.empty()) {
-            url = new_text.as_cslice().substr(nested_entities.back().entity_begin_pos).str();
+            url = Slice(result_begin + nested_entities.back().entity_begin_pos, result_end).str();
           }
           auto user_id = LinkManager::get_link_user_id(url);
           if (user_id.is_valid()) {
@@ -3235,12 +3235,12 @@ Result<vector<MessageEntity>> parse_html(string &str) {
 
   sort_entities(entities);
 
-  if (need_recheck_utf8 && !check_utf8(new_text.as_cslice())) {
+  str.resize(static_cast<size_t>(result_end - result_begin));
+  if (need_recheck_utf8 && !check_utf8(str)) {
     return Status::Error(400,
                          "Text contains invalid Unicode characters after decoding HTML entities, check for unmatched "
                          "surrogate code units");
   }
-  str = new_text.as_cslice().str();
   return std::move(entities);
 }
 
