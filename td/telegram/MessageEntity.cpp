@@ -2992,11 +2992,15 @@ static uint32 decode_html_entity(CSlice text, size_t &pos) {
   return res;
 }
 
-static Result<vector<MessageEntity>> do_parse_html(CSlice text, string &result) {
+Result<vector<MessageEntity>> parse_html(string &str) {
+  auto str_size = str.size();
+  const char *text = str.c_str();
+
   vector<MessageEntity> entities;
   int32 utf16_offset = 0;
+  bool need_recheck_utf8 = false;
 
-  auto buf = StackAllocator::alloc(text.size() + 30);
+  auto buf = StackAllocator::alloc(str_size + 30);
   StringBuilder new_text(buf.as_slice(), true);
 
   struct EntityInfo {
@@ -3014,13 +3018,17 @@ static Result<vector<MessageEntity>> do_parse_html(CSlice text, string &result) 
   };
   vector<EntityInfo> nested_entities;
 
-  for (size_t i = 0; i < text.size(); i++) {
+  for (size_t i = 0; i < str_size; i++) {
     auto c = static_cast<unsigned char>(text[i]);
     if (c == '&') {
-      auto ch = decode_html_entity(text, i);
+      auto ch = decode_html_entity(str, i);
       if (ch != 0) {
         i--;  // i will be incremented in for
         utf16_offset += 1 + (ch > 0xffff);
+        if (ch >= 0xd800 && ch <= 0xdfff) {
+          // half of a surrogate pair
+          need_recheck_utf8 = true;
+        }
         append_utf8_character(new_text, ch);
         continue;
       }
@@ -3043,7 +3051,7 @@ static Result<vector<MessageEntity>> do_parse_html(CSlice text, string &result) 
         return Status::Error(400, PSLICE() << "Unclosed start tag at byte offset " << begin_pos);
       }
 
-      string tag_name = to_lower(text.substr(begin_pos + 1, i - begin_pos - 1));
+      string tag_name = to_lower(Slice(text + begin_pos + 1, i - begin_pos - 1));
       if (tag_name != "a" && tag_name != "b" && tag_name != "strong" && tag_name != "i" && tag_name != "em" &&
           tag_name != "s" && tag_name != "strike" && tag_name != "del" && tag_name != "u" && tag_name != "ins" &&
           tag_name != "tg-spoiler" && tag_name != "tg-emoji" && tag_name != "span" && tag_name != "pre" &&
@@ -3064,7 +3072,7 @@ static Result<vector<MessageEntity>> do_parse_html(CSlice text, string &result) 
         while (!is_space(text[i]) && text[i] != '=') {
           i++;
         }
-        Slice attribute_name = text.substr(attribute_begin_pos, i - attribute_begin_pos);
+        Slice attribute_name(text + attribute_begin_pos, i - attribute_begin_pos);
         if (attribute_name.empty()) {
           return Status::Error(
               400, PSLICE() << "Empty attribute name in the tag \"" << tag_name << "\" at byte offset " << begin_pos);
@@ -3092,7 +3100,7 @@ static Result<vector<MessageEntity>> do_parse_html(CSlice text, string &result) 
           while (is_alnum(text[i]) || text[i] == '.' || text[i] == '-') {
             i++;
           }
-          attribute_value = to_lower(text.substr(token_begin_pos, i - token_begin_pos));
+          attribute_value = to_lower(Slice(text + token_begin_pos, i - token_begin_pos));
 
           if (!is_space(text[i]) && text[i] != '>') {
             return Status::Error(400, PSLICE() << "Unexpected end of name token at byte offset " << token_begin_pos);
@@ -3102,7 +3110,7 @@ static Result<vector<MessageEntity>> do_parse_html(CSlice text, string &result) 
           char end_character = text[i++];
           while (text[i] != end_character && text[i] != 0) {
             if (text[i] == '&') {
-              auto ch = decode_html_entity(text, i);
+              auto ch = decode_html_entity(str, i);
               if (ch != 0) {
                 append_utf8_character(attribute_value, ch);
                 continue;
@@ -3145,7 +3153,7 @@ static Result<vector<MessageEntity>> do_parse_html(CSlice text, string &result) 
       while (!is_space(text[i]) && text[i] != '>') {
         i++;
       }
-      string end_tag_name = to_lower(text.substr(begin_pos + 2, i - begin_pos - 2));
+      string end_tag_name = to_lower(Slice(text + begin_pos + 2, i - begin_pos - 2));
       while (is_space(text[i]) && text[i] != 0) {
         i++;
       }
@@ -3231,19 +3239,12 @@ static Result<vector<MessageEntity>> do_parse_html(CSlice text, string &result) 
 
   sort_entities(entities);
 
-  result = new_text.as_cslice().str();
-  return std::move(entities);
-}
-
-Result<vector<MessageEntity>> parse_html(string &text) {
-  string result;
-  TRY_RESULT(entities, do_parse_html(text, result));
-  if (!check_utf8(result)) {
+  if (need_recheck_utf8 && !check_utf8(new_text.as_cslice())) {
     return Status::Error(400,
                          "Text contains invalid Unicode characters after decoding HTML entities, check for unmatched "
                          "surrogate code units");
   }
-  text = std::move(result);
+  str = new_text.as_cslice().str();
   return std::move(entities);
 }
 

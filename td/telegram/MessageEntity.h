@@ -181,7 +181,7 @@ FormattedText parse_markdown_v3(FormattedText text);
 
 FormattedText get_markdown_v3(FormattedText text);
 
-Result<vector<MessageEntity>> parse_html(string &text);
+Result<vector<MessageEntity>> parse_html(string &str);
 
 vector<tl_object_ptr<telegram_api::MessageEntity>> get_input_message_entities(const ContactsManager *contacts_manager,
                                                                               const vector<MessageEntity> &entities,
