@@ -32,7 +32,24 @@ inline size_t utf8_length(Slice str) {
 size_t utf8_utf16_length(Slice str);
 
 /// appends a Unicode character using UTF-8 encoding
-void append_utf8_character(string &str, uint32 ch);
+template <class T>
+void append_utf8_character(T &str, uint32 ch) {
+  if (ch <= 0x7f) {
+    str.push_back(static_cast<char>(ch));
+  } else if (ch <= 0x7ff) {
+    str.push_back(static_cast<char>(0xc0 | (ch >> 6)));  // implementation-defined
+    str.push_back(static_cast<char>(0x80 | (ch & 0x3f)));
+  } else if (ch <= 0xffff) {
+    str.push_back(static_cast<char>(0xe0 | (ch >> 12)));  // implementation-defined
+    str.push_back(static_cast<char>(0x80 | ((ch >> 6) & 0x3f)));
+    str.push_back(static_cast<char>(0x80 | (ch & 0x3f)));
+  } else {
+    str.push_back(static_cast<char>(0xf0 | (ch >> 18)));  // implementation-defined
+    str.push_back(static_cast<char>(0x80 | ((ch >> 12) & 0x3f)));
+    str.push_back(static_cast<char>(0x80 | ((ch >> 6) & 0x3f)));
+    str.push_back(static_cast<char>(0x80 | (ch & 0x3f)));
+  }
+}
 
 /// moves pointer one UTF-8 character back
 inline const unsigned char *prev_utf8_unsafe(const unsigned char *ptr) {

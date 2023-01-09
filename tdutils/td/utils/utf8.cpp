@@ -62,24 +62,6 @@ bool check_utf8(CSlice str) {
   return false;
 }
 
-void append_utf8_character(string &str, uint32 ch) {
-  if (ch <= 0x7f) {
-    str.push_back(static_cast<char>(ch));
-  } else if (ch <= 0x7ff) {
-    str.push_back(static_cast<char>(0xc0 | (ch >> 6)));  // implementation-defined
-    str.push_back(static_cast<char>(0x80 | (ch & 0x3f)));
-  } else if (ch <= 0xffff) {
-    str.push_back(static_cast<char>(0xe0 | (ch >> 12)));  // implementation-defined
-    str.push_back(static_cast<char>(0x80 | ((ch >> 6) & 0x3f)));
-    str.push_back(static_cast<char>(0x80 | (ch & 0x3f)));
-  } else {
-    str.push_back(static_cast<char>(0xf0 | (ch >> 18)));  // implementation-defined
-    str.push_back(static_cast<char>(0x80 | ((ch >> 12) & 0x3f)));
-    str.push_back(static_cast<char>(0x80 | ((ch >> 6) & 0x3f)));
-    str.push_back(static_cast<char>(0x80 | (ch & 0x3f)));
-  }
-}
-
 const unsigned char *next_utf8_unsafe(const unsigned char *ptr, uint32 *code) {
   uint32 a = ptr[0];
   if ((a & 0x80) == 0) {

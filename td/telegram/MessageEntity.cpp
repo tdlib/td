@@ -24,6 +24,8 @@
 #include "td/utils/misc.h"
 #include "td/utils/Promise.h"
 #include "td/utils/SliceBuilder.h"
+#include "td/utils/StackAllocator.h"
+#include "td/utils/StringBuilder.h"
 #include "td/utils/unicode.h"
 #include "td/utils/utf8.h"
 
@@ -2994,6 +2996,9 @@ static Result<vector<MessageEntity>> do_parse_html(CSlice text, string &result) 
   vector<MessageEntity> entities;
   int32 utf16_offset = 0;
 
+  auto buf = StackAllocator::alloc(text.size() + 30);
+  StringBuilder new_text(buf.as_slice(), true);
+
   struct EntityInfo {
     string tag_name;
     string argument;
@@ -3016,7 +3021,7 @@ static Result<vector<MessageEntity>> do_parse_html(CSlice text, string &result) 
       if (ch != 0) {
         i--;  // i will be incremented in for
         utf16_offset += 1 + (ch > 0xffff);
-        append_utf8_character(result, ch);
+        append_utf8_character(new_text, ch);
         continue;
       }
     }
@@ -3024,7 +3029,7 @@ static Result<vector<MessageEntity>> do_parse_html(CSlice text, string &result) 
       if (is_utf8_character_first_code_unit(c)) {
         utf16_offset += 1 + (c >= 0xf0);  // >= 4 bytes in symbol => surrogate pair
       }
-      result.push_back(text[i]);
+      new_text.push_back(text[i]);
       continue;
     }
 
@@ -3130,7 +3135,7 @@ static Result<vector<MessageEntity>> do_parse_html(CSlice text, string &result) 
                                       << "Tag \"span\" must have class \"tg-spoiler\" at byte offset " << begin_pos);
       }
 
-      nested_entities.emplace_back(std::move(tag_name), std::move(argument), utf16_offset, result.size());
+      nested_entities.emplace_back(std::move(tag_name), std::move(argument), utf16_offset, new_text.size());
     } else {
       // end of an entity
       if (nested_entities.empty()) {
@@ -3177,7 +3182,7 @@ static Result<vector<MessageEntity>> do_parse_html(CSlice text, string &result) 
         } else if (tag_name == "a") {
           auto url = std::move(nested_entities.back().argument);
           if (url.empty()) {
-            url = result.substr(nested_entities.back().entity_begin_pos);
+            url = new_text.as_cslice().substr(nested_entities.back().entity_begin_pos).str();
           }
           auto user_id = LinkManager::get_link_user_id(url);
           if (user_id.is_valid()) {
@@ -3226,6 +3231,7 @@ static Result<vector<MessageEntity>> do_parse_html(CSlice text, string &result) 
 
   sort_entities(entities);
 
+  result = new_text.as_cslice().str();
   return std::move(entities);
 }
 
