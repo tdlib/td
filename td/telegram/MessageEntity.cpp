@@ -2936,11 +2936,7 @@ FormattedText get_markdown_v3(FormattedText text) {
 }
 
 static uint32 decode_html_entity(CSlice text, size_t &pos) {
-  auto c = static_cast<unsigned char>(text[pos]);
-  if (c != '&') {
-    return 0;
-  }
-
+  CHECK(text[pos] == '&');
   size_t end_pos = pos + 1;
   uint32 res = 0;
   if (text[pos + 1] == '#') {
@@ -3016,15 +3012,15 @@ Result<vector<MessageEntity>> parse_html(string &str) {
   for (size_t i = 0; i < str_size; i++) {
     auto c = static_cast<unsigned char>(text[i]);
     if (c == '&') {
-      auto ch = decode_html_entity(str, i);
-      if (ch != 0) {
+      auto code = decode_html_entity(str, i);
+      if (code != 0) {
         i--;  // i will be incremented in for
-        utf16_offset += 1 + (ch > 0xffff);
-        if (ch >= 0xd800 && ch <= 0xdfff) {
+        utf16_offset += 1 + (code > 0xffff);
+        if (code >= 0xd800 && code <= 0xdfff) {
           // half of a surrogate pair
           need_recheck_utf8 = true;
         }
-        result_end = append_utf8_character_unsafe(result_end, ch);
+        result_end = append_utf8_character_unsafe(result_end, code);
         CHECK(result_end <= result_begin + i);
         continue;
       }
@@ -3104,19 +3100,23 @@ Result<vector<MessageEntity>> parse_html(string &str) {
         } else {
           // A string literal
           char end_character = text[i++];
+          char *attribute_end = &str[i];
+          const char *attribute_begin = attribute_end;
           while (text[i] != end_character && text[i] != 0) {
             if (text[i] == '&') {
-              auto ch = decode_html_entity(str, i);
-              if (ch != 0) {
-                append_utf8_character(attribute_value, ch);
+              auto code = decode_html_entity(str, i);
+              if (code != 0) {
+                attribute_end = reinterpret_cast<char *>(
+                    append_utf8_character_unsafe(reinterpret_cast<unsigned char *>(attribute_end), code));
                 continue;
               }
             }
-            attribute_value.push_back(text[i++]);
+            *attribute_end++ = text[i++];
           }
           if (text[i] == end_character) {
             i++;
           }
+          attribute_value.assign(attribute_begin, static_cast<size_t>(attribute_end - attribute_begin));
         }
         if (text[i] == 0) {
           return Status::Error(400, PSLICE() << "Unclosed start tag at byte offset " << begin_pos);
