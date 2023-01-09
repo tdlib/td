@@ -1851,7 +1851,7 @@ string get_first_url(const FormattedText &text) {
 }
 
 Result<vector<MessageEntity>> parse_markdown(string &text) {
-  string result;
+  size_t result_size = 0;
   vector<MessageEntity> entities;
   size_t size = text.size();
   int32 utf16_offset = 0;
@@ -1859,7 +1859,7 @@ Result<vector<MessageEntity>> parse_markdown(string &text) {
     auto c = static_cast<unsigned char>(text[i]);
     if (c == '\\' && (text[i + 1] == '_' || text[i + 1] == '*' || text[i + 1] == '`' || text[i + 1] == '[')) {
       i++;
-      result.push_back(text[i]);
+      text[result_size++] = text[i];
       utf16_offset++;
       continue;
     }
@@ -1867,7 +1867,7 @@ Result<vector<MessageEntity>> parse_markdown(string &text) {
       if (is_utf8_character_first_code_unit(c)) {
         utf16_offset += 1 + (c >= 0xf0);  // >= 4 bytes in symbol => surrogate pair
       }
-      result.push_back(text[i]);
+      text[result_size++] = text[i];
       continue;
     }
 
@@ -1909,7 +1909,7 @@ Result<vector<MessageEntity>> parse_markdown(string &text) {
       if (is_utf8_character_first_code_unit(cur_ch)) {
         utf16_offset += 1 + (cur_ch >= 0xf0);  // >= 4 bytes in symbol => surrogate pair
       }
-      result.push_back(text[i++]);
+      text[result_size++] = text[i++];
     }
     if (i == size) {
       return Status::Error(400, PSLICE() << "Can't find end of the entity starting at byte offset " << begin_pos);
@@ -1965,11 +1965,12 @@ Result<vector<MessageEntity>> parse_markdown(string &text) {
       i += 2;
     }
   }
-  text = std::move(result);
+  text.resize(result_size);
   return std::move(entities);
 }
 
-static Result<vector<MessageEntity>> do_parse_markdown_v2(CSlice text, string &result) {
+Result<vector<MessageEntity>> parse_markdown_v2(string &text) {
+  size_t result_size = 0;
   vector<MessageEntity> entities;
   int32 utf16_offset = 0;
 
@@ -1996,7 +1997,7 @@ static Result<vector<MessageEntity>> do_parse_markdown_v2(CSlice text, string &r
     if (c == '\\' && text[i + 1] > 0 && text[i + 1] <= 126) {
       i++;
       utf16_offset += 1;
-      result += text[i];
+      text[result_size++] = text[i];
       continue;
     }
 
@@ -2017,7 +2018,7 @@ static Result<vector<MessageEntity>> do_parse_markdown_v2(CSlice text, string &r
       if (is_utf8_character_first_code_unit(c)) {
         utf16_offset += 1 + (c >= 0xf0);  // >= 4 bytes in symbol => surrogate pair
       }
-      result.push_back(text[i]);
+      text[result_size++] = text[i];
       continue;
     }
 
@@ -2093,7 +2094,7 @@ static Result<vector<MessageEntity>> do_parse_markdown_v2(CSlice text, string &r
             }
             if (i != language_end && language_end < text.size() && text[language_end] != '`') {
               type = MessageEntity::Type::PreCode;
-              argument = text.substr(i, language_end - i).str();
+              argument = text.substr(i, language_end - i);
               i = language_end;
             }
             // skip one new line in the beginning of the text
@@ -2123,7 +2124,7 @@ static Result<vector<MessageEntity>> do_parse_markdown_v2(CSlice text, string &r
           return Status::Error(
               400, PSLICE() << "Character '" << text[i] << "' is reserved and must be escaped with the preceding '\\'");
       }
-      nested_entities.emplace_back(type, std::move(argument), utf16_offset, entity_byte_offset, result.size());
+      nested_entities.emplace_back(type, std::move(argument), utf16_offset, entity_byte_offset, result_size);
     } else {
       // end of an entity
       auto type = nested_entities.back().type;
@@ -2149,7 +2150,8 @@ static Result<vector<MessageEntity>> do_parse_markdown_v2(CSlice text, string &r
           string url;
           if (text[i + 1] != '(') {
             // use text as a URL
-            url = result.substr(nested_entities.back().entity_begin_pos);
+            url = text.substr(nested_entities.back().entity_begin_pos,
+                              result_size - nested_entities.back().entity_begin_pos);
           } else {
             i += 2;
             auto url_begin_pos = i;
@@ -2224,13 +2226,7 @@ static Result<vector<MessageEntity>> do_parse_markdown_v2(CSlice text, string &r
 
   sort_entities(entities);
 
-  return std::move(entities);
-}
-
-Result<vector<MessageEntity>> parse_markdown_v2(string &text) {
-  string result;
-  TRY_RESULT(entities, do_parse_markdown_v2(text, result));
-  text = std::move(result);
+  text.resize(result_size);
   return std::move(entities);
 }
 
