@@ -254,7 +254,7 @@ void update_expired_message_content(unique_ptr<MessageContent> &content);
 
 void update_failed_to_send_message_content(Td *td, unique_ptr<MessageContent> &content);
 
-void add_message_content_dependencies(Dependencies &dependencies, const MessageContent *message_content);
+void add_message_content_dependencies(Dependencies &dependencies, const MessageContent *message_content, bool is_bot);
 
 void update_forum_topic_info_by_service_message_content(Td *td, const MessageContent *content, DialogId dialog_id,
                                                         MessageId top_thread_message_id);

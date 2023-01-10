@@ -26074,7 +26074,7 @@ void MessagesManager::add_message_dependencies(Dependencies &dependencies, const
     m->reactions->add_min_channels(td_);
     m->reactions->add_dependencies(dependencies);
   }
-  add_message_content_dependencies(dependencies, m->content.get());
+  add_message_content_dependencies(dependencies, m->content.get(), td_->auth_manager_->is_bot());
   add_reply_markup_dependencies(dependencies, m->reply_markup.get());
 }
 
@@ -27705,6 +27705,7 @@ bool MessagesManager::can_edit_message(DialogId dialog_id, const Message *m, boo
     case MessageContentType::TopicEdit:
     case MessageContentType::SuggestProfilePhoto:
     case MessageContentType::WriteAccessAllowed:
+    case MessageContentType::RequestedDialog:
       return false;
     default:
       UNREACHABLE();

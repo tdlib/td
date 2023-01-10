@@ -861,6 +861,20 @@ class MessageWriteAccessAllowed final : public MessageContent {
   }
 };
 
+class MessageRequestedDialog final : public MessageContent {
+ public:
+  DialogId dialog_id;
+  int32 button_id = 0;
+
+  MessageRequestedDialog() = default;
+  MessageRequestedDialog(DialogId dialog_id, int32 button_id) : dialog_id(dialog_id), button_id(button_id) {
+  }
+
+  MessageContentType get_type() const final {
+    return MessageContentType::RequestedDialog;
+  }
+};
+
 template <class StorerT>
 static void store(const MessageContent *content, StorerT &storer) {
   CHECK(content != nullptr);
@@ -1224,6 +1238,12 @@ static void store(const MessageContent *content, StorerT &storer) {
     }
     case MessageContentType::WriteAccessAllowed:
       break;
+    case MessageContentType::RequestedDialog: {
+      const auto *m = static_cast<const MessageRequestedDialog *>(content);
+      store(m->dialog_id, storer);
+      store(m->button_id, storer);
+      break;
+    }
     default:
       UNREACHABLE();
   }
@@ -1723,6 +1743,13 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
     case MessageContentType::WriteAccessAllowed:
       content = make_unique<MessageWriteAccessAllowed>();
       break;
+    case MessageContentType::RequestedDialog: {
+      auto m = make_unique<MessageRequestedDialog>();
+      parse(m->dialog_id, parser);
+      parse(m->button_id, parser);
+      content = std::move(m);
+      break;
+    }
     default:
       LOG(FATAL) << "Have unknown message content type " << static_cast<int32>(content_type);
   }
@@ -2349,6 +2376,7 @@ bool can_have_input_media(const Td *td, const MessageContent *content, bool is_s
     case MessageContentType::TopicEdit:
     case MessageContentType::SuggestProfilePhoto:
     case MessageContentType::WriteAccessAllowed:
+    case MessageContentType::RequestedDialog:
       return false;
     case MessageContentType::Animation:
     case MessageContentType::Audio:
@@ -2474,6 +2502,7 @@ SecretInputMedia get_secret_input_media(const MessageContent *content, Td *td,
     case MessageContentType::TopicEdit:
     case MessageContentType::SuggestProfilePhoto:
     case MessageContentType::WriteAccessAllowed:
+    case MessageContentType::RequestedDialog:
       break;
     default:
       UNREACHABLE();
@@ -2599,6 +2628,7 @@ static tl_object_ptr<telegram_api::InputMedia> get_input_media_impl(
     case MessageContentType::TopicEdit:
     case MessageContentType::SuggestProfilePhoto:
     case MessageContentType::WriteAccessAllowed:
+    case MessageContentType::RequestedDialog:
       break;
     default:
       UNREACHABLE();
@@ -2768,6 +2798,7 @@ void delete_message_content_thumbnail(MessageContent *content, Td *td) {
     case MessageContentType::TopicEdit:
     case MessageContentType::SuggestProfilePhoto:
     case MessageContentType::WriteAccessAllowed:
+    case MessageContentType::RequestedDialog:
       break;
     default:
       UNREACHABLE();
@@ -2954,6 +2985,7 @@ Status can_send_message_content(DialogId dialog_id, const MessageContent *conten
     case MessageContentType::TopicEdit:
     case MessageContentType::SuggestProfilePhoto:
     case MessageContentType::WriteAccessAllowed:
+    case MessageContentType::RequestedDialog:
       UNREACHABLE();
   }
   return Status::OK();
@@ -3087,6 +3119,7 @@ static int32 get_message_content_media_index_mask(const MessageContent *content,
     case MessageContentType::TopicEdit:
     case MessageContentType::SuggestProfilePhoto:
     case MessageContentType::WriteAccessAllowed:
+    case MessageContentType::RequestedDialog:
       return 0;
     default:
       UNREACHABLE();
@@ -3878,6 +3911,14 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
     }
     case MessageContentType::WriteAccessAllowed:
       break;
+    case MessageContentType::RequestedDialog: {
+      const auto *old_ = static_cast<const MessageRequestedDialog *>(old_content);
+      const auto *new_ = static_cast<const MessageRequestedDialog *>(new_content);
+      if (old_->dialog_id != new_->dialog_id || old_->button_id != new_->button_id) {
+        need_update = true;
+      }
+      break;
+    }
     default:
       UNREACHABLE();
       break;
@@ -4014,6 +4055,7 @@ bool merge_message_content_file_id(Td *td, MessageContent *message_content, File
     case MessageContentType::TopicEdit:
     case MessageContentType::SuggestProfilePhoto:
     case MessageContentType::WriteAccessAllowed:
+    case MessageContentType::RequestedDialog:
       LOG(ERROR) << "Receive new file " << new_file_id << " in a sent message of the type " << content_type;
       break;
     default:
@@ -5003,6 +5045,7 @@ unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const
     case MessageContentType::TopicEdit:
     case MessageContentType::SuggestProfilePhoto:
     case MessageContentType::WriteAccessAllowed:
+    case MessageContentType::RequestedDialog:
       return nullptr;
     default:
       UNREACHABLE();
@@ -5324,8 +5367,16 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
     }
     case telegram_api::messageActionAttachMenuBotAllowed::ID:
       return td::make_unique<MessageWriteAccessAllowed>();
-    case telegram_api::messageActionRequestedPeer::ID:
-      return td::make_unique<MessageUnsupported>();
+    case telegram_api::messageActionRequestedPeer::ID: {
+      auto action = move_tl_object_as<telegram_api::messageActionRequestedPeer>(action_ptr);
+      DialogId dialog_id(action->peer_);
+      if (!dialog_id.is_valid()) {
+        LOG(ERROR) << "Receive invalid " << oneline(to_string(action));
+        break;
+      }
+
+      return make_unique<MessageRequestedDialog>(dialog_id, action->button_id_);
+    }
     default:
       UNREACHABLE();
   }
@@ -5627,6 +5678,10 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
     }
     case MessageContentType::WriteAccessAllowed:
       return make_tl_object<td_api::messageBotWriteAccessAllowed>();
+    case MessageContentType::RequestedDialog: {
+      const auto *m = static_cast<const MessageRequestedDialog *>(content);
+      return make_tl_object<td_api::messageChatChosen>(m->dialog_id.get(), m->button_id);
+    }
     default:
       UNREACHABLE();
       return nullptr;
@@ -6024,6 +6079,7 @@ string get_message_content_search_text(const Td *td, const MessageContent *conte
     case MessageContentType::GiftPremium:
     case MessageContentType::SuggestProfilePhoto:
     case MessageContentType::WriteAccessAllowed:
+    case MessageContentType::RequestedDialog:
       return string();
     default:
       UNREACHABLE();
@@ -6157,7 +6213,7 @@ void update_failed_to_send_message_content(Td *td, unique_ptr<MessageContent> &c
   }
 }
 
-void add_message_content_dependencies(Dependencies &dependencies, const MessageContent *message_content) {
+void add_message_content_dependencies(Dependencies &dependencies, const MessageContent *message_content, bool is_bot) {
   switch (message_content->get_type()) {
     case MessageContentType::Text: {
       const auto *content = static_cast<const MessageText *>(message_content);
@@ -6309,6 +6365,13 @@ void add_message_content_dependencies(Dependencies &dependencies, const MessageC
       break;
     case MessageContentType::WriteAccessAllowed:
       break;
+    case MessageContentType::RequestedDialog: {
+      const auto *content = static_cast<const MessageRequestedDialog *>(message_content);
+      if (!is_bot) {
+        dependencies.add_dialog_and_dependencies(content->dialog_id);
+      }
+      break;
+    }
     default:
       UNREACHABLE();
       break;
