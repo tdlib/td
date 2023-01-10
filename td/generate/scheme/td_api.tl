@@ -7192,6 +7192,9 @@ getCustomEmojiStickers custom_emoji_ids:vector<int64> = Stickers;
 //@description Returns default list of custom emoji stickers for placing on a chat photo
 getDefaultChatPhotoCustomEmojiStickers = Stickers;
 
+//@description Returns default list of custom emoji stickers for placing on a profile photo
+getDefaultProfilePhotoCustomEmojiStickers = Stickers;
+
 
 //@description Returns saved animations
 getSavedAnimations = Animations;

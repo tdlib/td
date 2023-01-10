@@ -7337,7 +7337,12 @@ void Td::on_request(uint64 id, const td_api::getCustomEmojiStickers &request) {
 
 void Td::on_request(uint64 id, const td_api::getDefaultChatPhotoCustomEmojiStickers &request) {
   CREATE_REQUEST_PROMISE();
-  stickers_manager_->get_default_dialog_photo_custom_emoji_stickers(std::move(promise));
+  stickers_manager_->get_default_dialog_photo_custom_emoji_stickers(false, std::move(promise));
+}
+
+void Td::on_request(uint64 id, const td_api::getDefaultProfilePhotoCustomEmojiStickers &request) {
+  CREATE_REQUEST_PROMISE();
+  stickers_manager_->get_default_dialog_photo_custom_emoji_stickers(true, std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::getSavedAnimations &request) {
