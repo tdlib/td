@@ -24,51 +24,24 @@ namespace td {
 namespace mtproto {
 namespace tcp {
 
-class ITransport {
-  // Writes packet into message.
-  // Returns 0 if everything is ok, and [expected_size] otherwise.
-  // There is no sense to call this function when [stream->size > expected_size]
-  //
-  // (tpc is stream-base protocol. So the input message is a stream, not a slice)
-  virtual size_t read_from_stream(ChainBufferReader *stream, BufferSlice *message, uint32 *quick_ack) = 0;
-
-  // Writes header inplace.
-  virtual void write_prepare_inplace(BufferWriter *message, bool quick_ack) = 0;
-
-  // Writes first several bytes into output stream.
-  virtual void init_output_stream(ChainBufferWriter *stream) = 0;
-
-  virtual bool support_quick_ack() const = 0;
-
- public:
-  ITransport() = default;
-  ITransport(const ITransport &) = delete;
-  ITransport &operator=(const ITransport &) = delete;
-  ITransport(ITransport &&) = delete;
-  ITransport &operator=(ITransport &&) = delete;
-  virtual ~ITransport() = default;
-};
-
-class AbridgedTransport final : public ITransport {
- public:
-  size_t read_from_stream(ChainBufferReader *stream, BufferSlice *message, uint32 *quick_ack) final;
-  void write_prepare_inplace(BufferWriter *message, bool quick_ack) final;
-  void init_output_stream(ChainBufferWriter *stream) final;
-  bool support_quick_ack() const final {
-    return false;
-  }
-};
-
-class IntermediateTransport final : public ITransport {
+class IntermediateTransport {
  public:
   explicit IntermediateTransport(bool with_padding) : with_padding_(with_padding) {
   }
-  size_t read_from_stream(ChainBufferReader *stream, BufferSlice *message, uint32 *quick_ack) final;
-  void write_prepare_inplace(BufferWriter *message, bool quick_ack) final;
-  void init_output_stream(ChainBufferWriter *stream) final;
-  bool support_quick_ack() const final {
-    return true;
-  }
+
+  // Writes a packet into message.
+  // Returns 0 if everything is ok, and [expected_size] otherwise.
+  // There is no sense to call this function when [stream->size > expected_size]
+  //
+  // (TCP is a stream-oriented protocol, so the input message is a stream, not a slice)
+  size_t read_from_stream(ChainBufferReader *stream, BufferSlice *message, uint32 *quick_ack);
+
+  // Writes header inplace.
+  void write_prepare_inplace(BufferWriter *message, bool quick_ack);
+
+  // Writes first several bytes into output stream.
+  void init_output_stream(ChainBufferWriter *stream);
+
   bool with_padding() const {
     return with_padding_;
   }
@@ -77,8 +50,6 @@ class IntermediateTransport final : public ITransport {
   bool with_padding_;
 };
 
-using TransportImpl = IntermediateTransport;
-
 class OldTransport final : public IStreamTransport {
  public:
   OldTransport() = default;
@@ -86,7 +57,7 @@ class OldTransport final : public IStreamTransport {
     return impl_.read_from_stream(input_, message, quick_ack);
   }
   bool support_quick_ack() const final {
-    return impl_.support_quick_ack();
+    return true;
   }
   void write(BufferWriter &&message, bool quick_ack) final {
     impl_.write_prepare_inplace(&message, quick_ack);
@@ -121,7 +92,7 @@ class OldTransport final : public IStreamTransport {
   }
 
  private:
-  TransportImpl impl_{false};
+  IntermediateTransport impl_{false};
   ChainBufferReader *input_{nullptr};
   ChainBufferWriter *output_{nullptr};
 };
@@ -135,7 +106,7 @@ class ObfuscatedTransport final : public IStreamTransport {
   Result<size_t> read_next(BufferSlice *message, uint32 *quick_ack) final TD_WARN_UNUSED_RESULT;
 
   bool support_quick_ack() const final {
-    return impl_.support_quick_ack();
+    return true;
   }
 
   void write(BufferWriter &&message, bool quick_ack) final;
@@ -182,7 +153,7 @@ class ObfuscatedTransport final : public IStreamTransport {
   bool is_first_tls_packet_{true};
   ProxySecret secret_;
   std::string header_;
-  TransportImpl impl_;
+  IntermediateTransport impl_;
   TlsReaderByteFlow tls_reader_byte_flow_;
   AesCtrByteFlow aes_ctr_byte_flow_;
   ByteFlowSink byte_flow_sink_;

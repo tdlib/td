@@ -77,64 +77,6 @@ void IntermediateTransport::init_output_stream(ChainBufferWriter *stream) {
   stream->append(Slice(reinterpret_cast<const char *>(&magic), 4));
 }
 
-size_t AbridgedTransport::read_from_stream(ChainBufferReader *stream, BufferSlice *message, uint32 *quick_ack) {
-  if (stream->empty()) {
-    return 1;
-  }
-  uint8 byte = 0;
-  stream->clone().advance(1, MutableSlice(&byte, 1));
-  size_t header_size;
-  uint32 data_size;
-  if (byte < 0x7f) {
-    header_size = 1;
-    data_size = byte * 4u;
-  } else {
-    if (stream->size() < 4) {
-      return 4;
-    }
-    header_size = 4;
-    stream->clone().advance(4, MutableSlice(reinterpret_cast<char *>(&data_size), sizeof(data_size)));
-    data_size >>= 8;
-    data_size = data_size * 4;
-  }
-
-  size_t total_size = header_size + data_size;
-  if (stream->size() < total_size) {
-    // optimization
-    // stream->make_solid(total_size);
-    return total_size;
-  }
-
-  stream->advance(header_size);
-  *message = stream->cut_head(data_size).move_as_buffer_slice();
-  return 0;
-}
-
-void AbridgedTransport::write_prepare_inplace(BufferWriter *message, bool quick_ack) {
-  CHECK(!quick_ack);
-  size_t size = message->size() / 4;
-  CHECK(size % 4 == 0);
-  CHECK(size < 1 << 24);
-
-  size_t prepend_size = size >= 0x7f ? 4 : 1;
-
-  MutableSlice prepend = message->prepare_prepend();
-  CHECK(prepend.size() >= prepend_size);
-  message->confirm_prepend(prepend_size);
-
-  MutableSlice data = message->as_slice();
-  if (size >= 0x7f) {
-    uint32 size_encoded = 0x7f + (static_cast<uint32>(size) << 8);
-    as<uint32>(data.begin()) = size_encoded;
-  } else {
-    as<uint8>(data.begin()) = static_cast<uint8>(size);
-  }
-}
-
-void AbridgedTransport::init_output_stream(ChainBufferWriter *stream) {
-  stream->append("\xef");
-}
-
 void ObfuscatedTransport::init(ChainBufferReader *input, ChainBufferWriter *output) {
   input_ = input;
   output_ = output;
@@ -164,8 +106,6 @@ void ObfuscatedTransport::init(ChainBufferReader *input, ChainBufferWriter *outp
     }
     break;
   }
-  // TODO: It is actually IntermediateTransport::init_output_stream, so it will work only with
-  // TransportImpl==IntermediateTransport
   as<uint32>(header_slice.begin() + 56) = impl_.with_padding() ? 0xdddddddd : 0xeeeeeeee;
   if (dc_id_ != 0) {
     as<int16>(header_slice.begin() + 60) = dc_id_;
