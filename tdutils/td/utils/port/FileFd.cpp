@@ -199,7 +199,9 @@ Result<FileFd> FileFd::open(CSlice filepath, int32 flags, int32 mode) {
     } else {
       creation_disposition = OPEN_EXISTING;
     }
+#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP | WINAPI_PARTITION_SYSTEM)
     native_flags |= FILE_FLAG_OPEN_REPARSE_POINT;
+#endif
   }
 
   if (flags & Direct) {
