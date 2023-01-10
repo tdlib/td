@@ -3114,8 +3114,6 @@ void Td::on_connection_state_changed(ConnectionState new_state) {
 }
 
 void Td::start_up() {
-  always_wait_for_mailbox();
-
   uint64 check_endianness = 0x0706050403020100;
   auto check_endianness_raw = reinterpret_cast<const unsigned char *>(&check_endianness);
   for (unsigned char c = 0; c < 8; c++) {

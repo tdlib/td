@@ -66,11 +66,7 @@ inline void ActorInfo::set_wait_generation(uint32 wait_generation) {
 }
 
 inline bool ActorInfo::must_wait(uint32 wait_generation) const {
-  return wait_generation_ == wait_generation || (always_wait_for_mailbox_ && !mailbox_.empty());
-}
-
-inline void ActorInfo::always_wait_for_mailbox() {
-  always_wait_for_mailbox_ = true;
+  return wait_generation_ == wait_generation || !mailbox_.empty();
 }
 
 inline void ActorInfo::on_actor_moved(Actor *actor_new_ptr) {

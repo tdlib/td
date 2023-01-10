@@ -164,8 +164,4 @@ inline Slice Actor::get_name() const {
   return info_->get_name();
 }
 
-inline void Actor::always_wait_for_mailbox() {
-  info_->always_wait_for_mailbox();
-}
-
 }  // namespace td

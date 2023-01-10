@@ -571,7 +571,6 @@ TEST(Actors, stop_in_teardown) {
 class AlwaysWaitForMailbox final : public td::Actor {
  public:
   void start_up() final {
-    always_wait_for_mailbox();
     td::create_actor<td::SleepActor>("Sleep", 0.1,
                                      td::PromiseCreator::lambda([actor_id = actor_id(this), ptr = this](td::Unit) {
                                        td::send_closure(actor_id, &AlwaysWaitForMailbox::g);

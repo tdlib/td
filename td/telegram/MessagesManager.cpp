@@ -13601,8 +13601,6 @@ void MessagesManager::init() {
   td_->notification_settings_manager_->init();  // load scope notification settings
   init_stickers_manager(td_);                   // load available reactions
 
-  always_wait_for_mailbox();
-
   start_time_ = Time::now();
   last_channel_pts_jump_warning_time_ = start_time_ - 3600;
 

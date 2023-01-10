@@ -110,14 +110,12 @@ class ActorInfo final
 
   void set_wait_generation(uint32 wait_generation);
   bool must_wait(uint32 wait_generation) const;
-  void always_wait_for_mailbox();
 
  private:
   Deleter deleter_ = Deleter::None;
   bool need_context_ = true;
   bool need_start_up_ = true;
   bool is_running_ = false;
-  bool always_wait_for_mailbox_{false};
   uint32 wait_generation_{0};
 
   std::atomic<int32> sched_id_{0};

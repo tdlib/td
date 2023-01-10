@@ -79,8 +79,6 @@ class Actor : public ObserverBase {
   std::shared_ptr<ActorContext> set_context(std::shared_ptr<ActorContext> context);
   string set_tag(string tag);
 
-  void always_wait_for_mailbox();
-
   // for ActorInfo mostly
   void init(ObjectPool<ActorInfo>::OwnerPtr &&info);
   ActorInfo *get_info();
