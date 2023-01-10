@@ -823,9 +823,9 @@ class ConfigRecoverer final : public Actor {
           case 2:
             return get_simple_config_firebase_remote_config;
           case 4:
-            return get_simple_config_firebase_realtime;
-          case 9:
             return get_simple_config_firebase_firestore;
+          case 9:
+            return get_simple_config_firebase_realtime;
           case 0:
           case 3:
           case 8:
