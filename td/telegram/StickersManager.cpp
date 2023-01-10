@@ -1317,6 +1317,32 @@ class GetCustomEmojiDocumentsQuery final : public Td::ResultHandler {
   }
 };
 
+class GetDefaultDialogPhotoEmojisQuery final : public Td::ResultHandler {
+  Promise<telegram_api::object_ptr<telegram_api::EmojiList>> promise_;
+
+ public:
+  explicit GetDefaultDialogPhotoEmojisQuery(Promise<telegram_api::object_ptr<telegram_api::EmojiList>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(int64 hash) {
+    send_query(G()->net_query_creator().create(telegram_api::account_getDefaultGroupPhotoEmojis(hash)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::account_getDefaultGroupPhotoEmojis>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    promise_.set_value(result_ptr.move_as_ok());
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class SendAnimatedEmojiClicksQuery final : public Td::ResultHandler {
   DialogId dialog_id_;
   string emoji_;
@@ -6202,7 +6228,7 @@ td_api::object_ptr<td_api::stickers> StickersManager::get_custom_emoji_stickers_
   return td_api::make_object<td_api::stickers>(std::move(stickers));
 }
 
-void StickersManager::get_custom_emoji_stickers(vector<CustomEmojiId> &&custom_emoji_ids, bool use_database,
+void StickersManager::get_custom_emoji_stickers(vector<CustomEmojiId> custom_emoji_ids, bool use_database,
                                                 Promise<td_api::object_ptr<td_api::stickers>> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
 
@@ -6276,6 +6302,147 @@ void StickersManager::on_get_custom_emoji_documents(
   }
 
   promise.set_value(get_custom_emoji_stickers_object(custom_emoji_ids));
+}
+
+string StickersManager::get_default_dialog_photo_custom_emoji_ids_database_key() {
+  return "default_dialog_photo_custom_emoji_ids";
+}
+
+void StickersManager::get_default_dialog_photo_custom_emoji_stickers(
+    Promise<td_api::object_ptr<td_api::stickers>> &&promise) {
+  if (are_default_dialog_photo_custom_emoji_ids_loaded_) {
+    return get_custom_emoji_stickers(default_dialog_photo_custom_emoji_ids_, true, std::move(promise));
+  }
+
+  auto &queries = default_dialog_photo_custom_emoji_ids_load_queries_;
+  queries.push_back(std::move(promise));
+  if (queries.size() != 1) {
+    // query has already been sent, just wait for the result
+    return;
+  }
+  if (G()->parameters().use_file_db) {
+    LOG(INFO) << "Trying to load chat photo custom emoji identifiers from database";
+    return G()->td_db()->get_sqlite_pmc()->get(
+        get_default_dialog_photo_custom_emoji_ids_database_key(), PromiseCreator::lambda([](string value) {
+          send_closure(G()->stickers_manager(),
+                       &StickersManager::on_load_default_dialog_photo_custom_emoji_ids_from_database, std::move(value));
+        }));
+  }
+
+  reload_default_dialog_photo_custom_emoji_ids();
+}
+
+class StickersManager::CustomEmojiIdsLogEvent {
+ public:
+  vector<CustomEmojiId> custom_emoji_ids_;
+  int64 hash_ = 0;
+
+  CustomEmojiIdsLogEvent() = default;
+
+  CustomEmojiIdsLogEvent(vector<CustomEmojiId> custom_emoji_ids, int64 hash)
+      : custom_emoji_ids_(std::move(custom_emoji_ids)), hash_(hash) {
+  }
+
+  template <class StorerT>
+  void store(StorerT &storer) const {
+    td::store(custom_emoji_ids_, storer);
+    td::store(hash_, storer);
+  }
+
+  template <class ParserT>
+  void parse(ParserT &parser) {
+    td::parse(custom_emoji_ids_, parser);
+    td::parse(hash_, parser);
+  }
+};
+
+void StickersManager::on_load_default_dialog_photo_custom_emoji_ids_from_database(string value) {
+  if (G()->close_flag()) {
+    fail_promises(default_dialog_photo_custom_emoji_ids_load_queries_, G()->close_status());
+    return;
+  }
+
+  if (value.empty()) {
+    return reload_default_dialog_photo_custom_emoji_ids();
+  }
+
+  LOG(INFO) << "Successfully loaded default chat photo custom emoji identifiers of size " << value.size()
+            << " from database";
+  CustomEmojiIdsLogEvent log_event;
+  if (log_event_parse(log_event, value).is_error()) {
+    LOG(ERROR) << "Delete invalid default chat photo custom emoji identifiers from database";
+    G()->td_db()->get_sqlite_pmc()->erase(get_default_dialog_photo_custom_emoji_ids_database_key(), Auto());
+    return reload_default_dialog_photo_custom_emoji_ids();
+  }
+
+  on_get_default_dialog_photo_custom_emoji_ids_success(std::move(log_event.custom_emoji_ids_), log_event.hash_);
+}
+
+void StickersManager::reload_default_dialog_photo_custom_emoji_ids() {
+  if (are_default_dialog_photo_custom_emoji_ids_being_loaded_) {
+    return;
+  }
+  if (G()->close_flag()) {
+    fail_promises(default_dialog_photo_custom_emoji_ids_load_queries_, G()->close_status());
+    return;
+  }
+  CHECK(!td_->auth_manager_->is_bot());
+  are_default_dialog_photo_custom_emoji_ids_being_loaded_ = true;
+
+  auto query_promise = PromiseCreator::lambda(
+      [actor_id = actor_id(this)](Result<telegram_api::object_ptr<telegram_api::EmojiList>> r_emoji_list) mutable {
+        send_closure(actor_id, &StickersManager::on_get_default_dialog_photo_custom_emoji_ids, std::move(r_emoji_list));
+      });
+  td_->create_handler<GetDefaultDialogPhotoEmojisQuery>(std::move(query_promise))
+      ->send(default_dialog_photo_custom_emoji_ids_hash_);
+}
+
+void StickersManager::on_get_default_dialog_photo_custom_emoji_ids(
+    Result<telegram_api::object_ptr<telegram_api::EmojiList>> r_emoji_list) {
+  CHECK(are_default_dialog_photo_custom_emoji_ids_being_loaded_);
+  are_default_dialog_photo_custom_emoji_ids_being_loaded_ = false;
+
+  if (G()->close_flag()) {
+    r_emoji_list = G()->close_status();
+  }
+  if (r_emoji_list.is_error()) {
+    fail_promises(default_dialog_photo_custom_emoji_ids_load_queries_, r_emoji_list.move_as_error());
+    return;
+  }
+
+  auto emoji_list_ptr = r_emoji_list.move_as_ok();
+  int32 constructor_id = emoji_list_ptr->get_id();
+  if (constructor_id == telegram_api::emojiListNotModified::ID) {
+    LOG(INFO) << "Default chat photo custom emoji identifiers aren't modified";
+    if (!are_default_dialog_photo_custom_emoji_ids_loaded_) {
+      on_get_default_dialog_photo_custom_emoji_ids_success({}, 0);
+    }
+    CHECK(default_dialog_photo_custom_emoji_ids_load_queries_.empty());
+    return;
+  }
+  CHECK(constructor_id == telegram_api::emojiList::ID);
+  auto emoji_list = move_tl_object_as<telegram_api::emojiList>(emoji_list_ptr);
+  auto custom_emoji_ids =
+      transform(std::move(emoji_list->document_id_), [](int64 document_id) { return CustomEmojiId(document_id); });
+  auto hash = emoji_list->hash_;
+
+  CustomEmojiIdsLogEvent log_event(custom_emoji_ids, hash);
+  G()->td_db()->get_sqlite_pmc()->set(get_default_dialog_photo_custom_emoji_ids_database_key(),
+                                      log_event_store(log_event).as_slice().str(), Auto());
+
+  on_get_default_dialog_photo_custom_emoji_ids_success(std::move(custom_emoji_ids), hash);
+}
+
+void StickersManager::on_get_default_dialog_photo_custom_emoji_ids_success(vector<CustomEmojiId> custom_emoji_ids,
+                                                                           int64 hash) {
+  default_dialog_photo_custom_emoji_ids_ = std::move(custom_emoji_ids);
+  default_dialog_photo_custom_emoji_ids_hash_ = hash;
+  are_default_dialog_photo_custom_emoji_ids_loaded_ = true;
+
+  auto promises = std::move(default_dialog_photo_custom_emoji_ids_load_queries_);
+  for (auto &promise : promises) {
+    get_custom_emoji_stickers(default_dialog_photo_custom_emoji_ids_, true, std::move(promise));
+  }
 }
 
 void StickersManager::get_premium_gift_option_sticker(int32 month_count, bool is_recursive,

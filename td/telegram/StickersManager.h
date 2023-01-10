@@ -119,8 +119,10 @@ class StickersManager final : public Actor {
 
   void get_default_topic_icons(bool is_recursive, Promise<td_api::object_ptr<td_api::stickers>> &&promise);
 
-  void get_custom_emoji_stickers(vector<CustomEmojiId> &&custom_emoji_ids, bool use_database,
+  void get_custom_emoji_stickers(vector<CustomEmojiId> custom_emoji_ids, bool use_database,
                                  Promise<td_api::object_ptr<td_api::stickers>> &&promise);
+
+  void get_default_dialog_photo_custom_emoji_stickers(Promise<td_api::object_ptr<td_api::stickers>> &&promise);
 
   void get_premium_gift_option_sticker(int32 month_count, bool is_recursive,
                                        Promise<td_api::object_ptr<td_api::sticker>> &&promise);
@@ -596,6 +598,7 @@ class StickersManager final : public Actor {
   };
 
   class CustomEmojiLogEvent;
+  class CustomEmojiIdsLogEvent;
   class StickerListLogEvent;
   class StickerSetListLogEvent;
 
@@ -636,6 +639,15 @@ class StickersManager final : public Actor {
   void load_custom_emoji_sticker_from_database(CustomEmojiId custom_emoji_id, Promise<Unit> &&promise);
 
   void on_load_custom_emoji_from_database(CustomEmojiId custom_emoji_id, string value);
+
+  void on_load_default_dialog_photo_custom_emoji_ids_from_database(string value);
+
+  void reload_default_dialog_photo_custom_emoji_ids();
+
+  void on_get_default_dialog_photo_custom_emoji_ids(
+      Result<telegram_api::object_ptr<telegram_api::EmojiList>> r_emoji_list);
+
+  void on_get_default_dialog_photo_custom_emoji_ids_success(vector<CustomEmojiId> custom_emoji_ids, int64 hash);
 
   FileId on_get_sticker(unique_ptr<Sticker> new_sticker, bool replace);
 
@@ -933,6 +945,8 @@ class StickersManager final : public Actor {
 
   static string get_emoji_language_codes_database_key(const vector<string> &language_codes);
 
+  static string get_default_dialog_photo_custom_emoji_ids_database_key();
+
   int32 get_emoji_language_code_version(const string &language_code);
 
   double get_emoji_language_code_last_difference_time(const string &language_code);
@@ -1137,6 +1151,12 @@ class StickersManager final : public Actor {
 
   string emoji_sounds_str_;
   FlatHashMap<string, FileId> emoji_sounds_;
+
+  vector<CustomEmojiId> default_dialog_photo_custom_emoji_ids_;
+  int64 default_dialog_photo_custom_emoji_ids_hash_ = 0;
+  vector<Promise<td_api::object_ptr<td_api::stickers>>> default_dialog_photo_custom_emoji_ids_load_queries_;
+  bool are_default_dialog_photo_custom_emoji_ids_loaded_ = false;
+  bool are_default_dialog_photo_custom_emoji_ids_being_loaded_ = false;
 
   WaitFreeHashMap<CustomEmojiId, FileId, CustomEmojiIdHash> custom_emoji_to_sticker_id_;
 

@@ -7189,6 +7189,9 @@ getEmojiSuggestionsUrl language_code:string = HttpUrl;
 //@description Returns list of custom emoji stickers by their identifiers. Stickers are returned in arbitrary order. Only found stickers are returned @custom_emoji_ids Identifiers of custom emoji stickers. At most 200 custom emoji stickers can be received simultaneously
 getCustomEmojiStickers custom_emoji_ids:vector<int64> = Stickers;
 
+//@description Returns default list of custom emoji stickers for placing on a chat photo
+getDefaultChatPhotoCustomEmojiStickers = Stickers;
+
 
 //@description Returns saved animations
 getSavedAnimations = Animations;
@@ -7281,7 +7284,7 @@ setCommands scope:BotCommandScope language_code:string commands:vector<botComman
 //@language_code A two-letter ISO 639-1 language code or an empty string
 deleteCommands scope:BotCommandScope language_code:string = Ok;
 
-//@description Returns the list of commands supported by the bot for the given user scope and language; for bots only
+//@description Returns list of commands supported by the bot for the given user scope and language; for bots only
 //@scope The scope to which the commands are relevant; pass null to get commands in the default bot command scope
 //@language_code A two-letter ISO 639-1 language code or an empty string
 getCommands scope:BotCommandScope language_code:string = BotCommands;
