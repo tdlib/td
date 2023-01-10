@@ -184,7 +184,7 @@ See also [telegram-flutter](https://github.com/ivk1800/telegram-flutter) - Teleg
 
 TDLib can be used from the Rust programming language through the [JSON](https://github.com/tdlib/td#using-json) interface.
 
-See [rust-tdlib](https://github.com/aCLr/rust-tdlib), or [tdlib](https://github.com/melix99/tdlib-rs), which provide convenient TDLib clients with automatically generated and fully-documented classes for all TDLib API methods and objects.
+See [rust-tdlib](https://github.com/antonio-antuan/rust-tdlib), or [tdlib](https://github.com/melix99/tdlib-rs), which provide convenient TDLib clients with automatically generated and fully-documented classes for all TDLib API methods and objects.
 
 See [rtdlib](https://github.com/fewensa/rtdlib), [tdlib-rs](https://github.com/d653/tdlib-rs), [tdlib-futures](https://github.com/yuri91/tdlib-futures),
 [tdlib-sys](https://github.com/nuxeh/tdlib-sys), [tdjson-rs](https://github.com/mersinvald/tdjson-rs), [rust-tdlib](https://github.com/vhaoran/rust-tdlib), or [tdlib-json-sys](https://github.com/aykxt/tdlib-json-sys) for examples of TDLib Rust bindings.
