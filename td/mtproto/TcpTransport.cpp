@@ -112,8 +112,8 @@ size_t AbridgedTransport::read_from_stream(ChainBufferReader *stream, BufferSlic
 
 void AbridgedTransport::write_prepare_inplace(BufferWriter *message, bool quick_ack) {
   CHECK(!quick_ack);
-  size_t size = message->size() / 4;
   CHECK(size % 4 == 0);
+  size_t size = message->size() / 4;
   CHECK(size < 1 << 24);
 
   size_t prepend_size = size >= 0x7f ? 4 : 1;
