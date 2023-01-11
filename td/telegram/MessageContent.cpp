@@ -5680,6 +5680,11 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
       return make_tl_object<td_api::messageBotWriteAccessAllowed>();
     case MessageContentType::RequestedDialog: {
       const auto *m = static_cast<const MessageRequestedDialog *>(content);
+      if (m->dialog_id.get_type() == DialogType::User) {
+        return make_tl_object<td_api::messageUserChosen>(
+            td->contacts_manager_->get_user_id_object(m->dialog_id.get_user_id(), "MessageRequestedDialog"),
+            m->button_id);
+      }
       return make_tl_object<td_api::messageChatChosen>(m->dialog_id.get(), m->button_id);
     }
     default:
@@ -6368,7 +6373,11 @@ void add_message_content_dependencies(Dependencies &dependencies, const MessageC
     case MessageContentType::RequestedDialog: {
       const auto *content = static_cast<const MessageRequestedDialog *>(message_content);
       if (!is_bot) {
-        dependencies.add_dialog_and_dependencies(content->dialog_id);
+        if (content->dialog_id.get_type() == DialogType::User) {
+          dependencies.add(content->dialog_id.get_user_id());
+        } else {
+          dependencies.add_dialog_and_dependencies(content->dialog_id);
+        }
       }
       break;
     }

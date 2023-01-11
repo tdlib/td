@@ -2476,7 +2476,10 @@ messageGiftedPremium currency:string amount:int53 month_count:int32 sticker:stic
 //@description A contact has registered with Telegram
 messageContactRegistered = MessageContent;
 
-//@description The user chosen a chat, which was requested by the bot @chat_id Identifier of the chosen chat @button_id Identifier of the keyboard button with the request
+//@description The current user chosen a user, which was requested by the bot @user_id Identifier of the chosen user @button_id Identifier of the keyboard button with the request
+messageUserChosen user_id:int53 button_id:int32 = MessageContent;
+
+//@description The current user chosen a chat, which was requested by the bot @chat_id Identifier of the chosen chat @button_id Identifier of the keyboard button with the request
 messageChatChosen chat_id:int53 button_id:int32 = MessageContent;
 
 //@description The current user has connected a website by logging in using Telegram Login Widget on it @domain_name Domain name of the connected website
