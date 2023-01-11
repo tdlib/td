@@ -60,10 +60,6 @@ inline bool ActorInfo::need_start_up() const {
   return need_start_up_;
 }
 
-inline bool ActorInfo::must_wait() const {
-  return !mailbox_.empty();
-}
-
 inline void ActorInfo::on_actor_moved(Actor *actor_new_ptr) {
   actor_ = actor_new_ptr;
 }

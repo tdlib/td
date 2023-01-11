@@ -206,13 +206,9 @@ void Scheduler::send_impl(const ActorId<> &actor_id, const RunFuncT &run_func, c
   CHECK(has_guard_ || !on_current_sched);
 
   if (likely(send_type == ActorSendType::Immediate && on_current_sched && !actor_info->is_running() &&
-             !actor_info->must_wait())) {  // run immediately
-    if (likely(actor_info->mailbox_.empty())) {
-      EventGuard guard(this, actor_info);
-      run_func(actor_info);
-    } else {
-      flush_mailbox(actor_info, &run_func, &event_func);
-    }
+             actor_info->mailbox_.empty())) {  // run immediately
+    EventGuard guard(this, actor_info);
+    run_func(actor_info);
   } else {
     if (on_current_sched) {
       add_to_mailbox(actor_info, event_func());

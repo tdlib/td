@@ -108,8 +108,6 @@ class ActorInfo final
   bool need_context() const;
   bool need_start_up() const;
 
-  bool must_wait() const;
-
  private:
   Deleter deleter_ = Deleter::None;
   bool need_context_ = true;
