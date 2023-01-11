@@ -1355,35 +1355,6 @@ chatActionBarSharePhoneNumber = ChatActionBar;
 chatActionBarJoinRequest title:string is_channel:Bool request_date:int32 = ChatActionBar;
 
 
-//@class RequestedChatType @description Describes type of a chat, which is requested in keyboardButtonTypeRequestChat
-
-//@description A chat with a user was requested
-//@restrict_is_bot True, if the user must or must not be a bot
-//@is_bot True, if the user must be a bot; otherwise, the user must no be a bot. Ignored if restrict_is_bot is false
-//@restrict_is_premium True, if the user must or must not be a Telegram Premium user
-//@is_premium True, if the user must be a Telegram Premium user; otherwise, the user must no be a Telegram Premium user. Ignored if restrict_is_premium is false
-requestedChatTypePrivate restrict_is_bot:Bool is_bot:Bool restrict_is_premium:Bool is_premium:Bool = RequestedChatType;
-
-//@description A basic group or a supergroup chat was requested
-//@restrict_is_forum True, if the chat must or must not be a forum
-//@is_forum True, if the chat must be a forum; otherwise, the chat must not be a forum. Ignored if restrict_is_forum is false
-//@restrict_has_username True, if the chat must or must not have a username
-//@has_username True, if the chat must have a username; otherwise, the chat must not have a username. Ignored if restrict_has_username is false
-//@is_created True, if the chat must be created by the user
-//@user_administrator_rights Expected user administrator rights in the chat; may be null if they aren't restricted
-//@bot_administrator_rights Expected bot administrator rights in the chat; may be null if they aren't restricted
-//@bot_is_member True, if the bot must be a member of the chat
-requestedChatTypeGroup restrict_is_forum:Bool is_forum:Bool restrict_has_username:Bool has_username:Bool is_created:Bool user_administrator_rights:chatAdministratorRights bot_administrator_rights:chatAdministratorRights bot_is_member:Bool = RequestedChatType;
-
-//@description A channel chat was requested
-//@restrict_has_username True, if the chat must or must not have a username
-//@has_username True, if the chat must have a username; otherwise, the chat must not have a username. Ignored if restrict_has_username is false
-//@is_created True, if the chat must be created by the user
-//@user_administrator_rights Expected user administrator rights in the chat; may be null if they aren't restricted
-//@bot_administrator_rights Expected bot administrator rights in the chat; may be null if they aren't restricted
-requestedChatTypeChannel restrict_has_username:Bool has_username:Bool is_created:Bool user_administrator_rights:chatAdministratorRights bot_administrator_rights:chatAdministratorRights = RequestedChatType;
-
-
 //@class KeyboardButtonType @description Describes a keyboard button type
 
 //@description A simple button, with text that must be sent when the button is pressed
@@ -1398,8 +1369,26 @@ keyboardButtonTypeRequestLocation = KeyboardButtonType;
 //@description A button that allows the user to create and send a poll when pressed; available only in private chats @force_regular If true, only regular polls must be allowed to create @force_quiz If true, only polls in quiz mode must be allowed to create
 keyboardButtonTypeRequestPoll force_regular:Bool force_quiz:Bool = KeyboardButtonType;
 
-//@description A button that requests a chat to be chosen by the user; available only in private chats @chat_type Type of the requested chat @id Unique button identifier
-keyboardButtonTypeRequestChat chat_type:RequestedChatType id:int32 = KeyboardButtonType;
+//@description A button that requests a user to be chosen by the current user; available only in private chats
+//@id Unique button identifier
+//@restrict_user_is_bot True, if the chosen user must or must not be a bot
+//@user_is_bot True, if the chosen user must be a bot; otherwise, the chosen user must no be a bot. Ignored if restrict_user_is_bot is false
+//@restrict_user_is_premium True, if the chosen user must or must not be a Telegram Premium user
+//@user_is_premium True, if the chosen user must be a Telegram Premium user; otherwise, the chosen user must no be a Telegram Premium user. Ignored if restrict_user_is_premium is false
+keyboardButtonTypeRequestUser id:int32 restrict_user_is_bot:Bool user_is_bot:Bool restrict_user_is_premium:Bool user_is_premium:Bool = KeyboardButtonType;
+
+//@description A button that requests a chat to be chosen by the current user; available only in private chats
+//@id Unique button identifier
+//@chat_is_channel True, if the chat must be a channel; otherwise, a basic group or a supergroup chat is chosen
+//@restrict_chat_is_forum True, if the chat must or must not be a forum supergroup
+//@chat_is_forum True, if the chat must be a forum supergroup; otherwise, the chat must not be a forum supergroup. Ignored if restrict_chat_is_forum is false
+//@restrict_chat_has_username True, if the chat must or must not have a username
+//@chat_has_username True, if the chat must have a username; otherwise, the chat must not have a username. Ignored if restrict_chat_has_username is false
+//@chat_is_created True, if the chat must be created by the current user
+//@user_administrator_rights Expected user administrator rights in the chat; may be null if they aren't restricted
+//@bot_administrator_rights Expected bot administrator rights in the chat; may be null if they aren't restricted
+//@bot_is_member True, if the bot must be a member of the chat
+keyboardButtonTypeRequestChat id:int32 chat_is_channel:Bool restrict_chat_is_forum:Bool chat_is_forum:Bool restrict_chat_has_username:Bool chat_has_username:Bool chat_is_created:Bool user_administrator_rights:chatAdministratorRights bot_administrator_rights:chatAdministratorRights bot_is_member:Bool = KeyboardButtonType;
 
 //@description A button that opens a Web App by calling getWebAppUrl @url An HTTP URL to pass to getWebAppUrl
 keyboardButtonTypeWebApp url:string = KeyboardButtonType;

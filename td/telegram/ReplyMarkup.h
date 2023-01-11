@@ -36,7 +36,6 @@ struct KeyboardButton {
   string text;
   string url;                                             // WebView only
   unique_ptr<RequestedDialogType> requested_dialog_type;  // RequestDialog only
-  int32 button_id = 0;                                    // RequestDialog only
 };
 
 struct InlineKeyboardButton {

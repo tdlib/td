@@ -17,13 +17,17 @@ class RequestedDialogType {
  public:
   RequestedDialogType() = default;
 
-  explicit RequestedDialogType(td_api::object_ptr<td_api::RequestedChatType> &&chat_type);
+  explicit RequestedDialogType(td_api::object_ptr<td_api::keyboardButtonTypeRequestUser> &&request_user);
 
-  explicit RequestedDialogType(telegram_api::object_ptr<telegram_api::RequestPeerType> &&peer_type);
+  explicit RequestedDialogType(td_api::object_ptr<td_api::keyboardButtonTypeRequestChat> &&request_dialog);
 
-  td_api::object_ptr<td_api::RequestedChatType> get_requested_chat_type_object() const;
+  explicit RequestedDialogType(telegram_api::object_ptr<telegram_api::RequestPeerType> &&peer_type, int32 button_id);
+
+  td_api::object_ptr<td_api::KeyboardButtonType> get_keyboard_button_type_object() const;
 
   telegram_api::object_ptr<telegram_api::RequestPeerType> get_input_request_peer_type_object() const;
+
+  int32 get_button_id() const;
 
   template <class StorerT>
   void store(StorerT &storer) const;

@@ -31,7 +31,7 @@ static constexpr int32 REPLY_MARKUP_FLAG_HAS_PLACEHOLDER = 1 << 3;
 static constexpr int32 REPLY_MARKUP_FLAG_IS_PERSISTENT = 1 << 4;
 
 static bool operator==(const KeyboardButton &lhs, const KeyboardButton &rhs) {
-  return lhs.type == rhs.type && lhs.text == rhs.text && lhs.url == rhs.url && lhs.button_id == rhs.button_id;
+  return lhs.type == rhs.type && lhs.text == rhs.text && lhs.url == rhs.url;
 }
 
 static StringBuilder &operator<<(StringBuilder &string_builder, const KeyboardButton &keyboard_button) {
@@ -244,8 +244,8 @@ static KeyboardButton get_keyboard_button(tl_object_ptr<telegram_api::KeyboardBu
       auto keyboard_button = move_tl_object_as<telegram_api::keyboardButtonRequestPeer>(keyboard_button_ptr);
       button.type = KeyboardButton::Type::RequestDialog;
       button.text = std::move(keyboard_button->text_);
-      button.requested_dialog_type = td::make_unique<RequestedDialogType>(std::move(keyboard_button->peer_type_));
-      button.button_id = std::move(keyboard_button->button_id_);
+      button.requested_dialog_type =
+          td::make_unique<RequestedDialogType>(std::move(keyboard_button->peer_type_), keyboard_button->button_id_);
       break;
     }
     default:
@@ -499,17 +499,22 @@ static Result<KeyboardButton> get_keyboard_button(tl_object_ptr<td_api::keyboard
       current_button.url = std::move(button_type->url_);
       break;
     }
+    case td_api::keyboardButtonTypeRequestUser::ID: {
+      if (!request_buttons_allowed) {
+        return Status::Error(400, "Users can be requested in private chats only");
+      }
+      auto button_type = move_tl_object_as<td_api::keyboardButtonTypeRequestUser>(button->type_);
+      current_button.type = KeyboardButton::Type::RequestDialog;
+      current_button.requested_dialog_type = td::make_unique<RequestedDialogType>(std::move(button_type));
+      break;
+    }
     case td_api::keyboardButtonTypeRequestChat::ID: {
       if (!request_buttons_allowed) {
-        return Status::Error(400, "Chat can be requested in private chats only");
+        return Status::Error(400, "Chats can be requested in private chats only");
       }
       auto button_type = move_tl_object_as<td_api::keyboardButtonTypeRequestChat>(button->type_);
-      if (button_type->chat_type_ == nullptr) {
-        return Status::Error(400, "Requested chat type must be non-null");
-      }
       current_button.type = KeyboardButton::Type::RequestDialog;
-      current_button.requested_dialog_type = td::make_unique<RequestedDialogType>(std::move(button_type->chat_type_));
-      current_button.button_id = button_type->id_;
+      current_button.requested_dialog_type = td::make_unique<RequestedDialogType>(std::move(button_type));
       break;
     }
     default:
@@ -774,7 +779,6 @@ unique_ptr<ReplyMarkup> dup_reply_markup(const unique_ptr<ReplyMarkup> &reply_ma
       result.text = button.text;
       result.url = button.url;
       result.requested_dialog_type = td::make_unique<RequestedDialogType>(*button.requested_dialog_type);
-      result.button_id = button.button_id;
       return result;
     });
   });
@@ -801,7 +805,7 @@ static tl_object_ptr<telegram_api::KeyboardButton> get_input_keyboard_button(con
       return make_tl_object<telegram_api::keyboardButtonSimpleWebView>(keyboard_button.text, keyboard_button.url);
     case KeyboardButton::Type::RequestDialog:
       return make_tl_object<telegram_api::keyboardButtonRequestPeer>(
-          keyboard_button.text, keyboard_button.button_id,
+          keyboard_button.text, keyboard_button.requested_dialog_type->get_button_id(),
           keyboard_button.requested_dialog_type->get_input_request_peer_type_object());
     default:
       UNREACHABLE();
@@ -946,8 +950,7 @@ static tl_object_ptr<td_api::keyboardButton> get_keyboard_button_object(const Ke
       type = make_tl_object<td_api::keyboardButtonTypeWebApp>(keyboard_button.url);
       break;
     case KeyboardButton::Type::RequestDialog:
-      type = make_tl_object<td_api::keyboardButtonTypeRequestChat>(
-          keyboard_button.requested_dialog_type->get_requested_chat_type_object(), keyboard_button.button_id);
+      type = keyboard_button.requested_dialog_type->get_keyboard_button_type_object();
       break;
     default:
       UNREACHABLE();
