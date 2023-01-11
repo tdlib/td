@@ -6,6 +6,7 @@
 //
 #pragma once
 
+#include "td/telegram/DialogParticipant.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 
@@ -14,6 +15,25 @@
 namespace td {
 
 class RequestedDialogType {
+  enum class Type : int32 { User, Group, Channel };
+  Type type_ = Type::User;
+  int32 button_id_ = 0;
+  bool restrict_is_bot_ = false;      // User only
+  bool is_bot_ = false;               // User only
+  bool restrict_is_premium_ = false;  // User only
+  bool is_premium_ = false;           // User only
+
+  bool restrict_is_forum_ = false;                   // Group only
+  bool is_forum_ = false;                            // Group only
+  bool bot_is_participant_ = false;                  // Group only
+  bool restrict_has_username_ = false;               // Group and Channel only
+  bool has_username_ = false;                        // Group and Channel only
+  bool is_created_ = false;                          // Group and Channel only
+  bool restrict_user_administrator_rights_ = false;  // Group and Channel only
+  bool restrict_bot_administrator_rights_ = false;   // Group and Channel only
+  AdministratorRights user_administrator_rights_;    // Group and Channel only
+  AdministratorRights bot_administrator_rights_;     // Group and Channel only
+
  public:
   RequestedDialogType() = default;
 

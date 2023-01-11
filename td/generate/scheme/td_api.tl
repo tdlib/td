@@ -1387,7 +1387,7 @@ keyboardButtonTypeRequestUser id:int32 restrict_user_is_bot:Bool user_is_bot:Boo
 //@chat_is_created True, if the chat must be created by the current user
 //@user_administrator_rights Expected user administrator rights in the chat; may be null if they aren't restricted
 //@bot_administrator_rights Expected bot administrator rights in the chat; may be null if they aren't restricted
-//@bot_is_member True, if the bot must be a member of the chat
+//@bot_is_member True, if the bot must be a member of the chat; for basic group and supergroup chats only
 keyboardButtonTypeRequestChat id:int32 chat_is_channel:Bool restrict_chat_is_forum:Bool chat_is_forum:Bool restrict_chat_has_username:Bool chat_has_username:Bool chat_is_created:Bool user_administrator_rights:chatAdministratorRights bot_administrator_rights:chatAdministratorRights bot_is_member:Bool = KeyboardButtonType;
 
 //@description A button that opens a Web App by calling getWebAppUrl @url An HTTP URL to pass to getWebAppUrl
