@@ -14,6 +14,7 @@
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 
+#include "td/utils/algorithm.h"
 #include "td/utils/buffer.h"
 #include "td/utils/format.h"
 #include "td/utils/logging.h"
@@ -30,7 +31,7 @@ static constexpr int32 REPLY_MARKUP_FLAG_HAS_PLACEHOLDER = 1 << 3;
 static constexpr int32 REPLY_MARKUP_FLAG_IS_PERSISTENT = 1 << 4;
 
 static bool operator==(const KeyboardButton &lhs, const KeyboardButton &rhs) {
-  return lhs.type == rhs.type && lhs.text == rhs.text;
+  return lhs.type == rhs.type && lhs.text == rhs.text && lhs.url == rhs.url && lhs.button_id == rhs.button_id;
 }
 
 static StringBuilder &operator<<(StringBuilder &string_builder, const KeyboardButton &keyboard_button) {
@@ -55,7 +56,10 @@ static StringBuilder &operator<<(StringBuilder &string_builder, const KeyboardBu
       string_builder << "RequestPollRegular";
       break;
     case KeyboardButton::Type::WebView:
-      string_builder << "WebView";
+      string_builder << "WebApp";
+      break;
+    case KeyboardButton::Type::RequestDialog:
+      string_builder << "RequestChat";
       break;
     default:
       UNREACHABLE();
@@ -236,8 +240,14 @@ static KeyboardButton get_keyboard_button(tl_object_ptr<telegram_api::KeyboardBu
       button.url = r_url.move_as_ok();
       break;
     }
-    case telegram_api::keyboardButtonRequestPeer::ID:
+    case telegram_api::keyboardButtonRequestPeer::ID: {
+      auto keyboard_button = move_tl_object_as<telegram_api::keyboardButtonRequestPeer>(keyboard_button_ptr);
+      button.type = KeyboardButton::Type::RequestDialog;
+      button.text = std::move(keyboard_button->text_);
+      button.requested_dialog_type = td::make_unique<RequestedDialogType>(std::move(keyboard_button->peer_type_));
+      button.button_id = std::move(keyboard_button->button_id_);
       break;
+    }
     default:
       LOG(ERROR) << "Unsupported keyboard button: " << to_string(keyboard_button_ptr);
   }
@@ -489,10 +499,23 @@ static Result<KeyboardButton> get_keyboard_button(tl_object_ptr<td_api::keyboard
       current_button.url = std::move(button_type->url_);
       break;
     }
+    case td_api::keyboardButtonTypeRequestChat::ID: {
+      if (!request_buttons_allowed) {
+        return Status::Error(400, "Chat can be requested in private chats only");
+      }
+      auto button_type = move_tl_object_as<td_api::keyboardButtonTypeRequestChat>(button->type_);
+      if (button_type->chat_type_ == nullptr) {
+        return Status::Error(400, "Requested chat type must be non-null");
+      }
+      current_button.type = KeyboardButton::Type::RequestDialog;
+      current_button.requested_dialog_type = td::make_unique<RequestedDialogType>(std::move(button_type->chat_type_));
+      current_button.button_id = button_type->id_;
+      break;
+    }
     default:
       UNREACHABLE();
   }
-  return current_button;
+  return std::move(current_button);
 }
 
 static Result<InlineKeyboardButton> get_inline_keyboard_button(tl_object_ptr<td_api::inlineKeyboardButton> &&button,
@@ -618,7 +641,7 @@ static Result<InlineKeyboardButton> get_inline_keyboard_button(tl_object_ptr<td_
       UNREACHABLE();
   }
 
-  return current_button;
+  return std::move(current_button);
 }
 
 Result<unique_ptr<ReplyMarkup>> get_reply_markup(tl_object_ptr<td_api::ReplyMarkup> &&reply_markup_ptr, bool is_bot,
@@ -667,7 +690,7 @@ Result<unique_ptr<ReplyMarkup>> get_reply_markup(tl_object_ptr<td_api::ReplyMark
           }
         }
         if (!row_buttons.empty()) {
-          reply_markup->keyboard.push_back(row_buttons);
+          reply_markup->keyboard.push_back(std::move(row_buttons));
         }
         if (total_button_count >= 300) {
           break;
@@ -704,7 +727,7 @@ Result<unique_ptr<ReplyMarkup>> get_reply_markup(tl_object_ptr<td_api::ReplyMark
           }
         }
         if (!row_buttons.empty()) {
-          reply_markup->inline_keyboard.push_back(row_buttons);
+          reply_markup->inline_keyboard.push_back(std::move(row_buttons));
         }
         if (total_button_count >= 300) {
           break;
@@ -735,6 +758,31 @@ Result<unique_ptr<ReplyMarkup>> get_reply_markup(tl_object_ptr<td_api::ReplyMark
   return std::move(reply_markup);
 }
 
+unique_ptr<ReplyMarkup> dup_reply_markup(const unique_ptr<ReplyMarkup> &reply_markup) {
+  if (reply_markup == nullptr) {
+    return nullptr;
+  }
+  auto result = make_unique<ReplyMarkup>();
+  result->type = reply_markup->type;
+  result->is_personal = reply_markup->is_personal;
+  result->is_persistent = reply_markup->is_persistent;
+  result->need_resize_keyboard = reply_markup->need_resize_keyboard;
+  result->keyboard = td::transform(reply_markup->keyboard, [](const vector<KeyboardButton> &row) {
+    return td::transform(row, [](const KeyboardButton &button) {
+      KeyboardButton result;
+      result.type = button.type;
+      result.text = button.text;
+      result.url = button.url;
+      result.requested_dialog_type = td::make_unique<RequestedDialogType>(*button.requested_dialog_type);
+      result.button_id = button.button_id;
+      return result;
+    });
+  });
+  result->placeholder = reply_markup->placeholder;
+  result->inline_keyboard = reply_markup->inline_keyboard;
+  return result;
+}
+
 static tl_object_ptr<telegram_api::KeyboardButton> get_input_keyboard_button(const KeyboardButton &keyboard_button) {
   switch (keyboard_button.type) {
     case KeyboardButton::Type::Text:
@@ -751,6 +799,10 @@ static tl_object_ptr<telegram_api::KeyboardButton> get_input_keyboard_button(con
       return make_tl_object<telegram_api::keyboardButtonRequestPoll>(1, false, keyboard_button.text);
     case KeyboardButton::Type::WebView:
       return make_tl_object<telegram_api::keyboardButtonSimpleWebView>(keyboard_button.text, keyboard_button.url);
+    case KeyboardButton::Type::RequestDialog:
+      return make_tl_object<telegram_api::keyboardButtonRequestPeer>(
+          keyboard_button.text, keyboard_button.button_id,
+          keyboard_button.requested_dialog_type->get_input_request_peer_type_object());
     default:
       UNREACHABLE();
       return nullptr;
@@ -892,6 +944,10 @@ static tl_object_ptr<td_api::keyboardButton> get_keyboard_button_object(const Ke
       break;
     case KeyboardButton::Type::WebView:
       type = make_tl_object<td_api::keyboardButtonTypeWebApp>(keyboard_button.url);
+      break;
+    case KeyboardButton::Type::RequestDialog:
+      type = make_tl_object<td_api::keyboardButtonTypeRequestChat>(
+          keyboard_button.requested_dialog_type->get_requested_chat_type_object(), keyboard_button.button_id);
       break;
     default:
       UNREACHABLE();

@@ -27427,8 +27427,8 @@ Result<MessageId> MessagesManager::send_inline_query_result_message(DialogId dia
   if (!hide_via_bot) {
     m->via_bot_user_id = td_->inline_queries_manager_->get_inline_bot_user_id(query_id);
   }
-  if (content->message_reply_markup != nullptr && !to_secret) {
-    m->reply_markup = make_unique<ReplyMarkup>(*content->message_reply_markup);
+  if (!to_secret) {
+    m->reply_markup = dup_reply_markup(content->message_reply_markup);
   }
   m->disable_web_page_preview = content->disable_web_page_preview;
   m->clear_draft = !hide_via_bot;
@@ -29136,7 +29136,7 @@ void MessagesManager::fix_forwarded_message(Message *m, DialogId to_dialog_id, c
       }
     }
     if (need_reply_markup) {
-      m->reply_markup = make_unique<ReplyMarkup>(*forwarded_message->reply_markup);
+      m->reply_markup = dup_reply_markup(forwarded_message->reply_markup);
       for (auto &row : m->reply_markup->inline_keyboard) {
         for (auto &button : row) {
           if (button.type == InlineKeyboardButton::Type::SwitchInlineCurrentDialog) {

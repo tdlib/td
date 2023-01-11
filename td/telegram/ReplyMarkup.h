@@ -6,6 +6,7 @@
 //
 #pragma once
 
+#include "td/telegram/RequestedDialogType.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/UserId.h"
@@ -28,11 +29,14 @@ struct KeyboardButton {
     RequestPoll,
     RequestPollQuiz,
     RequestPollRegular,
-    WebView
+    WebView,
+    RequestDialog
   };
   Type type;
   string text;
-  string url;  // WebView only
+  string url;                                             // WebView only
+  unique_ptr<RequestedDialogType> requested_dialog_type;  // RequestDialog only
+  int32 button_id = 0;                                    // RequestDialog only
 };
 
 struct InlineKeyboardButton {
@@ -90,6 +94,8 @@ unique_ptr<ReplyMarkup> get_reply_markup(tl_object_ptr<telegram_api::ReplyMarkup
 Result<unique_ptr<ReplyMarkup>> get_reply_markup(tl_object_ptr<td_api::ReplyMarkup> &&reply_markup_ptr, bool is_bot,
                                                  bool only_inline_keyboard, bool request_buttons_allowed,
                                                  bool switch_inline_buttons_allowed) TD_WARN_UNUSED_RESULT;
+
+unique_ptr<ReplyMarkup> dup_reply_markup(const unique_ptr<ReplyMarkup> &reply_markup);
 
 tl_object_ptr<telegram_api::ReplyMarkup> get_input_reply_markup(ContactsManager *contacts_manager,
                                                                 const unique_ptr<ReplyMarkup> &reply_markup);

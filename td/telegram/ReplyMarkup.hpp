@@ -7,6 +7,7 @@
 #pragma once
 
 #include "td/telegram/ReplyMarkup.h"
+#include "td/telegram/RequestedDialogType.hpp"
 #include "td/telegram/Version.h"
 
 #include "td/utils/tl_helpers.h"
@@ -14,37 +15,59 @@
 namespace td {
 
 template <class StorerT>
-void store(KeyboardButton button, StorerT &storer) {
+void store(const KeyboardButton &button, StorerT &storer) {
   bool has_url = !button.url.empty();
+  bool has_requested_dialog_type = button.requested_dialog_type != nullptr;
+  bool has_button_id = button.button_id != 0;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_url);
+  STORE_FLAG(has_requested_dialog_type);
+  STORE_FLAG(has_button_id);
   END_STORE_FLAGS();
   store(button.type, storer);
   store(button.text, storer);
   if (has_url) {
     store(button.url, storer);
   }
+  if (has_requested_dialog_type) {
+    store(button.requested_dialog_type, storer);
+  }
+  if (has_button_id) {
+    store(button.button_id, storer);
+  }
 }
 
 template <class ParserT>
 void parse(KeyboardButton &button, ParserT &parser) {
   bool has_url;
+  bool has_requested_dialog_type;
+  bool has_button_id;
   if (parser.version() >= static_cast<int32>(Version::AddKeyboardButtonFlags)) {
     BEGIN_PARSE_FLAGS();
     PARSE_FLAG(has_url);
+    PARSE_FLAG(has_requested_dialog_type);
+    PARSE_FLAG(has_button_id);
     END_PARSE_FLAGS();
   } else {
     has_url = false;
+    has_requested_dialog_type = false;
+    has_button_id = false;
   }
   parse(button.type, parser);
   parse(button.text, parser);
   if (has_url) {
     parse(button.url, parser);
   }
+  if (has_requested_dialog_type) {
+    parse(button.requested_dialog_type, parser);
+  }
+  if (has_button_id) {
+    parse(button.button_id, parser);
+  }
 }
 
 template <class StorerT>
-void store(InlineKeyboardButton button, StorerT &storer) {
+void store(const InlineKeyboardButton &button, StorerT &storer) {
   bool has_id = button.id != 0;
   bool has_user_id = button.user_id.is_valid();
   bool has_forward_text = !button.forward_text.empty();
