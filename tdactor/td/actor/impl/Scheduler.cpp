@@ -497,7 +497,6 @@ void Scheduler::run_mailbox() {
     ListNode *node = actors_list.get();
     CHECK(node);
     auto actor_info = ActorInfo::from_list_node(node);
-    inc_wait_generation();
     flush_mailbox(actor_info, static_cast<void (*)(ActorInfo *)>(nullptr), static_cast<Event (*)()>(nullptr));
   }
   VLOG(actor) << "Run mailbox : finish " << actor_count_;
@@ -526,7 +525,6 @@ Timestamp Scheduler::run_timeout() {
   while (!timeout_queue_.empty() && timeout_queue_.top_key() < now) {
     HeapNode *node = timeout_queue_.pop();
     ActorInfo *actor_info = ActorInfo::from_heap_node(node);
-    inc_wait_generation();
     send<ActorSendType::Immediate>(actor_info->actor_id(), Event::timeout());
   }
   return get_timeout();

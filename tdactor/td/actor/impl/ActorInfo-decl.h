@@ -108,15 +108,13 @@ class ActorInfo final
   bool need_context() const;
   bool need_start_up() const;
 
-  void set_wait_generation(uint32 wait_generation);
-  bool must_wait(uint32 wait_generation) const;
+  bool must_wait() const;
 
  private:
   Deleter deleter_ = Deleter::None;
   bool need_context_ = true;
   bool need_start_up_ = true;
   bool is_running_ = false;
-  uint32 wait_generation_{0};
 
   std::atomic<int32> sched_id_{0};
   Actor *actor_ = nullptr;

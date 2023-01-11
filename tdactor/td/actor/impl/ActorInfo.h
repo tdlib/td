@@ -50,7 +50,6 @@ inline void ActorInfo::init(int32 sched_id, Slice name, ObjectPool<ActorInfo>::O
   need_context_ = need_context;
   need_start_up_ = need_start_up;
   is_running_ = false;
-  wait_generation_ = 0;
 }
 
 inline bool ActorInfo::need_context() const {
@@ -61,12 +60,8 @@ inline bool ActorInfo::need_start_up() const {
   return need_start_up_;
 }
 
-inline void ActorInfo::set_wait_generation(uint32 wait_generation) {
-  wait_generation_ = wait_generation;
-}
-
-inline bool ActorInfo::must_wait(uint32 wait_generation) const {
-  return wait_generation_ == wait_generation || !mailbox_.empty();
+inline bool ActorInfo::must_wait() const {
+  return !mailbox_.empty();
 }
 
 inline void ActorInfo::on_actor_moved(Actor *actor_new_ptr) {
