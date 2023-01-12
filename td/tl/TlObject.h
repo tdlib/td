@@ -187,7 +187,7 @@ using tl_object_ptr = tl::unique_ptr<Type>;
  * A function to create a dynamically allocated TL-object. Can be treated as an analogue of std::make_unique.
  * Usage example:
  * \code
- * auto get_authorization_state_request = td::make_tl_object<td::td_api::getAuthorizationState>();
+ * auto get_me_request = td::make_tl_object<td::td_api::getMe>();
  * auto message_text = td::make_tl_object<td::td_api::formattedText>("Hello, world!!!",
  *                     td::td_api::array<td::tl_object_ptr<td::td_api::textEntity>>());
  * auto send_message_request = td::make_tl_object<td::td_api::sendMessage>(chat_id, 0, 0, nullptr, nullptr,

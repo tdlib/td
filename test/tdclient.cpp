@@ -204,11 +204,10 @@ class DoAuthentication final : public TestClinetTask {
       : name_(std::move(name)), phone_(std::move(phone)), code_(std::move(code)), promise_(std::move(promise)) {
   }
   void start_up() final {
-    send_query(td::make_tl_object<td::td_api::getAuthorizationState>(),
-               [this](auto res) { this->process_authorization_state(std::move(res)); });
+    send_query(td::make_tl_object<td::td_api::getOption>("version"),
+               [](auto res) { LOG(INFO) << td::td_api::to_string(res); });
   }
   void process_authorization_state(td::tl_object_ptr<td::td_api::Object> authorization_state) {
-    start_flag_ = true;
     td::tl_object_ptr<td::td_api::Function> function;
     switch (authorization_state->get_id()) {
       case td::td_api::authorizationStateWaitPhoneNumber::ID:
@@ -261,12 +260,8 @@ class DoAuthentication final : public TestClinetTask {
   td::string phone_;
   td::string code_;
   td::Promise<> promise_;
-  bool start_flag_{false};
 
   void process_update(std::shared_ptr<TestClient::Update> update) final {
-    if (!start_flag_) {
-      return;
-    }
     if (!update->object) {
       return;
     }

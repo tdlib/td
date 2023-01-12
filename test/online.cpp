@@ -221,14 +221,12 @@ class InitTask : public Task {
  private:
   Options options_;
   td::Promise<> promise_;
-  bool start_flag_{false};
 
   void start_up() override {
-    send_query(td::make_tl_object<td::td_api::getAuthorizationState>(),
-               [this](auto res) { this->process_authorization_state(res.move_as_ok()); });
+    send_query(td::make_tl_object<td::td_api::getOption>("version"),
+               [](auto res) { LOG(INFO) << td::td_api::to_string(res.ok()); });
   }
   void process_authorization_state(td::tl_object_ptr<td::td_api::Object> authorization_state) {
-    start_flag_ = true;
     td::tl_object_ptr<td::td_api::Function> function;
     switch (authorization_state->get_id()) {
       case td::td_api::authorizationStateReady::ID:
@@ -267,9 +265,6 @@ class InitTask : public Task {
     });
   }
   void process_update(std::shared_ptr<TestClient::Update> update) override {
-    if (!start_flag_) {
-      return;
-    }
     if (!update->object) {
       return;
     }

@@ -85,11 +85,6 @@ namespace TdApp
                 AcceptCommand("LogOut");
                 _client.Send(new TdApi.LogOut(), _handler);
             }
-            else if (command.StartsWith("gas"))
-            {
-                AcceptCommand(command);
-                _client.Send(new TdApi.GetAuthorizationState(), _handler);
-            }
             else if (command.StartsWith("sap"))
             {
                 var args = command.Split(" ".ToCharArray(), 2);
