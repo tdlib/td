@@ -6048,7 +6048,8 @@ int64 ContactsManager::get_contacts_hash() {
 }
 
 void ContactsManager::reload_contacts(bool force) {
-  if (!td_->auth_manager_->is_bot() && next_contacts_sync_date_ != std::numeric_limits<int32>::max() &&
+  if (!G()->close_flag() && !td_->auth_manager_->is_bot() &&
+      next_contacts_sync_date_ != std::numeric_limits<int32>::max() &&
       (next_contacts_sync_date_ < G()->unix_time() || force)) {
     next_contacts_sync_date_ = std::numeric_limits<int32>::max();
     td_->create_handler<GetContactsQuery>()->send(get_contacts_hash());
@@ -9542,6 +9543,9 @@ void ContactsManager::on_load_contacts_from_database(string value) {
       [actor_id = actor_id(this), expected_contact_count = user_ids.size()](Result<Unit> result) {
         if (result.is_ok()) {
           send_closure(actor_id, &ContactsManager::on_get_contacts_finished, expected_contact_count);
+        } else {
+          LOG(INFO) << "Failed to load contact users from database: " << result.error();
+          send_closure(actor_id, &ContactsManager::reload_contacts, true);
         }
       }));
 
