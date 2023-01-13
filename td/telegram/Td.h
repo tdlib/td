@@ -1292,6 +1292,8 @@ class Td final : public Actor {
 
   void on_request(uint64 id, const td_api::sendChosenUser &request);
 
+  void on_request(uint64 id, const td_api::sendChosenChat &request);
+
   void on_request(uint64 id, td_api::getInlineQueryResults &request);
 
   void on_request(uint64 id, td_api::answerInlineQuery &request);

@@ -6,6 +6,7 @@
 //
 #pragma once
 
+#include "td/telegram/DialogId.h"
 #include "td/telegram/RequestedDialogType.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
@@ -81,7 +82,7 @@ struct ReplyMarkup {
 
   tl_object_ptr<td_api::ReplyMarkup> get_reply_markup_object(ContactsManager *contacts_manager) const;
 
-  Status check_chosen_user(Td *td, int32 button_id, UserId user_id) const;
+  Status check_chosen_dialog(Td *td, int32 button_id, DialogId dialog_id) const;
 };
 
 bool operator==(const ReplyMarkup &lhs, const ReplyMarkup &rhs);

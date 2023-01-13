@@ -5106,9 +5106,16 @@ class CliClient final : public Actor {
       ChatId chat_id;
       MessageId message_id;
       int32 button_id;
-      UserId user_id;
-      get_args(args, chat_id, message_id, button_id, user_id);
-      send_request(td_api::make_object<td_api::sendChosenUser>(chat_id, message_id, button_id, user_id));
+      UserId chosen_user_id;
+      get_args(args, chat_id, message_id, button_id, chosen_user_id);
+      send_request(td_api::make_object<td_api::sendChosenUser>(chat_id, message_id, button_id, chosen_user_id));
+    } else if (op == "scc") {
+      ChatId chat_id;
+      MessageId message_id;
+      int32 button_id;
+      ChatId chosen_chat_id;
+      get_args(args, chat_id, message_id, button_id, chosen_chat_id);
+      send_request(td_api::make_object<td_api::sendChosenUser>(chat_id, message_id, button_id, chosen_chat_id));
     } else if (op == "rsgs") {
       string supergroup_id;
       string message_ids;

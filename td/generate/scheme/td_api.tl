@@ -6292,8 +6292,15 @@ getLoginUrl chat_id:int53 message_id:int53 button_id:int53 allow_write_access:Bo
 //@chat_id Identifier of the chat with the bot
 //@message_id Identifier of the message with the button
 //@button_id Identifier of the button
-//@user_id Identifier of the chosen user
-sendChosenUser chat_id:int53 message_id:int53 button_id:int32 user_id:int53 = Ok;
+//@chosen_user_id Identifier of the chosen user
+sendChosenUser chat_id:int53 message_id:int53 button_id:int32 chosen_user_id:int53 = Ok;
+
+//@description Sends a chat chosen after pressing a keyboardButtonTypeRequestChat button to the bot
+//@chat_id Identifier of the chat with the bot
+//@message_id Identifier of the message with the button
+//@button_id Identifier of the button
+//@chosen_chat_id Identifier of the chosen chat
+sendChosenChat chat_id:int53 message_id:int53 button_id:int32 chosen_chat_id:int53 = Ok;
 
 
 //@description Sends an inline query to a bot and returns its results. Returns an error with code 502 if the bot fails to answer the query before the query timeout expires
