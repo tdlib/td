@@ -1879,6 +1879,7 @@ class ContactsManager final : public Actor {
 
   QueryMerger get_user_queries_{"GetUserMerger", 3, 50};
   QueryMerger get_chat_queries_{"GetChatMerger", 3, 50};
+  QueryMerger get_channel_queries_{"GetChannelMerger", 100, 1};  // can't merge getChannel queries without access hash
 
   QueryCombiner get_user_full_queries_{"GetUserFullCombiner", 2.0};
   QueryCombiner get_chat_full_queries_{"GetChatFullCombiner", 2.0};

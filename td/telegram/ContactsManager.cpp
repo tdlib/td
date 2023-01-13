@@ -3917,15 +3917,21 @@ ContactsManager::ContactsManager(Td *td, ActorShared<> parent) : td_(td), parent
   channel_participant_cache_timeout_.set_callback_data(static_cast<void *>(this));
 
   get_user_queries_.set_merge_function([this](vector<int64> query_ids, Promise<Unit> &&promise) {
-    auto users = transform(query_ids, [this](int64 query_id) {
+    auto input_users = transform(query_ids, [this](int64 query_id) {
       auto r_input_user = get_input_user(UserId(query_id));
       CHECK(r_input_user.is_ok());
       return r_input_user.move_as_ok();
     });
-    td_->create_handler<GetUsersQuery>(std::move(promise))->send(std::move(users));
+    td_->create_handler<GetUsersQuery>(std::move(promise))->send(std::move(input_users));
   });
   get_chat_queries_.set_merge_function([this](vector<int64> query_ids, Promise<Unit> &&promise) {
     td_->create_handler<GetChatsQuery>(std::move(promise))->send(std::move(query_ids));
+  });
+  get_channel_queries_.set_merge_function([this](vector<int64> query_ids, Promise<Unit> &&promise) {
+    CHECK(query_ids.size() == 1);
+    auto input_channel = get_input_channel(ChannelId(query_ids[0]));
+    CHECK(input_channel != nullptr);
+    td_->create_handler<GetChannelsQuery>(std::move(promise))->send(std::move(input_channel));
   });
 }
 
@@ -16529,7 +16535,7 @@ bool ContactsManager::get_channel(ChannelId channel_id, int left_tries, Promise<
     }
 
     if (left_tries > 1 && td_->auth_manager_->is_bot()) {
-      td_->create_handler<GetChannelsQuery>(std::move(promise))->send(get_input_channel(channel_id));
+      get_channel_queries_.add_query(channel_id.get(), std::move(promise));
       return false;
     }
 
@@ -16552,9 +16558,8 @@ void ContactsManager::reload_channel(ChannelId channel_id, Promise<Unit> &&promi
     input_channel = make_tl_object<telegram_api::inputChannel>(channel_id.get(), 0);
   }
 
-  // there is no much reason to combine different requests into one request
   // requests with 0 access_hash must not be merged
-  td_->create_handler<GetChannelsQuery>(std::move(promise))->send(std::move(input_channel));
+  get_channel_queries_.add_query(channel_id.get(), std::move(promise));
 }
 
 const ContactsManager::ChannelFull *ContactsManager::get_channel_full_const(ChannelId channel_id) const {
@@ -17434,7 +17439,7 @@ void ContactsManager::on_chat_update(telegram_api::chat &chat, const char *sourc
             update_channel(c, migrated_to_channel_id);
 
             // get info about the channel
-            td_->create_handler<GetChannelsQuery>(Promise<>())->send(std::move(input_channel));
+            get_channel_queries_.add_query(migrated_to_channel_id.get(), Promise<Unit>());
           }
         }
         break;
