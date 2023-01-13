@@ -429,6 +429,7 @@ set(TDLIB_SOURCE
   td/telegram/Premium.cpp
   td/telegram/PremiumGiftOption.cpp
   td/telegram/QueryCombiner.cpp
+  td/telegram/QueryMerger.cpp
   td/telegram/RecentDialogList.cpp
   td/telegram/ReplyMarkup.cpp
   td/telegram/ReportReason.cpp
@@ -690,6 +691,7 @@ set(TDLIB_SOURCE
   td/telegram/PtsManager.h
   td/telegram/PublicDialogType.h
   td/telegram/QueryCombiner.h
+  td/telegram/QueryMerger.h
   td/telegram/RecentDialogList.h
   td/telegram/ReplyMarkup.h
   td/telegram/ReportReason.h
