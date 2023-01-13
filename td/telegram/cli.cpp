@@ -5102,6 +5102,13 @@ class CliClient final : public Actor {
         send_request(
             td_api::make_object<td_api::getLoginUrl>(chat_id, message_id, as_button_id(button_id), op == "glua"));
       }
+    } else if (op == "scu") {
+      ChatId chat_id;
+      MessageId message_id;
+      int32 button_id;
+      UserId user_id;
+      get_args(args, chat_id, message_id, button_id, user_id);
+      send_request(td_api::make_object<td_api::sendChosenUser>(chat_id, message_id, button_id, user_id));
     } else if (op == "rsgs") {
       string supergroup_id;
       string message_ids;

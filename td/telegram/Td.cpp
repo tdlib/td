@@ -7631,6 +7631,13 @@ void Td::on_request(uint64 id, const td_api::getLoginUrl &request) {
                                request.allow_write_access_, std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::sendChosenUser &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  messages_manager_->send_chosen_user({DialogId(request.chat_id_), MessageId(request.message_id_)}, request.button_id_,
+                                      UserId(request.user_id_), std::move(promise));
+}
+
 void Td::on_request(uint64 id, td_api::getInlineQueryResults &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.query_);

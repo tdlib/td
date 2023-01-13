@@ -1047,6 +1047,11 @@ tl_object_ptr<td_api::ReplyMarkup> ReplyMarkup::get_reply_markup_object(Contacts
   }
 }
 
+Status ReplyMarkup::check_chosen_user(Td *td, int32 button_id, UserId user_id) const {
+  // TODO
+  return Status::OK();
+}
+
 tl_object_ptr<telegram_api::ReplyMarkup> get_input_reply_markup(ContactsManager *contacts_manager,
                                                                 const unique_ptr<ReplyMarkup> &reply_markup) {
   if (reply_markup == nullptr) {

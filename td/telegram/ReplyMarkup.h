@@ -80,6 +80,8 @@ struct ReplyMarkup {
   tl_object_ptr<telegram_api::ReplyMarkup> get_input_reply_markup(ContactsManager *contacts_manager) const;
 
   tl_object_ptr<td_api::ReplyMarkup> get_reply_markup_object(ContactsManager *contacts_manager) const;
+
+  Status check_chosen_user(Td *td, int32 button_id, UserId user_id) const;
 };
 
 bool operator==(const ReplyMarkup &lhs, const ReplyMarkup &rhs);

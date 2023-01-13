@@ -4219,6 +4219,47 @@ class SendScreenshotNotificationQuery final : public Td::ResultHandler {
   }
 };
 
+class SendBotRequestedPeer final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit SendBotRequestedPeer(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(FullMessageId full_message_id, int32 button_id, DialogId requested_dialog_id) {
+    auto dialog_id = full_message_id.get_dialog_id();
+    auto input_peer = td_->messages_manager_->get_input_peer(dialog_id, AccessRights::Write);
+    if (input_peer == nullptr) {
+      return on_error(Status::Error(400, "Can't access the chat"));
+    }
+    auto requested_peer = td_->messages_manager_->get_input_peer(requested_dialog_id, AccessRights::Read);
+    if (requested_peer == nullptr) {
+      return on_error(Status::Error(400, "Can't access the chosen chat"));
+    }
+
+    send_query(G()->net_query_creator().create(
+        telegram_api::messages_sendBotRequestedPeer(std::move(input_peer),
+                                                    full_message_id.get_message_id().get_server_message_id().get(),
+                                                    button_id, std::move(requested_peer)),
+        {{dialog_id, MessageContentType::Text}}));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_sendBotRequestedPeer>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for SendBotRequestedPeer: " << to_string(ptr);
+    td_->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class SetTypingQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   DialogId dialog_id_;
@@ -29704,6 +29745,21 @@ void MessagesManager::do_send_screenshot_taken_notification_message(DialogId dia
   int64 random_id = begin_send_message(dialog_id, m);
   td_->create_handler<SendScreenshotNotificationQuery>(get_erase_log_event_promise(log_event_id))
       ->send(dialog_id, random_id);
+}
+
+void MessagesManager::send_chosen_user(FullMessageId full_message_id, int32 button_id, UserId user_id,
+                                       Promise<Unit> &&promise) {
+  const Message *m = get_message_force(full_message_id, "send_chosen_user");
+  if (m == nullptr) {
+    return promise.set_error(Status::Error(400, "Message not found"));
+  }
+  if (m->reply_markup == nullptr) {
+    return promise.set_error(Status::Error(400, "Message has no buttons"));
+  }
+  CHECK(m->message_id.is_valid() && m->message_id.is_server());
+  TRY_STATUS_PROMISE(promise, m->reply_markup->check_chosen_user(td_, button_id, user_id));
+
+  td_->create_handler<SendBotRequestedPeer>(std::move(promise))->send(full_message_id, button_id, DialogId(user_id));
 }
 
 Result<MessageId> MessagesManager::add_local_message(
