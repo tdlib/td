@@ -1878,6 +1878,7 @@ class ContactsManager final : public Actor {
   FlatHashSet<SecretChatId, SecretChatIdHash> loaded_from_database_secret_chats_;
 
   QueryMerger get_user_queries_{"GetUserMerger", 3, 50};
+  QueryMerger get_chat_queries_{"GetChatMerger", 3, 50};
 
   QueryCombiner get_user_full_queries_{"GetUserFullCombiner", 2.0};
   QueryCombiner get_chat_full_queries_{"GetChatFullCombiner", 2.0};

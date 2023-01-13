@@ -3924,6 +3924,9 @@ ContactsManager::ContactsManager(Td *td, ActorShared<> parent) : td_(td), parent
     });
     td_->create_handler<GetUsersQuery>(std::move(promise))->send(std::move(users));
   });
+  get_chat_queries_.set_merge_function([this](vector<int64> query_ids, Promise<Unit> &&promise) {
+    td_->create_handler<GetChatsQuery>(std::move(promise))->send(std::move(query_ids));
+  });
 }
 
 ContactsManager::~ContactsManager() {
@@ -16114,7 +16117,7 @@ bool ContactsManager::get_chat(ChatId chat_id, int left_tries, Promise<Unit> &&p
     }
 
     if (left_tries > 1) {
-      td_->create_handler<GetChatsQuery>(std::move(promise))->send(vector<int64>{chat_id.get()});
+      get_chat_queries_.add_query(chat_id.get(), std::move(promise));
       return false;
     }
 
@@ -16131,8 +16134,7 @@ void ContactsManager::reload_chat(ChatId chat_id, Promise<Unit> &&promise) {
     return promise.set_error(Status::Error(400, "Invalid basic group identifier"));
   }
 
-  // there is no much reason to combine different requests into one request
-  td_->create_handler<GetChatsQuery>(std::move(promise))->send(vector<int64>{chat_id.get()});
+  get_chat_queries_.add_query(chat_id.get(), std::move(promise));
 }
 
 const ContactsManager::ChatFull *ContactsManager::get_chat_full(ChatId chat_id) const {
