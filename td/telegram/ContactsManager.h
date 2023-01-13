@@ -32,6 +32,7 @@
 #include "td/telegram/PremiumGiftOption.h"
 #include "td/telegram/PublicDialogType.h"
 #include "td/telegram/QueryCombiner.h"
+#include "td/telegram/QueryMerger.h"
 #include "td/telegram/RestrictionReason.h"
 #include "td/telegram/SecretChatId.h"
 #include "td/telegram/StickerSetId.h"
@@ -1875,6 +1876,8 @@ class ContactsManager final : public Actor {
 
   FlatHashMap<SecretChatId, vector<Promise<Unit>>, SecretChatIdHash> load_secret_chat_from_database_queries_;
   FlatHashSet<SecretChatId, SecretChatIdHash> loaded_from_database_secret_chats_;
+
+  QueryMerger get_user_queries_{"GetUserMerger", 3, 50};
 
   QueryCombiner get_user_full_queries_{"GetUserFullCombiner", 2.0};
   QueryCombiner get_chat_full_queries_{"GetChatFullCombiner", 2.0};

@@ -3915,6 +3915,15 @@ ContactsManager::ContactsManager(Td *td, ActorShared<> parent) : td_(td), parent
 
   channel_participant_cache_timeout_.set_callback(on_channel_participant_cache_timeout_callback);
   channel_participant_cache_timeout_.set_callback_data(static_cast<void *>(this));
+
+  get_user_queries_.set_merge_function([this](vector<int64> query_ids, Promise<Unit> &&promise) {
+    auto users = transform(query_ids, [this](int64 query_id) {
+      auto r_input_user = get_input_user(UserId(query_id));
+      CHECK(r_input_user.is_ok());
+      return r_input_user.move_as_ok();
+    });
+    td_->create_handler<GetUsersQuery>(std::move(promise))->send(std::move(users));
+  });
 }
 
 ContactsManager::~ContactsManager() {
@@ -15787,7 +15796,6 @@ bool ContactsManager::get_user(UserId user_id, int left_tries, Promise<Unit> &&p
   }
 
   if (td_->auth_manager_->is_bot() ? !have_user(user_id) : !have_min_user(user_id)) {
-    // TODO UserLoader
     if (left_tries > 2 && G()->parameters().use_chat_info_db) {
       send_closure_later(actor_id(this), &ContactsManager::load_user_from_database, nullptr, user_id,
                          std::move(promise));
@@ -15803,9 +15811,7 @@ bool ContactsManager::get_user(UserId user_id, int left_tries, Promise<Unit> &&p
       return false;
     }
 
-    vector<tl_object_ptr<telegram_api::InputUser>> users;
-    users.push_back(r_input_user.move_as_ok());
-    td_->create_handler<GetUsersQuery>(std::move(promise))->send(std::move(users));
+    get_user_queries_.add_query(user_id.get(), std::move(promise));
     return false;
   }
 
@@ -15850,10 +15856,7 @@ void ContactsManager::reload_user(UserId user_id, Promise<Unit> &&promise) {
     return promise.set_error(r_input_user.move_as_error());
   }
 
-  // there is no much reason to combine different requests into one request
-  vector<tl_object_ptr<telegram_api::InputUser>> users;
-  users.push_back(r_input_user.move_as_ok());
-  td_->create_handler<GetUsersQuery>(std::move(promise))->send(std::move(users));
+  get_user_queries_.add_query(user_id.get(), std::move(promise));
 }
 
 void ContactsManager::load_user_full(UserId user_id, bool force, Promise<Unit> &&promise, const char *source) {
