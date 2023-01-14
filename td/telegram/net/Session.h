@@ -104,17 +104,17 @@ class Session final
   // Just re-ask answer_id each time we get information about it.
   // Though mtproto::Connection must ensure delivery of such query.
 
-  int32 raw_dc_id_;  // numerical datacenter ID, i.e. 2
-  int32 dc_id_;      // unique datacenter ID, i.e. -10002
-  enum class Mode : int8 { Tcp, Http } mode_ = Mode::Tcp;
-  bool is_main_;  // true only for the primary Session(s) to the main DC
-  bool is_cdn_;
-  bool need_destroy_;
+  const int32 raw_dc_id_;  // numerical datacenter ID, i.e. 2
+  const int32 dc_id_;      // unique datacenter ID, i.e. -10002
+  const bool is_main_;     // true only for the primary Session(s) to the main DC
+  const bool is_cdn_;
+  const bool need_destroy_;
   bool was_on_network_ = false;
   bool network_flag_ = false;
   bool online_flag_ = false;
   bool logging_out_flag_ = false;
   bool connection_online_flag_ = false;
+  enum class Mode : int8 { Tcp, Http } mode_ = Mode::Tcp;
   uint32 network_generation_ = 0;
   uint64 being_binded_tmp_auth_key_id_ = 0;
   uint64 being_checked_main_auth_key_id_ = 0;

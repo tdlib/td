@@ -68,6 +68,7 @@ void StateManager::add_callback(unique_ptr<Callback> callback) {
     callbacks_.push_back(std::move(callback));
   }
 }
+
 void StateManager::wait_first_sync(Promise<> promise) {
   if (was_sync_) {
     return promise.set_value(Unit());

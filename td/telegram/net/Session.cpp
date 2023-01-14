@@ -333,12 +333,14 @@ void Session::on_network(bool network_flag, uint32 network_generation) {
 }
 
 void Session::on_online(bool online_flag) {
+  LOG(DEBUG) << "Set online flag to " << online_flag;
   online_flag_ = online_flag;
   connection_online_update(true);
   loop();
 }
 
 void Session::on_logging_out(bool logging_out_flag) {
+  LOG(DEBUG) << "Set logging out flag to " << logging_out_flag;
   logging_out_flag_ = logging_out_flag;
   connection_online_update(true);
   loop();
