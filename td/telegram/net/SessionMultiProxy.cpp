@@ -18,14 +18,14 @@
 
 namespace td {
 
-SessionMultiProxy::SessionMultiProxy() = default;
 SessionMultiProxy::~SessionMultiProxy() = default;
 
 SessionMultiProxy::SessionMultiProxy(int32 session_count, std::shared_ptr<AuthDataShared> shared_auth_data,
-                                     bool is_main, bool use_pfs, bool allow_media_only, bool is_media, bool is_cdn,
-                                     bool need_destroy_auth_key)
+                                     bool is_primary, bool is_main, bool use_pfs, bool allow_media_only, bool is_media,
+                                     bool is_cdn, bool need_destroy_auth_key)
     : session_count_(session_count)
     , auth_data_(std::move(shared_auth_data))
+    , is_primary_(is_primary)
     , is_main_(is_main)
     , use_pfs_(use_pfs)
     , allow_media_only_(allow_media_only)
@@ -142,8 +142,8 @@ void SessionMultiProxy::init() {
       int32 session_id_;
     };
     info.proxy = create_actor<SessionProxy>(name, make_unique<Callback>(actor_id(this), sessions_generation_, i),
-                                            auth_data_, is_main_, allow_media_only_, is_media_, get_pfs_flag(), is_cdn_,
-                                            need_destroy_auth_key_ && i == 0);
+                                            auth_data_, is_primary_, is_main_, allow_media_only_, is_media_,
+                                            get_pfs_flag(), is_cdn_, need_destroy_auth_key_ && i == 0);
     sessions_.push_back(std::move(info));
   }
 }

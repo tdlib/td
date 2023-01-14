@@ -521,8 +521,8 @@ static ActorOwn<> get_full_config(DcOption option, Promise<tl_object_ptr<telegra
         int_dc_id += 10000;
       }
       session_ = create_actor<Session>("ConfigSession", std::move(session_callback), std::move(auth_data), raw_dc_id,
-                                       int_dc_id, false /*is_main*/, true /*use_pfs*/, false /*is_cdn*/,
-                                       false /*need_destroy_auth_key*/, mtproto::AuthKey(),
+                                       int_dc_id, false /*is_primary*/, false /*is_main*/, true /*use_pfs*/,
+                                       false /*is_cdn*/, false /*need_destroy_auth_key*/, mtproto::AuthKey(),
                                        std::vector<mtproto::ServerSalt>());
       auto query = G()->net_query_creator().create_unauth(telegram_api::help_getConfig(), DcId::empty());
       query->total_timeout_limit_ = 60 * 60 * 24;

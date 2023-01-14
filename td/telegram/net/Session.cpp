@@ -232,9 +232,14 @@ bool Session::PriorityQueue::empty() const {
 }
 
 Session::Session(unique_ptr<Callback> callback, std::shared_ptr<AuthDataShared> shared_auth_data, int32 raw_dc_id,
-                 int32 dc_id, bool is_main, bool use_pfs, bool is_cdn, bool need_destroy,
+                 int32 dc_id, bool is_primary, bool is_main, bool use_pfs, bool is_cdn, bool need_destroy,
                  const mtproto::AuthKey &tmp_auth_key, const vector<mtproto::ServerSalt> &server_salts)
-    : raw_dc_id_(raw_dc_id), dc_id_(dc_id), is_main_(is_main), is_cdn_(is_cdn), need_destroy_(need_destroy) {
+    : raw_dc_id_(raw_dc_id)
+    , dc_id_(dc_id)
+    , is_primary_(is_primary)
+    , is_main_(is_main)
+    , is_cdn_(is_cdn)
+    , need_destroy_(need_destroy) {
   VLOG(dc) << "Start connection " << tag("need_destroy", need_destroy_);
   if (need_destroy_) {
     use_pfs = false;
@@ -347,18 +352,19 @@ void Session::on_logging_out(bool logging_out_flag) {
 }
 
 void Session::connection_online_update(bool force) {
-  bool new_connection_online_flag = (online_flag_ || logging_out_flag_) &&
-                                    (has_queries() || last_activity_timestamp_ + 10 > Time::now_cached() || is_main_);
+  bool new_connection_online_flag =
+      (online_flag_ || logging_out_flag_) &&
+      (has_queries() || last_activity_timestamp_ + 10 > Time::now_cached() || is_primary_);
   if (connection_online_flag_ == new_connection_online_flag && !force) {
     return;
   }
   connection_online_flag_ = new_connection_online_flag;
   VLOG(dc) << "Set connection_online " << connection_online_flag_;
   if (main_connection_.connection_) {
-    main_connection_.connection_->set_online(connection_online_flag_, is_main_);
+    main_connection_.connection_->set_online(connection_online_flag_, is_primary_);
   }
   if (long_poll_connection_.connection_) {
-    long_poll_connection_.connection_->set_online(connection_online_flag_, is_main_);
+    long_poll_connection_.connection_->set_online(connection_online_flag_, is_primary_);
   }
 }
 
@@ -1287,7 +1293,7 @@ void Session::connection_open_finish(ConnectionInfo *info,
   if (can_destroy_auth_key()) {
     info->connection_->destroy_key();
   }
-  info->connection_->set_online(connection_online_flag_, is_main_);
+  info->connection_->set_online(connection_online_flag_, is_primary_);
   info->connection_->set_name(name);
   Scheduler::subscribe(info->connection_->get_poll_info().extract_pollable_fd(this));
   info->mode_ = mode_;

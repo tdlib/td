@@ -29,8 +29,8 @@ class SessionProxy final : public Actor {
     virtual void on_query_finished() = 0;
   };
 
-  SessionProxy(unique_ptr<Callback> callback, std::shared_ptr<AuthDataShared> shared_auth_data, bool is_main,
-               bool allow_media_only, bool is_media, bool use_pfs, bool is_cdn, bool need_destroy);
+  SessionProxy(unique_ptr<Callback> callback, std::shared_ptr<AuthDataShared> shared_auth_data, bool is_primary,
+               bool is_main, bool allow_media_only, bool is_media, bool use_pfs, bool is_cdn, bool need_destroy);
 
   void send(NetQueryPtr query);
   void update_main_flag(bool is_main);
@@ -41,6 +41,7 @@ class SessionProxy final : public Actor {
   unique_ptr<Callback> callback_;
   std::shared_ptr<AuthDataShared> auth_data_;
   AuthKeyState auth_key_state_ = AuthKeyState::Empty;
+  const bool is_primary_;
   bool is_main_;
   bool allow_media_only_;
   bool is_media_;

@@ -78,10 +78,11 @@ class SessionCallback final : public Session::Callback {
 };
 
 SessionProxy::SessionProxy(unique_ptr<Callback> callback, std::shared_ptr<AuthDataShared> shared_auth_data,
-                           bool is_main, bool allow_media_only, bool is_media, bool use_pfs, bool is_cdn,
-                           bool need_destroy)
+                           bool is_primary, bool is_main, bool allow_media_only, bool is_media, bool use_pfs,
+                           bool is_cdn, bool need_destroy)
     : callback_(std::move(callback))
     , auth_data_(std::move(shared_auth_data))
+    , is_primary_(is_primary)
     , is_main_(is_main)
     , allow_media_only_(allow_media_only)
     , is_media_(is_media)
@@ -212,7 +213,8 @@ void SessionProxy::open_session(bool force) {
   session_ = create_actor<Session>(
       name,
       make_unique<SessionCallback>(actor_shared(this, session_generation_), dc_id, allow_media_only_, is_media_, hash),
-      auth_data_, raw_dc_id, int_dc_id, is_main_, use_pfs_, is_cdn_, need_destroy_, tmp_auth_key_, server_salts_);
+      auth_data_, raw_dc_id, int_dc_id, is_primary_, is_main_, use_pfs_, is_cdn_, need_destroy_, tmp_auth_key_,
+      server_salts_);
 }
 
 void SessionProxy::update_auth_key_state() {
