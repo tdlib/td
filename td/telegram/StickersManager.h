@@ -627,6 +627,8 @@ class StickersManager final : public Actor {
 
   void on_search_stickers_finished(const string &emoji, const FoundStickers &found_stickers);
 
+  void on_search_stickers_failed(const string &emoji, Status &&error);
+
   static string get_custom_emoji_database_key(CustomEmojiId custom_emoji_id);
 
   void load_custom_emoji_sticker_from_database_force(CustomEmojiId custom_emoji_id);
