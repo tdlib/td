@@ -78,7 +78,7 @@ class Session final
 
  private:
   struct Query final : private ListNode {
-    uint64 container_id;
+    uint64 container_message_id;
     NetQueryPtr query;
 
     bool ack = false;
@@ -87,7 +87,7 @@ class Session final
     int8 connection_id;
     double sent_at_;
     Query(uint64 message_id, NetQueryPtr &&q, int8 connection_id, double sent_at)
-        : container_id(message_id), query(std::move(q)), connection_id(connection_id), sent_at_(sent_at) {
+        : container_message_id(message_id), query(std::move(q)), connection_id(connection_id), sent_at_(sent_at) {
     }
 
     ListNode *get_list_node() {
@@ -101,7 +101,7 @@ class Session final
   // When connection is closed, mark all queries without ack as unknown.
   // Ask state of all unknown queries when new connection is created.
   //
-  // Just re-ask answer_id each time we get information about it.
+  // Just re-ask answer_message_id each time we get information about it.
   // Though mtproto::Connection must ensure delivery of such query.
 
   const int32 raw_dc_id_;  // numerical datacenter ID, i.e. 2
@@ -209,33 +209,33 @@ class Session final
   void on_server_salt_updated() final;
   void on_server_time_difference_updated() final;
 
-  void on_session_created(uint64 unique_id, uint64 first_id) final;
+  void on_session_created(uint64 unique_id, uint64 first_message_id) final;
   void on_session_failed(Status status) final;
 
-  void on_container_sent(uint64 container_id, vector<uint64> msg_ids) final;
+  void on_container_sent(uint64 container_message_id, vector<uint64> message_ids) final;
 
   Status on_update(BufferSlice packet) final;
 
-  void on_message_ack(uint64 id) final;
-  Status on_message_result_ok(uint64 id, BufferSlice packet, size_t original_size) final;
-  void on_message_result_error(uint64 id, int error_code, string message) final;
-  void on_message_failed(uint64 id, Status status) final;
+  void on_message_ack(uint64 message_id) final;
+  Status on_message_result_ok(uint64 message_id, BufferSlice packet, size_t original_size) final;
+  void on_message_result_error(uint64 message_id, int error_code, string message) final;
+  void on_message_failed(uint64 message_id, Status status) final;
 
-  void on_message_info(uint64 id, int32 state, uint64 answer_id, int32 answer_size) final;
+  void on_message_info(uint64 message_id, int32 state, uint64 answer_message_id, int32 answer_size) final;
 
   Status on_destroy_auth_key() final;
 
   void flush_pending_invoke_after_queries();
   bool has_queries() const;
 
-  void dec_container(uint64 message_id, Query *query);
-  void cleanup_container(uint64 id, Query *query);
-  void mark_as_known(uint64 id, Query *query);
-  void mark_as_unknown(uint64 id, Query *query);
+  void dec_container(uint64 container_message_id, Query *query);
+  void cleanup_container(uint64 container_message_id, Query *query);
+  void mark_as_known(uint64 message_id, Query *query);
+  void mark_as_unknown(uint64 message_id, Query *query);
 
-  void on_message_ack_impl(uint64 id, int32 type);
-  void on_message_ack_impl_inner(uint64 id, int32 type, bool in_container);
-  void on_message_failed_inner(uint64 id, bool in_container);
+  void on_message_ack_impl(uint64 container_message_id, int32 type);
+  void on_message_ack_impl_inner(uint64 message_id, int32 type, bool in_container);
+  void on_message_failed_inner(uint64 message_id, bool in_container);
 
   // send NetQueryPtr to parent
   void return_query(NetQueryPtr &&query);
