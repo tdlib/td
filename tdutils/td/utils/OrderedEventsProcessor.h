@@ -13,7 +13,7 @@
 
 namespace td {
 
-// Process states in order defined by their Id
+// Process states in order defined by their SeqNo
 template <class DataT>
 class OrderedEventsProcessor {
  public:

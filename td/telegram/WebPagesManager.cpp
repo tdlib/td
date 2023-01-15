@@ -696,7 +696,7 @@ void WebPagesManager::on_get_web_page_by_url(const string &url, WebPageId web_pa
   }
 
   if (cached_web_page_id.is_valid() && web_page_id.is_valid() && web_page_id != cached_web_page_id) {
-    LOG(ERROR) << "Url \"" << url << "\" preview is changed from " << cached_web_page_id << " to " << web_page_id;
+    LOG(ERROR) << "URL \"" << url << "\" preview is changed from " << cached_web_page_id << " to " << web_page_id;
   }
 
   cached_web_page_id = web_page_id;

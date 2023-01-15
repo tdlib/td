@@ -219,7 +219,7 @@ inline StringBuilder &operator<<(StringBuilder &sb, const EncryptedInputFile &fi
 }
 
 // LogEvents
-// TODO: Qts and SeqNoState could be just Logevents that are updated during regenerate
+// TODO: QTS and SeqNoState could be just Logevents that are updated during regenerate
 class InboundSecretMessage final : public SecretChatLogEventBase<InboundSecretMessage> {
  public:
   static constexpr Type type = SecretChatEvent::Type::InboundSecretMessage;

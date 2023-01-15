@@ -1682,7 +1682,7 @@ void InlineQueriesManager::on_get_inline_query_results(DialogId dialog_id, UserI
             article->hide_url_ = true;
           } else {
             LOG_IF(ERROR, result->url_ != article->url_)
-                << "Url has changed from " << article->url_ << " to " << result->url_;
+                << "URL has changed from " << article->url_ << " to " << result->url_;
             article->hide_url_ = false;
           }
           article->title_ = std::move(result->title_);

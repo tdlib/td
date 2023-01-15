@@ -20,7 +20,6 @@
 #include <memory>
 
 namespace td {
-// Udp and errors
 namespace detail {
 class UdpSocketFdImpl;
 class UdpSocketFdImplDeleter {

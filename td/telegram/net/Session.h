@@ -269,7 +269,7 @@ class Session final
   void raw_event(const Event::Raw &event) final;
 
   friend StringBuilder &operator<<(StringBuilder &sb, Mode mode) {
-    return sb << (mode == Mode::Http ? "Http" : "Tcp");
+    return sb << (mode == Mode::Http ? "HTTP" : "TCP");
   }
 };
 

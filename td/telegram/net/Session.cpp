@@ -1277,14 +1277,14 @@ void Session::connection_open_finish(ConnectionInfo *info,
   Slice mode_name;
   if (mode_ == Mode::Tcp) {
     mode = mtproto::SessionConnection::Mode::Tcp;
-    mode_name = Slice("Tcp");
+    mode_name = Slice("TCP");
   } else {
     if (info->connection_id_ == 0) {
       mode = mtproto::SessionConnection::Mode::Http;
-      mode_name = Slice("Http");
+      mode_name = Slice("HTTP");
     } else {
       mode = mtproto::SessionConnection::Mode::HttpLongPoll;
-      mode_name = Slice("HttpLongPoll");
+      mode_name = Slice("LongPoll");
     }
   }
   auto name = PSTRING() << get_name() << "::Connect::" << mode_name << "::" << raw_connection->extra().debug_str;
