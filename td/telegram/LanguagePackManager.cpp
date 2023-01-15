@@ -1688,7 +1688,7 @@ Result<LanguagePackManager::LanguageInfo> LanguagePackManager::get_language_info
     return Status::Error(400, "Language pack plural code must be encoded in UTF-8");
   }
   if (!clean_input_string(language_pack_info->translation_url_)) {
-    return Status::Error(400, "Language pack translation url must be encoded in UTF-8");
+    return Status::Error(400, "Language pack translation URL must be encoded in UTF-8");
   }
   if (language_pack_info->total_string_count_ < 0) {
     language_pack_info->total_string_count_ = 0;

@@ -142,7 +142,7 @@ struct WebRemoteFileLocation {
 };
 
 inline StringBuilder &operator<<(StringBuilder &string_builder, const WebRemoteFileLocation &location) {
-  return string_builder << "[url = " << location.url_ << ", access_hash = " << location.access_hash_ << "]";
+  return string_builder << "[URL = " << location.url_ << ", access_hash = " << location.access_hash_ << "]";
 }
 
 struct CommonRemoteFileLocation {

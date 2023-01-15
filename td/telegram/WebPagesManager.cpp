@@ -207,7 +207,7 @@ class WebPagesManager::WebPageInstantView {
 
   friend StringBuilder &operator<<(StringBuilder &string_builder,
                                    const WebPagesManager::WebPageInstantView &instant_view) {
-    return string_builder << "InstantView(url = " << instant_view.url << ", size = " << instant_view.page_blocks.size()
+    return string_builder << "InstantView(URL = " << instant_view.url << ", size = " << instant_view.page_blocks.size()
                           << ", view_count = " << instant_view.view_count << ", hash = " << instant_view.hash
                           << ", is_empty = " << instant_view.is_empty << ", is_v2 = " << instant_view.is_v2
                           << ", is_rtl = " << instant_view.is_rtl << ", is_full = " << instant_view.is_full
@@ -781,7 +781,7 @@ void WebPagesManager::on_get_web_page_preview_success(int64 request_id, const st
 
 void WebPagesManager::on_get_web_page_preview_fail(int64 request_id, const string &url, Status error,
                                                    Promise<Unit> &&promise) {
-  LOG(INFO) << "Clean up getting of web page preview with url \"" << url << '"';
+  LOG(INFO) << "Clean up getting of web page preview with URL \"" << url << '"';
   CHECK(error.is_error());
   promise.set_error(std::move(error));
 }
@@ -830,7 +830,7 @@ tl_object_ptr<td_api::webPage> WebPagesManager::get_web_page_preview_result(int6
 }
 
 void WebPagesManager::get_web_page_instant_view(const string &url, bool force_full, Promise<WebPageId> &&promise) {
-  LOG(INFO) << "Trying to get web page instant view for the url \"" << url << '"';
+  LOG(INFO) << "Trying to get web page instant view for the URL \"" << url << '"';
   if (url.empty()) {
     return promise.set_value(WebPageId());
   }
@@ -1046,16 +1046,16 @@ WebPageId WebPagesManager::get_web_page_by_url(const string &url) const {
 
   auto it = url_to_web_page_id_.find(url);
   if (it != url_to_web_page_id_.end()) {
-    LOG(INFO) << "Return " << it->second << " for the url \"" << url << '"';
+    LOG(INFO) << "Return " << it->second << " for the URL \"" << url << '"';
     return it->second;
   }
 
-  LOG(INFO) << "Can't find web page identifier for the url \"" << url << '"';
+  LOG(INFO) << "Can't find web page identifier for the URL \"" << url << '"';
   return WebPageId();
 }
 
 void WebPagesManager::get_web_page_by_url(const string &url, Promise<WebPageId> &&promise) {
-  LOG(INFO) << "Trying to get web page identifier for the url \"" << url << '"';
+  LOG(INFO) << "Trying to get web page identifier for the URL \"" << url << '"';
   if (url.empty()) {
     return promise.set_value(WebPageId());
   }
@@ -1089,7 +1089,7 @@ void WebPagesManager::load_web_page_by_url(string url, Promise<WebPageId> &&prom
 void WebPagesManager::on_load_web_page_id_by_url_from_database(string url, string value, Promise<WebPageId> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
 
-  LOG(INFO) << "Successfully loaded url \"" << url << "\" of size " << value.size() << " from database";
+  LOG(INFO) << "Successfully loaded URL \"" << url << "\" of size " << value.size() << " from database";
   //  G()->td_db()->get_sqlite_pmc()->erase(get_web_page_url_database_key(web_page_id), Auto());
   //  value.clear();
 

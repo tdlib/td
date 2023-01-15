@@ -136,13 +136,13 @@ Result<InputInvoice> InputInvoice::process_input_message_invoice(
   auto r_http_url = parse_url(input_invoice->photo_url_);
   if (r_http_url.is_error()) {
     if (!input_invoice->photo_url_.empty()) {
-      LOG(INFO) << "Can't register url " << input_invoice->photo_url_;
+      LOG(INFO) << "Can't register URL " << input_invoice->photo_url_;
     }
   } else {
     auto url = r_http_url.ok().get_url();
     auto r_invoice_file_id = td->file_manager_->from_persistent_id(url, FileType::Temp);
     if (r_invoice_file_id.is_error()) {
-      LOG(INFO) << "Can't register url " << url;
+      LOG(INFO) << "Can't register URL " << url;
     } else {
       auto invoice_file_id = r_invoice_file_id.move_as_ok();
 

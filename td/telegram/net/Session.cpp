@@ -1265,7 +1265,7 @@ void Session::connection_open_finish(ConnectionInfo *info,
     VLOG(dc) << "Change mode " << mode_ << "--->" << expected_mode;
     mode_ = expected_mode;
     if (info->connection_id_ == 1 && mode_ != Mode::Http) {
-      LOG(WARNING) << "Got tcp connection for long poll connection";
+      LOG(WARNING) << "Receive TCP connection for long poll connection";
       connection_add(std::move(raw_connection));
       info->state_ = ConnectionInfo::State::Empty;
       yield();
