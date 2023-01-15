@@ -12,7 +12,7 @@
 namespace td {
 
 // It is not about handling gaps.
-// It is about finding mem processed pts.
+// It is about finding mem processed PTS.
 // All checks must be done before.
 
 class PtsManager {

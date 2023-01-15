@@ -4721,7 +4721,7 @@ class GetChannelDifferenceQuery final : public Td::ResultHandler {
   void on_error(Status status) final {
     if (!td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "GetChannelDifferenceQuery") &&
         status.message() != "PERSISTENT_TIMESTAMP_INVALID") {
-      LOG(ERROR) << "Receive error for GetChannelDifferenceQuery for " << dialog_id_ << " with pts " << pts_
+      LOG(ERROR) << "Receive error for GetChannelDifferenceQuery for " << dialog_id_ << " with PTS " << pts_
                  << " and limit " << limit_ << ": " << status;
     }
     td_->messages_manager_->on_get_channel_difference(dialog_id_, pts_, limit_, nullptr);
@@ -6623,7 +6623,7 @@ void MessagesManager::skip_old_pending_pts_update(tl_object_ptr<telegram_api::Up
     auto full_message_id = FullMessageId::get_full_message_id(update_new_message->message_, false);
     if (update_message_ids_.count(full_message_id) > 0) {
       if (new_pts == old_pts || old_pts == std::numeric_limits<int32>::max()) {
-        // apply sent message anyway if it is definitely non-deleted or being skipped because of pts overflow
+        // apply sent message anyway if it is definitely non-deleted or being skipped because of PTS overflow
         auto added_full_message_id = on_get_message(std::move(update_new_message->message_), true, false, false, true,
                                                     true, "updateNewMessage with an awaited message");
         if (added_full_message_id != full_message_id) {
@@ -6631,8 +6631,8 @@ void MessagesManager::skip_old_pending_pts_update(tl_object_ptr<telegram_api::Up
         }
         return;
       } else {
-        LOG(ERROR) << "Receive awaited sent " << full_message_id << " from " << source << " with pts " << new_pts
-                   << " and pts_count " << pts_count << ", but current pts is " << old_pts;
+        LOG(ERROR) << "Receive awaited sent " << full_message_id << " from " << source << " with PTS " << new_pts
+                   << " and pts_count " << pts_count << ", but current PTS is " << old_pts;
         dump_debug_message_op(get_dialog(full_message_id.get_dialog_id()), 3);
       }
     }
@@ -6641,14 +6641,14 @@ void MessagesManager::skip_old_pending_pts_update(tl_object_ptr<telegram_api::Up
     auto update_sent_message = static_cast<updateSentMessage *>(update.get());
     if (being_sent_messages_.count(update_sent_message->random_id_) > 0) {
       if (new_pts == old_pts || old_pts == std::numeric_limits<int32>::max()) {
-        // apply sent message anyway if it is definitely non-deleted or being skipped because of pts overflow
+        // apply sent message anyway if it is definitely non-deleted or being skipped because of PTS overflow
         on_send_message_success(update_sent_message->random_id_, update_sent_message->message_id_,
                                 update_sent_message->date_, update_sent_message->ttl_period_, FileId(),
                                 "process old updateSentMessage");
         return;
       } else if (update_sent_message->random_id_ != 0) {
-        LOG(ERROR) << "Receive awaited sent " << update_sent_message->message_id_ << " from " << source << " with pts "
-                   << new_pts << " and pts_count " << pts_count << ", but current pts is " << old_pts;
+        LOG(ERROR) << "Receive awaited sent " << update_sent_message->message_id_ << " from " << source << " with PTS "
+                   << new_pts << " and pts_count " << pts_count << ", but current PTS is " << old_pts;
         dump_debug_message_op(get_dialog(being_sent_messages_[update_sent_message->random_id_].get_dialog_id()), 3);
       }
     }
@@ -7866,7 +7866,7 @@ void MessagesManager::add_pending_channel_update(DialogId dialog_id, tl_object_p
     return;
   }
   if (pts_count < 0 || new_pts <= pts_count) {
-    LOG(ERROR) << "Receive channel update from " << source << " with wrong pts = " << new_pts
+    LOG(ERROR) << "Receive channel update from " << source << " with wrong PTS = " << new_pts
                << " or pts_count = " << pts_count << ": " << oneline(to_string(update));
     promise.set_value(Unit());
     return;
@@ -7879,7 +7879,7 @@ void MessagesManager::add_pending_channel_update(DialogId dialog_id, tl_object_p
     return;
   }
 
-  // TODO need to save all updates that can change result of running queries not associated with pts (for example
+  // TODO need to save all updates that can change result of running queries not associated with PTS (for example
   // getHistory) and apply them to result of these queries
 
   Dialog *d = get_dialog_force(dialog_id, "add_pending_channel_update 2");
@@ -7894,14 +7894,14 @@ void MessagesManager::add_pending_channel_update(DialogId dialog_id, tl_object_p
       }
 
       if (new_pts <= pts && new_pts >= pts - 19999) {
-        LOG(INFO) << "There is no need to process an update with pts " << new_pts << " in " << dialog_id << " with pts "
+        LOG(INFO) << "There is no need to process an update with PTS " << new_pts << " in " << dialog_id << " with PTS "
                   << pts;
         promise.set_value(Unit());
         return;
       }
 
       if (new_pts > pts && pts != new_pts - pts_count) {
-        LOG(INFO) << "Found a gap in unknown " << dialog_id << " with pts = " << pts << ". new_pts = " << new_pts
+        LOG(INFO) << "Found a gap in unknown " << dialog_id << " with PTS = " << pts << ". new_pts = " << new_pts
                   << ", pts_count = " << pts_count << " in update from " << source;
         add_postponed_channel_update(dialog_id, std::move(update), new_pts, pts_count, std::move(promise));
         get_channel_difference(dialog_id, pts, true, "add_pending_channel_update 3");
@@ -7966,12 +7966,12 @@ void MessagesManager::add_pending_channel_update(DialogId dialog_id, tl_object_p
     }
 
     if (old_pts != new_pts - pts_count) {
-      LOG(INFO) << "Found a gap in the " << dialog_id << " with pts = " << old_pts << ". new_pts = " << new_pts
+      LOG(INFO) << "Found a gap in the " << dialog_id << " with PTS = " << old_pts << ". new_pts = " << new_pts
                 << ", pts_count = " << pts_count << " in update from " << source;
       if (d->was_opened || td_->contacts_manager_->get_channel_status(channel_id).is_member() ||
           is_dialog_sponsored(d)) {
         add_postponed_channel_update(dialog_id, std::move(update), new_pts, pts_count, std::move(promise));
-        get_channel_difference(dialog_id, old_pts, true, "add_pending_channel_update pts mismatch");
+        get_channel_difference(dialog_id, old_pts, true, "add_pending_channel_update PTS mismatch");
       } else {
         promise.set_value(Unit());
       }
@@ -9683,7 +9683,7 @@ void MessagesManager::after_get_difference() {
   for (auto &it : update_message_ids_) {
     // there can be unhandled updateMessageId updates after getDifference even for ordinary chats,
     // because despite updates coming during getDifference have already been applied,
-    // some of them could be postponed because of pts gap
+    // some of them could be postponed because of PTS gap
     auto full_message_id = it.first;
     auto dialog_id = full_message_id.get_dialog_id();
     auto message_id = full_message_id.get_message_id();
@@ -12646,7 +12646,7 @@ void MessagesManager::read_history_outbox(DialogId dialog_id, MessageId max_mess
       return;
     }
 
-    // it is impossible for just sent outgoing messages because updates are ordered by pts
+    // it is impossible for just sent outgoing messages because updates are ordered by PTS
     if (d->last_new_message_id.is_valid() && max_message_id > d->last_new_message_id &&
         dialog_id.get_type() != DialogType::Channel) {
       LOG(INFO) << "Receive read outbox update about unknown " << max_message_id << " in " << dialog_id
@@ -14751,7 +14751,7 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
     is_outgoing = supposed_to_be_outgoing;
 
     /*
-    // it is useless to call getChannelDifference, because the channel pts will be increased already
+    // it is useless to call getChannelDifference, because the channel PTS will be increased already
     if (dialog_type == DialogType::Channel && !running_get_difference_ && !running_get_channel_difference(dialog_id) &&
         get_channel_difference_to_log_event_id_.count(dialog_id) == 0) {
       // it is safer to completely ignore the message and re-get it through getChannelDifference
@@ -15842,16 +15842,16 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
       case DialogType::User:
       case DialogType::Chat:
         if (has_pts) {
-          LOG(ERROR) << "Receive user or group " << dialog_id << " with pts";
+          LOG(ERROR) << "Receive user or group " << dialog_id << " with PTS";
           return promise.set_error(
-              Status::Error(500, "Wrong query result returned: receive user or basic group chat with pts"));
+              Status::Error(500, "Wrong query result returned: receive user or basic group chat with PTS"));
         }
         break;
       case DialogType::Channel:
         if (!has_pts) {
-          LOG(ERROR) << "Receive channel " << dialog_id << " without pts";
+          LOG(ERROR) << "Receive channel " << dialog_id << " without PTS";
           return promise.set_error(
-              Status::Error(500, "Wrong query result returned: receive supergroup chat without pts"));
+              Status::Error(500, "Wrong query result returned: receive supergroup chat without PTS"));
         }
         break;
       case DialogType::SecretChat:
@@ -23998,7 +23998,7 @@ void MessagesManager::on_get_affected_history(DialogId dialog_id, AffectedHistor
                                               Promise<Unit> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
   LOG(INFO) << "Receive " << (affected_history.is_final_ ? "final " : "partial ")
-            << "affected history with pts = " << affected_history.pts_
+            << "affected history with PTS = " << affected_history.pts_
             << " and pts_count = " << affected_history.pts_count_;
 
   if (affected_history.pts_count_ > 0) {
@@ -27972,8 +27972,8 @@ void MessagesManager::on_message_media_edited(DialogId dialog_id, MessageId mess
     // updateMessageContent was already sent and needs to be sent again,
     // only if 'i' and 't' sizes from edited_content were added to the photo
     auto pts = result.ok();
-    LOG(INFO) << "Successfully edited " << message_id << " in " << dialog_id << " with pts = " << pts
-              << " and last edit pts = " << m->last_edit_pts;
+    LOG(INFO) << "Successfully edited " << message_id << " in " << dialog_id << " with PTS = " << pts
+              << " and last edit PTS = " << m->last_edit_pts;
     std::swap(m->content, m->edited_content);
     bool need_send_update_message_content = m->edited_content->get_type() == MessageContentType::Photo &&
                                             m->content->get_type() == MessageContentType::Photo;
@@ -32031,7 +32031,7 @@ FullMessageId MessagesManager::on_send_message_success(int64 random_id, MessageI
   auto it = being_sent_messages_.find(random_id);
   if (it == being_sent_messages_.end()) {
     LOG(ERROR) << "Result from sendMessage for " << new_message_id << " with random_id " << random_id << " sent at "
-               << date << " comes from " << source << " after updateNewMessageId, but was not discarded by pts";
+               << date << " comes from " << source << " after updateNewMessageId, but was not discarded by PTS";
     return {};
   }
 
@@ -38975,7 +38975,7 @@ int32 MessagesManager::load_channel_pts(DialogId dialog_id) const {
     return 0;
   }
   auto pts = to_integer<int32>(G()->td_db()->get_binlog_pmc()->get(get_channel_pts_key(dialog_id)));
-  LOG(INFO) << "Load " << dialog_id << " pts = " << pts;
+  LOG(INFO) << "Load " << dialog_id << " PTS = " << pts;
   return pts;
 }
 
@@ -38984,7 +38984,7 @@ void MessagesManager::set_channel_pts(Dialog *d, int32 new_pts, const char *sour
   CHECK(d->dialog_id.get_type() == DialogType::Channel);
 
   LOG_IF(ERROR, running_get_channel_difference(d->dialog_id))
-      << "Set pts of " << d->dialog_id << " to " << new_pts << " from " << source
+      << "Set PTS of " << d->dialog_id << " to " << new_pts << " from " << source
       << " while running getChannelDifference";
 
   if (is_debug_message_op_enabled()) {
@@ -38993,7 +38993,7 @@ void MessagesManager::set_channel_pts(Dialog *d, int32 new_pts, const char *sour
 
   // TODO delete_first_messages support in channels
   if (new_pts == std::numeric_limits<int32>::max()) {
-    LOG(ERROR) << "Update " << d->dialog_id << " pts to -1 from " << source;
+    LOG(ERROR) << "Update " << d->dialog_id << " PTS to -1 from " << source;
     G()->td_db()->get_binlog_pmc()->erase(get_channel_pts_key(d->dialog_id));
     d->pts = std::numeric_limits<int32>::max();
     if (d->pending_read_channel_inbox_pts != 0) {
@@ -39001,12 +39001,12 @@ void MessagesManager::set_channel_pts(Dialog *d, int32 new_pts, const char *sour
     }
     return;
   }
-  if (new_pts > d->pts || (0 < new_pts && new_pts < d->pts - 99999)) {  // pts can only go up or drop cardinally
+  if (new_pts > d->pts || (0 < new_pts && new_pts < d->pts - 99999)) {  // PTS can only go up or drop cardinally
     if (new_pts < d->pts - 99999) {
-      LOG(WARNING) << "Pts of " << d->dialog_id << " decreases from " << d->pts << " to " << new_pts << " from "
+      LOG(WARNING) << "PTS of " << d->dialog_id << " decreases from " << d->pts << " to " << new_pts << " from "
                    << source;
     } else {
-      LOG(INFO) << "Update " << d->dialog_id << " pts to " << new_pts << " from " << source;
+      LOG(INFO) << "Update " << d->dialog_id << " PTS to " << new_pts << " from " << source;
     }
 
     d->pts = new_pts;
@@ -39025,7 +39025,7 @@ void MessagesManager::set_channel_pts(Dialog *d, int32 new_pts, const char *sour
       G()->td_db()->get_binlog_pmc()->set(get_channel_pts_key(d->dialog_id), to_string(new_pts));
     }
   } else if (new_pts < d->pts) {
-    LOG(ERROR) << "Receive wrong pts " << new_pts << " in " << d->dialog_id << " from " << source << ". Current pts is "
+    LOG(ERROR) << "Receive wrong PTS " << new_pts << " in " << d->dialog_id << " from " << source << ". Current PTS is "
                << d->pts;
   }
 }
@@ -39181,7 +39181,7 @@ void MessagesManager::do_get_channel_difference(DialogId dialog_id, int32 pts, b
     limit = MIN_CHANNEL_DIFFERENCE;
   }
 
-  LOG(INFO) << "-----BEGIN GET CHANNEL DIFFERENCE----- for " << dialog_id << " with pts " << pts << " and limit "
+  LOG(INFO) << "-----BEGIN GET CHANNEL DIFFERENCE----- for " << dialog_id << " with PTS " << pts << " and limit "
             << limit << " from " << source;
 
   td_->create_handler<GetChannelDifferenceQuery>()->send(dialog_id, std::move(input_channel), pts, limit, force);
@@ -39503,7 +39503,7 @@ void MessagesManager::on_get_channel_difference(
 
   channel_get_difference_retry_timeouts_.erase(dialog_id);
 
-  LOG(INFO) << "Receive result of getChannelDifference for " << dialog_id << " with pts = " << request_pts
+  LOG(INFO) << "Receive result of getChannelDifference for " << dialog_id << " with PTS = " << request_pts
             << " and limit = " << request_limit << " from " << source << ": " << to_string(difference_ptr);
 
   bool have_new_messages = false;
@@ -39557,18 +39557,18 @@ void MessagesManager::on_get_channel_difference(
       int32 flags = difference->flags_;
       is_final = (flags & CHANNEL_DIFFERENCE_FLAG_IS_FINAL) != 0;
       LOG_IF(ERROR, !is_final) << "Receive channelDifferenceEmpty as result of getChannelDifference from " << source
-                               << " with pts = " << request_pts << " and limit = " << request_limit << " in "
+                               << " with PTS = " << request_pts << " and limit = " << request_limit << " in "
                                << dialog_id << ", but it is not final";
       if (flags & CHANNEL_DIFFERENCE_FLAG_HAS_TIMEOUT) {
         timeout = difference->timeout_;
       }
 
-      // bots can receive channelDifferenceEmpty with pts bigger than known pts
+      // bots can receive channelDifferenceEmpty with PTS bigger than known PTS
       // also, this can happen for deleted channels
       if (request_pts != difference->pts_ && !td_->auth_manager_->is_bot() &&
           have_input_peer(dialog_id, AccessRights::Read)) {
         LOG(ERROR) << "Receive channelDifferenceEmpty as result of getChannelDifference from " << source
-                   << " with pts = " << request_pts << " and limit = " << request_limit << " in " << dialog_id
+                   << " with PTS = " << request_pts << " and limit = " << request_limit << " in " << dialog_id
                    << ", but PTS has changed to " << difference->pts_;
       }
       set_channel_pts(d, difference->pts_, "channel difference empty");
@@ -39586,7 +39586,7 @@ void MessagesManager::on_get_channel_difference(
       auto new_pts = difference->pts_;
       if (request_pts >= new_pts && request_pts > 1 && (request_pts > new_pts || !td_->auth_manager_->is_bot())) {
         LOG(ERROR) << "Receive channelDifference as result of getChannelDifference from " << source
-                   << " with pts = " << request_pts << " and limit = " << request_limit << " in " << dialog_id
+                   << " with PTS = " << request_pts << " and limit = " << request_limit << " in " << dialog_id
                    << ", but PTS has changed from " << d->pts << " to " << new_pts
                    << ". Difference: " << oneline(to_string(difference));
         new_pts = request_pts + 1;
@@ -39599,7 +39599,7 @@ void MessagesManager::on_get_channel_difference(
           auto message_id = MessageId::get_message_id(message, false);
           if (message_id <= cur_message_id) {
             LOG(ERROR) << "Receive " << cur_message_id << " after " << message_id << " in channelDifference of "
-                       << dialog_id << " from " << source << " with pts " << request_pts << " and limit "
+                       << dialog_id << " from " << source << " with PTS " << request_pts << " and limit "
                        << request_limit << ": " << to_string(difference);
             after_get_channel_difference(dialog_id, false);
             return;
@@ -39637,7 +39637,7 @@ void MessagesManager::on_get_channel_difference(
 
       CHECK(dialog != nullptr);
       if ((dialog->flags_ & telegram_api::dialog::PTS_MASK) == 0) {
-        LOG(ERROR) << "Receive " << dialog_id << " without pts";
+        LOG(ERROR) << "Receive " << dialog_id << " without PTS";
         return after_get_channel_difference(dialog_id, false);
       }
 
@@ -39650,7 +39650,7 @@ void MessagesManager::on_get_channel_difference(
       auto new_pts = dialog->pts_;
       if (request_pts > new_pts - request_limit) {
         LOG(ERROR) << "Receive channelDifferenceTooLong as result of getChannelDifference from " << source
-                   << " with pts = " << request_pts << " and limit = " << request_limit << " in " << dialog_id
+                   << " with PTS = " << request_pts << " and limit = " << request_limit << " in " << dialog_id
                    << ", but PTS has changed from " << d->pts << " to " << new_pts
                    << ". Difference: " << oneline(to_string(difference));
         if (request_pts >= new_pts) {
@@ -39747,13 +39747,13 @@ void MessagesManager::after_get_channel_difference(DialogId dialog_id, bool succ
       }
       if (updates.size() != old_size || running_get_channel_difference(dialog_id)) {
         if (success && update_pts - 10000 < pts && update_pts_count == 1) {
-          // if getChannelDifference was successful and update pts is near channel pts,
+          // if getChannelDifference was successful and update PTS is near channel PTS,
           // we hope that the update eventually can be applied
           LOG(INFO) << "Can't apply postponed channel updates";
         } else {
           // otherwise protect from getChannelDifference repeating calls by dropping postponed updates
           LOG(WARNING) << "Failed to apply postponed updates of type " << update_id << " in " << dialog_id
-                       << " with pts " << pts << ", update pts is " << update_pts << ", update pts count is "
+                       << " with PTS " << pts << ", update PTS is " << update_pts << ", update PTS count is "
                        << update_pts_count;
           vector<Promise<Unit>> update_promises;
           for (auto &postponed_update : updates) {

@@ -1158,7 +1158,7 @@ void SecretChatActor::do_inbound_message_decrypted_pending(unique_ptr<log_event:
   // Just save log event if necessary
   auto log_event_id = message->log_event_id();
 
-  // qts
+  // QTS
   auto qts_promise = std::move(message->promise);
 
   if (log_event_id == 0) {
@@ -1185,9 +1185,9 @@ Status SecretChatActor::do_inbound_message_decrypted(unique_ptr<log_event::Inbou
   // 3. [save_log_event] => Add message to MessageManager [save_message]
   //    Note: if we are able to add message by random_id, we may not wait for (log event). Otherwise, we should force
   //    binlog flush.
-  // 4. [save_log_event] => Update qts [qts]
+  // 4. [save_log_event] => Update QTS [qts]
   // 5. [save_changes; save_message; ?qts) => Remove log event [remove_log_event]
-  //    Note: It is easier not to wait for qts. In the worst case old update will be handled again after restart.
+  //    Note: It is easier not to wait for QTS. In the worst case old update will be handled again after restart.
 
   auto state_id = inbound_message_states_.create();
   InboundMessageState &state = *inbound_message_states_.get(state_id);
@@ -1236,7 +1236,7 @@ Status SecretChatActor::do_inbound_message_decrypted(unique_ptr<log_event::Inbou
     on_pfs_state_changed();
   }
 
-  // qts
+  // QTS
   auto qts_promise = std::move(message->promise);
 
   // process message

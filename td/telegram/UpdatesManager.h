@@ -225,7 +225,7 @@ class UpdatesManager final : public Actor {
   std::multimap<int32, PendingSeqUpdates> postponed_updates_;    // updates received during getDifference
   std::multimap<int32, PendingSeqUpdates> pending_seq_updates_;  // updates with too big seq
 
-  std::map<int32, PendingQtsUpdate> pending_qts_updates_;  // updates with too big qts
+  std::map<int32, PendingQtsUpdate> pending_qts_updates_;  // updates with too big QTS
 
   Timeout pts_gap_timeout_;
 

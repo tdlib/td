@@ -111,7 +111,7 @@ class SecretChatActor final : public NetQueryCallback {
   void cancel_chat(bool delete_history, bool is_already_discarded, Promise<> promise);
 
   // Inbound messages
-  // Logevent is created by SecretChatsManager, because it must contain qts
+  // Logevent is created by SecretChatsManager, because it must contain QTS
   void add_inbound_message(unique_ptr<log_event::InboundSecretMessage> message);
 
   // Outbound messages
@@ -479,7 +479,7 @@ class SecretChatActor final : public NetQueryCallback {
   // This is completly flawed.
   // (A-start_save_to_binlog ----> B-start_save_to_binlog+change_memory ----> A-finish_save_to_binlog+surprise)
   //
-  // Instead, I suggest general solution that is already used with SeqNoState and qts
+  // Instead, I suggest general solution that is already used with SeqNoState and QTS
   // 1. We APPLY CHANGE to memory immediately AFTER corresponding EVENT is SENT to the binlog.
   // 2. We SEND CHANGE to database only after corresponding EVENT is SAVED to the binlog.
   // 3. Then, we are able to ERASE EVENT just AFTER the CHANGE is SAVED to the binlog.
