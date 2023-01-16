@@ -39,7 +39,7 @@ class FileDbInterface {
   virtual ~FileDbInterface() = default;
 
   // non-thread-safe
-  virtual FileDbId create_pmc_id() = 0;
+  virtual FileDbId get_next_file_db_id() = 0;
 
   // thread-safe
   virtual void close(Promise<> promise) = 0;
@@ -75,10 +75,10 @@ class FileDbInterface {
     return res;
   }
 
-  virtual void clear_file_data(FileDbId id, const FileData &file_data) = 0;
-  virtual void set_file_data(FileDbId id, const FileData &file_data, bool new_remote, bool new_local,
+  virtual void clear_file_data(FileDbId file_db_id, const FileData &file_data) = 0;
+  virtual void set_file_data(FileDbId file_db_id, const FileData &file_data, bool new_remote, bool new_local,
                              bool new_generate) = 0;
-  virtual void set_file_data_ref(FileDbId id, FileDbId new_id) = 0;
+  virtual void set_file_data_ref(FileDbId file_db_id, FileDbId new_file_db_id) = 0;
 
   // For FileStatsWorker. TODO: remove it
   virtual SqliteKeyValue &pmc() = 0;

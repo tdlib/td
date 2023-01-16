@@ -470,9 +470,10 @@ class FileManager final : public FileLoadManager::Callback {
 
   void delete_file(FileId file_id, Promise<Unit> promise, const char *source);
 
-  void external_file_generate_write_part(int64 id, int64 offset, string data, Promise<> promise);
-  void external_file_generate_progress(int64 id, int64 expected_size, int64 local_prefix_size, Promise<> promise);
-  void external_file_generate_finish(int64 id, Status status, Promise<> promise);
+  void external_file_generate_write_part(int64 generation_id, int64 offset, string data, Promise<> promise);
+  void external_file_generate_progress(int64 generation_id, int64 expected_size, int64 local_prefix_size,
+                                       Promise<> promise);
+  void external_file_generate_finish(int64 generation_id, Status status, Promise<> promise);
 
   Result<FileId> from_persistent_id(CSlice persistent_id, FileType file_type) TD_WARN_UNUSED_RESULT;
   FileView get_file_view(FileId file_id) const;
@@ -659,7 +660,6 @@ class FileManager final : public FileLoadManager::Callback {
 
   void on_force_reupload_success(FileId file_id);
 
-  // void release_file_node(FileNodeId id);
   void do_cancel_download(FileNodePtr node);
   void do_cancel_upload(FileNodePtr node);
   void do_cancel_generate(FileNodePtr node);

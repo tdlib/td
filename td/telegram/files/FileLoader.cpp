@@ -211,15 +211,15 @@ Status FileLoader::do_loop() {
     NetQueryPtr query;
     bool is_blocking;
     std::tie(query, is_blocking) = std::move(query_flag);
-    uint64 id = UniqueId::next();
+    uint64 unique_id = UniqueId::next();
     if (is_blocking) {
       CHECK(blocking_id_ == 0);
-      blocking_id_ = id;
+      blocking_id_ = unique_id;
     }
-    part_map_[id] = std::make_pair(part, query->cancel_slot_.get_signal_new());
-    // part_map_[id] = std::make_pair(part, query.get_weak());
+    part_map_[unique_id] = std::make_pair(part, query->cancel_slot_.get_signal_new());
+    // part_map_[unique_id] = std::make_pair(part, query.get_weak());
 
-    auto callback = actor_shared(this, id);
+    auto callback = actor_shared(this, unique_id);
     if (delay_dispatcher_.empty()) {
       G()->net_query_dispatcher().dispatch_with_callback(std::move(query), std::move(callback));
     } else {
@@ -259,15 +259,15 @@ void FileLoader::on_result(NetQueryPtr query) {
   if (stop_flag_) {
     return;
   }
-  auto id = get_link_token();
-  if (id == blocking_id_) {
+  auto unique_id = get_link_token();
+  if (unique_id == blocking_id_) {
     blocking_id_ = 0;
   }
-  if (UniqueId::extract_key(id) == COMMON_QUERY_KEY) {
+  if (UniqueId::extract_key(unique_id) == COMMON_QUERY_KEY) {
     on_common_query(std::move(query));
     return loop();
   }
-  auto it = part_map_.find(id);
+  auto it = part_map_.find(unique_id);
   if (it == part_map_.end()) {
     LOG(WARNING) << "Got result for unknown part";
     return;

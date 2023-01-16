@@ -46,17 +46,17 @@ int32 PartsManager::set_streaming_offset(int64 offset, int64 limit) {
     return finish();
   }
 
-  auto part_i = offset / part_size_;
-  if (use_part_count_limit_ && part_i >= MAX_PART_COUNT_PREMIUM) {
+  auto part_id = offset / part_size_;
+  if (use_part_count_limit_ && part_id >= MAX_PART_COUNT_PREMIUM) {
     streaming_offset_ = 0;
-    LOG(ERROR) << "Ignore streaming_offset " << offset << " in part " << part_i;
+    LOG(ERROR) << "Ignore streaming_offset " << offset << " in part " << part_id;
 
     return finish();
   }
 
   streaming_offset_ = offset;
-  first_streaming_empty_part_ = narrow_cast<int>(part_i);
-  first_streaming_not_ready_part_ = narrow_cast<int>(part_i);
+  first_streaming_empty_part_ = narrow_cast<int>(part_id);
+  first_streaming_not_ready_part_ = narrow_cast<int>(part_id);
   if (part_count_ < first_streaming_empty_part_) {
     part_count_ = first_streaming_empty_part_;
     part_status_.resize(part_count_, PartStatus::Empty);
@@ -75,9 +75,9 @@ void PartsManager::set_streaming_limit(int64 limit) {
   if (streaming_limit_ == 0) {
     return;
   }
-  for (int part_i = 0; part_i < part_count_; part_i++) {
-    if (is_part_in_streaming_limit(part_i) && part_status_[part_i] == PartStatus::Ready) {
-      streaming_ready_size_ += get_part(part_i).size;
+  for (int part_id = 0; part_id < part_count_; part_id++) {
+    if (is_part_in_streaming_limit(part_id) && part_status_[part_id] == PartStatus::Ready) {
+      streaming_ready_size_ += get_part(part_id).size;
     }
   }
 }
@@ -231,10 +231,10 @@ string PartsManager::get_bitmask() {
   return bitmask_.encode(prefix_count);
 }
 
-bool PartsManager::is_part_in_streaming_limit(int part_i) const {
-  CHECK(part_i < part_count_);
-  auto offset_begin = static_cast<int64>(part_i) * static_cast<int64>(get_part_size());
-  auto offset_end = offset_begin + static_cast<int64>(get_part(part_i).size);
+bool PartsManager::is_part_in_streaming_limit(int part_id) const {
+  CHECK(part_id < part_count_);
+  auto offset_begin = static_cast<int64>(part_id) * static_cast<int64>(get_part_size());
+  auto offset_end = offset_begin + static_cast<int64>(get_part(part_id).size);
 
   if (offset_begin >= get_expected_size()) {
     return false;
@@ -265,25 +265,25 @@ bool PartsManager::is_streaming_limit_reached() {
     return false;
   }
   update_first_not_ready_part();
-  auto part_i = first_streaming_not_ready_part_;
+  auto part_id = first_streaming_not_ready_part_;
 
   // wrap
-  if (!unknown_size_flag_ && part_i == part_count_) {
-    part_i = first_not_ready_part_;
+  if (!unknown_size_flag_ && part_id == part_count_) {
+    part_id = first_not_ready_part_;
   }
-  if (part_i == part_count_) {
+  if (part_id == part_count_) {
     return false;
   }
-  return !is_part_in_streaming_limit(part_i);
+  return !is_part_in_streaming_limit(part_id);
 }
 
 Result<Part> PartsManager::start_part() {
   update_first_empty_part();
-  auto part_i = first_streaming_empty_part_;
-  if (known_prefix_flag_ && part_i >= static_cast<int>(known_prefix_size_ / part_size_)) {
+  auto part_id = first_streaming_empty_part_;
+  if (known_prefix_flag_ && part_id >= static_cast<int>(known_prefix_size_ / part_size_)) {
     return Status::Error(-1, "Wait for prefix to be known");
   }
-  if (part_i == part_count_) {
+  if (part_id == part_count_) {
     if (unknown_size_flag_) {
       part_count_++;
       if (part_count_ > MAX_PART_COUNT_PREMIUM + (use_part_count_limit_ ? 0 : 64)) {
@@ -296,19 +296,19 @@ Result<Part> PartsManager::start_part() {
       part_status_.push_back(PartStatus::Empty);
     } else {
       if (first_empty_part_ < part_count_) {
-        part_i = first_empty_part_;
+        part_id = first_empty_part_;
       } else {
         return get_empty_part();
       }
     }
   }
 
-  if (!is_part_in_streaming_limit(part_i)) {
+  if (!is_part_in_streaming_limit(part_id)) {
     return get_empty_part();
   }
-  CHECK(part_status_[part_i] == PartStatus::Empty);
-  on_part_start(part_i);
-  return get_part(part_i);
+  CHECK(part_status_[part_id] == PartStatus::Empty);
+  on_part_start(part_id);
+  return get_part(part_id);
 }
 
 Status PartsManager::set_known_prefix(size_t size, bool is_ready) {
@@ -341,22 +341,23 @@ Status PartsManager::set_known_prefix(size_t size, bool is_ready) {
   return Status::OK();
 }
 
-Status PartsManager::on_part_ok(int32 id, size_t part_size, size_t actual_size) {
-  CHECK(part_status_[id] == PartStatus::Pending);
+Status PartsManager::on_part_ok(int part_id, size_t part_size, size_t actual_size) {
+  CHECK(part_status_[part_id] == PartStatus::Pending);
   pending_count_--;
 
-  part_status_[id] = PartStatus::Ready;
+  part_status_[part_id] = PartStatus::Ready;
   if (actual_size != 0) {
-    bitmask_.set(id);
+    bitmask_.set(part_id);
   }
   ready_size_ += narrow_cast<int64>(actual_size);
-  if (streaming_limit_ > 0 && is_part_in_streaming_limit(id)) {
+  if (streaming_limit_ > 0 && is_part_in_streaming_limit(part_id)) {
     streaming_ready_size_ += narrow_cast<int64>(actual_size);
   }
 
-  VLOG(file_loader) << "Transferred part " << id << " of size " << part_size << ", total ready size = " << ready_size_;
+  VLOG(file_loader) << "Transferred part " << part_id << " of size " << part_size
+                    << ", total ready size = " << ready_size_;
 
-  int64 offset = narrow_cast<int64>(part_size_) * id;
+  int64 offset = narrow_cast<int64>(part_size_) * part_id;
   int64 end_offset = offset + narrow_cast<int64>(actual_size);
   if (unknown_size_flag_) {
     CHECK(part_size == part_size_);
@@ -386,20 +387,20 @@ Status PartsManager::on_part_ok(int32 id, size_t part_size, size_t actual_size) 
   return Status::OK();
 }
 
-void PartsManager::on_part_failed(int32 id) {
-  CHECK(part_status_[id] == PartStatus::Pending);
+void PartsManager::on_part_failed(int32 part_id) {
+  CHECK(part_status_[part_id] == PartStatus::Pending);
   pending_count_--;
-  part_status_[id] = PartStatus::Empty;
-  if (id < first_empty_part_) {
-    first_empty_part_ = id;
+  part_status_[part_id] = PartStatus::Empty;
+  if (part_id < first_empty_part_) {
+    first_empty_part_ = part_id;
   }
   if (streaming_offset_ == 0) {
-    first_streaming_empty_part_ = id;
+    first_streaming_empty_part_ = part_id;
     return;
   }
-  auto part_i = narrow_cast<int>(streaming_offset_ / part_size_);
-  if (id >= part_i && id < first_streaming_empty_part_) {
-    first_streaming_empty_part_ = id;
+  auto offset_part_id = narrow_cast<int>(streaming_offset_ / part_size_);
+  if (part_id >= offset_part_id && part_id < first_streaming_empty_part_) {
+    first_streaming_empty_part_ = part_id;
   }
 }
 
@@ -442,9 +443,9 @@ int64 PartsManager::get_estimated_extra() const {
 
     //TODO: delete this block if CHECK won't fail
     int64 sub = 0;
-    for (int part_i = 0; part_i < part_count_; part_i++) {
-      if (is_part_in_streaming_limit(part_i) && part_status_[part_i] == PartStatus::Ready) {
-        sub += get_part(part_i).size;
+    for (int part_id = 0; part_id < part_count_; part_id++) {
+      if (is_part_in_streaming_limit(part_id) && part_status_[part_id] == PartStatus::Ready) {
+        sub += get_part(part_id).size;
       }
     }
     CHECK(sub == streaming_ready_size_);
@@ -536,25 +537,25 @@ int64 PartsManager::get_unchecked_ready_prefix_size() {
   return res;
 }
 
-Part PartsManager::get_part(int id) const {
+Part PartsManager::get_part(int part_id) const {
   auto size = narrow_cast<int64>(part_size_);
-  auto offset = size * id;
+  auto offset = size * part_id;
   auto total_size = unknown_size_flag_ ? max_size_ : get_size();
   if (total_size < offset) {
     size = 0;
   } else {
     size = min(size, total_size - offset);
   }
-  return Part{id, offset, static_cast<size_t>(size)};
+  return Part{part_id, offset, static_cast<size_t>(size)};
 }
 
 Part PartsManager::get_empty_part() {
   return Part{-1, 0, 0};
 }
 
-void PartsManager::on_part_start(int32 id) {
-  CHECK(part_status_[id] == PartStatus::Empty);
-  part_status_[id] = PartStatus::Pending;
+void PartsManager::on_part_start(int32 part_id) {
+  CHECK(part_status_[part_id] == PartStatus::Empty);
+  part_status_[part_id] = PartStatus::Pending;
   pending_count_++;
 }
 

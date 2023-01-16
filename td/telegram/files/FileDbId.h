@@ -51,8 +51,8 @@ class FileDbId {
   }
 };
 
-inline StringBuilder &operator<<(StringBuilder &sb, const FileDbId &id) {
-  return sb << "FileDbId{" << id.get() << "}";
+inline StringBuilder &operator<<(StringBuilder &sb, const FileDbId &file_db_id) {
+  return sb << "FileDbId{" << file_db_id.get() << "}";
 }
 
 }  // namespace td

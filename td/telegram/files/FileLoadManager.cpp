@@ -43,7 +43,7 @@ ActorOwn<ResourceManager> &FileLoadManager::get_download_resource_manager(bool i
   return actor;
 }
 
-void FileLoadManager::download(QueryId id, const FullRemoteFileLocation &remote_location,
+void FileLoadManager::download(QueryId query_id, const FullRemoteFileLocation &remote_location,
                                const LocalFileLocation &local, int64 size, string name,
                                const FileEncryptionKey &encryption_key, bool search_file, int64 offset, int64 limit,
                                int8 priority) {
@@ -53,7 +53,7 @@ void FileLoadManager::download(QueryId id, const FullRemoteFileLocation &remote_
   NodeId node_id = nodes_container_.create(Node());
   Node *node = nodes_container_.get(node_id);
   CHECK(node);
-  node->query_id_ = id;
+  node->query_id_ = query_id;
   auto callback = make_unique<FileDownloaderCallback>(actor_shared(this, node_id));
   bool is_small = size < 20 * 1024;
   node->loader_ =
@@ -63,11 +63,11 @@ void FileLoadManager::download(QueryId id, const FullRemoteFileLocation &remote_
   auto &resource_manager = get_download_resource_manager(is_small, dc_id);
   send_closure(resource_manager, &ResourceManager::register_worker,
                ActorShared<FileLoaderActor>(node->loader_.get(), static_cast<uint64>(-1)), priority);
-  bool is_inserted = query_id_to_node_id_.emplace(id, node_id).second;
+  bool is_inserted = query_id_to_node_id_.emplace(query_id, node_id).second;
   CHECK(is_inserted);
 }
 
-void FileLoadManager::upload(QueryId id, const LocalFileLocation &local_location,
+void FileLoadManager::upload(QueryId query_id, const LocalFileLocation &local_location,
                              const RemoteFileLocation &remote_location, int64 expected_size,
                              const FileEncryptionKey &encryption_key, int8 priority, vector<int> bad_parts) {
   if (stop_flag_) {
@@ -76,17 +76,17 @@ void FileLoadManager::upload(QueryId id, const LocalFileLocation &local_location
   NodeId node_id = nodes_container_.create(Node());
   Node *node = nodes_container_.get(node_id);
   CHECK(node);
-  node->query_id_ = id;
+  node->query_id_ = query_id;
   auto callback = make_unique<FileUploaderCallback>(actor_shared(this, node_id));
   node->loader_ = create_actor<FileUploader>("Uploader", local_location, remote_location, expected_size, encryption_key,
                                              std::move(bad_parts), std::move(callback));
   send_closure(upload_resource_manager_, &ResourceManager::register_worker,
                ActorShared<FileLoaderActor>(node->loader_.get(), static_cast<uint64>(-1)), priority);
-  bool is_inserted = query_id_to_node_id_.emplace(id, node_id).second;
+  bool is_inserted = query_id_to_node_id_.emplace(query_id, node_id).second;
   CHECK(is_inserted);
 }
 
-void FileLoadManager::upload_by_hash(QueryId id, const FullLocalFileLocation &local_location, int64 size,
+void FileLoadManager::upload_by_hash(QueryId query_id, const FullLocalFileLocation &local_location, int64 size,
                                      int8 priority) {
   if (stop_flag_) {
     return;
@@ -94,20 +94,20 @@ void FileLoadManager::upload_by_hash(QueryId id, const FullLocalFileLocation &lo
   NodeId node_id = nodes_container_.create(Node());
   Node *node = nodes_container_.get(node_id);
   CHECK(node);
-  node->query_id_ = id;
+  node->query_id_ = query_id;
   auto callback = make_unique<FileHashUploaderCallback>(actor_shared(this, node_id));
   node->loader_ = create_actor<FileHashUploader>("HashUploader", local_location, size, std::move(callback));
   send_closure(upload_resource_manager_, &ResourceManager::register_worker,
                ActorShared<FileLoaderActor>(node->loader_.get(), static_cast<uint64>(-1)), priority);
-  bool is_inserted = query_id_to_node_id_.emplace(id, node_id).second;
+  bool is_inserted = query_id_to_node_id_.emplace(query_id, node_id).second;
   CHECK(is_inserted);
 }
 
-void FileLoadManager::update_priority(QueryId id, int8 priority) {
+void FileLoadManager::update_priority(QueryId query_id, int8 priority) {
   if (stop_flag_) {
     return;
   }
-  auto it = query_id_to_node_id_.find(id);
+  auto it = query_id_to_node_id_.find(query_id);
   if (it == query_id_to_node_id_.end()) {
     return;
   }
@@ -118,18 +118,18 @@ void FileLoadManager::update_priority(QueryId id, int8 priority) {
   send_closure(node->loader_, &FileLoaderActor::update_priority, priority);
 }
 
-void FileLoadManager::from_bytes(QueryId id, FileType type, BufferSlice bytes, string name) {
+void FileLoadManager::from_bytes(QueryId query_id, FileType type, BufferSlice bytes, string name) {
   if (stop_flag_) {
     return;
   }
   NodeId node_id = nodes_container_.create(Node());
   Node *node = nodes_container_.get(node_id);
   CHECK(node);
-  node->query_id_ = id;
+  node->query_id_ = query_id;
   auto callback = make_unique<FileFromBytesCallback>(actor_shared(this, node_id));
   node->loader_ =
       create_actor<FileFromBytes>("FromBytes", type, std::move(bytes), std::move(name), std::move(callback));
-  bool is_inserted = query_id_to_node_id_.emplace(id, node_id).second;
+  bool is_inserted = query_id_to_node_id_.emplace(query_id, node_id).second;
   CHECK(is_inserted);
 }
 
@@ -160,23 +160,21 @@ void FileLoadManager::check_partial_local_location(PartialLocalFileLocation part
   }
 }
 
-// void upload_reload_parts(QueryId id, vector<int32> parts);
-// void upload_restart(QueryId id);
-void FileLoadManager::cancel(QueryId id) {
+void FileLoadManager::cancel(QueryId query_id) {
   if (stop_flag_) {
     return;
   }
-  auto it = query_id_to_node_id_.find(id);
+  auto it = query_id_to_node_id_.find(query_id);
   if (it == query_id_to_node_id_.end()) {
     return;
   }
   on_error_impl(it->second, Status::Error(-1, "Canceled"));
 }
-void FileLoadManager::update_local_file_location(QueryId id, const LocalFileLocation &local) {
+void FileLoadManager::update_local_file_location(QueryId query_id, const LocalFileLocation &local) {
   if (stop_flag_) {
     return;
   }
-  auto it = query_id_to_node_id_.find(id);
+  auto it = query_id_to_node_id_.find(query_id);
   if (it == query_id_to_node_id_.end()) {
     return;
   }
@@ -187,11 +185,11 @@ void FileLoadManager::update_local_file_location(QueryId id, const LocalFileLoca
   send_closure(node->loader_, &FileLoaderActor::update_local_file_location, local);
 }
 
-void FileLoadManager::update_downloaded_part(QueryId id, int64 offset, int64 limit) {
+void FileLoadManager::update_downloaded_part(QueryId query_id, int64 offset, int64 limit) {
   if (stop_flag_) {
     return;
   }
-  auto it = query_id_to_node_id_.find(id);
+  auto it = query_id_to_node_id_.find(query_id);
   if (it == query_id_to_node_id_.end()) {
     return;
   }
@@ -203,7 +201,7 @@ void FileLoadManager::update_downloaded_part(QueryId id, int64 offset, int64 lim
 }
 
 void FileLoadManager::hangup() {
-  nodes_container_.for_each([](auto id, auto &node) { node.loader_.reset(); });
+  nodes_container_.for_each([](auto query_id, auto &node) { node.loader_.reset(); });
   stop_flag_ = true;
   loop();
 }

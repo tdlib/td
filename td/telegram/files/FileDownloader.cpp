@@ -245,16 +245,16 @@ Result<std::pair<NetQueryPtr, bool>> FileDownloader::start_part(Part part, int32
     }
 #endif
     DcId dc_id = remote_.is_web() ? G()->get_webfile_dc_id() : remote_.get_dc_id();
-    auto id = UniqueId::next(UniqueId::Type::Default, static_cast<uint8>(QueryType::Default));
+    auto unique_id = UniqueId::next(UniqueId::Type::Default, static_cast<uint8>(QueryType::Default));
     net_query =
         remote_.is_web()
             ? G()->net_query_creator().create(
-                  id,
+                  unique_id,
                   telegram_api::upload_getWebFile(remote_.as_input_web_file_location(), narrow_cast<int32>(part.offset),
                                                   narrow_cast<int32>(size)),
                   {}, dc_id, net_query_type, NetQuery::AuthFlag::On)
             : G()->net_query_creator().create(
-                  id,
+                  unique_id,
                   telegram_api::upload_getFile(flags, false /*ignored*/, false /*ignored*/,
                                                remote_.as_input_file_location(), part.offset, narrow_cast<int32>(size)),
                   {}, dc_id, net_query_type, NetQuery::AuthFlag::On);

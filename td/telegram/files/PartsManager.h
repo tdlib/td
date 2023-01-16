@@ -30,8 +30,8 @@ class PartsManager {
 
   // returns empty part if nothing to return
   Result<Part> start_part() TD_WARN_UNUSED_RESULT;
-  Status on_part_ok(int32 id, size_t part_size, size_t actual_size) TD_WARN_UNUSED_RESULT;
-  void on_part_failed(int32 id);
+  Status on_part_ok(int part_id, size_t part_size, size_t actual_size) TD_WARN_UNUSED_RESULT;
+  void on_part_failed(int part_id);
   Status set_known_prefix(size_t size, bool is_ready);
   void set_need_check();
   void set_checked_prefix_size(int64 size);
@@ -96,13 +96,13 @@ class PartsManager {
 
   static Part get_empty_part();
 
-  Part get_part(int id) const;
-  void on_part_start(int32 id);
+  Part get_part(int part_id) const;
+  void on_part_start(int part_id);
   void update_first_empty_part();
   void update_first_not_ready_part();
 
   bool is_streaming_limit_reached();
-  bool is_part_in_streaming_limit(int part_i) const;
+  bool is_part_in_streaming_limit(int part_id) const;
 };
 
 }  // namespace td

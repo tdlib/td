@@ -60,8 +60,8 @@ class FileDb final : public FileDbInterface {
  public:
   class FileDbActor final : public Actor {
    public:
-    FileDbActor(FileDbId current_pmc_id, std::shared_ptr<SqliteKeyValueSafe> file_kv_safe)
-        : current_pmc_id_(current_pmc_id), file_kv_safe_(std::move(file_kv_safe)) {
+    FileDbActor(FileDbId max_file_db_id, std::shared_ptr<SqliteKeyValueSafe> file_kv_safe)
+        : max_file_db_id_(max_file_db_id), file_kv_safe_(std::move(file_kv_safe)) {
     }
 
     void close(Promise<> promise) {
@@ -72,20 +72,21 @@ class FileDb final : public FileDbInterface {
     }
 
     void load_file_data(const string &key, Promise<FileData> promise) {
-      promise.set_result(load_file_data_impl(actor_id(this), file_pmc(), key, current_pmc_id_));
+      promise.set_result(load_file_data_impl(actor_id(this), file_pmc(), key, max_file_db_id_));
     }
 
-    void clear_file_data(FileDbId id, const string &remote_key, const string &local_key, const string &generate_key) {
+    void clear_file_data(FileDbId file_db_id, const string &remote_key, const string &local_key,
+                         const string &generate_key) {
       auto &pmc = file_pmc();
       pmc.begin_write_transaction().ensure();
 
-      if (id > current_pmc_id_) {
-        pmc.set("file_id", to_string(id.get()));
-        current_pmc_id_ = id;
+      if (file_db_id > max_file_db_id_) {
+        pmc.set("file_id", to_string(file_db_id.get()));
+        max_file_db_id_ = file_db_id;
       }
 
-      pmc.erase(PSTRING() << "file" << id.get());
-      // LOG(DEBUG) << "ERASE " << format::as_hex_dump<4>(Slice(PSLICE() << "file" << id.get()));
+      pmc.erase(PSTRING() << "file" << file_db_id.get());
+      // LOG(DEBUG) << "ERASE " << format::as_hex_dump<4>(Slice(PSLICE() << "file" << file_db_id.get()));
 
       if (!remote_key.empty()) {
         pmc.erase(remote_key);
@@ -102,79 +103,79 @@ class FileDb final : public FileDbInterface {
       pmc.commit_transaction().ensure();
     }
 
-    void store_file_data(FileDbId id, const string &file_data, const string &remote_key, const string &local_key,
-                         const string &generate_key) {
+    void store_file_data(FileDbId file_db_id, const string &file_data, const string &remote_key,
+                         const string &local_key, const string &generate_key) {
       auto &pmc = file_pmc();
       pmc.begin_write_transaction().ensure();
 
-      if (id > current_pmc_id_) {
-        pmc.set("file_id", to_string(id.get()));
-        current_pmc_id_ = id;
+      if (file_db_id > max_file_db_id_) {
+        pmc.set("file_id", to_string(file_db_id.get()));
+        max_file_db_id_ = file_db_id;
       }
 
-      pmc.set(PSTRING() << "file" << id.get(), file_data);
+      pmc.set(PSTRING() << "file" << file_db_id.get(), file_data);
 
       if (!remote_key.empty()) {
-        pmc.set(remote_key, to_string(id.get()));
+        pmc.set(remote_key, to_string(file_db_id.get()));
       }
       if (!local_key.empty()) {
-        pmc.set(local_key, to_string(id.get()));
+        pmc.set(local_key, to_string(file_db_id.get()));
       }
       if (!generate_key.empty()) {
-        pmc.set(generate_key, to_string(id.get()));
+        pmc.set(generate_key, to_string(file_db_id.get()));
       }
 
       pmc.commit_transaction().ensure();
     }
 
-    void store_file_data_ref(FileDbId id, FileDbId new_id) {
+    void store_file_data_ref(FileDbId file_db_id, FileDbId new_file_db_id) {
       auto &pmc = file_pmc();
       pmc.begin_write_transaction().ensure();
 
-      if (id > current_pmc_id_) {
-        pmc.set("file_id", to_string(id.get()));
-        current_pmc_id_ = id;
+      if (file_db_id > max_file_db_id_) {
+        pmc.set("file_id", to_string(file_db_id.get()));
+        max_file_db_id_ = file_db_id;
       }
 
-      do_store_file_data_ref(id, new_id);
+      do_store_file_data_ref(file_db_id, new_file_db_id);
 
       pmc.commit_transaction().ensure();
     }
 
-    void optimize_refs(std::vector<FileDbId> ids, FileDbId main_id) {
-      LOG(INFO) << "Optimize " << ids.size() << " ids in file database to " << main_id.get();
+    void optimize_refs(std::vector<FileDbId> file_db_ids, FileDbId main_file_db_id) {
+      LOG(INFO) << "Optimize " << file_db_ids.size() << " file_db_ids in file database to " << main_file_db_id.get();
       auto &pmc = file_pmc();
       pmc.begin_write_transaction().ensure();
-      for (size_t i = 0; i + 1 < ids.size(); i++) {
-        do_store_file_data_ref(ids[i], main_id);
+      for (size_t i = 0; i + 1 < file_db_ids.size(); i++) {
+        do_store_file_data_ref(file_db_ids[i], main_file_db_id);
       }
       pmc.commit_transaction().ensure();
     }
 
    private:
-    FileDbId current_pmc_id_;
+    FileDbId max_file_db_id_;
     std::shared_ptr<SqliteKeyValueSafe> file_kv_safe_;
 
     SqliteKeyValue &file_pmc() {
       return file_kv_safe_->get();
     }
 
-    void do_store_file_data_ref(FileDbId id, FileDbId new_id) {
-      file_pmc().set(PSTRING() << "file" << id.get(), PSTRING() << "@@" << new_id.get());
+    void do_store_file_data_ref(FileDbId file_db_id, FileDbId new_file_db_id) {
+      file_pmc().set(PSTRING() << "file" << file_db_id.get(), PSTRING() << "@@" << new_file_db_id.get());
     }
   };
 
   explicit FileDb(std::shared_ptr<SqliteKeyValueSafe> kv_safe, int scheduler_id = -1) {
     file_kv_safe_ = std::move(kv_safe);
     CHECK(file_kv_safe_);
-    current_pmc_id_ = FileDbId(to_integer<uint64>(file_kv_safe_->get().get("file_id")));
+    max_file_db_id_ = FileDbId(to_integer<uint64>(file_kv_safe_->get().get("file_id")));
     file_db_actor_ =
-        create_actor_on_scheduler<FileDbActor>("FileDbActor", scheduler_id, current_pmc_id_, file_kv_safe_);
+        create_actor_on_scheduler<FileDbActor>("FileDbActor", scheduler_id, max_file_db_id_, file_kv_safe_);
   }
 
-  FileDbId create_pmc_id() final {
-    current_pmc_id_ = FileDbId(current_pmc_id_.get() + 1);
-    return current_pmc_id_;
+  FileDbId get_next_file_db_id() final {
+    max_file_db_id_ = FileDbId(max_file_db_id_.get() + 1);
+    return max_file_db_id_;
   }
 
   void close(Promise<> promise) final {
@@ -186,10 +187,10 @@ class FileDb final : public FileDbInterface {
   }
 
   Result<FileData> get_file_data_sync_impl(string key) final {
-    return load_file_data_impl(file_db_actor_.get(), file_kv_safe_->get(), key, current_pmc_id_);
+    return load_file_data_impl(file_db_actor_.get(), file_kv_safe_->get(), key, max_file_db_id_);
   }
 
-  void clear_file_data(FileDbId id, const FileData &file_data) final {
+  void clear_file_data(FileDbId file_db_id, const FileData &file_data) final {
     string remote_key;
     if (file_data.remote_.type() == RemoteFileLocation::Type::Full) {
       remote_key = as_key(file_data.remote_.full());
@@ -202,10 +203,11 @@ class FileDb final : public FileDbInterface {
     if (file_data.generate_ != nullptr) {
       generate_key = as_key(*file_data.generate_);
     }
-    send_closure(file_db_actor_, &FileDbActor::clear_file_data, id, remote_key, local_key, generate_key);
+    send_closure(file_db_actor_, &FileDbActor::clear_file_data, file_db_id, remote_key, local_key, generate_key);
   }
 
-  void set_file_data(FileDbId id, const FileData &file_data, bool new_remote, bool new_local, bool new_generate) final {
+  void set_file_data(FileDbId file_db_id, const FileData &file_data, bool new_remote, bool new_local,
+                     bool new_generate) final {
     string remote_key;
     if (file_data.remote_.type() == RemoteFileLocation::Type::Full && new_remote) {
       remote_key = as_key(file_data.remote_.full());
@@ -218,16 +220,16 @@ class FileDb final : public FileDbInterface {
     if (file_data.generate_ != nullptr && new_generate) {
       generate_key = as_key(*file_data.generate_);
     }
-    // LOG(DEBUG) << "SAVE " << id.get() << " -> " << file_data << " "
+    // LOG(DEBUG) << "SAVE " << file_db_id.get() << " -> " << file_data << " "
     //            << tag("remote_key", format::as_hex_dump<4>(Slice(remote_key)))
     //            << tag("local_key", format::as_hex_dump<4>(Slice(local_key)))
     //            << tag("generate_key", format::as_hex_dump<4>(Slice(generate_key)));
-    send_closure(file_db_actor_, &FileDbActor::store_file_data, id, serialize(file_data), remote_key, local_key,
+    send_closure(file_db_actor_, &FileDbActor::store_file_data, file_db_id, serialize(file_data), remote_key, local_key,
                  generate_key);
   }
 
-  void set_file_data_ref(FileDbId id, FileDbId new_id) final {
-    send_closure(file_db_actor_, &FileDbActor::store_file_data_ref, id, new_id);
+  void set_file_data_ref(FileDbId file_db_id, FileDbId new_file_db_id) final {
+    send_closure(file_db_actor_, &FileDbActor::store_file_data_ref, file_db_id, new_file_db_id);
   }
   SqliteKeyValue &pmc() final {
     return file_kv_safe_->get();
@@ -235,39 +237,39 @@ class FileDb final : public FileDbInterface {
 
  private:
   ActorOwn<FileDbActor> file_db_actor_;
-  FileDbId current_pmc_id_;
+  FileDbId max_file_db_id_;
   std::shared_ptr<SqliteKeyValueSafe> file_kv_safe_;
 
   static Result<FileData> load_file_data_impl(ActorId<FileDbActor> file_db_actor_id, SqliteKeyValue &pmc,
-                                              const string &key, FileDbId current_pmc_id) {
+                                              const string &key, FileDbId max_file_db_id) {
     // LOG(DEBUG) << "Load by key " << format::as_hex_dump<4>(Slice(key));
-    TRY_RESULT(id, get_id(pmc, key));
+    TRY_RESULT(file_db_id, get_file_db_id(pmc, key));
 
-    vector<FileDbId> ids;
+    vector<FileDbId> file_db_ids;
     string data_str;
     int attempt_count = 0;
     while (true) {
       if (attempt_count > 100) {
-        LOG(FATAL) << "Cycle in file database? current_pmc_id=" << current_pmc_id << " key=" << key
-                   << " links=" << format::as_array(ids);
+        LOG(FATAL) << "Cycle in file database? max_file_db_id=" << max_file_db_id << " key=" << key
+                   << " links=" << format::as_array(file_db_ids);
       }
       attempt_count++;
 
-      data_str = pmc.get(PSTRING() << "file" << id.get());
+      data_str = pmc.get(PSTRING() << "file" << file_db_id.get());
       auto data_slice = Slice(data_str);
 
       if (data_slice.substr(0, 2) == "@@") {
-        ids.push_back(id);
+        file_db_ids.push_back(file_db_id);
 
-        id = FileDbId(to_integer<uint64>(data_slice.substr(2)));
+        file_db_id = FileDbId(to_integer<uint64>(data_slice.substr(2)));
       } else {
         break;
       }
     }
-    if (ids.size() > 1) {
-      send_closure(file_db_actor_id, &FileDbActor::optimize_refs, std::move(ids), id);
+    if (file_db_ids.size() > 1) {
+      send_closure(file_db_actor_id, &FileDbActor::optimize_refs, std::move(file_db_ids), file_db_id);
     }
-    // LOG(DEBUG) << "By ID " << id.get() << " found data " << format::as_hex_dump<4>(Slice(data_str));
+    // LOG(DEBUG) << "By ID " << file_db_id.get() << " found data " << format::as_hex_dump<4>(Slice(data_str));
     // LOG(INFO) << attempt_count;
 
     log_event::WithVersion<TlParser> parser(data_str);
@@ -282,13 +284,13 @@ class FileDb final : public FileDbInterface {
     return std::move(data);
   }
 
-  static Result<FileDbId> get_id(SqliteKeyValue &pmc, const string &key) TD_WARN_UNUSED_RESULT {
-    auto id_str = pmc.get(key);
-    // LOG(DEBUG) << "Found ID " << id_str << " by key " << format::as_hex_dump<4>(Slice(key));
-    if (id_str.empty()) {
-      return Status::Error("There is no such a key in database");
+  static Result<FileDbId> get_file_db_id(SqliteKeyValue &pmc, const string &key) TD_WARN_UNUSED_RESULT {
+    auto file_db_id_str = pmc.get(key);
+    // LOG(DEBUG) << "Found ID " << file_db_id_str << " by key " << format::as_hex_dump<4>(Slice(key));
+    if (file_db_id_str.empty()) {
+      return Status::Error("There is no such key in the database");
     }
-    return FileDbId(to_integer<uint64>(id_str));
+    return FileDbId(to_integer<uint64>(file_db_id_str));
   }
 };
 
