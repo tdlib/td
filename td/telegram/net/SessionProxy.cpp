@@ -188,10 +188,13 @@ void SessionProxy::open_session(bool force) {
     if (need_destroy_) {
       return auth_key_state_ != AuthKeyState::Empty;
     }
+    if (is_main_) {
+      return true;
+    }
     if (auth_key_state_ != AuthKeyState::OK) {
       return false;
     }
-    return is_main_ || !pending_queries_.empty();
+    return !pending_queries_.empty();
   }();
   if (!should_open) {
     return;
