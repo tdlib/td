@@ -2433,7 +2433,7 @@ void FileManager::run_download(FileNodePtr node, bool force_update_priority) {
                                error = res.move_as_error();
                              }
                              VLOG(file_references)
-                                 << "Got result from reload photo for file " << file_id << ": " << error;
+                                 << "Receive result from reload photo for file " << file_id << ": " << error;
                              send_closure(actor_id, &FileManager::on_error, query_id, std::move(error));
                            }));
     node->need_reload_photo_ = false;
@@ -2458,7 +2458,7 @@ void FileManager::run_download(FileNodePtr node, bool force_update_priority) {
           } else {
             error = res.move_as_error();
           }
-          VLOG(file_references) << "Got result from FileSourceManager for file " << file_id << ": " << error;
+          VLOG(file_references) << "Receive result from FileSourceManager for file " << file_id << ": " << error;
           send_closure(actor_id, &FileManager::on_error, query_id, std::move(error));
         }));
     return;
