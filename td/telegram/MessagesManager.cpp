@@ -36848,7 +36848,7 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
         register_message_reply(dialog_id, old_message);
         need_send_update = true;
       } else {
-        LOG(ERROR) << message_id << " in " << dialog_id << " has changed it is replied message from "
+        LOG(ERROR) << message_id << " in " << dialog_id << " has changed replied message from "
                    << old_message->reply_to_message_id << " to " << new_message->reply_to_message_id
                    << ", message content type is " << old_content_type << '/' << new_content_type;
       }
@@ -36860,7 +36860,7 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
       old_message->reply_in_dialog_id = DialogId();
       need_send_update = true;
     } else if (is_new_available && old_message->reply_in_dialog_id.is_valid()) {
-      LOG(ERROR) << message_id << " in " << dialog_id << " has changed dialog it is reply in from "
+      LOG(ERROR) << message_id << " in " << dialog_id << " has changed replied message chat from "
                  << old_message->reply_in_dialog_id << " to " << new_message->reply_in_dialog_id
                  << ", message content type is " << old_content_type << '/' << new_content_type;
     }
@@ -36889,9 +36889,9 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
   if (old_message->via_bot_user_id != new_message->via_bot_user_id) {
     if ((!message_id.is_yet_unsent() || old_message->via_bot_user_id.is_valid()) && is_new_available &&
         !replace_legacy) {
-      LOG(ERROR) << message_id << " in " << dialog_id << " has changed bot via it is sent from "
-                 << old_message->via_bot_user_id << " to " << new_message->via_bot_user_id
-                 << ", message content type is " << old_content_type << '/' << new_content_type;
+      LOG(ERROR) << message_id << " in " << dialog_id << " has changed inline bot from " << old_message->via_bot_user_id
+                 << " to " << new_message->via_bot_user_id << ", message content type is " << old_content_type << '/'
+                 << new_content_type;
     }
     LOG(DEBUG) << "Change message via_bot from " << old_message->via_bot_user_id << " to "
                << new_message->via_bot_user_id;
@@ -37157,7 +37157,7 @@ bool MessagesManager::update_message_content(DialogId dialog_id, Message *old_me
       LOG(INFO) << "Do not apply expired message content early";
     } else {
       need_update = true;
-      LOG(INFO) << "Message content has changed its type from " << old_content_type << " to " << new_content_type;
+      LOG(INFO) << "Message content has changed type from " << old_content_type << " to " << new_content_type;
 
       old_message->is_content_secret = is_secret_message_content(old_message->ttl, new_content->get_type());
     }
@@ -37935,7 +37935,7 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
 
   // must be after update_dialog_pos, because uses d->order
   // must be after checks that dialog has at most one message, because read_history_inbox can load
-  // pinned message to remove its notification
+  // pinned message to remove notification about it
   if (d->pending_read_channel_inbox_pts != 0 && !td_->auth_manager_->is_bot() &&
       have_input_peer(dialog_id, AccessRights::Read) && need_unread_counter(d->order)) {
     if (d->pts == d->pending_read_channel_inbox_pts) {
