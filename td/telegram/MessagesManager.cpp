@@ -5552,6 +5552,7 @@ void MessagesManager::Dialog::store(StorerT &storer) const {
     STORE_FLAG(has_have_full_history_source);
     STORE_FLAG(has_available_reactions);
     STORE_FLAG(has_history_generation);
+    STORE_FLAG(need_repair_unread_reaction_count);
     END_STORE_FLAGS();
   }
 
@@ -5814,6 +5815,7 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
     PARSE_FLAG(has_have_full_history_source);
     PARSE_FLAG(has_available_reactions);
     PARSE_FLAG(has_history_generation);
+    PARSE_FLAG(need_repair_unread_reaction_count);
     END_PARSE_FLAGS();
   } else {
     need_repair_action_bar = false;
@@ -6957,7 +6959,7 @@ void MessagesManager::on_update_message_reactions(FullMessageId full_message_id,
       promise.set_value(Unit());
       return;
     }
-    const Dialog *d = get_dialog(dialog_id);
+    Dialog *d = get_dialog(dialog_id);
     if (d == nullptr) {
       LOG(INFO) << "Ignore updateMessageReaction in unknown " << dialog_id;
       promise.set_value(Unit());
@@ -6968,7 +6970,7 @@ void MessagesManager::on_update_message_reactions(FullMessageId full_message_id,
     if ((new_reactions != nullptr && !new_reactions->unread_reactions_.empty()) || d->unread_reaction_count > 0) {
       // but if there are unread reactions or the chat has unread reactions,
       // then number of unread reactions could have been changed, so reload the number of unread reactions
-      send_get_dialog_query(dialog_id, std::move(promise), 0, "on_update_message_reactions");
+      repair_dialog_unread_reaction_count(d, std::move(promise), "on_update_message_reactions");
     } else {
       promise.set_value(Unit());
     }
@@ -8229,7 +8231,7 @@ void MessagesManager::on_message_edited(FullMessageId full_message_id, int32 pts
       ((m->reactions != nullptr && !m->reactions->unread_reactions_.empty()) || d->unread_reaction_count > 0)) {
     // if new message with unread reactions was added or the chat has unread reactions,
     // then number of unread reactions could have been changed, so reload the number of unread reactions
-    send_get_dialog_query(dialog_id, Promise<Unit>(), 0, "on_message_edited");
+    repair_dialog_unread_reaction_count(d, Promise<Unit>(), "on_message_edited");
   }
 }
 
@@ -12568,6 +12570,20 @@ void MessagesManager::repair_channel_server_unread_count(Dialog *d) {
   get_dialog_info_full(d->dialog_id, Auto(), "repair_channel_server_unread_count");
 }
 
+void MessagesManager::repair_dialog_unread_reaction_count(Dialog *d, Promise<Unit> &&promise, const char *source) {
+  CHECK(d != nullptr);
+
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+  if (!d->need_repair_unread_reaction_count) {
+    d->need_repair_unread_reaction_count = true;
+    on_dialog_updated(d->dialog_id, "repair_dialog_unread_reaction_count");
+  }
+
+  send_get_dialog_query(d->dialog_id, std::move(promise), 0, source);
+}
+
 void MessagesManager::read_history_inbox(DialogId dialog_id, MessageId max_message_id, int32 unread_count,
                                          const char *source) {
   CHECK(!max_message_id.is_scheduled());
@@ -12640,6 +12656,7 @@ void MessagesManager::read_history_inbox(DialogId dialog_id, MessageId max_messa
       if (dialog_id.get_type() != DialogType::SecretChat && have_input_peer(dialog_id, AccessRights::Read) &&
           need_unread_counter(d->order)) {
         d->need_repair_server_unread_count = true;
+        on_dialog_updated(dialog_id, "read_history_inbox");
         repair_server_unread_count(dialog_id, server_unread_count, "read_history_inbox");
       }
     }
@@ -16130,6 +16147,16 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
         set_dialog_unread_mention_count(d, dialog->unread_mentions_count_);
         update_dialog_mention_notification_count(d);
         send_update_chat_unread_mention_count(d);
+      }
+    }
+    if (!G()->parameters().use_message_db || is_new || d->need_repair_unread_reaction_count) {
+      if (d->need_repair_unread_reaction_count) {
+        if (d->unread_reaction_count != dialog->unread_reactions_count_) {
+          LOG(INFO) << "Repaired unread reaction count in " << dialog_id << " from " << d->unread_reaction_count
+                    << " to " << dialog->unread_reactions_count_;
+        }
+        d->need_repair_unread_reaction_count = false;
+        on_dialog_updated(dialog_id, "repaired dialog unread reaction count");
       }
       if (d->unread_reaction_count != dialog->unread_reactions_count_) {
         set_dialog_unread_reaction_count(d, dialog->unread_reactions_count_);
@@ -37964,6 +37991,9 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
   }
   if (d->need_repair_channel_server_unread_count) {
     repair_channel_server_unread_count(d);
+  }
+  if (d->need_repair_unread_reaction_count) {
+    repair_dialog_unread_reaction_count(d, Promise<Unit>(), "fix_new_dialog");
   }
 }
 
