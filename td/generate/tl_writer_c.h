@@ -1019,7 +1019,6 @@ class TlWriterCCommon final : public tl::TL_writer {
     if (is_proxy || is_header_ != 1) {
       return "";
     }
-    // return "#define CODE_" + class_name + " " + int_to_string(id) + "\n";
     return "";
   }
 

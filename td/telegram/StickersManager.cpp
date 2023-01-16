@@ -3174,7 +3174,7 @@ StickerSetId StickersManager::on_get_input_sticker_set(FileId sticker_file_id,
             }));
       }
       // always return empty StickerSetId, because we can't trust the set_id provided by the peer in the secret chat
-      // the real sticker set id will be set in on_get_sticker if and only if the sticker is really from the set
+      // the real sticker set identifier will be set in on_get_sticker if and only if the sticker is really from the set
       return StickerSetId();
     }
     case telegram_api::inputStickerSetAnimatedEmoji::ID:

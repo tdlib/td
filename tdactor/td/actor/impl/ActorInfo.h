@@ -69,8 +69,8 @@ inline void ActorInfo::clear() {
   CHECK(!actor_);
   CHECK(!is_running());
   CHECK(!is_migrating());
-  // NB: must be in non migrating state
-  // store invalid scheduler id.
+  // NB: must be in non-migrating state
+  // store invalid scheduler identifier
   sched_id_.store((1 << 30) - 1, std::memory_order_relaxed);
   VLOG(actor) << "Clear context " << context_.get() << " for " << get_name();
   context_.reset();

@@ -160,7 +160,7 @@ class BackgroundManager final : public Actor {
   FlatHashMap<BackgroundId, unique_ptr<Background>, BackgroundIdHash> backgrounds_;
 
   FlatHashMap<BackgroundId, std::pair<int64, FileSourceId>, BackgroundIdHash>
-      background_id_to_file_source_id_;  // id -> [access_hash, file_source_id]
+      background_id_to_file_source_id_;  // background_id -> [access_hash, file_source_id]
 
   FlatHashMap<string, BackgroundId> name_to_background_id_;
 

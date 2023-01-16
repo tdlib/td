@@ -1433,7 +1433,7 @@ replyMarkupInlineKeyboard rows:vector<vector<inlineKeyboardButton>> = ReplyMarku
 
 //@class LoginUrlInfo @description Contains information about an inline button of type inlineKeyboardButtonTypeLoginUrl
 
-//@description An HTTP url needs to be open @url The URL to open @skip_confirm True, if there is no need to show an ordinary open URL confirm
+//@description An HTTP URL needs to be open @url The URL to open @skip_confirm True, if there is no need to show an ordinary open URL confirm
 loginUrlInfoOpen url:string skip_confirm:Bool = LoginUrlInfo;
 
 //@description An authorization confirmation dialog needs to be shown to the user
@@ -2978,7 +2978,7 @@ groupCallStream channel_id:int32 scale:int32 time_offset:int53 = GroupCallStream
 //@description Represents a list of group call streams @streams A list of group call streams
 groupCallStreams streams:vector<groupCallStream> = GroupCallStreams;
 
-//@description Represents an RTMP url @url The URL @stream_key Stream key
+//@description Represents an RTMP URL @url The URL @stream_key Stream key
 rtmpUrl url:string stream_key:string = RtmpUrl;
 
 

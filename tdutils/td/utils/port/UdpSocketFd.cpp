@@ -600,12 +600,12 @@ class UdpSocketFdImpl {
 
       case EBADF:         // impossible
       case ENOTSOCK:      // impossible
-      case EPIPE:         // impossible for udp
-      case ECONNRESET:    // impossible for udp
+      case EPIPE:         // impossible for UDP
+      case ECONNRESET:    // impossible for UDP
       case EDESTADDRREQ:  // we checked that address is valid
       case ENOTCONN:      // we checked that address is valid
       case EINTR:         // we already skipped all EINTR
-      case EISCONN:       // impossible for udp socket
+      case EISCONN:       // impossible for UDP socket
       case EOPNOTSUPP:
       case ENOTDIR:
       case EFAULT:

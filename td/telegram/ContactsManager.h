@@ -725,7 +725,7 @@ class ContactsManager final : public Actor {
 
     FlatHashSet<int64> photo_ids;
 
-    FlatHashMap<DialogId, int32, DialogIdHash> online_member_dialogs;  // id -> time
+    FlatHashMap<DialogId, int32, DialogIdHash> online_member_dialogs;  // dialog_id -> time
 
     static constexpr uint32 CACHE_VERSION = 4;
     uint32 cache_version = 0;

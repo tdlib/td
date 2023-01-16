@@ -1599,7 +1599,7 @@ class MessagesManager final : public Actor {
    protected:
     MessagesIteratorBase() = default;
 
-    // points iterator to message with greatest id which is less or equal than message_id
+    // points iterator to message with greatest identifier which is less or equal than message_id
     MessagesIteratorBase(const Message *root, MessageId message_id) {
       size_t last_right_pos = 0;
       while (root != nullptr) {

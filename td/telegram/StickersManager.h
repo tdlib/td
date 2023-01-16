@@ -967,8 +967,9 @@ class StickersManager final : public Actor {
 
   bool is_inited_ = false;
 
-  WaitFreeHashMap<FileId, unique_ptr<Sticker>, FileIdHash> stickers_;                     // file_id -> Sticker
-  WaitFreeHashMap<StickerSetId, unique_ptr<StickerSet>, StickerSetIdHash> sticker_sets_;  // id -> StickerSet
+  WaitFreeHashMap<FileId, unique_ptr<Sticker>, FileIdHash> stickers_;  // file_id -> Sticker
+  WaitFreeHashMap<StickerSetId, unique_ptr<StickerSet>, StickerSetIdHash>
+      sticker_sets_;  // sticker_set_id -> StickerSet
   WaitFreeHashMap<string, StickerSetId> short_name_to_sticker_set_id_;
 
   vector<StickerSetId> installed_sticker_set_ids_[MAX_STICKER_TYPE];

@@ -155,7 +155,7 @@ class Container {
   void release(int32 id) {
     inc_generation(id);
     slots_[id].data = DataT();
-    if (slots_[id].generation & ~TYPE_MASK) {  // generation overflow. Can't use this id anymore
+    if (slots_[id].generation & ~TYPE_MASK) {  // generation overflow. Can't use this identifier anymore
       empty_slots_.push_back(id);
     }
   }

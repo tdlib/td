@@ -80,7 +80,7 @@ Logger::Logger(LogInterface &log, const LogOptions &options, int log_level, Slic
   }
   sb_ << ']';
 
-  // thread id
+  // thread identifier
   auto thread_id = get_thread_id();
   sb_ << "[t";
   if (static_cast<uint32>(thread_id) < 10) {

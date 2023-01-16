@@ -199,7 +199,7 @@ class ClientManager final {
  *   if (response.id == 0) {
  *     // process response.object as an incoming update of type td_api::Update
  *   } else {
- *     // process response.object as an answer to a sent request with id response.id
+ *     // process response.object as an answer to a sent request with identifier response.id
  *   }
  * }
  * \endcode
