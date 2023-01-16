@@ -23,17 +23,18 @@ class BinlogEventsProcessor {
 
   template <class CallbackT>
   void for_each(CallbackT &&callback) {
-    for (size_t i = 0; i < ids_.size(); i++) {
-      LOG_CHECK(i == 0 || ids_[i - 1] < ids_[i]) << ids_[i - 1] << " " << events_[i - 1].public_to_string() << " "
-                                                 << ids_[i] << " " << events_[i].public_to_string();
-      if ((ids_[i] & 1) == 0) {
+    for (size_t i = 0; i < event_ids_.size(); i++) {
+      LOG_CHECK(i == 0 || event_ids_[i - 1] < event_ids_[i])
+          << event_ids_[i - 1] << " " << events_[i - 1].public_to_string() << " " << event_ids_[i] << " "
+          << events_[i].public_to_string();
+      if ((event_ids_[i] & 1) == 0) {
         callback(events_[i]);
       }
     }
   }
 
-  uint64 last_id() const {
-    return last_id_;
+  uint64 last_event_id() const {
+    return last_event_id_;
   }
   int64 offset() const {
     return offset_;
@@ -43,12 +44,12 @@ class BinlogEventsProcessor {
   }
 
  private:
-  // holds (id * 2 + was_deleted)
-  std::vector<uint64> ids_;
+  // holds (event_id * 2 + was_deleted)
+  std::vector<uint64> event_ids_;
   std::vector<BinlogEvent> events_;
   size_t total_events_{0};
   size_t empty_events_{0};
-  uint64 last_id_{0};
+  uint64 last_event_id_{0};
   int64 offset_{0};
   int64 total_raw_events_size_{0};
 

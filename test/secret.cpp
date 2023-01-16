@@ -382,14 +382,14 @@ class FakeBinlog final
   void force_flush() final {
   }
 
-  uint64 next_id() final {
-    auto res = last_id_;
-    last_id_++;
+  uint64 next_event_id() final {
+    auto res = last_event_id_;
+    last_event_id_++;
     return res;
   }
-  uint64 next_id(int32 shift) final {
-    auto res = last_id_;
-    last_id_ += shift;
+  uint64 next_event_id(int32 shift) final {
+    auto res = last_event_id_;
+    last_event_id_ += shift;
     return res;
   }
   template <class F>
@@ -420,7 +420,7 @@ class FakeBinlog final
   }
   void close_and_destroy_impl(Promise<> promise) final {
   }
-  void add_raw_event_impl(uint64 id, BufferSlice &&raw_event, Promise<> promise, BinlogDebugInfo info) final {
+  void add_raw_event_impl(uint64 event_id, BufferSlice &&raw_event, Promise<> promise, BinlogDebugInfo info) final {
     auto event = BinlogEvent(std::move(raw_event), info);
     LOG(INFO) << "ADD EVENT: " << event.id_ << " " << event;
     pending_events_.emplace_back();
@@ -464,7 +464,7 @@ class FakeBinlog final
     }
   }
   bool has_request_sync = false;
-  uint64 last_id_ = 1;
+  uint64 last_event_id_ = 1;
   detail::BinlogEventsProcessor events_processor_;
 
   struct PendingEvent {

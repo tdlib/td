@@ -44,20 +44,20 @@ struct Trie {
   };
   td::vector<FullNode> nodes_;
 
-  void do_add(int id, td::Slice value) {
-    nodes_[id].sum++;
+  void do_add(int event_id, td::Slice value) {
+    nodes_[event_id].sum++;
     if (value.empty()) {
       return;
     }
 
     auto c = static_cast<td::uint8>(value[0]);
-    auto next_id = nodes_[id].next[c];
-    if (next_id == 0) {
-      next_id = static_cast<int>(nodes_.size());
+    auto next_event_id = nodes_[event_id].next[c];
+    if (next_event_id == 0) {
+      next_event_id = static_cast<int>(nodes_.size());
       nodes_.emplace_back();
-      nodes_[id].next[c] = next_id;
+      nodes_[event_id].next[c] = next_event_id;
     }
-    do_add(next_id, value.substr(1));
+    do_add(next_event_id, value.substr(1));
   }
 
   void do_dump(td::string path, int v) {
@@ -84,11 +84,11 @@ struct Trie {
       return;
     }
     for (int c = 0; c < 256; c++) {
-      auto next_id = nodes_[v].next[c];
-      if (next_id == 0) {
+      auto next_event_id = nodes_[v].next[c];
+      if (next_event_id == 0) {
         continue;
       }
-      do_dump(path + static_cast<char>(c), next_id);
+      do_dump(path + static_cast<char>(c), next_event_id);
     }
   }
 };
@@ -137,9 +137,10 @@ int main(int argc, char *argv[]) {
               auto key = td::TlParser(event.data_).fetch_string<td::Slice>();
               info[event.type_].trie.add(key);
             }
-            LOG(PLAIN) << "LogEvent[" << td::tag("id", td::format::as_hex(event.id_)) << td::tag("type", event.type_)
-                       << td::tag("flags", event.flags_) << td::tag("size", event.data_.size())
-                       << td::tag("data", td::format::escaped(event.data_)) << "]\n";
+            LOG(PLAIN) << "LogEvent[" << td::tag("event_id", td::format::as_hex(event.id_))
+                       << td::tag("type", event.type_) << td::tag("flags", event.flags_)
+                       << td::tag("size", event.data_.size()) << td::tag("data", td::format::escaped(event.data_))
+                       << "]\n";
           })
       .ensure();
 

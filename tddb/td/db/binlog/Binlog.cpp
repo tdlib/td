@@ -208,8 +208,8 @@ Status Binlog::init(string path, const Callback &callback, DbKey db_key, DbKey o
     close().ignore();
     return status;
   }
-  info_.last_id = processor_->last_id();
-  last_id_ = processor_->last_id();
+  info_.last_event_id = processor_->last_event_id();
+  last_event_id_ = processor_->last_event_id();
   if (info_.wrong_password) {
     close().ignore();
     return Status::Error(static_cast<int>(Error::WrongPassword), "Wrong password");

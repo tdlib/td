@@ -31,35 +31,35 @@ class BinlogInterface {
   void close_and_destroy(Promise<> promise = {}) {
     close_and_destroy_impl(std::move(promise));
   }
-  void add_raw_event(BinlogDebugInfo info, uint64 id, BufferSlice &&raw_event, Promise<> promise = Promise<>()) {
-    add_raw_event_impl(id, std::move(raw_event), std::move(promise), info);
+  void add_raw_event(BinlogDebugInfo info, uint64 event_id, BufferSlice &&raw_event, Promise<> promise = Promise<>()) {
+    add_raw_event_impl(event_id, std::move(raw_event), std::move(promise), info);
   }
-  void add_raw_event(uint64 id, BufferSlice &&raw_event, Promise<> promise = Promise<>()) {
-    add_raw_event_impl(id, std::move(raw_event), std::move(promise), {});
+  void add_raw_event(uint64 event_id, BufferSlice &&raw_event, Promise<> promise = Promise<>()) {
+    add_raw_event_impl(event_id, std::move(raw_event), std::move(promise), {});
   }
   void lazy_sync(Promise<> promise = Promise<>()) {
-    add_raw_event_impl(next_id(), BufferSlice(), std::move(promise), {});
+    add_raw_event_impl(next_event_id(), BufferSlice(), std::move(promise), {});
   }
 
   uint64 add(int32 type, const Storer &storer, Promise<> promise = Promise<>()) {
-    auto log_event_id = next_id();
-    add_raw_event_impl(log_event_id, BinlogEvent::create_raw(log_event_id, type, 0, storer), std::move(promise), {});
-    return log_event_id;
+    auto event_id = next_event_id();
+    add_raw_event_impl(event_id, BinlogEvent::create_raw(event_id, type, 0, storer), std::move(promise), {});
+    return event_id;
   }
 
-  uint64 rewrite(uint64 log_event_id, int32 type, const Storer &storer, Promise<> promise = Promise<>()) {
-    auto seq_no = next_id();
-    add_raw_event_impl(seq_no, BinlogEvent::create_raw(log_event_id, type, BinlogEvent::Flags::Rewrite, storer),
+  uint64 rewrite(uint64 event_id, int32 type, const Storer &storer, Promise<> promise = Promise<>()) {
+    auto seq_no = next_event_id();
+    add_raw_event_impl(seq_no, BinlogEvent::create_raw(event_id, type, BinlogEvent::Flags::Rewrite, storer),
                        std::move(promise), {});
     return seq_no;
   }
 
-  uint64 erase(uint64 log_event_id, Promise<> promise = Promise<>()) {
-    auto seq_no = next_id();
-    add_raw_event_impl(seq_no,
-                       BinlogEvent::create_raw(log_event_id, BinlogEvent::ServiceTypes::Empty,
-                                               BinlogEvent::Flags::Rewrite, EmptyStorer()),
-                       std::move(promise), {});
+  uint64 erase(uint64 event_id, Promise<> promise = Promise<>()) {
+    auto seq_no = next_event_id();
+    add_raw_event_impl(
+        seq_no,
+        BinlogEvent::create_raw(event_id, BinlogEvent::ServiceTypes::Empty, BinlogEvent::Flags::Rewrite, EmptyStorer()),
+        std::move(promise), {});
     return seq_no;
   }
 
@@ -67,13 +67,13 @@ class BinlogInterface {
   virtual void force_flush() = 0;
   virtual void change_key(DbKey db_key, Promise<> promise) = 0;
 
-  virtual uint64 next_id() = 0;
-  virtual uint64 next_id(int32 shift) = 0;
+  virtual uint64 next_event_id() = 0;
+  virtual uint64 next_event_id(int32 shift) = 0;
 
  protected:
   virtual void close_impl(Promise<> promise) = 0;
   virtual void close_and_destroy_impl(Promise<> promise) = 0;
-  virtual void add_raw_event_impl(uint64 id, BufferSlice &&raw_event, Promise<> promise, BinlogDebugInfo info) = 0;
+  virtual void add_raw_event_impl(uint64 seq_no, BufferSlice &&raw_event, Promise<> promise, BinlogDebugInfo info) = 0;
 };
 
 }  // namespace td

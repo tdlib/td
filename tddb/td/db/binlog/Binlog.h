@@ -31,7 +31,7 @@ extern int32 VERBOSITY_NAME(binlog);
 
 struct BinlogInfo {
   bool was_created{false};
-  uint64 last_id{0};
+  uint64 last_event_id{0};
   bool is_encrypted{false};
   bool wrong_password{false};
   bool is_opened{false};
@@ -57,16 +57,16 @@ class Binlog {
   Status init(string path, const Callback &callback, DbKey db_key = DbKey::empty(), DbKey old_db_key = DbKey::empty(),
               int32 dummy = -1, const Callback &debug_callback = Callback()) TD_WARN_UNUSED_RESULT;
 
-  uint64 next_id() {
-    return ++last_id_;
+  uint64 next_event_id() {
+    return ++last_event_id_;
   }
-  uint64 next_id(int32 shift) {
-    auto res = last_id_ + 1;
-    last_id_ += shift;
+  uint64 next_event_id(int32 shift) {
+    auto res = last_event_id_ + 1;
+    last_event_id_ += shift;
     return res;
   }
-  uint64 peek_next_id() const {
-    return last_id_ + 1;
+  uint64 peek_next_event_id() const {
+    return last_event_id_ + 1;
   }
 
   bool empty() const {
@@ -74,22 +74,22 @@ class Binlog {
   }
 
   uint64 add(int32 type, const Storer &storer) {
-    auto log_event_id = next_id();
-    add_raw_event(BinlogEvent::create_raw(log_event_id, type, 0, storer), {});
-    return log_event_id;
+    auto event_id = next_event_id();
+    add_raw_event(BinlogEvent::create_raw(event_id, type, 0, storer), {});
+    return event_id;
   }
 
-  uint64 rewrite(uint64 log_event_id, int32 type, const Storer &storer) {
-    auto seq_no = next_id();
-    add_raw_event(BinlogEvent::create_raw(log_event_id, type, BinlogEvent::Flags::Rewrite, storer), {});
+  uint64 rewrite(uint64 event_id, int32 type, const Storer &storer) {
+    auto seq_no = next_event_id();
+    add_raw_event(BinlogEvent::create_raw(event_id, type, BinlogEvent::Flags::Rewrite, storer), {});
     return seq_no;
   }
 
-  uint64 erase(uint64 log_event_id) {
-    auto seq_no = next_id();
-    add_raw_event(BinlogEvent::create_raw(log_event_id, BinlogEvent::ServiceTypes::Empty, BinlogEvent::Flags::Rewrite,
-                                          EmptyStorer()),
-                  {});
+  uint64 erase(uint64 event_id) {
+    auto seq_no = next_event_id();
+    add_raw_event(
+        BinlogEvent::create_raw(event_id, BinlogEvent::ServiceTypes::Empty, BinlogEvent::Flags::Rewrite, EmptyStorer()),
+        {});
     return seq_no;
   }
 
@@ -148,7 +148,7 @@ class Binlog {
   unique_ptr<detail::BinlogEventsProcessor> processor_;
   unique_ptr<detail::BinlogEventsBuffer> events_buffer_;
   bool in_flush_events_buffer_{false};
-  uint64 last_id_{0};
+  uint64 last_event_id_{0};
   double need_flush_since_ = 0;
   bool need_sync_{false};
   enum class State { Empty, Load, Reindex, Run } state_{State::Empty};

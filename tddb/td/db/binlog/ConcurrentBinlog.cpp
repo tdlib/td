@@ -40,7 +40,7 @@ class BinlogActor final : public Actor {
     BinlogDebugInfo debug_info;
   };
   void add_raw_event(uint64 seq_no, BufferSlice &&raw_event, Promise<> &&promise, BinlogDebugInfo info) {
-    processor_.add(seq_no, Event{std::move(raw_event), std::move(promise), info}, [&](uint64 id, Event &&event) {
+    processor_.add(seq_no, Event{std::move(raw_event), std::move(promise), info}, [&](uint64 event_id, Event &&event) {
       if (!event.raw_event.empty()) {
         do_add_raw_event(std::move(event.raw_event), event.debug_info);
       }
@@ -178,9 +178,9 @@ Result<BinlogInfo> ConcurrentBinlog::init(string path, const Callback &callback,
 
 void ConcurrentBinlog::init_impl(unique_ptr<Binlog> binlog, int32 scheduler_id) {
   path_ = binlog->get_path().str();
-  last_id_ = binlog->peek_next_id();
+  last_event_id_ = binlog->peek_next_event_id();
   binlog_actor_ = create_actor_on_scheduler<detail::BinlogActor>(PSLICE() << "Binlog " << path_, scheduler_id,
-                                                                 std::move(binlog), last_id_);
+                                                                 std::move(binlog), last_event_id_);
 }
 
 void ConcurrentBinlog::close_impl(Promise<> promise) {
@@ -189,8 +189,10 @@ void ConcurrentBinlog::close_impl(Promise<> promise) {
 void ConcurrentBinlog::close_and_destroy_impl(Promise<> promise) {
   send_closure(std::move(binlog_actor_), &detail::BinlogActor::close_and_destroy, std::move(promise));
 }
-void ConcurrentBinlog::add_raw_event_impl(uint64 id, BufferSlice &&raw_event, Promise<> promise, BinlogDebugInfo info) {
-  send_closure(binlog_actor_, &detail::BinlogActor::add_raw_event, id, std::move(raw_event), std::move(promise), info);
+void ConcurrentBinlog::add_raw_event_impl(uint64 event_id, BufferSlice &&raw_event, Promise<> promise,
+                                          BinlogDebugInfo info) {
+  send_closure(binlog_actor_, &detail::BinlogActor::add_raw_event, event_id, std::move(raw_event), std::move(promise),
+               info);
 }
 void ConcurrentBinlog::force_sync(Promise<> promise) {
   send_closure(binlog_actor_, &detail::BinlogActor::force_sync, std::move(promise));
