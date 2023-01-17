@@ -2241,10 +2241,11 @@ class CliClient final : public Actor {
       MessageId from_message_id;
       int32 offset;
       string limit;
+      get_args(args, chat_id, args);
       if (op == "gmth") {
         get_args(args, thread_message_id, args);
       }
-      get_args(args, chat_id, from_message_id, offset, limit);
+      get_args(args, from_message_id, offset, limit);
       if (op == "gmth") {
         send_request(td_api::make_object<td_api::getMessageThreadHistory>(chat_id, thread_message_id, from_message_id,
                                                                           offset, as_limit(limit)));

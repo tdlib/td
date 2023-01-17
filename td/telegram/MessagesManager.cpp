@@ -18582,19 +18582,24 @@ void MessagesManager::get_message_thread(DialogId dialog_id, MessageId message_i
     return promise.set_error(Status::Error(400, "Scheduled messages can't have message threads"));
   }
 
-  message_id = get_persistent_message_id(d, message_id);
-  auto m = get_message_force(d, message_id, "get_message_thread");
-  if (m == nullptr) {
-    return promise.set_error(Status::Error(400, "Message not found"));
-  }
+  FullMessageId top_thread_full_message_id;
+  if (message_id == MessageId(ServerMessageId(1)) && is_forum_channel(dialog_id)) {
+    top_thread_full_message_id = FullMessageId{dialog_id, message_id};
+  } else {
+    message_id = get_persistent_message_id(d, message_id);
+    auto m = get_message_force(d, message_id, "get_message_thread");
+    if (m == nullptr) {
+      return promise.set_error(Status::Error(400, "Message not found"));
+    }
 
-  TRY_RESULT_PROMISE(promise, top_thread_full_message_id, get_top_thread_full_message_id(dialog_id, m, true));
-  if ((m->reply_info.is_empty() || !m->reply_info.is_comment_) &&
-      top_thread_full_message_id.get_message_id() != m->message_id) {
-    CHECK(dialog_id == top_thread_full_message_id.get_dialog_id());
-    // get information about the thread from the top message
-    message_id = top_thread_full_message_id.get_message_id();
-    CHECK(message_id.is_valid());
+    TRY_RESULT_PROMISE_ASSIGN(promise, top_thread_full_message_id, get_top_thread_full_message_id(dialog_id, m, true));
+    if ((m->reply_info.is_empty() || !m->reply_info.is_comment_) &&
+        top_thread_full_message_id.get_message_id() != m->message_id) {
+      CHECK(dialog_id == top_thread_full_message_id.get_dialog_id());
+      // get information about the thread from the top message
+      message_id = top_thread_full_message_id.get_message_id();
+      CHECK(message_id.is_valid());
+    }
   }
 
   auto query_promise = PromiseCreator::lambda([actor_id = actor_id(this), dialog_id, message_id,
@@ -18707,6 +18712,9 @@ void MessagesManager::on_get_discussion_message(DialogId dialog_id, MessageId me
       return promise.set_error(Status::Error(400, "Message has no comments"));
     }
     expected_dialog_id = DialogId(m->reply_info.channel_id_);
+  } else if (message_id == MessageId(ServerMessageId(1)) && is_forum_channel(dialog_id)) {
+    // General forum topic
+    expected_dialog_id = dialog_id;
   } else {
     if (!m->top_thread_message_id.is_valid()) {
       return promise.set_error(Status::Error(400, "Message has no thread"));
@@ -18760,6 +18768,9 @@ td_api::object_ptr<td_api::messageThreadInfo> MessagesManager::get_message_threa
   }
   if (messages.size() != 1) {
     is_forum_topic = false;
+  } else if (info.message_ids[0] == MessageId(ServerMessageId(1)) && is_forum_channel(info.dialog_id)) {
+    // General forum topic
+    is_forum_topic = true;
   }
   if (reply_info == nullptr && !is_forum_topic) {
     return nullptr;
