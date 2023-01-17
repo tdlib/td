@@ -943,13 +943,11 @@ void send_set_default_reaction_query(Td *td) {
   td->create_handler<SetDefaultReactionQuery>()->send(td->option_manager_->get_option_string("default_reaction"));
 }
 
-void send_update_default_reaction_type(const string &default_reaction) {
+td_api::object_ptr<td_api::updateDefaultReactionType> get_update_default_reaction_type(const string &default_reaction) {
   if (default_reaction.empty()) {
-    LOG(ERROR) << "Have no default reaction";
-    return;
+    return nullptr;
   }
-  send_closure(G()->td(), &Td::send_update,
-               td_api::make_object<td_api::updateDefaultReactionType>(get_reaction_type_object(default_reaction)));
+  return td_api::make_object<td_api::updateDefaultReactionType>(get_reaction_type_object(default_reaction));
 }
 
 void report_message_reactions(Td *td, FullMessageId full_message_id, DialogId chooser_dialog_id,

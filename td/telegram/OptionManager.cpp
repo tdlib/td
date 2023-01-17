@@ -62,19 +62,10 @@ OptionManager::OptionManager(Td *td)
     if (!is_internal_option(name)) {
       send_closure(G()->td(), &Td::send_update,
                    td_api::make_object<td_api::updateOption>(name, get_option_value_object(name_value.second)));
-    } else if (name == "otherwise_relogin_days") {
-      auto days = narrow_cast<int32>(get_option_integer(name));
-      if (days > 0) {
-        vector<SuggestedAction> added_actions{SuggestedAction{SuggestedAction::Type::SetPassword, DialogId(), days}};
-        send_closure(G()->td(), &Td::send_update, get_update_suggested_actions_object(added_actions, {}));
-      }
-    } else if (name == "default_reaction") {
-      auto value = get_option_string(name);
-      if (value.empty()) {
-        // legacy
-        set_option_empty(name);
-      } else {
-        send_update_default_reaction_type(value);
+    } else {
+      auto update = get_internal_option_update(name);
+      if (update != nullptr) {
+        send_closure(G()->td(), &Td::send_update, std::move(update));
       }
     }
   }
@@ -216,6 +207,11 @@ void OptionManager::set_option(Slice name, Slice value) {
   if (!is_internal_option(name)) {
     send_closure(G()->td(), &Td::send_update,
                  td_api::make_object<td_api::updateOption>(name.str(), get_option_value_object(get_option(name))));
+  } else {
+    auto update = get_internal_option_update(name);
+    if (update != nullptr) {
+      send_closure(G()->td(), &Td::send_update, std::move(update));
+    }
   }
 }
 
@@ -299,6 +295,20 @@ bool OptionManager::is_internal_option(Slice name) {
   }
 }
 
+td_api::object_ptr<td_api::Update> OptionManager::get_internal_option_update(Slice name) const {
+  if (name == "default_reaction") {
+    return get_update_default_reaction_type(get_option_string(name));
+  }
+  if (name == "otherwise_relogin_days") {
+    auto days = narrow_cast<int32>(get_option_integer(name));
+    if (days > 0) {
+      vector<SuggestedAction> added_actions{SuggestedAction{SuggestedAction::Type::SetPassword, DialogId(), days}};
+      return get_update_suggested_actions_object(added_actions, {});
+    }
+  }
+  return nullptr;
+}
+
 const vector<Slice> &OptionManager::get_synchronous_options() {
   static const vector<Slice> options{"version", "commit_hash"};
   return options;
@@ -334,9 +344,6 @@ void OptionManager::on_option_updated(Slice name) {
       }
       break;
     case 'd':
-      if (name == "default_reaction") {
-        send_update_default_reaction_type(get_option_string(name));
-      }
       if (name == "dice_emojis") {
         send_closure(td_->stickers_manager_actor_, &StickersManager::on_update_dice_emojis);
       }
@@ -413,13 +420,6 @@ void OptionManager::on_option_updated(Slice name) {
     case 'o':
       if (name == "online_cloud_timeout_ms") {
         send_closure(td_->notification_manager_actor_, &NotificationManager::on_online_cloud_timeout_changed);
-      }
-      if (name == "otherwise_relogin_days") {
-        auto days = narrow_cast<int32>(get_option_integer(name));
-        if (days > 0) {
-          vector<SuggestedAction> added_actions{SuggestedAction{SuggestedAction::Type::SetPassword, DialogId(), days}};
-          send_closure(G()->td(), &Td::send_update, get_update_suggested_actions_object(added_actions, {}));
-        }
       }
       break;
     case 'r':
@@ -867,6 +867,11 @@ void OptionManager::get_current_state(vector<td_api::object_ptr<td_api::Update>>
     if (!is_internal_option(option.first)) {
       updates.push_back(
           td_api::make_object<td_api::updateOption>(option.first, get_option_value_object(option.second)));
+    } else {
+      auto update = get_internal_option_update(option.first);
+      if (update != nullptr) {
+        updates.push_back(std::move(update));
+      }
     }
   }
 }
