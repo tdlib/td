@@ -587,6 +587,7 @@ void AuthManager::on_sent_code(telegram_api::object_ptr<telegram_api::auth_SentC
     send_code_helper_.on_sent_code(std::move(sent_code));
     update_state(State::WaitCode, true);
   }
+  on_query_ok();
 }
 
 void AuthManager::on_send_code_result(NetQueryPtr &result) {
@@ -598,7 +599,6 @@ void AuthManager::on_send_code_result(NetQueryPtr &result) {
 
   LOG(INFO) << "Receive " << to_string(sent_code);
   on_sent_code(std::move(sent_code));
-  on_query_ok();
 }
 
 void AuthManager::on_send_email_code_result(NetQueryPtr &result) {
@@ -634,7 +634,6 @@ void AuthManager::on_verify_email_address_result(NetQueryPtr &result) {
 
   auto verified_login = telegram_api::move_object_as<telegram_api::account_emailVerifiedLogin>(email_verified);
   on_sent_code(std::move(verified_login->sent_code_));
-  on_query_ok();
 }
 
 void AuthManager::on_request_qr_code_result(NetQueryPtr &result, bool is_import) {
