@@ -1463,8 +1463,6 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
   CHECK(config != nullptr);
   LOG(INFO) << "Receive app config " << to_string(config);
 
-  const bool archive_and_mute = G()->get_option_boolean("archive_and_mute_new_chats_from_unknown_users");
-
   string autologin_token;
   vector<string> autologin_domains;
   vector<string> url_auth_domains;
@@ -1664,6 +1662,8 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
       if (key == "pending_suggestions") {
         if (value->get_id() == telegram_api::jsonArray::ID) {
           auto actions = std::move(static_cast<telegram_api::jsonArray *>(value)->value_);
+          const bool archive_and_mute = G()->get_option_boolean("archive_and_mute_new_chats_from_unknown_users");
+          auto otherwise_relogin_days = G()->get_option_integer("otherwise_relogin_days");
           for (auto &action : actions) {
             auto action_str = get_json_value_string(std::move(action), key);
             SuggestedAction suggested_action(action_str);
@@ -1671,6 +1671,9 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
               if (archive_and_mute &&
                   suggested_action == SuggestedAction{SuggestedAction::Type::EnableArchiveAndMuteNewChats}) {
                 LOG(INFO) << "Skip EnableArchiveAndMuteNewChats suggested action";
+              } else if (otherwise_relogin_days > 0 &&
+                         suggested_action == SuggestedAction{SuggestedAction::Type::SetPassword}) {
+                LOG(INFO) << "Skip SetPassword suggested action";
               } else {
                 suggested_actions.push_back(suggested_action);
               }
@@ -2025,7 +2028,7 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
 
 void ConfigManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const {
   if (!suggested_actions_.empty()) {
-    updates.push_back(get_update_suggested_actions_object(suggested_actions_, {}));
+    updates.push_back(get_update_suggested_actions_object(suggested_actions_, {}, "get_current_state"));
   }
 }
 

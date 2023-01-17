@@ -4816,7 +4816,8 @@ suggestedActionViewChecksHint = SuggestedAction;
 //@description Suggests the user to convert specified supergroup to a broadcast group @supergroup_id Supergroup identifier
 suggestedActionConvertToBroadcastGroup supergroup_id:int53 = SuggestedAction;
 
-//@description Suggests the user to set a 2-step verification password to be able to log in again @authorization_delay The number of days to pass between consecutive authorizations if the user declines to set password
+//@description Suggests the user to set a 2-step verification password to be able to log in again
+//@authorization_delay The number of days to pass between consecutive authorizations if the user declines to set password; if 0, then the user is advised to set the password for security reasons
 suggestedActionSetPassword authorization_delay:int32 = SuggestedAction;
 
 

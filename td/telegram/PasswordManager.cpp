@@ -821,6 +821,7 @@ void PasswordManager::do_get_state(Promise<PasswordState> promise) {
             dismiss_suggested_action(SuggestedAction{SuggestedAction::Type::SetPassword, DialogId(), days},
                                      Promise<Unit>());
           }
+          dismiss_suggested_action(SuggestedAction{SuggestedAction::Type::SetPassword}, Promise<Unit>());
         } else {
           state.has_password = false;
           send_closure(actor_id, &PasswordManager::drop_cached_secret);

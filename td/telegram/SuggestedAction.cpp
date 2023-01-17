@@ -35,6 +35,8 @@ SuggestedAction::SuggestedAction(Slice action_str) {
     init(Type::CheckPhoneNumber);
   } else if (action_str == Slice("NEWCOMER_TICKS")) {
     init(Type::ViewChecksHint);
+  } else if (action_str == Slice("SETUP_PASSWORD")) {
+    init(Type::SetPassword);
   }
 }
 
@@ -95,6 +97,8 @@ string SuggestedAction::get_suggested_action_str() const {
       return "NEWCOMER_TICKS";
     case Type::ConvertToGigagroup:
       return "CONVERT_GIGAGROUP";
+    case Type::SetPassword:
+      return "SETUP_PASSWORD";
     default:
       return string();
   }
@@ -123,7 +127,8 @@ td_api::object_ptr<td_api::SuggestedAction> SuggestedAction::get_suggested_actio
 }
 
 td_api::object_ptr<td_api::updateSuggestedActions> get_update_suggested_actions_object(
-    const vector<SuggestedAction> &added_actions, const vector<SuggestedAction> &removed_actions) {
+    const vector<SuggestedAction> &added_actions, const vector<SuggestedAction> &removed_actions, const char *source) {
+  LOG(INFO) << "Get updateSuggestedActions from " << source;
   auto get_object = [](const SuggestedAction &action) {
     return action.get_suggested_action_object();
   };
@@ -154,12 +159,14 @@ void update_suggested_actions(vector<SuggestedAction> &suggested_actions,
   }
   CHECK(!added_actions.empty() || !removed_actions.empty());
   suggested_actions = std::move(new_suggested_actions);
-  send_closure(G()->td(), &Td::send_update, get_update_suggested_actions_object(added_actions, removed_actions));
+  send_closure(G()->td(), &Td::send_update,
+               get_update_suggested_actions_object(added_actions, removed_actions, "update_suggested_actions"));
 }
 
 void remove_suggested_action(vector<SuggestedAction> &suggested_actions, SuggestedAction suggested_action) {
   if (td::remove(suggested_actions, suggested_action)) {
-    send_closure(G()->td(), &Td::send_update, get_update_suggested_actions_object({}, {suggested_action}));
+    send_closure(G()->td(), &Td::send_update,
+                 get_update_suggested_actions_object({}, {suggested_action}, "remove_suggested_action"));
   }
 }
 
@@ -177,13 +184,18 @@ void dismiss_suggested_action(SuggestedAction action, Promise<Unit> &&promise) {
       return send_closure_later(G()->contacts_manager(), &ContactsManager::dismiss_dialog_suggested_action,
                                 std::move(action), std::move(promise));
     case SuggestedAction::Type::SetPassword: {
-      if (action.otherwise_relogin_days_ <= 0) {
+      if (action.otherwise_relogin_days_ < 0) {
         return promise.set_error(Status::Error(400, "Invalid authorization_delay specified"));
+      }
+      if (action.otherwise_relogin_days_ == 0) {
+        return send_closure_later(G()->config_manager(), &ConfigManager::dismiss_suggested_action, std::move(action),
+                                  std::move(promise));
       }
       auto days = narrow_cast<int32>(G()->get_option_integer("otherwise_relogin_days"));
       if (days == action.otherwise_relogin_days_) {
         vector<SuggestedAction> removed_actions{SuggestedAction{SuggestedAction::Type::SetPassword, DialogId(), days}};
-        send_closure(G()->td(), &Td::send_update, get_update_suggested_actions_object({}, removed_actions));
+        send_closure(G()->td(), &Td::send_update,
+                     get_update_suggested_actions_object({}, removed_actions, "dismiss_suggested_action"));
         G()->set_option_empty("otherwise_relogin_days");
       }
       return promise.set_value(Unit());
