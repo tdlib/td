@@ -198,7 +198,7 @@ void OptionManager::set_option(Slice name, Slice value) {
   CHECK(!name.empty());
   CHECK(Scheduler::instance()->sched_id() == current_scheduler_id_);
   if (value.empty()) {
-    if (option_pmc_->erase(name.str()) == 0) {
+    if (options_->erase(name.str()) == 0) {
       return;
     }
     option_pmc_->erase(name.str());
