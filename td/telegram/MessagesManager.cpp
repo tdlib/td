@@ -25879,9 +25879,6 @@ Status MessagesManager::can_send_message(DialogId dialog_id) const {
     switch (channel_type) {
       case ChannelType::Unknown:
       case ChannelType::Megagroup:
-        if (!channel_status.can_send_messages()) {
-          return Status::Error(400, "Have no rights to send a message");
-        }
         break;
       case ChannelType::Broadcast: {
         if (!channel_status.can_post_messages()) {

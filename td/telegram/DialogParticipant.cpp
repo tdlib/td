@@ -210,22 +210,12 @@ RestrictedRights::RestrictedRights(const td_api::object_ptr<td_api::chatPermissi
     return;
   }
 
-  bool can_send_polls = rights->can_send_polls_;
-  bool can_send_audios = rights->can_send_audios_;
-  bool can_send_documents = rights->can_send_documents_;
-  bool can_send_photos = rights->can_send_photos_;
-  bool can_send_videos = rights->can_send_videos_;
-  bool can_send_video_notes = rights->can_send_video_notes_;
-  bool can_send_voice_notes = rights->can_send_voice_notes_;
-  bool can_send_messages = rights->can_send_messages_ || can_send_audios || can_send_documents || can_send_photos ||
-                           can_send_videos || can_send_video_notes || can_send_voice_notes || can_send_polls ||
-                           rights->can_send_other_messages_ || rights->can_add_web_page_previews_;
-  *this = RestrictedRights(can_send_messages, can_send_audios, can_send_documents, can_send_photos, can_send_videos,
-                           can_send_video_notes, can_send_voice_notes, rights->can_send_other_messages_,
-                           rights->can_send_other_messages_, rights->can_send_other_messages_,
-                           rights->can_send_other_messages_, rights->can_add_web_page_previews_, can_send_polls,
-                           rights->can_change_info_, rights->can_invite_users_, rights->can_pin_messages_,
-                           rights->can_manage_topics_);
+  *this = RestrictedRights(
+      rights->can_send_messages_, rights->can_send_audios_, rights->can_send_documents_, rights->can_send_photos_,
+      rights->can_send_videos_, rights->can_send_video_notes_, rights->can_send_voice_notes_,
+      rights->can_send_other_messages_, rights->can_send_other_messages_, rights->can_send_other_messages_,
+      rights->can_send_other_messages_, rights->can_add_web_page_previews_, rights->can_send_polls_,
+      rights->can_change_info_, rights->can_invite_users_, rights->can_pin_messages_, rights->can_manage_topics_);
 }
 
 RestrictedRights::RestrictedRights(bool can_send_messages, bool can_send_audios, bool can_send_documents,
@@ -265,7 +255,7 @@ td_api::object_ptr<td_api::chatPermissions> RestrictedRights::get_chat_permissio
 tl_object_ptr<telegram_api::chatBannedRights> RestrictedRights::get_chat_banned_rights() const {
   int32 flags = 0;
   if (!can_send_messages()) {
-    flags |= telegram_api::chatBannedRights::SEND_MESSAGES_MASK;
+    flags |= telegram_api::chatBannedRights::SEND_PLAIN_MASK;
   }
   if (!can_send_audios()) {
     flags |= telegram_api::chatBannedRights::SEND_AUDIOS_MASK;
@@ -335,7 +325,7 @@ bool operator!=(const RestrictedRights &lhs, const RestrictedRights &rhs) {
 StringBuilder &operator<<(StringBuilder &string_builder, const RestrictedRights &status) {
   string_builder << "Restricted: ";
   if (!status.can_send_messages()) {
-    string_builder << "(text)";
+    string_builder << "(text+contact+invoice+location+venue)";
   }
   if (!status.can_send_audios()) {
     string_builder << "(audios)";
@@ -356,7 +346,7 @@ StringBuilder &operator<<(StringBuilder &string_builder, const RestrictedRights 
     string_builder << "(voice notes)";
   }
   if (!status.can_send_stickers()) {
-    string_builder << "(stickers)";
+    string_builder << "(stickers+dices)";
   }
   if (!status.can_send_animations()) {
     string_builder << "(animations)";
