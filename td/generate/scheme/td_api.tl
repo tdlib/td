@@ -562,7 +562,7 @@ inputChatPhotoAnimation animation:InputFile main_frame_timestamp:double = InputC
 
 
 //@description Describes actions that a user is allowed to take in a chat
-//@can_send_messages True, if the user can send text messages, contacts, locations, and venues
+//@can_send_messages True, if the user can send text messages, contacts, invoices, locations, and venues
 //@can_send_media_messages True, if the user can send audio files, documents, photos, videos, video notes, and voice notes. Implies can_send_messages permissions
 //@can_send_polls True, if the user can send polls. Implies can_send_messages permissions
 //@can_send_other_messages True, if the user can send animations, games, stickers, and dice and use inline bots. Implies can_send_messages permissions
