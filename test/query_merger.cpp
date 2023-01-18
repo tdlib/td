@@ -49,7 +49,7 @@ class TestQueryMerger : public td::Actor {
     loop();
   }
 
-  void loop() {
+  void loop() override {
     std::size_t query_count = 0;
     std::size_t added_queries = td::Random::fast(1, 3);
     while (query_count++ < added_queries && total_query_count_++ < MAX_QUERY_COUNT) {
@@ -57,8 +57,7 @@ class TestQueryMerger : public td::Actor {
       if (pending_query_ids_.insert(query_id).second) {
         next_query_ids_.push(query_id);
       }
-      query_merger_.add_query(query_id,
-                              td::PromiseCreator::lambda([this, query_id](td::Result<td::Unit> result) mutable {
+      query_merger_.add_query(query_id, td::PromiseCreator::lambda([this](td::Result<td::Unit> result) mutable {
                                 completed_query_count_++;
                                 if (completed_query_count_ == MAX_QUERY_COUNT) {
                                   ASSERT_EQ(current_query_count_, 0u);
