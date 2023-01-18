@@ -201,6 +201,13 @@ vector<MessageEntity> get_message_entities(const ContactsManager *contacts_manag
 vector<MessageEntity> get_message_entities(Td *td, vector<tl_object_ptr<secret_api::MessageEntity>> &&secret_entities,
                                            bool is_premium, MultiPromiseActor &load_data_multipromise);
 
+telegram_api::object_ptr<telegram_api::textWithEntities> get_input_text_with_entities(
+    const ContactsManager *contacts_manager, const FormattedText &text, const char *source);
+
+FormattedText get_formatted_text(const ContactsManager *contacts_manager,
+                                 telegram_api::object_ptr<telegram_api::textWithEntities> text_with_entities,
+                                 const char *source);
+
 // like clean_input_string but also validates entities
 Status fix_formatted_text(string &text, vector<MessageEntity> &entities, bool allow_empty, bool skip_new_entities,
                           bool skip_bot_commands, bool skip_media_timestamps, bool for_draft) TD_WARN_UNUSED_RESULT;

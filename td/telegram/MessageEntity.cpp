@@ -3725,6 +3725,27 @@ vector<MessageEntity> get_message_entities(Td *td, vector<tl_object_ptr<secret_a
   return entities;
 }
 
+telegram_api::object_ptr<telegram_api::textWithEntities> get_input_text_with_entities(
+    const ContactsManager *contacts_manager, const FormattedText &text, const char *source) {
+  return telegram_api::make_object<telegram_api::textWithEntities>(
+      text.text, get_input_message_entities(contacts_manager, text.entities, source));
+}
+
+FormattedText get_formatted_text(const ContactsManager *contacts_manager,
+                                 telegram_api::object_ptr<telegram_api::textWithEntities> text_with_entities,
+                                 const char *source) {
+  CHECK(text_with_entities != nullptr);
+  auto entities = get_message_entities(contacts_manager, std::move(text_with_entities->entities_), source);
+  auto status = fix_formatted_text(text_with_entities->text_, entities, true, true, true, true, false);
+  if (status.is_error()) {
+    if (!clean_input_string(text_with_entities->text_)) {
+      text_with_entities->text_.clear();
+    }
+    entities = find_entities(text_with_entities->text_, true, true);
+  }
+  return {std::move(text_with_entities->text_), std::move(entities)};
+}
+
 // like clean_input_string but also fixes entities
 // entities must be sorted, can be nested, but must not intersect each other
 static Result<string> clean_input_string_with_entities(const string &text, vector<MessageEntity> &entities) {
