@@ -2446,8 +2446,7 @@ void FileManager::run_download(FileNodePtr node, bool force_update_priority) {
     QueryId query_id = queries_container_.create(Query{file_id, Query::Type::DownloadWaitFileReference});
     node->download_id_ = query_id;
     if (node->download_was_update_file_reference_) {
-      on_error(query_id, Status::Error("Can't download file: have no valid file reference"));
-      return;
+      return on_error(query_id, Status::Error("Can't download file: have no valid file reference"));
     }
     node->download_was_update_file_reference_ = true;
 
@@ -2951,8 +2950,7 @@ void FileManager::run_upload(FileNodePtr node, vector<int> bad_parts) {
     QueryId query_id = queries_container_.create(Query{file_id, Query::Type::UploadWaitFileReference});
     node->upload_id_ = query_id;
     if (node->upload_was_update_file_reference_) {
-      on_error(query_id, Status::Error("Can't upload file: have no valid file reference"));
-      return;
+      return on_error(query_id, Status::Error("Can't upload file: have no valid file reference"));
     }
     node->upload_was_update_file_reference_ = true;
 

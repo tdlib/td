@@ -864,11 +864,10 @@ class ReloadSpecialStickerSetQuery final : public Td::ResultHandler {
       td_->stickers_manager_->on_get_messages_sticker_set(sticker_set_id_, std::move(set_ptr), false,
                                                           "ReloadSpecialStickerSetQuery");
     }
-    if (sticker_set_id_.is_valid()) {
-      td_->stickers_manager_->on_get_special_sticker_set(type_, sticker_set_id_);
-    } else {
-      on_error(Status::Error(500, "Failed to add special sticker set"));
+    if (!sticker_set_id_.is_valid()) {
+      return on_error(Status::Error(500, "Failed to add special sticker set"));
     }
+    td_->stickers_manager_->on_get_special_sticker_set(type_, sticker_set_id_);
   }
 
   void on_error(Status status) final {

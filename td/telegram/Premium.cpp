@@ -199,10 +199,10 @@ class CanPurchasePremiumQuery final : public Td::ResultHandler {
     }
 
     bool result = result_ptr.ok();
-    if (result) {
-      return promise_.set_value(Unit());
+    if (!result) {
+      return on_error(Status::Error(400, "Premium can't be purchased"));
     }
-    on_error(Status::Error(400, "Premium can't be purchased"));
+    promise_.set_value(Unit());
   }
 
   void on_error(Status status) final {

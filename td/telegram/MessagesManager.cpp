@@ -1684,7 +1684,7 @@ class SaveDraftMessageQuery final : public Td::ResultHandler {
 
     bool result = result_ptr.ok();
     if (!result) {
-      on_error(Status::Error(400, "Save draft failed"));
+      return on_error(Status::Error(400, "Save draft failed"));
     }
 
     promise_.set_value(Unit());
@@ -1761,7 +1761,7 @@ class ToggleDialogPinQuery final : public Td::ResultHandler {
 
     bool result = result_ptr.ok();
     if (!result) {
-      on_error(Status::Error(400, "Toggle dialog pin failed"));
+      return on_error(Status::Error(400, "Toggle dialog pin failed"));
     }
 
     promise_.set_value(Unit());
@@ -1849,7 +1849,7 @@ class ToggleDialogUnreadMarkQuery final : public Td::ResultHandler {
 
     bool result = result_ptr.ok();
     if (!result) {
-      on_error(Status::Error(400, "Toggle dialog mark failed"));
+      return on_error(Status::Error(400, "Toggle dialog mark failed"));
     }
 
     promise_.set_value(Unit());

@@ -263,11 +263,14 @@ class TlsHelloCalcLength {
   }
 
   Result<size_t> finish() {
+    if (status_.is_error()) {
+      return std::move(status_);
+    }
     if (size_ > 514) {
-      on_error(Status::Error("Too long for zero padding"));
+      return Status::Error("Too long for zero padding");
     }
     if (size_ < 11 + 32) {
-      on_error(Status::Error("Too small for hash"));
+      return Status::Error("Too small for hash");
     }
     int zero_pad = 515 - static_cast<int>(size_);
     using Op = TlsHello::Op;
@@ -275,9 +278,8 @@ class TlsHelloCalcLength {
     do_op(Op::zero(zero_pad), nullptr);
     do_op(Op::end_scope(), nullptr);
     if (!scope_offset_.empty()) {
-      on_error(Status::Error("Unbalanced scopes"));
+      return Status::Error("Unbalanced scopes");
     }
-    TRY_STATUS(std::move(status_));
     return size_;
   }
 

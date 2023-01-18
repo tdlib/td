@@ -35,7 +35,7 @@ class StringBuilder {
   void push_back(char c) {
     if (unlikely(end_ptr_ <= current_ptr_)) {
       if (!reserve_inner(RESERVED_SIZE)) {
-        on_error();
+        error_flag_ = true;
         return;
       }
     }
