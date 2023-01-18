@@ -3038,10 +3038,9 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::getMessageLinkInfo>(args));
     } else if (op == "tt") {
       string text;
-      string from_language_code;
       string to_language_code;
-      get_args(args, text, from_language_code, to_language_code);
-      send_request(td_api::make_object<td_api::translateText>(text, from_language_code, to_language_code));
+      get_args(args, to_language_code, text);
+      send_request(td_api::make_object<td_api::translateText>(as_formatted_text(text), to_language_code));
     } else if (op == "rs") {
       ChatId chat_id;
       MessageId message_id;

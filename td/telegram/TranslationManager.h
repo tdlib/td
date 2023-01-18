@@ -7,6 +7,7 @@
 #pragma once
 
 #include "td/telegram/td_api.h"
+#include "td/telegram/telegram_api.h"
 
 #include "td/actor/actor.h"
 
@@ -21,11 +22,14 @@ class TranslationManager final : public Actor {
  public:
   TranslationManager(Td *td, ActorShared<> parent);
 
-  void translate_text(const string &text, const string &from_language_code, const string &to_language_code,
-                      Promise<td_api::object_ptr<td_api::text>> &&promise);
+  void translate_text(td_api::object_ptr<td_api::formattedText> &&text, const string &to_language_code,
+                      Promise<td_api::object_ptr<td_api::formattedText>> &&promise);
 
  private:
   void tear_down() final;
+
+  void on_get_translated_texts(vector<telegram_api::object_ptr<telegram_api::textWithEntities>> texts,
+                               Promise<td_api::object_ptr<td_api::formattedText>> &&promise);
 
   Td *td_;
   ActorShared<> parent_;

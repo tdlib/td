@@ -4702,12 +4702,9 @@ void Td::on_request(uint64 id, td_api::getMessageLinkInfo &request) {
 
 void Td::on_request(uint64 id, td_api::translateText &request) {
   CHECK_IS_USER();
-  CLEAN_INPUT_STRING(request.text_);
-  CLEAN_INPUT_STRING(request.from_language_code_);
   CLEAN_INPUT_STRING(request.to_language_code_);
   CREATE_REQUEST_PROMISE();
-  translation_manager_->translate_text(request.text_, request.from_language_code_, request.to_language_code_,
-                                       std::move(promise));
+  translation_manager_->translate_text(std::move(request.text_), request.to_language_code_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::recognizeSpeech &request) {

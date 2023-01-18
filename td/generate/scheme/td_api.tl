@@ -5933,11 +5933,10 @@ getMessageEmbeddingCode chat_id:int53 message_id:int53 for_album:Bool = Text;
 getMessageLinkInfo url:string = MessageLinkInfo;
 
 
-//@description Translates a text to the given language. Returns a 404 error if the translation can't be performed
+//@description Translates a text to the given language
 //@text Text to translate
-//@from_language_code A two-letter ISO 639-1 language code of the language from which the message is translated. If empty, the language will be detected automatically
 //@to_language_code A two-letter ISO 639-1 language code of the language to which the message is translated
-translateText text:string from_language_code:string to_language_code:string = Text;
+translateText text:formattedText to_language_code:string = FormattedText;
 
 //@description Recognizes speech in a video note or a voice note message. The message must be successfully sent and must not be scheduled. May return an error with a message "MSG_VOICE_TOO_LONG" if media duration is too big to be recognized
 //@chat_id Identifier of the chat to which the message belongs
