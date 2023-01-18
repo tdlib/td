@@ -15,6 +15,7 @@
 
 #include "td/utils/common.h"
 #include "td/utils/FlatHashSet.h"
+#include "td/utils/HashTableUtils.h"
 #include "td/utils/Slice.h"
 #include "td/utils/Status.h"
 #include "td/utils/StringBuilder.h"
@@ -131,6 +132,18 @@ struct FormattedText {
   void parse(ParserT &parser);
 };
 
+struct FormattedTextHash {
+  uint32 operator()(const FormattedText &formatted_text) const {
+    auto hash = Hash<string>()(formatted_text.text);
+    for (auto &entity : formatted_text.entities) {
+      hash = hash * 2023654985u + Hash<int32>()(static_cast<int32>(entity.type));
+      hash = hash * 2023654985u + Hash<int32>()(entity.length);
+      hash = hash * 2023654985u + Hash<int32>()(entity.offset);
+    }
+    return hash;
+  }
+};
+
 StringBuilder &operator<<(StringBuilder &string_builder, const FormattedText &text);
 
 inline bool operator==(const FormattedText &lhs, const FormattedText &rhs) {
@@ -206,7 +219,8 @@ telegram_api::object_ptr<telegram_api::textWithEntities> get_input_text_with_ent
 
 FormattedText get_formatted_text(const ContactsManager *contacts_manager,
                                  telegram_api::object_ptr<telegram_api::textWithEntities> text_with_entities,
-                                 const char *source);
+                                 bool allow_empty, bool skip_new_entities, bool skip_bot_commands,
+                                 bool skip_media_timestamps, bool for_draft, const char *source);
 
 // like clean_input_string but also validates entities
 Status fix_formatted_text(string &text, vector<MessageEntity> &entities, bool allow_empty, bool skip_new_entities,

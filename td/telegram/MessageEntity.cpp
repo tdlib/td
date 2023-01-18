@@ -3410,7 +3410,7 @@ Result<vector<MessageEntity>> get_message_entities(const ContactsManager *contac
         break;
       }
       case td_api::textEntityTypeMentionName::ID: {
-        auto entity = static_cast<td_api::textEntityTypeMentionName *>(input_entity->type_.get());
+        auto entity = static_cast<const td_api::textEntityTypeMentionName *>(input_entity->type_.get());
         UserId user_id(entity->user_id_);
         if (contacts_manager != nullptr) {
           TRY_STATUS(contacts_manager->get_input_user(user_id));
@@ -3419,7 +3419,7 @@ Result<vector<MessageEntity>> get_message_entities(const ContactsManager *contac
         break;
       }
       case td_api::textEntityTypeMediaTimestamp::ID: {
-        auto entity = static_cast<td_api::textEntityTypeMediaTimestamp *>(input_entity->type_.get());
+        auto entity = static_cast<const td_api::textEntityTypeMediaTimestamp *>(input_entity->type_.get());
         if (entity->media_timestamp_ < 0) {
           return Status::Error(400, "Invalid media timestamp specified");
         }
@@ -3430,7 +3430,7 @@ Result<vector<MessageEntity>> get_message_entities(const ContactsManager *contac
         entities.emplace_back(MessageEntity::Type::Spoiler, offset, length);
         break;
       case td_api::textEntityTypeCustomEmoji::ID: {
-        auto entity = static_cast<td_api::textEntityTypeCustomEmoji *>(input_entity->type_.get());
+        auto entity = static_cast<const td_api::textEntityTypeCustomEmoji *>(input_entity->type_.get());
         CustomEmojiId custom_emoji_id(entity->custom_emoji_id_);
         if (!custom_emoji_id.is_valid()) {
           return Status::Error(400, "Invalid custom emoji identifier specified");
@@ -3733,15 +3733,17 @@ telegram_api::object_ptr<telegram_api::textWithEntities> get_input_text_with_ent
 
 FormattedText get_formatted_text(const ContactsManager *contacts_manager,
                                  telegram_api::object_ptr<telegram_api::textWithEntities> text_with_entities,
-                                 const char *source) {
+                                 bool allow_empty, bool skip_new_entities, bool skip_bot_commands,
+                                 bool skip_media_timestamps, bool for_draft, const char *source) {
   CHECK(text_with_entities != nullptr);
   auto entities = get_message_entities(contacts_manager, std::move(text_with_entities->entities_), source);
-  auto status = fix_formatted_text(text_with_entities->text_, entities, true, true, true, true, false);
+  auto status = fix_formatted_text(text_with_entities->text_, entities, allow_empty, skip_new_entities,
+                                   skip_bot_commands, skip_media_timestamps, for_draft);
   if (status.is_error()) {
     if (!clean_input_string(text_with_entities->text_)) {
       text_with_entities->text_.clear();
     }
-    entities = find_entities(text_with_entities->text_, true, true);
+    entities = find_entities(text_with_entities->text_, skip_bot_commands, skip_media_timestamps);
   }
   return {std::move(text_with_entities->text_), std::move(entities)};
 }

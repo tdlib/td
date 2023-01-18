@@ -29,6 +29,7 @@ class TranslationManager final : public Actor {
   void tear_down() final;
 
   void on_get_translated_texts(vector<telegram_api::object_ptr<telegram_api::textWithEntities>> texts,
+                               bool skip_bot_commands, int32 max_media_timestamp,
                                Promise<td_api::object_ptr<td_api::formattedText>> &&promise);
 
   Td *td_;
