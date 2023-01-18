@@ -10,9 +10,12 @@
 TEST(Emoji, is_emoji) {
   ASSERT_TRUE(!td::is_emoji(""));
   ASSERT_TRUE(td::is_emoji("👩🏼‍❤‍💋‍👩🏻"));
+  ASSERT_TRUE(!td::is_emoji("👩🏼‍❤‍💋‍👩🏻️"));
   ASSERT_TRUE(td::is_emoji("👩🏼‍❤️‍💋‍👩🏻"));
+  ASSERT_TRUE(td::is_emoji("👩🏼‍❤️‍💋‍👩🏻️"));
   ASSERT_TRUE(!td::is_emoji("👩🏼‍❤️️‍💋‍👩🏻"));
   ASSERT_TRUE(td::is_emoji("⌚"));
+  ASSERT_TRUE(td::is_emoji("⌚️"));
   ASSERT_TRUE(td::is_emoji("↔"));
   ASSERT_TRUE(td::is_emoji("🪗"));
   ASSERT_TRUE(td::is_emoji("2️⃣"));
@@ -27,6 +30,13 @@ TEST(Emoji, is_emoji) {
   ASSERT_TRUE(td::is_emoji("⌚"));
   ASSERT_TRUE(td::is_emoji("🎄"));
   ASSERT_TRUE(td::is_emoji("🧑‍🎄"));
+  ASSERT_TRUE(td::is_emoji("©️"));
+  ASSERT_TRUE(td::is_emoji("©"));
+  ASSERT_TRUE(!td::is_emoji("©️️"));
+  ASSERT_TRUE(td::is_emoji("🕵️‍♂️"));
+  ASSERT_TRUE(!td::is_emoji("🕵‍♂️"));
+  ASSERT_TRUE(!td::is_emoji("🕵️‍♂"));
+  ASSERT_TRUE(td::is_emoji("🕵‍♂"));
 }
 
 static void test_get_fitzpatrick_modifier(td::string emoji, int result) {
