@@ -6,6 +6,7 @@
 //
 #pragma once
 
+#include "td/telegram/CustomEmojiId.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/Dimensions.h"
 #include "td/telegram/files/FileId.h"
@@ -37,6 +38,11 @@ struct AnimationSize final : public PhotoSize {
   double main_frame_timestamp = 0.0;
 };
 
+struct CustomEmojiSize {
+  CustomEmojiId custom_emoji_id;
+  vector<int32> background_colors;
+};
+
 bool need_update_dialog_photo_minithumbnail(const string &from, const string &to);
 
 td_api::object_ptr<td_api::minithumbnail> get_minithumbnail_object(const string &packed);
@@ -53,9 +59,10 @@ Variant<PhotoSize, string> get_photo_size(FileManager *file_manager, PhotoSizeSo
                                           DialogId owner_dialog_id, tl_object_ptr<telegram_api::PhotoSize> &&size_ptr,
                                           PhotoFormat format);
 
-AnimationSize get_animation_size(FileManager *file_manager, PhotoSizeSource source, int64 id, int64 access_hash,
-                                 string file_reference, DcId dc_id, DialogId owner_dialog_id,
-                                 tl_object_ptr<telegram_api::VideoSize> &&size_ptr);
+Variant<AnimationSize, CustomEmojiSize> get_animation_size(FileManager *file_manager, PhotoSizeSource source, int64 id,
+                                                           int64 access_hash, string file_reference, DcId dc_id,
+                                                           DialogId owner_dialog_id,
+                                                           tl_object_ptr<telegram_api::VideoSize> &&size_ptr);
 
 PhotoSize get_web_document_photo_size(FileManager *file_manager, FileType file_type, DialogId owner_dialog_id,
                                       tl_object_ptr<telegram_api::WebDocument> web_document_ptr);
@@ -74,5 +81,10 @@ bool operator==(const AnimationSize &lhs, const AnimationSize &rhs);
 bool operator!=(const AnimationSize &lhs, const AnimationSize &rhs);
 
 StringBuilder &operator<<(StringBuilder &string_builder, const AnimationSize &animation_size);
+
+bool operator==(const CustomEmojiSize &lhs, const CustomEmojiSize &rhs);
+bool operator!=(const CustomEmojiSize &lhs, const CustomEmojiSize &rhs);
+
+StringBuilder &operator<<(StringBuilder &string_builder, const CustomEmojiSize &custom_emoji_size);
 
 }  // namespace td

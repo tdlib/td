@@ -45,6 +45,8 @@ struct Photo {
 
   vector<AnimationSize> animations;
 
+  CustomEmojiSize custom_emoji_size;
+
   bool has_stickers = false;
   vector<FileId> sticker_file_ids;
 

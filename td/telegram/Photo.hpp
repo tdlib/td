@@ -71,10 +71,12 @@ template <class StorerT>
 void store(const Photo &photo, StorerT &storer) {
   bool has_minithumbnail = !photo.minithumbnail.empty();
   bool has_animations = !photo.animations.empty();
+  bool has_custom_emoji_size = photo.custom_emoji_size.custom_emoji_id.is_valid();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(photo.has_stickers);
   STORE_FLAG(has_minithumbnail);
   STORE_FLAG(has_animations);
+  STORE_FLAG(has_custom_emoji_size);
   END_STORE_FLAGS();
   store(photo.id.get(), storer);
   store(photo.date, storer);
@@ -88,16 +90,21 @@ void store(const Photo &photo, StorerT &storer) {
   if (has_animations) {
     store(photo.animations, storer);
   }
+  if (has_custom_emoji_size) {
+    store(photo.custom_emoji_size, storer);
+  }
 }
 
 template <class ParserT>
 void parse(Photo &photo, ParserT &parser) {
   bool has_minithumbnail;
   bool has_animations;
+  bool has_custom_emoji_size;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(photo.has_stickers);
   PARSE_FLAG(has_minithumbnail);
   PARSE_FLAG(has_animations);
+  PARSE_FLAG(has_custom_emoji_size);
   END_PARSE_FLAGS();
   int64 id;
   parse(id, parser);
@@ -112,6 +119,9 @@ void parse(Photo &photo, ParserT &parser) {
   }
   if (has_animations) {
     parse(photo.animations, parser);
+  }
+  if (has_custom_emoji_size) {
+    parse(photo.custom_emoji_size, parser);
   }
 }
 

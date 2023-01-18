@@ -527,6 +527,11 @@ botMenuButton text:string url:string = BotMenuButton;
 chatLocation location:location address:string = ChatLocation;
 
 
+//@description Information about the custom emoji, which was used to create the chat photo
+//@custom_emoji_id Identifier of the custom emoji
+//@background_fill Describes a fill of the background under the custom emoji; rotation angle in backgroundFillGradient isn't supported
+chatPhotoCustomEmoji custom_emoji_id:int64 background_fill:BackgroundFill = ChatPhotoCustomEmoji;
+
 //@description Animated variant of a chat photo in MPEG4 format
 //@length Animation width and height
 //@file Information about the animation file
@@ -541,7 +546,8 @@ animatedChatPhoto length:int32 file:file main_frame_timestamp:double = AnimatedC
 //@sizes Available variants of the photo in JPEG format, in different size
 //@animation A big (640x640) animated variant of the photo in MPEG4 format; may be null
 //@small_animation A small (160x160) animated variant of the photo in MPEG4 format; may be null even the big animation is available
-chatPhoto id:int64 added_date:int32 minithumbnail:minithumbnail sizes:vector<photoSize> animation:animatedChatPhoto small_animation:animatedChatPhoto = ChatPhoto;
+//@custom_emoji Custom-emoji-based version of the chat photo; may be null
+chatPhoto id:int64 added_date:int32 minithumbnail:minithumbnail sizes:vector<photoSize> animation:animatedChatPhoto small_animation:animatedChatPhoto custom_emoji:chatPhotoCustomEmoji = ChatPhoto;
 
 //@description Contains a list of chat or user profile photos @total_count Total number of photos @photos List of photos
 chatPhotos total_count:int32 photos:vector<chatPhoto> = ChatPhotos;

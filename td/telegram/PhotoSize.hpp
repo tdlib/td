@@ -57,4 +57,16 @@ void parse(AnimationSize &animation_size, ParserT &parser) {
   }
 }
 
+template <class StorerT>
+void store(const CustomEmojiSize &custom_emoji_size, StorerT &storer) {
+  store(custom_emoji_size.custom_emoji_id, storer);
+  store(custom_emoji_size.background_colors, storer);
+}
+
+template <class ParserT>
+void parse(CustomEmojiSize &custom_emoji_size, ParserT &parser) {
+  parse(custom_emoji_size.custom_emoji_id, parser);
+  parse(custom_emoji_size.background_colors, parser);
+}
+
 }  // namespace td

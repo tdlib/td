@@ -19,6 +19,7 @@
 #include "td/utils/common.h"
 #include "td/utils/format.h"
 #include "td/utils/logging.h"
+#include "td/utils/overloaded.h"
 #include "td/utils/SliceBuilder.h"
 
 #include <algorithm>
@@ -264,6 +265,31 @@ static tl_object_ptr<td_api::animatedChatPhoto> get_animated_chat_photo_object(F
                                                         animation_size->main_frame_timestamp);
 }
 
+static tl_object_ptr<td_api::chatPhotoCustomEmoji> get_chat_photo_custom_emoji_object(
+    const CustomEmojiSize &custom_emoji_size) {
+  if (!custom_emoji_size.custom_emoji_id.is_valid()) {
+    return nullptr;
+  }
+
+  auto background_fill = [&](vector<int32> colors) -> td_api::object_ptr<td_api::BackgroundFill> {
+    switch (colors.size()) {
+      case 1:
+        return td_api::make_object<td_api::backgroundFillSolid>(colors[0]);
+      case 2:
+        return td_api::make_object<td_api::backgroundFillGradient>(colors[0], colors[1], 0);
+      case 3:
+      case 4:
+        return td_api::make_object<td_api::backgroundFillFreeformGradient>(std::move(colors));
+      default:
+        UNREACHABLE();
+        return nullptr;
+    }
+  }(custom_emoji_size.background_colors);
+
+  return td_api::make_object<td_api::chatPhotoCustomEmoji>(custom_emoji_size.custom_emoji_id.get(),
+                                                           std::move(background_fill));
+}
+
 Photo get_encrypted_file_photo(FileManager *file_manager, unique_ptr<EncryptedFile> &&file,
                                tl_object_ptr<secret_api::decryptedMessageMediaPhoto> &&photo,
                                DialogId owner_dialog_id) {
@@ -335,9 +361,16 @@ Photo get_photo(FileManager *file_manager, tl_object_ptr<telegram_api::photo> &&
     auto animation = get_animation_size(file_manager, PhotoSizeSource::thumbnail(FileType::Photo, 0), photo->id_,
                                         photo->access_hash_, photo->file_reference_.as_slice().str(), dc_id,
                                         owner_dialog_id, std::move(size_ptr));
-    if (animation.type != 0 && animation.dimensions.width == animation.dimensions.height) {
-      res.animations.push_back(std::move(animation));
+    if (animation.empty()) {
+      continue;
     }
+    animation.visit(overloaded(
+        [&](const AnimationSize &animation_size) {
+          if (animation_size.type != 0 && animation_size.dimensions.width == animation_size.dimensions.height) {
+            res.animations.push_back(std::move(animation_size));
+          }
+        },
+        [&](const CustomEmojiSize &custom_emoji_size) { res.custom_emoji_size = std::move(custom_emoji_size); }));
   }
 
   return res;
@@ -384,7 +417,8 @@ tl_object_ptr<td_api::chatPhoto> get_chat_photo_object(FileManager *file_manager
   return td_api::make_object<td_api::chatPhoto>(
       photo.id.get(), photo.date, get_minithumbnail_object(photo.minithumbnail),
       get_photo_sizes_object(file_manager, photo.photos), get_animated_chat_photo_object(file_manager, big_animation),
-      get_animated_chat_photo_object(file_manager, small_animation));
+      get_animated_chat_photo_object(file_manager, small_animation),
+      get_chat_photo_custom_emoji_object(photo.custom_emoji_size));
 }
 
 void photo_delete_thumbnail(Photo &photo) {
@@ -572,7 +606,8 @@ FileId get_photo_thumbnail_file_id(const Photo &photo) {
 }
 
 bool operator==(const Photo &lhs, const Photo &rhs) {
-  return lhs.id.get() == rhs.id.get() && lhs.photos == rhs.photos && lhs.animations == rhs.animations;
+  return lhs.id.get() == rhs.id.get() && lhs.photos == rhs.photos && lhs.animations == rhs.animations &&
+         lhs.custom_emoji_size == rhs.custom_emoji_size;
 }
 
 bool operator!=(const Photo &lhs, const Photo &rhs) {
@@ -583,6 +618,9 @@ StringBuilder &operator<<(StringBuilder &string_builder, const Photo &photo) {
   string_builder << "[ID = " << photo.id.get() << ", photos = " << format::as_array(photo.photos);
   if (!photo.animations.empty()) {
     string_builder << ", animations = " << format::as_array(photo.animations);
+  }
+  if (photo.custom_emoji_size.custom_emoji_id.is_valid()) {
+    string_builder << ", custom emoji size = " << photo.custom_emoji_size;
   }
   return string_builder << ']';
 }

@@ -258,40 +258,58 @@ Variant<PhotoSize, string> get_photo_size(FileManager *file_manager, PhotoSizeSo
   return std::move(res);
 }
 
-AnimationSize get_animation_size(FileManager *file_manager, PhotoSizeSource source, int64 id, int64 access_hash,
-                                 std::string file_reference, DcId dc_id, DialogId owner_dialog_id,
-                                 tl_object_ptr<telegram_api::VideoSize> &&size_ptr) {
+Variant<AnimationSize, CustomEmojiSize> get_animation_size(FileManager *file_manager, PhotoSizeSource source, int64 id,
+                                                           int64 access_hash, std::string file_reference, DcId dc_id,
+                                                           DialogId owner_dialog_id,
+                                                           tl_object_ptr<telegram_api::VideoSize> &&size_ptr) {
   CHECK(size_ptr != nullptr);
-  if (size_ptr->get_id() != telegram_api::videoSize::ID) {
-    return {};
-  }
-  auto size = move_tl_object_as<telegram_api::videoSize>(size_ptr);
-  AnimationSize res;
-  if (size->type_ != "p" && size->type_ != "u" && size->type_ != "v") {
-    LOG(ERROR) << "Unsupported videoSize \"" << size->type_ << "\" in " << to_string(size);
-  }
-  res.type = static_cast<uint8>(size->type_[0]);
-  if (res.type >= 128) {
-    LOG(ERROR) << "Wrong videoSize \"" << res.type << "\" " << res;
-    res.type = 0;
-  }
-  res.dimensions = get_dimensions(size->w_, size->h_, "get_animation_size");
-  res.size = size->size_;
-  if ((size->flags_ & telegram_api::videoSize::VIDEO_START_TS_MASK) != 0) {
-    res.main_frame_timestamp = size->video_start_ts_;
-  }
+  switch (size_ptr->get_id()) {
+    case telegram_api::videoSize::ID: {
+      auto size = move_tl_object_as<telegram_api::videoSize>(size_ptr);
+      AnimationSize result;
+      if (size->type_ != "p" && size->type_ != "u" && size->type_ != "v") {
+        LOG(ERROR) << "Unsupported videoSize \"" << size->type_ << "\" in " << to_string(size);
+      }
+      result.type = static_cast<uint8>(size->type_[0]);
+      if (result.type >= 128) {
+        LOG(ERROR) << "Wrong videoSize \"" << result.type << "\" " << result;
+        result.type = 0;
+      }
+      result.dimensions = get_dimensions(size->w_, size->h_, "get_animation_size");
+      result.size = size->size_;
+      if ((size->flags_ & telegram_api::videoSize::VIDEO_START_TS_MASK) != 0) {
+        result.main_frame_timestamp = size->video_start_ts_;
+      }
 
-  if (source.get_type("get_animation_size") == PhotoSizeSource::Type::Thumbnail) {
-    source.thumbnail().thumbnail_type = res.type;
-  }
-  if (res.size < 0 || res.size > 1000000000) {
-    LOG(ERROR) << "Receive animation of size " << res.size;
-    res.size = 0;
-  }
+      if (source.get_type("get_animation_size") == PhotoSizeSource::Type::Thumbnail) {
+        source.thumbnail().thumbnail_type = result.type;
+      }
+      if (result.size < 0 || result.size > 1000000000) {
+        LOG(ERROR) << "Receive animation of size " << result.size;
+        result.size = 0;
+      }
 
-  res.file_id = register_photo_size(file_manager, source, id, access_hash, std::move(file_reference), owner_dialog_id,
-                                    res.size, dc_id, PhotoFormat::Mpeg4);
-  return res;
+      result.file_id = register_photo_size(file_manager, source, id, access_hash, std::move(file_reference),
+                                           owner_dialog_id, result.size, dc_id, PhotoFormat::Mpeg4);
+      return std::move(result);
+    }
+    case telegram_api::videoSizeEmojiMarkup::ID: {
+      auto size = move_tl_object_as<telegram_api::videoSizeEmojiMarkup>(size_ptr);
+      CustomEmojiSize result;
+      result.custom_emoji_id = CustomEmojiId(size->emoji_id_);
+      result.background_colors = std::move(size->background_colors_);
+      if (!result.custom_emoji_id.is_valid() || result.background_colors.empty() ||
+          result.background_colors.size() > 4) {
+        LOG(ERROR) << "Receive invalid " << result;
+        return {};
+      }
+      return std::move(result);
+    }
+    case telegram_api::videoSizeStickerMarkup::ID:
+      return {};
+    default:
+      UNREACHABLE();
+  }
 }
 
 PhotoSize get_web_document_photo_size(FileManager *file_manager, FileType file_type, DialogId owner_dialog_id,
@@ -446,6 +464,18 @@ bool operator!=(const AnimationSize &lhs, const AnimationSize &rhs) {
 StringBuilder &operator<<(StringBuilder &string_builder, const AnimationSize &animation_size) {
   return string_builder << static_cast<const PhotoSize &>(animation_size) << " from "
                         << animation_size.main_frame_timestamp;
+}
+
+bool operator==(const CustomEmojiSize &lhs, const CustomEmojiSize &rhs) {
+  return lhs.custom_emoji_id == rhs.custom_emoji_id && lhs.background_colors == rhs.background_colors;
+}
+
+bool operator!=(const CustomEmojiSize &lhs, const CustomEmojiSize &rhs) {
+  return !(lhs == rhs);
+}
+
+StringBuilder &operator<<(StringBuilder &string_builder, const CustomEmojiSize &custom_emoji_size) {
+  return string_builder << custom_emoji_size.custom_emoji_id << " on " << custom_emoji_size.background_colors;
 }
 
 }  // namespace td

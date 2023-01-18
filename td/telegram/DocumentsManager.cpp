@@ -339,9 +339,14 @@ Document DocumentsManager::on_get_document(RemoteDocument remote_document, Dialo
       auto thumb = move_tl_object_as<telegram_api::videoSize>(thumb_ptr);
       if (thumb->type_ == "v") {
         if (!animated_thumbnail.file_id.is_valid()) {
-          animated_thumbnail =
+          auto animation_size =
               get_animation_size(td_->file_manager_.get(), PhotoSizeSource::thumbnail(FileType::Thumbnail, 0), id,
                                  access_hash, file_reference, DcId::create(dc_id), owner_dialog_id, std::move(thumb));
+          if (animation_size.get_offset() == 0) {
+            animated_thumbnail = std::move(animation_size.get<0>());
+          } else {
+            CHECK(animation_size.get_offset() == -1);
+          }
         }
       } else if (thumb->type_ == "f") {
         if (!premium_animation_file_id.is_valid()) {
