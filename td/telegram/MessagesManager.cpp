@@ -708,40 +708,6 @@ class GetMessageReadParticipantsQuery final : public Td::ResultHandler {
   }
 };
 
-class TranslateTextQuery final : public Td::ResultHandler {
-  Promise<td_api::object_ptr<td_api::text>> promise_;
-
- public:
-  explicit TranslateTextQuery(Promise<td_api::object_ptr<td_api::text>> &&promise) : promise_(std::move(promise)) {
-  }
-
-  void send(const string &text, const string &from_language_code, const string &to_language_code) {
-    int flags = telegram_api::messages_translateText::TEXT_MASK;
-    vector<telegram_api::object_ptr<telegram_api::textWithEntities>> texts;
-    texts.push_back(telegram_api::make_object<telegram_api::textWithEntities>(text, Auto()));
-    send_query(G()->net_query_creator().create(
-        telegram_api::messages_translateText(flags, nullptr, vector<int32>{0}, std::move(texts), to_language_code)));
-  }
-
-  void on_result(BufferSlice packet) final {
-    auto result_ptr = fetch_result<telegram_api::messages_translateText>(packet);
-    if (result_ptr.is_error()) {
-      return on_error(result_ptr.move_as_error());
-    }
-
-    auto ptr = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for TranslateTextQuery: " << to_string(ptr);
-    if (ptr->result_.empty()) {
-      return promise_.set_value(nullptr);
-    }
-    promise_.set_value(td_api::make_object<td_api::text>(ptr->result_[0]->text_));
-  }
-
-  void on_error(Status status) final {
-    promise_.set_error(std::move(status));
-  }
-};
-
 class ExportChannelMessageLinkQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   ChannelId channel_id_;
@@ -18991,12 +18957,6 @@ void MessagesManager::on_get_message_viewers(DialogId dialog_id, vector<UserId> 
     }
   }
   promise.set_value(td_->contacts_manager_->get_users_object(-1, user_ids));
-}
-
-void MessagesManager::translate_text(const string &text, const string &from_language_code,
-                                     const string &to_language_code,
-                                     Promise<td_api::object_ptr<td_api::text>> &&promise) {
-  td_->create_handler<TranslateTextQuery>(std::move(promise))->send(text, from_language_code, to_language_code);
 }
 
 void MessagesManager::recognize_speech(FullMessageId full_message_id, Promise<Unit> &&promise) {

@@ -77,6 +77,7 @@ class StickersManager;
 class StorageManager;
 class ThemeManager;
 class TopDialogManager;
+class TranslationManager;
 class UpdatesManager;
 class VideoNotesManager;
 class VideosManager;
@@ -181,6 +182,8 @@ class Td final : public Actor {
   ActorOwn<ThemeManager> theme_manager_actor_;
   unique_ptr<TopDialogManager> top_dialog_manager_;
   ActorOwn<TopDialogManager> top_dialog_manager_actor_;
+  unique_ptr<TranslationManager> translation_manager_;
+  ActorOwn<TranslationManager> translation_manager_actor_;
   unique_ptr<UpdatesManager> updates_manager_;
   ActorOwn<UpdatesManager> updates_manager_actor_;
   unique_ptr<VideoNotesManager> video_notes_manager_;

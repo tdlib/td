@@ -124,6 +124,7 @@
 #include "td/telegram/ThemeManager.h"
 #include "td/telegram/TopDialogCategory.h"
 #include "td/telegram/TopDialogManager.h"
+#include "td/telegram/TranslationManager.h"
 #include "td/telegram/UpdatesManager.h"
 #include "td/telegram/UserId.h"
 #include "td/telegram/Version.h"
@@ -3234,6 +3235,8 @@ void Td::dec_actor_refcnt() {
       LOG(DEBUG) << "ThemeManager was cleared" << timer;
       top_dialog_manager_.reset();
       LOG(DEBUG) << "TopDialogManager was cleared" << timer;
+      translation_manager_.reset();
+      LOG(DEBUG) << "TranslationManager was cleared" << timer;
       updates_manager_.reset();
       LOG(DEBUG) << "UpdatesManager was cleared" << timer;
       video_notes_manager_.reset();
@@ -3426,6 +3429,8 @@ void Td::clear() {
   LOG(DEBUG) << "ThemeManager actor was cleared" << timer;
   top_dialog_manager_actor_.reset();
   LOG(DEBUG) << "TopDialogManager actor was cleared" << timer;
+  translation_manager_actor_.reset();
+  LOG(DEBUG) << "TranslationManager actor was cleared" << timer;
   updates_manager_actor_.reset();
   LOG(DEBUG) << "UpdatesManager actor was cleared" << timer;
   video_notes_manager_actor_.reset();
@@ -3890,6 +3895,8 @@ void Td::init_managers() {
   top_dialog_manager_ = make_unique<TopDialogManager>(this, create_reference());
   top_dialog_manager_actor_ = register_actor("TopDialogManager", top_dialog_manager_.get());
   G()->set_top_dialog_manager(top_dialog_manager_actor_.get());
+  translation_manager_ = make_unique<TranslationManager>(this, create_reference());
+  translation_manager_actor_ = register_actor("TranslationManager", translation_manager_.get());
   updates_manager_ = make_unique<UpdatesManager>(this, create_reference());
   updates_manager_actor_ = register_actor("UpdatesManager", updates_manager_.get());
   G()->set_updates_manager(updates_manager_actor_.get());
@@ -4699,8 +4706,8 @@ void Td::on_request(uint64 id, td_api::translateText &request) {
   CLEAN_INPUT_STRING(request.from_language_code_);
   CLEAN_INPUT_STRING(request.to_language_code_);
   CREATE_REQUEST_PROMISE();
-  messages_manager_->translate_text(request.text_, request.from_language_code_, request.to_language_code_,
-                                    std::move(promise));
+  translation_manager_->translate_text(request.text_, request.from_language_code_, request.to_language_code_,
+                                       std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::recognizeSpeech &request) {
