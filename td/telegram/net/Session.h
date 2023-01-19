@@ -192,7 +192,7 @@ class Session final
   double wakeup_at_;
   void on_handshake_ready(Result<unique_ptr<mtproto::AuthKeyHandshake>> r_handshake);
   void create_gen_auth_key_actor(HandshakeId handshake_id);
-  void auth_loop();
+  void auth_loop(double now);
 
   // mtproto::Connection::Callback
   void on_connected() final;
@@ -242,12 +242,12 @@ class Session final
   void add_query(NetQueryPtr &&net_query);
   void resend_query(NetQueryPtr query);
 
-  void connection_open(ConnectionInfo *info, bool ask_info = false);
+  void connection_open(ConnectionInfo *info, double now, bool ask_info = false);
   void connection_add(unique_ptr<mtproto::RawConnection> raw_connection);
   void connection_check_mode(ConnectionInfo *info);
   void connection_open_finish(ConnectionInfo *info, Result<unique_ptr<mtproto::RawConnection>> r_raw_connection);
 
-  void connection_online_update(bool force = false);
+  void connection_online_update(double now, bool force);
   void connection_close(ConnectionInfo *info);
   void connection_flush(ConnectionInfo *info);
   void connection_send_query(ConnectionInfo *info, NetQueryPtr &&net_query, uint64 message_id = 0);
