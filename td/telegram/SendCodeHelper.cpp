@@ -44,6 +44,8 @@ Result<telegram_api::auth_resendCode> SendCodeHelper::resend_code() const {
 telegram_api::object_ptr<telegram_api::codeSettings> SendCodeHelper::get_input_code_settings(const Settings &settings) {
   int32 flags = 0;
   vector<BufferSlice> logout_tokens;
+  string device_token;
+  bool is_app_sandbox = false;
   if (settings != nullptr) {
     if (settings->allow_flash_call_) {
       flags |= telegram_api::codeSettings::ALLOW_FLASHCALL_MASK;
@@ -56,6 +58,16 @@ telegram_api::object_ptr<telegram_api::codeSettings> SendCodeHelper::get_input_c
     }
     if (settings->allow_sms_retriever_api_) {
       flags |= telegram_api::codeSettings::ALLOW_APP_HASH_MASK;
+    }
+    if (settings->firebase_authentication_settings_ != nullptr) {
+      flags |= telegram_api::codeSettings::ALLOW_FIREBASE_MASK;
+      if (settings->firebase_authentication_settings_->get_id() == td_api::firebaseAuthenticationSettingsIos::ID) {
+        flags |= telegram_api::codeSettings::TOKEN_MASK;
+        auto ios_settings = static_cast<const td_api::firebaseAuthenticationSettingsIos *>(
+            settings->firebase_authentication_settings_.get());
+        device_token = ios_settings->device_token_;
+        is_app_sandbox = ios_settings->is_app_sandbox_;
+      }
     }
     constexpr size_t MAX_LOGOUT_TOKENS = 20;  // server-side limit
     for (const auto &token : settings->authentication_tokens_) {
@@ -73,7 +85,7 @@ telegram_api::object_ptr<telegram_api::codeSettings> SendCodeHelper::get_input_c
   }
   return telegram_api::make_object<telegram_api::codeSettings>(flags, false /*ignored*/, false /*ignored*/,
                                                                false /*ignored*/, false /*ignored*/, false /*ignored*/,
-                                                               std::move(logout_tokens), string(), false);
+                                                               std::move(logout_tokens), device_token, is_app_sandbox);
 }
 
 telegram_api::auth_sendCode SendCodeHelper::send_code(string phone_number, const Settings &settings, int32 api_id,

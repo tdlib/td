@@ -50,12 +50,12 @@ authenticationCodeTypeMissedCall phone_number_prefix:string length:int32 = Authe
 //@length Length of the code
 authenticationCodeTypeFragment url:string length:int32 = AuthenticationCodeType;
 
-//@description An authentication code is delivered via Firebase Authentication to the official Android app
+//@description An authentication code is delivered via Firebase Authentication to the official Android application
 //@nonce Nonce to pass to the SafetyNet Attestation API
 //@length Length of the code
 authenticationCodeTypeFirebaseAndroid nonce:bytes length:int32 = AuthenticationCodeType;
 
-//@description An authentication code is delivered via Firebase Authentication to the official iOS app
+//@description An authentication code is delivered via Firebase Authentication to the official iOS application
 //@receipt Receipt of successful applikation token validation to compare with receipt from push notification
 //@push_timeout Time after the next authentication method is supposed to be used if verification push notification isn't received, in seconds
 //@length Length of the code
@@ -3128,13 +3128,23 @@ callProblemPixelatedVideo = CallProblem;
 call id:int32 user_id:int53 is_outgoing:Bool is_video:Bool state:CallState = Call;
 
 
+//@class FirebaseAuthenticationSettings @description Contains settings for Firebase Authentication in the official applications
+
+//@description Settings for Firebase Authentication in the official Android application
+firebaseAuthenticationSettingsAndroid = FirebaseAuthenticationSettings;
+
+//@description Settings for Firebase Authentication in the official iOS application @device_token Device token from Apple Push Notification service @is_app_sandbox True, if App Sandbox is enabled
+firebaseAuthenticationSettingsIos device_token:string is_app_sandbox:Bool = FirebaseAuthenticationSettings;
+
+
 //@description Contains settings for the authentication of the user's phone number
 //@allow_flash_call Pass true if the authentication code may be sent via a flash call to the specified phone number
 //@allow_missed_call Pass true if the authentication code may be sent via a missed call to the specified phone number
 //@is_current_phone_number Pass true if the authenticated phone number is used on the current device
 //@allow_sms_retriever_api For official applications only. True, if the application can use Android SMS Retriever API (requires Google Play Services >= 10.2) to automatically receive the authentication code from the SMS. See https://developers.google.com/identity/sms-retriever/ for more details
+//@firebase_authentication_settings For official Android and iOS applications only; pass null otherwise. Settings for Firebase Authentication
 //@authentication_tokens List of up to 20 authentication tokens, recently received in updateOption("authentication_token") in previously logged out sessions
-phoneNumberAuthenticationSettings allow_flash_call:Bool allow_missed_call:Bool is_current_phone_number:Bool allow_sms_retriever_api:Bool authentication_tokens:vector<string> = PhoneNumberAuthenticationSettings;
+phoneNumberAuthenticationSettings allow_flash_call:Bool allow_missed_call:Bool is_current_phone_number:Bool allow_sms_retriever_api:Bool firebase_authentication_settings:FirebaseAuthenticationSettings authentication_tokens:vector<string> = PhoneNumberAuthenticationSettings;
 
 
 //@description Represents a reaction applied to a message @type Type of the reaction @sender_id Identifier of the chat member, applied the reaction
