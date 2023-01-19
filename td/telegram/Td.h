@@ -399,6 +399,8 @@ class Td final : public Actor {
 
   void on_request(uint64 id, td_api::setAuthenticationPhoneNumber &request);
 
+  void on_request(uint64 id, td_api::sendAuthenticationFirebaseSms &request);
+
   void on_request(uint64 id, td_api::setAuthenticationEmailAddress &request);
 
   void on_request(uint64 id, const td_api::resendAuthenticationCode &request);

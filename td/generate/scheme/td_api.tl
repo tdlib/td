@@ -5581,6 +5581,10 @@ checkAuthenticationPasswordRecoveryCode recovery_code:string = Ok;
 //@new_hint New password hint; may be empty
 recoverAuthenticationPassword recovery_code:string new_password:string new_hint:string = Ok;
 
+//@description Sends Firebase Authentication SMS to the phone number of the user. Works only when the current authorization state is authorizationStateWaitCode and the server returned code of the type authenticationCodeTypeFirebaseAndroid or authenticationCodeTypeFirebaseIos
+//@token SafetyNet Attestation API token for the Android application, or secret from push notification for the iOS application
+sendAuthenticationFirebaseSms token:string = Ok;
+
 //@description Checks the authentication token of a bot; to log in as a bot. Works only when the current authorization state is authorizationStateWaitPhoneNumber. Can be used instead of setAuthenticationPhoneNumber and checkAuthenticationCode to log in @token The bot token
 checkAuthenticationBotToken token:string = Ok;
 

@@ -284,6 +284,16 @@ void AuthManager::set_phone_number(uint64 query_id, string phone_number,
                                               std::move(phone_number), settings, api_id_, api_hash_)));
 }
 
+void AuthManager::set_firebase_token(uint64 query_id, string token) {
+  if (state_ != State::WaitCode) {
+    return on_query_error(query_id, Status::Error(400, "Call to sendAuthenticationFirebaseSms unexpected"));
+  }
+  on_new_query(query_id);
+
+  start_net_query(NetQueryType::RequestFirebaseSms,
+                  G()->net_query_creator().create_unauth(send_code_helper_.request_firebase_sms(token)));
+}
+
 void AuthManager::set_email_address(uint64 query_id, string email_address) {
   if (state_ != State::WaitEmailAddress) {
     if (state_ == State::WaitEmailCode && net_query_id_ == 0) {
@@ -824,6 +834,14 @@ void AuthManager::on_check_password_recovery_code_result(NetQueryPtr &result) {
   on_query_ok();
 }
 
+void AuthManager::on_request_firebase_sms_result(NetQueryPtr &result) {
+  auto r_bool = fetch_result<telegram_api::auth_requestFirebaseSms>(result->ok());
+  if (r_bool.is_error()) {
+    return on_query_error(r_bool.move_as_error());
+  }
+  on_query_ok();
+}
+
 void AuthManager::on_authentication_result(NetQueryPtr &result, bool is_from_current_query) {
   auto r_sign_in = fetch_result<telegram_api::auth_signIn>(result->ok());
   if (r_sign_in.is_error()) {
@@ -1079,6 +1097,9 @@ void AuthManager::on_result(NetQueryPtr result) {
       break;
     case NetQueryType::CheckPasswordRecoveryCode:
       on_check_password_recovery_code_result(result);
+      break;
+    case NetQueryType::RequestFirebaseSms:
+      on_request_firebase_sms_result(result);
       break;
     case NetQueryType::LogOut:
       on_log_out_result(result);

@@ -37,6 +37,7 @@ class AuthManager final : public NetActor {
 
   void set_phone_number(uint64 query_id, string phone_number,
                         td_api::object_ptr<td_api::phoneNumberAuthenticationSettings> settings);
+  void set_firebase_token(uint64 query_id, string token);
   void set_email_address(uint64 query_id, string email_address);
   void resend_authentication_code(uint64 query_id);
   void check_email_code(uint64 query_id, EmailVerification &&code);
@@ -90,6 +91,7 @@ class AuthManager final : public NetActor {
     RequestPasswordRecovery,
     CheckPasswordRecoveryCode,
     RecoverPassword,
+    RequestFirebaseSms,
     BotAuthentication,
     Authentication,
     LogOut,
@@ -305,6 +307,7 @@ class AuthManager final : public NetActor {
   void on_get_password_result(NetQueryPtr &result);
   void on_request_password_recovery_result(NetQueryPtr &result);
   void on_check_password_recovery_code_result(NetQueryPtr &result);
+  void on_request_firebase_sms_result(NetQueryPtr &result);
   void on_authentication_result(NetQueryPtr &result, bool is_from_current_query);
   void on_log_out_result(NetQueryPtr &result);
   void on_delete_account_result(NetQueryPtr &result);

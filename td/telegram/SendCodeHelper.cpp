@@ -94,6 +94,21 @@ telegram_api::auth_sendCode SendCodeHelper::send_code(string phone_number, const
   return telegram_api::auth_sendCode(phone_number_, api_id, api_hash, get_input_code_settings(settings));
 }
 
+telegram_api::auth_requestFirebaseSms SendCodeHelper::request_firebase_sms(const string &token) {
+  string safety_net_token;
+  string ios_push_secret;
+  int32 flags = 0;
+#if TD_ANDROID
+  flags |= telegram_api::auth_requestFirebaseSms::SAFETY_NET_TOKEN_MASK;
+  safety_net_token = token;
+#elif TD_DARWIN
+  flags |= telegram_api::auth_requestFirebaseSms::IOS_PUSH_SECRET_MASK;
+  ios_push_secret = token;
+#endif
+  return telegram_api::auth_requestFirebaseSms(flags, phone_number_, phone_code_hash_, safety_net_token,
+                                               ios_push_secret);
+}
+
 telegram_api::account_sendVerifyEmailCode SendCodeHelper::send_verify_email_code(const string &email_address) {
   return telegram_api::account_sendVerifyEmailCode(get_email_verify_purpose_login_setup(), email_address);
 }
