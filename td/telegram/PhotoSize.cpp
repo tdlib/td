@@ -303,6 +303,9 @@ Variant<AnimationSize, CustomEmojiSize> get_animation_size(FileManager *file_man
         LOG(ERROR) << "Receive invalid " << result;
         return {};
       }
+      for (auto &color : result.background_colors) {
+        color &= 0xFFFFFF;
+      }
       return std::move(result);
     }
     case telegram_api::videoSizeStickerMarkup::ID:
@@ -310,6 +313,53 @@ Variant<AnimationSize, CustomEmojiSize> get_animation_size(FileManager *file_man
     default:
       UNREACHABLE();
   }
+}
+
+CustomEmojiSize get_custom_emoji_size(const td_api::object_ptr<td_api::chatPhotoCustomEmoji> &custom_emoji) {
+  if (custom_emoji == nullptr || custom_emoji->background_fill_ == nullptr) {
+    return {};
+  }
+  CustomEmojiSize result;
+  result.custom_emoji_id = CustomEmojiId(custom_emoji->custom_emoji_id_);
+  auto fill = custom_emoji->background_fill_.get();
+  switch (fill->get_id()) {
+    case td_api::backgroundFillSolid::ID: {
+      auto solid = static_cast<const td_api::backgroundFillSolid *>(fill);
+      result.background_colors.push_back(solid->color_);
+      break;
+    }
+    case td_api::backgroundFillGradient::ID: {
+      auto gradient = static_cast<const td_api::backgroundFillGradient *>(fill);
+      result.background_colors.push_back(gradient->top_color_);
+      result.background_colors.push_back(gradient->bottom_color_);
+      break;
+    }
+    case td_api::backgroundFillFreeformGradient::ID: {
+      auto freeform = static_cast<const td_api::backgroundFillFreeformGradient *>(fill);
+      if (freeform->colors_.size() != 3 && freeform->colors_.size() != 4) {
+        return {};
+      }
+      result.background_colors = freeform->colors_;
+      break;
+    }
+    default:
+      UNREACHABLE();
+      break;
+  }
+  for (auto &color : result.background_colors) {
+    color &= 0xFFFFFF;
+  }
+  return result;
+}
+
+telegram_api::object_ptr<telegram_api::VideoSize> get_input_video_size_object(
+    const CustomEmojiSize &custom_emoji_size) {
+  if (!custom_emoji_size.custom_emoji_id.is_valid()) {
+    return nullptr;
+  }
+
+  return telegram_api::make_object<telegram_api::videoSizeEmojiMarkup>(
+      custom_emoji_size.custom_emoji_id.get(), vector<int32>(custom_emoji_size.background_colors));
 }
 
 PhotoSize get_web_document_photo_size(FileManager *file_manager, FileType file_type, DialogId owner_dialog_id,

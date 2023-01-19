@@ -4859,10 +4859,10 @@ class CliClient final : public Actor {
       int64 profile_photo_id;
       get_args(args, profile_photo_id);
       send_request(td_api::make_object<td_api::setProfilePhoto>(
-          td_api::make_object<td_api::inputChatPhotoPrevious>(profile_photo_id), op == "spppf"));
+          td_api::make_object<td_api::inputChatPhotoPrevious>(profile_photo_id), nullptr, op == "spppf"));
     } else if (op == "spp" || op == "sppf") {
       send_request(td_api::make_object<td_api::setProfilePhoto>(
-          td_api::make_object<td_api::inputChatPhotoStatic>(as_input_file(args)), op == "sppf"));
+          td_api::make_object<td_api::inputChatPhotoStatic>(as_input_file(args)), nullptr, op == "sppf"));
     } else if (op == "sppa" || op == "sppaf") {
       string animation;
       string main_frame_timestamp;
@@ -4870,7 +4870,27 @@ class CliClient final : public Actor {
       send_request(
           td_api::make_object<td_api::setProfilePhoto>(td_api::make_object<td_api::inputChatPhotoAnimation>(
                                                            as_input_file(animation), to_double(main_frame_timestamp)),
-                                                       op == "sppaf"));
+                                                       nullptr, op == "sppaf"));
+    } else if (op == "spppce" || op == "spppcef") {
+      string photo;
+      int64 custom_emoji_id;
+      get_args(args, photo, custom_emoji_id);
+      send_request(td_api::make_object<td_api::setProfilePhoto>(
+          td_api::make_object<td_api::inputChatPhotoStatic>(as_input_file(photo)),
+          td_api::make_object<td_api::chatPhotoCustomEmoji>(
+              custom_emoji_id, td_api::make_object<td_api::backgroundFillSolid>(0x7FFFFFFF)),
+          op == "spppcef"));
+    } else if (op == "sppace" || op == "sppacef") {
+      string animation;
+      string main_frame_timestamp;
+      int64 custom_emoji_id;
+      get_args(args, animation, main_frame_timestamp, custom_emoji_id);
+      send_request(td_api::make_object<td_api::setProfilePhoto>(
+          td_api::make_object<td_api::inputChatPhotoAnimation>(as_input_file(animation),
+                                                               to_double(main_frame_timestamp)),
+          td_api::make_object<td_api::chatPhotoCustomEmoji>(
+              custom_emoji_id, td_api::make_object<td_api::backgroundFillSolid>(0x7FFFFFFF)),
+          op == "sppacef"));
     } else if (op == "suppp") {
       UserId user_id;
       string photo;

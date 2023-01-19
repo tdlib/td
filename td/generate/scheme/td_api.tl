@@ -7273,8 +7273,11 @@ getWebPagePreview text:formattedText = WebPage;
 getWebPageInstantView url:string force_full:Bool = WebPageInstantView;
 
 
-//@description Changes a profile photo for the current user @photo Profile photo to set @is_public Pass true to set a public photo, which will be visible even the main photo is hidden by privacy settings
-setProfilePhoto photo:InputChatPhoto is_public:Bool = Ok;
+//@description Changes a profile photo for the current user
+//@photo Profile photo to set
+//@custom_emoji Custom-emoji-based version of the profile photo; pass null if none or an existing photo is set
+//@is_public Pass true to set a public photo, which will be visible even the main photo is hidden by privacy settings
+setProfilePhoto photo:InputChatPhoto custom_emoji:chatPhotoCustomEmoji is_public:Bool = Ok;
 
 //@description Deletes a profile photo @profile_photo_id Identifier of the profile photo to delete
 deleteProfilePhoto profile_photo_id:int64 = Ok;

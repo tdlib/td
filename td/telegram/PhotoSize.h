@@ -64,6 +64,10 @@ Variant<AnimationSize, CustomEmojiSize> get_animation_size(FileManager *file_man
                                                            DialogId owner_dialog_id,
                                                            tl_object_ptr<telegram_api::VideoSize> &&size_ptr);
 
+CustomEmojiSize get_custom_emoji_size(const td_api::object_ptr<td_api::chatPhotoCustomEmoji> &custom_emoji);
+
+telegram_api::object_ptr<telegram_api::VideoSize> get_input_video_size_object(const CustomEmojiSize &custom_emoji_size);
+
 PhotoSize get_web_document_photo_size(FileManager *file_manager, FileType file_type, DialogId owner_dialog_id,
                                       tl_object_ptr<telegram_api::WebDocument> web_document_ptr);
 
