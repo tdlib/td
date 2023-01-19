@@ -2692,7 +2692,7 @@ class CliClient final : public Actor {
       get_args(args, user_id, currency, amount);
       if (currency.empty()) {
         send_request(td_api::make_object<td_api::canPurchasePremium>(
-            td_api::make_object<td_api::storePaymentPurposePremiumSubscription>(false)));
+            td_api::make_object<td_api::storePaymentPurposePremiumSubscription>(false, false)));
       } else {
         send_request(td_api::make_object<td_api::canPurchasePremium>(
             td_api::make_object<td_api::storePaymentPurposeGiftedPremium>(user_id, currency, amount)));
