@@ -57,7 +57,7 @@ class SendCodeHelper {
 
  private:
   struct AuthenticationCodeInfo {
-    enum class Type : int32 { None, Message, Sms, Call, FlashCall, MissedCall, Fragment };
+    enum class Type : int32 { None, Message, Sms, Call, FlashCall, MissedCall, Fragment, FirebaseAndroid };
     Type type = Type::None;
     int32 length = 0;
     string pattern;

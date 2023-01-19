@@ -50,6 +50,11 @@ authenticationCodeTypeMissedCall phone_number_prefix:string length:int32 = Authe
 //@length Length of the code
 authenticationCodeTypeFragment url:string length:int32 = AuthenticationCodeType;
 
+//@description An authentication code is delivered via Firebase Authentication
+//@nonce Nonce to pass to the SafetyNet Attestation API
+//@length Length of the code
+authenticationCodeTypeFirebaseAndroid nonce:bytes length:int32 = AuthenticationCodeType;
+
 
 //@description Information about the authentication code that was sent
 //@phone_number A phone number that is being authenticated
