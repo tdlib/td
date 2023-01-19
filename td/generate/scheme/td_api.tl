@@ -50,10 +50,16 @@ authenticationCodeTypeMissedCall phone_number_prefix:string length:int32 = Authe
 //@length Length of the code
 authenticationCodeTypeFragment url:string length:int32 = AuthenticationCodeType;
 
-//@description An authentication code is delivered via Firebase Authentication
+//@description An authentication code is delivered via Firebase Authentication to the official Android app
 //@nonce Nonce to pass to the SafetyNet Attestation API
 //@length Length of the code
 authenticationCodeTypeFirebaseAndroid nonce:bytes length:int32 = AuthenticationCodeType;
+
+//@description An authentication code is delivered via Firebase Authentication to the official iOS app
+//@receipt Receipt of successful applikation token validation to compare with receipt from push notification
+//@push_timeout Time after the next authentication method is supposed to be used if verification push notification isn't received, in seconds
+//@length Length of the code
+authenticationCodeTypeFirebaseIos receipt:string push_timeout:int32 length:int32 = AuthenticationCodeType;
 
 
 //@description Information about the authentication code that was sent

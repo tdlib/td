@@ -18,6 +18,7 @@ void SendCodeHelper::AuthenticationCodeInfo::store(StorerT &storer) const {
   using td::store;
   store(type, storer);
   store(length, storer);
+  store(push_timeout, storer);
   store(pattern, storer);
 }
 
@@ -26,6 +27,7 @@ void SendCodeHelper::AuthenticationCodeInfo::parse(ParserT &parser) {
   using td::parse;
   parse(type, parser);
   parse(length, parser);
+  parse(push_timeout, parser);
   parse(pattern, parser);
 }
 

@@ -164,6 +164,10 @@ SendCodeHelper::AuthenticationCodeInfo SendCodeHelper::get_sent_authentication_c
         return AuthenticationCodeInfo{AuthenticationCodeInfo::Type::FirebaseAndroid, code_type->length_,
                                       code_type->nonce_.as_slice().str()};
       }
+      if ((code_type->flags_ & telegram_api::auth_sentCodeTypeFirebaseSms::RECEIPT_MASK) != 0) {
+        return AuthenticationCodeInfo{AuthenticationCodeInfo::Type::FirebaseIos, code_type->length_,
+                                      std::move(code_type->receipt_), code_type->push_timeout_};
+      }
       return AuthenticationCodeInfo{AuthenticationCodeInfo::Type::Sms, code_type->length_, ""};
     }
     case telegram_api::auth_sentCodeTypeEmailCode::ID:
@@ -196,6 +200,9 @@ td_api::object_ptr<td_api::AuthenticationCodeType> SendCodeHelper::get_authentic
     case AuthenticationCodeInfo::Type::FirebaseAndroid:
       return td_api::make_object<td_api::authenticationCodeTypeFirebaseAndroid>(authentication_code_info.pattern,
                                                                                 authentication_code_info.length);
+    case AuthenticationCodeInfo::Type::FirebaseIos:
+      return td_api::make_object<td_api::authenticationCodeTypeFirebaseIos>(
+          authentication_code_info.pattern, authentication_code_info.push_timeout, authentication_code_info.length);
     default:
       UNREACHABLE();
       return nullptr;
