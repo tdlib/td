@@ -28,10 +28,13 @@ PremiumGiftOption::PremiumGiftOption(telegram_api::object_ptr<telegram_api::prem
 
 PremiumGiftOption::PremiumGiftOption(telegram_api::object_ptr<telegram_api::premiumSubscriptionOption> &&option)
     : months_(option->months_)
+    , is_current_(option->current_)
+    , is_upgrade_(option->can_purchase_upgrade_)
     , currency_(std::move(option->currency_))
     , amount_(option->amount_)
     , bot_url_(std::move(option->bot_url_))
-    , store_product_(std::move(option->store_product_)) {
+    , store_product_(std::move(option->store_product_))
+    , transaction_(std::move(option->transaction_)) {
 }
 
 bool PremiumGiftOption::is_valid() const {
@@ -63,6 +66,12 @@ td_api::object_ptr<td_api::premiumPaymentOption> PremiumGiftOption::get_premium_
   return td_api::make_object<td_api::premiumPaymentOption>(
       currency_, amount_, discount_percentage, months_, store_product_,
       link_type == nullptr ? nullptr : link_type->get_internal_link_type_object());
+}
+
+td_api::object_ptr<td_api::premiumStatePaymentOption> PremiumGiftOption::get_premium_state_payment_option_object(
+    const PremiumGiftOption &base_option) const {
+  return td_api::make_object<td_api::premiumStatePaymentOption>(get_premium_payment_option_object(base_option),
+                                                                is_current_, is_upgrade_, transaction_);
 }
 
 bool operator<(const PremiumGiftOption &lhs, const PremiumGiftOption &rhs) {
@@ -103,6 +112,17 @@ vector<td_api::object_ptr<td_api::premiumPaymentOption>> get_premium_payment_opt
   auto base_premium_option_it = std::min_element(options.begin(), options.end());
   return transform(options, [&base_premium_option_it](const auto &option) {
     return option.get_premium_payment_option_object(*base_premium_option_it);
+  });
+}
+
+vector<td_api::object_ptr<td_api::premiumStatePaymentOption>> get_premium_state_payment_options_object(
+    const vector<PremiumGiftOption> &options) {
+  if (options.empty()) {
+    return {};
+  }
+  auto base_premium_option_it = std::min_element(options.begin(), options.end());
+  return transform(options, [&base_premium_option_it](const auto &option) {
+    return option.get_premium_state_payment_option_object(*base_premium_option_it);
   });
 }
 

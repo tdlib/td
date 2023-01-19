@@ -620,6 +620,13 @@ chatAdministratorRights can_manage_chat:Bool can_change_info:Bool can_post_messa
 //@payment_link An internal link to be opened for buying Telegram Premium to the user if store payment isn't possible; may be null if direct payment isn't available
 premiumPaymentOption currency:string amount:int53 discount_percentage:int32 month_count:int32 store_product_id:string payment_link:InternalLinkType = PremiumPaymentOption;
 
+//@description Describes an option for buying or upgrading Telegram Premium for self
+//@payment_option Information about the payment option
+//@is_current True, if this is the currently used Telegram Premium subscription option
+//@is_upgrade True, if the payment option can be used to upgrade the existing Telegram Premium subscription
+//@last_transaction_id Identifier of the last in-store transaction for the currently used option
+premiumStatePaymentOption payment_option:premiumPaymentOption is_current:Bool is_upgrade:Bool last_transaction_id:string = PremiumStatePaymentOption;
+
 
 //@description Describes a custom emoji to be shown instead of the Telegram Premium badge @custom_emoji_id Identifier of the custom emoji in stickerFormatTgs format
 emojiStatus custom_emoji_id:int64 = EmojiStatus;
@@ -3814,7 +3821,7 @@ premiumFeaturePromotionAnimation feature:PremiumFeature animation:animation = Pr
 //@state Text description of the state of the current Premium subscription; may be empty if the current user has no Telegram Premium subscription
 //@payment_options The list of available options for buying Telegram Premium
 //@animations The list of available promotion animations for Premium features
-premiumState state:formattedText payment_options:vector<premiumPaymentOption> animations:vector<premiumFeaturePromotionAnimation> = PremiumState;
+premiumState state:formattedText payment_options:vector<premiumStatePaymentOption> animations:vector<premiumFeaturePromotionAnimation> = PremiumState;
 
 
 //@class StorePaymentPurpose @description Describes a purpose of an in-store payment
