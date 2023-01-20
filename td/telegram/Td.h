@@ -913,6 +913,8 @@ class Td final : public Actor {
 
   void on_request(uint64 id, const td_api::toggleChatIsPinned &request);
 
+  void on_request(uint64 id, const td_api::toggleChatIsTranslatable &request);
+
   void on_request(uint64 id, const td_api::toggleChatIsMarkedAsUnread &request);
 
   void on_request(uint64 id, const td_api::toggleMessageSenderIsBlocked &request);

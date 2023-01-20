@@ -1827,6 +1827,57 @@ class ToggleDialogUnreadMarkQuery final : public Td::ResultHandler {
   }
 };
 
+class ToggleDialogTranslationsQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  DialogId dialog_id_;
+  bool is_translatable_;
+
+ public:
+  explicit ToggleDialogTranslationsQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(DialogId dialog_id, bool is_translatable) {
+    dialog_id_ = dialog_id;
+    is_translatable_ = is_translatable;
+
+    auto input_peer = td_->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
+    if (input_peer == nullptr) {
+      return on_error(Status::Error(400, "Can't access the chat"));
+    }
+
+    int32 flags = 0;
+    if (!is_translatable) {
+      flags |= telegram_api::messages_togglePeerTranslations::DISABLED_MASK;
+    }
+    send_query(G()->net_query_creator().create(
+        telegram_api::messages_togglePeerTranslations(flags, false /*ignored*/, std::move(input_peer)), {{dialog_id}}));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_togglePeerTranslations>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    bool result = result_ptr.ok();
+    if (!result) {
+      return on_error(Status::Error(400, "Toggle dialog translations failed"));
+    }
+
+    promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    if (!td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "ToggleDialogTranslationsQuery")) {
+      LOG(ERROR) << "Receive error for ToggleDialogTranslationsQuery: " << status;
+    }
+    if (!G()->close_flag()) {
+      td_->messages_manager_->on_update_dialog_is_translatable(dialog_id_, !is_translatable_);
+    }
+    promise_.set_error(std::move(status));
+  }
+};
+
 class ToggleDialogIsBlockedQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   DialogId dialog_id_;
@@ -5519,6 +5570,7 @@ void MessagesManager::Dialog::store(StorerT &storer) const {
     STORE_FLAG(has_available_reactions);
     STORE_FLAG(has_history_generation);
     STORE_FLAG(need_repair_unread_reaction_count);
+    STORE_FLAG(is_translatable);
     END_STORE_FLAGS();
   }
 
@@ -5782,6 +5834,7 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
     PARSE_FLAG(has_available_reactions);
     PARSE_FLAG(has_history_generation);
     PARSE_FLAG(need_repair_unread_reaction_count);
+    PARSE_FLAG(is_translatable);
     END_PARSE_FLAGS();
   } else {
     need_repair_action_bar = false;
@@ -20890,6 +20943,74 @@ void MessagesManager::toggle_dialog_is_marked_as_unread_on_server(DialogId dialo
       ->send(dialog_id, is_marked_as_unread);
 }
 
+Status MessagesManager::toggle_dialog_is_translatable(DialogId dialog_id, bool is_translatable) {
+  Dialog *d = get_dialog_force(dialog_id, "toggle_dialog_is_translatable");
+  if (d == nullptr) {
+    return Status::Error(400, "Chat not found");
+  }
+  if (!have_input_peer(dialog_id, AccessRights::Read)) {
+    return Status::Error(400, "Can't access the chat");
+  }
+  if (!td_->option_manager_->get_option_boolean("is_premium")) {
+    return Status::Error(400, "The method is available for Telegram Premium users only");
+  }
+
+  if (is_translatable == d->is_translatable) {
+    return Status::OK();
+  }
+
+  set_dialog_is_translatable(d, is_translatable);
+
+  toggle_dialog_is_translatable_on_server(dialog_id, is_translatable, 0);
+  return Status::OK();
+}
+
+class MessagesManager::ToggleDialogIsTranslatableOnServerLogEvent {
+ public:
+  DialogId dialog_id_;
+  bool is_translatable_;
+
+  template <class StorerT>
+  void store(StorerT &storer) const {
+    BEGIN_STORE_FLAGS();
+    STORE_FLAG(is_translatable_);
+    END_STORE_FLAGS();
+
+    td::store(dialog_id_, storer);
+  }
+
+  template <class ParserT>
+  void parse(ParserT &parser) {
+    BEGIN_PARSE_FLAGS();
+    PARSE_FLAG(is_translatable_);
+    END_PARSE_FLAGS();
+
+    td::parse(dialog_id_, parser);
+  }
+};
+
+uint64 MessagesManager::save_toggle_dialog_is_translatable_on_server_log_event(DialogId dialog_id,
+                                                                               bool is_translatable) {
+  ToggleDialogIsTranslatableOnServerLogEvent log_event{dialog_id, is_translatable};
+  return binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::ToggleDialogIsTranslatableOnServer,
+                    get_log_event_storer(log_event));
+}
+
+void MessagesManager::toggle_dialog_is_translatable_on_server(DialogId dialog_id, bool is_translatable,
+                                                              uint64 log_event_id) {
+  if (log_event_id == 0 && dialog_id.get_type() == DialogType::SecretChat) {
+    // don't even create new binlog events
+    return;
+  }
+
+  if (log_event_id == 0 && G()->parameters().use_message_db) {
+    log_event_id = save_toggle_dialog_is_translatable_on_server_log_event(dialog_id, is_translatable);
+  }
+
+  td_->create_handler<ToggleDialogTranslationsQuery>(get_erase_log_event_promise(log_event_id))
+      ->send(dialog_id, is_translatable);
+}
+
 Status MessagesManager::toggle_message_sender_is_blocked(const td_api::object_ptr<td_api::MessageSender> &sender,
                                                          bool is_blocked) {
   TRY_RESULT(dialog_id, get_message_sender_dialog_id(td_, sender, true, false));
@@ -21947,18 +22068,20 @@ td_api::object_ptr<td_api::MessageSender> MessagesManager::get_default_message_s
 td_api::object_ptr<td_api::chat> MessagesManager::get_chat_object(const Dialog *d) const {
   CHECK(d != nullptr);
 
+  bool is_premium = td_->option_manager_->get_option_boolean("is_premium");
   auto chat_source = is_dialog_sponsored(d) ? sponsored_dialog_source_.get_chat_source_object() : nullptr;
   auto can_delete = can_delete_dialog(d);
   // TODO hide/show draft message when can_send_message(dialog_id) changes
   auto draft_message = can_send_message(d->dialog_id).is_ok() ? get_draft_message_object(d->draft_message) : nullptr;
   auto available_reactions = get_dialog_active_reactions(d).get_chat_available_reactions_object();
+  auto is_translatable = d->is_translatable && is_premium;
   return make_tl_object<td_api::chat>(
       d->dialog_id.get(), get_chat_type_object(d->dialog_id), get_dialog_title(d->dialog_id),
       get_chat_photo_info_object(td_->file_manager_.get(), get_dialog_photo(d->dialog_id)),
       get_dialog_default_permissions(d->dialog_id).get_chat_permissions_object(),
       get_message_object(d->dialog_id, get_message(d, d->last_message_id), "get_chat_object"),
       get_chat_positions_object(d), get_default_message_sender_object(d),
-      get_dialog_has_protected_content(d->dialog_id), d->is_marked_as_unread, d->is_blocked,
+      get_dialog_has_protected_content(d->dialog_id), is_translatable, d->is_marked_as_unread, d->is_blocked,
       get_dialog_has_scheduled_messages(d), can_delete.for_self_, can_delete.for_all_users_,
       can_report_dialog(d->dialog_id), d->notification_settings.silent_send_message,
       d->server_unread_count + d->local_unread_count, d->last_read_inbox_message_id.get(),
@@ -32839,6 +32962,50 @@ void MessagesManager::set_dialog_is_marked_as_unread(Dialog *d, bool is_marked_a
     if (!dialog_filters_.empty()) {
       update_dialog_lists(d, get_dialog_positions(d), true, false, "set_dialog_is_marked_as_unread");
     }
+  }
+}
+
+void MessagesManager::on_update_dialog_is_translatable(DialogId dialog_id, bool is_translatable) {
+  if (td_->auth_manager_->is_bot()) {
+    // just in case
+    return;
+  }
+
+  if (!dialog_id.is_valid()) {
+    LOG(ERROR) << "Receive marking as unread of invalid " << dialog_id;
+    return;
+  }
+
+  auto d = get_dialog_force(dialog_id, "on_update_dialog_is_translatable");
+  if (d == nullptr) {
+    // nothing to do
+    return;
+  }
+
+  if (is_translatable == d->is_translatable) {
+    return;
+  }
+
+  set_dialog_is_translatable(d, is_translatable);
+}
+
+void MessagesManager::set_dialog_is_translatable(Dialog *d, bool is_translatable) {
+  if (td_->auth_manager_->is_bot()) {
+    // just in case
+    return;
+  }
+
+  CHECK(d != nullptr);
+  CHECK(d->is_translatable != is_translatable);
+  d->is_translatable = is_translatable;
+  on_dialog_updated(d->dialog_id, "set_dialog_is_translatable");
+
+  LOG(INFO) << "Set " << d->dialog_id << " is translatable to " << is_translatable;
+  LOG_CHECK(d->is_update_new_chat_sent) << "Wrong " << d->dialog_id << " in set_dialog_is_translatable";
+  bool is_premium = td_->option_manager_->get_option_boolean("is_premium");
+  if (is_premium) {
+    send_closure(G()->td(), &Td::send_update,
+                 make_tl_object<td_api::updateChatIsTranslatable>(d->dialog_id.get(), is_translatable));
   }
 }
 

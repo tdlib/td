@@ -287,6 +287,8 @@ class MessagesManager final : public Actor {
 
   void on_update_dialog_is_marked_as_unread(DialogId dialog_id, bool is_marked_as_unread);
 
+  void on_update_dialog_is_translatable(DialogId dialog_id, bool is_translatable);
+
   void on_update_dialog_is_blocked(DialogId dialog_id, bool is_blocked);
 
   void on_update_dialog_last_pinned_message_id(DialogId dialog_id, MessageId last_pinned_message_id);
@@ -677,6 +679,8 @@ class MessagesManager final : public Actor {
   Status toggle_dialog_is_pinned(DialogListId dialog_list_id, DialogId dialog_id, bool is_pinned) TD_WARN_UNUSED_RESULT;
 
   Status toggle_dialog_is_marked_as_unread(DialogId dialog_id, bool is_marked_as_unread) TD_WARN_UNUSED_RESULT;
+
+  Status toggle_dialog_is_translatable(DialogId dialog_id, bool is_translatable) TD_WARN_UNUSED_RESULT;
 
   Status toggle_message_sender_is_blocked(const td_api::object_ptr<td_api::MessageSender> &sender,
                                           bool is_blocked) TD_WARN_UNUSED_RESULT;
@@ -1380,6 +1384,7 @@ class MessagesManager final : public Actor {
     bool is_available_reactions_inited = false;
     bool had_yet_unsent_message_id_overflow = false;
     bool need_repair_unread_reaction_count = false;
+    bool is_translatable = false;
 
     bool increment_view_counter = false;
 
@@ -1784,6 +1789,7 @@ class MessagesManager final : public Actor {
   class SetDialogFolderIdOnServerLogEvent;
   class ToggleDialogIsBlockedOnServerLogEvent;
   class ToggleDialogIsMarkedAsUnreadOnServerLogEvent;
+  class ToggleDialogIsTranslatableOnServerLogEvent;
   class ToggleDialogIsPinnedOnServerLogEvent;
   class ToggleDialogReportSpamStateOnServerLogEvent;
   class UnpinAllDialogMessagesOnServerLogEvent;
@@ -2657,6 +2663,8 @@ class MessagesManager final : public Actor {
 
   void set_dialog_is_marked_as_unread(Dialog *d, bool is_marked_as_unread);
 
+  void set_dialog_is_translatable(Dialog *d, bool is_translatable);
+
   void set_dialog_is_blocked(Dialog *d, bool is_blocked);
 
   void set_dialog_has_bots(Dialog *d, bool has_bots);
@@ -2688,6 +2696,8 @@ class MessagesManager final : public Actor {
   void toggle_dialog_is_pinned_on_server(DialogId dialog_id, bool is_pinned, uint64 log_event_id);
 
   void toggle_dialog_is_marked_as_unread_on_server(DialogId dialog_id, bool is_marked_as_unread, uint64 log_event_id);
+
+  void toggle_dialog_is_translatable_on_server(DialogId dialog_id, bool is_translatable, uint64 log_event_id);
 
   void toggle_dialog_is_blocked_on_server(DialogId dialog_id, bool is_blocked, uint64 log_event_id);
 
@@ -3345,6 +3355,8 @@ class MessagesManager final : public Actor {
 
   static uint64 save_toggle_dialog_is_marked_as_unread_on_server_log_event(DialogId dialog_id,
                                                                            bool is_marked_as_unread);
+
+  static uint64 save_toggle_dialog_is_translatable_on_server_log_event(DialogId dialog_id, bool is_translatable);
 
   static uint64 save_toggle_dialog_is_blocked_on_server_log_event(DialogId dialog_id, bool is_blocked);
 

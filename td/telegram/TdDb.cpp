@@ -121,6 +121,7 @@ Status init_binlog(Binlog &binlog, string path, BinlogKeyValue<Binlog> &binlog_p
       case LogEvent::HandlerType::DeleteDialogMessagesByDateOnServer:
       case LogEvent::HandlerType::ReadAllDialogReactionsOnServer:
       case LogEvent::HandlerType::DeleteTopicHistoryOnServer:
+      case LogEvent::HandlerType::ToggleDialogIsTranslatableOnServer:
         events.to_messages_manager.push_back(event.clone());
         break;
       case LogEvent::HandlerType::UpdateScopeNotificationSettingsOnServer:

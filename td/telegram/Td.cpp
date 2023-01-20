@@ -6188,6 +6188,12 @@ void Td::on_request(uint64 id, const td_api::toggleChatIsPinned &request) {
                                                                  DialogId(request.chat_id_), request.is_pinned_));
 }
 
+void Td::on_request(uint64 id, const td_api::toggleChatIsTranslatable &request) {
+  CHECK_IS_USER();
+  answer_ok_query(
+      id, messages_manager_->toggle_dialog_is_translatable(DialogId(request.chat_id_), request.is_translatable_));
+}
+
 void Td::on_request(uint64 id, const td_api::toggleChatIsMarkedAsUnread &request) {
   CHECK_IS_USER();
   answer_ok_query(id, messages_manager_->toggle_dialog_is_marked_as_unread(DialogId(request.chat_id_),

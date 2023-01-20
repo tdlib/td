@@ -3629,9 +3629,14 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::toggleChatIsPinned>(as_chat_list(op), chat_id, is_pinned));
     } else if (op == "tcimau") {
       ChatId chat_id;
-      bool is_marked_as_read;
-      get_args(args, chat_id, is_marked_as_read);
-      send_request(td_api::make_object<td_api::toggleChatIsMarkedAsUnread>(chat_id, is_marked_as_read));
+      bool is_marked_as_unread;
+      get_args(args, chat_id, is_marked_as_unread);
+      send_request(td_api::make_object<td_api::toggleChatIsMarkedAsUnread>(chat_id, is_marked_as_unread));
+    } else if (op == "tcit") {
+      ChatId chat_id;
+      bool is_translatable;
+      get_args(args, chat_id, is_translatable);
+      send_request(td_api::make_object<td_api::toggleChatIsTranslatable>(chat_id, is_translatable));
     } else if (op == "tmsib") {
       string sender_id;
       bool is_blocked;

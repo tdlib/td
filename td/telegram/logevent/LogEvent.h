@@ -102,6 +102,7 @@ class LogEvent {
     DeleteDialogMessagesByDateOnServer = 0x123,
     ReadAllDialogReactionsOnServer = 0x124,
     DeleteTopicHistoryOnServer = 0x125,
+    ToggleDialogIsTranslatableOnServer = 0x126,
     GetChannelDifference = 0x140,
     AddMessagePushNotification = 0x200,
     EditMessagePushNotification = 0x201,
