@@ -340,8 +340,8 @@ Document DocumentsManager::on_get_document(RemoteDocument remote_document, Dialo
       if (thumb->type_ == "v") {
         if (!animated_thumbnail.file_id.is_valid()) {
           auto animation_size =
-              get_animation_size(td_->file_manager_.get(), PhotoSizeSource::thumbnail(FileType::Thumbnail, 0), id,
-                                 access_hash, file_reference, DcId::create(dc_id), owner_dialog_id, std::move(thumb));
+              get_animation_size(td_, PhotoSizeSource::thumbnail(FileType::Thumbnail, 0), id, access_hash,
+                                 file_reference, DcId::create(dc_id), owner_dialog_id, std::move(thumb));
           if (animation_size.get_offset() == 0) {
             animated_thumbnail = std::move(animation_size.get<0>());
           } else {

@@ -135,9 +135,9 @@ static td_api::object_ptr<td_api::ChatEventAction> get_chat_event_action_object(
     }
     case telegram_api::channelAdminLogEventActionChangePhoto::ID: {
       auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionChangePhoto>(action_ptr);
+      auto old_photo = get_photo(td, std::move(action->prev_photo_), DialogId(channel_id));
+      auto new_photo = get_photo(td, std::move(action->new_photo_), DialogId(channel_id));
       auto file_manager = td->file_manager_.get();
-      auto old_photo = get_photo(file_manager, std::move(action->prev_photo_), DialogId(channel_id));
-      auto new_photo = get_photo(file_manager, std::move(action->new_photo_), DialogId(channel_id));
       return td_api::make_object<td_api::chatEventPhotoChanged>(get_chat_photo_object(file_manager, old_photo),
                                                                 get_chat_photo_object(file_manager, new_photo));
     }

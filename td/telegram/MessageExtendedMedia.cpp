@@ -53,7 +53,7 @@ MessageExtendedMedia::MessageExtendedMedia(
             break;
           }
 
-          photo_ = get_photo(td->file_manager_.get(), std::move(photo->photo_), owner_dialog_id);
+          photo_ = get_photo(td, std::move(photo->photo_), owner_dialog_id);
           if (photo_.is_empty()) {
             break;
           }

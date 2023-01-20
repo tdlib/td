@@ -872,6 +872,27 @@ class CliClient final : public Actor {
     }
   }
 
+  struct ChatPhotoStickerType {
+    int64 sticker_set_id = 0;
+    int64 sticker_id = 0;
+
+    operator td_api::object_ptr<td_api::ChatPhotoStickerType>() const {
+      if (sticker_set_id != 0) {
+        return td_api::make_object<td_api::chatPhotoStickerTypeRegularOrMask>(sticker_set_id, sticker_id);
+      } else {
+        return td_api::make_object<td_api::chatPhotoStickerTypeCustomEmoji>(sticker_id);
+      }
+    }
+  };
+
+  void get_args(string &args, ChatPhotoStickerType &arg) const {
+    string sticker_set_id;
+    string sticker_id;
+    std::tie(sticker_set_id, sticker_id) = split(args, get_delimiter(args));
+    arg.sticker_set_id = to_integer<int64>(sticker_set_id);
+    arg.sticker_id = to_integer<int64>(sticker_id);
+  }
+
   template <class FirstType, class SecondType, class... Types>
   void get_args(string &args, FirstType &first_arg, SecondType &second_arg, Types &...other_args) const {
     string arg;
@@ -4876,25 +4897,25 @@ class CliClient final : public Actor {
           td_api::make_object<td_api::setProfilePhoto>(td_api::make_object<td_api::inputChatPhotoAnimation>(
                                                            as_input_file(animation), to_double(main_frame_timestamp)),
                                                        nullptr, op == "sppaf"));
-    } else if (op == "spppce" || op == "spppcef") {
+    } else if (op == "sppps" || op == "spppsf") {
       string photo;
-      int64 custom_emoji_id;
-      get_args(args, photo, custom_emoji_id);
+      ChatPhotoStickerType type;
+      get_args(args, photo, type);
       send_request(td_api::make_object<td_api::setProfilePhoto>(
           td_api::make_object<td_api::inputChatPhotoStatic>(as_input_file(photo)),
-          td_api::make_object<td_api::chatPhotoCustomEmoji>(
-              custom_emoji_id, td_api::make_object<td_api::backgroundFillSolid>(0x7FFFFFFF)),
+          td_api::make_object<td_api::chatPhotoSticker>(type,
+                                                        td_api::make_object<td_api::backgroundFillSolid>(0x7FFFFFFF)),
           op == "spppcef"));
-    } else if (op == "sppace" || op == "sppacef") {
+    } else if (op == "sppas" || op == "sppasf") {
       string animation;
       string main_frame_timestamp;
-      int64 custom_emoji_id;
-      get_args(args, animation, main_frame_timestamp, custom_emoji_id);
+      ChatPhotoStickerType type;
+      get_args(args, animation, main_frame_timestamp, type);
       send_request(td_api::make_object<td_api::setProfilePhoto>(
           td_api::make_object<td_api::inputChatPhotoAnimation>(as_input_file(animation),
                                                                to_double(main_frame_timestamp)),
-          td_api::make_object<td_api::chatPhotoCustomEmoji>(
-              custom_emoji_id, td_api::make_object<td_api::backgroundFillSolid>(0x7FFFFFFF)),
+          td_api::make_object<td_api::chatPhotoSticker>(type,
+                                                        td_api::make_object<td_api::backgroundFillSolid>(0x7FFFFFFF)),
           op == "sppacef"));
     } else if (op == "suppp") {
       UserId user_id;

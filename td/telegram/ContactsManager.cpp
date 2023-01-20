@@ -448,7 +448,7 @@ class UploadProfilePhotoQuery final : public Td::ResultHandler {
   }
 
   void send(UserId user_id, FileId file_id, tl_object_ptr<telegram_api::InputFile> &&input_file,
-            const CustomEmojiSize &custom_emoji_size, bool is_fallback, bool only_suggest, bool is_animation,
+            const StickerPhotoSize &sticker_photo_size, bool is_fallback, bool only_suggest, bool is_animation,
             double main_frame_timestamp) {
     CHECK(input_file != nullptr);
     CHECK(file_id.is_valid());
@@ -486,13 +486,14 @@ class UploadProfilePhotoQuery final : public Td::ResultHandler {
       if (is_fallback) {
         flags |= telegram_api::photos_uploadProfilePhoto::FALLBACK_MASK;
       }
-      if (custom_emoji_size.custom_emoji_id.is_valid()) {
+      auto video_emoji_markup = get_input_video_size_object(td_, sticker_photo_size);
+      if (video_emoji_markup != nullptr) {
         flags |= telegram_api::photos_uploadProfilePhoto::VIDEO_EMOJI_MARKUP_MASK;
       }
       send_query(G()->net_query_creator().create(
           telegram_api::photos_uploadProfilePhoto(flags, false /*ignored*/, std::move(photo_input_file),
                                                   std::move(video_input_file), main_frame_timestamp,
-                                                  get_input_video_size_object(custom_emoji_size)),
+                                                  std::move(video_emoji_markup)),
           {{"me"}}));
     } else {
       if (only_suggest) {
@@ -7054,14 +7055,14 @@ FileId ContactsManager::get_profile_photo_file_id(int64 photo_id) const {
 }
 
 void ContactsManager::set_profile_photo(const td_api::object_ptr<td_api::InputChatPhoto> &input_photo,
-                                        const td_api::object_ptr<td_api::chatPhotoCustomEmoji> &custom_emoji,
+                                        const td_api::object_ptr<td_api::chatPhotoSticker> &custom_emoji,
                                         bool is_fallback, Promise<Unit> &&promise) {
   set_profile_photo_impl(get_my_id(), input_photo, custom_emoji, is_fallback, false, std::move(promise));
 }
 
 void ContactsManager::set_profile_photo_impl(UserId user_id,
                                              const td_api::object_ptr<td_api::InputChatPhoto> &input_photo,
-                                             const td_api::object_ptr<td_api::chatPhotoCustomEmoji> &custom_emoji,
+                                             const td_api::object_ptr<td_api::chatPhotoSticker> &custom_emoji,
                                              bool is_fallback, bool only_suggest, Promise<Unit> &&promise) {
   if (input_photo == nullptr) {
     return promise.set_error(Status::Error(400, "New profile photo must be non-empty"));
@@ -7124,9 +7125,9 @@ void ContactsManager::set_profile_photo_impl(UserId user_id,
   FileId file_id = r_file_id.ok();
   CHECK(file_id.is_valid());
 
-  auto custom_emoji_size = get_custom_emoji_size(custom_emoji);
+  auto sticker_photo_size = get_sticker_photo_size(td_, custom_emoji);
   upload_profile_photo(user_id, td_->file_manager_->dup_file_id(file_id, "set_profile_photo_impl"),
-                       std::move(custom_emoji_size), is_fallback, only_suggest, is_animation, main_frame_timestamp,
+                       std::move(sticker_photo_size), is_fallback, only_suggest, is_animation, main_frame_timestamp,
                        std::move(promise));
 }
 
@@ -7161,13 +7162,13 @@ void ContactsManager::send_update_profile_photo_query(FileId file_id, int64 old_
       ->send(file_id, old_photo_id, is_fallback, file_view.main_remote_location().as_input_photo());
 }
 
-void ContactsManager::upload_profile_photo(UserId user_id, FileId file_id, CustomEmojiSize custom_emoji_size,
+void ContactsManager::upload_profile_photo(UserId user_id, FileId file_id, StickerPhotoSize sticker_photo_size,
                                            bool is_fallback, bool only_suggest, bool is_animation,
                                            double main_frame_timestamp, Promise<Unit> &&promise, int reupload_count,
                                            vector<int> bad_parts) {
   CHECK(file_id.is_valid());
   bool is_inserted = uploaded_profile_photos_
-                         .emplace(file_id, UploadedProfilePhoto{user_id, std::move(custom_emoji_size), is_fallback,
+                         .emplace(file_id, UploadedProfilePhoto{user_id, std::move(sticker_photo_size), is_fallback,
                                                                 only_suggest, main_frame_timestamp, is_animation,
                                                                 reupload_count, std::move(promise)})
                          .second;
@@ -11983,8 +11984,7 @@ void ContactsManager::on_get_user_full(tl_object_ptr<telegram_api::userFull> &&u
   FileId description_animation_file_id;
   if (user->bot_info_ != nullptr && !td_->auth_manager_->is_bot()) {
     description = std::move(user->bot_info_->description_);
-    description_photo =
-        get_photo(td_->file_manager_.get(), std::move(user->bot_info_->description_photo_), DialogId(user_id));
+    description_photo = get_photo(td_, std::move(user->bot_info_->description_photo_), DialogId(user_id));
     auto document = std::move(user->bot_info_->description_document_);
     if (document != nullptr) {
       int32 document_id = document->get_id();
@@ -12013,9 +12013,9 @@ void ContactsManager::on_get_user_full(tl_object_ptr<telegram_api::userFull> &&u
     user_full->is_changed = true;
   }
 
-  auto photo = get_photo(td_->file_manager_.get(), std::move(user->profile_photo_), DialogId(user_id));
-  auto personal_photo = get_photo(td_->file_manager_.get(), std::move(user->personal_photo_), DialogId(user_id));
-  auto fallback_photo = get_photo(td_->file_manager_.get(), std::move(user->fallback_photo_), DialogId(user_id));
+  auto photo = get_photo(td_, std::move(user->profile_photo_), DialogId(user_id));
+  auto personal_photo = get_photo(td_, std::move(user->personal_photo_), DialogId(user_id));
+  auto fallback_photo = get_photo(td_, std::move(user->fallback_photo_), DialogId(user_id));
   // do_update_user_photo should be a no-op if server sent consistent data
   const Photo *photo_ptr = nullptr;
   bool is_personal = false;
@@ -12109,7 +12109,7 @@ void ContactsManager::on_get_user_photos(UserId user_id, int32 offset, int32 lim
           }
         }
 
-        auto photo = get_photo(td_->file_manager_.get(), std::move(server_photo), DialogId(user_id));
+        auto photo = get_photo(td_, std::move(server_photo), DialogId(user_id));
         register_user_photo(u, user_id, photo);
       }
     }
@@ -12136,7 +12136,7 @@ void ContactsManager::on_get_user_photos(UserId user_id, int32 offset, int32 lim
   }
 
   for (auto &photo : photos) {
-    auto user_photo = get_photo(td_->file_manager_.get(), std::move(photo), DialogId(user_id));
+    auto user_photo = get_photo(td_, std::move(photo), DialogId(user_id));
     if (user_photo.is_empty()) {
       LOG(ERROR) << "Receive empty profile photo in getUserPhotos request for " << user_id << " with offset " << offset
                  << " and limit " << limit << ". Receive " << photo_count << " photos out of " << total_count
@@ -12278,7 +12278,7 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
 
     ChatFull *chat_full = add_chat_full(chat_id);
     on_update_chat_full_invite_link(chat_full, std::move(chat->exported_invite_));
-    auto photo = get_photo(td_->file_manager_.get(), std::move(chat->chat_photo_), DialogId(chat_id));
+    auto photo = get_photo(td_, std::move(chat->chat_photo_), DialogId(chat_id));
     // on_update_chat_photo should be a no-op if server sent consistent data
     on_update_chat_photo(c, chat_id, as_dialog_photo(td_->file_manager_.get(), DialogId(chat_id), 0, photo, false),
                          false);
@@ -12454,7 +12454,7 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
       channel_full->need_save_to_database = true;
     }
 
-    auto photo = get_photo(td_->file_manager_.get(), std::move(channel->chat_photo_), DialogId(channel_id));
+    auto photo = get_photo(td_, std::move(channel->chat_photo_), DialogId(channel_id));
     // on_update_channel_photo should be a no-op if server sent consistent data
     on_update_channel_photo(
         c, channel_id, as_dialog_photo(td_->file_manager_.get(), DialogId(channel_id), c->access_hash, photo, false),
@@ -13121,8 +13121,7 @@ void ContactsManager::on_set_profile_photo(UserId user_id, tl_object_ptr<telegra
     delete_my_profile_photo_from_cache(old_photo_id);
   }
   on_get_users(std::move(photo->users_), "on_set_profile_photo");
-  add_set_profile_photo_to_cache(
-      user_id, get_photo(td_->file_manager_.get(), std::move(photo->photo_), DialogId(user_id)), is_fallback);
+  add_set_profile_photo_to_cache(user_id, get_photo(td_, std::move(photo->photo_), DialogId(user_id)), is_fallback);
 }
 
 void ContactsManager::on_delete_profile_photo(int64 profile_photo_id, Promise<Unit> promise) {
@@ -14541,7 +14540,7 @@ void ContactsManager::on_get_dialog_invite_link_info(const string &invite_link,
       }
       invite_link_info->dialog_id = DialogId();
       invite_link_info->title = chat_invite->title_;
-      invite_link_info->photo = get_photo(td_->file_manager_.get(), std::move(chat_invite->photo_), DialogId());
+      invite_link_info->photo = get_photo(td_, std::move(chat_invite->photo_), DialogId());
       invite_link_info->description = std::move(chat_invite->about_);
       invite_link_info->participant_count = chat_invite->participants_count_;
       invite_link_info->participant_user_ids = std::move(participant_user_ids);
@@ -17909,7 +17908,7 @@ void ContactsManager::on_upload_profile_photo(FileId file_id, tl_object_ptr<tele
   CHECK(it != uploaded_profile_photos_.end());
 
   UserId user_id = it->second.user_id;
-  auto custom_emoji_size = std::move(it->second.custom_emoji_size);
+  auto sticker_photo_size = std::move(it->second.sticker_photo_size);
   bool is_fallback = it->second.is_fallback;
   bool only_suggest = it->second.only_suggest;
   double main_frame_timestamp = it->second.main_frame_timestamp;
@@ -17942,14 +17941,14 @@ void ContactsManager::on_upload_profile_photo(FileId file_id, tl_object_ptr<tele
         is_animation ? FileManager::extract_file_reference(file_view.main_remote_location().as_input_document())
                      : FileManager::extract_file_reference(file_view.main_remote_location().as_input_photo());
     td_->file_manager_->delete_file_reference(file_id, file_reference);
-    upload_profile_photo(user_id, file_id, std::move(custom_emoji_size), is_fallback, only_suggest, is_animation,
+    upload_profile_photo(user_id, file_id, std::move(sticker_photo_size), is_fallback, only_suggest, is_animation,
                          main_frame_timestamp, std::move(promise), reupload_count + 1, {-1});
     return;
   }
   CHECK(input_file != nullptr);
 
   td_->create_handler<UploadProfilePhotoQuery>(std::move(promise))
-      ->send(user_id, file_id, std::move(input_file), custom_emoji_size, is_fallback, only_suggest, is_animation,
+      ->send(user_id, file_id, std::move(input_file), sticker_photo_size, is_fallback, only_suggest, is_animation,
              main_frame_timestamp);
 }
 

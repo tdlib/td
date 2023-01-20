@@ -14,6 +14,7 @@
 #include "td/telegram/net/DcId.h"
 #include "td/telegram/PhotoFormat.h"
 #include "td/telegram/PhotoSizeSource.h"
+#include "td/telegram/StickerSetId.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 
@@ -25,6 +26,7 @@
 namespace td {
 
 class FileManager;
+class Td;
 
 struct PhotoSize {
   int32 type = 0;
@@ -38,8 +40,12 @@ struct AnimationSize final : public PhotoSize {
   double main_frame_timestamp = 0.0;
 };
 
-struct CustomEmojiSize {
+struct StickerPhotoSize {
+  enum class Type : int32 { Sticker, CustomEmoji };
+  Type type = Type::CustomEmoji;
   CustomEmojiId custom_emoji_id;
+  StickerSetId sticker_set_id;
+  int64 sticker_id = 0;
   vector<int32> background_colors;
 };
 
@@ -59,14 +65,14 @@ Variant<PhotoSize, string> get_photo_size(FileManager *file_manager, PhotoSizeSo
                                           DialogId owner_dialog_id, tl_object_ptr<telegram_api::PhotoSize> &&size_ptr,
                                           PhotoFormat format);
 
-Variant<AnimationSize, CustomEmojiSize> get_animation_size(FileManager *file_manager, PhotoSizeSource source, int64 id,
-                                                           int64 access_hash, string file_reference, DcId dc_id,
-                                                           DialogId owner_dialog_id,
-                                                           tl_object_ptr<telegram_api::VideoSize> &&size_ptr);
+Variant<AnimationSize, StickerPhotoSize> get_animation_size(Td *td, PhotoSizeSource source, int64 id, int64 access_hash,
+                                                            string file_reference, DcId dc_id, DialogId owner_dialog_id,
+                                                            tl_object_ptr<telegram_api::VideoSize> &&size_ptr);
 
-CustomEmojiSize get_custom_emoji_size(const td_api::object_ptr<td_api::chatPhotoCustomEmoji> &custom_emoji);
+StickerPhotoSize get_sticker_photo_size(Td *td, const td_api::object_ptr<td_api::chatPhotoSticker> &chat_photo_sticker);
 
-telegram_api::object_ptr<telegram_api::VideoSize> get_input_video_size_object(const CustomEmojiSize &custom_emoji_size);
+telegram_api::object_ptr<telegram_api::VideoSize> get_input_video_size_object(
+    Td *td, const StickerPhotoSize &sticker_photo_size);
 
 PhotoSize get_web_document_photo_size(FileManager *file_manager, FileType file_type, DialogId owner_dialog_id,
                                       tl_object_ptr<telegram_api::WebDocument> web_document_ptr);
@@ -86,9 +92,9 @@ bool operator!=(const AnimationSize &lhs, const AnimationSize &rhs);
 
 StringBuilder &operator<<(StringBuilder &string_builder, const AnimationSize &animation_size);
 
-bool operator==(const CustomEmojiSize &lhs, const CustomEmojiSize &rhs);
-bool operator!=(const CustomEmojiSize &lhs, const CustomEmojiSize &rhs);
+bool operator==(const StickerPhotoSize &lhs, const StickerPhotoSize &rhs);
+bool operator!=(const StickerPhotoSize &lhs, const StickerPhotoSize &rhs);
 
-StringBuilder &operator<<(StringBuilder &string_builder, const CustomEmojiSize &custom_emoji_size);
+StringBuilder &operator<<(StringBuilder &string_builder, const StickerPhotoSize &sticker_photo_size);
 
 }  // namespace td

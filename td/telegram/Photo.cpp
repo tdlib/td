@@ -14,6 +14,7 @@
 #include "td/telegram/net/DcId.h"
 #include "td/telegram/PhotoFormat.h"
 #include "td/telegram/PhotoSizeSource.h"
+#include "td/telegram/Td.h"
 
 #include "td/utils/algorithm.h"
 #include "td/utils/common.h"
@@ -265,11 +266,28 @@ static tl_object_ptr<td_api::animatedChatPhoto> get_animated_chat_photo_object(F
                                                         animation_size->main_frame_timestamp);
 }
 
-static tl_object_ptr<td_api::chatPhotoCustomEmoji> get_chat_photo_custom_emoji_object(
-    const CustomEmojiSize &custom_emoji_size) {
-  if (!custom_emoji_size.custom_emoji_id.is_valid()) {
-    return nullptr;
+static tl_object_ptr<td_api::chatPhotoSticker> get_chat_photo_sticker_object(
+    const StickerPhotoSize &sticker_photo_size) {
+  td_api::object_ptr<td_api::ChatPhotoStickerType> type;
+  switch (sticker_photo_size.type) {
+    case StickerPhotoSize::Type::Sticker:
+      if (!sticker_photo_size.sticker_set_id.is_valid()) {
+        return nullptr;
+      }
+      type = td_api::make_object<td_api::chatPhotoStickerTypeRegularOrMask>(sticker_photo_size.sticker_set_id.get(),
+                                                                            sticker_photo_size.sticker_id);
+      break;
+    case StickerPhotoSize::Type::CustomEmoji:
+      if (!sticker_photo_size.custom_emoji_id.is_valid()) {
+        return nullptr;
+      }
+      type = td_api::make_object<td_api::chatPhotoStickerTypeCustomEmoji>(sticker_photo_size.custom_emoji_id.get());
+      break;
+    default:
+      UNREACHABLE();
+      return nullptr;
   }
+  CHECK(type != nullptr);
 
   auto background_fill = [&](vector<int32> colors) -> td_api::object_ptr<td_api::BackgroundFill> {
     switch (colors.size()) {
@@ -284,10 +302,9 @@ static tl_object_ptr<td_api::chatPhotoCustomEmoji> get_chat_photo_custom_emoji_o
         UNREACHABLE();
         return nullptr;
     }
-  }(custom_emoji_size.background_colors);
+  }(sticker_photo_size.background_colors);
 
-  return td_api::make_object<td_api::chatPhotoCustomEmoji>(custom_emoji_size.custom_emoji_id.get(),
-                                                           std::move(background_fill));
+  return td_api::make_object<td_api::chatPhotoSticker>(std::move(type), std::move(background_fill));
 }
 
 Photo get_encrypted_file_photo(FileManager *file_manager, unique_ptr<EncryptedFile> &&file,
@@ -318,15 +335,15 @@ Photo get_encrypted_file_photo(FileManager *file_manager, unique_ptr<EncryptedFi
   return res;
 }
 
-Photo get_photo(FileManager *file_manager, tl_object_ptr<telegram_api::Photo> &&photo, DialogId owner_dialog_id) {
+Photo get_photo(Td *td, tl_object_ptr<telegram_api::Photo> &&photo, DialogId owner_dialog_id) {
   if (photo == nullptr || photo->get_id() == telegram_api::photoEmpty::ID) {
     return Photo();
   }
   CHECK(photo->get_id() == telegram_api::photo::ID);
-  return get_photo(file_manager, move_tl_object_as<telegram_api::photo>(photo), owner_dialog_id);
+  return get_photo(td, move_tl_object_as<telegram_api::photo>(photo), owner_dialog_id);
 }
 
-Photo get_photo(FileManager *file_manager, tl_object_ptr<telegram_api::photo> &&photo, DialogId owner_dialog_id) {
+Photo get_photo(Td *td, tl_object_ptr<telegram_api::photo> &&photo, DialogId owner_dialog_id) {
   CHECK(photo != nullptr);
   Photo res;
 
@@ -341,8 +358,8 @@ Photo get_photo(FileManager *file_manager, tl_object_ptr<telegram_api::photo> &&
 
   DcId dc_id = DcId::create(photo->dc_id_);
   for (auto &size_ptr : photo->sizes_) {
-    auto photo_size = get_photo_size(file_manager, PhotoSizeSource::thumbnail(FileType::Photo, 0), photo->id_,
-                                     photo->access_hash_, photo->file_reference_.as_slice().str(), dc_id,
+    auto photo_size = get_photo_size(td->file_manager_.get(), PhotoSizeSource::thumbnail(FileType::Photo, 0),
+                                     photo->id_, photo->access_hash_, photo->file_reference_.as_slice().str(), dc_id,
                                      owner_dialog_id, std::move(size_ptr), PhotoFormat::Jpeg);
     if (photo_size.get_offset() == 0) {
       PhotoSize &size = photo_size.get<0>();
@@ -358,9 +375,9 @@ Photo get_photo(FileManager *file_manager, tl_object_ptr<telegram_api::photo> &&
   }
 
   for (auto &size_ptr : photo->video_sizes_) {
-    auto animation = get_animation_size(file_manager, PhotoSizeSource::thumbnail(FileType::Photo, 0), photo->id_,
-                                        photo->access_hash_, photo->file_reference_.as_slice().str(), dc_id,
-                                        owner_dialog_id, std::move(size_ptr));
+    auto animation =
+        get_animation_size(td, PhotoSizeSource::thumbnail(FileType::Photo, 0), photo->id_, photo->access_hash_,
+                           photo->file_reference_.as_slice().str(), dc_id, owner_dialog_id, std::move(size_ptr));
     if (animation.empty()) {
       continue;
     }
@@ -370,7 +387,7 @@ Photo get_photo(FileManager *file_manager, tl_object_ptr<telegram_api::photo> &&
             res.animations.push_back(std::move(animation_size));
           }
         },
-        [&](const CustomEmojiSize &custom_emoji_size) { res.custom_emoji_size = std::move(custom_emoji_size); }));
+        [&](const StickerPhotoSize &sticker_photo_size) { res.sticker_photo_size = std::move(sticker_photo_size); }));
   }
 
   return res;
@@ -418,7 +435,7 @@ tl_object_ptr<td_api::chatPhoto> get_chat_photo_object(FileManager *file_manager
       photo.id.get(), photo.date, get_minithumbnail_object(photo.minithumbnail),
       get_photo_sizes_object(file_manager, photo.photos), get_animated_chat_photo_object(file_manager, big_animation),
       get_animated_chat_photo_object(file_manager, small_animation),
-      get_chat_photo_custom_emoji_object(photo.custom_emoji_size));
+      get_chat_photo_sticker_object(photo.sticker_photo_size));
 }
 
 void photo_delete_thumbnail(Photo &photo) {
@@ -607,7 +624,7 @@ FileId get_photo_thumbnail_file_id(const Photo &photo) {
 
 bool operator==(const Photo &lhs, const Photo &rhs) {
   return lhs.id.get() == rhs.id.get() && lhs.photos == rhs.photos && lhs.animations == rhs.animations &&
-         lhs.custom_emoji_size == rhs.custom_emoji_size;
+         lhs.sticker_photo_size == rhs.sticker_photo_size;
 }
 
 bool operator!=(const Photo &lhs, const Photo &rhs) {
@@ -619,8 +636,8 @@ StringBuilder &operator<<(StringBuilder &string_builder, const Photo &photo) {
   if (!photo.animations.empty()) {
     string_builder << ", animations = " << format::as_array(photo.animations);
   }
-  if (photo.custom_emoji_size.custom_emoji_id.is_valid()) {
-    string_builder << ", custom emoji size = " << photo.custom_emoji_size;
+  if (photo.sticker_photo_size.custom_emoji_id.is_valid()) {
+    string_builder << ", custom emoji size = " << photo.sticker_photo_size;
   }
   return string_builder << ']';
 }

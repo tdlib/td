@@ -538,10 +538,22 @@ botMenuButton text:string url:string = BotMenuButton;
 chatLocation location:location address:string = ChatLocation;
 
 
+//@class ChatPhotoStickerType @description Describes type of a sticker, which was used to create a chat photo
+
+//@description Information about the sticker, which was used to create the chat photo
+//@sticker_set_id Sticker set identifier
+//@sticker_id Identifier of the sticker in the set
+chatPhotoStickerTypeRegularOrMask sticker_set_id:int64 sticker_id:int64 = ChatPhotoStickerType;
+
 //@description Information about the custom emoji, which was used to create the chat photo
 //@custom_emoji_id Identifier of the custom emoji
-//@background_fill Describes a fill of the background under the custom emoji; rotation angle in backgroundFillGradient isn't supported
-chatPhotoCustomEmoji custom_emoji_id:int64 background_fill:BackgroundFill = ChatPhotoCustomEmoji;
+chatPhotoStickerTypeCustomEmoji custom_emoji_id:int64 = ChatPhotoStickerType;
+
+
+//@description Information about the sticker, which was used to create the chat photo
+//@type Type of the sticker
+//@background_fill Describes a fill of the background under the sticker; rotation angle in backgroundFillGradient isn't supported
+chatPhotoSticker type:ChatPhotoStickerType background_fill:BackgroundFill = ChatPhotoSticker;
 
 //@description Animated variant of a chat photo in MPEG4 format
 //@length Animation width and height
@@ -557,8 +569,8 @@ animatedChatPhoto length:int32 file:file main_frame_timestamp:double = AnimatedC
 //@sizes Available variants of the photo in JPEG format, in different size
 //@animation A big (640x640) animated variant of the photo in MPEG4 format; may be null
 //@small_animation A small (160x160) animated variant of the photo in MPEG4 format; may be null even the big animation is available
-//@custom_emoji Custom-emoji-based version of the chat photo; may be null
-chatPhoto id:int64 added_date:int32 minithumbnail:minithumbnail sizes:vector<photoSize> animation:animatedChatPhoto small_animation:animatedChatPhoto custom_emoji:chatPhotoCustomEmoji = ChatPhoto;
+//@sticker Sticker-based version of the chat photo; may be null
+chatPhoto id:int64 added_date:int32 minithumbnail:minithumbnail sizes:vector<photoSize> animation:animatedChatPhoto small_animation:animatedChatPhoto sticker:chatPhotoSticker = ChatPhoto;
 
 //@description Contains a list of chat or user profile photos @total_count Total number of photos @photos List of photos
 chatPhotos total_count:int32 photos:vector<chatPhoto> = ChatPhotos;
@@ -7314,9 +7326,9 @@ getWebPageInstantView url:string force_full:Bool = WebPageInstantView;
 
 //@description Changes a profile photo for the current user
 //@photo Profile photo to set
-//@custom_emoji Custom-emoji-based version of the profile photo; pass null if none or an existing photo is set
+//@sticker Sticker-based version of the profile photo; pass null if none or an existing photo is set
 //@is_public Pass true to set a public photo, which will be visible even the main photo is hidden by privacy settings
-setProfilePhoto photo:InputChatPhoto custom_emoji:chatPhotoCustomEmoji is_public:Bool = Ok;
+setProfilePhoto photo:InputChatPhoto sticker:chatPhotoSticker is_public:Bool = Ok;
 
 //@description Deletes a profile photo @profile_photo_id Identifier of the profile photo to delete
 deleteProfilePhoto profile_photo_id:int64 = Ok;

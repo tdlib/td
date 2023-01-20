@@ -8,6 +8,8 @@
 
 #include "td/telegram/files/FileLocation.h"
 #include "td/telegram/files/FileManager.h"
+#include "td/telegram/StickersManager.h"
+#include "td/telegram/Td.h"
 
 #include "td/utils/base64.h"
 #include "td/utils/HttpUrl.h"
@@ -258,10 +260,10 @@ Variant<PhotoSize, string> get_photo_size(FileManager *file_manager, PhotoSizeSo
   return std::move(res);
 }
 
-Variant<AnimationSize, CustomEmojiSize> get_animation_size(FileManager *file_manager, PhotoSizeSource source, int64 id,
-                                                           int64 access_hash, std::string file_reference, DcId dc_id,
-                                                           DialogId owner_dialog_id,
-                                                           tl_object_ptr<telegram_api::VideoSize> &&size_ptr) {
+Variant<AnimationSize, StickerPhotoSize> get_animation_size(Td *td, PhotoSizeSource source, int64 id, int64 access_hash,
+                                                            std::string file_reference, DcId dc_id,
+                                                            DialogId owner_dialog_id,
+                                                            tl_object_ptr<telegram_api::VideoSize> &&size_ptr) {
   CHECK(size_ptr != nullptr);
   switch (size_ptr->get_id()) {
     case telegram_api::videoSize::ID: {
@@ -289,13 +291,14 @@ Variant<AnimationSize, CustomEmojiSize> get_animation_size(FileManager *file_man
         result.size = 0;
       }
 
-      result.file_id = register_photo_size(file_manager, source, id, access_hash, std::move(file_reference),
+      result.file_id = register_photo_size(td->file_manager_.get(), source, id, access_hash, std::move(file_reference),
                                            owner_dialog_id, result.size, dc_id, PhotoFormat::Mpeg4);
       return std::move(result);
     }
     case telegram_api::videoSizeEmojiMarkup::ID: {
       auto size = move_tl_object_as<telegram_api::videoSizeEmojiMarkup>(size_ptr);
-      CustomEmojiSize result;
+      StickerPhotoSize result;
+      result.type = StickerPhotoSize::Type::CustomEmoji;
       result.custom_emoji_id = CustomEmojiId(size->emoji_id_);
       result.background_colors = std::move(size->background_colors_);
       if (!result.custom_emoji_id.is_valid() || result.background_colors.empty() ||
@@ -308,20 +311,55 @@ Variant<AnimationSize, CustomEmojiSize> get_animation_size(FileManager *file_man
       }
       return std::move(result);
     }
-    case telegram_api::videoSizeStickerMarkup::ID:
-      return {};
+    case telegram_api::videoSizeStickerMarkup::ID: {
+      auto size = move_tl_object_as<telegram_api::videoSizeStickerMarkup>(size_ptr);
+      StickerPhotoSize result;
+      result.type = StickerPhotoSize::Type::Sticker;
+      result.sticker_set_id = td->stickers_manager_->add_sticker_set(std::move(size->stickerset_));
+      result.sticker_id = size->sticker_id_;
+      result.background_colors = std::move(size->background_colors_);
+      if (!result.sticker_set_id.is_valid() || result.sticker_id == 0 || !result.custom_emoji_id.is_valid() ||
+          result.background_colors.empty() || result.background_colors.size() > 4) {
+        LOG(ERROR) << "Receive invalid " << result;
+        return {};
+      }
+      for (auto &color : result.background_colors) {
+        color &= 0xFFFFFF;
+      }
+      return std::move(result);
+    }
     default:
       UNREACHABLE();
   }
 }
 
-CustomEmojiSize get_custom_emoji_size(const td_api::object_ptr<td_api::chatPhotoCustomEmoji> &custom_emoji) {
-  if (custom_emoji == nullptr || custom_emoji->background_fill_ == nullptr) {
+StickerPhotoSize get_sticker_photo_size(Td *td, const td_api::object_ptr<td_api::chatPhotoSticker> &sticker) {
+  if (sticker == nullptr || sticker->type_ == nullptr || sticker->background_fill_ == nullptr) {
     return {};
   }
-  CustomEmojiSize result;
-  result.custom_emoji_id = CustomEmojiId(custom_emoji->custom_emoji_id_);
-  auto fill = custom_emoji->background_fill_.get();
+  StickerPhotoSize result;
+  switch (sticker->type_->get_id()) {
+    case td_api::chatPhotoStickerTypeRegularOrMask::ID: {
+      auto type = static_cast<const td_api::chatPhotoStickerTypeRegularOrMask *>(sticker->type_.get());
+      result.type = StickerPhotoSize::Type::Sticker;
+      result.sticker_set_id = StickerSetId(type->sticker_set_id_);
+      result.sticker_id = type->sticker_id_;
+      //if (!td->stickers_manager_->have_sticker(result.sticker_set_id, result.sticker_id)) {
+      //  return {};
+      //}
+      break;
+    }
+    case td_api::chatPhotoStickerTypeCustomEmoji::ID: {
+      auto type = static_cast<const td_api::chatPhotoStickerTypeCustomEmoji *>(sticker->type_.get());
+      result.type = StickerPhotoSize::Type::CustomEmoji;
+      result.custom_emoji_id = CustomEmojiId(type->custom_emoji_id_);
+      //if (!td->stickers_manager_->have_custom_emoji_id(result.custom_emoji_id)) {
+      //  return {};
+      //}
+      break;
+    }
+  }
+  auto fill = sticker->background_fill_.get();
   switch (fill->get_id()) {
     case td_api::backgroundFillSolid::ID: {
       auto solid = static_cast<const td_api::backgroundFillSolid *>(fill);
@@ -353,13 +391,25 @@ CustomEmojiSize get_custom_emoji_size(const td_api::object_ptr<td_api::chatPhoto
 }
 
 telegram_api::object_ptr<telegram_api::VideoSize> get_input_video_size_object(
-    const CustomEmojiSize &custom_emoji_size) {
-  if (!custom_emoji_size.custom_emoji_id.is_valid()) {
-    return nullptr;
+    Td *td, const StickerPhotoSize &sticker_photo_size) {
+  switch (sticker_photo_size.type) {
+    case StickerPhotoSize::Type::Sticker:
+      if (!sticker_photo_size.sticker_set_id.is_valid()) {
+        return nullptr;
+      }
+      return telegram_api::make_object<telegram_api::videoSizeStickerMarkup>(
+          td->stickers_manager_->get_input_sticker_set(sticker_photo_size.sticker_set_id),
+          sticker_photo_size.sticker_id, vector<int32>(sticker_photo_size.background_colors));
+    case StickerPhotoSize::Type::CustomEmoji:
+      if (!sticker_photo_size.custom_emoji_id.is_valid()) {
+        return nullptr;
+      }
+      return telegram_api::make_object<telegram_api::videoSizeEmojiMarkup>(
+          sticker_photo_size.custom_emoji_id.get(), vector<int32>(sticker_photo_size.background_colors));
+    default:
+      UNREACHABLE();
+      return nullptr;
   }
-
-  return telegram_api::make_object<telegram_api::videoSizeEmojiMarkup>(
-      custom_emoji_size.custom_emoji_id.get(), vector<int32>(custom_emoji_size.background_colors));
 }
 
 PhotoSize get_web_document_photo_size(FileManager *file_manager, FileType file_type, DialogId owner_dialog_id,
@@ -516,16 +566,26 @@ StringBuilder &operator<<(StringBuilder &string_builder, const AnimationSize &an
                         << animation_size.main_frame_timestamp;
 }
 
-bool operator==(const CustomEmojiSize &lhs, const CustomEmojiSize &rhs) {
-  return lhs.custom_emoji_id == rhs.custom_emoji_id && lhs.background_colors == rhs.background_colors;
+bool operator==(const StickerPhotoSize &lhs, const StickerPhotoSize &rhs) {
+  return lhs.type == rhs.type && lhs.sticker_set_id == rhs.sticker_set_id && lhs.sticker_id == rhs.sticker_id &&
+         lhs.custom_emoji_id == rhs.custom_emoji_id && lhs.background_colors == rhs.background_colors;
 }
 
-bool operator!=(const CustomEmojiSize &lhs, const CustomEmojiSize &rhs) {
+bool operator!=(const StickerPhotoSize &lhs, const StickerPhotoSize &rhs) {
   return !(lhs == rhs);
 }
 
-StringBuilder &operator<<(StringBuilder &string_builder, const CustomEmojiSize &custom_emoji_size) {
-  return string_builder << custom_emoji_size.custom_emoji_id << " on " << custom_emoji_size.background_colors;
+StringBuilder &operator<<(StringBuilder &string_builder, const StickerPhotoSize &sticker_photo_size) {
+  switch (sticker_photo_size.type) {
+    case StickerPhotoSize::Type::Sticker:
+      return string_builder << sticker_photo_size.sticker_id << " from " << sticker_photo_size.sticker_set_id << " on "
+                            << sticker_photo_size.background_colors;
+    case StickerPhotoSize::Type::CustomEmoji:
+      return string_builder << sticker_photo_size.custom_emoji_id << " on " << sticker_photo_size.background_colors;
+    default:
+      UNREACHABLE();
+      return string_builder;
+  }
 }
 
 }  // namespace td

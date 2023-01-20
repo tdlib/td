@@ -1651,7 +1651,7 @@ void InlineQueriesManager::on_get_inline_query_results(DialogId dialog_id, UserI
           LOG_IF(ERROR, !is_photo) << "Wrong result type " << result->type_;
           auto photo = make_tl_object<td_api::inlineQueryResultPhoto>();
           photo->id_ = std::move(result->id_);
-          Photo p = get_photo(td_->file_manager_.get(), std::move(result->photo_), DialogId());
+          Photo p = get_photo(td_, std::move(result->photo_), DialogId());
           if (p.is_empty()) {
             LOG(ERROR) << "Receive empty cached photo in the result of inline query";
             break;

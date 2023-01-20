@@ -4654,7 +4654,7 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
         return make_unique<MessageExpiredPhoto>();
       }
 
-      auto photo = get_photo(td->file_manager_.get(), std::move(media->photo_), owner_dialog_id);
+      auto photo = get_photo(td, std::move(media->photo_), owner_dialog_id);
       if (photo.is_empty()) {
         return make_unique<MessageExpiredPhoto>();
       }
@@ -5085,7 +5085,7 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
     }
     case telegram_api::messageActionChatEditPhoto::ID: {
       auto action = move_tl_object_as<telegram_api::messageActionChatEditPhoto>(action_ptr);
-      auto photo = get_photo(td->file_manager_.get(), std::move(action->photo_), owner_dialog_id);
+      auto photo = get_photo(td, std::move(action->photo_), owner_dialog_id);
       if (photo.is_empty()) {
         break;
       }
@@ -5359,7 +5359,7 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
     }
     case telegram_api::messageActionSuggestProfilePhoto::ID: {
       auto action = move_tl_object_as<telegram_api::messageActionSuggestProfilePhoto>(action_ptr);
-      auto photo = get_photo(td->file_manager_.get(), std::move(action->photo_), owner_dialog_id);
+      auto photo = get_photo(td, std::move(action->photo_), owner_dialog_id);
       if (photo.is_empty()) {
         break;
       }

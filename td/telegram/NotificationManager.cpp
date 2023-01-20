@@ -3377,8 +3377,7 @@ Status NotificationManager::process_push_notification_payload(string payload, bo
             VLOG(notifications) << "Have attached photo";
             loc_key.resize(loc_key.rfind('_') + 1);
             loc_key += "PHOTO";
-            attached_photo = get_photo(td_->file_manager_.get(),
-                                       telegram_api::move_object_as<telegram_api::photo>(result), dialog_id);
+            attached_photo = get_photo(td_, telegram_api::move_object_as<telegram_api::photo>(result), dialog_id);
           } else {
             LOG(ERROR) << "Receive attached photo for " << loc_key;
           }

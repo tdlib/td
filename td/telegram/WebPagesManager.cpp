@@ -492,7 +492,7 @@ WebPageId WebPagesManager::on_get_web_page(tl_object_ptr<telegram_api::WebPage> 
       page->site_name = std::move(web_page->site_name_);
       page->title = std::move(web_page->title_);
       page->description = std::move(web_page->description_);
-      page->photo = get_photo(td_->file_manager_.get(), std::move(web_page->photo_), owner_dialog_id);
+      page->photo = get_photo(td_, std::move(web_page->photo_), owner_dialog_id);
       page->embed_url = std::move(web_page->embed_url_);
       page->embed_type = std::move(web_page->embed_type_);
       page->embed_dimensions = get_dimensions(web_page->embed_width_, web_page->embed_height_, "webPage");
@@ -1415,7 +1415,7 @@ void WebPagesManager::on_get_web_page_instant_view(WebPage *web_page, tl_object_
   CHECK(page != nullptr);
   FlatHashMap<int64, unique_ptr<Photo>> photos;
   for (auto &photo_ptr : page->photos_) {
-    Photo photo = get_photo(td_->file_manager_.get(), std::move(photo_ptr), owner_dialog_id);
+    Photo photo = get_photo(td_, std::move(photo_ptr), owner_dialog_id);
     if (photo.is_empty() || photo.id.get() == 0) {
       LOG(ERROR) << "Receive empty photo in web page instant view for " << web_page->url;
     } else {

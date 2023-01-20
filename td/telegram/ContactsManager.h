@@ -366,7 +366,7 @@ class ContactsManager final : public Actor {
   FileId get_profile_photo_file_id(int64 photo_id) const;
 
   void set_profile_photo(const td_api::object_ptr<td_api::InputChatPhoto> &input_photo,
-                         const td_api::object_ptr<td_api::chatPhotoCustomEmoji> &custom_emoji, bool is_fallback,
+                         const td_api::object_ptr<td_api::chatPhotoSticker> &custom_emoji, bool is_fallback,
                          Promise<Unit> &&promise);
 
   void set_user_profile_photo(UserId user_id, const td_api::object_ptr<td_api::InputChatPhoto> &input_photo,
@@ -1352,10 +1352,10 @@ class ContactsManager final : public Actor {
   void apply_pending_user_photo(User *u, UserId user_id);
 
   void set_profile_photo_impl(UserId user_id, const td_api::object_ptr<td_api::InputChatPhoto> &input_photo,
-                              const td_api::object_ptr<td_api::chatPhotoCustomEmoji> &custom_emoji, bool is_fallback,
+                              const td_api::object_ptr<td_api::chatPhotoSticker> &custom_emoji, bool is_fallback,
                               bool only_suggest, Promise<Unit> &&promise);
 
-  void upload_profile_photo(UserId user_id, FileId file_id, CustomEmojiSize custom_emoji_size, bool is_fallback,
+  void upload_profile_photo(UserId user_id, FileId file_id, StickerPhotoSize sticker_photo_size, bool is_fallback,
                             bool only_suggest, bool is_animation, double main_frame_timestamp, Promise<Unit> &&promise,
                             int reupload_count = 0, vector<int> bad_parts = {});
 
@@ -1896,7 +1896,7 @@ class ContactsManager final : public Actor {
 
   struct UploadedProfilePhoto {
     UserId user_id;
-    CustomEmojiSize custom_emoji_size;
+    StickerPhotoSize sticker_photo_size;
     bool is_fallback;
     bool only_suggest;
     double main_frame_timestamp;
@@ -1904,10 +1904,10 @@ class ContactsManager final : public Actor {
     int reupload_count;
     Promise<Unit> promise;
 
-    UploadedProfilePhoto(UserId user_id, CustomEmojiSize custom_emoji_size, bool is_fallback, bool only_suggest,
+    UploadedProfilePhoto(UserId user_id, StickerPhotoSize sticker_photo_size, bool is_fallback, bool only_suggest,
                          double main_frame_timestamp, bool is_animation, int32 reupload_count, Promise<Unit> promise)
         : user_id(user_id)
-        , custom_emoji_size(custom_emoji_size)
+        , sticker_photo_size(sticker_photo_size)
         , is_fallback(is_fallback)
         , only_suggest(only_suggest)
         , main_frame_timestamp(main_frame_timestamp)
