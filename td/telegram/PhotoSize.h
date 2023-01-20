@@ -6,7 +6,6 @@
 //
 #pragma once
 
-#include "td/telegram/CustomEmojiId.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/Dimensions.h"
 #include "td/telegram/files/FileId.h"
@@ -14,7 +13,7 @@
 #include "td/telegram/net/DcId.h"
 #include "td/telegram/PhotoFormat.h"
 #include "td/telegram/PhotoSizeSource.h"
-#include "td/telegram/StickerSetId.h"
+#include "td/telegram/StickerPhotoSize.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 
@@ -40,15 +39,6 @@ struct AnimationSize final : public PhotoSize {
   double main_frame_timestamp = 0.0;
 };
 
-struct StickerPhotoSize {
-  enum class Type : int32 { Sticker, CustomEmoji };
-  Type type = Type::CustomEmoji;
-  CustomEmojiId custom_emoji_id;
-  StickerSetId sticker_set_id;
-  int64 sticker_id = 0;
-  vector<int32> background_colors;
-};
-
 bool need_update_dialog_photo_minithumbnail(const string &from, const string &to);
 
 td_api::object_ptr<td_api::minithumbnail> get_minithumbnail_object(const string &packed);
@@ -69,11 +59,6 @@ Variant<AnimationSize, StickerPhotoSize> get_animation_size(Td *td, PhotoSizeSou
                                                             string file_reference, DcId dc_id, DialogId owner_dialog_id,
                                                             tl_object_ptr<telegram_api::VideoSize> &&size_ptr);
 
-StickerPhotoSize get_sticker_photo_size(Td *td, const td_api::object_ptr<td_api::chatPhotoSticker> &chat_photo_sticker);
-
-telegram_api::object_ptr<telegram_api::VideoSize> get_input_video_size_object(
-    Td *td, const StickerPhotoSize &sticker_photo_size);
-
 PhotoSize get_web_document_photo_size(FileManager *file_manager, FileType file_type, DialogId owner_dialog_id,
                                       tl_object_ptr<telegram_api::WebDocument> web_document_ptr);
 
@@ -91,10 +76,5 @@ bool operator==(const AnimationSize &lhs, const AnimationSize &rhs);
 bool operator!=(const AnimationSize &lhs, const AnimationSize &rhs);
 
 StringBuilder &operator<<(StringBuilder &string_builder, const AnimationSize &animation_size);
-
-bool operator==(const StickerPhotoSize &lhs, const StickerPhotoSize &rhs);
-bool operator!=(const StickerPhotoSize &lhs, const StickerPhotoSize &rhs);
-
-StringBuilder &operator<<(StringBuilder &string_builder, const StickerPhotoSize &sticker_photo_size);
 
 }  // namespace td

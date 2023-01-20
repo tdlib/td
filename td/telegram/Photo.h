@@ -12,6 +12,7 @@
 #include "td/telegram/PhotoSize.h"
 #include "td/telegram/secret_api.h"
 #include "td/telegram/SecretInputMedia.h"
+#include "td/telegram/StickerPhotoSize.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/UserId.h"
