@@ -20952,7 +20952,7 @@ Status MessagesManager::toggle_dialog_is_translatable(DialogId dialog_id, bool i
     return Status::Error(400, "Can't access the chat");
   }
   if (!td_->option_manager_->get_option_boolean("is_premium")) {
-    return Status::Error(400, "The method is available for Telegram Premium users only");
+    return Status::Error(400, "The method is available to Telegram Premium users only");
   }
 
   if (is_translatable == d->is_translatable) {
@@ -32987,6 +32987,19 @@ void MessagesManager::on_update_dialog_is_translatable(DialogId dialog_id, bool 
   }
 
   set_dialog_is_translatable(d, is_translatable);
+}
+
+void MessagesManager::update_is_translatable(bool new_is_premium) {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+
+  dialogs_.foreach([&](const DialogId &dialog_id, const unique_ptr<Dialog> &dialog) {
+    if (dialog->is_translatable) {
+      send_closure(G()->td(), &Td::send_update,
+                   make_tl_object<td_api::updateChatIsTranslatable>(dialog_id.get(), new_is_premium));
+    }
+  });
 }
 
 void MessagesManager::set_dialog_is_translatable(Dialog *d, bool is_translatable) {

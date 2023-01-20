@@ -289,6 +289,8 @@ class MessagesManager final : public Actor {
 
   void on_update_dialog_is_translatable(DialogId dialog_id, bool is_translatable);
 
+  void update_is_translatable(bool new_is_premium);
+
   void on_update_dialog_is_blocked(DialogId dialog_id, bool is_blocked);
 
   void on_update_dialog_last_pinned_message_id(DialogId dialog_id, MessageId last_pinned_message_id);
