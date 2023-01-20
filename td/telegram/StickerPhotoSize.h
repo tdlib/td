@@ -12,6 +12,7 @@
 #include "td/telegram/telegram_api.h"
 
 #include "td/utils/common.h"
+#include "td/utils/Status.h"
 #include "td/utils/StringBuilder.h"
 
 namespace td {
@@ -27,10 +28,11 @@ struct StickerPhotoSize {
   vector<int32> background_colors;
 };
 
-StickerPhotoSize get_sticker_photo_size(Td *td, const td_api::object_ptr<td_api::chatPhotoSticker> &chat_photo_sticker);
+Result<unique_ptr<StickerPhotoSize>> get_sticker_photo_size(
+    Td *td, const td_api::object_ptr<td_api::chatPhotoSticker> &chat_photo_sticker);
 
 telegram_api::object_ptr<telegram_api::VideoSize> get_input_video_size_object(
-    Td *td, const StickerPhotoSize &sticker_photo_size);
+    Td *td, const unique_ptr<StickerPhotoSize> &sticker_photo_size);
 
 bool operator==(const StickerPhotoSize &lhs, const StickerPhotoSize &rhs);
 bool operator!=(const StickerPhotoSize &lhs, const StickerPhotoSize &rhs);
