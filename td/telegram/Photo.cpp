@@ -267,21 +267,18 @@ static tl_object_ptr<td_api::animatedChatPhoto> get_animated_chat_photo_object(F
 }
 
 static tl_object_ptr<td_api::chatPhotoSticker> get_chat_photo_sticker_object(
-    const StickerPhotoSize &sticker_photo_size) {
+    const unique_value_ptr<StickerPhotoSize> &sticker_photo_size) {
+  if (sticker_photo_size == nullptr) {
+    return nullptr;
+  }
   td_api::object_ptr<td_api::ChatPhotoStickerType> type;
-  switch (sticker_photo_size.type) {
+  switch (sticker_photo_size->type) {
     case StickerPhotoSize::Type::Sticker:
-      if (!sticker_photo_size.sticker_set_id.is_valid()) {
-        return nullptr;
-      }
-      type = td_api::make_object<td_api::chatPhotoStickerTypeRegularOrMask>(sticker_photo_size.sticker_set_id.get(),
-                                                                            sticker_photo_size.sticker_id);
+      type = td_api::make_object<td_api::chatPhotoStickerTypeRegularOrMask>(sticker_photo_size->sticker_set_id.get(),
+                                                                            sticker_photo_size->sticker_id);
       break;
     case StickerPhotoSize::Type::CustomEmoji:
-      if (!sticker_photo_size.custom_emoji_id.is_valid()) {
-        return nullptr;
-      }
-      type = td_api::make_object<td_api::chatPhotoStickerTypeCustomEmoji>(sticker_photo_size.custom_emoji_id.get());
+      type = td_api::make_object<td_api::chatPhotoStickerTypeCustomEmoji>(sticker_photo_size->custom_emoji_id.get());
       break;
     default:
       UNREACHABLE();
@@ -302,7 +299,7 @@ static tl_object_ptr<td_api::chatPhotoSticker> get_chat_photo_sticker_object(
         UNREACHABLE();
         return nullptr;
     }
-  }(sticker_photo_size.background_colors);
+  }(sticker_photo_size->background_colors);
 
   return td_api::make_object<td_api::chatPhotoSticker>(std::move(type), std::move(background_fill));
 }
@@ -382,12 +379,14 @@ Photo get_photo(Td *td, tl_object_ptr<telegram_api::photo> &&photo, DialogId own
       continue;
     }
     animation.visit(overloaded(
-        [&](const AnimationSize &animation_size) {
+        [&](AnimationSize &&animation_size) {
           if (animation_size.type != 0 && animation_size.dimensions.width == animation_size.dimensions.height) {
             res.animations.push_back(std::move(animation_size));
           }
         },
-        [&](const StickerPhotoSize &sticker_photo_size) { res.sticker_photo_size = std::move(sticker_photo_size); }));
+        [&](unique_ptr<StickerPhotoSize> &&sticker_photo_size) {
+          res.sticker_photo_size = std::move(sticker_photo_size);
+        }));
   }
 
   return res;
@@ -636,8 +635,8 @@ StringBuilder &operator<<(StringBuilder &string_builder, const Photo &photo) {
   if (!photo.animations.empty()) {
     string_builder << ", animations = " << format::as_array(photo.animations);
   }
-  if (photo.sticker_photo_size.custom_emoji_id.is_valid()) {
-    string_builder << ", custom emoji size = " << photo.sticker_photo_size;
+  if (photo.sticker_photo_size != nullptr) {
+    string_builder << ", sticker = " << *photo.sticker_photo_size;
   }
   return string_builder << ']';
 }

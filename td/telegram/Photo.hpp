@@ -72,7 +72,7 @@ template <class StorerT>
 void store(const Photo &photo, StorerT &storer) {
   bool has_minithumbnail = !photo.minithumbnail.empty();
   bool has_animations = !photo.animations.empty();
-  bool has_sticker_photo_size = photo.sticker_photo_size.custom_emoji_id.is_valid();
+  bool has_sticker_photo_size = photo.sticker_photo_size != nullptr;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(photo.has_stickers);
   STORE_FLAG(has_minithumbnail);

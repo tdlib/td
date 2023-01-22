@@ -16,6 +16,7 @@
 #include "td/utils/Status.h"
 #include "td/utils/tl_parsers.h"
 #include "td/utils/tl_storers.h"
+#include "td/utils/unique_value_ptr.h"
 #include "td/utils/Variant.h"
 
 #include <type_traits>
@@ -169,6 +170,18 @@ template <class T, class ParserT>
 void parse(unique_ptr<T> &ptr, ParserT &parser) {
   CHECK(ptr == nullptr);
   ptr = make_unique<T>();
+  parse(*ptr, parser);
+}
+
+template <class T, class StorerT>
+void store(const unique_value_ptr<T> &ptr, StorerT &storer) {
+  CHECK(ptr != nullptr);
+  store(*ptr, storer);
+}
+template <class T, class ParserT>
+void parse(unique_value_ptr<T> &ptr, ParserT &parser) {
+  CHECK(ptr == nullptr);
+  ptr = make_unique_value<T>();
   parse(*ptr, parser);
 }
 

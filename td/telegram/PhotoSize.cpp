@@ -261,10 +261,9 @@ Variant<PhotoSize, string> get_photo_size(FileManager *file_manager, PhotoSizeSo
   return std::move(res);
 }
 
-Variant<AnimationSize, StickerPhotoSize> get_animation_size(Td *td, PhotoSizeSource source, int64 id, int64 access_hash,
-                                                            std::string file_reference, DcId dc_id,
-                                                            DialogId owner_dialog_id,
-                                                            tl_object_ptr<telegram_api::VideoSize> &&size_ptr) {
+Variant<AnimationSize, unique_ptr<StickerPhotoSize>> get_animation_size(
+    Td *td, PhotoSizeSource source, int64 id, int64 access_hash, std::string file_reference, DcId dc_id,
+    DialogId owner_dialog_id, tl_object_ptr<telegram_api::VideoSize> &&size_ptr) {
   CHECK(size_ptr != nullptr);
   switch (size_ptr->get_id()) {
     case telegram_api::videoSize::ID: {
@@ -298,33 +297,33 @@ Variant<AnimationSize, StickerPhotoSize> get_animation_size(Td *td, PhotoSizeSou
     }
     case telegram_api::videoSizeEmojiMarkup::ID: {
       auto size = move_tl_object_as<telegram_api::videoSizeEmojiMarkup>(size_ptr);
-      StickerPhotoSize result;
-      result.type = StickerPhotoSize::Type::CustomEmoji;
-      result.custom_emoji_id = CustomEmojiId(size->emoji_id_);
-      result.background_colors = std::move(size->background_colors_);
-      if (!result.custom_emoji_id.is_valid() || result.background_colors.empty() ||
-          result.background_colors.size() > 4) {
-        LOG(ERROR) << "Receive invalid " << result;
+      auto result = make_unique<StickerPhotoSize>();
+      result->type = StickerPhotoSize::Type::CustomEmoji;
+      result->custom_emoji_id = CustomEmojiId(size->emoji_id_);
+      result->background_colors = std::move(size->background_colors_);
+      if (!result->custom_emoji_id.is_valid() || result->background_colors.empty() ||
+          result->background_colors.size() > 4) {
+        LOG(ERROR) << "Receive invalid " << *result;
         return {};
       }
-      for (auto &color : result.background_colors) {
+      for (auto &color : result->background_colors) {
         color &= 0xFFFFFF;
       }
       return std::move(result);
     }
     case telegram_api::videoSizeStickerMarkup::ID: {
       auto size = move_tl_object_as<telegram_api::videoSizeStickerMarkup>(size_ptr);
-      StickerPhotoSize result;
-      result.type = StickerPhotoSize::Type::Sticker;
-      result.sticker_set_id = td->stickers_manager_->add_sticker_set(std::move(size->stickerset_));
-      result.sticker_id = size->sticker_id_;
-      result.background_colors = std::move(size->background_colors_);
-      if (!result.sticker_set_id.is_valid() || result.sticker_id == 0 || !result.custom_emoji_id.is_valid() ||
-          result.background_colors.empty() || result.background_colors.size() > 4) {
-        LOG(ERROR) << "Receive invalid " << result;
+      auto result = make_unique<StickerPhotoSize>();
+      result->type = StickerPhotoSize::Type::Sticker;
+      result->sticker_set_id = td->stickers_manager_->add_sticker_set(std::move(size->stickerset_));
+      result->sticker_id = size->sticker_id_;
+      result->background_colors = std::move(size->background_colors_);
+      if (!result->sticker_set_id.is_valid() || result->sticker_id == 0 || !result->custom_emoji_id.is_valid() ||
+          result->background_colors.empty() || result->background_colors.size() > 4) {
+        LOG(ERROR) << "Receive invalid " << *result;
         return {};
       }
-      for (auto &color : result.background_colors) {
+      for (auto &color : result->background_colors) {
         color &= 0xFFFFFF;
       }
       return std::move(result);

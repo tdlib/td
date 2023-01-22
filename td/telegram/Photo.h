@@ -21,6 +21,7 @@
 #include "td/utils/common.h"
 #include "td/utils/MovableValue.h"
 #include "td/utils/StringBuilder.h"
+#include "td/utils/unique_value_ptr.h"
 
 namespace td {
 
@@ -47,7 +48,7 @@ struct Photo {
 
   vector<AnimationSize> animations;
 
-  StickerPhotoSize sticker_photo_size;
+  unique_value_ptr<StickerPhotoSize> sticker_photo_size;
 
   bool has_stickers = false;
   vector<FileId> sticker_file_ids;
