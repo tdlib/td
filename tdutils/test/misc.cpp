@@ -40,6 +40,7 @@
 #include "td/utils/translit.h"
 #include "td/utils/uint128.h"
 #include "td/utils/unicode.h"
+#include "td/utils/unique_value_ptr.h"
 #include "td/utils/utf8.h"
 
 #include <algorithm>
@@ -1259,4 +1260,33 @@ TEST(FloodControl, Fast) {
     fc.add_event(now);
     LOG(INFO) << ++count << ": " << now;
   }
+}
+
+TEST(UniqueValuePtr, Basic) {
+  auto a = td::make_unique_value<int>(5);
+  td::unique_value_ptr<int> b;
+  ASSERT_TRUE(b == nullptr);
+  ASSERT_TRUE(a != nullptr);
+  ASSERT_TRUE(a != b);
+  b = a;
+  ASSERT_TRUE(a != nullptr);
+  ASSERT_TRUE(b != nullptr);
+  ASSERT_TRUE(a == b);
+  *a = 6;
+  ASSERT_TRUE(a != nullptr);
+  ASSERT_TRUE(b != nullptr);
+  ASSERT_TRUE(a != b);
+  b = std::move(a);
+  ASSERT_TRUE(a == nullptr);
+  ASSERT_TRUE(b != nullptr);
+  ASSERT_TRUE(a != b);
+  auto c = td::make_unique_value<td::unique_value_ptr<int>>(a);
+  ASSERT_TRUE(*c == a);
+  ASSERT_TRUE(*c == nullptr);
+  c = td::make_unique_value<td::unique_value_ptr<int>>(b);
+  ASSERT_TRUE(*c == b);
+  ASSERT_TRUE(**c == 6);
+  auto d = c;
+  ASSERT_TRUE(c == d);
+  ASSERT_TRUE(6 == **d);
 }
