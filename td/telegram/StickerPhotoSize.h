@@ -34,6 +34,9 @@ Result<unique_ptr<StickerPhotoSize>> get_sticker_photo_size(
 telegram_api::object_ptr<telegram_api::VideoSize> get_input_video_size_object(
     Td *td, const unique_ptr<StickerPhotoSize> &sticker_photo_size);
 
+unique_ptr<StickerPhotoSize> get_sticker_photo_size(Td *td,
+                                                    telegram_api::object_ptr<telegram_api::VideoSize> &&size_ptr);
+
 bool operator==(const StickerPhotoSize &lhs, const StickerPhotoSize &rhs);
 bool operator!=(const StickerPhotoSize &lhs, const StickerPhotoSize &rhs);
 

@@ -261,75 +261,62 @@ Variant<PhotoSize, string> get_photo_size(FileManager *file_manager, PhotoSizeSo
   return std::move(res);
 }
 
-Variant<AnimationSize, unique_ptr<StickerPhotoSize>> get_animation_size(
+AnimationSize get_animation_size(Td *td, PhotoSizeSource source, int64 id, int64 access_hash,
+                                 std::string file_reference, DcId dc_id, DialogId owner_dialog_id,
+                                 tl_object_ptr<telegram_api::videoSize> &&size) {
+  CHECK(size != nullptr);
+  AnimationSize result;
+  if (size->type_ != "p" && size->type_ != "u" && size->type_ != "v") {
+    LOG(ERROR) << "Unsupported videoSize \"" << size->type_ << "\" in " << to_string(size);
+  }
+  result.type = static_cast<uint8>(size->type_[0]);
+  if (result.type >= 128) {
+    LOG(ERROR) << "Wrong videoSize \"" << result.type << "\" " << result;
+    result.type = 0;
+  }
+  result.dimensions = get_dimensions(size->w_, size->h_, "get_animation_size");
+  result.size = size->size_;
+  if ((size->flags_ & telegram_api::videoSize::VIDEO_START_TS_MASK) != 0) {
+    result.main_frame_timestamp = size->video_start_ts_;
+  }
+
+  if (source.get_type("get_animation_size") == PhotoSizeSource::Type::Thumbnail) {
+    source.thumbnail().thumbnail_type = result.type;
+  }
+  if (result.size < 0 || result.size > 1000000000) {
+    LOG(ERROR) << "Receive animation of size " << result.size;
+    result.size = 0;
+  }
+
+  result.file_id = register_photo_size(td->file_manager_.get(), source, id, access_hash, std::move(file_reference),
+                                       owner_dialog_id, result.size, dc_id, PhotoFormat::Mpeg4);
+  return result;
+}
+
+Variant<AnimationSize, unique_ptr<StickerPhotoSize>> process_video_size(
     Td *td, PhotoSizeSource source, int64 id, int64 access_hash, std::string file_reference, DcId dc_id,
     DialogId owner_dialog_id, tl_object_ptr<telegram_api::VideoSize> &&size_ptr) {
   CHECK(size_ptr != nullptr);
   switch (size_ptr->get_id()) {
     case telegram_api::videoSize::ID: {
-      auto size = move_tl_object_as<telegram_api::videoSize>(size_ptr);
-      AnimationSize result;
-      if (size->type_ != "p" && size->type_ != "u" && size->type_ != "v") {
-        LOG(ERROR) << "Unsupported videoSize \"" << size->type_ << "\" in " << to_string(size);
-      }
-      result.type = static_cast<uint8>(size->type_[0]);
-      if (result.type >= 128) {
-        LOG(ERROR) << "Wrong videoSize \"" << result.type << "\" " << result;
-        result.type = 0;
-      }
-      result.dimensions = get_dimensions(size->w_, size->h_, "get_animation_size");
-      result.size = size->size_;
-      if ((size->flags_ & telegram_api::videoSize::VIDEO_START_TS_MASK) != 0) {
-        result.main_frame_timestamp = size->video_start_ts_;
-      }
-
-      if (source.get_type("get_animation_size") == PhotoSizeSource::Type::Thumbnail) {
-        source.thumbnail().thumbnail_type = result.type;
-      }
-      if (result.size < 0 || result.size > 1000000000) {
-        LOG(ERROR) << "Receive animation of size " << result.size;
-        result.size = 0;
-      }
-
-      result.file_id = register_photo_size(td->file_manager_.get(), source, id, access_hash, std::move(file_reference),
-                                           owner_dialog_id, result.size, dc_id, PhotoFormat::Mpeg4);
-      return std::move(result);
-    }
-    case telegram_api::videoSizeEmojiMarkup::ID: {
-      auto size = move_tl_object_as<telegram_api::videoSizeEmojiMarkup>(size_ptr);
-      auto result = make_unique<StickerPhotoSize>();
-      result->type = StickerPhotoSize::Type::CustomEmoji;
-      result->custom_emoji_id = CustomEmojiId(size->emoji_id_);
-      result->background_colors = std::move(size->background_colors_);
-      if (!result->custom_emoji_id.is_valid() || result->background_colors.empty() ||
-          result->background_colors.size() > 4) {
-        LOG(ERROR) << "Receive invalid " << *result;
+      auto animation_size = get_animation_size(td, source, id, access_hash, std::move(file_reference), dc_id,
+                                               owner_dialog_id, move_tl_object_as<telegram_api::videoSize>(size_ptr));
+      if (animation_size.type == 0) {
         return {};
       }
-      for (auto &color : result->background_colors) {
-        color &= 0xFFFFFF;
-      }
-      return std::move(result);
+      return std::move(animation_size);
     }
+    case telegram_api::videoSizeEmojiMarkup::ID:
     case telegram_api::videoSizeStickerMarkup::ID: {
-      auto size = move_tl_object_as<telegram_api::videoSizeStickerMarkup>(size_ptr);
-      auto result = make_unique<StickerPhotoSize>();
-      result->type = StickerPhotoSize::Type::Sticker;
-      result->sticker_set_id = td->stickers_manager_->add_sticker_set(std::move(size->stickerset_));
-      result->sticker_id = size->sticker_id_;
-      result->background_colors = std::move(size->background_colors_);
-      if (!result->sticker_set_id.is_valid() || result->sticker_id == 0 || !result->custom_emoji_id.is_valid() ||
-          result->background_colors.empty() || result->background_colors.size() > 4) {
-        LOG(ERROR) << "Receive invalid " << *result;
+      auto sticker_photo_size = get_sticker_photo_size(td, std::move(size_ptr));
+      if (sticker_photo_size == nullptr) {
         return {};
       }
-      for (auto &color : result->background_colors) {
-        color &= 0xFFFFFF;
-      }
-      return std::move(result);
+      return std::move(sticker_photo_size);
     }
     default:
       UNREACHABLE();
+      return {};
   }
 }
 

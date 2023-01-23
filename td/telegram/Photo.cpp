@@ -373,7 +373,7 @@ Photo get_photo(Td *td, tl_object_ptr<telegram_api::photo> &&photo, DialogId own
 
   for (auto &size_ptr : photo->video_sizes_) {
     auto animation =
-        get_animation_size(td, PhotoSizeSource::thumbnail(FileType::Photo, 0), photo->id_, photo->access_hash_,
+        process_video_size(td, PhotoSizeSource::thumbnail(FileType::Photo, 0), photo->id_, photo->access_hash_,
                            photo->file_reference_.as_slice().str(), dc_id, owner_dialog_id, std::move(size_ptr));
     if (animation.empty()) {
       continue;

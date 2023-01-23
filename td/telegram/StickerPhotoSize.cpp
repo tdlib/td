@@ -94,6 +94,42 @@ telegram_api::object_ptr<telegram_api::VideoSize> get_input_video_size_object(
   }
 }
 
+unique_ptr<StickerPhotoSize> get_sticker_photo_size(Td *td,
+                                                    telegram_api::object_ptr<telegram_api::VideoSize> &&size_ptr) {
+  CHECK(size_ptr != nullptr);
+  auto result = make_unique<StickerPhotoSize>();
+  bool is_valid = false;
+  switch (size_ptr->get_id()) {
+    case telegram_api::videoSizeEmojiMarkup::ID: {
+      auto size = move_tl_object_as<telegram_api::videoSizeEmojiMarkup>(size_ptr);
+      result->type = StickerPhotoSize::Type::CustomEmoji;
+      result->custom_emoji_id = CustomEmojiId(size->emoji_id_);
+      result->background_colors = std::move(size->background_colors_);
+      is_valid = result->custom_emoji_id.is_valid();
+      break;
+    }
+    case telegram_api::videoSizeStickerMarkup::ID: {
+      auto size = move_tl_object_as<telegram_api::videoSizeStickerMarkup>(size_ptr);
+      result->type = StickerPhotoSize::Type::Sticker;
+      result->sticker_set_id = td->stickers_manager_->add_sticker_set(std::move(size->stickerset_));
+      result->sticker_id = size->sticker_id_;
+      result->background_colors = std::move(size->background_colors_);
+      is_valid = result->sticker_set_id.is_valid() && result->sticker_id != 0;
+      break;
+    }
+    default:
+      UNREACHABLE();
+  }
+  if (!is_valid || result->background_colors.empty() || result->background_colors.size() > 4) {
+    LOG(ERROR) << "Receive invalid " << *result;
+    return {};
+  }
+  for (auto &color : result->background_colors) {
+    color &= 0xFFFFFF;
+  }
+  return std::move(result);
+}
+
 bool operator==(const StickerPhotoSize &lhs, const StickerPhotoSize &rhs) {
   return lhs.type == rhs.type && lhs.sticker_set_id == rhs.sticker_set_id && lhs.sticker_id == rhs.sticker_id &&
          lhs.custom_emoji_id == rhs.custom_emoji_id && lhs.background_colors == rhs.background_colors;

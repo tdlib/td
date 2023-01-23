@@ -55,7 +55,10 @@ Variant<PhotoSize, string> get_photo_size(FileManager *file_manager, PhotoSizeSo
                                           DialogId owner_dialog_id, tl_object_ptr<telegram_api::PhotoSize> &&size_ptr,
                                           PhotoFormat format);
 
-Variant<AnimationSize, unique_ptr<StickerPhotoSize>> get_animation_size(
+AnimationSize get_animation_size(Td *td, PhotoSizeSource source, int64 id, int64 access_hash, string file_reference,
+                                 DcId dc_id, DialogId owner_dialog_id, tl_object_ptr<telegram_api::videoSize> &&size);
+
+Variant<AnimationSize, unique_ptr<StickerPhotoSize>> process_video_size(
     Td *td, PhotoSizeSource source, int64 id, int64 access_hash, string file_reference, DcId dc_id,
     DialogId owner_dialog_id, tl_object_ptr<telegram_api::VideoSize> &&size_ptr);
 
