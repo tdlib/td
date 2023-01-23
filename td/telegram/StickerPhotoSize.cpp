@@ -29,18 +29,18 @@ Result<unique_ptr<StickerPhotoSize>> get_sticker_photo_size(
       result->type_ = StickerPhotoSize::Type::Sticker;
       result->sticker_set_id_ = StickerSetId(type->sticker_set_id_);
       result->sticker_id_ = type->sticker_id_;
-      //if (!td->stickers_manager_->have_sticker(result->sticker_set_id_, result->sticker_id_)) {
-      //  return Status::Error(400, "Sticker not found");
-      //}
+      if (!td->stickers_manager_->have_sticker(result->sticker_set_id_, result->sticker_id_)) {
+        return Status::Error(400, "Sticker not found");
+      }
       break;
     }
     case td_api::chatPhotoStickerTypeCustomEmoji::ID: {
       auto type = static_cast<const td_api::chatPhotoStickerTypeCustomEmoji *>(sticker->type_.get());
       result->type_ = StickerPhotoSize::Type::CustomEmoji;
       result->custom_emoji_id_ = CustomEmojiId(type->custom_emoji_id_);
-      //if (!td->stickers_manager_->have_custom_emoji_id(result->custom_emoji_id_)) {
-      //  return Status::Error(400, "Custom emoji not found");
-      //}
+      if (!td->stickers_manager_->have_custom_emoji(result->custom_emoji_id_)) {
+        return Status::Error(400, "Custom emoji not found");
+      }
       break;
     }
   }

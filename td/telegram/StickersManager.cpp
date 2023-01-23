@@ -1945,6 +1945,23 @@ bool StickersManager::is_premium_custom_emoji(CustomEmojiId custom_emoji_id, boo
   return s->is_premium_;
 }
 
+bool StickersManager::have_sticker(StickerSetId sticker_set_id, int64 sticker_id) {
+  auto sticker_set = get_sticker_set(sticker_set_id);
+  if (sticker_set == nullptr) {
+    return false;
+  }
+  for (auto file_id : sticker_set->sticker_ids_) {
+    if (get_sticker_id(file_id) == sticker_id) {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool StickersManager::have_custom_emoji(CustomEmojiId custom_emoji_id) {
+  return custom_emoji_to_sticker_id_.count(custom_emoji_id) != 0;
+}
+
 int64 StickersManager::get_sticker_id(FileId sticker_id) const {
   auto sticker_file_view = td_->file_manager_->get_file_view(sticker_id);
   if (sticker_file_view.is_encrypted() || !sticker_file_view.has_remote_location() ||

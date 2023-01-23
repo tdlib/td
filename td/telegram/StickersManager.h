@@ -69,6 +69,10 @@ class StickersManager final : public Actor {
 
   bool is_premium_custom_emoji(CustomEmojiId custom_emoji_id, bool default_result) const;
 
+  bool have_sticker(StickerSetId sticker_set_id, int64 sticker_id);
+
+  bool have_custom_emoji(CustomEmojiId custom_emoji_id);
+
   tl_object_ptr<td_api::sticker> get_sticker_object(FileId file_id, bool for_animated_emoji = false,
                                                     bool for_clicked_animated_emoji = false) const;
 
