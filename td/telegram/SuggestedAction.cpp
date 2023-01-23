@@ -37,6 +37,8 @@ SuggestedAction::SuggestedAction(Slice action_str) {
     init(Type::ViewChecksHint);
   } else if (action_str == Slice("SETUP_PASSWORD")) {
     init(Type::SetPassword);
+  } else if (action_str == Slice("PREMIUM_UPGRADE")) {
+    init(Type::UpgradePremium);
   }
 }
 
@@ -80,6 +82,9 @@ SuggestedAction::SuggestedAction(const td_api::object_ptr<td_api::SuggestedActio
       otherwise_relogin_days_ = action->authorization_delay_;
       break;
     }
+    case td_api::suggestedActionUpgradePremium::ID:
+      init(Type::UpgradePremium);
+      break;
     default:
       UNREACHABLE();
   }
@@ -99,6 +104,8 @@ string SuggestedAction::get_suggested_action_str() const {
       return "CONVERT_GIGAGROUP";
     case Type::SetPassword:
       return "SETUP_PASSWORD";
+    case Type::UpgradePremium:
+      return "PREMIUM_UPGRADE";
     default:
       return string();
   }
@@ -120,6 +127,8 @@ td_api::object_ptr<td_api::SuggestedAction> SuggestedAction::get_suggested_actio
       return td_api::make_object<td_api::suggestedActionConvertToBroadcastGroup>(dialog_id_.get_channel_id().get());
     case Type::SetPassword:
       return td_api::make_object<td_api::suggestedActionSetPassword>(otherwise_relogin_days_);
+    case Type::UpgradePremium:
+      return td_api::make_object<td_api::suggestedActionUpgradePremium>();
     default:
       UNREACHABLE();
       return nullptr;
@@ -178,6 +187,7 @@ void dismiss_suggested_action(SuggestedAction action, Promise<Unit> &&promise) {
     case SuggestedAction::Type::CheckPassword:
     case SuggestedAction::Type::CheckPhoneNumber:
     case SuggestedAction::Type::ViewChecksHint:
+    case SuggestedAction::Type::UpgradePremium:
       return send_closure_later(G()->config_manager(), &ConfigManager::dismiss_suggested_action, std::move(action),
                                 std::move(promise));
     case SuggestedAction::Type::ConvertToGigagroup:

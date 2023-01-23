@@ -4868,6 +4868,9 @@ suggestedActionConvertToBroadcastGroup supergroup_id:int53 = SuggestedAction;
 //@authorization_delay The number of days to pass between consecutive authorizations if the user declines to set password; if 0, then the user is advised to set the password for security reasons
 suggestedActionSetPassword authorization_delay:int32 = SuggestedAction;
 
+//@description Suggests the user to upgrade Premium subscription from monthly payments to annual payments
+suggestedActionUpgradePremium = SuggestedAction;
+
 
 //@description Contains a counter @count Count
 count count:int32 = Count;

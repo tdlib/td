@@ -23,7 +23,8 @@ struct SuggestedAction {
     ViewChecksHint,
     ConvertToGigagroup,
     CheckPassword,
-    SetPassword
+    SetPassword,
+    UpgradePremium
   };
   Type type_ = Type::Empty;
   DialogId dialog_id_;
