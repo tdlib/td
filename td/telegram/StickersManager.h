@@ -633,6 +633,8 @@ class StickersManager final : public Actor {
 
   static string get_found_stickers_database_key(const string &emoji);
 
+  void reload_found_stickers(string &&emoji, int64 hash);
+
   void on_load_found_stickers_from_database(string emoji, string value);
 
   void on_search_stickers_finished(const string &emoji, const FoundStickers &found_stickers);

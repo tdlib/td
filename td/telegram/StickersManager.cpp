@@ -214,7 +214,7 @@ class SearchStickersQuery final : public Td::ResultHandler {
   string emoji_;
 
  public:
-  void send(string emoji, int64 hash) {
+  void send(string &&emoji, int64 hash) {
     emoji_ = std::move(emoji);
     send_query(G()->net_query_creator().create(telegram_api::messages_getStickers(emoji_, hash)));
   }
@@ -4746,11 +4746,8 @@ void StickersManager::search_stickers(string emoji, int32 limit,
   auto &promises = search_stickers_queries_[emoji];
   promises.emplace_back(limit, std::move(promise));
   if (promises.size() == 1u) {
-    int64 hash = 0;
     if (it != found_stickers_.end()) {
-      hash = get_recent_stickers_hash(it->second.sticker_ids_);
-      td_->create_handler<SearchStickersQuery>()->send(std::move(emoji), hash);
-      return;
+      return reload_found_stickers(std::move(emoji), get_recent_stickers_hash(it->second.sticker_ids_));
     }
 
     if (G()->parameters().use_file_db) {
@@ -4761,9 +4758,13 @@ void StickersManager::search_stickers(string emoji, int32 limit,
                          std::move(emoji), std::move(value));
           }));
     } else {
-      td_->create_handler<SearchStickersQuery>()->send(std::move(emoji), 0);
+      return reload_found_stickers(std::move(emoji), 0);
     }
   }
+}
+
+void StickersManager::reload_found_stickers(string &&emoji, int64 hash) {
+  td_->create_handler<SearchStickersQuery>()->send(std::move(emoji), hash);
 }
 
 void StickersManager::on_load_found_stickers_from_database(string emoji, string value) {
@@ -4773,8 +4774,7 @@ void StickersManager::on_load_found_stickers_from_database(string emoji, string 
   }
   if (value.empty()) {
     LOG(INFO) << "Stickers for " << emoji << " aren't found in database";
-    td_->create_handler<SearchStickersQuery>()->send(std::move(emoji), 0);
-    return;
+    return reload_found_stickers(std::move(emoji), 0);
   }
 
   LOG(INFO) << "Successfully loaded stickers for " << emoji << " from database";
@@ -4785,8 +4785,7 @@ void StickersManager::on_load_found_stickers_from_database(string emoji, string 
   if (status.is_error()) {
     LOG(ERROR) << "Can't load stickers for emoji: " << status << ' ' << format::as_hex_dump<4>(Slice(value));
     found_stickers_.erase(emoji);
-    td_->create_handler<SearchStickersQuery>()->send(std::move(emoji), 0);
-    return;
+    return reload_found_stickers(std::move(emoji), 0);
   }
 
   on_search_stickers_finished(emoji, found_stickers);
