@@ -6147,7 +6147,7 @@ void Td::on_request(uint64 id, td_api::setChatTitle &request) {
 
 void Td::on_request(uint64 id, const td_api::setChatPhoto &request) {
   CREATE_OK_REQUEST_PROMISE();
-  messages_manager_->set_dialog_photo(DialogId(request.chat_id_), request.photo_, std::move(promise));
+  messages_manager_->set_dialog_photo(DialogId(request.chat_id_), request.photo_, request.sticker_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::setChatMessageAutoDeleteTime &request) {

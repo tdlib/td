@@ -1315,7 +1315,8 @@ class EditDialogPhotoQuery final : public Td::ResultHandler {
       if (file_id_.is_valid() && !was_uploaded_) {
         VLOG(file_references) << "Receive " << status << " for " << file_id_;
         td_->file_manager_->delete_file_reference(file_id_, file_reference_);
-        td_->messages_manager_->upload_dialog_photo(dialog_id_, file_id_, false, 0.0, false, std::move(promise_), {-1});
+        td_->messages_manager_->upload_dialog_photo(dialog_id_, file_id_, nullptr, false, 0.0, false,
+                                                    std::move(promise_), {-1});
         return;
       } else {
         LOG(ERROR) << "Receive file reference error, but file_id = " << file_id_
@@ -9490,6 +9491,7 @@ void MessagesManager::on_upload_dialog_photo(FileId file_id, tl_object_ptr<teleg
   }
 
   DialogId dialog_id = it->second.dialog_id;
+  auto sticker_photo_size = std::move(it->second.sticker_photo_size);
   double main_frame_timestamp = it->second.main_frame_timestamp;
   bool is_animation = it->second.is_animation;
   bool is_reupload = it->second.is_reupload;
@@ -9512,7 +9514,8 @@ void MessagesManager::on_upload_dialog_photo(FileId file_id, tl_object_ptr<teleg
       // delete file reference and forcely reupload the file
       auto file_reference = FileManager::extract_file_reference(file_view.main_remote_location().as_input_document());
       td_->file_manager_->delete_file_reference(file_id, file_reference);
-      upload_dialog_photo(dialog_id, file_id, is_animation, main_frame_timestamp, true, std::move(promise), {-1});
+      upload_dialog_photo(dialog_id, file_id, std::move(sticker_photo_size), is_animation, main_frame_timestamp, true,
+                          std::move(promise), {-1});
     } else {
       CHECK(file_view.get_type() == FileType::Photo);
       auto input_photo = file_view.main_remote_location().as_input_photo();
@@ -9537,9 +9540,15 @@ void MessagesManager::on_upload_dialog_photo(FileId file_id, tl_object_ptr<teleg
     flags |= telegram_api::inputChatUploadedPhoto::FILE_MASK;
     photo_input_file = std::move(input_file);
   }
+  auto video_emoji_markup =
+      sticker_photo_size != nullptr ? sticker_photo_size->get_input_video_size_object(td_) : nullptr;
+  if (video_emoji_markup != nullptr) {
+    flags |= telegram_api::inputChatUploadedPhoto::VIDEO_EMOJI_MARKUP_MASK;
+  }
 
   auto input_chat_photo = make_tl_object<telegram_api::inputChatUploadedPhoto>(
-      flags, std::move(photo_input_file), std::move(video_input_file), main_frame_timestamp, nullptr);
+      flags, std::move(photo_input_file), std::move(video_input_file), main_frame_timestamp,
+      std::move(video_emoji_markup));
   send_edit_dialog_photo_query(dialog_id, file_id, std::move(input_chat_photo), std::move(promise));
 }
 
@@ -34547,6 +34556,7 @@ void MessagesManager::on_updated_dialog_folder_id(DialogId dialog_id, uint64 gen
 }
 
 void MessagesManager::set_dialog_photo(DialogId dialog_id, const tl_object_ptr<td_api::InputChatPhoto> &input_photo,
+                                       const td_api::object_ptr<td_api::chatPhotoSticker> &sticker,
                                        Promise<Unit> &&promise) {
   if (!have_dialog_force(dialog_id, "set_dialog_photo")) {
     return promise.set_error(Status::Error(400, "Chat not found"));
@@ -34624,6 +34634,8 @@ void MessagesManager::set_dialog_photo(DialogId dialog_id, const tl_object_ptr<t
     return promise.set_error(Status::Error(400, "Wrong main frame timestamp specified"));
   }
 
+  TRY_RESULT_PROMISE(promise, sticker_photo_size, StickerPhotoSize::get_sticker_photo_size(td_, sticker));
+
   auto file_type = is_animation ? FileType::Animation : FileType::Photo;
   auto r_file_id = td_->file_manager_->get_input_file_id(file_type, *input_file, dialog_id, true, false);
   if (r_file_id.is_error()) {
@@ -34637,8 +34649,8 @@ void MessagesManager::set_dialog_photo(DialogId dialog_id, const tl_object_ptr<t
     return;
   }
 
-  upload_dialog_photo(dialog_id, td_->file_manager_->dup_file_id(file_id, "set_dialog_photo"), is_animation,
-                      main_frame_timestamp, false, std::move(promise));
+  upload_dialog_photo(dialog_id, td_->file_manager_->dup_file_id(file_id, "set_dialog_photo"),
+                      std::move(sticker_photo_size), is_animation, main_frame_timestamp, false, std::move(promise));
 }
 
 void MessagesManager::send_edit_dialog_photo_query(DialogId dialog_id, FileId file_id,
@@ -34648,15 +34660,17 @@ void MessagesManager::send_edit_dialog_photo_query(DialogId dialog_id, FileId fi
   td_->create_handler<EditDialogPhotoQuery>(std::move(promise))->send(dialog_id, file_id, std::move(input_chat_photo));
 }
 
-void MessagesManager::upload_dialog_photo(DialogId dialog_id, FileId file_id, bool is_animation,
+void MessagesManager::upload_dialog_photo(DialogId dialog_id, FileId file_id,
+                                          unique_ptr<StickerPhotoSize> sticker_photo_size, bool is_animation,
                                           double main_frame_timestamp, bool is_reupload, Promise<Unit> &&promise,
                                           vector<int> bad_parts) {
   CHECK(file_id.is_valid());
   LOG(INFO) << "Ask to upload chat photo " << file_id;
-  bool is_inserted = being_uploaded_dialog_photos_
-                         .emplace(file_id, UploadedDialogPhotoInfo{dialog_id, main_frame_timestamp, is_animation,
-                                                                   is_reupload, std::move(promise)})
-                         .second;
+  bool is_inserted =
+      being_uploaded_dialog_photos_
+          .emplace(file_id, UploadedDialogPhotoInfo{dialog_id, std::move(sticker_photo_size), main_frame_timestamp,
+                                                    is_animation, is_reupload, std::move(promise)})
+          .second;
   CHECK(is_inserted);
   // TODO use force_reupload if is_reupload
   td_->file_manager_->resume_upload(file_id, std::move(bad_parts), upload_dialog_photo_callback_, 32, 0);

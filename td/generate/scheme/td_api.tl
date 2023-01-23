@@ -6587,7 +6587,8 @@ setChatTitle chat_id:int53 title:string = Ok;
 //@description Changes the photo of a chat. Supported only for basic groups, supergroups and channels. Requires can_change_info administrator right
 //@chat_id Chat identifier
 //@photo New chat photo; pass null to delete the chat photo
-setChatPhoto chat_id:int53 photo:InputChatPhoto = Ok;
+//@sticker Sticker-based version of the chat photo; pass null if none or an existing photo is set
+setChatPhoto chat_id:int53 photo:InputChatPhoto sticker:chatPhotoSticker = Ok;
 
 //@description Changes the message auto-delete or self-destruct (for secret chats) time in a chat. Requires change_info administrator right in basic groups, supergroups and channels
 //-Message auto-delete time can't be changed in a chat with the current user (Saved Messages) and the chat 777000 (Telegram).
