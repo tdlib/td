@@ -1945,13 +1945,17 @@ bool StickersManager::is_premium_custom_emoji(CustomEmojiId custom_emoji_id, boo
   return s->is_premium_;
 }
 
-CustomEmojiId StickersManager::get_custom_emoji_id(FileId sticker_id) const {
+int64 StickersManager::get_sticker_id(FileId sticker_id) const {
   auto sticker_file_view = td_->file_manager_->get_file_view(sticker_id);
   if (sticker_file_view.is_encrypted() || !sticker_file_view.has_remote_location() ||
       !sticker_file_view.remote_location().is_document()) {
-    return CustomEmojiId();
+    return 0;
   }
-  return CustomEmojiId(sticker_file_view.remote_location().get_id());
+  return sticker_file_view.remote_location().get_id();
+}
+
+CustomEmojiId StickersManager::get_custom_emoji_id(FileId sticker_id) const {
+  return CustomEmojiId(get_sticker_id(sticker_id));
 }
 
 vector<td_api::object_ptr<td_api::closedVectorPath>> StickersManager::get_sticker_minithumbnail(
@@ -2262,8 +2266,12 @@ tl_object_ptr<td_api::sticker> StickersManager::get_sticker_object(FileId file_i
         return nullptr;
     }
   }();
+  int64 sticker_id = 0;
+  if (sticker->set_id_.is_valid()) {
+    sticker_id = get_sticker_id(file_id);
+  }
   return td_api::make_object<td_api::sticker>(
-      sticker->set_id_.get(), width, height, sticker->alt_, get_sticker_format_object(sticker->format_),
+      sticker_id, sticker->set_id_.get(), width, height, sticker->alt_, get_sticker_format_object(sticker->format_),
       std::move(full_type), get_sticker_minithumbnail(sticker->minithumbnail_, sticker->set_id_, document_id, zoom),
       std::move(thumbnail_object), td_->file_manager_->get_file_object(file_id));
 }

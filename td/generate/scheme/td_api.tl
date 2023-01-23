@@ -388,6 +388,7 @@ document file_name:string mime_type:string minithumbnail:minithumbnail thumbnail
 photo has_stickers:Bool minithumbnail:minithumbnail sizes:vector<photoSize> = Photo;
 
 //@description Describes a sticker
+//@id Unique sticker identifier within the set
 //@set_id The identifier of the sticker set to which the sticker belongs; 0 if none
 //@width Sticker width; as defined by the sender
 //@height Sticker height; as defined by the sender
@@ -397,7 +398,7 @@ photo has_stickers:Bool minithumbnail:minithumbnail sizes:vector<photoSize> = Ph
 //@outline Sticker's outline represented as a list of closed vector paths; may be empty. The coordinate system origin is in the upper-left corner
 //@thumbnail Sticker thumbnail in WEBP or JPEG format; may be null
 //@sticker File containing the sticker
-sticker set_id:int64 width:int32 height:int32 emoji:string format:StickerFormat full_type:StickerFullType outline:vector<closedVectorPath> thumbnail:thumbnail sticker:file = Sticker;
+sticker id:int64 set_id:int64 width:int32 height:int32 emoji:string format:StickerFormat full_type:StickerFullType outline:vector<closedVectorPath> thumbnail:thumbnail sticker:file = Sticker;
 
 //@description Describes a video file
 //@duration Duration of the video, in seconds; as defined by the sender
