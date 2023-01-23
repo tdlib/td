@@ -21,11 +21,11 @@ class Td;
 
 struct StickerPhotoSize {
   enum class Type : int32 { Sticker, CustomEmoji };
-  Type type = Type::CustomEmoji;
-  CustomEmojiId custom_emoji_id;
-  StickerSetId sticker_set_id;
-  int64 sticker_id = 0;
-  vector<int32> background_colors;
+  Type type_ = Type::CustomEmoji;
+  CustomEmojiId custom_emoji_id_;
+  StickerSetId sticker_set_id_;
+  int64 sticker_id_ = 0;
+  vector<int32> background_colors_;
 
   td_api::object_ptr<td_api::chatPhotoSticker> get_chat_photo_sticker_object() const;
 };
