@@ -11,7 +11,7 @@
 
 namespace td {
 
-Result<unique_ptr<StickerPhotoSize>> get_sticker_photo_size(
+Result<unique_ptr<StickerPhotoSize>> StickerPhotoSize::get_sticker_photo_size(
     Td *td, const td_api::object_ptr<td_api::chatPhotoSticker> &sticker) {
   if (sticker == nullptr) {
     return nullptr;
@@ -26,7 +26,7 @@ Result<unique_ptr<StickerPhotoSize>> get_sticker_photo_size(
   switch (sticker->type_->get_id()) {
     case td_api::chatPhotoStickerTypeRegularOrMask::ID: {
       auto type = static_cast<const td_api::chatPhotoStickerTypeRegularOrMask *>(sticker->type_.get());
-      result->type_ = StickerPhotoSize::Type::Sticker;
+      result->type_ = Type::Sticker;
       result->sticker_set_id_ = StickerSetId(type->sticker_set_id_);
       result->sticker_id_ = type->sticker_id_;
       if (!td->stickers_manager_->have_sticker(result->sticker_set_id_, result->sticker_id_)) {
@@ -36,7 +36,7 @@ Result<unique_ptr<StickerPhotoSize>> get_sticker_photo_size(
     }
     case td_api::chatPhotoStickerTypeCustomEmoji::ID: {
       auto type = static_cast<const td_api::chatPhotoStickerTypeCustomEmoji *>(sticker->type_.get());
-      result->type_ = StickerPhotoSize::Type::CustomEmoji;
+      result->type_ = Type::CustomEmoji;
       result->custom_emoji_id_ = CustomEmojiId(type->custom_emoji_id_);
       if (!td->stickers_manager_->have_custom_emoji(result->custom_emoji_id_)) {
         return Status::Error(400, "Custom emoji not found");
@@ -75,34 +75,30 @@ Result<unique_ptr<StickerPhotoSize>> get_sticker_photo_size(
   return std::move(result);
 }
 
-telegram_api::object_ptr<telegram_api::VideoSize> get_input_video_size_object(
-    Td *td, const unique_ptr<StickerPhotoSize> &sticker_photo_size) {
-  if (sticker_photo_size == nullptr) {
-    return nullptr;
-  }
-  switch (sticker_photo_size->type_) {
-    case StickerPhotoSize::Type::Sticker:
+telegram_api::object_ptr<telegram_api::VideoSize> StickerPhotoSize::get_input_video_size_object(Td *td) const {
+  switch (type_) {
+    case Type::Sticker:
       return telegram_api::make_object<telegram_api::videoSizeStickerMarkup>(
-          td->stickers_manager_->get_input_sticker_set(sticker_photo_size->sticker_set_id_),
-          sticker_photo_size->sticker_id_, vector<int32>(sticker_photo_size->background_colors_));
-    case StickerPhotoSize::Type::CustomEmoji:
-      return telegram_api::make_object<telegram_api::videoSizeEmojiMarkup>(
-          sticker_photo_size->custom_emoji_id_.get(), vector<int32>(sticker_photo_size->background_colors_));
+          td->stickers_manager_->get_input_sticker_set(sticker_set_id_), sticker_id_,
+          vector<int32>(background_colors_));
+    case Type::CustomEmoji:
+      return telegram_api::make_object<telegram_api::videoSizeEmojiMarkup>(custom_emoji_id_.get(),
+                                                                           vector<int32>(background_colors_));
     default:
       UNREACHABLE();
       return nullptr;
   }
 }
 
-unique_ptr<StickerPhotoSize> get_sticker_photo_size(Td *td,
-                                                    telegram_api::object_ptr<telegram_api::VideoSize> &&size_ptr) {
+unique_ptr<StickerPhotoSize> StickerPhotoSize::get_sticker_photo_size(
+    Td *td, telegram_api::object_ptr<telegram_api::VideoSize> &&size_ptr) {
   CHECK(size_ptr != nullptr);
   auto result = make_unique<StickerPhotoSize>();
   bool is_valid = false;
   switch (size_ptr->get_id()) {
     case telegram_api::videoSizeEmojiMarkup::ID: {
       auto size = move_tl_object_as<telegram_api::videoSizeEmojiMarkup>(size_ptr);
-      result->type_ = StickerPhotoSize::Type::CustomEmoji;
+      result->type_ = Type::CustomEmoji;
       result->custom_emoji_id_ = CustomEmojiId(size->emoji_id_);
       result->background_colors_ = std::move(size->background_colors_);
       is_valid = result->custom_emoji_id_.is_valid();
@@ -110,7 +106,7 @@ unique_ptr<StickerPhotoSize> get_sticker_photo_size(Td *td,
     }
     case telegram_api::videoSizeStickerMarkup::ID: {
       auto size = move_tl_object_as<telegram_api::videoSizeStickerMarkup>(size_ptr);
-      result->type_ = StickerPhotoSize::Type::Sticker;
+      result->type_ = Type::Sticker;
       result->sticker_set_id_ = td->stickers_manager_->add_sticker_set(std::move(size->stickerset_));
       result->sticker_id_ = size->sticker_id_;
       result->background_colors_ = std::move(size->background_colors_);
@@ -133,10 +129,10 @@ unique_ptr<StickerPhotoSize> get_sticker_photo_size(Td *td,
 td_api::object_ptr<td_api::chatPhotoSticker> StickerPhotoSize::get_chat_photo_sticker_object() const {
   td_api::object_ptr<td_api::ChatPhotoStickerType> sticker_type;
   switch (type_) {
-    case StickerPhotoSize::Type::Sticker:
+    case Type::Sticker:
       sticker_type = td_api::make_object<td_api::chatPhotoStickerTypeRegularOrMask>(sticker_set_id_.get(), sticker_id_);
       break;
-    case StickerPhotoSize::Type::CustomEmoji:
+    case Type::CustomEmoji:
       sticker_type = td_api::make_object<td_api::chatPhotoStickerTypeCustomEmoji>(custom_emoji_id_.get());
       break;
     default:

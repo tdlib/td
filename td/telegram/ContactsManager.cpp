@@ -486,7 +486,8 @@ class UploadProfilePhotoQuery final : public Td::ResultHandler {
       if (is_fallback) {
         flags |= telegram_api::photos_uploadProfilePhoto::FALLBACK_MASK;
       }
-      auto video_emoji_markup = get_input_video_size_object(td_, sticker_photo_size);
+      auto video_emoji_markup =
+          sticker_photo_size != nullptr ? sticker_photo_size->get_input_video_size_object(td_) : nullptr;
       if (video_emoji_markup != nullptr) {
         flags |= telegram_api::photos_uploadProfilePhoto::VIDEO_EMOJI_MARKUP_MASK;
       }
@@ -7116,7 +7117,7 @@ void ContactsManager::set_profile_photo_impl(UserId user_id,
     return promise.set_error(Status::Error(400, "Wrong main frame timestamp specified"));
   }
 
-  TRY_RESULT_PROMISE(promise, sticker_photo_size, get_sticker_photo_size(td_, sticker));
+  TRY_RESULT_PROMISE(promise, sticker_photo_size, StickerPhotoSize::get_sticker_photo_size(td_, sticker));
 
   auto file_type = is_animation ? FileType::Animation : FileType::Photo;
   auto r_file_id = td_->file_manager_->get_input_file_id(file_type, *input_file, DialogId(user_id), false, false);

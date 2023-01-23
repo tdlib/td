@@ -19,7 +19,7 @@ namespace td {
 
 class Td;
 
-struct StickerPhotoSize {
+class StickerPhotoSize {
   enum class Type : int32 { Sticker, CustomEmoji };
   Type type_ = Type::CustomEmoji;
   CustomEmojiId custom_emoji_id_;
@@ -27,17 +27,27 @@ struct StickerPhotoSize {
   int64 sticker_id_ = 0;
   vector<int32> background_colors_;
 
+  friend bool operator==(const StickerPhotoSize &lhs, const StickerPhotoSize &rhs);
+
+  friend StringBuilder &operator<<(StringBuilder &string_builder, const StickerPhotoSize &sticker_photo_size);
+
+ public:
+  static Result<unique_ptr<StickerPhotoSize>> get_sticker_photo_size(
+      Td *td, const td_api::object_ptr<td_api::chatPhotoSticker> &chat_photo_sticker);
+
+  static unique_ptr<StickerPhotoSize> get_sticker_photo_size(
+      Td *td, telegram_api::object_ptr<telegram_api::VideoSize> &&size_ptr);
+
+  telegram_api::object_ptr<telegram_api::VideoSize> get_input_video_size_object(Td *td) const;
+
   td_api::object_ptr<td_api::chatPhotoSticker> get_chat_photo_sticker_object() const;
+
+  template <class StorerT>
+  void store(StorerT &storer) const;
+
+  template <class ParserT>
+  void parse(ParserT &parser);
 };
-
-Result<unique_ptr<StickerPhotoSize>> get_sticker_photo_size(
-    Td *td, const td_api::object_ptr<td_api::chatPhotoSticker> &chat_photo_sticker);
-
-telegram_api::object_ptr<telegram_api::VideoSize> get_input_video_size_object(
-    Td *td, const unique_ptr<StickerPhotoSize> &sticker_photo_size);
-
-unique_ptr<StickerPhotoSize> get_sticker_photo_size(Td *td,
-                                                    telegram_api::object_ptr<telegram_api::VideoSize> &&size_ptr);
 
 bool operator==(const StickerPhotoSize &lhs, const StickerPhotoSize &rhs);
 bool operator!=(const StickerPhotoSize &lhs, const StickerPhotoSize &rhs);

@@ -308,7 +308,7 @@ Variant<AnimationSize, unique_ptr<StickerPhotoSize>> process_video_size(
     }
     case telegram_api::videoSizeEmojiMarkup::ID:
     case telegram_api::videoSizeStickerMarkup::ID: {
-      auto sticker_photo_size = get_sticker_photo_size(td, std::move(size_ptr));
+      auto sticker_photo_size = StickerPhotoSize::get_sticker_photo_size(td, std::move(size_ptr));
       if (sticker_photo_size == nullptr) {
         return {};
       }
