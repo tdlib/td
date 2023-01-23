@@ -4381,8 +4381,8 @@ void StickersManager::find_sticker_set_stickers(const StickerSet *sticker_set, c
   }
 }
 
-bool StickersManager::can_found_sticker_by_query(FileId sticker_id, const string &query,
-                                                 const string &prepared_query) const {
+bool StickersManager::can_find_sticker_by_query(FileId sticker_id, const string &query,
+                                                const string &prepared_query) const {
   const Sticker *s = get_sticker(sticker_id);
   CHECK(s != nullptr);
   if (remove_emoji_modifiers(s->alt_) == query) {
@@ -4661,7 +4661,7 @@ vector<FileId> StickersManager::get_stickers(StickerType sticker_type, string qu
                   << (it - result.begin());
         *it = FileId();
         is_good = true;
-      } else if (can_found_sticker_by_query(sticker_id, query, prepared_query)) {
+      } else if (can_find_sticker_by_query(sticker_id, query, prepared_query)) {
         LOG(INFO) << "Found prepend sticker " << sticker_id;
         is_good = true;
       }
