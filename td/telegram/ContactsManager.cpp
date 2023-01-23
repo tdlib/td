@@ -17639,7 +17639,9 @@ void ContactsManager::on_chat_update(telegram_api::channel &channel, const char 
       on_update_channel_title(c, channel_id, std::move(channel.title_));
       on_update_channel_usernames(c, channel_id,
                                   Usernames(std::move(channel.username_), std::move(channel.usernames_)));
-      on_update_channel_photo(c, channel_id, std::move(channel.photo_));
+      if (!c->status.is_banned()) {
+        on_update_channel_photo(c, channel_id, std::move(channel.photo_));
+      }
       on_update_channel_default_permissions(c, channel_id, RestrictedRights(channel.default_banned_rights_));
       on_update_channel_has_location(c, channel_id, channel.has_geo_);
       on_update_channel_noforwards(c, channel_id, channel.noforwards_);
