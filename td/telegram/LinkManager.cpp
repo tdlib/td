@@ -913,7 +913,7 @@ LinkManager::LinkInfo LinkManager::get_link_info(Slice link) {
       if (is_valid_username(subdomain) && subdomain != "addemoji" && subdomain != "addstickers" &&
           subdomain != "addtheme" && subdomain != "auth" && subdomain != "confirmphone" && subdomain != "invoice" &&
           subdomain != "joinchat" && subdomain != "login" && subdomain != "proxy" && subdomain != "setlanguage" &&
-          subdomain != "share" && subdomain != "socks") {
+          subdomain != "share" && subdomain != "socks" && subdomain != "web" && subdomain != "k" && subdomain != "z") {
         result.type_ = LinkType::TMe;
         result.query_ = PSTRING() << '/' << subdomain << http_url.query_;
         return result;
