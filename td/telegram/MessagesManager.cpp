@@ -29882,9 +29882,9 @@ void MessagesManager::do_send_screenshot_taken_notification_message(DialogId dia
       ->send(dialog_id, random_id);
 }
 
-void MessagesManager::send_chosen_dialog(FullMessageId full_message_id, int32 button_id, DialogId chosen_dialog_id,
-                                         Promise<Unit> &&promise) {
-  const Message *m = get_message_force(full_message_id, "send_chosen_dialog");
+void MessagesManager::share_dialog_with_bot(FullMessageId full_message_id, int32 button_id, DialogId shared_dialog_id,
+                                            Promise<Unit> &&promise) {
+  const Message *m = get_message_force(full_message_id, "share_dialog_with_bot");
   if (m == nullptr) {
     return promise.set_error(Status::Error(400, "Message not found"));
   }
@@ -29892,12 +29892,12 @@ void MessagesManager::send_chosen_dialog(FullMessageId full_message_id, int32 bu
     return promise.set_error(Status::Error(400, "Message has no buttons"));
   }
   CHECK(m->message_id.is_valid() && m->message_id.is_server());
-  if (chosen_dialog_id.get_type() != DialogType::User) {
-    get_dialog_force(chosen_dialog_id, "send_chosen_dialog");
+  if (shared_dialog_id.get_type() != DialogType::User) {
+    get_dialog_force(shared_dialog_id, "share_dialog_with_bot");
   }
-  TRY_STATUS_PROMISE(promise, m->reply_markup->check_chosen_dialog(td_, button_id, chosen_dialog_id));
+  TRY_STATUS_PROMISE(promise, m->reply_markup->check_shared_dialog(td_, button_id, shared_dialog_id));
 
-  td_->create_handler<SendBotRequestedPeer>(std::move(promise))->send(full_message_id, button_id, chosen_dialog_id);
+  td_->create_handler<SendBotRequestedPeer>(std::move(promise))->send(full_message_id, button_id, shared_dialog_id);
 }
 
 Result<MessageId> MessagesManager::add_local_message(

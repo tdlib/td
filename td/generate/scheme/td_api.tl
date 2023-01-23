@@ -1407,17 +1407,17 @@ keyboardButtonTypeRequestLocation = KeyboardButtonType;
 //@description A button that allows the user to create and send a poll when pressed; available only in private chats @force_regular If true, only regular polls must be allowed to create @force_quiz If true, only polls in quiz mode must be allowed to create
 keyboardButtonTypeRequestPoll force_regular:Bool force_quiz:Bool = KeyboardButtonType;
 
-//@description A button that requests a user to be chosen by the current user; available only in private chats
+//@description A button that requests a user to be shared by the current user; available only in private chats. Use the method shareUserWithBot to complete the request
 //@id Unique button identifier
-//@restrict_user_is_bot True, if the chosen user must or must not be a bot
-//@user_is_bot True, if the chosen user must be a bot; otherwise, the chosen user must no be a bot. Ignored if restrict_user_is_bot is false
-//@restrict_user_is_premium True, if the chosen user must or must not be a Telegram Premium user
-//@user_is_premium True, if the chosen user must be a Telegram Premium user; otherwise, the chosen user must no be a Telegram Premium user. Ignored if restrict_user_is_premium is false
+//@restrict_user_is_bot True, if the shared user must or must not be a bot
+//@user_is_bot True, if the shared user must be a bot; otherwise, the shared user must no be a bot. Ignored if restrict_user_is_bot is false
+//@restrict_user_is_premium True, if the shared user must or must not be a Telegram Premium user
+//@user_is_premium True, if the shared user must be a Telegram Premium user; otherwise, the shared user must no be a Telegram Premium user. Ignored if restrict_user_is_premium is false
 keyboardButtonTypeRequestUser id:int32 restrict_user_is_bot:Bool user_is_bot:Bool restrict_user_is_premium:Bool user_is_premium:Bool = KeyboardButtonType;
 
-//@description A button that requests a chat to be chosen by the current user; available only in private chats
+//@description A button that requests a chat to be shared by the current user; available only in private chats. Use the method shareChatWithBot to complete the request
 //@id Unique button identifier
-//@chat_is_channel True, if the chat must be a channel; otherwise, a basic group or a supergroup chat is chosen
+//@chat_is_channel True, if the chat must be a channel; otherwise, a basic group or a supergroup chat is shared
 //@restrict_chat_is_forum True, if the chat must or must not be a forum supergroup
 //@chat_is_forum True, if the chat must be a forum supergroup; otherwise, the chat must not be a forum supergroup. Ignored if restrict_chat_is_forum is false
 //@restrict_chat_has_username True, if the chat must or must not have a username
@@ -2514,11 +2514,11 @@ messageGiftedPremium currency:string amount:int53 month_count:int32 sticker:stic
 //@description A contact has registered with Telegram
 messageContactRegistered = MessageContent;
 
-//@description The current user chosen a user, which was requested by the bot @user_id Identifier of the chosen user @button_id Identifier of the keyboard button with the request
-messageUserChosen user_id:int53 button_id:int32 = MessageContent;
+//@description The current user shared a user, which was requested by the bot @user_id Identifier of the shared user @button_id Identifier of the keyboard button with the request
+messageUserShared user_id:int53 button_id:int32 = MessageContent;
 
-//@description The current user chosen a chat, which was requested by the bot @chat_id Identifier of the chosen chat @button_id Identifier of the keyboard button with the request
-messageChatChosen chat_id:int53 button_id:int32 = MessageContent;
+//@description The current user shared a chat, which was requested by the bot @chat_id Identifier of the shared chat @button_id Identifier of the keyboard button with the request
+messageChatShared chat_id:int53 button_id:int32 = MessageContent;
 
 //@description The current user has connected a website by logging in using Telegram Login Widget on it @domain_name Domain name of the connected website
 messageWebsiteConnected domain_name:string = MessageContent;
@@ -6355,19 +6355,19 @@ getLoginUrlInfo chat_id:int53 message_id:int53 button_id:int53 = LoginUrlInfo;
 getLoginUrl chat_id:int53 message_id:int53 button_id:int53 allow_write_access:Bool = HttpUrl;
 
 
-//@description Sends a user chosen after pressing a keyboardButtonTypeRequestUser button to the bot
+//@description Shares a user after pressing a keyboardButtonTypeRequestUser button with the bot
 //@chat_id Identifier of the chat with the bot
 //@message_id Identifier of the message with the button
 //@button_id Identifier of the button
-//@chosen_user_id Identifier of the chosen user
-sendChosenUser chat_id:int53 message_id:int53 button_id:int32 chosen_user_id:int53 = Ok;
+//@shared_user_id Identifier of the shared user
+shareUserWithBot chat_id:int53 message_id:int53 button_id:int32 shared_user_id:int53 = Ok;
 
-//@description Sends a chat chosen after pressing a keyboardButtonTypeRequestChat button to the bot
+//@description Shares a chat after pressing a keyboardButtonTypeRequestChat button with the bot
 //@chat_id Identifier of the chat with the bot
 //@message_id Identifier of the message with the button
 //@button_id Identifier of the button
-//@chosen_chat_id Identifier of the chosen chat
-sendChosenChat chat_id:int53 message_id:int53 button_id:int32 chosen_chat_id:int53 = Ok;
+//@shared_chat_id Identifier of the shared chat
+shareChatWithBot chat_id:int53 message_id:int53 button_id:int32 shared_chat_id:int53 = Ok;
 
 
 //@description Sends an inline query to a bot and returns its results. Returns an error with code 502 if the bot fails to answer the query before the query timeout expires

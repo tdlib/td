@@ -5681,11 +5681,11 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
     case MessageContentType::RequestedDialog: {
       const auto *m = static_cast<const MessageRequestedDialog *>(content);
       if (m->dialog_id.get_type() == DialogType::User) {
-        return make_tl_object<td_api::messageUserChosen>(
+        return make_tl_object<td_api::messageUserShared>(
             td->contacts_manager_->get_user_id_object(m->dialog_id.get_user_id(), "MessageRequestedDialog"),
             m->button_id);
       }
-      return make_tl_object<td_api::messageChatChosen>(m->dialog_id.get(), m->button_id);
+      return make_tl_object<td_api::messageChatShared>(m->dialog_id.get(), m->button_id);
     }
     default:
       UNREACHABLE();

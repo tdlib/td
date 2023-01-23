@@ -7655,19 +7655,19 @@ void Td::on_request(uint64 id, const td_api::getLoginUrl &request) {
                                request.allow_write_access_, std::move(promise));
 }
 
-void Td::on_request(uint64 id, const td_api::sendChosenUser &request) {
+void Td::on_request(uint64 id, const td_api::shareUserWithBot &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  messages_manager_->send_chosen_dialog({DialogId(request.chat_id_), MessageId(request.message_id_)},
-                                        request.button_id_, DialogId(UserId(request.chosen_user_id_)),
-                                        std::move(promise));
+  messages_manager_->share_dialog_with_bot({DialogId(request.chat_id_), MessageId(request.message_id_)},
+                                           request.button_id_, DialogId(UserId(request.shared_user_id_)),
+                                           std::move(promise));
 }
 
-void Td::on_request(uint64 id, const td_api::sendChosenChat &request) {
+void Td::on_request(uint64 id, const td_api::shareChatWithBot &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  messages_manager_->send_chosen_dialog({DialogId(request.chat_id_), MessageId(request.message_id_)},
-                                        request.button_id_, DialogId(request.chosen_chat_id_), std::move(promise));
+  messages_manager_->share_dialog_with_bot({DialogId(request.chat_id_), MessageId(request.message_id_)},
+                                           request.button_id_, DialogId(request.shared_chat_id_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::getInlineQueryResults &request) {

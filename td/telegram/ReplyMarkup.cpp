@@ -1047,7 +1047,7 @@ tl_object_ptr<td_api::ReplyMarkup> ReplyMarkup::get_reply_markup_object(Contacts
   }
 }
 
-Status ReplyMarkup::check_chosen_dialog(Td *td, int32 button_id, DialogId dialog_id) const {
+Status ReplyMarkup::check_shared_dialog(Td *td, int32 button_id, DialogId dialog_id) const {
   // TODO
   return Status::OK();
 }
