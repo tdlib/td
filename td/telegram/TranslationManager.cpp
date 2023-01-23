@@ -89,8 +89,15 @@ void TranslationManager::translate_text(td_api::object_ptr<td_api::formattedText
   TRY_RESULT_PROMISE(promise, entities, get_message_entities(td_->contacts_manager_.get(), std::move(text->entities_)));
   TRY_STATUS_PROMISE(promise, fix_formatted_text(text->text_, entities, true, true, true, true, true));
 
+  translate_text(FormattedText{std::move(text->text_), std::move(entities)}, skip_bot_commands, max_media_timestamp,
+                 to_language_code, std::move(promise));
+}
+
+void TranslationManager::translate_text(FormattedText text, bool skip_bot_commands, int32 max_media_timestamp,
+                                        const string &to_language_code,
+                                        Promise<td_api::object_ptr<td_api::formattedText>> &&promise) {
   vector<FormattedText> texts;
-  texts.push_back(FormattedText{std::move(text->text_), std::move(entities)});
+  texts.push_back(std::move(text));
 
   auto query_promise = PromiseCreator::lambda(
       [actor_id = actor_id(this), skip_bot_commands, max_media_timestamp, promise = std::move(promise)](

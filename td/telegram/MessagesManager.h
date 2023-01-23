@@ -642,6 +642,9 @@ class MessagesManager final : public Actor {
 
   void get_message_viewers(FullMessageId full_message_id, Promise<td_api::object_ptr<td_api::users>> &&promise);
 
+  void translate_message_text(FullMessageId full_message_id, const string &to_language_code,
+                              Promise<td_api::object_ptr<td_api::formattedText>> &&promise);
+
   void recognize_speech(FullMessageId full_message_id, Promise<Unit> &&promise);
 
   void rate_speech_recognition(FullMessageId full_message_id, bool is_good, Promise<Unit> &&promise);

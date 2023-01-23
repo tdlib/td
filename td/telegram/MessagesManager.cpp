@@ -62,6 +62,7 @@
 #include "td/telegram/TdDb.h"
 #include "td/telegram/TdParameters.h"
 #include "td/telegram/TopDialogCategory.h"
+#include "td/telegram/TranslationManager.h"
 #include "td/telegram/UpdatesManager.h"
 #include "td/telegram/Version.h"
 #include "td/telegram/WebPageId.h"
@@ -19019,6 +19020,24 @@ void MessagesManager::on_get_message_viewers(DialogId dialog_id, vector<UserId> 
     }
   }
   promise.set_value(td_->contacts_manager_->get_users_object(-1, user_ids));
+}
+
+void MessagesManager::translate_message_text(FullMessageId full_message_id, const string &to_language_code,
+                                             Promise<td_api::object_ptr<td_api::formattedText>> &&promise) {
+  auto m = get_message_force(full_message_id, "recognize_speech");
+  if (m == nullptr) {
+    return promise.set_error(Status::Error(400, "Message not found"));
+  }
+
+  auto text = get_message_content_text(m->content.get());
+  if (text == nullptr) {
+    return promise.set_value(td_api::make_object<td_api::formattedText>());
+  }
+
+  auto skip_bot_commands = need_skip_bot_commands(full_message_id.get_dialog_id(), m);
+  auto max_media_timestamp = get_message_max_media_timestamp(m);
+  td_->translation_manager_->translate_text(*text, skip_bot_commands, max_media_timestamp, to_language_code,
+                                            std::move(promise));
 }
 
 void MessagesManager::recognize_speech(FullMessageId full_message_id, Promise<Unit> &&promise) {

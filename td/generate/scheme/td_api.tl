@@ -5993,6 +5993,12 @@ getMessageLinkInfo url:string = MessageLinkInfo;
 //@to_language_code A two-letter ISO 639-1 language code of the language to which the message is translated
 translateText text:formattedText to_language_code:string = FormattedText;
 
+//@description Extracts text or caption of the given message and translates it to the given language
+//@chat_id Identifier of the chat to which the message belongs
+//@message_id Identifier of the message
+//@to_language_code A two-letter ISO 639-1 language code of the language to which the message is translated
+translateMessageText chat_id:int53 message_id:int53 to_language_code:string = FormattedText;
+
 //@description Recognizes speech in a video note or a voice note message. The message must be successfully sent and must not be scheduled. May return an error with a message "MSG_VOICE_TOO_LONG" if media duration is too big to be recognized
 //@chat_id Identifier of the chat to which the message belongs
 //@message_id Identifier of the message

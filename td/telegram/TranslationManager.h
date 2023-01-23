@@ -6,6 +6,7 @@
 //
 #pragma once
 
+#include "td/telegram/MessageEntity.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 
@@ -24,6 +25,9 @@ class TranslationManager final : public Actor {
 
   void translate_text(td_api::object_ptr<td_api::formattedText> &&text, const string &to_language_code,
                       Promise<td_api::object_ptr<td_api::formattedText>> &&promise);
+
+  void translate_text(FormattedText text, bool skip_bot_commands, int32 max_media_timestamp,
+                      const string &to_language_code, Promise<td_api::object_ptr<td_api::formattedText>> &&promise);
 
  private:
   void tear_down() final;

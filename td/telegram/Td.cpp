@@ -4713,6 +4713,14 @@ void Td::on_request(uint64 id, td_api::translateText &request) {
   translation_manager_->translate_text(std::move(request.text_), request.to_language_code_, std::move(promise));
 }
 
+void Td::on_request(uint64 id, td_api::translateMessageText &request) {
+  CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.to_language_code_);
+  CREATE_REQUEST_PROMISE();
+  messages_manager_->translate_message_text({DialogId(request.chat_id_), MessageId(request.message_id_)},
+                                            request.to_language_code_, std::move(promise));
+}
+
 void Td::on_request(uint64 id, const td_api::recognizeSpeech &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
