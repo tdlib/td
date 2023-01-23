@@ -925,6 +925,11 @@ LinkManager::LinkInfo LinkManager::get_link_info(Slice link) {
 
     string cur_t_me_url;
     vector<Slice> t_me_urls{Slice("t.me"), Slice("telegram.me"), Slice("telegram.dog")};
+#if TD_EMSCRIPTEN
+    t_me_urls.push_back(Slice("web.t.me"));
+    t_me_urls.push_back(Slice("k.t.me"));
+    t_me_urls.push_back(Slice("z.t.me"));
+#endif
     if (Scheduler::context() != nullptr) {  // for tests only
       cur_t_me_url = G()->get_option_string("t_me_url");
       if (tolower_begins_with(cur_t_me_url, "http://") || tolower_begins_with(cur_t_me_url, "https://")) {
