@@ -39,6 +39,8 @@ SuggestedAction::SuggestedAction(Slice action_str) {
     init(Type::SetPassword);
   } else if (action_str == Slice("PREMIUM_UPGRADE")) {
     init(Type::UpgradePremium);
+  } else if (action_str == Slice("PREMIUM_ANNUAL")) {
+    init(Type::SubscribeToAnnualPremium);
   }
 }
 
@@ -85,6 +87,9 @@ SuggestedAction::SuggestedAction(const td_api::object_ptr<td_api::SuggestedActio
     case td_api::suggestedActionUpgradePremium::ID:
       init(Type::UpgradePremium);
       break;
+    case td_api::suggestedActionSubscribeToAnnualPremium::ID:
+      init(Type::SubscribeToAnnualPremium);
+      break;
     default:
       UNREACHABLE();
   }
@@ -106,6 +111,8 @@ string SuggestedAction::get_suggested_action_str() const {
       return "SETUP_PASSWORD";
     case Type::UpgradePremium:
       return "PREMIUM_UPGRADE";
+    case Type::SubscribeToAnnualPremium:
+      return "PREMIUM_ANNUAL";
     default:
       return string();
   }
@@ -129,6 +136,8 @@ td_api::object_ptr<td_api::SuggestedAction> SuggestedAction::get_suggested_actio
       return td_api::make_object<td_api::suggestedActionSetPassword>(otherwise_relogin_days_);
     case Type::UpgradePremium:
       return td_api::make_object<td_api::suggestedActionUpgradePremium>();
+    case Type::SubscribeToAnnualPremium:
+      return td_api::make_object<td_api::suggestedActionSubscribeToAnnualPremium>();
     default:
       UNREACHABLE();
       return nullptr;
@@ -188,6 +197,7 @@ void dismiss_suggested_action(SuggestedAction action, Promise<Unit> &&promise) {
     case SuggestedAction::Type::CheckPhoneNumber:
     case SuggestedAction::Type::ViewChecksHint:
     case SuggestedAction::Type::UpgradePremium:
+    case SuggestedAction::Type::SubscribeToAnnualPremium:
       return send_closure_later(G()->config_manager(), &ConfigManager::dismiss_suggested_action, std::move(action),
                                 std::move(promise));
     case SuggestedAction::Type::ConvertToGigagroup:

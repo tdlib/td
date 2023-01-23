@@ -24,7 +24,8 @@ struct SuggestedAction {
     ConvertToGigagroup,
     CheckPassword,
     SetPassword,
-    UpgradePremium
+    UpgradePremium,
+    SubscribeToAnnualPremium
   };
   Type type_ = Type::Empty;
   DialogId dialog_id_;

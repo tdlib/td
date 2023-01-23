@@ -538,6 +538,7 @@ void assign_app_store_transaction(Td *td, const string &receipt,
                                   td_api::object_ptr<td_api::StorePaymentPurpose> &&purpose, Promise<Unit> &&promise) {
   if (purpose != nullptr && purpose->get_id() == td_api::storePaymentPurposePremiumSubscription::ID) {
     dismiss_suggested_action(SuggestedAction{SuggestedAction::Type::UpgradePremium}, Promise<Unit>());
+    dismiss_suggested_action(SuggestedAction{SuggestedAction::Type::SubscribeToAnnualPremium}, Promise<Unit>());
   }
   td->create_handler<AssignAppStoreTransactionQuery>(std::move(promise))->send(receipt, std::move(purpose));
 }
@@ -548,6 +549,7 @@ void assign_play_market_transaction(Td *td, const string &package_name, const st
                                     Promise<Unit> &&promise) {
   if (purpose != nullptr && purpose->get_id() == td_api::storePaymentPurposePremiumSubscription::ID) {
     dismiss_suggested_action(SuggestedAction{SuggestedAction::Type::UpgradePremium}, Promise<Unit>());
+    dismiss_suggested_action(SuggestedAction{SuggestedAction::Type::SubscribeToAnnualPremium}, Promise<Unit>());
   }
   td->create_handler<AssignPlayMarketTransactionQuery>(std::move(promise))
       ->send(package_name, store_product_id, purchase_token, std::move(purpose));
