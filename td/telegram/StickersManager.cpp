@@ -4749,9 +4749,6 @@ void StickersManager::search_stickers(StickerType sticker_type, string emoji, in
   if (limit > MAX_FOUND_STICKERS) {
     limit = MAX_FOUND_STICKERS;
   }
-  if (emoji.empty()) {
-    return promise.set_error(Status::Error(400, "Emoji must be non-empty"));
-  }
 
   remove_emoji_modifiers_in_place(emoji);
   if (emoji.empty() || sticker_type == StickerType::Mask) {

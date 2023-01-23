@@ -7216,11 +7216,11 @@ getUserProfilePhotos user_id:int53 offset:int32 limit:int32 = ChatPhotos;
 //@chat_id Chat identifier for which to return stickers. Available custom emoji stickers may be different for different chats
 getStickers sticker_type:StickerType query:string limit:int32 chat_id:int53 = Stickers;
 
-//@description Searches for stickers from public sticker sets that correspond to a given emoji
+//@description Searches for stickers from public sticker sets that correspond to one of the given emoji
 //@sticker_type Type of the stickers to return
-//@emoji String representation of emoji; must be non-empty
+//@emojis Concatenated list of emoji to search for; must be non-empty
 //@limit The maximum number of stickers to be returned; 0-100
-searchStickers sticker_type:StickerType emoji:string limit:int32 = Stickers;
+searchStickers sticker_type:StickerType emojis:string limit:int32 = Stickers;
 
 //@description Returns premium stickers from regular sticker sets @limit The maximum number of stickers to be returned; 0-100
 getPremiumStickers limit:int32 = Stickers;

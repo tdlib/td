@@ -7147,10 +7147,18 @@ void Td::on_request(uint64 id, td_api::getStickers &request) {
 
 void Td::on_request(uint64 id, td_api::searchStickers &request) {
   CHECK_IS_USER();
-  CLEAN_INPUT_STRING(request.emoji_);
+  CLEAN_INPUT_STRING(request.emojis_);
   CREATE_REQUEST_PROMISE();
-  stickers_manager_->search_stickers(get_sticker_type(request.sticker_type_), std::move(request.emoji_), request.limit_,
-                                     std::move(promise));
+  auto sticker_type = get_sticker_type(request.sticker_type_);
+  if (sticker_type == StickerType::Regular) {
+    // legacy
+    if (request.emojis_ == "⭐️⭐️") {
+      request.emojis_ == "⭐️";
+    } else if (request.emojis_ == "📂⭐️") {
+      request.emojis_ == "📂";
+    }
+  }
+  stickers_manager_->search_stickers(sticker_type, std::move(request.emojis_), request.limit_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::getPremiumStickers &request) {
