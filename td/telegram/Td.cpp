@@ -7149,7 +7149,8 @@ void Td::on_request(uint64 id, td_api::searchStickers &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.emoji_);
   CREATE_REQUEST_PROMISE();
-  stickers_manager_->search_stickers(std::move(request.emoji_), request.limit_, std::move(promise));
+  stickers_manager_->search_stickers(get_sticker_type(request.sticker_type_), std::move(request.emoji_), request.limit_,
+                                     std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::getPremiumStickers &request) {
@@ -8133,7 +8134,7 @@ void Td::on_request(uint64 id, const td_api::getPremiumFeatures &request) {
 void Td::on_request(uint64 id, const td_api::getPremiumStickerExamples &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
-  stickers_manager_->search_stickers("⭐️⭐️", 100, std::move(promise));
+  stickers_manager_->search_stickers(StickerType::Regular, "⭐️⭐️", 100, std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::viewPremiumFeature &request) {

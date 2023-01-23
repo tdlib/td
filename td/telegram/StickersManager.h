@@ -162,7 +162,8 @@ class StickersManager final : public Actor {
   vector<FileId> get_stickers(StickerType sticker_type, string query, int32 limit, DialogId dialog_id, bool force,
                               Promise<Unit> &&promise);
 
-  void search_stickers(string emoji, int32 limit, Promise<td_api::object_ptr<td_api::stickers>> &&promise);
+  void search_stickers(StickerType sticker_type, string emoji, int32 limit,
+                       Promise<td_api::object_ptr<td_api::stickers>> &&promise);
 
   void get_premium_stickers(int32 limit, Promise<td_api::object_ptr<td_api::stickers>> &&promise);
 
@@ -398,6 +399,10 @@ class StickersManager final : public Actor {
 
   void on_find_stickers_fail(const string &emoji, Status &&error);
 
+  void on_find_custom_emojis_success(const string &emoji, tl_object_ptr<telegram_api::EmojiList> &&stickers);
+
+  void on_find_custom_emojis_fail(const string &emoji, Status &&error);
+
   void on_find_sticker_sets_success(const string &query,
                                     tl_object_ptr<telegram_api::messages_FoundStickerSets> &&sticker_sets);
 
@@ -631,15 +636,20 @@ class StickersManager final : public Actor {
   Sticker *get_sticker(FileId file_id);
   const Sticker *get_sticker(FileId file_id) const;
 
-  static string get_found_stickers_database_key(const string &emoji);
+  static string get_found_stickers_database_key(StickerType sticker_type, const string &emoji);
 
-  void reload_found_stickers(string &&emoji, int64 hash);
+  void reload_found_stickers(StickerType sticker_type, string &&emoji, int64 hash);
 
-  void on_load_found_stickers_from_database(string emoji, string value);
+  void on_load_found_stickers_from_database(StickerType sticker_type, string emoji, string value);
 
-  void on_search_stickers_finished(const string &emoji, const FoundStickers &found_stickers);
+  void on_load_custom_emojis(string emoji, int64 hash, vector<CustomEmojiId> custom_emoji_ids,
+                             Result<td_api::object_ptr<td_api::stickers>> &&result);
 
-  void on_search_stickers_failed(const string &emoji, Status &&error);
+  void on_search_stickers_finished(StickerType sticker_type, const string &emoji, const FoundStickers &found_stickers);
+
+  void on_search_stickers_succeeded(StickerType sticker_type, const string &emoji, vector<FileId> &&sticker_ids);
+
+  void on_search_stickers_failed(StickerType sticker_type, const string &emoji, Status &&error);
 
   static string get_custom_emoji_database_key(CustomEmojiId custom_emoji_id);
 
@@ -1055,8 +1065,9 @@ class StickersManager final : public Actor {
 
   Hints installed_sticker_sets_hints_[MAX_STICKER_TYPE];  // search installed sticker sets by their title and name
 
-  FlatHashMap<string, FoundStickers> found_stickers_;
-  FlatHashMap<string, vector<std::pair<int32, Promise<td_api::object_ptr<td_api::stickers>>>>> search_stickers_queries_;
+  FlatHashMap<string, FoundStickers> found_stickers_[MAX_STICKER_TYPE];
+  FlatHashMap<string, vector<std::pair<int32, Promise<td_api::object_ptr<td_api::stickers>>>>>
+      search_stickers_queries_[MAX_STICKER_TYPE];
 
   std::unordered_map<string, vector<StickerSetId>, Hash<string>> found_sticker_sets_;
   std::unordered_map<string, vector<Promise<Unit>>, Hash<string>> search_sticker_sets_queries_;

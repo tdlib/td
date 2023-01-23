@@ -2744,10 +2744,10 @@ class CliClient final : public Actor {
       get_args(args, query);
       send_request(td_api::make_object<td_api::getStickers>(as_sticker_type(op), query.query, query.limit,
                                                             op == "gseeme" ? my_id_ : 0));
-    } else if (op == "sst") {
+    } else if (op == "sst" || op == "sstm" || op == "sste") {
       SearchQuery query;
       get_args(args, query);
-      send_request(td_api::make_object<td_api::searchStickers>(query.query, query.limit));
+      send_request(td_api::make_object<td_api::searchStickers>(as_sticker_type(op), query.query, query.limit));
     } else if (op == "gprst") {
       string limit;
       get_args(args, limit);
