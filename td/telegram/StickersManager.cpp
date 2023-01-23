@@ -4750,7 +4750,7 @@ void StickersManager::search_stickers(StickerType sticker_type, string emoji, in
     limit = MAX_FOUND_STICKERS;
   }
 
-  remove_emoji_modifiers_in_place(emoji);
+  remove_emoji_modifiers_in_place(emoji, false);
   if (emoji.empty() || sticker_type == StickerType::Mask) {
     return promise.set_value(get_stickers_object({}));
   }

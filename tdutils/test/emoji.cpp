@@ -70,17 +70,18 @@ TEST(Emoji, get_fitzpatrick_modifier) {
   test_get_fitzpatrick_modifier("🧑‍🎄", 0);
 }
 
-static void test_remove_emoji_modifiers(td::string emoji, const td::string &result) {
-  ASSERT_STREQ(result, td::remove_emoji_modifiers(emoji));
-  td::remove_emoji_modifiers_in_place(emoji);
+static void test_remove_emoji_modifiers(td::string emoji, const td::string &result, bool remove_selectors = true) {
+  ASSERT_STREQ(result, td::remove_emoji_modifiers(emoji, remove_selectors));
+  td::remove_emoji_modifiers_in_place(emoji, remove_selectors);
   ASSERT_STREQ(result, emoji);
-  ASSERT_STREQ(emoji, td::remove_emoji_modifiers(emoji));
+  ASSERT_STREQ(emoji, td::remove_emoji_modifiers(emoji, remove_selectors));
 }
 
 TEST(Emoji, remove_emoji_modifiers) {
   test_remove_emoji_modifiers("", "");
   test_remove_emoji_modifiers("👩🏼‍❤‍💋‍👩🏻", "👩‍❤‍💋‍👩");
   test_remove_emoji_modifiers("👩🏼‍❤️‍💋‍👩🏻", "👩‍❤‍💋‍👩");
+  test_remove_emoji_modifiers("👩🏼‍❤️‍💋‍👩🏻", "👩‍❤️‍💋‍👩", false);
   test_remove_emoji_modifiers("👋🏻", "👋");
   test_remove_emoji_modifiers("👋🏼", "👋");
   test_remove_emoji_modifiers("👋🏽", "👋");

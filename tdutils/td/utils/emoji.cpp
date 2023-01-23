@@ -327,13 +327,13 @@ Slice remove_fitzpatrick_modifier(Slice emoji) {
   return emoji;
 }
 
-string remove_emoji_modifiers(Slice emoji) {
+string remove_emoji_modifiers(Slice emoji, bool remove_selectors) {
   string result = emoji.str();
-  remove_emoji_modifiers_in_place(result);
+  remove_emoji_modifiers_in_place(result, remove_selectors);
   return result;
 }
 
-void remove_emoji_modifiers_in_place(string &emoji) {
+void remove_emoji_modifiers_in_place(string &emoji, bool remove_selectors) {
   static const Slice modifiers[] = {u8"\uFE0F" /* variation selector-16 */,
                                     u8"\u200D\u2640" /* zero width joiner + female sign */,
                                     u8"\u200D\u2642" /* zero width joiner + male sign */,
@@ -342,13 +342,14 @@ void remove_emoji_modifiers_in_place(string &emoji) {
                                     u8"\U0001F3FD" /* emoji modifier fitzpatrick type-4 */,
                                     u8"\U0001F3FE" /* emoji modifier fitzpatrick type-5 */,
                                     u8"\U0001F3FF" /* emoji modifier fitzpatrick type-6 */};
+  const size_t start_index = remove_selectors ? 0 : 1;
   size_t j = 0;
   for (size_t i = 0; i < emoji.size();) {
     bool is_found = false;
-    for (auto &modifier : modifiers) {
-      auto length = modifier.size();
-      if (i + length <= emoji.size() && Slice(&emoji[i], length) == modifier) {
-        // skip modifier
+    for (size_t k = start_index; k < sizeof(modifiers) / sizeof(*modifiers); k++) {
+      auto length = modifiers[k].size();
+      if (i + length <= emoji.size() && Slice(&emoji[i], length) == modifiers[k]) {
+        // skip the modifier
         i += length;
         is_found = true;
         break;
