@@ -68,14 +68,14 @@ RequestedDialogType::RequestedDialogType(telegram_api::object_ptr<telegram_api::
     }
     case telegram_api::requestPeerTypeBroadcast::ID: {
       auto type = telegram_api::move_object_as<telegram_api::requestPeerTypeBroadcast>(peer_type);
-      type_ = Type::Group;
-      restrict_has_username_ = (type->flags_ & telegram_api::requestPeerTypeChat::HAS_USERNAME_MASK) != 0;
+      type_ = Type::Channel;
+      restrict_has_username_ = (type->flags_ & telegram_api::requestPeerTypeBroadcast::HAS_USERNAME_MASK) != 0;
       has_username_ = type->has_username_;
       is_created_ = type->creator_;
       restrict_user_administrator_rights_ = type->user_admin_rights_ != nullptr;
       restrict_bot_administrator_rights_ = type->bot_admin_rights_ != nullptr;
-      user_administrator_rights_ = AdministratorRights(type->user_admin_rights_, ChannelType::Megagroup);
-      bot_administrator_rights_ = AdministratorRights(type->bot_admin_rights_, ChannelType::Megagroup);
+      user_administrator_rights_ = AdministratorRights(type->user_admin_rights_, ChannelType::Broadcast);
+      bot_administrator_rights_ = AdministratorRights(type->bot_admin_rights_, ChannelType::Broadcast);
       break;
     }
     default:
