@@ -130,6 +130,39 @@ unique_ptr<StickerPhotoSize> get_sticker_photo_size(Td *td,
   return std::move(result);
 }
 
+td_api::object_ptr<td_api::chatPhotoSticker> StickerPhotoSize::get_chat_photo_sticker_object() const {
+  td_api::object_ptr<td_api::ChatPhotoStickerType> sticker_type;
+  switch (type) {
+    case StickerPhotoSize::Type::Sticker:
+      sticker_type = td_api::make_object<td_api::chatPhotoStickerTypeRegularOrMask>(sticker_set_id.get(), sticker_id);
+      break;
+    case StickerPhotoSize::Type::CustomEmoji:
+      sticker_type = td_api::make_object<td_api::chatPhotoStickerTypeCustomEmoji>(custom_emoji_id.get());
+      break;
+    default:
+      UNREACHABLE();
+      return nullptr;
+  }
+  CHECK(sticker_type != nullptr);
+
+  auto background_fill = [&](vector<int32> colors) -> td_api::object_ptr<td_api::BackgroundFill> {
+    switch (colors.size()) {
+      case 1:
+        return td_api::make_object<td_api::backgroundFillSolid>(colors[0]);
+      case 2:
+        return td_api::make_object<td_api::backgroundFillGradient>(colors[0], colors[1], 0);
+      case 3:
+      case 4:
+        return td_api::make_object<td_api::backgroundFillFreeformGradient>(std::move(colors));
+      default:
+        UNREACHABLE();
+        return nullptr;
+    }
+  }(background_colors);
+
+  return td_api::make_object<td_api::chatPhotoSticker>(std::move(sticker_type), std::move(background_fill));
+}
+
 bool operator==(const StickerPhotoSize &lhs, const StickerPhotoSize &rhs) {
   return lhs.type == rhs.type && lhs.sticker_set_id == rhs.sticker_set_id && lhs.sticker_id == rhs.sticker_id &&
          lhs.custom_emoji_id == rhs.custom_emoji_id && lhs.background_colors == rhs.background_colors;

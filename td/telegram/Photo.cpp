@@ -266,44 +266,6 @@ static tl_object_ptr<td_api::animatedChatPhoto> get_animated_chat_photo_object(F
                                                         animation_size->main_frame_timestamp);
 }
 
-static tl_object_ptr<td_api::chatPhotoSticker> get_chat_photo_sticker_object(
-    const unique_value_ptr<StickerPhotoSize> &sticker_photo_size) {
-  if (sticker_photo_size == nullptr) {
-    return nullptr;
-  }
-  td_api::object_ptr<td_api::ChatPhotoStickerType> type;
-  switch (sticker_photo_size->type) {
-    case StickerPhotoSize::Type::Sticker:
-      type = td_api::make_object<td_api::chatPhotoStickerTypeRegularOrMask>(sticker_photo_size->sticker_set_id.get(),
-                                                                            sticker_photo_size->sticker_id);
-      break;
-    case StickerPhotoSize::Type::CustomEmoji:
-      type = td_api::make_object<td_api::chatPhotoStickerTypeCustomEmoji>(sticker_photo_size->custom_emoji_id.get());
-      break;
-    default:
-      UNREACHABLE();
-      return nullptr;
-  }
-  CHECK(type != nullptr);
-
-  auto background_fill = [&](vector<int32> colors) -> td_api::object_ptr<td_api::BackgroundFill> {
-    switch (colors.size()) {
-      case 1:
-        return td_api::make_object<td_api::backgroundFillSolid>(colors[0]);
-      case 2:
-        return td_api::make_object<td_api::backgroundFillGradient>(colors[0], colors[1], 0);
-      case 3:
-      case 4:
-        return td_api::make_object<td_api::backgroundFillFreeformGradient>(std::move(colors));
-      default:
-        UNREACHABLE();
-        return nullptr;
-    }
-  }(sticker_photo_size->background_colors);
-
-  return td_api::make_object<td_api::chatPhotoSticker>(std::move(type), std::move(background_fill));
-}
-
 Photo get_encrypted_file_photo(FileManager *file_manager, unique_ptr<EncryptedFile> &&file,
                                tl_object_ptr<secret_api::decryptedMessageMediaPhoto> &&photo,
                                DialogId owner_dialog_id) {
@@ -430,11 +392,12 @@ tl_object_ptr<td_api::chatPhoto> get_chat_photo_object(FileManager *file_manager
     LOG(ERROR) << "Have small animation without big animation in " << photo;
     small_animation = nullptr;
   }
+  auto chat_photo_sticker =
+      photo.sticker_photo_size == nullptr ? nullptr : photo.sticker_photo_size->get_chat_photo_sticker_object();
   return td_api::make_object<td_api::chatPhoto>(
       photo.id.get(), photo.date, get_minithumbnail_object(photo.minithumbnail),
       get_photo_sizes_object(file_manager, photo.photos), get_animated_chat_photo_object(file_manager, big_animation),
-      get_animated_chat_photo_object(file_manager, small_animation),
-      get_chat_photo_sticker_object(photo.sticker_photo_size));
+      get_animated_chat_photo_object(file_manager, small_animation), std::move(chat_photo_sticker));
 }
 
 void photo_delete_thumbnail(Photo &photo) {

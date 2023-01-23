@@ -26,6 +26,8 @@ struct StickerPhotoSize {
   StickerSetId sticker_set_id;
   int64 sticker_id = 0;
   vector<int32> background_colors;
+
+  td_api::object_ptr<td_api::chatPhotoSticker> get_chat_photo_sticker_object() const;
 };
 
 Result<unique_ptr<StickerPhotoSize>> get_sticker_photo_size(
