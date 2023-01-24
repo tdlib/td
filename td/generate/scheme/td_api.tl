@@ -2950,6 +2950,15 @@ emojiCategory name:string icon_custom_emoji_id:int64 emojis:vector<string> = Emo
 emojiCategories categories:vector<emojiCategory> = EmojiCategories;
 
 
+//@class EmojiCategoryType @description Describes type of an emoji category
+
+//@description The category should be used by default
+emojiCategoryTypeDefault = EmojiCategoryType;
+
+//@description The category should be used for emoji status selection
+emojiCategoryTypeEmojiStatus = EmojiCategoryType;
+
+
 //@class CallDiscardReason @description Describes the reason why a call was discarded
 
 //@description The call wasn't discarded, or the reason is unknown
@@ -7306,8 +7315,8 @@ getStickerEmojis sticker:InputFile = Emojis;
 //@input_language_codes List of possible IETF language tags of the user's input language; may be empty if unknown
 searchEmojis text:string exact_match:Bool input_language_codes:vector<string> = Emojis;
 
-//@description Returns available emojis categories
-getEmojiCategories = EmojiCategories;
+//@description Returns available emojis categories @type Type of emoji categories to return; pass null to get default emoji categories
+getEmojiCategories type:EmojiCategoryType = EmojiCategories;
 
 //@description Returns an animated emoji corresponding to a given emoji. Returns a 404 error if the emoji has no animated emoji @emoji The emoji
 getAnimatedEmoji emoji:string = AnimatedEmoji;

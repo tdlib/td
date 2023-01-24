@@ -1353,11 +1353,23 @@ class GetEmojiGroupsQuery final : public Td::ResultHandler {
       : promise_(std::move(promise)) {
   }
 
-  void send(int32 hash) {
-    send_query(G()->net_query_creator().create(telegram_api::messages_getEmojiGroups(hash)));
+  void send(EmojiGroupType group_type, int32 hash) {
+    switch (group_type) {
+      case EmojiGroupType::Default:
+        send_query(G()->net_query_creator().create(telegram_api::messages_getEmojiGroups(hash)));
+        break;
+      case EmojiGroupType::EmojiStatus:
+        send_query(G()->net_query_creator().create(telegram_api::messages_getEmojiStatusGroups(hash)));
+        break;
+      default:
+        UNREACHABLE();
+    }
   }
 
   void on_result(BufferSlice packet) final {
+    static_assert(std::is_same<telegram_api::messages_getEmojiGroups::ReturnType,
+                               telegram_api::messages_getEmojiStatusGroups::ReturnType>::value,
+                  "");
     auto result_ptr = fetch_result<telegram_api::messages_getEmojiGroups>(packet);
     if (result_ptr.is_error()) {
       return on_error(result_ptr.move_as_error());
@@ -9955,34 +9967,39 @@ td_api::object_ptr<td_api::httpUrl> StickersManager::get_emoji_suggestions_url_r
   return result;
 }
 
-void StickersManager::get_emoji_categories(Promise<td_api::object_ptr<td_api::emojiCategories>> &&promise) {
+void StickersManager::get_emoji_groups(EmojiGroupType group_type,
+                                       Promise<td_api::object_ptr<td_api::emojiCategories>> &&promise) {
+  auto type = static_cast<int32>(group_type);
   auto used_language_codes = implode(get_used_language_codes({}, Slice()), '$');
   LOG(INFO) << "Have language codes " << used_language_codes;
-  if (emoji_group_list_.get_used_language_codes() == used_language_codes) {
-    promise.set_value(emoji_group_list_.get_emoji_categories_object());
-    if (!emoji_group_list_.is_expired()) {
+  if (emoji_group_list_[type].get_used_language_codes() == used_language_codes) {
+    promise.set_value(emoji_group_list_[type].get_emoji_categories_object());
+    if (!emoji_group_list_[type].is_expired()) {
       return;
     }
     promise = Promise<td_api::object_ptr<td_api::emojiCategories>>();
   }
 
-  emoji_group_load_queries_.push_back(std::move(promise));
-  if (emoji_group_load_queries_.size() != 1) {
+  emoji_group_load_queries_[type].push_back(std::move(promise));
+  if (emoji_group_load_queries_[type].size() != 1) {
     // query has already been sent, just wait for the result
     return;
   }
 
-  auto query_promise =
-      PromiseCreator::lambda([actor_id = actor_id(this), used_language_codes = std::move(used_language_codes)](
-                                 Result<telegram_api::object_ptr<telegram_api::messages_EmojiGroups>> r_emoji_groups) {
-        send_closure(actor_id, &StickersManager::on_get_emoji_categories, std::move(used_language_codes),
+  auto query_promise = PromiseCreator::lambda(
+      [actor_id = actor_id(this), group_type, used_language_codes = std::move(used_language_codes)](
+          Result<telegram_api::object_ptr<telegram_api::messages_EmojiGroups>> r_emoji_groups) {
+        send_closure(actor_id, &StickersManager::on_get_emoji_groups, group_type, std::move(used_language_codes),
                      std::move(r_emoji_groups));
       });
-  td_->create_handler<GetEmojiGroupsQuery>(std::move(query_promise))->send(emoji_group_list_.get_hash());
+  td_->create_handler<GetEmojiGroupsQuery>(std::move(query_promise))
+      ->send(group_type, emoji_group_list_[type].get_hash());
 }
 
-void StickersManager::on_get_emoji_categories(
-    string used_language_codes, Result<telegram_api::object_ptr<telegram_api::messages_EmojiGroups>> r_emoji_groups) {
+void StickersManager::on_get_emoji_groups(
+    EmojiGroupType group_type, string used_language_codes,
+    Result<telegram_api::object_ptr<telegram_api::messages_EmojiGroups>> r_emoji_groups) {
+  auto type = static_cast<int32>(group_type);
   if (G()->close_flag()) {
     r_emoji_groups = Global::request_aborted_error();
   }
@@ -9990,7 +10007,7 @@ void StickersManager::on_get_emoji_categories(
     if (!G()->is_expected_error(r_emoji_groups.error())) {
       LOG(ERROR) << "Receive " << r_emoji_groups.error() << " from GetEmojiGroupsQuery";
     }
-    return fail_promises(emoji_group_load_queries_, r_emoji_groups.move_as_error());
+    return fail_promises(emoji_group_load_queries_[type], r_emoji_groups.move_as_error());
   }
 
   auto new_used_language_codes = implode(get_used_language_codes({}, Slice()), '$');
@@ -10001,21 +10018,22 @@ void StickersManager::on_get_emoji_categories(
   auto emoji_groups = r_emoji_groups.move_as_ok();
   switch (emoji_groups->get_id()) {
     case telegram_api::messages_emojiGroupsNotModified::ID:
-      emoji_group_list_.update_next_reload_time();
+      emoji_group_list_[type].update_next_reload_time();
       break;
     case telegram_api::messages_emojiGroups::ID: {
       auto groups = telegram_api::move_object_as<telegram_api::messages_emojiGroups>(emoji_groups);
-      emoji_group_list_ = EmojiGroupList(std::move(used_language_codes), groups->hash_, std::move(groups->groups_));
+      emoji_group_list_[type] =
+          EmojiGroupList(std::move(used_language_codes), groups->hash_, std::move(groups->groups_));
       break;
     }
     default:
       UNREACHABLE();
   }
 
-  auto promises = std::move(emoji_group_load_queries_);
-  reset_to_empty(emoji_group_load_queries_);
+  auto promises = std::move(emoji_group_load_queries_[type]);
+  reset_to_empty(emoji_group_load_queries_[type]);
   for (auto &promise : promises) {
-    promise.set_value(emoji_group_list_.get_emoji_categories_object());
+    promise.set_value(emoji_group_list_[type].get_emoji_categories_object());
   }
 }
 

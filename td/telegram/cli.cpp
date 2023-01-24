@@ -2921,8 +2921,9 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::searchEmojis>(args, true, vector<string>()));
     } else if (op == "seru") {
       send_request(td_api::make_object<td_api::searchEmojis>(args, false, vector<string>{"ru_RU"}));
-    } else if (op == "gec") {
-      send_request(td_api::make_object<td_api::getEmojiCategories>());
+    } else if (op == "gec" || op == "geces") {
+      auto type = op == "geces" ? td_api::make_object<td_api::emojiCategoryTypeEmojiStatus>() : nullptr;
+      send_request(td_api::make_object<td_api::getEmojiCategories>(std::move(type)));
     } else if (op == "gae") {
       send_request(td_api::make_object<td_api::getAnimatedEmoji>(args));
     } else if (op == "gesu") {

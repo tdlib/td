@@ -45,5 +45,4 @@ void EmojiGroupList::update_next_reload_time() {
   next_reload_time_ = Time::now() + 3600;
 }
 
-
 }  // namespace td

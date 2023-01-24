@@ -43,6 +43,7 @@
 #include "td/telegram/DownloadManager.h"
 #include "td/telegram/DownloadManagerCallback.h"
 #include "td/telegram/EmailVerification.h"
+#include "td/telegram/EmojiGroupType.h"
 #include "td/telegram/EmojiStatus.h"
 #include "td/telegram/FileReferenceManager.h"
 #include "td/telegram/files/FileGcParameters.h"
@@ -7351,7 +7352,7 @@ void Td::on_request(uint64 id, td_api::searchEmojis &request) {
 void Td::on_request(uint64 id, const td_api::getEmojiCategories &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
-  stickers_manager_->get_emoji_categories(std::move(promise));
+  stickers_manager_->get_emoji_groups(get_emoji_group_type(request.type_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::getAnimatedEmoji &request) {

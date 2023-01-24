@@ -332,6 +332,7 @@ set(TDLIB_SOURCE
   td/telegram/DraftMessage.cpp
   td/telegram/EmailVerification.cpp
   td/telegram/EmojiGroup.cpp
+  td/telegram/EmojiGroupType.cpp
   td/telegram/EmojiStatus.cpp
   td/telegram/FileReferenceManager.cpp
   td/telegram/files/FileBitmask.cpp
@@ -564,6 +565,7 @@ set(TDLIB_SOURCE
   td/telegram/DraftMessage.h
   td/telegram/EmailVerification.h
   td/telegram/EmojiGroup.h
+  td/telegram/EmojiGroupType.h
   td/telegram/EmojiStatus.h
   td/telegram/EncryptedFile.h
   td/telegram/FileReferenceManager.h
