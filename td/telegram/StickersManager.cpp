@@ -1345,6 +1345,32 @@ class GetCustomEmojiDocumentsQuery final : public Td::ResultHandler {
   }
 };
 
+class GetEmojiGroupsQuery final : public Td::ResultHandler {
+  Promise<telegram_api::object_ptr<telegram_api::messages_EmojiGroups>> promise_;
+
+ public:
+  explicit GetEmojiGroupsQuery(Promise<telegram_api::object_ptr<telegram_api::messages_EmojiGroups>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(int32 hash) {
+    send_query(G()->net_query_creator().create(telegram_api::messages_getEmojiGroups(hash)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_getEmojiGroups>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    promise_.set_value(result_ptr.move_as_ok());
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class GetDefaultDialogPhotoEmojisQuery final : public Td::ResultHandler {
   Promise<telegram_api::object_ptr<telegram_api::EmojiList>> promise_;
 
@@ -6600,6 +6626,7 @@ void StickersManager::on_get_default_dialog_photo_custom_emoji_ids_success(bool 
   are_default_dialog_photo_custom_emoji_ids_loaded_[for_user] = true;
 
   auto promises = std::move(default_dialog_photo_custom_emoji_ids_load_queries_[for_user]);
+  reset_to_empty(default_dialog_photo_custom_emoji_ids_load_queries_[for_user]);
   for (auto &promise : promises) {
     get_custom_emoji_stickers(default_dialog_photo_custom_emoji_ids_[for_user], true, std::move(promise));
   }
@@ -9553,8 +9580,7 @@ void StickersManager::on_get_language_codes(const string &key, Result<vector<str
   set_promises(promises);
 }
 
-vector<string> StickersManager::get_emoji_language_codes(const vector<string> &input_language_codes, Slice text,
-                                                         Promise<Unit> &promise) {
+vector<string> StickersManager::get_used_language_codes(const vector<string> &input_language_codes, Slice text) const {
   vector<string> language_codes = td_->language_pack_manager_.get_actor_unsafe()->get_used_language_codes();
   auto system_language_code = G()->mtproto_header().get_system_language_code();
   if (system_language_code.size() >= 2 && system_language_code.find('$') == string::npos &&
@@ -9582,12 +9608,18 @@ vector<string> StickersManager::get_emoji_language_codes(const vector<string> &i
       }
     }
   }
+  td::unique(language_codes);
 
   if (language_codes.empty()) {
     LOG(INFO) << "List of language codes is empty";
     language_codes.push_back("en");
   }
-  td::unique(language_codes);
+  return language_codes;
+}
+
+vector<string> StickersManager::get_emoji_language_codes(const vector<string> &input_language_codes, Slice text,
+                                                         Promise<Unit> &promise) {
+  auto language_codes = get_used_language_codes(input_language_codes, text);
 
   LOG(DEBUG) << "Have language codes " << language_codes;
   auto key = get_emoji_language_codes_database_key(language_codes);
@@ -9921,6 +9953,70 @@ td_api::object_ptr<td_api::httpUrl> StickersManager::get_emoji_suggestions_url_r
   auto result = td_api::make_object<td_api::httpUrl>(it->second);
   emoji_suggestions_urls_.erase(it);
   return result;
+}
+
+void StickersManager::get_emoji_categories(Promise<td_api::object_ptr<td_api::emojiCategories>> &&promise) {
+  auto used_language_codes = implode(get_used_language_codes({}, Slice()), '$');
+  LOG(INFO) << "Have language codes " << used_language_codes;
+  if (emoji_group_list_.get_used_language_codes() == used_language_codes) {
+    promise.set_value(emoji_group_list_.get_emoji_categories_object());
+    if (!emoji_group_list_.is_expired()) {
+      return;
+    }
+    promise = Promise<td_api::object_ptr<td_api::emojiCategories>>();
+  }
+
+  emoji_group_load_queries_.push_back(std::move(promise));
+  if (emoji_group_load_queries_.size() != 1) {
+    // query has already been sent, just wait for the result
+    return;
+  }
+
+  auto query_promise =
+      PromiseCreator::lambda([actor_id = actor_id(this), used_language_codes = std::move(used_language_codes)](
+                                 Result<telegram_api::object_ptr<telegram_api::messages_EmojiGroups>> r_emoji_groups) {
+        send_closure(actor_id, &StickersManager::on_get_emoji_categories, std::move(used_language_codes),
+                     std::move(r_emoji_groups));
+      });
+  td_->create_handler<GetEmojiGroupsQuery>(std::move(query_promise))->send(emoji_group_list_.get_hash());
+}
+
+void StickersManager::on_get_emoji_categories(
+    string used_language_codes, Result<telegram_api::object_ptr<telegram_api::messages_EmojiGroups>> r_emoji_groups) {
+  if (G()->close_flag()) {
+    r_emoji_groups = Global::request_aborted_error();
+  }
+  if (r_emoji_groups.is_error()) {
+    if (!G()->is_expected_error(r_emoji_groups.error())) {
+      LOG(ERROR) << "Receive " << r_emoji_groups.error() << " from GetEmojiGroupsQuery";
+    }
+    return fail_promises(emoji_group_load_queries_, r_emoji_groups.move_as_error());
+  }
+
+  auto new_used_language_codes = implode(get_used_language_codes({}, Slice()), '$');
+  if (new_used_language_codes != used_language_codes) {
+    used_language_codes.clear();
+  }
+
+  auto emoji_groups = r_emoji_groups.move_as_ok();
+  switch (emoji_groups->get_id()) {
+    case telegram_api::messages_emojiGroupsNotModified::ID:
+      emoji_group_list_.update_next_reload_time();
+      break;
+    case telegram_api::messages_emojiGroups::ID: {
+      auto groups = telegram_api::move_object_as<telegram_api::messages_emojiGroups>(emoji_groups);
+      emoji_group_list_ = EmojiGroupList(std::move(used_language_codes), groups->hash_, std::move(groups->groups_));
+      break;
+    }
+    default:
+      UNREACHABLE();
+  }
+
+  auto promises = std::move(emoji_group_load_queries_);
+  reset_to_empty(emoji_group_load_queries_);
+  for (auto &promise : promises) {
+    promise.set_value(emoji_group_list_.get_emoji_categories_object());
+  }
 }
 
 void StickersManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const {

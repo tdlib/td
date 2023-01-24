@@ -9,6 +9,7 @@
 #include "td/telegram/CustomEmojiId.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/Dimensions.h"
+#include "td/telegram/EmojiGroup.h"
 #include "td/telegram/files/FileId.h"
 #include "td/telegram/files/FileSourceId.h"
 #include "td/telegram/FullMessageId.h"
@@ -363,6 +364,8 @@ class StickersManager final : public Actor {
                                bool force, Promise<Unit> &&promise);
 
   int64 get_emoji_suggestions_url(const string &language_code, Promise<Unit> &&promise);
+
+  void get_emoji_categories(Promise<td_api::object_ptr<td_api::emojiCategories>> &&promise);
 
   td_api::object_ptr<td_api::httpUrl> get_emoji_suggestions_url_result(int64 random_id);
 
@@ -971,6 +974,8 @@ class StickersManager final : public Actor {
 
   double get_emoji_language_code_last_difference_time(const string &language_code);
 
+  vector<string> get_used_language_codes(const vector<string> &input_language_codes, Slice text) const;
+
   vector<string> get_emoji_language_codes(const vector<string> &input_language_codes, Slice text,
                                           Promise<Unit> &promise);
 
@@ -995,6 +1000,9 @@ class StickersManager final : public Actor {
 
   void on_get_emoji_suggestions_url(int64 random_id, Promise<Unit> &&promise,
                                     Result<telegram_api::object_ptr<telegram_api::emojiURL>> &&r_emoji_url);
+
+  void on_get_emoji_categories(string used_language_codes,
+                               Result<telegram_api::object_ptr<telegram_api::messages_EmojiGroups>> r_emoji_groups);
 
   Td *td_;
   ActorShared<> parent_;
@@ -1172,6 +1180,9 @@ class StickersManager final : public Actor {
 
   string emoji_sounds_str_;
   FlatHashMap<string, FileId> emoji_sounds_;
+
+  EmojiGroupList emoji_group_list_;
+  vector<Promise<td_api::object_ptr<td_api::emojiCategories>>> emoji_group_load_queries_;
 
   vector<CustomEmojiId> default_dialog_photo_custom_emoji_ids_[2];
   int64 default_dialog_photo_custom_emoji_ids_hash_[2] = {0, 0};

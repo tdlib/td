@@ -2940,6 +2940,16 @@ stickerSets total_count:int32 sets:vector<stickerSetInfo> = StickerSets;
 trendingStickerSets total_count:int32 sets:vector<stickerSetInfo> is_premium:Bool = TrendingStickerSets;
 
 
+//@description Contains a list of similar emoji to search for in getStickers and searchStickers
+//@name Name of the category
+//@icon_custom_emoji_id Unique identifier of the custom emoji, which represents icon of the category
+//@emojis List of emojis in the category
+emojiCategory name:string icon_custom_emoji_id:int64 emojis:vector<string> = EmojiCategory;
+
+//@description Represents a list of emoji categories @categories List of categories
+emojiCategories categories:vector<emojiCategory> = EmojiCategories;
+
+
 //@class CallDiscardReason @description Describes the reason why a call was discarded
 
 //@description The call wasn't discarded, or the reason is unknown
@@ -7295,6 +7305,9 @@ getStickerEmojis sticker:InputFile = Emojis;
 //@exact_match Pass true if only emojis, which exactly match the text, needs to be returned
 //@input_language_codes List of possible IETF language tags of the user's input language; may be empty if unknown
 searchEmojis text:string exact_match:Bool input_language_codes:vector<string> = Emojis;
+
+//@description Returns available emojis categories
+getEmojiCategories = EmojiCategories;
 
 //@description Returns an animated emoji corresponding to a given emoji. Returns a 404 error if the emoji has no animated emoji @emoji The emoji
 getAnimatedEmoji emoji:string = AnimatedEmoji;

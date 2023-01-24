@@ -331,6 +331,7 @@ set(TDLIB_SOURCE
   td/telegram/DownloadManagerCallback.cpp
   td/telegram/DraftMessage.cpp
   td/telegram/EmailVerification.cpp
+  td/telegram/EmojiGroup.cpp
   td/telegram/EmojiStatus.cpp
   td/telegram/FileReferenceManager.cpp
   td/telegram/files/FileBitmask.cpp
@@ -562,6 +563,7 @@ set(TDLIB_SOURCE
   td/telegram/DownloadManagerCallback.h
   td/telegram/DraftMessage.h
   td/telegram/EmailVerification.h
+  td/telegram/EmojiGroup.h
   td/telegram/EmojiStatus.h
   td/telegram/EncryptedFile.h
   td/telegram/FileReferenceManager.h
@@ -761,6 +763,7 @@ set(TDLIB_SOURCE
   td/telegram/Document.hpp
   td/telegram/DocumentsManager.hpp
   td/telegram/DraftMessage.hpp
+  td/telegram/EmojiGroup.hpp
   td/telegram/FileReferenceManager.hpp
   td/telegram/files/FileData.hpp
   td/telegram/files/FileId.hpp
