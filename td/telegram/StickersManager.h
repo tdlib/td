@@ -952,10 +952,10 @@ class StickersManager final : public Actor {
 
   static const std::map<string, vector<FileId>> &get_sticker_set_keywords(const StickerSet *sticker_set);
 
-  static void find_sticker_set_stickers(const StickerSet *sticker_set, const string &query,
-                                        const string &prepared_query, vector<FileId> &result);
+  static void find_sticker_set_stickers(const StickerSet *sticker_set, const vector<string> &emojis,
+                                        const string &query, vector<FileId> &result);
 
-  bool can_find_sticker_by_query(FileId sticker_id, const string &query, const string &prepared_query) const;
+  bool can_find_sticker_by_query(FileId sticker_id, const vector<string> &emojis, const string &query) const;
 
   static string get_emoji_language_code_version_database_key(const string &language_code);
 

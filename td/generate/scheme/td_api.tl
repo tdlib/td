@@ -7209,16 +7209,16 @@ sharePhoneNumber user_id:int53 = Ok;
 getUserProfilePhotos user_id:int53 offset:int32 limit:int32 = ChatPhotos;
 
 
-//@description Returns stickers from the installed sticker sets that correspond to a given emoji or can be found by sticker-specific keywords. If the query is non-empty, then favorite, recently used or trending stickers may also be returned
+//@description Returns stickers from the installed sticker sets that correspond to any of the given emoji or can be found by sticker-specific keywords. If the query is non-empty, then favorite, recently used or trending stickers may also be returned
 //@sticker_type Type of the stickers to return
-//@query Search query; an emoji or a keyword prefix. If empty, returns all known installed stickers
+//@query Search query; a space-separated list of emoji or a keyword prefix. If empty, returns all known installed stickers
 //@limit The maximum number of stickers to be returned
 //@chat_id Chat identifier for which to return stickers. Available custom emoji stickers may be different for different chats
 getStickers sticker_type:StickerType query:string limit:int32 chat_id:int53 = Stickers;
 
-//@description Searches for stickers from public sticker sets that correspond to one of the given emoji
+//@description Searches for stickers from public sticker sets that correspond to any of the given emoji
 //@sticker_type Type of the stickers to return
-//@emojis Concatenated list of emoji to search for; must be non-empty
+//@emojis Space-separated list of emoji to search for; must be non-empty
 //@limit The maximum number of stickers to be returned; 0-100
 searchStickers sticker_type:StickerType emojis:string limit:int32 = Stickers;
 
