@@ -975,7 +975,7 @@ void WebPagesManager::on_load_web_page_instant_view_from_database(WebPageId web_
 
 void WebPagesManager::update_web_page_instant_view_load_requests(WebPageId web_page_id, bool force_update,
                                                                  Result<WebPageId> r_web_page_id) {
-  if (G()->close_flag()) {
+  if (G()->close_flag() && r_web_page_id.is_ok()) {
     r_web_page_id = Global::request_aborted_error();
   }
   LOG(INFO) << "Update load requests for " << web_page_id;

@@ -1438,7 +1438,7 @@ void GroupCallManager::reload_group_call(InputGroupCallId input_group_call_id,
 
 void GroupCallManager::finish_get_group_call(InputGroupCallId input_group_call_id,
                                              Result<tl_object_ptr<telegram_api::phone_groupCall>> &&result) {
-  if (G()->close_flag()) {
+  if (G()->close_flag() && result.is_ok()) {
     result = Global::request_aborted_error();
   }
 
