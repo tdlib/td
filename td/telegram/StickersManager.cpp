@@ -9630,6 +9630,10 @@ vector<string> StickersManager::get_used_language_codes(const vector<string> &in
   return language_codes;
 }
 
+string StickersManager::get_used_language_codes_string() const {
+  return implode(get_used_language_codes({}, Slice()), '$');
+}
+
 vector<string> StickersManager::get_emoji_language_codes(const vector<string> &input_language_codes, Slice text,
                                                          Promise<Unit> &promise) {
   auto language_codes = get_used_language_codes(input_language_codes, text);
@@ -9975,7 +9979,7 @@ string StickersManager::get_emoji_groups_database_key(EmojiGroupType group_type)
 void StickersManager::get_emoji_groups(EmojiGroupType group_type,
                                        Promise<td_api::object_ptr<td_api::emojiCategories>> &&promise) {
   auto type = static_cast<int32>(group_type);
-  auto used_language_codes = implode(get_used_language_codes({}, Slice()), '$');
+  auto used_language_codes = get_used_language_codes_string();
   LOG(INFO) << "Have language codes " << used_language_codes;
   if (emoji_group_list_[type].get_used_language_codes() == used_language_codes) {
     promise.set_value(emoji_group_list_[type].get_emoji_categories_object());
@@ -10038,7 +10042,7 @@ void StickersManager::on_load_emoji_groups_from_database(EmojiGroupType group_ty
 void StickersManager::reload_emoji_groups(EmojiGroupType group_type, string used_language_codes) {
   auto type = static_cast<int32>(group_type);
   if (used_language_codes.empty()) {
-    used_language_codes = implode(get_used_language_codes({}, Slice()), '$');
+    used_language_codes = get_used_language_codes_string();
   }
   auto query_promise = PromiseCreator::lambda(
       [actor_id = actor_id(this), group_type, used_language_codes = std::move(used_language_codes)](
@@ -10064,7 +10068,7 @@ void StickersManager::on_get_emoji_groups(
     return fail_promises(emoji_group_load_queries_[type], r_emoji_groups.move_as_error());
   }
 
-  auto new_used_language_codes = implode(get_used_language_codes({}, Slice()), '$');
+  auto new_used_language_codes = get_used_language_codes_string();
   if (new_used_language_codes != used_language_codes) {
     used_language_codes.clear();
   }
@@ -10078,8 +10082,7 @@ void StickersManager::on_get_emoji_groups(
       break;
     case telegram_api::messages_emojiGroups::ID: {
       auto groups = telegram_api::move_object_as<telegram_api::messages_emojiGroups>(emoji_groups);
-      emoji_group_list_[type] =
-          EmojiGroupList(used_language_codes, groups->hash_, std::move(groups->groups_));
+      emoji_group_list_[type] = EmojiGroupList(used_language_codes, groups->hash_, std::move(groups->groups_));
       break;
     }
     default:

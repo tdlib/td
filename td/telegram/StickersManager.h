@@ -979,6 +979,8 @@ class StickersManager final : public Actor {
 
   vector<string> get_used_language_codes(const vector<string> &input_language_codes, Slice text) const;
 
+  string get_used_language_codes_string() const;
+
   vector<string> get_emoji_language_codes(const vector<string> &input_language_codes, Slice text,
                                           Promise<Unit> &promise);
 
