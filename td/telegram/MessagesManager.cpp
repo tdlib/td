@@ -26828,6 +26828,7 @@ void MessagesManager::do_send_message(DialogId dialog_id, const Message *m, vect
               .second;
       CHECK(is_inserted);
       // need to call resume_upload synchronously to make upload process consistent with being_uploaded_files_
+      // and to send is_uploading_active == true in the updates
       td_->file_manager_->resume_upload(file_id, std::move(bad_parts), upload_media_callback_, 1, m->message_id.get());
     } else {
       on_message_media_uploaded(dialog_id, m, std::move(input_media), file_id, thumbnail_file_id);
@@ -40311,7 +40312,7 @@ void MessagesManager::restore_message_reply_to_message_id(Dialog *d, Message *m)
 }
 
 MessagesManager::Message *MessagesManager::continue_send_message(DialogId dialog_id, unique_ptr<Message> &&m,
-                                                                 uint64 log_event_id) {
+                                                                 bool *need_update_dialog_pos, uint64 log_event_id) {
   CHECK(log_event_id != 0);
   CHECK(m != nullptr);
   CHECK(m->content != nullptr);
@@ -40345,18 +40346,12 @@ MessagesManager::Message *MessagesManager::continue_send_message(DialogId dialog
   restore_message_reply_to_message_id(d, m.get());
 
   bool need_update = false;
-  bool need_update_dialog_pos = false;
   auto result_message =
-      add_message_to_dialog(d, std::move(m), true, &need_update, &need_update_dialog_pos, "continue_send_message");
+      add_message_to_dialog(d, std::move(m), true, &need_update, need_update_dialog_pos, "continue_send_message");
   CHECK(result_message != nullptr);
 
   if (result_message->message_id.is_scheduled()) {
     send_update_chat_has_scheduled_messages(d, false);
-  }
-
-  send_update_new_message(d, result_message);
-  if (need_update_dialog_pos) {
-    send_update_chat_last_message(d, "continue_send_message");
   }
 
   auto can_send_status = can_send_message(dialog_id);
@@ -40366,6 +40361,11 @@ MessagesManager::Message *MessagesManager::continue_send_message(DialogId dialog
   }
   if (can_send_status.is_error()) {
     LOG(INFO) << "Can't continue to send a message to " << dialog_id << ": " << can_send_status;
+
+    send_update_new_message(d, result_message);
+    if (*need_update_dialog_pos) {
+      send_update_chat_last_message(d, "continue_send_message");
+    }
 
     fail_send_message({dialog_id, result_message->message_id}, std::move(can_send_status));
     return nullptr;
@@ -40408,9 +40408,16 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
         m->content =
             dup_message_content(td_, dialog_id, m->content.get(), MessageContentDupType::Send, MessageCopyOptions());
 
-        auto result_message = continue_send_message(dialog_id, std::move(m), event.id_);
+        bool need_update_dialog_pos = false;
+        auto result_message = continue_send_message(dialog_id, std::move(m), &need_update_dialog_pos, event.id_);
         if (result_message != nullptr) {
+          // uses send_closure_later internally
           do_send_message(dialog_id, result_message);
+          Dialog *d = get_dialog(dialog_id);
+          send_update_new_message(d, result_message);
+          if (need_update_dialog_pos) {
+            send_update_chat_last_message(d, "SendMessageLogEvent");
+          }
         }
 
         break;
@@ -40442,10 +40449,16 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
           continue;
         }
 
-        auto result_message = continue_send_message(dialog_id, std::move(m), event.id_);
+        bool need_update_dialog_pos = false;
+        auto result_message = continue_send_message(dialog_id, std::move(m), &need_update_dialog_pos, event.id_);
         if (result_message != nullptr) {
           send_closure_later(actor_id(this), &MessagesManager::do_send_bot_start_message, bot_user_id, dialog_id,
                              result_message->message_id, log_event.parameter);
+          Dialog *d = get_dialog(dialog_id);
+          send_update_new_message(d, result_message);
+          if (need_update_dialog_pos) {
+            send_update_chat_last_message(d, "SendBotStartMessageLogEvent");
+          }
         }
         break;
       }
@@ -40476,10 +40489,16 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
         m->content = dup_message_content(td_, dialog_id, m->content.get(), MessageContentDupType::SendViaBot,
                                          MessageCopyOptions());
 
-        auto result_message = continue_send_message(dialog_id, std::move(m), event.id_);
+        bool need_update_dialog_pos = false;
+        auto result_message = continue_send_message(dialog_id, std::move(m), &need_update_dialog_pos, event.id_);
         if (result_message != nullptr) {
           send_closure_later(actor_id(this), &MessagesManager::do_send_inline_query_result_message, dialog_id,
                              result_message->message_id, log_event.query_id, log_event.result_id);
+          Dialog *d = get_dialog(dialog_id);
+          send_update_new_message(d, result_message);
+          if (need_update_dialog_pos) {
+            send_update_chat_last_message(d, "SendInlineQueryResultMessageLogEvent");
+          }
         }
         break;
       }
@@ -40503,9 +40522,16 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
         add_message_dependencies(dependencies, m.get());
         dependencies.resolve_force(td_, "SendScreenshotTakenNotificationMessageLogEvent");
 
-        auto result_message = continue_send_message(dialog_id, std::move(m), event.id_);
+        bool need_update_dialog_pos = false;
+        auto result_message = continue_send_message(dialog_id, std::move(m), &need_update_dialog_pos, event.id_);
         if (result_message != nullptr) {
+          // order with other messages isn't kept
           do_send_screenshot_taken_notification_message(dialog_id, result_message, event.id_);
+          Dialog *d = get_dialog(dialog_id);
+          send_update_new_message(d, result_message);
+          if (need_update_dialog_pos) {
+            send_update_chat_last_message(d, "SendScreenshotTakenNotificationMessageLogEvent");
+          }
         }
         break;
       }

@@ -2100,7 +2100,8 @@ class MessagesManager final : public Actor {
 
   void restore_message_reply_to_message_id(Dialog *d, Message *m);
 
-  Message *continue_send_message(DialogId dialog_id, unique_ptr<Message> &&m, uint64 log_event_id);
+  Message *continue_send_message(DialogId dialog_id, unique_ptr<Message> &&m, bool *need_update_dialog_pos,
+                                 uint64 log_event_id);
 
   bool is_message_unload_enabled() const;
 
