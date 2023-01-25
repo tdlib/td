@@ -979,8 +979,6 @@ void Session::on_message_result_error(uint64 message_id, int error_code, string 
     LOG(WARNING) << "Receive MTProto error " << error_code << " : " << message << " in session "
                  << auth_data_.get_session_id() << " for auth key " << auth_data_.get_auth_key().id() << " with "
                  << sent_queries_.size() << " pending requests";
-  } else {
-    LOG(DEBUG) << "Receive error " << error_code << " : " << message;
   }
   auto it = sent_queries_.find(message_id);
   if (it == sent_queries_.end()) {
