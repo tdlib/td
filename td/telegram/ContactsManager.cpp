@@ -5795,6 +5795,7 @@ void ContactsManager::set_my_online_status(bool is_online, bool send_update, boo
       new_online = now - 1;
     }
 
+    auto old_was_online = get_user_was_online(u, my_id);
     if (is_local) {
       LOG(INFO) << "Update my local online from " << my_was_online_local_ << " to " << new_online;
       if (!is_online) {
@@ -5802,17 +5803,18 @@ void ContactsManager::set_my_online_status(bool is_online, bool send_update, boo
       }
       if (new_online != my_was_online_local_) {
         my_was_online_local_ = new_online;
-        u->is_status_changed = true;
-        u->is_online_status_changed = true;
       }
     } else {
       if (my_was_online_local_ != 0 || new_online != u->was_online) {
         LOG(INFO) << "Update my online from " << u->was_online << " to " << new_online;
         my_was_online_local_ = 0;
         u->was_online = new_online;
-        u->is_status_changed = true;
-        u->is_online_status_changed = true;
+        u->need_save_to_database = true;
       }
+    }
+    if (old_was_online != get_user_was_online(u, my_id)) {
+      u->is_status_changed = true;
+      u->is_online_status_changed = true;
     }
 
     if (was_online_local_ != new_online) {
