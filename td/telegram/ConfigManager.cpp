@@ -420,7 +420,7 @@ static ActorOwn<> get_full_config(DcOption option, Promise<tl_object_ptr<telegra
     void on_server_salt_updated(std::vector<mtproto::ServerSalt> server_salts) final {
       // nop
     }
-    void on_update(BufferSlice &&update) final {
+    void on_update(BufferSlice &&update, uint64 auth_key_id) final {
       // nop
     }
     void on_result(NetQueryPtr net_query) final {
@@ -1356,7 +1356,7 @@ void ConfigManager::process_config(tl_object_ptr<telegram_api::config> config) {
   }
   if (is_from_main_dc) {
     options.set_option_integer("webfile_dc_id", config->webfile_dc_id_);
-    if ((config->flags_ & telegram_api::config::TMP_SESSIONS_MASK) != 0) {
+    if ((config->flags_ & telegram_api::config::TMP_SESSIONS_MASK) != 0 && config->tmp_sessions_ > 1) {
       options.set_option_integer("session_count", config->tmp_sessions_);
     } else {
       options.set_option_empty("session_count");

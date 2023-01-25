@@ -62,7 +62,7 @@ class Session final
                                         Promise<unique_ptr<mtproto::RawConnection>>) = 0;
     virtual void on_tmp_auth_key_updated(mtproto::AuthKey auth_key) = 0;
     virtual void on_server_salt_updated(vector<mtproto::ServerSalt> server_salts) = 0;
-    virtual void on_update(BufferSlice &&update) = 0;
+    virtual void on_update(BufferSlice &&update, uint64 auth_key_id) = 0;
     virtual void on_result(NetQueryPtr net_query) = 0;
   };
 

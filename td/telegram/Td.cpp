@@ -3064,7 +3064,7 @@ std::shared_ptr<Td::ResultHandler> Td::extract_handler(uint64 id) {
   return result;
 }
 
-void Td::on_update(BufferSlice &&update) {
+void Td::on_update(BufferSlice &&update, uint64 auth_key_id) {
   if (close_flag_ > 1) {
     return;
   }
@@ -3076,6 +3076,7 @@ void Td::on_update(BufferSlice &&update) {
     LOG(ERROR) << "Failed to fetch update: " << parser.get_error() << format::as_hex_dump<4>(update.as_slice());
     updates_manager_->schedule_get_difference("failed to fetch update");
   } else {
+    updates_manager_->on_update_from_auth_key_id(auth_key_id);
     updates_manager_->on_get_updates(std::move(ptr), Promise<Unit>());
     if (auth_manager_->is_bot() && auth_manager_->is_authorized()) {
       alarm_timeout_.set_timeout_in(PING_SERVER_ALARM_ID,

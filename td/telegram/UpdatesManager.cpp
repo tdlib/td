@@ -303,7 +303,22 @@ void UpdatesManager::fill_gap(void *td, const char *source) {
   auto updates_manager = static_cast<Td *>(td)->updates_manager_.get();
 
   if (source != nullptr && !updates_manager->running_get_difference_) {
-    LOG(WARNING) << "Filling gap in " << source << " by running getDifference";
+    auto auth_key_id = updates_manager->get_most_unused_auth_key_id();
+    uint64 update_count = 0;
+    double active_time = 0.0;
+    double delay_time = 0.0;
+    if (auth_key_id != 0) {
+      auto now = Time::now();
+      auto &info = updates_manager->session_infos_[auth_key_id];
+      update_count = info.update_count;
+      active_time = now - info.first_update_time;
+      delay_time = now - info.last_update_time;
+    }
+
+    LOG(WARNING) << "Filling gap in " << source
+                 << " by running getDifference. Receive no updates from session with auth key " << auth_key_id
+                 << " for " << delay_time << " seconds, active for " << active_time << " seconds and having "
+                 << update_count << " received updates";
   }
 
   updates_manager->get_difference("fill_gap");
@@ -1477,6 +1492,37 @@ void UpdatesManager::init_state() {
   LOG(DEBUG) << "Init: " << get_pts() << " " << get_qts() << " " << date_;
 
   get_difference("init_state");
+}
+
+uint64 UpdatesManager::get_most_unused_auth_key_id() {
+  uint64 min_auth_key_id = 0;
+  double min_time = Time::now();
+  for (auto &it : session_infos_) {
+    if (it.second.last_update_time < min_time) {
+      min_time = it.second.last_update_time;
+      min_auth_key_id = it.first;
+    }
+  }
+  return min_auth_key_id;
+}
+
+void UpdatesManager::on_update_from_auth_key_id(uint64 auth_key_id) {
+  if (auth_key_id == 0) {
+    return;
+  }
+
+  auto &info = session_infos_[auth_key_id];
+  auto now = Time::now();
+  info.last_update_time = now;
+  if (info.update_count++ == 0) {
+    info.first_update_time = now;
+    while (session_infos_.size() >
+           static_cast<size_t>(max(narrow_cast<int32>(G()->get_option_integer("session_count")), 1))) {
+      auto unused_auth_key_id = get_most_unused_auth_key_id();
+      LOG(INFO) << "Delete statistics for auth key " << unused_auth_key_id;
+      session_infos_.erase(unused_auth_key_id);
+    }
+  }
 }
 
 void UpdatesManager::ping_server() {

@@ -704,7 +704,7 @@ void Session::on_session_created(uint64 unique_id, uint64 first_message_id) {
     BufferSlice packet(4);
     as<int32>(packet.as_slice().begin()) = telegram_api::updatesTooLong::ID;
     last_activity_timestamp_ = Time::now();
-    callback_->on_update(std::move(packet));
+    callback_->on_update(std::move(packet), auth_data_.get_auth_key().id());
   }
 
   for (auto it = sent_queries_.begin(); it != sent_queries_.end();) {
@@ -858,7 +858,7 @@ Status Session::on_update(BufferSlice packet) {
     last_success_timestamp_ = Time::now();
   }
   last_activity_timestamp_ = Time::now();
-  callback_->on_update(std::move(packet));
+  callback_->on_update(std::move(packet), auth_data_.get_auth_key().id());
   return Status::OK();
 }
 

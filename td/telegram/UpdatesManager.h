@@ -130,6 +130,8 @@ class UpdatesManager final : public Actor {
 
   void schedule_get_difference(const char *source);
 
+  void on_update_from_auth_key_id(uint64 auth_key_id);
+
   void ping_server();
 
   bool running_get_difference() const {
@@ -251,6 +253,13 @@ class UpdatesManager final : public Actor {
   FlatHashMap<int64, TranscribedAudioHandler> pending_audio_transcriptions_;
   MultiTimeout pending_audio_transcription_timeout_{"PendingAudioTranscriptionTimeout"};
 
+  struct SessionInfo {
+    uint64 update_count = 0;
+    double first_update_time = 0.0;
+    double last_update_time = 0.0;
+  };
+  FlatHashMap<uint64, SessionInfo> session_infos_;
+
   void start_up() final;
 
   void tear_down() final;
@@ -364,6 +373,8 @@ class UpdatesManager final : public Actor {
   static void try_reload_data_static(void *td);
 
   void try_reload_data();
+
+  uint64 get_most_unused_auth_key_id();
 
   static vector<int32> get_update_ids(const telegram_api::Updates *updates_ptr);
 

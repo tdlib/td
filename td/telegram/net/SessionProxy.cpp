@@ -58,8 +58,8 @@ class SessionCallback final : public Session::Callback {
     send_closure(parent_, &SessionProxy::on_server_salt_updated, std::move(server_salts));
   }
 
-  void on_update(BufferSlice &&update) final {
-    send_closure_later(G()->td(), &Td::on_update, std::move(update));
+  void on_update(BufferSlice &&update, uint64 auth_key_id) final {
+    send_closure_later(G()->td(), &Td::on_update, std::move(update), auth_key_id);
   }
 
   void on_result(NetQueryPtr query) final {
