@@ -3821,6 +3821,9 @@ premiumFeatureForumTopicIcon = PremiumFeature;
 //@description Allowed to set a premium appllication icons
 premiumFeatureAppIcons = PremiumFeature;
 
+//@description Allowed to translate chat messages real-time
+premiumFeatureRealTimeChatTranslation = PremiumFeature;
+
 
 //@description Contains information about a limit, increased for Premium users @type The type of the limit @default_value Default value of the limit @premium_value Value of the limit for Premium users
 premiumLimit type:PremiumLimitType default_value:int32 premium_value:int32 = PremiumLimit;
