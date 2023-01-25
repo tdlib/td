@@ -928,6 +928,13 @@ void FileManager::check_local_location(FileId file_id, bool skip_file_size_check
   }
 }
 
+void FileManager::check_local_location_async(FileId file_id, bool skip_file_size_checks) {
+  auto node = get_sync_file_node(file_id);
+  if (node) {
+    check_local_location_async(node, skip_file_size_checks, Promise<Unit>());
+  }
+}
+
 Status FileManager::check_local_location(FileNodePtr node, bool skip_file_size_checks) {
   Status status;
   if (node->local_.type() == LocalFileLocation::Type::Full) {

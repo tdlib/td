@@ -452,6 +452,7 @@ class FileManager final : public FileLoadManager::Callback {
   bool set_content(FileId file_id, BufferSlice bytes);
 
   void check_local_location(FileId file_id, bool skip_file_size_checks);
+  void check_local_location_async(FileId file_id, bool skip_file_size_checks);
 
   void download(FileId file_id, std::shared_ptr<DownloadCallback> callback, int32 new_priority, int64 offset,
                 int64 limit, Promise<td_api::object_ptr<td_api::file>> promise);

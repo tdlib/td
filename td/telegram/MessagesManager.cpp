@@ -21559,6 +21559,11 @@ Status MessagesManager::view_messages(DialogId dialog_id, MessageId top_thread_m
         view_id = ++info->current_view_id;
         info->recently_viewed_messages[view_id] = message_id;
       }
+
+      auto file_ids = get_message_content_file_ids(m->content.get(), td_);
+      for (auto file_id : file_ids) {
+        td_->file_manager_->check_local_location_async(file_id, true);
+      }
     } else if (!message_id.is_yet_unsent() && message_id > max_message_id) {
       if (message_id <= d->max_notification_message_id || message_id <= d->last_new_message_id ||
           message_id <= max_thread_message_id) {
@@ -21717,6 +21722,11 @@ Status MessagesManager::open_message_content(FullMessageId full_message_id) {
 
   if (m->content->get_type() == MessageContentType::LiveLocation) {
     on_message_live_location_viewed(d, m);
+  }
+
+  auto file_ids = get_message_content_file_ids(m->content.get(), td_);
+  for (auto file_id : file_ids) {
+    td_->file_manager_->check_local_location_async(file_id, true);
   }
 
   return Status::OK();
