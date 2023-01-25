@@ -13,6 +13,7 @@
 #include "td/telegram/DialogId.h"
 #include "td/telegram/Document.h"
 #include "td/telegram/DocumentsManager.h"
+#include "td/telegram/EmojiGroup.hpp"
 #include "td/telegram/FileReferenceManager.h"
 #include "td/telegram/files/FileLocation.h"
 #include "td/telegram/files/FileManager.h"
@@ -5704,7 +5705,7 @@ void StickersManager::do_reload_sticker_set(StickerSetId sticker_set_id,
 }
 
 void StickersManager::on_reload_sticker_set(StickerSetId sticker_set_id, Result<Unit> &&result) {
-  if (G()->close_flag()) {
+  if (G()->close_flag() && result.is_ok()) {
     result = Global::request_aborted_error();
   }
   LOG(INFO) << "Reloaded " << sticker_set_id;
@@ -8229,7 +8230,7 @@ void StickersManager::on_uploaded_sticker_file(FileId file_id, tl_object_ptr<tel
 }
 
 void StickersManager::on_new_stickers_uploaded(int64 random_id, Result<Unit> result) {
-  if (G()->close_flag()) {
+  if (G()->close_flag() && result.is_ok()) {
     result = Global::request_aborted_error();
   }
 
@@ -8340,7 +8341,7 @@ void StickersManager::do_add_sticker_to_set(UserId user_id, string short_name,
 }
 
 void StickersManager::on_added_sticker_uploaded(int64 random_id, Result<Unit> result) {
-  if (G()->close_flag()) {
+  if (G()->close_flag() && result.is_ok()) {
     result = Global::request_aborted_error();
   }
 
@@ -8441,7 +8442,7 @@ void StickersManager::do_set_sticker_set_thumbnail(UserId user_id, string short_
 }
 
 void StickersManager::on_sticker_set_thumbnail_uploaded(int64 random_id, Result<Unit> result) {
-  if (G()->close_flag()) {
+  if (G()->close_flag() && result.is_ok()) {
     result = Global::request_aborted_error();
   }
 
@@ -9774,7 +9775,7 @@ void StickersManager::load_emoji_keywords_difference(const string &language_code
 void StickersManager::on_get_emoji_keywords_difference(
     const string &language_code, int32 from_version,
     Result<telegram_api::object_ptr<telegram_api::emojiKeywordsDifference>> &&result) {
-  if (G()->close_flag()) {
+  if (G()->close_flag() && result.is_ok()) {
     result = Global::request_aborted_error();
   }
   if (result.is_error()) {
@@ -9967,6 +9968,10 @@ td_api::object_ptr<td_api::httpUrl> StickersManager::get_emoji_suggestions_url_r
   return result;
 }
 
+string StickersManager::get_emoji_groups_database_key(EmojiGroupType group_type) {
+  return PSTRING() << "emojigroup" << static_cast<int32>(group_type);
+}
+
 void StickersManager::get_emoji_groups(EmojiGroupType group_type,
                                        Promise<td_api::object_ptr<td_api::emojiCategories>> &&promise) {
   auto type = static_cast<int32>(group_type);
@@ -9986,6 +9991,55 @@ void StickersManager::get_emoji_groups(EmojiGroupType group_type,
     return;
   }
 
+  if (G()->parameters().use_file_db /* have SQLite PMC */) {
+    G()->td_db()->get_sqlite_pmc()->get(
+        get_emoji_groups_database_key(group_type),
+        PromiseCreator::lambda(
+            [group_type, used_language_codes = std::move(used_language_codes)](string value) mutable {
+              send_closure(G()->stickers_manager(), &StickersManager::on_load_emoji_groups_from_database, group_type,
+                           std::move(used_language_codes), std::move(value));
+            }));
+  } else {
+    reload_emoji_groups(group_type, std::move(used_language_codes));
+  }
+}
+
+void StickersManager::on_load_emoji_groups_from_database(EmojiGroupType group_type, string used_language_codes,
+                                                         string value) {
+  if (G()->close_flag()) {
+    return on_get_emoji_groups(group_type, std::move(used_language_codes), G()->close_status());
+  }
+  if (value.empty()) {
+    LOG(INFO) << "Emoji groups of type " << group_type << " aren't found in database";
+    return reload_emoji_groups(group_type, std::move(used_language_codes));
+  }
+
+  LOG(INFO) << "Successfully loaded emoji groups of type " << group_type << " from database";
+
+  auto type = static_cast<int32>(group_type);
+  auto status = log_event_parse(emoji_group_list_[type], value);
+  if (status.is_error()) {
+    LOG(ERROR) << "Can't load emoji groups: " << status;
+    emoji_group_list_[type] = {};
+    return reload_emoji_groups(group_type, std::move(used_language_codes));
+  }
+
+  if (emoji_group_list_[type].get_used_language_codes() != used_language_codes) {
+    return reload_emoji_groups(group_type, std::move(used_language_codes));
+  }
+
+  auto promises = std::move(emoji_group_load_queries_[type]);
+  reset_to_empty(emoji_group_load_queries_[type]);
+  for (auto &promise : promises) {
+    promise.set_value(emoji_group_list_[type].get_emoji_categories_object());
+  }
+}
+
+void StickersManager::reload_emoji_groups(EmojiGroupType group_type, string used_language_codes) {
+  auto type = static_cast<int32>(group_type);
+  if (used_language_codes.empty()) {
+    used_language_codes = implode(get_used_language_codes({}, Slice()), '$');
+  }
   auto query_promise = PromiseCreator::lambda(
       [actor_id = actor_id(this), group_type, used_language_codes = std::move(used_language_codes)](
           Result<telegram_api::object_ptr<telegram_api::messages_EmojiGroups>> r_emoji_groups) {
@@ -10000,7 +10054,7 @@ void StickersManager::on_get_emoji_groups(
     EmojiGroupType group_type, string used_language_codes,
     Result<telegram_api::object_ptr<telegram_api::messages_EmojiGroups>> r_emoji_groups) {
   auto type = static_cast<int32>(group_type);
-  if (G()->close_flag()) {
+  if (G()->close_flag() && r_emoji_groups.is_ok()) {
     r_emoji_groups = Global::request_aborted_error();
   }
   if (r_emoji_groups.is_error()) {
@@ -10018,16 +10072,23 @@ void StickersManager::on_get_emoji_groups(
   auto emoji_groups = r_emoji_groups.move_as_ok();
   switch (emoji_groups->get_id()) {
     case telegram_api::messages_emojiGroupsNotModified::ID:
-      emoji_group_list_[type].update_next_reload_time();
+      if (!used_language_codes.empty()) {
+        emoji_group_list_[type].update_next_reload_time();
+      }
       break;
     case telegram_api::messages_emojiGroups::ID: {
       auto groups = telegram_api::move_object_as<telegram_api::messages_emojiGroups>(emoji_groups);
       emoji_group_list_[type] =
-          EmojiGroupList(std::move(used_language_codes), groups->hash_, std::move(groups->groups_));
+          EmojiGroupList(used_language_codes, groups->hash_, std::move(groups->groups_));
       break;
     }
     default:
       UNREACHABLE();
+  }
+
+  if (!used_language_codes.empty() && G()->parameters().use_file_db /* have SQLite PMC */) {
+    G()->td_db()->get_sqlite_pmc()->set(get_emoji_groups_database_key(group_type),
+                                        log_event_store(emoji_group_list_[type]).as_slice().str(), Auto());
   }
 
   auto promises = std::move(emoji_group_load_queries_[type]);

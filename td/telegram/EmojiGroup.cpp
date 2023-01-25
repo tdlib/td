@@ -21,7 +21,7 @@ td_api::object_ptr<td_api::emojiCategory> EmojiGroup::get_emoji_category_object(
   return td_api::make_object<td_api::emojiCategory>(title_, icon_custom_emoji_id_.get(), vector<string>(emojis_));
 }
 
-EmojiGroupList::EmojiGroupList(string &&used_language_codes, int32 hash,
+EmojiGroupList::EmojiGroupList(string used_language_codes, int32 hash,
                                vector<telegram_api::object_ptr<telegram_api::emojiGroup>> &&emoji_groups)
     : used_language_codes_(std::move(used_language_codes))
     , hash_(hash)

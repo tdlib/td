@@ -42,7 +42,7 @@ class EmojiGroupList {
  public:
   EmojiGroupList() = default;
 
-  EmojiGroupList(string &&used_language_codes, int32 hash,
+  EmojiGroupList(string used_language_codes, int32 hash,
                  vector<telegram_api::object_ptr<telegram_api::emojiGroup>> &&emoji_groups);
 
   td_api::object_ptr<td_api::emojiCategories> get_emoji_categories_object() const;

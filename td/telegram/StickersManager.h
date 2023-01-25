@@ -971,6 +971,8 @@ class StickersManager final : public Actor {
 
   static string get_default_dialog_photo_custom_emoji_ids_database_key(bool for_user);
 
+  static string get_emoji_groups_database_key(EmojiGroupType group_type);
+
   int32 get_emoji_language_code_version(const string &language_code);
 
   double get_emoji_language_code_last_difference_time(const string &language_code);
@@ -1001,6 +1003,10 @@ class StickersManager final : public Actor {
 
   void on_get_emoji_suggestions_url(int64 random_id, Promise<Unit> &&promise,
                                     Result<telegram_api::object_ptr<telegram_api::emojiURL>> &&r_emoji_url);
+
+  void on_load_emoji_groups_from_database(EmojiGroupType group_type, string used_language_codes, string value);
+
+  void reload_emoji_groups(EmojiGroupType group_type, string used_language_codes);
 
   void on_get_emoji_groups(EmojiGroupType group_type, string used_language_codes,
                            Result<telegram_api::object_ptr<telegram_api::messages_EmojiGroups>> r_emoji_groups);
