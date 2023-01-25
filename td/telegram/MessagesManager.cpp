@@ -14664,8 +14664,8 @@ MessagesManager::MessageInfo MessagesManager::parse_telegram_api_message(
       }
       message_info.date = message->date_;
       message_info.forward_header = std::move(message->fwd_from_);
-      bool can_have_thread = !is_scheduled && message_info.dialog_id.get_type() == DialogType::Channel &&
-                             !is_broadcast_channel(message_info.dialog_id);
+      bool can_have_thread =
+          message_info.dialog_id.get_type() == DialogType::Channel && !is_broadcast_channel(message_info.dialog_id);
       message_info.reply_header = MessageReplyHeader(std::move(message->reply_to_), message_info.dialog_id,
                                                      message_info.message_id, message_info.date, can_have_thread);
       if (message->flags_ & MESSAGE_FLAG_IS_SENT_VIA_BOT) {
@@ -14731,8 +14731,8 @@ MessagesManager::MessageInfo MessagesManager::parse_telegram_api_message(
         message_info.ttl_period = message->ttl_period_;
       }
       message_info.flags = message->flags_;
-      bool can_have_thread = !is_scheduled && message_info.dialog_id.get_type() == DialogType::Channel &&
-                             !is_broadcast_channel(message_info.dialog_id);
+      bool can_have_thread =
+          message_info.dialog_id.get_type() == DialogType::Channel && !is_broadcast_channel(message_info.dialog_id);
       message_info.reply_header = MessageReplyHeader(std::move(message->reply_to_), message_info.dialog_id,
                                                      message_info.message_id, message_info.date, can_have_thread);
       message_info.content = get_action_message_content(td_, std::move(message->action_), message_info.dialog_id,
@@ -18712,7 +18712,8 @@ void MessagesManager::process_discussion_message(
     telegram_api::object_ptr<telegram_api::messages_discussionMessage> &&result, DialogId dialog_id,
     MessageId message_id, DialogId expected_dialog_id, MessageId expected_message_id,
     Promise<MessageThreadInfo> promise) {
-  LOG(INFO) << "Receive discussion message for " << message_id << " in " << dialog_id << ": " << to_string(result);
+  LOG(INFO) << "Receive discussion message for " << message_id << " in " << dialog_id << " with expected "
+            << expected_message_id << " in " << expected_dialog_id << ": " << to_string(result);
   td_->contacts_manager_->on_get_users(std::move(result->users_), "process_discussion_message");
   td_->contacts_manager_->on_get_chats(std::move(result->chats_), "process_discussion_message");
 
@@ -35482,8 +35483,14 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     message->history_generation = d->history_generation;
   }
 
-  if (!message->top_thread_message_id.is_valid() && is_thread_message(dialog_id, message.get())) {
-    message->top_thread_message_id = message_id;
+  if (message->top_thread_message_id.is_valid()) {
+    if (is_broadcast_channel(dialog_id)) {
+      message->top_thread_message_id = MessageId();
+    }
+  } else {
+    if (is_thread_message(dialog_id, message.get())) {
+      message->top_thread_message_id = message_id;
+    }
   }
 
   if (!message_id.is_scheduled() && message_id <= d->last_clear_history_message_id) {
