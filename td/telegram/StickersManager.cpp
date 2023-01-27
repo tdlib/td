@@ -1362,6 +1362,9 @@ class GetEmojiGroupsQuery final : public Td::ResultHandler {
       case EmojiGroupType::EmojiStatus:
         send_query(G()->net_query_creator().create(telegram_api::messages_getEmojiStatusGroups(hash)));
         break;
+      case EmojiGroupType::ProfilePhoto:
+        send_query(G()->net_query_creator().create(telegram_api::messages_getEmojiProfilePhotoGroups(hash)));
+        break;
       default:
         UNREACHABLE();
     }
@@ -1370,6 +1373,9 @@ class GetEmojiGroupsQuery final : public Td::ResultHandler {
   void on_result(BufferSlice packet) final {
     static_assert(std::is_same<telegram_api::messages_getEmojiGroups::ReturnType,
                                telegram_api::messages_getEmojiStatusGroups::ReturnType>::value,
+                  "");
+    static_assert(std::is_same<telegram_api::messages_getEmojiGroups::ReturnType,
+                               telegram_api::messages_getEmojiProfilePhotoGroups::ReturnType>::value,
                   "");
     auto result_ptr = fetch_result<telegram_api::messages_getEmojiGroups>(packet);
     if (result_ptr.is_error()) {

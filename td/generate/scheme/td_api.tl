@@ -2958,6 +2958,9 @@ emojiCategoryTypeDefault = EmojiCategoryType;
 //@description The category should be used for emoji status selection
 emojiCategoryTypeEmojiStatus = EmojiCategoryType;
 
+//@description The category should be used for chat photo emoji selection
+emojiCategoryTypeChatPhoto = EmojiCategoryType;
+
 
 //@class CallDiscardReason @description Describes the reason why a call was discarded
 
