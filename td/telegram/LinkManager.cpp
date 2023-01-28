@@ -1579,11 +1579,16 @@ void LinkManager::get_external_link_info(string &&link, Promise<td_api::object_p
     return promise.set_value(std::move(default_result));
   }
 
-  bool skip_confirm = td::contains(whitelisted_domains_, r_url.ok().host_);
+  auto url = r_url.move_as_ok();
+  if (!url.userinfo_.empty() || url.is_ipv6_) {
+    return promise.set_value(std::move(default_result));
+  }
+
+  bool skip_confirm = td::contains(whitelisted_domains_, url.host_);
   default_result->skip_confirm_ = skip_confirm;
 
-  if (!td::contains(autologin_domains_, r_url.ok().host_)) {
-    if (td::contains(url_auth_domains_, r_url.ok().host_)) {
+  if (!td::contains(autologin_domains_, url.host_)) {
+    if (td::contains(url_auth_domains_, url.host_)) {
       td_->create_handler<RequestUrlAuthQuery>(std::move(promise))->send(link, FullMessageId(), 0);
       return;
     }
@@ -1605,7 +1610,6 @@ void LinkManager::get_external_link_info(string &&link, Promise<td_api::object_p
     return promise.set_value(std::move(default_result));
   }
 
-  auto url = r_url.move_as_ok();
   url.protocol_ = HttpUrl::Protocol::Https;
   Slice path = url.query_;
   path.truncate(url.query_.find_first_of("?#"));
