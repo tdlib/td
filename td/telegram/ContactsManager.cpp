@@ -447,9 +447,8 @@ class UploadProfilePhotoQuery final : public Td::ResultHandler {
   explicit UploadProfilePhotoQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(UserId user_id, FileId file_id, tl_object_ptr<telegram_api::InputFile> &&input_file,
-            unique_ptr<StickerPhotoSize> sticker_photo_size, bool is_fallback, bool only_suggest, bool is_animation,
-            double main_frame_timestamp) {
+  void send(UserId user_id, FileId file_id, tl_object_ptr<telegram_api::InputFile> &&input_file, bool is_fallback,
+            bool only_suggest, bool is_animation, double main_frame_timestamp) {
     CHECK(input_file != nullptr);
     CHECK(file_id.is_valid());
 
@@ -486,15 +485,9 @@ class UploadProfilePhotoQuery final : public Td::ResultHandler {
       if (is_fallback) {
         flags |= telegram_api::photos_uploadProfilePhoto::FALLBACK_MASK;
       }
-      auto video_emoji_markup =
-          sticker_photo_size != nullptr ? sticker_photo_size->get_input_video_size_object(td_) : nullptr;
-      if (video_emoji_markup != nullptr) {
-        flags |= telegram_api::photos_uploadProfilePhoto::VIDEO_EMOJI_MARKUP_MASK;
-      }
       send_query(G()->net_query_creator().create(
           telegram_api::photos_uploadProfilePhoto(flags, false /*ignored*/, std::move(photo_input_file),
-                                                  std::move(video_input_file), main_frame_timestamp,
-                                                  std::move(video_emoji_markup)),
+                                                  std::move(video_input_file), main_frame_timestamp, nullptr),
           {{"me"}}));
     } else {
       if (only_suggest) {
@@ -514,6 +507,41 @@ class UploadProfilePhotoQuery final : public Td::ResultHandler {
     }
   }
 
+  void send(UserId user_id, unique_ptr<StickerPhotoSize> sticker_photo_size, bool is_fallback, bool only_suggest) {
+    CHECK(sticker_photo_size != nullptr);
+    user_id_ = user_id;
+    file_id_ = FileId();
+    is_fallback_ = is_fallback;
+    only_suggest_ = only_suggest;
+
+    if (user_id == td_->contacts_manager_->get_my_id()) {
+      int32 flags = telegram_api::photos_uploadProfilePhoto::VIDEO_EMOJI_MARKUP_MASK;
+      if (is_fallback) {
+        flags |= telegram_api::photos_uploadProfilePhoto::FALLBACK_MASK;
+      }
+      send_query(G()->net_query_creator().create(
+          telegram_api::photos_uploadProfilePhoto(flags, false /*ignored*/, nullptr, nullptr, 0.0,
+                                                  sticker_photo_size->get_input_video_size_object(td_)),
+          {{"me"}}));
+    } else {
+      int32 flags = telegram_api::photos_uploadContactProfilePhoto::VIDEO_EMOJI_MARKUP_MASK;
+      if (only_suggest) {
+        flags |= telegram_api::photos_uploadContactProfilePhoto::SUGGEST_MASK;
+      } else {
+        flags |= telegram_api::photos_uploadContactProfilePhoto::SAVE_MASK;
+      }
+      auto r_input_user = td_->contacts_manager_->get_input_user(user_id);
+      if (r_input_user.is_error()) {
+        return on_error(r_input_user.move_as_error());
+      }
+      send_query(G()->net_query_creator().create(
+          telegram_api::photos_uploadContactProfilePhoto(flags, false /*ignored*/, false /*ignored*/,
+                                                         r_input_user.move_as_ok(), nullptr, nullptr, 0.0,
+                                                         sticker_photo_size->get_input_video_size_object(td_)),
+          {{user_id}}));
+    }
+  }
+
   void on_result(BufferSlice packet) final {
     static_assert(std::is_same<telegram_api::photos_uploadProfilePhoto::ReturnType,
                                telegram_api::photos_uploadContactProfilePhoto::ReturnType>::value,
@@ -527,14 +555,18 @@ class UploadProfilePhotoQuery final : public Td::ResultHandler {
       td_->contacts_manager_->on_set_profile_photo(user_id_, result_ptr.move_as_ok(), is_fallback_, 0);
     }
 
-    td_->file_manager_->delete_partial_remote_location(file_id_);
+    if (file_id_.is_valid()) {
+      td_->file_manager_->delete_partial_remote_location(file_id_);
+    }
 
     promise_.set_value(Unit());
   }
 
   void on_error(Status status) final {
     promise_.set_error(std::move(status));
-    td_->file_manager_->delete_partial_remote_location(file_id_);
+    if (file_id_.is_valid()) {
+      td_->file_manager_->delete_partial_remote_location(file_id_);
+    }
   }
 };
 
@@ -7057,15 +7089,13 @@ FileId ContactsManager::get_profile_photo_file_id(int64 photo_id) const {
   return it->second;
 }
 
-void ContactsManager::set_profile_photo(const td_api::object_ptr<td_api::InputChatPhoto> &input_photo,
-                                        const td_api::object_ptr<td_api::chatPhotoSticker> &sticker, bool is_fallback,
+void ContactsManager::set_profile_photo(const td_api::object_ptr<td_api::InputChatPhoto> &input_photo, bool is_fallback,
                                         Promise<Unit> &&promise) {
-  set_profile_photo_impl(get_my_id(), input_photo, sticker, is_fallback, false, std::move(promise));
+  set_profile_photo_impl(get_my_id(), input_photo, is_fallback, false, std::move(promise));
 }
 
 void ContactsManager::set_profile_photo_impl(UserId user_id,
                                              const td_api::object_ptr<td_api::InputChatPhoto> &input_photo,
-                                             const td_api::object_ptr<td_api::chatPhotoSticker> &sticker,
                                              bool is_fallback, bool only_suggest, Promise<Unit> &&promise) {
   if (input_photo == nullptr) {
     return promise.set_error(Status::Error(400, "New profile photo must be non-empty"));
@@ -7078,9 +7108,6 @@ void ContactsManager::set_profile_photo_impl(UserId user_id,
     case td_api::inputChatPhotoPrevious::ID: {
       if (user_id != get_my_id()) {
         return promise.set_error(Status::Error(400, "Can't use inputChatPhotoPrevious"));
-      }
-      if (sticker != nullptr) {
-        return promise.set_error(Status::Error(400, "Can't use sticker with a previous photo"));
       }
       auto photo = static_cast<const td_api::inputChatPhotoPrevious *>(input_photo.get());
       auto photo_id = photo->chat_photo_id_;
@@ -7109,6 +7136,14 @@ void ContactsManager::set_profile_photo_impl(UserId user_id,
       is_animation = true;
       break;
     }
+    case td_api::inputChatPhotoSticker::ID: {
+      auto photo = static_cast<const td_api::inputChatPhotoSticker *>(input_photo.get());
+      TRY_RESULT_PROMISE(promise, sticker_photo_size, StickerPhotoSize::get_sticker_photo_size(td_, photo->sticker_));
+
+      td_->create_handler<UploadProfilePhotoQuery>(std::move(promise))
+          ->send(user_id, std::move(sticker_photo_size), is_fallback, only_suggest);
+      return;
+    }
     default:
       UNREACHABLE();
       break;
@@ -7119,8 +7154,6 @@ void ContactsManager::set_profile_photo_impl(UserId user_id,
     return promise.set_error(Status::Error(400, "Wrong main frame timestamp specified"));
   }
 
-  TRY_RESULT_PROMISE(promise, sticker_photo_size, StickerPhotoSize::get_sticker_photo_size(td_, sticker));
-
   auto file_type = is_animation ? FileType::Animation : FileType::Photo;
   auto r_file_id = td_->file_manager_->get_input_file_id(file_type, *input_file, DialogId(user_id), false, false);
   if (r_file_id.is_error()) {
@@ -7130,9 +7163,8 @@ void ContactsManager::set_profile_photo_impl(UserId user_id,
   FileId file_id = r_file_id.ok();
   CHECK(file_id.is_valid());
 
-  upload_profile_photo(user_id, td_->file_manager_->dup_file_id(file_id, "set_profile_photo_impl"),
-                       std::move(sticker_photo_size), is_fallback, only_suggest, is_animation, main_frame_timestamp,
-                       std::move(promise));
+  upload_profile_photo(user_id, td_->file_manager_->dup_file_id(file_id, "set_profile_photo_impl"), is_fallback,
+                       only_suggest, is_animation, main_frame_timestamp, std::move(promise));
 }
 
 void ContactsManager::set_user_profile_photo(UserId user_id,
@@ -7156,7 +7188,7 @@ void ContactsManager::set_user_profile_photo(UserId user_id,
     return;
   }
 
-  set_profile_photo_impl(user_id, input_photo, nullptr, false, only_suggest, std::move(promise));
+  set_profile_photo_impl(user_id, input_photo, false, only_suggest, std::move(promise));
 }
 
 void ContactsManager::send_update_profile_photo_query(FileId file_id, int64 old_photo_id, bool is_fallback,
@@ -7166,16 +7198,15 @@ void ContactsManager::send_update_profile_photo_query(FileId file_id, int64 old_
       ->send(file_id, old_photo_id, is_fallback, file_view.main_remote_location().as_input_photo());
 }
 
-void ContactsManager::upload_profile_photo(UserId user_id, FileId file_id,
-                                           unique_ptr<StickerPhotoSize> sticker_photo_size, bool is_fallback,
-                                           bool only_suggest, bool is_animation, double main_frame_timestamp,
-                                           Promise<Unit> &&promise, int reupload_count, vector<int> bad_parts) {
+void ContactsManager::upload_profile_photo(UserId user_id, FileId file_id, bool is_fallback, bool only_suggest,
+                                           bool is_animation, double main_frame_timestamp, Promise<Unit> &&promise,
+                                           int reupload_count, vector<int> bad_parts) {
   CHECK(file_id.is_valid());
-  bool is_inserted = uploaded_profile_photos_
-                         .emplace(file_id, UploadedProfilePhoto{user_id, std::move(sticker_photo_size), is_fallback,
-                                                                only_suggest, main_frame_timestamp, is_animation,
-                                                                reupload_count, std::move(promise)})
-                         .second;
+  bool is_inserted =
+      uploaded_profile_photos_
+          .emplace(file_id, UploadedProfilePhoto{user_id, is_fallback, only_suggest, main_frame_timestamp, is_animation,
+                                                 reupload_count, std::move(promise)})
+          .second;
   CHECK(is_inserted);
   LOG(INFO) << "Ask to upload " << (is_animation ? "animated" : "static") << " profile photo " << file_id
             << " for user " << user_id << " with bad parts " << bad_parts;
@@ -17914,7 +17945,6 @@ void ContactsManager::on_upload_profile_photo(FileId file_id, tl_object_ptr<tele
   CHECK(it != uploaded_profile_photos_.end());
 
   UserId user_id = it->second.user_id;
-  auto sticker_photo_size = std::move(it->second.sticker_photo_size);
   bool is_fallback = it->second.is_fallback;
   bool only_suggest = it->second.only_suggest;
   double main_frame_timestamp = it->second.main_frame_timestamp;
@@ -17947,15 +17977,14 @@ void ContactsManager::on_upload_profile_photo(FileId file_id, tl_object_ptr<tele
         is_animation ? FileManager::extract_file_reference(file_view.main_remote_location().as_input_document())
                      : FileManager::extract_file_reference(file_view.main_remote_location().as_input_photo());
     td_->file_manager_->delete_file_reference(file_id, file_reference);
-    upload_profile_photo(user_id, file_id, std::move(sticker_photo_size), is_fallback, only_suggest, is_animation,
-                         main_frame_timestamp, std::move(promise), reupload_count + 1, {-1});
+    upload_profile_photo(user_id, file_id, is_fallback, only_suggest, is_animation, main_frame_timestamp,
+                         std::move(promise), reupload_count + 1, {-1});
     return;
   }
   CHECK(input_file != nullptr);
 
   td_->create_handler<UploadProfilePhotoQuery>(std::move(promise))
-      ->send(user_id, file_id, std::move(input_file), std::move(sticker_photo_size), is_fallback, only_suggest,
-             is_animation, main_frame_timestamp);
+      ->send(user_id, file_id, std::move(input_file), is_fallback, only_suggest, is_animation, main_frame_timestamp);
 }
 
 void ContactsManager::on_upload_profile_photo_error(FileId file_id, Status status) {

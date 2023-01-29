@@ -6157,7 +6157,7 @@ void Td::on_request(uint64 id, td_api::setChatTitle &request) {
 
 void Td::on_request(uint64 id, const td_api::setChatPhoto &request) {
   CREATE_OK_REQUEST_PROMISE();
-  messages_manager_->set_dialog_photo(DialogId(request.chat_id_), request.photo_, request.sticker_, std::move(promise));
+  messages_manager_->set_dialog_photo(DialogId(request.chat_id_), request.photo_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::setChatMessageAutoDeleteTime &request) {
@@ -7002,7 +7002,7 @@ void Td::on_request(uint64 id, const td_api::setLocation &request) {
 void Td::on_request(uint64 id, td_api::setProfilePhoto &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  contacts_manager_->set_profile_photo(request.photo_, request.sticker_, request.is_public_, std::move(promise));
+  contacts_manager_->set_profile_photo(request.photo_, request.is_public_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::deleteProfilePhoto &request) {

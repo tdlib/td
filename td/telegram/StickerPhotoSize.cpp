@@ -14,7 +14,7 @@ namespace td {
 Result<unique_ptr<StickerPhotoSize>> StickerPhotoSize::get_sticker_photo_size(
     Td *td, const td_api::object_ptr<td_api::chatPhotoSticker> &sticker) {
   if (sticker == nullptr) {
-    return nullptr;
+    return Status::Error(400, "Sticker must not be null");
   }
   if (sticker->type_ == nullptr) {
     return Status::Error(400, "Type must be non-null");

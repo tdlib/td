@@ -551,7 +551,7 @@ chatPhotoStickerTypeRegularOrMask sticker_set_id:int64 sticker_id:int64 = ChatPh
 chatPhotoStickerTypeCustomEmoji custom_emoji_id:int64 = ChatPhotoStickerType;
 
 
-//@description Information about the sticker, which was used to create the chat photo
+//@description Information about the sticker, which was used to create the chat photo. The sticker is shown at the center of the photo and occupies at most 67% of it
 //@type Type of the sticker
 //@background_fill Describes a fill of the background under the sticker; rotation angle in backgroundFillGradient isn't supported
 chatPhotoSticker type:ChatPhotoStickerType background_fill:BackgroundFill = ChatPhotoSticker;
@@ -589,6 +589,9 @@ inputChatPhotoStatic photo:InputFile = InputChatPhoto;
 //@animation Animation to be set as profile photo. Only inputFileLocal and inputFileGenerated are allowed
 //@main_frame_timestamp Timestamp of the frame, which will be used as static chat photo
 inputChatPhotoAnimation animation:InputFile main_frame_timestamp:double = InputChatPhoto;
+
+//@description A sticker on a custom background @sticker Information about the sticker
+inputChatPhotoSticker sticker:chatPhotoSticker = InputChatPhoto;
 
 
 //@description Describes actions that a user is allowed to take in a chat
@@ -6624,8 +6627,7 @@ setChatTitle chat_id:int53 title:string = Ok;
 //@description Changes the photo of a chat. Supported only for basic groups, supergroups and channels. Requires can_change_info administrator right
 //@chat_id Chat identifier
 //@photo New chat photo; pass null to delete the chat photo
-//@sticker Sticker-based version of the chat photo; pass null if none or an existing photo is set
-setChatPhoto chat_id:int53 photo:InputChatPhoto sticker:chatPhotoSticker = Ok;
+setChatPhoto chat_id:int53 photo:InputChatPhoto = Ok;
 
 //@description Changes the message auto-delete or self-destruct (for secret chats) time in a chat. Requires change_info administrator right in basic groups, supergroups and channels
 //-Message auto-delete time can't be changed in a chat with the current user (Saved Messages) and the chat 777000 (Telegram).
@@ -7371,9 +7373,8 @@ getWebPageInstantView url:string force_full:Bool = WebPageInstantView;
 
 //@description Changes a profile photo for the current user
 //@photo Profile photo to set
-//@sticker Sticker-based version of the profile photo; pass null if none or an existing photo is set
 //@is_public Pass true to set a public photo, which will be visible even the main photo is hidden by privacy settings
-setProfilePhoto photo:InputChatPhoto sticker:chatPhotoSticker is_public:Bool = Ok;
+setProfilePhoto photo:InputChatPhoto is_public:Bool = Ok;
 
 //@description Deletes a profile photo @profile_photo_id Identifier of the profile photo to delete
 deleteProfilePhoto profile_photo_id:int64 = Ok;
