@@ -3580,14 +3580,22 @@ void Td::init(Result<TdDb::OpenedDatabase> r_opened_database) {
     }
   });
 
-  options_.language_pack = G()->get_option_string("localization_target");
-  options_.language_code = G()->get_option_string("language_pack_id");
-  options_.parameters = G()->get_option_string("connection_parameters");
-  options_.tz_offset = static_cast<int32>(G()->get_option_integer("utc_time_offset"));
-  options_.is_emulator = G()->get_option_boolean("is_emulator");
+  if (events.since_last_open >= 3600) {
+    auto old_since_last_open = option_manager_->get_option_integer("since_last_open");
+    if (events.since_last_open > old_since_last_open) {
+      option_manager_->set_option_integer("since_last_open", events.since_last_open);
+    }
+  }
+
+  options_.language_pack = option_manager_->get_option_string("localization_target");
+  options_.language_code = option_manager_->get_option_string("language_pack_id");
+  options_.parameters = option_manager_->get_option_string("connection_parameters");
+  options_.tz_offset = static_cast<int32>(option_manager_->get_option_integer("utc_time_offset"));
+  options_.is_emulator = option_manager_->get_option_boolean("is_emulator");
   // options_.proxy = Proxy();
   G()->set_mtproto_header(make_unique<MtprotoHeader>(options_));
-  G()->set_store_all_files_in_files_directory(G()->get_option_boolean("store_all_files_in_files_directory"));
+  G()->set_store_all_files_in_files_directory(
+      option_manager_->get_option_boolean("store_all_files_in_files_directory"));
 
   VLOG(td_init) << "Create NetQueryDispatcher";
   auto net_query_dispatcher = make_unique<NetQueryDispatcher>([&] { return create_reference(); });

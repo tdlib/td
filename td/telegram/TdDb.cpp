@@ -63,6 +63,9 @@ Status init_binlog(Binlog &binlog, string path, BinlogKeyValue<Binlog> &binlog_p
     if (since_last_open >= 86400) {
       LOG(WARNING) << "Binlog wasn't opened for " << since_last_open << " seconds";
     }
+    if (since_last_open > 0 && since_last_open < 1e12) {
+      events.since_last_open = static_cast<int64>(since_last_open);
+    }
   }
 
   auto callback = [&](const BinlogEvent &event) {

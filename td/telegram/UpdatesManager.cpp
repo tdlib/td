@@ -183,6 +183,10 @@ UpdatesManager::UpdatesManager(Td *td, ActorShared<> parent) : td_(td), parent_(
 
   pending_audio_transcription_timeout_.set_callback(on_pending_audio_transcription_timeout_callback);
   pending_audio_transcription_timeout_.set_callback_data(static_cast<void *>(td_));
+
+  if (td_->option_manager_->get_option_integer("since_last_open") < 3600) {
+    finished_first_get_difference_ = true;
+  }
 }
 
 void UpdatesManager::tear_down() {
@@ -1463,8 +1467,12 @@ void UpdatesManager::init_state() {
     return;
   }
 
+  bool drop_state = !G()->parameters().use_file_db && !G()->parameters().use_secret_chats &&
+                    td_->auth_manager_->is_bot() &&
+                    td_->option_manager_->get_option_integer("since_last_open") >= 2 * 86400;
+
   auto pmc = G()->td_db()->get_binlog_pmc();
-  if (G()->ignore_background_updates()) {
+  if (G()->ignore_background_updates() || drop_state) {
     // just in case
     pmc->erase("updates.pts");
     pmc->erase("updates.qts");
@@ -1755,6 +1763,7 @@ void UpdatesManager::after_get_difference() {
   retry_time_ = 1;
 
   finished_first_get_difference_ = true;
+  td_->option_manager_->set_option_empty("since_last_open");
 
   // cancels qts_gap_timeout_ if needed, can apply some updates received during getDifference,
   // but missed in getDifference
