@@ -241,14 +241,15 @@ class UpdatesManager final : public Actor {
   double next_data_reload_time_ = 0.0;
   Timeout data_reload_timeout_;
 
+  bool is_ping_sent_ = false;
+
   bool running_get_difference_ = false;
+  bool finished_first_get_difference_ = false;
   int32 last_get_difference_pts_ = 0;
   int32 last_get_difference_qts_ = 0;
   int32 min_postponed_update_pts_ = 0;
   int32 min_postponed_update_qts_ = 0;
   double get_difference_start_time_ = 0;  // time from which we started to get difference without success
-
-  bool is_ping_sent_ = false;
 
   FlatHashMap<int64, TranscribedAudioHandler> pending_audio_transcriptions_;
   MultiTimeout pending_audio_transcription_timeout_{"PendingAudioTranscriptionTimeout"};
@@ -288,6 +289,10 @@ class UpdatesManager final : public Actor {
   Promise<> add_qts(int32 qts);
   void on_qts_ack(PtsManager::PtsId ack_token);
   void save_qts(int32 qts);
+
+  bool can_postpone_updates() const {
+    return finished_first_get_difference_;
+  }
 
   void set_date(int32 date, bool from_update, string date_source);
 
