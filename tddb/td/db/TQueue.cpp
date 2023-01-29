@@ -247,6 +247,7 @@ class TQueueImpl final : public TQueue {
       }
     }
 
+    auto collect_deleted_event_ids_time = 0.0;
     if (callback_ != nullptr) {
       vector<uint64> deleted_log_event_ids;
       for (auto it = q.events.begin(); it != end_it; ++it) {
@@ -255,6 +256,7 @@ class TQueueImpl final : public TQueue {
           deleted_log_event_ids.push_back(event.log_event_id);
         }
       }
+      collect_deleted_event_ids_time = Time::now() - start_time;
       for (auto log_event_id : deleted_log_event_ids) {
         callback_->pop(log_event_id);
       }
@@ -284,7 +286,9 @@ class TQueueImpl final : public TQueue {
     if (clear_time > 0.01) {
       LOG(WARNING) << "Cleared " << (size - keep_count) << " TQueue events with total size "
                    << (total_event_length - q.total_event_length) << " in " << clear_time - callback_clear_time
-                   << " seconds and deleted them from callback in " << callback_clear_time << " seconds";
+                   << " seconds, collected their identifiers in " << collect_deleted_event_ids_time
+                   << " seconds, and deleted them from callback in "
+                   << callback_clear_time - collect_deleted_event_ids_time << " seconds";
     }
     return deleted_events;
   }
