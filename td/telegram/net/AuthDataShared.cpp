@@ -64,6 +64,7 @@ class AuthDataSharedImpl final : public AuthDataShared {
   }
 
   void add_auth_key_listener(unique_ptr<Listener> listener) final {
+    CHECK(listener != nullptr);
     if (listener->notify()) {
       auto lock = rw_mutex_.lock_write();
       auth_key_listeners_.push_back(std::move(listener));
@@ -98,9 +99,11 @@ class AuthDataSharedImpl final : public AuthDataShared {
   }
 
   void notify() {
-    auto lock = rw_mutex_.lock_read();
-
-    td::remove_if(auth_key_listeners_, [&](auto &listener) { return !listener->notify(); });
+    auto lock = rw_mutex_.lock_write();
+    td::remove_if(auth_key_listeners_, [&](auto &listener) {
+      CHECK(listener != nullptr);
+      return !listener->notify();
+    });
   }
 
   void log_auth_key(const mtproto::AuthKey &auth_key) {

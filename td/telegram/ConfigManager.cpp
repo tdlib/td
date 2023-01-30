@@ -468,6 +468,7 @@ static ActorOwn<> get_full_config(DcOption option, Promise<tl_object_ptr<telegra
       return G()->get_server_time_difference();
     }
     void add_auth_key_listener(unique_ptr<Listener> listener) final {
+      CHECK(listener != nullptr);
       if (listener->notify()) {
         auth_key_listeners_.push_back(std::move(listener));
       }
@@ -493,7 +494,10 @@ static ActorOwn<> get_full_config(DcOption option, Promise<tl_object_ptr<telegra
 
     std::vector<unique_ptr<Listener>> auth_key_listeners_;
     void notify() {
-      td::remove_if(auth_key_listeners_, [&](auto &listener) { return !listener->notify(); });
+      td::remove_if(auth_key_listeners_, [&](auto &listener) {
+        CHECK(listener != nullptr);
+        return !listener->notify();
+      });
     }
 
     string auth_key_key() const {
