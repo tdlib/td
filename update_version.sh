@@ -36,10 +36,10 @@ if [ ! -z "${OLD_TDLIB_VERSION}" ] && [ ! -z "${NEW_TDLIB_VERSION}" ] &&
    fi
 
    # Replace all matches
-   # sed -i "s/${OLD_TDLIB_VERSION}/${NEW_TDLIB_VERSION}/g" $COMMIT_FILES || exit 1
+   # sed --binary -i "s/${OLD_TDLIB_VERSION}/${NEW_TDLIB_VERSION}/g" $COMMIT_FILES || exit 1
 
    # Replace first match
-   sed -i "0,/${OLD_TDLIB_VERSION}/s//${NEW_TDLIB_VERSION}/g" $COMMIT_FILES || exit 1
+   sed --binary -i "0,/${OLD_TDLIB_VERSION}/s//${NEW_TDLIB_VERSION}/g" $COMMIT_FILES || exit 1
 
    git --no-pager diff CMakeLists.txt $COMMIT_FILES
 
@@ -51,7 +51,7 @@ if [ ! -z "${OLD_TDLIB_VERSION}" ] && [ ! -z "${NEW_TDLIB_VERSION}" ] &&
       git --no-pager log --stat -n 1
    else
       # Undo sed changes
-      sed -i "0,/${NEW_TDLIB_VERSION}/s//${OLD_TDLIB_VERSION}/g" $COMMIT_FILES
+      sed --binary -i "0,/${NEW_TDLIB_VERSION}/s//${OLD_TDLIB_VERSION}/g" $COMMIT_FILES
       echo "Aborted."; exit 1
    fi
 else
