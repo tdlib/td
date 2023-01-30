@@ -48,6 +48,7 @@ class DeviceTokenManager final : public NetQueryCallback {
     WebPush = 10,
     MpnsVoip = 11,
     Tizen = 12,
+    Huawei = 13,
     Size
   };
   struct TokenInfo {

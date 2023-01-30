@@ -3914,6 +3914,9 @@ deviceTokenBlackBerryPush token:string = DeviceToken;
 //@description A token for Tizen Push Service @reg_id Push service registration identifier; may be empty to deregister a device
 deviceTokenTizenPush reg_id:string = DeviceToken;
 
+//@description A token for HUAWEI Push Service @token Device registration token; may be empty to deregister a device @encrypt True, if push notifications must be additionally encrypted
+deviceTokenHuaweiPush token:string encrypt:Bool = DeviceToken;
+
 
 //@description Contains a globally unique push receiver identifier, which can be used to identify which account has received a push notification @id The globally unique identifier of push notification subscription
 pushReceiverId id:int64 = PushReceiverId;

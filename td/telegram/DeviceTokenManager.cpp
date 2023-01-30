@@ -231,6 +231,13 @@ void DeviceTokenManager::register_device(tl_object_ptr<td_api::DeviceToken> devi
       token_type = TokenType::Tizen;
       break;
     }
+    case td_api::deviceTokenHuaweiPush::ID: {
+      auto device_token = static_cast<td_api::deviceTokenHuaweiPush *>(device_token_ptr.get());
+      token = std::move(device_token->token_);
+      token_type = TokenType::Huawei;
+      encrypt = device_token->encrypt_;
+      break;
+    }
     default:
       UNREACHABLE();
   }
