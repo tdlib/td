@@ -6,7 +6,7 @@ COMMIT_FILES="README.md example/cpp/CMakeLists.txt example/uwp/extension.vsixman
 # check arguemnt '-i' to drop all fixed files list.
 for arg in "$@"; do if [[ "$arg" == "-i" ]]; then COMMIT_FILES=""; break; fi; done
 
-# 'git diff' to ensure that 'CMakeLists.txt' is modifided.
+# 'git diff' to ensure that 'CMakeLists.txt' is modified.
 GIT_DIFF=$(git --no-pager diff --unified=0 CMakeLists.txt)
 
 SED_REGEX="project\(TDLib VERSION ([0-9\.]+) LANGUAGES CXX C\)"
@@ -36,10 +36,7 @@ if [ ! -z "${OLD_TDLIB_VERSION}" ] && [ ! -z "${NEW_TDLIB_VERSION}" ] &&
    fi
 
    # Replace all matches
-   # sed --binary -i "s/${OLD_TDLIB_VERSION}/${NEW_TDLIB_VERSION}/g" $COMMIT_FILES || exit 1
-
-   # Replace first match
-   sed --binary -i "0,/${OLD_TDLIB_VERSION}/s//${NEW_TDLIB_VERSION}/g" $COMMIT_FILES || exit 1
+   sed --binary -i "s/${OLD_TDLIB_VERSION//./\\.}/${NEW_TDLIB_VERSION}/g" $COMMIT_FILES || exit 1
 
    git --no-pager diff CMakeLists.txt $COMMIT_FILES
 
@@ -51,7 +48,7 @@ if [ ! -z "${OLD_TDLIB_VERSION}" ] && [ ! -z "${NEW_TDLIB_VERSION}" ] &&
       git --no-pager log --stat -n 1
    else
       # Undo sed changes
-      sed --binary -i "0,/${NEW_TDLIB_VERSION}/s//${OLD_TDLIB_VERSION}/g" $COMMIT_FILES
+      sed --binary -i "s/${NEW_TDLIB_VERSION//./\\.}/${OLD_TDLIB_VERSION}/g" $COMMIT_FILES || exit 1
       echo "Aborted."; exit 1
    fi
 else
