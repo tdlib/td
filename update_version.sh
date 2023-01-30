@@ -47,7 +47,7 @@ if [ ! -z "${OLD_TDLIB_VERSION}" ] && [ ! -z "${NEW_TDLIB_VERSION}" ] &&
    read -p "Commit \"Update version to ${NEW_TDLIB_VERSION}.\" (y/n)? " answer
 
    if [[ "${answer}" == "Y" ]] || [[ "${answer}" == "y" ]] ; then
-      git commit --quiet CMakeLists.txt $COMMIT_FILES -m "Update version to ${NEW_TDLIB_VERSION}."; echo
+      git commit --quiet -n CMakeLists.txt $COMMIT_FILES -m "Update version to ${NEW_TDLIB_VERSION}."; echo
       git --no-pager log --stat -n 1
    else
       # Undo sed changes
