@@ -199,6 +199,9 @@ Status RequestedDialogType::check_shared_dialog(Td *td, DialogId dialog_id) cons
         return Status::Error(400, "Wrong has_username value");
       }
       auto chat_id = dialog_id.get_chat_id();
+      if (!td->contacts_manager_->get_chat_is_active(chat_id)) {
+        return Status::Error(400, "Chat is deactivated");
+      }
       auto status = td->contacts_manager_->get_chat_status(chat_id);
       if (is_created_ && !status.is_creator()) {
         return Status::Error(400, "The chat must be created by the current user");
