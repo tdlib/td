@@ -5524,8 +5524,12 @@ updatePollAnswer poll_id:int64 user_id:int53 option_ids:vector<int32> = Update;
 //@new_chat_member New chat member
 updateChatMember chat_id:int53 actor_user_id:int53 date:int32 invite_link:chatInviteLink old_chat_member:chatMember new_chat_member:chatMember = Update;
 
-//@description A user sent a join request to a chat; for bots only @chat_id Chat identifier @request Join request @invite_link The invite link, which was used to send join request; may be null
-updateNewChatJoinRequest chat_id:int53 request:chatJoinRequest invite_link:chatInviteLink = Update;
+//@description A user sent a join request to a chat; for bots only
+//@chat_id Chat identifier
+//@request Join request
+//@user_chat_id Chat identifier of the private chat with the user
+//@invite_link The invite link, which was used to send join request; may be null
+updateNewChatJoinRequest chat_id:int53 request:chatJoinRequest user_chat_id:int53 invite_link:chatInviteLink = Update;
 
 
 //@description Contains a list of updates @updates List of updates
