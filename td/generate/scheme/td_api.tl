@@ -6395,14 +6395,16 @@ getLoginUrl chat_id:int53 message_id:int53 button_id:int53 allow_write_access:Bo
 //@message_id Identifier of the message with the button
 //@button_id Identifier of the button
 //@shared_user_id Identifier of the shared user
-shareUserWithBot chat_id:int53 message_id:int53 button_id:int32 shared_user_id:int53 = Ok;
+//@only_check Pass true to check that the user can be shared by the button instead of actually sharing them
+shareUserWithBot chat_id:int53 message_id:int53 button_id:int32 shared_user_id:int53 only_check:Bool = Ok;
 
 //@description Shares a chat after pressing a keyboardButtonTypeRequestChat button with the bot
 //@chat_id Identifier of the chat with the bot
 //@message_id Identifier of the message with the button
 //@button_id Identifier of the button
 //@shared_chat_id Identifier of the shared chat
-shareChatWithBot chat_id:int53 message_id:int53 button_id:int32 shared_chat_id:int53 = Ok;
+//@only_check Pass true to check that the chat can be shared by the button instead of actually sharing it. If the chat can be shared, but the bot requested more rights in the chat than it have currently, then the rigts will be given automatically
+shareChatWithBot chat_id:int53 message_id:int53 button_id:int32 shared_chat_id:int53 only_check:Bool = Ok;
 
 
 //@description Sends an inline query to a bot and returns its results. Returns an error with code 502 if the bot fails to answer the query before the query timeout expires

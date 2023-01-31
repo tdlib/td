@@ -29886,7 +29886,7 @@ void MessagesManager::do_send_screenshot_taken_notification_message(DialogId dia
 }
 
 void MessagesManager::share_dialog_with_bot(FullMessageId full_message_id, int32 button_id, DialogId shared_dialog_id,
-                                            Promise<Unit> &&promise) {
+                                            bool only_check, Promise<Unit> &&promise) {
   const Message *m = get_message_force(full_message_id, "share_dialog_with_bot");
   if (m == nullptr) {
     return promise.set_error(Status::Error(400, "Message not found"));
@@ -29905,6 +29905,10 @@ void MessagesManager::share_dialog_with_bot(FullMessageId full_message_id, int32
     }
   }
   TRY_STATUS_PROMISE(promise, m->reply_markup->check_shared_dialog(td_, button_id, shared_dialog_id));
+
+  if (only_check) {
+    return promise.set_value(Unit());
+  }
 
   td_->create_handler<SendBotRequestedPeerQuery>(std::move(promise))
       ->send(full_message_id, button_id, shared_dialog_id);

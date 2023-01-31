@@ -5175,20 +5175,22 @@ class CliClient final : public Actor {
         send_request(
             td_api::make_object<td_api::getLoginUrl>(chat_id, message_id, as_button_id(button_id), op == "glua"));
       }
-    } else if (op == "suwb") {
+    } else if (op == "suwb" || op == "suwbc") {
       ChatId chat_id;
       MessageId message_id;
       int32 button_id;
       UserId shared_user_id;
       get_args(args, chat_id, message_id, button_id, shared_user_id);
-      send_request(td_api::make_object<td_api::shareUserWithBot>(chat_id, message_id, button_id, shared_user_id));
-    } else if (op == "scwb") {
+      send_request(
+          td_api::make_object<td_api::shareUserWithBot>(chat_id, message_id, button_id, shared_user_id, op == "suwbc"));
+    } else if (op == "scwb" || op == "scwbc") {
       ChatId chat_id;
       MessageId message_id;
       int32 button_id;
       ChatId shared_chat_id;
       get_args(args, chat_id, message_id, button_id, shared_chat_id);
-      send_request(td_api::make_object<td_api::shareChatWithBot>(chat_id, message_id, button_id, shared_chat_id));
+      send_request(
+          td_api::make_object<td_api::shareChatWithBot>(chat_id, message_id, button_id, shared_chat_id, op == "scwbc"));
     } else if (op == "rsgs") {
       string supergroup_id;
       string message_ids;

@@ -467,7 +467,7 @@ class MessagesManager final : public Actor {
 
   Status send_screenshot_taken_notification_message(DialogId dialog_id);
 
-  void share_dialog_with_bot(FullMessageId full_message_id, int32 button_id, DialogId shared_dialog_id,
+  void share_dialog_with_bot(FullMessageId full_message_id, int32 button_id, DialogId shared_dialog_id, bool only_check,
                              Promise<Unit> &&promise);
 
   Result<MessageId> add_local_message(DialogId dialog_id, td_api::object_ptr<td_api::MessageSender> &&sender,
