@@ -29896,7 +29896,13 @@ void MessagesManager::share_dialog_with_bot(FullMessageId full_message_id, int32
   }
   CHECK(m->message_id.is_valid() && m->message_id.is_server());
   if (shared_dialog_id.get_type() != DialogType::User) {
-    get_dialog_force(shared_dialog_id, "share_dialog_with_bot");
+    if (!have_dialog_force(shared_dialog_id, "share_dialog_with_bot")) {
+      return promise.set_error(Status::Error(400, "Shared chat not found"));
+    }
+  } else {
+    if (!td_->contacts_manager_->have_user(shared_dialog_id.get_user_id())) {
+      return promise.set_error(Status::Error(400, "Shared user not found"));
+    }
   }
   TRY_STATUS_PROMISE(promise, m->reply_markup->check_shared_dialog(td_, button_id, shared_dialog_id));
 

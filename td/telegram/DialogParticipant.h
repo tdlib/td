@@ -348,6 +348,12 @@ class DialogParticipantStatus {
   // forcely returns a restricted or banned
   DialogParticipantStatus(bool is_member, tl_object_ptr<telegram_api::chatBannedRights> &&banned_rights);
 
+  bool has_all_administrator_rights(AdministratorRights administrator_rights) const {
+    auto flags = administrator_rights.flags_ &
+                 (AdministratorRights::ALL_ADMINISTRATOR_RIGHTS | AdministratorRights::IS_ANONYMOUS);
+    return (get_administrator_rights().flags_ & flags) == flags;
+  }
+
   RestrictedRights get_effective_restricted_rights() const;
 
   DialogParticipantStatus apply_restrictions(RestrictedRights default_restrictions, bool is_bot) const;

@@ -7,6 +7,8 @@
 #include "td/telegram/RequestedDialogType.h"
 
 #include "td/telegram/ChannelType.h"
+#include "td/telegram/ContactsManager.h"
+#include "td/telegram/Td.h"
 
 namespace td {
 
@@ -60,7 +62,7 @@ RequestedDialogType::RequestedDialogType(telegram_api::object_ptr<telegram_api::
       restrict_has_username_ = (type->flags_ & telegram_api::requestPeerTypeChat::HAS_USERNAME_MASK) != 0;
       has_username_ = type->has_username_;
       is_created_ = type->creator_;
-      restrict_user_administrator_rights_ = type->user_admin_rights_ != nullptr;
+      restrict_user_administrator_rights_ = !is_created_ && type->user_admin_rights_ != nullptr;
       restrict_bot_administrator_rights_ = type->bot_admin_rights_ != nullptr;
       user_administrator_rights_ = AdministratorRights(type->user_admin_rights_, ChannelType::Megagroup);
       bot_administrator_rights_ = AdministratorRights(type->bot_admin_rights_, ChannelType::Megagroup);
@@ -72,7 +74,7 @@ RequestedDialogType::RequestedDialogType(telegram_api::object_ptr<telegram_api::
       restrict_has_username_ = (type->flags_ & telegram_api::requestPeerTypeBroadcast::HAS_USERNAME_MASK) != 0;
       has_username_ = type->has_username_;
       is_created_ = type->creator_;
-      restrict_user_administrator_rights_ = type->user_admin_rights_ != nullptr;
+      restrict_user_administrator_rights_ = !is_created_ && type->user_admin_rights_ != nullptr;
       restrict_bot_administrator_rights_ = type->bot_admin_rights_ != nullptr;
       user_administrator_rights_ = AdministratorRights(type->user_admin_rights_, ChannelType::Broadcast);
       bot_administrator_rights_ = AdministratorRights(type->bot_admin_rights_, ChannelType::Broadcast);
@@ -169,6 +171,97 @@ telegram_api::object_ptr<telegram_api::RequestPeerType> RequestedDialogType::get
 
 int32 RequestedDialogType::get_button_id() const {
   return button_id_;
+}
+
+Status RequestedDialogType::check_shared_dialog(Td *td, DialogId dialog_id) const {
+  switch (dialog_id.get_type()) {
+    case DialogType::User: {
+      if (type_ != Type::User) {
+        return Status::Error(400, "Wrong chat type");
+      }
+      auto user_id = dialog_id.get_user_id();
+      if (restrict_is_bot_ && td->contacts_manager_->is_user_bot(user_id) != is_bot_) {
+        return Status::Error(400, "Wrong is_bot value");
+      }
+      if (restrict_is_premium_ && td->contacts_manager_->is_user_premium(user_id) != is_premium_) {
+        return Status::Error(400, "Wrong is_premium value");
+      }
+      break;
+    }
+    case DialogType::Chat: {
+      if (type_ != Type::Group) {
+        return Status::Error(400, "Wrong chat type");
+      }
+      if (restrict_is_forum_ && is_forum_) {
+        return Status::Error(400, "Wrong is_forum value");
+      }
+      if (restrict_has_username_ && has_username_) {
+        return Status::Error(400, "Wrong has_username value");
+      }
+      auto chat_id = dialog_id.get_chat_id();
+      auto status = td->contacts_manager_->get_chat_status(chat_id);
+      if (is_created_ && !status.is_creator()) {
+        return Status::Error(400, "The chat must be created by the current user");
+      }
+      if (bot_is_participant_) {
+        // can't check that the bot is already participant, so check that the user can add it instead
+        if (!status.can_invite_users()) {
+          return Status::Error(400, "The bot can't be added to the chat");
+        }
+      }
+      if (restrict_user_administrator_rights_ && !status.has_all_administrator_rights(user_administrator_rights_)) {
+        return Status::Error(400, "Not enough rights in the chat");
+      }
+      if (restrict_bot_administrator_rights_) {
+        // can't check that the bot is already an administrator, so check that the user can promote it instead
+        if (!status.can_invite_users() || !status.can_promote_members()) {
+          return Status::Error(400, "The bot can't be promoted in the chat");
+        }
+      }
+      break;
+    }
+    case DialogType::Channel: {
+      auto channel_id = dialog_id.get_channel_id();
+      bool is_broadcast = td->contacts_manager_->is_broadcast_channel(channel_id);
+      if (type_ != (is_broadcast ? Type::Channel : Type::Group)) {
+        return Status::Error(400, "Wrong chat type");
+      }
+      if (!is_broadcast && restrict_is_forum_ && td->contacts_manager_->is_forum_channel(channel_id) != is_forum_) {
+        return Status::Error(400, "Wrong is_forum value");
+      }
+      if (restrict_has_username_ &&
+          td->contacts_manager_->get_channel_first_username(channel_id).empty() == has_username_) {
+        return Status::Error(400, "Wrong has_username value");
+      }
+      auto status = td->contacts_manager_->get_channel_status(channel_id);
+      if (is_created_ && !status.is_creator()) {
+        return Status::Error(400, "The chat must be created by the current user");
+      }
+      bool can_invite_bot = status.can_invite_users() &&
+                            (status.is_administrator() || !td->contacts_manager_->is_channel_public(channel_id));
+      if (!is_broadcast && bot_is_participant_) {
+        // can't check that the bot is already participant, so check that the user can add it instead
+        if (!can_invite_bot) {
+          return Status::Error(400, "The bot can't be added to the chat");
+        }
+      }
+      if (restrict_user_administrator_rights_ && !status.has_all_administrator_rights(user_administrator_rights_)) {
+        return Status::Error(400, "Not enough rights in the chat");
+      }
+      if (restrict_bot_administrator_rights_) {
+        // can't check that the bot is already an administrator, so check that the user can promote it instead
+        if (!can_invite_bot || !status.can_promote_members()) {
+          return Status::Error(400, "The bot can't be promoted in the chat");
+        }
+      }
+      break;
+    }
+    case DialogType::SecretChat:
+      return Status::Error(400, "Can't share secret chats");
+    case DialogType::None:
+      UNREACHABLE();
+  }
+  return Status::OK();
 }
 
 }  // namespace td

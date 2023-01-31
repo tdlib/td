@@ -6,6 +6,7 @@
 //
 #pragma once
 
+#include "td/telegram/DialogId.h"
 #include "td/telegram/DialogParticipant.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
@@ -13,6 +14,8 @@
 #include "td/utils/common.h"
 
 namespace td {
+
+class Td;
 
 class RequestedDialogType {
   enum class Type : int32 { User, Group, Channel };
@@ -48,6 +51,8 @@ class RequestedDialogType {
   telegram_api::object_ptr<telegram_api::RequestPeerType> get_input_request_peer_type_object() const;
 
   int32 get_button_id() const;
+
+  Status check_shared_dialog(Td *td, DialogId dialog_id) const;
 
   template <class StorerT>
   void store(StorerT &storer) const;

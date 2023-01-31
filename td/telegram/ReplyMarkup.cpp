@@ -1048,8 +1048,14 @@ tl_object_ptr<td_api::ReplyMarkup> ReplyMarkup::get_reply_markup_object(Contacts
 }
 
 Status ReplyMarkup::check_shared_dialog(Td *td, int32 button_id, DialogId dialog_id) const {
-  // TODO
-  return Status::OK();
+  for (auto &row : keyboard) {
+    for (auto &button : row) {
+      if (button.requested_dialog_type != nullptr && button.requested_dialog_type->get_button_id() == button_id) {
+        return button.requested_dialog_type->check_shared_dialog(td, dialog_id);
+      }
+    }
+  }
+  return Status::Error(400, "Button not found");
 }
 
 tl_object_ptr<telegram_api::ReplyMarkup> get_input_reply_markup(ContactsManager *contacts_manager,
