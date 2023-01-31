@@ -321,7 +321,8 @@ stickerFullTypeMask mask_position:maskPosition = StickerFullType;
 
 //@description The sticker is a custom emoji to be used inside message text and caption. Currently, only Telegram Premium users can use custom emoji
 //@custom_emoji_id Identifier of the custom emoji
-//@needs_repainting True, if the sticker must be repainted to a text color in messages, the color of the Telegram Premium badge in emoji status, or another appropriate color in other places
+//@needs_repainting True, if the sticker must be repainted to a text color in messages, the color of the Telegram Premium badge in emoji status, or another appropriate color in other places.
+//-The sticker must not be repainted on chat photos
 stickerFullTypeCustomEmoji custom_emoji_id:int64 needs_repainting:Bool = StickerFullType;
 
 
