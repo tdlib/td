@@ -240,18 +240,18 @@ Status RequestedDialogType::check_shared_dialog(Td *td, DialogId dialog_id) cons
       bool can_invite_bot = status.can_invite_users() &&
                             (status.is_administrator() || !td->contacts_manager_->is_channel_public(channel_id));
       if (!is_broadcast && bot_is_participant_) {
-        // can't check that the bot is already participant, so check that the user can add it instead
+        // can't synchronously check that the bot is already participant
         if (!can_invite_bot) {
-          return Status::Error(400, "The bot can't be added to the chat");
+          // return Status::Error(400, "The bot can't be added to the chat");
         }
       }
       if (restrict_user_administrator_rights_ && !status.has_all_administrator_rights(user_administrator_rights_)) {
         return Status::Error(400, "Not enough rights in the chat");
       }
       if (restrict_bot_administrator_rights_) {
-        // can't check that the bot is already an administrator, so check that the user can promote it instead
+        // can't synchronously check that the bot is already an administrator
         if (!can_invite_bot || !status.can_promote_members()) {
-          return Status::Error(400, "The bot can't be promoted in the chat");
+          // return Status::Error(400, "The bot can't be promoted in the chat");
         }
       }
       break;
