@@ -128,7 +128,7 @@ class StickersManager final : public Actor {
   void get_custom_emoji_stickers(vector<CustomEmojiId> custom_emoji_ids, bool use_database,
                                  Promise<td_api::object_ptr<td_api::stickers>> &&promise);
 
-  void get_default_dialog_photo_custom_emoji_stickers(bool for_user,
+  void get_default_dialog_photo_custom_emoji_stickers(bool for_user, bool force_reload,
                                                       Promise<td_api::object_ptr<td_api::stickers>> &&promise);
 
   void get_premium_gift_option_sticker(int32 month_count, bool is_recursive,
@@ -663,7 +663,7 @@ class StickersManager final : public Actor {
 
   void on_load_custom_emoji_from_database(CustomEmojiId custom_emoji_id, string value);
 
-  void on_load_default_dialog_photo_custom_emoji_ids_from_database(bool for_user, string value);
+  void on_load_default_dialog_photo_custom_emoji_ids_from_database(bool for_user, bool force_reload, string value);
 
   void reload_default_dialog_photo_custom_emoji_ids(bool for_user);
 

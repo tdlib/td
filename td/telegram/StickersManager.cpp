@@ -6424,6 +6424,10 @@ void StickersManager::get_custom_emoji_stickers(vector<CustomEmojiId> custom_emo
                                                 Promise<td_api::object_ptr<td_api::stickers>> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
 
+  if (!promise) {
+    return;
+  }
+
   if (custom_emoji_ids.size() > MAX_GET_CUSTOM_EMOJI_STICKERS) {
     return promise.set_error(Status::Error(400, "Too many custom emoji identifiers specified"));
   }
@@ -6501,8 +6505,8 @@ string StickersManager::get_default_dialog_photo_custom_emoji_ids_database_key(b
 }
 
 void StickersManager::get_default_dialog_photo_custom_emoji_stickers(
-    bool for_user, Promise<td_api::object_ptr<td_api::stickers>> &&promise) {
-  if (are_default_dialog_photo_custom_emoji_ids_loaded_[for_user]) {
+    bool for_user, bool force_reload, Promise<td_api::object_ptr<td_api::stickers>> &&promise) {
+  if (are_default_dialog_photo_custom_emoji_ids_loaded_[for_user] && !force_reload) {
     return get_custom_emoji_stickers(default_dialog_photo_custom_emoji_ids_[for_user], true, std::move(promise));
   }
 
@@ -6512,15 +6516,16 @@ void StickersManager::get_default_dialog_photo_custom_emoji_stickers(
     // query has already been sent, just wait for the result
     return;
   }
-  if (G()->parameters().use_file_db) {
+
+  if (G()->parameters().use_file_db && !are_default_dialog_photo_custom_emoji_ids_loaded_[for_user]) {
     LOG(INFO) << "Trying to load " << (for_user ? "profile" : "chat")
               << " photo custom emoji identifiers from database";
     return G()->td_db()->get_sqlite_pmc()->get(
         get_default_dialog_photo_custom_emoji_ids_database_key(for_user),
-        PromiseCreator::lambda([for_user](string value) {
+        PromiseCreator::lambda([for_user, force_reload](string value) {
           send_closure(G()->stickers_manager(),
                        &StickersManager::on_load_default_dialog_photo_custom_emoji_ids_from_database, for_user,
-                       std::move(value));
+                       force_reload, std::move(value));
         }));
   }
 
@@ -6551,7 +6556,8 @@ class StickersManager::CustomEmojiIdsLogEvent {
   }
 };
 
-void StickersManager::on_load_default_dialog_photo_custom_emoji_ids_from_database(bool for_user, string value) {
+void StickersManager::on_load_default_dialog_photo_custom_emoji_ids_from_database(bool for_user, bool force_reload,
+                                                                                  string value) {
   if (G()->close_flag()) {
     fail_promises(default_dialog_photo_custom_emoji_ids_load_queries_[for_user], Global::request_aborted_error());
     return;
@@ -6573,6 +6579,9 @@ void StickersManager::on_load_default_dialog_photo_custom_emoji_ids_from_databas
 
   on_get_default_dialog_photo_custom_emoji_ids_success(for_user, std::move(log_event.custom_emoji_ids_),
                                                        log_event.hash_);
+  if (force_reload) {
+    reload_default_dialog_photo_custom_emoji_ids(for_user);
+  }
 }
 
 void StickersManager::reload_default_dialog_photo_custom_emoji_ids(bool for_user) {
@@ -6616,7 +6625,10 @@ void StickersManager::on_get_default_dialog_photo_custom_emoji_ids(
     if (!are_default_dialog_photo_custom_emoji_ids_loaded_[for_user]) {
       on_get_default_dialog_photo_custom_emoji_ids_success(for_user, {}, 0);
     }
-    CHECK(default_dialog_photo_custom_emoji_ids_load_queries_[for_user].empty());
+    for (auto &promise : default_dialog_photo_custom_emoji_ids_load_queries_[for_user]) {
+      CHECK(!promise);
+    }
+    reset_to_empty(default_dialog_photo_custom_emoji_ids_load_queries_[for_user]);
     return;
   }
   CHECK(constructor_id == telegram_api::emojiList::ID);
