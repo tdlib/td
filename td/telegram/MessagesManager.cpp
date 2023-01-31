@@ -29886,7 +29886,7 @@ void MessagesManager::do_send_screenshot_taken_notification_message(DialogId dia
 }
 
 void MessagesManager::share_dialog_with_bot(FullMessageId full_message_id, int32 button_id, DialogId shared_dialog_id,
-                                            bool only_check, Promise<Unit> &&promise) {
+                                            bool expect_user, bool only_check, Promise<Unit> &&promise) {
   const Message *m = get_message_force(full_message_id, "share_dialog_with_bot");
   if (m == nullptr) {
     return promise.set_error(Status::Error(400, "Message not found"));
@@ -29900,6 +29900,9 @@ void MessagesManager::share_dialog_with_bot(FullMessageId full_message_id, int32
       return promise.set_error(Status::Error(400, "Shared chat not found"));
     }
   } else {
+    if (!expect_user) {
+      return promise.set_error(Status::Error(400, "Wrong chat type"));
+    }
     if (!td_->contacts_manager_->have_user(shared_dialog_id.get_user_id())) {
       return promise.set_error(Status::Error(400, "Shared user not found"));
     }

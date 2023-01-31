@@ -7684,7 +7684,7 @@ void Td::on_request(uint64 id, const td_api::shareUserWithBot &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
   messages_manager_->share_dialog_with_bot({DialogId(request.chat_id_), MessageId(request.message_id_)},
-                                           request.button_id_, DialogId(UserId(request.shared_user_id_)),
+                                           request.button_id_, DialogId(UserId(request.shared_user_id_)), true,
                                            request.only_check_, std::move(promise));
 }
 
@@ -7692,8 +7692,8 @@ void Td::on_request(uint64 id, const td_api::shareChatWithBot &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
   messages_manager_->share_dialog_with_bot({DialogId(request.chat_id_), MessageId(request.message_id_)},
-                                           request.button_id_, DialogId(request.shared_chat_id_), request.only_check_,
-                                           std::move(promise));
+                                           request.button_id_, DialogId(request.shared_chat_id_), false,
+                                           request.only_check_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::getInlineQueryResults &request) {
