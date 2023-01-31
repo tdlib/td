@@ -9,6 +9,8 @@
 #include "td/telegram/StickersManager.h"
 #include "td/telegram/Td.h"
 
+#include "td/utils/logging.h"
+
 namespace td {
 
 Result<unique_ptr<StickerPhotoSize>> StickerPhotoSize::get_sticker_photo_size(

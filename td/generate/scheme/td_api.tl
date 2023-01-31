@@ -553,7 +553,7 @@ chatPhotoStickerTypeCustomEmoji custom_emoji_id:int64 = ChatPhotoStickerType;
 
 //@description Information about the sticker, which was used to create the chat photo. The sticker is shown at the center of the photo and occupies at most 67% of it
 //@type Type of the sticker
-//@background_fill Describes a fill of the background under the sticker; rotation angle in backgroundFillGradient isn't supported
+//@background_fill The fill to be used as background for the sticker; rotation angle in backgroundFillGradient isn't supported
 chatPhotoSticker type:ChatPhotoStickerType background_fill:BackgroundFill = ChatPhotoSticker;
 
 //@description Animated variant of a chat photo in MPEG4 format
@@ -2955,13 +2955,13 @@ emojiCategories categories:vector<emojiCategory> = EmojiCategories;
 
 //@class EmojiCategoryType @description Describes type of an emoji category
 
-//@description The category should be used by default
+//@description The category must be used by default
 emojiCategoryTypeDefault = EmojiCategoryType;
 
-//@description The category should be used for emoji status selection
+//@description The category must be used for emoji status selection
 emojiCategoryTypeEmojiStatus = EmojiCategoryType;
 
-//@description The category should be used for chat photo emoji selection
+//@description The category must be used for chat photo emoji selection
 emojiCategoryTypeChatPhoto = EmojiCategoryType;
 
 

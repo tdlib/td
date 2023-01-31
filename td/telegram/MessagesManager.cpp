@@ -4237,11 +4237,11 @@ class SendScreenshotNotificationQuery final : public Td::ResultHandler {
   }
 };
 
-class SendBotRequestedPeer final : public Td::ResultHandler {
+class SendBotRequestedPeerQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
  public:
-  explicit SendBotRequestedPeer(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  explicit SendBotRequestedPeerQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
   void send(FullMessageId full_message_id, int32 button_id, DialogId requested_dialog_id) {
@@ -4269,7 +4269,7 @@ class SendBotRequestedPeer final : public Td::ResultHandler {
     }
 
     auto ptr = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for SendBotRequestedPeer: " << to_string(ptr);
+    LOG(INFO) << "Receive result for SendBotRequestedPeerQuery: " << to_string(ptr);
     td_->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
   }
 
@@ -29900,7 +29900,8 @@ void MessagesManager::share_dialog_with_bot(FullMessageId full_message_id, int32
   }
   TRY_STATUS_PROMISE(promise, m->reply_markup->check_shared_dialog(td_, button_id, shared_dialog_id));
 
-  td_->create_handler<SendBotRequestedPeer>(std::move(promise))->send(full_message_id, button_id, shared_dialog_id);
+  td_->create_handler<SendBotRequestedPeerQuery>(std::move(promise))
+      ->send(full_message_id, button_id, shared_dialog_id);
 }
 
 Result<MessageId> MessagesManager::add_local_message(

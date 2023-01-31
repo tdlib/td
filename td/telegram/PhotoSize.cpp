@@ -6,10 +6,8 @@
 //
 #include "td/telegram/PhotoSize.h"
 
-#include "td/telegram/CustomEmojiId.h"
 #include "td/telegram/files/FileLocation.h"
 #include "td/telegram/files/FileManager.h"
-#include "td/telegram/StickersManager.h"
 #include "td/telegram/Td.h"
 
 #include "td/utils/base64.h"

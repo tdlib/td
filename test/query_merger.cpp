@@ -17,8 +17,8 @@
 
 #include <queue>
 
-class TestQueryMerger : public td::Actor {
-  void start_up() override {
+class TestQueryMerger final : public td::Actor {
+  void start_up() final {
     query_merger_.set_merge_function([this](td::vector<td::int64> query_ids, td::Promise<td::Unit> &&promise) {
       ASSERT_TRUE(!query_ids.empty());
       ASSERT_EQ(query_ids.size(), td::min(next_query_ids_.size(), MAX_MERGED_QUERY_COUNT));
@@ -37,7 +37,7 @@ class TestQueryMerger : public td::Actor {
                                                                       td::Result<td::Unit> result) mutable {
                                          for (auto query_id : query_ids) {
                                            LOG(INFO) << "Complete " << query_id;
-                                           bool is_erased = pending_query_ids_.erase(query_id);
+                                           bool is_erased = pending_query_ids_.erase(query_id) > 0;
                                            ASSERT_TRUE(is_erased);
                                          }
                                          current_query_count_--;
@@ -49,7 +49,7 @@ class TestQueryMerger : public td::Actor {
     loop();
   }
 
-  void loop() override {
+  void loop() final {
     std::size_t query_count = 0;
     std::size_t added_queries = td::Random::fast(1, 3);
     while (query_count++ < added_queries && total_query_count_++ < MAX_QUERY_COUNT) {

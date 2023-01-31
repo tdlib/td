@@ -72,7 +72,7 @@ TEST(HttpUrl, parse_url) {
     if (c == '%') {
       continue;
     }
-    char ch = static_cast<char>(c);
+    auto ch = static_cast<char>(c);
     if (td::is_alnum(ch) || c >= 128 || td::string(".-_!$,~*\'();&+=").find(ch) != td::string::npos) {
       // allowed character
       test_parse_url(PSTRING() << ch << "a@b" << ch, td::string(1, ch) + "a", "b" + td::string(1, td::to_lower(ch)),

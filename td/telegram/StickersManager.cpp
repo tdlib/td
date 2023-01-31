@@ -4854,7 +4854,7 @@ void StickersManager::reload_found_stickers(StickerType sticker_type, string &&e
 
 void StickersManager::on_load_found_stickers_from_database(StickerType sticker_type, string emoji, string value) {
   if (G()->close_flag()) {
-    on_search_stickers_failed(sticker_type, emoji, G()->close_status());
+    on_search_stickers_failed(sticker_type, emoji, Global::request_aborted_error());
     return;
   }
   if (value.empty()) {
@@ -5005,7 +5005,7 @@ void StickersManager::on_find_custom_emojis_success(const string &emoji,
 void StickersManager::on_load_custom_emojis(string emoji, int64 hash, vector<CustomEmojiId> custom_emoji_ids,
                                             Result<td_api::object_ptr<td_api::stickers>> &&result) {
   if (result.is_ok() && G()->close_flag()) {
-    result = G()->close_status();
+    result = Global::request_aborted_error();
   }
   if (result.is_error()) {
     return on_find_custom_emojis_fail(emoji, result.move_as_error());
@@ -5393,7 +5393,7 @@ void StickersManager::load_installed_sticker_sets(StickerType sticker_type, Prom
 
 void StickersManager::on_load_installed_sticker_sets_from_database(StickerType sticker_type, string value) {
   if (G()->close_flag()) {
-    on_get_installed_sticker_sets_failed(sticker_type, G()->close_status());
+    on_get_installed_sticker_sets_failed(sticker_type, Global::request_aborted_error());
     return;
   }
   if (value.empty()) {
@@ -6372,11 +6372,6 @@ void StickersManager::on_load_custom_emoji_from_database(CustomEmojiId custom_em
   auto promises = std::move(it->second);
   custom_emoji_load_queries_.erase(it);
 
-  if (G()->close_flag()) {
-    fail_promises(promises, G()->close_status());
-    return;
-  }
-
   if (!value.empty()) {
     LOG(INFO) << "Successfully loaded " << custom_emoji_id << " of size " << value.size() << " from database";
     CustomEmojiLogEvent log_event;
@@ -6558,7 +6553,7 @@ class StickersManager::CustomEmojiIdsLogEvent {
 
 void StickersManager::on_load_default_dialog_photo_custom_emoji_ids_from_database(bool for_user, string value) {
   if (G()->close_flag()) {
-    fail_promises(default_dialog_photo_custom_emoji_ids_load_queries_[for_user], G()->close_status());
+    fail_promises(default_dialog_photo_custom_emoji_ids_load_queries_[for_user], Global::request_aborted_error());
     return;
   }
 
@@ -6581,14 +6576,14 @@ void StickersManager::on_load_default_dialog_photo_custom_emoji_ids_from_databas
 }
 
 void StickersManager::reload_default_dialog_photo_custom_emoji_ids(bool for_user) {
-  if (are_default_dialog_photo_custom_emoji_ids_being_loaded_[for_user]) {
-    return;
-  }
   if (G()->close_flag()) {
-    fail_promises(default_dialog_photo_custom_emoji_ids_load_queries_[for_user], G()->close_status());
+    fail_promises(default_dialog_photo_custom_emoji_ids_load_queries_[for_user], Global::request_aborted_error());
     return;
   }
   CHECK(!td_->auth_manager_->is_bot());
+  if (are_default_dialog_photo_custom_emoji_ids_being_loaded_[for_user]) {
+    return;
+  }
   are_default_dialog_photo_custom_emoji_ids_being_loaded_[for_user] = true;
 
   auto query_promise =
@@ -6603,12 +6598,12 @@ void StickersManager::reload_default_dialog_photo_custom_emoji_ids(bool for_user
 
 void StickersManager::on_get_default_dialog_photo_custom_emoji_ids(
     bool for_user, Result<telegram_api::object_ptr<telegram_api::EmojiList>> r_emoji_list) {
+  if (G()->close_flag()) {
+    r_emoji_list = Global::request_aborted_error();
+  }
   CHECK(are_default_dialog_photo_custom_emoji_ids_being_loaded_[for_user]);
   are_default_dialog_photo_custom_emoji_ids_being_loaded_[for_user] = false;
 
-  if (G()->close_flag()) {
-    r_emoji_list = G()->close_status();
-  }
   if (r_emoji_list.is_error()) {
     fail_promises(default_dialog_photo_custom_emoji_ids_load_queries_[for_user], r_emoji_list.move_as_error());
     return;
@@ -8760,7 +8755,7 @@ void StickersManager::load_recent_stickers(bool is_attached, Promise<Unit> &&pro
 
 void StickersManager::on_load_recent_stickers_from_database(bool is_attached, string value) {
   if (G()->close_flag()) {
-    fail_promises(load_recent_stickers_queries_[is_attached], G()->close_status());
+    fail_promises(load_recent_stickers_queries_[is_attached], Global::request_aborted_error());
     return;
   }
   if (value.empty()) {
@@ -9161,7 +9156,7 @@ void StickersManager::load_favorite_stickers(Promise<Unit> &&promise) {
 
 void StickersManager::on_load_favorite_stickers_from_database(const string &value) {
   if (G()->close_flag()) {
-    fail_promises(load_favorite_stickers_queries_, G()->close_status());
+    fail_promises(load_favorite_stickers_queries_, Global::request_aborted_error());
     return;
   }
   if (value.empty()) {
@@ -10017,7 +10012,7 @@ void StickersManager::get_emoji_groups(EmojiGroupType group_type,
 void StickersManager::on_load_emoji_groups_from_database(EmojiGroupType group_type, string used_language_codes,
                                                          string value) {
   if (G()->close_flag()) {
-    return on_get_emoji_groups(group_type, std::move(used_language_codes), G()->close_status());
+    return on_get_emoji_groups(group_type, std::move(used_language_codes), Global::request_aborted_error());
   }
   if (value.empty()) {
     LOG(INFO) << "Emoji groups of type " << group_type << " aren't found in database";
@@ -10063,10 +10058,10 @@ void StickersManager::reload_emoji_groups(EmojiGroupType group_type, string used
 void StickersManager::on_get_emoji_groups(
     EmojiGroupType group_type, string used_language_codes,
     Result<telegram_api::object_ptr<telegram_api::messages_EmojiGroups>> r_emoji_groups) {
-  auto type = static_cast<int32>(group_type);
   if (G()->close_flag() && r_emoji_groups.is_ok()) {
     r_emoji_groups = Global::request_aborted_error();
   }
+  auto type = static_cast<int32>(group_type);
   if (r_emoji_groups.is_error()) {
     if (!G()->is_expected_error(r_emoji_groups.error())) {
       LOG(ERROR) << "Receive " << r_emoji_groups.error() << " from GetEmojiGroupsQuery";

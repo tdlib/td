@@ -910,6 +910,10 @@ void WebPagesManager::load_web_page_instant_view(WebPageId web_page_id, bool for
 }
 
 void WebPagesManager::reload_web_page_instant_view(WebPageId web_page_id) {
+  if (G()->close_flag()) {
+    return update_web_page_instant_view_load_requests(web_page_id, true, Global::request_aborted_error());
+  }
+
   LOG(INFO) << "Reload " << web_page_id << " instant view";
   const WebPage *web_page = get_web_page(web_page_id);
   CHECK(web_page != nullptr && !web_page->instant_view.is_empty);
@@ -918,9 +922,6 @@ void WebPagesManager::reload_web_page_instant_view(WebPageId web_page_id) {
     send_closure(actor_id, &WebPagesManager::update_web_page_instant_view_load_requests, web_page_id, true,
                  std::move(result));
   });
-
-  TRY_STATUS_PROMISE(promise, G()->close_status());
-
   td_->create_handler<GetWebPageQuery>(std::move(promise))
       ->send(web_page_id, web_page->url, web_page->instant_view.is_full ? web_page->instant_view.hash : 0);
 }

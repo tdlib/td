@@ -772,8 +772,8 @@ unique_ptr<ReplyMarkup> dup_reply_markup(const unique_ptr<ReplyMarkup> &reply_ma
   result->is_personal = reply_markup->is_personal;
   result->is_persistent = reply_markup->is_persistent;
   result->need_resize_keyboard = reply_markup->need_resize_keyboard;
-  result->keyboard = td::transform(reply_markup->keyboard, [](const vector<KeyboardButton> &row) {
-    return td::transform(row, [](const KeyboardButton &button) {
+  result->keyboard = transform(reply_markup->keyboard, [](const vector<KeyboardButton> &row) {
+    return transform(row, [](const KeyboardButton &button) {
       KeyboardButton result;
       result.type = button.type;
       result.text = button.text;
