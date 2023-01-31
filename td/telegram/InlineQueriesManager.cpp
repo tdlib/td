@@ -1275,9 +1275,9 @@ tl_object_ptr<td_api::photo> copy(const td_api::photo &obj) {
 
 template <>
 tl_object_ptr<td_api::sticker> copy(const td_api::sticker &obj) {
-  return td_api::make_object<td_api::sticker>(obj.id_, obj.set_id_, obj.width_, obj.height_, obj.emoji_, copy(obj.format_),
-                                              copy(obj.full_type_), transform(obj.outline_, copy_closed_vector_path),
-                                              copy(obj.thumbnail_), copy(obj.sticker_));
+  return td_api::make_object<td_api::sticker>(
+      obj.id_, obj.set_id_, obj.width_, obj.height_, obj.emoji_, copy(obj.format_), copy(obj.full_type_),
+      transform(obj.outline_, copy_closed_vector_path), copy(obj.thumbnail_), copy(obj.sticker_));
 }
 
 template <>
