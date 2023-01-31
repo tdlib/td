@@ -32835,17 +32835,19 @@ void MessagesManager::on_update_dialog_draft_message(DialogId dialog_id, Message
     LOG(ERROR) << "Receive update chat draft in invalid " << dialog_id;
     return;
   }
+  auto draft = get_draft_message(td_->contacts_manager_.get(), std::move(draft_message));
   auto d = get_dialog_force(dialog_id, "on_update_dialog_draft_message");
   if (d == nullptr) {
     LOG(INFO) << "Ignore update chat draft in unknown " << dialog_id;
-    if (!have_input_peer(dialog_id, AccessRights::Read)) {
-      LOG(ERROR) << "Have no read access to " << dialog_id << " to repair chat draft message";
-    } else {
-      send_get_dialog_query(dialog_id, Auto(), 0, "on_update_dialog_draft_message");
+    if (draft != nullptr) {
+      if (!have_input_peer(dialog_id, AccessRights::Read)) {
+        LOG(ERROR) << "Have no read access to " << dialog_id << " to repair chat draft message";
+      } else {
+        send_get_dialog_query(dialog_id, Auto(), 0, "on_update_dialog_draft_message");
+      }
     }
     return;
   }
-  auto draft = get_draft_message(td_->contacts_manager_.get(), std::move(draft_message));
   if (top_thread_message_id.is_valid()) {
     // TODO update thread message draft
     return;
