@@ -51,7 +51,7 @@ struct AesCtrEncryptionEvent {
     return 2;
   }
 
-  BufferSlice key_salt_;
+  string key_salt_;
   BufferSlice iv_;
   BufferSlice key_hash_;
 
@@ -62,7 +62,7 @@ struct AesCtrEncryptionEvent {
     if (db_key.is_raw_key()) {
       iteration_count = kdf_fast_iteration_count();
     }
-    pbkdf2_sha256(db_key.data(), key_salt_.as_slice(), narrow_cast<int>(iteration_count), key.as_slice());
+    pbkdf2_sha256(db_key.data(), key_salt_, narrow_cast<int>(iteration_count), key.as_slice());
     return key;
   }
 
@@ -216,7 +216,7 @@ Status Binlog::init(string path, const Callback &callback, DbKey db_key, DbKey o
   }
 
   if ((!db_key_.is_empty() && !db_key_used_) || (db_key_.is_empty() && encryption_type_ != EncryptionType::None)) {
-    aes_ctr_key_salt_ = BufferSlice();
+    aes_ctr_key_salt_ = string();
     do_reindex();
   }
 
@@ -304,7 +304,7 @@ void Binlog::close(Promise<> promise) {
 
 void Binlog::change_key(DbKey new_db_key) {
   db_key_ = std::move(new_db_key);
-  aes_ctr_key_salt_ = BufferSlice();
+  aes_ctr_key_salt_ = string();
   do_reindex();
 }
 
@@ -333,14 +333,12 @@ void Binlog::do_event(BinlogEvent &&event) {
     VLOG(binlog) << "Write binlog event: " << format::cond(state_ == State::Reindex, "[reindex] ")
                  << event.public_to_string();
     switch (encryption_type_) {
-      case EncryptionType::None: {
+      case EncryptionType::None:
         buffer_writer_.append(event.raw_event_.clone());
         break;
-      }
-      case EncryptionType::AesCtr: {
+      case EncryptionType::AesCtr:
         buffer_writer_.append(event.raw_event_.as_slice());
         break;
-      }
     }
   }
 
@@ -350,7 +348,7 @@ void Binlog::do_event(BinlogEvent &&event) {
       encryption_event.parse(TlParser(event.data_));
 
       BufferSlice key;
-      if (aes_ctr_key_salt_.as_slice() == encryption_event.key_salt_.as_slice()) {
+      if (aes_ctr_key_salt_ == encryption_event.key_salt_) {
         key = BufferSlice(as_slice(aes_ctr_key_));
       } else if (!db_key_.is_empty()) {
         key = encryption_event.generate_key(db_key_);
@@ -374,7 +372,7 @@ void Binlog::do_event(BinlogEvent &&event) {
 
       encryption_type_ = EncryptionType::AesCtr;
 
-      aes_ctr_key_salt_ = encryption_event.key_salt_.copy();
+      aes_ctr_key_salt_ = encryption_event.key_salt_;
       update_encryption(key.as_slice(), encryption_event.iv_.as_slice());
 
       if (state_ == State::Load) {
@@ -599,16 +597,16 @@ void Binlog::reset_encryption() {
   EncryptionEvent event;
 
   if (aes_ctr_key_salt_.empty()) {
-    event.key_salt_ = BufferSlice(EncryptionEvent::default_salt_size());
-    Random::secure_bytes(event.key_salt_.as_slice());
+    event.key_salt_.resize(EncryptionEvent::default_salt_size());
+    Random::secure_bytes(event.key_salt_);
   } else {
-    event.key_salt_ = aes_ctr_key_salt_.clone();
+    event.key_salt_ = aes_ctr_key_salt_;
   }
   event.iv_ = BufferSlice(EncryptionEvent::iv_size());
   Random::secure_bytes(event.iv_.as_slice());
 
   BufferSlice key;
-  if (aes_ctr_key_salt_.as_slice() == event.key_salt_.as_slice()) {
+  if (aes_ctr_key_salt_ == event.key_salt_) {
     key = BufferSlice(as_slice(aes_ctr_key_));
   } else {
     key = event.generate_key(db_key_);
