@@ -50,7 +50,7 @@ void QueryMerger::on_get_query_result(vector<int64> query_ids, Result<Unit> &&re
     if (result.is_ok()) {
       set_promises(promises);
     } else {
-      fail_promises(promises, result.move_as_error());
+      fail_promises(promises, result.error().clone());
     }
   }
   loop();
