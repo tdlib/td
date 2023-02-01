@@ -569,7 +569,7 @@ animatedChatPhoto length:int32 file:file main_frame_timestamp:double = AnimatedC
 //@added_date Point in time (Unix timestamp) when the photo has been added
 //@minithumbnail Photo minithumbnail; may be null
 //@sizes Available variants of the photo in JPEG format, in different size
-//@animation A big (640x640) animated variant of the photo in MPEG4 format; may be null
+//@animation A big (up to 1280x1280) animated variant of the photo in MPEG4 format; may be null
 //@small_animation A small (160x160) animated variant of the photo in MPEG4 format; may be null even the big animation is available
 //@sticker Sticker-based version of the chat photo; may be null
 chatPhoto id:int64 added_date:int32 minithumbnail:minithumbnail sizes:vector<photoSize> animation:animatedChatPhoto small_animation:animatedChatPhoto sticker:chatPhotoSticker = ChatPhoto;
@@ -586,7 +586,7 @@ inputChatPhotoPrevious chat_photo_id:int64 = InputChatPhoto;
 //@description A static photo in JPEG format @photo Photo to be set as profile photo. Only inputFileLocal and inputFileGenerated are allowed
 inputChatPhotoStatic photo:InputFile = InputChatPhoto;
 
-//@description An animation in MPEG4 format; must be square, at most 10 seconds long, have width between 160 and 800 and be at most 2MB in size
+//@description An animation in MPEG4 format; must be square, at most 10 seconds long, have width between 160 and 1280 and be at most 2MB in size
 //@animation Animation to be set as profile photo. Only inputFileLocal and inputFileGenerated are allowed
 //@main_frame_timestamp Timestamp of the frame, which will be used as static chat photo
 inputChatPhotoAnimation animation:InputFile main_frame_timestamp:double = InputChatPhoto;
