@@ -4989,12 +4989,12 @@ void StickersManager::on_find_custom_emojis_success(const string &emoji,
           transform(std::move(emoji_list->document_id_), [](int64 document_id) { return CustomEmojiId(document_id); });
       auto hash = emoji_list->hash_;
 
-      get_custom_emoji_stickers(custom_emoji_ids, true,
-                                PromiseCreator::lambda([actor_id = actor_id(this), emoji, hash, custom_emoji_ids](
-                                                           Result<td_api::object_ptr<td_api::stickers>> &&result) {
-                                  send_closure(actor_id, &StickersManager::on_load_custom_emojis, std::move(emoji),
-                                               hash, custom_emoji_ids, std::move(result));
-                                }));
+      get_custom_emoji_stickers_unlimited(
+          custom_emoji_ids, PromiseCreator::lambda([actor_id = actor_id(this), emoji, hash, custom_emoji_ids](
+                                                       Result<td_api::object_ptr<td_api::stickers>> &&result) {
+            send_closure(actor_id, &StickersManager::on_load_custom_emojis, std::move(emoji), hash, custom_emoji_ids,
+                         std::move(result));
+          }));
       break;
     }
     default:
@@ -6420,13 +6420,43 @@ td_api::object_ptr<td_api::stickers> StickersManager::get_custom_emoji_stickers_
   return td_api::make_object<td_api::stickers>(std::move(stickers));
 }
 
+void StickersManager::get_custom_emoji_stickers_unlimited(vector<CustomEmojiId> custom_emoji_ids,
+                                                          Promise<td_api::object_ptr<td_api::stickers>> &&promise) {
+  if (custom_emoji_ids.size() <= MAX_GET_CUSTOM_EMOJI_STICKERS) {
+    return get_custom_emoji_stickers(std::move(custom_emoji_ids), true, std::move(promise));
+  }
+
+  MultiPromiseActorSafe mpas{"GetCustomEmojiStickersMultiPromiseActor"};
+  mpas.add_promise(
+      PromiseCreator::lambda([actor_id = actor_id(this), custom_emoji_ids, promise = std::move(promise)](Unit) mutable {
+        send_closure(actor_id, &StickersManager::on_get_custom_emoji_stickers_unlimited, std::move(custom_emoji_ids),
+                     std::move(promise));
+      }));
+  auto lock = mpas.get_promise();
+  for (size_t i = 0; i < custom_emoji_ids.size(); i += MAX_GET_CUSTOM_EMOJI_STICKERS) {
+    auto end_i = td::min(i + MAX_GET_CUSTOM_EMOJI_STICKERS, custom_emoji_ids.size());
+    get_custom_emoji_stickers({custom_emoji_ids.begin() + i, custom_emoji_ids.begin() + end_i}, true,
+                              PromiseCreator::lambda([promise = mpas.get_promise()](
+                                                         Result<td_api::object_ptr<td_api::stickers>> result) mutable {
+                                if (result.is_ok()) {
+                                  promise.set_value(Unit());
+                                } else {
+                                  promise.set_error(result.move_as_error());
+                                }
+                              }));
+  }
+  lock.set_value(Unit());
+}
+
+void StickersManager::on_get_custom_emoji_stickers_unlimited(vector<CustomEmojiId> custom_emoji_ids,
+                                                             Promise<td_api::object_ptr<td_api::stickers>> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+  promise.set_value(get_custom_emoji_stickers_object(custom_emoji_ids));
+}
+
 void StickersManager::get_custom_emoji_stickers(vector<CustomEmojiId> custom_emoji_ids, bool use_database,
                                                 Promise<td_api::object_ptr<td_api::stickers>> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
-
-  if (!promise) {
-    return;
-  }
 
   if (custom_emoji_ids.size() > MAX_GET_CUSTOM_EMOJI_STICKERS) {
     return promise.set_error(Status::Error(400, "Too many custom emoji identifiers specified"));
@@ -6507,7 +6537,7 @@ string StickersManager::get_default_dialog_photo_custom_emoji_ids_database_key(b
 void StickersManager::get_default_dialog_photo_custom_emoji_stickers(
     bool for_user, bool force_reload, Promise<td_api::object_ptr<td_api::stickers>> &&promise) {
   if (are_default_dialog_photo_custom_emoji_ids_loaded_[for_user] && !force_reload) {
-    return get_custom_emoji_stickers(default_dialog_photo_custom_emoji_ids_[for_user], true, std::move(promise));
+    return get_custom_emoji_stickers_unlimited(default_dialog_photo_custom_emoji_ids_[for_user], std::move(promise));
   }
 
   auto &queries = default_dialog_photo_custom_emoji_ids_load_queries_[for_user];
@@ -6647,6 +6677,8 @@ void StickersManager::on_get_default_dialog_photo_custom_emoji_ids(
 void StickersManager::on_get_default_dialog_photo_custom_emoji_ids_success(bool for_user,
                                                                            vector<CustomEmojiId> custom_emoji_ids,
                                                                            int64 hash) {
+  LOG(INFO) << "Load " << custom_emoji_ids.size() << " default " << (for_user ? "profile" : "chat")
+            << " photo custom emoji identifiers";
   default_dialog_photo_custom_emoji_ids_[for_user] = std::move(custom_emoji_ids);
   default_dialog_photo_custom_emoji_ids_hash_[for_user] = hash;
   are_default_dialog_photo_custom_emoji_ids_loaded_[for_user] = true;
@@ -6654,7 +6686,7 @@ void StickersManager::on_get_default_dialog_photo_custom_emoji_ids_success(bool 
   auto promises = std::move(default_dialog_photo_custom_emoji_ids_load_queries_[for_user]);
   reset_to_empty(default_dialog_photo_custom_emoji_ids_load_queries_[for_user]);
   for (auto &promise : promises) {
-    get_custom_emoji_stickers(default_dialog_photo_custom_emoji_ids_[for_user], true, std::move(promise));
+    get_custom_emoji_stickers_unlimited(default_dialog_photo_custom_emoji_ids_[for_user], std::move(promise));
   }
 }
 
