@@ -250,6 +250,7 @@ class TQueueImpl final : public TQueue {
     auto collect_deleted_event_ids_time = 0.0;
     if (callback_ != nullptr) {
       vector<uint64> deleted_log_event_ids;
+      deleted_log_event_ids.reserve(size - keep_count);
       for (auto it = q.events.begin(); it != end_it; ++it) {
         auto &event = it->second;
         if (event.log_event_id != 0) {
