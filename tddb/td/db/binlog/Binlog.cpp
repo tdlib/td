@@ -329,7 +329,7 @@ void Binlog::do_event(BinlogEvent &&event) {
     auto validate_status = event.validate();
     if (validate_status.is_error()) {
       LOG(FATAL) << "Failed to validate binlog event " << validate_status << " "
-                 << format::as_hex_dump<4>(Slice(event.raw_event_.as_slice().truncate(28)));
+                 << format::as_hex_dump<4>(as_slice(event.raw_event_).truncate(28));
     }
     VLOG(binlog) << "Write binlog event: " << format::cond(state_ == State::Reindex, "[reindex] ")
                  << event.public_to_string();
@@ -338,7 +338,7 @@ void Binlog::do_event(BinlogEvent &&event) {
         buffer_writer_.append(event.raw_event_.clone());
         break;
       case EncryptionType::AesCtr:
-        buffer_writer_.append(event.raw_event_.as_slice());
+        buffer_writer_.append(as_slice(event.raw_event_));
         break;
     }
   }

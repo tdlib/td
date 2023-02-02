@@ -27,7 +27,7 @@ Status BinlogEventsProcessor::do_event(BinlogEvent &&event) {
     if (event.type_ == BinlogEvent::ServiceTypes::Empty) {
       *it += 1;
       empty_events_++;
-      events_[pos].clear();
+      events_[pos] = {};
     } else {
       event.flags_ &= ~BinlogEvent::Flags::Rewrite;
       total_raw_events_size_ += static_cast<int64>(event.raw_event_.size());

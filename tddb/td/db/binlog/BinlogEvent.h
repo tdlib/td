@@ -55,12 +55,12 @@ struct BinlogEvent {
 
   int64 offset_ = -1;
 
-  uint32 size_;
-  uint64 id_;
-  int32 type_;  // type can be merged with flags
-  int32 flags_;
-  uint64 extra_;
-  uint32 crc32_;
+  uint32 size_ = 0;
+  uint64 id_ = 0;
+  int32 type_ = 0;  // type can be merged with flags
+  int32 flags_ = 0;
+  uint64 extra_ = 0;
+  uint32 crc32_ = 0;
 
   BufferSlice raw_event_;
 
@@ -71,11 +71,7 @@ struct BinlogEvent {
 
   Slice get_data() const;
 
-  void clear() {
-    raw_event_ = BufferSlice();
-  }
-
-  bool empty() const {
+  bool is_empty() const {
     return raw_event_.empty();
   }
 

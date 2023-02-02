@@ -405,7 +405,7 @@ class FakeBinlog final
     cancel_timeout();
     for (auto &pending : pending_events_) {
       auto &event = pending.event;
-      if (!event.empty()) {
+      if (!event.is_empty()) {
         // LOG(ERROR) << "FORGET EVENT: " << event.id_ << " " << event;
       }
     }
@@ -439,7 +439,7 @@ class FakeBinlog final
     for (size_t i = 0; i <= pos; i++) {
       auto &pending = pending_events_[i];
       auto event = std::move(pending.event);
-      if (!event.empty()) {
+      if (!event.is_empty()) {
         LOG(INFO) << "SAVE EVENT: " << event.id_ << " " << event;
         events_processor_.add_event(std::move(event)).ensure();
       }
