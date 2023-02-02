@@ -3956,6 +3956,7 @@ ContactsManager::ContactsManager(Td *td, ActorShared<> parent) : td_(td), parent
   channel_participant_cache_timeout_.set_callback_data(static_cast<void *>(this));
 
   get_user_queries_.set_merge_function([this](vector<int64> query_ids, Promise<Unit> &&promise) {
+    TRY_STATUS_PROMISE(promise, G()->close_status());
     auto input_users = transform(query_ids, [this](int64 query_id) {
       auto r_input_user = get_input_user(UserId(query_id));
       CHECK(r_input_user.is_ok());
@@ -3964,9 +3965,11 @@ ContactsManager::ContactsManager(Td *td, ActorShared<> parent) : td_(td), parent
     td_->create_handler<GetUsersQuery>(std::move(promise))->send(std::move(input_users));
   });
   get_chat_queries_.set_merge_function([this](vector<int64> query_ids, Promise<Unit> &&promise) {
+    TRY_STATUS_PROMISE(promise, G()->close_status());
     td_->create_handler<GetChatsQuery>(std::move(promise))->send(std::move(query_ids));
   });
   get_channel_queries_.set_merge_function([this](vector<int64> query_ids, Promise<Unit> &&promise) {
+    TRY_STATUS_PROMISE(promise, G()->close_status());
     CHECK(query_ids.size() == 1);
     auto input_channel = get_input_channel(ChannelId(query_ids[0]));
     CHECK(input_channel != nullptr);
