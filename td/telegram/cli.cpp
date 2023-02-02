@@ -5403,7 +5403,10 @@ class CliClient final : public Actor {
         it->part_size = left_size;
       }
       BufferSlice block(narrow_cast<size_t>(it->part_size));
-      FileFd::open(it->source, FileFd::Flags::Read).move_as_ok().pread(block.as_slice(), it->local_size).ensure();
+      FileFd::open(it->source, FileFd::Flags::Read)
+          .move_as_ok()
+          .pread(block.as_mutable_slice(), it->local_size)
+          .ensure();
       if (rand_bool()) {
         auto open_flags = FileFd::Flags::Write | (it->local_size ? 0 : FileFd::Flags::Truncate | FileFd::Flags::Create);
         FileFd::open(it->destination, open_flags).move_as_ok().pwrite(block.as_slice(), it->local_size).ensure();

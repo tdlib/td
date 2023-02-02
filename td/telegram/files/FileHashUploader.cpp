@@ -68,7 +68,7 @@ Status FileHashUploader::loop_impl() {
   if (state_ == State::NetRequest) {
     // messages.getDocumentByHash#338e2464 sha256:bytes size:long mime_type:string = Document;
     auto hash = BufferSlice(32);
-    sha256_state_.extract(hash.as_slice(), true);
+    sha256_state_.extract(hash.as_mutable_slice(), true);
     auto mime_type = MimeType::from_extension(PathView(local_.path_).extension(), "image/gif");
     auto query = telegram_api::messages_getDocumentByHash(std::move(hash), size_, std::move(mime_type));
     LOG(INFO) << "Send getDocumentByHash request: " << to_string(query);

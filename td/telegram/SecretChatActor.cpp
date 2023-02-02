@@ -216,7 +216,7 @@ Result<BufferSlice> SecretChatActor::create_encrypted_message(int32 my_in_seq_no
 
   auto layer = current_layer();
   BufferSlice random_bytes(31);
-  Random::secure_bytes(random_bytes.as_slice().ubegin(), random_bytes.size());
+  Random::secure_bytes(random_bytes.as_mutable_slice().ubegin(), random_bytes.size());
   auto message_with_layer = secret_api::make_object<secret_api::decryptedMessageLayer>(
       std::move(random_bytes), layer, in_seq_no, out_seq_no, std::move(message));
   LOG(INFO) << "Create message " << to_string(message_with_layer);
@@ -227,7 +227,7 @@ Result<BufferSlice> SecretChatActor::create_encrypted_message(int32 my_in_seq_no
   info.version = 2;
   info.is_creator = auth_state_.x == 0;
   auto packet_writer = BufferWriter{mtproto::Transport::write(new_storer, *auth_key, &info), 0, 0};
-  mtproto::Transport::write(new_storer, *auth_key, &info, packet_writer.as_slice());
+  mtproto::Transport::write(new_storer, *auth_key, &info, packet_writer.as_mutable_slice());
   message = std::move(message_with_layer->message_);
   return packet_writer.as_buffer_slice();
 }
@@ -770,7 +770,7 @@ void SecretChatActor::tear_down() {
 }
 
 Result<std::tuple<uint64, BufferSlice, int32>> SecretChatActor::decrypt(BufferSlice &encrypted_message) {
-  MutableSlice data = encrypted_message.as_slice();
+  MutableSlice data = encrypted_message.as_mutable_slice();
   CHECK(is_aligned_pointer<4>(data.data()));
   TRY_RESULT(auth_key_id, mtproto::Transport::read_auth_key_id(data));
   mtproto::AuthKey *auth_key = nullptr;
@@ -789,7 +789,7 @@ Result<std::tuple<uint64, BufferSlice, int32>> SecretChatActor::decrypt(BufferSl
   Result<mtproto::Transport::ReadResult> r_read_result;
   for (size_t i = 0; i < versions.size(); i++) {
     encrypted_message_copy = encrypted_message.copy();
-    data = encrypted_message_copy.as_slice();
+    data = encrypted_message_copy.as_mutable_slice();
     CHECK(is_aligned_pointer<4>(data.data()));
 
     mtproto::PacketInfo info;
@@ -1504,7 +1504,7 @@ Status SecretChatActor::outbound_rewrite_with_empty(uint64 state_id) {
   }
   cancel_query(state->net_query_ref);
 
-  MutableSlice data = state->message->encrypted_message.as_slice();
+  Slice data = state->message->encrypted_message.as_slice();
   CHECK(is_aligned_pointer<4>(data.data()));
 
   // Rewrite with delete itself

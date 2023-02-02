@@ -51,7 +51,7 @@ class UdpReaderHelper {
       buffer_ = BufferSlice(RESERVED_SIZE);
     }
     CHECK(buffer_.size() >= MAX_PACKET_SIZE);
-    message.data = buffer_.as_slice().substr(0, MAX_PACKET_SIZE);
+    message.data = buffer_.as_mutable_slice().substr(0, MAX_PACKET_SIZE);
   }
 
   UdpMessage extract_udp_message(UdpSocketFd::InboundMessage &message) {

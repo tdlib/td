@@ -51,7 +51,7 @@ class FileDbInterface {
     object.as_key().store(calc_length);
 
     BufferSlice key_buffer{calc_length.get_length()};
-    auto key = key_buffer.as_slice();
+    auto key = key_buffer.as_mutable_slice();
     TlStorerUnsafe storer(key.ubegin());
     storer.store_int(LocationT::KEY_MAGIC);
     object.as_key().store(storer);

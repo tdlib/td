@@ -818,7 +818,7 @@ std::pair<uint64, BufferSlice> SessionConnection::encrypted_bind(int64 perm_key,
   auto object_storer = create_storer(object);
   auto size = object_storer.size();
   auto object_packet = BufferWriter{size, 0, 0};
-  auto real_size = object_storer.store(object_packet.as_slice().ubegin());
+  auto real_size = object_storer.store(object_packet.as_mutable_slice().ubegin());
   CHECK(size == real_size);
 
   MtprotoQuery query{
@@ -833,7 +833,7 @@ std::pair<uint64, BufferSlice> SessionConnection::encrypted_bind(int64 perm_key,
 
   const AuthKey &main_auth_key = auth_data_->get_main_auth_key();
   auto packet = BufferWriter{Transport::write(query_storer, main_auth_key, &info), 0, 0};
-  Transport::write(query_storer, main_auth_key, &info, packet.as_slice());
+  Transport::write(query_storer, main_auth_key, &info, packet.as_mutable_slice());
   return std::make_pair(query.message_id, packet.as_buffer_slice());
 }
 

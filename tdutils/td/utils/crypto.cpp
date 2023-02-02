@@ -1043,7 +1043,7 @@ Result<BufferSlice> rsa_encrypt_pkcs1_oaep(Slice public_key, Slice data) {
   int outlen = RSA_size(rsa);
   BufferSlice res(outlen);
   if (RSA_public_encrypt(narrow_cast<int>(data.size()), const_cast<unsigned char *>(data.ubegin()),
-                         res.as_slice().ubegin(), rsa, RSA_PKCS1_OAEP_PADDING) != outlen) {
+                         res.as_mutable_slice().ubegin(), rsa, RSA_PKCS1_OAEP_PADDING) != outlen) {
 #else
   EVP_PKEY_CTX *ctx = EVP_PKEY_CTX_new(pkey, nullptr);
   if (!ctx) {
@@ -1065,7 +1065,7 @@ Result<BufferSlice> rsa_encrypt_pkcs1_oaep(Slice public_key, Slice data) {
     return Status::Error("Cannot calculate encrypted length");
   }
   BufferSlice res(outlen);
-  if (EVP_PKEY_encrypt(ctx, res.as_slice().ubegin(), &outlen, data.ubegin(), data.size()) <= 0) {
+  if (EVP_PKEY_encrypt(ctx, res.as_mutable_slice().ubegin(), &outlen, data.ubegin(), data.size()) <= 0) {
 #endif
     return Status::Error("Cannot encrypt");
   }
@@ -1095,7 +1095,7 @@ Result<BufferSlice> rsa_decrypt_pkcs1_oaep(Slice private_key, Slice data) {
   size_t outlen = RSA_size(rsa);
   BufferSlice res(outlen);
   auto inlen = RSA_private_decrypt(narrow_cast<int>(data.size()), const_cast<unsigned char *>(data.ubegin()),
-                                   res.as_slice().ubegin(), rsa, RSA_PKCS1_OAEP_PADDING);
+                                   res.as_mutable_slice().ubegin(), rsa, RSA_PKCS1_OAEP_PADDING);
   if (inlen == -1) {
     return Status::Error("Cannot decrypt");
   }
@@ -1121,7 +1121,7 @@ Result<BufferSlice> rsa_decrypt_pkcs1_oaep(Slice private_key, Slice data) {
     return Status::Error("Cannot calculate decrypted length");
   }
   BufferSlice res(outlen);
-  if (EVP_PKEY_decrypt(ctx, res.as_slice().ubegin(), &outlen, data.ubegin(), data.size()) <= 0) {
+  if (EVP_PKEY_decrypt(ctx, res.as_mutable_slice().ubegin(), &outlen, data.ubegin(), data.size()) <= 0) {
     return Status::Error("Cannot decrypt");
   }
 #endif

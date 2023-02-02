@@ -23,7 +23,7 @@ static td::vector<td::string> strings{"", "1", "short test string", td::string(1
 TEST(Crypto, Aes) {
   td::Random::Xorshift128plus rnd(123);
   td::UInt256 key;
-  rnd.bytes(as_slice(key));
+  rnd.bytes(as_mutable_slice(key));
   td::string plaintext(16, '\0');
   td::string encrypted(16, '\0');
   td::string decrypted(16, '\0');
@@ -34,8 +34,8 @@ TEST(Crypto, Aes) {
   td::AesState decryptor;
   decryptor.init(as_slice(key), false);
 
-  encryptor.encrypt(td::as_slice(plaintext).ubegin(), td::as_slice(encrypted).ubegin(), 16);
-  decryptor.decrypt(td::as_slice(encrypted).ubegin(), td::as_slice(decrypted).ubegin(), 16);
+  encryptor.encrypt(td::as_slice(plaintext).ubegin(), td::as_mutable_slice(encrypted).ubegin(), 16);
+  decryptor.decrypt(td::as_slice(encrypted).ubegin(), td::as_mutable_slice(decrypted).ubegin(), 16);
 
   CHECK(decrypted == plaintext);
   CHECK(decrypted != encrypted);
@@ -135,7 +135,7 @@ TEST(Crypto, AesIgeState) {
     for (const auto &str : td::rand_split(td::string(length / 16, '\0'))) {
       auto len = 16 * str.size();
       state.encrypt(td::Slice(s).substr(pos, len), td::MutableSlice(t).substr(pos, len));
-      td::aes_ige_encrypt(as_slice(key), as_slice(iv_copy), td::Slice(s).substr(pos, len),
+      td::aes_ige_encrypt(as_slice(key), as_mutable_slice(iv_copy), td::Slice(s).substr(pos, len),
                           td::MutableSlice(u).substr(pos, len));
       pos += len;
     }
@@ -149,7 +149,7 @@ TEST(Crypto, AesIgeState) {
     for (const auto &str : td::rand_split(td::string(length / 16, '\0'))) {
       auto len = 16 * str.size();
       state.decrypt(td::Slice(t).substr(pos, len), td::MutableSlice(t).substr(pos, len));
-      td::aes_ige_decrypt(as_slice(key), as_slice(iv_copy), td::Slice(u).substr(pos, len),
+      td::aes_ige_decrypt(as_slice(key), as_mutable_slice(iv_copy), td::Slice(u).substr(pos, len),
                           td::MutableSlice(u).substr(pos, len));
       pos += len;
     }
@@ -191,7 +191,7 @@ TEST(Crypto, AesCbcState) {
     for (const auto &str : td::rand_split(td::string(length / 16, '\0'))) {
       auto len = 16 * str.size();
       state.encrypt(td::Slice(s).substr(pos, len), td::MutableSlice(t).substr(pos, len));
-      td::aes_cbc_encrypt(as_slice(key), as_slice(iv_copy), td::Slice(s).substr(pos, len),
+      td::aes_cbc_encrypt(as_slice(key), as_mutable_slice(iv_copy), td::Slice(s).substr(pos, len),
                           td::MutableSlice(u).substr(pos, len));
       pos += len;
     }
@@ -205,7 +205,7 @@ TEST(Crypto, AesCbcState) {
     for (const auto &str : td::rand_split(td::string(length / 16, '\0'))) {
       auto len = 16 * str.size();
       state.decrypt(td::Slice(t).substr(pos, len), td::MutableSlice(t).substr(pos, len));
-      td::aes_cbc_decrypt(as_slice(key), as_slice(iv_copy), td::Slice(u).substr(pos, len),
+      td::aes_cbc_decrypt(as_slice(key), as_mutable_slice(iv_copy), td::Slice(u).substr(pos, len),
                           td::MutableSlice(u).substr(pos, len));
       pos += len;
     }
@@ -221,7 +221,7 @@ TEST(Crypto, Sha256State) {
   for (auto length : {0, 1, 31, 32, 33, 9999, 10000, 10001, 999999, 1000001}) {
     auto s = td::rand_string(std::numeric_limits<char>::min(), std::numeric_limits<char>::max(), length);
     td::UInt256 baseline;
-    td::sha256(s, as_slice(baseline));
+    td::sha256(s, as_mutable_slice(baseline));
 
     td::Sha256State state;
     state.init();
@@ -232,7 +232,7 @@ TEST(Crypto, Sha256State) {
     }
     state = std::move(state2);
     td::UInt256 result;
-    state.extract(as_slice(result));
+    state.extract(as_mutable_slice(result));
     ASSERT_TRUE(baseline == result);
   }
 }

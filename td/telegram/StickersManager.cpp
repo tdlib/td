@@ -5491,7 +5491,7 @@ string StickersManager::get_sticker_set_database_value(const StickerSet *s, bool
   store_sticker_set(s, with_stickers, storer_calc_length, source);
 
   BufferSlice value_buffer{storer_calc_length.get_length()};
-  auto value = value_buffer.as_slice();
+  auto value = value_buffer.as_mutable_slice();
 
   LOG(DEBUG) << "Serialized size of " << s->id_ << " is " << value.size();
 

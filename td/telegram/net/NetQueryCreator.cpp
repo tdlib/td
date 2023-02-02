@@ -35,7 +35,7 @@ NetQueryPtr NetQueryCreator::create(uint64 id, const telegram_api::Function &fun
   LOG(INFO) << "Create query " << to_string(function);
   auto storer = DefaultStorer<telegram_api::Function>(function);
   BufferSlice slice(storer.size());
-  auto real_size = storer.store(slice.as_slice().ubegin());
+  auto real_size = storer.store(slice.as_mutable_slice().ubegin());
   LOG_CHECK(real_size == slice.size()) << real_size << " " << slice.size() << " "
                                        << format::as_hex_dump<4>(Slice(slice.as_slice()));
 

@@ -306,14 +306,14 @@ class AesCbcDecryptBench final : public td::Benchmark {
 
   void start_up() final {
     std::fill(std::begin(data), std::end(data), static_cast<unsigned char>(123));
-    td::Random::secure_bytes(as_slice(key));
-    td::Random::secure_bytes(as_slice(iv));
+    td::Random::secure_bytes(as_mutable_slice(key));
+    td::Random::secure_bytes(as_mutable_slice(iv));
   }
 
   void run(int n) final {
     td::MutableSlice data_slice(data, DATA_SIZE);
     for (int i = 0; i < n; i++) {
-      td::aes_cbc_decrypt(as_slice(key), as_slice(iv), data_slice, data_slice);
+      td::aes_cbc_decrypt(as_slice(key), as_mutable_slice(iv), data_slice, data_slice);
     }
   }
 };
@@ -330,14 +330,14 @@ class AesCbcEncryptBench final : public td::Benchmark {
 
   void start_up() final {
     std::fill(std::begin(data), std::end(data), static_cast<unsigned char>(123));
-    td::Random::secure_bytes(as_slice(key));
-    td::Random::secure_bytes(as_slice(iv));
+    td::Random::secure_bytes(as_mutable_slice(key));
+    td::Random::secure_bytes(as_mutable_slice(iv));
   }
 
   void run(int n) final {
     td::MutableSlice data_slice(data, DATA_SIZE);
     for (int i = 0; i < n; i++) {
-      td::aes_cbc_encrypt(as_slice(key), as_slice(iv), data_slice, data_slice);
+      td::aes_cbc_encrypt(as_slice(key), as_mutable_slice(iv), data_slice, data_slice);
     }
   }
 };
@@ -355,8 +355,8 @@ class AesIgeShortBench final : public td::Benchmark {
 
   void start_up() final {
     std::fill(std::begin(data), std::end(data), static_cast<unsigned char>(123));
-    td::Random::secure_bytes(as_slice(key));
-    td::Random::secure_bytes(as_slice(iv));
+    td::Random::secure_bytes(as_mutable_slice(key));
+    td::Random::secure_bytes(as_mutable_slice(iv));
   }
 
   void run(int n) final {
@@ -367,7 +367,7 @@ class AesIgeShortBench final : public td::Benchmark {
         ige.init(as_slice(key), as_slice(iv), false);
         ige.decrypt(data_slice, data_slice);
       } else {
-        td::aes_ige_decrypt(as_slice(key), as_slice(iv), data_slice, data_slice);
+        td::aes_ige_decrypt(as_slice(key), as_mutable_slice(iv), data_slice, data_slice);
       }
     }
   }

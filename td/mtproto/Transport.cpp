@@ -158,7 +158,7 @@ std::pair<uint32, UInt128> Transport::calc_message_key2(const AuthKey &auth_key,
 
   // msg_key = substr (msg_key_large, 8, 16);
   UInt128 res;
-  as_slice(res).copy_from(msg_key_large.substr(8, 16));
+  as_mutable_slice(res).copy_from(msg_key_large.substr(8, 16));
 
   return std::make_pair(as<uint32>(msg_key_large_raw) | (1u << 31), res);
 }
@@ -243,7 +243,7 @@ Status Transport::read_crypto_impl(int X, MutableSlice message, const AuthKey &a
     KDF2(auth_key.key(), header->message_key, X, &aes_key, &aes_iv);
   }
 
-  aes_ige_decrypt(as_slice(aes_key), as_slice(aes_iv), to_decrypt, to_decrypt);
+  aes_ige_decrypt(as_slice(aes_key), as_mutable_slice(aes_iv), to_decrypt, to_decrypt);
 
   size_t tail_size = message.end() - reinterpret_cast<char *>(header->data);
   if (tail_size < sizeof(PrefixT)) {
@@ -378,7 +378,7 @@ void Transport::write_crypto_impl(int X, const Storer &storer, const AuthKey &au
     KDF2(auth_key.key(), header->message_key, X, &aes_key, &aes_iv);
   }
 
-  aes_ige_encrypt(as_slice(aes_key), as_slice(aes_iv), to_encrypt, to_encrypt);
+  aes_ige_encrypt(as_slice(aes_key), as_mutable_slice(aes_iv), to_encrypt, to_encrypt);
 }
 
 size_t Transport::write_crypto(const Storer &storer, const AuthKey &auth_key, PacketInfo *info, MutableSlice dest) {

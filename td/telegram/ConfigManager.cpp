@@ -181,9 +181,9 @@ Result<SimpleConfig> decode_config(Slice input) {
   MutableSlice data_cbc = data_rsa_slice.substr(32);
   UInt256 key;
   UInt128 iv;
-  as_slice(key).copy_from(data_rsa_slice.substr(0, 32));
-  as_slice(iv).copy_from(data_rsa_slice.substr(16, 16));
-  aes_cbc_decrypt(as_slice(key), as_slice(iv), data_cbc, data_cbc);
+  as_mutable_slice(key).copy_from(data_rsa_slice.substr(0, 32));
+  as_mutable_slice(iv).copy_from(data_rsa_slice.substr(16, 16));
+  aes_cbc_decrypt(as_slice(key), as_mutable_slice(iv), data_cbc, data_cbc);
 
   CHECK(data_cbc.size() == 224);
   string hash(32, ' ');

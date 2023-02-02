@@ -44,11 +44,11 @@ static void hash_sha256(Slice data, Slice salt, MutableSlice dest) {
 BufferSlice PasswordManager::calc_password_hash(Slice password, Slice client_salt, Slice server_salt) {
   LOG(INFO) << "Begin password hash calculation";
   BufferSlice buf(32);
-  hash_sha256(password, client_salt, buf.as_slice());
-  hash_sha256(buf.as_slice(), server_salt, buf.as_slice());
+  hash_sha256(password, client_salt, buf.as_mutable_slice());
+  hash_sha256(buf.as_slice(), server_salt, buf.as_mutable_slice());
   BufferSlice hash(64);
-  pbkdf2_sha512(buf.as_slice(), client_salt, 100000, hash.as_slice());
-  hash_sha256(hash.as_slice(), server_salt, buf.as_slice());
+  pbkdf2_sha512(buf.as_slice(), client_salt, 100000, hash.as_mutable_slice());
+  hash_sha256(hash.as_slice(), server_salt, buf.as_mutable_slice());
   LOG(INFO) << "End password hash calculation";
   return buf;
 }
@@ -101,7 +101,7 @@ tl_object_ptr<telegram_api::InputCheckPasswordSRP> PasswordManager::get_input_ch
   auto x_bn = BigNum::from_binary(x.as_slice());
 
   BufferSlice a(2048 / 8);
-  Random::secure_bytes(a.as_slice());
+  Random::secure_bytes(a.as_mutable_slice());
   auto a_bn = BigNum::from_binary(a.as_slice());
 
   BigNumContext ctx;
@@ -636,8 +636,8 @@ void PasswordManager::update_password_settings(UpdateSettings update_settings, P
 static BufferSlice create_salt(Slice salt_prefix) {
   static constexpr size_t ADDED_SALT_SIZE = 32;
   BufferSlice new_salt(salt_prefix.size() + ADDED_SALT_SIZE);
-  new_salt.as_slice().copy_from(salt_prefix);
-  Random::secure_bytes(new_salt.as_slice().substr(salt_prefix.size()));
+  new_salt.as_mutable_slice().copy_from(salt_prefix);
+  Random::secure_bytes(new_salt.as_mutable_slice().substr(salt_prefix.size()));
   return new_salt;
 }
 

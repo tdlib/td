@@ -65,7 +65,7 @@ class RawConnectionDefault final : public RawConnection {
 
     auto packet = BufferWriter{Transport::write(storer, auth_key, &info), transport_->max_prepend_size(),
                                transport_->max_append_size()};
-    Transport::write(storer, auth_key, &info, packet.as_slice());
+    Transport::write(storer, auth_key, &info, packet.as_mutable_slice());
 
     bool use_quick_ack = false;
     if (quick_ack_token != 0 && transport_->support_quick_ack()) {
@@ -89,7 +89,7 @@ class RawConnectionDefault final : public RawConnection {
     info.no_crypto_flag = true;
     auto packet = BufferWriter{Transport::write(storer, AuthKey(), &info), transport_->max_prepend_size(),
                                transport_->max_append_size()};
-    Transport::write(storer, AuthKey(), &info, packet.as_slice());
+    Transport::write(storer, AuthKey(), &info, packet.as_mutable_slice());
     LOG(INFO) << "Send handshake packet: " << format::as_hex_dump<4>(packet.as_slice());
     transport_->write(std::move(packet), false);
     return info.message_id;
@@ -156,7 +156,7 @@ class RawConnectionDefault final : public RawConnection {
       TRY_RESULT(wait_size, transport_->read_next(&packet, &quick_ack));
       if (!is_aligned_pointer<4>(packet.as_slice().ubegin())) {
         BufferSlice new_packet(packet.size());
-        new_packet.as_slice().copy_from(packet.as_slice());
+        new_packet.as_mutable_slice().copy_from(packet.as_slice());
         packet = std::move(new_packet);
       }
       LOG_CHECK(is_aligned_pointer<4>(packet.as_slice().ubegin()))
@@ -177,7 +177,7 @@ class RawConnectionDefault final : public RawConnection {
       PacketInfo info;
       info.version = 2;
 
-      TRY_RESULT(read_result, Transport::read(packet.as_slice(), auth_key, &info));
+      TRY_RESULT(read_result, Transport::read(packet.as_mutable_slice(), auth_key, &info));
       switch (read_result.type()) {
         case Transport::ReadResult::Quickack: {
           TRY_STATUS(on_quick_ack(read_result.quick_ack(), callback));
@@ -389,7 +389,7 @@ class RawConnectionHttp final : public RawConnection {
         PacketInfo info;
         info.version = 2;
 
-        TRY_RESULT(read_result, Transport::read(packet.as_slice(), auth_key, &info));
+        TRY_RESULT(read_result, Transport::read(packet.as_mutable_slice(), auth_key, &info));
         switch (read_result.type()) {
           case Transport::ReadResult::Quickack: {
             break;

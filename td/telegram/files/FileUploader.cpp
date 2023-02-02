@@ -224,12 +224,12 @@ Status FileUploader::generate_iv_map() {
   CHECK(!fd_.empty());
   for (; generate_offset_ + static_cast<int64>(part_size) < local_size_;
        generate_offset_ += static_cast<int64>(part_size)) {
-    TRY_RESULT(read_size, fd_.pread(bytes.as_slice(), generate_offset_));
+    TRY_RESULT(read_size, fd_.pread(bytes.as_mutable_slice(), generate_offset_));
     if (read_size != part_size) {
       return Status::Error("Failed to read file part (for iv_map)");
     }
-    aes_ige_encrypt(as_slice(encryption_key.key()), as_slice(encryption_key.mutable_iv()), bytes.as_slice(),
-                    bytes.as_slice());
+    aes_ige_encrypt(as_slice(encryption_key.key()), as_mutable_slice(encryption_key.mutable_iv()), bytes.as_slice(),
+                    bytes.as_mutable_slice());
     iv_map_.push_back(encryption_key.mutable_iv());
   }
   generate_iv_ = encryption_key.iv_slice().str();
@@ -254,11 +254,12 @@ Result<std::pair<NetQueryPtr, bool>> FileUploader::start_part(Part part, int32 p
     padded_size = (padded_size + 15) & ~15;
   }
   BufferSlice bytes(padded_size);
-  TRY_RESULT(size, fd_.pread(bytes.as_slice().truncate(part.size), part.offset));
+  TRY_RESULT(size, fd_.pread(bytes.as_mutable_slice().truncate(part.size), part.offset));
   if (encryption_key_.is_secret()) {
-    Random::secure_bytes(bytes.as_slice().substr(part.size));
+    Random::secure_bytes(bytes.as_mutable_slice().substr(part.size));
     if (next_offset_ == part.offset) {
-      aes_ige_encrypt(as_slice(encryption_key_.key()), as_slice(iv_), bytes.as_slice(), bytes.as_slice());
+      aes_ige_encrypt(as_slice(encryption_key_.key()), as_mutable_slice(iv_), bytes.as_slice(),
+                      bytes.as_mutable_slice());
       next_offset_ += static_cast<int64>(bytes.size());
     } else {
       if (part.id >= static_cast<int32>(iv_map_.size())) {
@@ -266,7 +267,8 @@ Result<std::pair<NetQueryPtr, bool>> FileUploader::start_part(Part part, int32 p
       }
       CHECK(part.id < static_cast<int32>(iv_map_.size()) && part.id >= 0);
       auto iv = iv_map_[part.id];
-      aes_ige_encrypt(as_slice(encryption_key_.key()), as_slice(iv), bytes.as_slice(), bytes.as_slice());
+      aes_ige_encrypt(as_slice(encryption_key_.key()), as_mutable_slice(iv), bytes.as_slice(),
+                      bytes.as_mutable_slice());
     }
   }
 

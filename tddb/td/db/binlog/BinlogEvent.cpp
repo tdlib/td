@@ -55,7 +55,7 @@ Status BinlogEvent::validate() const {
 BufferSlice BinlogEvent::create_raw(uint64 id, int32 type, int32 flags, const Storer &storer) {
   auto raw_event = BufferSlice{storer.size() + MIN_SIZE};
 
-  TlStorerUnsafe tl_storer(raw_event.as_slice().ubegin());
+  TlStorerUnsafe tl_storer(raw_event.as_mutable_slice().ubegin());
   tl_storer.store_int(narrow_cast<int32>(raw_event.size()));
   tl_storer.store_long(id);
   tl_storer.store_int(type);

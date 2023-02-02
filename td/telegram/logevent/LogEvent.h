@@ -206,7 +206,7 @@ BufferSlice log_event_store_impl(const T &data, const char *file, int line) {
   store(data, storer_calc_length);
 
   BufferSlice value_buffer{storer_calc_length.get_length()};
-  auto ptr = value_buffer.as_slice().ubegin();
+  auto ptr = value_buffer.as_mutable_slice().ubegin();
   LOG_CHECK(is_aligned_pointer<4>(ptr)) << ptr;
 
   LogEventStorerUnsafe storer_unsafe(ptr);

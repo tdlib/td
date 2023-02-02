@@ -69,7 +69,7 @@ void IntermediateTransport::write_prepare_inplace(BufferWriter *message, bool qu
     message->confirm_append(append.size());
   }
 
-  as<uint32>(message->as_slice().begin()) = static_cast<uint32>(size + append_size);
+  as<uint32>(message->as_mutable_slice().begin()) = static_cast<uint32>(size + append_size);
 }
 
 void IntermediateTransport::init_output_stream(ChainBufferWriter *stream) {
@@ -121,7 +121,7 @@ void ObfuscatedTransport::init(ChainBufferReader *input, ChainBufferWriter *outp
       state.init();
       state.feed(as_slice(key));
       state.feed(proxy_secret);
-      state.extract(as_slice(key));
+      state.extract(as_mutable_slice(key));
     }
   };
   fix_key(key);
@@ -153,7 +153,7 @@ Result<size_t> ObfuscatedTransport::read_next(BufferSlice *message, uint32 *quic
 
 void ObfuscatedTransport::write(BufferWriter &&message, bool quick_ack) {
   impl_.write_prepare_inplace(&message, quick_ack);
-  output_state_.encrypt(message.as_slice(), message.as_slice());
+  output_state_.encrypt(message.as_slice(), message.as_mutable_slice());
   if (secret_.emulate_tls()) {
     do_write_tls(std::move(message));
   } else {

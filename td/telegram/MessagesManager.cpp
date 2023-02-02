@@ -6273,7 +6273,7 @@ BufferSlice MessagesManager::get_dialog_database_value(const Dialog *d) {
   store(*d, storer_calc_length);
 
   BufferSlice value_buffer{storer_calc_length.get_length()};
-  auto value = value_buffer.as_slice();
+  auto value = value_buffer.as_mutable_slice();
 
   LogEventStorerUnsafe storer_unsafe(value.ubegin());
   store(*d, storer_unsafe);

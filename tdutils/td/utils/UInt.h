@@ -20,7 +20,7 @@ struct UInt {
     return Slice(raw, size / 8);
   }
 
-  MutableSlice as_slice() {
+  MutableSlice as_mutable_slice() {
     return MutableSlice(raw, size / 8);
   }
 
@@ -76,8 +76,8 @@ Slice as_slice(const UInt<size> &value) {
 }
 
 template <size_t size>
-MutableSlice as_slice(UInt<size> &value) {
-  return value.as_slice();
+MutableSlice as_mutable_slice(UInt<size> &value) {
+  return value.as_mutable_slice();
 }
 
 template <size_t size>

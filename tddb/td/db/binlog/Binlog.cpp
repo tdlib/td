@@ -581,9 +581,9 @@ Status Binlog::load_binlog(const Callback &callback, const Callback &debug_callb
 }
 
 void Binlog::update_encryption(Slice key, Slice iv) {
-  as_slice(aes_ctr_key_).copy_from(key);
+  as_mutable_slice(aes_ctr_key_).copy_from(key);
   UInt128 aes_ctr_iv;
-  as_slice(aes_ctr_iv).copy_from(iv);
+  as_mutable_slice(aes_ctr_iv).copy_from(iv);
   aes_ctr_state_.init(as_slice(aes_ctr_key_), as_slice(aes_ctr_iv));
 }
 
