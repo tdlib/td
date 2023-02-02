@@ -14,26 +14,18 @@
 
 namespace td {
 
-Status BinlogEvent::init(BufferSlice &&raw_event, bool check_crc) {
+void BinlogEvent::init(BufferSlice &&raw_event) {
   TlParser parser(raw_event.as_slice());
-  size_ = parser.fetch_int();
-  LOG_CHECK(size_ == raw_event.size()) << size_ << " " << raw_event.size() << debug_info_;
-  id_ = parser.fetch_long();
+  size_ = static_cast<uint32>(parser.fetch_int());
+  LOG_CHECK(size_ == raw_event.size()) << size_ << ' ' << raw_event.size() << debug_info_;
+  id_ = static_cast<uint64>(parser.fetch_long());
   type_ = parser.fetch_int();
   flags_ = parser.fetch_int();
-  extra_ = parser.fetch_long();
+  extra_ = static_cast<uint64>(parser.fetch_long());
   CHECK(size_ >= MIN_SIZE);
   parser.fetch_string_raw<Slice>(size_ - MIN_SIZE);  // skip data
   crc32_ = static_cast<uint32>(parser.fetch_int());
-  if (check_crc) {
-    auto calculated_crc = crc32(raw_event.as_slice().substr(0, size_ - TAIL_SIZE));
-    if (calculated_crc != crc32_) {
-      return Status::Error(PSLICE() << "crc mismatch " << tag("actual", format::as_hex(calculated_crc))
-                                    << tag("expected", format::as_hex(crc32_)) << public_to_string());
-    }
-  }
   raw_event_ = std::move(raw_event);
-  return Status::OK();
 }
 
 Slice BinlogEvent::get_data() const {
@@ -41,15 +33,22 @@ Slice BinlogEvent::get_data() const {
 }
 
 Status BinlogEvent::validate() const {
-  BinlogEvent event;
-  if (raw_event_.size() < 4) {
+  if (raw_event_.size() < MIN_SIZE) {
     return Status::Error("Too small event");
   }
-  uint32 size = TlParser(raw_event_.as_slice().substr(0, 4)).fetch_int();
-  if (size_ != size) {
+  TlParser parser(raw_event_.as_slice());
+  uint32 size = static_cast<uint32>(parser.fetch_int());
+  if (size_ != size || size_ != raw_event_.size()) {
     return Status::Error(PSLICE() << "Size of event changed: " << tag("was", size_) << tag("now", size));
   }
-  return event.init(raw_event_.clone(), true);
+  parser.fetch_string_raw<Slice>(size_ - TAIL_SIZE - sizeof(int));  // skip
+  auto stored_crc32 = static_cast<uint32>(parser.fetch_int());
+  auto calculated_crc = crc32(Slice(raw_event_.as_slice().data(), size_ - TAIL_SIZE));
+  if (calculated_crc != crc32_ || calculated_crc != stored_crc32) {
+    return Status::Error(PSLICE() << "CRC mismatch " << tag("actual", format::as_hex(calculated_crc))
+                                  << tag("expected", format::as_hex(crc32_)) << public_to_string());
+  }
+  return Status::OK();
 }
 
 BufferSlice BinlogEvent::create_raw(uint64 id, int32 type, int32 flags, const Storer &storer) {

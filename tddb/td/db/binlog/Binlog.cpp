@@ -139,7 +139,8 @@ class BinlogReader {
     }
 
     event->debug_info_ = BinlogDebugInfo{__FILE__, __LINE__};
-    TRY_STATUS(event->init(input_->cut_head(size_).move_as_buffer_slice()));
+    event->init(input_->cut_head(size_).move_as_buffer_slice());
+    TRY_STATUS(event->validate());
     offset_ += size_;
     event->offset_ = offset_;
     state_ = State::ReadLength;

@@ -74,13 +74,16 @@ struct BinlogEvent {
   void clear() {
     raw_event_ = BufferSlice();
   }
+
   bool empty() const {
     return raw_event_.empty();
   }
+
   BinlogEvent clone() const {
     BinlogEvent result;
     result.debug_info_ = BinlogDebugInfo{__FILE__, __LINE__};
-    result.init(raw_event_.clone()).ensure();
+    result.init(raw_event_.clone());
+    result.validate().ensure();
     return result;
   }
 
@@ -89,15 +92,11 @@ struct BinlogEvent {
   }
 
   BinlogEvent() = default;
-  //explicit BinlogEvent(BufferSlice &&raw_event) {
-  //init(std::move(raw_event), false).ensure();
-  //}
+
   BinlogEvent(BufferSlice &&raw_event, BinlogDebugInfo info) {
     debug_info_ = info;
-    init(std::move(raw_event), false).ensure();
+    init(std::move(raw_event));
   }
-
-  Status init(BufferSlice &&raw_event, bool check_crc = true) TD_WARN_UNUSED_RESULT;
 
   static BufferSlice create_raw(uint64 id, int32 type, int32 flags, const Storer &storer);
 
@@ -106,7 +105,9 @@ struct BinlogEvent {
                      << tag("data", get_data().size()) << "]" << debug_info_;
   }
 
-  Status validate() const;
+  void init(BufferSlice &&raw_event);
+
+  Status validate() const TD_WARN_UNUSED_RESULT;
 
   void realloc();
 };
