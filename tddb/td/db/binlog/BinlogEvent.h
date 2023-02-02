@@ -53,7 +53,7 @@ struct BinlogEvent {
   static constexpr size_t TAIL_SIZE = 4;
   static constexpr size_t MIN_SIZE = HEADER_SIZE + TAIL_SIZE;
 
-  int64 offset_;
+  int64 offset_ = -1;
 
   uint32 size_;
   uint64 id_;

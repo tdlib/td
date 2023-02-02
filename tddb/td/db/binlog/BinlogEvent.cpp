@@ -29,6 +29,7 @@ void BinlogEvent::init(BufferSlice &&raw_event) {
 }
 
 Slice BinlogEvent::get_data() const {
+  CHECK(raw_event_.size() >= MIN_SIZE);
   return Slice(raw_event_.as_slice().data() + HEADER_SIZE, size_ - MIN_SIZE);
 }
 

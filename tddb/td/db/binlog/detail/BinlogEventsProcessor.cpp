@@ -37,8 +37,8 @@ Status BinlogEventsProcessor::do_event(BinlogEvent &&event) {
     // just skip service events
   } else {
     if (!(event_ids_.empty() || event_ids_.back() < fixed_event_id)) {
-      return Status::Error(PSLICE() << offset_ << " " << event_ids_.size() << " " << event_ids_.back() << " "
-                                    << fixed_event_id << " " << event.public_to_string() << " " << total_events_ << " "
+      return Status::Error(PSLICE() << offset_ << ' ' << event_ids_.size() << ' ' << event_ids_.back() << ' '
+                                    << fixed_event_id << ' ' << event.public_to_string() << ' ' << total_events_ << ' '
                                     << total_raw_events_size_);
     }
     last_event_id_ = event.id_;
