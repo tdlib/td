@@ -23,8 +23,7 @@ Status BinlogEvent::init(BufferSlice &&raw_event, bool check_crc) {
   flags_ = parser.fetch_int();
   extra_ = parser.fetch_long();
   CHECK(size_ >= MIN_SIZE);
-  auto slice_data = parser.fetch_string_raw<Slice>(size_ - MIN_SIZE);
-  data_ = MutableSlice(const_cast<char *>(slice_data.begin()), slice_data.size());
+  parser.fetch_string_raw<Slice>(size_ - MIN_SIZE);  // skip data
   crc32_ = static_cast<uint32>(parser.fetch_int());
   if (check_crc) {
     auto calculated_crc = crc32(raw_event.as_slice().substr(0, size_ - TAIL_SIZE));
@@ -35,6 +34,10 @@ Status BinlogEvent::init(BufferSlice &&raw_event, bool check_crc) {
   }
   raw_event_ = std::move(raw_event);
   return Status::OK();
+}
+
+Slice BinlogEvent::get_data() const {
+  return Slice(raw_event_.as_slice().data() + HEADER_SIZE, size_ - MIN_SIZE);
 }
 
 Status BinlogEvent::validate() const {
@@ -69,10 +72,7 @@ BufferSlice BinlogEvent::create_raw(uint64 id, int32 type, int32 flags, const St
 }
 
 void BinlogEvent::realloc() {
-  auto data_offset = data_.begin() - raw_event_.as_slice().begin();
-  auto data_size = data_.size();
   raw_event_ = raw_event_.copy();
-  data_ = raw_event_.as_slice().substr(data_offset, data_size);
 }
 
 }  // namespace td

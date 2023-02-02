@@ -4186,7 +4186,7 @@ void NotificationManager::on_binlog_events(vector<BinlogEvent> &&events) {
       case LogEvent::HandlerType::AddMessagePushNotification: {
         CHECK(is_inited_);
         AddMessagePushNotificationLogEvent log_event;
-        log_event_parse(log_event, event.data_).ensure();
+        log_event_parse(log_event, event.get_data()).ensure();
 
         add_message_push_notification(
             log_event.dialog_id_, log_event.message_id_, log_event.random_id_, log_event.sender_user_id_,
@@ -4203,7 +4203,7 @@ void NotificationManager::on_binlog_events(vector<BinlogEvent> &&events) {
       case LogEvent::HandlerType::EditMessagePushNotification: {
         CHECK(is_inited_);
         EditMessagePushNotificationLogEvent log_event;
-        log_event_parse(log_event, event.data_).ensure();
+        log_event_parse(log_event, event.get_data()).ensure();
 
         edit_message_push_notification(
             log_event.dialog_id_, log_event.message_id_, log_event.edit_date_, log_event.loc_key_, log_event.arg_,

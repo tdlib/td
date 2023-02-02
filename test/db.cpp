@@ -105,7 +105,7 @@ TEST(DB, binlog_encryption) {
     td::Binlog binlog;
     binlog
         .init(
-            binlog_name.str(), [&](const td::BinlogEvent &x) { v.push_back(x.data_.str()); }, hello)
+            binlog_name.str(), [&](const td::BinlogEvent &x) { v.push_back(x.get_data().str()); }, hello)
         .ensure();
     CHECK(v == td::vector<td::string>({"AAAA", "BBBB", long_data, "CCCC"}));
   }
@@ -117,7 +117,7 @@ TEST(DB, binlog_encryption) {
     LOG(INFO) << "RESTART";
     td::Binlog binlog;
     auto status = binlog.init(
-        binlog_name.str(), [&](const td::BinlogEvent &x) { v.push_back(x.data_.str()); }, cucumber);
+        binlog_name.str(), [&](const td::BinlogEvent &x) { v.push_back(x.get_data().str()); }, cucumber);
     CHECK(status.is_error());
   }
 
@@ -128,7 +128,7 @@ TEST(DB, binlog_encryption) {
     LOG(INFO) << "RESTART";
     td::Binlog binlog;
     auto status = binlog.init(
-        binlog_name.str(), [&](const td::BinlogEvent &x) { v.push_back(x.data_.str()); }, cucumber, hello);
+        binlog_name.str(), [&](const td::BinlogEvent &x) { v.push_back(x.get_data().str()); }, cucumber, hello);
     CHECK(v == td::vector<td::string>({"AAAA", "BBBB", long_data, "CCCC"}));
   }
 }

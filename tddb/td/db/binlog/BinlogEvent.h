@@ -60,7 +60,6 @@ struct BinlogEvent {
   int32 type_;  // type can be merged with flags
   int32 flags_;
   uint64 extra_;
-  MutableSlice data_;
   uint32 crc32_;
 
   BufferSlice raw_event_;
@@ -69,6 +68,8 @@ struct BinlogEvent {
 
   enum ServiceTypes { Header = -1, Empty = -2, AesCtrEncryption = -3, NoEncryption = -4 };
   enum Flags { Rewrite = 1, Partial = 2 };
+
+  Slice get_data() const;
 
   void clear() {
     raw_event_ = BufferSlice();
@@ -84,7 +85,7 @@ struct BinlogEvent {
   }
 
   BufferSlice data_as_buffer_slice() const {
-    return raw_event_.from_slice(data_);
+    return raw_event_.from_slice(get_data());
   }
 
   BinlogEvent() = default;
@@ -102,7 +103,7 @@ struct BinlogEvent {
 
   std::string public_to_string() const {
     return PSTRING() << "LogEvent[" << tag("id", format::as_hex(id_)) << tag("type", type_) << tag("flags", flags_)
-                     << tag("data", data_.size()) << "]" << debug_info_;
+                     << tag("data", get_data().size()) << "]" << debug_info_;
   }
 
   Status validate() const;
@@ -112,7 +113,7 @@ struct BinlogEvent {
 
 inline StringBuilder &operator<<(StringBuilder &sb, const BinlogEvent &event) {
   return sb << "LogEvent[" << tag("id", format::as_hex(event.id_)) << tag("type", event.type_)
-            << tag("flags", event.flags_) << tag("data", format::as_hex_dump<4>(event.data_)) << "]"
+            << tag("flags", event.flags_) << tag("data", format::as_hex_dump<4>(event.get_data())) << "]"
             << event.debug_info_;
 }
 

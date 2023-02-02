@@ -25,7 +25,7 @@ class BinlogEventsBuffer {
       auto &event = events_[i];
       if (i + 1 != ids_.size() && (event.flags_ & BinlogEvent::Flags::Partial) == 0) {
         callback(BinlogEvent(BinlogEvent::create_raw(event.id_, event.type_, event.flags_ | BinlogEvent::Flags::Partial,
-                                                     create_storer(event.data_)),
+                                                     create_storer(event.get_data())),
                              BinlogDebugInfo{__FILE__, __LINE__}));
       } else {
         callback(std::move(event));

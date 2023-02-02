@@ -1822,7 +1822,7 @@ void PollManager::on_binlog_events(vector<BinlogEvent> &&events) {
         }
 
         SetPollAnswerLogEvent log_event;
-        log_event_parse(log_event, event.data_).ensure();
+        log_event_parse(log_event, event.get_data()).ensure();
 
         auto dialog_id = log_event.full_message_id_.get_dialog_id();
 
@@ -1841,7 +1841,7 @@ void PollManager::on_binlog_events(vector<BinlogEvent> &&events) {
         }
 
         StopPollLogEvent log_event;
-        log_event_parse(log_event, event.data_).ensure();
+        log_event_parse(log_event, event.get_data()).ensure();
 
         auto dialog_id = log_event.full_message_id_.get_dialog_id();
 

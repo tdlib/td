@@ -1493,7 +1493,7 @@ void NotificationSettingsManager::on_binlog_events(vector<BinlogEvent> &&events)
     switch (event.type_) {
       case LogEvent::HandlerType::UpdateScopeNotificationSettingsOnServer: {
         UpdateScopeNotificationSettingsOnServerLogEvent log_event;
-        log_event_parse(log_event, event.data_).ensure();
+        log_event_parse(log_event, event.get_data()).ensure();
 
         update_scope_notification_settings_on_server(log_event.scope_, event.id_);
         break;

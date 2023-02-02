@@ -9979,7 +9979,7 @@ void ContactsManager::on_binlog_user_event(BinlogEvent &&event) {
   }
 
   UserLogEvent log_event;
-  log_event_parse(log_event, event.data_).ensure();
+  log_event_parse(log_event, event.get_data()).ensure();
 
   auto user_id = log_event.user_id;
   if (have_min_user(user_id) || !user_id.is_valid()) {
@@ -10303,7 +10303,7 @@ void ContactsManager::on_binlog_chat_event(BinlogEvent &&event) {
   }
 
   ChatLogEvent log_event;
-  log_event_parse(log_event, event.data_).ensure();
+  log_event_parse(log_event, event.get_data()).ensure();
 
   auto chat_id = log_event.chat_id;
   if (have_chat(chat_id) || !chat_id.is_valid()) {
@@ -10542,7 +10542,7 @@ void ContactsManager::on_binlog_channel_event(BinlogEvent &&event) {
   }
 
   ChannelLogEvent log_event;
-  log_event_parse(log_event, event.data_).ensure();
+  log_event_parse(log_event, event.get_data()).ensure();
 
   auto channel_id = log_event.channel_id;
   if (have_channel(channel_id) || !channel_id.is_valid()) {
@@ -10797,7 +10797,7 @@ void ContactsManager::on_binlog_secret_chat_event(BinlogEvent &&event) {
   }
 
   SecretChatLogEvent log_event;
-  log_event_parse(log_event, event.data_).ensure();
+  log_event_parse(log_event, event.get_data()).ensure();
 
   auto secret_chat_id = log_event.secret_chat_id;
   if (have_secret_chat(secret_chat_id) || !secret_chat_id.is_valid()) {

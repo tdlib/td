@@ -550,7 +550,7 @@ void TQueueBinlog<BinlogT>::pop(uint64 log_event_id) {
 template <class BinlogT>
 Status TQueueBinlog<BinlogT>::replay(const BinlogEvent &binlog_event, TQueue &q) const {
   TQueueLogEvent event;
-  TlParser parser(binlog_event.data_);
+  TlParser parser(binlog_event.get_data());
   int32 has_extra = binlog_event.type_ - BINLOG_EVENT_TYPE;
   if (has_extra != 0 && has_extra != 1) {
     return Status::Error("Wrong magic");

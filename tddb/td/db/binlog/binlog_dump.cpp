@@ -125,7 +125,7 @@ int main(int argc, char *argv[]) {
             info[0].compressed_size += event.raw_event_.size();
             info[event.type_].compressed_size += event.raw_event_.size();
             if (event.type_ == ConfigPmcMagic || event.type_ == BinlogPmcMagic) {
-              auto key = td::TlParser(event.data_).fetch_string<td::Slice>();
+              auto key = td::TlParser(event.get_data()).fetch_string<td::Slice>();
               info[event.type_].compressed_trie.add(key);
             }
           },
@@ -134,13 +134,13 @@ int main(int argc, char *argv[]) {
             info[0].full_size += event.raw_event_.size();
             info[event.type_].full_size += event.raw_event_.size();
             if (event.type_ == ConfigPmcMagic || event.type_ == BinlogPmcMagic) {
-              auto key = td::TlParser(event.data_).fetch_string<td::Slice>();
+              auto key = td::TlParser(event.get_data()).fetch_string<td::Slice>();
               info[event.type_].trie.add(key);
             }
             LOG(PLAIN) << "LogEvent[" << td::tag("event_id", td::format::as_hex(event.id_))
                        << td::tag("type", event.type_) << td::tag("flags", event.flags_)
-                       << td::tag("size", event.data_.size()) << td::tag("data", td::format::escaped(event.data_))
-                       << "]\n";
+                       << td::tag("size", event.get_data().size())
+                       << td::tag("data", td::format::escaped(event.get_data())) << "]\n";
           })
       .ensure();
 

@@ -1563,7 +1563,7 @@ void WebPagesManager::on_binlog_web_page_event(BinlogEvent &&event) {
   }
 
   WebPageLogEvent log_event;
-  log_event_parse(log_event, event.data_).ensure();
+  log_event_parse(log_event, event.get_data()).ensure();
 
   auto web_page_id = log_event.web_page_id;
   if (!web_page_id.is_valid()) {

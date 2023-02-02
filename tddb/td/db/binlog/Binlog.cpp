@@ -345,7 +345,7 @@ void Binlog::do_event(BinlogEvent &&event) {
   if (event.type_ < 0) {
     if (event.type_ == BinlogEvent::ServiceTypes::AesCtrEncryption) {
       detail::AesCtrEncryptionEvent encryption_event;
-      encryption_event.parse(TlParser(event.data_));
+      encryption_event.parse(TlParser(event.get_data()));
 
       string key;
       if (aes_ctr_key_salt_ == encryption_event.key_salt_) {
