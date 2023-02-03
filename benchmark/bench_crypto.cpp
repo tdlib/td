@@ -451,7 +451,7 @@ class Crc32Bench final : public td::Benchmark {
   alignas(64) unsigned char data[DATA_SIZE];
 
   std::string get_description() const final {
-    return PSTRING() << "Crc32 zlib [" << (DATA_SIZE >> 10) << "KB]";
+    return PSTRING() << "CRC32 zlib [" << (DATA_SIZE >> 10) << "KB]";
   }
 
   void start_up() final {
@@ -472,7 +472,7 @@ class Crc64Bench final : public td::Benchmark {
   alignas(64) unsigned char data[DATA_SIZE];
 
   std::string get_description() const final {
-    return PSTRING() << "Crc64 Anton [" << (DATA_SIZE >> 10) << "KB]";
+    return PSTRING() << "CRC64 Anton [" << (DATA_SIZE >> 10) << "KB]";
   }
 
   void start_up() final {

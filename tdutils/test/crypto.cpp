@@ -367,7 +367,7 @@ TEST(Crypto, crc32c_benchmark) {
     explicit Crc32cExtendBenchmark(size_t chunk_size) : chunk_size_(chunk_size) {
     }
     td::string get_description() const final {
-      return PSTRING() << "Crc32c with chunk_size=" << chunk_size_;
+      return PSTRING() << "CRC32C with chunk_size = " << chunk_size_;
     }
     void start_up_n(int n) final {
       if (n > (1 << 20)) {
