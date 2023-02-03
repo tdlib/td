@@ -12,6 +12,7 @@
 
 #include "td/utils/algorithm.h"
 #include "td/utils/buffer.h"
+#include "td/utils/misc.h"
 
 namespace td {
 
@@ -128,7 +129,7 @@ AutosaveManager::DialogAutosaveSettings::DialogAutosaveSettings(const telegram_a
   are_inited_ = true;
   autosave_photos_ = settings->photos_;
   autosave_videos_ = settings->videos_;
-  max_video_file_size_ = settings->video_max_size_;
+  max_video_file_size_ = clamp(settings->video_max_size_, MIN_MAX_VIDEO_FILE_SIZE, MAX_MAX_VIDEO_FILE_SIZE);
 }
 
 AutosaveManager::DialogAutosaveSettings::DialogAutosaveSettings(const td_api::scopeAutosaveSettings *settings) {
@@ -138,7 +139,7 @@ AutosaveManager::DialogAutosaveSettings::DialogAutosaveSettings(const td_api::sc
   are_inited_ = true;
   autosave_photos_ = settings->autosave_photos_;
   autosave_videos_ = settings->autosave_videos_;
-  max_video_file_size_ = settings->max_video_file_size_;
+  max_video_file_size_ = clamp(settings->max_video_file_size_, MIN_MAX_VIDEO_FILE_SIZE, MAX_MAX_VIDEO_FILE_SIZE);
 }
 
 telegram_api::object_ptr<telegram_api::autoSaveSettings>
@@ -205,7 +206,6 @@ void AutosaveManager::reload_autosave_settings(Promise<td_api::object_ptr<td_api
 
 void AutosaveManager::on_get_autosave_settings(
     Result<telegram_api::object_ptr<telegram_api::account_autoSaveSettings>> r_settings) {
-  CHECK(!settings_.are_inited_);
   if (G()->close_flag() && r_settings.is_ok()) {
     r_settings = Global::request_aborted_error();
   }
@@ -214,9 +214,10 @@ void AutosaveManager::on_get_autosave_settings(
   }
 
   auto settings = r_settings.move_as_ok();
-  settings_.are_inited_ = true;
   td_->contacts_manager_->on_get_users(std::move(settings->users_), "on_get_autosave_settings");
   td_->contacts_manager_->on_get_chats(std::move(settings->chats_), "on_get_autosave_settings");
+
+  settings_.are_inited_ = true;
   settings_.user_settings_ = DialogAutosaveSettings(settings->users_settings_.get());
   settings_.chat_settings_ = DialogAutosaveSettings(settings->chats_settings_.get());
   settings_.broadcast_settings_ = DialogAutosaveSettings(settings->broadcasts_settings_.get());
@@ -275,6 +276,7 @@ void AutosaveManager::set_autosave_settings(td_api::object_ptr<td_api::AutosaveS
   }
   if (!dialog_id.is_valid()) {
     new_settings.are_inited_ = true;
+    new_settings.max_video_file_size_ = DialogAutosaveSettings::DEFAULT_MAX_VIDEO_FILE_SIZE;
   }
   if (*old_settings == new_settings) {
     return promise.set_value(Unit());

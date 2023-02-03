@@ -41,6 +41,10 @@ class AutosaveManager final : public Actor {
     bool autosave_videos_ = false;
     int64 max_video_file_size_ = 0;
 
+    static constexpr int64 MIN_MAX_VIDEO_FILE_SIZE = 512 * 1024;
+    static constexpr int64 DEFAULT_MAX_VIDEO_FILE_SIZE = 100 * 1024 * 1024;
+    static constexpr int64 MAX_MAX_VIDEO_FILE_SIZE = static_cast<int64>(4000) * 1024 * 1024;
+
     DialogAutosaveSettings() = default;
 
     explicit DialogAutosaveSettings(const telegram_api::autoSaveSettings *settings);

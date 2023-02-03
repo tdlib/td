@@ -4834,7 +4834,7 @@ autosaveSettingsScopeChat chat_id:int53 = AutosaveSettingsScope;
 //@description Contains autosave settings for an autosave settings scope
 //@autosave_photos True, if photo autosave is enabled
 //@autosave_videos True, if video autosave is enabled
-//@max_video_file_size The maximum size of a video file to be autosaved, in bytes; 0 if not limited
+//@max_video_file_size The maximum size of a video file to be autosaved, in bytes; 512 KB - 4000 MB
 scopeAutosaveSettings autosave_photos:Bool autosave_videos:Bool max_video_file_size:int53 = ScopeAutosaveSettings;
 
 //@description Contains autosave settings for a chat, which overrides default settings for the corresponding scope
