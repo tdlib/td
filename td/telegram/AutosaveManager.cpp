@@ -83,24 +83,24 @@ AutosaveManager::DialogAutosaveSettings::DialogAutosaveSettings(const telegram_a
   max_video_file_size_ = settings->video_max_size_;
 }
 
-td_api::object_ptr<td_api::chatAutosaveSettings>
-AutosaveManager::DialogAutosaveSettings::get_chat_autosave_settings_object() const {
-  return td_api::make_object<td_api::chatAutosaveSettings>(autosave_photos_, autosave_videos_, max_video_file_size_);
+td_api::object_ptr<td_api::scopeAutosaveSettings>
+AutosaveManager::DialogAutosaveSettings::get_scope_autosave_settings_object() const {
+  return td_api::make_object<td_api::scopeAutosaveSettings>(autosave_photos_, autosave_videos_, max_video_file_size_);
 }
 
-td_api::object_ptr<td_api::chatAutosaveException>
-AutosaveManager::DialogAutosaveSettings::get_chat_autosave_exception_object(DialogId dialog_id) const {
-  return td_api::make_object<td_api::chatAutosaveException>(dialog_id.get(), get_chat_autosave_settings_object());
+td_api::object_ptr<td_api::autosaveSettingsException>
+AutosaveManager::DialogAutosaveSettings::get_autosave_settings_exception_object(DialogId dialog_id) const {
+  return td_api::make_object<td_api::autosaveSettingsException>(dialog_id.get(), get_scope_autosave_settings_object());
 }
 
 td_api::object_ptr<td_api::autosaveSettings> AutosaveManager::AutosaveSettings::get_autosave_settings_object() const {
   CHECK(are_inited_);
   auto exceptions = transform(exceptions_, [](const auto &exception) {
-    return exception.second.get_chat_autosave_exception_object(exception.first);
+    return exception.second.get_autosave_settings_exception_object(exception.first);
   });
   return td_api::make_object<td_api::autosaveSettings>(
-      user_settings_.get_chat_autosave_settings_object(), user_settings_.get_chat_autosave_settings_object(),
-      user_settings_.get_chat_autosave_settings_object(), std::move(exceptions));
+      user_settings_.get_scope_autosave_settings_object(), user_settings_.get_scope_autosave_settings_object(),
+      user_settings_.get_scope_autosave_settings_object(), std::move(exceptions));
 }
 
 void AutosaveManager::get_autosave_settings(Promise<td_api::object_ptr<td_api::autosaveSettings>> &&promise) {

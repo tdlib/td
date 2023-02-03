@@ -4816,23 +4816,23 @@ autoDownloadSettings is_auto_download_enabled:Bool max_photo_file_size:int32 max
 autoDownloadSettingsPresets low:autoDownloadSettings medium:autoDownloadSettings high:autoDownloadSettings = AutoDownloadSettingsPresets;
 
 
-//@description Contains autosave settings for a chat or a chat scope
+//@description Contains autosave settings for an autosave settings scope
 //@autosave_photos True, if photo autosave is enabled
 //@autosave_videos True, if video autosave is enabled
 //@max_video_file_size The maximum size of a video file to be autosaved, in bytes; 0 if not limited
-chatAutosaveSettings autosave_photos:Bool autosave_videos:Bool max_video_file_size:int53 = ChatAutosaveSettings;
+scopeAutosaveSettings autosave_photos:Bool autosave_videos:Bool max_video_file_size:int53 = ScopeAutosaveSettings;
 
-//@description Contains autosave settings for a chat, which overrides settings for the corresponding scope
+//@description Contains autosave settings for a chat, which overrides default settings for the corresponding scope
 //@chat_id Chat identifier
 //@settings Autosave settings for the chat
-chatAutosaveException chat_id:int53 settings:chatAutosaveSettings = ChatAutosaveException;
+autosaveSettingsException chat_id:int53 settings:scopeAutosaveSettings = AutosaveSettingsException;
 
 //@description Describes autosave settings
 //@private_chat_settings Default autosave settings for private chats
 //@group_settings Default autosave settings for basic group and supergroup chats
 //@channel_settings Default autosave settings for channel chats
-//@exceptions Autosave exceptions for specific chats
-autosaveSettings private_chat_settings:chatAutosaveSettings group_settings:chatAutosaveSettings channel_settings:chatAutosaveSettings exceptions:vector<chatAutosaveException> = AutosaveSettings;
+//@exceptions Autosave settings for specific chats
+autosaveSettings private_chat_settings:scopeAutosaveSettings group_settings:scopeAutosaveSettings channel_settings:scopeAutosaveSettings exceptions:vector<autosaveSettingsException> = AutosaveSettings;
 
 
 //@class ConnectionState @description Describes the current state of the connection to Telegram servers

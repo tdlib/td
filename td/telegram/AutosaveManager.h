@@ -41,9 +41,10 @@ class AutosaveManager final : public Actor {
 
     explicit DialogAutosaveSettings(const telegram_api::autoSaveSettings *settings);
 
-    td_api::object_ptr<td_api::chatAutosaveSettings> get_chat_autosave_settings_object() const;
+    td_api::object_ptr<td_api::scopeAutosaveSettings> get_scope_autosave_settings_object() const;
 
-    td_api::object_ptr<td_api::chatAutosaveException> get_chat_autosave_exception_object(DialogId dialog_id) const;
+    td_api::object_ptr<td_api::autosaveSettingsException> get_autosave_settings_exception_object(
+        DialogId dialog_id) const;
   };
 
   struct AutosaveSettings {
