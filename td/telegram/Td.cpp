@@ -4946,6 +4946,12 @@ void Td::on_request(uint64 id, const td_api::setAutoDownloadSettings &request) {
                              std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::getAutosaveSettings &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  autosave_manager_->get_autosave_settings(std::move(promise));
+}
+
 void Td::on_request(uint64 id, const td_api::getTopChats &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();

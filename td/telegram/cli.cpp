@@ -2831,6 +2831,8 @@ class CliClient final : public Actor {
     } else if (op == "sads") {
       send_request(td_api::make_object<td_api::setAutoDownloadSettings>(
           td_api::make_object<td_api::autoDownloadSettings>(), as_network_type(args)));
+    } else if (op == "gaus") {
+      send_request(td_api::make_object<td_api::getAutosaveSettings>());
     } else if (op == "ansc") {
       int32 sent_bytes;
       int32 received_bytes;
