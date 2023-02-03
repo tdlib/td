@@ -7831,6 +7831,9 @@ setAutoDownloadSettings settings:autoDownloadSettings type:NetworkType = Ok;
 //@description Returns autosave settings for the current user
 getAutosaveSettings = AutosaveSettings;
 
+//@description Clears the list of all autosave settings exceptions
+clearAutosaveSettingsExceptions = Ok;
+
 
 //@description Returns information about a bank card @bank_card_number The bank card number
 getBankCardInfo bank_card_number:string = BankCardInfo;

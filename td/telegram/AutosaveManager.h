@@ -25,7 +25,11 @@ class AutosaveManager final : public Actor {
  public:
   AutosaveManager(Td *td, ActorShared<> parent);
 
+  void reload_autosave_settings(Promise<td_api::object_ptr<td_api::autosaveSettings>> &&promise);
+
   void get_autosave_settings(Promise<td_api::object_ptr<td_api::autosaveSettings>> &&promise);
+
+  void clear_autosave_settings_excpetions(Promise<Unit> &&promise);
 
  private:
   struct DialogAutosaveSettings {

@@ -24,7 +24,7 @@ class GetAutosaveSettingsQuery final : public Td::ResultHandler {
   }
 
   void send() {
-    send_query(G()->net_query_creator().create(telegram_api::account_getAutoSaveSettings()));
+    send_query(G()->net_query_creator().create(telegram_api::account_getAutoSaveSettings(), {{"me"}}));
   }
 
   void on_result(BufferSlice packet) final {
@@ -40,6 +40,32 @@ class GetAutosaveSettingsQuery final : public Td::ResultHandler {
 
   void on_error(Status status) final {
     promise_.set_error(std::move(status));
+  }
+};
+
+class DeleteAutosaveExceptionsQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit DeleteAutosaveExceptionsQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send() {
+    send_query(G()->net_query_creator().create(telegram_api::account_deleteAutoSaveExceptions(), {{"me"}}));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::account_deleteAutoSaveExceptions>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+    td_->autosave_manager_->reload_autosave_settings(Auto());
   }
 };
 
@@ -82,6 +108,10 @@ void AutosaveManager::get_autosave_settings(Promise<td_api::object_ptr<td_api::a
     return promise.set_value(settings_.get_autosave_settings_object());
   }
 
+  reload_autosave_settings(std::move(promise));
+}
+
+void AutosaveManager::reload_autosave_settings(Promise<td_api::object_ptr<td_api::autosaveSettings>> &&promise) {
   load_settings_queries_.push_back(std::move(promise));
   if (load_settings_queries_.size() != 1) {
     return;
@@ -125,6 +155,11 @@ void AutosaveManager::on_get_autosave_settings(
   for (auto &promise : promises) {
     promise.set_value(settings_.get_autosave_settings_object());
   }
+}
+
+void AutosaveManager::clear_autosave_settings_excpetions(Promise<Unit> &&promise) {
+  settings_.exceptions_.clear();
+  td_->create_handler<DeleteAutosaveExceptionsQuery>(std::move(promise))->send();
 }
 
 }  // namespace td
