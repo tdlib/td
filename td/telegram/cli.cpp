@@ -2833,6 +2833,31 @@ class CliClient final : public Actor {
           td_api::make_object<td_api::autoDownloadSettings>(), as_network_type(args)));
     } else if (op == "gaus") {
       send_request(td_api::make_object<td_api::getAutosaveSettings>());
+    } else if (op == "saus") {
+      string scope_str;
+      bool autosave_photos;
+      bool autosave_videos;
+      int64 max_video_file_size;
+      get_args(args, scope_str, autosave_photos, autosave_videos, max_video_file_size);
+      auto scope = [&]() -> td_api::object_ptr<td_api::AutosaveSettingsScope> {
+        if (scope_str == "users") {
+          return td_api::make_object<td_api::autosaveSettingsScopePrivateChats>();
+        }
+        if (scope_str == "groups") {
+          return td_api::make_object<td_api::autosaveSettingsScopeGroupChats>();
+        }
+        if (scope_str == "channels") {
+          return td_api::make_object<td_api::autosaveSettingsScopeChannelChats>();
+        }
+        auto chat_id = as_chat_id(scope_str);
+        if (chat_id != 0) {
+          return td_api::make_object<td_api::autosaveSettingsScopeChat>(chat_id);
+        }
+        return nullptr;
+      }();
+      send_request(td_api::make_object<td_api::setAutosaveSettings>(
+          std::move(scope),
+          td_api::make_object<td_api::scopeAutosaveSettings>(autosave_photos, autosave_videos, max_video_file_size)));
     } else if (op == "cause") {
       send_request(td_api::make_object<td_api::clearAutosaveSettingsExceptions>());
     } else if (op == "ansc") {

@@ -4816,6 +4816,21 @@ autoDownloadSettings is_auto_download_enabled:Bool max_photo_file_size:int32 max
 autoDownloadSettingsPresets low:autoDownloadSettings medium:autoDownloadSettings high:autoDownloadSettings = AutoDownloadSettingsPresets;
 
 
+//@class AutosaveSettingsScope @description Describes scope of autosave settings
+
+//@description Autosave settings applied to all private chats without chat-specific settings
+autosaveSettingsScopePrivateChats = AutosaveSettingsScope;
+
+//@description Autosave settings applied to all basic group and supergroup chats without chat-specific settings
+autosaveSettingsScopeGroupChats = AutosaveSettingsScope;
+
+//@description Autosave settings applied to all channel chats without chat-specific settings
+autosaveSettingsScopeChannelChats = AutosaveSettingsScope;
+
+//@description Autosave settings applied to a chat @chat_id Chat identifier
+autosaveSettingsScopeChat chat_id:int53 = AutosaveSettingsScope;
+
+
 //@description Contains autosave settings for an autosave settings scope
 //@autosave_photos True, if photo autosave is enabled
 //@autosave_videos True, if video autosave is enabled
@@ -7830,6 +7845,9 @@ setAutoDownloadSettings settings:autoDownloadSettings type:NetworkType = Ok;
 
 //@description Returns autosave settings for the current user
 getAutosaveSettings = AutosaveSettings;
+
+//@description Sets autosave settings for the given scope @scope Autosave settings scope @settings New autosave settings for the scope; pass null to set autosave settings to default
+setAutosaveSettings scope:AutosaveSettingsScope settings:scopeAutosaveSettings = Ok;
 
 //@description Clears the list of all autosave settings exceptions
 clearAutosaveSettingsExceptions = Ok;

@@ -592,6 +592,8 @@ class Td final : public Actor {
 
   void on_request(uint64 id, const td_api::getAutosaveSettings &request);
 
+  void on_request(uint64 id, td_api::setAutosaveSettings &request);
+
   void on_request(uint64 id, const td_api::clearAutosaveSettingsExceptions &request);
 
   void on_request(uint64 id, const td_api::getTopChats &request);

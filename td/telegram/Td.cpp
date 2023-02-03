@@ -4952,6 +4952,12 @@ void Td::on_request(uint64 id, const td_api::getAutosaveSettings &request) {
   autosave_manager_->get_autosave_settings(std::move(promise));
 }
 
+void Td::on_request(uint64 id, td_api::setAutosaveSettings &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  autosave_manager_->set_autosave_settings(std::move(request.scope_), std::move(request.settings_), std::move(promise));
+}
+
 void Td::on_request(uint64 id, const td_api::clearAutosaveSettingsExceptions &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();

@@ -29,10 +29,14 @@ class AutosaveManager final : public Actor {
 
   void get_autosave_settings(Promise<td_api::object_ptr<td_api::autosaveSettings>> &&promise);
 
+  void set_autosave_settings(td_api::object_ptr<td_api::AutosaveSettingsScope> &&scope,
+                             td_api::object_ptr<td_api::scopeAutosaveSettings> &&settings, Promise<Unit> &&promise);
+
   void clear_autosave_settings_excpetions(Promise<Unit> &&promise);
 
  private:
   struct DialogAutosaveSettings {
+    bool are_inited_ = false;
     bool autosave_photos_ = false;
     bool autosave_videos_ = false;
     int64 max_video_file_size_ = 0;
@@ -41,10 +45,16 @@ class AutosaveManager final : public Actor {
 
     explicit DialogAutosaveSettings(const telegram_api::autoSaveSettings *settings);
 
+    explicit DialogAutosaveSettings(const td_api::scopeAutosaveSettings *settings);
+
+    telegram_api::object_ptr<telegram_api::autoSaveSettings> get_input_auto_save_settings() const;
+
     td_api::object_ptr<td_api::scopeAutosaveSettings> get_scope_autosave_settings_object() const;
 
     td_api::object_ptr<td_api::autosaveSettingsException> get_autosave_settings_exception_object(
         DialogId dialog_id) const;
+
+    bool operator==(const DialogAutosaveSettings &other) const;
   };
 
   struct AutosaveSettings {
