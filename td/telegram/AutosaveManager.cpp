@@ -232,7 +232,9 @@ void AutosaveManager::on_get_autosave_settings(
 
   auto promises = std::move(load_settings_queries_);
   for (auto &promise : promises) {
-    promise.set_value(settings_.get_autosave_settings_object());
+    if (promise) {
+      promise.set_value(settings_.get_autosave_settings_object());
+    }
   }
 }
 
