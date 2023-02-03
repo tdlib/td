@@ -280,6 +280,7 @@ function split_file($file, $chunks, $undo) {
                 'attach_menu_manager[_(-][^.]|AttachMenuManager[^;>]' => "AttachMenuManager",
                 'audios_manager[_(-][^.]|AudiosManager' => "AudiosManager",
                 'auth_manager[_(-][^.]|AuthManager' => 'AuthManager',
+                'autosave_manager[_(-][^.]|AutosaveManager' => 'AutosaveManager',
                 'background_manager[_(-][^.]|BackgroundManager' => "BackgroundManager",
                 'contacts_manager[_(-][^.]|ContactsManager([^ ;.]| [^*])' => 'ContactsManager',
                 'country_info_manager[_(-][^.]|CountryInfoManager' => 'CountryInfoManager',

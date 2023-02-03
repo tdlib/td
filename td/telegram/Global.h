@@ -34,6 +34,7 @@ namespace td {
 class AnimationsManager;
 class AttachMenuManager;
 class AuthManager;
+class AutosaveManager;
 class BackgroundManager;
 class CallManager;
 class ConfigManager;
@@ -202,6 +203,13 @@ class Global final : public ActorContext {
 
   void set_auth_manager(ActorId<AuthManager> auth_manager) {
     auth_manager_ = auth_manager;
+  }
+
+  ActorId<AutosaveManager> autosave_manager() const {
+    return autosave_manager_;
+  }
+  void set_autosave_manager(ActorId<AutosaveManager> autosave_manager) {
+    autosave_manager_ = autosave_manager;
   }
 
   ActorId<BackgroundManager> background_manager() const {
@@ -475,6 +483,7 @@ class Global final : public ActorContext {
   ActorId<AnimationsManager> animations_manager_;
   ActorId<AttachMenuManager> attach_menu_manager_;
   ActorId<AuthManager> auth_manager_;
+  ActorId<AutosaveManager> autosave_manager_;
   ActorId<BackgroundManager> background_manager_;
   ActorId<CallManager> call_manager_;
   ActorId<ConfigManager> config_manager_;

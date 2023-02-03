@@ -13,6 +13,7 @@
 #include "td/telegram/AudiosManager.h"
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/AutoDownloadSettings.h"
+#include "td/telegram/AutosaveManager.h"
 #include "td/telegram/BackgroundId.h"
 #include "td/telegram/BackgroundManager.h"
 #include "td/telegram/BackgroundType.h"
@@ -3196,6 +3197,8 @@ void Td::dec_actor_refcnt() {
       LOG(DEBUG) << "AudiosManager was cleared" << timer;
       auth_manager_.reset();
       LOG(DEBUG) << "AuthManager was cleared" << timer;
+      autosave_manager_.reset();
+      LOG(DEBUG) << "AutosaveManager was cleared" << timer;
       background_manager_.reset();
       LOG(DEBUG) << "BackgroundManager was cleared" << timer;
       callback_queries_manager_.reset();
@@ -3394,6 +3397,8 @@ void Td::clear() {
   LOG(DEBUG) << "AttachMenuManager actor was cleared" << timer;
   auth_manager_actor_.reset();
   LOG(DEBUG) << "AuthManager actor was cleared" << timer;
+  autosave_manager_actor_.reset();
+  LOG(DEBUG) << "AutosaveManager actor was cleared" << timer;
   background_manager_actor_.reset();
   LOG(DEBUG) << "BackgroundManager actor was cleared" << timer;
   contacts_manager_actor_.reset();
@@ -3857,6 +3862,9 @@ void Td::init_managers() {
   attach_menu_manager_ = make_unique<AttachMenuManager>(this, create_reference());
   attach_menu_manager_actor_ = register_actor("AttachMenuManager", attach_menu_manager_.get());
   G()->set_attach_menu_manager(attach_menu_manager_actor_.get());
+  autosave_manager_ = make_unique<AutosaveManager>(this, create_reference());
+  autosave_manager_actor_ = register_actor("AutosaveManager", autosave_manager_.get());
+  G()->set_autosave_manager(autosave_manager_actor_.get());
   background_manager_ = make_unique<BackgroundManager>(this, create_reference());
   background_manager_actor_ = register_actor("BackgroundManager", background_manager_.get());
   G()->set_background_manager(background_manager_actor_.get());

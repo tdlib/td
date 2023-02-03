@@ -42,6 +42,7 @@ class AnimationsManager;
 class AttachMenuManager;
 class AudiosManager;
 class AuthManager;
+class AutosaveManager;
 class BackgroundManager;
 class CallManager;
 class CallbackQueriesManager;
@@ -144,6 +145,8 @@ class Td final : public Actor {
   ActorOwn<AttachMenuManager> attach_menu_manager_actor_;
   unique_ptr<AuthManager> auth_manager_;
   ActorOwn<AuthManager> auth_manager_actor_;
+  unique_ptr<AutosaveManager> autosave_manager_;
+  ActorOwn<AutosaveManager> autosave_manager_actor_;
   unique_ptr<BackgroundManager> background_manager_;
   ActorOwn<BackgroundManager> background_manager_actor_;
   unique_ptr<ContactsManager> contacts_manager_;
