@@ -404,6 +404,7 @@ void AuthManager::check_password(uint64 query_id, string password) {
 
   LOG(INFO) << "Have SRP ID " << wait_password_state_.srp_id_;
   on_new_query(query_id);
+  checking_password_ = true;
   password_ = std::move(password);
   recovery_code_.clear();
   new_password_.clear();
@@ -438,6 +439,7 @@ void AuthManager::recover_password(uint64 query_id, string code, string new_pass
   }
 
   on_new_query(query_id);
+  checking_password_ = true;
   if (!new_password.empty()) {
     password_.clear();
     recovery_code_ = std::move(code);
@@ -526,6 +528,7 @@ void AuthManager::on_new_query(uint64 query_id) {
   if (query_id_ != 0) {
     on_query_error(Status::Error(400, "Another authorization query has started"));
   }
+  checking_password_ = false;
   net_query_id_ = 0;
   net_query_type_ = NetQueryType::None;
   query_id_ = query_id;
@@ -538,6 +541,7 @@ void AuthManager::on_query_error(Status status) {
   query_id_ = 0;
   net_query_id_ = 0;
   net_query_type_ = NetQueryType::None;
+  checking_password_ = false;
   on_query_error(id, std::move(status));
 }
 
@@ -777,7 +781,7 @@ void AuthManager::on_get_password_result(NetQueryPtr &result) {
     imported_dc_id_ = -1;
   }
 
-  if (state_ == State::WaitPassword) {
+  if (state_ == State::WaitPassword && checking_password_) {
     if (!new_password_.empty()) {
       if (r_new_password_state.is_error()) {
         return on_query_error(r_new_password_state.move_as_error());

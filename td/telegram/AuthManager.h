@@ -274,6 +274,7 @@ class AuthManager final : public NetActor {
   int32 login_code_retry_delay_ = 0;
   Timeout poll_export_login_code_timeout_;
 
+  bool checking_password_ = false;
   bool was_qr_code_request_ = false;
   bool was_check_bot_token_ = false;
   bool is_bot_ = false;
