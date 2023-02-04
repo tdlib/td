@@ -32,6 +32,7 @@ Choose your preferred programming language to see examples of usage and a detail
 - [Emacs Lisp](#emacslisp)
 - [D](#d)
 - [Elixir](#elixir)
+- [Vala](#vala)
 - [1С](#1s)
 - [C](#c)
 - [G](#g)
@@ -279,6 +280,13 @@ TDLib can be used from the Elixir programming language.
 
 See [Elixir TDLib](https://github.com/QuantLayer/elixir-tdlib) for an example of such usage and an Elixir client for TDLib.
 The library contains automatically generated and fully-documented classes for all TDLib API methods and objects.
+
+<a name="vala"></a>
+## Using TDLib in Vala projects
+
+TDLib can be used from the Vala programming language.
+
+See [TDLib Vala](https://github.com/AYMENJD/td-vala) for an example of such usage.
 
 <a name="1s"></a>
 ## Using TDLib from 1С:Enterprise
