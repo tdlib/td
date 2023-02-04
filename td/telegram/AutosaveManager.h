@@ -59,6 +59,8 @@ class AutosaveManager final : public Actor {
         DialogId dialog_id) const;
 
     bool operator==(const DialogAutosaveSettings &other) const;
+
+    bool operator!=(const DialogAutosaveSettings &other) const;
   };
 
   struct AutosaveSettings {
@@ -74,6 +76,12 @@ class AutosaveManager final : public Actor {
   void tear_down() final;
 
   void on_get_autosave_settings(Result<telegram_api::object_ptr<telegram_api::account_autoSaveSettings>> r_settings);
+
+  static td_api::object_ptr<td_api::updateAutosaveSettings> get_update_autosave_settings(
+      td_api::object_ptr<td_api::AutosaveSettingsScope> &&scope, const DialogAutosaveSettings &settings);
+
+  void send_update_autosave_settings(td_api::object_ptr<td_api::AutosaveSettingsScope> &&scope,
+                                     const DialogAutosaveSettings &settings);
 
   Td *td_;
   ActorShared<> parent_;
