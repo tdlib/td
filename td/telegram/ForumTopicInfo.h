@@ -38,7 +38,7 @@ class ForumTopicInfo {
  public:
   ForumTopicInfo() = default;
 
-  explicit ForumTopicInfo(const tl_object_ptr<telegram_api::ForumTopic> &forum_topic_ptr);
+  ForumTopicInfo(Td *td, const tl_object_ptr<telegram_api::ForumTopic> &forum_topic_ptr);
 
   ForumTopicInfo(MessageId top_thread_message_id, string title, ForumTopicIcon icon, int32 creation_date,
                  DialogId creator_dialog_id, bool is_outgoing, bool is_closed, bool is_hidden)

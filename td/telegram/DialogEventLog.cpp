@@ -364,7 +364,7 @@ static td_api::object_ptr<td_api::ChatEventAction> get_chat_event_action_object(
     }
     case telegram_api::channelAdminLogEventActionCreateTopic::ID: {
       auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionCreateTopic>(action_ptr);
-      auto topic_info = ForumTopicInfo(action->topic_);
+      auto topic_info = ForumTopicInfo(td, action->topic_);
       if (topic_info.is_empty()) {
         return nullptr;
       }
@@ -373,8 +373,8 @@ static td_api::object_ptr<td_api::ChatEventAction> get_chat_event_action_object(
     }
     case telegram_api::channelAdminLogEventActionEditTopic::ID: {
       auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionEditTopic>(action_ptr);
-      auto old_topic_info = ForumTopicInfo(action->prev_topic_);
-      auto new_topic_info = ForumTopicInfo(action->new_topic_);
+      auto old_topic_info = ForumTopicInfo(td, action->prev_topic_);
+      auto new_topic_info = ForumTopicInfo(td, action->new_topic_);
       if (old_topic_info.is_empty() || new_topic_info.is_empty() ||
           old_topic_info.get_top_thread_message_id() != new_topic_info.get_top_thread_message_id()) {
         LOG(ERROR) << "Receive " << to_string(action);
@@ -395,7 +395,7 @@ static td_api::object_ptr<td_api::ChatEventAction> get_chat_event_action_object(
     }
     case telegram_api::channelAdminLogEventActionDeleteTopic::ID: {
       auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionDeleteTopic>(action_ptr);
-      auto topic_info = ForumTopicInfo(action->topic_);
+      auto topic_info = ForumTopicInfo(td, action->topic_);
       if (topic_info.is_empty()) {
         return nullptr;
       }
@@ -406,10 +406,10 @@ static td_api::object_ptr<td_api::ChatEventAction> get_chat_event_action_object(
       ForumTopicInfo old_topic_info;
       ForumTopicInfo new_topic_info;
       if (action->prev_topic_ != nullptr) {
-        old_topic_info = ForumTopicInfo(action->prev_topic_);
+        old_topic_info = ForumTopicInfo(td, action->prev_topic_);
       }
       if (action->new_topic_ != nullptr) {
-        new_topic_info = ForumTopicInfo(action->new_topic_);
+        new_topic_info = ForumTopicInfo(td, action->new_topic_);
       }
       if (old_topic_info.is_empty() && new_topic_info.is_empty()) {
         return nullptr;

@@ -945,7 +945,7 @@ void ForumTopicManager::on_get_forum_topic_infos(DialogId dialog_id,
   auto dialog_topics = add_dialog_topics(dialog_id);
   CHECK(dialog_topics != nullptr);
   for (auto &forum_topic : forum_topics) {
-    auto forum_topic_info = td::make_unique<ForumTopicInfo>(forum_topic);
+    auto forum_topic_info = td::make_unique<ForumTopicInfo>(td_, forum_topic);
     MessageId top_thread_message_id = forum_topic_info->get_top_thread_message_id();
     if (can_be_message_thread_id(top_thread_message_id).is_error()) {
       continue;
@@ -973,7 +973,7 @@ MessageId ForumTopicManager::on_get_forum_topic_impl(DialogId dialog_id,
       return MessageId();
     }
     case telegram_api::forumTopic::ID: {
-      auto forum_topic_info = td::make_unique<ForumTopicInfo>(forum_topic);
+      auto forum_topic_info = td::make_unique<ForumTopicInfo>(td_, forum_topic);
       MessageId top_thread_message_id = forum_topic_info->get_top_thread_message_id();
       Topic *topic = add_topic(dialog_id, top_thread_message_id);
       if (topic == nullptr) {

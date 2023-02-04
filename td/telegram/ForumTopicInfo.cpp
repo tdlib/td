@@ -7,13 +7,15 @@
 #include "td/telegram/ForumTopicInfo.h"
 
 #include "td/telegram/MessageSender.h"
+#include "td/telegram/MessagesManager.h"
 #include "td/telegram/ServerMessageId.h"
+#include "td/telegram/Td.h"
 
 #include "td/utils/logging.h"
 
 namespace td {
 
-ForumTopicInfo::ForumTopicInfo(const tl_object_ptr<telegram_api::ForumTopic> &forum_topic_ptr) {
+ForumTopicInfo::ForumTopicInfo(Td *td, const tl_object_ptr<telegram_api::ForumTopic> &forum_topic_ptr) {
   CHECK(forum_topic_ptr != nullptr);
   if (forum_topic_ptr->get_id() != telegram_api::forumTopic::ID) {
     LOG(ERROR) << "Receive " << to_string(forum_topic_ptr);
@@ -26,6 +28,10 @@ ForumTopicInfo::ForumTopicInfo(const tl_object_ptr<telegram_api::ForumTopic> &fo
   icon_ = ForumTopicIcon(forum_topic->icon_color_, forum_topic->icon_emoji_id_);
   creation_date_ = forum_topic->date_;
   creator_dialog_id_ = DialogId(forum_topic->from_id_);
+  if (creator_dialog_id_.is_valid() && creator_dialog_id_.get_type() != DialogType::User &&
+      td->messages_manager_->have_dialog_info_force(creator_dialog_id_)) {
+    td->messages_manager_->force_create_dialog(creator_dialog_id_, "ForumTopicInfo", true);
+  }
   is_outgoing_ = forum_topic->my_;
   is_closed_ = forum_topic->closed_;
   is_hidden_ = forum_topic->hidden_;
