@@ -125,7 +125,7 @@ unique_ptr<StickerPhotoSize> StickerPhotoSize::get_sticker_photo_size(
   for (auto &color : result->background_colors_) {
     color &= 0xFFFFFF;
   }
-  return std::move(result);
+  return result;
 }
 
 td_api::object_ptr<td_api::chatPhotoSticker> StickerPhotoSize::get_chat_photo_sticker_object() const {

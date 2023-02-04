@@ -7189,9 +7189,9 @@ void Td::on_request(uint64 id, td_api::searchStickers &request) {
   if (sticker_type == StickerType::Regular) {
     // legacy
     if (request.emojis_ == "⭐️⭐️") {
-      request.emojis_ == "⭐️";
+      request.emojis_ = "⭐️";
     } else if (request.emojis_ == "📂⭐️") {
-      request.emojis_ == "📂";
+      request.emojis_ = "📂";
     }
   }
   stickers_manager_->search_stickers(sticker_type, std::move(request.emojis_), request.limit_, std::move(promise));
