@@ -354,4 +354,20 @@ void AutosaveManager::send_update_autosave_settings(td_api::object_ptr<td_api::A
   send_closure(G()->td(), &Td::send_update, get_update_autosave_settings(std::move(scope), settings));
 }
 
+void AutosaveManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const {
+  if (!settings_.are_inited_) {
+    return;
+  }
+  updates.push_back(get_update_autosave_settings(td_api::make_object<td_api::autosaveSettingsScopePrivateChats>(),
+                                                 settings_.user_settings_));
+  updates.push_back(get_update_autosave_settings(td_api::make_object<td_api::autosaveSettingsScopeGroupChats>(),
+                                                 settings_.chat_settings_));
+  updates.push_back(get_update_autosave_settings(td_api::make_object<td_api::autosaveSettingsScopeChannelChats>(),
+                                                 settings_.broadcast_settings_));
+  for (const auto &exception : settings_.exceptions_) {
+    updates.push_back(get_update_autosave_settings(
+        td_api::make_object<td_api::autosaveSettingsScopeChat>(exception.first.get()), exception.second));
+  }
+}
+
 }  // namespace td

@@ -34,6 +34,8 @@ class AutosaveManager final : public Actor {
 
   void clear_autosave_settings_excpetions(Promise<Unit> &&promise);
 
+  void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
+
  private:
   struct DialogAutosaveSettings {
     bool are_inited_ = false;
