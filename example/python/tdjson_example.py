@@ -119,7 +119,7 @@ while True:
             if auth_state['@type'] == 'authorizationStateWaitEmailCode':
                 code = input('Please enter the email authentication code you received: ')
                 td_send({'@type': 'checkAuthenticationEmailCode',
-                         'code': {'@type': 'emailAddressAuthenticationCode', 'code' : code}})
+                         'code': {'@type': 'emailAddressAuthenticationCode', 'code' : 'code'}})
 
             # wait for authorization code
             if auth_state['@type'] == 'authorizationStateWaitCode':
