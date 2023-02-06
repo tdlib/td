@@ -378,6 +378,7 @@ Result<bool> HttpReader::parse_multipart_form_data(bool can_be_slow) {
                     header_value = MutableSlice();
                   }
                 }
+                value = url_decode_inplace(value, false);
 
                 if (key == "name") {
                   field_name_ = value;
