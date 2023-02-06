@@ -6353,6 +6353,10 @@ void StickersManager::load_custom_emoji_sticker_from_database_force(CustomEmojiI
 
 void StickersManager::load_custom_emoji_sticker_from_database(CustomEmojiId custom_emoji_id, Promise<Unit> &&promise) {
   CHECK(custom_emoji_id.is_valid());
+  if (!G()->parameters().use_file_db) {
+    return promise.set_value(Unit());
+  }
+
   auto &queries = custom_emoji_load_queries_[custom_emoji_id];
   queries.push_back(std::move(promise));
   if (queries.size() == 1) {
@@ -6667,9 +6671,11 @@ void StickersManager::on_get_default_dialog_photo_custom_emoji_ids(
       transform(std::move(emoji_list->document_id_), [](int64 document_id) { return CustomEmojiId(document_id); });
   auto hash = emoji_list->hash_;
 
-  CustomEmojiIdsLogEvent log_event(custom_emoji_ids, hash);
-  G()->td_db()->get_sqlite_pmc()->set(get_default_dialog_photo_custom_emoji_ids_database_key(for_user),
-                                      log_event_store(log_event).as_slice().str(), Auto());
+  if (G()->parameters().use_file_db) {
+    CustomEmojiIdsLogEvent log_event(custom_emoji_ids, hash);
+    G()->td_db()->get_sqlite_pmc()->set(get_default_dialog_photo_custom_emoji_ids_database_key(for_user),
+                                        log_event_store(log_event).as_slice().str(), Auto());
+  }
 
   on_get_default_dialog_photo_custom_emoji_ids_success(for_user, std::move(custom_emoji_ids), hash);
 }
@@ -9905,6 +9911,7 @@ void StickersManager::on_get_emoji_keywords_difference(
         UNREACHABLE();
     }
   }
+  CHECK(G()->parameters().use_file_db);
   G()->td_db()->get_sqlite_pmc()->set_all(
       std::move(key_values), PromiseCreator::lambda([actor_id = actor_id(this), language_code, version](Unit) mutable {
         send_closure(actor_id, &StickersManager::finish_get_emoji_keywords_difference, std::move(language_code),
