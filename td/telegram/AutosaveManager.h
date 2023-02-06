@@ -25,7 +25,7 @@ class AutosaveManager final : public Actor {
  public:
   AutosaveManager(Td *td, ActorShared<> parent);
 
-  void reload_autosave_settings(Promise<td_api::object_ptr<td_api::autosaveSettings>> &&promise);
+  void reload_autosave_settings();
 
   void get_autosave_settings(Promise<td_api::object_ptr<td_api::autosaveSettings>> &&promise);
 
@@ -63,21 +63,43 @@ class AutosaveManager final : public Actor {
     bool operator==(const DialogAutosaveSettings &other) const;
 
     bool operator!=(const DialogAutosaveSettings &other) const;
+
+    template <class StorerT>
+    void store(StorerT &storer) const;
+
+    template <class ParserT>
+    void parse(ParserT &parser);
   };
 
   struct AutosaveSettings {
     bool are_inited_ = false;
+    bool are_being_reloaded_ = false;
+    bool need_reload_ = false;
     DialogAutosaveSettings user_settings_;
     DialogAutosaveSettings chat_settings_;
     DialogAutosaveSettings broadcast_settings_;
     FlatHashMap<DialogId, DialogAutosaveSettings, DialogIdHash> exceptions_;
 
     td_api::object_ptr<td_api::autosaveSettings> get_autosave_settings_object() const;
+
+    template <class StorerT>
+    void store(StorerT &storer) const;
+
+    template <class ParserT>
+    void parse(ParserT &parser);
   };
 
   void tear_down() final;
 
+  string get_autosave_settings_database_key();
+
+  void load_autosave_settings(Promise<td_api::object_ptr<td_api::autosaveSettings>> &&promise);
+
+  void on_load_autosave_settings_from_database(string value);
+
   void on_get_autosave_settings(Result<telegram_api::object_ptr<telegram_api::account_autoSaveSettings>> r_settings);
+
+  void save_autosave_settings();
 
   static td_api::object_ptr<td_api::updateAutosaveSettings> get_update_autosave_settings(
       td_api::object_ptr<td_api::AutosaveSettingsScope> &&scope, const DialogAutosaveSettings &settings);

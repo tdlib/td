@@ -3917,7 +3917,7 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateTranscribedAudi
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateAutoSaveSettings> update, Promise<Unit> &&promise) {
-  td_->autosave_manager_->reload_autosave_settings(Auto());
+  td_->autosave_manager_->reload_autosave_settings();
   promise.set_value(Unit());
 }
 

@@ -7,8 +7,11 @@
 #include "td/telegram/AutosaveManager.h"
 
 #include "td/telegram/ContactsManager.h"
+#include "td/telegram/Dependencies.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/Td.h"
+
+#include "td/db/SqliteKeyValueAsync.h"
 
 #include "td/utils/algorithm.h"
 #include "td/utils/buffer.h"
@@ -88,7 +91,7 @@ class SaveAutoSaveSettingsQuery final : public Td::ResultHandler {
 
   void on_error(Status status) final {
     promise_.set_error(std::move(status));
-    td_->autosave_manager_->reload_autosave_settings(Auto());
+    td_->autosave_manager_->reload_autosave_settings();
   }
 };
 
@@ -114,7 +117,7 @@ class DeleteAutoSaveExceptionsQuery final : public Td::ResultHandler {
 
   void on_error(Status status) final {
     promise_.set_error(std::move(status));
-    td_->autosave_manager_->reload_autosave_settings(Auto());
+    td_->autosave_manager_->reload_autosave_settings();
   }
 };
 
@@ -181,6 +184,26 @@ bool AutosaveManager::DialogAutosaveSettings::operator!=(const DialogAutosaveSet
   return !operator==(other);
 }
 
+template <class StorerT>
+void AutosaveManager::DialogAutosaveSettings::store(StorerT &storer) const {
+  CHECK(are_inited_);
+  BEGIN_STORE_FLAGS();
+  STORE_FLAG(autosave_photos_);
+  STORE_FLAG(autosave_videos_);
+  END_STORE_FLAGS();
+  td::store(max_video_file_size_, storer);
+}
+
+template <class ParserT>
+void AutosaveManager::DialogAutosaveSettings::parse(ParserT &parser) {
+  are_inited_ = true;
+  BEGIN_PARSE_FLAGS();
+  PARSE_FLAG(autosave_photos_);
+  PARSE_FLAG(autosave_videos_);
+  END_PARSE_FLAGS();
+  td::parse(max_video_file_size_, parser);
+}
+
 td_api::object_ptr<td_api::autosaveSettings> AutosaveManager::AutosaveSettings::get_autosave_settings_object() const {
   CHECK(are_inited_);
   auto exceptions = transform(exceptions_, [](const auto &exception) {
@@ -191,19 +214,139 @@ td_api::object_ptr<td_api::autosaveSettings> AutosaveManager::AutosaveSettings::
       broadcast_settings_.get_scope_autosave_settings_object(), std::move(exceptions));
 }
 
+template <class StorerT>
+void AutosaveManager::AutosaveSettings::store(StorerT &storer) const {
+  CHECK(are_inited_);
+  bool has_exceptions = !exceptions_.empty();
+  BEGIN_STORE_FLAGS();
+  STORE_FLAG(has_exceptions);
+  END_STORE_FLAGS();
+  td::store(user_settings_, storer);
+  td::store(chat_settings_, storer);
+  td::store(broadcast_settings_, storer);
+  if (has_exceptions) {
+    td::store(narrow_cast<uint32>(exceptions_.size()), storer);
+    for (auto &exception : exceptions_) {
+      td::store(exception.first, storer);
+      td::store(exception.second, storer);
+    }
+  }
+}
+
+template <class ParserT>
+void AutosaveManager::AutosaveSettings::parse(ParserT &parser) {
+  are_inited_ = true;
+  bool has_exceptions;
+  BEGIN_PARSE_FLAGS();
+  PARSE_FLAG(has_exceptions);
+  END_PARSE_FLAGS();
+  td::parse(user_settings_, parser);
+  td::parse(chat_settings_, parser);
+  td::parse(broadcast_settings_, parser);
+  if (has_exceptions) {
+    uint32 size;
+    td::parse(size, parser);
+    for (size_t i = 0; i < size; i++) {
+      DialogId dialog_id;
+      DialogAutosaveSettings settings;
+      td::parse(dialog_id, parser);
+      td::parse(settings, parser);
+      CHECK(dialog_id.is_valid());
+      exceptions_.emplace(dialog_id, std::move(settings));
+    }
+  }
+}
+
 void AutosaveManager::get_autosave_settings(Promise<td_api::object_ptr<td_api::autosaveSettings>> &&promise) {
   if (settings_.are_inited_) {
     return promise.set_value(settings_.get_autosave_settings_object());
   }
 
-  reload_autosave_settings(std::move(promise));
+  load_autosave_settings(std::move(promise));
 }
 
-void AutosaveManager::reload_autosave_settings(Promise<td_api::object_ptr<td_api::autosaveSettings>> &&promise) {
+string AutosaveManager::get_autosave_settings_database_key() {
+  return "autosave_settings";
+}
+
+void AutosaveManager::load_autosave_settings(Promise<td_api::object_ptr<td_api::autosaveSettings>> &&promise) {
   load_settings_queries_.push_back(std::move(promise));
   if (load_settings_queries_.size() != 1) {
     return;
   }
+
+  if (G()->parameters().use_message_db) {
+    G()->td_db()->get_sqlite_pmc()->get(
+        get_autosave_settings_database_key(),
+        PromiseCreator::lambda(
+            [actor_id = actor_id(this)](string value) mutable {
+              send_closure(actor_id, &AutosaveManager::on_load_autosave_settings_from_database, std::move(value));
+            }));
+    return;
+  }
+
+  reload_autosave_settings();
+}
+
+void AutosaveManager::on_load_autosave_settings_from_database(string value) {
+  if (settings_.are_inited_) {
+    CHECK(load_settings_queries_.empty());
+    return;
+  }
+  if (G()->close_flag()) {
+    return fail_promises(load_settings_queries_, Global::request_aborted_error());
+  }
+  if (value.empty()) {
+    LOG(INFO) << "Autosave settings aren't found in database";
+    return reload_autosave_settings();
+  }
+
+  LOG(INFO) << "Successfully loaded autosave settings from database";
+
+  auto status = log_event_parse(settings_, value);
+  if (status.is_error()) {
+    LOG(ERROR) << "Can't load autosave settings: " << status;
+    settings_ = {};
+    return reload_autosave_settings();
+  }
+
+  Dependencies dependencies;
+  for (auto &exception : settings_.exceptions_) {
+    dependencies.add_dialog_and_dependencies(exception.first);
+  }
+  if (!dependencies.resolve_force(td_, "on_load_autosave_settings_from_database")) {
+    G()->td_db()->get_binlog_pmc()->erase(get_autosave_settings_database_key());
+    settings_ = {};
+    return reload_autosave_settings();
+  }
+
+  settings_.are_inited_ = true;
+  send_update_autosave_settings(td_api::make_object<td_api::autosaveSettingsScopePrivateChats>(),
+                                settings_.user_settings_);
+  send_update_autosave_settings(td_api::make_object<td_api::autosaveSettingsScopeGroupChats>(),
+                                settings_.chat_settings_);
+  send_update_autosave_settings(td_api::make_object<td_api::autosaveSettingsScopeChannelChats>(),
+                                settings_.broadcast_settings_);
+  for (auto &exception : settings_.exceptions_) {
+    send_update_autosave_settings(td_api::make_object<td_api::autosaveSettingsScopeChat>(exception.first.get()),
+                                  exception.second);
+  }
+
+  auto promises = std::move(load_settings_queries_);
+  for (auto &promise : promises) {
+    promise.set_value(settings_.get_autosave_settings_object());
+  }
+}
+
+void AutosaveManager::reload_autosave_settings() {
+  if (G()->close_flag()) {
+    return fail_promises(load_settings_queries_, Global::request_aborted_error());
+  }
+  if (settings_.are_being_reloaded_) {
+    settings_.need_reload_ = true;
+    return;
+  }
+  settings_.are_being_reloaded_ = true;
 
   auto query_promise = PromiseCreator::lambda(
       [actor_id = actor_id(this)](Result<telegram_api::object_ptr<telegram_api::account_autoSaveSettings>> r_settings) {
@@ -214,6 +357,14 @@ void AutosaveManager::reload_autosave_settings(Promise<td_api::object_ptr<td_api
 
 void AutosaveManager::on_get_autosave_settings(
     Result<telegram_api::object_ptr<telegram_api::account_autoSaveSettings>> r_settings) {
+  CHECK(settings_.are_being_reloaded_);
+  settings_.are_being_reloaded_ = false;
+  SCOPE_EXIT {
+    if (settings_.need_reload_) {
+      settings_.need_reload_ = false;
+      reload_autosave_settings();
+    }
+  };
   if (G()->close_flag() && r_settings.is_ok()) {
     r_settings = Global::request_aborted_error();
   }
@@ -270,11 +421,19 @@ void AutosaveManager::on_get_autosave_settings(
                                   DialogAutosaveSettings());
   }
 
+  save_autosave_settings();
+
   auto promises = std::move(load_settings_queries_);
   for (auto &promise : promises) {
-    if (promise) {
-      promise.set_value(settings_.get_autosave_settings_object());
-    }
+    promise.set_value(settings_.get_autosave_settings_object());
+  }
+}
+
+void AutosaveManager::save_autosave_settings() {
+  if (G()->parameters().use_message_db) {
+    LOG(INFO) << "Save autosave settings to database";
+    G()->td_db()->get_sqlite_pmc()->set(get_autosave_settings_database_key(),
+                                        log_event_store(settings_).as_slice().str(), Auto());
   }
 }
 
@@ -283,6 +442,9 @@ void AutosaveManager::set_autosave_settings(td_api::object_ptr<td_api::AutosaveS
                                             Promise<Unit> &&promise) {
   if (scope == nullptr) {
     return promise.set_error(Status::Error(400, "Scope must be non-empty"));
+  }
+  if (!settings_.are_inited_) {
+    return promise.set_error(Status::Error(400, "Autosave settings must be loaded first"));
   }
   auto new_settings = DialogAutosaveSettings(settings.get());
   DialogAutosaveSettings *old_settings = nullptr;
@@ -320,26 +482,31 @@ void AutosaveManager::set_autosave_settings(td_api::object_ptr<td_api::AutosaveS
   if (*old_settings == new_settings) {
     return promise.set_value(Unit());
   }
-  if (settings_.are_inited_) {
-    if (new_settings.are_inited_) {
-      *old_settings = std::move(new_settings);
-      send_update_autosave_settings(std::move(scope), *old_settings);
-    } else {
-      CHECK(dialog_id.is_valid());
-      settings_.exceptions_.erase(dialog_id);
-      send_update_autosave_settings(std::move(scope), DialogAutosaveSettings());
-    }
+  if (new_settings.are_inited_) {
+    *old_settings = std::move(new_settings);
+    send_update_autosave_settings(std::move(scope), *old_settings);
+  } else {
+    CHECK(dialog_id.is_valid());
+    settings_.exceptions_.erase(dialog_id);
+    send_update_autosave_settings(std::move(scope), DialogAutosaveSettings());
   }
+
+  save_autosave_settings();
+
   td_->create_handler<SaveAutoSaveSettingsQuery>(std::move(promise))
       ->send(users, chats, broadcasts, dialog_id, new_settings.get_input_auto_save_settings());
 }
 
 void AutosaveManager::clear_autosave_settings_excpetions(Promise<Unit> &&promise) {
+  if (!settings_.are_inited_) {
+    return promise.set_error(Status::Error(400, "Autosave settings must be loaded first"));
+  }
   for (const auto &exception : settings_.exceptions_) {
     send_update_autosave_settings(td_api::make_object<td_api::autosaveSettingsScopeChat>(exception.first.get()),
                                   DialogAutosaveSettings());
   }
   settings_.exceptions_.clear();
+  save_autosave_settings();
   td_->create_handler<DeleteAutoSaveExceptionsQuery>(std::move(promise))->send();
 }
 
