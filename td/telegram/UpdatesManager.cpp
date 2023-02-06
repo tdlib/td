@@ -1877,12 +1877,16 @@ void UpdatesManager::try_reload_data() {
     schedule_data_reload();
     return;
   }
-  next_data_reload_time_ = now + Random::fast(3000, 4200);
+  next_data_reload_time_ = now + 365 * 86400;
+
+  auto promise = PromiseCreator::lambda([actor_id = actor_id(this)](Result<td_api::object_ptr<td_api::chats>>) {
+    send_closure(actor_id, &UpdatesManager::on_data_reloaded);
+  });
 
   LOG(INFO) << "Reload data";
-  td_->animations_manager_->get_saved_animations(Auto());
+  td_->animations_manager_->reload_saved_animations(true);
   td_->autosave_manager_->reload_autosave_settings();
-  td_->contacts_manager_->reload_created_public_dialogs(PublicDialogType::HasUsername, Auto());
+  td_->contacts_manager_->reload_created_public_dialogs(PublicDialogType::HasUsername, std::move(promise));
   td_->contacts_manager_->reload_created_public_dialogs(PublicDialogType::IsLocationBased, Auto());
   get_default_emoji_statuses(td_, Auto());
   td_->notification_settings_manager_->reload_saved_ringtones(Auto());
@@ -1912,6 +1916,16 @@ void UpdatesManager::try_reload_data() {
   td_->stickers_manager_->get_default_dialog_photo_custom_emoji_stickers(false, true, Auto());
   td_->stickers_manager_->get_default_dialog_photo_custom_emoji_stickers(true, true, Auto());
 
+  schedule_data_reload();
+}
+
+void UpdatesManager::on_data_reloaded() {
+  if (G()->close_flag()) {
+    return;
+  }
+
+  next_data_reload_time_ = Time::now() + Random::fast(3000, 4200);
+  data_reload_timeout_.cancel_timeout();
   schedule_data_reload();
 }
 

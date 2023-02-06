@@ -379,6 +379,8 @@ class UpdatesManager final : public Actor {
 
   void try_reload_data();
 
+  void on_data_reloaded();
+
   uint64 get_most_unused_auth_key_id();
 
   static vector<int32> get_update_ids(const telegram_api::Updates *updates_ptr);
