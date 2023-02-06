@@ -299,7 +299,7 @@ class RawConnectionHttp final : public RawConnection {
     info.use_random_padding = false;
 
     auto packet = BufferWriter{Transport::write(storer, auth_key, &info), 0, 0};
-    Transport::write(storer, auth_key, &info, packet.as_slice());
+    Transport::write(storer, auth_key, &info, packet.as_mutable_slice());
 
     auto packet_size = packet.size();
     send_packet(packet.as_buffer_slice());
@@ -311,7 +311,7 @@ class RawConnectionHttp final : public RawConnection {
 
     info.no_crypto_flag = true;
     auto packet = BufferWriter{Transport::write(storer, AuthKey(), &info), 0, 0};
-    Transport::write(storer, AuthKey(), &info, packet.as_slice());
+    Transport::write(storer, AuthKey(), &info, packet.as_mutable_slice());
     LOG(INFO) << "Send handshake packet: " << format::as_hex_dump<4>(packet.as_slice());
     send_packet(packet.as_buffer_slice());
     return info.message_id;
