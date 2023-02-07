@@ -801,7 +801,6 @@ bool UpdatesManager::is_acceptable_message(const telegram_api::Message *message_
         case telegram_api::messageActionTopicCreate::ID:
         case telegram_api::messageActionTopicEdit::ID:
         case telegram_api::messageActionSuggestProfilePhoto::ID:
-        case telegram_api::messageActionAttachMenuBotAllowed::ID:
           break;
         case telegram_api::messageActionChatCreate::ID: {
           auto chat_create = static_cast<const telegram_api::messageActionChatCreate *>(action);
@@ -3937,5 +3936,10 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateAutoSaveSetting
 }
 
 // unsupported updates
+
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateGroupInvitePrivacyForbidden> update,
+                               Promise<Unit> &&promise) {
+  promise.set_value(Unit());
+}
 
 }  // namespace td

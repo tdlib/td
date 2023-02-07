@@ -82,6 +82,8 @@ class ConfigManager final : public NetQueryCallback {
 
   void lazy_request_config();
 
+  void reget_config(Promise<Unit> &&promise);
+
   void get_app_config(Promise<td_api::object_ptr<td_api::JsonValue>> &&promise);
 
   void reget_app_config(Promise<Unit> &&promise);
@@ -111,6 +113,8 @@ class ConfigManager final : public NetQueryCallback {
   Timestamp expire_time_;
 
   FloodControlStrict lazy_request_flood_control_;
+
+  vector<Promise<Unit>> reget_config_queries_;
 
   vector<Promise<td_api::object_ptr<td_api::JsonValue>>> get_app_config_queries_;
   vector<Promise<Unit>> reget_app_config_queries_;

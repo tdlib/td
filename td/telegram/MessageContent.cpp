@@ -5235,7 +5235,13 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
     }
     case telegram_api::messageActionBotAllowed::ID: {
       auto action = move_tl_object_as<telegram_api::messageActionBotAllowed>(action_ptr);
-      return td::make_unique<MessageWebsiteConnected>(std::move(action->domain_));
+      if (action->attach_menu_) {
+        return td::make_unique<MessageWriteAccessAllowed>();
+      }
+      if (!action->domain_.empty()) {
+        return td::make_unique<MessageWebsiteConnected>(std::move(action->domain_));
+      }
+      return td::make_unique<MessageUnsupported>();
     }
     case telegram_api::messageActionSecureValuesSent::ID: {
       LOG_IF(ERROR, td->auth_manager_->is_bot()) << "Receive MessageActionSecureValuesSent in " << owner_dialog_id;
@@ -5362,8 +5368,6 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       }
       return make_unique<MessageSuggestProfilePhoto>(std::move(photo));
     }
-    case telegram_api::messageActionAttachMenuBotAllowed::ID:
-      return td::make_unique<MessageWriteAccessAllowed>();
     case telegram_api::messageActionRequestedPeer::ID: {
       auto action = move_tl_object_as<telegram_api::messageActionRequestedPeer>(action_ptr);
       DialogId dialog_id(action->peer_);

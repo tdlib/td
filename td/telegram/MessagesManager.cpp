@@ -700,7 +700,11 @@ class GetMessageReadParticipantsQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
-    promise_.set_value(UserId::get_user_ids(result_ptr.ok()));
+    auto user_ids =
+        transform(result_ptr.ok(), [](const telegram_api::object_ptr<telegram_api::readParticipantDate> &user_date) {
+          return user_date->user_id_;
+        });
+    promise_.set_value(UserId::get_user_ids(user_ids));
   }
 
   void on_error(Status status) final {

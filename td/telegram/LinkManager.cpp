@@ -777,6 +777,7 @@ LinkManager::~LinkManager() = default;
 
 void LinkManager::start_up() {
   autologin_update_time_ = Time::now() - 365 * 86400;
+
   autologin_domains_ = full_split(G()->td_db()->get_binlog_pmc()->get("autologin_domains"), '\xFF');
 
   url_auth_domains_ = full_split(G()->td_db()->get_binlog_pmc()->get("url_auth_domains"), '\xFF');
@@ -1534,10 +1535,13 @@ unique_ptr<LinkManager::InternalLink> LinkManager::get_internal_link_passport(
                                                           callback_url.str());
 }
 
-void LinkManager::update_autologin_domains(string autologin_token, vector<string> autologin_domains,
-                                           vector<string> url_auth_domains, vector<string> whitelisted_domains) {
+void LinkManager::update_autologin_token(string autologin_token) {
   autologin_update_time_ = Time::now();
   autologin_token_ = std::move(autologin_token);
+}
+
+void LinkManager::update_autologin_domains(vector<string> autologin_domains, vector<string> url_auth_domains,
+                                           vector<string> whitelisted_domains) {
   if (autologin_domains_ != autologin_domains) {
     autologin_domains_ = std::move(autologin_domains);
     G()->td_db()->get_binlog_pmc()->set("autologin_domains", implode(autologin_domains_, '\xFF'));
@@ -1603,7 +1607,7 @@ void LinkManager::get_external_link_info(string &&link, Promise<td_api::object_p
       }
       send_closure(G()->link_manager(), &LinkManager::get_external_link_info, std::move(link), std::move(promise));
     });
-    return send_closure(G()->config_manager(), &ConfigManager::reget_app_config, std::move(query_promise));
+    return send_closure(G()->config_manager(), &ConfigManager::reget_config, std::move(query_promise));
   }
 
   if (autologin_token_.empty()) {

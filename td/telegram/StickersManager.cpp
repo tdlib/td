@@ -1159,8 +1159,8 @@ class CreateNewStickerSetQuery final : public Td::ResultHandler {
 
     send_query(G()->net_query_creator().create(
         telegram_api::stickers_createStickerSet(flags, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-                                                std::move(input_user), title, short_name, nullptr,
-                                                std::move(input_stickers), software),
+                                                false /*ignored*/, false /*ignored*/, std::move(input_user), title,
+                                                short_name, nullptr, std::move(input_stickers), software),
         {{short_name}}));
   }
 
@@ -1226,9 +1226,10 @@ class SetStickerSetThumbnailQuery final : public Td::ResultHandler {
   }
 
   void send(const string &short_name, tl_object_ptr<telegram_api::InputDocument> &&input_document) {
+    int32 flags = telegram_api::stickers_setStickerSetThumb::THUMB_MASK;
     send_query(G()->net_query_creator().create(
-        telegram_api::stickers_setStickerSetThumb(make_tl_object<telegram_api::inputStickerSetShortName>(short_name),
-                                                  std::move(input_document)),
+        telegram_api::stickers_setStickerSetThumb(
+            flags, make_tl_object<telegram_api::inputStickerSetShortName>(short_name), std::move(input_document), 0),
         {{short_name}}));
   }
 
@@ -7949,7 +7950,7 @@ tl_object_ptr<telegram_api::inputStickerSetItem> StickersManager::get_input_stic
   }
 
   return make_tl_object<telegram_api::inputStickerSetItem>(flags, std::move(input_document), sticker->emojis_,
-                                                           std::move(mask_coords));
+                                                           std::move(mask_coords), string());
 }
 
 void StickersManager::get_suggested_sticker_set_name(string title, Promise<string> &&promise) {

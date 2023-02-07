@@ -978,12 +978,23 @@ void ConfigManager::lazy_request_config() {
   set_timeout_at(expire_time_.at());
 }
 
+void ConfigManager::reget_config(Promise<Unit> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+
+  reget_config_queries_.push_back(std::move(promise));
+  if (reget_config_queries_.size() != 1) {
+    return;
+  }
+
+  request_config_from_dc_impl(DcId::main(), false);
+}
+
 void ConfigManager::try_request_app_config() {
   if (get_app_config_queries_.size() + reget_app_config_queries_.size() != 1) {
     return;
   }
 
-  auto query = G()->net_query_creator().create_unauth(telegram_api::help_getAppConfig());
+  auto query = G()->net_query_creator().create_unauth(telegram_api::help_getAppConfig(0));
   query->total_timeout_limit_ = 60 * 60 * 24;
   G()->net_query_dispatcher().dispatch_with_callback(std::move(query), actor_shared(this, 1));
 }
@@ -1253,10 +1264,17 @@ void ConfigManager::on_result(NetQueryPtr res) {
       return;
     }
 
-    auto result = result_ptr.move_as_ok();
-    process_app_config(result);
+    auto app_config_ptr = result_ptr.move_as_ok();
+    if (app_config_ptr->get_id() == telegram_api::help_appConfigNotModified::ID) {
+      fail_promises(promises, Status::Error(500, "Receive unexpected response"));
+      fail_promises(unit_promises, Status::Error(500, "Receive unexpected response"));
+      return;
+    }
+    CHECK(app_config_ptr->get_id() == telegram_api::help_appConfig::ID);
+    auto app_config = telegram_api::move_object_as<telegram_api::help_appConfig>(app_config_ptr);
+    process_app_config(app_config->config_);
     for (auto &promise : promises) {
-      promise.set_value(convert_json_value_object(result));
+      promise.set_value(convert_json_value_object(app_config->config_));
     }
     set_promises(unit_promises);
     return;
@@ -1272,12 +1290,14 @@ void ConfigManager::on_result(NetQueryPtr res) {
       expire_time_ = Timestamp::in(60.0);  // try again in a minute
       set_timeout_in(expire_time_.in());
     }
+    fail_promises(reget_config_queries_, r_config.move_as_error());
   } else {
     on_dc_options_update(DcOptions());
     process_config(r_config.move_as_ok());
     if (token == 9) {
       G()->net_query_dispatcher().update_mtproto_header();
     }
+    set_promises(reget_config_queries_);
   }
 }
 
@@ -1332,16 +1352,14 @@ void ConfigManager::process_config(tl_object_ptr<telegram_api::config> config) {
   send_closure(G()->connection_creator(), &ConnectionCreator::on_dc_options, DcOptions(config->dc_options_));
 
   options.set_option_integer("recent_stickers_limit", config->stickers_recent_limit_);
-  options.set_option_integer("favorite_stickers_limit", config->stickers_faved_limit_);
-  options.set_option_integer("saved_animations_limit", config->saved_gifs_limit_);
   options.set_option_integer("channels_read_media_period", config->channels_read_media_period_);
+
+  send_closure(G()->link_manager(), &LinkManager::update_autologin_token, std::move(config->autologin_token_));
 
   options.set_option_boolean("test_mode", config->test_mode_);
   options.set_option_integer("forwarded_message_count_max", config->forwarded_count_max_);
   options.set_option_integer("basic_group_size_max", config->chat_size_max_);
   options.set_option_integer("supergroup_size_max", config->megagroup_size_max_);
-  options.set_option_integer("pinned_chat_count_max", config->pinned_dialogs_count_max_);
-  options.set_option_integer("pinned_archived_chat_count_max", config->pinned_infolder_count_max_);
   if (is_from_main_dc || !options.have_option("expect_blocking")) {
     options.set_option_boolean("expect_blocking", config->blocked_mode_);
   }
@@ -1382,8 +1400,6 @@ void ConfigManager::process_config(tl_object_ptr<telegram_api::config> config) {
     options.set_option_integer("revoke_pm_time_limit", config->revoke_pm_time_limit_);
 
     options.set_option_integer("rating_e_decay", config->rating_e_decay_);
-
-    options.set_option_boolean("calls_enabled", config->phonecalls_enabled_);
   }
   options.set_option_integer("call_ring_timeout_ms", config->call_ring_timeout_ms_);
   options.set_option_integer("call_connect_timeout_ms", config->call_connect_timeout_ms_);
@@ -1442,6 +1458,7 @@ void ConfigManager::process_config(tl_object_ptr<telegram_api::config> config) {
   options.set_option_empty("notify_cloud_delay_ms");
   options.set_option_empty("notify_default_delay_ms");
   options.set_option_empty("large_chat_size");
+  options.set_option_empty("calls_enabled");
 
   // TODO implement online status updates
   //  options.set_option_integer("offline_blur_timeout_ms", config->offline_blur_timeout_ms_);
@@ -1466,7 +1483,6 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
   CHECK(config != nullptr);
   LOG(INFO) << "Receive app config " << to_string(config);
 
-  string autologin_token;
   vector<string> autologin_domains;
   vector<string> url_auth_domains;
   vector<string> whitelisted_domains;
@@ -1693,10 +1709,6 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
         can_archive_and_mute_new_chats_from_unknown_users = get_json_value_bool(std::move(key_value->value_), key);
         continue;
       }
-      if (key == "autologin_token") {
-        autologin_token = get_json_value_string(std::move(key_value->value_), key);
-        continue;
-      }
       if (key == "autologin_domains") {
         if (value->get_id() == telegram_api::jsonArray::ID) {
           auto domains = std::move(static_cast<telegram_api::jsonArray *>(value)->value_);
@@ -1892,8 +1904,8 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
   }
   config = make_tl_object<telegram_api::jsonObject>(std::move(new_values));
 
-  send_closure(G()->link_manager(), &LinkManager::update_autologin_domains, std::move(autologin_token),
-               std::move(autologin_domains), std::move(url_auth_domains), std::move(whitelisted_domains));
+  send_closure(G()->link_manager(), &LinkManager::update_autologin_domains, std::move(autologin_domains),
+               std::move(url_auth_domains), std::move(whitelisted_domains));
 
   Global &options = *G();
 
@@ -1977,20 +1989,31 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
   }
 
   bool is_premium = options.get_option_boolean("is_premium");
-
-  auto chat_filter_count_max = options.get_option_integer(
-      is_premium ? Slice("dialog_filters_limit_premium") : Slice("dialog_filters_limit_default"), is_premium ? 20 : 10);
-  options.set_option_integer("chat_filter_count_max", static_cast<int32>(chat_filter_count_max));
-
-  auto chat_filter_chosen_chat_count_max = options.get_option_integer(
-      is_premium ? Slice("dialog_filters_chats_limit_premium") : Slice("dialog_filters_chats_limit_default"),
-      is_premium ? 200 : 100);
-  options.set_option_integer("chat_filter_chosen_chat_count_max",
-                             static_cast<int32>(chat_filter_chosen_chat_count_max));
-
-  auto bio_length_max = options.get_option_integer(
-      is_premium ? Slice("about_length_limit_premium") : Slice("about_length_limit_default"), is_premium ? 140 : 70);
-  options.set_option_integer("bio_length_max", bio_length_max);
+  if (is_premium) {
+    options.set_option_integer("chat_filter_count_max", options.get_option_integer("dialog_filters_limit_premium", 20));
+    options.set_option_integer("chat_filter_chosen_chat_count_max",
+                               options.get_option_integer("dialog_filters_chats_limit_premium", 200));
+    options.set_option_integer("bio_length_max", options.get_option_integer("about_length_limit_premium", 140));
+    options.set_option_integer("saved_animations_limit", options.get_option_integer("saved_gifs_limit_premium", 400));
+    options.set_option_integer("favorite_stickers_limit",
+                               options.get_option_integer("stickers_faved_limit_premium", 10));
+    options.set_option_integer("pinned_chat_count_max",
+                               options.get_option_integer("dialogs_pinned_limit_premium", 200));
+    options.set_option_integer("pinned_archived_chat_count_max",
+                               options.get_option_integer("dialogs_folder_pinned_limit_premium", 200));
+  } else {
+    options.set_option_integer("chat_filter_count_max", options.get_option_integer("dialog_filters_limit_default", 10));
+    options.set_option_integer("chat_filter_chosen_chat_count_max",
+                               options.get_option_integer("dialog_filters_chats_limit_default", 100));
+    options.set_option_integer("bio_length_max", options.get_option_integer("about_length_limit_default", 70));
+    options.set_option_integer("saved_animations_limit", options.get_option_integer("saved_gifs_limit_default", 200));
+    options.set_option_integer("favorite_stickers_limit",
+                               options.get_option_integer("stickers_faved_limit_default", 5));
+    options.set_option_integer("pinned_chat_count_max",
+                               options.get_option_integer("dialogs_pinned_limit_default", 100));
+    options.set_option_integer("pinned_archived_chat_count_max",
+                               options.get_option_integer("dialogs_folder_pinned_limit_default", 100));
+  }
 
   if (!is_premium_available) {
     premium_bot_username.clear();  // just in case

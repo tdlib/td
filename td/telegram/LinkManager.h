@@ -59,8 +59,10 @@ class LinkManager final : public Actor {
   // checks whether the link is a supported tg or t.me link and parses it
   static unique_ptr<InternalLink> parse_internal_link(Slice link, bool is_trusted = false);
 
-  void update_autologin_domains(string autologin_token, vector<string> autologin_domains,
-                                vector<string> url_auth_domains, vector<string> whitelisted_domains);
+  void update_autologin_token(string autologin_token);
+
+  void update_autologin_domains(vector<string> autologin_domains, vector<string> url_auth_domains,
+                                vector<string> whitelisted_domains);
 
   void get_deep_link_info(Slice link, Promise<td_api::object_ptr<td_api::deepLinkInfo>> &&promise);
 

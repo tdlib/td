@@ -5780,10 +5780,6 @@ void Td::on_request(uint64 id, const td_api::createCall &request) {
     return send_error_raw(id, r_input_user.error().code(), r_input_user.error().message());
   }
 
-  if (!G()->get_option_boolean("calls_enabled")) {
-    return send_error_raw(id, 400, "Calls are not enabled for the current user");
-  }
-
   CREATE_REQUEST_PROMISE();
   auto query_promise = PromiseCreator::lambda([promise = std::move(promise)](Result<CallId> result) mutable {
     if (result.is_error()) {

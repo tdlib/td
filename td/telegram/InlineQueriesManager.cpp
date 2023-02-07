@@ -145,7 +145,7 @@ class SetInlineBotResultsQuery final : public Td::ResultHandler {
     }
     send_query(G()->net_query_creator().create(telegram_api::messages_setInlineBotResults(
         flags, false /*ignored*/, false /*ignored*/, inline_query_id, std::move(results), cache_time, next_offset,
-        std::move(inline_bot_switch_pm))));
+        std::move(inline_bot_switch_pm), nullptr)));
   }
 
   void on_result(BufferSlice packet) final {
@@ -184,7 +184,7 @@ class RequestSimpleWebViewQuery final : public Td::ResultHandler {
       theme_parameters->data_ = ThemeManager::get_theme_parameters_json_string(theme, false);
     }
     send_query(G()->net_query_creator().create(telegram_api::messages_requestSimpleWebView(
-        flags, std::move(input_user), url, std::move(theme_parameters), platform)));
+        flags, false /*ignored*/, std::move(input_user), url, std::move(theme_parameters), platform)));
   }
 
   void on_result(BufferSlice packet) final {
