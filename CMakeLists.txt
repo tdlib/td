@@ -392,6 +392,7 @@ set(TDLIB_SOURCE
   td/telegram/MessageSender.cpp
   td/telegram/MessagesInfo.cpp
   td/telegram/MessagesManager.cpp
+  td/telegram/MessageSource.cpp
   td/telegram/MessageThreadDb.cpp
   td/telegram/MessageTtl.cpp
   td/telegram/misc.cpp
@@ -644,6 +645,7 @@ set(TDLIB_SOURCE
   td/telegram/MessageSender.h
   td/telegram/MessagesInfo.h
   td/telegram/MessagesManager.h
+  td/telegram/MessageSource.h
   td/telegram/MessageThreadDb.h
   td/telegram/MessageThreadInfo.h
   td/telegram/MessageTtl.h

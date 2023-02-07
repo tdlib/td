@@ -75,6 +75,7 @@
 #include "td/telegram/MessageSearchFilter.h"
 #include "td/telegram/MessageSender.h"
 #include "td/telegram/MessagesManager.h"
+#include "td/telegram/MessageSource.h"
 #include "td/telegram/MessageThreadInfo.h"
 #include "td/telegram/MessageTtl.h"
 #include "td/telegram/misc.h"
@@ -5095,8 +5096,8 @@ void Td::on_request(uint64 id, const td_api::closeChat &request) {
 void Td::on_request(uint64 id, const td_api::viewMessages &request) {
   CHECK_IS_USER();
   answer_ok_query(
-      id, messages_manager_->view_messages(DialogId(request.chat_id_), MessageId(request.message_thread_id_),
-                                           MessageId::get_message_ids(request.message_ids_), request.force_read_));
+      id, messages_manager_->view_messages(DialogId(request.chat_id_), MessageId::get_message_ids(request.message_ids_),
+                                           get_message_source(request.source_), request.force_read_));
 }
 
 void Td::on_request(uint64 id, const td_api::openMessageContent &request) {

@@ -38,6 +38,7 @@
 #include "td/telegram/MessageReplyInfo.h"
 #include "td/telegram/MessageSearchFilter.h"
 #include "td/telegram/MessagesInfo.h"
+#include "td/telegram/MessageSource.h"
 #include "td/telegram/MessageThreadInfo.h"
 #include "td/telegram/MessageTtl.h"
 #include "td/telegram/net/DcId.h"
@@ -716,7 +717,7 @@ class MessagesManager final : public Actor {
 
   Status close_dialog(DialogId dialog_id) TD_WARN_UNUSED_RESULT;
 
-  Status view_messages(DialogId dialog_id, MessageId top_thread_message_id, const vector<MessageId> &message_ids,
+  Status view_messages(DialogId dialog_id, vector<MessageId> message_ids, MessageSource source,
                        bool force_read) TD_WARN_UNUSED_RESULT;
 
   void finish_get_message_views(DialogId dialog_id, const vector<MessageId> &message_ids);

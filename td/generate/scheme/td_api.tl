@@ -1139,6 +1139,36 @@ messageCalendarDay total_count:int32 message:message = MessageCalendarDay;
 messageCalendar total_count:int32 days:vector<messageCalendarDay> = MessageCalendar;
 
 
+//@class MessageSource @description Describes source of a message
+
+//@description The message is from a chat history
+messageSourceChatHistory = MessageSource;
+
+//@description The message is from a message thread history
+messageSourceMessageThreadHistory = MessageSource;
+
+//@description The message is from a forum topic history
+messageSourceForumTopicHistory = MessageSource;
+
+//@description The message is from chat, message thread or forum topic history preview
+messageSourceHistoryPreview = MessageSource;
+
+//@description The message is from a chat list or a forum topic list
+messageSourceChatList = MessageSource;
+
+//@description The message is from search results, including file downloads, local file list, outgoing document messages, calendar
+messageSourceSearch = MessageSource;
+
+//@description The message is from a chat event log
+messageSourceChatEventLog = MessageSource;
+
+//@description The message is from a notification
+messageSourceNotification = MessageSource;
+
+//@description The message is from some other source
+messageSourceOther = MessageSource;
+
+
 //@description Describes a sponsored message
 //@message_id Message identifier; unique for the chat to which the sponsored message belongs among both ordinary and sponsored messages
 //@is_recommended True, if the message needs to be labeled as "recommended" instead of "sponsored"
@@ -6571,10 +6601,10 @@ closeChat chat_id:int53 = Ok;
 //@description Informs TDLib that messages are being viewed by the user. Sponsored messages must be marked as viewed only when the entire text of the message is shown on the screen (excluding the button).
 //-Many useful activities depend on whether the messages are currently being viewed or not (e.g., marking messages as read, incrementing a view counter, updating a view counter, removing deleted messages in supergroups and channels)
 //@chat_id Chat identifier
-//@message_thread_id If not 0, a message thread identifier in which the messages are being viewed
 //@message_ids The identifiers of the messages being viewed
-//@force_read Pass true to mark as read the specified messages even the chat is closed
-viewMessages chat_id:int53 message_thread_id:int53 message_ids:vector<int53> force_read:Bool = Ok;
+//@source Source of the message view
+//@force_read Pass true to mark as read the specified messages even the chat is closed; pass null to guess the source based on chat open state
+viewMessages chat_id:int53 message_ids:vector<int53> source:MessageSource force_read:Bool = Ok;
 
 //@description Informs TDLib that the message content has been opened (e.g., the user has opened a photo, video, document, location or venue, or has listened to an audio file or voice note message).
 //-An updateMessageContentOpened update will be generated if something has changed

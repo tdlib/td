@@ -5010,14 +5010,14 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::removeRecentHashtag>(hashtag));
     } else if (op == "view" || op == "viewt") {
       ChatId chat_id;
-      MessageThreadId message_thread_id;
       string message_ids;
       get_args(args, chat_id, message_ids);
+      td_api::object_ptr<td_api::MessageSource> source;
       if (op == "viewt") {
-        get_args(message_ids, message_thread_id, message_ids);
+        source = td_api::make_object<td_api::messageSourceMessageThreadHistory>();
       }
       send_request(
-          td_api::make_object<td_api::viewMessages>(chat_id, message_thread_id, as_message_ids(message_ids), true));
+          td_api::make_object<td_api::viewMessages>(chat_id, as_message_ids(message_ids), std::move(source), true));
     } else if (op == "omc") {
       ChatId chat_id;
       MessageId message_id;

@@ -21490,56 +21490,133 @@ DialogId MessagesManager::get_my_dialog_id() const {
   return DialogId(td_->contacts_manager_->get_my_id());
 }
 
-Status MessagesManager::view_messages(DialogId dialog_id, MessageId top_thread_message_id,
-                                      const vector<MessageId> &message_ids, bool force_read) {
+Status MessagesManager::view_messages(DialogId dialog_id, vector<MessageId> message_ids, MessageSource source,
+                                      bool force_read) {
   CHECK(!td_->auth_manager_->is_bot());
 
   Dialog *d = get_dialog_force(dialog_id, "view_messages");
   if (d == nullptr) {
     return Status::Error(400, "Chat not found");
   }
-  for (auto message_id : message_ids) {
-    if (!message_id.is_valid() && !message_id.is_valid_scheduled()) {
-      if (message_id.is_valid_sponsored()) {
-        if (d->is_opened) {
-          td_->sponsored_message_manager_->view_sponsored_message(dialog_id, message_id);
-        }
-        continue;
-      }
-      return Status::Error(400, "Invalid message identifier");
-    }
-  }
   if (!have_input_peer(dialog_id, AccessRights::Read)) {
     return Status::Error(400, "Can't access the chat");
   }
 
-  MessageId max_thread_message_id;
-  if (top_thread_message_id != MessageId()) {
-    if (!top_thread_message_id.is_valid() || !top_thread_message_id.is_server()) {
-      return Status::Error(400, "Invalid message thread ID specified");
+  if (source == MessageSource::Auto) {
+    if (d->is_opened) {
+      source = MessageSource::DialogHistory;
+    } else {
+      source = MessageSource::Other;
     }
-    if (dialog_id.get_type() != DialogType::Channel || is_broadcast_channel(dialog_id)) {
-      return Status::Error(400, "There are no message threads in the chat");
+  }
+  bool is_dialog_history = source == MessageSource::DialogHistory || source == MessageSource::MessageThreadHistory ||
+                           source == MessageSource::ForumTopicHistory;
+  bool need_read = force_read || is_dialog_history;
+  bool need_update_view_count = is_dialog_history || source == MessageSource::HistoryPreview ||
+                                source == MessageSource::DialogList || source == MessageSource::Other;
+  bool need_mark_download_as_viewed = is_dialog_history || source == MessageSource::HistoryPreview ||
+                                      source == MessageSource::Search || source == MessageSource::Other;
+
+  // keep only valid message identifiers
+  size_t pos = 0;
+  for (auto message_id : message_ids) {
+    if (!message_id.is_valid()) {
+      if (message_id.is_valid_scheduled()) {
+        // nothing to do for scheduled messages
+        continue;
+      }
+      if (message_id.is_valid_sponsored()) {
+        if (is_dialog_history) {
+          td_->sponsored_message_manager_->view_sponsored_message(dialog_id, message_id);
+          continue;
+        } else {
+          return Status::Error(400, "Can't view the message from the specified source");
+        }
+      }
+      return Status::Error(400, "Invalid message identifier");
     }
-    const auto *top_m = get_message_force(d, top_thread_message_id, "view_messages 6");
-    if (top_m != nullptr && !top_m->reply_info.is_comment_) {
-      max_thread_message_id = top_m->reply_info.max_message_id_;
+    message_ids[pos++] = message_id;
+  }
+  message_ids.resize(pos);
+  if (message_ids.empty()) {
+    // nothing to do
+    return Status::OK();
+  }
+
+  for (auto message_id : message_ids) {
+    auto *m = get_message_force(d, message_id, "view_messages 20");
+    if (m != nullptr) {
+      auto file_ids = get_message_content_file_ids(m->content.get(), td_);
+      for (auto file_id : file_ids) {
+        td_->file_manager_->check_local_location_async(file_id, true);
+      }
     }
   }
 
-  bool need_read = force_read || d->is_opened;
+  if (source == MessageSource::DialogEventLog) {
+    // nothing more to do
+    return Status::OK();
+  }
+
+  // get information about thread of the messages
+  MessageId top_thread_message_id;
+  MessageId max_thread_message_id;
+  if (source == MessageSource::MessageThreadHistory) {
+    if (dialog_id.get_type() != DialogType::Channel || is_broadcast_channel(dialog_id)) {
+      return Status::Error(400, "There are no message threads in the chat");
+    }
+
+    for (auto message_id : message_ids) {
+      auto *m = get_message_force(d, message_id, "view_messages 1");
+      if (m != nullptr) {
+        if (top_thread_message_id.is_valid()) {
+          if (m->top_thread_message_id != top_thread_message_id) {
+            return Status::Error(400, "All messages must be from the same message thread");
+          }
+        } else {
+          if (!m->top_thread_message_id.is_valid()) {
+            return Status::Error(400, "Messages must be from a message thread");
+          }
+          top_thread_message_id = m->top_thread_message_id;
+          const auto *top_m = get_message_force(d, top_thread_message_id, "view_messages 2");
+          if (top_m != nullptr && !top_m->reply_info.is_comment_) {
+            max_thread_message_id = top_m->reply_info.max_message_id_;
+          }
+        }
+      }
+    }
+  }
+
+  // get forum topic identifier for the messages
+  MessageId forum_topic_id;
+  if (source == MessageSource::ForumTopicHistory) {
+    if (!is_forum_channel(dialog_id)) {
+      return Status::Error(400, "Chat has no topics");
+    }
+
+    for (auto message_id : message_ids) {
+      auto *m = get_message_force(d, message_id, "view_messages 3");
+      if (m != nullptr) {
+        auto message_forum_topic_id = m->is_topic_message ? m->top_thread_message_id : MessageId(ServerMessageId(1));
+        if (forum_topic_id.is_valid()) {
+          if (message_forum_topic_id != forum_topic_id) {
+            return Status::Error(400, "All messages must be from the same forum topic");
+          }
+        } else {
+          forum_topic_id = message_forum_topic_id;
+        }
+      }
+    }
+  }
+
   MessageId max_message_id;  // max server or local viewed message_id
   vector<MessageId> read_content_message_ids;
   vector<MessageId> new_viewed_message_ids;
   vector<MessageId> viewed_reaction_message_ids;
   for (auto message_id : message_ids) {
-    if (!message_id.is_valid()) {
-      continue;
-    }
-
-    auto *m = get_message_force(d, message_id, "view_messages 1");
+    auto *m = get_message_force(d, message_id, "view_messages 4");
     if (m != nullptr) {
-      if (m->message_id.is_server() && m->view_count > 0) {
+      if (m->message_id.is_server() && m->view_count > 0 && need_update_view_count) {
         d->pending_viewed_message_ids.insert(m->message_id);
       }
 
@@ -21554,20 +21631,20 @@ Status MessagesManager::view_messages(DialogId dialog_id, MessageId top_thread_m
 
       if (need_read && message_content_type != MessageContentType::VoiceNote &&
           message_content_type != MessageContentType::VideoNote &&
-          update_message_contains_unread_mention(d, m, false, "view_messages")) {
+          update_message_contains_unread_mention(d, m, false, "view_messages 5")) {
         CHECK(m->message_id.is_server());
         read_content_message_ids.push_back(m->message_id);
-        on_message_changed(d, m, true, "view_messages");
+        on_message_changed(d, m, true, "view_messages 6");
       }
 
-      if (need_read && remove_message_unread_reactions(d, m, "view_messages")) {
+      if (need_read && remove_message_unread_reactions(d, m, "view_messages 7")) {
         CHECK(m->message_id.is_server());
         read_content_message_ids.push_back(m->message_id);
-        on_message_changed(d, m, true, "view_messages");
+        on_message_changed(d, m, true, "view_messages 8");
       }
 
       auto file_source_id = full_message_id_to_file_source_id_.get({dialog_id, m->message_id});
-      if (file_source_id.is_valid()) {
+      if (file_source_id.is_valid() && need_mark_download_as_viewed) {
         LOG(INFO) << "Have " << file_source_id << " for " << m->message_id;
         CHECK(file_source_id.is_valid());
         for (auto file_id : get_message_file_ids(m)) {
@@ -21595,11 +21672,6 @@ Status MessagesManager::view_messages(DialogId dialog_id, MessageId top_thread_m
         view_id = ++info->current_view_id;
         info->recently_viewed_messages[view_id] = message_id;
       }
-
-      auto file_ids = get_message_content_file_ids(m->content.get(), td_);
-      for (auto file_id : file_ids) {
-        td_->file_manager_->check_local_location_async(file_id, true);
-      }
     } else if (!message_id.is_yet_unsent() && message_id > max_message_id) {
       if (message_id <= d->max_notification_message_id || message_id <= d->last_new_message_id ||
           message_id <= max_thread_message_id) {
@@ -21609,7 +21681,7 @@ Status MessagesManager::view_messages(DialogId dialog_id, MessageId top_thread_m
   }
   if (!d->pending_viewed_message_ids.empty()) {
     pending_message_views_timeout_.add_timeout_in(dialog_id.get(), MAX_MESSAGE_VIEW_DELAY);
-    d->increment_view_counter |= d->is_opened;
+    d->increment_view_counter |= is_dialog_history;
   }
   if (!read_content_message_ids.empty()) {
     read_message_contents_on_server(dialog_id, std::move(read_content_message_ids), 0, Auto());
@@ -21637,15 +21709,15 @@ Status MessagesManager::view_messages(DialogId dialog_id, MessageId top_thread_m
     return Status::OK();
   }
 
-  if (top_thread_message_id.is_valid() && max_message_id.is_valid()) {
+  if (source == MessageSource::MessageThreadHistory && top_thread_message_id.is_valid() && max_message_id.is_valid()) {
     MessageId prev_last_read_inbox_message_id;
     max_thread_message_id = MessageId();
-    Message *top_m = get_message_force(d, top_thread_message_id, "view_messages 2");
+    Message *top_m = get_message_force(d, top_thread_message_id, "view_messages 9");
     if (top_m != nullptr && is_active_message_reply_info(dialog_id, top_m->reply_info)) {
       prev_last_read_inbox_message_id = top_m->reply_info.last_read_inbox_message_id_;
       if (top_m->reply_info.update_max_message_ids(MessageId(), max_message_id, MessageId())) {
         on_message_reply_info_changed(dialog_id, top_m);
-        on_message_changed(d, top_m, true, "view_messages 3");
+        on_message_changed(d, top_m, true, "view_messages 10");
       }
       max_thread_message_id = top_m->reply_info.max_message_id_;
 
@@ -21654,14 +21726,14 @@ Status MessagesManager::view_messages(DialogId dialog_id, MessageId top_thread_m
         auto linked_d = get_dialog(linked_dialog_id);
         CHECK(linked_d != nullptr);
         CHECK(linked_dialog_id.get_type() == DialogType::Channel);
-        auto *linked_m = get_message_force(linked_d, top_m->forward_info->from_message_id, "view_messages 4");
+        auto *linked_m = get_message_force(linked_d, top_m->forward_info->from_message_id, "view_messages 11");
         if (linked_m != nullptr && is_active_message_reply_info(linked_dialog_id, linked_m->reply_info)) {
           if (linked_m->reply_info.last_read_inbox_message_id_ < prev_last_read_inbox_message_id) {
             prev_last_read_inbox_message_id = linked_m->reply_info.last_read_inbox_message_id_;
           }
           if (linked_m->reply_info.update_max_message_ids(MessageId(), max_message_id, MessageId())) {
             on_message_reply_info_changed(linked_dialog_id, linked_m);
-            on_message_changed(linked_d, linked_m, true, "view_messages 5");
+            on_message_changed(linked_d, linked_m, true, "view_messages 12");
           }
           if (linked_m->reply_info.max_message_id_ > max_thread_message_id) {
             max_thread_message_id = linked_m->reply_info.max_message_id_;
@@ -21678,35 +21750,42 @@ Status MessagesManager::view_messages(DialogId dialog_id, MessageId top_thread_m
 
     return Status::OK();
   }
-
-  if (max_message_id > d->last_read_inbox_message_id) {
-    const MessageId last_read_message_id = max_message_id;
-    const MessageId prev_last_read_inbox_message_id = d->last_read_inbox_message_id;
-    MessageId read_history_on_server_message_id;
-    if (dialog_id.get_type() != DialogType::SecretChat) {
-      if (last_read_message_id.get_prev_server_message_id().get() >
-          prev_last_read_inbox_message_id.get_prev_server_message_id().get()) {
-        read_history_on_server_message_id = last_read_message_id.get_prev_server_message_id();
-      }
-    } else {
-      if (last_read_message_id > prev_last_read_inbox_message_id) {
-        read_history_on_server_message_id = last_read_message_id;
-      }
-    }
-
-    if (read_history_on_server_message_id.is_valid()) {
-      // add dummy timeout to not try to repair unread_count in read_history_inbox before server request succeeds
-      // the timeout will be overwritten in the read_history_on_server call
-      pending_read_history_timeout_.add_timeout_in(dialog_id.get(), 0);
-    }
-    read_history_inbox(d->dialog_id, last_read_message_id, -1, "view_messages");
-    if (read_history_on_server_message_id.is_valid()) {
-      // call read_history_on_server after read_history_inbox to not have delay before request if all messages are read
-      read_history_on_server(d, read_history_on_server_message_id);
-    }
+  if (source == MessageSource::ForumTopicHistory) {
+    // TODO read forum topic history
+    return Status::OK();
   }
-  if (d->is_marked_as_unread) {
-    set_dialog_is_marked_as_unread(d, false);
+
+  if (source == MessageSource::DialogHistory) {
+    if (max_message_id > d->last_read_inbox_message_id) {
+      const MessageId last_read_message_id = max_message_id;
+      const MessageId prev_last_read_inbox_message_id = d->last_read_inbox_message_id;
+      MessageId read_history_on_server_message_id;
+      if (dialog_id.get_type() != DialogType::SecretChat) {
+        if (last_read_message_id.get_prev_server_message_id().get() >
+            prev_last_read_inbox_message_id.get_prev_server_message_id().get()) {
+          read_history_on_server_message_id = last_read_message_id.get_prev_server_message_id();
+        }
+      } else {
+        if (last_read_message_id > prev_last_read_inbox_message_id) {
+          read_history_on_server_message_id = last_read_message_id;
+        }
+      }
+
+      if (read_history_on_server_message_id.is_valid()) {
+        // add dummy timeout to not try to repair unread_count in read_history_inbox before server request succeeds
+        // the timeout will be overwritten in the read_history_on_server call
+        pending_read_history_timeout_.add_timeout_in(dialog_id.get(), 0);
+      }
+      read_history_inbox(d->dialog_id, last_read_message_id, -1, "view_messages 13");
+      if (read_history_on_server_message_id.is_valid()) {
+        // call read_history_on_server after read_history_inbox to not have delay before request if all messages are read
+        read_history_on_server(d, read_history_on_server_message_id);
+      }
+    }
+    if (d->is_marked_as_unread) {
+      set_dialog_is_marked_as_unread(d, false);
+    }
+    return Status::OK();
   }
 
   return Status::OK();
