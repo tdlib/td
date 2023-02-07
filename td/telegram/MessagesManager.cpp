@@ -7828,7 +7828,7 @@ void MessagesManager::on_dialog_action(DialogId dialog_id, MessageId top_thread_
     CHECK(typing_dialog_type == DialogType::User);
     auto user_id = typing_dialog_id.get_user_id();
     if (!td_->contacts_manager_->is_user_bot(user_id) && !td_->contacts_manager_->is_user_status_exact(user_id) &&
-        !get_dialog(dialog_id)->is_opened && !is_canceled) {
+        !is_dialog_opened(dialog_id) && !is_canceled) {
       return;
     }
   }
@@ -13212,7 +13212,7 @@ void MessagesManager::set_dialog_online_member_count(DialogId dialog_id, int32 o
   auto &info = dialog_online_member_counts_[dialog_id];
   LOG(INFO) << "Change number of online members from " << info.online_member_count << " to " << online_member_count
             << " in " << dialog_id << " from " << source;
-  bool need_update = d->is_opened && (!info.is_update_sent || info.online_member_count != online_member_count);
+  bool need_update = d->open_count > 0 && (!info.is_update_sent || info.online_member_count != online_member_count);
   info.online_member_count = online_member_count;
   info.update_time = Time::now();
 
@@ -13220,7 +13220,7 @@ void MessagesManager::set_dialog_online_member_count(DialogId dialog_id, int32 o
     info.is_update_sent = true;
     send_update_chat_online_member_count(dialog_id, online_member_count);
   }
-  if (d->is_opened) {
+  if (d->open_count > 0) {
     if (is_from_server) {
       update_dialog_online_member_count_timeout_.set_timeout_in(dialog_id.get(), ONLINE_MEMBER_COUNT_UPDATE_TIME);
     } else {
@@ -13237,7 +13237,7 @@ void MessagesManager::on_update_dialog_online_member_count_timeout(DialogId dial
   LOG(INFO) << "Expired timeout for number of online members in " << dialog_id;
   Dialog *d = get_dialog(dialog_id);
   CHECK(d != nullptr);
-  if (!d->is_opened) {
+  if (d->open_count == 0) {
     send_update_chat_online_member_count(dialog_id, 0);
     return;
   }
@@ -13270,7 +13270,7 @@ void MessagesManager::on_update_viewed_messages_timeout(DialogId dialog_id) {
   LOG(INFO) << "Expired timeout for updating of recently viewed messages in " << dialog_id;
   Dialog *d = get_dialog(dialog_id);
   CHECK(d != nullptr);
-  if (!d->is_opened) {
+  if (d->open_count == 0) {
     return;
   }
 
@@ -16392,7 +16392,7 @@ bool MessagesManager::can_unload_message(const Dialog *d, const Message *m) cons
   // don't want to unload messages from the last album
   // can't unload from memory last dialog, last database messages, yet unsent messages, being edited media messages and active live locations
   // can't unload messages in dialog with active suffix load query
-  return !d->is_opened && m->message_id != d->last_message_id && m->message_id != d->last_database_message_id &&
+  return d->open_count == 0 && m->message_id != d->last_message_id && m->message_id != d->last_database_message_id &&
          !m->message_id.is_yet_unsent() && active_live_location_full_message_ids_.count(full_message_id) == 0 &&
          replied_by_yet_unsent_messages_.count(full_message_id) == 0 && m->edited_content == nullptr &&
          d->suffix_load_queries_.empty() && m->message_id != d->reply_markup_message_id &&
@@ -16876,7 +16876,7 @@ void MessagesManager::on_message_deleted(Dialog *d, Message *m, bool is_permanen
       d->yet_unsent_thread_message_ids.erase(it);
     }
   }
-  if (d->is_opened) {
+  if (d->open_count > 0) {
     auto it = dialog_viewed_messages_.find(d->dialog_id);
     if (it != dialog_viewed_messages_.end()) {
       auto &info = it->second;
@@ -19157,7 +19157,7 @@ void MessagesManager::reload_dialog_info_full(DialogId dialog_id, const char *so
 
 void MessagesManager::on_dialog_info_full_invalidated(DialogId dialog_id) {
   Dialog *d = get_dialog(dialog_id);
-  if (d != nullptr && d->is_opened) {
+  if (d != nullptr && d->open_count > 0) {
     reload_dialog_info_full(dialog_id, "on_dialog_info_full_invalidated");
   }
 }
@@ -20574,7 +20574,7 @@ Status MessagesManager::set_dialog_draft_message(DialogId dialog_id, MessageId t
                       LogEvent::HandlerType::SaveDialogDraftMessageOnServer, "draft");
       }
 
-      pending_draft_message_timeout_.set_timeout_in(dialog_id.get(), d->is_opened ? MIN_SAVE_DRAFT_DELAY : 0);
+      pending_draft_message_timeout_.set_timeout_in(dialog_id.get(), d->open_count > 0 ? MIN_SAVE_DRAFT_DELAY : 0);
     }
   }
   return Status::OK();
@@ -21463,7 +21463,7 @@ DialogId MessagesManager::migrate_dialog_to_megagroup(DialogId dialog_id, Promis
 
 bool MessagesManager::is_dialog_opened(DialogId dialog_id) const {
   const Dialog *d = get_dialog(dialog_id);
-  return d != nullptr && d->is_opened;
+  return d != nullptr && d->open_count > 0;
 }
 
 Status MessagesManager::open_dialog(DialogId dialog_id) {
@@ -21503,7 +21503,7 @@ Status MessagesManager::view_messages(DialogId dialog_id, vector<MessageId> mess
   }
 
   if (source == MessageSource::Auto) {
-    if (d->is_opened) {
+    if (d->open_count > 0) {
       source = MessageSource::DialogHistory;
     } else {
       source = MessageSource::Other;
@@ -21655,7 +21655,7 @@ Status MessagesManager::view_messages(DialogId dialog_id, vector<MessageId> mess
         }
       }
 
-      if (m->message_id.is_server() && d->is_opened) {
+      if (m->message_id.is_server() && d->open_count > 0) {
         auto &info = dialog_viewed_messages_[dialog_id];
         if (info == nullptr) {
           info = make_unique<ViewedMessagesInfo>();
@@ -21940,10 +21940,13 @@ void MessagesManager::open_dialog(Dialog *d) {
     return;
   }
   recently_opened_dialogs_.add_dialog(dialog_id);
-  if (d->is_opened) {
+  if (d->open_count == std::numeric_limits<uint32>::max()) {
     return;
   }
-  d->is_opened = true;
+  d->open_count++;
+  if (d->open_count != 1) {
+    return;
+  }
   d->was_opened = true;
 
   auto min_message_id = MessageId(ServerMessageId(1));
@@ -22056,10 +22059,13 @@ void MessagesManager::open_dialog(Dialog *d) {
 }
 
 void MessagesManager::close_dialog(Dialog *d) {
-  if (!d->is_opened) {
+  if (d->open_count == 0) {
     return;
   }
-  d->is_opened = false;
+  d->open_count--;
+  if (d->open_count > 0) {
+    return;
+  }
 
   auto dialog_id = d->dialog_id;
   if (have_input_peer(dialog_id, AccessRights::Write)) {
@@ -22699,7 +22705,7 @@ void MessagesManager::read_history_on_server(Dialog *d, MessageId max_message_id
 
   auto dialog_id = d->dialog_id;
   bool is_secret = dialog_id.get_type() == DialogType::SecretChat;
-  bool need_delay = d->is_opened && !is_secret &&
+  bool need_delay = d->open_count > 0 && !is_secret &&
                     (d->server_unread_count > 0 || (!need_unread_counter(d->order) && d->last_message_id.is_valid() &&
                                                     max_message_id < d->last_message_id));
   LOG(INFO) << "Read history in " << dialog_id << " on server up to " << max_message_id << " with"
@@ -22758,7 +22764,7 @@ void MessagesManager::read_message_thread_history_on_server(Dialog *d, MessageId
 
   d->updated_read_history_message_ids.insert(top_thread_message_id);
 
-  bool need_delay = d->is_opened && last_message_id.is_valid() && max_message_id < last_message_id;
+  bool need_delay = d->open_count > 0 && last_message_id.is_valid() && max_message_id < last_message_id;
   pending_read_history_timeout_.set_timeout_in(dialog_id.get(), need_delay ? MIN_READ_HISTORY_DELAY : 0);
 }
 
@@ -23707,7 +23713,7 @@ void MessagesManager::on_message_live_location_viewed(Dialog *d, const Message *
       UNREACHABLE();
       return;
   }
-  if (!d->is_opened) {
+  if (d->open_count == 0) {
     return;
   }
 
@@ -31565,7 +31571,7 @@ bool MessagesManager::add_new_message_notification(Dialog *d, Message *m, bool f
   int32 min_delay_ms = 0;
   if (need_delay_message_content_notification(m->content.get(), td_->contacts_manager_->get_my_id())) {
     min_delay_ms = 3000;  // 3 seconds
-  } else if (td_->is_online() && d->is_opened) {
+  } else if (td_->is_online() && d->open_count > 0) {
     min_delay_ms = 1000;  // 1 second
   }
   auto ringtone_id = get_dialog_notification_ringtone_id(settings_dialog_id, settings_dialog);
@@ -32969,10 +32975,6 @@ void MessagesManager::on_update_dialog_draft_message(DialogId dialog_id, Message
 bool MessagesManager::update_dialog_draft_message(Dialog *d, unique_ptr<DraftMessage> &&draft_message, bool from_update,
                                                   bool need_update_dialog_pos) {
   CHECK(d != nullptr);
-  if (from_update && d->is_opened && d->draft_message != nullptr) {
-    // send the update anyway, despite it shouldn't be applied client-side
-    // return false;
-  }
   if (draft_message == nullptr) {
     if (d->draft_message != nullptr) {
       d->draft_message = nullptr;
@@ -35913,7 +35915,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     on_dialog_updated(dialog_id, "drop have_full_history");
   }
 
-  if (!d->is_opened && d->messages != nullptr && is_message_unload_enabled() && !d->has_unload_timeout) {
+  if (d->open_count == 0 && d->messages != nullptr && is_message_unload_enabled() && !d->has_unload_timeout) {
     LOG(INFO) << "Schedule unload of " << dialog_id;
     pending_unload_dialog_timeout_.add_timeout_in(dialog_id.get(), get_next_unload_dialog_delay(d));
     d->has_unload_timeout = true;
@@ -40107,7 +40109,7 @@ void MessagesManager::on_get_channel_difference(
   }
 
   LOG_IF(ERROR, timeout == 0) << "Have no timeout in final ChannelDifference in " << dialog_id;
-  if (timeout > 0 && d->is_opened) {
+  if (timeout > 0 && d->open_count > 0) {
     channel_get_difference_timeout_.add_timeout_in(dialog_id.get(), timeout);
   }
   after_get_channel_difference(dialog_id, true);
@@ -41704,7 +41706,7 @@ void MessagesManager::get_current_state(vector<td_api::object_ptr<td_api::Update
     }
     updates.push_back(std::move(update));
 
-    if (d->is_opened) {
+    if (d->open_count > 0) {
       auto info_it = dialog_online_member_counts_.find(dialog_id);
       if (info_it != dialog_online_member_counts_.end() && info_it->second.is_update_sent) {
         updates.push_back(td_api::make_object<td_api::updateChatOnlineMemberCount>(

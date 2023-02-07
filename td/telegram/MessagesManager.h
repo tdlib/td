@@ -1316,6 +1316,7 @@ class MessagesManager final : public Actor {
     int32 unload_dialog_delay_seed = 0;
     int64 last_media_album_id = 0;
     uint32 history_generation = 0;
+    uint32 open_count = 0;
 
     FolderId folder_id;
     vector<DialogListId> dialog_list_ids;  // TODO replace with mask
@@ -1356,7 +1357,6 @@ class MessagesManager final : public Actor {
     bool know_action_bar = false;
     bool has_outgoing_messages = false;
 
-    bool is_opened = false;
     bool was_opened = false;
 
     bool need_restore_reply_markup = true;
