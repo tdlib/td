@@ -14,7 +14,7 @@
 
 namespace td {
 
-void BinlogEvent::init(BufferSlice &&raw_event) {
+void BinlogEvent::init(string raw_event) {
   TlParser parser(as_slice(raw_event));
   size_ = static_cast<uint32>(parser.fetch_int());
   LOG_CHECK(size_ == raw_event.size()) << size_ << ' ' << raw_event.size() << debug_info_;
@@ -69,10 +69,6 @@ BufferSlice BinlogEvent::create_raw(uint64 id, int32 type, int32 flags, const St
   tl_storer.store_int(crc32(raw_event.as_slice().truncate(raw_event.size() - TAIL_SIZE)));
 
   return raw_event;
-}
-
-void BinlogEvent::realloc() {
-  raw_event_ = raw_event_.copy();
 }
 
 }  // namespace td
