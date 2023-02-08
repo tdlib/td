@@ -7999,6 +7999,11 @@ addStickerToSet user_id:int53 name:string sticker:inputSticker = StickerSet;
 //@thumbnail Thumbnail to set in PNG, TGS, or WEBM format; pass null to remove the sticker set thumbnail. Thumbnail format must match the format of stickers in the set
 setStickerSetThumbnail user_id:int53 name:string thumbnail:InputFile = StickerSet;
 
+//@description Sets a custom emoji sticker set thumbnail; for bots only
+//@name Sticker set name
+//@custom_emoji_id Identifier of the custom emoji from the sticker set, which will be set as sticker set thumbnail; pass 0 to remove the sticker set thumbnail
+setCustomEmojiStickerSetThumbnail name:string custom_emoji_id:int64 = Ok;
+
 //@description Changes the position of a sticker in the set to which it belongs; for bots only. The sticker set must have been created by the bot
 //@sticker Sticker
 //@position New position of the sticker in the set, 0-based

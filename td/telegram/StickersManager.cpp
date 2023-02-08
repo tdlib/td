@@ -1254,6 +1254,40 @@ class SetStickerSetThumbnailQuery final : public Td::ResultHandler {
   }
 };
 
+class SetCustomEmojiStickerSetThumbnailQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit SetCustomEmojiStickerSetThumbnailQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(const string &short_name, CustomEmojiId custom_emoji_id) {
+    int32 flags = telegram_api::stickers_setStickerSetThumb::THUMB_DOCUMENT_ID_MASK;
+    send_query(G()->net_query_creator().create(
+        telegram_api::stickers_setStickerSetThumb(
+            flags, make_tl_object<telegram_api::inputStickerSetShortName>(short_name), nullptr, custom_emoji_id.get()),
+        {{short_name}}));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::stickers_setStickerSetThumb>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto sticker_set_id = td_->stickers_manager_->on_get_messages_sticker_set(StickerSetId(), result_ptr.move_as_ok(),
+                                                                              true, "SetStickerSetThumbnailQuery");
+    if (!sticker_set_id.is_valid()) {
+      return on_error(Status::Error(500, "Sticker set not found"));
+    }
+    promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class SetStickerPositionQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
@@ -8390,6 +8424,10 @@ void StickersManager::do_set_sticker_set_thumbnail(UserId user_id, string short_
   if (sticker_set == nullptr || !sticker_set->was_loaded_) {
     return promise.set_error(Status::Error(400, "Sticker set not found"));
   }
+  if (sticker_set->sticker_type_ == StickerType::CustomEmoji) {
+    return promise.set_error(
+        Status::Error(400, "The method can't be used to set thumbnail of custom emoji sticker sets"));
+  }
 
   auto r_file_id = prepare_input_file(thumbnail, sticker_set->sticker_format_, sticker_set->sticker_type_, true);
   if (r_file_id.is_error()) {
@@ -8451,6 +8489,47 @@ void StickersManager::on_sticker_set_thumbnail_uploaded(int64 random_id, Result<
 
   td_->create_handler<SetStickerSetThumbnailQuery>(std::move(pending_set_sticker_set_thumbnail->promise_))
       ->send(pending_set_sticker_set_thumbnail->short_name_, file_view.main_remote_location().as_input_document());
+}
+
+void StickersManager::set_custom_emoji_sticker_set_thumbnail(string short_name, CustomEmojiId custom_emoji_id,
+                                                             Promise<Unit> &&promise) {
+  short_name = clean_username(strip_empty_characters(short_name, MAX_STICKER_SET_SHORT_NAME_LENGTH));
+  if (short_name.empty()) {
+    return promise.set_error(Status::Error(400, "Sticker set name must be non-empty"));
+  }
+
+  const StickerSet *sticker_set = get_sticker_set(short_name_to_sticker_set_id_.get(short_name));
+  if (sticker_set != nullptr && sticker_set->was_loaded_) {
+    return do_set_custom_emoji_sticker_set_thumbnail(short_name, custom_emoji_id, std::move(promise));
+  }
+
+  do_reload_sticker_set(StickerSetId(), make_tl_object<telegram_api::inputStickerSetShortName>(short_name), 0,
+                        PromiseCreator::lambda([actor_id = actor_id(this), short_name, custom_emoji_id,
+                                                promise = std::move(promise)](Result<Unit> result) mutable {
+                          if (result.is_error()) {
+                            promise.set_error(result.move_as_error());
+                          } else {
+                            send_closure(actor_id, &StickersManager::do_set_custom_emoji_sticker_set_thumbnail,
+                                         std::move(short_name), custom_emoji_id, std::move(promise));
+                          }
+                        }),
+                        "set_custom_emoji_sticker_set_thumbnail");
+}
+
+void StickersManager::do_set_custom_emoji_sticker_set_thumbnail(string short_name, CustomEmojiId custom_emoji_id,
+                                                                Promise<Unit> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+
+  const StickerSet *sticker_set = get_sticker_set(short_name_to_sticker_set_id_.get(short_name));
+  if (sticker_set == nullptr || !sticker_set->was_loaded_) {
+    return promise.set_error(Status::Error(400, "Sticker set not found"));
+  }
+  if (sticker_set->sticker_type_ != StickerType::CustomEmoji) {
+    return promise.set_error(
+        Status::Error(400, "The method can be used to set thumbnail only for custom emoji sticker sets"));
+  }
+
+  td_->create_handler<SetCustomEmojiStickerSetThumbnailQuery>(std::move(promise))->send(short_name, custom_emoji_id);
 }
 
 Result<StickersManager::StickerInputDocument> StickersManager::get_sticker_input_document(
