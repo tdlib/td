@@ -296,8 +296,8 @@ class StickersManager final : public Actor {
       CheckStickerSetNameResult result);
 
   void create_new_sticker_set(UserId user_id, string title, string short_name, StickerType sticker_type,
-                              vector<td_api::object_ptr<td_api::inputSticker>> &&stickers, string software,
-                              Promise<td_api::object_ptr<td_api::stickerSet>> &&promise);
+                              bool has_text_color, vector<td_api::object_ptr<td_api::inputSticker>> &&stickers,
+                              string software, Promise<td_api::object_ptr<td_api::stickerSet>> &&promise);
 
   void add_sticker_to_set(UserId user_id, string short_name, tl_object_ptr<td_api::inputSticker> &&sticker,
                           Promise<td_api::object_ptr<td_api::stickerSet>> &&promise);
@@ -507,6 +507,7 @@ class StickersManager final : public Actor {
     string short_name_;
     StickerType sticker_type_ = StickerType::Regular;
     StickerFormat sticker_format_ = StickerFormat::Unknown;
+    bool has_text_color_ = false;
     vector<FileId> file_ids_;
     vector<tl_object_ptr<td_api::inputSticker>> stickers_;
     string software_;

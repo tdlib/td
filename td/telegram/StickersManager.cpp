@@ -1135,7 +1135,7 @@ class CreateNewStickerSetQuery final : public Td::ResultHandler {
   }
 
   void send(tl_object_ptr<telegram_api::InputUser> &&input_user, const string &title, const string &short_name,
-            StickerType sticker_type, StickerFormat sticker_format,
+            StickerType sticker_type, bool has_text_color, StickerFormat sticker_format,
             vector<tl_object_ptr<telegram_api::inputStickerSetItem>> &&input_stickers, const string &software) {
     CHECK(input_user != nullptr);
 
@@ -1145,6 +1145,9 @@ class CreateNewStickerSetQuery final : public Td::ResultHandler {
     }
     if (sticker_type == StickerType::CustomEmoji) {
       flags |= telegram_api::stickers_createStickerSet::EMOJIS_MASK;
+    }
+    if (has_text_color) {
+      flags |= telegram_api::stickers_createStickerSet::TEXT_COLOR_MASK;
     }
     if (sticker_format == StickerFormat::Tgs) {
       flags |= telegram_api::stickers_createStickerSet::ANIMATED_MASK;
@@ -8000,6 +8003,7 @@ td_api::object_ptr<td_api::CheckStickerSetNameResult> StickersManager::get_check
 }
 
 void StickersManager::create_new_sticker_set(UserId user_id, string title, string short_name, StickerType sticker_type,
+                                             bool has_text_color,
                                              vector<td_api::object_ptr<td_api::inputSticker>> &&stickers,
                                              string software,
                                              Promise<td_api::object_ptr<td_api::stickerSet>> &&promise) {
@@ -8022,6 +8026,10 @@ void StickersManager::create_new_sticker_set(UserId user_id, string title, strin
 
   if (stickers.empty()) {
     return promise.set_error(Status::Error(400, "At least 1 sticker must be specified"));
+  }
+
+  if (has_text_color && sticker_type != StickerType::CustomEmoji) {
+    return promise.set_error(Status::Error(400, "Only custom emoji stickers support repainting"));
   }
 
   vector<FileId> file_ids;
@@ -8061,6 +8069,7 @@ void StickersManager::create_new_sticker_set(UserId user_id, string title, strin
   pending_new_sticker_set->short_name_ = short_name;
   pending_new_sticker_set->sticker_format_ = sticker_format;
   pending_new_sticker_set->sticker_type_ = sticker_type;
+  pending_new_sticker_set->has_text_color_ = has_text_color;
   pending_new_sticker_set->file_ids_ = std::move(file_ids);
   pending_new_sticker_set->stickers_ = std::move(stickers);
   pending_new_sticker_set->software_ = std::move(software);
@@ -8246,7 +8255,8 @@ void StickersManager::on_new_stickers_uploaded(int64 random_id, Result<Unit> res
 
   td_->create_handler<CreateNewStickerSetQuery>(std::move(promise))
       ->send(std::move(input_user), pending_new_sticker_set->title_, pending_new_sticker_set->short_name_, sticker_type,
-             sticker_format, std::move(input_stickers), pending_new_sticker_set->software_);
+             pending_new_sticker_set->has_text_color_, sticker_format, std::move(input_stickers),
+             pending_new_sticker_set->software_);
 }
 
 void StickersManager::add_sticker_to_set(UserId user_id, string short_name,

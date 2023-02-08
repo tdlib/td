@@ -2901,7 +2901,7 @@ class CliClient final : public Actor {
             return td_api::make_object<td_api::inputSticker>(as_input_file(sticker), "😀", as_sticker_format(op),
                                                              as_mask_position(op));
           });
-      send_request(td_api::make_object<td_api::createNewStickerSet>(my_id_, title, name, as_sticker_type(op),
+      send_request(td_api::make_object<td_api::createNewStickerSet>(my_id_, title, name, as_sticker_type(op), false,
                                                                     std::move(input_stickers), "tg_cli"));
     } else if (op == "sss") {
       send_request(td_api::make_object<td_api::searchStickerSet>(args));
