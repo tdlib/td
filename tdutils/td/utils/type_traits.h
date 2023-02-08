@@ -34,7 +34,7 @@ constexpr size_t member_function_argument_count() {
 
 // there is no std::is_trivially_copyable in libstdc++ before 5.0
 #if __GLIBCXX__
-#if TD_CLANG || (TD_GCC && __GNUC__ >= 5) // but clang >= 3.0 and g++ >= 5.0 supports __is_trivially_copyable
+#if TD_CLANG || (TD_GCC && __GNUC__ >= 5)  // but clang >= 3.0 and g++ >= 5.0 supports __is_trivially_copyable
 #define TD_IS_TRIVIALLY_COPYABLE(T) __is_trivially_copyable(T)
 #else
 #define TD_IS_TRIVIALLY_COPYABLE(T) __has_trivial_copy(T)

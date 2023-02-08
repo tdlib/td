@@ -1250,67 +1250,50 @@ TEST(MessageEntities, parse_html) {
   check_parse_html("🏟 🏟&lt;</", "Unexpected end tag at byte offset 13");
   check_parse_html("🏟 🏟&lt;<b></b></", "Unexpected end tag at byte offset 20");
   check_parse_html("🏟 🏟&lt;<i>a</i   ", "Unclosed end tag at byte offset 17");
-  check_parse_html("🏟 🏟&lt;<i>a</em   >",
-                   "Unmatched end tag at byte offset 17, expected \"</i>\", found \"</em>\"");
+  check_parse_html("🏟 🏟&lt;<i>a</em   >", "Unmatched end tag at byte offset 17, expected \"</i>\", found \"</em>\"");
 
   check_parse_html("", "", {});
   check_parse_html("➡️ ➡️", "➡️ ➡️", {});
   check_parse_html("&ge;&lt;&gt;&amp;&quot;&laquo;&raquo;&#12345678;", "&ge;<>&\"&laquo;&raquo;&#12345678;", {});
   check_parse_html("&Or;", "&Or;", {});
-  check_parse_html("➡️ ➡️<i>➡️ ➡️</i>", "➡️ ➡️➡️ ➡️",
-                   {{td::MessageEntity::Type::Italic, 5, 5}});
-  check_parse_html("➡️ ➡️<em>➡️ ➡️</em>", "➡️ ➡️➡️ ➡️",
-                   {{td::MessageEntity::Type::Italic, 5, 5}});
-  check_parse_html("➡️ ➡️<b>➡️ ➡️</b>", "➡️ ➡️➡️ ➡️",
-                   {{td::MessageEntity::Type::Bold, 5, 5}});
-  check_parse_html("➡️ ➡️<strong>➡️ ➡️</strong>", "➡️ ➡️➡️ ➡️",
-                   {{td::MessageEntity::Type::Bold, 5, 5}});
-  check_parse_html("➡️ ➡️<u>➡️ ➡️</u>", "➡️ ➡️➡️ ➡️",
-                   {{td::MessageEntity::Type::Underline, 5, 5}});
-  check_parse_html("➡️ ➡️<ins>➡️ ➡️</ins>", "➡️ ➡️➡️ ➡️",
-                   {{td::MessageEntity::Type::Underline, 5, 5}});
-  check_parse_html("➡️ ➡️<s>➡️ ➡️</s>", "➡️ ➡️➡️ ➡️",
-                   {{td::MessageEntity::Type::Strikethrough, 5, 5}});
-  check_parse_html("➡️ ➡️<strike>➡️ ➡️</strike>", "➡️ ➡️➡️ ➡️",
-                   {{td::MessageEntity::Type::Strikethrough, 5, 5}});
-  check_parse_html("➡️ ➡️<del>➡️ ➡️</del>", "➡️ ➡️➡️ ➡️",
-                   {{td::MessageEntity::Type::Strikethrough, 5, 5}});
+  check_parse_html("➡️ ➡️<i>➡️ ➡️</i>", "➡️ ➡️➡️ ➡️", {{td::MessageEntity::Type::Italic, 5, 5}});
+  check_parse_html("➡️ ➡️<em>➡️ ➡️</em>", "➡️ ➡️➡️ ➡️", {{td::MessageEntity::Type::Italic, 5, 5}});
+  check_parse_html("➡️ ➡️<b>➡️ ➡️</b>", "➡️ ➡️➡️ ➡️", {{td::MessageEntity::Type::Bold, 5, 5}});
+  check_parse_html("➡️ ➡️<strong>➡️ ➡️</strong>", "➡️ ➡️➡️ ➡️", {{td::MessageEntity::Type::Bold, 5, 5}});
+  check_parse_html("➡️ ➡️<u>➡️ ➡️</u>", "➡️ ➡️➡️ ➡️", {{td::MessageEntity::Type::Underline, 5, 5}});
+  check_parse_html("➡️ ➡️<ins>➡️ ➡️</ins>", "➡️ ➡️➡️ ➡️", {{td::MessageEntity::Type::Underline, 5, 5}});
+  check_parse_html("➡️ ➡️<s>➡️ ➡️</s>", "➡️ ➡️➡️ ➡️", {{td::MessageEntity::Type::Strikethrough, 5, 5}});
+  check_parse_html("➡️ ➡️<strike>➡️ ➡️</strike>", "➡️ ➡️➡️ ➡️", {{td::MessageEntity::Type::Strikethrough, 5, 5}});
+  check_parse_html("➡️ ➡️<del>➡️ ➡️</del>", "➡️ ➡️➡️ ➡️", {{td::MessageEntity::Type::Strikethrough, 5, 5}});
   check_parse_html("➡️ ➡️<i>➡️ ➡️</i><b>➡️ ➡️</b>", "➡️ ➡️➡️ ➡️➡️ ➡️",
                    {{td::MessageEntity::Type::Italic, 5, 5}, {td::MessageEntity::Type::Bold, 10, 5}});
   check_parse_html("🏟 🏟<i>🏟 &lt🏟</i>", "🏟 🏟🏟 <🏟", {{td::MessageEntity::Type::Italic, 5, 6}});
   check_parse_html("🏟 🏟<i>🏟 &gt;<b aba   =   caba>&lt🏟</b></i>", "🏟 🏟🏟 ><🏟",
                    {{td::MessageEntity::Type::Italic, 5, 7}, {td::MessageEntity::Type::Bold, 9, 3}});
-  check_parse_html("🏟 🏟&lt;<i    aba  =  190azAz-.   >a</i>", "🏟 🏟<a",
-                   {{td::MessageEntity::Type::Italic, 6, 1}});
-  check_parse_html("🏟 🏟&lt;<i    aba  =  190azAz-.>a</i>", "🏟 🏟<a",
-                   {{td::MessageEntity::Type::Italic, 6, 1}});
+  check_parse_html("🏟 🏟&lt;<i    aba  =  190azAz-.   >a</i>", "🏟 🏟<a", {{td::MessageEntity::Type::Italic, 6, 1}});
+  check_parse_html("🏟 🏟&lt;<i    aba  =  190azAz-.>a</i>", "🏟 🏟<a", {{td::MessageEntity::Type::Italic, 6, 1}});
   check_parse_html("🏟 🏟&lt;<i    aba  =  \"&lt;&gt;&quot;\">a</i>", "🏟 🏟<a",
                    {{td::MessageEntity::Type::Italic, 6, 1}});
   check_parse_html("🏟 🏟&lt;<i    aba  =  '&lt;&gt;&quot;'>a</i>", "🏟 🏟<a",
                    {{td::MessageEntity::Type::Italic, 6, 1}});
   check_parse_html("🏟 🏟&lt;<i    aba  =  '&lt;&gt;&quot;'>a</>", "🏟 🏟<a",
                    {{td::MessageEntity::Type::Italic, 6, 1}});
-  check_parse_html("🏟 🏟&lt;<i>🏟 🏟&lt;</>", "🏟 🏟<🏟 🏟<",
-                   {{td::MessageEntity::Type::Italic, 6, 6}});
+  check_parse_html("🏟 🏟&lt;<i>🏟 🏟&lt;</>", "🏟 🏟<🏟 🏟<", {{td::MessageEntity::Type::Italic, 6, 6}});
   check_parse_html("🏟 🏟&lt;<i>a</    >", "🏟 🏟<a", {{td::MessageEntity::Type::Italic, 6, 1}});
   check_parse_html("🏟 🏟&lt;<i>a</i   >", "🏟 🏟<a", {{td::MessageEntity::Type::Italic, 6, 1}});
   check_parse_html("🏟 🏟&lt;<b></b>", "🏟 🏟<", {});
   check_parse_html("<i>\t</i>", "\t", {{td::MessageEntity::Type::Italic, 0, 1}});
   check_parse_html("<i>\r</i>", "\r", {{td::MessageEntity::Type::Italic, 0, 1}});
   check_parse_html("<i>\n</i>", "\n", {{td::MessageEntity::Type::Italic, 0, 1}});
-  check_parse_html("➡️ ➡️<span class = \"tg-spoiler\">➡️ ➡️</span><b>➡️ ➡️</b>",
-                   "➡️ ➡️➡️ ➡️➡️ ➡️",
+  check_parse_html("➡️ ➡️<span class = \"tg-spoiler\">➡️ ➡️</span><b>➡️ ➡️</b>", "➡️ ➡️➡️ ➡️➡️ ➡️",
                    {{td::MessageEntity::Type::Spoiler, 5, 5}, {td::MessageEntity::Type::Bold, 10, 5}});
   check_parse_html("🏟 🏟<span class=\"tg-spoiler\">🏟 &lt🏟</span>", "🏟 🏟🏟 <🏟",
                    {{td::MessageEntity::Type::Spoiler, 5, 6}});
-  check_parse_html("🏟 🏟<span class=\"tg-spoiler\">🏟 &gt;<b aba   =   caba>&lt🏟</b></span>",
-                   "🏟 🏟🏟 ><🏟",
+  check_parse_html("🏟 🏟<span class=\"tg-spoiler\">🏟 &gt;<b aba   =   caba>&lt🏟</b></span>", "🏟 🏟🏟 ><🏟",
                    {{td::MessageEntity::Type::Spoiler, 5, 7}, {td::MessageEntity::Type::Bold, 9, 3}});
-  check_parse_html("➡️ ➡️<tg-spoiler>➡️ ➡️</tg-spoiler><b>➡️ ➡️</b>",
-                   "➡️ ➡️➡️ ➡️➡️ ➡️",
+  check_parse_html("➡️ ➡️<tg-spoiler>➡️ ➡️</tg-spoiler><b>➡️ ➡️</b>", "➡️ ➡️➡️ ➡️➡️ ➡️",
                    {{td::MessageEntity::Type::Spoiler, 5, 5}, {td::MessageEntity::Type::Bold, 10, 5}});
-  check_parse_html("🏟 🏟<tg-spoiler>🏟 &lt🏟</tg-spoiler>", "🏟 🏟🏟 <🏟",
-                   {{td::MessageEntity::Type::Spoiler, 5, 6}});
+  check_parse_html("🏟 🏟<tg-spoiler>🏟 &lt🏟</tg-spoiler>", "🏟 🏟🏟 <🏟", {{td::MessageEntity::Type::Spoiler, 5, 6}});
   check_parse_html("🏟 🏟<tg-spoiler>🏟 &gt;<b aba   =   caba>&lt🏟</b></tg-spoiler>", "🏟 🏟🏟 ><🏟",
                    {{td::MessageEntity::Type::Spoiler, 5, 7}, {td::MessageEntity::Type::Bold, 9, 3}});
   check_parse_html("<a href=telegram.org>\t</a>", "\t",
@@ -1344,10 +1327,8 @@ TEST(MessageEntities, parse_html) {
                    {{td::MessageEntity::Type::TextUrl, 0, 12, "http://telegram.org/"}});
   check_parse_html("<a>https://telegram.org/asdsa?asdasdwe#12e3we</a>", "https://telegram.org/asdsa?asdasdwe#12e3we",
                    {{td::MessageEntity::Type::TextUrl, 0, 42, "https://telegram.org/asdsa?asdasdwe#12e3we"}});
-  check_parse_html("🏟 🏟&lt;<pre  >🏟 🏟&lt;</>", "🏟 🏟<🏟 🏟<",
-                   {{td::MessageEntity::Type::Pre, 6, 6}});
-  check_parse_html("🏟 🏟&lt;<code >🏟 🏟&lt;</>", "🏟 🏟<🏟 🏟<",
-                   {{td::MessageEntity::Type::Code, 6, 6}});
+  check_parse_html("🏟 🏟&lt;<pre  >🏟 🏟&lt;</>", "🏟 🏟<🏟 🏟<", {{td::MessageEntity::Type::Pre, 6, 6}});
+  check_parse_html("🏟 🏟&lt;<code >🏟 🏟&lt;</>", "🏟 🏟<🏟 🏟<", {{td::MessageEntity::Type::Code, 6, 6}});
   check_parse_html("🏟 🏟&lt;<pre><code>🏟 🏟&lt;</code></>", "🏟 🏟<🏟 🏟<",
                    {{td::MessageEntity::Type::Pre, 6, 6}, {td::MessageEntity::Type::Code, 6, 6}});
   check_parse_html("🏟 🏟&lt;<pre><code class=\"language-\">🏟 🏟&lt;</code></>", "🏟 🏟<🏟 🏟<",
@@ -1360,8 +1341,7 @@ TEST(MessageEntities, parse_html) {
                    {{td::MessageEntity::Type::Pre, 6, 7}, {td::MessageEntity::Type::Code, 6, 6}});
   check_parse_html("🏟 🏟&lt;<pre> <code class=\"language-fift\">🏟 🏟&lt;</></>", "🏟 🏟< 🏟 🏟<",
                    {{td::MessageEntity::Type::Pre, 6, 7}, {td::MessageEntity::Type::Code, 7, 6}});
-  check_parse_html("➡️ ➡️<tg-emoji emoji-id = \"12345\">➡️ ➡️</tg-emoji><b>➡️ ➡️</b>",
-                   "➡️ ➡️➡️ ➡️➡️ ➡️",
+  check_parse_html("➡️ ➡️<tg-emoji emoji-id = \"12345\">➡️ ➡️</tg-emoji><b>➡️ ➡️</b>", "➡️ ➡️➡️ ➡️➡️ ➡️",
                    {{td::MessageEntity::Type::CustomEmoji, 5, 5, td::CustomEmojiId(static_cast<td::int64>(12345))},
                     {td::MessageEntity::Type::Bold, 10, 5}});
   check_parse_html("🏟 🏟<tg-emoji emoji-id=\"54321\">🏟 &lt🏟</tg-emoji>", "🏟 🏟🏟 <🏟",
@@ -1444,8 +1424,7 @@ TEST(MessageEntities, parse_markdown) {
   check_parse_markdown("🏟 🏟_abac \\* asd _", "🏟 🏟abac * asd ", {{td::MessageEntity::Type::Italic, 5, 11}});
   check_parse_markdown("🏟 \\.🏟_🏟\\. 🏟_", "🏟 .🏟🏟. 🏟", {{td::MessageEntity::Type::Italic, 6, 6}});
   check_parse_markdown("\\\\\\a\\b\\c\\d\\e\\f\\1\\2\\3\\4\\➡️\\", "\\abcdef1234\\➡️\\", {});
-  check_parse_markdown("➡️ ➡️_➡️ ➡️_", "➡️ ➡️➡️ ➡️",
-                       {{td::MessageEntity::Type::Italic, 5, 5}});
+  check_parse_markdown("➡️ ➡️_➡️ ➡️_", "➡️ ➡️➡️ ➡️", {{td::MessageEntity::Type::Italic, 5, 5}});
   check_parse_markdown("➡️ ➡️_➡️ ➡️_*➡️ ➡️*", "➡️ ➡️➡️ ➡️➡️ ➡️",
                        {{td::MessageEntity::Type::Italic, 5, 5}, {td::MessageEntity::Type::Bold, 10, 5}});
   check_parse_markdown("🏟 🏟_🏟 \\.🏟_", "🏟 🏟🏟 .🏟", {{td::MessageEntity::Type::Italic, 5, 6}});
@@ -1458,22 +1437,14 @@ TEST(MessageEntities, parse_markdown) {
   check_parse_markdown("🏟 🏟__🏟 _🏟_\\___", "🏟 🏟🏟 🏟_",
                        {{td::MessageEntity::Type::Underline, 5, 6}, {td::MessageEntity::Type::Italic, 8, 2}});
   check_parse_markdown("🏟 🏟`🏟 🏟```", "🏟 🏟🏟 🏟", {{td::MessageEntity::Type::Code, 5, 5}});
-  check_parse_markdown("🏟 🏟```🏟 🏟```", "🏟 🏟 🏟",
-                       {{td::MessageEntity::Type::PreCode, 5, 3, "🏟"}});
-  check_parse_markdown("🏟 🏟```🏟\n🏟```", "🏟 🏟🏟",
-                       {{td::MessageEntity::Type::PreCode, 5, 2, "🏟"}});
-  check_parse_markdown("🏟 🏟```🏟\r🏟```", "🏟 🏟🏟",
-                       {{td::MessageEntity::Type::PreCode, 5, 2, "🏟"}});
-  check_parse_markdown("🏟 🏟```🏟\n\r🏟```", "🏟 🏟🏟",
-                       {{td::MessageEntity::Type::PreCode, 5, 2, "🏟"}});
-  check_parse_markdown("🏟 🏟```🏟\r\n🏟```", "🏟 🏟🏟",
-                       {{td::MessageEntity::Type::PreCode, 5, 2, "🏟"}});
-  check_parse_markdown("🏟 🏟```🏟\n\n🏟```", "🏟 🏟\n🏟",
-                       {{td::MessageEntity::Type::PreCode, 5, 3, "🏟"}});
-  check_parse_markdown("🏟 🏟```🏟\r\r🏟```", "🏟 🏟\r🏟",
-                       {{td::MessageEntity::Type::PreCode, 5, 3, "🏟"}});
-  check_parse_markdown("🏟 🏟```🏟 \\\\\\`🏟```", "🏟 🏟 \\`🏟",
-                       {{td::MessageEntity::Type::PreCode, 5, 5, "🏟"}});
+  check_parse_markdown("🏟 🏟```🏟 🏟```", "🏟 🏟 🏟", {{td::MessageEntity::Type::PreCode, 5, 3, "🏟"}});
+  check_parse_markdown("🏟 🏟```🏟\n🏟```", "🏟 🏟🏟", {{td::MessageEntity::Type::PreCode, 5, 2, "🏟"}});
+  check_parse_markdown("🏟 🏟```🏟\r🏟```", "🏟 🏟🏟", {{td::MessageEntity::Type::PreCode, 5, 2, "🏟"}});
+  check_parse_markdown("🏟 🏟```🏟\n\r🏟```", "🏟 🏟🏟", {{td::MessageEntity::Type::PreCode, 5, 2, "🏟"}});
+  check_parse_markdown("🏟 🏟```🏟\r\n🏟```", "🏟 🏟🏟", {{td::MessageEntity::Type::PreCode, 5, 2, "🏟"}});
+  check_parse_markdown("🏟 🏟```🏟\n\n🏟```", "🏟 🏟\n🏟", {{td::MessageEntity::Type::PreCode, 5, 3, "🏟"}});
+  check_parse_markdown("🏟 🏟```🏟\r\r🏟```", "🏟 🏟\r🏟", {{td::MessageEntity::Type::PreCode, 5, 3, "🏟"}});
+  check_parse_markdown("🏟 🏟```🏟 \\\\\\`🏟```", "🏟 🏟 \\`🏟", {{td::MessageEntity::Type::PreCode, 5, 5, "🏟"}});
   check_parse_markdown("🏟 🏟**", "🏟 🏟", {});
   check_parse_markdown("||test||", "test", {{td::MessageEntity::Type::Spoiler, 0, 4}});
   check_parse_markdown("🏟 🏟``", "🏟 🏟", {});
@@ -1533,19 +1504,18 @@ TEST(MessageEntities, parse_markdown_v3) {
   check_parse_markdown_v3("🏟````🏟``🏟`aba🏟```c🏟`aba🏟 daba🏟```c🏟`aba🏟```🏟 `🏟``🏟```",
                           "🏟````🏟``🏟aba🏟```c🏟aba🏟 daba🏟c🏟`aba🏟🏟 `🏟``🏟```",
                           {{td::MessageEntity::Type::Code, 12, 11}, {td::MessageEntity::Type::Pre, 35, 9}});
-  check_parse_markdown_v3(
-      "🏟````🏟``🏟`aba🏟```c🏟`aba🏟 daba🏟```c🏟`aba🏟🏟```🏟 `🏟``🏟```",
-      {{td::MessageEntity::Type::Italic, 12, 1},
-       {td::MessageEntity::Type::Italic, 44, 1},
-       {td::MessageEntity::Type::Bold, 45, 1},
-       {td::MessageEntity::Type::Bold, 49, 2}},
-      "🏟````🏟``🏟`aba🏟c🏟`aba🏟 daba🏟c🏟`aba🏟🏟🏟 `🏟``🏟",
-      {{td::MessageEntity::Type::Italic, 12, 1},
-       {td::MessageEntity::Type::Pre, 18, 16},
-       {td::MessageEntity::Type::Italic, 38, 1},
-       {td::MessageEntity::Type::Bold, 39, 1},
-       {td::MessageEntity::Type::Bold, 43, 2},
-       {td::MessageEntity::Type::Pre, 45, 10}});
+  check_parse_markdown_v3("🏟````🏟``🏟`aba🏟```c🏟`aba🏟 daba🏟```c🏟`aba🏟🏟```🏟 `🏟``🏟```",
+                          {{td::MessageEntity::Type::Italic, 12, 1},
+                           {td::MessageEntity::Type::Italic, 44, 1},
+                           {td::MessageEntity::Type::Bold, 45, 1},
+                           {td::MessageEntity::Type::Bold, 49, 2}},
+                          "🏟````🏟``🏟`aba🏟c🏟`aba🏟 daba🏟c🏟`aba🏟🏟🏟 `🏟``🏟",
+                          {{td::MessageEntity::Type::Italic, 12, 1},
+                           {td::MessageEntity::Type::Pre, 18, 16},
+                           {td::MessageEntity::Type::Italic, 38, 1},
+                           {td::MessageEntity::Type::Bold, 39, 1},
+                           {td::MessageEntity::Type::Bold, 43, 2},
+                           {td::MessageEntity::Type::Pre, 45, 10}});
   check_parse_markdown_v3("` `", " ", {{td::MessageEntity::Type::Code, 0, 1}});
   check_parse_markdown_v3("`\n`", "\n", {{td::MessageEntity::Type::Code, 0, 1}});
   check_parse_markdown_v3("` `a", " a", {{td::MessageEntity::Type::Code, 0, 1}}, true);
