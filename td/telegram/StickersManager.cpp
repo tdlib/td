@@ -1144,8 +1144,7 @@ class CreateNewStickerSetQuery final : public Td::ResultHandler {
       flags |= telegram_api::stickers_createStickerSet::MASKS_MASK;
     }
     if (sticker_type == StickerType::CustomEmoji) {
-      // flags |= telegram_api::stickers_createStickerSet::EMOJIS_MASK;
-      return on_error(Status::Error(400, "Can't create custom emoji sets"));
+      flags |= telegram_api::stickers_createStickerSet::EMOJIS_MASK;
     }
     if (sticker_format == StickerFormat::Tgs) {
       flags |= telegram_api::stickers_createStickerSet::ANIMATED_MASK;
