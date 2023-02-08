@@ -29,7 +29,7 @@
 
 template <class KeyValueT>
 class TdKvBench final : public td::Benchmark {
-  td::ConcurrentScheduler sched{1, 0};
+  td::unique_ptr<td::ConcurrentScheduler> scheduler_;
   td::string name_;
 
  public:
@@ -72,18 +72,20 @@ class TdKvBench final : public td::Benchmark {
   };
 
   void start_up_n(int n) final {
-    sched.create_actor_unsafe<Main>(1, "Main", n).release();
+    scheduler_ = td::make_unique<td::ConcurrentScheduler>(1, 0);
+    scheduler_->create_actor_unsafe<Main>(1, "Main", n).release();
   }
 
   void run(int n) final {
-    sched.start();
-    while (sched.run_main(10)) {
+    scheduler_->start();
+    while (scheduler_->run_main(10)) {
       // empty
     }
-    sched.finish();
+    scheduler_->finish();
   }
 
   void tear_down() final {
+    scheduler_.reset();
   }
 };
 
@@ -184,6 +186,7 @@ class SqliteKeyValueAsyncBench final : public td::Benchmark {
 
     td::string sql_db_name = "testdb.sqlite";
     td::SqliteDb::destroy(sql_db_name).ignore();
+    td::SqliteDb::open_with_key(sql_db_name, true, td::DbKey::empty()).move_as_ok();
 
     sql_connection_ = std::make_shared<td::SqliteConnectionSafe>(sql_db_name, td::DbKey::empty());
     auto &db = sql_connection_->get();
@@ -229,12 +232,13 @@ class BinlogKeyValueBench final : public td::Benchmark {
 
 int main() {
   SET_VERBOSITY_LEVEL(VERBOSITY_NAME(WARNING));
+  bench(TdKvBench<td::BinlogKeyValue<td::Binlog>>("BinlogKeyValue<Binlog>"));
+  bench(TdKvBench<td::BinlogKeyValue<td::ConcurrentBinlog>>("BinlogKeyValue<ConcurrentBinlog>"));
+
   bench(BinlogKeyValueBench<true>());
   bench(BinlogKeyValueBench<false>());
   bench(SqliteKVBench<false>());
   bench(SqliteKVBench<true>());
   bench(SqliteKeyValueAsyncBench());
-  bench(TdKvBench<td::BinlogKeyValue<td::Binlog>>("BinlogKeyValue<Binlog>"));
-  bench(TdKvBench<td::BinlogKeyValue<td::ConcurrentBinlog>>("BinlogKeyValue<ConcurrentBinlog>"));
   bench(SeqKvBench());
 }
