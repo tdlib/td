@@ -5086,7 +5086,7 @@ void StickersManager::do_get_premium_stickers(int32 limit, Promise<td_api::objec
     }
   }
 
-  auto it = found_stickers_[type].find(remove_emoji_modifiers("📂⭐️"));
+  auto it = found_stickers_[type].find(remove_emoji_modifiers("📂⭐️", false));
   CHECK(it != found_stickers_[type].end());
   for (auto sticker_id : it->second.sticker_ids_) {
     if (td::contains(sticker_ids, sticker_id)) {
