@@ -1275,8 +1275,41 @@ class SetCustomEmojiStickerSetThumbnailQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
+    auto sticker_set_id = td_->stickers_manager_->on_get_messages_sticker_set(
+        StickerSetId(), result_ptr.move_as_ok(), true, "SetCustomEmojiStickerSetThumbnailQuery");
+    if (!sticker_set_id.is_valid()) {
+      return on_error(Status::Error(500, "Sticker set not found"));
+    }
+    promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
+class SetStickerSetTitleQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit SetStickerSetTitleQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(const string &short_name, const string &title) {
+    send_query(
+        G()->net_query_creator().create(telegram_api::stickers_renameStickerSet(
+                                            make_tl_object<telegram_api::inputStickerSetShortName>(short_name), title),
+                                        {{short_name}}));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::stickers_renameStickerSet>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
     auto sticker_set_id = td_->stickers_manager_->on_get_messages_sticker_set(StickerSetId(), result_ptr.move_as_ok(),
-                                                                              true, "SetStickerSetThumbnailQuery");
+                                                                              true, "SetStickerSetTitleQuery");
     if (!sticker_set_id.is_valid()) {
       return on_error(Status::Error(500, "Sticker set not found"));
     }
@@ -8530,6 +8563,20 @@ void StickersManager::do_set_custom_emoji_sticker_set_thumbnail(string short_nam
   }
 
   td_->create_handler<SetCustomEmojiStickerSetThumbnailQuery>(std::move(promise))->send(short_name, custom_emoji_id);
+}
+
+void StickersManager::set_sticker_set_title(string short_name, string title, Promise<Unit> &&promise) {
+  short_name = clean_username(strip_empty_characters(short_name, MAX_STICKER_SET_SHORT_NAME_LENGTH));
+  if (short_name.empty()) {
+    return promise.set_error(Status::Error(400, "Sticker set name must be non-empty"));
+  }
+
+  title = strip_empty_characters(title, MAX_STICKER_SET_TITLE_LENGTH);
+  if (title.empty()) {
+    return promise.set_error(Status::Error(400, "Sticker set title must be non-empty"));
+  }
+
+  td_->create_handler<SetStickerSetTitleQuery>(std::move(promise))->send(short_name, title);
 }
 
 Result<StickersManager::StickerInputDocument> StickersManager::get_sticker_input_document(

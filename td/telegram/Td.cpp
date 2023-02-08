@@ -7311,6 +7311,14 @@ void Td::on_request(uint64 id, td_api::setCustomEmojiStickerSetThumbnail &reques
       std::move(request.name_), CustomEmojiId(request.custom_emoji_id_), std::move(promise));
 }
 
+void Td::on_request(uint64 id, td_api::setStickerSetTitle &request) {
+  CHECK_IS_BOT();
+  CLEAN_INPUT_STRING(request.name_);
+  CLEAN_INPUT_STRING(request.title_);
+  CREATE_OK_REQUEST_PROMISE();
+  stickers_manager_->set_sticker_set_title(std::move(request.name_), std::move(request.title_), std::move(promise));
+}
+
 void Td::on_request(uint64 id, td_api::setStickerPositionInSet &request) {
   CHECK_IS_BOT();
   CREATE_OK_REQUEST_PROMISE();

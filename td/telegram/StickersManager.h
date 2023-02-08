@@ -308,6 +308,8 @@ class StickersManager final : public Actor {
   void set_custom_emoji_sticker_set_thumbnail(string short_name, CustomEmojiId custom_emoji_id,
                                               Promise<Unit> &&promise);
 
+  void set_sticker_set_title(string short_name, string title, Promise<Unit> &&promise);
+
   void set_sticker_position_in_set(const tl_object_ptr<td_api::InputFile> &sticker, int32 position,
                                    Promise<Unit> &&promise);
 
