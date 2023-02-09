@@ -7345,6 +7345,15 @@ void Td::on_request(uint64 id, td_api::setStickerEmojis &request) {
   stickers_manager_->set_sticker_emojis(request.sticker_, request.emojis_, std::move(promise));
 }
 
+void Td::on_request(uint64 id, td_api::setStickerKeywords &request) {
+  CHECK_IS_BOT();
+  for (auto &keyword : request.keywords_) {
+    CLEAN_INPUT_STRING(keyword);
+  }
+  CREATE_OK_REQUEST_PROMISE();
+  stickers_manager_->set_sticker_keywords(request.sticker_, std::move(request.keywords_), std::move(promise));
+}
+
 void Td::on_request(uint64 id, const td_api::getRecentStickers &request) {
   CHECK_IS_USER();
   CREATE_REQUEST(GetRecentStickersRequest, request.is_attached_);

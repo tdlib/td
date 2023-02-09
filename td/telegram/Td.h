@@ -1210,6 +1210,8 @@ class Td final : public Actor {
 
   void on_request(uint64 id, td_api::setStickerEmojis &request);
 
+  void on_request(uint64 id, td_api::setStickerKeywords &request);
+
   void on_request(uint64 id, const td_api::getRecentStickers &request);
 
   void on_request(uint64 id, td_api::addRecentSticker &request);
