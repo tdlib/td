@@ -14,6 +14,8 @@
 
 namespace td {
 
+class StickersManager;
+
 class EmojiGroup {
   string title_;
   CustomEmojiId icon_custom_emoji_id_;
@@ -24,7 +26,11 @@ class EmojiGroup {
 
   explicit EmojiGroup(telegram_api::object_ptr<telegram_api::emojiGroup> &&emoji_group);
 
-  td_api::object_ptr<td_api::emojiCategory> get_emoji_category_object() const;
+  td_api::object_ptr<td_api::emojiCategory> get_emoji_category_object(StickersManager *stickers_manager) const;
+
+  CustomEmojiId get_icon_custom_emoji_id() const {
+    return icon_custom_emoji_id_;
+  }
 
   template <class StorerT>
   void store(StorerT &storer) const;
@@ -45,7 +51,7 @@ class EmojiGroupList {
   EmojiGroupList(string used_language_codes, int32 hash,
                  vector<telegram_api::object_ptr<telegram_api::emojiGroup>> &&emoji_groups);
 
-  td_api::object_ptr<td_api::emojiCategories> get_emoji_categories_object() const;
+  td_api::object_ptr<td_api::emojiCategories> get_emoji_categories_object(StickersManager *stickers_manager) const;
 
   const string &get_used_language_codes() const {
     return used_language_codes_;
@@ -58,6 +64,8 @@ class EmojiGroupList {
   bool is_expired() const;
 
   void update_next_reload_time();
+
+  vector<CustomEmojiId> get_icon_custom_emoji_ids() const;
 
   template <class StorerT>
   void store(StorerT &storer) const;

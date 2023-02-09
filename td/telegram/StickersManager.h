@@ -81,6 +81,8 @@ class StickersManager final : public Actor {
 
   tl_object_ptr<td_api::stickers> get_stickers_object(const vector<FileId> &sticker_ids) const;
 
+  td_api::object_ptr<td_api::sticker> get_custom_emoji_sticker_object(CustomEmojiId custom_emoji_id);
+
   tl_object_ptr<td_api::DiceStickers> get_dice_stickers_object(const string &emoji, int32 value) const;
 
   int32 get_dice_success_animation_frame_number(const string &emoji, int32 value) const;
@@ -1029,6 +1031,8 @@ class StickersManager final : public Actor {
                                     Result<telegram_api::object_ptr<telegram_api::emojiURL>> &&r_emoji_url);
 
   void on_load_emoji_groups_from_database(EmojiGroupType group_type, string used_language_codes, string value);
+
+  void on_load_emoji_group_icons(EmojiGroupType group_type, EmojiGroupList group_list);
 
   void reload_emoji_groups(EmojiGroupType group_type, string used_language_codes);
 

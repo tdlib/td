@@ -2975,9 +2975,9 @@ trendingStickerSets total_count:int32 sets:vector<stickerSetInfo> is_premium:Boo
 
 //@description Contains a list of similar emoji to search for in getStickers and searchStickers
 //@name Name of the category
-//@icon_custom_emoji_id Unique identifier of the custom emoji, which represents icon of the category
+//@icon Custom emoji sticker, which represents icon of the category
 //@emojis List of emojis in the category
-emojiCategory name:string icon_custom_emoji_id:int64 emojis:vector<string> = EmojiCategory;
+emojiCategory name:string icon:sticker emojis:vector<string> = EmojiCategory;
 
 //@description Represents a list of emoji categories @categories List of categories
 emojiCategories categories:vector<emojiCategory> = EmojiCategories;

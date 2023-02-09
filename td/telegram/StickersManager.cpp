@@ -2995,7 +2995,7 @@ FileId StickersManager::on_get_sticker(unique_ptr<Sticker> new_sticker, bool rep
     if (s->emoji_receive_date_ < new_sticker->emoji_receive_date_) {
       LOG(DEBUG) << "Update custom emoji file " << file_id << " receive date";
       s->emoji_receive_date_ = new_sticker->emoji_receive_date_;
-      is_changed = true;
+      s->is_from_database_ = false;
     }
 
     if (is_changed) {
@@ -6462,6 +6462,28 @@ void StickersManager::on_load_custom_emoji_from_database(CustomEmojiId custom_em
   }
 
   set_promises(promises);
+}
+
+td_api::object_ptr<td_api::sticker> StickersManager::get_custom_emoji_sticker_object(CustomEmojiId custom_emoji_id) {
+  auto file_id = custom_emoji_to_sticker_id_.get(custom_emoji_id);
+  if (!file_id.is_valid()) {
+    return nullptr;
+  }
+  auto s = get_sticker(file_id);
+  CHECK(s != nullptr);
+  CHECK(s->type_ == StickerType::CustomEmoji);
+  if (s->emoji_receive_date_ < G()->unix_time() - 86400 && !s->is_being_reloaded_) {
+    s->is_being_reloaded_ = true;
+    LOG(INFO) << "Reload " << custom_emoji_id;
+    auto promise = PromiseCreator::lambda(
+        [actor_id =
+             actor_id(this)](Result<vector<telegram_api::object_ptr<telegram_api::Document>>> r_documents) mutable {
+          send_closure(actor_id, &StickersManager::on_get_custom_emoji_documents, std::move(r_documents),
+                       vector<CustomEmojiId>(), Promise<td_api::object_ptr<td_api::stickers>>());
+        });
+    td_->create_handler<GetCustomEmojiDocumentsQuery>(std::move(promise))->send({custom_emoji_id});
+  }
+  return get_sticker_object(file_id);
 }
 
 td_api::object_ptr<td_api::stickers> StickersManager::get_custom_emoji_stickers_object(
@@ -10168,7 +10190,7 @@ void StickersManager::get_emoji_groups(EmojiGroupType group_type,
   auto used_language_codes = get_used_language_codes_string();
   LOG(INFO) << "Have language codes " << used_language_codes;
   if (emoji_group_list_[type].get_used_language_codes() == used_language_codes) {
-    promise.set_value(emoji_group_list_[type].get_emoji_categories_object());
+    promise.set_value(emoji_group_list_[type].get_emoji_categories_object(this));
     if (!emoji_group_list_[type].is_expired()) {
       return;
     }
@@ -10206,22 +10228,38 @@ void StickersManager::on_load_emoji_groups_from_database(EmojiGroupType group_ty
 
   LOG(INFO) << "Successfully loaded emoji groups of type " << group_type << " from database";
 
-  auto type = static_cast<int32>(group_type);
-  auto status = log_event_parse(emoji_group_list_[type], value);
+  EmojiGroupList group_list;
+  auto status = log_event_parse(group_list, value);
   if (status.is_error()) {
     LOG(ERROR) << "Can't load emoji groups: " << status;
-    emoji_group_list_[type] = {};
     return reload_emoji_groups(group_type, std::move(used_language_codes));
   }
 
-  if (emoji_group_list_[type].get_used_language_codes() != used_language_codes) {
+  if (group_list.get_used_language_codes() != used_language_codes) {
     return reload_emoji_groups(group_type, std::move(used_language_codes));
   }
+
+  auto custom_emoji_ids = group_list.get_icon_custom_emoji_ids();
+  get_custom_emoji_stickers_unlimited(
+      std::move(custom_emoji_ids),
+      PromiseCreator::lambda([actor_id = actor_id(this), group_type, group_list = std::move(group_list)](
+                                 Result<td_api::object_ptr<td_api::stickers>> &&result) {
+        send_closure(actor_id, &StickersManager::on_load_emoji_group_icons, group_type, std::move(group_list));
+      }));
+}
+
+void StickersManager::on_load_emoji_group_icons(EmojiGroupType group_type, EmojiGroupList group_list) {
+  if (G()->close_flag()) {
+    return on_get_emoji_groups(group_type, group_list.get_used_language_codes(), Global::request_aborted_error());
+  }
+
+  auto type = static_cast<int32>(group_type);
+  emoji_group_list_[type] = std::move(group_list);
 
   auto promises = std::move(emoji_group_load_queries_[type]);
   reset_to_empty(emoji_group_load_queries_[type]);
   for (auto &promise : promises) {
-    promise.set_value(emoji_group_list_[type].get_emoji_categories_object());
+    promise.set_value(emoji_group_list_[type].get_emoji_categories_object(this));
   }
 }
 
@@ -10267,22 +10305,30 @@ void StickersManager::on_get_emoji_groups(
       break;
     case telegram_api::messages_emojiGroups::ID: {
       auto groups = telegram_api::move_object_as<telegram_api::messages_emojiGroups>(emoji_groups);
-      emoji_group_list_[type] = EmojiGroupList(used_language_codes, groups->hash_, std::move(groups->groups_));
-      break;
+      EmojiGroupList group_list = EmojiGroupList(used_language_codes, groups->hash_, std::move(groups->groups_));
+
+      if (!used_language_codes.empty() && G()->parameters().use_file_db /* have SQLite PMC */) {
+        G()->td_db()->get_sqlite_pmc()->set(get_emoji_groups_database_key(group_type),
+                                            log_event_store(group_list).as_slice().str(), Auto());
+      }
+
+      auto custom_emoji_ids = group_list.get_icon_custom_emoji_ids();
+      get_custom_emoji_stickers_unlimited(
+          std::move(custom_emoji_ids),
+          PromiseCreator::lambda([actor_id = actor_id(this), group_type, group_list = std::move(group_list)](
+                                     Result<td_api::object_ptr<td_api::stickers>> &&result) {
+            send_closure(actor_id, &StickersManager::on_load_emoji_group_icons, group_type, std::move(group_list));
+          }));
+      return;
     }
     default:
       UNREACHABLE();
   }
 
-  if (!used_language_codes.empty() && G()->parameters().use_file_db /* have SQLite PMC */) {
-    G()->td_db()->get_sqlite_pmc()->set(get_emoji_groups_database_key(group_type),
-                                        log_event_store(emoji_group_list_[type]).as_slice().str(), Auto());
-  }
-
   auto promises = std::move(emoji_group_load_queries_[type]);
   reset_to_empty(emoji_group_load_queries_[type]);
   for (auto &promise : promises) {
-    promise.set_value(emoji_group_list_[type].get_emoji_categories_object());
+    promise.set_value(emoji_group_list_[type].get_emoji_categories_object(this));
   }
 }
 
