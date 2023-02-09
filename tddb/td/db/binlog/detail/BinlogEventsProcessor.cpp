@@ -63,7 +63,10 @@ void BinlogEventsProcessor::compactify() {
   for (; event_ids_from != event_ids_.end(); event_ids_from++, events_from++) {
     if ((*event_ids_from & 1) == 0) {
       *event_ids_to++ = *event_ids_from;
-      *events_to++ = std::move(*events_from);
+      if (events_to != events_from) {
+        *events_to = std::move(*events_from);
+      }
+      events_to++;
     }
   }
   event_ids_.erase(event_ids_to, event_ids_.end());
