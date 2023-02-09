@@ -697,8 +697,6 @@ class StickersManager final : public Actor {
   StickerSetId on_get_input_sticker_set(FileId sticker_file_id, tl_object_ptr<telegram_api::InputStickerSet> &&set_ptr,
                                         MultiPromiseActor *load_data_multipromise_ptr = nullptr);
 
-  string get_sticker_set_short_name(FileId sticker_id) const;
-
   void on_resolve_sticker_set_short_name(FileId sticker_file_id, const string &short_name);
 
   int apply_installed_sticker_sets_order(StickerType sticker_type, const vector<StickerSetId> &sticker_set_ids);
@@ -863,6 +861,12 @@ class StickersManager final : public Actor {
 
   void do_set_sticker_set_thumbnail(UserId user_id, string short_name, tl_object_ptr<td_api::InputFile> &&thumbnail,
                                     Promise<td_api::object_ptr<td_api::stickerSet>> &&promise);
+
+  struct StickerInputDocument {
+    string sticker_set_short_name_;
+    telegram_api::object_ptr<telegram_api::inputDocument> input_document_;
+  };
+  Result<StickerInputDocument> get_sticker_input_document(const tl_object_ptr<td_api::InputFile> &sticker) const;
 
   bool update_sticker_set_cache(const StickerSet *sticker_set, Promise<Unit> &promise);
 

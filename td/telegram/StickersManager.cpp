@@ -8516,18 +8516,32 @@ void StickersManager::on_sticker_set_thumbnail_uploaded(int64 random_id, Result<
       ->send(pending_set_sticker_set_thumbnail->short_name_, file_view.main_remote_location().as_input_document());
 }
 
-string StickersManager::get_sticker_set_short_name(FileId sticker_id) const {
-  string sticker_set_short_name;
-  const Sticker *s = get_sticker(sticker_id);
+Result<StickersManager::StickerInputDocument> StickersManager::get_sticker_input_document(
+    const tl_object_ptr<td_api::InputFile> &sticker) const {
+  auto r_file_id = td_->file_manager_->get_input_file_id(FileType::Sticker, sticker, DialogId(), false, false);
+  if (r_file_id.is_error()) {
+    return Status::Error(400, r_file_id.error().message());  // TODO do not drop error code
+  }
+
+  auto file_id = r_file_id.move_as_ok();
+  auto file_view = td_->file_manager_->get_file_view(file_id);
+  if (!file_view.has_remote_location() || !file_view.main_remote_location().is_document() ||
+      file_view.main_remote_location().is_web()) {
+    return Status::Error(400, "Wrong sticker file specified");
+  }
+
+  StickerInputDocument result;
+  const Sticker *s = get_sticker(file_id);
   if (s != nullptr && s->set_id_.is_valid()) {
     const StickerSet *sticker_set = get_sticker_set(s->set_id_);
     if (sticker_set != nullptr) {
-      return sticker_set->short_name_;
+      result.sticker_set_short_name_ = sticker_set->short_name_;
     } else {
-      return to_string(s->set_id_.get());
+      result.sticker_set_short_name_ = to_string(s->set_id_.get());
     }
   }
-  return string();
+  result.input_document_ = file_view.main_remote_location().as_input_document();
+  return std::move(result);
 }
 
 void StickersManager::set_sticker_position_in_set(const tl_object_ptr<td_api::InputFile> &sticker, int32 position,
@@ -8536,38 +8550,18 @@ void StickersManager::set_sticker_position_in_set(const tl_object_ptr<td_api::In
     return promise.set_error(Status::Error(400, "Wrong sticker position specified"));
   }
 
-  auto r_file_id = td_->file_manager_->get_input_file_id(FileType::Sticker, sticker, DialogId(), false, false);
-  if (r_file_id.is_error()) {
-    return promise.set_error(Status::Error(400, r_file_id.error().message()));  // TODO do not drop error code
-  }
-
-  auto file_id = r_file_id.move_as_ok();
-  auto file_view = td_->file_manager_->get_file_view(file_id);
-  if (!file_view.has_remote_location() || !file_view.main_remote_location().is_document() ||
-      file_view.main_remote_location().is_web()) {
-    return promise.set_error(Status::Error(400, "Wrong sticker file specified"));
-  }
+  TRY_RESULT_PROMISE(promise, input_document, get_sticker_input_document(sticker));
 
   td_->create_handler<SetStickerPositionQuery>(std::move(promise))
-      ->send(get_sticker_set_short_name(file_id), file_view.main_remote_location().as_input_document(), position);
+      ->send(input_document.sticker_set_short_name_, std::move(input_document.input_document_), position);
 }
 
 void StickersManager::remove_sticker_from_set(const tl_object_ptr<td_api::InputFile> &sticker,
                                               Promise<Unit> &&promise) {
-  auto r_file_id = td_->file_manager_->get_input_file_id(FileType::Sticker, sticker, DialogId(), false, false);
-  if (r_file_id.is_error()) {
-    return promise.set_error(Status::Error(400, r_file_id.error().message()));  // TODO do not drop error code
-  }
-
-  auto file_id = r_file_id.move_as_ok();
-  auto file_view = td_->file_manager_->get_file_view(file_id);
-  if (!file_view.has_remote_location() || !file_view.main_remote_location().is_document() ||
-      file_view.main_remote_location().is_web()) {
-    return promise.set_error(Status::Error(400, "Wrong sticker file specified"));
-  }
+  TRY_RESULT_PROMISE(promise, input_document, get_sticker_input_document(sticker));
 
   td_->create_handler<DeleteStickerFromSetQuery>(std::move(promise))
-      ->send(get_sticker_set_short_name(file_id), file_view.main_remote_location().as_input_document());
+      ->send(input_document.sticker_set_short_name_, std::move(input_document.input_document_));
 }
 
 vector<FileId> StickersManager::get_attached_sticker_file_ids(const vector<int32> &int_file_ids) {
