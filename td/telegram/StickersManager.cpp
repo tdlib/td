@@ -7919,6 +7919,17 @@ Result<std::tuple<FileId, bool, bool, StickerFormat>> StickersManager::prepare_i
     return Status::Error(400, "Emojis must be encoded in UTF-8");
   }
 
+  for (auto &keyword : sticker->keywords_) {
+    if (!clean_input_string(keyword)) {
+      return Status::Error(400, "Keywords must be encoded in UTF-8");
+    }
+    for (auto &c : keyword) {
+      if (c == ',' || c == '\n') {
+        c = ' ';
+      }
+    }
+  }
+
   if (sticker->format_ == nullptr) {
     return Status::Error(400, "Sticker format must be non-empty");
   }
@@ -8018,8 +8029,13 @@ tl_object_ptr<telegram_api::inputStickerSetItem> StickersManager::get_input_stic
     flags |= telegram_api::inputStickerSetItem::MASK_COORDS_MASK;
   }
 
+  string keywords = implode(sticker->keywords_, ',');
+  if (!keywords.empty()) {
+    flags |= telegram_api::inputStickerSetItem::KEYWORDS_MASK;
+  }
+
   return make_tl_object<telegram_api::inputStickerSetItem>(flags, std::move(input_document), sticker->emojis_,
-                                                           std::move(mask_coords), string());
+                                                           std::move(mask_coords), keywords);
 }
 
 void StickersManager::get_suggested_sticker_set_name(string title, Promise<string> &&promise) {

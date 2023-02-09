@@ -5023,12 +5023,13 @@ proxies proxies:vector<proxy> = Proxies;
 
 
 //@description A sticker to be added to a sticker set
-//@sticker File with the sticker; must fit in a 512x512 square. For WEBP stickers and masks the file must be in PNG format, which will be converted to WEBP server-side.
-//-Otherwise, the file must be local or uploaded within a week. See https://core.telegram.org/animated_stickers#technical-requirements for technical requirements
+//@sticker File with the sticker; must fit in a 512x512 square. For WEBP stickers the file must be in PNG format, which will be converted to WEBP server-side.
+//-See https://core.telegram.org/animated_stickers#technical-requirements for technical requirements
 //@emojis Emojis corresponding to the sticker
 //@format Sticker format
 //@mask_position Position where the mask is placed; pass null if not specified
-inputSticker sticker:InputFile emojis:string format:StickerFormat mask_position:maskPosition = InputSticker;
+//@keywords List of up to 20 keywords with total length up to 64 characters, which can be used to find the sticker
+inputSticker sticker:InputFile emojis:string format:StickerFormat mask_position:maskPosition keywords:vector<string> = InputSticker;
 
 
 //@description Represents a date range @start_date Point in time (Unix timestamp) at which the date range begins @end_date Point in time (Unix timestamp) at which the date range ends
