@@ -311,10 +311,13 @@ class StickersManager final : public Actor {
 
   void set_sticker_set_title(string short_name, string title, Promise<Unit> &&promise);
 
-  void set_sticker_position_in_set(const tl_object_ptr<td_api::InputFile> &sticker, int32 position,
+  void set_sticker_position_in_set(const td_api::object_ptr<td_api::InputFile> &sticker, int32 position,
                                    Promise<Unit> &&promise);
 
-  void remove_sticker_from_set(const tl_object_ptr<td_api::InputFile> &sticker, Promise<Unit> &&promise);
+  void remove_sticker_from_set(const td_api::object_ptr<td_api::InputFile> &sticker, Promise<Unit> &&promise);
+
+  void set_sticker_emojis(const td_api::object_ptr<td_api::InputFile> &sticker, const string &emojis,
+                          Promise<Unit> &&promise);
 
   vector<FileId> get_recent_stickers(bool is_attached, Promise<Unit> &&promise);
 

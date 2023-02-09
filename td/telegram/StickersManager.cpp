@@ -1387,6 +1387,53 @@ class DeleteStickerFromSetQuery final : public Td::ResultHandler {
   }
 };
 
+class ChangeStickerQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit ChangeStickerQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(const string &short_name, tl_object_ptr<telegram_api::inputDocument> &&input_document, bool edit_emojis,
+            const string &emojis, bool edit_mask_position, StickerMaskPosition mask_position, bool edit_keywords,
+            const string &keywords) {
+    vector<ChainId> chain_ids;
+    if (!short_name.empty()) {
+      chain_ids.emplace_back(short_name);
+    }
+    int32 flags = 0;
+    if (edit_emojis) {
+      flags |= telegram_api::stickers_changeSticker::EMOJI_MASK;
+    }
+    if (edit_mask_position) {
+      flags |= telegram_api::stickers_changeSticker::MASK_COORDS_MASK;
+    }
+    if (edit_keywords) {
+      flags |= telegram_api::stickers_changeSticker::KEYWORDS_MASK;
+    }
+    send_query(G()->net_query_creator().create(
+        telegram_api::stickers_changeSticker(flags, std::move(input_document), emojis, mask_position.get_input_mask_coords(),
+                                             keywords),
+        std::move(chain_ids)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::stickers_changeSticker>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    td_->stickers_manager_->on_get_messages_sticker_set(StickerSetId(), result_ptr.move_as_ok(), true,
+                                                        "ChangeStickerQuery");
+
+    promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class GetCustomEmojiDocumentsQuery final : public Td::ResultHandler {
   Promise<vector<telegram_api::object_ptr<telegram_api::Document>>> promise_;
 
@@ -8030,7 +8077,7 @@ tl_object_ptr<telegram_api::inputStickerSetItem> StickersManager::get_input_stic
 
   int32 flags = 0;
 
-  auto mask_coords = StickerMaskPosition(sticker->mask_position_).get_input_mask_coords_object();
+  auto mask_coords = StickerMaskPosition(sticker->mask_position_).get_input_mask_coords();
   if (mask_coords != nullptr) {
     flags |= telegram_api::inputStickerSetItem::MASK_COORDS_MASK;
   }
@@ -8625,7 +8672,7 @@ Result<StickersManager::StickerInputDocument> StickersManager::get_sticker_input
   return std::move(result);
 }
 
-void StickersManager::set_sticker_position_in_set(const tl_object_ptr<td_api::InputFile> &sticker, int32 position,
+void StickersManager::set_sticker_position_in_set(const td_api::object_ptr<td_api::InputFile> &sticker, int32 position,
                                                   Promise<Unit> &&promise) {
   if (position < 0) {
     return promise.set_error(Status::Error(400, "Wrong sticker position specified"));
@@ -8637,12 +8684,21 @@ void StickersManager::set_sticker_position_in_set(const tl_object_ptr<td_api::In
       ->send(input_document.sticker_set_short_name_, std::move(input_document.input_document_), position);
 }
 
-void StickersManager::remove_sticker_from_set(const tl_object_ptr<td_api::InputFile> &sticker,
+void StickersManager::remove_sticker_from_set(const td_api::object_ptr<td_api::InputFile> &sticker,
                                               Promise<Unit> &&promise) {
   TRY_RESULT_PROMISE(promise, input_document, get_sticker_input_document(sticker));
 
   td_->create_handler<DeleteStickerFromSetQuery>(std::move(promise))
       ->send(input_document.sticker_set_short_name_, std::move(input_document.input_document_));
+}
+
+void StickersManager::set_sticker_emojis(const td_api::object_ptr<td_api::InputFile> &sticker, const string &emojis,
+                                         Promise<Unit> &&promise) {
+  TRY_RESULT_PROMISE(promise, input_document, get_sticker_input_document(sticker));
+
+  td_->create_handler<ChangeStickerQuery>(std::move(promise))
+      ->send(input_document.sticker_set_short_name_, std::move(input_document.input_document_), true, emojis, false,
+             StickerMaskPosition(), false, string());
 }
 
 vector<FileId> StickersManager::get_attached_sticker_file_ids(const vector<int32> &int_file_ids) {

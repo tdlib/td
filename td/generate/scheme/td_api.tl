@@ -5025,7 +5025,7 @@ proxies proxies:vector<proxy> = Proxies;
 //@description A sticker to be added to a sticker set
 //@sticker File with the sticker; must fit in a 512x512 square. For WEBP stickers the file must be in WEBP or PNG format, which will be converted to WEBP server-side.
 //-See https://core.telegram.org/animated_stickers#technical-requirements for technical requirements
-//@emojis Emojis corresponding to the sticker
+//@emojis String with 1-20 emoji corresponding to the sticker
 //@format Sticker format
 //@mask_position Position where the mask is placed; pass null if not specified
 //@keywords List of up to 20 keywords with total length up to 64 characters, which can be used to find the sticker
@@ -8019,6 +8019,11 @@ setStickerPositionInSet sticker:InputFile position:int32 = Ok;
 
 //@description Removes a sticker from the set to which it belongs; for bots only. The sticker set must have been created by the bot @sticker Sticker
 removeStickerFromSet sticker:InputFile = Ok;
+
+//@description Changes the list of emoji corresponding to a sticker; for bots only. The sticker must belong to a sticker set created by the bot
+//@sticker Sticker
+//@emojis New string with 1-20 emoji corresponding to the sticker
+setStickerEmojis sticker:InputFile emojis:string = Ok;
 
 
 //@description Returns information about a file with a map thumbnail in PNG format. Only map thumbnail files with size less than 1MB can be downloaded

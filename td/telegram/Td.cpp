@@ -7332,10 +7332,17 @@ void Td::on_request(uint64 id, td_api::setStickerPositionInSet &request) {
   stickers_manager_->set_sticker_position_in_set(request.sticker_, request.position_, std::move(promise));
 }
 
-void Td::on_request(uint64 id, td_api::removeStickerFromSet &request) {
+void Td::on_request(uint64 id, const td_api::removeStickerFromSet &request) {
   CHECK_IS_BOT();
   CREATE_OK_REQUEST_PROMISE();
   stickers_manager_->remove_sticker_from_set(request.sticker_, std::move(promise));
+}
+
+void Td::on_request(uint64 id, td_api::setStickerEmojis &request) {
+  CHECK_IS_BOT();
+  CLEAN_INPUT_STRING(request.emojis_);
+  CREATE_OK_REQUEST_PROMISE();
+  stickers_manager_->set_sticker_emojis(request.sticker_, request.emojis_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::getRecentStickers &request) {

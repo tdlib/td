@@ -1206,7 +1206,9 @@ class Td final : public Actor {
 
   void on_request(uint64 id, td_api::setStickerPositionInSet &request);
 
-  void on_request(uint64 id, td_api::removeStickerFromSet &request);
+  void on_request(uint64 id, const td_api::removeStickerFromSet &request);
+
+  void on_request(uint64 id, td_api::setStickerEmojis &request);
 
   void on_request(uint64 id, const td_api::getRecentStickers &request);
 
