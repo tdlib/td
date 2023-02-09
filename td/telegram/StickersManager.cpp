@@ -7981,7 +7981,8 @@ Result<std::tuple<FileId, bool, bool, StickerFormat>> StickersManager::prepare_i
   return std::make_tuple(file_id, is_url, is_local, format);
 }
 
-FileId StickersManager::upload_sticker_file(UserId user_id, tl_object_ptr<td_api::inputSticker> &&sticker,
+FileId StickersManager::upload_sticker_file(UserId user_id, td_api::object_ptr<td_api::StickerFormat> &&sticker_format,
+                                            td_api::object_ptr<td_api::InputFile> &&input_file,
                                             Promise<Unit> &&promise) {
   bool is_bot = td_->auth_manager_->is_bot();
   if (!is_bot) {
@@ -7994,8 +7995,13 @@ FileId StickersManager::upload_sticker_file(UserId user_id, tl_object_ptr<td_api
     return FileId();
   }
 
+  if (sticker_format == nullptr) {
+    promise.set_error(Status::Error(400, "Sticker format must be non-empty"));
+    return FileId();
+  }
+
   // StickerType::Regular has less restrictions
-  auto r_file_id = prepare_input_sticker(sticker.get(), StickerType::Regular);
+  auto r_file_id = prepare_input_file(input_file, get_sticker_format(sticker_format), StickerType::Regular, false);
   if (r_file_id.is_error()) {
     promise.set_error(r_file_id.move_as_error());
     return FileId();

@@ -2194,12 +2194,14 @@ class ChangeStickerSetRequest final : public RequestOnceActor {
 
 class UploadStickerFileRequest final : public RequestOnceActor {
   UserId user_id_;
-  tl_object_ptr<td_api::inputSticker> sticker_;
+  td_api::object_ptr<td_api::StickerFormat> sticker_format_;
+  td_api::object_ptr<td_api::InputFile> input_file_;
 
   FileId file_id;
 
   void do_run(Promise<Unit> &&promise) final {
-    file_id = td_->stickers_manager_->upload_sticker_file(user_id_, std::move(sticker_), std::move(promise));
+    file_id = td_->stickers_manager_->upload_sticker_file(user_id_, std::move(sticker_format_), std::move(input_file_),
+                                                          std::move(promise));
   }
 
   void do_send_result() final {
@@ -2208,8 +2210,12 @@ class UploadStickerFileRequest final : public RequestOnceActor {
 
  public:
   UploadStickerFileRequest(ActorShared<Td> td, uint64 request_id, int64 user_id,
-                           tl_object_ptr<td_api::inputSticker> &&sticker)
-      : RequestOnceActor(std::move(td), request_id), user_id_(user_id), sticker_(std::move(sticker)) {
+                           td_api::object_ptr<td_api::StickerFormat> sticker_format_,
+                           td_api::object_ptr<td_api::InputFile> input_file)
+      : RequestOnceActor(std::move(td), request_id)
+      , user_id_(user_id)
+      , sticker_format_(std::move(sticker_format_))
+      , input_file_(std::move(input_file)) {
   }
 };
 
@@ -7246,7 +7252,8 @@ void Td::on_request(uint64 id, td_api::reorderInstalledStickerSets &request) {
 }
 
 void Td::on_request(uint64 id, td_api::uploadStickerFile &request) {
-  CREATE_REQUEST(UploadStickerFileRequest, request.user_id_, std::move(request.sticker_));
+  CREATE_REQUEST(UploadStickerFileRequest, request.user_id_, std::move(request.sticker_format_),
+                 std::move(request.sticker_));
 }
 
 void Td::on_request(uint64 id, td_api::getSuggestedStickerSetName &request) {

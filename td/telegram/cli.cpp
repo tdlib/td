@@ -2888,9 +2888,7 @@ class CliClient final : public Actor {
       const string &name = args;
       send_request(td_api::make_object<td_api::checkStickerSetName>(name));
     } else if (op == "usf" || op == "usfa" || op == "usfv") {
-      send_request(td_api::make_object<td_api::uploadStickerFile>(
-          -1, td_api::make_object<td_api::inputSticker>(as_input_file(args), "😀", as_sticker_format(op),
-                                                        as_mask_position(op), Auto())));
+      send_request(td_api::make_object<td_api::uploadStickerFile>(-1, as_sticker_format(op), as_input_file(args)));
     } else if (op == "cnss" || op == "cnssa" || op == "cnssv" || op == "cnssm" || op == "cnsse") {
       string title;
       string name;

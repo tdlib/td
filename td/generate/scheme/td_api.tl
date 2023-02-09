@@ -5023,7 +5023,7 @@ proxies proxies:vector<proxy> = Proxies;
 
 
 //@description A sticker to be added to a sticker set
-//@sticker File with the sticker; must fit in a 512x512 square. For WEBP stickers the file must be in PNG format, which will be converted to WEBP server-side.
+//@sticker File with the sticker; must fit in a 512x512 square. For WEBP stickers the file must be in WEBP or PNG format, which will be converted to WEBP server-side.
 //-See https://core.telegram.org/animated_stickers#technical-requirements for technical requirements
 //@emojis Emojis corresponding to the sticker
 //@format Sticker format
@@ -7969,8 +7969,12 @@ checkPhoneNumberConfirmationCode code:string = Ok;
 setBotUpdatesStatus pending_update_count:int32 error_message:string = Ok;
 
 
-//@description Uploads a file with a sticker; returns the uploaded file @user_id Sticker file owner; ignored for regular users @sticker Sticker file to upload
-uploadStickerFile user_id:int53 sticker:inputSticker = File;
+//@description Uploads a file with a sticker; returns the uploaded file
+//@user_id Sticker file owner; ignored for regular users
+//@sticker_format Sticker format
+//@sticker File file to upload; must fit in a 512x512 square. For WEBP stickers the file must be in WEBP or PNG format, which will be converted to WEBP server-side.
+//-See https://core.telegram.org/animated_stickers#technical-requirements for technical requirements
+uploadStickerFile user_id:int53 sticker_format:StickerFormat sticker:InputFile = File;
 
 //@description Returns a suggested name for a new sticker set with a given title @title Sticker set title; 1-64 characters
 getSuggestedStickerSetName title:string = Text;
