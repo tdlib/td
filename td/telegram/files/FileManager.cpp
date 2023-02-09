@@ -1529,12 +1529,12 @@ void FileManager::do_cancel_generate(FileNodePtr node) {
 
 Status FileManager::merge(FileId x_file_id, FileId y_file_id, bool no_sync) {
   if (!x_file_id.is_valid()) {
-    return Status::Error("First file_id is invalid");
+    return Status::Error(400, "First file_id is invalid");
   }
   FileNodePtr x_node = no_sync ? get_file_node(x_file_id) : get_sync_file_node(x_file_id);
   if (!x_node) {
-    return Status::Error(PSLICE() << "Can't merge files. First identifier is invalid: " << x_file_id << " and "
-                                  << y_file_id);
+    return Status::Error(
+        400, PSLICE() << "Can't merge files. First identifier is invalid: " << x_file_id << " and " << y_file_id);
   }
 
   if (!y_file_id.is_valid()) {
@@ -1543,8 +1543,8 @@ Status FileManager::merge(FileId x_file_id, FileId y_file_id, bool no_sync) {
   }
   FileNodePtr y_node = get_file_node(y_file_id);
   if (!y_node) {
-    return Status::Error(PSLICE() << "Can't merge files. Second identifier is invalid: " << x_file_id << " and "
-                                  << y_file_id);
+    return Status::Error(
+        400, PSLICE() << "Can't merge files. Second identifier is invalid: " << x_file_id << " and " << y_file_id);
   }
 
   if (x_file_id == x_node->upload_pause_) {
@@ -1608,8 +1608,8 @@ Status FileManager::merge(FileId x_file_id, FileId y_file_id, bool no_sync) {
   if (size_i == -1) {
     try_flush_node_info(x_node, "merge 2");
     try_flush_node_info(y_node, "merge 3");
-    return Status::Error(PSLICE() << "Can't merge files. Different size: " << x_node->size_ << " and "
-                                  << y_node->size_);
+    return Status::Error(
+        400, PSLICE() << "Can't merge files. Different size: " << x_node->size_ << " and " << y_node->size_);
   }
   if (encryption_key_i == -1) {
     if (nodes[remote_i]->remote_.full && nodes[local_i]->local_.type() != LocalFileLocation::Type::Partial) {
@@ -1618,7 +1618,7 @@ Status FileManager::merge(FileId x_file_id, FileId y_file_id, bool no_sync) {
     } else {
       try_flush_node_info(x_node, "merge 4");
       try_flush_node_info(y_node, "merge 5");
-      return Status::Error("Can't merge files. Different encryption keys");
+      return Status::Error(400, "Can't merge files. Different encryption keys");
     }
   }
 
@@ -3337,7 +3337,7 @@ Result<FileId> FileManager::get_input_file_id(FileType type, const tl_object_ptr
       }
       default:
         UNREACHABLE();
-        return Status::Error(500, "Unreachable");
+        return FileId();
     }
   }();
 

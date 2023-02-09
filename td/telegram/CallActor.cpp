@@ -358,11 +358,8 @@ void CallActor::send_call_log(td_api::object_ptr<td_api::InputFile> log_file, Pr
   }
 
   auto *file_manager = G()->td().get_actor_unsafe()->file_manager_.get();
-  auto r_file_id = file_manager->get_input_file_id(FileType::CallLog, log_file, DialogId(), false, false);
-  if (r_file_id.is_error()) {
-    return promise.set_error(Status::Error(400, r_file_id.error().message()));
-  }
-  auto file_id = r_file_id.move_as_ok();
+  TRY_RESULT_PROMISE(promise, file_id,
+                     file_manager->get_input_file_id(FileType::CallLog, log_file, DialogId(), false, false));
 
   FileView file_view = file_manager->get_file_view(file_id);
   if (file_view.is_encrypted()) {

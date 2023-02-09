@@ -6686,7 +6686,7 @@ void Td::on_request(uint64 id, td_api::preliminaryUploadFile &request) {
   auto r_file_id = file_manager_->get_input_file_id(file_type, request.file_, DialogId(), false, is_secret,
                                                     !is_secure && !is_secret, is_secure);
   if (r_file_id.is_error()) {
-    return send_error_raw(id, 400, r_file_id.error().message());
+    return send_error_raw(id, r_file_id.error().code(), r_file_id.error().message());
   }
   auto file_id = r_file_id.ok();
   auto upload_file_id = file_manager_->dup_file_id(file_id, "preliminaryUploadFile");

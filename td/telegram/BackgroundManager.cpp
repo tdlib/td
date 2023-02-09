@@ -564,11 +564,7 @@ void BackgroundManager::send_update_selected_background(bool for_dark_theme) con
 }
 
 Result<FileId> BackgroundManager::prepare_input_file(const tl_object_ptr<td_api::InputFile> &input_file) {
-  auto r_file_id = td_->file_manager_->get_input_file_id(FileType::Background, input_file, {}, false, false);
-  if (r_file_id.is_error()) {
-    return Status::Error(400, r_file_id.error().message());
-  }
-  auto file_id = r_file_id.move_as_ok();
+  TRY_RESULT(file_id, td_->file_manager_->get_input_file_id(FileType::Background, input_file, {}, false, false));
 
   FileView file_view = td_->file_manager_->get_file_view(file_id);
   if (file_view.is_encrypted()) {

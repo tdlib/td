@@ -885,12 +885,8 @@ void NotificationSettingsManager::add_saved_ringtone(td_api::object_ptr<td_api::
     return;
   }
 
-  auto r_file_id = td_->file_manager_->get_input_file_id(FileType::Ringtone, input_file, DialogId(), false, false);
-  if (r_file_id.is_error()) {
-    // TODO promise.set_error(r_file_id.move_as_error());
-    return promise.set_error(Status::Error(400, r_file_id.error().message()));
-  }
-  FileId file_id = r_file_id.ok();
+  TRY_RESULT_PROMISE(promise, file_id,
+                     td_->file_manager_->get_input_file_id(FileType::Ringtone, input_file, DialogId(), false, false));
   auto file_view = td_->file_manager_->get_file_view(file_id);
   CHECK(!file_view.empty());
   if (file_view.size() > td_->option_manager_->get_option_integer("notification_sound_size_max")) {

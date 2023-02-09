@@ -7158,12 +7158,8 @@ void ContactsManager::set_profile_photo_impl(UserId user_id,
   }
 
   auto file_type = is_animation ? FileType::Animation : FileType::Photo;
-  auto r_file_id = td_->file_manager_->get_input_file_id(file_type, *input_file, DialogId(user_id), false, false);
-  if (r_file_id.is_error()) {
-    // TODO promise.set_error(std::move(status));
-    return promise.set_error(Status::Error(400, r_file_id.error().message()));
-  }
-  FileId file_id = r_file_id.ok();
+  TRY_RESULT_PROMISE(promise, file_id,
+                     td_->file_manager_->get_input_file_id(file_type, *input_file, DialogId(user_id), false, false));
   CHECK(file_id.is_valid());
 
   upload_profile_photo(user_id, td_->file_manager_->dup_file_id(file_id, "set_profile_photo_impl"), is_fallback,

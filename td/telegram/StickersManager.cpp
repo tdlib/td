@@ -7902,11 +7902,7 @@ Result<std::tuple<FileId, bool, bool, StickerFormat>> StickersManager::prepare_i
 Result<std::tuple<FileId, bool, bool, StickerFormat>> StickersManager::prepare_input_file(
     const tl_object_ptr<td_api::InputFile> &input_file, StickerFormat format, StickerType type, bool for_thumbnail) {
   auto file_type = format == StickerFormat::Tgs ? FileType::Sticker : FileType::Document;
-  auto r_file_id = td_->file_manager_->get_input_file_id(file_type, input_file, DialogId(), for_thumbnail, false);
-  if (r_file_id.is_error()) {
-    return Status::Error(400, r_file_id.error().message());
-  }
-  auto file_id = r_file_id.move_as_ok();
+  TRY_RESULT(file_id, td_->file_manager_->get_input_file_id(file_type, input_file, DialogId(), for_thumbnail, false));
   if (file_id.empty()) {
     return std::make_tuple(FileId(), false, false, StickerFormat::Unknown);
   }
@@ -8518,12 +8514,8 @@ void StickersManager::on_sticker_set_thumbnail_uploaded(int64 random_id, Result<
 
 Result<StickersManager::StickerInputDocument> StickersManager::get_sticker_input_document(
     const tl_object_ptr<td_api::InputFile> &sticker) const {
-  auto r_file_id = td_->file_manager_->get_input_file_id(FileType::Sticker, sticker, DialogId(), false, false);
-  if (r_file_id.is_error()) {
-    return Status::Error(400, r_file_id.error().message());  // TODO do not drop error code
-  }
+  TRY_RESULT(file_id, td_->file_manager_->get_input_file_id(FileType::Sticker, sticker, DialogId(), false, false));
 
-  auto file_id = r_file_id.move_as_ok();
   auto file_view = td_->file_manager_->get_file_view(file_id);
   if (!file_view.has_remote_location() || !file_view.main_remote_location().is_document() ||
       file_view.main_remote_location().is_web()) {
@@ -8911,12 +8903,10 @@ void StickersManager::add_recent_sticker(bool is_attached, const tl_object_ptr<t
     return;
   }
 
-  auto r_file_id = td_->file_manager_->get_input_file_id(FileType::Sticker, input_file, DialogId(), false, false);
-  if (r_file_id.is_error()) {
-    return promise.set_error(Status::Error(400, r_file_id.error().message()));  // TODO do not drop error code
-  }
+  TRY_RESULT_PROMISE(promise, file_id,
+                     td_->file_manager_->get_input_file_id(FileType::Sticker, input_file, DialogId(), false, false));
 
-  add_recent_sticker_impl(is_attached, r_file_id.ok(), true, std::move(promise));
+  add_recent_sticker_impl(is_attached, file_id, true, std::move(promise));
 }
 
 void StickersManager::send_save_recent_sticker_query(bool is_attached, FileId sticker_id, bool unsave,
@@ -9018,13 +9008,10 @@ void StickersManager::remove_recent_sticker(bool is_attached, const tl_object_pt
     return;
   }
 
-  auto r_file_id = td_->file_manager_->get_input_file_id(FileType::Sticker, input_file, DialogId(), false, false);
-  if (r_file_id.is_error()) {
-    return promise.set_error(Status::Error(400, r_file_id.error().message()));  // TODO do not drop error code
-  }
+  TRY_RESULT_PROMISE(promise, file_id,
+                     td_->file_manager_->get_input_file_id(FileType::Sticker, input_file, DialogId(), false, false));
 
   vector<FileId> &sticker_ids = recent_sticker_ids_[is_attached];
-  FileId file_id = r_file_id.ok();
   if (!td::remove(sticker_ids, file_id)) {
     return promise.set_value(Unit());
   }
@@ -9305,12 +9292,10 @@ void StickersManager::add_favorite_sticker(const tl_object_ptr<td_api::InputFile
     return;
   }
 
-  auto r_file_id = td_->file_manager_->get_input_file_id(FileType::Sticker, input_file, DialogId(), false, false);
-  if (r_file_id.is_error()) {
-    return promise.set_error(Status::Error(400, r_file_id.error().message()));  // TODO do not drop error code
-  }
+  TRY_RESULT_PROMISE(promise, file_id,
+                     td_->file_manager_->get_input_file_id(FileType::Sticker, input_file, DialogId(), false, false));
 
-  add_favorite_sticker_impl(r_file_id.ok(), true, std::move(promise));
+  add_favorite_sticker_impl(file_id, true, std::move(promise));
 }
 
 void StickersManager::send_fave_sticker_query(FileId sticker_id, bool unsave, Promise<Unit> &&promise) {
@@ -9408,12 +9393,9 @@ void StickersManager::remove_favorite_sticker(const tl_object_ptr<td_api::InputF
     return;
   }
 
-  auto r_file_id = td_->file_manager_->get_input_file_id(FileType::Sticker, input_file, DialogId(), false, false);
-  if (r_file_id.is_error()) {
-    return promise.set_error(Status::Error(400, r_file_id.error().message()));  // TODO do not drop error code
-  }
+  TRY_RESULT_PROMISE(promise, file_id,
+                     td_->file_manager_->get_input_file_id(FileType::Sticker, input_file, DialogId(), false, false));
 
-  FileId file_id = r_file_id.ok();
   auto is_equal = [sticker_id = file_id](FileId file_id) {
     return file_id == sticker_id || (file_id.get_remote() == sticker_id.get_remote() && sticker_id.get_remote() != 0);
   };
@@ -9469,7 +9451,7 @@ vector<string> StickersManager::get_sticker_emojis(const tl_object_ptr<td_api::I
                                                    Promise<Unit> &&promise) {
   auto r_file_id = td_->file_manager_->get_input_file_id(FileType::Sticker, input_file, DialogId(), false, false);
   if (r_file_id.is_error()) {
-    promise.set_error(Status::Error(400, r_file_id.error().message()));  // TODO do not drop error code
+    promise.set_error(r_file_id.move_as_error());
     return {};
   }
 

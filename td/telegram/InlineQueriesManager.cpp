@@ -861,12 +861,8 @@ Result<tl_object_ptr<telegram_api::InputBotInlineResult>> InlineQueriesManager::
   }
 
   if (file_type != FileType::Temp && content_url.find('.') == string::npos) {
-    auto r_file_id = td_->file_manager_->get_input_file_id(
-        file_type, make_tl_object<td_api::inputFileRemote>(content_url), DialogId(), false, false);
-    if (r_file_id.is_error()) {
-      return Status::Error(400, r_file_id.error().message());
-    }
-    auto file_id = r_file_id.ok();
+    TRY_RESULT(file_id, td_->file_manager_->get_input_file_id(
+                            file_type, make_tl_object<td_api::inputFileRemote>(content_url), DialogId(), false, false));
     FileView file_view = td_->file_manager_->get_file_view(file_id);
     CHECK(file_view.has_remote_location());
     if (file_view.is_encrypted()) {

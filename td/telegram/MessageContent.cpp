@@ -2298,10 +2298,7 @@ Result<InputMessageContent> get_input_message_content(
 
   FileId file_id;
   if (have_file) {
-    if (r_file_id.is_error()) {
-      return Status::Error(400, r_file_id.error().message());
-    }
-    file_id = r_file_id.ok();
+    TRY_RESULT_ASSIGN(file_id, std::move(r_file_id));
     CHECK(file_id.is_valid());
   }
 

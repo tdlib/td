@@ -30108,12 +30108,8 @@ void MessagesManager::import_messages(DialogId dialog_id, const td_api::object_p
                                       Promise<Unit> &&promise) {
   TRY_STATUS_PROMISE(promise, can_import_messages(dialog_id));
 
-  auto r_file_id = td_->file_manager_->get_input_file_id(FileType::Document, message_file, dialog_id, false, false);
-  if (r_file_id.is_error()) {
-    // TODO TRY_RESULT_PROMISE(promise, ...);
-    return promise.set_error(Status::Error(400, r_file_id.error().message()));
-  }
-  FileId file_id = r_file_id.ok();
+  TRY_RESULT_PROMISE(promise, file_id,
+                     td_->file_manager_->get_input_file_id(FileType::Document, message_file, dialog_id, false, false));
 
   vector<FileId> attached_file_ids;
   attached_file_ids.reserve(attached_files.size());
@@ -30125,12 +30121,9 @@ void MessagesManager::import_messages(DialogId dialog_id, const td_api::object_p
       LOG(INFO) << "Skip attached file of type " << file_type;
       continue;
     }
-    auto r_attached_file_id = td_->file_manager_->get_input_file_id(file_type, attached_file, dialog_id, false, false);
-    if (r_attached_file_id.is_error()) {
-      // TODO TRY_RESULT_PROMISE(promise, ...);
-      return promise.set_error(Status::Error(400, r_attached_file_id.error().message()));
-    }
-    attached_file_ids.push_back(r_attached_file_id.ok());
+    TRY_RESULT_PROMISE(promise, attached_file_id,
+                       td_->file_manager_->get_input_file_id(file_type, attached_file, dialog_id, false, false));
+    attached_file_ids.push_back(attached_file_id);
   }
 
   upload_imported_messages(dialog_id, td_->file_manager_->dup_file_id(file_id, "import_messages"),
@@ -34681,12 +34674,8 @@ void MessagesManager::set_dialog_photo(DialogId dialog_id, const tl_object_ptr<t
   }
 
   auto file_type = is_animation ? FileType::Animation : FileType::Photo;
-  auto r_file_id = td_->file_manager_->get_input_file_id(file_type, *input_file, dialog_id, true, false);
-  if (r_file_id.is_error()) {
-    // TODO promise.set_error(std::move(status));
-    return promise.set_error(Status::Error(400, r_file_id.error().message()));
-  }
-  FileId file_id = r_file_id.ok();
+  TRY_RESULT_PROMISE(promise, file_id,
+                     td_->file_manager_->get_input_file_id(file_type, *input_file, dialog_id, true, false));
   if (!file_id.is_valid()) {
     send_edit_dialog_photo_query(dialog_id, FileId(), make_tl_object<telegram_api::inputChatPhotoEmpty>(),
                                  std::move(promise));

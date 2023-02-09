@@ -673,12 +673,10 @@ void AnimationsManager::add_saved_animation(const tl_object_ptr<td_api::InputFil
     return;
   }
 
-  auto r_file_id = td_->file_manager_->get_input_file_id(FileType::Animation, input_file, DialogId(), false, false);
-  if (r_file_id.is_error()) {
-    return promise.set_error(Status::Error(400, r_file_id.error().message()));  // TODO do not drop error code
-  }
+  TRY_RESULT_PROMISE(promise, file_id,
+                     td_->file_manager_->get_input_file_id(FileType::Animation, input_file, DialogId(), false, false));
 
-  add_saved_animation_impl(r_file_id.ok(), true, std::move(promise));
+  add_saved_animation_impl(file_id, true, std::move(promise));
 }
 
 void AnimationsManager::send_save_gif_query(FileId animation_id, bool unsave, Promise<Unit> &&promise) {
@@ -787,12 +785,9 @@ void AnimationsManager::remove_saved_animation(const tl_object_ptr<td_api::Input
     return;
   }
 
-  auto r_file_id = td_->file_manager_->get_input_file_id(FileType::Animation, input_file, DialogId(), false, false);
-  if (r_file_id.is_error()) {
-    return promise.set_error(Status::Error(400, r_file_id.error().message()));  // TODO do not drop error code
-  }
+  TRY_RESULT_PROMISE(promise, file_id,
+                     td_->file_manager_->get_input_file_id(FileType::Animation, input_file, DialogId(), false, false));
 
-  FileId file_id = r_file_id.ok();
   auto is_equal = [animation_id = file_id](FileId file_id) {
     return file_id == animation_id ||
            (file_id.get_remote() == animation_id.get_remote() && animation_id.get_remote() != 0);
