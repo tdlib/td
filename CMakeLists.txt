@@ -453,6 +453,7 @@ set(TDLIB_SOURCE
   td/telegram/SponsoredMessageManager.cpp
   td/telegram/StateManager.cpp
   td/telegram/StickerFormat.cpp
+  td/telegram/StickerMaskPosition.cpp
   td/telegram/StickerPhotoSize.cpp
   td/telegram/StickersManager.cpp
   td/telegram/StickerType.cpp
@@ -727,6 +728,7 @@ set(TDLIB_SOURCE
   td/telegram/SponsoredMessageManager.h
   td/telegram/StateManager.h
   td/telegram/StickerFormat.h
+  td/telegram/StickerMaskPosition.h
   td/telegram/StickerPhotoSize.h
   td/telegram/StickerSetId.h
   td/telegram/StickersManager.h
@@ -798,6 +800,7 @@ set(TDLIB_SOURCE
   td/telegram/ScopeNotificationSettings.hpp
   td/telegram/SecureValue.hpp
   td/telegram/SendCodeHelper.hpp
+  td/telegram/StickerMaskPosition.hpp
   td/telegram/StickerPhotoSize.hpp
   td/telegram/StickerSetId.hpp
   td/telegram/StickersManager.hpp

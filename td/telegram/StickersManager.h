@@ -19,6 +19,7 @@
 #include "td/telegram/SecretInputMedia.h"
 #include "td/telegram/SpecialStickerSetType.h"
 #include "td/telegram/StickerFormat.h"
+#include "td/telegram/StickerMaskPosition.h"
 #include "td/telegram/StickerSetId.h"
 #include "td/telegram/StickerType.h"
 #include "td/telegram/td_api.h"
@@ -452,10 +453,7 @@ class StickersManager final : public Actor {
     bool has_text_color_ = false;
     bool is_from_database_ = false;
     bool is_being_reloaded_ = false;
-    int32 point_ = -1;
-    double x_shift_ = 0;
-    double y_shift_ = 0;
-    double scale_ = 0;
+    StickerMaskPosition mask_position_;
     int32 emoji_receive_date_ = 0;
   };
 
@@ -627,8 +625,6 @@ class StickersManager final : public Actor {
                                                                                         int64 document_id, double zoom);
 
   static double get_sticker_set_minithumbnail_zoom(const StickerSet *sticker_set);
-
-  static tl_object_ptr<td_api::MaskPoint> get_mask_point_object(int32 point);
 
   td_api::object_ptr<td_api::thumbnail> get_sticker_set_thumbnail_object(const StickerSet *sticker_set) const;
 

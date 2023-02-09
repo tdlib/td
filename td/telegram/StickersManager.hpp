@@ -12,6 +12,7 @@
 #include "td/telegram/misc.h"
 #include "td/telegram/PhotoSize.hpp"
 #include "td/telegram/StickerFormat.h"
+#include "td/telegram/StickerMaskPosition.hpp"
 #include "td/telegram/StickersManager.h"
 #include "td/telegram/Td.h"
 
@@ -63,10 +64,7 @@ void StickersManager::store_sticker(FileId file_id, bool in_sticker_set, StorerT
   store(sticker->m_thumbnail_, storer);
   store(file_id, storer);
   if (is_mask) {
-    store(sticker->point_, storer);
-    store(sticker->x_shift_, storer);
-    store(sticker->y_shift_, storer);
-    store(sticker->scale_, storer);
+    store(sticker->mask_position_, storer);
   }
   if (has_minithumbnail) {
     store(sticker->minithumbnail_, storer);
@@ -149,10 +147,7 @@ FileId StickersManager::parse_sticker(bool in_sticker_set, ParserT &parser) {
   add_sticker_thumbnail(sticker.get(), thumbnail);
   parse(sticker->file_id_, parser);
   if (is_mask) {
-    parse(sticker->point_, parser);
-    parse(sticker->x_shift_, parser);
-    parse(sticker->y_shift_, parser);
-    parse(sticker->scale_, parser);
+    parse(sticker->mask_position_, parser);
   }
   if (has_minithumbnail) {
     parse(sticker->minithumbnail_, parser);
