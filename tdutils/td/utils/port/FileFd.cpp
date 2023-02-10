@@ -638,7 +638,7 @@ Status FileFd::sync() {
 Status FileFd::sync_barrier() {
   CHECK(!empty());
 #if TD_DARWIN && defined(F_BARRIERFSYNC)
-  if (detail::skip_eintr([&] { return fcntl(get_native_fd().fd(), F_BARRIERFSYNC); }) == -1) {
+  if (detail::skip_eintr([&] { return fcntl(get_native_fd().fd(), F_BARRIERFSYNC); }) != -1) {
     return Status::OK();
   }
 #endif
