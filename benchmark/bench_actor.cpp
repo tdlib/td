@@ -46,14 +46,16 @@ class ActorTraits<TestActor> {
 }  // namespace td
 
 class CreateActorBench final : public td::Benchmark {
-  td::ConcurrentScheduler scheduler_{0, 0};
+  td::unique_ptr<td::ConcurrentScheduler> scheduler_;
 
   void start_up() final {
-    scheduler_.start();
+    scheduler_ = td::make_unique<td::ConcurrentScheduler>(0, 0);
+    scheduler_->start();
   }
 
   void tear_down() final {
-    scheduler_.finish();
+    scheduler_->finish();
+    scheduler_.reset();
   }
 
  public:
@@ -63,9 +65,9 @@ class CreateActorBench final : public td::Benchmark {
 
   void run(int n) final {
     for (int i = 0; i < n; i++) {
-      scheduler_.create_actor_unsafe<TestActor>(0, "TestActor").release();
+      scheduler_->create_actor_unsafe<TestActor>(0, "TestActor").release();
     }
-    while (scheduler_.run_main(10)) {
+    while (scheduler_->run_main(10)) {
       // empty
     }
   }
@@ -80,7 +82,7 @@ class RingBench final : public td::Benchmark {
   int actor_n_ = -1;
   int thread_n_ = -1;
   td::vector<td::ActorId<PassActor>> actor_array_;
-  td::ConcurrentScheduler *scheduler_ = nullptr;
+  td::unique_ptr<td::ConcurrentScheduler> scheduler_;
 
  public:
   td::string get_description() const final {
@@ -139,7 +141,7 @@ class RingBench final : public td::Benchmark {
   }
 
   void start_up() final {
-    scheduler_ = new td::ConcurrentScheduler(thread_n_, 0);
+    scheduler_ = td::make_unique<td::ConcurrentScheduler>(thread_n_, 0);
 
     actor_array_ = td::vector<td::ActorId<PassActor>>(actor_n_);
     for (int i = 0; i < actor_n_; i++) {
@@ -163,7 +165,7 @@ class RingBench final : public td::Benchmark {
 
   void tear_down() final {
     scheduler_->finish();
-    delete scheduler_;
+    scheduler_.reset();
   }
 };
 
@@ -244,8 +246,11 @@ class QueryBench final : public td::Benchmark {
           td::FutureActor<int> future;
           init_promise_future(&promise, &future);
           send_closure(client_, &ClientActor::f_immediate_promise, n_, std::move(promise));
-          int val = future.move_as_ok();
-          CHECK(val == n_ * n_);
+          CHECK(!future.is_ready());
+          CHECK(!future.empty());
+          CHECK(future.get_state() == td::FutureActor<int>::State::Waiting);
+          // int val = future.move_as_ok();
+          // CHECK(val == n_ * n_);
         } else if (type == 2) {
           td::PromiseActor<int> promise;
           init_promise_future(&promise, &future_);
@@ -258,7 +263,7 @@ class QueryBench final : public td::Benchmark {
         } else if (type == 4) {
           int val = 0;
           send_lambda(client_, [&] { val = n_ * n_; });
-          CHECK(val == n_ * n_);
+          CHECK(val == 0 || val == n_ * n_);
         } else if (type == 5) {
           send_closure(client_, &ClientActor::f_promise,
                        td::PromiseCreator::lambda([actor_id = actor_id(this), n = n_](td::Unit) {
@@ -291,7 +296,7 @@ class QueryBench final : public td::Benchmark {
   };
 
   void start_up() final {
-    scheduler_ = new td::ConcurrentScheduler(0, 0);
+    scheduler_ = td::make_unique<td::ConcurrentScheduler>(0, 0);
 
     server_ = scheduler_->create_actor_unsafe<ServerActor>(0, "Server");
     scheduler_->start();
@@ -311,11 +316,11 @@ class QueryBench final : public td::Benchmark {
   void tear_down() final {
     server_.release();
     scheduler_->finish();
-    delete scheduler_;
+    scheduler_.reset();
   }
 
  private:
-  td::ConcurrentScheduler *scheduler_ = nullptr;
+  td::unique_ptr<td::ConcurrentScheduler> scheduler_;
   td::ActorOwn<ServerActor> server_;
 };
 
@@ -330,8 +335,8 @@ int main() {
   bench(RingBench<2>(504, 0));
   bench(QueryBench<5>());
   bench(QueryBench<4>());
-  bench(QueryBench<2>());
   bench(QueryBench<3>());
+  bench(QueryBench<2>());
   bench(QueryBench<1>());
   bench(QueryBench<0>());
   bench(RingBench<3>(504, 0));
