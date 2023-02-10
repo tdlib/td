@@ -62,6 +62,7 @@ class FileFd {
   Result<Stat> stat() const;
 
   Status sync() TD_WARN_UNUSED_RESULT;
+  Status sync_barrier() TD_WARN_UNUSED_RESULT;
 
   Status seek(int64 position) TD_WARN_UNUSED_RESULT;
 
