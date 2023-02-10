@@ -8030,6 +8030,11 @@ setStickerEmojis sticker:InputFile emojis:string = Ok;
 //@keywords List of up to 20 keywords with total length up to 64 characters, which can be used to find the sticker
 setStickerKeywords sticker:InputFile keywords:vector<string> = Ok;
 
+//@description Changes the mask position of a mask sticker; for bots only. The sticker must belong to a mask sticker set created by the bot
+//@sticker Sticker
+//@mask_position Position where the mask is placed; pass null to remove mask position
+setStickerMaskPosition sticker:InputFile mask_position:maskPosition = Ok;
+
 
 //@description Returns information about a file with a map thumbnail in PNG format. Only map thumbnail files with size less than 1MB can be downloaded
 //@location Location of the map center

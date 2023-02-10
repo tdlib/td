@@ -324,6 +324,9 @@ class StickersManager final : public Actor {
   void set_sticker_keywords(const td_api::object_ptr<td_api::InputFile> &sticker, vector<string> &&keywords,
                             Promise<Unit> &&promise);
 
+  void set_sticker_mask_position(const td_api::object_ptr<td_api::InputFile> &sticker,
+                                 td_api::object_ptr<td_api::maskPosition> &&mask_position, Promise<Unit> &&promise);
+
   vector<FileId> get_recent_stickers(bool is_attached, Promise<Unit> &&promise);
 
   void on_get_recent_stickers(bool is_repair, bool is_attached,

@@ -60,7 +60,8 @@ StickerMaskPosition::StickerMaskPosition(const td_api::object_ptr<td_api::maskPo
     }
   }();
   x_shift_ = mask_position->x_shift_;
-  y_shift_ = mask_position->y_shift_, scale_ = mask_position->scale_;
+  y_shift_ = mask_position->y_shift_;
+  scale_ = mask_position->scale_;
 }
 
 telegram_api::object_ptr<telegram_api::maskCoords> StickerMaskPosition::get_input_mask_coords() const {
