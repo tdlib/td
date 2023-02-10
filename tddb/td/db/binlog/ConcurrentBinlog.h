@@ -55,6 +55,7 @@ class ConcurrentBinlog final : public BinlogInterface {
   CSlice get_path() const {
     return path_;
   }
+  uint64 erase_batch(std::vector<uint64> event_ids) final;
 
  private:
   void init_impl(unique_ptr<Binlog> binlog, int scheduler_id);

@@ -258,9 +258,7 @@ class TQueueImpl final : public TQueue {
         }
       }
       collect_deleted_event_ids_time = Time::now() - start_time;
-      for (auto log_event_id : deleted_log_event_ids) {
-        callback_->pop(log_event_id);
-      }
+      callback_->pop_batch(std::move(deleted_log_event_ids));
     }
     auto callback_clear_time = Time::now() - start_time;
 
@@ -548,6 +546,11 @@ void TQueueBinlog<BinlogT>::pop(uint64 log_event_id) {
 }
 
 template <class BinlogT>
+void TQueueBinlog<BinlogT>::pop_batch(std::vector<uint64> log_event_ids) {
+  binlog_->erase_batch(std::move(log_event_ids));
+}
+
+template <class BinlogT>
 Status TQueueBinlog<BinlogT>::replay(const BinlogEvent &binlog_event, TQueue &q) const {
   TQueueLogEvent event;
   TlParser parser(binlog_event.get_data());
@@ -602,4 +605,9 @@ void TQueueMemoryStorage::close(Promise<> promise) {
   promise.set_value({});
 }
 
+void TQueue::StorageCallback::pop_batch(std::vector<uint64> log_event_ids) {
+  for (auto id : log_event_ids) {
+    pop(id);
+  }
+}
 }  // namespace td

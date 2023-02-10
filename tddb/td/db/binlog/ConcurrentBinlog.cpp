@@ -39,6 +39,15 @@ class BinlogActor final : public Actor {
     Promise<> sync_promise;
     BinlogDebugInfo debug_info;
   };
+
+  void erase_batch(uint64 seq_no, std::vector<uint64> event_ids) {
+    for (auto event_id : event_ids) {
+      auto event = BinlogEvent::create_raw(event_id, BinlogEvent::ServiceTypes::Empty, BinlogEvent::Flags::Rewrite, EmptyStorer());
+      add_raw_event(seq_no, std::move(event), {}, {});
+      seq_no++;
+    }
+  }
+
   void add_raw_event(uint64 seq_no, BufferSlice &&raw_event, Promise<> &&promise, BinlogDebugInfo info) {
     processor_.add(seq_no, Event{std::move(raw_event), std::move(promise), info}, [&](uint64 event_id, Event &&event) {
       if (!event.raw_event.empty()) {
@@ -202,5 +211,12 @@ void ConcurrentBinlog::force_flush() {
 }
 void ConcurrentBinlog::change_key(DbKey db_key, Promise<> promise) {
   send_closure(binlog_actor_, &detail::BinlogActor::change_key, std::move(db_key), std::move(promise));
+}
+
+uint64 ConcurrentBinlog::erase_batch(std::vector<uint64> event_ids) {
+  auto shift = td::narrow_cast<int32>(event_ids.size());
+  auto seq_no = next_event_id(shift);
+  send_closure(binlog_actor_, &detail::BinlogActor::erase_batch, seq_no, std::move(event_ids));
+  return seq_no;
 }
 }  // namespace td

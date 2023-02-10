@@ -93,6 +93,14 @@ class Binlog {
     return seq_no;
   }
 
+  uint64 erase_batch(std::vector<uint64> event_ids) {
+    auto seq_no = next_event_id(0);
+    for (auto event_id : event_ids) {
+      erase(event_id);
+    }
+    return seq_no;
+  }
+
   void add_raw_event(BufferSlice &&raw_event, BinlogDebugInfo info) {
     add_event(BinlogEvent(std::move(raw_event), info));
   }

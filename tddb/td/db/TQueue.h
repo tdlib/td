@@ -83,6 +83,7 @@ class TQueue {
     virtual uint64 push(QueueId queue_id, const RawEvent &event) = 0;
     virtual void pop(uint64 log_event_id) = 0;
     virtual void close(Promise<> promise) = 0;
+    virtual void pop_batch(std::vector<uint64> log_event_ids);
   };
 
   static unique_ptr<TQueue> create();
@@ -128,6 +129,7 @@ class TQueueBinlog final : public TQueue::StorageCallback {
  public:
   uint64 push(QueueId queue_id, const RawEvent &event) final;
   void pop(uint64 log_event_id) final;
+  void pop_batch(std::vector<uint64> log_event_ids) final;
   Status replay(const BinlogEvent &binlog_event, TQueue &q) const TD_WARN_UNUSED_RESULT;
 
   void set_binlog(std::shared_ptr<BinlogT> binlog) {
