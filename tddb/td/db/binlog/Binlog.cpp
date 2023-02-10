@@ -650,8 +650,11 @@ void Binlog::do_reindex() {
   });
   {
     flush();
-    auto status = fd_.sync_barrier();
-    LOG_IF(FATAL, status.is_error()) << "Failed to sync binlog: " << status;
+    if (start_size != 0) {  // must sync creation of the file if it is non-empty
+      auto status = fd_.sync_barrier();
+      LOG_IF(FATAL, status.is_error()) << "Failed to sync binlog: " << status;
+    }
+    need_sync_ = false;
   }
 
   // finish_reindex
