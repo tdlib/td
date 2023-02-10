@@ -648,8 +648,11 @@ void Binlog::do_reindex() {
   processor_->for_each([&](BinlogEvent &event) {
     do_event(std::move(event));  // NB: no move is actually happens
   });
-  need_sync_ = start_size != 0;  // must sync creation of the file if it is non-empty
-  sync();
+  {
+    flush();
+    auto status = fd_.sync_barrier();
+    LOG_IF(FATAL, status.is_error()) << "Failed to sync binlog: " << status;
+  }
 
   // finish_reindex
   auto status = unlink(path_);
