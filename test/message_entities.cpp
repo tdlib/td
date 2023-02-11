@@ -725,16 +725,16 @@ static void check_fix_formatted_text(td::string str, td::vector<td::MessageEntit
                                      const td::string &expected_str,
                                      const td::vector<td::MessageEntity> &expected_entities, bool allow_empty = true,
                                      bool skip_new_entities = false, bool skip_bot_commands = false,
-                                     bool for_draft = true) {
-  ASSERT_TRUE(td::fix_formatted_text(str, entities, allow_empty, skip_new_entities, skip_bot_commands, true, for_draft)
+                                     bool skip_trim = true) {
+  ASSERT_TRUE(td::fix_formatted_text(str, entities, allow_empty, skip_new_entities, skip_bot_commands, true, skip_trim)
                   .is_ok());
   ASSERT_STREQ(expected_str, str);
   ASSERT_EQ(expected_entities, entities);
 }
 
 static void check_fix_formatted_text(td::string str, td::vector<td::MessageEntity> entities, bool allow_empty,
-                                     bool skip_new_entities, bool skip_bot_commands, bool for_draft) {
-  ASSERT_TRUE(td::fix_formatted_text(str, entities, allow_empty, skip_new_entities, skip_bot_commands, true, for_draft)
+                                     bool skip_new_entities, bool skip_bot_commands, bool skip_trim) {
+  ASSERT_TRUE(td::fix_formatted_text(str, entities, allow_empty, skip_new_entities, skip_bot_commands, true, skip_trim)
                   .is_error());
 }
 
@@ -815,9 +815,9 @@ TEST(MessageEntities, fix_formatted_text) {
   }
 
   str = "  /test @abaca #ORD $ABC  telegram.org ";
-  for (auto for_draft : {false, true}) {
-    td::int32 shift = for_draft ? 2 : 0;
-    td::string expected_str = for_draft ? str : str.substr(2, str.size() - 3);
+  for (auto skip_trim : {false, true}) {
+    td::int32 shift = skip_trim ? 2 : 0;
+    td::string expected_str = skip_trim ? str : str.substr(2, str.size() - 3);
 
     for (auto skip_new_entities : {false, true}) {
       for (auto skip_bot_commands : {false, true}) {
@@ -833,9 +833,9 @@ TEST(MessageEntities, fix_formatted_text) {
         }
 
         check_fix_formatted_text(str, {}, expected_str, entities, true, skip_new_entities, skip_bot_commands,
-                                 for_draft);
+                                 skip_trim);
         check_fix_formatted_text(str, {}, expected_str, entities, false, skip_new_entities, skip_bot_commands,
-                                 for_draft);
+                                 skip_trim);
       }
     }
   }
@@ -846,8 +846,8 @@ TEST(MessageEntities, fix_formatted_text) {
     for (td::int32 offset = 0; static_cast<size_t>(offset + length) <= str.size(); offset++) {
       for (auto type : {td::MessageEntity::Type::Bold, td::MessageEntity::Type::Url, td::MessageEntity::Type::TextUrl,
                         td::MessageEntity::Type::MentionName}) {
-        for (auto for_draft : {false, true}) {
-          fixed_str = for_draft ? "aba \n caba " : "aba \n caba";
+        for (auto skip_trim : {false, true}) {
+          fixed_str = skip_trim ? "aba \n caba " : "aba \n caba";
           auto fixed_length = offset <= 4 && offset + length >= 5 ? length - 1 : length;
           auto fixed_offset = offset >= 5 ? offset - 1 : offset;
           if (static_cast<size_t>(fixed_offset) >= fixed_str.size()) {
@@ -885,7 +885,7 @@ TEST(MessageEntities, fix_formatted_text) {
               }
             }
           }
-          check_fix_formatted_text(str, entities, fixed_str, fixed_entities, true, false, false, for_draft);
+          check_fix_formatted_text(str, entities, fixed_str, fixed_entities, true, false, false, skip_trim);
         }
       }
     }

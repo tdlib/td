@@ -220,11 +220,11 @@ telegram_api::object_ptr<telegram_api::textWithEntities> get_input_text_with_ent
 FormattedText get_formatted_text(const ContactsManager *contacts_manager,
                                  telegram_api::object_ptr<telegram_api::textWithEntities> text_with_entities,
                                  bool allow_empty, bool skip_new_entities, bool skip_bot_commands,
-                                 bool skip_media_timestamps, bool for_draft, const char *source);
+                                 bool skip_media_timestamps, bool skip_trim, const char *source);
 
 // like clean_input_string but also validates entities
 Status fix_formatted_text(string &text, vector<MessageEntity> &entities, bool allow_empty, bool skip_new_entities,
-                          bool skip_bot_commands, bool skip_media_timestamps, bool for_draft) TD_WARN_UNUSED_RESULT;
+                          bool skip_bot_commands, bool skip_media_timestamps, bool skip_trim) TD_WARN_UNUSED_RESULT;
 
 FormattedText get_message_text(const ContactsManager *contacts_manager, string message_text,
                                vector<tl_object_ptr<telegram_api::MessageEntity>> &&server_entities,
@@ -236,7 +236,7 @@ td_api::object_ptr<td_api::formattedText> extract_input_caption(
 
 Result<FormattedText> get_formatted_text(const Td *td, DialogId dialog_id,
                                          td_api::object_ptr<td_api::formattedText> &&text, bool is_bot,
-                                         bool allow_empty, bool skip_media_timestamps, bool for_draft);
+                                         bool allow_empty, bool skip_media_timestamps, bool skip_trim);
 
 void add_formatted_text_dependencies(Dependencies &dependencies, const FormattedText *text);
 

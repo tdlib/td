@@ -3734,11 +3734,11 @@ telegram_api::object_ptr<telegram_api::textWithEntities> get_input_text_with_ent
 FormattedText get_formatted_text(const ContactsManager *contacts_manager,
                                  telegram_api::object_ptr<telegram_api::textWithEntities> text_with_entities,
                                  bool allow_empty, bool skip_new_entities, bool skip_bot_commands,
-                                 bool skip_media_timestamps, bool for_draft, const char *source) {
+                                 bool skip_media_timestamps, bool skip_trim, const char *source) {
   CHECK(text_with_entities != nullptr);
   auto entities = get_message_entities(contacts_manager, std::move(text_with_entities->entities_), source);
   auto status = fix_formatted_text(text_with_entities->text_, entities, allow_empty, skip_new_entities,
-                                   skip_bot_commands, skip_media_timestamps, for_draft);
+                                   skip_bot_commands, skip_media_timestamps, skip_trim);
   if (status.is_error()) {
     if (!clean_input_string(text_with_entities->text_)) {
       text_with_entities->text_.clear();
@@ -4154,7 +4154,7 @@ static void merge_new_entities(vector<MessageEntity> &entities, vector<MessageEn
 }
 
 Status fix_formatted_text(string &text, vector<MessageEntity> &entities, bool allow_empty, bool skip_new_entities,
-                          bool skip_bot_commands, bool skip_media_timestamps, bool for_draft) {
+                          bool skip_bot_commands, bool skip_media_timestamps, bool skip_trim) {
   string result;
   if (entities.empty()) {
     // fast path
@@ -4202,7 +4202,7 @@ Status fix_formatted_text(string &text, vector<MessageEntity> &entities, bool al
   // some splittable entities may be needed to be concatenated
   fix_entities(entities);
 
-  if (for_draft) {
+  if (skip_trim) {
     text = std::move(result);
   } else {
     // rtrim
@@ -4330,7 +4330,7 @@ td_api::object_ptr<td_api::formattedText> extract_input_caption(
 
 Result<FormattedText> get_formatted_text(const Td *td, DialogId dialog_id,
                                          td_api::object_ptr<td_api::formattedText> &&text, bool is_bot,
-                                         bool allow_empty, bool skip_media_timestamps, bool for_draft) {
+                                         bool allow_empty, bool skip_media_timestamps, bool skip_trim) {
   if (text == nullptr) {
     if (allow_empty) {
       return FormattedText();
@@ -4343,13 +4343,13 @@ Result<FormattedText> get_formatted_text(const Td *td, DialogId dialog_id,
   auto need_skip_bot_commands = need_always_skip_bot_commands(td->contacts_manager_.get(), dialog_id, is_bot);
   bool parse_markdown = td->option_manager_->get_option_boolean("always_parse_markdown");
   TRY_STATUS(fix_formatted_text(text->text_, entities, allow_empty, parse_markdown, need_skip_bot_commands,
-                                is_bot || skip_media_timestamps || parse_markdown, for_draft));
+                                is_bot || skip_media_timestamps || parse_markdown, skip_trim));
 
   FormattedText result{std::move(text->text_), std::move(entities)};
   if (parse_markdown) {
     result = parse_markdown_v3(std::move(result));
     fix_formatted_text(result.text, result.entities, allow_empty, false, need_skip_bot_commands,
-                       is_bot || skip_media_timestamps, for_draft)
+                       is_bot || skip_media_timestamps, skip_trim)
         .ensure();
   }
   remove_unallowed_entities(td, result, dialog_id);
