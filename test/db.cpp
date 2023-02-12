@@ -264,12 +264,31 @@ TEST(DB, sqlite_encryption_migrate_v4) {
 
 using SeqNo = td::uint64;
 struct DbQuery {
-  enum class Type { Get, Set, Erase } type = Type::Get;
+  enum class Type { Get, Set, Erase, EraseBatch } type = Type::Get;
   SeqNo tid = 0;
-  td::int32 id = 0;
   td::string key;
   td::string value;
+
+  // for EraseBatch
+  td::vector<td::string> erased_keys;
 };
+
+static td::StringBuilder &operator<<(td::StringBuilder &string_builder, const DbQuery &query) {
+  string_builder << "seq_no = " << query.tid << ": ";
+  switch (query.type) {
+    case DbQuery::Type::Get:
+      return string_builder << "Get " << query.key << " = " << query.value;
+    case DbQuery::Type::Set:
+      return string_builder << "Set " << query.key << " = " << query.value;
+    case DbQuery::Type::Erase:
+      return string_builder << "Del " << query.key;
+    case DbQuery::Type::EraseBatch:
+      return string_builder << "Del " << query.erased_keys;
+    default:
+      UNREACHABLE();
+      return string_builder;
+  }
+}
 
 template <class ImplT>
 class QueryHandler {
@@ -288,6 +307,10 @@ class QueryHandler {
         return;
       case DbQuery::Type::Erase:
         impl_.erase(query.key);
+        query.tid = 1;
+        return;
+      case DbQuery::Type::EraseBatch:
+        impl_.erase_batch(query.erased_keys);
         query.tid = 1;
         return;
     }
@@ -314,6 +337,9 @@ class SeqQueryHandler {
       case DbQuery::Type::Erase:
         query.tid = impl_.erase(query.key);
         return;
+      case DbQuery::Type::EraseBatch:
+        query.tid = impl_.erase_batch(query.erased_keys);
+        return;
     }
   }
 
@@ -332,6 +358,12 @@ class SqliteKV {
   }
   SeqNo erase(const td::string &key) {
     kv_->get().erase(key);
+    return 0;
+  }
+  SeqNo erase_batch(td::vector<td::string> keys) {
+    for (auto &key : keys) {
+      kv_->get().erase(key);
+    }
     return 0;
   }
   td::Status init(const td::string &name) {
@@ -360,6 +392,14 @@ class BaselineKV {
     map_.erase(key);
     return ++current_tid_;
   }
+  SeqNo erase_batch(td::vector<td::string> keys) {
+    for (auto &key : keys) {
+      map_.erase(key);
+    }
+    SeqNo result = current_tid_ + 1;
+    current_tid_ += map_.size();
+    return result;
+  }
 
  private:
   std::map<td::string, td::string> map_;
@@ -380,9 +420,8 @@ TEST(DB, key_value) {
   int queries_n = 1000;
   td::vector<DbQuery> queries(queries_n);
   for (auto &q : queries) {
-    int op = td::Random::fast(0, 2);
+    int op = td::Random::fast(0, 3);
     const auto &key = rand_elem(keys);
-    const auto &value = rand_elem(values);
     if (op == 0) {
       q.type = DbQuery::Type::Get;
       q.key = key;
@@ -392,7 +431,13 @@ TEST(DB, key_value) {
     } else if (op == 2) {
       q.type = DbQuery::Type::Set;
       q.key = key;
-      q.value = value;
+      q.value = rand_elem(values);
+    } else if (op == 3) {
+      q.type = DbQuery::Type::EraseBatch;
+      q.erased_keys.resize(td::Random::fast(0, 3));
+      for (auto &erased_key : q.erased_keys) {
+        erased_key = rand_elem(keys);
+      }
     }
   }
 
@@ -494,17 +539,22 @@ TEST(DB, thread_key_value) {
     for (auto &q : qs) {
       int op = td::Random::fast(0, 10);
       const auto &key = rand_elem(keys);
-      const auto &value = rand_elem(values);
-      if (op > 1) {
-        q.type = DbQuery::Type::Get;
-        q.key = key;
-      } else if (op == 0) {
+      if (op == 0) {
         q.type = DbQuery::Type::Erase;
         q.key = key;
       } else if (op == 1) {
+        q.type = DbQuery::Type::EraseBatch;
+        q.erased_keys.resize(td::Random::fast(0, 3));
+        for (auto &erased_key : q.erased_keys) {
+          erased_key = rand_elem(keys);
+        }
+      } else if (op <= 6) {
         q.type = DbQuery::Type::Set;
         q.key = key;
-        q.value = value;
+        q.value = rand_elem(values);
+      } else {
+        q.type = DbQuery::Type::Get;
+        q.key = key;
       }
     }
   }
@@ -606,17 +656,22 @@ TEST(DB, persistent_key_value) {
       for (auto &q : qs) {
         int op = td::Random::fast(0, 10);
         const auto &key = rand_elem(keys);
-        const auto &value = rand_elem(values);
-        if (op > 1) {
-          q.type = DbQuery::Type::Get;
-          q.key = key;
-        } else if (op == 0) {
+        if (op == 0) {
           q.type = DbQuery::Type::Erase;
           q.key = key;
         } else if (op == 1) {
+          q.type = DbQuery::Type::EraseBatch;
+          q.erased_keys.resize(td::Random::fast(0, 3));
+          for (auto &erased_key : q.erased_keys) {
+            erased_key = rand_elem(keys);
+          }
+        } else if (op <= 6) {
           q.type = DbQuery::Type::Set;
           q.key = key;
-          q.value = value;
+          q.value = rand_elem(values);
+        } else {
+          q.type = DbQuery::Type::Get;
+          q.key = key;
         }
       }
     }
@@ -718,6 +773,7 @@ TEST(DB, persistent_key_value) {
       if (was) {
         continue;
       }
+      LOG(DEBUG) << pos;
 
       int best = -1;
       SeqNo best_tid = 0;
@@ -728,6 +784,7 @@ TEST(DB, persistent_key_value) {
         }
         was = true;
         auto &q = res[i][p];
+        LOG(DEBUG) << i << ' ' << p << ' ' << q;
         if (q.tid != 0) {
           if (best == -1 || q.tid < best_tid) {
             best = i;
