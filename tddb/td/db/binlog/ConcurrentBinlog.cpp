@@ -7,6 +7,7 @@
 #include "td/db/binlog/ConcurrentBinlog.h"
 
 #include "td/utils/logging.h"
+#include "td/utils/misc.h"
 #include "td/utils/OrderedEventsProcessor.h"
 #include "td/utils/SliceBuilder.h"
 #include "td/utils/Time.h"
@@ -42,8 +43,9 @@ class BinlogActor final : public Actor {
 
   void erase_batch(uint64 seq_no, std::vector<uint64> event_ids) {
     for (auto event_id : event_ids) {
-      auto event = BinlogEvent::create_raw(event_id, BinlogEvent::ServiceTypes::Empty, BinlogEvent::Flags::Rewrite, EmptyStorer());
-      add_raw_event(seq_no, std::move(event), {}, {});
+      auto event = BinlogEvent::create_raw(event_id, BinlogEvent::ServiceTypes::Empty, BinlogEvent::Flags::Rewrite,
+                                           EmptyStorer());
+      add_raw_event(seq_no, std::move(event), Promise<Unit>(), BinlogDebugInfo{__FILE__, __LINE__});
       seq_no++;
     }
   }
@@ -213,10 +215,14 @@ void ConcurrentBinlog::change_key(DbKey db_key, Promise<> promise) {
   send_closure(binlog_actor_, &detail::BinlogActor::change_key, std::move(db_key), std::move(promise));
 }
 
-uint64 ConcurrentBinlog::erase_batch(std::vector<uint64> event_ids) {
-  auto shift = td::narrow_cast<int32>(event_ids.size());
+uint64 ConcurrentBinlog::erase_batch(vector<uint64> event_ids) {
+  auto shift = narrow_cast<int32>(event_ids.size());
+  if (shift == 0) {
+    return 0;
+  }
   auto seq_no = next_event_id(shift);
   send_closure(binlog_actor_, &detail::BinlogActor::erase_batch, seq_no, std::move(event_ids));
   return seq_no;
 }
+
 }  // namespace td

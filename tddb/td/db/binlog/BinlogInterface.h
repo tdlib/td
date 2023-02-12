@@ -63,10 +63,13 @@ class BinlogInterface {
     return seq_no;
   }
 
-  virtual uint64 erase_batch(std::vector<uint64> event_ids) {
+  virtual uint64 erase_batch(vector<uint64> event_ids) {
+    if (event_ids.empty()) {
+      return 0;
+    }
     uint64 seq_no = next_event_id(0);
-    for (auto id : event_ids) {
-      erase(id);
+    for (auto event_id : event_ids) {
+      erase(event_id);
     }
     return seq_no;
   }

@@ -93,7 +93,10 @@ class Binlog {
     return seq_no;
   }
 
-  uint64 erase_batch(std::vector<uint64> event_ids) {
+  uint64 erase_batch(vector<uint64> event_ids) {
+    if (event_ids.empty()) {
+      return 0;
+    }
     auto seq_no = next_event_id(0);
     for (auto event_id : event_ids) {
       erase(event_id);
